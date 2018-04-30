@@ -1,6 +1,10 @@
 package terraform
 
-import "fmt"
+import (
+	"fmt"
+
+	"github.com/hashicorp/terraform/addrs"
+)
 
 // DeposedTransformer is a GraphTransformer that adds deposed resources
 // to the graph.
@@ -14,7 +18,7 @@ type DeposedTransformer struct {
 	View string
 
 	// The provider used by the resourced which were deposed
-	ResolvedProvider string
+	ResolvedProvider addrs.AbsProviderConfig
 }
 
 func (t *DeposedTransformer) Transform(g *Graph) error {
@@ -37,15 +41,22 @@ func (t *DeposedTransformer) Transform(g *Graph) error {
 			continue
 		}
 
-		deposed := rs.Deposed
+		legacyAddr, err := parseResourceAddressInternal(k)
+		if err != nil {
+			return fmt.Errorf("invalid instance key %q in state: %s", k, err)
+		}
+		addr := legacyAddr.AbsResourceInstanceAddr()
 
-		for i, _ := range deposed {
+		providerAddr, err := rs.ProviderAddr()
+		if err != nil {
+			return fmt.Errorf("invalid instance provider address %q in state: %s", rs.Provider, err)
+		}
+
+		for i := range rs.Deposed {
 			g.Add(&graphNodeDeposedResource{
+				Addr:             addr,
 				Index:            i,
-				ResourceName:     k,
-				ResourceType:     rs.Type,
-				ProviderName:     rs.Provider,
-				ResolvedProvider: t.ResolvedProvider,
+				RecordedProvider: providerAddr,
 			})
 		}
 	}
@@ -55,35 +66,41 @@ func (t *DeposedTransformer) Transform(g *Graph) error {
 
 // graphNodeDeposedResource is the graph vertex representing a deposed resource.
 type graphNodeDeposedResource struct {
-	Index            int
-	ResourceName     string
-	ResourceType     string
-	ProviderName     string
-	ResolvedProvider string
+	Addr             addrs.AbsResourceInstance
+	Index            int // Index into the "deposed" list in state
+	RecordedProvider addrs.AbsProviderConfig
+	ResolvedProvider addrs.AbsProviderConfig
 }
+
+var (
+	_ GraphNodeProviderConsumer = (*graphNodeDeposedResource)(nil)
+	_ GraphNodeEvalable         = (*graphNodeDeposedResource)(nil)
+)
 
 func (n *graphNodeDeposedResource) Name() string {
-	return fmt.Sprintf("%s (deposed #%d)", n.ResourceName, n.Index)
+	return fmt.Sprintf("%s (deposed #%d)", n.Addr.String(), n.Index)
 }
 
-func (n *graphNodeDeposedResource) ProvidedBy() string {
-	return resourceProvider(n.ResourceName, n.ProviderName)
+func (n *graphNodeDeposedResource) ProvidedBy() (addrs.AbsProviderConfig, bool) {
+	return n.RecordedProvider, true
 }
 
-func (n *graphNodeDeposedResource) SetProvider(p string) {
-	n.ResolvedProvider = p
+func (n *graphNodeDeposedResource) SetProvider(addr addrs.AbsProviderConfig) {
+	// Because our ProvidedBy returns exact=true, this is actually rather
+	// pointless and should always just be the address we asked for.
+	n.RecordedProvider = addr
 }
 
 // GraphNodeEvalable impl.
 func (n *graphNodeDeposedResource) EvalTree() EvalNode {
+	addr := n.Addr
+
 	var provider ResourceProvider
 	var state *InstanceState
 
 	seq := &EvalSequence{Nodes: make([]EvalNode, 0, 5)}
 
-	// Build instance info
-	info := &InstanceInfo{Id: n.Name(), Type: n.ResourceType}
-	seq.Nodes = append(seq.Nodes, &EvalInstanceInfo{Info: info})
+	stateKey := NewLegacyResourceInstanceAddress(addr).stateId()
 
 	// Refresh the resource
 	seq.Nodes = append(seq.Nodes, &EvalOpFilter{
@@ -91,24 +108,24 @@ func (n *graphNodeDeposedResource) EvalTree() EvalNode {
 		Node: &EvalSequence{
 			Nodes: []EvalNode{
 				&EvalGetProvider{
-					Name:   n.ResolvedProvider,
+					Addr:   n.ResolvedProvider,
 					Output: &provider,
 				},
 				&EvalReadStateDeposed{
-					Name:   n.ResourceName,
+					Name:   stateKey,
 					Output: &state,
 					Index:  n.Index,
 				},
 				&EvalRefresh{
-					Info:     info,
+					Addr:     addr.Resource,
 					Provider: &provider,
 					State:    &state,
 					Output:   &state,
 				},
 				&EvalWriteStateDeposed{
-					Name:         n.ResourceName,
-					ResourceType: n.ResourceType,
-					Provider:     n.ResolvedProvider,
+					Name:         stateKey,
+					ResourceType: n.Addr.Resource.Resource.Type,
+					Provider:     n.ResolvedProvider.String(), // FIXME: Change underlying struct to use addrs.AbsProviderConfig itself
 					State:        &state,
 					Index:        n.Index,
 				},
@@ -124,27 +141,27 @@ func (n *graphNodeDeposedResource) EvalTree() EvalNode {
 		Node: &EvalSequence{
 			Nodes: []EvalNode{
 				&EvalGetProvider{
-					Name:   n.ResolvedProvider,
+					Addr:   n.ResolvedProvider,
 					Output: &provider,
 				},
 				&EvalReadStateDeposed{
-					Name:   n.ResourceName,
+					Name:   stateKey,
 					Output: &state,
 					Index:  n.Index,
 				},
 				&EvalDiffDestroy{
-					Info:   info,
+					Addr:   addr.Resource,
 					State:  &state,
 					Output: &diff,
 				},
 				// Call pre-apply hook
 				&EvalApplyPre{
-					Info:  info,
+					Addr:  addr.Resource,
 					State: &state,
 					Diff:  &diff,
 				},
 				&EvalApply{
-					Info:     info,
+					Addr:     addr.Resource,
 					State:    &state,
 					Diff:     &diff,
 					Provider: &provider,
@@ -155,14 +172,14 @@ func (n *graphNodeDeposedResource) EvalTree() EvalNode {
 				// was successfully destroyed it will be pruned. If it was not, it will
 				// be caught on the next run.
 				&EvalWriteStateDeposed{
-					Name:         n.ResourceName,
-					ResourceType: n.ResourceType,
-					Provider:     n.ResolvedProvider,
+					Name:         stateKey,
+					ResourceType: n.Addr.Resource.Resource.Type,
+					Provider:     n.ResolvedProvider.String(), // FIXME: Change underlying struct to use addrs.AbsProviderConfig itself
 					State:        &state,
 					Index:        n.Index,
 				},
 				&EvalApplyPost{
-					Info:  info,
+					Addr:  addr.Resource,
 					State: &state,
 					Error: &err,
 				},

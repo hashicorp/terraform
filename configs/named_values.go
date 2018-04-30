@@ -3,6 +3,8 @@ package configs
 import (
 	"fmt"
 
+	"github.com/hashicorp/terraform/addrs"
+
 	"github.com/hashicorp/hcl2/ext/typeexpr"
 	"github.com/hashicorp/hcl2/gohcl"
 	"github.com/hashicorp/hcl2/hcl"
@@ -309,6 +311,14 @@ func decodeLocalsBlock(block *hcl.Block) ([]*Local, hcl.Diagnostics) {
 		})
 	}
 	return locals, diags
+}
+
+// Addr returns the address of the local value declared by the receiver,
+// relative to its containing module.
+func (l *Local) Addr() addrs.LocalValue {
+	return addrs.LocalValue{
+		Name: l.Name,
+	}
 }
 
 var variableBlockSchema = &hcl.BodySchema{

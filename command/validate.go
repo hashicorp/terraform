@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/hashicorp/terraform/terraform"
 	"github.com/hashicorp/terraform/tfdiags"
 )
 
@@ -111,36 +112,24 @@ Options:
 func (c *ValidateCommand) validate(dir string) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 
-	_, cfgDiags := c.loadConfig(dir)
+	cfg, cfgDiags := c.loadConfig(dir)
 	diags = diags.Append(cfgDiags)
 
 	if diags.HasErrors() {
 		return diags
 	}
 
-	// TODO: run a validation walk once terraform.NewContext is updated
-	// to support new-style configuration.
-	/* old implementation of validation....
-	mod, modDiags := c.Module(dir)
-	diags = diags.Append(modDiags)
-	if modDiags.HasErrors() {
-		c.showDiagnostics(diags)
-		return 1
-	}
-
 	opts := c.contextOpts()
-	opts.Module = mod
+	opts.Config = cfg
 
-	tfCtx, err := terraform.NewContext(opts)
-	if err != nil {
-		diags = diags.Append(err)
-		c.showDiagnostics(diags)
-		return 1
+	tfCtx, ctxDiags := terraform.NewContext(opts)
+	diags = diags.Append(ctxDiags)
+	if ctxDiags.HasErrors() {
+		return diags
 	}
 
-	diags = diags.Append(tfCtx.Validate())
-	*/
-
+	validateDiags := tfCtx.Validate()
+	diags = diags.Append(validateDiags)
 	return diags
 }
 

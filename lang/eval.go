@@ -93,6 +93,44 @@ func (s *Scope) EvalExpr(expr hcl.Expression, wantType cty.Type) (cty.Value, tfd
 	return val, diags
 }
 
+// EvalReference evaluates the given reference in the receiving scope and
+// returns the resulting value. The value will be converted to the given type before
+// it is returned if possible, or else an error diagnostic will be produced
+// describing the conversion error.
+//
+// Pass an expected type of cty.DynamicPseudoType to skip automatic conversion
+// and just obtain the returned value directly.
+//
+// If the returned diagnostics contains errors then the result may be
+// incomplete, but will always be of the requested type.
+func (s *Scope) EvalReference(ref *addrs.Reference, wantType cty.Type) (cty.Value, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+
+	// We cheat a bit here and just build an EvalContext for our requested
+	// reference with the "self" address overridden, and then pull the "self"
+	// result out of it to return.
+	ctx, ctxDiags := s.evalContext([]*addrs.Reference{ref}, ref.Subject)
+	diags = diags.Append(ctxDiags)
+	val := ctx.Variables["self"]
+	if val == cty.NilVal {
+		val = cty.DynamicVal
+	}
+
+	var convErr error
+	val, convErr = convert.Convert(val, wantType)
+	if convErr != nil {
+		val = cty.UnknownVal(wantType)
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Incorrect value type",
+			Detail:   fmt.Sprintf("Invalid expression value: %s.", tfdiags.FormatError(convErr)),
+			Subject:  ref.SourceRange.ToHCL().Ptr(),
+		})
+	}
+
+	return val, diags
+}
+
 // EvalContext constructs a HCL expression evaluation context whose variable
 // scope contains sufficient values to satisfy the given set of references.
 //
@@ -100,6 +138,10 @@ func (s *Scope) EvalExpr(expr hcl.Expression, wantType cty.Type) (cty.Value, tfd
 // this type offers, but this is here for less common situations where the
 // caller will handle the evaluation calls itself.
 func (s *Scope) EvalContext(refs []*addrs.Reference) (*hcl.EvalContext, tfdiags.Diagnostics) {
+	return s.evalContext(refs, s.SelfAddr)
+}
+
+func (s *Scope) evalContext(refs []*addrs.Reference, selfAddr addrs.Referenceable) (*hcl.EvalContext, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 	vals := make(map[string]cty.Value)
 	funcs := s.Functions()
@@ -134,17 +176,37 @@ func (s *Scope) EvalContext(refs []*addrs.Reference) (*hcl.EvalContext, tfdiags.
 
 	for _, ref := range refs {
 		rng := ref.SourceRange
+		isSelf := false
 
-		if ref.Subject == addrs.Self {
-			val, valDiags := normalizeRefValue(s.Data.GetSelf(ref.SourceRange))
-			diags = diags.Append(valDiags)
-			self = val
-			continue
+		rawSubj := ref.Subject
+		if rawSubj == addrs.Self {
+			if selfAddr == nil {
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  `Invalid "self" reference`,
+					// This detail message mentions some current practice that
+					// this codepath doesn't really "know about". If the "self"
+					// object starts being supported in more contexts later then
+					// we'll need to adjust this message.
+					Detail:  `The "self" object is not available in this context. This object can be used only in resource provisioner and connection blocks.`,
+					Subject: ref.SourceRange.ToHCL().Ptr(),
+				})
+				continue
+			}
+
+			// Treat "self" as an alias for the configured self address.
+			rawSubj = selfAddr
+			isSelf = true
+
+			if rawSubj == addrs.Self {
+				// Programming error: the self address cannot alias itself.
+				panic("scope SelfAddr attempting to alias itself")
+			}
 		}
 
 		// This type switch must cover all of the "Referenceable" implementations
 		// in package addrs.
-		switch subj := ref.Subject.(type) {
+		switch subj := rawSubj.(type) {
 
 		case addrs.ResourceInstance:
 			var into map[string]map[string]map[addrs.InstanceKey]cty.Value
@@ -168,6 +230,9 @@ func (s *Scope) EvalContext(refs []*addrs.Reference) (*hcl.EvalContext, tfdiags.
 				into[r.Type][r.Name] = make(map[addrs.InstanceKey]cty.Value)
 			}
 			into[r.Type][r.Name][subj.Key] = val
+			if isSelf {
+				self = val
+			}
 
 		case addrs.ModuleCallInstance:
 			val, valDiags := normalizeRefValue(s.Data.GetModuleInstance(subj, rng))
@@ -177,6 +242,9 @@ func (s *Scope) EvalContext(refs []*addrs.Reference) (*hcl.EvalContext, tfdiags.
 				wholeModules[subj.Call.Name] = make(map[addrs.InstanceKey]cty.Value)
 			}
 			wholeModules[subj.Call.Name][subj.Key] = val
+			if isSelf {
+				self = val
+			}
 
 		case addrs.ModuleCallOutput:
 			val, valDiags := normalizeRefValue(s.Data.GetModuleInstanceOutput(subj, rng))
@@ -191,35 +259,53 @@ func (s *Scope) EvalContext(refs []*addrs.Reference) (*hcl.EvalContext, tfdiags.
 				moduleOutputs[callName][callKey] = make(map[string]cty.Value)
 			}
 			moduleOutputs[callName][callKey][subj.Name] = val
+			if isSelf {
+				self = val
+			}
 
 		case addrs.InputVariable:
 			val, valDiags := normalizeRefValue(s.Data.GetInputVariable(subj, rng))
 			diags = diags.Append(valDiags)
 			inputVariables[subj.Name] = val
+			if isSelf {
+				self = val
+			}
 
 		case addrs.LocalValue:
 			val, valDiags := normalizeRefValue(s.Data.GetLocalValue(subj, rng))
 			diags = diags.Append(valDiags)
 			localValues[subj.Name] = val
+			if isSelf {
+				self = val
+			}
 
 		case addrs.PathAttr:
 			val, valDiags := normalizeRefValue(s.Data.GetPathAttr(subj, rng))
 			diags = diags.Append(valDiags)
 			pathAttrs[subj.Name] = val
+			if isSelf {
+				self = val
+			}
 
 		case addrs.TerraformAttr:
 			val, valDiags := normalizeRefValue(s.Data.GetTerraformAttr(subj, rng))
 			diags = diags.Append(valDiags)
 			terraformAttrs[subj.Name] = val
+			if isSelf {
+				self = val
+			}
 
 		case addrs.CountAttr:
 			val, valDiags := normalizeRefValue(s.Data.GetCountAttr(subj, rng))
 			diags = diags.Append(valDiags)
 			countAttrs[subj.Name] = val
+			if isSelf {
+				self = val
+			}
 
 		default:
 			// Should never happen
-			panic(fmt.Errorf("Scope.buildEvalContext cannot handle address type %T", ref.Subject))
+			panic(fmt.Errorf("Scope.buildEvalContext cannot handle address type %T", rawSubj))
 		}
 	}
 

@@ -60,11 +60,11 @@ func (b *Local) opRefresh(
 
 	// Perform the refresh in a goroutine so we can be interrupted
 	var newState *terraform.State
-	var refreshErr error
+	var refreshDiags tfdiags.Diagnostics
 	doneCh := make(chan struct{})
 	go func() {
 		defer close(doneCh)
-		newState, refreshErr = tfCtx.Refresh()
+		newState, refreshDiags = tfCtx.Refresh()
 		log.Printf("[INFO] backend/local: refresh calling Refresh")
 	}()
 
@@ -74,8 +74,8 @@ func (b *Local) opRefresh(
 
 	// write the resulting state to the running op
 	runningOp.State = newState
-	if refreshErr != nil {
-		diags = diags.Append(refreshErr)
+	diags = diags.Append(refreshDiags)
+	if refreshDiags.HasErrors() {
 		b.ReportResult(runningOp, diags)
 		return
 	}

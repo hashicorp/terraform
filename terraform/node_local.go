@@ -1,10 +1,9 @@
 package terraform
 
 import (
-	"fmt"
-	"strings"
-
-	"github.com/hashicorp/terraform/config"
+	"github.com/hashicorp/terraform/addrs"
+	"github.com/hashicorp/terraform/configs"
+	"github.com/hashicorp/terraform/lang"
 )
 
 // NodeLocal represents a named local value in a particular module.
@@ -12,22 +11,25 @@ import (
 // Local value nodes only have one operation, common to all walk types:
 // evaluate the result and place it in state.
 type NodeLocal struct {
-	PathValue []string
-	Config    *config.Local
+	Addr   addrs.AbsLocalValue
+	Config *configs.Local
 }
 
-func (n *NodeLocal) Name() string {
-	result := fmt.Sprintf("local.%s", n.Config.Name)
-	if len(n.PathValue) > 1 {
-		result = fmt.Sprintf("%s.%s", modulePrefixStr(n.PathValue), result)
-	}
+var (
+	_ GraphNodeSubPath       = (*NodeLocal)(nil)
+	_ RemovableIfNotTargeted = (*NodeLocal)(nil)
+	_ GraphNodeReferenceable = (*NodeLocal)(nil)
+	_ GraphNodeReferencer    = (*NodeLocal)(nil)
+	_ GraphNodeEvalable      = (*NodeLocal)(nil)
+)
 
-	return result
+func (n *NodeLocal) Name() string {
+	return n.Addr.String()
 }
 
 // GraphNodeSubPath
-func (n *NodeLocal) Path() []string {
-	return n.PathValue
+func (n *NodeLocal) Path() addrs.ModuleInstance {
+	return n.Addr.Module
 }
 
 // RemovableIfNotTargeted
@@ -36,31 +38,20 @@ func (n *NodeLocal) RemoveIfNotTargeted() bool {
 }
 
 // GraphNodeReferenceable
-func (n *NodeLocal) ReferenceableName() []string {
-	name := fmt.Sprintf("local.%s", n.Config.Name)
-	return []string{name}
+func (n *NodeLocal) ReferenceableAddrs() []addrs.Referenceable {
+	return []addrs.Referenceable{n.Addr.LocalValue}
 }
 
 // GraphNodeReferencer
-func (n *NodeLocal) References() []string {
-	var result []string
-	result = append(result, ReferencesFromConfig(n.Config.RawConfig)...)
-	for _, v := range result {
-		split := strings.Split(v, "/")
-		for i, s := range split {
-			split[i] = s + ".destroy"
-		}
-
-		result = append(result, strings.Join(split, "/"))
-	}
-
-	return result
+func (n *NodeLocal) References() []*addrs.Reference {
+	refs, _ := lang.ReferencesInExpr(n.Config.Expr)
+	return refs
 }
 
 // GraphNodeEvalable
 func (n *NodeLocal) EvalTree() EvalNode {
 	return &EvalLocal{
-		Name:  n.Config.Name,
-		Value: n.Config.RawConfig,
+		Addr: n.Addr.LocalValue,
+		Expr: n.Config.Expr,
 	}
 }

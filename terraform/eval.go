@@ -2,7 +2,6 @@ package terraform
 
 import (
 	"log"
-	"strings"
 )
 
 // EvalNode is the interface that must be implemented by graph nodes to
@@ -46,7 +45,10 @@ func Eval(n EvalNode, ctx EvalContext) (interface{}, error) {
 func EvalRaw(n EvalNode, ctx EvalContext) (interface{}, error) {
 	path := "unknown"
 	if ctx != nil {
-		path = strings.Join(ctx.Path(), ".")
+		path = ctx.Path().String()
+	}
+	if path == "" {
+		path = "<root>"
 	}
 
 	log.Printf("[TRACE] %s: eval: %T", path, n)

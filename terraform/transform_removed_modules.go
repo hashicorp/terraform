@@ -3,13 +3,13 @@ package terraform
 import (
 	"log"
 
-	"github.com/hashicorp/terraform/config/module"
+	"github.com/hashicorp/terraform/configs"
 )
 
-// RemoveModuleTransformer implements GraphTransformer to add nodes indicating
+// RemovedModuleTransformer implements GraphTransformer to add nodes indicating
 // when a module was removed from the configuration.
 type RemovedModuleTransformer struct {
-	Module *module.Tree // root module
+	Config *configs.Config // root node in the config tree
 	State  *State
 }
 
@@ -20,13 +20,14 @@ func (t *RemovedModuleTransformer) Transform(g *Graph) error {
 	}
 
 	for _, m := range t.State.Modules {
-		c := t.Module.Child(m.Path[1:])
-		if c != nil {
+		path := normalizeModulePath(m.Path)
+		cc := t.Config.DescendentForInstance(path)
+		if cc != nil {
 			continue
 		}
 
-		log.Printf("[DEBUG] module %s no longer in config\n", modulePrefixStr(m.Path))
-		g.Add(&NodeModuleRemoved{PathValue: m.Path})
+		log.Printf("[DEBUG] %s is no longer in configuration\n", path)
+		g.Add(&NodeModuleRemoved{Addr: path})
 	}
 	return nil
 }

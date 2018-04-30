@@ -379,8 +379,10 @@ type rawFlags struct {
 }
 
 func newRawFlags(flagName string) rawFlags {
+	var items []rawFlag
 	return rawFlags{
 		flagName: flagName,
+		items:    &items,
 	}
 }
 

@@ -3,6 +3,8 @@ package configs
 import (
 	"fmt"
 
+	"github.com/hashicorp/terraform/addrs"
+
 	"github.com/hashicorp/hcl2/gohcl"
 	"github.com/hashicorp/hcl2/hcl"
 	"github.com/hashicorp/hcl2/hcl/hclsyntax"
@@ -55,6 +57,15 @@ func decodeProviderBlock(block *hcl.Block) (*Provider, hcl.Diagnostics) {
 	}
 
 	return provider, diags
+}
+
+// Addr returns the address of the receiving provider configuration, relative
+// to its containing module.
+func (p *Provider) Addr() addrs.ProviderConfig {
+	return addrs.ProviderConfig{
+		Type:  p.Name,
+		Alias: p.Alias,
+	}
 }
 
 func (p *Provider) moduleUniqueKey() string {

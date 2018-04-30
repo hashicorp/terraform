@@ -87,20 +87,20 @@ func (b *Local) opPlan(
 
 	// Perform the plan in a goroutine so we can be interrupted
 	var plan *terraform.Plan
-	var planErr error
+	var planDiags tfdiags.Diagnostics
 	doneCh := make(chan struct{})
 	go func() {
 		defer close(doneCh)
 		log.Printf("[INFO] backend/local: plan calling Plan")
-		plan, planErr = tfCtx.Plan()
+		plan, planDiags = tfCtx.Plan()
 	}()
 
 	if b.opWait(doneCh, stopCtx, cancelCtx, tfCtx, opState) {
 		return
 	}
 
-	if planErr != nil {
-		diags = diags.Append(planErr)
+	diags = diags.Append(planDiags)
+	if planDiags.HasErrors() {
 		b.ReportResult(runningOp, diags)
 		return
 	}

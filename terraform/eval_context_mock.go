@@ -3,6 +3,13 @@ package terraform
 import (
 	"sync"
 
+	"github.com/hashicorp/terraform/addrs"
+
+	"github.com/hashicorp/hcl2/hcl"
+	"github.com/hashicorp/terraform/config/configschema"
+	"github.com/hashicorp/terraform/tfdiags"
+	"github.com/zclconf/go-cty/cty"
+
 	"github.com/hashicorp/terraform/config"
 )
 
@@ -20,34 +27,35 @@ type MockEvalContext struct {
 	InputInput  UIInput
 
 	InitProviderCalled   bool
-	InitProviderName     string
+	InitProviderType     string
+	InitProviderAddr     addrs.ProviderConfig
 	InitProviderProvider ResourceProvider
 	InitProviderError    error
 
 	ProviderCalled   bool
-	ProviderName     string
+	ProviderAddr     addrs.AbsProviderConfig
 	ProviderProvider ResourceProvider
 
 	ProviderSchemaCalled bool
-	ProviderSchemaName   string
+	ProviderSchemaAddr   addrs.AbsProviderConfig
 	ProviderSchemaSchema *ProviderSchema
 
 	CloseProviderCalled   bool
-	CloseProviderName     string
+	CloseProviderAddr     addrs.ProviderConfig
 	CloseProviderProvider ResourceProvider
 
 	ProviderInputCalled bool
-	ProviderInputName   string
-	ProviderInputConfig map[string]interface{}
+	ProviderInputAddr   addrs.ProviderConfig
+	ProviderInputValues map[string]cty.Value
 
 	SetProviderInputCalled bool
-	SetProviderInputName   string
-	SetProviderInputConfig map[string]interface{}
+	SetProviderInputAddr   addrs.ProviderConfig
+	SetProviderInputValues map[string]cty.Value
 
 	ConfigureProviderCalled bool
-	ConfigureProviderName   string
-	ConfigureProviderConfig *ResourceConfig
-	ConfigureProviderError  error
+	ConfigureProviderAddr   addrs.ProviderConfig
+	ConfigureProviderConfig cty.Value
+	ConfigureProviderDiags  tfdiags.Diagnostics
 
 	InitProvisionerCalled      bool
 	InitProvisionerName        string
@@ -58,9 +66,28 @@ type MockEvalContext struct {
 	ProvisionerName        string
 	ProvisionerProvisioner ResourceProvisioner
 
+	ProvisionerSchemaCalled bool
+	ProvisionerSchemaName   string
+	ProvisionerSchemaSchema *configschema.Block
+
 	CloseProvisionerCalled      bool
 	CloseProvisionerName        string
 	CloseProvisionerProvisioner ResourceProvisioner
+
+	EvaluateBlockCalled       bool
+	EvaluateBlockBody         hcl.Body
+	EvaluateBlockSchema       *configschema.Block
+	EvaluateBlockSelf         addrs.Referenceable
+	EvaluateBlockResult       cty.Value
+	EvaluateBlockExpandedBody hcl.Body
+	EvaluateBlockDiags        tfdiags.Diagnostics
+
+	EvaluateExprCalled   bool
+	EvaluateExprExpr     hcl.Expression
+	EvaluateExprWantType cty.Type
+	EvaluateExprSelf     addrs.Referenceable
+	EvaluateExprResult   cty.Value
+	EvaluateExprDiags    tfdiags.Diagnostics
 
 	InterpolateCalled       bool
 	InterpolateConfig       *config.RawConfig
@@ -75,11 +102,11 @@ type MockEvalContext struct {
 	InterpolateProviderError        error
 
 	PathCalled bool
-	PathPath   []string
+	PathPath   addrs.ModuleInstance
 
-	SetVariablesCalled    bool
-	SetVariablesModule    string
-	SetVariablesVariables map[string]interface{}
+	SetModuleCallArgumentsCalled bool
+	SetModuleCallArgumentsModule addrs.ModuleCallInstance
+	SetModuleCallArgumentsValues map[string]cty.Value
 
 	DiffCalled bool
 	DiffDiff   *Diff
@@ -89,6 +116,9 @@ type MockEvalContext struct {
 	StateState  *State
 	StateLock   *sync.RWMutex
 }
+
+// MockEvalContext implements EvalContext
+var _ EvalContext = (*MockEvalContext)(nil)
 
 func (c *MockEvalContext) Stopped() <-chan struct{} {
 	c.StoppedCalled = true
@@ -111,47 +141,48 @@ func (c *MockEvalContext) Input() UIInput {
 	return c.InputInput
 }
 
-func (c *MockEvalContext) InitProvider(t, n string) (ResourceProvider, error) {
+func (c *MockEvalContext) InitProvider(t string, addr addrs.ProviderConfig) (ResourceProvider, error) {
 	c.InitProviderCalled = true
-	c.InitProviderName = n
+	c.InitProviderType = t
+	c.InitProviderAddr = addr
 	return c.InitProviderProvider, c.InitProviderError
 }
 
-func (c *MockEvalContext) Provider(n string) ResourceProvider {
+func (c *MockEvalContext) Provider(addr addrs.AbsProviderConfig) ResourceProvider {
 	c.ProviderCalled = true
-	c.ProviderName = n
+	c.ProviderAddr = addr
 	return c.ProviderProvider
 }
 
-func (c *MockEvalContext) ProviderSchema(n string) *ProviderSchema {
+func (c *MockEvalContext) ProviderSchema(addr addrs.AbsProviderConfig) *ProviderSchema {
 	c.ProviderSchemaCalled = true
-	c.ProviderSchemaName = n
+	c.ProviderSchemaAddr = addr
 	return c.ProviderSchemaSchema
 }
 
-func (c *MockEvalContext) CloseProvider(n string) error {
+func (c *MockEvalContext) CloseProvider(addr addrs.ProviderConfig) error {
 	c.CloseProviderCalled = true
-	c.CloseProviderName = n
+	c.CloseProviderAddr = addr
 	return nil
 }
 
-func (c *MockEvalContext) ConfigureProvider(n string, cfg *ResourceConfig) error {
+func (c *MockEvalContext) ConfigureProvider(addr addrs.ProviderConfig, cfg cty.Value) tfdiags.Diagnostics {
 	c.ConfigureProviderCalled = true
-	c.ConfigureProviderName = n
+	c.ConfigureProviderAddr = addr
 	c.ConfigureProviderConfig = cfg
-	return c.ConfigureProviderError
+	return c.ConfigureProviderDiags
 }
 
-func (c *MockEvalContext) ProviderInput(n string) map[string]interface{} {
+func (c *MockEvalContext) ProviderInput(addr addrs.ProviderConfig) map[string]cty.Value {
 	c.ProviderInputCalled = true
-	c.ProviderInputName = n
-	return c.ProviderInputConfig
+	c.ProviderInputAddr = addr
+	return c.ProviderInputValues
 }
 
-func (c *MockEvalContext) SetProviderInput(n string, cfg map[string]interface{}) {
+func (c *MockEvalContext) SetProviderInput(addr addrs.ProviderConfig, vals map[string]cty.Value) {
 	c.SetProviderInputCalled = true
-	c.SetProviderInputName = n
-	c.SetProviderInputConfig = cfg
+	c.SetProviderInputAddr = addr
+	c.SetProviderInputValues = vals
 }
 
 func (c *MockEvalContext) InitProvisioner(n string) (ResourceProvisioner, error) {
@@ -166,10 +197,32 @@ func (c *MockEvalContext) Provisioner(n string) ResourceProvisioner {
 	return c.ProvisionerProvisioner
 }
 
+func (c *MockEvalContext) ProvisionerSchema(n string) *configschema.Block {
+	c.ProvisionerSchemaCalled = true
+	c.ProvisionerSchemaName = n
+	return c.ProvisionerSchemaSchema
+}
+
 func (c *MockEvalContext) CloseProvisioner(n string) error {
 	c.CloseProvisionerCalled = true
 	c.CloseProvisionerName = n
 	return nil
+}
+
+func (c *MockEvalContext) EvaluateBlock(body hcl.Body, schema *configschema.Block, self addrs.Referenceable) (cty.Value, hcl.Body, tfdiags.Diagnostics) {
+	c.EvaluateBlockCalled = true
+	c.EvaluateBlockBody = body
+	c.EvaluateBlockSchema = schema
+	c.EvaluateBlockSelf = self
+	return c.EvaluateBlockResult, c.EvaluateBlockExpandedBody, c.EvaluateBlockDiags
+}
+
+func (c *MockEvalContext) EvaluateExpr(expr hcl.Expression, wantType cty.Type, self addrs.Referenceable) (cty.Value, tfdiags.Diagnostics) {
+	c.EvaluateExprCalled = true
+	c.EvaluateExprExpr = expr
+	c.EvaluateExprWantType = wantType
+	c.EvaluateExprSelf = self
+	return c.EvaluateExprResult, c.EvaluateExprDiags
 }
 
 func (c *MockEvalContext) Interpolate(
@@ -188,15 +241,15 @@ func (c *MockEvalContext) InterpolateProvider(
 	return c.InterpolateProviderConfigResult, c.InterpolateError
 }
 
-func (c *MockEvalContext) Path() []string {
+func (c *MockEvalContext) Path() addrs.ModuleInstance {
 	c.PathCalled = true
 	return c.PathPath
 }
 
-func (c *MockEvalContext) SetVariables(n string, vs map[string]interface{}) {
-	c.SetVariablesCalled = true
-	c.SetVariablesModule = n
-	c.SetVariablesVariables = vs
+func (c *MockEvalContext) SetModuleCallArguments(n addrs.ModuleCallInstance, values map[string]cty.Value) {
+	c.SetModuleCallArgumentsCalled = true
+	c.SetModuleCallArgumentsModule = n
+	c.SetModuleCallArgumentsValues = values
 }
 
 func (c *MockEvalContext) Diff() (*Diff, *sync.RWMutex) {
