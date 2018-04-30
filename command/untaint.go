@@ -6,6 +6,7 @@ import (
 	"log"
 	"strings"
 
+	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/command/clistate"
 )
 
@@ -95,8 +96,10 @@ func (c *UntaintCommand) Run(args []string) int {
 		return 1
 	}
 
-	// Get the proper module holding the resource we want to untaint
-	modPath := strings.Split(module, ".")
+	// Get the ModuleState where we will untaint. This is provided in a legacy
+	// string form that doesn't support module instance keys, so we'll shim
+	// it here.
+	modPath := addrs.Module(strings.Split(module, ".")).UnkeyedInstanceShim()
 	mod := s.ModuleByPath(modPath)
 	if mod == nil {
 		if allowMissing {

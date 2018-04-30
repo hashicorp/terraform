@@ -1,82 +1,90 @@
 package terraform
 
 import (
-	"fmt"
-
-	"github.com/hashicorp/terraform/config"
+	"github.com/hashicorp/terraform/addrs"
+	"github.com/hashicorp/terraform/configs"
 )
 
 // NodeDestroyResource represents a resource that is to be destroyed.
-type NodeDestroyResource struct {
-	*NodeAbstractResource
+type NodeDestroyResourceInstance struct {
+	*NodeAbstractResourceInstance
+
+	CreateBeforeDestroyOverride *bool
 }
 
-func (n *NodeDestroyResource) Name() string {
-	return n.NodeAbstractResource.Name() + " (destroy)"
+var (
+	_ GraphNodeResource            = (*NodeDestroyResourceInstance)(nil)
+	_ GraphNodeResourceInstance    = (*NodeDestroyResourceInstance)(nil)
+	_ GraphNodeDestroyer           = (*NodeDestroyResourceInstance)(nil)
+	_ GraphNodeDestroyerCBD        = (*NodeDestroyResourceInstance)(nil)
+	_ GraphNodeReferenceable       = (*NodeDestroyResourceInstance)(nil)
+	_ GraphNodeReferencer          = (*NodeDestroyResourceInstance)(nil)
+	_ GraphNodeEvalable            = (*NodeDestroyResourceInstance)(nil)
+	_ GraphNodeProviderConsumer    = (*NodeDestroyResourceInstance)(nil)
+	_ GraphNodeProvisionerConsumer = (*NodeDestroyResourceInstance)(nil)
+)
+
+func (n *NodeDestroyResourceInstance) Name() string {
+	return n.ResourceInstanceAddr().String() + " (destroy)"
 }
 
 // GraphNodeDestroyer
-func (n *NodeDestroyResource) DestroyAddr() *ResourceAddress {
-	return n.Addr
+func (n *NodeDestroyResourceInstance) DestroyAddr() *addrs.AbsResourceInstance {
+	addr := n.ResourceInstanceAddr()
+	return &addr
 }
 
 // GraphNodeDestroyerCBD
-func (n *NodeDestroyResource) CreateBeforeDestroy() bool {
+func (n *NodeDestroyResourceInstance) CreateBeforeDestroy() bool {
+	if n.CreateBeforeDestroyOverride != nil {
+		return *n.CreateBeforeDestroyOverride
+	}
+
 	// If we have no config, we just assume no
-	if n.Config == nil {
+	if n.Config == nil || n.Config.Managed == nil {
 		return false
 	}
 
-	return n.Config.Lifecycle.CreateBeforeDestroy
+	return n.Config.Managed.CreateBeforeDestroy
 }
 
 // GraphNodeDestroyerCBD
-func (n *NodeDestroyResource) ModifyCreateBeforeDestroy(v bool) error {
-	// If we have no config, do nothing since it won't affect the
-	// create step anyways.
-	if n.Config == nil {
-		return nil
-	}
-
-	// Set CBD to true
-	n.Config.Lifecycle.CreateBeforeDestroy = true
-
+func (n *NodeDestroyResourceInstance) ModifyCreateBeforeDestroy(v bool) error {
+	n.CreateBeforeDestroyOverride = &v
 	return nil
 }
 
 // GraphNodeReferenceable, overriding NodeAbstractResource
-func (n *NodeDestroyResource) ReferenceableName() []string {
-	// We modify our referenceable name to have the suffix of ".destroy"
-	// since depending on the creation side doesn't necessarilly mean
-	// depending on destruction.
-	suffix := ".destroy"
-
-	// If we're CBD, we also append "-cbd". This is because CBD will setup
-	// its own edges (in CBDEdgeTransformer). Depending on the "destroy"
-	// side generally doesn't mean depending on CBD as well. See GH-11349
-	if n.CreateBeforeDestroy() {
-		suffix += "-cbd"
+func (n *NodeDestroyResourceInstance) ReferenceableName() []addrs.Referenceable {
+	relAddr := n.ResourceInstanceAddr().Resource
+	switch {
+	case n.CreateBeforeDestroy():
+		return []addrs.Referenceable{
+			relAddr.ContainingResource(),
+			relAddr.Phase(addrs.ResourceInstancePhaseDestroyCBD),
+		}
+	default:
+		return []addrs.Referenceable{
+			relAddr.ContainingResource(),
+			relAddr.Phase(addrs.ResourceInstancePhaseDestroy),
+		}
 	}
-
-	result := n.NodeAbstractResource.ReferenceableName()
-	for i, v := range result {
-		result[i] = v + suffix
-	}
-
-	return result
 }
 
 // GraphNodeReferencer, overriding NodeAbstractResource
-func (n *NodeDestroyResource) References() []string {
+func (n *NodeDestroyResourceInstance) References() []*addrs.Reference {
 	// If we have a config, then we need to include destroy-time dependencies
-	if c := n.Config; c != nil {
-		var result []string
-		for _, p := range c.Provisioners {
-			// We include conn info and config for destroy time provisioners
-			// as dependencies that we have.
-			if p.When == config.ProvisionerWhenDestroy {
-				result = append(result, ReferencesFromConfig(p.ConnInfo)...)
-				result = append(result, ReferencesFromConfig(p.RawConfig)...)
+	if c := n.Config; c != nil && c.Managed != nil {
+		var result []*addrs.Reference
+
+		// We include conn info and config for destroy time provisioners
+		// as dependencies that we have.
+		for _, p := range c.Managed.Provisioners {
+			schema := n.ProvisionerSchemas[p.Type]
+
+			if p.When == configs.ProvisionerWhenDestroy {
+				result = append(result, ReferencesFromConfig(p.Connection.Config, connectionBlockSupersetSchema)...)
+				result = append(result, ReferencesFromConfig(p.Config, schema)...)
 			}
 		}
 
@@ -87,11 +95,9 @@ func (n *NodeDestroyResource) References() []string {
 }
 
 // GraphNodeDynamicExpandable
-func (n *NodeDestroyResource) DynamicExpand(ctx EvalContext) (*Graph, error) {
-	// If we have no config we do nothing
-	if n.Addr == nil {
-		return nil, nil
-	}
+func (n *NodeDestroyResourceInstance) DynamicExpand(ctx EvalContext) (*Graph, error) {
+	// stateId is the legacy-style ID to put into the state
+	stateId := NewLegacyResourceInstanceAddress(n.ResourceInstanceAddr()).stateId()
 
 	state, lock := ctx.State()
 	lock.RLock()
@@ -103,13 +109,13 @@ func (n *NodeDestroyResource) DynamicExpand(ctx EvalContext) (*Graph, error) {
 	// We want deposed resources in the state to be destroyed
 	steps = append(steps, &DeposedTransformer{
 		State:            state,
-		View:             n.Addr.stateId(),
+		View:             stateId,
 		ResolvedProvider: n.ResolvedProvider,
 	})
 
 	// Target
 	steps = append(steps, &TargetsTransformer{
-		ParsedTargets: n.Targets,
+		Targets: n.Targets,
 	})
 
 	// Always end with the root being added
@@ -120,37 +126,22 @@ func (n *NodeDestroyResource) DynamicExpand(ctx EvalContext) (*Graph, error) {
 		Steps: steps,
 		Name:  "NodeResourceDestroy",
 	}
-	return b.Build(ctx.Path())
+	g, diags := b.Build(ctx.Path())
+	return g, diags.ErrWithWarnings()
 }
 
 // GraphNodeEvalable
-func (n *NodeDestroyResource) EvalTree() EvalNode {
-	// stateId is the ID to put into the state
-	stateId := n.Addr.stateId()
+func (n *NodeDestroyResourceInstance) EvalTree() EvalNode {
+	addr := n.ResourceInstanceAddr()
 
-	// Build the instance info. More of this will be populated during eval
-	info := &InstanceInfo{
-		Id:          stateId,
-		Type:        n.Addr.Type,
-		uniqueExtra: "destroy",
-	}
-
-	// Build the resource for eval
-	addr := n.Addr
-	resource := &Resource{
-		Name:       addr.Name,
-		Type:       addr.Type,
-		CountIndex: addr.Index,
-	}
-	if resource.CountIndex < 0 {
-		resource.CountIndex = 0
-	}
+	// stateId is the legacy-style ID to put into the state
+	stateId := NewLegacyResourceInstanceAddress(n.ResourceInstanceAddr()).stateId()
 
 	// Get our state
 	rs := n.ResourceState
 	if rs == nil {
 		rs = &ResourceState{
-			Provider: n.ResolvedProvider,
+			Provider: n.ResolvedProvider.String(),
 		}
 	}
 
@@ -187,11 +178,8 @@ func (n *NodeDestroyResource) EvalTree() EvalNode {
 					Then: EvalNoop{},
 				},
 
-				// Load the instance info so we have the module path set
-				&EvalInstanceInfo{Info: info},
-
 				&EvalGetProvider{
-					Name:   n.ResolvedProvider,
+					Addr:   n.ResolvedProvider,
 					Output: &provider,
 				},
 				&EvalReadState{
@@ -204,7 +192,7 @@ func (n *NodeDestroyResource) EvalTree() EvalNode {
 
 				// Call pre-apply hook
 				&EvalApplyPre{
-					Info:  info,
+					Addr:  addr.Resource,
 					State: &state,
 					Diff:  &diffApply,
 				},
@@ -220,12 +208,11 @@ func (n *NodeDestroyResource) EvalTree() EvalNode {
 					},
 
 					Then: &EvalApplyProvisioners{
-						Info:           info,
+						Addr:           addr.Resource,
 						State:          &state,
-						Resource:       n.Config,
-						InterpResource: resource,
+						ResourceConfig: n.Config,
 						Error:          &err,
-						When:           config.ProvisionerWhenDestroy,
+						When:           configs.ProvisionerWhenDestroy,
 					},
 				},
 
@@ -237,7 +224,7 @@ func (n *NodeDestroyResource) EvalTree() EvalNode {
 					},
 
 					Then: &EvalApplyPost{
-						Info:  info,
+						Addr:  addr.Resource,
 						State: &state,
 						Error: &err,
 					},
@@ -246,25 +233,17 @@ func (n *NodeDestroyResource) EvalTree() EvalNode {
 				// Make sure we handle data sources properly.
 				&EvalIf{
 					If: func(ctx EvalContext) (bool, error) {
-						if n.Addr == nil {
-							return false, fmt.Errorf("nil address")
-						}
-
-						if n.Addr.Mode == config.DataResourceMode {
-							return true, nil
-						}
-
-						return false, nil
+						return addr.Resource.Resource.Mode == addrs.DataResourceMode, nil
 					},
 
 					Then: &EvalReadDataApply{
-						Info:     info,
+						Addr:     addr.Resource,
 						Diff:     &diffApply,
 						Provider: &provider,
 						Output:   &state,
 					},
 					Else: &EvalApply{
-						Info:     info,
+						Addr:     addr.Resource,
 						State:    &state,
 						Diff:     &diffApply,
 						Provider: &provider,
@@ -274,13 +253,13 @@ func (n *NodeDestroyResource) EvalTree() EvalNode {
 				},
 				&EvalWriteState{
 					Name:         stateId,
-					ResourceType: n.Addr.Type,
+					ResourceType: addr.Resource.Resource.Type,
 					Provider:     n.ResolvedProvider,
 					Dependencies: rs.Dependencies,
 					State:        &state,
 				},
 				&EvalApplyPost{
-					Info:  info,
+					Addr:  addr.Resource,
 					State: &state,
 					Error: &err,
 				},

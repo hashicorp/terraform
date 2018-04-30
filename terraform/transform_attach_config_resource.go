@@ -1,35 +1,31 @@
 package terraform
 
 import (
-	"fmt"
 	"log"
 
-	"github.com/hashicorp/terraform/config"
-	"github.com/hashicorp/terraform/config/module"
+	"github.com/hashicorp/terraform/configs"
 )
 
 // GraphNodeAttachResourceConfig is an interface that must be implemented by nodes
 // that want resource configurations attached.
 type GraphNodeAttachResourceConfig interface {
-	// ResourceAddr is the address to the resource
-	ResourceAddr() *ResourceAddress
+	GraphNodeResource
 
 	// Sets the configuration
-	AttachResourceConfig(*config.Resource)
+	AttachResourceConfig(*configs.Resource)
 }
 
 // AttachResourceConfigTransformer goes through the graph and attaches
-// resource configuration structures to nodes that implement the interfaces
-// above.
+// resource configuration structures to nodes that implement
+// GraphNodeAttachManagedResourceConfig or GraphNodeAttachDataResourceConfig.
 //
 // The attached configuration structures are directly from the configuration.
 // If they're going to be modified, a copy should be made.
 type AttachResourceConfigTransformer struct {
-	Module *module.Tree // Module is the root module for the config
+	Config *configs.Config // Config is the root node in the config tree
 }
 
 func (t *AttachResourceConfigTransformer) Transform(g *Graph) error {
-	log.Printf("[TRACE] AttachResourceConfigTransformer: Beginning...")
 
 	// Go through and find GraphNodeAttachResource
 	for _, v := range g.Vertices() {
@@ -41,36 +37,35 @@ func (t *AttachResourceConfigTransformer) Transform(g *Graph) error {
 
 		// Determine what we're looking for
 		addr := arn.ResourceAddr()
-		log.Printf(
-			"[TRACE] AttachResourceConfigTransformer: Attach resource "+
-				"config request: %s", addr)
 
 		// Get the configuration.
-		path := normalizeModulePath(addr.Path)
-		path = path[1:]
-		tree := t.Module.Child(path)
-		if tree == nil {
+		config := t.Config.DescendentForInstance(addr.Module)
+		if config == nil {
+			log.Printf("[TRACE] AttachResourceConfigTransformer: %s has no configuration available", addr.String())
 			continue
 		}
 
-		// Go through the resource configs to find the matching config
-		for _, r := range tree.Config().Resources {
-			// Get a resource address so we can compare
-			a, err := parseResourceAddressConfig(r)
-			if err != nil {
-				panic(fmt.Sprintf(
-					"Error parsing config address, this is a bug: %#v", r))
-			}
-			a.Path = addr.Path
+		for _, r := range config.Module.ManagedResources {
+			rAddr := r.Addr()
 
-			// If this is not the same resource, then continue
-			if !a.Equals(addr) {
+			if rAddr != addr.Resource {
+				// Not the same resource
 				continue
 			}
 
-			log.Printf("[TRACE] Attaching resource config: %#v", r)
+			log.Printf("[TRACE] AttachResourceConfigTransformer: attaching to %s: %#v", addr.String(), r)
 			arn.AttachResourceConfig(r)
-			break
+		}
+		for _, r := range config.Module.DataResources {
+			rAddr := r.Addr()
+
+			if rAddr != addr.Resource {
+				// Not the same resource
+				continue
+			}
+
+			log.Printf("[TRACE] AttachResourceConfigTransformer: attaching to %s: %#v", addr.String(), r)
+			arn.AttachResourceConfig(r)
 		}
 	}
 

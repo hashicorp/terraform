@@ -8,9 +8,15 @@ import (
 
 // GraphNodeAttachResourceState is an interface that can be implemented
 // to request that a ResourceState is attached to the node.
+//
+// Due to a historical naming inconsistency, the type ResourceState actually
+// represents the state for a particular _instance_, while InstanceState
+// represents the values for that instance during a particular phase
+// (e.g. primary vs. deposed). Consequently, GraphNodeAttachResourceState
+// is supported only for nodes that represent resource instances, even though
+// the name might suggest it is for containing resources.
 type GraphNodeAttachResourceState interface {
-	// The address to the resource for the state
-	ResourceAddr() *ResourceAddress
+	GraphNodeResourceInstance
 
 	// Sets the state
 	AttachResourceState(*ResourceState)
@@ -36,7 +42,7 @@ func (t *AttachStateTransformer) Transform(g *Graph) error {
 		if !ok {
 			continue
 		}
-		addr := an.ResourceAddr()
+		addr := an.ResourceInstanceAddr()
 
 		// Get the module state
 		results, err := filter.Filter(addr.String())
@@ -48,9 +54,7 @@ func (t *AttachStateTransformer) Transform(g *Graph) error {
 		found := false
 		for _, result := range results {
 			if rs, ok := result.Value.(*ResourceState); ok {
-				log.Printf(
-					"[DEBUG] Attaching resource state to %q: %#v",
-					dag.VertexName(v), rs)
+				log.Printf("[DEBUG] Attaching resource state to %q: %#v", dag.VertexName(v), rs)
 				an.AttachResourceState(rs)
 				found = true
 				break
@@ -58,9 +62,7 @@ func (t *AttachStateTransformer) Transform(g *Graph) error {
 		}
 
 		if !found {
-			log.Printf(
-				"[DEBUG] Resource state not found for %q: %s",
-				dag.VertexName(v), addr)
+			log.Printf("[DEBUG] Resource state not found for %q: %s", dag.VertexName(v), addr)
 		}
 	}
 

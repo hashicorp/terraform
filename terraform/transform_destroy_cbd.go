@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/hashicorp/terraform/config/module"
+	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/dag"
 )
 
@@ -38,7 +38,7 @@ type GraphNodeDestroyerCBD interface {
 type CBDEdgeTransformer struct {
 	// Module and State are only needed to look up dependencies in
 	// any way possible. Either can be nil if not availabile.
-	Module *module.Tree
+	Config *configs.Config
 	State  *State
 }
 
@@ -95,14 +95,10 @@ func (t *CBDEdgeTransformer) Transform(g *Graph) error {
 		// this will have to change. We have a test case covering this
 		// (depNonCBDCountBoth) so it'll be caught.
 		addr := dn.DestroyAddr()
-		if addr.Index >= 0 {
-			addr = addr.Copy() // Copy so that we don't modify any pointers
-			addr.Index = -1
-		}
+		key := addr.ContainingResource().String()
 
 		// Add this to the list of nodes that we need to fix up
 		// the edges for (step 2 above in the docs).
-		key := addr.String()
 		destroyMap[key] = append(destroyMap[key], v)
 	}
 
@@ -151,13 +147,9 @@ func (t *CBDEdgeTransformer) Transform(g *Graph) error {
 		// dependencies. One day when we limit dependencies more exactly
 		// this will have to change. We have a test case covering this
 		// (depNonCBDCount) so it'll be caught.
-		if addr.Index >= 0 {
-			addr = addr.Copy() // Copy so that we don't modify any pointers
-			addr.Index = -1
-		}
+		key := addr.ContainingResource().String()
 
 		// If there is nothing this resource should depend on, ignore it
-		key := addr.String()
 		dns, ok := depMap[key]
 		if !ok {
 			continue
@@ -174,21 +166,20 @@ func (t *CBDEdgeTransformer) Transform(g *Graph) error {
 	return nil
 }
 
-func (t *CBDEdgeTransformer) depMap(
-	destroyMap map[string][]dag.Vertex) (map[string][]dag.Vertex, error) {
+func (t *CBDEdgeTransformer) depMap(destroyMap map[string][]dag.Vertex) (map[string][]dag.Vertex, error) {
 	// Build the graph of our config, this ensures that all resources
 	// are present in the graph.
-	g, err := (&BasicGraphBuilder{
+	g, diags := (&BasicGraphBuilder{
 		Steps: []GraphTransformer{
-			&FlatConfigTransformer{Module: t.Module},
-			&AttachResourceConfigTransformer{Module: t.Module},
+			&FlatConfigTransformer{Config: t.Config},
+			&AttachResourceConfigTransformer{Config: t.Config},
 			&AttachStateTransformer{State: t.State},
 			&ReferenceTransformer{},
 		},
 		Name: "CBDEdgeTransformer",
 	}).Build(nil)
-	if err != nil {
-		return nil, err
+	if diags.HasErrors() {
+		return nil, diags.Err()
 	}
 
 	// Using this graph, build the list of destroy nodes that each resource

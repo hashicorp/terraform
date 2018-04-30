@@ -137,11 +137,11 @@ func (b *Local) opApply(
 
 	// Start the apply in a goroutine so that we can be interrupted.
 	var applyState *terraform.State
-	var applyErr error
+	var applyDiags tfdiags.Diagnostics
 	doneCh := make(chan struct{})
 	go func() {
 		defer close(doneCh)
-		_, applyErr = tfCtx.Apply()
+		_, applyDiags = tfCtx.Apply()
 		// we always want the state, even if apply failed
 		applyState = tfCtx.State()
 	}()
@@ -165,12 +165,8 @@ func (b *Local) opApply(
 		return
 	}
 
-	if applyErr != nil {
-		diags = diags.Append(tfdiags.Sourceless(
-			tfdiags.Error,
-			applyErr.Error(),
-			"Terraform does not automatically rollback in the face of errors. Instead, your Terraform state file has been partially updated with any resources that successfully completed. Please address the error above and apply again to incrementally change your infrastructure.",
-		))
+	diags = diags.Append(applyDiags)
+	if applyDiags.HasErrors() {
 		b.ReportResult(runningOp, diags)
 		return
 	}

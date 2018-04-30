@@ -14,11 +14,15 @@ import (
 	"syscall"
 	"testing"
 
+	"github.com/hashicorp/terraform/addrs"
+
+	"github.com/hashicorp/terraform/configs/configload"
+
 	"github.com/davecgh/go-spew/spew"
 	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/logutils"
-	"github.com/hashicorp/terraform/config/module"
+	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/helper/logging"
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -686,17 +690,17 @@ func testIDOnlyRefresh(c TestCase, opts terraform.ContextOpts, step TestStep, r 
 	// doesn't have access to it and we may need things like provider
 	// configurations. The initial implementation of id-only checks used
 	// an empty config module, but that caused the aforementioned problems.
-	mod, err := testModule(opts, step)
+	cfg, err := testConfig(opts, step)
 	if err != nil {
 		return err
 	}
 
 	// Initialize the context
-	opts.Module = mod
+	opts.Config = cfg
 	opts.State = state
-	ctx, err := terraform.NewContext(&opts)
-	if err != nil {
-		return err
+	ctx, ctxDiags := terraform.NewContext(&opts)
+	if ctxDiags.HasErrors() {
+		return ctxDiags.Err()
 	}
 	if diags := ctx.Validate(); len(diags) > 0 {
 		if diags.HasErrors() {
@@ -707,9 +711,9 @@ func testIDOnlyRefresh(c TestCase, opts terraform.ContextOpts, step TestStep, r 
 	}
 
 	// Refresh!
-	state, err = ctx.Refresh()
-	if err != nil {
-		return fmt.Errorf("Error refreshing: %s", err)
+	state, refreshDiags := ctx.Refresh()
+	if refreshDiags.HasErrors() {
+		return refreshDiags.Err()
 	}
 
 	// Verify attribute equivalence.
@@ -756,15 +760,14 @@ func testIDOnlyRefresh(c TestCase, opts terraform.ContextOpts, step TestStep, r 
 	return nil
 }
 
-func testModule(opts terraform.ContextOpts, step TestStep) (*module.Tree, error) {
+func testConfig(opts terraform.ContextOpts, step TestStep) (*configs.Config, error) {
 	if step.PreConfig != nil {
 		step.PreConfig()
 	}
 
 	cfgPath, err := ioutil.TempDir("", "tf-test")
 	if err != nil {
-		return nil, fmt.Errorf(
-			"Error creating temporary directory for config: %s", err)
+		return nil, fmt.Errorf("Error creating temporary directory for config: %s", err)
 	}
 
 	if step.PreventDiskCleanup {
@@ -773,38 +776,37 @@ func testModule(opts terraform.ContextOpts, step TestStep) (*module.Tree, error)
 		defer os.RemoveAll(cfgPath)
 	}
 
-	// Write the configuration
-	cfgF, err := os.Create(filepath.Join(cfgPath, "main.tf"))
+	// Write the main configuration file
+	err = ioutil.WriteFile(filepath.Join(cfgPath, "main.tf"), []byte(step.Config), os.ModePerm)
 	if err != nil {
-		return nil, fmt.Errorf(
-			"Error creating temporary file for config: %s", err)
+		return nil, fmt.Errorf("Error creating temporary file for config: %s", err)
 	}
 
-	_, err = io.Copy(cfgF, strings.NewReader(step.Config))
-	cfgF.Close()
+	// Create directory for our child modules, if any.
+	modulesDir := filepath.Join(cfgPath, ".modules")
+	err = os.Mkdir(modulesDir, os.ModePerm)
 	if err != nil {
-		return nil, fmt.Errorf(
-			"Error creating temporary file for config: %s", err)
+		return nil, fmt.Errorf("Error creating child modules directory: %s", err)
 	}
 
-	// Parse the configuration
-	mod, err := module.NewTreeModule("", cfgPath)
+	loader, err := configload.NewLoader(&configload.Config{
+		ModulesDir: modulesDir,
+	})
 	if err != nil {
-		return nil, fmt.Errorf(
-			"Error loading configuration: %s", err)
+		return nil, fmt.Errorf("failed to create config loader: %s", err)
 	}
 
-	// Load the modules
-	modStorage := &module.Storage{
-		StorageDir: filepath.Join(cfgPath, ".tfmodules"),
-		Mode:       module.GetModeGet,
-	}
-	err = mod.Load(modStorage)
-	if err != nil {
-		return nil, fmt.Errorf("Error downloading modules: %s", err)
+	installDiags := loader.InstallModules(cfgPath, true, configload.InstallHooksImpl{})
+	if installDiags.HasErrors() {
+		return nil, installDiags
 	}
 
-	return mod, nil
+	config, configDiags := loader.LoadConfig(cfgPath)
+	if configDiags.HasErrors() {
+		return nil, configDiags
+	}
+
+	return config, nil
 }
 
 func testResource(c TestStep, state *terraform.State) (*terraform.ResourceState, error) {
@@ -881,8 +883,9 @@ func TestCheckResourceAttrSet(name, key string) TestCheckFunc {
 // TestCheckModuleResourceAttrSet - as per TestCheckResourceAttrSet but with
 // support for non-root modules
 func TestCheckModuleResourceAttrSet(mp []string, name string, key string) TestCheckFunc {
+	mpt := addrs.Module(mp).UnkeyedInstanceShim()
 	return func(s *terraform.State) error {
-		is, err := modulePathPrimaryInstanceState(s, mp, name)
+		is, err := modulePathPrimaryInstanceState(s, mpt, name)
 		if err != nil {
 			return err
 		}
@@ -915,8 +918,9 @@ func TestCheckResourceAttr(name, key, value string) TestCheckFunc {
 // TestCheckModuleResourceAttr - as per TestCheckResourceAttr but with
 // support for non-root modules
 func TestCheckModuleResourceAttr(mp []string, name string, key string, value string) TestCheckFunc {
+	mpt := addrs.Module(mp).UnkeyedInstanceShim()
 	return func(s *terraform.State) error {
-		is, err := modulePathPrimaryInstanceState(s, mp, name)
+		is, err := modulePathPrimaryInstanceState(s, mpt, name)
 		if err != nil {
 			return err
 		}
@@ -957,8 +961,9 @@ func TestCheckNoResourceAttr(name, key string) TestCheckFunc {
 // TestCheckModuleNoResourceAttr - as per TestCheckNoResourceAttr but with
 // support for non-root modules
 func TestCheckModuleNoResourceAttr(mp []string, name string, key string) TestCheckFunc {
+	mpt := addrs.Module(mp).UnkeyedInstanceShim()
 	return func(s *terraform.State) error {
-		is, err := modulePathPrimaryInstanceState(s, mp, name)
+		is, err := modulePathPrimaryInstanceState(s, mpt, name)
 		if err != nil {
 			return err
 		}
@@ -991,8 +996,9 @@ func TestMatchResourceAttr(name, key string, r *regexp.Regexp) TestCheckFunc {
 // TestModuleMatchResourceAttr - as per TestMatchResourceAttr but with
 // support for non-root modules
 func TestModuleMatchResourceAttr(mp []string, name string, key string, r *regexp.Regexp) TestCheckFunc {
+	mpt := addrs.Module(mp).UnkeyedInstanceShim()
 	return func(s *terraform.State) error {
-		is, err := modulePathPrimaryInstanceState(s, mp, name)
+		is, err := modulePathPrimaryInstanceState(s, mpt, name)
 		if err != nil {
 			return err
 		}
@@ -1052,13 +1058,15 @@ func TestCheckResourceAttrPair(nameFirst, keyFirst, nameSecond, keySecond string
 // TestCheckModuleResourceAttrPair - as per TestCheckResourceAttrPair but with
 // support for non-root modules
 func TestCheckModuleResourceAttrPair(mpFirst []string, nameFirst string, keyFirst string, mpSecond []string, nameSecond string, keySecond string) TestCheckFunc {
+	mptFirst := addrs.Module(mpFirst).UnkeyedInstanceShim()
+	mptSecond := addrs.Module(mpSecond).UnkeyedInstanceShim()
 	return func(s *terraform.State) error {
-		isFirst, err := modulePathPrimaryInstanceState(s, mpFirst, nameFirst)
+		isFirst, err := modulePathPrimaryInstanceState(s, mptFirst, nameFirst)
 		if err != nil {
 			return err
 		}
 
-		isSecond, err := modulePathPrimaryInstanceState(s, mpSecond, nameSecond)
+		isSecond, err := modulePathPrimaryInstanceState(s, mptSecond, nameSecond)
 		if err != nil {
 			return err
 		}
@@ -1163,7 +1171,7 @@ func modulePrimaryInstanceState(s *terraform.State, ms *terraform.ModuleState, n
 
 // modulePathPrimaryInstanceState returns the primary instance state for the
 // given resource name in a given module path.
-func modulePathPrimaryInstanceState(s *terraform.State, mp []string, name string) (*terraform.InstanceState, error) {
+func modulePathPrimaryInstanceState(s *terraform.State, mp addrs.ModuleInstance, name string) (*terraform.InstanceState, error) {
 	ms := s.ModuleByPath(mp)
 	if ms == nil {
 		return nil, fmt.Errorf("No module found at: %s", mp)

@@ -396,19 +396,10 @@ func (c *InitCommand) getProviders(path string, state *terraform.State, upgrade 
 		return diags
 	}
 
-	if err := terraform.CheckStateVersion(state); err != nil {
+	if err := terraform.CheckStateVersion(state, false); err != nil {
 		diags = diags.Append(err)
 		return diags
 	}
-
-	// FIXME: Restore this once terraform.CheckRequiredVersion is updated to
-	// work with a configs.Config instead of a legacy module.Tree.
-	/*
-		if err := terraform.CheckRequiredVersion(mod); err != nil {
-			diags = diags.Append(err)
-			return diags
-		}
-	*/
 
 	var available discovery.PluginMetaSet
 	if upgrade {
