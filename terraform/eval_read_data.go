@@ -60,7 +60,7 @@ func (n *EvalReadDataDiff) Eval(ctx EvalContext) (interface{}, error) {
 		}
 
 		var configDiags tfdiags.Diagnostics
-		configVal, _, configDiags = ctx.EvaluateBlock(config.Config, schema, nil)
+		configVal, _, configDiags = ctx.EvaluateBlock(config.Config, schema, nil, n.Addr.Key)
 		diags = diags.Append(configDiags)
 		if configDiags.HasErrors() {
 			return nil, diags.Err()
