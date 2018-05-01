@@ -175,7 +175,13 @@ func (s *State) addModule(path addrs.ModuleInstance) *ModuleState {
 	// This requires that none of the steps have instance keys, which is
 	// true for all addresses at the time of implementing this because
 	// "count" and "for_each" are not yet implemented for modules.
-	legacyPath := make([]string, len(path))
+	// For the purposes of state, the legacy address format also includes
+	// a redundant extra prefix element "root". It is important to include
+	// this because the "prune" method will remove any module that has a
+	// path length less than one, and other parts of the state code will
+	// trim off the first element indiscriminately.
+	legacyPath := make([]string, len(path)+1)
+	legacyPath[0] = "root"
 	for i, step := range path {
 		if step.InstanceKey != addrs.NoKey {
 			// FIXME: Once the rest of Terraform is ready to use count and
@@ -184,7 +190,7 @@ func (s *State) addModule(path addrs.ModuleInstance) *ModuleState {
 			panic("state cannot represent modules with count or for_each keys")
 		}
 
-		legacyPath[i] = step.Name
+		legacyPath[i+1] = step.Name
 	}
 
 	m = &ModuleState{Path: legacyPath}
