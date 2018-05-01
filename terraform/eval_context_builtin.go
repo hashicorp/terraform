@@ -292,9 +292,9 @@ func (ctx *BuiltinEvalContext) CloseProvisioner(n string) error {
 	return nil
 }
 
-func (ctx *BuiltinEvalContext) EvaluateBlock(body hcl.Body, schema *configschema.Block, self addrs.Referenceable) (cty.Value, hcl.Body, tfdiags.Diagnostics) {
+func (ctx *BuiltinEvalContext) EvaluateBlock(body hcl.Body, schema *configschema.Block, self addrs.Referenceable, key addrs.InstanceKey) (cty.Value, hcl.Body, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
-	scope := ctx.Evaluator.Scope(ctx.PathValue, self)
+	scope := ctx.Evaluator.Scope(ctx.PathValue, self, key)
 	body, evalDiags := scope.ExpandBlock(body, schema)
 	diags = diags.Append(evalDiags)
 	val, evalDiags := scope.EvalBlock(body, schema)
@@ -303,7 +303,7 @@ func (ctx *BuiltinEvalContext) EvaluateBlock(body hcl.Body, schema *configschema
 }
 
 func (ctx *BuiltinEvalContext) EvaluateExpr(expr hcl.Expression, wantType cty.Type, self addrs.Referenceable) (cty.Value, tfdiags.Diagnostics) {
-	scope := ctx.Evaluator.Scope(ctx.PathValue, self)
+	scope := ctx.Evaluator.Scope(ctx.PathValue, self, addrs.NoKey)
 	return scope.EvalExpr(expr, wantType)
 }
 

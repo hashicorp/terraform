@@ -86,7 +86,7 @@ func (n *EvalValidateProvider) Eval(ctx EvalContext) (interface{}, error) {
 
 	configSchema := schema.Provider
 	configBody := buildProviderConfig(ctx, n.Addr, config.Config)
-	configVal, configBody, evalDiags := ctx.EvaluateBlock(configBody, configSchema, nil)
+	configVal, configBody, evalDiags := ctx.EvaluateBlock(configBody, configSchema, nil, addrs.NoKey)
 	diags = diags.Append(evalDiags)
 	if evalDiags.HasErrors() {
 		return nil, diags.NonFatalErr()
@@ -136,7 +136,7 @@ func (n *EvalValidateProvisioner) Eval(ctx EvalContext) (interface{}, error) {
 	{
 		// Validate the provisioner's own config first
 
-		configVal, _, configDiags := ctx.EvaluateBlock(config.Config, schema, n.ResourceAddr)
+		configVal, _, configDiags := ctx.EvaluateBlock(config.Config, schema, n.ResourceAddr, n.ResourceAddr.Key)
 		diags = diags.Append(configDiags)
 		if configDiags.HasErrors() {
 			return nil, diags.Err()
@@ -184,7 +184,7 @@ func (n *EvalValidateProvisioner) validateConnConfig(ctx EvalContext, config *co
 	// We evaluate here just by evaluating the block and returning any
 	// diagnostics we get, since evaluation alone is enough to check for
 	// extraneous arguments and incorrectly-typed arguments.
-	_, _, configDiags := ctx.EvaluateBlock(config.Config, connectionBlockSupersetSchema, self)
+	_, _, configDiags := ctx.EvaluateBlock(config.Config, connectionBlockSupersetSchema, self, n.ResourceAddr.Key)
 	diags = diags.Append(configDiags)
 
 	return diags
@@ -339,7 +339,7 @@ func (n *EvalValidateResource) Eval(ctx EvalContext) (interface{}, error) {
 			return nil, diags.Err()
 		}
 
-		configVal, _, valDiags := ctx.EvaluateBlock(cfg.Config, schema, nil)
+		configVal, _, valDiags := ctx.EvaluateBlock(cfg.Config, schema, nil, n.Addr.Key)
 		diags = diags.Append(valDiags)
 		if valDiags.HasErrors() {
 			return nil, diags.Err()
@@ -366,7 +366,7 @@ func (n *EvalValidateResource) Eval(ctx EvalContext) (interface{}, error) {
 			return nil, diags.Err()
 		}
 
-		configVal, _, valDiags := ctx.EvaluateBlock(cfg.Config, schema, nil)
+		configVal, _, valDiags := ctx.EvaluateBlock(cfg.Config, schema, nil, n.Addr.Key)
 		diags = diags.Append(valDiags)
 		if valDiags.HasErrors() {
 			return nil, diags.Err()
