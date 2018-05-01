@@ -9,6 +9,18 @@ import (
 // Module is a container for a set of configuration constructs that are
 // evaluated within a common namespace.
 type Module struct {
+	// SourceDir is the filesystem directory that the module was loaded from.
+	//
+	// This is populated automatically only for configurations loaded with
+	// LoadConfigDir. If the parser is using a virtual filesystem then the
+	// path here will be in terms of that virtual filesystem.
+
+	// Any other caller that constructs a module directly with NewModule may
+	// assign a suitable value to this attribute before using it for other
+	// purposes. It should be treated as immutable by all consumers of Module
+	// values.
+	SourceDir string
+
 	CoreVersionConstraints []VersionConstraint
 
 	Backend              *Backend
