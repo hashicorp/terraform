@@ -5,9 +5,10 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"strings"
 
 	version "github.com/hashicorp/go-version"
+
+	"github.com/hashicorp/terraform/addrs"
 )
 
 // moduleRecord represents some metadata about an installed module, as part
@@ -43,8 +44,8 @@ type moduleRecord struct {
 // it to reflect any changes to the installed modules.
 type moduleManifest map[string]moduleRecord
 
-func manifestKey(path []string) string {
-	return strings.Join(path, ".")
+func manifestKey(path addrs.Module) string {
+	return path.String()
 }
 
 // manifestSnapshotFile is an internal struct used only to assist in our JSON

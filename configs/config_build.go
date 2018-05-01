@@ -5,6 +5,7 @@ import (
 
 	version "github.com/hashicorp/go-version"
 	"github.com/hashicorp/hcl2/hcl"
+	"github.com/hashicorp/terraform/addrs"
 )
 
 // BuildConfig constructs a Config from a root module by loading all of its
@@ -123,7 +124,7 @@ type ModuleRequest struct {
 	// this module. This can be used, for example, to form a lookup key for
 	// each distinct module call in a configuration, allowing for multiple
 	// calls with the same name at different points in the tree.
-	Path []string
+	Path addrs.Module
 
 	// SourceAddr is the source address string provided by the user in
 	// configuration.
