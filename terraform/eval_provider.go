@@ -55,7 +55,7 @@ func (n *EvalConfigProvider) Eval(ctx EvalContext) (interface{}, error) {
 
 	configSchema := schema.Provider
 	configBody := buildProviderConfig(ctx, n.Addr, config.Config)
-	configVal, configBody, evalDiags := ctx.EvaluateBlock(configBody, configSchema, nil)
+	configVal, configBody, evalDiags := ctx.EvaluateBlock(configBody, configSchema, nil, addrs.NoKey)
 	diags = diags.Append(evalDiags)
 	if evalDiags.HasErrors() {
 		return nil, diags.NonFatalErr()
