@@ -302,10 +302,10 @@ func (n *EvalApplyProvisioners) apply(ctx EvalContext, provs []*configs.Provisio
 		schema := ctx.ProvisionerSchema(prov.Type)
 
 		// Evaluate the main provisioner configuration.
-		config, _, configDiags := ctx.EvaluateBlock(prov.Config, schema, instanceAddr)
+		config, _, configDiags := ctx.EvaluateBlock(prov.Config, schema, instanceAddr, instanceAddr.Key)
 		diags = diags.Append(configDiags)
 
-		connInfo, _, connInfoDiags := ctx.EvaluateBlock(prov.Config, connectionBlockSupersetSchema, instanceAddr)
+		connInfo, _, connInfoDiags := ctx.EvaluateBlock(prov.Config, connectionBlockSupersetSchema, instanceAddr, instanceAddr.Key)
 		diags = diags.Append(connInfoDiags)
 
 		if configDiags.HasErrors() || connInfoDiags.HasErrors() {

@@ -78,6 +78,7 @@ type MockEvalContext struct {
 	EvaluateBlockBody         hcl.Body
 	EvaluateBlockSchema       *configschema.Block
 	EvaluateBlockSelf         addrs.Referenceable
+	EvaluateBlockKey          addrs.InstanceKey
 	EvaluateBlockResult       cty.Value
 	EvaluateBlockExpandedBody hcl.Body
 	EvaluateBlockDiags        tfdiags.Diagnostics
@@ -209,11 +210,12 @@ func (c *MockEvalContext) CloseProvisioner(n string) error {
 	return nil
 }
 
-func (c *MockEvalContext) EvaluateBlock(body hcl.Body, schema *configschema.Block, self addrs.Referenceable) (cty.Value, hcl.Body, tfdiags.Diagnostics) {
+func (c *MockEvalContext) EvaluateBlock(body hcl.Body, schema *configschema.Block, self addrs.Referenceable, key addrs.InstanceKey) (cty.Value, hcl.Body, tfdiags.Diagnostics) {
 	c.EvaluateBlockCalled = true
 	c.EvaluateBlockBody = body
 	c.EvaluateBlockSchema = schema
 	c.EvaluateBlockSelf = self
+	c.EvaluateBlockKey = key
 	return c.EvaluateBlockResult, c.EvaluateBlockExpandedBody, c.EvaluateBlockDiags
 }
 
