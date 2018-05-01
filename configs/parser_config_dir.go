@@ -41,6 +41,8 @@ func (p *Parser) LoadConfigDir(path string) (*Module, hcl.Diagnostics) {
 	mod, modDiags := NewModule(primary, override)
 	diags = append(diags, modDiags...)
 
+	mod.SourceDir = path
+
 	return mod, diags
 }
 
