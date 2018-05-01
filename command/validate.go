@@ -203,6 +203,11 @@ func (c *ValidateCommand) showResults(diags tfdiags.Diagnostics, jsonOutput bool
 
 			output.Diagnostics = append(output.Diagnostics, jsonDiag)
 		}
+		if output.Diagnostics == nil {
+			// Make sure this always appears as an array in our output, since
+			// this is easier to consume for dynamically-typed languages.
+			output.Diagnostics = []Diagnostic{}
+		}
 
 		j, err := json.MarshalIndent(&output, "", "  ")
 		if err != nil {
