@@ -129,7 +129,7 @@ func (n *EvalDiff) Eval(ctx EvalContext) (interface{}, error) {
 		// Should be caught during validation, so we don't bother with a pretty error here
 		return nil, fmt.Errorf("provider does not support resource type %q", n.Addr.Resource.Type)
 	}
-	configVal, _, configDiags := ctx.EvaluateBlock(config.Config, schema, nil)
+	configVal, _, configDiags := ctx.EvaluateBlock(config.Config, schema, nil, n.Addr.Key)
 	diags = diags.Append(configDiags)
 	if configDiags.HasErrors() {
 		return nil, diags.Err()
