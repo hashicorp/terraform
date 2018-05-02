@@ -1,5 +1,7 @@
 dist: trusty
-sudo: false
+sudo: required
+services:
+  - docker
 language: go
 go:
 - "1.10.1"
@@ -35,6 +37,8 @@ script:
 - make test
 - make e2etest
 - GOOS=windows go build
+- make website-test
+
 branches:
   only:
   - master
