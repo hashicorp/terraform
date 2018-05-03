@@ -24,11 +24,9 @@ type ApplyGraphBuilder struct {
 	// State is the current state
 	State *State
 
-	// Providers is the list of providers supported.
-	Providers []string
-
-	// Provisioners is the list of provisioners supported.
-	Provisioners []string
+	// Components is a factory for the plug-in components (providers and
+	// provisioners) available for use.
+	Components contextComponentFactory
 
 	// Targets are resources to target. This is only required to make sure
 	// unnecessary outputs aren't included in the apply graph. The plan
@@ -87,7 +85,7 @@ func (b *ApplyGraphBuilder) Steps() []GraphTransformer {
 		&AttachStateTransformer{State: b.State},
 
 		// add providers
-		TransformProviders(b.Providers, concreteProvider, b.Config),
+		TransformProviders(b.Components.ResourceProviders(), concreteProvider, b.Config),
 
 		// Destruction ordering
 		&DestroyEdgeTransformer{Config: b.Config, State: b.State},
@@ -97,7 +95,7 @@ func (b *ApplyGraphBuilder) Steps() []GraphTransformer {
 		),
 
 		// Provisioner-related transformations
-		&MissingProvisionerTransformer{Provisioners: b.Provisioners},
+		&MissingProvisionerTransformer{Provisioners: b.Components.ResourceProvisioners()},
 		&ProvisionerTransformer{},
 
 		// Add root variables
@@ -114,6 +112,10 @@ func (b *ApplyGraphBuilder) Steps() []GraphTransformer {
 
 		// Remove modules no longer present in the config
 		&RemovedModuleTransformer{Config: b.Config, State: b.State},
+
+		// Must be before ReferenceTransformer, since schema is required to
+		// extract references from config.
+		&AttachSchemaTransformer{Components: b.Components},
 
 		// Connect references so ordering is correct
 		&ReferenceTransformer{},
