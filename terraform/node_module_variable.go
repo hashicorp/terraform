@@ -4,6 +4,7 @@ import (
 	"github.com/hashicorp/hcl2/hcl"
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs"
+	"github.com/hashicorp/terraform/dag"
 	"github.com/hashicorp/terraform/lang"
 	"github.com/zclconf/go-cty/cty"
 )
@@ -25,6 +26,7 @@ var (
 	_ GraphNodeReferenceable    = (*NodeApplyableModuleVariable)(nil)
 	_ GraphNodeReferencer       = (*NodeApplyableModuleVariable)(nil)
 	_ GraphNodeEvalable         = (*NodeApplyableModuleVariable)(nil)
+	_ dag.GraphNodeDotter       = (*NodeApplyableModuleVariable)(nil)
 )
 
 func (n *NodeApplyableModuleVariable) Name() string {
@@ -135,6 +137,17 @@ func (n *NodeApplyableModuleVariable) EvalTree() EvalNode {
 				Module: call,
 				Values: vals,
 			},
+		},
+	}
+}
+
+// dag.GraphNodeDotter impl.
+func (n *NodeApplyableModuleVariable) DotNode(name string, opts *dag.DotOpts) *dag.DotNode {
+	return &dag.DotNode{
+		Name: name,
+		Attrs: map[string]string{
+			"label": n.Name(),
+			"shape": "note",
 		},
 	}
 }
