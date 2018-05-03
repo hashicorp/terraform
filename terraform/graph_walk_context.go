@@ -73,7 +73,18 @@ func (w *ContextGraphWalker) EnterPath(path addrs.ModuleInstance) EvalContext {
 	// so that we can safely run multiple evaluations at once across
 	// different modules.
 	evaluator := &Evaluator{
-		StateLock: &w.Context.stateLock,
+		Meta:            w.Context.meta,
+		Config:          w.Context.config,
+		State:           w.Context.state,
+		StateLock:       &w.Context.stateLock,
+		ProviderSchemas: w.providerSchemas,
+		ProvidersLock:   &w.providerLock,
+
+		// FIXME: This was a design mistake on the evaluator, which should
+		// get replaced with something like the interpolatorVars thing above
+		// once we verify exactly how that was used in the old Interpolator
+		// codepath.
+		RootVariableValues: map[string]*InputValue{},
 	}
 
 	ctx := &BuiltinEvalContext{
@@ -84,6 +95,7 @@ func (w *ContextGraphWalker) EnterPath(path addrs.ModuleInstance) EvalContext {
 		Components:          w.Context.components,
 		ProviderCache:       w.providerCache,
 		ProviderInputConfig: w.Context.providerInputConfig,
+		ProviderSchemas:     w.providerSchemas,
 		ProviderLock:        &w.providerLock,
 		ProvisionerCache:    w.provisionerCache,
 		ProvisionerLock:     &w.provisionerLock,
