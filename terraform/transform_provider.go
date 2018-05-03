@@ -510,12 +510,13 @@ func (t *ProviderConfigTransformer) addProxyProviders(g *Graph, c *configs.Confi
 		return nil
 	}
 
-	parentPath, callName := path[:len(path)-1], path[len(path)-1]
-	parent := c.Descendent(parentPath)
+	parentPath, callAddr := path.Call()
+	parent := c.Parent
 	if parent == nil {
 		return nil
 	}
 
+	callName := callAddr.Name
 	var parentCfg *configs.ModuleCall
 	for name, mod := range parent.Module.ModuleCalls {
 		if name == callName {
