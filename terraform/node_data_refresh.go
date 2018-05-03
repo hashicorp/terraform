@@ -66,6 +66,7 @@ func (n *NodeRefreshableDataResource) DynamicExpand(ctx EvalContext) (*Graph, er
 		// Expand the count.
 		&ResourceCountTransformer{
 			Concrete: concreteResource,
+			Schema:   n.Schema,
 			Count:    count,
 			Addr:     n.ResourceAddr(),
 		},
