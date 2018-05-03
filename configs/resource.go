@@ -47,14 +47,7 @@ type ManagedResource struct {
 }
 
 func (r *Resource) moduleUniqueKey() string {
-	switch r.Mode {
-	case addrs.ManagedResourceMode:
-		return fmt.Sprintf("%s.%s", r.Name, r.Type)
-	case addrs.DataResourceMode:
-		return fmt.Sprintf("data.%s.%s", r.Name, r.Type)
-	default:
-		panic(fmt.Errorf("Resource has invalid resource mode %s", r.Mode))
-	}
+	return r.Addr().String()
 }
 
 // Addr returns a resource address for the receiver that is relative to the
