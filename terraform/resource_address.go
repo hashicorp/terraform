@@ -362,7 +362,7 @@ func NewLegacyResourceInstanceAddress(addr addrs.AbsResourceInstance) *ResourceA
 	ret.Path = path
 
 	if addr.Resource.Key == addrs.NoKey {
-		ret.Index = 0
+		ret.Index = -1
 	} else if ik, ok := addr.Resource.Key.(addrs.IntKey); ok {
 		ret.Index = int(ik)
 	} else {
