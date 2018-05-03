@@ -24,6 +24,7 @@ var (
 	_ GraphNodeReferencer       = (*NodeApplyableOutput)(nil)
 	_ GraphNodeReferenceOutside = (*NodeApplyableOutput)(nil)
 	_ GraphNodeEvalable         = (*NodeApplyableOutput)(nil)
+	_ dag.GraphNodeDotter       = (*NodeApplyableOutput)(nil)
 )
 
 func (n *NodeApplyableOutput) Name() string {
@@ -137,6 +138,17 @@ func (n *NodeApplyableOutput) EvalTree() EvalNode {
 	}
 }
 
+// dag.GraphNodeDotter impl.
+func (n *NodeApplyableOutput) DotNode(name string, opts *dag.DotOpts) *dag.DotNode {
+	return &dag.DotNode{
+		Name: name,
+		Attrs: map[string]string{
+			"label": n.Name(),
+			"shape": "note",
+		},
+	}
+}
+
 // NodeDestroyableOutput represents an output that is "destroybale":
 // its application will remove the output from the state.
 type NodeDestroyableOutput struct {
@@ -150,6 +162,7 @@ var (
 	_ GraphNodeTargetDownstream = (*NodeDestroyableOutput)(nil)
 	_ GraphNodeReferencer       = (*NodeDestroyableOutput)(nil)
 	_ GraphNodeEvalable         = (*NodeDestroyableOutput)(nil)
+	_ dag.GraphNodeDotter       = (*NodeDestroyableOutput)(nil)
 )
 
 func (n *NodeDestroyableOutput) Name() string {
@@ -183,5 +196,16 @@ func (n *NodeDestroyableOutput) References() []*addrs.Reference {
 func (n *NodeDestroyableOutput) EvalTree() EvalNode {
 	return &EvalDeleteOutput{
 		Addr: n.Addr.OutputValue,
+	}
+}
+
+// dag.GraphNodeDotter impl.
+func (n *NodeDestroyableOutput) DotNode(name string, opts *dag.DotOpts) *dag.DotNode {
+	return &dag.DotNode{
+		Name: name,
+		Attrs: map[string]string{
+			"label": n.Name(),
+			"shape": "note",
+		},
 	}
 }
