@@ -34,7 +34,7 @@ type GraphNodeProvisionerConsumer interface {
 	// type returned from ProvisionedBy, providing the configuration schema
 	// for each provisioner in turn. The implementer should save these for
 	// later use in evaluating provisioner configuration blocks.
-	SetProvisionerSchema(name string, schema *configschema.Block)
+	AttachProvisionerSchema(name string, schema *configschema.Block)
 }
 
 // ProvisionerTransformer is a GraphTransformer that maps resources to
