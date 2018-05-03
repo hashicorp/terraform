@@ -52,3 +52,24 @@ func (m Module) Parent() Module {
 	}
 	return m[:len(m)-1]
 }
+
+// Call returns the module call address that corresponds to the given module
+// instance, along with the address of the module that contains it.
+//
+// There is no call for the root module, so this method will panic if called
+// on the root module address.
+//
+// In practice, this just turns the last element of the receiver into a
+// ModuleCall and then returns a slice of the receiever that excludes that
+// last part. This is just a convenience for situations where a call address
+// is required, such as when dealing with *Reference and Referencable values.
+func (m Module) Call() (Module, ModuleCall) {
+	if len(m) == 0 {
+		panic("cannot produce ModuleCall for root module")
+	}
+
+	caller, callName := m[:len(m)-1], m[len(m)-1]
+	return caller, ModuleCall{
+		Name: callName,
+	}
+}
