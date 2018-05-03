@@ -3,6 +3,7 @@ package terraform
 import (
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs"
+	"github.com/hashicorp/terraform/dag"
 	"github.com/hashicorp/terraform/lang"
 )
 
@@ -21,6 +22,7 @@ var (
 	_ GraphNodeReferenceable = (*NodeLocal)(nil)
 	_ GraphNodeReferencer    = (*NodeLocal)(nil)
 	_ GraphNodeEvalable      = (*NodeLocal)(nil)
+	_ dag.GraphNodeDotter    = (*NodeLocal)(nil)
 )
 
 func (n *NodeLocal) Name() string {
@@ -53,5 +55,16 @@ func (n *NodeLocal) EvalTree() EvalNode {
 	return &EvalLocal{
 		Addr: n.Addr.LocalValue,
 		Expr: n.Config.Expr,
+	}
+}
+
+// dag.GraphNodeDotter impl.
+func (n *NodeLocal) DotNode(name string, opts *dag.DotOpts) *dag.DotNode {
+	return &dag.DotNode{
+		Name: name,
+		Attrs: map[string]string{
+			"label": n.Name(),
+			"shape": "note",
+		},
 	}
 }
