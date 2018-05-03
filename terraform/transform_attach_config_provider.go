@@ -16,7 +16,4 @@ type GraphNodeAttachProvider interface {
 
 	// Sets the configuration
 	AttachProvider(*configs.Provider)
-
-	// Sets the schema
-	AttachProviderSchema(*ProviderSchema)
 }

@@ -249,14 +249,13 @@ func (c *Context) Graph(typ GraphType, opts *ContextGraphOpts) (*Graph, tfdiags.
 	switch typ {
 	case GraphTypeApply:
 		return (&ApplyGraphBuilder{
-			Config:       c.config,
-			Diff:         c.diff,
-			State:        c.state,
-			Providers:    c.components.ResourceProviders(),
-			Provisioners: c.components.ResourceProvisioners(),
-			Targets:      c.targets,
-			Destroy:      c.destroy,
-			Validate:     opts.Validate,
+			Config:     c.config,
+			Diff:       c.diff,
+			State:      c.state,
+			Components: c.components,
+			Targets:    c.targets,
+			Destroy:    c.destroy,
+			Validate:   opts.Validate,
 		}).Build(addrs.RootModuleInstance)
 
 	case GraphTypeInput:
@@ -268,11 +267,11 @@ func (c *Context) Graph(typ GraphType, opts *ContextGraphOpts) (*Graph, tfdiags.
 	case GraphTypePlan:
 		// Create the plan graph builder
 		p := &PlanGraphBuilder{
-			Config:    c.config,
-			State:     c.state,
-			Providers: c.components.ResourceProviders(),
-			Targets:   c.targets,
-			Validate:  opts.Validate,
+			Config:     c.config,
+			State:      c.state,
+			Components: c.components,
+			Targets:    c.targets,
+			Validate:   opts.Validate,
 		}
 
 		// Some special cases for other graph types shared with plan currently
@@ -281,9 +280,6 @@ func (c *Context) Graph(typ GraphType, opts *ContextGraphOpts) (*Graph, tfdiags.
 		case GraphTypeInput:
 			b = InputGraphBuilder(p)
 		case GraphTypeValidate:
-			// We need to set the provisioners so those can be validated
-			p.Provisioners = c.components.ResourceProvisioners()
-
 			b = ValidateGraphBuilder(p)
 		}
 
@@ -299,11 +295,11 @@ func (c *Context) Graph(typ GraphType, opts *ContextGraphOpts) (*Graph, tfdiags.
 
 	case GraphTypeRefresh:
 		return (&RefreshGraphBuilder{
-			Config:    c.config,
-			State:     c.state,
-			Providers: c.components.ResourceProviders(),
-			Targets:   c.targets,
-			Validate:  opts.Validate,
+			Config:     c.config,
+			State:      c.state,
+			Components: c.components,
+			Targets:    c.targets,
+			Validate:   opts.Validate,
 		}).Build(addrs.RootModuleInstance)
 
 	default:
