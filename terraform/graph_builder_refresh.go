@@ -29,8 +29,9 @@ type RefreshGraphBuilder struct {
 	// State is the current state
 	State *State
 
-	// Providers is the list of providers supported.
-	Providers []string
+	// Components is a factory for the plug-in components (providers and
+	// provisioners) available for use.
+	Components contextComponentFactory
 
 	// Targets are resources to target
 	Targets []addrs.Targetable
@@ -124,7 +125,7 @@ func (b *RefreshGraphBuilder) Steps() []GraphTransformer {
 		// Add root variables
 		&RootVariableTransformer{Config: b.Config},
 
-		TransformProviders(b.Providers, concreteProvider, b.Config),
+		TransformProviders(b.Components.ResourceProviders(), concreteProvider, b.Config),
 
 		// Add the local values
 		&LocalTransformer{Config: b.Config},
@@ -134,6 +135,10 @@ func (b *RefreshGraphBuilder) Steps() []GraphTransformer {
 
 		// Add module variables
 		&ModuleVariableTransformer{Config: b.Config},
+
+		// Must be before ReferenceTransformer, since schema is required to
+		// extract references from config.
+		&AttachSchemaTransformer{Components: b.Components},
 
 		// Connect so that the references are ready for targeting. We'll
 		// have to connect again later for providers and so on.

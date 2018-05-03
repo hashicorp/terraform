@@ -29,11 +29,9 @@ type PlanGraphBuilder struct {
 	// State is the current state
 	State *State
 
-	// Providers is the list of providers supported.
-	Providers []string
-
-	// Provisioners is the list of provisioners supported.
-	Provisioners []string
+	// Components is a factory for the plug-in components (providers and
+	// provisioners) available for use.
+	Components contextComponentFactory
 
 	// Targets are resources to target
 	Targets []addrs.Targetable
@@ -103,16 +101,11 @@ func (b *PlanGraphBuilder) Steps() []GraphTransformer {
 		// Add root variables
 		&RootVariableTransformer{Config: b.Config},
 
-		TransformProviders(b.Providers, b.ConcreteProvider, b.Config),
+		TransformProviders(b.Components.ResourceProviders(), b.ConcreteProvider, b.Config),
 
-		// Provisioner-related transformations. Only add these if requested.
-		GraphTransformIf(
-			func() bool { return b.Provisioners != nil },
-			GraphTransformMulti(
-				&MissingProvisionerTransformer{Provisioners: b.Provisioners},
-				&ProvisionerTransformer{},
-			),
-		),
+		&MissingProvisionerTransformer{Provisioners: b.Components.ResourceProvisioners()},
+
+		&AttachSchemaTransformer{Components: b.Components},
 
 		// Add module variables
 		&ModuleVariableTransformer{
@@ -121,6 +114,10 @@ func (b *PlanGraphBuilder) Steps() []GraphTransformer {
 
 		// Remove modules no longer present in the config
 		&RemovedModuleTransformer{Config: b.Config, State: b.State},
+
+		// Must be before ReferenceTransformer, since schema is required to
+		// extract references from config.
+		&AttachSchemaTransformer{Components: b.Components},
 
 		// Connect so that the references are ready for targeting. We'll
 		// have to connect again later for providers and so on.

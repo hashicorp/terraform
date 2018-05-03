@@ -66,6 +66,7 @@ func (n *NodePlannableResource) DynamicExpand(ctx EvalContext) (*Graph, error) {
 		// Expand the count.
 		&ResourceCountTransformer{
 			Concrete: concreteResource,
+			Schema:   n.Schema,
 			Count:    count,
 			Addr:     n.ResourceAddr(),
 		},

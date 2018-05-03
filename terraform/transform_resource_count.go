@@ -2,6 +2,7 @@ package terraform
 
 import (
 	"github.com/hashicorp/terraform/addrs"
+	"github.com/hashicorp/terraform/config/configschema"
 	"github.com/hashicorp/terraform/dag"
 )
 
@@ -11,6 +12,7 @@ import (
 // This assumes that the count is already interpolated.
 type ResourceCountTransformer struct {
 	Concrete ConcreteResourceInstanceNodeFunc
+	Schema   *configschema.Block
 
 	// Count is either the number of indexed instances to create, or -1 to
 	// indicate that count is not set at all and thus a no-key instance should
@@ -25,6 +27,7 @@ func (t *ResourceCountTransformer) Transform(g *Graph) error {
 		addr := t.Addr.Instance(addrs.NoKey)
 
 		abstract := NewNodeAbstractResourceInstance(addr)
+		abstract.Schema = t.Schema
 		var node dag.Vertex = abstract
 		if f := t.Concrete; f != nil {
 			node = f(abstract)

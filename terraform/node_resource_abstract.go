@@ -68,6 +68,7 @@ var (
 	_ GraphNodeProvisionerConsumer  = (*NodeAbstractResource)(nil)
 	_ GraphNodeResource             = (*NodeAbstractResource)(nil)
 	_ GraphNodeAttachResourceConfig = (*NodeAbstractResource)(nil)
+	_ GraphNodeAttachResourceSchema = (*NodeAbstractResource)(nil)
 	_ GraphNodeTargetable           = (*NodeAbstractResource)(nil)
 	_ dag.GraphNodeDotter           = (*NodeAbstractResource)(nil)
 )
@@ -106,7 +107,8 @@ var (
 	_ GraphNodeResourceInstance     = (*NodeAbstractResourceInstance)(nil)
 	_ GraphNodeAttachResourceState  = (*NodeAbstractResourceInstance)(nil)
 	_ GraphNodeAttachResourceConfig = (*NodeAbstractResourceInstance)(nil)
-	_ GraphNodeTargetable           = (*NodeAbstractResource)(nil)
+	_ GraphNodeAttachResourceSchema = (*NodeAbstractResourceInstance)(nil)
+	_ GraphNodeTargetable           = (*NodeAbstractResourceInstance)(nil)
 	_ dag.GraphNodeDotter           = (*NodeAbstractResourceInstance)(nil)
 )
 
@@ -174,6 +176,12 @@ func (n *NodeAbstractResource) References() []*addrs.Reference {
 			}
 
 			result = append(result, ref)
+		}
+
+		if n.Schema == nil {
+			// Should never happens, but we'll log if it does so that we can
+			// see this easily when debugging.
+			log.Printf("[WARN] no schema is attached to %s, so references cannot be detected", n.Name())
 		}
 
 		refs, _ := lang.ReferencesInExpr(c.Count)
@@ -353,7 +361,7 @@ func (n *NodeAbstractResource) ProvisionedBy() []string {
 }
 
 // GraphNodeProvisionerConsumer
-func (n *NodeAbstractResource) SetProvisionerSchema(name string, schema *configschema.Block) {
+func (n *NodeAbstractResource) AttachProvisionerSchema(name string, schema *configschema.Block) {
 	n.ProvisionerSchemas[name] = schema
 }
 
@@ -385,6 +393,11 @@ func (n *NodeAbstractResourceInstance) AttachResourceState(s *ResourceState) {
 // GraphNodeAttachResourceConfig
 func (n *NodeAbstractResource) AttachResourceConfig(c *configs.Resource) {
 	n.Config = c
+}
+
+// GraphNodeAttachResourceSchema impl
+func (n *NodeAbstractResource) AttachResourceSchema(schema *configschema.Block) {
+	n.Schema = schema
 }
 
 // GraphNodeDotter impl.

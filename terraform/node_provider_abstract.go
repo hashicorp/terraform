@@ -2,6 +2,7 @@ package terraform
 
 import (
 	"github.com/hashicorp/terraform/addrs"
+	"github.com/hashicorp/terraform/config/configschema"
 	"github.com/hashicorp/terraform/configs"
 
 	"github.com/hashicorp/terraform/dag"
@@ -21,16 +22,17 @@ type NodeAbstractProvider struct {
 	// set if you already have that information.
 
 	Config *configs.Provider
-	Schema *ProviderSchema
+	Schema *configschema.Block
 }
 
 var (
-	_ GraphNodeSubPath        = (*NodeAbstractProvider)(nil)
-	_ RemovableIfNotTargeted  = (*NodeAbstractProvider)(nil)
-	_ GraphNodeReferencer     = (*NodeAbstractProvider)(nil)
-	_ GraphNodeProvider       = (*NodeAbstractProvider)(nil)
-	_ GraphNodeAttachProvider = (*NodeAbstractProvider)(nil)
-	_ dag.GraphNodeDotter     = (*NodeAbstractProvider)(nil)
+	_ GraphNodeSubPath                    = (*NodeAbstractProvider)(nil)
+	_ RemovableIfNotTargeted              = (*NodeAbstractProvider)(nil)
+	_ GraphNodeReferencer                 = (*NodeAbstractProvider)(nil)
+	_ GraphNodeProvider                   = (*NodeAbstractProvider)(nil)
+	_ GraphNodeAttachProvider             = (*NodeAbstractProvider)(nil)
+	_ GraphNodeAttachProviderConfigSchema = (*NodeAbstractProvider)(nil)
+	_ dag.GraphNodeDotter                 = (*NodeAbstractProvider)(nil)
 )
 
 func (n *NodeAbstractProvider) Name() string {
@@ -55,7 +57,7 @@ func (n *NodeAbstractProvider) References() []*addrs.Reference {
 		return nil
 	}
 
-	return ReferencesFromConfig(n.Config.Config, n.Schema.Provider)
+	return ReferencesFromConfig(n.Config.Config, n.Schema)
 }
 
 // GraphNodeProvider
@@ -77,9 +79,9 @@ func (n *NodeAbstractProvider) AttachProvider(c *configs.Provider) {
 	n.Config = c
 }
 
-// GraphNodeAttachProvider
-func (n *NodeAbstractProvider) AttachProviderSchema(s *ProviderSchema) {
-	n.Schema = s
+// GraphNodeAttachProviderConfigSchema impl.
+func (n *NodeAbstractProvider) AttachProviderConfigSchema(schema *configschema.Block) {
+	n.Schema = schema
 }
 
 // GraphNodeDotter impl.
