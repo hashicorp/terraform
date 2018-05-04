@@ -294,7 +294,8 @@ func (ctx *BuiltinEvalContext) CloseProvisioner(n string) error {
 
 func (ctx *BuiltinEvalContext) EvaluateBlock(body hcl.Body, schema *configschema.Block, self addrs.Referenceable, key addrs.InstanceKey) (cty.Value, hcl.Body, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
-	scope := ctx.Evaluator.Scope(ctx.PathValue, self, key)
+	evalData := ctx.evaluationStateData(key)
+	scope := ctx.Evaluator.Scope(evalData, self)
 	body, evalDiags := scope.ExpandBlock(body, schema)
 	diags = diags.Append(evalDiags)
 	val, evalDiags := scope.EvalBlock(body, schema)
@@ -303,8 +304,17 @@ func (ctx *BuiltinEvalContext) EvaluateBlock(body hcl.Body, schema *configschema
 }
 
 func (ctx *BuiltinEvalContext) EvaluateExpr(expr hcl.Expression, wantType cty.Type, self addrs.Referenceable) (cty.Value, tfdiags.Diagnostics) {
-	scope := ctx.Evaluator.Scope(ctx.PathValue, self, addrs.NoKey)
+	evalData := ctx.evaluationStateData(addrs.NoKey)
+	scope := ctx.Evaluator.Scope(evalData, self)
 	return scope.EvalExpr(expr, wantType)
+}
+
+func (ctx *BuiltinEvalContext) evaluationStateData(key addrs.InstanceKey) *evaluationStateData {
+	return &evaluationStateData{
+		Evaluator:   ctx.Evaluator,
+		ModulePath:  ctx.PathValue,
+		InstanceKey: key,
+	}
 }
 
 func (ctx *BuiltinEvalContext) Path() addrs.ModuleInstance {
