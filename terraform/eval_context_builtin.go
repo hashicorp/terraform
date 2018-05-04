@@ -27,8 +27,14 @@ type BuiltinEvalContext struct {
 	// eval context.
 	Evaluator *Evaluator
 
-	ChildModuleCallArgs  map[string]map[string]cty.Value
-	ChildModuleCallsLock *sync.Mutex
+	// VariableValues contains the variable values across all modules. This
+	// structure is shared across the entire containing context, and so it
+	// may be accessed only when holding VariableValuesLock.
+	// The keys of the first level of VariableValues are the string
+	// representations of addrs.ModuleInstance values. The second-level keys
+	// are variable names within each module instance.
+	VariableValues     map[string]map[string]cty.Value
+	VariableValuesLock *sync.Mutex
 
 	Components          contextComponentFactory
 	Hooks               []Hook
@@ -322,16 +328,17 @@ func (ctx *BuiltinEvalContext) Path() addrs.ModuleInstance {
 }
 
 func (ctx *BuiltinEvalContext) SetModuleCallArguments(n addrs.ModuleCallInstance, vals map[string]cty.Value) {
-	ctx.ChildModuleCallsLock.Lock()
-	defer ctx.ChildModuleCallsLock.Unlock()
+	ctx.VariableValuesLock.Lock()
+	defer ctx.VariableValuesLock.Unlock()
 
-	childPath := ctx.Path().Child(n.Call.Name, n.Key)
+	childPath := n.ModuleInstance(ctx.PathValue)
 	key := childPath.String()
 
-	args := ctx.ChildModuleCallArgs[key]
+	args := ctx.VariableValues[key]
 	if args == nil {
 		args = make(map[string]cty.Value)
-		ctx.ChildModuleCallArgs[key] = args
+		ctx.VariableValues[key] = vals
+		return
 	}
 
 	for k, v := range vals {
