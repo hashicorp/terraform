@@ -116,7 +116,7 @@ $ terraform import aws_instance.foo i-abcd1234
 
 ## Example: Import to Module
 
-The example below will import an AWS instance into a module:
+This example will import a particular aws_instance module known as `foo` based on the source module called `bar`
 
 ```shell
 $ terraform import module.foo.aws_instance.bar i-abcd1234
