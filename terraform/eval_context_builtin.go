@@ -8,6 +8,7 @@ import (
 
 	"github.com/hashicorp/hcl2/hcl"
 	"github.com/hashicorp/terraform/config/configschema"
+	"github.com/hashicorp/terraform/lang"
 	"github.com/hashicorp/terraform/tfdiags"
 
 	"github.com/hashicorp/terraform/addrs"
@@ -300,8 +301,7 @@ func (ctx *BuiltinEvalContext) CloseProvisioner(n string) error {
 
 func (ctx *BuiltinEvalContext) EvaluateBlock(body hcl.Body, schema *configschema.Block, self addrs.Referenceable, key addrs.InstanceKey) (cty.Value, hcl.Body, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
-	evalData := ctx.evaluationStateData(key)
-	scope := ctx.Evaluator.Scope(evalData, self)
+	scope := ctx.EvaluationScope(self, key)
 	body, evalDiags := scope.ExpandBlock(body, schema)
 	diags = diags.Append(evalDiags)
 	val, evalDiags := scope.EvalBlock(body, schema)
@@ -310,17 +310,17 @@ func (ctx *BuiltinEvalContext) EvaluateBlock(body hcl.Body, schema *configschema
 }
 
 func (ctx *BuiltinEvalContext) EvaluateExpr(expr hcl.Expression, wantType cty.Type, self addrs.Referenceable) (cty.Value, tfdiags.Diagnostics) {
-	evalData := ctx.evaluationStateData(addrs.NoKey)
-	scope := ctx.Evaluator.Scope(evalData, self)
+	scope := ctx.EvaluationScope(self, addrs.NoKey)
 	return scope.EvalExpr(expr, wantType)
 }
 
-func (ctx *BuiltinEvalContext) evaluationStateData(key addrs.InstanceKey) *evaluationStateData {
-	return &evaluationStateData{
+func (ctx *BuiltinEvalContext) EvaluationScope(self addrs.Referenceable, key addrs.InstanceKey) *lang.Scope {
+	data := &evaluationStateData{
 		Evaluator:   ctx.Evaluator,
 		ModulePath:  ctx.PathValue,
 		InstanceKey: key,
 	}
+	return ctx.Evaluator.Scope(data, self)
 }
 
 func (ctx *BuiltinEvalContext) Path() addrs.ModuleInstance {

@@ -4,6 +4,7 @@ import (
 	"sync"
 
 	"github.com/hashicorp/terraform/addrs"
+	"github.com/hashicorp/terraform/lang"
 
 	"github.com/hashicorp/hcl2/hcl"
 	"github.com/hashicorp/terraform/config/configschema"
@@ -89,6 +90,11 @@ type MockEvalContext struct {
 	EvaluateExprSelf     addrs.Referenceable
 	EvaluateExprResult   cty.Value
 	EvaluateExprDiags    tfdiags.Diagnostics
+
+	EvaluationScopeCalled bool
+	EvaluationScopeSelf   addrs.Referenceable
+	EvaluationScopeKey    addrs.InstanceKey
+	EvaluationScopeScope  *lang.Scope
 
 	InterpolateCalled       bool
 	InterpolateConfig       *config.RawConfig
@@ -225,6 +231,13 @@ func (c *MockEvalContext) EvaluateExpr(expr hcl.Expression, wantType cty.Type, s
 	c.EvaluateExprWantType = wantType
 	c.EvaluateExprSelf = self
 	return c.EvaluateExprResult, c.EvaluateExprDiags
+}
+
+func (c *MockEvalContext) EvaluationScope(self addrs.Referenceable, key addrs.InstanceKey) *lang.Scope {
+	c.EvaluationScopeCalled = true
+	c.EvaluationScopeSelf = self
+	c.EvaluationScopeKey = key
+	return c.EvaluationScopeScope
 }
 
 func (c *MockEvalContext) Interpolate(

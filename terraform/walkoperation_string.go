@@ -4,9 +4,9 @@ package terraform
 
 import "strconv"
 
-const _walkOperation_name = "walkInvalidwalkInputwalkApplywalkPlanwalkPlanDestroywalkRefreshwalkValidatewalkDestroywalkImport"
+const _walkOperation_name = "walkInvalidwalkInputwalkApplywalkPlanwalkPlanDestroywalkRefreshwalkValidatewalkDestroywalkImportwalkEval"
 
-var _walkOperation_index = [...]uint8{0, 11, 20, 29, 37, 52, 63, 75, 86, 96}
+var _walkOperation_index = [...]uint8{0, 11, 20, 29, 37, 52, 63, 75, 86, 96, 104}
 
 func (i walkOperation) String() string {
 	if i >= walkOperation(len(_walkOperation_index)-1) {

@@ -6,6 +6,7 @@ import (
 	"github.com/hashicorp/hcl2/hcl"
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/config/configschema"
+	"github.com/hashicorp/terraform/lang"
 	"github.com/hashicorp/terraform/tfdiags"
 	"github.com/zclconf/go-cty/cty"
 )
@@ -108,6 +109,10 @@ type EvalContext interface {
 	// address that the name "self" should behave as an alias for when
 	// evaluating. Set this to nil if the "self" object should not be available.
 	EvaluateExpr(expr hcl.Expression, wantType cty.Type, self addrs.Referenceable) (cty.Value, tfdiags.Diagnostics)
+
+	// EvaluationScope returns a scope that can be used to evaluate reference
+	// addresses in this context.
+	EvaluationScope(self addrs.Referenceable, key addrs.InstanceKey) *lang.Scope
 
 	// SetModuleCallArguments defines values for the variables of a particular
 	// child module call.

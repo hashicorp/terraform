@@ -16,6 +16,7 @@ const (
 	GraphTypeApply
 	GraphTypeInput
 	GraphTypeValidate
+	GraphTypeEval // only visits in-memory elements such as variables, locals, and outputs.
 )
 
 // GraphTypeMap is a mapping of human-readable string to GraphType. This
@@ -29,4 +30,5 @@ var GraphTypeMap = map[string]GraphType{
 	"refresh":      GraphTypeRefresh,
 	"legacy":       GraphTypeLegacy,
 	"validate":     GraphTypeValidate,
+	"eval":         GraphTypeEval,
 }
