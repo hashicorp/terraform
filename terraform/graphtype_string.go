@@ -4,9 +4,9 @@ package terraform
 
 import "strconv"
 
-const _GraphType_name = "GraphTypeInvalidGraphTypeLegacyGraphTypeRefreshGraphTypePlanGraphTypePlanDestroyGraphTypeApplyGraphTypeInputGraphTypeValidate"
+const _GraphType_name = "GraphTypeInvalidGraphTypeLegacyGraphTypeRefreshGraphTypePlanGraphTypePlanDestroyGraphTypeApplyGraphTypeInputGraphTypeValidateGraphTypeEval"
 
-var _GraphType_index = [...]uint8{0, 16, 31, 47, 60, 80, 94, 108, 125}
+var _GraphType_index = [...]uint8{0, 16, 31, 47, 60, 80, 94, 108, 125, 138}
 
 func (i GraphType) String() string {
 	if i >= GraphType(len(_GraphType_index)-1) {
