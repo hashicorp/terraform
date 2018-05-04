@@ -68,7 +68,7 @@ explicitly by beginning the string with either `./` (for a module in a child
 directory) or `../` (for a module in the parent directory).
 
 **Action:** Update existing module `source` values containing relative paths
-to start eith either `./` or `../` to prevent misinterpretation of the source
+to start with either `./` or `../` to prevent misinterpretation of the source
 as a Terraform Registry module.
 
 ## Interactions Between Providers and Modules
@@ -270,7 +270,7 @@ configurations, see [_Providers Within Modules_](/docs/modules/usage.html#provid
 
 ## Error Checking for Output Values
 
-Prior to Terraform 0.11, if an error occured when evaluating the `value`
+Prior to Terraform 0.11, if an error occurred when evaluating the `value`
 expression within an `output` block then it would be silently ignored and
 the empty string used as the result. This was inconvenient because it made it
 very hard to debug errors within output expressions.
