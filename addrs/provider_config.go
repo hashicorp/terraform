@@ -174,6 +174,29 @@ func ParseAbsProviderConfig(traversal hcl.Traversal) (AbsProviderConfig, tfdiags
 	return ret, diags
 }
 
+// ProviderConfigDefault returns the address of the default provider config
+// of the given type inside the recieving module instance.
+func (m ModuleInstance) ProviderConfigDefault(name string) AbsProviderConfig {
+	return AbsProviderConfig{
+		Module: m,
+		ProviderConfig: ProviderConfig{
+			Type: name,
+		},
+	}
+}
+
+// ProviderConfigAliased returns the address of an aliased provider config
+// of with given type and alias inside the recieving module instance.
+func (m ModuleInstance) ProviderConfigAliased(name, alias string) AbsProviderConfig {
+	return AbsProviderConfig{
+		Module: m,
+		ProviderConfig: ProviderConfig{
+			Type:  name,
+			Alias: alias,
+		},
+	}
+}
+
 // Inherited returns an address that the receiving configuration address might
 // inherit from in a parent module. The second bool return value indicates if
 // such inheritance is possible, and thus whether the returned address is valid.
