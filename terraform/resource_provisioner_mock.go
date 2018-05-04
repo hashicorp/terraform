@@ -1,6 +1,10 @@
 package terraform
 
-import "sync"
+import (
+	"sync"
+
+	"github.com/hashicorp/terraform/config/configschema"
+)
 
 // MockResourceProvisioner implements ResourceProvisioner but mocks out all the
 // calls for testing purposes.
@@ -8,6 +12,10 @@ type MockResourceProvisioner struct {
 	sync.Mutex
 	// Anything you want, in case you need to store extra data with the mock.
 	Meta interface{}
+
+	GetConfigSchemaCalled       bool
+	GetConfigSchemaReturnSchema *configschema.Block
+	GetConfigSchemaReturnError  error
 
 	ApplyCalled      bool
 	ApplyOutput      UIOutput
@@ -25,6 +33,13 @@ type MockResourceProvisioner struct {
 	StopCalled      bool
 	StopFn          func() error
 	StopReturnError error
+}
+
+var _ ResourceProvisioner = (*MockResourceProvisioner)(nil)
+
+func (p *MockResourceProvisioner) GetConfigSchema() (*configschema.Block, error) {
+	p.GetConfigSchemaCalled = true
+	return p.GetConfigSchemaReturnSchema, p.GetConfigSchemaReturnError
 }
 
 func (p *MockResourceProvisioner) Validate(c *ResourceConfig) ([]string, []error) {
