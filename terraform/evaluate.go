@@ -24,10 +24,15 @@ type Evaluator struct {
 	// Config is the root node in the configuration tree.
 	Config *configs.Config
 
-	// RootVariableValues is a map of values for variables defined in the
-	// root module, passed in from external sources. This must not be
-	// modified during evaluation.
-	RootVariableValues map[string]*InputValue
+	// VariableValues is a map from variable names to their associated values,
+	// within the module indicated by ModulePath. VariableValues is modified
+	// concurrently, and so it must be accessed only while holding
+	// VariableValuesLock.
+	//
+	// The first map level is string representations of addr.ModuleInstance
+	// values, while the second level is variable names.
+	VariableValues     map[string]map[string]cty.Value
+	VariableValuesLock *sync.Mutex
 
 	// State is the current state. During some operations this structure
 	// is mutated concurrently, and so it must be accessed only while holding
