@@ -15,4 +15,5 @@ const (
 	walkValidate
 	walkDestroy
 	walkImport
+	walkEval // used just to prepare EvalContext for expression evaluation, with no other actions
 )

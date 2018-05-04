@@ -8,6 +8,8 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/hashicorp/terraform/lang"
+
 	"github.com/hashicorp/terraform/addrs"
 
 	"github.com/hashicorp/terraform/configs"
@@ -302,6 +304,13 @@ func (c *Context) Graph(typ GraphType, opts *ContextGraphOpts) (*Graph, tfdiags.
 			Validate:   opts.Validate,
 		}).Build(addrs.RootModuleInstance)
 
+	case GraphTypeEval:
+		return (&EvalGraphBuilder{
+			Config:     c.config,
+			State:      c.state,
+			Components: c.components,
+		}).Build(addrs.RootModuleInstance)
+
 	default:
 		// Should never happen, because the above is exhaustive for all graph types.
 		panic(fmt.Errorf("unsupported graph type %s", typ))
@@ -342,17 +351,63 @@ func (c *Context) State() *State {
 	return c.state.DeepCopy()
 }
 
-// Evaluator returns an Evaluator that references this context's state, and
-// that can be used to obtain data for expression evaluation within the
-// receiving context.
-func (c *Context) Evaluator() *Evaluator {
-	return &Evaluator{
-		Operation: walkApply,
-		Meta:      c.meta,
-		Config:    c.config,
-		State:     c.state,
-		StateLock: &c.stateLock,
+// Eval produces a scope in which expressions can be evaluated for
+// the given module path.
+//
+// This method must first evaluate any ephemeral values (input variables, local
+// values, and output values) in the configuration. These ephemeral values are
+// not included in the persisted state, so they must be re-computed using other
+// values in the state before they can be properly evaluated. The updated
+// values are retained in the main state associated with the receiving context.
+//
+// This function takes no action against remote APIs but it does need access
+// to all provider and provisioner instances in order to obtain their schemas
+// for type checking.
+//
+// The result is an evaluation scope that can be used to resolve references
+// against the root module. If the returned diagnostics contains errors then
+// the returned scope may be nil. If it is not nil then it may still be used
+// to attempt expression evaluation or other analysis, but some expressions
+// may not behave as expected.
+func (c *Context) Eval(path addrs.ModuleInstance) (*lang.Scope, tfdiags.Diagnostics) {
+	// This is intended for external callers such as the "terraform console"
+	// command. Internally, we create an evaluator in c.walk before walking
+	// the graph, and create scopes in ContextGraphWalker.
+
+	var diags tfdiags.Diagnostics
+	defer c.acquireRun("eval")()
+
+	// Start with a copy of state so that we don't affect any instances
+	// that other methods may have already returned.
+	c.state = c.state.DeepCopy()
+	var walker *ContextGraphWalker
+
+	graph, graphDiags := c.Graph(GraphTypeEval, nil)
+	diags = diags.Append(graphDiags)
+	if !diags.HasErrors() {
+		var walkDiags tfdiags.Diagnostics
+		walker, walkDiags = c.walk(graph, walkEval)
+		diags = diags.Append(walker.NonFatalDiagnostics)
+		diags = diags.Append(walkDiags)
+
+		// Clean out any unused things
+		c.state.prune()
 	}
+
+	if walker == nil {
+		// If we skipped walking the graph (due to errors) then we'll just
+		// use a placeholder graph walker here, which'll refer to the
+		// unmodified state.
+		walker = c.graphWalker(walkEval)
+	}
+
+	// This is a bit weird since we don't normally evaluate outside of
+	// the context of a walk, but we'll "re-enter" our desired path here
+	// just to get hold of an EvalContext for it. GraphContextBuiltin
+	// caches its contexts, so we should get hold of the context that was
+	// previously used for evaluation here, unless we skipped walking.
+	evalCtx := walker.EnterPath(path)
+	return evalCtx.EvaluationScope(nil, addrs.NoKey), diags
 }
 
 // Interpolater is no longer used. Use Evaluator instead.
@@ -778,18 +833,9 @@ func (c *Context) releaseRun() {
 }
 
 func (c *Context) walk(graph *Graph, operation walkOperation) (*ContextGraphWalker, tfdiags.Diagnostics) {
-	// Keep track of the "real" context which is the context that does
-	// the real work: talking to real providers, modifying real state, etc.
-	realCtx := c
-
 	log.Printf("[DEBUG] Starting graph walk: %s", operation.String())
 
-	walker := &ContextGraphWalker{
-		Context:            realCtx,
-		Operation:          operation,
-		StopContext:        c.runContext,
-		RootVariableValues: c.variables,
-	}
+	walker := c.graphWalker(operation)
 
 	// Watch for a stop so we can call the provider Stop() API.
 	watchStop, watchWait := c.watchStop(walker)
@@ -802,6 +848,15 @@ func (c *Context) walk(graph *Graph, operation walkOperation) (*ContextGraphWalk
 	<-watchWait
 
 	return walker, diags
+}
+
+func (c *Context) graphWalker(operation walkOperation) *ContextGraphWalker {
+	return &ContextGraphWalker{
+		Context:            c,
+		Operation:          operation,
+		StopContext:        c.runContext,
+		RootVariableValues: c.variables,
+	}
 }
 
 // watchStop immediately returns a `stop` and a `wait` chan after dispatching
