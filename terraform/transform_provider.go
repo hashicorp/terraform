@@ -478,9 +478,15 @@ func (t *ProviderConfigTransformer) transformSingle(g *Graph, c *configs.Config)
 		relAddr := p.Addr()
 		addr := relAddr.Absolute(path)
 
-		v := t.Concrete(&NodeAbstractProvider{
+		abstract := &NodeAbstractProvider{
 			Addr: addr,
-		})
+		}
+		var v dag.Vertex
+		if t.Concrete != nil {
+			v = t.Concrete(abstract)
+		} else {
+			v = abstract
+		}
 
 		// Add it to the graph
 		g.Add(v)
