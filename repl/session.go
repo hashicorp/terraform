@@ -5,8 +5,13 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/hashicorp/terraform/config"
-	"github.com/hashicorp/terraform/terraform"
+	"github.com/zclconf/go-cty/cty"
+
+	"github.com/hashicorp/hcl2/hcl"
+	"github.com/hashicorp/hcl2/hcl/hclsyntax"
+	"github.com/hashicorp/terraform/config/hcl2shim"
+	"github.com/hashicorp/terraform/lang"
+	"github.com/hashicorp/terraform/tfdiags"
 )
 
 // ErrSessionExit is a special error result that should be checked for
@@ -15,8 +20,8 @@ var ErrSessionExit = errors.New("session exit")
 
 // Session represents the state for a single REPL session.
 type Session struct {
-	// Interpolater is used for calculating interpolations
-	Interpolater *terraform.Interpolater
+	// Scope is the evaluation scope where expressions will be evaluated.
+	Scope *lang.Scope
 }
 
 // Handle handles a single line of input from the REPL.
@@ -25,60 +30,59 @@ type Session struct {
 // a variable). This function should not be called in parallel.
 //
 // The return value is the output and the error to show.
-func (s *Session) Handle(line string) (string, error) {
+func (s *Session) Handle(line string) (string, bool, tfdiags.Diagnostics) {
 	switch {
+	case strings.TrimSpace(line) == "":
+		return "", false, nil
 	case strings.TrimSpace(line) == "exit":
-		return "", ErrSessionExit
+		return "", true, nil
 	case strings.TrimSpace(line) == "help":
-		return s.handleHelp()
+		ret, diags := s.handleHelp()
+		return ret, false, diags
 	default:
-		return s.handleEval(line)
+		ret, diags := s.handleEval(line)
+		return ret, false, diags
 	}
 }
 
-func (s *Session) handleEval(line string) (string, error) {
-	// Wrap the line to make it an interpolation.
-	line = fmt.Sprintf("${%s}", line)
+func (s *Session) handleEval(line string) (string, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
 
-	// Parse the line
-	raw, err := config.NewRawConfig(map[string]interface{}{
-		"value": line,
-	})
+	// Parse the given line as an expression
+	expr, parseDiags := hclsyntax.ParseExpression([]byte(line), "<console-input>", hcl.Pos{Line: 1, Column: 1})
+	diags = diags.Append(parseDiags)
+	if parseDiags.HasErrors() {
+		return "", diags
+	}
+
+	val, valDiags := s.Scope.EvalExpr(expr, cty.DynamicPseudoType)
+	diags = diags.Append(valDiags)
+	if valDiags.HasErrors() {
+		return "", diags
+	}
+
+	if !val.IsWhollyKnown() {
+		// FIXME: In future, once we've updated the result formatter to be
+		// cty-aware, we should just include unknown values as "(not yet known)"
+		// in the serialized result, allowing the rest (if any) to be seen.
+		diags = diags.Append(fmt.Errorf("Result depends on values that cannot be determined until after \"terraform apply\"."))
+		return "", diags
+	}
+
+	// Our formatter still wants an old-style raw interface{} value, so
+	// for now we'll just shim it.
+	// FIXME: Port the formatter to work with cty.Value directly.
+	legacyVal := hcl2shim.ConfigValueFromHCL2(val)
+	result, err := FormatResult(legacyVal)
 	if err != nil {
-		return "", err
+		diags = diags.Append(err)
+		return "", diags
 	}
 
-	// Set the value
-	raw.Key = "value"
-
-	// Get the values
-	vars, err := s.Interpolater.Values(&terraform.InterpolationScope{
-		Path: []string{"root"},
-	}, raw.Variables)
-	if err != nil {
-		return "", err
-	}
-
-	// Interpolate
-	if err := raw.Interpolate(vars); err != nil {
-		return "", err
-	}
-
-	// If we have any unknown keys, let the user know.
-	if ks := raw.UnknownKeys(); len(ks) > 0 {
-		return "", fmt.Errorf("unknown values referenced, can't compute value")
-	}
-
-	// Read the value
-	result, err := FormatResult(raw.Value())
-	if err != nil {
-		return "", err
-	}
-
-	return result, nil
+	return result, diags
 }
 
-func (s *Session) handleHelp() (string, error) {
+func (s *Session) handleHelp() (string, tfdiags.Diagnostics) {
 	text := `
 The Terraform console allows you to experiment with Terraform interpolations.
 You may access resources in the state (if you have one) just as you would
