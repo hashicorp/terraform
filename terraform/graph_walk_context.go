@@ -5,6 +5,8 @@ import (
 	"log"
 	"sync"
 
+	"github.com/zclconf/go-cty/cty"
+
 	"github.com/hashicorp/terraform/config/configschema"
 	"github.com/hashicorp/terraform/tfdiags"
 
@@ -19,26 +21,27 @@ type ContextGraphWalker struct {
 	NullGraphWalker
 
 	// Configurable values
-	Context     *Context
-	Operation   walkOperation
-	StopContext context.Context
+	Context            *Context
+	Operation          walkOperation
+	StopContext        context.Context
+	RootVariableValues InputValues
 
 	// This is an output. Do not set this, nor read it while a graph walk
 	// is in progress.
 	NonFatalDiagnostics tfdiags.Diagnostics
 
-	errorLock           sync.Mutex
-	once                sync.Once
-	contexts            map[string]*BuiltinEvalContext
-	contextLock         sync.Mutex
-	interpolaterVars    map[string]map[string]interface{}
-	interpolaterVarLock sync.Mutex
-	providerCache       map[string]ResourceProvider
-	providerSchemas     map[string]*ProviderSchema
-	providerLock        sync.Mutex
-	provisionerCache    map[string]ResourceProvisioner
-	provisionerSchemas  map[string]*configschema.Block
-	provisionerLock     sync.Mutex
+	errorLock          sync.Mutex
+	once               sync.Once
+	contexts           map[string]*BuiltinEvalContext
+	contextLock        sync.Mutex
+	variableValues     map[string]map[string]cty.Value
+	variableValuesLock sync.Mutex
+	providerCache      map[string]ResourceProvider
+	providerSchemas    map[string]*ProviderSchema
+	providerLock       sync.Mutex
+	provisionerCache   map[string]ResourceProvisioner
+	provisionerSchemas map[string]*configschema.Block
+	provisionerLock    sync.Mutex
 }
 
 func (w *ContextGraphWalker) EnterPath(path addrs.ModuleInstance) EvalContext {
@@ -53,38 +56,18 @@ func (w *ContextGraphWalker) EnterPath(path addrs.ModuleInstance) EvalContext {
 		return ctx
 	}
 
-	// Setup the variables for this interpolater
-	variables := make(map[string]interface{})
-	if len(path) <= 1 {
-		for k, v := range w.Context.variables {
-			variables[k] = v
-		}
-	}
-	w.interpolaterVarLock.Lock()
-	if m, ok := w.interpolaterVars[key]; ok {
-		for k, v := range m {
-			variables[k] = v
-		}
-	}
-	w.interpolaterVars[key] = variables
-	w.interpolaterVarLock.Unlock()
-
 	// Our evaluator shares some locks with the main context and the walker
 	// so that we can safely run multiple evaluations at once across
 	// different modules.
 	evaluator := &Evaluator{
-		Meta:            w.Context.meta,
-		Config:          w.Context.config,
-		State:           w.Context.state,
-		StateLock:       &w.Context.stateLock,
-		ProviderSchemas: w.providerSchemas,
-		ProvidersLock:   &w.providerLock,
-
-		// FIXME: This was a design mistake on the evaluator, which should
-		// get replaced with something like the interpolatorVars thing above
-		// once we verify exactly how that was used in the old Interpolator
-		// codepath.
-		RootVariableValues: map[string]*InputValue{},
+		Meta:               w.Context.meta,
+		Config:             w.Context.config,
+		State:              w.Context.state,
+		StateLock:          &w.Context.stateLock,
+		ProviderSchemas:    w.providerSchemas,
+		ProvidersLock:      &w.providerLock,
+		VariableValues:     w.variableValues,
+		VariableValuesLock: &w.variableValuesLock,
 	}
 
 	ctx := &BuiltinEvalContext{
@@ -104,6 +87,8 @@ func (w *ContextGraphWalker) EnterPath(path addrs.ModuleInstance) EvalContext {
 		StateValue:          w.Context.state,
 		StateLock:           &w.Context.stateLock,
 		Evaluator:           evaluator,
+		VariableValues:      w.variableValues,
+		VariableValuesLock:  &w.variableValuesLock,
 	}
 
 	w.contexts[key] = ctx
@@ -158,5 +143,12 @@ func (w *ContextGraphWalker) init() {
 	w.providerSchemas = make(map[string]*ProviderSchema)
 	w.provisionerCache = make(map[string]ResourceProvisioner)
 	w.provisionerSchemas = make(map[string]*configschema.Block)
-	w.interpolaterVars = make(map[string]map[string]interface{})
+	w.variableValues = make(map[string]map[string]cty.Value)
+
+	// Populate root module variable values. Other modules will be populated
+	// during the graph walk.
+	w.variableValues[""] = make(map[string]cty.Value)
+	for k, iv := range w.RootVariableValues {
+		w.variableValues[""][k] = iv.Value
+	}
 }
