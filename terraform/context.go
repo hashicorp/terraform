@@ -347,12 +347,11 @@ func (c *Context) State() *State {
 // receiving context.
 func (c *Context) Evaluator() *Evaluator {
 	return &Evaluator{
-		Operation:          walkApply,
-		Meta:               c.meta,
-		Config:             c.config,
-		State:              c.state,
-		StateLock:          &c.stateLock,
-		RootVariableValues: c.variables,
+		Operation: walkApply,
+		Meta:      c.meta,
+		Config:    c.config,
+		State:     c.state,
+		StateLock: &c.stateLock,
 	}
 }
 
@@ -786,9 +785,10 @@ func (c *Context) walk(graph *Graph, operation walkOperation) (*ContextGraphWalk
 	log.Printf("[DEBUG] Starting graph walk: %s", operation.String())
 
 	walker := &ContextGraphWalker{
-		Context:     realCtx,
-		Operation:   operation,
-		StopContext: c.runContext,
+		Context:            realCtx,
+		Operation:          operation,
+		StopContext:        c.runContext,
+		RootVariableValues: c.variables,
 	}
 
 	// Watch for a stop so we can call the provider Stop() API.
