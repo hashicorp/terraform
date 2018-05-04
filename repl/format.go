@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"fmt"
 	"sort"
+	"strconv"
 	"strings"
 )
 
@@ -17,12 +18,26 @@ func FormatResult(value interface{}) (string, error) {
 }
 
 func formatResult(value interface{}, nested bool) (string, error) {
+	if value == nil {
+		return "null", nil
+	}
 	switch output := value.(type) {
 	case string:
 		if nested {
 			return fmt.Sprintf("%q", output), nil
 		}
 		return output, nil
+	case int:
+		return strconv.Itoa(output), nil
+	case float64:
+		return fmt.Sprintf("%g", output), nil
+	case bool:
+		switch {
+		case output == true:
+			return "true", nil
+		default:
+			return "false", nil
+		}
 	case []interface{}:
 		return formatListResult(output)
 	case map[string]interface{}:

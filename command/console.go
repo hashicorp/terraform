@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"strings"
 
+	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/helper/wrappedstreams"
 	"github.com/hashicorp/terraform/repl"
@@ -95,9 +96,29 @@ func (c *ConsoleCommand) Run(args []string) int {
 		ErrorWriter: wrappedstreams.Stderr(),
 	}
 
+	// Before we can evaluate expressions, we must compute and populate any
+	// derived values (input variables, local values, output values)
+	// that are not stored in the persistent state.
+	scope, scopeDiags := ctx.Eval(addrs.RootModuleInstance)
+	diags = diags.Append(scopeDiags)
+	if scope == nil {
+		// scope is nil if there are errors so bad that we can't even build a scope.
+		// Otherwise, we'll try to eval anyway.
+		c.showDiagnostics(diags)
+		return 1
+	}
+	if diags.HasErrors() {
+		diags = diags.Append(tfdiags.SimpleWarning("Due to the problems above, some expressions may produce unexpected results."))
+	}
+
+	// Before we become interactive we'll show any diagnostics we encountered
+	// during initialization, and then afterwards the driver will manage any
+	// further diagnostics itself.
+	c.showDiagnostics(diags)
+
 	// IO Loop
 	session := &repl.Session{
-		Interpolater: ctx.Interpolater(),
+		Scope: scope,
 	}
 
 	// Determine if stdin is a pipe. If so, we evaluate directly.
@@ -112,11 +133,14 @@ func (c *ConsoleCommand) modePiped(session *repl.Session, ui cli.Ui) int {
 	var lastResult string
 	scanner := bufio.NewScanner(wrappedstreams.Stdin())
 	for scanner.Scan() {
-		// Handle it. If there is an error exit immediately
-		result, err := session.Handle(strings.TrimSpace(scanner.Text()))
-		if err != nil {
-			ui.Error(err.Error())
+		result, exit, diags := session.Handle(strings.TrimSpace(scanner.Text()))
+		if diags.HasErrors() {
+			// In piped mode we'll exit immediately on error.
+			c.showDiagnostics(diags)
 			return 1
+		}
+		if exit {
+			return 0
 		}
 
 		// Store the last result
