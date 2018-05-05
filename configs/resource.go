@@ -341,7 +341,7 @@ func decodeProviderConfigRef(expr hcl.Expression, argName string) (*ProviderConf
 		diags = append(diags, travDiags...)
 	}
 
-	if len(traversal) < 1 && len(traversal) > 2 {
+	if len(traversal) < 1 || len(traversal) > 2 {
 		// A provider reference was given as a string literal in the legacy
 		// configuration language and there are lots of examples out there
 		// showing that usage, so we'll sniff for that situation here and
