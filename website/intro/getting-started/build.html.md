@@ -34,6 +34,62 @@ at most.
 examples. The most you should be charged should only be a few dollars, but
 we're not responsible for any charges that may incur.
 
+## Setup Your AWS Access Keys
+
+Before you start writing Terraform and building resources in AWS, you'll 
+need to set up your AWS credentials, sometimes known as AWS Access Keys.
+These are the key pairs that allow Terraform to interact with the AWS API.
+
+You can read all about [AWS Access Keys](https://docs.aws.amazon.com/general/latest/gr/aws-sec-cred-types.html) on the 
+AWS documentation site. Here's what a sample key pair might look like:
+
+```
+AWS Access Key ID:     AKIAIOSFODNN7EXAMPLE
+AWS Secret Access Key: wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY
+```
+
+*WARNING* - These key pairs should *never* be stored inside your Terraform
+code. AWS best practices recommend either putting your AWS Access Keys inside a
+special credentials file, or storing them as environment variables. 
+
+### Setup Method 1 - Use the AWS CLI configure command
+The easiest way to set this up is to install the [AWS command line tools](https://docs.aws.amazon.com/cli/latest/userguide/installing.html) for your 
+operating system, and then run the `aws configure` command. You'll be prompted
+to copy your AWS Access Keys into the terminal and everything is set up 
+automatically.
+
+### Setup Method 2 - Create a `~/.aws/credentials` file manually
+If you prefer not to install the [AWS command line tools](https://docs.aws.amazon.com/cli/latest/userguide/installing.html), you can 
+simply create a configuration file and Terraform will use it. 
+
+On Linux or MacOSX, create a `.aws` directory in your home directory:
+```
+mkdir ~/.aws
+```
+
+On Windows, you can do the same thing in Powershell. Or just create the 
+directory using the File Explorer. It has to be named `.aws` and it must be
+located in the root of your home directory.
+```
+mkdir "%UserProfile%\.aws"
+```
+
+Now create a file called `credentials` in that directory and populate it with 
+your AWS credentials:
+
+```
+[default]
+aws_access_key_id=AKIAIOSFODNN7EXAMPLE
+aws_secret_access_key=wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY
+```
+
+### Setup Method 3 - Use environment variables.
+More advanced users may prefer to store their AWS Access Keys inside of
+environment variables. Documentation for this method is located here:
+https://docs.aws.amazon.com/cli/latest/userguide/cli-environment.html
+
+Terraform supports both AWS credentials files and environment variables.
+
 ## Configuration
 
 The set of files used to describe infrastructure in Terraform is simply
@@ -53,8 +109,6 @@ loads all of them.
 
 ```hcl
 provider "aws" {
-  access_key = "ACCESS_KEY_HERE"
-  secret_key = "SECRET_KEY_HERE"
   region     = "us-east-1"
 }
 
@@ -69,22 +123,6 @@ with access to a default VPC. For EC2 Classic users, please use `t1.micro` for
 `instance_type`, and `ami-408c7f28` for the `ami`. If you use a region other than
 `us-east-1` then you will need to choose an AMI in that region
 as AMI IDs are region specific.
-
-Replace the `ACCESS_KEY_HERE` and `SECRET_KEY_HERE` with your
-AWS access key and secret key, available from
-[this page](https://console.aws.amazon.com/iam/home?#security_credential).
-We're hardcoding them for now, but will extract these into
-variables later in the getting started guide.
-
-~> **Note**: If you simply leave out AWS credentials, Terraform will
-automatically search for saved API credentials (for example,
-in `~/.aws/credentials`) or IAM instance profile credentials.
-This option is much cleaner for situations where tf files are checked into
-source control or where there is more than one admin user.
-See details [here](https://aws.amazon.com/blogs/apn/terraform-beyond-the-basics-with-aws/).
-Leaving IAM credentials out of the Terraform configs allows you to leave those
-credentials out of source control, and also use different IAM credentials
-for each user without having to modify the configuration files.
 
 This is a complete configuration that Terraform is ready to apply.
 The general structure should be intuitive and straightforward.

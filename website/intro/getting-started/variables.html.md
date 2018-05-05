@@ -3,39 +3,37 @@ layout: "intro"
 page_title: "Input Variables"
 sidebar_current: "gettingstarted-variables"
 description: |-
-  You now have enough Terraform knowledge to create useful configurations, but we're still hardcoding access keys, AMIs, etc. To become truly shareable and committable to version control, we need to parameterize the configurations. This page introduces input variables as a way to do this.
+  You now have enough Terraform knowledge to create useful configurations, but we're still hardcoding values. To become truly shareable and committable to version control, we need to parameterize the configurations. This page introduces input variables as a way to do this.
 ---
 
 # Input Variables
 
 You now have enough Terraform knowledge to create useful
-configurations, but we're still hard-coding access keys,
-AMIs, etc. To become truly shareable and version
-controlled, we need to parameterize the configurations. This page
-introduces input variables as a way to do this.
+configurations, but we're still hard-coding things that we might wish 
+to change. Infrastructure as Code allows us to define variables for anything 
+that needs to be changed or adjusted by the user.
 
 ## Defining Variables
 
-Let's first extract our access key, secret key, and region
-into a few variables. Create another file `variables.tf` with
+Let's create a couple of variables. Create another file `variables.tf` with
 the following contents.
 
 -> **Note**: that the file can be named anything, since Terraform loads all
 files ending in `.tf` in a directory.
 
 ```hcl
-variable "access_key" {}
-variable "secret_key" {}
+variable "myname" {}
 variable "region" {
   default = "us-east-1"
 }
 ```
 
-This defines three variables within your Terraform configuration.  The first
-two have empty blocks `{}`. The third sets a default. If a default value is
-set, the variable is optional. Otherwise, the variable is required. If you run
-`terraform plan` now, Terraform will prompt you for the values for unset string
-variables.
+This defines two variables within your Terraform configuration. The first
+one, `myname` has an empty block `{}`. The region variable sets a default. 
+If a default value is set, the variable is optional. Otherwise, the variable
+is required. If you run `terraform plan` now, Terraform will prompt you for 
+the value of the `myname` variable. You can define a variable even if you're 
+not using it yet.
 
 ## Using Variables in Configuration
 
@@ -43,32 +41,30 @@ Next, replace the AWS provider configuration with the following:
 
 ```hcl
 provider "aws" {
-  access_key = "${var.access_key}"
-  secret_key = "${var.secret_key}"
   region     = "${var.region}"
 }
 ```
 
-This uses more interpolations, this time prefixed with `var.`. This
-tells Terraform that you're accessing variables. This configures
-the AWS provider with the given variables.
+Here we're telling Terraform to replace the "${var.region}" with your
+desired region. Since we set a default value, the infrastructure will be 
+built in the `us-east-1` AWS region.
 
 ## Assigning Variables
 
 There are multiple ways to assign variables. Below is also the order
-in which variable values are chosen. The following is the descending order
+in which variable values are chosen. The following is the *descending* order
 of precedence in which variables are considered.
 
 #### Command-line flags
 
+Variables defined on the command line will override any other settings.
 You can set variables directly on the command-line with the
 `-var` flag. Any command in Terraform that inspects the configuration
 accepts this flag, such as `apply`, `plan`, and `refresh`:
 
 ```
 $ terraform apply \
-  -var 'access_key=foo' \
-  -var 'secret_key=bar'
+  -var 'myname=alice'
 # ...
 ```
 
@@ -77,24 +73,20 @@ have to be input repeatedly as commands are executed.
 
 #### From a file
 
-To persist variable values, create a file and assign variables within
-this file. Create a file named `terraform.tfvars` with the following
-contents:
+To persist variable values, you can create a file and assign 
+variables within this file. Create a file named `terraform.tfvars` 
+with the following contents:
 
 ```hcl
-access_key = "foo"
-secret_key = "bar"
+myname = "alice"
 ```
 
 For all files which match `terraform.tfvars` or `*.auto.tfvars` present in the
 current directory, Terraform automatically loads them to populate variables. If
 the file is named something else, you can use the `-var-file` flag directly to
-specify a file. These files are the same syntax as Terraform
+specify a file. These files use the same syntax as Terraform
 configuration files. And like Terraform configuration files, these files
 can also be JSON.
-
-We don't recommend saving usernames and password to version control, but you
-can create a local secret variables file and use `-var-file` to load it.
 
 You can use multiple `-var-file` arguments in a single command, with some
 checked in to version control and others not checked in. For example:
@@ -108,8 +100,8 @@ $ terraform apply \
 #### From environment variables
 
 Terraform will read environment variables in the form of `TF_VAR_name`
-to find the value for a variable. For example, the `TF_VAR_access_key`
-variable can be set to set the `access_key` variable.
+to find the value for a variable. For example, the `TF_VAR_region`
+variable can be set to set the `region` environment variable.
 
 -> **Note**: Environment variables can only populate string-type variables.
 List and map type variables must be populated via one of the other mechanisms.
@@ -152,8 +144,8 @@ cidrs = [ "10.0.0.0/16", "10.1.0.0/16" ]
 
 ## Maps
 
-We've replaced our sensitive strings with variables, but we still
-are hard-coding AMIs. Unfortunately, AMIs are specific to the region
+We've replaced our region with a variable, but we are still
+hard-coding the AMI. Unfortunately, AMIs are specific to the region
 that is in use. One option is to just ask the user to input the proper
 AMI for the region, but Terraform can do better than that with
 _maps_.
