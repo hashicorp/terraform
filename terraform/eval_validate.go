@@ -314,6 +314,10 @@ type EvalValidateResource struct {
 }
 
 func (n *EvalValidateResource) Eval(ctx EvalContext) (interface{}, error) {
+	if n.ProviderSchema == nil {
+		return nil, fmt.Errorf("EvalValidateResource has nil schema for %s", n.Addr)
+	}
+
 	var diags tfdiags.Diagnostics
 	provider := *n.Provider
 	cfg := *n.Config
