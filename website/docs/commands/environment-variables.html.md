@@ -1,12 +1,18 @@
 ---
 layout: "docs"
 page_title: "Environment Variables"
-sidebar_current: "docs-config-environment-variables"
+sidebar_current: "docs-commands-environment-variables"
 description: |-
-  Terraform uses different environment variables that can be used to configure various aspects of how Terraform behaves. this section documents those variables, their potential values, and how to use them.
+  Terraform uses environment variables to configure various aspects of its behavior.
 ---
 
 # Environment Variables
+
+Terraform refers to a number of environment variables to customize various
+aspects of its behavior. None of these environment variables are required
+when using Terraform, but they can be used to change some of Terraform's
+default behaviors in unusual situations, or to increase output verbosity
+for debugging.
 
 ## TF_LOG
 
@@ -104,15 +110,3 @@ The data directory is used to retain data that must persist from one command
 to the next, so it's important to have this variable set consistently throughout
 all of the Terraform workflow commands (starting with `terraform init`) or else
 Terraform may be unable to find providers, modules, and other artifacts.
-
-## TF_SKIP_REMOTE_TESTS
-
-This can be set prior to running the unit tests to opt-out of any tests
-requiring remote network connectivity. The unit tests make an attempt to
-automatically detect when connectivity is unavailable and skip the relevant
-tests, but by setting this variable you can force these tests to be skipped.
-
-```shell
-export TF_SKIP_REMOTE_TESTS=1
-make test
-```
