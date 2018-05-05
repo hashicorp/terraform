@@ -1,6 +1,8 @@
-variable "foo" { default = "bar" }
+variable "foo" {
+  default = "bar"
+}
 
 module "child" {
-    source = "./child"
-    foo    = "${var.foo}"
+  source = "./child"
+  foo    = "${var.foo}"
 }

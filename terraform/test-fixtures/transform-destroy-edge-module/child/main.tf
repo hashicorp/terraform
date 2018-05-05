@@ -1,5 +1,7 @@
 resource "aws_instance" "b" {
-    value = "foo"
+  value = "foo"
 }
 
-output "output" { value = "${aws_instance.b.value}" }
+output "output" {
+  value = "${aws_instance.b.value}"
+}

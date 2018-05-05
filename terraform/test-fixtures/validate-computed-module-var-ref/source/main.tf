@@ -1,3 +1,5 @@
-resource "aws_instance" "source" { }
+resource "aws_instance" "source" {}
 
-output "sourceout" { value = "${aws_instance.source.id}" }
+output "sourceout" {
+  value = "${aws_instance.source.id}"
+}

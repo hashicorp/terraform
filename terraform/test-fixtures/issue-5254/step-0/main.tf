@@ -1,7 +1,9 @@
-variable "c" { default = 1 }
+variable "c" {
+  default = 1
+}
 
 resource "template_file" "parent" {
-  count = "${var.c}"
+  count    = "${var.c}"
   template = "Hi"
 }
 
