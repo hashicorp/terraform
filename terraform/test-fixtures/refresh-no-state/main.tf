@@ -1,1 +1,3 @@
-output "foo" {}
+output "foo" {
+  value = ""
+}

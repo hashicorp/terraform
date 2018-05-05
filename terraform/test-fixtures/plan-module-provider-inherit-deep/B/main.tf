@@ -1,1 +1,3 @@
-module "C" { source = "../C" }
+module "C" {
+  source = "../C"
+}
