@@ -5,7 +5,14 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/hashicorp/terraform/config"
+	"github.com/hashicorp/hcl2/hcl"
+	"github.com/hashicorp/terraform/config/configschema"
+	"github.com/hashicorp/terraform/tfdiags"
+
+	"github.com/hashicorp/terraform/configs"
+	"github.com/zclconf/go-cty/cty"
+
+	"github.com/hashicorp/terraform/addrs"
 )
 
 func TestEvalValidateResource_managedResource(t *testing.T) {
@@ -24,13 +31,24 @@ func TestEvalValidateResource_managedResource(t *testing.T) {
 	}
 
 	p := ResourceProvider(mp)
-	rc := testResourceConfig(t, map[string]interface{}{"foo": "bar"})
+	rc := &configs.Resource{
+		Mode: addrs.ManagedResourceMode,
+		Type: "aws_instance",
+		Name: "foo",
+		Config: configs.SynthBody("", map[string]cty.Value{
+			"foo": cty.StringVal("bar"),
+		}),
+	}
 	node := &EvalValidateResource{
-		Provider:     &p,
-		Config:       &rc,
-		ResourceName: "foo",
-		ResourceType: "aws_instance",
-		ResourceMode: config.ManagedResourceMode,
+		Addr: addrs.ResourceInstance{
+			Resource: addrs.Resource{
+				Mode: addrs.ManagedResourceMode,
+				Type: "aws_instance",
+				Name: "foo",
+			},
+		},
+		Provider: &p,
+		Config:   rc,
 	}
 
 	_, err := node.Eval(&MockEvalContext{})
@@ -59,13 +77,25 @@ func TestEvalValidateResource_dataSource(t *testing.T) {
 	}
 
 	p := ResourceProvider(mp)
-	rc := testResourceConfig(t, map[string]interface{}{"foo": "bar"})
+	rc := &configs.Resource{
+		Mode: addrs.DataResourceMode,
+		Type: "aws_ami",
+		Name: "foo",
+		Config: configs.SynthBody("", map[string]cty.Value{
+			"foo": cty.StringVal("bar"),
+		}),
+	}
+
 	node := &EvalValidateResource{
-		Provider:     &p,
-		Config:       &rc,
-		ResourceName: "foo",
-		ResourceType: "aws_ami",
-		ResourceMode: config.DataResourceMode,
+		Addr: addrs.ResourceInstance{
+			Resource: addrs.Resource{
+				Mode: addrs.DataResourceMode,
+				Type: "aws_ami",
+				Name: "foo",
+			},
+		},
+		Provider: &p,
+		Config:   rc,
 	}
 
 	_, err := node.Eval(&MockEvalContext{})
@@ -85,13 +115,22 @@ func TestEvalValidateResource_validReturnsNilError(t *testing.T) {
 	}
 
 	p := ResourceProvider(mp)
-	rc := &ResourceConfig{}
+	rc := &configs.Resource{
+		Mode:   addrs.ManagedResourceMode,
+		Type:   "aws_instance",
+		Name:   "foo",
+		Config: configs.SynthBody("", map[string]cty.Value{}),
+	}
 	node := &EvalValidateResource{
-		Provider:     &p,
-		Config:       &rc,
-		ResourceName: "foo",
-		ResourceType: "aws_instance",
-		ResourceMode: config.ManagedResourceMode,
+		Addr: addrs.ResourceInstance{
+			Resource: addrs.Resource{
+				Mode: addrs.ManagedResourceMode,
+				Type: "aws_instance",
+				Name: "foo",
+			},
+		},
+		Provider: &p,
+		Config:   rc,
 	}
 
 	_, err := node.Eval(&MockEvalContext{})
@@ -109,13 +148,22 @@ func TestEvalValidateResource_warningsAndErrorsPassedThrough(t *testing.T) {
 	}
 
 	p := ResourceProvider(mp)
-	rc := &ResourceConfig{}
+	rc := &configs.Resource{
+		Mode:   addrs.ManagedResourceMode,
+		Type:   "aws_instance",
+		Name:   "foo",
+		Config: configs.SynthBody("", map[string]cty.Value{}),
+	}
 	node := &EvalValidateResource{
-		Provider:     &p,
-		Config:       &rc,
-		ResourceName: "foo",
-		ResourceType: "aws_instance",
-		ResourceMode: config.ManagedResourceMode,
+		Addr: addrs.ResourceInstance{
+			Resource: addrs.Resource{
+				Mode: addrs.ManagedResourceMode,
+				Type: "aws_instance",
+				Name: "foo",
+			},
+		},
+		Provider: &p,
+		Config:   rc,
 	}
 
 	_, err := node.Eval(&MockEvalContext{})
@@ -123,34 +171,17 @@ func TestEvalValidateResource_warningsAndErrorsPassedThrough(t *testing.T) {
 		t.Fatal("Expected an error, got none!")
 	}
 
-	verr := err.(*EvalValidateError)
-	if len(verr.Warnings) != 1 || verr.Warnings[0] != "warn" {
-		t.Fatalf("Expected 1 warning 'warn', got: %#v", verr.Warnings)
+	var diags tfdiags.Diagnostics
+	diags = diags.Append(err)
+	bySeverity := map[tfdiags.Severity]tfdiags.Diagnostics{}
+	for _, diag := range diags {
+		bySeverity[diag.Severity()] = append(bySeverity[diag.Severity()], diag)
 	}
-	if len(verr.Errors) != 1 || verr.Errors[0].Error() != "err" {
-		t.Fatalf("Expected 1 error 'err', got: %#v", verr.Errors)
+	if len(bySeverity[tfdiags.Warning]) != 1 || bySeverity[tfdiags.Warning][0].Description().Summary != "warn" {
+		t.Fatalf("Expected 1 warning 'warn', got: %#v", bySeverity[tfdiags.Warning])
 	}
-}
-
-func TestEvalValidateResource_checksResourceName(t *testing.T) {
-	mp := testProvider("aws")
-	p := ResourceProvider(mp)
-	rc := &ResourceConfig{}
-	node := &EvalValidateResource{
-		Provider:     &p,
-		Config:       &rc,
-		ResourceName: "bad*name",
-		ResourceType: "aws_instance",
-		ResourceMode: config.ManagedResourceMode,
-	}
-
-	_, err := node.Eval(&MockEvalContext{})
-	if err == nil {
-		t.Fatal("Expected an error, got none!")
-	}
-	expectErr := "resource name can only contain"
-	if !strings.Contains(err.Error(), expectErr) {
-		t.Fatalf("Expected err: %s to contain %s", err, expectErr)
+	if len(bySeverity[tfdiags.Error]) != 1 || bySeverity[tfdiags.Error][0].Description().Summary != "err" {
+		t.Fatalf("Expected 1 error 'err', got: %#v", bySeverity[tfdiags.Error])
 	}
 }
 
@@ -162,13 +193,22 @@ func TestEvalValidateResource_ignoreWarnings(t *testing.T) {
 	}
 
 	p := ResourceProvider(mp)
-	rc := &ResourceConfig{}
+	rc := &configs.Resource{
+		Mode:   addrs.ManagedResourceMode,
+		Type:   "aws_instance",
+		Name:   "foo",
+		Config: configs.SynthBody("", map[string]cty.Value{}),
+	}
 	node := &EvalValidateResource{
-		Provider:     &p,
-		Config:       &rc,
-		ResourceName: "foo",
-		ResourceType: "aws_instance",
-		ResourceMode: config.ManagedResourceMode,
+		Addr: addrs.ResourceInstance{
+			Resource: addrs.Resource{
+				Mode: addrs.ManagedResourceMode,
+				Type: "aws_instance",
+				Name: "foo",
+			},
+		},
+		Provider: &p,
+		Config:   rc,
 
 		IgnoreWarnings: true,
 	}
@@ -184,17 +224,26 @@ func TestEvalValidateProvisioner_valid(t *testing.T) {
 	var p ResourceProvisioner = mp
 	ctx := &MockEvalContext{}
 
-	cfg := &ResourceConfig{}
-	connInfo, err := config.NewRawConfig(map[string]interface{}{})
-	if err != nil {
-		t.Fatalf("failed to make connInfo: %s", err)
-	}
-	connConfig := NewResourceConfig(connInfo)
+	schema := &configschema.Block{}
 
 	node := &EvalValidateProvisioner{
+		ResourceAddr: addrs.ResourceInstance{
+			Resource: addrs.Resource{
+				Mode: addrs.ManagedResourceMode,
+				Type: "foo",
+				Name: "bar",
+			},
+		},
 		Provisioner: &p,
-		Config:      &cfg,
-		ConnConfig:  &connConfig,
+		Schema:      &schema,
+		Config: &configs.Provisioner{
+			Type:   "baz",
+			Config: hcl.EmptyBody(),
+		},
+		ConnConfig: &configs.Connection{
+			Type:   "ssh",
+			Config: hcl.EmptyBody(),
+		},
 	}
 
 	result, err := node.Eval(ctx)
@@ -206,10 +255,7 @@ func TestEvalValidateProvisioner_valid(t *testing.T) {
 	}
 
 	if !mp.ValidateCalled {
-		t.Fatalf("p.Config not called")
-	}
-	if mp.ValidateConfig != cfg {
-		t.Errorf("p.Config called with wrong config")
+		t.Fatalf("p.Validate not called")
 	}
 }
 
@@ -218,37 +264,43 @@ func TestEvalValidateProvisioner_warning(t *testing.T) {
 	var p ResourceProvisioner = mp
 	ctx := &MockEvalContext{}
 
-	cfg := &ResourceConfig{}
-	connInfo, err := config.NewRawConfig(map[string]interface{}{})
-	if err != nil {
-		t.Fatalf("failed to make connInfo: %s", err)
-	}
-	connConfig := NewResourceConfig(connInfo)
+	schema := &configschema.Block{}
 
 	node := &EvalValidateProvisioner{
+		ResourceAddr: addrs.ResourceInstance{
+			Resource: addrs.Resource{
+				Mode: addrs.ManagedResourceMode,
+				Type: "foo",
+				Name: "bar",
+			},
+		},
 		Provisioner: &p,
-		Config:      &cfg,
-		ConnConfig:  &connConfig,
+		Schema:      &schema,
+		Config: &configs.Provisioner{
+			Type:   "baz",
+			Config: hcl.EmptyBody(),
+		},
+		ConnConfig: &configs.Connection{
+			Type:   "ssh",
+			Config: hcl.EmptyBody(),
+		},
 	}
 
 	mp.ValidateReturnWarns = []string{"foo is deprecated"}
 
-	_, err = node.Eval(ctx)
+	_, err := node.Eval(ctx)
 	if err == nil {
 		t.Fatalf("node.Eval succeeded; want error")
 	}
 
-	valErr, ok := err.(*EvalValidateError)
-	if !ok {
-		t.Fatalf("node.Eval error is %#v; want *EvalValidateError", valErr)
+	var diags tfdiags.Diagnostics
+	diags = diags.Append(err)
+	if len(diags) != 1 {
+		t.Fatalf("wrong number of diagsnostics in %#v; want one warning", diags)
 	}
 
-	warns := valErr.Warnings
-	if warns == nil || len(warns) != 1 {
-		t.Fatalf("wrong number of warnings in %#v; want one warning", warns)
-	}
-	if warns[0] != mp.ValidateReturnWarns[0] {
-		t.Fatalf("wrong warning %q; want %q", warns[0], mp.ValidateReturnWarns[0])
+	if got, want := diags[0].Description().Summary, mp.ValidateReturnWarns[0]; got != want {
+		t.Fatalf("wrong warning %q; want %q", got, want)
 	}
 }
 
@@ -256,39 +308,44 @@ func TestEvalValidateProvisioner_connectionInvalid(t *testing.T) {
 	var p ResourceProvisioner = &MockResourceProvisioner{}
 	ctx := &MockEvalContext{}
 
-	cfg := &ResourceConfig{}
-	connInfo, err := config.NewRawConfig(map[string]interface{}{
-		"bananananananana": "foo",
-		"bazaz":            "bar",
-	})
-	if err != nil {
-		t.Fatalf("failed to make connInfo: %s", err)
-	}
-	connConfig := NewResourceConfig(connInfo)
+	schema := &configschema.Block{}
 
 	node := &EvalValidateProvisioner{
+		ResourceAddr: addrs.ResourceInstance{
+			Resource: addrs.Resource{
+				Mode: addrs.ManagedResourceMode,
+				Type: "foo",
+				Name: "bar",
+			},
+		},
 		Provisioner: &p,
-		Config:      &cfg,
-		ConnConfig:  &connConfig,
+		Schema:      &schema,
+		Config: &configs.Provisioner{
+			Type:   "baz",
+			Config: hcl.EmptyBody(),
+		},
+		ConnConfig: &configs.Connection{
+			Type: "ssh",
+			Config: configs.SynthBody("", map[string]cty.Value{
+				"bananananananana": cty.StringVal("foo"),
+				"bazaz":            cty.StringVal("bar"),
+			}),
+		},
 	}
 
-	_, err = node.Eval(ctx)
+	_, err := node.Eval(ctx)
 	if err == nil {
 		t.Fatalf("node.Eval succeeded; want error")
 	}
 
-	valErr, ok := err.(*EvalValidateError)
-	if !ok {
-		t.Fatalf("node.Eval error is %#v; want *EvalValidateError", valErr)
+	var diags tfdiags.Diagnostics
+	diags = diags.Append(err)
+	if len(diags) != 2 {
+		t.Fatalf("wrong number of diagsnostics in %#v; want two errors", diags)
 	}
 
-	errs := valErr.Errors
-	if errs == nil || len(errs) != 2 {
-		t.Fatalf("wrong number of errors in %#v; want two errors", errs)
-	}
-
-	errStr := errs[0].Error()
-	if !(strings.Contains(errStr, "bananananananana") || strings.Contains(errStr, "bazaz")) {
-		t.Fatalf("wrong first error %q; want something about our invalid connInfo keys", errStr)
+	errStr := diags.Err().Error()
+	if !(strings.Contains(errStr, "bananananananana") && strings.Contains(errStr, "bazaz")) {
+		t.Fatalf("wrong errors %q; want something about each of our invalid connInfo keys", errStr)
 	}
 }

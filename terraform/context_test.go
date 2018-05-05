@@ -6,6 +6,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hashicorp/terraform/configs"
+
 	"github.com/hashicorp/go-version"
 	"github.com/hashicorp/terraform/flatmap"
 	tfversion "github.com/hashicorp/terraform/version"
@@ -73,16 +75,19 @@ func TestNewContextRequiredVersion(t *testing.T) {
 			}
 			mod := testModule(t, name)
 			if tc.Value != "" {
-				mod.Config().Terraform.RequiredVersion = tc.Value
+				constraint, err := version.NewConstraint(tc.Value)
+				if err != nil {
+					t.Fatalf("can't parse %q as version constraint", tc.Value)
+				}
+				mod.Module.CoreVersionConstraints = append(mod.Module.CoreVersionConstraints, configs.VersionConstraint{
+					Required: constraint,
+				})
 			}
-			_, err := NewContext(&ContextOpts{
-				Module: mod,
+			_, diags := NewContext(&ContextOpts{
+				Config: mod,
 			})
-			if (err != nil) != tc.Err {
-				t.Fatalf("err: %s", err)
-			}
-			if err != nil {
-				return
+			if diags.HasErrors() != tc.Err {
+				t.Fatalf("err: %s", diags.Err())
 			}
 		})
 	}

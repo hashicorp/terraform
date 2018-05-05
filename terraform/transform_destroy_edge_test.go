@@ -3,14 +3,16 @@ package terraform
 import (
 	"strings"
 	"testing"
+
+	"github.com/hashicorp/terraform/addrs"
 )
 
 func TestDestroyEdgeTransformer_basic(t *testing.T) {
-	g := Graph{Path: RootModulePath}
+	g := Graph{Path: addrs.RootModuleInstance}
 	g.Add(&graphNodeDestroyerTest{AddrString: "test.A"})
 	g.Add(&graphNodeDestroyerTest{AddrString: "test.B"})
 	tf := &DestroyEdgeTransformer{
-		Module: testModule(t, "transform-destroy-edge-basic"),
+		Config: testModule(t, "transform-destroy-edge-basic"),
 	}
 	if err := tf.Transform(&g); err != nil {
 		t.Fatalf("err: %s", err)
@@ -24,12 +26,12 @@ func TestDestroyEdgeTransformer_basic(t *testing.T) {
 }
 
 func TestDestroyEdgeTransformer_create(t *testing.T) {
-	g := Graph{Path: RootModulePath}
+	g := Graph{Path: addrs.RootModuleInstance}
 	g.Add(&graphNodeDestroyerTest{AddrString: "test.A"})
 	g.Add(&graphNodeDestroyerTest{AddrString: "test.B"})
 	g.Add(&graphNodeCreatorTest{AddrString: "test.A"})
 	tf := &DestroyEdgeTransformer{
-		Module: testModule(t, "transform-destroy-edge-basic"),
+		Config: testModule(t, "transform-destroy-edge-basic"),
 	}
 	if err := tf.Transform(&g); err != nil {
 		t.Fatalf("err: %s", err)
@@ -43,12 +45,12 @@ func TestDestroyEdgeTransformer_create(t *testing.T) {
 }
 
 func TestDestroyEdgeTransformer_multi(t *testing.T) {
-	g := Graph{Path: RootModulePath}
+	g := Graph{Path: addrs.RootModuleInstance}
 	g.Add(&graphNodeDestroyerTest{AddrString: "test.A"})
 	g.Add(&graphNodeDestroyerTest{AddrString: "test.B"})
 	g.Add(&graphNodeDestroyerTest{AddrString: "test.C"})
 	tf := &DestroyEdgeTransformer{
-		Module: testModule(t, "transform-destroy-edge-multi"),
+		Config: testModule(t, "transform-destroy-edge-multi"),
 	}
 	if err := tf.Transform(&g); err != nil {
 		t.Fatalf("err: %s", err)
@@ -62,10 +64,10 @@ func TestDestroyEdgeTransformer_multi(t *testing.T) {
 }
 
 func TestDestroyEdgeTransformer_selfRef(t *testing.T) {
-	g := Graph{Path: RootModulePath}
+	g := Graph{Path: addrs.RootModuleInstance}
 	g.Add(&graphNodeDestroyerTest{AddrString: "test.A"})
 	tf := &DestroyEdgeTransformer{
-		Module: testModule(t, "transform-destroy-edge-self-ref"),
+		Config: testModule(t, "transform-destroy-edge-self-ref"),
 	}
 	if err := tf.Transform(&g); err != nil {
 		t.Fatalf("err: %s", err)
@@ -79,11 +81,11 @@ func TestDestroyEdgeTransformer_selfRef(t *testing.T) {
 }
 
 func TestDestroyEdgeTransformer_module(t *testing.T) {
-	g := Graph{Path: RootModulePath}
+	g := Graph{Path: addrs.RootModuleInstance}
 	g.Add(&graphNodeDestroyerTest{AddrString: "module.child.aws_instance.b"})
 	g.Add(&graphNodeDestroyerTest{AddrString: "aws_instance.a"})
 	tf := &DestroyEdgeTransformer{
-		Module: testModule(t, "transform-destroy-edge-module"),
+		Config: testModule(t, "transform-destroy-edge-module"),
 	}
 	if err := tf.Transform(&g); err != nil {
 		t.Fatalf("err: %s", err)
@@ -97,12 +99,12 @@ func TestDestroyEdgeTransformer_module(t *testing.T) {
 }
 
 func TestDestroyEdgeTransformer_moduleOnly(t *testing.T) {
-	g := Graph{Path: RootModulePath}
+	g := Graph{Path: addrs.RootModuleInstance}
 	g.Add(&graphNodeDestroyerTest{AddrString: "module.child.aws_instance.a"})
 	g.Add(&graphNodeDestroyerTest{AddrString: "module.child.aws_instance.b"})
 	g.Add(&graphNodeDestroyerTest{AddrString: "module.child.aws_instance.c"})
 	tf := &DestroyEdgeTransformer{
-		Module: testModule(t, "transform-destroy-edge-module-only"),
+		Config: testModule(t, "transform-destroy-edge-module-only"),
 	}
 	if err := tf.Transform(&g); err != nil {
 		t.Fatalf("err: %s", err)

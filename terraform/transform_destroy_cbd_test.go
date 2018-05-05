@@ -3,10 +3,12 @@ package terraform
 import (
 	"strings"
 	"testing"
+
+	"github.com/hashicorp/terraform/addrs"
 )
 
 func TestCBDEdgeTransformer(t *testing.T) {
-	g := Graph{Path: RootModulePath}
+	g := Graph{Path: addrs.RootModuleInstance}
 	g.Add(&graphNodeCreatorTest{AddrString: "test.A"})
 	g.Add(&graphNodeCreatorTest{AddrString: "test.B"})
 	g.Add(&graphNodeDestroyerTest{AddrString: "test.A", CBD: true})
@@ -15,7 +17,7 @@ func TestCBDEdgeTransformer(t *testing.T) {
 
 	{
 		tf := &DestroyEdgeTransformer{
-			Module: module,
+			Config: module,
 		}
 		if err := tf.Transform(&g); err != nil {
 			t.Fatalf("err: %s", err)
@@ -23,7 +25,7 @@ func TestCBDEdgeTransformer(t *testing.T) {
 	}
 
 	{
-		tf := &CBDEdgeTransformer{Module: module}
+		tf := &CBDEdgeTransformer{Config: module}
 		if err := tf.Transform(&g); err != nil {
 			t.Fatalf("err: %s", err)
 		}
@@ -37,7 +39,7 @@ func TestCBDEdgeTransformer(t *testing.T) {
 }
 
 func TestCBDEdgeTransformer_depNonCBD(t *testing.T) {
-	g := Graph{Path: RootModulePath}
+	g := Graph{Path: addrs.RootModuleInstance}
 	g.Add(&graphNodeCreatorTest{AddrString: "test.A"})
 	g.Add(&graphNodeCreatorTest{AddrString: "test.B"})
 	g.Add(&graphNodeDestroyerTest{AddrString: "test.A"})
@@ -47,7 +49,7 @@ func TestCBDEdgeTransformer_depNonCBD(t *testing.T) {
 
 	{
 		tf := &DestroyEdgeTransformer{
-			Module: module,
+			Config: module,
 		}
 		if err := tf.Transform(&g); err != nil {
 			t.Fatalf("err: %s", err)
@@ -55,7 +57,7 @@ func TestCBDEdgeTransformer_depNonCBD(t *testing.T) {
 	}
 
 	{
-		tf := &CBDEdgeTransformer{Module: module}
+		tf := &CBDEdgeTransformer{Config: module}
 		if err := tf.Transform(&g); err != nil {
 			t.Fatalf("err: %s", err)
 		}
@@ -69,7 +71,7 @@ func TestCBDEdgeTransformer_depNonCBD(t *testing.T) {
 }
 
 func TestCBDEdgeTransformer_depNonCBDCount(t *testing.T) {
-	g := Graph{Path: RootModulePath}
+	g := Graph{Path: addrs.RootModuleInstance}
 	g.Add(&graphNodeCreatorTest{AddrString: "test.A"})
 	g.Add(&graphNodeCreatorTest{AddrString: "test.B[0]"})
 	g.Add(&graphNodeCreatorTest{AddrString: "test.B[1]"})
@@ -79,7 +81,7 @@ func TestCBDEdgeTransformer_depNonCBDCount(t *testing.T) {
 
 	{
 		tf := &DestroyEdgeTransformer{
-			Module: module,
+			Config: module,
 		}
 		if err := tf.Transform(&g); err != nil {
 			t.Fatalf("err: %s", err)
@@ -87,7 +89,7 @@ func TestCBDEdgeTransformer_depNonCBDCount(t *testing.T) {
 	}
 
 	{
-		tf := &CBDEdgeTransformer{Module: module}
+		tf := &CBDEdgeTransformer{Config: module}
 		if err := tf.Transform(&g); err != nil {
 			t.Fatalf("err: %s", err)
 		}
@@ -109,7 +111,7 @@ test.B[1]
 }
 
 func TestCBDEdgeTransformer_depNonCBDCountBoth(t *testing.T) {
-	g := Graph{Path: RootModulePath}
+	g := Graph{Path: addrs.RootModuleInstance}
 	g.Add(&graphNodeCreatorTest{AddrString: "test.A[0]"})
 	g.Add(&graphNodeCreatorTest{AddrString: "test.A[1]"})
 	g.Add(&graphNodeCreatorTest{AddrString: "test.B[0]"})
@@ -121,7 +123,7 @@ func TestCBDEdgeTransformer_depNonCBDCountBoth(t *testing.T) {
 
 	{
 		tf := &DestroyEdgeTransformer{
-			Module: module,
+			Config: module,
 		}
 		if err := tf.Transform(&g); err != nil {
 			t.Fatalf("err: %s", err)
@@ -129,7 +131,7 @@ func TestCBDEdgeTransformer_depNonCBDCountBoth(t *testing.T) {
 	}
 
 	{
-		tf := &CBDEdgeTransformer{Module: module}
+		tf := &CBDEdgeTransformer{Config: module}
 		if err := tf.Transform(&g); err != nil {
 			t.Fatalf("err: %s", err)
 		}

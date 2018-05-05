@@ -3,21 +3,23 @@ package terraform
 import (
 	"strings"
 	"testing"
+
+	"github.com/hashicorp/terraform/addrs"
 )
 
 func TestTargetsTransformer(t *testing.T) {
 	mod := testModule(t, "transform-targets-basic")
 
-	g := Graph{Path: RootModulePath}
+	g := Graph{Path: addrs.RootModuleInstance}
 	{
-		tf := &ConfigTransformer{Module: mod}
+		tf := &ConfigTransformer{Config: mod}
 		if err := tf.Transform(&g); err != nil {
 			t.Fatalf("err: %s", err)
 		}
 	}
 
 	{
-		transform := &AttachResourceConfigTransformer{Module: mod}
+		transform := &AttachResourceConfigTransformer{Config: mod}
 		if err := transform.Transform(&g); err != nil {
 			t.Fatalf("err: %s", err)
 		}
@@ -31,7 +33,13 @@ func TestTargetsTransformer(t *testing.T) {
 	}
 
 	{
-		transform := &TargetsTransformer{Targets: []string{"aws_instance.me"}}
+		transform := &TargetsTransformer{
+			Targets: []addrs.Targetable{
+				addrs.RootModuleInstance.Resource(
+					addrs.ManagedResourceMode, "aws_instance", "me",
+				),
+			},
+		}
 		if err := transform.Transform(&g); err != nil {
 			t.Fatalf("err: %s", err)
 		}
@@ -53,30 +61,30 @@ aws_vpc.me
 func TestTargetsTransformer_downstream(t *testing.T) {
 	mod := testModule(t, "transform-targets-downstream")
 
-	g := Graph{Path: RootModulePath}
+	g := Graph{Path: addrs.RootModuleInstance}
 	{
-		transform := &ConfigTransformer{Module: mod}
+		transform := &ConfigTransformer{Config: mod}
 		if err := transform.Transform(&g); err != nil {
 			t.Fatalf("%T failed: %s", transform, err)
 		}
 	}
 
 	{
-		transform := &AttachResourceConfigTransformer{Module: mod}
+		transform := &AttachResourceConfigTransformer{Config: mod}
 		if err := transform.Transform(&g); err != nil {
 			t.Fatalf("%T failed: %s", transform, err)
 		}
 	}
 
 	{
-		transform := &AttachResourceConfigTransformer{Module: mod}
+		transform := &AttachResourceConfigTransformer{Config: mod}
 		if err := transform.Transform(&g); err != nil {
 			t.Fatalf("%T failed: %s", transform, err)
 		}
 	}
 
 	{
-		transform := &OutputTransformer{Module: mod}
+		transform := &OutputTransformer{Config: mod}
 		if err := transform.Transform(&g); err != nil {
 			t.Fatalf("%T failed: %s", transform, err)
 		}
@@ -90,7 +98,16 @@ func TestTargetsTransformer_downstream(t *testing.T) {
 	}
 
 	{
-		transform := &TargetsTransformer{Targets: []string{"module.child.module.grandchild.aws_instance.foo"}}
+		transform := &TargetsTransformer{
+			Targets: []addrs.Targetable{
+				addrs.RootModuleInstance.
+					Child("child", addrs.NoKey).
+					Child("grandchild", addrs.NoKey).
+					Resource(
+						addrs.ManagedResourceMode, "aws_instance", "foo",
+					),
+			},
+		}
 		if err := transform.Transform(&g); err != nil {
 			t.Fatalf("%T failed: %s", transform, err)
 		}
@@ -116,16 +133,16 @@ output.grandchild_id
 func TestTargetsTransformer_destroy(t *testing.T) {
 	mod := testModule(t, "transform-targets-destroy")
 
-	g := Graph{Path: RootModulePath}
+	g := Graph{Path: addrs.RootModuleInstance}
 	{
-		tf := &ConfigTransformer{Module: mod}
+		tf := &ConfigTransformer{Config: mod}
 		if err := tf.Transform(&g); err != nil {
 			t.Fatalf("err: %s", err)
 		}
 	}
 
 	{
-		transform := &AttachResourceConfigTransformer{Module: mod}
+		transform := &AttachResourceConfigTransformer{Config: mod}
 		if err := transform.Transform(&g); err != nil {
 			t.Fatalf("err: %s", err)
 		}
@@ -140,7 +157,11 @@ func TestTargetsTransformer_destroy(t *testing.T) {
 
 	{
 		transform := &TargetsTransformer{
-			Targets: []string{"aws_instance.me"},
+			Targets: []addrs.Targetable{
+				addrs.RootModuleInstance.Resource(
+					addrs.ManagedResourceMode, "aws_instance", "me",
+				),
+			},
 			Destroy: true,
 		}
 		if err := transform.Transform(&g); err != nil {

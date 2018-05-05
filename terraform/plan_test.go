@@ -6,7 +6,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/hashicorp/terraform/config/module"
+	"github.com/hashicorp/terraform/addrs"
+
+	"github.com/hashicorp/terraform/configs"
+	"github.com/zclconf/go-cty/cty"
 )
 
 func TestPlanContextOpts(t *testing.T) {
@@ -18,12 +21,12 @@ func TestPlanContextOpts(t *testing.T) {
 				},
 			},
 		},
-		Module: module.NewTree("test", nil),
+		Config: configs.NewEmptyConfig(),
 		State: &State{
 			TFVersion: "sigil",
 		},
-		Vars:    map[string]interface{}{"foo": "bar"},
-		Targets: []string{"baz"},
+		Vars:    map[string]cty.Value{"foo": cty.StringVal("bar")},
+		Targets: []string{"baz.bar"},
 
 		TerraformVersion: VersionString(),
 		ProviderSHA256s: map[string][]byte{
@@ -37,11 +40,18 @@ func TestPlanContextOpts(t *testing.T) {
 	}
 
 	want := &ContextOpts{
-		Diff:            plan.Diff,
-		Module:          plan.Module,
-		State:           plan.State,
-		Variables:       plan.Vars,
-		Targets:         plan.Targets,
+		Diff:   plan.Diff,
+		Config: plan.Config,
+		State:  plan.State,
+		Variables: InputValues{
+			"foo": &InputValue{
+				Value:      cty.StringVal("bar"),
+				SourceType: ValueFromPlan,
+			},
+		},
+		Targets: []addrs.Targetable{
+			addrs.RootModuleInstance.Resource(addrs.ManagedResourceMode, "baz", "bar"),
+		},
 		ProviderSHA256s: plan.ProviderSHA256s,
 	}
 
@@ -52,7 +62,7 @@ func TestPlanContextOpts(t *testing.T) {
 
 func TestReadWritePlan(t *testing.T) {
 	plan := &Plan{
-		Module: testModule(t, "new-good"),
+		Config: testModule(t, "new-good"),
 		Diff: &Diff{
 			Modules: []*ModuleDiff{
 				&ModuleDiff{
@@ -97,8 +107,8 @@ func TestReadWritePlan(t *testing.T) {
 				},
 			},
 		},
-		Vars: map[string]interface{}{
-			"foo": "bar",
+		Vars: map[string]cty.Value{
+			"foo": cty.StringVal("bar"),
 		},
 	}
 
@@ -128,13 +138,13 @@ func TestPlanContextOptsOverrideStateGood(t *testing.T) {
 				},
 			},
 		},
-		Module: module.NewTree("test", nil),
+		Config: configs.NewEmptyConfig(),
 		State: &State{
 			TFVersion: "sigil",
 			Serial:    1,
 		},
-		Vars:    map[string]interface{}{"foo": "bar"},
-		Targets: []string{"baz"},
+		Vars:    map[string]cty.Value{"foo": cty.StringVal("bar")},
+		Targets: []string{"baz.bar"},
 
 		TerraformVersion: VersionString(),
 		ProviderSHA256s: map[string][]byte{
@@ -155,11 +165,18 @@ func TestPlanContextOptsOverrideStateGood(t *testing.T) {
 	}
 
 	want := &ContextOpts{
-		Diff:            plan.Diff,
-		Module:          plan.Module,
-		State:           base.State,
-		Variables:       plan.Vars,
-		Targets:         plan.Targets,
+		Diff:   plan.Diff,
+		Config: plan.Config,
+		State:  base.State,
+		Variables: InputValues{
+			"foo": &InputValue{
+				Value:      cty.StringVal("bar"),
+				SourceType: ValueFromPlan,
+			},
+		},
+		Targets: []addrs.Targetable{
+			addrs.RootModuleInstance.Resource(addrs.ManagedResourceMode, "baz", "bar"),
+		},
 		ProviderSHA256s: plan.ProviderSHA256s,
 	}
 

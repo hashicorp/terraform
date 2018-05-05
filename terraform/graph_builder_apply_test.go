@@ -1,9 +1,11 @@
 package terraform
 
 import (
-	"reflect"
+	"fmt"
 	"strings"
 	"testing"
+
+	"github.com/hashicorp/terraform/addrs"
 )
 
 func TestApplyGraphBuilder_impl(t *testing.T) {
@@ -65,20 +67,30 @@ func TestApplyGraphBuilder(t *testing.T) {
 	}
 
 	b := &ApplyGraphBuilder{
-		Module:        testModule(t, "graph-builder-apply-basic"),
-		Diff:          diff,
-		Providers:     []string{"aws"},
-		Provisioners:  []string{"exec"},
+		Config: testModule(t, "graph-builder-apply-basic"),
+		Diff:   diff,
+		Components: &basicComponentFactory{
+			providers: map[string]ResourceProviderFactory{
+				"aws": func() (ResourceProvider, error) {
+					return nil, fmt.Errorf("not implemented")
+				},
+			},
+			provisioners: map[string]ResourceProvisionerFactory{
+				"exec": func() (ResourceProvisioner, error) {
+					return nil, fmt.Errorf("not implemented")
+				},
+			},
+		},
 		DisableReduce: true,
 	}
 
-	g, err := b.Build(RootModulePath)
+	g, err := b.Build(addrs.RootModuleInstance)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
-	if !reflect.DeepEqual(g.Path, RootModulePath) {
-		t.Fatalf("bad: %#v", g.Path)
+	if g.Path.String() != addrs.RootModuleInstance.String() {
+		t.Fatalf("wrong path %q", g.Path.String())
 	}
 
 	actual := strings.TrimSpace(g.String())
@@ -119,21 +131,31 @@ func TestApplyGraphBuilder_depCbd(t *testing.T) {
 	}
 
 	b := &ApplyGraphBuilder{
-		Module:        testModule(t, "graph-builder-apply-dep-cbd"),
-		Diff:          diff,
-		Providers:     []string{"aws"},
-		Provisioners:  []string{"exec"},
+		Config: testModule(t, "graph-builder-apply-dep-cbd"),
+		Diff:   diff,
+		Components: &basicComponentFactory{
+			providers: map[string]ResourceProviderFactory{
+				"aws": func() (ResourceProvider, error) {
+					return nil, fmt.Errorf("not implemented")
+				},
+			},
+			provisioners: map[string]ResourceProvisionerFactory{
+				"exec": func() (ResourceProvisioner, error) {
+					return nil, fmt.Errorf("not implemented")
+				},
+			},
+		},
 		DisableReduce: true,
 	}
 
-	g, err := b.Build(RootModulePath)
+	g, err := b.Build(addrs.RootModuleInstance)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
 	t.Logf("Graph: %s", g.String())
 
-	if !reflect.DeepEqual(g.Path, RootModulePath) {
-		t.Fatalf("bad: %#v", g.Path)
+	if g.Path.String() != addrs.RootModuleInstance.String() {
+		t.Fatalf("wrong path %q", g.Path.String())
 	}
 
 	// Create A, Modify B, Destroy A
@@ -185,20 +207,30 @@ func TestApplyGraphBuilder_doubleCBD(t *testing.T) {
 	}
 
 	b := &ApplyGraphBuilder{
-		Module:        testModule(t, "graph-builder-apply-double-cbd"),
-		Diff:          diff,
-		Providers:     []string{"aws"},
-		Provisioners:  []string{"exec"},
+		Config: testModule(t, "graph-builder-apply-double-cbd"),
+		Diff:   diff,
+		Components: &basicComponentFactory{
+			providers: map[string]ResourceProviderFactory{
+				"aws": func() (ResourceProvider, error) {
+					return nil, fmt.Errorf("not implemented")
+				},
+			},
+			provisioners: map[string]ResourceProvisionerFactory{
+				"exec": func() (ResourceProvisioner, error) {
+					return nil, fmt.Errorf("not implemented")
+				},
+			},
+		},
 		DisableReduce: true,
 	}
 
-	g, err := b.Build(RootModulePath)
+	g, err := b.Build(addrs.RootModuleInstance)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
-	if !reflect.DeepEqual(g.Path, RootModulePath) {
-		t.Fatalf("bad: %#v", g.Path)
+	if g.Path.String() != addrs.RootModuleInstance.String() {
+		t.Fatalf("wrong path %q", g.Path.String())
 	}
 
 	actual := strings.TrimSpace(g.String())
@@ -255,21 +287,27 @@ func TestApplyGraphBuilder_destroyStateOnly(t *testing.T) {
 	}
 
 	b := &ApplyGraphBuilder{
-		Module:        testModule(t, "empty"),
-		Diff:          diff,
-		State:         state,
-		Providers:     []string{"aws"},
+		Config: testModule(t, "empty"),
+		Diff:   diff,
+		State:  state,
+		Components: &basicComponentFactory{
+			providers: map[string]ResourceProviderFactory{
+				"aws": func() (ResourceProvider, error) {
+					return nil, fmt.Errorf("not implemented")
+				},
+			},
+		},
 		DisableReduce: true,
 	}
 
-	g, err := b.Build(RootModulePath)
+	g, err := b.Build(addrs.RootModuleInstance)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
 	t.Logf("Graph: %s", g.String())
 
-	if !reflect.DeepEqual(g.Path, RootModulePath) {
-		t.Fatalf("bad: %#v", g.Path)
+	if g.Path.String() != addrs.RootModuleInstance.String() {
+		t.Fatalf("wrong path %q", g.Path.String())
 	}
 
 	testGraphHappensBefore(
@@ -303,20 +341,30 @@ func TestApplyGraphBuilder_destroyCount(t *testing.T) {
 	}
 
 	b := &ApplyGraphBuilder{
-		Module:        testModule(t, "graph-builder-apply-count"),
-		Diff:          diff,
-		Providers:     []string{"aws"},
-		Provisioners:  []string{"exec"},
+		Config: testModule(t, "graph-builder-apply-count"),
+		Diff:   diff,
+		Components: &basicComponentFactory{
+			providers: map[string]ResourceProviderFactory{
+				"aws": func() (ResourceProvider, error) {
+					return nil, fmt.Errorf("not implemented")
+				},
+			},
+			provisioners: map[string]ResourceProvisionerFactory{
+				"exec": func() (ResourceProvisioner, error) {
+					return nil, fmt.Errorf("not implemented")
+				},
+			},
+		},
 		DisableReduce: true,
 	}
 
-	g, err := b.Build(RootModulePath)
+	g, err := b.Build(addrs.RootModuleInstance)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
-	if !reflect.DeepEqual(g.Path, RootModulePath) {
-		t.Fatalf("bad: %#v", g.Path)
+	if g.Path.String() != addrs.RootModuleInstance.String() {
+		t.Fatalf("wrong module path %q", g.Path)
 	}
 
 	actual := strings.TrimSpace(g.String())
@@ -350,12 +398,18 @@ func TestApplyGraphBuilder_moduleDestroy(t *testing.T) {
 	}
 
 	b := &ApplyGraphBuilder{
-		Module:    testModule(t, "graph-builder-apply-module-destroy"),
-		Diff:      diff,
-		Providers: []string{"null"},
+		Config: testModule(t, "graph-builder-apply-module-destroy"),
+		Diff:   diff,
+		Components: &basicComponentFactory{
+			providers: map[string]ResourceProviderFactory{
+				"null": func() (ResourceProvider, error) {
+					return nil, fmt.Errorf("not implemented")
+				},
+			},
+		},
 	}
 
-	g, err := b.Build(RootModulePath)
+	g, err := b.Build(addrs.RootModuleInstance)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -386,13 +440,23 @@ func TestApplyGraphBuilder_provisioner(t *testing.T) {
 	}
 
 	b := &ApplyGraphBuilder{
-		Module:       testModule(t, "graph-builder-apply-provisioner"),
-		Diff:         diff,
-		Providers:    []string{"null"},
-		Provisioners: []string{"local"},
+		Config: testModule(t, "graph-builder-apply-provisioner"),
+		Diff:   diff,
+		Components: &basicComponentFactory{
+			providers: map[string]ResourceProviderFactory{
+				"null": func() (ResourceProvider, error) {
+					return nil, fmt.Errorf("not implemented")
+				},
+			},
+			provisioners: map[string]ResourceProvisionerFactory{
+				"local": func() (ResourceProvisioner, error) {
+					return nil, fmt.Errorf("not implemented")
+				},
+			},
+		},
 	}
 
-	g, err := b.Build(RootModulePath)
+	g, err := b.Build(addrs.RootModuleInstance)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -419,14 +483,24 @@ func TestApplyGraphBuilder_provisionerDestroy(t *testing.T) {
 	}
 
 	b := &ApplyGraphBuilder{
-		Destroy:      true,
-		Module:       testModule(t, "graph-builder-apply-provisioner"),
-		Diff:         diff,
-		Providers:    []string{"null"},
-		Provisioners: []string{"local"},
+		Destroy: true,
+		Config:  testModule(t, "graph-builder-apply-provisioner"),
+		Diff:    diff,
+		Components: &basicComponentFactory{
+			providers: map[string]ResourceProviderFactory{
+				"null": func() (ResourceProvider, error) {
+					return nil, fmt.Errorf("not implemented")
+				},
+			},
+			provisioners: map[string]ResourceProvisionerFactory{
+				"local": func() (ResourceProvisioner, error) {
+					return nil, fmt.Errorf("not implemented")
+				},
+			},
+		},
 	}
 
-	g, err := b.Build(RootModulePath)
+	g, err := b.Build(addrs.RootModuleInstance)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -472,13 +546,21 @@ func TestApplyGraphBuilder_targetModule(t *testing.T) {
 	}
 
 	b := &ApplyGraphBuilder{
-		Module:    testModule(t, "graph-builder-apply-target-module"),
-		Diff:      diff,
-		Providers: []string{"null"},
-		Targets:   []string{"module.child2"},
+		Config: testModule(t, "graph-builder-apply-target-module"),
+		Diff:   diff,
+		Components: &basicComponentFactory{
+			providers: map[string]ResourceProviderFactory{
+				"null": func() (ResourceProvider, error) {
+					return nil, fmt.Errorf("not implemented")
+				},
+			},
+		},
+		Targets: []addrs.Targetable{
+			addrs.RootModuleInstance.Child("child2", addrs.NoKey),
+		},
 	}
 
-	g, err := b.Build(RootModulePath)
+	g, err := b.Build(addrs.RootModuleInstance)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}

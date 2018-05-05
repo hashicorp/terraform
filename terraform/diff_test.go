@@ -5,6 +5,8 @@ import (
 	"reflect"
 	"strings"
 	"testing"
+
+	"github.com/hashicorp/terraform/addrs"
 )
 
 func TestDiffEmpty(t *testing.T) {
@@ -18,7 +20,7 @@ func TestDiffEmpty(t *testing.T) {
 		t.Fatal("should be empty")
 	}
 
-	mod := diff.AddModule(rootModulePath)
+	mod := diff.AddModule(addrs.RootModuleInstance)
 	mod.Resources["nodeA"] = &InstanceDiff{
 		Attributes: map[string]*ResourceAttrDiff{
 			"foo": &ResourceAttrDiff{
@@ -36,7 +38,7 @@ func TestDiffEmpty(t *testing.T) {
 func TestDiffEmpty_taintedIsNotEmpty(t *testing.T) {
 	diff := new(Diff)
 
-	mod := diff.AddModule(rootModulePath)
+	mod := diff.AddModule(addrs.RootModuleInstance)
 	mod.Resources["nodeA"] = &InstanceDiff{
 		DestroyTainted: true,
 	}

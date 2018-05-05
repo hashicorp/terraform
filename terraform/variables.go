@@ -62,6 +62,24 @@ const (
 // InputValues is a map of InputValue instances.
 type InputValues map[string]*InputValue
 
+// InputValuesFromCaller turns the given map of naked values into an
+// InputValues that attributes each value to "a caller", using the source
+// type ValueFromCaller. This is primarily useful for testing purposes.
+//
+// This should not be used as a general way to convert map[string]cty.Value
+// into InputValues, since in most real cases we want to set a suitable
+// other SourceType and possibly SourceRange value.
+func InputValuesFromCaller(vals map[string]cty.Value) InputValues {
+	ret := make(InputValues, len(vals))
+	for k, v := range vals {
+		ret[k] = &InputValue{
+			Value:      v,
+			SourceType: ValueFromCaller,
+		}
+	}
+	return ret
+}
+
 // Override merges the given value maps with the receiver, overriding any
 // conflicting keys so that the latest definition wins.
 func (vv InputValues) Override(others ...InputValues) InputValues {
