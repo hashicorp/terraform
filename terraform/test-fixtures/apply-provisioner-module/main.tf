@@ -1,1 +1,3 @@
-module "child" { source = "./child" }
+module "child" {
+  source = "./child"
+}
