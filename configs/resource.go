@@ -189,7 +189,7 @@ func decodeResourceBlock(block *hcl.Block) (*Resource, hcl.Diagnostics) {
 							diags = append(diags, &hcl.Diagnostic{
 								Severity: hcl.DiagWarning,
 								Summary:  "Deprecated ignore_changes wildcard",
-								Detail:   "The [\"*\"] form of ignore_changes wildcard is reprecated. Use \"ignore_changes = all\" to ignore changes to all attributes.",
+								Detail:   "The [\"*\"] form of ignore_changes wildcard is deprecated. Use \"ignore_changes = all\" to ignore changes to all attributes.",
 								Subject:  attr.Expr.Range().Ptr(),
 							})
 							continue
