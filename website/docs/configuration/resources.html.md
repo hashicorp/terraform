@@ -3,113 +3,423 @@ layout: "docs"
 page_title: "Configuring Resources"
 sidebar_current: "docs-config-resources"
 description: |-
-  The most important thing you'll configure with Terraform are resources. Resources are a component of your infrastructure. It might be some low level component such as a physical server, virtual machine, or container. Or it can be a higher level component such as an email provider, DNS record, or database provider.
+  Resources are the most important element in a Terraform configuration.
+  Each resource corresponds to an infrastructure object, such as a virtual
+  network or compute instance.
 ---
 
-# Resource Configuration
+# Resources
 
-The most important thing you'll configure with Terraform are
-resources. Resources are a component of your infrastructure.
-It might be some low level component such as a physical server,
-virtual machine, or container. Or it can be a higher level
-component such as an email provider, DNS record, or database
-provider.
+_Resources_ are the most important element in the Terraform language.
+Each resource block describes one ore more infrastructure objects, such
+as virtual networks, compute instances, or higher-level components such
+as DNS records.
 
-This page assumes you're familiar with the
-[configuration syntax](/docs/configuration/syntax.html)
-already.
+## Resource Syntax
 
-## Example
-
-A resource configuration looks like the following:
+Resource declarations can include a number of advanced features, but only
+a small subset are required for initial use. More advanced syntax features,
+such as single resource declarations that produce multiple similar remote
+objects, are described later in this page.
 
 ```hcl
 resource "aws_instance" "web" {
-  ami           = "ami-408c7f28"
-  instance_type = "t1.micro"
+  ami           = "ami-a1b2c3d4"
+  instance_type = "t2.micro"
 }
 ```
 
-## Description
+A `resource` block declares a resource of a given type ("aws_instance")
+with a given local name ("web"). The name is used to refer to this resource
+from elsewhere in the same Terraform module, but has no significance outside
+of the scope of a module.
 
-The `resource` block creates a resource of the given `TYPE` (first
-parameter) and `NAME` (second parameter). The combination of the type
-and name must be unique.
+The resource type and name together serve as an identifier for a given
+resource and so must be unique within a module.
 
-Within the block (the `{ }`) is configuration for the resource. The
-configuration is dependent on the type, and is documented for each
-resource type in the
-[providers section](/docs/providers/index.html).
+Within the block body (between `{` and `}`) are the configuration arguments
+for the resource itself. Most arguments in this section depend on the
+resource type, and indeed in this example both `ami` and `instance_type` are
+arguments defined specifically for [the `aws_instance` resource type](/docs/providers/aws/r/instance.html).
 
-### Meta-parameters
+## Resource Types and Arguments
 
-There are **meta-parameters** available to all resources:
+Each resource is associated with a single _resource type_, which determines
+the kind of infrastructure object it manages and what arguments and other
+attributes are supported for each resource.
 
-- `count` (int) - The number of identical resources to create. This doesn't
-  apply to all resources. For details on using variables in conjunction with
-  count, see [Using Variables with `count`](#using-variables-with-count) below.
+Each resource type in turn belongs to a [provider](/docs/configuration/providers.html),
+which is a plugin for Terraform that offers a collection of resource types that
+most often belong to a single cloud or on-premises infrastructure platform.
 
-    -> Modules don't currently support the `count` parameter.
+Most of the items within the body of a `resource` block are defined by and
+specific to the selected resource type, and these arguments can make full
+use of [expressions](/docs/configuration/expressions.html) and other dynamic
+Terraform language features.
 
-- `depends_on` (list of strings) - Explicit dependencies that this resource has.
-  These dependencies will be created before this resource. For syntax and other
-  details, see the section below on [explicit
-  dependencies](#explicit-dependencies).
+However, there are some "meta-arguments" that are defined by Terraform itself
+and apply across all resource types. These arguments often have additional
+restrictions on what language features can be used with them, and are described
+in more detail in the following sections.
 
-- `provider` (string) - The name of a specific provider to use for this
-  resource. The name is in the format of `TYPE.ALIAS`, for example, `aws.west`.
-  Where `west` is set using the `alias` attribute in a provider. See [multiple
-  provider instances](#multiple-provider-instances).
+## Resource Behavior
 
-- `lifecycle` (configuration block) - Customizes the lifecycle behavior of the
-  resource. The specific options are documented below.
+A `resource` block describes your intent for a particular infrastructure object
+to exist with the given settings. If you are writing a new configuration for
+the first time, the resources it defines will exist _only_ in the configuration,
+and will not yet represent real infrastructure objects in the target platform.
 
-    The `lifecycle` block allows the following keys to be set:
+_Applying_ a Terraform configuration is the process of creating, updating,
+and destroying real infrastructure objects in order to make their settings
+match the configuration.
 
-  - `create_before_destroy` (bool) - This flag is used to ensure the replacement
-    of a resource is created before the original instance is destroyed. As an
-    example, this can be used to create an new DNS record before removing an old
-    record.
+When Terraform creates a new infrastructure object represented by a `resource`
+block, the identifier for that real object is saved in Terraform's
+[state](/docs/state/index.html), allowing it to be updated and destroyed
+in response to future changes. For resource blocks that already have an
+associated infrastructure object in the state, Terraform compares the
+actual configuration of the object with the arguments given in the
+configuration and, if necessary, updates the object to match the configuration.
 
-  - `prevent_destroy` (bool) - This flag provides extra protection against the
-    destruction of a given resource. When this is set to `true`, any plan that
-    includes a destroy of this resource will return an error message.
+This general behavior applies for all resources, regardless of type. The
+details of what it means to create, update, or destroy a resource are different
+for each resource type, but this standard set of verbs is common across them
+all.
 
-  - `ignore_changes` (list of strings) - Customizes how diffs are evaluated for
-    resources, allowing individual attributes to be ignored through changes. As
-    an example, this can be used to ignore dynamic changes to the resource from
-    external resources. Other meta-parameters cannot be ignored.
+The "meta-arguments" within `resource` blocks, defined in the following
+sections, allow some details of this standard resource behavior to be
+customized on a per-resource basis.
 
-        ~> Ignored attribute names can be matched by their name, not state ID.
-        For example, if an `aws_route_table` has two routes defined and the
-        `ignore_changes` list contains "route", both routes will be ignored.
-        Additionally you can also use a single entry with a wildcard (e.g. `"*"`)
-        which will match all attribute names. Using a partial string together
-        with a wildcard (e.g. `"rout*"`) is **not** supported.
+## Resource Dependencies
 
-  -> Interpolations are not currently supported in the `lifecycle` configuration block (see [issue #3116](https://github.com/hashicorp/terraform/issues/3116))
+As with other elements in the Terraform language, Terraform analyses any
+[expressions](/docs/configuration/expressions.html) within a `resource`
+block to find references to other objects, and infers from this a correct
+dependency ordering for creating, updating, or destroying each resource.
+Because of this, in most cases it is not necessary to mention explicitly
+any dependencies between resources.
 
-### Timeouts
+However, in some less-common situations there are dependencies between
+resources that cannot be expressed directly in configuration. For example,
+if Terraform is being used to both manage access control policies _and_ take
+actions that require those policies to be present, there may be a hidden
+dependency between the access policy and a resource whose creation depends
+on it.
 
-Individual Resources may provide a `timeouts` block to enable users to configure the
-amount of time a specific operation is allowed to take before being considered
-an error. For example, the
-[aws_db_instance](/docs/providers/aws/r/db_instance.html#timeouts)
-resource provides configurable timeouts for the
-`create`, `update`, and `delete` operations. Any Resource that provides Timeouts
-will document the default values for that operation, and users can overwrite
-them in their configuration.
-
-Example overwriting the `create` and `delete` timeouts:
+In these rare cases, the `depends_on` meta-argument can be used to explicitly
+specify a dependency. This argument is available in all `resource` blocks,
+regardless of resource type. For example:
 
 ```hcl
-resource "aws_db_instance" "timeout_example" {
-  allocated_storage = 10
-  engine            = "mysql"
-  engine_version    = "5.6.17"
-  instance_class    = "db.t1.micro"
-  name              = "mydb"
+resource "aws_iam_role" "example" {
+  name = "example"
 
+  # assume_role_policy is omitted for brevity in this example. See the
+  # documentation for aws_iam_role for a complete example.
+  assume_role_policy = "..."
+}
+
+resource "aws_iam_instance_profile" "example" {
+  # Because this expression refers to the role, Terraform can infer
+  # automatically that the role must be created first.
+  role = aws_iam_role.example.name
+}
+
+resource "aws_iam_role_policy" "example" {
+  name   = "example"
+  role   = aws_iam_role.example.name
+  policy = jsonencode({
+    "Statement" = [{
+      # This policy allows software running on the EC2 instance to
+      # access the S3 API.
+      "Action" = "s3:*",
+      "Effect" = "Allow",
+    }],
+  })
+}
+
+resource "aws_instance" "example" {
+  ami           = "ami-a1b2c3d4"
+  instance_type = "t2.micro"
+
+  # Terraform can infer from this that the instance profile must
+  # be created before the EC2 instance.
+  iam_instance_profile = aws_iam_instance_profile.example
+
+  # However, if software running in this EC2 instance needs access
+  # to the S3 API in order to boot properly, there is also a "hidden"
+  # dependency on the aws_iam_role_policy that Terraform cannot
+  # automatically infer, so it must be declared explicitly:
+  depends_on = [
+    aws_iam_role_policy.example,
+  ]
+}
+```
+
+The `depends_on` meta-argument, if present, must be a list of references
+to other resources in the same module. Arbitrary expressions are not allowed
+in the `depends_on` argument value, because its value must be known before
+Terraform knows resource relationships and thus before it can safely
+evaluate expressions.
+
+## Multiple Resource Instances
+
+By default, a single `resource` block corresponds to only one real
+infrastructure object. Sometimes it is desirable to instead manage a set
+of _similar_ objects of the same type, such as a fixed pool of compute
+instances. You can achieve this by using the `count` meta-argument,
+which is allowed in all `resource` blocks:
+
+```hcl
+resource "aws_instance" "server" {
+  count = 4 # create four similar EC2 instances
+
+  ami           = "ami-a1b2c3d4"
+  instance_type = "t2.micro"
+
+  tags {
+    Name = "Server ${count.index}"
+  }
+}
+```
+
+When the `count` meta-argument is present, a distinction exists between
+the resource block itself -- identified as `aws_instance.server` --
+and the multiple _resource instances_ associated with it, identified
+as `aws_instance.server[0]`, `aws_instance.server[1]`, etc. When `count`
+is _not_ present, a resource block has only a single resource instance,
+which has no associated index.
+
+For resource blocks where `count` is set, an additional `count` object
+is available for use in expressions, which has an attribute `count.index`
+that provides the distinct index for each instance.
+
+The _Resource Behavior_ section above described how each resource corresponds
+to a real infrastructure object. It is in fact resource _instances_ that
+correspond to infrastructure objects, and so when `count` is used a particular
+resource block has a distinct infrastructure object associated with each of its
+instances, and each is separtely created, updated, or destroyed when the
+configuration is applied.
+
+The `count` meta argument accepts [expressions](/docs/configuration/expressions.html)
+in its value, similar to the resource-type-specific arguments for a resource.
+However, Terraform must interpret the `count` argument _before_ any actions
+are taken from remote resources, and so (unlike the resource-type-specifc arguments)
+the `count` expressions may not refer to any resource attributes that are
+not known until after a configuration is applied, such as a unique id
+generated by the remote API when an object is created.
+
+For example, `count` can be used with an input variable that carries a list
+value, to create one instance for each element of the list:
+
+```hcl
+variable "subnet_ids" {
+  type = list(string)
+}
+
+resource "aws_instance" "server" {
+  # Create one instance for each subnet
+  count = length(var.subnet_ids)
+
+  ami           = "ami-a1b2c3d4"
+  instance_type = "t2.micro"
+  subnet_id     = var.subnet_ids[count.index]
+
+  tags {
+    Name = "Server ${count.index}"
+  }
+}
+```
+
+Note that the separate resource instances created by `count` are still
+identified by their _index_, and not by the string values in the given
+list. This means that if an element is removed from the middle of the list,
+all of the indexed instances _after_ it will see their `subnet_id` values
+change, which will cause more remote object changes than were probably
+intended. The practice of generating multiple instances from lists should
+be used sparingly, and with due care given to what will happen if the list is
+changed later.
+
+## Selecting a Non-default Provider Configuration
+
+As described in [the _providers_ guide](/docs/configuration/providers.html),
+Terraform optionally allows the definition of multiple alternative ("aliased")
+configurations for a single provider, to allow management of resources
+in different regions in multi-region services, etc.
+The `provider` meta-argument overrides Terraform's default behavior of
+selecting a provider configuration based on the resource type name.
+
+By default, Terraform takes the initial word in the resource type name
+(separated by underscores) and selects the default configuration for that
+named provider. For example, the resource type `google_compute_instance`
+is associated automatically with the default configuration for the provider
+named `google`.
+
+By using the `provider` meta-argument, an aliased provider configuration
+can be selected:
+
+```hcl
+# default configuration
+provider "google" {
+  region = "us-central1"
+}
+
+# alternative, aliased configuration
+provider "google" {
+  alias  = "europe"
+  region = "europe-west1"
+}
+
+resource "google_compute_instance" "example" {
+  # This "provider" meta-argument selects the google provider
+  # configuration whose alias is "europe", rather than the
+  # default configuration.
+  provider = google.europe
+
+  # ...
+}
+```
+
+A resource always has an implicit dependency on its associated provider, to
+ensure that the provider is fully configured before any resource actions
+are taken.
+
+The `provider` meta-argument value must always be a literal provider name
+followed by an alias name separated by a dot. Arbitrary expressions are
+not permitted for `provider` because it must be resolved while Terraform
+is constructing the dependency graph, before it is safe to evaluate
+expressions.
+
+## Lifecycle Customizations
+
+The general lifecycle for resources is described above in the section
+_Resource Behavior_. Some details of that behavior can be customized
+using the special nested block `lifecycle` within a resource block body:
+
+```
+resource "azurerm_resource_group" "example" {
+  # ...
+
+  lifecycle {
+    create_before_destroy = true
+  }
+}
+```
+
+The `lifecycle` block and its contents are meta-arguments, available
+for all `resource` blocks regardless of type. The following lifecycle
+meta-arguments are supported:
+
+* `create_before_destroy` (bool) - By default, when Terraform must make a
+  change to a resource argument that cannot be updated in-place due to
+  remote API limitations Terraform will instead destroy the existing object
+  and then create a new replacement object with the new configured arguments.
+
+  The `create_before_destroy` meta-argument changes this behavior so that
+  the new, replacement object is created _first_, and then the prior object
+  is destroyed only once the replacement is created.
+
+  This is an opt-in behavior because many remote object types have unique
+  name requirements or other constraints that must be accommodated for
+  both an new and an old object to exist concurrently. Some resource types
+  offer special options to append a random suffix onto each object name to
+  avoid collisions, for example. Terraform Core cannot automatically activate
+  such features, so you must understand the constrants for each resource
+  type before using `create_before_destroy` with it.
+
+* `prevent_destroy` (bool) - This meta-argument, when set to `true`, will
+  cause Terraform to reject with an error any plan that would destroy the
+  infrastructure object associated with the resource, as long as the argument
+  remains present in the configuration.
+
+  This can be used as a measure of safety against the accidental replacement
+  of objects that may be costly to reproduce, such as database instances.
+  However, it will make certain configuration changes impossible to apply,
+  and will prevent the use of the `terraform destroy` command once such
+  objects are created, and so this option should be used sparingly.
+
+  Since this argument must be present in configuration for the protection to
+  apply, note that this setting does not prevent the remote object from
+  being destroyed if the `resource` block were removed from configuration
+  entirely: in that case, the `prevent_destroy` setting is removed along
+  with it, and so Terraform will allow the destroy operation to succeed.
+
+* `ignore_changes` (list of attribute names) - By default, Terraform detects
+  any difference between the current settings of a real infrastructure object
+  and plans to update the remote object to match configuration.
+
+  In some rare cases, settings of a remote object are modified by processes
+  outside of Terraform, which Terraform would then attempt to "fix" on the
+  next run. In order to make Terraform share management responsibilities
+  of a single object with a separate process, the `ignore_changes`
+  meta-argument specifies resource attributes that Terraform should ignore
+  when planning updates to the associated remote object.
+
+  The arguments corresponding to the given attribute names are considered
+  when planning a _create_ operation, but are ignored when planning an
+  _update_.
+
+  ```hcl
+    resource "aws_instance" "example" {
+      # ...
+
+      lifecycle {
+        ignore_changes = [
+          # Ignore changes to tags, e.g. because a management agent
+          # updates these based on some ruleset managed elsewhere.
+          tags,
+        ]
+      }
+    }
+  ```
+
+  Instead of a list, the special keyword `all` may be used to instruct
+  Terraform to ignore _all_ attributes, which means that Terraform can
+  create and destroy the remote object but will never propose updates to it.
+
+  Only attributes defined by the resource type can be ignored.
+  `ignore_changes` cannot be applied to itself or to any other meta-arguments.
+
+The `lifecycle` settings all effect how Terraform constructs and traverses
+the dependency graph. As a result, only literal values can be used because
+the processing happens to early for arbitrary expression evaluation.
+
+## Local-only Resources
+
+While most resource types correspond to an infrastructure object type that
+is managed via a remote network API, there are certain specialized resource
+types that operate only within Terraform itself, calculating some results and
+saving those results in the state for future use.
+
+For example, local-only resource types exist for
+[generating private keys](/docs/providers/tls/r/private_key.html),
+[issuing self-signed TLS certificates](/docs/providers/tls/r/self_signed_cert.html),
+and even [generating random ids](https://www.terraform.io/docs/providers/random/r/id.html).
+While these resource types often have a more marginal purpose than those
+managing "real" infrastructure objects, they can be useful as glue to help
+connect together other resources.
+
+The behavior of local-only resources is the same as all other resources, but
+their result data exists only within the Terraform state. "Destroying" such
+a resource means only to remove it from the state, discarding its data.
+
+## Operation Timeouts
+
+Some resource types provide a special `timeouts` nested block argument that
+allows you to customize how long certain operations are allowed to take
+before being considered to have failed.
+For example, [`aws_db_instance`](/docs/providers/aws/r/db_instance.html)
+allows configurable timeouts for `create`, `update` and `delete` operations.
+
+Timeouts are handled entirely by the resource type implementation in the
+provider, but resource types offering these features follow the convention
+of defining a child block called `timeouts` that has a nested argument
+named after each operation that has a configurable timeout value.
+Each of these arguments takes a string representation of a duration, such
+as `"60m"` for 60 minutes, `"10s"` for ten seconds, or `"2h"` for two hours.
+
+```hcl
+resource "aws_db_instance" "example" {
   # ...
 
   timeouts {
@@ -119,234 +429,32 @@ resource "aws_db_instance" "timeout_example" {
 }
 ```
 
-Individual Resources must opt-in to providing configurable Timeouts, and
-attempting to configure the timeout for a Resource that does not support
-Timeouts, or overwriting a specific action that the Resource does not specify as
-an option, will result in an error. Valid units of time are  `s`, `m`, `h`.
+The set of configurable operations is chosen by each resource type. Most
+resource types do not support the `timeouts` block at all. Consult the
+documentation for each resource type to see which operations it offers
+for configuration, if any.
 
-### Explicit Dependencies
+## Resource Provisioners
 
-Terraform ensures that dependencies are successfully created before a
-resource is created. During a destroy operation, Terraform ensures that
-this resource is destroyed before its dependencies.
+Some infrastructure objects require some special actions to be taken after they
+are created before they can become fully functional. For example, compute
+instances may require configuration to be uploaded or a configuration management
+program to be run before they can begin their intended operation.
 
-A resource automatically depends on anything it references via
-[interpolations](/docs/configuration/interpolation.html). The automatically
-determined dependencies are all that is needed most of the time. You can also
-use the `depends_on` parameter to explicitly define a list of additional
-dependencies.
+Create-time actions like these can be described using _resource provisioners_.
+A provisioner is another type of plugin supported by Terraform, and each
+provisioner takes a different kind of action in the context of a resource
+being created.
 
-The primary use case of explicit `depends_on` is to depend on a _side effect_
-of another operation. For example: if a provisioner creates a file, and your
-resource reads that file, then there is no interpolation reference for Terraform
-to automatically connect the two resources. However, there is a causal
-ordering that needs to be represented. This is an ideal case for `depends_on`.
-In most cases, however, `depends_on` should be avoided and Terraform should
-be allowed to determine dependencies automatically.
+Provisioning steps should be used sparingly, since they represent
+non-declarative actions taken during the creation of a resource and so
+Terraform is not able to model changes to them as it can for the declarative
+portions of the Terraform language.
 
-The syntax of `depends_on` is a list of resources and modules:
+Provisioners can also be defined to run when a resource is _destroyed_, with
+certain limitations.
 
-- Resources are `TYPE.NAME`, such as `aws_instance.web`.
-- Modules are `module.NAME`, such as `module.foo`.
-
-When a resource depends on a module, _everything_ in that module must be
-created before the resource is created.
-
-An example of a resource depending on both a module and resource is shown
-below. Note that `depends_on` can contain any number of dependencies:
-
-```hcl
-resource "aws_instance" "web" {
-  depends_on = ["aws_instance.leader", "module.vpc"]
-}
-```
-
--> **Use sparingly!** `depends_on` is rarely necessary.
-In almost every case, Terraform's automatic dependency system is the best-case
-scenario by having your resources depend only on what they explicitly use.
-Please think carefully before you use `depends_on` to determine if Terraform
-could automatically do this a better way.
-
-### Connection block
-
-Within a resource, you can optionally have a **connection block**.
-Connection blocks describe to Terraform how to connect to the
-resource for
-[provisioning](/docs/provisioners/index.html). This block doesn't
-need to be present if you're using only local provisioners, or
-if you're not provisioning at all.
-
-Resources provide some data on their own, such as an IP address,
-but other data must be specified by the user.
-
-The full list of settings that can be specified are listed on
-the [provisioner connection page](/docs/provisioners/connection.html).
-
-### Provisioners
-
-Within a resource, you can specify zero or more **provisioner
-blocks**. Provisioner blocks configure
-[provisioners](/docs/provisioners/index.html).
-
-Within the provisioner block is provisioner-specific configuration,
-much like resource-specific configuration.
-
-Provisioner blocks can also contain a connection block
-(documented above). This connection block can be used to
-provide more specific connection info for a specific provisioner.
-An example use case might be to use a different user to log in
-for a single provisioner.
-
-## Using Variables With `count`
-
-When declaring multiple instances of a resource using [`count`](#count), it is
-common to want each instance to have a different value for a given attribute.
-
-You can use the `${count.index}`
-[interpolation](/docs/configuration/interpolation.html) along with a map
-[variable](/docs/configuration/variables.html) to accomplish this.
-
-For example, here's how you could create three [AWS
-Instances](/docs/providers/aws/r/instance.html) each with their own
-static IP address:
-
-```hcl
-variable "instance_ips" {
-  default = {
-    "0" = "10.11.12.100"
-    "1" = "10.11.12.101"
-    "2" = "10.11.12.102"
-  }
-}
-
-resource "aws_instance" "app" {
-  count = "3"
-  private_ip = "${lookup(var.instance_ips, count.index)}"
-  # ...
-}
-```
-
-To reference a particular instance of a resource you can use `resource.foo.*.id[#]` where `#` is the index number of the instance.
-
-For example, to create a list of all [AWS subnet](/docs/providers/aws/r/subnet.html) ids vs referencing a specific subnet in the list you can use this syntax:
-
-```hcl
-resource "aws_vpc" "foo" {
-  cidr_block = "198.18.0.0/16"
-}
-
-resource "aws_subnet" "bar" {
-  count      = 2
-  vpc_id     = "${aws_vpc.foo.id}"
-  cidr_block = "${cidrsubnet(aws_vpc.foo.cidr_block, 8, count.index)}"
-}
-
-output "vpc_id" {
-  value = "${aws_vpc.foo.id}"
-}
-
-output "all_subnet_ids" {
-  value = "${aws_subnet.bar.*.id}"
-}
-
-output "subnet_id_0" {
-  value = "${aws_subnet.bar.*.id[0]}"
-}
-
-output "subnet_id_1" {
-  value = "${aws_subnet.bar.*.id[1]}"
-}
-```
-
-## Multiple Provider Instances
-
-By default, a resource targets the provider based on its type. For example
-an `aws_instance` resource will target the "aws" provider. As of Terraform
-0.5.0, a resource can target any provider by name.
-
-The primary use case for this is to target a specific configuration of
-a provider that is configured multiple times to support multiple regions, etc.
-
-To target another provider, set the `provider` field:
-
-```hcl
-resource "aws_instance" "foo" {
-	provider = "aws.west"
-
-	# ...
-}
-```
-
-The value of the field should be `TYPE` or `TYPE.ALIAS`. The `ALIAS` value
-comes from the `alias` field value when configuring the
-[provider](/docs/configuration/providers.html).
-
-```hcl
-provider "aws" {
-  alias = "west"
-
-  # ...
-}
-```
-
-If no `provider` field is specified, the default provider is used.
-
-## Syntax
-
-The full syntax is:
-
-```text
-resource TYPE NAME {
-	CONFIG ...
-	[count = COUNT]
-	[depends_on = [NAME, ...]]
-	[provider = PROVIDER]
-
-    [LIFECYCLE]
-
-	[CONNECTION]
-	[PROVISIONER ...]
-}
-```
-
-where `CONFIG` is:
-
-```text
-KEY = VALUE
-
-KEY {
-	CONFIG
-}
-```
-
-where `LIFECYCLE` is:
-
-```text
-lifecycle {
-    [create_before_destroy = true|false]
-    [prevent_destroy = true|false]
-    [ignore_changes = [ATTRIBUTE NAME, ...]]
-}
-```
-
-where `CONNECTION` is:
-
-```text
-connection {
-	KEY = VALUE
-	...
-}
-```
-
-where `PROVISIONER` is:
-
-```text
-provisioner NAME {
-	CONFIG ...
-
-	[when = "create"|"destroy"]
-	[on_failure = "continue"|"fail"]
-
-	[CONNECTION]
-}
-```
+The `provisioner` and `connection` block types within `resource` blocks are
+meta-arguments available across all resource types. Provisioners and their
+usage are described in more detail in
+[the _Provisioners_ section](/docs/provisioners/index.html).
