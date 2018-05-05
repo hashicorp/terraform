@@ -190,8 +190,15 @@ func (ctx *BuiltinEvalContext) ConfigureProvider(addr addrs.ProviderConfig, cfg 
 		diags = diags.Append(fmt.Errorf("%s not initialized", addr))
 		return diags
 	}
+
+	providerSchema := ctx.ProviderSchema(absAddr)
+	if providerSchema == nil {
+		diags = diags.Append(fmt.Errorf("schema for %s is not available", absAddr))
+		return diags
+	}
+
 	// FIXME: The provider API isn't yet updated to take a cty.Value directly.
-	rc := NewResourceConfigShimmed(cfg, ctx.ProviderSchema(absAddr).Provider)
+	rc := NewResourceConfigShimmed(cfg, providerSchema.Provider)
 	err := p.Configure(rc)
 	if err != nil {
 		diags = diags.Append(err)
