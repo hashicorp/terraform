@@ -83,7 +83,9 @@ func (n *NodeDestroyResourceInstance) References() []*addrs.Reference {
 			schema := n.ProvisionerSchemas[p.Type]
 
 			if p.When == configs.ProvisionerWhenDestroy {
-				result = append(result, ReferencesFromConfig(p.Connection.Config, connectionBlockSupersetSchema)...)
+				if p.Connection != nil {
+					result = append(result, ReferencesFromConfig(p.Connection.Config, connectionBlockSupersetSchema)...)
+				}
 				result = append(result, ReferencesFromConfig(p.Config, schema)...)
 			}
 		}
