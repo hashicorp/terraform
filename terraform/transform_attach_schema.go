@@ -104,11 +104,16 @@ func (t *AttachSchemaTransformer) Transform(g *Graph) error {
 			typeName := addr.Resource.Type
 			providerAddr, _ := tv.ProvidedBy()
 			var schema *configschema.Block
+			providerSchema := schemas[providerAddr.ProviderConfig.Type]
+			if providerSchema == nil {
+				log.Printf("[ERROR] AttachSchemaTransformer: No schema available for %s because provider schema for %q is missing", addr, providerAddr.ProviderConfig.Type)
+				continue
+			}
 			switch mode {
 			case addrs.ManagedResourceMode:
-				schema = schemas[providerAddr.ProviderConfig.Type].ResourceTypes[typeName]
+				schema = providerSchema.ResourceTypes[typeName]
 			case addrs.DataResourceMode:
-				schema = schemas[providerAddr.ProviderConfig.Type].DataSources[typeName]
+				schema = providerSchema.DataSources[typeName]
 			}
 			if schema != nil {
 				log.Printf("[TRACE] AttachSchemaTransformer: attaching schema to %s", dag.VertexName(v))
@@ -118,7 +123,14 @@ func (t *AttachSchemaTransformer) Transform(g *Graph) error {
 			}
 		case GraphNodeAttachProviderConfigSchema:
 			providerAddr := tv.ProviderAddr()
+			providerSchema := schemas[providerAddr.ProviderConfig.Type]
+			if providerSchema == nil {
+				log.Printf("[ERROR] AttachSchemaTransformer: No schema available for %s because the whole provider schema is missing", providerAddr)
+				continue
+			}
+
 			schema := schemas[providerAddr.ProviderConfig.Type].Provider
+
 			if schema != nil {
 				log.Printf("[TRACE] AttachSchemaTransformer: attaching schema to %s", dag.VertexName(v))
 				tv.AttachProviderConfigSchema(schema)
