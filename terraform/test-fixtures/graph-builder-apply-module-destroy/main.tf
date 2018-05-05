@@ -1,11 +1,13 @@
-variable "input" { default = "value" }
+variable "input" {
+  default = "value"
+}
 
 module "A" {
-    source = "./A"
-    input  = "${var.input}"
+  source = "./A"
+  input  = "${var.input}"
 }
 
 module "B" {
-    source = "./A"
-    input  = "${module.A.output}"
+  source = "./A"
+  input  = "${module.A.output}"
 }
