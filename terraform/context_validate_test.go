@@ -4,13 +4,16 @@ import (
 	"fmt"
 	"strings"
 	"testing"
+
+	"github.com/hashicorp/terraform/addrs"
+	"github.com/zclconf/go-cty/cty"
 )
 
 func TestContext2Validate_badCount(t *testing.T) {
 	p := testProvider("aws")
 	m := testModule(t, "validate-bad-count")
 	c := testContext2(t, &ContextOpts{
-		Module: m,
+		Config: m,
 		ProviderResolver: ResourceProviderResolverFixed(
 			map[string]ResourceProviderFactory{
 				"aws": testProviderFuncFixed(p),
@@ -28,7 +31,7 @@ func TestContext2Validate_badVar(t *testing.T) {
 	p := testProvider("aws")
 	m := testModule(t, "validate-bad-var")
 	c := testContext2(t, &ContextOpts{
-		Module: m,
+		Config: m,
 		ProviderResolver: ResourceProviderResolverFixed(
 			map[string]ResourceProviderFactory{
 				"aws": testProviderFuncFixed(p),
@@ -46,14 +49,17 @@ func TestContext2Validate_varMapOverrideOld(t *testing.T) {
 	m := testModule(t, "validate-module-pc-vars")
 	p := testProvider("aws")
 	c := testContext2(t, &ContextOpts{
-		Module: m,
+		Config: m,
 		ProviderResolver: ResourceProviderResolverFixed(
 			map[string]ResourceProviderFactory{
 				"aws": testProviderFuncFixed(p),
 			},
 		),
-		Variables: map[string]interface{}{
-			"foo.foo": "bar",
+		Variables: InputValues{
+			"foo.foo": &InputValue{
+				Value:      cty.StringVal("bar"),
+				SourceType: ValueFromCaller,
+			},
 		},
 	})
 
@@ -66,7 +72,7 @@ func TestContext2Validate_varMapOverrideOld(t *testing.T) {
 func TestContext2Validate_varNoDefaultExplicitType(t *testing.T) {
 	m := testModule(t, "validate-var-no-default-explicit-type")
 	c := testContext2(t, &ContextOpts{
-		Module: m,
+		Config: m,
 	})
 
 	diags := c.Validate()
@@ -79,7 +85,7 @@ func TestContext2Validate_computedVar(t *testing.T) {
 	p := testProvider("aws")
 	m := testModule(t, "validate-computed-var")
 	c := testContext2(t, &ContextOpts{
-		Module: m,
+		Config: m,
 		ProviderResolver: ResourceProviderResolverFixed(
 			map[string]ResourceProviderFactory{
 				"aws":  testProviderFuncFixed(p),
@@ -113,7 +119,7 @@ func TestContext2Validate_countComputed(t *testing.T) {
 	p := testProvider("aws")
 	m := testModule(t, "validate-count-computed")
 	c := testContext2(t, &ContextOpts{
-		Module: m,
+		Config: m,
 		ProviderResolver: ResourceProviderResolverFixed(
 			map[string]ResourceProviderFactory{
 				"aws": testProviderFuncFixed(p),
@@ -131,7 +137,7 @@ func TestContext2Validate_countNegative(t *testing.T) {
 	p := testProvider("aws")
 	m := testModule(t, "validate-count-negative")
 	c := testContext2(t, &ContextOpts{
-		Module: m,
+		Config: m,
 		ProviderResolver: ResourceProviderResolverFixed(
 			map[string]ResourceProviderFactory{
 				"aws": testProviderFuncFixed(p),
@@ -149,7 +155,7 @@ func TestContext2Validate_countVariable(t *testing.T) {
 	p := testProvider("aws")
 	m := testModule(t, "apply-count-variable")
 	c := testContext2(t, &ContextOpts{
-		Module: m,
+		Config: m,
 		ProviderResolver: ResourceProviderResolverFixed(
 			map[string]ResourceProviderFactory{
 				"aws": testProviderFuncFixed(p),
@@ -167,7 +173,7 @@ func TestContext2Validate_countVariableNoDefault(t *testing.T) {
 	p := testProvider("aws")
 	m := testModule(t, "validate-count-variable")
 	c := testContext2(t, &ContextOpts{
-		Module: m,
+		Config: m,
 		ProviderResolver: ResourceProviderResolverFixed(
 			map[string]ResourceProviderFactory{
 				"aws": testProviderFuncFixed(p),
@@ -187,7 +193,7 @@ func TestContext2Validate_cycle(t *testing.T) {
 	p := testProvider("aws")
 	m := testModule(t, "validate-cycle")
 	c := testContext2(t, &ContextOpts{
-		Module: m,
+		Config: m,
 		ProviderResolver: ResourceProviderResolverFixed(
 			map[string]ResourceProviderFactory{
 				"aws": testProviderFuncFixed(p),
@@ -206,7 +212,7 @@ func TestContext2Validate_moduleBadOutput(t *testing.T) {
 	p := testProvider("aws")
 	m := testModule(t, "validate-bad-module-output")
 	c := testContext2(t, &ContextOpts{
-		Module: m,
+		Config: m,
 		ProviderResolver: ResourceProviderResolverFixed(
 			map[string]ResourceProviderFactory{
 				"aws": testProviderFuncFixed(p),
@@ -224,7 +230,7 @@ func TestContext2Validate_moduleGood(t *testing.T) {
 	p := testProvider("aws")
 	m := testModule(t, "validate-good-module")
 	c := testContext2(t, &ContextOpts{
-		Module: m,
+		Config: m,
 		ProviderResolver: ResourceProviderResolverFixed(
 			map[string]ResourceProviderFactory{
 				"aws": testProviderFuncFixed(p),
@@ -242,7 +248,7 @@ func TestContext2Validate_moduleBadResource(t *testing.T) {
 	m := testModule(t, "validate-module-bad-rc")
 	p := testProvider("aws")
 	c := testContext2(t, &ContextOpts{
-		Module: m,
+		Config: m,
 		ProviderResolver: ResourceProviderResolverFixed(
 			map[string]ResourceProviderFactory{
 				"aws": testProviderFuncFixed(p),
@@ -262,7 +268,7 @@ func TestContext2Validate_moduleDepsShouldNotCycle(t *testing.T) {
 	m := testModule(t, "validate-module-deps-cycle")
 	p := testProvider("aws")
 	ctx := testContext2(t, &ContextOpts{
-		Module: m,
+		Config: m,
 		ProviderResolver: ResourceProviderResolverFixed(
 			map[string]ResourceProviderFactory{
 				"aws": testProviderFuncFixed(p),
@@ -280,7 +286,7 @@ func TestContext2Validate_moduleProviderInheritOrphan(t *testing.T) {
 	m := testModule(t, "validate-module-pc-inherit-orphan")
 	p := testProvider("aws")
 	c := testContext2(t, &ContextOpts{
-		Module: m,
+		Config: m,
 		ProviderResolver: ResourceProviderResolverFixed(
 			map[string]ResourceProviderFactory{
 				"aws": testProviderFuncFixed(p),
@@ -325,14 +331,17 @@ func TestContext2Validate_moduleProviderVar(t *testing.T) {
 	m := testModule(t, "validate-module-pc-vars")
 	p := testProvider("aws")
 	c := testContext2(t, &ContextOpts{
-		Module: m,
+		Config: m,
 		ProviderResolver: ResourceProviderResolverFixed(
 			map[string]ResourceProviderFactory{
 				"aws": testProviderFuncFixed(p),
 			},
 		),
-		Variables: map[string]interface{}{
-			"provider_var": "bar",
+		Variables: InputValues{
+			"provider_var": &InputValue{
+				Value:      cty.StringVal("bar"),
+				SourceType: ValueFromCaller,
+			},
 		},
 	})
 
@@ -350,7 +359,7 @@ func TestContext2Validate_moduleProviderInheritUnused(t *testing.T) {
 	m := testModule(t, "validate-module-pc-inherit-unused")
 	p := testProvider("aws")
 	c := testContext2(t, &ContextOpts{
-		Module: m,
+		Config: m,
 		ProviderResolver: ResourceProviderResolverFixed(
 			map[string]ResourceProviderFactory{
 				"aws": testProviderFuncFixed(p),
@@ -387,7 +396,7 @@ func TestContext2Validate_orphans(t *testing.T) {
 		},
 	}
 	c := testContext2(t, &ContextOpts{
-		Module: m,
+		Config: m,
 		ProviderResolver: ResourceProviderResolverFixed(
 			map[string]ResourceProviderFactory{
 				"aws": testProviderFuncFixed(p),
@@ -411,7 +420,7 @@ func TestContext2Validate_providerConfig_bad(t *testing.T) {
 	m := testModule(t, "validate-bad-pc")
 	p := testProvider("aws")
 	c := testContext2(t, &ContextOpts{
-		Module: m,
+		Config: m,
 		ProviderResolver: ResourceProviderResolverFixed(
 			map[string]ResourceProviderFactory{
 				"aws": testProviderFuncFixed(p),
@@ -434,7 +443,7 @@ func TestContext2Validate_providerConfig_badEmpty(t *testing.T) {
 	m := testModule(t, "validate-bad-pc-empty")
 	p := testProvider("aws")
 	c := testContext2(t, &ContextOpts{
-		Module: m,
+		Config: m,
 		ProviderResolver: ResourceProviderResolverFixed(
 			map[string]ResourceProviderFactory{
 				"aws": testProviderFuncFixed(p),
@@ -454,7 +463,7 @@ func TestContext2Validate_providerConfig_good(t *testing.T) {
 	m := testModule(t, "validate-bad-pc")
 	p := testProvider("aws")
 	c := testContext2(t, &ContextOpts{
-		Module: m,
+		Config: m,
 		ProviderResolver: ResourceProviderResolverFixed(
 			map[string]ResourceProviderFactory{
 				"aws": testProviderFuncFixed(p),
@@ -473,7 +482,7 @@ func TestContext2Validate_provisionerConfig_bad(t *testing.T) {
 	p := testProvider("aws")
 	pr := testProvisioner()
 	c := testContext2(t, &ContextOpts{
-		Module: m,
+		Config: m,
 		ProviderResolver: ResourceProviderResolverFixed(
 			map[string]ResourceProviderFactory{
 				"aws": testProviderFuncFixed(p),
@@ -503,7 +512,7 @@ func TestContext2Validate_provisionerConfig_good(t *testing.T) {
 		return nil, c.CheckSet([]string{"command"})
 	}
 	c := testContext2(t, &ContextOpts{
-		Module: m,
+		Config: m,
 		ProviderResolver: ResourceProviderResolverFixed(
 			map[string]ResourceProviderFactory{
 				"aws": testProviderFuncFixed(p),
@@ -524,7 +533,7 @@ func TestContext2Validate_requiredVar(t *testing.T) {
 	m := testModule(t, "validate-required-var")
 	p := testProvider("aws")
 	c := testContext2(t, &ContextOpts{
-		Module: m,
+		Config: m,
 		ProviderResolver: ResourceProviderResolverFixed(
 			map[string]ResourceProviderFactory{
 				"aws": testProviderFuncFixed(p),
@@ -542,7 +551,7 @@ func TestContext2Validate_resourceConfig_bad(t *testing.T) {
 	m := testModule(t, "validate-bad-rc")
 	p := testProvider("aws")
 	c := testContext2(t, &ContextOpts{
-		Module: m,
+		Config: m,
 		ProviderResolver: ResourceProviderResolverFixed(
 			map[string]ResourceProviderFactory{
 				"aws": testProviderFuncFixed(p),
@@ -562,7 +571,7 @@ func TestContext2Validate_resourceConfig_good(t *testing.T) {
 	m := testModule(t, "validate-bad-rc")
 	p := testProvider("aws")
 	c := testContext2(t, &ContextOpts{
-		Module: m,
+		Config: m,
 		ProviderResolver: ResourceProviderResolverFixed(
 			map[string]ResourceProviderFactory{
 				"aws": testProviderFuncFixed(p),
@@ -580,7 +589,7 @@ func TestContext2Validate_resourceNameSymbol(t *testing.T) {
 	p := testProvider("aws")
 	m := testModule(t, "validate-resource-name-symbol")
 	c := testContext2(t, &ContextOpts{
-		Module: m,
+		Config: m,
 		ProviderResolver: ResourceProviderResolverFixed(
 			map[string]ResourceProviderFactory{
 				"aws": testProviderFuncFixed(p),
@@ -598,7 +607,7 @@ func TestContext2Validate_selfRef(t *testing.T) {
 	p := testProvider("aws")
 	m := testModule(t, "validate-self-ref")
 	c := testContext2(t, &ContextOpts{
-		Module: m,
+		Config: m,
 		ProviderResolver: ResourceProviderResolverFixed(
 			map[string]ResourceProviderFactory{
 				"aws": testProviderFuncFixed(p),
@@ -616,7 +625,7 @@ func TestContext2Validate_selfRefMulti(t *testing.T) {
 	p := testProvider("aws")
 	m := testModule(t, "validate-self-ref-multi")
 	c := testContext2(t, &ContextOpts{
-		Module: m,
+		Config: m,
 		ProviderResolver: ResourceProviderResolverFixed(
 			map[string]ResourceProviderFactory{
 				"aws": testProviderFuncFixed(p),
@@ -634,7 +643,7 @@ func TestContext2Validate_selfRefMultiAll(t *testing.T) {
 	p := testProvider("aws")
 	m := testModule(t, "validate-self-ref-multi-all")
 	c := testContext2(t, &ContextOpts{
-		Module: m,
+		Config: m,
 		ProviderResolver: ResourceProviderResolverFixed(
 			map[string]ResourceProviderFactory{
 				"aws": testProviderFuncFixed(p),
@@ -668,7 +677,7 @@ func TestContext2Validate_tainted(t *testing.T) {
 		},
 	}
 	c := testContext2(t, &ContextOpts{
-		Module: m,
+		Config: m,
 		ProviderResolver: ResourceProviderResolverFixed(
 			map[string]ResourceProviderFactory{
 				"aws": testProviderFuncFixed(p),
@@ -695,7 +704,7 @@ func TestContext2Validate_targetedDestroy(t *testing.T) {
 	p.ApplyFn = testApplyFn
 	p.DiffFn = testDiffFn
 	ctx := testContext2(t, &ContextOpts{
-		Module: m,
+		Config: m,
 		ProviderResolver: ResourceProviderResolverFixed(
 			map[string]ResourceProviderFactory{
 				"aws": testProviderFuncFixed(p),
@@ -715,7 +724,11 @@ func TestContext2Validate_targetedDestroy(t *testing.T) {
 				},
 			},
 		},
-		Targets: []string{"aws_instance.foo"},
+		Targets: []addrs.Targetable{
+			addrs.RootModuleInstance.Resource(
+				addrs.ManagedResourceMode, "aws_instance", "foo",
+			),
+		},
 		Destroy: true,
 	})
 
@@ -729,14 +742,17 @@ func TestContext2Validate_varRefFilled(t *testing.T) {
 	m := testModule(t, "validate-variable-ref")
 	p := testProvider("aws")
 	c := testContext2(t, &ContextOpts{
-		Module: m,
+		Config: m,
 		ProviderResolver: ResourceProviderResolverFixed(
 			map[string]ResourceProviderFactory{
 				"aws": testProviderFuncFixed(p),
 			},
 		),
-		Variables: map[string]interface{}{
-			"foo": "bar",
+		Variables: InputValues{
+			"foo": &InputValue{
+				Value:      cty.StringVal("bar"),
+				SourceType: ValueFromCaller,
+			},
 		},
 	})
 
@@ -763,7 +779,7 @@ func TestContext2Validate_interpolateVar(t *testing.T) {
 	p.DiffFn = testDiffFn
 
 	ctx := testContext2(t, &ContextOpts{
-		Module: m,
+		Config: m,
 		ProviderResolver: ResourceProviderResolverFixed(
 			map[string]ResourceProviderFactory{
 				"template": testProviderFuncFixed(p),
@@ -789,7 +805,7 @@ func TestContext2Validate_interpolateComputedModuleVarDef(t *testing.T) {
 	p.DiffFn = testDiffFn
 
 	ctx := testContext2(t, &ContextOpts{
-		Module: m,
+		Config: m,
 		ProviderResolver: ResourceProviderResolverFixed(
 			map[string]ResourceProviderFactory{
 				"aws": testProviderFuncFixed(p),
@@ -814,7 +830,7 @@ func TestContext2Validate_interpolateMap(t *testing.T) {
 	p.DiffFn = testDiffFn
 
 	ctx := testContext2(t, &ContextOpts{
-		Module: m,
+		Config: m,
 		ProviderResolver: ResourceProviderResolverFixed(
 			map[string]ResourceProviderFactory{
 				"template": testProviderFuncFixed(p),
@@ -836,43 +852,58 @@ func TestContext2Validate_PlanGraphBuilder(t *testing.T) {
 	p.ApplyFn = testApplyFn
 	p.DiffFn = testDiffFn
 	c := testContext2(t, &ContextOpts{
-		Module: m,
+		Config: m,
 		ProviderResolver: ResourceProviderResolverFixed(
 			map[string]ResourceProviderFactory{
 				"aws": testProviderFuncFixed(p),
 			},
 		),
-		Variables: map[string]interface{}{
-			"foo":       "us-west-2",
-			"test_list": []interface{}{"Hello", "World"},
-			"test_map": map[string]interface{}{
-				"Hello": "World",
-				"Foo":   "Bar",
-				"Baz":   "Foo",
+		Variables: InputValues{
+			"foo": &InputValue{
+				Value:      cty.StringVal("us-west-2"),
+				SourceType: ValueFromCaller,
 			},
-			"amis": []map[string]interface{}{
-				map[string]interface{}{
-					"us-east-1": "override",
-				},
+			"test_list": &InputValue{
+				Value: cty.ListVal([]cty.Value{
+					cty.StringVal("Hello"),
+					cty.StringVal("World"),
+				}),
+				SourceType: ValueFromCaller,
+			},
+			"test_map": &InputValue{
+				Value: cty.MapVal(map[string]cty.Value{
+					"Hello": cty.StringVal("World"),
+					"Foo":   cty.StringVal("Bar"),
+					"Baz":   cty.StringVal("Foo"),
+				}),
+				SourceType: ValueFromCaller,
+			},
+			"amis": &InputValue{
+				Value: cty.ListVal([]cty.Value{
+					cty.MapVal(map[string]cty.Value{
+						"us-east-1": cty.StringVal("override"),
+					}),
+				}),
+				SourceType: ValueFromCaller,
 			},
 		},
 	})
 
-	graph, err := (&PlanGraphBuilder{
-		Module:    c.module,
-		State:     NewState(),
-		Providers: c.components.ResourceProviders(),
-		Targets:   c.targets,
-	}).Build(RootModulePath)
-	if err != nil {
-		t.Fatalf("error attmepting to Build PlanGraphBuilder: %s", err)
+	graph, diags := (&PlanGraphBuilder{
+		Config:     c.config,
+		State:      NewState(),
+		Components: c.components,
+		Targets:    c.targets,
+	}).Build(addrs.RootModuleInstance)
+	if diags.HasErrors() {
+		t.Fatalf("errors from PlanGraphBuilder: %s", diags.Err())
 	}
 	defer c.acquireRun("validate-test")()
-	walker, err := c.walk(graph, walkValidate)
-	if err != nil {
-		t.Fatal(err)
+	walker, diags := c.walk(graph, walkValidate)
+	if diags.HasErrors() {
+		t.Fatal(diags.Err())
 	}
-	if len(walker.ValidationErrors) > 0 {
-		t.Fatal(walker.ValidationErrors)
+	if len(walker.NonFatalDiagnostics) > 0 {
+		t.Fatal(walker.NonFatalDiagnostics.Err())
 	}
 }
