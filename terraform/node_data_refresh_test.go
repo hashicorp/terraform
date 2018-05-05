@@ -3,15 +3,12 @@ package terraform
 import (
 	"sync"
 	"testing"
+
+	"github.com/hashicorp/terraform/addrs"
 )
 
 func TestNodeRefreshableDataResourceDynamicExpand_scaleOut(t *testing.T) {
 	var stateLock sync.RWMutex
-
-	addr, err := ParseResourceAddress("data.aws_instance.foo")
-	if err != nil {
-		t.Fatalf("bad: %s", err)
-	}
 
 	m := testModule(t, "refresh-data-scale-inout")
 
@@ -42,16 +39,18 @@ func TestNodeRefreshableDataResourceDynamicExpand_scaleOut(t *testing.T) {
 	}
 
 	n := &NodeRefreshableDataResource{
-		NodeAbstractCountResource: &NodeAbstractCountResource{
-			NodeAbstractResource: &NodeAbstractResource{
-				Addr:   addr,
-				Config: m.Config().Resources[0],
-			},
+		NodeAbstractResource: &NodeAbstractResource{
+			Addr: addrs.RootModuleInstance.Resource(
+				addrs.DataResourceMode,
+				"aws_instance",
+				"foo",
+			),
+			Config: m.Module.DataResources["data.aws_instance.foo"],
 		},
 	}
 
 	g, err := n.DynamicExpand(&MockEvalContext{
-		PathPath:   []string{"root"},
+		PathPath:   addrs.RootModuleInstance,
 		StateState: state,
 		StateLock:  &stateLock,
 	})
@@ -75,11 +74,6 @@ root - terraform.graphNodeRoot
 
 func TestNodeRefreshableDataResourceDynamicExpand_scaleIn(t *testing.T) {
 	var stateLock sync.RWMutex
-
-	addr, err := ParseResourceAddress("data.aws_instance.foo")
-	if err != nil {
-		t.Fatalf("bad: %s", err)
-	}
 
 	m := testModule(t, "refresh-data-scale-inout")
 
@@ -126,16 +120,18 @@ func TestNodeRefreshableDataResourceDynamicExpand_scaleIn(t *testing.T) {
 	}
 
 	n := &NodeRefreshableDataResource{
-		NodeAbstractCountResource: &NodeAbstractCountResource{
-			NodeAbstractResource: &NodeAbstractResource{
-				Addr:   addr,
-				Config: m.Config().Resources[0],
-			},
+		NodeAbstractResource: &NodeAbstractResource{
+			Addr: addrs.RootModuleInstance.Resource(
+				addrs.DataResourceMode,
+				"aws_instance",
+				"foo",
+			),
+			Config: m.Module.DataResources["data.aws_instance.foo"],
 		},
 	}
 
 	g, err := n.DynamicExpand(&MockEvalContext{
-		PathPath:   []string{"root"},
+		PathPath:   addrs.RootModuleInstance,
 		StateState: state,
 		StateLock:  &stateLock,
 	})

@@ -3,18 +3,15 @@ package terraform
 import (
 	"strings"
 	"testing"
+
+	"github.com/hashicorp/terraform/addrs"
 )
 
 func TestOrphanResourceCountTransformer(t *testing.T) {
-	addr, err := parseResourceAddressInternal("aws_instance.foo")
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
 	state := &State{
 		Modules: []*ModuleState{
 			&ModuleState{
-				Path: RootModulePath,
+				Path: []string{"root"},
 				Resources: map[string]*ResourceState{
 					"aws_instance.web": &ResourceState{
 						Type: "aws_instance",
@@ -41,14 +38,16 @@ func TestOrphanResourceCountTransformer(t *testing.T) {
 		},
 	}
 
-	g := Graph{Path: RootModulePath}
+	g := Graph{Path: addrs.RootModuleInstance}
 
 	{
 		tf := &OrphanResourceCountTransformer{
 			Concrete: testOrphanResourceConcreteFunc,
 			Count:    1,
-			Addr:     addr,
-			State:    state,
+			Addr: addrs.RootModuleInstance.Resource(
+				addrs.ManagedResourceMode, "aws_instance", "foo",
+			),
+			State: state,
 		}
 		if err := tf.Transform(&g); err != nil {
 			t.Fatalf("err: %s", err)
@@ -63,15 +62,10 @@ func TestOrphanResourceCountTransformer(t *testing.T) {
 }
 
 func TestOrphanResourceCountTransformer_zero(t *testing.T) {
-	addr, err := parseResourceAddressInternal("aws_instance.foo")
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
 	state := &State{
 		Modules: []*ModuleState{
 			&ModuleState{
-				Path: RootModulePath,
+				Path: []string{"root"},
 				Resources: map[string]*ResourceState{
 					"aws_instance.web": &ResourceState{
 						Type: "aws_instance",
@@ -98,14 +92,16 @@ func TestOrphanResourceCountTransformer_zero(t *testing.T) {
 		},
 	}
 
-	g := Graph{Path: RootModulePath}
+	g := Graph{Path: addrs.RootModuleInstance}
 
 	{
 		tf := &OrphanResourceCountTransformer{
 			Concrete: testOrphanResourceConcreteFunc,
 			Count:    0,
-			Addr:     addr,
-			State:    state,
+			Addr: addrs.RootModuleInstance.Resource(
+				addrs.ManagedResourceMode, "aws_instance", "foo",
+			),
+			State: state,
 		}
 		if err := tf.Transform(&g); err != nil {
 			t.Fatalf("err: %s", err)
@@ -120,15 +116,10 @@ func TestOrphanResourceCountTransformer_zero(t *testing.T) {
 }
 
 func TestOrphanResourceCountTransformer_oneNoIndex(t *testing.T) {
-	addr, err := parseResourceAddressInternal("aws_instance.foo")
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
 	state := &State{
 		Modules: []*ModuleState{
 			&ModuleState{
-				Path: RootModulePath,
+				Path: []string{"root"},
 				Resources: map[string]*ResourceState{
 					"aws_instance.web": &ResourceState{
 						Type: "aws_instance",
@@ -155,14 +146,16 @@ func TestOrphanResourceCountTransformer_oneNoIndex(t *testing.T) {
 		},
 	}
 
-	g := Graph{Path: RootModulePath}
+	g := Graph{Path: addrs.RootModuleInstance}
 
 	{
 		tf := &OrphanResourceCountTransformer{
 			Concrete: testOrphanResourceConcreteFunc,
 			Count:    1,
-			Addr:     addr,
-			State:    state,
+			Addr: addrs.RootModuleInstance.Resource(
+				addrs.ManagedResourceMode, "aws_instance", "foo",
+			),
+			State: state,
 		}
 		if err := tf.Transform(&g); err != nil {
 			t.Fatalf("err: %s", err)
@@ -177,15 +170,10 @@ func TestOrphanResourceCountTransformer_oneNoIndex(t *testing.T) {
 }
 
 func TestOrphanResourceCountTransformer_oneIndex(t *testing.T) {
-	addr, err := parseResourceAddressInternal("aws_instance.foo")
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
 	state := &State{
 		Modules: []*ModuleState{
 			&ModuleState{
-				Path: RootModulePath,
+				Path: []string{"root"},
 				Resources: map[string]*ResourceState{
 					"aws_instance.web": &ResourceState{
 						Type: "aws_instance",
@@ -212,14 +200,16 @@ func TestOrphanResourceCountTransformer_oneIndex(t *testing.T) {
 		},
 	}
 
-	g := Graph{Path: RootModulePath}
+	g := Graph{Path: addrs.RootModuleInstance}
 
 	{
 		tf := &OrphanResourceCountTransformer{
 			Concrete: testOrphanResourceConcreteFunc,
 			Count:    1,
-			Addr:     addr,
-			State:    state,
+			Addr: addrs.RootModuleInstance.Resource(
+				addrs.ManagedResourceMode, "aws_instance", "foo",
+			),
+			State: state,
 		}
 		if err := tf.Transform(&g); err != nil {
 			t.Fatalf("err: %s", err)
@@ -234,15 +224,10 @@ func TestOrphanResourceCountTransformer_oneIndex(t *testing.T) {
 }
 
 func TestOrphanResourceCountTransformer_zeroAndNone(t *testing.T) {
-	addr, err := parseResourceAddressInternal("aws_instance.foo")
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
 	state := &State{
 		Modules: []*ModuleState{
 			&ModuleState{
-				Path: RootModulePath,
+				Path: []string{"root"},
 				Resources: map[string]*ResourceState{
 					"aws_instance.web": &ResourceState{
 						Type: "aws_instance",
@@ -269,14 +254,16 @@ func TestOrphanResourceCountTransformer_zeroAndNone(t *testing.T) {
 		},
 	}
 
-	g := Graph{Path: RootModulePath}
+	g := Graph{Path: addrs.RootModuleInstance}
 
 	{
 		tf := &OrphanResourceCountTransformer{
 			Concrete: testOrphanResourceConcreteFunc,
 			Count:    1,
-			Addr:     addr,
-			State:    state,
+			Addr: addrs.RootModuleInstance.Resource(
+				addrs.ManagedResourceMode, "aws_instance", "foo",
+			),
+			State: state,
 		}
 		if err := tf.Transform(&g); err != nil {
 			t.Fatalf("err: %s", err)
@@ -291,15 +278,10 @@ func TestOrphanResourceCountTransformer_zeroAndNone(t *testing.T) {
 }
 
 func TestOrphanResourceCountTransformer_zeroAndNoneCount(t *testing.T) {
-	addr, err := parseResourceAddressInternal("aws_instance.foo")
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
 	state := &State{
 		Modules: []*ModuleState{
 			&ModuleState{
-				Path: RootModulePath,
+				Path: []string{"root"},
 				Resources: map[string]*ResourceState{
 					"aws_instance.web": &ResourceState{
 						Type: "aws_instance",
@@ -326,14 +308,16 @@ func TestOrphanResourceCountTransformer_zeroAndNoneCount(t *testing.T) {
 		},
 	}
 
-	g := Graph{Path: RootModulePath}
+	g := Graph{Path: addrs.RootModuleInstance}
 
 	{
 		tf := &OrphanResourceCountTransformer{
 			Concrete: testOrphanResourceConcreteFunc,
 			Count:    2,
-			Addr:     addr,
-			State:    state,
+			Addr: addrs.RootModuleInstance.Resource(
+				addrs.ManagedResourceMode, "aws_instance", "foo",
+			),
+			State: state,
 		}
 		if err := tf.Transform(&g); err != nil {
 			t.Fatalf("err: %s", err)

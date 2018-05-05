@@ -5,7 +5,10 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/hashicorp/terraform/config"
+	"github.com/hashicorp/hcl2/hcl/hclsyntax"
+
+	"github.com/hashicorp/hcl2/hcl"
+	"github.com/hashicorp/terraform/configs"
 )
 
 func TestEvalFilterDiff(t *testing.T) {
@@ -85,10 +88,19 @@ func TestProcessIgnoreChanges(t *testing.T) {
 	var instanceDiff *InstanceDiff
 
 	var testDiffs = func(ignoreChanges []string, newAttribute string) (*EvalDiff, *InstanceDiff) {
+		ignoreChangesTravs := make([]hcl.Traversal, len(ignoreChanges))
+		for i, s := range ignoreChanges {
+			traversal, travDiags := hclsyntax.ParseTraversalAbs([]byte(s), "", hcl.Pos{Line: 1, Column: 1})
+			if travDiags.HasErrors() {
+				t.Fatal(travDiags.Error())
+			}
+			ignoreChangesTravs[i] = traversal
+		}
+
 		return &EvalDiff{
-				Resource: &config.Resource{
-					Lifecycle: config.ResourceLifecycle{
-						IgnoreChanges: ignoreChanges,
+				Config: &configs.Resource{
+					Managed: &configs.ManagedResource{
+						IgnoreChanges: ignoreChangesTravs,
 					},
 				},
 			},

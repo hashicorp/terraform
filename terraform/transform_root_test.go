@@ -3,14 +3,16 @@ package terraform
 import (
 	"strings"
 	"testing"
+
+	"github.com/hashicorp/terraform/addrs"
 )
 
 func TestRootTransformer(t *testing.T) {
 	mod := testModule(t, "transform-root-basic")
 
-	g := Graph{Path: RootModulePath}
+	g := Graph{Path: addrs.RootModuleInstance}
 	{
-		tf := &ConfigTransformer{Module: mod}
+		tf := &ConfigTransformer{Config: mod}
 		if err := tf.Transform(&g); err != nil {
 			t.Fatalf("err: %s", err)
 		}

@@ -3,6 +3,8 @@ package terraform
 import (
 	"sync"
 	"testing"
+
+	"github.com/hashicorp/terraform/addrs"
 )
 
 func TestEvalRequireState(t *testing.T) {
@@ -116,7 +118,7 @@ func TestEvalReadState(t *testing.T) {
 			},
 		}
 		ctx.StateLock = new(sync.RWMutex)
-		ctx.PathPath = rootModulePath
+		ctx.PathPath = addrs.RootModuleInstance
 
 		result, err := c.Node.Eval(ctx)
 		if err != nil {
@@ -141,7 +143,7 @@ func TestEvalWriteState(t *testing.T) {
 	ctx := new(MockEvalContext)
 	ctx.StateState = state
 	ctx.StateLock = new(sync.RWMutex)
-	ctx.PathPath = rootModulePath
+	ctx.PathPath = addrs.RootModuleInstance
 
 	is := &InstanceState{ID: "i-abc123"}
 	node := &EvalWriteState{
@@ -165,7 +167,7 @@ func TestEvalWriteStateDeposed(t *testing.T) {
 	ctx := new(MockEvalContext)
 	ctx.StateState = state
 	ctx.StateLock = new(sync.RWMutex)
-	ctx.PathPath = rootModulePath
+	ctx.PathPath = addrs.RootModuleInstance
 
 	is := &InstanceState{ID: "i-abc123"}
 	node := &EvalWriteStateDeposed{
