@@ -30,6 +30,10 @@ type EvalReadDataDiff struct {
 func (n *EvalReadDataDiff) Eval(ctx EvalContext) (interface{}, error) {
 	// TODO: test
 
+	if n.ProviderSchema == nil || *n.ProviderSchema == nil {
+		return nil, fmt.Errorf("provider schema not available for %s", n.Addr)
+	}
+
 	var diags tfdiags.Diagnostics
 
 	// The provider and hook APIs still expect our legacy InstanceInfo type.

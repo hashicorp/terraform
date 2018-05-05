@@ -59,6 +59,9 @@ func (n *EvalConfigProvider) Eval(ctx EvalContext) (interface{}, error) {
 		diags = diags.Append(err)
 		return nil, diags.NonFatalErr()
 	}
+	if schema == nil {
+		return nil, fmt.Errorf("schema not available for %s", n.Addr)
+	}
 
 	configSchema := schema.Provider
 	configBody := buildProviderConfig(ctx, n.Addr, config.Config)

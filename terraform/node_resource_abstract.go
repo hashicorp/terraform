@@ -193,8 +193,10 @@ func (n *NodeAbstractResource) References() []*addrs.Reference {
 				if p.When != configs.ProvisionerWhenCreate {
 					continue
 				}
-				refs, _ = lang.ReferencesInBlock(p.Connection.Config, connectionBlockSupersetSchema)
-				result = append(result, refs...)
+				if p.Connection != nil {
+					refs, _ = lang.ReferencesInBlock(p.Connection.Config, connectionBlockSupersetSchema)
+					result = append(result, refs...)
+				}
 
 				schema := n.ProvisionerSchemas[p.Type]
 				refs, _ = lang.ReferencesInBlock(p.Config, schema)

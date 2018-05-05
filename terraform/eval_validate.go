@@ -83,6 +83,9 @@ func (n *EvalValidateProvider) Eval(ctx EvalContext) (interface{}, error) {
 		diags = diags.Append(err)
 		return nil, diags.NonFatalErr()
 	}
+	if schema == nil {
+		return nil, fmt.Errorf("no schema is available for %s", n.Addr)
+	}
 
 	configSchema := schema.Provider
 	configBody := buildProviderConfig(ctx, n.Addr, config.Config)
@@ -319,7 +322,7 @@ type EvalValidateResource struct {
 }
 
 func (n *EvalValidateResource) Eval(ctx EvalContext) (interface{}, error) {
-	if n.ProviderSchema == nil {
+	if n.ProviderSchema == nil || *n.ProviderSchema == nil {
 		return nil, fmt.Errorf("EvalValidateResource has nil schema for %s", n.Addr)
 	}
 
