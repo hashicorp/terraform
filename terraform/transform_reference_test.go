@@ -6,11 +6,12 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/dag"
 )
 
 func TestReferenceTransformer_simple(t *testing.T) {
-	g := Graph{Path: RootModulePath}
+	g := Graph{Path: addrs.RootModuleInstance}
 	g.Add(&graphNodeRefParentTest{
 		NameValue: "A",
 		Names:     []string{"A"},
@@ -33,7 +34,7 @@ func TestReferenceTransformer_simple(t *testing.T) {
 }
 
 func TestReferenceTransformer_self(t *testing.T) {
-	g := Graph{Path: RootModulePath}
+	g := Graph{Path: addrs.RootModuleInstance}
 	g.Add(&graphNodeRefParentTest{
 		NameValue: "A",
 		Names:     []string{"A"},
@@ -56,7 +57,7 @@ func TestReferenceTransformer_self(t *testing.T) {
 }
 
 func TestReferenceTransformer_path(t *testing.T) {
-	g := Graph{Path: RootModulePath}
+	g := Graph{Path: addrs.RootModuleInstance}
 	g.Add(&graphNodeRefParentTest{
 		NameValue: "A",
 		Names:     []string{"A"},
@@ -89,7 +90,7 @@ func TestReferenceTransformer_path(t *testing.T) {
 }
 
 func TestReferenceTransformer_backup(t *testing.T) {
-	g := Graph{Path: RootModulePath}
+	g := Graph{Path: addrs.RootModuleInstance}
 	g.Add(&graphNodeRefParentTest{
 		NameValue: "A",
 		Names:     []string{"A"},
@@ -112,7 +113,7 @@ func TestReferenceTransformer_backup(t *testing.T) {
 }
 
 func TestReferenceTransformer_backupPrimary(t *testing.T) {
-	g := Graph{Path: RootModulePath}
+	g := Graph{Path: addrs.RootModuleInstance}
 	g.Add(&graphNodeRefParentTest{
 		NameValue: "A",
 		Names:     []string{"A"},
@@ -139,7 +140,7 @@ func TestReferenceTransformer_backupPrimary(t *testing.T) {
 }
 
 func TestReferenceTransformer_modulePath(t *testing.T) {
-	g := Graph{Path: RootModulePath}
+	g := Graph{Path: addrs.RootModuleInstance}
 	g.Add(&graphNodeRefParentTest{
 		NameValue: "A",
 		Names:     []string{"A"},
@@ -163,7 +164,7 @@ func TestReferenceTransformer_modulePath(t *testing.T) {
 }
 
 func TestReferenceTransformer_modulePathNormalized(t *testing.T) {
-	g := Graph{Path: RootModulePath}
+	g := Graph{Path: addrs.RootModuleInstance}
 	g.Add(&graphNodeRefParentTest{
 		NameValue: "A",
 		Names:     []string{"A"},
@@ -258,7 +259,7 @@ func TestReferenceMapReferencedBy(t *testing.T) {
 	for tn, tc := range cases {
 		t.Run(tn, func(t *testing.T) {
 			rm := NewReferenceMap(tc.Nodes)
-			result := rm.ReferencedBy(tc.Check)
+			result := rm.Referrers(tc.Check)
 
 			var resultStr []string
 			for _, v := range result {

@@ -4,22 +4,23 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/dag"
 )
 
 func TestProviderTransformer(t *testing.T) {
 	mod := testModule(t, "transform-provider-basic")
 
-	g := Graph{Path: RootModulePath}
+	g := Graph{Path: addrs.RootModuleInstance}
 	{
-		tf := &ConfigTransformer{Module: mod}
+		tf := &ConfigTransformer{Config: mod}
 		if err := tf.Transform(&g); err != nil {
 			t.Fatalf("err: %s", err)
 		}
 	}
 
 	{
-		transform := &AttachResourceConfigTransformer{Module: mod}
+		transform := &AttachResourceConfigTransformer{Config: mod}
 		if err := transform.Transform(&g); err != nil {
 			t.Fatalf("err: %s", err)
 		}
@@ -45,14 +46,21 @@ func TestProviderTransformer(t *testing.T) {
 }
 
 func TestProviderTransformer_moduleChild(t *testing.T) {
-	g := Graph{Path: RootModulePath}
+	g := Graph{Path: addrs.RootModuleInstance}
 
 	{
 		tf := &ImportStateTransformer{
 			Targets: []*ImportTarget{
 				&ImportTarget{
-					Addr: "module.moo.foo_instance.qux",
-					ID:   "bar",
+					Addr: addrs.RootModuleInstance.
+						Child("moo", addrs.NoKey).
+						ResourceInstance(
+							addrs.ManagedResourceMode,
+							"foo_instance",
+							"qux",
+							addrs.NoKey,
+						),
+					ID: "bar",
 				},
 			},
 		}
@@ -85,16 +93,16 @@ func TestProviderTransformer_moduleChild(t *testing.T) {
 func TestCloseProviderTransformer(t *testing.T) {
 	mod := testModule(t, "transform-provider-basic")
 
-	g := Graph{Path: RootModulePath}
+	g := Graph{Path: addrs.RootModuleInstance}
 	{
-		tf := &ConfigTransformer{Module: mod}
+		tf := &ConfigTransformer{Config: mod}
 		if err := tf.Transform(&g); err != nil {
 			t.Fatalf("err: %s", err)
 		}
 	}
 
 	{
-		transform := &AttachResourceConfigTransformer{Module: mod}
+		transform := &AttachResourceConfigTransformer{Config: mod}
 		if err := transform.Transform(&g); err != nil {
 			t.Fatalf("err: %s", err)
 		}
@@ -131,14 +139,18 @@ func TestCloseProviderTransformer(t *testing.T) {
 func TestCloseProviderTransformer_withTargets(t *testing.T) {
 	mod := testModule(t, "transform-provider-basic")
 
-	g := Graph{Path: RootModulePath}
+	g := Graph{Path: addrs.RootModuleInstance}
 	transforms := []GraphTransformer{
-		&ConfigTransformer{Module: mod},
+		&ConfigTransformer{Config: mod},
 		&MissingProviderTransformer{Providers: []string{"aws"}},
 		&ProviderTransformer{},
 		&CloseProviderTransformer{},
 		&TargetsTransformer{
-			Targets: []string{"something.else"},
+			Targets: []addrs.Targetable{
+				addrs.RootModuleInstance.Resource(
+					addrs.ManagedResourceMode, "something", "else",
+				),
+			},
 		},
 	}
 
@@ -158,16 +170,16 @@ func TestCloseProviderTransformer_withTargets(t *testing.T) {
 func TestMissingProviderTransformer(t *testing.T) {
 	mod := testModule(t, "transform-provider-missing")
 
-	g := Graph{Path: RootModulePath}
+	g := Graph{Path: addrs.RootModuleInstance}
 	{
-		tf := &ConfigTransformer{Module: mod}
+		tf := &ConfigTransformer{Config: mod}
 		if err := tf.Transform(&g); err != nil {
 			t.Fatalf("err: %s", err)
 		}
 	}
 
 	{
-		transform := &AttachResourceConfigTransformer{Module: mod}
+		transform := &AttachResourceConfigTransformer{Config: mod}
 		if err := transform.Transform(&g); err != nil {
 			t.Fatalf("err: %s", err)
 		}
@@ -206,16 +218,16 @@ func TestMissingProviderTransformer_grandchildMissing(t *testing.T) {
 
 	concrete := func(a *NodeAbstractProvider) dag.Vertex { return a }
 
-	g := Graph{Path: RootModulePath}
+	g := Graph{Path: addrs.RootModuleInstance}
 	{
-		tf := &ConfigTransformer{Module: mod}
+		tf := &ConfigTransformer{Config: mod}
 		if err := tf.Transform(&g); err != nil {
 			t.Fatalf("err: %s", err)
 		}
 	}
 
 	{
-		transform := &AttachResourceConfigTransformer{Module: mod}
+		transform := &AttachResourceConfigTransformer{Config: mod}
 		if err := transform.Transform(&g); err != nil {
 			t.Fatalf("err: %s", err)
 		}
@@ -242,7 +254,7 @@ func TestMissingProviderTransformer_grandchildMissing(t *testing.T) {
 }
 
 func TestMissingProviderTransformer_moduleChild(t *testing.T) {
-	g := Graph{Path: RootModulePath}
+	g := Graph{Path: addrs.RootModuleInstance}
 
 	// We use the import state transformer since at the time of writing
 	// this test it is the first and only transformer that will introduce
@@ -251,8 +263,15 @@ func TestMissingProviderTransformer_moduleChild(t *testing.T) {
 		tf := &ImportStateTransformer{
 			Targets: []*ImportTarget{
 				&ImportTarget{
-					Addr: "module.moo.foo_instance.qux",
-					ID:   "bar",
+					Addr: addrs.RootModuleInstance.
+						Child("moo", addrs.NoKey).
+						ResourceInstance(
+							addrs.ManagedResourceMode,
+							"foo_instance",
+							"qux",
+							addrs.NoKey,
+						),
+					ID: "bar",
 				},
 			},
 		}
@@ -276,7 +295,7 @@ func TestMissingProviderTransformer_moduleChild(t *testing.T) {
 }
 
 func TestMissingProviderTransformer_moduleGrandchild(t *testing.T) {
-	g := Graph{Path: RootModulePath}
+	g := Graph{Path: addrs.RootModuleInstance}
 
 	// We use the import state transformer since at the time of writing
 	// this test it is the first and only transformer that will introduce
@@ -285,8 +304,16 @@ func TestMissingProviderTransformer_moduleGrandchild(t *testing.T) {
 		tf := &ImportStateTransformer{
 			Targets: []*ImportTarget{
 				&ImportTarget{
-					Addr: "module.a.module.b.foo_instance.qux",
-					ID:   "bar",
+					Addr: addrs.RootModuleInstance.
+						Child("a", addrs.NoKey).
+						Child("b", addrs.NoKey).
+						ResourceInstance(
+							addrs.ManagedResourceMode,
+							"foo_instance",
+							"qux",
+							addrs.NoKey,
+						),
+					ID: "bar",
 				},
 			},
 		}
@@ -310,15 +337,22 @@ func TestMissingProviderTransformer_moduleGrandchild(t *testing.T) {
 }
 
 func TestParentProviderTransformer(t *testing.T) {
-	g := Graph{Path: RootModulePath}
+	g := Graph{Path: addrs.RootModuleInstance}
 
 	// Introduce a cihld module
 	{
 		tf := &ImportStateTransformer{
 			Targets: []*ImportTarget{
 				&ImportTarget{
-					Addr: "module.moo.foo_instance.qux",
-					ID:   "bar",
+					Addr: addrs.RootModuleInstance.
+						Child("moo", addrs.NoKey).
+						ResourceInstance(
+							addrs.ManagedResourceMode,
+							"foo_instance",
+							"qux",
+							addrs.NoKey,
+						),
+					ID: "bar",
 				},
 			},
 		}
@@ -351,7 +385,7 @@ func TestParentProviderTransformer(t *testing.T) {
 }
 
 func TestParentProviderTransformer_moduleGrandchild(t *testing.T) {
-	g := Graph{Path: RootModulePath}
+	g := Graph{Path: addrs.RootModuleInstance}
 
 	// We use the import state transformer since at the time of writing
 	// this test it is the first and only transformer that will introduce
@@ -360,8 +394,16 @@ func TestParentProviderTransformer_moduleGrandchild(t *testing.T) {
 		tf := &ImportStateTransformer{
 			Targets: []*ImportTarget{
 				&ImportTarget{
-					Addr: "module.a.module.b.foo_instance.qux",
-					ID:   "bar",
+					Addr: addrs.RootModuleInstance.
+						Child("a", addrs.NoKey).
+						Child("b", addrs.NoKey).
+						ResourceInstance(
+							addrs.ManagedResourceMode,
+							"foo_instance",
+							"qux",
+							addrs.NoKey,
+						),
+					ID: "bar",
 				},
 			},
 		}
@@ -395,16 +437,16 @@ func TestParentProviderTransformer_moduleGrandchild(t *testing.T) {
 func TestPruneProviderTransformer(t *testing.T) {
 	mod := testModule(t, "transform-provider-prune")
 
-	g := Graph{Path: RootModulePath}
+	g := Graph{Path: addrs.RootModuleInstance}
 	{
-		tf := &ConfigTransformer{Module: mod}
+		tf := &ConfigTransformer{Config: mod}
 		if err := tf.Transform(&g); err != nil {
 			t.Fatalf("err: %s", err)
 		}
 	}
 
 	{
-		transform := &AttachResourceConfigTransformer{Module: mod}
+		transform := &AttachResourceConfigTransformer{Config: mod}
 		if err := transform.Transform(&g); err != nil {
 			t.Fatalf("err: %s", err)
 		}
@@ -450,15 +492,15 @@ func TestProviderConfigTransformer_parentProviders(t *testing.T) {
 	mod := testModule(t, "transform-provider-inherit")
 	concrete := func(a *NodeAbstractProvider) dag.Vertex { return a }
 
-	g := Graph{Path: RootModulePath}
+	g := Graph{Path: addrs.RootModuleInstance}
 	{
-		tf := &ConfigTransformer{Module: mod}
+		tf := &ConfigTransformer{Config: mod}
 		if err := tf.Transform(&g); err != nil {
 			t.Fatalf("err: %s", err)
 		}
 	}
 	{
-		tf := &AttachResourceConfigTransformer{Module: mod}
+		tf := &AttachResourceConfigTransformer{Config: mod}
 		if err := tf.Transform(&g); err != nil {
 			t.Fatalf("err: %s", err)
 		}
@@ -483,15 +525,15 @@ func TestProviderConfigTransformer_grandparentProviders(t *testing.T) {
 	mod := testModule(t, "transform-provider-grandchild-inherit")
 	concrete := func(a *NodeAbstractProvider) dag.Vertex { return a }
 
-	g := Graph{Path: RootModulePath}
+	g := Graph{Path: addrs.RootModuleInstance}
 	{
-		tf := &ConfigTransformer{Module: mod}
+		tf := &ConfigTransformer{Config: mod}
 		if err := tf.Transform(&g); err != nil {
 			t.Fatalf("err: %s", err)
 		}
 	}
 	{
-		tf := &AttachResourceConfigTransformer{Module: mod}
+		tf := &AttachResourceConfigTransformer{Config: mod}
 		if err := tf.Transform(&g); err != nil {
 			t.Fatalf("err: %s", err)
 		}
@@ -516,15 +558,15 @@ func TestProviderConfigTransformer_implicitModule(t *testing.T) {
 	mod := testModule(t, "transform-provider-implicit-module")
 	concrete := func(a *NodeAbstractProvider) dag.Vertex { return a }
 
-	g := Graph{Path: RootModulePath}
+	g := Graph{Path: addrs.RootModuleInstance}
 	{
-		tf := &ConfigTransformer{Module: mod}
+		tf := &ConfigTransformer{Config: mod}
 		if err := tf.Transform(&g); err != nil {
 			t.Fatalf("err: %s", err)
 		}
 	}
 	{
-		tf := &AttachResourceConfigTransformer{Module: mod}
+		tf := &AttachResourceConfigTransformer{Config: mod}
 		if err := tf.Transform(&g); err != nil {
 			t.Fatalf("err: %s", err)
 		}
@@ -550,15 +592,15 @@ func TestProviderConfigTransformer_invalidProvider(t *testing.T) {
 	mod := testModule(t, "transform-provider-invalid")
 	concrete := func(a *NodeAbstractProvider) dag.Vertex { return a }
 
-	g := Graph{Path: RootModulePath}
+	g := Graph{Path: addrs.RootModuleInstance}
 	{
-		tf := &ConfigTransformer{Module: mod}
+		tf := &ConfigTransformer{Config: mod}
 		if err := tf.Transform(&g); err != nil {
 			t.Fatalf("err: %s", err)
 		}
 	}
 	{
-		tf := &AttachResourceConfigTransformer{Module: mod}
+		tf := &AttachResourceConfigTransformer{Config: mod}
 		if err := tf.Transform(&g); err != nil {
 			t.Fatalf("err: %s", err)
 		}

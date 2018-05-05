@@ -4,22 +4,24 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/hashicorp/terraform/addrs"
+
 	"github.com/hashicorp/terraform/dag"
 )
 
 func TestMissingProvisionerTransformer(t *testing.T) {
 	mod := testModule(t, "transform-provisioner-basic")
 
-	g := Graph{Path: RootModulePath}
+	g := Graph{Path: addrs.RootModuleInstance}
 	{
-		tf := &ConfigTransformer{Module: mod}
+		tf := &ConfigTransformer{Config: mod}
 		if err := tf.Transform(&g); err != nil {
 			t.Fatalf("err: %s", err)
 		}
 	}
 
 	{
-		transform := &AttachResourceConfigTransformer{Module: mod}
+		transform := &AttachResourceConfigTransformer{Config: mod}
 		if err := transform.Transform(&g); err != nil {
 			t.Fatalf("err: %s", err)
 		}
@@ -49,9 +51,9 @@ func TestMissingProvisionerTransformer(t *testing.T) {
 func TestMissingProvisionerTransformer_module(t *testing.T) {
 	mod := testModule(t, "transform-provisioner-module")
 
-	g := Graph{Path: RootModulePath}
+	g := Graph{Path: addrs.RootModuleInstance}
 	{
-		concreteResource := func(a *NodeAbstractResource) dag.Vertex {
+		concreteResource := func(a *NodeAbstractResourceInstance) dag.Vertex {
 			return a
 		}
 
@@ -87,7 +89,7 @@ func TestMissingProvisionerTransformer_module(t *testing.T) {
 	}
 
 	{
-		transform := &AttachResourceConfigTransformer{Module: mod}
+		transform := &AttachResourceConfigTransformer{Config: mod}
 		if err := transform.Transform(&g); err != nil {
 			t.Fatalf("err: %s", err)
 		}
@@ -117,16 +119,16 @@ func TestMissingProvisionerTransformer_module(t *testing.T) {
 func TestCloseProvisionerTransformer(t *testing.T) {
 	mod := testModule(t, "transform-provisioner-basic")
 
-	g := Graph{Path: RootModulePath}
+	g := Graph{Path: addrs.RootModuleInstance}
 	{
-		tf := &ConfigTransformer{Module: mod}
+		tf := &ConfigTransformer{Config: mod}
 		if err := tf.Transform(&g); err != nil {
 			t.Fatalf("err: %s", err)
 		}
 	}
 
 	{
-		transform := &AttachResourceConfigTransformer{Module: mod}
+		transform := &AttachResourceConfigTransformer{Config: mod}
 		if err := transform.Transform(&g); err != nil {
 			t.Fatalf("err: %s", err)
 		}
