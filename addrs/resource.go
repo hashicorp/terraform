@@ -22,7 +22,9 @@ func (r Resource) String() string {
 	case DataResourceMode:
 		return fmt.Sprintf("data.%s.%s", r.Type, r.Name)
 	default:
-		panic(fmt.Errorf("resource address with invalid mode %s", r.Mode))
+		// Should never happen, but we'll return a string here rather than
+		// crashing just in case it does.
+		return fmt.Sprintf("<invalid>.%s.%s", r.Type, r.Name)
 	}
 }
 
