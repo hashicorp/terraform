@@ -93,7 +93,9 @@ func testModule(t *testing.T, name string) *configs.Config {
 	// sources only this ultimately just records all of the module paths
 	// in a JSON file so that we can load them below.
 	diags := loader.InstallModules(dir, true, configload.InstallHooksImpl{})
-	t.Fatal(diags.Error())
+	if diags.HasErrors() {
+		t.Fatal(diags.Error())
+	}
 
 	config, diags := loader.LoadConfig(dir)
 	if diags.HasErrors() {
