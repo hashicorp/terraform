@@ -87,7 +87,7 @@ func TestProcessIgnoreChanges(t *testing.T) {
 	var evalDiff *EvalDiff
 	var instanceDiff *InstanceDiff
 
-	var testDiffs = func(ignoreChanges []string, newAttribute string) (*EvalDiff, *InstanceDiff) {
+	var testDiffs = func(t *testing.T, ignoreChanges []string, newAttribute string) (*EvalDiff, *InstanceDiff) {
 		ignoreChangesTravs := make([]hcl.Traversal, len(ignoreChanges))
 		for i, s := range ignoreChanges {
 			traversal, travDiags := hclsyntax.ParseTraversalAbs([]byte(s), "", hcl.Pos{Line: 1, Column: 1})
@@ -174,7 +174,7 @@ func TestProcessIgnoreChanges(t *testing.T) {
 		},
 	} {
 		t.Run(fmt.Sprintf("%d", i), func(t *testing.T) {
-			evalDiff, instanceDiff = testDiffs(tc.ignore, tc.newAttr)
+			evalDiff, instanceDiff = testDiffs(t, tc.ignore, tc.newAttr)
 			err := evalDiff.processIgnoreChanges(instanceDiff)
 			if err != nil {
 				t.Fatalf("err: %s", err)
