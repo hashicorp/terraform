@@ -142,6 +142,11 @@ func (n *EvalValidateProvisioner) Eval(ctx EvalContext) (interface{}, error) {
 			return nil, diags.Err()
 		}
 
+		if configVal == cty.NilVal {
+			// Should never happen for a well-behaved EvaluateBlock implementation
+			return nil, fmt.Errorf("EvaluateBlock returned nil value")
+		}
+
 		// The provisioner API still uses our legacy ResourceConfig type, so
 		// we need to shim it.
 		legacyRC := NewResourceConfigShimmed(configVal, schema)
