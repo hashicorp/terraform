@@ -4,46 +4,41 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/hashicorp/terraform/configs"
+	"github.com/zclconf/go-cty/cty"
+
+	"github.com/hashicorp/terraform/addrs"
+
 	"github.com/hashicorp/terraform/config"
 )
 
-func TestEvalBuildProviderConfig_impl(t *testing.T) {
-	var _ EvalNode = new(EvalBuildProviderConfig)
-}
-
-func TestEvalBuildProviderConfig(t *testing.T) {
-	config := testResourceConfig(t, map[string]interface{}{
-		"set_in_config":            "config",
-		"set_in_config_and_parent": "config",
-		"computed_in_config":       "config",
+func TestBuildProviderConfig(t *testing.T) {
+	configBody := configs.SynthBody("", map[string]cty.Value{
+		"set_in_config":            cty.StringVal("config"),
+		"set_in_config_and_parent": cty.StringVal("config"),
+		"computed_in_config":       cty.StringVal("config"),
 	})
-	provider := "foo"
-
-	n := &EvalBuildProviderConfig{
-		Provider: provider,
-		Config:   &config,
-		Output:   &config,
+	providerAddr := addrs.ProviderConfig{
+		Type: "foo",
 	}
 
 	ctx := &MockEvalContext{
-		ProviderInputConfig: map[string]interface{}{
-			"set_in_config": "input",
-			"set_by_input":  "input",
+		ProviderInputValues: map[string]cty.Value{
+			"set_in_config": cty.StringVal("input"),
+			"set_by_input":  cty.StringVal("input"),
 		},
 	}
-	if _, err := n.Eval(ctx); err != nil {
-		t.Fatalf("err: %s", err)
-	}
+	got := buildProviderConfig(ctx, providerAddr, configBody)
 
 	// We expect the provider config with the added input value
-	expected := map[string]interface{}{
-		"set_in_config":            "config",
-		"set_in_config_and_parent": "config",
-		"computed_in_config":       "config",
-		"set_by_input":             "input",
+	want := map[string]cty.Value{
+		"set_in_config":            cty.StringVal("config"),
+		"set_in_config_and_parent": cty.StringVal("config"),
+		"computed_in_config":       cty.StringVal("config"),
+		"set_by_input":             cty.StringVal("input"),
 	}
-	if !reflect.DeepEqual(config.Raw, expected) {
-		t.Fatalf("incorrect merged config:\n%#v\nwanted:\n%#v", config.Raw, expected)
+	if !reflect.DeepEqual(got, want) {
+		t.Fatalf("incorrect merged config\ngot:  %#v\nwant: \n%#v", got, want)
 	}
 }
 
@@ -52,9 +47,11 @@ func TestEvalConfigProvider_impl(t *testing.T) {
 }
 
 func TestEvalConfigProvider(t *testing.T) {
-	config := testResourceConfig(t, map[string]interface{}{})
+	config := &configs.Provider{
+		Name: "foo",
+	}
 	provider := &MockResourceProvider{}
-	n := &EvalConfigProvider{Config: &config}
+	n := &EvalConfigProvider{Config: config}
 
 	ctx := &MockEvalContext{ProviderProvider: provider}
 	if _, err := n.Eval(ctx); err != nil {
@@ -74,7 +71,9 @@ func TestEvalInitProvider_impl(t *testing.T) {
 }
 
 func TestEvalInitProvider(t *testing.T) {
-	n := &EvalInitProvider{Name: "foo"}
+	n := &EvalInitProvider{
+		Addr: addrs.ProviderConfig{Type: "foo"},
+	}
 	provider := &MockResourceProvider{}
 	ctx := &MockEvalContext{InitProviderProvider: provider}
 	if _, err := n.Eval(ctx); err != nil {
@@ -84,14 +83,15 @@ func TestEvalInitProvider(t *testing.T) {
 	if !ctx.InitProviderCalled {
 		t.Fatal("should be called")
 	}
-	if ctx.InitProviderName != "foo" {
-		t.Fatalf("bad: %#v", ctx.InitProviderName)
+	if ctx.InitProviderAddr.String() != "provider.foo" {
+		t.Fatalf("wrong provider address %s", ctx.InitProviderAddr)
 	}
 }
 
 func TestEvalCloseProvider(t *testing.T) {
-	providerName := ResolveProviderName("foo", nil)
-	n := &EvalCloseProvider{Name: providerName}
+	n := &EvalCloseProvider{
+		Addr: addrs.ProviderConfig{Type: "foo"},
+	}
 	provider := &MockResourceProvider{}
 	ctx := &MockEvalContext{CloseProviderProvider: provider}
 	if _, err := n.Eval(ctx); err != nil {
@@ -101,8 +101,8 @@ func TestEvalCloseProvider(t *testing.T) {
 	if !ctx.CloseProviderCalled {
 		t.Fatal("should be called")
 	}
-	if ctx.CloseProviderName != providerName {
-		t.Fatalf("bad: %#v", ctx.CloseProviderName)
+	if ctx.CloseProviderAddr.String() != "provider.foo" {
+		t.Fatalf("wrong provider address %s", ctx.CloseProviderAddr)
 	}
 }
 
@@ -112,7 +112,10 @@ func TestEvalGetProvider_impl(t *testing.T) {
 
 func TestEvalGetProvider(t *testing.T) {
 	var actual ResourceProvider
-	n := &EvalGetProvider{Name: "foo", Output: &actual}
+	n := &EvalGetProvider{
+		Addr:   addrs.RootModuleInstance.ProviderConfigDefault("foo"),
+		Output: &actual,
+	}
 	provider := &MockResourceProvider{}
 	ctx := &MockEvalContext{ProviderProvider: provider}
 	if _, err := n.Eval(ctx); err != nil {
@@ -125,8 +128,8 @@ func TestEvalGetProvider(t *testing.T) {
 	if !ctx.ProviderCalled {
 		t.Fatal("should be called")
 	}
-	if ctx.ProviderName != "foo" {
-		t.Fatalf("bad: %#v", ctx.ProviderName)
+	if ctx.ProviderAddr.String() != "provider.foo" {
+		t.Fatalf("wrong provider address %s", ctx.ProviderAddr)
 	}
 }
 
@@ -150,19 +153,18 @@ func TestEvalInputProvider(t *testing.T) {
 		},
 	}
 	ctx := &MockEvalContext{ProviderProvider: provider}
-	rawConfig, err := config.NewRawConfig(map[string]interface{}{
-		"mock_config":   "mock",
-		"set_in_config": "input",
-	})
-	if err != nil {
-		t.Fatalf("NewRawConfig failed: %s", err)
+	config := &configs.Provider{
+		Name: "foo",
+		Config: configs.SynthBody("synth", map[string]cty.Value{
+			"mock_config":   cty.StringVal("mock"),
+			"set_in_config": cty.StringVal("input"),
+		}),
 	}
-	config := NewResourceConfig(rawConfig)
 
 	n := &EvalInputProvider{
-		Name:     "mock",
+		Addr:     addrs.ProviderConfig{Type: "foo"},
 		Provider: &provider,
-		Config:   &config,
+		Config:   config,
 	}
 
 	result, err := n.Eval(ctx)
@@ -177,15 +179,15 @@ func TestEvalInputProvider(t *testing.T) {
 		t.Fatalf("ctx.SetProviderInput wasn't called")
 	}
 
-	if got, want := ctx.SetProviderInputName, "mock"; got != want {
+	if got, want := ctx.SetProviderInputAddr.String(), "provider.mock"; got != want {
 		t.Errorf("wrong provider name %q; want %q", got, want)
 	}
 
-	inputCfg := ctx.SetProviderInputConfig
+	inputCfg := ctx.SetProviderInputValues
 
 	// we should only have the value that was set during Input
-	want := map[string]interface{}{
-		"set_by_input": "input",
+	want := map[string]cty.Value{
+		"set_by_input": cty.StringVal("input"),
 	}
 	if !reflect.DeepEqual(inputCfg, want) {
 		t.Errorf("got incorrect input config:\n%#v\nwant:\n%#v", inputCfg, want)

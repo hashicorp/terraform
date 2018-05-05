@@ -5,6 +5,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/hashicorp/terraform/addrs"
+
 	"github.com/hashicorp/terraform/dag"
 )
 
@@ -13,7 +15,7 @@ func TestOrphanResourceTransformer(t *testing.T) {
 	state := &State{
 		Modules: []*ModuleState{
 			&ModuleState{
-				Path: RootModulePath,
+				Path: []string{"root"},
 				Resources: map[string]*ResourceState{
 					"aws_instance.web": &ResourceState{
 						Type: "aws_instance",
@@ -34,9 +36,9 @@ func TestOrphanResourceTransformer(t *testing.T) {
 		},
 	}
 
-	g := Graph{Path: RootModulePath}
+	g := Graph{Path: addrs.RootModuleInstance}
 	{
-		tf := &ConfigTransformer{Module: mod}
+		tf := &ConfigTransformer{Config: mod}
 		if err := tf.Transform(&g); err != nil {
 			t.Fatalf("err: %s", err)
 		}
@@ -45,7 +47,8 @@ func TestOrphanResourceTransformer(t *testing.T) {
 	{
 		tf := &OrphanResourceTransformer{
 			Concrete: testOrphanResourceConcreteFunc,
-			State:    state, Module: mod,
+			State:    state,
+			Config:   mod,
 		}
 		if err := tf.Transform(&g); err != nil {
 			t.Fatalf("err: %s", err)
@@ -65,9 +68,9 @@ func TestOrphanResourceTransformer_nilModule(t *testing.T) {
 		Modules: []*ModuleState{nil},
 	}
 
-	g := Graph{Path: RootModulePath}
+	g := Graph{Path: addrs.RootModuleInstance}
 	{
-		tf := &ConfigTransformer{Module: mod}
+		tf := &ConfigTransformer{Config: mod}
 		if err := tf.Transform(&g); err != nil {
 			t.Fatalf("err: %s", err)
 		}
@@ -76,7 +79,8 @@ func TestOrphanResourceTransformer_nilModule(t *testing.T) {
 	{
 		tf := &OrphanResourceTransformer{
 			Concrete: testOrphanResourceConcreteFunc,
-			State:    state, Module: mod,
+			State:    state,
+			Config:   mod,
 		}
 		if err := tf.Transform(&g); err != nil {
 			t.Fatalf("err: %s", err)
@@ -89,7 +93,7 @@ func TestOrphanResourceTransformer_countGood(t *testing.T) {
 	state := &State{
 		Modules: []*ModuleState{
 			&ModuleState{
-				Path: RootModulePath,
+				Path: []string{"root"},
 				Resources: map[string]*ResourceState{
 					"aws_instance.foo.0": &ResourceState{
 						Type: "aws_instance",
@@ -109,9 +113,9 @@ func TestOrphanResourceTransformer_countGood(t *testing.T) {
 		},
 	}
 
-	g := Graph{Path: RootModulePath}
+	g := Graph{Path: addrs.RootModuleInstance}
 	{
-		tf := &ConfigTransformer{Module: mod}
+		tf := &ConfigTransformer{Config: mod}
 		if err := tf.Transform(&g); err != nil {
 			t.Fatalf("err: %s", err)
 		}
@@ -120,7 +124,8 @@ func TestOrphanResourceTransformer_countGood(t *testing.T) {
 	{
 		tf := &OrphanResourceTransformer{
 			Concrete: testOrphanResourceConcreteFunc,
-			State:    state, Module: mod,
+			State:    state,
+			Config:   mod,
 		}
 		if err := tf.Transform(&g); err != nil {
 			t.Fatalf("err: %s", err)
@@ -139,7 +144,7 @@ func TestOrphanResourceTransformer_countBad(t *testing.T) {
 	state := &State{
 		Modules: []*ModuleState{
 			&ModuleState{
-				Path: RootModulePath,
+				Path: []string{"root"},
 				Resources: map[string]*ResourceState{
 					"aws_instance.foo.0": &ResourceState{
 						Type: "aws_instance",
@@ -159,9 +164,9 @@ func TestOrphanResourceTransformer_countBad(t *testing.T) {
 		},
 	}
 
-	g := Graph{Path: RootModulePath}
+	g := Graph{Path: addrs.RootModuleInstance}
 	{
-		tf := &ConfigTransformer{Module: mod}
+		tf := &ConfigTransformer{Config: mod}
 		if err := tf.Transform(&g); err != nil {
 			t.Fatalf("err: %s", err)
 		}
@@ -170,7 +175,8 @@ func TestOrphanResourceTransformer_countBad(t *testing.T) {
 	{
 		tf := &OrphanResourceTransformer{
 			Concrete: testOrphanResourceConcreteFunc,
-			State:    state, Module: mod,
+			State:    state,
+			Config:   mod,
 		}
 		if err := tf.Transform(&g); err != nil {
 			t.Fatalf("err: %s", err)
@@ -189,7 +195,7 @@ func TestOrphanResourceTransformer_modules(t *testing.T) {
 	state := &State{
 		Modules: []*ModuleState{
 			&ModuleState{
-				Path: RootModulePath,
+				Path: []string{"root"},
 				Resources: map[string]*ResourceState{
 					"aws_instance.foo": &ResourceState{
 						Type: "aws_instance",
@@ -214,9 +220,9 @@ func TestOrphanResourceTransformer_modules(t *testing.T) {
 		},
 	}
 
-	g := Graph{Path: RootModulePath}
+	g := Graph{Path: addrs.RootModuleInstance}
 	{
-		tf := &ConfigTransformer{Module: mod}
+		tf := &ConfigTransformer{Config: mod}
 		if err := tf.Transform(&g); err != nil {
 			t.Fatalf("err: %s", err)
 		}
@@ -225,7 +231,8 @@ func TestOrphanResourceTransformer_modules(t *testing.T) {
 	{
 		tf := &OrphanResourceTransformer{
 			Concrete: testOrphanResourceConcreteFunc,
-			State:    state, Module: mod,
+			State:    state,
+			Config:   mod,
 		}
 		if err := tf.Transform(&g); err != nil {
 			t.Fatalf("err: %s", err)
@@ -258,14 +265,14 @@ aws_instance.foo
 module.child.aws_instance.web (orphan)
 `
 
-func testOrphanResourceConcreteFunc(a *NodeAbstractResource) dag.Vertex {
-	return &testOrphanResourceConcrete{a}
+func testOrphanResourceConcreteFunc(a *NodeAbstractResourceInstance) dag.Vertex {
+	return &testOrphanResourceInstanceConcrete{a}
 }
 
-type testOrphanResourceConcrete struct {
-	*NodeAbstractResource
+type testOrphanResourceInstanceConcrete struct {
+	*NodeAbstractResourceInstance
 }
 
-func (n *testOrphanResourceConcrete) Name() string {
-	return fmt.Sprintf("%s (orphan)", n.NodeAbstractResource.Name())
+func (n *testOrphanResourceInstanceConcrete) Name() string {
+	return fmt.Sprintf("%s (orphan)", n.NodeAbstractResourceInstance.Name())
 }

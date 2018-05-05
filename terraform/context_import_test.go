@@ -4,13 +4,16 @@ import (
 	"fmt"
 	"strings"
 	"testing"
+
+	"github.com/hashicorp/terraform/addrs"
+	"github.com/zclconf/go-cty/cty"
 )
 
 func TestContextImport_basic(t *testing.T) {
 	p := testProvider("aws")
 	m := testModule(t, "import-provider")
 	ctx := testContext2(t, &ContextOpts{
-		Module: m,
+		Config: m,
 		ProviderResolver: ResourceProviderResolverFixed(
 			map[string]ResourceProviderFactory{
 				"aws": testProviderFuncFixed(p),
@@ -28,8 +31,10 @@ func TestContextImport_basic(t *testing.T) {
 	state, err := ctx.Import(&ImportOpts{
 		Targets: []*ImportTarget{
 			&ImportTarget{
-				Addr: "aws_instance.foo",
-				ID:   "bar",
+				Addr: addrs.RootModuleInstance.ResourceInstance(
+					addrs.ManagedResourceMode, "aws_instance", "foo", addrs.NoKey,
+				),
+				ID: "bar",
 			},
 		},
 	})
@@ -47,7 +52,7 @@ func TestContextImport_countIndex(t *testing.T) {
 	p := testProvider("aws")
 	m := testModule(t, "import-provider")
 	ctx := testContext2(t, &ContextOpts{
-		Module: m,
+		Config: m,
 		ProviderResolver: ResourceProviderResolverFixed(
 			map[string]ResourceProviderFactory{
 				"aws": testProviderFuncFixed(p),
@@ -65,8 +70,10 @@ func TestContextImport_countIndex(t *testing.T) {
 	state, err := ctx.Import(&ImportOpts{
 		Targets: []*ImportTarget{
 			&ImportTarget{
-				Addr: "aws_instance.foo[0]",
-				ID:   "bar",
+				Addr: addrs.RootModuleInstance.ResourceInstance(
+					addrs.ManagedResourceMode, "aws_instance", "foo", addrs.IntKey(0),
+				),
+				ID: "bar",
 			},
 		},
 	})
@@ -85,7 +92,7 @@ func TestContextImport_collision(t *testing.T) {
 	p := testProvider("aws")
 	m := testModule(t, "import-provider")
 	ctx := testContext2(t, &ContextOpts{
-		Module: m,
+		Config: m,
 		ProviderResolver: ResourceProviderResolverFixed(
 			map[string]ResourceProviderFactory{
 				"aws": testProviderFuncFixed(p),
@@ -119,8 +126,10 @@ func TestContextImport_collision(t *testing.T) {
 	state, err := ctx.Import(&ImportOpts{
 		Targets: []*ImportTarget{
 			&ImportTarget{
-				Addr: "aws_instance.foo",
-				ID:   "bar",
+				Addr: addrs.RootModuleInstance.ResourceInstance(
+					addrs.ManagedResourceMode, "aws_instance", "foo", addrs.NoKey,
+				),
+				ID: "bar",
 			},
 		},
 	})
@@ -139,7 +148,7 @@ func TestContextImport_missingType(t *testing.T) {
 	p := testProvider("aws")
 	m := testModule(t, "import-provider")
 	ctx := testContext2(t, &ContextOpts{
-		Module: m,
+		Config: m,
 		ProviderResolver: ResourceProviderResolverFixed(
 			map[string]ResourceProviderFactory{
 				"aws": testProviderFuncFixed(p),
@@ -156,8 +165,10 @@ func TestContextImport_missingType(t *testing.T) {
 	state, err := ctx.Import(&ImportOpts{
 		Targets: []*ImportTarget{
 			&ImportTarget{
-				Addr: "aws_instance.foo",
-				ID:   "bar",
+				Addr: addrs.RootModuleInstance.ResourceInstance(
+					addrs.ManagedResourceMode, "aws_instance", "foo", addrs.NoKey,
+				),
+				ID: "bar",
 			},
 		},
 	})
@@ -176,7 +187,7 @@ func TestContextImport_moduleProvider(t *testing.T) {
 	p := testProvider("aws")
 	m := testModule(t, "import-provider")
 	ctx := testContext2(t, &ContextOpts{
-		Module: m,
+		Config: m,
 		ProviderResolver: ResourceProviderResolverFixed(
 			map[string]ResourceProviderFactory{
 				"aws": testProviderFuncFixed(p),
@@ -203,11 +214,13 @@ func TestContextImport_moduleProvider(t *testing.T) {
 	}
 
 	state, err := ctx.Import(&ImportOpts{
-		Module: m,
+		Config: m,
 		Targets: []*ImportTarget{
 			&ImportTarget{
-				Addr: "aws_instance.foo",
-				ID:   "bar",
+				Addr: addrs.RootModuleInstance.ResourceInstance(
+					addrs.ManagedResourceMode, "aws_instance", "foo", addrs.NoKey,
+				),
+				ID: "bar",
 			},
 		},
 	})
@@ -231,7 +244,7 @@ func TestContextImport_providerModule(t *testing.T) {
 	p := testProvider("aws")
 	m := testModule(t, "import-provider-module")
 	ctx := testContext2(t, &ContextOpts{
-		Module: m,
+		Config: m,
 		ProviderResolver: ResourceProviderResolverFixed(
 			map[string]ResourceProviderFactory{
 				"aws": testProviderFuncFixed(p),
@@ -258,11 +271,13 @@ func TestContextImport_providerModule(t *testing.T) {
 	}
 
 	_, err := ctx.Import(&ImportOpts{
-		Module: m,
+		Config: m,
 		Targets: []*ImportTarget{
 			&ImportTarget{
-				Addr: "module.child.aws_instance.foo",
-				ID:   "bar",
+				Addr: addrs.RootModuleInstance.Child("child", addrs.NoKey).ResourceInstance(
+					addrs.ManagedResourceMode, "aws_instance", "foo", addrs.NoKey,
+				),
+				ID: "bar",
 			},
 		},
 	})
@@ -281,14 +296,17 @@ func TestContextImport_providerVarConfig(t *testing.T) {
 	p := testProvider("aws")
 	m := testModule(t, "import-provider-vars")
 	ctx := testContext2(t, &ContextOpts{
-		Module: m,
+		Config: m,
 		ProviderResolver: ResourceProviderResolverFixed(
 			map[string]ResourceProviderFactory{
 				"aws": testProviderFuncFixed(p),
 			},
 		),
-		Variables: map[string]interface{}{
-			"foo": "bar",
+		Variables: InputValues{
+			"foo": &InputValue{
+				Value:      cty.StringVal("foo"),
+				SourceType: ValueFromCaller,
+			},
 		},
 	})
 
@@ -313,8 +331,10 @@ func TestContextImport_providerVarConfig(t *testing.T) {
 	state, err := ctx.Import(&ImportOpts{
 		Targets: []*ImportTarget{
 			&ImportTarget{
-				Addr: "aws_instance.foo",
-				ID:   "bar",
+				Addr: addrs.RootModuleInstance.ResourceInstance(
+					addrs.ManagedResourceMode, "aws_instance", "foo", addrs.NoKey,
+				),
+				ID: "bar",
 			},
 		},
 	})
@@ -338,7 +358,7 @@ func TestContextImport_providerNonVarConfig(t *testing.T) {
 	p := testProvider("aws")
 	m := testModule(t, "import-provider-non-vars")
 	ctx := testContext2(t, &ContextOpts{
-		Module: m,
+		Config: m,
 		ProviderResolver: ResourceProviderResolverFixed(
 			map[string]ResourceProviderFactory{
 				"aws": testProviderFuncFixed(p),
@@ -356,8 +376,10 @@ func TestContextImport_providerNonVarConfig(t *testing.T) {
 	_, err := ctx.Import(&ImportOpts{
 		Targets: []*ImportTarget{
 			&ImportTarget{
-				Addr: "aws_instance.foo",
-				ID:   "bar",
+				Addr: addrs.RootModuleInstance.ResourceInstance(
+					addrs.ManagedResourceMode, "aws_instance", "foo", addrs.NoKey,
+				),
+				ID: "bar",
 			},
 		},
 	})
@@ -370,7 +392,7 @@ func TestContextImport_refresh(t *testing.T) {
 	p := testProvider("aws")
 	m := testModule(t, "import-provider")
 	ctx := testContext2(t, &ContextOpts{
-		Module: m,
+		Config: m,
 		ProviderResolver: ResourceProviderResolverFixed(
 			map[string]ResourceProviderFactory{
 				"aws": testProviderFuncFixed(p),
@@ -395,8 +417,10 @@ func TestContextImport_refresh(t *testing.T) {
 	state, err := ctx.Import(&ImportOpts{
 		Targets: []*ImportTarget{
 			&ImportTarget{
-				Addr: "aws_instance.foo",
-				ID:   "bar",
+				Addr: addrs.RootModuleInstance.ResourceInstance(
+					addrs.ManagedResourceMode, "aws_instance", "foo", addrs.NoKey,
+				),
+				ID: "bar",
 			},
 		},
 	})
@@ -415,7 +439,7 @@ func TestContextImport_refreshNil(t *testing.T) {
 	p := testProvider("aws")
 	m := testModule(t, "import-provider")
 	ctx := testContext2(t, &ContextOpts{
-		Module: m,
+		Config: m,
 		ProviderResolver: ResourceProviderResolverFixed(
 			map[string]ResourceProviderFactory{
 				"aws": testProviderFuncFixed(p),
@@ -437,8 +461,10 @@ func TestContextImport_refreshNil(t *testing.T) {
 	state, err := ctx.Import(&ImportOpts{
 		Targets: []*ImportTarget{
 			&ImportTarget{
-				Addr: "aws_instance.foo",
-				ID:   "bar",
+				Addr: addrs.RootModuleInstance.ResourceInstance(
+					addrs.ManagedResourceMode, "aws_instance", "foo", addrs.NoKey,
+				),
+				ID: "bar",
 			},
 		},
 	})
@@ -457,7 +483,7 @@ func TestContextImport_module(t *testing.T) {
 	p := testProvider("aws")
 	m := testModule(t, "import-provider")
 	ctx := testContext2(t, &ContextOpts{
-		Module: m,
+		Config: m,
 		ProviderResolver: ResourceProviderResolverFixed(
 			map[string]ResourceProviderFactory{
 				"aws": testProviderFuncFixed(p),
@@ -475,8 +501,10 @@ func TestContextImport_module(t *testing.T) {
 	state, err := ctx.Import(&ImportOpts{
 		Targets: []*ImportTarget{
 			&ImportTarget{
-				Addr: "module.foo.aws_instance.foo",
-				ID:   "bar",
+				Addr: addrs.RootModuleInstance.Child("foo", addrs.NoKey).ResourceInstance(
+					addrs.ManagedResourceMode, "aws_instance", "foo", addrs.NoKey,
+				),
+				ID: "bar",
 			},
 		},
 	})
@@ -495,7 +523,7 @@ func TestContextImport_moduleDepth2(t *testing.T) {
 	p := testProvider("aws")
 	m := testModule(t, "import-provider")
 	ctx := testContext2(t, &ContextOpts{
-		Module: m,
+		Config: m,
 		ProviderResolver: ResourceProviderResolverFixed(
 			map[string]ResourceProviderFactory{
 				"aws": testProviderFuncFixed(p),
@@ -513,8 +541,10 @@ func TestContextImport_moduleDepth2(t *testing.T) {
 	state, err := ctx.Import(&ImportOpts{
 		Targets: []*ImportTarget{
 			&ImportTarget{
-				Addr: "module.a.module.b.aws_instance.foo",
-				ID:   "bar",
+				Addr: addrs.RootModuleInstance.Child("a", addrs.NoKey).Child("b", addrs.NoKey).ResourceInstance(
+					addrs.ManagedResourceMode, "aws_instance", "foo", addrs.NoKey,
+				),
+				ID: "bar",
 			},
 		},
 	})
@@ -533,7 +563,7 @@ func TestContextImport_moduleDiff(t *testing.T) {
 	p := testProvider("aws")
 	m := testModule(t, "import-provider")
 	ctx := testContext2(t, &ContextOpts{
-		Module: m,
+		Config: m,
 		ProviderResolver: ResourceProviderResolverFixed(
 			map[string]ResourceProviderFactory{
 				"aws": testProviderFuncFixed(p),
@@ -567,8 +597,10 @@ func TestContextImport_moduleDiff(t *testing.T) {
 	state, err := ctx.Import(&ImportOpts{
 		Targets: []*ImportTarget{
 			&ImportTarget{
-				Addr: "module.foo.aws_instance.foo",
-				ID:   "bar",
+				Addr: addrs.RootModuleInstance.Child("foo", addrs.NoKey).ResourceInstance(
+					addrs.ManagedResourceMode, "aws_instance", "foo", addrs.NoKey,
+				),
+				ID: "bar",
 			},
 		},
 	})
@@ -587,7 +619,7 @@ func TestContextImport_moduleExisting(t *testing.T) {
 	p := testProvider("aws")
 	m := testModule(t, "import-provider")
 	ctx := testContext2(t, &ContextOpts{
-		Module: m,
+		Config: m,
 		ProviderResolver: ResourceProviderResolverFixed(
 			map[string]ResourceProviderFactory{
 				"aws": testProviderFuncFixed(p),
@@ -621,8 +653,10 @@ func TestContextImport_moduleExisting(t *testing.T) {
 	state, err := ctx.Import(&ImportOpts{
 		Targets: []*ImportTarget{
 			&ImportTarget{
-				Addr: "module.foo.aws_instance.foo",
-				ID:   "bar",
+				Addr: addrs.RootModuleInstance.Child("foo", addrs.NoKey).ResourceInstance(
+					addrs.ManagedResourceMode, "aws_instance", "foo", addrs.NoKey,
+				),
+				ID: "bar",
 			},
 		},
 	})
@@ -641,7 +675,7 @@ func TestContextImport_multiState(t *testing.T) {
 	p := testProvider("aws")
 	m := testModule(t, "import-provider")
 	ctx := testContext2(t, &ContextOpts{
-		Module: m,
+		Config: m,
 		ProviderResolver: ResourceProviderResolverFixed(
 			map[string]ResourceProviderFactory{
 				"aws": testProviderFuncFixed(p),
@@ -663,8 +697,10 @@ func TestContextImport_multiState(t *testing.T) {
 	state, err := ctx.Import(&ImportOpts{
 		Targets: []*ImportTarget{
 			&ImportTarget{
-				Addr: "aws_instance.foo",
-				ID:   "bar",
+				Addr: addrs.RootModuleInstance.ResourceInstance(
+					addrs.ManagedResourceMode, "aws_instance", "foo", addrs.NoKey,
+				),
+				ID: "bar",
 			},
 		},
 	})
@@ -683,7 +719,7 @@ func TestContextImport_multiStateSame(t *testing.T) {
 	p := testProvider("aws")
 	m := testModule(t, "import-provider")
 	ctx := testContext2(t, &ContextOpts{
-		Module: m,
+		Config: m,
 		ProviderResolver: ResourceProviderResolverFixed(
 			map[string]ResourceProviderFactory{
 				"aws": testProviderFuncFixed(p),
@@ -709,8 +745,10 @@ func TestContextImport_multiStateSame(t *testing.T) {
 	state, err := ctx.Import(&ImportOpts{
 		Targets: []*ImportTarget{
 			&ImportTarget{
-				Addr: "aws_instance.foo",
-				ID:   "bar",
+				Addr: addrs.RootModuleInstance.ResourceInstance(
+					addrs.ManagedResourceMode, "aws_instance", "foo", addrs.NoKey,
+				),
+				ID: "bar",
 			},
 		},
 	})
@@ -730,7 +768,7 @@ func TestContextImport_customProviderMissing(t *testing.T) {
 	p := testProvider("aws")
 	m := testModule(t, "import-provider")
 	ctx := testContext2(t, &ContextOpts{
-		Module: m,
+		Config: m,
 		ProviderResolver: ResourceProviderResolverFixed(
 			map[string]ResourceProviderFactory{
 				"aws": testProviderFuncFixed(p),
@@ -748,9 +786,11 @@ func TestContextImport_customProviderMissing(t *testing.T) {
 	_, err := ctx.Import(&ImportOpts{
 		Targets: []*ImportTarget{
 			&ImportTarget{
-				Addr:     "aws_instance.foo",
-				ID:       "bar",
-				Provider: "aws.alias",
+				Addr: addrs.RootModuleInstance.ResourceInstance(
+					addrs.ManagedResourceMode, "aws_instance", "foo", addrs.NoKey,
+				),
+				ID:           "bar",
+				ProviderAddr: addrs.RootModuleInstance.ProviderConfigAliased("aws", "alias"),
 			},
 		},
 	})
@@ -763,7 +803,7 @@ func TestContextImport_customProvider(t *testing.T) {
 	p := testProvider("aws")
 	m := testModule(t, "import-provider-alias")
 	ctx := testContext2(t, &ContextOpts{
-		Module: m,
+		Config: m,
 		ProviderResolver: ResourceProviderResolverFixed(
 			map[string]ResourceProviderFactory{
 				"aws": testProviderFuncFixed(p),
@@ -781,9 +821,11 @@ func TestContextImport_customProvider(t *testing.T) {
 	state, err := ctx.Import(&ImportOpts{
 		Targets: []*ImportTarget{
 			&ImportTarget{
-				Addr:     "aws_instance.foo",
-				ID:       "bar",
-				Provider: "aws.alias",
+				Addr: addrs.RootModuleInstance.ResourceInstance(
+					addrs.ManagedResourceMode, "aws_instance", "foo", addrs.NoKey,
+				),
+				ID:           "bar",
+				ProviderAddr: addrs.RootModuleInstance.ProviderConfigAliased("aws", "alias"),
 			},
 		},
 	})

@@ -1,9 +1,11 @@
 package terraform
 
 import (
-	"reflect"
+	"fmt"
 	"strings"
 	"testing"
+
+	"github.com/hashicorp/terraform/addrs"
 )
 
 func TestPlanGraphBuilder_impl(t *testing.T) {
@@ -12,18 +14,27 @@ func TestPlanGraphBuilder_impl(t *testing.T) {
 
 func TestPlanGraphBuilder(t *testing.T) {
 	b := &PlanGraphBuilder{
-		Module:        testModule(t, "graph-builder-plan-basic"),
-		Providers:     []string{"aws", "openstack"},
+		Config: testModule(t, "graph-builder-plan-basic"),
+		Components: &basicComponentFactory{
+			providers: map[string]ResourceProviderFactory{
+				"aws": func() (ResourceProvider, error) {
+					return nil, fmt.Errorf("not implemented")
+				},
+				"openstack": func() (ResourceProvider, error) {
+					return nil, fmt.Errorf("not implemented")
+				},
+			},
+		},
 		DisableReduce: true,
 	}
 
-	g, err := b.Build(RootModulePath)
+	g, err := b.Build(addrs.RootModuleInstance)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
-	if !reflect.DeepEqual(g.Path, RootModulePath) {
-		t.Fatalf("bad: %#v", g.Path)
+	if g.Path.String() != addrs.RootModuleInstance.String() {
+		t.Fatalf("wrong module path %q", g.Path)
 	}
 
 	actual := strings.TrimSpace(g.String())
@@ -35,12 +46,23 @@ func TestPlanGraphBuilder(t *testing.T) {
 
 func TestPlanGraphBuilder_targetModule(t *testing.T) {
 	b := &PlanGraphBuilder{
-		Module:    testModule(t, "graph-builder-plan-target-module-provider"),
-		Providers: []string{"null"},
-		Targets:   []string{"module.child2"},
+		Config: testModule(t, "graph-builder-plan-target-module-provider"),
+		Components: &basicComponentFactory{
+			providers: map[string]ResourceProviderFactory{
+				"null": func() (ResourceProvider, error) {
+					return nil, fmt.Errorf("not implemented")
+				},
+				"openstack": func() (ResourceProvider, error) {
+					return nil, fmt.Errorf("not implemented")
+				},
+			},
+		},
+		Targets: []addrs.Targetable{
+			addrs.RootModuleInstance.Child("child2", addrs.NoKey),
+		},
 	}
 
-	g, err := b.Build(RootModulePath)
+	g, err := b.Build(addrs.RootModuleInstance)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}

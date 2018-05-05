@@ -3,10 +3,12 @@ package terraform
 import (
 	"strings"
 	"testing"
+
+	"github.com/hashicorp/terraform/addrs"
 )
 
 func TestDiffTransformer_nilDiff(t *testing.T) {
-	g := Graph{Path: RootModulePath}
+	g := Graph{Path: addrs.RootModuleInstance}
 	tf := &DiffTransformer{}
 	if err := tf.Transform(&g); err != nil {
 		t.Fatalf("err: %s", err)
@@ -18,7 +20,7 @@ func TestDiffTransformer_nilDiff(t *testing.T) {
 }
 
 func TestDiffTransformer(t *testing.T) {
-	g := Graph{Path: RootModulePath}
+	g := Graph{Path: addrs.RootModuleInstance}
 	tf := &DiffTransformer{
 		Diff: &Diff{
 			Modules: []*ModuleDiff{

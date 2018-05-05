@@ -1,6 +1,11 @@
 package terraform
 
-import "testing"
+import (
+	"fmt"
+	"testing"
+
+	"github.com/hashicorp/terraform/addrs"
+)
 
 func TestRefreshGraphBuilder_configOrphans(t *testing.T) {
 
@@ -65,11 +70,17 @@ func TestRefreshGraphBuilder_configOrphans(t *testing.T) {
 	}
 
 	b := &RefreshGraphBuilder{
-		Module:    m,
-		State:     state,
-		Providers: []string{"aws"},
+		Config: m,
+		State:  state,
+		Components: &basicComponentFactory{
+			providers: map[string]ResourceProviderFactory{
+				"aws": func() (ResourceProvider, error) {
+					return nil, fmt.Errorf("not implemented")
+				},
+			},
+		},
 	}
-	g, err := b.Build(rootModulePath)
+	g, err := b.Build(addrs.RootModuleInstance)
 	if err != nil {
 		t.Fatalf("Error building graph: %s", err)
 	}

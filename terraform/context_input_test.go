@@ -6,6 +6,8 @@ import (
 	"strings"
 	"sync"
 	"testing"
+
+	"github.com/zclconf/go-cty/cty"
 )
 
 func TestContext2Input(t *testing.T) {
@@ -15,18 +17,23 @@ func TestContext2Input(t *testing.T) {
 	p.ApplyFn = testApplyFn
 	p.DiffFn = testDiffFn
 	ctx := testContext2(t, &ContextOpts{
-		Module: m,
+		Config: m,
 		ProviderResolver: ResourceProviderResolverFixed(
 			map[string]ResourceProviderFactory{
 				"aws": testProviderFuncFixed(p),
 			},
 		),
-		Variables: map[string]interface{}{
-			"foo": "us-west-2",
-			"amis": []map[string]interface{}{
-				map[string]interface{}{
-					"us-east-1": "override",
-				},
+		Variables: InputValues{
+			"foo": &InputValue{
+				Value:      cty.StringVal("us-west-2"),
+				SourceType: ValueFromCaller,
+			},
+			"amis": &InputValue{
+				Value: cty.ListVal([]cty.Value{
+					cty.MapVal(map[string]cty.Value{
+						"us-east-1": cty.StringVal("override"),
+					}),
+				}),
 			},
 		},
 		UIInput: input,
@@ -62,7 +69,7 @@ func TestContext2Input_moduleComputedOutputElement(t *testing.T) {
 	p.ApplyFn = testApplyFn
 	p.DiffFn = testDiffFn
 	ctx := testContext2(t, &ContextOpts{
-		Module: m,
+		Config: m,
 		ProviderResolver: ResourceProviderResolverFixed(
 			map[string]ResourceProviderFactory{
 				"aws": testProviderFuncFixed(p),
@@ -85,7 +92,7 @@ func TestContext2Input_badVarDefault(t *testing.T) {
 	p.ApplyFn = testApplyFn
 	p.DiffFn = testDiffFn
 	ctx := testContext2(t, &ContextOpts{
-		Module: m,
+		Config: m,
 		ProviderResolver: ResourceProviderResolverFixed(
 			map[string]ResourceProviderFactory{
 				"aws": testProviderFuncFixed(p),
@@ -109,7 +116,7 @@ func TestContext2Input_provider(t *testing.T) {
 	p.ApplyFn = testApplyFn
 	p.DiffFn = testDiffFn
 	ctx := testContext2(t, &ContextOpts{
-		Module: m,
+		Config: m,
 		ProviderResolver: ResourceProviderResolverFixed(
 			map[string]ResourceProviderFactory{
 				"aws": testProviderFuncFixed(p),
@@ -153,7 +160,7 @@ func TestContext2Input_providerMulti(t *testing.T) {
 	p.ApplyFn = testApplyFn
 	p.DiffFn = testDiffFn
 	ctx := testContext2(t, &ContextOpts{
-		Module: m,
+		Config: m,
 		ProviderResolver: ResourceProviderResolverFixed(
 			map[string]ResourceProviderFactory{
 				"aws": testProviderFuncFixed(p),
@@ -201,7 +208,7 @@ func TestContext2Input_providerOnce(t *testing.T) {
 	p.ApplyFn = testApplyFn
 	p.DiffFn = testDiffFn
 	ctx := testContext2(t, &ContextOpts{
-		Module: m,
+		Config: m,
 		ProviderResolver: ResourceProviderResolverFixed(
 			map[string]ResourceProviderFactory{
 				"aws": testProviderFuncFixed(p),
@@ -240,7 +247,7 @@ func TestContext2Input_providerId(t *testing.T) {
 	p.ApplyFn = testApplyFn
 	p.DiffFn = testDiffFn
 	ctx := testContext2(t, &ContextOpts{
-		Module: m,
+		Config: m,
 		ProviderResolver: ResourceProviderResolverFixed(
 			map[string]ResourceProviderFactory{
 				"aws": testProviderFuncFixed(p),
@@ -292,14 +299,17 @@ func TestContext2Input_providerOnly(t *testing.T) {
 	p.ApplyFn = testApplyFn
 	p.DiffFn = testDiffFn
 	ctx := testContext2(t, &ContextOpts{
-		Module: m,
+		Config: m,
 		ProviderResolver: ResourceProviderResolverFixed(
 			map[string]ResourceProviderFactory{
 				"aws": testProviderFuncFixed(p),
 			},
 		),
-		Variables: map[string]interface{}{
-			"foo": "us-west-2",
+		Variables: InputValues{
+			"foo": &InputValue{
+				Value:      cty.StringVal("us-west-2"),
+				SourceType: ValueFromCaller,
+			},
 		},
 		UIInput: input,
 	})
@@ -349,14 +359,17 @@ func TestContext2Input_providerVars(t *testing.T) {
 	p.ApplyFn = testApplyFn
 	p.DiffFn = testDiffFn
 	ctx := testContext2(t, &ContextOpts{
-		Module: m,
+		Config: m,
 		ProviderResolver: ResourceProviderResolverFixed(
 			map[string]ResourceProviderFactory{
 				"aws": testProviderFuncFixed(p),
 			},
 		),
-		Variables: map[string]interface{}{
-			"foo": "bar",
+		Variables: InputValues{
+			"foo": &InputValue{
+				Value:      cty.StringVal("bar"),
+				SourceType: ValueFromCaller,
+			},
 		},
 		UIInput: input,
 	})
@@ -399,7 +412,7 @@ func TestContext2Input_providerVarsModuleInherit(t *testing.T) {
 	p.ApplyFn = testApplyFn
 	p.DiffFn = testDiffFn
 	ctx := testContext2(t, &ContextOpts{
-		Module: m,
+		Config: m,
 		ProviderResolver: ResourceProviderResolverFixed(
 			map[string]ResourceProviderFactory{
 				"aws": testProviderFuncFixed(p),
@@ -430,14 +443,17 @@ func TestContext2Input_varOnly(t *testing.T) {
 	p.ApplyFn = testApplyFn
 	p.DiffFn = testDiffFn
 	ctx := testContext2(t, &ContextOpts{
-		Module: m,
+		Config: m,
 		ProviderResolver: ResourceProviderResolverFixed(
 			map[string]ResourceProviderFactory{
 				"aws": testProviderFuncFixed(p),
 			},
 		),
-		Variables: map[string]interface{}{
-			"foo": "us-west-2",
+		Variables: InputValues{
+			"foo": &InputValue{
+				Value:      cty.StringVal("us-west-2"),
+				SourceType: ValueFromCaller,
+			},
 		},
 		UIInput: input,
 	})
@@ -487,14 +503,17 @@ func TestContext2Input_varOnlyUnset(t *testing.T) {
 	p.ApplyFn = testApplyFn
 	p.DiffFn = testDiffFn
 	ctx := testContext2(t, &ContextOpts{
-		Module: m,
+		Config: m,
 		ProviderResolver: ResourceProviderResolverFixed(
 			map[string]ResourceProviderFactory{
 				"aws": testProviderFuncFixed(p),
 			},
 		),
-		Variables: map[string]interface{}{
-			"foo": "foovalue",
+		Variables: InputValues{
+			"foo": &InputValue{
+				Value:      cty.StringVal("foovalue"),
+				SourceType: ValueFromCaller,
+			},
 		},
 		UIInput: input,
 	})
@@ -531,13 +550,13 @@ func TestContext2Input_varWithDefault(t *testing.T) {
 	p.ApplyFn = testApplyFn
 	p.DiffFn = testDiffFn
 	ctx := testContext2(t, &ContextOpts{
-		Module: m,
+		Config: m,
 		ProviderResolver: ResourceProviderResolverFixed(
 			map[string]ResourceProviderFactory{
 				"aws": testProviderFuncFixed(p),
 			},
 		),
-		Variables: map[string]interface{}{},
+		Variables: InputValues{},
 		UIInput:   input,
 	})
 
@@ -580,14 +599,17 @@ func TestContext2Input_varPartiallyComputed(t *testing.T) {
 	p.ApplyFn = testApplyFn
 	p.DiffFn = testDiffFn
 	ctx := testContext2(t, &ContextOpts{
-		Module: m,
+		Config: m,
 		ProviderResolver: ResourceProviderResolverFixed(
 			map[string]ResourceProviderFactory{
 				"aws": testProviderFuncFixed(p),
 			},
 		),
-		Variables: map[string]interface{}{
-			"foo": "foovalue",
+		Variables: InputValues{
+			"foo": &InputValue{
+				Value:      cty.StringVal("foovalue"),
+				SourceType: ValueFromCaller,
+			},
 		},
 		UIInput: input,
 		State: &State{
@@ -645,7 +667,7 @@ func TestContext2Input_interpolateVar(t *testing.T) {
 	p.DiffFn = testDiffFn
 
 	ctx := testContext2(t, &ContextOpts{
-		Module: m,
+		Config: m,
 		ProviderResolver: ResourceProviderResolverFixed(
 			map[string]ResourceProviderFactory{
 				"template": testProviderFuncFixed(p),
@@ -666,13 +688,13 @@ func TestContext2Input_hcl(t *testing.T) {
 	p.ApplyFn = testApplyFn
 	p.DiffFn = testDiffFn
 	ctx := testContext2(t, &ContextOpts{
-		Module: m,
+		Config: m,
 		ProviderResolver: ResourceProviderResolverFixed(
 			map[string]ResourceProviderFactory{
 				"hcl": testProviderFuncFixed(p),
 			},
 		),
-		Variables: map[string]interface{}{},
+		Variables: InputValues{},
 		UIInput:   input,
 	})
 
@@ -710,7 +732,7 @@ func TestContext2Input_submoduleTriggersInvalidCount(t *testing.T) {
 	p.ApplyFn = testApplyFn
 	p.DiffFn = testDiffFn
 	ctx := testContext2(t, &ContextOpts{
-		Module: m,
+		Config: m,
 		ProviderResolver: ResourceProviderResolverFixed(
 			map[string]ResourceProviderFactory{
 				"aws": testProviderFuncFixed(p),
@@ -762,7 +784,7 @@ func TestContext2Input_dataSourceRequiresRefresh(t *testing.T) {
 	}
 
 	ctx := testContext2(t, &ContextOpts{
-		Module: m,
+		Config: m,
 		ProviderResolver: ResourceProviderResolverFixed(
 			map[string]ResourceProviderFactory{
 				"null": testProviderFuncFixed(p),
