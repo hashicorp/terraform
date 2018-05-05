@@ -5,16 +5,13 @@ import (
 	"sync"
 	"testing"
 
+	"github.com/hashicorp/terraform/addrs"
+
 	"github.com/davecgh/go-spew/spew"
 )
 
 func TestNodeRefreshableManagedResourceDynamicExpand_scaleOut(t *testing.T) {
 	var stateLock sync.RWMutex
-
-	addr, err := ParseResourceAddress("aws_instance.foo")
-	if err != nil {
-		t.Fatalf("bad: %s", err)
-	}
 
 	m := testModule(t, "refresh-resource-scale-inout")
 
@@ -45,16 +42,16 @@ func TestNodeRefreshableManagedResourceDynamicExpand_scaleOut(t *testing.T) {
 	}
 
 	n := &NodeRefreshableManagedResource{
-		NodeAbstractCountResource: &NodeAbstractCountResource{
-			NodeAbstractResource: &NodeAbstractResource{
-				Addr:   addr,
-				Config: m.Config().Resources[0],
-			},
+		NodeAbstractResource: &NodeAbstractResource{
+			Addr: addrs.RootModuleInstance.Resource(
+				addrs.ManagedResourceMode, "aws_instance", "foo",
+			),
+			Config: m.Module.ManagedResources["aws_instance.foo"],
 		},
 	}
 
 	g, err := n.DynamicExpand(&MockEvalContext{
-		PathPath:   []string{"root"},
+		PathPath:   addrs.RootModuleInstance,
 		StateState: state,
 		StateLock:  &stateLock,
 	})
@@ -78,11 +75,6 @@ root - terraform.graphNodeRoot
 
 func TestNodeRefreshableManagedResourceDynamicExpand_scaleIn(t *testing.T) {
 	var stateLock sync.RWMutex
-
-	addr, err := ParseResourceAddress("aws_instance.foo")
-	if err != nil {
-		t.Fatalf("bad: %s", err)
-	}
 
 	m := testModule(t, "refresh-resource-scale-inout")
 
@@ -129,16 +121,16 @@ func TestNodeRefreshableManagedResourceDynamicExpand_scaleIn(t *testing.T) {
 	}
 
 	n := &NodeRefreshableManagedResource{
-		NodeAbstractCountResource: &NodeAbstractCountResource{
-			NodeAbstractResource: &NodeAbstractResource{
-				Addr:   addr,
-				Config: m.Config().Resources[0],
-			},
+		NodeAbstractResource: &NodeAbstractResource{
+			Addr: addrs.RootModuleInstance.Resource(
+				addrs.ManagedResourceMode, "aws_instance", "foo",
+			),
+			Config: m.Module.ManagedResources["aws_instance.foo"],
 		},
 	}
 
 	g, err := n.DynamicExpand(&MockEvalContext{
-		PathPath:   []string{"root"},
+		PathPath:   addrs.RootModuleInstance,
 		StateState: state,
 		StateLock:  &stateLock,
 	})
@@ -162,17 +154,17 @@ root - terraform.graphNodeRoot
 }
 
 func TestNodeRefreshableManagedResourceEvalTree_scaleOut(t *testing.T) {
-	addr, err := ParseResourceAddress("aws_instance.foo[2]")
-	if err != nil {
-		t.Fatalf("bad: %s", err)
-	}
-
 	m := testModule(t, "refresh-resource-scale-inout")
 
 	n := &NodeRefreshableManagedResourceInstance{
-		NodeAbstractResource: &NodeAbstractResource{
-			Addr:   addr,
-			Config: m.Config().Resources[0],
+		NodeAbstractResourceInstance: &NodeAbstractResourceInstance{
+			NodeAbstractResource: NodeAbstractResource{
+				Addr: addrs.RootModuleInstance.Resource(
+					addrs.ManagedResourceMode, "aws_instance", "foo",
+				),
+				Config: m.Module.ManagedResources["aws_instance.foo"],
+			},
+			InstanceKey: addrs.IntKey(2),
 		},
 	}
 

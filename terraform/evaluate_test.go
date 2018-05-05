@@ -16,7 +16,10 @@ func TestEvaluatorGetTerraformAttr(t *testing.T) {
 			Env: "foo",
 		},
 	}
-	scope := evaluator.Scope(addrs.RootModuleInstance, nil)
+	data := &evaluationStateData{
+		Evaluator: evaluator,
+	}
+	scope := evaluator.Scope(data, nil)
 
 	t.Run("workspace", func(t *testing.T) {
 		want := cty.StringVal("foo")

@@ -97,7 +97,7 @@ func TestDebug_plan(t *testing.T) {
 	p := testProvider("aws")
 	p.DiffFn = testDiffFn
 	ctx := testContext2(t, &ContextOpts{
-		Module: m,
+		Config: m,
 		ProviderResolver: ResourceProviderResolverFixed(
 			map[string]ResourceProviderFactory{
 				"aws": testProviderFuncFixed(p),
@@ -105,9 +105,9 @@ func TestDebug_plan(t *testing.T) {
 		),
 	})
 
-	_, err = ctx.Plan()
-	if err != nil {
-		t.Fatalf("err: %s", err)
+	_, diags := ctx.Plan()
+	if diags.HasErrors() {
+		t.Fatalf("err: %s", diags.Err())
 	}
 
 	err = CloseDebugInfo()

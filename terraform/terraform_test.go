@@ -16,7 +16,6 @@ import (
 
 	"github.com/hashicorp/terraform/configs"
 
-	"github.com/hashicorp/terraform/config/module"
 	"github.com/hashicorp/terraform/helper/experiment"
 	"github.com/hashicorp/terraform/helper/logging"
 )
@@ -84,7 +83,6 @@ func testModule(t *testing.T, name string) *configs.Config {
 	t.Helper()
 
 	dir := filepath.Join(fixtureDir, name)
-	p := configs.NewParser(nil)
 
 	// FIXME: We're not dealing with the cleanup function here because
 	// this testModule function is used all over and so we don't want to
@@ -107,7 +105,7 @@ func testModule(t *testing.T, name string) *configs.Config {
 
 // testModuleInline takes a map of path -> config strings and yields a config
 // structure with those files loaded from disk
-func testModuleInline(t *testing.T, config map[string]string) *module.Tree {
+func testModuleInline(t *testing.T, sources map[string]string) *configs.Config {
 	t.Helper()
 
 	cfgPath, err := ioutil.TempDir("", "tf-test")
@@ -116,7 +114,7 @@ func testModuleInline(t *testing.T, config map[string]string) *module.Tree {
 	}
 	defer os.RemoveAll(cfgPath)
 
-	for path, configStr := range config {
+	for path, configStr := range sources {
 		dir := filepath.Dir(path)
 		if dir != "." {
 			err := os.MkdirAll(filepath.Join(cfgPath, dir), os.FileMode(0777))
@@ -137,23 +135,23 @@ func testModuleInline(t *testing.T, config map[string]string) *module.Tree {
 		}
 	}
 
-	// Parse the configuration
-	mod, err := module.NewTreeModule("", cfgPath)
-	if err != nil {
-		t.Fatalf("Error loading configuration: %s", err)
+	// FIXME: We're not dealing with the cleanup function here because
+	// this testModule function is used all over and so we don't want to
+	// change its interface at this late stage.
+	loader, _ := configload.NewLoaderForTests(t)
+
+	// Test modules usually do not refer to remote sources, and for local
+	// sources only this ultimately just records all of the module paths
+	// in a JSON file so that we can load them below.
+	diags := loader.InstallModules(cfgPath, true, configload.InstallHooksImpl{})
+	t.Fatal(diags.Error())
+
+	config, diags := loader.LoadConfig(cfgPath)
+	if diags.HasErrors() {
+		t.Fatal(diags.Error())
 	}
 
-	// Load the modules
-	modStorage := &module.Storage{
-		StorageDir: filepath.Join(cfgPath, ".tfmodules"),
-		Mode:       module.GetModeGet,
-	}
-	err = mod.Load(modStorage)
-	if err != nil {
-		t.Errorf("Error downloading modules: %s", err)
-	}
-
-	return mod
+	return config
 }
 
 func testStringMatch(t *testing.T, s fmt.Stringer, expected string) {

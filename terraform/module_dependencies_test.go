@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/davecgh/go-spew/spew"
-	"github.com/hashicorp/terraform/config/module"
+	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/moduledeps"
 	"github.com/hashicorp/terraform/plugin/discovery"
 )
@@ -243,12 +243,12 @@ func TestModuleTreeDependencies(t *testing.T) {
 
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
-			var root *module.Tree
+			var root *configs.Config
 			if test.ConfigDir != "" {
 				root = testModule(t, test.ConfigDir)
 			}
 
-			got := ModuleTreeDependencies(root, test.State)
+			got := ConfigTreeDependencies(root, test.State)
 			if !got.Equal(test.Want) {
 				t.Errorf(
 					"wrong dependency tree\ngot:  %s\nwant: %s",

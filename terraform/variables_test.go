@@ -3,169 +3,91 @@ package terraform
 import (
 	"reflect"
 	"testing"
+
+	"github.com/zclconf/go-cty/cty"
 )
 
 func TestVariables(t *testing.T) {
 	cases := map[string]struct {
 		Module   string
-		Env      map[string]string
-		Override map[string]interface{}
-		Error    bool
-		Expected map[string]interface{}
+		Override map[string]cty.Value
+		Expected map[string]cty.Value
 	}{
 		"config only": {
 			"vars-basic",
 			nil,
-			nil,
-			false,
-			map[string]interface{}{
-				"a": "foo",
-				"b": []interface{}{},
-				"c": map[string]interface{}{},
-			},
-		},
-
-		"env vars": {
-			"vars-basic",
-			map[string]string{
-				"TF_VAR_a": "bar",
-				"TF_VAR_b": `["foo", "bar"]`,
-				"TF_VAR_c": `{"foo" = "bar"}`,
-			},
-			nil,
-			false,
-			map[string]interface{}{
-				"a": "bar",
-				"b": []interface{}{"foo", "bar"},
-				"c": map[string]interface{}{
-					"foo": "bar",
-				},
+			map[string]cty.Value{
+				"a": cty.StringVal("foo"),
+				"b": cty.ListValEmpty(cty.String),
+				"c": cty.MapValEmpty(cty.String),
 			},
 		},
 
 		"override": {
 			"vars-basic",
-			nil,
-			map[string]interface{}{
-				"a": "bar",
-				"b": []interface{}{"foo", "bar"},
-				"c": map[string]interface{}{
-					"foo": "bar",
-				},
+			map[string]cty.Value{
+				"a": cty.StringVal("bar"),
+				"b": cty.ListVal([]cty.Value{
+					cty.StringVal("foo"),
+					cty.StringVal("bar"),
+				}),
+				"c": cty.MapVal(map[string]cty.Value{
+					"foo": cty.StringVal("bar"),
+				}),
 			},
-			false,
-			map[string]interface{}{
-				"a": "bar",
-				"b": []interface{}{"foo", "bar"},
-				"c": map[string]interface{}{
-					"foo": "bar",
-				},
-			},
-		},
-
-		"override partial map": {
-			"vars-basic",
-			map[string]string{
-				"TF_VAR_c": `{"foo" = "a", "bar" = "baz"}`,
-			},
-			map[string]interface{}{
-				"c": map[string]interface{}{
-					"foo": "bar",
-				},
-			},
-			false,
-			map[string]interface{}{
-				"a": "foo",
-				"b": []interface{}{},
-				"c": map[string]interface{}{
-					"foo": "bar",
-					"bar": "baz",
-				},
+			map[string]cty.Value{
+				"a": cty.StringVal("bar"),
+				"b": cty.ListVal([]cty.Value{
+					cty.StringVal("foo"),
+					cty.StringVal("bar"),
+				}),
+				"c": cty.MapVal(map[string]cty.Value{
+					"foo": cty.StringVal("bar"),
+				}),
 			},
 		},
 
 		"bools: config only": {
 			"vars-basic-bool",
 			nil,
-			nil,
-			false,
-			map[string]interface{}{
-				"a": "1",
-				"b": "0",
+			map[string]cty.Value{
+				"a": cty.StringVal("1"),
+				"b": cty.StringVal("0"),
 			},
 		},
 
 		"bools: override with string": {
 			"vars-basic-bool",
-			nil,
-			map[string]interface{}{
-				"a": "foo",
-				"b": "bar",
+			map[string]cty.Value{
+				"a": cty.StringVal("foo"),
+				"b": cty.StringVal("bar"),
 			},
-			false,
-			map[string]interface{}{
-				"a": "foo",
-				"b": "bar",
-			},
-		},
-
-		"bools: override with env": {
-			"vars-basic-bool",
-			map[string]string{
-				"TF_VAR_a": "false",
-				"TF_VAR_b": "true",
-			},
-			nil,
-			false,
-			map[string]interface{}{
-				"a": "false",
-				"b": "true",
+			map[string]cty.Value{
+				"a": cty.StringVal("foo"),
+				"b": cty.StringVal("bar"),
 			},
 		},
 
 		"bools: override with bool": {
 			"vars-basic-bool",
-			nil,
-			map[string]interface{}{
-				"a": false,
-				"b": true,
+			map[string]cty.Value{
+				"a": cty.False,
+				"b": cty.True,
 			},
-			false,
-			map[string]interface{}{
-				"a": "0",
-				"b": "1",
+			map[string]cty.Value{
+				"a": cty.StringVal("0"),
+				"b": cty.StringVal("1"),
 			},
-		},
-
-		"override map with string": {
-			"vars-basic",
-			map[string]string{
-				"TF_VAR_c": `{"foo" = "a", "bar" = "baz"}`,
-			},
-			map[string]interface{}{
-				"c": "bar",
-			},
-			true,
-			nil,
 		},
 	}
 
 	for name, tc := range cases {
 		// Wrapped in a func so we can get defers to work
 		t.Run(name, func(t *testing.T) {
-			// Set the env vars
-			for k, v := range tc.Env {
-				defer tempEnv(t, k, v)()
-			}
-
 			m := testModule(t, tc.Module)
-			actual, err := Variables(m, tc.Override)
-			if (err != nil) != tc.Error {
-				t.Fatalf("%s: err: %s", name, err)
-			}
-			if err != nil {
-				return
-			}
+			fromConfig := DefaultVariableValues(m.Module.Variables)
+			overrides := InputValuesFromCaller(tc.Override)
+			actual := fromConfig.Override(overrides)
 
 			if !reflect.DeepEqual(actual, tc.Expected) {
 				t.Fatalf("%s\n\nexpected: %#v\n\ngot: %#v", name, tc.Expected, actual)
