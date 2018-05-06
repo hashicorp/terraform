@@ -100,7 +100,7 @@ Because of this, in most cases it is not necessary to mention explicitly
 any dependencies between resources.
 
 However, in some less-common situations there are dependencies between
-resources that cannot be expressed directly in configuration. For example,
+resources that cannot be recognized implicitly in configuration. For example,
 if Terraform is being used to both manage access control policies _and_ take
 actions that require those policies to be present, there may be a hidden
 dependency between the access policy and a resource whose creation depends
@@ -161,6 +161,10 @@ to other resources in the same module. Arbitrary expressions are not allowed
 in the `depends_on` argument value, because its value must be known before
 Terraform knows resource relationships and thus before it can safely
 evaluate expressions.
+
+The `depends_on` argument should be used only as a last resort. When using it,
+always include a comment explaining why it is being used, to help future
+maintainers understand the purpose of the additional dependency.
 
 ## Multiple Resource Instances
 
