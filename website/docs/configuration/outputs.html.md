@@ -1,106 +1,122 @@
 ---
 layout: "docs"
-page_title: "Configuring Outputs"
+page_title: "Configuring Output Values"
 sidebar_current: "docs-config-outputs"
 description: |-
-  Outputs define values that will be highlighted to the user when Terraform applies, and can be queried easily using the output command. Output usage is covered in more detail in the getting started guide. This page covers configuration syntax for outputs.
+  Output values are the return values of a Terraform module.
 ---
 
-# Output Configuration
+# Output Values
 
-Outputs define values that will be highlighted to the user
-when Terraform applies, and can be queried easily using the
-[output command](/docs/commands/output.html). Output usage
-is covered in more detail in the
-[getting started guide](/intro/getting-started/outputs.html).
-This page covers configuration syntax for outputs.
+Output values are like the return values of a Terraform module, allowing
+a subset of the resource attributes within a child module to be exposed to
+a parent module, or making certain values from a root module visible in the
+CLI output after running `terraform apply`.
 
-Terraform knows a lot about the infrastructure it manages.
-Most resources have attributes associated with them, and
-outputs are a way to easily extract and query that information.
+Resource instances managed by Terraform each export attributes whose values
+can be used elsewhere in configuration. Output values are a way to expose some
+of that information to the user of your module.
 
-This page assumes you are familiar with the
-[configuration syntax](/docs/configuration/syntax.html)
-already.
+## Declaring an Output Value
 
-## Example
-
-A simple output configuration looks like the following:
+Each output value exported by a module must be declared using an `output`
+block:
 
 ```hcl
-output "address" {
-  value = "${aws_instance.db.public_dns}"
+output "instance_ip_addr" {
+  value = aws_instance.server.private_ip
 }
 ```
 
-This will output a string value corresponding to the public
-DNS address of the Terraform-defined AWS instance named "db". It
-is possible to export complex data types like maps and lists as
-well:
+The label immediately after the `output` keyword is the name that can be used
+to access this output in the parent module, if any, or the name that will be
+displayed to the user for output values in the root module.
+
+For brevity, output values are often referred to simply as "outputs", where
+the meaning is clear from context.
+
+The `value` argument takes an [expression](/docs/configuration/expressions.html)
+whose result is to be returned to the user. In this example, the expression
+refers to the `private_ip` attribute exposed by an `aws_instance` resource
+defined elsewhere in this module (not shown). Any valid expression is allowed
+as an output value.
+
+Several other optional arguments are allowed within `output` blocks. These
+will be described in the following sections.
+
+## Output Value Documentation
+
+Because the output values of a module are part of the user interface of
+the module, you may specify a short description of the purpose of each
+value using the optional `description` argument:
 
 ```hcl
-output "addresses" {
-  value = ["${aws_instance.web.*.public_dns}"]
+output "instance_ip_addr" {
+  value       = aws_instance.server.private_ip
+  description = "The private IP address of the main server instance."
 }
 ```
 
-## Description
+The description for an output value should be a concise description of the
+purpose of the variable and what kind of value is expected. This description
+string may be included in documentation about the module, and so it should be
+written from the perspective of the user of the module rather than its
+maintainer. For commentary for module maintainers, use comments.
 
-The `output` block configures a single output variable. Multiple
-output variables can be configured with multiple output blocks.
-The `NAME` given to the output block is the name used to reference
-the output variable. It must conform to Terraform variable naming
-conventions if it is to be used as an input to other modules.
+## Sensitive Output Values
 
-Within the block (the `{ }`) is configuration for the output.
-These are the parameters that can be set:
-
-- `value` (required) - The value of the output. This can be a string, list, or
-  map. This usually includes an interpolation since outputs that are static
-  aren't usually useful.
-
-- `description` (optional) - A human-friendly description for the output. This
-  is primarily for documentation for users using your Terraform configuration. A
-  future version of Terraform will expose these descriptions as part of some
-  Terraform CLI command.
-
-- `depends_on` (list of strings) - Explicit dependencies that this output has.
-  These dependencies will be created before this output value is processed. The
-  dependencies are in the format of `TYPE.NAME`, for example `aws_instance.web`.
-
-- `sensitive` (optional, boolean) - See below.
-
-## Syntax
-
-The full syntax is:
-
-```text
-output NAME {
-  value = VALUE
-}
-```
-
-## Sensitive Outputs
-
-Outputs can be marked as containing sensitive material by setting the
-`sensitive` attribute to `true`, like this:
+An output can be marked as containing sensitive material using the optional
+`sensitive` argument:
 
 ```hcl
-output "sensitive" {
-  sensitive = true
-  value     = VALUE
+output "db_password" {
+  value       = aws_db_instance.db.password
+  description = "The password for logging in to the database."
+  sensitive   = true
 }
 ```
 
-When outputs are displayed on-screen following a `terraform apply` or
-`terraform refresh`, sensitive outputs are redacted, with `<sensitive>`
-displayed in place of their value.
+Setting an output value in the root module as sensitive prevents Terraform
+from showing its value at the end of `terraform apply`. It may still be shown
+in the CLI output for other reasons, such as if the value is referenced in
+an expression for a resource argument.
 
-### Limitations of Sensitive Outputs
+Sensitive output values are still recorded in the
+[state](/docs/state/index.html), and so will be visible to anyone who is able
+to access the state data. For more information, see
+[_Sensitive Data in State_](/docs/state/sensitive-data.html).
 
-- The values of sensitive outputs are still stored in the Terraform state, and
-  available using the `terraform output` command, so cannot be relied on as a
-  sole means of protecting values.
+## Output Dependencies
 
-- Sensitivity is not tracked internally, so if the output is interpolated in
-  another module into a resource, the value will be displayed.
+Since output values are just a means for passing data out of a module, it is
+usually not necessary to worry about their relationships with other nodes in
+the dependency graph.
+
+However, when a parent module accesses an output value exported by one of its
+child modules, the dependencies of that output value allow Terraform to
+correctly determine the dependencies between resources defined in different
+modules.
+
+Just as with
+[resource dependencies](/docs/configuration/resources.html#resource-dependencies),
+Terraform analyzes the `value` expression for an output value and autmatically
+determines a set of dependencies, but in less-common cases there are
+dependencies that cannot be recognized implicitly. In these rare cases, the
+`depends_on` argument can be used to create additional explicit dependencies:
+
+```hcl
+output "instance_ip_addr" {
+  value       = aws_instance.server.private_ip
+  description = "The private IP address of the main server instance."
+
+  depends_on = [
+    # Security group rule must be created before this IP address could
+    # actually be used, otherwise the services will be unreachable.
+    aws_security_group_rule.local_access,
+  ]
+}
+```
+
+The `depends_on` argument should be used only as a last resort. When using it,
+always include a comment explaining why it is being used, to help future
+maintainers understand the purpose of the additional dependency.
