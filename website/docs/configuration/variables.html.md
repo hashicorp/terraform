@@ -60,6 +60,23 @@ if no overridden value is set when calling the module. The `default` argument
 requires a literal value and cannot reference other objects in the
 configuration.
 
+## Using Input Variable Values
+
+Within the module that declared a variable, its value can be accessed from
+within [expressions](/docs/configuration/expressions.html) using an expression
+like `var.image_id`, where the name after the period corresponds to the label
+given in the declaration block:
+
+```hcl
+resource "aws_instance" "example" {
+  instance_type = "t2.micro"
+  ami           = var.image_id
+}
+```
+
+The value assigned to a variable can be accessed only from expressions within
+the module where it was declared.
+
 ## Type Constraints
 
 The `type` argument in a `variable` block allows you to restrict the type of
