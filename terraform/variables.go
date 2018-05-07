@@ -1,6 +1,8 @@
 package terraform
 
 import (
+	"fmt"
+
 	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/tfdiags"
 	"github.com/zclconf/go-cty/cty"
@@ -56,6 +58,18 @@ const (
 	// a caller to Context.SetVariable after the context was constructed.
 	ValueFromCaller ValueSourceType = 'S'
 )
+
+func (v *InputValue) GoString() string {
+	if (v.SourceRange != tfdiags.SourceRange{}) {
+		return fmt.Sprintf("&terraform.InputValue{Value: %#v, SourceType: %#v, SourceRange: %#v}", v.Value, v.SourceType, v.SourceRange)
+	} else {
+		return fmt.Sprintf("&terraform.InputValue{Value: %#v, SourceType: %#v}", v.Value, v.SourceType)
+	}
+}
+
+func (v ValueSourceType) GoString() string {
+	return fmt.Sprintf("terraform.%s", v)
+}
 
 //go:generate stringer -type ValueSourceType
 
@@ -123,4 +137,85 @@ func DefaultVariableValues(configs map[string]*configs.Variable) InputValues {
 		}
 	}
 	return ret
+}
+
+// SameValues returns true if the given InputValues has the same values as
+// the receiever, disregarding the source types and source ranges.
+//
+// Values are compared using the cty "RawEquals" method, which means that
+// unknown values can be considered equal to one another if they are of the
+// same type.
+func (vv InputValues) SameValues(other InputValues) bool {
+	if len(vv) != len(other) {
+		return false
+	}
+
+	for k, v := range vv {
+		ov, exists := other[k]
+		if !exists {
+			return false
+		}
+		if !v.Value.RawEquals(ov.Value) {
+			return false
+		}
+	}
+
+	return true
+}
+
+// HasValues returns true if the reciever has the same values as in the given
+// map, disregarding the source types and source ranges.
+//
+// Values are compared using the cty "RawEquals" method, which means that
+// unknown values can be considered equal to one another if they are of the
+// same type.
+func (vv InputValues) HasValues(vals map[string]cty.Value) bool {
+	if len(vv) != len(vals) {
+		return false
+	}
+
+	for k, v := range vv {
+		oVal, exists := vals[k]
+		if !exists {
+			return false
+		}
+		if !v.Value.RawEquals(oVal) {
+			return false
+		}
+	}
+
+	return true
+}
+
+// Identical returns true if the given InputValues has the same values,
+// source types, and source ranges as the receiver.
+//
+// Values are compared using the cty "RawEquals" method, which means that
+// unknown values can be considered equal to one another if they are of the
+// same type.
+//
+// This method is primarily for testing. For most practical purposes, it's
+// better to use SameValues or HasValues.
+func (vv InputValues) Identical(other InputValues) bool {
+	if len(vv) != len(other) {
+		return false
+	}
+
+	for k, v := range vv {
+		ov, exists := other[k]
+		if !exists {
+			return false
+		}
+		if !v.Value.RawEquals(ov.Value) {
+			return false
+		}
+		if v.SourceType != ov.SourceType {
+			return false
+		}
+		if v.SourceRange != ov.SourceRange {
+			return false
+		}
+	}
+
+	return true
 }
