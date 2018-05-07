@@ -1,0 +1,112 @@
+<% wrap_layout :inner do %>
+    <% content_for :sidebar do %>
+      <div class="docs-sidebar hidden-print affix-top" role="complementary">
+        <ul class="nav docs-sidenav">
+          <li<%= sidebar_current("docs-config-index") %>>
+            <a href="/docs/configuration/index.html">Terraform Language</a>
+          </li>
+  
+          <li<%= sidebar_current("docs-config-functions") %>>
+            <a href="/docs/configuration/functions.html">Functions</a>
+          </li>
+  
+          <li<%= sidebar_current("docs-funcs-numeric") %>>
+            <a href="#">Numeric Functions</a>
+            <ul class="nav nav-visible">
+
+              <li<%= sidebar_current("docs-funcs-numeric-abs") %>>
+                <a href="/docs/configuration/functions/abs.html">abs</a>
+              </li>
+
+              <li<%= sidebar_current("docs-funcs-numeric-ceil") %>>
+                <a href="/docs/configuration/functions/ceil.html">ceil</a>
+              </li>
+
+              <li<%= sidebar_current("docs-funcs-numeric-floor") %>>
+                <a href="/docs/configuration/functions/floor.html">floor</a>
+              </li>
+
+              <li<%= sidebar_current("docs-funcs-numeric-log") %>>
+                <a href="/docs/configuration/functions/log.html">log</a>
+              </li>
+
+              <li<%= sidebar_current("docs-funcs-numeric-max") %>>
+                <a href="/docs/configuration/functions/max.html">max</a>
+              </li>
+
+              <li<%= sidebar_current("docs-funcs-numeric-min") %>>
+                <a href="/docs/configuration/functions/min.html">min</a>
+              </li>
+
+              <li<%= sidebar_current("docs-funcs-numeric-pow") %>>
+                <a href="/docs/configuration/functions/pow.html">pow</a>
+              </li>
+
+              <li<%= sidebar_current("docs-funcs-numeric-signum") %>>
+                <a href="/docs/configuration/functions/signum.html">signum</a>
+              </li>
+
+            </ul>
+          </li>
+
+          <li<%= sidebar_current("docs-funcs-string") %>>
+            <a href="#">String Functions</a>
+            <ul class="nav nav-visible">
+
+              <li<%= sidebar_current("docs-funcs-string-chomp") %>>
+                <a href="/docs/configuration/functions/chomp.html">chomp</a>
+              </li>
+
+              <li<%= sidebar_current("docs-funcs-string-format-x") %>>
+                <a href="/docs/configuration/functions/format.html">format</a>
+              </li>
+
+              <li<%= sidebar_current("docs-funcs-string-formatlist") %>>
+                <a href="/docs/configuration/functions/formatlist.html">formatlist</a>
+              </li>
+
+              <li<%= sidebar_current("docs-funcs-string-indent") %>>
+                <a href="/docs/configuration/functions/indent.html">indent</a>
+              </li>
+
+              <li<%= sidebar_current("docs-funcs-string-join") %>>
+                <a href="/docs/configuration/functions/join.html">join</a>
+              </li>
+
+              <li<%= sidebar_current("docs-funcs-string-lower") %>>
+                <a href="/docs/configuration/functions/lower.html">lower</a>
+              </li>
+
+              <li<%= sidebar_current("docs-funcs-string-replace") %>>
+                <a href="/docs/configuration/functions/replace.html">replace</a>
+              </li>
+
+              <li<%= sidebar_current("docs-funcs-string-split") %>>
+                <a href="/docs/configuration/functions/split.html">split</a>
+              </li>
+
+              <li<%= sidebar_current("docs-funcs-string-substr") %>>
+                <a href="/docs/configuration/functions/substr.html">substr</a>
+              </li>
+
+              <li<%= sidebar_current("docs-funcs-string-title") %>>
+                <a href="/docs/configuration/functions/title.html">title</a>
+              </li>
+
+              <li<%= sidebar_current("docs-funcs-string-trimspace") %>>
+                <a href="/docs/configuration/functions/trimspace.html">trimspace</a>
+              </li>
+
+              <li<%= sidebar_current("docs-funcs-string-upper") %>>
+                <a href="/docs/configuration/functions/upper.html">upper</a>
+              </li>
+
+            </ul>
+          </li>
+        </ul>
+      </div>
+    <% end %>
+  
+    <%= yield %>
+  <% end %>
+  

@@ -1,7 +1,7 @@
 ---
 layout: "docs"
 page_title: "Configuration"
-sidebar_current: "docs-config"
+sidebar_current: "docs-config-index"
 description: |-
   Terraform uses text files to describe infrastructure and to set variables.
   These text files are called Terraform _configurations_ and are
