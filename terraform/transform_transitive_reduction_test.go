@@ -5,6 +5,8 @@ import (
 	"testing"
 
 	"github.com/hashicorp/terraform/addrs"
+	"github.com/hashicorp/terraform/config/configschema"
+	"github.com/zclconf/go-cty/cty"
 )
 
 func TestTransitiveReductionTransformer(t *testing.T) {
@@ -16,6 +18,7 @@ func TestTransitiveReductionTransformer(t *testing.T) {
 		if err := tf.Transform(&g); err != nil {
 			t.Fatalf("err: %s", err)
 		}
+		t.Logf("graph after ConfigTransformer:\n%s", g.String())
 	}
 
 	{
@@ -26,10 +29,34 @@ func TestTransitiveReductionTransformer(t *testing.T) {
 	}
 
 	{
+		transform := &AttachSchemaTransformer{
+			Components: testProviderComponentFactory(
+				"aws",
+				mockProviderWithResourceTypeSchema("aws_instance", &configschema.Block{
+					Attributes: map[string]*configschema.Attribute{
+						"A": {
+							Type:     cty.String,
+							Optional: true,
+						},
+						"B": {
+							Type:     cty.String,
+							Optional: true,
+						},
+					},
+				}),
+			),
+		}
+		if err := transform.Transform(&g); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+	}
+
+	{
 		transform := &ReferenceTransformer{}
 		if err := transform.Transform(&g); err != nil {
 			t.Fatalf("err: %s", err)
 		}
+		t.Logf("graph after ReferenceTransformer:\n%s", g.String())
 	}
 
 	{
@@ -37,12 +64,13 @@ func TestTransitiveReductionTransformer(t *testing.T) {
 		if err := transform.Transform(&g); err != nil {
 			t.Fatalf("err: %s", err)
 		}
+		t.Logf("graph after TransitiveReductionTransformer:\n%s", g.String())
 	}
 
 	actual := strings.TrimSpace(g.String())
 	expected := strings.TrimSpace(testTransformTransReduceBasicStr)
 	if actual != expected {
-		t.Fatalf("bad:\n\n%s", actual)
+		t.Errorf("wrong result\ngot:\n%s\n\nwant:\n%s", actual, expected)
 	}
 }
 
