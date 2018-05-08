@@ -34,7 +34,8 @@ func configTreeConfigDependencies(root *configs.Config, inheritProviders map[str
 		// This isn't necessarily correct if we're called with a nil that
 		// *isn't* at the root, but in practice that can never happen.
 		return &moduledeps.Module{
-			Name: "root",
+			Name:      "root",
+			Providers: make(moduledeps.Providers),
 		}
 	}
 
@@ -109,7 +110,7 @@ func configTreeConfigDependencies(root *configs.Config, inheritProviders map[str
 			}
 
 			reason := moduledeps.ProviderDependencyImplicit
-			if _, inherited := inheritProviders[addr.String()]; inherited {
+			if _, inherited := inheritProviders[addr.StringCompact()]; inherited {
 				reason = moduledeps.ProviderDependencyInherited
 			}
 
