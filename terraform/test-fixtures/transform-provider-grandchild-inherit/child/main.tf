@@ -5,6 +5,6 @@ provider "aws" {
 module "grandchild" {
   source = "./grandchild"
   providers = {
-    "aws.baz" = "aws.bar"
+    aws.baz = aws.bar
   }
 }
