@@ -583,7 +583,7 @@ func TestProviderConfigTransformer_implicitModule(t *testing.T) {
   provider.aws.foo
 provider.aws.foo`)
 	if actual != expected {
-		t.Fatalf("expected:\n%s\n\ngot:\n%s", expected, actual)
+		t.Fatalf("wrong result\n\nexpected:\n%s\n\ngot:\n%s", expected, actual)
 	}
 }
 
