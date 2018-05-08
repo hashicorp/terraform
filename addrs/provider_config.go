@@ -84,6 +84,11 @@ func (pc ProviderConfig) Absolute(module ModuleInstance) AbsProviderConfig {
 }
 
 func (pc ProviderConfig) String() string {
+	if pc.Type == "" {
+		// Should never happen; always indicates a bug
+		return "provider.<invalid>"
+	}
+
 	if pc.Alias != "" {
 		return fmt.Sprintf("provider.%s.%s", pc.Type, pc.Alias)
 	}
