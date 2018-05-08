@@ -29,7 +29,7 @@ func TestReferenceTransformer_simple(t *testing.T) {
 	actual := strings.TrimSpace(g.String())
 	expected := strings.TrimSpace(testTransformRefBasicStr)
 	if actual != expected {
-		t.Fatalf("bad:\n\n%s", actual)
+		t.Fatalf("wrong result\n\ngot:\n%s\n\nwant:\n%s", actual, expected)
 	}
 }
 
@@ -52,7 +52,7 @@ func TestReferenceTransformer_self(t *testing.T) {
 	actual := strings.TrimSpace(g.String())
 	expected := strings.TrimSpace(testTransformRefBasicStr)
 	if actual != expected {
-		t.Fatalf("bad:\n\n%s", actual)
+		t.Fatalf("wrong result\n\ngot:\n%s\n\nwant:\n%s", actual, expected)
 	}
 }
 
@@ -85,105 +85,7 @@ func TestReferenceTransformer_path(t *testing.T) {
 	actual := strings.TrimSpace(g.String())
 	expected := strings.TrimSpace(testTransformRefPathStr)
 	if actual != expected {
-		t.Fatalf("bad:\n\n%s", actual)
-	}
-}
-
-func TestReferenceTransformer_backup(t *testing.T) {
-	g := Graph{Path: addrs.RootModuleInstance}
-	g.Add(&graphNodeRefParentTest{
-		NameValue: "A",
-		Names:     []string{"A"},
-	})
-	g.Add(&graphNodeRefChildTest{
-		NameValue: "B",
-		Refs:      []string{"C/A"},
-	})
-
-	tf := &ReferenceTransformer{}
-	if err := tf.Transform(&g); err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	actual := strings.TrimSpace(g.String())
-	expected := strings.TrimSpace(testTransformRefBackupStr)
-	if actual != expected {
-		t.Fatalf("bad:\n\n%s", actual)
-	}
-}
-
-func TestReferenceTransformer_backupPrimary(t *testing.T) {
-	g := Graph{Path: addrs.RootModuleInstance}
-	g.Add(&graphNodeRefParentTest{
-		NameValue: "A",
-		Names:     []string{"A"},
-	})
-	g.Add(&graphNodeRefChildTest{
-		NameValue: "B",
-		Refs:      []string{"C/A"},
-	})
-	g.Add(&graphNodeRefParentTest{
-		NameValue: "C",
-		Names:     []string{"C"},
-	})
-
-	tf := &ReferenceTransformer{}
-	if err := tf.Transform(&g); err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	actual := strings.TrimSpace(g.String())
-	expected := strings.TrimSpace(testTransformRefBackupPrimaryStr)
-	if actual != expected {
-		t.Fatalf("bad:\n\n%s", actual)
-	}
-}
-
-func TestReferenceTransformer_modulePath(t *testing.T) {
-	g := Graph{Path: addrs.RootModuleInstance}
-	g.Add(&graphNodeRefParentTest{
-		NameValue: "A",
-		Names:     []string{"A"},
-		PathValue: []string{"foo"},
-	})
-	g.Add(&graphNodeRefChildTest{
-		NameValue: "B",
-		Refs:      []string{"module.foo"},
-	})
-
-	tf := &ReferenceTransformer{}
-	if err := tf.Transform(&g); err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	actual := strings.TrimSpace(g.String())
-	expected := strings.TrimSpace(testTransformRefModulePathStr)
-	if actual != expected {
-		t.Fatalf("bad:\n\n%s", actual)
-	}
-}
-
-func TestReferenceTransformer_modulePathNormalized(t *testing.T) {
-	g := Graph{Path: addrs.RootModuleInstance}
-	g.Add(&graphNodeRefParentTest{
-		NameValue: "A",
-		Names:     []string{"A"},
-		PathValue: []string{"root", "foo"},
-	})
-	g.Add(&graphNodeRefChildTest{
-		NameValue: "B",
-		Refs:      []string{"module.foo"},
-	})
-
-	tf := &ReferenceTransformer{}
-	if err := tf.Transform(&g); err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	actual := strings.TrimSpace(g.String())
-	expected := strings.TrimSpace(testTransformRefModulePathStr)
-	if actual != expected {
-		t.Fatalf("bad:\n\n%s", actual)
+		t.Fatalf("wrong result\n\ngot:\n%s\n\nwant:\n%s", actual, expected)
 	}
 }
 
@@ -281,9 +183,23 @@ type graphNodeRefParentTest struct {
 	Names     []string
 }
 
-func (n *graphNodeRefParentTest) Name() string                { return n.NameValue }
-func (n *graphNodeRefParentTest) ReferenceableName() []string { return n.Names }
-func (n *graphNodeRefParentTest) Path() []string              { return n.PathValue }
+var _ GraphNodeReferenceable = (*graphNodeRefParentTest)(nil)
+
+func (n *graphNodeRefParentTest) Name() string {
+	return n.NameValue
+}
+
+func (n *graphNodeRefParentTest) ReferenceableAddrs() []addrs.Referenceable {
+	ret := make([]addrs.Referenceable, len(n.Names))
+	for i, name := range n.Names {
+		ret[i] = addrs.LocalValue{Name: name}
+	}
+	return ret
+}
+
+func (n *graphNodeRefParentTest) Path() addrs.ModuleInstance {
+	return normalizeModulePath(n.PathValue)
+}
 
 type graphNodeRefChildTest struct {
 	NameValue string
@@ -291,9 +207,25 @@ type graphNodeRefChildTest struct {
 	Refs      []string
 }
 
-func (n *graphNodeRefChildTest) Name() string         { return n.NameValue }
-func (n *graphNodeRefChildTest) References() []string { return n.Refs }
-func (n *graphNodeRefChildTest) Path() []string       { return n.PathValue }
+var _ GraphNodeReferencer = (*graphNodeRefChildTest)(nil)
+
+func (n *graphNodeRefChildTest) Name() string {
+	return n.NameValue
+}
+
+func (n *graphNodeRefChildTest) References() []*addrs.Reference {
+	ret := make([]*addrs.Reference, len(n.Refs))
+	for i, name := range n.Refs {
+		ret[i] = &addrs.Reference{
+			Subject: addrs.LocalValue{Name: name},
+		}
+	}
+	return ret
+}
+
+func (n *graphNodeRefChildTest) Path() addrs.ModuleInstance {
+	return normalizeModulePath(n.PathValue)
+}
 
 const testTransformRefBasicStr = `
 A
