@@ -81,6 +81,11 @@ func (t *ProviderTransformer) Transform(g *Graph) error {
 	for _, v := range g.Vertices() {
 		if pv, ok := v.(GraphNodeProviderConsumer); ok {
 			p, exact := pv.ProvidedBy()
+			if exact {
+				log.Printf("[TRACE] ProviderTransformer: %s is provided by %s exactly", dag.VertexName(v), p)
+			} else {
+				log.Printf("[TRACE] ProviderTransformer: %s is provided by %s or inherited equivalent", dag.VertexName(v), p)
+			}
 
 			key := p.String()
 			target := m[key]
@@ -92,15 +97,21 @@ func (t *ProviderTransformer) Transform(g *Graph) error {
 				break
 			}
 
+			if target != nil {
+				log.Printf("[TRACE] ProviderTransformer: exact match for %s providing %s", p, dag.VertexName(v))
+			}
+
 			// if we don't have a provider at this level, walk up the path looking for one,
 			// unless we were told to be exact.
-			if !exact {
+			if target == nil && !exact {
 				for pp, ok := p.Inherited(); ok; pp, ok = pp.Inherited() {
 					key := pp.String()
 					target = m[key]
 					if target != nil {
+						log.Printf("[TRACE] ProviderTransformer: %s uses inherited configuration %s", dag.VertexName(v), pp)
 						break
 					}
+					log.Printf("[TRACE] ProviderTransformer: looking for %s to provide %s", pp, dag.VertexName(v))
 				}
 			}
 
@@ -119,7 +130,7 @@ func (t *ProviderTransformer) Transform(g *Graph) error {
 				key = target.(GraphNodeProvider).ProviderAddr().String()
 			}
 
-			log.Printf("[DEBUG] %s handled by %s", dag.VertexName(pv), key)
+			log.Printf("[DEBUG] %s provided by %s", dag.VertexName(pv), key)
 			pv.SetProvider(target.ProviderAddr())
 			g.Connect(dag.BasicEdge(v, target))
 		}
@@ -199,8 +210,7 @@ func (t *MissingProviderTransformer) Transform(g *Graph) error {
 		}
 
 		p, _ := pv.ProvidedBy()
-		configAddr := p.ProviderConfig
-		key := configAddr.String()
+		key := p.String()
 		provider := m[key]
 
 		// we already have it
@@ -209,7 +219,7 @@ func (t *MissingProviderTransformer) Transform(g *Graph) error {
 		}
 
 		// we don't implicitly create aliased providers
-		if configAddr.Alias != "" {
+		if p.ProviderConfig.Alias != "" {
 			log.Println("[DEBUG] not adding implicit aliased config for", p.String())
 			continue
 		}
@@ -380,6 +390,10 @@ type graphNodeProxyProvider struct {
 	target GraphNodeProvider
 }
 
+var (
+	_ GraphNodeProvider = (*graphNodeProxyProvider)(nil)
+)
+
 func (n *graphNodeProxyProvider) ProviderAddr() addrs.AbsProviderConfig {
 	return n.addr
 }
@@ -389,7 +403,7 @@ func (n *graphNodeProxyProvider) Path() addrs.ModuleInstance {
 }
 
 func (n *graphNodeProxyProvider) Name() string {
-	return n.addr.String()
+	return n.addr.String() + " (proxy)"
 }
 
 // find the concrete provider instance
