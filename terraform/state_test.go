@@ -10,6 +10,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/davecgh/go-spew/spew"
 	"github.com/hashicorp/terraform/addrs"
 
 	"github.com/hashicorp/terraform/config"
@@ -54,16 +55,16 @@ func TestStateValidate(t *testing.T) {
 func TestStateAddModule(t *testing.T) {
 	cases := []struct {
 		In  []addrs.ModuleInstance
-		Out []addrs.ModuleInstance
+		Out [][]string
 	}{
 		{
 			[]addrs.ModuleInstance{
 				addrs.RootModuleInstance,
 				addrs.RootModuleInstance.Child("child", addrs.NoKey),
 			},
-			[]addrs.ModuleInstance{
-				addrs.RootModuleInstance,
-				addrs.RootModuleInstance.Child("child", addrs.NoKey),
+			[][]string{
+				[]string{"root"},
+				[]string{"root", "child"},
 			},
 		},
 
@@ -74,11 +75,11 @@ func TestStateAddModule(t *testing.T) {
 				addrs.RootModuleInstance,
 				addrs.RootModuleInstance.Child("bar", addrs.NoKey),
 			},
-			[]addrs.ModuleInstance{
-				addrs.RootModuleInstance,
-				addrs.RootModuleInstance.Child("bar", addrs.NoKey),
-				addrs.RootModuleInstance.Child("foo", addrs.NoKey),
-				addrs.RootModuleInstance.Child("foo", addrs.NoKey).Child("bar", addrs.NoKey),
+			[][]string{
+				[]string{"root"},
+				[]string{"root", "bar"},
+				[]string{"root", "foo"},
+				[]string{"root", "foo", "bar"},
 			},
 		},
 		// Same last element, different middle element
@@ -90,12 +91,12 @@ func TestStateAddModule(t *testing.T) {
 				addrs.RootModuleInstance.Child("bar", addrs.NoKey).Child("bar", addrs.NoKey), // ...this one.
 				addrs.RootModuleInstance.Child("bar", addrs.NoKey),
 			},
-			[]addrs.ModuleInstance{
-				addrs.RootModuleInstance,
-				addrs.RootModuleInstance.Child("bar", addrs.NoKey),
-				addrs.RootModuleInstance.Child("foo", addrs.NoKey),
-				addrs.RootModuleInstance.Child("bar", addrs.NoKey).Child("bar", addrs.NoKey),
-				addrs.RootModuleInstance.Child("foo", addrs.NoKey).Child("bar", addrs.NoKey),
+			[][]string{
+				[]string{"root"},
+				[]string{"root", "bar"},
+				[]string{"root", "foo"},
+				[]string{"root", "bar", "bar"},
+				[]string{"root", "foo", "bar"},
 			},
 		},
 	}
@@ -112,7 +113,7 @@ func TestStateAddModule(t *testing.T) {
 		}
 
 		if !reflect.DeepEqual(actual, tc.Out) {
-			t.Fatalf("In: %#v\n\nOut: %#v", tc.In, actual)
+			t.Fatalf("wrong result\ninput: %sgot:   %#v\nwant:  %#v", spew.Sdump(tc.In), actual, tc.Out)
 		}
 	}
 }
