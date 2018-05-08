@@ -3,5 +3,5 @@ provider "aws" {
 }
 
 resource "aws_instance" "thing" {
-    provider = "aws.bar"
+    provider = aws.bar
 }
