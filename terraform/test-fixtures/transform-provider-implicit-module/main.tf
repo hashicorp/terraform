@@ -5,6 +5,6 @@ provider "aws" {
 module "mod" {
   source = "./mod"
   providers = {
-    "aws" = "aws.foo"
+    aws = aws.foo
   }
 }

@@ -4,8 +4,8 @@ provider "aws" {
 }
 
 module "child" {
-  source = "child"
+  source = "./child"
   providers = {
-    "aws.bar" = "aws.foo"
+    aws.bar = aws.foo
   }
 }
