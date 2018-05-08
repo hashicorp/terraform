@@ -60,6 +60,9 @@ func TestProviderTransformer_moduleChild(t *testing.T) {
 							"qux",
 							addrs.NoKey,
 						),
+					ProviderAddr: addrs.RootModuleInstance.
+						Child("moo", addrs.NoKey).
+						ProviderConfigDefault("foo"),
 					ID: "bar",
 				},
 			},
@@ -67,6 +70,7 @@ func TestProviderTransformer_moduleChild(t *testing.T) {
 		if err := tf.Transform(&g); err != nil {
 			t.Fatalf("err: %s", err)
 		}
+		t.Logf("graph after ImportStateTransformer:\n%s", g.String())
 	}
 
 	{
@@ -74,6 +78,7 @@ func TestProviderTransformer_moduleChild(t *testing.T) {
 		if err := tf.Transform(&g); err != nil {
 			t.Fatalf("err: %s", err)
 		}
+		t.Logf("graph after MissingProviderTransformer:\n%s", g.String())
 	}
 
 	{
@@ -81,12 +86,13 @@ func TestProviderTransformer_moduleChild(t *testing.T) {
 		if err := tf.Transform(&g); err != nil {
 			t.Fatalf("err: %s", err)
 		}
+		t.Logf("graph after ProviderTransformer:\n%s", g.String())
 	}
 
 	actual := strings.TrimSpace(g.String())
 	expected := strings.TrimSpace(testTransformProviderModuleChildStr)
 	if actual != expected {
-		t.Fatalf("bad:\n\n%s", actual)
+		t.Fatalf("wrong result\n\ngot:\n%s\n\nwant:\n%s", actual, expected)
 	}
 }
 
@@ -271,6 +277,9 @@ func TestMissingProviderTransformer_moduleChild(t *testing.T) {
 							"qux",
 							addrs.NoKey,
 						),
+					ProviderAddr: addrs.RootModuleInstance.
+						Child("moo", addrs.NoKey).
+						ProviderConfigDefault("foo"),
 					ID: "bar",
 				},
 			},
@@ -313,6 +322,9 @@ func TestMissingProviderTransformer_moduleGrandchild(t *testing.T) {
 							"qux",
 							addrs.NoKey,
 						),
+					ProviderAddr: addrs.RootModuleInstance.
+						Child("moo", addrs.NoKey).
+						ProviderConfigDefault("foo"),
 					ID: "bar",
 				},
 			},
@@ -352,6 +364,9 @@ func TestParentProviderTransformer(t *testing.T) {
 							"qux",
 							addrs.NoKey,
 						),
+					ProviderAddr: addrs.RootModuleInstance.
+						Child("moo", addrs.NoKey).
+						ProviderConfigDefault("foo"),
 					ID: "bar",
 				},
 			},
@@ -403,6 +418,9 @@ func TestParentProviderTransformer_moduleGrandchild(t *testing.T) {
 							"qux",
 							addrs.NoKey,
 						),
+					ProviderAddr: addrs.RootModuleInstance.
+						Child("moo", addrs.NoKey).
+						ProviderConfigDefault("foo"),
 					ID: "bar",
 				},
 			},
@@ -656,27 +674,27 @@ provider.bar
 `
 
 const testTransformMissingProviderModuleChildStr = `
-module.moo.foo_instance.qux (import id: bar)
+module.moo.foo_instance.qux (import id "bar")
 provider.foo
 `
 
 const testTransformMissingProviderModuleGrandchildStr = `
-module.a.module.b.foo_instance.qux (import id: bar)
+module.a.module.b.foo_instance.qux (import id "bar")
 provider.foo
 `
 
 const testTransformParentProviderStr = `
-module.moo.foo_instance.qux (import id: bar)
+module.moo.foo_instance.qux (import id "bar")
 provider.foo
 `
 
 const testTransformParentProviderModuleGrandchildStr = `
-module.a.module.b.foo_instance.qux (import id: bar)
+module.a.module.b.foo_instance.qux (import id "bar")
 provider.foo
 `
 
 const testTransformProviderModuleChildStr = `
-module.moo.foo_instance.qux (import id: bar)
+module.moo.foo_instance.qux (import id "bar")
   provider.foo
 provider.foo
 `
