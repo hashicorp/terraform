@@ -3,7 +3,7 @@ package terraform
 import (
 	"testing"
 
-	"github.com/davecgh/go-spew/spew"
+	"github.com/go-test/deep"
 	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/moduledeps"
 	"github.com/hashicorp/terraform/plugin/discovery"
@@ -249,12 +249,8 @@ func TestModuleTreeDependencies(t *testing.T) {
 			}
 
 			got := ConfigTreeDependencies(root, test.State)
-			if !got.Equal(test.Want) {
-				t.Errorf(
-					"wrong dependency tree\ngot:  %s\nwant: %s",
-					spew.Sdump(got),
-					spew.Sdump(test.Want),
-				)
+			for _, problem := range deep.Equal(got, test.Want) {
+				t.Error(problem)
 			}
 		})
 	}
