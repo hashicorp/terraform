@@ -181,10 +181,20 @@ func (t *CloseProviderTransformer) Transform(g *Graph) error {
 	return err
 }
 
-// MissingProviderTransformer is a GraphTransformer that adds nodes for all
-// required providers into the graph. Specifically, it creates provider
-// configuration nodes for all the providers that we support. These are pruned
-// later during an optimization pass.
+// MissingProviderTransformer is a GraphTransformer that adds to the graph
+// a node for each default provider configuration that is referenced by another
+// node but not already present in the graph.
+//
+// These "default" nodes are always added to the root module, regardless of
+// where they are requested. This is important because our inheritance
+// resolution behavior in ProviderTransformer will then treat these as a
+// last-ditch fallback after walking up the tree, rather than preferring them
+// as it would if they were placed in the same module as the requester.
+//
+// This transformer may create extra nodes that are not needed in practice,
+// due to overriding provider configurations in child modules.
+// PruneProviderTransformer can then remove these once ProviderTransformer
+// has resolved all of the inheritence, etc.
 type MissingProviderTransformer struct {
 	// Providers is the list of providers we support.
 	Providers []string
@@ -209,26 +219,36 @@ func (t *MissingProviderTransformer) Transform(g *Graph) error {
 			continue
 		}
 
+		// For our work here we actually care only about the provider type and
+		// we plan to place all default providers in the root module, and so
+		// it's safe for us to rely on ProvidedBy here rather than waiting for
+		// the later proper resolution of provider inheritance done by
+		// ProviderTransformer.
 		p, _ := pv.ProvidedBy()
-		key := p.String()
+		if p.ProviderConfig.Alias != "" {
+			// We do not create default aliased configurations.
+			log.Println("[TRACE] MissingProviderTransformer: skipping implication of aliased config", p)
+			continue
+		}
+
+		// We're going to create an implicit _default_ configuration for the
+		// referenced provider type in the _root_ module, ignoring all other
+		// aspects of the resource's declared provider address.
+		defaultAddr := addrs.RootModuleInstance.ProviderConfigDefault(p.ProviderConfig.Type)
+		key := defaultAddr.String()
 		provider := m[key]
 
-		// we already have it
 		if provider != nil {
+			// There's already an explicit default configuration for this
+			// provider type in the root module, so we have nothing to do.
 			continue
 		}
 
-		// we don't implicitly create aliased providers
-		if p.ProviderConfig.Alias != "" {
-			log.Println("[DEBUG] not adding implicit aliased config for", p.String())
-			continue
-		}
-
-		log.Println("[DEBUG] adding implicit configuration for", p.String())
+		log.Printf("[DEBUG] adding implicit provider configuration %s, implied first by %s", defaultAddr, dag.VertexName(v))
 
 		// create the missing top-level provider
 		provider = t.Concrete(&NodeAbstractProvider{
-			Addr: p,
+			Addr: defaultAddr,
 		}).(GraphNodeProvider)
 
 		g.Add(provider)
