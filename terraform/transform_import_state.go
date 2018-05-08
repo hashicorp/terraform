@@ -27,7 +27,7 @@ func (t *ImportStateTransformer) Transform(g *Graph) error {
 type graphNodeImportState struct {
 	Addr             addrs.AbsResourceInstance // Addr is the resource address to import into
 	ID               string                    // ID is the ID to import as
-	ProviderAddr     addrs.AbsProviderConfig   // Provider address given by the user
+	ProviderAddr     addrs.AbsProviderConfig   // Provider address given by the user, or implied by the resource type
 	ResolvedProvider addrs.AbsProviderConfig   // provider node address after resolution
 
 	states []*InstanceState
@@ -41,11 +41,16 @@ var (
 )
 
 func (n *graphNodeImportState) Name() string {
-	return fmt.Sprintf("%s (import id: %s)", n.Addr, n.ID)
+	return fmt.Sprintf("%s (import id %q)", n.Addr, n.ID)
 }
 
 // GraphNodeProviderConsumer
 func (n *graphNodeImportState) ProvidedBy() (addrs.AbsProviderConfig, bool) {
+	// We assume that n.ProviderAddr has been properly populated here.
+	// It's the responsibility of the code creating a graphNodeImportState
+	// to populate this, possibly by calling DefaultProviderConfig() on the
+	// resource address to infer an implied provider from the resource type
+	// name.
 	return n.ProviderAddr, false
 }
 
