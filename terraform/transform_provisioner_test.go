@@ -86,6 +86,7 @@ func TestMissingProvisionerTransformer_module(t *testing.T) {
 		if err := tf.Transform(&g); err != nil {
 			t.Fatalf("err: %s", err)
 		}
+		t.Logf("graph after StateTransformer:\n%s", g.StringWithNodeTypes())
 	}
 
 	{
@@ -100,6 +101,7 @@ func TestMissingProvisionerTransformer_module(t *testing.T) {
 		if err := transform.Transform(&g); err != nil {
 			t.Fatalf("err: %s", err)
 		}
+		t.Logf("graph after MissingProvisionerTransformer:\n%s", g.StringWithNodeTypes())
 	}
 
 	{
@@ -107,12 +109,13 @@ func TestMissingProvisionerTransformer_module(t *testing.T) {
 		if err := transform.Transform(&g); err != nil {
 			t.Fatalf("err: %s", err)
 		}
+		t.Logf("graph after ProvisionerTransformer:\n%s", g.StringWithNodeTypes())
 	}
 
 	actual := strings.TrimSpace(g.String())
 	expected := strings.TrimSpace(testTransformMissingProvisionerModuleStr)
 	if actual != expected {
-		t.Fatalf("bad:\n\n%s", actual)
+		t.Fatalf("wrong result\n\ngot:\n%s\n\nwant:\n%s", actual, expected)
 	}
 }
 
