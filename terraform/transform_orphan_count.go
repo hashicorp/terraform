@@ -23,7 +23,6 @@ type OrphanResourceCountTransformer struct {
 }
 
 func (t *OrphanResourceCountTransformer) Transform(g *Graph) error {
-	log.Printf("[TRACE] OrphanResourceCount: Starting...")
 
 	// Grab the module in the state just for this resource address
 	ms := t.State.ModuleByPath(t.Addr.Module)
@@ -81,6 +80,7 @@ func (t *OrphanResourceCountTransformer) transformCount(haveKeys map[addrs.Insta
 		if f := t.Concrete; f != nil {
 			node = f(abstract)
 		}
+		log.Printf("[TRACE] OrphanResourceCount(non-zero): adding %s as %T", t.Addr, node)
 		g.Add(node)
 	}
 
@@ -96,6 +96,7 @@ func (t *OrphanResourceCountTransformer) transformZeroCount(haveKeys map[addrs.I
 		if f := t.Concrete; f != nil {
 			node = f(abstract)
 		}
+		log.Printf("[TRACE] OrphanResourceCount(zero): adding %s as %T", t.Addr, node)
 		g.Add(node)
 	}
 
@@ -128,6 +129,7 @@ func (t *OrphanResourceCountTransformer) transformNoCount(haveKeys map[addrs.Ins
 		if f := t.Concrete; f != nil {
 			node = f(abstract)
 		}
+		log.Printf("[TRACE] OrphanResourceCount(no-count): adding %s as %T", t.Addr, node)
 		g.Add(node)
 	}
 
