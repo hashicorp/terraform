@@ -2,6 +2,7 @@ package terraform
 
 import (
 	"fmt"
+	"log"
 
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/config/configschema"
@@ -57,6 +58,7 @@ func (t *ProvisionerTransformer) Transform(g *Graph) error {
 					continue
 				}
 
+				log.Printf("[TRACE] ProvisionerTransformer: %s is provisioned by %s (%q)", dag.VertexName(v), key, dag.VertexName(m[key]))
 				g.Connect(dag.BasicEdge(v, m[key]))
 			}
 		}
@@ -120,6 +122,7 @@ func (t *MissingProvisionerTransformer) Transform(g *Graph) error {
 
 			// Add the missing provisioner node to the graph
 			m[key] = g.Add(newV)
+			log.Printf("[TRACE] MissingProviderTransformer: added implicit provisioner %s, first implied by %s", key, dag.VertexName(v))
 		}
 	}
 
