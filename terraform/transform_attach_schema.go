@@ -38,15 +38,23 @@ type AttachSchemaTransformer struct {
 
 func (t *AttachSchemaTransformer) Transform(g *Graph) error {
 
+	if t.Components == nil {
+		// Should never happen with a reasonable caller, but we'll return a
+		// proper error here anyway so that we'll fail gracefully.
+		return fmt.Errorf("AttachSchemaTransformer used with nil Components")
+	}
+
 	// First we'll figure out which provider types we need to fetch schemas for.
 	needProviders := make(map[string]struct{})
 	for _, v := range g.Vertices() {
 		switch tv := v.(type) {
 		case GraphNodeAttachResourceSchema:
 			providerAddr, _ := tv.ProvidedBy()
+			log.Printf("[TRACE] AttachSchemaTransformer: %q (%T) needs %s", dag.VertexName(v), v, providerAddr)
 			needProviders[providerAddr.ProviderConfig.Type] = struct{}{}
 		case GraphNodeAttachProviderConfigSchema:
 			providerAddr := tv.ProviderAddr()
+			log.Printf("[TRACE] AttachSchemaTransformer: %q (%T) needs %s", dag.VertexName(v), v, providerAddr)
 			needProviders[providerAddr.ProviderConfig.Type] = struct{}{}
 		}
 	}
