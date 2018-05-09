@@ -342,7 +342,7 @@ func (n *NodeAbstractResourceInstance) ProvidedBy() (addrs.AbsProviderConfig, bo
 
 Guess:
 	// Use our type and containing module path to guess a provider configuration address
-	return addrs.NewDefaultProviderConfig(n.Addr.Resource.Type).Absolute(n.Addr.Module), false
+	return n.Addr.Resource.DefaultProviderConfig().Absolute(n.Path()), false
 }
 
 // GraphNodeProvisionerConsumer
