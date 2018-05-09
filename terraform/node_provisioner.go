@@ -28,7 +28,7 @@ var (
 
 func (n *NodeProvisioner) Name() string {
 	result := fmt.Sprintf("provisioner.%s", n.NameValue)
-	if len(n.PathValue) > 1 {
+	if len(n.PathValue) > 0 {
 		result = fmt.Sprintf("%s.%s", n.PathValue.String(), result)
 	}
 
