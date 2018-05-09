@@ -259,7 +259,7 @@ func TestOrphanResourceCountTransformer_zeroAndNone(t *testing.T) {
 	{
 		tf := &OrphanResourceCountTransformer{
 			Concrete: testOrphanResourceConcreteFunc,
-			Count:    1,
+			Count:    -1,
 			Addr: addrs.RootModuleInstance.Resource(
 				addrs.ManagedResourceMode, "aws_instance", "foo",
 			),
@@ -273,7 +273,7 @@ func TestOrphanResourceCountTransformer_zeroAndNone(t *testing.T) {
 	actual := strings.TrimSpace(g.String())
 	expected := strings.TrimSpace(testTransformOrphanResourceCountZeroAndNoneStr)
 	if actual != expected {
-		t.Fatalf("bad:\n\n%s", actual)
+		t.Fatalf("wrong result\n\ngot:\n%s\n\nwant:\n%s", actual, expected)
 	}
 }
 
