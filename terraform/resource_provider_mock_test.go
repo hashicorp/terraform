@@ -54,3 +54,34 @@ func mockProviderWithDataSourceSchema(name string, schema *configschema.Block) *
 		},
 	}
 }
+
+// simpleMockProvider returns a MockResourceProvider that is pre-configured
+// with schema for its own config, for a resource type called "test_object" and
+// for a data source also called "test_object".
+//
+// All three schemas have the same content as returned by function
+// simpleTestSchema.
+//
+// For most reasonable uses the returned provider must be registered in a
+// componentFactory under the name "test". Use simpleMockComponentFactory
+// to obtain a pre-configured componentFactory containing the result of
+// this function along with simpleMockProvisioner, both registered as "test".
+//
+// The returned provider has no other behaviors by default, but the caller may
+// modify it in order to stub any other required functionality, or modify
+// the default schema stored in the field GetSchemaReturn. Each new call to
+// simpleTestProvider produces entirely new instances of all of the nested
+// objects so that callers can mutate without affecting mock objects.
+func simpleMockProvider() *MockResourceProvider {
+	return &MockResourceProvider{
+		GetSchemaReturn: &ProviderSchema{
+			Provider: simpleTestSchema(),
+			ResourceTypes: map[string]*configschema.Block{
+				"test_object": simpleTestSchema(),
+			},
+			DataSources: map[string]*configschema.Block{
+				"test_object": simpleTestSchema(),
+			},
+		},
+	}
+}
