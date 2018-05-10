@@ -130,7 +130,7 @@ func (t *ProviderTransformer) Transform(g *Graph) error {
 				key = target.(GraphNodeProvider).ProviderAddr().String()
 			}
 
-			log.Printf("[DEBUG] %s provided by %s", dag.VertexName(pv), key)
+			log.Printf("[DEBUG] %s provided by %s", dag.VertexName(pv), dag.VertexName(target))
 			pv.SetProvider(target.ProviderAddr())
 			g.Connect(dag.BasicEdge(v, target))
 		}
