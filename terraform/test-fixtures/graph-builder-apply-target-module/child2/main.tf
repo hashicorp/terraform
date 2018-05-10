@@ -1,2 +1,1 @@
-resource "null_resource" "foo" {
-}
+resource "test_object" "foo" {}

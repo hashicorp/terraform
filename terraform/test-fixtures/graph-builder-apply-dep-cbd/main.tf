@@ -1,9 +1,9 @@
-resource "aws_instance" "A" {
+resource "test_object" "A" {
   lifecycle {
     create_before_destroy = true
   }
 }
 
-resource "aws_instance" "B" {
-  value = ["${aws_instance.A.*.id}"]
+resource "test_object" "B" {
+  test_list = test_object.A.*.test_string
 }

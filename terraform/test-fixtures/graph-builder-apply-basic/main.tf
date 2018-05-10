@@ -1,9 +1,9 @@
 module "child" {
-    source = "./child"
+  source = "./child"
 }
 
-resource "aws_instance" "create" {}
+resource "test_object" "create" {}
 
-resource "aws_instance" "other" {
-    foo = "${aws_instance.create.bar}"
+resource "test_object" "other" {
+  test_string = "${test_object.create.test_string}"
 }
