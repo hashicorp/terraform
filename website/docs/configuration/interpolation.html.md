@@ -468,10 +468,6 @@ Here is an example that combines the capabilities of templates with the interpol
 from `count` to give us a parameterized template, unique to each resource instance:
 
 ```hcl
-variable "count" {
-  default = 2
-}
-
 variable "hostnames" {
   default = {
     "0" = "example1.org"
