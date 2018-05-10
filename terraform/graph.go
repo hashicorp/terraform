@@ -3,7 +3,6 @@ package terraform
 import (
 	"fmt"
 	"log"
-	"runtime/debug"
 
 	"github.com/hashicorp/terraform/tfdiags"
 
@@ -47,12 +46,6 @@ func (g *Graph) walk(walker GraphWalker) tfdiags.Diagnostics {
 	// Get the path for logs
 	path := ctx.Path().String()
 
-	// Determine if our walker is a panic wrapper
-	panicwrap, ok := walker.(GraphWalkerPanicwrapper)
-	if !ok {
-		panicwrap = nil // just to be sure
-	}
-
 	debugName := "walk-graph.json"
 	if g.debugName != "" {
 		debugName = g.debugName + "-" + debugName
@@ -68,28 +61,8 @@ func (g *Graph) walk(walker GraphWalker) tfdiags.Diagnostics {
 		log.Printf("[TRACE] vertex %q: starting visit (%T)", dag.VertexName(v), v)
 		g.DebugVisitInfo(v, g.debugName)
 
-		// If we have a panic wrap GraphWalker and a panic occurs, recover
-		// and call that. We ensure the return value is an error, however,
-		// so that future nodes are not called.
 		defer func() {
 			log.Printf("[TRACE] vertex %q: visit complete", dag.VertexName(v))
-
-			// If no panicwrap, do nothing
-			if panicwrap == nil {
-				return
-			}
-
-			// If no panic, do nothing
-			err := recover()
-			if err == nil {
-				return
-			}
-
-			// Modify the return value to show the error
-			diags = diags.Append(fmt.Errorf("vertex %q captured panic: %s\n\n%s", dag.VertexName(v), err, debug.Stack()))
-
-			// Call the panic wrapper
-			panicwrap.Panic(v, err)
 		}()
 
 		walker.EnterVertex(v)
