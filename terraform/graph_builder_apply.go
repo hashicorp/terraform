@@ -88,10 +88,18 @@ func (b *ApplyGraphBuilder) Steps() []GraphTransformer {
 		TransformProviders(b.Components.ResourceProviders(), concreteProvider, b.Config),
 
 		// Destruction ordering
-		&DestroyEdgeTransformer{Config: b.Config, State: b.State},
+		&DestroyEdgeTransformer{
+			Config:     b.Config,
+			State:      b.State,
+			Components: b.Components,
+		},
 		GraphTransformIf(
 			func() bool { return !b.Destroy },
-			&CBDEdgeTransformer{Config: b.Config, State: b.State},
+			&CBDEdgeTransformer{
+				Config:     b.Config,
+				State:      b.State,
+				Components: b.Components,
+			},
 		),
 
 		// Provisioner-related transformations
