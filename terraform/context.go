@@ -289,10 +289,11 @@ func (c *Context) Graph(typ GraphType, opts *ContextGraphOpts) (*Graph, tfdiags.
 
 	case GraphTypePlanDestroy:
 		return (&DestroyPlanGraphBuilder{
-			Config:   c.config,
-			State:    c.state,
-			Targets:  c.targets,
-			Validate: opts.Validate,
+			Config:     c.config,
+			State:      c.state,
+			Components: c.components,
+			Targets:    c.targets,
+			Validate:   opts.Validate,
 		}).Build(addrs.RootModuleInstance)
 
 	case GraphTypeRefresh:
