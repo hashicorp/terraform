@@ -1,7 +1,7 @@
 package terraform
 
 import (
-	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/hashicorp/terraform/addrs"
@@ -16,48 +16,48 @@ func TestRefreshGraphBuilder_configOrphans(t *testing.T) {
 			&ModuleState{
 				Path: rootModulePath,
 				Resources: map[string]*ResourceState{
-					"aws_instance.foo.0": &ResourceState{
-						Type: "aws_instance",
+					"test_object.foo.0": &ResourceState{
+						Type: "test_object",
 						Deposed: []*InstanceState{
 							&InstanceState{
 								ID: "foo",
 							},
 						},
 					},
-					"aws_instance.foo.1": &ResourceState{
-						Type: "aws_instance",
+					"test_object.foo.1": &ResourceState{
+						Type: "test_object",
 						Deposed: []*InstanceState{
 							&InstanceState{
 								ID: "bar",
 							},
 						},
 					},
-					"aws_instance.foo.2": &ResourceState{
-						Type: "aws_instance",
+					"test_object.foo.2": &ResourceState{
+						Type: "test_object",
 						Deposed: []*InstanceState{
 							&InstanceState{
 								ID: "baz",
 							},
 						},
 					},
-					"data.aws_instance.foo.0": &ResourceState{
-						Type: "aws_instance",
+					"data.test_object.foo.0": &ResourceState{
+						Type: "test_object",
 						Deposed: []*InstanceState{
 							&InstanceState{
 								ID: "foo",
 							},
 						},
 					},
-					"data.aws_instance.foo.1": &ResourceState{
-						Type: "aws_instance",
+					"data.test_object.foo.1": &ResourceState{
+						Type: "test_object",
 						Deposed: []*InstanceState{
 							&InstanceState{
 								ID: "bar",
 							},
 						},
 					},
-					"data.aws_instance.foo.2": &ResourceState{
-						Type: "aws_instance",
+					"data.test_object.foo.2": &ResourceState{
+						Type: "test_object",
 						Deposed: []*InstanceState{
 							&InstanceState{
 								ID: "baz",
@@ -70,38 +70,33 @@ func TestRefreshGraphBuilder_configOrphans(t *testing.T) {
 	}
 
 	b := &RefreshGraphBuilder{
-		Config: m,
-		State:  state,
-		Components: &basicComponentFactory{
-			providers: map[string]ResourceProviderFactory{
-				"aws": func() (ResourceProvider, error) {
-					return nil, fmt.Errorf("not implemented")
-				},
-			},
-		},
+		Config:     m,
+		State:      state,
+		Components: simpleMockComponentFactory(),
 	}
 	g, err := b.Build(addrs.RootModuleInstance)
 	if err != nil {
 		t.Fatalf("Error building graph: %s", err)
 	}
 
-	actual := g.StringWithNodeTypes()
-	expected := `aws_instance.foo - *terraform.NodeRefreshableManagedResource
-  provider.aws - *terraform.NodeApplyableProvider
-data.aws_instance.foo[0] - *terraform.NodeRefreshableManagedResourceInstance
-  provider.aws - *terraform.NodeApplyableProvider
-data.aws_instance.foo[1] - *terraform.NodeRefreshableManagedResourceInstance
-  provider.aws - *terraform.NodeApplyableProvider
-data.aws_instance.foo[2] - *terraform.NodeRefreshableManagedResourceInstance
-  provider.aws - *terraform.NodeApplyableProvider
-provider.aws - *terraform.NodeApplyableProvider
-provider.aws (close) - *terraform.graphNodeCloseProvider
-  aws_instance.foo - *terraform.NodeRefreshableManagedResource
-  data.aws_instance.foo[0] - *terraform.NodeRefreshableManagedResourceInstance
-  data.aws_instance.foo[1] - *terraform.NodeRefreshableManagedResourceInstance
-  data.aws_instance.foo[2] - *terraform.NodeRefreshableManagedResourceInstance
-`
+	actual := strings.TrimSpace(g.StringWithNodeTypes())
+	expected := strings.TrimSpace(`
+data.test_object.foo[0] - *terraform.NodeRefreshableManagedResourceInstance
+  provider.test - *terraform.NodeApplyableProvider
+data.test_object.foo[1] - *terraform.NodeRefreshableManagedResourceInstance
+  provider.test - *terraform.NodeApplyableProvider
+data.test_object.foo[2] - *terraform.NodeRefreshableManagedResourceInstance
+  provider.test - *terraform.NodeApplyableProvider
+provider.test - *terraform.NodeApplyableProvider
+provider.test (close) - *terraform.graphNodeCloseProvider
+  data.test_object.foo[0] - *terraform.NodeRefreshableManagedResourceInstance
+  data.test_object.foo[1] - *terraform.NodeRefreshableManagedResourceInstance
+  data.test_object.foo[2] - *terraform.NodeRefreshableManagedResourceInstance
+  test_object.foo - *terraform.NodeRefreshableManagedResource
+test_object.foo - *terraform.NodeRefreshableManagedResource
+  provider.test - *terraform.NodeApplyableProvider
+`)
 	if expected != actual {
-		t.Fatalf("Expected:\n%s\nGot:\n%s", expected, actual)
+		t.Fatalf("wrong result\n\ngot:\n%s\n\nwant:\n%s", actual, expected)
 	}
 }
