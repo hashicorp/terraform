@@ -22,6 +22,7 @@ func TestNodeDestroyResourceDynamicExpand_deposedCount(t *testing.T) {
 								ID: "foo",
 							},
 						},
+						Provider: "provider.aws",
 					},
 					"aws_instance.bar.1": &ResourceState{
 						Type: "aws_instance",
@@ -30,6 +31,7 @@ func TestNodeDestroyResourceDynamicExpand_deposedCount(t *testing.T) {
 								ID: "bar",
 							},
 						},
+						Provider: "provider.aws",
 					},
 				},
 			},
@@ -59,11 +61,11 @@ func TestNodeDestroyResourceDynamicExpand_deposedCount(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	actual := strings.TrimSpace(g.String())
-	expected := strings.TrimSpace(`
-aws_instance.bar.0 (deposed #0)
+	got := strings.TrimSpace(g.String())
+	want := strings.TrimSpace(`
+aws_instance.bar[0] (deposed #0)
 `)
-	if actual != expected {
-		t.Fatalf("bad:\n\n%s", actual)
+	if got != want {
+		t.Fatalf("wrong result\n\ngot:\n%s\n\nwant:\n%s", got, want)
 	}
 }
