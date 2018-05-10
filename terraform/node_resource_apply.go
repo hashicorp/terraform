@@ -64,7 +64,7 @@ func (n *NodeApplyableResourceInstance) References() []*addrs.Reference {
 		}
 	}
 
-	return nil
+	return ret
 }
 
 // GraphNodeEvalable
