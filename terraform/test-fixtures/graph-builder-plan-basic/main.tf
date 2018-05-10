@@ -1,10 +1,10 @@
 variable "foo" {
-    default = "bar"
-    description = "bar"
+  default     = "bar"
+  description = "bar"
 }
 
 provider "aws" {
-    foo = "${openstack_floating_ip.random.value}"
+  test_string = "${openstack_floating_ip.random.test_string}"
 }
 
 resource "openstack_floating_ip" "random" {}
@@ -12,19 +12,20 @@ resource "openstack_floating_ip" "random" {}
 resource "aws_security_group" "firewall" {}
 
 resource "aws_instance" "web" {
-    ami = "${var.foo}"
-    security_groups = [
-        "foo",
-        "${aws_security_group.firewall.foo}"
-    ]
+  test_string = var.foo
+
+  test_list = [
+    "foo",
+    aws_security_group.firewall.test_string,
+  ]
 }
 
 resource "aws_load_balancer" "weblb" {
-    members = "${aws_instance.web.id_list}"
+  test_list = aws_instance.web.test_list
 }
 
 locals {
-  instance_id = "${aws_instance.web.id}"
+  instance_id = "${aws_instance.web.test_string}"
 }
 
 output "instance_id" {
