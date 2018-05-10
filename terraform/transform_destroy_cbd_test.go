@@ -9,15 +9,16 @@ import (
 
 func TestCBDEdgeTransformer(t *testing.T) {
 	g := Graph{Path: addrs.RootModuleInstance}
-	g.Add(&graphNodeCreatorTest{AddrString: "test.A"})
-	g.Add(&graphNodeCreatorTest{AddrString: "test.B"})
-	g.Add(&graphNodeDestroyerTest{AddrString: "test.A", CBD: true})
+	g.Add(&graphNodeCreatorTest{AddrString: "test_object.A"})
+	g.Add(&graphNodeCreatorTest{AddrString: "test_object.B"})
+	g.Add(&graphNodeDestroyerTest{AddrString: "test_object.A", CBD: true})
 
 	module := testModule(t, "transform-destroy-edge-basic")
 
 	{
 		tf := &DestroyEdgeTransformer{
-			Config: module,
+			Config:     module,
+			Components: simpleMockComponentFactory(),
 		}
 		if err := tf.Transform(&g); err != nil {
 			t.Fatalf("err: %s", err)
@@ -25,7 +26,10 @@ func TestCBDEdgeTransformer(t *testing.T) {
 	}
 
 	{
-		tf := &CBDEdgeTransformer{Config: module}
+		tf := &CBDEdgeTransformer{
+			Config:     module,
+			Components: simpleMockComponentFactory(),
+		}
 		if err := tf.Transform(&g); err != nil {
 			t.Fatalf("err: %s", err)
 		}
@@ -34,22 +38,23 @@ func TestCBDEdgeTransformer(t *testing.T) {
 	actual := strings.TrimSpace(g.String())
 	expected := strings.TrimSpace(testTransformCBDEdgeBasicStr)
 	if actual != expected {
-		t.Fatalf("bad:\n\n%s", actual)
+		t.Fatalf("wrong result\n\ngot:\n%s\n\nwant:\n%s", actual, expected)
 	}
 }
 
 func TestCBDEdgeTransformer_depNonCBD(t *testing.T) {
 	g := Graph{Path: addrs.RootModuleInstance}
-	g.Add(&graphNodeCreatorTest{AddrString: "test.A"})
-	g.Add(&graphNodeCreatorTest{AddrString: "test.B"})
-	g.Add(&graphNodeDestroyerTest{AddrString: "test.A"})
-	g.Add(&graphNodeDestroyerTest{AddrString: "test.B", CBD: true})
+	g.Add(&graphNodeCreatorTest{AddrString: "test_object.A"})
+	g.Add(&graphNodeCreatorTest{AddrString: "test_object.B"})
+	g.Add(&graphNodeDestroyerTest{AddrString: "test_object.A"})
+	g.Add(&graphNodeDestroyerTest{AddrString: "test_object.B", CBD: true})
 
 	module := testModule(t, "transform-destroy-edge-basic")
 
 	{
 		tf := &DestroyEdgeTransformer{
-			Config: module,
+			Config:     module,
+			Components: simpleMockComponentFactory(),
 		}
 		if err := tf.Transform(&g); err != nil {
 			t.Fatalf("err: %s", err)
@@ -57,7 +62,10 @@ func TestCBDEdgeTransformer_depNonCBD(t *testing.T) {
 	}
 
 	{
-		tf := &CBDEdgeTransformer{Config: module}
+		tf := &CBDEdgeTransformer{
+			Config:     module,
+			Components: simpleMockComponentFactory(),
+		}
 		if err := tf.Transform(&g); err != nil {
 			t.Fatalf("err: %s", err)
 		}
@@ -66,22 +74,23 @@ func TestCBDEdgeTransformer_depNonCBD(t *testing.T) {
 	actual := strings.TrimSpace(g.String())
 	expected := strings.TrimSpace(testTransformCBDEdgeDepNonCBDStr)
 	if actual != expected {
-		t.Fatalf("bad:\n\n%s", actual)
+		t.Fatalf("wrong result\n\ngot:\n%s\n\nwant:\n%s", actual, expected)
 	}
 }
 
 func TestCBDEdgeTransformer_depNonCBDCount(t *testing.T) {
 	g := Graph{Path: addrs.RootModuleInstance}
-	g.Add(&graphNodeCreatorTest{AddrString: "test.A"})
-	g.Add(&graphNodeCreatorTest{AddrString: "test.B[0]"})
-	g.Add(&graphNodeCreatorTest{AddrString: "test.B[1]"})
-	g.Add(&graphNodeDestroyerTest{AddrString: "test.A", CBD: true})
+	g.Add(&graphNodeCreatorTest{AddrString: "test_object.A"})
+	g.Add(&graphNodeCreatorTest{AddrString: "test_object.B[0]"})
+	g.Add(&graphNodeCreatorTest{AddrString: "test_object.B[1]"})
+	g.Add(&graphNodeDestroyerTest{AddrString: "test_object.A", CBD: true})
 
 	module := testModule(t, "transform-destroy-edge-splat")
 
 	{
 		tf := &DestroyEdgeTransformer{
-			Config: module,
+			Config:     module,
+			Components: simpleMockComponentFactory(),
 		}
 		if err := tf.Transform(&g); err != nil {
 			t.Fatalf("err: %s", err)
@@ -89,7 +98,10 @@ func TestCBDEdgeTransformer_depNonCBDCount(t *testing.T) {
 	}
 
 	{
-		tf := &CBDEdgeTransformer{Config: module}
+		tf := &CBDEdgeTransformer{
+			Config:     module,
+			Components: simpleMockComponentFactory(),
+		}
 		if err := tf.Transform(&g); err != nil {
 			t.Fatalf("err: %s", err)
 		}
@@ -97,33 +109,34 @@ func TestCBDEdgeTransformer_depNonCBDCount(t *testing.T) {
 
 	actual := strings.TrimSpace(g.String())
 	expected := strings.TrimSpace(`
-test.A
-test.A (destroy)
-  test.A
-  test.B[0]
-  test.B[1]
-test.B[0]
-test.B[1]
+test_object.A
+test_object.A (destroy)
+  test_object.A
+  test_object.B[0]
+  test_object.B[1]
+test_object.B[0]
+test_object.B[1]
 	`)
 	if actual != expected {
-		t.Fatalf("bad:\n\n%s", actual)
+		t.Fatalf("wrong result\n\ngot:\n%s\n\nwant:\n%s", actual, expected)
 	}
 }
 
 func TestCBDEdgeTransformer_depNonCBDCountBoth(t *testing.T) {
 	g := Graph{Path: addrs.RootModuleInstance}
-	g.Add(&graphNodeCreatorTest{AddrString: "test.A[0]"})
-	g.Add(&graphNodeCreatorTest{AddrString: "test.A[1]"})
-	g.Add(&graphNodeCreatorTest{AddrString: "test.B[0]"})
-	g.Add(&graphNodeCreatorTest{AddrString: "test.B[1]"})
-	g.Add(&graphNodeDestroyerTest{AddrString: "test.A[0]", CBD: true})
-	g.Add(&graphNodeDestroyerTest{AddrString: "test.A[1]", CBD: true})
+	g.Add(&graphNodeCreatorTest{AddrString: "test_object.A[0]"})
+	g.Add(&graphNodeCreatorTest{AddrString: "test_object.A[1]"})
+	g.Add(&graphNodeCreatorTest{AddrString: "test_object.B[0]"})
+	g.Add(&graphNodeCreatorTest{AddrString: "test_object.B[1]"})
+	g.Add(&graphNodeDestroyerTest{AddrString: "test_object.A[0]", CBD: true})
+	g.Add(&graphNodeDestroyerTest{AddrString: "test_object.A[1]", CBD: true})
 
 	module := testModule(t, "transform-destroy-edge-splat")
 
 	{
 		tf := &DestroyEdgeTransformer{
-			Config: module,
+			Config:     module,
+			Components: simpleMockComponentFactory(),
 		}
 		if err := tf.Transform(&g); err != nil {
 			t.Fatalf("err: %s", err)
@@ -131,7 +144,10 @@ func TestCBDEdgeTransformer_depNonCBDCountBoth(t *testing.T) {
 	}
 
 	{
-		tf := &CBDEdgeTransformer{Config: module}
+		tf := &CBDEdgeTransformer{
+			Config:     module,
+			Components: simpleMockComponentFactory(),
+		}
 		if err := tf.Transform(&g); err != nil {
 			t.Fatalf("err: %s", err)
 		}
@@ -139,39 +155,39 @@ func TestCBDEdgeTransformer_depNonCBDCountBoth(t *testing.T) {
 
 	actual := strings.TrimSpace(g.String())
 	expected := strings.TrimSpace(`
-test.A[0]
-test.A[0] (destroy)
-  test.A[0]
-  test.B[0]
-  test.B[1]
-test.A[1]
-test.A[1] (destroy)
-  test.A[1]
-  test.B[0]
-  test.B[1]
-test.B[0]
-test.B[1]
+test_object.A[0]
+test_object.A[0] (destroy)
+  test_object.A[0]
+  test_object.B[0]
+  test_object.B[1]
+test_object.A[1]
+test_object.A[1] (destroy)
+  test_object.A[1]
+  test_object.B[0]
+  test_object.B[1]
+test_object.B[0]
+test_object.B[1]
 	`)
 	if actual != expected {
-		t.Fatalf("bad:\n\n%s", actual)
+		t.Fatalf("wrong result\n\ngot:\n%s\n\nwant:\n%s", actual, expected)
 	}
 }
 
 const testTransformCBDEdgeBasicStr = `
-test.A
-test.A (destroy)
-  test.A
-  test.B
-test.B
+test_object.A
+test_object.A (destroy)
+  test_object.A
+  test_object.B
+test_object.B
 `
 
 const testTransformCBDEdgeDepNonCBDStr = `
-test.A
-test.A (destroy) (modified)
-  test.A
-  test.B
-  test.B (destroy)
-test.B
-test.B (destroy)
-  test.B
+test_object.A
+test_object.A (destroy) (modified)
+  test_object.A
+  test_object.B
+  test_object.B (destroy)
+test_object.B
+test_object.B (destroy)
+  test_object.B
 `
