@@ -1,3 +1,3 @@
-resource "null_resource" "foo" {
-    provisioner "local" {}
+resource "test_object" "foo" {
+  provisioner "test" {}
 }
