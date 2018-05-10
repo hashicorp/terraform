@@ -42,7 +42,14 @@ func (t *DiffTransformer) Transform(g *Graph) error {
 				panic(fmt.Sprintf(
 					"Error parsing internal name, this is a bug: %q", name))
 			}
+
+			// legacyAddr is relative even though the legacy ResourceAddress is
+			// usually absolute, so we need to do some trickery here to get
+			// a new-style absolute address in the right module.
+			// FIXME: Clean this up once the "Diff" types are updated to use
+			// our new address types.
 			addr := legacyAddr.AbsResourceInstanceAddr()
+			addr = addr.Resource.Absolute(normalizeModulePath(m.Path))
 
 			// If we're destroying, add the destroy node
 			if inst.Destroy || inst.GetDestroyDeposed() {
