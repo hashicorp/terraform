@@ -1,7 +1,7 @@
-resource "aws_instance" "b" {
-  value = "foo"
+resource "test_object" "b" {
+  test_string = "foo"
 }
 
 output "output" {
-  value = "${aws_instance.b.value}"
+  value = "${test_object.b.test_string}"
 }
