@@ -1,9 +1,9 @@
-resource "test" "A" {}
+resource "test_object" "A" {}
 
-resource "test" "B" {
-  value = "${test.A.value}"
+resource "test_object" "B" {
+  test_string = "${test_object.A.test_string}"
 }
 
-resource "test" "C" {
-  value = "${test.B.value}"
+resource "test_object" "C" {
+  test_string = "${test_object.B.test_string}"
 }

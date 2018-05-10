@@ -44,11 +44,14 @@ type DestroyEdgeTransformer struct {
 	// to determine what a destroy node depends on. Any of these can be nil.
 	Config *configs.Config
 	State  *State
+
+	// If configuration is present then Components is required in order to
+	// obtain schema information from providers and provisioners in order
+	// to properly resolve implicit dependencies.
+	Components contextComponentFactory
 }
 
 func (t *DestroyEdgeTransformer) Transform(g *Graph) error {
-	log.Printf("[TRACE] DestroyEdgeTransformer: Beginning destroy edge transformation...")
-
 	// Build a map of what is being destroyed (by address string) to
 	// the list of destroyers. In general there will only be one destroyer
 	// but to make it more robust we support multiple.
@@ -67,7 +70,7 @@ func (t *DestroyEdgeTransformer) Transform(g *Graph) error {
 		addr := *addrP
 
 		key := addr.String()
-		log.Printf("[TRACE] DestroyEdgeTransformer: %s will destroy %s", dag.VertexName(dn), key)
+		log.Printf("[TRACE] DestroyEdgeTransformer: %q (%T) destroys %s", dag.VertexName(dn), v, key)
 		destroyers[key] = append(destroyers[key], dn)
 		destroyerAddrs[key] = addr
 	}
@@ -103,7 +106,7 @@ func (t *DestroyEdgeTransformer) Transform(g *Graph) error {
 			a := v
 
 			log.Printf(
-				"[TRACE] DestroyEdgeTransformer: connecting creator/destroyer: %s, %s",
+				"[TRACE] DestroyEdgeTransformer: connecting creator %q with destroyer %q",
 				dag.VertexName(a), dag.VertexName(a_d))
 
 			g.Connect(&DestroyEdge{S: a, T: a_d})
@@ -138,6 +141,10 @@ func (t *DestroyEdgeTransformer) Transform(g *Graph) error {
 		&RootVariableTransformer{Config: t.Config},
 		&ModuleVariableTransformer{Config: t.Config},
 
+		// Must be before ReferenceTransformer, since schema is required to
+		// extract references from config.
+		&AttachSchemaTransformer{Components: t.Components},
+
 		&ReferenceTransformer{},
 	}
 
@@ -157,12 +164,7 @@ func (t *DestroyEdgeTransformer) Transform(g *Graph) error {
 		// This part is a little bit weird but is the best way to
 		// find the dependencies we need to: build a graph and use the
 		// attach config and state transformers then ask for references.
-		abstract := &NodeAbstractResourceInstance{
-			NodeAbstractResource: NodeAbstractResource{
-				Addr: addr.ContainingResource(),
-			},
-			InstanceKey: addr.Resource.Key,
-		}
+		abstract := NewNodeAbstractResourceInstance(addr)
 		tempG.Add(abstract)
 		tempDestroyed = append(tempDestroyed, abstract)
 
@@ -175,13 +177,15 @@ func (t *DestroyEdgeTransformer) Transform(g *Graph) error {
 
 	// Run the graph transforms so we have the information we need to
 	// build references.
+	log.Println("[TRACE] DestroyEdgeTransformer: constructing temporary graph for analysis of references")
 	for _, s := range steps {
+		log.Printf("[TRACE] DestroyEdgeTransformer: running %T on temporary graph", s)
 		if err := s.Transform(&tempG); err != nil {
+			log.Printf("[TRACE] DestroyEdgeTransformer: %T failed: %s", s, err)
 			return err
 		}
 	}
-
-	log.Printf("[TRACE] DestroyEdgeTransformer: reference graph: %s", tempG.String())
+	log.Printf("[TRACE] DestroyEdgeTransformer: temporary reference graph: %s", tempG.String())
 
 	// Go through all the nodes in the graph and determine what they
 	// depend on.

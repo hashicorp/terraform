@@ -22,6 +22,10 @@ type DestroyPlanGraphBuilder struct {
 	// Targets are resources to target
 	Targets []addrs.Targetable
 
+	// Components is a factory for the plug-in components (providers and
+	// provisioners) available for use.
+	Components contextComponentFactory
+
 	// Validate will do structural validation of the graph.
 	Validate bool
 }
@@ -55,7 +59,11 @@ func (b *DestroyPlanGraphBuilder) Steps() []GraphTransformer {
 
 		// Destruction ordering. We require this only so that
 		// targeting below will prune the correct things.
-		&DestroyEdgeTransformer{Config: b.Config, State: b.State},
+		&DestroyEdgeTransformer{
+			Config:     b.Config,
+			State:      b.State,
+			Components: b.Components,
+		},
 
 		// Target. Note we don't set "Destroy: true" here since we already
 		// created proper destroy ordering.

@@ -40,11 +40,14 @@ type CBDEdgeTransformer struct {
 	// any way possible. Either can be nil if not availabile.
 	Config *configs.Config
 	State  *State
+
+	// If configuration is present then Components is required in order to
+	// obtain schema information from providers and provisioners in order
+	// to properly resolve implicit dependencies.
+	Components contextComponentFactory
 }
 
 func (t *CBDEdgeTransformer) Transform(g *Graph) error {
-	log.Printf("[TRACE] CBDEdgeTransformer: Beginning CBD transformation...")
-
 	// Go through and reverse any destroy edges
 	destroyMap := make(map[string][]dag.Vertex)
 	for _, v := range g.Vertices() {
@@ -64,6 +67,7 @@ func (t *CBDEdgeTransformer) Transform(g *Graph) error {
 			// and we need to auto-upgrade this node to CBD. We do this because
 			// a CBD node depending on non-CBD will result in cycles. To avoid this,
 			// we always attempt to upgrade it.
+			log.Printf("[TRACE] CBDEdgeTransformer: forcing create_before_destroy on for %q (%T)", dag.VertexName(v), v)
 			if err := dn.ModifyCreateBeforeDestroy(true); err != nil {
 				return fmt.Errorf(
 					"%s: must have create before destroy enabled because "+
@@ -174,6 +178,7 @@ func (t *CBDEdgeTransformer) depMap(destroyMap map[string][]dag.Vertex) (map[str
 			&FlatConfigTransformer{Config: t.Config},
 			&AttachResourceConfigTransformer{Config: t.Config},
 			&AttachStateTransformer{State: t.State},
+			&AttachSchemaTransformer{Components: t.Components},
 			&ReferenceTransformer{},
 		},
 		Name: "CBDEdgeTransformer",
