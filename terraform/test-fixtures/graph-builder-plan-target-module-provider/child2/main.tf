@@ -1,7 +1,7 @@
 variable "key" {}
 
-provider "null" {
-  key = "${var.key}"
+provider "test" {
+  test_string = "${var.key}"
 }
 
-resource "null_resource" "foo" {}
+resource "test_object" "foo" {}
