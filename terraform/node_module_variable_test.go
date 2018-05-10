@@ -20,10 +20,10 @@ func TestNodeApplyableModuleVariablePath(t *testing.T) {
 		},
 	}
 
-	expected := []string{"root"}
-	actual := n.Path()
-	if !reflect.DeepEqual(actual, expected) {
-		t.Fatalf("%#v != %#v", actual, expected)
+	want := addrs.RootModuleInstance
+	got := n.Path()
+	if got.String() != want.String() {
+		t.Fatalf("wrong module address %s; want %s", got, want)
 	}
 }
 
