@@ -4,6 +4,7 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/go-test/deep"
 	"github.com/hashicorp/hcl2/hcl"
 	"github.com/hashicorp/hcl2/hcl/hclsyntax"
 
@@ -72,14 +73,14 @@ func TestNodeApplyableModuleVariableReference(t *testing.T) {
 		},
 	}
 
-	expected := []*addrs.Reference{
+	want := []*addrs.Reference{
 		{
 			Subject: addrs.InputVariable{Name: "foo"},
 		},
 	}
-	actual := n.References()
-	if !reflect.DeepEqual(actual, expected) {
-		t.Fatalf("%#v != %#v", actual, expected)
+	got := n.References()
+	for _, problem := range deep.Equal(got, want) {
+		t.Error(problem)
 	}
 }
 
@@ -100,13 +101,13 @@ func TestNodeApplyableModuleVariableReference_grandchild(t *testing.T) {
 		},
 	}
 
-	expected := []*addrs.Reference{
+	want := []*addrs.Reference{
 		{
 			Subject: addrs.InputVariable{Name: "foo"},
 		},
 	}
-	actual := n.References()
-	if !reflect.DeepEqual(actual, expected) {
-		t.Fatalf("%#v != %#v", actual, expected)
+	got := n.References()
+	for _, problem := range deep.Equal(got, want) {
+		t.Error(problem)
 	}
 }
