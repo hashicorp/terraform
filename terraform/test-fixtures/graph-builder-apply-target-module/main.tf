@@ -1,8 +1,8 @@
-resource "null_resource" "foo" {}
+resource "test_object" "foo" {}
 
 module "child1" {
-  source = "./child1"
-  instance_id = "${null_resource.foo.id}"
+  source      = "./child1"
+  instance_id = "${test_object.foo.id}"
 }
 
 module "child2" {

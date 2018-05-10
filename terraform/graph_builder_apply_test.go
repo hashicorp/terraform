@@ -1,7 +1,6 @@
 package terraform
 
 import (
-	"fmt"
 	"strings"
 	"testing"
 
@@ -19,20 +18,20 @@ func TestApplyGraphBuilder(t *testing.T) {
 				Path: []string{"root"},
 				Resources: map[string]*InstanceDiff{
 					// Verify noop doesn't show up in graph
-					"aws_instance.noop": &InstanceDiff{},
+					"test_object.noop": &InstanceDiff{},
 
-					"aws_instance.create": &InstanceDiff{
+					"test_object.create": &InstanceDiff{
 						Attributes: map[string]*ResourceAttrDiff{
-							"name": &ResourceAttrDiff{
+							"test_string": &ResourceAttrDiff{
 								Old: "",
 								New: "foo",
 							},
 						},
 					},
 
-					"aws_instance.other": &InstanceDiff{
+					"test_object.other": &InstanceDiff{
 						Attributes: map[string]*ResourceAttrDiff{
-							"name": &ResourceAttrDiff{
+							"test_string": &ResourceAttrDiff{
 								Old: "",
 								New: "foo",
 							},
@@ -44,18 +43,18 @@ func TestApplyGraphBuilder(t *testing.T) {
 			&ModuleDiff{
 				Path: []string{"root", "child"},
 				Resources: map[string]*InstanceDiff{
-					"aws_instance.create": &InstanceDiff{
+					"test_object.create": &InstanceDiff{
 						Attributes: map[string]*ResourceAttrDiff{
-							"name": &ResourceAttrDiff{
+							"test_string": &ResourceAttrDiff{
 								Old: "",
 								New: "foo",
 							},
 						},
 					},
 
-					"aws_instance.other": &InstanceDiff{
+					"test_object.other": &InstanceDiff{
 						Attributes: map[string]*ResourceAttrDiff{
-							"name": &ResourceAttrDiff{
+							"test_string": &ResourceAttrDiff{
 								Old: "",
 								New: "foo",
 							},
@@ -67,20 +66,9 @@ func TestApplyGraphBuilder(t *testing.T) {
 	}
 
 	b := &ApplyGraphBuilder{
-		Config: testModule(t, "graph-builder-apply-basic"),
-		Diff:   diff,
-		Components: &basicComponentFactory{
-			providers: map[string]ResourceProviderFactory{
-				"aws": func() (ResourceProvider, error) {
-					return nil, fmt.Errorf("not implemented")
-				},
-			},
-			provisioners: map[string]ResourceProvisionerFactory{
-				"exec": func() (ResourceProvisioner, error) {
-					return nil, fmt.Errorf("not implemented")
-				},
-			},
-		},
+		Config:        testModule(t, "graph-builder-apply-basic"),
+		Diff:          diff,
+		Components:    simpleMockComponentFactory(),
 		DisableReduce: true,
 	}
 
@@ -96,7 +84,7 @@ func TestApplyGraphBuilder(t *testing.T) {
 	actual := strings.TrimSpace(g.String())
 	expected := strings.TrimSpace(testApplyGraphBuilderStr)
 	if actual != expected {
-		t.Fatalf("expected:\n%s\n\ngot:\n%s", expected, actual)
+		t.Fatalf("wrong result\n\ngot:\n%s\n\nwant:\n%s", actual, expected)
 	}
 }
 
@@ -107,9 +95,9 @@ func TestApplyGraphBuilder_depCbd(t *testing.T) {
 		Modules: []*ModuleDiff{
 			&ModuleDiff{
 				Path: []string{"root"},
-				Resources: map[string]*InstanceDiff{"aws_instance.A": &InstanceDiff{Destroy: true,
+				Resources: map[string]*InstanceDiff{"test_object.A": &InstanceDiff{Destroy: true,
 					Attributes: map[string]*ResourceAttrDiff{
-						"name": &ResourceAttrDiff{
+						"test_string": &ResourceAttrDiff{
 							Old:         "",
 							New:         "foo",
 							RequiresNew: true,
@@ -117,9 +105,9 @@ func TestApplyGraphBuilder_depCbd(t *testing.T) {
 					},
 				},
 
-					"aws_instance.B": &InstanceDiff{
+					"test_object.B": &InstanceDiff{
 						Attributes: map[string]*ResourceAttrDiff{
-							"name": &ResourceAttrDiff{
+							"test_string": &ResourceAttrDiff{
 								Old: "",
 								New: "foo",
 							},
@@ -131,20 +119,9 @@ func TestApplyGraphBuilder_depCbd(t *testing.T) {
 	}
 
 	b := &ApplyGraphBuilder{
-		Config: testModule(t, "graph-builder-apply-dep-cbd"),
-		Diff:   diff,
-		Components: &basicComponentFactory{
-			providers: map[string]ResourceProviderFactory{
-				"aws": func() (ResourceProvider, error) {
-					return nil, fmt.Errorf("not implemented")
-				},
-			},
-			provisioners: map[string]ResourceProvisionerFactory{
-				"exec": func() (ResourceProvisioner, error) {
-					return nil, fmt.Errorf("not implemented")
-				},
-			},
-		},
+		Config:        testModule(t, "graph-builder-apply-dep-cbd"),
+		Diff:          diff,
+		Components:    simpleMockComponentFactory(),
 		DisableReduce: true,
 	}
 
@@ -162,16 +139,16 @@ func TestApplyGraphBuilder_depCbd(t *testing.T) {
 
 	testGraphHappensBefore(
 		t, g,
-		"aws_instance.A",
-		"aws_instance.A (destroy)")
+		"test_object.A",
+		"test_object.A (destroy)")
 	testGraphHappensBefore(
 		t, g,
-		"aws_instance.A",
-		"aws_instance.B")
+		"test_object.A",
+		"test_object.B")
 	testGraphHappensBefore(
 		t, g,
-		"aws_instance.B",
-		"aws_instance.A (destroy)")
+		"test_object.B",
+		"test_object.A (destroy)")
 }
 
 // This tests the ordering of two resources that are both CBD that
@@ -182,20 +159,20 @@ func TestApplyGraphBuilder_doubleCBD(t *testing.T) {
 			&ModuleDiff{
 				Path: []string{"root"},
 				Resources: map[string]*InstanceDiff{
-					"aws_instance.A": &InstanceDiff{
+					"test_object.A": &InstanceDiff{
 						Destroy: true,
 						Attributes: map[string]*ResourceAttrDiff{
-							"name": &ResourceAttrDiff{
+							"test_string": &ResourceAttrDiff{
 								Old: "",
 								New: "foo",
 							},
 						},
 					},
 
-					"aws_instance.B": &InstanceDiff{
+					"test_object.B": &InstanceDiff{
 						Destroy: true,
 						Attributes: map[string]*ResourceAttrDiff{
-							"name": &ResourceAttrDiff{
+							"test_string": &ResourceAttrDiff{
 								Old: "",
 								New: "foo",
 							},
@@ -207,20 +184,9 @@ func TestApplyGraphBuilder_doubleCBD(t *testing.T) {
 	}
 
 	b := &ApplyGraphBuilder{
-		Config: testModule(t, "graph-builder-apply-double-cbd"),
-		Diff:   diff,
-		Components: &basicComponentFactory{
-			providers: map[string]ResourceProviderFactory{
-				"aws": func() (ResourceProvider, error) {
-					return nil, fmt.Errorf("not implemented")
-				},
-			},
-			provisioners: map[string]ResourceProvisionerFactory{
-				"exec": func() (ResourceProvisioner, error) {
-					return nil, fmt.Errorf("not implemented")
-				},
-			},
-		},
+		Config:        testModule(t, "graph-builder-apply-double-cbd"),
+		Diff:          diff,
+		Components:    simpleMockComponentFactory(),
 		DisableReduce: true,
 	}
 
@@ -236,7 +202,7 @@ func TestApplyGraphBuilder_doubleCBD(t *testing.T) {
 	actual := strings.TrimSpace(g.String())
 	expected := strings.TrimSpace(testApplyGraphBuilderDoubleCBDStr)
 	if actual != expected {
-		t.Fatalf("bad: %s", actual)
+		t.Fatalf("wrong result\n\ngot:\n%s\n\nwant:\n%s", actual, expected)
 	}
 }
 
@@ -248,11 +214,11 @@ func TestApplyGraphBuilder_destroyStateOnly(t *testing.T) {
 			&ModuleDiff{
 				Path: []string{"root", "child"},
 				Resources: map[string]*InstanceDiff{
-					"aws_instance.A": &InstanceDiff{
+					"test_object.A": &InstanceDiff{
 						Destroy: true,
 					},
 
-					"aws_instance.B": &InstanceDiff{
+					"test_object.B": &InstanceDiff{
 						Destroy: true,
 					},
 				},
@@ -265,21 +231,21 @@ func TestApplyGraphBuilder_destroyStateOnly(t *testing.T) {
 			&ModuleState{
 				Path: []string{"root", "child"},
 				Resources: map[string]*ResourceState{
-					"aws_instance.A": &ResourceState{
-						Type: "aws_instance",
+					"test_object.A": &ResourceState{
+						Type: "test_object",
 						Primary: &InstanceState{
 							ID:         "foo",
 							Attributes: map[string]string{},
 						},
 					},
 
-					"aws_instance.B": &ResourceState{
-						Type: "aws_instance",
+					"test_object.B": &ResourceState{
+						Type: "test_object",
 						Primary: &InstanceState{
 							ID:         "bar",
 							Attributes: map[string]string{},
 						},
-						Dependencies: []string{"aws_instance.A"},
+						Dependencies: []string{"test_object.A"},
 					},
 				},
 			},
@@ -287,16 +253,10 @@ func TestApplyGraphBuilder_destroyStateOnly(t *testing.T) {
 	}
 
 	b := &ApplyGraphBuilder{
-		Config: testModule(t, "empty"),
-		Diff:   diff,
-		State:  state,
-		Components: &basicComponentFactory{
-			providers: map[string]ResourceProviderFactory{
-				"aws": func() (ResourceProvider, error) {
-					return nil, fmt.Errorf("not implemented")
-				},
-			},
-		},
+		Config:        testModule(t, "empty"),
+		Diff:          diff,
+		State:         state,
+		Components:    simpleMockComponentFactory(),
 		DisableReduce: true,
 	}
 
@@ -312,8 +272,8 @@ func TestApplyGraphBuilder_destroyStateOnly(t *testing.T) {
 
 	testGraphHappensBefore(
 		t, g,
-		"module.child.aws_instance.B (destroy)",
-		"module.child.aws_instance.A (destroy)")
+		"module.child.test_object.B (destroy)",
+		"module.child.test_object.A (destroy)")
 }
 
 // This tests the ordering of destroying a single count of a resource.
@@ -323,11 +283,11 @@ func TestApplyGraphBuilder_destroyCount(t *testing.T) {
 			&ModuleDiff{
 				Path: []string{"root"},
 				Resources: map[string]*InstanceDiff{
-					"aws_instance.A.1": &InstanceDiff{
+					"test_object.A.1": &InstanceDiff{
 						Destroy: true,
 					},
 
-					"aws_instance.B": &InstanceDiff{
+					"test_object.B": &InstanceDiff{
 						Attributes: map[string]*ResourceAttrDiff{
 							"name": &ResourceAttrDiff{
 								Old: "",
@@ -341,20 +301,9 @@ func TestApplyGraphBuilder_destroyCount(t *testing.T) {
 	}
 
 	b := &ApplyGraphBuilder{
-		Config: testModule(t, "graph-builder-apply-count"),
-		Diff:   diff,
-		Components: &basicComponentFactory{
-			providers: map[string]ResourceProviderFactory{
-				"aws": func() (ResourceProvider, error) {
-					return nil, fmt.Errorf("not implemented")
-				},
-			},
-			provisioners: map[string]ResourceProvisionerFactory{
-				"exec": func() (ResourceProvisioner, error) {
-					return nil, fmt.Errorf("not implemented")
-				},
-			},
-		},
+		Config:        testModule(t, "graph-builder-apply-count"),
+		Diff:          diff,
+		Components:    simpleMockComponentFactory(),
 		DisableReduce: true,
 	}
 
@@ -370,7 +319,7 @@ func TestApplyGraphBuilder_destroyCount(t *testing.T) {
 	actual := strings.TrimSpace(g.String())
 	expected := strings.TrimSpace(testApplyGraphBuilderDestroyCountStr)
 	if actual != expected {
-		t.Fatalf("bad: %s", actual)
+		t.Fatalf("wrong result\n\ngot:\n%s\n\nwant:\n%s", actual, expected)
 	}
 }
 
@@ -380,7 +329,7 @@ func TestApplyGraphBuilder_moduleDestroy(t *testing.T) {
 			&ModuleDiff{
 				Path: []string{"root", "A"},
 				Resources: map[string]*InstanceDiff{
-					"null_resource.foo": &InstanceDiff{
+					"test_object.foo": &InstanceDiff{
 						Destroy: true,
 					},
 				},
@@ -389,7 +338,7 @@ func TestApplyGraphBuilder_moduleDestroy(t *testing.T) {
 			&ModuleDiff{
 				Path: []string{"root", "B"},
 				Resources: map[string]*InstanceDiff{
-					"null_resource.foo": &InstanceDiff{
+					"test_object.foo": &InstanceDiff{
 						Destroy: true,
 					},
 				},
@@ -398,15 +347,9 @@ func TestApplyGraphBuilder_moduleDestroy(t *testing.T) {
 	}
 
 	b := &ApplyGraphBuilder{
-		Config: testModule(t, "graph-builder-apply-module-destroy"),
-		Diff:   diff,
-		Components: &basicComponentFactory{
-			providers: map[string]ResourceProviderFactory{
-				"null": func() (ResourceProvider, error) {
-					return nil, fmt.Errorf("not implemented")
-				},
-			},
-		},
+		Config:     testModule(t, "graph-builder-apply-module-destroy"),
+		Diff:       diff,
+		Components: simpleMockComponentFactory(),
 	}
 
 	g, err := b.Build(addrs.RootModuleInstance)
@@ -416,8 +359,9 @@ func TestApplyGraphBuilder_moduleDestroy(t *testing.T) {
 
 	testGraphHappensBefore(
 		t, g,
-		"module.B.null_resource.foo (destroy)",
-		"module.A.null_resource.foo (destroy)")
+		"module.B.test_object.foo (destroy)",
+		"module.A.test_object.foo (destroy)",
+	)
 }
 
 func TestApplyGraphBuilder_provisioner(t *testing.T) {
@@ -426,9 +370,9 @@ func TestApplyGraphBuilder_provisioner(t *testing.T) {
 			&ModuleDiff{
 				Path: []string{"root"},
 				Resources: map[string]*InstanceDiff{
-					"null_resource.foo": &InstanceDiff{
+					"test_object.foo": &InstanceDiff{
 						Attributes: map[string]*ResourceAttrDiff{
-							"name": &ResourceAttrDiff{
+							"test_string": &ResourceAttrDiff{
 								Old: "",
 								New: "foo",
 							},
@@ -440,20 +384,9 @@ func TestApplyGraphBuilder_provisioner(t *testing.T) {
 	}
 
 	b := &ApplyGraphBuilder{
-		Config: testModule(t, "graph-builder-apply-provisioner"),
-		Diff:   diff,
-		Components: &basicComponentFactory{
-			providers: map[string]ResourceProviderFactory{
-				"null": func() (ResourceProvider, error) {
-					return nil, fmt.Errorf("not implemented")
-				},
-			},
-			provisioners: map[string]ResourceProvisionerFactory{
-				"local": func() (ResourceProvisioner, error) {
-					return nil, fmt.Errorf("not implemented")
-				},
-			},
-		},
+		Config:     testModule(t, "graph-builder-apply-provisioner"),
+		Diff:       diff,
+		Components: simpleMockComponentFactory(),
 	}
 
 	g, err := b.Build(addrs.RootModuleInstance)
@@ -461,11 +394,12 @@ func TestApplyGraphBuilder_provisioner(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	testGraphContains(t, g, "provisioner.local")
+	testGraphContains(t, g, "provisioner.test")
 	testGraphHappensBefore(
 		t, g,
-		"provisioner.local",
-		"null_resource.foo")
+		"provisioner.test",
+		"test_object.foo",
+	)
 }
 
 func TestApplyGraphBuilder_provisionerDestroy(t *testing.T) {
@@ -474,7 +408,7 @@ func TestApplyGraphBuilder_provisionerDestroy(t *testing.T) {
 			&ModuleDiff{
 				Path: []string{"root"},
 				Resources: map[string]*InstanceDiff{
-					"null_resource.foo": &InstanceDiff{
+					"test_object.foo": &InstanceDiff{
 						Destroy: true,
 					},
 				},
@@ -483,21 +417,10 @@ func TestApplyGraphBuilder_provisionerDestroy(t *testing.T) {
 	}
 
 	b := &ApplyGraphBuilder{
-		Destroy: true,
-		Config:  testModule(t, "graph-builder-apply-provisioner"),
-		Diff:    diff,
-		Components: &basicComponentFactory{
-			providers: map[string]ResourceProviderFactory{
-				"null": func() (ResourceProvider, error) {
-					return nil, fmt.Errorf("not implemented")
-				},
-			},
-			provisioners: map[string]ResourceProvisionerFactory{
-				"local": func() (ResourceProvisioner, error) {
-					return nil, fmt.Errorf("not implemented")
-				},
-			},
-		},
+		Destroy:    true,
+		Config:     testModule(t, "graph-builder-apply-provisioner"),
+		Diff:       diff,
+		Components: simpleMockComponentFactory(),
 	}
 
 	g, err := b.Build(addrs.RootModuleInstance)
@@ -505,11 +428,12 @@ func TestApplyGraphBuilder_provisionerDestroy(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	testGraphContains(t, g, "provisioner.local")
+	testGraphContains(t, g, "provisioner.test")
 	testGraphHappensBefore(
 		t, g,
-		"provisioner.local",
-		"null_resource.foo (destroy)")
+		"provisioner.test",
+		"test_object.foo (destroy)",
+	)
 }
 
 func TestApplyGraphBuilder_targetModule(t *testing.T) {
@@ -518,9 +442,9 @@ func TestApplyGraphBuilder_targetModule(t *testing.T) {
 			&ModuleDiff{
 				Path: []string{"root"},
 				Resources: map[string]*InstanceDiff{
-					"null_resource.foo": &InstanceDiff{
+					"test_object.foo": &InstanceDiff{
 						Attributes: map[string]*ResourceAttrDiff{
-							"name": &ResourceAttrDiff{
+							"test_string": &ResourceAttrDiff{
 								Old: "",
 								New: "foo",
 							},
@@ -528,13 +452,12 @@ func TestApplyGraphBuilder_targetModule(t *testing.T) {
 					},
 				},
 			},
-
 			&ModuleDiff{
 				Path: []string{"root", "child2"},
 				Resources: map[string]*InstanceDiff{
-					"null_resource.foo": &InstanceDiff{
+					"test_object.foo": &InstanceDiff{
 						Attributes: map[string]*ResourceAttrDiff{
-							"name": &ResourceAttrDiff{
+							"test_string": &ResourceAttrDiff{
 								Old: "",
 								New: "foo",
 							},
@@ -546,15 +469,9 @@ func TestApplyGraphBuilder_targetModule(t *testing.T) {
 	}
 
 	b := &ApplyGraphBuilder{
-		Config: testModule(t, "graph-builder-apply-target-module"),
-		Diff:   diff,
-		Components: &basicComponentFactory{
-			providers: map[string]ResourceProviderFactory{
-				"null": func() (ResourceProvider, error) {
-					return nil, fmt.Errorf("not implemented")
-				},
-			},
-		},
+		Config:     testModule(t, "graph-builder-apply-target-module"),
+		Diff:       diff,
+		Components: simpleMockComponentFactory(),
 		Targets: []addrs.Targetable{
 			addrs.RootModuleInstance.Child("child2", addrs.NoKey),
 		},
@@ -569,88 +486,89 @@ func TestApplyGraphBuilder_targetModule(t *testing.T) {
 }
 
 const testApplyGraphBuilderStr = `
-aws_instance.create
-  provider.aws
-aws_instance.other
-  aws_instance.create
-  provider.aws
 meta.count-boundary (count boundary fixup)
-  aws_instance.create
-  aws_instance.other
-  module.child.aws_instance.create
-  module.child.aws_instance.other
-  module.child.provisioner.exec
-  provider.aws
-module.child.aws_instance.create
-  module.child.provisioner.exec
-  provider.aws
-module.child.aws_instance.other
-  module.child.aws_instance.create
-  provider.aws
-module.child.provisioner.exec
-provider.aws
-provider.aws (close)
-  aws_instance.create
-  aws_instance.other
-  module.child.aws_instance.create
-  module.child.aws_instance.other
-  provider.aws
-provisioner.exec (close)
-  module.child.aws_instance.create
+  module.child.provisioner.test
+  module.child.test_object.create
+  module.child.test_object.other
+  provider.test
+  test_object.create
+  test_object.other
+module.child.provisioner.test
+module.child.test_object.create
+  module.child.provisioner.test
+  provider.test
+module.child.test_object.other
+  module.child.test_object.create
+  provider.test
+provider.test
+provider.test (close)
+  module.child.test_object.create
+  module.child.test_object.other
+  provider.test
+  test_object.create
+  test_object.other
+provisioner.test (close)
+  module.child.test_object.create
 root
   meta.count-boundary (count boundary fixup)
-  provider.aws (close)
-  provisioner.exec (close)
+  provider.test (close)
+  provisioner.test (close)
+test_object.create
+  provider.test
+test_object.other
+  provider.test
+  test_object.create
 `
 
 const testApplyGraphBuilderDoubleCBDStr = `
-aws_instance.A
-  provider.aws
-aws_instance.A (destroy)
-  aws_instance.A
-  aws_instance.B
-  aws_instance.B (destroy)
-  provider.aws
-aws_instance.B
-  aws_instance.A
-  provider.aws
-aws_instance.B (destroy)
-  aws_instance.B
-  provider.aws
 meta.count-boundary (count boundary fixup)
-  aws_instance.A
-  aws_instance.A (destroy)
-  aws_instance.B
-  aws_instance.B (destroy)
-  provider.aws
-provider.aws
-provider.aws (close)
-  aws_instance.A
-  aws_instance.A (destroy)
-  aws_instance.B
-  aws_instance.B (destroy)
-  provider.aws
+  provider.test
+  test_object.A
+  test_object.A (destroy)
+  test_object.B
+  test_object.B (destroy)
+provider.test
+provider.test (close)
+  provider.test
+  test_object.A
+  test_object.A (destroy)
+  test_object.B
+  test_object.B (destroy)
 root
   meta.count-boundary (count boundary fixup)
-  provider.aws (close)
+  provider.test (close)
+test_object.A
+  provider.test
+test_object.A (destroy)
+  provider.test
+  test_object.A
+  test_object.B
+  test_object.B (destroy)
+test_object.B
+  provider.test
+  test_object.A
+  test_object.A (destroy)
+test_object.B (destroy)
+  provider.test
+  test_object.B
 `
 
 const testApplyGraphBuilderDestroyCountStr = `
-aws_instance.A[1] (destroy)
-  provider.aws
-aws_instance.B
-  aws_instance.A[1] (destroy)
-  provider.aws
 meta.count-boundary (count boundary fixup)
-  aws_instance.A[1] (destroy)
-  aws_instance.B
-  provider.aws
-provider.aws
-provider.aws (close)
-  aws_instance.A[1] (destroy)
-  aws_instance.B
-  provider.aws
+  provider.test
+  test_object.A[1] (destroy)
+  test_object.B
+provider.test
+provider.test (close)
+  provider.test
+  test_object.A[1] (destroy)
+  test_object.B
 root
   meta.count-boundary (count boundary fixup)
-  provider.aws (close)
+  provider.test (close)
+test_object.A[1] (destroy)
+  provider.test
+test_object.B
+  provider.test
+  test_object.A[1] (destroy)
 `
