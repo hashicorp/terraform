@@ -1,11 +1,10 @@
-variable "instance_id" {
-}
+variable "instance_id" {}
 
 output "instance_id" {
   value = "${var.instance_id}"
 }
 
-resource "null_resource" "foo" {
+resource "test_object" "foo" {
   triggers = {
     instance_id = "${var.instance_id}"
   }
