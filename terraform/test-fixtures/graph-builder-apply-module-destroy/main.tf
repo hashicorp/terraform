@@ -4,10 +4,10 @@ variable "input" {
 
 module "A" {
   source = "./A"
-  input  = "${var.input}"
+  input  = var.input
 }
 
 module "B" {
   source = "./A"
-  input  = "${module.A.output}"
+  input  = module.A.output
 }
