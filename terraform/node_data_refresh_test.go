@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/hashicorp/terraform/addrs"
+	"github.com/zclconf/go-cty/cty"
 )
 
 func TestNodeRefreshableDataResourceDynamicExpand_scaleOut(t *testing.T) {
@@ -53,6 +54,11 @@ func TestNodeRefreshableDataResourceDynamicExpand_scaleOut(t *testing.T) {
 		PathPath:   addrs.RootModuleInstance,
 		StateState: state,
 		StateLock:  &stateLock,
+
+		// DynamicExpand will call EvaluateExpr to evaluate the "count"
+		// expression, which is just a literal number 3 in the fixture config
+		// and so we'll just hard-code this here too.
+		EvaluateExprResult: cty.NumberIntVal(3),
 	})
 	if err != nil {
 		t.Fatalf("error on DynamicExpand: %s", err)
@@ -134,6 +140,11 @@ func TestNodeRefreshableDataResourceDynamicExpand_scaleIn(t *testing.T) {
 		PathPath:   addrs.RootModuleInstance,
 		StateState: state,
 		StateLock:  &stateLock,
+
+		// DynamicExpand will call EvaluateExpr to evaluate the "count"
+		// expression, which is just a literal number 3 in the fixture config
+		// and so we'll just hard-code this here too.
+		EvaluateExprResult: cty.NumberIntVal(3),
 	})
 	if err != nil {
 		t.Fatalf("error on DynamicExpand: %s", err)
