@@ -1,11 +1,11 @@
 package terraform
 
 import (
-	"fmt"
 	"strings"
 	"testing"
 
 	"github.com/hashicorp/terraform/addrs"
+	"github.com/hashicorp/terraform/config/configschema"
 )
 
 func TestPlanGraphBuilder_impl(t *testing.T) {
@@ -17,12 +17,24 @@ func TestPlanGraphBuilder(t *testing.T) {
 		Config: testModule(t, "graph-builder-plan-basic"),
 		Components: &basicComponentFactory{
 			providers: map[string]ResourceProviderFactory{
-				"aws": func() (ResourceProvider, error) {
-					return nil, fmt.Errorf("not implemented")
-				},
-				"openstack": func() (ResourceProvider, error) {
-					return nil, fmt.Errorf("not implemented")
-				},
+				"aws": ResourceProviderFactoryFixed(&MockResourceProvider{
+					GetSchemaReturn: &ProviderSchema{
+						Provider: simpleTestSchema(),
+						ResourceTypes: map[string]*configschema.Block{
+							"aws_security_group": simpleTestSchema(),
+							"aws_instance":       simpleTestSchema(),
+							"aws_load_balancer":  simpleTestSchema(),
+						},
+					},
+				}),
+				"openstack": ResourceProviderFactoryFixed(&MockResourceProvider{
+					GetSchemaReturn: &ProviderSchema{
+						Provider: simpleTestSchema(),
+						ResourceTypes: map[string]*configschema.Block{
+							"openstack_floating_ip": simpleTestSchema(),
+						},
+					},
+				}),
 			},
 		},
 		DisableReduce: true,
@@ -46,17 +58,8 @@ func TestPlanGraphBuilder(t *testing.T) {
 
 func TestPlanGraphBuilder_targetModule(t *testing.T) {
 	b := &PlanGraphBuilder{
-		Config: testModule(t, "graph-builder-plan-target-module-provider"),
-		Components: &basicComponentFactory{
-			providers: map[string]ResourceProviderFactory{
-				"null": func() (ResourceProvider, error) {
-					return nil, fmt.Errorf("not implemented")
-				},
-				"openstack": func() (ResourceProvider, error) {
-					return nil, fmt.Errorf("not implemented")
-				},
-			},
-		},
+		Config:     testModule(t, "graph-builder-plan-target-module-provider"),
+		Components: simpleMockComponentFactory(),
 		Targets: []addrs.Targetable{
 			addrs.RootModuleInstance.Child("child2", addrs.NoKey),
 		},
@@ -69,8 +72,8 @@ func TestPlanGraphBuilder_targetModule(t *testing.T) {
 
 	t.Logf("Graph: %s", g.String())
 
-	testGraphNotContains(t, g, "module.child1.provider.null")
-	testGraphNotContains(t, g, "module.child1.null_resource.foo")
+	testGraphNotContains(t, g, "module.child1.provider.test")
+	testGraphNotContains(t, g, "module.child1.test_object.foo")
 }
 
 const testPlanGraphBuilderStr = `
