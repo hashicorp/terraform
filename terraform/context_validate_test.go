@@ -887,7 +887,7 @@ func TestContext2Validate_selfRefMulti(t *testing.T) {
 		ResourceTypes: map[string]*configschema.Block{
 			"aws_instance": {
 				Attributes: map[string]*configschema.Attribute{
-					"foo": {Type: cty.List(cty.String), Optional: true},
+					"foo": {Type: cty.String, Optional: true},
 				},
 			},
 		},
