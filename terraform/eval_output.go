@@ -5,11 +5,13 @@ import (
 	"log"
 
 	"github.com/hashicorp/hcl2/hcl"
+	"github.com/zclconf/go-cty/cty"
+	"github.com/zclconf/go-cty/cty/convert"
+	"github.com/zclconf/go-cty/cty/gocty"
+
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/config"
 	"github.com/hashicorp/terraform/config/hcl2shim"
-	"github.com/zclconf/go-cty/cty"
-	"github.com/zclconf/go-cty/cty/gocty"
 )
 
 // EvalDeleteOutput is an EvalNode implementation that deletes an output
@@ -101,10 +103,15 @@ func (n *EvalWriteOutput) Eval(ctx EvalContext) (interface{}, error) {
 			// State doesn't currently support null, so we'll save as empty string.
 			valueTyped = ""
 		default:
-			err := gocty.FromCtyValue(val, &valueTyped)
+			strVal, err := convert.Convert(val, cty.String)
 			if err != nil {
 				// Should never happen, because all primitives can convert to string.
-				return nil, fmt.Errorf("cannot marshal %#v for storage in state: %s", err)
+				return nil, fmt.Errorf("cannot marshal %#v for storage in state: %s", val, err)
+			}
+			err = gocty.FromCtyValue(strVal, &valueTyped)
+			if err != nil {
+				// Should never happen, because we already converted to string.
+				return nil, fmt.Errorf("cannot marshal %#v for storage in state: %s", val, err)
 			}
 		}
 		mod.Outputs[n.Addr.Name] = &OutputState{
