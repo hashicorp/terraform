@@ -71,11 +71,15 @@ type EvalValidateProvider struct {
 func (n *EvalValidateProvider) Eval(ctx EvalContext) (interface{}, error) {
 	var diags tfdiags.Diagnostics
 	provider := *n.Provider
-	config := n.Config
 
-	if n.Config == nil {
-		// Nothing to validate, then.
-		return nil, nil
+	var sourceBody hcl.Body
+	if n.Config != nil && n.Config.Config != nil {
+		sourceBody = n.Config.Config
+	} else {
+		// If the provider configuration is implicit (no block in configuration
+		// but referred to by resources) then we'll assume an empty body
+		// as a placeholder.
+		sourceBody = hcl.EmptyBody()
 	}
 
 	schema, err := provider.GetSchema(&ProviderSchemaRequest{})
@@ -88,7 +92,7 @@ func (n *EvalValidateProvider) Eval(ctx EvalContext) (interface{}, error) {
 	}
 
 	configSchema := schema.Provider
-	configBody := buildProviderConfig(ctx, n.Addr, config.Config)
+	configBody := buildProviderConfig(ctx, n.Addr, sourceBody)
 	configVal, configBody, evalDiags := ctx.EvaluateBlock(configBody, configSchema, nil, addrs.NoKey)
 	diags = diags.Append(evalDiags)
 	if evalDiags.HasErrors() {
