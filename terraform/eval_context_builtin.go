@@ -105,13 +105,14 @@ func (ctx *BuiltinEvalContext) InitProvider(typeName string, addr addrs.Provider
 	ctx.ProviderLock.Lock()
 	defer ctx.ProviderLock.Unlock()
 
-	key := addr.String()
+	key := absAddr.String()
 
 	p, err := ctx.Components.ResourceProvider(typeName, key)
 	if err != nil {
 		return nil, err
 	}
 
+	log.Printf("[TRACE] BuiltinEvalContext: Initialized %q provider for %s", typeName, absAddr)
 	ctx.ProviderCache[key] = p
 
 	// Also fetch and cache the provider's schema.
