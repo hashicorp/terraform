@@ -965,16 +965,20 @@ const testTerraformApplyVarsStr = `
 aws_instance.bar:
   ID = foo
   provider = provider.aws
-  bar = foo
+  bar = override
   baz = override
-  foo = us-west-2
+  foo = us-east-1
   type = aws_instance
 aws_instance.foo:
   ID = foo
   provider = provider.aws
   bar = baz
-  list = Hello,World
-  map = Baz,Foo,Hello
+  list.# = 2
+  list.0 = Hello
+  list.1 = World
+  map.Baz = Foo
+  map.Foo = Bar
+  map.Hello = World
   num = 2
   type = aws_instance
 `
@@ -983,9 +987,13 @@ const testTerraformApplyVarsEnvStr = `
 aws_instance.bar:
   ID = foo
   provider = provider.aws
-  bar = Hello,World
-  baz = Baz,Foo,Hello
-  foo = baz
+  list.# = 2
+  list.0 = Hello
+  list.1 = World
+  map.Baz = Foo
+  map.Foo = Bar
+  map.Hello = World
+  string = baz
   type = aws_instance
 `
 
