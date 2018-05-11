@@ -4,19 +4,19 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/hashicorp/terraform/configs"
+	"github.com/hashicorp/hcl2/hcldec"
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/addrs"
-
 	"github.com/hashicorp/terraform/config"
+	"github.com/hashicorp/terraform/config/configschema"
+	"github.com/hashicorp/terraform/configs"
 )
 
 func TestBuildProviderConfig(t *testing.T) {
 	configBody := configs.SynthBody("", map[string]cty.Value{
-		"set_in_config":            cty.StringVal("config"),
-		"set_in_config_and_parent": cty.StringVal("config"),
-		"computed_in_config":       cty.StringVal("config"),
+		"set_in_config":           cty.StringVal("config"),
+		"set_in_config_and_input": cty.StringVal("config"),
 	})
 	providerAddr := addrs.ProviderConfig{
 		Type: "foo",
@@ -24,21 +24,32 @@ func TestBuildProviderConfig(t *testing.T) {
 
 	ctx := &MockEvalContext{
 		ProviderInputValues: map[string]cty.Value{
-			"set_in_config": cty.StringVal("input"),
-			"set_by_input":  cty.StringVal("input"),
+			"set_in_config_and_input": cty.StringVal("input"),
+			"set_by_input":            cty.StringVal("input"),
 		},
 	}
-	got := buildProviderConfig(ctx, providerAddr, configBody)
+	gotBody := buildProviderConfig(ctx, providerAddr, configBody)
+
+	schema := &configschema.Block{
+		Attributes: map[string]*configschema.Attribute{
+			"set_in_config":           {Type: cty.String, Optional: true},
+			"set_in_config_and_input": {Type: cty.String, Optional: true},
+			"set_by_input":            {Type: cty.String, Optional: true},
+		},
+	}
+	got, diags := hcldec.Decode(gotBody, schema.DecoderSpec(), nil)
+	if diags.HasErrors() {
+		t.Fatalf("body decode failed: %s", diags.Error())
+	}
 
 	// We expect the provider config with the added input value
-	want := map[string]cty.Value{
-		"set_in_config":            cty.StringVal("config"),
-		"set_in_config_and_parent": cty.StringVal("config"),
-		"computed_in_config":       cty.StringVal("config"),
-		"set_by_input":             cty.StringVal("input"),
-	}
-	if !reflect.DeepEqual(got, want) {
-		t.Fatalf("incorrect merged config\ngot:  %#v\nwant: \n%#v", got, want)
+	want := cty.ObjectVal(map[string]cty.Value{
+		"set_in_config":           cty.StringVal("config"),
+		"set_in_config_and_input": cty.StringVal("input"),
+		"set_by_input":            cty.StringVal("input"),
+	})
+	if !got.RawEquals(want) {
+		t.Fatalf("incorrect merged config\ngot:  %#v\nwant: %#v", got, want)
 	}
 }
 
