@@ -17,8 +17,7 @@ func buildProviderConfig(ctx EvalContext, addr addrs.ProviderConfig, body hcl.Bo
 		// "input" is a map of the subset of config values that were known
 		// during the input walk, set by EvalInputProvider. Note that
 		// in particular it does *not* include attributes that had
-		// computed values at input time; those appear *only* in
-		// "cfg" here.
+		// computed values at input time.
 
 		inputBody := configs.SynthBody("<input prompt>", input)
 		body = configs.MergeBodies(body, inputBody)
