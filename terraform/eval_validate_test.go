@@ -6,26 +6,25 @@ import (
 	"testing"
 
 	"github.com/hashicorp/hcl2/hcl"
-	"github.com/hashicorp/terraform/config/configschema"
-	"github.com/hashicorp/terraform/tfdiags"
-
-	"github.com/hashicorp/terraform/configs"
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/addrs"
+	"github.com/hashicorp/terraform/config/configschema"
+	"github.com/hashicorp/terraform/configs"
+	"github.com/hashicorp/terraform/tfdiags"
 )
 
 func TestEvalValidateResource_managedResource(t *testing.T) {
-	mp := testProvider("aws")
+	mp := simpleMockProvider()
 	mp.ValidateResourceFn = func(rt string, c *ResourceConfig) (ws []string, es []error) {
-		expected := "aws_instance"
+		expected := "test_object"
 		if rt != expected {
-			t.Fatalf("expected: %s, got: %s", expected, rt)
+			t.Fatalf("wrong resource type\ngot:  %#v\nwant: %#v", rt, expected)
 		}
 		expected = "bar"
-		val, _ := c.Get("foo")
+		val, _ := c.Get("test_string")
 		if val != expected {
-			t.Fatalf("expected: %s, got: %s", expected, val)
+			t.Fatalf("wrong value for test_string\ngot:  %#v\nwant: %#v", val, expected)
 		}
 		return
 	}
@@ -33,10 +32,10 @@ func TestEvalValidateResource_managedResource(t *testing.T) {
 	p := ResourceProvider(mp)
 	rc := &configs.Resource{
 		Mode: addrs.ManagedResourceMode,
-		Type: "aws_instance",
+		Type: "test_object",
 		Name: "foo",
 		Config: configs.SynthBody("", map[string]cty.Value{
-			"foo": cty.StringVal("bar"),
+			"test_string": cty.StringVal("bar"),
 		}),
 	}
 	node := &EvalValidateResource{
@@ -47,11 +46,15 @@ func TestEvalValidateResource_managedResource(t *testing.T) {
 				Name: "foo",
 			},
 		},
-		Provider: &p,
-		Config:   rc,
+		Provider:       &p,
+		Config:         rc,
+		ProviderSchema: &mp.GetSchemaReturn,
 	}
 
-	_, err := node.Eval(&MockEvalContext{})
+	ctx := &MockEvalContext{}
+	ctx.installSimpleEval()
+
+	_, err := node.Eval(ctx)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -62,14 +65,14 @@ func TestEvalValidateResource_managedResource(t *testing.T) {
 }
 
 func TestEvalValidateResource_dataSource(t *testing.T) {
-	mp := testProvider("aws")
+	mp := simpleMockProvider()
 	mp.ValidateDataSourceFn = func(rt string, c *ResourceConfig) (ws []string, es []error) {
-		expected := "aws_ami"
+		expected := "test_object"
 		if rt != expected {
 			t.Fatalf("expected: %s, got: %s", expected, rt)
 		}
 		expected = "bar"
-		val, _ := c.Get("foo")
+		val, _ := c.Get("test_string")
 		if val != expected {
 			t.Fatalf("expected: %s, got: %s", expected, val)
 		}
@@ -79,10 +82,10 @@ func TestEvalValidateResource_dataSource(t *testing.T) {
 	p := ResourceProvider(mp)
 	rc := &configs.Resource{
 		Mode: addrs.DataResourceMode,
-		Type: "aws_ami",
+		Type: "test_object",
 		Name: "foo",
 		Config: configs.SynthBody("", map[string]cty.Value{
-			"foo": cty.StringVal("bar"),
+			"test_string": cty.StringVal("bar"),
 		}),
 	}
 
@@ -94,11 +97,15 @@ func TestEvalValidateResource_dataSource(t *testing.T) {
 				Name: "foo",
 			},
 		},
-		Provider: &p,
-		Config:   rc,
+		Provider:       &p,
+		Config:         rc,
+		ProviderSchema: &mp.GetSchemaReturn,
 	}
 
-	_, err := node.Eval(&MockEvalContext{})
+	ctx := &MockEvalContext{}
+	ctx.installSimpleEval()
+
+	_, err := node.Eval(ctx)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -109,7 +116,7 @@ func TestEvalValidateResource_dataSource(t *testing.T) {
 }
 
 func TestEvalValidateResource_validReturnsNilError(t *testing.T) {
-	mp := testProvider("aws")
+	mp := simpleMockProvider()
 	mp.ValidateResourceFn = func(rt string, c *ResourceConfig) (ws []string, es []error) {
 		return
 	}
@@ -117,7 +124,7 @@ func TestEvalValidateResource_validReturnsNilError(t *testing.T) {
 	p := ResourceProvider(mp)
 	rc := &configs.Resource{
 		Mode:   addrs.ManagedResourceMode,
-		Type:   "aws_instance",
+		Type:   "test_object",
 		Name:   "foo",
 		Config: configs.SynthBody("", map[string]cty.Value{}),
 	}
@@ -125,22 +132,26 @@ func TestEvalValidateResource_validReturnsNilError(t *testing.T) {
 		Addr: addrs.ResourceInstance{
 			Resource: addrs.Resource{
 				Mode: addrs.ManagedResourceMode,
-				Type: "aws_instance",
+				Type: "test_object",
 				Name: "foo",
 			},
 		},
-		Provider: &p,
-		Config:   rc,
+		Provider:       &p,
+		Config:         rc,
+		ProviderSchema: &mp.GetSchemaReturn,
 	}
 
-	_, err := node.Eval(&MockEvalContext{})
+	ctx := &MockEvalContext{}
+	ctx.installSimpleEval()
+
+	_, err := node.Eval(ctx)
 	if err != nil {
 		t.Fatalf("Expected nil error, got: %s", err)
 	}
 }
 
 func TestEvalValidateResource_warningsAndErrorsPassedThrough(t *testing.T) {
-	mp := testProvider("aws")
+	mp := simpleMockProvider()
 	mp.ValidateResourceFn = func(rt string, c *ResourceConfig) (ws []string, es []error) {
 		ws = append(ws, "warn")
 		es = append(es, errors.New("err"))
@@ -150,7 +161,7 @@ func TestEvalValidateResource_warningsAndErrorsPassedThrough(t *testing.T) {
 	p := ResourceProvider(mp)
 	rc := &configs.Resource{
 		Mode:   addrs.ManagedResourceMode,
-		Type:   "aws_instance",
+		Type:   "test_object",
 		Name:   "foo",
 		Config: configs.SynthBody("", map[string]cty.Value{}),
 	}
@@ -158,17 +169,21 @@ func TestEvalValidateResource_warningsAndErrorsPassedThrough(t *testing.T) {
 		Addr: addrs.ResourceInstance{
 			Resource: addrs.Resource{
 				Mode: addrs.ManagedResourceMode,
-				Type: "aws_instance",
+				Type: "test_object",
 				Name: "foo",
 			},
 		},
-		Provider: &p,
-		Config:   rc,
+		Provider:       &p,
+		Config:         rc,
+		ProviderSchema: &mp.GetSchemaReturn,
 	}
 
-	_, err := node.Eval(&MockEvalContext{})
+	ctx := &MockEvalContext{}
+	ctx.installSimpleEval()
+
+	_, err := node.Eval(ctx)
 	if err == nil {
-		t.Fatal("Expected an error, got none!")
+		t.Fatal("unexpected success; want error")
 	}
 
 	var diags tfdiags.Diagnostics
@@ -178,15 +193,15 @@ func TestEvalValidateResource_warningsAndErrorsPassedThrough(t *testing.T) {
 		bySeverity[diag.Severity()] = append(bySeverity[diag.Severity()], diag)
 	}
 	if len(bySeverity[tfdiags.Warning]) != 1 || bySeverity[tfdiags.Warning][0].Description().Summary != "warn" {
-		t.Fatalf("Expected 1 warning 'warn', got: %#v", bySeverity[tfdiags.Warning])
+		t.Errorf("Expected 1 warning 'warn', got: %s", bySeverity[tfdiags.Warning].ErrWithWarnings())
 	}
 	if len(bySeverity[tfdiags.Error]) != 1 || bySeverity[tfdiags.Error][0].Description().Summary != "err" {
-		t.Fatalf("Expected 1 error 'err', got: %#v", bySeverity[tfdiags.Error])
+		t.Errorf("Expected 1 error 'err', got: %s", bySeverity[tfdiags.Error].Err())
 	}
 }
 
 func TestEvalValidateResource_ignoreWarnings(t *testing.T) {
-	mp := testProvider("aws")
+	mp := simpleMockProvider()
 	mp.ValidateResourceFn = func(rt string, c *ResourceConfig) (ws []string, es []error) {
 		ws = append(ws, "warn")
 		return
@@ -195,7 +210,7 @@ func TestEvalValidateResource_ignoreWarnings(t *testing.T) {
 	p := ResourceProvider(mp)
 	rc := &configs.Resource{
 		Mode:   addrs.ManagedResourceMode,
-		Type:   "aws_instance",
+		Type:   "test_object",
 		Name:   "foo",
 		Config: configs.SynthBody("", map[string]cty.Value{}),
 	}
@@ -203,17 +218,21 @@ func TestEvalValidateResource_ignoreWarnings(t *testing.T) {
 		Addr: addrs.ResourceInstance{
 			Resource: addrs.Resource{
 				Mode: addrs.ManagedResourceMode,
-				Type: "aws_instance",
+				Type: "test-object",
 				Name: "foo",
 			},
 		},
-		Provider: &p,
-		Config:   rc,
+		Provider:       &p,
+		Config:         rc,
+		ProviderSchema: &mp.GetSchemaReturn,
 
 		IgnoreWarnings: true,
 	}
 
-	_, err := node.Eval(&MockEvalContext{})
+	ctx := &MockEvalContext{}
+	ctx.installSimpleEval()
+
+	_, err := node.Eval(ctx)
 	if err != nil {
 		t.Fatalf("Expected no error, got: %s", err)
 	}
@@ -223,6 +242,7 @@ func TestEvalValidateProvisioner_valid(t *testing.T) {
 	mp := &MockResourceProvisioner{}
 	var p ResourceProvisioner = mp
 	ctx := &MockEvalContext{}
+	ctx.installSimpleEval()
 
 	schema := &configschema.Block{}
 
@@ -263,6 +283,7 @@ func TestEvalValidateProvisioner_warning(t *testing.T) {
 	mp := &MockResourceProvisioner{}
 	var p ResourceProvisioner = mp
 	ctx := &MockEvalContext{}
+	ctx.installSimpleEval()
 
 	schema := &configschema.Block{}
 
@@ -307,6 +328,7 @@ func TestEvalValidateProvisioner_warning(t *testing.T) {
 func TestEvalValidateProvisioner_connectionInvalid(t *testing.T) {
 	var p ResourceProvisioner = &MockResourceProvisioner{}
 	ctx := &MockEvalContext{}
+	ctx.installSimpleEval()
 
 	schema := &configschema.Block{}
 
@@ -341,7 +363,7 @@ func TestEvalValidateProvisioner_connectionInvalid(t *testing.T) {
 	var diags tfdiags.Diagnostics
 	diags = diags.Append(err)
 	if len(diags) != 2 {
-		t.Fatalf("wrong number of diagsnostics in %#v; want two errors", diags)
+		t.Fatalf("wrong number of diagnostics; want two errors\n\n%s", diags.Err())
 	}
 
 	errStr := diags.Err().Error()
