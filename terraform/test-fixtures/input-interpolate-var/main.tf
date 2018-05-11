@@ -2,6 +2,6 @@ module "source" {
   source = "./source"
 }
 module "child" {
-  source  = "./child"
-  list = "${module.source.list}"
+  source = "./child"
+  length = module.source.length
 }
