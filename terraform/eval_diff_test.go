@@ -161,15 +161,10 @@ func TestProcessIgnoreChanges(t *testing.T) {
 			newAttr:   "new",
 			attrDiffs: 0,
 		},
-		// extra ignored values shouldn't effect the diff
 		{
+			// extra ignored values shouldn't affect the diff
 			ignore:    []string{"resource.missing", "resource.maybe"},
 			newAttr:   "new",
-			attrDiffs: 4,
-		},
-		// this isn't useful, but make sure it doesn't break
-		{
-			ignore:    []string{"resource.%"},
 			attrDiffs: 4,
 		},
 	} {
