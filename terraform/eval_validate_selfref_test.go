@@ -80,17 +80,23 @@ func TestEvalValidateSelfRef(t *testing.T) {
 				},
 			})
 
-			n := &EvalValidateSelfRef{
-				Addr:   test.Addr,
-				Config: body,
-				Schema: &configschema.Block{
-					Attributes: map[string]*configschema.Attribute{
-						"foo": {
-							Type:     cty.String,
-							Required: true,
+			ps := &ProviderSchema{
+				ResourceTypes: map[string]*configschema.Block{
+					"aws_instance": &configschema.Block{
+						Attributes: map[string]*configschema.Attribute{
+							"foo": {
+								Type:     cty.String,
+								Required: true,
+							},
 						},
 					},
 				},
+			}
+
+			n := &EvalValidateSelfRef{
+				Addr:           test.Addr,
+				Config:         body,
+				ProviderSchema: &ps,
 			}
 			result, err := n.Eval(nil)
 			if result != nil {
