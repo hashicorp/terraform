@@ -189,6 +189,11 @@ func (n *EvalValidateProvisioner) validateConnConfig(ctx EvalContext, config *co
 
 	var diags tfdiags.Diagnostics
 
+	if config == nil || config.Config == nil {
+		// No block to validate
+		return diags
+	}
+
 	// We evaluate here just by evaluating the block and returning any
 	// diagnostics we get, since evaluation alone is enough to check for
 	// extraneous arguments and incorrectly-typed arguments.
