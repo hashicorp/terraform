@@ -828,6 +828,15 @@ func TestContext2Validate_interpolateMap(t *testing.T) {
 	p := testProvider("null")
 	p.ApplyFn = testApplyFn
 	p.DiffFn = testDiffFn
+	p.GetSchemaReturn = &ProviderSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"template_file": {
+				Attributes: map[string]*configschema.Attribute{
+					"template": {Type: cty.String, Optional: true},
+				},
+			},
+		},
+	}
 
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
