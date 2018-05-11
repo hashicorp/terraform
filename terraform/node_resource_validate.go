@@ -124,14 +124,15 @@ func (n *NodeValidatableResourceInstance) EvalTree() EvalNode {
 
 	seq := &EvalSequence{
 		Nodes: []EvalNode{
-			&EvalValidateSelfRef{
-				Addr:   addr.Resource,
-				Config: config.Config,
-			},
 			&EvalGetProvider{
 				Addr:   n.ResolvedProvider,
 				Output: &provider,
 				Schema: &providerSchema,
+			},
+			&EvalValidateSelfRef{
+				Addr:           addr.Resource,
+				Config:         config.Config,
+				ProviderSchema: &providerSchema,
 			},
 			&EvalValidateResource{
 				Addr:           addr.Resource,
