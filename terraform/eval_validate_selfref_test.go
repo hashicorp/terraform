@@ -4,6 +4,9 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/hashicorp/terraform/config/configschema"
+	"github.com/hashicorp/terraform/tfdiags"
+
 	"github.com/hashicorp/hcl2/hcl"
 	"github.com/hashicorp/hcl2/hcltest"
 	"github.com/hashicorp/terraform/addrs"
@@ -80,13 +83,26 @@ func TestEvalValidateSelfRef(t *testing.T) {
 			n := &EvalValidateSelfRef{
 				Addr:   test.Addr,
 				Config: body,
+				Schema: &configschema.Block{
+					Attributes: map[string]*configschema.Attribute{
+						"foo": {
+							Type:     cty.String,
+							Required: true,
+						},
+					},
+				},
 			}
 			result, err := n.Eval(nil)
 			if result != nil {
 				t.Fatal("result should always be nil")
 			}
-			if (err != nil) != test.Err {
-				t.Fatalf("err: %s", err)
+			diags := tfdiags.Diagnostics(nil).Append(err)
+			if diags.HasErrors() != test.Err {
+				if test.Err {
+					t.Errorf("unexpected success; want error")
+				} else {
+					t.Errorf("unexpected error\n\n%s", diags.Err())
+				}
 			}
 		})
 	}
