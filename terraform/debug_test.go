@@ -9,6 +9,10 @@ import (
 	"regexp"
 	"strings"
 	"testing"
+
+	"github.com/zclconf/go-cty/cty"
+
+	"github.com/hashicorp/terraform/config/configschema"
 )
 
 // debugInfo should be safe when nil
@@ -94,7 +98,18 @@ func TestDebug_plan(t *testing.T) {
 
 	// run a basic plan
 	m := testModule(t, "plan-good")
-	p := testProvider("aws")
+	p := mockProviderWithResourceTypeSchema("aws_instance", &configschema.Block{
+		Attributes: map[string]*configschema.Attribute{
+			"num": {
+				Type:     cty.Number,
+				Optional: true,
+			},
+			"foo": {
+				Type:     cty.Number,
+				Optional: true,
+			},
+		},
+	})
 	p.DiffFn = testDiffFn
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
