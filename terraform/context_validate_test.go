@@ -847,47 +847,36 @@ func TestContext2Validate_interpolateMap(t *testing.T) {
 
 // Manually validate using the new PlanGraphBuilder
 func TestContext2Validate_PlanGraphBuilder(t *testing.T) {
-	m := testModule(t, "apply-vars")
-	p := testProvider("aws")
-	p.ApplyFn = testApplyFn
-	p.DiffFn = testDiffFn
-	c := testContext2(t, &ContextOpts{
-		Config: m,
-		ProviderResolver: ResourceProviderResolverFixed(
-			map[string]ResourceProviderFactory{
-				"aws": testProviderFuncFixed(p),
-			},
-		),
-		Variables: InputValues{
-			"foo": &InputValue{
-				Value:      cty.StringVal("us-west-2"),
-				SourceType: ValueFromCaller,
-			},
-			"test_list": &InputValue{
-				Value: cty.ListVal([]cty.Value{
-					cty.StringVal("Hello"),
-					cty.StringVal("World"),
-				}),
-				SourceType: ValueFromCaller,
-			},
-			"test_map": &InputValue{
-				Value: cty.MapVal(map[string]cty.Value{
-					"Hello": cty.StringVal("World"),
-					"Foo":   cty.StringVal("Bar"),
-					"Baz":   cty.StringVal("Foo"),
-				}),
-				SourceType: ValueFromCaller,
-			},
-			"amis": &InputValue{
-				Value: cty.ListVal([]cty.Value{
-					cty.MapVal(map[string]cty.Value{
-						"us-east-1": cty.StringVal("override"),
-					}),
-				}),
-				SourceType: ValueFromCaller,
-			},
+	fixture := contextFixtureApplyVars(t)
+	opts := fixture.ContextOpts()
+	opts.Variables = InputValues{
+		"foo": &InputValue{
+			Value:      cty.StringVal("us-east-1"),
+			SourceType: ValueFromCaller,
 		},
-	})
+		"test_list": &InputValue{
+			Value: cty.ListVal([]cty.Value{
+				cty.StringVal("Hello"),
+				cty.StringVal("World"),
+			}),
+			SourceType: ValueFromCaller,
+		},
+		"test_map": &InputValue{
+			Value: cty.MapVal(map[string]cty.Value{
+				"Hello": cty.StringVal("World"),
+				"Foo":   cty.StringVal("Bar"),
+				"Baz":   cty.StringVal("Foo"),
+			}),
+			SourceType: ValueFromCaller,
+		},
+		"amis": &InputValue{
+			Value: cty.MapVal(map[string]cty.Value{
+				"us-east-1": cty.StringVal("override"),
+			}),
+			SourceType: ValueFromCaller,
+		},
+	}
+	c := testContext2(t, opts)
 
 	graph, diags := (&PlanGraphBuilder{
 		Config:     c.config,
