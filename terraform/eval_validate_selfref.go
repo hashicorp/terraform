@@ -25,17 +25,25 @@ func (n *EvalValidateSelfRef) Eval(ctx EvalContext) (interface{}, error) {
 	var diags tfdiags.Diagnostics
 	addr := n.Addr
 
-	addrStr := addr.String()
+	addrStrs := make([]string, 0, 1)
+	addrStrs = append(addrStrs, addr.String())
+	switch tAddr := addr.(type) {
+	case addrs.ResourceInstance:
+		// A resource instance may not refer to its containing resource either.
+		addrStrs = append(addrStrs, tAddr.ContainingResource().String())
+	}
 
 	refs, _ := lang.ReferencesInBlock(n.Config, n.Schema)
 	for _, ref := range refs {
-		if ref.Subject.String() == addrStr {
-			diags = diags.Append(&hcl.Diagnostic{
-				Severity: hcl.DiagError,
-				Summary:  "Self-referential block",
-				Detail:   fmt.Sprintf("Configuration for %s may not refer to itself.", addrStr),
-				Subject:  ref.SourceRange.ToHCL().Ptr(),
-			})
+		for _, addrStr := range addrStrs {
+			if ref.Subject.String() == addrStr {
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Self-referential block",
+					Detail:   fmt.Sprintf("Configuration for %s may not refer to itself.", addrStr),
+					Subject:  ref.SourceRange.ToHCL().Ptr(),
+				})
+			}
 		}
 	}
 
