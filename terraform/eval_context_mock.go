@@ -3,15 +3,16 @@ package terraform
 import (
 	"sync"
 
-	"github.com/hashicorp/terraform/addrs"
-	"github.com/hashicorp/terraform/lang"
-
 	"github.com/hashicorp/hcl2/hcl"
-	"github.com/hashicorp/terraform/config/configschema"
-	"github.com/hashicorp/terraform/tfdiags"
+	"github.com/hashicorp/hcl2/hcldec"
 	"github.com/zclconf/go-cty/cty"
+	"github.com/zclconf/go-cty/cty/convert"
 
+	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/config"
+	"github.com/hashicorp/terraform/config/configschema"
+	"github.com/hashicorp/terraform/lang"
+	"github.com/hashicorp/terraform/tfdiags"
 )
 
 // MockEvalContext is a mock version of EvalContext that can be used
@@ -75,21 +76,32 @@ type MockEvalContext struct {
 	CloseProvisionerName        string
 	CloseProvisionerProvisioner ResourceProvisioner
 
-	EvaluateBlockCalled       bool
-	EvaluateBlockBody         hcl.Body
-	EvaluateBlockSchema       *configschema.Block
-	EvaluateBlockSelf         addrs.Referenceable
-	EvaluateBlockKey          addrs.InstanceKey
+	EvaluateBlockCalled     bool
+	EvaluateBlockBody       hcl.Body
+	EvaluateBlockSchema     *configschema.Block
+	EvaluateBlockSelf       addrs.Referenceable
+	EvaluateBlockKey        addrs.InstanceKey
+	EvaluateBlockResultFunc func(
+		body hcl.Body,
+		schema *configschema.Block,
+		self addrs.Referenceable,
+		key addrs.InstanceKey,
+	) (cty.Value, hcl.Body, tfdiags.Diagnostics) // overrides the other values below, if set
 	EvaluateBlockResult       cty.Value
 	EvaluateBlockExpandedBody hcl.Body
 	EvaluateBlockDiags        tfdiags.Diagnostics
 
-	EvaluateExprCalled   bool
-	EvaluateExprExpr     hcl.Expression
-	EvaluateExprWantType cty.Type
-	EvaluateExprSelf     addrs.Referenceable
-	EvaluateExprResult   cty.Value
-	EvaluateExprDiags    tfdiags.Diagnostics
+	EvaluateExprCalled     bool
+	EvaluateExprExpr       hcl.Expression
+	EvaluateExprWantType   cty.Type
+	EvaluateExprSelf       addrs.Referenceable
+	EvaluateExprResultFunc func(
+		expr hcl.Expression,
+		wantType cty.Type,
+		self addrs.Referenceable,
+	) (cty.Value, tfdiags.Diagnostics) // overrides the other values below, if set
+	EvaluateExprResult cty.Value
+	EvaluateExprDiags  tfdiags.Diagnostics
 
 	EvaluationScopeCalled bool
 	EvaluationScopeSelf   addrs.Referenceable
@@ -222,6 +234,9 @@ func (c *MockEvalContext) EvaluateBlock(body hcl.Body, schema *configschema.Bloc
 	c.EvaluateBlockSchema = schema
 	c.EvaluateBlockSelf = self
 	c.EvaluateBlockKey = key
+	if c.EvaluateBlockResultFunc != nil {
+		return c.EvaluateBlockResultFunc(body, schema, self, key)
+	}
 	return c.EvaluateBlockResult, c.EvaluateBlockExpandedBody, c.EvaluateBlockDiags
 }
 
@@ -230,7 +245,63 @@ func (c *MockEvalContext) EvaluateExpr(expr hcl.Expression, wantType cty.Type, s
 	c.EvaluateExprExpr = expr
 	c.EvaluateExprWantType = wantType
 	c.EvaluateExprSelf = self
+	if c.EvaluateExprResultFunc != nil {
+		return c.EvaluateExprResultFunc(expr, wantType, self)
+	}
 	return c.EvaluateExprResult, c.EvaluateExprDiags
+}
+
+// installSimpleEval is a helper to install a simple mock implementation of
+// both EvaluateBlock and EvaluateExpr into the receiver.
+//
+// These default implementations will either evaluate the given input against
+// the scope in field EvaluationScopeScope or, if it is nil, with no eval
+// context at all so that only constant values may be used.
+//
+// This function overwrites any existing functions installed in fields
+// EvaluateBlockResultFunc and EvaluateExprResultFunc.
+func (c *MockEvalContext) installSimpleEval() {
+	c.EvaluateBlockResultFunc = func(body hcl.Body, schema *configschema.Block, self addrs.Referenceable, key addrs.InstanceKey) (cty.Value, hcl.Body, tfdiags.Diagnostics) {
+		if scope := c.EvaluationScopeScope; scope != nil {
+			// Fully-functional codepath.
+			var diags tfdiags.Diagnostics
+			body, diags = scope.ExpandBlock(body, schema)
+			if diags.HasErrors() {
+				return cty.DynamicVal, body, diags
+			}
+			val, evalDiags := c.EvaluationScopeScope.EvalBlock(body, schema)
+			diags = diags.Append(evalDiags)
+			if evalDiags.HasErrors() {
+				return cty.DynamicVal, body, diags
+			}
+			return val, body, diags
+		}
+
+		// Fallback codepath supporting constant values only.
+		val, hclDiags := hcldec.Decode(body, schema.DecoderSpec(), nil)
+		return val, body, tfdiags.Diagnostics(nil).Append(hclDiags)
+	}
+	c.EvaluateExprResultFunc = func(expr hcl.Expression, wantType cty.Type, self addrs.Referenceable) (cty.Value, tfdiags.Diagnostics) {
+		if scope := c.EvaluationScopeScope; scope != nil {
+			// Fully-functional codepath.
+			return scope.EvalExpr(expr, wantType)
+		}
+
+		// Fallback codepath supporting constant values only.
+		var diags tfdiags.Diagnostics
+		val, hclDiags := expr.Value(nil)
+		diags = diags.Append(hclDiags)
+		if hclDiags.HasErrors() {
+			return cty.DynamicVal, diags
+		}
+		var err error
+		val, err = convert.Convert(val, wantType)
+		if err != nil {
+			diags = diags.Append(err)
+			return cty.DynamicVal, diags
+		}
+		return val, diags
+	}
 }
 
 func (c *MockEvalContext) EvaluationScope(self addrs.Referenceable, key addrs.InstanceKey) *lang.Scope {
