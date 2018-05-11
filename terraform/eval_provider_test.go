@@ -49,11 +49,20 @@ func TestEvalConfigProvider_impl(t *testing.T) {
 func TestEvalConfigProvider(t *testing.T) {
 	config := &configs.Provider{
 		Name: "foo",
+		Config: configs.SynthBody("", map[string]cty.Value{
+			"test_string": cty.StringVal("hello"),
+		}),
 	}
-	provider := &MockResourceProvider{}
-	n := &EvalConfigProvider{Config: config}
+	provider := mockProviderWithConfigSchema(simpleTestSchema())
+	rp := ResourceProvider(provider)
+	n := &EvalConfigProvider{
+		Addr:     addrs.ProviderConfig{Type: "foo"},
+		Config:   config,
+		Provider: &rp,
+	}
 
 	ctx := &MockEvalContext{ProviderProvider: provider}
+	ctx.installSimpleEval()
 	if _, err := n.Eval(ctx); err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -61,8 +70,13 @@ func TestEvalConfigProvider(t *testing.T) {
 	if !ctx.ConfigureProviderCalled {
 		t.Fatal("should be called")
 	}
-	if !reflect.DeepEqual(ctx.ConfigureProviderConfig, config) {
-		t.Fatalf("bad: %#v", ctx.ConfigureProviderConfig)
+
+	gotObj := ctx.ConfigureProviderConfig
+	if !gotObj.Type().HasAttribute("test_string") {
+		t.Fatal("configuration object does not have \"test_string\" attribute")
+	}
+	if got, want := gotObj.GetAttr("test_string"), cty.StringVal("hello"); !got.RawEquals(want) {
+		t.Errorf("wrong configuration value\ngot:  %#v\nwant: %#v", got, want)
 	}
 }
 
