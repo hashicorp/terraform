@@ -8336,106 +8336,102 @@ func TestContext2Apply_unknownAttributeInterpolate(t *testing.T) {
 }
 
 func TestContext2Apply_vars(t *testing.T) {
-	m := testModule(t, "apply-vars")
-	p := testProvider("aws")
-	p.ApplyFn = testApplyFn
-	p.DiffFn = testDiffFn
-	ctx := testContext2(t, &ContextOpts{
-		Config: m,
-		ProviderResolver: ResourceProviderResolverFixed(
-			map[string]ResourceProviderFactory{
-				"aws": testProviderFuncFixed(p),
-			},
-		),
-		Variables: InputValues{
-			"foo": &InputValue{
-				Value: cty.StringVal("us-west-2"),
-				SourceType: ValueFromCaller,
-			},
-			"test_list": &InputValue{
-				Value: cty.ListVal([]cty.Value{
-					cty.StringVal("Hello"),
-					cty.StringVal("World"),
-				}),
-				SourceType: ValueFromCaller,
-			},
-			"test_map": &InputValue{
-				Value: cty.MapVal(map[string]cty.Value{
-					"Hello": cty.StringVal("World"),
-					"Foo": cty.StringVal("Bar"),
-					"Baz": cty.StringVal("Foo"),
-				}),
-				SourceType: ValueFromCaller,
-			},
-			"amis": &InputValue{
-				Value: cty.ListVal([]cty.Value{
-					cty.MapVal(map[string]cty.Value{
-						"us-west-1": cty.StringVal("override"),
-					}),
-				}),
-				SourceType: ValueFromCaller,
-			},
+	fixture := contextFixtureApplyVars(t)
+	opts := fixture.ContextOpts()
+	opts.Variables = InputValues{
+		"foo": &InputValue{
+			Value: cty.StringVal("us-east-1"),
+			SourceType: ValueFromCaller,
 		},
-	})
+		"test_list": &InputValue{
+			Value: cty.ListVal([]cty.Value{
+				cty.StringVal("Hello"),
+				cty.StringVal("World"),
+			}),
+			SourceType: ValueFromCaller,
+		},
+		"test_map": &InputValue{
+			Value: cty.MapVal(map[string]cty.Value{
+				"Hello": cty.StringVal("World"),
+				"Foo": cty.StringVal("Bar"),
+				"Baz": cty.StringVal("Foo"),
+			}),
+			SourceType: ValueFromCaller,
+		},
+		"amis": &InputValue{
+			Value: cty.MapVal(map[string]cty.Value{
+				"us-east-1": cty.StringVal("override"),
+			}),
+			SourceType: ValueFromCaller,
+		},
+	}
+	ctx := testContext2(t, opts)
 
 	diags := ctx.Validate()
 	if len(diags) != 0 {
-		t.Fatalf("bad: %#v", diags)
+		t.Fatalf("bad: %s", diags.ErrWithWarnings())
 	}
 
-	if _, err := ctx.Plan(); err != nil {
-		t.Fatalf("err: %s", err)
+	if _, diags := ctx.Plan(); diags.HasErrors() {
+		t.Fatalf("err: %s", diags.Err())
 	}
 
-	state, err := ctx.Apply()
-	if err != nil {
-		t.Fatalf("err: %s", err)
+	state, diags := ctx.Apply()
+	if diags.HasErrors() {
+		t.Fatalf("err: %s", diags.Err())
 	}
 
 	actual := strings.TrimSpace(state.String())
 	expected := strings.TrimSpace(testTerraformApplyVarsStr)
 	if actual != expected {
-		t.Fatalf("expected: %s\n got:\n%s", expected, actual)
+		t.Errorf("wrong result\n\ngot:\n%s\n\nwant:\n%s", actual, expected)
 	}
 }
 
 func TestContext2Apply_varsEnv(t *testing.T) {
-	// Set the env var
-	defer tempEnv(t, "TF_VAR_ami", "baz")()
-	defer tempEnv(t, "TF_VAR_list", `["Hello", "World"]`)()
-	defer tempEnv(t, "TF_VAR_map", `{"Hello" = "World", "Foo" = "Bar", "Baz" = "Foo"}`)()
-
-	m := testModule(t, "apply-vars-env")
-	p := testProvider("aws")
-	p.ApplyFn = testApplyFn
-	p.DiffFn = testDiffFn
-	ctx := testContext2(t, &ContextOpts{
-		Config: m,
-		ProviderResolver: ResourceProviderResolverFixed(
-			map[string]ResourceProviderFactory{
-				"aws": testProviderFuncFixed(p),
-			},
-		),
-	})
+	fixture := contextFixtureApplyVarsEnv(t)
+	opts := fixture.ContextOpts()
+	opts.Variables = InputValues{
+		"string": &InputValue{
+			Value: cty.StringVal("baz"),
+			SourceType: ValueFromEnvVar,
+		},
+		"list": &InputValue{
+			Value: cty.ListVal([]cty.Value{
+				cty.StringVal("Hello"),
+				cty.StringVal("World"),
+			}),
+			SourceType: ValueFromEnvVar,
+		},
+		"map": &InputValue{
+			Value: cty.MapVal(map[string]cty.Value{
+				"Hello": cty.StringVal("World"),
+				"Foo": cty.StringVal("Bar"),
+				"Baz": cty.StringVal("Foo"),
+			}),
+			SourceType: ValueFromEnvVar,
+		},
+	}
+	ctx := testContext2(t, opts)
 
 	diags := ctx.Validate()
 	if len(diags) != 0 {
-		t.Fatalf("bad: %#v", diags)
+		t.Fatalf("bad: %s", diags.ErrWithWarnings())
 	}
 
-	if _, err := ctx.Plan(); err != nil {
-		t.Fatalf("err: %s", err)
+	if _, diags := ctx.Plan(); diags.HasErrors() {
+		t.Fatalf("err: %s", diags.Err())
 	}
 
-	state, err := ctx.Apply()
-	if err != nil {
-		t.Fatalf("err: %s", err)
+	state, diags := ctx.Apply()
+	if diags.HasErrors() {
+		t.Fatalf("err: %s", diags.Err())
 	}
 
 	actual := strings.TrimSpace(state.String())
 	expected := strings.TrimSpace(testTerraformApplyVarsEnvStr)
 	if actual != expected {
-		t.Fatalf("bad: \n%s", actual)
+		t.Errorf("wrong result\n\ngot:\n%s\n\nwant:\n%s", actual, expected)
 	}
 }
 
