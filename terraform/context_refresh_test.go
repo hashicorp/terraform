@@ -1058,7 +1058,7 @@ func TestContext2Validate(t *testing.T) {
 
 	diags := c.Validate()
 	if len(diags) != 0 {
-		t.Fatalf("bad: %#v", diags)
+		t.Fatalf("unexpected error: %#v", diags.ErrWithWarnings())
 	}
 }
 

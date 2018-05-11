@@ -5,8 +5,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/hashicorp/terraform/addrs"
 	"github.com/zclconf/go-cty/cty"
+
+	"github.com/hashicorp/terraform/addrs"
+	"github.com/hashicorp/terraform/config/configschema"
 )
 
 func TestContext2Validate_badCount(t *testing.T) {
@@ -23,7 +25,7 @@ func TestContext2Validate_badCount(t *testing.T) {
 
 	diags := c.Validate()
 	if !diags.HasErrors() {
-		t.Fatalf("bad: %#v", diags)
+		t.Fatalf("unexpected error: %s", diags.Err())
 	}
 }
 
@@ -41,7 +43,7 @@ func TestContext2Validate_badVar(t *testing.T) {
 
 	diags := c.Validate()
 	if !diags.HasErrors() {
-		t.Fatalf("bad: %#v", diags)
+		t.Fatalf("unexpected error: %s", diags.Err())
 	}
 }
 
@@ -65,7 +67,7 @@ func TestContext2Validate_varMapOverrideOld(t *testing.T) {
 
 	diags := c.Validate()
 	if !diags.HasErrors() {
-		t.Fatalf("bad: %#v", diags)
+		t.Fatalf("unexpected error: %s", diags.Err())
 	}
 }
 
@@ -77,7 +79,7 @@ func TestContext2Validate_varNoDefaultExplicitType(t *testing.T) {
 
 	diags := c.Validate()
 	if !diags.HasErrors() {
-		t.Fatalf("bad: %#v", diags)
+		t.Fatalf("unexpected error: %s", diags.Err())
 	}
 }
 
@@ -108,7 +110,7 @@ func TestContext2Validate_computedVar(t *testing.T) {
 
 	diags := c.Validate()
 	if diags.HasErrors() {
-		t.Fatalf("bad: %#v", diags)
+		t.Fatalf("unexpected error: %s", diags.Err())
 	}
 }
 
@@ -129,7 +131,7 @@ func TestContext2Validate_countComputed(t *testing.T) {
 
 	diags := c.Validate()
 	if diags.HasErrors() {
-		t.Fatalf("bad: %#v", diags)
+		t.Fatalf("unexpected error: %s", diags.Err())
 	}
 }
 
@@ -147,7 +149,7 @@ func TestContext2Validate_countNegative(t *testing.T) {
 
 	diags := c.Validate()
 	if !diags.HasErrors() {
-		t.Fatalf("bad: %#v", diags)
+		t.Fatalf("unexpected error: %s", diags.Err())
 	}
 }
 
@@ -165,7 +167,7 @@ func TestContext2Validate_countVariable(t *testing.T) {
 
 	diags := c.Validate()
 	if diags.HasErrors() {
-		t.Fatalf("bad: %#v", diags)
+		t.Fatalf("unexpected error: %s", diags.Err())
 	}
 }
 
@@ -183,7 +185,7 @@ func TestContext2Validate_countVariableNoDefault(t *testing.T) {
 
 	diags := c.Validate()
 	if !diags.HasErrors() {
-		t.Fatalf("bad: %#v", diags)
+		t.Fatalf("unexpected error: %s", diags.Err())
 	}
 }
 
@@ -203,7 +205,7 @@ func TestContext2Validate_cycle(t *testing.T) {
 
 	diags := c.Validate()
 	if !diags.HasErrors() {
-		t.Fatalf("bad: %#v", diags)
+		t.Fatalf("unexpected error: %s", diags.Err())
 	}
 }
 */
@@ -222,7 +224,7 @@ func TestContext2Validate_moduleBadOutput(t *testing.T) {
 
 	diags := c.Validate()
 	if !diags.HasErrors() {
-		t.Fatalf("bad: %#v", diags)
+		t.Fatalf("unexpected error: %s", diags.Err())
 	}
 }
 
@@ -240,7 +242,7 @@ func TestContext2Validate_moduleGood(t *testing.T) {
 
 	diags := c.Validate()
 	if diags.HasErrors() {
-		t.Fatalf("bad: %#v", diags)
+		t.Fatalf("unexpected error: %s", diags.Err())
 	}
 }
 
@@ -260,7 +262,7 @@ func TestContext2Validate_moduleBadResource(t *testing.T) {
 
 	diags := c.Validate()
 	if !diags.HasErrors() {
-		t.Fatalf("bad: %#v", diags)
+		t.Fatalf("unexpected error: %s", diags.Err())
 	}
 }
 
@@ -278,7 +280,7 @@ func TestContext2Validate_moduleDepsShouldNotCycle(t *testing.T) {
 
 	diags := ctx.Validate()
 	if diags.HasErrors() {
-		t.Fatalf("bad: %#v", diags)
+		t.Fatalf("unexpected error: %s", diags.Err())
 	}
 }
 
@@ -323,7 +325,7 @@ func TestContext2Validate_moduleProviderInheritOrphan(t *testing.T) {
 
 	diags := c.Validate()
 	if diags.HasErrors() {
-		t.Fatalf("bad: %#v", diags)
+		t.Fatalf("unexpected error: %s", diags.Err())
 	}
 }
 
@@ -351,7 +353,7 @@ func TestContext2Validate_moduleProviderVar(t *testing.T) {
 
 	diags := c.Validate()
 	if diags.HasErrors() {
-		t.Fatalf("bad: %#v", diags)
+		t.Fatalf("unexpected error: %s", diags.Err())
 	}
 }
 
@@ -373,7 +375,7 @@ func TestContext2Validate_moduleProviderInheritUnused(t *testing.T) {
 
 	diags := c.Validate()
 	if diags.HasErrors() {
-		t.Fatalf("bad: %#v", diags)
+		t.Fatalf("unexpected error: %s", diags.Err())
 	}
 }
 
@@ -412,7 +414,7 @@ func TestContext2Validate_orphans(t *testing.T) {
 
 	diags := c.Validate()
 	if diags.HasErrors() {
-		t.Fatalf("bad: %#v", diags)
+		t.Fatalf("unexpected error: %s", diags.Err())
 	}
 }
 
@@ -455,7 +457,7 @@ func TestContext2Validate_providerConfig_badEmpty(t *testing.T) {
 
 	diags := c.Validate()
 	if !diags.HasErrors() {
-		t.Fatalf("bad: %#v", diags)
+		t.Fatalf("unexpected error: %s", diags.Err())
 	}
 }
 
@@ -473,7 +475,7 @@ func TestContext2Validate_providerConfig_good(t *testing.T) {
 
 	diags := c.Validate()
 	if diags.HasErrors() {
-		t.Fatalf("bad: %#v", diags)
+		t.Fatalf("unexpected error: %s", diags.Err())
 	}
 }
 
@@ -497,7 +499,7 @@ func TestContext2Validate_provisionerConfig_bad(t *testing.T) {
 
 	diags := c.Validate()
 	if !diags.HasErrors() {
-		t.Fatalf("bad: %#v", diags)
+		t.Fatalf("unexpected error: %s", diags.Err())
 	}
 }
 
@@ -525,7 +527,7 @@ func TestContext2Validate_provisionerConfig_good(t *testing.T) {
 
 	diags := c.Validate()
 	if diags.HasErrors() {
-		t.Fatalf("bad: %#v", diags)
+		t.Fatalf("unexpected error: %s", diags.Err())
 	}
 }
 
@@ -543,7 +545,7 @@ func TestContext2Validate_requiredVar(t *testing.T) {
 
 	diags := c.Validate()
 	if !diags.HasErrors() {
-		t.Fatalf("bad: %#v", diags)
+		t.Fatalf("unexpected error: %s", diags.Err())
 	}
 }
 
@@ -563,7 +565,7 @@ func TestContext2Validate_resourceConfig_bad(t *testing.T) {
 
 	diags := c.Validate()
 	if !diags.HasErrors() {
-		t.Fatalf("bad: %#v", diags)
+		t.Fatalf("unexpected error: %s", diags.Err())
 	}
 }
 
@@ -581,7 +583,7 @@ func TestContext2Validate_resourceConfig_good(t *testing.T) {
 
 	diags := c.Validate()
 	if diags.HasErrors() {
-		t.Fatalf("bad: %#v", diags)
+		t.Fatalf("unexpected error: %s", diags.Err())
 	}
 }
 
@@ -599,7 +601,7 @@ func TestContext2Validate_resourceNameSymbol(t *testing.T) {
 
 	diags := c.Validate()
 	if !diags.HasErrors() {
-		t.Fatalf("bad: %#v", diags)
+		t.Fatalf("unexpected error: %s", diags.Err())
 	}
 }
 
@@ -617,7 +619,7 @@ func TestContext2Validate_selfRef(t *testing.T) {
 
 	diags := c.Validate()
 	if !diags.HasErrors() {
-		t.Fatalf("bad: %#v", diags)
+		t.Fatalf("unexpected error: %s", diags.Err())
 	}
 }
 
@@ -635,7 +637,7 @@ func TestContext2Validate_selfRefMulti(t *testing.T) {
 
 	diags := c.Validate()
 	if !diags.HasErrors() {
-		t.Fatalf("bad: %#v", diags)
+		t.Fatalf("unexpected error: %s", diags.Err())
 	}
 }
 
@@ -653,7 +655,7 @@ func TestContext2Validate_selfRefMultiAll(t *testing.T) {
 
 	diags := c.Validate()
 	if !diags.HasErrors() {
-		t.Fatalf("bad: %#v", diags)
+		t.Fatalf("unexpected error: %s", diags.Err())
 	}
 }
 
@@ -693,7 +695,7 @@ func TestContext2Validate_tainted(t *testing.T) {
 
 	diags := c.Validate()
 	if diags.HasErrors() {
-		t.Fatalf("bad: %#v", diags)
+		t.Fatalf("unexpected error: %s", diags.Err())
 	}
 }
 
@@ -734,7 +736,7 @@ func TestContext2Validate_targetedDestroy(t *testing.T) {
 
 	diags := ctx.Validate()
 	if diags.HasErrors() {
-		t.Fatalf("bad: %#v", diags)
+		t.Fatalf("unexpected error: %s", diags.Err())
 	}
 }
 
@@ -790,7 +792,7 @@ func TestContext2Validate_interpolateVar(t *testing.T) {
 
 	diags := ctx.Validate()
 	if diags.HasErrors() {
-		t.Fatalf("bad: %#v", diags)
+		t.Fatalf("unexpected error: %s", diags.Err())
 	}
 }
 
@@ -803,6 +805,15 @@ func TestContext2Validate_interpolateComputedModuleVarDef(t *testing.T) {
 	p := testProvider("aws")
 	p.ApplyFn = testApplyFn
 	p.DiffFn = testDiffFn
+	p.GetSchemaReturn = &ProviderSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"aws_instance": {
+				Attributes: map[string]*configschema.Attribute{
+					"attr": {Type: cty.String, Optional: true},
+				},
+			},
+		},
+	}
 
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
@@ -816,7 +827,7 @@ func TestContext2Validate_interpolateComputedModuleVarDef(t *testing.T) {
 
 	diags := ctx.Validate()
 	if diags.HasErrors() {
-		t.Fatalf("bad: %#v", diags)
+		t.Fatalf("unexpected error: %s", diags.Err())
 	}
 }
 
@@ -850,7 +861,7 @@ func TestContext2Validate_interpolateMap(t *testing.T) {
 
 	diags := ctx.Validate()
 	if diags.HasErrors() {
-		t.Fatalf("bad: %#v", diags)
+		t.Fatalf("unexpected error: %s", diags.Err())
 	}
 }
 
