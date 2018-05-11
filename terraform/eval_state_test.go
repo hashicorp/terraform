@@ -150,6 +150,7 @@ func TestEvalWriteState(t *testing.T) {
 		Name:         "restype.resname",
 		ResourceType: "restype",
 		State:        &is,
+		Provider:     addrs.RootModuleInstance.ProviderConfigDefault("res"),
 	}
 	_, err := node.Eval(ctx)
 	if err != nil {
@@ -159,6 +160,7 @@ func TestEvalWriteState(t *testing.T) {
 	checkStateString(t, state, `
 restype.resname:
   ID = i-abc123
+  provider = provider.res
 	`)
 }
 
