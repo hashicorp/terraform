@@ -208,10 +208,8 @@ func (n *EvalValidateProvisioner) validateConnConfig(ctx EvalContext, config *co
 // exactly what is expected for a given connection type.
 var connectionBlockSupersetSchema = &configschema.Block{
 	Attributes: map[string]*configschema.Attribute{
-		"type": {
-			Type:     cty.String,
-			Required: true,
-		},
+		// NOTE: "type" is not included here because it's treated special
+		// by the config loader and stored away in a separate field.
 
 		// Common attributes for both connection types
 		"user": {
