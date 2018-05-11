@@ -2,6 +2,7 @@ package terraform
 
 import (
 	"fmt"
+	"log"
 
 	"github.com/hashicorp/hcl2/hcl"
 	"github.com/hashicorp/terraform/addrs"
@@ -92,6 +93,13 @@ func (n *EvalValidateProvider) Eval(ctx EvalContext) (interface{}, error) {
 	}
 
 	configSchema := schema.Provider
+	if configSchema == nil {
+		// Should never happen in real code, but often comes up in tests where
+		// mock schemas are being used that tend to be incomplete.
+		log.Printf("[WARN] EvalValidateProvider: no config schema is available for %s, so using empty schema", n.Addr)
+		configSchema = &configschema.Block{}
+	}
+
 	configBody := buildProviderConfig(ctx, n.Addr, sourceBody)
 	configVal, configBody, evalDiags := ctx.EvaluateBlock(configBody, configSchema, nil, addrs.NoKey)
 	diags = diags.Append(evalDiags)
