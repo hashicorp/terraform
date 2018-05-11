@@ -130,6 +130,17 @@ func (n *EvalWriteOutput) Eval(ctx EvalContext) (interface{}, error) {
 			Sensitive: n.Sensitive,
 			Value:     valueTyped,
 		}
+	case !val.IsWhollyKnown():
+		// While we're still using our existing state format, we can't represent
+		// partially-unknown values properly, so we'll just stub the whole
+		// thing out.
+		// FIXME: After the state format is revised, remove this special case
+		// and just store the unknown value directly.
+		mod.Outputs[n.Addr.Name] = &OutputState{
+			Type:      "unknown",
+			Sensitive: n.Sensitive,
+			Value:     hcl2shim.UnknownVariableValue,
+		}
 	default:
 		return nil, fmt.Errorf("output %s is not a valid type (%s)", n.Addr.Name, ty.FriendlyName())
 	}
