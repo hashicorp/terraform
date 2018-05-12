@@ -171,13 +171,13 @@ The supported built-in functions are:
 
   * `base64sha256(string)` - Returns a base64-encoded representation of raw
     SHA-256 sum of the given string.
-    **This is not equivalent** of `base64encode(sha256(string))`
-    since `sha256()` returns hexadecimal representation.
+    **This is not equivalent** to `base64encode(sha256(string))`
+    since `sha256()` returns the hexadecimal representation of the SHA-256 hash.
 
   * `base64sha512(string)` - Returns a base64-encoded representation of raw
     SHA-512 sum of the given string.
-    **This is not equivalent** of `base64encode(sha512(string))`
-    since `sha512()` returns hexadecimal representation.
+    **This is not equivalent** to `base64encode(sha512(string))`
+    since `sha512()` returns the hexadecimal representation of the SHA-512 hash.
 
   * `bcrypt(password, cost)` - Returns the Blowfish encrypted hash of the string 
     at the given cost. A default `cost` of 10 will be used if not provided.
