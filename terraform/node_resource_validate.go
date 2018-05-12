@@ -31,10 +31,19 @@ func (n *NodeValidatableResource) DynamicExpand(ctx EvalContext) (*Graph, error)
 	count, countDiags := evaluateResourceCountExpression(n.Config.Count, ctx)
 	diags = diags.Append(countDiags)
 	if countDiags.HasErrors() {
-		log.Printf("[TRACE] %T %s: count expression has errors", n, n.Name())
-		return nil, diags.Err()
-	}
-	if count >= 0 {
+		if count != 0 {
+			log.Printf("[TRACE] %T %s: count expression has errors", n, n.Name())
+			return nil, diags.Err()
+		}
+
+		// evaluateResourceCountExpression returns zero+errors only in the
+		// case where the count value successfully evaluated to an unknown
+		// number. We don't treat this as an error here because counts that
+		// are computed during validate can become known during the plan
+		// walk, if they refer to data resources, and so we'll just defer
+		// our validation steps to the plan phase in that case.
+		log.Printf("[TRACE] %T %s: count expression value not yet known, so deferring validation until the plan walk", n, n.Name())
+	} else if count >= 0 {
 		log.Printf("[TRACE] %T %s: count expression evaluates to %d", n, n.Name(), count)
 	} else {
 		log.Printf("[TRACE] %T %s: no count argument present", n, n.Name())
