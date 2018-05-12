@@ -22,8 +22,13 @@ import (
 // If the result is -1, this indicates that the given expression is nil and so
 // the "count" behavior should not be enabled for this resource at all.
 //
-// If error diagnostics are returned then the result is undefined and must
-// not be used.
+// If error diagnostics are returned then the result is always the meaningless
+// placeholder value -1, except in one case: if the count expression evaluates
+// to an unknown number value then the result is zero, allowing this situation
+// to be treated by the caller as special if needed. For example, an early
+// graph walk may wish to just silently skip resources with unknown counts
+// to allow them to be dealt with in a later graph walk where more information
+// is available.
 func evaluateResourceCountExpression(expr hcl.Expression, ctx EvalContext) (int, tfdiags.Diagnostics) {
 	if expr == nil {
 		return -1, nil
@@ -60,7 +65,11 @@ func evaluateResourceCountExpression(expr hcl.Expression, ctx EvalContext) (int,
 			Detail:   `The "count" value depends on resource attributes that cannot be determined until apply, so Terraform cannot predict how many instances will be created. To work around this, use the -target argument to first apply only the resources that the count depends on.`,
 			Subject:  expr.Range().Ptr(),
 		})
-		return -1, diags
+		// We return zero+errors in this one case to allow callers to handle
+		// an unknown count as special. This is rarely necessary, but is used
+		// by the validate walk in particular so that it can just skip
+		// validation in this case, assuming a later walk will take care of it.
+		return 0, diags
 	}
 
 	err := gocty.FromCtyValue(countVal, &count)
