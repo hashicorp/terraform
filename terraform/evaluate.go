@@ -421,6 +421,27 @@ func (d *evaluationStateData) GetResourceInstance(addr addrs.ResourceInstance, r
 	// the instances of a particular resource. The reference resolver can't
 	// resolve the ambiguity itself, so we must do it in here.
 
+	// First we'll consult the configuration to see if an output of this
+	// name is declared at all.
+	moduleAddr := d.ModulePath
+	moduleConfig := d.Evaluator.Config.DescendentForInstance(moduleAddr)
+	if moduleConfig == nil {
+		// should never happen, since we can't be evaluating in a module
+		// that wasn't mentioned in configuration.
+		panic(fmt.Sprintf("resource value read from %s, which has no configuration", moduleAddr))
+	}
+
+	config := moduleConfig.Module.ResourceByAddr(addr.ContainingResource())
+	if config == nil {
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  `Reference to undeclared resource`,
+			Detail:   fmt.Sprintf(`A resource %q %q has not been declared in %s`, addr.Resource.Type, addr.Resource.Name, moduleAddr),
+			Subject:  rng.ToHCL().Ptr(),
+		})
+		return cty.DynamicVal, diags
+	}
+
 	// We need to shim our address to the legacy form still used in the state structs.
 	addrKey := NewLegacyResourceInstanceAddress(addr.Absolute(d.ModulePath)).stateId()
 
@@ -466,7 +487,7 @@ func (d *evaluationStateData) GetResourceInstance(addr addrs.ResourceInstance, r
 		return d.getResourceInstancePending(addr, rng)
 	}
 
-	return d.getResourceInstancesAll(addr.ContainingResource(), rng, ms)
+	return d.getResourceInstancesAll(addr.ContainingResource(), config, ms)
 }
 
 func (d *evaluationStateData) getResourceInstanceSingle(addr addrs.ResourceInstance, rng tfdiags.SourceRange, is *InstanceState, providerAddr addrs.AbsProviderConfig) (cty.Value, tfdiags.Diagnostics) {
@@ -488,8 +509,13 @@ func (d *evaluationStateData) getResourceInstanceSingle(addr addrs.ResourceInsta
 		return cty.DynamicVal, diags
 	}
 
-	flatmapVal := is.Attributes
 	ty := schema.ImpliedType()
+	if is == nil {
+		// Assume we're dealing with an instance that hasn't been created yet.
+		return cty.UnknownVal(ty), diags
+	}
+
+	flatmapVal := is.Attributes
 	val, err := hcl2shim.HCL2ValueFromFlatmap(flatmapVal, ty)
 	if err != nil {
 		// A value in the flatmap value could not be conformed to the schema
@@ -505,8 +531,10 @@ func (d *evaluationStateData) getResourceInstanceSingle(addr addrs.ResourceInsta
 	return val, diags
 }
 
-func (d *evaluationStateData) getResourceInstancesAll(addr addrs.Resource, rng tfdiags.SourceRange, ms *ModuleState) (cty.Value, tfdiags.Diagnostics) {
+func (d *evaluationStateData) getResourceInstancesAll(addr addrs.Resource, config *configs.Resource, ms *ModuleState) (cty.Value, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
+	rng := tfdiags.SourceRangeFromHCL(config.DeclRange)
+	hasCount := config.Count != nil
 
 	// Currently the only multi-instance construct we support is "count", which
 	// ensures that all of the instances will have integer keys, and so we
@@ -562,6 +590,15 @@ func (d *evaluationStateData) getResourceInstancesAll(addr addrs.Resource, rng t
 		diags = diags.Append(instanceDiags)
 
 		instanceVals[key] = val
+	}
+
+	if length == 0 && !hasCount {
+		// If we have nothing at all and the configuration lacks a count
+		// argument then we'll assume that we're dealing with a resource that
+		// is pending creation (e.g. during the validate walk) and that it
+		// will eventually have only one unkeyed instance.
+		providerAddr := config.ProviderConfigAddr().Absolute(d.ModulePath)
+		return d.getResourceInstanceSingle(addr.Instance(addrs.NoKey), rng, nil, providerAddr)
 	}
 
 	// TODO: In future, when for_each is implemented, we'll need to decide here
