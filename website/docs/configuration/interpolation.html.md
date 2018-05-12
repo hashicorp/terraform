@@ -92,8 +92,8 @@ path of the root module.  In general, you probably want the
 #### Terraform meta information
 
 The syntax is `terraform.FIELD`. This variable type contains metadata about
-the currently executing Terraform run. FIELD can currently only be `env` to
-reference the currently active [state environment](/docs/state/environments.html).
+the currently executing Terraform run. FIELD can currently only be `workspace` to
+reference the currently active [workspace](/docs/state/workspaces.html).
 
 ## Conditionals
 
