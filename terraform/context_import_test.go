@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/hashicorp/terraform/addrs"
+	"github.com/hashicorp/terraform/config/configschema"
 	"github.com/zclconf/go-cty/cty"
 )
 
@@ -34,7 +35,8 @@ func TestContextImport_basic(t *testing.T) {
 				Addr: addrs.RootModuleInstance.ResourceInstance(
 					addrs.ManagedResourceMode, "aws_instance", "foo", addrs.NoKey,
 				),
-				ID: "bar",
+				ID:           "bar",
+				ProviderAddr: addrs.RootModuleInstance.ProviderConfigDefault("aws"),
 			},
 		},
 	})
@@ -73,7 +75,8 @@ func TestContextImport_countIndex(t *testing.T) {
 				Addr: addrs.RootModuleInstance.ResourceInstance(
 					addrs.ManagedResourceMode, "aws_instance", "foo", addrs.IntKey(0),
 				),
-				ID: "bar",
+				ID:           "bar",
+				ProviderAddr: addrs.RootModuleInstance.ProviderConfigDefault("aws"),
 			},
 		},
 	})
@@ -129,7 +132,8 @@ func TestContextImport_collision(t *testing.T) {
 				Addr: addrs.RootModuleInstance.ResourceInstance(
 					addrs.ManagedResourceMode, "aws_instance", "foo", addrs.NoKey,
 				),
-				ID: "bar",
+				ID:           "bar",
+				ProviderAddr: addrs.RootModuleInstance.ProviderConfigDefault("aws"),
 			},
 		},
 	})
@@ -168,7 +172,8 @@ func TestContextImport_missingType(t *testing.T) {
 				Addr: addrs.RootModuleInstance.ResourceInstance(
 					addrs.ManagedResourceMode, "aws_instance", "foo", addrs.NoKey,
 				),
-				ID: "bar",
+				ID:           "bar",
+				ProviderAddr: addrs.RootModuleInstance.ProviderConfigDefault("aws"),
 			},
 		},
 	})
@@ -184,7 +189,7 @@ func TestContextImport_missingType(t *testing.T) {
 }
 
 func TestContextImport_moduleProvider(t *testing.T) {
-	p := testProvider("aws")
+	p := mockProviderWithResourceTypeSchema("aws_instance", &configschema.Block{})
 	m := testModule(t, "import-provider")
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
@@ -220,7 +225,8 @@ func TestContextImport_moduleProvider(t *testing.T) {
 				Addr: addrs.RootModuleInstance.ResourceInstance(
 					addrs.ManagedResourceMode, "aws_instance", "foo", addrs.NoKey,
 				),
-				ID: "bar",
+				ID:           "bar",
+				ProviderAddr: addrs.RootModuleInstance.ProviderConfigDefault("aws"),
 			},
 		},
 	})
@@ -277,7 +283,8 @@ func TestContextImport_providerModule(t *testing.T) {
 				Addr: addrs.RootModuleInstance.Child("child", addrs.NoKey).ResourceInstance(
 					addrs.ManagedResourceMode, "aws_instance", "foo", addrs.NoKey,
 				),
-				ID: "bar",
+				ID:           "bar",
+				ProviderAddr: addrs.RootModuleInstance.ProviderConfigDefault("aws"),
 			},
 		},
 	})
@@ -334,7 +341,8 @@ func TestContextImport_providerVarConfig(t *testing.T) {
 				Addr: addrs.RootModuleInstance.ResourceInstance(
 					addrs.ManagedResourceMode, "aws_instance", "foo", addrs.NoKey,
 				),
-				ID: "bar",
+				ID:           "bar",
+				ProviderAddr: addrs.RootModuleInstance.ProviderConfigDefault("aws"),
 			},
 		},
 	})
@@ -379,7 +387,8 @@ func TestContextImport_providerNonVarConfig(t *testing.T) {
 				Addr: addrs.RootModuleInstance.ResourceInstance(
 					addrs.ManagedResourceMode, "aws_instance", "foo", addrs.NoKey,
 				),
-				ID: "bar",
+				ID:           "bar",
+				ProviderAddr: addrs.RootModuleInstance.ProviderConfigDefault("aws"),
 			},
 		},
 	})
@@ -420,7 +429,8 @@ func TestContextImport_refresh(t *testing.T) {
 				Addr: addrs.RootModuleInstance.ResourceInstance(
 					addrs.ManagedResourceMode, "aws_instance", "foo", addrs.NoKey,
 				),
-				ID: "bar",
+				ID:           "bar",
+				ProviderAddr: addrs.RootModuleInstance.ProviderConfigDefault("aws"),
 			},
 		},
 	})
@@ -464,7 +474,8 @@ func TestContextImport_refreshNil(t *testing.T) {
 				Addr: addrs.RootModuleInstance.ResourceInstance(
 					addrs.ManagedResourceMode, "aws_instance", "foo", addrs.NoKey,
 				),
-				ID: "bar",
+				ID:           "bar",
+				ProviderAddr: addrs.RootModuleInstance.ProviderConfigDefault("aws"),
 			},
 		},
 	})
@@ -504,7 +515,8 @@ func TestContextImport_module(t *testing.T) {
 				Addr: addrs.RootModuleInstance.Child("foo", addrs.NoKey).ResourceInstance(
 					addrs.ManagedResourceMode, "aws_instance", "foo", addrs.NoKey,
 				),
-				ID: "bar",
+				ID:           "bar",
+				ProviderAddr: addrs.RootModuleInstance.ProviderConfigDefault("aws"),
 			},
 		},
 	})
@@ -544,7 +556,8 @@ func TestContextImport_moduleDepth2(t *testing.T) {
 				Addr: addrs.RootModuleInstance.Child("a", addrs.NoKey).Child("b", addrs.NoKey).ResourceInstance(
 					addrs.ManagedResourceMode, "aws_instance", "foo", addrs.NoKey,
 				),
-				ID: "bar",
+				ID:           "bar",
+				ProviderAddr: addrs.RootModuleInstance.ProviderConfigDefault("aws"),
 			},
 		},
 	})
@@ -600,7 +613,8 @@ func TestContextImport_moduleDiff(t *testing.T) {
 				Addr: addrs.RootModuleInstance.Child("foo", addrs.NoKey).ResourceInstance(
 					addrs.ManagedResourceMode, "aws_instance", "foo", addrs.NoKey,
 				),
-				ID: "bar",
+				ID:           "bar",
+				ProviderAddr: addrs.RootModuleInstance.ProviderConfigDefault("aws"),
 			},
 		},
 	})
@@ -656,7 +670,8 @@ func TestContextImport_moduleExisting(t *testing.T) {
 				Addr: addrs.RootModuleInstance.Child("foo", addrs.NoKey).ResourceInstance(
 					addrs.ManagedResourceMode, "aws_instance", "foo", addrs.NoKey,
 				),
-				ID: "bar",
+				ID:           "bar",
+				ProviderAddr: addrs.RootModuleInstance.ProviderConfigDefault("aws"),
 			},
 		},
 	})
@@ -700,7 +715,8 @@ func TestContextImport_multiState(t *testing.T) {
 				Addr: addrs.RootModuleInstance.ResourceInstance(
 					addrs.ManagedResourceMode, "aws_instance", "foo", addrs.NoKey,
 				),
-				ID: "bar",
+				ID:           "bar",
+				ProviderAddr: addrs.RootModuleInstance.ProviderConfigDefault("aws"),
 			},
 		},
 	})
@@ -748,7 +764,8 @@ func TestContextImport_multiStateSame(t *testing.T) {
 				Addr: addrs.RootModuleInstance.ResourceInstance(
 					addrs.ManagedResourceMode, "aws_instance", "foo", addrs.NoKey,
 				),
-				ID: "bar",
+				ID:           "bar",
+				ProviderAddr: addrs.RootModuleInstance.ProviderConfigDefault("aws"),
 			},
 		},
 	})
