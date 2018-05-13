@@ -46,8 +46,9 @@ data "terraform_remote_state" "foo" {
     config {
         owner = "username"
         token = "861d16f0809f2ed0ceb51f29e8391995cd5025de"
-        repository = "my-repo"
-        state_file = "my_state_file"
+        repository = "my_repo"
+        state_path = "my_state_file"
+        lock_path = "my_lock_file"
     }
 }
 ```
@@ -61,7 +62,9 @@ The following configuration options or environment variables are supported:
  * `token` - (Required) A personal access token (that confers the right to
      read/write/delete files in the repository)
  * `repository` - (Required) The name of the repository.
- * `state_path` - (Required) The name of the file in which to save the state.
- * `lock_path` - (Required) The name of the file to use for locking.
+ * `state_path` - The name of the file in which to save the state
+    (default = terraform.tfstate).
+ * `lock_path` - The name of the file to use for locking (default =
+    terraform.tfstate.lock).
  * `branch` - The name of the branch in which to work.
  * `base_url` - The GitHub API URL (supports GitHub Enterprise).

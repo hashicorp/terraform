@@ -49,11 +49,11 @@ func githubFactory(conf map[string]string) (Client, error) {
 	}
 	statePath, ok := conf["state_path"]
 	if !ok {
-		return nil, fmt.Errorf("missing 'state_path' configuration")
+		statePath = "terraform.tfstate"
 	}
 	lockPath, ok := conf["lock_path"]
 	if !ok {
-		return nil, fmt.Errorf("missing 'lock_path' configuration")
+		lockPath = "terraform.tfstate.lock"
 	}
 
 	ts := oauth2.StaticTokenSource(
