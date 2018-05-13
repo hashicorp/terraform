@@ -32,7 +32,7 @@ another.
 ## Code Organization
 
 The Terraform language uses configuration files that are named with the `.tf`
-file extension. There is also [a JSON-based variant of the language](/docs/configuration/json-syntax.html)
+file extension. There is also [a JSON-based variant of the language](/docs/configuration/syntax-json.html)
 that is named with the `.tf.json` file extension.
 
 Configuration files must always use UTF-8 encoding, and by convention are
