@@ -18,20 +18,21 @@ remote config` command like so:
 
 ```
 terraform remote config \
-	-backend=github \
-	-backend-config="owner=orgname_or_username" \
-	-backend-config="repository=my_repo" \
-	-backend-config="state_path=my_state_file" \
-	-backend-config="lock_path=my_lock_file"
+    -backend=github \
+    -backend-config="owner=orgname_or_username" \
+    -backend-config="repository=my_repo" \
+    -backend-config="state_path=my_state_file" \
+    -backend-config="lock_path=my_lock_file"
 ```
 
 This assumes that the organization/user has a repository called
 `my_repo`. The Terraform state is written to the file `my_state_file`
 in that repository.
 
--> **Note:** Passing credentials directly via configuration options will
-make them included in cleartext inside the persisted state. Use of
-environment variables or a configuration file is recommended.
+-> **Note:** Passing credentials directly via configuration options
+will lead to them being included in cleartext inside the persisted
+state. Use of environment variables or a configuration file is
+**highly recommended**.
 
 ## Using the GitHub remote state
 
@@ -41,13 +42,13 @@ source](/docs/providers/terraform/d/remote_state.html).
 
 ```
 data "terraform_remote_state" "foo" {
-	backend = "github"
-	config {
-    owner = "username"
-    token = "861d16f0809f2ed0ceb51f29e8391995cd5025de"
-    repository = "my-repo"
-    state_file = "my_state_file"
-	}
+    backend = "github"
+    config {
+        owner = "username"
+        token = "861d16f0809f2ed0ceb51f29e8391995cd5025de"
+        repository = "my-repo"
+        state_file = "my_state_file"
+    }
 }
 ```
 
@@ -63,4 +64,4 @@ The following configuration options or environment variables are supported:
  * `state_path` - (Required) The name of the file in which to save the state.
  * `lock_path` - (Required) The name of the file to use for locking.
  * `branch` - The name of the branch in which to work.
- * `base_url` - The GitHub API URL (supports GitHubEnterprise).
+ * `base_url` - The GitHub API URL (supports GitHub Enterprise).
