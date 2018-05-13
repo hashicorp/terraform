@@ -8,6 +8,7 @@ import (
 	"net/url"
 	"os"
 
+	"golang.org/x/net/context"
 	"golang.org/x/oauth2"
 
 	"github.com/google/go-github/github"
@@ -85,7 +86,8 @@ func githubFactory(conf map[string]string) (Client, error) {
 // Get returns state from the github backend.
 func (c *GithubClient) Get() (*Payload, error) {
 	s := c.client.Repositories
-	file_content, dc, _, err := s.GetContents(c.Owner, c.Repository, c.StatePath,
+	file_content, dc, _, err := s.GetContents(context.Background(),
+		c.Owner, c.Repository, c.StatePath,
 		&github.RepositoryContentGetOptions{Ref: c.Branch})
 	if isStatusNotFound(err) {
 		return nil, nil
@@ -97,12 +99,11 @@ func (c *GithubClient) Get() (*Payload, error) {
 		return nil, errors.New("State file appears to be a directory, uh-oh...")
 	}
 
-	// TODO: Decode is deprecated in the current go-github (we have
-	// older one vendored).
-	data, err := file_content.Decode()
+	contents, err := file_content.GetContent()
 	if err != nil {
 		return nil, err
 	}
+	data := []byte(contents)
 	md5 := md5.Sum(data)
 
 	return &Payload{
@@ -124,7 +125,7 @@ func (c *GithubClient) Put(data []byte) error {
 func (c *GithubClient) tryPut(data []byte) error {
 	s := c.client.Repositories
 
-	fc, _, _, err := s.GetContents(c.Owner, c.Repository, c.StatePath,
+	fc, _, _, err := s.GetContents(context.Background(), c.Owner, c.Repository, c.StatePath,
 		&github.RepositoryContentGetOptions{Ref: c.Branch})
 	if err != nil && !isStatusNotFound(err) { // an absent file is ok
 		return err
@@ -139,7 +140,7 @@ func (c *GithubClient) tryPut(data []byte) error {
 		content.SHA = fc.SHA
 	}
 
-	_, _, err = s.UpdateFile(c.Owner, c.Repository, c.StatePath, &content)
+	_, _, err = s.UpdateFile(context.Background(), c.Owner, c.Repository, c.StatePath, &content)
 
 	return err
 }
@@ -158,7 +159,7 @@ func (c *GithubClient) Delete() error {
 func (c *GithubClient) tryDelete() error {
 	s := c.client.Repositories
 
-	fc, _, _, err := s.GetContents(c.Owner, c.Repository, c.StatePath,
+	fc, _, _, err := s.GetContents(context.Background(), c.Owner, c.Repository, c.StatePath,
 		&github.RepositoryContentGetOptions{Ref: c.Branch})
 	if isStatusNotFound(err) {
 		return nil
@@ -173,7 +174,7 @@ func (c *GithubClient) tryDelete() error {
 		SHA:     fc.SHA,
 	}
 
-	_, _, err = s.DeleteFile(c.Owner, c.Repository, c.StatePath, &content)
+	_, _, err = s.DeleteFile(context.Background(), c.Owner, c.Repository, c.StatePath, &content)
 	if isStatusNotFound(err) {
 		return nil
 	}
@@ -193,7 +194,7 @@ func (c *GithubClient) Lock(info string) error {
 		Content: []byte("Locked"),
 	}
 
-	_, _, err := s.UpdateFile(c.Owner, c.Repository, c.LockPath, &content)
+	_, _, err := s.UpdateFile(context.Background(), c.Owner, c.Repository, c.LockPath, &content)
 	if err != nil {
 		return fmt.Errorf("Unable to lock Terraform's github backend: %v", err)
 	}
@@ -204,7 +205,7 @@ func (c *GithubClient) Lock(info string) error {
 func (c *GithubClient) Unlock() error {
 	s := c.client.Repositories
 
-	fc, _, _, err := s.GetContents(c.Owner, c.Repository, c.LockPath,
+	fc, _, _, err := s.GetContents(context.Background(), c.Owner, c.Repository, c.LockPath,
 		&github.RepositoryContentGetOptions{Ref: c.Branch})
 	if isStatusNotFound(err) {
 		return nil
@@ -219,7 +220,7 @@ func (c *GithubClient) Unlock() error {
 		SHA:     fc.SHA,
 	}
 
-	_, _, err = s.DeleteFile(c.Owner, c.Repository, c.LockPath, &content)
+	_, _, err = s.DeleteFile(context.Background(), c.Owner, c.Repository, c.LockPath, &content)
 	if isStatusNotFound(err) {
 		return nil
 	}
