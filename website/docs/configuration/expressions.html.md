@@ -247,6 +247,20 @@ effect:
 
 Unknown values appear in the `terraform plan` output as `(not yet known)`.
 
+## Indices and Attributes
+
+Elements of list-, tuple-, map-, and object-typed values can be accessed using
+the square-bracket index notation, like `local.list[3]`. The expression within
+the brackets must be a whole number for list and tuple values or a string
+for map and object values.
+
+Object attributes with names that are valid identifiers can also be accessed
+using the dot-separated attribute notation, like `local.object.attrname`. This
+syntax is also allowed for accessing map elements with keys that are valid
+identifiers, but we recommend using the square-bracket index notation
+(`local.map["keyname"]`) when a map contains arbitrary user-specified keys, as
+opposed to an object with a fixed set of attributes defined by a schema.
+
 ## Arithmetic and Logical Operators
 
 An _operator_ is a type of expression that transforms or combines one or more
