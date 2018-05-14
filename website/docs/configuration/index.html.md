@@ -131,3 +131,4 @@ resource "aws_subnet" "az" {
 
 For more information on the configuration elements shown here, use the
 site navigation to explore the Terraform language documentation sub-sections.
+To start, see [_Resource Configuration_](./resources.html).
