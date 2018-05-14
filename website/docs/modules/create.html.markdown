@@ -72,7 +72,7 @@ If you now run `terraform apply`, you see how this works.
 
 It is sometimes useful to embed files within the module that aren't Terraform configuration files, such as a script to provision a resource or a file to upload.
 
-In these cases, you can't use a relative path, since paths in Terraform are generally relative to the working directory from which Terraform was executed. Instead, you want to use a module-relative path. To do this, you should use the [path interpolated variables](/docs/configuration/interpolation.html).
+In these cases, you can't use a relative path, since paths in Terraform are generally relative to the working directory from which Terraform was executed. Instead, use a module-relative path, by interpolating `path.module`:
 
 ```hcl
 resource "aws_instance" "server" {
@@ -83,8 +83,6 @@ resource "aws_instance" "server" {
   }
 }
 ```
-
-Here we use `${path.module}` to get a module-relative path.
 
 ## Nested Modules
 
@@ -118,13 +116,13 @@ standard structure.
 
 * **README**. The root module and any nested modules should have README
   files. This file should be named `README` or `README.md`. The latter will
-  be treated as markdown. There should be a description of the module and 
+  be treated as markdown. There should be a description of the module and
   what it should be used for. If you want to include an example for how this
   module can be used in combination with other resources, put it in an [examples
   directory like this](https://github.com/hashicorp/terraform-aws-consul/tree/master/examples).
-  Consider including a visual diagram depicting the infrastructure resources 
-  the module may create and their relationship. The README doesn't need to 
-  document inputs or outputs of the module because tooling will automatically 
+  Consider including a visual diagram depicting the infrastructure resources
+  the module may create and their relationship. The README doesn't need to
+  document inputs or outputs of the module because tooling will automatically
   generate this. If you are linking to a file or embedding an image contained
   in the repository itself, use a commit-specific absolute URL so the link won't
   point to the wrong version of a resource in the future.

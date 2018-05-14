@@ -1,5 +1,7 @@
+VERSION?="0.3.32"
 TEST?=./...
 GOFMT_FILES?=$$(find . -name '*.go' | grep -v vendor)
+WEBSITE_REPO=github.com/hashicorp/terraform-website
 
 default: test
 
@@ -85,9 +87,53 @@ fmtcheck:
 vendor-status:
 	@govendor status
 
+website:
+ifeq (,$(wildcard $(GOPATH)/src/$(WEBSITE_REPO)))
+	echo "$(WEBSITE_REPO) not found in your GOPATH (necessary for layouts and assets), get-ting..."
+	git clone https://$(WEBSITE_REPO) $(GOPATH)/src/$(WEBSITE_REPO)
+endif
+	$(eval WEBSITE_PATH := $(GOPATH)/src/$(WEBSITE_REPO))
+	@echo "==> Starting core website in Docker..."
+	@docker run \
+		--interactive \
+		--rm \
+		--tty \
+		--publish "4567:4567" \
+		--publish "35729:35729" \
+		--volume "$(shell pwd)/website:/website" \
+		--volume "$(shell pwd):/ext/terraform" \
+		--volume "$(WEBSITE_PATH)/content:/terraform-website" \
+		--volume "$(WEBSITE_PATH)/content/source/assets:/website/docs/assets" \
+		--volume "$(WEBSITE_PATH)/content/source/layouts:/website/docs/layouts" \
+		--workdir /terraform-website \
+		hashicorp/middleman-hashicorp:${VERSION}
+
+website-test:
+ifeq (,$(wildcard $(GOPATH)/src/$(WEBSITE_REPO)))
+	echo "$(WEBSITE_REPO) not found in your GOPATH (necessary for layouts and assets), get-ting..."
+	git clone https://$(WEBSITE_REPO) $(GOPATH)/src/$(WEBSITE_REPO)
+endif
+	$(eval WEBSITE_PATH := $(GOPATH)/src/$(WEBSITE_REPO))
+	@echo "==> Testing core website in Docker..."
+	-@docker stop "tf-website-core-temp"
+	@docker run \
+		--detach \
+		--rm \
+		--name "tf-website-core-temp" \
+		--publish "4567:4567" \
+		--volume "$(shell pwd)/website:/website" \
+		--volume "$(shell pwd):/ext/terraform" \
+		--volume "$(WEBSITE_PATH)/content:/terraform-website" \
+		--volume "$(WEBSITE_PATH)/content/source/assets:/website/docs/assets" \
+		--volume "$(WEBSITE_PATH)/content/source/layouts:/website/docs/layouts" \
+		--workdir /terraform-website \
+		hashicorp/middleman-hashicorp:${VERSION}
+	$(WEBSITE_PATH)/content/scripts/check-links.sh "http://127.0.0.1:4567" "/" "/docs/providers/*"
+	@docker stop "tf-website-core-temp"
+
 # disallow any parallelism (-j) for Make. This is necessary since some
 # commands during the build process create temporary files that collide
 # under parallel conditions.
 .NOTPARALLEL:
 
-.PHONY: bin cover default dev e2etest fmt fmtcheck generate plugin-dev quickdev test-compile test testacc testrace tools vendor-status
+.PHONY: bin cover default dev e2etest fmt fmtcheck generate plugin-dev quickdev test-compile test testacc testrace tools vendor-status website website-test
