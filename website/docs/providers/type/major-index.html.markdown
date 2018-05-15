@@ -19,6 +19,8 @@ tested by HashiCorp.
 ---
 
 
+[Akamai](/docs/providers/akamai/index.html)
+
 [AliCloud](/docs/providers/alicloud/index.html)
 
 [AWS](/docs/providers/aws/index.html)
