@@ -113,22 +113,25 @@ func (m *Meta) backendMigrateState(opts *backendMigrateOpts) error {
 
 // Multi-state to multi-state.
 func (m *Meta) backendMigrateState_S_S(opts *backendMigrateOpts) error {
-	// Ask the user if they want to migrate their existing remote state
-	migrate, err := m.confirm(&terraform.InputOpts{
-		Id: "backend-migrate-multistate-to-multistate",
-		Query: fmt.Sprintf(
-			"Do you want to migrate all workspaces to %q?",
-			opts.TwoType),
-		Description: fmt.Sprintf(
-			strings.TrimSpace(inputBackendMigrateMultiToMulti),
-			opts.OneType, opts.TwoType),
-	})
-	if err != nil {
-		return fmt.Errorf(
-			"Error asking for state migration action: %s", err)
-	}
+	migrate := opts.force
 	if !migrate {
-		return fmt.Errorf("Migration aborted by user.")
+		// Ask the user if they want to migrate their existing remote state
+		migrate, err := m.confirm(&terraform.InputOpts{
+			Id: "backend-migrate-multistate-to-multistate",
+			Query: fmt.Sprintf(
+				"Do you want to migrate all workspaces to %q?",
+				opts.TwoType),
+			Description: fmt.Sprintf(
+				strings.TrimSpace(inputBackendMigrateMultiToMulti),
+				opts.OneType, opts.TwoType),
+		})
+		if err != nil {
+			return fmt.Errorf(
+				"Error asking for state migration action: %s", err)
+		}
+		if !migrate {
+			return fmt.Errorf("Migration aborted by user.")
+		}
 	}
 
 	// Read all the states
