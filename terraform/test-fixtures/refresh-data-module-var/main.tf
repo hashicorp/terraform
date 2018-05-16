@@ -1,8 +1,8 @@
 resource "aws_instance" "A" {
-    foo = "bar"
+  foo = "bar"
 }
 
 module "child" {
-    source = "child"
-    key    = "${aws_instance.A.id}"
+  source = "./child"
+  key    = "${aws_instance.A.id}"
 }
