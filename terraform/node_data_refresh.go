@@ -161,6 +161,7 @@ func (n *NodeRefreshableDataResourceInstance) EvalTree() EvalNode {
 			&EvalGetProvider{
 				Addr:   n.ResolvedProvider,
 				Output: &provider,
+				Schema: &providerSchema,
 			},
 
 			&EvalReadDataDiff{
