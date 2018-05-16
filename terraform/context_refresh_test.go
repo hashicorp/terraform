@@ -8,7 +8,10 @@ import (
 	"sync"
 	"testing"
 
+	"github.com/zclconf/go-cty/cty"
+
 	"github.com/hashicorp/terraform/addrs"
+	"github.com/hashicorp/terraform/config/configschema"
 )
 
 func TestContext2Refresh(t *testing.T) {
@@ -82,6 +85,34 @@ func TestContext2Refresh_dataComputedModuleVar(t *testing.T) {
 		ID: "foo",
 	}
 
+	p.GetSchemaReturn = &ProviderSchema{
+		Provider: &configschema.Block{},
+		ResourceTypes: map[string]*configschema.Block{
+			"aws_instance": {
+				Attributes: map[string]*configschema.Attribute{
+					"foo": {
+						Type:     cty.String,
+						Optional: true,
+					},
+					"id": {
+						Type:     cty.String,
+						Computed: true,
+					},
+				},
+			},
+		},
+		DataSources: map[string]*configschema.Block{
+			"aws_data_source": {
+				Attributes: map[string]*configschema.Attribute{
+					"id": {
+						Type:     cty.String,
+						Optional: true,
+					},
+				},
+			},
+		},
+	}
+
 	s, err := ctx.Refresh()
 	if err != nil {
 		t.Fatalf("err: %s", err)
@@ -95,6 +126,40 @@ module.child:
 
 func TestContext2Refresh_targeted(t *testing.T) {
 	p := testProvider("aws")
+	p.GetSchemaReturn = &ProviderSchema{
+		Provider: &configschema.Block{},
+		ResourceTypes: map[string]*configschema.Block{
+			"aws_elb": {
+				Attributes: map[string]*configschema.Attribute{
+					"instances": {
+						Type:     cty.Set(cty.String),
+						Optional: true,
+					},
+				},
+			},
+			"aws_instance": {
+				Attributes: map[string]*configschema.Attribute{
+					"id": {
+						Type:     cty.String,
+						Computed: true,
+					},
+					"vpc_id": {
+						Type:     cty.String,
+						Optional: true,
+					},
+				},
+			},
+			"aws_vpc": {
+				Attributes: map[string]*configschema.Attribute{
+					"id": {
+						Type:     cty.String,
+						Computed: true,
+					},
+				},
+			},
+		},
+	}
+
 	m := testModule(t, "refresh-targeted")
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
@@ -142,6 +207,40 @@ func TestContext2Refresh_targeted(t *testing.T) {
 
 func TestContext2Refresh_targetedCount(t *testing.T) {
 	p := testProvider("aws")
+	p.GetSchemaReturn = &ProviderSchema{
+		Provider: &configschema.Block{},
+		ResourceTypes: map[string]*configschema.Block{
+			"aws_elb": {
+				Attributes: map[string]*configschema.Attribute{
+					"instances": {
+						Type:     cty.Set(cty.String),
+						Optional: true,
+					},
+				},
+			},
+			"aws_instance": {
+				Attributes: map[string]*configschema.Attribute{
+					"id": {
+						Type:     cty.String,
+						Computed: true,
+					},
+					"vpc_id": {
+						Type:     cty.String,
+						Optional: true,
+					},
+				},
+			},
+			"aws_vpc": {
+				Attributes: map[string]*configschema.Attribute{
+					"id": {
+						Type:     cty.String,
+						Computed: true,
+					},
+				},
+			},
+		},
+	}
+
 	m := testModule(t, "refresh-targeted-count")
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
@@ -199,6 +298,40 @@ func TestContext2Refresh_targetedCount(t *testing.T) {
 
 func TestContext2Refresh_targetedCountIndex(t *testing.T) {
 	p := testProvider("aws")
+	p.GetSchemaReturn = &ProviderSchema{
+		Provider: &configschema.Block{},
+		ResourceTypes: map[string]*configschema.Block{
+			"aws_elb": {
+				Attributes: map[string]*configschema.Attribute{
+					"instances": {
+						Type:     cty.Set(cty.String),
+						Optional: true,
+					},
+				},
+			},
+			"aws_instance": {
+				Attributes: map[string]*configschema.Attribute{
+					"id": {
+						Type:     cty.String,
+						Computed: true,
+					},
+					"vpc_id": {
+						Type:     cty.String,
+						Optional: true,
+					},
+				},
+			},
+			"aws_vpc": {
+				Attributes: map[string]*configschema.Attribute{
+					"id": {
+						Type:     cty.String,
+						Computed: true,
+					},
+				},
+			},
+		},
+	}
+
 	m := testModule(t, "refresh-targeted-count")
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
@@ -248,6 +381,24 @@ func TestContext2Refresh_targetedCountIndex(t *testing.T) {
 
 func TestContext2Refresh_moduleComputedVar(t *testing.T) {
 	p := testProvider("aws")
+	p.GetSchemaReturn = &ProviderSchema{
+		Provider: &configschema.Block{},
+		ResourceTypes: map[string]*configschema.Block{
+			"aws_instance": {
+				Attributes: map[string]*configschema.Attribute{
+					"id": {
+						Type:     cty.String,
+						Computed: true,
+					},
+					"value": {
+						Type:     cty.String,
+						Optional: true,
+					},
+				},
+			},
+		},
+	}
+
 	m := testModule(t, "refresh-module-computed-var")
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
@@ -439,6 +590,24 @@ func TestContext2Refresh_moduleInputComputedOutput(t *testing.T) {
 	m := testModule(t, "refresh-module-input-computed-output")
 	p := testProvider("aws")
 	p.DiffFn = testDiffFn
+	p.GetSchemaReturn = &ProviderSchema{
+		Provider: &configschema.Block{},
+		ResourceTypes: map[string]*configschema.Block{
+			"aws_instance": {
+				Attributes: map[string]*configschema.Attribute{
+					"foo": {
+						Type:     cty.String,
+						Optional: true,
+					},
+					"compute": {
+						Type:     cty.String,
+						Optional: true,
+					},
+				},
+			},
+		},
+	}
+
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
 		ProviderResolver: ResourceProviderResolverFixed(
@@ -496,6 +665,20 @@ func TestContext2Refresh_noState(t *testing.T) {
 
 func TestContext2Refresh_output(t *testing.T) {
 	p := testProvider("aws")
+	p.GetSchemaReturn = &ProviderSchema{
+		Provider: &configschema.Block{},
+		ResourceTypes: map[string]*configschema.Block{
+			"aws_instance": {
+				Attributes: map[string]*configschema.Attribute{
+					"foo": {
+						Type:     cty.String,
+						Computed: true,
+					},
+				},
+			},
+		},
+	}
+
 	m := testModule(t, "refresh-output")
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
@@ -578,6 +761,20 @@ func TestContext2Refresh_outputPartial(t *testing.T) {
 
 	p.RefreshFn = nil
 	p.RefreshReturn = nil
+
+	p.GetSchemaReturn = &ProviderSchema{
+		Provider: &configschema.Block{},
+		ResourceTypes: map[string]*configschema.Block{
+			"aws_instance": {
+				Attributes: map[string]*configschema.Attribute{
+					"foo": {
+						Type:     cty.String,
+						Computed: true,
+					},
+				},
+			},
+		},
+	}
 
 	s, err := ctx.Refresh()
 	if err != nil {
@@ -702,6 +899,20 @@ func TestContext2Refresh_dataState(t *testing.T) {
 		State: state,
 	})
 
+	p.GetSchemaReturn = &ProviderSchema{
+		Provider: &configschema.Block{},
+		DataSources: map[string]*configschema.Block{
+			"null_data_source": {
+				Attributes: map[string]*configschema.Attribute{
+					"inputs": {
+						Type:     cty.Map(cty.String),
+						Optional: true,
+					},
+				},
+			},
+		},
+	}
+
 	p.ReadDataDiffFn = nil
 	p.ReadDataDiffReturn = &InstanceDiff{
 		Attributes: map[string]*ResourceAttrDiff{
@@ -752,6 +963,24 @@ func TestContext2Refresh_dataState(t *testing.T) {
 
 func TestContext2Refresh_dataStateRefData(t *testing.T) {
 	p := testProvider("null")
+	p.GetSchemaReturn = &ProviderSchema{
+		Provider: &configschema.Block{},
+		DataSources: map[string]*configschema.Block{
+			"null_data_source": {
+				Attributes: map[string]*configschema.Attribute{
+					"foo": {
+						Type:     cty.String,
+						Optional: true,
+					},
+					"bar": {
+						Type:     cty.String,
+						Optional: true,
+					},
+				},
+			},
+		},
+	}
+
 	m := testModule(t, "refresh-data-ref-data")
 	state := &State{
 		Modules: []*ModuleState{
@@ -883,6 +1112,24 @@ func TestContext2Refresh_unknownProvider(t *testing.T) {
 
 func TestContext2Refresh_vars(t *testing.T) {
 	p := testProvider("aws")
+	p.GetSchemaReturn = &ProviderSchema{
+		Provider: &configschema.Block{},
+		ResourceTypes: map[string]*configschema.Block{
+			"aws_instance": {
+				Attributes: map[string]*configschema.Attribute{
+					"ami": {
+						Type:     cty.String,
+						Optional: true,
+					},
+					"id": {
+						Type:     cty.String,
+						Computed: true,
+					},
+				},
+			},
+		},
+	}
+
 	m := testModule(t, "refresh-vars")
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
@@ -951,6 +1198,12 @@ func TestContext2Refresh_orphanModule(t *testing.T) {
 
 		order = append(order, is.ID)
 		return is, nil
+	}
+	p.GetSchemaReturn = &ProviderSchema{
+		Provider: &configschema.Block{},
+		ResourceTypes: map[string]*configschema.Block{
+			"aws_instance": {},
+		},
 	}
 
 	state := &State{
@@ -1046,6 +1299,24 @@ func TestContext2Refresh_orphanModule(t *testing.T) {
 
 func TestContext2Validate(t *testing.T) {
 	p := testProvider("aws")
+	p.GetSchemaReturn = &ProviderSchema{
+		Provider: &configschema.Block{},
+		ResourceTypes: map[string]*configschema.Block{
+			"aws_instance": {
+				Attributes: map[string]*configschema.Attribute{
+					"foo": {
+						Type:     cty.String,
+						Optional: true,
+					},
+					"num": {
+						Type:     cty.String,
+						Optional: true,
+					},
+				},
+			},
+		},
+	}
+
 	m := testModule(t, "validate-good")
 	c := testContext2(t, &ContextOpts{
 		Config: m,
@@ -1072,6 +1343,12 @@ func TestContext2Refresh_noDiffHookOnScaleOut(t *testing.T) {
 	p := testProvider("aws")
 	m := testModule(t, "refresh-resource-scale-inout")
 	p.RefreshFn = nil
+	p.GetSchemaReturn = &ProviderSchema{
+		Provider: &configschema.Block{},
+		ResourceTypes: map[string]*configschema.Block{
+			"aws_instance": {},
+		},
+	}
 
 	state := &State{
 		Modules: []*ModuleState{
@@ -1125,9 +1402,14 @@ func TestContext2Refresh_noDiffHookOnScaleOut(t *testing.T) {
 func TestContext2Refresh_updateProviderInState(t *testing.T) {
 	m := testModule(t, "update-resource-provider")
 	p := testProvider("aws")
-
 	p.DiffFn = testDiffFn
 	p.ApplyFn = testApplyFn
+	p.GetSchemaReturn = &ProviderSchema{
+		Provider: &configschema.Block{},
+		ResourceTypes: map[string]*configschema.Block{
+			"aws_instance": {},
+		},
+	}
 
 	s := &State{
 		Modules: []*ModuleState{
@@ -1161,9 +1443,9 @@ aws_instance.bar:
   ID = foo
   provider = provider.aws.foo`)
 
-	state, err := ctx.Refresh()
-	if err != nil {
-		t.Fatal(err)
+	state, diags := ctx.Refresh()
+	if diags.HasErrors() {
+		t.Fatal(diags.Err())
 	}
 
 	actual := state.String()
