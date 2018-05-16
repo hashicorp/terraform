@@ -646,12 +646,15 @@ func interpolationFuncFormatList() ast.Function {
 
 				// Check length
 				if n == 0 {
+					if len(parts) == 0 {
+						return nil, fmt.Errorf("format: illegal empty list as argument %d", i)
+					}
 					// first list we've seen
 					n = len(parts)
 					continue
 				}
 				if n != len(parts) {
-					return nil, fmt.Errorf("format: mismatched list lengths: %d != %d", n, len(parts))
+					return nil, fmt.Errorf("format: mismatched list lengths: %d != %d as argument %d", n, len(parts), i)
 				}
 			}
 
