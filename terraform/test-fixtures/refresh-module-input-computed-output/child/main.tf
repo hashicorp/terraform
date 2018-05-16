@@ -1,4 +1,6 @@
-variable "input" {}
+variable "input" {
+    type = list(string)
+}
 
 resource "aws_instance" "foo" {
     foo = "${var.input}"
