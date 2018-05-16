@@ -137,7 +137,7 @@ func (n *EvalWriteOutput) Eval(ctx EvalContext) (interface{}, error) {
 			Sensitive: n.Sensitive,
 			Value:     valueTyped,
 		}
-	case !val.IsWhollyKnown():
+	case ty == cty.DynamicPseudoType || !val.IsWhollyKnown():
 		// While we're still using our existing state format, we can't represent
 		// partially-unknown values properly, so we'll just stub the whole
 		// thing out.
