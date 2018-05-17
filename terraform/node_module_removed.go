@@ -85,25 +85,13 @@ func (n *EvalDeleteModule) Eval(ctx EvalContext) (interface{}, error) {
 	state.prune()
 
 	// find the module and delete it
-Modules:
 	for i, m := range state.Modules {
 		// Since state is still using our old-style []string path representation,
 		// comparison is a little awkward. This can be simplified once state
 		// is updated to use addrs.ModuleInstance too.
-		if len(m.Path) != len(n.Addr) {
-			continue Modules
+		if normalizeModulePath(m.Path).String() != n.Addr.String() {
+			continue
 		}
-		for i, step := range n.Addr {
-			if step.InstanceKey != addrs.NoKey {
-				// Old-style state path can't have keys anyway, so this can
-				// never match.
-				continue Modules
-			}
-			if step.Name != m.Path[i] {
-				continue Modules
-			}
-		}
-
 		if !m.Empty() {
 			// a targeted apply may leave module resources even without a config,
 			// so just log this and return.
@@ -113,6 +101,5 @@ Modules:
 		state.Modules = append(state.Modules[:i], state.Modules[i+1:]...)
 		break
 	}
-
 	return nil, nil
 }
