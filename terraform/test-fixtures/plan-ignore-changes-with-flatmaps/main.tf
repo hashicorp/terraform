@@ -1,5 +1,4 @@
 resource "aws_instance" "foo" {
-  id = "bar"
   user_data = "x"
   require_new = "yes"
 

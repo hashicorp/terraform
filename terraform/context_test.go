@@ -6,7 +6,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hashicorp/terraform/config/configschema"
 	"github.com/hashicorp/terraform/configs"
+	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/go-version"
 	"github.com/hashicorp/terraform/flatmap"
@@ -156,9 +158,9 @@ func testContext2(t *testing.T, opts *ContextOpts) *Context {
 	// Enable the shadow graph
 	opts.Shadow = true
 
-	ctx, err := NewContext(opts)
-	if err != nil {
-		t.Fatalf("failed to create test context\n\n%s\n", err)
+	ctx, diags := NewContext(opts)
+	if diags.HasErrors() {
+		t.Fatalf("failed to create test context\n\n%s\n", diags.Err())
 	}
 
 	return ctx
@@ -357,11 +359,21 @@ func testProvider(prefix string) *MockResourceProvider {
 		},
 	}
 
+	p.GetSchemaReturn = testProviderSchema(prefix)
+
 	return p
 }
 
 func testProvisioner() *MockResourceProvisioner {
 	p := new(MockResourceProvisioner)
+	p.GetConfigSchemaReturnSchema = &configschema.Block{
+		Attributes: map[string]*configschema.Attribute{
+			"command": {
+				Type:     cty.String,
+				Optional: true,
+			},
+		},
+	}
 	return p
 }
 
@@ -376,6 +388,7 @@ func checkStateString(t *testing.T, state *State, expected string) {
 }
 
 func resourceState(resourceType, resourceID string) *ResourceState {
+	providerResource := strings.Split(resourceType, "_")
 	return &ResourceState{
 		Type: resourceType,
 		Primary: &InstanceState{
@@ -384,6 +397,7 @@ func resourceState(resourceType, resourceID string) *ResourceState {
 				"id": resourceID,
 			},
 		},
+		Provider: "provider." + providerResource[0],
 	}
 }
 
@@ -407,6 +421,198 @@ func testCheckDeadlock(t *testing.T, f func()) {
 	case <-done:
 		// ok
 	}
+}
+
+func testProviderSchema(name string) *ProviderSchema {
+	return &ProviderSchema{
+		Provider: &configschema.Block{
+			Attributes: map[string]*configschema.Attribute{
+				"region": {
+					Type:     cty.String,
+					Optional: true,
+				},
+				"foo": {
+					Type:     cty.String,
+					Optional: true,
+				},
+			},
+		},
+		ResourceTypes: map[string]*configschema.Block{
+			name + "_instance": {
+				Attributes: map[string]*configschema.Attribute{
+					"id": {
+						Type:     cty.String,
+						Computed: true,
+					},
+					"ami": {
+						Type:     cty.String,
+						Optional: true,
+					},
+					"dep": {
+						Type:     cty.String,
+						Optional: true,
+					},
+					"num": {
+						Type:     cty.Number,
+						Optional: true,
+					},
+					"require_new": {
+						Type:     cty.String,
+						Optional: true,
+					},
+					"var": {
+						Type:     cty.String,
+						Optional: true,
+					},
+					"foo": {
+						Type:     cty.String,
+						Optional: true,
+					},
+					"bar": {
+						Type:     cty.String,
+						Optional: true,
+					},
+					"compute": {
+						Type:     cty.String,
+						Optional: true,
+						Computed: true,
+					},
+					"compute_value": {
+						Type:     cty.String,
+						Optional: true,
+						Computed: true,
+					},
+					"value": {
+						Type:     cty.String,
+						Optional: true,
+					},
+					"output": {
+						Type:     cty.String,
+						Optional: true,
+					},
+					"write": {
+						Type:     cty.String,
+						Optional: true,
+					},
+					"instance": {
+						Type:     cty.String,
+						Optional: true,
+					},
+					"vpc_id": {
+						Type:     cty.String,
+						Optional: true,
+					},
+				},
+			},
+			name + "_eip": {
+				Attributes: map[string]*configschema.Attribute{
+					"id": {
+						Type:     cty.String,
+						Computed: true,
+					},
+					"instance": {
+						Type:     cty.String,
+						Optional: true,
+					},
+				},
+			},
+			name + "_resource": {
+				Attributes: map[string]*configschema.Attribute{
+					"id": {
+						Type:     cty.String,
+						Computed: true,
+					},
+					"value": {
+						Type:     cty.String,
+						Optional: true,
+					},
+					"random": {
+						Type:     cty.String,
+						Optional: true,
+					},
+				},
+			},
+			name + "_ami_list": {
+				Attributes: map[string]*configschema.Attribute{
+					"id": {
+						Type:     cty.String,
+						Optional: true,
+					},
+					"ids": {
+						Type:     cty.List(cty.String),
+						Optional: true,
+					},
+				},
+			},
+			name + "_remote_state": {
+				Attributes: map[string]*configschema.Attribute{
+					"id": {
+						Type:     cty.String,
+						Optional: true,
+					},
+					"foo": {
+						Type:     cty.String,
+						Optional: true,
+					},
+					"output": {
+						Type:     cty.String,
+						Optional: true,
+					},
+				},
+			},
+			name + "_file": {
+				Attributes: map[string]*configschema.Attribute{
+					"id": {
+						Type:     cty.String,
+						Optional: true,
+					},
+					"template": {
+						Type:     cty.String,
+						Optional: true,
+					},
+				},
+			},
+		},
+		DataSources: map[string]*configschema.Block{
+			name + "_data_source": {
+				Attributes: map[string]*configschema.Attribute{
+					"id": {
+						Type:     cty.String,
+						Optional: true,
+					},
+					"foo": {
+						Type:     cty.String,
+						Optional: true,
+					},
+				},
+			},
+			name + "_remote_state": {
+				Attributes: map[string]*configschema.Attribute{
+					"id": {
+						Type:     cty.String,
+						Optional: true,
+					},
+					"foo": {
+						Type:     cty.String,
+						Optional: true,
+					},
+				},
+			},
+			name + "_file": {
+				Attributes: map[string]*configschema.Attribute{
+					"id": {
+						Type:     cty.String,
+						Optional: true,
+					},
+					"template": {
+						Type:     cty.String,
+						Optional: true,
+					},
+				},
+			},
+		},
+	}
+
 }
 
 const testContextGraph = `
