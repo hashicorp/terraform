@@ -1,4 +1,3 @@
-
 resource "aws_instance" "web" {
     require_new = "ami-new"
     lifecycle {
