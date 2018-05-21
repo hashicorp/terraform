@@ -281,8 +281,8 @@ func (ctx *BuiltinEvalContext) Provisioner(n string) ResourceProvisioner {
 func (ctx *BuiltinEvalContext) ProvisionerSchema(n string) *configschema.Block {
 	ctx.once.Do(ctx.init)
 
-	ctx.ProviderLock.Lock()
-	defer ctx.ProviderLock.Unlock()
+	ctx.ProvisionerLock.Lock()
+	defer ctx.ProvisionerLock.Unlock()
 
 	return ctx.ProvisionerSchemas[n]
 }
