@@ -265,6 +265,12 @@ func testDiffFn(
 		}
 
 		for k, attrDiff := range testFlatAttrDiffs(k, v) {
+			// we need to ignore 'id' for now, since it's always inferred to be
+			// computed.
+			if k == "id" {
+				continue
+			}
+
 			if k == "require_new" {
 				attrDiff.RequiresNew = true
 			}
@@ -281,6 +287,9 @@ func testDiffFn(
 	}
 
 	for _, k := range c.ComputedKeys {
+		if k == "id" {
+			continue
+		}
 		diff.Attributes[k] = &ResourceAttrDiff{
 			Old:         "",
 			NewComputed: true,
