@@ -305,39 +305,42 @@ func (n *EvalApplyProvisioners) apply(ctx EvalContext, provs []*configs.Provisio
 		config, _, configDiags := ctx.EvaluateBlock(prov.Config, schema, instanceAddr, instanceAddr.Key)
 		diags = diags.Append(configDiags)
 
-		connInfo, _, connInfoDiags := ctx.EvaluateBlock(prov.Config, connectionBlockSupersetSchema, instanceAddr, instanceAddr.Key)
-		diags = diags.Append(connInfoDiags)
+		// A provisioner may not have a connection block
+		if prov.Connection != nil {
+			connInfo, _, connInfoDiags := ctx.EvaluateBlock(prov.Connection.Config, connectionBlockSupersetSchema, instanceAddr, instanceAddr.Key)
+			diags = diags.Append(connInfoDiags)
 
-		if configDiags.HasErrors() || connInfoDiags.HasErrors() {
-			continue
-		}
+			if configDiags.HasErrors() || connInfoDiags.HasErrors() {
+				continue
+			}
 
-		// Merge the connection information, and also lower everything to strings
-		// for compatibility with the communicator API.
-		overlay := make(map[string]string)
-		if origConnInfo != nil {
-			for k, v := range origConnInfo {
+			// Merge the connection information, and also lower everything to strings
+			// for compatibility with the communicator API.
+			overlay := make(map[string]string)
+			if origConnInfo != nil {
+				for k, v := range origConnInfo {
+					overlay[k] = v
+				}
+			}
+			for it := connInfo.ElementIterator(); it.Next(); {
+				kv, vv := it.Element()
+				var k, v string
+
+				err := gocty.FromCtyValue(kv, &k)
+				if err != nil {
+					// Should never happen, because connectionBlockSupersetSchema requires all primitives
+					panic(err)
+				}
+				err = gocty.FromCtyValue(vv, &v)
+				if err != nil {
+					// Should never happen, because connectionBlockSupersetSchema requires all primitives
+					panic(err)
+				}
+
 				overlay[k] = v
 			}
+			state.Ephemeral.ConnInfo = overlay
 		}
-		for it := connInfo.ElementIterator(); it.Next(); {
-			kv, vv := it.Element()
-			var k, v string
-
-			err := gocty.FromCtyValue(kv, &k)
-			if err != nil {
-				// Should never happen, because connectionBlockSupersetSchema requires all primitives
-				panic(err)
-			}
-			err = gocty.FromCtyValue(vv, &v)
-			if err != nil {
-				// Should never happen, because connectionBlockSupersetSchema requires all primitives
-				panic(err)
-			}
-
-			overlay[k] = v
-		}
-		state.Ephemeral.ConnInfo = overlay
 
 		{
 			// Call pre hook
