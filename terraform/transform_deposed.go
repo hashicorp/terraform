@@ -57,6 +57,7 @@ func (t *DeposedTransformer) Transform(g *Graph) error {
 				Addr:             addr,
 				Index:            i,
 				RecordedProvider: providerAddr,
+				ResolvedProvider: providerAddr,
 			})
 		}
 	}
