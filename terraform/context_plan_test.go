@@ -30,9 +30,9 @@ func TestContext2Plan_basic(t *testing.T) {
 		},
 	})
 
-	plan, err := ctx.Plan()
-	if err != nil {
-		t.Fatalf("err: %s", err)
+	plan, diags := ctx.Plan()
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors: %s", diags.Err())
 	}
 
 	if len(plan.Diff.RootModule().Resources) < 2 {
@@ -84,9 +84,9 @@ func TestContext2Plan_createBefore_deposed(t *testing.T) {
 		State: s,
 	})
 
-	plan, err := ctx.Plan()
-	if err != nil {
-		t.Fatalf("err: %s", err)
+	plan, diags := ctx.Plan()
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors: %s", diags.Err())
 	}
 
 	actual := strings.TrimSpace(plan.String())
@@ -125,9 +125,9 @@ func TestContext2Plan_createBefore_maintainRoot(t *testing.T) {
 		},
 	})
 
-	plan, err := ctx.Plan()
-	if err != nil {
-		t.Fatalf("err: %s", err)
+	plan, diags := ctx.Plan()
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors: %s", diags.Err())
 	}
 
 	actual := strings.TrimSpace(plan.String())
@@ -167,9 +167,9 @@ func TestContext2Plan_emptyDiff(t *testing.T) {
 		),
 	})
 
-	plan, err := ctx.Plan()
-	if err != nil {
-		t.Fatalf("err: %s", err)
+	plan, diags := ctx.Plan()
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors: %s", diags.Err())
 	}
 
 	actual := strings.TrimSpace(plan.String())
@@ -192,9 +192,9 @@ func TestContext2Plan_escapedVar(t *testing.T) {
 		),
 	})
 
-	plan, err := ctx.Plan()
-	if err != nil {
-		t.Fatalf("err: %s", err)
+	plan, diags := ctx.Plan()
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors: %s", diags.Err())
 	}
 
 	actual := strings.TrimSpace(plan.String())
@@ -217,9 +217,9 @@ func TestContext2Plan_minimal(t *testing.T) {
 		),
 	})
 
-	plan, err := ctx.Plan()
-	if err != nil {
-		t.Fatalf("err: %s", err)
+	plan, diags := ctx.Plan()
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors: %s", diags.Err())
 	}
 
 	actual := strings.TrimSpace(plan.String())
@@ -242,9 +242,9 @@ func TestContext2Plan_modules(t *testing.T) {
 		),
 	})
 
-	plan, err := ctx.Plan()
-	if err != nil {
-		t.Fatalf("err: %s", err)
+	plan, diags := ctx.Plan()
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors: %s", diags.Err())
 	}
 
 	actual := strings.TrimSpace(plan.String())
@@ -268,9 +268,9 @@ func TestContext2Plan_moduleCycle(t *testing.T) {
 		),
 	})
 
-	plan, err := ctx.Plan()
-	if err != nil {
-		t.Fatalf("err: %s", err)
+	plan, diags := ctx.Plan()
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors: %s", diags.Err())
 	}
 
 	actual := strings.TrimSpace(plan.String())
@@ -332,9 +332,9 @@ func TestContext2Plan_moduleInput(t *testing.T) {
 		),
 	})
 
-	plan, err := ctx.Plan()
-	if err != nil {
-		t.Fatalf("err: %s", err)
+	plan, diags := ctx.Plan()
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors: %s", diags.Err())
 	}
 
 	actual := strings.TrimSpace(plan.String())
@@ -357,9 +357,9 @@ func TestContext2Plan_moduleInputComputed(t *testing.T) {
 		),
 	})
 
-	plan, err := ctx.Plan()
-	if err != nil {
-		t.Fatalf("err: %s", err)
+	plan, diags := ctx.Plan()
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors: %s", diags.Err())
 	}
 
 	actual := strings.TrimSpace(plan.String())
@@ -388,9 +388,9 @@ func TestContext2Plan_moduleInputFromVar(t *testing.T) {
 		},
 	})
 
-	plan, err := ctx.Plan()
-	if err != nil {
-		t.Fatalf("err: %s", err)
+	plan, diags := ctx.Plan()
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors: %s", diags.Err())
 	}
 
 	actual := strings.TrimSpace(plan.String())
@@ -413,9 +413,9 @@ func TestContext2Plan_moduleMultiVar(t *testing.T) {
 		),
 	})
 
-	plan, err := ctx.Plan()
-	if err != nil {
-		t.Fatalf("err: %s", err)
+	plan, diags := ctx.Plan()
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors: %s", diags.Err())
 	}
 
 	actual := strings.TrimSpace(plan.String())
@@ -454,9 +454,9 @@ func TestContext2Plan_moduleOrphans(t *testing.T) {
 		State: s,
 	})
 
-	plan, err := ctx.Plan()
-	if err != nil {
-		t.Fatalf("err: %s", err)
+	plan, diags := ctx.Plan()
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors: %s", diags.Err())
 	}
 
 	actual := strings.TrimSpace(plan.String())
@@ -522,9 +522,9 @@ func TestContext2Plan_moduleOrphansWithProvisioner(t *testing.T) {
 		State: s,
 	})
 
-	plan, err := ctx.Plan()
-	if err != nil {
-		t.Fatalf("err: %s", err)
+	plan, diags := ctx.Plan()
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors: %s", diags.Err())
 	}
 
 	actual := strings.TrimSpace(plan.String())
@@ -721,9 +721,9 @@ func TestContext2Plan_moduleProviderVar(t *testing.T) {
 		),
 	})
 
-	plan, err := ctx.Plan()
-	if err != nil {
-		t.Fatalf("err: %s", err)
+	plan, diags := ctx.Plan()
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors: %s", diags.Err())
 	}
 
 	actual := strings.TrimSpace(plan.String())
@@ -746,9 +746,9 @@ func TestContext2Plan_moduleVar(t *testing.T) {
 		),
 	})
 
-	plan, err := ctx.Plan()
-	if err != nil {
-		t.Fatalf("err: %s", err)
+	plan, diags := ctx.Plan()
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors: %s", diags.Err())
 	}
 
 	actual := strings.TrimSpace(plan.String())
@@ -771,9 +771,9 @@ func TestContext2Plan_moduleVarWrongTypeBasic(t *testing.T) {
 		),
 	})
 
-	_, err := ctx.Plan()
-	if err == nil {
-		t.Fatalf("should error")
+	_, diags := ctx.Plan()
+	if !diags.HasErrors() {
+		t.Fatalf("succeeded; want errors")
 	}
 }
 
@@ -790,9 +790,9 @@ func TestContext2Plan_moduleVarWrongTypeNested(t *testing.T) {
 		),
 	})
 
-	_, err := ctx.Plan()
-	if err == nil {
-		t.Fatalf("should error")
+	_, diags := ctx.Plan()
+	if !diags.HasErrors() {
+		t.Fatalf("succeeded; want errors")
 	}
 }
 
@@ -809,9 +809,9 @@ func TestContext2Plan_moduleVarWithDefaultValue(t *testing.T) {
 		),
 	})
 
-	_, err := ctx.Plan()
-	if err != nil {
-		t.Fatalf("bad: %s", err)
+	_, diags := ctx.Plan()
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors: %s", diags.Err())
 	}
 }
 
@@ -828,9 +828,9 @@ func TestContext2Plan_moduleVarComputed(t *testing.T) {
 		),
 	})
 
-	plan, err := ctx.Plan()
-	if err != nil {
-		t.Fatalf("err: %s", err)
+	plan, diags := ctx.Plan()
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors: %s", diags.Err())
 	}
 
 	actual := strings.TrimSpace(plan.String())
@@ -868,10 +868,11 @@ func TestContext2Plan_nil(t *testing.T) {
 		},
 	})
 
-	plan, err := ctx.Plan()
-	if err != nil {
-		t.Fatalf("err: %s", err)
+	plan, diags := ctx.Plan()
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors: %s", diags.Err())
 	}
+
 	if len(plan.Diff.RootModule().Resources) != 0 {
 		t.Fatalf("bad: %#v", plan.Diff.RootModule().Resources)
 	}
@@ -942,10 +943,11 @@ func TestContext2Plan_preventDestroy_good(t *testing.T) {
 		},
 	})
 
-	plan, err := ctx.Plan()
-	if err != nil {
-		t.Fatalf("err: %s", err)
+	plan, diags := ctx.Plan()
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors: %s", diags.Err())
 	}
+
 	if !plan.Diff.Empty() {
 		t.Fatalf("Expected empty plan, got %s", plan.String())
 	}
@@ -1028,10 +1030,11 @@ func TestContext2Plan_preventDestroy_countGood(t *testing.T) {
 		},
 	})
 
-	plan, err := ctx.Plan()
-	if err != nil {
-		t.Fatalf("err: %s", err)
+	plan, diags := ctx.Plan()
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors: %s", diags.Err())
 	}
+
 	if plan.Diff.Empty() {
 		t.Fatalf("Expected non-empty plan, got %s", plan.String())
 	}
@@ -1069,10 +1072,11 @@ func TestContext2Plan_preventDestroy_countGoodNoChange(t *testing.T) {
 		},
 	})
 
-	plan, err := ctx.Plan()
-	if err != nil {
-		t.Fatalf("err: %s", err)
+	plan, diags := ctx.Plan()
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors: %s", diags.Err())
 	}
+
 	if !plan.Diff.Empty() {
 		t.Fatalf("Expected empty plan, got %s", plan.String())
 	}
@@ -1133,9 +1137,9 @@ func TestContext2Plan_provisionerCycle(t *testing.T) {
 		},
 	})
 
-	_, err := ctx.Plan()
-	if err == nil {
-		t.Fatalf("should error")
+	_, diags := ctx.Plan()
+	if !diags.HasErrors() {
+		t.Fatalf("succeeded; want errors")
 	}
 }
 
@@ -1152,9 +1156,9 @@ func TestContext2Plan_computed(t *testing.T) {
 		),
 	})
 
-	plan, err := ctx.Plan()
-	if err != nil {
-		t.Fatalf("err: %s", err)
+	plan, diags := ctx.Plan()
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors: %s", diags.Err())
 	}
 
 	actual := strings.TrimSpace(plan.String())
@@ -1177,9 +1181,9 @@ func TestContext2Plan_computedDataResource(t *testing.T) {
 		),
 	})
 
-	plan, err := ctx.Plan()
-	if err != nil {
-		t.Fatalf("err: %s", err)
+	plan, diags := ctx.Plan()
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors: %s", diags.Err())
 	}
 
 	if got := len(plan.Diff.Modules); got != 1 {
@@ -1226,9 +1230,9 @@ func TestContext2Plan_computedDataCountResource(t *testing.T) {
 		),
 	})
 
-	plan, err := ctx.Plan()
-	if err != nil {
-		t.Fatalf("err: %s", err)
+	plan, diags := ctx.Plan()
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors: %s", diags.Err())
 	}
 
 	if got := len(plan.Diff.Modules); got != 1 {
@@ -1259,9 +1263,9 @@ func TestContext2Plan_localValueCount(t *testing.T) {
 		),
 	})
 
-	plan, err := ctx.Plan()
-	if err != nil {
-		t.Fatalf("err: %s", err)
+	plan, diags := ctx.Plan()
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors: %s", diags.Err())
 	}
 
 	if got := len(plan.Diff.Modules); got != 1 {
@@ -1406,9 +1410,9 @@ func TestContext2Plan_dataResourceBecomesComputed(t *testing.T) {
 		},
 	})
 
-	plan, err := ctx.Plan()
-	if err != nil {
-		t.Fatalf("err: %s", err)
+	plan, diags := ctx.Plan()
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors: %s", diags.Err())
 	}
 
 	if got := len(plan.Diff.Modules); got != 1 {
@@ -1454,9 +1458,9 @@ func TestContext2Plan_computedList(t *testing.T) {
 		),
 	})
 
-	plan, err := ctx.Plan()
-	if err != nil {
-		t.Fatalf("err: %s", err)
+	plan, diags := ctx.Plan()
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors: %s", diags.Err())
 	}
 
 	actual := strings.TrimSpace(plan.String())
@@ -1481,9 +1485,9 @@ func TestContext2Plan_computedMultiIndex(t *testing.T) {
 		),
 	})
 
-	plan, err := ctx.Plan()
-	if err != nil {
-		t.Fatalf("err: %s", err)
+	plan, diags := ctx.Plan()
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors: %s", diags.Err())
 	}
 
 	actual := strings.TrimSpace(plan.String())
@@ -1506,9 +1510,9 @@ func TestContext2Plan_count(t *testing.T) {
 		),
 	})
 
-	plan, err := ctx.Plan()
-	if err != nil {
-		t.Fatalf("err: %s", err)
+	plan, diags := ctx.Plan()
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors: %s", diags.Err())
 	}
 
 	if len(plan.Diff.RootModule().Resources) < 6 {
@@ -1576,9 +1580,9 @@ func TestContext2Plan_countModuleStatic(t *testing.T) {
 		),
 	})
 
-	plan, err := ctx.Plan()
-	if err != nil {
-		t.Fatalf("err: %s", err)
+	plan, diags := ctx.Plan()
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors: %s", diags.Err())
 	}
 
 	actual := strings.TrimSpace(plan.String())
@@ -1612,9 +1616,9 @@ func TestContext2Plan_countModuleStaticGrandchild(t *testing.T) {
 		),
 	})
 
-	plan, err := ctx.Plan()
-	if err != nil {
-		t.Fatalf("err: %s", err)
+	plan, diags := ctx.Plan()
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors: %s", diags.Err())
 	}
 
 	actual := strings.TrimSpace(plan.String())
@@ -1648,9 +1652,9 @@ func TestContext2Plan_countIndex(t *testing.T) {
 		),
 	})
 
-	plan, err := ctx.Plan()
-	if err != nil {
-		t.Fatalf("err: %s", err)
+	plan, diags := ctx.Plan()
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors: %s", diags.Err())
 	}
 
 	actual := strings.TrimSpace(plan.String())
@@ -1673,9 +1677,9 @@ func TestContext2Plan_countIndexZero(t *testing.T) {
 		),
 	})
 
-	plan, err := ctx.Plan()
-	if err != nil {
-		t.Fatalf("err: %s", err)
+	plan, diags := ctx.Plan()
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors: %s", diags.Err())
 	}
 
 	actual := strings.TrimSpace(plan.String())
@@ -1704,9 +1708,9 @@ func TestContext2Plan_countVar(t *testing.T) {
 		},
 	})
 
-	plan, err := ctx.Plan()
-	if err != nil {
-		t.Fatalf("err: %s", err)
+	plan, diags := ctx.Plan()
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors: %s", diags.Err())
 	}
 
 	actual := strings.TrimSpace(plan.String())
@@ -1729,9 +1733,9 @@ func TestContext2Plan_countZero(t *testing.T) {
 		),
 	})
 
-	plan, err := ctx.Plan()
-	if err != nil {
-		t.Fatalf("err: %s", err)
+	plan, diags := ctx.Plan()
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors: %s", diags.Err())
 	}
 
 	actual := strings.TrimSpace(plan.String())
@@ -1755,9 +1759,9 @@ func TestContext2Plan_countOneIndex(t *testing.T) {
 		),
 	})
 
-	plan, err := ctx.Plan()
-	if err != nil {
-		t.Fatalf("err: %s", err)
+	plan, diags := ctx.Plan()
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors: %s", diags.Err())
 	}
 
 	actual := strings.TrimSpace(plan.String())
@@ -1812,9 +1816,9 @@ func TestContext2Plan_countDecreaseToOne(t *testing.T) {
 		State: s,
 	})
 
-	plan, err := ctx.Plan()
-	if err != nil {
-		t.Fatalf("err: %s", err)
+	plan, diags := ctx.Plan()
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors: %s", diags.Err())
 	}
 
 	actual := strings.TrimSpace(plan.String())
@@ -1857,9 +1861,9 @@ func TestContext2Plan_countIncreaseFromNotSet(t *testing.T) {
 		State: s,
 	})
 
-	plan, err := ctx.Plan()
-	if err != nil {
-		t.Fatalf("err: %s", err)
+	plan, diags := ctx.Plan()
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors: %s", diags.Err())
 	}
 
 	actual := strings.TrimSpace(plan.String())
@@ -1902,9 +1906,9 @@ func TestContext2Plan_countIncreaseFromOne(t *testing.T) {
 		State: s,
 	})
 
-	plan, err := ctx.Plan()
-	if err != nil {
-		t.Fatalf("err: %s", err)
+	plan, diags := ctx.Plan()
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors: %s", diags.Err())
 	}
 
 	actual := strings.TrimSpace(plan.String())
@@ -1962,9 +1966,9 @@ func TestContext2Plan_countIncreaseFromOneCorrupted(t *testing.T) {
 		State: s,
 	})
 
-	plan, err := ctx.Plan()
-	if err != nil {
-		t.Fatalf("err: %s", err)
+	plan, diags := ctx.Plan()
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors: %s", diags.Err())
 	}
 
 	actual := strings.TrimSpace(plan.String())
@@ -2041,9 +2045,9 @@ func TestContext2Plan_countIncreaseWithSplatReference(t *testing.T) {
 		State: s,
 	})
 
-	plan, err := ctx.Plan()
-	if err != nil {
-		t.Fatalf("err: %s", err)
+	plan, diags := ctx.Plan()
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors: %s", diags.Err())
 	}
 
 	actual := strings.TrimSpace(plan.String())
@@ -2113,9 +2117,9 @@ func TestContext2Plan_destroy(t *testing.T) {
 		Destroy: true,
 	})
 
-	plan, err := ctx.Plan()
-	if err != nil {
-		t.Fatalf("err: %s", err)
+	plan, diags := ctx.Plan()
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors: %s", diags.Err())
 	}
 
 	if len(plan.Diff.RootModule().Resources) != 2 {
@@ -2170,9 +2174,9 @@ func TestContext2Plan_moduleDestroy(t *testing.T) {
 		Destroy: true,
 	})
 
-	plan, err := ctx.Plan()
-	if err != nil {
-		t.Fatalf("err: %s", err)
+	plan, diags := ctx.Plan()
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors: %s", diags.Err())
 	}
 
 	actual := strings.TrimSpace(plan.String())
@@ -2224,9 +2228,9 @@ func TestContext2Plan_moduleDestroyCycle(t *testing.T) {
 		Destroy: true,
 	})
 
-	plan, err := ctx.Plan()
-	if err != nil {
-		t.Fatalf("err: %s", err)
+	plan, diags := ctx.Plan()
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors: %s", diags.Err())
 	}
 
 	actual := strings.TrimSpace(plan.String())
@@ -2276,9 +2280,9 @@ func TestContext2Plan_moduleDestroyMultivar(t *testing.T) {
 		Destroy: true,
 	})
 
-	plan, err := ctx.Plan()
-	if err != nil {
-		t.Fatalf("err: %s", err)
+	plan, diags := ctx.Plan()
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors: %s", diags.Err())
 	}
 
 	actual := strings.TrimSpace(plan.String())
@@ -2377,9 +2381,9 @@ func TestContext2Plan_diffVar(t *testing.T) {
 		}, nil
 	}
 
-	plan, err := ctx.Plan()
-	if err != nil {
-		t.Fatalf("err: %s", err)
+	plan, diags := ctx.Plan()
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors: %s", diags.Err())
 	}
 
 	actual := strings.TrimSpace(plan.String())
@@ -2404,9 +2408,9 @@ func TestContext2Plan_hook(t *testing.T) {
 		),
 	})
 
-	_, err := ctx.Plan()
-	if err != nil {
-		t.Fatalf("err: %s", err)
+	_, diags := ctx.Plan()
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors: %s", diags.Err())
 	}
 
 	if !h.PreDiffCalled {
@@ -2433,9 +2437,9 @@ func TestContext2Plan_closeProvider(t *testing.T) {
 		),
 	})
 
-	_, err := ctx.Plan()
-	if err != nil {
-		t.Fatalf("err: %s", err)
+	_, diags := ctx.Plan()
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors: %s", diags.Err())
 	}
 
 	if !p.CloseCalled {
@@ -2472,9 +2476,9 @@ func TestContext2Plan_orphan(t *testing.T) {
 		State: s,
 	})
 
-	plan, err := ctx.Plan()
-	if err != nil {
-		t.Fatalf("err: %s", err)
+	plan, diags := ctx.Plan()
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors: %s", diags.Err())
 	}
 
 	actual := strings.TrimSpace(plan.String())
@@ -2499,9 +2503,9 @@ func TestContext2Plan_shadowUuid(t *testing.T) {
 		),
 	})
 
-	_, err := ctx.Plan()
-	if err != nil {
-		t.Fatalf("err: %s", err)
+	_, diags := ctx.Plan()
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors: %s", diags.Err())
 	}
 }
 
@@ -2534,9 +2538,9 @@ func TestContext2Plan_state(t *testing.T) {
 		State: s,
 	})
 
-	plan, err := ctx.Plan()
-	if err != nil {
-		t.Fatalf("err: %s", err)
+	plan, diags := ctx.Plan()
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors: %s", diags.Err())
 	}
 
 	if len(plan.Diff.RootModule().Resources) < 2 {
@@ -2587,9 +2591,9 @@ func TestContext2Plan_taint(t *testing.T) {
 		State: s,
 	})
 
-	plan, err := ctx.Plan()
-	if err != nil {
-		t.Fatalf("err: %s", err)
+	plan, diags := ctx.Plan()
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors: %s", diags.Err())
 	}
 
 	actual := strings.TrimSpace(plan.String())
@@ -2634,9 +2638,9 @@ func TestContext2Apply_taintIgnoreChanges(t *testing.T) {
 		State: s,
 	})
 
-	plan, err := ctx.Plan()
-	if err != nil {
-		t.Fatalf("err: %s", err)
+	plan, diags := ctx.Plan()
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors: %s", diags.Err())
 	}
 
 	actual := strings.TrimSpace(plan.String())
@@ -2686,9 +2690,9 @@ func TestContext2Plan_taintDestroyInterpolatedCountRace(t *testing.T) {
 	})
 
 	for i := 0; i < 100; i++ {
-		plan, err := ctx.Plan()
-		if err != nil {
-			t.Fatalf("err: %s", err)
+		plan, diags := ctx.Plan()
+		if diags.HasErrors() {
+			t.Fatalf("unexpected errors: %s", diags.Err())
 		}
 
 		actual := strings.TrimSpace(plan.String())
@@ -2731,9 +2735,9 @@ func TestContext2Plan_targeted(t *testing.T) {
 		},
 	})
 
-	plan, err := ctx.Plan()
-	if err != nil {
-		t.Fatalf("err: %s", err)
+	plan, diags := ctx.Plan()
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors: %s", diags.Err())
 	}
 
 	actual := strings.TrimSpace(plan.String())
@@ -2791,9 +2795,9 @@ func TestContext2Plan_targetedCrossModule(t *testing.T) {
 		},
 	})
 
-	plan, err := ctx.Plan()
-	if err != nil {
-		t.Fatalf("err: %s", err)
+	plan, diags := ctx.Plan()
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors: %s", diags.Err())
 	}
 
 	actual := strings.TrimSpace(plan.String())
@@ -2834,9 +2838,9 @@ func TestContext2Plan_targetedModuleWithProvider(t *testing.T) {
 		},
 	})
 
-	plan, err := ctx.Plan()
-	if err != nil {
-		t.Fatalf("err: %s", err)
+	plan, diags := ctx.Plan()
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors: %s", diags.Err())
 	}
 
 	actual := strings.TrimSpace(plan.String())
@@ -2895,9 +2899,9 @@ func TestContext2Plan_targetedOrphan(t *testing.T) {
 		},
 	})
 
-	plan, err := ctx.Plan()
-	if err != nil {
-		t.Fatalf("err: %s", err)
+	plan, diags := ctx.Plan()
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors: %s", diags.Err())
 	}
 
 	actual := strings.TrimSpace(plan.String())
@@ -2958,9 +2962,9 @@ func TestContext2Plan_targetedModuleOrphan(t *testing.T) {
 		},
 	})
 
-	plan, err := ctx.Plan()
-	if err != nil {
-		t.Fatalf("err: %s", err)
+	plan, diags := ctx.Plan()
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors: %s", diags.Err())
 	}
 
 	actual := strings.TrimSpace(plan.String())
@@ -3001,9 +3005,9 @@ func TestContext2Plan_targetedModuleUntargetedVariable(t *testing.T) {
 		},
 	})
 
-	plan, err := ctx.Plan()
-	if err != nil {
-		t.Fatalf("err: %s", err)
+	plan, diags := ctx.Plan()
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors: %s", diags.Err())
 	}
 
 	actual := strings.TrimSpace(plan.String())
@@ -3092,9 +3096,9 @@ func TestContext2Plan_targetedOverTen(t *testing.T) {
 		},
 	})
 
-	plan, err := ctx.Plan()
-	if err != nil {
-		t.Fatalf("err: %s", err)
+	plan, diags := ctx.Plan()
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors: %s", diags.Err())
 	}
 
 	actual := strings.TrimSpace(plan.String())
@@ -3228,9 +3232,9 @@ func TestContext2Plan_ignoreChanges(t *testing.T) {
 		State: s,
 	})
 
-	plan, err := ctx.Plan()
-	if err != nil {
-		t.Fatalf("err: %s", err)
+	plan, diags := ctx.Plan()
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors: %s", diags.Err())
 	}
 
 	if len(plan.Diff.RootModule().Resources) < 1 {
@@ -3287,9 +3291,9 @@ func TestContext2Plan_ignoreChangesWildcard(t *testing.T) {
 		State: s,
 	})
 
-	plan, err := ctx.Plan()
-	if err != nil {
-		t.Fatalf("err: %s", err)
+	plan, diags := ctx.Plan()
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors: %s", diags.Err())
 	}
 
 	if len(plan.Diff.RootModule().Resources) > 0 {
@@ -3339,8 +3343,9 @@ func TestContext2Plan_moduleMapLiteral(t *testing.T) {
 		),
 	})
 
-	if _, err := ctx.Plan(); err != nil {
-		t.Fatalf("err: %s", err)
+	_, diags := ctx.Plan()
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors: %s", diags.Err())
 	}
 }
 
@@ -3370,13 +3375,17 @@ func TestContext2Plan_computedValueInMap(t *testing.T) {
 		),
 	})
 
-	if _, err := ctx.Plan(); err != nil {
-		t.Fatalf("err: %s", err)
+	plan, diags := ctx.Plan()
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors: %s", diags.Err())
 	}
 
-	plan, err := ctx.Plan()
-	if err != nil {
-		t.Fatalf("err: %s", err)
+	// (not sure why this is repeated here; I updated some earlier code that
+	// called ctx.Plan twice here, so retaining that in case it's somehow
+	// important.)
+	plan, diags = ctx.Plan()
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors: %s", diags.Err())
 	}
 
 	actual := strings.TrimSpace(plan.String())
@@ -3399,13 +3408,17 @@ func TestContext2Plan_moduleVariableFromSplat(t *testing.T) {
 		),
 	})
 
-	if _, err := ctx.Plan(); err != nil {
-		t.Fatalf("err: %s", err)
+	plan, diags := ctx.Plan()
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors: %s", diags.Err())
 	}
 
-	plan, err := ctx.Plan()
-	if err != nil {
-		t.Fatalf("err: %s", err)
+	// (not sure why this is repeated here; I updated some earlier code that
+	// called ctx.Plan twice here, so retaining that in case it's somehow
+	// important.)
+	plan, diags = ctx.Plan()
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors: %s", diags.Err())
 	}
 
 	actual := strings.TrimSpace(plan.String())
@@ -3428,9 +3441,9 @@ func TestContext2Plan_createBeforeDestroy_depends_datasource(t *testing.T) {
 		),
 	})
 
-	plan, err := ctx.Plan()
-	if err != nil {
-		t.Fatalf("err: %s", err)
+	plan, diags := ctx.Plan()
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors: %s", diags.Err())
 	}
 
 	if got := len(plan.Diff.Modules); got != 1 {
@@ -3468,9 +3481,9 @@ func TestContext2Plan_listOrder(t *testing.T) {
 		),
 	})
 
-	plan, err := ctx.Plan()
-	if err != nil {
-		t.Fatalf("err: %s", err)
+	plan, diags := ctx.Plan()
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors: %s", diags.Err())
 	}
 
 	rDiffs := plan.Diff.Modules[0].Resources
@@ -3523,9 +3536,9 @@ func TestContext2Plan_ignoreChangesWithFlatmaps(t *testing.T) {
 		State: s,
 	})
 
-	plan, err := ctx.Plan()
-	if err != nil {
-		t.Fatalf("err: %s", err)
+	plan, diags := ctx.Plan()
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors: %s", diags.Err())
 	}
 
 	actual := strings.TrimSpace(plan.Diff.String())
@@ -3553,7 +3566,8 @@ func TestContext2Plan_resourceNestedCount(t *testing.T) {
 				Path: rootModulePath,
 				Resources: map[string]*ResourceState{
 					"aws_instance.foo.0": &ResourceState{
-						Type: "aws_instance",
+						Type:     "aws_instance",
+						Provider: "provider.aws",
 						Primary: &InstanceState{
 							ID: "foo0",
 							Attributes: map[string]string{
@@ -3562,7 +3576,8 @@ func TestContext2Plan_resourceNestedCount(t *testing.T) {
 						},
 					},
 					"aws_instance.foo.1": &ResourceState{
-						Type: "aws_instance",
+						Type:     "aws_instance",
+						Provider: "provider.aws",
 						Primary: &InstanceState{
 							ID: "foo1",
 							Attributes: map[string]string{
@@ -3572,6 +3587,7 @@ func TestContext2Plan_resourceNestedCount(t *testing.T) {
 					},
 					"aws_instance.bar.0": &ResourceState{
 						Type:         "aws_instance",
+						Provider:     "provider.aws",
 						Dependencies: []string{"aws_instance.foo.*"},
 						Primary: &InstanceState{
 							ID: "bar0",
@@ -3582,6 +3598,7 @@ func TestContext2Plan_resourceNestedCount(t *testing.T) {
 					},
 					"aws_instance.bar.1": &ResourceState{
 						Type:         "aws_instance",
+						Provider:     "provider.aws",
 						Dependencies: []string{"aws_instance.foo.*"},
 						Primary: &InstanceState{
 							ID: "bar1",
@@ -3592,6 +3609,7 @@ func TestContext2Plan_resourceNestedCount(t *testing.T) {
 					},
 					"aws_instance.baz.0": &ResourceState{
 						Type:         "aws_instance",
+						Provider:     "provider.aws",
 						Dependencies: []string{"aws_instance.bar.*"},
 						Primary: &InstanceState{
 							ID: "baz0",
@@ -3602,6 +3620,7 @@ func TestContext2Plan_resourceNestedCount(t *testing.T) {
 					},
 					"aws_instance.baz.1": &ResourceState{
 						Type:         "aws_instance",
+						Provider:     "provider.aws",
 						Dependencies: []string{"aws_instance.bar.*"},
 						Primary: &InstanceState{
 							ID: "baz1",
@@ -3625,18 +3644,18 @@ func TestContext2Plan_resourceNestedCount(t *testing.T) {
 	})
 
 	diags := ctx.Validate()
-	if len(diags) != 0 {
-		t.Fatalf("bad: %#v", diags)
+	if diags.HasErrors() {
+		t.Fatalf("validate errors: %s", diags.Err())
 	}
 
-	_, err := ctx.Refresh()
-	if err != nil {
-		t.Fatalf("refresh err: %s", err)
+	_, diags = ctx.Refresh()
+	if diags.HasErrors() {
+		t.Fatalf("refresh errors: %s", diags.Err())
 	}
 
-	plan, err := ctx.Plan()
-	if err != nil {
-		t.Fatalf("plan err: %s", err)
+	plan, diags := ctx.Plan()
+	if diags.HasErrors() {
+		t.Fatalf("plan errors: %s", diags.Err())
 	}
 
 	actual := strings.TrimSpace(plan.String())
@@ -3705,18 +3724,18 @@ output "out" {
 
 	// if this ever fails to pass validate, add a resource to reference in the config
 	diags := ctx.Validate()
-	if len(diags) != 0 {
-		t.Fatalf("bad: %#v", diags)
+	if diags.HasErrors() {
+		t.Fatalf("validate errors: %s", diags.Err())
 	}
 
-	_, err := ctx.Refresh()
-	if err != nil {
-		t.Fatalf("refresh err: %s", err)
+	_, diags = ctx.Refresh()
+	if diags.HasErrors() {
+		t.Fatalf("refresh errors: %s", diags.Err())
 	}
 
-	_, err = ctx.Plan()
-	if err == nil {
-		t.Fatal("expected error")
+	_, diags = ctx.Plan()
+	if !diags.HasErrors() {
+		t.Fatal("succeeded; want errors")
 	}
 }
 
@@ -3750,17 +3769,17 @@ resource "aws_instance" "foo" {
 
 	// if this ever fails to pass validate, add a resource to reference in the config
 	diags := ctx.Validate()
-	if len(diags) != 0 {
-		t.Fatalf("bad: %#v", diags)
+	if diags.HasErrors() {
+		t.Fatalf("validate errors: %s", diags.Err())
 	}
 
-	_, err := ctx.Refresh()
-	if err != nil {
-		t.Fatalf("refresh err: %s", err)
+	_, diags = ctx.Refresh()
+	if diags.HasErrors() {
+		t.Fatalf("refresh errors: %s", diags.Err())
 	}
 
-	_, err = ctx.Plan()
-	if err == nil {
-		t.Fatal("expected error")
+	_, diags = ctx.Plan()
+	if !diags.HasErrors() {
+		t.Fatal("succeeded; want errors")
 	}
 }
