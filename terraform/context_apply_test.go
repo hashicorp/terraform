@@ -5434,7 +5434,7 @@ func TestContext2Apply_provisionerResourceRef(t *testing.T) {
 
 	pr := testProvisioner()
 	pr.ApplyFn = func(rs *InstanceState, c *ResourceConfig) error {
-		val, ok := c.Config["foo"]
+		val, ok := c.Config["command"]
 		if !ok || val != "2" {
 			t.Fatalf("bad value for foo: %v %#v", val, c)
 		}
@@ -8979,7 +8979,7 @@ func TestContext2Apply_ignoreChangesWithDep(t *testing.T) {
 						},
 					},
 					"aws_eip.foo.0": &ResourceState{
-						Type: "aws_instance",
+						Type: "aws_eip",
 						Primary: &InstanceState{
 							ID: "eip-abc123",
 							Attributes: map[string]string{
@@ -8989,7 +8989,7 @@ func TestContext2Apply_ignoreChangesWithDep(t *testing.T) {
 						},
 					},
 					"aws_eip.foo.1": &ResourceState{
-						Type: "aws_instance",
+						Type: "aws_eip",
 						Primary: &InstanceState{
 							ID: "eip-bcd234",
 							Attributes: map[string]string{
@@ -9012,10 +9012,8 @@ func TestContext2Apply_ignoreChangesWithDep(t *testing.T) {
 		State: s,
 	})
 
-	if p, diags := ctx.Plan(); diags.HasErrors() {
+	if _, diags := ctx.Plan(); diags.HasErrors() {
 		t.Fatalf("diags: %s", diags.Err())
-	} else {
-		t.Logf(p.String())
 	}
 
 	state, diags := ctx.Apply()
@@ -9026,7 +9024,7 @@ func TestContext2Apply_ignoreChangesWithDep(t *testing.T) {
 	actual := strings.TrimSpace(state.String())
 	expected := strings.TrimSpace(s.String())
 	if actual != expected {
-		t.Fatalf("bad: \n%s", actual)
+		t.Fatalf("expected:\n%s\n\ngot:\n%s", expected, actual)
 	}
 }
 
