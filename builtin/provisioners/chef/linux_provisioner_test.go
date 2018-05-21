@@ -167,6 +167,69 @@ func TestResourceProvider_linuxInstallChefClient(t *testing.T) {
 	}
 }
 
+func TestResourceProvider_linuxInstallChefVault(t *testing.T) {
+	cases := map[string]struct {
+		Config   map[string]interface{}
+		Commands map[string]bool
+	}{
+		"HTTPProxy": {
+			Config: map[string]interface{}{
+				"http_proxy":   "http://proxy.local",
+				"prevent_sudo": true,
+			},
+
+			Commands: map[string]bool{
+				"http_proxy='http://proxy.local' /opt/chef/embedded/bin/gem install chef-vault": true,
+			},
+		},
+
+		"HTTPSProxy": {
+			Config: map[string]interface{}{
+				"https_proxy":  "https://proxy.local",
+				"prevent_sudo": true,
+			},
+
+			Commands: map[string]bool{
+				"https_proxy='https://proxy.local' /opt/chef/embedded/bin/gem install chef-vault": true,
+			},
+		},
+
+		"NoProxy": {
+			Config: map[string]interface{}{
+				"http_proxy":   "http://proxy.local",
+				"no_proxy":     []interface{}{"http://local.local", "http://local.org"},
+				"prevent_sudo": true,
+			},
+
+			Commands: map[string]bool{
+				"http_proxy='http://proxy.local' no_proxy='http://local.local,http://local.org' " +
+					"/opt/chef/embedded/bin/gem install chef-vault": true,
+			},
+		},
+	}
+
+	o := new(terraform.MockUIOutput)
+	c := new(communicator.MockCommunicator)
+
+	for k, tc := range cases {
+		c.Commands = tc.Commands
+
+		p, err := decodeConfig(
+			schema.TestResourceDataRaw(t, Provisioner().(*schema.Provisioner).Schema, tc.Config),
+		)
+		if err != nil {
+			t.Fatalf("Error: %v", err)
+		}
+
+		p.useSudo = !p.PreventSudo
+
+		err = p.linuxInstallChefVault(o, c)
+		if err != nil {
+			t.Fatalf("Test %q failed: %v", k, err)
+		}
+	}
+}
+
 func TestResourceProvider_linuxCreateConfigFiles(t *testing.T) {
 	cases := map[string]struct {
 		Config   map[string]interface{}

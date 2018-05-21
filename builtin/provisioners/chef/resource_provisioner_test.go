@@ -247,7 +247,6 @@ func TestResourceProvider_fetchChefCertificates(t *testing.T) {
 func TestResourceProvider_configureVaults(t *testing.T) {
 	cases := map[string]struct {
 		Config   map[string]interface{}
-		GemCmd   string
 		KnifeCmd string
 		ConfDir  string
 		Commands map[string]bool
@@ -263,12 +262,10 @@ func TestResourceProvider_configureVaults(t *testing.T) {
 				"vault_json":   `{"vault1": "item1"}`,
 			},
 
-			GemCmd:   linuxGemCmd,
 			KnifeCmd: linuxKnifeCmd,
 			ConfDir:  linuxConfDir,
 
 			Commands: map[string]bool{
-				fmt.Sprintf("%s install chef-vault", linuxGemCmd): true,
 				fmt.Sprintf("%s vault update vault1 item1 -C nodename1 -M client -c %s/client.rb "+
 					"-u bob --key %s/bob.pem", linuxKnifeCmd, linuxConfDir, linuxConfDir): true,
 			},
@@ -286,12 +283,10 @@ func TestResourceProvider_configureVaults(t *testing.T) {
 				"vault_json":              `{"vault1": ["item1", "item2"]}`,
 			},
 
-			GemCmd:   linuxGemCmd,
 			KnifeCmd: linuxKnifeCmd,
 			ConfDir:  linuxConfDir,
 
 			Commands: map[string]bool{
-				fmt.Sprintf("%s install chef-vault", linuxGemCmd): true,
 				fmt.Sprintf("%s vault update vault1 item1 -C nodename1 -M client -c %s/client.rb "+
 					"-u bob --key %s/bob.pem", linuxKnifeCmd, linuxConfDir, linuxConfDir): true,
 				fmt.Sprintf("%s vault update vault1 item2 -C nodename1 -M client -c %s/client.rb "+
@@ -312,12 +307,10 @@ func TestResourceProvider_configureVaults(t *testing.T) {
 				"recreate_client":         true,
 			},
 
-			GemCmd:   linuxGemCmd,
 			KnifeCmd: linuxKnifeCmd,
 			ConfDir:  linuxConfDir,
 
 			Commands: map[string]bool{
-				fmt.Sprintf("%s install chef-vault", linuxGemCmd): true,
 				fmt.Sprintf("%s vault remove vault1 item1 -C \"nodename1\" -M client -c %s/client.rb "+
 					"-u bob --key %s/bob.pem", linuxKnifeCmd, linuxConfDir, linuxConfDir): true,
 				fmt.Sprintf("%s vault remove vault1 item2 -C \"nodename1\" -M client -c %s/client.rb "+
@@ -340,12 +333,10 @@ func TestResourceProvider_configureVaults(t *testing.T) {
 				"vault_json":   `{"vault1": "item1"}`,
 			},
 
-			GemCmd:   windowsGemCmd,
 			KnifeCmd: windowsKnifeCmd,
 			ConfDir:  windowsConfDir,
 
 			Commands: map[string]bool{
-				fmt.Sprintf("%s install chef-vault", windowsGemCmd): true,
 				fmt.Sprintf("%s vault update vault1 item1 -C nodename1 -M client -c %s/client.rb "+
 					"-u bob --key %s/bob.pem", windowsKnifeCmd, windowsConfDir, windowsConfDir): true,
 			},
@@ -363,12 +354,10 @@ func TestResourceProvider_configureVaults(t *testing.T) {
 				"vault_json":              `{"vault1": ["item1", "item2"]}`,
 			},
 
-			GemCmd:   windowsGemCmd,
 			KnifeCmd: windowsKnifeCmd,
 			ConfDir:  windowsConfDir,
 
 			Commands: map[string]bool{
-				fmt.Sprintf("%s install chef-vault", windowsGemCmd): true,
 				fmt.Sprintf("%s vault update vault1 item1 -C nodename1 -M client -c %s/client.rb "+
 					"-u bob --key %s/bob.pem", windowsKnifeCmd, windowsConfDir, windowsConfDir): true,
 				fmt.Sprintf("%s vault update vault1 item2 -C nodename1 -M client -c %s/client.rb "+
@@ -389,12 +378,10 @@ func TestResourceProvider_configureVaults(t *testing.T) {
 				"recreate_client":         true,
 			},
 
-			GemCmd:   windowsGemCmd,
 			KnifeCmd: windowsKnifeCmd,
 			ConfDir:  windowsConfDir,
 
 			Commands: map[string]bool{
-				fmt.Sprintf("%s install chef-vault", windowsGemCmd): true,
 				fmt.Sprintf("%s vault remove vault1 item1 -C \"nodename1\" -M client -c %s/client.rb "+
 					"-u bob --key %s/bob.pem", windowsKnifeCmd, windowsConfDir, windowsConfDir): true,
 				fmt.Sprintf("%s vault remove vault1 item2 -C \"nodename1\" -M client -c %s/client.rb "+
@@ -420,7 +407,7 @@ func TestResourceProvider_configureVaults(t *testing.T) {
 			t.Fatalf("Error: %v", err)
 		}
 
-		p.configureVaults = p.configureVaultsFunc(tc.GemCmd, tc.KnifeCmd, tc.ConfDir)
+		p.configureVaults = p.configureVaultsFunc(tc.KnifeCmd, tc.ConfDir)
 		p.useSudo = !p.PreventSudo
 
 		err = p.configureVaults(o, c)

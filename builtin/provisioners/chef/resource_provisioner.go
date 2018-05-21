@@ -32,13 +32,11 @@ const (
 	linuxChefCmd    = "chef-client"
 	linuxConfDir    = "/etc/chef"
 	linuxNoOutput   = "> /dev/null 2>&1"
-	linuxGemCmd     = "/opt/chef/embedded/bin/gem"
 	linuxKnifeCmd   = "knife"
 	secretKey       = "encrypted_data_bag_secret"
 	windowsChefCmd  = "cmd /c chef-client"
 	windowsConfDir  = "C:/chef"
 	windowsNoOutput = "> nul 2>&1"
-	windowsGemCmd   = "C:/opscode/chef/embedded/bin/gem"
 	windowsKnifeCmd = "cmd /c knife"
 )
 
@@ -118,6 +116,7 @@ type provisioner struct {
 	cleanupUserKeyCmd     string
 	createConfigFiles     provisionFn
 	installChefClient     provisionFn
+	installChefVault      provisionFn
 	fetchChefCertificates provisionFn
 	generateClientKey     provisionFn
 	configureVaults       provisionFn
@@ -288,18 +287,20 @@ func applyFn(ctx context.Context) error {
 		p.cleanupUserKeyCmd = fmt.Sprintf("rm -f %s", path.Join(linuxConfDir, p.UserName+".pem"))
 		p.createConfigFiles = p.linuxCreateConfigFiles
 		p.installChefClient = p.linuxInstallChefClient
+		p.installChefVault = p.linuxInstallChefVault
 		p.fetchChefCertificates = p.fetchChefCertificatesFunc(linuxKnifeCmd, linuxConfDir)
 		p.generateClientKey = p.generateClientKeyFunc(linuxKnifeCmd, linuxConfDir, linuxNoOutput)
-		p.configureVaults = p.configureVaultsFunc(linuxGemCmd, linuxKnifeCmd, linuxConfDir)
+		p.configureVaults = p.configureVaultsFunc(linuxKnifeCmd, linuxConfDir)
 		p.runChefClient = p.runChefClientFunc(linuxChefCmd, linuxConfDir)
 		p.useSudo = !p.PreventSudo && s.Ephemeral.ConnInfo["user"] != "root"
 	case "windows":
 		p.cleanupUserKeyCmd = fmt.Sprintf("cd %s && del /F /Q %s", windowsConfDir, p.UserName+".pem")
 		p.createConfigFiles = p.windowsCreateConfigFiles
 		p.installChefClient = p.windowsInstallChefClient
+		p.installChefVault = p.windowsInstallChefVault
 		p.fetchChefCertificates = p.fetchChefCertificatesFunc(windowsKnifeCmd, windowsConfDir)
 		p.generateClientKey = p.generateClientKeyFunc(windowsKnifeCmd, windowsConfDir, windowsNoOutput)
-		p.configureVaults = p.configureVaultsFunc(windowsGemCmd, windowsKnifeCmd, windowsConfDir)
+		p.configureVaults = p.configureVaultsFunc(windowsKnifeCmd, windowsConfDir)
 		p.runChefClient = p.runChefClientFunc(windowsChefCmd, windowsConfDir)
 		p.useSudo = false
 	default:
@@ -360,6 +361,11 @@ func applyFn(ctx context.Context) error {
 	}
 
 	if p.Vaults != nil {
+		o.Output("Installing Chef vaults...")
+		if err := p.installChefVault(o, comm); err != nil {
+			return err
+		}
+
 		o.Output("Configure Chef vaults...")
 		if err := p.configureVaults(o, comm); err != nil {
 			return err
@@ -566,12 +572,8 @@ func (p *provisioner) generateClientKeyFunc(knifeCmd string, confDir string, noO
 	}
 }
 
-func (p *provisioner) configureVaultsFunc(gemCmd string, knifeCmd string, confDir string) provisionFn {
+func (p *provisioner) configureVaultsFunc(knifeCmd string, confDir string) provisionFn {
 	return func(o terraform.UIOutput, comm communicator.Communicator) error {
-		if err := p.runCommand(o, comm, fmt.Sprintf("%s install chef-vault", gemCmd)); err != nil {
-			return err
-		}
-
 		options := fmt.Sprintf("-c %s -u %s --key %s",
 			path.Join(confDir, clienrb),
 			p.UserName,

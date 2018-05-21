@@ -11,10 +11,11 @@ import (
 
 const (
 	chmod      = "find %s -maxdepth 1 -type f -exec /bin/chmod %d {} +"
+	gemCmd     = "/opt/chef/embedded/bin/gem"
 	installURL = "https://omnitruck.chef.io/install.sh"
 )
 
-func (p *provisioner) linuxInstallChefClient(o terraform.UIOutput, comm communicator.Communicator) error {
+func (p *provisioner) linuxBuildCommandPrefix() string {
 	// Build up the command prefix
 	prefix := ""
 	if p.HTTPProxy != "" {
@@ -26,6 +27,13 @@ func (p *provisioner) linuxInstallChefClient(o terraform.UIOutput, comm communic
 	if len(p.NOProxy) > 0 {
 		prefix += fmt.Sprintf("no_proxy='%s' ", strings.Join(p.NOProxy, ","))
 	}
+
+	return prefix
+}
+
+func (p *provisioner) linuxInstallChefClient(o terraform.UIOutput, comm communicator.Communicator) error {
+	// Build up the command prefix
+	prefix := p.linuxBuildCommandPrefix()
 
 	// First download the install.sh script from Chef
 	err := p.runCommand(o, comm, fmt.Sprintf("%scurl -LO %s", prefix, installURL))
@@ -41,6 +49,14 @@ func (p *provisioner) linuxInstallChefClient(o terraform.UIOutput, comm communic
 
 	// And finally cleanup the install.sh script again
 	return p.runCommand(o, comm, fmt.Sprintf("%srm -f install.sh", prefix))
+}
+
+func (p *provisioner) linuxInstallChefVault(o terraform.UIOutput, comm communicator.Communicator) error {
+	// Build up the command prefix
+	prefix := p.linuxBuildCommandPrefix()
+
+	// Install the chef-vault gem
+	return p.runCommand(o, comm, fmt.Sprintf("%s%s install chef-vault", prefix, gemCmd))
 }
 
 func (p *provisioner) linuxCreateConfigFiles(o terraform.UIOutput, comm communicator.Communicator) error {

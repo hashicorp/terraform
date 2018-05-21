@@ -9,7 +9,7 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 )
 
-const installScript = `
+const installChefClientScript = `
 $winver = [System.Environment]::OSVersion.Version | %% {"{0}.{1}" -f $_.Major,$_.Minor}
 
 switch ($winver)
@@ -30,7 +30,7 @@ $downloader = New-Object System.Net.WebClient
 
 $http_proxy = '%s'
 if ($http_proxy -ne '') {
-	$no_proxy = '%s'
+  $no_proxy = '%s'
   if ($no_proxy -eq ''){
     $no_proxy = "127.0.0.1"
   }
@@ -48,7 +48,7 @@ Start-Process -FilePath msiexec -ArgumentList /qn, /i, $dest -Wait
 
 func (p *provisioner) windowsInstallChefClient(o terraform.UIOutput, comm communicator.Communicator) error {
 	script := path.Join(path.Dir(comm.ScriptPath()), "ChefClient.ps1")
-	content := fmt.Sprintf(installScript, p.Channel, p.Version, p.HTTPProxy, strings.Join(p.NOProxy, ","))
+	content := fmt.Sprintf(installChefClientScript, p.Channel, p.Version, p.HTTPProxy, strings.Join(p.NOProxy, ","))
 
 	// Copy the script to the new instance
 	if err := comm.UploadScript(script, strings.NewReader(content)); err != nil {
@@ -57,6 +57,24 @@ func (p *provisioner) windowsInstallChefClient(o terraform.UIOutput, comm commun
 
 	// Execute the script to install Chef Client
 	installCmd := fmt.Sprintf("powershell -NoProfile -ExecutionPolicy Bypass -File %s", script)
+	return p.runCommand(o, comm, installCmd)
+}
+
+func (p *provisioner) windowsInstallChefVault(o terraform.UIOutput, comm communicator.Communicator) error {
+	// Build up the command prefix
+	prefix := ""
+	if p.HTTPProxy != "" {
+		prefix += fmt.Sprintf("set http_proxy='%s' && ", p.HTTPProxy)
+	}
+	if p.HTTPSProxy != "" {
+		prefix += fmt.Sprintf("set https_proxy='%s' && ", p.HTTPSProxy)
+	}
+	if len(p.NOProxy) > 0 {
+		prefix += fmt.Sprintf("set no_proxy='%s' && ", strings.Join(p.NOProxy, ","))
+	}
+
+	// Install the chef-vault gem
+	installCmd := fmt.Sprintf("%sC:/opscode/chef/embedded/bin/gem install chef-vault", prefix)
 	return p.runCommand(o, comm, installCmd)
 }
 

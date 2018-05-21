@@ -117,6 +117,54 @@ func TestResourceProvider_windowsInstallChefClient(t *testing.T) {
 	}
 }
 
+func TestResourceProvider_windowsInstallChefVault(t *testing.T) {
+	cases := map[string]struct {
+		Config   map[string]interface{}
+		Commands map[string]bool
+	}{
+		"Default": {
+			Config: map[string]interface{}{},
+
+			Commands: map[string]bool{
+				"C:/opscode/chef/embedded/bin/gem install chef-vault": true,
+			},
+		},
+
+		"Proxy": {
+			Config: map[string]interface{}{
+				"http_proxy": "http://proxy.local",
+				"no_proxy":   []interface{}{"http://local.local", "http://local.org"},
+			},
+
+			Commands: map[string]bool{
+				"set http_proxy='http://proxy.local' && set no_proxy='http://local.local,http://local.org' && " +
+					"C:/opscode/chef/embedded/bin/gem install chef-vault": true,
+			},
+		},
+	}
+
+	o := new(terraform.MockUIOutput)
+	c := new(communicator.MockCommunicator)
+
+	for k, tc := range cases {
+		c.Commands = tc.Commands
+
+		p, err := decodeConfig(
+			schema.TestResourceDataRaw(t, Provisioner().(*schema.Provisioner).Schema, tc.Config),
+		)
+		if err != nil {
+			t.Fatalf("Error: %v", err)
+		}
+
+		p.useSudo = false
+
+		err = p.windowsInstallChefVault(o, c)
+		if err != nil {
+			t.Fatalf("Test %q failed: %v", k, err)
+		}
+	}
+}
+
 func TestResourceProvider_windowsCreateConfigFiles(t *testing.T) {
 	cases := map[string]struct {
 		Config   map[string]interface{}
@@ -246,7 +294,7 @@ $downloader = New-Object System.Net.WebClient
 
 $http_proxy = ''
 if ($http_proxy -ne '') {
-	$no_proxy = ''
+  $no_proxy = ''
   if ($no_proxy -eq ''){
     $no_proxy = "127.0.0.1"
   }
@@ -283,7 +331,7 @@ $downloader = New-Object System.Net.WebClient
 
 $http_proxy = 'http://proxy.local'
 if ($http_proxy -ne '') {
-	$no_proxy = 'http://local.local,http://local.org'
+  $no_proxy = 'http://local.local,http://local.org'
   if ($no_proxy -eq ''){
     $no_proxy = "127.0.0.1"
   }
@@ -320,7 +368,7 @@ $downloader = New-Object System.Net.WebClient
 
 $http_proxy = ''
 if ($http_proxy -ne '') {
-	$no_proxy = ''
+  $no_proxy = ''
   if ($no_proxy -eq ''){
     $no_proxy = "127.0.0.1"
   }
@@ -356,7 +404,7 @@ $downloader = New-Object System.Net.WebClient
 
 $http_proxy = ''
 if ($http_proxy -ne '') {
-	$no_proxy = ''
+  $no_proxy = ''
   if ($no_proxy -eq ''){
     $no_proxy = "127.0.0.1"
   }
