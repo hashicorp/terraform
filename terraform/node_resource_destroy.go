@@ -71,6 +71,12 @@ func (n *NodeDestroyResourceInstance) ReferenceableName() []addrs.Referenceable 
 	}
 }
 
+// Destroy nodes can't be directly referenced by anything, so we need to
+// override the abstract method.
+func (n *NodeDestroyResourceInstance) ReferenceableAddrs() []addrs.Referenceable {
+	return nil
+}
+
 // GraphNodeReferencer, overriding NodeAbstractResource
 func (n *NodeDestroyResourceInstance) References() []*addrs.Reference {
 	// If we have a config, then we need to include destroy-time dependencies
