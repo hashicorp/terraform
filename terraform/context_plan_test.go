@@ -2603,7 +2603,7 @@ func TestContext2Plan_taint(t *testing.T) {
 	}
 }
 
-func TestContext2Apply_taintIgnoreChanges(t *testing.T) {
+func TestContext2Plan_taintIgnoreChanges(t *testing.T) {
 	m := testModule(t, "plan-taint-ignore-changes")
 	p := testProvider("aws")
 	p.ApplyFn = testApplyFn
