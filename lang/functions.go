@@ -73,7 +73,7 @@ func (s *Scope) Functions() map[string]function.Function {
 			"md5":          unimplFunc, // TODO
 			"merge":        unimplFunc, // TODO
 			"min":          stdlib.MinFunc,
-			"pathexpand":   unimplFunc, // TODO
+			"pathexpand":   funcs.PathExpandFunc,
 			"pow":          unimplFunc, // TODO
 			"replace":      unimplFunc, // TODO
 			"rsadecrypt":   unimplFunc, // TODO
