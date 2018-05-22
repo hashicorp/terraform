@@ -238,6 +238,11 @@ func NewResourceConfigShimmed(val cty.Value, schema *configschema.Block) *Resour
 		panic(fmt.Errorf("NewResourceConfigShimmed given %#v; an object type is required", val.Type()))
 	}
 	ret := &ResourceConfig{}
+
+	// Computed fields will all be present with unknown values. Strip them out
+	// before passing to the provider.
+	val = cty.UnknownAsNull(val)
+
 	legacyVal := hcl2shim.ConfigValueFromHCL2(val)
 	ret.Config = legacyVal.(map[string]interface{}) // guaranteed compatible because we require an object type
 	ret.Raw = ret.Config
