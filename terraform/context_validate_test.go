@@ -1234,3 +1234,67 @@ func TestContext2Validate_PlanGraphBuilder(t *testing.T) {
 		t.Fatal(walker.NonFatalDiagnostics.Err())
 	}
 }
+
+func TestContext2Validate_invalidOutput(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+data "aws_data_source" "name" {}
+
+output "out" {
+  value = "${data.aws_data_source.name.missing}"
+}`,
+	})
+
+	p := testProvider("aws")
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		ProviderResolver: ResourceProviderResolverFixed(
+			map[string]ResourceProviderFactory{
+				"aws": testProviderFuncFixed(p),
+			},
+		),
+	})
+
+	diags := ctx.Validate()
+	if !diags.HasErrors() {
+		// Should get this error:
+		// Unsupported attribute: This object does not have an attribute named "missing"
+		t.Fatal("succeeded; want errors")
+	}
+}
+
+func TestContext2Validate_invalidModuleOutput(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"child/main.tf": `
+data "aws_data_source" "name" {}
+
+output "out" {
+  value = "${data.aws_data_source.name.missing}"
+}`,
+		"main.tf": `
+module "child" {
+  source = "./child"
+}
+
+resource "aws_instance" "foo" {
+  foo = "${module.child.out}"
+}`,
+	})
+
+	p := testProvider("aws")
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		ProviderResolver: ResourceProviderResolverFixed(
+			map[string]ResourceProviderFactory{
+				"aws": testProviderFuncFixed(p),
+			},
+		),
+	})
+
+	diags := ctx.Validate()
+	if !diags.HasErrors() {
+		// Should get this error:
+		// Unsupported attribute: This object does not have an attribute named "missing"
+		t.Fatal("succeeded; want errors")
+	}
+}
