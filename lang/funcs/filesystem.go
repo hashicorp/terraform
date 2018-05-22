@@ -63,6 +63,20 @@ func MakeFileFunc(baseDir string, encBase64 bool) function.Function {
 	})
 }
 
+// BasenameFunc constructs a function that takes a string containing a filesystem path and removes all except the last portion from it.
+var BasenameFunc = function.New(&function.Spec{
+	Params: []function.Parameter{
+		{
+			Name: "path",
+			Type: cty.String,
+		},
+	},
+	Type: function.StaticReturnType(cty.String),
+	Impl: func(args []cty.Value, retType cty.Type) (cty.Value, error) {
+		return cty.StringVal(filepath.Base(args[0].AsString())), nil
+	},
+})
+
 // File reads the contents of the file at the given path.
 //
 // The file must contain valid UTF-8 bytes, or this function will return an error.
@@ -85,4 +99,14 @@ func File(baseDir string, path cty.Value) (cty.Value, error) {
 func FileBase64(baseDir string, path cty.Value) (cty.Value, error) {
 	fn := MakeFileFunc(baseDir, true)
 	return fn.Call([]cty.Value{path})
+}
+
+// Basename takes a string containing a filesystem path and removes all except the last portion from it.
+//
+// The underlying function implementation works only with the path string and does not access the filesystem itself.
+// It is therefore unable to take into account filesystem features such as symlinks.
+//
+// If the path is empty then the result is ".", representing the current working directory.
+func Basename(path cty.Value) (cty.Value, error) {
+	return BasenameFunc.Call([]cty.Value{path})
 }
