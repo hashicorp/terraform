@@ -16,7 +16,7 @@ var TimestampFunc = function.New(&function.Spec{
 	},
 })
 
-// TimeStampFunc constructs a function that adds a duration to a timestamp, returning a new timestamp.
+// TimeAddFunc constructs a function that adds a duration to a timestamp, returning a new timestamp.
 var TimeAddFunc = function.New(&function.Spec{
 	Params: []function.Parameter{
 		{
