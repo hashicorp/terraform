@@ -6,6 +6,8 @@ import (
 	"github.com/zclconf/go-cty/cty"
 	"github.com/zclconf/go-cty/cty/function"
 	"github.com/zclconf/go-cty/cty/function/stdlib"
+
+	"github.com/hashicorp/terraform/lang/funcs"
 )
 
 var impureFunctions = []string{
@@ -18,6 +20,13 @@ var impureFunctions = []string{
 func (s *Scope) Functions() map[string]function.Function {
 	s.funcsLock.Lock()
 	if s.funcs == nil {
+		// Some of our functions are just directly the cty stdlib functions.
+		// Others are implemented in the subdirectory "funcs" here in this
+		// repository. New functions should generally start out their lives
+		// in the "funcs" directory and potentially graduate to cty stdlib
+		// later if the functionality seems to be something domain-agnostic
+		// that would be useful to all applications using cty functions.
+
 		s.funcs = map[string]function.Function{
 			"abs":          stdlib.AbsoluteFunc,
 			"basename":     unimplFunc, // TODO
@@ -40,9 +49,10 @@ func (s *Scope) Functions() map[string]function.Function {
 			"csvdecode":    stdlib.CSVDecodeFunc,
 			"dirname":      unimplFunc, // TODO
 			"distinct":     unimplFunc, // TODO
-			"element":      unimplFunc, // TODO
+			"element":      funcs.ElementFunc,
 			"chunklist":    unimplFunc, // TODO
-			"file":         unimplFunc, // TODO
+			"file":         funcs.MakeFileFunc(s.BaseDir, false),
+			"filebase64":   funcs.MakeFileFunc(s.BaseDir, true),
 			"matchkeys":    unimplFunc, // TODO
 			"flatten":      unimplFunc, // TODO
 			"floor":        unimplFunc, // TODO
@@ -50,12 +60,13 @@ func (s *Scope) Functions() map[string]function.Function {
 			"formatlist":   stdlib.FormatListFunc,
 			"indent":       unimplFunc, // TODO
 			"index":        unimplFunc, // TODO
-			"join":         unimplFunc, // TODO
+			"join":         funcs.JoinFunc,
 			"jsondecode":   stdlib.JSONDecodeFunc,
 			"jsonencode":   stdlib.JSONEncodeFunc,
-			"length":       unimplFunc, // TODO
+			"length":       funcs.LengthFunc,
 			"list":         unimplFunc, // TODO
 			"log":          unimplFunc, // TODO
+			"lookup":       unimplFunc, // TODO
 			"lower":        stdlib.LowerFunc,
 			"map":          unimplFunc, // TODO
 			"max":          stdlib.MaxFunc,
@@ -71,8 +82,8 @@ func (s *Scope) Functions() map[string]function.Function {
 			"sha512":       unimplFunc, // TODO
 			"signum":       unimplFunc, // TODO
 			"slice":        unimplFunc, // TODO
-			"sort":         unimplFunc, // TODO
-			"split":        unimplFunc, // TODO
+			"sort":         funcs.SortFunc,
+			"split":        funcs.SplitFunc,
 			"substr":       stdlib.SubstrFunc,
 			"timestamp":    unimplFunc, // TODO
 			"timeadd":      unimplFunc, // TODO
@@ -81,7 +92,7 @@ func (s *Scope) Functions() map[string]function.Function {
 			"trimspace":    unimplFunc, // TODO
 			"upper":        stdlib.UpperFunc,
 			"urlencode":    unimplFunc, // TODO
-			"uuid":         unimplFunc, // TODO
+			"uuid":         funcs.UUIDFunc,
 			"zipmap":       unimplFunc, // TODO
 		}
 
