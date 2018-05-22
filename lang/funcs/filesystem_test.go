@@ -2,8 +2,10 @@ package funcs
 
 import (
 	"fmt"
+	"path/filepath"
 	"testing"
 
+	homedir "github.com/mitchellh/go-homedir"
 	"github.com/zclconf/go-cty/cty"
 )
 
@@ -173,6 +175,61 @@ func TestDirname(t *testing.T) {
 	for _, test := range tests {
 		t.Run(fmt.Sprintf("Dirname(%#v)", test.Path), func(t *testing.T) {
 			got, err := Dirname(test.Path)
+
+			if test.Err {
+				if err == nil {
+					t.Fatal("succeeded; want error")
+				}
+				return
+			} else {
+				if err != nil {
+					t.Fatalf("unexpected error: %s", err)
+				}
+			}
+
+			if !got.RawEquals(test.Want) {
+				t.Errorf("wrong result\ngot:  %#v\nwant: %#v", got, test.Want)
+			}
+		})
+	}
+}
+
+func TestPathExpand(t *testing.T) {
+	homePath, err := homedir.Dir()
+	if err != nil {
+		t.Fatalf("Error getting home directory: %v", err)
+	}
+
+	tests := []struct {
+		Path cty.Value
+		Want cty.Value
+		Err  bool
+	}{
+		{
+			cty.StringVal("~/test-file"),
+			cty.StringVal(filepath.Join(homePath, "test-file")),
+			false,
+		},
+		{
+			cty.StringVal("~/another/test/file"),
+			cty.StringVal(filepath.Join(homePath, "another/test/file")),
+			false,
+		},
+		{
+			cty.StringVal("/root/file"),
+			cty.StringVal("/root/file"),
+			false,
+		},
+		{
+			cty.StringVal("/"),
+			cty.StringVal("/"),
+			false,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(fmt.Sprintf("Dirname(%#v)", test.Path), func(t *testing.T) {
+			got, err := Pathexpand(test.Path)
 
 			if test.Err {
 				if err == nil {

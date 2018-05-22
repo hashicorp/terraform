@@ -91,6 +91,22 @@ var DirnameFunc = function.New(&function.Spec{
 	},
 })
 
+// PathExpandFunc constructs a function that expands a leading ~ character to the current user's home directory.
+var PathExpandFunc = function.New(&function.Spec{
+	Params: []function.Parameter{
+		{
+			Name: "path",
+			Type: cty.String,
+		},
+	},
+	Type: function.StaticReturnType(cty.String),
+	Impl: func(args []cty.Value, retType cty.Type) (cty.Value, error) {
+
+		homePath, err := homedir.Expand(args[0].AsString())
+		return cty.StringVal(homePath), err
+	},
+})
+
 // File reads the contents of the file at the given path.
 //
 // The file must contain valid UTF-8 bytes, or this function will return an error.
@@ -133,4 +149,15 @@ func Basename(path cty.Value) (cty.Value, error) {
 // If the path is empty then the result is ".", representing the current working directory.
 func Dirname(path cty.Value) (cty.Value, error) {
 	return DirnameFunc.Call([]cty.Value{path})
+}
+
+// Pathexpand takes a string that might begin with a `~` segment, and if so it replaces that segment with
+// the current user's home directory path.
+//
+// The underlying function implementation works only with the path string and does not access the filesystem itself.
+// It is therefore unable to take into account filesystem features such as symlinks.
+//
+// If the leading segment in the path is not `~` then the given path is returned unmodified.
+func Pathexpand(path cty.Value) (cty.Value, error) {
+	return PathExpandFunc.Call([]cty.Value{path})
 }
