@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hashicorp/hil"
 	"github.com/hashicorp/terraform/config/configschema"
 	"github.com/hashicorp/terraform/configs"
 	"github.com/zclconf/go-cty/cty"
@@ -234,6 +235,26 @@ func testDiffFn(
 		}
 
 		if k == "compute" {
+			if v == hil.UnknownValue {
+				// compute wasn't set in the config, so don't use these
+				// computed values from the schema.
+				delete(c.Raw, k)
+				delete(c.Raw, "compute_value")
+
+				// we need to remove this from the list of ComputedKeys too,
+				// since it would get re-added to the diff further down
+				newComputed := make([]string, 0, len(c.ComputedKeys))
+				for _, ck := range c.ComputedKeys {
+					if ck == "compute" || ck == "compute_value" {
+						continue
+					}
+					newComputed = append(newComputed, ck)
+				}
+				c.ComputedKeys = newComputed
+
+				continue
+			}
+
 			attrDiff := &ResourceAttrDiff{
 				Old:         "",
 				New:         "",
@@ -248,7 +269,6 @@ func testDiffFn(
 			}
 
 			diff.Attributes[v.(string)] = attrDiff
-			continue
 		}
 
 		// If this key is not computed, then look it up in the
@@ -576,6 +596,10 @@ func testProviderSchema(name string) *ProviderSchema {
 						Optional: true,
 					},
 					"template": {
+						Type:     cty.String,
+						Optional: true,
+					},
+					"__template_requires_new": {
 						Type:     cty.String,
 						Optional: true,
 					},
