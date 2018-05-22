@@ -47,7 +47,7 @@ func (s *Scope) Functions() map[string]function.Function {
 			"concat":       stdlib.ConcatFunc,
 			"contains":     unimplFunc, // TODO
 			"csvdecode":    stdlib.CSVDecodeFunc,
-			"dirname":      unimplFunc, // TODO
+			"dirname":      funcs.DirnameFunc,
 			"distinct":     unimplFunc, // TODO
 			"element":      funcs.ElementFunc,
 			"chunklist":    unimplFunc, // TODO
