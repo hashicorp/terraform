@@ -2,6 +2,7 @@ package terraform
 
 import (
 	"fmt"
+	"log"
 	"os"
 	"strconv"
 	"strings"
@@ -462,10 +463,10 @@ func (d *evaluationStateData) GetResourceInstance(addr addrs.ResourceInstance, r
 	// we revise the state structs to natively support the HCL type system.
 	rs := ms.Resources[addrKey]
 
-	// If we have an exact match for the requested instance and it has non-nil
-	// primary data then we'll use it directly. This is the easy path.
-	if rs != nil && rs.Primary != nil {
-		providerAddr, err := rs.ProviderAddr()
+	var providerAddr addrs.AbsProviderConfig
+	if rs != nil {
+		var err error
+		providerAddr, err = rs.ProviderAddr()
 		if err != nil {
 			// This indicates corruption of or tampering with the state file
 			diags = diags.Append(&hcl.Diagnostic{
@@ -476,6 +477,20 @@ func (d *evaluationStateData) GetResourceInstance(addr addrs.ResourceInstance, r
 			})
 			return cty.DynamicVal, diags
 		}
+	} else {
+		// Must assume a provider address from the config, then.
+		// This result is usually ignored since we'll probably end up in
+		// the getResourceInstancesAll path after this (if our instance
+		// actually has a key). However, we can also end up here in strange
+		// cases like "terraform console", which might be used before a
+		// particular resource has been created in state at all.
+		providerAddr = config.ProviderConfigAddr().Absolute(d.ModulePath)
+	}
+
+	// If we have an exact match for the requested instance and it has non-nil
+	// primary data then we'll use it directly. This is the easy path.
+	if rs != nil && rs.Primary != nil {
+		log.Printf("[TRACE] GetResourceInstance: %s is a single instance", addr)
 		return d.getResourceInstanceSingle(addr, rng, rs.Primary, providerAddr)
 	}
 
@@ -484,10 +499,11 @@ func (d *evaluationStateData) GetResourceInstance(addr addrs.ResourceInstance, r
 	// If we have a _keyed_ address then instead it's a single instance that
 	// isn't evaluated yet.
 	if addr.Key != addrs.NoKey {
-		return d.getResourceInstancePending(addr, rng)
+		log.Printf("[TRACE] GetResourceInstance: %s is pending", addr)
+		return d.getResourceInstancePending(addr, rng, providerAddr)
 	}
 
-	return d.getResourceInstancesAll(addr.ContainingResource(), config, ms)
+	return d.getResourceInstancesAll(addr.ContainingResource(), config, ms, providerAddr)
 }
 
 func (d *evaluationStateData) getResourceInstanceSingle(addr addrs.ResourceInstance, rng tfdiags.SourceRange, is *InstanceState, providerAddr addrs.AbsProviderConfig) (cty.Value, tfdiags.Diagnostics) {
@@ -531,7 +547,7 @@ func (d *evaluationStateData) getResourceInstanceSingle(addr addrs.ResourceInsta
 	return val, diags
 }
 
-func (d *evaluationStateData) getResourceInstancesAll(addr addrs.Resource, config *configs.Resource, ms *ModuleState) (cty.Value, tfdiags.Diagnostics) {
+func (d *evaluationStateData) getResourceInstancesAll(addr addrs.Resource, config *configs.Resource, ms *ModuleState, providerAddr addrs.AbsProviderConfig) (cty.Value, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 	rng := tfdiags.SourceRangeFromHCL(config.DeclRange)
 	hasCount := config.Count != nil
@@ -574,6 +590,8 @@ func (d *evaluationStateData) getResourceInstancesAll(addr addrs.Resource, confi
 			key = addrs.StringKey(keyStr)
 		}
 
+		// In this case we'll ignore our given providerAddr, since it was
+		// for a single unkeyed ResourceState, not the keyed one we have now.
 		providerAddr, err := rs.ProviderAddr()
 		if err != nil {
 			// This indicates corruption of or tampering with the state file
@@ -597,9 +615,13 @@ func (d *evaluationStateData) getResourceInstancesAll(addr addrs.Resource, confi
 		// argument then we'll assume that we're dealing with a resource that
 		// is pending creation (e.g. during the validate walk) and that it
 		// will eventually have only one unkeyed instance.
-		providerAddr := config.ProviderConfigAddr().Absolute(d.ModulePath)
+		// In this case we _do_ use the given providerAddr, since that
+		// is for the unkeyed instance we found in GetResourceInstance.
+		log.Printf("[TRACE] GetResourceInstance: %s has no instances yet", addr)
 		return d.getResourceInstanceSingle(addr.Instance(addrs.NoKey), rng, nil, providerAddr)
 	}
+
+	log.Printf("[TRACE] GetResourceInstance: %s has multiple keyed instances (%d)", addr, length)
 
 	// TODO: In future, when for_each is implemented, we'll need to decide here
 	// whether to return a tuple value or an object value. However, by that
@@ -628,7 +650,7 @@ func (d *evaluationStateData) getResourceInstancesAll(addr addrs.Resource, confi
 	return cty.TupleVal(valsSeq), diags
 }
 
-func (d *evaluationStateData) getResourceInstancePending(addr addrs.ResourceInstance, rng tfdiags.SourceRange) (cty.Value, tfdiags.Diagnostics) {
+func (d *evaluationStateData) getResourceInstancePending(addr addrs.ResourceInstance, rng tfdiags.SourceRange, providerAddr addrs.AbsProviderConfig) (cty.Value, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
 	// We'd ideally like to return a properly-typed unknown value here, in
@@ -655,7 +677,6 @@ func (d *evaluationStateData) getResourceInstancePending(addr addrs.ResourceInst
 	if rc == nil {
 		return cty.DynamicVal, diags
 	}
-	providerAddr := rc.ProviderConfigAddr().Absolute(d.ModulePath)
 	schema := d.getResourceSchema(addr.ContainingResource(), providerAddr)
 	if schema == nil {
 		return cty.DynamicVal, diags
@@ -668,6 +689,7 @@ func (d *evaluationStateData) getResourceSchema(addr addrs.Resource, providerAdd
 	d.Evaluator.ProvidersLock.Lock()
 	defer d.Evaluator.ProvidersLock.Unlock()
 
+	log.Printf("[TRACE] Need provider schema for %s", providerAddr)
 	providerSchema := d.Evaluator.ProviderSchemas[providerAddr.String()]
 	if providerSchema == nil {
 		return nil
