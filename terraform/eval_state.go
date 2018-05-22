@@ -2,6 +2,7 @@ package terraform
 
 import (
 	"fmt"
+	"log"
 
 	"github.com/hashicorp/terraform/addrs"
 )
@@ -208,6 +209,7 @@ func writeInstanceToState(
 	rs.Type = resourceType
 	rs.Dependencies = dependencies
 	rs.Provider = provider
+	log.Printf("[TRACE] Saving state for %s, managed by %s", resourceName, provider)
 
 	if err := writerFn(rs); err != nil {
 		return nil, err
