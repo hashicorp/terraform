@@ -67,7 +67,6 @@ func Timestamp() (cty.Value, error) {
 //
 // The result is a string, also in RFC 3339 format, representing the result
 // of adding the given direction to the given timestamp.
-
 func TimeAdd(timestamp cty.Value, duration cty.Value) (cty.Value, error) {
 	return TimeAddFunc.Call([]cty.Value{timestamp, duration})
 }
