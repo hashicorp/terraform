@@ -1560,7 +1560,7 @@ func TestContext2Plan_countComputedModule(t *testing.T) {
 
 	_, err := ctx.Plan()
 
-	expectedErr := "aws_instance.bar: value of 'count'"
+	expectedErr := "a number is required"
 	if !strings.Contains(fmt.Sprintf("%s", err), expectedErr) {
 		t.Fatalf("expected err would contain %q\nerr: %s\n",
 			expectedErr, err)
