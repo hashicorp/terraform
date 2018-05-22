@@ -848,6 +848,16 @@ func findLabelSpecs(spec Spec) []string {
 //
 // The two specifications must have the same implied result type for correct
 // operation. If not, the result is undefined.
+//
+// Any requirements imposed by the "Default" spec apply even if "Primary" does
+// not return null. For example, if the "Default" spec is for a required
+// attribute then that attribute is always required, regardless of the result
+// of the "Primary" spec.
+//
+// The "Default" spec must not describe a nested block, since otherwise the
+// result of ChildBlockTypes would not be decidable without evaluation. If
+// the default spec _does_ describe a nested block then the result is
+// undefined.
 type DefaultSpec struct {
 	Primary Spec
 	Default Spec
@@ -870,6 +880,38 @@ func (s *DefaultSpec) decode(content *hcl.BodyContent, blockLabels []blockLabel,
 
 func (s *DefaultSpec) impliedType() cty.Type {
 	return s.Primary.impliedType()
+}
+
+// attrSpec implementation
+func (s *DefaultSpec) attrSchemata() []hcl.AttributeSchema {
+	// We must pass through the union of both of our nested specs so that
+	// we'll have both values available in the result.
+	var ret []hcl.AttributeSchema
+	if as, ok := s.Primary.(attrSpec); ok {
+		ret = append(ret, as.attrSchemata()...)
+	}
+	if as, ok := s.Default.(attrSpec); ok {
+		ret = append(ret, as.attrSchemata()...)
+	}
+	return ret
+}
+
+// blockSpec implementation
+func (s *DefaultSpec) blockHeaderSchemata() []hcl.BlockHeaderSchema {
+	// Only the primary spec may describe a block, since otherwise
+	// our nestedSpec method below can't know which to return.
+	if bs, ok := s.Primary.(blockSpec); ok {
+		return bs.blockHeaderSchemata()
+	}
+	return nil
+}
+
+// blockSpec implementation
+func (s *DefaultSpec) nestedSpec() Spec {
+	if bs, ok := s.Primary.(blockSpec); ok {
+		return bs.nestedSpec()
+	}
+	return nil
 }
 
 func (s *DefaultSpec) sourceRange(content *hcl.BodyContent, blockLabels []blockLabel) hcl.Range {
