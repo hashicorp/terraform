@@ -29,7 +29,7 @@ func (s *Scope) Functions() map[string]function.Function {
 
 		s.funcs = map[string]function.Function{
 			"abs":          stdlib.AbsoluteFunc,
-			"basename":     unimplFunc, // TODO
+			"basename":     funcs.BasenameFunc,
 			"base64decode": unimplFunc, // TODO
 			"base64encode": unimplFunc, // TODO
 			"base64gzip":   unimplFunc, // TODO
