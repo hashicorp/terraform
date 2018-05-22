@@ -85,8 +85,8 @@ func (s *Scope) Functions() map[string]function.Function {
 			"sort":         funcs.SortFunc,
 			"split":        funcs.SplitFunc,
 			"substr":       stdlib.SubstrFunc,
-			"timestamp":    unimplFunc, // TODO
-			"timeadd":      unimplFunc, // TODO
+			"timestamp":    funcs.TimestampFunc,
+			"timeadd":      funs.TimeaddFunc,
 			"title":        unimplFunc, // TODO
 			"transpose":    unimplFunc, // TODO
 			"trimspace":    unimplFunc, // TODO
