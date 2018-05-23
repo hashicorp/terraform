@@ -28,6 +28,14 @@ func TestFlatmapValueFromHCL2(t *testing.T) {
 		},
 		{
 			cty.ObjectVal(map[string]cty.Value{
+				"foo": cty.UnknownVal(cty.Bool),
+			}),
+			map[string]string{
+				"foo": UnknownVariableValue,
+			},
+		},
+		{
+			cty.ObjectVal(map[string]cty.Value{
 				"foo": cty.NumberIntVal(12),
 			}),
 			map[string]string{
@@ -62,6 +70,14 @@ func TestFlatmapValueFromHCL2(t *testing.T) {
 			}),
 			map[string]string{
 				"foo.#": "0",
+			},
+		},
+		{
+			cty.ObjectVal(map[string]cty.Value{
+				"foo": cty.UnknownVal(cty.List(cty.String)),
+			}),
+			map[string]string{
+				"foo.#": UnknownVariableValue,
 			},
 		},
 		{
@@ -103,6 +119,14 @@ func TestFlatmapValueFromHCL2(t *testing.T) {
 		},
 		{
 			cty.ObjectVal(map[string]cty.Value{
+				"foo": cty.UnknownVal(cty.Map(cty.String)),
+			}),
+			map[string]string{
+				"foo.%": UnknownVariableValue,
+			},
+		},
+		{
+			cty.ObjectVal(map[string]cty.Value{
 				"foo": cty.MapVal(map[string]cty.Value{
 					"hello":       cty.NumberIntVal(12),
 					"hello.world": cty.NumberIntVal(10),
@@ -125,6 +149,14 @@ func TestFlatmapValueFromHCL2(t *testing.T) {
 				"foo.#": "2",
 				"foo.0": "hello",
 				"foo.1": "world",
+			},
+		},
+		{
+			cty.ObjectVal(map[string]cty.Value{
+				"foo": cty.UnknownVal(cty.Set(cty.Number)),
+			}),
+			map[string]string{
+				"foo.#": UnknownVariableValue,
 			},
 		},
 		{
@@ -179,6 +211,23 @@ func TestFlatmapValueFromHCL2(t *testing.T) {
 				"foo.1.baz.1": "true",
 			},
 		},
+		{
+			cty.ObjectVal(map[string]cty.Value{
+				"foo": cty.ListVal([]cty.Value{
+					cty.UnknownVal(cty.Object(map[string]cty.Type{
+						"bar": cty.String,
+						"baz": cty.List(cty.Bool),
+						"bap": cty.Map(cty.Number),
+					})),
+				}),
+			}),
+			map[string]string{
+				"foo.#":       "1",
+				"foo.0.bar":   UnknownVariableValue,
+				"foo.0.baz.#": UnknownVariableValue,
+				"foo.0.bap.%": UnknownVariableValue,
+			},
+		},
 	}
 
 	for _, test := range tests {
@@ -216,16 +265,19 @@ func TestHCL2ValueFromFlatmap(t *testing.T) {
 				"foo": "blah",
 				"bar": "true",
 				"baz": "12.5",
+				"unk": UnknownVariableValue,
 			},
 			Type: cty.Object(map[string]cty.Type{
 				"foo": cty.String,
 				"bar": cty.Bool,
 				"baz": cty.Number,
+				"unk": cty.Bool,
 			}),
 			Want: cty.ObjectVal(map[string]cty.Value{
 				"foo": cty.StringVal("blah"),
 				"bar": cty.True,
 				"baz": cty.NumberFloatVal(12.5),
+				"unk": cty.UnknownVal(cty.Bool),
 			}),
 		},
 		{
@@ -237,6 +289,17 @@ func TestHCL2ValueFromFlatmap(t *testing.T) {
 			}),
 			Want: cty.ObjectVal(map[string]cty.Value{
 				"foo": cty.ListValEmpty(cty.String),
+			}),
+		},
+		{
+			Flatmap: map[string]string{
+				"foo.#": UnknownVariableValue,
+			},
+			Type: cty.Object(map[string]cty.Type{
+				"foo": cty.List(cty.String),
+			}),
+			Want: cty.ObjectVal(map[string]cty.Value{
+				"foo": cty.UnknownVal(cty.List(cty.String)),
 			}),
 		},
 		{
@@ -290,6 +353,23 @@ func TestHCL2ValueFromFlatmap(t *testing.T) {
 		},
 		{
 			Flatmap: map[string]string{
+				"foo.#": UnknownVariableValue,
+			},
+			Type: cty.Object(map[string]cty.Type{
+				"foo": cty.Tuple([]cty.Type{
+					cty.String,
+					cty.Bool,
+				}),
+			}),
+			Want: cty.ObjectVal(map[string]cty.Value{
+				"foo": cty.UnknownVal(cty.Tuple([]cty.Type{
+					cty.String,
+					cty.Bool,
+				})),
+			}),
+		},
+		{
+			Flatmap: map[string]string{
 				"foo.#": "0",
 			},
 			Type: cty.Object(map[string]cty.Type{
@@ -297,6 +377,17 @@ func TestHCL2ValueFromFlatmap(t *testing.T) {
 			}),
 			Want: cty.ObjectVal(map[string]cty.Value{
 				"foo": cty.SetValEmpty(cty.String),
+			}),
+		},
+		{
+			Flatmap: map[string]string{
+				"foo.#": UnknownVariableValue,
+			},
+			Type: cty.Object(map[string]cty.Type{
+				"foo": cty.Set(cty.String),
+			}),
+			Want: cty.ObjectVal(map[string]cty.Value{
+				"foo": cty.UnknownVal(cty.Set(cty.String)),
 			}),
 		},
 		{
@@ -355,6 +446,17 @@ func TestHCL2ValueFromFlatmap(t *testing.T) {
 					"baz":     cty.True,
 					"bar.baz": cty.False,
 				}),
+			}),
+		},
+		{
+			Flatmap: map[string]string{
+				"foo.%": UnknownVariableValue,
+			},
+			Type: cty.Object(map[string]cty.Type{
+				"foo": cty.Map(cty.Bool),
+			}),
+			Want: cty.ObjectVal(map[string]cty.Value{
+				"foo": cty.UnknownVal(cty.Map(cty.Bool)),
 			}),
 		},
 		{
