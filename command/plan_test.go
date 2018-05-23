@@ -84,7 +84,7 @@ func TestPlan_plan(t *testing.T) {
 	defer testFixCwd(t, tmp, cwd)
 
 	planPath := testPlanFile(t, &terraform.Plan{
-		Module: testModule(t, "apply"),
+		Config: testModule(t, "apply"),
 	})
 
 	p := testProvider()
