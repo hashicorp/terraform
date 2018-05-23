@@ -307,3 +307,202 @@ func TestChomp(t *testing.T) {
 		})
 	}
 }
+
+func TestIndent(t *testing.T) {
+	tests := []struct {
+		String cty.Value
+		Spaces cty.Value
+		Want   cty.Value
+		Err    bool
+	}{
+		{
+			cty.StringVal(`Fleas:
+Adam
+Had'em
+
+E.E. Cummings`),
+			cty.NumberIntVal(4),
+			cty.StringVal("Fleas:\n    Adam\n    Had'em\n    \n    E.E. Cummings"),
+			false,
+		},
+		{
+			cty.StringVal("oneliner"),
+			cty.NumberIntVal(4),
+			cty.StringVal("oneliner"),
+			false,
+		},
+		{
+			cty.StringVal(`#!/usr/bin/env bash
+date
+pwd`),
+			cty.NumberIntVal(4),
+			cty.StringVal("#!/usr/bin/env bash\n    date\n    pwd"),
+			false,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(fmt.Sprintf("indent(%#v, %#v)", test.Spaces, test.String), func(t *testing.T) {
+			got, err := Indent(test.Spaces, test.String)
+
+			if test.Err {
+				if err == nil {
+					t.Fatal("succeeded; want error")
+				}
+				return
+			} else if err != nil {
+				t.Fatalf("unexpected error: %s", err)
+			}
+
+			if !got.RawEquals(test.Want) {
+				t.Errorf("wrong result\ngot:  %#v\nwant: %#v", got, test.Want)
+			}
+		})
+	}
+}
+
+func TestReplace(t *testing.T) {
+	tests := []struct {
+		String  cty.Value
+		Substr  cty.Value
+		Replace cty.Value
+		Want    cty.Value
+		Err     bool
+	}{
+		{ // Regular search and replace
+			cty.StringVal("hello"),
+			cty.StringVal("hel"),
+			cty.StringVal("bel"),
+			cty.StringVal("bello"),
+			false,
+		},
+		{ // Search string doesn't match
+			cty.StringVal("hello"),
+			cty.StringVal("nope"),
+			cty.StringVal("bel"),
+			cty.StringVal("hello"),
+			false,
+		},
+		{ // Regular expression
+			cty.StringVal("hello"),
+			cty.StringVal("/l/"),
+			cty.StringVal("L"),
+			cty.StringVal("heLLo"),
+			false,
+		},
+		{
+			cty.StringVal("helo"),
+			cty.StringVal("/(l)/"),
+			cty.StringVal("$1$1"),
+			cty.StringVal("hello"),
+			false,
+		},
+		{ // Bad regexp
+			cty.StringVal("hello"),
+			cty.StringVal("/(l/"),
+			cty.StringVal("$1$1"),
+			cty.UnknownVal(cty.String),
+			true,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(fmt.Sprintf("replace(%#v, %#v, %#v)", test.String, test.Substr, test.Replace), func(t *testing.T) {
+			got, err := Replace(test.String, test.Substr, test.Replace)
+
+			if test.Err {
+				if err == nil {
+					t.Fatal("succeeded; want error")
+				}
+				return
+			} else if err != nil {
+				t.Fatalf("unexpected error: %s", err)
+			}
+
+			if !got.RawEquals(test.Want) {
+				t.Errorf("wrong result\ngot:  %#v\nwant: %#v", got, test.Want)
+			}
+		})
+	}
+}
+
+func TestTitle(t *testing.T) {
+	tests := []struct {
+		String cty.Value
+		Want   cty.Value
+		Err    bool
+	}{
+		{
+			cty.StringVal("hello"),
+			cty.StringVal("Hello"),
+			false,
+		},
+		{
+			cty.StringVal("hello world"),
+			cty.StringVal("Hello World"),
+			false,
+		},
+		{
+			cty.StringVal(""),
+			cty.StringVal(""),
+			false,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(fmt.Sprintf("title(%#v)", test.String), func(t *testing.T) {
+			got, err := Title(test.String)
+
+			if test.Err {
+				if err == nil {
+					t.Fatal("succeeded; want error")
+				}
+				return
+			} else if err != nil {
+				t.Fatalf("unexpected error: %s", err)
+			}
+
+			if !got.RawEquals(test.Want) {
+				t.Errorf("wrong result\ngot:  %#v\nwant: %#v", got, test.Want)
+			}
+		})
+	}
+}
+
+func TestTrimSpace(t *testing.T) {
+	tests := []struct {
+		String cty.Value
+		Want   cty.Value
+		Err    bool
+	}{
+		{
+			cty.StringVal(" hello "),
+			cty.StringVal("hello"),
+			false,
+		},
+		{
+			cty.StringVal(""),
+			cty.StringVal(""),
+			false,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(fmt.Sprintf("trimspace(%#v)", test.String), func(t *testing.T) {
+			got, err := TrimSpace(test.String)
+
+			if test.Err {
+				if err == nil {
+					t.Fatal("succeeded; want error")
+				}
+				return
+			} else if err != nil {
+				t.Fatalf("unexpected error: %s", err)
+			}
+
+			if !got.RawEquals(test.Want) {
+				t.Errorf("wrong result\ngot:  %#v\nwant: %#v", got, test.Want)
+			}
+		})
+	}
+}
