@@ -557,9 +557,9 @@ func TestContext2Plan_moduleOrphansWithProvisioner(t *testing.T) {
 	expected := strings.TrimSpace(`
 DIFF:
 
-module.parent.childone:
+module.parent.module.childone:
   DESTROY: aws_instance.foo
-module.parent.childtwo:
+module.parent.module.childtwo:
   DESTROY: aws_instance.foo
 
 STATE:
@@ -1823,7 +1823,7 @@ func TestContext2Plan_countModuleStaticGrandchild(t *testing.T) {
 	expected := strings.TrimSpace(`
 DIFF:
 
-module.child.child:
+module.child.module.child:
   CREATE: aws_instance.foo.0
   CREATE: aws_instance.foo.1
   CREATE: aws_instance.foo.2
