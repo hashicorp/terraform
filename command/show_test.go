@@ -5,7 +5,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/hashicorp/terraform/config/module"
+	"github.com/hashicorp/terraform/configs"
+
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/mitchellh/cli"
 )
@@ -68,7 +69,7 @@ func TestShow_noArgsNoState(t *testing.T) {
 
 func TestShow_plan(t *testing.T) {
 	planPath := testPlanFile(t, &terraform.Plan{
-		Module: new(module.Tree),
+		Config: configs.NewEmptyConfig(),
 	})
 
 	ui := new(cli.MockUi)
