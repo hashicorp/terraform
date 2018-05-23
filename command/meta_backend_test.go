@@ -2742,7 +2742,7 @@ func TestMetaBackend_planLocal(t *testing.T) {
 
 	// Create the plan
 	plan := &terraform.Plan{
-		Module: testModule(t, "backend-plan-local"),
+		Config: testModule(t, "backend-plan-local"),
 		State:  nil,
 	}
 
@@ -2829,7 +2829,7 @@ func TestMetaBackend_planLocalStatePath(t *testing.T) {
 
 	// Create the plan
 	plan := &terraform.Plan{
-		Module: testModule(t, "backend-plan-local"),
+		Config: testModule(t, "backend-plan-local"),
 		State:  original,
 	}
 
@@ -2925,7 +2925,7 @@ func TestMetaBackend_planLocalMatch(t *testing.T) {
 
 	// Create the plan
 	plan := &terraform.Plan{
-		Module: testModule(t, "backend-plan-local-match"),
+		Config: testModule(t, "backend-plan-local-match"),
 		State:  testStateRead(t, DefaultStateFilename),
 	}
 
@@ -3018,7 +3018,7 @@ func TestMetaBackend_planLocalMismatchLineage(t *testing.T) {
 
 	// Create the plan
 	plan := &terraform.Plan{
-		Module: testModule(t, "backend-plan-local-mismatch-lineage"),
+		Config: testModule(t, "backend-plan-local-mismatch-lineage"),
 		State:  planState,
 	}
 
@@ -3070,7 +3070,7 @@ func TestMetaBackend_planLocalNewer(t *testing.T) {
 
 	// Create the plan
 	plan := &terraform.Plan{
-		Module: testModule(t, "backend-plan-local-newer"),
+		Config: testModule(t, "backend-plan-local-newer"),
 		State:  planState,
 	}
 
@@ -3124,7 +3124,7 @@ func TestMetaBackend_planBackendEmptyDir(t *testing.T) {
 
 	// Create the plan
 	plan := &terraform.Plan{
-		Module:  testModule(t, "backend-plan-backend-empty-config"),
+		Config:  testModule(t, "backend-plan-backend-empty-config"),
 		State:   planState,
 		Backend: backendState.Backend,
 	}
@@ -3226,7 +3226,7 @@ func TestMetaBackend_planBackendMatch(t *testing.T) {
 
 	// Create the plan
 	plan := &terraform.Plan{
-		Module:  testModule(t, "backend-plan-backend-empty-config"),
+		Config:  testModule(t, "backend-plan-backend-empty-config"),
 		State:   planState,
 		Backend: backendState.Backend,
 	}
@@ -3331,7 +3331,7 @@ func TestMetaBackend_planBackendMismatchLineage(t *testing.T) {
 
 	// Create the plan
 	plan := &terraform.Plan{
-		Module:  testModule(t, "backend-plan-backend-empty-config"),
+		Config:  testModule(t, "backend-plan-backend-empty-config"),
 		State:   planState,
 		Backend: backendState.Backend,
 	}
@@ -3390,7 +3390,7 @@ func TestMetaBackend_planLegacy(t *testing.T) {
 
 	// Create the plan
 	plan := &terraform.Plan{
-		Module: testModule(t, "backend-plan-legacy-data"),
+		Config: testModule(t, "backend-plan-legacy-data"),
 		State:  planState,
 	}
 
