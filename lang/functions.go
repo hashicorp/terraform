@@ -31,8 +31,8 @@ func (s *Scope) Functions() map[string]function.Function {
 			"abs":          stdlib.AbsoluteFunc,
 			"basename":     funcs.BasenameFunc,
 			"base64decode": funcs.Base64DecodeFunc,
-			"base64encode": unimplFunc, // TODO
-			"base64gzip":   unimplFunc, // TODO
+			"base64encode": funcs.Base64EncodeFunc,
+			"base64gzip":   funcs.Base64GzipFunc,
 			"base64sha256": unimplFunc, // TODO
 			"base64sha512": unimplFunc, // TODO
 			"bcrypt":       unimplFunc, // TODO
@@ -86,12 +86,12 @@ func (s *Scope) Functions() map[string]function.Function {
 			"split":        funcs.SplitFunc,
 			"substr":       stdlib.SubstrFunc,
 			"timestamp":    funcs.TimestampFunc,
-			"timeadd":      funs.TimeaddFunc,
+			"timeadd":      funcs.TimeAddFunc,
 			"title":        unimplFunc, // TODO
 			"transpose":    unimplFunc, // TODO
 			"trimspace":    unimplFunc, // TODO
 			"upper":        stdlib.UpperFunc,
-			"urlencode":    unimplFunc, // TODO
+			"urlencode":    funcs.UrlEncodeFunc,
 			"uuid":         funcs.UUIDFunc,
 			"zipmap":       unimplFunc, // TODO
 		}
