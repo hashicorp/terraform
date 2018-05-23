@@ -39,9 +39,9 @@ func (s *Scope) Functions() map[string]function.Function {
 			"bcrypt":       funcs.BcryptFunc,
 			"ceil":         funcs.CeilFunc,
 			"chomp":        funcs.ChompFunc,
-			"cidrhost":     unimplFunc, // TODO
-			"cidrnetmask":  unimplFunc, // TODO
-			"cidrsubnet":   unimplFunc, // TODO
+			"cidrhost":     funcs.CidrHostFunc,
+			"cidrnetmask":  funcs.CidrNetmaskFunc,
+			"cidrsubnet":   funcs.CidrSubnetFunc,
 			"coalesce":     stdlib.CoalesceFunc,
 			"coalescelist": unimplFunc, // TODO
 			"compact":      unimplFunc, // TODO
@@ -59,8 +59,8 @@ func (s *Scope) Functions() map[string]function.Function {
 			"floor":        funcs.FloorFunc,
 			"format":       stdlib.FormatFunc,
 			"formatlist":   stdlib.FormatListFunc,
-			"indent":       unimplFunc, // TODO
-			"index":        funcs.IndentFunc,
+			"indent":       funcs.IndentFunc,
+			"index":        unimplFunc, // TODO
 			"join":         funcs.JoinFunc,
 			"jsondecode":   stdlib.JSONDecodeFunc,
 			"jsonencode":   stdlib.JSONEncodeFunc,
@@ -82,7 +82,7 @@ func (s *Scope) Functions() map[string]function.Function {
 			"sha1":         funcs.Sha1Func,
 			"sha256":       funcs.Sha256Func,
 			"sha512":       funcs.Sha512Func,
-			"signum":       unimplFunc, // TODO
+			"signum":       funcs.SignumFunc,
 			"slice":        unimplFunc, // TODO
 			"sort":         funcs.SortFunc,
 			"split":        funcs.SplitFunc,
@@ -91,7 +91,7 @@ func (s *Scope) Functions() map[string]function.Function {
 			"timeadd":      funcs.TimeAddFunc,
 			"title":        funcs.TitleFunc,
 			"transpose":    unimplFunc, // TODO
-			"trimspace":    funcs.TrimSpace,
+			"trimspace":    funcs.TrimSpaceFunc,
 			"upper":        stdlib.UpperFunc,
 			"urlencode":    funcs.URLEncodeFunc,
 			"uuid":         funcs.UUIDFunc,
