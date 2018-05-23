@@ -38,7 +38,7 @@ func (s *Scope) Functions() map[string]function.Function {
 			"base64sha512": funcs.Base64Sha512Func,
 			"bcrypt":       funcs.BcryptFunc,
 			"ceil":         funcs.CeilFunc,
-			"chomp":        unimplFunc, // TODO
+			"chomp":        funcs.ChompFunc,
 			"cidrhost":     unimplFunc, // TODO
 			"cidrnetmask":  unimplFunc, // TODO
 			"cidrsubnet":   unimplFunc, // TODO
@@ -56,7 +56,7 @@ func (s *Scope) Functions() map[string]function.Function {
 			"filebase64":   funcs.MakeFileFunc(s.BaseDir, true),
 			"matchkeys":    unimplFunc, // TODO
 			"flatten":      unimplFunc, // TODO
-			"floor":        unimplFunc, // TODO
+			"floor":        funcs.FloorFunc,
 			"format":       stdlib.FormatFunc,
 			"formatlist":   stdlib.FormatListFunc,
 			"indent":       unimplFunc, // TODO
@@ -67,7 +67,7 @@ func (s *Scope) Functions() map[string]function.Function {
 			"keys":         unimplFunc, // TODO
 			"length":       funcs.LengthFunc,
 			"list":         unimplFunc, // TODO
-			"log":          unimplFunc, // TODO
+			"log":          funcs.LogFunc,
 			"lookup":       unimplFunc, // TODO
 			"lower":        stdlib.LowerFunc,
 			"map":          unimplFunc, // TODO
@@ -76,7 +76,7 @@ func (s *Scope) Functions() map[string]function.Function {
 			"merge":        unimplFunc, // TODO
 			"min":          stdlib.MinFunc,
 			"pathexpand":   funcs.PathExpandFunc,
-			"pow":          unimplFunc, // TODO
+			"pow":          funcs.PowFunc,
 			"replace":      unimplFunc, // TODO
 			"rsadecrypt":   funcs.RsaDecryptFunc,
 			"sha1":         funcs.Sha1Func,

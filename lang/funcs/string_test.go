@@ -244,3 +244,66 @@ func TestSplit(t *testing.T) {
 		})
 	}
 }
+
+func TestChomp(t *testing.T) {
+	tests := []struct {
+		String cty.Value
+		Want   cty.Value
+		Err    bool
+	}{
+		{
+			cty.StringVal("hello world"),
+			cty.StringVal("hello world"),
+			false,
+		},
+		{
+			cty.StringVal("goodbye\ncruel\nworld"),
+			cty.StringVal("goodbye\ncruel\nworld"),
+			false,
+		},
+		{
+			cty.StringVal("goodbye\r\nwindows\r\nworld"),
+			cty.StringVal("goodbye\r\nwindows\r\nworld"),
+			false,
+		},
+		{
+			cty.StringVal("goodbye\ncruel\nworld\n"),
+			cty.StringVal("goodbye\ncruel\nworld"),
+			false,
+		},
+		{
+			cty.StringVal("goodbye\ncruel\nworld\n\n\n\n"),
+			cty.StringVal("goodbye\ncruel\nworld"),
+			false,
+		},
+		{
+			cty.StringVal("goodbye\r\nwindows\r\nworld\r\n"),
+			cty.StringVal("goodbye\r\nwindows\r\nworld"),
+			false,
+		},
+		{
+			cty.StringVal("goodbye\r\nwindows\r\nworld\r\n\r\n\r\n\r\n"),
+			cty.StringVal("goodbye\r\nwindows\r\nworld"),
+			false,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(fmt.Sprintf("chomp(%#v)", test.String), func(t *testing.T) {
+			got, err := Chomp(test.String)
+
+			if test.Err {
+				if err == nil {
+					t.Fatal("succeeded; want error")
+				}
+				return
+			} else if err != nil {
+				t.Fatalf("unexpected error: %s", err)
+			}
+
+			if !got.RawEquals(test.Want) {
+				t.Errorf("wrong result\ngot:  %#v\nwant: %#v", got, test.Want)
+			}
+		})
+	}
+}
