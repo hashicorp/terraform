@@ -1067,7 +1067,7 @@ STATE:
 const testTerraformPlanComputedMultiIndexStr = `
 DIFF:
 
-CREATE: aws_instance.bar
+CREATE: aws_instance.bar.0
   foo:  "" => "<computed>"
   type: "" => "aws_instance"
 CREATE: aws_instance.foo.0
@@ -1146,7 +1146,7 @@ DIFF:
 CREATE: aws_instance.bar
   foo:  "" => "foo"
   type: "" => "aws_instance"
-CREATE: aws_instance.foo
+CREATE: aws_instance.foo.0
   foo:  "" => "foo"
   type: "" => "aws_instance"
 
