@@ -64,6 +64,20 @@ func flatmapValueFromHCL2Primitive(m map[string]string, key string, val cty.Valu
 }
 
 func flatmapValueFromHCL2Map(m map[string]string, prefix string, val cty.Value) {
+	if !val.IsKnown() {
+		switch {
+		case val.Type().IsObjectType():
+			// Whole objects can't be unknown in flatmap, so instead we'll
+			// just write all of the attribute values out as unknown.
+			for name, aty := range val.Type().AttributeTypes() {
+				flatmapValueFromHCL2Value(m, prefix+name, cty.UnknownVal(aty))
+			}
+		default:
+			m[prefix+"%"] = UnknownVariableValue
+		}
+		return
+	}
+
 	len := 0
 	for it := val.ElementIterator(); it.Next(); {
 		ak, av := it.Element()
@@ -77,6 +91,11 @@ func flatmapValueFromHCL2Map(m map[string]string, prefix string, val cty.Value) 
 }
 
 func flatmapValueFromHCL2Seq(m map[string]string, prefix string, val cty.Value) {
+	if !val.IsKnown() {
+		m[prefix+"#"] = UnknownVariableValue
+		return
+	}
+
 	// For sets this won't actually generate exactly what helper/schema would've
 	// generated, because we don't have access to the set key function it
 	// would've used. However, in practice it doesn't actually matter what the
@@ -150,6 +169,9 @@ func hcl2ValueFromFlatmapPrimitive(m map[string]string, key string, ty cty.Type)
 	if !exists {
 		return cty.NullVal(ty), nil
 	}
+	if rawVal == UnknownVariableValue {
+		return cty.UnknownVal(ty), nil
+	}
 
 	var err error
 	val := cty.StringVal(rawVal)
@@ -182,6 +204,10 @@ func hcl2ValueFromFlatmapTuple(m map[string]string, prefix string, etys []cty.Ty
 	if !exists {
 		return cty.NullVal(cty.Tuple(etys)), nil
 	}
+	if countStr == UnknownVariableValue {
+		return cty.UnknownVal(cty.Tuple(etys)), nil
+	}
+
 	count, err := strconv.Atoi(countStr)
 	if err != nil {
 		return cty.DynamicVal, fmt.Errorf("invalid count value for %q in state: %s", prefix, err)
@@ -209,8 +235,10 @@ func hcl2ValueFromFlatmapMap(m map[string]string, prefix string, ty cty.Type) (c
 	// We actually don't really care about the "count" of a map for our
 	// purposes here, but we do need to check if it _exists_ in order to
 	// recognize the difference between null (not set at all) and empty.
-	if _, exists := m[prefix+"%"]; !exists {
+	if strCount, exists := m[prefix+"%"]; !exists {
 		return cty.NullVal(ty), nil
+	} else if strCount == UnknownVariableValue {
+		return cty.UnknownVal(ty), nil
 	}
 
 	for fullKey := range m {
@@ -249,6 +277,10 @@ func hcl2ValueFromFlatmapList(m map[string]string, prefix string, ty cty.Type) (
 	if !exists {
 		return cty.NullVal(ty), nil
 	}
+	if countStr == UnknownVariableValue {
+		return cty.UnknownVal(ty), nil
+	}
+
 	count, err := strconv.Atoi(countStr)
 	if err != nil {
 		return cty.DynamicVal, fmt.Errorf("invalid count value for %q in state: %s", prefix, err)
@@ -279,8 +311,10 @@ func hcl2ValueFromFlatmapSet(m map[string]string, prefix string, ty cty.Type) (c
 	// We actually don't really care about the "count" of a set for our
 	// purposes here, but we do need to check if it _exists_ in order to
 	// recognize the difference between null (not set at all) and empty.
-	if _, exists := m[prefix+"#"]; !exists {
+	if strCount, exists := m[prefix+"#"]; !exists {
 		return cty.NullVal(ty), nil
+	} else if strCount == UnknownVariableValue {
+		return cty.UnknownVal(ty), nil
 	}
 
 	for fullKey := range m {
