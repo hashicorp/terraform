@@ -265,7 +265,7 @@ func TestContext2Plan_moduleCycle(t *testing.T) {
 		ResourceTypes: map[string]*configschema.Block{
 			"aws_instance": {
 				Attributes: map[string]*configschema.Attribute{
-					"id": {Type: cty.String, Computed: true},
+					"id":         {Type: cty.String, Computed: true},
 					"some_input": {Type: cty.String, Optional: true},
 				},
 			},
@@ -1874,7 +1874,7 @@ func TestContext2Plan_countVar(t *testing.T) {
 			},
 		),
 		Variables: InputValues{
-			"count": &InputValue{
+			"instance_count": &InputValue{
 				Value:      cty.StringVal("3"),
 				SourceType: ValueFromCaller,
 			},
