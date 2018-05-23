@@ -19,8 +19,8 @@ import (
 	"syscall"
 	"testing"
 
-	backendInit "github.com/hashicorp/terraform/backend/init"
-	"github.com/hashicorp/terraform/config/module"
+	"github.com/hashicorp/terraform/configs"
+	"github.com/hashicorp/terraform/configs/configload"
 	"github.com/hashicorp/terraform/helper/logging"
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -113,21 +113,30 @@ func metaOverridesForProviderAndProvisioner(p terraform.ResourceProvider, pr ter
 	}
 }
 
-func testModule(t *testing.T, name string) *module.Tree {
+func testModule(t *testing.T, name string) *configs.Config {
 	t.Helper()
 
-	mod, err := module.NewTreeModule("", filepath.Join(fixtureDir, name))
-	if err != nil {
-		t.Fatalf("err: %s", err)
+	dir := filepath.Join(fixtureDir, name)
+
+	// FIXME: We're not dealing with the cleanup function here because
+	// this testModule function is used all over and so we don't want to
+	// change its interface at this late stage.
+	loader, _ := configload.NewLoaderForTests(t)
+
+	// Test modules usually do not refer to remote sources, and for local
+	// sources only this ultimately just records all of the module paths
+	// in a JSON file so that we can load them below.
+	diags := loader.InstallModules(dir, true, configload.InstallHooksImpl{})
+	if diags.HasErrors() {
+		t.Fatal(diags.Error())
 	}
 
-	s := module.NewStorage(tempDir(t), nil)
-	s.Mode = module.GetModeGet
-	if err := mod.Load(s); err != nil {
-		t.Fatalf("err: %s", err)
+	config, diags := loader.LoadConfig(dir)
+	if diags.HasErrors() {
+		t.Fatal(diags.Error())
 	}
 
-	return mod
+	return config
 }
 
 // testPlan returns a non-nil noop plan.
@@ -141,7 +150,7 @@ func testPlan(t *testing.T) *terraform.Plan {
 	}
 
 	return &terraform.Plan{
-		Module: testModule(t, "apply"),
+		Config: testModule(t, "apply"),
 		State:  state,
 	}
 }
