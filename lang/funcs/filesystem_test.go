@@ -41,10 +41,8 @@ func TestFile(t *testing.T) {
 					t.Fatal("succeeded; want error")
 				}
 				return
-			} else {
-				if err != nil {
-					t.Fatalf("unexpected error: %s", err)
-				}
+			} else if err != nil {
+				t.Fatalf("unexpected error: %s", err)
 			}
 
 			if !got.RawEquals(test.Want) {
@@ -86,10 +84,8 @@ func TestFileBase64(t *testing.T) {
 					t.Fatal("succeeded; want error")
 				}
 				return
-			} else {
-				if err != nil {
-					t.Fatalf("unexpected error: %s", err)
-				}
+			} else if err != nil {
+				t.Fatalf("unexpected error: %s", err)
 			}
 
 			if !got.RawEquals(test.Want) {
@@ -131,10 +127,8 @@ func TestBasename(t *testing.T) {
 					t.Fatal("succeeded; want error")
 				}
 				return
-			} else {
-				if err != nil {
-					t.Fatalf("unexpected error: %s", err)
-				}
+			} else if err != nil {
+				t.Fatalf("unexpected error: %s", err)
 			}
 
 			if !got.RawEquals(test.Want) {
@@ -181,10 +175,8 @@ func TestDirname(t *testing.T) {
 					t.Fatal("succeeded; want error")
 				}
 				return
-			} else {
-				if err != nil {
-					t.Fatalf("unexpected error: %s", err)
-				}
+			} else if err != nil {
+				t.Fatalf("unexpected error: %s", err)
 			}
 
 			if !got.RawEquals(test.Want) {
@@ -236,10 +228,8 @@ func TestPathExpand(t *testing.T) {
 					t.Fatal("succeeded; want error")
 				}
 				return
-			} else {
-				if err != nil {
-					t.Fatalf("unexpected error: %s", err)
-				}
+			} else if err != nil {
+				t.Fatalf("unexpected error: %s", err)
 			}
 
 			if !got.RawEquals(test.Want) {
