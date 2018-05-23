@@ -185,7 +185,8 @@ func (d *Diff) String() string {
 	keys := make([]string, 0, len(d.Modules))
 	lookup := make(map[string]*ModuleDiff)
 	for _, m := range d.Modules {
-		key := fmt.Sprintf("module.%s", strings.Join(m.Path[1:], "."))
+		addr := normalizeModulePath(m.Path)
+		key := addr.String()
 		keys = append(keys, key)
 		lookup[key] = m
 	}
