@@ -50,9 +50,10 @@ func TestLocal(t *testing.T) (*Local, func()) {
 
 // TestLocalProvider modifies the ContextOpts of the *Local parameter to
 // have a provider with the given name.
-func TestLocalProvider(t *testing.T, b *Local, name string) *terraform.MockResourceProvider {
+func TestLocalProvider(t *testing.T, b *Local, name string, schema *terraform.ProviderSchema) *terraform.MockResourceProvider {
 	// Build a mock resource provider for in-memory operations
 	p := new(terraform.MockResourceProvider)
+	p.GetSchemaReturn = schema
 	p.DiffReturn = &terraform.InstanceDiff{}
 	p.RefreshFn = func(
 		info *terraform.InstanceInfo,
