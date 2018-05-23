@@ -1,6 +1,7 @@
-variable "count" {}
+variable "num" {
+}
 
 module "child" {
     source = "./child"
-    count = "${var.count}"
+    num = "${var.num}"
 }

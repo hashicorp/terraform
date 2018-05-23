@@ -3,5 +3,5 @@ resource "aws_instance" "foo" {
 }
 
 resource "aws_instance" "bar" {
-  instances = ["${aws_instance.foo.*.id}"]
+  foo = ["${aws_instance.foo.*.id}"]
 }
