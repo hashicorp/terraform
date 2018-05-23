@@ -89,8 +89,7 @@ var URLEncodeFunc = function.New(&function.Spec{
 
 // Base64Decode decodes a string containing a base64 sequence.
 //
-// Terraform uses the "standard" Base64 alphabet as defined in
-// [RFC 4648 section 4](https://tools.ietf.org/html/rfc4648#section-4).
+// Terraform uses the "standard" Base64 alphabet as defined in RFC 4648 section 4.
 //
 // Strings in the Terraform language are sequences of unicode characters rather
 // than bytes, so this function will also interpret the resulting bytes as
@@ -102,8 +101,7 @@ func Base64Decode(str cty.Value) (cty.Value, error) {
 
 // Base64Encode applies Base64 encoding to a string.
 //
-// Terraform uses the "standard" Base64 alphabet as defined in
-// [RFC 4648 section 4](https://tools.ietf.org/html/rfc4648#section-4).
+// Terraform uses the "standard" Base64 alphabet as defined in RFC 4648 section 4.
 //
 // Strings in the Terraform language are sequences of unicode characters rather
 // than bytes, so this function will first encode the characters from the string
@@ -112,11 +110,11 @@ func Base64Encode(str cty.Value) (cty.Value, error) {
 	return Base64EncodeFunc.Call([]cty.Value{str})
 }
 
-// Base64gzip compresses a string with gzip and then encodes the result in
+// Base64Gzip compresses a string with gzip and then encodes the result in
 // Base64 encoding.
 //
-// Terraform uses the "standard" Base64 alphabet as defined in
-// [RFC 4648 section 4](https://tools.ietf.org/html/rfc4648#section-4)
+// Terraform uses the "standard" Base64 alphabet as defined in RFC 4648 section 4.
+//
 // Strings in the Terraform language are sequences of unicode characters rather
 // than bytes, so this function will first encode the characters from the string
 // as UTF-8, then apply gzip compression, and then finally apply Base64 encoding.
@@ -124,12 +122,11 @@ func Base64Gzip(str cty.Value) (cty.Value, error) {
 	return Base64GzipFunc.Call([]cty.Value{str})
 }
 
-// UrlEncode applies URL encoding to a given string.
+// URLEncode applies URL encoding to a given string.
 //
 // This function identifies characters in the given string that would have a
 // special meaning when included as a query string argument in a URL and
-// escapes them using
-// [RFC 3986 "percent encoding"](https://tools.ietf.org/html/rfc3986#section-2.1).
+// escapes them using RFC 3986 "percent encoding".
 //
 // If the given string contains non-ASCII characters, these are first encoded as
 // UTF-8 and then percent encoding is applied separately to each UTF-8 byte.
