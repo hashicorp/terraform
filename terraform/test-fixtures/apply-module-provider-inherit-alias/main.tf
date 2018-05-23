@@ -1,5 +1,5 @@
 provider "aws" {
-    root = "1"
+    root = 1
 }
 
 provider "aws" {
@@ -9,4 +9,7 @@ provider "aws" {
 
 module "child" {
     source = "./child"
+    providers = {
+      "aws.eu" = "aws.eu"
+    }
 }
