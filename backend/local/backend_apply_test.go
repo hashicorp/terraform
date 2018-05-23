@@ -11,16 +11,18 @@ import (
 	"testing"
 
 	"github.com/hashicorp/terraform/backend"
+	"github.com/hashicorp/terraform/config/configschema"
 	"github.com/hashicorp/terraform/configs/configload"
 	"github.com/hashicorp/terraform/state"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/mitchellh/cli"
+	"github.com/zclconf/go-cty/cty"
 )
 
 func TestLocal_applyBasic(t *testing.T) {
 	b, cleanup := TestLocal(t)
 	defer cleanup()
-	p := TestLocalProvider(t, b, "test")
+	p := TestLocalProvider(t, b, "test", applyFixtureSchema())
 
 	p.ApplyReturn = &terraform.InstanceState{ID: "yes"}
 
@@ -59,7 +61,7 @@ func TestLocal_applyEmptyDir(t *testing.T) {
 	b, cleanup := TestLocal(t)
 	defer cleanup()
 
-	p := TestLocalProvider(t, b, "test")
+	p := TestLocalProvider(t, b, "test", &terraform.ProviderSchema{})
 
 	p.ApplyReturn = &terraform.InstanceState{ID: "yes"}
 
@@ -87,7 +89,7 @@ func TestLocal_applyEmptyDir(t *testing.T) {
 func TestLocal_applyEmptyDirDestroy(t *testing.T) {
 	b, cleanup := TestLocal(t)
 	defer cleanup()
-	p := TestLocalProvider(t, b, "test")
+	p := TestLocalProvider(t, b, "test", &terraform.ProviderSchema{})
 
 	p.ApplyReturn = nil
 
@@ -114,10 +116,20 @@ func TestLocal_applyEmptyDirDestroy(t *testing.T) {
 func TestLocal_applyError(t *testing.T) {
 	b, cleanup := TestLocal(t)
 	defer cleanup()
-	p := TestLocalProvider(t, b, "test")
+	p := TestLocalProvider(t, b, "test", nil)
 
 	var lock sync.Mutex
 	errored := false
+	p.GetSchemaReturn = &terraform.ProviderSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"test_instance": {
+				Attributes: map[string]*configschema.Attribute{
+					"ami":   {Type: cty.String, Optional: true},
+					"error": {Type: cty.String, Optional: true},
+				},
+			},
+		},
+	}
 	p.ApplyFn = func(
 		info *terraform.InstanceInfo,
 		s *terraform.InstanceState,
@@ -183,7 +195,7 @@ func TestLocal_applyBackendFail(t *testing.T) {
 
 	b.Backend = &backendWithFailingState{}
 	b.CLI = new(cli.MockUi)
-	p := TestLocalProvider(t, b, "test")
+	p := TestLocalProvider(t, b, "test", applyFixtureSchema())
 
 	p.ApplyReturn = &terraform.InstanceState{ID: "yes"}
 
@@ -198,7 +210,7 @@ func TestLocal_applyBackendFail(t *testing.T) {
 
 	msgStr := b.CLI.(*cli.MockUi).ErrorWriter.String()
 	if !strings.Contains(msgStr, "Failed to save state: fake failure") {
-		t.Fatalf("missing original error message in output:\n%s", msgStr)
+		t.Fatalf("missing \"fake failure\" message in output:\n%s", msgStr)
 	}
 
 	// The fallback behavior should've created a file errored.tfstate in the
@@ -256,6 +268,21 @@ func testApplyState() *terraform.State {
 							ID: "bar",
 						},
 					},
+				},
+			},
+		},
+	}
+}
+
+// applyFixtureSchema returns a schema suitable for processing the
+// configuration in test-fixtures/apply . This schema should be
+// assigned to a mock provider named "test".
+func applyFixtureSchema() *terraform.ProviderSchema {
+	return &terraform.ProviderSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"test_instance": {
+				Attributes: map[string]*configschema.Attribute{
+					"ami": {Type: cty.String, Optional: true},
 				},
 			},
 		},
