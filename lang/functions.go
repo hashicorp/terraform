@@ -60,7 +60,7 @@ func (s *Scope) Functions() map[string]function.Function {
 			"format":       stdlib.FormatFunc,
 			"formatlist":   stdlib.FormatListFunc,
 			"indent":       unimplFunc, // TODO
-			"index":        unimplFunc, // TODO
+			"index":        funcs.IndentFunc,
 			"join":         funcs.JoinFunc,
 			"jsondecode":   stdlib.JSONDecodeFunc,
 			"jsonencode":   stdlib.JSONEncodeFunc,
@@ -77,7 +77,7 @@ func (s *Scope) Functions() map[string]function.Function {
 			"min":          stdlib.MinFunc,
 			"pathexpand":   funcs.PathExpandFunc,
 			"pow":          funcs.PowFunc,
-			"replace":      unimplFunc, // TODO
+			"replace":      funcs.ReplaceFunc,
 			"rsadecrypt":   funcs.RsaDecryptFunc,
 			"sha1":         funcs.Sha1Func,
 			"sha256":       funcs.Sha256Func,
@@ -89,9 +89,9 @@ func (s *Scope) Functions() map[string]function.Function {
 			"substr":       stdlib.SubstrFunc,
 			"timestamp":    funcs.TimestampFunc,
 			"timeadd":      funcs.TimeAddFunc,
-			"title":        unimplFunc, // TODO
+			"title":        funcs.TitleFunc,
 			"transpose":    unimplFunc, // TODO
-			"trimspace":    unimplFunc, // TODO
+			"trimspace":    funcs.TrimSpace,
 			"upper":        stdlib.UpperFunc,
 			"urlencode":    funcs.URLEncodeFunc,
 			"uuid":         funcs.UUIDFunc,
