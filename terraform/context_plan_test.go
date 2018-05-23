@@ -1758,7 +1758,7 @@ func TestContext2Plan_countComputedModule(t *testing.T) {
 
 	_, err := ctx.Plan()
 
-	expectedErr := "a number is required"
+	expectedErr := `The "count" value depends on resource attributes`
 	if !strings.Contains(fmt.Sprintf("%s", err), expectedErr) {
 		t.Fatalf("expected err would contain %q\nerr: %s\n",
 			expectedErr, err)
