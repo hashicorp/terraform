@@ -8,6 +8,7 @@ import (
 
 	"github.com/zclconf/go-cty/cty"
 	"github.com/zclconf/go-cty/cty/function"
+	"github.com/zclconf/go-cty/cty/gocty"
 )
 
 var JoinFunc = function.New(&function.Spec{
@@ -126,6 +127,99 @@ var ChompFunc = function.New(&function.Spec{
 	},
 })
 
+// IndentFunc constructions a function that adds a given number of spaces to the
+// beginnings of all but the first line in a given multi-line string.
+var IndentFunc = function.New(&function.Spec{
+	Params: []function.Parameter{
+		{
+			Name: "spaces",
+			Type: cty.Number,
+		},
+		{
+			Name: "str",
+			Type: cty.String,
+		},
+	},
+	Type: function.StaticReturnType(cty.String),
+	Impl: func(args []cty.Value, retType cty.Type) (ret cty.Value, err error) {
+		var spaces int
+		if err := gocty.FromCtyValue(args[0], &spaces); err != nil {
+			return cty.UnknownVal(cty.String), err
+		}
+		data := args[1].AsString()
+		pad := strings.Repeat(" ", spaces)
+		return cty.StringVal(strings.Replace(data, "\n", "\n"+pad, -1)), nil
+	},
+})
+
+// ReplaceFunc constructions a function that searches a given string for another
+// given substring, and replaces each occurence with a given replacement string.
+var ReplaceFunc = function.New(&function.Spec{
+	Params: []function.Parameter{
+		{
+			Name: "str",
+			Type: cty.String,
+		},
+		{
+			Name: "substr",
+			Type: cty.String,
+		},
+		{
+			Name: "replace",
+			Type: cty.String,
+		},
+	},
+	Type: function.StaticReturnType(cty.String),
+	Impl: func(args []cty.Value, retType cty.Type) (ret cty.Value, err error) {
+		str := args[0].AsString()
+		substr := args[1].AsString()
+		replace := args[2].AsString()
+
+		// We search/replace using a regexp if the string is surrounded
+		// in forward slashes.
+		if len(substr) > 1 && substr[0] == '/' && substr[len(substr)-1] == '/' {
+			re, err := regexp.Compile(substr[1 : len(substr)-1])
+			if err != nil {
+				return cty.UnknownVal(cty.String), err
+			}
+
+			return cty.StringVal(re.ReplaceAllString(str, replace)), nil
+		}
+
+		return cty.StringVal(strings.Replace(str, substr, replace, -1)), nil
+	},
+})
+
+// TitleFunc constructions a function that converts the first letter of each word
+// in the given string to uppercase.
+var TitleFunc = function.New(&function.Spec{
+	Params: []function.Parameter{
+		{
+			Name: "str",
+			Type: cty.String,
+		},
+	},
+	Type: function.StaticReturnType(cty.String),
+	Impl: func(args []cty.Value, retType cty.Type) (ret cty.Value, err error) {
+		return cty.StringVal(strings.Title(args[0].AsString())), nil
+	},
+})
+
+// TrimSpaceFunc constructions a function that removes any space characters from
+// the start and end of the given string.
+var TrimSpaceFunc = function.New(&function.Spec{
+	Params: []function.Parameter{
+		{
+			Name: "str",
+			Type: cty.String,
+		},
+	},
+	Type: function.StaticReturnType(cty.String),
+	Impl: func(args []cty.Value, retType cty.Type) (ret cty.Value, err error) {
+		return cty.StringVal(strings.TrimSpace(args[0].AsString())), nil
+	},
+})
+
 // Join concatenates together the string elements of one or more lists with a
 // given separator.
 func Join(sep cty.Value, lists ...cty.Value) (cty.Value, error) {
@@ -150,4 +244,26 @@ func Split(sep, str cty.Value) (cty.Value, error) {
 // Chomp removes newline characters at the end of a string.
 func Chomp(str cty.Value) (cty.Value, error) {
 	return ChompFunc.Call([]cty.Value{str})
+}
+
+// Indent adds a given number of spaces to the beginnings of all but the first
+// line in a given multi-line string.
+func Indent(spaces, str cty.Value) (cty.Value, error) {
+	return IndentFunc.Call([]cty.Value{spaces, str})
+}
+
+// Replace searches a given string for another given substring,
+// and replaces all occurences with a given replacement string.
+func Replace(str, substr, replace cty.Value) (cty.Value, error) {
+	return ReplaceFunc.Call([]cty.Value{str, substr, replace})
+}
+
+// Title converts the first letter of each word in the given string to uppercase.
+func Title(str cty.Value) (cty.Value, error) {
+	return TitleFunc.Call([]cty.Value{str})
+}
+
+// TrimSpace removes any space characters from the start and end of the given string.
+func TrimSpace(str cty.Value) (cty.Value, error) {
+	return TrimSpaceFunc.Call([]cty.Value{str})
 }
