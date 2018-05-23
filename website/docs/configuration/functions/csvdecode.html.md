@@ -6,7 +6,7 @@ description: |-
   The csvdecode function decodes CSV data into a list of maps.
 ---
 
-# `base64decode` Function
+# `csvdecode` Function
 
 `csvdecode` decodes a string containing CSV-formatted data and produces a
 list of maps representing that data.
