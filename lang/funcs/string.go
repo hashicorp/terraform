@@ -2,6 +2,7 @@ package funcs
 
 import (
 	"fmt"
+	"regexp"
 	"sort"
 	"strings"
 
@@ -110,6 +111,21 @@ var SplitFunc = function.New(&function.Spec{
 	},
 })
 
+// ChompFunc constructions a function that removes newline characters at the end of a string.
+var ChompFunc = function.New(&function.Spec{
+	Params: []function.Parameter{
+		{
+			Name: "str",
+			Type: cty.String,
+		},
+	},
+	Type: function.StaticReturnType(cty.String),
+	Impl: func(args []cty.Value, retType cty.Type) (ret cty.Value, err error) {
+		newlines := regexp.MustCompile(`(?:\r\n?|\n)*\z`)
+		return cty.StringVal(newlines.ReplaceAllString(args[0].AsString(), "")), nil
+	},
+})
+
 // Join concatenates together the string elements of one or more lists with a
 // given separator.
 func Join(sep cty.Value, lists ...cty.Value) (cty.Value, error) {
@@ -129,4 +145,9 @@ func Sort(list cty.Value) (cty.Value, error) {
 // strings containing the characters between the separator sequences.
 func Split(sep, str cty.Value) (cty.Value, error) {
 	return SplitFunc.Call([]cty.Value{sep, str})
+}
+
+// Chomp removes newline characters at the end of a string.
+func Chomp(str cty.Value) (cty.Value, error) {
+	return ChompFunc.Call([]cty.Value{str})
 }
