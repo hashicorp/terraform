@@ -401,6 +401,10 @@ func testProvisioner() *MockResourceProvisioner {
 				Type:     cty.String,
 				Optional: true,
 			},
+			"when": {
+				Type:     cty.String,
+				Optional: true,
+			},
 		},
 	}
 	return p
@@ -462,6 +466,14 @@ func testProviderSchema(name string) *ProviderSchema {
 				},
 				"foo": {
 					Type:     cty.String,
+					Optional: true,
+				},
+				"value": {
+					Type:     cty.String,
+					Optional: true,
+				},
+				"root": {
+					Type:     cty.Number,
 					Optional: true,
 				},
 			},
@@ -584,8 +596,8 @@ func testProviderSchema(name string) *ProviderSchema {
 						Optional: true,
 					},
 					"output": {
-						Type:     cty.String,
-						Optional: true,
+						Type:     cty.Map(cty.String),
+						Computed: true,
 					},
 				},
 			},
@@ -627,6 +639,10 @@ func testProviderSchema(name string) *ProviderSchema {
 					},
 					"foo": {
 						Type:     cty.String,
+						Optional: true,
+					},
+					"output": {
+						Type:     cty.Map(cty.String),
 						Optional: true,
 					},
 				},
