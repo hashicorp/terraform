@@ -190,6 +190,44 @@ var Sha1Func = function.New(&function.Spec{
 	},
 })
 
+// Sha256Func contructs a function that computes the SHA256 hash of a given string
+// and encodes it with hexadecimal digits.
+var Sha256Func = function.New(&function.Spec{
+	Params: []function.Parameter{
+		{
+			Name: "str",
+			Type: cty.String,
+		},
+	},
+	Type: function.StaticReturnType(cty.String),
+	Impl: func(args []cty.Value, retType cty.Type) (ret cty.Value, err error) {
+		s := args[0].AsString()
+		h := sha256.New()
+		h.Write([]byte(s))
+		hash := hex.EncodeToString(h.Sum(nil))
+		return cty.StringVal(hash), nil
+	},
+})
+
+// Sha512Func contructs a function that computes the SHA256 hash of a given string
+// and encodes it with hexadecimal digits.
+var Sha512Func = function.New(&function.Spec{
+	Params: []function.Parameter{
+		{
+			Name: "str",
+			Type: cty.String,
+		},
+	},
+	Type: function.StaticReturnType(cty.String),
+	Impl: func(args []cty.Value, retType cty.Type) (ret cty.Value, err error) {
+		s := args[0].AsString()
+		h := sha256.New()
+		h.Write([]byte(s))
+		hash := hex.EncodeToString(h.Sum(nil))
+		return cty.StringVal(hash), nil
+	},
+})
+
 // UUID generates and returns a Type-4 UUID in the standard hexadecimal string
 // format.
 //
@@ -244,4 +282,14 @@ func RsaDecrypt(ciphertext, privatekey cty.Value) (cty.Value, error) {
 // Sha1 computes the SHA1 hash of a given string and encodes it with hexadecimal digits.
 func Sha1(str cty.Value) (cty.Value, error) {
 	return Sha1Func.Call([]cty.Value{str})
+}
+
+// Sha256 computes the SHA256 hash of a given string and encodes it with hexadecimal digits.
+func Sha256(str cty.Value) (cty.Value, error) {
+	return Sha256Func.Call([]cty.Value{str})
+}
+
+// Sha512 computes the SHA512 hash of a given string and encodes it with hexadecimal digits.
+func Sha512(str cty.Value) (cty.Value, error) {
+	return Sha512Func.Call([]cty.Value{str})
 }
