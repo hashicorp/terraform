@@ -1,16 +1,15 @@
-
-variable "count" {
+variable "num" {
 }
 
 resource "test_thing" "source" {
-  count = "${var.count}"
+  count = "${var.num}"
 
   # The diffFunc in the test exports "name" here too, which we can use
   # to test values that are known during plan.
 }
 
 resource "test_thing" "multi_count_var" {
-  count = "${var.count}"
+  count = "${var.num}"
 
   # Can pluck a single item out of a multi-var
   source_id = "${test_thing.source.*.id[count.index]}"
@@ -53,7 +52,7 @@ resource "test_thing" "whole_splat" {
 module "child" {
   source = "./child"
 
-  count = "${var.count}"
+  count = "${var.num}"
   source_ids = "${test_thing.source.*.id}"
   source_names = "${test_thing.source.*.name}"
 }

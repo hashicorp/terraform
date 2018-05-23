@@ -1,5 +1,8 @@
-variable "pass" {}
-variable "value" {}
+variable "pass" {
+}
+
+variable "value" {
+}
 
 resource "aws_instance" "foo" {
     num = "2"
@@ -17,7 +20,7 @@ resource "aws_instance" "bar" {
         connection {
             user = "superuser"
             port = 2222
-            pass = "${var.pass}"
+            password = "${var.pass}"
         }
     }
 }

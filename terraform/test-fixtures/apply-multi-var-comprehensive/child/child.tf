@@ -1,5 +1,4 @@
-
-variable "count" {
+variable "num" {
 }
 
 variable "source_ids" {
@@ -11,7 +10,7 @@ variable "source_names" {
 }
 
 resource "test_thing" "multi_count_var" {
-  count = "${var.count}"
+  count = "${var.num}"
 
   # Can pluck a single item out of a multi-var
   source_id = "${var.source_ids[count.index]}"

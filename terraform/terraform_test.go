@@ -512,7 +512,7 @@ const testTerraformApplyModuleBoolStr = `
 aws_instance.bar:
   ID = foo
   provider = provider.aws
-  foo = 1
+  foo = true
   type = aws_instance
 
   Dependencies:
@@ -522,7 +522,7 @@ module.child:
   <no state>
   Outputs:
 
-  leader = 1
+  leader = true
 `
 
 const testTerraformApplyModuleDestroyOrderStr = `
@@ -566,6 +566,7 @@ module.child:
 const testTerraformApplyModuleVarRefExistingStr = `
 aws_instance.foo:
   ID = foo
+  provider = provider.aws
   foo = bar
 
 module.child:
@@ -724,7 +725,7 @@ aws_instance.bar:
 aws_instance.foo:
   ID = foo
   provider = provider.aws
-  num = 2
+  value = 2
 `
 
 const testTerraformApplyErrorCreateBeforeDestroyStr = `
@@ -751,7 +752,7 @@ aws_instance.bar:
 aws_instance.foo:
   ID = foo
   provider = provider.aws
-  num = 2
+  value = 2
 `
 
 const testTerraformApplyResourceDependsOnModuleStr = `
