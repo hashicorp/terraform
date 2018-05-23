@@ -10,8 +10,11 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/hashicorp/terraform/addrs"
+	"github.com/davecgh/go-spew/spew"
 	"github.com/zclconf/go-cty/cty"
+
+	"github.com/hashicorp/terraform/addrs"
+	"github.com/hashicorp/terraform/config/configschema"
 )
 
 func TestContext2Plan_basic(t *testing.T) {
@@ -258,7 +261,18 @@ func TestContext2Plan_modules(t *testing.T) {
 func TestContext2Plan_moduleCycle(t *testing.T) {
 	m := testModule(t, "plan-module-cycle")
 	p := testProvider("aws")
+	p.GetSchemaReturn = &ProviderSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"aws_instance": {
+				Attributes: map[string]*configschema.Attribute{
+					"id": {Type: cty.String, Computed: true},
+					"some_input": {Type: cty.String, Optional: true},
+				},
+			},
+		},
+	}
 	p.DiffFn = testDiffFn
+
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
 		ProviderResolver: ResourceProviderResolverFixed(
@@ -403,7 +417,19 @@ func TestContext2Plan_moduleInputFromVar(t *testing.T) {
 func TestContext2Plan_moduleMultiVar(t *testing.T) {
 	m := testModule(t, "plan-module-multi-var")
 	p := testProvider("aws")
+	p.GetSchemaReturn = &ProviderSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"aws_instance": {
+				Attributes: map[string]*configschema.Attribute{
+					"id":  {Type: cty.String, Computed: true},
+					"foo": {Type: cty.String, Optional: true},
+					"baz": {Type: cty.String, Optional: true},
+				},
+			},
+		},
+	}
 	p.DiffFn = testDiffFn
+
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
 		ProviderResolver: ResourceProviderResolverFixed(
@@ -567,6 +593,20 @@ func TestContext2Plan_moduleProviderInherit(t *testing.T) {
 					defer l.Unlock()
 
 					p := testProvider("aws")
+					p.GetSchemaReturn = &ProviderSchema{
+						Provider: &configschema.Block{
+							Attributes: map[string]*configschema.Attribute{
+								"from": {Type: cty.String, Optional: true},
+							},
+						},
+						ResourceTypes: map[string]*configschema.Block{
+							"aws_instance": {
+								Attributes: map[string]*configschema.Attribute{
+									"from": {Type: cty.String, Optional: true},
+								},
+							},
+						},
+					}
 					p.ConfigureFn = func(c *ResourceConfig) error {
 						if v, ok := c.Get("from"); !ok || v.(string) != "root" {
 							return fmt.Errorf("bad")
@@ -620,6 +660,20 @@ func TestContext2Plan_moduleProviderInheritDeep(t *testing.T) {
 
 					var from string
 					p := testProvider("aws")
+
+					p.GetSchemaReturn = &ProviderSchema{
+						Provider: &configschema.Block{
+							Attributes: map[string]*configschema.Attribute{
+								"from": {Type: cty.String, Optional: true},
+							},
+						},
+						ResourceTypes: map[string]*configschema.Block{
+							"aws_instance": {
+								Attributes: map[string]*configschema.Attribute{},
+							},
+						},
+					}
+
 					p.ConfigureFn = func(c *ResourceConfig) error {
 						v, ok := c.Get("from")
 						if !ok || v.(string) != "root" {
@@ -666,6 +720,21 @@ func TestContext2Plan_moduleProviderDefaultsVar(t *testing.T) {
 					defer l.Unlock()
 
 					p := testProvider("aws")
+					p.GetSchemaReturn = &ProviderSchema{
+						Provider: &configschema.Block{
+							Attributes: map[string]*configschema.Attribute{
+								"to":   {Type: cty.String, Optional: true},
+								"from": {Type: cty.String, Optional: true},
+							},
+						},
+						ResourceTypes: map[string]*configschema.Block{
+							"aws_instance": {
+								Attributes: map[string]*configschema.Attribute{
+									"from": {Type: cty.String, Optional: true},
+								},
+							},
+						},
+					}
 					p.ConfigureFn = func(c *ResourceConfig) error {
 						var buf bytes.Buffer
 						if v, ok := c.Get("from"); ok {
@@ -711,7 +780,22 @@ func TestContext2Plan_moduleProviderDefaultsVar(t *testing.T) {
 func TestContext2Plan_moduleProviderVar(t *testing.T) {
 	m := testModule(t, "plan-module-provider-var")
 	p := testProvider("aws")
+	p.GetSchemaReturn = &ProviderSchema{
+		Provider: &configschema.Block{
+			Attributes: map[string]*configschema.Attribute{
+				"value": {Type: cty.String, Optional: true},
+			},
+		},
+		ResourceTypes: map[string]*configschema.Block{
+			"aws_instance": {
+				Attributes: map[string]*configschema.Attribute{
+					"value": {Type: cty.String, Optional: true},
+				},
+			},
+		},
+	}
 	p.DiffFn = testDiffFn
+
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
 		ProviderResolver: ResourceProviderResolverFixed(
@@ -843,7 +927,17 @@ func TestContext2Plan_moduleVarComputed(t *testing.T) {
 func TestContext2Plan_nil(t *testing.T) {
 	m := testModule(t, "plan-nil")
 	p := testProvider("aws")
+	p.GetSchemaReturn = &ProviderSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"aws_instance": {
+				Attributes: map[string]*configschema.Attribute{
+					"nil": {Type: cty.String, Optional: true},
+				},
+			},
+		},
+	}
 	p.DiffFn = testDiffFn
+
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
 		ProviderResolver: ResourceProviderResolverFixed(
@@ -999,7 +1093,17 @@ func TestContext2Plan_preventDestroy_countBad(t *testing.T) {
 func TestContext2Plan_preventDestroy_countGood(t *testing.T) {
 	m := testModule(t, "plan-prevent-destroy-count-good")
 	p := testProvider("aws")
+	p.GetSchemaReturn = &ProviderSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"aws_instance": {
+				Attributes: map[string]*configschema.Attribute{
+					"current": {Type: cty.String, Optional: true},
+				},
+			},
+		},
+	}
 	p.DiffFn = testDiffFn
+
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
 		ProviderResolver: ResourceProviderResolverFixed(
@@ -1043,7 +1147,17 @@ func TestContext2Plan_preventDestroy_countGood(t *testing.T) {
 func TestContext2Plan_preventDestroy_countGoodNoChange(t *testing.T) {
 	m := testModule(t, "plan-prevent-destroy-count-good")
 	p := testProvider("aws")
+	p.GetSchemaReturn = &ProviderSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"aws_instance": {
+				Attributes: map[string]*configschema.Attribute{
+					"current": {Type: cty.String, Optional: true},
+				},
+			},
+		},
+	}
 	p.DiffFn = testDiffFn
+
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
 		ProviderResolver: ResourceProviderResolverFixed(
@@ -1171,7 +1285,26 @@ func TestContext2Plan_computed(t *testing.T) {
 func TestContext2Plan_computedDataResource(t *testing.T) {
 	m := testModule(t, "plan-computed-data-resource")
 	p := testProvider("aws")
+	p.GetSchemaReturn = &ProviderSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"aws_instance": {
+				Attributes: map[string]*configschema.Attribute{
+					"num":     {Type: cty.String, Optional: true},
+					"compute": {Type: cty.String, Optional: true},
+					"foo":     {Type: cty.String, Computed: true},
+				},
+			},
+		},
+		DataSources: map[string]*configschema.Block{
+			"aws_vpc": {
+				Attributes: map[string]*configschema.Attribute{
+					"foo": {Type: cty.String, Optional: true},
+				},
+			},
+		},
+	}
 	p.DiffFn = testDiffFn
+
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
 		ProviderResolver: ResourceProviderResolverFixed(
@@ -1220,7 +1353,26 @@ func TestContext2Plan_computedDataResource(t *testing.T) {
 func TestContext2Plan_computedDataCountResource(t *testing.T) {
 	m := testModule(t, "plan-computed-data-count")
 	p := testProvider("aws")
+	p.GetSchemaReturn = &ProviderSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"aws_instance": {
+				Attributes: map[string]*configschema.Attribute{
+					"num":     {Type: cty.String, Optional: true},
+					"compute": {Type: cty.String, Optional: true},
+					"foo":     {Type: cty.String, Computed: true},
+				},
+			},
+		},
+		DataSources: map[string]*configschema.Block{
+			"aws_vpc": {
+				Attributes: map[string]*configschema.Attribute{
+					"foo": {Type: cty.String, Optional: true},
+				},
+			},
+		},
+	}
 	p.DiffFn = testDiffFn
+
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
 		ProviderResolver: ResourceProviderResolverFixed(
@@ -1287,6 +1439,22 @@ func TestContext2Plan_localValueCount(t *testing.T) {
 func TestContext2Plan_dataSourceTypeMismatch(t *testing.T) {
 	m := testModule(t, "plan-data-source-type-mismatch")
 	p := testProvider("aws")
+	p.GetSchemaReturn = &ProviderSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"aws_instance": {
+				Attributes: map[string]*configschema.Attribute{
+					"ami": {Type: cty.String, Optional: true},
+				},
+			},
+		},
+		DataSources: map[string]*configschema.Block{
+			"aws_availability_zones": {
+				Attributes: map[string]*configschema.Attribute{
+					"names": {Type: cty.List(cty.String), Computed: true},
+				},
+			},
+		},
+	}
 	p.ValidateResourceFn = func(t string, c *ResourceConfig) (ws []string, es []error) {
 		// Emulate the type checking behavior of helper/schema based validation
 		if t == "aws_instance" {
@@ -1346,7 +1514,7 @@ func TestContext2Plan_dataSourceTypeMismatch(t *testing.T) {
 	if !diags.HasErrors() {
 		t.Fatalf("Expected err, got none!")
 	}
-	expected := "Expected ami to be string"
+	expected := `Inappropriate value for attribute "ami": incorrect type; string required`
 	if errStr := diags.Err().Error(); !strings.Contains(errStr, expected) {
 		t.Fatalf("expected:\n\n%s\n\nto contain:\n\n%s", errStr, expected)
 	}
@@ -1356,6 +1524,23 @@ func TestContext2Plan_dataResourceBecomesComputed(t *testing.T) {
 	m := testModule(t, "plan-data-resource-becomes-computed")
 	p := testProvider("aws")
 
+	p.GetSchemaReturn = &ProviderSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"aws_instance": {
+				Attributes: map[string]*configschema.Attribute{
+					"foo":      {Type: cty.String, Optional: true},
+					"computed": {Type: cty.String, Computed: true},
+				},
+			},
+		},
+		DataSources: map[string]*configschema.Block{
+			"aws_data_resource": {
+				Attributes: map[string]*configschema.Attribute{
+					"foo": {Type: cty.String, Optional: true},
+				},
+			},
+		},
+	}
 	p.DiffFn = func(info *InstanceInfo, state *InstanceState, config *ResourceConfig) (*InstanceDiff, error) {
 		if info.Type != "aws_instance" {
 			t.Fatalf("don't know how to diff %s", info.Id)
@@ -1448,7 +1633,20 @@ func TestContext2Plan_dataResourceBecomesComputed(t *testing.T) {
 func TestContext2Plan_computedList(t *testing.T) {
 	m := testModule(t, "plan-computed-list")
 	p := testProvider("aws")
+	p.GetSchemaReturn = &ProviderSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"aws_instance": {
+				Attributes: map[string]*configschema.Attribute{
+					"compute": {Type: cty.String, Optional: true},
+					"foo":     {Type: cty.String, Optional: true},
+					"num":     {Type: cty.String, Optional: true},
+					"list":    {Type: cty.List(cty.String), Computed: true},
+				},
+			},
+		},
+	}
 	p.DiffFn = testDiffFn
+
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
 		ProviderResolver: ResourceProviderResolverFixed(
@@ -1664,31 +1862,6 @@ func TestContext2Plan_countIndex(t *testing.T) {
 	}
 }
 
-func TestContext2Plan_countIndexZero(t *testing.T) {
-	m := testModule(t, "plan-count-index-zero")
-	p := testProvider("aws")
-	p.DiffFn = testDiffFn
-	ctx := testContext2(t, &ContextOpts{
-		Config: m,
-		ProviderResolver: ResourceProviderResolverFixed(
-			map[string]ResourceProviderFactory{
-				"aws": testProviderFuncFixed(p),
-			},
-		),
-	})
-
-	plan, diags := ctx.Plan()
-	if diags.HasErrors() {
-		t.Fatalf("unexpected errors: %s", diags.Err())
-	}
-
-	actual := strings.TrimSpace(plan.String())
-	expected := strings.TrimSpace(testTerraformPlanCountIndexZeroStr)
-	if actual != expected {
-		t.Fatalf("bad:\n%s", actual)
-	}
-}
-
 func TestContext2Plan_countVar(t *testing.T) {
 	m := testModule(t, "plan-count-var")
 	p := testProvider("aws")
@@ -1723,7 +1896,17 @@ func TestContext2Plan_countVar(t *testing.T) {
 func TestContext2Plan_countZero(t *testing.T) {
 	m := testModule(t, "plan-count-zero")
 	p := testProvider("aws")
+	p.GetSchemaReturn = &ProviderSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"aws_instance": {
+				Attributes: map[string]*configschema.Attribute{
+					"foo": {Type: cty.DynamicPseudoType, Optional: true},
+				},
+			},
+		},
+	}
 	p.DiffFn = testDiffFn
+
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
 		ProviderResolver: ResourceProviderResolverFixed(
@@ -1989,7 +2172,18 @@ func TestContext2Plan_countIncreaseFromOneCorrupted(t *testing.T) {
 func TestContext2Plan_countIncreaseWithSplatReference(t *testing.T) {
 	m := testModule(t, "plan-count-splat-reference")
 	p := testProvider("aws")
+	p.GetSchemaReturn = &ProviderSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"aws_instance": {
+				Attributes: map[string]*configschema.Attribute{
+					"name":     {Type: cty.String, Optional: true},
+					"foo_name": {Type: cty.String, Optional: true},
+				},
+			},
+		},
+	}
 	p.DiffFn = testDiffFn
+
 	s := &State{
 		Modules: []*ModuleState{
 			&ModuleState{
@@ -2300,7 +2494,19 @@ func TestContext2Plan_pathVar(t *testing.T) {
 
 	m := testModule(t, "plan-path-var")
 	p := testProvider("aws")
+	p.GetSchemaReturn = &ProviderSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"aws_instance": {
+				Attributes: map[string]*configschema.Attribute{
+					"cwd":    {Type: cty.String, Optional: true},
+					"module": {Type: cty.String, Optional: true},
+					"root":   {Type: cty.String, Optional: true},
+				},
+			},
+		},
+	}
 	p.DiffFn = testDiffFn
+
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
 		ProviderResolver: ResourceProviderResolverFixed(
@@ -2606,8 +2812,18 @@ func TestContext2Plan_taint(t *testing.T) {
 func TestContext2Plan_taintIgnoreChanges(t *testing.T) {
 	m := testModule(t, "plan-taint-ignore-changes")
 	p := testProvider("aws")
+	p.GetSchemaReturn = &ProviderSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"aws_instance": {
+				Attributes: map[string]*configschema.Attribute{
+					"vars": {Type: cty.String, Optional: true},
+				},
+			},
+		},
+	}
 	p.ApplyFn = testApplyFn
 	p.DiffFn = testDiffFn
+
 	s := &State{
 		Modules: []*ModuleState{
 			&ModuleState{
@@ -2825,7 +3041,20 @@ STATE:
 func TestContext2Plan_targetedModuleWithProvider(t *testing.T) {
 	m := testModule(t, "plan-targeted-module-with-provider")
 	p := testProvider("null")
+	p.GetSchemaReturn = &ProviderSchema{
+		Provider: &configschema.Block{
+			Attributes: map[string]*configschema.Attribute{
+				"key": {Type: cty.String, Optional: true},
+			},
+		},
+		ResourceTypes: map[string]*configschema.Block{
+			"null_resource": {
+				Attributes: map[string]*configschema.Attribute{},
+			},
+		},
+	}
 	p.DiffFn = testDiffFn
+
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
 		ProviderResolver: ResourceProviderResolverFixed(
@@ -3199,7 +3428,17 @@ func TestContext2Plan_varListErr(t *testing.T) {
 func TestContext2Plan_ignoreChanges(t *testing.T) {
 	m := testModule(t, "plan-ignore-changes")
 	p := testProvider("aws")
+	p.GetSchemaReturn = &ProviderSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"aws_instance": {
+				Attributes: map[string]*configschema.Attribute{
+					"ami": {Type: cty.String, Optional: true},
+				},
+			},
+		},
+	}
 	p.DiffFn = testDiffFn
+
 	s := &State{
 		Modules: []*ModuleState{
 			&ModuleState{
@@ -3251,7 +3490,18 @@ func TestContext2Plan_ignoreChanges(t *testing.T) {
 func TestContext2Plan_ignoreChangesWildcard(t *testing.T) {
 	m := testModule(t, "plan-ignore-changes-wildcard")
 	p := testProvider("aws")
+	p.GetSchemaReturn = &ProviderSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"aws_instance": {
+				Attributes: map[string]*configschema.Attribute{
+					"ami":           {Type: cty.String, Optional: true},
+					"instance_type": {Type: cty.String, Optional: true},
+				},
+			},
+		},
+	}
 	p.DiffFn = testDiffFn
+
 	s := &State{
 		Modules: []*ModuleState{
 			&ModuleState{
@@ -3297,7 +3547,7 @@ func TestContext2Plan_ignoreChangesWildcard(t *testing.T) {
 	}
 
 	if len(plan.Diff.RootModule().Resources) > 0 {
-		t.Fatalf("bad: %#v", plan.Diff.RootModule().Resources)
+		t.Fatalf("unexpected resource diffs in root module: %s", spew.Sdump(plan.Diff.RootModule().Resources))
 	}
 
 	actual := strings.TrimSpace(plan.String())
@@ -3310,6 +3560,16 @@ func TestContext2Plan_ignoreChangesWildcard(t *testing.T) {
 func TestContext2Plan_moduleMapLiteral(t *testing.T) {
 	m := testModule(t, "plan-module-map-literal")
 	p := testProvider("aws")
+	p.GetSchemaReturn = &ProviderSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"aws_instance": {
+				Attributes: map[string]*configschema.Attribute{
+					"meta": {Type: cty.Map(cty.String), Optional: true},
+					"tags": {Type: cty.Map(cty.String), Optional: true},
+				},
+			},
+		},
+	}
 	p.ApplyFn = testApplyFn
 	p.DiffFn = func(i *InstanceInfo, s *InstanceState, c *ResourceConfig) (*InstanceDiff, error) {
 		// Here we verify that both the populated and empty map literals made it
@@ -3352,6 +3612,20 @@ func TestContext2Plan_moduleMapLiteral(t *testing.T) {
 func TestContext2Plan_computedValueInMap(t *testing.T) {
 	m := testModule(t, "plan-computed-value-in-map")
 	p := testProvider("aws")
+	p.GetSchemaReturn = &ProviderSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"aws_instance": {
+				Attributes: map[string]*configschema.Attribute{
+					"looked_up": {Type: cty.String, Optional: true},
+				},
+			},
+			"aws_computed_source": {
+				Attributes: map[string]*configschema.Attribute{
+					"computed_read_only": {Type: cty.String, Computed: true},
+				},
+			},
+		},
+	}
 	p.DiffFn = func(info *InstanceInfo, state *InstanceState, c *ResourceConfig) (*InstanceDiff, error) {
 		switch info.Type {
 		case "aws_computed_source":
@@ -3366,6 +3640,7 @@ func TestContext2Plan_computedValueInMap(t *testing.T) {
 
 		return testDiffFn(info, state, c)
 	}
+
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
 		ProviderResolver: ResourceProviderResolverFixed(
@@ -3399,6 +3674,16 @@ func TestContext2Plan_moduleVariableFromSplat(t *testing.T) {
 	m := testModule(t, "plan-module-variable-from-splat")
 	p := testProvider("aws")
 	p.DiffFn = testDiffFn
+	p.GetSchemaReturn = &ProviderSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"aws_instance": {
+				Attributes: map[string]*configschema.Attribute{
+					"thing": {Type: cty.String, Optional: true},
+				},
+			},
+		},
+	}
+
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
 		ProviderResolver: ResourceProviderResolverFixed(
@@ -3432,6 +3717,24 @@ func TestContext2Plan_createBeforeDestroy_depends_datasource(t *testing.T) {
 	m := testModule(t, "plan-cdb-depends-datasource")
 	p := testProvider("aws")
 	p.DiffFn = testDiffFn
+	p.GetSchemaReturn = &ProviderSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"aws_instance": {
+				Attributes: map[string]*configschema.Attribute{
+					"num":     {Type: cty.String, Optional: true},
+					"compute": {Type: cty.String, Optional: true, Computed: true},
+				},
+			},
+		},
+		DataSources: map[string]*configschema.Block{
+			"aws_vpc": {
+				Attributes: map[string]*configschema.Attribute{
+					"foo": {Type: cty.Number, Optional: true},
+				},
+			},
+		},
+	}
+
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
 		ProviderResolver: ResourceProviderResolverFixed(
@@ -3472,6 +3775,15 @@ func TestContext2Plan_listOrder(t *testing.T) {
 	p := testProvider("aws")
 	p.ApplyFn = testApplyFn
 	p.DiffFn = testDiffFn
+	p.GetSchemaReturn = &ProviderSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"aws_instance": {
+				Attributes: map[string]*configschema.Attribute{
+					"foo": {Type: cty.List(cty.String), Optional: true},
+				},
+			},
+		},
+	}
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
 		ProviderResolver: ResourceProviderResolverFixed(
@@ -3503,6 +3815,18 @@ func TestContext2Plan_ignoreChangesWithFlatmaps(t *testing.T) {
 	m := testModule(t, "plan-ignore-changes-with-flatmaps")
 	p := testProvider("aws")
 	p.DiffFn = testDiffFn
+	p.GetSchemaReturn = &ProviderSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"aws_instance": {
+				Attributes: map[string]*configschema.Attribute{
+					"user_data":   {Type: cty.String, Optional: true},
+					"require_new": {Type: cty.String, Optional: true},
+					"set":         {Type: cty.Map(cty.String), Optional: true},
+					"lst":         {Type: cty.List(cty.String), Optional: true},
+				},
+			},
+		},
+	}
 	s := &State{
 		Modules: []*ModuleState{
 			&ModuleState{

@@ -1,7 +1,9 @@
 module "child" {
   source = "./child"
-  amap {
+
+  amap = {
     foo = "bar"
   }
-  othermap {}
+
+  othermap = {}
 }
