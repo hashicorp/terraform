@@ -121,7 +121,7 @@ func TestGraph_plan(t *testing.T) {
 			},
 		},
 
-		Module: testModule(t, "graph"),
+		Config: testModule(t, "graph"),
 	})
 
 	ui := new(cli.MockUi)

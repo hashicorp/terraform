@@ -16,15 +16,20 @@ import (
 	"testing"
 	"time"
 
+	"github.com/mitchellh/cli"
+	"github.com/zclconf/go-cty/cty"
+
+	"github.com/hashicorp/terraform/config/configschema"
 	"github.com/hashicorp/terraform/state"
 	"github.com/hashicorp/terraform/terraform"
-	"github.com/mitchellh/cli"
 )
 
 func TestApply(t *testing.T) {
 	statePath := testTempFile(t)
 
 	p := testProvider()
+	p.GetSchemaReturn = applyFixtureSchema()
+
 	ui := new(cli.MockUi)
 	c := &ApplyCommand{
 		Meta: Meta{
@@ -495,7 +500,7 @@ func TestApply_plan(t *testing.T) {
 	defaultInputWriter = new(bytes.Buffer)
 
 	planPath := testPlanFile(t, &terraform.Plan{
-		Module: testModule(t, "apply"),
+		Config: testModule(t, "apply"),
 	})
 	statePath := testTempFile(t)
 
@@ -620,7 +625,7 @@ func TestApply_plan_remoteState(t *testing.T) {
 	state.Remote = conf
 
 	planPath := testPlanFile(t, &terraform.Plan{
-		Module: testModule(t, "apply"),
+		Config: testModule(t, "apply"),
 		State:  state,
 	})
 
@@ -664,7 +669,7 @@ func TestApply_planWithVarFile(t *testing.T) {
 	}
 
 	planPath := testPlanFile(t, &terraform.Plan{
-		Module: testModule(t, "apply"),
+		Config: testModule(t, "apply"),
 	})
 	statePath := testTempFile(t)
 
@@ -706,7 +711,7 @@ func TestApply_planWithVarFile(t *testing.T) {
 
 func TestApply_planVars(t *testing.T) {
 	planPath := testPlanFile(t, &terraform.Plan{
-		Module: testModule(t, "apply"),
+		Config: testModule(t, "apply"),
 	})
 	statePath := testTempFile(t)
 
@@ -739,7 +744,7 @@ func TestApply_planNoModuleFiles(t *testing.T) {
 
 	p := testProvider()
 	planFile := testPlanFile(t, &terraform.Plan{
-		Module: testModule(t, "apply-plan-no-module"),
+		Config: testModule(t, "apply-plan-no-module"),
 	})
 
 	apply := &ApplyCommand{
@@ -1525,6 +1530,21 @@ func testHttpHandlerHeader(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Add("X-Terraform-Get", url.String())
 	w.WriteHeader(200)
+}
+
+// applyFixtureSchema returns a schema suitable for processing the
+// configuration in test-fixtures/apply . This schema should be
+// assigned to a mock provider named "test".
+func applyFixtureSchema() *terraform.ProviderSchema {
+	return &terraform.ProviderSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"test_instance": {
+				Attributes: map[string]*configschema.Attribute{
+					"ami": {Type: cty.String, Optional: true},
+				},
+			},
+		},
+	}
 }
 
 const applyVarFile = `

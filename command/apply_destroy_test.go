@@ -5,8 +5,10 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/hashicorp/terraform/config/configschema"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/mitchellh/cli"
+	"github.com/zclconf/go-cty/cty"
 )
 
 func TestApply_destroy(t *testing.T) {
@@ -29,6 +31,8 @@ func TestApply_destroy(t *testing.T) {
 	statePath := testStateFile(t, originalState)
 
 	p := testProvider()
+	p.GetSchemaReturn = applyFixtureSchema()
+
 	ui := new(cli.MockUi)
 	c := &ApplyCommand{
 		Destroy: true,
@@ -147,7 +151,7 @@ func TestApply_destroyLockedState(t *testing.T) {
 
 func TestApply_destroyPlan(t *testing.T) {
 	planPath := testPlanFile(t, &terraform.Plan{
-		Module: testModule(t, "apply"),
+		Config: testModule(t, "apply"),
 	})
 
 	p := testProvider()
@@ -195,6 +199,21 @@ func TestApply_destroyTargeted(t *testing.T) {
 	statePath := testStateFile(t, originalState)
 
 	p := testProvider()
+	p.GetSchemaReturn = &terraform.ProviderSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"test_instance": {
+				Attributes: map[string]*configschema.Attribute{
+					"id": {Type: cty.String, Computed: true},
+				},
+			},
+			"test_load_balancer": {
+				Attributes: map[string]*configschema.Attribute{
+					"instances": {Type: cty.List(cty.String), Optional: true},
+				},
+			},
+		},
+	}
+
 	ui := new(cli.MockUi)
 	c := &ApplyCommand{
 		Destroy: true,
