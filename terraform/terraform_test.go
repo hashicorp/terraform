@@ -1021,9 +1021,11 @@ CREATE: aws_instance.bar
   foo:  "" => "<computed>"
   type: "" => "aws_instance"
 CREATE: aws_instance.foo
-  foo:  "" => "<computed>"
-  num:  "" => "2"
-  type: "" => "aws_instance"
+  compute:       "" => "foo"
+  compute_value: "" => "<computed>"
+  foo:           "" => "<computed>"
+  num:           "" => "2"
+  type:          "" => "aws_instance"
 
 STATE:
 
@@ -1069,11 +1071,15 @@ CREATE: aws_instance.bar
   foo:  "" => "<computed>"
   type: "" => "aws_instance"
 CREATE: aws_instance.foo.0
-  ip.#: "" => "<computed>"
-  type: "" => "aws_instance"
+  compute:       "" => "ip.#"
+  compute_value: "" => "<computed>"
+  ip.#:          "" => "<computed>"
+  type:          "" => "aws_instance"
 CREATE: aws_instance.foo.1
-  ip.#: "" => "<computed>"
-  type: "" => "aws_instance"
+  compute:       "" => "ip.#"
+  compute_value: "" => "<computed>"
+  ip.#:          "" => "<computed>"
+  type:          "" => "aws_instance"
 
 STATE:
 
@@ -1431,8 +1437,10 @@ const testTerraformPlanModuleInputComputedStr = `
 DIFF:
 
 CREATE: aws_instance.bar
-  foo:  "" => "<computed>"
-  type: "" => "aws_instance"
+  compute:       "" => "foo"
+  compute_value: "" => "<computed>"
+  foo:           "" => "<computed>"
+  type:          "" => "aws_instance"
 
 module.child:
   CREATE: aws_instance.foo
@@ -1539,8 +1547,10 @@ CREATE: aws_instance.bar
 
 module.child:
   CREATE: aws_instance.foo
-    foo:  "" => "<computed>"
-    type: "" => "aws_instance"
+    compute:       "" => "foo"
+    compute_value: "" => "<computed>"
+    foo:           "" => "<computed>"
+    type:          "" => "aws_instance"
 
 STATE:
 
