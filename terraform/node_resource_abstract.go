@@ -364,6 +364,8 @@ func (n *NodeAbstractResource) ProvisionedBy() []string {
 
 // GraphNodeProvisionerConsumer
 func (n *NodeAbstractResource) AttachProvisionerSchema(name string, schema *configschema.Block) {
+	// FIXME: this isn't called anywehere
+	panic("unused")
 	n.ProvisionerSchemas[name] = schema
 }
 
