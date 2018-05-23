@@ -79,9 +79,9 @@ func (s *Scope) Functions() map[string]function.Function {
 			"pow":          unimplFunc, // TODO
 			"replace":      unimplFunc, // TODO
 			"rsadecrypt":   funcs.RsaDecryptFunc,
-			"sha1":         unimplFunc, // TODO
-			"sha256":       unimplFunc, // TODO
-			"sha512":       unimplFunc, // TODO
+			"sha1":         funcs.Sha1Func,
+			"sha256":       funcs.Sha256Func,
+			"sha512":       funcs.Sha512Func,
 			"signum":       unimplFunc, // TODO
 			"slice":        unimplFunc, // TODO
 			"sort":         funcs.SortFunc,
