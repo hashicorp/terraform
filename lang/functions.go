@@ -37,7 +37,7 @@ func (s *Scope) Functions() map[string]function.Function {
 			"base64sha256": funcs.Base64Sha256Func,
 			"base64sha512": funcs.Base64Sha512Func,
 			"bcrypt":       funcs.BcryptFunc,
-			"ceil":         unimplFunc, // TODO
+			"ceil":         funcs.CeilFunc,
 			"chomp":        unimplFunc, // TODO
 			"cidrhost":     unimplFunc, // TODO
 			"cidrnetmask":  unimplFunc, // TODO
