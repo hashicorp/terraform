@@ -46,19 +46,17 @@ var TimeAddFunc = function.New(&function.Spec{
 // Timestamp returns a string representation of the current date and time.
 //
 // In the Terraform language, timestamps are conventionally represented as
-// strings using [RFC 3339](https://tools.ietf.org/html/rfc3339)
-// "Date and Time format" syntax, and so `timestamp` returns a string
-// in this format.
+// strings using RFC 3339 "Date and Time format" syntax, and so timestamp
+// returns a string in this format.
 func Timestamp() (cty.Value, error) {
 	return TimestampFunc.Call([]cty.Value{})
 }
 
-// Timeadd adds a duration to a timestamp, returning a new timestamp.
+// TimeAdd adds a duration to a timestamp, returning a new timestamp.
 //
 // In the Terraform language, timestamps are conventionally represented as
-// strings using [RFC 3339](https://tools.ietf.org/html/rfc3339)
-// "Date and Time format" syntax. `timeadd` requires the `timestamp` argument
-// to be a string conforming to this syntax.
+// strings using RFC 3339 "Date and Time format" syntax. Timeadd requires
+// the timestamp argument to be a string conforming to this syntax.
 //
 // `duration` is a string representation of a time difference, consisting of
 // sequences of number and unit pairs, like `"1.5h"` or `1h30m`. The accepted
