@@ -33,9 +33,9 @@ func (s *Scope) Functions() map[string]function.Function {
 			"base64decode": funcs.Base64DecodeFunc,
 			"base64encode": funcs.Base64EncodeFunc,
 			"base64gzip":   funcs.Base64GzipFunc,
-			"base64sha256": unimplFunc, // TODO
-			"base64sha512": unimplFunc, // TODO
-			"bcrypt":       unimplFunc, // TODO
+			"base64sha256": funcs.Base64Sha256Func,
+			"base64sha512": funcs.Base64Sha512Func,
+			"bcrypt":       funcs.BcryptFunc,
 			"ceil":         unimplFunc, // TODO
 			"chomp":        unimplFunc, // TODO
 			"cidrhost":     unimplFunc, // TODO
@@ -63,6 +63,7 @@ func (s *Scope) Functions() map[string]function.Function {
 			"join":         funcs.JoinFunc,
 			"jsondecode":   stdlib.JSONDecodeFunc,
 			"jsonencode":   stdlib.JSONEncodeFunc,
+			"keys":         unimplFunc, // TODO
 			"length":       funcs.LengthFunc,
 			"list":         unimplFunc, // TODO
 			"log":          unimplFunc, // TODO
@@ -93,6 +94,7 @@ func (s *Scope) Functions() map[string]function.Function {
 			"upper":        stdlib.UpperFunc,
 			"urlencode":    funcs.UrlEncodeFunc,
 			"uuid":         funcs.UUIDFunc,
+			"values":       unimplFunc, // TODO
 			"zipmap":       unimplFunc, // TODO
 		}
 
