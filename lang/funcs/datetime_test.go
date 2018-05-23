@@ -73,10 +73,8 @@ func TestTimeadd(t *testing.T) {
 					t.Fatal("succeeded; want error")
 				}
 				return
-			} else {
-				if err != nil {
-					t.Fatalf("unexpected error: %s", err)
-				}
+			} else if err != nil {
+				t.Fatalf("unexpected error: %s", err)
 			}
 
 			if !got.RawEquals(test.Want) {

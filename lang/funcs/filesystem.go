@@ -63,7 +63,8 @@ func MakeFileFunc(baseDir string, encBase64 bool) function.Function {
 	})
 }
 
-// BasenameFunc constructs a function that takes a string containing a filesystem path and removes all except the last portion from it.
+// BasenameFunc constructs a function that takes a string containing a filesystem path
+// and removes all except the last portion from it.
 var BasenameFunc = function.New(&function.Spec{
 	Params: []function.Parameter{
 		{
@@ -77,7 +78,8 @@ var BasenameFunc = function.New(&function.Spec{
 	},
 })
 
-// DirnameFunc constructs a function that takes a string containing a filesystem path and removes the last portion from it.
+// DirnameFunc constructs a function that takes a string containing a filesystem path
+// and removes the last portion from it.
 var DirnameFunc = function.New(&function.Spec{
 	Params: []function.Parameter{
 		{

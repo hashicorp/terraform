@@ -34,10 +34,8 @@ func TestBase64Decode(t *testing.T) {
 					t.Fatal("succeeded; want error")
 				}
 				return
-			} else {
-				if err != nil {
-					t.Fatalf("unexpected error: %s", err)
-				}
+			} else if err != nil {
+				t.Fatalf("unexpected error: %s", err)
 			}
 
 			if !got.RawEquals(test.Want) {
@@ -69,10 +67,8 @@ func TestBase64Encode(t *testing.T) {
 					t.Fatal("succeeded; want error")
 				}
 				return
-			} else {
-				if err != nil {
-					t.Fatalf("unexpected error: %s", err)
-				}
+			} else if err != nil {
+				t.Fatalf("unexpected error: %s", err)
 			}
 
 			if !got.RawEquals(test.Want) {
@@ -104,10 +100,8 @@ func TestBase64Gzip(t *testing.T) {
 					t.Fatal("succeeded; want error")
 				}
 				return
-			} else {
-				if err != nil {
-					t.Fatalf("unexpected error: %s", err)
-				}
+			} else if err != nil {
+				t.Fatalf("unexpected error: %s", err)
 			}
 
 			if !got.RawEquals(test.Want) {
@@ -154,10 +148,8 @@ func TestURLEncode(t *testing.T) {
 					t.Fatal("succeeded; want error")
 				}
 				return
-			} else {
-				if err != nil {
-					t.Fatalf("unexpected error: %s", err)
-				}
+			} else if err != nil {
+				t.Fatalf("unexpected error: %s", err)
 			}
 
 			if !got.RawEquals(test.Want) {

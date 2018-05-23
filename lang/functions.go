@@ -11,6 +11,7 @@ import (
 )
 
 var impureFunctions = []string{
+	"bcrypt",
 	"timestamp",
 	"uuid",
 }
@@ -71,13 +72,13 @@ func (s *Scope) Functions() map[string]function.Function {
 			"lower":        stdlib.LowerFunc,
 			"map":          unimplFunc, // TODO
 			"max":          stdlib.MaxFunc,
-			"md5":          unimplFunc, // TODO
+			"md5":          funcs.Md5Func,
 			"merge":        unimplFunc, // TODO
 			"min":          stdlib.MinFunc,
 			"pathexpand":   funcs.PathExpandFunc,
 			"pow":          unimplFunc, // TODO
 			"replace":      unimplFunc, // TODO
-			"rsadecrypt":   unimplFunc, // TODO
+			"rsadecrypt":   funcs.RsaDecryptFunc,
 			"sha1":         unimplFunc, // TODO
 			"sha256":       unimplFunc, // TODO
 			"sha512":       unimplFunc, // TODO
@@ -92,7 +93,7 @@ func (s *Scope) Functions() map[string]function.Function {
 			"transpose":    unimplFunc, // TODO
 			"trimspace":    unimplFunc, // TODO
 			"upper":        stdlib.UpperFunc,
-			"urlencode":    funcs.UrlEncodeFunc,
+			"urlencode":    funcs.URLEncodeFunc,
 			"uuid":         funcs.UUIDFunc,
 			"values":       unimplFunc, // TODO
 			"zipmap":       unimplFunc, // TODO
