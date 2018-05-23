@@ -1053,11 +1053,14 @@ DIFF:
 
 CREATE: aws_instance.bar
   foo:  "" => "<computed>"
+  list: "" => "<computed>"
   type: "" => "aws_instance"
 CREATE: aws_instance.foo
-  list.#: "" => "<computed>"
-  num:    "" => "2"
-  type:   "" => "aws_instance"
+  compute: "" => "list.#"
+  list:    "" => "<computed>"
+  list.#:  "" => "<computed>"
+  num:     "" => "2"
+  type:    "" => "aws_instance"
 
 STATE:
 
