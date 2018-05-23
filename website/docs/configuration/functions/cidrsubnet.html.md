@@ -9,7 +9,7 @@ description: |-
 
 # `cidrsubnet` Function
 
-`cidrhost` calculates a subnet address within given IP network address prefix.
+`cidrsubnet` calculates a subnet address within given IP network address prefix.
 
 ```hcl
 cidrsubnet(prefix, newbits, netnum)
