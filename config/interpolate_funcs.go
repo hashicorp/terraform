@@ -1223,14 +1223,9 @@ func interpolationFuncValues(vs map[string]ast.Variable) ast.Function {
 
 			sort.Strings(keys)
 
-			values := make([]string, len(keys))
+			values := make([]interface{}, len(keys))
 			for index, key := range keys {
-				if value, ok := mapVar[key].Value.(string); ok {
-					values[index] = value
-				} else {
-					return "", fmt.Errorf("values(): %q has element with bad type %s",
-						key, mapVar[key].Type)
-				}
+				values[index] = mapVar[key]
 			}
 
 			variable, err := hil.InterfaceToVariable(values)

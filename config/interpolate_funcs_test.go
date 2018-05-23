@@ -2003,11 +2003,61 @@ func TestInterpolateFuncValues(t *testing.T) {
 				Value: "astring",
 				Type:  ast.TypeString,
 			},
+			"var.nestedmap": ast.Variable{
+				Type: ast.TypeMap,
+				Value: map[string]ast.Variable{
+					"foo": ast.Variable{
+						Type: ast.TypeMap,
+						Value: map[string]ast.Variable{
+							"bar": ast.Variable{
+								Type:  ast.TypeString,
+								Value: "baz",
+							},
+						},
+					},
+				},
+			},
+			"var.mapoflists": ast.Variable{
+				Type: ast.TypeMap,
+				Value: map[string]ast.Variable{
+					"foo": ast.Variable{
+						Type: ast.TypeList,
+						Value: []ast.Variable{
+							{
+								Type:  ast.TypeString,
+								Value: "bar",
+							},
+							{
+								Type:  ast.TypeString,
+								Value: "baz",
+							},
+						},
+					},
+				},
+			},
 		},
 		Cases: []testFunctionCase{
 			{
 				`${values(var.foo)}`,
 				[]interface{}{"quack", "baz"},
+				false,
+			},
+
+			// Map of lists
+			{
+				`${values(var.mapoflists)}`,
+				[]interface{}{
+					[]interface{}{"bar", "baz"},
+				},
+				false,
+			},
+
+			// Map of maps
+			{
+				`${values(var.nestedmap)}`,
+				[]interface{}{
+					map[string]interface{}{"bar": "baz"},
+				},
 				false,
 			},
 
@@ -2028,13 +2078,6 @@ func TestInterpolateFuncValues(t *testing.T) {
 			// Not a map
 			{
 				`${values(var.str)}`,
-				nil,
-				true,
-			},
-
-			// Map of lists
-			{
-				`${values(map("one", list()))}`,
 				nil,
 				true,
 			},
