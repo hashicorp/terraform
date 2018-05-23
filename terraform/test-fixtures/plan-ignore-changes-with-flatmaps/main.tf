@@ -1,10 +1,10 @@
 resource "aws_instance" "foo" {
-  user_data = "x"
+  user_data   = "x"
   require_new = "yes"
 
   set = {
-	  a = "1"
-	  b = "2"
+    a = "1"
+    b = "2"
   }
 
   lst = ["j", "k"]

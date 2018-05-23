@@ -7,6 +7,6 @@ resource "aws_instance" "foo" {
   instance_type = "${var.bar}"
 
   lifecycle {
-    ignore_changes = ["*"]
+    ignore_changes = all
   }
 }
