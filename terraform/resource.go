@@ -132,6 +132,9 @@ func NewInstanceInfo(addr addrs.AbsResource) *InstanceInfo {
 	// determine from an InstanceInfo alone whether it is a managed or data
 	// resource that is being referred to.
 	id := fmt.Sprintf("%s.%s", addr.Resource.Type, addr.Resource.Name)
+	if addr.Resource.Mode == addrs.DataResourceMode {
+		id = "data." + id
+	}
 
 	return &InstanceInfo{
 		Id:         id,
