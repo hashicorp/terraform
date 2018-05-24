@@ -145,18 +145,11 @@ func NewInstanceInfo(addr addrs.AbsResource) *InstanceInfo {
 
 // HumanId is a unique Id that is human-friendly and useful for UI elements.
 func (i *InstanceInfo) HumanId() string {
-	if i == nil {
-		return "<nil>"
-	}
-
-	if len(i.ModulePath) <= 1 {
+	p := normalizeModulePath(i.ModulePath)
+	if p.IsRoot() {
 		return i.Id
 	}
-
-	return fmt.Sprintf(
-		"module.%s.%s",
-		strings.Join(i.ModulePath[1:], "."),
-		i.Id)
+	return fmt.Sprintf("%s.%s", p.String(), i.Id)
 }
 
 // ResourceAddress returns the address of the resource that the receiver is describing.
