@@ -243,6 +243,9 @@ func spaceAfterToken(subject, before, after *Token) bool {
 		// No extra spaces within templates
 		return false
 
+	case after.Type == hclsyntax.TokenOBrack && (subject.Type == hclsyntax.TokenIdent || subject.Type == hclsyntax.TokenNumberLit || tokenBracketChange(subject) < 0):
+		return false
+
 	case subject.Type == hclsyntax.TokenMinus:
 		// Since a minus can either be subtraction or negation, and the latter
 		// should _not_ have a space after it, we need to use some heuristics
