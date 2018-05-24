@@ -107,7 +107,7 @@ var LengthFunc = function.New(&function.Spec{
 	},
 })
 
-//  CoalesceListFunc contructs a function that takes any number of list arguments
+// CoalesceListFunc contructs a function that takes any number of list arguments
 // and returns the first one that isn't empty.
 var CoalesceListFunc = function.New(&function.Spec{
 	Params: []function.Parameter{},
@@ -159,7 +159,7 @@ var CoalesceListFunc = function.New(&function.Spec{
 	},
 })
 
-//  CompactFunc contructs a function that takes a list of strings and returns a new list
+// CompactFunc contructs a function that takes a list of strings and returns a new list
 // with any empty string elements removed.
 var CompactFunc = function.New(&function.Spec{
 	Params: []function.Parameter{
@@ -176,8 +176,6 @@ var CompactFunc = function.New(&function.Spec{
 		it := args[0].ElementIterator()
 		for it.Next() {
 			_, v := it.Element()
-			fmt.Println("ohai!")
-			fmt.Println(v.AsString())
 			if v.AsString() == "" {
 				continue
 			}
@@ -208,5 +206,5 @@ func CoalesceList(args ...cty.Value) (cty.Value, error) {
 // Compact takes a list of strings and returns a new list
 // with any empty string elements removed.
 func Compact(list cty.Value) (cty.Value, error) {
-	return CoalesceListFunc.Call([]cty.Value{list})
+	return CompactFunc.Call([]cty.Value{list})
 }
