@@ -10,5 +10,5 @@ resource "aws_instance" "foo" {
 
 data "aws_vpc" "bar" {
   count = 2
-  foo   = "${count.index}"
+  foo   = count.index
 }
