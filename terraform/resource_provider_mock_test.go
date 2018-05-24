@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/hashicorp/terraform/config/configschema"
+	"github.com/zclconf/go-cty/cty"
 )
 
 func TestMockResourceProvider_impl(t *testing.T) {
@@ -36,6 +37,22 @@ func mockProviderWithConfigSchema(schema *configschema.Block) *MockResourceProvi
 func mockProviderWithResourceTypeSchema(name string, schema *configschema.Block) *MockResourceProvider {
 	return &MockResourceProvider{
 		GetSchemaReturn: &ProviderSchema{
+			Provider: &configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"string": {
+						Type:     cty.String,
+						Optional: true,
+					},
+					"list": {
+						Type:     cty.List(cty.String),
+						Optional: true,
+					},
+					"root": {
+						Type:     cty.Map(cty.String),
+						Optional: true,
+					},
+				},
+			},
 			ResourceTypes: map[string]*configschema.Block{
 				name: schema,
 			},
