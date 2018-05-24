@@ -93,6 +93,15 @@ func getConversionKnown(in cty.Type, out cty.Type, unsafe bool) conversion {
 		}
 		return conversionCollectionToSet(outEty, convEty)
 
+	case out.IsMapType() && in.IsMapType():
+		inEty := in.ElementType()
+		outEty := out.ElementType()
+		convEty := getConversion(inEty, outEty, unsafe)
+		if convEty == nil {
+			return nil
+		}
+		return conversionCollectionToMap(outEty, convEty)
+
 	case out.IsListType() && in.IsTupleType():
 		outEty := out.ElementType()
 		return conversionTupleToList(in, outEty, unsafe)
