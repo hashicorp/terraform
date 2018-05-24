@@ -5,6 +5,7 @@ import (
 	"compress/gzip"
 	"encoding/base64"
 	"fmt"
+	"log"
 	"net/url"
 	"unicode/utf8"
 
@@ -27,8 +28,9 @@ var Base64DecodeFunc = function.New(&function.Spec{
 		if err != nil {
 			return cty.UnknownVal(cty.String), fmt.Errorf("failed to decode base64 data '%s'", s)
 		}
-		if !utf8.Valid([]byte(s)) {
-			return cty.UnknownVal(cty.String), fmt.Errorf("contents of '%s' are not valid UTF-8", s)
+		if !utf8.Valid([]byte(sDec)) {
+			log.Printf("[DEBUG] the result of decoding the the provided string is not valid UTF-8: %s", sDec)
+			return cty.UnknownVal(cty.String), fmt.Errorf("the result of decoding the the provided string is not valid UTF-8")
 		}
 		return cty.StringVal(string(sDec)), nil
 	},
