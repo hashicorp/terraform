@@ -38,9 +38,6 @@ func (n *EvalConfigProvider) Eval(ctx EvalContext) (interface{}, error) {
 	if n.Provider == nil {
 		return nil, fmt.Errorf("EvalConfigProvider Provider is nil")
 	}
-	if n.Config == nil {
-		return nil, nil
-	}
 
 	var diags tfdiags.Diagnostics
 	provider := *n.Provider
