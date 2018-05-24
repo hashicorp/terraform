@@ -235,7 +235,7 @@ func testDiffFn(
 		}
 
 		if k == "compute" {
-			if v == hil.UnknownValue {
+			if v == hil.UnknownValue || v == "unknown" {
 				// compute wasn't set in the config, so don't use these
 				// computed values from the schema.
 				delete(c.Raw, k)
@@ -251,6 +251,16 @@ func testDiffFn(
 					newComputed = append(newComputed, ck)
 				}
 				c.ComputedKeys = newComputed
+
+				if v == "unknown" {
+					diff.Attributes["unknown"] = &ResourceAttrDiff{
+						Old:         "",
+						New:         "",
+						NewComputed: true,
+					}
+
+					c.ComputedKeys = append(c.ComputedKeys, "unknown")
+				}
 
 				continue
 			}
