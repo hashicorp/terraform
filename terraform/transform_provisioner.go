@@ -5,7 +5,6 @@ import (
 	"log"
 
 	"github.com/hashicorp/terraform/addrs"
-	"github.com/hashicorp/terraform/config/configschema"
 
 	"github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/terraform/dag"
@@ -30,12 +29,6 @@ type GraphNodeCloseProvisioner interface {
 // provisioners to use.
 type GraphNodeProvisionerConsumer interface {
 	ProvisionedBy() []string
-
-	// SetProvisionerSchema is called during transform for each provisioner
-	// type returned from ProvisionedBy, providing the configuration schema
-	// for each provisioner in turn. The implementer should save these for
-	// later use in evaluating provisioner configuration blocks.
-	AttachProvisionerSchema(name string, schema *configschema.Block)
 }
 
 // ProvisionerTransformer is a GraphTransformer that maps resources to
