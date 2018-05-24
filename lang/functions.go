@@ -43,7 +43,7 @@ func (s *Scope) Functions() map[string]function.Function {
 			"cidrnetmask":  funcs.CidrNetmaskFunc,
 			"cidrsubnet":   funcs.CidrSubnetFunc,
 			"coalesce":     stdlib.CoalesceFunc,
-			"coalescelist": unimplFunc, // TODO
+			"coalescelist": funcs.CoalesceListFunc,
 			"compact":      unimplFunc, // TODO
 			"concat":       stdlib.ConcatFunc,
 			"contains":     unimplFunc, // TODO
