@@ -11,6 +11,7 @@ import (
 )
 
 var impureFunctions = []string{
+	"bcrypt",
 	"timestamp",
 	"uuid",
 }
@@ -29,25 +30,25 @@ func (s *Scope) Functions() map[string]function.Function {
 
 		s.funcs = map[string]function.Function{
 			"abs":          stdlib.AbsoluteFunc,
-			"basename":     unimplFunc, // TODO
-			"base64decode": unimplFunc, // TODO
-			"base64encode": unimplFunc, // TODO
-			"base64gzip":   unimplFunc, // TODO
-			"base64sha256": unimplFunc, // TODO
-			"base64sha512": unimplFunc, // TODO
-			"bcrypt":       unimplFunc, // TODO
-			"ceil":         unimplFunc, // TODO
-			"chomp":        unimplFunc, // TODO
-			"cidrhost":     unimplFunc, // TODO
-			"cidrnetmask":  unimplFunc, // TODO
-			"cidrsubnet":   unimplFunc, // TODO
+			"basename":     funcs.BasenameFunc,
+			"base64decode": funcs.Base64DecodeFunc,
+			"base64encode": funcs.Base64EncodeFunc,
+			"base64gzip":   funcs.Base64GzipFunc,
+			"base64sha256": funcs.Base64Sha256Func,
+			"base64sha512": funcs.Base64Sha512Func,
+			"bcrypt":       funcs.BcryptFunc,
+			"ceil":         funcs.CeilFunc,
+			"chomp":        funcs.ChompFunc,
+			"cidrhost":     funcs.CidrHostFunc,
+			"cidrnetmask":  funcs.CidrNetmaskFunc,
+			"cidrsubnet":   funcs.CidrSubnetFunc,
 			"coalesce":     stdlib.CoalesceFunc,
 			"coalescelist": unimplFunc, // TODO
 			"compact":      unimplFunc, // TODO
 			"concat":       stdlib.ConcatFunc,
 			"contains":     unimplFunc, // TODO
 			"csvdecode":    stdlib.CSVDecodeFunc,
-			"dirname":      unimplFunc, // TODO
+			"dirname":      funcs.DirnameFunc,
 			"distinct":     unimplFunc, // TODO
 			"element":      funcs.ElementFunc,
 			"chunklist":    unimplFunc, // TODO
@@ -55,44 +56,46 @@ func (s *Scope) Functions() map[string]function.Function {
 			"filebase64":   funcs.MakeFileFunc(s.BaseDir, true),
 			"matchkeys":    unimplFunc, // TODO
 			"flatten":      unimplFunc, // TODO
-			"floor":        unimplFunc, // TODO
+			"floor":        funcs.FloorFunc,
 			"format":       stdlib.FormatFunc,
 			"formatlist":   stdlib.FormatListFunc,
-			"indent":       unimplFunc, // TODO
+			"indent":       funcs.IndentFunc,
 			"index":        unimplFunc, // TODO
 			"join":         funcs.JoinFunc,
 			"jsondecode":   stdlib.JSONDecodeFunc,
 			"jsonencode":   stdlib.JSONEncodeFunc,
+			"keys":         unimplFunc, // TODO
 			"length":       funcs.LengthFunc,
 			"list":         unimplFunc, // TODO
-			"log":          unimplFunc, // TODO
+			"log":          funcs.LogFunc,
 			"lookup":       unimplFunc, // TODO
 			"lower":        stdlib.LowerFunc,
 			"map":          unimplFunc, // TODO
 			"max":          stdlib.MaxFunc,
-			"md5":          unimplFunc, // TODO
+			"md5":          funcs.Md5Func,
 			"merge":        unimplFunc, // TODO
 			"min":          stdlib.MinFunc,
-			"pathexpand":   unimplFunc, // TODO
-			"pow":          unimplFunc, // TODO
-			"replace":      unimplFunc, // TODO
-			"rsadecrypt":   unimplFunc, // TODO
-			"sha1":         unimplFunc, // TODO
-			"sha256":       unimplFunc, // TODO
-			"sha512":       unimplFunc, // TODO
-			"signum":       unimplFunc, // TODO
+			"pathexpand":   funcs.PathExpandFunc,
+			"pow":          funcs.PowFunc,
+			"replace":      funcs.ReplaceFunc,
+			"rsadecrypt":   funcs.RsaDecryptFunc,
+			"sha1":         funcs.Sha1Func,
+			"sha256":       funcs.Sha256Func,
+			"sha512":       funcs.Sha512Func,
+			"signum":       funcs.SignumFunc,
 			"slice":        unimplFunc, // TODO
 			"sort":         funcs.SortFunc,
 			"split":        funcs.SplitFunc,
 			"substr":       stdlib.SubstrFunc,
-			"timestamp":    unimplFunc, // TODO
-			"timeadd":      unimplFunc, // TODO
-			"title":        unimplFunc, // TODO
+			"timestamp":    funcs.TimestampFunc,
+			"timeadd":      funcs.TimeAddFunc,
+			"title":        funcs.TitleFunc,
 			"transpose":    unimplFunc, // TODO
-			"trimspace":    unimplFunc, // TODO
+			"trimspace":    funcs.TrimSpaceFunc,
 			"upper":        stdlib.UpperFunc,
-			"urlencode":    unimplFunc, // TODO
+			"urlencode":    funcs.URLEncodeFunc,
 			"uuid":         funcs.UUIDFunc,
+			"values":       unimplFunc, // TODO
 			"zipmap":       unimplFunc, // TODO
 		}
 

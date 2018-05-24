@@ -3,13 +3,12 @@ layout: "functions"
 page_title: "log function"
 sidebar_current: "docs-funcs-numeric-log"
 description: |-
-  The log function returns the closest whole number less than or equal to
-  the given value.
+  The log function returns the logarithm of a given number in a given base.
 ---
 
 # `log` Function
 
-`log` returns the the logarithm of a given number in a given base.
+`log` returns the logarithm of a given number in a given base.
 
 ```hcl
 log(number, base)
