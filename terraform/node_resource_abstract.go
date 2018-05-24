@@ -199,6 +199,9 @@ func (n *NodeAbstractResource) References() []*addrs.Reference {
 				}
 
 				schema := n.ProvisionerSchemas[p.Type]
+				if schema == nil {
+					log.Printf("[WARN] no schema for provisioner %q is attached to %s, so provisioner block references cannot be detected", p.Type, n.Name())
+				}
 				refs, _ = lang.ReferencesInBlock(p.Config, schema)
 				result = append(result, refs...)
 			}
@@ -364,8 +367,9 @@ func (n *NodeAbstractResource) ProvisionedBy() []string {
 
 // GraphNodeProvisionerConsumer
 func (n *NodeAbstractResource) AttachProvisionerSchema(name string, schema *configschema.Block) {
-	// FIXME: this isn't called anywehere
-	panic("unused")
+	if n.ProvisionerSchemas == nil {
+		n.ProvisionerSchemas = make(map[string]*configschema.Block)
+	}
 	n.ProvisionerSchemas[name] = schema
 }
 
