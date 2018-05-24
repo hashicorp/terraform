@@ -23,6 +23,11 @@ func TestBase64Decode(t *testing.T) {
 			cty.UnknownVal(cty.String),
 			true,
 		},
+		{ // Invalid utf-8
+			cty.StringVal("\xc3\x28"),
+			cty.UnknownVal(cty.String),
+			true,
+		},
 	}
 
 	for _, test := range tests {
