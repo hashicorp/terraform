@@ -254,10 +254,14 @@ func (n *EvalDiff) processIgnoreChanges(diff *InstanceDiff) error {
 
 	// get the complete set of keys we want to ignore
 	ignorableAttrKeys := make(map[string]bool)
-	for _, ignoredTraversal := range ignoreChanges {
-		ignoredKey := legacyFlatmapKeyForTraversal(ignoredTraversal)
-		for k := range attrs {
-			if ignoreAll || strings.HasPrefix(k, ignoredKey) {
+	for k := range attrs {
+		if ignoreAll {
+			ignorableAttrKeys[k] = true
+			continue
+		}
+		for _, ignoredTraversal := range ignoreChanges {
+			ignoredKey := legacyFlatmapKeyForTraversal(ignoredTraversal)
+			if k == ignoredKey || strings.HasPrefix(k, ignoredKey+".") {
 				ignorableAttrKeys[k] = true
 			}
 		}
