@@ -339,6 +339,30 @@ func TestCompact(t *testing.T) {
 			}),
 			false,
 		},
+		{
+			cty.ListVal([]cty.Value{
+				cty.StringVal("test"),
+				cty.StringVal("test"),
+				cty.StringVal(""),
+			}),
+			cty.ListVal([]cty.Value{
+				cty.StringVal("test"),
+				cty.StringVal("test"),
+			}),
+			false,
+		},
+		{ // errrors on list of lists
+			cty.ListVal([]cty.Value{
+				cty.ListVal([]cty.Value{
+					cty.StringVal("test"),
+				}),
+				cty.ListVal([]cty.Value{
+					cty.StringVal(""),
+				}),
+			}),
+			cty.NilVal,
+			true,
+		},
 	}
 
 	for _, test := range tests {
