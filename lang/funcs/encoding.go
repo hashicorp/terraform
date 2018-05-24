@@ -6,6 +6,7 @@ import (
 	"encoding/base64"
 	"fmt"
 	"net/url"
+	"unicode/utf8"
 
 	"github.com/zclconf/go-cty/cty"
 	"github.com/zclconf/go-cty/cty/function"
@@ -26,7 +27,9 @@ var Base64DecodeFunc = function.New(&function.Spec{
 		if err != nil {
 			return cty.UnknownVal(cty.String), fmt.Errorf("failed to decode base64 data '%s'", s)
 		}
-
+		if !utf8.Valid([]byte(s)) {
+			return cty.UnknownVal(cty.String), fmt.Errorf("contents of '%s' are not valid UTF-8", s)
+		}
 		return cty.StringVal(string(sDec)), nil
 	},
 })
