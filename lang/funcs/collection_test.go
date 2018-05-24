@@ -269,7 +269,7 @@ func TestCoalesceList(t *testing.T) {
 			}),
 			false,
 		},
-		{ // lists with value type mismatch
+		{ // lists with mixed types
 			[]cty.Value{
 				cty.ListVal([]cty.Value{
 					cty.StringVal("first"), cty.StringVal("second"),
@@ -279,20 +279,23 @@ func TestCoalesceList(t *testing.T) {
 					cty.NumberIntVal(2),
 				}),
 			},
-			cty.NilVal,
-			true,
+			cty.ListVal([]cty.Value{
+				cty.StringVal("first"), cty.StringVal("second"),
+			}),
+			false,
 		},
-		{ // mixed list and tuple
+		{ // lists with mixed types
 			[]cty.Value{
+				cty.ListVal([]cty.Value{
+					cty.NumberIntVal(1),
+					cty.NumberIntVal(2),
+				}),
 				cty.ListVal([]cty.Value{
 					cty.StringVal("first"), cty.StringVal("second"),
 				}),
-				cty.TupleVal([]cty.Value{
-					cty.StringVal("third"),
-				}),
 			},
 			cty.ListVal([]cty.Value{
-				cty.StringVal("first"), cty.StringVal("second"),
+				cty.StringVal("1"), cty.StringVal("2"),
 			}),
 			false,
 		},
@@ -301,6 +304,46 @@ func TestCoalesceList(t *testing.T) {
 	for _, test := range tests {
 		t.Run(fmt.Sprintf("coalescelist(%#v)", test.Values), func(t *testing.T) {
 			got, err := CoalesceList(test.Values...)
+
+			if test.Err {
+				if err == nil {
+					t.Fatal("succeeded; want error")
+				}
+				return
+			} else if err != nil {
+				t.Fatalf("unexpected error: %s", err)
+			}
+
+			if !got.RawEquals(test.Want) {
+				t.Errorf("wrong result\ngot:  %#v\nwant: %#v", got, test.Want)
+			}
+		})
+	}
+}
+
+func TestCompact(t *testing.T) {
+	tests := []struct {
+		List cty.Value
+		Want cty.Value
+		Err  bool
+	}{
+		{
+			cty.ListVal([]cty.Value{
+				cty.StringVal("test"),
+				cty.StringVal(""),
+				cty.StringVal("test"),
+			}),
+			cty.ListVal([]cty.Value{
+				cty.StringVal("test"),
+				cty.StringVal("test"),
+			}),
+			false,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(fmt.Sprintf("compact(%#v)", test.List), func(t *testing.T) {
+			got, err := Compact(test.List)
 
 			if test.Err {
 				if err == nil {
