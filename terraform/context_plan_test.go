@@ -3714,7 +3714,7 @@ func TestContext2Plan_moduleVariableFromSplat(t *testing.T) {
 }
 
 func TestContext2Plan_createBeforeDestroy_depends_datasource(t *testing.T) {
-	m := testModule(t, "plan-cdb-depends-datasource")
+	m := testModule(t, "plan-cbd-depends-datasource")
 	p := testProvider("aws")
 	p.DiffFn = testDiffFn
 	p.GetSchemaReturn = &ProviderSchema{
