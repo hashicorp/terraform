@@ -28,21 +28,47 @@ type GraphNodeAttachProviderConfigSchema interface {
 	AttachProviderConfigSchema(*configschema.Block)
 }
 
-// AttachSchemaTransformer finds nodes that implement either
-// GraphNodeAttachResourceSchema or GraphNodeAttachProviderConfigSchema, looks up
-// the schema for each, and then passes it to a method implemented by the
-// node.
+// GraphNodeAttachProvisionerSchema is an interface implemented by node types
+// that need one or more provisioner schemas attached.
+type GraphNodeAttachProvisionerSchema interface {
+	ProvisionedBy() []string
+
+	// SetProvisionerSchema is called during transform for each provisioner
+	// type returned from ProvisionedBy, providing the configuration schema
+	// for each provisioner in turn. The implementer should save these for
+	// later use in evaluating provisioner configuration blocks.
+	AttachProvisionerSchema(name string, schema *configschema.Block)
+}
+
+// AttachSchemaTransformer finds nodes that implement
+// GraphNodeAttachResourceSchema, GraphNodeAttachProviderConfigSchema, or
+// GraphNodeAttachProvisionerSchema, looks up the needed schemas for each
+// and then passes them to a method implemented by the node.
 type AttachSchemaTransformer struct {
+	GraphNodeProvisionerConsumer
 	Components contextComponentFactory
 }
 
 func (t *AttachSchemaTransformer) Transform(g *Graph) error {
-
 	if t.Components == nil {
 		// Should never happen with a reasonable caller, but we'll return a
 		// proper error here anyway so that we'll fail gracefully.
 		return fmt.Errorf("AttachSchemaTransformer used with nil Components")
 	}
+
+	err := t.attachProviderSchemas(g)
+	if err != nil {
+		return err
+	}
+	err = t.attachProvisionerSchemas(g)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (t *AttachSchemaTransformer) attachProviderSchemas(g *Graph) error {
 
 	// First we'll figure out which provider types we need to fetch schemas for.
 	needProviders := make(map[string]struct{})
@@ -144,6 +170,65 @@ func (t *AttachSchemaTransformer) Transform(g *Graph) error {
 				tv.AttachProviderConfigSchema(schema)
 			} else {
 				log.Printf("[ERROR] AttachSchemaTransformer: No schema available for %s", providerAddr)
+			}
+		}
+	}
+
+	return nil
+}
+
+func (t *AttachSchemaTransformer) attachProvisionerSchemas(g *Graph) error {
+
+	// First we'll figure out which provisioners we need to fetch schemas for.
+	needProvisioners := make(map[string]struct{})
+	for _, v := range g.Vertices() {
+		switch tv := v.(type) {
+		case GraphNodeAttachProvisionerSchema:
+			names := tv.ProvisionedBy()
+			log.Printf("[TRACE] AttachSchemaTransformer: %q (%T) provisioned by %s", dag.VertexName(v), v, names)
+			for _, name := range names {
+				needProvisioners[name] = struct{}{}
+			}
+		}
+	}
+
+	// Now we'll fetch each one. This requires us to temporarily instantiate
+	// them, though this is not a full bootstrap since we don't yet have
+	// configuration information; the provisioners will be re-instantiated and
+	// properly configured during the graph walk.
+	schemas := make(map[string]*configschema.Block)
+	for name := range needProvisioners {
+		log.Printf("[TRACE] AttachSchemaTransformer: retrieving schema for provisioner %q", name)
+		provisioner, err := t.Components.ResourceProvisioner(name, "early/"+name)
+		if err != nil {
+			return fmt.Errorf("failed to instantiate provisioner %q to obtain schema: %s", name, err)
+		}
+
+		schema, err := provisioner.GetConfigSchema()
+		if err != nil {
+			return fmt.Errorf("failed to retrieve schema from provisioner %q: %s", name, err)
+		}
+		schemas[name] = schema
+
+		if closer, ok := provisioner.(ResourceProvisionerCloser); ok {
+			closer.Close()
+		}
+	}
+
+	// Finally we'll once again visit all of the vertices and attach to
+	// them the schemas we found for them.
+	for _, v := range g.Vertices() {
+		switch tv := v.(type) {
+		case GraphNodeAttachProvisionerSchema:
+			names := tv.ProvisionedBy()
+			for _, name := range names {
+				schema := schemas[name]
+				if schema != nil {
+					log.Printf("[TRACE] AttachSchemaTransformer: attaching provisioner %q schema to %s", name, dag.VertexName(v))
+					tv.AttachProvisionerSchema(name, schema)
+				} else {
+					log.Printf("[ERROR] AttachSchemaTransformer: No schema available for provisioner %q on %q", name, dag.VertexName(v))
+				}
 			}
 		}
 	}

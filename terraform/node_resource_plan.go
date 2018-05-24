@@ -9,6 +9,10 @@ import (
 // it is ready to be planned in order to create a diff.
 type NodePlannableResource struct {
 	*NodeAbstractResource
+
+	// Components is the component factory to use when performing
+	// DynamicExpand, to access plugins necessary to build the subgraph.
+	Components contextComponentFactory
 }
 
 var (
@@ -84,6 +88,12 @@ func (n *NodePlannableResource) DynamicExpand(ctx EvalContext) (*Graph, error) {
 
 		// Targeting
 		&TargetsTransformer{Targets: n.Targets},
+
+		// Schemas must be attached before ReferenceTransformer, so we can
+		// properly analyze the configuration.
+		&AttachSchemaTransformer{
+			Components: n.Components,
+		},
 
 		// Connect references so ordering is correct
 		&ReferenceTransformer{},
