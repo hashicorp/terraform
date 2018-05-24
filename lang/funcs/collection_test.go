@@ -222,3 +222,98 @@ func TestLength(t *testing.T) {
 		})
 	}
 }
+
+func TestCoalesceList(t *testing.T) {
+	tests := []struct {
+		Values []cty.Value
+		Want   cty.Value
+		Err    bool
+	}{
+		{
+			[]cty.Value{
+				cty.ListVal([]cty.Value{
+					cty.StringVal("first"), cty.StringVal("second"),
+				}),
+				cty.ListVal([]cty.Value{
+					cty.StringVal("third"), cty.StringVal("fourth"),
+				}),
+			},
+			cty.ListVal([]cty.Value{
+				cty.StringVal("first"), cty.StringVal("second"),
+			}),
+			false,
+		},
+		{
+			[]cty.Value{
+				cty.ListValEmpty(cty.String),
+				cty.ListVal([]cty.Value{
+					cty.StringVal("third"), cty.StringVal("fourth"),
+				}),
+			},
+			cty.ListVal([]cty.Value{
+				cty.StringVal("third"), cty.StringVal("fourth"),
+			}),
+			false,
+		},
+		{
+			[]cty.Value{
+				cty.ListValEmpty(cty.Number),
+				cty.ListVal([]cty.Value{
+					cty.NumberIntVal(1),
+					cty.NumberIntVal(2),
+				}),
+			},
+			cty.ListVal([]cty.Value{
+				cty.NumberIntVal(1),
+				cty.NumberIntVal(2),
+			}),
+			false,
+		},
+		{ // lists with value type mismatch
+			[]cty.Value{
+				cty.ListVal([]cty.Value{
+					cty.StringVal("first"), cty.StringVal("second"),
+				}),
+				cty.ListVal([]cty.Value{
+					cty.NumberIntVal(1),
+					cty.NumberIntVal(2),
+				}),
+			},
+			cty.NilVal,
+			true,
+		},
+		{ // mixed list and tuple
+			[]cty.Value{
+				cty.ListVal([]cty.Value{
+					cty.StringVal("first"), cty.StringVal("second"),
+				}),
+				cty.TupleVal([]cty.Value{
+					cty.StringVal("third"),
+				}),
+			},
+			cty.ListVal([]cty.Value{
+				cty.StringVal("first"), cty.StringVal("second"),
+			}),
+			false,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(fmt.Sprintf("coalescelist(%#v)", test.Values), func(t *testing.T) {
+			got, err := CoalesceList(test.Values...)
+
+			if test.Err {
+				if err == nil {
+					t.Fatal("succeeded; want error")
+				}
+				return
+			} else if err != nil {
+				t.Fatalf("unexpected error: %s", err)
+			}
+
+			if !got.RawEquals(test.Want) {
+				t.Errorf("wrong result\ngot:  %#v\nwant: %#v", got, test.Want)
+			}
+		})
+	}
+}
