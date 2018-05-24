@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/zclconf/go-cty/cty"
+	"github.com/zclconf/go-cty/cty/convert"
 	"github.com/zclconf/go-cty/cty/function"
 	"github.com/zclconf/go-cty/cty/function/stdlib"
 	"github.com/zclconf/go-cty/cty/gocty"
@@ -106,6 +107,60 @@ var LengthFunc = function.New(&function.Spec{
 	},
 })
 
+//  CoalesceListFunc contructs a function that takes any number of list arguments
+// and returns the first one that isn't empty.
+var CoalesceListFunc = function.New(&function.Spec{
+	Params: []function.Parameter{},
+	VarParam: &function.Parameter{
+		Name:             "vals",
+		Type:             cty.DynamicPseudoType,
+		AllowUnknown:     true,
+		AllowDynamicType: true,
+		AllowNull:        true,
+	},
+	Type: func(args []cty.Value) (ret cty.Type, err error) {
+		if len(args) == 0 {
+			return cty.NilType, fmt.Errorf("at least one argument is required")
+		}
+
+		argTypes := make([]cty.Type, len(args))
+
+		for i, arg := range args {
+			arg, err = convert.Convert(arg, cty.DynamicPseudoType)
+			if err != nil {
+				return cty.NilType, fmt.Errorf("all arguments must be lists or tuples")
+			}
+
+			argTypes[i] = arg.Type()
+		}
+
+		fmt.Printf("%#v\n", argTypes)
+
+		return cty.List(cty.DynamicPseudoType), nil
+	},
+	Impl: func(args []cty.Value, retType cty.Type) (ret cty.Value, err error) {
+
+		vals := make([]cty.Value, 0, len(args))
+		for _, arg := range args {
+
+			// We already know this will succeed because of the checks in our Type func above
+			arg, _ = convert.Convert(arg, retType)
+
+			it := arg.ElementIterator()
+			for it.Next() {
+				_, v := it.Element()
+				vals = append(vals, v)
+			}
+
+			if len(vals) > 0 {
+				return cty.ListVal(vals), nil
+			}
+		}
+
+		return cty.NilVal, fmt.Errorf("no non-null arguments")
+	},
+})
+
 // Element returns a single element from a given list at the given index. If
 // index is greater than the length of the list then it is wrapped modulo
 // the list length.
@@ -117,4 +172,9 @@ func Element(list, index cty.Value) (cty.Value, error) {
 // Unicode characters in the given string.
 func Length(collection cty.Value) (cty.Value, error) {
 	return LengthFunc.Call([]cty.Value{collection})
+}
+
+// CoalesceList takes any number of list arguments and returns the first one that isn't empty.
+func CoalesceList(args ...cty.Value) (cty.Value, error) {
+	return CoalesceListFunc.Call(args)
 }
