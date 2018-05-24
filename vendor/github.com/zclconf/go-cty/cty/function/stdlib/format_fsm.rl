@@ -175,7 +175,7 @@ func formatFSM(format string, a []cty.Value) (string, error) {
 	// be impossible (the scanner matches all bytes _somehow_) but we'll
 	// flag it anyway rather than just losing data from the end.
 	if cs < formatfsm_first_final {
-		return buf.String(), fmt.Errorf("extraneous characters beginning at offset %i", p)
+		return buf.String(), fmt.Errorf("extraneous characters beginning at offset %d", p)
 	}
 
 	return buf.String(), nil
