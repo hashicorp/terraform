@@ -126,17 +126,15 @@ var CoalesceListFunc = function.New(&function.Spec{
 		argTypes := make([]cty.Type, len(args))
 
 		for i, arg := range args {
-			arg, err = convert.Convert(arg, cty.DynamicPseudoType)
-			if err != nil {
-				return cty.NilType, fmt.Errorf("all arguments must be lists or tuples")
-			}
-
 			argTypes[i] = arg.Type()
 		}
 
-		fmt.Printf("%#v\n", argTypes)
+		retType, _ := convert.UnifyUnsafe(argTypes)
+		if retType == cty.NilType {
+			return cty.NilType, fmt.Errorf("all arguments must have the same type")
+		}
 
-		return cty.List(cty.DynamicPseudoType), nil
+		return retType, nil
 	},
 	Impl: func(args []cty.Value, retType cty.Type) (ret cty.Value, err error) {
 
@@ -161,6 +159,34 @@ var CoalesceListFunc = function.New(&function.Spec{
 	},
 })
 
+//  CompactFunc contructs a function that takes a list of strings and returns a new list
+// with any empty string elements removed.
+var CompactFunc = function.New(&function.Spec{
+	Params: []function.Parameter{
+		{
+			Name: "list",
+			Type: cty.List(cty.String),
+		},
+	},
+	Type: function.StaticReturnType(cty.List(cty.String)),
+	Impl: func(args []cty.Value, retType cty.Type) (ret cty.Value, err error) {
+
+		var outputList []cty.Value
+
+		it := args[0].ElementIterator()
+		for it.Next() {
+			_, v := it.Element()
+			fmt.Println("ohai!")
+			fmt.Println(v.AsString())
+			if v.AsString() == "" {
+				continue
+			}
+			outputList = append(outputList, v)
+		}
+		return cty.ListVal(outputList), nil
+	},
+})
+
 // Element returns a single element from a given list at the given index. If
 // index is greater than the length of the list then it is wrapped modulo
 // the list length.
@@ -177,4 +203,10 @@ func Length(collection cty.Value) (cty.Value, error) {
 // CoalesceList takes any number of list arguments and returns the first one that isn't empty.
 func CoalesceList(args ...cty.Value) (cty.Value, error) {
 	return CoalesceListFunc.Call(args)
+}
+
+// Compact takes a list of strings and returns a new list
+// with any empty string elements removed.
+func Compact(list cty.Value) (cty.Value, error) {
+	return CoalesceListFunc.Call([]cty.Value{list})
 }
