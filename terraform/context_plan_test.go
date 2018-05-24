@@ -3729,6 +3729,7 @@ func TestContext2Plan_createBeforeDestroy_depends_datasource(t *testing.T) {
 		DataSources: map[string]*configschema.Block{
 			"aws_vpc": {
 				Attributes: map[string]*configschema.Attribute{
+					"id":  {Type: cty.String, Computed: true},
 					"foo": {Type: cty.Number, Optional: true},
 				},
 			},
