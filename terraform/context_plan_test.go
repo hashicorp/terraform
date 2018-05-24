@@ -3821,8 +3821,13 @@ func TestContext2Plan_ignoreChangesWithFlatmaps(t *testing.T) {
 				Attributes: map[string]*configschema.Attribute{
 					"user_data":   {Type: cty.String, Optional: true},
 					"require_new": {Type: cty.String, Optional: true},
-					"set":         {Type: cty.Map(cty.String), Optional: true},
-					"lst":         {Type: cty.List(cty.String), Optional: true},
+
+					// This test predates the 0.12 work to integrate cty and
+					// HCL, and so it was ported as-is where its expected
+					// test output was clearly expecting a list of maps here
+					// even though it is named "set".
+					"set": {Type: cty.List(cty.Map(cty.String)), Optional: true},
+					"lst": {Type: cty.List(cty.String), Optional: true},
 				},
 			},
 		},
