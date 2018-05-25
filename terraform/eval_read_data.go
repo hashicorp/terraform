@@ -37,7 +37,7 @@ func (n *EvalReadDataDiff) Eval(ctx EvalContext) (interface{}, error) {
 	var diags tfdiags.Diagnostics
 
 	// The provider and hook APIs still expect our legacy InstanceInfo type.
-	legacyInfo := NewInstanceInfo(n.Addr.Absolute(ctx.Path()).ContainingResource())
+	legacyInfo := NewInstanceInfo(n.Addr.Absolute(ctx.Path()))
 
 	err := ctx.Hook(func(h Hook) (HookAction, error) {
 		return h.PreDiff(legacyInfo, nil)
@@ -138,7 +138,7 @@ func (n *EvalReadDataApply) Eval(ctx EvalContext) (interface{}, error) {
 	diff := *n.Diff
 
 	// The provider and hook APIs still expect our legacy InstanceInfo type.
-	legacyInfo := NewInstanceInfo(n.Addr.Absolute(ctx.Path()).ContainingResource())
+	legacyInfo := NewInstanceInfo(n.Addr.Absolute(ctx.Path()))
 
 	// If the diff is for *destroying* this resource then we'll
 	// just drop its state and move on, since data resources don't
