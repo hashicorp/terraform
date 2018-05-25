@@ -49,9 +49,9 @@ func (s *Scope) Functions() map[string]function.Function {
 			"contains":     funcs.ContainsFunc,
 			"csvdecode":    stdlib.CSVDecodeFunc,
 			"dirname":      funcs.DirnameFunc,
-			"distinct":     unimplFunc, // TODO
+			"distinct":     funcs.DistinctFunc,
 			"element":      funcs.ElementFunc,
-			"chunklist":    unimplFunc, // TODO
+			"chunklist":    funcs.ChunklistFunc,
 			"file":         funcs.MakeFileFunc(s.BaseDir, false),
 			"filebase64":   funcs.MakeFileFunc(s.BaseDir, true),
 			"matchkeys":    unimplFunc, // TODO
