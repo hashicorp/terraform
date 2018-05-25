@@ -3250,7 +3250,7 @@ func TestContext2Apply_multiProviderDestroy(t *testing.T) {
 		ResourceTypes: map[string]*configschema.Block{
 			"vault_instance": {
 				Attributes: map[string]*configschema.Attribute{
-					"id":  {Type: cty.String, Computed: true},
+					"id": {Type: cty.String, Computed: true},
 				},
 			},
 		},
@@ -3900,6 +3900,16 @@ func TestContext2Apply_multiVarMissingState(t *testing.T) {
 	p := testProvider("test")
 	p.ApplyFn = testApplyFn
 	p.DiffFn = testDiffFn
+	p.GetSchemaReturn = &ProviderSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"test_thing": {
+				Attributes: map[string]*configschema.Attribute{
+					"a_ids": {Type: cty.String, Optional: true},
+					"id":    {Type: cty.String, Computed: true},
+				},
+			},
+		},
+	}
 
 	// First, apply with a count of 3
 	ctx := testContext2(t, &ContextOpts{
