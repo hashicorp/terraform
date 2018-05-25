@@ -453,7 +453,7 @@ func TestContext2Apply_resourceDependsOnModuleGrandchild(t *testing.T) {
 			info *InstanceInfo,
 			is *InstanceState,
 			id *InstanceDiff) (*InstanceState, error) {
-			if info.HumanId() == "module.child.grandchild.aws_instance.c" {
+			if info.HumanId() == "module.child.module.grandchild.aws_instance.c" {
 				checked = true
 
 				// Sleep to allow parallel execution
@@ -509,7 +509,7 @@ func TestContext2Apply_resourceDependsOnModuleInModule(t *testing.T) {
 			info *InstanceInfo,
 			is *InstanceState,
 			id *InstanceDiff) (*InstanceState, error) {
-			if info.HumanId() == "module.child.grandchild.aws_instance.c" {
+			if info.HumanId() == "module.child.module.grandchild.aws_instance.c" {
 				checked = true
 
 				// Sleep to allow parallel execution
@@ -1890,14 +1890,14 @@ func TestContext2Apply_cancel(t *testing.T) {
 		return &InstanceState{
 			ID: "foo",
 			Attributes: map[string]string{
-				"num": "2",
+				"value": "2",
 			},
 		}, nil
 	}
 	p.DiffFn = func(*InstanceInfo, *InstanceState, *ResourceConfig) (*InstanceDiff, error) {
 		return &InstanceDiff{
 			Attributes: map[string]*ResourceAttrDiff{
-				"num": &ResourceAttrDiff{
+				"value": &ResourceAttrDiff{
 					New: "bar",
 				},
 			},
@@ -8340,7 +8340,7 @@ func TestContext2Apply_unknownAttribute(t *testing.T) {
 	}
 
 	state, diags := ctx.Apply()
-	if diags.HasErrors() {
+	if !diags.HasErrors() {
 		t.Fatal("should error with UnknownVariableValue")
 	}
 
