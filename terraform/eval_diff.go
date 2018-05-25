@@ -104,7 +104,7 @@ func (n *EvalDiff) Eval(ctx EvalContext) (interface{}, error) {
 	var diags tfdiags.Diagnostics
 
 	// The provider and hook APIs still expect our legacy InstanceInfo type.
-	legacyInfo := NewInstanceInfo(n.Addr.Absolute(ctx.Path()).ContainingResource())
+	legacyInfo := NewInstanceInfo(n.Addr.Absolute(ctx.Path()))
 
 	// State still uses legacy-style internal ids, so we need to shim to get
 	// a suitable key to use.
@@ -439,7 +439,7 @@ func (n *EvalDiffDestroy) Eval(ctx EvalContext) (interface{}, error) {
 	}
 
 	// The provider and hook APIs still expect our legacy InstanceInfo type.
-	legacyInfo := NewInstanceInfo(n.Addr.Absolute(ctx.Path()).ContainingResource())
+	legacyInfo := NewInstanceInfo(n.Addr.Absolute(ctx.Path()))
 
 	// Call pre-diff hook
 	err := ctx.Hook(func(h Hook) (HookAction, error) {
