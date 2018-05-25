@@ -565,3 +565,189 @@ func TestIndex(t *testing.T) {
 		})
 	}
 }
+
+func TestDistinct(t *testing.T) {
+	tests := []struct {
+		List cty.Value
+		Want cty.Value
+		Err  bool
+	}{
+		{
+			cty.ListVal([]cty.Value{
+				cty.StringVal("a"),
+				cty.StringVal("b"),
+				cty.StringVal("a"),
+				cty.StringVal("b"),
+			}),
+			cty.ListVal([]cty.Value{
+				cty.StringVal("a"),
+				cty.StringVal("b"),
+			}),
+			false,
+		},
+		{
+			cty.ListVal([]cty.Value{
+				cty.StringVal("a"),
+				cty.StringVal("b"),
+				cty.StringVal("c"),
+				cty.StringVal("d"),
+			}),
+			cty.ListVal([]cty.Value{
+				cty.StringVal("a"),
+				cty.StringVal("b"),
+				cty.StringVal("c"),
+				cty.StringVal("d"),
+			}),
+			false,
+		},
+		{
+			cty.ListVal([]cty.Value{
+				cty.NumberIntVal(1),
+				cty.NumberIntVal(2),
+				cty.NumberIntVal(1),
+				cty.NumberIntVal(2),
+			}),
+			cty.ListVal([]cty.Value{
+				cty.NumberIntVal(1),
+				cty.NumberIntVal(2),
+			}),
+			false,
+		},
+		{
+			cty.ListVal([]cty.Value{
+				cty.ListVal([]cty.Value{
+					cty.NumberIntVal(1),
+					cty.NumberIntVal(2),
+				}),
+				cty.ListVal([]cty.Value{
+					cty.NumberIntVal(1),
+					cty.NumberIntVal(2),
+				}),
+			}),
+			cty.ListVal([]cty.Value{
+				cty.ListVal([]cty.Value{
+					cty.NumberIntVal(1),
+					cty.NumberIntVal(2),
+				}),
+			}),
+			false,
+		},
+		{
+			cty.ListVal([]cty.Value{
+				cty.ListVal([]cty.Value{
+					cty.NumberIntVal(1),
+					cty.NumberIntVal(2),
+				}),
+				cty.ListVal([]cty.Value{
+					cty.NumberIntVal(3),
+					cty.NumberIntVal(4),
+				}),
+			}),
+			cty.ListVal([]cty.Value{
+				cty.ListVal([]cty.Value{
+					cty.NumberIntVal(1),
+					cty.NumberIntVal(2),
+				}),
+				cty.ListVal([]cty.Value{
+					cty.NumberIntVal(3),
+					cty.NumberIntVal(4),
+				}),
+			}),
+			false,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(fmt.Sprintf("distinct(%#v)", test.List), func(t *testing.T) {
+			got, err := Distinct(test.List)
+
+			if test.Err {
+				if err == nil {
+					t.Fatal("succeeded; want error")
+				}
+				return
+			} else if err != nil {
+				t.Fatalf("unexpected error: %s", err)
+			}
+
+			if !got.RawEquals(test.Want) {
+				t.Errorf("wrong result\ngot:  %#v\nwant: %#v", got, test.Want)
+			}
+		})
+	}
+}
+
+func TestChunklist(t *testing.T) {
+	tests := []struct {
+		List cty.Value
+		Size cty.Value
+		Want cty.Value
+		Err  bool
+	}{
+		{
+			cty.ListVal([]cty.Value{
+				cty.StringVal("a"),
+				cty.StringVal("b"),
+				cty.StringVal("c"),
+			}),
+			cty.NumberIntVal(1),
+			cty.ListVal([]cty.Value{
+				cty.ListVal([]cty.Value{
+					cty.StringVal("a"),
+				}),
+				cty.ListVal([]cty.Value{
+					cty.StringVal("b"),
+				}),
+				cty.ListVal([]cty.Value{
+					cty.StringVal("c"),
+				}),
+			}),
+			false,
+		},
+		{
+			cty.ListVal([]cty.Value{
+				cty.StringVal("a"),
+				cty.StringVal("b"),
+				cty.StringVal("c"),
+			}),
+			cty.NumberIntVal(-1),
+			cty.NilVal,
+			true,
+		},
+		{
+			cty.ListVal([]cty.Value{
+				cty.StringVal("a"),
+				cty.StringVal("b"),
+				cty.StringVal("c"),
+			}),
+			cty.NumberIntVal(0),
+			cty.ListVal([]cty.Value{
+				cty.ListVal([]cty.Value{
+					cty.StringVal("a"),
+					cty.StringVal("b"),
+					cty.StringVal("c"),
+				}),
+			}),
+			false,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(fmt.Sprintf("chunklist(%#v, %#v)", test.List, test.Size), func(t *testing.T) {
+			got, err := Chunklist(test.List, test.Size)
+
+			if test.Err {
+				if err == nil {
+					t.Fatal("succeeded; want error")
+				}
+				return
+			} else if err != nil {
+				t.Fatalf("unexpected error: %s", err)
+			}
+
+			if !got.RawEquals(test.Want) {
+				t.Errorf("wrong result\ngot:  %#v\nwant: %#v", got, test.Want)
+			}
+		})
+	}
+}
