@@ -4031,3 +4031,74 @@ aws_instance.foo.1:
 		t.Fatalf("bad:\n%s\n\nexpected\n\n%s", actual, expected)
 	}
 }
+
+// Higher level test at TestResource_dataSourceListApplyPanic
+func TestContext2Plan_computedAttrRefTypeMismatch(t *testing.T) {
+	m := testModule(t, "plan-computed-attr-ref-type-mismatch")
+	p := testProvider("aws")
+	p.DiffFn = testDiffFn
+	p.ValidateResourceFn = func(t string, c *ResourceConfig) (ws []string, es []error) {
+		// Emulate the type checking behavior of helper/schema based validation
+		if t == "aws_instance" {
+			ami, _ := c.Get("ami")
+			switch a := ami.(type) {
+			case string:
+				// ok
+			default:
+				es = append(es, fmt.Errorf("Expected ami to be string, got %T", a))
+			}
+		}
+		return
+	}
+	p.DiffFn = func(
+		info *InstanceInfo,
+		state *InstanceState,
+		c *ResourceConfig) (*InstanceDiff, error) {
+		switch info.Type {
+		case "aws_ami_list":
+			// Emulate a diff that says "we'll create this list and ids will be populated"
+			return &InstanceDiff{
+				Attributes: map[string]*ResourceAttrDiff{
+					"ids.#": &ResourceAttrDiff{NewComputed: true},
+				},
+			}, nil
+		case "aws_instance":
+			// If we get to the diff for instance, we should be able to assume types
+			ami, _ := c.Get("ami")
+			_ = ami.(string)
+		}
+		return nil, nil
+	}
+	p.ApplyFn = func(info *InstanceInfo, s *InstanceState, d *InstanceDiff) (*InstanceState, error) {
+		if info.Type != "aws_ami_list" {
+			t.Fatalf("Reached apply for unexpected resource type! %s", info.Type)
+		}
+		// Pretend like we make a thing and the computed list "ids" is populated
+		return &InstanceState{
+			ID: "someid",
+			Attributes: map[string]string{
+				"ids.#": "2",
+				"ids.0": "ami-abc123",
+				"ids.1": "ami-bcd345",
+			},
+		}, nil
+	}
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		ProviderResolver: ResourceProviderResolverFixed(
+			map[string]ResourceProviderFactory{
+				"aws": testProviderFuncFixed(p),
+			},
+		),
+	})
+
+	_, diags := ctx.Plan()
+	if !diags.HasErrors() {
+		t.Fatalf("Succeeded; want type mismatch error for 'ami' argument")
+	}
+
+	expected := `Inappropriate value for attribute "ami"`
+	if errStr := diags.Err().Error(); !strings.Contains(errStr, expected) {
+		t.Fatalf("expected:\n\n%s\n\nto contain:\n\n%s", errStr, expected)
+	}
+}
