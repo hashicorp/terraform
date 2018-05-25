@@ -202,7 +202,16 @@ func (m *ReferenceMap) References(v dag.Vertex) ([]dag.Vertex, []addrs.Reference
 	var missing []addrs.Referenceable
 
 	for _, ref := range rn.References() {
-		key := m.referenceMapKey(v, ref.Subject)
+		subject := ref.Subject
+
+		// References may point to specific instances, but the resources may
+		// not yet be expanded. Make sure we reference the resource type
+		// itself.
+		if ri, ok := subject.(addrs.ResourceInstance); ok {
+			subject = ri.Resource
+		}
+
+		key := m.referenceMapKey(v, subject)
 		vertices := m.vertices[key]
 		for _, rv := range vertices {
 			// don't include self-references
