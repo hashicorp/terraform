@@ -767,6 +767,15 @@ func TestContext2Input_dataSourceRequiresRefresh(t *testing.T) {
 	p := testProvider("null")
 	m := testModule(t, "input-module-data-vars")
 
+	p.GetSchemaReturn = &ProviderSchema{
+		DataSources: map[string]*configschema.Block{
+			"null_data_source": {
+				Attributes: map[string]*configschema.Attribute{
+					"foo": {Type: cty.List(cty.String), Optional: true},
+				},
+			},
+		},
+	}
 	p.ReadDataDiffFn = testDataDiffFn
 
 	state := &State{
