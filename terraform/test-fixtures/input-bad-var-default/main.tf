@@ -1,5 +1,5 @@
 variable "test" {
-    default {
-        l = [1, 2, 3]
-    }
+  default = {
+    l = [1, 2, 3]
+  }
 }
