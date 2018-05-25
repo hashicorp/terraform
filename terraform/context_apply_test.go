@@ -5913,6 +5913,18 @@ func TestContext2Apply_Provisioner_ConnInfo(t *testing.T) {
 	p := testProvider("aws")
 	pr := testProvisioner()
 
+	p.GetSchemaReturn = &ProviderSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"aws_instance": {
+				Attributes: map[string]*configschema.Attribute{
+					"num": {Type: cty.String, Optional: true},
+					"compute": {Type: cty.String, Optional: true},
+					"compute_value": {Type: cty.String, Optional: true},
+					"dynamical": {Type: cty.String, Computed: true},
+				},
+			},
+		},
+	}
 	p.ApplyFn = func(info *InstanceInfo, s *InstanceState, d *InstanceDiff) (*InstanceState, error) {
 		if s.Ephemeral.ConnInfo == nil {
 			t.Fatalf("ConnInfo not initialized")
@@ -5927,6 +5939,12 @@ func TestContext2Apply_Provisioner_ConnInfo(t *testing.T) {
 		return result, nil
 	}
 	p.DiffFn = testDiffFn
+
+	pr.GetConfigSchemaReturnSchema = &configschema.Block{
+		Attributes: map[string]*configschema.Attribute{
+			"foo": {Type: cty.String, Optional: true},
+		},
+	}
 
 	pr.ApplyFn = func(rs *InstanceState, c *ResourceConfig) error {
 		conn := rs.Ephemeral.ConnInfo
