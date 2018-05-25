@@ -32,7 +32,7 @@ func (n *EvalApply) Eval(ctx EvalContext) (interface{}, error) {
 	state := *n.State
 
 	// The provider API still expects our legacy InstanceInfo type, so we must shim it.
-	legacyInfo := NewInstanceInfo(n.Addr.Absolute(ctx.Path()).ContainingResource())
+	legacyInfo := NewInstanceInfo(n.Addr.Absolute(ctx.Path()))
 
 	if diff.Empty() {
 		log.Printf("[DEBUG] apply %s: diff is empty, so skipping.", n.Addr)
@@ -113,7 +113,7 @@ func (n *EvalApplyPre) Eval(ctx EvalContext) (interface{}, error) {
 
 	// The hook API still uses our legacy InstanceInfo type, so we must
 	// shim it.
-	legacyInfo := NewInstanceInfo(n.Addr.ContainingResource().Absolute(ctx.Path()))
+	legacyInfo := NewInstanceInfo(n.Addr.Absolute(ctx.Path()))
 
 	// If the state is nil, make it non-nil
 	if state == nil {
@@ -147,7 +147,7 @@ func (n *EvalApplyPost) Eval(ctx EvalContext) (interface{}, error) {
 
 	// The hook API still uses our legacy InstanceInfo type, so we must
 	// shim it.
-	legacyInfo := NewInstanceInfo(n.Addr.ContainingResource().Absolute(ctx.Path()))
+	legacyInfo := NewInstanceInfo(n.Addr.Absolute(ctx.Path()))
 
 	if resourceHasUserVisibleApply(legacyInfo) {
 		// Call post-apply hook
@@ -199,7 +199,7 @@ func (n *EvalApplyProvisioners) Eval(ctx EvalContext) (interface{}, error) {
 	state := *n.State
 
 	// The hook API still uses the legacy InstanceInfo type, so we need to shim it.
-	legacyInfo := NewInstanceInfo(n.Addr.Resource.Absolute(ctx.Path()))
+	legacyInfo := NewInstanceInfo(n.Addr.Absolute(ctx.Path()))
 
 	if n.CreateNew != nil && !*n.CreateNew {
 		// If we're not creating a new resource, then don't run provisioners
@@ -286,7 +286,7 @@ func (n *EvalApplyProvisioners) apply(ctx EvalContext, provs []*configs.Provisio
 	state := *n.State
 
 	// The hook API still uses the legacy InstanceInfo type, so we need to shim it.
-	legacyInfo := NewInstanceInfo(n.Addr.Resource.Absolute(ctx.Path()))
+	legacyInfo := NewInstanceInfo(n.Addr.Absolute(ctx.Path()))
 
 	// Store the original connection info, restore later
 	origConnInfo := state.Ephemeral.ConnInfo
