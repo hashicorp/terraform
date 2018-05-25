@@ -22,7 +22,7 @@ func (n *EvalRefresh) Eval(ctx EvalContext) (interface{}, error) {
 	state := *n.State
 
 	// The provider and hook APIs still expect our legacy InstanceInfo type.
-	legacyInfo := NewInstanceInfo(n.Addr.Absolute(ctx.Path()).ContainingResource())
+	legacyInfo := NewInstanceInfo(n.Addr.Absolute(ctx.Path()))
 
 	// If we have no state, we don't do any refreshing
 	if state == nil {

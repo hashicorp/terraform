@@ -67,7 +67,7 @@ func (n *graphNodeImportState) Path() addrs.ModuleInstance {
 // GraphNodeEvalable impl.
 func (n *graphNodeImportState) EvalTree() EvalNode {
 	var provider ResourceProvider
-	info := NewInstanceInfo(n.Addr.ContainingResource())
+	info := NewInstanceInfo(n.Addr)
 
 	// Reset our states
 	n.states = nil

@@ -105,10 +105,8 @@ type InstanceInfo struct {
 	uniqueExtra string
 }
 
-// NewInstanceInfo constructs an InstanceInfo from an addrs.AbsResource.
+// NewInstanceInfo constructs an InstanceInfo from an addrs.AbsResourceInstance.
 //
-// In spite of the confusing name, an InstanceInfo actually identifies a
-// particular resource rather than a particular resource instance.
 // InstanceInfo is a legacy type, and uses of it should be gradually replaced
 // by direct use of addrs.AbsResource or addrs.AbsResourceInstance as
 // appropriate.
@@ -117,7 +115,11 @@ type InstanceInfo struct {
 // keys, so this function will panic if given such a path. Uses of this type
 // should all be removed or replaced before implementing "count" and "for_each"
 // arguments on modules in order to avoid such panics.
-func NewInstanceInfo(addr addrs.AbsResource) *InstanceInfo {
+//
+// This legacy type also cannot represent resource instances with string
+// instance keys. It will panic if the given key is not either NoKey or an
+// IntKey.
+func NewInstanceInfo(addr addrs.AbsResourceInstance) *InstanceInfo {
 	// We need an old-style []string module path for InstanceInfo.
 	path := make([]string, len(addr.Module))
 	for i, step := range addr.Module {
@@ -132,15 +134,23 @@ func NewInstanceInfo(addr addrs.AbsResource) *InstanceInfo {
 	// a representation of the resource mode, and so it's impossible to
 	// determine from an InstanceInfo alone whether it is a managed or data
 	// resource that is being referred to.
-	id := fmt.Sprintf("%s.%s", addr.Resource.Type, addr.Resource.Name)
-	if addr.Resource.Mode == addrs.DataResourceMode {
+	id := fmt.Sprintf("%s.%s", addr.Resource.Resource.Type, addr.Resource.Resource.Name)
+	if addr.Resource.Resource.Mode == addrs.DataResourceMode {
 		id = "data." + id
+	}
+	if addr.Resource.Key != addrs.NoKey {
+		switch k := addr.Resource.Key.(type) {
+		case addrs.IntKey:
+			id = id + fmt.Sprintf(".%d", int(k))
+		default:
+			panic(fmt.Sprintf("NewInstanceInfo cannot convert resource instance with %T instance key", addr.Resource.Key))
+		}
 	}
 
 	return &InstanceInfo{
 		Id:         id,
 		ModulePath: path,
-		Type:       addr.Resource.Type,
+		Type:       addr.Resource.Resource.Type,
 	}
 }
 
