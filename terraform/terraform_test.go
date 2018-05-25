@@ -384,7 +384,7 @@ const testTerraformApplyCancelStr = `
 aws_instance.foo:
   ID = foo
   provider = provider.aws
-  num = 2
+  value = 2
 `
 
 const testTerraformApplyComputeStr = `
