@@ -76,8 +76,8 @@ func TestContext2Input_moduleComputedOutputElement(t *testing.T) {
 		return c, nil
 	}
 
-	if err := ctx.Input(InputModeStd); err != nil {
-		t.Fatalf("err: %s", err)
+	if diags := ctx.Input(InputModeStd); diags.HasErrors() {
+		t.Fatalf("input errors: %s", diags.Err())
 	}
 }
 
@@ -100,8 +100,8 @@ func TestContext2Input_badVarDefault(t *testing.T) {
 		return c, nil
 	}
 
-	if err := ctx.Input(InputModeStd); err != nil {
-		t.Fatalf("err: %s", err)
+	if diags := ctx.Input(InputModeStd); diags.HasErrors() {
+		t.Fatalf("input errors: %s", diags.Err())
 	}
 }
 
@@ -132,20 +132,20 @@ func TestContext2Input_provider(t *testing.T) {
 		return nil, c.CheckSet([]string{"foo"})
 	}
 
-	if err := ctx.Input(InputModeStd); err != nil {
-		t.Fatalf("err: %s", err)
+	if diags := ctx.Input(InputModeStd); diags.HasErrors() {
+		t.Fatalf("input errors: %s", diags.Err())
 	}
 
-	if _, err := ctx.Plan(); err != nil {
-		t.Fatalf("err: %s", err)
+	if _, diags := ctx.Plan(); diags.HasErrors() {
+		t.Fatalf("plan errors: %s", diags.Err())
 	}
 
-	if _, err := ctx.Apply(); err != nil {
-		t.Fatalf("err: %s", err)
+	if _, diags := ctx.Apply(); diags.HasErrors() {
+		t.Fatalf("apply errors: %s", diags.Err())
 	}
 
 	if !reflect.DeepEqual(actual, "bar") {
-		t.Fatalf("bad: %#v", actual)
+		t.Fatalf("wrong result\ngot:  %#v\nwant: %#v", actual, "bar")
 	}
 }
 
@@ -179,21 +179,21 @@ func TestContext2Input_providerMulti(t *testing.T) {
 		return nil, c.CheckSet([]string{"foo"})
 	}
 
-	if err := ctx.Input(InputModeStd); err != nil {
-		t.Fatalf("err: %s", err)
+	if diags := ctx.Input(InputModeStd); diags.HasErrors() {
+		t.Fatalf("input errors: %s", diags.Err())
 	}
 
-	if _, err := ctx.Plan(); err != nil {
-		t.Fatalf("err: %s", err)
+	if _, diags := ctx.Plan(); diags.HasErrors() {
+		t.Fatalf("plan errors: %s", diags.Err())
 	}
 
-	if _, err := ctx.Apply(); err != nil {
-		t.Fatalf("err: %s", err)
+	if _, diags := ctx.Apply(); diags.HasErrors() {
+		t.Fatalf("apply errors: %s", diags.Err())
 	}
 
 	expected := []interface{}{"bar", "bar"}
 	if !reflect.DeepEqual(actual, expected) {
-		t.Fatalf("bad: %#v", actual)
+		t.Fatalf("wrong result\ngot:  %#v\nwant: %#v", actual, expected)
 	}
 }
 
@@ -230,8 +230,8 @@ func TestContext2Input_providerOnce(t *testing.T) {
 		return c, nil
 	}
 
-	if err := ctx.Input(InputModeStd); err != nil {
-		t.Fatalf("err: %s", err)
+	if diags := ctx.Input(InputModeStd); diags.HasErrors() {
+		t.Fatalf("input errors: %s", diags.Err())
 	}
 }
 
@@ -270,20 +270,20 @@ func TestContext2Input_providerId(t *testing.T) {
 		"provider.aws.foo": "bar",
 	}
 
-	if err := ctx.Input(InputModeStd); err != nil {
-		t.Fatalf("err: %s", err)
+	if diags := ctx.Input(InputModeStd); diags.HasErrors() {
+		t.Fatalf("input errors: %s", diags.Err())
 	}
 
-	if _, err := ctx.Plan(); err != nil {
-		t.Fatalf("err: %s", err)
+	if _, diags := ctx.Plan(); diags.HasErrors() {
+		t.Fatalf("plan errors: %s", diags.Err())
 	}
 
-	if _, err := ctx.Apply(); err != nil {
-		t.Fatalf("err: %s", err)
+	if _, diags := ctx.Apply(); diags.HasErrors() {
+		t.Fatalf("apply errors: %s", diags.Err())
 	}
 
 	if !reflect.DeepEqual(actual, "bar") {
-		t.Fatalf("bad: %#v", actual)
+		t.Fatalf("wrong result\ngot:  %#v\nwant: %#v", actual, "bar")
 	}
 }
 
@@ -327,8 +327,8 @@ func TestContext2Input_providerOnly(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	if _, err := ctx.Plan(); err != nil {
-		t.Fatalf("err: %s", err)
+	if _, diags := ctx.Plan(); diags.HasErrors() {
+		t.Fatalf("plan errors: %s", diags.Err())
 	}
 
 	state, err := ctx.Apply()
@@ -337,13 +337,13 @@ func TestContext2Input_providerOnly(t *testing.T) {
 	}
 
 	if !reflect.DeepEqual(actual, "bar") {
-		t.Fatalf("bad: %#v", actual)
+		t.Fatalf("wrong result\ngot:  %#v\nwant: %#v", actual, "bar")
 	}
 
 	actualStr := strings.TrimSpace(state.String())
 	expectedStr := strings.TrimSpace(testTerraformInputProviderOnlyStr)
 	if actualStr != expectedStr {
-		t.Fatalf("bad: \n%s", actualStr)
+		t.Fatalf("wrong result\n\ngot:\n%s\n\nwant:\n%s", actualStr, expectedStr)
 	}
 }
 
@@ -383,16 +383,16 @@ func TestContext2Input_providerVars(t *testing.T) {
 		return nil
 	}
 
-	if err := ctx.Input(InputModeStd); err != nil {
-		t.Fatalf("err: %s", err)
+	if diags := ctx.Input(InputModeStd); diags.HasErrors() {
+		t.Fatalf("input errors: %s", diags.Err())
 	}
 
-	if _, err := ctx.Plan(); err != nil {
-		t.Fatalf("err: %s", err)
+	if _, diags := ctx.Plan(); diags.HasErrors() {
+		t.Fatalf("plan errors: %s", diags.Err())
 	}
 
-	if _, err := ctx.Apply(); err != nil {
-		t.Fatalf("err: %s", err)
+	if _, diags := ctx.Apply(); diags.HasErrors() {
+		t.Fatalf("apply errors: %s", diags.Err())
 	}
 
 	if !reflect.DeepEqual(actual, "bar") {
@@ -426,8 +426,8 @@ func TestContext2Input_providerVarsModuleInherit(t *testing.T) {
 		return nil
 	}
 
-	if err := ctx.Input(InputModeStd); err != nil {
-		t.Fatalf("err: %s", err)
+	if diags := ctx.Input(InputModeStd); diags.HasErrors() {
+		t.Fatalf("input errors: %s", diags.Err())
 	}
 }
 
@@ -471,8 +471,8 @@ func TestContext2Input_varOnly(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	if _, err := ctx.Plan(); err != nil {
-		t.Fatalf("err: %s", err)
+	if _, diags := ctx.Plan(); diags.HasErrors() {
+		t.Fatalf("plan errors: %s", diags.Err())
 	}
 
 	state, err := ctx.Apply()
@@ -487,7 +487,7 @@ func TestContext2Input_varOnly(t *testing.T) {
 	actualStr := strings.TrimSpace(state.String())
 	expectedStr := strings.TrimSpace(testTerraformInputVarOnlyStr)
 	if actualStr != expectedStr {
-		t.Fatalf("bad: \n%s", actualStr)
+		t.Fatalf("wrong result\n\ngot:\n%s\n\nwant:\n%s", actualStr, expectedStr)
 	}
 }
 
@@ -522,8 +522,8 @@ func TestContext2Input_varOnlyUnset(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	if _, err := ctx.Plan(); err != nil {
-		t.Fatalf("err: %s", err)
+	if _, diags := ctx.Plan(); diags.HasErrors() {
+		t.Fatalf("plan errors: %s", diags.Err())
 	}
 
 	state, err := ctx.Apply()
@@ -534,7 +534,7 @@ func TestContext2Input_varOnlyUnset(t *testing.T) {
 	actualStr := strings.TrimSpace(state.String())
 	expectedStr := strings.TrimSpace(testTerraformInputVarOnlyUnsetStr)
 	if actualStr != expectedStr {
-		t.Fatalf("bad: \n%s", actualStr)
+		t.Fatalf("wrong result\n\ngot:\n%s\n\nwant:\n%s", actualStr, expectedStr)
 	}
 }
 
@@ -565,8 +565,8 @@ func TestContext2Input_varWithDefault(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	if _, err := ctx.Plan(); err != nil {
-		t.Fatalf("err: %s", err)
+	if _, diags := ctx.Plan(); diags.HasErrors() {
+		t.Fatalf("plan errors: %s", diags.Err())
 	}
 
 	state, err := ctx.Apply()
@@ -642,12 +642,12 @@ func TestContext2Input_varPartiallyComputed(t *testing.T) {
 		},
 	})
 
-	if err := ctx.Input(InputModeStd); err != nil {
-		t.Fatalf("err: %s", err)
+	if diags := ctx.Input(InputModeStd); diags.HasErrors() {
+		t.Fatalf("input errors: %s", diags.Err())
 	}
 
-	if _, err := ctx.Plan(); err != nil {
-		t.Fatalf("err: %s", err)
+	if _, diags := ctx.Plan(); diags.HasErrors() {
+		t.Fatalf("plan errors: %s", diags.Err())
 	}
 }
 
@@ -671,8 +671,8 @@ func TestContext2Input_interpolateVar(t *testing.T) {
 		UIInput: input,
 	})
 
-	if err := ctx.Input(InputModeStd); err != nil {
-		t.Fatalf("err: %s", err)
+	if diags := ctx.Input(InputModeStd); diags.HasErrors() {
+		t.Fatalf("input errors: %s", diags.Err())
 	}
 }
 
@@ -702,8 +702,8 @@ func TestContext2Input_hcl(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	if _, err := ctx.Plan(); err != nil {
-		t.Fatalf("err: %s", err)
+	if _, diags := ctx.Plan(); diags.HasErrors() {
+		t.Fatalf("plan errors: %s", diags.Err())
 	}
 
 	state, err := ctx.Apply()
@@ -743,8 +743,8 @@ func TestContext2Input_submoduleTriggersInvalidCount(t *testing.T) {
 		return nil
 	}
 
-	if err := ctx.Input(InputModeStd); err != nil {
-		t.Fatalf("err: %s", err)
+	if diags := ctx.Input(InputModeStd); diags.HasErrors() {
+		t.Fatalf("input errors: %s", diags.Err())
 	}
 }
 
@@ -789,15 +789,15 @@ func TestContext2Input_dataSourceRequiresRefresh(t *testing.T) {
 		UIInput: input,
 	})
 
-	if err := ctx.Input(InputModeStd); err != nil {
-		t.Fatalf("err: %s", err)
+	if diags := ctx.Input(InputModeStd); diags.HasErrors() {
+		t.Fatalf("input errors: %s", diags.Err())
 	}
 
 	// ensure that plan works after Refresh
-	if _, err := ctx.Refresh(); err != nil {
-		t.Fatalf("err: %s", err)
+	if _, diags := ctx.Refresh(); diags.HasErrors() {
+		t.Fatalf("refresh errors: %s", diags.Err())
 	}
-	if _, err := ctx.Plan(); err != nil {
-		t.Fatalf("err: %s", err)
+	if _, diags := ctx.Plan(); diags.HasErrors() {
+		t.Fatalf("plan errors: %s", diags.Err())
 	}
 }
