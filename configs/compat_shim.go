@@ -32,6 +32,16 @@ import (
 // the caller remains responsible for checking that the result is indeed
 // a keyword, e.g. using hcl.ExprAsKeyword.
 func shimTraversalInString(expr hcl.Expression, wantKeyword bool) (hcl.Expression, hcl.Diagnostics) {
+	// ObjectConsKeyExpr is a special wrapper type used for keys on object
+	// constructors to deal with the fact that naked identifiers are normally
+	// handled as "bareword" strings rather than as variable references. Since
+	// we know we're interpreting as a traversal anyway (and thus it won't
+	// matter whether it's a string or an identifier) we can safely just unwrap
+	// here and then process whatever we find inside as normal.
+	if ocke, ok := expr.(*hclsyntax.ObjectConsKeyExpr); ok {
+		expr = ocke.Wrapped
+	}
+
 	if !exprIsNativeQuotedString(expr) {
 		return expr, nil
 	}
