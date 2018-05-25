@@ -134,6 +134,43 @@ func (t *ProviderTransformer) Transform(g *Graph) error {
 			pv.SetProvider(target.ProviderAddr())
 			g.Connect(dag.BasicEdge(v, target))
 		}
+
+		if pv, ok := v.(GraphNodeReferencer); ok {
+			// not a provider consumer, so check if this node references any
+			// providers
+			for _, r := range pv.References() {
+				var res addrs.Resource
+				switch sub := r.Subject.(type) {
+				case addrs.ResourceInstance:
+					res = sub.Resource
+				case addrs.Resource:
+					res = sub
+				default:
+					continue
+				}
+
+				providerCfg := res.DefaultProviderConfig()
+				providerName := providerCfg.String()
+
+				provider := m[providerName]
+				if provider == nil {
+					// create the missing top-level provider
+					// This provider node will only be initialized to provide
+					// the schema for its referrers.
+					provider = &NodeEvalableProvider{
+						&NodeAbstractProvider{
+							Addr: addrs.RootModuleInstance.ProviderConfigDefault(providerCfg.Type),
+						},
+					}
+
+					g.Add(provider)
+					m[providerName] = provider
+				}
+
+				log.Printf("[DEBUG] %s references %s", dag.VertexName(pv), providerName)
+				g.Connect(dag.BasicEdge(pv, provider))
+			}
+		}
 	}
 
 	return err

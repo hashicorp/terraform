@@ -101,8 +101,6 @@ func (b *PlanGraphBuilder) Steps() []GraphTransformer {
 		// Add root variables
 		&RootVariableTransformer{Config: b.Config},
 
-		TransformProviders(b.Components.ResourceProviders(), b.ConcreteProvider, b.Config),
-
 		&MissingProvisionerTransformer{Provisioners: b.Components.ResourceProvisioners()},
 
 		&AttachSchemaTransformer{Components: b.Components},
@@ -111,6 +109,8 @@ func (b *PlanGraphBuilder) Steps() []GraphTransformer {
 		&ModuleVariableTransformer{
 			Config: b.Config,
 		},
+
+		TransformProviders(b.Components.ResourceProviders(), b.ConcreteProvider, b.Config),
 
 		// Remove modules no longer present in the config
 		&RemovedModuleTransformer{Config: b.Config, State: b.State},
