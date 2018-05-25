@@ -8,6 +8,8 @@ import (
 	"testing"
 
 	"github.com/zclconf/go-cty/cty"
+
+	"github.com/hashicorp/terraform/config/configschema"
 )
 
 func TestContext2Input(t *testing.T) {
@@ -682,6 +684,16 @@ func TestContext2Input_hcl(t *testing.T) {
 	p := testProvider("hcl")
 	p.ApplyFn = testApplyFn
 	p.DiffFn = testDiffFn
+	p.GetSchemaReturn = &ProviderSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"hcl_instance": {
+				Attributes: map[string]*configschema.Attribute{
+					"foo": {Type: cty.List(cty.String), Optional: true},
+					"bar": {Type: cty.Map(cty.String), Optional: true},
+				},
+			},
+		},
+	}
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
 		ProviderResolver: ResourceProviderResolverFixed(
