@@ -3228,10 +3228,33 @@ func TestContext2Apply_multiProviderDestroy(t *testing.T) {
 	p := testProvider("aws")
 	p.ApplyFn = testApplyFn
 	p.DiffFn = testDiffFn
+	p.GetSchemaReturn = &ProviderSchema{
+		Provider: &configschema.Block{
+			Attributes: map[string]*configschema.Attribute{
+				"addr": {Type: cty.String, Optional: true},
+			},
+		},
+		ResourceTypes: map[string]*configschema.Block{
+			"aws_instance": {
+				Attributes: map[string]*configschema.Attribute{
+					"foo": {Type: cty.String, Optional: true},
+				},
+			},
+		},
+	}
 
-	p2 := testProvider("do")
+	p2 := testProvider("vault")
 	p2.ApplyFn = testApplyFn
 	p2.DiffFn = testDiffFn
+	p2.GetSchemaReturn = &ProviderSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"vault_instance": {
+				Attributes: map[string]*configschema.Attribute{
+					"id":  {Type: cty.String, Computed: true},
+				},
+			},
+		},
+	}
 
 	var state *State
 
@@ -3248,12 +3271,12 @@ func TestContext2Apply_multiProviderDestroy(t *testing.T) {
 		})
 
 		if _, diags := ctx.Plan(); diags.HasErrors() {
-			t.Fatalf("diags: %s", diags.Err())
+			t.Fatalf("errors during create plan: %s", diags.Err())
 		}
 
 		s, diags := ctx.Apply()
 		if diags.HasErrors() {
-			t.Fatalf("diags: %s", diags.Err())
+			t.Fatalf("errors during create apply: %s", diags.Err())
 		}
 
 		state = s
@@ -3305,12 +3328,12 @@ func TestContext2Apply_multiProviderDestroy(t *testing.T) {
 		})
 
 		if _, diags := ctx.Plan(); diags.HasErrors() {
-			t.Fatalf("diags: %s", diags.Err())
+			t.Fatalf("errors during destroy plan: %s", diags.Err())
 		}
 
 		s, diags := ctx.Apply()
 		if diags.HasErrors() {
-			t.Fatalf("diags: %s", diags.Err())
+			t.Fatalf("errors during destroy apply: %s", diags.Err())
 		}
 
 		if !checked {
@@ -3545,18 +3568,18 @@ func TestContext2Apply_multiVarComprehensive(t *testing.T) {
 		ResourceTypes: map[string]*configschema.Block{
 			"test_thing": {
 				Attributes: map[string]*configschema.Attribute{
-					"source_id": {Type: cty.String, Optional: true},
-					"source_name": {Type: cty.String, Optional: true},
-					"first_source_id": {Type: cty.String, Optional: true},
-					"first_source_name": {Type: cty.String, Optional: true},
-					"source_ids": {Type: cty.List(cty.String), Optional: true},
-					"source_names": {Type: cty.List(cty.String), Optional: true},
-					"source_ids_from_func": {Type: cty.List(cty.String), Optional: true},
+					"source_id":              {Type: cty.String, Optional: true},
+					"source_name":            {Type: cty.String, Optional: true},
+					"first_source_id":        {Type: cty.String, Optional: true},
+					"first_source_name":      {Type: cty.String, Optional: true},
+					"source_ids":             {Type: cty.List(cty.String), Optional: true},
+					"source_names":           {Type: cty.List(cty.String), Optional: true},
+					"source_ids_from_func":   {Type: cty.List(cty.String), Optional: true},
 					"source_names_from_func": {Type: cty.List(cty.String), Optional: true},
-					"source_ids_wrapped": {Type: cty.List(cty.String), Optional: true},
-					"source_names_wrapped": {Type: cty.List(cty.String), Optional: true},
+					"source_ids_wrapped":     {Type: cty.List(cty.String), Optional: true},
+					"source_names_wrapped":   {Type: cty.List(cty.String), Optional: true},
 
-					"id": {Type: cty.String, Computed: true},
+					"id":   {Type: cty.String, Computed: true},
 					"name": {Type: cty.String, Computed: true},
 				},
 			},
