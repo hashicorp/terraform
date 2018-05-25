@@ -911,6 +911,85 @@ func mockSweeperFunc(s string) error {
 	return nil
 }
 
+func TestTest_Taint(t *testing.T) {
+	mp := testProvider()
+	mp.DiffFn = func(
+		_ *terraform.InstanceInfo,
+		state *terraform.InstanceState,
+		_ *terraform.ResourceConfig,
+	) (*terraform.InstanceDiff, error) {
+		return &terraform.InstanceDiff{
+			DestroyTainted: state.Tainted,
+		}, nil
+	}
+
+	mp.ApplyFn = func(
+		info *terraform.InstanceInfo,
+		state *terraform.InstanceState,
+		diff *terraform.InstanceDiff,
+	) (*terraform.InstanceState, error) {
+		var id string
+		switch {
+		case diff.Destroy && !diff.DestroyTainted:
+			return nil, nil
+		case diff.DestroyTainted:
+			id = "tainted"
+		default:
+			id = "not_tainted"
+		}
+
+		return &terraform.InstanceState{
+			ID: id,
+		}, nil
+	}
+
+	mp.RefreshFn = func(
+		_ *terraform.InstanceInfo,
+		state *terraform.InstanceState,
+	) (*terraform.InstanceState, error) {
+		return state, nil
+	}
+
+	mt := new(mockT)
+	Test(mt, TestCase{
+		Providers: map[string]terraform.ResourceProvider{
+			"test": mp,
+		},
+		Steps: []TestStep{
+			TestStep{
+				Config: testConfigStr,
+				Check: func(s *terraform.State) error {
+					rs := s.RootModule().Resources["test_instance.foo"]
+					if rs.Primary.ID != "not_tainted" {
+						return fmt.Errorf("expected not_tainted, got %s", rs.Primary.ID)
+					}
+					return nil
+				},
+			},
+			TestStep{
+				Taint:  []string{"test_instance.foo"},
+				Config: testConfigStr,
+				Check: func(s *terraform.State) error {
+					rs := s.RootModule().Resources["test_instance.foo"]
+					if rs.Primary.ID != "tainted" {
+						return fmt.Errorf("expected tainted, got %s", rs.Primary.ID)
+					}
+					return nil
+				},
+			},
+			TestStep{
+				Taint:       []string{"test_instance.fooo"},
+				Config:      testConfigStr,
+				ExpectError: regexp.MustCompile("resource \"test_instance.fooo\" not found in state"),
+			},
+		},
+	})
+
+	if mt.failed() {
+		t.Fatalf("test failure: %s", mt.failMessage())
+	}
+}
+
 const testConfigStr = `
 resource "test_instance" "foo" {}
 `

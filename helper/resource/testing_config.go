@@ -1,6 +1,7 @@
 package resource
 
 import (
+	"errors"
 	"fmt"
 	"log"
 	"strings"
@@ -21,6 +22,14 @@ func testStep(
 	opts terraform.ContextOpts,
 	state *terraform.State,
 	step TestStep) (*terraform.State, error) {
+	// Pre-taint any resources that have been defined in Taint, as long as this
+	// is not a destroy step.
+	if !step.Destroy {
+		if err := testStepTaint(state, step); err != nil {
+			return state, err
+		}
+	}
+
 	mod, err := testModule(opts, step)
 	if err != nil {
 		return state, err
@@ -153,4 +162,20 @@ func testStep(
 
 	// Made it here? Good job test step!
 	return state, nil
+}
+
+func testStepTaint(state *terraform.State, step TestStep) error {
+	for _, p := range step.Taint {
+		m := state.RootModule()
+		if m == nil {
+			return errors.New("no state")
+		}
+		rs, ok := m.Resources[p]
+		if !ok {
+			return fmt.Errorf("resource %q not found in state", p)
+		}
+		log.Printf("[WARN] Test: Explicitly tainting resource %q", p)
+		rs.Taint()
+	}
+	return nil
 }
