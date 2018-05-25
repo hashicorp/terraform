@@ -125,8 +125,6 @@ func (b *RefreshGraphBuilder) Steps() []GraphTransformer {
 		// Add root variables
 		&RootVariableTransformer{Config: b.Config},
 
-		TransformProviders(b.Components.ResourceProviders(), concreteProvider, b.Config),
-
 		// Add the local values
 		&LocalTransformer{Config: b.Config},
 
@@ -135,6 +133,8 @@ func (b *RefreshGraphBuilder) Steps() []GraphTransformer {
 
 		// Add module variables
 		&ModuleVariableTransformer{Config: b.Config},
+
+		TransformProviders(b.Components.ResourceProviders(), concreteProvider, b.Config),
 
 		// Must be before ReferenceTransformer, since schema is required to
 		// extract references from config.
