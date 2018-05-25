@@ -299,6 +299,16 @@ func TestCoalesceList(t *testing.T) {
 			}),
 			false,
 		},
+		{
+			[]cty.Value{
+				cty.MapValEmpty(cty.DynamicPseudoType),
+				cty.ListVal([]cty.Value{
+					cty.StringVal("third"), cty.StringVal("fourth"),
+				}),
+			},
+			cty.NilVal,
+			true,
+		},
 	}
 
 	for _, test := range tests {
@@ -337,6 +347,20 @@ func TestCompact(t *testing.T) {
 				cty.StringVal("test"),
 				cty.StringVal("test"),
 			}),
+			false,
+		},
+		{
+			cty.ListVal([]cty.Value{
+				cty.StringVal(""),
+				cty.StringVal(""),
+				cty.StringVal(""),
+			}),
+			cty.ListValEmpty(cty.String),
+			false,
+		},
+		{
+			cty.ListValEmpty(cty.String),
+			cty.ListValEmpty(cty.String),
 			false,
 		},
 		{
