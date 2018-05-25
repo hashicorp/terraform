@@ -1,4 +1,4 @@
 module "mod" {
-  source = "./mod"
-  count = 2
+  source         = "./mod"
+  instance_count = 2
 }
