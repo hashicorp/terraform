@@ -2,6 +2,7 @@ package terraform
 
 import (
 	"fmt"
+	"log"
 	"reflect"
 	"sort"
 	"strconv"
@@ -255,6 +256,11 @@ func NewResourceConfigShimmed(val cty.Value, schema *configschema.Block) *Resour
 func newResourceConfigShimmedComputedKeys(obj cty.Value, schema *configschema.Block, prefix string) []string {
 	var ret []string
 	ty := obj.Type()
+
+	if schema == nil {
+		log.Printf("[WARN] NewResourceConfigShimmed: can't identify computed keys because no schema is available")
+		return nil
+	}
 
 	for attrName := range schema.Attributes {
 		if !ty.HasAttribute(attrName) {
