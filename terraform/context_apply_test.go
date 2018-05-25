@@ -5606,61 +5606,6 @@ func TestContext2Apply_provisionerMultiSelfRefSingle(t *testing.T) {
 	}
 }
 
-func TestContext2Apply_provisionerMultiSelfRefCount(t *testing.T) {
-	var lock sync.Mutex
-	commands := make([]string, 0, 5)
-
-	m := testModule(t, "apply-provisioner-multi-self-ref-count")
-	p := testProvider("aws")
-	pr := testProvisioner()
-	p.ApplyFn = testApplyFn
-	p.DiffFn = testDiffFn
-	pr.ApplyFn = func(rs *InstanceState, c *ResourceConfig) error {
-		lock.Lock()
-		defer lock.Unlock()
-
-		val, ok := c.Config["command"]
-		if !ok {
-			t.Fatalf("bad value for command: %v %#v", val, c)
-		}
-
-		commands = append(commands, val.(string))
-		return nil
-	}
-
-	ctx := testContext2(t, &ContextOpts{
-		Config: m,
-		ProviderResolver: ResourceProviderResolverFixed(
-			map[string]ResourceProviderFactory{
-				"aws": testProviderFuncFixed(p),
-			},
-		),
-		Provisioners: map[string]ResourceProvisionerFactory{
-			"shell": testProvisionerFuncFixed(pr),
-		},
-	})
-
-	if _, diags := ctx.Plan(); diags.HasErrors() {
-		t.Fatalf("diags: %s", diags.Err())
-	}
-
-	if _, diags := ctx.Apply(); diags.HasErrors() {
-		t.Fatalf("diags: %s", diags.Err())
-	}
-
-	// Verify apply was invoked
-	if !pr.ApplyCalled {
-		t.Fatalf("provisioner not invoked")
-	}
-
-	// Verify our result
-	sort.Strings(commands)
-	expectedCommands := []string{"3", "3", "3"}
-	if !reflect.DeepEqual(commands, expectedCommands) {
-		t.Fatalf("bad: %#v", commands)
-	}
-}
-
 func TestContext2Apply_provisionerExplicitSelfRef(t *testing.T) {
 	m := testModule(t, "apply-provisioner-explicit-self-ref")
 	p := testProvider("aws")
