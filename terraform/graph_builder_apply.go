@@ -84,9 +84,6 @@ func (b *ApplyGraphBuilder) Steps() []GraphTransformer {
 		// Attach the state
 		&AttachStateTransformer{State: b.State},
 
-		// add providers
-		TransformProviders(b.Components.ResourceProviders(), concreteProvider, b.Config),
-
 		// Destruction ordering
 		&DestroyEdgeTransformer{
 			Config:     b.Config,
@@ -117,6 +114,9 @@ func (b *ApplyGraphBuilder) Steps() []GraphTransformer {
 
 		// Add module variables
 		&ModuleVariableTransformer{Config: b.Config},
+
+		// add providers
+		TransformProviders(b.Components.ResourceProviders(), concreteProvider, b.Config),
 
 		// Remove modules no longer present in the config
 		&RemovedModuleTransformer{Config: b.Config, State: b.State},
