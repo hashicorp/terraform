@@ -1,9 +1,9 @@
 provider "aws" {
-    alias = "east"
+  alias = "east"
 }
 
 resource "aws_instance" "foo" {
-    alias = "east"
+  provider = aws.east
 }
 
 resource "aws_instance" "bar" {}
