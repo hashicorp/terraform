@@ -24,16 +24,11 @@ func TestContext2Input(t *testing.T) {
 			},
 		),
 		Variables: InputValues{
-			"foo": &InputValue{
-				Value:      cty.StringVal("us-west-2"),
-				SourceType: ValueFromCaller,
-			},
 			"amis": &InputValue{
-				Value: cty.ListVal([]cty.Value{
-					cty.MapVal(map[string]cty.Value{
-						"us-east-1": cty.StringVal("override"),
-					}),
+				Value: cty.MapVal(map[string]cty.Value{
+					"us-east-1": cty.StringVal("override"),
 				}),
+				SourceType: ValueFromCaller,
 			},
 		},
 		UIInput: input,
@@ -43,17 +38,17 @@ func TestContext2Input(t *testing.T) {
 		"var.foo": "us-east-1",
 	}
 
-	if err := ctx.Input(InputModeStd); err != nil {
-		t.Fatalf("err: %s", err)
+	if diags := ctx.Input(InputModeStd | InputModeVarUnset); diags.HasErrors() {
+		t.Fatalf("input errors: %s", diags.Err())
 	}
 
-	if _, err := ctx.Plan(); err != nil {
-		t.Fatalf("err: %s", err)
+	if _, diags := ctx.Plan(); diags.HasErrors() {
+		t.Fatalf("plan errors: %s", diags.Err())
 	}
 
-	state, err := ctx.Apply()
-	if err != nil {
-		t.Fatalf("err: %s", err)
+	state, diags := ctx.Apply()
+	if diags.HasErrors() {
+		t.Fatalf("apply errors: %s", diags.Err())
 	}
 
 	actual := strings.TrimSpace(state.String())
