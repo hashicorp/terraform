@@ -173,8 +173,7 @@ var CompactFunc = function.New(&function.Spec{
 
 		var outputList []cty.Value
 
-		it := args[0].ElementIterator()
-		for it.Next() {
+		for it := args[0].ElementIterator(); it.Next(); {
 			_, v := it.Element()
 			if v.AsString() == "" {
 				continue
@@ -182,6 +181,68 @@ var CompactFunc = function.New(&function.Spec{
 			outputList = append(outputList, v)
 		}
 		return cty.ListVal(outputList), nil
+	},
+})
+
+// ContainsFunc contructs a function that determines whether a given list contains
+// a given single value as one of its elements.
+var ContainsFunc = function.New(&function.Spec{
+	Params: []function.Parameter{
+		{
+			Name: "list",
+			Type: cty.List(cty.DynamicPseudoType),
+		},
+		{
+			Name: "value",
+			Type: cty.DynamicPseudoType,
+		},
+	},
+	Type: function.StaticReturnType(cty.Bool),
+	Impl: func(args []cty.Value, retType cty.Type) (ret cty.Value, err error) {
+
+		_, err = Index(args[0], args[1])
+		if err != nil {
+			fmt.Println(err)
+			return cty.False, nil
+		}
+
+		return cty.True, nil
+	},
+})
+
+// IndexFunc contructs a function that finds the element index for a given value in a list.
+var IndexFunc = function.New(&function.Spec{
+	Params: []function.Parameter{
+		{
+			Name: "list",
+			Type: cty.DynamicPseudoType,
+		},
+		{
+			Name: "value",
+			Type: cty.DynamicPseudoType,
+		},
+	},
+	Type: function.StaticReturnType(cty.Number),
+	Impl: func(args []cty.Value, retType cty.Type) (ret cty.Value, err error) {
+		if args[0].LengthInt() == 0 { // Easy path
+			return cty.NilVal, fmt.Errorf("Cannot search an empty list")
+		}
+
+		for it := args[0].ElementIterator(); it.Next(); {
+			i, v := it.Element()
+			eq, err := stdlib.Equal(v, args[1])
+			if err != nil {
+				return cty.NilVal, err
+			}
+			if !eq.IsKnown() {
+				return cty.UnknownVal(cty.Number), nil
+			}
+			if eq.True() {
+				return i, nil
+			}
+		}
+		return cty.NilVal, fmt.Errorf("item not found")
+
 	},
 })
 
@@ -207,4 +268,15 @@ func CoalesceList(args ...cty.Value) (cty.Value, error) {
 // with any empty string elements removed.
 func Compact(list cty.Value) (cty.Value, error) {
 	return CompactFunc.Call([]cty.Value{list})
+}
+
+// Contains determines whether a given list contains a given single value
+// as one of its elements.
+func Contains(list, value cty.Value) (cty.Value, error) {
+	return ContainsFunc.Call([]cty.Value{list, value})
+}
+
+// Index finds the element index for a given value in a list.
+func Index(list, value cty.Value) (cty.Value, error) {
+	return IndexFunc.Call([]cty.Value{list, value})
 }
