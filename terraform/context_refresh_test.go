@@ -113,9 +113,9 @@ func TestContext2Refresh_dataComputedModuleVar(t *testing.T) {
 		},
 	}
 
-	s, err := ctx.Refresh()
-	if err != nil {
-		t.Fatalf("err: %s", err)
+	s, diags := ctx.Refresh()
+	if diags.HasErrors() {
+		t.Fatalf("refresh errors: %s", diags.Err())
 	}
 
 	checkStateString(t, s, `
@@ -194,9 +194,9 @@ func TestContext2Refresh_targeted(t *testing.T) {
 		return is, nil
 	}
 
-	_, err := ctx.Refresh()
-	if err != nil {
-		t.Fatalf("err: %s", err)
+	_, diags := ctx.Refresh()
+	if diags.HasErrors() {
+		t.Fatalf("refresh errors: %s", diags.Err())
 	}
 
 	expected := []string{"aws_vpc.metoo", "aws_instance.me"}
@@ -277,9 +277,9 @@ func TestContext2Refresh_targetedCount(t *testing.T) {
 		return is, nil
 	}
 
-	_, err := ctx.Refresh()
-	if err != nil {
-		t.Fatalf("err: %s", err)
+	_, diags := ctx.Refresh()
+	if diags.HasErrors() {
+		t.Fatalf("refresh errors: %s", diags.Err())
 	}
 
 	// Target didn't specify index, so we should get all our instances
@@ -292,7 +292,7 @@ func TestContext2Refresh_targetedCount(t *testing.T) {
 	sort.Strings(expected)
 	sort.Strings(refreshedResources)
 	if !reflect.DeepEqual(refreshedResources, expected) {
-		t.Fatalf("expected: %#v, got: %#v", expected, refreshedResources)
+		t.Fatalf("wrong result\ngot:  %#v\nwant: %#v", refreshedResources, expected)
 	}
 }
 
@@ -368,14 +368,14 @@ func TestContext2Refresh_targetedCountIndex(t *testing.T) {
 		return is, nil
 	}
 
-	_, err := ctx.Refresh()
-	if err != nil {
-		t.Fatalf("err: %s", err)
+	_, diags := ctx.Refresh()
+	if diags.HasErrors() {
+		t.Fatalf("refresh errors: %s", diags.Err())
 	}
 
 	expected := []string{"aws_vpc.metoo", "aws_instance.me.0"}
 	if !reflect.DeepEqual(refreshedResources, expected) {
-		t.Fatalf("expected: %#v, got: %#v", expected, refreshedResources)
+		t.Fatalf("wrong result\ngot:  %#v\nwant: %#v", refreshedResources, expected)
 	}
 }
 
@@ -411,8 +411,8 @@ func TestContext2Refresh_moduleComputedVar(t *testing.T) {
 
 	// This was failing (see GH-2188) at some point, so this test just
 	// verifies that the failure goes away.
-	if _, err := ctx.Refresh(); err != nil {
-		t.Fatalf("err: %s", err)
+	if _, diags := ctx.Refresh(); diags.HasErrors() {
+		t.Fatalf("refresh errs: %s", diags.Err())
 	}
 }
 
@@ -446,9 +446,9 @@ func TestContext2Refresh_delete(t *testing.T) {
 	p.RefreshFn = nil
 	p.RefreshReturn = nil
 
-	s, err := ctx.Refresh()
-	if err != nil {
-		t.Fatalf("err: %s", err)
+	s, diags := ctx.Refresh()
+	if diags.HasErrors() {
+		t.Fatalf("refresh errors: %s", diags.Err())
 	}
 
 	mod := s.RootModule()
@@ -475,9 +475,9 @@ func TestContext2Refresh_ignoreUncreated(t *testing.T) {
 		ID: "foo",
 	}
 
-	_, err := ctx.Refresh()
-	if err != nil {
-		t.Fatalf("err: %s", err)
+	_, diags := ctx.Refresh()
+	if diags.HasErrors() {
+		t.Fatalf("refresh errors: %s", diags.Err())
 	}
 	if p.RefreshCalled {
 		t.Fatal("refresh should not be called")
@@ -513,8 +513,8 @@ func TestContext2Refresh_hook(t *testing.T) {
 		},
 	})
 
-	if _, err := ctx.Refresh(); err != nil {
-		t.Fatalf("err: %s", err)
+	if _, diags := ctx.Refresh(); diags.HasErrors() {
+		t.Fatalf("refresh errs: %s", diags.Err())
 	}
 	if !h.PreRefreshCalled {
 		t.Fatal("should be called")
@@ -574,15 +574,15 @@ func TestContext2Refresh_modules(t *testing.T) {
 		return s, nil
 	}
 
-	s, err := ctx.Refresh()
-	if err != nil {
-		t.Fatalf("err: %s", err)
+	s, diags := ctx.Refresh()
+	if diags.HasErrors() {
+		t.Fatalf("refresh errors: %s", diags.Err())
 	}
 
 	actual := strings.TrimSpace(s.String())
 	expected := strings.TrimSpace(testContextRefreshModuleStr)
 	if actual != expected {
-		t.Fatalf("bad:\n\n%s\n\n%s", actual, expected)
+		t.Fatalf("wrong result\n\ngot:\n%s\n\nwant:\n%s", actual, expected)
 	}
 }
 
@@ -617,8 +617,8 @@ func TestContext2Refresh_moduleInputComputedOutput(t *testing.T) {
 		),
 	})
 
-	if _, err := ctx.Refresh(); err != nil {
-		t.Fatalf("err: %s", err)
+	if _, diags := ctx.Refresh(); diags.HasErrors() {
+		t.Fatalf("refresh errs: %s", diags.Err())
 	}
 }
 
@@ -635,8 +635,8 @@ func TestContext2Refresh_moduleVarModule(t *testing.T) {
 		),
 	})
 
-	if _, err := ctx.Refresh(); err != nil {
-		t.Fatalf("err: %s", err)
+	if _, diags := ctx.Refresh(); diags.HasErrors() {
+		t.Fatalf("refresh errs: %s", diags.Err())
 	}
 }
 
@@ -658,8 +658,8 @@ func TestContext2Refresh_noState(t *testing.T) {
 		ID: "foo",
 	}
 
-	if _, err := ctx.Refresh(); err != nil {
-		t.Fatalf("err: %s", err)
+	if _, diags := ctx.Refresh(); diags.HasErrors() {
+		t.Fatalf("refresh errs: %s", diags.Err())
 	}
 }
 
@@ -719,15 +719,15 @@ func TestContext2Refresh_output(t *testing.T) {
 		return s, nil
 	}
 
-	s, err := ctx.Refresh()
-	if err != nil {
-		t.Fatalf("err: %s", err)
+	s, diags := ctx.Refresh()
+	if diags.HasErrors() {
+		t.Fatalf("refresh errors: %s", diags.Err())
 	}
 
 	actual := strings.TrimSpace(s.String())
 	expected := strings.TrimSpace(testContextRefreshOutputStr)
 	if actual != expected {
-		t.Fatalf("bad:\n\n%s\n\n%s", actual, expected)
+		t.Fatalf("wrong result\n\ngot:\n%s\n\nwant:\n%s", actual, expected)
 	}
 }
 
@@ -776,15 +776,15 @@ func TestContext2Refresh_outputPartial(t *testing.T) {
 		},
 	}
 
-	s, err := ctx.Refresh()
-	if err != nil {
-		t.Fatalf("err: %s", err)
+	s, diags := ctx.Refresh()
+	if diags.HasErrors() {
+		t.Fatalf("refresh errors: %s", diags.Err())
 	}
 
 	actual := strings.TrimSpace(s.String())
 	expected := strings.TrimSpace(testContextRefreshOutputPartialStr)
 	if actual != expected {
-		t.Fatalf("bad:\n\n%s\n\n%s", actual, expected)
+		t.Fatalf("wrong result\n\ngot:\n%s\n\nwant:\n%s", actual, expected)
 	}
 }
 
@@ -821,9 +821,9 @@ func TestContext2Refresh_stateBasic(t *testing.T) {
 		ID: "foo",
 	}
 
-	s, err := ctx.Refresh()
-	if err != nil {
-		t.Fatalf("err: %s", err)
+	s, diags := ctx.Refresh()
+	if diags.HasErrors() {
+		t.Fatalf("refresh errors: %s", diags.Err())
 	}
 	originalMod := state.RootModule()
 	mod := s.RootModule()
@@ -867,9 +867,9 @@ func TestContext2Refresh_dataOrphan(t *testing.T) {
 		State: state,
 	})
 
-	s, err := ctx.Refresh()
-	if err != nil {
-		t.Fatalf("err: %s", err)
+	s, diags := ctx.Refresh()
+	if diags.HasErrors() {
+		t.Fatalf("refresh errors: %s", diags.Err())
 	}
 
 	checkStateString(t, s, `<no state>`)
@@ -940,9 +940,9 @@ func TestContext2Refresh_dataState(t *testing.T) {
 		ID: "-",
 	}
 
-	s, err := ctx.Refresh()
-	if err != nil {
-		t.Fatalf("err: %s", err)
+	s, diags := ctx.Refresh()
+	if diags.HasErrors() {
+		t.Fatalf("refresh errors: %s", diags.Err())
 	}
 
 	if !p.ReadDataDiffCalled {
@@ -1006,15 +1006,15 @@ func TestContext2Refresh_dataStateRefData(t *testing.T) {
 	p.ReadDataDiffFn = testDataDiffFn
 	p.ReadDataApplyFn = testDataApplyFn
 
-	s, err := ctx.Refresh()
-	if err != nil {
-		t.Fatalf("err: %s", err)
+	s, diags := ctx.Refresh()
+	if diags.HasErrors() {
+		t.Fatalf("refresh errors: %s", diags.Err())
 	}
 
 	actual := strings.TrimSpace(s.String())
 	expected := strings.TrimSpace(testTerraformRefreshDataRefDataStr)
 	if actual != expected {
-		t.Fatalf("bad:\n\n%s\n\n%s", actual, expected)
+		t.Fatalf("wrong result\n\ngot:\n%s\n\nwant:\n%s", actual, expected)
 	}
 }
 
@@ -1053,9 +1053,9 @@ func TestContext2Refresh_tainted(t *testing.T) {
 		Tainted: true,
 	}
 
-	s, err := ctx.Refresh()
-	if err != nil {
-		t.Fatalf("err: %s", err)
+	s, diags := ctx.Refresh()
+	if diags.HasErrors() {
+		t.Fatalf("refresh errors: %s", diags.Err())
 	}
 	if !p.RefreshCalled {
 		t.Fatal("refresh should be called")
@@ -1064,7 +1064,7 @@ func TestContext2Refresh_tainted(t *testing.T) {
 	actual := strings.TrimSpace(s.String())
 	expected := strings.TrimSpace(testContextRefreshTaintedStr)
 	if actual != expected {
-		t.Fatalf("bad:\n\n%s\n\n%s", actual, expected)
+		t.Fatalf("wrong result\n\ngot:\n%s\n\nwant:\n%s", actual, expected)
 	}
 }
 
@@ -1161,9 +1161,9 @@ func TestContext2Refresh_vars(t *testing.T) {
 		ID: "foo",
 	}
 
-	s, err := ctx.Refresh()
-	if err != nil {
-		t.Fatalf("err: %s", err)
+	s, diags := ctx.Refresh()
+	if diags.HasErrors() {
+		t.Fatalf("refresh errors: %s", diags.Err())
 	}
 	mod := s.RootModule()
 	if !p.RefreshCalled {
@@ -1387,9 +1387,9 @@ func TestContext2Refresh_noDiffHookOnScaleOut(t *testing.T) {
 		State: state,
 	})
 
-	_, err := ctx.Refresh()
-	if err != nil {
-		t.Fatalf("bad: %s", err)
+	_, diags := ctx.Refresh()
+	if diags.HasErrors() {
+		t.Fatalf("refresh errors: %s", diags.Err())
 	}
 	if h.PreDiffCalled {
 		t.Fatal("PreDiff should not have been called")
