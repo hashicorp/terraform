@@ -2012,6 +2012,20 @@ func TestContext2Apply_compute(t *testing.T) {
 	p := testProvider("aws")
 	p.ApplyFn = testApplyFn
 	p.DiffFn = testDiffFn
+	p.GetSchemaReturn = &ProviderSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"aws_instance": {
+				Attributes: map[string]*configschema.Attribute{
+					"num":           {Type: cty.String, Optional: true},
+					"compute":       {Type: cty.String, Optional: true},
+					"compute_value": {Type: cty.String, Optional: true},
+					"foo":           {Type: cty.String, Optional: true},
+					"dynamical":     {Type: cty.String, Computed: true},
+				},
+			},
+		},
+	}
+
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
 		ProviderResolver: ResourceProviderResolverFixed(
@@ -3527,6 +3541,28 @@ func TestContext2Apply_multiVarComprehensive(t *testing.T) {
 		}, nil
 	}
 
+	p.GetSchemaReturn = &ProviderSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"test_thing": {
+				Attributes: map[string]*configschema.Attribute{
+					"source_id": {Type: cty.String, Optional: true},
+					"source_name": {Type: cty.String, Optional: true},
+					"first_source_id": {Type: cty.String, Optional: true},
+					"first_source_name": {Type: cty.String, Optional: true},
+					"source_ids": {Type: cty.List(cty.String), Optional: true},
+					"source_names": {Type: cty.List(cty.String), Optional: true},
+					"source_ids_from_func": {Type: cty.List(cty.String), Optional: true},
+					"source_names_from_func": {Type: cty.List(cty.String), Optional: true},
+					"source_ids_wrapped": {Type: cty.List(cty.String), Optional: true},
+					"source_names_wrapped": {Type: cty.List(cty.String), Optional: true},
+
+					"id": {Type: cty.String, Computed: true},
+					"name": {Type: cty.String, Computed: true},
+				},
+			},
+		},
+	}
+
 	// First, apply with a count of 3
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
@@ -4180,10 +4216,18 @@ func TestContext2Apply_providerConfigureDisabled(t *testing.T) {
 
 func TestContext2Apply_provisionerModule(t *testing.T) {
 	m := testModule(t, "apply-provisioner-module")
+
 	p := testProvider("aws")
-	pr := testProvisioner()
 	p.ApplyFn = testApplyFn
 	p.DiffFn = testDiffFn
+
+	pr := testProvisioner()
+	pr.GetConfigSchemaReturnSchema = &configschema.Block{
+		Attributes: map[string]*configschema.Attribute{
+			"foo": {Type: cty.String, Optional: true},
+		},
+	}
+
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
 		ProviderResolver: ResourceProviderResolverFixed(
@@ -5842,10 +5886,10 @@ func TestContext2Apply_Provisioner_ConnInfo(t *testing.T) {
 		ResourceTypes: map[string]*configschema.Block{
 			"aws_instance": {
 				Attributes: map[string]*configschema.Attribute{
-					"num": {Type: cty.String, Optional: true},
-					"compute": {Type: cty.String, Optional: true},
+					"num":           {Type: cty.String, Optional: true},
+					"compute":       {Type: cty.String, Optional: true},
 					"compute_value": {Type: cty.String, Optional: true},
-					"dynamical": {Type: cty.String, Computed: true},
+					"dynamical":     {Type: cty.String, Computed: true},
 				},
 			},
 		},
