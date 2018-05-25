@@ -202,7 +202,6 @@ var ContainsFunc = function.New(&function.Spec{
 
 		_, err = Index(args[0], args[1])
 		if err != nil {
-			fmt.Println(err)
 			return cty.False, nil
 		}
 
@@ -246,6 +245,103 @@ var IndexFunc = function.New(&function.Spec{
 	},
 })
 
+// DistinctFunc contructs a function that takes a list and returns a new list
+// with any duplicate elements removed.
+var DistinctFunc = function.New(&function.Spec{
+	Params: []function.Parameter{
+		{
+			Name: "list",
+			Type: cty.List(cty.DynamicPseudoType),
+		},
+	},
+	Type: function.StaticReturnType(cty.List(cty.DynamicPseudoType)),
+	Impl: func(args []cty.Value, retType cty.Type) (ret cty.Value, err error) {
+		if len(args) != 1 {
+			return cty.NilVal, fmt.Errorf("distinct accepts only one argument")
+		}
+
+		var list []cty.Value
+
+		for it := args[0].ElementIterator(); it.Next(); {
+			_, v := it.Element()
+			list, err = appendIfMissing(list, v)
+			if err != nil {
+				return cty.NilVal, err
+			}
+		}
+
+		return cty.ListVal(list), nil
+	},
+})
+
+// ChunklistFunc contructs a function that splits a single list into fixed-size chunks,
+// returning a list of lists.
+var ChunklistFunc = function.New(&function.Spec{
+	Params: []function.Parameter{
+		{
+			Name: "list",
+			Type: cty.List(cty.DynamicPseudoType),
+		},
+		{
+			Name: "size",
+			Type: cty.Number,
+		},
+	},
+	Type: function.StaticReturnType(cty.List(cty.DynamicPseudoType)),
+	Impl: func(args []cty.Value, retType cty.Type) (ret cty.Value, err error) {
+		var size int
+		err = gocty.FromCtyValue(args[1], &size)
+		if err != nil {
+			return cty.NilVal, fmt.Errorf("invalid index: %s", err)
+		}
+
+		if size < 0 {
+			return cty.NilVal, fmt.Errorf("The size argument must be positive")
+		}
+
+		output := make([]cty.Value, 0)
+
+		// if size is 0, returns a list made of the initial list
+		if size == 0 {
+			output = append(output, args[0])
+			return cty.ListVal(output), nil
+		}
+
+		chunk := make([]cty.Value, 0)
+
+		l := args[0].LengthInt()
+		i := 0
+
+		for it := args[0].ElementIterator(); it.Next(); {
+			_, v := it.Element()
+			chunk = append(chunk, v)
+
+			// Chunk when index isn't 0, or when reaching the values's length
+			if (i+1)%size == 0 || (i+1) == l {
+				output = append(output, cty.ListVal(chunk))
+				chunk = make([]cty.Value, 0)
+			}
+			i++
+		}
+
+		return cty.ListVal(output), nil
+	},
+})
+
+// helper function to add an element to a list, if it does not already exsit
+func appendIfMissing(slice []cty.Value, element cty.Value) ([]cty.Value, error) {
+	for _, ele := range slice {
+		eq, err := stdlib.Equal(ele, element)
+		if err != nil {
+			return slice, err
+		}
+		if eq.True() {
+			return slice, nil
+		}
+	}
+	return append(slice, element), nil
+}
+
 // Element returns a single element from a given list at the given index. If
 // index is greater than the length of the list then it is wrapped modulo
 // the list length.
@@ -279,4 +375,14 @@ func Contains(list, value cty.Value) (cty.Value, error) {
 // Index finds the element index for a given value in a list.
 func Index(list, value cty.Value) (cty.Value, error) {
 	return IndexFunc.Call([]cty.Value{list, value})
+}
+
+// Distinct takes a list and returns a new list with any duplicate elements removed.
+func Distinct(list cty.Value) (cty.Value, error) {
+	return DistinctFunc.Call([]cty.Value{list})
+}
+
+// Chunklist splits a single list into fixed-size chunks, returning a list of lists.
+func Chunklist(list, size cty.Value) (cty.Value, error) {
+	return ChunklistFunc.Call([]cty.Value{list, size})
 }
