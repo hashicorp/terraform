@@ -113,7 +113,7 @@ var CoalesceListFunc = function.New(&function.Spec{
 	Params: []function.Parameter{},
 	VarParam: &function.Parameter{
 		Name:             "vals",
-		Type:             cty.DynamicPseudoType,
+		Type:             cty.List(cty.DynamicPseudoType),
 		AllowUnknown:     true,
 		AllowDynamicType: true,
 		AllowNull:        true,
@@ -170,7 +170,6 @@ var CompactFunc = function.New(&function.Spec{
 	},
 	Type: function.StaticReturnType(cty.List(cty.String)),
 	Impl: func(args []cty.Value, retType cty.Type) (ret cty.Value, err error) {
-
 		var outputList []cty.Value
 
 		for it := args[0].ElementIterator(); it.Next(); {
@@ -180,6 +179,11 @@ var CompactFunc = function.New(&function.Spec{
 			}
 			outputList = append(outputList, v)
 		}
+
+		if len(outputList) == 0 {
+			return cty.ListValEmpty(cty.String), nil
+		}
+
 		return cty.ListVal(outputList), nil
 	},
 })
@@ -223,6 +227,10 @@ var IndexFunc = function.New(&function.Spec{
 	},
 	Type: function.StaticReturnType(cty.Number),
 	Impl: func(args []cty.Value, retType cty.Type) (ret cty.Value, err error) {
+		if !(args[0].Type().IsListType() || args[0].Type().IsTupleType()) {
+			return cty.NilVal, fmt.Errorf("argument must be a list or tuple")
+		}
+
 		if args[0].LengthInt() == 0 { // Easy path
 			return cty.NilVal, fmt.Errorf("Cannot search an empty list")
 		}
