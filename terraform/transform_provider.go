@@ -25,7 +25,9 @@ func TransformProviders(providers []string, concrete ConcreteProviderNodeFunc, c
 			Concrete:  concrete,
 		},
 		// Connect the providers
-		&ProviderTransformer{},
+		&ProviderTransformer{
+			Config: config,
+		},
 		// Remove unused providers and proxies
 		&PruneProviderTransformer{},
 		// Connect provider to their parent provider nodes
@@ -72,14 +74,35 @@ type GraphNodeProviderConsumer interface {
 // ProviderTransformer is a GraphTransformer that maps resources to
 // providers within the graph. This will error if there are any resources
 // that don't map to proper resources.
-type ProviderTransformer struct{}
+type ProviderTransformer struct {
+	Config *configs.Config
+}
 
 func (t *ProviderTransformer) Transform(g *Graph) error {
-	// Go through the other nodes and match them to providers they need
+	// We need to find a provider configuration address for each resource
+	// either directly represented by a node or referenced by a node in
+	// the graph, and then create graph edges from provider to provider user
+	// so that the providers will get initialized first.
+
 	var err error
-	m := providerVertexMap(g)
+
+	// To start, we'll collect the _requested_ provider addresses for each
+	// node, which we'll then resolve (handling provider inheritence, etc) in
+	// the next step.
+	// Our "requested" map is from graph vertices to string representations of
+	// provider config addresses (for deduping) to requests.
+	type ProviderRequest struct {
+		Addr  addrs.AbsProviderConfig
+		Exact bool // If true, inheritence from parent modules is not attempted
+	}
+	requested := map[dag.Vertex]map[string]ProviderRequest{}
+	needConfigured := map[string]addrs.AbsProviderConfig{}
 	for _, v := range g.Vertices() {
+
+		// Does the vertex _directly_ use a provider?
 		if pv, ok := v.(GraphNodeProviderConsumer); ok {
+			requested[v] = make(map[string]ProviderRequest)
+
 			p, exact := pv.ProvidedBy()
 			if exact {
 				log.Printf("[TRACE] ProviderTransformer: %s is provided by %s exactly", dag.VertexName(v), p)
@@ -87,23 +110,92 @@ func (t *ProviderTransformer) Transform(g *Graph) error {
 				log.Printf("[TRACE] ProviderTransformer: %s is provided by %s or inherited equivalent", dag.VertexName(v), p)
 			}
 
-			key := p.String()
+			requested[v][p.String()] = ProviderRequest{
+				Addr:  p,
+				Exact: exact,
+			}
+
+			// Direct references need the provider configured as well as initialized
+			needConfigured[p.String()] = p
+		}
+
+		// Does the vertex contain any references that need a provider to resolve?
+		if pv, ok := v.(GraphNodeReferencer); ok {
+			// Into which module does this vertex make references?
+			refPath := vertexReferencePath(v)
+			if _, exists := requested[v]; !exists {
+				requested[v] = make(map[string]ProviderRequest)
+			}
+
+			for _, r := range pv.References() {
+				var res addrs.Resource
+				switch sub := r.Subject.(type) {
+				case addrs.ResourceInstance:
+					res = sub.Resource
+				case addrs.Resource:
+					res = sub
+				default:
+					continue
+				}
+
+				absRes := res.Absolute(refPath)
+
+				// Need to find the configuration of the resource we're
+				// referencing, to see which provider it belongs to.
+				if t.Config == nil {
+					log.Printf("[WARN] ProviderTransformer can't discover provider for %s: configuration not available", absRes)
+					continue
+				}
+				modConfig := t.Config.DescendentForInstance(refPath)
+				if modConfig == nil {
+					log.Printf("[WARN] ProviderTransformer can't discover provider for %s: no configuration for %s", absRes, refPath)
+					continue
+				}
+				rc := modConfig.Module.ResourceByAddr(res)
+				if rc == nil {
+					log.Printf("[WARN] ProviderTransformer can't discover provider for %s: resource configuration is not available", absRes)
+					continue
+				}
+
+				providerCfg := rc.ProviderConfigAddr().Absolute(refPath)
+				key := providerCfg.String()
+				log.Printf("[DEBUG] %s references %s, requiring %s", dag.VertexName(pv), res, key)
+				if _, exists := requested[v][key]; !exists {
+					requested[v][key] = ProviderRequest{
+						Addr:  providerCfg,
+						Exact: false,
+					}
+				}
+
+				// No need to add to needConfigured here, because indirect
+				// references only need the provider initialized, not configured.
+			}
+		}
+	}
+
+	// Now we'll go through all the requested addresses we just collected and
+	// figure out which _actual_ config address each belongs to, after resolving
+	// for provider inheritance and passing.
+	m := providerVertexMap(g)
+	for v, reqs := range requested {
+		for key, req := range reqs {
+			p := req.Addr
 			target := m[key]
 
-			_, ok := pv.(GraphNodeSubPath)
+			_, ok := v.(GraphNodeSubPath)
 			if !ok && target == nil {
-				// no target, and no path to walk up
+				// No target and no path to traverse up grom
 				err = multierror.Append(err, fmt.Errorf("%s: provider %s couldn't be found", dag.VertexName(v), p))
-				break
+				continue
 			}
 
 			if target != nil {
-				log.Printf("[TRACE] ProviderTransformer: exact match for %s providing %s", p, dag.VertexName(v))
+				log.Printf("[TRACE] ProviderTransformer: exact match for %s serving %s", p, dag.VertexName(v))
 			}
 
 			// if we don't have a provider at this level, walk up the path looking for one,
 			// unless we were told to be exact.
-			if target == nil && !exact {
+			if target == nil && !req.Exact {
 				for pp, ok := p.Inherited(); ok; pp, ok = pp.Inherited() {
 					key := pp.String()
 					target = m[key]
@@ -111,8 +203,24 @@ func (t *ProviderTransformer) Transform(g *Graph) error {
 						log.Printf("[TRACE] ProviderTransformer: %s uses inherited configuration %s", dag.VertexName(v), pp)
 						break
 					}
-					log.Printf("[TRACE] ProviderTransformer: looking for %s to provide %s", pp, dag.VertexName(v))
+					log.Printf("[TRACE] ProviderTransformer: looking for %s to serve %s", pp, dag.VertexName(v))
 				}
+			}
+
+			// If this provider doesn't need to be configured then we can just
+			// stub it out with an init-only provider node, which will just
+			// start up the provider and fetch its schema.
+			if _, exists := needConfigured[key]; !exists {
+				stubAddr := p.ProviderConfig.Absolute(addrs.RootModuleInstance)
+				stub := &NodeEvalableProvider{
+					&NodeAbstractProvider{
+						Addr: stubAddr,
+					},
+				}
+				m[stubAddr.String()] = stub
+				log.Printf("[TRACE] ProviderTransformer: creating init-only node for %s", stubAddr)
+				target = stub
+				g.Add(target)
 			}
 
 			if target == nil {
@@ -130,46 +238,11 @@ func (t *ProviderTransformer) Transform(g *Graph) error {
 				key = target.(GraphNodeProvider).ProviderAddr().String()
 			}
 
-			log.Printf("[DEBUG] %s provided by %s", dag.VertexName(pv), dag.VertexName(target))
-			pv.SetProvider(target.ProviderAddr())
-			g.Connect(dag.BasicEdge(v, target))
-		}
-
-		if pv, ok := v.(GraphNodeReferencer); ok {
-			// not a provider consumer, so check if this node references any
-			// providers
-			for _, r := range pv.References() {
-				var res addrs.Resource
-				switch sub := r.Subject.(type) {
-				case addrs.ResourceInstance:
-					res = sub.Resource
-				case addrs.Resource:
-					res = sub
-				default:
-					continue
-				}
-
-				providerCfg := res.DefaultProviderConfig()
-				providerName := providerCfg.String()
-
-				provider := m[providerName]
-				if provider == nil {
-					// create the missing top-level provider
-					// This provider node will only be initialized to provide
-					// the schema for its referrers.
-					provider = &NodeEvalableProvider{
-						&NodeAbstractProvider{
-							Addr: addrs.RootModuleInstance.ProviderConfigDefault(providerCfg.Type),
-						},
-					}
-
-					g.Add(provider)
-					m[providerName] = provider
-				}
-
-				log.Printf("[DEBUG] %s references %s", dag.VertexName(pv), providerName)
-				g.Connect(dag.BasicEdge(pv, provider))
+			log.Printf("[DEBUG] %s needs %s", dag.VertexName(v), dag.VertexName(target))
+			if pv, ok := v.(GraphNodeProviderConsumer); ok {
+				pv.SetProvider(target.ProviderAddr())
 			}
+			g.Connect(dag.BasicEdge(v, target))
 		}
 	}
 

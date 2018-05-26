@@ -294,6 +294,31 @@ func (m *ReferenceMap) vertexReferenceablePath(v dag.Vertex) addrs.ModuleInstanc
 	return sp.Path()
 }
 
+// vertexReferencePath returns the path in which references _from_ the given
+// vertex must be interpreted.
+//
+// Only GraphNodeSubPath implementations can have references, so this method
+// will panic if the given vertex does not implement that interface.
+func vertexReferencePath(referrer dag.Vertex) addrs.ModuleInstance {
+	sp, ok := referrer.(GraphNodeSubPath)
+	if !ok {
+		// Only nodes with paths can participate in a reference map.
+		panic(fmt.Errorf("vertexReferencePath on vertex type %T which doesn't implement GraphNodeSubPath", sp))
+	}
+
+	var path addrs.ModuleInstance
+	if outside, ok := referrer.(GraphNodeReferenceOutside); ok {
+		// Vertex makes references to objects in a different module than where
+		// it was declared.
+		_, path = outside.ReferenceOutside()
+		return path
+	}
+
+	// Vertex makes references to objects in the same module as where it
+	// was declared.
+	return sp.Path()
+}
+
 // referenceMapKey produces keys for the "edges" map. "referrer" is the vertex
 // that the reference is from, and "addr" is the address of the object being
 // referenced.
@@ -304,23 +329,7 @@ func (m *ReferenceMap) vertexReferenceablePath(v dag.Vertex) addrs.ModuleInstanc
 // Only GraphNodeSubPath implementations can be referrers, so this method will
 // panic if the given vertex does not implement that interface.
 func (m *ReferenceMap) referenceMapKey(referrer dag.Vertex, addr addrs.Referenceable) string {
-	sp, ok := referrer.(GraphNodeSubPath)
-	if !ok {
-		// Only nodes with paths can participate in a reference map.
-		panic(fmt.Errorf("referenceMapKey on vertex type %T which doesn't implement GraphNodeSubPath", sp))
-	}
-
-	var path addrs.ModuleInstance
-	if outside, ok := referrer.(GraphNodeReferenceOutside); ok {
-		// Vertex makes references to objects in a different module than where
-		// it was declared.
-		_, path = outside.ReferenceOutside()
-	} else {
-		// Vertex makes references to objects in the same module as where it
-		// was declared.
-		path = sp.Path()
-	}
-
+	path := vertexReferencePath(referrer)
 	return m.mapKey(path, addr)
 }
 
