@@ -2432,55 +2432,6 @@ func TestContext2Apply_provisionerInterpCount(t *testing.T) {
 	}
 }
 
-func TestContext2Apply_mapVariableOverride(t *testing.T) {
-	m := testModule(t, "apply-map-var-override")
-	p := testProvider("aws")
-	p.ApplyFn = testApplyFn
-	p.DiffFn = testDiffFn
-	ctx := testContext2(t, &ContextOpts{
-		Config: m,
-		ProviderResolver: ResourceProviderResolverFixed(
-			map[string]ResourceProviderFactory{
-				"aws": testProviderFuncFixed(p),
-			},
-		),
-		Variables: InputValues{
-			"images": &InputValue{
-				Value: cty.MapVal(map[string]cty.Value{
-					"us-west-2": cty.StringVal("overridden"),
-				}),
-				SourceType: ValueFromCaller,
-			},
-		},
-	})
-
-	if _, diags := ctx.Plan(); diags.HasErrors() {
-		t.Fatalf("diags: %s", diags.Err())
-	}
-
-	state, diags := ctx.Apply()
-	if diags.HasErrors() {
-		t.Fatalf("diags: %s", diags.Err())
-	}
-
-	actual := strings.TrimSpace(state.String())
-	expected := strings.TrimSpace(`
-aws_instance.bar:
-  ID = foo
-  provider = provider.aws
-  ami = overridden
-  type = aws_instance
-aws_instance.foo:
-  ID = foo
-  provider = provider.aws
-  ami = image-1234
-  type = aws_instance
-	`)
-	if actual != expected {
-		t.Fatalf("got: \n%s\nexpected: \n%s", actual, expected)
-	}
-}
-
 func TestContext2Apply_moduleBasic(t *testing.T) {
 	m := testModule(t, "apply-module")
 	p := testProvider("aws")
