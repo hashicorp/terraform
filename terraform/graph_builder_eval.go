@@ -70,6 +70,10 @@ func (b *EvalGraphBuilder) Steps() []GraphTransformer {
 		// Add root variables
 		&RootVariableTransformer{Config: b.Config},
 
+		// Must be before TransformProviders and ReferenceTransformer, since
+		// schema is required to extract references from config.
+		&AttachSchemaTransformer{Components: b.Components},
+
 		TransformProviders(b.Components.ResourceProviders(), concreteProvider, b.Config),
 
 		// Add the local values
@@ -80,10 +84,6 @@ func (b *EvalGraphBuilder) Steps() []GraphTransformer {
 
 		// Add module variables
 		&ModuleVariableTransformer{Config: b.Config},
-
-		// Must be before ReferenceTransformer, since schema is required to
-		// extract references from config.
-		&AttachSchemaTransformer{Components: b.Components},
 
 		// Connect so that the references are ready for targeting. We'll
 		// have to connect again later for providers and so on.
