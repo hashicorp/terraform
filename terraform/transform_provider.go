@@ -159,7 +159,7 @@ func (t *ProviderTransformer) Transform(g *Graph) error {
 
 				providerCfg := rc.ProviderConfigAddr().Absolute(refPath)
 				key := providerCfg.String()
-				log.Printf("[DEBUG] %s references %s, requiring %s", dag.VertexName(pv), res, key)
+				log.Printf("[DEBUG] %s references %s, requiring %s", dag.VertexName(pv), absRes, key)
 				if _, exists := requested[v][key]; !exists {
 					requested[v][key] = ProviderRequest{
 						Addr:  providerCfg,
