@@ -210,7 +210,7 @@ func (t *ProviderTransformer) Transform(g *Graph) error {
 			// If this provider doesn't need to be configured then we can just
 			// stub it out with an init-only provider node, which will just
 			// start up the provider and fetch its schema.
-			if _, exists := needConfigured[key]; !exists {
+			if _, exists := needConfigured[key]; target == nil && !exists {
 				stubAddr := p.ProviderConfig.Absolute(addrs.RootModuleInstance)
 				stub := &NodeEvalableProvider{
 					&NodeAbstractProvider{
