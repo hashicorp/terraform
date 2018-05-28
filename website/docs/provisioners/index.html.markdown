@@ -31,7 +31,8 @@ how to communicate with the resource.
 ## Creation-Time Provisioners
 
 Provisioners by default run when the resource they are defined within is
-created. Creation-time provisioners are only run during _creation_, not
+created. This implicit default behavior can be made explicit by setting `when =
+"create"`. Creation-time provisioners are only run during _creation_, not
 during updating or any other lifecycle. They are meant as a means to perform
 bootstrapping of a system.
 
