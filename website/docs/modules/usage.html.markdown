@@ -287,8 +287,8 @@ provider "aws" {
 module "tunnel" {
   source    = "./tunnel"
   providers = {
-    "aws.src" = "aws.usw1"
-    "aws.dst" = "aws.usw2"
+    aws.src = "aws.usw1"
+    aws.dst = "aws.usw2"
   }
 }
 ```
