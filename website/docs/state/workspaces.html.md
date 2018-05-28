@@ -191,6 +191,6 @@ The important thing about workspace internals is that workspaces are
 meant to be a shared resource. They aren't a private, local-only notion
 (unless you're using purely local state and not committing it).
 
-The "current workspace" name is stored only locally in the ignored
+The "current workspace" name is only stored locally in the ignored
 `.terraform` directory. This allows multiple team members to work on
 different workspaces concurrently.
