@@ -264,10 +264,6 @@ var DistinctFunc = function.New(&function.Spec{
 	},
 	Type: function.StaticReturnType(cty.List(cty.DynamicPseudoType)),
 	Impl: func(args []cty.Value, retType cty.Type) (ret cty.Value, err error) {
-		if len(args) != 1 {
-			return cty.NilVal, fmt.Errorf("distinct accepts only one argument")
-		}
-
 		var list []cty.Value
 
 		for it := args[0].ElementIterator(); it.Next(); {
@@ -295,7 +291,9 @@ var ChunklistFunc = function.New(&function.Spec{
 			Type: cty.Number,
 		},
 	},
-	Type: function.StaticReturnType(cty.List(cty.DynamicPseudoType)),
+	Type: func(args []cty.Value) (cty.Type, error) {
+		return cty.List(args[0].Type()), nil
+	},
 	Impl: func(args []cty.Value, retType cty.Type) (ret cty.Value, err error) {
 		var size int
 		err = gocty.FromCtyValue(args[1], &size)

@@ -459,6 +459,17 @@ func TestContains(t *testing.T) {
 			cty.BoolVal(false),
 			false,
 		},
+		{ // Check a list with an unknown value
+			cty.ListVal([]cty.Value{
+				cty.UnknownVal(cty.String),
+				cty.StringVal("quick"),
+				cty.StringVal("brown"),
+				cty.StringVal("fox"),
+			}),
+			cty.StringVal("quick"),
+			cty.BoolVal(true),
+			false,
+		},
 	}
 
 	for _, test := range tests {
@@ -474,7 +485,7 @@ func TestContains(t *testing.T) {
 				t.Fatalf("unexpected error: %s", err)
 			}
 
-			if got != test.Want {
+			if !got.RawEquals(test.Want) {
 				t.Errorf("wrong result\ngot:  %#v\nwant: %#v", got, test.Want)
 			}
 		})
