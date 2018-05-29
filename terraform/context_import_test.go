@@ -137,8 +137,8 @@ func TestContextImport_collision(t *testing.T) {
 			},
 		},
 	})
-	if diags.HasErrors() {
-		t.Fatalf("unexpected errors: %s", diags.Err())
+	if !diags.HasErrors() {
+		t.Fatalf("succeeded; want an error indicating that the resource already exists in state")
 	}
 
 	actual := strings.TrimSpace(state.String())
