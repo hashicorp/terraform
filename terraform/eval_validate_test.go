@@ -261,7 +261,7 @@ func TestEvalValidateProvisioner_valid(t *testing.T) {
 			Config: hcl.EmptyBody(),
 		},
 		ConnConfig: &configs.Connection{
-			Type:   "ssh",
+			//Type:   "ssh",
 			Config: hcl.EmptyBody(),
 		},
 	}
@@ -285,7 +285,14 @@ func TestEvalValidateProvisioner_warning(t *testing.T) {
 	ctx := &MockEvalContext{}
 	ctx.installSimpleEval()
 
-	schema := &configschema.Block{}
+	schema := &configschema.Block{
+		Attributes: map[string]*configschema.Attribute{
+			"type": {
+				Type:     cty.String,
+				Optional: true,
+			},
+		},
+	}
 
 	node := &EvalValidateProvisioner{
 		ResourceAddr: addrs.ResourceInstance{
@@ -302,8 +309,9 @@ func TestEvalValidateProvisioner_warning(t *testing.T) {
 			Config: hcl.EmptyBody(),
 		},
 		ConnConfig: &configs.Connection{
-			Type:   "ssh",
-			Config: hcl.EmptyBody(),
+			Config: configs.SynthBody("", map[string]cty.Value{
+				"type": cty.StringVal("ssh"),
+			}),
 		},
 	}
 
@@ -330,7 +338,14 @@ func TestEvalValidateProvisioner_connectionInvalid(t *testing.T) {
 	ctx := &MockEvalContext{}
 	ctx.installSimpleEval()
 
-	schema := &configschema.Block{}
+	schema := &configschema.Block{
+		Attributes: map[string]*configschema.Attribute{
+			"type": {
+				Type:     cty.String,
+				Optional: true,
+			},
+		},
+	}
 
 	node := &EvalValidateProvisioner{
 		ResourceAddr: addrs.ResourceInstance{
@@ -347,8 +362,8 @@ func TestEvalValidateProvisioner_connectionInvalid(t *testing.T) {
 			Config: hcl.EmptyBody(),
 		},
 		ConnConfig: &configs.Connection{
-			Type: "ssh",
 			Config: configs.SynthBody("", map[string]cty.Value{
+				"type":             cty.StringVal("ssh"),
 				"bananananananana": cty.StringVal("foo"),
 				"bazaz":            cty.StringVal("bar"),
 			}),

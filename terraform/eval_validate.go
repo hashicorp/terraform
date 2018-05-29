@@ -229,89 +229,93 @@ var connectionBlockSupersetSchema = &configschema.Block{
 		// by the config loader and stored away in a separate field.
 
 		// Common attributes for both connection types
+		"type": {
+			Type:     cty.String,
+			Optional: true,
+		},
 		"user": {
 			Type:     cty.String,
-			Required: false,
+			Optional: true,
 		},
 		"password": {
 			Type:     cty.String,
-			Required: false,
+			Optional: true,
 		},
 		"host": {
 			Type:     cty.String,
-			Required: false,
+			Optional: true,
 		},
 		"port": {
-			Type:     cty.Number,
-			Required: false,
+			Type:     cty.String,
+			Optional: true,
 		},
 		"timeout": {
 			Type:     cty.String,
-			Required: false,
+			Optional: true,
 		},
 		"script_path": {
 			Type:     cty.String,
-			Required: false,
+			Optional: true,
 		},
 
 		// For type=ssh only (enforced in ssh communicator)
 		"private_key": {
 			Type:     cty.String,
-			Required: false,
+			Optional: true,
 		},
 		"host_key": {
 			Type:     cty.String,
-			Required: false,
+			Optional: true,
 		},
 		"agent": {
 			Type:     cty.Bool,
-			Required: false,
+			Optional: true,
 		},
 		"agent_identity": {
 			Type:     cty.String,
-			Required: false,
+			Optional: true,
 		},
 		"bastion_host": {
 			Type:     cty.String,
-			Required: false,
+			Optional: true,
 		},
 		"bastion_host_key": {
 			Type:     cty.String,
-			Required: false,
+			Optional: true,
 		},
 		"bastion_port": {
 			Type:     cty.Number,
-			Required: false,
+			Optional: true,
 		},
 		"bastion_user": {
 			Type:     cty.String,
-			Required: false,
+			Optional: true,
 		},
 		"bastion_password": {
 			Type:     cty.String,
-			Required: false,
+			Optional: true,
 		},
 		"bastion_private_key": {
 			Type:     cty.String,
-			Required: false,
+			Optional: true,
 		},
 
 		// For type=winrm only (enforced in winrm communicator)
 		"https": {
 			Type:     cty.Bool,
-			Required: false,
+			Optional: true,
 		},
 		"insecure": {
 			Type:     cty.Bool,
-			Required: false,
+			Optional: true,
 		},
 		"cacert": {
 			Type:     cty.String,
-			Required: false,
+			Optional: true,
 		},
 		"use_ntlm": {
 			Type:     cty.Bool,
-			Required: false,
+			Optional: true,
 		},
 	},
 }
