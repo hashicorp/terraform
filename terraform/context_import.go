@@ -60,7 +60,7 @@ func (c *Context) Import(opts *ImportOpts) (*State, tfdiags.Diagnostics) {
 	builder := &ImportGraphBuilder{
 		ImportTargets: opts.Targets,
 		Config:        config,
-		Providers:     c.components.ResourceProviders(),
+		Components:    c.components,
 	}
 
 	// Build the graph!
