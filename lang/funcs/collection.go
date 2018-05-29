@@ -232,7 +232,7 @@ var IndexFunc = function.New(&function.Spec{
 		}
 
 		if args[0].LengthInt() == 0 { // Easy path
-			return cty.NilVal, fmt.Errorf("Cannot search an empty list")
+			return cty.NilVal, fmt.Errorf("cannot search an empty list")
 		}
 
 		for it := args[0].ElementIterator(); it.Next(); {
@@ -302,7 +302,7 @@ var ChunklistFunc = function.New(&function.Spec{
 		}
 
 		if size < 0 {
-			return cty.NilVal, fmt.Errorf("The size argument must be positive")
+			return cty.NilVal, fmt.Errorf("the size argument must be positive")
 		}
 
 		output := make([]cty.Value, 0)
@@ -330,6 +330,72 @@ var ChunklistFunc = function.New(&function.Spec{
 			i++
 		}
 
+		return cty.ListVal(output), nil
+	},
+})
+
+// MatchkeysFunc contructs a function that constructs a new list by taking a
+// subset of elements from one list whose indexes match the corresponding
+// indexes of values in another list.
+var MatchkeysFunc = function.New(&function.Spec{
+	Params: []function.Parameter{
+		{
+			Name: "values",
+			Type: cty.List(cty.DynamicPseudoType),
+		},
+		{
+			Name: "keys",
+			Type: cty.List(cty.DynamicPseudoType),
+		},
+		{
+			Name: "searchset",
+			Type: cty.List(cty.DynamicPseudoType),
+		},
+	},
+	Type: func(args []cty.Value) (cty.Type, error) {
+		if args[1].Type() != args[2].Type() {
+			return cty.NilType, fmt.Errorf("lists must be of the same type")
+		}
+
+		if args[0].LengthInt() != args[1].LengthInt() {
+			return cty.NilType, fmt.Errorf("length of keys and values should be equal")
+		}
+		return args[0].Type(), nil
+	},
+	Impl: func(args []cty.Value, retType cty.Type) (ret cty.Value, err error) {
+		output := make([]cty.Value, 0)
+
+		values := args[0]
+		keys := args[1]
+		searchset := args[2]
+
+		// if searchset is empty, return an empty list.
+		if searchset.LengthInt() == 0 {
+			return cty.ListValEmpty(*retType.ListElementType()), nil
+		}
+
+		i := 0
+		for it := keys.ElementIterator(); it.Next(); {
+			_, key := it.Element()
+			for iter := searchset.ElementIterator(); iter.Next(); {
+				_, search := iter.Element()
+				eq, err := stdlib.Equal(key, search)
+				if err != nil {
+					return cty.NilVal, err
+				}
+				if eq.True() {
+					v := values.Index(cty.NumberIntVal(int64(i)))
+					output = append(output, v)
+					break
+				}
+			}
+			i++
+		}
+
+		// if we haven't matched any key, then output is an empty list.
+		if len(output) == 0 {
+			return cty.ListValEmpty(*retType.ListElementType()), nil
+		}
 		return cty.ListVal(output), nil
 	},
 })
@@ -391,4 +457,10 @@ func Distinct(list cty.Value) (cty.Value, error) {
 // Chunklist splits a single list into fixed-size chunks, returning a list of lists.
 func Chunklist(list, size cty.Value) (cty.Value, error) {
 	return ChunklistFunc.Call([]cty.Value{list, size})
+}
+
+// Matchkeys constructs a new list by taking a subset of elements from one list
+// whose indexes match the corresponding indexes of values in another list.
+func Matchkeys(values, keys, searchset cty.Value) (cty.Value, error) {
+	return MatchkeysFunc.Call([]cty.Value{values, keys, searchset})
 }
