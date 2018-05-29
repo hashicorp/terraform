@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/terraform/addrs"
+	"github.com/hashicorp/terraform/tfdiags"
 )
 
 // EvalImportState is an EvalNode implementation that performs an
@@ -64,15 +65,19 @@ type EvalImportStateVerify struct {
 
 // TODO: test
 func (n *EvalImportStateVerify) Eval(ctx EvalContext) (interface{}, error) {
+	var diags tfdiags.Diagnostics
+
 	state := *n.State
 	if state.Empty() {
-		return nil, fmt.Errorf(
-			"import %s (id: %s): Terraform detected a resource with this ID doesn't\n"+
-				"exist. Please verify the ID is correct. You cannot import non-existent\n"+
-				"resources using Terraform import.",
-			n.Addr.String(),
-			n.Id)
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Cannot import non-existent remote object",
+			fmt.Sprintf(
+				"While attempting to import an existing object to %s, the provider detected that no object exists with the id %q. Only pre-existing objects can be imported; check that the id is correct and that it is associated with the provider's configured region or endpoint, or use \"terraform apply\" to create a new remote object for this resource.",
+				n.Addr.String(), n.Id,
+			),
+		))
 	}
 
-	return nil, nil
+	return nil, diags.ErrWithWarnings()
 }
