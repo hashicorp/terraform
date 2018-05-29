@@ -3,7 +3,6 @@ package configs
 import (
 	"fmt"
 
-	"github.com/hashicorp/hcl2/gohcl"
 	"github.com/hashicorp/hcl2/hcl"
 )
 
@@ -86,9 +85,12 @@ func decodeProvisionerBlock(block *hcl.Block) (*Provisioner, hcl.Diagnostics) {
 			}
 			seenConnection = block
 
-			conn, connDiags := decodeConnectionBlock(block)
-			diags = append(diags, connDiags...)
-			pv.Connection = conn
+			//conn, connDiags := decodeConnectionBlock(block)
+			//diags = append(diags, connDiags...)
+			pv.Connection = &Connection{
+				Config:    block.Body,
+				DeclRange: block.DefRange,
+			}
 
 		default:
 			// Should never happen because there are no other block types
@@ -102,35 +104,9 @@ func decodeProvisionerBlock(block *hcl.Block) (*Provisioner, hcl.Diagnostics) {
 // Connection represents a "connection" block when used within either a
 // "resource" or "provisioner" block in a module or file.
 type Connection struct {
-	Type   string
 	Config hcl.Body
 
 	DeclRange hcl.Range
-	TypeRange *hcl.Range // nil if type is not set
-}
-
-func decodeConnectionBlock(block *hcl.Block) (*Connection, hcl.Diagnostics) {
-	content, config, diags := block.Body.PartialContent(&hcl.BodySchema{
-		Attributes: []hcl.AttributeSchema{
-			{
-				Name: "type",
-			},
-		},
-	})
-
-	conn := &Connection{
-		Type:      "ssh",
-		Config:    config,
-		DeclRange: block.DefRange,
-	}
-
-	if attr, exists := content.Attributes["type"]; exists {
-		valDiags := gohcl.DecodeExpression(attr.Expr, nil, &conn.Type)
-		diags = append(diags, valDiags...)
-		conn.TypeRange = attr.Expr.Range().Ptr()
-	}
-
-	return conn, diags
 }
 
 // ProvisionerWhen is an enum for valid values for when to run provisioners.
