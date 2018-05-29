@@ -786,3 +786,179 @@ func TestChunklist(t *testing.T) {
 		})
 	}
 }
+
+func TestMatchkeys(t *testing.T) {
+	tests := []struct {
+		Keys      cty.Value
+		Values    cty.Value
+		Searchset cty.Value
+		Want      cty.Value
+		Err       bool
+	}{
+		{ // normal usage
+			cty.ListVal([]cty.Value{
+				cty.StringVal("a"),
+				cty.StringVal("b"),
+				cty.StringVal("c"),
+			}),
+			cty.ListVal([]cty.Value{
+				cty.StringVal("ref1"),
+				cty.StringVal("ref2"),
+				cty.StringVal("ref3"),
+			}),
+			cty.ListVal([]cty.Value{
+				cty.StringVal("ref1"),
+			}),
+			cty.ListVal([]cty.Value{
+				cty.StringVal("a"),
+			}),
+			false,
+		},
+		{ // normal usage 2, check the order
+			cty.ListVal([]cty.Value{
+				cty.StringVal("a"),
+				cty.StringVal("b"),
+				cty.StringVal("c"),
+			}),
+			cty.ListVal([]cty.Value{
+				cty.StringVal("ref1"),
+				cty.StringVal("ref2"),
+				cty.StringVal("ref3"),
+			}),
+			cty.ListVal([]cty.Value{
+				cty.StringVal("ref2"),
+				cty.StringVal("ref1"),
+			}),
+			cty.ListVal([]cty.Value{
+				cty.StringVal("a"),
+				cty.StringVal("b"),
+			}),
+			false,
+		},
+		{ // no matches
+			cty.ListVal([]cty.Value{
+				cty.StringVal("a"),
+				cty.StringVal("b"),
+				cty.StringVal("c"),
+			}),
+			cty.ListVal([]cty.Value{
+				cty.StringVal("ref1"),
+				cty.StringVal("ref2"),
+				cty.StringVal("ref3"),
+			}),
+			cty.ListVal([]cty.Value{
+				cty.StringVal("ref4"),
+			}),
+			cty.ListValEmpty(cty.String),
+			false,
+		},
+		{ // no matches 2
+			cty.ListVal([]cty.Value{
+				cty.StringVal("a"),
+				cty.StringVal("b"),
+				cty.StringVal("c"),
+			}),
+			cty.ListVal([]cty.Value{
+				cty.StringVal("ref1"),
+				cty.StringVal("ref2"),
+				cty.StringVal("ref3"),
+			}),
+			cty.ListValEmpty(cty.String),
+			cty.ListValEmpty(cty.String),
+			false,
+		},
+		{ // zero case
+			cty.ListValEmpty(cty.String),
+			cty.ListValEmpty(cty.String),
+			cty.ListVal([]cty.Value{cty.StringVal("nope")}),
+			cty.ListValEmpty(cty.String),
+			false,
+		},
+		{ // complex values
+			cty.ListVal([]cty.Value{
+				cty.ListVal([]cty.Value{
+					cty.StringVal("a"),
+					cty.StringVal("a"),
+				}),
+			}),
+			cty.ListVal([]cty.Value{
+				cty.StringVal("a"),
+			}),
+			cty.ListVal([]cty.Value{
+				cty.StringVal("a"),
+			}),
+			cty.ListVal([]cty.Value{
+				cty.ListVal([]cty.Value{
+					cty.StringVal("a"),
+					cty.StringVal("a"),
+				}),
+			}),
+			false,
+		},
+		// errors
+		{ // different types
+			cty.ListVal([]cty.Value{
+				cty.StringVal("a"),
+			}),
+			cty.ListVal([]cty.Value{
+				cty.NumberIntVal(1),
+			}),
+			cty.ListVal([]cty.Value{
+				cty.StringVal("a"),
+			}),
+			cty.NilVal,
+			true,
+		},
+		{ // different types
+			cty.ListVal([]cty.Value{
+				cty.StringVal("a"),
+			}),
+			cty.ListVal([]cty.Value{
+				cty.ListVal([]cty.Value{
+					cty.StringVal("a"),
+				}),
+				cty.ListVal([]cty.Value{
+					cty.StringVal("a"),
+				}),
+			}),
+			cty.ListVal([]cty.Value{
+				cty.StringVal("a"),
+			}),
+			cty.NilVal,
+			true,
+		},
+		{ // lists of different length
+			cty.ListVal([]cty.Value{
+				cty.StringVal("a"),
+			}),
+			cty.ListVal([]cty.Value{
+				cty.StringVal("a"),
+				cty.StringVal("b"),
+			}),
+			cty.ListVal([]cty.Value{
+				cty.StringVal("a"),
+			}),
+			cty.NilVal,
+			true,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(fmt.Sprintf("matchkeys(%#v, %#v, %#v)", test.Keys, test.Values, test.Searchset), func(t *testing.T) {
+			got, err := Matchkeys(test.Keys, test.Values, test.Searchset)
+
+			if test.Err {
+				if err == nil {
+					t.Fatal("succeeded; want error")
+				}
+				return
+			} else if err != nil {
+				t.Fatalf("unexpected error: %s", err)
+			}
+
+			if !got.RawEquals(test.Want) {
+				t.Errorf("wrong result\ngot:  %#v\nwant: %#v", got, test.Want)
+			}
+		})
+	}
+}
