@@ -5782,6 +5782,7 @@ func TestContext2Apply_outputDiffVars(t *testing.T) {
 
 		result := s.MergeDiff(d)
 		result.ID = "foo"
+		result.Attributes["foo"] = "bar"
 		return result, nil
 	}
 	p.DiffFn = func(*InstanceInfo, *InstanceState, *ResourceConfig) (*InstanceDiff, error) {
