@@ -4110,7 +4110,7 @@ func TestContext2Apply_outputOrphanModule(t *testing.T) {
 
 	actual = strings.TrimSpace(state.String())
 	if actual != "" {
-		t.Fatalf("expected no state, got:\n%s", actual)
+		t.Fatalf("wrong result\n\ngot:\n%s\n\nwant: no state at all", actual)
 	}
 }
 
