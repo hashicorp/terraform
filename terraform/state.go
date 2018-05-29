@@ -1086,9 +1086,13 @@ func (m *ModuleState) Orphans(c *configs.Module) []addrs.ResourceInstance {
 // RemovedOutputs returns a list of outputs that are in the State but aren't
 // present in the configuration itself.
 func (s *ModuleState) RemovedOutputs(outputs map[string]*configs.Output) []addrs.OutputValue {
-	if len(outputs) == 0 {
-		return nil
+	if outputs == nil {
+		// If we got no output map at all then we'll just treat our set of
+		// configured outputs as empty, since that suggests that they've all
+		// been removed by removing their containing module.
+		outputs = make(map[string]*configs.Output)
 	}
+
 	s.Lock()
 	defer s.Unlock()
 
