@@ -5183,7 +5183,7 @@ func TestContext2Apply_provisionerDestroyModule(t *testing.T) {
 	p.ApplyFn = testApplyFn
 	p.DiffFn = testDiffFn
 	pr.ApplyFn = func(rs *InstanceState, c *ResourceConfig) error {
-		val, ok := c.Config["foo"]
+		val, ok := c.Config["command"]
 		if !ok || val != "value" {
 			t.Fatalf("bad value for foo: %v %#v", val, c)
 		}
