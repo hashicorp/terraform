@@ -326,6 +326,12 @@ func (n *EvalApplyProvisioners) apply(ctx EvalContext, provs []*configs.Provisio
 				kv, vv := it.Element()
 				var k, v string
 
+				// there are no unset or null values in a connection block, and
+				// everything needs to map to a string.
+				if vv.IsNull() {
+					continue
+				}
+
 				err := gocty.FromCtyValue(kv, &k)
 				if err != nil {
 					// Should never happen, because connectionBlockSupersetSchema requires all primitives
@@ -339,6 +345,7 @@ func (n *EvalApplyProvisioners) apply(ctx EvalContext, provs []*configs.Provisio
 
 				overlay[k] = v
 			}
+
 			state.Ephemeral.ConnInfo = overlay
 		}
 
