@@ -231,9 +231,10 @@ func decodeResourceBlock(block *hcl.Block) (*Resource, hcl.Diagnostics) {
 			}
 			seenConnection = block
 
-			conn, connDiags := decodeConnectionBlock(block)
-			diags = append(diags, connDiags...)
-			r.Managed.Connection = conn
+			r.Managed.Connection = &Connection{
+				Config:    block.Body,
+				DeclRange: block.DefRange,
+			}
 
 		case "provisioner":
 			pv, pvDiags := decodeProvisionerBlock(block)
