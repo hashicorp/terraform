@@ -4,6 +4,6 @@ resource "aws_instance" "foo" {
 
     provisioner "shell" {
         command = "${aws_instance.foo.0.foo}"
-        order   = "${count.index}"
+         order  = "${count.index}"
     }
 }
