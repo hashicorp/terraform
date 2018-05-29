@@ -4,7 +4,7 @@ resource "aws_instance" "foo" {
     foo = "bar"
 
     provisioner "shell" {
-        foo  = "${var.key}"
+        command = "${var.key}"
         when = "destroy"
     }
 }
