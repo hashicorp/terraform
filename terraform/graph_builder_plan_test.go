@@ -88,6 +88,7 @@ aws_security_group.firewall
   provider.aws
 local.instance_id
   aws_instance.web
+  provider.aws
 meta.count-boundary (count boundary fixup)
   aws_instance.web
   aws_load_balancer.weblb
