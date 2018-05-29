@@ -242,6 +242,8 @@ func ReadPlan(src io.Reader) (*Plan, error) {
 
 // WritePlan writes a plan somewhere in a binary format.
 func WritePlan(d *Plan, dst io.Writer) error {
+	return fmt.Errorf("plan serialization is temporarily disabled, pending implementation of the new file format")
+
 	// Write the magic bytes so we can determine the file format later
 	n, err := dst.Write([]byte(planFormatMagic))
 	if err != nil {
