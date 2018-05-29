@@ -128,6 +128,12 @@ func (t *TargetsTransformer) addDependencies(targetedNodes *dag.Set, g *Graph) (
 		vertices := queue
 		queue = nil // ready to append for next iteration if neccessary
 		for _, v := range vertices {
+			// providers don't cause transitive dependencies, so don't target
+			// downstream from them.
+			if _, ok := v.(GraphNodeProvider); ok {
+				continue
+			}
+
 			dependers := g.UpEdges(v)
 			if dependers == nil {
 				// indicates that there are no up edges for this node, so
