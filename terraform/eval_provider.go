@@ -145,6 +145,14 @@ func (n *EvalInputProvider) Eval(ctx EvalContext) (interface{}, error) {
 	// provider's configuration schema to automatically infer what we need
 	// to prompt for.
 	var diags tfdiags.Diagnostics
-	diags = diags.Append(tfdiags.SimpleWarning(fmt.Sprintf("%s: provider input is temporarily disabled", n.Addr)))
+	diag := &hcl.Diagnostic{
+		Severity: hcl.DiagWarning,
+		Summary:  "Provider input is temporarily disabled",
+		Detail:   fmt.Sprintf("Skipped gathering input for %s because the input step is currently disabled pending a change to the provider API.", n.Addr),
+	}
+	if n.Config != nil {
+		diag.Subject = n.Config.DeclRange.Ptr()
+	}
+	diags = diags.Append(diag)
 	return nil, diags.ErrWithWarnings()
 }

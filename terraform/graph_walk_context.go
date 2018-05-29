@@ -125,6 +125,7 @@ func (w *ContextGraphWalker) ExitEvalTree(v dag.Vertex, output interface{}, err 
 	// non-fatal list, rather than returning it directly, so that the graph
 	// walk can continue.
 	if nferr, ok := err.(tfdiags.NonFatalError); ok {
+		log.Printf("[WARN] %s: %s", dag.VertexName(v), nferr)
 		w.NonFatalDiagnostics = w.NonFatalDiagnostics.Append(nferr.Diagnostics)
 		return nil
 	}
