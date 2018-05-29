@@ -141,7 +141,7 @@ func (ctx *BuiltinEvalContext) InitProvider(typeName string, addr addrs.Provider
 	if ctx.ProviderSchemas == nil {
 		ctx.ProviderSchemas = make(map[string]*ProviderSchema)
 	}
-	ctx.ProviderSchemas[key] = schema
+	ctx.ProviderSchemas[typeName] = schema
 
 	return p, nil
 }
@@ -161,7 +161,7 @@ func (ctx *BuiltinEvalContext) ProviderSchema(addr addrs.AbsProviderConfig) *Pro
 	ctx.ProviderLock.Lock()
 	defer ctx.ProviderLock.Unlock()
 
-	return ctx.ProviderSchemas[addr.String()]
+	return ctx.ProviderSchemas[addr.ProviderConfig.Type]
 }
 
 func (ctx *BuiltinEvalContext) CloseProvider(addr addrs.ProviderConfig) error {

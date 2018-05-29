@@ -690,7 +690,7 @@ func (d *evaluationStateData) getResourceSchema(addr addrs.Resource, providerAdd
 	defer d.Evaluator.ProvidersLock.Unlock()
 
 	log.Printf("[TRACE] Need provider schema for %s", providerAddr)
-	providerSchema := d.Evaluator.ProviderSchemas[providerAddr.String()]
+	providerSchema := d.Evaluator.ProviderSchemas[providerAddr.ProviderConfig.Type]
 	if providerSchema == nil {
 		return nil
 	}
