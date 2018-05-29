@@ -204,14 +204,18 @@ func (m *ReferenceMap) References(v dag.Vertex) ([]dag.Vertex, []addrs.Reference
 	for _, ref := range rn.References() {
 		subject := ref.Subject
 
-		// References may point to specific instances, but the resources may
-		// not yet be expanded. Make sure we reference the resource type
-		// itself.
-		if ri, ok := subject.(addrs.ResourceInstance); ok {
-			subject = ri.Resource
+		key := m.referenceMapKey(v, subject)
+		if _, exists := m.vertices[key]; !exists {
+			// If what we were looking for was a ResourceInstance then we
+			// might be in a resource-oriented graph rather than an
+			// instance-oriented graph, and so we'll see if we have the
+			// resource itself instead.
+			if ri, ok := subject.(addrs.ResourceInstance); ok {
+				subject = ri.Resource
+				key = m.referenceMapKey(v, subject)
+			}
 		}
 
-		key := m.referenceMapKey(v, subject)
 		vertices := m.vertices[key]
 		for _, rv := range vertices {
 			// don't include self-references
