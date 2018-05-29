@@ -17,8 +17,8 @@ type ImportGraphBuilder struct {
 	// Module is a configuration to build the graph from. See ImportOpts.Config.
 	Config *configs.Config
 
-	// Providers is the list of providers supported.
-	Providers []string
+	// Components is the factory for our available plugin components.
+	Components contextComponentFactory
 }
 
 // Build builds the graph according to the steps returned by Steps.
@@ -54,10 +54,30 @@ func (b *ImportGraphBuilder) Steps() []GraphTransformer {
 		// Add the import steps
 		&ImportStateTransformer{Targets: b.ImportTargets},
 
-		TransformProviders(b.Providers, concreteProvider, config),
+		// Add root variables
+		&RootVariableTransformer{Config: b.Config},
+
+		// Must be before TransformProviders and ReferenceTransformer, since
+		// schema is required to extract references from config.
+		&AttachSchemaTransformer{Components: b.Components},
+
+		TransformProviders(b.Components.ResourceProviders(), concreteProvider, config),
 
 		// This validates that the providers only depend on variables
 		&ImportProviderValidateTransformer{},
+
+		// Add the local values
+		&LocalTransformer{Config: b.Config},
+
+		// Add the outputs
+		&OutputTransformer{Config: b.Config},
+
+		// Add module variables
+		&ModuleVariableTransformer{Config: b.Config},
+
+		// Connect so that the references are ready for targeting. We'll
+		// have to connect again later for providers and so on.
+		&ReferenceTransformer{},
 
 		// Close opened plugin connections
 		&CloseProviderTransformer{},
