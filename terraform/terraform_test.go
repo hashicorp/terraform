@@ -602,9 +602,10 @@ aws_instance.bar:
 aws_instance.foo:
   ID = foo
   provider = provider.aws
-  dynamical = computed_dynamical
+  compute = value
   num = 2
   type = aws_instance
+  value = computed_value
 `
 
 const testTerraformApplyProvisionerModuleStr = `
