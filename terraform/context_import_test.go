@@ -29,7 +29,7 @@ func TestContextImport_basic(t *testing.T) {
 		},
 	}
 
-	state, err := ctx.Import(&ImportOpts{
+	state, diags := ctx.Import(&ImportOpts{
 		Targets: []*ImportTarget{
 			&ImportTarget{
 				Addr: addrs.RootModuleInstance.ResourceInstance(
@@ -40,8 +40,8 @@ func TestContextImport_basic(t *testing.T) {
 			},
 		},
 	})
-	if err != nil {
-		t.Fatalf("err: %s", err)
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors: %s", diags.Err())
 	}
 	actual := strings.TrimSpace(state.String())
 	expected := strings.TrimSpace(testImportStr)
@@ -69,7 +69,7 @@ func TestContextImport_countIndex(t *testing.T) {
 		},
 	}
 
-	state, err := ctx.Import(&ImportOpts{
+	state, diags := ctx.Import(&ImportOpts{
 		Targets: []*ImportTarget{
 			&ImportTarget{
 				Addr: addrs.RootModuleInstance.ResourceInstance(
@@ -80,8 +80,8 @@ func TestContextImport_countIndex(t *testing.T) {
 			},
 		},
 	})
-	if err != nil {
-		t.Fatalf("err: %s", err)
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors: %s", diags.Err())
 	}
 
 	actual := strings.TrimSpace(state.String())
@@ -126,7 +126,7 @@ func TestContextImport_collision(t *testing.T) {
 		},
 	}
 
-	state, err := ctx.Import(&ImportOpts{
+	state, diags := ctx.Import(&ImportOpts{
 		Targets: []*ImportTarget{
 			&ImportTarget{
 				Addr: addrs.RootModuleInstance.ResourceInstance(
@@ -137,8 +137,8 @@ func TestContextImport_collision(t *testing.T) {
 			},
 		},
 	})
-	if err == nil {
-		t.Fatalf("err: %s", err)
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors: %s", diags.Err())
 	}
 
 	actual := strings.TrimSpace(state.String())
@@ -166,7 +166,7 @@ func TestContextImport_missingType(t *testing.T) {
 		},
 	}
 
-	state, err := ctx.Import(&ImportOpts{
+	state, diags := ctx.Import(&ImportOpts{
 		Targets: []*ImportTarget{
 			&ImportTarget{
 				Addr: addrs.RootModuleInstance.ResourceInstance(
@@ -177,7 +177,7 @@ func TestContextImport_missingType(t *testing.T) {
 			},
 		},
 	})
-	if err == nil {
+	if !diags.HasErrors() {
 		t.Fatal("should error")
 	}
 
@@ -218,7 +218,7 @@ func TestContextImport_moduleProvider(t *testing.T) {
 		return nil
 	}
 
-	state, err := ctx.Import(&ImportOpts{
+	state, diags := ctx.Import(&ImportOpts{
 		Config: m,
 		Targets: []*ImportTarget{
 			&ImportTarget{
@@ -230,8 +230,8 @@ func TestContextImport_moduleProvider(t *testing.T) {
 			},
 		},
 	})
-	if err != nil {
-		t.Fatalf("err: %s", err)
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors: %s", diags.Err())
 	}
 
 	if !configured {
@@ -276,7 +276,7 @@ func TestContextImport_providerModule(t *testing.T) {
 		return nil
 	}
 
-	_, err := ctx.Import(&ImportOpts{
+	_, diags := ctx.Import(&ImportOpts{
 		Config: m,
 		Targets: []*ImportTarget{
 			&ImportTarget{
@@ -288,8 +288,8 @@ func TestContextImport_providerModule(t *testing.T) {
 			},
 		},
 	})
-	if err != nil {
-		t.Fatalf("err: %s", err)
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors: %s", diags.Err())
 	}
 
 	if !configured {
@@ -335,7 +335,7 @@ func TestContextImport_providerVarConfig(t *testing.T) {
 		},
 	}
 
-	state, err := ctx.Import(&ImportOpts{
+	state, diags := ctx.Import(&ImportOpts{
 		Targets: []*ImportTarget{
 			&ImportTarget{
 				Addr: addrs.RootModuleInstance.ResourceInstance(
@@ -346,8 +346,8 @@ func TestContextImport_providerVarConfig(t *testing.T) {
 			},
 		},
 	})
-	if err != nil {
-		t.Fatalf("err: %s", err)
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors: %s", diags.Err())
 	}
 
 	if !configured {
@@ -381,7 +381,7 @@ func TestContextImport_providerNonVarConfig(t *testing.T) {
 		},
 	}
 
-	_, err := ctx.Import(&ImportOpts{
+	_, diags := ctx.Import(&ImportOpts{
 		Targets: []*ImportTarget{
 			&ImportTarget{
 				Addr: addrs.RootModuleInstance.ResourceInstance(
@@ -392,7 +392,7 @@ func TestContextImport_providerNonVarConfig(t *testing.T) {
 			},
 		},
 	})
-	if err == nil {
+	if !diags.HasErrors() {
 		t.Fatal("should error")
 	}
 }
@@ -423,7 +423,7 @@ func TestContextImport_refresh(t *testing.T) {
 		}, nil
 	}
 
-	state, err := ctx.Import(&ImportOpts{
+	state, diags := ctx.Import(&ImportOpts{
 		Targets: []*ImportTarget{
 			&ImportTarget{
 				Addr: addrs.RootModuleInstance.ResourceInstance(
@@ -434,8 +434,8 @@ func TestContextImport_refresh(t *testing.T) {
 			},
 		},
 	})
-	if err != nil {
-		t.Fatalf("err: %s", err)
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors: %s", diags.Err())
 	}
 
 	actual := strings.TrimSpace(state.String())
@@ -468,7 +468,7 @@ func TestContextImport_refreshNil(t *testing.T) {
 		return nil, nil
 	}
 
-	state, err := ctx.Import(&ImportOpts{
+	state, diags := ctx.Import(&ImportOpts{
 		Targets: []*ImportTarget{
 			&ImportTarget{
 				Addr: addrs.RootModuleInstance.ResourceInstance(
@@ -479,7 +479,7 @@ func TestContextImport_refreshNil(t *testing.T) {
 			},
 		},
 	})
-	if err == nil {
+	if !diags.HasErrors() {
 		t.Fatal("should error")
 	}
 
@@ -509,7 +509,7 @@ func TestContextImport_module(t *testing.T) {
 		},
 	}
 
-	state, err := ctx.Import(&ImportOpts{
+	state, diags := ctx.Import(&ImportOpts{
 		Targets: []*ImportTarget{
 			&ImportTarget{
 				Addr: addrs.RootModuleInstance.Child("foo", addrs.NoKey).ResourceInstance(
@@ -520,8 +520,8 @@ func TestContextImport_module(t *testing.T) {
 			},
 		},
 	})
-	if err != nil {
-		t.Fatalf("err: %s", err)
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors: %s", diags.Err())
 	}
 
 	actual := strings.TrimSpace(state.String())
@@ -550,7 +550,7 @@ func TestContextImport_moduleDepth2(t *testing.T) {
 		},
 	}
 
-	state, err := ctx.Import(&ImportOpts{
+	state, diags := ctx.Import(&ImportOpts{
 		Targets: []*ImportTarget{
 			&ImportTarget{
 				Addr: addrs.RootModuleInstance.Child("a", addrs.NoKey).Child("b", addrs.NoKey).ResourceInstance(
@@ -561,8 +561,8 @@ func TestContextImport_moduleDepth2(t *testing.T) {
 			},
 		},
 	})
-	if err != nil {
-		t.Fatalf("err: %s", err)
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors: %s", diags.Err())
 	}
 
 	actual := strings.TrimSpace(state.String())
@@ -607,7 +607,7 @@ func TestContextImport_moduleDiff(t *testing.T) {
 		},
 	}
 
-	state, err := ctx.Import(&ImportOpts{
+	state, diags := ctx.Import(&ImportOpts{
 		Targets: []*ImportTarget{
 			&ImportTarget{
 				Addr: addrs.RootModuleInstance.Child("foo", addrs.NoKey).ResourceInstance(
@@ -618,8 +618,8 @@ func TestContextImport_moduleDiff(t *testing.T) {
 			},
 		},
 	})
-	if err != nil {
-		t.Fatalf("err: %s", err)
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors: %s", diags.Err())
 	}
 
 	actual := strings.TrimSpace(state.String())
@@ -664,7 +664,7 @@ func TestContextImport_moduleExisting(t *testing.T) {
 		},
 	}
 
-	state, err := ctx.Import(&ImportOpts{
+	state, diags := ctx.Import(&ImportOpts{
 		Targets: []*ImportTarget{
 			&ImportTarget{
 				Addr: addrs.RootModuleInstance.Child("foo", addrs.NoKey).ResourceInstance(
@@ -675,8 +675,8 @@ func TestContextImport_moduleExisting(t *testing.T) {
 			},
 		},
 	})
-	if err != nil {
-		t.Fatalf("err: %s", err)
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors: %s", diags.Err())
 	}
 
 	actual := strings.TrimSpace(state.String())
@@ -709,7 +709,7 @@ func TestContextImport_multiState(t *testing.T) {
 		},
 	}
 
-	state, err := ctx.Import(&ImportOpts{
+	state, diags := ctx.Import(&ImportOpts{
 		Targets: []*ImportTarget{
 			&ImportTarget{
 				Addr: addrs.RootModuleInstance.ResourceInstance(
@@ -720,8 +720,8 @@ func TestContextImport_multiState(t *testing.T) {
 			},
 		},
 	})
-	if err != nil {
-		t.Fatalf("err: %s", err)
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors: %s", diags.Err())
 	}
 
 	actual := strings.TrimSpace(state.String())
@@ -758,7 +758,7 @@ func TestContextImport_multiStateSame(t *testing.T) {
 		},
 	}
 
-	state, err := ctx.Import(&ImportOpts{
+	state, diags := ctx.Import(&ImportOpts{
 		Targets: []*ImportTarget{
 			&ImportTarget{
 				Addr: addrs.RootModuleInstance.ResourceInstance(
@@ -769,8 +769,8 @@ func TestContextImport_multiStateSame(t *testing.T) {
 			},
 		},
 	})
-	if err != nil {
-		t.Fatalf("err: %s", err)
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors: %s", diags.Err())
 	}
 
 	actual := strings.TrimSpace(state.String())
@@ -800,7 +800,7 @@ func TestContextImport_customProviderMissing(t *testing.T) {
 		},
 	}
 
-	_, err := ctx.Import(&ImportOpts{
+	_, diags := ctx.Import(&ImportOpts{
 		Targets: []*ImportTarget{
 			&ImportTarget{
 				Addr: addrs.RootModuleInstance.ResourceInstance(
@@ -811,7 +811,7 @@ func TestContextImport_customProviderMissing(t *testing.T) {
 			},
 		},
 	})
-	if err == nil {
+	if !diags.HasErrors() {
 		t.Fatal("expected error")
 	}
 }
@@ -835,7 +835,7 @@ func TestContextImport_customProvider(t *testing.T) {
 		},
 	}
 
-	state, err := ctx.Import(&ImportOpts{
+	state, diags := ctx.Import(&ImportOpts{
 		Targets: []*ImportTarget{
 			&ImportTarget{
 				Addr: addrs.RootModuleInstance.ResourceInstance(
@@ -846,8 +846,8 @@ func TestContextImport_customProvider(t *testing.T) {
 			},
 		},
 	})
-	if err != nil {
-		t.Fatalf("err: %s", err)
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors: %s", diags.Err())
 	}
 
 	actual := strings.TrimSpace(state.String())
