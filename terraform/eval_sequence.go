@@ -18,6 +18,11 @@ func (n *EvalSequence) Eval(ctx EvalContext) (interface{}, error) {
 		}
 
 		if _, err := EvalRaw(n, ctx); err != nil {
+			if _, isEarlyExit := err.(EvalEarlyExitError); isEarlyExit {
+				// In this path we abort early, losing any non-error
+				// diagnostics we saw earlier.
+				return nil, err
+			}
 			diags = diags.Append(err)
 			if diags.HasErrors() {
 				// Halt if we get some errors, but warnings are okay.
