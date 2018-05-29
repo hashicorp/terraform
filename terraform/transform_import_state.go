@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/terraform/addrs"
+	"github.com/hashicorp/terraform/tfdiags"
 )
 
 // ImportStateTransformer is a GraphTransformer that adds nodes to the
@@ -96,6 +97,8 @@ func (n *graphNodeImportState) EvalTree() EvalNode {
 // resources they don't depend on anything else and refreshes are isolated
 // so this is nearly a perfect use case for dynamic expand.
 func (n *graphNodeImportState) DynamicExpand(ctx EvalContext) (*Graph, error) {
+	var diags tfdiags.Diagnostics
+
 	g := &Graph{Path: ctx.Path()}
 
 	// nameCounter is used to de-dup names in the state.
@@ -132,19 +135,26 @@ func (n *graphNodeImportState) DynamicExpand(ctx EvalContext) (*Graph, error) {
 	for _, addr := range addrs {
 		result, err := filter.Filter(addr.String())
 		if err != nil {
-			return nil, fmt.Errorf("Error verifying address %s: %s", addr, err)
+			diags = diags.Append(fmt.Errorf("Error while checking for existing %s in state: %s", addr, err))
+			continue
 		}
 
 		// Go through the filter results and it is an error if we find
 		// a matching InstanceState, meaning that we would have a collision.
 		for _, r := range result {
-			if _, ok := r.Value.(*InstanceState); ok {
-				return nil, fmt.Errorf(
-					"Can't import %s, would collide with an existing resource.\n\n"+
-						"Please remove or rename this resource before continuing.",
-					addr)
+			if is, ok := r.Value.(*InstanceState); ok {
+				diags = diags.Append(tfdiags.Sourceless(
+					tfdiags.Error,
+					"Resource already managed by Terraform",
+					fmt.Sprintf("Terraform is already managing a remote object for %s, with the id %q. To import to this address you must first remove the existing object from the state.", addr, is.ID),
+				))
+				continue
 			}
 		}
+	}
+	if diags.HasErrors() {
+		// Bail out early, then.
+		return nil, diags.Err()
 	}
 
 	// For each of the states, we add a node to handle the refresh/add to state.
@@ -166,7 +176,7 @@ func (n *graphNodeImportState) DynamicExpand(ctx EvalContext) (*Graph, error) {
 	}
 
 	// Done!
-	return g, nil
+	return g, diags.Err()
 }
 
 // graphNodeImportStateSub is the sub-node of graphNodeImportState
