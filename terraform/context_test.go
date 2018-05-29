@@ -411,6 +411,10 @@ func testProvisioner() *MockResourceProvisioner {
 				Type:     cty.String,
 				Optional: true,
 			},
+			"order": {
+				Type:     cty.String,
+				Optional: true,
+			},
 			"when": {
 				Type:     cty.String,
 				Optional: true,
