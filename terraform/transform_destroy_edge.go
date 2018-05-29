@@ -133,8 +133,6 @@ func (t *DestroyEdgeTransformer) Transform(g *Graph) error {
 		&AttachResourceConfigTransformer{Config: t.Config},
 		&AttachStateTransformer{State: t.State},
 
-		TransformProviders(nil, providerFn, t.Config),
-
 		// Add all the variables. We can depend on resources through
 		// variables due to module parameters, and we need to properly
 		// determine that.
@@ -144,6 +142,8 @@ func (t *DestroyEdgeTransformer) Transform(g *Graph) error {
 		// Must be before ReferenceTransformer, since schema is required to
 		// extract references from config.
 		&AttachSchemaTransformer{Components: t.Components},
+
+		TransformProviders(nil, providerFn, t.Config),
 
 		&ReferenceTransformer{},
 	}
