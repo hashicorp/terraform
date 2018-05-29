@@ -43,6 +43,9 @@ func (n *EvalRefresh) Eval(ctx EvalContext) (interface{}, error) {
 	if err != nil {
 		return nil, fmt.Errorf("%s: %s", n.Addr.Absolute(ctx.Path()), err.Error())
 	}
+	if state == nil {
+		log.Printf("[TRACE] EvalRefresh: after refresh, %s has nil state", n.Addr)
+	}
 
 	// Call post-refresh hook
 	err = ctx.Hook(func(h Hook) (HookAction, error) {

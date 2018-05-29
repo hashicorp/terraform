@@ -2,6 +2,7 @@ package terraform
 
 import (
 	"fmt"
+	"log"
 
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/tfdiags"
@@ -36,6 +37,14 @@ func (n *EvalImportState) Eval(ctx EvalContext) (interface{}, error) {
 	if err != nil {
 		return nil, fmt.Errorf(
 			"import %s (id: %s): %s", n.Info.HumanId(), n.Id, err)
+	}
+
+	for _, s := range state {
+		if s == nil {
+			log.Printf("[TRACE] EvalImportState: import %s %q produced a nil state", n.Info.HumanId(), n.Id)
+			continue
+		}
+		log.Printf("[TRACE] EvalImportState: import %s %q produced state for %s with id %q", n.Info.HumanId(), n.Id, s.Ephemeral.Type, s.ID)
 	}
 
 	if n.Output != nil {
