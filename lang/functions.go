@@ -43,15 +43,15 @@ func (s *Scope) Functions() map[string]function.Function {
 			"cidrnetmask":  funcs.CidrNetmaskFunc,
 			"cidrsubnet":   funcs.CidrSubnetFunc,
 			"coalesce":     stdlib.CoalesceFunc,
-			"coalescelist": unimplFunc, // TODO
-			"compact":      unimplFunc, // TODO
+			"coalescelist": funcs.CoalesceListFunc,
+			"compact":      funcs.CompactFunc,
 			"concat":       stdlib.ConcatFunc,
-			"contains":     unimplFunc, // TODO
+			"contains":     funcs.ContainsFunc,
 			"csvdecode":    stdlib.CSVDecodeFunc,
 			"dirname":      funcs.DirnameFunc,
-			"distinct":     unimplFunc, // TODO
+			"distinct":     funcs.DistinctFunc,
 			"element":      funcs.ElementFunc,
-			"chunklist":    unimplFunc, // TODO
+			"chunklist":    funcs.ChunklistFunc,
 			"file":         funcs.MakeFileFunc(s.BaseDir, false),
 			"filebase64":   funcs.MakeFileFunc(s.BaseDir, true),
 			"matchkeys":    unimplFunc, // TODO
@@ -60,7 +60,7 @@ func (s *Scope) Functions() map[string]function.Function {
 			"format":       stdlib.FormatFunc,
 			"formatlist":   stdlib.FormatListFunc,
 			"indent":       funcs.IndentFunc,
-			"index":        unimplFunc, // TODO
+			"index":        funcs.IndexFunc,
 			"join":         funcs.JoinFunc,
 			"jsondecode":   stdlib.JSONDecodeFunc,
 			"jsonencode":   stdlib.JSONEncodeFunc,
