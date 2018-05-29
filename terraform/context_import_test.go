@@ -190,6 +190,12 @@ func TestContextImport_missingType(t *testing.T) {
 
 func TestContextImport_moduleProvider(t *testing.T) {
 	p := mockProviderWithResourceTypeSchema("aws_instance", &configschema.Block{})
+	p.GetSchemaReturn.Provider = &configschema.Block{
+		Attributes: map[string]*configschema.Attribute{
+			"foo": {Type: cty.String, Optional: true},
+		},
+	}
+
 	m := testModule(t, "import-provider")
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
