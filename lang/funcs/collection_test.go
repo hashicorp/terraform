@@ -787,6 +787,58 @@ func TestChunklist(t *testing.T) {
 	}
 }
 
+func TestFlatten(t *testing.T) {
+	tests := []struct {
+		List cty.Value
+		Want cty.Value
+		Err  bool
+	}{
+		{
+			cty.ListVal([]cty.Value{
+				cty.ListVal([]cty.Value{
+					cty.StringVal("a"),
+					cty.StringVal("b"),
+				}),
+				cty.ListVal([]cty.Value{
+					cty.StringVal("c"),
+					cty.StringVal("d"),
+				}),
+			}),
+			cty.ListVal([]cty.Value{
+				cty.StringVal("a"),
+				cty.StringVal("b"),
+				cty.StringVal("c"),
+				cty.StringVal("d"),
+			}),
+			false,
+		},
+		{
+			cty.ListValEmpty(cty.String),
+			cty.ListValEmpty(cty.DynamicPseudoType),
+			false,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(fmt.Sprintf("flatten(%#v)", test.List), func(t *testing.T) {
+			got, err := Flatten(test.List)
+
+			if test.Err {
+				if err == nil {
+					t.Fatal("succeeded; want error")
+				}
+				return
+			} else if err != nil {
+				t.Fatalf("unexpected error: %s", err)
+			}
+
+			if !got.RawEquals(test.Want) {
+				t.Errorf("wrong result\ngot:  %#v\nwant: %#v", got, test.Want)
+			}
+		})
+	}
+}
+
 func TestMatchkeys(t *testing.T) {
 	tests := []struct {
 		Keys      cty.Value

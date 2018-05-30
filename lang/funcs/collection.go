@@ -334,6 +334,43 @@ var ChunklistFunc = function.New(&function.Spec{
 	},
 })
 
+// FlattenFunc contructs a function that takes a list and replaces any elements
+// that are lists with a flattened sequence of the list contents.
+var FlattenFunc = function.New(&function.Spec{
+	Params: []function.Parameter{
+		{
+			Name: "list",
+			Type: cty.List(cty.DynamicPseudoType),
+		},
+	},
+	Type: function.StaticReturnType(cty.List(cty.DynamicPseudoType)),
+	Impl: func(args []cty.Value, retType cty.Type) (ret cty.Value, err error) {
+		inputList := args[0]
+
+		if inputList.LengthInt() == 0 {
+			return cty.ListValEmpty(cty.DynamicPseudoType), nil
+		}
+		outputList := make([]cty.Value, 0)
+
+		return cty.ListVal(flattener(outputList, inputList)), nil
+	},
+})
+
+// Flatten until it's not a cty.List
+func flattener(finalList []cty.Value, flattenList cty.Value) []cty.Value {
+
+	for it := flattenList.ElementIterator(); it.Next(); {
+		_, val := it.Element()
+
+		if val.Type().IsListType() {
+			finalList = flattener(finalList, val)
+		} else {
+			finalList = append(finalList, val)
+		}
+	}
+	return finalList
+}
+
 // MatchkeysFunc contructs a function that constructs a new list by taking a
 // subset of elements from one list whose indexes match the corresponding
 // indexes of values in another list.
@@ -353,16 +390,18 @@ var MatchkeysFunc = function.New(&function.Spec{
 		},
 	},
 	Type: func(args []cty.Value) (cty.Type, error) {
-		if args[1].Type() != args[2].Type() {
+		if !args[1].Type().Equals(args[2].Type()) {
 			return cty.NilType, fmt.Errorf("lists must be of the same type")
 		}
 
-		if args[0].LengthInt() != args[1].LengthInt() {
-			return cty.NilType, fmt.Errorf("length of keys and values should be equal")
-		}
 		return args[0].Type(), nil
 	},
 	Impl: func(args []cty.Value, retType cty.Type) (ret cty.Value, err error) {
+
+		if args[0].LengthInt() != args[1].LengthInt() {
+			return cty.ListValEmpty(retType.ElementType()), fmt.Errorf("length of keys and values should be equal")
+		}
+
 		output := make([]cty.Value, 0)
 
 		values := args[0]
@@ -371,7 +410,7 @@ var MatchkeysFunc = function.New(&function.Spec{
 
 		// if searchset is empty, return an empty list.
 		if searchset.LengthInt() == 0 {
-			return cty.ListValEmpty(*retType.ListElementType()), nil
+			return cty.ListValEmpty(retType.ElementType()), nil
 		}
 
 		i := 0
@@ -382,6 +421,9 @@ var MatchkeysFunc = function.New(&function.Spec{
 				eq, err := stdlib.Equal(key, search)
 				if err != nil {
 					return cty.NilVal, err
+				}
+				if !eq.IsKnown() {
+					return cty.ListValEmpty(retType.ElementType()), nil
 				}
 				if eq.True() {
 					v := values.Index(cty.NumberIntVal(int64(i)))
@@ -394,7 +436,7 @@ var MatchkeysFunc = function.New(&function.Spec{
 
 		// if we haven't matched any key, then output is an empty list.
 		if len(output) == 0 {
-			return cty.ListValEmpty(*retType.ListElementType()), nil
+			return cty.ListValEmpty(retType.ElementType()), nil
 		}
 		return cty.ListVal(output), nil
 	},
@@ -457,6 +499,12 @@ func Distinct(list cty.Value) (cty.Value, error) {
 // Chunklist splits a single list into fixed-size chunks, returning a list of lists.
 func Chunklist(list, size cty.Value) (cty.Value, error) {
 	return ChunklistFunc.Call([]cty.Value{list, size})
+}
+
+// Flatten takes a list and replaces any elements that are lists with a flattened
+// sequence of the list contents.
+func Flatten(list cty.Value) (cty.Value, error) {
+	return FlattenFunc.Call([]cty.Value{list})
 }
 
 // Matchkeys constructs a new list by taking a subset of elements from one list
