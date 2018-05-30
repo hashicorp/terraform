@@ -108,7 +108,7 @@ func referencesForOutput(c *configs.Output) []*addrs.Reference {
 
 // GraphNodeReferencer
 func (n *NodeApplyableOutput) References() []*addrs.Reference {
-	return referencesForOutput(n.Config)
+	return appendResourceDestroyReferences(referencesForOutput(n.Config))
 }
 
 // GraphNodeEvalable
