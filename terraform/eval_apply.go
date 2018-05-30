@@ -80,6 +80,14 @@ func (n *EvalApply) Eval(ctx EvalContext) (interface{}, error) {
 		}
 	}
 
+	// If the provider produced an InstanceState with an empty id then
+	// that really means that there's no state at all.
+	// FIXME: Change the provider protocol so that the provider itself returns
+	// a null in this case, and stop treating the ID as special.
+	if state.ID == "" {
+		state = nil
+	}
+
 	// Write the final state
 	if n.Output != nil {
 		*n.Output = state
