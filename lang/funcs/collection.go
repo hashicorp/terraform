@@ -232,7 +232,7 @@ var IndexFunc = function.New(&function.Spec{
 		}
 
 		if args[0].LengthInt() == 0 { // Easy path
-			return cty.NilVal, fmt.Errorf("Cannot search an empty list")
+			return cty.NilVal, fmt.Errorf("cannot search an empty list")
 		}
 
 		for it := args[0].ElementIterator(); it.Next(); {
@@ -302,7 +302,7 @@ var ChunklistFunc = function.New(&function.Spec{
 		}
 
 		if size < 0 {
-			return cty.NilVal, fmt.Errorf("The size argument must be positive")
+			return cty.NilVal, fmt.Errorf("the size argument must be positive")
 		}
 
 		output := make([]cty.Value, 0)
@@ -330,6 +330,225 @@ var ChunklistFunc = function.New(&function.Spec{
 			i++
 		}
 
+		return cty.ListVal(output), nil
+	},
+})
+
+// FlattenFunc contructs a function that takes a list and replaces any elements
+// that are lists with a flattened sequence of the list contents.
+var FlattenFunc = function.New(&function.Spec{
+	Params: []function.Parameter{
+		{
+			Name: "list",
+			Type: cty.List(cty.DynamicPseudoType),
+		},
+	},
+	Type: function.StaticReturnType(cty.List(cty.DynamicPseudoType)),
+	Impl: func(args []cty.Value, retType cty.Type) (ret cty.Value, err error) {
+		inputList := args[0]
+
+		if inputList.LengthInt() == 0 {
+			return cty.ListValEmpty(cty.DynamicPseudoType), nil
+		}
+		outputList := make([]cty.Value, 0)
+
+		return cty.ListVal(flattener(outputList, inputList)), nil
+	},
+})
+
+// Flatten until it's not a cty.List
+func flattener(finalList []cty.Value, flattenList cty.Value) []cty.Value {
+
+	for it := flattenList.ElementIterator(); it.Next(); {
+		_, val := it.Element()
+
+		if val.Type().IsListType() {
+			finalList = flattener(finalList, val)
+		} else {
+			finalList = append(finalList, val)
+		}
+	}
+	return finalList
+}
+
+// ListFunc contructs a function that takes an arbitrary number of arguments
+// and returns a list containing those values in the same order.
+//
+// This function is deprecated in Terraform v0.12
+var ListFunc = function.New(&function.Spec{
+	Params: []function.Parameter{},
+	VarParam: &function.Parameter{
+		Name:             "vals",
+		Type:             cty.DynamicPseudoType,
+		AllowUnknown:     true,
+		AllowDynamicType: true,
+		AllowNull:        true,
+	},
+	Type: func(args []cty.Value) (ret cty.Type, err error) {
+		if len(args) == 0 {
+			return cty.NilType, fmt.Errorf("at least one argument is required")
+		}
+
+		argTypes := make([]cty.Type, len(args))
+
+		for i, arg := range args {
+			argTypes[i] = arg.Type()
+		}
+
+		retType, _ := convert.UnifyUnsafe(argTypes)
+		if retType == cty.NilType {
+			return cty.NilType, fmt.Errorf("all arguments must have the same type")
+		}
+
+		return cty.List(retType), nil
+	},
+	Impl: func(args []cty.Value, retType cty.Type) (ret cty.Value, err error) {
+		newList := make([]cty.Value, 0, len(args))
+
+		for _, arg := range args {
+			// We already know this will succeed because of the checks in our Type func above
+			arg, _ = convert.Convert(arg, retType.ElementType())
+			newList = append(newList, arg)
+		}
+
+		return cty.ListVal(newList), nil
+	},
+})
+
+// MapFunc contructs a function that takes an even number of arguments and
+// returns a map whose elements are constructed from consecutive pairs of arguments.
+//
+// This function is deprecated in Terraform v0.12
+var MapFunc = function.New(&function.Spec{
+	Params: []function.Parameter{},
+	VarParam: &function.Parameter{
+		Name:             "vals",
+		Type:             cty.DynamicPseudoType,
+		AllowUnknown:     true,
+		AllowDynamicType: true,
+		AllowNull:        true,
+	},
+	Type: func(args []cty.Value) (ret cty.Type, err error) {
+		if len(args) < 2 || len(args)%2 != 0 {
+			return cty.NilType, fmt.Errorf("map requires an even number of two or more arguments, got %d", len(args))
+		}
+
+		argTypes := make([]cty.Type, len(args)/2)
+		index := 0
+
+		for i := 0; i < len(args); i += 2 {
+			argTypes[index] = args[i+1].Type()
+			index++
+		}
+
+		valType, _ := convert.UnifyUnsafe(argTypes)
+		if valType == cty.NilType {
+			return cty.NilType, fmt.Errorf("all arguments must have the same type")
+		}
+
+		return cty.Map(valType), nil
+	},
+	Impl: func(args []cty.Value, retType cty.Type) (ret cty.Value, err error) {
+		outputMap := make(map[string]cty.Value)
+
+		for i := 0; i < len(args); i += 2 {
+
+			key := args[i].AsString()
+
+			err := gocty.FromCtyValue(args[i], &key)
+			if err != nil {
+				return cty.NilVal, err
+			}
+
+			val := args[i+1]
+
+			var variable cty.Value
+			err = gocty.FromCtyValue(val, &variable)
+			if err != nil {
+				return cty.NilVal, err
+			}
+
+			// We already know this will succeed because of the checks in our Type func above
+			variable, _ = convert.Convert(variable, retType.ElementType())
+
+			// Check for duplicate keys
+			if _, ok := outputMap[key]; ok {
+				return cty.NilVal, fmt.Errorf("argument %d is a duplicate key: %q", i+1, key)
+			}
+			outputMap[key] = variable
+		}
+
+		return cty.MapVal(outputMap), nil
+	},
+})
+
+// MatchkeysFunc contructs a function that constructs a new list by taking a
+// subset of elements from one list whose indexes match the corresponding
+// indexes of values in another list.
+var MatchkeysFunc = function.New(&function.Spec{
+	Params: []function.Parameter{
+		{
+			Name: "values",
+			Type: cty.List(cty.DynamicPseudoType),
+		},
+		{
+			Name: "keys",
+			Type: cty.List(cty.DynamicPseudoType),
+		},
+		{
+			Name: "searchset",
+			Type: cty.List(cty.DynamicPseudoType),
+		},
+	},
+	Type: func(args []cty.Value) (cty.Type, error) {
+		if !args[1].Type().Equals(args[2].Type()) {
+			return cty.NilType, fmt.Errorf("lists must be of the same type")
+		}
+
+		return args[0].Type(), nil
+	},
+	Impl: func(args []cty.Value, retType cty.Type) (ret cty.Value, err error) {
+
+		if args[0].LengthInt() != args[1].LengthInt() {
+			return cty.ListValEmpty(retType.ElementType()), fmt.Errorf("length of keys and values should be equal")
+		}
+
+		output := make([]cty.Value, 0)
+
+		values := args[0]
+		keys := args[1]
+		searchset := args[2]
+
+		// if searchset is empty, return an empty list.
+		if searchset.LengthInt() == 0 {
+			return cty.ListValEmpty(retType.ElementType()), nil
+		}
+
+		i := 0
+		for it := keys.ElementIterator(); it.Next(); {
+			_, key := it.Element()
+			for iter := searchset.ElementIterator(); iter.Next(); {
+				_, search := iter.Element()
+				eq, err := stdlib.Equal(key, search)
+				if err != nil {
+					return cty.NilVal, err
+				}
+				if !eq.IsKnown() {
+					return cty.ListValEmpty(retType.ElementType()), nil
+				}
+				if eq.True() {
+					v := values.Index(cty.NumberIntVal(int64(i)))
+					output = append(output, v)
+					break
+				}
+			}
+			i++
+		}
+
+		// if we haven't matched any key, then output is an empty list.
+		if len(output) == 0 {
+			return cty.ListValEmpty(retType.ElementType()), nil
+		}
 		return cty.ListVal(output), nil
 	},
 })
@@ -391,4 +610,28 @@ func Distinct(list cty.Value) (cty.Value, error) {
 // Chunklist splits a single list into fixed-size chunks, returning a list of lists.
 func Chunklist(list, size cty.Value) (cty.Value, error) {
 	return ChunklistFunc.Call([]cty.Value{list, size})
+}
+
+// Flatten takes a list and replaces any elements that are lists with a flattened
+// sequence of the list contents.
+func Flatten(list cty.Value) (cty.Value, error) {
+	return FlattenFunc.Call([]cty.Value{list})
+}
+
+// List takes any number of list arguments and returns a list containing those
+//  values in the same order.
+func List(args ...cty.Value) (cty.Value, error) {
+	return ListFunc.Call(args)
+}
+
+// Map takes an even number of arguments and returns a map whose elements are constructed
+// from consecutive pairs of arguments.
+func Map(args ...cty.Value) (cty.Value, error) {
+	return MapFunc.Call(args)
+}
+
+// Matchkeys constructs a new list by taking a subset of elements from one list
+// whose indexes match the corresponding indexes of values in another list.
+func Matchkeys(values, keys, searchset cty.Value) (cty.Value, error) {
+	return MatchkeysFunc.Call([]cty.Value{values, keys, searchset})
 }
