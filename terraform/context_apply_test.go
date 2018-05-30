@@ -1194,6 +1194,7 @@ func TestContext2Apply_destroyComputed(t *testing.T) {
 								"output": "value",
 							},
 						},
+						Provider: "provider.aws",
 					},
 				},
 			},
@@ -1211,13 +1212,13 @@ func TestContext2Apply_destroyComputed(t *testing.T) {
 	})
 
 	if p, diags := ctx.Plan(); diags.HasErrors() {
-		t.Fatalf("diags: %s", diags.Err())
+		t.Fatalf("plan errors: %s", diags.Err())
 	} else {
-		t.Logf(p.String())
+		t.Logf("plan:\n\n%s", p.String())
 	}
 
 	if _, diags := ctx.Apply(); diags.HasErrors() {
-		t.Fatalf("diags: %s", diags.Err())
+		t.Fatalf("apply errors: %s", diags.Err())
 	}
 }
 
