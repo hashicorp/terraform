@@ -415,6 +415,73 @@ var ListFunc = function.New(&function.Spec{
 	},
 })
 
+// MapFunc contructs a function that takes an even number of arguments and
+// returns a map whose elements are constructed from consecutive pairs of arguments.
+//
+// This function is deprecated in Terraform v0.12
+var MapFunc = function.New(&function.Spec{
+	Params: []function.Parameter{},
+	VarParam: &function.Parameter{
+		Name:             "vals",
+		Type:             cty.DynamicPseudoType,
+		AllowUnknown:     true,
+		AllowDynamicType: true,
+		AllowNull:        true,
+	},
+	Type: func(args []cty.Value) (ret cty.Type, err error) {
+		if len(args) < 2 || len(args)%2 != 0 {
+			return cty.NilType, fmt.Errorf("map requires an even number of two or more arguments, got %d", len(args))
+		}
+
+		argTypes := make([]cty.Type, len(args)/2)
+		index := 0
+
+		for i := 0; i < len(args); i += 2 {
+			argTypes[index] = args[i+1].Type()
+			index++
+		}
+
+		valType, _ := convert.UnifyUnsafe(argTypes)
+		if valType == cty.NilType {
+			return cty.NilType, fmt.Errorf("all arguments must have the same type")
+		}
+
+		return cty.Map(valType), nil
+	},
+	Impl: func(args []cty.Value, retType cty.Type) (ret cty.Value, err error) {
+		outputMap := make(map[string]cty.Value)
+
+		for i := 0; i < len(args); i += 2 {
+
+			key := args[i].AsString()
+
+			err := gocty.FromCtyValue(args[i], &key)
+			if err != nil {
+				return cty.NilVal, err
+			}
+
+			val := args[i+1]
+
+			var variable cty.Value
+			err = gocty.FromCtyValue(val, &variable)
+			if err != nil {
+				return cty.NilVal, err
+			}
+
+			// We already know this will succeed because of the checks in our Type func above
+			variable, _ = convert.Convert(variable, retType.ElementType())
+
+			// Check for duplicate keys
+			if _, ok := outputMap[key]; ok {
+				return cty.NilVal, fmt.Errorf("argument %d is a duplicate key: %q", i+1, key)
+			}
+			outputMap[key] = variable
+		}
+
+		return cty.MapVal(outputMap), nil
+	},
+})
+
 // MatchkeysFunc contructs a function that constructs a new list by taking a
 // subset of elements from one list whose indexes match the corresponding
 // indexes of values in another list.
@@ -555,6 +622,12 @@ func Flatten(list cty.Value) (cty.Value, error) {
 //  values in the same order.
 func List(args ...cty.Value) (cty.Value, error) {
 	return ListFunc.Call(args)
+}
+
+// Map takes an even number of arguments and returns a map whose elements are constructed
+// from consecutive pairs of arguments.
+func Map(args ...cty.Value) (cty.Value, error) {
+	return MapFunc.Call(args)
 }
 
 // Matchkeys constructs a new list by taking a subset of elements from one list
