@@ -453,6 +453,29 @@ func ReferenceFromInterpolatedVar(v config.InterpolatedVariable) []string {
 	}
 }
 
+// appendResourceDestroyReferences identifies resource and resource instance
+// references in the given slice and appends to it the "destroy-phase"
+// equivalents of those references, returning the result.
+//
+// This can be used in the References implementation for a node which must also
+// depend on the destruction of anything it references.
+func appendResourceDestroyReferences(refs []*addrs.Reference) []*addrs.Reference {
+	given := refs
+	for _, ref := range given {
+		switch tr := ref.Subject.(type) {
+		case addrs.Resource:
+			newRef := *ref // shallow copy
+			newRef.Subject = tr.Phase(addrs.ResourceInstancePhaseDestroy)
+			refs = append(refs, &newRef)
+		case addrs.ResourceInstance:
+			newRef := *ref // shallow copy
+			newRef.Subject = tr.Phase(addrs.ResourceInstancePhaseDestroy)
+			refs = append(refs, &newRef)
+		}
+	}
+	return refs
+}
+
 func modulePrefixStr(p addrs.ModuleInstance) string {
 	return p.String()
 }
