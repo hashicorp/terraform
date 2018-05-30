@@ -2,11 +2,11 @@ resource "aws_instance" "foo" {
     foo = "bar"
 
     provisioner "shell" {
-        foo = "create"
+        command = "create"
     }
 
     provisioner "shell" {
-        foo  = "destroy"
+        command  = "destroy"
         when = "destroy"
     }
 }

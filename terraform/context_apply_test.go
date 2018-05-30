@@ -4252,8 +4252,8 @@ func TestContext2Apply_Provisioner_compute(t *testing.T) {
 	p.ApplyFn = testApplyFn
 	p.DiffFn = testDiffFn
 	pr.ApplyFn = func(rs *InstanceState, c *ResourceConfig) error {
-		val, ok := c.Config["foo"]
-		if !ok || val != "computed_dynamical" {
+		val, ok := c.Config["command"]
+		if !ok || val != "computed_value" {
 			t.Fatalf("bad value for foo: %v %#v", val, c)
 		}
 
@@ -4825,7 +4825,7 @@ func TestContext2Apply_provisionerDestroy(t *testing.T) {
 	p.ApplyFn = testApplyFn
 	p.DiffFn = testDiffFn
 	pr.ApplyFn = func(rs *InstanceState, c *ResourceConfig) error {
-		val, ok := c.Config["foo"]
+		val, ok := c.Config["command"]
 		if !ok || val != "destroy" {
 			t.Fatalf("bad value for foo: %v %#v", val, c)
 		}
@@ -4953,7 +4953,7 @@ func TestContext2Apply_provisionerDestroyFailContinue(t *testing.T) {
 	var l sync.Mutex
 	var calls []string
 	pr.ApplyFn = func(rs *InstanceState, c *ResourceConfig) error {
-		val, ok := c.Config["foo"]
+		val, ok := c.Config["command"]
 		if !ok {
 			t.Fatalf("bad value for foo: %v %#v", val, c)
 		}
@@ -5029,7 +5029,7 @@ func TestContext2Apply_provisionerDestroyFailContinueFail(t *testing.T) {
 	var l sync.Mutex
 	var calls []string
 	pr.ApplyFn = func(rs *InstanceState, c *ResourceConfig) error {
-		val, ok := c.Config["foo"]
+		val, ok := c.Config["command"]
 		if !ok {
 			t.Fatalf("bad value for foo: %v %#v", val, c)
 		}
@@ -5111,9 +5111,9 @@ func TestContext2Apply_provisionerDestroyTainted(t *testing.T) {
 			return nil
 		}
 
-		val, ok := c.Config["foo"]
+		val, ok := c.Config["command"]
 		if !ok || val != expected {
-			t.Fatalf("bad value for foo: %v %#v", val, c)
+			t.Fatalf("bad value for command: %v %#v", val, c)
 		}
 
 		return nil
