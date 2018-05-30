@@ -2012,19 +2012,6 @@ func TestContext2Apply_compute(t *testing.T) {
 	p := testProvider("aws")
 	p.ApplyFn = testApplyFn
 	p.DiffFn = testDiffFn
-	p.GetSchemaReturn = &ProviderSchema{
-		ResourceTypes: map[string]*configschema.Block{
-			"aws_instance": {
-				Attributes: map[string]*configschema.Attribute{
-					"num":           {Type: cty.String, Optional: true},
-					"compute":       {Type: cty.String, Optional: true},
-					"compute_value": {Type: cty.String, Optional: true},
-					"foo":           {Type: cty.String, Optional: true},
-					"dynamical":     {Type: cty.String, Computed: true},
-				},
-			},
-		},
-	}
 
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
@@ -3546,7 +3533,7 @@ func TestContext2Apply_multiVarComprehensive(t *testing.T) {
 			},
 		),
 		Variables: InputValues{
-			"count": &InputValue{
+			"num": &InputValue{
 				Value:      cty.NumberIntVal(3),
 				SourceType: ValueFromCaller,
 			},
@@ -3750,7 +3737,7 @@ func TestContext2Apply_multiVarCountDec(t *testing.T) {
 				},
 			),
 			Variables: InputValues{
-				"count": &InputValue{
+				"num": &InputValue{
 					Value:      cty.NumberIntVal(2),
 					SourceType: ValueFromCaller,
 				},
@@ -3816,7 +3803,7 @@ func TestContext2Apply_multiVarCountDec(t *testing.T) {
 				},
 			),
 			Variables: InputValues{
-				"count": &InputValue{
+				"num": &InputValue{
 					Value:      cty.NumberIntVal(1),
 					SourceType: ValueFromCaller,
 				},
