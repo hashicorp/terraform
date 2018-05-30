@@ -4110,7 +4110,7 @@ func TestContext2Apply_outputOrphanModule(t *testing.T) {
 
 	actual = strings.TrimSpace(state.String())
 	if actual != "" {
-		t.Fatalf("wrong result\n\ngot:\n%s\n\nwant: no state at all", actual)
+		t.Fatalf("expected no state, got:\n%s", actual)
 	}
 }
 
@@ -5247,9 +5247,9 @@ func TestContext2Apply_provisionerDestroyRef(t *testing.T) {
 	p.ApplyFn = testApplyFn
 	p.DiffFn = testDiffFn
 	pr.ApplyFn = func(rs *InstanceState, c *ResourceConfig) error {
-		val, ok := c.Config["foo"]
+		val, ok := c.Config["command"]
 		if !ok || val != "hello" {
-			return fmt.Errorf("bad value for foo: %v %#v", val, c)
+			return fmt.Errorf("bad value for command: %v %#v", val, c)
 		}
 
 		return nil
@@ -5265,9 +5265,10 @@ func TestContext2Apply_provisionerDestroyRef(t *testing.T) {
 						Primary: &InstanceState{
 							ID: "bar",
 							Attributes: map[string]string{
-								"key": "hello",
+								"value": "hello",
 							},
 						},
+						Provider: "provider.aws",
 					},
 
 					"aws_instance.foo": &ResourceState{
@@ -5275,6 +5276,7 @@ func TestContext2Apply_provisionerDestroyRef(t *testing.T) {
 						Primary: &InstanceState{
 							ID: "bar",
 						},
+						Provider: "provider.aws",
 					},
 				},
 			},
