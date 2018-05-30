@@ -38,7 +38,7 @@ func TestContext2Apply_basic(t *testing.T) {
 	})
 
 	if _, diags := ctx.Plan(); diags.HasErrors() {
-		t.Fatalf("diags: %s", diags.Err())
+		t.Fatalf("plan errors: %s", diags.Err())
 	}
 
 	state, diags := ctx.Apply()
@@ -126,7 +126,7 @@ func TestContext2Apply_escape(t *testing.T) {
 	})
 
 	if _, diags := ctx.Plan(); diags.HasErrors() {
-		t.Fatalf("diags: %s", diags.Err())
+		t.Fatalf("plan errors: %s", diags.Err())
 	}
 
 	state, diags := ctx.Apply()
@@ -158,7 +158,7 @@ func TestContext2Apply_resourceCountOneList(t *testing.T) {
 	})
 
 	if _, diags := ctx.Plan(); diags.HasErrors() {
-		t.Fatalf("diags: %s", diags.Err())
+		t.Fatalf("plan errors: %s", diags.Err())
 	}
 
 	state, diags := ctx.Apply()
@@ -193,7 +193,7 @@ func TestContext2Apply_resourceCountZeroList(t *testing.T) {
 	})
 
 	if _, diags := ctx.Plan(); diags.HasErrors() {
-		t.Fatalf("diags: %s", diags.Err())
+		t.Fatalf("plan errors: %s", diags.Err())
 	}
 
 	state, diags := ctx.Apply()
@@ -251,7 +251,7 @@ func TestContext2Apply_resourceDependsOnModule(t *testing.T) {
 	})
 
 	if _, diags := ctx.Plan(); diags.HasErrors() {
-		t.Fatalf("diags: %s", diags.Err())
+		t.Fatalf("plan errors: %s", diags.Err())
 	}
 
 	state, diags := ctx.Apply()
@@ -567,7 +567,7 @@ func TestContext2Apply_mapVarBetweenModules(t *testing.T) {
 	})
 
 	if _, diags := ctx.Plan(); diags.HasErrors() {
-		t.Fatalf("diags: %s", diags.Err())
+		t.Fatalf("plan errors: %s", diags.Err())
 	}
 
 	state, diags := ctx.Apply()
@@ -609,7 +609,7 @@ func TestContext2Apply_refCount(t *testing.T) {
 	})
 
 	if _, diags := ctx.Plan(); diags.HasErrors() {
-		t.Fatalf("diags: %s", diags.Err())
+		t.Fatalf("plan errors: %s", diags.Err())
 	}
 
 	state, diags := ctx.Apply()
@@ -644,7 +644,7 @@ func TestContext2Apply_providerAlias(t *testing.T) {
 	})
 
 	if _, diags := ctx.Plan(); diags.HasErrors() {
-		t.Fatalf("diags: %s", diags.Err())
+		t.Fatalf("plan errors: %s", diags.Err())
 	}
 
 	state, diags := ctx.Apply()
@@ -740,7 +740,7 @@ func TestContext2Apply_providerWarning(t *testing.T) {
 	})
 
 	if _, diags := ctx.Plan(); diags.HasErrors() {
-		t.Fatalf("diags: %s", diags.Err())
+		t.Fatalf("plan errors: %s", diags.Err())
 	}
 
 	state, diags := ctx.Apply()
@@ -778,7 +778,7 @@ func TestContext2Apply_emptyModule(t *testing.T) {
 	})
 
 	if _, diags := ctx.Plan(); diags.HasErrors() {
-		t.Fatalf("diags: %s", diags.Err())
+		t.Fatalf("plan errors: %s", diags.Err())
 	}
 
 	state, diags := ctx.Apply()
@@ -1030,7 +1030,7 @@ func TestContext2Apply_createBeforeDestroy_hook(t *testing.T) {
 	}
 
 	if _, diags := ctx.Apply(); diags.HasErrors() {
-		t.Fatalf("diags: %s", diags.Err())
+		t.Fatalf("apply errors: %s", diags.Err())
 	}
 
 	expected := []string{"aws_instance.bar", "aws_instance.bar (deposed #0)"}
@@ -1285,11 +1285,11 @@ func testContext2Apply_destroyDependsOn(t *testing.T) {
 	})
 
 	if _, diags := ctx.Plan(); diags.HasErrors() {
-		t.Fatalf("diags: %s", diags.Err())
+		t.Fatalf("plan errors: %s", diags.Err())
 	}
 
 	if _, diags := ctx.Apply(); diags.HasErrors() {
-		t.Fatalf("diags: %s", diags.Err())
+		t.Fatalf("apply errors: %s", diags.Err())
 	}
 
 	expected := []string{"aws_instance.foo", "aws_instance.bar"}
@@ -1363,11 +1363,11 @@ func testContext2Apply_destroyDependsOnStateOnly(t *testing.T) {
 	})
 
 	if _, diags := ctx.Plan(); diags.HasErrors() {
-		t.Fatalf("diags: %s", diags.Err())
+		t.Fatalf("plan errors: %s", diags.Err())
 	}
 
 	if _, diags := ctx.Apply(); diags.HasErrors() {
-		t.Fatalf("diags: %s", diags.Err())
+		t.Fatalf("apply errors: %s", diags.Err())
 	}
 
 	expected := []string{"aws_instance.bar", "aws_instance.foo"}
@@ -1441,11 +1441,11 @@ func testContext2Apply_destroyDependsOnStateOnlyModule(t *testing.T) {
 	})
 
 	if _, diags := ctx.Plan(); diags.HasErrors() {
-		t.Fatalf("diags: %s", diags.Err())
+		t.Fatalf("plan errors: %s", diags.Err())
 	}
 
 	if _, diags := ctx.Apply(); diags.HasErrors() {
-		t.Fatalf("diags: %s", diags.Err())
+		t.Fatalf("apply errors: %s", diags.Err())
 	}
 
 	expected := []string{"aws_instance.bar", "aws_instance.foo"}
@@ -1602,7 +1602,7 @@ func TestContext2Apply_destroySkipsCBD(t *testing.T) {
 	}
 
 	if _, diags := ctx.Apply(); diags.HasErrors() {
-		t.Fatalf("diags: %s", diags.Err())
+		t.Fatalf("apply errors: %s", diags.Err())
 	}
 }
 
@@ -1638,7 +1638,7 @@ func TestContext2Apply_destroyModuleVarProviderConfig(t *testing.T) {
 	})
 
 	if _, diags := ctx.Plan(); diags.HasErrors() {
-		t.Fatalf("diags: %s", diags.Err())
+		t.Fatalf("plan errors: %s", diags.Err())
 	}
 
 	_, diags := ctx.Apply()
@@ -1737,7 +1737,7 @@ func TestContext2Apply_minimal(t *testing.T) {
 	})
 
 	if _, diags := ctx.Plan(); diags.HasErrors() {
-		t.Fatalf("diags: %s", diags.Err())
+		t.Fatalf("plan errors: %s", diags.Err())
 	}
 
 	state, diags := ctx.Apply()
@@ -1767,7 +1767,7 @@ func TestContext2Apply_badDiff(t *testing.T) {
 	})
 
 	if _, diags := ctx.Plan(); diags.HasErrors() {
-		t.Fatalf("diags: %s", diags.Err())
+		t.Fatalf("plan errors: %s", diags.Err())
 	}
 
 	p.DiffFn = func(*InstanceInfo, *InstanceState, *ResourceConfig) (*InstanceDiff, error) {
@@ -1832,7 +1832,7 @@ func TestContext2Apply_cancel(t *testing.T) {
 	}
 
 	if _, diags := ctx.Plan(); diags.HasErrors() {
-		t.Fatalf("diags: %s", diags.Err())
+		t.Fatalf("plan errors: %s", diags.Err())
 	}
 
 	// Start the Apply in a goroutine
@@ -1898,7 +1898,7 @@ func TestContext2Apply_cancelBlock(t *testing.T) {
 	}
 
 	if _, diags := ctx.Plan(); diags.HasErrors() {
-		t.Fatalf("diags: %s", diags.Err())
+		t.Fatalf("plan errors: %s", diags.Err())
 	}
 
 	// Start the Apply in a goroutine
@@ -1977,7 +1977,7 @@ func TestContext2Apply_cancelProvisioner(t *testing.T) {
 	}
 
 	if _, diags := ctx.Plan(); diags.HasErrors() {
-		t.Fatalf("diags: %s", diags.Err())
+		t.Fatalf("plan errors: %s", diags.Err())
 	}
 
 	// Start the Apply in a goroutine
@@ -2025,7 +2025,7 @@ func TestContext2Apply_compute(t *testing.T) {
 	})
 
 	if _, diags := ctx.Plan(); diags.HasErrors() {
-		t.Fatalf("diags: %s", diags.Err())
+		t.Fatalf("plan errors: %s", diags.Err())
 	}
 
 	ctx.variables = InputValues{
@@ -2101,7 +2101,7 @@ func TestContext2Apply_countDecrease(t *testing.T) {
 	})
 
 	if _, diags := ctx.Plan(); diags.HasErrors() {
-		t.Fatalf("diags: %s", diags.Err())
+		t.Fatalf("plan errors: %s", diags.Err())
 	}
 
 	state, diags := ctx.Apply()
@@ -2163,7 +2163,7 @@ func TestContext2Apply_countDecreaseToOneX(t *testing.T) {
 	})
 
 	if _, diags := ctx.Plan(); diags.HasErrors() {
-		t.Fatalf("diags: %s", diags.Err())
+		t.Fatalf("plan errors: %s", diags.Err())
 	}
 
 	state, diags := ctx.Apply()
@@ -2279,7 +2279,7 @@ func TestContext2Apply_countTainted(t *testing.T) {
 	})
 
 	if _, diags := ctx.Plan(); diags.HasErrors() {
-		t.Fatalf("diags: %s", diags.Err())
+		t.Fatalf("plan errors: %s", diags.Err())
 	}
 
 	state, diags := ctx.Apply()
@@ -2309,7 +2309,7 @@ func TestContext2Apply_countVariable(t *testing.T) {
 	})
 
 	if _, diags := ctx.Plan(); diags.HasErrors() {
-		t.Fatalf("diags: %s", diags.Err())
+		t.Fatalf("plan errors: %s", diags.Err())
 	}
 
 	state, diags := ctx.Apply()
@@ -2339,7 +2339,7 @@ func TestContext2Apply_countVariableRef(t *testing.T) {
 	})
 
 	if _, diags := ctx.Plan(); diags.HasErrors() {
-		t.Fatalf("diags: %s", diags.Err())
+		t.Fatalf("plan errors: %s", diags.Err())
 	}
 
 	state, diags := ctx.Apply()
@@ -2436,7 +2436,7 @@ func TestContext2Apply_moduleBasic(t *testing.T) {
 	})
 
 	if _, diags := ctx.Plan(); diags.HasErrors() {
-		t.Fatalf("diags: %s", diags.Err())
+		t.Fatalf("plan errors: %s", diags.Err())
 	}
 
 	state, diags := ctx.Apply()
@@ -2507,7 +2507,7 @@ func TestContext2Apply_moduleDestroyOrder(t *testing.T) {
 	})
 
 	if _, diags := ctx.Plan(); diags.HasErrors() {
-		t.Fatalf("diags: %s", diags.Err())
+		t.Fatalf("plan errors: %s", diags.Err())
 	}
 
 	state, diags := ctx.Apply()
@@ -2557,7 +2557,7 @@ func TestContext2Apply_moduleInheritAlias(t *testing.T) {
 	})
 
 	if _, diags := ctx.Plan(); diags.HasErrors() {
-		t.Fatalf("diags: %s", diags.Err())
+		t.Fatalf("plan errors: %s", diags.Err())
 	}
 
 	state, diags := ctx.Apply()
@@ -2624,7 +2624,7 @@ func TestContext2Apply_moduleOrphanInheritAlias(t *testing.T) {
 	})
 
 	if _, diags := ctx.Plan(); diags.HasErrors() {
-		t.Fatalf("diags: %s", diags.Err())
+		t.Fatalf("plan errors: %s", diags.Err())
 	}
 
 	state, diags := ctx.Apply()
@@ -2681,11 +2681,11 @@ func TestContext2Apply_moduleOrphanProvider(t *testing.T) {
 	})
 
 	if _, diags := ctx.Plan(); diags.HasErrors() {
-		t.Fatalf("diags: %s", diags.Err())
+		t.Fatalf("plan errors: %s", diags.Err())
 	}
 
 	if _, diags := ctx.Apply(); diags.HasErrors() {
-		t.Fatalf("diags: %s", diags.Err())
+		t.Fatalf("apply errors: %s", diags.Err())
 	}
 }
 
@@ -2731,11 +2731,11 @@ func TestContext2Apply_moduleOrphanGrandchildProvider(t *testing.T) {
 	})
 
 	if _, diags := ctx.Plan(); diags.HasErrors() {
-		t.Fatalf("diags: %s", diags.Err())
+		t.Fatalf("plan errors: %s", diags.Err())
 	}
 
 	if _, diags := ctx.Apply(); diags.HasErrors() {
-		t.Fatalf("diags: %s", diags.Err())
+		t.Fatalf("apply errors: %s", diags.Err())
 	}
 }
 
@@ -2768,11 +2768,11 @@ func TestContext2Apply_moduleGrandchildProvider(t *testing.T) {
 	})
 
 	if _, diags := ctx.Plan(); diags.HasErrors() {
-		t.Fatalf("diags: %s", diags.Err())
+		t.Fatalf("plan errors: %s", diags.Err())
 	}
 
 	if _, diags := ctx.Apply(); diags.HasErrors() {
-		t.Fatalf("diags: %s", diags.Err())
+		t.Fatalf("apply errors: %s", diags.Err())
 	}
 
 	callLock.Lock()
@@ -2806,7 +2806,7 @@ func TestContext2Apply_moduleOnlyProvider(t *testing.T) {
 	})
 
 	if _, diags := ctx.Plan(); diags.HasErrors() {
-		t.Fatalf("diags: %s", diags.Err())
+		t.Fatalf("plan errors: %s", diags.Err())
 	}
 
 	state, diags := ctx.Apply()
@@ -2836,7 +2836,7 @@ func TestContext2Apply_moduleProviderAlias(t *testing.T) {
 	})
 
 	if _, diags := ctx.Plan(); diags.HasErrors() {
-		t.Fatalf("diags: %s", diags.Err())
+		t.Fatalf("plan errors: %s", diags.Err())
 	}
 
 	state, diags := ctx.Apply()
@@ -2876,7 +2876,7 @@ func TestContext2Apply_moduleProviderAliasTargets(t *testing.T) {
 	})
 
 	if _, diags := ctx.Plan(); diags.HasErrors() {
-		t.Fatalf("diags: %s", diags.Err())
+		t.Fatalf("plan errors: %s", diags.Err())
 	}
 
 	state, diags := ctx.Apply()
@@ -2924,11 +2924,11 @@ func TestContext2Apply_moduleProviderCloseNested(t *testing.T) {
 	})
 
 	if _, diags := ctx.Plan(); diags.HasErrors() {
-		t.Fatalf("diags: %s", diags.Err())
+		t.Fatalf("plan errors: %s", diags.Err())
 	}
 
 	if _, diags := ctx.Apply(); diags.HasErrors() {
-		t.Fatalf("diags: %s", diags.Err())
+		t.Fatalf("apply errors: %s", diags.Err())
 	}
 }
 
@@ -2974,7 +2974,7 @@ func TestContext2Apply_moduleVarRefExisting(t *testing.T) {
 	})
 
 	if _, diags := ctx.Plan(); diags.HasErrors() {
-		t.Fatalf("diags: %s", diags.Err())
+		t.Fatalf("plan errors: %s", diags.Err())
 	}
 
 	state, diags := ctx.Apply()
@@ -3011,11 +3011,11 @@ func TestContext2Apply_moduleVarResourceCount(t *testing.T) {
 	})
 
 	if _, diags := ctx.Plan(); diags.HasErrors() {
-		t.Fatalf("diags: %s", diags.Err())
+		t.Fatalf("plan errors: %s", diags.Err())
 	}
 
 	if _, diags := ctx.Apply(); diags.HasErrors() {
-		t.Fatalf("diags: %s", diags.Err())
+		t.Fatalf("apply errors: %s", diags.Err())
 	}
 
 	ctx = testContext2(t, &ContextOpts{
@@ -3034,11 +3034,11 @@ func TestContext2Apply_moduleVarResourceCount(t *testing.T) {
 	})
 
 	if _, diags := ctx.Plan(); diags.HasErrors() {
-		t.Fatalf("diags: %s", diags.Err())
+		t.Fatalf("plan errors: %s", diags.Err())
 	}
 
 	if _, diags := ctx.Apply(); diags.HasErrors() {
-		t.Fatalf("diags: %s", diags.Err())
+		t.Fatalf("apply errors: %s", diags.Err())
 	}
 }
 
@@ -3058,7 +3058,7 @@ func TestContext2Apply_moduleBool(t *testing.T) {
 	})
 
 	if _, diags := ctx.Plan(); diags.HasErrors() {
-		t.Fatalf("diags: %s", diags.Err())
+		t.Fatalf("plan errors: %s", diags.Err())
 	}
 
 	state, diags := ctx.Apply()
@@ -3093,7 +3093,7 @@ func TestContext2Apply_moduleTarget(t *testing.T) {
 	})
 
 	if _, diags := ctx.Plan(); diags.HasErrors() {
-		t.Fatalf("diags: %s", diags.Err())
+		t.Fatalf("plan errors: %s", diags.Err())
 	}
 
 	state, diags := ctx.Apply()
@@ -3143,7 +3143,7 @@ func TestContext2Apply_multiProvider(t *testing.T) {
 	})
 
 	if _, diags := ctx.Plan(); diags.HasErrors() {
-		t.Fatalf("diags: %s", diags.Err())
+		t.Fatalf("plan errors: %s", diags.Err())
 	}
 
 	state, diags := ctx.Apply()
@@ -3416,7 +3416,7 @@ func TestContext2Apply_multiVar(t *testing.T) {
 	})
 
 	if _, diags := ctx.Plan(); diags.HasErrors() {
-		t.Fatalf("diags: %s", diags.Err())
+		t.Fatalf("plan errors: %s", diags.Err())
 	}
 
 	state, diags := ctx.Apply()
@@ -3693,7 +3693,7 @@ func TestContext2Apply_multiVarOrder(t *testing.T) {
 	})
 
 	if _, diags := ctx.Plan(); diags.HasErrors() {
-		t.Fatalf("diags: %s", diags.Err())
+		t.Fatalf("plan errors: %s", diags.Err())
 	}
 
 	state, diags := ctx.Apply()
@@ -3729,7 +3729,7 @@ func TestContext2Apply_multiVarOrderInterp(t *testing.T) {
 	})
 
 	if _, diags := ctx.Plan(); diags.HasErrors() {
-		t.Fatalf("diags: %s", diags.Err())
+		t.Fatalf("plan errors: %s", diags.Err())
 	}
 
 	state, diags := ctx.Apply()
@@ -3914,7 +3914,7 @@ func TestContext2Apply_nilDiff(t *testing.T) {
 	})
 
 	if _, diags := ctx.Plan(); diags.HasErrors() {
-		t.Fatalf("diags: %s", diags.Err())
+		t.Fatalf("plan errors: %s", diags.Err())
 	}
 
 	p.DiffFn = func(*InstanceInfo, *InstanceState, *ResourceConfig) (*InstanceDiff, error) {
@@ -4038,7 +4038,7 @@ func TestContext2Apply_outputOrphan(t *testing.T) {
 	})
 
 	if _, diags := ctx.Plan(); diags.HasErrors() {
-		t.Fatalf("diags: %s", diags.Err())
+		t.Fatalf("plan errors: %s", diags.Err())
 	}
 
 	state, diags := ctx.Apply()
@@ -4088,7 +4088,7 @@ func TestContext2Apply_outputOrphanModule(t *testing.T) {
 	})
 
 	if _, diags := ctx.Plan(); diags.HasErrors() {
-		t.Fatalf("diags: %s", diags.Err())
+		t.Fatalf("plan errors: %s", diags.Err())
 	}
 
 	state, diags := ctx.Apply()
@@ -4115,7 +4115,7 @@ func TestContext2Apply_outputOrphanModule(t *testing.T) {
 	})
 
 	if _, diags := ctx.Plan(); diags.HasErrors() {
-		t.Fatalf("diags: %s", diags.Err())
+		t.Fatalf("plan errors: %s", diags.Err())
 	}
 
 	state, diags = ctx.Apply()
@@ -4166,11 +4166,11 @@ func TestContext2Apply_providerComputedVar(t *testing.T) {
 	}
 
 	if _, diags := ctx.Plan(); diags.HasErrors() {
-		t.Fatalf("diags: %s", diags.Err())
+		t.Fatalf("plan errors: %s", diags.Err())
 	}
 
 	if _, diags := ctx.Apply(); diags.HasErrors() {
-		t.Fatalf("diags: %s", diags.Err())
+		t.Fatalf("apply errors: %s", diags.Err())
 	}
 }
 
@@ -4201,11 +4201,11 @@ func TestContext2Apply_providerConfigureDisabled(t *testing.T) {
 	})
 
 	if _, diags := ctx.Plan(); diags.HasErrors() {
-		t.Fatalf("diags: %s", diags.Err())
+		t.Fatalf("plan errors: %s", diags.Err())
 	}
 
 	if _, diags := ctx.Apply(); diags.HasErrors() {
-		t.Fatalf("diags: %s", diags.Err())
+		t.Fatalf("apply errors: %s", diags.Err())
 	}
 
 	if !called {
@@ -4240,7 +4240,7 @@ func TestContext2Apply_provisionerModule(t *testing.T) {
 	})
 
 	if _, diags := ctx.Plan(); diags.HasErrors() {
-		t.Fatalf("diags: %s", diags.Err())
+		t.Fatalf("plan errors: %s", diags.Err())
 	}
 
 	state, diags := ctx.Apply()
@@ -4293,7 +4293,7 @@ func TestContext2Apply_Provisioner_compute(t *testing.T) {
 	})
 
 	if _, diags := ctx.Plan(); diags.HasErrors() {
-		t.Fatalf("diags: %s", diags.Err())
+		t.Fatalf("plan errors: %s", diags.Err())
 	}
 
 	state, diags := ctx.Apply()
@@ -4340,7 +4340,7 @@ func TestContext2Apply_provisionerCreateFail(t *testing.T) {
 	})
 
 	if _, diags := ctx.Plan(); diags.HasErrors() {
-		t.Fatalf("diags: %s", diags.Err())
+		t.Fatalf("plan errors: %s", diags.Err())
 	}
 
 	state, diags := ctx.Apply()
@@ -4381,7 +4381,7 @@ func TestContext2Apply_provisionerCreateFailNoId(t *testing.T) {
 	})
 
 	if _, diags := ctx.Plan(); diags.HasErrors() {
-		t.Fatalf("diags: %s", diags.Err())
+		t.Fatalf("plan errors: %s", diags.Err())
 	}
 
 	state, diags := ctx.Apply()
@@ -4426,7 +4426,7 @@ func TestContext2Apply_provisionerFail(t *testing.T) {
 	})
 
 	if _, diags := ctx.Plan(); diags.HasErrors() {
-		t.Fatalf("diags: %s", diags.Err())
+		t.Fatalf("plan errors: %s", diags.Err())
 	}
 
 	state, diags := ctx.Apply()
@@ -4483,7 +4483,7 @@ func TestContext2Apply_provisionerFail_createBeforeDestroy(t *testing.T) {
 	})
 
 	if _, diags := ctx.Plan(); diags.HasErrors() {
-		t.Fatalf("diags: %s", diags.Err())
+		t.Fatalf("plan errors: %s", diags.Err())
 	}
 
 	state, diags := ctx.Apply()
@@ -4534,7 +4534,7 @@ func TestContext2Apply_error_createBeforeDestroy(t *testing.T) {
 	p.DiffFn = testDiffFn
 
 	if _, diags := ctx.Plan(); diags.HasErrors() {
-		t.Fatalf("diags: %s", diags.Err())
+		t.Fatalf("plan errors: %s", diags.Err())
 	}
 
 	state, diags := ctx.Apply()
@@ -4594,7 +4594,7 @@ func TestContext2Apply_errorDestroy_createBeforeDestroy(t *testing.T) {
 	p.DiffFn = testDiffFn
 
 	if _, diags := ctx.Plan(); diags.HasErrors() {
-		t.Fatalf("diags: %s", diags.Err())
+		t.Fatalf("plan errors: %s", diags.Err())
 	}
 
 	state, diags := ctx.Apply()
@@ -4651,7 +4651,7 @@ func TestContext2Apply_multiDepose_createBeforeDestroy(t *testing.T) {
 	}
 
 	if _, diags := ctx.Plan(); diags.HasErrors() {
-		t.Fatalf("diags: %s", diags.Err())
+		t.Fatalf("plan errors: %s", diags.Err())
 	}
 
 	// Destroy is broken, so even though CBD successfully replaces the instance,
@@ -4676,7 +4676,7 @@ aws_instance.web: (1 deposed)
 	})
 
 	if _, diags := ctx.Plan(); diags.HasErrors() {
-		t.Fatalf("diags: %s", diags.Err())
+		t.Fatalf("plan errors: %s", diags.Err())
 	}
 
 	// We're replacing the primary instance once again. Destroy is _still_
@@ -4705,7 +4705,7 @@ aws_instance.web: (2 deposed)
 
 	createdInstanceId = "qux"
 	if _, diags := ctx.Plan(); diags.HasErrors() {
-		t.Fatalf("diags: %s", diags.Err())
+		t.Fatalf("plan errors: %s", diags.Err())
 	}
 	state, diags = ctx.Apply()
 	// Expect error because 1/2 of Deposed destroys failed
@@ -4728,7 +4728,7 @@ aws_instance.web: (1 deposed)
 
 	createdInstanceId = "quux"
 	if _, diags := ctx.Plan(); diags.HasErrors() {
-		t.Fatalf("diags: %s", diags.Err())
+		t.Fatalf("plan errors: %s", diags.Err())
 	}
 	state, diags = ctx.Apply()
 	if diags.HasErrors() {
@@ -4769,7 +4769,7 @@ func TestContext2Apply_provisionerFailContinue(t *testing.T) {
 	})
 
 	if _, diags := ctx.Plan(); diags.HasErrors() {
-		t.Fatalf("diags: %s", diags.Err())
+		t.Fatalf("plan errors: %s", diags.Err())
 	}
 
 	state, diags := ctx.Apply()
@@ -4818,11 +4818,11 @@ func TestContext2Apply_provisionerFailContinueHook(t *testing.T) {
 	})
 
 	if _, diags := ctx.Plan(); diags.HasErrors() {
-		t.Fatalf("diags: %s", diags.Err())
+		t.Fatalf("plan errors: %s", diags.Err())
 	}
 
 	if _, diags := ctx.Apply(); diags.HasErrors() {
-		t.Fatalf("diags: %s", diags.Err())
+		t.Fatalf("apply errors: %s", diags.Err())
 	}
 
 	if !h.PostProvisionCalled {
@@ -4879,7 +4879,7 @@ func TestContext2Apply_provisionerDestroy(t *testing.T) {
 	})
 
 	if _, diags := ctx.Plan(); diags.HasErrors() {
-		t.Fatalf("diags: %s", diags.Err())
+		t.Fatalf("plan errors: %s", diags.Err())
 	}
 
 	state, diags := ctx.Apply()
@@ -4937,7 +4937,7 @@ func TestContext2Apply_provisionerDestroyFail(t *testing.T) {
 	})
 
 	if _, diags := ctx.Plan(); diags.HasErrors() {
-		t.Fatalf("diags: %s", diags.Err())
+		t.Fatalf("plan errors: %s", diags.Err())
 	}
 
 	state, diags := ctx.Apply()
@@ -5010,7 +5010,7 @@ func TestContext2Apply_provisionerDestroyFailContinue(t *testing.T) {
 	})
 
 	if _, diags := ctx.Plan(); diags.HasErrors() {
-		t.Fatalf("diags: %s", diags.Err())
+		t.Fatalf("plan errors: %s", diags.Err())
 	}
 
 	state, diags := ctx.Apply()
@@ -5086,7 +5086,7 @@ func TestContext2Apply_provisionerDestroyFailContinueFail(t *testing.T) {
 	})
 
 	if _, diags := ctx.Plan(); diags.HasErrors() {
-		t.Fatalf("diags: %s", diags.Err())
+		t.Fatalf("plan errors: %s", diags.Err())
 	}
 
 	state, diags := ctx.Apply()
@@ -5165,7 +5165,7 @@ func TestContext2Apply_provisionerDestroyTainted(t *testing.T) {
 	})
 
 	if _, diags := ctx.Plan(); diags.HasErrors() {
-		t.Fatalf("diags: %s", diags.Err())
+		t.Fatalf("plan errors: %s", diags.Err())
 	}
 
 	state, diags := ctx.Apply()
@@ -5237,7 +5237,7 @@ func TestContext2Apply_provisionerDestroyModule(t *testing.T) {
 	})
 
 	if _, diags := ctx.Plan(); diags.HasErrors() {
-		t.Fatalf("diags: %s", diags.Err())
+		t.Fatalf("plan errors: %s", diags.Err())
 	}
 
 	state, diags := ctx.Apply()
@@ -5313,7 +5313,7 @@ func TestContext2Apply_provisionerDestroyRef(t *testing.T) {
 	})
 
 	if _, diags := ctx.Plan(); diags.HasErrors() {
-		t.Fatalf("diags: %s", diags.Err())
+		t.Fatalf("plan errors: %s", diags.Err())
 	}
 
 	state, diags := ctx.Apply()
@@ -5378,7 +5378,7 @@ func TestContext2Apply_provisionerDestroyRefInvalid(t *testing.T) {
 	})
 
 	if _, diags := ctx.Plan(); diags.HasErrors() {
-		t.Fatalf("diags: %s", diags.Err())
+		t.Fatalf("plan errors: %s", diags.Err())
 	}
 
 	if _, diags := ctx.Apply(); diags == nil {
@@ -5415,7 +5415,7 @@ func TestContext2Apply_provisionerResourceRef(t *testing.T) {
 	})
 
 	if _, diags := ctx.Plan(); diags.HasErrors() {
-		t.Fatalf("diags: %s", diags.Err())
+		t.Fatalf("plan errors: %s", diags.Err())
 	}
 
 	state, diags := ctx.Apply()
@@ -5463,7 +5463,7 @@ func TestContext2Apply_provisionerSelfRef(t *testing.T) {
 	})
 
 	if _, diags := ctx.Plan(); diags.HasErrors() {
-		t.Fatalf("diags: %s", diags.Err())
+		t.Fatalf("plan errors: %s", diags.Err())
 	}
 
 	state, diags := ctx.Apply()
@@ -5518,7 +5518,7 @@ func TestContext2Apply_provisionerMultiSelfRef(t *testing.T) {
 	})
 
 	if _, diags := ctx.Plan(); diags.HasErrors() {
-		t.Fatalf("diags: %s", diags.Err())
+		t.Fatalf("plan errors: %s", diags.Err())
 	}
 
 	state, diags := ctx.Apply()
@@ -5580,7 +5580,7 @@ func TestContext2Apply_provisionerMultiSelfRefSingle(t *testing.T) {
 	})
 
 	if _, diags := ctx.Plan(); diags.HasErrors() {
-		t.Fatalf("diags: %s", diags.Err())
+		t.Fatalf("plan errors: %s", diags.Err())
 	}
 
 	state, diags := ctx.Apply()
@@ -5704,7 +5704,7 @@ func TestContext2Apply_Provisioner_Diff(t *testing.T) {
 	})
 
 	if _, diags := ctx.Plan(); diags.HasErrors() {
-		t.Fatalf("diags: %s", diags.Err())
+		t.Fatalf("plan errors: %s", diags.Err())
 	}
 
 	state, diags := ctx.Apply()
@@ -5743,7 +5743,7 @@ func TestContext2Apply_Provisioner_Diff(t *testing.T) {
 	})
 
 	if _, diags := ctx.Plan(); diags.HasErrors() {
-		t.Fatalf("diags: %s", diags.Err())
+		t.Fatalf("plan errors: %s", diags.Err())
 	}
 
 	state2, diags := ctx.Apply()
@@ -5817,10 +5817,10 @@ func TestContext2Apply_outputDiffVars(t *testing.T) {
 	}
 
 	if _, diags := ctx.Plan(); diags.HasErrors() {
-		t.Fatalf("diags: %s", diags.Err())
+		t.Fatalf("plan errors: %s", diags.Err())
 	}
 	if _, diags := ctx.Apply(); diags.HasErrors() {
-		t.Fatalf("diags: %s", diags.Err())
+		t.Fatalf("apply errors: %s", diags.Err())
 	}
 }
 
@@ -5894,7 +5894,7 @@ func TestContext2Apply_Provisioner_ConnInfo(t *testing.T) {
 	})
 
 	if _, diags := ctx.Plan(); diags.HasErrors() {
-		t.Fatalf("diags: %s", diags.Err())
+		t.Fatalf("plan errors: %s", diags.Err())
 	}
 
 	state, diags := ctx.Apply()
@@ -5932,7 +5932,7 @@ func TestContext2Apply_destroyX(t *testing.T) {
 
 	// First plan and apply a create operation
 	if _, diags := ctx.Plan(); diags.HasErrors() {
-		t.Fatalf("diags: %s", diags.Err())
+		t.Fatalf("plan errors: %s", diags.Err())
 	}
 
 	state, diags := ctx.Apply()
@@ -5955,7 +5955,7 @@ func TestContext2Apply_destroyX(t *testing.T) {
 	})
 
 	if _, diags := ctx.Plan(); diags.HasErrors() {
-		t.Fatalf("diags: %s", diags.Err())
+		t.Fatalf("plan errors: %s", diags.Err())
 	}
 
 	state, diags = ctx.Apply()
@@ -5996,7 +5996,7 @@ func TestContext2Apply_destroyOrder(t *testing.T) {
 
 	// First plan and apply a create operation
 	if _, diags := ctx.Plan(); diags.HasErrors() {
-		t.Fatalf("diags: %s", diags.Err())
+		t.Fatalf("plan errors: %s", diags.Err())
 	}
 
 	state, diags := ctx.Apply()
@@ -6021,7 +6021,7 @@ func TestContext2Apply_destroyOrder(t *testing.T) {
 	})
 
 	if _, diags := ctx.Plan(); diags.HasErrors() {
-		t.Fatalf("diags: %s", diags.Err())
+		t.Fatalf("plan errors: %s", diags.Err())
 	}
 
 	state, diags = ctx.Apply()
@@ -6063,7 +6063,7 @@ func TestContext2Apply_destroyModulePrefix(t *testing.T) {
 
 	// First plan and apply a create operation
 	if _, diags := ctx.Plan(); diags.HasErrors() {
-		t.Fatalf("diags: %s", diags.Err())
+		t.Fatalf("plan errors: %s", diags.Err())
 	}
 
 	state, diags := ctx.Apply()
@@ -6091,7 +6091,7 @@ func TestContext2Apply_destroyModulePrefix(t *testing.T) {
 	})
 
 	if _, diags := ctx.Plan(); diags.HasErrors() {
-		t.Fatalf("diags: %s", diags.Err())
+		t.Fatalf("plan errors: %s", diags.Err())
 	}
 
 	state, diags = ctx.Apply()
@@ -6139,7 +6139,7 @@ func TestContext2Apply_destroyNestedModule(t *testing.T) {
 
 	// First plan and apply a create operation
 	if _, diags := ctx.Plan(); diags.HasErrors() {
-		t.Fatalf("diags: %s", diags.Err())
+		t.Fatalf("plan errors: %s", diags.Err())
 	}
 
 	state, diags := ctx.Apply()
@@ -6188,7 +6188,7 @@ func TestContext2Apply_destroyDeeplyNestedModule(t *testing.T) {
 
 	// First plan and apply a create operation
 	if _, diags := ctx.Plan(); diags.HasErrors() {
-		t.Fatalf("diags: %s", diags.Err())
+		t.Fatalf("plan errors: %s", diags.Err())
 	}
 
 	state, diags := ctx.Apply()
@@ -6574,7 +6574,7 @@ func TestContext2Apply_destroyOutputs(t *testing.T) {
 
 	// First plan and apply a create operation
 	if _, diags := ctx.Plan(); diags.HasErrors() {
-		t.Fatalf("diags: %s", diags.Err())
+		t.Fatalf("plan errors: %s", diags.Err())
 	}
 
 	state, diags := ctx.Apply()
@@ -6596,7 +6596,7 @@ func TestContext2Apply_destroyOutputs(t *testing.T) {
 	})
 
 	if _, diags := ctx.Plan(); diags.HasErrors() {
-		t.Fatalf("diags: %s", diags.Err())
+		t.Fatalf("plan errors: %s", diags.Err())
 	}
 
 	state, diags = ctx.Apply()
@@ -6677,7 +6677,7 @@ func TestContext2Apply_destroyOrphan(t *testing.T) {
 	}
 
 	if _, diags := ctx.Plan(); diags.HasErrors() {
-		t.Fatalf("diags: %s", diags.Err())
+		t.Fatalf("plan errors: %s", diags.Err())
 	}
 
 	state, diags := ctx.Apply()
@@ -6739,7 +6739,7 @@ func TestContext2Apply_destroyTaintedProvisioner(t *testing.T) {
 	})
 
 	if _, diags := ctx.Plan(); diags.HasErrors() {
-		t.Fatalf("diags: %s", diags.Err())
+		t.Fatalf("plan errors: %s", diags.Err())
 	}
 
 	state, diags := ctx.Apply()
@@ -6799,7 +6799,7 @@ func TestContext2Apply_error(t *testing.T) {
 	}
 
 	if _, diags := ctx.Plan(); diags.HasErrors() {
-		t.Fatalf("diags: %s", diags.Err())
+		t.Fatalf("plan errors: %s", diags.Err())
 	}
 
 	state, diags := ctx.Apply()
@@ -6868,7 +6868,7 @@ func TestContext2Apply_errorPartial(t *testing.T) {
 	}
 
 	if _, diags := ctx.Plan(); diags.HasErrors() {
-		t.Fatalf("diags: %s", diags.Err())
+		t.Fatalf("plan errors: %s", diags.Err())
 	}
 
 	state, diags := ctx.Apply()
@@ -6905,11 +6905,11 @@ func TestContext2Apply_hook(t *testing.T) {
 	})
 
 	if _, diags := ctx.Plan(); diags.HasErrors() {
-		t.Fatalf("diags: %s", diags.Err())
+		t.Fatalf("plan errors: %s", diags.Err())
 	}
 
 	if _, diags := ctx.Apply(); diags.HasErrors() {
-		t.Fatalf("diags: %s", diags.Err())
+		t.Fatalf("apply errors: %s", diags.Err())
 	}
 
 	if !h.PreApplyCalled {
@@ -6958,11 +6958,11 @@ func TestContext2Apply_hookOrphan(t *testing.T) {
 	})
 
 	if _, diags := ctx.Plan(); diags.HasErrors() {
-		t.Fatalf("diags: %s", diags.Err())
+		t.Fatalf("plan errors: %s", diags.Err())
 	}
 
 	if _, diags := ctx.Apply(); diags.HasErrors() {
-		t.Fatalf("diags: %s", diags.Err())
+		t.Fatalf("apply errors: %s", diags.Err())
 	}
 
 	if !h.PreApplyCalled {
@@ -7008,7 +7008,7 @@ func TestContext2Apply_idAttr(t *testing.T) {
 	}
 
 	if _, diags := ctx.Plan(); diags.HasErrors() {
-		t.Fatalf("diags: %s", diags.Err())
+		t.Fatalf("plan errors: %s", diags.Err())
 	}
 
 	state, diags := ctx.Apply()
@@ -7044,7 +7044,7 @@ func TestContext2Apply_outputBasic(t *testing.T) {
 	})
 
 	if _, diags := ctx.Plan(); diags.HasErrors() {
-		t.Fatalf("diags: %s", diags.Err())
+		t.Fatalf("plan errors: %s", diags.Err())
 	}
 
 	state, diags := ctx.Apply()
@@ -7150,7 +7150,7 @@ func TestContext2Apply_outputList(t *testing.T) {
 	})
 
 	if _, diags := ctx.Plan(); diags.HasErrors() {
-		t.Fatalf("diags: %s", diags.Err())
+		t.Fatalf("plan errors: %s", diags.Err())
 	}
 
 	state, diags := ctx.Apply()
@@ -7180,7 +7180,7 @@ func TestContext2Apply_outputMulti(t *testing.T) {
 	})
 
 	if _, diags := ctx.Plan(); diags.HasErrors() {
-		t.Fatalf("diags: %s", diags.Err())
+		t.Fatalf("plan errors: %s", diags.Err())
 	}
 
 	state, diags := ctx.Apply()
@@ -7210,7 +7210,7 @@ func TestContext2Apply_outputMultiIndex(t *testing.T) {
 	})
 
 	if _, diags := ctx.Plan(); diags.HasErrors() {
-		t.Fatalf("diags: %s", diags.Err())
+		t.Fatalf("plan errors: %s", diags.Err())
 	}
 
 	state, diags := ctx.Apply()
@@ -7444,7 +7444,7 @@ func TestContext2Apply_targeted(t *testing.T) {
 	})
 
 	if _, diags := ctx.Plan(); diags.HasErrors() {
-		t.Fatalf("diags: %s", diags.Err())
+		t.Fatalf("plan errors: %s", diags.Err())
 	}
 
 	state, diags := ctx.Apply()
@@ -7507,7 +7507,7 @@ func TestContext2Apply_targetedCount(t *testing.T) {
 	})
 
 	if _, diags := ctx.Plan(); diags.HasErrors() {
-		t.Fatalf("diags: %s", diags.Err())
+		t.Fatalf("plan errors: %s", diags.Err())
 	}
 
 	state, diags := ctx.Apply()
@@ -7548,7 +7548,7 @@ func TestContext2Apply_targetedCountIndex(t *testing.T) {
 	})
 
 	if _, diags := ctx.Plan(); diags.HasErrors() {
-		t.Fatalf("diags: %s", diags.Err())
+		t.Fatalf("plan errors: %s", diags.Err())
 	}
 
 	state, diags := ctx.Apply()
@@ -7595,7 +7595,7 @@ func TestContext2Apply_targetedDestroy(t *testing.T) {
 	})
 
 	if _, diags := ctx.Plan(); diags.HasErrors() {
-		t.Fatalf("diags: %s", diags.Err())
+		t.Fatalf("plan errors: %s", diags.Err())
 	}
 
 	state, diags := ctx.Apply()
@@ -7883,7 +7883,7 @@ func TestContext2Apply_targetedDestroyCountDeps(t *testing.T) {
 	})
 
 	if _, diags := ctx.Plan(); diags.HasErrors() {
-		t.Fatalf("diags: %s", diags.Err())
+		t.Fatalf("plan errors: %s", diags.Err())
 	}
 
 	state, diags := ctx.Apply()
@@ -7934,7 +7934,7 @@ func TestContext2Apply_targetedDestroyModule(t *testing.T) {
 	})
 
 	if _, diags := ctx.Plan(); diags.HasErrors() {
-		t.Fatalf("diags: %s", diags.Err())
+		t.Fatalf("plan errors: %s", diags.Err())
 	}
 
 	state, diags := ctx.Apply()
@@ -7996,7 +7996,7 @@ func TestContext2Apply_targetedDestroyCountIndex(t *testing.T) {
 	})
 
 	if _, diags := ctx.Plan(); diags.HasErrors() {
-		t.Fatalf("diags: %s", diags.Err())
+		t.Fatalf("plan errors: %s", diags.Err())
 	}
 
 	state, diags := ctx.Apply()
@@ -8038,7 +8038,7 @@ func TestContext2Apply_targetedModule(t *testing.T) {
 	})
 
 	if _, diags := ctx.Plan(); diags.HasErrors() {
-		t.Fatalf("diags: %s", diags.Err())
+		t.Fatalf("plan errors: %s", diags.Err())
 	}
 
 	state, diags := ctx.Apply()
@@ -8166,7 +8166,7 @@ func TestContext2Apply_targetedModuleUnrelatedOutputs(t *testing.T) {
 	})
 
 	if _, diags := ctx.Plan(); diags.HasErrors() {
-		t.Fatalf("diags: %s", diags.Err())
+		t.Fatalf("plan errors: %s", diags.Err())
 	}
 
 	state, diags := ctx.Apply()
@@ -8219,7 +8219,7 @@ func TestContext2Apply_targetedModuleResource(t *testing.T) {
 	})
 
 	if _, diags := ctx.Plan(); diags.HasErrors() {
-		t.Fatalf("diags: %s", diags.Err())
+		t.Fatalf("plan errors: %s", diags.Err())
 	}
 
 	state, diags := ctx.Apply()
@@ -8258,7 +8258,7 @@ func TestContext2Apply_unknownAttribute(t *testing.T) {
 	})
 
 	if _, diags := ctx.Plan(); diags.HasErrors() {
-		t.Fatalf("diags: %s", diags.Err())
+		t.Fatalf("plan errors: %s", diags.Err())
 	}
 
 	state, diags := ctx.Apply()
@@ -8549,7 +8549,7 @@ func TestContext2Apply_singleDestroy(t *testing.T) {
 	})
 
 	if _, diags := ctx.Plan(); diags.HasErrors() {
-		t.Fatalf("diags: %s", diags.Err())
+		t.Fatalf("plan errors: %s", diags.Err())
 	}
 
 	h.Active = true
@@ -8930,7 +8930,7 @@ func TestContext2Apply_ignoreChangesWithDep(t *testing.T) {
 	})
 
 	if _, diags := ctx.Plan(); diags.HasErrors() {
-		t.Fatalf("diags: %s", diags.Err())
+		t.Fatalf("plan errors: %s", diags.Err())
 	}
 
 	state, diags := ctx.Apply()
@@ -9131,7 +9131,7 @@ func TestContext2Apply_dataDependsOn(t *testing.T) {
 	}
 
 	if _, diags := ctx.Plan(); diags.HasErrors() {
-		t.Fatalf("diags: %s", diags.Err())
+		t.Fatalf("plan errors: %s", diags.Err())
 	}
 
 	state, diags := ctx.Apply()
@@ -9166,7 +9166,7 @@ func TestContext2Apply_terraformWorkspace(t *testing.T) {
 	})
 
 	if _, diags := ctx.Plan(); diags.HasErrors() {
-		t.Fatalf("diags: %s", diags.Err())
+		t.Fatalf("plan errors: %s", diags.Err())
 	}
 
 	state, diags := ctx.Apply()
