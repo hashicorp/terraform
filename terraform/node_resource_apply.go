@@ -52,12 +52,8 @@ func (n *NodeApplyableResourceInstance) References() []*addrs.Reference {
 				newRef.Remaining = nil // can't access attributes of something being destroyed
 				ret = append(ret, &newRef)
 			case addrs.Resource:
-				// We'll guess that this is actually a reference to a no-key
-				// instance here, and generate a reference under that assumption.
-				// If that's not true then this won't do any harm, since there
-				// won't actually be a node with this address.
 				newRef := *ref // shallow copy so we can mutate
-				newRef.Subject = tr.Instance(addrs.NoKey).Phase(addrs.ResourceInstancePhaseDestroy)
+				newRef.Subject = tr.Phase(addrs.ResourceInstancePhaseDestroy)
 				newRef.Remaining = nil // can't access attributes of something being destroyed
 				ret = append(ret, &newRef)
 			}
