@@ -1,12 +1,12 @@
 resource "aws_instance" "bar" {
-    key = "hello"
+    value = "hello"
 }
 
 resource "aws_instance" "foo" {
     foo = "bar"
 
     provisioner "shell" {
-        foo  = "${aws_instance.bar.key}"
+        command  = "${aws_instance.bar.value}"
         when = "destroy"
     }
 }
