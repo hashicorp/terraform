@@ -41,4 +41,6 @@ HashiCorp, and are tested by HashiCorp.
 
 [PagerDuty](/docs/providers/pagerduty/index.html)
 
+[Runscope](/docs/providers/runscope/index.html)
+
 [StatusCake](/docs/providers/statuscake/index.html)
