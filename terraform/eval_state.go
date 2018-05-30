@@ -141,6 +141,11 @@ type EvalWriteState struct {
 func (n *EvalWriteState) Eval(ctx EvalContext) (interface{}, error) {
 	return writeInstanceToState(ctx, n.Name, n.ResourceType, n.Provider.String(), n.Dependencies,
 		func(rs *ResourceState) error {
+			if *n.State != nil {
+				log.Printf("[TRACE] EvalWriteState: %s has non-nil state", n.Name)
+			} else {
+				log.Printf("[TRACE] EvalWriteState: %s has nil state", n.Name)
+			}
 			rs.Primary = *n.State
 			return nil
 		},
