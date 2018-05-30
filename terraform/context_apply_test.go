@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/davecgh/go-spew/spew"
+	"github.com/go-test/deep"
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/addrs"
@@ -3514,8 +3515,8 @@ func TestContext2Apply_multiVarComprehensive(t *testing.T) {
 					"source_names":           {Type: cty.List(cty.String), Optional: true},
 					"source_ids_from_func":   {Type: cty.List(cty.String), Optional: true},
 					"source_names_from_func": {Type: cty.List(cty.String), Optional: true},
-					"source_ids_wrapped":     {Type: cty.List(cty.String), Optional: true},
-					"source_names_wrapped":   {Type: cty.List(cty.String), Optional: true},
+					"source_ids_wrapped":     {Type: cty.List(cty.List(cty.String)), Optional: true},
+					"source_names_wrapped":   {Type: cty.List(cty.List(cty.String)), Optional: true},
 
 					"id":   {Type: cty.String, Computed: true},
 					"name": {Type: cty.String, Computed: true},
@@ -3546,32 +3547,45 @@ func TestContext2Apply_multiVarComprehensive(t *testing.T) {
 
 	checkConfig := func(name string, want map[string]interface{}) {
 		got := configs[name].Config
-		if !reflect.DeepEqual(got, want) {
-			t.Errorf(
-				"wrong config for %s\ngot:  %s\nwant: %s",
-				name, spew.Sdump(got), spew.Sdump(want),
-			)
-		}
+		t.Run("config for "+name, func(t *testing.T) {
+			for _, problem := range deep.Equal(got, want) {
+				t.Errorf(problem)
+			}
+		})
 	}
 
 	checkConfig("test_thing.multi_count_var.0", map[string]interface{}{
+		"id":          unknownValue(),
+		"name":        unknownValue(),
 		"source_id":   unknownValue(),
 		"source_name": "test_thing.source.0",
 	})
 	checkConfig("test_thing.multi_count_var.2", map[string]interface{}{
+		"id":          unknownValue(),
+		"name":        unknownValue(),
 		"source_id":   unknownValue(),
 		"source_name": "test_thing.source.2",
 	})
 	checkConfig("test_thing.multi_count_derived.0", map[string]interface{}{
+		"id":          unknownValue(),
+		"name":        unknownValue(),
 		"source_id":   unknownValue(),
 		"source_name": "test_thing.source.0",
 	})
 	checkConfig("test_thing.multi_count_derived.2", map[string]interface{}{
+		"id":          unknownValue(),
+		"name":        unknownValue(),
 		"source_id":   unknownValue(),
 		"source_name": "test_thing.source.2",
 	})
 	checkConfig("test_thing.whole_splat", map[string]interface{}{
-		"source_ids": unknownValue(),
+		"id":   unknownValue(),
+		"name": unknownValue(),
+		"source_ids": []interface{}{
+			unknownValue(),
+			unknownValue(),
+			unknownValue(),
+		},
 		"source_names": []interface{}{
 			"test_thing.source.0",
 			"test_thing.source.1",
@@ -3584,47 +3598,60 @@ func TestContext2Apply_multiVarComprehensive(t *testing.T) {
 			"test_thing.source.2",
 		},
 
-		// This one ends up being a list with a single unknown value at this
-		// layer, but is fixed up inside helper/schema. There is a test for
-		// this inside the "test" provider, since core tests can't exercise
-		// helper/schema functionality.
-		"source_ids_wrapped": []interface{}{unknownValue()},
-
-		"source_names_wrapped": []interface{}{
-			"test_thing.source.0",
-			"test_thing.source.1",
-			"test_thing.source.2",
+		"source_ids_wrapped": []interface{}{
+			[]interface{}{
+				unknownValue(),
+				unknownValue(),
+				unknownValue(),
+			},
 		},
+		"source_names_wrapped": []interface{}{
+			[]interface{}{
+				"test_thing.source.0",
+				"test_thing.source.1",
+				"test_thing.source.2",
+			},
+		},
+
 		"first_source_id":   unknownValue(),
 		"first_source_name": "test_thing.source.0",
 	})
 	checkConfig("module.child.test_thing.whole_splat", map[string]interface{}{
-		"source_ids": unknownValue(),
+		"id":   unknownValue(),
+		"name": unknownValue(),
+		"source_ids": []interface{}{
+			unknownValue(),
+			unknownValue(),
+			unknownValue(),
+		},
 		"source_names": []interface{}{
 			"test_thing.source.0",
 			"test_thing.source.1",
 			"test_thing.source.2",
 		},
 
-		// This one ends up being a list with a single unknown value at this
-		// layer, but is fixed up inside helper/schema. There is a test for
-		// this inside the "test" provider, since core tests can't exercise
-		// helper/schema functionality.
-		"source_ids_wrapped": []interface{}{unknownValue()},
-
+		"source_ids_wrapped": []interface{}{
+			[]interface{}{
+				unknownValue(),
+				unknownValue(),
+				unknownValue(),
+			},
+		},
 		"source_names_wrapped": []interface{}{
-			"test_thing.source.0",
-			"test_thing.source.1",
-			"test_thing.source.2",
+			[]interface{}{
+				"test_thing.source.0",
+				"test_thing.source.1",
+				"test_thing.source.2",
+			},
 		},
 	})
 
-	state, diags := ctx.Apply()
-	if diags.HasErrors() {
-		t.Fatalf("error during apply: %s", diags.Err())
-	}
+	t.Run("apply", func(t *testing.T) {
+		state, diags := ctx.Apply()
+		if diags.HasErrors() {
+			t.Fatalf("error during apply: %s", diags.Err())
+		}
 
-	{
 		want := map[string]interface{}{
 			"source_ids": []interface{}{"foo", "foo", "foo"},
 			"source_names": []interface{}{
@@ -3643,7 +3670,7 @@ func TestContext2Apply_multiVarComprehensive(t *testing.T) {
 				spew.Sdump(got), spew.Sdump(want),
 			)
 		}
-	}
+	})
 }
 
 // Test that multi-var (splat) access is ordered by count, not by
