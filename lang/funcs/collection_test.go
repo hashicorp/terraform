@@ -839,6 +839,72 @@ func TestFlatten(t *testing.T) {
 	}
 }
 
+func TestList(t *testing.T) {
+	tests := []struct {
+		Values []cty.Value
+		Want   cty.Value
+		Err    bool
+	}{
+		{
+			[]cty.Value{
+				cty.NilVal,
+			},
+			cty.NilVal,
+			true,
+		},
+		{
+			[]cty.Value{
+				cty.StringVal("Hello"),
+			},
+			cty.ListVal([]cty.Value{
+				cty.StringVal("Hello"),
+			}),
+			false,
+		},
+		{
+			[]cty.Value{
+				cty.StringVal("Hello"),
+				cty.StringVal("World"),
+			},
+			cty.ListVal([]cty.Value{
+				cty.StringVal("Hello"),
+				cty.StringVal("World"),
+			}),
+			false,
+		},
+		{
+			[]cty.Value{
+				cty.StringVal("Hello"),
+				cty.NumberIntVal(42),
+			},
+			cty.ListVal([]cty.Value{
+				cty.StringVal("Hello"),
+				cty.StringVal("42"),
+			}),
+			false,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(fmt.Sprintf("list(%#v)", test.Values), func(t *testing.T) {
+			got, err := List(test.Values...)
+
+			if test.Err {
+				if err == nil {
+					t.Fatal("succeeded; want error")
+				}
+				return
+			} else if err != nil {
+				t.Fatalf("unexpected error: %s", err)
+			}
+
+			if !got.RawEquals(test.Want) {
+				t.Errorf("wrong result\ngot:  %#v\nwant: %#v", got, test.Want)
+			}
+		})
+	}
+}
+
 func TestMatchkeys(t *testing.T) {
 	tests := []struct {
 		Keys      cty.Value

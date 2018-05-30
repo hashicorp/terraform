@@ -371,6 +371,50 @@ func flattener(finalList []cty.Value, flattenList cty.Value) []cty.Value {
 	return finalList
 }
 
+// ListFunc contructs a function that takes an arbitrary number of arguments
+// and returns a list containing those values in the same order.
+//
+// This function is deprecated in Terraform v0.12
+var ListFunc = function.New(&function.Spec{
+	Params: []function.Parameter{},
+	VarParam: &function.Parameter{
+		Name:             "vals",
+		Type:             cty.DynamicPseudoType,
+		AllowUnknown:     true,
+		AllowDynamicType: true,
+		AllowNull:        true,
+	},
+	Type: func(args []cty.Value) (ret cty.Type, err error) {
+		if len(args) == 0 {
+			return cty.NilType, fmt.Errorf("at least one argument is required")
+		}
+
+		argTypes := make([]cty.Type, len(args))
+
+		for i, arg := range args {
+			argTypes[i] = arg.Type()
+		}
+
+		retType, _ := convert.UnifyUnsafe(argTypes)
+		if retType == cty.NilType {
+			return cty.NilType, fmt.Errorf("all arguments must have the same type")
+		}
+
+		return cty.List(retType), nil
+	},
+	Impl: func(args []cty.Value, retType cty.Type) (ret cty.Value, err error) {
+		newList := make([]cty.Value, 0, len(args))
+
+		for _, arg := range args {
+			// We already know this will succeed because of the checks in our Type func above
+			arg, _ = convert.Convert(arg, retType.ElementType())
+			newList = append(newList, arg)
+		}
+
+		return cty.ListVal(newList), nil
+	},
+})
+
 // MatchkeysFunc contructs a function that constructs a new list by taking a
 // subset of elements from one list whose indexes match the corresponding
 // indexes of values in another list.
@@ -505,6 +549,12 @@ func Chunklist(list, size cty.Value) (cty.Value, error) {
 // sequence of the list contents.
 func Flatten(list cty.Value) (cty.Value, error) {
 	return FlattenFunc.Call([]cty.Value{list})
+}
+
+// List takes any number of list arguments and returns a list containing those
+//  values in the same order.
+func List(args ...cty.Value) (cty.Value, error) {
+	return ListFunc.Call(args)
 }
 
 // Matchkeys constructs a new list by taking a subset of elements from one list
