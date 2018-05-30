@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/hil"
+	"github.com/hashicorp/terraform/config"
 	"github.com/hashicorp/terraform/config/configschema"
 	"github.com/hashicorp/terraform/configs"
 	"github.com/zclconf/go-cty/cty"
@@ -187,9 +188,18 @@ func testApplyFn(
 		return nil, nil
 	}
 
-	id := "foo"
+	// find the OLD id, which is probably in the ID field for now, but eventually
+	// ID should only be in one place.
+	id := s.ID
+	if id == "" {
+		id = s.Attributes["id"]
+	}
 	if idAttr, ok := d.Attributes["id"]; ok && !idAttr.NewComputed {
 		id = idAttr.New
+	}
+
+	if id == "" || id == config.UnknownVariableValue {
+		id = "foo"
 	}
 
 	result := &InstanceState{
