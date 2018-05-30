@@ -350,7 +350,7 @@ aws_secret_key = ZZZZ
 
 const testTerraformApplyDependsCreateBeforeStr = `
 aws_instance.lb:
-  ID = foo
+  ID = baz
   provider = provider.aws
   instance = foo
   type = aws_instance
