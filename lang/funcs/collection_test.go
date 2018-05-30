@@ -905,6 +905,137 @@ func TestList(t *testing.T) {
 	}
 }
 
+func TestMap(t *testing.T) {
+	tests := []struct {
+		Values []cty.Value
+		Want   cty.Value
+		Err    bool
+	}{
+		{
+			[]cty.Value{
+				cty.StringVal("hello"),
+				cty.StringVal("world"),
+			},
+			cty.MapVal(map[string]cty.Value{
+				"hello": cty.StringVal("world"),
+			}),
+			false,
+		},
+		{
+			[]cty.Value{
+				cty.StringVal("hello"),
+				cty.StringVal("world"),
+				cty.StringVal("what's"),
+				cty.StringVal("up"),
+			},
+			cty.MapVal(map[string]cty.Value{
+				"hello":  cty.StringVal("world"),
+				"what's": cty.StringVal("up"),
+			}),
+			false,
+		},
+		{
+			[]cty.Value{
+				cty.StringVal("hello"),
+				cty.NumberIntVal(1),
+				cty.StringVal("goodbye"),
+				cty.NumberIntVal(42),
+			},
+			cty.MapVal(map[string]cty.Value{
+				"hello":   cty.NumberIntVal(1),
+				"goodbye": cty.NumberIntVal(42),
+			}),
+			false,
+		},
+		{ // convert numbers to strings
+			[]cty.Value{
+				cty.StringVal("hello"),
+				cty.NumberIntVal(1),
+				cty.StringVal("goodbye"),
+				cty.StringVal("42"),
+			},
+			cty.MapVal(map[string]cty.Value{
+				"hello":   cty.StringVal("1"),
+				"goodbye": cty.StringVal("42"),
+			}),
+			false,
+		},
+		{ // map of lists is okay
+			[]cty.Value{
+				cty.StringVal("hello"),
+				cty.ListVal([]cty.Value{
+					cty.StringVal("world"),
+				}),
+				cty.StringVal("what's"),
+				cty.ListVal([]cty.Value{
+					cty.StringVal("up"),
+				}),
+			},
+			cty.MapVal(map[string]cty.Value{
+				"hello":  cty.ListVal([]cty.Value{cty.StringVal("world")}),
+				"what's": cty.ListVal([]cty.Value{cty.StringVal("up")}),
+			}),
+			false,
+		},
+		{ // map of maps is okay
+			[]cty.Value{
+				cty.StringVal("hello"),
+				cty.MapVal(map[string]cty.Value{
+					"there": cty.StringVal("world"),
+				}),
+				cty.StringVal("what's"),
+				cty.MapVal(map[string]cty.Value{
+					"really": cty.StringVal("up"),
+				}),
+			},
+			cty.MapVal(map[string]cty.Value{
+				"hello": cty.MapVal(map[string]cty.Value{
+					"there": cty.StringVal("world"),
+				}),
+				"what's": cty.MapVal(map[string]cty.Value{
+					"really": cty.StringVal("up"),
+				}),
+			}),
+			false,
+		},
+		{ // single argument returns an error
+			[]cty.Value{
+				cty.StringVal("hello"),
+			},
+			cty.NilVal,
+			true,
+		},
+		{ // duplicate keys returns an error
+			[]cty.Value{
+				cty.StringVal("hello"),
+				cty.StringVal("world"),
+				cty.StringVal("hello"),
+				cty.StringVal("universe"),
+			},
+			cty.NilVal,
+			true,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(fmt.Sprintf("map(%#v)", test.Values), func(t *testing.T) {
+			got, err := Map(test.Values...)
+			if test.Err {
+				if err == nil {
+					t.Fatal("succeeded; want error")
+				}
+				return
+			} else if err != nil {
+				t.Fatalf("unexpected error: %s", err)
+			}
+
+			if !got.RawEquals(test.Want) {
+				t.Errorf("wrong result\ngot:  %#v\nwant: %#v", got, test.Want)
+			}
+		})
+	}
+}
+
 func TestMatchkeys(t *testing.T) {
 	tests := []struct {
 		Keys      cty.Value

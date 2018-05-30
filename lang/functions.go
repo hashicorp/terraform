@@ -69,7 +69,7 @@ func (s *Scope) Functions() map[string]function.Function {
 			"log":          funcs.LogFunc,
 			"lookup":       unimplFunc, // TODO
 			"lower":        stdlib.LowerFunc,
-			"map":          unimplFunc, // TODO
+			"map":          funcs.MapFunc,
 			"matchkeys":    funcs.MatchkeysFunc,
 			"max":          stdlib.MaxFunc,
 			"md5":          funcs.Md5Func,
