@@ -205,6 +205,10 @@ type EvalApplyProvisioners struct {
 // TODO: test
 func (n *EvalApplyProvisioners) Eval(ctx EvalContext) (interface{}, error) {
 	state := *n.State
+	if state == nil {
+		log.Printf("[TRACE] EvalApplyProvisioners: %s has no state, so skipping provisioners", n.Addr)
+		return nil, nil
+	}
 
 	// The hook API still uses the legacy InstanceInfo type, so we need to shim it.
 	legacyInfo := NewInstanceInfo(n.Addr.Absolute(ctx.Path()))
