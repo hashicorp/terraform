@@ -371,6 +371,30 @@ func flattener(finalList []cty.Value, flattenList cty.Value) []cty.Value {
 	return finalList
 }
 
+// KeysFunc contructs a function that takes a map and returns a sorted list of the map keys.
+var KeysFunc = function.New(&function.Spec{
+	Params: []function.Parameter{
+		{
+			Name: "inputMap",
+			Type: cty.Map(cty.DynamicPseudoType),
+		},
+	},
+	Type: function.StaticReturnType(cty.List(cty.String)),
+	Impl: func(args []cty.Value, retType cty.Type) (ret cty.Value, err error) {
+		var keys []cty.Value
+
+		for it := args[0].ElementIterator(); it.Next(); {
+			k, _ := it.Element()
+			fmt.Printf("appending %#v to %#v\n", k, keys)
+			keys = append(keys, k)
+			if err != nil {
+				return cty.ListValEmpty(cty.String), err
+			}
+		}
+		return cty.ListVal(keys), nil
+	},
+})
+
 // ListFunc contructs a function that takes an arbitrary number of arguments
 // and returns a list containing those values in the same order.
 //
@@ -553,7 +577,7 @@ var MatchkeysFunc = function.New(&function.Spec{
 	},
 })
 
-// helper function to add an element to a list, if it does not already exsit
+// helper function to add an element to a list, if it does not already exist
 func appendIfMissing(slice []cty.Value, element cty.Value) ([]cty.Value, error) {
 	for _, ele := range slice {
 		eq, err := stdlib.Equal(ele, element)
@@ -616,6 +640,11 @@ func Chunklist(list, size cty.Value) (cty.Value, error) {
 // sequence of the list contents.
 func Flatten(list cty.Value) (cty.Value, error) {
 	return FlattenFunc.Call([]cty.Value{list})
+}
+
+// Keys takes a map and returns a sorted list of the map keys.
+func Keys(inputMap cty.Value) (cty.Value, error) {
+	return KeysFunc.Call([]cty.Value{inputMap})
 }
 
 // List takes any number of list arguments and returns a list containing those
