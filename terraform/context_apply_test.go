@@ -3406,7 +3406,7 @@ func TestContext2Apply_multiVar(t *testing.T) {
 			},
 		),
 		Variables: InputValues{
-			"count": &InputValue{
+			"num": &InputValue{
 				Value:      cty.NumberIntVal(3),
 				SourceType: ValueFromCaller,
 			},
@@ -3441,7 +3441,7 @@ func TestContext2Apply_multiVar(t *testing.T) {
 				},
 			),
 			Variables: InputValues{
-				"count": &InputValue{
+				"num": &InputValue{
 					Value:      cty.NumberIntVal(1),
 					SourceType: ValueFromCaller,
 				},
