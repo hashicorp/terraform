@@ -839,6 +839,50 @@ func TestFlatten(t *testing.T) {
 	}
 }
 
+func TestKeys(t *testing.T) {
+	tests := []struct {
+		Map  cty.Value
+		Want cty.Value
+		Err  bool
+	}{
+		{
+			cty.MapVal(map[string]cty.Value{
+				"hello":   cty.NumberIntVal(1),
+				"goodbye": cty.NumberIntVal(42),
+			}),
+			cty.ListVal([]cty.Value{
+				cty.StringVal("goodbye"),
+				cty.StringVal("hello"),
+			}),
+			false,
+		},
+		{ // Not a map
+			cty.StringVal("foo"),
+			cty.NilVal,
+			true,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(fmt.Sprintf("keys(%#v)", test.Map), func(t *testing.T) {
+			got, err := Keys(test.Map)
+
+			if test.Err {
+				if err == nil {
+					t.Fatal("succeeded; want error")
+				}
+				return
+			} else if err != nil {
+				t.Fatalf("unexpected error: %s", err)
+			}
+
+			if !got.RawEquals(test.Want) {
+				t.Errorf("wrong result\ngot:  %#v\nwant: %#v", got, test.Want)
+			}
+		})
+	}
+}
+
 func TestList(t *testing.T) {
 	tests := []struct {
 		Values []cty.Value
