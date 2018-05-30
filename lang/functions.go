@@ -54,8 +54,7 @@ func (s *Scope) Functions() map[string]function.Function {
 			"chunklist":    funcs.ChunklistFunc,
 			"file":         funcs.MakeFileFunc(s.BaseDir, false),
 			"filebase64":   funcs.MakeFileFunc(s.BaseDir, true),
-			"matchkeys":    funcs.MatchkeysFunc,
-			"flatten":      unimplFunc, // TODO
+			"flatten":      funcs.FlattenFunc,
 			"floor":        funcs.FloorFunc,
 			"format":       stdlib.FormatFunc,
 			"formatlist":   stdlib.FormatListFunc,
@@ -71,6 +70,7 @@ func (s *Scope) Functions() map[string]function.Function {
 			"lookup":       unimplFunc, // TODO
 			"lower":        stdlib.LowerFunc,
 			"map":          unimplFunc, // TODO
+			"matchkeys":    funcs.MatchkeysFunc,
 			"max":          stdlib.MaxFunc,
 			"md5":          funcs.Md5Func,
 			"merge":        unimplFunc, // TODO
