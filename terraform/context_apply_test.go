@@ -53,7 +53,7 @@ func TestContext2Apply_basic(t *testing.T) {
 	actual := strings.TrimSpace(state.String())
 	expected := strings.TrimSpace(testTerraformApplyStr)
 	if actual != expected {
-		t.Fatalf("bad: \n%s", actual)
+		t.Fatalf("wrong result\n\ngot:\n%s\n\nwant:\n%s", actual, expected)
 	}
 }
 
@@ -624,7 +624,7 @@ func TestContext2Apply_refCount(t *testing.T) {
 	actual := strings.TrimSpace(state.String())
 	expected := strings.TrimSpace(testTerraformApplyRefCountStr)
 	if actual != expected {
-		t.Fatalf("bad: \n%s", actual)
+		t.Fatalf("wrong result\n\ngot:\n%s\n\nwant:\n%s", actual, expected)
 	}
 }
 
@@ -659,7 +659,7 @@ func TestContext2Apply_providerAlias(t *testing.T) {
 	actual := strings.TrimSpace(state.String())
 	expected := strings.TrimSpace(testTerraformApplyProviderAliasStr)
 	if actual != expected {
-		t.Fatalf("bad: \n%s", actual)
+		t.Fatalf("wrong result\n\ngot:\n%s\n\nwant:\n%s", actual, expected)
 	}
 }
 
@@ -715,7 +715,7 @@ func TestContext2Apply_providerAliasConfigure(t *testing.T) {
 	actual := strings.TrimSpace(state.String())
 	expected := strings.TrimSpace(testTerraformApplyProviderAliasConfigStr)
 	if actual != expected {
-		t.Fatalf("bad: \n%s", actual)
+		t.Fatalf("wrong result\n\ngot:\n%s\n\nwant:\n%s", actual, expected)
 	}
 }
 
@@ -901,7 +901,7 @@ func TestContext2Apply_createBeforeDestroyUpdate(t *testing.T) {
 	actual := strings.TrimSpace(state.String())
 	expected := strings.TrimSpace(testTerraformApplyCreateBeforeUpdateStr)
 	if actual != expected {
-		t.Fatalf("bad: \n%s", actual)
+		t.Fatalf("wrong result\n\ngot:\n%s\n\nwant:\n%s", actual, expected)
 	}
 }
 
@@ -1482,7 +1482,7 @@ func TestContext2Apply_dataBasic(t *testing.T) {
 	actual := strings.TrimSpace(state.String())
 	expected := strings.TrimSpace(testTerraformApplyDataBasicStr)
 	if actual != expected {
-		t.Fatalf("bad: \n%s", actual)
+		t.Fatalf("wrong result\n\ngot:\n%s\n\nwant:\n%s", actual, expected)
 	}
 }
 
@@ -1746,7 +1746,7 @@ func TestContext2Apply_minimal(t *testing.T) {
 	actual := strings.TrimSpace(state.String())
 	expected := strings.TrimSpace(testTerraformApplyMinimalStr)
 	if actual != expected {
-		t.Fatalf("bad: \n%s", actual)
+		t.Fatalf("wrong result\n\ngot:\n%s\n\nwant:\n%s", actual, expected)
 	}
 }
 
@@ -1856,7 +1856,7 @@ func TestContext2Apply_cancel(t *testing.T) {
 	actual := strings.TrimSpace(state.String())
 	expected := strings.TrimSpace(testTerraformApplyCancelStr)
 	if actual != expected {
-		t.Fatalf("bad: \n%s", actual)
+		t.Fatalf("wrong result\n\ngot:\n%s\n\nwant:\n%s", actual, expected)
 	}
 
 	if !p.StopCalled {
@@ -2054,7 +2054,7 @@ func TestContext2Apply_compute(t *testing.T) {
 	actual := strings.TrimSpace(state.String())
 	expected := strings.TrimSpace(testTerraformApplyComputeStr)
 	if actual != expected {
-		t.Fatalf("bad: \n%s", actual)
+		t.Fatalf("wrong result\n\ngot:\n%s\n\nwant:\n%s", actual, expected)
 	}
 }
 
@@ -2123,7 +2123,7 @@ func TestContext2Apply_countDecrease(t *testing.T) {
 	actual := strings.TrimSpace(state.String())
 	expected := strings.TrimSpace(testTerraformApplyCountDecStr)
 	if actual != expected {
-		t.Fatalf("bad: \n%s", actual)
+		t.Fatalf("wrong result\n\ngot:\n%s\n\nwant:\n%s", actual, expected)
 	}
 }
 
@@ -2185,7 +2185,7 @@ func TestContext2Apply_countDecreaseToOneX(t *testing.T) {
 	actual := strings.TrimSpace(state.String())
 	expected := strings.TrimSpace(testTerraformApplyCountDecToOneStr)
 	if actual != expected {
-		t.Fatalf("bad: \n%s", actual)
+		t.Fatalf("wrong result\n\ngot:\n%s\n\nwant:\n%s", actual, expected)
 	}
 }
 
@@ -2251,7 +2251,7 @@ func TestContext2Apply_countDecreaseToOneCorrupted(t *testing.T) {
 	actual := strings.TrimSpace(state.String())
 	expected := strings.TrimSpace(testTerraformApplyCountDecToOneCorruptedStr)
 	if actual != expected {
-		t.Fatalf("bad: \n%s", actual)
+		t.Fatalf("wrong result\n\ngot:\n%s\n\nwant:\n%s", actual, expected)
 	}
 }
 
@@ -2301,7 +2301,7 @@ func TestContext2Apply_countTainted(t *testing.T) {
 	actual := strings.TrimSpace(state.String())
 	expected := strings.TrimSpace(testTerraformApplyCountTaintedStr)
 	if actual != expected {
-		t.Fatalf("bad: \n%s", actual)
+		t.Fatalf("wrong result\n\ngot:\n%s\n\nwant:\n%s", actual, expected)
 	}
 }
 
@@ -2331,7 +2331,7 @@ func TestContext2Apply_countVariable(t *testing.T) {
 	actual := strings.TrimSpace(state.String())
 	expected := strings.TrimSpace(testTerraformApplyCountVariableStr)
 	if actual != expected {
-		t.Fatalf("bad: \n%s", actual)
+		t.Fatalf("wrong result\n\ngot:\n%s\n\nwant:\n%s", actual, expected)
 	}
 }
 
@@ -2361,7 +2361,7 @@ func TestContext2Apply_countVariableRef(t *testing.T) {
 	actual := strings.TrimSpace(state.String())
 	expected := strings.TrimSpace(testTerraformApplyCountVariableRefStr)
 	if actual != expected {
-		t.Fatalf("bad: \n%s", actual)
+		t.Fatalf("wrong result\n\ngot:\n%s\n\nwant:\n%s", actual, expected)
 	}
 }
 
@@ -2828,7 +2828,7 @@ func TestContext2Apply_moduleOnlyProvider(t *testing.T) {
 	actual := strings.TrimSpace(state.String())
 	expected := strings.TrimSpace(testTerraformApplyModuleOnlyProviderStr)
 	if actual != expected {
-		t.Fatalf("bad: \n%s", actual)
+		t.Fatalf("wrong result\n\ngot:\n%s\n\nwant:\n%s", actual, expected)
 	}
 }
 
@@ -2858,7 +2858,7 @@ func TestContext2Apply_moduleProviderAlias(t *testing.T) {
 	actual := strings.TrimSpace(state.String())
 	expected := strings.TrimSpace(testTerraformApplyModuleProviderAliasStr)
 	if actual != expected {
-		t.Fatalf("bad: \n%s", actual)
+		t.Fatalf("wrong result\n\ngot:\n%s\n\nwant:\n%s", actual, expected)
 	}
 }
 
@@ -2900,7 +2900,7 @@ func TestContext2Apply_moduleProviderAliasTargets(t *testing.T) {
 <no state>
 	`)
 	if actual != expected {
-		t.Fatalf("bad: \n%s", actual)
+		t.Fatalf("wrong result\n\ngot:\n%s\n\nwant:\n%s", actual, expected)
 	}
 }
 
@@ -2996,7 +2996,7 @@ func TestContext2Apply_moduleVarRefExisting(t *testing.T) {
 	actual := strings.TrimSpace(state.String())
 	expected := strings.TrimSpace(testTerraformApplyModuleVarRefExistingStr)
 	if actual != expected {
-		t.Fatalf("bad: \n%s", actual)
+		t.Fatalf("wrong result\n\ngot:\n%s\n\nwant:\n%s", actual, expected)
 	}
 }
 
@@ -3080,7 +3080,7 @@ func TestContext2Apply_moduleBool(t *testing.T) {
 	actual := strings.TrimSpace(state.String())
 	expected := strings.TrimSpace(testTerraformApplyModuleBoolStr)
 	if actual != expected {
-		t.Fatalf("bad: \n%s", actual)
+		t.Fatalf("wrong result\n\ngot:\n%s\n\nwant:\n%s", actual, expected)
 	}
 }
 
@@ -3170,7 +3170,7 @@ func TestContext2Apply_multiProvider(t *testing.T) {
 	actual := strings.TrimSpace(state.String())
 	expected := strings.TrimSpace(testTerraformApplyMultiProviderStr)
 	if actual != expected {
-		t.Fatalf("bad: \n%s", actual)
+		t.Fatalf("wrong result\n\ngot:\n%s\n\nwant:\n%s", actual, expected)
 	}
 }
 
@@ -4034,7 +4034,7 @@ func TestContext2Apply_outputOrphan(t *testing.T) {
 	actual := strings.TrimSpace(state.String())
 	expected := strings.TrimSpace(testTerraformApplyOutputOrphanStr)
 	if actual != expected {
-		t.Fatalf("bad: \n%s", actual)
+		t.Fatalf("wrong result\n\ngot:\n%s\n\nwant:\n%s", actual, expected)
 	}
 }
 
@@ -4236,7 +4236,7 @@ func TestContext2Apply_provisionerModule(t *testing.T) {
 	actual := strings.TrimSpace(state.String())
 	expected := strings.TrimSpace(testTerraformApplyProvisionerModuleStr)
 	if actual != expected {
-		t.Fatalf("bad: \n%s", actual)
+		t.Fatalf("wrong result\n\ngot:\n%s\n\nwant:\n%s", actual, expected)
 	}
 
 	// Verify apply was invoked
@@ -4289,7 +4289,7 @@ func TestContext2Apply_Provisioner_compute(t *testing.T) {
 	actual := strings.TrimSpace(state.String())
 	expected := strings.TrimSpace(testTerraformApplyProvisionerStr)
 	if actual != expected {
-		t.Fatalf("bad: \n%s", actual)
+		t.Fatalf("wrong result\n\ngot:\n%s\n\nwant:\n%s", actual, expected)
 	}
 
 	// Verify apply was invoked
@@ -4336,7 +4336,7 @@ func TestContext2Apply_provisionerCreateFail(t *testing.T) {
 	actual := strings.TrimSpace(state.String())
 	expected := strings.TrimSpace(testTerraformApplyProvisionerFailCreateStr)
 	if actual != expected {
-		t.Fatalf("bad: \n%s", actual)
+		t.Fatalf("wrong result\n\ngot:\n%s\n\nwant:\n%s", actual, expected)
 	}
 }
 
@@ -4377,7 +4377,7 @@ func TestContext2Apply_provisionerCreateFailNoId(t *testing.T) {
 	actual := strings.TrimSpace(state.String())
 	expected := strings.TrimSpace(testTerraformApplyProvisionerFailCreateNoIdStr)
 	if actual != expected {
-		t.Fatalf("bad: \n%s", actual)
+		t.Fatalf("wrong result\n\ngot:\n%s\n\nwant:\n%s", actual, expected)
 	}
 }
 
@@ -4422,7 +4422,7 @@ func TestContext2Apply_provisionerFail(t *testing.T) {
 	actual := strings.TrimSpace(state.String())
 	expected := strings.TrimSpace(testTerraformApplyProvisionerFailStr)
 	if actual != expected {
-		t.Fatalf("bad: \n%s", actual)
+		t.Fatalf("wrong result\n\ngot:\n%s\n\nwant:\n%s", actual, expected)
 	}
 }
 
@@ -5411,7 +5411,7 @@ func TestContext2Apply_provisionerResourceRef(t *testing.T) {
 	actual := strings.TrimSpace(state.String())
 	expected := strings.TrimSpace(testTerraformApplyProvisionerResourceRefStr)
 	if actual != expected {
-		t.Fatalf("bad: \n%s", actual)
+		t.Fatalf("wrong result\n\ngot:\n%s\n\nwant:\n%s", actual, expected)
 	}
 
 	// Verify apply was invoked
@@ -5459,7 +5459,7 @@ func TestContext2Apply_provisionerSelfRef(t *testing.T) {
 	actual := strings.TrimSpace(state.String())
 	expected := strings.TrimSpace(testTerraformApplyProvisionerSelfRefStr)
 	if actual != expected {
-		t.Fatalf("bad: \n%s", actual)
+		t.Fatalf("wrong result\n\ngot:\n%s\n\nwant:\n%s", actual, expected)
 	}
 
 	// Verify apply was invoked
@@ -5514,7 +5514,7 @@ func TestContext2Apply_provisionerMultiSelfRef(t *testing.T) {
 	actual := strings.TrimSpace(state.String())
 	expected := strings.TrimSpace(testTerraformApplyProvisionerMultiSelfRefStr)
 	if actual != expected {
-		t.Fatalf("bad: \n%s", actual)
+		t.Fatalf("wrong result\n\ngot:\n%s\n\nwant:\n%s", actual, expected)
 	}
 
 	// Verify apply was invoked
@@ -5576,7 +5576,7 @@ func TestContext2Apply_provisionerMultiSelfRefSingle(t *testing.T) {
 	actual := strings.TrimSpace(state.String())
 	expected := strings.TrimSpace(testTerraformApplyProvisionerMultiSelfRefSingleStr)
 	if actual != expected {
-		t.Fatalf("bad: \n%s", actual)
+		t.Fatalf("wrong result\n\ngot:\n%s\n\nwant:\n%s", actual, expected)
 	}
 
 	// Verify apply was invoked
@@ -5700,7 +5700,7 @@ func TestContext2Apply_Provisioner_Diff(t *testing.T) {
 	actual := strings.TrimSpace(state.String())
 	expected := strings.TrimSpace(testTerraformApplyProvisionerDiffStr)
 	if actual != expected {
-		t.Fatalf("bad: \n%s", actual)
+		t.Fatalf("wrong result\n\ngot:\n%s\n\nwant:\n%s", actual, expected)
 	}
 
 	// Verify apply was invoked
@@ -5738,7 +5738,7 @@ func TestContext2Apply_Provisioner_Diff(t *testing.T) {
 
 	actual = strings.TrimSpace(state2.String())
 	if actual != expected {
-		t.Fatalf("bad: \n%s", actual)
+		t.Fatalf("wrong result\n\ngot:\n%s\n\nwant:\n%s", actual, expected)
 	}
 
 	// Verify apply was NOT invoked
@@ -5890,7 +5890,7 @@ func TestContext2Apply_Provisioner_ConnInfo(t *testing.T) {
 	actual := strings.TrimSpace(state.String())
 	expected := strings.TrimSpace(testTerraformApplyProvisionerStr)
 	if actual != expected {
-		t.Fatalf("bad: \n%s", actual)
+		t.Fatalf("wrong result\n\ngot:\n%s\n\nwant:\n%s", actual, expected)
 	}
 
 	// Verify apply was invoked
@@ -5952,7 +5952,7 @@ func TestContext2Apply_destroyX(t *testing.T) {
 	actual := strings.TrimSpace(state.String())
 	expected := strings.TrimSpace(testTerraformApplyDestroyStr)
 	if actual != expected {
-		t.Fatalf("bad: \n%s", actual)
+		t.Fatalf("wrong result\n\ngot:\n%s\n\nwant:\n%s", actual, expected)
 	}
 
 	// Test that things were destroyed _in the right order_
@@ -6018,7 +6018,7 @@ func TestContext2Apply_destroyOrder(t *testing.T) {
 	actual := strings.TrimSpace(state.String())
 	expected := strings.TrimSpace(testTerraformApplyDestroyStr)
 	if actual != expected {
-		t.Fatalf("bad: \n%s", actual)
+		t.Fatalf("wrong result\n\ngot:\n%s\n\nwant:\n%s", actual, expected)
 	}
 
 	// Test that things were destroyed _in the right order_
@@ -6739,7 +6739,7 @@ func TestContext2Apply_destroyTaintedProvisioner(t *testing.T) {
 	actual := strings.TrimSpace(state.String())
 	expected := strings.TrimSpace("<no state>")
 	if actual != expected {
-		t.Fatalf("bad: \n%s", actual)
+		t.Fatalf("wrong result\n\ngot:\n%s\n\nwant:\n%s", actual, expected)
 	}
 }
 
@@ -7040,7 +7040,7 @@ func TestContext2Apply_outputBasic(t *testing.T) {
 	actual := strings.TrimSpace(state.String())
 	expected := strings.TrimSpace(testTerraformApplyOutputStr)
 	if actual != expected {
-		t.Fatalf("bad: \n%s", actual)
+		t.Fatalf("wrong result\n\ngot:\n%s\n\nwant:\n%s", actual, expected)
 	}
 }
 
@@ -7116,7 +7116,7 @@ func TestContext2Apply_outputAdd(t *testing.T) {
 	actual := strings.TrimSpace(state2.String())
 	expected := strings.TrimSpace(testTerraformApplyOutputAddStr)
 	if actual != expected {
-		t.Fatalf("bad: \n%s", actual)
+		t.Fatalf("wrong result\n\ngot:\n%s\n\nwant:\n%s", actual, expected)
 	}
 }
 
@@ -7176,7 +7176,7 @@ func TestContext2Apply_outputMulti(t *testing.T) {
 	actual := strings.TrimSpace(state.String())
 	expected := strings.TrimSpace(testTerraformApplyOutputMultiStr)
 	if actual != expected {
-		t.Fatalf("bad: \n%s", actual)
+		t.Fatalf("wrong result\n\ngot:\n%s\n\nwant:\n%s", actual, expected)
 	}
 }
 
@@ -7206,7 +7206,7 @@ func TestContext2Apply_outputMultiIndex(t *testing.T) {
 	actual := strings.TrimSpace(state.String())
 	expected := strings.TrimSpace(testTerraformApplyOutputMultiIndexStr)
 	if actual != expected {
-		t.Fatalf("bad: \n%s", actual)
+		t.Fatalf("wrong result\n\ngot:\n%s\n\nwant:\n%s", actual, expected)
 	}
 }
 
@@ -8254,7 +8254,7 @@ func TestContext2Apply_unknownAttribute(t *testing.T) {
 	actual := strings.TrimSpace(state.String())
 	expected := strings.TrimSpace(testTerraformApplyUnknownAttrStr)
 	if actual != expected {
-		t.Fatalf("bad: \n%s", actual)
+		t.Fatalf("wrong result\n\ngot:\n%s\n\nwant:\n%s", actual, expected)
 	}
 }
 
