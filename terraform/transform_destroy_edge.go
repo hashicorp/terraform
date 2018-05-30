@@ -177,7 +177,7 @@ func (t *DestroyEdgeTransformer) Transform(g *Graph) error {
 
 	// Run the graph transforms so we have the information we need to
 	// build references.
-	log.Println("[TRACE] DestroyEdgeTransformer: constructing temporary graph for analysis of references")
+	log.Printf("[TRACE] DestroyEdgeTransformer: constructing temporary graph for analysis of references, starting from:\n%s", tempG.StringWithNodeTypes())
 	for _, s := range steps {
 		log.Printf("[TRACE] DestroyEdgeTransformer: running %T on temporary graph", s)
 		if err := s.Transform(&tempG); err != nil {
@@ -185,7 +185,7 @@ func (t *DestroyEdgeTransformer) Transform(g *Graph) error {
 			return err
 		}
 	}
-	log.Printf("[TRACE] DestroyEdgeTransformer: temporary reference graph: %s", tempG.String())
+	log.Printf("[TRACE] DestroyEdgeTransformer: temporary reference graph:\n%s", tempG.String())
 
 	// Go through all the nodes in the graph and determine what they
 	// depend on.
@@ -216,12 +216,13 @@ func (t *DestroyEdgeTransformer) Transform(g *Graph) error {
 
 		// Get the destroy node for this. In the example of our struct,
 		// we are currently at B and we're looking for B_d.
-		rn, ok := v.(GraphNodeResource)
+		rn, ok := v.(GraphNodeResourceInstance)
 		if !ok {
+			log.Printf("[TRACE] DestroyEdgeTransformer: skipping %s, since it's not a resource", dag.VertexName(v))
 			continue
 		}
 
-		addr := rn.ResourceAddr()
+		addr := rn.ResourceInstanceAddr()
 		dns := destroyers[addr.String()]
 
 		// We have dependencies, check if any are being destroyed
@@ -236,12 +237,12 @@ func (t *DestroyEdgeTransformer) Transform(g *Graph) error {
 		// to see if A_d exists.
 		var depDestroyers []dag.Vertex
 		for _, v := range refs {
-			rn, ok := v.(GraphNodeResource)
+			rn, ok := v.(GraphNodeResourceInstance)
 			if !ok {
 				continue
 			}
 
-			addr := rn.ResourceAddr()
+			addr := rn.ResourceInstanceAddr()
 			key := addr.String()
 			if ds, ok := destroyers[key]; ok {
 				for _, d := range ds {
@@ -258,6 +259,7 @@ func (t *DestroyEdgeTransformer) Transform(g *Graph) error {
 		for _, a_d := range dns {
 			for _, b_d := range depDestroyers {
 				if b_d != a_d {
+					log.Printf("[TRACE] DestroyEdgeTransformer: %q depends on %q", dag.VertexName(b_d), dag.VertexName(a_d))
 					g.Connect(dag.BasicEdge(b_d, a_d))
 				}
 			}
