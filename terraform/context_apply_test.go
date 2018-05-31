@@ -3002,7 +3002,7 @@ func TestContext2Apply_moduleVarResourceCount(t *testing.T) {
 			},
 		),
 		Variables: InputValues{
-			"count": &InputValue{
+			"num": &InputValue{
 				Value:      cty.NumberIntVal(2),
 				SourceType: ValueFromCaller,
 			},
@@ -3026,7 +3026,7 @@ func TestContext2Apply_moduleVarResourceCount(t *testing.T) {
 			},
 		),
 		Variables: InputValues{
-			"count": &InputValue{
+			"num": &InputValue{
 				Value:      cty.NumberIntVal(5),
 				SourceType: ValueFromCaller,
 			},
