@@ -218,7 +218,7 @@ func loadProvisionerSchemas(schemas map[string]*configschema.Block, config *conf
 			return
 		}
 
-		log.Printf("[TRACE] AttachSchemaTransformer: retrieving schema for provisioner %q", name)
+		log.Printf("[TRACE] LoadSchemas: retrieving schema for provisioner %q", name)
 		provisioner, err := components.ResourceProvisioner(name, "early/"+name)
 		if err != nil {
 			// We'll put a stub in the map so we won't re-attempt this on
