@@ -1529,3 +1529,161 @@ func TestMerge(t *testing.T) {
 		})
 	}
 }
+
+func TestSlice(t *testing.T) {
+	listOfStrings := cty.ListVal([]cty.Value{
+		cty.StringVal("a"),
+		cty.StringVal("b"),
+	})
+	listOfInts := cty.ListVal([]cty.Value{
+		cty.NumberIntVal(1),
+		cty.NumberIntVal(2),
+	})
+	tests := []struct {
+		List       cty.Value
+		StartIndex cty.Value
+		EndIndex   cty.Value
+		Want       cty.Value
+		Err        bool
+	}{
+		{ // normal usage
+			listOfStrings,
+			cty.NumberIntVal(1),
+			cty.NumberIntVal(2),
+			cty.ListVal([]cty.Value{
+				cty.StringVal("b"),
+			}),
+			false,
+		},
+		{ // normal usage
+			listOfInts,
+			cty.NumberIntVal(1),
+			cty.NumberIntVal(2),
+			cty.ListVal([]cty.Value{
+				cty.NumberIntVal(2),
+			}),
+			false,
+		},
+		{ // empty result
+			listOfStrings,
+			cty.NumberIntVal(1),
+			cty.NumberIntVal(1),
+			cty.ListValEmpty(cty.DynamicPseudoType),
+			false,
+		},
+		{ // index out of bounds
+			listOfStrings,
+			cty.NumberIntVal(1),
+			cty.NumberIntVal(4),
+			cty.NilVal,
+			true,
+		},
+		{ // StartIndex index > EndIndex
+			listOfStrings,
+			cty.NumberIntVal(2),
+			cty.NumberIntVal(1),
+			cty.NilVal,
+			true,
+		},
+		{ // negative StartIndex
+			listOfStrings,
+			cty.NumberIntVal(-1),
+			cty.NumberIntVal(0),
+			cty.NilVal,
+			true,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(fmt.Sprintf("slice(%#v, %#v, %#v)", test.List, test.StartIndex, test.EndIndex), func(t *testing.T) {
+			got, err := Slice(test.List, test.StartIndex, test.EndIndex)
+
+			if test.Err {
+				if err == nil {
+					t.Fatal("succeeded; want error")
+				}
+				return
+			} else if err != nil {
+				t.Fatalf("unexpected error: %s", err)
+			}
+
+			if !got.RawEquals(test.Want) {
+				t.Errorf("wrong result\ngot:  %#v\nwant: %#v", got, test.Want)
+			}
+		})
+	}
+}
+
+func TestTranspose(t *testing.T) {
+	tests := []struct {
+		Values cty.Value
+		Want   cty.Value
+		Err    bool
+	}{
+		{
+			cty.MapVal(map[string]cty.Value{
+				"key1": cty.ListVal([]cty.Value{
+					cty.StringVal("a"),
+					cty.StringVal("b"),
+				}),
+				"key2": cty.ListVal([]cty.Value{
+					cty.StringVal("a"),
+					cty.StringVal("b"),
+					cty.StringVal("c"),
+				}),
+				"key3": cty.ListVal([]cty.Value{
+					cty.StringVal("c"),
+				}),
+				"key4": cty.ListValEmpty(cty.String),
+			}),
+			cty.MapVal(map[string]cty.Value{
+				"a": cty.ListVal([]cty.Value{
+					cty.StringVal("key1"),
+					cty.StringVal("key2"),
+				}),
+				"b": cty.ListVal([]cty.Value{
+					cty.StringVal("key1"),
+					cty.StringVal("key2"),
+				}),
+				"c": cty.ListVal([]cty.Value{
+					cty.StringVal("key2"),
+					cty.StringVal("key3"),
+				}),
+			}),
+			false,
+		},
+		{ // bad map - empty value
+			cty.MapVal(map[string]cty.Value{
+				"key1": cty.ListValEmpty(cty.String),
+			}),
+			cty.NilVal,
+			true,
+		},
+		{ // bad map - value not a list
+			cty.MapVal(map[string]cty.Value{
+				"key1": cty.StringVal("a"),
+			}),
+			cty.NilVal,
+			true,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(fmt.Sprintf("transpose(%#v)", test.Values), func(t *testing.T) {
+			got, err := Transpose(test.Values)
+
+			if test.Err {
+				if err == nil {
+					t.Fatal("succeeded; want error")
+				}
+				return
+			} else if err != nil {
+				t.Fatalf("unexpected error: %s", err)
+			}
+
+			if !got.RawEquals(test.Want) {
+				t.Errorf("wrong result\ngot:  %#v\nwant: %#v", got, test.Want)
+			}
+		})
+	}
+}
