@@ -1568,7 +1568,7 @@ func TestSlice(t *testing.T) {
 			listOfStrings,
 			cty.NumberIntVal(1),
 			cty.NumberIntVal(1),
-			cty.ListValEmpty(cty.DynamicPseudoType),
+			cty.ListValEmpty(cty.String),
 			false,
 		},
 		{ // index out of bounds
