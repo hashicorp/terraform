@@ -107,6 +107,8 @@ func (b *PlanGraphBuilder) Steps() []GraphTransformer {
 
 		&MissingProvisionerTransformer{Provisioners: b.Components.ResourceProvisioners()},
 
+		// Must be run before TransformProviders so that resource configurations
+		// can be analyzed.
 		&AttachSchemaTransformer{Schemas: b.Schemas},
 
 		// Add module variables
@@ -116,12 +118,13 @@ func (b *PlanGraphBuilder) Steps() []GraphTransformer {
 
 		TransformProviders(b.Components.ResourceProviders(), b.ConcreteProvider, b.Config),
 
+		// Attach schema to the newly-created provider nodes.
+		// (Will also redundantly re-attach schema to existing resource nodes,
+		// but that's okay.)
+		&AttachSchemaTransformer{Schemas: b.Schemas},
+
 		// Remove modules no longer present in the config
 		&RemovedModuleTransformer{Config: b.Config, State: b.State},
-
-		// Must be before ReferenceTransformer, since schema is required to
-		// extract references from config.
-		&AttachSchemaTransformer{Schemas: b.Schemas},
 
 		// Connect so that the references are ready for targeting. We'll
 		// have to connect again later for providers and so on.
