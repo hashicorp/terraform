@@ -28,6 +28,10 @@ type ApplyGraphBuilder struct {
 	// provisioners) available for use.
 	Components contextComponentFactory
 
+	// Schemas is the repository of schemas we will draw from to analyse
+	// the configuration.
+	Schemas *Schemas
+
 	// Targets are resources to target. This is only required to make sure
 	// unnecessary outputs aren't included in the apply graph. The plan
 	// builder successfully handles targeting resources. In the future,
@@ -86,16 +90,16 @@ func (b *ApplyGraphBuilder) Steps() []GraphTransformer {
 
 		// Destruction ordering
 		&DestroyEdgeTransformer{
-			Config:     b.Config,
-			State:      b.State,
-			Components: b.Components,
+			Config:  b.Config,
+			State:   b.State,
+			Schemas: b.Schemas,
 		},
 		GraphTransformIf(
 			func() bool { return !b.Destroy },
 			&CBDEdgeTransformer{
-				Config:     b.Config,
-				State:      b.State,
-				Components: b.Components,
+				Config:  b.Config,
+				State:   b.State,
+				Schemas: b.Schemas,
 			},
 		),
 
@@ -117,7 +121,7 @@ func (b *ApplyGraphBuilder) Steps() []GraphTransformer {
 
 		// Must be before TransformProviders and ReferenceTransformer, since
 		// schema is required to extract references from config.
-		&AttachSchemaTransformer{Components: b.Components},
+		&AttachSchemaTransformer{Schemas: b.Schemas},
 
 		// add providers
 		TransformProviders(b.Components.ResourceProviders(), concreteProvider, b.Config),

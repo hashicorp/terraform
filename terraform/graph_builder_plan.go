@@ -33,6 +33,10 @@ type PlanGraphBuilder struct {
 	// provisioners) available for use.
 	Components contextComponentFactory
 
+	// Schemas is the repository of schemas we will draw from to analyse
+	// the configuration.
+	Schemas *Schemas
+
 	// Targets are resources to target
 	Targets []addrs.Targetable
 
@@ -103,7 +107,7 @@ func (b *PlanGraphBuilder) Steps() []GraphTransformer {
 
 		&MissingProvisionerTransformer{Provisioners: b.Components.ResourceProvisioners()},
 
-		&AttachSchemaTransformer{Components: b.Components},
+		&AttachSchemaTransformer{Schemas: b.Schemas},
 
 		// Add module variables
 		&ModuleVariableTransformer{
@@ -117,7 +121,7 @@ func (b *PlanGraphBuilder) Steps() []GraphTransformer {
 
 		// Must be before ReferenceTransformer, since schema is required to
 		// extract references from config.
-		&AttachSchemaTransformer{Components: b.Components},
+		&AttachSchemaTransformer{Schemas: b.Schemas},
 
 		// Connect so that the references are ready for targeting. We'll
 		// have to connect again later for providers and so on.
@@ -169,7 +173,6 @@ func (b *PlanGraphBuilder) init() {
 	b.ConcreteResource = func(a *NodeAbstractResource) dag.Vertex {
 		return &NodePlannableResource{
 			NodeAbstractResource: a,
-			Components:           b.Components,
 		}
 	}
 

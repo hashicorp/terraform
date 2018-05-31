@@ -96,6 +96,7 @@ type Context struct {
 	// fail regardless but putting this note here as well.
 
 	components contextComponentFactory
+	schemas    *Schemas
 	destroy    bool
 	diff       *Diff
 	diffLock   sync.RWMutex
@@ -203,26 +204,35 @@ func NewContext(opts *ContextOpts) (*Context, tfdiags.Diagnostics) {
 		providers = make(map[string]ResourceProviderFactory)
 	}
 
+	components := &basicComponentFactory{
+		providers:    providers,
+		provisioners: opts.Provisioners,
+	}
+
+	schemas, err := LoadSchemas(opts.Config, opts.State, components)
+	if err != nil {
+		diags = diags.Append(err)
+		return nil, diags
+	}
+
 	diff := opts.Diff
 	if diff == nil {
 		diff = &Diff{}
 	}
 
 	return &Context{
-		components: &basicComponentFactory{
-			providers:    providers,
-			provisioners: opts.Provisioners,
-		},
-		destroy:   opts.Destroy,
-		diff:      diff,
-		hooks:     hooks,
-		meta:      opts.Meta,
-		config:    opts.Config,
-		shadow:    opts.Shadow,
-		state:     state,
-		targets:   opts.Targets,
-		uiInput:   opts.UIInput,
-		variables: variables,
+		components: components,
+		schemas:    schemas,
+		destroy:    opts.Destroy,
+		diff:       diff,
+		hooks:      hooks,
+		meta:       opts.Meta,
+		config:     opts.Config,
+		shadow:     opts.Shadow,
+		state:      state,
+		targets:    opts.Targets,
+		uiInput:    opts.UIInput,
+		variables:  variables,
 
 		parallelSem:         NewSemaphore(par),
 		providerInputConfig: make(map[string]map[string]cty.Value),
@@ -255,6 +265,7 @@ func (c *Context) Graph(typ GraphType, opts *ContextGraphOpts) (*Graph, tfdiags.
 			Diff:       c.diff,
 			State:      c.state,
 			Components: c.components,
+			Schemas:    c.schemas,
 			Targets:    c.targets,
 			Destroy:    c.destroy,
 			Validate:   opts.Validate,
@@ -272,6 +283,7 @@ func (c *Context) Graph(typ GraphType, opts *ContextGraphOpts) (*Graph, tfdiags.
 			Config:     c.config,
 			State:      c.state,
 			Components: c.components,
+			Schemas:    c.schemas,
 			Targets:    c.targets,
 			Validate:   opts.Validate,
 		}
@@ -289,11 +301,11 @@ func (c *Context) Graph(typ GraphType, opts *ContextGraphOpts) (*Graph, tfdiags.
 
 	case GraphTypePlanDestroy:
 		return (&DestroyPlanGraphBuilder{
-			Config:     c.config,
-			State:      c.state,
-			Components: c.components,
-			Targets:    c.targets,
-			Validate:   opts.Validate,
+			Config:   c.config,
+			State:    c.state,
+			Schemas:  c.schemas,
+			Targets:  c.targets,
+			Validate: opts.Validate,
 		}).Build(addrs.RootModuleInstance)
 
 	case GraphTypeRefresh:
@@ -301,6 +313,7 @@ func (c *Context) Graph(typ GraphType, opts *ContextGraphOpts) (*Graph, tfdiags.
 			Config:     c.config,
 			State:      c.state,
 			Components: c.components,
+			Schemas:    c.schemas,
 			Targets:    c.targets,
 			Validate:   opts.Validate,
 		}).Build(addrs.RootModuleInstance)
@@ -310,6 +323,7 @@ func (c *Context) Graph(typ GraphType, opts *ContextGraphOpts) (*Graph, tfdiags.
 			Config:     c.config,
 			State:      c.state,
 			Components: c.components,
+			Schemas:    c.schemas,
 		}).Build(addrs.RootModuleInstance)
 
 	default:
