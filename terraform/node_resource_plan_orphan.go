@@ -46,7 +46,7 @@ func (n *NodePlannableResourceInstanceOrphan) EvalTree() EvalNode {
 			},
 			&EvalDiffDestroy{
 				Addr:   addr.Resource,
-				State:  &state,
+				State:  &state, // Will point to a nil state after this complete, signalling destroyed
 				Output: &diff,
 			},
 			&EvalCheckPreventDestroy{
@@ -57,6 +57,12 @@ func (n *NodePlannableResourceInstanceOrphan) EvalTree() EvalNode {
 			&EvalWriteDiff{
 				Name: stateId,
 				Diff: &diff,
+			},
+			&EvalWriteState{
+				Name:         stateId,
+				ResourceType: addr.Resource.Resource.Type,
+				Provider:     n.ResolvedProvider,
+				State:        &state,
 			},
 		},
 	}
