@@ -385,7 +385,6 @@ var KeysFunc = function.New(&function.Spec{
 
 		for it := args[0].ElementIterator(); it.Next(); {
 			k, _ := it.Element()
-			fmt.Printf("appending %#v to %#v\n", k, keys)
 			keys = append(keys, k)
 			if err != nil {
 				return cty.ListValEmpty(cty.String), err
@@ -436,6 +435,64 @@ var ListFunc = function.New(&function.Spec{
 		}
 
 		return cty.ListVal(newList), nil
+	},
+})
+
+// LookupFunc contructs a function that performs dynamic lookups of map types.
+var LookupFunc = function.New(&function.Spec{
+	Params: []function.Parameter{
+		{
+			Name: "inputMap",
+			Type: cty.Map(cty.DynamicPseudoType),
+		},
+		{
+			Name: "key",
+			Type: cty.String,
+		},
+	},
+	VarParam: &function.Parameter{
+		Name:             "default",
+		Type:             cty.DynamicPseudoType,
+		AllowUnknown:     true,
+		AllowDynamicType: true,
+		AllowNull:        true,
+	},
+	Type: function.StaticReturnType(cty.DynamicPseudoType),
+	Impl: func(args []cty.Value, retType cty.Type) (ret cty.Value, err error) {
+		if len(args) < 1 || len(args) > 3 {
+			return cty.NilVal, fmt.Errorf("lookup() takes two or three arguments, got %d", len(args))
+		}
+		var defaultVal string
+		defaultValueSet := false
+
+		if len(args) == 3 {
+			defaultVal = args[2].AsString()
+			defaultValueSet = true
+		}
+
+		mapVar := args[0]
+		lookupKey := args[1].AsString()
+
+		if mapVar.HasIndex(cty.StringVal(lookupKey)) == cty.True {
+			v := mapVar.Index(cty.StringVal(lookupKey))
+			if ty := v.Type(); !ty.Equals(cty.NilType) {
+				switch {
+				case ty.Equals(cty.String):
+					return cty.StringVal(v.AsString()), nil
+				case ty.Equals(cty.Number):
+					return cty.NumberVal(v.AsBigFloat()), nil
+				default:
+					return cty.NilVal, fmt.Errorf("lookup() can only be used with flat lists")
+				}
+			}
+		}
+
+		if defaultValueSet {
+			return cty.StringVal(defaultVal), nil
+		}
+
+		return cty.UnknownVal(cty.String), fmt.Errorf(
+			"lookup failed to find '%s'", lookupKey)
 	},
 })
 
@@ -651,6 +708,13 @@ func Keys(inputMap cty.Value) (cty.Value, error) {
 //  values in the same order.
 func List(args ...cty.Value) (cty.Value, error) {
 	return ListFunc.Call(args)
+}
+
+// Lookup performs a dynamic lookup into a map.
+// There are two required arguments, map and key, plus an optional default,
+// which is a value to return if no key is found in map.
+func Lookup(args ...cty.Value) (cty.Value, error) {
+	return LookupFunc.Call(args)
 }
 
 // Map takes an even number of arguments and returns a map whose elements are constructed
