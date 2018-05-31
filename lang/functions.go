@@ -73,7 +73,7 @@ func (s *Scope) Functions() map[string]function.Function {
 			"matchkeys":    funcs.MatchkeysFunc,
 			"max":          stdlib.MaxFunc,
 			"md5":          funcs.Md5Func,
-			"merge":        unimplFunc, // TODO
+			"merge":        funcs.MergeFunc,
 			"min":          stdlib.MinFunc,
 			"pathexpand":   funcs.PathExpandFunc,
 			"pow":          funcs.PowFunc,
