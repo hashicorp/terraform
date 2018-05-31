@@ -463,6 +463,11 @@ func (n *EvalDiffDestroy) Eval(ctx EvalContext) (interface{}, error) {
 	// Update our output
 	*n.Output = diff
 
+	if n.State != nil {
+		// Record our proposed new state, which is nil because we're destroying.
+		*n.State = nil
+	}
+
 	return nil, nil
 }
 
