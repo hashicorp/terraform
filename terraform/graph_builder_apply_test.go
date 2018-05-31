@@ -556,7 +556,6 @@ test_object.A (destroy)
 test_object.B
   provider.test
   test_object.A
-  test_object.A (destroy)
 test_object.B (destroy)
   provider.test
   test_object.B
