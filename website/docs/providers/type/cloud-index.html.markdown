@@ -29,6 +29,8 @@ vendor in close collaboration with HashiCorp, and are tested by HashiCorp.
 
 [Fastly](/docs/providers/fastly/index.html)
 
+[FlexibleEngine](/docs/providers/flexibleengine/index.html)
+
 [Heroku](/docs/providers/heroku/index.html)
 
 [OpenStack](/docs/providers/openstack/index.html)
