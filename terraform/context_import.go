@@ -61,6 +61,7 @@ func (c *Context) Import(opts *ImportOpts) (*State, tfdiags.Diagnostics) {
 		ImportTargets: opts.Targets,
 		Config:        config,
 		Components:    c.components,
+		Schemas:       c.schemas,
 	}
 
 	// Build the graph!

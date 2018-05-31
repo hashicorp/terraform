@@ -17,8 +17,8 @@ func TestCBDEdgeTransformer(t *testing.T) {
 
 	{
 		tf := &DestroyEdgeTransformer{
-			Config:     module,
-			Components: simpleMockComponentFactory(),
+			Config:  module,
+			Schemas: simpleTestSchemas(),
 		}
 		if err := tf.Transform(&g); err != nil {
 			t.Fatalf("err: %s", err)
@@ -27,8 +27,8 @@ func TestCBDEdgeTransformer(t *testing.T) {
 
 	{
 		tf := &CBDEdgeTransformer{
-			Config:     module,
-			Components: simpleMockComponentFactory(),
+			Config:  module,
+			Schemas: simpleTestSchemas(),
 		}
 		if err := tf.Transform(&g); err != nil {
 			t.Fatalf("err: %s", err)
@@ -53,8 +53,8 @@ func TestCBDEdgeTransformer_depNonCBD(t *testing.T) {
 
 	{
 		tf := &DestroyEdgeTransformer{
-			Config:     module,
-			Components: simpleMockComponentFactory(),
+			Config:  module,
+			Schemas: simpleTestSchemas(),
 		}
 		if err := tf.Transform(&g); err != nil {
 			t.Fatalf("err: %s", err)
@@ -63,8 +63,8 @@ func TestCBDEdgeTransformer_depNonCBD(t *testing.T) {
 
 	{
 		tf := &CBDEdgeTransformer{
-			Config:     module,
-			Components: simpleMockComponentFactory(),
+			Config:  module,
+			Schemas: simpleTestSchemas(),
 		}
 		if err := tf.Transform(&g); err != nil {
 			t.Fatalf("err: %s", err)
@@ -89,8 +89,8 @@ func TestCBDEdgeTransformer_depNonCBDCount(t *testing.T) {
 
 	{
 		tf := &DestroyEdgeTransformer{
-			Config:     module,
-			Components: simpleMockComponentFactory(),
+			Config:  module,
+			Schemas: simpleTestSchemas(),
 		}
 		if err := tf.Transform(&g); err != nil {
 			t.Fatalf("err: %s", err)
@@ -99,8 +99,8 @@ func TestCBDEdgeTransformer_depNonCBDCount(t *testing.T) {
 
 	{
 		tf := &CBDEdgeTransformer{
-			Config:     module,
-			Components: simpleMockComponentFactory(),
+			Config:  module,
+			Schemas: simpleTestSchemas(),
 		}
 		if err := tf.Transform(&g); err != nil {
 			t.Fatalf("err: %s", err)
@@ -135,8 +135,8 @@ func TestCBDEdgeTransformer_depNonCBDCountBoth(t *testing.T) {
 
 	{
 		tf := &DestroyEdgeTransformer{
-			Config:     module,
-			Components: simpleMockComponentFactory(),
+			Config:  module,
+			Schemas: simpleTestSchemas(),
 		}
 		if err := tf.Transform(&g); err != nil {
 			t.Fatalf("err: %s", err)
@@ -145,8 +145,8 @@ func TestCBDEdgeTransformer_depNonCBDCountBoth(t *testing.T) {
 
 	{
 		tf := &CBDEdgeTransformer{
-			Config:     module,
-			Components: simpleMockComponentFactory(),
+			Config:  module,
+			Schemas: simpleTestSchemas(),
 		}
 		if err := tf.Transform(&g); err != nil {
 			t.Fatalf("err: %s", err)

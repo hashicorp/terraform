@@ -12,8 +12,8 @@ func TestDestroyEdgeTransformer_basic(t *testing.T) {
 	g.Add(&graphNodeDestroyerTest{AddrString: "test_object.A"})
 	g.Add(&graphNodeDestroyerTest{AddrString: "test_object.B"})
 	tf := &DestroyEdgeTransformer{
-		Config:     testModule(t, "transform-destroy-edge-basic"),
-		Components: simpleMockComponentFactory(),
+		Config:  testModule(t, "transform-destroy-edge-basic"),
+		Schemas: simpleTestSchemas(),
 	}
 	if err := tf.Transform(&g); err != nil {
 		t.Fatalf("err: %s", err)
@@ -32,8 +32,8 @@ func TestDestroyEdgeTransformer_create(t *testing.T) {
 	g.Add(&graphNodeDestroyerTest{AddrString: "test_object.B"})
 	g.Add(&graphNodeCreatorTest{AddrString: "test_object.A"})
 	tf := &DestroyEdgeTransformer{
-		Config:     testModule(t, "transform-destroy-edge-basic"),
-		Components: simpleMockComponentFactory(),
+		Config:  testModule(t, "transform-destroy-edge-basic"),
+		Schemas: simpleTestSchemas(),
 	}
 	if err := tf.Transform(&g); err != nil {
 		t.Fatalf("err: %s", err)
@@ -52,8 +52,8 @@ func TestDestroyEdgeTransformer_multi(t *testing.T) {
 	g.Add(&graphNodeDestroyerTest{AddrString: "test_object.B"})
 	g.Add(&graphNodeDestroyerTest{AddrString: "test_object.C"})
 	tf := &DestroyEdgeTransformer{
-		Config:     testModule(t, "transform-destroy-edge-multi"),
-		Components: simpleMockComponentFactory(),
+		Config:  testModule(t, "transform-destroy-edge-multi"),
+		Schemas: simpleTestSchemas(),
 	}
 	if err := tf.Transform(&g); err != nil {
 		t.Fatalf("err: %s", err)
@@ -70,8 +70,8 @@ func TestDestroyEdgeTransformer_selfRef(t *testing.T) {
 	g := Graph{Path: addrs.RootModuleInstance}
 	g.Add(&graphNodeDestroyerTest{AddrString: "test_object.A"})
 	tf := &DestroyEdgeTransformer{
-		Config:     testModule(t, "transform-destroy-edge-self-ref"),
-		Components: simpleMockComponentFactory(),
+		Config:  testModule(t, "transform-destroy-edge-self-ref"),
+		Schemas: simpleTestSchemas(),
 	}
 	if err := tf.Transform(&g); err != nil {
 		t.Fatalf("err: %s", err)
@@ -89,8 +89,8 @@ func TestDestroyEdgeTransformer_module(t *testing.T) {
 	g.Add(&graphNodeDestroyerTest{AddrString: "module.child.test_object.b"})
 	g.Add(&graphNodeDestroyerTest{AddrString: "test_object.a"})
 	tf := &DestroyEdgeTransformer{
-		Config:     testModule(t, "transform-destroy-edge-module"),
-		Components: simpleMockComponentFactory(),
+		Config:  testModule(t, "transform-destroy-edge-module"),
+		Schemas: simpleTestSchemas(),
 	}
 	if err := tf.Transform(&g); err != nil {
 		t.Fatalf("err: %s", err)
@@ -109,8 +109,8 @@ func TestDestroyEdgeTransformer_moduleOnly(t *testing.T) {
 	g.Add(&graphNodeDestroyerTest{AddrString: "module.child.test_object.b"})
 	g.Add(&graphNodeDestroyerTest{AddrString: "module.child.test_object.c"})
 	tf := &DestroyEdgeTransformer{
-		Config:     testModule(t, "transform-destroy-edge-module-only"),
-		Components: simpleMockComponentFactory(),
+		Config:  testModule(t, "transform-destroy-edge-module-only"),
+		Schemas: simpleTestSchemas(),
 	}
 	if err := tf.Transform(&g); err != nil {
 		t.Fatalf("err: %s", err)

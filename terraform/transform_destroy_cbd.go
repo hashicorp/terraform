@@ -41,10 +41,10 @@ type CBDEdgeTransformer struct {
 	Config *configs.Config
 	State  *State
 
-	// If configuration is present then Components is required in order to
-	// obtain schema information from providers and provisioners in order
-	// to properly resolve implicit dependencies.
-	Components contextComponentFactory
+	// If configuration is present then Schemas is required in order to
+	// obtain schema information from providers and provisioners so we can
+	// properly resolve implicit dependencies.
+	Schemas *Schemas
 }
 
 func (t *CBDEdgeTransformer) Transform(g *Graph) error {
@@ -178,7 +178,7 @@ func (t *CBDEdgeTransformer) depMap(destroyMap map[string][]dag.Vertex) (map[str
 			&FlatConfigTransformer{Config: t.Config},
 			&AttachResourceConfigTransformer{Config: t.Config},
 			&AttachStateTransformer{State: t.State},
-			&AttachSchemaTransformer{Components: t.Components},
+			&AttachSchemaTransformer{Schemas: t.Schemas},
 			&ReferenceTransformer{},
 		},
 		Name: "CBDEdgeTransformer",
