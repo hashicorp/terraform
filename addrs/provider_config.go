@@ -6,6 +6,7 @@ import (
 	"github.com/hashicorp/terraform/tfdiags"
 
 	"github.com/hashicorp/hcl2/hcl"
+	"github.com/hashicorp/hcl2/hcl/hclsyntax"
 )
 
 // ProviderConfig is the address of a provider configuration.
@@ -177,6 +178,35 @@ func ParseAbsProviderConfig(traversal hcl.Traversal) (AbsProviderConfig, tfdiags
 	}
 
 	return ret, diags
+}
+
+// ParseAbsProviderConfigStr is a helper wrapper around ParseAbsProviderConfig
+// that takes a string and parses it with the HCL native syntax traversal parser
+// before interpreting it.
+//
+// This should be used only in specialized situations since it will cause the
+// created references to not have any meaningful source location information.
+// If a reference string is coming from a source that should be identified in
+// error messages then the caller should instead parse it directly using a
+// suitable function from the HCL API and pass the traversal itself to
+// ParseAbsProviderConfig.
+//
+// Error diagnostics are returned if either the parsing fails or the analysis
+// of the traversal fails. There is no way for the caller to distinguish the
+// two kinds of diagnostics programmatically. If error diagnostics are returned
+// the returned address is invalid.
+func ParseAbsProviderConfigStr(str string) (AbsProviderConfig, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+
+	traversal, parseDiags := hclsyntax.ParseTraversalAbs([]byte(str), "", hcl.Pos{Line: 1, Column: 1})
+	diags = diags.Append(parseDiags)
+	if parseDiags.HasErrors() {
+		return AbsProviderConfig{}, diags
+	}
+
+	addr, addrDiags := ParseAbsProviderConfig(traversal)
+	diags = diags.Append(addrDiags)
+	return addr, diags
 }
 
 // ProviderConfigDefault returns the address of the default provider config
