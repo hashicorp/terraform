@@ -77,23 +77,6 @@ func (n *NodePlannableResourceInstance) evalTreeDataResource(addr addrs.AbsResou
 				OutputState:    &state,
 			},
 
-			&EvalIf{
-				If: func(ctx EvalContext) (bool, error) {
-					computed := !configVal.IsWhollyKnown()
-
-					// If the configuration is complete and we
-					// already have a state then we don't need to
-					// do any further work during apply, because we
-					// already populated the state during refresh.
-					if !computed && state != nil {
-						return true, EvalEarlyExitError{}
-					}
-
-					return true, nil
-				},
-				Then: EvalNoop{},
-			},
-
 			&EvalWriteState{
 				Name:         stateId,
 				ResourceType: n.Config.Type,
