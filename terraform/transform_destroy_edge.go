@@ -45,10 +45,10 @@ type DestroyEdgeTransformer struct {
 	Config *configs.Config
 	State  *State
 
-	// If configuration is present then Components is required in order to
+	// If configuration is present then Schemas is required in order to
 	// obtain schema information from providers and provisioners in order
 	// to properly resolve implicit dependencies.
-	Components contextComponentFactory
+	Schemas *Schemas
 }
 
 func (t *DestroyEdgeTransformer) Transform(g *Graph) error {
@@ -141,7 +141,7 @@ func (t *DestroyEdgeTransformer) Transform(g *Graph) error {
 
 		// Must be before ReferenceTransformer, since schema is required to
 		// extract references from config.
-		&AttachSchemaTransformer{Components: t.Components},
+		&AttachSchemaTransformer{Schemas: t.Schemas},
 
 		TransformProviders(nil, providerFn, t.Config),
 

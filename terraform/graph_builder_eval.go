@@ -1,11 +1,10 @@
 package terraform
 
 import (
-	"github.com/hashicorp/terraform/dag"
-	"github.com/hashicorp/terraform/tfdiags"
-
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs"
+	"github.com/hashicorp/terraform/dag"
+	"github.com/hashicorp/terraform/tfdiags"
 )
 
 // EvalGraphBuilder implements GraphBuilder and constructs a graph suitable
@@ -33,6 +32,10 @@ type EvalGraphBuilder struct {
 	// Components is a factory for the plug-in components (providers and
 	// provisioners) available for use.
 	Components contextComponentFactory
+
+	// Schemas is the repository of schemas we will draw from to analyse
+	// the configuration.
+	Schemas *Schemas
 }
 
 // See GraphBuilder
@@ -72,7 +75,7 @@ func (b *EvalGraphBuilder) Steps() []GraphTransformer {
 
 		// Must be before TransformProviders and ReferenceTransformer, since
 		// schema is required to extract references from config.
-		&AttachSchemaTransformer{Components: b.Components},
+		&AttachSchemaTransformer{Schemas: b.Schemas},
 
 		TransformProviders(b.Components.ResourceProviders(), concreteProvider, b.Config),
 
