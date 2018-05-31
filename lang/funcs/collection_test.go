@@ -949,6 +949,116 @@ func TestList(t *testing.T) {
 	}
 }
 
+func TestLookup(t *testing.T) {
+	simpleMap := cty.MapVal(map[string]cty.Value{
+		"foo": cty.StringVal("bar"),
+	})
+	intsMap := cty.MapVal(map[string]cty.Value{
+		"foo": cty.NumberIntVal(42),
+	})
+	mapOfLists := cty.MapVal(map[string]cty.Value{
+		"foo": cty.ListVal([]cty.Value{
+			cty.StringVal("bar"),
+			cty.StringVal("baz"),
+		}),
+	})
+
+	tests := []struct {
+		Values []cty.Value
+		Want   cty.Value
+		Err    bool
+	}{
+		{
+			[]cty.Value{
+				simpleMap,
+				cty.StringVal("foo"),
+			},
+			cty.StringVal("bar"),
+			false,
+		},
+		{
+			[]cty.Value{
+				intsMap,
+				cty.StringVal("foo"),
+			},
+			cty.NumberIntVal(42),
+			false,
+		},
+		{ // Invalid key
+			[]cty.Value{
+				simpleMap,
+				cty.StringVal("bar"),
+			},
+			cty.NilVal,
+			true,
+		},
+		{ // Supplied default with valid key
+			[]cty.Value{
+				simpleMap,
+				cty.StringVal("foo"),
+				cty.StringVal(""),
+			},
+			cty.StringVal("bar"),
+			false,
+		},
+		{ // Supplied default with invalid key
+			[]cty.Value{
+				simpleMap,
+				cty.StringVal("baz"),
+				cty.StringVal(""),
+			},
+			cty.StringVal(""),
+			false,
+		},
+		{ // Supplied non-empty default with invalid key
+			[]cty.Value{
+				simpleMap,
+				cty.StringVal("bar"),
+				cty.StringVal("xyz"),
+			},
+			cty.StringVal("xyz"),
+			false,
+		},
+		{ // too many args
+			[]cty.Value{
+				simpleMap,
+				cty.StringVal("foo"),
+				cty.StringVal("bar"),
+				cty.StringVal("baz"),
+			},
+			cty.NilVal,
+			true,
+		},
+		{ // cannot search a map of lists
+			[]cty.Value{
+				mapOfLists,
+				cty.StringVal("baz"),
+			},
+			cty.NilVal,
+			true,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(fmt.Sprintf("lookup(%#v)", test.Values), func(t *testing.T) {
+			got, err := Lookup(test.Values...)
+
+			if test.Err {
+				if err == nil {
+					t.Fatal("succeeded; want error")
+				}
+				return
+			} else if err != nil {
+				t.Fatalf("unexpected error: %s", err)
+			}
+
+			if !got.RawEquals(test.Want) {
+				t.Errorf("wrong result\ngot:  %#v\nwant: %#v", got, test.Want)
+			}
+		})
+	}
+}
+
 func TestMap(t *testing.T) {
 	tests := []struct {
 		Values []cty.Value
