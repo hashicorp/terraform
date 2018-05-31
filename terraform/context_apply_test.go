@@ -2536,7 +2536,7 @@ func TestContext2Apply_moduleInheritAlias(t *testing.T) {
 	p.DiffFn = testDiffFn
 
 	p.ConfigureFn = func(c *ResourceConfig) error {
-		if _, ok := c.Get("child"); !ok {
+		if _, ok := c.Get("value"); !ok {
 			return nil
 		}
 
