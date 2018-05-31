@@ -1365,3 +1365,167 @@ func TestMatchkeys(t *testing.T) {
 		})
 	}
 }
+
+func TestMerge(t *testing.T) {
+	tests := []struct {
+		Values []cty.Value
+		Want   cty.Value
+		Err    bool
+	}{
+		{
+			[]cty.Value{
+				cty.MapVal(map[string]cty.Value{
+					"a": cty.StringVal("b"),
+				}),
+				cty.MapVal(map[string]cty.Value{
+					"c": cty.StringVal("d"),
+				}),
+			},
+			cty.ObjectVal(map[string]cty.Value{
+				"a": cty.StringVal("b"),
+				"c": cty.StringVal("d"),
+			}),
+			false,
+		},
+		{ // merge with conflicts is ok, last in wins
+			[]cty.Value{
+				cty.MapVal(map[string]cty.Value{
+					"a": cty.StringVal("b"),
+					"c": cty.StringVal("d"),
+				}),
+				cty.MapVal(map[string]cty.Value{
+					"a": cty.StringVal("x"),
+				}),
+			},
+			cty.ObjectVal(map[string]cty.Value{
+				"a": cty.StringVal("x"),
+				"c": cty.StringVal("d"),
+			}),
+			false,
+		},
+		{ // only accept maps
+			[]cty.Value{
+				cty.MapVal(map[string]cty.Value{
+					"a": cty.StringVal("b"),
+					"c": cty.StringVal("d"),
+				}),
+				cty.ListVal([]cty.Value{
+					cty.StringVal("a"),
+					cty.StringVal("x"),
+				}),
+			},
+			cty.NilVal,
+			true,
+		},
+		{ // merge maps of maps
+			[]cty.Value{
+				cty.MapVal(map[string]cty.Value{
+					"a": cty.MapVal(map[string]cty.Value{
+						"b": cty.StringVal("c"),
+					}),
+				}),
+				cty.MapVal(map[string]cty.Value{
+					"d": cty.MapVal(map[string]cty.Value{
+						"e": cty.StringVal("f"),
+					}),
+				}),
+			},
+			cty.ObjectVal(map[string]cty.Value{
+				"a": cty.MapVal(map[string]cty.Value{
+					"b": cty.StringVal("c"),
+				}),
+				"d": cty.MapVal(map[string]cty.Value{
+					"e": cty.StringVal("f"),
+				}),
+			}),
+			false,
+		},
+		{ // map of lists
+			[]cty.Value{
+				cty.MapVal(map[string]cty.Value{
+					"a": cty.ListVal([]cty.Value{
+						cty.StringVal("b"),
+						cty.StringVal("c"),
+					}),
+				}),
+				cty.MapVal(map[string]cty.Value{
+					"d": cty.ListVal([]cty.Value{
+						cty.StringVal("e"),
+						cty.StringVal("f"),
+					}),
+				}),
+			},
+			cty.ObjectVal(map[string]cty.Value{
+				"a": cty.ListVal([]cty.Value{
+					cty.StringVal("b"),
+					cty.StringVal("c"),
+				}),
+				"d": cty.ListVal([]cty.Value{
+					cty.StringVal("e"),
+					cty.StringVal("f"),
+				}),
+			}),
+			false,
+		},
+		{ // merge map of various kinds
+			[]cty.Value{
+				cty.MapVal(map[string]cty.Value{
+					"a": cty.ListVal([]cty.Value{
+						cty.StringVal("b"),
+						cty.StringVal("c"),
+					}),
+				}),
+				cty.MapVal(map[string]cty.Value{
+					"d": cty.MapVal(map[string]cty.Value{
+						"e": cty.StringVal("f"),
+					}),
+				}),
+			},
+			cty.ObjectVal(map[string]cty.Value{
+				"a": cty.ListVal([]cty.Value{
+					cty.StringVal("b"),
+					cty.StringVal("c"),
+				}),
+				"d": cty.MapVal(map[string]cty.Value{
+					"e": cty.StringVal("f"),
+				}),
+			}),
+			false,
+		},
+		{ // argument error: non map type
+			[]cty.Value{
+				cty.MapVal(map[string]cty.Value{
+					"a": cty.ListVal([]cty.Value{
+						cty.StringVal("b"),
+						cty.StringVal("c"),
+					}),
+				}),
+				cty.ListVal([]cty.Value{
+					cty.StringVal("d"),
+					cty.StringVal("e"),
+				}),
+			},
+			cty.NilVal,
+			true,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(fmt.Sprintf("merge(%#v)", test.Values), func(t *testing.T) {
+			got, err := Merge(test.Values...)
+
+			if test.Err {
+				if err == nil {
+					t.Fatal("succeeded; want error")
+				}
+				return
+			} else if err != nil {
+				t.Fatalf("unexpected error: %s", err)
+			}
+
+			if !got.RawEquals(test.Want) {
+				t.Errorf("wrong result\ngot:  %#v\nwant: %#v", got, test.Want)
+			}
+		})
+	}
+}
