@@ -634,6 +634,38 @@ var MatchkeysFunc = function.New(&function.Spec{
 	},
 })
 
+// MergeFunc contructs a function that takes an arbitrary number of maps and
+// returns a single map that contains a merged set of elements from all of the maps.
+//
+// If more than one given map defines the same key then the one that is later in
+// the argument sequence takes precedence.
+var MergeFunc = function.New(&function.Spec{
+	Params: []function.Parameter{},
+	VarParam: &function.Parameter{
+		Name:             "maps",
+		Type:             cty.DynamicPseudoType,
+		AllowUnknown:     true,
+		AllowDynamicType: true,
+		AllowNull:        true,
+	},
+	Type: function.StaticReturnType(cty.DynamicPseudoType),
+	Impl: func(args []cty.Value, retType cty.Type) (ret cty.Value, err error) {
+		outputMap := make(map[string]cty.Value)
+
+		for _, arg := range args {
+
+			if !arg.Type().IsObjectType() && !arg.Type().IsMapType() {
+				return cty.NilVal, fmt.Errorf("arguments must be maps or objects, got %#v", arg.Type())
+			}
+			for it := arg.ElementIterator(); it.Next(); {
+				k, v := it.Element()
+				outputMap[k.AsString()] = v
+			}
+		}
+		return cty.ObjectVal(outputMap), nil
+	},
+})
+
 // helper function to add an element to a list, if it does not already exist
 func appendIfMissing(slice []cty.Value, element cty.Value) ([]cty.Value, error) {
 	for _, ele := range slice {
@@ -727,4 +759,13 @@ func Map(args ...cty.Value) (cty.Value, error) {
 // whose indexes match the corresponding indexes of values in another list.
 func Matchkeys(values, keys, searchset cty.Value) (cty.Value, error) {
 	return MatchkeysFunc.Call([]cty.Value{values, keys, searchset})
+}
+
+// Merge takes an arbitrary number of maps and returns a single map that contains
+// a merged set of elements from all of the maps.
+//
+// If more than one given map defines the same key then the one that is later in
+// the argument sequence takes precedence.
+func Merge(maps ...cty.Value) (cty.Value, error) {
+	return MergeFunc.Call(maps)
 }
