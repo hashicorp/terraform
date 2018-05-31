@@ -69,6 +69,7 @@ func TestApplyGraphBuilder(t *testing.T) {
 		Config:        testModule(t, "graph-builder-apply-basic"),
 		Diff:          diff,
 		Components:    simpleMockComponentFactory(),
+		Schemas:       simpleTestSchemas(),
 		DisableReduce: true,
 	}
 
@@ -122,6 +123,7 @@ func TestApplyGraphBuilder_depCbd(t *testing.T) {
 		Config:        testModule(t, "graph-builder-apply-dep-cbd"),
 		Diff:          diff,
 		Components:    simpleMockComponentFactory(),
+		Schemas:       simpleTestSchemas(),
 		DisableReduce: true,
 	}
 
@@ -187,6 +189,7 @@ func TestApplyGraphBuilder_doubleCBD(t *testing.T) {
 		Config:        testModule(t, "graph-builder-apply-double-cbd"),
 		Diff:          diff,
 		Components:    simpleMockComponentFactory(),
+		Schemas:       simpleTestSchemas(),
 		DisableReduce: true,
 	}
 
@@ -257,6 +260,7 @@ func TestApplyGraphBuilder_destroyStateOnly(t *testing.T) {
 		Diff:          diff,
 		State:         state,
 		Components:    simpleMockComponentFactory(),
+		Schemas:       simpleTestSchemas(),
 		DisableReduce: true,
 	}
 
@@ -304,6 +308,7 @@ func TestApplyGraphBuilder_destroyCount(t *testing.T) {
 		Config:        testModule(t, "graph-builder-apply-count"),
 		Diff:          diff,
 		Components:    simpleMockComponentFactory(),
+		Schemas:       simpleTestSchemas(),
 		DisableReduce: true,
 	}
 
@@ -350,6 +355,7 @@ func TestApplyGraphBuilder_moduleDestroy(t *testing.T) {
 		Config:     testModule(t, "graph-builder-apply-module-destroy"),
 		Diff:       diff,
 		Components: simpleMockComponentFactory(),
+		Schemas:    simpleTestSchemas(),
 	}
 
 	g, err := b.Build(addrs.RootModuleInstance)
@@ -387,6 +393,7 @@ func TestApplyGraphBuilder_provisioner(t *testing.T) {
 		Config:     testModule(t, "graph-builder-apply-provisioner"),
 		Diff:       diff,
 		Components: simpleMockComponentFactory(),
+		Schemas:    simpleTestSchemas(),
 	}
 
 	g, err := b.Build(addrs.RootModuleInstance)
@@ -421,6 +428,7 @@ func TestApplyGraphBuilder_provisionerDestroy(t *testing.T) {
 		Config:     testModule(t, "graph-builder-apply-provisioner"),
 		Diff:       diff,
 		Components: simpleMockComponentFactory(),
+		Schemas:    simpleTestSchemas(),
 	}
 
 	g, err := b.Build(addrs.RootModuleInstance)
@@ -472,6 +480,7 @@ func TestApplyGraphBuilder_targetModule(t *testing.T) {
 		Config:     testModule(t, "graph-builder-apply-target-module"),
 		Diff:       diff,
 		Components: simpleMockComponentFactory(),
+		Schemas:    simpleTestSchemas(),
 		Targets: []addrs.Targetable{
 			addrs.RootModuleInstance.Child("child2", addrs.NoKey),
 		},

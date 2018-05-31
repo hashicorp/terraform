@@ -33,6 +33,10 @@ type RefreshGraphBuilder struct {
 	// provisioners) available for use.
 	Components contextComponentFactory
 
+	// Schemas is the repository of schemas we will draw from to analyse
+	// the configuration.
+	Schemas *Schemas
+
 	// Targets are resources to target
 	Targets []addrs.Targetable
 
@@ -136,7 +140,7 @@ func (b *RefreshGraphBuilder) Steps() []GraphTransformer {
 
 		// Must be before TransformProviders and ReferenceTransformer, since
 		// schema is required to extract references from config.
-		&AttachSchemaTransformer{Components: b.Components},
+		&AttachSchemaTransformer{Schemas: b.Schemas},
 
 		TransformProviders(b.Components.ResourceProviders(), concreteProvider, b.Config),
 

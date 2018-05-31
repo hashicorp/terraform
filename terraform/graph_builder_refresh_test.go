@@ -73,6 +73,7 @@ func TestRefreshGraphBuilder_configOrphans(t *testing.T) {
 		Config:     m,
 		State:      state,
 		Components: simpleMockComponentFactory(),
+		Schemas:    simpleTestSchemas(),
 	}
 	g, err := b.Build(addrs.RootModuleInstance)
 	if err != nil {

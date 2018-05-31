@@ -13,28 +13,38 @@ func TestPlanGraphBuilder_impl(t *testing.T) {
 }
 
 func TestPlanGraphBuilder(t *testing.T) {
+	awsProvider := &MockResourceProvider{
+		GetSchemaReturn: &ProviderSchema{
+			Provider: simpleTestSchema(),
+			ResourceTypes: map[string]*configschema.Block{
+				"aws_security_group": simpleTestSchema(),
+				"aws_instance":       simpleTestSchema(),
+				"aws_load_balancer":  simpleTestSchema(),
+			},
+		},
+	}
+	openstackProvider := &MockResourceProvider{
+		GetSchemaReturn: &ProviderSchema{
+			Provider: simpleTestSchema(),
+			ResourceTypes: map[string]*configschema.Block{
+				"openstack_floating_ip": simpleTestSchema(),
+			},
+		},
+	}
+	components := &basicComponentFactory{
+		providers: map[string]ResourceProviderFactory{
+			"aws":       ResourceProviderFactoryFixed(awsProvider),
+			"openstack": ResourceProviderFactoryFixed(openstackProvider),
+		},
+	}
+
 	b := &PlanGraphBuilder{
-		Config: testModule(t, "graph-builder-plan-basic"),
-		Components: &basicComponentFactory{
-			providers: map[string]ResourceProviderFactory{
-				"aws": ResourceProviderFactoryFixed(&MockResourceProvider{
-					GetSchemaReturn: &ProviderSchema{
-						Provider: simpleTestSchema(),
-						ResourceTypes: map[string]*configschema.Block{
-							"aws_security_group": simpleTestSchema(),
-							"aws_instance":       simpleTestSchema(),
-							"aws_load_balancer":  simpleTestSchema(),
-						},
-					},
-				}),
-				"openstack": ResourceProviderFactoryFixed(&MockResourceProvider{
-					GetSchemaReturn: &ProviderSchema{
-						Provider: simpleTestSchema(),
-						ResourceTypes: map[string]*configschema.Block{
-							"openstack_floating_ip": simpleTestSchema(),
-						},
-					},
-				}),
+		Config:     testModule(t, "graph-builder-plan-basic"),
+		Components: components,
+		Schemas: &Schemas{
+			providers: map[string]*ProviderSchema{
+				"aws":       awsProvider.GetSchemaReturn,
+				"openstack": openstackProvider.GetSchemaReturn,
 			},
 		},
 		DisableReduce: true,
@@ -60,6 +70,7 @@ func TestPlanGraphBuilder_targetModule(t *testing.T) {
 	b := &PlanGraphBuilder{
 		Config:     testModule(t, "graph-builder-plan-target-module-provider"),
 		Components: simpleMockComponentFactory(),
+		Schemas:    simpleTestSchemas(),
 		Targets: []addrs.Targetable{
 			addrs.RootModuleInstance.Child("child2", addrs.NoKey),
 		},
