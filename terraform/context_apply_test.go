@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"log"
 	"reflect"
 	"runtime"
 	"sort"
@@ -3772,16 +3773,18 @@ func TestContext2Apply_multiVarCountDec(t *testing.T) {
 			},
 		})
 
+		log.Print("\n========\nStep 1 Plan\n========")
 		if _, diags := ctx.Plan(); diags.HasErrors() {
 			t.Fatalf("diags: %s", diags.Err())
 		}
 
+		log.Print("\n========\nStep 1 Apply\n========")
 		state, diags := ctx.Apply()
 		if diags.HasErrors() {
 			t.Fatalf("diags: %s", diags.Err())
 		}
 
-		t.Logf("Step 1 state: %s", state)
+		t.Logf("Step 1 state:\n%s", state)
 
 		s = state
 	}
@@ -3838,20 +3841,25 @@ func TestContext2Apply_multiVarCountDec(t *testing.T) {
 			},
 		})
 
-		if _, diags := ctx.Plan(); diags.HasErrors() {
-			t.Fatalf("diags: %s", diags.Err())
+		log.Print("\n========\nStep 2 Plan\n========")
+		plan, diags := ctx.Plan()
+		if diags.HasErrors() {
+			t.Fatalf("plan errors: %s", diags.Err())
 		}
 
+		t.Logf("Step 2 plan:\n%s", plan)
+
+		log.Print("\n========\nStep 2 Apply\n========")
 		state, diags := ctx.Apply()
 		if diags.HasErrors() {
-			t.Fatalf("diags: %s", diags.Err())
+			t.Fatalf("apply errors: %s", diags.Err())
 		}
 
 		if !checked {
-			t.Fatal("apply never called")
+			t.Error("apply never called")
 		}
 
-		t.Logf("Step 2 state: %s", state)
+		t.Logf("Step 2 state:\n%s", state)
 
 		s = state
 	}
