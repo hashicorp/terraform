@@ -3,7 +3,7 @@ provider "aws" {
 }
 
 provider "aws" {
-    child = "eu"
+    value = "eu"
     alias = "eu"
 }
 
