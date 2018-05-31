@@ -9,10 +9,6 @@ import (
 // it is ready to be planned in order to create a diff.
 type NodePlannableResource struct {
 	*NodeAbstractResource
-
-	// Components is the component factory to use when performing
-	// DynamicExpand, to access plugins necessary to build the subgraph.
-	Components contextComponentFactory
 }
 
 var (
@@ -48,6 +44,7 @@ func (n *NodePlannableResource) DynamicExpand(ctx EvalContext) (*Graph, error) {
 		// Add the config and state since we don't do that via transforms
 		a.Config = n.Config
 		a.ResolvedProvider = n.ResolvedProvider
+		a.Schema = n.Schema
 
 		return &NodePlannableResourceInstance{
 			NodeAbstractResourceInstance: a,
@@ -59,6 +56,7 @@ func (n *NodePlannableResource) DynamicExpand(ctx EvalContext) (*Graph, error) {
 		// Add the config and state since we don't do that via transforms
 		a.Config = n.Config
 		a.ResolvedProvider = n.ResolvedProvider
+		a.Schema = n.Schema
 
 		return &NodePlannableResourceInstanceOrphan{
 			NodeAbstractResourceInstance: a,
@@ -88,12 +86,6 @@ func (n *NodePlannableResource) DynamicExpand(ctx EvalContext) (*Graph, error) {
 
 		// Targeting
 		&TargetsTransformer{Targets: n.Targets},
-
-		// Schemas must be attached before ReferenceTransformer, so we can
-		// properly analyze the configuration.
-		&AttachSchemaTransformer{
-			Components: n.Components,
-		},
 
 		// Connect references so ordering is correct
 		&ReferenceTransformer{},

@@ -1220,6 +1220,7 @@ func TestContext2Validate_PlanGraphBuilder(t *testing.T) {
 		Config:     c.config,
 		State:      NewState(),
 		Components: c.components,
+		Schemas:    c.schemas,
 		Targets:    c.targets,
 	}).Build(addrs.RootModuleInstance)
 	if diags.HasErrors() {
