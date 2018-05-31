@@ -83,14 +83,14 @@ func (s *Scope) Functions() map[string]function.Function {
 			"sha256":       funcs.Sha256Func,
 			"sha512":       funcs.Sha512Func,
 			"signum":       funcs.SignumFunc,
-			"slice":        unimplFunc, // TODO
+			"slice":        funcs.SliceFunc,
 			"sort":         funcs.SortFunc,
 			"split":        funcs.SplitFunc,
 			"substr":       stdlib.SubstrFunc,
 			"timestamp":    funcs.TimestampFunc,
 			"timeadd":      funcs.TimeAddFunc,
 			"title":        funcs.TitleFunc,
-			"transpose":    unimplFunc, // TODO
+			"transpose":    funcs.TransposeFunc,
 			"trimspace":    funcs.TrimSpaceFunc,
 			"upper":        stdlib.UpperFunc,
 			"urlencode":    funcs.URLEncodeFunc,

@@ -2,6 +2,7 @@ package funcs
 
 import (
 	"fmt"
+	"sort"
 
 	"github.com/zclconf/go-cty/cty"
 	"github.com/zclconf/go-cty/cty/convert"
@@ -666,6 +667,112 @@ var MergeFunc = function.New(&function.Spec{
 	},
 })
 
+// SliceFunc contructs a function that extracts some consecutive elements
+// from within a list.
+var SliceFunc = function.New(&function.Spec{
+	Params: []function.Parameter{
+		{
+			Name: "list",
+			Type: cty.List(cty.DynamicPseudoType),
+		},
+		{
+			Name: "startIndex",
+			Type: cty.Number,
+		},
+		{
+			Name: "endIndex",
+			Type: cty.Number,
+		},
+	},
+	Type: function.StaticReturnType(cty.List(cty.DynamicPseudoType)),
+	Impl: func(args []cty.Value, retType cty.Type) (ret cty.Value, err error) {
+		inputList := args[0]
+		var startIndex, endIndex int
+
+		if err = gocty.FromCtyValue(args[1], &startIndex); err != nil {
+			return cty.NilVal, fmt.Errorf("invalid start index: %s", err)
+		}
+		if err = gocty.FromCtyValue(args[2], &endIndex); err != nil {
+			return cty.NilVal, fmt.Errorf("invalid start index: %s", err)
+		}
+
+		if startIndex < 0 {
+			return cty.NilVal, fmt.Errorf("from index must be >= 0")
+		}
+		if endIndex > inputList.LengthInt() {
+			return cty.NilVal, fmt.Errorf("to index must be <= length of the input list")
+		}
+		if startIndex > endIndex {
+			return cty.NilVal, fmt.Errorf("from index must be <= to index")
+		}
+
+		var outputList []cty.Value
+
+		i := 0
+		for it := inputList.ElementIterator(); it.Next(); {
+			_, v := it.Element()
+			if i >= startIndex && i < endIndex {
+				outputList = append(outputList, v)
+			}
+			i++
+		}
+
+		if len(outputList) == 0 {
+			return cty.ListValEmpty(cty.DynamicPseudoType), nil
+		}
+		return cty.ListVal(outputList), nil
+	},
+})
+
+// TransposeFunc contructs a function that takes a map of lists of strings and
+// swaps the keys and values to produce a new map of lists of strings.
+var TransposeFunc = function.New(&function.Spec{
+	Params: []function.Parameter{
+		{
+			Name: "values",
+			Type: cty.Map(cty.List(cty.String)),
+		},
+	},
+	Type: function.StaticReturnType(cty.Map(cty.List(cty.String))),
+	Impl: func(args []cty.Value, retType cty.Type) (ret cty.Value, err error) {
+		inputMap := args[0]
+		outputMap := make(map[string]cty.Value)
+		tmpMap := make(map[string][]string)
+
+		for it := inputMap.ElementIterator(); it.Next(); {
+			inKey, inVal := it.Element()
+			if !inVal.Type().IsListType() {
+				return cty.MapValEmpty(cty.List(cty.String)), fmt.Errorf("input must be a map of lists of strings")
+			}
+			for iter := inVal.ElementIterator(); iter.Next(); {
+				_, val := iter.Element()
+				if !val.Type().Equals(cty.String) {
+					return cty.MapValEmpty(cty.List(cty.String)), fmt.Errorf("input must be a map of lists of strings")
+				}
+
+				outKey := val.AsString()
+				if _, ok := tmpMap[outKey]; !ok {
+					tmpMap[outKey] = make([]string, 0)
+				}
+				outVal := tmpMap[outKey]
+				outVal = append(outVal, inKey.AsString())
+				sort.Strings(outVal)
+				tmpMap[outKey] = outVal
+			}
+		}
+
+		for outKey, outVal := range tmpMap {
+			values := make([]cty.Value, 0)
+			for _, v := range outVal {
+				values = append(values, cty.StringVal(v))
+			}
+			outputMap[outKey] = cty.ListVal(values)
+		}
+
+		return cty.MapVal(outputMap), nil
+	},
+})
+
 // helper function to add an element to a list, if it does not already exist
 func appendIfMissing(slice []cty.Value, element cty.Value) ([]cty.Value, error) {
 	for _, ele := range slice {
@@ -768,4 +875,15 @@ func Matchkeys(values, keys, searchset cty.Value) (cty.Value, error) {
 // the argument sequence takes precedence.
 func Merge(maps ...cty.Value) (cty.Value, error) {
 	return MergeFunc.Call(maps)
+}
+
+// Slice extracts some consecutive elements from within a list.
+func Slice(list, start, end cty.Value) (cty.Value, error) {
+	return SliceFunc.Call([]cty.Value{list, start, end})
+}
+
+// Transpose takes a map of lists of strings and swaps the keys and values to
+// produce a new map of lists of strings.
+func Transpose(values cty.Value) (cty.Value, error) {
+	return TransposeFunc.Call([]cty.Value{values})
 }
