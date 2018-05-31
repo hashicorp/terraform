@@ -645,7 +645,6 @@ var MergeFunc = function.New(&function.Spec{
 	VarParam: &function.Parameter{
 		Name:             "maps",
 		Type:             cty.DynamicPseudoType,
-		AllowUnknown:     true,
 		AllowDynamicType: true,
 		AllowNull:        true,
 	},
@@ -656,7 +655,7 @@ var MergeFunc = function.New(&function.Spec{
 		for _, arg := range args {
 
 			if !arg.Type().IsObjectType() && !arg.Type().IsMapType() {
-				return cty.NilVal, fmt.Errorf("arguments must be maps or objects, got %#v", arg.Type())
+				return cty.NilVal, fmt.Errorf("arguments must be maps or objects, got %#v", arg.Type().FriendlyName())
 			}
 			for it := arg.ElementIterator(); it.Next(); {
 				k, v := it.Element()
@@ -684,7 +683,9 @@ var SliceFunc = function.New(&function.Spec{
 			Type: cty.Number,
 		},
 	},
-	Type: function.StaticReturnType(cty.List(cty.DynamicPseudoType)),
+	Type: func(args []cty.Value) (cty.Type, error) {
+		return args[0].Type(), nil
+	},
 	Impl: func(args []cty.Value, retType cty.Type) (ret cty.Value, err error) {
 		inputList := args[0]
 		var startIndex, endIndex int
@@ -718,7 +719,7 @@ var SliceFunc = function.New(&function.Spec{
 		}
 
 		if len(outputList) == 0 {
-			return cty.ListValEmpty(cty.DynamicPseudoType), nil
+			return cty.ListValEmpty(retType.ElementType()), nil
 		}
 		return cty.ListVal(outputList), nil
 	},
@@ -736,14 +737,15 @@ var TransposeFunc = function.New(&function.Spec{
 	Type: function.StaticReturnType(cty.Map(cty.List(cty.String))),
 	Impl: func(args []cty.Value, retType cty.Type) (ret cty.Value, err error) {
 		inputMap := args[0]
+		if !inputMap.IsWhollyKnown() {
+			return cty.UnknownVal(retType), nil
+		}
+
 		outputMap := make(map[string]cty.Value)
 		tmpMap := make(map[string][]string)
 
 		for it := inputMap.ElementIterator(); it.Next(); {
 			inKey, inVal := it.Element()
-			if !inVal.Type().IsListType() {
-				return cty.MapValEmpty(cty.List(cty.String)), fmt.Errorf("input must be a map of lists of strings")
-			}
 			for iter := inVal.ElementIterator(); iter.Next(); {
 				_, val := iter.Element()
 				if !val.Type().Equals(cty.String) {
