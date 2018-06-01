@@ -142,30 +142,3 @@ func (n *EvalGetProvider) Eval(ctx EvalContext) (interface{}, error) {
 
 	return nil, nil
 }
-
-// EvalInputProvider is an EvalNode implementation that asks for input
-// for the given provider configurations.
-type EvalInputProvider struct {
-	Addr     addrs.ProviderConfig
-	Provider *ResourceProvider
-	Config   *configs.Provider
-}
-
-func (n *EvalInputProvider) Eval(ctx EvalContext) (interface{}, error) {
-	// This is currently disabled. It used to interact with a provider method
-	// called Input, allowing the provider to capture input interactively
-	// itself, but once re-implemented we'll have this instead use the
-	// provider's configuration schema to automatically infer what we need
-	// to prompt for.
-	var diags tfdiags.Diagnostics
-	diag := &hcl.Diagnostic{
-		Severity: hcl.DiagWarning,
-		Summary:  "Provider input is temporarily disabled",
-		Detail:   fmt.Sprintf("Skipped gathering input for %s because the input step is currently disabled pending a change to the provider API.", n.Addr),
-	}
-	if n.Config != nil {
-		diag.Subject = n.Config.DeclRange.Ptr()
-	}
-	diags = diags.Append(diag)
-	return nil, diags.ErrWithWarnings()
-}

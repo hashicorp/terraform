@@ -121,17 +121,6 @@ func (n *NodeApplyableModuleVariable) EvalTree() EvalNode {
 					IgnoreDiagnostics: false,
 				},
 			},
-			&EvalOpFilter{
-				Ops: []walkOperation{walkInput},
-				Node: &EvalModuleCallArgument{
-					Addr:   n.Addr.Variable,
-					Config: n.Config,
-					Expr:   n.Expr,
-					Values: vals,
-
-					IgnoreDiagnostics: true,
-				},
-			},
 
 			&EvalSetModuleCallArguments{
 				Module: call,

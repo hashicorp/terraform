@@ -30,13 +30,12 @@ type ResourceProvider interface {
 	// resource or data source has the SchemaAvailable flag set.
 	GetSchema(*ProviderSchemaRequest) (*ProviderSchema, error)
 
-	// Input is called to ask the provider to ask the user for input
-	// for completing the configuration if necesarry.
+	// Input was used prior to v0.12 to ask the provider to prompt the user
+	// for input to complete the configuration.
 	//
-	// This may or may not be called, so resource provider writers shouldn't
-	// rely on this being available to set some default values for validate
-	// later. Example of a situation where this wouldn't be called is if
-	// the user is not using a TTY.
+	// From v0.12 onwards this method is never called because Terraform Core
+	// is able to handle the necessary input logic itself based on the
+	// schema returned from GetSchema.
 	Input(UIInput, *ResourceConfig) (*ResourceConfig, error)
 
 	// Validate is called once at the beginning with the raw configuration

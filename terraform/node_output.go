@@ -116,17 +116,6 @@ func (n *NodeApplyableOutput) EvalTree() EvalNode {
 	return &EvalSequence{
 		Nodes: []EvalNode{
 			&EvalOpFilter{
-				// Don't let interpolation errors stop Input, since it happens
-				// before Refresh.
-				Ops: []walkOperation{walkInput},
-				Node: &EvalWriteOutput{
-					Addr:          n.Addr.OutputValue,
-					Sensitive:     n.Config.Sensitive,
-					Expr:          n.Config.Expr,
-					ContinueOnErr: true,
-				},
-			},
-			&EvalOpFilter{
 				Ops: []walkOperation{walkRefresh, walkPlan, walkApply, walkValidate, walkDestroy, walkPlanDestroy},
 				Node: &EvalWriteOutput{
 					Addr:      n.Addr.OutputValue,

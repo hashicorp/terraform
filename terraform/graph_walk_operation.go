@@ -7,7 +7,6 @@ type walkOperation byte
 
 const (
 	walkInvalid walkOperation = iota
-	walkInput
 	walkApply
 	walkPlan
 	walkPlanDestroy

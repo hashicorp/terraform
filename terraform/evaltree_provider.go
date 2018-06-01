@@ -21,17 +21,12 @@ func ProviderEvalTree(n *NodeApplyableProvider, config *configs.Provider) EvalNo
 
 	// Input stuff
 	seq = append(seq, &EvalOpFilter{
-		Ops: []walkOperation{walkInput, walkImport},
+		Ops: []walkOperation{walkImport},
 		Node: &EvalSequence{
 			Nodes: []EvalNode{
 				&EvalGetProvider{
 					Addr:   addr,
 					Output: &provider,
-				},
-				&EvalInputProvider{
-					Addr:     relAddr,
-					Provider: &provider,
-					Config:   config,
 				},
 			},
 		},
