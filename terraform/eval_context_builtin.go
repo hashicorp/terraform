@@ -198,6 +198,12 @@ func (ctx *BuiltinEvalContext) ProviderInput(pc addrs.ProviderConfig) map[string
 func (ctx *BuiltinEvalContext) SetProviderInput(pc addrs.ProviderConfig, c map[string]cty.Value) {
 	absProvider := pc.Absolute(ctx.Path())
 
+	if !ctx.Path().IsRoot() {
+		// Only root module provider configurations can have input.
+		log.Printf("[WARN] BuiltinEvalContext: attempt to SetProviderInput for non-root module")
+		return
+	}
+
 	// Save the configuration
 	ctx.ProviderLock.Lock()
 	ctx.ProviderInputConfig[absProvider.String()] = c
