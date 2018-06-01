@@ -1687,3 +1687,160 @@ func TestTranspose(t *testing.T) {
 		})
 	}
 }
+
+func TestValues(t *testing.T) {
+	tests := []struct {
+		Values cty.Value
+		Want   cty.Value
+		Err    bool
+	}{
+		{
+			cty.MapVal(map[string]cty.Value{
+				"hello":  cty.StringVal("world"),
+				"what's": cty.StringVal("up"),
+			}),
+			cty.ListVal([]cty.Value{
+				cty.StringVal("world"),
+				cty.StringVal("up"),
+			}),
+			false,
+		},
+		{ // note ordering: keys are sorted first
+			cty.MapVal(map[string]cty.Value{
+				"hello":   cty.NumberIntVal(1),
+				"goodbye": cty.NumberIntVal(42),
+			}),
+			cty.ListVal([]cty.Value{
+				cty.NumberIntVal(42),
+				cty.NumberIntVal(1),
+			}),
+			false,
+		},
+		{ // error: map of lists
+			cty.MapVal(map[string]cty.Value{
+				"hello":  cty.ListVal([]cty.Value{cty.StringVal("world")}),
+				"what's": cty.ListVal([]cty.Value{cty.StringVal("up")}),
+			}),
+			cty.NilVal,
+			true,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(fmt.Sprintf("values(%#v)", test.Values), func(t *testing.T) {
+			got, err := Values(test.Values)
+
+			if test.Err {
+				if err == nil {
+					t.Fatal("succeeded; want error")
+				}
+				return
+			} else if err != nil {
+				t.Fatalf("unexpected error: %s", err)
+			}
+
+			if !got.RawEquals(test.Want) {
+				t.Errorf("wrong result\ngot:  %#v\nwant: %#v", got, test.Want)
+			}
+		})
+	}
+}
+
+func TestZipmap(t *testing.T) {
+	list1 := cty.ListVal([]cty.Value{
+		cty.StringVal("hello"),
+		cty.StringVal("world"),
+	})
+	list2 := cty.ListVal([]cty.Value{
+		cty.StringVal("bar"),
+		cty.StringVal("baz"),
+	})
+	list3 := cty.ListVal([]cty.Value{
+		cty.StringVal("hello"),
+		cty.StringVal("there"),
+		cty.StringVal("world"),
+	})
+	list4 := cty.ListVal([]cty.Value{
+		cty.NumberIntVal(1),
+		cty.NumberIntVal(42),
+	})
+	list5 := cty.ListVal([]cty.Value{
+		cty.ListVal([]cty.Value{
+			cty.StringVal("bar"),
+		}),
+		cty.ListVal([]cty.Value{
+			cty.StringVal("baz"),
+		}),
+	})
+	tests := []struct {
+		Keys   cty.Value
+		Values cty.Value
+		Want   cty.Value
+		Err    bool
+	}{
+		{
+			list1,
+			list2,
+			cty.MapVal(map[string]cty.Value{
+				"hello": cty.StringVal("bar"),
+				"world": cty.StringVal("baz"),
+			}),
+			false,
+		},
+		{
+			list1,
+			list4,
+			cty.MapVal(map[string]cty.Value{
+				"hello": cty.NumberIntVal(1),
+				"world": cty.NumberIntVal(42),
+			}),
+			false,
+		},
+		{ // length mismatch
+			list1,
+			list3,
+			cty.NilVal,
+			true,
+		},
+		{ // map of lists
+			list1,
+			list5,
+			cty.MapVal(map[string]cty.Value{
+				"hello": cty.ListVal([]cty.Value{cty.StringVal("bar")}),
+				"world": cty.ListVal([]cty.Value{cty.StringVal("baz")}),
+			}),
+			false,
+		},
+		{ // empty input returns an empty map
+			cty.ListValEmpty(cty.String),
+			cty.ListValEmpty(cty.String),
+			cty.MapValEmpty(cty.DynamicPseudoType),
+			false,
+		},
+		{ // keys cannot be a list
+			list5,
+			list1,
+			cty.NilVal,
+			true,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(fmt.Sprintf("zipmap(%#v, %#v)", test.Keys, test.Values), func(t *testing.T) {
+			got, err := Zipmap(test.Keys, test.Values)
+
+			if test.Err {
+				if err == nil {
+					t.Fatal("succeeded; want error")
+				}
+				return
+			} else if err != nil {
+				t.Fatalf("unexpected error: %s", err)
+			}
+
+			if !got.RawEquals(test.Want) {
+				t.Errorf("wrong result\ngot:  %#v\nwant: %#v", got, test.Want)
+			}
+		})
+	}
+}

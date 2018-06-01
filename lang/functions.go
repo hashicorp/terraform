@@ -95,8 +95,8 @@ func (s *Scope) Functions() map[string]function.Function {
 			"upper":        stdlib.UpperFunc,
 			"urlencode":    funcs.URLEncodeFunc,
 			"uuid":         funcs.UUIDFunc,
-			"values":       unimplFunc, // TODO
-			"zipmap":       unimplFunc, // TODO
+			"values":       funcs.ValuesFunc,
+			"zipmap":       funcs.ZipmapFunc,
 		}
 
 		if s.PureOnly {
