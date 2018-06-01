@@ -7105,29 +7105,6 @@ func TestContext2Apply_outputBasic(t *testing.T) {
 	}
 }
 
-func TestContext2Apply_outputInvalid(t *testing.T) {
-	m := testModule(t, "apply-output-invalid")
-	p := testProvider("aws")
-	p.ApplyFn = testApplyFn
-	p.DiffFn = testDiffFn
-	ctx := testContext2(t, &ContextOpts{
-		Config: m,
-		ProviderResolver: ResourceProviderResolverFixed(
-			map[string]ResourceProviderFactory{
-				"aws": testProviderFuncFixed(p),
-			},
-		),
-	})
-
-	_, diags := ctx.Plan()
-	if !diags.HasErrors() {
-		t.Fatal("succeeded; want error")
-	}
-	if errStr := diags.Err().Error(); !strings.Contains(errStr, "is not a valid type") {
-		t.Fatalf("wrong error: %s", errStr)
-	}
-}
-
 func TestContext2Apply_outputAdd(t *testing.T) {
 	m1 := testModule(t, "apply-output-add-before")
 	p1 := testProvider("aws")
