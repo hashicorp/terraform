@@ -374,7 +374,7 @@ aws_instance.bar:
 
 const testTerraformApplyCreateBeforeUpdateStr = `
 aws_instance.bar:
-  ID = foo
+  ID = bar
   provider = provider.aws
   foo = baz
   type = aws_instance
