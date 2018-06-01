@@ -54,8 +54,8 @@ func (t *AttachSchemaTransformer) Transform(g *Graph) error {
 	}
 
 	for _, v := range g.Vertices() {
-		switch tv := v.(type) {
-		case GraphNodeAttachResourceSchema:
+
+		if tv, ok := v.(GraphNodeAttachResourceSchema); ok {
 			addr := tv.ResourceAddr()
 			mode := addr.Resource.Mode
 			typeName := addr.Resource.Type
@@ -75,16 +75,20 @@ func (t *AttachSchemaTransformer) Transform(g *Graph) error {
 			}
 			log.Printf("[TRACE] AttachSchemaTransformer: attaching resource schema to %s", dag.VertexName(v))
 			tv.AttachResourceSchema(schema)
-		case GraphNodeAttachProviderConfigSchema:
+		}
+
+		if tv, ok := v.(GraphNodeAttachProviderConfigSchema); ok {
 			providerAddr := tv.ProviderAddr()
 			schema := t.Schemas.ProviderConfig(providerAddr.ProviderConfig.Type)
 			if schema == nil {
-				log.Printf("[ERROR] AttachSchemaTransformer: No schema available for %s", providerAddr)
+				log.Printf("[ERROR] AttachSchemaTransformer: No provider config schema available for %s", providerAddr)
 				continue
 			}
-			log.Printf("[TRACE] AttachSchemaTransformer: attaching schema to %s", dag.VertexName(v))
+			log.Printf("[TRACE] AttachSchemaTransformer: attaching provider config schema to %s", dag.VertexName(v))
 			tv.AttachProviderConfigSchema(schema)
-		case GraphNodeAttachProvisionerSchema:
+		}
+
+		if tv, ok := v.(GraphNodeAttachProvisionerSchema); ok {
 			names := tv.ProvisionedBy()
 			for _, name := range names {
 				schema := t.Schemas.ProvisionerConfig(name)
@@ -92,7 +96,7 @@ func (t *AttachSchemaTransformer) Transform(g *Graph) error {
 					log.Printf("[ERROR] AttachSchemaTransformer: No schema available for provisioner %q on %q", name, dag.VertexName(v))
 					continue
 				}
-				log.Printf("[TRACE] AttachSchemaTransformer: attaching provisioner %q schema to %s", name, dag.VertexName(v))
+				log.Printf("[TRACE] AttachSchemaTransformer: attaching provisioner %q config schema to %s", name, dag.VertexName(v))
 				tv.AttachProvisionerSchema(name, schema)
 			}
 		}
