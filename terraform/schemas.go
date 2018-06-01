@@ -17,11 +17,23 @@ type Schemas struct {
 	provisioners map[string]*configschema.Block
 }
 
+// ProviderSchema returns the entire ProviderSchema object that was produced
+// by the plugin for the given provider, or nil if no such schema is available.
+//
+// It's usually better to go use the more precise methods offered by type
+// Schemas to handle this detail automatically.
+func (ss *Schemas) ProviderSchema(typeName string) *ProviderSchema {
+	if ss.providers == nil {
+		return nil
+	}
+	return ss.providers[typeName]
+}
+
 // ProviderConfig returns the schema for the provider configuration of the
 // given provider type, or nil if no such schema is available.
 func (ss *Schemas) ProviderConfig(typeName string) *configschema.Block {
-	ps, exists := ss.providers[typeName]
-	if !exists {
+	ps := ss.ProviderSchema(typeName)
+	if ps == nil {
 		return nil
 	}
 	return ps.Provider
@@ -37,12 +49,8 @@ func (ss *Schemas) ProviderConfig(typeName string) *configschema.Block {
 // always pass the correct provider name, even though it many cases it feels
 // redundant.
 func (ss *Schemas) ResourceTypeConfig(providerType string, resourceType string) *configschema.Block {
-	ps, exists := ss.providers[providerType]
-	if !exists {
-		return nil
-	}
-
-	if ps.ResourceTypes == nil {
+	ps := ss.ProviderSchema(providerType)
+	if ps == nil || ps.ResourceTypes == nil {
 		return nil
 	}
 
@@ -59,12 +67,8 @@ func (ss *Schemas) ResourceTypeConfig(providerType string, resourceType string) 
 // always pass the correct provider name, even though it many cases it feels
 // redundant.
 func (ss *Schemas) DataSourceConfig(providerType string, dataSource string) *configschema.Block {
-	ps, exists := ss.providers[providerType]
-	if !exists {
-		return nil
-	}
-
-	if ps.DataSources == nil {
+	ps := ss.ProviderSchema(providerType)
+	if ps == nil || ps.DataSources == nil {
 		return nil
 	}
 
@@ -197,6 +201,7 @@ func loadProviderSchemas(schemas map[string]*ProviderSchema, config *configs.Con
 					// There's a check deeper in Terraform that makes this a
 					// failure when an empty/invalid provider string is present
 					// in practice.
+					log.Printf("[WARN] LoadSchemas: Resource %s in %s has invalid provider address %q in its state", rsKey, moduleAddrStr, providerAddrStr)
 					diags = diags.Append(
 						tfdiags.SimpleWarning(fmt.Sprintf("Resource %s in %s has invalid provider address %q in its state", rsKey, moduleAddrStr, providerAddrStr)),
 					)
