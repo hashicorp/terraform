@@ -260,6 +260,12 @@ func loadProvisionerSchemas(schemas map[string]*configschema.Block, config *conf
 				ensure(pc.Type)
 			}
 		}
+
+		// Must also visit our child modules, recursively.
+		for _, cc := range config.Children {
+			childDiags := loadProvisionerSchemas(schemas, cc, components)
+			diags = diags.Append(childDiags)
+		}
 	}
 
 	return diags
