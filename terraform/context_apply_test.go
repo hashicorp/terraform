@@ -9185,7 +9185,6 @@ func TestContext2Apply_dataDependsOn(t *testing.T) {
 		t.Fatalf("diags: %s", diags.Err())
 	}
 
-	t.Fatal("nil pointer below")
 	root := state.ModuleByPath(addrs.RootModuleInstance)
 	actual := root.Resources["data.null_data_source.read"].Primary.Attributes["foo"]
 
