@@ -7,9 +7,6 @@ import (
 
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/zclconf/go-cty/cty"
-
-	"github.com/davecgh/go-spew/spew"
-	"github.com/hashicorp/terraform/config/configschema"
 )
 
 func TestBuiltinEvalContextProviderInput(t *testing.T) {
@@ -61,15 +58,6 @@ func TestBuildingEvalContextInitProvider(t *testing.T) {
 				SchemaAvailable: true,
 			},
 		},
-		GetSchemaReturn: &ProviderSchema{
-			Provider: &configschema.Block{},
-			ResourceTypes: map[string]*configschema.Block{
-				"test_thing": &configschema.Block{},
-			},
-			DataSources: map[string]*configschema.Block{
-				"test_thing": &configschema.Block{},
-			},
-		},
 	}
 
 	ctx := testBuiltinEvalContext(t)
@@ -91,32 +79,6 @@ func TestBuildingEvalContextInitProvider(t *testing.T) {
 	_, err = ctx.InitProvider("test", providerAddrAlias)
 	if err != nil {
 		t.Fatalf("error initializing provider test.foo: %s", err)
-	}
-
-	{
-		got := testP.GetSchemaRequest
-		want := &ProviderSchemaRequest{
-			DataSources:   []string{"test_thing"},
-			ResourceTypes: []string{"test_thing"},
-		}
-
-		if !reflect.DeepEqual(got, want) {
-			t.Errorf("wrong schema request\ngot: %swant: %s", spew.Sdump(got), spew.Sdump(want))
-		}
-	}
-
-	{
-		schema := ctx.ProviderSchema(providerAddrDefault.Absolute(addrs.RootModuleInstance))
-		if got, want := schema, testP.GetSchemaReturn; !reflect.DeepEqual(got, want) {
-			t.Errorf("wrong schema\ngot: %swant: %s", spew.Sdump(got), spew.Sdump(want))
-		}
-	}
-
-	{
-		schema := ctx.ProviderSchema(providerAddrAlias.Absolute(addrs.RootModuleInstance))
-		if got, want := schema, testP.GetSchemaReturn; !reflect.DeepEqual(got, want) {
-			t.Errorf("wrong schema\ngot: %swant: %s", spew.Sdump(got), spew.Sdump(want))
-		}
 	}
 }
 

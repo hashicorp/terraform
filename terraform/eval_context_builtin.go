@@ -28,6 +28,15 @@ type BuiltinEvalContext struct {
 	// eval context.
 	Evaluator *Evaluator
 
+	// Schemas is a repository of all of the schemas we should need to
+	// decode configuration blocks and expressions. This must be constructed by
+	// the caller to include schemas for all of the providers, resource types,
+	// data sources and provisioners used by the given configuration and
+	// state.
+	//
+	// This must not be mutated during evaluation.
+	Schemas *Schemas
+
 	// VariableValues contains the variable values across all modules. This
 	// structure is shared across the entire containing context, and so it
 	// may be accessed only when holding VariableValuesLock.
@@ -41,11 +50,9 @@ type BuiltinEvalContext struct {
 	Hooks               []Hook
 	InputValue          UIInput
 	ProviderCache       map[string]ResourceProvider
-	ProviderSchemas     map[string]*ProviderSchema
 	ProviderInputConfig map[string]map[string]cty.Value
 	ProviderLock        *sync.Mutex
 	ProvisionerCache    map[string]ResourceProvisioner
-	ProvisionerSchemas  map[string]*configschema.Block
 	ProvisionerLock     *sync.Mutex
 	DiffValue           *Diff
 	DiffLock            *sync.RWMutex
@@ -115,34 +122,6 @@ func (ctx *BuiltinEvalContext) InitProvider(typeName string, addr addrs.Provider
 	log.Printf("[TRACE] BuiltinEvalContext: Initialized %q provider for %s", typeName, absAddr)
 	ctx.ProviderCache[key] = p
 
-	// Also fetch and cache the provider's schema.
-	// FIXME: This is using a non-ideal provider API that requires us to
-	// request specific resource types, but we actually just want _all_ the
-	// resource types, so we'll list these first. Once the provider API is
-	// updated we'll get enough data to populate this whole structure in
-	// a single call.
-	resourceTypes := p.Resources()
-	dataSources := p.DataSources()
-	resourceTypeNames := make([]string, len(resourceTypes))
-	for i, t := range resourceTypes {
-		resourceTypeNames[i] = t.Name
-	}
-	dataSourceNames := make([]string, len(dataSources))
-	for i, t := range dataSources {
-		dataSourceNames[i] = t.Name
-	}
-	schema, err := p.GetSchema(&ProviderSchemaRequest{
-		DataSources:   dataSourceNames,
-		ResourceTypes: resourceTypeNames,
-	})
-	if err != nil {
-		return nil, fmt.Errorf("error fetching schema for %s: %s", key, err)
-	}
-	if ctx.ProviderSchemas == nil {
-		ctx.ProviderSchemas = make(map[string]*ProviderSchema)
-	}
-	ctx.ProviderSchemas[typeName] = schema
-
 	return p, nil
 }
 
@@ -158,10 +137,7 @@ func (ctx *BuiltinEvalContext) Provider(addr addrs.AbsProviderConfig) ResourcePr
 func (ctx *BuiltinEvalContext) ProviderSchema(addr addrs.AbsProviderConfig) *ProviderSchema {
 	ctx.once.Do(ctx.init)
 
-	ctx.ProviderLock.Lock()
-	defer ctx.ProviderLock.Unlock()
-
-	return ctx.ProviderSchemas[addr.ProviderConfig.Type]
+	return ctx.Schemas.ProviderSchema(addr.ProviderConfig.Type)
 }
 
 func (ctx *BuiltinEvalContext) CloseProvider(addr addrs.ProviderConfig) error {
@@ -250,16 +226,6 @@ func (ctx *BuiltinEvalContext) InitProvisioner(n string) (ResourceProvisioner, e
 
 	ctx.ProvisionerCache[key] = p
 
-	// Also fetch the provisioner's schema
-	schema, err := p.GetConfigSchema()
-	if err != nil {
-		return nil, fmt.Errorf("error getting schema for provisioner %q: %s", n, err)
-	}
-	if ctx.ProvisionerSchemas == nil {
-		ctx.ProvisionerSchemas = make(map[string]*configschema.Block)
-	}
-	ctx.ProvisionerSchemas[n] = schema
-
 	return p, nil
 }
 
@@ -276,10 +242,7 @@ func (ctx *BuiltinEvalContext) Provisioner(n string) ResourceProvisioner {
 func (ctx *BuiltinEvalContext) ProvisionerSchema(n string) *configschema.Block {
 	ctx.once.Do(ctx.init)
 
-	ctx.ProvisionerLock.Lock()
-	defer ctx.ProvisionerLock.Unlock()
-
-	return ctx.ProvisionerSchemas[n]
+	return ctx.Schemas.ProvisionerConfig(n)
 }
 
 func (ctx *BuiltinEvalContext) CloseProvisioner(n string) error {

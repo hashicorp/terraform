@@ -285,6 +285,7 @@ func TestContext2Apply_resourceDependsOnModuleStateOnly(t *testing.T) {
 							ID: "bar",
 						},
 						Dependencies: []string{"module.child"},
+						Provider: "provider.aws",
 					},
 				},
 			},
@@ -296,6 +297,7 @@ func TestContext2Apply_resourceDependsOnModuleStateOnly(t *testing.T) {
 						Primary: &InstanceState{
 							ID: "bar",
 						},
+						Provider: "provider.aws",
 					},
 				},
 			},
@@ -1330,6 +1332,7 @@ func testContext2Apply_destroyDependsOnStateOnly(t *testing.T) {
 							ID:         "foo",
 							Attributes: map[string]string{},
 						},
+						Provider: "provider.aws",
 					},
 
 					"aws_instance.bar": &ResourceState{
@@ -1339,6 +1342,7 @@ func testContext2Apply_destroyDependsOnStateOnly(t *testing.T) {
 							Attributes: map[string]string{},
 						},
 						Dependencies: []string{"aws_instance.foo"},
+						Provider: "provider.aws",
 					},
 				},
 			},
@@ -1408,6 +1412,7 @@ func testContext2Apply_destroyDependsOnStateOnlyModule(t *testing.T) {
 							ID:         "foo",
 							Attributes: map[string]string{},
 						},
+						Provider: "provider.aws",
 					},
 
 					"aws_instance.bar": &ResourceState{
@@ -1417,6 +1422,7 @@ func testContext2Apply_destroyDependsOnStateOnlyModule(t *testing.T) {
 							Attributes: map[string]string{},
 						},
 						Dependencies: []string{"aws_instance.foo"},
+						Provider: "provider.aws",
 					},
 				},
 			},
@@ -6158,6 +6164,7 @@ func TestContext2Apply_destroyNestedModule(t *testing.T) {
 						Primary: &InstanceState{
 							ID: "bar",
 						},
+						Provider: "provider.aws",
 					},
 				},
 			},
@@ -6207,6 +6214,7 @@ func TestContext2Apply_destroyDeeplyNestedModule(t *testing.T) {
 						Primary: &InstanceState{
 							ID: "bar",
 						},
+						Provider: "provider.aws",
 					},
 				},
 			},
@@ -6977,6 +6985,7 @@ func TestContext2Apply_hookOrphan(t *testing.T) {
 						Primary: &InstanceState{
 							ID: "bar",
 						},
+						Provider: "provider.aws",
 					},
 				},
 			},

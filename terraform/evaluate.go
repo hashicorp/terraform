@@ -44,11 +44,13 @@ type Evaluator struct {
 	VariableValues     map[string]map[string]cty.Value
 	VariableValuesLock *sync.Mutex
 
-	// ProviderSchemas is a map of schemas for all provider configurations
-	// that have been initialized so far. This is mutated concurrently, so
-	// it must be accessed only while holding ProvidersLock.
-	ProviderSchemas map[string]*ProviderSchema
-	ProvidersLock   *sync.Mutex
+	// Schemas is a repository of all of the schemas we should need to
+	// evaluate expressions. This must be constructed by the caller to
+	// include schemas for all of the providers, resource types, data sources
+	// and provisioners used by the given configuration and state.
+	//
+	// This must not be mutated during evaluation.
+	Schemas *Schemas
 
 	// State is the current state. During some operations this structure
 	// is mutated concurrently, and so it must be accessed only while holding
@@ -694,23 +696,18 @@ func (d *evaluationStateData) getResourceInstancePending(addr addrs.ResourceInst
 }
 
 func (d *evaluationStateData) getResourceSchema(addr addrs.Resource, providerAddr addrs.AbsProviderConfig) *configschema.Block {
-	d.Evaluator.ProvidersLock.Lock()
-	defer d.Evaluator.ProvidersLock.Unlock()
-
-	log.Printf("[TRACE] Need provider schema for %s", providerAddr)
-	providerSchema := d.Evaluator.ProviderSchemas[providerAddr.ProviderConfig.Type]
-	if providerSchema == nil {
-		return nil
-	}
-
-	var schema *configschema.Block
+	providerType := providerAddr.ProviderConfig.Type
+	typeName := addr.Type
+	schemas := d.Evaluator.Schemas
 	switch addr.Mode {
 	case addrs.ManagedResourceMode:
-		schema = providerSchema.ResourceTypes[addr.Type]
+		return schemas.ResourceTypeConfig(providerType, typeName)
 	case addrs.DataResourceMode:
-		schema = providerSchema.DataSources[addr.Type]
+		return schemas.DataSourceConfig(providerType, typeName)
+	default:
+		log.Printf("[WARN] Don't know how to fetch schema for resource %s", providerAddr)
+		return nil
 	}
-	return schema
 }
 
 func (d *evaluationStateData) GetTerraformAttr(addr addrs.TerraformAttr, rng tfdiags.SourceRange) (cty.Value, tfdiags.Diagnostics) {
