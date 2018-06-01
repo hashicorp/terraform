@@ -1770,13 +1770,19 @@ func (s *InstanceState) MergeDiff(d *InstanceDiff) *InstanceState {
 }
 
 func (s *InstanceState) String() string {
+	notCreated := "<not created>"
+
+	if s == nil {
+		return notCreated
+	}
+
 	s.Lock()
 	defer s.Unlock()
 
 	var buf bytes.Buffer
 
-	if s == nil || s.ID == "" {
-		return "<not created>"
+	if s.ID == "" {
+		return notCreated
 	}
 
 	buf.WriteString(fmt.Sprintf("ID = %s\n", s.ID))
