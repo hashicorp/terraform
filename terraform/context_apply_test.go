@@ -3300,10 +3300,34 @@ func TestContext2Apply_multiProviderDestroyChild(t *testing.T) {
 	p := testProvider("aws")
 	p.ApplyFn = testApplyFn
 	p.DiffFn = testDiffFn
+	p.GetSchemaReturn = &ProviderSchema{
+		Provider: &configschema.Block{
+			Attributes: map[string]*configschema.Attribute{
+				"value": {Type: cty.String, Optional: true},
+			},
+		},
+		ResourceTypes: map[string]*configschema.Block{
+			"aws_instance": {
+				Attributes: map[string]*configschema.Attribute{
+					"foo": {Type: cty.String, Optional: true},
+				},
+			},
+		},
+	}
 
 	p2 := testProvider("vault")
 	p2.ApplyFn = testApplyFn
 	p2.DiffFn = testDiffFn
+	p2.GetSchemaReturn = &ProviderSchema{
+		Provider: &configschema.Block{},
+		ResourceTypes: map[string]*configschema.Block{
+			"vault_instance": {
+				Attributes: map[string]*configschema.Attribute{
+					"id": {Type: cty.String, Computed: true},
+				},
+			},
+		},
+	}
 
 	var state *State
 
