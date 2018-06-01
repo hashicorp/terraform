@@ -7,13 +7,11 @@ import (
 	"github.com/hashicorp/hcl2/hcl"
 	"github.com/hashicorp/hcl2/hcl/hclsyntax"
 
-	"github.com/hashicorp/terraform/config/configschema"
-	"github.com/hashicorp/terraform/lang"
-
 	"github.com/hashicorp/terraform/addrs"
-
+	"github.com/hashicorp/terraform/config/configschema"
 	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/dag"
+	"github.com/hashicorp/terraform/lang"
 )
 
 // ConcreteResourceNodeFunc is a callback type used to convert an
@@ -61,16 +59,17 @@ type NodeAbstractResource struct {
 }
 
 var (
-	_ GraphNodeSubPath              = (*NodeAbstractResource)(nil)
-	_ GraphNodeReferenceable        = (*NodeAbstractResource)(nil)
-	_ GraphNodeReferencer           = (*NodeAbstractResource)(nil)
-	_ GraphNodeProviderConsumer     = (*NodeAbstractResource)(nil)
-	_ GraphNodeProvisionerConsumer  = (*NodeAbstractResource)(nil)
-	_ GraphNodeResource             = (*NodeAbstractResource)(nil)
-	_ GraphNodeAttachResourceConfig = (*NodeAbstractResource)(nil)
-	_ GraphNodeAttachResourceSchema = (*NodeAbstractResource)(nil)
-	_ GraphNodeTargetable           = (*NodeAbstractResource)(nil)
-	_ dag.GraphNodeDotter           = (*NodeAbstractResource)(nil)
+	_ GraphNodeSubPath                 = (*NodeAbstractResource)(nil)
+	_ GraphNodeReferenceable           = (*NodeAbstractResource)(nil)
+	_ GraphNodeReferencer              = (*NodeAbstractResource)(nil)
+	_ GraphNodeProviderConsumer        = (*NodeAbstractResource)(nil)
+	_ GraphNodeProvisionerConsumer     = (*NodeAbstractResource)(nil)
+	_ GraphNodeResource                = (*NodeAbstractResource)(nil)
+	_ GraphNodeAttachResourceConfig    = (*NodeAbstractResource)(nil)
+	_ GraphNodeAttachResourceSchema    = (*NodeAbstractResource)(nil)
+	_ GraphNodeAttachProvisionerSchema = (*NodeAbstractResource)(nil)
+	_ GraphNodeTargetable              = (*NodeAbstractResource)(nil)
+	_ dag.GraphNodeDotter              = (*NodeAbstractResource)(nil)
 )
 
 // NewNodeAbstractResource creates an abstract resource graph node for
@@ -98,18 +97,19 @@ type NodeAbstractResourceInstance struct {
 }
 
 var (
-	_ GraphNodeSubPath              = (*NodeAbstractResourceInstance)(nil)
-	_ GraphNodeReferenceable        = (*NodeAbstractResourceInstance)(nil)
-	_ GraphNodeReferencer           = (*NodeAbstractResourceInstance)(nil)
-	_ GraphNodeProviderConsumer     = (*NodeAbstractResourceInstance)(nil)
-	_ GraphNodeProvisionerConsumer  = (*NodeAbstractResourceInstance)(nil)
-	_ GraphNodeResource             = (*NodeAbstractResourceInstance)(nil)
-	_ GraphNodeResourceInstance     = (*NodeAbstractResourceInstance)(nil)
-	_ GraphNodeAttachResourceState  = (*NodeAbstractResourceInstance)(nil)
-	_ GraphNodeAttachResourceConfig = (*NodeAbstractResourceInstance)(nil)
-	_ GraphNodeAttachResourceSchema = (*NodeAbstractResourceInstance)(nil)
-	_ GraphNodeTargetable           = (*NodeAbstractResourceInstance)(nil)
-	_ dag.GraphNodeDotter           = (*NodeAbstractResourceInstance)(nil)
+	_ GraphNodeSubPath                 = (*NodeAbstractResourceInstance)(nil)
+	_ GraphNodeReferenceable           = (*NodeAbstractResourceInstance)(nil)
+	_ GraphNodeReferencer              = (*NodeAbstractResourceInstance)(nil)
+	_ GraphNodeProviderConsumer        = (*NodeAbstractResourceInstance)(nil)
+	_ GraphNodeProvisionerConsumer     = (*NodeAbstractResourceInstance)(nil)
+	_ GraphNodeResource                = (*NodeAbstractResourceInstance)(nil)
+	_ GraphNodeResourceInstance        = (*NodeAbstractResourceInstance)(nil)
+	_ GraphNodeAttachResourceState     = (*NodeAbstractResourceInstance)(nil)
+	_ GraphNodeAttachResourceConfig    = (*NodeAbstractResourceInstance)(nil)
+	_ GraphNodeAttachResourceSchema    = (*NodeAbstractResourceInstance)(nil)
+	_ GraphNodeAttachProvisionerSchema = (*NodeAbstractResourceInstance)(nil)
+	_ GraphNodeTargetable              = (*NodeAbstractResourceInstance)(nil)
+	_ dag.GraphNodeDotter              = (*NodeAbstractResourceInstance)(nil)
 )
 
 // NewNodeAbstractResourceInstance creates an abstract resource instance graph
