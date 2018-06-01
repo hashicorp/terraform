@@ -8634,9 +8634,18 @@ func TestContext2Apply_issue5254(t *testing.T) {
 	p.ResourcesReturn = append(p.ResourcesReturn, ResourceType{
 		Name: "template_file",
 	})
-
 	p.ApplyFn = testApplyFn
 	p.DiffFn = testDiffFn
+	p.GetSchemaReturn = &ProviderSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"template_file": {
+				Attributes: map[string]*configschema.Attribute{
+					"template": {Type: cty.String, Optional: true},
+					"__template_requires_new": {Type: cty.Bool, Optional: true},
+				},
+			},
+		},
+	}
 
 	// Apply cleanly step 0
 	ctx := testContext2(t, &ContextOpts{
