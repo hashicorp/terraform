@@ -118,59 +118,6 @@ func (t *ProviderTransformer) Transform(g *Graph) error {
 			// Direct references need the provider configured as well as initialized
 			needConfigured[p.String()] = p
 		}
-
-		// Does the vertex contain any references that need a provider to resolve?
-		if pv, ok := v.(GraphNodeReferencer); ok {
-			// Into which module does this vertex make references?
-			refPath := vertexReferencePath(v)
-			if _, exists := requested[v]; !exists {
-				requested[v] = make(map[string]ProviderRequest)
-			}
-
-			for _, r := range pv.References() {
-				var res addrs.Resource
-				switch sub := r.Subject.(type) {
-				case addrs.ResourceInstance:
-					res = sub.Resource
-				case addrs.Resource:
-					res = sub
-				default:
-					continue
-				}
-
-				absRes := res.Absolute(refPath)
-
-				// Need to find the configuration of the resource we're
-				// referencing, to see which provider it belongs to.
-				if t.Config == nil {
-					log.Printf("[WARN] ProviderTransformer can't discover provider for %s: configuration not available", absRes)
-					continue
-				}
-				modConfig := t.Config.DescendentForInstance(refPath)
-				if modConfig == nil {
-					log.Printf("[WARN] ProviderTransformer can't discover provider for %s: no configuration for %s", absRes, refPath)
-					continue
-				}
-				rc := modConfig.Module.ResourceByAddr(res)
-				if rc == nil {
-					log.Printf("[WARN] ProviderTransformer can't discover provider for %s: resource configuration is not available", absRes)
-					continue
-				}
-
-				providerCfg := rc.ProviderConfigAddr().Absolute(refPath)
-				key := providerCfg.String()
-				log.Printf("[DEBUG] %s references %s, requiring %s", dag.VertexName(pv), absRes, key)
-				if _, exists := requested[v][key]; !exists {
-					requested[v][key] = ProviderRequest{
-						Addr:  providerCfg,
-						Exact: false,
-					}
-				}
-
-				// No need to add to needConfigured here, because indirect
-				// references only need the provider initialized, not configured.
-			}
-		}
 	}
 
 	// Now we'll go through all the requested addresses we just collected and
