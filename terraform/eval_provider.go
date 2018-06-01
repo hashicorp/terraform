@@ -2,28 +2,47 @@ package terraform
 
 import (
 	"fmt"
+	"log"
 
 	"github.com/hashicorp/hcl2/hcl"
-	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/tfdiags"
 )
 
-func buildProviderConfig(ctx EvalContext, addr addrs.ProviderConfig, body hcl.Body) hcl.Body {
-	// If we have an Input configuration set, then merge that in
-	if input := ctx.ProviderInput(addr); input != nil {
-		// "input" is a map of the subset of config values that were known
-		// during the input walk, set by EvalInputProvider. Note that
-		// in particular it does *not* include attributes that had
-		// computed values at input time.
-
-		inputBody := configs.SynthBody("<input prompt>", input)
-		body = configs.MergeBodies(body, inputBody)
+func buildProviderConfig(ctx EvalContext, addr addrs.ProviderConfig, config *configs.Provider) hcl.Body {
+	var configBody hcl.Body
+	if config != nil {
+		configBody = config.Config
 	}
 
-	return body
+	var inputBody hcl.Body
+	inputConfig := ctx.ProviderInput(addr)
+	if len(inputConfig) > 0 {
+		inputBody = configs.SynthBody("<input-prompt>", inputConfig)
+	}
+
+	switch {
+	case configBody != nil && inputBody != nil:
+		log.Printf("[TRACE] buildProviderConfig for %s: merging explicit config and input", addr)
+		// Note that the inputBody is the _base_ here, because configs.MergeBodies
+		// expects the base have all of the required fields, while these are
+		// forced to be optional for the override. The input process should
+		// guarantee that we have a value for each of the required arguments and
+		// that in practice the sets of attributes in each body will be
+		// disjoint.
+		return configs.MergeBodies(inputBody, configBody)
+	case configBody != nil:
+		log.Printf("[TRACE] buildProviderConfig for %s: using explicit config only", addr)
+		return configBody
+	case inputBody != nil:
+		log.Printf("[TRACE] buildProviderConfig for %s: using input only", addr)
+		return inputBody
+	default:
+		log.Printf("[TRACE] buildProviderConfig for %s: no configuration at all", addr)
+		return hcl.EmptyBody()
+	}
 }
 
 // EvalConfigProvider is an EvalNode implementation that configures
@@ -43,12 +62,7 @@ func (n *EvalConfigProvider) Eval(ctx EvalContext) (interface{}, error) {
 	provider := *n.Provider
 	config := n.Config
 
-	if config == nil {
-		// If we have no explicit configuration, just write an empty
-		// configuration into the provider.
-		configDiags := ctx.ConfigureProvider(n.Addr, cty.EmptyObjectVal)
-		return nil, configDiags.ErrWithWarnings()
-	}
+	configBody := buildProviderConfig(ctx, n.Addr, config)
 
 	schema, err := provider.GetSchema(&ProviderSchemaRequest{})
 	if err != nil {
@@ -60,7 +74,6 @@ func (n *EvalConfigProvider) Eval(ctx EvalContext) (interface{}, error) {
 	}
 
 	configSchema := schema.Provider
-	configBody := buildProviderConfig(ctx, n.Addr, config.Config)
 	configVal, configBody, evalDiags := ctx.EvaluateBlock(configBody, configSchema, nil, addrs.NoKey)
 	diags = diags.Append(evalDiags)
 	if evalDiags.HasErrors() {

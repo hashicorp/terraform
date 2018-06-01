@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"sort"
 	"strings"
 	"sync"
 
@@ -431,108 +430,6 @@ func (c *Context) Eval(path addrs.ModuleInstance) (*lang.Scope, tfdiags.Diagnost
 func (c *Context) Interpolater() *Interpolater {
 	// FIXME: Remove this once all callers are updated to no longer use it.
 	return &Interpolater{}
-}
-
-// Input asks for input to fill variables and provider configurations.
-// This modifies the configuration in-place, so asking for Input twice
-// may result in different UI output showing different current values.
-func (c *Context) Input(mode InputMode) tfdiags.Diagnostics {
-	var diags tfdiags.Diagnostics
-	defer c.acquireRun("input")()
-
-	if mode&InputModeVar != 0 {
-		// Walk the variables first for the root module. We walk them in
-		// alphabetical order for UX reasons.
-		configs := c.config.Module.Variables
-		names := make([]string, 0, len(configs))
-		for name := range configs {
-			names = append(names, name)
-		}
-		sort.Strings(names)
-	Variables:
-		for _, n := range names {
-			v := configs[n]
-
-			// If we only care about unset variables, then we should set any
-			// variable that is already set.
-			if mode&InputModeVarUnset != 0 {
-				if _, isSet := c.variables[n]; isSet {
-					continue
-				}
-			}
-
-			// this should only happen during tests
-			if c.uiInput == nil {
-				log.Println("[WARN] Context.uiInput is nil during input walk")
-				continue
-			}
-
-			// Ask the user for a value for this variable
-			var rawValue string
-			retry := 0
-			for {
-				var err error
-				rawValue, err = c.uiInput.Input(&InputOpts{
-					Id:          fmt.Sprintf("var.%s", n),
-					Query:       fmt.Sprintf("var.%s", n),
-					Description: v.Description,
-				})
-				if err != nil {
-					diags = diags.Append(tfdiags.Sourceless(
-						tfdiags.Error,
-						"Failed to request interactive input",
-						fmt.Sprintf("Terraform attempted to request a value for var.%s interactively, but encountered an error: %s.", n, err),
-					))
-					return diags
-				}
-
-				if rawValue == "" && v.Default == cty.NilVal {
-					// Redo if it is required, but abort if we keep getting
-					// blank entries
-					if retry > 2 {
-						diags = diags.Append(tfdiags.Sourceless(
-							tfdiags.Error,
-							"Required variable not assigned",
-							fmt.Sprintf("The variable %q is required, so Terraform cannot proceed without a defined value for it.", n),
-						))
-						continue Variables
-					}
-					retry++
-					continue
-				}
-
-				break
-			}
-
-			val, valDiags := v.ParsingMode.Parse(n, rawValue)
-			diags = diags.Append(valDiags)
-			if diags.HasErrors() {
-				continue
-			}
-
-			c.variables[n] = &InputValue{
-				Value:      val,
-				SourceType: ValueFromInput,
-			}
-		}
-	}
-
-	if mode&InputModeProvider != 0 {
-		// Build the graph
-		graph, err := c.Graph(GraphTypeInput, nil)
-		if err != nil {
-			diags = diags.Append(err)
-			return diags
-		}
-
-		// Do the walk
-		if _, err := c.walk(graph, walkInput); err != nil {
-			diags = diags.Append(err)
-			return diags
-		}
-	}
-
-	return diags
 }
 
 // Apply applies the changes represented by this context and returns

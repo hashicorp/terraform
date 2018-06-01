@@ -15,26 +15,29 @@ import (
 
 func TestBuildProviderConfig(t *testing.T) {
 	configBody := configs.SynthBody("", map[string]cty.Value{
-		"set_in_config":           cty.StringVal("config"),
-		"set_in_config_and_input": cty.StringVal("config"),
+		"set_in_config": cty.StringVal("config"),
 	})
 	providerAddr := addrs.ProviderConfig{
 		Type: "foo",
 	}
 
 	ctx := &MockEvalContext{
+		// The input values map is expected to contain only keys that aren't
+		// already present in the config, since we skip prompting for
+		// attributes that are already set.
 		ProviderInputValues: map[string]cty.Value{
-			"set_in_config_and_input": cty.StringVal("input"),
-			"set_by_input":            cty.StringVal("input"),
+			"set_by_input": cty.StringVal("input"),
 		},
 	}
-	gotBody := buildProviderConfig(ctx, providerAddr, configBody)
+	gotBody := buildProviderConfig(ctx, providerAddr, &configs.Provider{
+		Name:   "foo",
+		Config: configBody,
+	})
 
 	schema := &configschema.Block{
 		Attributes: map[string]*configschema.Attribute{
-			"set_in_config":           {Type: cty.String, Optional: true},
-			"set_in_config_and_input": {Type: cty.String, Optional: true},
-			"set_by_input":            {Type: cty.String, Optional: true},
+			"set_in_config": {Type: cty.String, Optional: true},
+			"set_by_input":  {Type: cty.String, Optional: true},
 		},
 	}
 	got, diags := hcldec.Decode(gotBody, schema.DecoderSpec(), nil)
@@ -44,9 +47,8 @@ func TestBuildProviderConfig(t *testing.T) {
 
 	// We expect the provider config with the added input value
 	want := cty.ObjectVal(map[string]cty.Value{
-		"set_in_config":           cty.StringVal("config"),
-		"set_in_config_and_input": cty.StringVal("input"),
-		"set_by_input":            cty.StringVal("input"),
+		"set_in_config": cty.StringVal("config"),
+		"set_by_input":  cty.StringVal("input"),
 	})
 	if !got.RawEquals(want) {
 		t.Fatalf("incorrect merged config\ngot:  %#v\nwant: %#v", got, want)
