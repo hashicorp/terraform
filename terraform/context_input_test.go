@@ -112,6 +112,27 @@ func TestContext2Input_provider(t *testing.T) {
 	p := testProvider("aws")
 	p.ApplyFn = testApplyFn
 	p.DiffFn = testDiffFn
+	p.GetSchemaReturn = &ProviderSchema{
+		Provider: &configschema.Block{
+			Attributes: map[string]*configschema.Attribute{
+				"foo": {
+					Type:        cty.String,
+					Required:    true,
+					Description: "something something",
+				},
+			},
+		},
+		ResourceTypes: map[string]*configschema.Block{
+			"aws_instance": {},
+		},
+	}
+
+	inp := &MockUIInput{
+		InputReturnMap: map[string]string{
+			"provider.aws.foo": "bar",
+		},
+	}
+
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
 		ProviderResolver: ResourceProviderResolverFixed(
@@ -119,13 +140,10 @@ func TestContext2Input_provider(t *testing.T) {
 				"aws": testProviderFuncFixed(p),
 			},
 		),
+		UIInput: inp,
 	})
 
 	var actual interface{}
-	p.InputFn = func(i UIInput, c *ResourceConfig) (*ResourceConfig, error) {
-		c.Config["foo"] = "bar"
-		return c, nil
-	}
 	p.ConfigureFn = func(c *ResourceConfig) error {
 		actual = c.Config["foo"]
 		return nil
@@ -136,6 +154,13 @@ func TestContext2Input_provider(t *testing.T) {
 
 	if diags := ctx.Input(InputModeStd); diags.HasErrors() {
 		t.Fatalf("input errors: %s", diags.Err())
+	}
+
+	if !inp.InputCalled {
+		t.Fatal("no input prompt; want prompt for argument \"foo\"")
+	}
+	if got, want := inp.InputOpts.Description, "something something"; got != want {
+		t.Errorf("wrong description\ngot:  %q\nwant: %q", got, want)
 	}
 
 	if _, diags := ctx.Plan(); diags.HasErrors() {
@@ -153,9 +178,32 @@ func TestContext2Input_provider(t *testing.T) {
 
 func TestContext2Input_providerMulti(t *testing.T) {
 	m := testModule(t, "input-provider-multi")
+
 	p := testProvider("aws")
 	p.ApplyFn = testApplyFn
 	p.DiffFn = testDiffFn
+	p.GetSchemaReturn = &ProviderSchema{
+		Provider: &configschema.Block{
+			Attributes: map[string]*configschema.Attribute{
+				"foo": {
+					Type:        cty.String,
+					Required:    true,
+					Description: "something something",
+				},
+			},
+		},
+		ResourceTypes: map[string]*configschema.Block{
+			"aws_instance": {},
+		},
+	}
+
+	inp := &MockUIInput{
+		InputReturnMap: map[string]string{
+			"provider.aws.foo":      "bar",
+			"provider.aws.east.foo": "bar",
+		},
+	}
+
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
 		ProviderResolver: ResourceProviderResolverFixed(
@@ -163,20 +211,11 @@ func TestContext2Input_providerMulti(t *testing.T) {
 				"aws": testProviderFuncFixed(p),
 			},
 		),
+		UIInput: inp,
 	})
 
 	var actual []interface{}
 	var lock sync.Mutex
-	p.InputFn = func(i UIInput, c *ResourceConfig) (*ResourceConfig, error) {
-		c.Config["foo"] = "bar"
-		return c, nil
-	}
-	p.ConfigureFn = func(c *ResourceConfig) error {
-		lock.Lock()
-		defer lock.Unlock()
-		actual = append(actual, c.Config["foo"])
-		return nil
-	}
 	p.ValidateFn = func(c *ResourceConfig) ([]string, []error) {
 		return nil, c.CheckSet([]string{"foo"})
 	}
@@ -189,6 +228,12 @@ func TestContext2Input_providerMulti(t *testing.T) {
 		t.Fatalf("plan errors: %s", diags.Err())
 	}
 
+	p.ConfigureFn = func(c *ResourceConfig) error {
+		lock.Lock()
+		defer lock.Unlock()
+		actual = append(actual, c.Config["foo"])
+		return nil
+	}
 	if _, diags := ctx.Apply(); diags.HasErrors() {
 		t.Fatalf("apply errors: %s", diags.Err())
 	}
@@ -239,10 +284,27 @@ func TestContext2Input_providerOnce(t *testing.T) {
 
 func TestContext2Input_providerId(t *testing.T) {
 	input := new(MockUIInput)
+
 	m := testModule(t, "input-provider")
+
 	p := testProvider("aws")
 	p.ApplyFn = testApplyFn
 	p.DiffFn = testDiffFn
+	p.GetSchemaReturn = &ProviderSchema{
+		Provider: &configschema.Block{
+			Attributes: map[string]*configschema.Attribute{
+				"foo": {
+					Type:        cty.String,
+					Required:    true,
+					Description: "something something",
+				},
+			},
+		},
+		ResourceTypes: map[string]*configschema.Block{
+			"aws_instance": {},
+		},
+	}
+
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
 		ProviderResolver: ResourceProviderResolverFixed(
@@ -254,15 +316,6 @@ func TestContext2Input_providerId(t *testing.T) {
 	})
 
 	var actual interface{}
-	p.InputFn = func(i UIInput, c *ResourceConfig) (*ResourceConfig, error) {
-		v, err := i.Input(&InputOpts{Id: "foo"})
-		if err != nil {
-			return nil, err
-		}
-
-		c.Config["foo"] = v
-		return c, nil
-	}
 	p.ConfigureFn = func(c *ResourceConfig) error {
 		actual = c.Config["foo"]
 		return nil
@@ -291,10 +344,33 @@ func TestContext2Input_providerId(t *testing.T) {
 
 func TestContext2Input_providerOnly(t *testing.T) {
 	input := new(MockUIInput)
+
 	m := testModule(t, "input-provider-vars")
+
 	p := testProvider("aws")
 	p.ApplyFn = testApplyFn
 	p.DiffFn = testDiffFn
+	p.GetSchemaReturn = &ProviderSchema{
+		Provider: &configschema.Block{
+			Attributes: map[string]*configschema.Attribute{
+				"foo": {
+					Type:     cty.String,
+					Required: true,
+				},
+			},
+		},
+		ResourceTypes: map[string]*configschema.Block{
+			"aws_instance": {
+				Attributes: map[string]*configschema.Attribute{
+					"foo": {
+						Type:     cty.String,
+						Required: true,
+					},
+				},
+			},
+		},
+	}
+
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
 		ProviderResolver: ResourceProviderResolverFixed(
@@ -312,14 +388,10 @@ func TestContext2Input_providerOnly(t *testing.T) {
 	})
 
 	input.InputReturnMap = map[string]string{
-		"var.foo": "us-east-1",
+		"provider.aws.foo": "bar",
 	}
 
 	var actual interface{}
-	p.InputFn = func(i UIInput, c *ResourceConfig) (*ResourceConfig, error) {
-		c.Config["foo"] = "bar"
-		return c, nil
-	}
 	p.ConfigureFn = func(c *ResourceConfig) error {
 		actual = c.Config["foo"]
 		return nil
