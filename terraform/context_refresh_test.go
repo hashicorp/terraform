@@ -877,8 +877,8 @@ func TestContext2Refresh_dataOrphan(t *testing.T) {
 }
 
 func TestContext2Refresh_dataState(t *testing.T) {
-	p := testProvider("null")
 	m := testModule(t, "refresh-data-resource-basic")
+
 	state := &State{
 		Modules: []*ModuleState{
 			&ModuleState{
@@ -890,16 +890,8 @@ func TestContext2Refresh_dataState(t *testing.T) {
 			},
 		},
 	}
-	ctx := testContext2(t, &ContextOpts{
-		Config: m,
-		ProviderResolver: ResourceProviderResolverFixed(
-			map[string]ResourceProviderFactory{
-				"null": testProviderFuncFixed(p),
-			},
-		),
-		State: state,
-	})
 
+	p := testProvider("null")
 	p.GetSchemaReturn = &ProviderSchema{
 		Provider: &configschema.Block{},
 		DataSources: map[string]*configschema.Block{
@@ -913,6 +905,16 @@ func TestContext2Refresh_dataState(t *testing.T) {
 			},
 		},
 	}
+
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		ProviderResolver: ResourceProviderResolverFixed(
+			map[string]ResourceProviderFactory{
+				"null": testProviderFuncFixed(p),
+			},
+		),
+		State: state,
+	})
 
 	p.ReadDataDiffFn = nil
 	p.ReadDataDiffReturn = &InstanceDiff{
