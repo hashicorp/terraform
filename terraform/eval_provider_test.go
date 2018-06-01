@@ -1,14 +1,12 @@
 package terraform
 
 import (
-	"reflect"
 	"testing"
 
 	"github.com/hashicorp/hcl2/hcldec"
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/addrs"
-	"github.com/hashicorp/terraform/config"
 	"github.com/hashicorp/terraform/config/configschema"
 	"github.com/hashicorp/terraform/configs"
 )
@@ -157,66 +155,5 @@ func TestEvalGetProvider(t *testing.T) {
 	}
 	if ctx.ProviderAddr.String() != "provider.foo" {
 		t.Fatalf("wrong provider address %s", ctx.ProviderAddr)
-	}
-}
-
-func TestEvalInputProvider(t *testing.T) {
-	var provider ResourceProvider = &MockResourceProvider{
-		InputFn: func(ui UIInput, c *ResourceConfig) (*ResourceConfig, error) {
-			if c.Config["mock_config"] != "mock" {
-				t.Fatalf("original config not passed to provider.Input")
-			}
-
-			rawConfig, err := config.NewRawConfig(map[string]interface{}{
-				"set_by_input": "input",
-			})
-			if err != nil {
-				return nil, err
-			}
-			config := NewResourceConfig(rawConfig)
-			config.ComputedKeys = []string{"computed"} // fake computed key
-
-			return config, nil
-		},
-	}
-	ctx := &MockEvalContext{ProviderProvider: provider}
-	config := &configs.Provider{
-		Name: "foo",
-		Config: configs.SynthBody("synth", map[string]cty.Value{
-			"mock_config":   cty.StringVal("mock"),
-			"set_in_config": cty.StringVal("input"),
-		}),
-	}
-
-	n := &EvalInputProvider{
-		Addr:     addrs.ProviderConfig{Type: "foo"},
-		Provider: &provider,
-		Config:   config,
-	}
-
-	result, err := n.Eval(ctx)
-	if err != nil {
-		t.Fatalf("Eval failed: %s", err)
-	}
-	if result != nil {
-		t.Fatalf("Eval returned non-nil result %#v", result)
-	}
-
-	if !ctx.SetProviderInputCalled {
-		t.Fatalf("ctx.SetProviderInput wasn't called")
-	}
-
-	if got, want := ctx.SetProviderInputAddr.String(), "provider.mock"; got != want {
-		t.Errorf("wrong provider name %q; want %q", got, want)
-	}
-
-	inputCfg := ctx.SetProviderInputValues
-
-	// we should only have the value that was set during Input
-	want := map[string]cty.Value{
-		"set_by_input": cty.StringVal("input"),
-	}
-	if !reflect.DeepEqual(inputCfg, want) {
-		t.Errorf("got incorrect input config:\n%#v\nwant:\n%#v", inputCfg, want)
 	}
 }

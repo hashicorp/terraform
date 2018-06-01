@@ -199,13 +199,13 @@ func (i *Interpolater) valueResourceVar(
 	}
 
 	if variable == nil {
-		// During the input walk we tolerate missing variables because
+		// During the refresh walk we tolerate missing variables because
 		// we haven't yet had a chance to refresh state, so dynamic data may
 		// not yet be complete.
 		// If it truly is missing, we'll catch it on a later walk.
 		// This applies only to graph nodes that interpolate during the
-		// config walk, e.g. providers.
-		if i.Operation == walkInput || i.Operation == walkRefresh {
+		// refresh walk, e.g. providers.
+		if i.Operation == walkRefresh {
 			result[n] = unknownVariable()
 			return nil
 		}
@@ -526,10 +526,7 @@ MISSING:
 	//
 	// For a Destroy, we're also fine with computed values, since our goal is
 	// only to get destroy nodes for existing resources.
-	//
-	// For an input walk, computed values are okay to return because we're only
-	// looking for missing variables to prompt the user for.
-	if i.Operation == walkRefresh || i.Operation == walkPlanDestroy || i.Operation == walkInput {
+	if i.Operation == walkRefresh || i.Operation == walkPlanDestroy {
 		return &unknownVariable, nil
 	}
 
@@ -548,13 +545,6 @@ func (i *Interpolater) computeResourceMultiVariable(
 	defer i.StateLock.RUnlock()
 
 	unknownVariable := unknownVariable()
-
-	// If we're only looking for input, we don't need to expand a
-	// multi-variable. This prevents us from encountering things that should be
-	// known but aren't because the state has yet to be refreshed.
-	if i.Operation == walkInput {
-		return &unknownVariable, nil
-	}
 
 	// Get the information about this resource variable, and verify
 	// that it exists and such.
@@ -637,7 +627,7 @@ func (i *Interpolater) computeResourceMultiVariable(
 		//
 		// For an input walk, computed values are okay to return because we're only
 		// looking for missing variables to prompt the user for.
-		if i.Operation == walkRefresh || i.Operation == walkPlanDestroy || i.Operation == walkDestroy || i.Operation == walkInput {
+		if i.Operation == walkRefresh || i.Operation == walkPlanDestroy || i.Operation == walkDestroy {
 			return &unknownVariable, nil
 		}
 
