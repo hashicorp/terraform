@@ -2529,14 +2529,14 @@ func TestContext2Apply_moduleDestroyOrder(t *testing.T) {
 
 	expected := []string{"b", "a"}
 	if !reflect.DeepEqual(order, expected) {
-		t.Fatalf("bad: %#v", order)
+		t.Errorf("wrong order\ngot: %#v\nwant: %#v", order, expected)
 	}
 
 	{
 		actual := strings.TrimSpace(state.String())
 		expected := strings.TrimSpace(testTerraformApplyModuleDestroyOrderStr)
 		if actual != expected {
-			t.Fatalf("bad: \n%s", actual)
+			t.Errorf("wrong final state\n\ngot:\n%s\n\nwant:\n%s", actual, expected)
 		}
 	}
 }
