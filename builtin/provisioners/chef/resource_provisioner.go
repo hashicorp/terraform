@@ -40,6 +40,7 @@ const (
 	windowsNoOutput = "> nul 2>&1"
 	windowsGemCmd   = "C:/opscode/chef/embedded/bin/gem"
 	windowsKnifeCmd = "cmd /c knife"
+	omnitruckUrl    = "https://omnitruck.chef.io/install.sh"
 )
 
 const clientConf = `
@@ -114,6 +115,7 @@ type provisioner struct {
 	UserKey               string
 	Vaults                map[string][]string
 	Version               string
+	OmnitruckURL          string
 
 	cleanupUserKeyCmd     string
 	createConfigFiles     provisionFn
@@ -251,6 +253,11 @@ func Provisioner() terraform.ResourceProvisioner {
 			"version": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
+			},
+			"omnitruck_url": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				Default:  omnitruckUrl,
 			},
 		},
 
@@ -745,6 +752,7 @@ func decodeConfig(d *schema.ResourceData) (*provisioner, error) {
 		UserName:              d.Get("user_name").(string),
 		UserKey:               d.Get("user_key").(string),
 		Version:               d.Get("version").(string),
+		OmnitruckURL:          d.Get("omnitruck_url").(string),
 	}
 
 	// Make sure the supplied URL has a trailing slash
