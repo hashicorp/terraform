@@ -149,15 +149,10 @@ func (t *DestroyEdgeTransformer) Transform(g *Graph) error {
 		&RootVariableTransformer{Config: t.Config},
 		&ModuleVariableTransformer{Config: t.Config},
 
-		// Must be run before TransformProviders so that resource configurations
-		// can be analyzed.
-		&AttachSchemaTransformer{Schemas: t.Schemas},
-
 		TransformProviders(nil, providerFn, t.Config),
 
-		// Attach schema to the newly-created provider nodes.
-		// (Will also redundantly re-attach schema to existing resource nodes,
-		// but that's okay.)
+		// Must attach schemas before ReferenceTransformer so that we can
+		// analyze the configuration to find references.
 		&AttachSchemaTransformer{Schemas: t.Schemas},
 
 		&ReferenceTransformer{},

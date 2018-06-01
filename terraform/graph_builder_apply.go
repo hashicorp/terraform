@@ -119,20 +119,15 @@ func (b *ApplyGraphBuilder) Steps() []GraphTransformer {
 		// Add module variables
 		&ModuleVariableTransformer{Config: b.Config},
 
-		// Must be run before TransformProviders so that resource configurations
-		// can be analyzed.
-		&AttachSchemaTransformer{Schemas: b.Schemas},
-
 		// add providers
 		TransformProviders(b.Components.ResourceProviders(), concreteProvider, b.Config),
 
-		// Attach schema to the newly-created provider nodes.
-		// (Will also redundantly re-attach schema to existing resource nodes,
-		// but that's okay.)
-		&AttachSchemaTransformer{Schemas: b.Schemas},
-
 		// Remove modules no longer present in the config
 		&RemovedModuleTransformer{Config: b.Config, State: b.State},
+
+		// Must attach schemas before ReferenceTransformer so that we can
+		// analyze the configuration to find references.
+		&AttachSchemaTransformer{Schemas: b.Schemas},
 
 		// Connect references so ordering is correct
 		&ReferenceTransformer{},
