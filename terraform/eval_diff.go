@@ -424,9 +424,10 @@ func groupContainers(d *InstanceDiff) map[string]flatAttrDiff {
 // EvalDiffDestroy is an EvalNode implementation that returns a plain
 // destroy diff.
 type EvalDiffDestroy struct {
-	Addr   addrs.ResourceInstance
-	State  **InstanceState
-	Output **InstanceDiff
+	Addr        addrs.ResourceInstance
+	State       **InstanceState
+	Output      **InstanceDiff
+	OutputState **InstanceState
 }
 
 // TODO: test
@@ -463,9 +464,9 @@ func (n *EvalDiffDestroy) Eval(ctx EvalContext) (interface{}, error) {
 	// Update our output
 	*n.Output = diff
 
-	if n.State != nil {
+	if n.OutputState != nil {
 		// Record our proposed new state, which is nil because we're destroying.
-		*n.State = nil
+		*n.OutputState = nil
 	}
 
 	return nil, nil
