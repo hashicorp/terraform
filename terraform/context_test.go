@@ -635,6 +635,10 @@ func testProviderSchema(name string) *ProviderSchema {
 						Type:     cty.String,
 						Optional: true,
 					},
+					"rendered": {
+						Type:     cty.String,
+						Computed: true,
+					},
 					"__template_requires_new": {
 						Type:     cty.String,
 						Optional: true,
@@ -680,6 +684,10 @@ func testProviderSchema(name string) *ProviderSchema {
 					"template": {
 						Type:     cty.String,
 						Optional: true,
+					},
+					"rendered": {
+						Type:     cty.String,
+						Computed: true,
 					},
 				},
 			},
