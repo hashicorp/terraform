@@ -23,6 +23,20 @@ type GraphNodeDestroyerCBD interface {
 	ModifyCreateBeforeDestroy(bool) error
 }
 
+// GraphNodeAttachDestroyer is implemented by applyable nodes that have a
+// companion destroy node. This allows the creation node to look up the status
+// of the destroy node and determine if it needs to depose the existing state,
+// or replace it.
+// If a node is not marked as create-before-destroy in the configuration, but a
+// dependency forces that status, only the destroy node will be aware of that
+// status.
+type GraphNodeAttachDestroyer interface {
+	// AttachDestroyNode takes a destroy node and saves a reference to that
+	// node in the receiver, so it can later check the status of
+	// CreateBeforeDestroy().
+	AttachDestroyNode(n GraphNodeDestroyerCBD)
+}
+
 // CBDEdgeTransformer modifies the edges of CBD nodes that went through
 // the DestroyEdgeTransformer to have the right dependencies. There are
 // two real tasks here:

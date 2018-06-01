@@ -12,6 +12,8 @@ import (
 // it is ready to be applied and is represented by a diff.
 type NodeApplyableResourceInstance struct {
 	*NodeAbstractResourceInstance
+
+	destroyNode GraphNodeDestroyerCBD
 }
 
 var (
@@ -21,6 +23,27 @@ var (
 	_ GraphNodeReferencer       = (*NodeApplyableResourceInstance)(nil)
 	_ GraphNodeEvalable         = (*NodeApplyableResourceInstance)(nil)
 )
+
+// GraphNodeAttachDestroyer
+func (n *NodeApplyableResourceInstance) AttachDestroyNode(d GraphNodeDestroyerCBD) {
+	n.destroyNode = d
+}
+
+// createBeforeDestroy checks this nodes config status and the status af any
+// companion destroy node for CreateBeforeDestroy.
+func (n *NodeApplyableResourceInstance) createBeforeDestroy() bool {
+	cbd := false
+
+	if n.Config != nil && n.Config.Managed != nil {
+		cbd = n.Config.Managed.CreateBeforeDestroy
+	}
+
+	if n.destroyNode != nil {
+		cbd = cbd || n.destroyNode.CreateBeforeDestroy()
+	}
+
+	return cbd
+}
 
 // GraphNodeCreator
 func (n *NodeApplyableResourceInstance) CreateAddr() *addrs.AbsResourceInstance {
@@ -42,8 +65,7 @@ func (n *NodeApplyableResourceInstance) References() []*addrs.Reference {
 	// would create a dependency cycle. We make a compromise here of requiring
 	// changes to be updated across two applies in this case, since the first
 	// plan will use the old values.
-	cbd := n.Config != nil && n.Config.Managed != nil && n.Config.Managed.CreateBeforeDestroy
-	if !cbd {
+	if !n.createBeforeDestroy() {
 		for _, ref := range ret {
 			switch tr := ref.Subject.(type) {
 			case addrs.ResourceInstance:
@@ -214,7 +236,7 @@ func (n *NodeApplyableResourceInstance) evalTreeManagedResource(addr addrs.AbsRe
 						destroy = diffApply.GetDestroy() || diffApply.RequiresNew()
 					}
 
-					if destroy && n.Config.Managed != nil && n.Config.Managed.CreateBeforeDestroy {
+					if destroy && n.createBeforeDestroy() {
 						createBeforeDestroyEnabled = true
 					}
 
