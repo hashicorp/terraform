@@ -270,9 +270,6 @@ func (c *Context) Graph(typ GraphType, opts *ContextGraphOpts) (*Graph, tfdiags.
 			Validate:   opts.Validate,
 		}).Build(addrs.RootModuleInstance)
 
-	case GraphTypeInput:
-		// The input graph is just a slightly modified plan graph
-		fallthrough
 	case GraphTypeValidate:
 		// The validate graph is just a slightly modified plan graph
 		fallthrough
@@ -290,8 +287,6 @@ func (c *Context) Graph(typ GraphType, opts *ContextGraphOpts) (*Graph, tfdiags.
 		// Some special cases for other graph types shared with plan currently
 		var b GraphBuilder = p
 		switch typ {
-		case GraphTypeInput:
-			b = InputGraphBuilder(p)
 		case GraphTypeValidate:
 			b = ValidateGraphBuilder(p)
 		}
