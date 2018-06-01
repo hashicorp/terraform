@@ -82,15 +82,10 @@ func (b *EvalGraphBuilder) Steps() []GraphTransformer {
 		// Add module variables
 		&ModuleVariableTransformer{Config: b.Config},
 
-		// Must be run before TransformProviders so that resource configurations
-		// can be analyzed.
-		&AttachSchemaTransformer{Schemas: b.Schemas},
-
 		TransformProviders(b.Components.ResourceProviders(), concreteProvider, b.Config),
 
-		// Attach schema to the newly-created provider nodes.
-		// (Will also redundantly re-attach schema to existing resource nodes,
-		// but that's okay.)
+		// Must attach schemas before ReferenceTransformer so that we can
+		// analyze the configuration to find references.
 		&AttachSchemaTransformer{Schemas: b.Schemas},
 
 		// Connect so that the references are ready for targeting. We'll

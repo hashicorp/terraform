@@ -61,16 +61,7 @@ func (b *ImportGraphBuilder) Steps() []GraphTransformer {
 		// Add root variables
 		&RootVariableTransformer{Config: b.Config},
 
-		// Must be run before TransformProviders so that resource configurations
-		// can be analyzed.
-		&AttachSchemaTransformer{Schemas: b.Schemas},
-
 		TransformProviders(b.Components.ResourceProviders(), concreteProvider, config),
-
-		// Attach schema to the newly-created provider nodes.
-		// (Will also redundantly re-attach schema to existing resource nodes,
-		// but that's okay.)
-		&AttachSchemaTransformer{Schemas: b.Schemas},
 
 		// This validates that the providers only depend on variables
 		&ImportProviderValidateTransformer{},
@@ -83,6 +74,10 @@ func (b *ImportGraphBuilder) Steps() []GraphTransformer {
 
 		// Add module variables
 		&ModuleVariableTransformer{Config: b.Config},
+
+		// Must attach schemas before ReferenceTransformer so that we can
+		// analyze the configuration to find references.
+		&AttachSchemaTransformer{Schemas: b.Schemas},
 
 		// Connect so that the references are ready for targeting. We'll
 		// have to connect again later for providers and so on.
