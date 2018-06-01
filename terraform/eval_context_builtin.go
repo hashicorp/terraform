@@ -211,17 +211,12 @@ func (ctx *BuiltinEvalContext) ProviderInput(pc addrs.ProviderConfig) map[string
 	ctx.ProviderLock.Lock()
 	defer ctx.ProviderLock.Unlock()
 
-	// Go up the module tree, looking for input results for the given provider
-	// configuration.
-	path := ctx.Path()
-	for i := len(path); i >= 0; i-- {
-		k := pc.Absolute(path[:i]).String()
-		if v, ok := ctx.ProviderInputConfig[k]; ok {
-			return v
-		}
+	if !ctx.Path().IsRoot() {
+		// Only root module provider configurations can have input.
+		return nil
 	}
 
-	return nil
+	return ctx.ProviderInputConfig[pc.String()]
 }
 
 func (ctx *BuiltinEvalContext) SetProviderInput(pc addrs.ProviderConfig, c map[string]cty.Value) {
