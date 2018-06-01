@@ -775,6 +775,106 @@ var TransposeFunc = function.New(&function.Spec{
 	},
 })
 
+// ValuesFunc contructs a function that returns a list of the map values,
+// in the order of the sorted keys. This function only works on flat maps.
+var ValuesFunc = function.New(&function.Spec{
+	Params: []function.Parameter{
+		{
+			Name: "values",
+			Type: cty.Map(cty.DynamicPseudoType),
+		},
+	},
+	Type: function.StaticReturnType(cty.List(cty.DynamicPseudoType)),
+	Impl: func(args []cty.Value, retType cty.Type) (ret cty.Value, err error) {
+		mapVar := args[0]
+		keys, err := Keys(mapVar)
+		if err != nil {
+			return cty.NilVal, err
+		}
+
+		var values []cty.Value
+
+		for it := keys.ElementIterator(); it.Next(); {
+			_, v := it.Element()
+			value := mapVar.Index(cty.StringVal(v.AsString()))
+			if !value.Type().Equals(cty.String) && !value.Type().Equals(cty.Number) {
+				return cty.NilVal, fmt.Errorf("values only works on flat maps")
+			}
+			values = append(values, value)
+		}
+
+		if len(values) == 0 {
+			return cty.ListValEmpty(cty.DynamicPseudoType), nil
+		}
+
+		return cty.ListVal(values), nil
+	},
+})
+
+// ZipmapFunc contructs a function that constructs a map from a list of keys
+// and a corresponding list of values.
+var ZipmapFunc = function.New(&function.Spec{
+	Params: []function.Parameter{
+		{
+			Name: "keys",
+			Type: cty.List(cty.String),
+		},
+		{
+			Name: "values",
+			Type: cty.List(cty.DynamicPseudoType),
+		},
+	},
+	Type: func(args []cty.Value) (ret cty.Type, err error) {
+		keys := args[0]
+		values := args[1]
+
+		if keys.LengthInt() == 0 {
+			return cty.Map(cty.DynamicPseudoType), nil
+		}
+
+		if keys.LengthInt() != values.LengthInt() {
+			return cty.NilType, fmt.Errorf("count of keys (%d) does not match count of values (%d)",
+				keys.LengthInt(), values.LengthInt())
+		}
+
+		argTypes := make([]cty.Type, values.LengthInt())
+		index := 0
+
+		for it := values.ElementIterator(); it.Next(); {
+			_, v := it.Element()
+			argTypes[index] = v.Type()
+			index++
+		}
+
+		valType, _ := convert.UnifyUnsafe(argTypes)
+		if valType == cty.NilType {
+			return cty.NilType, fmt.Errorf("list elements must have the same type")
+		}
+
+		return cty.Map(valType), nil
+	},
+	Impl: func(args []cty.Value, retType cty.Type) (ret cty.Value, err error) {
+		keys := args[0]
+		values := args[1]
+
+		if keys.LengthInt() == 0 {
+			return cty.MapValEmpty(cty.DynamicPseudoType), nil
+		}
+
+		output := make(map[string]cty.Value)
+
+		i := 0
+		for it := keys.ElementIterator(); it.Next(); {
+			_, v := it.Element()
+			val := values.Index(cty.NumberIntVal(int64(i)))
+			output[v.AsString()] = val
+			i++
+		}
+
+		return cty.MapVal(output), nil
+	},
+})
+
 // helper function to add an element to a list, if it does not already exist
 func appendIfMissing(slice []cty.Value, element cty.Value) ([]cty.Value, error) {
 	for _, ele := range slice {
@@ -888,4 +988,15 @@ func Slice(list, start, end cty.Value) (cty.Value, error) {
 // produce a new map of lists of strings.
 func Transpose(values cty.Value) (cty.Value, error) {
 	return TransposeFunc.Call([]cty.Value{values})
+}
+
+// Values returns a list of the map values, in the order of the sorted keys.
+// This function only works on flat maps.
+func Values(values cty.Value) (cty.Value, error) {
+	return ValuesFunc.Call([]cty.Value{values})
+}
+
+// Zipmap constructs a map from a list of keys and a corresponding list of values.
+func Zipmap(keys, values cty.Value) (cty.Value, error) {
+	return ZipmapFunc.Call([]cty.Value{keys, values})
 }
