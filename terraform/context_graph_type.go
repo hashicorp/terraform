@@ -14,7 +14,6 @@ const (
 	GraphTypePlan
 	GraphTypePlanDestroy
 	GraphTypeApply
-	GraphTypeInput
 	GraphTypeValidate
 	GraphTypeEval // only visits in-memory elements such as variables, locals, and outputs.
 )
@@ -24,7 +23,6 @@ const (
 // graph types.
 var GraphTypeMap = map[string]GraphType{
 	"apply":        GraphTypeApply,
-	"input":        GraphTypeInput,
 	"plan":         GraphTypePlan,
 	"plan-destroy": GraphTypePlanDestroy,
 	"refresh":      GraphTypeRefresh,
