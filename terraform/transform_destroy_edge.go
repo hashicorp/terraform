@@ -110,6 +110,16 @@ func (t *DestroyEdgeTransformer) Transform(g *Graph) error {
 				dag.VertexName(a), dag.VertexName(a_d))
 
 			g.Connect(&DestroyEdge{S: a, T: a_d})
+
+			// Attach the destroy node to the creator
+			// There really shouldn't be more than one destroyer, but even if
+			// there are, any of them will represent the correct
+			// CreateBeforeDestroy status.
+			if n, ok := cn.(GraphNodeAttachDestroyer); ok {
+				if d, ok := d.(GraphNodeDestroyerCBD); ok {
+					n.AttachDestroyNode(d)
+				}
+			}
 		}
 	}
 
