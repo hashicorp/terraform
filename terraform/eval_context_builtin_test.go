@@ -28,17 +28,17 @@ func TestBuiltinEvalContextProviderInput(t *testing.T) {
 	expected1 := map[string]cty.Value{"value": cty.StringVal("foo")}
 	ctx1.SetProviderInput(providerAddr, expected1)
 
-	expected2 := map[string]cty.Value{"value": cty.StringVal("bar")}
-	ctx2.SetProviderInput(providerAddr, expected2)
+	try2 := map[string]cty.Value{"value": cty.StringVal("bar")}
+	ctx2.SetProviderInput(providerAddr, try2) // ignored because not a root module
 
 	actual1 := ctx1.ProviderInput(providerAddr)
 	actual2 := ctx2.ProviderInput(providerAddr)
 
 	if !reflect.DeepEqual(actual1, expected1) {
-		t.Fatalf("bad: %#v %#v", actual1, expected1)
+		t.Errorf("wrong result 1\ngot:  %#v\nwant: %#v", actual1, expected1)
 	}
-	if !reflect.DeepEqual(actual2, expected2) {
-		t.Fatalf("bad: %#v %#v", actual2, expected2)
+	if actual2 != nil {
+		t.Errorf("wrong result 2\ngot:  %#v\nwant: %#v", actual2, nil)
 	}
 }
 
