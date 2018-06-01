@@ -853,6 +853,7 @@ func TestContext2Refresh_dataOrphan(t *testing.T) {
 						Primary: &InstanceState{
 							ID: "foo",
 						},
+						Provider: "provider.null",
 					},
 				},
 			},
@@ -1224,6 +1225,7 @@ func TestContext2Refresh_orphanModule(t *testing.T) {
 							"module.child",
 							"module.child",
 						},
+						Provider: "provider.aws",
 					},
 				},
 			},
@@ -1241,6 +1243,7 @@ func TestContext2Refresh_orphanModule(t *testing.T) {
 						Dependencies: []string{
 							"module.grandchild",
 						},
+						Provider: "provider.aws",
 					},
 				},
 				Outputs: map[string]*OutputState{
@@ -1262,6 +1265,7 @@ func TestContext2Refresh_orphanModule(t *testing.T) {
 						Primary: &InstanceState{
 							ID: "i-cde345",
 						},
+						Provider: "provider.aws",
 					},
 				},
 				Outputs: map[string]*OutputState{
