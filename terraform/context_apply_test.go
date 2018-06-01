@@ -1008,8 +1008,9 @@ func TestContext2Apply_createBeforeDestroy_hook(t *testing.T) {
 	var actualLock sync.Mutex
 	h.PostApplyFn = func(n *InstanceInfo, s *InstanceState, e error) (HookAction, error) {
 		actualLock.Lock()
+
 		defer actualLock.Unlock()
-		actual = append(actual, n.Id)
+		actual = append(actual, s.String())
 		return HookActionContinue, nil
 	}
 
@@ -1034,7 +1035,11 @@ func TestContext2Apply_createBeforeDestroy_hook(t *testing.T) {
 		t.Fatalf("apply errors: %s", diags.Err())
 	}
 
-	expected := []string{"aws_instance.bar", "aws_instance.bar (deposed #0)"}
+	expected := []string{
+		"ID = foo\nrequire_new = xyz\ntype = aws_instance\nTainted = false\n",
+		"<not created>",
+	}
+
 	if !reflect.DeepEqual(actual, expected) {
 		t.Fatalf("bad: %#v", actual)
 	}
