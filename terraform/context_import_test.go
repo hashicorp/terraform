@@ -323,7 +323,7 @@ func TestContextImport_providerVarConfig(t *testing.T) {
 		),
 		Variables: InputValues{
 			"foo": &InputValue{
-				Value:      cty.StringVal("foo"),
+				Value:      cty.StringVal("bar"),
 				SourceType: ValueFromCaller,
 			},
 		},
@@ -334,7 +334,7 @@ func TestContextImport_providerVarConfig(t *testing.T) {
 		configured = true
 
 		if v, ok := c.Get("foo"); !ok || v.(string) != "bar" {
-			return fmt.Errorf("bad value: %#v", v)
+			return fmt.Errorf("bad value %#v; want %#v", v, "bar")
 		}
 
 		return nil
