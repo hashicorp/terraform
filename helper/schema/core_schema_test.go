@@ -118,6 +118,46 @@ func TestSchemaMapCoreConfigSchema(t *testing.T) {
 				BlockTypes: map[string]*configschema.NestedBlock{},
 			},
 		},
+		"incorrectly-specified collections": {
+			// Historically we tolerated setting a type directly as the Elem
+			// attribute, rather than a Schema object. This is common enough
+			// in existing provider code that we must support it as an alias
+			// for a schema object with the given type.
+			map[string]*Schema{
+				"list": {
+					Type:     TypeList,
+					Required: true,
+					Elem:     TypeInt,
+				},
+				"set": {
+					Type:     TypeSet,
+					Optional: true,
+					Elem:     TypeString,
+				},
+				"map": {
+					Type:     TypeMap,
+					Optional: true,
+					Elem:     TypeBool,
+				},
+			},
+			&configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"list": {
+						Type:     cty.List(cty.Number),
+						Required: true,
+					},
+					"set": {
+						Type:     cty.Set(cty.String),
+						Optional: true,
+					},
+					"map": {
+						Type:     cty.Map(cty.Bool),
+						Optional: true,
+					},
+				},
+				BlockTypes: map[string]*configschema.NestedBlock{},
+			},
+		},
 		"sub-resource collections": {
 			map[string]*Schema{
 				"list": {
