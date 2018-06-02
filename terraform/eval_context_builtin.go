@@ -146,7 +146,7 @@ func (ctx *BuiltinEvalContext) CloseProvider(addr addrs.ProviderConfig) error {
 	ctx.ProviderLock.Lock()
 	defer ctx.ProviderLock.Unlock()
 
-	key := addr.String()
+	key := addr.Absolute(ctx.Path()).String()
 	var provider interface{}
 	provider = ctx.ProviderCache[key]
 	if provider != nil {
