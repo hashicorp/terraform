@@ -40,7 +40,7 @@ func (m schemaMap) CoreConfigSchema() *configschema.Block {
 			continue
 		}
 		switch schema.Elem.(type) {
-		case *Schema:
+		case *Schema, ValueType:
 			ret.Attributes[name] = schema.coreConfigSchemaAttribute()
 		case *Resource:
 			ret.BlockTypes[name] = schema.coreConfigSchemaBlock()
@@ -118,6 +118,10 @@ func (s *Schema) coreConfigSchemaType() cty.Type {
 		switch set := s.Elem.(type) {
 		case *Schema:
 			elemType = set.coreConfigSchemaType()
+		case ValueType:
+			// This represents a mistake in the provider code, but it's a
+			// common one so we'll just shim it.
+			elemType = (&Schema{Type: set}).coreConfigSchemaType()
 		case *Resource:
 			// In practice we don't actually use this for normal schema
 			// construction because we construct a NestedBlock in that
