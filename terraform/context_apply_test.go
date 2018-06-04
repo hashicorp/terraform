@@ -285,7 +285,7 @@ func TestContext2Apply_resourceDependsOnModuleStateOnly(t *testing.T) {
 							ID: "bar",
 						},
 						Dependencies: []string{"module.child"},
-						Provider: "provider.aws",
+						Provider:     "provider.aws",
 					},
 				},
 			},
@@ -1342,7 +1342,7 @@ func testContext2Apply_destroyDependsOnStateOnly(t *testing.T) {
 							Attributes: map[string]string{},
 						},
 						Dependencies: []string{"aws_instance.foo"},
-						Provider: "provider.aws",
+						Provider:     "provider.aws",
 					},
 				},
 			},
@@ -1422,7 +1422,7 @@ func testContext2Apply_destroyDependsOnStateOnlyModule(t *testing.T) {
 							Attributes: map[string]string{},
 						},
 						Dependencies: []string{"aws_instance.foo"},
-						Provider: "provider.aws",
+						Provider:     "provider.aws",
 					},
 				},
 			},
@@ -8598,7 +8598,7 @@ func TestContext2Apply_issue7824(t *testing.T) {
 		ResourceTypes: map[string]*configschema.Block{
 			"template_file": {
 				Attributes: map[string]*configschema.Attribute{
-					"template": {Type: cty.String, Optional: true},
+					"template":                {Type: cty.String, Optional: true},
 					"__template_requires_new": {Type: cty.Bool, Optional: true},
 				},
 			},
