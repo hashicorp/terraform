@@ -25,7 +25,7 @@ argument.
 If `-auto-approve` is set, then the destroy confirmation will not be shown.
 
 The `-target` flag, instead of affecting "dependencies" will instead also
-destroy any resources that _depend on_ the target(s) specified.
+destroy any resources that _depend on_ the target(s) specified. For more information, see [the targeting docs from `terraform plan`](/docs/commands/plan.html#resource-targeting).
 
 The behavior of any `terraform destroy` command can be previewed at any time
 with an equivalent `terraform plan -destroy` command.
