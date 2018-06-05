@@ -94,7 +94,7 @@ to specify the constraint. The resource address is interpreted as follows:
 
 * If the given address has a _resource spec_, only the specified resource
   is targeted. If the named resource uses `count` and no explicit index
-  is specified in the address, all of the instances sharing the given
+  is specified in the address (i.e. aws_instance.example[3]), all of the instances sharing the given
   resource name are targeted.
 
 * If the given address _does not_ have a resource spec, and instead just
