@@ -17,7 +17,7 @@ Below, we show a complete example configuring the "consul" backend:
 ```hcl
 terraform {
   backend "consul" {
-    address = "demo.consul.io"
+    address = "https://demo.consul.io"
     path    = "example_app/terraform_state"
   }
 }
