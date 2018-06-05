@@ -68,7 +68,7 @@ down to see all providers.
     </tr>
     <tr>
     <td><a href="/docs/providers/heroku/index.html">Heroku</a></td>
-    <td><a href="/docs/provider/hcloud/index.html">Hetzner Cloud</a></td>
+    <td><a href="/docs/providers/hcloud/index.html">Hetzner Cloud</a></td>
     <td><a href="/docs/providers/http/index.html">HTTP</a></td>
     </tr>
     <tr>
