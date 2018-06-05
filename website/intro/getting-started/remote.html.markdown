@@ -52,7 +52,7 @@ First, configure the backend in your configuration:
 ```hcl
 terraform {
   backend "consul" {
-    address = "demo.consul.io"
+    address = "https://demo.consul.io"
     path    = "getting-started-RANDOMSTRING"
     lock    = false
   }
