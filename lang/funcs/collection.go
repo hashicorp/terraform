@@ -171,9 +171,16 @@ var CompactFunc = function.New(&function.Spec{
 	},
 	Type: function.StaticReturnType(cty.List(cty.String)),
 	Impl: func(args []cty.Value, retType cty.Type) (ret cty.Value, err error) {
+		listVal := args[0]
+		if !listVal.IsWhollyKnown() {
+			// If some of the element values aren't known yet then we
+			// can't yet return a compacted list
+			return cty.UnknownVal(retType), nil
+		}
+
 		var outputList []cty.Value
 
-		for it := args[0].ElementIterator(); it.Next(); {
+		for it := listVal.ElementIterator(); it.Next(); {
 			_, v := it.Element()
 			if v.AsString() == "" {
 				continue
@@ -263,11 +270,19 @@ var DistinctFunc = function.New(&function.Spec{
 			Type: cty.List(cty.DynamicPseudoType),
 		},
 	},
-	Type: function.StaticReturnType(cty.List(cty.DynamicPseudoType)),
+	Type: func(args []cty.Value) (cty.Type, error) {
+		return args[0].Type(), nil
+	},
+	// Type: function.StaticReturnType(cty.List(cty.DynamicPseudoType)),
 	Impl: func(args []cty.Value, retType cty.Type) (ret cty.Value, err error) {
+		listVal := args[0]
+
+		if !listVal.IsWhollyKnown() {
+			return cty.UnknownVal(retType), nil
+		}
 		var list []cty.Value
 
-		for it := args[0].ElementIterator(); it.Next(); {
+		for it := listVal.ElementIterator(); it.Next(); {
 			_, v := it.Element()
 			list, err = appendIfMissing(list, v)
 			if err != nil {
@@ -296,6 +311,11 @@ var ChunklistFunc = function.New(&function.Spec{
 		return cty.List(args[0].Type()), nil
 	},
 	Impl: func(args []cty.Value, retType cty.Type) (ret cty.Value, err error) {
+		listVal := args[0]
+		if !listVal.IsWhollyKnown() {
+			return cty.UnknownVal(retType), nil
+		}
+
 		var size int
 		err = gocty.FromCtyValue(args[1], &size)
 		if err != nil {
@@ -310,7 +330,7 @@ var ChunklistFunc = function.New(&function.Spec{
 
 		// if size is 0, returns a list made of the initial list
 		if size == 0 {
-			output = append(output, args[0])
+			output = append(output, listVal)
 			return cty.ListVal(output), nil
 		}
 
@@ -319,7 +339,7 @@ var ChunklistFunc = function.New(&function.Spec{
 		l := args[0].LengthInt()
 		i := 0
 
-		for it := args[0].ElementIterator(); it.Next(); {
+		for it := listVal.ElementIterator(); it.Next(); {
 			_, v := it.Element()
 			chunk = append(chunk, v)
 
@@ -347,9 +367,12 @@ var FlattenFunc = function.New(&function.Spec{
 	Type: function.StaticReturnType(cty.List(cty.DynamicPseudoType)),
 	Impl: func(args []cty.Value, retType cty.Type) (ret cty.Value, err error) {
 		inputList := args[0]
+		if !inputList.IsWhollyKnown() {
+			return cty.UnknownVal(retType), nil
+		}
 
 		if inputList.LengthInt() == 0 {
-			return cty.ListValEmpty(cty.DynamicPseudoType), nil
+			return cty.ListValEmpty(retType.ElementType()), nil
 		}
 		outputList := make([]cty.Value, 0)
 
@@ -458,11 +481,14 @@ var LookupFunc = function.New(&function.Spec{
 		AllowDynamicType: true,
 		AllowNull:        true,
 	},
-	Type: function.StaticReturnType(cty.DynamicPseudoType),
-	Impl: func(args []cty.Value, retType cty.Type) (ret cty.Value, err error) {
+	Type: func(args []cty.Value) (ret cty.Type, err error) {
 		if len(args) < 1 || len(args) > 3 {
-			return cty.NilVal, fmt.Errorf("lookup() takes two or three arguments, got %d", len(args))
+			return cty.NilType, fmt.Errorf("lookup() takes two or three arguments, got %d", len(args))
 		}
+
+		return args[0].Type().ElementType(), nil
+	},
+	Impl: func(args []cty.Value, retType cty.Type) (ret cty.Value, err error) {
 		var defaultVal cty.Value
 		defaultValueSet := false
 
@@ -473,6 +499,10 @@ var LookupFunc = function.New(&function.Spec{
 
 		mapVar := args[0]
 		lookupKey := args[1].AsString()
+
+		if !mapVar.IsWhollyKnown() {
+			return cty.UnknownVal(retType), nil
+		}
 
 		if mapVar.HasIndex(cty.StringVal(lookupKey)) == cty.True {
 			v := mapVar.Index(cty.StringVal(lookupKey))
@@ -489,13 +519,11 @@ var LookupFunc = function.New(&function.Spec{
 		}
 
 		if defaultValueSet {
-			defaultType := defaultVal.Type()
-			switch {
-			case defaultType.Equals(cty.String):
-				return cty.StringVal(defaultVal.AsString()), nil
-			case defaultType.Equals(cty.Number):
-				return cty.NumberVal(defaultVal.AsBigFloat()), nil
+			defaultVal, err = convert.Convert(defaultVal, retType)
+			if err != nil {
+				return cty.NilVal, err
 			}
+			return defaultVal, nil
 		}
 
 		return cty.UnknownVal(cty.DynamicPseudoType), fmt.Errorf(
@@ -537,6 +565,12 @@ var MapFunc = function.New(&function.Spec{
 		return cty.Map(valType), nil
 	},
 	Impl: func(args []cty.Value, retType cty.Type) (ret cty.Value, err error) {
+		for _, arg := range args {
+			if !arg.IsWhollyKnown() {
+				return cty.UnknownVal(retType), nil
+			}
+		}
+
 		outputMap := make(map[string]cty.Value)
 
 		for i := 0; i < len(args); i += 2 {
@@ -612,6 +646,10 @@ var MatchkeysFunc = function.New(&function.Spec{
 			return cty.ListValEmpty(retType.ElementType()), nil
 		}
 
+		if !args[0].IsWhollyKnown() || !args[0].IsWhollyKnown() {
+			return cty.UnknownVal(retType), nil
+		}
+
 		i := 0
 		for it := keys.ElementIterator(); it.Next(); {
 			_, key := it.Element()
@@ -659,7 +697,9 @@ var MergeFunc = function.New(&function.Spec{
 		outputMap := make(map[string]cty.Value)
 
 		for _, arg := range args {
-
+			if !arg.IsWhollyKnown() {
+				return cty.UnknownVal(retType), nil
+			}
 			if !arg.Type().IsObjectType() && !arg.Type().IsMapType() {
 				return cty.NilVal, fmt.Errorf("arguments must be maps or objects, got %#v", arg.Type().FriendlyName())
 			}
@@ -694,6 +734,9 @@ var SliceFunc = function.New(&function.Spec{
 	},
 	Impl: func(args []cty.Value, retType cty.Type) (ret cty.Value, err error) {
 		inputList := args[0]
+		if !inputList.IsWhollyKnown() {
+			return cty.UnknownVal(retType), nil
+		}
 		var startIndex, endIndex int
 
 		if err = gocty.FromCtyValue(args[1], &startIndex); err != nil {
@@ -791,25 +834,14 @@ var ValuesFunc = function.New(&function.Spec{
 		},
 	},
 	Type: func(args []cty.Value) (ret cty.Type, err error) {
-		values := args[0]
-		argTypes := make([]cty.Type, values.LengthInt())
-		index := 0
-
-		for it := values.ElementIterator(); it.Next(); {
-			_, v := it.Element()
-			argTypes[index] = v.Type()
-			index++
-		}
-
-		valType, _ := convert.UnifyUnsafe(argTypes)
-		if valType == cty.NilType {
-			return cty.NilType, fmt.Errorf("map elements must have the same type")
-		}
-
-		return cty.List(valType), nil
+		return cty.List(args[0].Type().ElementType()), nil
 	},
 	Impl: func(args []cty.Value, retType cty.Type) (ret cty.Value, err error) {
 		mapVar := args[0]
+		if !mapVar.IsWhollyKnown() {
+			return cty.UnknownVal(retType), nil
+		}
+
 		keys, err := Keys(mapVar)
 		if err != nil {
 			return cty.NilVal, err
