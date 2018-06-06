@@ -856,7 +856,7 @@ var ValuesFunc = function.New(&function.Spec{
 		}
 
 		if len(values) == 0 {
-			return cty.ListValEmpty(cty.DynamicPseudoType), nil
+			return cty.ListValEmpty(retType), nil
 		}
 
 		return cty.ListVal(values), nil
