@@ -33,6 +33,8 @@ vendor in close collaboration with HashiCorp, and are tested by HashiCorp.
 
 [Heroku](/docs/providers/heroku/index.html)
 
+[Hetzner Cloud](/docs/providers/hcloud/index.html)
+
 [OpenStack](/docs/providers/openstack/index.html)
 
 [OpenTelekomCloud](/docs/providers/opentelekomcloud/index.html)
