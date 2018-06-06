@@ -782,7 +782,7 @@ var TransposeFunc = function.New(&function.Spec{
 })
 
 // ValuesFunc contructs a function that returns a list of the map values,
-// in the order of the sorted keys. This function only works on flat maps.
+// in the order of the sorted keys.
 var ValuesFunc = function.New(&function.Spec{
 	Params: []function.Parameter{
 		{
@@ -790,7 +790,24 @@ var ValuesFunc = function.New(&function.Spec{
 			Type: cty.Map(cty.DynamicPseudoType),
 		},
 	},
-	Type: function.StaticReturnType(cty.List(cty.DynamicPseudoType)),
+	Type: func(args []cty.Value) (ret cty.Type, err error) {
+		values := args[0]
+		argTypes := make([]cty.Type, values.LengthInt())
+		index := 0
+
+		for it := values.ElementIterator(); it.Next(); {
+			_, v := it.Element()
+			argTypes[index] = v.Type()
+			index++
+		}
+
+		valType, _ := convert.UnifyUnsafe(argTypes)
+		if valType == cty.NilType {
+			return cty.NilType, fmt.Errorf("map elements must have the same type")
+		}
+
+		return cty.List(valType), nil
+	},
 	Impl: func(args []cty.Value, retType cty.Type) (ret cty.Value, err error) {
 		mapVar := args[0]
 		keys, err := Keys(mapVar)
@@ -801,11 +818,8 @@ var ValuesFunc = function.New(&function.Spec{
 		var values []cty.Value
 
 		for it := keys.ElementIterator(); it.Next(); {
-			_, v := it.Element()
-			value := mapVar.Index(cty.StringVal(v.AsString()))
-			if !value.Type().Equals(cty.String) && !value.Type().Equals(cty.Number) {
-				return cty.NilVal, fmt.Errorf("values only works on flat maps")
-			}
+			_, k := it.Element()
+			value := mapVar.Index(cty.StringVal(k.AsString()))
 			values = append(values, value)
 		}
 
@@ -842,22 +856,7 @@ var ZipmapFunc = function.New(&function.Spec{
 			return cty.NilType, fmt.Errorf("count of keys (%d) does not match count of values (%d)",
 				keys.LengthInt(), values.LengthInt())
 		}
-
-		argTypes := make([]cty.Type, values.LengthInt())
-		index := 0
-
-		for it := values.ElementIterator(); it.Next(); {
-			_, v := it.Element()
-			argTypes[index] = v.Type()
-			index++
-		}
-
-		valType, _ := convert.UnifyUnsafe(argTypes)
-		if valType == cty.NilType {
-			return cty.NilType, fmt.Errorf("list elements must have the same type")
-		}
-
-		return cty.Map(valType), nil
+		return cty.Map(values.Type().ElementType()), nil
 	},
 	Impl: func(args []cty.Value, retType cty.Type) (ret cty.Value, err error) {
 		keys := args[0]
