@@ -1725,13 +1725,16 @@ func TestValues(t *testing.T) {
 			}),
 			false,
 		},
-		{ // error: map of lists
+		{ // map of lists
 			cty.MapVal(map[string]cty.Value{
 				"hello":  cty.ListVal([]cty.Value{cty.StringVal("world")}),
 				"what's": cty.ListVal([]cty.Value{cty.StringVal("up")}),
 			}),
-			cty.NilVal,
-			true,
+			cty.ListVal([]cty.Value{
+				cty.ListVal([]cty.Value{cty.StringVal("world")}),
+				cty.ListVal([]cty.Value{cty.StringVal("up")}),
+			}),
+			false,
 		},
 	}
 
