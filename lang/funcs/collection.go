@@ -463,11 +463,11 @@ var LookupFunc = function.New(&function.Spec{
 		if len(args) < 1 || len(args) > 3 {
 			return cty.NilVal, fmt.Errorf("lookup() takes two or three arguments, got %d", len(args))
 		}
-		var defaultVal string
+		var defaultVal cty.Value
 		defaultValueSet := false
 
 		if len(args) == 3 {
-			defaultVal = args[2].AsString()
+			defaultVal = args[2]
 			defaultValueSet = true
 		}
 
@@ -489,10 +489,16 @@ var LookupFunc = function.New(&function.Spec{
 		}
 
 		if defaultValueSet {
-			return cty.StringVal(defaultVal), nil
+			defaultType := defaultVal.Type()
+			switch {
+			case defaultType.Equals(cty.String):
+				return cty.StringVal(defaultVal.AsString()), nil
+			case defaultType.Equals(cty.Number):
+				return cty.NumberVal(defaultVal.AsBigFloat()), nil
+			}
 		}
 
-		return cty.UnknownVal(cty.String), fmt.Errorf(
+		return cty.UnknownVal(cty.DynamicPseudoType), fmt.Errorf(
 			"lookup failed to find '%s'", lookupKey)
 	},
 })
