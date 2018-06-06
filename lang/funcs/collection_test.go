@@ -299,6 +299,34 @@ func TestCoalesceList(t *testing.T) {
 			}),
 			false,
 		},
+		{ // list with unknown values
+			[]cty.Value{
+				cty.ListVal([]cty.Value{
+					cty.StringVal("first"), cty.StringVal("second"),
+				}),
+				cty.ListVal([]cty.Value{
+					cty.UnknownVal(cty.String),
+				}),
+			},
+			cty.ListVal([]cty.Value{
+				cty.StringVal("first"), cty.StringVal("second"),
+			}),
+			false,
+		},
+		{ // list with unknown values
+			[]cty.Value{
+				cty.ListVal([]cty.Value{
+					cty.UnknownVal(cty.String),
+				}),
+				cty.ListVal([]cty.Value{
+					cty.StringVal("third"), cty.StringVal("fourth"),
+				}),
+			},
+			cty.ListVal([]cty.Value{
+				cty.UnknownVal(cty.String),
+			}),
+			false,
+		},
 		{
 			[]cty.Value{
 				cty.MapValEmpty(cty.DynamicPseudoType),
@@ -375,6 +403,15 @@ func TestCompact(t *testing.T) {
 			}),
 			false,
 		},
+		{
+			cty.ListVal([]cty.Value{
+				cty.StringVal("test"),
+				cty.UnknownVal(cty.String),
+				cty.StringVal(""),
+			}),
+			cty.UnknownVal(cty.List(cty.String)),
+			false,
+		},
 		{ // errors on list of lists
 			cty.ListVal([]cty.Value{
 				cty.ListVal([]cty.Value{
@@ -422,6 +459,12 @@ func TestContains(t *testing.T) {
 		cty.NumberIntVal(3),
 		cty.NumberIntVal(4),
 	})
+	listWithUnknown := cty.ListVal([]cty.Value{
+		cty.StringVal("the"),
+		cty.StringVal("quick"),
+		cty.StringVal("brown"),
+		cty.UnknownVal(cty.String),
+	})
 
 	tests := []struct {
 		List  cty.Value
@@ -431,6 +474,12 @@ func TestContains(t *testing.T) {
 	}{
 		{
 			listOfStrings,
+			cty.StringVal("the"),
+			cty.BoolVal(true),
+			false,
+		},
+		{
+			listWithUnknown,
 			cty.StringVal("the"),
 			cty.BoolVal(true),
 			false,
@@ -504,6 +553,16 @@ func TestIndex(t *testing.T) {
 				cty.StringVal("a"),
 				cty.StringVal("b"),
 				cty.StringVal("c"),
+			}),
+			cty.StringVal("a"),
+			cty.NumberIntVal(0),
+			false,
+		},
+		{
+			cty.ListVal([]cty.Value{
+				cty.StringVal("a"),
+				cty.StringVal("b"),
+				cty.UnknownVal(cty.String),
 			}),
 			cty.StringVal("a"),
 			cty.NumberIntVal(0),
@@ -618,6 +677,16 @@ func TestDistinct(t *testing.T) {
 				cty.StringVal("a"),
 				cty.StringVal("b"),
 			}),
+			false,
+		},
+		{
+			cty.ListVal([]cty.Value{
+				cty.StringVal("a"),
+				cty.StringVal("b"),
+				cty.StringVal("a"),
+				cty.UnknownVal(cty.String),
+			}),
+			cty.UnknownVal(cty.List(cty.String)),
 			false,
 		},
 		{
@@ -765,6 +834,16 @@ func TestChunklist(t *testing.T) {
 			}),
 			false,
 		},
+		{
+			cty.ListVal([]cty.Value{
+				cty.StringVal("a"),
+				cty.StringVal("b"),
+				cty.UnknownVal(cty.String),
+			}),
+			cty.NumberIntVal(1),
+			cty.UnknownVal(cty.List(cty.List(cty.String))),
+			false,
+		},
 	}
 
 	for _, test := range tests {
@@ -810,6 +889,20 @@ func TestFlatten(t *testing.T) {
 				cty.StringVal("c"),
 				cty.StringVal("d"),
 			}),
+			false,
+		},
+		{
+			cty.ListVal([]cty.Value{
+				cty.ListVal([]cty.Value{
+					cty.StringVal("a"),
+					cty.StringVal("b"),
+				}),
+				cty.ListVal([]cty.Value{
+					cty.UnknownVal(cty.String),
+					cty.StringVal("d"),
+				}),
+			}),
+			cty.UnknownVal(cty.List(cty.DynamicPseudoType)),
 			false,
 		},
 		{
@@ -860,6 +953,11 @@ func TestKeys(t *testing.T) {
 			cty.StringVal("foo"),
 			cty.NilVal,
 			true,
+		},
+		{ // Unknown map
+			cty.UnknownVal(cty.Map(cty.String)),
+			cty.UnknownVal(cty.List(cty.String)),
+			false,
 		},
 	}
 
@@ -927,6 +1025,17 @@ func TestList(t *testing.T) {
 			}),
 			false,
 		},
+		{
+			[]cty.Value{
+				cty.StringVal("Hello"),
+				cty.UnknownVal(cty.String),
+			},
+			cty.ListVal([]cty.Value{
+				cty.StringVal("Hello"),
+				cty.UnknownVal(cty.String),
+			}),
+			false,
+		},
 	}
 
 	for _, test := range tests {
@@ -961,6 +1070,10 @@ func TestLookup(t *testing.T) {
 			cty.StringVal("bar"),
 			cty.StringVal("baz"),
 		}),
+	})
+	mapWithUnknowns := cty.MapVal(map[string]cty.Value{
+		"foo": cty.StringVal("bar"),
+		"baz": cty.UnknownVal(cty.String),
 	})
 
 	tests := []struct {
@@ -1046,6 +1159,14 @@ func TestLookup(t *testing.T) {
 			cty.NilVal,
 			true,
 		},
+		{
+			[]cty.Value{
+				mapWithUnknowns,
+				cty.StringVal("baz"),
+			},
+			cty.UnknownVal(cty.String),
+			false,
+		},
 	}
 
 	for _, test := range tests {
@@ -1082,6 +1203,14 @@ func TestMap(t *testing.T) {
 			cty.MapVal(map[string]cty.Value{
 				"hello": cty.StringVal("world"),
 			}),
+			false,
+		},
+		{
+			[]cty.Value{
+				cty.StringVal("hello"),
+				cty.UnknownVal(cty.String),
+			},
+			cty.UnknownVal(cty.Map(cty.String)),
 			false,
 		},
 		{
@@ -1307,6 +1436,23 @@ func TestMatchkeys(t *testing.T) {
 			}),
 			false,
 		},
+		{ // unknowns
+			cty.ListVal([]cty.Value{
+				cty.StringVal("a"),
+				cty.StringVal("b"),
+				cty.UnknownVal(cty.String),
+			}),
+			cty.ListVal([]cty.Value{
+				cty.StringVal("ref1"),
+				cty.StringVal("ref2"),
+				cty.UnknownVal(cty.String),
+			}),
+			cty.ListVal([]cty.Value{
+				cty.StringVal("ref1"),
+			}),
+			cty.UnknownVal(cty.List(cty.String)),
+			false,
+		},
 		// errors
 		{ // different types
 			cty.ListVal([]cty.Value{
@@ -1394,6 +1540,18 @@ func TestMerge(t *testing.T) {
 				"a": cty.StringVal("b"),
 				"c": cty.StringVal("d"),
 			}),
+			false,
+		},
+		{ // handle unknowns
+			[]cty.Value{
+				cty.MapVal(map[string]cty.Value{
+					"a": cty.UnknownVal(cty.String),
+				}),
+				cty.MapVal(map[string]cty.Value{
+					"c": cty.StringVal("d"),
+				}),
+			},
+			cty.DynamicVal,
 			false,
 		},
 		{ // merge with conflicts is ok, last in wins
@@ -1548,6 +1706,10 @@ func TestSlice(t *testing.T) {
 		cty.NumberIntVal(1),
 		cty.NumberIntVal(2),
 	})
+	listWithUnknowns := cty.ListVal([]cty.Value{
+		cty.StringVal("a"),
+		cty.UnknownVal(cty.String),
+	})
 	tests := []struct {
 		List       cty.Value
 		StartIndex cty.Value
@@ -1562,6 +1724,13 @@ func TestSlice(t *testing.T) {
 			cty.ListVal([]cty.Value{
 				cty.StringVal("b"),
 			}),
+			false,
+		},
+		{ // unknowns in the list
+			listWithUnknowns,
+			cty.NumberIntVal(1),
+			cty.NumberIntVal(2),
+			cty.UnknownVal(cty.List(cty.String)),
 			false,
 		},
 		{ // normal usage
@@ -1661,6 +1830,13 @@ func TestTranspose(t *testing.T) {
 			}),
 			false,
 		},
+		{ // map - unknown value
+			cty.MapVal(map[string]cty.Value{
+				"key1": cty.UnknownVal(cty.List(cty.String)),
+			}),
+			cty.UnknownVal(cty.Map(cty.List(cty.String))),
+			false,
+		},
 		{ // bad map - empty value
 			cty.MapVal(map[string]cty.Value{
 				"key1": cty.ListValEmpty(cty.String),
@@ -1734,6 +1910,14 @@ func TestValues(t *testing.T) {
 				cty.ListVal([]cty.Value{cty.StringVal("world")}),
 				cty.ListVal([]cty.Value{cty.StringVal("up")}),
 			}),
+			false,
+		},
+		{ // map with unknowns
+			cty.MapVal(map[string]cty.Value{
+				"hello":  cty.ListVal([]cty.Value{cty.StringVal("world")}),
+				"what's": cty.UnknownVal(cty.List(cty.String)),
+			}),
+			cty.UnknownVal(cty.List(cty.List(cty.String))),
 			false,
 		},
 	}
