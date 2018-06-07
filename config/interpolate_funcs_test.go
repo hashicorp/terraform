@@ -2960,3 +2960,150 @@ H7CurtMwALQ/n/6LUKFmjRZjqbKX9SO2QSaC3grd6sY9Tu+bZjLe
 		},
 	})
 }
+
+func TestInterpolateFuncSplitWords(t *testing.T) {
+	testFunction(t, testFunctionConfig{
+		Cases: []testFunctionCase{
+			{
+				// no arguments
+				`${splitwords()}`,
+				nil,
+				true,
+			},
+			{
+				// camelCase
+				`${splitwords("camelCase")}`,
+				[]interface{}{"camel", "Case"},
+				false,
+			},
+			{
+				// camelCase with spaces
+				`${splitwords("camelCase kcMerrill")}`,
+				[]interface{}{"camel", "Case", "kc", "Merrill"},
+				false,
+			},
+			{
+				// kebob-case
+				`${splitwords("KEBOB-CASE")}`,
+				[]interface{}{"KEBOB", "CASE"},
+				false,
+			},
+			{
+				// snake_case
+				`${splitwords("snake_Case")}`,
+				[]interface{}{"snake", "Case"},
+				false,
+			},
+		},
+	})
+}
+func TestInterpolateFuncCamelCase(t *testing.T) {
+	testFunction(t, testFunctionConfig{
+		Cases: []testFunctionCase{
+			{
+				// no arguments
+				`${camelcase()}`,
+				nil,
+				true,
+			},
+			{
+				// camelCase
+				`${camelcase("camelCase")}`,
+				"camelCase",
+				false,
+			},
+			{
+				// camelCase with spaces
+				`${camelcase("camelCase kcMerrill")}`,
+				"camelCaseKcMerrill",
+				false,
+			},
+			{
+				// kebob-case
+				`${camelcase("KEBOB-CASE")}`,
+				"kebobCase",
+				false,
+			},
+			{
+				// snake_case
+				`${camelcase("snake_Case")}`,
+				"snakeCase",
+				false,
+			},
+		},
+	})
+}
+
+func TestInterpolateFuncKabobCase(t *testing.T) {
+	testFunction(t, testFunctionConfig{
+		Cases: []testFunctionCase{
+			{
+				// no arguments
+				`${kabobcase()}`,
+				nil,
+				true,
+			},
+			{
+				// camelCase
+				`${kabobcase("camelCase")}`,
+				"camel-case",
+				false,
+			},
+			{
+				// camelCase with spaces
+				`${kabobcase("camelCase kcMerrill")}`,
+				"camel-case-kc-merrill",
+				false,
+			},
+			{
+				// kebob-case
+				`${kabobcase("KEBOB-CASE")}`,
+				"kebob-case",
+				false,
+			},
+			{
+				// snake_case
+				`${kabobcase("Snake_Case")}`,
+				"snake-case",
+				false,
+			},
+		},
+	})
+}
+
+func TestInterpolateFuncSnakeCase(t *testing.T) {
+	testFunction(t, testFunctionConfig{
+		Cases: []testFunctionCase{
+			{
+				// no arguments
+				`${snakecase()}`,
+				nil,
+				true,
+			},
+			{
+				// camelCase
+				`${snakecase("camelCase")}`,
+				"camel_case",
+				false,
+			},
+			{
+				// camelCase with spaces
+				`${snakecase("camelCase kcMerrill")}`,
+				"camel_case_kc_merrill",
+				false,
+			},
+			{
+				// kebob-case
+				`${snakecase("kebob-case")}`,
+				"kebob_case",
+				false,
+			},
+			{
+				// snake_case
+				`${snakecase("Snake_Case")}`,
+				"snake_case",
+				false,
+			},
+		},
+	})
+}

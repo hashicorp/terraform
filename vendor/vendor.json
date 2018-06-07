@@ -1159,6 +1159,12 @@
 			"revisionTime": "2017-08-19T15:36:34Z"
 		},
 		{
+			"checksumSHA1": "kR64D1QzAOSM9LHOnTPdbigC8q0=",
+			"path": "github.com/fatih/camelcase",
+			"revision": "44e46d280b43ec1531bb25252440e34f1b800b65",
+			"revisionTime": "2017-10-27T10:42:57Z"
+		},
+		{
 			"checksumSHA1": "zKO4Yu8oaruG1xC9jkKRm9ywZvI=",
 			"path": "github.com/fsouza/go-dockerclient",
 			"revision": "1d4f4ae73768d3ca16a6fb964694f58dc5eba601",

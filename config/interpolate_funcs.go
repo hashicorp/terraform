@@ -26,6 +26,7 @@ import (
 	"time"
 
 	"github.com/apparentlymart/go-cidr/cidr"
+	"github.com/fatih/camelcase"
 	"github.com/hashicorp/go-uuid"
 	"github.com/hashicorp/hil"
 	"github.com/hashicorp/hil/ast"
@@ -69,6 +70,7 @@ func Funcs() map[string]ast.Function {
 		"base64sha256": interpolationFuncBase64Sha256(),
 		"base64sha512": interpolationFuncBase64Sha512(),
 		"bcrypt":       interpolationFuncBcrypt(),
+		"camelcase":    interpolationFuncCamelCase(),
 		"ceil":         interpolationFuncCeil(),
 		"chomp":        interpolationFuncChomp(),
 		"cidrhost":     interpolationFuncCidrHost(),
@@ -93,6 +95,7 @@ func Funcs() map[string]ast.Function {
 		"index":        interpolationFuncIndex(),
 		"join":         interpolationFuncJoin(),
 		"jsonencode":   interpolationFuncJSONEncode(),
+		"kabobcase":    interpolationFuncKabobCase(),
 		"length":       interpolationFuncLength(),
 		"list":         interpolationFuncList(),
 		"log":          interpolationFuncLog(),
@@ -112,8 +115,10 @@ func Funcs() map[string]ast.Function {
 		"sha512":       interpolationFuncSha512(),
 		"signum":       interpolationFuncSignum(),
 		"slice":        interpolationFuncSlice(),
+		"snakecase":    interpolationFuncSnakeCase(),
 		"sort":         interpolationFuncSort(),
 		"split":        interpolationFuncSplit(),
+		"splitwords":   interpolationFuncSplitWords(),
 		"substr":       interpolationFuncSubstr(),
 		"timestamp":    interpolationFuncTimestamp(),
 		"timeadd":      interpolationFuncTimeAdd(),
@@ -205,6 +210,27 @@ func interpolationFuncMap() ast.Function {
 			}
 
 			return outputMap, nil
+		},
+	}
+}
+
+// interpolationFuncCamelCase returns a string of camel cased words
+func interpolationFuncCamelCase() ast.Function {
+	return ast.Function{
+		ArgTypes:   []ast.Type{ast.TypeString},
+		ReturnType: ast.TypeString,
+		Callback: func(args []interface{}) (interface{}, error) {
+			input := args[0].(string)
+			words := stringCasesToWords(input, true)
+			camelCased := make([]string, 0)
+			for idx, word := range words {
+				word = strings.ToLower(word)
+				if idx != 0 {
+					word = strings.Title(word)
+				}
+				camelCased = append(camelCased, word)
+			}
+			return strings.Join(camelCased, ""), nil
 		},
 	}
 }
@@ -914,6 +940,19 @@ func interpolationFuncJSONEncode() ast.Function {
 	}
 }
 
+// interpolationFuncKabobCase returns a string of kabob-cased
+func interpolationFuncKabobCase() ast.Function {
+	return ast.Function{
+		ArgTypes:   []ast.Type{ast.TypeString},
+		ReturnType: ast.TypeString,
+		Callback: func(args []interface{}) (interface{}, error) {
+			input := args[0].(string)
+			words := stringCasesToWords(input, true)
+			return strings.Join(words, "-"), nil
+		},
+	}
+}
+
 // interpolationFuncReplace implements the "replace" function that does
 // string replacement.
 func interpolationFuncReplace() ast.Function {
@@ -1018,6 +1057,19 @@ func interpolationFuncSlice() ast.Function {
 	}
 }
 
+// interpolationFuncSnakeCase returns a string of snake cased words
+func interpolationFuncSnakeCase() ast.Function {
+	return ast.Function{
+		ArgTypes:   []ast.Type{ast.TypeString},
+		ReturnType: ast.TypeString,
+		Callback: func(args []interface{}) (interface{}, error) {
+			input := args[0].(string)
+			words := stringCasesToWords(input, true)
+			return strings.Join(words, "_"), nil
+		},
+	}
+}
+
 // interpolationFuncSort sorts a list of a strings lexographically
 func interpolationFuncSort() ast.Function {
 	return ast.Function{
@@ -1057,6 +1109,41 @@ func interpolationFuncSplit() ast.Function {
 			s := args[1].(string)
 			elements := strings.Split(s, sep)
 			return stringSliceToVariableValue(elements), nil
+		},
+	}
+}
+
+// stringCasesToWords will take in a string, kabob, camel, snake case strings and return a slice of strings
+func stringCasesToWords(input string, toLower bool) []string {
+	words := make([]string, 0)
+	// split on spaced words
+	for _, sw := range strings.Split(input, " ") {
+		// split on snaked words
+		for _, snw := range strings.Split(sw, "_") {
+			// split on kabob words
+			for _, cw := range strings.Split(snw, "-") {
+				// split based on cased words
+				for _, word := range camelcase.Split(cw) {
+					if toLower {
+						word = strings.ToLower(word)
+					}
+					words = append(words, word)
+				}
+			}
+		}
+	}
+	// return the slice
+	return words
+}
+
+// interpolationSplitWords returns a slice based on camel, kabob and snake cased strings
+func interpolationFuncSplitWords() ast.Function {
+	return ast.Function{
+		ArgTypes:   []ast.Type{ast.TypeString},
+		ReturnType: ast.TypeList,
+		Callback: func(args []interface{}) (interface{}, error) {
+			input := args[0].(string)
+			return stringSliceToVariableValue(stringCasesToWords(input, false)), nil
 		},
 	}
 }
