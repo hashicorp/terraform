@@ -273,7 +273,6 @@ var DistinctFunc = function.New(&function.Spec{
 	Type: func(args []cty.Value) (cty.Type, error) {
 		return args[0].Type(), nil
 	},
-	// Type: function.StaticReturnType(cty.List(cty.DynamicPseudoType)),
 	Impl: func(args []cty.Value, retType cty.Type) (ret cty.Value, err error) {
 		listVal := args[0]
 
@@ -646,7 +645,7 @@ var MatchkeysFunc = function.New(&function.Spec{
 			return cty.ListValEmpty(retType.ElementType()), nil
 		}
 
-		if !args[0].IsWhollyKnown() || !args[0].IsWhollyKnown() {
+		if !values.IsWhollyKnown() || !keys.IsWhollyKnown() {
 			return cty.UnknownVal(retType), nil
 		}
 
@@ -838,6 +837,11 @@ var ValuesFunc = function.New(&function.Spec{
 	},
 	Impl: func(args []cty.Value, retType cty.Type) (ret cty.Value, err error) {
 		mapVar := args[0]
+
+		if mapVar.LengthInt() == 0 {
+			return cty.ListValEmpty(retType.ElementType()), nil
+		}
+
 		if !mapVar.IsWhollyKnown() {
 			return cty.UnknownVal(retType), nil
 		}
@@ -856,7 +860,7 @@ var ValuesFunc = function.New(&function.Spec{
 		}
 
 		if len(values) == 0 {
-			return cty.ListValEmpty(retType), nil
+			return cty.ListValEmpty(retType.ElementType()), nil
 		}
 
 		return cty.ListVal(values), nil
