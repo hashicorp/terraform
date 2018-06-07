@@ -313,7 +313,8 @@ func (b *Backend) configure(ctx context.Context) error {
 	}
 
 	objClient, err := openstack.NewObjectStorageV1(config.OsClient, gophercloud.EndpointOpts{
-		Region: data.Get("region_name").(string),
+		Region:       data.Get("region_name").(string),
+		Availability: getEndpointType(config),
 	})
 	if err != nil {
 		return err
@@ -322,4 +323,14 @@ func (b *Backend) configure(ctx context.Context) error {
 	b.client = objClient
 
 	return nil
+}
+
+func getEndpointType(c *tf_openstack.Config) gophercloud.Availability {
+	if c.EndpointType == "internal" || c.EndpointType == "internalURL" {
+		return gophercloud.AvailabilityInternal
+	}
+	if c.EndpointType == "admin" || c.EndpointType == "adminURL" {
+		return gophercloud.AvailabilityAdmin
+	}
+	return gophercloud.AvailabilityPublic
 }
