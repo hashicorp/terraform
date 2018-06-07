@@ -182,6 +182,9 @@ The supported built-in functions are:
   * `bcrypt(password, cost)` - Returns the Blowfish encrypted hash of the string 
     at the given cost. A default `cost` of 10 will be used if not provided.
 
+  * `camelcase(string)` - Returns a camel cased string based on a kabob cased
+    or snake cased string.
+
   * `ceil(float)` - Returns the least integer value greater than or equal
       to the argument.
 
@@ -293,6 +296,9 @@ The supported built-in functions are:
       value, which can contain arbitrarily-nested lists and maps. Note that if
       the value is a string then its value will be placed in quotes.
 
+  * `kabobcase(string)` - Returns a kabob cased string based on a camel cased
+    or snake cased string.
+
   * `keys(map)` - Returns a lexically sorted list of the map keys.
 
   * `length(list)` - Returns the number of members in a given list or map, or the number of characters in a given string.
@@ -387,6 +393,9 @@ The supported built-in functions are:
   * `slice(list, from, to)` - Returns the portion of `list` between `from` (inclusive) and `to` (exclusive).
       Example: `slice(var.list_of_strings, 0, length(var.list_of_strings) - 1)`
 
+  * `snakecase(string)` - Returns a snake cased string based on a camel cased
+    or kabob cased string.
+
   * `sort(list)` - Returns a lexographically sorted list of the strings contained in
       the list passed as an argument. Sort may only be used with lists which contain only
       strings.
@@ -399,6 +408,8 @@ The supported built-in functions are:
       in brackets to indicate that the output is actually a list, e.g.
       `a_resource_param = ["${split(",", var.CSV_STRING)}"]`.
       Example: `split(",", module.amod.server_ids)`
+
+  * `splitwords(string)` - Returns a list of strings separated by "_", "-" or camel cased words. 
 
   * `substr(string, offset, length)` - Extracts a substring from the input string. A negative offset is interpreted as being equivalent to a positive offset measured backwards from the end of the string. A length of `-1` is interpreted as meaning "until the end of the string".
 
