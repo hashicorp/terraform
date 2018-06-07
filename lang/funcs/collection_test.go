@@ -1920,6 +1920,11 @@ func TestValues(t *testing.T) {
 			cty.UnknownVal(cty.List(cty.List(cty.String))),
 			false,
 		},
+		{ // empty m
+			cty.MapValEmpty(cty.DynamicPseudoType),
+			cty.ListValEmpty(cty.DynamicPseudoType),
+			false,
+		},
 	}
 
 	for _, test := range tests {
