@@ -204,6 +204,35 @@ func (r AbsResourceInstance) String() string {
 	return fmt.Sprintf("%s.%s", r.Module.String(), r.Resource.String())
 }
 
+// Less returns true if the receiver should sort before the given other value
+// in a sorted list of addresses.
+func (r AbsResourceInstance) Less(o AbsResourceInstance) bool {
+	switch {
+
+	case len(r.Module) != len(o.Module):
+		return len(r.Module) < len(o.Module)
+
+	case r.Module.String() != o.Module.String():
+		return r.Module.Less(o.Module)
+
+	case r.Resource.Resource.Mode != o.Resource.Resource.Mode:
+		return r.Resource.Resource.Mode == DataResourceMode
+
+	case r.Resource.Resource.Type != o.Resource.Resource.Type:
+		return r.Resource.Resource.Type < o.Resource.Resource.Type
+
+	case r.Resource.Resource.Name != o.Resource.Resource.Name:
+		return r.Resource.Resource.Name < o.Resource.Resource.Name
+
+	case r.Resource.Key != o.Resource.Key:
+		return InstanceKeyLess(r.Resource.Key, o.Resource.Key)
+
+	default:
+		return false
+
+	}
+}
+
 // ResourceMode defines which lifecycle applies to a given resource. Each
 // resource lifecycle has a slightly different address format.
 type ResourceMode rune
