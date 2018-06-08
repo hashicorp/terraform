@@ -235,6 +235,27 @@ func (m ModuleInstance) String() string {
 	return buf.String()
 }
 
+// Less returns true if the receiver should sort before the given other value
+// in a sorted list of addresses.
+func (m ModuleInstance) Less(o ModuleInstance) bool {
+	if len(m) != len(o) {
+		// Shorter path sorts first.
+		return len(m) < len(o)
+	}
+
+	for i := range m {
+		mS, oS := m[i], o[i]
+		switch {
+		case mS.Name != oS.Name:
+			return mS.Name < oS.Name
+		case mS.InstanceKey != oS.InstanceKey:
+			return InstanceKeyLess(mS.InstanceKey, oS.InstanceKey)
+		}
+	}
+
+	return false
+}
+
 // Ancestors returns a slice containing the receiver and all of its ancestor
 // module instances, all the way up to (and including) the root module.
 // The result is ordered by depth, with the root module always first.
