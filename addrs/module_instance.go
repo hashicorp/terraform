@@ -4,11 +4,11 @@ import (
 	"bytes"
 	"fmt"
 
+	"github.com/hashicorp/hcl2/hcl"
+	"github.com/hashicorp/hcl2/hcl/hclsyntax"
+	"github.com/zclconf/go-cty/cty"
 	"github.com/zclconf/go-cty/cty/gocty"
 
-	"github.com/zclconf/go-cty/cty"
-
-	"github.com/hashicorp/hcl2/hcl"
 	"github.com/hashicorp/terraform/tfdiags"
 )
 
@@ -46,6 +46,35 @@ func ParseModuleInstance(traversal hcl.Traversal) (ModuleInstance, tfdiags.Diagn
 		}
 	}
 	return mi, diags
+}
+
+// ParseModuleInstanceStr is a helper wrapper around ParseModuleInstance
+// that takes a string and parses it with the HCL native syntax traversal parser
+// before interpreting it.
+//
+// This should be used only in specialized situations since it will cause the
+// created references to not have any meaningful source location information.
+// If a reference string is coming from a source that should be identified in
+// error messages then the caller should instead parse it directly using a
+// suitable function from the HCL API and pass the traversal itself to
+// ParseProviderConfigCompact.
+//
+// Error diagnostics are returned if either the parsing fails or the analysis
+// of the traversal fails. There is no way for the caller to distinguish the
+// two kinds of diagnostics programmatically. If error diagnostics are returned
+// then the returned address is invalid.
+func ParseModuleInstanceStr(str string) (ModuleInstance, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+
+	traversal, parseDiags := hclsyntax.ParseTraversalAbs([]byte(str), "", hcl.Pos{Line: 1, Column: 1})
+	diags = diags.Append(parseDiags)
+	if parseDiags.HasErrors() {
+		return nil, diags
+	}
+
+	addr, addrDiags := ParseModuleInstance(traversal)
+	diags = diags.Append(addrDiags)
+	return addr, diags
 }
 
 func parseModuleInstancePrefix(traversal hcl.Traversal) (ModuleInstance, hcl.Traversal, tfdiags.Diagnostics) {
