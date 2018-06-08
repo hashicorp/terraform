@@ -74,7 +74,7 @@ func RetryableError(err error) *RetryError {
 	return &RetryError{Err: err, Retryable: true}
 }
 
-// NonRetryableError is a helper to create a RetryError that's _not)_ retryable
+// NonRetryableError is a helper to create a RetryError that's _not_ retryable
 // from a given error.
 func NonRetryableError(err error) *RetryError {
 	if err == nil {

@@ -47,17 +47,17 @@ func TestRemoteClientLocks(t *testing.T) {
 	keyName := "testState"
 
 	b1 := backend.TestBackendConfig(t, New(), map[string]interface{}{
-		"bucket":     bucketName,
-		"key":        keyName,
-		"encrypt":    true,
-		"lock_table": bucketName,
+		"bucket":         bucketName,
+		"key":            keyName,
+		"encrypt":        true,
+		"dynamodb_table": bucketName,
 	}).(*Backend)
 
 	b2 := backend.TestBackendConfig(t, New(), map[string]interface{}{
-		"bucket":     bucketName,
-		"key":        keyName,
-		"encrypt":    true,
-		"lock_table": bucketName,
+		"bucket":         bucketName,
+		"key":            keyName,
+		"encrypt":        true,
+		"dynamodb_table": bucketName,
 	}).(*Backend)
 
 	createS3Bucket(t, b1.s3Client, bucketName)
@@ -85,17 +85,17 @@ func TestForceUnlock(t *testing.T) {
 	keyName := "testState"
 
 	b1 := backend.TestBackendConfig(t, New(), map[string]interface{}{
-		"bucket":     bucketName,
-		"key":        keyName,
-		"encrypt":    true,
-		"lock_table": bucketName,
+		"bucket":         bucketName,
+		"key":            keyName,
+		"encrypt":        true,
+		"dynamodb_table": bucketName,
 	}).(*Backend)
 
 	b2 := backend.TestBackendConfig(t, New(), map[string]interface{}{
-		"bucket":     bucketName,
-		"key":        keyName,
-		"encrypt":    true,
-		"lock_table": bucketName,
+		"bucket":         bucketName,
+		"key":            keyName,
+		"encrypt":        true,
+		"dynamodb_table": bucketName,
 	}).(*Backend)
 
 	createS3Bucket(t, b1.s3Client, bucketName)
@@ -162,11 +162,13 @@ func TestRemoteClient_clientMD5(t *testing.T) {
 	keyName := "testState"
 
 	b := backend.TestBackendConfig(t, New(), map[string]interface{}{
-		"bucket":     bucketName,
-		"key":        keyName,
-		"lock_table": bucketName,
+		"bucket":         bucketName,
+		"key":            keyName,
+		"dynamodb_table": bucketName,
 	}).(*Backend)
 
+	createS3Bucket(t, b.s3Client, bucketName)
+	defer deleteS3Bucket(t, b.s3Client, bucketName)
 	createDynamoDBTable(t, b.dynClient, bucketName)
 	defer deleteDynamoDBTable(t, b.dynClient, bucketName)
 
@@ -208,9 +210,9 @@ func TestRemoteClient_stateChecksum(t *testing.T) {
 	keyName := "testState"
 
 	b1 := backend.TestBackendConfig(t, New(), map[string]interface{}{
-		"bucket":     bucketName,
-		"key":        keyName,
-		"lock_table": bucketName,
+		"bucket":         bucketName,
+		"key":            keyName,
+		"dynamodb_table": bucketName,
 	}).(*Backend)
 
 	createS3Bucket(t, b1.s3Client, bucketName)
@@ -236,7 +238,7 @@ func TestRemoteClient_stateChecksum(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Use b2 without a lock_table to bypass the lock table to write the state directly.
+	// Use b2 without a dynamodb_table to bypass the lock table to write the state directly.
 	// client2 will write the "incorrect" state, simulating s3 eventually consistency delays
 	b2 := backend.TestBackendConfig(t, New(), map[string]interface{}{
 		"bucket": bucketName,
@@ -263,8 +265,8 @@ func TestRemoteClient_stateChecksum(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// put the old state in place of the new, without updating the checksum
-	if err := client2.Put(oldState.Bytes()); err != nil {
+	// put an empty state in place to check for panics during get
+	if err := client2.Put([]byte{}); err != nil {
 		t.Fatal(err)
 	}
 
@@ -278,7 +280,18 @@ func TestRemoteClient_stateChecksum(t *testing.T) {
 	consistencyRetryTimeout = 0
 	consistencyRetryPollInterval = 0
 
-	// fetching the state through client1 should now error out due to a
+	// fetching an empty state through client1 should now error out due to a
+	// mismatched checksum.
+	if _, err := client1.Get(); !strings.HasPrefix(err.Error(), errBadChecksumFmt[:80]) {
+		t.Fatalf("expected state checksum error: got %s", err)
+	}
+
+	// put the old state in place of the new, without updating the checksum
+	if err := client2.Put(oldState.Bytes()); err != nil {
+		t.Fatal(err)
+	}
+
+	// fetching the wrong state through client1 should now error out due to a
 	// mismatched checksum.
 	if _, err := client1.Get(); !strings.HasPrefix(err.Error(), errBadChecksumFmt[:80]) {
 		t.Fatalf("expected state checksum error: got %s", err)

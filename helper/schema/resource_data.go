@@ -35,6 +35,8 @@ type ResourceData struct {
 	partialMap  map[string]struct{}
 	once        sync.Once
 	isNew       bool
+
+	panicOnError bool
 }
 
 // getResult is the internal structure that is generated when a Get
@@ -104,6 +106,22 @@ func (d *ResourceData) GetOk(key string) (interface{}, bool) {
 	return r.Value, exists
 }
 
+// GetOkExists returns the data for a given key and whether or not the key
+// has been set to a non-zero value. This is only useful for determining
+// if boolean attributes have been set, if they are Optional but do not
+// have a Default value.
+//
+// This is nearly the same function as GetOk, yet it does not check
+// for the zero value of the attribute's type. This allows for attributes
+// without a default, to fully check for a literal assignment, regardless
+// of the zero-value for that type.
+// This should only be used if absolutely required/needed.
+func (d *ResourceData) GetOkExists(key string) (interface{}, bool) {
+	r := d.getRaw(key, getSourceSet)
+	exists := r.Exists && !r.Computed
+	return r.Value, exists
+}
+
 func (d *ResourceData) getRaw(key string, level getSource) getResult {
 	var parts []string
 	if key != "" {
@@ -168,7 +186,11 @@ func (d *ResourceData) Set(key string, value interface{}) error {
 		}
 	}
 
-	return d.setWriter.WriteField(strings.Split(key, "."), value)
+	err := d.setWriter.WriteField(strings.Split(key, "."), value)
+	if err != nil && d.panicOnError {
+		panic(err)
+	}
+	return err
 }
 
 // SetPartial adds the key to the final state output while
@@ -344,6 +366,13 @@ func (d *ResourceData) State() *terraform.InstanceState {
 func (d *ResourceData) Timeout(key string) time.Duration {
 	key = strings.ToLower(key)
 
+	// System default of 20 minutes
+	defaultTimeout := 20 * time.Minute
+
+	if d.timeouts == nil {
+		return defaultTimeout
+	}
+
 	var timeout *time.Duration
 	switch key {
 	case TimeoutCreate:
@@ -364,8 +393,7 @@ func (d *ResourceData) Timeout(key string) time.Duration {
 		return *d.timeouts.Default
 	}
 
-	// Return system default of 20 minutes
-	return 20 * time.Minute
+	return defaultTimeout
 }
 
 func (d *ResourceData) init() {
@@ -423,7 +451,7 @@ func (d *ResourceData) init() {
 }
 
 func (d *ResourceData) diffChange(
-	k string) (interface{}, interface{}, bool, bool) {
+	k string) (interface{}, interface{}, bool, bool, bool) {
 	// Get the change between the state and the config.
 	o, n := d.getChange(k, getSourceState, getSourceConfig|getSourceExact)
 	if !o.Exists {
@@ -434,7 +462,7 @@ func (d *ResourceData) diffChange(
 	}
 
 	// Return the old, new, and whether there is a change
-	return o.Value, n.Value, !reflect.DeepEqual(o.Value, n.Value), n.Computed
+	return o.Value, n.Value, !reflect.DeepEqual(o.Value, n.Value), n.Computed, false
 }
 
 func (d *ResourceData) getChange(

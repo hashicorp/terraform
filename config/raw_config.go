@@ -3,8 +3,14 @@ package config
 import (
 	"bytes"
 	"encoding/gob"
+	"errors"
+	"strconv"
 	"sync"
 
+	"github.com/zclconf/go-cty/cty"
+	"github.com/zclconf/go-cty/cty/convert"
+
+	hcl2 "github.com/hashicorp/hcl2/hcl"
 	"github.com/hashicorp/hil"
 	"github.com/hashicorp/hil/ast"
 	"github.com/mitchellh/copystructure"
@@ -27,8 +33,24 @@ const UnknownVariableValue = "74D93920-ED26-11E3-AC10-0800200C9A66"
 // RawConfig supports a query-like interface to request
 // information from deep within the structure.
 type RawConfig struct {
-	Key            string
-	Raw            map[string]interface{}
+	Key string
+
+	// Only _one_ of Raw and Body may be populated at a time.
+	//
+	// In the normal case, Raw is populated and Body is nil.
+	//
+	// When the experimental HCL2 parsing mode is enabled, "Body"
+	// is populated and RawConfig serves only to transport the hcl2.Body
+	// through the rest of Terraform core so we can ultimately decode it
+	// once its schema is known.
+	//
+	// Once we transition to HCL2 as the primary representation, RawConfig
+	// should be removed altogether and the hcl2.Body should be passed
+	// around directly.
+
+	Raw  map[string]interface{}
+	Body hcl2.Body
+
 	Interpolations []ast.Node
 	Variables      map[string]InterpolatedVariable
 
@@ -46,6 +68,26 @@ func NewRawConfig(raw map[string]interface{}) (*RawConfig, error) {
 	}
 
 	return result, nil
+}
+
+// NewRawConfigHCL2 creates a new RawConfig that is serving as a capsule
+// to transport a hcl2.Body. In this mode, the publicly-readable struct
+// fields are not populated since all operations should instead be diverted
+// to the HCL2 body.
+//
+// For a RawConfig object constructed with this function, the only valid use
+// is to later retrieve the Body value and call its own methods. Callers
+// may choose to set and then later handle the Key field, in a manner
+// consistent with how it is handled by the Value method, but the Value
+// method itself must not be used.
+//
+// This is an experimental codepath to be used only by the HCL2 config loader.
+// Non-experimental parsing should _always_ use NewRawConfig to produce a
+// fully-functional RawConfig object.
+func NewRawConfigHCL2(body hcl2.Body) *RawConfig {
+	return &RawConfig{
+		Body: body,
+	}
 }
 
 // RawMap returns a copy of the RawConfig.Raw map.
@@ -68,6 +110,10 @@ func (r *RawConfig) Copy() *RawConfig {
 
 	r.lock.Lock()
 	defer r.lock.Unlock()
+
+	if r.Body != nil {
+		return NewRawConfigHCL2(r.Body)
+	}
 
 	newRaw := make(map[string]interface{})
 	for k, v := range r.Raw {
@@ -223,6 +269,13 @@ func (r *RawConfig) init() error {
 }
 
 func (r *RawConfig) interpolate(fn interpolationWalkerFunc) error {
+	if r.Body != nil {
+		// For RawConfigs created for the HCL2 experiement, callers must
+		// use the HCL2 Body API directly rather than interpolating via
+		// the RawConfig.
+		return errors.New("this feature is not yet supported under the HCL2 experiment")
+	}
+
 	config, err := copystructure.Copy(r.Raw)
 	if err != nil {
 		return err
@@ -266,6 +319,74 @@ func (r *RawConfig) merge(r2 *RawConfig) *RawConfig {
 	}
 
 	return result
+}
+
+// couldBeInteger is a helper that determines if the represented value could
+// result in an integer.
+//
+// This function only works for RawConfigs that have "Key" set, meaning that
+// a single result can be produced. Calling this function will overwrite
+// the Config and Value results to be a test value.
+//
+// This function is conservative. If there is some doubt about whether the
+// result could be an integer -- for example, if it depends on a variable
+// whose type we don't know yet -- it will still return true.
+func (r *RawConfig) couldBeInteger() bool {
+	if r.Key == "" {
+		// un-keyed RawConfigs can never produce numbers
+		return false
+	}
+	if r.Body == nil {
+		// Normal path: using the interpolator in this package
+		// Interpolate with a fixed number to verify that its a number.
+		r.interpolate(func(root ast.Node) (interface{}, error) {
+			// Execute the node but transform the AST so that it returns
+			// a fixed value of "5" for all interpolations.
+			result, err := hil.Eval(
+				hil.FixedValueTransform(
+					root, &ast.LiteralNode{Value: "5", Typex: ast.TypeString}),
+				nil)
+			if err != nil {
+				return "", err
+			}
+
+			return result.Value, nil
+		})
+		_, err := strconv.ParseInt(r.Value().(string), 0, 0)
+		return err == nil
+	} else {
+		// HCL2 experiment path: using the HCL2 API via shims
+		//
+		// This path catches fewer situations because we have to assume all
+		// variables are entirely unknown in HCL2, rather than the assumption
+		// above that all variables can be numbers because names like "var.foo"
+		// are considered a single variable rather than an attribute access.
+		// This is fine in practice, because we get a definitive answer
+		// during the graph walk when we have real values to work with.
+		attrs, diags := r.Body.JustAttributes()
+		if diags.HasErrors() {
+			// This body is not just a single attribute with a value, so
+			// this can't be a number.
+			return false
+		}
+		attr, hasAttr := attrs[r.Key]
+		if !hasAttr {
+			return false
+		}
+		result, diags := hcl2EvalWithUnknownVars(attr.Expr)
+		if diags.HasErrors() {
+			// We'll conservatively assume that this error is a result of
+			// us not being ready to fully-populate the scope, and catch
+			// any further problems during the main graph walk.
+			return true
+		}
+
+		// If the result is convertable to number then we'll allow it.
+		// We do this because an unknown string is optimistically convertable
+		// to number (might be "5") but a _known_ string "hello" is not.
+		_, err := convert.Convert(result, cty.Number)
+		return err == nil
+	}
 }
 
 // UnknownKeys returns the keys of the configuration that are unknown

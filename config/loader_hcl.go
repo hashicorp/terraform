@@ -17,10 +17,35 @@ type hclConfigurable struct {
 	Root *ast.File
 }
 
+var ReservedDataSourceFields = []string{
+	"connection",
+	"count",
+	"depends_on",
+	"lifecycle",
+	"provider",
+	"provisioner",
+}
+
+var ReservedResourceFields = []string{
+	"connection",
+	"count",
+	"depends_on",
+	"id",
+	"lifecycle",
+	"provider",
+	"provisioner",
+}
+
+var ReservedProviderFields = []string{
+	"alias",
+	"version",
+}
+
 func (t *hclConfigurable) Config() (*Config, error) {
 	validKeys := map[string]struct{}{
 		"atlas":     struct{}{},
 		"data":      struct{}{},
+		"locals":    struct{}{},
 		"module":    struct{}{},
 		"output":    struct{}{},
 		"provider":  struct{}{},
@@ -51,6 +76,15 @@ func (t *hclConfigurable) Config() (*Config, error) {
 	if vars := list.Filter("variable"); len(vars.Items) > 0 {
 		var err error
 		config.Variables, err = loadVariablesHcl(vars)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	// Build local values
+	if locals := list.Filter("locals"); len(locals.Items) > 0 {
+		var err error
+		config.Locals, err = loadLocalsHcl(locals)
 		if err != nil {
 			return nil, err
 		}
@@ -359,9 +393,6 @@ func loadModulesHcl(list *ast.ObjectList) ([]*Module, error) {
 				err)
 		}
 
-		// Remove the fields we handle specially
-		delete(config, "source")
-
 		rawConfig, err := NewRawConfig(config)
 		if err != nil {
 			return nil, fmt.Errorf(
@@ -370,7 +401,11 @@ func loadModulesHcl(list *ast.ObjectList) ([]*Module, error) {
 				err)
 		}
 
-		// If we have a count, then figure it out
+		// Remove the fields we handle specially
+		delete(config, "source")
+		delete(config, "version")
+		delete(config, "providers")
+
 		var source string
 		if o := listVal.Filter("source"); len(o.Items) > 0 {
 			err = hcl.DecodeObject(&source, o.Items[0].Val)
@@ -382,11 +417,88 @@ func loadModulesHcl(list *ast.ObjectList) ([]*Module, error) {
 			}
 		}
 
+		var version string
+		if o := listVal.Filter("version"); len(o.Items) > 0 {
+			err = hcl.DecodeObject(&version, o.Items[0].Val)
+			if err != nil {
+				return nil, fmt.Errorf(
+					"Error parsing version for %s: %s",
+					k,
+					err)
+			}
+		}
+
+		var providers map[string]string
+		if o := listVal.Filter("providers"); len(o.Items) > 0 {
+			err = hcl.DecodeObject(&providers, o.Items[0].Val)
+			if err != nil {
+				return nil, fmt.Errorf(
+					"Error parsing providers for %s: %s",
+					k,
+					err)
+			}
+		}
+
 		result = append(result, &Module{
 			Name:      k,
 			Source:    source,
+			Version:   version,
+			Providers: providers,
 			RawConfig: rawConfig,
 		})
+	}
+
+	return result, nil
+}
+
+// loadLocalsHcl recurses into the given HCL object turns it into
+// a list of locals.
+func loadLocalsHcl(list *ast.ObjectList) ([]*Local, error) {
+
+	result := make([]*Local, 0, len(list.Items))
+
+	for _, block := range list.Items {
+		if len(block.Keys) > 0 {
+			return nil, fmt.Errorf(
+				"locals block at %s should not have label %q",
+				block.Pos(), block.Keys[0].Token.Value(),
+			)
+		}
+
+		blockObj, ok := block.Val.(*ast.ObjectType)
+		if !ok {
+			return nil, fmt.Errorf("locals value at %s should be a block", block.Val.Pos())
+		}
+
+		// blockObj now contains directly our local decls
+		for _, item := range blockObj.List.Items {
+			if len(item.Keys) != 1 {
+				return nil, fmt.Errorf("local declaration at %s may not be a block", item.Val.Pos())
+			}
+
+			// By the time we get here there can only be one item left, but
+			// we'll decode into a map anyway because it's a convenient way
+			// to extract both the key and the value robustly.
+			kv := map[string]interface{}{}
+			hcl.DecodeObject(&kv, item)
+			for k, v := range kv {
+				rawConfig, err := NewRawConfig(map[string]interface{}{
+					"value": v,
+				})
+
+				if err != nil {
+					return nil, fmt.Errorf(
+						"error parsing local value %q at %s: %s",
+						k, item.Val.Pos(), err,
+					)
+				}
+
+				result = append(result, &Local{
+					Name:      k,
+					RawConfig: rawConfig,
+				})
+			}
+		}
 	}
 
 	return result, nil
@@ -420,6 +532,7 @@ func loadOutputsHcl(list *ast.ObjectList) ([]*Output, error) {
 
 		// Delete special keys
 		delete(config, "depends_on")
+		delete(config, "description")
 
 		rawConfig, err := NewRawConfig(config)
 		if err != nil {
@@ -441,10 +554,23 @@ func loadOutputsHcl(list *ast.ObjectList) ([]*Output, error) {
 			}
 		}
 
+		// If we have a description field, then filter that
+		var description string
+		if o := listVal.Filter("description"); len(o.Items) > 0 {
+			err := hcl.DecodeObject(&description, o.Items[0].Val)
+			if err != nil {
+				return nil, fmt.Errorf(
+					"Error reading description for output %q: %s",
+					n,
+					err)
+			}
+		}
+
 		result = append(result, &Output{
-			Name:      n,
-			RawConfig: rawConfig,
-			DependsOn: dependsOn,
+			Name:        n,
+			RawConfig:   rawConfig,
+			DependsOn:   dependsOn,
+			Description: description,
 		})
 	}
 
@@ -562,6 +688,7 @@ func loadProvidersHcl(list *ast.ObjectList) ([]*ProviderConfig, error) {
 		}
 
 		delete(config, "alias")
+		delete(config, "version")
 
 		rawConfig, err := NewRawConfig(config)
 		if err != nil {
@@ -583,9 +710,22 @@ func loadProvidersHcl(list *ast.ObjectList) ([]*ProviderConfig, error) {
 			}
 		}
 
+		// If we have a version field then extract it
+		var version string
+		if a := listVal.Filter("version"); len(a.Items) > 0 {
+			err := hcl.DecodeObject(&version, a.Items[0].Val)
+			if err != nil {
+				return nil, fmt.Errorf(
+					"Error reading version for provider[%s]: %s",
+					n,
+					err)
+			}
+		}
+
 		result = append(result, &ProviderConfig{
 			Name:      n,
 			Alias:     alias,
+			Version:   version,
 			RawConfig: rawConfig,
 		})
 	}

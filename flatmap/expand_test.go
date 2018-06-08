@@ -37,6 +37,40 @@ func TestExpand(t *testing.T) {
 
 		{
 			Map: map[string]string{
+				// # mismatches actual number of keys; actual number should
+				// "win" here, since the # is just a hint that this is a list.
+				"foo.#": "1",
+				"foo.0": "one",
+				"foo.1": "two",
+				"foo.2": "three",
+			},
+			Key: "foo",
+			Output: []interface{}{
+				"one",
+				"two",
+				"three",
+			},
+		},
+
+		{
+			Map: map[string]string{
+				// # mismatches actual number of keys; actual number should
+				// "win" here, since the # is just a hint that this is a list.
+				"foo.#": "5",
+				"foo.0": "one",
+				"foo.1": "two",
+				"foo.2": "three",
+			},
+			Key: "foo",
+			Output: []interface{}{
+				"one",
+				"two",
+				"three",
+			},
+		},
+
+		{
+			Map: map[string]string{
 				"foo.#":         "1",
 				"foo.0.name":    "bar",
 				"foo.0.port":    "3000",

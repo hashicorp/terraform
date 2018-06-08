@@ -166,7 +166,7 @@ func (w *Walker) Update(g *AcyclicGraph) {
 		w.wait.Add(1)
 
 		// Add to our own set so we know about it already
-		log.Printf("[DEBUG] dag/walk: added new vertex: %q", VertexName(v))
+		log.Printf("[TRACE] dag/walk: added new vertex: %q", VertexName(v))
 		w.vertices.Add(raw)
 
 		// Initialize the vertex info
@@ -198,7 +198,7 @@ func (w *Walker) Update(g *AcyclicGraph) {
 		// Delete it out of the map
 		delete(w.vertexMap, v)
 
-		log.Printf("[DEBUG] dag/walk: removed vertex: %q", VertexName(v))
+		log.Printf("[TRACE] dag/walk: removed vertex: %q", VertexName(v))
 		w.vertices.Delete(raw)
 	}
 
@@ -229,7 +229,7 @@ func (w *Walker) Update(g *AcyclicGraph) {
 		changedDeps.Add(waiter)
 
 		log.Printf(
-			"[DEBUG] dag/walk: added edge: %q waiting on %q",
+			"[TRACE] dag/walk: added edge: %q waiting on %q",
 			VertexName(waiter), VertexName(dep))
 		w.edges.Add(raw)
 	}
@@ -253,7 +253,7 @@ func (w *Walker) Update(g *AcyclicGraph) {
 		changedDeps.Add(waiter)
 
 		log.Printf(
-			"[DEBUG] dag/walk: removed edge: %q waiting on %q",
+			"[TRACE] dag/walk: removed edge: %q waiting on %q",
 			VertexName(waiter), VertexName(dep))
 		w.edges.Delete(raw)
 	}
@@ -296,7 +296,7 @@ func (w *Walker) Update(g *AcyclicGraph) {
 		info.depsCancelCh = cancelCh
 
 		log.Printf(
-			"[DEBUG] dag/walk: dependencies changed for %q, sending new deps",
+			"[TRACE] dag/walk: dependencies changed for %q, sending new deps",
 			VertexName(v))
 
 		// Start the waiter
@@ -383,10 +383,10 @@ func (w *Walker) walkVertex(v Vertex, info *walkerVertex) {
 	// Run our callback or note that our upstream failed
 	var err error
 	if depsSuccess {
-		log.Printf("[DEBUG] dag/walk: walking %q", VertexName(v))
+		log.Printf("[TRACE] dag/walk: walking %q", VertexName(v))
 		err = w.Callback(v)
 	} else {
-		log.Printf("[DEBUG] dag/walk: upstream errored, not walking %q", VertexName(v))
+		log.Printf("[TRACE] dag/walk: upstream errored, not walking %q", VertexName(v))
 		err = errWalkUpstream
 	}
 
@@ -423,7 +423,7 @@ func (w *Walker) waitDeps(
 				return
 
 			case <-time.After(time.Second * 5):
-				log.Printf("[DEBUG] dag/walk: vertex %q, waiting for: %q",
+				log.Printf("[TRACE] dag/walk: vertex %q, waiting for: %q",
 					VertexName(v), VertexName(dep))
 			}
 		}

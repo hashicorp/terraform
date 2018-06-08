@@ -70,7 +70,7 @@ func (g *Graph) walk(walker GraphWalker) error {
 	// Walk the graph.
 	var walkFn dag.WalkFunc
 	walkFn = func(v dag.Vertex) (rerr error) {
-		log.Printf("[DEBUG] vertex '%s.%s': walking", path, dag.VertexName(v))
+		log.Printf("[TRACE] vertex '%s.%s': walking", path, dag.VertexName(v))
 		g.DebugVisitInfo(v, g.debugName)
 
 		// If we have a panic wrap GraphWalker and a panic occurs, recover
@@ -118,7 +118,7 @@ func (g *Graph) walk(walker GraphWalker) error {
 
 			// Allow the walker to change our tree if needed. Eval,
 			// then callback with the output.
-			log.Printf("[DEBUG] vertex '%s.%s': evaluating", path, dag.VertexName(v))
+			log.Printf("[TRACE] vertex '%s.%s': evaluating", path, dag.VertexName(v))
 
 			g.DebugVertexInfo(v, fmt.Sprintf("evaluating %T(%s)", v, path))
 
@@ -132,7 +132,7 @@ func (g *Graph) walk(walker GraphWalker) error {
 		// If the node is dynamically expanded, then expand it
 		if ev, ok := v.(GraphNodeDynamicExpandable); ok {
 			log.Printf(
-				"[DEBUG] vertex '%s.%s': expanding/walking dynamic subgraph",
+				"[TRACE] vertex '%s.%s': expanding/walking dynamic subgraph",
 				path,
 				dag.VertexName(v))
 
@@ -154,7 +154,7 @@ func (g *Graph) walk(walker GraphWalker) error {
 		// If the node has a subgraph, then walk the subgraph
 		if sn, ok := v.(GraphNodeSubgraph); ok {
 			log.Printf(
-				"[DEBUG] vertex '%s.%s': walking subgraph",
+				"[TRACE] vertex '%s.%s': walking subgraph",
 				path,
 				dag.VertexName(v))
 

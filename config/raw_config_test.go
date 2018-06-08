@@ -5,6 +5,7 @@ import (
 	"reflect"
 	"testing"
 
+	hcl2 "github.com/hashicorp/hcl2/hcl"
 	"github.com/hashicorp/hil/ast"
 )
 
@@ -432,6 +433,18 @@ func TestRawConfigCopy(t *testing.T) {
 		if rc2.Value() != "qux" {
 			t.Fatalf("bad: %#v", rc2.Value())
 		}
+	}
+}
+
+func TestRawConfigCopyHCL2(t *testing.T) {
+	rc := NewRawConfigHCL2(hcl2.EmptyBody())
+	rc2 := rc.Copy()
+
+	if rc.Body == nil {
+		t.Errorf("RawConfig copy has a nil Body")
+	}
+	if rc2.Raw != nil {
+		t.Errorf("RawConfig copy got a non-nil Raw")
 	}
 }
 

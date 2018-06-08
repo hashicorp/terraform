@@ -395,6 +395,12 @@ func scanLiteral(s string, startPos ast.Pos, nested bool) (string, *Token) {
 					pos.Column = pos.Column + 2
 					litLen = litLen + 2
 					continue
+				} else if follow == '\\' {
+					// \\ escapes \
+					// so we will consume both characters here.
+					pos.Column = pos.Column + 2
+					litLen = litLen + 2
+					continue
 				}
 			}
 		}

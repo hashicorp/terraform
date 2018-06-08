@@ -153,6 +153,31 @@ func (s *Set) Equal(raw interface{}) bool {
 	return reflect.DeepEqual(s.m, other.m)
 }
 
+// HashEqual simply checks to the keys the top-level map to the keys in the
+// other set's top-level map to see if they are equal. This obviously assumes
+// you have a properly working hash function - use HashResource if in doubt.
+func (s *Set) HashEqual(raw interface{}) bool {
+	other, ok := raw.(*Set)
+	if !ok {
+		return false
+	}
+
+	ks1 := make([]string, 0)
+	ks2 := make([]string, 0)
+
+	for k := range s.m {
+		ks1 = append(ks1, k)
+	}
+	for k := range other.m {
+		ks2 = append(ks2, k)
+	}
+
+	sort.Strings(ks1)
+	sort.Strings(ks2)
+
+	return reflect.DeepEqual(ks1, ks2)
+}
+
 func (s *Set) GoString() string {
 	return fmt.Sprintf("*Set(%#v)", s.m)
 }

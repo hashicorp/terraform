@@ -69,17 +69,85 @@ func (n *NodeApplyableOutput) References() []string {
 
 // GraphNodeEvalable
 func (n *NodeApplyableOutput) EvalTree() EvalNode {
-	return &EvalOpFilter{
-		Ops: []walkOperation{walkRefresh, walkPlan, walkApply,
-			walkDestroy, walkInput, walkValidate},
-		Node: &EvalSequence{
-			Nodes: []EvalNode{
-				&EvalWriteOutput{
+	return &EvalSequence{
+		Nodes: []EvalNode{
+			&EvalOpFilter{
+				// Don't let interpolation errors stop Input, since it happens
+				// before Refresh.
+				Ops: []walkOperation{walkInput},
+				Node: &EvalWriteOutput{
+					Name:          n.Config.Name,
+					Sensitive:     n.Config.Sensitive,
+					Value:         n.Config.RawConfig,
+					ContinueOnErr: true,
+				},
+			},
+			&EvalOpFilter{
+				Ops: []walkOperation{walkRefresh, walkPlan, walkApply, walkValidate, walkDestroy, walkPlanDestroy},
+				Node: &EvalWriteOutput{
 					Name:      n.Config.Name,
 					Sensitive: n.Config.Sensitive,
 					Value:     n.Config.RawConfig,
 				},
 			},
 		},
+	}
+}
+
+// NodeDestroyableOutput represents an output that is "destroybale":
+// its application will remove the output from the state.
+type NodeDestroyableOutput struct {
+	PathValue []string
+	Config    *config.Output // Config is the output in the config
+}
+
+func (n *NodeDestroyableOutput) Name() string {
+	result := fmt.Sprintf("output.%s (destroy)", n.Config.Name)
+	if len(n.PathValue) > 1 {
+		result = fmt.Sprintf("%s.%s", modulePrefixStr(n.PathValue), result)
+	}
+
+	return result
+}
+
+// GraphNodeSubPath
+func (n *NodeDestroyableOutput) Path() []string {
+	return n.PathValue
+}
+
+// RemovableIfNotTargeted
+func (n *NodeDestroyableOutput) RemoveIfNotTargeted() bool {
+	// We need to add this so that this node will be removed if
+	// it isn't targeted or a dependency of a target.
+	return true
+}
+
+// This will keep the destroy node in the graph if its corresponding output
+// node is also in the destroy graph.
+func (n *NodeDestroyableOutput) TargetDownstream(targetedDeps, untargetedDeps *dag.Set) bool {
+	return true
+}
+
+// GraphNodeReferencer
+func (n *NodeDestroyableOutput) References() []string {
+	var result []string
+	result = append(result, n.Config.DependsOn...)
+	result = append(result, ReferencesFromConfig(n.Config.RawConfig)...)
+	for _, v := range result {
+		split := strings.Split(v, "/")
+		for i, s := range split {
+			split[i] = s + ".destroy"
+		}
+
+		result = append(result, strings.Join(split, "/"))
+	}
+
+	return result
+}
+
+// GraphNodeEvalable
+func (n *NodeDestroyableOutput) EvalTree() EvalNode {
+	return &EvalDeleteOutput{
+		Name: n.Config.Name,
 	}
 }

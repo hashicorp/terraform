@@ -1,4 +1,4 @@
-// +build linux darwin openbsd netbsd solaris
+// +build linux darwin openbsd netbsd solaris dragonfly
 
 package module
 

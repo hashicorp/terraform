@@ -40,8 +40,8 @@ func TestPush_good(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &PushCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(testProvider()),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(testProvider()),
+			Ui:               ui,
 		},
 
 		client: client,
@@ -101,8 +101,8 @@ func TestPush_goodBackendInit(t *testing.T) {
 	ui = new(cli.MockUi)
 	c := &PushCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(testProvider()),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(testProvider()),
+			Ui:               ui,
 		},
 
 		client: client,
@@ -121,12 +121,21 @@ func TestPush_goodBackendInit(t *testing.T) {
 		// Expected weird behavior, doesn't affect unpackaging
 		".terraform/",
 		".terraform/",
+
+		// this config contains no plugins
+		// TODO: we should add one or more plugins to this test config, just to
+		// verfy the pushed data. The expected additional files are listed below:
+		//
+		//".terraform/plugins/",
+		//fmt.Sprintf(".terraform/plugins/%s_%s/", runtime.GOOS, runtime.GOARCH),
+		//fmt.Sprintf(".terraform/plugins/%s_%s/lock.json", runtime.GOOS, runtime.GOARCH),
+
 		".terraform/terraform.tfstate",
 		".terraform/terraform.tfstate",
 		"main.tf",
 	}
 	if !reflect.DeepEqual(actual, expected) {
-		t.Fatalf("bad: %#v", actual)
+		t.Fatalf("expected: %#v\ngot: %#v", expected, actual)
 	}
 
 	variables := make(map[string]interface{})
@@ -148,8 +157,8 @@ func TestPush_noUploadModules(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &PushCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(testProvider()),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(testProvider()),
+			Ui:               ui,
 		},
 
 		client: client,
@@ -168,8 +177,8 @@ func TestPush_noUploadModules(t *testing.T) {
 		ui := new(cli.MockUi)
 		c := &GetCommand{
 			Meta: Meta{
-				ContextOpts: testCtxConfig(testProvider()),
-				Ui:          ui,
+				testingOverrides: metaOverridesForProvider(testProvider()),
+				Ui:               ui,
 			},
 		}
 
@@ -238,8 +247,8 @@ func TestPush_input(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &PushCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(testProvider()),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(testProvider()),
+			Ui:               ui,
 		},
 
 		client: client,
@@ -297,8 +306,8 @@ func TestPush_inputPartial(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &PushCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(testProvider()),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(testProvider()),
+			Ui:               ui,
 		},
 
 		client: client,
@@ -367,8 +376,8 @@ func TestPush_localOverride(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &PushCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(testProvider()),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(testProvider()),
+			Ui:               ui,
 		},
 
 		client: client,
@@ -446,8 +455,8 @@ func TestPush_remoteOverride(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &PushCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(testProvider()),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(testProvider()),
+			Ui:               ui,
 		},
 
 		client: client,
@@ -537,8 +546,8 @@ func TestPush_preferAtlas(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &PushCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(testProvider()),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(testProvider()),
+			Ui:               ui,
 		},
 
 		client: client,
@@ -613,8 +622,8 @@ func TestPush_tfvars(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &PushCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(testProvider()),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(testProvider()),
+			Ui:               ui,
 		},
 
 		client: client,
@@ -688,8 +697,8 @@ func TestPush_name(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &PushCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(testProvider()),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(testProvider()),
+			Ui:               ui,
 		},
 
 		client: client,
@@ -716,8 +725,8 @@ func TestPush_noState(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &PushCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(testProvider()),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(testProvider()),
+			Ui:               ui,
 		},
 	}
 
@@ -801,8 +810,8 @@ func TestPush_plan(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &PushCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(testProvider()),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(testProvider()),
+			Ui:               ui,
 		},
 	}
 

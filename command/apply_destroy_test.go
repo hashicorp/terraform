@@ -33,14 +33,14 @@ func TestApply_destroy(t *testing.T) {
 	c := &ApplyCommand{
 		Destroy: true,
 		Meta: Meta{
-			ContextOpts: testCtxConfig(p),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
 		},
 	}
 
 	// Run the apply command pointing to our existing state
 	args := []string{
-		"-force",
+		"-auto-approve",
 		"-state", statePath,
 		testFixturePath("apply"),
 	}
@@ -123,14 +123,14 @@ func TestApply_destroyLockedState(t *testing.T) {
 	c := &ApplyCommand{
 		Destroy: true,
 		Meta: Meta{
-			ContextOpts: testCtxConfig(p),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
 		},
 	}
 
 	// Run the apply command pointing to our existing state
 	args := []string{
-		"-force",
+		"-auto-approve",
 		"-state", statePath,
 		testFixturePath("apply"),
 	}
@@ -155,8 +155,8 @@ func TestApply_destroyPlan(t *testing.T) {
 	c := &ApplyCommand{
 		Destroy: true,
 		Meta: Meta{
-			ContextOpts: testCtxConfig(p),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
 		},
 	}
 
@@ -199,14 +199,14 @@ func TestApply_destroyTargeted(t *testing.T) {
 	c := &ApplyCommand{
 		Destroy: true,
 		Meta: Meta{
-			ContextOpts: testCtxConfig(p),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
 		},
 	}
 
 	// Run the apply command pointing to our existing state
 	args := []string{
-		"-force",
+		"-auto-approve",
 		"-target", "test_instance.foo",
 		"-state", statePath,
 		testFixturePath("apply-destroy-targeted"),

@@ -18,7 +18,8 @@ import (
 )
 
 func TestLocal_applyBasic(t *testing.T) {
-	b := TestLocal(t)
+	b, cleanup := TestLocal(t)
+	defer cleanup()
 	p := TestLocalProvider(t, b, "test")
 
 	p.ApplyReturn = &terraform.InstanceState{ID: "yes"}
@@ -53,11 +54,14 @@ func TestLocal_applyBasic(t *testing.T) {
 	checkState(t, b.StateOutPath, `
 test_instance.foo:
   ID = yes
+  provider = provider.test
 	`)
 }
 
 func TestLocal_applyEmptyDir(t *testing.T) {
-	b := TestLocal(t)
+	b, cleanup := TestLocal(t)
+	defer cleanup()
+
 	p := TestLocalProvider(t, b, "test")
 
 	p.ApplyReturn = &terraform.InstanceState{ID: "yes"}
@@ -84,7 +88,8 @@ func TestLocal_applyEmptyDir(t *testing.T) {
 }
 
 func TestLocal_applyEmptyDirDestroy(t *testing.T) {
-	b := TestLocal(t)
+	b, cleanup := TestLocal(t)
+	defer cleanup()
 	p := TestLocalProvider(t, b, "test")
 
 	p.ApplyReturn = nil
@@ -110,7 +115,8 @@ func TestLocal_applyEmptyDirDestroy(t *testing.T) {
 }
 
 func TestLocal_applyError(t *testing.T) {
-	b := TestLocal(t)
+	b, cleanup := TestLocal(t)
+	defer cleanup()
 	p := TestLocalProvider(t, b, "test")
 
 	var lock sync.Mutex
@@ -160,6 +166,7 @@ func TestLocal_applyError(t *testing.T) {
 	checkState(t, b.StateOutPath, `
 test_instance.foo:
   ID = foo
+  provider = provider.test
 	`)
 }
 
@@ -167,7 +174,9 @@ func TestLocal_applyBackendFail(t *testing.T) {
 	mod, modCleanup := module.TestTree(t, "./test-fixtures/apply")
 	defer modCleanup()
 
-	b := TestLocal(t)
+	b, cleanup := TestLocal(t)
+	defer cleanup()
+
 	wd, err := os.Getwd()
 	if err != nil {
 		t.Fatalf("failed to get current working directory")
@@ -211,6 +220,7 @@ func TestLocal_applyBackendFail(t *testing.T) {
 	checkState(t, "errored.tfstate", `
 test_instance.foo:
   ID = yes
+  provider = provider.test
 	`)
 }
 

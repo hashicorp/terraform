@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/hashicorp/terraform/config"
+	"github.com/hashicorp/terraform/version"
 )
 
 // EvalCompareDiff is an EvalNode implementation that compares two diffs
@@ -60,7 +61,7 @@ func (n *EvalCompareDiff) Eval(ctx EvalContext) (interface{}, error) {
 				"\n"+
 				"Also include as much context as you can about your config, state, "+
 				"and the steps you performed to trigger this error.\n",
-			n.Info.Id, Version, n.Info.Id, reason, one, two)
+			n.Info.Id, version.Version, n.Info.Id, reason, one, two)
 	}
 
 	return nil, nil
@@ -81,6 +82,12 @@ type EvalDiff struct {
 	// Resource is needed to fetch the ignore_changes list so we can
 	// filter user-requested ignored attributes from the diff.
 	Resource *config.Resource
+
+	// Stub is used to flag the generated InstanceDiff as a stub. This is used to
+	// ensure that the node exists to perform interpolations and generate
+	// computed paths off of, but not as an actual diff where resouces should be
+	// counted, and not as a diff that should be acted on.
+	Stub bool
 }
 
 // TODO: test
@@ -90,11 +97,13 @@ func (n *EvalDiff) Eval(ctx EvalContext) (interface{}, error) {
 	provider := *n.Provider
 
 	// Call pre-diff hook
-	err := ctx.Hook(func(h Hook) (HookAction, error) {
-		return h.PreDiff(n.Info, state)
-	})
-	if err != nil {
-		return nil, err
+	if !n.Stub {
+		err := ctx.Hook(func(h Hook) (HookAction, error) {
+			return h.PreDiff(n.Info, state)
+		})
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	// The state for the diff must never be nil
@@ -158,15 +167,19 @@ func (n *EvalDiff) Eval(ctx EvalContext) (interface{}, error) {
 	}
 
 	// Call post-refresh hook
-	err = ctx.Hook(func(h Hook) (HookAction, error) {
-		return h.PostDiff(n.Info, diff)
-	})
-	if err != nil {
-		return nil, err
+	if !n.Stub {
+		err = ctx.Hook(func(h Hook) (HookAction, error) {
+			return h.PostDiff(n.Info, diff)
+		})
+		if err != nil {
+			return nil, err
+		}
 	}
 
-	// Update our output
-	*n.OutputDiff = diff
+	// Update our output if we care
+	if n.OutputDiff != nil {
+		*n.OutputDiff = diff
+	}
 
 	// Update the state if we care
 	if n.OutputState != nil {
@@ -243,11 +256,15 @@ func (n *EvalDiff) processIgnoreChanges(diff *InstanceDiff) error {
 		containers := groupContainers(diff)
 		keep := map[string]bool{}
 		for _, v := range containers {
-			if v.keepDiff() {
+			if v.keepDiff(ignorableAttrKeys) {
 				// At least one key has changes, so list all the sibling keys
-				// to keep in the diff.
+				// to keep in the diff
 				for k := range v {
 					keep[k] = true
+					// this key may have been added by the user to ignore, but
+					// if it's a subkey in a container, we need to un-ignore it
+					// to keep the complete containter.
+					delete(ignorableAttrKeys, k)
 				}
 			}
 		}
@@ -279,10 +296,17 @@ func (n *EvalDiff) processIgnoreChanges(diff *InstanceDiff) error {
 // a group of key-*ResourceAttrDiff pairs from the same flatmapped container
 type flatAttrDiff map[string]*ResourceAttrDiff
 
-// we need to keep all keys if any of them have a diff
-func (f flatAttrDiff) keepDiff() bool {
-	for _, v := range f {
-		if !v.Empty() && !v.NewComputed {
+// we need to keep all keys if any of them have a diff that's not ignored
+func (f flatAttrDiff) keepDiff(ignoreChanges map[string]bool) bool {
+	for k, v := range f {
+		ignore := false
+		for attr := range ignoreChanges {
+			if strings.HasPrefix(k, attr) {
+				ignore = true
+			}
+		}
+
+		if !v.Empty() && !v.NewComputed && !ignore {
 			return true
 		}
 	}

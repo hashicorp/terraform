@@ -16,7 +16,10 @@ type DebugJSON2DotCommand struct {
 }
 
 func (c *DebugJSON2DotCommand) Run(args []string) int {
-	args = c.Meta.process(args, true)
+	args, err := c.Meta.process(args, true)
+	if err != nil {
+		return 1
+	}
 	cmdFlags := c.Meta.flagSet("debug json2dot")
 
 	if err := cmdFlags.Parse(args); err != nil {

@@ -11,14 +11,15 @@ import (
 	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/terraform/backend"
-	"github.com/hashicorp/terraform/command/clistate"
+	"github.com/hashicorp/terraform/command/format"
 	"github.com/hashicorp/terraform/config/module"
 	"github.com/hashicorp/terraform/state"
 	"github.com/hashicorp/terraform/terraform"
 )
 
 func (b *Local) opApply(
-	ctx context.Context,
+	stopCtx context.Context,
+	cancelCtx context.Context,
 	op *backend.Operation,
 	runningOp *backend.RunningOperation) {
 	log.Printf("[INFO] backend/local: starting Apply operation")
@@ -53,25 +54,6 @@ func (b *Local) opApply(
 		return
 	}
 
-	if op.LockState {
-		lockCtx, cancel := context.WithTimeout(ctx, op.StateLockTimeout)
-		defer cancel()
-
-		lockInfo := state.NewLockInfo()
-		lockInfo.Operation = op.Type.String()
-		lockID, err := clistate.Lock(lockCtx, opState, lockInfo, b.CLI, b.Colorize())
-		if err != nil {
-			runningOp.Err = errwrap.Wrapf("Error locking state: {{err}}", err)
-			return
-		}
-
-		defer func() {
-			if err := clistate.Unlock(opState, lockID, b.CLI, b.Colorize()); err != nil {
-				runningOp.Err = multierror.Append(runningOp.Err, err)
-			}
-		}()
-	}
-
 	// Setup the state
 	runningOp.State = tfCtx.State()
 
@@ -89,9 +71,52 @@ func (b *Local) opApply(
 
 		// Perform the plan
 		log.Printf("[INFO] backend/local: apply calling Plan")
-		if _, err := tfCtx.Plan(); err != nil {
+		plan, err := tfCtx.Plan()
+		if err != nil {
 			runningOp.Err = errwrap.Wrapf("Error running plan: {{err}}", err)
 			return
+		}
+
+		dispPlan := format.NewPlan(plan)
+		trivialPlan := dispPlan.Empty()
+		hasUI := op.UIOut != nil && op.UIIn != nil
+		mustConfirm := hasUI && ((op.Destroy && (!op.DestroyForce && !op.AutoApprove)) || (!op.Destroy && !op.AutoApprove && !trivialPlan))
+		if mustConfirm {
+			var desc, query string
+			if op.Destroy {
+				// Default destroy message
+				desc = "Terraform will destroy all your managed infrastructure, as shown above.\n" +
+					"There is no undo. Only 'yes' will be accepted to confirm."
+				query = "Do you really want to destroy?"
+			} else {
+				desc = "Terraform will perform the actions described above.\n" +
+					"Only 'yes' will be accepted to approve."
+				query = "Do you want to perform these actions?"
+			}
+
+			if !trivialPlan {
+				// Display the plan of what we are going to apply/destroy.
+				b.renderPlan(dispPlan)
+				b.CLI.Output("")
+			}
+
+			v, err := op.UIIn.Input(&terraform.InputOpts{
+				Id:          "approve",
+				Query:       query,
+				Description: desc,
+			})
+			if err != nil {
+				runningOp.Err = errwrap.Wrapf("Error asking for approval: {{err}}", err)
+				return
+			}
+			if v != "yes" {
+				if op.Destroy {
+					runningOp.Err = errors.New("Destroy cancelled.")
+				} else {
+					runningOp.Err = errors.New("Apply cancelled.")
+				}
+				return
+			}
 		}
 	}
 
@@ -107,42 +132,10 @@ func (b *Local) opApply(
 		_, applyErr = tfCtx.Apply()
 		// we always want the state, even if apply failed
 		applyState = tfCtx.State()
-
-		/*
-			// Record any shadow errors for later
-			if err := ctx.ShadowError(); err != nil {
-				shadowErr = multierror.Append(shadowErr, multierror.Prefix(
-					err, "apply operation:"))
-			}
-		*/
 	}()
 
-	// Wait for the apply to finish or for us to be interrupted so
-	// we can handle it properly.
-	err = nil
-	select {
-	case <-ctx.Done():
-		if b.CLI != nil {
-			b.CLI.Output("stopping apply operation...")
-		}
-
-		// try to force a PersistState just in case the process is terminated
-		// before we can complete.
-		if err := opState.PersistState(); err != nil {
-			// We can't error out from here, but warn the user if there was an error.
-			// If this isn't transient, we will catch it again below, and
-			// attempt to save the state another way.
-			if b.CLI != nil {
-				b.CLI.Error(fmt.Sprintf(earlyStateWriteErrorFmt, err))
-			}
-		}
-
-		// Stop execution
-		go tfCtx.Stop()
-
-		// Wait for completion still
-		<-doneCh
-	case <-doneCh:
+	if b.opWait(doneCh, stopCtx, cancelCtx, tfCtx, opState) {
+		return
 	}
 
 	// Store the final state
@@ -186,7 +179,8 @@ func (b *Local) opApply(
 				countHook.Removed)))
 		}
 
-		if countHook.Added > 0 || countHook.Changed > 0 {
+		// only show the state file help message if the state is local.
+		if (countHook.Added > 0 || countHook.Changed > 0) && b.StateOutPath != "" {
 			b.CLI.Output(b.Colorize().Color(fmt.Sprintf(
 				"[reset]\n"+
 					"The state of your infrastructure has been saved to the path\n"+

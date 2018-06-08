@@ -3,6 +3,7 @@ package schema
 import (
 	"fmt"
 	"math"
+	"os"
 	"reflect"
 	"testing"
 	"time"
@@ -1082,6 +1083,258 @@ func TestResourceDataGetOk(t *testing.T) {
 	}
 }
 
+func TestResourceDataGetOkExists(t *testing.T) {
+	cases := []struct {
+		Name   string
+		Schema map[string]*Schema
+		State  *terraform.InstanceState
+		Diff   *terraform.InstanceDiff
+		Key    string
+		Value  interface{}
+		Ok     bool
+	}{
+		/*
+		 * Primitives
+		 */
+		{
+			Name: "string-literal-empty",
+			Schema: map[string]*Schema{
+				"availability_zone": {
+					Type:     TypeString,
+					Optional: true,
+					Computed: true,
+					ForceNew: true,
+				},
+			},
+
+			State: nil,
+
+			Diff: &terraform.InstanceDiff{
+				Attributes: map[string]*terraform.ResourceAttrDiff{
+					"availability_zone": {
+						Old: "",
+						New: "",
+					},
+				},
+			},
+
+			Key:   "availability_zone",
+			Value: "",
+			Ok:    true,
+		},
+
+		{
+			Name: "string-computed-empty",
+			Schema: map[string]*Schema{
+				"availability_zone": {
+					Type:     TypeString,
+					Optional: true,
+					Computed: true,
+					ForceNew: true,
+				},
+			},
+
+			State: nil,
+
+			Diff: &terraform.InstanceDiff{
+				Attributes: map[string]*terraform.ResourceAttrDiff{
+					"availability_zone": {
+						Old:         "",
+						New:         "",
+						NewComputed: true,
+					},
+				},
+			},
+
+			Key:   "availability_zone",
+			Value: "",
+			Ok:    false,
+		},
+
+		{
+			Name: "string-optional-computed-nil-diff",
+			Schema: map[string]*Schema{
+				"availability_zone": {
+					Type:     TypeString,
+					Optional: true,
+					Computed: true,
+					ForceNew: true,
+				},
+			},
+
+			State: nil,
+
+			Diff: nil,
+
+			Key:   "availability_zone",
+			Value: "",
+			Ok:    false,
+		},
+
+		/*
+		 * Lists
+		 */
+
+		{
+			Name: "list-optional",
+			Schema: map[string]*Schema{
+				"ports": {
+					Type:     TypeList,
+					Optional: true,
+					Elem:     &Schema{Type: TypeInt},
+				},
+			},
+
+			State: nil,
+
+			Diff: nil,
+
+			Key:   "ports",
+			Value: []interface{}{},
+			Ok:    false,
+		},
+
+		/*
+		 * Map
+		 */
+
+		{
+			Name: "map-optional",
+			Schema: map[string]*Schema{
+				"ports": {
+					Type:     TypeMap,
+					Optional: true,
+				},
+			},
+
+			State: nil,
+
+			Diff: nil,
+
+			Key:   "ports",
+			Value: map[string]interface{}{},
+			Ok:    false,
+		},
+
+		/*
+		 * Set
+		 */
+
+		{
+			Name: "set-optional",
+			Schema: map[string]*Schema{
+				"ports": {
+					Type:     TypeSet,
+					Optional: true,
+					Elem:     &Schema{Type: TypeInt},
+					Set:      func(a interface{}) int { return a.(int) },
+				},
+			},
+
+			State: nil,
+
+			Diff: nil,
+
+			Key:   "ports",
+			Value: []interface{}{},
+			Ok:    false,
+		},
+
+		{
+			Name: "set-optional-key",
+			Schema: map[string]*Schema{
+				"ports": {
+					Type:     TypeSet,
+					Optional: true,
+					Elem:     &Schema{Type: TypeInt},
+					Set:      func(a interface{}) int { return a.(int) },
+				},
+			},
+
+			State: nil,
+
+			Diff: nil,
+
+			Key:   "ports.0",
+			Value: 0,
+			Ok:    false,
+		},
+
+		{
+			Name: "bool-literal-empty",
+			Schema: map[string]*Schema{
+				"availability_zone": {
+					Type:     TypeBool,
+					Optional: true,
+					Computed: true,
+					ForceNew: true,
+				},
+			},
+
+			State: nil,
+			Diff: &terraform.InstanceDiff{
+				Attributes: map[string]*terraform.ResourceAttrDiff{
+					"availability_zone": {
+						Old: "",
+						New: "",
+					},
+				},
+			},
+
+			Key:   "availability_zone",
+			Value: false,
+			Ok:    true,
+		},
+
+		{
+			Name: "bool-literal-set",
+			Schema: map[string]*Schema{
+				"availability_zone": {
+					Type:     TypeBool,
+					Optional: true,
+					Computed: true,
+					ForceNew: true,
+				},
+			},
+
+			State: nil,
+
+			Diff: &terraform.InstanceDiff{
+				Attributes: map[string]*terraform.ResourceAttrDiff{
+					"availability_zone": {
+						New: "true",
+					},
+				},
+			},
+
+			Key:   "availability_zone",
+			Value: true,
+			Ok:    true,
+		},
+	}
+
+	for i, tc := range cases {
+		t.Run(fmt.Sprintf("%d-%s", i, tc.Name), func(t *testing.T) {
+			d, err := schemaMap(tc.Schema).Data(tc.State, tc.Diff)
+			if err != nil {
+				t.Fatalf("%s err: %s", tc.Name, err)
+			}
+
+			v, ok := d.GetOkExists(tc.Key)
+			if s, ok := v.(*Set); ok {
+				v = s.List()
+			}
+
+			if !reflect.DeepEqual(v, tc.Value) {
+				t.Fatalf("Bad %s: \n%#v", tc.Name, v)
+			}
+			if ok != tc.Ok {
+				t.Fatalf("%s: expected ok: %t, got: %t", tc.Name, tc.Ok, ok)
+			}
+		})
+	}
+}
+
 func TestResourceDataTimeout(t *testing.T) {
 	cases := []struct {
 		Name     string
@@ -1112,6 +1365,11 @@ func TestResourceDataTimeout(t *testing.T) {
 			Name:     "Resource provides default, config overwrites other values",
 			Rd:       &ResourceData{timeouts: timeoutForValues(10, 3, 0, 0, 13)},
 			Expected: expectedTimeoutForValues(10, 3, 13, 13, 13),
+		},
+		{
+			Name:     "Resource has no config",
+			Rd:       &ResourceData{},
+			Expected: expectedTimeoutForValues(0, 0, 0, 0, 0),
 		},
 	}
 
@@ -1145,7 +1403,7 @@ func TestResourceDataTimeout(t *testing.T) {
 				// confirm values
 				if ex != nil {
 					if got != *ex {
-						t.Fatalf("Timeout %s case (%d) expected (%#v), got (%#v)", k, i, *ex, got)
+						t.Fatalf("Timeout %s case (%d) expected (%s), got (%s)", k, i, *ex, got)
 					}
 				}
 			}
@@ -1802,6 +2060,10 @@ func TestResourceDataSet(t *testing.T) {
 			GetValue: "",
 		},
 	}
+
+	oldEnv := os.Getenv(PanicOnErr)
+	os.Setenv(PanicOnErr, "")
+	defer os.Setenv(PanicOnErr, oldEnv)
 
 	for i, tc := range cases {
 		d, err := schemaMap(tc.Schema).Data(tc.State, tc.Diff)

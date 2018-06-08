@@ -124,6 +124,27 @@ func (n *NodeApplyableResource) evalTreeDataResource(
 				Then: EvalNoop{},
 			},
 
+			// Normally we interpolate count as a preparation step before
+			// a DynamicExpand, but an apply graph has pre-expanded nodes
+			// and so the count would otherwise never be interpolated.
+			//
+			// This is redundant when there are multiple instances created
+			// from the same config (count > 1) but harmless since the
+			// underlying structures have mutexes to make this concurrency-safe.
+			//
+			// In most cases this isn't actually needed because we dealt with
+			// all of the counts during the plan walk, but we do it here
+			// for completeness because other code assumes that the
+			// final count is always available during interpolation.
+			//
+			// Here we are just populating the interpolated value in-place
+			// inside this RawConfig object, like we would in
+			// NodeAbstractCountResource.
+			&EvalInterpolate{
+				Config:        n.Config.RawCount,
+				ContinueOnErr: true,
+			},
+
 			// We need to re-interpolate the config here, rather than
 			// just using the diff's values directly, because we've
 			// potentially learned more variable values during the
@@ -135,7 +156,7 @@ func (n *NodeApplyableResource) evalTreeDataResource(
 			},
 
 			&EvalGetProvider{
-				Name:   n.ProvidedBy()[0],
+				Name:   n.ResolvedProvider,
 				Output: &provider,
 			},
 
@@ -158,7 +179,7 @@ func (n *NodeApplyableResource) evalTreeDataResource(
 			&EvalWriteState{
 				Name:         stateId,
 				ResourceType: n.Config.Type,
-				Provider:     n.Config.Provider,
+				Provider:     n.ResolvedProvider,
 				Dependencies: stateDeps,
 				State:        &state,
 			},
@@ -236,13 +257,35 @@ func (n *NodeApplyableResource) evalTreeManagedResource(
 				},
 			},
 
+			// Normally we interpolate count as a preparation step before
+			// a DynamicExpand, but an apply graph has pre-expanded nodes
+			// and so the count would otherwise never be interpolated.
+			//
+			// This is redundant when there are multiple instances created
+			// from the same config (count > 1) but harmless since the
+			// underlying structures have mutexes to make this concurrency-safe.
+			//
+			// In most cases this isn't actually needed because we dealt with
+			// all of the counts during the plan walk, but we need to do this
+			// in order to support interpolation of resource counts from
+			// apply-time-interpolated expressions, such as those in
+			// "provisioner" blocks.
+			//
+			// Here we are just populating the interpolated value in-place
+			// inside this RawConfig object, like we would in
+			// NodeAbstractCountResource.
+			&EvalInterpolate{
+				Config:        n.Config.RawCount,
+				ContinueOnErr: true,
+			},
+
 			&EvalInterpolate{
 				Config:   n.Config.RawConfig.Copy(),
 				Resource: resource,
 				Output:   &resourceConfig,
 			},
 			&EvalGetProvider{
-				Name:   n.ProvidedBy()[0],
+				Name:   n.ResolvedProvider,
 				Output: &provider,
 			},
 			&EvalReadState{
@@ -283,7 +326,7 @@ func (n *NodeApplyableResource) evalTreeManagedResource(
 			},
 
 			&EvalGetProvider{
-				Name:   n.ProvidedBy()[0],
+				Name:   n.ResolvedProvider,
 				Output: &provider,
 			},
 			&EvalReadState{
@@ -308,7 +351,7 @@ func (n *NodeApplyableResource) evalTreeManagedResource(
 			&EvalWriteState{
 				Name:         stateId,
 				ResourceType: n.Config.Type,
-				Provider:     n.Config.Provider,
+				Provider:     n.ResolvedProvider,
 				Dependencies: stateDeps,
 				State:        &state,
 			},
@@ -332,7 +375,7 @@ func (n *NodeApplyableResource) evalTreeManagedResource(
 				Else: &EvalWriteState{
 					Name:         stateId,
 					ResourceType: n.Config.Type,
-					Provider:     n.Config.Provider,
+					Provider:     n.ResolvedProvider,
 					Dependencies: stateDeps,
 					State:        &state,
 				},

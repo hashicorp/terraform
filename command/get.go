@@ -17,7 +17,10 @@ type GetCommand struct {
 func (c *GetCommand) Run(args []string) int {
 	var update bool
 
-	args = c.Meta.process(args, false)
+	args, err := c.Meta.process(args, false)
+	if err != nil {
+		return 1
+	}
 
 	cmdFlags := flag.NewFlagSet("get", flag.ContinueOnError)
 	cmdFlags.BoolVar(&update, "update", false, "update")
@@ -26,7 +29,6 @@ func (c *GetCommand) Run(args []string) int {
 		return 1
 	}
 
-	var path string
 	path, err := ModulePath(cmdFlags.Args())
 	if err != nil {
 		c.Ui.Error(err.Error())
@@ -79,7 +81,7 @@ func getModules(m *Meta, path string, mode module.GetMode) error {
 		return fmt.Errorf("Error loading configuration: %s", err)
 	}
 
-	err = mod.Load(m.moduleStorage(m.DataDir()), mode)
+	err = mod.Load(m.moduleStorage(m.DataDir(), mode))
 	if err != nil {
 		return fmt.Errorf("Error loading modules: %s", err)
 	}

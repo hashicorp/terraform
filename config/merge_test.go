@@ -1,8 +1,11 @@
 package config
 
 import (
+	"fmt"
 	"reflect"
 	"testing"
+
+	"github.com/davecgh/go-spew/spew"
 )
 
 func TestMerge(t *testing.T) {
@@ -31,6 +34,9 @@ func TestMerge(t *testing.T) {
 				Variables: []*Variable{
 					&Variable{Name: "foo"},
 				},
+				Locals: []*Local{
+					&Local{Name: "foo"},
+				},
 
 				unknownKeys: []string{"foo"},
 			},
@@ -53,6 +59,9 @@ func TestMerge(t *testing.T) {
 				},
 				Variables: []*Variable{
 					&Variable{Name: "bar"},
+				},
+				Locals: []*Local{
+					&Local{Name: "bar"},
 				},
 
 				unknownKeys: []string{"bar"},
@@ -82,6 +91,10 @@ func TestMerge(t *testing.T) {
 					&Variable{Name: "foo"},
 					&Variable{Name: "bar"},
 				},
+				Locals: []*Local{
+					&Local{Name: "foo"},
+					&Local{Name: "bar"},
+				},
 
 				unknownKeys: []string{"foo", "bar"},
 			},
@@ -107,6 +120,9 @@ func TestMerge(t *testing.T) {
 					&Variable{Name: "foo", Default: "foo"},
 					&Variable{Name: "foo"},
 				},
+				Locals: []*Local{
+					&Local{Name: "foo"},
+				},
 
 				unknownKeys: []string{"foo"},
 			},
@@ -124,6 +140,9 @@ func TestMerge(t *testing.T) {
 				Variables: []*Variable{
 					&Variable{Name: "foo", Default: "bar"},
 					&Variable{Name: "bar"},
+				},
+				Locals: []*Local{
+					&Local{Name: "foo"},
 				},
 
 				unknownKeys: []string{"bar"},
@@ -146,6 +165,10 @@ func TestMerge(t *testing.T) {
 					&Variable{Name: "foo", Default: "bar"},
 					&Variable{Name: "foo"},
 					&Variable{Name: "bar"},
+				},
+				Locals: []*Local{
+					&Local{Name: "foo"},
+					&Local{Name: "foo"},
 				},
 
 				unknownKeys: []string{"foo", "bar"},
@@ -462,13 +485,15 @@ func TestMerge(t *testing.T) {
 	}
 
 	for i, tc := range cases {
-		actual, err := Merge(tc.c1, tc.c2)
-		if err != nil != tc.err {
-			t.Fatalf("%d: error fail", i)
-		}
+		t.Run(fmt.Sprintf("%02d", i), func(t *testing.T) {
+			actual, err := Merge(tc.c1, tc.c2)
+			if err != nil != tc.err {
+				t.Errorf("unexpected error: %s", err)
+			}
 
-		if !reflect.DeepEqual(actual, tc.result) {
-			t.Fatalf("%d: bad:\n\n%#v", i, actual)
-		}
+			if !reflect.DeepEqual(actual, tc.result) {
+				t.Errorf("wrong result\ngot: %swant: %s", spew.Sdump(actual), spew.Sdump(tc.result))
+			}
+		})
 	}
 }

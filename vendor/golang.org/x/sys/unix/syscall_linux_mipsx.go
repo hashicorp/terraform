@@ -73,7 +73,6 @@ func Syscall9(trap, a1, a2, a3, a4, a5, a6, a7, a8, a9 uintptr) (r1, r2 uintptr,
 
 func Fstatfs(fd int, buf *Statfs_t) (err error) {
 	_, _, e := Syscall(SYS_FSTATFS64, uintptr(fd), unsafe.Sizeof(*buf), uintptr(unsafe.Pointer(buf)))
-	use(unsafe.Pointer(buf))
 	if e != 0 {
 		err = errnoErr(e)
 	}
@@ -86,7 +85,6 @@ func Statfs(path string, buf *Statfs_t) (err error) {
 		return err
 	}
 	_, _, e := Syscall(SYS_STATFS64, uintptr(unsafe.Pointer(p)), unsafe.Sizeof(*buf), uintptr(unsafe.Pointer(buf)))
-	use(unsafe.Pointer(p))
 	if e != 0 {
 		err = errnoErr(e)
 	}
@@ -213,9 +211,9 @@ func Setrlimit(resource int, rlim *Rlimit) (err error) {
 	return setrlimit(resource, &rl)
 }
 
-func (r *PtraceRegs) PC() uint64 { return uint64(r.Regs[64]) }
+func (r *PtraceRegs) PC() uint64 { return r.Epc }
 
-func (r *PtraceRegs) SetPC(pc uint64) { r.Regs[64] = uint32(pc) }
+func (r *PtraceRegs) SetPC(pc uint64) { r.Epc = pc }
 
 func (iov *Iovec) SetLen(length int) {
 	iov.Len = uint32(length)

@@ -32,7 +32,6 @@ type ContextGraphWalker struct {
 	interpolaterVars    map[string]map[string]interface{}
 	interpolaterVarLock sync.Mutex
 	providerCache       map[string]ResourceProvider
-	providerConfigCache map[string]*ResourceConfig
 	providerLock        sync.Mutex
 	provisionerCache    map[string]ResourceProvisioner
 	provisionerLock     sync.Mutex
@@ -73,7 +72,6 @@ func (w *ContextGraphWalker) EnterPath(path []string) EvalContext {
 		InputValue:          w.Context.uiInput,
 		Components:          w.Context.components,
 		ProviderCache:       w.providerCache,
-		ProviderConfigCache: w.providerConfigCache,
 		ProviderInputConfig: w.Context.providerInputConfig,
 		ProviderLock:        &w.providerLock,
 		ProvisionerCache:    w.provisionerCache,
@@ -151,7 +149,6 @@ func (w *ContextGraphWalker) ExitEvalTree(
 func (w *ContextGraphWalker) init() {
 	w.contexts = make(map[string]*BuiltinEvalContext, 5)
 	w.providerCache = make(map[string]ResourceProvider, 5)
-	w.providerConfigCache = make(map[string]*ResourceConfig, 5)
 	w.provisionerCache = make(map[string]ResourceProvisioner, 5)
 	w.interpolaterVars = make(map[string]map[string]interface{}, 5)
 }

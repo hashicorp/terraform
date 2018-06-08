@@ -6,9 +6,11 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log"
 	"sync"
 
 	"github.com/hashicorp/terraform/config/module"
+	"github.com/hashicorp/terraform/version"
 )
 
 func init() {
@@ -25,14 +27,53 @@ func init() {
 // necessary to make a change: the state, diff, config, backend config, etc.
 // This is so that it can run alone without any other data.
 type Plan struct {
-	Diff    *Diff
-	Module  *module.Tree
-	State   *State
-	Vars    map[string]interface{}
+	// Diff describes the resource actions that must be taken when this
+	// plan is applied.
+	Diff *Diff
+
+	// Module represents the entire configuration that was present when this
+	// plan was created.
+	Module *module.Tree
+
+	// State is the Terraform state that was current when this plan was
+	// created.
+	//
+	// It is not allowed to apply a plan that has a stale state, since its
+	// diff could be outdated.
+	State *State
+
+	// Vars retains the variables that were set when creating the plan, so
+	// that the same variables can be applied during apply.
+	Vars map[string]interface{}
+
+	// Targets, if non-empty, contains a set of resource address strings that
+	// identify graph nodes that were selected as targets for plan.
+	//
+	// When targets are set, any graph node that is not directly targeted or
+	// indirectly targeted via dependencies is excluded from the graph.
 	Targets []string
+
+	// TerraformVersion is the version of Terraform that was used to create
+	// this plan.
+	//
+	// It is not allowed to apply a plan created with a different version of
+	// Terraform, since the other fields of this structure may be interpreted
+	// in different ways between versions.
+	TerraformVersion string
+
+	// ProviderSHA256s is a map giving the SHA256 hashes of the exact binaries
+	// used as plugins for each provider during plan.
+	//
+	// These must match between plan and apply to ensure that the diff is
+	// correctly interpreted, since different provider versions may have
+	// different attributes or attribute value constraints.
+	ProviderSHA256s map[string][]byte
 
 	// Backend is the backend that this plan should use and store data with.
 	Backend *BackendState
+
+	// Destroy indicates that this plan was created for a full destroy operation
+	Destroy bool
 
 	once sync.Once
 }
@@ -40,19 +81,59 @@ type Plan struct {
 // Context returns a Context with the data encapsulated in this plan.
 //
 // The following fields in opts are overridden by the plan: Config,
-// Diff, State, Variables.
+// Diff, Variables.
+//
+// If State is not provided, it is set from the plan. If it _is_ provided,
+// it must be Equal to the state stored in plan, but may have a newer
+// serial.
 func (p *Plan) Context(opts *ContextOpts) (*Context, error) {
+	var err error
+	opts, err = p.contextOpts(opts)
+	if err != nil {
+		return nil, err
+	}
+	return NewContext(opts)
+}
+
+// contextOpts mutates the given base ContextOpts in place to use input
+// objects obtained from the receiving plan.
+func (p *Plan) contextOpts(base *ContextOpts) (*ContextOpts, error) {
+	opts := base
+
 	opts.Diff = p.Diff
 	opts.Module = p.Module
-	opts.State = p.State
 	opts.Targets = p.Targets
+	opts.ProviderSHA256s = p.ProviderSHA256s
+	opts.Destroy = p.Destroy
+
+	if opts.State == nil {
+		opts.State = p.State
+	} else if !opts.State.Equal(p.State) {
+		// Even if we're overriding the state, it should be logically equal
+		// to what's in plan. The only valid change to have made by the time
+		// we get here is to have incremented the serial.
+		//
+		// Due to the fact that serialization may change the representation of
+		// the state, there is little chance that these aren't actually equal.
+		// Log the error condition for reference, but continue with the state
+		// we have.
+		log.Println("[WARN] Plan state and ContextOpts state are not equal")
+	}
+
+	thisVersion := version.String()
+	if p.TerraformVersion != "" && p.TerraformVersion != thisVersion {
+		return nil, fmt.Errorf(
+			"plan was created with a different version of Terraform (created with %s, but running %s)",
+			p.TerraformVersion, thisVersion,
+		)
+	}
 
 	opts.Variables = make(map[string]interface{})
 	for k, v := range p.Vars {
 		opts.Variables[k] = v
 	}
 
-	return NewContext(opts)
+	return opts, nil
 }
 
 func (p *Plan) String() string {
@@ -86,7 +167,7 @@ func (p *Plan) init() {
 // the ability in the future to change the file format if we want for any
 // reason.
 const planFormatMagic = "tfplan"
-const planFormatVersion byte = 1
+const planFormatVersion byte = 2
 
 // ReadPlan reads a plan structure out of a reader in the format that
 // was written by WritePlan.

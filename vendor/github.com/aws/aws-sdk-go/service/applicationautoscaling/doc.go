@@ -4,12 +4,14 @@
 // requests to Application Auto Scaling.
 //
 // With Application Auto Scaling, you can automatically scale your AWS resources.
-// The experience similar to that of Auto Scaling (https://aws.amazon.com/autoscaling/).
+// The experience is similar to that of Auto Scaling (https://aws.amazon.com/autoscaling/).
 // You can use Application Auto Scaling to accomplish the following tasks:
 //
 //    * Define scaling policies to automatically scale your AWS resources
 //
 //    * Scale your resources in response to CloudWatch alarms
+//
+//    * Schedule one-time or recurring scaling actions
 //
 //    * View the history of your scaling events
 //
@@ -17,7 +19,7 @@
 //
 //    * Amazon ECS services. For more information, see Service Auto Scaling
 //    (http://docs.aws.amazon.com/AmazonECS/latest/developerguide/service-auto-scaling.html)
-//    in the Amazon EC2 Container Service Developer Guide.
+//    in the Amazon Elastic Container Service Developer Guide.
 //
 //    * Amazon EC2 Spot fleets. For more information, see Automatic Scaling
 //    for Spot Fleet (http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/fleet-auto-scaling.html)
@@ -27,9 +29,17 @@
 //    in Amazon EMR (http://docs.aws.amazon.com/ElasticMapReduce/latest/ManagementGuide/emr-automatic-scaling.html)
 //    in the Amazon EMR Management Guide.
 //
-//    * AppStream 2.0 fleets. For more information, see Autoscaling Amazon AppStream
-//    2.0 Resources (http://docs.aws.amazon.com/appstream2/latest/developerguide/autoscaling.html)
+//    * AppStream 2.0 fleets. For more information, see Fleet Auto Scaling for
+//    Amazon AppStream 2.0 (http://docs.aws.amazon.com/appstream2/latest/developerguide/autoscaling.html)
 //    in the Amazon AppStream 2.0 Developer Guide.
+//
+//    * Provisioned read and write capacity for Amazon DynamoDB tables and global
+//    secondary indexes. For more information, see Managing Throughput Capacity
+//    Automatically with DynamoDB Auto Scaling (http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/AutoScaling.html)
+//    in the Amazon DynamoDB Developer Guide.
+//
+//    * Amazon Aurora Replicas. For more information, see Using Amazon Aurora
+//    Auto Scaling with Aurora Replicas (http://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Aurora.Integrating.AutoScaling.html).
 //
 // For a list of supported regions, see AWS Regions and Endpoints: Application
 // Auto Scaling (http://docs.aws.amazon.com/general/latest/gr/rande.html#as-app_region)
@@ -42,69 +52,17 @@
 //
 // Using the Client
 //
-// To use the client for Application Auto Scaling you will first need
-// to create a new instance of it.
+// To contact Application Auto Scaling with the SDK use the New function to create
+// a new service client. With that client you can make API requests to the service.
+// These clients are safe to use concurrently.
 //
-// When creating a client for an AWS service you'll first need to have a Session
-// already created. The Session provides configuration that can be shared
-// between multiple service clients. Additional configuration can be applied to
-// the Session and service's client when they are constructed. The aws package's
-// Config type contains several fields such as Region for the AWS Region the
-// client should make API requests too. The optional Config value can be provided
-// as the variadic argument for Sessions and client creation.
-//
-// Once the service's client is created you can use it to make API requests the
-// AWS service. These clients are safe to use concurrently.
-//
-//   // Create a session to share configuration, and load external configuration.
-//   sess := session.Must(session.NewSession())
-//
-//   // Create the service's client with the session.
-//   svc := applicationautoscaling.New(sess)
-//
-// See the SDK's documentation for more information on how to use service clients.
+// See the SDK's documentation for more information on how to use the SDK.
 // https://docs.aws.amazon.com/sdk-for-go/api/
 //
-// See aws package's Config type for more information on configuration options.
+// See aws.Config documentation for more information on configuring SDK clients.
 // https://docs.aws.amazon.com/sdk-for-go/api/aws/#Config
 //
 // See the Application Auto Scaling client ApplicationAutoScaling for more
-// information on creating the service's client.
+// information on creating client for this service.
 // https://docs.aws.amazon.com/sdk-for-go/api/service/applicationautoscaling/#New
-//
-// Once the client is created you can make an API request to the service.
-// Each API method takes a input parameter, and returns the service response
-// and an error.
-//
-// The API method will document which error codes the service can be returned
-// by the operation if the service models the API operation's errors. These
-// errors will also be available as const strings prefixed with "ErrCode".
-//
-//   result, err := svc.DeleteScalingPolicy(params)
-//   if err != nil {
-//       // Cast err to awserr.Error to handle specific error codes.
-//       aerr, ok := err.(awserr.Error)
-//       if ok && aerr.Code() == <error code to check for> {
-//           // Specific error code handling
-//       }
-//       return err
-//   }
-//
-//   fmt.Println("DeleteScalingPolicy result:")
-//   fmt.Println(result)
-//
-// Using the Client with Context
-//
-// The service's client also provides methods to make API requests with a Context
-// value. This allows you to control the timeout, and cancellation of pending
-// requests. These methods also take request Option as variadic parameter to apply
-// additional configuration to the API request.
-//
-//   ctx := context.Background()
-//
-//   result, err := svc.DeleteScalingPolicyWithContext(ctx, params)
-//
-// See the request package documentation for more information on using Context pattern
-// with the SDK.
-// https://docs.aws.amazon.com/sdk-for-go/api/aws/request/
 package applicationautoscaling

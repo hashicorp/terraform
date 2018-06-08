@@ -1,11 +1,15 @@
 dist: trusty
-sudo: false
+sudo: required
+services:
+  - docker
 language: go
 go:
-- 1.8.1
+- "1.10.1"
 
 # add TF_CONSUL_TEST=1 to run consul tests
 # they were causing timouts in travis
+# add TF_ETCDV3_TEST=1 to run etcdv3 tests
+# if added, TF_ETCDV3_ENDPOINTS must be set to a comma-separated list of (insecure) etcd endpoints against which to test
 env:
   - CONSUL_VERSION=0.7.5 GOMAXPROCS=4
 
@@ -13,7 +17,7 @@ env:
 before_install:
   - curl -sLo consul.zip https://releases.hashicorp.com/consul/${CONSUL_VERSION}/consul_${CONSUL_VERSION}_linux_amd64.zip
   - unzip consul.zip
-  - mkdir ~/bin
+  - mkdir -p ~/bin
   - mv consul ~/bin
   - export PATH="~/bin:$PATH"
 
@@ -24,11 +28,17 @@ install:
 # See: https://github.com/golang/go/issues/12933
 - bash scripts/gogetcookie.sh
 - go get github.com/kardianos/govendor
+
+before_script:
+- git config --global url.https://github.com/.insteadOf ssh://git@github.com/
+
 script:
 - make vendor-status
 - make test
-- make vet
+- make e2etest
 - GOOS=windows go build
+- make website-test
+
 branches:
   only:
   - master

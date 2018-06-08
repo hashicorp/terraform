@@ -39,6 +39,8 @@ func (w *closeWalker) Struct(reflect.Value) error {
 	return nil
 }
 
+var closerType = reflect.TypeOf((*io.Closer)(nil)).Elem()
+
 func (w *closeWalker) StructField(f reflect.StructField, v reflect.Value) error {
 	// Not sure why this would be but lets avoid some panics
 	if !v.IsValid() {
@@ -56,17 +58,18 @@ func (w *closeWalker) StructField(f reflect.StructField, v reflect.Value) error 
 		return nil
 	}
 
-	// We're looking for an io.Closer
-	raw := v.Interface()
-	if raw == nil {
-		return nil
+	var closer io.Closer
+	if v.Type().Implements(closerType) {
+		closer = v.Interface().(io.Closer)
+	} else if v.CanAddr() {
+		// The Close method may require a pointer receiver, but we only have a value.
+		v := v.Addr()
+		if v.Type().Implements(closerType) {
+			closer = v.Interface().(io.Closer)
+		}
 	}
 
-	closer, ok := raw.(io.Closer)
-	if !ok && v.CanAddr() {
-		closer, ok = v.Addr().Interface().(io.Closer)
-	}
-	if !ok {
+	if closer == nil {
 		return reflectwalk.SkipEntry
 	}
 

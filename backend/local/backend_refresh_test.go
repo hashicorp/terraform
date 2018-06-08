@@ -11,7 +11,9 @@ import (
 )
 
 func TestLocal_refresh(t *testing.T) {
-	b := TestLocal(t)
+	b, cleanup := TestLocal(t)
+	defer cleanup()
+
 	p := TestLocalProvider(t, b, "test")
 	terraform.TestStateFile(t, b.StatePath, testRefreshState())
 
@@ -37,11 +39,13 @@ func TestLocal_refresh(t *testing.T) {
 	checkState(t, b.StateOutPath, `
 test_instance.foo:
   ID = yes
+  provider = provider.test
 	`)
 }
 
 func TestLocal_refreshNilModule(t *testing.T) {
-	b := TestLocal(t)
+	b, cleanup := TestLocal(t)
+	defer cleanup()
 	p := TestLocalProvider(t, b, "test")
 	terraform.TestStateFile(t, b.StatePath, testRefreshState())
 
@@ -64,12 +68,14 @@ func TestLocal_refreshNilModule(t *testing.T) {
 	checkState(t, b.StateOutPath, `
 test_instance.foo:
   ID = yes
+  provider = provider.test
 	`)
 }
 
 // GH-12174
 func TestLocal_refreshNilModuleWithInput(t *testing.T) {
-	b := TestLocal(t)
+	b, cleanup := TestLocal(t)
+	defer cleanup()
 	p := TestLocalProvider(t, b, "test")
 	terraform.TestStateFile(t, b.StatePath, testRefreshState())
 
@@ -94,11 +100,13 @@ func TestLocal_refreshNilModuleWithInput(t *testing.T) {
 	checkState(t, b.StateOutPath, `
 test_instance.foo:
   ID = yes
+  provider = provider.test
 	`)
 }
 
 func TestLocal_refreshInput(t *testing.T) {
-	b := TestLocal(t)
+	b, cleanup := TestLocal(t)
+	defer cleanup()
 	p := TestLocalProvider(t, b, "test")
 	terraform.TestStateFile(t, b.StatePath, testRefreshState())
 
@@ -137,11 +145,13 @@ func TestLocal_refreshInput(t *testing.T) {
 	checkState(t, b.StateOutPath, `
 test_instance.foo:
   ID = yes
+  provider = provider.test
 	`)
 }
 
 func TestLocal_refreshValidate(t *testing.T) {
-	b := TestLocal(t)
+	b, cleanup := TestLocal(t)
+	defer cleanup()
 	p := TestLocalProvider(t, b, "test")
 	terraform.TestStateFile(t, b.StatePath, testRefreshState())
 
@@ -170,6 +180,7 @@ func TestLocal_refreshValidate(t *testing.T) {
 	checkState(t, b.StateOutPath, `
 test_instance.foo:
   ID = yes
+  provider = provider.test
 	`)
 }
 

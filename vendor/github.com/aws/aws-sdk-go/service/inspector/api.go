@@ -17,19 +17,18 @@ const opAddAttributesToFindings = "AddAttributesToFindings"
 
 // AddAttributesToFindingsRequest generates a "aws/request.Request" representing the
 // client's request for the AddAttributesToFindings operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See AddAttributesToFindings for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the AddAttributesToFindings method directly
-// instead.
+// See AddAttributesToFindings for more information on using the AddAttributesToFindings
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the AddAttributesToFindingsRequest method.
 //    req, resp := client.AddAttributesToFindingsRequest(params)
@@ -39,7 +38,7 @@ const opAddAttributesToFindings = "AddAttributesToFindings"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/AddAttributesToFindings
+// See also, https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/AddAttributesToFindings
 func (c *Inspector) AddAttributesToFindingsRequest(input *AddAttributesToFindingsInput) (req *request.Request, output *AddAttributesToFindingsOutput) {
 	op := &request.Operation{
 		Name:       opAddAttributesToFindings,
@@ -83,7 +82,7 @@ func (c *Inspector) AddAttributesToFindingsRequest(input *AddAttributesToFinding
 //   The request was rejected because it referenced an entity that does not exist.
 //   The error code describes the entity.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/AddAttributesToFindings
+// See also, https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/AddAttributesToFindings
 func (c *Inspector) AddAttributesToFindings(input *AddAttributesToFindingsInput) (*AddAttributesToFindingsOutput, error) {
 	req, out := c.AddAttributesToFindingsRequest(input)
 	return out, req.Send()
@@ -109,19 +108,18 @@ const opCreateAssessmentTarget = "CreateAssessmentTarget"
 
 // CreateAssessmentTargetRequest generates a "aws/request.Request" representing the
 // client's request for the CreateAssessmentTarget operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See CreateAssessmentTarget for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the CreateAssessmentTarget method directly
-// instead.
+// See CreateAssessmentTarget for more information on using the CreateAssessmentTarget
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the CreateAssessmentTargetRequest method.
 //    req, resp := client.CreateAssessmentTargetRequest(params)
@@ -131,7 +129,7 @@ const opCreateAssessmentTarget = "CreateAssessmentTarget"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/CreateAssessmentTarget
+// See also, https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/CreateAssessmentTarget
 func (c *Inspector) CreateAssessmentTargetRequest(input *CreateAssessmentTargetInput) (req *request.Request, output *CreateAssessmentTargetOutput) {
 	op := &request.Operation{
 		Name:       opCreateAssessmentTarget,
@@ -151,9 +149,12 @@ func (c *Inspector) CreateAssessmentTargetRequest(input *CreateAssessmentTargetI
 // CreateAssessmentTarget API operation for Amazon Inspector.
 //
 // Creates a new assessment target using the ARN of the resource group that
-// is generated by CreateResourceGroup. You can create up to 50 assessment targets
-// per AWS account. You can run up to 500 concurrent agents per AWS account.
-// For more information, see  Amazon Inspector Assessment Targets (http://docs.aws.amazon.com/inspector/latest/userguide/inspector_applications.html).
+// is generated by CreateResourceGroup. If the service-linked role (https://docs.aws.amazon.com/inspector/latest/userguide/inspector_slr.html)
+// isn’t already registered, also creates and registers a service-linked role
+// to grant Amazon Inspector access to AWS Services needed to perform security
+// assessments. You can create up to 50 assessment targets per AWS account.
+// You can run up to 500 concurrent agents per AWS account. For more information,
+// see  Amazon Inspector Assessment Targets (http://docs.aws.amazon.com/inspector/latest/userguide/inspector_applications.html).
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -181,7 +182,7 @@ func (c *Inspector) CreateAssessmentTargetRequest(input *CreateAssessmentTargetI
 //   The request was rejected because it referenced an entity that does not exist.
 //   The error code describes the entity.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/CreateAssessmentTarget
+// See also, https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/CreateAssessmentTarget
 func (c *Inspector) CreateAssessmentTarget(input *CreateAssessmentTargetInput) (*CreateAssessmentTargetOutput, error) {
 	req, out := c.CreateAssessmentTargetRequest(input)
 	return out, req.Send()
@@ -207,19 +208,18 @@ const opCreateAssessmentTemplate = "CreateAssessmentTemplate"
 
 // CreateAssessmentTemplateRequest generates a "aws/request.Request" representing the
 // client's request for the CreateAssessmentTemplate operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See CreateAssessmentTemplate for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the CreateAssessmentTemplate method directly
-// instead.
+// See CreateAssessmentTemplate for more information on using the CreateAssessmentTemplate
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the CreateAssessmentTemplateRequest method.
 //    req, resp := client.CreateAssessmentTemplateRequest(params)
@@ -229,7 +229,7 @@ const opCreateAssessmentTemplate = "CreateAssessmentTemplate"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/CreateAssessmentTemplate
+// See also, https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/CreateAssessmentTemplate
 func (c *Inspector) CreateAssessmentTemplateRequest(input *CreateAssessmentTemplateInput) (req *request.Request, output *CreateAssessmentTemplateOutput) {
 	op := &request.Operation{
 		Name:       opCreateAssessmentTemplate,
@@ -249,7 +249,10 @@ func (c *Inspector) CreateAssessmentTemplateRequest(input *CreateAssessmentTempl
 // CreateAssessmentTemplate API operation for Amazon Inspector.
 //
 // Creates an assessment template for the assessment target that is specified
-// by the ARN of the assessment target.
+// by the ARN of the assessment target. If the service-linked role (https://docs.aws.amazon.com/inspector/latest/userguide/inspector_slr.html)
+// isn’t already registered, also creates and registers a service-linked role
+// to grant Amazon Inspector access to AWS Services needed to perform security
+// assessments.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -277,7 +280,7 @@ func (c *Inspector) CreateAssessmentTemplateRequest(input *CreateAssessmentTempl
 //   The request was rejected because it referenced an entity that does not exist.
 //   The error code describes the entity.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/CreateAssessmentTemplate
+// See also, https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/CreateAssessmentTemplate
 func (c *Inspector) CreateAssessmentTemplate(input *CreateAssessmentTemplateInput) (*CreateAssessmentTemplateOutput, error) {
 	req, out := c.CreateAssessmentTemplateRequest(input)
 	return out, req.Send()
@@ -303,19 +306,18 @@ const opCreateResourceGroup = "CreateResourceGroup"
 
 // CreateResourceGroupRequest generates a "aws/request.Request" representing the
 // client's request for the CreateResourceGroup operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See CreateResourceGroup for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the CreateResourceGroup method directly
-// instead.
+// See CreateResourceGroup for more information on using the CreateResourceGroup
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the CreateResourceGroupRequest method.
 //    req, resp := client.CreateResourceGroupRequest(params)
@@ -325,7 +327,7 @@ const opCreateResourceGroup = "CreateResourceGroup"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/CreateResourceGroup
+// See also, https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/CreateResourceGroup
 func (c *Inspector) CreateResourceGroupRequest(input *CreateResourceGroupInput) (req *request.Request, output *CreateResourceGroupOutput) {
 	op := &request.Operation{
 		Name:       opCreateResourceGroup,
@@ -371,7 +373,7 @@ func (c *Inspector) CreateResourceGroupRequest(input *CreateResourceGroupInput) 
 //   * ErrCodeAccessDeniedException "AccessDeniedException"
 //   You do not have required permissions to access the requested resource.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/CreateResourceGroup
+// See also, https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/CreateResourceGroup
 func (c *Inspector) CreateResourceGroup(input *CreateResourceGroupInput) (*CreateResourceGroupOutput, error) {
 	req, out := c.CreateResourceGroupRequest(input)
 	return out, req.Send()
@@ -397,19 +399,18 @@ const opDeleteAssessmentRun = "DeleteAssessmentRun"
 
 // DeleteAssessmentRunRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteAssessmentRun operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See DeleteAssessmentRun for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the DeleteAssessmentRun method directly
-// instead.
+// See DeleteAssessmentRun for more information on using the DeleteAssessmentRun
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the DeleteAssessmentRunRequest method.
 //    req, resp := client.DeleteAssessmentRunRequest(params)
@@ -419,7 +420,7 @@ const opDeleteAssessmentRun = "DeleteAssessmentRun"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/DeleteAssessmentRun
+// See also, https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/DeleteAssessmentRun
 func (c *Inspector) DeleteAssessmentRunRequest(input *DeleteAssessmentRunInput) (req *request.Request, output *DeleteAssessmentRunOutput) {
 	op := &request.Operation{
 		Name:       opDeleteAssessmentRun,
@@ -469,7 +470,7 @@ func (c *Inspector) DeleteAssessmentRunRequest(input *DeleteAssessmentRunInput) 
 //   The request was rejected because it referenced an entity that does not exist.
 //   The error code describes the entity.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/DeleteAssessmentRun
+// See also, https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/DeleteAssessmentRun
 func (c *Inspector) DeleteAssessmentRun(input *DeleteAssessmentRunInput) (*DeleteAssessmentRunOutput, error) {
 	req, out := c.DeleteAssessmentRunRequest(input)
 	return out, req.Send()
@@ -495,19 +496,18 @@ const opDeleteAssessmentTarget = "DeleteAssessmentTarget"
 
 // DeleteAssessmentTargetRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteAssessmentTarget operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See DeleteAssessmentTarget for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the DeleteAssessmentTarget method directly
-// instead.
+// See DeleteAssessmentTarget for more information on using the DeleteAssessmentTarget
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the DeleteAssessmentTargetRequest method.
 //    req, resp := client.DeleteAssessmentTargetRequest(params)
@@ -517,7 +517,7 @@ const opDeleteAssessmentTarget = "DeleteAssessmentTarget"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/DeleteAssessmentTarget
+// See also, https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/DeleteAssessmentTarget
 func (c *Inspector) DeleteAssessmentTargetRequest(input *DeleteAssessmentTargetInput) (req *request.Request, output *DeleteAssessmentTargetOutput) {
 	op := &request.Operation{
 		Name:       opDeleteAssessmentTarget,
@@ -567,7 +567,7 @@ func (c *Inspector) DeleteAssessmentTargetRequest(input *DeleteAssessmentTargetI
 //   The request was rejected because it referenced an entity that does not exist.
 //   The error code describes the entity.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/DeleteAssessmentTarget
+// See also, https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/DeleteAssessmentTarget
 func (c *Inspector) DeleteAssessmentTarget(input *DeleteAssessmentTargetInput) (*DeleteAssessmentTargetOutput, error) {
 	req, out := c.DeleteAssessmentTargetRequest(input)
 	return out, req.Send()
@@ -593,19 +593,18 @@ const opDeleteAssessmentTemplate = "DeleteAssessmentTemplate"
 
 // DeleteAssessmentTemplateRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteAssessmentTemplate operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See DeleteAssessmentTemplate for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the DeleteAssessmentTemplate method directly
-// instead.
+// See DeleteAssessmentTemplate for more information on using the DeleteAssessmentTemplate
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the DeleteAssessmentTemplateRequest method.
 //    req, resp := client.DeleteAssessmentTemplateRequest(params)
@@ -615,7 +614,7 @@ const opDeleteAssessmentTemplate = "DeleteAssessmentTemplate"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/DeleteAssessmentTemplate
+// See also, https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/DeleteAssessmentTemplate
 func (c *Inspector) DeleteAssessmentTemplateRequest(input *DeleteAssessmentTemplateInput) (req *request.Request, output *DeleteAssessmentTemplateOutput) {
 	op := &request.Operation{
 		Name:       opDeleteAssessmentTemplate,
@@ -665,7 +664,7 @@ func (c *Inspector) DeleteAssessmentTemplateRequest(input *DeleteAssessmentTempl
 //   The request was rejected because it referenced an entity that does not exist.
 //   The error code describes the entity.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/DeleteAssessmentTemplate
+// See also, https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/DeleteAssessmentTemplate
 func (c *Inspector) DeleteAssessmentTemplate(input *DeleteAssessmentTemplateInput) (*DeleteAssessmentTemplateOutput, error) {
 	req, out := c.DeleteAssessmentTemplateRequest(input)
 	return out, req.Send()
@@ -691,19 +690,18 @@ const opDescribeAssessmentRuns = "DescribeAssessmentRuns"
 
 // DescribeAssessmentRunsRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeAssessmentRuns operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See DescribeAssessmentRuns for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the DescribeAssessmentRuns method directly
-// instead.
+// See DescribeAssessmentRuns for more information on using the DescribeAssessmentRuns
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the DescribeAssessmentRunsRequest method.
 //    req, resp := client.DescribeAssessmentRunsRequest(params)
@@ -713,7 +711,7 @@ const opDescribeAssessmentRuns = "DescribeAssessmentRuns"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/DescribeAssessmentRuns
+// See also, https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/DescribeAssessmentRuns
 func (c *Inspector) DescribeAssessmentRunsRequest(input *DescribeAssessmentRunsInput) (req *request.Request, output *DescribeAssessmentRunsOutput) {
 	op := &request.Operation{
 		Name:       opDescribeAssessmentRuns,
@@ -750,7 +748,7 @@ func (c *Inspector) DescribeAssessmentRunsRequest(input *DescribeAssessmentRunsI
 //   The request was rejected because an invalid or out-of-range value was supplied
 //   for an input parameter.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/DescribeAssessmentRuns
+// See also, https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/DescribeAssessmentRuns
 func (c *Inspector) DescribeAssessmentRuns(input *DescribeAssessmentRunsInput) (*DescribeAssessmentRunsOutput, error) {
 	req, out := c.DescribeAssessmentRunsRequest(input)
 	return out, req.Send()
@@ -776,19 +774,18 @@ const opDescribeAssessmentTargets = "DescribeAssessmentTargets"
 
 // DescribeAssessmentTargetsRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeAssessmentTargets operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See DescribeAssessmentTargets for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the DescribeAssessmentTargets method directly
-// instead.
+// See DescribeAssessmentTargets for more information on using the DescribeAssessmentTargets
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the DescribeAssessmentTargetsRequest method.
 //    req, resp := client.DescribeAssessmentTargetsRequest(params)
@@ -798,7 +795,7 @@ const opDescribeAssessmentTargets = "DescribeAssessmentTargets"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/DescribeAssessmentTargets
+// See also, https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/DescribeAssessmentTargets
 func (c *Inspector) DescribeAssessmentTargetsRequest(input *DescribeAssessmentTargetsInput) (req *request.Request, output *DescribeAssessmentTargetsOutput) {
 	op := &request.Operation{
 		Name:       opDescribeAssessmentTargets,
@@ -835,7 +832,7 @@ func (c *Inspector) DescribeAssessmentTargetsRequest(input *DescribeAssessmentTa
 //   The request was rejected because an invalid or out-of-range value was supplied
 //   for an input parameter.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/DescribeAssessmentTargets
+// See also, https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/DescribeAssessmentTargets
 func (c *Inspector) DescribeAssessmentTargets(input *DescribeAssessmentTargetsInput) (*DescribeAssessmentTargetsOutput, error) {
 	req, out := c.DescribeAssessmentTargetsRequest(input)
 	return out, req.Send()
@@ -861,19 +858,18 @@ const opDescribeAssessmentTemplates = "DescribeAssessmentTemplates"
 
 // DescribeAssessmentTemplatesRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeAssessmentTemplates operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See DescribeAssessmentTemplates for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the DescribeAssessmentTemplates method directly
-// instead.
+// See DescribeAssessmentTemplates for more information on using the DescribeAssessmentTemplates
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the DescribeAssessmentTemplatesRequest method.
 //    req, resp := client.DescribeAssessmentTemplatesRequest(params)
@@ -883,7 +879,7 @@ const opDescribeAssessmentTemplates = "DescribeAssessmentTemplates"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/DescribeAssessmentTemplates
+// See also, https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/DescribeAssessmentTemplates
 func (c *Inspector) DescribeAssessmentTemplatesRequest(input *DescribeAssessmentTemplatesInput) (req *request.Request, output *DescribeAssessmentTemplatesOutput) {
 	op := &request.Operation{
 		Name:       opDescribeAssessmentTemplates,
@@ -920,7 +916,7 @@ func (c *Inspector) DescribeAssessmentTemplatesRequest(input *DescribeAssessment
 //   The request was rejected because an invalid or out-of-range value was supplied
 //   for an input parameter.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/DescribeAssessmentTemplates
+// See also, https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/DescribeAssessmentTemplates
 func (c *Inspector) DescribeAssessmentTemplates(input *DescribeAssessmentTemplatesInput) (*DescribeAssessmentTemplatesOutput, error) {
 	req, out := c.DescribeAssessmentTemplatesRequest(input)
 	return out, req.Send()
@@ -946,19 +942,18 @@ const opDescribeCrossAccountAccessRole = "DescribeCrossAccountAccessRole"
 
 // DescribeCrossAccountAccessRoleRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeCrossAccountAccessRole operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See DescribeCrossAccountAccessRole for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the DescribeCrossAccountAccessRole method directly
-// instead.
+// See DescribeCrossAccountAccessRole for more information on using the DescribeCrossAccountAccessRole
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the DescribeCrossAccountAccessRoleRequest method.
 //    req, resp := client.DescribeCrossAccountAccessRoleRequest(params)
@@ -968,7 +963,7 @@ const opDescribeCrossAccountAccessRole = "DescribeCrossAccountAccessRole"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/DescribeCrossAccountAccessRole
+// See also, https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/DescribeCrossAccountAccessRole
 func (c *Inspector) DescribeCrossAccountAccessRoleRequest(input *DescribeCrossAccountAccessRoleInput) (req *request.Request, output *DescribeCrossAccountAccessRoleOutput) {
 	op := &request.Operation{
 		Name:       opDescribeCrossAccountAccessRole,
@@ -1000,7 +995,7 @@ func (c *Inspector) DescribeCrossAccountAccessRoleRequest(input *DescribeCrossAc
 //   * ErrCodeInternalException "InternalException"
 //   Internal server error.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/DescribeCrossAccountAccessRole
+// See also, https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/DescribeCrossAccountAccessRole
 func (c *Inspector) DescribeCrossAccountAccessRole(input *DescribeCrossAccountAccessRoleInput) (*DescribeCrossAccountAccessRoleOutput, error) {
 	req, out := c.DescribeCrossAccountAccessRoleRequest(input)
 	return out, req.Send()
@@ -1026,19 +1021,18 @@ const opDescribeFindings = "DescribeFindings"
 
 // DescribeFindingsRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeFindings operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See DescribeFindings for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the DescribeFindings method directly
-// instead.
+// See DescribeFindings for more information on using the DescribeFindings
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the DescribeFindingsRequest method.
 //    req, resp := client.DescribeFindingsRequest(params)
@@ -1048,7 +1042,7 @@ const opDescribeFindings = "DescribeFindings"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/DescribeFindings
+// See also, https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/DescribeFindings
 func (c *Inspector) DescribeFindingsRequest(input *DescribeFindingsInput) (req *request.Request, output *DescribeFindingsOutput) {
 	op := &request.Operation{
 		Name:       opDescribeFindings,
@@ -1084,7 +1078,7 @@ func (c *Inspector) DescribeFindingsRequest(input *DescribeFindingsInput) (req *
 //   The request was rejected because an invalid or out-of-range value was supplied
 //   for an input parameter.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/DescribeFindings
+// See also, https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/DescribeFindings
 func (c *Inspector) DescribeFindings(input *DescribeFindingsInput) (*DescribeFindingsOutput, error) {
 	req, out := c.DescribeFindingsRequest(input)
 	return out, req.Send()
@@ -1110,19 +1104,18 @@ const opDescribeResourceGroups = "DescribeResourceGroups"
 
 // DescribeResourceGroupsRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeResourceGroups operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See DescribeResourceGroups for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the DescribeResourceGroups method directly
-// instead.
+// See DescribeResourceGroups for more information on using the DescribeResourceGroups
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the DescribeResourceGroupsRequest method.
 //    req, resp := client.DescribeResourceGroupsRequest(params)
@@ -1132,7 +1125,7 @@ const opDescribeResourceGroups = "DescribeResourceGroups"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/DescribeResourceGroups
+// See also, https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/DescribeResourceGroups
 func (c *Inspector) DescribeResourceGroupsRequest(input *DescribeResourceGroupsInput) (req *request.Request, output *DescribeResourceGroupsOutput) {
 	op := &request.Operation{
 		Name:       opDescribeResourceGroups,
@@ -1169,7 +1162,7 @@ func (c *Inspector) DescribeResourceGroupsRequest(input *DescribeResourceGroupsI
 //   The request was rejected because an invalid or out-of-range value was supplied
 //   for an input parameter.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/DescribeResourceGroups
+// See also, https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/DescribeResourceGroups
 func (c *Inspector) DescribeResourceGroups(input *DescribeResourceGroupsInput) (*DescribeResourceGroupsOutput, error) {
 	req, out := c.DescribeResourceGroupsRequest(input)
 	return out, req.Send()
@@ -1195,19 +1188,18 @@ const opDescribeRulesPackages = "DescribeRulesPackages"
 
 // DescribeRulesPackagesRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeRulesPackages operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See DescribeRulesPackages for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the DescribeRulesPackages method directly
-// instead.
+// See DescribeRulesPackages for more information on using the DescribeRulesPackages
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the DescribeRulesPackagesRequest method.
 //    req, resp := client.DescribeRulesPackagesRequest(params)
@@ -1217,7 +1209,7 @@ const opDescribeRulesPackages = "DescribeRulesPackages"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/DescribeRulesPackages
+// See also, https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/DescribeRulesPackages
 func (c *Inspector) DescribeRulesPackagesRequest(input *DescribeRulesPackagesInput) (req *request.Request, output *DescribeRulesPackagesOutput) {
 	op := &request.Operation{
 		Name:       opDescribeRulesPackages,
@@ -1254,7 +1246,7 @@ func (c *Inspector) DescribeRulesPackagesRequest(input *DescribeRulesPackagesInp
 //   The request was rejected because an invalid or out-of-range value was supplied
 //   for an input parameter.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/DescribeRulesPackages
+// See also, https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/DescribeRulesPackages
 func (c *Inspector) DescribeRulesPackages(input *DescribeRulesPackagesInput) (*DescribeRulesPackagesOutput, error) {
 	req, out := c.DescribeRulesPackagesRequest(input)
 	return out, req.Send()
@@ -1280,19 +1272,18 @@ const opGetAssessmentReport = "GetAssessmentReport"
 
 // GetAssessmentReportRequest generates a "aws/request.Request" representing the
 // client's request for the GetAssessmentReport operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See GetAssessmentReport for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the GetAssessmentReport method directly
-// instead.
+// See GetAssessmentReport for more information on using the GetAssessmentReport
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the GetAssessmentReportRequest method.
 //    req, resp := client.GetAssessmentReportRequest(params)
@@ -1302,7 +1293,7 @@ const opGetAssessmentReport = "GetAssessmentReport"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/GetAssessmentReport
+// See also, https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/GetAssessmentReport
 func (c *Inspector) GetAssessmentReportRequest(input *GetAssessmentReportInput) (req *request.Request, output *GetAssessmentReportOutput) {
 	op := &request.Operation{
 		Name:       opGetAssessmentReport,
@@ -1357,7 +1348,7 @@ func (c *Inspector) GetAssessmentReportRequest(input *GetAssessmentReportInput) 
 //   runs that took place or will take place after generating reports in Amazon
 //   Inspector became available.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/GetAssessmentReport
+// See also, https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/GetAssessmentReport
 func (c *Inspector) GetAssessmentReport(input *GetAssessmentReportInput) (*GetAssessmentReportOutput, error) {
 	req, out := c.GetAssessmentReportRequest(input)
 	return out, req.Send()
@@ -1383,19 +1374,18 @@ const opGetTelemetryMetadata = "GetTelemetryMetadata"
 
 // GetTelemetryMetadataRequest generates a "aws/request.Request" representing the
 // client's request for the GetTelemetryMetadata operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See GetTelemetryMetadata for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the GetTelemetryMetadata method directly
-// instead.
+// See GetTelemetryMetadata for more information on using the GetTelemetryMetadata
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the GetTelemetryMetadataRequest method.
 //    req, resp := client.GetTelemetryMetadataRequest(params)
@@ -1405,7 +1395,7 @@ const opGetTelemetryMetadata = "GetTelemetryMetadata"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/GetTelemetryMetadata
+// See also, https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/GetTelemetryMetadata
 func (c *Inspector) GetTelemetryMetadataRequest(input *GetTelemetryMetadataInput) (req *request.Request, output *GetTelemetryMetadataOutput) {
 	op := &request.Operation{
 		Name:       opGetTelemetryMetadata,
@@ -1449,7 +1439,7 @@ func (c *Inspector) GetTelemetryMetadataRequest(input *GetTelemetryMetadataInput
 //   The request was rejected because it referenced an entity that does not exist.
 //   The error code describes the entity.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/GetTelemetryMetadata
+// See also, https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/GetTelemetryMetadata
 func (c *Inspector) GetTelemetryMetadata(input *GetTelemetryMetadataInput) (*GetTelemetryMetadataOutput, error) {
 	req, out := c.GetTelemetryMetadataRequest(input)
 	return out, req.Send()
@@ -1475,19 +1465,18 @@ const opListAssessmentRunAgents = "ListAssessmentRunAgents"
 
 // ListAssessmentRunAgentsRequest generates a "aws/request.Request" representing the
 // client's request for the ListAssessmentRunAgents operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See ListAssessmentRunAgents for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the ListAssessmentRunAgents method directly
-// instead.
+// See ListAssessmentRunAgents for more information on using the ListAssessmentRunAgents
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the ListAssessmentRunAgentsRequest method.
 //    req, resp := client.ListAssessmentRunAgentsRequest(params)
@@ -1497,12 +1486,18 @@ const opListAssessmentRunAgents = "ListAssessmentRunAgents"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/ListAssessmentRunAgents
+// See also, https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/ListAssessmentRunAgents
 func (c *Inspector) ListAssessmentRunAgentsRequest(input *ListAssessmentRunAgentsInput) (req *request.Request, output *ListAssessmentRunAgentsOutput) {
 	op := &request.Operation{
 		Name:       opListAssessmentRunAgents,
 		HTTPMethod: "POST",
 		HTTPPath:   "/",
+		Paginator: &request.Paginator{
+			InputTokens:     []string{"nextToken"},
+			OutputTokens:    []string{"nextToken"},
+			LimitToken:      "maxResults",
+			TruncationToken: "",
+		},
 	}
 
 	if input == nil {
@@ -1541,7 +1536,7 @@ func (c *Inspector) ListAssessmentRunAgentsRequest(input *ListAssessmentRunAgent
 //   The request was rejected because it referenced an entity that does not exist.
 //   The error code describes the entity.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/ListAssessmentRunAgents
+// See also, https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/ListAssessmentRunAgents
 func (c *Inspector) ListAssessmentRunAgents(input *ListAssessmentRunAgentsInput) (*ListAssessmentRunAgentsOutput, error) {
 	req, out := c.ListAssessmentRunAgentsRequest(input)
 	return out, req.Send()
@@ -1563,23 +1558,72 @@ func (c *Inspector) ListAssessmentRunAgentsWithContext(ctx aws.Context, input *L
 	return out, req.Send()
 }
 
+// ListAssessmentRunAgentsPages iterates over the pages of a ListAssessmentRunAgents operation,
+// calling the "fn" function with the response data for each page. To stop
+// iterating, return false from the fn function.
+//
+// See ListAssessmentRunAgents method for more information on how to use this operation.
+//
+// Note: This operation can generate multiple requests to a service.
+//
+//    // Example iterating over at most 3 pages of a ListAssessmentRunAgents operation.
+//    pageNum := 0
+//    err := client.ListAssessmentRunAgentsPages(params,
+//        func(page *ListAssessmentRunAgentsOutput, lastPage bool) bool {
+//            pageNum++
+//            fmt.Println(page)
+//            return pageNum <= 3
+//        })
+//
+func (c *Inspector) ListAssessmentRunAgentsPages(input *ListAssessmentRunAgentsInput, fn func(*ListAssessmentRunAgentsOutput, bool) bool) error {
+	return c.ListAssessmentRunAgentsPagesWithContext(aws.BackgroundContext(), input, fn)
+}
+
+// ListAssessmentRunAgentsPagesWithContext same as ListAssessmentRunAgentsPages except
+// it takes a Context and allows setting request options on the pages.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *Inspector) ListAssessmentRunAgentsPagesWithContext(ctx aws.Context, input *ListAssessmentRunAgentsInput, fn func(*ListAssessmentRunAgentsOutput, bool) bool, opts ...request.Option) error {
+	p := request.Pagination{
+		NewRequest: func() (*request.Request, error) {
+			var inCpy *ListAssessmentRunAgentsInput
+			if input != nil {
+				tmp := *input
+				inCpy = &tmp
+			}
+			req, _ := c.ListAssessmentRunAgentsRequest(inCpy)
+			req.SetContext(ctx)
+			req.ApplyOptions(opts...)
+			return req, nil
+		},
+	}
+
+	cont := true
+	for p.Next() && cont {
+		cont = fn(p.Page().(*ListAssessmentRunAgentsOutput), !p.HasNextPage())
+	}
+	return p.Err()
+}
+
 const opListAssessmentRuns = "ListAssessmentRuns"
 
 // ListAssessmentRunsRequest generates a "aws/request.Request" representing the
 // client's request for the ListAssessmentRuns operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See ListAssessmentRuns for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the ListAssessmentRuns method directly
-// instead.
+// See ListAssessmentRuns for more information on using the ListAssessmentRuns
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the ListAssessmentRunsRequest method.
 //    req, resp := client.ListAssessmentRunsRequest(params)
@@ -1589,12 +1633,18 @@ const opListAssessmentRuns = "ListAssessmentRuns"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/ListAssessmentRuns
+// See also, https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/ListAssessmentRuns
 func (c *Inspector) ListAssessmentRunsRequest(input *ListAssessmentRunsInput) (req *request.Request, output *ListAssessmentRunsOutput) {
 	op := &request.Operation{
 		Name:       opListAssessmentRuns,
 		HTTPMethod: "POST",
 		HTTPPath:   "/",
+		Paginator: &request.Paginator{
+			InputTokens:     []string{"nextToken"},
+			OutputTokens:    []string{"nextToken"},
+			LimitToken:      "maxResults",
+			TruncationToken: "",
+		},
 	}
 
 	if input == nil {
@@ -1633,7 +1683,7 @@ func (c *Inspector) ListAssessmentRunsRequest(input *ListAssessmentRunsInput) (r
 //   The request was rejected because it referenced an entity that does not exist.
 //   The error code describes the entity.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/ListAssessmentRuns
+// See also, https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/ListAssessmentRuns
 func (c *Inspector) ListAssessmentRuns(input *ListAssessmentRunsInput) (*ListAssessmentRunsOutput, error) {
 	req, out := c.ListAssessmentRunsRequest(input)
 	return out, req.Send()
@@ -1655,23 +1705,72 @@ func (c *Inspector) ListAssessmentRunsWithContext(ctx aws.Context, input *ListAs
 	return out, req.Send()
 }
 
+// ListAssessmentRunsPages iterates over the pages of a ListAssessmentRuns operation,
+// calling the "fn" function with the response data for each page. To stop
+// iterating, return false from the fn function.
+//
+// See ListAssessmentRuns method for more information on how to use this operation.
+//
+// Note: This operation can generate multiple requests to a service.
+//
+//    // Example iterating over at most 3 pages of a ListAssessmentRuns operation.
+//    pageNum := 0
+//    err := client.ListAssessmentRunsPages(params,
+//        func(page *ListAssessmentRunsOutput, lastPage bool) bool {
+//            pageNum++
+//            fmt.Println(page)
+//            return pageNum <= 3
+//        })
+//
+func (c *Inspector) ListAssessmentRunsPages(input *ListAssessmentRunsInput, fn func(*ListAssessmentRunsOutput, bool) bool) error {
+	return c.ListAssessmentRunsPagesWithContext(aws.BackgroundContext(), input, fn)
+}
+
+// ListAssessmentRunsPagesWithContext same as ListAssessmentRunsPages except
+// it takes a Context and allows setting request options on the pages.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *Inspector) ListAssessmentRunsPagesWithContext(ctx aws.Context, input *ListAssessmentRunsInput, fn func(*ListAssessmentRunsOutput, bool) bool, opts ...request.Option) error {
+	p := request.Pagination{
+		NewRequest: func() (*request.Request, error) {
+			var inCpy *ListAssessmentRunsInput
+			if input != nil {
+				tmp := *input
+				inCpy = &tmp
+			}
+			req, _ := c.ListAssessmentRunsRequest(inCpy)
+			req.SetContext(ctx)
+			req.ApplyOptions(opts...)
+			return req, nil
+		},
+	}
+
+	cont := true
+	for p.Next() && cont {
+		cont = fn(p.Page().(*ListAssessmentRunsOutput), !p.HasNextPage())
+	}
+	return p.Err()
+}
+
 const opListAssessmentTargets = "ListAssessmentTargets"
 
 // ListAssessmentTargetsRequest generates a "aws/request.Request" representing the
 // client's request for the ListAssessmentTargets operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See ListAssessmentTargets for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the ListAssessmentTargets method directly
-// instead.
+// See ListAssessmentTargets for more information on using the ListAssessmentTargets
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the ListAssessmentTargetsRequest method.
 //    req, resp := client.ListAssessmentTargetsRequest(params)
@@ -1681,12 +1780,18 @@ const opListAssessmentTargets = "ListAssessmentTargets"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/ListAssessmentTargets
+// See also, https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/ListAssessmentTargets
 func (c *Inspector) ListAssessmentTargetsRequest(input *ListAssessmentTargetsInput) (req *request.Request, output *ListAssessmentTargetsOutput) {
 	op := &request.Operation{
 		Name:       opListAssessmentTargets,
 		HTTPMethod: "POST",
 		HTTPPath:   "/",
+		Paginator: &request.Paginator{
+			InputTokens:     []string{"nextToken"},
+			OutputTokens:    []string{"nextToken"},
+			LimitToken:      "maxResults",
+			TruncationToken: "",
+		},
 	}
 
 	if input == nil {
@@ -1722,7 +1827,7 @@ func (c *Inspector) ListAssessmentTargetsRequest(input *ListAssessmentTargetsInp
 //   * ErrCodeAccessDeniedException "AccessDeniedException"
 //   You do not have required permissions to access the requested resource.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/ListAssessmentTargets
+// See also, https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/ListAssessmentTargets
 func (c *Inspector) ListAssessmentTargets(input *ListAssessmentTargetsInput) (*ListAssessmentTargetsOutput, error) {
 	req, out := c.ListAssessmentTargetsRequest(input)
 	return out, req.Send()
@@ -1744,23 +1849,72 @@ func (c *Inspector) ListAssessmentTargetsWithContext(ctx aws.Context, input *Lis
 	return out, req.Send()
 }
 
+// ListAssessmentTargetsPages iterates over the pages of a ListAssessmentTargets operation,
+// calling the "fn" function with the response data for each page. To stop
+// iterating, return false from the fn function.
+//
+// See ListAssessmentTargets method for more information on how to use this operation.
+//
+// Note: This operation can generate multiple requests to a service.
+//
+//    // Example iterating over at most 3 pages of a ListAssessmentTargets operation.
+//    pageNum := 0
+//    err := client.ListAssessmentTargetsPages(params,
+//        func(page *ListAssessmentTargetsOutput, lastPage bool) bool {
+//            pageNum++
+//            fmt.Println(page)
+//            return pageNum <= 3
+//        })
+//
+func (c *Inspector) ListAssessmentTargetsPages(input *ListAssessmentTargetsInput, fn func(*ListAssessmentTargetsOutput, bool) bool) error {
+	return c.ListAssessmentTargetsPagesWithContext(aws.BackgroundContext(), input, fn)
+}
+
+// ListAssessmentTargetsPagesWithContext same as ListAssessmentTargetsPages except
+// it takes a Context and allows setting request options on the pages.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *Inspector) ListAssessmentTargetsPagesWithContext(ctx aws.Context, input *ListAssessmentTargetsInput, fn func(*ListAssessmentTargetsOutput, bool) bool, opts ...request.Option) error {
+	p := request.Pagination{
+		NewRequest: func() (*request.Request, error) {
+			var inCpy *ListAssessmentTargetsInput
+			if input != nil {
+				tmp := *input
+				inCpy = &tmp
+			}
+			req, _ := c.ListAssessmentTargetsRequest(inCpy)
+			req.SetContext(ctx)
+			req.ApplyOptions(opts...)
+			return req, nil
+		},
+	}
+
+	cont := true
+	for p.Next() && cont {
+		cont = fn(p.Page().(*ListAssessmentTargetsOutput), !p.HasNextPage())
+	}
+	return p.Err()
+}
+
 const opListAssessmentTemplates = "ListAssessmentTemplates"
 
 // ListAssessmentTemplatesRequest generates a "aws/request.Request" representing the
 // client's request for the ListAssessmentTemplates operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See ListAssessmentTemplates for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the ListAssessmentTemplates method directly
-// instead.
+// See ListAssessmentTemplates for more information on using the ListAssessmentTemplates
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the ListAssessmentTemplatesRequest method.
 //    req, resp := client.ListAssessmentTemplatesRequest(params)
@@ -1770,12 +1924,18 @@ const opListAssessmentTemplates = "ListAssessmentTemplates"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/ListAssessmentTemplates
+// See also, https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/ListAssessmentTemplates
 func (c *Inspector) ListAssessmentTemplatesRequest(input *ListAssessmentTemplatesInput) (req *request.Request, output *ListAssessmentTemplatesOutput) {
 	op := &request.Operation{
 		Name:       opListAssessmentTemplates,
 		HTTPMethod: "POST",
 		HTTPPath:   "/",
+		Paginator: &request.Paginator{
+			InputTokens:     []string{"nextToken"},
+			OutputTokens:    []string{"nextToken"},
+			LimitToken:      "maxResults",
+			TruncationToken: "",
+		},
 	}
 
 	if input == nil {
@@ -1814,7 +1974,7 @@ func (c *Inspector) ListAssessmentTemplatesRequest(input *ListAssessmentTemplate
 //   The request was rejected because it referenced an entity that does not exist.
 //   The error code describes the entity.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/ListAssessmentTemplates
+// See also, https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/ListAssessmentTemplates
 func (c *Inspector) ListAssessmentTemplates(input *ListAssessmentTemplatesInput) (*ListAssessmentTemplatesOutput, error) {
 	req, out := c.ListAssessmentTemplatesRequest(input)
 	return out, req.Send()
@@ -1836,23 +1996,72 @@ func (c *Inspector) ListAssessmentTemplatesWithContext(ctx aws.Context, input *L
 	return out, req.Send()
 }
 
+// ListAssessmentTemplatesPages iterates over the pages of a ListAssessmentTemplates operation,
+// calling the "fn" function with the response data for each page. To stop
+// iterating, return false from the fn function.
+//
+// See ListAssessmentTemplates method for more information on how to use this operation.
+//
+// Note: This operation can generate multiple requests to a service.
+//
+//    // Example iterating over at most 3 pages of a ListAssessmentTemplates operation.
+//    pageNum := 0
+//    err := client.ListAssessmentTemplatesPages(params,
+//        func(page *ListAssessmentTemplatesOutput, lastPage bool) bool {
+//            pageNum++
+//            fmt.Println(page)
+//            return pageNum <= 3
+//        })
+//
+func (c *Inspector) ListAssessmentTemplatesPages(input *ListAssessmentTemplatesInput, fn func(*ListAssessmentTemplatesOutput, bool) bool) error {
+	return c.ListAssessmentTemplatesPagesWithContext(aws.BackgroundContext(), input, fn)
+}
+
+// ListAssessmentTemplatesPagesWithContext same as ListAssessmentTemplatesPages except
+// it takes a Context and allows setting request options on the pages.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *Inspector) ListAssessmentTemplatesPagesWithContext(ctx aws.Context, input *ListAssessmentTemplatesInput, fn func(*ListAssessmentTemplatesOutput, bool) bool, opts ...request.Option) error {
+	p := request.Pagination{
+		NewRequest: func() (*request.Request, error) {
+			var inCpy *ListAssessmentTemplatesInput
+			if input != nil {
+				tmp := *input
+				inCpy = &tmp
+			}
+			req, _ := c.ListAssessmentTemplatesRequest(inCpy)
+			req.SetContext(ctx)
+			req.ApplyOptions(opts...)
+			return req, nil
+		},
+	}
+
+	cont := true
+	for p.Next() && cont {
+		cont = fn(p.Page().(*ListAssessmentTemplatesOutput), !p.HasNextPage())
+	}
+	return p.Err()
+}
+
 const opListEventSubscriptions = "ListEventSubscriptions"
 
 // ListEventSubscriptionsRequest generates a "aws/request.Request" representing the
 // client's request for the ListEventSubscriptions operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See ListEventSubscriptions for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the ListEventSubscriptions method directly
-// instead.
+// See ListEventSubscriptions for more information on using the ListEventSubscriptions
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the ListEventSubscriptionsRequest method.
 //    req, resp := client.ListEventSubscriptionsRequest(params)
@@ -1862,12 +2071,18 @@ const opListEventSubscriptions = "ListEventSubscriptions"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/ListEventSubscriptions
+// See also, https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/ListEventSubscriptions
 func (c *Inspector) ListEventSubscriptionsRequest(input *ListEventSubscriptionsInput) (req *request.Request, output *ListEventSubscriptionsOutput) {
 	op := &request.Operation{
 		Name:       opListEventSubscriptions,
 		HTTPMethod: "POST",
 		HTTPPath:   "/",
+		Paginator: &request.Paginator{
+			InputTokens:     []string{"nextToken"},
+			OutputTokens:    []string{"nextToken"},
+			LimitToken:      "maxResults",
+			TruncationToken: "",
+		},
 	}
 
 	if input == nil {
@@ -1907,7 +2122,7 @@ func (c *Inspector) ListEventSubscriptionsRequest(input *ListEventSubscriptionsI
 //   The request was rejected because it referenced an entity that does not exist.
 //   The error code describes the entity.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/ListEventSubscriptions
+// See also, https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/ListEventSubscriptions
 func (c *Inspector) ListEventSubscriptions(input *ListEventSubscriptionsInput) (*ListEventSubscriptionsOutput, error) {
 	req, out := c.ListEventSubscriptionsRequest(input)
 	return out, req.Send()
@@ -1929,23 +2144,72 @@ func (c *Inspector) ListEventSubscriptionsWithContext(ctx aws.Context, input *Li
 	return out, req.Send()
 }
 
+// ListEventSubscriptionsPages iterates over the pages of a ListEventSubscriptions operation,
+// calling the "fn" function with the response data for each page. To stop
+// iterating, return false from the fn function.
+//
+// See ListEventSubscriptions method for more information on how to use this operation.
+//
+// Note: This operation can generate multiple requests to a service.
+//
+//    // Example iterating over at most 3 pages of a ListEventSubscriptions operation.
+//    pageNum := 0
+//    err := client.ListEventSubscriptionsPages(params,
+//        func(page *ListEventSubscriptionsOutput, lastPage bool) bool {
+//            pageNum++
+//            fmt.Println(page)
+//            return pageNum <= 3
+//        })
+//
+func (c *Inspector) ListEventSubscriptionsPages(input *ListEventSubscriptionsInput, fn func(*ListEventSubscriptionsOutput, bool) bool) error {
+	return c.ListEventSubscriptionsPagesWithContext(aws.BackgroundContext(), input, fn)
+}
+
+// ListEventSubscriptionsPagesWithContext same as ListEventSubscriptionsPages except
+// it takes a Context and allows setting request options on the pages.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *Inspector) ListEventSubscriptionsPagesWithContext(ctx aws.Context, input *ListEventSubscriptionsInput, fn func(*ListEventSubscriptionsOutput, bool) bool, opts ...request.Option) error {
+	p := request.Pagination{
+		NewRequest: func() (*request.Request, error) {
+			var inCpy *ListEventSubscriptionsInput
+			if input != nil {
+				tmp := *input
+				inCpy = &tmp
+			}
+			req, _ := c.ListEventSubscriptionsRequest(inCpy)
+			req.SetContext(ctx)
+			req.ApplyOptions(opts...)
+			return req, nil
+		},
+	}
+
+	cont := true
+	for p.Next() && cont {
+		cont = fn(p.Page().(*ListEventSubscriptionsOutput), !p.HasNextPage())
+	}
+	return p.Err()
+}
+
 const opListFindings = "ListFindings"
 
 // ListFindingsRequest generates a "aws/request.Request" representing the
 // client's request for the ListFindings operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See ListFindings for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the ListFindings method directly
-// instead.
+// See ListFindings for more information on using the ListFindings
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the ListFindingsRequest method.
 //    req, resp := client.ListFindingsRequest(params)
@@ -1955,12 +2219,18 @@ const opListFindings = "ListFindings"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/ListFindings
+// See also, https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/ListFindings
 func (c *Inspector) ListFindingsRequest(input *ListFindingsInput) (req *request.Request, output *ListFindingsOutput) {
 	op := &request.Operation{
 		Name:       opListFindings,
 		HTTPMethod: "POST",
 		HTTPPath:   "/",
+		Paginator: &request.Paginator{
+			InputTokens:     []string{"nextToken"},
+			OutputTokens:    []string{"nextToken"},
+			LimitToken:      "maxResults",
+			TruncationToken: "",
+		},
 	}
 
 	if input == nil {
@@ -1999,7 +2269,7 @@ func (c *Inspector) ListFindingsRequest(input *ListFindingsInput) (req *request.
 //   The request was rejected because it referenced an entity that does not exist.
 //   The error code describes the entity.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/ListFindings
+// See also, https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/ListFindings
 func (c *Inspector) ListFindings(input *ListFindingsInput) (*ListFindingsOutput, error) {
 	req, out := c.ListFindingsRequest(input)
 	return out, req.Send()
@@ -2021,23 +2291,72 @@ func (c *Inspector) ListFindingsWithContext(ctx aws.Context, input *ListFindings
 	return out, req.Send()
 }
 
+// ListFindingsPages iterates over the pages of a ListFindings operation,
+// calling the "fn" function with the response data for each page. To stop
+// iterating, return false from the fn function.
+//
+// See ListFindings method for more information on how to use this operation.
+//
+// Note: This operation can generate multiple requests to a service.
+//
+//    // Example iterating over at most 3 pages of a ListFindings operation.
+//    pageNum := 0
+//    err := client.ListFindingsPages(params,
+//        func(page *ListFindingsOutput, lastPage bool) bool {
+//            pageNum++
+//            fmt.Println(page)
+//            return pageNum <= 3
+//        })
+//
+func (c *Inspector) ListFindingsPages(input *ListFindingsInput, fn func(*ListFindingsOutput, bool) bool) error {
+	return c.ListFindingsPagesWithContext(aws.BackgroundContext(), input, fn)
+}
+
+// ListFindingsPagesWithContext same as ListFindingsPages except
+// it takes a Context and allows setting request options on the pages.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *Inspector) ListFindingsPagesWithContext(ctx aws.Context, input *ListFindingsInput, fn func(*ListFindingsOutput, bool) bool, opts ...request.Option) error {
+	p := request.Pagination{
+		NewRequest: func() (*request.Request, error) {
+			var inCpy *ListFindingsInput
+			if input != nil {
+				tmp := *input
+				inCpy = &tmp
+			}
+			req, _ := c.ListFindingsRequest(inCpy)
+			req.SetContext(ctx)
+			req.ApplyOptions(opts...)
+			return req, nil
+		},
+	}
+
+	cont := true
+	for p.Next() && cont {
+		cont = fn(p.Page().(*ListFindingsOutput), !p.HasNextPage())
+	}
+	return p.Err()
+}
+
 const opListRulesPackages = "ListRulesPackages"
 
 // ListRulesPackagesRequest generates a "aws/request.Request" representing the
 // client's request for the ListRulesPackages operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See ListRulesPackages for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the ListRulesPackages method directly
-// instead.
+// See ListRulesPackages for more information on using the ListRulesPackages
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the ListRulesPackagesRequest method.
 //    req, resp := client.ListRulesPackagesRequest(params)
@@ -2047,12 +2366,18 @@ const opListRulesPackages = "ListRulesPackages"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/ListRulesPackages
+// See also, https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/ListRulesPackages
 func (c *Inspector) ListRulesPackagesRequest(input *ListRulesPackagesInput) (req *request.Request, output *ListRulesPackagesOutput) {
 	op := &request.Operation{
 		Name:       opListRulesPackages,
 		HTTPMethod: "POST",
 		HTTPPath:   "/",
+		Paginator: &request.Paginator{
+			InputTokens:     []string{"nextToken"},
+			OutputTokens:    []string{"nextToken"},
+			LimitToken:      "maxResults",
+			TruncationToken: "",
+		},
 	}
 
 	if input == nil {
@@ -2086,7 +2411,7 @@ func (c *Inspector) ListRulesPackagesRequest(input *ListRulesPackagesInput) (req
 //   * ErrCodeAccessDeniedException "AccessDeniedException"
 //   You do not have required permissions to access the requested resource.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/ListRulesPackages
+// See also, https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/ListRulesPackages
 func (c *Inspector) ListRulesPackages(input *ListRulesPackagesInput) (*ListRulesPackagesOutput, error) {
 	req, out := c.ListRulesPackagesRequest(input)
 	return out, req.Send()
@@ -2108,23 +2433,72 @@ func (c *Inspector) ListRulesPackagesWithContext(ctx aws.Context, input *ListRul
 	return out, req.Send()
 }
 
+// ListRulesPackagesPages iterates over the pages of a ListRulesPackages operation,
+// calling the "fn" function with the response data for each page. To stop
+// iterating, return false from the fn function.
+//
+// See ListRulesPackages method for more information on how to use this operation.
+//
+// Note: This operation can generate multiple requests to a service.
+//
+//    // Example iterating over at most 3 pages of a ListRulesPackages operation.
+//    pageNum := 0
+//    err := client.ListRulesPackagesPages(params,
+//        func(page *ListRulesPackagesOutput, lastPage bool) bool {
+//            pageNum++
+//            fmt.Println(page)
+//            return pageNum <= 3
+//        })
+//
+func (c *Inspector) ListRulesPackagesPages(input *ListRulesPackagesInput, fn func(*ListRulesPackagesOutput, bool) bool) error {
+	return c.ListRulesPackagesPagesWithContext(aws.BackgroundContext(), input, fn)
+}
+
+// ListRulesPackagesPagesWithContext same as ListRulesPackagesPages except
+// it takes a Context and allows setting request options on the pages.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *Inspector) ListRulesPackagesPagesWithContext(ctx aws.Context, input *ListRulesPackagesInput, fn func(*ListRulesPackagesOutput, bool) bool, opts ...request.Option) error {
+	p := request.Pagination{
+		NewRequest: func() (*request.Request, error) {
+			var inCpy *ListRulesPackagesInput
+			if input != nil {
+				tmp := *input
+				inCpy = &tmp
+			}
+			req, _ := c.ListRulesPackagesRequest(inCpy)
+			req.SetContext(ctx)
+			req.ApplyOptions(opts...)
+			return req, nil
+		},
+	}
+
+	cont := true
+	for p.Next() && cont {
+		cont = fn(p.Page().(*ListRulesPackagesOutput), !p.HasNextPage())
+	}
+	return p.Err()
+}
+
 const opListTagsForResource = "ListTagsForResource"
 
 // ListTagsForResourceRequest generates a "aws/request.Request" representing the
 // client's request for the ListTagsForResource operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See ListTagsForResource for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the ListTagsForResource method directly
-// instead.
+// See ListTagsForResource for more information on using the ListTagsForResource
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the ListTagsForResourceRequest method.
 //    req, resp := client.ListTagsForResourceRequest(params)
@@ -2134,7 +2508,7 @@ const opListTagsForResource = "ListTagsForResource"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/ListTagsForResource
+// See also, https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/ListTagsForResource
 func (c *Inspector) ListTagsForResourceRequest(input *ListTagsForResourceInput) (req *request.Request, output *ListTagsForResourceOutput) {
 	op := &request.Operation{
 		Name:       opListTagsForResource,
@@ -2177,7 +2551,7 @@ func (c *Inspector) ListTagsForResourceRequest(input *ListTagsForResourceInput) 
 //   The request was rejected because it referenced an entity that does not exist.
 //   The error code describes the entity.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/ListTagsForResource
+// See also, https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/ListTagsForResource
 func (c *Inspector) ListTagsForResource(input *ListTagsForResourceInput) (*ListTagsForResourceOutput, error) {
 	req, out := c.ListTagsForResourceRequest(input)
 	return out, req.Send()
@@ -2203,19 +2577,18 @@ const opPreviewAgents = "PreviewAgents"
 
 // PreviewAgentsRequest generates a "aws/request.Request" representing the
 // client's request for the PreviewAgents operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See PreviewAgents for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the PreviewAgents method directly
-// instead.
+// See PreviewAgents for more information on using the PreviewAgents
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the PreviewAgentsRequest method.
 //    req, resp := client.PreviewAgentsRequest(params)
@@ -2225,12 +2598,18 @@ const opPreviewAgents = "PreviewAgents"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/PreviewAgents
+// See also, https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/PreviewAgents
 func (c *Inspector) PreviewAgentsRequest(input *PreviewAgentsInput) (req *request.Request, output *PreviewAgentsOutput) {
 	op := &request.Operation{
 		Name:       opPreviewAgents,
 		HTTPMethod: "POST",
 		HTTPPath:   "/",
+		Paginator: &request.Paginator{
+			InputTokens:     []string{"nextToken"},
+			OutputTokens:    []string{"nextToken"},
+			LimitToken:      "maxResults",
+			TruncationToken: "",
+		},
 	}
 
 	if input == nil {
@@ -2273,7 +2652,7 @@ func (c *Inspector) PreviewAgentsRequest(input *PreviewAgentsInput) (req *reques
 //   Amazon Inspector cannot assume the cross-account role that it needs to list
 //   your EC2 instances during the assessment run.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/PreviewAgents
+// See also, https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/PreviewAgents
 func (c *Inspector) PreviewAgents(input *PreviewAgentsInput) (*PreviewAgentsOutput, error) {
 	req, out := c.PreviewAgentsRequest(input)
 	return out, req.Send()
@@ -2295,23 +2674,72 @@ func (c *Inspector) PreviewAgentsWithContext(ctx aws.Context, input *PreviewAgen
 	return out, req.Send()
 }
 
+// PreviewAgentsPages iterates over the pages of a PreviewAgents operation,
+// calling the "fn" function with the response data for each page. To stop
+// iterating, return false from the fn function.
+//
+// See PreviewAgents method for more information on how to use this operation.
+//
+// Note: This operation can generate multiple requests to a service.
+//
+//    // Example iterating over at most 3 pages of a PreviewAgents operation.
+//    pageNum := 0
+//    err := client.PreviewAgentsPages(params,
+//        func(page *PreviewAgentsOutput, lastPage bool) bool {
+//            pageNum++
+//            fmt.Println(page)
+//            return pageNum <= 3
+//        })
+//
+func (c *Inspector) PreviewAgentsPages(input *PreviewAgentsInput, fn func(*PreviewAgentsOutput, bool) bool) error {
+	return c.PreviewAgentsPagesWithContext(aws.BackgroundContext(), input, fn)
+}
+
+// PreviewAgentsPagesWithContext same as PreviewAgentsPages except
+// it takes a Context and allows setting request options on the pages.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *Inspector) PreviewAgentsPagesWithContext(ctx aws.Context, input *PreviewAgentsInput, fn func(*PreviewAgentsOutput, bool) bool, opts ...request.Option) error {
+	p := request.Pagination{
+		NewRequest: func() (*request.Request, error) {
+			var inCpy *PreviewAgentsInput
+			if input != nil {
+				tmp := *input
+				inCpy = &tmp
+			}
+			req, _ := c.PreviewAgentsRequest(inCpy)
+			req.SetContext(ctx)
+			req.ApplyOptions(opts...)
+			return req, nil
+		},
+	}
+
+	cont := true
+	for p.Next() && cont {
+		cont = fn(p.Page().(*PreviewAgentsOutput), !p.HasNextPage())
+	}
+	return p.Err()
+}
+
 const opRegisterCrossAccountAccessRole = "RegisterCrossAccountAccessRole"
 
 // RegisterCrossAccountAccessRoleRequest generates a "aws/request.Request" representing the
 // client's request for the RegisterCrossAccountAccessRole operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See RegisterCrossAccountAccessRole for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the RegisterCrossAccountAccessRole method directly
-// instead.
+// See RegisterCrossAccountAccessRole for more information on using the RegisterCrossAccountAccessRole
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the RegisterCrossAccountAccessRoleRequest method.
 //    req, resp := client.RegisterCrossAccountAccessRoleRequest(params)
@@ -2321,7 +2749,7 @@ const opRegisterCrossAccountAccessRole = "RegisterCrossAccountAccessRole"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/RegisterCrossAccountAccessRole
+// See also, https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/RegisterCrossAccountAccessRole
 func (c *Inspector) RegisterCrossAccountAccessRoleRequest(input *RegisterCrossAccountAccessRoleInput) (req *request.Request, output *RegisterCrossAccountAccessRoleOutput) {
 	op := &request.Operation{
 		Name:       opRegisterCrossAccountAccessRole,
@@ -2342,8 +2770,8 @@ func (c *Inspector) RegisterCrossAccountAccessRoleRequest(input *RegisterCrossAc
 
 // RegisterCrossAccountAccessRole API operation for Amazon Inspector.
 //
-// Registers the IAM role that Amazon Inspector uses to list your EC2 instances
-// at the start of the assessment run or when you call the PreviewAgents action.
+// Registers the IAM role that grants Amazon Inspector access to AWS Services
+// needed to perform security assessments.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -2367,7 +2795,7 @@ func (c *Inspector) RegisterCrossAccountAccessRoleRequest(input *RegisterCrossAc
 //   Amazon Inspector cannot assume the cross-account role that it needs to list
 //   your EC2 instances during the assessment run.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/RegisterCrossAccountAccessRole
+// See also, https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/RegisterCrossAccountAccessRole
 func (c *Inspector) RegisterCrossAccountAccessRole(input *RegisterCrossAccountAccessRoleInput) (*RegisterCrossAccountAccessRoleOutput, error) {
 	req, out := c.RegisterCrossAccountAccessRoleRequest(input)
 	return out, req.Send()
@@ -2393,19 +2821,18 @@ const opRemoveAttributesFromFindings = "RemoveAttributesFromFindings"
 
 // RemoveAttributesFromFindingsRequest generates a "aws/request.Request" representing the
 // client's request for the RemoveAttributesFromFindings operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See RemoveAttributesFromFindings for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the RemoveAttributesFromFindings method directly
-// instead.
+// See RemoveAttributesFromFindings for more information on using the RemoveAttributesFromFindings
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the RemoveAttributesFromFindingsRequest method.
 //    req, resp := client.RemoveAttributesFromFindingsRequest(params)
@@ -2415,7 +2842,7 @@ const opRemoveAttributesFromFindings = "RemoveAttributesFromFindings"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/RemoveAttributesFromFindings
+// See also, https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/RemoveAttributesFromFindings
 func (c *Inspector) RemoveAttributesFromFindingsRequest(input *RemoveAttributesFromFindingsInput) (req *request.Request, output *RemoveAttributesFromFindingsOutput) {
 	op := &request.Operation{
 		Name:       opRemoveAttributesFromFindings,
@@ -2460,7 +2887,7 @@ func (c *Inspector) RemoveAttributesFromFindingsRequest(input *RemoveAttributesF
 //   The request was rejected because it referenced an entity that does not exist.
 //   The error code describes the entity.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/RemoveAttributesFromFindings
+// See also, https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/RemoveAttributesFromFindings
 func (c *Inspector) RemoveAttributesFromFindings(input *RemoveAttributesFromFindingsInput) (*RemoveAttributesFromFindingsOutput, error) {
 	req, out := c.RemoveAttributesFromFindingsRequest(input)
 	return out, req.Send()
@@ -2486,19 +2913,18 @@ const opSetTagsForResource = "SetTagsForResource"
 
 // SetTagsForResourceRequest generates a "aws/request.Request" representing the
 // client's request for the SetTagsForResource operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See SetTagsForResource for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the SetTagsForResource method directly
-// instead.
+// See SetTagsForResource for more information on using the SetTagsForResource
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the SetTagsForResourceRequest method.
 //    req, resp := client.SetTagsForResourceRequest(params)
@@ -2508,7 +2934,7 @@ const opSetTagsForResource = "SetTagsForResource"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/SetTagsForResource
+// See also, https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/SetTagsForResource
 func (c *Inspector) SetTagsForResourceRequest(input *SetTagsForResourceInput) (req *request.Request, output *SetTagsForResourceOutput) {
 	op := &request.Operation{
 		Name:       opSetTagsForResource,
@@ -2554,7 +2980,7 @@ func (c *Inspector) SetTagsForResourceRequest(input *SetTagsForResourceInput) (r
 //   The request was rejected because it referenced an entity that does not exist.
 //   The error code describes the entity.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/SetTagsForResource
+// See also, https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/SetTagsForResource
 func (c *Inspector) SetTagsForResource(input *SetTagsForResourceInput) (*SetTagsForResourceOutput, error) {
 	req, out := c.SetTagsForResourceRequest(input)
 	return out, req.Send()
@@ -2580,19 +3006,18 @@ const opStartAssessmentRun = "StartAssessmentRun"
 
 // StartAssessmentRunRequest generates a "aws/request.Request" representing the
 // client's request for the StartAssessmentRun operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See StartAssessmentRun for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the StartAssessmentRun method directly
-// instead.
+// See StartAssessmentRun for more information on using the StartAssessmentRun
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the StartAssessmentRunRequest method.
 //    req, resp := client.StartAssessmentRunRequest(params)
@@ -2602,7 +3027,7 @@ const opStartAssessmentRun = "StartAssessmentRun"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/StartAssessmentRun
+// See also, https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/StartAssessmentRun
 func (c *Inspector) StartAssessmentRunRequest(input *StartAssessmentRunInput) (req *request.Request, output *StartAssessmentRunOutput) {
 	op := &request.Operation{
 		Name:       opStartAssessmentRun,
@@ -2659,7 +3084,7 @@ func (c *Inspector) StartAssessmentRunRequest(input *StartAssessmentRunInput) (r
 //   You started an assessment run, but one of the instances is already participating
 //   in another assessment run.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/StartAssessmentRun
+// See also, https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/StartAssessmentRun
 func (c *Inspector) StartAssessmentRun(input *StartAssessmentRunInput) (*StartAssessmentRunOutput, error) {
 	req, out := c.StartAssessmentRunRequest(input)
 	return out, req.Send()
@@ -2685,19 +3110,18 @@ const opStopAssessmentRun = "StopAssessmentRun"
 
 // StopAssessmentRunRequest generates a "aws/request.Request" representing the
 // client's request for the StopAssessmentRun operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See StopAssessmentRun for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the StopAssessmentRun method directly
-// instead.
+// See StopAssessmentRun for more information on using the StopAssessmentRun
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the StopAssessmentRunRequest method.
 //    req, resp := client.StopAssessmentRunRequest(params)
@@ -2707,7 +3131,7 @@ const opStopAssessmentRun = "StopAssessmentRun"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/StopAssessmentRun
+// See also, https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/StopAssessmentRun
 func (c *Inspector) StopAssessmentRunRequest(input *StopAssessmentRunInput) (req *request.Request, output *StopAssessmentRunOutput) {
 	op := &request.Operation{
 		Name:       opStopAssessmentRun,
@@ -2752,7 +3176,7 @@ func (c *Inspector) StopAssessmentRunRequest(input *StopAssessmentRunInput) (req
 //   The request was rejected because it referenced an entity that does not exist.
 //   The error code describes the entity.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/StopAssessmentRun
+// See also, https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/StopAssessmentRun
 func (c *Inspector) StopAssessmentRun(input *StopAssessmentRunInput) (*StopAssessmentRunOutput, error) {
 	req, out := c.StopAssessmentRunRequest(input)
 	return out, req.Send()
@@ -2778,19 +3202,18 @@ const opSubscribeToEvent = "SubscribeToEvent"
 
 // SubscribeToEventRequest generates a "aws/request.Request" representing the
 // client's request for the SubscribeToEvent operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See SubscribeToEvent for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the SubscribeToEvent method directly
-// instead.
+// See SubscribeToEvent for more information on using the SubscribeToEvent
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the SubscribeToEventRequest method.
 //    req, resp := client.SubscribeToEventRequest(params)
@@ -2800,7 +3223,7 @@ const opSubscribeToEvent = "SubscribeToEvent"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/SubscribeToEvent
+// See also, https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/SubscribeToEvent
 func (c *Inspector) SubscribeToEventRequest(input *SubscribeToEventInput) (req *request.Request, output *SubscribeToEventOutput) {
 	op := &request.Operation{
 		Name:       opSubscribeToEvent,
@@ -2850,7 +3273,7 @@ func (c *Inspector) SubscribeToEventRequest(input *SubscribeToEventInput) (req *
 //   The request was rejected because it referenced an entity that does not exist.
 //   The error code describes the entity.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/SubscribeToEvent
+// See also, https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/SubscribeToEvent
 func (c *Inspector) SubscribeToEvent(input *SubscribeToEventInput) (*SubscribeToEventOutput, error) {
 	req, out := c.SubscribeToEventRequest(input)
 	return out, req.Send()
@@ -2876,19 +3299,18 @@ const opUnsubscribeFromEvent = "UnsubscribeFromEvent"
 
 // UnsubscribeFromEventRequest generates a "aws/request.Request" representing the
 // client's request for the UnsubscribeFromEvent operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See UnsubscribeFromEvent for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the UnsubscribeFromEvent method directly
-// instead.
+// See UnsubscribeFromEvent for more information on using the UnsubscribeFromEvent
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the UnsubscribeFromEventRequest method.
 //    req, resp := client.UnsubscribeFromEventRequest(params)
@@ -2898,7 +3320,7 @@ const opUnsubscribeFromEvent = "UnsubscribeFromEvent"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/UnsubscribeFromEvent
+// See also, https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/UnsubscribeFromEvent
 func (c *Inspector) UnsubscribeFromEventRequest(input *UnsubscribeFromEventInput) (req *request.Request, output *UnsubscribeFromEventOutput) {
 	op := &request.Operation{
 		Name:       opUnsubscribeFromEvent,
@@ -2944,7 +3366,7 @@ func (c *Inspector) UnsubscribeFromEventRequest(input *UnsubscribeFromEventInput
 //   The request was rejected because it referenced an entity that does not exist.
 //   The error code describes the entity.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/UnsubscribeFromEvent
+// See also, https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/UnsubscribeFromEvent
 func (c *Inspector) UnsubscribeFromEvent(input *UnsubscribeFromEventInput) (*UnsubscribeFromEventOutput, error) {
 	req, out := c.UnsubscribeFromEventRequest(input)
 	return out, req.Send()
@@ -2970,19 +3392,18 @@ const opUpdateAssessmentTarget = "UpdateAssessmentTarget"
 
 // UpdateAssessmentTargetRequest generates a "aws/request.Request" representing the
 // client's request for the UpdateAssessmentTarget operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See UpdateAssessmentTarget for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the UpdateAssessmentTarget method directly
-// instead.
+// See UpdateAssessmentTarget for more information on using the UpdateAssessmentTarget
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the UpdateAssessmentTargetRequest method.
 //    req, resp := client.UpdateAssessmentTargetRequest(params)
@@ -2992,7 +3413,7 @@ const opUpdateAssessmentTarget = "UpdateAssessmentTarget"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/UpdateAssessmentTarget
+// See also, https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/UpdateAssessmentTarget
 func (c *Inspector) UpdateAssessmentTargetRequest(input *UpdateAssessmentTargetInput) (req *request.Request, output *UpdateAssessmentTargetOutput) {
 	op := &request.Operation{
 		Name:       opUpdateAssessmentTarget,
@@ -3038,7 +3459,7 @@ func (c *Inspector) UpdateAssessmentTargetRequest(input *UpdateAssessmentTargetI
 //   The request was rejected because it referenced an entity that does not exist.
 //   The error code describes the entity.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/UpdateAssessmentTarget
+// See also, https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/UpdateAssessmentTarget
 func (c *Inspector) UpdateAssessmentTarget(input *UpdateAssessmentTargetInput) (*UpdateAssessmentTargetOutput, error) {
 	req, out := c.UpdateAssessmentTargetRequest(input)
 	return out, req.Send()
@@ -3060,7 +3481,6 @@ func (c *Inspector) UpdateAssessmentTargetWithContext(ctx aws.Context, input *Up
 	return out, req.Send()
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/AddAttributesToFindingsRequest
 type AddAttributesToFindingsInput struct {
 	_ struct{} `type:"structure"`
 
@@ -3126,7 +3546,6 @@ func (s *AddAttributesToFindingsInput) SetFindingArns(v []*string) *AddAttribute
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/AddAttributesToFindingsResponse
 type AddAttributesToFindingsOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -3156,7 +3575,6 @@ func (s *AddAttributesToFindingsOutput) SetFailedItems(v map[string]*FailedItemD
 // Used in the exception error that is thrown if you start an assessment run
 // for an assessment target that includes an EC2 instance that is already participating
 // in another started assessment run.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/AgentAlreadyRunningAssessment
 type AgentAlreadyRunningAssessment struct {
 	_ struct{} `type:"structure"`
 
@@ -3196,7 +3614,6 @@ func (s *AgentAlreadyRunningAssessment) SetAssessmentRunArn(v string) *AgentAlre
 
 // Contains information about an Amazon Inspector agent. This data type is used
 // as a request parameter in the ListAssessmentRunAgents action.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/AgentFilter
 type AgentFilter struct {
 	_ struct{} `type:"structure"`
 
@@ -3251,17 +3668,37 @@ func (s *AgentFilter) SetAgentHealths(v []*string) *AgentFilter {
 }
 
 // Used as a response element in the PreviewAgents action.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/AgentPreview
 type AgentPreview struct {
 	_ struct{} `type:"structure"`
+
+	// The health status of the Amazon Inspector Agent.
+	AgentHealth *string `locationName:"agentHealth" type:"string" enum:"AgentHealth"`
 
 	// The ID of the EC2 instance where the agent is installed.
 	//
 	// AgentId is a required field
 	AgentId *string `locationName:"agentId" min:"1" type:"string" required:"true"`
 
+	// The version of the Amazon Inspector Agent.
+	AgentVersion *string `locationName:"agentVersion" min:"1" type:"string"`
+
 	// The Auto Scaling group for the EC2 instance where the agent is installed.
 	AutoScalingGroup *string `locationName:"autoScalingGroup" min:"1" type:"string"`
+
+	// The hostname of the EC2 instance on which the Amazon Inspector Agent is installed.
+	Hostname *string `locationName:"hostname" type:"string"`
+
+	// The IP address of the EC2 instance on which the Amazon Inspector Agent is
+	// installed.
+	Ipv4Address *string `locationName:"ipv4Address" min:"7" type:"string"`
+
+	// The kernel version of the operating system running on the EC2 instance on
+	// which the Amazon Inspector Agent is installed.
+	KernelVersion *string `locationName:"kernelVersion" min:"1" type:"string"`
+
+	// The operating system running on the EC2 instance on which the Amazon Inspector
+	// Agent is installed.
+	OperatingSystem *string `locationName:"operatingSystem" min:"1" type:"string"`
 }
 
 // String returns the string representation
@@ -3274,9 +3711,21 @@ func (s AgentPreview) GoString() string {
 	return s.String()
 }
 
+// SetAgentHealth sets the AgentHealth field's value.
+func (s *AgentPreview) SetAgentHealth(v string) *AgentPreview {
+	s.AgentHealth = &v
+	return s
+}
+
 // SetAgentId sets the AgentId field's value.
 func (s *AgentPreview) SetAgentId(v string) *AgentPreview {
 	s.AgentId = &v
+	return s
+}
+
+// SetAgentVersion sets the AgentVersion field's value.
+func (s *AgentPreview) SetAgentVersion(v string) *AgentPreview {
+	s.AgentVersion = &v
 	return s
 }
 
@@ -3286,11 +3735,34 @@ func (s *AgentPreview) SetAutoScalingGroup(v string) *AgentPreview {
 	return s
 }
 
+// SetHostname sets the Hostname field's value.
+func (s *AgentPreview) SetHostname(v string) *AgentPreview {
+	s.Hostname = &v
+	return s
+}
+
+// SetIpv4Address sets the Ipv4Address field's value.
+func (s *AgentPreview) SetIpv4Address(v string) *AgentPreview {
+	s.Ipv4Address = &v
+	return s
+}
+
+// SetKernelVersion sets the KernelVersion field's value.
+func (s *AgentPreview) SetKernelVersion(v string) *AgentPreview {
+	s.KernelVersion = &v
+	return s
+}
+
+// SetOperatingSystem sets the OperatingSystem field's value.
+func (s *AgentPreview) SetOperatingSystem(v string) *AgentPreview {
+	s.OperatingSystem = &v
+	return s
+}
+
 // A snapshot of an Amazon Inspector assessment run that contains the findings
 // of the assessment run .
 //
 // Used as the response element in the DescribeAssessmentRuns action.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/AssessmentRun
 type AssessmentRun struct {
 	_ struct{} `type:"structure"`
 
@@ -3472,7 +3944,6 @@ func (s *AssessmentRun) SetUserAttributesForFindings(v []*Attribute) *Assessment
 
 // Contains information about an Amazon Inspector agent. This data type is used
 // as a response element in the ListAssessmentRunAgents action.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/AssessmentRunAgent
 type AssessmentRunAgent struct {
 	_ struct{} `type:"structure"`
 
@@ -3562,7 +4033,6 @@ func (s *AssessmentRunAgent) SetTelemetryMetadata(v []*TelemetryMetadata) *Asses
 }
 
 // Used as the request parameter in the ListAssessmentRuns action.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/AssessmentRunFilter
 type AssessmentRunFilter struct {
 	_ struct{} `type:"structure"`
 
@@ -3675,7 +4145,6 @@ func (s *AssessmentRunFilter) SetStates(v []*string) *AssessmentRunFilter {
 }
 
 // Used as one of the elements of the AssessmentRun data type.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/AssessmentRunNotification
 type AssessmentRunNotification struct {
 	_ struct{} `type:"structure"`
 
@@ -3751,7 +4220,6 @@ func (s *AssessmentRunNotification) SetSnsTopicArn(v string) *AssessmentRunNotif
 }
 
 // Used as one of the elements of the AssessmentRun data type.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/AssessmentRunStateChange
 type AssessmentRunStateChange struct {
 	_ struct{} `type:"structure"`
 
@@ -3790,7 +4258,6 @@ func (s *AssessmentRunStateChange) SetStateChangedAt(v time.Time) *AssessmentRun
 
 // Contains information about an Amazon Inspector application. This data type
 // is used as the response element in the DescribeAssessmentTargets action.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/AssessmentTarget
 type AssessmentTarget struct {
 	_ struct{} `type:"structure"`
 
@@ -3862,7 +4329,6 @@ func (s *AssessmentTarget) SetUpdatedAt(v time.Time) *AssessmentTarget {
 }
 
 // Used as the request parameter in the ListAssessmentTargets action.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/AssessmentTargetFilter
 type AssessmentTargetFilter struct {
 	_ struct{} `type:"structure"`
 
@@ -3904,7 +4370,6 @@ func (s *AssessmentTargetFilter) SetAssessmentTargetNamePattern(v string) *Asses
 // Contains information about an Amazon Inspector assessment template. This
 // data type is used as the response element in the DescribeAssessmentTemplates
 // action.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/AssessmentTemplate
 type AssessmentTemplate struct {
 	_ struct{} `type:"structure"`
 
@@ -3912,6 +4377,12 @@ type AssessmentTemplate struct {
 	//
 	// Arn is a required field
 	Arn *string `locationName:"arn" min:"1" type:"string" required:"true"`
+
+	// The number of existing assessment runs associated with this assessment template.
+	// This value can be zero or a positive integer.
+	//
+	// AssessmentRunCount is a required field
+	AssessmentRunCount *int64 `locationName:"assessmentRunCount" type:"integer" required:"true"`
 
 	// The ARN of the assessment target that corresponds to this assessment template.
 	//
@@ -3929,6 +4400,11 @@ type AssessmentTemplate struct {
 	//
 	// DurationInSeconds is a required field
 	DurationInSeconds *int64 `locationName:"durationInSeconds" min:"180" type:"integer" required:"true"`
+
+	// The Amazon Resource Name (ARN) of the most recent assessment run associated
+	// with this assessment template. This value exists only when the value of assessmentRunCount
+	// is greater than zero.
+	LastAssessmentRunArn *string `locationName:"lastAssessmentRunArn" min:"1" type:"string"`
 
 	// The name of the assessment template.
 	//
@@ -3963,6 +4439,12 @@ func (s *AssessmentTemplate) SetArn(v string) *AssessmentTemplate {
 	return s
 }
 
+// SetAssessmentRunCount sets the AssessmentRunCount field's value.
+func (s *AssessmentTemplate) SetAssessmentRunCount(v int64) *AssessmentTemplate {
+	s.AssessmentRunCount = &v
+	return s
+}
+
 // SetAssessmentTargetArn sets the AssessmentTargetArn field's value.
 func (s *AssessmentTemplate) SetAssessmentTargetArn(v string) *AssessmentTemplate {
 	s.AssessmentTargetArn = &v
@@ -3978,6 +4460,12 @@ func (s *AssessmentTemplate) SetCreatedAt(v time.Time) *AssessmentTemplate {
 // SetDurationInSeconds sets the DurationInSeconds field's value.
 func (s *AssessmentTemplate) SetDurationInSeconds(v int64) *AssessmentTemplate {
 	s.DurationInSeconds = &v
+	return s
+}
+
+// SetLastAssessmentRunArn sets the LastAssessmentRunArn field's value.
+func (s *AssessmentTemplate) SetLastAssessmentRunArn(v string) *AssessmentTemplate {
+	s.LastAssessmentRunArn = &v
 	return s
 }
 
@@ -4000,7 +4488,6 @@ func (s *AssessmentTemplate) SetUserAttributesForFindings(v []*Attribute) *Asses
 }
 
 // Used as the request parameter in the ListAssessmentTemplates action.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/AssessmentTemplateFilter
 type AssessmentTemplateFilter struct {
 	_ struct{} `type:"structure"`
 
@@ -4067,7 +4554,6 @@ func (s *AssessmentTemplateFilter) SetRulesPackageArns(v []*string) *AssessmentT
 }
 
 // A collection of attributes of the host from which the finding is generated.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/AssetAttributes
 type AssetAttributes struct {
 	_ struct{} `type:"structure"`
 
@@ -4142,7 +4628,6 @@ func (s *AssetAttributes) SetSchemaVersion(v int64) *AssetAttributes {
 
 // This data type is used as a request parameter in the AddAttributesToFindings
 // and CreateAssessmentTemplate actions.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/Attribute
 type Attribute struct {
 	_ struct{} `type:"structure"`
 
@@ -4196,7 +4681,6 @@ func (s *Attribute) SetValue(v string) *Attribute {
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/CreateAssessmentTargetRequest
 type CreateAssessmentTargetInput struct {
 	_ struct{} `type:"structure"`
 
@@ -4257,7 +4741,6 @@ func (s *CreateAssessmentTargetInput) SetResourceGroupArn(v string) *CreateAsses
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/CreateAssessmentTargetResponse
 type CreateAssessmentTargetOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -4283,7 +4766,6 @@ func (s *CreateAssessmentTargetOutput) SetAssessmentTargetArn(v string) *CreateA
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/CreateAssessmentTemplateRequest
 type CreateAssessmentTemplateInput struct {
 	_ struct{} `type:"structure"`
 
@@ -4314,7 +4796,9 @@ type CreateAssessmentTemplateInput struct {
 	RulesPackageArns []*string `locationName:"rulesPackageArns" type:"list" required:"true"`
 
 	// The user-defined attributes that are assigned to every finding that is generated
-	// by the assessment run that uses this assessment template.
+	// by the assessment run that uses this assessment template. An attribute is
+	// a key and value pair (an Attribute object). Within an assessment template,
+	// each key must be unique.
 	UserAttributesForFindings []*Attribute `locationName:"userAttributesForFindings" type:"list"`
 }
 
@@ -4399,7 +4883,6 @@ func (s *CreateAssessmentTemplateInput) SetUserAttributesForFindings(v []*Attrib
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/CreateAssessmentTemplateResponse
 type CreateAssessmentTemplateOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -4425,7 +4908,6 @@ func (s *CreateAssessmentTemplateOutput) SetAssessmentTemplateArn(v string) *Cre
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/CreateResourceGroupRequest
 type CreateResourceGroupInput struct {
 	_ struct{} `type:"structure"`
 
@@ -4479,7 +4961,6 @@ func (s *CreateResourceGroupInput) SetResourceGroupTags(v []*ResourceGroupTag) *
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/CreateResourceGroupResponse
 type CreateResourceGroupOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -4505,7 +4986,6 @@ func (s *CreateResourceGroupOutput) SetResourceGroupArn(v string) *CreateResourc
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/DeleteAssessmentRunRequest
 type DeleteAssessmentRunInput struct {
 	_ struct{} `type:"structure"`
 
@@ -4547,7 +5027,6 @@ func (s *DeleteAssessmentRunInput) SetAssessmentRunArn(v string) *DeleteAssessme
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/DeleteAssessmentRunOutput
 type DeleteAssessmentRunOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -4562,7 +5041,6 @@ func (s DeleteAssessmentRunOutput) GoString() string {
 	return s.String()
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/DeleteAssessmentTargetRequest
 type DeleteAssessmentTargetInput struct {
 	_ struct{} `type:"structure"`
 
@@ -4604,7 +5082,6 @@ func (s *DeleteAssessmentTargetInput) SetAssessmentTargetArn(v string) *DeleteAs
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/DeleteAssessmentTargetOutput
 type DeleteAssessmentTargetOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -4619,7 +5096,6 @@ func (s DeleteAssessmentTargetOutput) GoString() string {
 	return s.String()
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/DeleteAssessmentTemplateRequest
 type DeleteAssessmentTemplateInput struct {
 	_ struct{} `type:"structure"`
 
@@ -4661,7 +5137,6 @@ func (s *DeleteAssessmentTemplateInput) SetAssessmentTemplateArn(v string) *Dele
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/DeleteAssessmentTemplateOutput
 type DeleteAssessmentTemplateOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -4676,7 +5151,6 @@ func (s DeleteAssessmentTemplateOutput) GoString() string {
 	return s.String()
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/DescribeAssessmentRunsRequest
 type DescribeAssessmentRunsInput struct {
 	_ struct{} `type:"structure"`
 
@@ -4718,7 +5192,6 @@ func (s *DescribeAssessmentRunsInput) SetAssessmentRunArns(v []*string) *Describ
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/DescribeAssessmentRunsResponse
 type DescribeAssessmentRunsOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -4756,7 +5229,6 @@ func (s *DescribeAssessmentRunsOutput) SetFailedItems(v map[string]*FailedItemDe
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/DescribeAssessmentTargetsRequest
 type DescribeAssessmentTargetsInput struct {
 	_ struct{} `type:"structure"`
 
@@ -4798,7 +5270,6 @@ func (s *DescribeAssessmentTargetsInput) SetAssessmentTargetArns(v []*string) *D
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/DescribeAssessmentTargetsResponse
 type DescribeAssessmentTargetsOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -4836,7 +5307,6 @@ func (s *DescribeAssessmentTargetsOutput) SetFailedItems(v map[string]*FailedIte
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/DescribeAssessmentTemplatesRequest
 type DescribeAssessmentTemplatesInput struct {
 	_ struct{} `type:"structure"`
 
@@ -4876,7 +5346,6 @@ func (s *DescribeAssessmentTemplatesInput) SetAssessmentTemplateArns(v []*string
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/DescribeAssessmentTemplatesResponse
 type DescribeAssessmentTemplatesOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -4914,7 +5383,6 @@ func (s *DescribeAssessmentTemplatesOutput) SetFailedItems(v map[string]*FailedI
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/DescribeCrossAccountAccessRoleInput
 type DescribeCrossAccountAccessRoleInput struct {
 	_ struct{} `type:"structure"`
 }
@@ -4929,7 +5397,6 @@ func (s DescribeCrossAccountAccessRoleInput) GoString() string {
 	return s.String()
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/DescribeCrossAccountAccessRoleResponse
 type DescribeCrossAccountAccessRoleOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -4979,7 +5446,6 @@ func (s *DescribeCrossAccountAccessRoleOutput) SetValid(v bool) *DescribeCrossAc
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/DescribeFindingsRequest
 type DescribeFindingsInput struct {
 	_ struct{} `type:"structure"`
 
@@ -5031,7 +5497,6 @@ func (s *DescribeFindingsInput) SetLocale(v string) *DescribeFindingsInput {
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/DescribeFindingsResponse
 type DescribeFindingsOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -5069,7 +5534,6 @@ func (s *DescribeFindingsOutput) SetFindings(v []*Finding) *DescribeFindingsOutp
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/DescribeResourceGroupsRequest
 type DescribeResourceGroupsInput struct {
 	_ struct{} `type:"structure"`
 
@@ -5111,7 +5575,6 @@ func (s *DescribeResourceGroupsInput) SetResourceGroupArns(v []*string) *Describ
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/DescribeResourceGroupsResponse
 type DescribeResourceGroupsOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -5149,7 +5612,6 @@ func (s *DescribeResourceGroupsOutput) SetResourceGroups(v []*ResourceGroup) *De
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/DescribeRulesPackagesRequest
 type DescribeRulesPackagesInput struct {
 	_ struct{} `type:"structure"`
 
@@ -5200,7 +5662,6 @@ func (s *DescribeRulesPackagesInput) SetRulesPackageArns(v []*string) *DescribeR
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/DescribeRulesPackagesResponse
 type DescribeRulesPackagesOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -5239,7 +5700,6 @@ func (s *DescribeRulesPackagesOutput) SetRulesPackages(v []*RulesPackage) *Descr
 }
 
 // This data type is used in the AssessmentTemplateFilter data type.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/DurationRange
 type DurationRange struct {
 	_ struct{} `type:"structure"`
 
@@ -5290,7 +5750,6 @@ func (s *DurationRange) SetMinSeconds(v int64) *DurationRange {
 }
 
 // This data type is used in the Subscription data type.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/EventSubscription
 type EventSubscription struct {
 	_ struct{} `type:"structure"`
 
@@ -5329,7 +5788,6 @@ func (s *EventSubscription) SetSubscribedAt(v time.Time) *EventSubscription {
 }
 
 // Includes details about the failed items.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/FailedItemDetails
 type FailedItemDetails struct {
 	_ struct{} `type:"structure"`
 
@@ -5369,7 +5827,6 @@ func (s *FailedItemDetails) SetRetryable(v bool) *FailedItemDetails {
 
 // Contains information about an Amazon Inspector finding. This data type is
 // used as the response element in the DescribeFindings action.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/Finding
 type Finding struct {
 	_ struct{} `type:"structure"`
 
@@ -5557,7 +6014,6 @@ func (s *Finding) SetUserAttributes(v []*Attribute) *Finding {
 }
 
 // This data type is used as a request parameter in the ListFindings action.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/FindingFilter
 type FindingFilter struct {
 	_ struct{} `type:"structure"`
 
@@ -5688,7 +6144,6 @@ func (s *FindingFilter) SetUserAttributes(v []*Attribute) *FindingFilter {
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/GetAssessmentReportRequest
 type GetAssessmentReportInput struct {
 	_ struct{} `type:"structure"`
 
@@ -5762,7 +6217,6 @@ func (s *GetAssessmentReportInput) SetReportType(v string) *GetAssessmentReportI
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/GetAssessmentReportResponse
 type GetAssessmentReportOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -5798,7 +6252,6 @@ func (s *GetAssessmentReportOutput) SetUrl(v string) *GetAssessmentReportOutput 
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/GetTelemetryMetadataRequest
 type GetTelemetryMetadataInput struct {
 	_ struct{} `type:"structure"`
 
@@ -5841,7 +6294,6 @@ func (s *GetTelemetryMetadataInput) SetAssessmentRunArn(v string) *GetTelemetryM
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/GetTelemetryMetadataResponse
 type GetTelemetryMetadataOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -5867,7 +6319,6 @@ func (s *GetTelemetryMetadataOutput) SetTelemetryMetadata(v []*TelemetryMetadata
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/ListAssessmentRunAgentsRequest
 type ListAssessmentRunAgentsInput struct {
 	_ struct{} `type:"structure"`
 
@@ -5953,7 +6404,6 @@ func (s *ListAssessmentRunAgentsInput) SetNextToken(v string) *ListAssessmentRun
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/ListAssessmentRunAgentsResponse
 type ListAssessmentRunAgentsOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -5991,7 +6441,6 @@ func (s *ListAssessmentRunAgentsOutput) SetNextToken(v string) *ListAssessmentRu
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/ListAssessmentRunsRequest
 type ListAssessmentRunsInput struct {
 	_ struct{} `type:"structure"`
 
@@ -6070,7 +6519,6 @@ func (s *ListAssessmentRunsInput) SetNextToken(v string) *ListAssessmentRunsInpu
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/ListAssessmentRunsResponse
 type ListAssessmentRunsOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -6109,7 +6557,6 @@ func (s *ListAssessmentRunsOutput) SetNextToken(v string) *ListAssessmentRunsOut
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/ListAssessmentTargetsRequest
 type ListAssessmentTargetsInput struct {
 	_ struct{} `type:"structure"`
 
@@ -6178,7 +6625,6 @@ func (s *ListAssessmentTargetsInput) SetNextToken(v string) *ListAssessmentTarge
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/ListAssessmentTargetsResponse
 type ListAssessmentTargetsOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -6217,7 +6663,6 @@ func (s *ListAssessmentTargetsOutput) SetNextToken(v string) *ListAssessmentTarg
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/ListAssessmentTemplatesRequest
 type ListAssessmentTemplatesInput struct {
 	_ struct{} `type:"structure"`
 
@@ -6296,7 +6741,6 @@ func (s *ListAssessmentTemplatesInput) SetNextToken(v string) *ListAssessmentTem
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/ListAssessmentTemplatesResponse
 type ListAssessmentTemplatesOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -6334,7 +6778,6 @@ func (s *ListAssessmentTemplatesOutput) SetNextToken(v string) *ListAssessmentTe
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/ListEventSubscriptionsRequest
 type ListEventSubscriptionsInput struct {
 	_ struct{} `type:"structure"`
 
@@ -6397,7 +6840,6 @@ func (s *ListEventSubscriptionsInput) SetResourceArn(v string) *ListEventSubscri
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/ListEventSubscriptionsResponse
 type ListEventSubscriptionsOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -6435,7 +6877,6 @@ func (s *ListEventSubscriptionsOutput) SetSubscriptions(v []*Subscription) *List
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/ListFindingsRequest
 type ListFindingsInput struct {
 	_ struct{} `type:"structure"`
 
@@ -6514,7 +6955,6 @@ func (s *ListFindingsInput) SetNextToken(v string) *ListFindingsInput {
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/ListFindingsResponse
 type ListFindingsOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -6552,7 +6992,6 @@ func (s *ListFindingsOutput) SetNextToken(v string) *ListFindingsOutput {
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/ListRulesPackagesRequest
 type ListRulesPackagesInput struct {
 	_ struct{} `type:"structure"`
 
@@ -6602,7 +7041,6 @@ func (s *ListRulesPackagesInput) SetNextToken(v string) *ListRulesPackagesInput 
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/ListRulesPackagesResponse
 type ListRulesPackagesOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -6640,7 +7078,6 @@ func (s *ListRulesPackagesOutput) SetRulesPackageArns(v []*string) *ListRulesPac
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/ListTagsForResourceRequest
 type ListTagsForResourceInput struct {
 	_ struct{} `type:"structure"`
 
@@ -6682,7 +7119,6 @@ func (s *ListTagsForResourceInput) SetResourceArn(v string) *ListTagsForResource
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/ListTagsForResourceResponse
 type ListTagsForResourceOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -6708,7 +7144,6 @@ func (s *ListTagsForResourceOutput) SetTags(v []*Tag) *ListTagsForResourceOutput
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/PreviewAgentsRequest
 type PreviewAgentsInput struct {
 	_ struct{} `type:"structure"`
 
@@ -6775,7 +7210,6 @@ func (s *PreviewAgentsInput) SetPreviewAgentsArn(v string) *PreviewAgentsInput {
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/PreviewAgentsResponse
 type PreviewAgentsOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -6813,12 +7247,11 @@ func (s *PreviewAgentsOutput) SetNextToken(v string) *PreviewAgentsOutput {
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/RegisterCrossAccountAccessRoleRequest
 type RegisterCrossAccountAccessRoleInput struct {
 	_ struct{} `type:"structure"`
 
-	// The ARN of the IAM role that Amazon Inspector uses to list your EC2 instances
-	// during the assessment run or when you call the PreviewAgents action.
+	// The ARN of the IAM role that grants Amazon Inspector access to AWS Services
+	// needed to perform security assessments.
 	//
 	// RoleArn is a required field
 	RoleArn *string `locationName:"roleArn" min:"1" type:"string" required:"true"`
@@ -6856,7 +7289,6 @@ func (s *RegisterCrossAccountAccessRoleInput) SetRoleArn(v string) *RegisterCros
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/RegisterCrossAccountAccessRoleOutput
 type RegisterCrossAccountAccessRoleOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -6871,7 +7303,6 @@ func (s RegisterCrossAccountAccessRoleOutput) GoString() string {
 	return s.String()
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/RemoveAttributesFromFindingsRequest
 type RemoveAttributesFromFindingsInput struct {
 	_ struct{} `type:"structure"`
 
@@ -6927,7 +7358,6 @@ func (s *RemoveAttributesFromFindingsInput) SetFindingArns(v []*string) *RemoveA
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/RemoveAttributesFromFindingsResponse
 type RemoveAttributesFromFindingsOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -6958,7 +7388,6 @@ func (s *RemoveAttributesFromFindingsOutput) SetFailedItems(v map[string]*Failed
 // set of tags that, when queried, identify the AWS resources that make up the
 // assessment target. This data type is used as the response element in the
 // DescribeResourceGroups action.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/ResourceGroup
 type ResourceGroup struct {
 	_ struct{} `type:"structure"`
 
@@ -7008,7 +7437,6 @@ func (s *ResourceGroup) SetTags(v []*ResourceGroupTag) *ResourceGroup {
 }
 
 // This data type is used as one of the elements of the ResourceGroup data type.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/ResourceGroupTag
 type ResourceGroupTag struct {
 	_ struct{} `type:"structure"`
 
@@ -7064,7 +7492,6 @@ func (s *ResourceGroupTag) SetValue(v string) *ResourceGroupTag {
 
 // Contains information about an Amazon Inspector rules package. This data type
 // is used as the response element in the DescribeRulesPackages action.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/RulesPackage
 type RulesPackage struct {
 	_ struct{} `type:"structure"`
 
@@ -7133,7 +7560,6 @@ func (s *RulesPackage) SetVersion(v string) *RulesPackage {
 }
 
 // This data type is used in the Finding data type.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/InspectorServiceAttributes
 type ServiceAttributes struct {
 	_ struct{} `type:"structure"`
 
@@ -7177,7 +7603,6 @@ func (s *ServiceAttributes) SetSchemaVersion(v int64) *ServiceAttributes {
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/SetTagsForResourceRequest
 type SetTagsForResourceInput struct {
 	_ struct{} `type:"structure"`
 
@@ -7239,7 +7664,6 @@ func (s *SetTagsForResourceInput) SetTags(v []*Tag) *SetTagsForResourceInput {
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/SetTagsForResourceOutput
 type SetTagsForResourceOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -7254,7 +7678,6 @@ func (s SetTagsForResourceOutput) GoString() string {
 	return s.String()
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/StartAssessmentRunRequest
 type StartAssessmentRunInput struct {
 	_ struct{} `type:"structure"`
 
@@ -7310,7 +7733,6 @@ func (s *StartAssessmentRunInput) SetAssessmentTemplateArn(v string) *StartAsses
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/StartAssessmentRunResponse
 type StartAssessmentRunOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -7336,7 +7758,6 @@ func (s *StartAssessmentRunOutput) SetAssessmentRunArn(v string) *StartAssessmen
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/StopAssessmentRunRequest
 type StopAssessmentRunInput struct {
 	_ struct{} `type:"structure"`
 
@@ -7344,6 +7765,13 @@ type StopAssessmentRunInput struct {
 	//
 	// AssessmentRunArn is a required field
 	AssessmentRunArn *string `locationName:"assessmentRunArn" min:"1" type:"string" required:"true"`
+
+	// An input option that can be set to either START_EVALUATION or SKIP_EVALUATION.
+	// START_EVALUATION (the default value), stops the AWS agent from collecting
+	// data and begins the results evaluation and the findings generation process.
+	// SKIP_EVALUATION cancels the assessment run immediately, after which no findings
+	// are generated.
+	StopAction *string `locationName:"stopAction" type:"string" enum:"StopAction"`
 }
 
 // String returns the string representation
@@ -7378,7 +7806,12 @@ func (s *StopAssessmentRunInput) SetAssessmentRunArn(v string) *StopAssessmentRu
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/StopAssessmentRunOutput
+// SetStopAction sets the StopAction field's value.
+func (s *StopAssessmentRunInput) SetStopAction(v string) *StopAssessmentRunInput {
+	s.StopAction = &v
+	return s
+}
+
 type StopAssessmentRunOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -7393,7 +7826,6 @@ func (s StopAssessmentRunOutput) GoString() string {
 	return s.String()
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/SubscribeToEventRequest
 type SubscribeToEventInput struct {
 	_ struct{} `type:"structure"`
 
@@ -7467,7 +7899,6 @@ func (s *SubscribeToEventInput) SetTopicArn(v string) *SubscribeToEventInput {
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/SubscribeToEventOutput
 type SubscribeToEventOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -7484,7 +7915,6 @@ func (s SubscribeToEventOutput) GoString() string {
 
 // This data type is used as a response element in the ListEventSubscriptions
 // action.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/Subscription
 type Subscription struct {
 	_ struct{} `type:"structure"`
 
@@ -7537,7 +7967,6 @@ func (s *Subscription) SetTopicArn(v string) *Subscription {
 // A key and value pair. This data type is used as a request parameter in the
 // SetTagsForResource action and a response element in the ListTagsForResource
 // action.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/Tag
 type Tag struct {
 	_ struct{} `type:"structure"`
 
@@ -7594,7 +8023,6 @@ func (s *Tag) SetValue(v string) *Tag {
 // The metadata about the Amazon Inspector application data metrics collected
 // by the agent. This data type is used as the response element in the GetTelemetryMetadata
 // action.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/TelemetryMetadata
 type TelemetryMetadata struct {
 	_ struct{} `type:"structure"`
 
@@ -7641,7 +8069,6 @@ func (s *TelemetryMetadata) SetMessageType(v string) *TelemetryMetadata {
 }
 
 // This data type is used in the AssessmentRunFilter data type.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/TimestampRange
 type TimestampRange struct {
 	_ struct{} `type:"structure"`
 
@@ -7674,7 +8101,6 @@ func (s *TimestampRange) SetEndDate(v time.Time) *TimestampRange {
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/UnsubscribeFromEventRequest
 type UnsubscribeFromEventInput struct {
 	_ struct{} `type:"structure"`
 
@@ -7748,7 +8174,6 @@ func (s *UnsubscribeFromEventInput) SetTopicArn(v string) *UnsubscribeFromEventI
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/UnsubscribeFromEventOutput
 type UnsubscribeFromEventOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -7763,7 +8188,6 @@ func (s UnsubscribeFromEventOutput) GoString() string {
 	return s.String()
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/UpdateAssessmentTargetRequest
 type UpdateAssessmentTargetInput struct {
 	_ struct{} `type:"structure"`
 
@@ -7840,7 +8264,6 @@ func (s *UpdateAssessmentTargetInput) SetResourceGroupArn(v string) *UpdateAsses
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/UpdateAssessmentTargetOutput
 type UpdateAssessmentTargetOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -7887,6 +8310,9 @@ const (
 
 	// AgentHealthUnhealthy is a AgentHealth enum value
 	AgentHealthUnhealthy = "UNHEALTHY"
+
+	// AgentHealthUnknown is a AgentHealth enum value
+	AgentHealthUnknown = "UNKNOWN"
 )
 
 const (
@@ -7959,6 +8385,9 @@ const (
 
 	// AssessmentRunStateCompletedWithErrors is a AssessmentRunState enum value
 	AssessmentRunStateCompletedWithErrors = "COMPLETED_WITH_ERRORS"
+
+	// AssessmentRunStateCanceled is a AssessmentRunState enum value
+	AssessmentRunStateCanceled = "CANCELED"
 )
 
 const (
@@ -8265,4 +8694,12 @@ const (
 
 	// SeverityUndefined is a Severity enum value
 	SeverityUndefined = "Undefined"
+)
+
+const (
+	// StopActionStartEvaluation is a StopAction enum value
+	StopActionStartEvaluation = "START_EVALUATION"
+
+	// StopActionSkipEvaluation is a StopAction enum value
+	StopActionSkipEvaluation = "SKIP_EVALUATION"
 )

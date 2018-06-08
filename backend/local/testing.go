@@ -2,6 +2,7 @@ package local
 
 import (
 	"io/ioutil"
+	"os"
 	"path/filepath"
 	"testing"
 
@@ -15,15 +16,22 @@ import (
 //
 // No operations will be called on the returned value, so you can still set
 // public fields without any locks.
-func TestLocal(t *testing.T) *Local {
+func TestLocal(t *testing.T) (*Local, func()) {
 	tempDir := testTempDir(t)
-	return &Local{
-		StatePath:       filepath.Join(tempDir, "state.tfstate"),
-		StateOutPath:    filepath.Join(tempDir, "state.tfstate"),
-		StateBackupPath: filepath.Join(tempDir, "state.tfstate.bak"),
-		StateEnvDir:     filepath.Join(tempDir, "state.tfstate.d"),
-		ContextOpts:     &terraform.ContextOpts{},
+	local := &Local{
+		StatePath:         filepath.Join(tempDir, "state.tfstate"),
+		StateOutPath:      filepath.Join(tempDir, "state.tfstate"),
+		StateBackupPath:   filepath.Join(tempDir, "state.tfstate.bak"),
+		StateWorkspaceDir: filepath.Join(tempDir, "state.tfstate.d"),
+		ContextOpts:       &terraform.ContextOpts{},
 	}
+	cleanup := func() {
+		if err := os.RemoveAll(tempDir); err != nil {
+			t.Fatal("error clecanup up test:", err)
+		}
+	}
+
+	return local, cleanup
 }
 
 // TestLocalProvider modifies the ContextOpts of the *Local parameter to
@@ -47,14 +55,13 @@ func TestLocalProvider(t *testing.T, b *Local, name string) *terraform.MockResou
 	if b.ContextOpts == nil {
 		b.ContextOpts = &terraform.ContextOpts{}
 	}
-	if b.ContextOpts.Providers == nil {
-		b.ContextOpts.Providers = make(map[string]terraform.ResourceProviderFactory)
-	}
 
 	// Setup our provider
-	b.ContextOpts.Providers[name] = func() (terraform.ResourceProvider, error) {
-		return p, nil
-	}
+	b.ContextOpts.ProviderResolver = terraform.ResourceProviderResolverFixed(
+		map[string]terraform.ResourceProviderFactory{
+			name: terraform.ResourceProviderFactoryFixed(p),
+		},
+	)
 
 	return p
 }

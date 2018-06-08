@@ -2,8 +2,6 @@ package inmem
 
 import (
 	"crypto/md5"
-	"errors"
-	"time"
 
 	"github.com/hashicorp/terraform/state"
 	"github.com/hashicorp/terraform/state/remote"
@@ -13,8 +11,7 @@ import (
 type RemoteClient struct {
 	Data []byte
 	MD5  []byte
-
-	LockInfo *state.LockInfo
+	Name string
 }
 
 func (c *RemoteClient) Get() (*remote.Payload, error) {
@@ -43,37 +40,8 @@ func (c *RemoteClient) Delete() error {
 }
 
 func (c *RemoteClient) Lock(info *state.LockInfo) (string, error) {
-	lockErr := &state.LockError{
-		Info: &state.LockInfo{},
-	}
-
-	if c.LockInfo != nil {
-		lockErr.Err = errors.New("state locked")
-		// make a copy of the lock info to avoid any testing shenanigans
-		*lockErr.Info = *c.LockInfo
-		return "", lockErr
-	}
-
-	info.Created = time.Now().UTC()
-	c.LockInfo = info
-
-	return c.LockInfo.ID, nil
+	return locks.lock(c.Name, info)
 }
-
 func (c *RemoteClient) Unlock(id string) error {
-	if c.LockInfo == nil {
-		return errors.New("state not locked")
-	}
-
-	lockErr := &state.LockError{
-		Info: &state.LockInfo{},
-	}
-	if id != c.LockInfo.ID {
-		lockErr.Err = errors.New("invalid lock id")
-		*lockErr.Info = *c.LockInfo
-		return lockErr
-	}
-
-	c.LockInfo = nil
-	return nil
+	return locks.unlock(c.Name, id)
 }

@@ -50,6 +50,12 @@ const (
 	// The request body could not be parsed as JSON.
 	ErrCodeInvalidRequestContentException = "InvalidRequestContentException"
 
+	// ErrCodeInvalidRuntimeException for service response error code
+	// "InvalidRuntimeException".
+	//
+	// The runtime or runtime version specified is not supported.
+	ErrCodeInvalidRuntimeException = "InvalidRuntimeException"
+
 	// ErrCodeInvalidSecurityGroupIDException for service response error code
 	// "InvalidSecurityGroupIDException".
 	//
@@ -102,6 +108,14 @@ const (
 	//
 	// Lambda function access policy is limited to 20 KB.
 	ErrCodePolicyLengthExceededException = "PolicyLengthExceededException"
+
+	// ErrCodePreconditionFailedException for service response error code
+	// "PreconditionFailedException".
+	//
+	// The RevisionId provided does not match the latest RevisionId for the Lambda
+	// function or alias. Call the GetFunction or the GetAlias API to retrieve the
+	// latest RevisionId for your resource.
+	ErrCodePreconditionFailedException = "PreconditionFailedException"
 
 	// ErrCodeRequestTooLargeException for service response error code
 	// "RequestTooLargeException".

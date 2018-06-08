@@ -1,0 +1,3 @@
+module "c" {
+  source = "./c"
+}

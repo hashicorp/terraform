@@ -61,16 +61,22 @@ aws_load_balancer.weblb
   provider.aws
 aws_security_group.firewall
   provider.aws
+local.instance_id
+  aws_instance.web
 meta.count-boundary (count boundary fixup)
   aws_instance.web
   aws_load_balancer.weblb
   aws_security_group.firewall
+  local.instance_id
   openstack_floating_ip.random
+  output.instance_id
   provider.aws
   provider.openstack
   var.foo
 openstack_floating_ip.random
   provider.openstack
+output.instance_id
+  local.instance_id
 provider.aws
   openstack_floating_ip.random
 provider.aws (close)

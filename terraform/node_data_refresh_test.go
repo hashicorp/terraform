@@ -55,6 +55,9 @@ func TestNodeRefreshableDataResourceDynamicExpand_scaleOut(t *testing.T) {
 		StateState: state,
 		StateLock:  &stateLock,
 	})
+	if err != nil {
+		t.Fatalf("error on DynamicExpand: %s", err)
+	}
 
 	actual := g.StringWithNodeTypes()
 	expected := `data.aws_instance.foo[0] - *terraform.NodeRefreshableDataResourceInstance
@@ -136,7 +139,9 @@ func TestNodeRefreshableDataResourceDynamicExpand_scaleIn(t *testing.T) {
 		StateState: state,
 		StateLock:  &stateLock,
 	})
-
+	if err != nil {
+		t.Fatalf("error on DynamicExpand: %s", err)
+	}
 	actual := g.StringWithNodeTypes()
 	expected := `data.aws_instance.foo[0] - *terraform.NodeRefreshableDataResourceInstance
 data.aws_instance.foo[1] - *terraform.NodeRefreshableDataResourceInstance

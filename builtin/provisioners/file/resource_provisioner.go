@@ -4,9 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"os"
-	"time"
 
 	"github.com/hashicorp/terraform/communicator"
 	"github.com/hashicorp/terraform/helper/schema"
@@ -35,7 +33,8 @@ func Provisioner() terraform.ResourceProvisioner {
 			},
 		},
 
-		ApplyFunc: applyFn,
+		ApplyFunc:    applyFn,
+		ValidateFunc: validateFn,
 	}
 }
 
@@ -60,21 +59,19 @@ func applyFn(ctx context.Context) error {
 
 	// Begin the file copy
 	dst := data.Get("destination").(string)
-	resultCh := make(chan error, 1)
-	go func() {
-		resultCh <- copyFiles(comm, src, dst)
-	}()
 
-	// Allow the file copy to complete unless there is an interrupt.
-	// If there is an interrupt we make no attempt to cleanly close
-	// the connection currently. We just abruptly exit. Because Terraform
-	// taints the resource, this is fine.
-	select {
-	case err := <-resultCh:
+	if err := copyFiles(ctx, comm, src, dst); err != nil {
 		return err
-	case <-ctx.Done():
-		return fmt.Errorf("file transfer interrupted")
 	}
+	return nil
+}
+
+func validateFn(c *terraform.ResourceConfig) (ws []string, es []error) {
+	if !c.IsSet("source") && !c.IsSet("content") {
+		es = append(es, fmt.Errorf("Must provide one of 'source' or 'content'"))
+	}
+
+	return ws, es
 }
 
 // getSrc returns the file to use as source
@@ -98,16 +95,24 @@ func getSrc(data *schema.ResourceData) (string, bool, error) {
 }
 
 // copyFiles is used to copy the files from a source to a destination
-func copyFiles(comm communicator.Communicator, src, dst string) error {
+func copyFiles(ctx context.Context, comm communicator.Communicator, src, dst string) error {
+	retryCtx, cancel := context.WithTimeout(ctx, comm.Timeout())
+	defer cancel()
+
 	// Wait and retry until we establish the connection
-	err := retryFunc(comm.Timeout(), func() error {
-		err := comm.Connect(nil)
-		return err
+	err := communicator.Retry(retryCtx, func() error {
+		return comm.Connect(nil)
 	})
 	if err != nil {
 		return err
 	}
-	defer comm.Disconnect()
+
+	// disconnect when the context is canceled, which will close this after
+	// Apply as well.
+	go func() {
+		<-ctx.Done()
+		comm.Disconnect()
+	}()
 
 	info, err := os.Stat(src)
 	if err != nil {
@@ -134,22 +139,4 @@ func copyFiles(comm communicator.Communicator, src, dst string) error {
 		return fmt.Errorf("Upload failed: %v", err)
 	}
 	return err
-}
-
-// retryFunc is used to retry a function for a given duration
-func retryFunc(timeout time.Duration, f func() error) error {
-	finish := time.After(timeout)
-	for {
-		err := f()
-		if err == nil {
-			return nil
-		}
-		log.Printf("Retryable error: %v", err)
-
-		select {
-		case <-finish:
-			return err
-		case <-time.After(3 * time.Second):
-		}
-	}
 }

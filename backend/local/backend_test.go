@@ -23,10 +23,12 @@ func TestLocal_impl(t *testing.T) {
 func TestLocal_backend(t *testing.T) {
 	defer testTmpDir(t)()
 	b := &Local{}
-	backend.TestBackend(t, b, b)
+	backend.TestBackendStates(t, b)
+	backend.TestBackendStateLocks(t, b, b)
 }
 
 func checkState(t *testing.T, path, expected string) {
+	t.Helper()
 	// Read the state
 	f, err := os.Open(path)
 	if err != nil {
@@ -69,7 +71,7 @@ func TestLocal_StatePaths(t *testing.T) {
 	testEnv := "test_env"
 	path, out, back = b.StatePaths(testEnv)
 
-	expectedPath := filepath.Join(DefaultEnvDir, testEnv, DefaultStateFilename)
+	expectedPath := filepath.Join(DefaultWorkspaceDir, testEnv, DefaultStateFilename)
 	expectedOut := expectedPath
 	expectedBackup := expectedPath + DefaultBackupExtension
 
@@ -226,43 +228,6 @@ func TestLocal_multiStateBackend(t *testing.T) {
 
 	if err := b.DeleteState("test"); err != errTestDelegateDeleteState {
 		t.Fatal("expected errTestDelegateDeleteState, got:", err)
-	}
-}
-
-// verify that a remote state backend is always wrapped in a BackupState
-func TestLocal_remoteStateBackup(t *testing.T) {
-	// assign a separate backend to mock a remote state backend
-	b := &Local{
-		Backend: &testDelegateBackend{},
-	}
-
-	s, err := b.State("default")
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	bs, ok := s.(*state.BackupState)
-	if !ok {
-		t.Fatal("remote state is not backed up")
-	}
-
-	if bs.Path != DefaultStateFilename+DefaultBackupExtension {
-		t.Fatal("bad backup location:", bs.Path)
-	}
-
-	// do the same with a named state, which should use the local env directories
-	s, err = b.State("test")
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	bs, ok = s.(*state.BackupState)
-	if !ok {
-		t.Fatal("remote state is not backed up")
-	}
-
-	if bs.Path != filepath.Join(DefaultEnvDir, "test", DefaultStateFilename+DefaultBackupExtension) {
-		t.Fatal("bad backup location:", bs.Path)
 	}
 }
 

@@ -2,7 +2,9 @@ package consul
 
 import (
 	"context"
+	"net"
 	"strings"
+	"time"
 
 	consulapi "github.com/hashicorp/consul/api"
 	"github.com/hashicorp/terraform/backend"
@@ -67,6 +69,27 @@ func New() backend.Backend {
 				Description: "Lock state access",
 				Default:     true,
 			},
+
+			"ca_file": &schema.Schema{
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "A path to a PEM-encoded certificate authority used to verify the remote agent's certificate.",
+				DefaultFunc: schema.EnvDefaultFunc("CONSUL_CACERT", ""),
+			},
+
+			"cert_file": &schema.Schema{
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "A path to a PEM-encoded certificate provided to the remote agent; requires use of key_file.",
+				DefaultFunc: schema.EnvDefaultFunc("CONSUL_CLIENT_CERT", ""),
+			},
+
+			"key_file": &schema.Schema{
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "A path to a PEM-encoded private key, required if cert_file is specified.",
+				DefaultFunc: schema.EnvDefaultFunc("CONSUL_CLIENT_KEY", ""),
+			},
 		},
 	}
 
@@ -79,6 +102,7 @@ type Backend struct {
 	*schema.Backend
 
 	// The fields below are set from configure
+	client     *consulapi.Client
 	configData *schema.ResourceData
 	lock       bool
 }
@@ -90,16 +114,14 @@ func (b *Backend) configure(ctx context.Context) error {
 	// Store the lock information
 	b.lock = b.configData.Get("lock").(bool)
 
-	// Initialize a client to test config
-	_, err := b.clientRaw()
-	return err
-}
-
-func (b *Backend) clientRaw() (*consulapi.Client, error) {
 	data := b.configData
 
 	// Configure the client
 	config := consulapi.DefaultConfig()
+
+	// replace the default Transport Dialer to reduce the KeepAlive
+	config.Transport.DialContext = dialContext
+
 	if v, ok := data.GetOk("access_token"); ok && v.(string) != "" {
 		config.Token = v.(string)
 	}
@@ -112,6 +134,17 @@ func (b *Backend) clientRaw() (*consulapi.Client, error) {
 	if v, ok := data.GetOk("datacenter"); ok && v.(string) != "" {
 		config.Datacenter = v.(string)
 	}
+
+	if v, ok := data.GetOk("ca_file"); ok && v.(string) != "" {
+		config.TLSConfig.CAFile = v.(string)
+	}
+	if v, ok := data.GetOk("cert_file"); ok && v.(string) != "" {
+		config.TLSConfig.CertFile = v.(string)
+	}
+	if v, ok := data.GetOk("key_file"); ok && v.(string) != "" {
+		config.TLSConfig.KeyFile = v.(string)
+	}
+
 	if v, ok := data.GetOk("http_auth"); ok && v.(string) != "" {
 		auth := v.(string)
 
@@ -130,5 +163,18 @@ func (b *Backend) clientRaw() (*consulapi.Client, error) {
 		}
 	}
 
-	return consulapi.NewClient(config)
+	client, err := consulapi.NewClient(config)
+	if err != nil {
+		return err
+	}
+
+	b.client = client
+	return nil
 }
+
+// dialContext is the DialContext function for the consul client transport.
+// This is stored in a package var to inject a different dialer for tests.
+var dialContext = (&net.Dialer{
+	Timeout:   30 * time.Second,
+	KeepAlive: 17 * time.Second,
+}).DialContext

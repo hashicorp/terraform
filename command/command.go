@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"runtime"
 
 	"github.com/hashicorp/terraform/terraform"
-	"github.com/mitchellh/cli"
 )
 
 // Set to true when we're testing
@@ -14,6 +14,18 @@ var test bool = false
 
 // DefaultDataDir is the default directory for storing local data.
 const DefaultDataDir = ".terraform"
+
+// PluginPathFile is the name of the file in the data dir which stores the list
+// of directories supplied by the user with the `-plugin-dir` flag during init.
+const PluginPathFile = "plugin_path"
+
+// pluginMachineName is the directory name used in new plugin paths.
+const pluginMachineName = runtime.GOOS + "_" + runtime.GOARCH
+
+// DefaultPluginVendorDir is the location in the config directory to look for
+// user-added plugin binaries. Terraform only reads from this path if it
+// exists, it is never created by terraform.
+const DefaultPluginVendorDir = "terraform.d/plugins/" + pluginMachineName
 
 // DefaultStateFilename is the default filename used for the state file.
 const DefaultStateFilename = "terraform.tfstate"
@@ -69,39 +81,18 @@ func ModulePath(args []string) (string, error) {
 	return args[0], nil
 }
 
-func validateContext(ctx *terraform.Context, ui cli.Ui) bool {
+func (m *Meta) validateContext(ctx *terraform.Context) bool {
 	log.Println("[INFO] Validating the context...")
-	ws, es := ctx.Validate()
-	log.Printf("[INFO] Validation result: %d warnings, %d errors", len(ws), len(es))
+	diags := ctx.Validate()
+	log.Printf("[INFO] Validation result: %d diagnostics", len(diags))
 
-	if len(ws) > 0 || len(es) > 0 {
-		ui.Output(
+	if len(diags) > 0 {
+		m.Ui.Output(
 			"There are warnings and/or errors related to your configuration. Please\n" +
 				"fix these before continuing.\n")
 
-		if len(ws) > 0 {
-			ui.Warn("Warnings:\n")
-			for _, w := range ws {
-				ui.Warn(fmt.Sprintf("  * %s", w))
-			}
-
-			if len(es) > 0 {
-				ui.Output("")
-			}
-		}
-
-		if len(es) > 0 {
-			ui.Error("Errors:\n")
-			for _, e := range es {
-				ui.Error(fmt.Sprintf("  * %s", e))
-			}
-			return false
-		} else {
-			ui.Warn(fmt.Sprintf("\n"+
-				"No errors found. Continuing with %d warning(s).\n", len(ws)))
-			return true
-		}
+		m.showDiagnostics(diags)
 	}
 
-	return true
+	return !diags.HasErrors()
 }

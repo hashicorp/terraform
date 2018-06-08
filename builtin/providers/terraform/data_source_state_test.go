@@ -63,6 +63,52 @@ func TestState_complexOutputs(t *testing.T) {
 	})
 }
 
+// outputs should never have a null value, but don't crash if we ever encounter
+// them.
+func TestState_nullOutputs(t *testing.T) {
+	resource.UnitTest(t, resource.TestCase{
+		PreCheck:  func() { testAccPreCheck(t) },
+		Providers: testAccProviders,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccState_nullOutputs,
+			},
+		},
+	})
+}
+
+func TestEmptyState_defaults(t *testing.T) {
+	resource.UnitTest(t, resource.TestCase{
+		PreCheck:  func() { testAccPreCheck(t) },
+		Providers: testAccProviders,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccEmptyState_defaults,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckStateValue(
+						"data.terraform_remote_state.foo", "foo", "bar"),
+				),
+			},
+		},
+	})
+}
+
+func TestState_defaults(t *testing.T) {
+	resource.UnitTest(t, resource.TestCase{
+		PreCheck:  func() { testAccPreCheck(t) },
+		Providers: testAccProviders,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccEmptyState_defaults,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckStateValue(
+						"data.terraform_remote_state.foo", "foo", "bar"),
+				),
+			},
+		},
+	})
+}
+
 func testAccCheckStateValue(id, name, value string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[id]
@@ -81,6 +127,27 @@ func testAccCheckStateValue(id, name, value string) resource.TestCheckFunc {
 
 		return nil
 	}
+}
+
+// make sure that the deprecated environment field isn't overridden by the
+// default value for workspace.
+func TestState_deprecatedEnvironment(t *testing.T) {
+	resource.UnitTest(t, resource.TestCase{
+		PreCheck:  func() { testAccPreCheck(t) },
+		Providers: testAccProviders,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccState_deprecatedEnvironment,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckStateValue(
+						// if the workspace default value overrides the
+						// environment, this will get the foo value from the
+						// default state.
+						"data.terraform_remote_state.foo", "foo", ""),
+				),
+			},
+		},
+	})
 }
 
 const testAccState_basic = `
@@ -107,5 +174,50 @@ resource "terraform_remote_state" "foo" {
 
 	config {
 		path = "./test-fixtures/complex_outputs.tfstate"
+	}
+}`
+
+const testAccState_nullOutputs = `
+resource "terraform_remote_state" "foo" {
+	backend = "local"
+
+	config {
+		path = "./test-fixtures/null_outputs.tfstate"
+	}
+}`
+
+const testAccEmptyState_defaults = `
+data "terraform_remote_state" "foo" {
+	backend = "local"
+
+	config {
+		path = "./test-fixtures/empty.tfstate"
+	}
+
+	defaults {
+		foo = "bar"
+	}
+}`
+
+const testAccState_defaults = `
+data "terraform_remote_state" "foo" {
+	backend = "local"
+
+	config {
+		path = "./test-fixtures/basic.tfstate"
+	}
+
+	defaults {
+		foo = "not bar"
+	}
+}`
+
+const testAccState_deprecatedEnvironment = `
+data "terraform_remote_state" "foo" {
+	backend = "local"
+	environment = "deprecated"
+
+	config {
+		path = "./test-fixtures/basic.tfstate"
 	}
 }`

@@ -3,25 +3,35 @@ package remoteexec
 import (
 	"bytes"
 	"context"
-	"errors"
 	"io"
-	"net"
 	"testing"
 	"time"
 
 	"strings"
 
+	"github.com/hashicorp/terraform/communicator"
+	"github.com/hashicorp/terraform/communicator/remote"
 	"github.com/hashicorp/terraform/config"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/terraform"
 )
 
+func TestResourceProvisioner_impl(t *testing.T) {
+	var _ terraform.ResourceProvisioner = Provisioner()
+}
+
+func TestProvisioner(t *testing.T) {
+	if err := Provisioner().(*schema.Provisioner).InternalValidate(); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+}
+
 func TestResourceProvider_Validate_good(t *testing.T) {
 	c := testConfig(t, map[string]interface{}{
 		"inline": "echo foo",
 	})
-	p := Provisioner()
-	warn, errs := p.Validate(c)
+
+	warn, errs := Provisioner().Validate(c)
 	if len(warn) > 0 {
 		t.Fatalf("Warnings: %v", warn)
 	}
@@ -34,8 +44,8 @@ func TestResourceProvider_Validate_bad(t *testing.T) {
 	c := testConfig(t, map[string]interface{}{
 		"invalid": "nope",
 	})
-	p := Provisioner()
-	warn, errs := p.Validate(c)
+
+	warn, errs := Provisioner().Validate(c)
 	if len(warn) > 0 {
 		t.Fatalf("Warnings: %v", warn)
 	}
@@ -50,7 +60,6 @@ exit 0
 `
 
 func TestResourceProvider_generateScript(t *testing.T) {
-	p := Provisioner().(*schema.Provisioner)
 	conf := map[string]interface{}{
 		"inline": []interface{}{
 			"cd /tmp",
@@ -58,8 +67,10 @@ func TestResourceProvider_generateScript(t *testing.T) {
 			"exit 0",
 		},
 	}
-	out, err := generateScripts(schema.TestResourceDataRaw(
-		t, p.Schema, conf))
+
+	out, err := generateScripts(
+		schema.TestResourceDataRaw(t, Provisioner().(*schema.Provisioner).Schema, conf),
+	)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -91,7 +102,6 @@ func TestResourceProvider_generateScriptEmptyInline(t *testing.T) {
 }
 
 func TestResourceProvider_CollectScripts_inline(t *testing.T) {
-	p := Provisioner().(*schema.Provisioner)
 	conf := map[string]interface{}{
 		"inline": []interface{}{
 			"cd /tmp",
@@ -100,8 +110,9 @@ func TestResourceProvider_CollectScripts_inline(t *testing.T) {
 		},
 	}
 
-	scripts, err := collectScripts(schema.TestResourceDataRaw(
-		t, p.Schema, conf))
+	scripts, err := collectScripts(
+		schema.TestResourceDataRaw(t, Provisioner().(*schema.Provisioner).Schema, conf),
+	)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -122,13 +133,13 @@ func TestResourceProvider_CollectScripts_inline(t *testing.T) {
 }
 
 func TestResourceProvider_CollectScripts_script(t *testing.T) {
-	p := Provisioner().(*schema.Provisioner)
 	conf := map[string]interface{}{
 		"script": "test-fixtures/script1.sh",
 	}
 
-	scripts, err := collectScripts(schema.TestResourceDataRaw(
-		t, p.Schema, conf))
+	scripts, err := collectScripts(
+		schema.TestResourceDataRaw(t, Provisioner().(*schema.Provisioner).Schema, conf),
+	)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -149,7 +160,6 @@ func TestResourceProvider_CollectScripts_script(t *testing.T) {
 }
 
 func TestResourceProvider_CollectScripts_scripts(t *testing.T) {
-	p := Provisioner().(*schema.Provisioner)
 	conf := map[string]interface{}{
 		"scripts": []interface{}{
 			"test-fixtures/script1.sh",
@@ -158,8 +168,9 @@ func TestResourceProvider_CollectScripts_scripts(t *testing.T) {
 		},
 	}
 
-	scripts, err := collectScripts(schema.TestResourceDataRaw(
-		t, p.Schema, conf))
+	scripts, err := collectScripts(
+		schema.TestResourceDataRaw(t, Provisioner().(*schema.Provisioner).Schema, conf),
+	)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -199,34 +210,60 @@ func TestResourceProvider_CollectScripts_scriptsEmpty(t *testing.T) {
 	}
 }
 
-func TestRetryFunc(t *testing.T) {
-	// succeed on the third try
-	errs := []error{io.EOF, &net.OpError{Err: errors.New("ERROR")}, nil}
-	count := 0
+func TestProvisionerTimeout(t *testing.T) {
+	o := new(terraform.MockUIOutput)
+	c := new(communicator.MockCommunicator)
 
-	err := retryFunc(context.Background(), time.Second, func() error {
-		if count >= len(errs) {
-			return errors.New("failed to stop after nil error")
-		}
-
-		err := errs[count]
-		count++
-
-		return err
-	})
-
-	if count != 3 {
-		t.Fatal("retry func should have been called 3 times")
+	disconnected := make(chan struct{})
+	c.DisconnectFunc = func() error {
+		close(disconnected)
+		return nil
 	}
 
+	completed := make(chan struct{})
+	c.CommandFunc = func(cmd *remote.Cmd) error {
+		defer close(completed)
+		cmd.Init()
+		time.Sleep(2 * time.Second)
+		cmd.SetExitStatus(0, nil)
+		return nil
+	}
+	c.ConnTimeout = time.Second
+	c.UploadScripts = map[string]string{"hello": "echo hello"}
+	c.RemoteScriptPath = "hello"
+
+	p := Provisioner().(*schema.Provisioner)
+	conf := map[string]interface{}{
+		"inline": []interface{}{"echo hello"},
+	}
+
+	scripts, err := collectScripts(schema.TestResourceDataRaw(
+		t, p.Schema, conf))
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	ctx := context.Background()
+
+	done := make(chan struct{})
+
+	go func() {
+		defer close(done)
+		if err := runScripts(ctx, o, c, scripts); err != nil {
+			t.Fatal(err)
+		}
+	}()
+
+	select {
+	case <-disconnected:
+		t.Fatal("communicator disconnected before command completed")
+	case <-completed:
+	}
+
+	<-done
 }
 
-func testConfig(
-	t *testing.T,
-	c map[string]interface{}) *terraform.ResourceConfig {
+func testConfig(t *testing.T, c map[string]interface{}) *terraform.ResourceConfig {
 	r, err := config.NewRawConfig(c)
 	if err != nil {
 		t.Fatalf("bad: %s", err)

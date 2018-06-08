@@ -12,19 +12,19 @@
 // Repositories, by calling the following:
 //
 //    * BatchGetRepositories, which returns information about one or more repositories
-//    associated with your AWS account
+//    associated with your AWS account.
 //
-//    * CreateRepository, which creates an AWS CodeCommit repository
+//    * CreateRepository, which creates an AWS CodeCommit repository.
 //
-//    * DeleteRepository, which deletes an AWS CodeCommit repository
+//    * DeleteRepository, which deletes an AWS CodeCommit repository.
 //
-//    * GetRepository, which returns information about a specified repository
+//    * GetRepository, which returns information about a specified repository.
 //
 //    * ListRepositories, which lists all AWS CodeCommit repositories associated
-//    with your AWS account
+//    with your AWS account.
 //
 //    * UpdateRepositoryDescription, which sets or updates the description of
-//    the repository
+//    the repository.
 //
 //    * UpdateRepositoryName, which changes the name of the repository. If you
 //    change the name of a repository, no other users of that repository will
@@ -32,36 +32,88 @@
 //
 // Branches, by calling the following:
 //
-//    * CreateBranch, which creates a new branch in a specified repository
+//    * CreateBranch, which creates a new branch in a specified repository.
 //
-//    * GetBranch, which returns information about a specified branch
+//    * DeleteBranch, which deletes the specified branch in a repository unless
+//    it is the default branch.
 //
-//    * ListBranches, which lists all branches for a specified repository
+//    * GetBranch, which returns information about a specified branch.
 //
-//    * UpdateDefaultBranch, which changes the default branch for a repository
+//    * ListBranches, which lists all branches for a specified repository.
+//
+//    * UpdateDefaultBranch, which changes the default branch for a repository.
 //
 // Information about committed code in a repository, by calling the following:
 //
 //    * GetBlob, which returns the base-64 encoded content of an individual
-//    Git blob object within a repository
+//    Git blob object within a repository.
 //
 //    * GetCommit, which returns information about a commit, including commit
-//    messages and author and committer information
+//    messages and author and committer information.
 //
 //    * GetDifferences, which returns information about the differences in a
 //    valid commit specifier (such as a branch, tag, HEAD, commit ID or other
-//    fully qualified reference)
+//    fully qualified reference).
+//
+// Pull requests, by calling the following:
+//
+//    * CreatePullRequest, which creates a pull request in a specified repository.
+//
+//    * DescribePullRequestEvents, which returns information about one or more
+//    pull request events.
+//
+//    * GetCommentsForPullRequest, which returns information about comments
+//    on a specified pull request.
+//
+//    * GetMergeConflicts, which returns information about merge conflicts between
+//    the source and destination branch in a pull request.
+//
+//    * GetPullRequest, which returns information about a specified pull request.
+//
+//    * ListPullRequests, which lists all pull requests for a repository.
+//
+//    * MergePullRequestByFastForward, which merges the source destination branch
+//    of a pull request into the specified destination branch for that pull
+//    request using the fast-forward merge option.
+//
+//    * PostCommentForPullRequest, which posts a comment to a pull request at
+//    the specified line, file, or request.
+//
+//    * UpdatePullRequestDescription, which updates the description of a pull
+//    request.
+//
+//    * UpdatePullRequestStatus, which updates the status of a pull request.
+//
+//    * UpdatePullRequestTitle, which updates the title of a pull request.
+//
+// Information about comments in a repository, by calling the following:
+//
+//    * DeleteCommentContent, which deletes the content of a comment on a commit
+//    in a repository.
+//
+//    * GetComment, which returns information about a comment on a commit.
+//
+//    * GetCommentsForComparedCommit, which returns information about comments
+//    on the comparison between two commit specifiers in a repository.
+//
+//    * PostCommentForComparedCommit, which creates a comment on the comparison
+//    between two commit specifiers in a repository.
+//
+//    * PostCommentReply, which creates a reply to a comment.
+//
+//    * UpdateComment, which updates the content of a comment on a commit in
+//    a repository.
 //
 // Triggers, by calling the following:
 //
 //    * GetRepositoryTriggers, which returns information about triggers configured
-//    for a repository
+//    for a repository.
 //
 //    * PutRepositoryTriggers, which replaces all triggers for a repository
-//    and can be used to create or delete triggers
+//    and can be used to create or delete triggers.
 //
 //    * TestRepositoryTriggers, which tests the functionality of a repository
-//    trigger by sending data to the trigger target
+//    trigger by sending data to the trigger target.
 //
 // For information about how to use AWS CodeCommit, see the AWS CodeCommit User
 // Guide (http://docs.aws.amazon.com/codecommit/latest/userguide/welcome.html).
@@ -73,69 +125,17 @@
 //
 // Using the Client
 //
-// To use the client for AWS CodeCommit you will first need
-// to create a new instance of it.
+// To contact AWS CodeCommit with the SDK use the New function to create
+// a new service client. With that client you can make API requests to the service.
+// These clients are safe to use concurrently.
 //
-// When creating a client for an AWS service you'll first need to have a Session
-// already created. The Session provides configuration that can be shared
-// between multiple service clients. Additional configuration can be applied to
-// the Session and service's client when they are constructed. The aws package's
-// Config type contains several fields such as Region for the AWS Region the
-// client should make API requests too. The optional Config value can be provided
-// as the variadic argument for Sessions and client creation.
-//
-// Once the service's client is created you can use it to make API requests the
-// AWS service. These clients are safe to use concurrently.
-//
-//   // Create a session to share configuration, and load external configuration.
-//   sess := session.Must(session.NewSession())
-//
-//   // Create the service's client with the session.
-//   svc := codecommit.New(sess)
-//
-// See the SDK's documentation for more information on how to use service clients.
+// See the SDK's documentation for more information on how to use the SDK.
 // https://docs.aws.amazon.com/sdk-for-go/api/
 //
-// See aws package's Config type for more information on configuration options.
+// See aws.Config documentation for more information on configuring SDK clients.
 // https://docs.aws.amazon.com/sdk-for-go/api/aws/#Config
 //
 // See the AWS CodeCommit client CodeCommit for more
-// information on creating the service's client.
+// information on creating client for this service.
 // https://docs.aws.amazon.com/sdk-for-go/api/service/codecommit/#New
-//
-// Once the client is created you can make an API request to the service.
-// Each API method takes a input parameter, and returns the service response
-// and an error.
-//
-// The API method will document which error codes the service can be returned
-// by the operation if the service models the API operation's errors. These
-// errors will also be available as const strings prefixed with "ErrCode".
-//
-//   result, err := svc.BatchGetRepositories(params)
-//   if err != nil {
-//       // Cast err to awserr.Error to handle specific error codes.
-//       aerr, ok := err.(awserr.Error)
-//       if ok && aerr.Code() == <error code to check for> {
-//           // Specific error code handling
-//       }
-//       return err
-//   }
-//
-//   fmt.Println("BatchGetRepositories result:")
-//   fmt.Println(result)
-//
-// Using the Client with Context
-//
-// The service's client also provides methods to make API requests with a Context
-// value. This allows you to control the timeout, and cancellation of pending
-// requests. These methods also take request Option as variadic parameter to apply
-// additional configuration to the API request.
-//
-//   ctx := context.Background()
-//
-//   result, err := svc.BatchGetRepositoriesWithContext(ctx, params)
-//
-// See the request package documentation for more information on using Context pattern
-// with the SDK.
-// https://docs.aws.amazon.com/sdk-for-go/api/aws/request/
 package codecommit

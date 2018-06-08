@@ -14,7 +14,7 @@ const (
 	// ErrCodeInvalidArgumentException for service response error code
 	// "InvalidArgumentException".
 	//
-	// The specified input parameter has an value that is not valid.
+	// The specified input parameter has a value that is not valid.
 	ErrCodeInvalidArgumentException = "InvalidArgumentException"
 
 	// ErrCodeLimitExceededException for service response error code

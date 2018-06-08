@@ -1,0 +1,146 @@
+---
+layout: "downloads"
+page_title: "Upgrading to Terraform 0.10"
+sidebar_current: "upgrade-guides-0-10"
+description: |-
+  Upgrading to Terraform v0.10
+---
+
+# Upgrading to Terraform v0.10
+
+Terraform v0.10 is a major release and thus includes some changes that
+you'll need to consider when upgrading. This guide is intended to help with
+that process.
+
+The goal of this guide is to cover the most common upgrade concerns and
+issues that would benefit from more explanation and background. The exhaustive
+list of changes will always be the
+[Terraform Changelog](https://github.com/hashicorp/terraform/blob/master/CHANGELOG.md).
+After reviewing this guide, we recommend reviewing the Changelog to check on
+specific notes about the resources and providers you use.
+
+This guide focuses on changes from v0.9 to v0.10. Each previous major release
+has its own upgrade guide, so please consult the other guides (available
+in the navigation) if you are upgrading directly from an earlier version.
+
+## Separated Provider Plugins
+
+As of v0.10, provider plugins are no longer included in the main Terraform
+distribution. Instead, they are distributed separately and installed
+automatically by
+[the `terraform init` command](/docs/commands/init.html).
+
+In the long run, this new approach should be beneficial to anyone who wishes
+to upgrade a specific provider to get new functionality without also
+upgrading another provider that may have introduced incompatible changes.
+In the short term, it just means a smaller distribution package and thus
+avoiding the need to download tens of providers that may never be used.
+
+Provider plugins are now also versioned separately from Terraform itself.
+[Version constraints](/docs/configuration/providers.html#provider-versions)
+can be specified in configuration to ensure that new major releases
+(which may have breaking changes) are not automatically installed.
+
+**Action:** After upgrading, run `terraform init` in each Terraform
+configuration working directory to install the necessary provider plugins.
+If running Terraform in automation, this command should be run as the first
+step after a Terraform configuration is cloned from version control, and
+will also install any necessary modules and configure any remote backend.
+
+**Action:** For "production" configurations, consider adding
+[provider version constraints](/docs/configuration/providers.html#provider-versions),
+as suggested by the `terraform init` output, to prevent new major versions
+of plugins from being automatically installed in future.
+
+### Third-party Provider Plugins
+
+This initial release of separated provider plugins applies only to the
+providers that are packaged and released by Hashicorp. The goal is to
+eventually support a similar approach for third-party plugins, but we wish
+to ensure the robustness of the installation and versioning mechanisms before
+generalizing this feature.
+
+In the mean time,
+[the prior mechanisms for installing third-party providers](/docs/plugins/basics.html#installing-a-plugin)
+are still supported. Maintainers of third-party providers may optionally
+make use of the new versioning mechanism by naming provider binaries
+using the scheme `terraform-provider-NAME_v0.0.1`, where "0.0.1" is an
+example version. Terraform expects providers to follow the
+[semantic versioning](http://semver.org/) methodology.
+
+Although third-party providers with versions cannot currently be automatically
+installed, Terraform 0.10 _will_ verify that the installed version matches the
+constraints in configuration and produce an error if an acceptable version
+is unavailable.
+
+**Action:** No immediate action required, but third-party plugin maintainers
+may optionally begin using version numbers in their binary distributions to
+help users deal with changes over time.
+
+## Recursive Module Targeting with `-target`
+
+It is possible to target all of the resources in a particular module by passing
+a module address to the `-target` argument:
+
+```
+$ terraform plan -out=tfplan -target=module.example
+```
+
+Prior to 0.10, this command would target only the resources _directly_ in
+the given module. As of 0.10, this behavior has changed such that the above
+command also targets resources in _descendent_ modules.
+
+For example, if `module.example` contains a module itself, called
+`module.examplechild`, the above command will target resources in both
+`module.example` _and_ `module.example.module.examplechild`.
+
+This also applies to other Terraform features that use
+[resource addressing](/docs/internals/resource-addressing.html) syntax.
+This includes some of the subcommands of
+[`terraform state`](/docs/commands/state/index.html).
+
+**Action:** If running Terraform with `-target` in automation, review usage
+to ensure that selecting additional resources in child modules will not have
+ill effects. Be sure to review plan output when `-target` is used to verify
+that only the desired resources have been targeted for operations. Please
+note that it is not recommended to routinely use `-target`; it is provided for
+exceptional uses and manual intervention.
+
+## Interactive Approval in `terraform apply`
+
+Starting with Terraform 0.10 `terraform apply` has a new mode where it will
+present the plan, pause for interactive confirmation, and then apply the
+plan only if confirmed. This is intended to get similar benefits to separately
+running `terraform plan`, but to streamline the workflow for interactive
+command-line use.
+
+For 0.10 this feature is disabled by default, to avoid breaking any wrapper
+scripts that are expecting the old behavior. To opt-in to this behavior,
+pass `-auto-approve=false` when running `terraform apply` without an explicit
+plan file.
+
+It is planned that a future version of Terraform will make this behavior the
+default. Although no immediate action is required, we strongly recommend
+adjusting any Terraform automation or wrapper scripts to prepare for this
+upcoming change in behavior, in the following ways:
+
+* Non-interative automation around production systems should _always_
+  separately run `terraform plan -out=tfplan` and then (after approval)
+  `terraform apply tfplan`, to ensure operators have a chance to review
+  the plan before applying it.
+
+* If running `terraform apply` _without_ a plan file in automation for
+  a _non-production_ system, add `-auto-approve=true` to the command line
+  soon, to preserve the current 0.10 behavior once auto-approval is no longer
+  enabled by default.
+
+We are using a staged deprecation for this change because we are aware that
+many teams use Terraform in wrapper scripts and automation, and we wish to
+ensure that such teams have an opportunity to update those tools in preparation
+for the future change in behavior.
+
+**Action:** 0.10 preserves the previous behavior as the default, so no
+immediate action is required. However, maintainers of tools that wrap
+Terraform, either in automation or in alternative command-line UI, should
+consider which behavior is appropriate for their use-case and explicitly
+set the `-auto-approve=...` flag to ensure that behavior in future versions.

@@ -1,8 +1,9 @@
 package soap
 
 import (
-	"github.com/masterzen/simplexml/dom"
 	"strconv"
+
+	"github.com/masterzen/simplexml/dom"
 )
 
 type HeaderOption struct {
@@ -99,62 +100,62 @@ func (self *SoapHeader) Options(options []HeaderOption) *SoapHeader {
 }
 
 func (self *SoapHeader) Build() *SoapMessage {
-	header := self.createElement(self.message.envelope, "Header", NS_SOAP_ENV)
+	header := self.createElement(self.message.envelope, "Header", DOM_NS_SOAP_ENV)
 
 	if self.to != "" {
-		to := self.createElement(header, "To", NS_ADDRESSING)
+		to := self.createElement(header, "To", DOM_NS_ADDRESSING)
 		to.SetContent(self.to)
 	}
 
 	if self.replyTo != "" {
-		replyTo := self.createElement(header, "ReplyTo", NS_ADDRESSING)
-		a := self.createMUElement(replyTo, "Address", NS_ADDRESSING, true)
+		replyTo := self.createElement(header, "ReplyTo", DOM_NS_ADDRESSING)
+		a := self.createMUElement(replyTo, "Address", DOM_NS_ADDRESSING, true)
 		a.SetContent(self.replyTo)
 	}
 
 	if self.maxEnvelopeSize != "" {
-		envelope := self.createMUElement(header, "MaxEnvelopeSize", NS_WSMAN_DMTF, true)
+		envelope := self.createMUElement(header, "MaxEnvelopeSize", DOM_NS_WSMAN_DMTF, true)
 		envelope.SetContent(self.maxEnvelopeSize)
 	}
 
 	if self.timeout != "" {
-		timeout := self.createElement(header, "OperationTimeout", NS_WSMAN_DMTF)
+		timeout := self.createElement(header, "OperationTimeout", DOM_NS_WSMAN_DMTF)
 		timeout.SetContent(self.timeout)
 	}
 
 	if self.id != "" {
-		id := self.createElement(header, "MessageID", NS_ADDRESSING)
+		id := self.createElement(header, "MessageID", DOM_NS_ADDRESSING)
 		id.SetContent(self.id)
 	}
 
 	if self.locale != "" {
-		locale := self.createMUElement(header, "Locale", NS_WSMAN_DMTF, false)
+		locale := self.createMUElement(header, "Locale", DOM_NS_WSMAN_DMTF, false)
 		locale.SetAttr("xml:lang", self.locale)
-		datalocale := self.createMUElement(header, "DataLocale", NS_WSMAN_MSFT, false)
+		datalocale := self.createMUElement(header, "DataLocale", DOM_NS_WSMAN_MSFT, false)
 		datalocale.SetAttr("xml:lang", self.locale)
 	}
 
 	if self.action != "" {
-		action := self.createMUElement(header, "Action", NS_ADDRESSING, true)
+		action := self.createMUElement(header, "Action", DOM_NS_ADDRESSING, true)
 		action.SetContent(self.action)
 	}
 
 	if self.shellId != "" {
-		selectorSet := self.createElement(header, "SelectorSet", NS_WSMAN_DMTF)
-		selector := self.createElement(selectorSet, "Selector", NS_WSMAN_DMTF)
+		selectorSet := self.createElement(header, "SelectorSet", DOM_NS_WSMAN_DMTF)
+		selector := self.createElement(selectorSet, "Selector", DOM_NS_WSMAN_DMTF)
 		selector.SetAttr("Name", "ShellId")
 		selector.SetContent(self.shellId)
 	}
 
 	if self.resourceURI != "" {
-		resource := self.createMUElement(header, "ResourceURI", NS_WSMAN_DMTF, true)
+		resource := self.createMUElement(header, "ResourceURI", DOM_NS_WSMAN_DMTF, true)
 		resource.SetContent(self.resourceURI)
 	}
 
 	if len(self.options) > 0 {
-		set := self.createElement(header, "OptionSet", NS_WSMAN_DMTF)
+		set := self.createElement(header, "OptionSet", DOM_NS_WSMAN_DMTF)
 		for _, option := range self.options {
-			e := self.createElement(set, "Option", NS_WSMAN_DMTF)
+			e := self.createElement(set, "Option", DOM_NS_WSMAN_DMTF)
 			e.SetAttr("Name", option.key)
 			e.SetContent(option.value)
 		}

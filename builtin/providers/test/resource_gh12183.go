@@ -47,7 +47,7 @@ func testResourceGH12183() *schema.Resource {
 
 func testResourceCreate_gh12183(d *schema.ResourceData, meta interface{}) error {
 	d.SetId("testId")
-	return testResourceRead(d, meta)
+	return testResourceRead_gh12183(d, meta)
 }
 
 func testResourceRead_gh12183(d *schema.ResourceData, meta interface{}) error {

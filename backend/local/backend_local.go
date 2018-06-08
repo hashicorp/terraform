@@ -1,12 +1,16 @@
 package local
 
 import (
-	"fmt"
+	"context"
+	"errors"
 	"log"
-	"strings"
+
+	"github.com/hashicorp/terraform/command/clistate"
+	"github.com/hashicorp/terraform/command/format"
+
+	"github.com/hashicorp/terraform/tfdiags"
 
 	"github.com/hashicorp/errwrap"
-	"github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/state"
 	"github.com/hashicorp/terraform/terraform"
@@ -18,14 +22,24 @@ func (b *Local) Context(op *backend.Operation) (*terraform.Context, state.State,
 	// to ask for input/validate.
 	op.Type = backend.OperationTypeInvalid
 
+	if op.LockState {
+		op.StateLocker = clistate.NewLocker(context.Background(), op.StateLockTimeout, b.CLI, b.Colorize())
+	} else {
+		op.StateLocker = clistate.NewNoopLocker()
+	}
+
 	return b.context(op)
 }
 
 func (b *Local) context(op *backend.Operation) (*terraform.Context, state.State, error) {
 	// Get the state.
-	s, err := b.State(op.Environment)
+	s, err := b.State(op.Workspace)
 	if err != nil {
 		return nil, nil, errwrap.Wrapf("Error loading state: {{err}}", err)
+	}
+
+	if err := op.StateLocker.Lock(s, op.Type.String()); err != nil {
+		return nil, nil, errwrap.Wrapf("Error locking state: {{err}}", err)
 	}
 
 	if err := s.RefreshState(); err != nil {
@@ -48,6 +62,10 @@ func (b *Local) context(op *backend.Operation) (*terraform.Context, state.State,
 	}
 
 	// Load our state
+	// By the time we get here, the backend creation code in "command" took
+	// care of making s.State() return a state compatible with our plan,
+	// if any, so we can safely pass this value in both the plan context
+	// and new context cases below.
 	opts.State = s.State()
 
 	// Build the context
@@ -57,6 +75,15 @@ func (b *Local) context(op *backend.Operation) (*terraform.Context, state.State,
 	} else {
 		tfCtx, err = terraform.NewContext(&opts)
 	}
+
+	// any errors resolving plugins returns this
+	if rpe, ok := err.(*terraform.ResourceProviderError); ok {
+		b.pluginInitRequired(rpe)
+		// we wrote the full UI error here, so return a generic error for flow
+		// control in the command.
+		return nil, nil, errors.New("error satisfying plugin requirements")
+	}
+
 	if err != nil {
 		return nil, nil, err
 	}
@@ -77,27 +104,31 @@ func (b *Local) context(op *backend.Operation) (*terraform.Context, state.State,
 
 		// If validation is enabled, validate
 		if b.OpValidation {
-			// We ignore warnings here on purpose. We expect users to be listening
-			// to the terraform.Hook called after a validation.
-			ws, es := tfCtx.Validate()
-			if len(ws) > 0 {
-				// Log just in case the CLI isn't enabled
-				log.Printf("[WARN] backend/local: %d warnings: %v", len(ws), ws)
-
-				// If we have a CLI, output the warnings
-				if b.CLI != nil {
-					b.CLI.Warn(strings.TrimSpace(validateWarnHeader) + "\n")
-					for _, w := range ws {
-						b.CLI.Warn(fmt.Sprintf("  * %s", w))
-					}
-
-					// Make a newline before continuing
-					b.CLI.Output("")
+			diags := tfCtx.Validate()
+			if len(diags) > 0 {
+				if diags.HasErrors() {
+					// If there are warnings _and_ errors then we'll take this
+					// path and return them all together in this error.
+					return nil, nil, diags.Err()
 				}
-			}
 
-			if len(es) > 0 {
-				return nil, nil, multierror.Append(nil, es...)
+				// For now we can't propagate warnings any further without
+				// printing them directly to the UI, so we'll need to
+				// format them here ourselves.
+				for _, diag := range diags {
+					if diag.Severity() != tfdiags.Warning {
+						continue
+					}
+					if b.CLI != nil {
+						b.CLI.Warn(format.Diagnostic(diag, b.Colorize(), 72))
+					} else {
+						desc := diag.Description()
+						log.Printf("[WARN] backend/local: %s", desc.Summary)
+					}
+				}
+
+				// Make a newline before continuing
+				b.CLI.Output("")
 			}
 		}
 	}

@@ -19,7 +19,10 @@ type ShowCommand struct {
 func (c *ShowCommand) Run(args []string) int {
 	var moduleDepth int
 
-	args = c.Meta.process(args, false)
+	args, err := c.Meta.process(args, false)
+	if err != nil {
+		return 1
+	}
 
 	cmdFlags := flag.NewFlagSet("show", flag.ContinueOnError)
 	c.addModuleDepthFlag(cmdFlags, &moduleDepth)
@@ -74,7 +77,7 @@ func (c *ShowCommand) Run(args []string) int {
 			return 1
 		}
 
-		env := c.Env()
+		env := c.Workspace()
 
 		// Get the state
 		stateStore, err := b.State(env)
@@ -107,11 +110,8 @@ func (c *ShowCommand) Run(args []string) int {
 	}
 
 	if plan != nil {
-		c.Ui.Output(format.Plan(&format.PlanOpts{
-			Plan:        plan,
-			Color:       c.Colorize(),
-			ModuleDepth: moduleDepth,
-		}))
+		dispPlan := format.NewPlan(plan)
+		c.Ui.Output(dispPlan.Format(c.Colorize()))
 		return 0
 	}
 

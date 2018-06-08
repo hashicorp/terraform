@@ -21,43 +21,32 @@ func (t *OrphanOutputTransformer) Transform(g *Graph) error {
 		return nil
 	}
 
-	return t.transform(g, t.Module)
-}
-
-func (t *OrphanOutputTransformer) transform(g *Graph, m *module.Tree) error {
-	// Get our configuration, and recurse into children
-	var c *config.Config
-	if m != nil {
-		c = m.Config()
-		for _, child := range m.Children() {
-			if err := t.transform(g, child); err != nil {
-				return err
-			}
+	for _, ms := range t.State.Modules {
+		if err := t.transform(g, ms); err != nil {
+			return err
 		}
 	}
+	return nil
+}
 
-	// Get the state. If there is no state, then we have no orphans!
-	path := normalizeModulePath(m.Path())
-	state := t.State.ModuleByPath(path)
-	if state == nil {
+func (t *OrphanOutputTransformer) transform(g *Graph, ms *ModuleState) error {
+	if ms == nil {
 		return nil
 	}
 
-	// Make a map of the valid outputs
-	valid := make(map[string]struct{})
-	for _, o := range c.Outputs {
-		valid[o.Name] = struct{}{}
+	path := normalizeModulePath(ms.Path)
+
+	// Get the config for this path, which is nil if the entire module has been
+	// removed.
+	var c *config.Config
+	if m := t.Module.Child(path[1:]); m != nil {
+		c = m.Config()
 	}
 
-	// Go through the outputs and find the ones that aren't in our config.
-	for n, _ := range state.Outputs {
-		// If it is in the valid map, then ignore
-		if _, ok := valid[n]; ok {
-			continue
-		}
-
-		// Orphan!
+	// add all the orphaned outputs to the graph
+	for _, n := range ms.RemovedOutputs(c) {
 		g.Add(&NodeOutputOrphan{OutputName: n, PathValue: path})
+
 	}
 
 	return nil

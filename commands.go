@@ -1,12 +1,22 @@
 package main
 
 import (
+	"log"
 	"os"
 	"os/signal"
 
 	"github.com/hashicorp/terraform/command"
+	pluginDiscovery "github.com/hashicorp/terraform/plugin/discovery"
+	"github.com/hashicorp/terraform/svchost"
+	"github.com/hashicorp/terraform/svchost/auth"
+	"github.com/hashicorp/terraform/svchost/disco"
 	"github.com/mitchellh/cli"
 )
+
+// runningInAutomationEnvName gives the name of an environment variable that
+// can be set to any non-empty value in order to suppress certain messages
+// that assume that Terraform is being run from a command prompt.
+const runningInAutomationEnvName = "TF_IN_AUTOMATION"
 
 // Commands is the mapping of all the available Terraform commands.
 var Commands map[string]cli.CommandFactory
@@ -20,19 +30,41 @@ const (
 	OutputPrefix = "o:"
 )
 
-func init() {
-	Ui = &cli.PrefixedUi{
-		AskPrefix:    OutputPrefix,
-		OutputPrefix: OutputPrefix,
-		InfoPrefix:   OutputPrefix,
-		ErrorPrefix:  ErrorPrefix,
-		Ui:           &cli.BasicUi{Writer: os.Stdout},
+func initCommands(config *Config) {
+	var inAutomation bool
+	if v := os.Getenv(runningInAutomationEnvName); v != "" {
+		inAutomation = true
 	}
 
+	credsSrc := credentialsSource(config)
+	services := disco.NewDisco()
+	services.SetCredentialsSource(credsSrc)
+	for userHost, hostConfig := range config.Hosts {
+		host, err := svchost.ForComparison(userHost)
+		if err != nil {
+			// We expect the config was already validated by the time we get
+			// here, so we'll just ignore invalid hostnames.
+			continue
+		}
+		services.ForceHostServices(host, hostConfig.Services)
+	}
+
+	dataDir := os.Getenv("TF_DATA_DIR")
+
 	meta := command.Meta{
-		Color:       true,
-		ContextOpts: &ContextOpts,
-		Ui:          Ui,
+		Color:            true,
+		GlobalPluginDirs: globalPluginDirs(),
+		PluginOverrides:  &PluginOverrides,
+		Ui:               Ui,
+
+		Services:    services,
+		Credentials: credsSrc,
+
+		RunningInAutomation: inAutomation,
+		PluginCacheDir:      config.PluginCacheDir,
+		OverrideDataDir:     dataDir,
+
+		ShutdownCh: makeShutdownCh(),
 	}
 
 	// The command list is included in the terraform -help
@@ -50,53 +82,55 @@ func init() {
 	Commands = map[string]cli.CommandFactory{
 		"apply": func() (cli.Command, error) {
 			return &command.ApplyCommand{
-				Meta:       meta,
-				ShutdownCh: makeShutdownCh(),
+				Meta: meta,
 			}, nil
 		},
 
 		"console": func() (cli.Command, error) {
 			return &command.ConsoleCommand{
-				Meta:       meta,
-				ShutdownCh: makeShutdownCh(),
+				Meta: meta,
 			}, nil
 		},
 
 		"destroy": func() (cli.Command, error) {
 			return &command.ApplyCommand{
-				Meta:       meta,
-				Destroy:    true,
-				ShutdownCh: makeShutdownCh(),
+				Meta:    meta,
+				Destroy: true,
 			}, nil
 		},
 
 		"env": func() (cli.Command, error) {
-			return &command.EnvCommand{
-				Meta: meta,
+			return &command.WorkspaceCommand{
+				Meta:       meta,
+				LegacyName: true,
 			}, nil
 		},
 
 		"env list": func() (cli.Command, error) {
-			return &command.EnvListCommand{
-				Meta: meta,
+			return &command.WorkspaceListCommand{
+				Meta:       meta,
+				LegacyName: true,
 			}, nil
 		},
 
 		"env select": func() (cli.Command, error) {
-			return &command.EnvSelectCommand{
-				Meta: meta,
+			return &command.WorkspaceSelectCommand{
+				Meta:       meta,
+				LegacyName: true,
 			}, nil
 		},
 
 		"env new": func() (cli.Command, error) {
-			return &command.EnvNewCommand{
-				Meta: meta,
+			return &command.WorkspaceNewCommand{
+				Meta:       meta,
+				LegacyName: true,
 			}, nil
 		},
 
 		"env delete": func() (cli.Command, error) {
-			return &command.EnvDeleteCommand{
-				Meta: meta,
+			return &command.WorkspaceDeleteCommand{
+				Meta:       meta,
+				LegacyName: true,
 			}, nil
 		},
 
@@ -148,6 +182,12 @@ func init() {
 			}, nil
 		},
 
+		"providers": func() (cli.Command, error) {
+			return &command.ProvidersCommand{
+				Meta: meta,
+			}, nil
+		},
+
 		"push": func() (cli.Command, error) {
 			return &command.PushCommand{
 				Meta: meta,
@@ -194,6 +234,42 @@ func init() {
 			}, nil
 		},
 
+		"workspace": func() (cli.Command, error) {
+			return &command.WorkspaceCommand{
+				Meta: meta,
+			}, nil
+		},
+
+		"workspace list": func() (cli.Command, error) {
+			return &command.WorkspaceListCommand{
+				Meta: meta,
+			}, nil
+		},
+
+		"workspace select": func() (cli.Command, error) {
+			return &command.WorkspaceSelectCommand{
+				Meta: meta,
+			}, nil
+		},
+
+		"workspace show": func() (cli.Command, error) {
+			return &command.WorkspaceShowCommand{
+				Meta: meta,
+			}, nil
+		},
+
+		"workspace new": func() (cli.Command, error) {
+			return &command.WorkspaceNewCommand{
+				Meta: meta,
+			}, nil
+		},
+
+		"workspace delete": func() (cli.Command, error) {
+			return &command.WorkspaceDeleteCommand{
+				Meta: meta,
+			}, nil
+		},
+
 		//-----------------------------------------------------------
 		// Plumbing
 		//-----------------------------------------------------------
@@ -228,13 +304,17 @@ func init() {
 
 		"state rm": func() (cli.Command, error) {
 			return &command.StateRmCommand{
-				Meta: meta,
+				StateMeta: command.StateMeta{
+					Meta: meta,
+				},
 			}, nil
 		},
 
 		"state mv": func() (cli.Command, error) {
 			return &command.StateMvCommand{
-				Meta: meta,
+				StateMeta: command.StateMeta{
+					Meta: meta,
+				},
 			}, nil
 		},
 
@@ -274,4 +354,46 @@ func makeShutdownCh() <-chan struct{} {
 	}()
 
 	return resultCh
+}
+
+func credentialsSource(config *Config) auth.CredentialsSource {
+	creds := auth.NoCredentials
+	if len(config.Credentials) > 0 {
+		staticTable := map[svchost.Hostname]map[string]interface{}{}
+		for userHost, creds := range config.Credentials {
+			host, err := svchost.ForComparison(userHost)
+			if err != nil {
+				// We expect the config was already validated by the time we get
+				// here, so we'll just ignore invalid hostnames.
+				continue
+			}
+			staticTable[host] = creds
+		}
+		creds = auth.StaticCredentialsSource(staticTable)
+	}
+
+	for helperType, helperConfig := range config.CredentialsHelpers {
+		log.Printf("[DEBUG] Searching for credentials helper named %q", helperType)
+		available := pluginDiscovery.FindPlugins("credentials", globalPluginDirs())
+		available = available.WithName(helperType)
+		if available.Count() == 0 {
+			log.Printf("[ERROR] Unable to find credentials helper %q; ignoring", helperType)
+			break
+		}
+
+		selected := available.Newest()
+
+		helperSource := auth.HelperProgramCredentialsSource(selected.Path, helperConfig.Args...)
+		creds = auth.Credentials{
+			creds,
+			auth.CachingCredentialsSource(helperSource), // cached because external operation may be slow/expensive
+		}
+
+		// There should only be zero or one "credentials_helper" blocks. We
+		// assume that the config was validated earlier and so we don't check
+		// for extras here.
+		break
+	}
+
+	return creds
 }

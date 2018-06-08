@@ -6,8 +6,10 @@ import (
 	"strings"
 
 	"github.com/hashicorp/terraform/backend"
+	"github.com/hashicorp/terraform/config"
 	"github.com/hashicorp/terraform/helper/wrappedstreams"
 	"github.com/hashicorp/terraform/repl"
+	"github.com/hashicorp/terraform/tfdiags"
 
 	"github.com/mitchellh/cli"
 )
@@ -16,13 +18,14 @@ import (
 // configuration and actually builds or changes infrastructure.
 type ConsoleCommand struct {
 	Meta
-
-	// When this channel is closed, the apply will be cancelled.
-	ShutdownCh <-chan struct{}
 }
 
 func (c *ConsoleCommand) Run(args []string) int {
-	args = c.Meta.process(args, true)
+	args, err := c.Meta.process(args, true)
+	if err != nil {
+		return 1
+	}
+
 	cmdFlags := c.Meta.flagSet("console")
 	cmdFlags.StringVar(&c.Meta.statePath, "state", DefaultStateFilename, "path")
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
@@ -36,15 +39,25 @@ func (c *ConsoleCommand) Run(args []string) int {
 		return 1
 	}
 
+	var diags tfdiags.Diagnostics
+
 	// Load the module
-	mod, err := c.Module(configPath)
-	if err != nil {
-		c.Ui.Error(fmt.Sprintf("Failed to load root config module: %s", err))
+	mod, diags := c.Module(configPath)
+	if diags.HasErrors() {
+		c.showDiagnostics(diags)
 		return 1
 	}
 
+	var conf *config.Config
+	if mod != nil {
+		conf = mod.Config()
+	}
+
 	// Load the backend
-	b, err := c.Backend(&BackendOpts{ConfigPath: configPath})
+	b, err := c.Backend(&BackendOpts{
+		Config: conf,
+	})
+
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf("Failed to load backend: %s", err))
 		return 1
@@ -67,6 +80,13 @@ func (c *ConsoleCommand) Run(args []string) int {
 		c.Ui.Error(err.Error())
 		return 1
 	}
+
+	defer func() {
+		err := opReq.StateLocker.Unlock(nil)
+		if err != nil {
+			c.Ui.Error(err.Error())
+		}
+	}()
 
 	// Setup the UI so we can output directly to stdout
 	ui := &cli.BasicUi{
@@ -133,8 +153,8 @@ Options:
                          flag can be set multiple times.
 
   -var-file=foo          Set variables in the Terraform configuration from
-                         a file. If "terraform.tfvars" is present, it will be
-                         automatically loaded if this flag is not specified.
+                         a file. If "terraform.tfvars" or any ".auto.tfvars"
+                         files are present, they will be automatically loaded.
 
 
 `

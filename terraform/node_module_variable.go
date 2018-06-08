@@ -92,11 +92,24 @@ func (n *NodeApplyableModuleVariable) EvalTree() EvalNode {
 	// within the variables mapping.
 	var config *ResourceConfig
 	variables := make(map[string]interface{})
+
 	return &EvalSequence{
 		Nodes: []EvalNode{
-			&EvalInterpolate{
-				Config: n.Value,
-				Output: &config,
+			&EvalOpFilter{
+				Ops: []walkOperation{walkInput},
+				Node: &EvalInterpolate{
+					Config:        n.Value,
+					Output:        &config,
+					ContinueOnErr: true,
+				},
+			},
+			&EvalOpFilter{
+				Ops: []walkOperation{walkRefresh, walkPlan, walkApply,
+					walkDestroy, walkValidate},
+				Node: &EvalInterpolate{
+					Config: n.Value,
+					Output: &config,
+				},
 			},
 
 			&EvalVariableBlock{

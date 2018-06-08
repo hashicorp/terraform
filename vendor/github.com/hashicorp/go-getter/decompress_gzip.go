@@ -9,7 +9,7 @@ import (
 )
 
 // GzipDecompressor is an implementation of Decompressor that can
-// decompress bz2 files.
+// decompress gzip files.
 type GzipDecompressor struct{}
 
 func (d *GzipDecompressor) Decompress(dst, src string, dir bool) error {

@@ -2,7 +2,7 @@
 
 package schema
 
-import "fmt"
+import "strconv"
 
 const (
 	_getSource_name_0 = "getSourceStategetSourceConfig"
@@ -13,8 +13,6 @@ const (
 
 var (
 	_getSource_index_0 = [...]uint8{0, 14, 29}
-	_getSource_index_1 = [...]uint8{0, 13}
-	_getSource_index_2 = [...]uint8{0, 12}
 	_getSource_index_3 = [...]uint8{0, 18, 32}
 )
 
@@ -31,6 +29,6 @@ func (i getSource) String() string {
 		i -= 15
 		return _getSource_name_3[_getSource_index_3[i]:_getSource_index_3[i+1]]
 	default:
-		return fmt.Sprintf("getSource(%d)", i)
+		return "getSource(" + strconv.FormatInt(int64(i), 10) + ")"
 	}
 }

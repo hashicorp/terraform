@@ -12,6 +12,11 @@ func testResource() *schema.Resource {
 		Read:   testResourceRead,
 		Update: testResourceUpdate,
 		Delete: testResourceDelete,
+
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
+
 		Schema: map[string]*schema.Schema{
 			"required": {
 				Type:     schema.TypeString,
@@ -44,7 +49,6 @@ func testResource() *schema.Resource {
 			"computed_read_only": {
 				Type:     schema.TypeString,
 				Computed: true,
-				ForceNew: true,
 			},
 			"computed_from_required": {
 				Type:     schema.TypeString,

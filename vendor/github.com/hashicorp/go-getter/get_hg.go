@@ -2,7 +2,6 @@ package getter
 
 import (
 	"fmt"
-	"io/ioutil"
 	"net/url"
 	"os"
 	"os/exec"
@@ -10,6 +9,7 @@ import (
 	"runtime"
 
 	urlhelper "github.com/hashicorp/go-getter/helper/url"
+	"github.com/hashicorp/go-safetemp"
 )
 
 // HgGetter is a Getter implementation that will download a module from
@@ -64,13 +64,13 @@ func (g *HgGetter) Get(dst string, u *url.URL) error {
 // GetFile for Hg doesn't support updating at this time. It will download
 // the file every time.
 func (g *HgGetter) GetFile(dst string, u *url.URL) error {
-	td, err := ioutil.TempDir("", "getter-hg")
+	// Create a temporary directory to store the full source. This has to be
+	// a non-existent directory.
+	td, tdcloser, err := safetemp.Dir("", "getter")
 	if err != nil {
 		return err
 	}
-	if err := os.RemoveAll(td); err != nil {
-		return err
-	}
+	defer tdcloser.Close()
 
 	// Get the filename, and strip the filename from the URL so we can
 	// just get the repository directly.

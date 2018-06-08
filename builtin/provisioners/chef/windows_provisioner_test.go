@@ -6,23 +6,24 @@ import (
 	"testing"
 
 	"github.com/hashicorp/terraform/communicator"
+	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/terraform"
 )
 
 func TestResourceProvider_windowsInstallChefClient(t *testing.T) {
 	cases := map[string]struct {
-		Config        *terraform.ResourceConfig
+		Config        map[string]interface{}
 		Commands      map[string]bool
 		UploadScripts map[string]string
 	}{
 		"Default": {
-			Config: testConfig(t, map[string]interface{}{
+			Config: map[string]interface{}{
 				"node_name":  "nodename1",
 				"run_list":   []interface{}{"cookbook::recipe"},
 				"server_url": "https://chef.local",
 				"user_name":  "bob",
 				"user_key":   "USER-KEY",
-			}),
+			},
 
 			Commands: map[string]bool{
 				"powershell -NoProfile -ExecutionPolicy Bypass -File ChefClient.ps1": true,
@@ -34,7 +35,7 @@ func TestResourceProvider_windowsInstallChefClient(t *testing.T) {
 		},
 
 		"Proxy": {
-			Config: testConfig(t, map[string]interface{}{
+			Config: map[string]interface{}{
 				"http_proxy": "http://proxy.local",
 				"no_proxy":   []interface{}{"http://local.local", "http://local.org"},
 				"node_name":  "nodename1",
@@ -42,7 +43,7 @@ func TestResourceProvider_windowsInstallChefClient(t *testing.T) {
 				"server_url": "https://chef.local",
 				"user_name":  "bob",
 				"user_key":   "USER-KEY",
-			}),
+			},
 
 			Commands: map[string]bool{
 				"powershell -NoProfile -ExecutionPolicy Bypass -File ChefClient.ps1": true,
@@ -54,14 +55,14 @@ func TestResourceProvider_windowsInstallChefClient(t *testing.T) {
 		},
 
 		"Version": {
-			Config: testConfig(t, map[string]interface{}{
+			Config: map[string]interface{}{
 				"node_name":  "nodename1",
 				"run_list":   []interface{}{"cookbook::recipe"},
 				"server_url": "https://chef.local",
 				"user_name":  "bob",
 				"user_key":   "USER-KEY",
 				"version":    "11.18.6",
-			}),
+			},
 
 			Commands: map[string]bool{
 				"powershell -NoProfile -ExecutionPolicy Bypass -File ChefClient.ps1": true,
@@ -71,9 +72,28 @@ func TestResourceProvider_windowsInstallChefClient(t *testing.T) {
 				"ChefClient.ps1": versionWindowsInstallScript,
 			},
 		},
+
+		"Channel": {
+			Config: map[string]interface{}{
+				"channel":    "current",
+				"node_name":  "nodename1",
+				"run_list":   []interface{}{"cookbook::recipe"},
+				"server_url": "https://chef.local",
+				"user_name":  "bob",
+				"user_key":   "USER-KEY",
+				"version":    "11.18.6",
+			},
+
+			Commands: map[string]bool{
+				"powershell -NoProfile -ExecutionPolicy Bypass -File ChefClient.ps1": true,
+			},
+
+			UploadScripts: map[string]string{
+				"ChefClient.ps1": channelWindowsInstallScript,
+			},
+		},
 	}
 
-	r := new(ResourceProvisioner)
 	o := new(terraform.MockUIOutput)
 	c := new(communicator.MockCommunicator)
 
@@ -81,7 +101,9 @@ func TestResourceProvider_windowsInstallChefClient(t *testing.T) {
 		c.Commands = tc.Commands
 		c.UploadScripts = tc.UploadScripts
 
-		p, err := r.decodeConfig(tc.Config)
+		p, err := decodeConfig(
+			schema.TestResourceDataRaw(t, Provisioner().(*schema.Provisioner).Schema, tc.Config),
+		)
 		if err != nil {
 			t.Fatalf("Error: %v", err)
 		}
@@ -97,12 +119,12 @@ func TestResourceProvider_windowsInstallChefClient(t *testing.T) {
 
 func TestResourceProvider_windowsCreateConfigFiles(t *testing.T) {
 	cases := map[string]struct {
-		Config   *terraform.ResourceConfig
+		Config   map[string]interface{}
 		Commands map[string]bool
 		Uploads  map[string]string
 	}{
 		"Default": {
-			Config: testConfig(t, map[string]interface{}{
+			Config: map[string]interface{}{
 				"ohai_hints": []interface{}{"test-fixtures/ohaihint.json"},
 				"node_name":  "nodename1",
 				"run_list":   []interface{}{"cookbook::recipe"},
@@ -110,7 +132,7 @@ func TestResourceProvider_windowsCreateConfigFiles(t *testing.T) {
 				"server_url": "https://chef.local",
 				"user_name":  "bob",
 				"user_key":   "USER-KEY",
-			}),
+			},
 
 			Commands: map[string]bool{
 				fmt.Sprintf("cmd /c if not exist %q mkdir %q", windowsConfDir, windowsConfDir): true,
@@ -129,7 +151,7 @@ func TestResourceProvider_windowsCreateConfigFiles(t *testing.T) {
 		},
 
 		"Proxy": {
-			Config: testConfig(t, map[string]interface{}{
+			Config: map[string]interface{}{
 				"http_proxy":      "http://proxy.local",
 				"https_proxy":     "https://proxy.local",
 				"no_proxy":        []interface{}{"http://local.local", "https://local.local"},
@@ -140,7 +162,7 @@ func TestResourceProvider_windowsCreateConfigFiles(t *testing.T) {
 				"ssl_verify_mode": "verify_none",
 				"user_name":       "bob",
 				"user_key":        "USER-KEY",
-			}),
+			},
 
 			Commands: map[string]bool{
 				fmt.Sprintf("cmd /c if not exist %q mkdir %q", windowsConfDir, windowsConfDir): true,
@@ -155,7 +177,7 @@ func TestResourceProvider_windowsCreateConfigFiles(t *testing.T) {
 		},
 
 		"Attributes JSON": {
-			Config: testConfig(t, map[string]interface{}{
+			Config: map[string]interface{}{
 				"attributes_json": `{"key1":{"subkey1":{"subkey2a":["val1","val2","val3"],` +
 					`"subkey2b":{"subkey3":"value3"}}},"key2":"value2"}`,
 				"node_name":  "nodename1",
@@ -164,7 +186,7 @@ func TestResourceProvider_windowsCreateConfigFiles(t *testing.T) {
 				"server_url": "https://chef.local",
 				"user_name":  "bob",
 				"user_key":   "USER-KEY",
-			}),
+			},
 
 			Commands: map[string]bool{
 				fmt.Sprintf("cmd /c if not exist %q mkdir %q", windowsConfDir, windowsConfDir): true,
@@ -180,7 +202,6 @@ func TestResourceProvider_windowsCreateConfigFiles(t *testing.T) {
 		},
 	}
 
-	r := new(ResourceProvisioner)
 	o := new(terraform.MockUIOutput)
 	c := new(communicator.MockCommunicator)
 
@@ -188,7 +209,9 @@ func TestResourceProvider_windowsCreateConfigFiles(t *testing.T) {
 		c.Commands = tc.Commands
 		c.Uploads = tc.Uploads
 
-		p, err := r.decodeConfig(tc.Config)
+		p, err := decodeConfig(
+			schema.TestResourceDataRaw(t, Provisioner().(*schema.Provisioner).Schema, tc.Config),
+		)
 		if err != nil {
 			t.Fatalf("Error: %v", err)
 		}
@@ -216,7 +239,7 @@ switch ($winver)
 
 if ([System.IntPtr]::Size -eq 4) {$machine_arch = "i686"} else {$machine_arch = "x86_64"}
 
-$url = "http://www.chef.io/chef/download?p=windows&pv=$machine_os&m=$machine_arch&v="
+$url = "http://omnitruck.chef.io/stable/chef/download?p=windows&pv=$machine_os&m=$machine_arch&v="
 $dest = [System.IO.Path]::GetTempFileName()
 $dest = [System.IO.Path]::ChangeExtension($dest, ".msi")
 $downloader = New-Object System.Net.WebClient
@@ -253,7 +276,7 @@ switch ($winver)
 
 if ([System.IntPtr]::Size -eq 4) {$machine_arch = "i686"} else {$machine_arch = "x86_64"}
 
-$url = "http://www.chef.io/chef/download?p=windows&pv=$machine_os&m=$machine_arch&v="
+$url = "http://omnitruck.chef.io/stable/chef/download?p=windows&pv=$machine_os&m=$machine_arch&v="
 $dest = [System.IO.Path]::GetTempFileName()
 $dest = [System.IO.Path]::ChangeExtension($dest, ".msi")
 $downloader = New-Object System.Net.WebClient
@@ -290,7 +313,43 @@ switch ($winver)
 
 if ([System.IntPtr]::Size -eq 4) {$machine_arch = "i686"} else {$machine_arch = "x86_64"}
 
-$url = "http://www.chef.io/chef/download?p=windows&pv=$machine_os&m=$machine_arch&v=11.18.6"
+$url = "http://omnitruck.chef.io/stable/chef/download?p=windows&pv=$machine_os&m=$machine_arch&v=11.18.6"
+$dest = [System.IO.Path]::GetTempFileName()
+$dest = [System.IO.Path]::ChangeExtension($dest, ".msi")
+$downloader = New-Object System.Net.WebClient
+
+$http_proxy = ''
+if ($http_proxy -ne '') {
+	$no_proxy = ''
+  if ($no_proxy -eq ''){
+    $no_proxy = "127.0.0.1"
+  }
+
+  $proxy = New-Object System.Net.WebProxy($http_proxy, $true, ,$no_proxy.Split(','))
+  $downloader.proxy = $proxy
+}
+
+Write-Host 'Downloading Chef Client...'
+$downloader.DownloadFile($url, $dest)
+
+Write-Host 'Installing Chef Client...'
+Start-Process -FilePath msiexec -ArgumentList /qn, /i, $dest -Wait
+`
+const channelWindowsInstallScript = `
+$winver = [System.Environment]::OSVersion.Version | % {"{0}.{1}" -f $_.Major,$_.Minor}
+
+switch ($winver)
+{
+  "6.0" {$machine_os = "2008"}
+  "6.1" {$machine_os = "2008r2"}
+  "6.2" {$machine_os = "2012"}
+  "6.3" {$machine_os = "2012"}
+  default {$machine_os = "2008r2"}
+}
+
+if ([System.IntPtr]::Size -eq 4) {$machine_arch = "i686"} else {$machine_arch = "x86_64"}
+
+$url = "http://omnitruck.chef.io/current/chef/download?p=windows&pv=$machine_os&m=$machine_arch&v=11.18.6"
 $dest = [System.IO.Path]::GetTempFileName()
 $dest = [System.IO.Path]::ChangeExtension($dest, ".msi")
 $downloader = New-Object System.Net.WebClient

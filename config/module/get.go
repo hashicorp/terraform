@@ -3,6 +3,7 @@ package module
 import (
 	"io/ioutil"
 	"os"
+	"path/filepath"
 
 	"github.com/hashicorp/go-getter"
 )
@@ -37,12 +38,9 @@ func GetCopy(dst, src string) error {
 	if err != nil {
 		return err
 	}
-	// FIXME: This isn't completely safe. Creating and removing our temp path
-	//        exposes where to race to inject files.
-	if err := os.RemoveAll(tmpDir); err != nil {
-		return err
-	}
 	defer os.RemoveAll(tmpDir)
+
+	tmpDir = filepath.Join(tmpDir, "module")
 
 	// Get to that temporary dir
 	if err := getter.Get(tmpDir, src); err != nil {
@@ -56,16 +54,4 @@ func GetCopy(dst, src string) error {
 
 	// Copy to the final location
 	return copyDir(dst, tmpDir)
-}
-
-func getStorage(s getter.Storage, key string, src string, mode GetMode) (string, bool, error) {
-	// Get the module with the level specified if we were told to.
-	if mode > GetModeNone {
-		if err := s.Get(key, src, mode == GetModeUpdate); err != nil {
-			return "", false, err
-		}
-	}
-
-	// Get the directory where the module is.
-	return s.Dir(key)
 }

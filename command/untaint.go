@@ -7,7 +7,6 @@ import (
 	"strings"
 
 	"github.com/hashicorp/terraform/command/clistate"
-	"github.com/hashicorp/terraform/state"
 )
 
 // UntaintCommand is a cli.Command implementation that manually untaints
@@ -17,7 +16,10 @@ type UntaintCommand struct {
 }
 
 func (c *UntaintCommand) Run(args []string) int {
-	args = c.Meta.process(args, false)
+	args, err := c.Meta.process(args, false)
+	if err != nil {
+		return 1
+	}
 
 	var allowMissing bool
 	var module string
@@ -57,7 +59,7 @@ func (c *UntaintCommand) Run(args []string) int {
 	}
 
 	// Get the state
-	env := c.Env()
+	env := c.Workspace()
 	st, err := b.State(env)
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf("Failed to load state: %s", err))
@@ -69,18 +71,12 @@ func (c *UntaintCommand) Run(args []string) int {
 	}
 
 	if c.stateLock {
-		lockCtx, cancel := context.WithTimeout(context.Background(), c.stateLockTimeout)
-		defer cancel()
-
-		lockInfo := state.NewLockInfo()
-		lockInfo.Operation = "untaint"
-		lockID, err := clistate.Lock(lockCtx, st, lockInfo, c.Ui, c.Colorize())
-		if err != nil {
+		stateLocker := clistate.NewLocker(context.Background(), c.stateLockTimeout, c.Ui, c.Colorize())
+		if err := stateLocker.Lock(st, "untaint"); err != nil {
 			c.Ui.Error(fmt.Sprintf("Error locking state: %s", err))
 			return 1
 		}
-
-		defer clistate.Unlock(st, lockID, c.Ui, c.Colorize())
+		defer stateLocker.Unlock(nil)
 	}
 
 	// Get the actual state structure

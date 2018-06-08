@@ -39,6 +39,10 @@ func TestConfigFieldReader(t *testing.T) {
 					"one": "1",
 					"two": "2",
 				},
+				"mapIntNestedSchema": map[string]interface{}{
+					"one": "1",
+					"two": "2",
+				},
 				"mapFloat": map[string]interface{}{
 					"oneDotTwo": "1.2",
 				},

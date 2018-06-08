@@ -87,12 +87,8 @@ func (b *ApplyGraphBuilder) Steps() []GraphTransformer {
 		// Attach the state
 		&AttachStateTransformer{State: b.State},
 
-		// Create all the providers
-		&MissingProviderTransformer{Providers: b.Providers, Concrete: concreteProvider},
-		&ProviderTransformer{},
-		&DisableProviderTransformer{},
-		&ParentProviderTransformer{},
-		&AttachProviderConfigTransformer{Module: b.Module},
+		// add providers
+		TransformProviders(b.Providers, concreteProvider, b.Module),
 
 		// Destruction ordering
 		&DestroyEdgeTransformer{Module: b.Module, State: b.State},
@@ -108,14 +104,35 @@ func (b *ApplyGraphBuilder) Steps() []GraphTransformer {
 		// Add root variables
 		&RootVariableTransformer{Module: b.Module},
 
+		// Add the local values
+		&LocalTransformer{Module: b.Module},
+
 		// Add the outputs
 		&OutputTransformer{Module: b.Module},
 
 		// Add module variables
 		&ModuleVariableTransformer{Module: b.Module},
 
+		// Remove modules no longer present in the config
+		&RemovedModuleTransformer{Module: b.Module, State: b.State},
+
 		// Connect references so ordering is correct
 		&ReferenceTransformer{},
+
+		// Handle destroy time transformations for output and local values.
+		// Reverse the edges from outputs and locals, so that
+		// interpolations don't fail during destroy.
+		// Create a destroy node for outputs to remove them from the state.
+		// Prune unreferenced values, which may have interpolations that can't
+		// be resolved.
+		GraphTransformIf(
+			func() bool { return b.Destroy },
+			GraphTransformMulti(
+				&DestroyValueReferenceTransformer{},
+				&DestroyOutputTransformer{},
+				&PruneUnusedValuesTransformer{},
+			),
+		),
 
 		// Add the node to fix the state count boundaries
 		&CountBoundaryTransformer{},

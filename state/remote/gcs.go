@@ -8,11 +8,10 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"runtime"
 	"strings"
 
 	"github.com/hashicorp/terraform/helper/pathorcontents"
-	"github.com/hashicorp/terraform/terraform"
+	"github.com/hashicorp/terraform/httpclient"
 	"golang.org/x/net/context"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
@@ -99,16 +98,13 @@ func gcsFactory(conf map[string]string) (Client, error) {
 			return nil, err
 		}
 	}
-	versionString := terraform.Version
-	userAgent := fmt.Sprintf(
-		"(%s %s) Terraform/%s", runtime.GOOS, runtime.GOARCH, versionString)
 
 	log.Printf("[INFO] Instantiating Google Storage Client...")
 	clientStorage, err := storage.New(client)
 	if err != nil {
 		return nil, err
 	}
-	clientStorage.UserAgent = userAgent
+	clientStorage.UserAgent = httpclient.UserAgentString()
 
 	return &GCSClient{
 		clientStorage: clientStorage,

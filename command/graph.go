@@ -5,7 +5,10 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/hashicorp/terraform/tfdiags"
+
 	"github.com/hashicorp/terraform/backend"
+	"github.com/hashicorp/terraform/config"
 	"github.com/hashicorp/terraform/config/module"
 	"github.com/hashicorp/terraform/dag"
 	"github.com/hashicorp/terraform/terraform"
@@ -23,7 +26,10 @@ func (c *GraphCommand) Run(args []string) int {
 	var drawCycles bool
 	var graphTypeStr string
 
-	args = c.Meta.process(args, false)
+	args, err := c.Meta.process(args, false)
+	if err != nil {
+		return 1
+	}
 
 	cmdFlags := flag.NewFlagSet("graph", flag.ContinueOnError)
 	c.addModuleDepthFlag(cmdFlags, &moduleDepth)
@@ -52,20 +58,29 @@ func (c *GraphCommand) Run(args []string) int {
 		configPath = ""
 	}
 
+	var diags tfdiags.Diagnostics
+
 	// Load the module
 	var mod *module.Tree
 	if plan == nil {
-		mod, err = c.Module(configPath)
-		if err != nil {
-			c.Ui.Error(fmt.Sprintf("Failed to load root config module: %s", err))
+		var modDiags tfdiags.Diagnostics
+		mod, modDiags = c.Module(configPath)
+		diags = diags.Append(modDiags)
+		if modDiags.HasErrors() {
+			c.showDiagnostics(diags)
 			return 1
 		}
 	}
 
+	var conf *config.Config
+	if mod != nil {
+		conf = mod.Config()
+	}
+
 	// Load the backend
 	b, err := c.Backend(&BackendOpts{
-		ConfigPath: configPath,
-		Plan:       plan,
+		Config: conf,
+		Plan:   plan,
 	})
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf("Failed to load backend: %s", err))
@@ -79,6 +94,12 @@ func (c *GraphCommand) Run(args []string) int {
 		return 1
 	}
 
+	// Building a graph may require config module to be present, even if it's
+	// empty.
+	if mod == nil && plan == nil {
+		mod = module.NewEmptyTree()
+	}
+
 	// Build the operation
 	opReq := c.Operation()
 	opReq.Module = mod
@@ -90,6 +111,13 @@ func (c *GraphCommand) Run(args []string) int {
 		c.Ui.Error(err.Error())
 		return 1
 	}
+
+	defer func() {
+		err := opReq.StateLocker.Unlock(nil)
+		if err != nil {
+			c.Ui.Error(err.Error())
+		}
+	}()
 
 	// Determine the graph type
 	graphType := terraform.GraphTypePlan
@@ -125,6 +153,14 @@ func (c *GraphCommand) Run(args []string) int {
 	})
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf("Error converting graph: %s", err))
+		return 1
+	}
+
+	if diags.HasErrors() {
+		// For this command we only show diagnostics if there are errors,
+		// because printing out naked warnings could upset a naive program
+		// consuming our dot output.
+		c.showDiagnostics(diags)
 		return 1
 	}
 

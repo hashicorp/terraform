@@ -12,6 +12,9 @@ type DeposedTransformer struct {
 	// View, if non-empty, is the ModuleState.View used around the state
 	// to find deposed resources.
 	View string
+
+	// The provider used by the resourced which were deposed
+	ResolvedProvider string
 }
 
 func (t *DeposedTransformer) Transform(g *Graph) error {
@@ -33,14 +36,16 @@ func (t *DeposedTransformer) Transform(g *Graph) error {
 		if len(rs.Deposed) == 0 {
 			continue
 		}
+
 		deposed := rs.Deposed
 
 		for i, _ := range deposed {
 			g.Add(&graphNodeDeposedResource{
-				Index:        i,
-				ResourceName: k,
-				ResourceType: rs.Type,
-				Provider:     rs.Provider,
+				Index:            i,
+				ResourceName:     k,
+				ResourceType:     rs.Type,
+				ProviderName:     rs.Provider,
+				ResolvedProvider: t.ResolvedProvider,
 			})
 		}
 	}
@@ -50,18 +55,23 @@ func (t *DeposedTransformer) Transform(g *Graph) error {
 
 // graphNodeDeposedResource is the graph vertex representing a deposed resource.
 type graphNodeDeposedResource struct {
-	Index        int
-	ResourceName string
-	ResourceType string
-	Provider     string
+	Index            int
+	ResourceName     string
+	ResourceType     string
+	ProviderName     string
+	ResolvedProvider string
 }
 
 func (n *graphNodeDeposedResource) Name() string {
 	return fmt.Sprintf("%s (deposed #%d)", n.ResourceName, n.Index)
 }
 
-func (n *graphNodeDeposedResource) ProvidedBy() []string {
-	return []string{resourceProvider(n.ResourceName, n.Provider)}
+func (n *graphNodeDeposedResource) ProvidedBy() string {
+	return resourceProvider(n.ResourceName, n.ProviderName)
+}
+
+func (n *graphNodeDeposedResource) SetProvider(p string) {
+	n.ResolvedProvider = p
 }
 
 // GraphNodeEvalable impl.
@@ -81,7 +91,7 @@ func (n *graphNodeDeposedResource) EvalTree() EvalNode {
 		Node: &EvalSequence{
 			Nodes: []EvalNode{
 				&EvalGetProvider{
-					Name:   n.ProvidedBy()[0],
+					Name:   n.ResolvedProvider,
 					Output: &provider,
 				},
 				&EvalReadStateDeposed{
@@ -98,7 +108,7 @@ func (n *graphNodeDeposedResource) EvalTree() EvalNode {
 				&EvalWriteStateDeposed{
 					Name:         n.ResourceName,
 					ResourceType: n.ResourceType,
-					Provider:     n.Provider,
+					Provider:     n.ResolvedProvider,
 					State:        &state,
 					Index:        n.Index,
 				},
@@ -114,7 +124,7 @@ func (n *graphNodeDeposedResource) EvalTree() EvalNode {
 		Node: &EvalSequence{
 			Nodes: []EvalNode{
 				&EvalGetProvider{
-					Name:   n.ProvidedBy()[0],
+					Name:   n.ResolvedProvider,
 					Output: &provider,
 				},
 				&EvalReadStateDeposed{
@@ -147,7 +157,7 @@ func (n *graphNodeDeposedResource) EvalTree() EvalNode {
 				&EvalWriteStateDeposed{
 					Name:         n.ResourceName,
 					ResourceType: n.ResourceType,
-					Provider:     n.Provider,
+					Provider:     n.ResolvedProvider,
 					State:        &state,
 					Index:        n.Index,
 				},

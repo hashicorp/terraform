@@ -81,6 +81,10 @@ func TestReadUpgradeStateV1toV3_emptyState(t *testing.T) {
 	}
 
 	stateV2, err := upgradeStateV1ToV2(orig)
+	if err != nil {
+		t.Fatalf("error attempting upgradeStateV1ToV2: %s", err)
+	}
+
 	for _, m := range stateV2.Modules {
 		if m.Resources == nil {
 			t.Fatal("V1 to V2 upgrade lost module.Resources")
@@ -91,6 +95,9 @@ func TestReadUpgradeStateV1toV3_emptyState(t *testing.T) {
 	}
 
 	stateV3, err := upgradeStateV2ToV3(stateV2)
+	if err != nil {
+		t.Fatalf("error attempting to upgradeStateV2ToV3: %s", err)
+	}
 	for _, m := range stateV3.Modules {
 		if m.Resources == nil {
 			t.Fatal("V2 to V3 upgrade lost module.Resources")

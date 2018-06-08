@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/hashicorp/terraform/config"
+	"github.com/hashicorp/terraform/config/module"
 )
 
 // ResourceAddress is a way of identifying an individual resource (or,
@@ -41,9 +42,9 @@ func (r *ResourceAddress) Copy() *ResourceAddress {
 		Type:         r.Type,
 		Mode:         r.Mode,
 	}
-	for _, p := range r.Path {
-		n.Path = append(n.Path, p)
-	}
+
+	n.Path = append(n.Path, r.Path...)
+
 	return n
 }
 
@@ -87,6 +88,51 @@ func (r *ResourceAddress) String() string {
 	}
 
 	return strings.Join(result, ".")
+}
+
+// HasResourceSpec returns true if the address has a resource spec, as
+// defined in the documentation:
+//    https://www.terraform.io/docs/internals/resource-addressing.html
+// In particular, this returns false if the address contains only
+// a module path, thus addressing the entire module.
+func (r *ResourceAddress) HasResourceSpec() bool {
+	return r.Type != "" && r.Name != ""
+}
+
+// WholeModuleAddress returns the resource address that refers to all
+// resources in the same module as the receiver address.
+func (r *ResourceAddress) WholeModuleAddress() *ResourceAddress {
+	return &ResourceAddress{
+		Path:            r.Path,
+		Index:           -1,
+		InstanceTypeSet: false,
+	}
+}
+
+// MatchesConfig returns true if the receiver matches the given
+// configuration resource within the given configuration module.
+//
+// Since resource configuration blocks represent all of the instances of
+// a multi-instance resource, the index of the address (if any) is not
+// considered.
+func (r *ResourceAddress) MatchesConfig(mod *module.Tree, rc *config.Resource) bool {
+	if r.HasResourceSpec() {
+		if r.Mode != rc.Mode || r.Type != rc.Type || r.Name != rc.Name {
+			return false
+		}
+	}
+
+	addrPath := r.Path
+	cfgPath := mod.Path()
+
+	// normalize
+	if len(addrPath) == 0 {
+		addrPath = nil
+	}
+	if len(cfgPath) == 0 {
+		cfgPath = nil
+	}
+	return reflect.DeepEqual(addrPath, cfgPath)
 }
 
 // stateId returns the ID that this resource should be entered with
@@ -185,7 +231,10 @@ func ParseResourceAddress(s string) (*ResourceAddress, error) {
 
 	// not allowed to say "data." without a type following
 	if mode == config.DataResourceMode && matches["type"] == "" {
-		return nil, fmt.Errorf("must target specific data instance")
+		return nil, fmt.Errorf(
+			"invalid resource address %q: must target specific data instance",
+			s,
+		)
 	}
 
 	return &ResourceAddress{
@@ -199,6 +248,75 @@ func ParseResourceAddress(s string) (*ResourceAddress, error) {
 	}, nil
 }
 
+// ParseResourceAddressForInstanceDiff creates a ResourceAddress for a
+// resource name as described in a module diff.
+//
+// For historical reasons a different addressing format is used in this
+// context. The internal format should not be shown in the UI and instead
+// this function should be used to translate to a ResourceAddress and
+// then, where appropriate, use the String method to produce a canonical
+// resource address string for display in the UI.
+//
+// The given path slice must be empty (or nil) for the root module, and
+// otherwise consist of a sequence of module names traversing down into
+// the module tree. If a non-nil path is provided, the caller must not
+// modify its underlying array after passing it to this function.
+func ParseResourceAddressForInstanceDiff(path []string, key string) (*ResourceAddress, error) {
+	addr, err := parseResourceAddressInternal(key)
+	if err != nil {
+		return nil, err
+	}
+	addr.Path = path
+	return addr, nil
+}
+
+// Contains returns true if and only if the given node is contained within
+// the receiver.
+//
+// Containment is defined in terms of the module and resource heirarchy:
+// a resource is contained within its module and any ancestor modules,
+// an indexed resource instance is contained with the unindexed resource, etc.
+func (addr *ResourceAddress) Contains(other *ResourceAddress) bool {
+	ourPath := addr.Path
+	givenPath := other.Path
+	if len(givenPath) < len(ourPath) {
+		return false
+	}
+	for i := range ourPath {
+		if ourPath[i] != givenPath[i] {
+			return false
+		}
+	}
+
+	// If the receiver is a whole-module address then the path prefix
+	// matching is all we need.
+	if !addr.HasResourceSpec() {
+		return true
+	}
+
+	if addr.Type != other.Type || addr.Name != other.Name || addr.Mode != other.Mode {
+		return false
+	}
+
+	if addr.Index != -1 && addr.Index != other.Index {
+		return false
+	}
+
+	if addr.InstanceTypeSet && (addr.InstanceTypeSet != other.InstanceTypeSet || addr.InstanceType != other.InstanceType) {
+		return false
+	}
+
+	return true
+}
+
+// Equals returns true if the receiver matches the given address.
+//
+// The name of this method is a misnomer, since it doesn't test for exact
+// equality. Instead, it tests that the _specified_ parts of each
+// address match, treating any unspecified parts as wildcards.
+//
+// See also Contains, which takes a more heirarchical approach to comparing
+// addresses.
 func (addr *ResourceAddress) Equals(raw interface{}) bool {
 	other, ok := raw.(*ResourceAddress)
 	if !ok {
@@ -231,6 +349,59 @@ func (addr *ResourceAddress) Equals(raw interface{}) bool {
 		nameMatch &&
 		typeMatch &&
 		modeMatch
+}
+
+// Less returns true if and only if the receiver should be sorted before
+// the given address when presenting a list of resource addresses to
+// an end-user.
+//
+// This sort uses lexicographic sorting for most components, but uses
+// numeric sort for indices, thus causing index 10 to sort after
+// index 9, rather than after index 1.
+func (addr *ResourceAddress) Less(other *ResourceAddress) bool {
+
+	switch {
+
+	case len(addr.Path) != len(other.Path):
+		return len(addr.Path) < len(other.Path)
+
+	case !reflect.DeepEqual(addr.Path, other.Path):
+		// If the two paths are the same length but don't match, we'll just
+		// cheat and compare the string forms since it's easier than
+		// comparing all of the path segments in turn, and lexicographic
+		// comparison is correct for the module path portion.
+		addrStr := addr.String()
+		otherStr := other.String()
+		return addrStr < otherStr
+
+	case addr.Mode != other.Mode:
+		return addr.Mode == config.DataResourceMode
+
+	case addr.Type != other.Type:
+		return addr.Type < other.Type
+
+	case addr.Name != other.Name:
+		return addr.Name < other.Name
+
+	case addr.Index != other.Index:
+		// Since "Index" is -1 for an un-indexed address, this also conveniently
+		// sorts unindexed addresses before indexed ones, should they both
+		// appear for some reason.
+		return addr.Index < other.Index
+
+	case addr.InstanceTypeSet != other.InstanceTypeSet:
+		return !addr.InstanceTypeSet
+
+	case addr.InstanceType != other.InstanceType:
+		// InstanceType is actually an enum, so this is just an arbitrary
+		// sort based on the enum numeric values, and thus not particularly
+		// meaningful.
+		return addr.InstanceType < other.InstanceType
+
+	default:
+		return false
+
+	}
 }
 
 func ParseResourceIndex(s string) (int, error) {
@@ -275,7 +446,7 @@ func tokenizeResourceAddress(s string) (map[string]string, error) {
 	// string "aws_instance.web.tainted[1]"
 	re := regexp.MustCompile(`\A` +
 		// "module.foo.module.bar" (optional)
-		`(?P<path>(?:module\.[^.]+\.?)*)` +
+		`(?P<path>(?:module\.(?P<module_name>[^.]+)\.?)*)` +
 		// possibly "data.", if targeting is a data resource
 		`(?P<data_prefix>(?:data\.)?)` +
 		// "aws_instance.web" (optional when module path specified)
@@ -289,7 +460,7 @@ func tokenizeResourceAddress(s string) (map[string]string, error) {
 	groupNames := re.SubexpNames()
 	rawMatches := re.FindAllStringSubmatch(s, -1)
 	if len(rawMatches) != 1 {
-		return nil, fmt.Errorf("Problem parsing address: %q", s)
+		return nil, fmt.Errorf("invalid resource address %q", s)
 	}
 
 	matches := make(map[string]string)

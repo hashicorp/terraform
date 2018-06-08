@@ -7,7 +7,9 @@ import (
 	"path/filepath"
 	"reflect"
 	"strings"
+	"sync"
 	"testing"
+	"time"
 
 	"github.com/hashicorp/terraform/helper/copy"
 	"github.com/hashicorp/terraform/terraform"
@@ -28,8 +30,8 @@ func TestPlan(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &PlanCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(p),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
 		},
 	}
 
@@ -61,8 +63,8 @@ func TestPlan_lockedState(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &PlanCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(p),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
 		},
 	}
 
@@ -89,8 +91,8 @@ func TestPlan_plan(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &PlanCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(p),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
 		},
 	}
 
@@ -128,8 +130,8 @@ func TestPlan_destroy(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &PlanCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(p),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
 		},
 	}
 
@@ -165,8 +167,8 @@ func TestPlan_noState(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &PlanCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(p),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
 		},
 	}
 
@@ -194,19 +196,15 @@ func TestPlan_outPath(t *testing.T) {
 	tmp, cwd := testCwd(t)
 	defer testFixCwd(t, tmp, cwd)
 
-	tf, err := ioutil.TempFile("", "tf")
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	outPath := tf.Name()
-	os.Remove(tf.Name())
+	td := testTempDir(t)
+	outPath := filepath.Join(td, "test.plan")
 
 	p := testProvider()
 	ui := new(cli.MockUi)
 	c := &PlanCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(p),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
 		},
 	}
 
@@ -251,19 +249,15 @@ func TestPlan_outPathNoChange(t *testing.T) {
 	}
 	statePath := testStateFile(t, originalState)
 
-	tf, err := ioutil.TempFile("", "tf")
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	outPath := tf.Name()
-	os.Remove(tf.Name())
+	td := testTempDir(t)
+	outPath := filepath.Join(td, "test.plan")
 
 	p := testProvider()
 	ui := new(cli.MockUi)
 	c := &PlanCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(p),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
 		},
 	}
 
@@ -318,8 +312,8 @@ func TestPlan_outBackend(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &PlanCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(p),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
 		},
 	}
 
@@ -382,8 +376,8 @@ func TestPlan_outBackendLegacy(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &PlanCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(p),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
 		},
 	}
 
@@ -412,8 +406,8 @@ func TestPlan_refresh(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &PlanCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(p),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
 		},
 	}
 
@@ -431,27 +425,15 @@ func TestPlan_refresh(t *testing.T) {
 }
 
 func TestPlan_state(t *testing.T) {
-	// Write out some prior state
-	tf, err := ioutil.TempFile("", "tf")
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	statePath := tf.Name()
-	defer os.Remove(tf.Name())
-
 	originalState := testState()
-	err = terraform.WriteState(originalState, tf)
-	tf.Close()
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
+	statePath := testStateFile(t, originalState)
 
 	p := testProvider()
 	ui := new(cli.MockUi)
 	c := &PlanCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(p),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
 		},
 	}
 
@@ -473,24 +455,7 @@ func TestPlan_state(t *testing.T) {
 
 func TestPlan_stateDefault(t *testing.T) {
 	originalState := testState()
-
-	// Write the state file in a temporary directory with the
-	// default filename.
-	td, err := ioutil.TempDir("", "tf")
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	statePath := filepath.Join(td, DefaultStateFilename)
-
-	f, err := os.Create(statePath)
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	err = terraform.WriteState(originalState, f)
-	f.Close()
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
+	statePath := testStateFile(t, originalState)
 
 	// Change to that directory
 	cwd, err := os.Getwd()
@@ -506,12 +471,13 @@ func TestPlan_stateDefault(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &PlanCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(p),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
 		},
 	}
 
 	args := []string{
+		"-state", statePath,
 		testFixturePath("plan"),
 	}
 	if code := c.Run(args); code != 0 {
@@ -535,8 +501,8 @@ func TestPlan_stateFuture(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &PlanCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(p),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
 		},
 	}
 
@@ -576,8 +542,8 @@ func TestPlan_statePast(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &PlanCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(p),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
 		},
 	}
 
@@ -608,8 +574,8 @@ func TestPlan_validate(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &PlanCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(p),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
 		},
 	}
 
@@ -632,8 +598,8 @@ func TestPlan_vars(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &PlanCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(p),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
 		},
 	}
 
@@ -676,8 +642,8 @@ func TestPlan_varsUnset(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &PlanCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(p),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
 		},
 	}
 
@@ -702,8 +668,8 @@ func TestPlan_varFile(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &PlanCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(p),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
 		},
 	}
 
@@ -752,8 +718,8 @@ func TestPlan_varFileDefault(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &PlanCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(p),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
 		},
 	}
 
@@ -795,8 +761,8 @@ func TestPlan_detailedExitcode(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &PlanCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(p),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
 		},
 	}
 
@@ -820,14 +786,74 @@ func TestPlan_detailedExitcode_emptyDiff(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &PlanCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(p),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
 		},
 	}
 
 	args := []string{"-detailed-exitcode"}
 	if code := c.Run(args); code != 0 {
 		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+	}
+}
+
+func TestPlan_shutdown(t *testing.T) {
+	cancelled := make(chan struct{})
+	shutdownCh := make(chan struct{})
+
+	p := testProvider()
+	ui := new(cli.MockUi)
+	c := &PlanCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
+			ShutdownCh:       shutdownCh,
+		},
+	}
+
+	p.StopFn = func() error {
+		close(cancelled)
+		return nil
+	}
+
+	var once sync.Once
+
+	p.DiffFn = func(
+		*terraform.InstanceInfo,
+		*terraform.InstanceState,
+		*terraform.ResourceConfig) (*terraform.InstanceDiff, error) {
+
+		once.Do(func() {
+			shutdownCh <- struct{}{}
+		})
+
+		// Because of the internal lock in the MockProvider, we can't
+		// coordiante directly with the calling of Stop, and making the
+		// MockProvider concurrent is disruptive to a lot of existing tests.
+		// Wait here a moment to help make sure the main goroutine gets to the
+		// Stop call before we exit, or the plan may finish before it can be
+		// canceled.
+		time.Sleep(200 * time.Millisecond)
+
+		return &terraform.InstanceDiff{
+			Attributes: map[string]*terraform.ResourceAttrDiff{
+				"ami": &terraform.ResourceAttrDiff{
+					New: "bar",
+				},
+			},
+		}, nil
+	}
+
+	if code := c.Run([]string{testFixturePath("apply-shutdown")}); code != 1 {
+		// FIXME: we should be able to avoid the error during evaluation
+		// the early exit isn't caught before the interpolation is evaluated
+		t.Fatal(ui.OutputWriter.String())
+	}
+
+	select {
+	case <-cancelled:
+	default:
+		t.Fatal("command not cancelled")
 	}
 }
 

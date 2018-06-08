@@ -84,7 +84,7 @@ func TestApplyGraphBuilder(t *testing.T) {
 	actual := strings.TrimSpace(g.String())
 	expected := strings.TrimSpace(testApplyGraphBuilderStr)
 	if actual != expected {
-		t.Fatalf("bad: %s", actual)
+		t.Fatalf("expected:\n%s\n\ngot:\n%s", expected, actual)
 	}
 }
 
@@ -497,16 +497,13 @@ meta.count-boundary (count boundary fixup)
   aws_instance.other
   module.child.aws_instance.create
   module.child.aws_instance.other
-  module.child.provider.aws
   module.child.provisioner.exec
   provider.aws
 module.child.aws_instance.create
-  module.child.provider.aws
   module.child.provisioner.exec
+  provider.aws
 module.child.aws_instance.other
   module.child.aws_instance.create
-  module.child.provider.aws
-module.child.provider.aws
   provider.aws
 module.child.provisioner.exec
 provider.aws

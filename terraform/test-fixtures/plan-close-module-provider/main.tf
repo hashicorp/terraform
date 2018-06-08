@@ -1,0 +1,3 @@
+module "mod" {
+  source = "./mod"
+}

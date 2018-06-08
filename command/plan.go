@@ -1,12 +1,13 @@
 package command
 
 import (
-	"context"
 	"fmt"
 	"strings"
 
 	"github.com/hashicorp/terraform/backend"
+	"github.com/hashicorp/terraform/config"
 	"github.com/hashicorp/terraform/config/module"
+	"github.com/hashicorp/terraform/tfdiags"
 )
 
 // PlanCommand is a Command implementation that compares a Terraform
@@ -20,7 +21,10 @@ func (c *PlanCommand) Run(args []string) int {
 	var outPath string
 	var moduleDepth int
 
-	args = c.Meta.process(args, true)
+	args, err := c.Meta.process(args, true)
+	if err != nil {
+		return 1
+	}
 
 	cmdFlags := c.Meta.flagSet("plan")
 	cmdFlags.BoolVar(&destroy, "destroy", false, "destroy")
@@ -44,6 +48,12 @@ func (c *PlanCommand) Run(args []string) int {
 		return 1
 	}
 
+	// Check for user-supplied plugin path
+	if c.pluginPath, err = c.loadPluginPath(); err != nil {
+		c.Ui.Error(fmt.Sprintf("Error loading plugin path: %s", err))
+		return 1
+	}
+
 	// Check if the path is a plan
 	plan, err := c.Plan(configPath)
 	if err != nil {
@@ -58,20 +68,28 @@ func (c *PlanCommand) Run(args []string) int {
 		configPath = ""
 	}
 
+	var diags tfdiags.Diagnostics
+
 	// Load the module if we don't have one yet (not running from plan)
 	var mod *module.Tree
 	if plan == nil {
-		mod, err = c.Module(configPath)
-		if err != nil {
-			c.Ui.Error(fmt.Sprintf("Failed to load root config module: %s", err))
+		var modDiags tfdiags.Diagnostics
+		mod, modDiags = c.Module(configPath)
+		diags = diags.Append(modDiags)
+		if modDiags.HasErrors() {
+			c.showDiagnostics(diags)
 			return 1
 		}
 	}
 
+	var conf *config.Config
+	if mod != nil {
+		conf = mod.Config()
+	}
 	// Load the backend
 	b, err := c.Backend(&BackendOpts{
-		ConfigPath: configPath,
-		Plan:       plan,
+		Config: conf,
+		Plan:   plan,
 	})
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf("Failed to load backend: %s", err))
@@ -88,26 +106,15 @@ func (c *PlanCommand) Run(args []string) int {
 	opReq.Type = backend.OperationTypePlan
 
 	// Perform the operation
-	op, err := b.Operation(context.Background(), opReq)
+	op, err := c.RunOperation(b, opReq)
 	if err != nil {
-		c.Ui.Error(fmt.Sprintf("Error starting operation: %s", err))
-		return 1
+		diags = diags.Append(err)
 	}
 
-	// Wait for the operation to complete
-	<-op.Done()
-	if err := op.Err; err != nil {
-		c.Ui.Error(err.Error())
+	c.showDiagnostics(diags)
+	if diags.HasErrors() {
 		return 1
 	}
-
-	/*
-		err = terraform.SetDebugInfo(DefaultDataDir)
-		if err != nil {
-			c.Ui.Error(err.Error())
-			return 1
-		}
-	*/
 
 	if detailed && !op.PlanEmpty {
 		return 2
@@ -172,8 +179,8 @@ Options:
                       flag can be set multiple times.
 
   -var-file=foo       Set variables in the Terraform configuration from
-                      a file. If "terraform.tfvars" is present, it will be
-                      automatically loaded if this flag is not specified.
+                      a file. If "terraform.tfvars" or any ".auto.tfvars"
+                      files are present, they will be automatically loaded.
 `
 	return strings.TrimSpace(helpText)
 }

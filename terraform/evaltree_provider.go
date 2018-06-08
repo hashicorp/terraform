@@ -1,17 +1,24 @@
 package terraform
 
 import (
+	"strings"
+
 	"github.com/hashicorp/terraform/config"
 )
 
 // ProviderEvalTree returns the evaluation tree for initializing and
 // configuring providers.
-func ProviderEvalTree(n string, config *config.RawConfig) EvalNode {
+func ProviderEvalTree(n *NodeApplyableProvider, config *config.ProviderConfig) EvalNode {
 	var provider ResourceProvider
 	var resourceConfig *ResourceConfig
 
+	typeName := strings.SplitN(n.NameValue, ".", 2)[0]
+
 	seq := make([]EvalNode, 0, 5)
-	seq = append(seq, &EvalInitProvider{Name: n})
+	seq = append(seq, &EvalInitProvider{
+		TypeName: typeName,
+		Name:     n.Name(),
+	})
 
 	// Input stuff
 	seq = append(seq, &EvalOpFilter{
@@ -19,20 +26,20 @@ func ProviderEvalTree(n string, config *config.RawConfig) EvalNode {
 		Node: &EvalSequence{
 			Nodes: []EvalNode{
 				&EvalGetProvider{
-					Name:   n,
+					Name:   n.Name(),
 					Output: &provider,
 				},
-				&EvalInterpolate{
+				&EvalInterpolateProvider{
 					Config: config,
 					Output: &resourceConfig,
 				},
 				&EvalBuildProviderConfig{
-					Provider: n,
+					Provider: n.NameValue,
 					Config:   &resourceConfig,
 					Output:   &resourceConfig,
 				},
 				&EvalInputProvider{
-					Name:     n,
+					Name:     n.NameValue,
 					Provider: &provider,
 					Config:   &resourceConfig,
 				},
@@ -45,24 +52,20 @@ func ProviderEvalTree(n string, config *config.RawConfig) EvalNode {
 		Node: &EvalSequence{
 			Nodes: []EvalNode{
 				&EvalGetProvider{
-					Name:   n,
+					Name:   n.Name(),
 					Output: &provider,
 				},
-				&EvalInterpolate{
+				&EvalInterpolateProvider{
 					Config: config,
 					Output: &resourceConfig,
 				},
 				&EvalBuildProviderConfig{
-					Provider: n,
+					Provider: n.NameValue,
 					Config:   &resourceConfig,
 					Output:   &resourceConfig,
 				},
 				&EvalValidateProvider{
 					Provider: &provider,
-					Config:   &resourceConfig,
-				},
-				&EvalSetProviderConfig{
-					Provider: n,
 					Config:   &resourceConfig,
 				},
 			},
@@ -75,21 +78,17 @@ func ProviderEvalTree(n string, config *config.RawConfig) EvalNode {
 		Node: &EvalSequence{
 			Nodes: []EvalNode{
 				&EvalGetProvider{
-					Name:   n,
+					Name:   n.Name(),
 					Output: &provider,
 				},
-				&EvalInterpolate{
+				&EvalInterpolateProvider{
 					Config: config,
 					Output: &resourceConfig,
 				},
 				&EvalBuildProviderConfig{
-					Provider: n,
+					Provider: n.NameValue,
 					Config:   &resourceConfig,
 					Output:   &resourceConfig,
-				},
-				&EvalSetProviderConfig{
-					Provider: n,
-					Config:   &resourceConfig,
 				},
 			},
 		},
@@ -102,7 +101,7 @@ func ProviderEvalTree(n string, config *config.RawConfig) EvalNode {
 		Node: &EvalSequence{
 			Nodes: []EvalNode{
 				&EvalConfigProvider{
-					Provider: n,
+					Provider: n.Name(),
 					Config:   &resourceConfig,
 				},
 			},

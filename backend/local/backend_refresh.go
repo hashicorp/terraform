@@ -3,19 +3,19 @@ package local
 import (
 	"context"
 	"fmt"
+	"log"
 	"os"
 	"strings"
 
 	"github.com/hashicorp/errwrap"
-	"github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/terraform/backend"
-	"github.com/hashicorp/terraform/command/clistate"
 	"github.com/hashicorp/terraform/config/module"
-	"github.com/hashicorp/terraform/state"
+	"github.com/hashicorp/terraform/terraform"
 )
 
 func (b *Local) opRefresh(
-	ctx context.Context,
+	stopCtx context.Context,
+	cancelCtx context.Context,
 	op *backend.Operation,
 	runningOp *backend.RunningOperation) {
 	// Check if our state exists if we're performing a refresh operation. We
@@ -50,25 +50,6 @@ func (b *Local) opRefresh(
 		return
 	}
 
-	if op.LockState {
-		lockCtx, cancel := context.WithTimeout(ctx, op.StateLockTimeout)
-		defer cancel()
-
-		lockInfo := state.NewLockInfo()
-		lockInfo.Operation = op.Type.String()
-		lockID, err := clistate.Lock(lockCtx, opState, lockInfo, b.CLI, b.Colorize())
-		if err != nil {
-			runningOp.Err = errwrap.Wrapf("Error locking state: {{err}}", err)
-			return
-		}
-
-		defer func() {
-			if err := clistate.Unlock(opState, lockID, b.CLI, b.Colorize()); err != nil {
-				runningOp.Err = multierror.Append(runningOp.Err, err)
-			}
-		}()
-	}
-
 	// Set our state
 	runningOp.State = opState.State()
 	if runningOp.State.Empty() || !runningOp.State.HasResources() {
@@ -78,11 +59,24 @@ func (b *Local) opRefresh(
 		}
 	}
 
-	// Perform operation and write the resulting state to the running op
-	newState, err := tfCtx.Refresh()
+	// Perform the refresh in a goroutine so we can be interrupted
+	var newState *terraform.State
+	var refreshErr error
+	doneCh := make(chan struct{})
+	go func() {
+		defer close(doneCh)
+		newState, refreshErr = tfCtx.Refresh()
+		log.Printf("[INFO] backend/local: refresh calling Refresh")
+	}()
+
+	if b.opWait(doneCh, stopCtx, cancelCtx, tfCtx, opState) {
+		return
+	}
+
+	// write the resulting state to the running op
 	runningOp.State = newState
-	if err != nil {
-		runningOp.Err = errwrap.Wrapf("Error refreshing state: {{err}}", err)
+	if refreshErr != nil {
+		runningOp.Err = errwrap.Wrapf("Error refreshing state: {{err}}", refreshErr)
 		return
 	}
 

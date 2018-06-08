@@ -22,11 +22,17 @@ type commonResult struct {
 
 // Extract is a function that accepts a result and extracts a firewall.
 func (r commonResult) Extract() (*Firewall, error) {
-	var s struct {
-		Firewall *Firewall `json:"firewall"`
-	}
+	var s Firewall
 	err := r.ExtractInto(&s)
-	return s.Firewall, err
+	return &s, err
+}
+
+func (r commonResult) ExtractInto(v interface{}) error {
+	return r.Result.ExtractIntoStructPtr(v, "firewall")
+}
+
+func ExtractFirewallsInto(r pagination.Page, v interface{}) error {
+	return r.(FirewallPage).Result.ExtractIntoSlicePtr(v, "firewalls")
 }
 
 // FirewallPage is the page returned by a pager when traversing over a
@@ -59,11 +65,9 @@ func (r FirewallPage) IsEmpty() (bool, error) {
 // and extracts the elements into a slice of Router structs. In other words,
 // a generic collection is mapped into a relevant slice.
 func ExtractFirewalls(r pagination.Page) ([]Firewall, error) {
-	var s struct {
-		Firewalls []Firewall `json:"firewalls" json:"firewalls"`
-	}
-	err := (r.(FirewallPage)).ExtractInto(&s)
-	return s.Firewalls, err
+	var s []Firewall
+	err := ExtractFirewallsInto(r, &s)
+	return s, err
 }
 
 // GetResult represents the result of a get operation.

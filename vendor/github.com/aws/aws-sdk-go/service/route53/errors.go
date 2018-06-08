@@ -7,18 +7,29 @@ const (
 	// ErrCodeConcurrentModification for service response error code
 	// "ConcurrentModification".
 	//
-	// Another user submitted a request to update the object at the same time that
-	// you did. Retry the request.
+	// Another user submitted a request to create, update, or delete the object
+	// at the same time that you did. Retry the request.
 	ErrCodeConcurrentModification = "ConcurrentModification"
 
 	// ErrCodeConflictingDomainExists for service response error code
 	// "ConflictingDomainExists".
 	//
-	// You specified an Amazon VPC that you're already using for another hosted
-	// zone, and the domain that you specified for one of the hosted zones is a
-	// subdomain of the domain that you specified for the other hosted zone. For
-	// example, you can't use the same Amazon VPC for the hosted zones for example.com
-	// and test.example.com.
+	// The cause of this error depends on whether you're trying to create a public
+	// or a private hosted zone:
+	//
+	//    * Public hosted zone: Two hosted zones that have the same name or that
+	//    have a parent/child relationship (example.com and test.example.com) can't
+	//    have any common name servers. You tried to create a hosted zone that has
+	//    the same name as an existing hosted zone or that's the parent or child
+	//    of an existing hosted zone, and you specified a delegation set that shares
+	//    one or more name servers with the existing hosted zone. For more information,
+	//    see CreateReusableDelegationSet.
+	//
+	//    * Private hosted zone: You specified an Amazon VPC that you're already
+	//    using for another hosted zone, and the domain that you specified for one
+	//    of the hosted zones is a subdomain of the domain that you specified for
+	//    the other hosted zone. For example, you can't use the same Amazon VPC
+	//    for the hosted zones for example.com and test.example.com.
 	ErrCodeConflictingDomainExists = "ConflictingDomainExists"
 
 	// ErrCodeConflictingTypes for service response error code
@@ -82,9 +93,7 @@ const (
 	// ErrCodeHealthCheckInUse for service response error code
 	// "HealthCheckInUse".
 	//
-	// The health check ID for this health check is referenced in the HealthCheckId
-	// element in one of the resource record sets in one of the hosted zones that
-	// are owned by the current AWS account.
+	// This error code is not in use.
 	ErrCodeHealthCheckInUse = "HealthCheckInUse"
 
 	// ErrCodeHealthCheckVersionMismatch for service response error code
@@ -114,12 +123,33 @@ const (
 	// The specified HostedZone can't be found.
 	ErrCodeHostedZoneNotFound = "HostedZoneNotFound"
 
+	// ErrCodeHostedZoneNotPrivate for service response error code
+	// "HostedZoneNotPrivate".
+	//
+	// The specified hosted zone is a public hosted zone, not a private hosted zone.
+	ErrCodeHostedZoneNotPrivate = "HostedZoneNotPrivate"
+
 	// ErrCodeIncompatibleVersion for service response error code
 	// "IncompatibleVersion".
 	//
 	// The resource you're trying to access is unsupported on this Amazon Route
 	// 53 endpoint.
 	ErrCodeIncompatibleVersion = "IncompatibleVersion"
+
+	// ErrCodeInsufficientCloudWatchLogsResourcePolicy for service response error code
+	// "InsufficientCloudWatchLogsResourcePolicy".
+	//
+	// Amazon Route 53 doesn't have the permissions required to create log streams
+	// and send query logs to log streams. Possible causes include the following:
+	//
+	//    * There is no resource policy that specifies the log group ARN in the
+	//    value for Resource.
+	//
+	//    * The resource policy that includes the log group ARN in the value for
+	//    Resource doesn't have the necessary permissions.
+	//
+	//    * The resource policy hasn't finished propagating yet.
+	ErrCodeInsufficientCloudWatchLogsResourcePolicy = "InsufficientCloudWatchLogsResourcePolicy"
 
 	// ErrCodeInvalidArgument for service response error code
 	// "InvalidArgument".
@@ -148,6 +178,9 @@ const (
 
 	// ErrCodeInvalidPaginationToken for service response error code
 	// "InvalidPaginationToken".
+	//
+	// The value that you specified to get the second or subsequent page of results
+	// is invalid.
 	ErrCodeInvalidPaginationToken = "InvalidPaginationToken"
 
 	// ErrCodeInvalidTrafficPolicyDocument for service response error code
@@ -175,7 +208,14 @@ const (
 	// ErrCodeLimitsExceeded for service response error code
 	// "LimitsExceeded".
 	//
-	// The limits specified for a resource have been exceeded.
+	// This operation can't be completed either because the current account has
+	// reached the limit on reusable delegation sets that it can create or because
+	// you've reached the limit on the number of Amazon VPCs that you can associate
+	// with a private hosted zone. To get the current limit on the number of reusable
+	// delegation sets, see GetAccountLimit. To get the current limit on the number
+	// of Amazon VPCs that you can associate with a private hosted zone, see GetHostedZoneLimit.
+	// To request a higher limit, create a case (http://aws.amazon.com/route53-request)
+	// with the AWS Support Center.
 	ErrCodeLimitsExceeded = "LimitsExceeded"
 
 	// ErrCodeNoSuchChange for service response error code
@@ -183,6 +223,12 @@ const (
 	//
 	// A change with the specified change ID does not exist.
 	ErrCodeNoSuchChange = "NoSuchChange"
+
+	// ErrCodeNoSuchCloudWatchLogsLogGroup for service response error code
+	// "NoSuchCloudWatchLogsLogGroup".
+	//
+	// There is no CloudWatch Logs log group with the specified ARN.
+	ErrCodeNoSuchCloudWatchLogsLogGroup = "NoSuchCloudWatchLogsLogGroup"
 
 	// ErrCodeNoSuchDelegationSet for service response error code
 	// "NoSuchDelegationSet".
@@ -208,6 +254,12 @@ const (
 	//
 	// No hosted zone exists with the ID that you specified.
 	ErrCodeNoSuchHostedZone = "NoSuchHostedZone"
+
+	// ErrCodeNoSuchQueryLoggingConfig for service response error code
+	// "NoSuchQueryLoggingConfig".
+	//
+	// There is no DNS query logging configuration with the specified ID.
+	ErrCodeNoSuchQueryLoggingConfig = "NoSuchQueryLoggingConfig"
 
 	// ErrCodeNoSuchTrafficPolicy for service response error code
 	// "NoSuchTrafficPolicy".
@@ -245,6 +297,13 @@ const (
 	// 53 doesn't support associating a VPC with a public hosted zone.
 	ErrCodePublicZoneVPCAssociation = "PublicZoneVPCAssociation"
 
+	// ErrCodeQueryLoggingConfigAlreadyExists for service response error code
+	// "QueryLoggingConfigAlreadyExists".
+	//
+	// You can create only one query logging configuration for a hosted zone, and
+	// a query logging configuration already exists for this hosted zone.
+	ErrCodeQueryLoggingConfigAlreadyExists = "QueryLoggingConfigAlreadyExists"
+
 	// ErrCodeThrottlingException for service response error code
 	// "ThrottlingException".
 	//
@@ -254,34 +313,84 @@ const (
 	// ErrCodeTooManyHealthChecks for service response error code
 	// "TooManyHealthChecks".
 	//
+	// This health check can't be created because the current account has reached
+	// the limit on the number of active health checks.
+	//
+	// For information about default limits, see Limits (http://docs.aws.amazon.com/Route53/latest/DeveloperGuide/DNSLimitations.html)
+	// in the Amazon Route 53 Developer Guide.
+	//
+	// For information about how to get the current limit for an account, see GetAccountLimit.
+	// To request a higher limit, create a case (http://aws.amazon.com/route53-request)
+	// with the AWS Support Center.
+	//
 	// You have reached the maximum number of active health checks for an AWS account.
-	// The default limit is 100. To request a higher limit, create a case (http://aws.amazon.com/route53-request)
+	// To request a higher limit, create a case (http://aws.amazon.com/route53-request)
 	// with the AWS Support Center.
 	ErrCodeTooManyHealthChecks = "TooManyHealthChecks"
 
 	// ErrCodeTooManyHostedZones for service response error code
 	// "TooManyHostedZones".
 	//
-	// This hosted zone can't be created because the hosted zone limit is exceeded.
-	// To request a limit increase, go to the Amazon Route 53 Contact Us (http://aws.amazon.com/route53-request/)
-	// page.
+	// This operation can't be completed either because the current account has
+	// reached the limit on the number of hosted zones or because you've reached
+	// the limit on the number of hosted zones that can be associated with a reusable
+	// delegation set.
+	//
+	// For information about default limits, see Limits (http://docs.aws.amazon.com/Route53/latest/DeveloperGuide/DNSLimitations.html)
+	// in the Amazon Route 53 Developer Guide.
+	//
+	// To get the current limit on hosted zones that can be created by an account,
+	// see GetAccountLimit.
+	//
+	// To get the current limit on hosted zones that can be associated with a reusable
+	// delegation set, see GetReusableDelegationSetLimit.
+	//
+	// To request a higher limit, create a case (http://aws.amazon.com/route53-request)
+	// with the AWS Support Center.
 	ErrCodeTooManyHostedZones = "TooManyHostedZones"
 
 	// ErrCodeTooManyTrafficPolicies for service response error code
 	// "TooManyTrafficPolicies".
 	//
-	// You've created the maximum number of traffic policies that can be created
-	// for the current AWS account. You can request an increase to the limit on
-	// the Contact Us (http://aws.amazon.com/route53-request/) page.
+	// This traffic policy can't be created because the current account has reached
+	// the limit on the number of traffic policies.
+	//
+	// For information about default limits, see Limits (http://docs.aws.amazon.com/Route53/latest/DeveloperGuide/DNSLimitations.html)
+	// in the Amazon Route 53 Developer Guide.
+	//
+	// To get the current limit for an account, see GetAccountLimit.
+	//
+	// To request a higher limit, create a case (http://aws.amazon.com/route53-request)
+	// with the AWS Support Center.
 	ErrCodeTooManyTrafficPolicies = "TooManyTrafficPolicies"
 
 	// ErrCodeTooManyTrafficPolicyInstances for service response error code
 	// "TooManyTrafficPolicyInstances".
 	//
-	// You've created the maximum number of traffic policy instances that can be
-	// created for the current AWS account. You can request an increase to the limit
-	// on the Contact Us (http://aws.amazon.com/route53-request/) page.
+	// This traffic policy instance can't be created because the current account
+	// has reached the limit on the number of traffic policy instances.
+	//
+	// For information about default limits, see Limits (http://docs.aws.amazon.com/Route53/latest/DeveloperGuide/DNSLimitations.html)
+	// in the Amazon Route 53 Developer Guide.
+	//
+	// For information about how to get the current limit for an account, see GetAccountLimit.
+	//
+	// To request a higher limit, create a case (http://aws.amazon.com/route53-request)
+	// with the AWS Support Center.
 	ErrCodeTooManyTrafficPolicyInstances = "TooManyTrafficPolicyInstances"
+
+	// ErrCodeTooManyTrafficPolicyVersionsForCurrentPolicy for service response error code
+	// "TooManyTrafficPolicyVersionsForCurrentPolicy".
+	//
+	// This traffic policy version can't be created because you've reached the limit
+	// of 1000 on the number of versions that you can create for the current traffic
+	// policy.
+	//
+	// To create more traffic policy versions, you can use GetTrafficPolicy to get
+	// the traffic policy document for a specified traffic policy version, and then
+	// use CreateTrafficPolicy to create a new traffic policy using the traffic
+	// policy document.
+	ErrCodeTooManyTrafficPolicyVersionsForCurrentPolicy = "TooManyTrafficPolicyVersionsForCurrentPolicy"
 
 	// ErrCodeTooManyVPCAssociationAuthorizations for service response error code
 	// "TooManyVPCAssociationAuthorizations".
@@ -309,7 +418,7 @@ const (
 	// ErrCodeTrafficPolicyInstanceAlreadyExists for service response error code
 	// "TrafficPolicyInstanceAlreadyExists".
 	//
-	// Traffic policy instance with given Id already exists.
+	// There is already a traffic policy instance with the specified ID.
 	ErrCodeTrafficPolicyInstanceAlreadyExists = "TrafficPolicyInstanceAlreadyExists"
 
 	// ErrCodeVPCAssociationAuthorizationNotFound for service response error code

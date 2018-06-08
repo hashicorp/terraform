@@ -22,3 +22,11 @@ resource "aws_instance" "web" {
 resource "aws_load_balancer" "weblb" {
     members = "${aws_instance.web.id_list}"
 }
+
+locals {
+  instance_id = "${aws_instance.web.id}"
+}
+
+output "instance_id" {
+  value = "${local.instance_id}"
+}

@@ -4,14 +4,18 @@ type Node struct {
 	ID              string
 	Node            string
 	Address         string
+	Datacenter      string
 	TaggedAddresses map[string]string
 	Meta            map[string]string
+	CreateIndex     uint64
+	ModifyIndex     uint64
 }
 
 type CatalogService struct {
 	ID                       string
 	Node                     string
 	Address                  string
+	Datacenter               string
 	TaggedAddresses          map[string]string
 	NodeMeta                 map[string]string
 	ServiceID                string

@@ -1,7 +1,7 @@
 # Go Checkpoint Client
 
 [Checkpoint](http://checkpoint.hashicorp.com) is an internal service at
-Hashicorp that we use to check version information, broadcoast security
+Hashicorp that we use to check version information, broadcast security
 bulletins, etc.
 
 We understand that software making remote calls over the internet
@@ -10,7 +10,7 @@ disabled in all of our software that includes it. You can view the source
 of this client to see that we're not sending any private information.
 
 Each Hashicorp application has it's specific configuration option
-to disable chekpoint calls, but the `CHECKPOINT_DISABLE` makes
+to disable checkpoint calls, but the `CHECKPOINT_DISABLE` makes
 the underlying checkpoint component itself disabled. For example
 in the case of packer:
 ```

@@ -4,12 +4,13 @@ import (
 	"encoding/xml"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/hashicorp/go-safetemp"
 )
 
 // HttpGetter is a Getter implementation that will download from an HTTP
@@ -36,6 +37,10 @@ type HttpGetter struct {
 	// Netrc, if true, will lookup and use auth information found
 	// in the user's netrc file if available.
 	Netrc bool
+
+	// Client is the http.Client to use for Get requests.
+	// This defaults to a cleanhttp.DefaultClient if left unset.
+	Client *http.Client
 }
 
 func (g *HttpGetter) ClientMode(u *url.URL) (ClientMode, error) {
@@ -57,13 +62,17 @@ func (g *HttpGetter) Get(dst string, u *url.URL) error {
 		}
 	}
 
+	if g.Client == nil {
+		g.Client = httpClient
+	}
+
 	// Add terraform-get to the parameter.
 	q := u.Query()
 	q.Add("terraform-get", "1")
 	u.RawQuery = q.Encode()
 
 	// Get the URL
-	resp, err := http.Get(u.String())
+	resp, err := g.Client.Get(u.String())
 	if err != nil {
 		return err
 	}
@@ -98,7 +107,18 @@ func (g *HttpGetter) Get(dst string, u *url.URL) error {
 }
 
 func (g *HttpGetter) GetFile(dst string, u *url.URL) error {
-	resp, err := http.Get(u.String())
+	if g.Netrc {
+		// Add auth from netrc if we can
+		if err := addAuthFromNetrc(u); err != nil {
+			return err
+		}
+	}
+
+	if g.Client == nil {
+		g.Client = httpClient
+	}
+
+	resp, err := g.Client.Get(u.String())
 	if err != nil {
 		return err
 	}
@@ -116,29 +136,40 @@ func (g *HttpGetter) GetFile(dst string, u *url.URL) error {
 	if err != nil {
 		return err
 	}
-	defer f.Close()
 
-	_, err = io.Copy(f, resp.Body)
+	n, err := io.Copy(f, resp.Body)
+	if err == nil && n < resp.ContentLength {
+		err = io.ErrShortWrite
+	}
+	if err1 := f.Close(); err == nil {
+		err = err1
+	}
 	return err
 }
 
 // getSubdir downloads the source into the destination, but with
 // the proper subdir.
 func (g *HttpGetter) getSubdir(dst, source, subDir string) error {
-	// Create a temporary directory to store the full source
-	td, err := ioutil.TempDir("", "tf")
+	// Create a temporary directory to store the full source. This has to be
+	// a non-existent directory.
+	td, tdcloser, err := safetemp.Dir("", "getter")
 	if err != nil {
 		return err
 	}
-	defer os.RemoveAll(td)
+	defer tdcloser.Close()
 
 	// Download that into the given directory
 	if err := Get(td, source); err != nil {
 		return err
 	}
 
+	// Process any globbing
+	sourcePath, err := SubdirGlob(td, subDir)
+	if err != nil {
+		return err
+	}
+
 	// Make sure the subdir path actually exists
-	sourcePath := filepath.Join(td, subDir)
 	if _, err := os.Stat(sourcePath); err != nil {
 		return fmt.Errorf(
 			"Error downloading %s: %s", source, err)

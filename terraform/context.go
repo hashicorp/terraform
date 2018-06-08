@@ -8,11 +8,13 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/hashicorp/terraform/tfdiags"
+
 	"github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/hcl"
 	"github.com/hashicorp/terraform/config"
 	"github.com/hashicorp/terraform/config/module"
-	"github.com/hashicorp/terraform/helper/experiment"
+	"github.com/hashicorp/terraform/version"
 )
 
 // InputMode defines what sort of input will be asked for when Input
@@ -57,11 +59,16 @@ type ContextOpts struct {
 	Parallelism        int
 	State              *State
 	StateFutureAllowed bool
-	Providers          map[string]ResourceProviderFactory
+	ProviderResolver   ResourceProviderResolver
 	Provisioners       map[string]ResourceProvisionerFactory
 	Shadow             bool
 	Targets            []string
 	Variables          map[string]interface{}
+
+	// If non-nil, will apply as additional constraints on the provider
+	// plugins that will be requested from the provider resolver.
+	ProviderSHA256s    map[string][]byte
+	SkipProviderVerify bool
 
 	UIInput UIInput
 }
@@ -102,6 +109,7 @@ type Context struct {
 	l                   sync.Mutex // Lock acquired during any task
 	parallelSem         Semaphore
 	providerInputConfig map[string]map[string]interface{}
+	providerSHA256s     map[string][]byte
 	runLock             sync.Mutex
 	runCond             *sync.Cond
 	runContext          context.Context
@@ -117,7 +125,7 @@ type Context struct {
 func NewContext(opts *ContextOpts) (*Context, error) {
 	// Validate the version requirement if it is given
 	if opts.Module != nil {
-		if err := checkRequiredVersion(opts.Module); err != nil {
+		if err := CheckRequiredVersion(opts.Module); err != nil {
 			return nil, err
 		}
 	}
@@ -137,19 +145,14 @@ func NewContext(opts *ContextOpts) (*Context, error) {
 
 	// If our state is from the future, then error. Callers can avoid
 	// this error by explicitly setting `StateFutureAllowed`.
-	if !opts.StateFutureAllowed && state.FromFutureTerraform() {
-		return nil, fmt.Errorf(
-			"Terraform doesn't allow running any operations against a state\n"+
-				"that was written by a future Terraform version. The state is\n"+
-				"reporting it is written by Terraform '%s'.\n\n"+
-				"Please run at least that version of Terraform to continue.",
-			state.TFVersion)
+	if err := CheckStateVersion(state); err != nil && !opts.StateFutureAllowed {
+		return nil, err
 	}
 
 	// Explicitly reset our state version to our current version so that
 	// any operations we do will write out that our latest version
 	// has run.
-	state.TFVersion = Version
+	state.TFVersion = version.Version
 
 	// Determine parallelism, default to 10. We do this both to limit
 	// CPU pressure but also to have an extra guard against rate throttling
@@ -166,13 +169,29 @@ func NewContext(opts *ContextOpts) (*Context, error) {
 	//        set by environment variables if necessary. This includes
 	//        values taken from -var-file in addition.
 	variables := make(map[string]interface{})
-
 	if opts.Module != nil {
 		var err error
 		variables, err = Variables(opts.Module, opts.Variables)
 		if err != nil {
 			return nil, err
 		}
+	}
+
+	// Bind available provider plugins to the constraints in config
+	var providers map[string]ResourceProviderFactory
+	if opts.ProviderResolver != nil {
+		var err error
+		deps := ModuleTreeDependencies(opts.Module, state)
+		reqd := deps.AllPluginRequirements()
+		if opts.ProviderSHA256s != nil && !opts.SkipProviderVerify {
+			reqd.LockExecutables(opts.ProviderSHA256s)
+		}
+		providers, err = resourceProviderFactories(opts.ProviderResolver, reqd)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		providers = make(map[string]ResourceProviderFactory)
 	}
 
 	diff := opts.Diff
@@ -182,7 +201,7 @@ func NewContext(opts *ContextOpts) (*Context, error) {
 
 	return &Context{
 		components: &basicComponentFactory{
-			providers:    opts.Providers,
+			providers:    providers,
 			provisioners: opts.Provisioners,
 		},
 		destroy:   opts.Destroy,
@@ -198,6 +217,7 @@ func NewContext(opts *ContextOpts) (*Context, error) {
 
 		parallelSem:         NewSemaphore(par),
 		providerInputConfig: make(map[string]map[string]interface{}),
+		providerSHA256s:     opts.ProviderSHA256s,
 		sh:                  sh,
 	}, nil
 }
@@ -442,7 +462,7 @@ func (c *Context) Input(mode InputMode) error {
 		}
 
 		// Do the walk
-		if _, err := c.walk(graph, nil, walkInput); err != nil {
+		if _, err := c.walk(graph, walkInput); err != nil {
 			return err
 		}
 	}
@@ -467,6 +487,13 @@ func (c *Context) Input(mode InputMode) error {
 func (c *Context) Apply() (*State, error) {
 	defer c.acquireRun("apply")()
 
+	// Check there are no empty target parameter values
+	for _, target := range c.targets {
+		if target == "" {
+			return nil, fmt.Errorf("Target parameter must not have empty value")
+		}
+	}
+
 	// Copy our own state
 	c.state = c.state.DeepCopy()
 
@@ -483,7 +510,7 @@ func (c *Context) Apply() (*State, error) {
 	}
 
 	// Walk the graph
-	walker, err := c.walk(graph, graph, operation)
+	walker, err := c.walk(graph, operation)
 	if len(walker.ValidationErrors) > 0 {
 		err = multierror.Append(err, walker.ValidationErrors...)
 	}
@@ -504,16 +531,27 @@ func (c *Context) Apply() (*State, error) {
 func (c *Context) Plan() (*Plan, error) {
 	defer c.acquireRun("plan")()
 
+	// Check there are no empty target parameter values
+	for _, target := range c.targets {
+		if target == "" {
+			return nil, fmt.Errorf("Target parameter must not have empty value")
+		}
+	}
+
 	p := &Plan{
 		Module:  c.module,
 		Vars:    c.variables,
 		State:   c.state,
 		Targets: c.targets,
+
+		TerraformVersion: version.String(),
+		ProviderSHA256s:  c.providerSHA256s,
 	}
 
 	var operation walkOperation
 	if c.destroy {
 		operation = walkPlanDestroy
+		p.Destroy = true
 	} else {
 		// Set our state to be something temporary. We do this so that
 		// the plan can update a fake state so that variables work, then
@@ -549,7 +587,7 @@ func (c *Context) Plan() (*Plan, error) {
 	}
 
 	// Do the walk
-	walker, err := c.walk(graph, graph, operation)
+	walker, err := c.walk(graph, operation)
 	if err != nil {
 		return nil, err
 	}
@@ -604,7 +642,7 @@ func (c *Context) Refresh() (*State, error) {
 	}
 
 	// Do the walk
-	if _, err := c.walk(graph, graph, walkRefresh); err != nil {
+	if _, err := c.walk(graph, walkRefresh); err != nil {
 		return nil, err
 	}
 
@@ -644,29 +682,27 @@ func (c *Context) Stop() {
 }
 
 // Validate validates the configuration and returns any warnings or errors.
-func (c *Context) Validate() ([]string, []error) {
+func (c *Context) Validate() tfdiags.Diagnostics {
 	defer c.acquireRun("validate")()
 
-	var errs error
+	var diags tfdiags.Diagnostics
 
 	// Validate the configuration itself
-	if err := c.module.Validate(); err != nil {
-		errs = multierror.Append(errs, err)
-	}
+	diags = diags.Append(c.module.Validate())
 
 	// This only needs to be done for the root module, since inter-module
 	// variables are validated in the module tree.
 	if config := c.module.Config(); config != nil {
 		// Validate the user variables
-		if err := smcUserVariables(config, c.variables); len(err) > 0 {
-			errs = multierror.Append(errs, err...)
+		for _, err := range smcUserVariables(config, c.variables) {
+			diags = diags.Append(err)
 		}
 	}
 
 	// If we have errors at this point, the graphing has no chance,
 	// so just bail early.
-	if errs != nil {
-		return nil, []error{errs}
+	if diags.HasErrors() {
+		return diags
 	}
 
 	// Build the graph so we can walk it and run Validate on nodes.
@@ -675,24 +711,29 @@ func (c *Context) Validate() ([]string, []error) {
 	// graph again later after Planning.
 	graph, err := c.Graph(GraphTypeValidate, nil)
 	if err != nil {
-		return nil, []error{err}
+		diags = diags.Append(err)
+		return diags
 	}
 
 	// Walk
-	walker, err := c.walk(graph, graph, walkValidate)
+	walker, err := c.walk(graph, walkValidate)
 	if err != nil {
-		return nil, multierror.Append(errs, err).Errors
+		diags = diags.Append(err)
 	}
 
-	// Return the result
-	rerrs := multierror.Append(errs, walker.ValidationErrors...)
-
 	sort.Strings(walker.ValidationWarnings)
-	sort.Slice(rerrs.Errors, func(i, j int) bool {
-		return rerrs.Errors[i].Error() < rerrs.Errors[j].Error()
+	sort.Slice(walker.ValidationErrors, func(i, j int) bool {
+		return walker.ValidationErrors[i].Error() < walker.ValidationErrors[j].Error()
 	})
 
-	return walker.ValidationWarnings, rerrs.Errors
+	for _, warn := range walker.ValidationWarnings {
+		diags = diags.Append(tfdiags.SimpleWarning(warn))
+	}
+	for _, err := range walker.ValidationErrors {
+		diags = diags.Append(err)
+	}
+
+	return diags
 }
 
 // Module returns the module tree associated with this context.
@@ -766,32 +807,10 @@ func (c *Context) releaseRun() {
 	c.runContext = nil
 }
 
-func (c *Context) walk(
-	graph, shadow *Graph, operation walkOperation) (*ContextGraphWalker, error) {
+func (c *Context) walk(graph *Graph, operation walkOperation) (*ContextGraphWalker, error) {
 	// Keep track of the "real" context which is the context that does
 	// the real work: talking to real providers, modifying real state, etc.
 	realCtx := c
-
-	// If we don't want shadowing, remove it
-	if !experiment.Enabled(experiment.X_shadow) {
-		shadow = nil
-	}
-
-	// Just log this so we can see it in a debug log
-	if !c.shadow {
-		log.Printf("[WARN] terraform: shadow graph disabled")
-		shadow = nil
-	}
-
-	// If we have a shadow graph, walk that as well
-	var shadowCtx *Context
-	var shadowCloser Shadow
-	if shadow != nil {
-		// Build the shadow context. In the process, override the real context
-		// with the one that is wrapped so that the shadow context can verify
-		// the results of the real.
-		realCtx, shadowCtx, shadowCloser = newShadowContext(c)
-	}
 
 	log.Printf("[DEBUG] Starting graph walk: %s", operation.String())
 
@@ -810,90 +829,6 @@ func (c *Context) walk(
 	// Close the channel so the watcher stops, and wait for it to return.
 	close(watchStop)
 	<-watchWait
-
-	// If we have a shadow graph and we interrupted the real graph, then
-	// we just close the shadow and never verify it. It is non-trivial to
-	// recreate the exact execution state up until an interruption so this
-	// isn't supported with shadows at the moment.
-	if shadowCloser != nil && c.sh.Stopped() {
-		// Ignore the error result, there is nothing we could care about
-		shadowCloser.CloseShadow()
-
-		// Set it to nil so we don't do anything
-		shadowCloser = nil
-	}
-
-	// If we have a shadow graph, wait for that to complete.
-	if shadowCloser != nil {
-		// Build the graph walker for the shadow. We also wrap this in
-		// a panicwrap so that panics are captured. For the shadow graph,
-		// we just want panics to be normal errors rather than to crash
-		// Terraform.
-		shadowWalker := GraphWalkerPanicwrap(&ContextGraphWalker{
-			Context:   shadowCtx,
-			Operation: operation,
-		})
-
-		// Kick off the shadow walk. This will block on any operations
-		// on the real walk so it is fine to start first.
-		log.Printf("[INFO] Starting shadow graph walk: %s", operation.String())
-		shadowCh := make(chan error)
-		go func() {
-			shadowCh <- shadow.Walk(shadowWalker)
-		}()
-
-		// Notify the shadow that we're done
-		if err := shadowCloser.CloseShadow(); err != nil {
-			c.shadowErr = multierror.Append(c.shadowErr, err)
-		}
-
-		// Wait for the walk to end
-		log.Printf("[DEBUG] Waiting for shadow graph to complete...")
-		shadowWalkErr := <-shadowCh
-
-		// Get any shadow errors
-		if err := shadowCloser.ShadowError(); err != nil {
-			c.shadowErr = multierror.Append(c.shadowErr, err)
-		}
-
-		// Verify the contexts (compare)
-		if err := shadowContextVerify(realCtx, shadowCtx); err != nil {
-			c.shadowErr = multierror.Append(c.shadowErr, err)
-		}
-
-		// At this point, if we're supposed to fail on error, then
-		// we PANIC. Some tests just verify that there is an error,
-		// so simply appending it to realErr and returning could hide
-		// shadow problems.
-		//
-		// This must be done BEFORE appending shadowWalkErr since the
-		// shadowWalkErr may include expected errors.
-		//
-		// We only do this if we don't have a real error. In the case of
-		// a real error, we can't guarantee what nodes were and weren't
-		// traversed in parallel scenarios so we can't guarantee no
-		// shadow errors.
-		if c.shadowErr != nil && contextFailOnShadowError && realErr == nil {
-			panic(multierror.Prefix(c.shadowErr, "shadow graph:"))
-		}
-
-		// Now, if we have a walk error, we append that through
-		if shadowWalkErr != nil {
-			c.shadowErr = multierror.Append(c.shadowErr, shadowWalkErr)
-		}
-
-		if c.shadowErr == nil {
-			log.Printf("[INFO] Shadow graph success!")
-		} else {
-			log.Printf("[ERROR] Shadow graph error: %s", c.shadowErr)
-
-			// If we're supposed to fail on shadow errors, then report it
-			if contextFailOnShadowError {
-				realErr = multierror.Append(realErr, multierror.Prefix(
-					c.shadowErr, "shadow graph:"))
-			}
-		}
-	}
 
 	return walker, realErr
 }

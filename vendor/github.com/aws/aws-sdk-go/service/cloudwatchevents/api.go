@@ -17,19 +17,18 @@ const opDeleteRule = "DeleteRule"
 
 // DeleteRuleRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteRule operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See DeleteRule for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the DeleteRule method directly
-// instead.
+// See DeleteRule for more information on using the DeleteRule
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the DeleteRuleRequest method.
 //    req, resp := client.DeleteRuleRequest(params)
@@ -39,7 +38,7 @@ const opDeleteRule = "DeleteRule"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/events-2015-10-07/DeleteRule
+// See also, https://docs.aws.amazon.com/goto/WebAPI/events-2015-10-07/DeleteRule
 func (c *CloudWatchEvents) DeleteRuleRequest(input *DeleteRuleInput) (req *request.Request, output *DeleteRuleOutput) {
 	op := &request.Operation{
 		Name:       opDeleteRule,
@@ -82,7 +81,7 @@ func (c *CloudWatchEvents) DeleteRuleRequest(input *DeleteRuleInput) (req *reque
 //   * ErrCodeInternalException "InternalException"
 //   This exception occurs due to unexpected causes.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/events-2015-10-07/DeleteRule
+// See also, https://docs.aws.amazon.com/goto/WebAPI/events-2015-10-07/DeleteRule
 func (c *CloudWatchEvents) DeleteRule(input *DeleteRuleInput) (*DeleteRuleOutput, error) {
 	req, out := c.DeleteRuleRequest(input)
 	return out, req.Send()
@@ -104,23 +103,106 @@ func (c *CloudWatchEvents) DeleteRuleWithContext(ctx aws.Context, input *DeleteR
 	return out, req.Send()
 }
 
+const opDescribeEventBus = "DescribeEventBus"
+
+// DescribeEventBusRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeEventBus operation. The "output" return
+// value will be populated with the request's response once the request complets
+// successfuly.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See DescribeEventBus for more information on using the DescribeEventBus
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the DescribeEventBusRequest method.
+//    req, resp := client.DescribeEventBusRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/events-2015-10-07/DescribeEventBus
+func (c *CloudWatchEvents) DescribeEventBusRequest(input *DescribeEventBusInput) (req *request.Request, output *DescribeEventBusOutput) {
+	op := &request.Operation{
+		Name:       opDescribeEventBus,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &DescribeEventBusInput{}
+	}
+
+	output = &DescribeEventBusOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// DescribeEventBus API operation for Amazon CloudWatch Events.
+//
+// Displays the external AWS accounts that are permitted to write events to
+// your account using your account's event bus, and the associated policy. To
+// enable your account to receive events from other accounts, use PutPermission.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon CloudWatch Events's
+// API operation DescribeEventBus for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
+//   An entity that you specified does not exist.
+//
+//   * ErrCodeInternalException "InternalException"
+//   This exception occurs due to unexpected causes.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/events-2015-10-07/DescribeEventBus
+func (c *CloudWatchEvents) DescribeEventBus(input *DescribeEventBusInput) (*DescribeEventBusOutput, error) {
+	req, out := c.DescribeEventBusRequest(input)
+	return out, req.Send()
+}
+
+// DescribeEventBusWithContext is the same as DescribeEventBus with the addition of
+// the ability to pass a context and additional request options.
+//
+// See DescribeEventBus for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *CloudWatchEvents) DescribeEventBusWithContext(ctx aws.Context, input *DescribeEventBusInput, opts ...request.Option) (*DescribeEventBusOutput, error) {
+	req, out := c.DescribeEventBusRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
 const opDescribeRule = "DescribeRule"
 
 // DescribeRuleRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeRule operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See DescribeRule for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the DescribeRule method directly
-// instead.
+// See DescribeRule for more information on using the DescribeRule
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the DescribeRuleRequest method.
 //    req, resp := client.DescribeRuleRequest(params)
@@ -130,7 +212,7 @@ const opDescribeRule = "DescribeRule"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/events-2015-10-07/DescribeRule
+// See also, https://docs.aws.amazon.com/goto/WebAPI/events-2015-10-07/DescribeRule
 func (c *CloudWatchEvents) DescribeRuleRequest(input *DescribeRuleInput) (req *request.Request, output *DescribeRuleOutput) {
 	op := &request.Operation{
 		Name:       opDescribeRule,
@@ -160,12 +242,12 @@ func (c *CloudWatchEvents) DescribeRuleRequest(input *DescribeRuleInput) (req *r
 //
 // Returned Error Codes:
 //   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
-//   The rule does not exist.
+//   An entity that you specified does not exist.
 //
 //   * ErrCodeInternalException "InternalException"
 //   This exception occurs due to unexpected causes.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/events-2015-10-07/DescribeRule
+// See also, https://docs.aws.amazon.com/goto/WebAPI/events-2015-10-07/DescribeRule
 func (c *CloudWatchEvents) DescribeRule(input *DescribeRuleInput) (*DescribeRuleOutput, error) {
 	req, out := c.DescribeRuleRequest(input)
 	return out, req.Send()
@@ -191,19 +273,18 @@ const opDisableRule = "DisableRule"
 
 // DisableRuleRequest generates a "aws/request.Request" representing the
 // client's request for the DisableRule operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See DisableRule for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the DisableRule method directly
-// instead.
+// See DisableRule for more information on using the DisableRule
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the DisableRuleRequest method.
 //    req, resp := client.DisableRuleRequest(params)
@@ -213,7 +294,7 @@ const opDisableRule = "DisableRule"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/events-2015-10-07/DisableRule
+// See also, https://docs.aws.amazon.com/goto/WebAPI/events-2015-10-07/DisableRule
 func (c *CloudWatchEvents) DisableRuleRequest(input *DisableRuleInput) (req *request.Request, output *DisableRuleOutput) {
 	op := &request.Operation{
 		Name:       opDisableRule,
@@ -249,7 +330,7 @@ func (c *CloudWatchEvents) DisableRuleRequest(input *DisableRuleInput) (req *req
 //
 // Returned Error Codes:
 //   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
-//   The rule does not exist.
+//   An entity that you specified does not exist.
 //
 //   * ErrCodeConcurrentModificationException "ConcurrentModificationException"
 //   There is concurrent modification on a rule or target.
@@ -257,7 +338,7 @@ func (c *CloudWatchEvents) DisableRuleRequest(input *DisableRuleInput) (req *req
 //   * ErrCodeInternalException "InternalException"
 //   This exception occurs due to unexpected causes.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/events-2015-10-07/DisableRule
+// See also, https://docs.aws.amazon.com/goto/WebAPI/events-2015-10-07/DisableRule
 func (c *CloudWatchEvents) DisableRule(input *DisableRuleInput) (*DisableRuleOutput, error) {
 	req, out := c.DisableRuleRequest(input)
 	return out, req.Send()
@@ -283,19 +364,18 @@ const opEnableRule = "EnableRule"
 
 // EnableRuleRequest generates a "aws/request.Request" representing the
 // client's request for the EnableRule operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See EnableRule for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the EnableRule method directly
-// instead.
+// See EnableRule for more information on using the EnableRule
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the EnableRuleRequest method.
 //    req, resp := client.EnableRuleRequest(params)
@@ -305,7 +385,7 @@ const opEnableRule = "EnableRule"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/events-2015-10-07/EnableRule
+// See also, https://docs.aws.amazon.com/goto/WebAPI/events-2015-10-07/EnableRule
 func (c *CloudWatchEvents) EnableRuleRequest(input *EnableRuleInput) (req *request.Request, output *EnableRuleOutput) {
 	op := &request.Operation{
 		Name:       opEnableRule,
@@ -341,7 +421,7 @@ func (c *CloudWatchEvents) EnableRuleRequest(input *EnableRuleInput) (req *reque
 //
 // Returned Error Codes:
 //   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
-//   The rule does not exist.
+//   An entity that you specified does not exist.
 //
 //   * ErrCodeConcurrentModificationException "ConcurrentModificationException"
 //   There is concurrent modification on a rule or target.
@@ -349,7 +429,7 @@ func (c *CloudWatchEvents) EnableRuleRequest(input *EnableRuleInput) (req *reque
 //   * ErrCodeInternalException "InternalException"
 //   This exception occurs due to unexpected causes.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/events-2015-10-07/EnableRule
+// See also, https://docs.aws.amazon.com/goto/WebAPI/events-2015-10-07/EnableRule
 func (c *CloudWatchEvents) EnableRule(input *EnableRuleInput) (*EnableRuleOutput, error) {
 	req, out := c.EnableRuleRequest(input)
 	return out, req.Send()
@@ -375,19 +455,18 @@ const opListRuleNamesByTarget = "ListRuleNamesByTarget"
 
 // ListRuleNamesByTargetRequest generates a "aws/request.Request" representing the
 // client's request for the ListRuleNamesByTarget operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See ListRuleNamesByTarget for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the ListRuleNamesByTarget method directly
-// instead.
+// See ListRuleNamesByTarget for more information on using the ListRuleNamesByTarget
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the ListRuleNamesByTargetRequest method.
 //    req, resp := client.ListRuleNamesByTargetRequest(params)
@@ -397,7 +476,7 @@ const opListRuleNamesByTarget = "ListRuleNamesByTarget"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/events-2015-10-07/ListRuleNamesByTarget
+// See also, https://docs.aws.amazon.com/goto/WebAPI/events-2015-10-07/ListRuleNamesByTarget
 func (c *CloudWatchEvents) ListRuleNamesByTargetRequest(input *ListRuleNamesByTargetInput) (req *request.Request, output *ListRuleNamesByTargetOutput) {
 	op := &request.Operation{
 		Name:       opListRuleNamesByTarget,
@@ -430,7 +509,7 @@ func (c *CloudWatchEvents) ListRuleNamesByTargetRequest(input *ListRuleNamesByTa
 //   * ErrCodeInternalException "InternalException"
 //   This exception occurs due to unexpected causes.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/events-2015-10-07/ListRuleNamesByTarget
+// See also, https://docs.aws.amazon.com/goto/WebAPI/events-2015-10-07/ListRuleNamesByTarget
 func (c *CloudWatchEvents) ListRuleNamesByTarget(input *ListRuleNamesByTargetInput) (*ListRuleNamesByTargetOutput, error) {
 	req, out := c.ListRuleNamesByTargetRequest(input)
 	return out, req.Send()
@@ -456,19 +535,18 @@ const opListRules = "ListRules"
 
 // ListRulesRequest generates a "aws/request.Request" representing the
 // client's request for the ListRules operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See ListRules for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the ListRules method directly
-// instead.
+// See ListRules for more information on using the ListRules
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the ListRulesRequest method.
 //    req, resp := client.ListRulesRequest(params)
@@ -478,7 +556,7 @@ const opListRules = "ListRules"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/events-2015-10-07/ListRules
+// See also, https://docs.aws.amazon.com/goto/WebAPI/events-2015-10-07/ListRules
 func (c *CloudWatchEvents) ListRulesRequest(input *ListRulesInput) (req *request.Request, output *ListRulesOutput) {
 	op := &request.Operation{
 		Name:       opListRules,
@@ -511,7 +589,7 @@ func (c *CloudWatchEvents) ListRulesRequest(input *ListRulesInput) (req *request
 //   * ErrCodeInternalException "InternalException"
 //   This exception occurs due to unexpected causes.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/events-2015-10-07/ListRules
+// See also, https://docs.aws.amazon.com/goto/WebAPI/events-2015-10-07/ListRules
 func (c *CloudWatchEvents) ListRules(input *ListRulesInput) (*ListRulesOutput, error) {
 	req, out := c.ListRulesRequest(input)
 	return out, req.Send()
@@ -537,19 +615,18 @@ const opListTargetsByRule = "ListTargetsByRule"
 
 // ListTargetsByRuleRequest generates a "aws/request.Request" representing the
 // client's request for the ListTargetsByRule operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See ListTargetsByRule for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the ListTargetsByRule method directly
-// instead.
+// See ListTargetsByRule for more information on using the ListTargetsByRule
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the ListTargetsByRuleRequest method.
 //    req, resp := client.ListTargetsByRuleRequest(params)
@@ -559,7 +636,7 @@ const opListTargetsByRule = "ListTargetsByRule"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/events-2015-10-07/ListTargetsByRule
+// See also, https://docs.aws.amazon.com/goto/WebAPI/events-2015-10-07/ListTargetsByRule
 func (c *CloudWatchEvents) ListTargetsByRuleRequest(input *ListTargetsByRuleInput) (req *request.Request, output *ListTargetsByRuleOutput) {
 	op := &request.Operation{
 		Name:       opListTargetsByRule,
@@ -589,12 +666,12 @@ func (c *CloudWatchEvents) ListTargetsByRuleRequest(input *ListTargetsByRuleInpu
 //
 // Returned Error Codes:
 //   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
-//   The rule does not exist.
+//   An entity that you specified does not exist.
 //
 //   * ErrCodeInternalException "InternalException"
 //   This exception occurs due to unexpected causes.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/events-2015-10-07/ListTargetsByRule
+// See also, https://docs.aws.amazon.com/goto/WebAPI/events-2015-10-07/ListTargetsByRule
 func (c *CloudWatchEvents) ListTargetsByRule(input *ListTargetsByRuleInput) (*ListTargetsByRuleOutput, error) {
 	req, out := c.ListTargetsByRuleRequest(input)
 	return out, req.Send()
@@ -620,19 +697,18 @@ const opPutEvents = "PutEvents"
 
 // PutEventsRequest generates a "aws/request.Request" representing the
 // client's request for the PutEvents operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See PutEvents for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the PutEvents method directly
-// instead.
+// See PutEvents for more information on using the PutEvents
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the PutEventsRequest method.
 //    req, resp := client.PutEventsRequest(params)
@@ -642,7 +718,7 @@ const opPutEvents = "PutEvents"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/events-2015-10-07/PutEvents
+// See also, https://docs.aws.amazon.com/goto/WebAPI/events-2015-10-07/PutEvents
 func (c *CloudWatchEvents) PutEventsRequest(input *PutEventsInput) (req *request.Request, output *PutEventsOutput) {
 	op := &request.Operation{
 		Name:       opPutEvents,
@@ -675,7 +751,7 @@ func (c *CloudWatchEvents) PutEventsRequest(input *PutEventsInput) (req *request
 //   * ErrCodeInternalException "InternalException"
 //   This exception occurs due to unexpected causes.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/events-2015-10-07/PutEvents
+// See also, https://docs.aws.amazon.com/goto/WebAPI/events-2015-10-07/PutEvents
 func (c *CloudWatchEvents) PutEvents(input *PutEventsInput) (*PutEventsOutput, error) {
 	req, out := c.PutEventsRequest(input)
 	return out, req.Send()
@@ -697,23 +773,123 @@ func (c *CloudWatchEvents) PutEventsWithContext(ctx aws.Context, input *PutEvent
 	return out, req.Send()
 }
 
+const opPutPermission = "PutPermission"
+
+// PutPermissionRequest generates a "aws/request.Request" representing the
+// client's request for the PutPermission operation. The "output" return
+// value will be populated with the request's response once the request complets
+// successfuly.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See PutPermission for more information on using the PutPermission
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the PutPermissionRequest method.
+//    req, resp := client.PutPermissionRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/events-2015-10-07/PutPermission
+func (c *CloudWatchEvents) PutPermissionRequest(input *PutPermissionInput) (req *request.Request, output *PutPermissionOutput) {
+	op := &request.Operation{
+		Name:       opPutPermission,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &PutPermissionInput{}
+	}
+
+	output = &PutPermissionOutput{}
+	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Remove(jsonrpc.UnmarshalHandler)
+	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
+	return
+}
+
+// PutPermission API operation for Amazon CloudWatch Events.
+//
+// Running PutPermission permits the specified AWS account to put events to
+// your account's default event bus. CloudWatch Events rules in your account
+// are triggered by these events arriving to your default event bus.
+//
+// For another account to send events to your account, that external account
+// must have a CloudWatch Events rule with your account's default event bus
+// as a target.
+//
+// To enable multiple AWS accounts to put events to your default event bus,
+// run PutPermission once for each of these accounts.
+//
+// The permission policy on the default event bus cannot exceed 10KB in size.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon CloudWatch Events's
+// API operation PutPermission for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
+//   An entity that you specified does not exist.
+//
+//   * ErrCodePolicyLengthExceededException "PolicyLengthExceededException"
+//   The event bus policy is too long. For more information, see the limits.
+//
+//   * ErrCodeInternalException "InternalException"
+//   This exception occurs due to unexpected causes.
+//
+//   * ErrCodeConcurrentModificationException "ConcurrentModificationException"
+//   There is concurrent modification on a rule or target.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/events-2015-10-07/PutPermission
+func (c *CloudWatchEvents) PutPermission(input *PutPermissionInput) (*PutPermissionOutput, error) {
+	req, out := c.PutPermissionRequest(input)
+	return out, req.Send()
+}
+
+// PutPermissionWithContext is the same as PutPermission with the addition of
+// the ability to pass a context and additional request options.
+//
+// See PutPermission for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *CloudWatchEvents) PutPermissionWithContext(ctx aws.Context, input *PutPermissionInput, opts ...request.Option) (*PutPermissionOutput, error) {
+	req, out := c.PutPermissionRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
 const opPutRule = "PutRule"
 
 // PutRuleRequest generates a "aws/request.Request" representing the
 // client's request for the PutRule operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See PutRule for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the PutRule method directly
-// instead.
+// See PutRule for more information on using the PutRule
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the PutRuleRequest method.
 //    req, resp := client.PutRuleRequest(params)
@@ -723,7 +899,7 @@ const opPutRule = "PutRule"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/events-2015-10-07/PutRule
+// See also, https://docs.aws.amazon.com/goto/WebAPI/events-2015-10-07/PutRule
 func (c *CloudWatchEvents) PutRuleRequest(input *PutRuleInput) (req *request.Request, output *PutRuleOutput) {
 	op := &request.Operation{
 		Name:       opPutRule,
@@ -780,7 +956,7 @@ func (c *CloudWatchEvents) PutRuleRequest(input *PutRuleInput) (req *request.Req
 //   * ErrCodeInternalException "InternalException"
 //   This exception occurs due to unexpected causes.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/events-2015-10-07/PutRule
+// See also, https://docs.aws.amazon.com/goto/WebAPI/events-2015-10-07/PutRule
 func (c *CloudWatchEvents) PutRule(input *PutRuleInput) (*PutRuleOutput, error) {
 	req, out := c.PutRuleRequest(input)
 	return out, req.Send()
@@ -806,19 +982,18 @@ const opPutTargets = "PutTargets"
 
 // PutTargetsRequest generates a "aws/request.Request" representing the
 // client's request for the PutTargets operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See PutTargets for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the PutTargets method directly
-// instead.
+// See PutTargets for more information on using the PutTargets
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the PutTargetsRequest method.
 //    req, resp := client.PutTargetsRequest(params)
@@ -828,7 +1003,7 @@ const opPutTargets = "PutTargets"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/events-2015-10-07/PutTargets
+// See also, https://docs.aws.amazon.com/goto/WebAPI/events-2015-10-07/PutTargets
 func (c *CloudWatchEvents) PutTargetsRequest(input *PutTargetsInput) (req *request.Request, output *PutTargetsOutput) {
 	op := &request.Operation{
 		Name:       opPutTargets,
@@ -850,9 +1025,32 @@ func (c *CloudWatchEvents) PutTargetsRequest(input *PutTargetsInput) (req *reque
 // Adds the specified targets to the specified rule, or updates the targets
 // if they are already associated with the rule.
 //
-// Targets are the resources that are invoked when a rule is triggered. Example
-// targets include EC2 instances, AWS Lambda functions, Amazon Kinesis streams,
-// Amazon ECS tasks, AWS Step Functions state machines, and built-in targets.
+// Targets are the resources that are invoked when a rule is triggered.
+//
+// You can configure the following as targets for CloudWatch Events:
+//
+//    * EC2 instances
+//
+//    * AWS Lambda functions
+//
+//    * Streams in Amazon Kinesis Streams
+//
+//    * Delivery streams in Amazon Kinesis Firehose
+//
+//    * Amazon ECS tasks
+//
+//    * AWS Step Functions state machines
+//
+//    * Pipelines in Amazon Code Pipeline
+//
+//    * Amazon Inspector assessment templates
+//
+//    * Amazon SNS topics
+//
+//    * Amazon SQS queues
+//
+//    * The default event bus of another AWS account
+//
 // Note that creating rules with built-in targets is supported only in the AWS
 // Management Console.
 //
@@ -866,9 +1064,21 @@ func (c *CloudWatchEvents) PutTargetsRequest(input *PutTargetsInput) (req *reque
 // Events needs the appropriate permissions. For AWS Lambda and Amazon SNS resources,
 // CloudWatch Events relies on resource-based policies. For EC2 instances, Amazon
 // Kinesis streams, and AWS Step Functions state machines, CloudWatch Events
-// relies on IAM roles that you specify in the RoleARN argument in PutTarget.
+// relies on IAM roles that you specify in the RoleARN argument in PutTargets.
 // For more information, see Authentication and Access Control (http://docs.aws.amazon.com/AmazonCloudWatch/latest/events/auth-and-access-control-cwe.html)
 // in the Amazon CloudWatch Events User Guide.
+//
+// If another AWS account is in the same region and has granted you permission
+// (using PutPermission), you can send events to that account by setting that
+// account's event bus as a target of the rules in your account. To send the
+// matched events to the other account, specify that account's event bus as
+// the Arn when you run PutTargets. If your account sends events to another
+// account, your account is charged for each sent event. Each event sent to
+// antoher account is charged as a custom event. The account receiving the event
+// is not charged. For more information on pricing, see Amazon CloudWatch Pricing
+// (https://aws.amazon.com/cloudwatch/pricing/).
+//
+// For more information about enabling cross-account events, see PutPermission.
 //
 // Input, InputPath and InputTransformer are mutually exclusive and optional
 // parameters of a target. When a rule is triggered due to a matched event:
@@ -910,7 +1120,7 @@ func (c *CloudWatchEvents) PutTargetsRequest(input *PutTargetsInput) (req *reque
 //
 // Returned Error Codes:
 //   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
-//   The rule does not exist.
+//   An entity that you specified does not exist.
 //
 //   * ErrCodeConcurrentModificationException "ConcurrentModificationException"
 //   There is concurrent modification on a rule or target.
@@ -921,7 +1131,7 @@ func (c *CloudWatchEvents) PutTargetsRequest(input *PutTargetsInput) (req *reque
 //   * ErrCodeInternalException "InternalException"
 //   This exception occurs due to unexpected causes.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/events-2015-10-07/PutTargets
+// See also, https://docs.aws.amazon.com/goto/WebAPI/events-2015-10-07/PutTargets
 func (c *CloudWatchEvents) PutTargets(input *PutTargetsInput) (*PutTargetsOutput, error) {
 	req, out := c.PutTargetsRequest(input)
 	return out, req.Send()
@@ -943,23 +1153,112 @@ func (c *CloudWatchEvents) PutTargetsWithContext(ctx aws.Context, input *PutTarg
 	return out, req.Send()
 }
 
+const opRemovePermission = "RemovePermission"
+
+// RemovePermissionRequest generates a "aws/request.Request" representing the
+// client's request for the RemovePermission operation. The "output" return
+// value will be populated with the request's response once the request complets
+// successfuly.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See RemovePermission for more information on using the RemovePermission
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the RemovePermissionRequest method.
+//    req, resp := client.RemovePermissionRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/events-2015-10-07/RemovePermission
+func (c *CloudWatchEvents) RemovePermissionRequest(input *RemovePermissionInput) (req *request.Request, output *RemovePermissionOutput) {
+	op := &request.Operation{
+		Name:       opRemovePermission,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &RemovePermissionInput{}
+	}
+
+	output = &RemovePermissionOutput{}
+	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Remove(jsonrpc.UnmarshalHandler)
+	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
+	return
+}
+
+// RemovePermission API operation for Amazon CloudWatch Events.
+//
+// Revokes the permission of another AWS account to be able to put events to
+// your default event bus. Specify the account to revoke by the StatementId
+// value that you associated with the account when you granted it permission
+// with PutPermission. You can find the StatementId by using DescribeEventBus.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon CloudWatch Events's
+// API operation RemovePermission for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
+//   An entity that you specified does not exist.
+//
+//   * ErrCodeInternalException "InternalException"
+//   This exception occurs due to unexpected causes.
+//
+//   * ErrCodeConcurrentModificationException "ConcurrentModificationException"
+//   There is concurrent modification on a rule or target.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/events-2015-10-07/RemovePermission
+func (c *CloudWatchEvents) RemovePermission(input *RemovePermissionInput) (*RemovePermissionOutput, error) {
+	req, out := c.RemovePermissionRequest(input)
+	return out, req.Send()
+}
+
+// RemovePermissionWithContext is the same as RemovePermission with the addition of
+// the ability to pass a context and additional request options.
+//
+// See RemovePermission for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *CloudWatchEvents) RemovePermissionWithContext(ctx aws.Context, input *RemovePermissionInput, opts ...request.Option) (*RemovePermissionOutput, error) {
+	req, out := c.RemovePermissionRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
 const opRemoveTargets = "RemoveTargets"
 
 // RemoveTargetsRequest generates a "aws/request.Request" representing the
 // client's request for the RemoveTargets operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See RemoveTargets for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the RemoveTargets method directly
-// instead.
+// See RemoveTargets for more information on using the RemoveTargets
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the RemoveTargetsRequest method.
 //    req, resp := client.RemoveTargetsRequest(params)
@@ -969,7 +1268,7 @@ const opRemoveTargets = "RemoveTargets"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/events-2015-10-07/RemoveTargets
+// See also, https://docs.aws.amazon.com/goto/WebAPI/events-2015-10-07/RemoveTargets
 func (c *CloudWatchEvents) RemoveTargetsRequest(input *RemoveTargetsInput) (req *request.Request, output *RemoveTargetsOutput) {
 	op := &request.Operation{
 		Name:       opRemoveTargets,
@@ -1009,7 +1308,7 @@ func (c *CloudWatchEvents) RemoveTargetsRequest(input *RemoveTargetsInput) (req 
 //
 // Returned Error Codes:
 //   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
-//   The rule does not exist.
+//   An entity that you specified does not exist.
 //
 //   * ErrCodeConcurrentModificationException "ConcurrentModificationException"
 //   There is concurrent modification on a rule or target.
@@ -1017,7 +1316,7 @@ func (c *CloudWatchEvents) RemoveTargetsRequest(input *RemoveTargetsInput) (req 
 //   * ErrCodeInternalException "InternalException"
 //   This exception occurs due to unexpected causes.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/events-2015-10-07/RemoveTargets
+// See also, https://docs.aws.amazon.com/goto/WebAPI/events-2015-10-07/RemoveTargets
 func (c *CloudWatchEvents) RemoveTargets(input *RemoveTargetsInput) (*RemoveTargetsOutput, error) {
 	req, out := c.RemoveTargetsRequest(input)
 	return out, req.Send()
@@ -1043,19 +1342,18 @@ const opTestEventPattern = "TestEventPattern"
 
 // TestEventPatternRequest generates a "aws/request.Request" representing the
 // client's request for the TestEventPattern operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See TestEventPattern for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the TestEventPattern method directly
-// instead.
+// See TestEventPattern for more information on using the TestEventPattern
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the TestEventPatternRequest method.
 //    req, resp := client.TestEventPatternRequest(params)
@@ -1065,7 +1363,7 @@ const opTestEventPattern = "TestEventPattern"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/events-2015-10-07/TestEventPattern
+// See also, https://docs.aws.amazon.com/goto/WebAPI/events-2015-10-07/TestEventPattern
 func (c *CloudWatchEvents) TestEventPatternRequest(input *TestEventPatternInput) (req *request.Request, output *TestEventPatternOutput) {
 	op := &request.Operation{
 		Name:       opTestEventPattern,
@@ -1105,7 +1403,7 @@ func (c *CloudWatchEvents) TestEventPatternRequest(input *TestEventPatternInput)
 //   * ErrCodeInternalException "InternalException"
 //   This exception occurs due to unexpected causes.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/events-2015-10-07/TestEventPattern
+// See also, https://docs.aws.amazon.com/goto/WebAPI/events-2015-10-07/TestEventPattern
 func (c *CloudWatchEvents) TestEventPattern(input *TestEventPatternInput) (*TestEventPatternOutput, error) {
 	req, out := c.TestEventPatternRequest(input)
 	return out, req.Send()
@@ -1127,7 +1425,6 @@ func (c *CloudWatchEvents) TestEventPatternWithContext(ctx aws.Context, input *T
 	return out, req.Send()
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/events-2015-10-07/DeleteRuleRequest
 type DeleteRuleInput struct {
 	_ struct{} `type:"structure"`
 
@@ -1169,7 +1466,6 @@ func (s *DeleteRuleInput) SetName(v string) *DeleteRuleInput {
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/events-2015-10-07/DeleteRuleOutput
 type DeleteRuleOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -1184,7 +1480,62 @@ func (s DeleteRuleOutput) GoString() string {
 	return s.String()
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/events-2015-10-07/DescribeRuleRequest
+type DescribeEventBusInput struct {
+	_ struct{} `type:"structure"`
+}
+
+// String returns the string representation
+func (s DescribeEventBusInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DescribeEventBusInput) GoString() string {
+	return s.String()
+}
+
+type DescribeEventBusOutput struct {
+	_ struct{} `type:"structure"`
+
+	// The Amazon Resource Name (ARN) of the account permitted to write events to
+	// the current account.
+	Arn *string `type:"string"`
+
+	// The name of the event bus. Currently, this is always default.
+	Name *string `type:"string"`
+
+	// The policy that enables the external account to send events to your account.
+	Policy *string `type:"string"`
+}
+
+// String returns the string representation
+func (s DescribeEventBusOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DescribeEventBusOutput) GoString() string {
+	return s.String()
+}
+
+// SetArn sets the Arn field's value.
+func (s *DescribeEventBusOutput) SetArn(v string) *DescribeEventBusOutput {
+	s.Arn = &v
+	return s
+}
+
+// SetName sets the Name field's value.
+func (s *DescribeEventBusOutput) SetName(v string) *DescribeEventBusOutput {
+	s.Name = &v
+	return s
+}
+
+// SetPolicy sets the Policy field's value.
+func (s *DescribeEventBusOutput) SetPolicy(v string) *DescribeEventBusOutput {
+	s.Policy = &v
+	return s
+}
+
 type DescribeRuleInput struct {
 	_ struct{} `type:"structure"`
 
@@ -1226,7 +1577,6 @@ func (s *DescribeRuleInput) SetName(v string) *DescribeRuleInput {
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/events-2015-10-07/DescribeRuleResponse
 type DescribeRuleOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -1305,7 +1655,6 @@ func (s *DescribeRuleOutput) SetState(v string) *DescribeRuleOutput {
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/events-2015-10-07/DisableRuleRequest
 type DisableRuleInput struct {
 	_ struct{} `type:"structure"`
 
@@ -1347,7 +1696,6 @@ func (s *DisableRuleInput) SetName(v string) *DisableRuleInput {
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/events-2015-10-07/DisableRuleOutput
 type DisableRuleOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -1363,7 +1711,6 @@ func (s DisableRuleOutput) GoString() string {
 }
 
 // The custom parameters to be used when the target is an Amazon ECS cluster.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/events-2015-10-07/EcsParameters
 type EcsParameters struct {
 	_ struct{} `type:"structure"`
 
@@ -1419,7 +1766,6 @@ func (s *EcsParameters) SetTaskDefinitionArn(v string) *EcsParameters {
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/events-2015-10-07/EnableRuleRequest
 type EnableRuleInput struct {
 	_ struct{} `type:"structure"`
 
@@ -1461,7 +1807,6 @@ func (s *EnableRuleInput) SetName(v string) *EnableRuleInput {
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/events-2015-10-07/EnableRuleOutput
 type EnableRuleOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -1478,7 +1823,6 @@ func (s EnableRuleOutput) GoString() string {
 
 // Contains the parameters needed for you to provide custom input to a target
 // based on one or more pieces of data extracted from the event.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/events-2015-10-07/InputTransformer
 type InputTransformer struct {
 	_ struct{} `type:"structure"`
 
@@ -1536,7 +1880,6 @@ func (s *InputTransformer) SetInputTemplate(v string) *InputTransformer {
 // and use as the partition key for the Amazon Kinesis stream, so that you can
 // control the shard to which the event goes. If you do not include this parameter,
 // the default is to use the eventId as the partition key.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/events-2015-10-07/KinesisParameters
 type KinesisParameters struct {
 	_ struct{} `type:"structure"`
 
@@ -1577,7 +1920,6 @@ func (s *KinesisParameters) SetPartitionKeyPath(v string) *KinesisParameters {
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/events-2015-10-07/ListRuleNamesByTargetRequest
 type ListRuleNamesByTargetInput struct {
 	_ struct{} `type:"structure"`
 
@@ -1643,7 +1985,6 @@ func (s *ListRuleNamesByTargetInput) SetTargetArn(v string) *ListRuleNamesByTarg
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/events-2015-10-07/ListRuleNamesByTargetResponse
 type ListRuleNamesByTargetOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -1677,7 +2018,6 @@ func (s *ListRuleNamesByTargetOutput) SetRuleNames(v []*string) *ListRuleNamesBy
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/events-2015-10-07/ListRulesRequest
 type ListRulesInput struct {
 	_ struct{} `type:"structure"`
 
@@ -1738,7 +2078,6 @@ func (s *ListRulesInput) SetNextToken(v string) *ListRulesInput {
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/events-2015-10-07/ListRulesResponse
 type ListRulesOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -1772,7 +2111,6 @@ func (s *ListRulesOutput) SetRules(v []*Rule) *ListRulesOutput {
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/events-2015-10-07/ListTargetsByRuleRequest
 type ListTargetsByRuleInput struct {
 	_ struct{} `type:"structure"`
 
@@ -1838,7 +2176,6 @@ func (s *ListTargetsByRuleInput) SetRule(v string) *ListTargetsByRuleInput {
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/events-2015-10-07/ListTargetsByRuleResponse
 type ListTargetsByRuleOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -1872,7 +2209,6 @@ func (s *ListTargetsByRuleOutput) SetTargets(v []*Target) *ListTargetsByRuleOutp
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/events-2015-10-07/PutEventsRequest
 type PutEventsInput struct {
 	_ struct{} `type:"structure"`
 
@@ -1916,7 +2252,6 @@ func (s *PutEventsInput) SetEntries(v []*PutEventsRequestEntry) *PutEventsInput 
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/events-2015-10-07/PutEventsResponse
 type PutEventsOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -1952,7 +2287,6 @@ func (s *PutEventsOutput) SetFailedEntryCount(v int64) *PutEventsOutput {
 }
 
 // Represents an event to be submitted.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/events-2015-10-07/PutEventsRequestEntry
 type PutEventsRequestEntry struct {
 	_ struct{} `type:"structure"`
 
@@ -2016,7 +2350,6 @@ func (s *PutEventsRequestEntry) SetTime(v time.Time) *PutEventsRequestEntry {
 }
 
 // Represents an event that failed to be submitted.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/events-2015-10-07/PutEventsResultEntry
 type PutEventsResultEntry struct {
 	_ struct{} `type:"structure"`
 
@@ -2058,7 +2391,106 @@ func (s *PutEventsResultEntry) SetEventId(v string) *PutEventsResultEntry {
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/events-2015-10-07/PutRuleRequest
+type PutPermissionInput struct {
+	_ struct{} `type:"structure"`
+
+	// The action that you are enabling the other account to perform. Currently,
+	// this must be events:PutEvents.
+	//
+	// Action is a required field
+	Action *string `min:"1" type:"string" required:"true"`
+
+	// The 12-digit AWS account ID that you are permitting to put events to your
+	// default event bus. Specify "*" to permit any account to put events to your
+	// default event bus.
+	//
+	// If you specify "*", avoid creating rules that may match undesirable events.
+	// To create more secure rules, make sure that the event pattern for each rule
+	// contains an account field with a specific account ID from which to receive
+	// events. Rules with an account field do not match any events sent from other
+	// accounts.
+	//
+	// Principal is a required field
+	Principal *string `min:"1" type:"string" required:"true"`
+
+	// An identifier string for the external account that you are granting permissions
+	// to. If you later want to revoke the permission for this external account,
+	// specify this StatementId when you run RemovePermission.
+	//
+	// StatementId is a required field
+	StatementId *string `min:"1" type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s PutPermissionInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s PutPermissionInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *PutPermissionInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "PutPermissionInput"}
+	if s.Action == nil {
+		invalidParams.Add(request.NewErrParamRequired("Action"))
+	}
+	if s.Action != nil && len(*s.Action) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Action", 1))
+	}
+	if s.Principal == nil {
+		invalidParams.Add(request.NewErrParamRequired("Principal"))
+	}
+	if s.Principal != nil && len(*s.Principal) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Principal", 1))
+	}
+	if s.StatementId == nil {
+		invalidParams.Add(request.NewErrParamRequired("StatementId"))
+	}
+	if s.StatementId != nil && len(*s.StatementId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("StatementId", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetAction sets the Action field's value.
+func (s *PutPermissionInput) SetAction(v string) *PutPermissionInput {
+	s.Action = &v
+	return s
+}
+
+// SetPrincipal sets the Principal field's value.
+func (s *PutPermissionInput) SetPrincipal(v string) *PutPermissionInput {
+	s.Principal = &v
+	return s
+}
+
+// SetStatementId sets the StatementId field's value.
+func (s *PutPermissionInput) SetStatementId(v string) *PutPermissionInput {
+	s.StatementId = &v
+	return s
+}
+
+type PutPermissionOutput struct {
+	_ struct{} `type:"structure"`
+}
+
+// String returns the string representation
+func (s PutPermissionOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s PutPermissionOutput) GoString() string {
+	return s.String()
+}
+
 type PutRuleInput struct {
 	_ struct{} `type:"structure"`
 
@@ -2077,7 +2509,7 @@ type PutRuleInput struct {
 	// The Amazon Resource Name (ARN) of the IAM role associated with the rule.
 	RoleArn *string `min:"1" type:"string"`
 
-	// The scheduling expression. For example, "cron(0 20 * * ? *)", "rate(5 minutes)".
+	// The scheduling expression. For example, "cron(0 20 * * ? *)" or "rate(5 minutes)".
 	ScheduleExpression *string `type:"string"`
 
 	// Indicates whether the rule is enabled or disabled.
@@ -2149,7 +2581,6 @@ func (s *PutRuleInput) SetState(v string) *PutRuleInput {
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/events-2015-10-07/PutRuleResponse
 type PutRuleOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -2173,7 +2604,6 @@ func (s *PutRuleOutput) SetRuleArn(v string) *PutRuleOutput {
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/events-2015-10-07/PutTargetsRequest
 type PutTargetsInput struct {
 	_ struct{} `type:"structure"`
 
@@ -2242,7 +2672,6 @@ func (s *PutTargetsInput) SetTargets(v []*Target) *PutTargetsInput {
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/events-2015-10-07/PutTargetsResponse
 type PutTargetsOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -2276,7 +2705,6 @@ func (s *PutTargetsOutput) SetFailedEntryCount(v int64) *PutTargetsOutput {
 }
 
 // Represents a target that failed to be added to a rule.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/events-2015-10-07/PutTargetsResultEntry
 type PutTargetsResultEntry struct {
 	_ struct{} `type:"structure"`
 
@@ -2320,7 +2748,62 @@ func (s *PutTargetsResultEntry) SetTargetId(v string) *PutTargetsResultEntry {
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/events-2015-10-07/RemoveTargetsRequest
+type RemovePermissionInput struct {
+	_ struct{} `type:"structure"`
+
+	// The statement ID corresponding to the account that is no longer allowed to
+	// put events to the default event bus.
+	//
+	// StatementId is a required field
+	StatementId *string `min:"1" type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s RemovePermissionInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s RemovePermissionInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *RemovePermissionInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "RemovePermissionInput"}
+	if s.StatementId == nil {
+		invalidParams.Add(request.NewErrParamRequired("StatementId"))
+	}
+	if s.StatementId != nil && len(*s.StatementId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("StatementId", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetStatementId sets the StatementId field's value.
+func (s *RemovePermissionInput) SetStatementId(v string) *RemovePermissionInput {
+	s.StatementId = &v
+	return s
+}
+
+type RemovePermissionOutput struct {
+	_ struct{} `type:"structure"`
+}
+
+// String returns the string representation
+func (s RemovePermissionOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s RemovePermissionOutput) GoString() string {
+	return s.String()
+}
+
 type RemoveTargetsInput struct {
 	_ struct{} `type:"structure"`
 
@@ -2379,7 +2862,6 @@ func (s *RemoveTargetsInput) SetRule(v string) *RemoveTargetsInput {
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/events-2015-10-07/RemoveTargetsResponse
 type RemoveTargetsOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -2413,7 +2895,6 @@ func (s *RemoveTargetsOutput) SetFailedEntryCount(v int64) *RemoveTargetsOutput 
 }
 
 // Represents a target that failed to be removed from a rule.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/events-2015-10-07/RemoveTargetsResultEntry
 type RemoveTargetsResultEntry struct {
 	_ struct{} `type:"structure"`
 
@@ -2458,7 +2939,6 @@ func (s *RemoveTargetsResultEntry) SetTargetId(v string) *RemoveTargetsResultEnt
 }
 
 // Contains information about a rule in Amazon CloudWatch Events.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/events-2015-10-07/Rule
 type Rule struct {
 	_ struct{} `type:"structure"`
 
@@ -2540,7 +3020,6 @@ func (s *Rule) SetState(v string) *Rule {
 
 // This parameter contains the criteria (either InstanceIds or a tag) used to
 // specify which EC2 instances are to be sent the command.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/events-2015-10-07/RunCommandParameters
 type RunCommandParameters struct {
 	_ struct{} `type:"structure"`
 
@@ -2596,7 +3075,6 @@ func (s *RunCommandParameters) SetRunCommandTargets(v []*RunCommandTarget) *RunC
 // Information about the EC2 instances that are to be sent the command, specified
 // as key-value pairs. Each RunCommandTarget block can include only one key,
 // but this key may specify multiple values.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/events-2015-10-07/RunCommandTarget
 type RunCommandTarget struct {
 	_ struct{} `type:"structure"`
 
@@ -2660,7 +3138,6 @@ func (s *RunCommandTarget) SetValues(v []*string) *RunCommandTarget {
 // types include EC2 instances, AWS Lambda functions, Amazon Kinesis streams,
 // Amazon ECS tasks, AWS Step Functions state machines, Run Command, and built-in
 // targets.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/events-2015-10-07/Target
 type Target struct {
 	_ struct{} `type:"structure"`
 
@@ -2819,7 +3296,6 @@ func (s *Target) SetRunCommandParameters(v *RunCommandParameters) *Target {
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/events-2015-10-07/TestEventPatternRequest
 type TestEventPatternInput struct {
 	_ struct{} `type:"structure"`
 
@@ -2873,7 +3349,6 @@ func (s *TestEventPatternInput) SetEventPattern(v string) *TestEventPatternInput
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/events-2015-10-07/TestEventPatternResponse
 type TestEventPatternOutput struct {
 	_ struct{} `type:"structure"`
 
