@@ -78,13 +78,23 @@ have to be input repeatedly as commands are executed.
 #### From a file
 
 To persist variable values, create a file and assign variables within
-this file. Create a file named `terraform.tfvars` with the following
+this file. Create a file named `variables.tf` with the following
 contents:
 
 ```hcl
-access_key = "foo"
-secret_key = "bar"
+variable "access_key" {
+  default = "foo"
+}
+variable "secret_key" {
+  default = "bar"
+}
+variable "region" {
+  default = "baz"
+}
 ```
+
+Files named `*.tf` will be read automatically. Variables named in the `variable` 
+block in these files will be loaded as variables.   
 
 For all files which match `terraform.tfvars` or `*.auto.tfvars` present in the
 current directory, Terraform automatically loads them to populate variables. If
