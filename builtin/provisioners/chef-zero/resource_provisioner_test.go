@@ -108,7 +108,8 @@ func TestResourceProvider_runChefClient(t *testing.T) {
 			ConfDir: linuxConfDir,
 
 			Commands: map[string]bool{
-				fmt.Sprintf(`sudo %s -z -c %s -j %q -E "_default"`,
+				fmt.Sprintf(`sudo bash -c 'cd %s && %s -z -c %s -j %q -E "_default"'`,
+					path.Join(linuxConfDir, "/cookbooks"),
 					linuxChefCmd,
 					path.Join(linuxConfDir, clienrb),
 					path.Join(linuxConfDir, "dna", "myid.json")): true,
@@ -132,7 +133,8 @@ func TestResourceProvider_runChefClient(t *testing.T) {
 			ConfDir: linuxConfDir,
 
 			Commands: map[string]bool{
-				fmt.Sprintf(`%s -z -c %s -j %q -E "_default"`,
+				fmt.Sprintf(`cd %s && %s -z -c %s -j %q -E "_default"`,
+					path.Join(linuxConfDir, "/cookbooks"),
 					linuxChefCmd,
 					path.Join(linuxConfDir, clienrb),
 					path.Join(linuxConfDir, "dna", "myid.json")): true,
@@ -157,7 +159,8 @@ func TestResourceProvider_runChefClient(t *testing.T) {
 			ConfDir: windowsConfDir,
 
 			Commands: map[string]bool{
-				fmt.Sprintf(`%s -z -c %s -j %q -E "production"`,
+				fmt.Sprintf(`cd %s && %s -z -c %s -j %q -E "production"`,
+					path.Join(windowsConfDir, "/cookbooks"),
 					windowsChefCmd,
 					path.Join(windowsConfDir, clienrb),
 					path.Join(windowsConfDir, "dna", "myid.json")): true,

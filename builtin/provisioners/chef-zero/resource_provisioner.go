@@ -22,6 +22,7 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/mitchellh/go-homedir"
 	"github.com/mitchellh/go-linereader"
+	"path/filepath"
 )
 
 const (
@@ -377,14 +378,11 @@ func applyFn(ctx context.Context) error {
 	// Cleanup the user key before we run Chef-Client to prevent issues
 	// with rights caused by changing settings during the run.
 	once.Do(cleanupUserKey)
-	var path, _ = homedir.Expand(p.DirResources + "/" + p.LocalNodesDirectory)
 
 	o.Output("Starting initial Chef-Client run...")
 	if err := p.runChefClient(o, comm); err != nil {
-		os.Remove(path)
 		return err
 	}
-	os.Remove(path)
 	return nil
 }
 
@@ -419,7 +417,7 @@ func validateFn(c *terraform.ResourceConfig) (ws []string, es []error) {
 }
 
 // called by @createConfigFiles
-func (p *provisioner) deployConfigFiles(o terraform.UIOutput, comm communicator.Communicator, confDir string) error {
+func (p *provisioner) prepareConfigFiles(o terraform.UIOutput, comm communicator.Communicator, confDir string) error {
 
 	// Copy the user key to the new instance
 	pk := strings.NewReader(p.UserKey)
@@ -491,31 +489,20 @@ func (p *provisioner) deployConfigFiles(o terraform.UIOutput, comm communicator.
 		node["policy_group"] = p.PolicyGroup
 	}
 
-	tmpfile := p.NodeAttributes["id"].(string) + ".json"
-	// Marshal the first boot settings to JSON
+	createChefJsonFile(o, p.DirResources+"/dna", dna, p.NodeAttributes["id"].(string))
+	createChefJsonFile(o, p.DirResources+"/"+p.LocalNodesDirectory, node, p.NodeAttributes["id"].(string))
 
-	d, err := json.Marshal(dna)
-	if err != nil {
-		return fmt.Errorf("Failed to create %s data: %s", tmpfile, err)
-	}
+	return nil
+}
 
-	// Copy the first-boot.json to the new instance
-	o.Output(tmpfile + " will be uploaded")
-	uploadPath := path.Join(confDir+"/dna/", tmpfile)
-	o.Output(uploadPath + " uploaded")
-
-	if err := comm.Upload(uploadPath, bytes.NewReader(d)); err != nil {
-		return fmt.Errorf("Uploading %s failed: %v", tmpfile, err)
-	}
-
-	// nodefile is put in a node directory meaning that it will be uploaded during the node directory upload
-	nodefile := p.NodeAttributes["id"].(string) + ".json"
-	d, err = json.Marshal(node)
+func createChefJsonFile(o terraform.UIOutput, dir string, b map[string]interface{}, filename string) error {
+	nodefile := filename + ".json"
+	var d, err = json.Marshal(b)
 	if err != nil {
 		return fmt.Errorf("Failed to create %s data: %s", nodefile, err)
 	}
 
-	nodePath, err := homedir.Expand(path.Join(p.DirResources+"/"+p.LocalNodesDirectory, nodefile))
+	nodePath, err := homedir.Expand(path.Join(dir, nodefile))
 	_, err = os.Stat(nodePath)
 	if err == nil {
 		return fmt.Errorf("File %s already exist", nodePath)
@@ -524,9 +511,12 @@ func (p *provisioner) deployConfigFiles(o terraform.UIOutput, comm communicator.
 	f, err := os.Create(path.Join(nodePath))
 
 	if err != nil {
-		return fmt.Errorf("Error creating node file %s: %v", nodePath, err)
+		return fmt.Errorf("Error creating file %s: %v", nodePath, err)
 	}
+
+	o.Output("Writing " + nodePath)
 	_, err = f.Write(d)
+	o.Output("File written " + nodePath)
 
 	if err != nil {
 		return fmt.Errorf("Failed to write data %d to node file %s: %v", d, nodePath, err)
@@ -535,7 +525,6 @@ func (p *provisioner) deployConfigFiles(o terraform.UIOutput, comm communicator.
 	if err := f.Close(); err != nil {
 		return fmt.Errorf("Error closing node file %s: %v", nodePath, err)
 	}
-
 	return nil
 }
 
@@ -574,12 +563,14 @@ func mapDynamicStringValue(s string, dynamic map[string]interface{}) string {
 func (p *provisioner) deployDirectoryFiles(o terraform.UIOutput, comm communicator.Communicator, confDir, dirPath string) error {
 
 	_, err := os.Stat(path.Join(p.DirResources, dirPath))
+
 	if os.IsNotExist(err) || err != nil {
 		o.Output("Warning: " + path.Join(p.DirResources, dirPath) + " does not exist, uploading nothing.")
 		return nil
 	}
-
-	o.Output("Uploading " + path.Join(p.DirResources, dirPath) + " to " + confDir)
+	var files, _ = filepath.Glob(path.Join(p.DirResources, dirPath))
+	o.Output("Uploading " + path.Join(p.DirResources, dirPath) + " to " + confDir + "\n" +
+		"file list : " + strings.Join(files, ","))
 
 	if err := comm.UploadDir(confDir, path.Join(p.DirResources, dirPath)); err != nil {
 		return fmt.Errorf("Uploading %s failed: %v", path.Base(dirPath), err)
@@ -689,7 +680,7 @@ func (p *provisioner) runChefClientFunc(chefCmd string, confDir string) provisio
 			o = p
 		}
 
-		return p.runCommand(o, comm, fmt.Sprintf("cd %s/cookbooks && %s", p.DefaultConfDir, cmd))
+		return p.runCommand(o, comm, fmt.Sprintf("cd %s/cookbooks && %s", confDir, cmd))
 	}
 }
 
@@ -853,6 +844,14 @@ func decodeConfig(d *schema.ResourceData) (*provisioner, error) {
 		if _, err := os.Stat(path); os.IsNotExist(err) {
 			if errmk := os.Mkdir(path, 0755); errmk != nil {
 				return nil, fmt.Errorf("Error creating node directory %s: %v", path, err)
+			}
+		}
+
+		path, err = homedir.Expand(p.DirResources + "/dna")
+
+		if _, err := os.Stat(path); os.IsNotExist(err) {
+			if errmk := os.Mkdir(path, 0755); errmk != nil {
+				return nil, fmt.Errorf("Error creating dna directory %s: %v", path, err)
 			}
 		}
 	}

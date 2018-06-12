@@ -94,5 +94,5 @@ func (p *provisioner) windowsCreateConfigFiles(o terraform.UIOutput, comm commun
 
 	}
 
-	return p.deployConfigFiles(o, comm, windowsConfDir)
+	return p.prepareConfigFiles(o, comm, windowsConfDir)
 }

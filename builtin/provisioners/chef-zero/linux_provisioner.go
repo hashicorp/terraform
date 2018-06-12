@@ -91,9 +91,14 @@ func (p *provisioner) linuxCreateConfigFiles(o terraform.UIOutput, comm communic
 		configDirs = append(configDirs, "ohai/hints")
 	}
 
+	if err := p.prepareConfigFiles(o, comm, linuxConfDir); err != nil {
+		return err
+	}
+
 	for _, dir := range configDirs {
 		configDir := path.Join(linuxConfDir, dir)
 
+		o.Output("Preparing to upload " + configDir)
 		if err := p.preUploadDirectory(o, comm, configDir); err != nil {
 			return err
 		}
@@ -102,16 +107,12 @@ func (p *provisioner) linuxCreateConfigFiles(o terraform.UIOutput, comm communic
 			if err := p.deployOhaiHints(o, comm, configDir); err != nil {
 				return err
 			}
-			continue
 		}
 
+		o.Output("Deploying " + configDir)
 		if err := p.deployDirectoryFiles(o, comm, linuxConfDir, dir); err != nil {
 			return err
 		}
-	}
-
-	if err := p.deployConfigFiles(o, comm, linuxConfDir); err != nil {
-		return err
 	}
 
 	for _, dir := range configDirs {
