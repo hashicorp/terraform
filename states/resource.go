@@ -100,13 +100,11 @@ func (i *ResourceInstance) HasObjects() bool {
 	return i.Current != nil || len(i.Deposed) != 0
 }
 
-// DeposeCurrentObject moves the current generation object, if present, into
-// the deposed set. After this method returns, the instance has no current
-// object.
-//
-// The return value is either the newly-allocated deposed key, or NotDeposed
-// if the instance is already lacking a current instance object.
-func (i *ResourceInstance) DeposeCurrentObject() DeposedKey {
+// deposeCurrentObject is part of the real implementation of
+// SyncState.DeposeResourceInstanceObject. The exported method uses a lock
+// to ensure that we can safely allocate an unused deposed key without
+// collision.
+func (i *ResourceInstance) deposeCurrentObject() DeposedKey {
 	if !i.HasCurrent() {
 		return NotDeposed
 	}

@@ -146,18 +146,14 @@ func (ms *Module) SetResourceInstanceDeposed(addr addrs.ResourceInstance, key De
 	}
 }
 
-// DeposeResourceInstanceObject moves the current instance object for the
-// given resource instance address into the deposed set, leaving the instance
-// without a current object.
-//
-// The return value is the newly-allocated deposed key, or NotDeposed if the
-// given instance is already lacking a current object.
-func (ms *Module) DeposeResourceInstanceObject(addr addrs.ResourceInstance) DeposedKey {
+// deposeResourceInstanceObject is the real implementation of
+// SyncState.DeposeResourceInstanceObject.
+func (ms *Module) deposeResourceInstanceObject(addr addrs.ResourceInstance) DeposedKey {
 	is := ms.ResourceInstance(addr)
 	if is == nil {
 		return NotDeposed
 	}
-	return is.DeposeCurrentObject()
+	return is.deposeCurrentObject()
 }
 
 // SetOutputValue writes an output value into the state, overwriting any
@@ -189,4 +185,23 @@ func (ms *Module) SetLocalValue(name string, value cty.Value) {
 // name.
 func (ms *Module) RemoveLocalValue(name string) {
 	delete(ms.LocalValues, name)
+}
+
+// empty returns true if the receving module state is contributing nothing
+// to the state. In other words, it returns true if the module could be
+// removed from the state altogether without changing the meaning of the state.
+//
+// In practice a module containing no objects is the same as a non-existent
+// module, and so we can opportunistically clean up once a module becomes
+// empty on the assumption that it will be re-added if needed later.
+func (ms *Module) empty() bool {
+	if ms == nil {
+		return true
+	}
+
+	// This must be updated to cover any new collections added to Module
+	// in future.
+	return (len(ms.Resources) == 0 &&
+		len(ms.OutputValues) == 0 &&
+		len(ms.LocalValues) == 0)
 }
