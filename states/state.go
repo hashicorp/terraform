@@ -14,7 +14,9 @@ import (
 // Access to State and the nested values within it is not concurrency-safe,
 // so when accessing a State object concurrently it is the caller's
 // responsibility to ensure that only one write is in progress at a time
-// and that reads only occur when no write is in progress.
+// and that reads only occur when no write is in progress. The most common
+// way to acheive this is to wrap the State in a SyncState and use the
+// higher-level atomic operations supported by that type.
 type State struct {
 	// Modules contains the state for each module. The keys in this map are
 	// an implementation detail and must not be used by outside callers.
@@ -34,6 +36,23 @@ func NewState() *State {
 // the requested module is not tracked in the state.
 func (s *State) Module(addr addrs.ModuleInstance) *Module {
 	return s.Modules[addr.String()]
+}
+
+// RemoveModule removes the module with the given address from the state,
+// unless it is the root module. The root module cannot be deleted, and so
+// this method will panic if that is attempted.
+//
+// Removing a module implicitly discards all of the resources, outputs and
+// local values within it, and so this should usually be done only for empty
+// modules. For callers accessing the state through a SyncState wrapper, modules
+// are automatically pruned if they are empty after one of their contained
+// elements is removed.
+func (s *State) RemoveModule(addr addrs.ModuleInstance) {
+	if addr.IsRoot() {
+		panic("attempted to remote root module")
+	}
+
+	delete(s.Modules, addr.String())
 }
 
 // RootModule is a convenient alias for Module(addrs.RootModuleInstance).
@@ -93,4 +112,11 @@ func (s *State) LocalValue(addr addrs.AbsLocalValue) cty.Value {
 		return cty.NilVal
 	}
 	return ms.LocalValues[addr.LocalValue.Name]
+}
+
+// SyncWrapper returns a SyncState object wrapping the receiver.
+func (s *State) SyncWrapper() *SyncState {
+	return &SyncState{
+		state: s,
+	}
 }

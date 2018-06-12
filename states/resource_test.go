@@ -15,7 +15,7 @@ func TestResourceInstanceDeposeCurrentObject(t *testing.T) {
 	var dk DeposedKey
 
 	t.Run("first depose", func(t *testing.T) {
-		dk = is.DeposeCurrentObject() // dk is randomly-generated but should be eight characters long
+		dk = is.deposeCurrentObject() // dk is randomly-generated but should be eight characters long
 		t.Logf("deposedKey is %q", dk)
 
 		if got := is.Current; got != nil {
@@ -33,7 +33,7 @@ func TestResourceInstanceDeposeCurrentObject(t *testing.T) {
 	})
 
 	t.Run("second depose", func(t *testing.T) {
-		notDK := is.DeposeCurrentObject()
+		notDK := is.deposeCurrentObject()
 		if notDK != NotDeposed {
 			t.Errorf("got deposedKey %q; want NotDeposed", notDK)
 		}
