@@ -441,7 +441,9 @@ const defaultLinuxClientConf = `log_location            STDOUT
 
 
 local_mode true
+
 cookbook_path '/opt/chef/0/cookbooks'
+
 node_path '/opt/chef/0/nodes'
 role_path '/opt/chef/0/roles'
 data_bag_path '/opt/chef/0/data_bags'
@@ -464,7 +466,9 @@ ENV['no_proxy'] = "http://local.local,https://local.local"
 ssl_verify_mode  :verify_none
 
 local_mode true
+
 cookbook_path '/opt/chef/0/cookbooks'
+
 node_path '/opt/chef/0/nodes'
 role_path '/opt/chef/0/roles'
 data_bag_path '/opt/chef/0/data_bags'

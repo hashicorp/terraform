@@ -450,7 +450,9 @@ const defaultWindowsClientConf = `log_location            STDOUT
 
 
 local_mode true
+
 cookbook_path 'C:/chef/cookbooks'
+
 node_path 'C:/chef/nodes'
 role_path 'C:/chef/roles'
 data_bag_path 'C:/chef/data_bags'
@@ -473,7 +475,9 @@ ENV['no_proxy'] = "http://local.local,https://local.local"
 ssl_verify_mode  :verify_none
 
 local_mode true
+
 cookbook_path 'C:/chef/cookbooks'
+
 node_path 'C:/chef/nodes'
 role_path 'C:/chef/roles'
 data_bag_path 'C:/chef/data_bags'

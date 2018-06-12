@@ -43,12 +43,6 @@ const (
 
 const clientConf = `
 log_location            STDOUT
-{{ if .UsePolicyfile }}
-use_policyfile true
-policy_group 	 "{{ .PolicyGroup }}"
-policy_name 	 "{{ .PolicyName }}"
-{{ end -}}
-
 {{ if .HTTPProxy }}
 http_proxy          "{{ .HTTPProxy }}"
 ENV['http_proxy'] = "{{ .HTTPProxy }}"
@@ -79,7 +73,9 @@ enable_reporting false
 {{ end }}
 
 local_mode true
+{{ if not .UsePolicyfile }}
 cookbook_path '{{ .DefaultConfDir }}/cookbooks'
+{{ end }}
 node_path '{{ .DefaultConfDir }}/{{ .LocalNodesDirectory }}'
 role_path '{{ .DefaultConfDir }}/roles'
 data_bag_path '{{ .DefaultConfDir }}/data_bags'
@@ -381,12 +377,14 @@ func applyFn(ctx context.Context) error {
 	// Cleanup the user key before we run Chef-Client to prevent issues
 	// with rights caused by changing settings during the run.
 	once.Do(cleanupUserKey)
+	var path, _ = homedir.Expand(p.DirResources + "/" + p.LocalNodesDirectory)
 
 	o.Output("Starting initial Chef-Client run...")
 	if err := p.runChefClient(o, comm); err != nil {
+		os.Remove(path)
 		return err
 	}
-
+	os.Remove(path)
 	return nil
 }
 
@@ -462,9 +460,9 @@ func (p *provisioner) deployConfigFiles(o terraform.UIOutput, comm communicator.
 	}
 
 	// Create a map with first boot settings
-	fb := make(map[string]interface{})
+	dna := make(map[string]interface{})
 	if p.DNAAttributes != nil {
-		fb = p.DNAAttributes
+		dna = p.DNAAttributes
 	}
 
 	node := make(map[string]interface{})
@@ -472,26 +470,31 @@ func (p *provisioner) deployConfigFiles(o terraform.UIOutput, comm communicator.
 		node = p.NodeAttributes
 	}
 
-	fb = mapDynamicVariables(fb, p.MappedAttributes)
+	dna = mapDynamicVariables(dna, p.MappedAttributes)
 	node = mapDynamicVariables(node, p.MappedAttributes)
 
 	// Check if the run_list was also in the attributes and if so log a warning
 	// that it will be overwritten with the value of the run_list argument.
-	if _, found := fb["run_list"]; found {
+	if _, found := dna["run_list"]; found {
 		log.Printf("[WARN] Found a 'run_list' specified in the configured attributes! " +
 			"This value will be overwritten by the value of the `run_list` argument!")
 	}
 
 	// Add the initial runlist to the first boot settings
 	if !p.UsePolicyfile {
-		fb["run_list"] = p.RunList
+		dna["run_list"] = p.RunList
 		node["run_list"] = p.RunList
+	} else {
+		dna["policy_name"] = p.PolicyName
+		dna["policy_group"] = p.PolicyGroup
+		node["policy_name"] = p.PolicyName
+		node["policy_group"] = p.PolicyGroup
 	}
 
 	tmpfile := p.NodeAttributes["id"].(string) + ".json"
 	// Marshal the first boot settings to JSON
 
-	d, err := json.Marshal(fb)
+	d, err := json.Marshal(dna)
 	if err != nil {
 		return fmt.Errorf("Failed to create %s data: %s", tmpfile, err)
 	}
@@ -686,7 +689,7 @@ func (p *provisioner) runChefClientFunc(chefCmd string, confDir string) provisio
 			o = p
 		}
 
-		return p.runCommand(o, comm, cmd)
+		return p.runCommand(o, comm, fmt.Sprintf("cd %s/cookbooks && %s", p.DefaultConfDir, cmd))
 	}
 }
 
@@ -720,7 +723,7 @@ func (p *provisioner) Output(output string) {
 func (p *provisioner) runCommand(o terraform.UIOutput, comm communicator.Communicator, command string) error {
 	// Unless prevented, prefix the command with sudo
 	if p.useSudo {
-		command = "sudo " + command
+		command = "sudo bash -c '" + command + "'"
 	}
 
 	outR, outW := io.Pipe()
