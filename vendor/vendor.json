@@ -2416,7 +2416,19 @@
 			"revisionTime": "2017-06-05T21:53:11Z"
 		},
 		{
-			"checksumSHA1": "VNhImVFfxO7x8Kp1BrM2zgp4vi0=",
+			"checksumSHA1": "t9A/EE2GhHFPHzK+ksAKgKW9ZC8=",
+			"path": "github.com/vmihailenco/msgpack",
+			"revision": "b5e691b1eb52a28c05e67ab9df303626c095c23b",
+			"revisionTime": "2018-06-13T09:15:15Z"
+		},
+		{
+			"checksumSHA1": "OcTSGT2v7/2saIGq06nDhEZwm8I=",
+			"path": "github.com/vmihailenco/msgpack/codes",
+			"revision": "b5e691b1eb52a28c05e67ab9df303626c095c23b",
+			"revisionTime": "2018-06-13T09:15:15Z"
+		},
+		{
+			"checksumSHA1": "iHiMTBffQvWYlOLu3130JXuQpgQ=",
 			"path": "github.com/xanzy/ssh-agent",
 			"revision": "640f0ab560aeb89d523bb6ac322b1244d5c3796c",
 			"revisionTime": "2018-07-03T18:17:07Z"
@@ -2460,6 +2472,12 @@
 		{
 			"checksumSHA1": "1ApmO+Q33+Oem/3f6BU6sztJWNc=",
 			"path": "github.com/zclconf/go-cty/cty/json",
+			"revision": "ba988ce11d9994867838957d4c40bb1ad78b433d",
+			"revisionTime": "2018-05-24T00:26:36Z"
+		},
+		{
+			"checksumSHA1": "55JE44+FFgAo5WZEC23gp4X5tak=",
+			"path": "github.com/zclconf/go-cty/cty/msgpack",
 			"revision": "ba988ce11d9994867838957d4c40bb1ad78b433d",
 			"revisionTime": "2018-05-24T00:26:36Z"
 		},
