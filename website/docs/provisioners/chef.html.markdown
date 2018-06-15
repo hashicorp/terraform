@@ -162,3 +162,6 @@ The following arguments are supported:
 
 * `version (string)` - (Optional) The Chef Client version to install on the remote machine.
   If not set, the latest available version will be installed.
+
+* `omnitruck_url (string)` - (Optional) The URL for Omnitruck to download and install Chef.
+  (defaults to https://omnitruck.chef.io/install.sh)
