@@ -57,6 +57,9 @@ func getConversionKnown(in cty.Type, out cty.Type, unsafe bool) conversion {
 		}
 		return nil
 
+	case out.IsObjectType() && in.IsObjectType():
+		return conversionObjectToObject(in, out, unsafe)
+
 	case out.IsListType() && (in.IsListType() || in.IsSetType()):
 		inEty := in.ElementType()
 		outEty := out.ElementType()
