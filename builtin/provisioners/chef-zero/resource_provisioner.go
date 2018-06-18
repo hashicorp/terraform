@@ -89,7 +89,6 @@ type provisionFn func(terraform.UIOutput, communicator.Communicator) error
 type provisioner struct {
 	DNAAttributes       map[string]interface{}
 	NodeAttributes      map[string]interface{}
-	MappedAttributes    map[string]interface{}
 	DirResources        string
 	LocalNodesDirectory string
 	InstanceId          string
@@ -165,10 +164,6 @@ func Provisioner() terraform.ResourceProvisioner {
 			},
 			"automatic_attributes": &schema.Schema{
 				Type:     schema.TypeString,
-				Optional: true,
-			},
-			"mapped_attributes": &schema.Schema{
-				Type:     schema.TypeMap,
 				Optional: true,
 			},
 			"default_attributes": &schema.Schema{
@@ -467,9 +462,6 @@ func (p *provisioner) prepareConfigFiles(o terraform.UIOutput, comm communicator
 	if p.NodeAttributes != nil {
 		node = p.NodeAttributes
 	}
-
-	dna = mapDynamicVariables(dna, p.MappedAttributes)
-	node = mapDynamicVariables(node, p.MappedAttributes)
 
 	// Check if the run_list was also in the attributes and if so log a warning
 	// that it will be overwritten with the value of the run_list argument.
@@ -815,14 +807,6 @@ func decodeConfig(d *schema.ResourceData) (*provisioner, error) {
 			}
 			p.NodeAttributes[v] = m
 		}
-	}
-
-	p.MappedAttributes = make(map[string]interface{})
-	if tmpmap, ok := d.GetOk("mapped_attributes"); ok {
-		if _, ok := tmpmap.(map[string]interface{}); !ok {
-			return nil, fmt.Errorf("Error parsing mapped attributes")
-		}
-		p.MappedAttributes = tmpmap.(map[string]interface{})
 	}
 
 	if attrs, ok := d.GetOk("dna_attributes"); ok {
