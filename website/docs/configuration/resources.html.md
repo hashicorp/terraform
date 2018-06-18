@@ -96,7 +96,7 @@ amount of time a specific operation is allowed to take before being considered
 an error. For example, the
 [aws_db_instance](/docs/providers/aws/r/db_instance.html#timeouts)
 resource provides configurable timeouts for the
-`create`, `update`, and `delete` operations. Any Resource that provies Timeouts
+`create`, `update`, and `delete` operations. Any Resource that provides Timeouts
 will document the default values for that operation, and users can overwrite
 them in their configuration.
 
