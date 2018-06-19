@@ -28,7 +28,7 @@ down to see all providers.
     </tr>
     <tr>
     <td><a href="/docs/providers/azurerm/index.html">Azure</a></td>
-    <td><a href="/docs/providers/azurestack/index.html">AzureStack</a></td>
+    <td><a href="/docs/providers/azurestack/index.html">Azure Stack</a></td>
     <td><a href="/docs/providers/bitbucket/index.html">Bitbucket</a></td>
     </tr>
     <tr>
