@@ -25,7 +25,7 @@ tested by HashiCorp.
 
 [Azure](/docs/providers/azurerm/index.html)
 
-[AzureStack](/docs/providers/azurestack/index.html)
+[Azure Stack](/docs/providers/azurestack/index.html)
 
 [Google Cloud](/docs/providers/google/index.html)
 
