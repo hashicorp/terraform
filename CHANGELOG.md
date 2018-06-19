@@ -1,5 +1,8 @@
 ## 0.11.8 (Unreleased)
 
+IMPROVEMENTS:
+
+* cli: display workspace name in apply and destroy commands if not default [GH-18253]
 
 ## 0.11.7 (April 10, 2018)
 
