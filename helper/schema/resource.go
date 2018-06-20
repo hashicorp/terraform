@@ -124,7 +124,7 @@ type Resource struct {
 	Importer *ResourceImporter
 
 	// If non-empty, this string is emitted as a warning during Validate.
-	Deprecated string
+	DeprecationMessage string
 
 	// Timeouts allow users to specify specific time durations in which an
 	// operation should time out, to allow them to extend an action to suit their
@@ -267,8 +267,8 @@ func (r *Resource) Diff(
 func (r *Resource) Validate(c *terraform.ResourceConfig) ([]string, []error) {
 	warns, errs := schemaMap(r.Schema).Validate(c)
 
-	if r.Deprecated != "" {
-		warns = append(warns, r.Deprecated)
+	if r.DeprecationMessage != "" {
+		warns = append(warns, r.DeprecationMessage)
 	}
 
 	return warns, errs

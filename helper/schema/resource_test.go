@@ -859,7 +859,7 @@ func TestResourceInternalValidate(t *testing.T) {
 						Optional: true,
 					},
 				},
-				Deprecated: "This resource has been deprecated.",
+				DeprecationMessage: "This resource has been deprecated.",
 			},
 			true,
 			true,
