@@ -102,11 +102,15 @@ func (c *remoteClient) Delete() error {
 // generation number.
 func (c *remoteClient) createLockFile(lockFile *storage.ObjectHandle, infoJson []byte) (int64, error) {
 	w := lockFile.If(storage.Conditions{DoesNotExist: true}).NewWriter(c.storageContext)
-	if _, err := w.Write(infoJson); err != nil {
-		return 0, err
-	}
-	if err := w.Close(); err != nil {
-		return 0, err
+	err := func() error {
+		if _, err := w.Write(infoJson); err != nil {
+			return err
+		}
+		return w.Close()
+	}()
+
+	if err != nil {
+		return 0, c.lockError(fmt.Errorf("writing %q failed: %v", c.lockFileURL(), err))
 	}
 
 	return w.Attrs().Generation, nil
