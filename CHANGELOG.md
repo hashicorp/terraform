@@ -3,6 +3,7 @@
 IMPROVEMENTS:
 
 * cli: display workspace name in apply and destroy commands if not default [GH-18253]
+* cli: Remove error on empty outputs when `-json` is set [GH-11721]
 
 ## 0.11.7 (April 10, 2018)
 
