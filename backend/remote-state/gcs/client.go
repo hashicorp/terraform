@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"log"
 	"strconv"
+	"sync"
 	"time"
 
 	"cloud.google.com/go/storage"
@@ -19,17 +20,31 @@ import (
 // blobs representing state.
 // Implements "state/remote".ClientLocker
 type remoteClient struct {
+	mutex sync.Mutex
+
 	storageContext context.Context
 	storageClient  *storage.Client
 	bucketName     string
 	stateFilePath  string
 	lockFilePath   string
 	encryptionKey  []byte
-	ticker         *time.Ticker
+
+	// The initial generation number of the lock file created by this
+	// remoteClient.
+	generation *int64
+
+	// Channel used for signalling the lock-heartbeating goroutine to stop.
+	stopHeartbeatCh chan bool
 }
 
-var tickInterval = 1 * time.Minute
-var minMissesUntilStale = 4
+var (
+	// Time between consecutive heartbeats on the lock file.
+	heartbeatInterval = 1 * time.Minute
+
+	// The mininum duration that must have passed since the youngest
+	// recorded heartbeat before the lock file is considered stale/orphaned.
+	minHeartbeatAgeUntilStale = 15 * time.Minute
+)
 
 func (c *remoteClient) Get() (payload *remote.Payload, err error) {
 	stateFileReader, err := c.stateFile().NewReader(c.storageContext)
@@ -102,9 +117,10 @@ func (c *remoteClient) createLockFile(lockFile *storage.ObjectHandle, infoJson [
 func (c *remoteClient) unlockIfStale(lockFile *storage.ObjectHandle) bool {
 	if attrs, err := lockFile.Attrs(c.storageContext); err == nil {
 		age := time.Now().Sub(attrs.Updated)
-		if age > time.Duration(int64(minMissesUntilStale)*tickInterval.Nanoseconds()) {
+		if age > minHeartbeatAgeUntilStale {
+			log.Printf("[WARN] Existing lock file %s is considered stale, last heartbeat was %s ago", c.lockFileURL(), age)
 			if err := c.Unlock(strconv.FormatInt(attrs.Generation, 10)); err != nil {
-				log.Printf("[WARN] failed to release stale lock: %s", err)
+				log.Printf("[WARN] Failed to release stale lock: %s", err)
 			} else {
 				return true
 			}
@@ -114,22 +130,46 @@ func (c *remoteClient) unlockIfStale(lockFile *storage.ObjectHandle) bool {
 	return false
 }
 
-// updateLockFile periodically updates the "updated" timestamp of the lock
+// heartbeatLockFile periodically updates the "updated" timestamp of the lock
 // file until the lock is released in Unlock().
-func (c *remoteClient) updateLockFile(lockFile *storage.ObjectHandle, generation int64) {
-	for _ = range c.ticker.C {
-		if attrs, err := lockFile.Attrs(c.storageContext); err == nil {
-			if attrs.Generation != generation {
-				// This is no longer the lock file that we started with. Stop updating.
-				c.ticker.Stop()
-				return
-			}
+func (c *remoteClient) heartbeatLockFile() {
+	log.Printf("[TRACE] Starting heartbeat on lock file %s, interval is %s", c.lockFileURL(), heartbeatInterval)
 
-			// Update the "updated" timestamp by removing non-existent metadata.
-			uattrs := storage.ObjectAttrsToUpdate{Metadata: make(map[string]string)}
-			uattrs.Metadata["x-goog-meta-terraform-state-heartbeat"] = ""
-			if _, err := lockFile.Update(c.storageContext, uattrs); err != nil {
-				log.Printf("[WARN] failed to update lock: %s", err)
+	ticker := time.NewTicker(heartbeatInterval)
+	defer ticker.Stop()
+
+	defer func() {
+		c.mutex.Lock()
+		c.stopHeartbeatCh = nil
+		c.mutex.Unlock()
+	}()
+
+	for {
+		select {
+		case <-c.stopHeartbeatCh:
+			log.Printf("[TRACE] Stopping heartbeat on lock file %s", c.lockFileURL())
+			return
+		case t := <-ticker.C:
+			log.Printf("[TRACE] Performing heartbeat on lock file %s, tick %q", c.lockFileURL(), t)
+			if attrs, err := c.lockFile().Attrs(c.storageContext); err != nil {
+				log.Printf("[WARN] Failed to retrieve attributes of lock file %s: %s", c.lockFileURL(), err)
+			} else {
+				c.mutex.Lock()
+				generation := *c.generation
+				c.mutex.Unlock()
+
+				if attrs.Generation != generation {
+					// This is no longer the lock file that we started with. Stop heartbeating on it.
+					log.Printf("[WARN] Stopping heartbeat on lock file %s as it changed underneath.", c.lockFileURL())
+					return
+				}
+
+				// Update the "updated" timestamp by removing non-existent metadata.
+				uattrs := storage.ObjectAttrsToUpdate{Metadata: make(map[string]string)}
+				uattrs.Metadata["x-goog-meta-terraform-state-heartbeat"] = ""
+				if _, err := c.lockFile().Update(c.storageContext, uattrs); err != nil {
+					log.Printf("[WARN] Failed to perform heartbeat on lock file %s: %s", c.lockFileURL(), err)
+				}
 			}
 		}
 	}
@@ -161,8 +201,13 @@ func (c *remoteClient) Lock(info *state.LockInfo) (string, error) {
 
 	info.ID = strconv.FormatInt(generation, 10)
 
-	c.ticker = time.NewTicker(tickInterval)
-	go c.updateLockFile(lockFile, generation)
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
+
+	c.generation = &generation
+	c.stopHeartbeatCh = make(chan bool)
+
+	go c.heartbeatLockFile()
 
 	return info.ID, nil
 }
@@ -173,8 +218,12 @@ func (c *remoteClient) Unlock(id string) error {
 		return err
 	}
 
-	if c.ticker != nil {
-		c.ticker.Stop()
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
+
+	if c.stopHeartbeatCh != nil {
+		log.Printf("[TRACE] Stopping heartbeat on lock file %s before removing the lock", c.lockFileURL())
+		c.stopHeartbeatCh <- true
 	}
 
 	if err := c.lockFile().If(storage.Conditions{GenerationMatch: gen}).Delete(c.storageContext); err != nil {

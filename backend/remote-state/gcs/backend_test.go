@@ -156,7 +156,9 @@ func TestBackendWithPrefix(t *testing.T) {
 
 	backend.TestBackendStates(t, be0)
 	backend.TestBackendStateLocks(t, be0, be1)
+	testStaleLocks(t, be0, be1)
 }
+
 func TestBackendWithEncryption(t *testing.T) {
 	t.Parallel()
 
@@ -169,6 +171,7 @@ func TestBackendWithEncryption(t *testing.T) {
 
 	backend.TestBackendStates(t, be0)
 	backend.TestBackendStateLocks(t, be0, be1)
+	testStaleLocks(t, be0, be1)
 }
 
 func testStaleLocks(t *testing.T, b1, b2 backend.Backend) {
@@ -203,18 +206,19 @@ func testStaleLocks(t *testing.T, b1, b2 backend.Backend) {
 	infoB.Operation = "test"
 	infoB.Who = "clientB"
 
-	// Reduce tick interval for faster tests
-	tickInterval = 5 * time.Second
+	// For faster tests, reduce the duration until the lock is considered stale.
+	heartbeatInterval = 5 * time.Second
+	minHeartbeatAgeUntilStale = 20 * time.Second
 
 	lockIDA, err := lockerA.Lock(infoA)
 	if err != nil {
 		t.Fatal("unable to get initial lock:", err)
 	}
 
-	// stop updating the "updated" timestamp. Eventually, the lock will become stale.
-	lockerA.(*remote.State).Client.(*remoteClient).ticker.Stop()
+	// Stop heartbeating on the lock file. It will be considered stale after minHeartbeatAgeUntilStale.
+	lockerA.(*remote.State).Client.(*remoteClient).stopHeartbeatCh <- true
 
-	// lock is still held by A after 10 seconds.
+	// Lock is still held by A after 10 seconds.
 	time.Sleep(10 * time.Second)
 	_, err = lockerB.Lock(infoB)
 	if err == nil {
@@ -222,7 +226,7 @@ func testStaleLocks(t *testing.T, b1, b2 backend.Backend) {
 		t.Fatal("client B obtained lock while held by client A")
 	}
 
-	// wait a bit longer and the lock will become stale.
+	// Wait a bit longer, and the lock will become stale.
 	time.Sleep(20 * time.Second)
 	lockIDB, err := lockerB.Lock(infoB)
 	if err != nil {
