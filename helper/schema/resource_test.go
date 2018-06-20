@@ -850,6 +850,20 @@ func TestResourceInternalValidate(t *testing.T) {
 			false,
 			true,
 		},
+		14: { // Deprecated resource
+			&Resource{
+				Read: func(d *ResourceData, meta interface{}) error { return nil },
+				Schema: map[string]*Schema{
+					"goo": &Schema{
+						Type:     TypeInt,
+						Optional: true,
+					},
+				},
+				DeprecationMessage: "This resource has been deprecated.",
+			},
+			true,
+			true,
+		},
 	}
 
 	for i, tc := range cases {
