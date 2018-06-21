@@ -43,7 +43,7 @@ type remoteClient struct {
 // Terraform versions that do not yet perform any heartbeats on the lock file.
 // A lock file will only be considered stale and force-unlocked if its age
 // exceeds minHeartbeatAgeUntilStale AND this metadata header is present.
-const metadataHeaderHeartbeatEnabled = "x-google-lock-file-uses-heartbeating"
+const metadataHeaderHeartbeatEnabled = "x-goog-meta-heartbeating"
 
 var (
 	// Time between consecutive heartbeats on the lock file.
