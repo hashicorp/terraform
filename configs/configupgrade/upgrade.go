@@ -61,6 +61,7 @@ func Upgrade(input ModuleSources) (ModuleSources, tfdiags.Diagnostics) {
 				ret[name] = nil // mark for deletion
 				oldName := name
 				name = input.UnusedFilename(name + ".json")
+				ret[name] = src
 
 				diags = diags.Append(&hcl2.Diagnostic{
 					Severity: hcl2.DiagWarning,
@@ -70,6 +71,7 @@ func Upgrade(input ModuleSources) (ModuleSources, tfdiags.Diagnostics) {
 						oldName, name,
 					),
 				})
+				continue
 			}
 		}
 
@@ -77,7 +79,6 @@ func Upgrade(input ModuleSources) (ModuleSources, tfdiags.Diagnostics) {
 			// We don't do any automatic rewriting for JSON files, since they
 			// are usually generated and thus it's the generating program that
 			// needs to be updated, rather than its output.
-			ret[name] = src
 			diags = diags.Append(&hcl2.Diagnostic{
 				Severity: hcl2.DiagWarning,
 				Summary:  "JSON configuration file was not rewritten",

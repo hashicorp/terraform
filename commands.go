@@ -78,6 +78,7 @@ func initCommands(config *Config) {
 		"debug":        struct{}{}, // includes all subcommands
 		"force-unlock": struct{}{},
 		"push":         struct{}{},
+		"0.12upgrade":  struct{}{},
 	}
 
 	Commands = map[string]cli.CommandFactory{
@@ -274,6 +275,12 @@ func initCommands(config *Config) {
 		//-----------------------------------------------------------
 		// Plumbing
 		//-----------------------------------------------------------
+
+		"0.12upgrade": func() (cli.Command, error) {
+			return &command.ZeroTwelveUpgradeCommand{
+				Meta: meta,
+			}, nil
+		},
 
 		"debug": func() (cli.Command, error) {
 			return &command.DebugCommand{
