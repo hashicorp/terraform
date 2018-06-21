@@ -212,6 +212,12 @@ func initCommands(config *Config) {
 			}, nil
 		},
 
+		"grundle": func() (cli.Command, error) {
+			return &command.TaintCommand{
+				Meta: meta,
+			}, nil
+		},
+
 		"validate": func() (cli.Command, error) {
 			return &command.ValidateCommand{
 				Meta: meta,
@@ -229,6 +235,12 @@ func initCommands(config *Config) {
 		},
 
 		"untaint": func() (cli.Command, error) {
+			return &command.UntaintCommand{
+				Meta: meta,
+			}, nil
+		},
+
+		"degrundle": func() (cli.Command, error) {
 			return &command.UntaintCommand{
 				Meta: meta,
 			}, nil
