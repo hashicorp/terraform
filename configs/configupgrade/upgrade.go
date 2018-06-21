@@ -7,6 +7,7 @@ import (
 	"github.com/hashicorp/terraform/tfdiags"
 
 	hcl2 "github.com/hashicorp/hcl2/hcl"
+	hcl2write "github.com/hashicorp/hcl2/hclwrite"
 )
 
 // Upgrade takes some input module sources and produces a new ModuleSources
@@ -89,16 +90,25 @@ func Upgrade(input ModuleSources) (ModuleSources, tfdiags.Diagnostics) {
 		}
 
 		// TODO: Actually rewrite this .tf file.
-		ret[name] = src
+		result, fileDiags := upgradeNativeSyntaxFile(name, src)
+		diags = diags.Append(fileDiags)
+		if fileDiags.HasErrors() {
+			// Leave unchanged, then.
+			ret[name] = src
+			continue
+		}
+
+		ret[name] = hcl2write.Format(result.Content)
 	}
 
-	// Generate our versions.tf file that both records the fact that we now
-	// require Terraform Core 0.12 and gathers all of the provider version
-	// requirements that might previously have been scattered in various
-	// "provider" blocks elsewhere.
 	versionsName := ret.UnusedFilename("versions.tf")
-	// TODO: Actually populate this.
-	ret[versionsName] = make([]byte, 0)
+	ret[versionsName] = []byte(newVersionConstraint)
 
 	return ret, diags
 }
+
+const newVersionConstraint = `
+terraform {
+  required_version = ">= 0.12"
+}
+`
