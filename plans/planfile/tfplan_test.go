@@ -53,6 +53,9 @@ func TestTFPlanRoundTrip(t *testing.T) {
 						Type: "test_thing",
 						Name: "woot",
 					}.Instance(addrs.IntKey(0)).Absolute(addrs.RootModuleInstance),
+					ProviderAddr: addrs.ProviderConfig{
+						Type: "test",
+					}.Absolute(addrs.RootModuleInstance),
 					Change: plans.Change{
 						Action: plans.Replace,
 						Before: mustNewDynamicValue(cty.ObjectVal(map[string]cty.Value{
@@ -70,6 +73,9 @@ func TestTFPlanRoundTrip(t *testing.T) {
 						Name: "woot",
 					}.Instance(addrs.IntKey(0)).Absolute(addrs.RootModuleInstance),
 					DeposedKey: "foodface",
+					ProviderAddr: addrs.ProviderConfig{
+						Type: "test",
+					}.Absolute(addrs.RootModuleInstance),
 					Change: plans.Change{
 						Action: plans.Delete,
 						Before: mustNewDynamicValue(cty.ObjectVal(map[string]cty.Value{
