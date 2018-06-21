@@ -37,6 +37,14 @@ type remoteClient struct {
 	stopHeartbeatCh chan bool
 }
 
+// Name of the metadata header on the lock file which indicates that the lock
+// file has been created by a client which is supposed to periodically perform
+// heartbeats on it. This header facilitates a safe migration from previous
+// Terraform versions that do not yet perform any heartbeats on the lock file.
+// A lock file will only be considered stale and force-unlocked if it's age
+// exceeds minHeartbeatAgeUntilStale AND this metadata header is present.
+const metadataHeaderHeartbeatEnabled = "x-google-lock-file-uses-heartbeating"
+
 var (
 	// Time between consecutive heartbeats on the lock file.
 	heartbeatInterval = 1 * time.Minute
@@ -113,13 +121,42 @@ func (c *remoteClient) createLockFile(lockFile *storage.ObjectHandle, infoJson [
 		return 0, c.lockError(fmt.Errorf("writing %q failed: %v", c.lockFileURL(), err))
 	}
 
+	// Add metadata signalling to other clients that heartbeats will be
+	// performed on this lock file.
+	uattrs := storage.ObjectAttrsToUpdate{Metadata: make(map[string]string)}
+	uattrs.Metadata[metadataHeaderHeartbeatEnabled] = "true"
+	if _, err := lockFile.Update(c.storageContext, uattrs); err != nil {
+		return 0, c.lockError(err)
+	}
+
 	return w.Attrs().Generation, nil
+}
+
+func isHeartbeatEnabled(attrs *storage.ObjectAttrs) bool {
+	if attrs.Metadata != nil {
+		if val, ok := attrs.Metadata[metadataHeaderHeartbeatEnabled]; ok {
+			if val == "true" {
+				return true
+			}
+		}
+	}
+
+	return false
 }
 
 // unlockIfStale force-unlocks the lock file if it is stale. Returns true if a
 // stale lock was removed (and therefore a retry makes sense), otherwise false.
 func (c *remoteClient) unlockIfStale(lockFile *storage.ObjectHandle) bool {
 	if attrs, err := lockFile.Attrs(c.storageContext); err == nil {
+		if !isHeartbeatEnabled(attrs) {
+			// Metadata header metadataHeaderHeartbeatEnabled is
+			// not present, thus this lock file is owned by an
+			// older client that does not perform heartbeats on the
+			// lock file. Therefore, we cannot be sure whether the
+			// lock file might be stale. Better don't force-unlock!
+			log.Printf("[TRACE] Found existing lock file %s from an older client that does not perform heartbeats", c.lockFileURL())
+			return false
+		}
 		age := time.Now().Sub(attrs.Updated)
 		if age > minHeartbeatAgeUntilStale {
 			log.Printf("[WARN] Existing lock file %s is considered stale, last heartbeat was %s ago", c.lockFileURL(), age)
