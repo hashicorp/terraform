@@ -2,7 +2,10 @@ package configupgrade
 
 import (
 	"bytes"
+	"io"
 	"io/ioutil"
+	"os"
+	"os/exec"
 	"path/filepath"
 	"testing"
 )
@@ -56,8 +59,11 @@ func TestUpgradeValid(t *testing.T) {
 					continue
 				}
 
+				got = bytes.TrimSpace(got)
+				want = bytes.TrimSpace(want)
 				if !bytes.Equal(got, want) {
-					t.Errorf("wrong content in %q\n=== GOT ===\n%s\n=== WANT ===\n%s", name, got, want)
+					diff := diffSourceFiles(got, want)
+					t.Errorf("wrong content in %q\n%s", name, diff)
 				}
 			}
 
@@ -95,4 +101,68 @@ func TestUpgradeRenameJSON(t *testing.T) {
 	if src == nil || !exists {
 		t.Errorf("misnamed-json.tf.json was not created")
 	}
+}
+
+func diffSourceFiles(got, want []byte) []byte {
+	// We'll try to run "diff -u" here to get nice output, but if that fails
+	// (e.g. because we're running on a machine without diff installed) then
+	// we'll fall back on just printing out the before and after in full.
+	gotR, gotW, err := os.Pipe()
+	if err != nil {
+		return diffSourceFilesFallback(got, want)
+	}
+	defer gotR.Close()
+	defer gotW.Close()
+	wantR, wantW, err := os.Pipe()
+	if err != nil {
+		return diffSourceFilesFallback(got, want)
+	}
+	defer wantR.Close()
+	defer wantW.Close()
+
+	cmd := exec.Command("diff", "-u", "--label=GOT", "--label=WANT", "/dev/fd/3", "/dev/fd/4")
+	cmd.ExtraFiles = []*os.File{gotR, wantR}
+	stdout, err := cmd.StdoutPipe()
+	stderr, err := cmd.StderrPipe()
+	if err != nil {
+		return diffSourceFilesFallback(got, want)
+	}
+
+	go func() {
+		wantW.Write(want)
+		wantW.Close()
+	}()
+	go func() {
+		gotW.Write(got)
+		gotW.Close()
+	}()
+
+	err = cmd.Start()
+	if err != nil {
+		return diffSourceFilesFallback(got, want)
+	}
+
+	outR := io.MultiReader(stdout, stderr)
+	out, err := ioutil.ReadAll(outR)
+	if err != nil {
+		return diffSourceFilesFallback(got, want)
+	}
+
+	cmd.Wait() // not checking errors here because on failure we'll have stderr captured to return
+
+	const noNewline = "\\ No newline at end of file\n"
+	if bytes.HasSuffix(out, []byte(noNewline)) {
+		out = out[:len(out)-len(noNewline)]
+	}
+	return out
+}
+
+func diffSourceFilesFallback(got, want []byte) []byte {
+	var buf bytes.Buffer
+	buf.WriteString("=== GOT ===\n")
+	buf.Write(got)
+	buf.WriteString("\n=== WANT ===\n")
+	buf.Write(want)
+	buf.WriteString("\n")
+	return buf.Bytes()
 }
