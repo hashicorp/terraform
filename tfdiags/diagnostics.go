@@ -3,6 +3,9 @@ package tfdiags
 import (
 	"bytes"
 	"fmt"
+	"path/filepath"
+	"sort"
+	"strings"
 
 	"github.com/hashicorp/errwrap"
 	multierror "github.com/hashicorp/go-multierror"
@@ -174,6 +177,18 @@ func (diags Diagnostics) NonFatalErr() error {
 	return NonFatalError{diags}
 }
 
+// Sort applies an ordering to the diagnostics in the receiver in-place.
+//
+// The ordering is: warnings before errors, sourceless before sourced,
+// short source paths before long source paths, and then ordering by
+// position within each file.
+//
+// Diagnostics that do not differ by any of these sortable characteristics
+// will remain in the same relative order after this method returns.
+func (diags Diagnostics) Sort() {
+	sort.Stable(sortDiagnostics(diags))
+}
+
 type diagnosticsAsError struct {
 	Diagnostics
 }
@@ -257,4 +272,59 @@ func (woe NonFatalError) Error() string {
 		}
 		return ret.String()
 	}
+}
+
+// sortDiagnostics is an implementation of sort.Interface
+type sortDiagnostics []Diagnostic
+
+var _ sort.Interface = sortDiagnostics(nil)
+
+func (sd sortDiagnostics) Len() int {
+	return len(sd)
+}
+
+func (sd sortDiagnostics) Less(i, j int) bool {
+	iD, jD := sd[i], sd[j]
+	iSev, jSev := iD.Severity(), jD.Severity()
+	iSrc, jSrc := iD.Source(), jD.Source()
+
+	switch {
+
+	case iSev != jSev:
+		return iSev == Warning
+
+	case (iSrc.Subject == nil) != (jSrc.Subject == nil):
+		return iSrc.Subject == nil
+
+	case iSrc.Subject != nil && *iSrc.Subject != *jSrc.Subject:
+		iSubj := iSrc.Subject
+		jSubj := jSrc.Subject
+		switch {
+		case iSubj.Filename != jSubj.Filename:
+			// Path with fewer segments goes first if they are different lengths
+			sep := string(filepath.Separator)
+			iCount := strings.Count(iSubj.Filename, sep)
+			jCount := strings.Count(jSubj.Filename, sep)
+			if iCount != jCount {
+				return iCount < jCount
+			}
+			return iSubj.Filename < jSubj.Filename
+		case iSubj.Start.Byte != jSubj.Start.Byte:
+			return iSubj.Start.Byte < jSubj.Start.Byte
+		case iSubj.End.Byte != jSubj.End.Byte:
+			return iSubj.End.Byte < jSubj.End.Byte
+		}
+		fallthrough
+
+	default:
+		// The remaining properties do not have a defined ordering, so
+		// we'll leave it unspecified. Since we use sort.Stable in
+		// the caller of this, the ordering of remaining items will
+		// be preserved.
+		return false
+	}
+}
+
+func (sd sortDiagnostics) Swap(i, j int) {
+	sd[i], sd[j] = sd[j], sd[i]
 }
