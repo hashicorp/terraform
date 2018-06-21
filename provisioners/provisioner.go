@@ -1,12 +1,16 @@
 package provisioner
 
 import (
+	"github.com/hashicorp/terraform/config/configschema"
 	"github.com/hashicorp/terraform/tfdiags"
 	"github.com/zclconf/go-cty/cty"
 )
 
 // Interface is the set of methods required for a resource provisioner plugin.
 type Interface interface {
+	// GetSchema returns the schema for the provisioner configuration.
+	GetSchema() GetSchemaResponse
+
 	// ValidateProvisionerConfig allows the provisioner to validate the
 	// configuration values.
 	ValidateProvisionerConfig(ValidateProvisionerConfigRequest) ValidateProvisionerConfigResponse
@@ -28,6 +32,14 @@ type Interface interface {
 	// stop somehow failed and that the user should expect potentially waiting
 	// a longer period of time.
 	Stop() error
+}
+
+type GetSchemaResponse struct {
+	// Provisioner contains the schema for this provisioner.
+	Provisioner *configschema.Block
+
+	// Diagnostics contains any warnings or errors from the method call.
+	Diagnostics tfdiags.Diagnostics
 }
 
 // UIOutput provides the Output method for resource provisioner
