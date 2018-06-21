@@ -130,11 +130,14 @@ type UpgradeResourceStateRequest struct {
 	// Version is version of the schema that created the current state.
 	Version int
 
-	// PriorStateRaw is the state that needs to be upgraded to match the current
-	// schema version. Because the schema is unknown, this contains only the
-	// raw bytes as stored in the state. It is up to the provider to interpret
-	// the payload and return a state encoded with the current schema.
-	PriorStateRaw []byte
+	// RawStateJSON and RawStateFlatmap contiain the state that needs to be
+	// upgraded to match the current schema version. Because the schema is
+	// unknown, this contains only the raw data as stored in the state.
+	// RawStateJSON is the current json state encoding.
+	// RawStateFlatmap is the legacy flatmap encoding.
+	// Only on of these fields may be set for the upgrade request.
+	RawStateJSON    []byte
+	RawStateFlatmap map[string]string
 }
 
 type UpgradeResourceStateResponse struct {
