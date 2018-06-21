@@ -1,8 +1,14 @@
 
+/* This multi-line comment
+   should survive */
+
 # This comment should survive
 variable "foo" {
   default = 1 // This comment should also survive
 }
+
+// These adjacent comments should remain adjacent
+// to one another.
 
 variable "bar" {
   /* This comment should survive too */
