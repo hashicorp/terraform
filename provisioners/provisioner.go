@@ -53,9 +53,9 @@ type ProvisionResourceRequest struct {
 	// Config is the complete provisioner configuration.
 	Config cty.Value
 
-	// Connection is a map of string values containing any information required
-	// to access the resource instance.
-	Connection map[string]string
+	// Connection contains any information required to access the resource
+	// instance.
+	Connection cty.Value
 
 	// UIOutput is used to return output during the Apply operation.
 	UIOutput UIOutput
