@@ -105,21 +105,26 @@ message ResourceInstanceChange {
     // set, the change applies to the instance's current object.
     string deposed_key = 7;
 
+    // provider is the address of the provider configuration that this change
+    // was planned with, and thus the configuration that must be used to
+    // apply it.
+    string provider = 8;
+
     // Description of the proposed change. May use "create", "read", "update",
     // "replace" and "delete" actions. "no-op" changes are not currently used here
     // but consumers must accept and discard them to allow for future expansion.
-    Change change = 8;
+    Change change = 9;
 
     // msgpack representation of an arbitrary object value provided by
     // the resource provider as additional context for the change. Must
     // be considered an opaque value for any consumer other than the
     // provider that generated it.
-    DynamicValue private = 9;
+    DynamicValue private = 10;
 
     // An unordered set of paths that prompted the change action to be
     // "replace" rather than "update". Empty for any action other than
     // "replace".
-    repeated Path required_replace = 10;
+    repeated Path required_replace = 11;
 }
 
 message OutputChange {
