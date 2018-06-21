@@ -141,8 +141,8 @@ type UpgradeResourceStateRequest struct {
 }
 
 type UpgradeResourceStateResponse struct {
-	// State is the newly upgraded resource state.
-	State cty.Value
+	// UpgradedState is the newly upgraded resource state.
+	UpgradedState cty.Value
 
 	// Diagnostics contains any warnings or errors from the method call.
 	Diagnostics tfdiags.Diagnostics
