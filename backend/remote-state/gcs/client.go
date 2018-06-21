@@ -108,8 +108,8 @@ func (c *remoteClient) Delete() error {
 
 // createLockFile writes to a lock file, ensuring file creation. Returns the
 // generation number.
-func (c *remoteClient) createLockFile(lockFile *storage.ObjectHandle, infoJson []byte) (int64, error) {
-	w := lockFile.If(storage.Conditions{DoesNotExist: true}).NewWriter(c.storageContext)
+func (c *remoteClient) createLockFile(infoJson []byte) (int64, error) {
+	w := c.lockFile().If(storage.Conditions{DoesNotExist: true}).NewWriter(c.storageContext)
 	err := func() error {
 		if _, err := w.Write(infoJson); err != nil {
 			return err
@@ -125,7 +125,7 @@ func (c *remoteClient) createLockFile(lockFile *storage.ObjectHandle, infoJson [
 	// performed on this lock file.
 	uattrs := storage.ObjectAttrsToUpdate{Metadata: make(map[string]string)}
 	uattrs.Metadata[metadataHeaderHeartbeatEnabled] = "true"
-	if _, err := lockFile.Update(c.storageContext, uattrs); err != nil {
+	if _, err := c.lockFile().Update(c.storageContext, uattrs); err != nil {
 		return 0, c.lockError(err)
 	}
 
@@ -146,8 +146,8 @@ func isHeartbeatEnabled(attrs *storage.ObjectAttrs) bool {
 
 // unlockIfStale force-unlocks the lock file if it is stale. Returns true if a
 // stale lock was removed (and therefore a retry makes sense), otherwise false.
-func (c *remoteClient) unlockIfStale(lockFile *storage.ObjectHandle) bool {
-	if attrs, err := lockFile.Attrs(c.storageContext); err == nil {
+func (c *remoteClient) unlockIfStale() bool {
+	if attrs, err := c.lockFile().Attrs(c.storageContext); err == nil {
 		if !isHeartbeatEnabled(attrs) {
 			// Metadata header metadataHeaderHeartbeatEnabled is
 			// not present, thus this lock file is owned by an
@@ -228,12 +228,10 @@ func (c *remoteClient) Lock(info *state.LockInfo) (string, error) {
 		return "", err
 	}
 
-	lockFile := c.lockFile()
-
-	generation, err := c.createLockFile(lockFile, infoJson)
+	generation, err := c.createLockFile(infoJson)
 	if err != nil {
-		if c.unlockIfStale(lockFile) {
-			generation, err = c.createLockFile(lockFile, infoJson)
+		if c.unlockIfStale() {
+			generation, err = c.createLockFile(infoJson)
 		}
 	}
 	if err != nil {
