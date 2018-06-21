@@ -253,14 +253,33 @@ type ImportResourceStateRequest struct {
 }
 
 type ImportResourceStateResponse struct {
-	// State contains one or more state values for the imported resource. It is
-	// not required that these be complete, only that there is enough
-	// identifying information for the provider to successfully update the
-	// state in ReadResource.
-	State []cty.Value
+	// ImportedResources contains one or more state values related to the
+	// imported resource. It is not required that these be complete, only that
+	// there is enough identifying information for the provider to successfully
+	// update the states in ReadResource.
+	ImportedResources []ImportedResource
 
 	// Diagnostics contains any warnings or errors from the method call.
 	Diagnostics tfdiags.Diagnostics
+}
+
+// ImportedResource represents an object being imported into Terraform with the
+// help of a provider. An ImportedObject is a RemoteObject that has been read
+// by the provider's import handler but hasn't yet been committed to state.
+type ImportedResource struct {
+	// ResourceType is the name of the resource type associated with the
+	// returned state. It's possible for providers to import multiple related
+	// types with a single import request.
+	ResourceType string
+
+	// State is the state of the remote object being imported. This may not be
+	// complete, but must contain enough information to uniquely identify the
+	// resource.
+	State cty.Value
+
+	// Private is an opaque blob that will be stored in state along with the
+	// resource. It is intended only for interpretation by the provider itself.
+	Private []byte
 }
 
 type ReadDataSourceRequest struct {
