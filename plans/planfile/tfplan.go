@@ -119,6 +119,12 @@ func resourceChangeFromTfplan(rawChange *planproto.ResourceInstanceChange) (*pla
 		}
 	}
 
+	providerAddr, diags := addrs.ParseAbsProviderConfigStr(rawChange.Provider)
+	if diags.HasErrors() {
+		return nil, diags.Err()
+	}
+	ret.ProviderAddr = providerAddr
+
 	var mode addrs.ResourceMode
 	switch rawChange.Mode {
 	case planproto.ResourceInstanceChange_managed:
@@ -336,6 +342,7 @@ func resourceChangeToTfplan(change *plans.ResourceInstanceChange) (*planproto.Re
 	}
 
 	ret.DeposedKey = string(change.DeposedKey)
+	ret.Provider = change.ProviderAddr.String()
 
 	valChange, err := changeToTfplan(&change.Change)
 	if err != nil {
