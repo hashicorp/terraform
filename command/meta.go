@@ -488,6 +488,7 @@ func (m *Meta) confirm(opts *terraform.InputOpts) (bool, error) {
 func (m *Meta) showDiagnostics(vals ...interface{}) {
 	var diags tfdiags.Diagnostics
 	diags = diags.Append(vals...)
+	diags.Sort()
 
 	for _, diag := range diags {
 		// TODO: Actually measure the terminal width and pass it here.
