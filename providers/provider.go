@@ -1,4 +1,4 @@
-package provider
+package providers
 
 import (
 	"github.com/hashicorp/terraform/config/configschema"
