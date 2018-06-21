@@ -41,7 +41,7 @@ type remoteClient struct {
 // file has been created by a client which is supposed to periodically perform
 // heartbeats on it. This header facilitates a safe migration from previous
 // Terraform versions that do not yet perform any heartbeats on the lock file.
-// A lock file will only be considered stale and force-unlocked if it's age
+// A lock file will only be considered stale and force-unlocked if its age
 // exceeds minHeartbeatAgeUntilStale AND this metadata header is present.
 const metadataHeaderHeartbeatEnabled = "x-google-lock-file-uses-heartbeating"
 
