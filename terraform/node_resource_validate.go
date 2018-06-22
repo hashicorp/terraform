@@ -1,11 +1,7 @@
 package terraform
 
 import (
-	"log"
-
 	"github.com/hashicorp/terraform/config/configschema"
-	"github.com/hashicorp/terraform/dag"
-	"github.com/hashicorp/terraform/tfdiags"
 	"github.com/zclconf/go-cty/cty"
 )
 
@@ -17,116 +13,21 @@ type NodeValidatableResource struct {
 
 var (
 	_ GraphNodeSubPath              = (*NodeValidatableResource)(nil)
-	_ GraphNodeDynamicExpandable    = (*NodeValidatableResource)(nil)
+	_ GraphNodeEvalable             = (*NodeValidatableResource)(nil)
 	_ GraphNodeReferenceable        = (*NodeValidatableResource)(nil)
 	_ GraphNodeReferencer           = (*NodeValidatableResource)(nil)
 	_ GraphNodeResource             = (*NodeValidatableResource)(nil)
 	_ GraphNodeAttachResourceConfig = (*NodeValidatableResource)(nil)
 )
 
-// GraphNodeDynamicExpandable
-func (n *NodeValidatableResource) DynamicExpand(ctx EvalContext) (*Graph, error) {
-	var diags tfdiags.Diagnostics
-
-	count, countDiags := evaluateResourceCountExpression(n.Config.Count, ctx)
-	diags = diags.Append(countDiags)
-	if countDiags.HasErrors() {
-		if count != 0 {
-			log.Printf("[TRACE] %T %s: count expression has errors", n, n.Name())
-			return nil, diags.Err()
-		}
-
-		// evaluateResourceCountExpression returns zero+errors only in the
-		// case where the count value successfully evaluated to an unknown
-		// number. We don't treat this as an error here because counts that
-		// are computed during validate can become known during the plan
-		// walk, if they refer to data resources, and so we'll just defer
-		// our validation steps to the plan phase in that case.
-		log.Printf("[TRACE] %T %s: count expression value not yet known, so deferring validation until the plan walk", n, n.Name())
-	} else if count >= 0 {
-		log.Printf("[TRACE] %T %s: count expression evaluates to %d", n, n.Name(), count)
-	} else {
-		log.Printf("[TRACE] %T %s: no count argument present", n, n.Name())
-	}
-
-	// Next we need to potentially rename an instance address in the state
-	// if we're transitioning whether "count" is set at all.
-	fixResourceCountSetTransition(ctx, n.ResourceAddr().Resource, count != -1)
-
-	// Grab the state which we read
-	state, lock := ctx.State()
-	lock.RLock()
-	defer lock.RUnlock()
-
-	// The concrete resource factory we'll use
-	concreteResource := func(a *NodeAbstractResourceInstance) dag.Vertex {
-		// Add the config and state since we don't do that via transforms
-		a.Config = n.Config
-		a.ResolvedProvider = n.ResolvedProvider
-
-		return &NodeValidatableResourceInstance{
-			NodeAbstractResourceInstance: a,
-		}
-	}
-
-	// Start creating the steps
-	steps := []GraphTransformer{
-		// Expand the count.
-		&ResourceCountTransformer{
-			Concrete: concreteResource,
-			Schema:   n.Schema,
-			Count:    count,
-			Addr:     n.ResourceAddr(),
-		},
-
-		// Attach the state
-		&AttachStateTransformer{State: state},
-
-		// Targeting
-		&TargetsTransformer{Targets: n.Targets},
-
-		// Connect references so ordering is correct
-		&ReferenceTransformer{},
-
-		// Make sure there is a single root
-		&RootTransformer{},
-	}
-
-	// Build the graph
-	b := &BasicGraphBuilder{
-		Steps:    steps,
-		Validate: true,
-		Name:     "NodeValidatableResource",
-	}
-
-	graph, diags := b.Build(ctx.Path())
-	return graph, diags.ErrWithWarnings()
-}
-
-// This represents a _single_ resource instance to validate.
-type NodeValidatableResourceInstance struct {
-	*NodeAbstractResourceInstance
-}
-
-var (
-	_ GraphNodeSubPath              = (*NodeValidatableResourceInstance)(nil)
-	_ GraphNodeReferenceable        = (*NodeValidatableResourceInstance)(nil)
-	_ GraphNodeReferencer           = (*NodeValidatableResourceInstance)(nil)
-	_ GraphNodeResource             = (*NodeValidatableResourceInstance)(nil)
-	_ GraphNodeResourceInstance     = (*NodeValidatableResourceInstance)(nil)
-	_ GraphNodeAttachResourceConfig = (*NodeValidatableResourceInstance)(nil)
-	_ GraphNodeAttachResourceState  = (*NodeValidatableResourceInstance)(nil)
-	_ GraphNodeEvalable             = (*NodeValidatableResourceInstance)(nil)
-)
-
 // GraphNodeEvalable
-func (n *NodeValidatableResourceInstance) EvalTree() EvalNode {
-	addr := n.ResourceInstanceAddr()
+func (n *NodeValidatableResource) EvalTree() EvalNode {
+	addr := n.ResourceAddr()
 	config := n.Config
 
-	// Declare a bunch of variables that are used for state during
-	// evaluation. These are written to via pointers passed to the EvalNodes
-	// below.
+	// Declare the variables will be used are used to pass values along
+	// the evaluation sequence below. These are written to via pointers
+	// passed to the EvalNodes.
 	var provider ResourceProvider
 	var providerSchema *ProviderSchema
 	var configVal cty.Value
@@ -137,11 +38,6 @@ func (n *NodeValidatableResourceInstance) EvalTree() EvalNode {
 				Addr:   n.ResolvedProvider,
 				Output: &provider,
 				Schema: &providerSchema,
-			},
-			&EvalValidateSelfRef{
-				Addr:           addr.Resource,
-				Config:         config.Config,
-				ProviderSchema: &providerSchema,
 			},
 			&EvalValidateResource{
 				Addr:           addr.Resource,
@@ -154,6 +50,8 @@ func (n *NodeValidatableResourceInstance) EvalTree() EvalNode {
 	}
 
 	if managed := n.Config.Managed; managed != nil {
+		hasCount := n.Config.Count != nil
+
 		// Validate all the provisioners
 		for _, p := range managed.Provisioners {
 			var provisioner ResourceProvisioner
@@ -166,10 +64,11 @@ func (n *NodeValidatableResourceInstance) EvalTree() EvalNode {
 					Schema: &provisionerSchema,
 				},
 				&EvalValidateProvisioner{
-					ResourceAddr: addr.Resource,
-					Provisioner:  &provisioner,
-					Schema:       &provisionerSchema,
-					Config:       p,
+					ResourceAddr:     addr.Resource,
+					Provisioner:      &provisioner,
+					Schema:           &provisionerSchema,
+					Config:           p,
+					ResourceHasCount: hasCount,
 				},
 			)
 		}
