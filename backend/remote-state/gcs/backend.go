@@ -147,13 +147,13 @@ func (b *Backend) configure(ctx context.Context) error {
 		conf := jwt.Config{
 			Email:      account.ClientEmail,
 			PrivateKey: []byte(account.PrivateKey),
-			Scopes:     []string{storage.ScopeReadWrite},
+			Scopes:     []string{storage.ScopeFullControl},
 			TokenURL:   "https://accounts.google.com/o/oauth2/token",
 		}
 
 		opts = append(opts, option.WithHTTPClient(conf.Client(ctx)))
 	} else {
-		opts = append(opts, option.WithScopes(storage.ScopeReadWrite))
+		opts = append(opts, option.WithScopes(storage.ScopeFullControl))
 	}
 
 	opts = append(opts, option.WithUserAgent(httpclient.UserAgentString()))
