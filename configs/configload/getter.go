@@ -1,7 +1,9 @@
 package configload
 
 import (
+	"fmt"
 	"log"
+	"os"
 	"path/filepath"
 
 	cleanhttp "github.com/hashicorp/go-cleanhttp"
@@ -56,6 +58,16 @@ var getterHTTPGetter = &getter.HttpGetter{
 	Netrc:  true,
 }
 
+// A reusingGetter is a helper for the module installer that remembers
+// the final resolved addresses of all of the sources it has already been
+// asked to install, and will copy from a prior installation directory if
+// it has the same resolved source address.
+//
+// The keys in a reusingGetter are resolved and trimmed source addresses
+// (with a scheme always present, and without any "subdir" component),
+// and the values are the paths where each source was previously installed.
+type reusingGetter map[string]string
+
 // getWithGoGetter retrieves the package referenced in the given address
 // into the installation path and then returns the full path to any subdir
 // indicated in the address.
@@ -65,7 +77,7 @@ var getterHTTPGetter = &getter.HttpGetter{
 // end-user-actionable error messages. At this time we do not have any
 // reasonable way to improve these error messages at this layer because
 // the underlying errors are not separatelyr recognizable.
-func getWithGoGetter(instPath, addr string) (string, error) {
+func (g reusingGetter) getWithGoGetter(instPath, addr string) (string, error) {
 	packageAddr, subDir := splitAddrSubdir(addr)
 
 	log.Printf("[DEBUG] will download %q to %s", packageAddr, instPath)
@@ -85,20 +97,36 @@ func getWithGoGetter(instPath, addr string) (string, error) {
 		log.Printf("[TRACE] go-getter detectors rewrote %q to %q", packageAddr, realAddr)
 	}
 
-	client := getter.Client{
-		Src: realAddr,
-		Dst: instPath,
-		Pwd: instPath,
+	if prevDir, exists := g[realAddr]; exists {
+		log.Printf("[TRACE] copying previous install %s to %s", prevDir, instPath)
+		err := os.Mkdir(instPath, os.ModePerm)
+		if err != nil {
+			return "", fmt.Errorf("failed to create directory %s: %s", instPath, err)
+		}
+		err = copyDir(instPath, prevDir)
+		if err != nil {
+			return "", fmt.Errorf("failed to copy from %s to %s: %s", prevDir, instPath, err)
+		}
+	} else {
+		log.Printf("[TRACE] fetching %q to %q", realAddr, instPath)
+		client := getter.Client{
+			Src: realAddr,
+			Dst: instPath,
+			Pwd: instPath,
 
-		Mode: getter.ClientModeDir,
+			Mode: getter.ClientModeDir,
 
-		Detectors:     goGetterNoDetectors, // we already did detection above
-		Decompressors: goGetterDecompressors,
-		Getters:       goGetterGetters,
-	}
-	err = client.Get()
-	if err != nil {
-		return "", err
+			Detectors:     goGetterNoDetectors, // we already did detection above
+			Decompressors: goGetterDecompressors,
+			Getters:       goGetterGetters,
+		}
+		err = client.Get()
+		if err != nil {
+			return "", err
+		}
+		// Remember where we installed this so we might reuse this directory
+		// on subsequent calls to avoid re-downloading.
+		g[realAddr] = instPath
 	}
 
 	// Our subDir string can contain wildcards until this point, so that
