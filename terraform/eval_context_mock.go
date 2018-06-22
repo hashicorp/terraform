@@ -80,12 +80,12 @@ type MockEvalContext struct {
 	EvaluateBlockBody       hcl.Body
 	EvaluateBlockSchema     *configschema.Block
 	EvaluateBlockSelf       addrs.Referenceable
-	EvaluateBlockKey        addrs.InstanceKey
+	EvaluateBlockKeyData    InstanceKeyEvalData
 	EvaluateBlockResultFunc func(
 		body hcl.Body,
 		schema *configschema.Block,
 		self addrs.Referenceable,
-		key addrs.InstanceKey,
+		keyData InstanceKeyEvalData,
 	) (cty.Value, hcl.Body, tfdiags.Diagnostics) // overrides the other values below, if set
 	EvaluateBlockResult       cty.Value
 	EvaluateBlockExpandedBody hcl.Body
@@ -103,10 +103,10 @@ type MockEvalContext struct {
 	EvaluateExprResult cty.Value
 	EvaluateExprDiags  tfdiags.Diagnostics
 
-	EvaluationScopeCalled bool
-	EvaluationScopeSelf   addrs.Referenceable
-	EvaluationScopeKey    addrs.InstanceKey
-	EvaluationScopeScope  *lang.Scope
+	EvaluationScopeCalled  bool
+	EvaluationScopeSelf    addrs.Referenceable
+	EvaluationScopeKeyData InstanceKeyEvalData
+	EvaluationScopeScope   *lang.Scope
 
 	InterpolateCalled       bool
 	InterpolateConfig       *config.RawConfig
@@ -228,14 +228,14 @@ func (c *MockEvalContext) CloseProvisioner(n string) error {
 	return nil
 }
 
-func (c *MockEvalContext) EvaluateBlock(body hcl.Body, schema *configschema.Block, self addrs.Referenceable, key addrs.InstanceKey) (cty.Value, hcl.Body, tfdiags.Diagnostics) {
+func (c *MockEvalContext) EvaluateBlock(body hcl.Body, schema *configschema.Block, self addrs.Referenceable, keyData InstanceKeyEvalData) (cty.Value, hcl.Body, tfdiags.Diagnostics) {
 	c.EvaluateBlockCalled = true
 	c.EvaluateBlockBody = body
 	c.EvaluateBlockSchema = schema
 	c.EvaluateBlockSelf = self
-	c.EvaluateBlockKey = key
+	c.EvaluateBlockKeyData = keyData
 	if c.EvaluateBlockResultFunc != nil {
-		return c.EvaluateBlockResultFunc(body, schema, self, key)
+		return c.EvaluateBlockResultFunc(body, schema, self, keyData)
 	}
 	return c.EvaluateBlockResult, c.EvaluateBlockExpandedBody, c.EvaluateBlockDiags
 }
@@ -261,7 +261,7 @@ func (c *MockEvalContext) EvaluateExpr(expr hcl.Expression, wantType cty.Type, s
 // This function overwrites any existing functions installed in fields
 // EvaluateBlockResultFunc and EvaluateExprResultFunc.
 func (c *MockEvalContext) installSimpleEval() {
-	c.EvaluateBlockResultFunc = func(body hcl.Body, schema *configschema.Block, self addrs.Referenceable, key addrs.InstanceKey) (cty.Value, hcl.Body, tfdiags.Diagnostics) {
+	c.EvaluateBlockResultFunc = func(body hcl.Body, schema *configschema.Block, self addrs.Referenceable, keyData InstanceKeyEvalData) (cty.Value, hcl.Body, tfdiags.Diagnostics) {
 		if scope := c.EvaluationScopeScope; scope != nil {
 			// Fully-functional codepath.
 			var diags tfdiags.Diagnostics
@@ -304,10 +304,10 @@ func (c *MockEvalContext) installSimpleEval() {
 	}
 }
 
-func (c *MockEvalContext) EvaluationScope(self addrs.Referenceable, key addrs.InstanceKey) *lang.Scope {
+func (c *MockEvalContext) EvaluationScope(self addrs.Referenceable, keyData InstanceKeyEvalData) *lang.Scope {
 	c.EvaluationScopeCalled = true
 	c.EvaluationScopeSelf = self
-	c.EvaluationScopeKey = key
+	c.EvaluationScopeKeyData = keyData
 	return c.EvaluationScopeScope
 }
 
