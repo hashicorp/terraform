@@ -416,7 +416,7 @@ func (c *Context) Eval(path addrs.ModuleInstance) (*lang.Scope, tfdiags.Diagnost
 	// caches its contexts, so we should get hold of the context that was
 	// previously used for evaluation here, unless we skipped walking.
 	evalCtx := walker.EnterPath(path)
-	return evalCtx.EvaluationScope(nil, addrs.NoKey), diags
+	return evalCtx.EvaluationScope(nil, EvalDataForNoInstanceKey), diags
 }
 
 // Interpolater is no longer used. Use Evaluator instead.
