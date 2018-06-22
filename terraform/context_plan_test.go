@@ -4102,3 +4102,120 @@ func TestContext2Plan_computedAttrRefTypeMismatch(t *testing.T) {
 		t.Fatalf("expected:\n\n%s\n\nto contain:\n\n%s", errStr, expected)
 	}
 }
+
+func TestContext2Plan_selfRef(t *testing.T) {
+	p := testProvider("aws")
+	p.GetSchemaReturn = &ProviderSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"aws_instance": {
+				Attributes: map[string]*configschema.Attribute{
+					"foo": {Type: cty.String, Optional: true},
+				},
+			},
+		},
+	}
+
+	m := testModule(t, "plan-self-ref")
+	c := testContext2(t, &ContextOpts{
+		Config: m,
+		ProviderResolver: ResourceProviderResolverFixed(
+			map[string]ResourceProviderFactory{
+				"aws": testProviderFuncFixed(p),
+			},
+		),
+	})
+
+	diags := c.Validate()
+	if diags.HasErrors() {
+		t.Fatalf("unexpected validation failure: %s", diags.Err())
+	}
+
+	_, diags = c.Plan()
+	if !diags.HasErrors() {
+		t.Fatalf("plan succeeded; want error")
+	}
+
+	gotErrStr := diags.Err().Error()
+	wantErrStr := "Self-referential block"
+	if !strings.Contains(gotErrStr, wantErrStr) {
+		t.Fatalf("missing expected error\ngot: %s\n\nwant: error containing %q", gotErrStr, wantErrStr)
+	}
+}
+
+func TestContext2Plan_selfRefMulti(t *testing.T) {
+	p := testProvider("aws")
+	p.GetSchemaReturn = &ProviderSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"aws_instance": {
+				Attributes: map[string]*configschema.Attribute{
+					"foo": {Type: cty.String, Optional: true},
+				},
+			},
+		},
+	}
+
+	m := testModule(t, "plan-self-ref-multi")
+	c := testContext2(t, &ContextOpts{
+		Config: m,
+		ProviderResolver: ResourceProviderResolverFixed(
+			map[string]ResourceProviderFactory{
+				"aws": testProviderFuncFixed(p),
+			},
+		),
+	})
+
+	diags := c.Validate()
+	if diags.HasErrors() {
+		t.Fatalf("unexpected validation failure: %s", diags.Err())
+	}
+
+	_, diags = c.Plan()
+	if !diags.HasErrors() {
+		t.Fatalf("plan succeeded; want error")
+	}
+
+	gotErrStr := diags.Err().Error()
+	wantErrStr := "Self-referential block"
+	if !strings.Contains(gotErrStr, wantErrStr) {
+		t.Fatalf("missing expected error\ngot: %s\n\nwant: error containing %q", gotErrStr, wantErrStr)
+	}
+}
+
+func TestContext2Plan_selfRefMultiAll(t *testing.T) {
+	p := testProvider("aws")
+	p.GetSchemaReturn = &ProviderSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"aws_instance": {
+				Attributes: map[string]*configschema.Attribute{
+					"foo": {Type: cty.List(cty.String), Optional: true},
+				},
+			},
+		},
+	}
+
+	m := testModule(t, "plan-self-ref-multi-all")
+	c := testContext2(t, &ContextOpts{
+		Config: m,
+		ProviderResolver: ResourceProviderResolverFixed(
+			map[string]ResourceProviderFactory{
+				"aws": testProviderFuncFixed(p),
+			},
+		),
+	})
+
+	diags := c.Validate()
+	if diags.HasErrors() {
+		t.Fatalf("unexpected validation failure: %s", diags.Err())
+	}
+
+	_, diags = c.Plan()
+	if !diags.HasErrors() {
+		t.Fatalf("plan succeeded; want error")
+	}
+
+	gotErrStr := diags.Err().Error()
+	wantErrStr := "Self-referential block"
+	if !strings.Contains(gotErrStr, wantErrStr) {
+		t.Fatalf("missing expected error\ngot: %s\n\nwant: error containing %q", gotErrStr, wantErrStr)
+	}
+}

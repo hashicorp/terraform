@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/hashicorp/hcl2/hcl"
+	"github.com/hashicorp/hcl2/hcltest"
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/addrs"
@@ -39,12 +40,59 @@ func TestEvalValidateResource_managedResource(t *testing.T) {
 		}),
 	}
 	node := &EvalValidateResource{
-		Addr: addrs.ResourceInstance{
-			Resource: addrs.Resource{
-				Mode: addrs.ManagedResourceMode,
-				Type: "aws_instance",
-				Name: "foo",
-			},
+		Addr: addrs.Resource{
+			Mode: addrs.ManagedResourceMode,
+			Type: "aws_instance",
+			Name: "foo",
+		},
+		Provider:       &p,
+		Config:         rc,
+		ProviderSchema: &mp.GetSchemaReturn,
+	}
+
+	ctx := &MockEvalContext{}
+	ctx.installSimpleEval()
+
+	_, err := node.Eval(ctx)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if !mp.ValidateResourceCalled {
+		t.Fatal("Expected ValidateResource to be called, but it was not!")
+	}
+}
+
+func TestEvalValidateResource_managedResourceCount(t *testing.T) {
+	mp := simpleMockProvider()
+	mp.ValidateResourceFn = func(rt string, c *ResourceConfig) (ws []string, es []error) {
+		expected := "test_object"
+		if rt != expected {
+			t.Fatalf("wrong resource type\ngot:  %#v\nwant: %#v", rt, expected)
+		}
+		expected = "bar"
+		val, _ := c.Get("test_string")
+		if val != expected {
+			t.Fatalf("wrong value for test_string\ngot:  %#v\nwant: %#v", val, expected)
+		}
+		return
+	}
+
+	p := ResourceProvider(mp)
+	rc := &configs.Resource{
+		Mode:  addrs.ManagedResourceMode,
+		Type:  "test_object",
+		Name:  "foo",
+		Count: hcltest.MockExprLiteral(cty.NumberIntVal(2)),
+		Config: configs.SynthBody("", map[string]cty.Value{
+			"test_string": cty.StringVal("bar"),
+		}),
+	}
+	node := &EvalValidateResource{
+		Addr: addrs.Resource{
+			Mode: addrs.ManagedResourceMode,
+			Type: "aws_instance",
+			Name: "foo",
 		},
 		Provider:       &p,
 		Config:         rc,
@@ -90,12 +138,10 @@ func TestEvalValidateResource_dataSource(t *testing.T) {
 	}
 
 	node := &EvalValidateResource{
-		Addr: addrs.ResourceInstance{
-			Resource: addrs.Resource{
-				Mode: addrs.DataResourceMode,
-				Type: "aws_ami",
-				Name: "foo",
-			},
+		Addr: addrs.Resource{
+			Mode: addrs.DataResourceMode,
+			Type: "aws_ami",
+			Name: "foo",
 		},
 		Provider:       &p,
 		Config:         rc,
@@ -129,12 +175,10 @@ func TestEvalValidateResource_validReturnsNilError(t *testing.T) {
 		Config: configs.SynthBody("", map[string]cty.Value{}),
 	}
 	node := &EvalValidateResource{
-		Addr: addrs.ResourceInstance{
-			Resource: addrs.Resource{
-				Mode: addrs.ManagedResourceMode,
-				Type: "test_object",
-				Name: "foo",
-			},
+		Addr: addrs.Resource{
+			Mode: addrs.ManagedResourceMode,
+			Type: "test_object",
+			Name: "foo",
 		},
 		Provider:       &p,
 		Config:         rc,
@@ -166,12 +210,10 @@ func TestEvalValidateResource_warningsAndErrorsPassedThrough(t *testing.T) {
 		Config: configs.SynthBody("", map[string]cty.Value{}),
 	}
 	node := &EvalValidateResource{
-		Addr: addrs.ResourceInstance{
-			Resource: addrs.Resource{
-				Mode: addrs.ManagedResourceMode,
-				Type: "test_object",
-				Name: "foo",
-			},
+		Addr: addrs.Resource{
+			Mode: addrs.ManagedResourceMode,
+			Type: "test_object",
+			Name: "foo",
 		},
 		Provider:       &p,
 		Config:         rc,
@@ -215,12 +257,10 @@ func TestEvalValidateResource_ignoreWarnings(t *testing.T) {
 		Config: configs.SynthBody("", map[string]cty.Value{}),
 	}
 	node := &EvalValidateResource{
-		Addr: addrs.ResourceInstance{
-			Resource: addrs.Resource{
-				Mode: addrs.ManagedResourceMode,
-				Type: "test-object",
-				Name: "foo",
-			},
+		Addr: addrs.Resource{
+			Mode: addrs.ManagedResourceMode,
+			Type: "test-object",
+			Name: "foo",
 		},
 		Provider:       &p,
 		Config:         rc,
@@ -247,12 +287,10 @@ func TestEvalValidateProvisioner_valid(t *testing.T) {
 	schema := &configschema.Block{}
 
 	node := &EvalValidateProvisioner{
-		ResourceAddr: addrs.ResourceInstance{
-			Resource: addrs.Resource{
-				Mode: addrs.ManagedResourceMode,
-				Type: "foo",
-				Name: "bar",
-			},
+		ResourceAddr: addrs.Resource{
+			Mode: addrs.ManagedResourceMode,
+			Type: "foo",
+			Name: "bar",
 		},
 		Provisioner: &p,
 		Schema:      &schema,
@@ -295,12 +333,10 @@ func TestEvalValidateProvisioner_warning(t *testing.T) {
 	}
 
 	node := &EvalValidateProvisioner{
-		ResourceAddr: addrs.ResourceInstance{
-			Resource: addrs.Resource{
-				Mode: addrs.ManagedResourceMode,
-				Type: "foo",
-				Name: "bar",
-			},
+		ResourceAddr: addrs.Resource{
+			Mode: addrs.ManagedResourceMode,
+			Type: "foo",
+			Name: "bar",
 		},
 		Provisioner: &p,
 		Schema:      &schema,
@@ -348,12 +384,10 @@ func TestEvalValidateProvisioner_connectionInvalid(t *testing.T) {
 	}
 
 	node := &EvalValidateProvisioner{
-		ResourceAddr: addrs.ResourceInstance{
-			Resource: addrs.Resource{
-				Mode: addrs.ManagedResourceMode,
-				Type: "foo",
-				Name: "bar",
-			},
+		ResourceAddr: addrs.Resource{
+			Mode: addrs.ManagedResourceMode,
+			Type: "foo",
+			Name: "bar",
 		},
 		Provisioner: &p,
 		Schema:      &schema,
