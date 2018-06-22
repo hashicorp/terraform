@@ -149,7 +149,8 @@ func (l *Loader) InitDirFromModule(rootDir, sourceAddr string, hooks InstallHook
 	wrapHooks := installHooksInitDir{
 		Wrapped: hooks,
 	}
-	instDiags := subLoader.installDescendentModules(fakeRootModule, rootDir, true, wrapHooks)
+	getter := reusingGetter{}
+	instDiags := subLoader.installDescendentModules(fakeRootModule, rootDir, true, wrapHooks, getter)
 	diags = append(diags, instDiags...)
 	if instDiags.HasErrors() {
 		return diags
