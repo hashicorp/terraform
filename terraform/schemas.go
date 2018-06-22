@@ -81,9 +81,9 @@ func (ss *Schemas) ProvisionerConfig(name string) *configschema.Block {
 	return ss.provisioners[name]
 }
 
-// LoadSchemas searches the given configuration and state (either of which may
-// be nil) for constructs that have an associated schema, requests the
-// necessary schemas from the given component factory (which may _not_ be nil),
+// LoadSchemas searches the given configuration, state  and plan (any of which
+// may be nil) for constructs that have an associated schema, requests the
+// necessary schemas from the given component factory (which must _not_ be nil),
 // and returns a single object representing all of the necessary schemas.
 //
 // If an error is returned, it may be a wrapped tfdiags.Diagnostics describing
@@ -165,26 +165,15 @@ func loadProviderSchemas(schemas map[string]*ProviderSchema, config *configs.Con
 	}
 
 	if config != nil {
-		for _, pc := range config.Module.ProviderConfigs {
-			ensure(pc.Name)
-		}
-		for _, rc := range config.Module.ManagedResources {
-			providerAddr := rc.ProviderConfigAddr()
-			ensure(providerAddr.Type)
-		}
-		for _, rc := range config.Module.DataResources {
-			providerAddr := rc.ProviderConfigAddr()
-			ensure(providerAddr.Type)
-		}
-
-		// Must also visit our child modules, recursively.
-		for _, cc := range config.Children {
-			childDiags := loadProviderSchemas(schemas, cc, nil, components)
-			diags = diags.Append(childDiags)
+		for _, typeName := range config.ProviderTypes() {
+			ensure(typeName)
 		}
 	}
 
 	if state != nil {
+		// TODO: After adapting this to use *states.State, use
+		// providers.AddressedTypes(state.ProviderAddrs()) to collect
+		// our list of required provider types.
 		for _, ms := range state.Modules {
 			for rsKey, rs := range ms.Resources {
 				providerAddrStr := rs.Provider
