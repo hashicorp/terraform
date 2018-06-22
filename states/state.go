@@ -1,6 +1,8 @@
 package states
 
 import (
+	"sort"
+
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/addrs"
@@ -112,6 +114,40 @@ func (s *State) LocalValue(addr addrs.AbsLocalValue) cty.Value {
 		return cty.NilVal
 	}
 	return ms.LocalValues[addr.LocalValue.Name]
+}
+
+// ProviderAddrs returns a list of all of the provider configuration addresses
+// referenced throughout the receiving state.
+//
+// The result is de-duplicated so that each distinct address appears only once.
+func (s *State) ProviderAddrs() []addrs.AbsProviderConfig {
+	if s == nil {
+		return nil
+	}
+
+	m := map[string]addrs.AbsProviderConfig{}
+	for _, ms := range s.Modules {
+		for _, rc := range ms.Resources {
+			m[rc.ProviderConfig.String()] = rc.ProviderConfig
+		}
+	}
+	if len(m) == 0 {
+		return nil
+	}
+
+	// This is mainly just so we'll get stable results for testing purposes.
+	keys := make([]string, 0, len(m))
+	for k := range m {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+
+	ret := make([]addrs.AbsProviderConfig, len(keys))
+	for i, key := range keys {
+		ret[i] = m[key]
+	}
+
+	return ret
 }
 
 // SyncWrapper returns a SyncState object wrapping the receiver.
