@@ -26,7 +26,7 @@ type EvalConfigBlock struct {
 }
 
 func (n *EvalConfigBlock) Eval(ctx EvalContext) (interface{}, error) {
-	val, body, diags := ctx.EvaluateBlock(*n.Config, n.Schema, n.SelfAddr, addrs.NoKey)
+	val, body, diags := ctx.EvaluateBlock(*n.Config, n.Schema, n.SelfAddr, EvalDataForNoInstanceKey)
 	if diags.HasErrors() && n.ContinueOnErr {
 		log.Printf("[WARN] Block evaluation failed: %s", diags.Err())
 		return nil, EvalEarlyExitError{}
