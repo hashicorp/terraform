@@ -10,6 +10,7 @@ import (
 	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/tfdiags"
 	"github.com/zclconf/go-cty/cty"
+	"github.com/zclconf/go-cty/cty/convert"
 	"github.com/zclconf/go-cty/cty/gocty"
 )
 
@@ -122,11 +123,12 @@ func (n *EvalValidateProvider) Eval(ctx EvalContext) (interface{}, error) {
 // EvalValidateProvisioner is an EvalNode implementation that validates
 // the configuration of a provisioner belonging to a resource.
 type EvalValidateProvisioner struct {
-	ResourceAddr addrs.ResourceInstance
-	Provisioner  *ResourceProvisioner
-	Schema       **configschema.Block
-	Config       *configs.Provisioner
-	ConnConfig   *configs.Connection
+	ResourceAddr     addrs.Resource
+	Provisioner      *ResourceProvisioner
+	Schema           **configschema.Block
+	Config           *configs.Provisioner
+	ConnConfig       *configs.Connection
+	ResourceHasCount bool
 }
 
 func (n *EvalValidateProvisioner) Eval(ctx EvalContext) (interface{}, error) {
@@ -142,9 +144,7 @@ func (n *EvalValidateProvisioner) Eval(ctx EvalContext) (interface{}, error) {
 	{
 		// Validate the provisioner's own config first
 
-		keyData := EvalDataForInstanceKey(n.ResourceAddr.Key)
-
-		configVal, _, configDiags := ctx.EvaluateBlock(config.Config, schema, n.ResourceAddr, keyData)
+		configVal, _, configDiags := n.evaluateBlock(ctx, config.Config, schema)
 		diags = diags.Append(configDiags)
 		if configDiags.HasErrors() {
 			return nil, diags.Err()
@@ -199,15 +199,34 @@ func (n *EvalValidateProvisioner) validateConnConfig(ctx EvalContext, config *co
 		return diags
 	}
 
-	keyData := EvalDataForInstanceKey(n.ResourceAddr.Key)
-
 	// We evaluate here just by evaluating the block and returning any
 	// diagnostics we get, since evaluation alone is enough to check for
 	// extraneous arguments and incorrectly-typed arguments.
-	_, _, configDiags := ctx.EvaluateBlock(config.Config, connectionBlockSupersetSchema, self, keyData)
+	_, _, configDiags := n.evaluateBlock(ctx, config.Config, connectionBlockSupersetSchema)
 	diags = diags.Append(configDiags)
 
 	return diags
+}
+
+func (n *EvalValidateProvisioner) evaluateBlock(ctx EvalContext, body hcl.Body, schema *configschema.Block) (cty.Value, hcl.Body, tfdiags.Diagnostics) {
+	keyData := EvalDataForNoInstanceKey
+	selfAddr := n.ResourceAddr.Instance(addrs.NoKey)
+
+	if n.ResourceHasCount {
+		// For a resource that has count, we allow count.index but don't
+		// know at this stage what it will return.
+		keyData = InstanceKeyEvalData{
+			CountIndex: cty.UnknownVal(cty.Number),
+		}
+
+		// "self" can't point to an unknown key, but we'll force it to be
+		// key 0 here, which should return an unknown value of the
+		// expected type since none of these elements are known at this
+		// point anyway.
+		selfAddr = n.ResourceAddr.Instance(addrs.IntKey(0))
+	}
+
+	return ctx.EvaluateBlock(body, schema, selfAddr, keyData)
 }
 
 // connectionBlockSupersetSchema is a schema representing the superset of all
@@ -318,7 +337,7 @@ var connectionBlockSupersetSchema = &configschema.Block{
 // EvalValidateResource is an EvalNode implementation that validates
 // the configuration of a resource.
 type EvalValidateResource struct {
-	Addr           addrs.ResourceInstance
+	Addr           addrs.Resource
 	Provider       *ResourceProvider
 	ProviderSchema **ProviderSchema
 	Config         *configs.Resource
@@ -346,6 +365,21 @@ func (n *EvalValidateResource) Eval(ctx EvalContext) (interface{}, error) {
 	schema := *n.ProviderSchema
 	mode := cfg.Mode
 
+	keyData := EvalDataForNoInstanceKey
+	if n.Config.Count != nil {
+		// If the config block has count, we'll evaluate with an unknown
+		// number as count.index so we can still type check even though
+		// we won't expand count until the plan phase.
+		keyData = InstanceKeyEvalData{
+			CountIndex: cty.UnknownVal(cty.Number),
+		}
+
+		// Basic type-checking of the count argument. More complete validation
+		// of this will happen when we DynamicExpand during the plan walk.
+		countDiags := n.validateCount(ctx, n.Config.Count)
+		diags = diags.Append(countDiags)
+	}
+
 	var warns []string
 	var errs []error
 
@@ -364,8 +398,6 @@ func (n *EvalValidateResource) Eval(ctx EvalContext) (interface{}, error) {
 			})
 			return nil, diags.Err()
 		}
-
-		keyData := EvalDataForInstanceKey(n.Addr.Key)
 
 		configVal, _, valDiags := ctx.EvaluateBlock(cfg.Config, schema, nil, keyData)
 		diags = diags.Append(valDiags)
@@ -393,8 +425,6 @@ func (n *EvalValidateResource) Eval(ctx EvalContext) (interface{}, error) {
 			})
 			return nil, diags.Err()
 		}
-
-		keyData := EvalDataForInstanceKey(n.Addr.Key)
 
 		configVal, _, valDiags := ctx.EvaluateBlock(cfg.Config, schema, nil, keyData)
 		diags = diags.Append(valDiags)
@@ -433,4 +463,72 @@ func (n *EvalValidateResource) Eval(ctx EvalContext) (interface{}, error) {
 		// some of them are warnings.
 		return nil, diags.NonFatalErr()
 	}
+}
+
+func (n *EvalValidateResource) validateCount(ctx EvalContext, expr hcl.Expression) tfdiags.Diagnostics {
+	if expr == nil {
+		return nil
+	}
+
+	var diags tfdiags.Diagnostics
+
+	countVal, countDiags := ctx.EvaluateExpr(expr, cty.Number, nil)
+	diags = diags.Append(countDiags)
+	if diags.HasErrors() {
+		return diags
+	}
+
+	if countVal.IsNull() {
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Invalid count argument",
+			Detail:   `The given "count" argument value is null. An integer is required.`,
+			Subject:  expr.Range().Ptr(),
+		})
+		return diags
+	}
+
+	var err error
+	countVal, err = convert.Convert(countVal, cty.Number)
+	if err != nil {
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Invalid count argument",
+			Detail:   fmt.Sprintf(`The given "count" argument value is unsuitable: %s.`, err),
+			Subject:  expr.Range().Ptr(),
+		})
+		return diags
+	}
+
+	// If the value isn't known then that's the best we can do for now, but
+	// we'll check more thoroughly during the plan walk.
+	if !countVal.IsKnown() {
+		return diags
+	}
+
+	// If we _do_ know the value, then we can do a few more checks here.
+	var count int
+	err = gocty.FromCtyValue(countVal, &count)
+	if err != nil {
+		// Isn't a whole number, etc.
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Invalid count argument",
+			Detail:   fmt.Sprintf(`The given "count" argument value is unsuitable: %s.`, err),
+			Subject:  expr.Range().Ptr(),
+		})
+		return diags
+	}
+
+	if count < 0 {
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Invalid count argument",
+			Detail:   `The given "count" argument value is unsuitable: count cannot be negative.`,
+			Subject:  expr.Range().Ptr(),
+		})
+		return diags
+	}
+
+	return diags
 }
