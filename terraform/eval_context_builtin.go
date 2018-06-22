@@ -271,9 +271,9 @@ func (ctx *BuiltinEvalContext) CloseProvisioner(n string) error {
 	return nil
 }
 
-func (ctx *BuiltinEvalContext) EvaluateBlock(body hcl.Body, schema *configschema.Block, self addrs.Referenceable, key addrs.InstanceKey) (cty.Value, hcl.Body, tfdiags.Diagnostics) {
+func (ctx *BuiltinEvalContext) EvaluateBlock(body hcl.Body, schema *configschema.Block, self addrs.Referenceable, keyData InstanceKeyEvalData) (cty.Value, hcl.Body, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
-	scope := ctx.EvaluationScope(self, key)
+	scope := ctx.EvaluationScope(self, keyData)
 	body, evalDiags := scope.ExpandBlock(body, schema)
 	diags = diags.Append(evalDiags)
 	val, evalDiags := scope.EvalBlock(body, schema)
@@ -282,15 +282,15 @@ func (ctx *BuiltinEvalContext) EvaluateBlock(body hcl.Body, schema *configschema
 }
 
 func (ctx *BuiltinEvalContext) EvaluateExpr(expr hcl.Expression, wantType cty.Type, self addrs.Referenceable) (cty.Value, tfdiags.Diagnostics) {
-	scope := ctx.EvaluationScope(self, addrs.NoKey)
+	scope := ctx.EvaluationScope(self, EvalDataForNoInstanceKey)
 	return scope.EvalExpr(expr, wantType)
 }
 
-func (ctx *BuiltinEvalContext) EvaluationScope(self addrs.Referenceable, key addrs.InstanceKey) *lang.Scope {
+func (ctx *BuiltinEvalContext) EvaluationScope(self addrs.Referenceable, keyData InstanceKeyEvalData) *lang.Scope {
 	data := &evaluationStateData{
-		Evaluator:   ctx.Evaluator,
-		ModulePath:  ctx.PathValue,
-		InstanceKey: key,
+		Evaluator:       ctx.Evaluator,
+		ModulePath:      ctx.PathValue,
+		InstanceKeyData: keyData,
 	}
 	return ctx.Evaluator.Scope(data, self)
 }

@@ -83,10 +83,57 @@ type evaluationStateData struct {
 	// that references will be resolved relative to.
 	ModulePath addrs.ModuleInstance
 
-	// InstanceKey is the instance key for the object being evaluated, if any.
-	// Set to addrs.NoKey if no object repetition is in progress.
-	InstanceKey addrs.InstanceKey
+	// InstanceKeyData describes the values, if any, that are accessible due
+	// to repetition of a containing object using "count" or "for_each"
+	// arguments. (It is _not_ used for the for_each inside "dynamic" blocks,
+	// since the user specifies in that case which variable name to locally
+	// shadow.)
+	InstanceKeyData InstanceKeyEvalData
 }
+
+// InstanceKeyEvalData is used during evaluation to specify which values,
+// if any, should be produced for count.index, each.key, and each.value.
+type InstanceKeyEvalData struct {
+	// CountIndex is the value for count.index, or cty.NilVal if evaluating
+	// in a context where the "count" argument is not active.
+	//
+	// For correct operation, this should always be of type cty.Number if not
+	// nil.
+	CountIndex cty.Value
+
+	// EachKey and EachValue are the values for each.key and each.value
+	// respectively, or cty.NilVal if evaluating in a context where the
+	// "for_each" argument is not active. These must either both be set
+	// or neither set.
+	//
+	// For correct operation, EachKey must always be either of type cty.String
+	// or cty.Number if not nil.
+	EachKey, EachValue cty.Value
+}
+
+// EvalDataForInstanceKey constructs a suitable InstanceKeyEvalData for
+// evaluating in a context that has the given instance key.
+func EvalDataForInstanceKey(key addrs.InstanceKey) InstanceKeyEvalData {
+	// At the moment we don't actually implement for_each, so we only
+	// ever populate CountIndex.
+	// (When we implement for_each later we may need to reorganize this some,
+	// so that we can resolve the ambiguity that an int key may either be
+	// a count.index or an each.key where for_each is over a list.)
+
+	var countIdx cty.Value
+	if intKey, ok := key.(addrs.IntKey); ok {
+		countIdx = cty.NumberIntVal(int64(intKey))
+	}
+
+	return InstanceKeyEvalData{
+		CountIndex: countIdx,
+	}
+}
+
+// EvalDataForNoInstanceKey is a value of InstanceKeyData that sets no instance
+// key values at all, suitable for use in contexts where no keyed instance
+// is relevant.
+var EvalDataForNoInstanceKey = InstanceKeyEvalData{}
 
 // evaluationStateData must implement lang.Data
 var _ lang.Data = (*evaluationStateData)(nil)
@@ -96,12 +143,8 @@ func (d *evaluationStateData) GetCountAttr(addr addrs.CountAttr, rng tfdiags.Sou
 	switch addr.Name {
 
 	case "index":
-		key := d.InstanceKey
-		// key might not be set at all (addrs.NoKey) or it might be a string
-		// if we're actually in a for_each block, so we'll check first and
-		// produce a nice error if this is being used in the wrong context.
-		intKey, ok := key.(addrs.IntKey)
-		if !ok {
+		idxVal := d.InstanceKeyData.CountIndex
+		if idxVal == cty.NilVal {
 			diags = diags.Append(&hcl.Diagnostic{
 				Severity: hcl.DiagError,
 				Summary:  `Reference to "count" in non-counted context`,
@@ -110,7 +153,7 @@ func (d *evaluationStateData) GetCountAttr(addr addrs.CountAttr, rng tfdiags.Sou
 			})
 			return cty.UnknownVal(cty.Number), diags
 		}
-		return cty.NumberIntVal(int64(intKey)), diags
+		return idxVal, diags
 
 	default:
 		diags = diags.Append(&hcl.Diagnostic{

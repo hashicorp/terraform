@@ -63,8 +63,10 @@ func (n *EvalReadDataDiff) Eval(ctx EvalContext) (interface{}, error) {
 			return nil, fmt.Errorf("provider does not support data source %q", n.Addr.Resource.Type)
 		}
 
+		keyData := EvalDataForInstanceKey(n.Addr.Key)
+
 		var configDiags tfdiags.Diagnostics
-		configVal, _, configDiags = ctx.EvaluateBlock(config.Config, schema, nil, n.Addr.Key)
+		configVal, _, configDiags = ctx.EvaluateBlock(config.Config, schema, nil, keyData)
 		diags = diags.Append(configDiags)
 		if configDiags.HasErrors() {
 			return nil, diags.Err()
