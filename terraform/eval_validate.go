@@ -92,7 +92,7 @@ func (n *EvalValidateProvider) Eval(ctx EvalContext) (interface{}, error) {
 		configSchema = &configschema.Block{}
 	}
 
-	configVal, configBody, evalDiags := ctx.EvaluateBlock(configBody, configSchema, nil, addrs.NoKey)
+	configVal, configBody, evalDiags := ctx.EvaluateBlock(configBody, configSchema, nil, EvalDataForNoInstanceKey)
 	diags = diags.Append(evalDiags)
 	if evalDiags.HasErrors() {
 		return nil, diags.NonFatalErr()
@@ -142,7 +142,9 @@ func (n *EvalValidateProvisioner) Eval(ctx EvalContext) (interface{}, error) {
 	{
 		// Validate the provisioner's own config first
 
-		configVal, _, configDiags := ctx.EvaluateBlock(config.Config, schema, n.ResourceAddr, n.ResourceAddr.Key)
+		keyData := EvalDataForInstanceKey(n.ResourceAddr.Key)
+
+		configVal, _, configDiags := ctx.EvaluateBlock(config.Config, schema, n.ResourceAddr, keyData)
 		diags = diags.Append(configDiags)
 		if configDiags.HasErrors() {
 			return nil, diags.Err()
@@ -197,10 +199,12 @@ func (n *EvalValidateProvisioner) validateConnConfig(ctx EvalContext, config *co
 		return diags
 	}
 
+	keyData := EvalDataForInstanceKey(n.ResourceAddr.Key)
+
 	// We evaluate here just by evaluating the block and returning any
 	// diagnostics we get, since evaluation alone is enough to check for
 	// extraneous arguments and incorrectly-typed arguments.
-	_, _, configDiags := ctx.EvaluateBlock(config.Config, connectionBlockSupersetSchema, self, n.ResourceAddr.Key)
+	_, _, configDiags := ctx.EvaluateBlock(config.Config, connectionBlockSupersetSchema, self, keyData)
 	diags = diags.Append(configDiags)
 
 	return diags
@@ -361,7 +365,9 @@ func (n *EvalValidateResource) Eval(ctx EvalContext) (interface{}, error) {
 			return nil, diags.Err()
 		}
 
-		configVal, _, valDiags := ctx.EvaluateBlock(cfg.Config, schema, nil, n.Addr.Key)
+		keyData := EvalDataForInstanceKey(n.Addr.Key)
+
+		configVal, _, valDiags := ctx.EvaluateBlock(cfg.Config, schema, nil, keyData)
 		diags = diags.Append(valDiags)
 		if valDiags.HasErrors() {
 			return nil, diags.Err()
@@ -388,7 +394,9 @@ func (n *EvalValidateResource) Eval(ctx EvalContext) (interface{}, error) {
 			return nil, diags.Err()
 		}
 
-		configVal, _, valDiags := ctx.EvaluateBlock(cfg.Config, schema, nil, n.Addr.Key)
+		keyData := EvalDataForInstanceKey(n.Addr.Key)
+
+		configVal, _, valDiags := ctx.EvaluateBlock(cfg.Config, schema, nil, keyData)
 		diags = diags.Append(valDiags)
 		if valDiags.HasErrors() {
 			return nil, diags.Err()

@@ -313,13 +313,15 @@ func (n *EvalApplyProvisioners) apply(ctx EvalContext, provs []*configs.Provisio
 		provisioner := ctx.Provisioner(prov.Type)
 		schema := ctx.ProvisionerSchema(prov.Type)
 
+		keyData := EvalDataForInstanceKey(instanceAddr.Key)
+
 		// Evaluate the main provisioner configuration.
-		config, _, configDiags := ctx.EvaluateBlock(prov.Config, schema, instanceAddr, instanceAddr.Key)
+		config, _, configDiags := ctx.EvaluateBlock(prov.Config, schema, instanceAddr, keyData)
 		diags = diags.Append(configDiags)
 
 		// A provisioner may not have a connection block
 		if prov.Connection != nil {
-			connInfo, _, connInfoDiags := ctx.EvaluateBlock(prov.Connection.Config, connectionBlockSupersetSchema, instanceAddr, instanceAddr.Key)
+			connInfo, _, connInfoDiags := ctx.EvaluateBlock(prov.Connection.Config, connectionBlockSupersetSchema, instanceAddr, keyData)
 			diags = diags.Append(connInfoDiags)
 
 			if configDiags.HasErrors() || connInfoDiags.HasErrors() {
