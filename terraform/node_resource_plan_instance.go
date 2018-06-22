@@ -48,6 +48,7 @@ func (n *NodePlannableResourceInstance) EvalTree() EvalNode {
 }
 
 func (n *NodePlannableResourceInstance) evalTreeDataResource(addr addrs.AbsResourceInstance, stateId string, stateDeps []string) EvalNode {
+	config := n.Config
 	var provider ResourceProvider
 	var providerSchema *ProviderSchema
 	var diff *InstanceDiff
@@ -65,6 +66,12 @@ func (n *NodePlannableResourceInstance) evalTreeDataResource(addr addrs.AbsResou
 				Addr:   n.ResolvedProvider,
 				Output: &provider,
 				Schema: &providerSchema,
+			},
+
+			&EvalValidateSelfRef{
+				Addr:           addr.Resource,
+				Config:         config.Config,
+				ProviderSchema: &providerSchema,
 			},
 
 			&EvalReadDataDiff{
@@ -94,6 +101,7 @@ func (n *NodePlannableResourceInstance) evalTreeDataResource(addr addrs.AbsResou
 }
 
 func (n *NodePlannableResourceInstance) evalTreeManagedResource(addr addrs.AbsResourceInstance, stateId string, stateDeps []string) EvalNode {
+	config := n.Config
 	var provider ResourceProvider
 	var providerSchema *ProviderSchema
 	var diff *InstanceDiff
@@ -110,6 +118,12 @@ func (n *NodePlannableResourceInstance) evalTreeManagedResource(addr addrs.AbsRe
 				Addr:   n.ResolvedProvider,
 				Output: &provider,
 				Schema: &providerSchema,
+			},
+
+			&EvalValidateSelfRef{
+				Addr:           addr.Resource,
+				Config:         config.Config,
+				ProviderSchema: &providerSchema,
 			},
 
 			&EvalDiff{
