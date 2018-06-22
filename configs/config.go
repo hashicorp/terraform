@@ -1,6 +1,8 @@
 package configs
 
 import (
+	"sort"
+
 	version "github.com/hashicorp/go-version"
 	"github.com/hashicorp/hcl2/hcl"
 	"github.com/hashicorp/terraform/addrs"
@@ -158,4 +160,46 @@ func (c *Config) DescendentForInstance(path addrs.ModuleInstance) *Config {
 		}
 	}
 	return current
+}
+
+// ProviderTypes returns the names of each distinct provider type referenced
+// in the receiving configuration.
+//
+// This is a helper for easily determining which provider types are required
+// to fully interpret the configuration, though it does not include version
+// information and so callers are expected to have already dealt with
+// provider version selection in an earlier step and have identified suitable
+// versions for each provider.
+func (c *Config) ProviderTypes() []string {
+	m := make(map[string]struct{})
+	c.gatherProviderTypes(m)
+
+	ret := make([]string, 0, len(m))
+	for k := range m {
+		ret = append(ret, k)
+	}
+	sort.Strings(ret)
+	return ret
+}
+func (c *Config) gatherProviderTypes(m map[string]struct{}) {
+	if c == nil {
+		return
+	}
+
+	for _, pc := range c.Module.ProviderConfigs {
+		m[pc.Name] = struct{}{}
+	}
+	for _, rc := range c.Module.ManagedResources {
+		providerAddr := rc.ProviderConfigAddr()
+		m[providerAddr.Type] = struct{}{}
+	}
+	for _, rc := range c.Module.DataResources {
+		providerAddr := rc.ProviderConfigAddr()
+		m[providerAddr.Type] = struct{}{}
+	}
+
+	// Must also visit our child modules, recursively.
+	for _, cc := range c.Children {
+		cc.gatherProviderTypes(m)
+	}
 }
