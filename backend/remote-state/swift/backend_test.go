@@ -12,7 +12,6 @@ import (
 	"github.com/gophercloud/gophercloud/openstack/objectstorage/v1/objects"
 	"github.com/gophercloud/gophercloud/pagination"
 	"github.com/hashicorp/terraform/backend"
-	"github.com/hashicorp/terraform/state/remote"
 	"github.com/hashicorp/terraform/terraform"
 )
 
@@ -41,17 +40,18 @@ func TestBackendConfig(t *testing.T) {
 	testACC(t)
 
 	// Build config
-	config := map[string]interface{}{
-		"archive_container": "test-tfstate-archive",
-		"container":         "test-tfstate",
-	}
+	container := fmt.Sprintf("terraform-state-swift-test-%x", time.Now().Unix())
+	archiveContainer := fmt.Sprintf("%s_archive", container)
 
-	b := backend.TestBackendConfig(t, New(), config).(*Backend)
+	b := backend.TestBackendConfig(t, New(), map[string]interface{}{
+		"archive_container": archiveContainer,
+		"container":         container,
+	}).(*Backend)
 
-	if b.container != "test-tfstate" {
+	if b.container != container {
 		t.Fatal("Incorrect path was provided.")
 	}
-	if b.archiveContainer != "test-tfstate-archive" {
+	if b.archiveContainer != archiveContainer {
 		t.Fatal("Incorrect archivepath was provided.")
 	}
 }
@@ -70,61 +70,6 @@ func TestBackend(t *testing.T) {
 	backend.TestBackendStates(t, b)
 }
 
-func TestBackendPath(t *testing.T) {
-	testACC(t)
-
-	path := fmt.Sprintf("terraform-state-swift-test-%x", time.Now().Unix())
-	t.Logf("[DEBUG] Generating backend config")
-	b := backend.TestBackendConfig(t, New(), map[string]interface{}{
-		"path": path,
-	}).(*Backend)
-	t.Logf("[DEBUG] Backend configured")
-
-	defer deleteSwiftContainer(t, b.client, path)
-
-	t.Logf("[DEBUG] Testing Backend")
-
-	// Generate some state
-	state1 := terraform.NewState()
-	// state1Lineage := state1.Lineage
-	t.Logf("state1 lineage = %s, serial = %d", state1.Lineage, state1.Serial)
-
-	// RemoteClient to test with
-	client := &RemoteClient{
-		client:           b.client,
-		archive:          b.archive,
-		archiveContainer: b.archiveContainer,
-		container:        b.container,
-	}
-
-	stateMgr := &remote.State{Client: client}
-	stateMgr.WriteState(state1)
-	if err := stateMgr.PersistState(); err != nil {
-		t.Fatal(err)
-	}
-
-	if err := stateMgr.RefreshState(); err != nil {
-		t.Fatal(err)
-	}
-
-	// Add some state
-	state1.AddModuleState(&terraform.ModuleState{
-		Path: []string{"root"},
-		Outputs: map[string]*terraform.OutputState{
-			"bar": &terraform.OutputState{
-				Type:      "string",
-				Sensitive: false,
-				Value:     "baz",
-			},
-		},
-	})
-	stateMgr.WriteState(state1)
-	if err := stateMgr.PersistState(); err != nil {
-		t.Fatal(err)
-	}
-
-}
-
 func TestBackendArchive(t *testing.T) {
 	testACC(t)
 
@@ -139,20 +84,20 @@ func TestBackendArchive(t *testing.T) {
 	defer deleteSwiftContainer(t, b.client, container)
 	defer deleteSwiftContainer(t, b.client, archiveContainer)
 
-	// Generate some state
-	state1 := terraform.NewState()
-	// state1Lineage := state1.Lineage
-	t.Logf("state1 lineage = %s, serial = %d", state1.Lineage, state1.Serial)
-
-	// RemoteClient to test with
-	client := &RemoteClient{
-		client:           b.client,
-		archive:          b.archive,
-		archiveContainer: b.archiveContainer,
-		container:        b.container,
+	states, err := b.States()
+	if err != nil {
+		t.Fatalf("Error Reading States: %s", err)
 	}
 
-	stateMgr := &remote.State{Client: client}
+	state1 := terraform.NewState()
+	t.Logf("state1 lineage = %s, serial = %d", state1.Lineage, state1.Serial)
+
+	// there should always be at least one default state
+	stateMgr, err := b.State(states[0])
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	stateMgr.WriteState(state1)
 	if err := stateMgr.PersistState(); err != nil {
 		t.Fatal(err)
@@ -196,7 +141,6 @@ func TestBackendArchive(t *testing.T) {
 	if !stateMgr.State().SameLineage(archiveState) {
 		t.Fatal("Got a different lineage")
 	}
-
 }
 
 // Helper function to download an object in a Swift container
