@@ -173,6 +173,13 @@ func New() backend.Backend {
 				Optional:    true,
 				Description: descriptions["expire_after"],
 			},
+
+			"lock": &schema.Schema{
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Description: "Lock state access",
+				Default:     true,
+			},
 		},
 	}
 
@@ -238,6 +245,7 @@ type Backend struct {
 	archiveContainer string
 	expireSecs       int
 	container        string
+	lock             bool
 }
 
 func (b *Backend) configure(ctx context.Context) error {
@@ -247,7 +255,6 @@ func (b *Backend) configure(ctx context.Context) error {
 
 	// Grab the resource data
 	data := schema.FromContextBackendConfig(ctx)
-
 	config := &tf_openstack.Config{
 		CACertFile:       data.Get("cacert_file").(string),
 		ClientCertFile:   data.Get("cert").(string),
@@ -279,6 +286,9 @@ func (b *Backend) configure(ctx context.Context) error {
 		// Check deprecated field
 		b.container = data.Get("path").(string)
 	}
+
+	// Store the lock information
+	b.lock = data.Get("lock").(bool)
 
 	// Enable object archiving?
 	if archiveContainer, ok := data.GetOk("archive_container"); ok {
