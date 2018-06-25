@@ -45,25 +45,28 @@ func TestBackendConfig(t *testing.T) {
 	testACC(t)
 
 	// Build config
+	container := fmt.Sprintf("terraform-state-swift-testconfig-%x", time.Now().Unix())
+	archiveContainer := fmt.Sprintf("%s_archive", container)
+	// Build config
 	config := map[string]interface{}{
-		"archive_container": "test-tfstate-archive",
-		"container":         "test-tfstate",
+		"archive_container": archiveContainer,
+		"container":         container,
 	}
 
 	b := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(config)).(*Backend)
 
-	if b.container != "test-tfstate" {
-		t.Fatal("Incorrect path was provided.")
+	if b.container != container {
+		t.Fatal("Incorrect container was provided.")
 	}
-	if b.archiveContainer != "test-tfstate-archive" {
-		t.Fatal("Incorrect archivepath was provided.")
+	if b.archiveContainer != archiveContainer {
+		t.Fatal("Incorrect archive_container was provided.")
 	}
 }
 
 func TestBackend(t *testing.T) {
 	testACC(t)
 
-	container := fmt.Sprintf("terraform-state-swift-test-%x", time.Now().Unix())
+	container := fmt.Sprintf("terraform-state-swift-testbackend-%x", time.Now().Unix())
 
 	b := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
 		"container": container,
@@ -122,7 +125,7 @@ func TestBackendPath(t *testing.T) {
 func TestBackendArchive(t *testing.T) {
 	testACC(t)
 
-	container := fmt.Sprintf("terraform-state-swift-test-%x", time.Now().Unix())
+	container := fmt.Sprintf("terraform-state-swift-testarchive-%x", time.Now().Unix())
 	archiveContainer := fmt.Sprintf("%s_archive", container)
 
 	b := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
@@ -130,11 +133,10 @@ func TestBackendArchive(t *testing.T) {
 		"container":         container,
 	})).(*Backend)
 
-	defer deleteSwiftContainer(t, b.client, container)
-	defer deleteSwiftContainer(t, b.client, archiveContainer)
-
-	// Generate some state
-	state1 := states.NewState()
+	defer func() {
+		deleteSwiftContainer(t, b.client, container)
+		deleteSwiftContainer(t, b.client, archiveContainer)
+	}()
 
 	// RemoteClient to test with
 	client := &RemoteClient{
@@ -145,20 +147,35 @@ func TestBackendArchive(t *testing.T) {
 	}
 
 	stateMgr := &remote.State{Client: client}
-	stateMgr.WriteState(state1)
-	if err := stateMgr.PersistState(); err != nil {
+
+	workspaces, err := b.Workspaces()
+	if err != nil {
+		t.Fatalf("Error Reading States: %s", err)
+	}
+
+	// Generate some state
+	state1 := states.NewState()
+
+	// there should always be at least one default state
+	s2Mgr, err := b.StateMgr(workspaces[0])
+	if err != nil {
 		t.Fatal(err)
 	}
 
-	if err := stateMgr.RefreshState(); err != nil {
+	s2Mgr.WriteState(state1)
+	if err := s2Mgr.PersistState(); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := s2Mgr.RefreshState(); err != nil {
 		t.Fatal(err)
 	}
 
 	// Add some state
 	mod := state1.EnsureModule(addrs.RootModuleInstance)
 	mod.SetOutputValue("bar", cty.StringVal("baz"), false)
-	stateMgr.WriteState(state1)
-	if err := stateMgr.PersistState(); err != nil {
+	s2Mgr.WriteState(state1)
+	if err := s2Mgr.PersistState(); err != nil {
 		t.Fatal(err)
 	}
 
@@ -180,7 +197,6 @@ func TestBackendArchive(t *testing.T) {
 	if stateMgr.StateSnapshotMeta().Lineage != archiveStateFile.Lineage {
 		t.Fatal("Got a different lineage")
 	}
-
 }
 
 // Helper function to download an object in a Swift container
@@ -211,20 +227,54 @@ func getSwiftObjectNames(t *testing.T, osClient *gophercloud.ServiceClient, cont
 	return
 }
 
+var (
+	// The amount of time we will retry to delete a container waiting for the objects
+	// to be deleted.
+	deleteContainerRetryTimeout = 60 * time.Second
+
+	// delay when polling the objects
+	deleteContainerRetryPollInterval = 5 * time.Second
+)
+
 // Helper function to delete Swift container
 func deleteSwiftContainer(t *testing.T, osClient *gophercloud.ServiceClient, container string) {
 	warning := "WARNING: Failed to delete the test Swift container. It may have been left in your Openstack account and may incur storage charges. (error was %s)"
+	deadline := time.Now().Add(deleteContainerRetryTimeout)
 
-	// Remove any objects
-	deleteSwiftObjects(t, osClient, container)
+	// Swift is eventually consistent; we have to retry until
+	// all objects are effectively deleted to delete the container
+	// If we still have objects in the container, or raise
+	// an error if deadline is reached
+	for {
+		if time.Now().Before(deadline) {
+			// Remove any objects
+			deleteSwiftObjects(t, osClient, container)
 
-	// Delete the container
-	deleteResult := containers.Delete(osClient, container)
-	if deleteResult.Err != nil {
-		if _, ok := deleteResult.Err.(gophercloud.ErrDefault404); !ok {
-			t.Fatalf(warning, deleteResult.Err)
+			// Delete the container
+			t.Logf("Deleting container %s", container)
+			deleteResult := containers.Delete(osClient, container)
+			if deleteResult.Err != nil {
+				// container is not found, thus has been deleted
+				if _, ok := deleteResult.Err.(gophercloud.ErrDefault404); ok {
+					return
+				}
+
+				// 409 http error is raised when deleting a container with
+				// remaining objects
+				if respErr, ok := deleteResult.Err.(gophercloud.ErrUnexpectedResponseCode); ok && respErr.Actual == 409 {
+					time.Sleep(deleteContainerRetryPollInterval)
+					t.Logf("Remaining objects, failed to delete container, retrying...")
+					continue
+				}
+
+				t.Fatalf(warning, deleteResult.Err)
+			}
+			return
 		}
+
+		t.Fatalf(warning, "timeout reached")
 	}
+
 }
 
 // Helper function to delete Swift objects within a container
@@ -233,9 +283,15 @@ func deleteSwiftObjects(t *testing.T, osClient *gophercloud.ServiceClient, conta
 	objectNames := getSwiftObjectNames(t, osClient, container)
 
 	for _, object := range objectNames {
+		t.Logf("Deleting object %s from container %s", object, container)
 		result := objects.Delete(osClient, container, object, nil)
-		if result.Err != nil {
-			t.Fatalf("Error deleting object %s from container %s: %s", object, container, result.Err)
+		if result.Err == nil {
+			continue
+		}
+
+		// if object is not found, it has already been deleted
+		if _, ok := result.Err.(gophercloud.ErrDefault404); !ok {
+			t.Fatalf("Error deleting object %s from container %s: %v", object, container, result.Err)
 		}
 	}
 
