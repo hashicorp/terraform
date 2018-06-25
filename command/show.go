@@ -6,6 +6,7 @@ import (
 	"os"
 	"strings"
 
+	"errors"
 	"github.com/hashicorp/terraform/command/format"
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -16,28 +17,28 @@ type ShowCommand struct {
 	Meta
 }
 
-func (c *ShowCommand) Run(args []string) int {
+func (c *ShowCommand) State(args []string) (*terraform.State, error) {
 	var moduleDepth int
 
 	args, err := c.Meta.process(args, false)
 	if err != nil {
-		return 1
+		return nil, nil
 	}
 
 	cmdFlags := flag.NewFlagSet("show", flag.ContinueOnError)
 	c.addModuleDepthFlag(cmdFlags, &moduleDepth)
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
 	if err := cmdFlags.Parse(args); err != nil {
-		return 1
+		return nil, err
 	}
 
 	args = cmdFlags.Args()
 	if len(args) > 1 {
-		c.Ui.Error(
-			"The show command expects at most one argument with the path\n" +
-				"to a Terraform state or plan file.\n")
+		message := "The show command expects at most one argument with the path\n" +
+			"to a Terraform state or plan file.\n"
+		c.Ui.Error(message)
 		cmdFlags.Usage()
-		return 1
+		return nil, errors.New(message)
 	}
 
 	var planErr, stateErr error
@@ -45,11 +46,12 @@ func (c *ShowCommand) Run(args []string) int {
 	var plan *terraform.Plan
 	var state *terraform.State
 	if len(args) > 0 {
+
 		path = args[0]
 		f, err := os.Open(path)
 		if err != nil {
 			c.Ui.Error(fmt.Sprintf("Error loading file: %s", err))
-			return 1
+			return nil, err
 		}
 		defer f.Close()
 
@@ -57,7 +59,7 @@ func (c *ShowCommand) Run(args []string) int {
 		if err != nil {
 			if _, err := f.Seek(0, 0); err != nil {
 				c.Ui.Error(fmt.Sprintf("Error reading file: %s", err))
-				return 1
+				return nil, err
 			}
 
 			plan = nil
@@ -74,7 +76,7 @@ func (c *ShowCommand) Run(args []string) int {
 		b, err := c.Backend(nil)
 		if err != nil {
 			c.Ui.Error(fmt.Sprintf("Failed to load backend: %s", err))
-			return 1
+			return nil, err
 		}
 
 		env := c.Workspace()
@@ -83,18 +85,18 @@ func (c *ShowCommand) Run(args []string) int {
 		stateStore, err := b.State(env)
 		if err != nil {
 			c.Ui.Error(fmt.Sprintf("Failed to load state: %s", err))
-			return 1
+			return nil, err
 		}
 
 		if err := stateStore.RefreshState(); err != nil {
 			c.Ui.Error(fmt.Sprintf("Failed to load state: %s", err))
-			return 1
+			return nil, err
 		}
 
 		state = stateStore.State()
 		if state == nil {
 			c.Ui.Output("No state.")
-			return 0
+			return nil, err
 		}
 	}
 
@@ -106,13 +108,27 @@ func (c *ShowCommand) Run(args []string) int {
 				"State read error: %s\n\nPlan read error: %s",
 			stateErr,
 			planErr))
+
+		return nil, stateErr
+	}
+
+	return state, nil
+}
+
+func (c *ShowCommand) Run(args []string) int {
+	var moduleDepth int
+
+	args, err := c.Meta.process(args, false)
+	if err != nil {
 		return 1
 	}
 
-	if plan != nil {
-		dispPlan := format.NewPlan(plan)
-		c.Ui.Output(dispPlan.Format(c.Colorize()))
-		return 0
+	cmdFlags := flag.NewFlagSet("show", flag.ContinueOnError)
+	c.addModuleDepthFlag(cmdFlags, &moduleDepth)
+	state, err := c.State(args)
+
+	if err != nil {
+		return 1
 	}
 
 	c.Ui.Output(format.State(&format.StateOpts{

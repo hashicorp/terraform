@@ -146,6 +146,10 @@ type Operation struct {
 	// Workspace is the name of the workspace that this operation should run
 	// in, which controls which named state is used.
 	Workspace string
+
+	// Actual State for performing operation
+	ActualState *terraform.State
+
 }
 
 // RunningOperation is the result of starting an operation.
@@ -179,4 +183,7 @@ type RunningOperation struct {
 	// this state is managed by the backend. This should only be read
 	// after the operation completes to avoid read/write races.
 	State *terraform.State
+
+	// This state represents initial state before Operation start
+	ActualState *terraform.State
 }
