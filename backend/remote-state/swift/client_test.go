@@ -16,7 +16,7 @@ func TestRemoteClient_impl(t *testing.T) {
 func TestRemoteClient(t *testing.T) {
 	testACC(t)
 
-	container := fmt.Sprintf("terraform-state-swift-test-%x", time.Now().Unix())
+	container := fmt.Sprintf("terraform-state-swift-testclient-%x", time.Now().Unix())
 
 	b := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
 		"container": container,
