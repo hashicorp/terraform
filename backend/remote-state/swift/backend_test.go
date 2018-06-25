@@ -47,7 +47,7 @@ func TestBackendConfig(t *testing.T) {
 	// Build config
 	container := fmt.Sprintf("terraform-state-swift-testconfig-%x", time.Now().Unix())
 	archiveContainer := fmt.Sprintf("%s_archive", container)
-	// Build config
+
 	config := map[string]interface{}{
 		"archive_container": archiveContainer,
 		"container":         container,
@@ -137,7 +137,6 @@ func TestBackendArchive(t *testing.T) {
 		deleteSwiftContainer(t, b.client, container)
 		deleteSwiftContainer(t, b.client, archiveContainer)
 	}()
-
 	// RemoteClient to test with
 	client := &RemoteClient{
 		client:           b.client,
