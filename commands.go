@@ -302,6 +302,13 @@ func initCommands(config *Config) {
 			}, nil
 		},
 
+		// Alias
+		"state ls": func() (cli.Command, error) {
+			return &command.StateListCommand{
+				Meta: meta,
+			}, nil
+		},
+
 		"state rm": func() (cli.Command, error) {
 			return &command.StateRmCommand{
 				StateMeta: command.StateMeta{
