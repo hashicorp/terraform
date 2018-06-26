@@ -144,17 +144,17 @@ var RsaDecryptFunc = function.New(&function.Spec{
 
 		b, err := base64.StdEncoding.DecodeString(s)
 		if err != nil {
-			return cty.UnknownVal(cty.String), fmt.Errorf("Failed to decode input %q: cipher text must be base64-encoded", key)
+			return cty.UnknownVal(cty.String), fmt.Errorf("failed to decode input %q: cipher text must be base64-encoded", s)
 		}
 
 		block, _ := pem.Decode([]byte(key))
 		if block == nil {
-			return cty.UnknownVal(cty.String), fmt.Errorf("Failed to read key %q: no key found", key)
+			return cty.UnknownVal(cty.String), fmt.Errorf("failed to parse key: no key found")
 		}
 		if block.Headers["Proc-Type"] == "4,ENCRYPTED" {
 			return cty.UnknownVal(cty.String), fmt.Errorf(
-				"Failed to read key %q: password protected keys are\n"+
-					"not supported. Please decrypt the key prior to use.", key)
+				"failed to parse key: password protected keys are not supported. Please decrypt the key prior to use",
+			)
 		}
 
 		x509Key, err := x509.ParsePKCS1PrivateKey(block.Bytes)
