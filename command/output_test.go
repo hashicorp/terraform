@@ -247,11 +247,12 @@ func TestOutput_emptyOutputsErr(t *testing.T) {
 
 	statePath := testStateFile(t, originalState)
 
+	p := testProvider()
 	ui := new(cli.MockUi)
 	c := &OutputCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(testProvider()),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
 		},
 	}
 
@@ -275,11 +276,12 @@ func TestOutput_jsonEmptyOutputs(t *testing.T) {
 
 	statePath := testStateFile(t, originalState)
 
+	p := testProvider()
 	ui := new(cli.MockUi)
 	c := &OutputCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(testProvider()),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
 		},
 	}
 
