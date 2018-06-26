@@ -2973,26 +2973,6 @@ STATE:
 	}
 }
 
-func TestContext2Plan_targetEmpty(t *testing.T) {
-	m := testModule(t, "plan-targeted")
-	p := testProvider("aws")
-	p.DiffFn = testDiffFn
-	ctx := testContext2(t, &ContextOpts{
-		Module: m,
-		ProviderResolver: ResourceProviderResolverFixed(
-			map[string]ResourceProviderFactory{
-				"aws": testProviderFuncFixed(p),
-			},
-		),
-		Targets: []string{""},
-	})
-
-	_, err := ctx.Plan()
-	if err == nil {
-		t.Fatal("should error")
-	}
-}
-
 // Test that targeting a module properly plans any inputs that depend
 // on another module.
 func TestContext2Plan_targetedCrossModule(t *testing.T) {
