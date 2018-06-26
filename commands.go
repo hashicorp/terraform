@@ -350,6 +350,13 @@ func initCommands(config *cliconfig.Config, services *disco.Disco, providerSrc g
 			}, nil
 		},
 
+		// Alias for list
+		"state ls": func() (cli.Command, error) {
+			return &command.StateListCommand{
+				Meta: meta,
+			}, nil
+		},
+
 		"state rm": func() (cli.Command, error) {
 			return &command.StateRmCommand{
 				StateMeta: command.StateMeta{
