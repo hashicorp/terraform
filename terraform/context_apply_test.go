@@ -6658,19 +6658,19 @@ func TestContext2Apply_destroyOutputs(t *testing.T) {
 	ctx = testContext2(t, &ContextOpts{
 		Destroy: true,
 		State:   state,
-		Module:  m,
+		Config:  m,
 		ProviderResolver: ResourceProviderResolverFixed(
 			map[string]ResourceProviderFactory{
 				"aws": testProviderFuncFixed(p),
 			},
 		),
 	})
-	if _, err := ctx.Plan(); err != nil {
-		t.Fatal(err)
+	if _, diags := ctx.Plan(); diags.HasErrors() {
+		t.Fatal(diags.Err())
 	}
 
-	if _, err = ctx.Apply(); err != nil {
-		t.Fatal(err)
+	if _, diags := ctx.Apply(); diags.HasErrors() {
+		t.Fatal(diags.Err())
 	}
 }
 
@@ -7487,27 +7487,6 @@ aws_instance.foo:
   num = 2
   type = aws_instance
 	`)
-}
-
-func TestContext2Apply_targetEmpty(t *testing.T) {
-	m := testModule(t, "apply-targeted")
-	p := testProvider("aws")
-	p.ApplyFn = testApplyFn
-	p.DiffFn = testDiffFn
-	ctx := testContext2(t, &ContextOpts{
-		Module: m,
-		ProviderResolver: ResourceProviderResolverFixed(
-			map[string]ResourceProviderFactory{
-				"aws": testProviderFuncFixed(p),
-			},
-		),
-		Targets: []string{""},
-	})
-
-	_, err := ctx.Apply()
-	if err == nil {
-		t.Fatalf("should error")
-	}
 }
 
 func TestContext2Apply_targetedCount(t *testing.T) {
@@ -9739,22 +9718,22 @@ func TestContext2Apply_plannedDestroyInterpolatedCount(t *testing.T) {
 	}
 
 	ctx := testContext2(t, &ContextOpts{
-		Module:           m,
+		Config:           m,
 		ProviderResolver: providerResolver,
 		State:            s,
 		Destroy:          true,
 	})
 
-	plan, err := ctx.Plan()
-	if err != nil {
-		t.Fatalf("plan failed: %s", err)
+	plan, diags := ctx.Plan()
+	if diags.HasErrors() {
+		t.Fatalf("plan failed: %s", diags.Err())
 	}
 
 	// We'll marshal and unmarshal the plan here, to ensure that we have
 	// a clean new context as would be created if we separately ran
 	// terraform plan -out=tfplan && terraform apply tfplan
 	var planBuf bytes.Buffer
-	err = WritePlan(plan, &planBuf)
+	err := WritePlan(plan, &planBuf)
 	if err != nil {
 		t.Fatalf("failed to write plan: %s", err)
 	}
@@ -9763,18 +9742,18 @@ func TestContext2Apply_plannedDestroyInterpolatedCount(t *testing.T) {
 		t.Fatalf("failed to read plan: %s", err)
 	}
 
-	ctx, err = plan.Context(&ContextOpts{
+	ctx, diags = plan.Context(&ContextOpts{
 		ProviderResolver: providerResolver,
 		Destroy:          true,
 	})
-	if err != nil {
-		t.Fatalf("failed to create context for plan: %s", err)
+	if diags.HasErrors() {
+		t.Fatalf("failed to create context for plan: %s", diags.Err())
 	}
 
 	// Applying the plan should now succeed
-	_, err = ctx.Apply()
-	if err != nil {
-		t.Fatalf("apply failed: %s", err)
+	_, diags = ctx.Apply()
+	if diags.HasErrors() {
+		t.Fatalf("apply failed: %s", diags.Err())
 	}
 }
 
@@ -9819,20 +9798,25 @@ func TestContext2Apply_scaleInMultivarRef(t *testing.T) {
 	}
 
 	ctx := testContext2(t, &ContextOpts{
-		Module:           m,
+		Config:           m,
 		ProviderResolver: providerResolver,
 		State:            s,
-		Variables:        map[string]interface{}{"count": "0"},
+		Variables: InputValues{
+			"count": {
+				Value: cty.NumberIntVal(0),
+				SourceType: ValueFromCaller,
+			},
+		},
 	})
 
-	_, err := ctx.Plan()
-	if err != nil {
-		t.Fatalf("plan failed: %s", err)
+	_, diags := ctx.Plan()
+	if diags.HasErrors() {
+		t.Fatalf("plan failed: %s", diags.Err())
 	}
 
 	// Applying the plan should now succeed
-	_, err = ctx.Apply()
-	if err != nil {
-		t.Fatalf("apply failed: %s", err)
+	_, diags = ctx.Apply()
+	if diags.HasErrors() {
+		t.Fatalf("apply failed: %s", diags.Err())
 	}
 }
