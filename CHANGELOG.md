@@ -6,6 +6,10 @@ IMPROVEMENTS:
 * cli: Remove error on empty outputs when `-json` is set [GH-11721]
 * helper/schema: Resources have a new `DeprecationMessage` property that can be set to a string, allowing full resources to be deprecated [GH-18286]
 
+BUG FIXES:
+
+* config: The `rsadecrypt` interpolation function will no longer include the private key in an error message if it cannot be processed. [GH-18333]
+
 ## 0.11.7 (April 10, 2018)
 
 BUG FIXES:
