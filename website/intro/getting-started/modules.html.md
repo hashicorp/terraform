@@ -53,7 +53,6 @@ provider "aws" {
 module "consul" {
   source = "hashicorp/consul/aws"
 
-  aws_region  = "us-east-1" # should match provider region
   num_servers = "3"
 }
 ```
