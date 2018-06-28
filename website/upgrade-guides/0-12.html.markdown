@@ -1,0 +1,101 @@
+---
+layout: "downloads"
+page_title: "Upgrading to Terraform 0.12"
+sidebar_current: "upgrade-guides-0-12"
+description: |-
+  Upgrading to Terraform v0.12
+---
+
+# Upgrading to Terraform v0.12
+
+~> Terraform 0.12 will not be released until later this summer. This guide is
+proactive to help users understand what the upgrade path to 0.12 will be like.
+This guide will be updated with more detail up until the release of 0.12.
+
+[Terraform v0.12 will be a major release](https://hashicorp.com/blog/terraform-0-1-2-preview)
+focused on configuration language improvements and thus will include some
+changes that you'll need to consider when upgrading. The goal of this guide is
+to cover the most common upgrade concerns and issues. For the majority of users,
+no steps will need to be taken to upgrade. The sections below explain which
+users are likely to be in the small group who will need to make manual changes
+to upgrade to 0.12.
+
+This guide focuses on changes from v0.11 to v0.12. Each previous major release
+has its own upgrade guide, so please consult the other guides (available in the
+navigation) if you are upgrading directly from an earlier version.
+
+## Upgrading Terraform configuration
+The majority of users will not need to make manual changes to their Terraform
+configurations to upgrade to 0.12. The users who will need to make manual
+changes are users who use language workarounds in previous Terraform versions.
+Examples of these workarounds include:
+
+- Treating block types like attributes in an attempt to work around Terraform
+not supporting generating nested blocks dynamically.
+
+Note that these workarounds are not "wrong", but rather clever solutions by
+dedicated community members! These folks have been the inspiration for HCL2 and
+their clever solutions have given guidance on how to make the Terraform language
+more flexible to meet the needs of complex infrastructure.
+
+For users who follow the examples in the Terraform documentation, there should
+be no required changes. While no manual changes are needed, users can still run
+the migration tool to convert to the more readable syntax supported in this
+release. For those users, Terraform 0.12 will be released with a migration tool
+to guide users through upgrading their configurations.
+
+## Upgrading Terraform providers
+
+We’ve updated the RPC protocol used by Terraform plugins to support typed data
+and schema transfer.
+
+In Terraform 0.12 Terraform will have an awareness of the schemas used by both
+provider and provisioner plugins. This V1 for the RPC plugin protocols will
+still use the old-style passing of map[string]interface{} for config and
+map[string]string with flatmap for state/diff.
+
+In order to ease the transition to the new version of terraform, backwards
+compatible providers will be built allowing them to be used with previous
+versions of terraform. Backwards compatibility through this mechanism is not a
+long term strategy for maintaining providers in the event of further protocol
+changes, and is only a stepping stone.
+
+Having new providers be backwards compatible with older versions of Terraform
+alleviates provider developers from the responsibility of maintaining a branch
+for backports, allows any major version changes to be available to older
+clients, and reduces the urgency for users to upgrade everything at once.
+
+To upgrade a provider to use the new RPC plugin protocol in 0.12 and remain
+backwards compatible with previous releases, providers will need to update their
+Terraform dependencies to a 0.12 release. The changes to the helper packages are
+being designed so that updating the packages will allow the provider to work
+with the new plugin protocol, while remaining compatible with previous Terraform
+releases.
+
+## Upgrading modules
+Module authors will need to complete several steps to get their modules 0.12
+ready.
+
+1. Follow the steps in "Upgrading Terraform configurations" to get the module
+code upgraded
+1. The migration tool will automatically add a >= 0.12.0 Terraform version pin.
+No action is needed, just awareness.
+1. Update provider version requirements if there are version pins in the module
+1. If you are using the Terraform Registry, publish a new major version of the
+module. If you are not using the registry, make sure downstream consumers of the
+module are aware of the update.
+
+Module consumers can then upgrade to the new versions of the module by upgrading
+their configurations to 0.12 and updating the module version in that
+configuration.
+
+## Upgrading Sentinel policies
+Terraform Enterprise users of Sentinel will need to complete the below steps to
+upgrade Sentinel to work with Terraform 0.12.
+
+1. Update Terraform configurations to 0.12
+1. Update Sentinel policies
+
+Because Sentinel is applied across all workspaces in Terraform Enterprise, all
+workspaces must be upgraded to Terraform 0.12 otherwise Sentinel policies will
+fail on versions below 0.12.
