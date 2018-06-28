@@ -18,6 +18,7 @@ Below, we show a complete example configuring the "consul" backend:
 terraform {
   backend "consul" {
     address = "demo.consul.io"
+    scheme  = "https"
     path    = "example_app/terraform_state"
   }
 }
@@ -102,6 +103,7 @@ or `backend` block:
 ```hcl
 address = "demo.consul.io"
 path    = "example_app/terraform_state"
+scheme  = "https"
 ```
 
 The same settings can alternatively be specified on the command line as
@@ -110,7 +112,8 @@ follows:
 ```
 $ terraform init \
     -backend-config="address=demo.consul.io" \
-    -backend-config="path=example_app/terraform_state"
+    -backend-config="path=example_app/terraform_state" \
+    -backend-config="scheme=https"
 ```
 
 ## Changing Configuration

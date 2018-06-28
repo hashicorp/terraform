@@ -23,7 +23,7 @@ shifting massive amounts of complexity from one place (state) to another place
 Terraform requires some sort of database to map Terraform config to the real
 world. When you have a resource `resource "aws_instance" "foo"` in your
 configuration, Terraform uses this map to know that instance `i-abcd1234`
-is that resource.
+is represented by that resource.
 
 For some providers like AWS, Terraform could theoretically use something like
 AWS tags. Early prototypes of Terraform actually had no state files and used
@@ -32,35 +32,35 @@ a simple one: not all resources support tags, and not all cloud providers
 support tags.
 
 Therefore, for mapping configuration to resources in the real world,
-Terraform requires states.
+Terraform uses its own state structure.
 
 ## Metadata
 
-Terraform needs to store more than just resource mappings. Terraform
-must keep track of metadata such as dependencies.
+Alongside the mappings between resources and remote objects, Terraform must
+also track metadata such as resource dependencies.
 
 Terraform typically uses the configuration to determine dependency order.
 However, when you delete a resource from a Terraform configuration, Terraform
 must know how to delete that resource. Terraform can see that a mapping exists
 for a resource not in your configuration and plan to destroy. However, since
-the configuration no longer exists, it no longer knows the proper destruction
-order.
+the configuration no longer exists, the order cannot be determined from the
+configuration alone.
 
-To work around this, Terraform stores the creation-time dependencies within
-the state. Now, when you delete one or more items from the configuration,
-Terraform can still build the correct destruction ordering based only
-on the state.
+To ensure correct operation, Terraform retains a copy of the most recent set
+of dependencies within the state. Now Terraform can still determine the correct
+order for destruction from the state when you delete one or more items from
+the configuration.
 
-One idea to avoid this is for Terraform to understand the proper ordering
-of resources. For example, Terraform could know that servers must be deleted
-before the subnets they are a part of. The complexity for this approach
+One way to avoid this would be for Terraform to know a required ordering
+between resource types. For example, Terraform could know that servers must be
+deleted before the subnets they are a part of. The complexity for this approach
 quickly explodes, however: in addition to Terraform having to understand the
 ordering semantics of every resource for every cloud, Terraform must also
 understand the ordering _across providers_.
 
-In addition to dependencies, Terraform will store more metadata in the
-future such as last run time, creation time, update time, lifecycle options
-such as prevent destroy, etc.
+Terraform also stores other metadata for similar reasons, such as a pointer
+to the provider configuration that was most recently used with the resource
+in situations where multiple aliased providers are present.
 
 ## Performance
 
@@ -88,11 +88,14 @@ state is treated as the record of truth.
 
 ## Syncing
 
-The primary motivation people have for using remote state files is in an attempt
-to improve using Terraform with teams. State files can easily result in
-conflicts when two people modify infrastructure at the same time.
+In the default configuration, Terraform stores the state in a file in the
+current working directory where Terraform was run. This is okay for getting
+started, but when using Terraform in a team it is important for everyone
+to be working with the same state so that operations will be applied to the
+same remote objects.
 
 [Remote state](/docs/state/remote.html) is the recommended solution
-to this problem. At the time of writing, remote state works well but there
-are still scenarios that can result in state conflicts. A priority for future
-versions of Terraform is to improve this.
+to this problem. With a fully-featured state backend, Terraform can use
+remote locking as a measure to avoid two or more different users accidentally
+running Terraform at the same time, and thus ensure that each Terraform run
+begins with the most recent updated state.

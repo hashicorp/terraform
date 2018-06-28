@@ -85,7 +85,7 @@ func (c *OutputCommand) Run(args []string) int {
 		return 1
 	}
 
-	if state.Empty() || len(mod.Outputs) == 0 {
+	if !jsonOutput && (state.Empty() || len(mod.Outputs) == 0) {
 		c.Ui.Error(
 			"The state file either has no outputs defined, or all the defined\n" +
 				"outputs are empty. Please define an output in your configuration\n" +

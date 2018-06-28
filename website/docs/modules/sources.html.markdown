@@ -172,11 +172,17 @@ module "consul" {
 }
 ```
 
-You can also specify branches and version withs the ?ref query
+You can also specify branches and version with the `?ref` query, and use HTTPS or SSH:
 
 ```hcl
 module "consul" {
   source = "git::https://bitbucket.org/foocompany/module_name.git?ref=hotfix"
+}
+```
+
+```hcl
+module "consul" {
+  source = "git::ssh://git@bitbucket.org/foocompany/module_name.git"
 }
 ```
 

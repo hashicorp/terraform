@@ -18,7 +18,7 @@ the backend has only one workspace, called "default", and thus there is only
 one Terraform state associated with that configuration.
 
 Certain backends support _multiple_ named workspaces, allowing multiple states
-to be associated with a single configuration. The configuration is still
+to be associated with a single configuration. The configuration still
 has only one backend, but multiple distinct instances of that configuration
 to be deployed without configuring a new backend or changing authentication
 credentials.

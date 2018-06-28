@@ -1500,7 +1500,7 @@ different states.
 
 The most common cause of seeing this error is using a plan that was
 created against a different state. Perhaps the plan is very old and the
-state has since been recreated, or perhaps the plan was against a competely
+state has since been recreated, or perhaps the plan was against a completely
 different infrastructure.
 `
 
