@@ -133,7 +133,7 @@ down to see all providers.
     </tr>
     <tr>
     <td><a href="/docs/providers/spotinst/index.html">Spotinst</a></td>
-    <td><a href="/docs/provders/telefonicaopencloud/index.html">TelefonicaOpenCloud</a></td>
+    <td><a href="/docs/providers/telefonicaopencloud/index.html">TelefonicaOpenCloud</a></td>
     <td><a href="/docs/providers/template/index.html">Template</a></td>
     </tr>
     <tr>
