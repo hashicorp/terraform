@@ -49,6 +49,8 @@ vendor in close collaboration with HashiCorp, and are tested by HashiCorp.
 
 [SoftLayer](/docs/providers/softlayer/index.html)
 
+[TelefonicaOpenCloud](/docs/providers/telefonicaopencloud/index.html)
+
 [Triton](/docs/providers/triton/index.html)
 
 [vCloud Director](/docs/providers/vcd/index.html)
