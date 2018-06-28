@@ -96,7 +96,7 @@ func (c *ShowCommand) State(args []string) (*terraform.State, error) {
 		state = stateStore.State()
 		if state == nil {
 			c.Ui.Output("No state.")
-			return nil, err
+			return nil, nil
 		}
 	}
 
@@ -126,6 +126,10 @@ func (c *ShowCommand) Run(args []string) int {
 	cmdFlags := flag.NewFlagSet("show", flag.ContinueOnError)
 	c.addModuleDepthFlag(cmdFlags, &moduleDepth)
 	state, err := c.State(args)
+
+	if state == nil && err == nil {
+		return 0
+	}
 
 	if err != nil {
 		return 1
