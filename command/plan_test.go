@@ -167,7 +167,7 @@ func TestPlan_destroy(t *testing.T) {
 
 	outPath := testTempFile(t)
 	statePath := testStateFile(t, originalState)
-	
+
 	p := testProvider()
 	ui := new(cli.MockUi)
 	c := &PlanCommand{

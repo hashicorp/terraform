@@ -149,7 +149,6 @@ type Operation struct {
 
 	// Actual State for performing operation
 	ActualState *terraform.State
-
 }
 
 // RunningOperation is the result of starting an operation.

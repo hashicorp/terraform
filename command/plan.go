@@ -35,7 +35,6 @@ func (c *PlanCommand) Run(args []string) int {
 		return 1
 	}
 
-
 	cmdFlags := c.Meta.flagSet("plan")
 	cmdFlags.BoolVar(&destroy, "destroy", false, "destroy")
 	cmdFlags.BoolVar(&refresh, "refresh", true, "refresh")
