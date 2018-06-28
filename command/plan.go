@@ -9,6 +9,9 @@ import (
 	"github.com/hashicorp/terraform/config/module"
 	"github.com/hashicorp/terraform/helper/deepcopy"
 	"github.com/hashicorp/terraform/tfdiags"
+	"github.com/hashicorp/terraform/terraform"
+	"flag"
+	"os"
 )
 
 // PlanCommand is a Command implementation that compares a Terraform
@@ -19,12 +22,12 @@ type PlanCommand struct {
 
 func (c *PlanCommand) Run(args []string) int {
 
-	show := &ShowCommand{
+	show := &PlanCommand{
 		Meta: deepcopy.Copy(c.Meta).(Meta),
 	}
 
 	var a []string
-	oldState, _ := show.State(a)
+	oldState := show.State(a)
 
 	var destroy, refresh, detailed bool
 	var outPath string
@@ -203,4 +206,82 @@ Options:
 
 func (c *PlanCommand) Synopsis() string {
 	return "Generate and show an execution plan"
+}
+
+func (c *PlanCommand) State(args []string) (*terraform.State) {
+	var moduleDepth int
+
+	args, err := c.Meta.process(args, false)
+	if err != nil {
+		return nil
+	}
+
+	cmdFlags := flag.NewFlagSet("show", flag.ContinueOnError)
+	c.addModuleDepthFlag(cmdFlags, &moduleDepth)
+	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
+	if err := cmdFlags.Parse(args); err != nil {
+		return nil
+	}
+
+	args = cmdFlags.Args()
+	if len(args) > 1 {
+		return nil
+	}
+
+	var path string
+	var plan *terraform.Plan
+	var state *terraform.State
+	if len(args) > 0 {
+
+		path = args[0]
+		f, err := os.Open(path)
+		if err != nil {
+			return nil
+		}
+		defer f.Close()
+
+		plan, err = terraform.ReadPlan(f)
+		if err != nil {
+			if _, err := f.Seek(0, 0); err != nil {
+				return nil
+			}
+
+			plan = nil
+		}
+		if plan == nil {
+			state, err = terraform.ReadState(f)
+		}
+	} else {
+		// Load the backend
+		b, err := c.Backend(nil)
+		if err != nil {
+			c.Ui.Error(fmt.Sprintf("Failed to load backend: %s", err))
+			return nil
+		}
+
+		env := c.Workspace()
+
+		// Get the state
+		stateStore, err := b.State(env)
+		if err != nil {
+			c.Ui.Error(fmt.Sprintf("Failed to load state: %s", err))
+			return nil
+		}
+
+		if err := stateStore.RefreshState(); err != nil {
+			c.Ui.Error(fmt.Sprintf("Failed to load state: %s", err))
+			return nil
+		}
+
+		state = stateStore.State()
+		if state == nil {
+			return nil
+		}
+	}
+
+	if plan == nil && state == nil {
+		return nil
+	}
+
+	return state
 }

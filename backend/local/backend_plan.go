@@ -242,5 +242,6 @@ persisted to local or remote state storage.
 `
 
 const planShowMoves = `
-"\nInstead, you can apply following terraform state mv, to avoid destroy & create in some cases.\n\n"
+Instead, you can apply following terraform state mv, to avoid destroy & create in some cases.
+
 `

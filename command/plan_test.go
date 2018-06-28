@@ -139,6 +139,7 @@ func TestPlan_rename(t *testing.T) {
 	}
 
 	args := []string{
+		"-show-state-moves",
 		"-state", statePath,
 		testFixturePath("rename"),
 	}
