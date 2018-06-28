@@ -6,7 +6,6 @@ import (
 	"os"
 	"strings"
 
-	"errors"
 	"github.com/hashicorp/terraform/command/format"
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -17,28 +16,28 @@ type ShowCommand struct {
 	Meta
 }
 
-func (c *ShowCommand) State(args []string) (*terraform.State, error) {
+func (c *ShowCommand) Run(args []string) int {
 	var moduleDepth int
 
 	args, err := c.Meta.process(args, false)
 	if err != nil {
-		return nil, nil
+		return 1
 	}
 
 	cmdFlags := flag.NewFlagSet("show", flag.ContinueOnError)
 	c.addModuleDepthFlag(cmdFlags, &moduleDepth)
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
 	if err := cmdFlags.Parse(args); err != nil {
-		return nil, err
+		return 1
 	}
 
 	args = cmdFlags.Args()
 	if len(args) > 1 {
-		message := "The show command expects at most one argument with the path\n" +
-			"to a Terraform state or plan file.\n"
-		c.Ui.Error(message)
+		c.Ui.Error(
+			"The show command expects at most one argument with the path\n" +
+				"to a Terraform state or plan file.\n")
 		cmdFlags.Usage()
-		return nil, errors.New(message)
+		return 1
 	}
 
 	var planErr, stateErr error
@@ -46,12 +45,11 @@ func (c *ShowCommand) State(args []string) (*terraform.State, error) {
 	var plan *terraform.Plan
 	var state *terraform.State
 	if len(args) > 0 {
-
 		path = args[0]
 		f, err := os.Open(path)
 		if err != nil {
 			c.Ui.Error(fmt.Sprintf("Error loading file: %s", err))
-			return nil, err
+			return 1
 		}
 		defer f.Close()
 
@@ -59,7 +57,7 @@ func (c *ShowCommand) State(args []string) (*terraform.State, error) {
 		if err != nil {
 			if _, err := f.Seek(0, 0); err != nil {
 				c.Ui.Error(fmt.Sprintf("Error reading file: %s", err))
-				return nil, err
+				return 1
 			}
 
 			plan = nil
@@ -76,7 +74,7 @@ func (c *ShowCommand) State(args []string) (*terraform.State, error) {
 		b, err := c.Backend(nil)
 		if err != nil {
 			c.Ui.Error(fmt.Sprintf("Failed to load backend: %s", err))
-			return nil, err
+			return 1
 		}
 
 		env := c.Workspace()
@@ -85,18 +83,18 @@ func (c *ShowCommand) State(args []string) (*terraform.State, error) {
 		stateStore, err := b.State(env)
 		if err != nil {
 			c.Ui.Error(fmt.Sprintf("Failed to load state: %s", err))
-			return nil, err
+			return 1
 		}
 
 		if err := stateStore.RefreshState(); err != nil {
 			c.Ui.Error(fmt.Sprintf("Failed to load state: %s", err))
-			return nil, err
+			return 1
 		}
 
 		state = stateStore.State()
 		if state == nil {
 			c.Ui.Output("No state.")
-			return nil, nil
+			return 0
 		}
 	}
 
@@ -108,31 +106,13 @@ func (c *ShowCommand) State(args []string) (*terraform.State, error) {
 				"State read error: %s\n\nPlan read error: %s",
 			stateErr,
 			planErr))
-
-		return nil, stateErr
-	}
-
-	return state, nil
-}
-
-func (c *ShowCommand) Run(args []string) int {
-	var moduleDepth int
-
-	args, err := c.Meta.process(args, false)
-	if err != nil {
 		return 1
 	}
 
-	cmdFlags := flag.NewFlagSet("show", flag.ContinueOnError)
-	c.addModuleDepthFlag(cmdFlags, &moduleDepth)
-	state, err := c.State(args)
-
-	if state == nil && err == nil {
+	if plan != nil {
+		dispPlan := format.NewPlan(plan)
+		c.Ui.Output(dispPlan.Format(c.Colorize()))
 		return 0
-	}
-
-	if err != nil {
-		return 1
 	}
 
 	c.Ui.Output(format.State(&format.StateOpts{
