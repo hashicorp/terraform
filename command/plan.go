@@ -4,13 +4,13 @@ import (
 	"fmt"
 	"strings"
 
+	"flag"
 	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/config"
 	"github.com/hashicorp/terraform/config/module"
 	"github.com/hashicorp/terraform/helper/deepcopy"
-	"github.com/hashicorp/terraform/tfdiags"
 	"github.com/hashicorp/terraform/terraform"
-	"flag"
+	"github.com/hashicorp/terraform/tfdiags"
 	"os"
 )
 
@@ -208,7 +208,7 @@ func (c *PlanCommand) Synopsis() string {
 	return "Generate and show an execution plan"
 }
 
-func (c *PlanCommand) State(args []string) (*terraform.State) {
+func (c *PlanCommand) State(args []string) *terraform.State {
 	var moduleDepth int
 
 	args, err := c.Meta.process(args, false)
