@@ -111,7 +111,7 @@ func NewPlan(plan *terraform.Plan) *Plan {
 
 			if did.Action == terraform.DiffDestroy {
 				// Don't show any outputs for destroy actions
-				//continue
+				continue
 			}
 
 			for k, a := range r.Attributes {
