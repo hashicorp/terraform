@@ -133,12 +133,14 @@ func (b *Local) opPlan(
 		}
 		b.renderPlan(dispPlan)
 
-		moves := dispPlan.PossibleMoves(op.ActualState)
+		if op.ShowStateMoves {
+			moves := dispPlan.PossibleMoves(op.ActualState)
 
-		b.CLI.Output(planShowMoves)
+			b.CLI.Output(planShowMoves)
 
-		for k, v := range moves {
-			b.CLI.Output("terraform state mv " + k + " " + v)
+			for k, v := range moves {
+				b.CLI.Output("terraform state mv " + k + " " + v)
+			}
 		}
 
 		// Give the user some next-steps, unless we're running in an automation

@@ -195,6 +195,8 @@ Options:
   -var-file=foo       Set variables in the Terraform configuration from
                       a file. If "terraform.tfvars" or any ".auto.tfvars"
                       files are present, they will be automatically loaded.
+
+  -show-state-moves	  Shows possible state moves, apart from plan
 `
 	return strings.TrimSpace(helpText)
 }
