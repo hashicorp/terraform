@@ -17,7 +17,7 @@ import (
 	"github.com/hashicorp/terraform/tfdiags"
 )
 
-func upgradeExpr(val interface{}, filename string, interp bool) ([]byte, tfdiags.Diagnostics) {
+func upgradeExpr(val interface{}, filename string, interp bool, an *analysis) ([]byte, tfdiags.Diagnostics) {
 	var buf bytes.Buffer
 	var diags tfdiags.Diagnostics
 
@@ -47,7 +47,7 @@ func upgradeExpr(val interface{}, filename string, interp bool) ([]byte, tfdiags
 				})
 			}
 
-			interpSrc, interpDiags := upgradeExpr(hilNode, filename, interp)
+			interpSrc, interpDiags := upgradeExpr(hilNode, filename, interp, an)
 			buf.Write(interpSrc)
 			diags = diags.Append(interpDiags)
 
@@ -105,9 +105,9 @@ func upgradeExpr(val interface{}, filename string, interp bool) ([]byte, tfdiags
 
 		lhsExpr := tv.Exprs[0]
 		rhsExpr := tv.Exprs[1]
-		lhsSrc, exprDiags := upgradeExpr(lhsExpr, filename, true)
+		lhsSrc, exprDiags := upgradeExpr(lhsExpr, filename, true, an)
 		diags = diags.Append(exprDiags)
-		rhsSrc, exprDiags := upgradeExpr(rhsExpr, filename, true)
+		rhsSrc, exprDiags := upgradeExpr(rhsExpr, filename, true, an)
 		diags = diags.Append(exprDiags)
 
 		// HIL's AST represents -foo as (0 - foo), so we'll recognize
@@ -133,18 +133,18 @@ func upgradeExpr(val interface{}, filename string, interp bool) ([]byte, tfdiags
 				buf.WriteString(", ")
 			}
 
-			exprSrc, exprDiags := upgradeExpr(arg, filename, true)
+			exprSrc, exprDiags := upgradeExpr(arg, filename, true, an)
 			diags = diags.Append(exprDiags)
 			buf.Write(exprSrc)
 		}
 		buf.WriteByte(')')
 
 	case *hilast.Conditional:
-		condSrc, exprDiags := upgradeExpr(tv.CondExpr, filename, true)
+		condSrc, exprDiags := upgradeExpr(tv.CondExpr, filename, true, an)
 		diags = diags.Append(exprDiags)
-		trueSrc, exprDiags := upgradeExpr(tv.TrueExpr, filename, true)
+		trueSrc, exprDiags := upgradeExpr(tv.TrueExpr, filename, true, an)
 		diags = diags.Append(exprDiags)
-		falseSrc, exprDiags := upgradeExpr(tv.FalseExpr, filename, true)
+		falseSrc, exprDiags := upgradeExpr(tv.FalseExpr, filename, true, an)
 		diags = diags.Append(exprDiags)
 
 		buf.Write(condSrc)
@@ -154,9 +154,9 @@ func upgradeExpr(val interface{}, filename string, interp bool) ([]byte, tfdiags
 		buf.Write(falseSrc)
 
 	case *hilast.Index:
-		targetSrc, exprDiags := upgradeExpr(tv.Target, filename, true)
+		targetSrc, exprDiags := upgradeExpr(tv.Target, filename, true, an)
 		diags = diags.Append(exprDiags)
-		keySrc, exprDiags := upgradeExpr(tv.Key, filename, true)
+		keySrc, exprDiags := upgradeExpr(tv.Key, filename, true, an)
 		diags = diags.Append(exprDiags)
 		buf.Write(targetSrc)
 		buf.WriteString("[")
@@ -176,7 +176,7 @@ func upgradeExpr(val interface{}, filename string, interp bool) ([]byte, tfdiags
 				// If there's only one expression and it isn't a literal string
 				// then we'll just output it naked, since wrapping a single
 				// expression in interpolation is no longer idiomatic.
-				interped, interpDiags := upgradeExpr(item, filename, true)
+				interped, interpDiags := upgradeExpr(item, filename, true, an)
 				diags = diags.Append(interpDiags)
 				buf.Write(interped)
 				break
@@ -192,7 +192,7 @@ func upgradeExpr(val interface{}, filename string, interp bool) ([]byte, tfdiags
 				}
 			}
 
-			interped, interpDiags := upgradeExpr(item, filename, true)
+			interped, interpDiags := upgradeExpr(item, filename, true, an)
 			diags = diags.Append(interpDiags)
 
 			buf.WriteString("${")
