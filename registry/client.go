@@ -43,6 +43,7 @@ type Client struct {
 	creds auth.CredentialsSource
 }
 
+// NewClient returns a new initialized registry client.
 func NewClient(services *disco.Disco, creds auth.CredentialsSource, client *http.Client) *Client {
 	if services == nil {
 		services = disco.NewDisco()
