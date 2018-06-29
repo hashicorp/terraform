@@ -88,6 +88,10 @@ The command-line flags are all optional. The list of available flags are:
   specified by `-var-file` override any values set automatically from files in
   the working directory. This flag can be used multiple times.
 
+* `-show-state-moves` - Shows possible [state mv](/docs/state/mv.html)state
+  moves apart from plan to run. This can be used while renaming resources or
+  changing resource paths. shows state moves moves, it won't affect plan.
+
 ## Resource Targeting
 
 The `-target` option can be used to focus Terraform's attention on only a

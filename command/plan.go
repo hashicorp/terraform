@@ -199,7 +199,10 @@ Options:
                       a file. If "terraform.tfvars" or any ".auto.tfvars"
                       files are present, they will be automatically loaded.
 
-  -show-state-moves	  Shows possible state moves, apart from plan
+  -show-state-moves	  Shows possible [state mv](/docs/state/mv.html)state
+                      moves apart from plan to run. This can be used while
+                      renaming resources or changing resource paths. shows 
+                      state moves moves, it won't affect plan.
 `
 	return strings.TrimSpace(helpText)
 }
