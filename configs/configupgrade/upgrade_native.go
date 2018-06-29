@@ -3,8 +3,11 @@ package configupgrade
 import (
 	"bytes"
 	"fmt"
+	"io"
 	"sort"
 	"strings"
+
+	"github.com/hashicorp/terraform/addrs"
 
 	version "github.com/hashicorp/go-version"
 
@@ -24,7 +27,7 @@ type upgradeFileResult struct {
 	ProviderRequirements map[string]version.Constraints
 }
 
-func upgradeNativeSyntaxFile(filename string, src []byte) (upgradeFileResult, tfdiags.Diagnostics) {
+func (u *Upgrader) upgradeNativeSyntaxFile(filename string, src []byte, an *analysis) (upgradeFileResult, tfdiags.Diagnostics) {
 	var result upgradeFileResult
 	var diags tfdiags.Diagnostics
 
@@ -63,17 +66,141 @@ func upgradeNativeSyntaxFile(filename string, src []byte) (upgradeFileResult, tf
 			diags = diags.Append(&hcl2.Diagnostic{
 				Severity: hcl2.DiagWarning,
 				Summary:  "Unsupported top-level attribute",
-				Detail:   fmt.Sprintf("Attribute %q is not expected here, so its expression was not migrated.", blockType),
+				Detail:   fmt.Sprintf("Attribute %q is not expected here, so its expression was not upgraded.", blockType),
 				Subject:  hcl1PosRange(filename, item.Keys[0].Pos()).Ptr(),
 			})
 			// Preserve the item as-is, using the hcl1printer package.
-			buf.WriteString("# TF-UPGRADE-TODO: Top-level attributes are not valid, so this was not automatically migrated.\n")
+			buf.WriteString("# TF-UPGRADE-TODO: Top-level attributes are not valid, so this was not automatically upgraded.\n")
 			hcl1printer.Fprint(&buf, item)
 			buf.WriteString("\n\n")
 			continue
 		}
+		declRange := hcl1PosRange(filename, item.Keys[0].Pos())
 
 		switch blockType {
+
+		case "resource":
+			if len(labels) != 2 {
+				// Should never happen for valid input.
+				diags = diags.Append(&hcl2.Diagnostic{
+					Severity: hcl2.DiagError,
+					Summary:  "Invalid resource block",
+					Detail:   "A resource block must have two labels: the resource type and name.",
+					Subject:  &declRange,
+				})
+				continue
+			}
+
+			rAddr := addrs.Resource{
+				Mode: addrs.ManagedResourceMode,
+				Type: labels[0],
+				Name: labels[1],
+			}
+
+			// We should always have a schema for each provider in our analysis
+			// object. If not, it's a bug in the analyzer.
+			providerType, ok := an.ResourceProviderType[rAddr]
+			if !ok {
+				panic(fmt.Sprintf("unknown provider type for %s", rAddr.String()))
+			}
+			providerSchema, ok := an.ProviderSchemas[providerType]
+			if !ok {
+				panic(fmt.Sprintf("missing schema for provider type %q", providerType))
+			}
+			schema, ok := providerSchema.ResourceTypes[rAddr.Type]
+			if !ok {
+				diags = diags.Append(&hcl2.Diagnostic{
+					Severity: hcl2.DiagError,
+					Summary:  "Unknown resource type",
+					Detail:   fmt.Sprintf("The resource type %q is not known to the currently-selected version of provider %q.", rAddr.Type, providerType),
+					Subject:  &declRange,
+				})
+				continue
+			}
+
+			printComments(&buf, item.LeadComment)
+			printBlockOpen(&buf, blockType, labels, item.LineComment)
+			args := body.List.Items
+			for i, arg := range args {
+				comments := adhocComments.TakeBefore(arg)
+				for _, group := range comments {
+					printComments(&buf, group)
+					buf.WriteByte('\n') // Extra separator after each group
+				}
+
+				printComments(&buf, arg.LeadComment)
+
+				name := arg.Keys[0].Token.Value().(string)
+				//labelKeys := arg.Keys[1:]
+
+				switch name {
+				// TODO: Special case for all of the "meta-arguments" allowed
+				// in a resource block, such as "count", "lifecycle",
+				// "provisioner", etc.
+
+				default:
+					// We'll consult the schema to see how we ought to interpret
+					// this item.
+
+					if _, isAttr := schema.Attributes[name]; isAttr {
+						// We'll tolerate a block with no labels here as a degenerate
+						// way to assign a map, but we can't migrate a block that has
+						// labels. In practice this should never happen because
+						// nested blocks in resource blocks did not accept labels
+						// prior to v0.12.
+						if len(arg.Keys) != 1 {
+							diags = diags.Append(&hcl2.Diagnostic{
+								Severity: hcl2.DiagError,
+								Summary:  "Block where attribute was expected",
+								Detail:   fmt.Sprintf("Within %s the name %q is an attribute name, not a block type.", rAddr.Type, name),
+								Subject:  hcl1PosRange(filename, arg.Keys[0].Pos()).Ptr(),
+							})
+							continue
+						}
+
+						valSrc, valDiags := upgradeExpr(arg.Val, filename, true, an)
+						diags = diags.Append(valDiags)
+						printAttribute(&buf, arg.Keys[0].Token.Value().(string), valSrc, arg.LineComment)
+					} else if _, isBlock := schema.BlockTypes[name]; isBlock {
+						// TODO: Also upgrade blocks.
+						// In particular we need to handle the tricky case where
+						// a user attempts to treat a block type name like it's
+						// an attribute, by producing a "dynamic" block.
+						hcl1printer.Fprint(&buf, arg)
+						buf.WriteByte('\n')
+					} else {
+						if arg.Assign.IsValid() {
+							diags = diags.Append(&hcl2.Diagnostic{
+								Severity: hcl2.DiagError,
+								Summary:  "Unrecognized attribute name",
+								Detail:   fmt.Sprintf("Resource type %s does not expect an attribute named %q.", rAddr.Type, name),
+								Subject:  hcl1PosRange(filename, arg.Keys[0].Pos()).Ptr(),
+							})
+						} else {
+							diags = diags.Append(&hcl2.Diagnostic{
+								Severity: hcl2.DiagError,
+								Summary:  "Unrecognized block type",
+								Detail:   fmt.Sprintf("Resource type %s does not expect blocks of type %q.", rAddr.Type, name),
+								Subject:  hcl1PosRange(filename, arg.Keys[0].Pos()).Ptr(),
+							})
+						}
+						continue
+					}
+				}
+
+				// If we have another item and it's more than one line away
+				// from the current one then we'll print an extra blank line
+				// to retain that separation.
+				if (i + 1) < len(args) {
+					next := args[i+1]
+					thisPos := arg.Pos()
+					nextPos := next.Pos()
+					if nextPos.Line-thisPos.Line > 1 {
+						buf.WriteByte('\n')
+					}
+				}
+			}
+			buf.WriteString("}\n\n")
 
 		case "variable":
 			printComments(&buf, item.LeadComment)
@@ -85,11 +212,11 @@ func upgradeNativeSyntaxFile(filename string, src []byte) (upgradeFileResult, tf
 					diags = diags.Append(&hcl2.Diagnostic{
 						Severity: hcl2.DiagWarning,
 						Summary:  "Invalid nested block",
-						Detail:   fmt.Sprintf("Blocks of type %q are not expected here, so this was not automatically migrated.", arg.Keys[0].Token.Value().(string)),
+						Detail:   fmt.Sprintf("Blocks of type %q are not expected here, so this was not automatically upgraded.", arg.Keys[0].Token.Value().(string)),
 						Subject:  hcl1PosRange(filename, arg.Keys[0].Pos()).Ptr(),
 					})
 					// Preserve the item as-is, using the hcl1printer package.
-					buf.WriteString("\n# TF-UPGRADE-TODO: Blocks are not expected here, so this was not automatically migrated.\n")
+					buf.WriteString("\n# TF-UPGRADE-TODO: Blocks are not expected here, so this was not automatically upgraded.\n")
 					hcl1printer.Fprint(&buf, arg)
 					buf.WriteString("\n\n")
 					continue
@@ -133,7 +260,7 @@ func upgradeNativeSyntaxFile(filename string, src []byte) (upgradeFileResult, tf
 					// into the default case and migrate it as a normal expression.
 					fallthrough
 				default:
-					valSrc, valDiags := upgradeExpr(arg.Val, filename, false)
+					valSrc, valDiags := upgradeExpr(arg.Val, filename, false, an)
 					diags = diags.Append(valDiags)
 					printAttribute(&buf, arg.Keys[0].Token.Value().(string), valSrc, arg.LineComment)
 				}
@@ -162,11 +289,11 @@ func upgradeNativeSyntaxFile(filename string, src []byte) (upgradeFileResult, tf
 					diags = diags.Append(&hcl2.Diagnostic{
 						Severity: hcl2.DiagWarning,
 						Summary:  "Invalid nested block",
-						Detail:   fmt.Sprintf("Blocks of type %q are not expected here, so this was not automatically migrated.", arg.Keys[0].Token.Value().(string)),
+						Detail:   fmt.Sprintf("Blocks of type %q are not expected here, so this was not automatically upgraded.", arg.Keys[0].Token.Value().(string)),
 						Subject:  hcl1PosRange(filename, arg.Keys[0].Pos()).Ptr(),
 					})
 					// Preserve the item as-is, using the hcl1printer package.
-					buf.WriteString("\n# TF-UPGRADE-TODO: Blocks are not expected here, so this was not automatically migrated.\n")
+					buf.WriteString("\n# TF-UPGRADE-TODO: Blocks are not expected here, so this was not automatically upgraded.\n")
 					hcl1printer.Fprint(&buf, arg)
 					buf.WriteString("\n\n")
 					continue
@@ -186,7 +313,7 @@ func upgradeNativeSyntaxFile(filename string, src []byte) (upgradeFileResult, tf
 					interp = true
 				}
 
-				valSrc, valDiags := upgradeExpr(arg.Val, filename, interp)
+				valSrc, valDiags := upgradeExpr(arg.Val, filename, interp, an)
 				diags = diags.Append(valDiags)
 				printAttribute(&buf, arg.Keys[0].Token.Value().(string), valSrc, arg.LineComment)
 
@@ -215,11 +342,11 @@ func upgradeNativeSyntaxFile(filename string, src []byte) (upgradeFileResult, tf
 					diags = diags.Append(&hcl2.Diagnostic{
 						Severity: hcl2.DiagWarning,
 						Summary:  "Invalid nested block",
-						Detail:   fmt.Sprintf("Blocks of type %q are not expected here, so this was not automatically migrated.", arg.Keys[0].Token.Value().(string)),
+						Detail:   fmt.Sprintf("Blocks of type %q are not expected here, so this was not automatically upgraded.", arg.Keys[0].Token.Value().(string)),
 						Subject:  hcl1PosRange(filename, arg.Keys[0].Pos()).Ptr(),
 					})
 					// Preserve the item as-is, using the hcl1printer package.
-					buf.WriteString("\n# TF-UPGRADE-TODO: Blocks are not expected here, so this was not automatically migrated.\n")
+					buf.WriteString("\n# TF-UPGRADE-TODO: Blocks are not expected here, so this was not automatically upgraded.\n")
 					hcl1printer.Fprint(&buf, arg)
 					buf.WriteString("\n\n")
 					continue
@@ -235,7 +362,7 @@ func upgradeNativeSyntaxFile(filename string, src []byte) (upgradeFileResult, tf
 
 				name := arg.Keys[0].Token.Value().(string)
 				expr := arg.Val
-				exprSrc, exprDiags := upgradeExpr(expr, filename, true)
+				exprSrc, exprDiags := upgradeExpr(expr, filename, true, an)
 				diags = diags.Append(exprDiags)
 				printAttribute(&buf, name, exprSrc, arg.LineComment)
 
@@ -259,12 +386,12 @@ func upgradeNativeSyntaxFile(filename string, src []byte) (upgradeFileResult, tf
 			diags = diags.Append(&hcl2.Diagnostic{
 				Severity: hcl2.DiagWarning,
 				Summary:  "Unsupported root block type",
-				Detail:   fmt.Sprintf("The block type %q is not expected here, so its content was not migrated.", blockType),
+				Detail:   fmt.Sprintf("The block type %q is not expected here, so its content was not upgraded.", blockType),
 				Subject:  hcl1PosRange(filename, item.Keys[0].Pos()).Ptr(),
 			})
 
 			// Preserve the block as-is, using the hcl1printer package.
-			buf.WriteString("# TF-UPGRADE-TODO: Block type was not recognized, so this block and its contents were not automatically migrated.\n")
+			buf.WriteString("# TF-UPGRADE-TODO: Block type was not recognized, so this block and its contents were not automatically upgraded.\n")
 			hcl1printer.Fprint(&buf, item)
 			buf.WriteString("\n\n")
 			continue
@@ -414,13 +541,13 @@ func (q *commentQueue) TakeBefore(node hcl1ast.Node) []*hcl1ast.CommentGroup {
 
 func hcl1ErrSubjectRange(filename string, err error) *hcl2.Range {
 	if pe, isPos := err.(*hcl1parser.PosError); isPos {
-		return hcl1PosRange(filename, pe.Pos)
+		return hcl1PosRange(filename, pe.Pos).Ptr()
 	}
 	return nil
 }
 
-func hcl1PosRange(filename string, pos hcl1token.Pos) *hcl2.Range {
-	return &hcl2.Range{
+func hcl1PosRange(filename string, pos hcl1token.Pos) hcl2.Range {
+	return hcl2.Range{
 		Filename: filename,
 		Start: hcl2.Pos{
 			Line:   pos.Line,
@@ -433,4 +560,10 @@ func hcl1PosRange(filename string, pos hcl1token.Pos) *hcl2.Range {
 			Byte:   pos.Offset,
 		},
 	}
+}
+
+func passthruBlockTodo(w io.Writer, node hcl1ast.Node, msg string) {
+	fmt.Fprintf(w, "\n# TF-UPGRADE-TODO: %s\n", msg)
+	hcl1printer.Fprint(w, node)
+	w.Write([]byte{'\n', '\n'})
 }
