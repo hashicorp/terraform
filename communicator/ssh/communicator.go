@@ -58,6 +58,10 @@ type sshConfig struct {
 	// noPty, if true, will not request a pty from the remote end.
 	noPty bool
 
+	// silence, if true, disable output of cmd stdout
+	// will only print errors
+	silence bool
+
 	// sshAgent is a struct surrounding the agent.Agent client and the net.Conn
 	// to the SSH Agent. It is nil if no SSH agent is configured
 	sshAgent *sshAgent
@@ -256,7 +260,11 @@ func (c *Communicator) Start(cmd *remote.Cmd) error {
 
 	// Setup our session
 	session.Stdin = cmd.Stdin
-	session.Stdout = cmd.Stdout
+	if c.config.silence {
+		session.Stdout = nil
+	} else {
+		session.Stdout = cmd.Stdout
+	}
 	session.Stderr = cmd.Stderr
 
 	if !c.config.noPty {

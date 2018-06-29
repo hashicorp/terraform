@@ -47,6 +47,7 @@ type connectionInfo struct {
 	HostKey    string `mapstructure:"host_key"`
 	Port       int
 	Agent      bool
+	Silence    bool
 	Timeout    string
 	ScriptPath string        `mapstructure:"script_path"`
 	TimeoutVal time.Duration `mapstructure:"-"`
@@ -126,6 +127,12 @@ func parseConnectionInfo(s *terraform.InstanceState) (*connectionInfo, error) {
 		}
 	}
 
+	if s.Ephemeral.ConnInfo["silence"] != "true" {
+		connInfo.Silence = false
+	} else {
+		connInfo.Silence = true
+	}
+
 	return connInfo, nil
 }
 
@@ -186,6 +193,8 @@ func prepareSSHConfig(connInfo *connectionInfo) (*sshConfig, error) {
 		config:     sshConf,
 		connection: connectFunc,
 		sshAgent:   sshAgent,
+		noPty:      connInfo.Silence,
+		silence:    connInfo.Silence,
 	}
 	return config, nil
 }
@@ -197,6 +206,7 @@ type sshClientConfigOpts struct {
 	user       string
 	host       string
 	hostKey    string
+	silence    bool
 }
 
 func buildSSHClientConfig(opts sshClientConfigOpts) (*ssh.ClientConfig, error) {

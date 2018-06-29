@@ -144,6 +144,7 @@ func (n *EvalValidateProvisioner) validateConnConfig(connConfig *ResourceConfig)
 
 		// For type=ssh only (enforced in ssh communicator)
 		PrivateKey        interface{} `mapstructure:"private_key"`
+		Silence           interface{} `mapstructure:"silence"`
 		HostKey           interface{} `mapstructure:"host_key"`
 		Agent             interface{} `mapstructure:"agent"`
 		BastionHost       interface{} `mapstructure:"bastion_host"`
