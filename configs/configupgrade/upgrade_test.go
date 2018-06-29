@@ -8,6 +8,9 @@ import (
 	"os/exec"
 	"path/filepath"
 	"testing"
+
+	testprovider "github.com/hashicorp/terraform/builtin/providers/test"
+	"github.com/hashicorp/terraform/terraform"
 )
 
 func TestUpgradeValid(t *testing.T) {
@@ -28,6 +31,9 @@ func TestUpgradeValid(t *testing.T) {
 		t.Run(entry.Name(), func(t *testing.T) {
 			inputDir := filepath.Join(fixtureDir, entry.Name(), "input")
 			wantDir := filepath.Join(fixtureDir, entry.Name(), "want")
+			u := &Upgrader{
+				Providers: terraform.ResourceProviderResolverFixed(testProviders),
+			}
 
 			inputSrc, err := LoadModule(inputDir)
 			if err != nil {
@@ -38,7 +44,7 @@ func TestUpgradeValid(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			gotSrc, diags := Upgrade(inputSrc)
+			gotSrc, diags := u.Upgrade(inputSrc)
 			if diags.HasErrors() {
 				t.Error(diags.Err())
 			}
@@ -83,7 +89,10 @@ func TestUpgradeRenameJSON(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	gotSrc, diags := Upgrade(inputSrc)
+	u := &Upgrader{
+		Providers: terraform.ResourceProviderResolverFixed(testProviders),
+	}
+	gotSrc, diags := u.Upgrade(inputSrc)
 	if diags.HasErrors() {
 		t.Error(diags.Err())
 	}
@@ -165,4 +174,10 @@ func diffSourceFilesFallback(got, want []byte) []byte {
 	buf.Write(want)
 	buf.WriteString("\n")
 	return buf.Bytes()
+}
+
+var testProviders = map[string]terraform.ResourceProviderFactory{
+	"test": terraform.ResourceProviderFactory(func() (terraform.ResourceProvider, error) {
+		return testprovider.Provider(), nil
+	}),
 }
