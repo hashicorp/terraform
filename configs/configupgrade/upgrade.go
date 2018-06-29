@@ -30,9 +30,15 @@ import (
 // warnings are also represented as "TF-UPGRADE-TODO:" comments in the
 // generated source files so that users can visit them all and decide what to
 // do with them.
-func Upgrade(input ModuleSources) (ModuleSources, tfdiags.Diagnostics) {
+func (u *Upgrader) Upgrade(input ModuleSources) (ModuleSources, tfdiags.Diagnostics) {
 	ret := make(ModuleSources)
 	var diags tfdiags.Diagnostics
+
+	an, err := u.analyze(input)
+	if err != nil {
+		diags = diags.Append(err)
+		return ret, diags
+	}
 
 	for name, src := range input {
 		ext := fileExt(name)
@@ -91,7 +97,7 @@ func Upgrade(input ModuleSources) (ModuleSources, tfdiags.Diagnostics) {
 		}
 
 		// TODO: Actually rewrite this .tf file.
-		result, fileDiags := upgradeNativeSyntaxFile(name, src)
+		result, fileDiags := u.upgradeNativeSyntaxFile(name, src, an)
 		diags = diags.Append(fileDiags)
 		if fileDiags.HasErrors() {
 			// Leave unchanged, then.
