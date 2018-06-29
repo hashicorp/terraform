@@ -42,6 +42,7 @@ type Disco struct {
 	Transport http.RoundTripper
 }
 
+// NewDisco returns a new initialized Disco object.
 func NewDisco() *Disco {
 	return &Disco{}
 }
@@ -117,7 +118,7 @@ func (d *Disco) DiscoverServiceURL(host svchost.Hostname, serviceID string) *url
 func (d *Disco) discover(host svchost.Hostname) Host {
 	discoURL := &url.URL{
 		Scheme: "https",
-		Host:   string(host),
+		Host:   host.String(),
 		Path:   discoPath,
 	}
 
@@ -166,6 +167,8 @@ func (d *Disco) discover(host svchost.Hostname) Host {
 		log.Printf("[WARN] Failed to request discovery document: %s", err)
 		return ret // empty
 	}
+	defer resp.Body.Close()
+
 	if resp.StatusCode != 200 {
 		log.Printf("[WARN] Failed to request discovery document: %s", resp.Status)
 		return ret // empty
