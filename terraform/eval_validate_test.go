@@ -278,6 +278,82 @@ func TestEvalValidateResource_ignoreWarnings(t *testing.T) {
 	}
 }
 
+func TestEvalValidateResource_invalidDependsOn(t *testing.T) {
+	mp := simpleMockProvider()
+	mp.ValidateResourceFn = func(rt string, c *ResourceConfig) (ws []string, es []error) {
+		return
+	}
+
+	// We'll check a _valid_ config first, to make sure we're not failing
+	// for some other reason, and then make it invalid.
+	p := ResourceProvider(mp)
+	rc := &configs.Resource{
+		Mode:   addrs.ManagedResourceMode,
+		Type:   "test_object",
+		Name:   "foo",
+		Config: configs.SynthBody("", map[string]cty.Value{}),
+		DependsOn: []hcl.Traversal{
+			// Depending on path.module is pointless, since it is immediately
+			// available, but we allow all of the referencable addrs here
+			// for consistency: referencing them is harmless, and avoids the
+			// need for us to document a different subset of addresses that
+			// are valid in depends_on.
+			// For the sake of this test, it's a valid address we can use that
+			// doesn't require something else to exist in the configuration.
+			{
+				hcl.TraverseRoot{
+					Name: "path",
+				},
+				hcl.TraverseAttr{
+					Name: "module",
+				},
+			},
+		},
+	}
+	node := &EvalValidateResource{
+		Addr: addrs.Resource{
+			Mode: addrs.ManagedResourceMode,
+			Type: "aws_instance",
+			Name: "foo",
+		},
+		Provider:       &p,
+		Config:         rc,
+		ProviderSchema: &mp.GetSchemaReturn,
+	}
+
+	ctx := &MockEvalContext{}
+	ctx.installSimpleEval()
+
+	_, err := node.Eval(ctx)
+	if err != nil {
+		t.Fatalf("error for supposedly-valid config: %s", err)
+	}
+
+	// No we'll make it invalid, but adding additional traversal steps
+	// on the end of what we're referencing. This is intended to catch the
+	// situation where the user tries to depend on e.g. a specific resource
+	// attribute, rather than the whole resource, like aws_instance.foo.id.
+	rc.DependsOn = append(rc.DependsOn, hcl.Traversal{
+		hcl.TraverseRoot{
+			Name: "path",
+		},
+		hcl.TraverseAttr{
+			Name: "module",
+		},
+		hcl.TraverseAttr{
+			Name: "extra",
+		},
+	})
+
+	_, err = node.Eval(ctx)
+	if err == nil {
+		t.Fatal("no error for invalid depends_on")
+	}
+	if got, want := err.Error(), "Invalid depends_on reference"; !strings.Contains(got, want) {
+		t.Fatalf("wrong error\ngot:  %s\nwant: Message containing %q", got, want)
+	}
+}
+
 func TestEvalValidateProvisioner_valid(t *testing.T) {
 	mp := &MockResourceProvisioner{}
 	var p ResourceProvisioner = mp
