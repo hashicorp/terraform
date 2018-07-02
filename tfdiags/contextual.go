@@ -80,6 +80,19 @@ func AttributeValue(severity Severity, summary, detail string, attrPath cty.Path
 	}
 }
 
+// GetAttribute extracts an attribute cty.Path from a diagnostic if it contains
+// one. Normally this is not accessed directly, and instead the config body is
+// added to the Diagnostic to create a more complete message for the user. In
+// some cases however, we may want to know just the name of the attribute that
+// generated the Diagnostic message.
+// This returns a nil cty.Path if it does not exist in the Diagnostic.
+func GetAttribute(d Diagnostic) cty.Path {
+	if d, ok := d.(*attributeDiagnostic); ok {
+		return d.attrPath
+	}
+	return nil
+}
+
 type attributeDiagnostic struct {
 	diagnosticBase
 	attrPath cty.Path
