@@ -380,6 +380,19 @@ func (n *EvalValidateResource) Eval(ctx EvalContext) (interface{}, error) {
 		diags = diags.Append(countDiags)
 	}
 
+	for _, traversal := range n.Config.DependsOn {
+		ref, refDiags := addrs.ParseRef(traversal)
+		diags = diags.Append(refDiags)
+		if len(ref.Remaining) != 0 {
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Invalid depends_on reference",
+				Detail:   "References in depends_on must be to a whole object (resource, etc), not to an attribute of an object.",
+				Subject:  ref.Remaining.SourceRange().Ptr(),
+			})
+		}
+	}
+
 	var warns []string
 	var errs []error
 
