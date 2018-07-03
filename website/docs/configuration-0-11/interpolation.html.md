@@ -75,7 +75,7 @@ syntax to get a list of all the attributes: `${data.aws_subnet.example.*.cidr_bl
 
 #### Outputs from a module
 
-The syntax is `MODULE.NAME.OUTPUT`. For example `${module.foo.bar}` will
+The syntax is `module.NAME.OUTPUT`. For example `${module.foo.bar}` will
 interpolate the `bar` output from the `foo`
 [module](/docs/modules/index.html).
 
