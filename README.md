@@ -41,10 +41,14 @@ This repository contains only Terraform core, which includes the command line in
 For local development of Terraform core, first make sure Go is properly installed and that a
 [GOPATH](http://golang.org/doc/code.html#GOPATH) has been set. You will also need to add `$GOPATH/bin` to your `$PATH`.
 
-Next, using [Git](https://git-scm.com/), clone this repository into `$GOPATH/src/github.com/hashicorp/terraform`. All the necessary dependencies are either vendored or automatically installed, so you just need to type `make`. This will compile the code and then run the tests. If this exits with exit status 0, then everything is working!
+Next, using [Git](https://git-scm.com/), clone this repository into `$GOPATH/src/github.com/hashicorp/terraform`.
+
+You'll need to run `make tools` to install some required tools, then `make`.  This will compile the code and then run the tests. If this exits with exit status 0, then everything is working!
+You only need torun `make tools` once (or when the tools change).
 
 ```sh
 $ cd "$GOPATH/src/github.com/hashicorp/terraform"
+$ make tools
 $ make
 ```
 
