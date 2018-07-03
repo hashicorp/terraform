@@ -34,7 +34,7 @@ All documentation is available on the [Terraform website](http://www.terraform.i
 Developing Terraform
 --------------------
 
-If you wish to work on Terraform itself or any of its built-in providers, you'll first need [Go](http://www.golang.org) installed on your machine (version 1.9+ is *required*). Alternatively, you can use the Vagrantfile in the root of this repo to stand up a virtual machine with the appropriate dev tooling already set up for you.
+If you wish to work on Terraform itself or any of its built-in providers, you'll first need [Go](http://www.golang.org) installed on your machine (version 1.10+ is *required*). Alternatively, you can use the Vagrantfile in the root of this repo to stand up a virtual machine with the appropriate dev tooling already set up for you.
 
 This repository contains only Terraform core, which includes the command line interface and the main graph engine. Providers are implemented as plugins that each have their own repository in [the `terraform-providers` organization](https://github.com/terraform-providers) on GitHub. Instructions for developing each provider are in the associated README file. For more information, see [the provider development overview](https://www.terraform.io/docs/plugins/provider.html).
 
