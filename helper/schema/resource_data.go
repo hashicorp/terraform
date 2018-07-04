@@ -49,6 +49,18 @@ type getResult struct {
 	Schema         *Schema
 }
 
+// hasZeroValue determines if the value contained in getResult is
+// equal to the Zero value (unset).
+func (r *getResult) hasZeroValue() bool {
+	zero := r.Schema.Type.Zero()
+	value := r.Value
+
+	if eq, ok := value.(Equal); ok {
+		return eq.Equal(zero)
+	}
+	return reflect.DeepEqual(value, zero)
+}
+
 // UnsafeSetFieldRaw allows setting arbitrary values in state to arbitrary
 // values, bypassing schema. This MUST NOT be used in normal circumstances -
 // it exists only to support the remote_state data source.

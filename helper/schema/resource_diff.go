@@ -382,19 +382,7 @@ func (d *ResourceDiff) GetChange(key string) (interface{}, interface{}) {
 // customized diff.
 func (d *ResourceDiff) GetOk(key string) (interface{}, bool) {
 	r := d.get(strings.Split(key, "."), "newDiff")
-	exists := r.Exists && !r.Computed
-	if exists {
-		// If it exists, we also want to verify it is not the zero-value.
-		value := r.Value
-		zero := r.Schema.Type.Zero()
-
-		if eq, ok := value.(Equal); ok {
-			exists = !eq.Equal(zero)
-		} else {
-			exists = !reflect.DeepEqual(value, zero)
-		}
-	}
-
+	exists := r.Exists && !r.Computed && !r.hasZeroValue()
 	return r.Value, exists
 }
 
@@ -421,12 +409,12 @@ func (d *ResourceDiff) NewValueKnown(key string) bool {
 	return !r.Computed
 }
 
-// Exists returns true if the given key has a value whether it is computed or
+// IsSet returns true if the given key has a value whether it is computed or
 // not. If the return value is false, this means that the field is not a
 // computed field and does not have an explicitely set value.
-func (d *ResourceDiff) Exists(key string) bool {
-	r := d.get(strings.Split(key, "."), "newDiff")
-	return r.Exists
+func (d *ResourceDiff) IsSet(key string) bool {
+	old, new, _ := d.getChange(key)
+	return new.Exists && !(new.hasZeroValue() && !old.hasZeroValue())
 }
 
 // HasChange checks to see if there is a change between state and the diff, or
