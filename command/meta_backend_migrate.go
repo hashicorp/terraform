@@ -211,6 +211,13 @@ func (m *Meta) backendMigrateState_s_s(opts *backendMigrateOpts) error {
 
 	stateTwo, err := opts.Two.State(opts.twoEnv)
 	if err != nil {
+		if err == backend.ErrDefaultStateNotSupported && stateOne.State() == nil {
+			// When using named workspaces it is common that the default
+			// workspace is not actually used. So we first check if there
+			// actually is a state to be migrated, if not we just return
+			// and silently ignore the unused default worksopace.
+			return nil
+		}
 		return fmt.Errorf(strings.TrimSpace(
 			errMigrateSingleLoadDefault), opts.TwoType, err)
 	}
@@ -418,8 +425,8 @@ above error and try again.
 `
 
 const errMigrateMulti = `
-Error migrating the workspace %q from the previous %q backend to the newly
-configured %q backend:
+Error migrating the workspace %q from the previous %q backend
+to the newly configured %q backend:
     %s
 
 Terraform copies workspaces in alphabetical order. Any workspaces
@@ -432,7 +439,8 @@ This will attempt to copy (with permission) all workspaces again.
 `
 
 const errBackendStateCopy = `
-Error copying state from the previous %q backend to the newly configured %q backend:
+Error copying state from the previous %q backend to the newly configured 
+%q backend:
     %s
 
 The state in the previous backend remains intact and unmodified. Please resolve

@@ -19,6 +19,7 @@ import (
 	"syscall"
 	"testing"
 
+	backendInit "github.com/hashicorp/terraform/backend/init"
 	"github.com/hashicorp/terraform/config/module"
 	"github.com/hashicorp/terraform/helper/logging"
 	"github.com/hashicorp/terraform/terraform"
@@ -32,6 +33,9 @@ var testingDir string
 
 func init() {
 	test = true
+
+	// Initialize the backends
+	backendInit.Init(nil)
 
 	// Expand the fixture dir on init because we change the working
 	// directory in some tests.

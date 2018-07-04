@@ -12,8 +12,8 @@ import (
 //
 // If a type is already in the map, it will not be added. This will allow
 // us to slowly convert the legacy types to first-class backends.
-func Init(m map[string]func() backend.Backend) {
-	for k, _ := range remote.BuiltinClients {
+func Init(m map[string]backend.InitFn) {
+	for k := range remote.BuiltinClients {
 		if _, ok := m[k]; !ok {
 			// Copy the "k" value since the variable "k" is reused for
 			// each key (address doesn't change).
