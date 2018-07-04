@@ -39,59 +39,14 @@ type Backend struct {
 
 	// schema is the schema for configuration, set by init
 	schema *schema.Backend
-	once   sync.Once
 
 	// opLock locks operations
 	opLock sync.Mutex
 }
 
-func (b *Backend) Input(
-	ui terraform.UIInput, c *terraform.ResourceConfig) (*terraform.ResourceConfig, error) {
-	b.once.Do(b.init)
-	return b.schema.Input(ui, c)
-}
-
-func (b *Backend) Validate(c *terraform.ResourceConfig) ([]string, []error) {
-	b.once.Do(b.init)
-	return b.schema.Validate(c)
-}
-
-func (b *Backend) Configure(c *terraform.ResourceConfig) error {
-	b.once.Do(b.init)
-	return b.schema.Configure(c)
-}
-
-func (b *Backend) States() ([]string, error) {
-	return nil, backend.ErrNamedStatesNotSupported
-}
-
-func (b *Backend) DeleteState(name string) error {
-	return backend.ErrNamedStatesNotSupported
-}
-
-func (b *Backend) State(name string) (state.State, error) {
-	if name != backend.DefaultStateName {
-		return nil, backend.ErrNamedStatesNotSupported
-	}
-
-	return &remote.State{Client: b.stateClient}, nil
-}
-
-// Colorize returns the Colorize structure that can be used for colorizing
-// output. This is gauranteed to always return a non-nil value and so is useful
-// as a helper to wrap any potentially colored strings.
-func (b *Backend) Colorize() *colorstring.Colorize {
-	if b.CLIColor != nil {
-		return b.CLIColor
-	}
-
-	return &colorstring.Colorize{
-		Colors:  colorstring.DefaultColors,
-		Disable: true,
-	}
-}
-
-func (b *Backend) init() {
+// New returns a new initialized Atlas backend.
+func New() *Backend {
+	b := &Backend{}
 	b.schema = &schema.Backend{
 		Schema: map[string]*schema.Schema{
 			"name": &schema.Schema{
@@ -115,11 +70,13 @@ func (b *Backend) init() {
 			},
 		},
 
-		ConfigureFunc: b.schemaConfigure,
+		ConfigureFunc: b.configure,
 	}
+
+	return b
 }
 
-func (b *Backend) schemaConfigure(ctx context.Context) error {
+func (b *Backend) configure(ctx context.Context) error {
 	d := schema.FromContextBackendConfig(ctx)
 
 	// Parse the address
@@ -151,6 +108,47 @@ func (b *Backend) schemaConfigure(ctx context.Context) error {
 	}
 
 	return nil
+}
+
+func (b *Backend) Input(ui terraform.UIInput, c *terraform.ResourceConfig) (*terraform.ResourceConfig, error) {
+	return b.schema.Input(ui, c)
+}
+
+func (b *Backend) Validate(c *terraform.ResourceConfig) ([]string, []error) {
+	return b.schema.Validate(c)
+}
+
+func (b *Backend) Configure(c *terraform.ResourceConfig) error {
+	return b.schema.Configure(c)
+}
+
+func (b *Backend) State(name string) (state.State, error) {
+	if name != backend.DefaultStateName {
+		return nil, backend.ErrNamedStatesNotSupported
+	}
+	return &remote.State{Client: b.stateClient}, nil
+}
+
+func (b *Backend) DeleteState(name string) error {
+	return backend.ErrNamedStatesNotSupported
+}
+
+func (b *Backend) States() ([]string, error) {
+	return nil, backend.ErrNamedStatesNotSupported
+}
+
+// Colorize returns the Colorize structure that can be used for colorizing
+// output. This is gauranteed to always return a non-nil value and so is useful
+// as a helper to wrap any potentially colored strings.
+func (b *Backend) Colorize() *colorstring.Colorize {
+	if b.CLIColor != nil {
+		return b.CLIColor
+	}
+
+	return &colorstring.Colorize{
+		Colors:  colorstring.DefaultColors,
+		Disable: true,
+	}
 }
 
 var schemaDescriptions = map[string]string{

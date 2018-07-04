@@ -136,7 +136,7 @@ func (m *Meta) Backend(opts *BackendOpts) (backend.Enhanced, error) {
 	}
 
 	// Build the local backend
-	local := &backendLocal.Local{Backend: b}
+	local := backendLocal.NewWithBackend(b)
 	if err := local.CLIInit(cliOpts); err != nil {
 		// Local backend isn't allowed to fail. It would be a bug.
 		panic(err)

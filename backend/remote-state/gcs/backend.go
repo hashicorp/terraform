@@ -18,10 +18,10 @@ import (
 	"google.golang.org/api/option"
 )
 
-// gcsBackend implements "backend".Backend for GCS.
+// Backend implements "backend".Backend for GCS.
 // Input(), Validate() and Configure() are implemented by embedding *schema.Backend.
 // State(), DeleteState() and States() are implemented explicitly.
-type gcsBackend struct {
+type Backend struct {
 	*schema.Backend
 
 	storageClient  *storage.Client
@@ -38,9 +38,9 @@ type gcsBackend struct {
 }
 
 func New() backend.Backend {
-	be := &gcsBackend{}
-	be.Backend = &schema.Backend{
-		ConfigureFunc: be.configure,
+	b := &Backend{}
+	b.Backend = &schema.Backend{
+		ConfigureFunc: b.configure,
 		Schema: map[string]*schema.Schema{
 			"bucket": {
 				Type:        schema.TypeString,
@@ -91,10 +91,10 @@ func New() backend.Backend {
 		},
 	}
 
-	return be
+	return b
 }
 
-func (b *gcsBackend) configure(ctx context.Context) error {
+func (b *Backend) configure(ctx context.Context) error {
 	if b.storageClient != nil {
 		return nil
 	}

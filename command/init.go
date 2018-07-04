@@ -138,11 +138,13 @@ func (c *InitCommand) Run(args []string) int {
 
 	// If our directory is empty, then we're done. We can't get or setup
 	// the backend with an empty directory.
-	if empty, err := config.IsEmptyDir(path); err != nil {
+	empty, err := config.IsEmptyDir(path)
+	if err != nil {
 		c.Ui.Error(fmt.Sprintf(
 			"Error checking configuration: %s", err))
 		return 1
-	} else if empty {
+	}
+	if empty {
 		c.Ui.Output(c.Colorize().Color(strings.TrimSpace(outputInitEmpty)))
 		return 0
 	}

@@ -20,7 +20,7 @@ import (
 )
 
 func testStateClient(t *testing.T, c map[string]interface{}) remote.Client {
-	b := backend.TestBackendConfig(t, &Backend{}, c)
+	b := backend.TestBackendConfig(t, New(), c)
 	raw, err := b.State(backend.DefaultStateName)
 	if err != nil {
 		t.Fatalf("err: %s", err)

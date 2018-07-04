@@ -39,7 +39,7 @@ func TestStateFile(t *testing.T) {
 		{"state", "legacy.state", "test", "state/test.tfstate", "state/test.tflock"},
 	}
 	for _, c := range cases {
-		b := &gcsBackend{
+		b := &Backend{
 			prefix:           c.prefix,
 			defaultStateFile: c.defaultStateFile,
 		}
@@ -188,7 +188,7 @@ func setupBackend(t *testing.T, bucket, prefix, key string) backend.Backend {
 	}
 
 	b := backend.TestBackendConfig(t, New(), config)
-	be := b.(*gcsBackend)
+	be := b.(*Backend)
 
 	// create the bucket if it doesn't exist
 	bkt := be.storageClient.Bucket(bucket)
@@ -213,7 +213,7 @@ func setupBackend(t *testing.T, bucket, prefix, key string) backend.Backend {
 // teardownBackend deletes all states from be except the default state.
 func teardownBackend(t *testing.T, be backend.Backend, prefix string) {
 	t.Helper()
-	gcsBE, ok := be.(*gcsBackend)
+	gcsBE, ok := be.(*Backend)
 	if !ok {
 		t.Fatalf("be is a %T, want a *gcsBackend", be)
 	}
