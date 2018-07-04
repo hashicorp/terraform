@@ -8,14 +8,14 @@ import (
 	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/terraform"
 
-	backendatlas "github.com/hashicorp/terraform/backend/atlas"
-	backendlegacy "github.com/hashicorp/terraform/backend/legacy"
-	backendlocal "github.com/hashicorp/terraform/backend/local"
+	backendAtlas "github.com/hashicorp/terraform/backend/atlas"
+	backendLegacy "github.com/hashicorp/terraform/backend/legacy"
+	backendLocal "github.com/hashicorp/terraform/backend/local"
 	backendAzure "github.com/hashicorp/terraform/backend/remote-state/azure"
-	backendconsul "github.com/hashicorp/terraform/backend/remote-state/consul"
-	backendetcdv3 "github.com/hashicorp/terraform/backend/remote-state/etcdv3"
+	backendConsul "github.com/hashicorp/terraform/backend/remote-state/consul"
+	backendEtcdv3 "github.com/hashicorp/terraform/backend/remote-state/etcdv3"
 	backendGCS "github.com/hashicorp/terraform/backend/remote-state/gcs"
-	backendinmem "github.com/hashicorp/terraform/backend/remote-state/inmem"
+	backendInmem "github.com/hashicorp/terraform/backend/remote-state/inmem"
 	backendManta "github.com/hashicorp/terraform/backend/remote-state/manta"
 	backendS3 "github.com/hashicorp/terraform/backend/remote-state/s3"
 	backendSwift "github.com/hashicorp/terraform/backend/remote-state/swift"
@@ -39,23 +39,23 @@ func init() {
 	// Our hardcoded backends. We don't need to acquire a lock here
 	// since init() code is serial and can't spawn goroutines.
 	backends = map[string]func() backend.Backend{
-		"atlas":  func() backend.Backend { return &backendatlas.Backend{} },
-		"local":  func() backend.Backend { return &backendlocal.Local{} },
-		"consul": func() backend.Backend { return backendconsul.New() },
-		"inmem":  func() backend.Backend { return backendinmem.New() },
-		"swift":  func() backend.Backend { return backendSwift.New() },
-		"s3":     func() backend.Backend { return backendS3.New() },
+		"local": func() backend.Backend { return &backendLocal.Local{} },
+		"atlas": func() backend.Backend { return &backendAtlas.Backend{} },
 		"azure": deprecateBackend(backendAzure.New(),
 			`Warning: "azure" name is deprecated, please use "azurerm"`),
 		"azurerm": func() backend.Backend { return backendAzure.New() },
-		"etcdv3":  func() backend.Backend { return backendetcdv3.New() },
+		"consul":  func() backend.Backend { return backendConsul.New() },
+		"etcdv3":  func() backend.Backend { return backendEtcdv3.New() },
 		"gcs":     func() backend.Backend { return backendGCS.New() },
+		"inmem":   func() backend.Backend { return backendInmem.New() },
 		"manta":   func() backend.Backend { return backendManta.New() },
+		"s3":      func() backend.Backend { return backendS3.New() },
+		"swift":   func() backend.Backend { return backendSwift.New() },
 	}
 
-	// Add the legacy remote backends that haven't yet been convertd to
+	// Add the legacy remote backends that haven't yet been converted to
 	// the new backend API.
-	backendlegacy.Init(backends)
+	backendLegacy.Init(backends)
 }
 
 // Backend returns the initialization factory for the given backend, or

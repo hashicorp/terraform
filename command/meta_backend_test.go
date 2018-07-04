@@ -10,8 +10,8 @@ import (
 	"testing"
 
 	"github.com/hashicorp/terraform/backend"
-	backendinit "github.com/hashicorp/terraform/backend/init"
-	backendlocal "github.com/hashicorp/terraform/backend/local"
+	backendInit "github.com/hashicorp/terraform/backend/init"
+	backendLocal "github.com/hashicorp/terraform/backend/local"
 	"github.com/hashicorp/terraform/helper/copy"
 	"github.com/hashicorp/terraform/state"
 	"github.com/hashicorp/terraform/terraform"
@@ -994,8 +994,8 @@ func TestMetaBackend_reconfigureChange(t *testing.T) {
 	defer testChdir(t, td)()
 
 	// Register the single-state backend
-	backendinit.Set("local-single", backendlocal.TestNewLocalSingle)
-	defer backendinit.Set("local-single", nil)
+	backendInit.Set("local-single", backendLocal.TestNewLocalSingle)
+	defer backendInit.Set("local-single", nil)
 
 	// Setup the meta
 	m := testMetaBackend(t, nil)
@@ -1093,8 +1093,8 @@ func TestMetaBackend_configuredChangeCopy_singleState(t *testing.T) {
 	defer testChdir(t, td)()
 
 	// Register the single-state backend
-	backendinit.Set("local-single", backendlocal.TestNewLocalSingle)
-	defer backendinit.Set("local-single", nil)
+	backendInit.Set("local-single", backendLocal.TestNewLocalSingle)
+	defer backendInit.Set("local-single", nil)
 
 	// Ask input
 	defer testInputMap(t, map[string]string{
@@ -1149,8 +1149,8 @@ func TestMetaBackend_configuredChangeCopy_multiToSingleDefault(t *testing.T) {
 	defer testChdir(t, td)()
 
 	// Register the single-state backend
-	backendinit.Set("local-single", backendlocal.TestNewLocalSingle)
-	defer backendinit.Set("local-single", nil)
+	backendInit.Set("local-single", backendLocal.TestNewLocalSingle)
+	defer backendInit.Set("local-single", nil)
 
 	// Ask input
 	defer testInputMap(t, map[string]string{
@@ -1204,8 +1204,8 @@ func TestMetaBackend_configuredChangeCopy_multiToSingle(t *testing.T) {
 	defer testChdir(t, td)()
 
 	// Register the single-state backend
-	backendinit.Set("local-single", backendlocal.TestNewLocalSingle)
-	defer backendinit.Set("local-single", nil)
+	backendInit.Set("local-single", backendLocal.TestNewLocalSingle)
+	defer backendInit.Set("local-single", nil)
 
 	// Ask input
 	defer testInputMap(t, map[string]string{
@@ -1250,7 +1250,7 @@ func TestMetaBackend_configuredChangeCopy_multiToSingle(t *testing.T) {
 	}
 
 	// Verify existing workspaces exist
-	envPath := filepath.Join(backendlocal.DefaultWorkspaceDir, "env2", backendlocal.DefaultStateFilename)
+	envPath := filepath.Join(backendLocal.DefaultWorkspaceDir, "env2", backendLocal.DefaultStateFilename)
 	if _, err := os.Stat(envPath); err != nil {
 		t.Fatal("env should exist")
 	}
@@ -1271,8 +1271,8 @@ func TestMetaBackend_configuredChangeCopy_multiToSingleCurrentEnv(t *testing.T) 
 	defer testChdir(t, td)()
 
 	// Register the single-state backend
-	backendinit.Set("local-single", backendlocal.TestNewLocalSingle)
-	defer backendinit.Set("local-single", nil)
+	backendInit.Set("local-single", backendLocal.TestNewLocalSingle)
+	defer backendInit.Set("local-single", nil)
 
 	// Ask input
 	defer testInputMap(t, map[string]string{
@@ -1322,7 +1322,7 @@ func TestMetaBackend_configuredChangeCopy_multiToSingleCurrentEnv(t *testing.T) 
 	}
 
 	// Verify existing workspaces exist
-	envPath := filepath.Join(backendlocal.DefaultWorkspaceDir, "env2", backendlocal.DefaultStateFilename)
+	envPath := filepath.Join(backendLocal.DefaultWorkspaceDir, "env2", backendLocal.DefaultStateFilename)
 	if _, err := os.Stat(envPath); err != nil {
 		t.Fatal("env should exist")
 	}
@@ -1407,7 +1407,7 @@ func TestMetaBackend_configuredChangeCopy_multiToMulti(t *testing.T) {
 
 	{
 		// Verify existing workspaces exist
-		envPath := filepath.Join(backendlocal.DefaultWorkspaceDir, "env2", backendlocal.DefaultStateFilename)
+		envPath := filepath.Join(backendLocal.DefaultWorkspaceDir, "env2", backendLocal.DefaultStateFilename)
 		if _, err := os.Stat(envPath); err != nil {
 			t.Fatal("env should exist")
 		}
@@ -1415,7 +1415,7 @@ func TestMetaBackend_configuredChangeCopy_multiToMulti(t *testing.T) {
 
 	{
 		// Verify new workspaces exist
-		envPath := filepath.Join("envdir-new", "env2", backendlocal.DefaultStateFilename)
+		envPath := filepath.Join("envdir-new", "env2", backendLocal.DefaultStateFilename)
 		if _, err := os.Stat(envPath); err != nil {
 			t.Fatal("env should exist")
 		}
@@ -3351,7 +3351,7 @@ func TestMetaBackend_configureWithExtra(t *testing.T) {
 	}
 
 	// Check the state
-	s := testStateRead(t, filepath.Join(DefaultDataDir, backendlocal.DefaultStateFilename))
+	s := testStateRead(t, filepath.Join(DefaultDataDir, backendLocal.DefaultStateFilename))
 	if s.Backend.Hash != backendCfg.Hash {
 		t.Fatal("mismatched state and config backend hashes")
 	}
@@ -3373,7 +3373,7 @@ func TestMetaBackend_configureWithExtra(t *testing.T) {
 	}
 
 	// Check the state
-	s = testStateRead(t, filepath.Join(DefaultDataDir, backendlocal.DefaultStateFilename))
+	s = testStateRead(t, filepath.Join(DefaultDataDir, backendLocal.DefaultStateFilename))
 	if s.Backend.Hash != backendCfg.Hash {
 		t.Fatal("mismatched state and config backend hashes")
 	}
@@ -3442,7 +3442,7 @@ func TestMetaBackend_configToExtra(t *testing.T) {
 	}
 
 	// Check the state
-	s := testStateRead(t, filepath.Join(DefaultDataDir, backendlocal.DefaultStateFilename))
+	s := testStateRead(t, filepath.Join(DefaultDataDir, backendLocal.DefaultStateFilename))
 	backendHash := s.Backend.Hash
 
 	// init again but remove the path option from the config
@@ -3463,7 +3463,7 @@ func TestMetaBackend_configToExtra(t *testing.T) {
 		t.Fatalf("bad: %s", err)
 	}
 
-	s = testStateRead(t, filepath.Join(DefaultDataDir, backendlocal.DefaultStateFilename))
+	s = testStateRead(t, filepath.Join(DefaultDataDir, backendLocal.DefaultStateFilename))
 
 	if s.Backend.Hash == backendHash {
 		t.Fatal("state.Backend.Hash was not updated")
