@@ -18,13 +18,14 @@ import (
 // public fields without any locks.
 func TestLocal(t *testing.T) (*Local, func()) {
 	tempDir := testTempDir(t)
-	local := &Local{
-		StatePath:         filepath.Join(tempDir, "state.tfstate"),
-		StateOutPath:      filepath.Join(tempDir, "state.tfstate"),
-		StateBackupPath:   filepath.Join(tempDir, "state.tfstate.bak"),
-		StateWorkspaceDir: filepath.Join(tempDir, "state.tfstate.d"),
-		ContextOpts:       &terraform.ContextOpts{},
-	}
+
+	local := New()
+	local.StatePath = filepath.Join(tempDir, "state.tfstate")
+	local.StateOutPath = filepath.Join(tempDir, "state.tfstate")
+	local.StateBackupPath = filepath.Join(tempDir, "state.tfstate.bak")
+	local.StateWorkspaceDir = filepath.Join(tempDir, "state.tfstate.d")
+	local.ContextOpts = &terraform.ContextOpts{}
+
 	cleanup := func() {
 		if err := os.RemoveAll(tempDir); err != nil {
 			t.Fatal("error clecanup up test:", err)
@@ -69,7 +70,7 @@ func TestLocalProvider(t *testing.T, b *Local, name string) *terraform.MockResou
 // TestNewLocalSingle is a factory for creating a TestLocalSingleState.
 // This function matches the signature required for backend/init.
 func TestNewLocalSingle() backend.Backend {
-	return &TestLocalSingleState{}
+	return &TestLocalSingleState{Local: New()}
 }
 
 // TestLocalSingleState is a backend implementation that wraps Local
@@ -79,7 +80,7 @@ func TestNewLocalSingle() backend.Backend {
 // This isn't an actual use case, this is exported just to provide a
 // easy way to test that behavior.
 type TestLocalSingleState struct {
-	Local
+	*Local
 }
 
 func (b *TestLocalSingleState) State(name string) (state.State, error) {

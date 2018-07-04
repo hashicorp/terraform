@@ -5,15 +5,13 @@ import (
 	"errors"
 	"log"
 
-	"github.com/hashicorp/terraform/command/clistate"
-	"github.com/hashicorp/terraform/command/format"
-
-	"github.com/hashicorp/terraform/tfdiags"
-
 	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/terraform/backend"
+	"github.com/hashicorp/terraform/command/clistate"
+	"github.com/hashicorp/terraform/command/format"
 	"github.com/hashicorp/terraform/state"
 	"github.com/hashicorp/terraform/terraform"
+	"github.com/hashicorp/terraform/tfdiags"
 )
 
 // backend.Local implementation.

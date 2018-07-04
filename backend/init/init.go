@@ -39,8 +39,8 @@ func init() {
 	// Our hardcoded backends. We don't need to acquire a lock here
 	// since init() code is serial and can't spawn goroutines.
 	backends = map[string]func() backend.Backend{
-		"local": func() backend.Backend { return &backendLocal.Local{} },
-		"atlas": func() backend.Backend { return &backendAtlas.Backend{} },
+		"local": func() backend.Backend { return backendLocal.New() },
+		"atlas": func() backend.Backend { return backendAtlas.New() },
 		"azure": deprecateBackend(backendAzure.New(),
 			`Warning: "azure" name is deprecated, please use "azurerm"`),
 		"azurerm": func() backend.Backend { return backendAzure.New() },

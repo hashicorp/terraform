@@ -15,14 +15,14 @@ import (
 )
 
 func TestLocal_impl(t *testing.T) {
-	var _ backend.Enhanced = new(Local)
-	var _ backend.Local = new(Local)
-	var _ backend.CLI = new(Local)
+	var _ backend.Enhanced = New()
+	var _ backend.Local = New()
+	var _ backend.CLI = New()
 }
 
 func TestLocal_backend(t *testing.T) {
 	defer testTmpDir(t)()
-	b := &Local{}
+	b := New()
 	backend.TestBackendStates(t, b)
 	backend.TestBackendStateLocks(t, b, b)
 }
@@ -49,7 +49,7 @@ func checkState(t *testing.T, path, expected string) {
 }
 
 func TestLocal_StatePaths(t *testing.T) {
-	b := &Local{}
+	b := New()
 
 	// Test the defaults
 	path, out, back := b.StatePaths("")
@@ -94,7 +94,7 @@ func TestLocal_addAndRemoveStates(t *testing.T) {
 	dflt := backend.DefaultStateName
 	expectedStates := []string{dflt}
 
-	b := &Local{}
+	b := New()
 	states, err := b.States()
 	if err != nil {
 		t.Fatal(err)
@@ -210,13 +210,11 @@ func (b *testDelegateBackend) DeleteState(name string) error {
 // verify that the MultiState methods are dispatched to the correct Backend.
 func TestLocal_multiStateBackend(t *testing.T) {
 	// assign a separate backend where we can read the state
-	b := &Local{
-		Backend: &testDelegateBackend{
-			stateErr:  true,
-			statesErr: true,
-			deleteErr: true,
-		},
-	}
+	b := NewWithBackend(&testDelegateBackend{
+		stateErr:  true,
+		statesErr: true,
+		deleteErr: true,
+	})
 
 	if _, err := b.State("test"); err != errTestDelegateState {
 		t.Fatal("expected errTestDelegateState, got:", err)
