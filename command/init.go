@@ -140,8 +140,7 @@ func (c *InitCommand) Run(args []string) int {
 	// the backend with an empty directory.
 	empty, err := config.IsEmptyDir(path)
 	if err != nil {
-		c.Ui.Error(fmt.Sprintf(
-			"Error checking configuration: %s", err))
+		c.Ui.Error(fmt.Sprintf("Error checking configuration: %s", err))
 		return 1
 	}
 	if empty {
@@ -229,14 +228,12 @@ func (c *InitCommand) Run(args []string) int {
 	if back != nil {
 		sMgr, err := back.State(c.Workspace())
 		if err != nil {
-			c.Ui.Error(fmt.Sprintf(
-				"Error loading state: %s", err))
+			c.Ui.Error(fmt.Sprintf("Error loading state: %s", err))
 			return 1
 		}
 
 		if err := sMgr.RefreshState(); err != nil {
-			c.Ui.Error(fmt.Sprintf(
-				"Error refreshing state: %s", err))
+			c.Ui.Error(fmt.Sprintf("Error refreshing state: %s", err))
 			return 1
 		}
 
