@@ -421,6 +421,14 @@ func (d *ResourceDiff) NewValueKnown(key string) bool {
 	return !r.Computed
 }
 
+// Exists returns true if the given key has a value whether it is computed or
+// not. If the return value is false, this means that the field is not a
+// computed field and does not have an explicitely set value.
+func (d *ResourceDiff) Exists(key string) bool {
+	r := d.get(strings.Split(key, "."), "newDiff")
+	return r.Exists
+}
+
 // HasChange checks to see if there is a change between state and the diff, or
 // in the overridden diff.
 func (d *ResourceDiff) HasChange(key string) bool {
