@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/terraform/backend"
-	backendinit "github.com/hashicorp/terraform/backend/init"
+	backendInit "github.com/hashicorp/terraform/backend/init"
 	"github.com/hashicorp/terraform/config"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/terraform"
@@ -80,7 +80,7 @@ func dataSourceRemoteStateRead(d *schema.ResourceData, meta interface{}) error {
 
 	// Create the client to access our remote state
 	log.Printf("[DEBUG] Initializing remote state backend: %s", backendType)
-	f := backendinit.Backend(backendType)
+	f := backendInit.Backend(backendType)
 	if f == nil {
 		return fmt.Errorf("Unknown backend type: %s", backendType)
 	}
