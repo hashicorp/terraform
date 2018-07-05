@@ -46,7 +46,7 @@ you've only ever worked on the "default" workspace.
 
 Workspaces are managed with the `terraform workspace` set of commands. To
 create a new workspace and switch to it, you can use `terraform workspace new`;
-to switch environments you can use `terraform workspace select`; etc.
+to switch workspaces you can use `terraform workspace select`; etc.
 
 For example, creating a new workspace:
 
@@ -183,7 +183,7 @@ multiple collaborators.
 For [remote state](/docs/state/remote.html), the workspaces are stored
 directly in the configured [backend](/docs/backends). For example, if you
 use [Consul](/docs/backends/types/consul.html), the workspaces are stored
-by appending the environment name to the state path. To ensure that
+by appending the workspace name to the state path. To ensure that
 workspace names are stored correctly and safely in all backends, the name
 must be valid to use in a URL path segment without escaping.
 
