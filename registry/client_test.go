@@ -15,7 +15,7 @@ func TestLookupModuleVersions(t *testing.T) {
 	server := test.Registry()
 	defer server.Close()
 
-	client := NewClient(test.Disco(server), nil, nil)
+	client := NewClient(test.Disco(server), nil)
 
 	// test with and without a hostname
 	for _, src := range []string{
@@ -59,7 +59,7 @@ func TestInvalidRegistry(t *testing.T) {
 	server := test.Registry()
 	defer server.Close()
 
-	client := NewClient(test.Disco(server), nil, nil)
+	client := NewClient(test.Disco(server), nil)
 
 	src := "non-existent.localhost.localdomain/test-versions/name/provider"
 	modsrc, err := regsrc.ParseModuleSource(src)
@@ -76,13 +76,25 @@ func TestRegistryAuth(t *testing.T) {
 	server := test.Registry()
 	defer server.Close()
 
-	client := NewClient(test.Disco(server), nil, nil)
+	client := NewClient(test.Disco(server), nil)
 
 	src := "private/name/provider"
 	mod, err := regsrc.ParseModuleSource(src)
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	_, err = client.Versions(mod)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = client.Location(mod, "1.0.0")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Also test without a credentials source
+	client.services.SetCredentialsSource(nil)
 
 	// both should fail without auth
 	_, err = client.Versions(mod)
@@ -93,24 +105,13 @@ func TestRegistryAuth(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error")
 	}
-
-	client = NewClient(test.Disco(server), test.Credentials, nil)
-
-	_, err = client.Versions(mod)
-	if err != nil {
-		t.Fatal(err)
-	}
-	_, err = client.Location(mod, "1.0.0")
-	if err != nil {
-		t.Fatal(err)
-	}
 }
 
 func TestLookupModuleLocationRelative(t *testing.T) {
 	server := test.Registry()
 	defer server.Close()
 
-	client := NewClient(test.Disco(server), nil, nil)
+	client := NewClient(test.Disco(server), nil)
 
 	src := "relative/foo/bar"
 	mod, err := regsrc.ParseModuleSource(src)
@@ -133,7 +134,7 @@ func TestAccLookupModuleVersions(t *testing.T) {
 	if os.Getenv("TF_ACC") == "" {
 		t.Skip()
 	}
-	regDisco := disco.NewDisco()
+	regDisco := disco.New()
 
 	// test with and without a hostname
 	for _, src := range []string{
@@ -145,7 +146,7 @@ func TestAccLookupModuleVersions(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		s := NewClient(regDisco, nil, nil)
+		s := NewClient(regDisco, nil)
 		resp, err := s.Versions(modsrc)
 		if err != nil {
 			t.Fatal(err)
@@ -179,7 +180,7 @@ func TestLookupLookupModuleError(t *testing.T) {
 	server := test.Registry()
 	defer server.Close()
 
-	client := NewClient(test.Disco(server), nil, nil)
+	client := NewClient(test.Disco(server), nil)
 
 	// this should not be found in teh registry
 	src := "bad/local/path"

@@ -129,7 +129,7 @@ func (c *InitCommand) Run(args []string) int {
 		)))
 		header = true
 
-		s := module.NewStorage("", c.Services, c.Credentials)
+		s := module.NewStorage("", c.Services)
 		if err := s.GetModule(path, src); err != nil {
 			c.Ui.Error(fmt.Sprintf("Error copying source module: %s", err))
 			return 1

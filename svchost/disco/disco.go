@@ -42,9 +42,15 @@ type Disco struct {
 	Transport http.RoundTripper
 }
 
-// NewDisco returns a new initialized Disco object.
-func NewDisco() *Disco {
-	return &Disco{}
+// New returns a new initialized discovery object.
+func New() *Disco {
+	return NewWithCredentialsSource(nil)
+}
+
+// NewWithCredentialsSource returns a new discovery object initialized with
+// the given credentials source.
+func NewWithCredentialsSource(credsSrc auth.CredentialsSource) *Disco {
+	return &Disco{credsSrc: credsSrc}
 }
 
 // SetCredentialsSource provides a credentials source that will be used to
@@ -54,6 +60,15 @@ func NewDisco() *Disco {
 // credentials.
 func (d *Disco) SetCredentialsSource(src auth.CredentialsSource) {
 	d.credsSrc = src
+}
+
+// CredentialsForHost returns a non-nil HostCredentials if the embedded source has
+// credentials available for the host, and a nil HostCredentials if it does not.
+func (d *Disco) CredentialsForHost(host svchost.Hostname) (auth.HostCredentials, error) {
+	if d.credsSrc == nil {
+		return nil, nil
+	}
+	return d.credsSrc.ForHost(host)
 }
 
 // ForceHostServices provides a pre-defined set of services for a given
@@ -145,15 +160,10 @@ func (d *Disco) discover(host svchost.Hostname) Host {
 		URL:    discoURL,
 	}
 
-	if d.credsSrc != nil {
-		creds, err := d.credsSrc.ForHost(host)
-		if err == nil {
-			if creds != nil {
-				creds.PrepareRequest(req) // alters req to include credentials
-			}
-		} else {
-			log.Printf("[WARN] Failed to get credentials for %s: %s (ignoring)", host, err)
-		}
+	if creds, err := d.CredentialsForHost(host); err != nil {
+		log.Printf("[WARN] Failed to get credentials for %s: %s (ignoring)", host, err)
+	} else if creds != nil {
+		creds.PrepareRequest(req) // alters req to include credentials
 	}
 
 	log.Printf("[DEBUG] Service discovery for %s at %s", host, discoURL)

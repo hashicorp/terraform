@@ -2,7 +2,6 @@ package configload
 
 import (
 	"github.com/hashicorp/terraform/registry"
-	"github.com/hashicorp/terraform/svchost/auth"
 	"github.com/hashicorp/terraform/svchost/disco"
 	"github.com/spf13/afero"
 )
@@ -24,9 +23,6 @@ type moduleMgr struct {
 	// remote module registry endpoints. This object may be pre-loaded with
 	// cached discovery information.
 	Services *disco.Disco
-
-	// Creds provides optional credentials for communicating with service hosts.
-	Creds auth.CredentialsSource
 
 	// Registry is a client for the module registry protocol, which is used
 	// when a module is requested from a registry source.
