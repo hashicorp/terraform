@@ -98,6 +98,20 @@ func readTfplan(r io.Reader) (*plans.Plan, error) {
 		plan.VariableValues[name] = val
 	}
 
+	if rawBackend := rawPlan.Backend; rawBackend == nil {
+		return nil, fmt.Errorf("plan file has no backend settings; backend settings are required")
+	} else {
+		config, err := valueFromTfplan(rawBackend.Config)
+		if err != nil {
+			return nil, fmt.Errorf("plan file has invalid backend configuration: %s", err)
+		}
+		plan.Backend = plans.Backend{
+			Type:      rawBackend.Type,
+			Config:    config,
+			Workspace: rawBackend.Workspace,
+		}
+	}
+
 	return plan, nil
 }
 
@@ -294,6 +308,12 @@ func writeTfplan(plan *plans.Plan, w io.Writer) error {
 
 	for name, val := range plan.VariableValues {
 		rawPlan.Variables[name] = valueToTfplan(val)
+	}
+
+	rawPlan.Backend = &planproto.Backend{
+		Type:      plan.Backend.Type,
+		Config:    valueToTfplan(plan.Backend.Config),
+		Workspace: plan.Backend.Workspace,
 	}
 
 	src, err := proto.Marshal(rawPlan)
