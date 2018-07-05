@@ -38,6 +38,17 @@ message Plan {
     // SHA256 digests of all of the provider plugin binaries that were used
     // in the creation of this plan.
     map<string, Hash> provider_hashes = 15;
+
+    // Backend is a description of the backend configuration and other related
+    // settings at the time the plan was created.
+    Backend backend = 13;
+}
+
+// Backend is a description of backend configuration and other related settings.
+message Backend {
+    string type = 1;
+    DynamicValue config = 2;
+    string workspace = 3;
 }
 
 // Action describes the type of action planned for an object.
