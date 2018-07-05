@@ -1,7 +1,7 @@
 package backend
 
 import (
-	"github.com/hashicorp/terraform/config/configschema"
+	"github.com/hashicorp/terraform/configs/configschema"
 	"github.com/hashicorp/terraform/state"
 	"github.com/hashicorp/terraform/tfdiags"
 	"github.com/zclconf/go-cty/cty"
