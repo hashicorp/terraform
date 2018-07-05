@@ -52,6 +52,11 @@ func TestRoundtrip(t *testing.T) {
 		VariableValues: map[string]plans.DynamicValue{
 			"foo": plans.DynamicValue([]byte("foo placeholder")),
 		},
+		Backend: plans.Backend{
+			Type:      "local",
+			Config:    plans.DynamicValue([]byte("config placeholder")),
+			Workspace: "default",
+		},
 	}
 
 	workDir, err := ioutil.TempDir("", "tf-planfile")

@@ -93,6 +93,18 @@ func TestTFPlanRoundTrip(t *testing.T) {
 				0x70, 0x7a, 0x11, 0xed, 0xb0, 0x07, 0xab, 0x1e,
 			},
 		},
+		Backend: plans.Backend{
+			Type: "local",
+			Config: mustNewDynamicValue(
+				cty.ObjectVal(map[string]cty.Value{
+					"foo": cty.StringVal("bar"),
+				}),
+				cty.Object(map[string]cty.Type{
+					"foo": cty.String,
+				}),
+			),
+			Workspace: "default",
+		},
 	}
 
 	var buf bytes.Buffer
