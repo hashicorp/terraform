@@ -27,7 +27,7 @@ func Disco(s *httptest.Server) *disco.Disco {
 		// TODO: add specific tests to enumerate both possibilities.
 		"modules.v1": fmt.Sprintf("%s/v1/modules", s.URL),
 	}
-	d := disco.NewDisco()
+	d := disco.NewWithCredentialsSource(credsSrc)
 
 	d.ForceHostServices(svchost.Hostname("registry.terraform.io"), services)
 	d.ForceHostServices(svchost.Hostname("localhost"), services)
@@ -48,8 +48,8 @@ const (
 )
 
 var (
-	regHost     = svchost.Hostname(regsrc.PublicRegistryHost.Normalized())
-	Credentials = auth.StaticCredentialsSource(map[svchost.Hostname]map[string]interface{}{
+	regHost  = svchost.Hostname(regsrc.PublicRegistryHost.Normalized())
+	credsSrc = auth.StaticCredentialsSource(map[svchost.Hostname]map[string]interface{}{
 		regHost: {"token": testCred},
 	})
 )

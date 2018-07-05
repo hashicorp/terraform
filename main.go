@@ -16,6 +16,7 @@ import (
 	"github.com/hashicorp/go-plugin"
 	"github.com/hashicorp/terraform/command/format"
 	"github.com/hashicorp/terraform/helper/logging"
+	"github.com/hashicorp/terraform/svchost/disco"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/mattn/go-colorable"
 	"github.com/mattn/go-shellwords"
@@ -144,7 +145,9 @@ func wrappedMain() int {
 
 	// In tests, Commands may already be set to provide mock commands
 	if Commands == nil {
-		initCommands(config)
+		credsSrc := credentialsSource(config)
+		services := disco.NewWithCredentialsSource(credsSrc)
+		initCommands(config, services)
 	}
 
 	// Run checkpoint
