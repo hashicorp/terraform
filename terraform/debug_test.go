@@ -12,7 +12,7 @@ import (
 
 	"github.com/zclconf/go-cty/cty"
 
-	"github.com/hashicorp/terraform/config/configschema"
+	"github.com/hashicorp/terraform/configs/configschema"
 )
 
 // debugInfo should be safe when nil

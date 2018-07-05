@@ -8,7 +8,7 @@ import (
 
 	"github.com/davecgh/go-spew/spew"
 
-	"github.com/hashicorp/terraform/config/configschema"
+	"github.com/hashicorp/terraform/configs/configschema"
 )
 
 func TestSchemaMapCoreConfigSchema(t *testing.T) {

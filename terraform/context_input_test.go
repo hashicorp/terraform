@@ -9,7 +9,7 @@ import (
 
 	"github.com/zclconf/go-cty/cty"
 
-	"github.com/hashicorp/terraform/config/configschema"
+	"github.com/hashicorp/terraform/configs/configschema"
 )
 
 func TestContext2Input(t *testing.T) {

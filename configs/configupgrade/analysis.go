@@ -8,7 +8,7 @@ import (
 	hcl1parser "github.com/hashicorp/hcl/hcl/parser"
 
 	"github.com/hashicorp/terraform/addrs"
-	"github.com/hashicorp/terraform/config/configschema"
+	"github.com/hashicorp/terraform/configs/configschema"
 	"github.com/hashicorp/terraform/moduledeps"
 	"github.com/hashicorp/terraform/plugin/discovery"
 	"github.com/hashicorp/terraform/terraform"
