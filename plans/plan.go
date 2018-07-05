@@ -21,6 +21,26 @@ type Plan struct {
 	VariableValues  map[string]DynamicValue
 	Changes         *Changes
 	ProviderSHA256s map[string][]byte
+	Backend         Backend
+}
+
+// Backend represents the backend-related configuration and other data as it
+// existed when a plan was created.
+type Backend struct {
+	// Type is the type of backend that the plan will apply against.
+	Type string
+
+	// Config is the configuration of the backend, whose schema is decided by
+	// the backend Type.
+	Config DynamicValue
+
+	// Workspace is the name of the workspace that was active when the plan
+	// was created. It is illegal to apply a plan created for one workspace
+	// to the state of another workspace.
+	// (This constraint is already enforced by the statefile lineage mechanism,
+	// but storing this explicitly allows us to return a better error message
+	// in the situation where the user has the wrong workspace selected.)
+	Workspace string
 }
 
 // ProviderAddrs returns a list of all of the provider configuration addresses
