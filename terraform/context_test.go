@@ -8,7 +8,7 @@ import (
 
 	"github.com/hashicorp/hil"
 	"github.com/hashicorp/terraform/config"
-	"github.com/hashicorp/terraform/config/configschema"
+	"github.com/hashicorp/terraform/configs/configschema"
 	"github.com/hashicorp/terraform/configs"
 	"github.com/zclconf/go-cty/cty"
 
