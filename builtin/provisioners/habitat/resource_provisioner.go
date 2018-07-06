@@ -680,7 +680,7 @@ func (p *provisioner) startHabService(o terraform.UIOutput, comm communicator.Co
 	}
 
 	if service.URL != "" {
-		options += fmt.Sprintf("--url %s", service.URL)
+		options += fmt.Sprintf(" --url %s", service.URL)
 	}
 
 	if service.Group != "" {
