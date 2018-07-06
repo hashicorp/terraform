@@ -9,6 +9,7 @@ IMPROVEMENTS:
 BUG FIXES:
 
 * config: The `rsadecrypt` interpolation function will no longer include the private key in an error message if it cannot be processed. [GH-18333]
+* provisioner/habitat: add missing space for service url [GH-18400]
 
 ## 0.11.7 (April 10, 2018)
 
