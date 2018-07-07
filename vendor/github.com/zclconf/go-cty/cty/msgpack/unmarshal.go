@@ -2,7 +2,6 @@ package msgpack
 
 import (
 	"bytes"
-	"fmt"
 	"math/big"
 
 	"github.com/vmihailenco/msgpack"
@@ -79,8 +78,6 @@ func unmarshalPrimitive(dec *msgpack.Decoder, ty cty.Type, path cty.Path) (cty.V
 		if err != nil {
 			return cty.DynamicVal, path.NewErrorf("number is required")
 		}
-
-		fmt.Printf("peek %x\n", peek)
 
 		if msgpackCodes.IsFixedNum(peek) {
 			rv, err := dec.DecodeInt64()
