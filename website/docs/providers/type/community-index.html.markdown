@@ -34,7 +34,7 @@ please fill out this [community providers form](https://docs.google.com/forms/d/
     </tr>
     <tr>
     <td><a href="https://github.com/cloudmqtt/terraform-provider">CloudMQTT</a></td>
-    <td><a href="https://github.com/Ashald/terraform-provider-consulacl">Consul ACI</a></td>
+    <td><a href="https://github.com/Ashald/terraform-provider-consulacl">Consul ACL</a></td>
     <td><a href="https://github.com/coreos/terraform-provider-ct">CoreOS Container Linux Configs</a></td>
     </tr>
     <tr>
