@@ -131,6 +131,9 @@ func flatmapValueFromHCL2Seq(m map[string]string, prefix string, val cty.Value) 
 // The result may contain null values if the given map does not contain keys
 // for all of the different key paths implied by the given type.
 func HCL2ValueFromFlatmap(m map[string]string, ty cty.Type) (cty.Value, error) {
+	if m == nil {
+		return cty.NullVal(ty), nil
+	}
 	if !ty.IsObjectType() {
 		panic(fmt.Sprintf("HCL2ValueFromFlatmap called on %#v", ty))
 	}
