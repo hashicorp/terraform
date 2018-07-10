@@ -82,6 +82,14 @@ func readTfplan(r io.Reader) (*plans.Plan, error) {
 		plan.Changes.Resources = append(plan.Changes.Resources, change)
 	}
 
+	for _, rawTargetAddr := range rawPlan.TargetAddrs {
+		target, diags := addrs.ParseTargetStr(rawTargetAddr)
+		if diags.HasErrors() {
+			return nil, fmt.Errorf("plan contains invalid target address %q: %s", target, diags.Err())
+		}
+		plan.TargetAddrs = append(plan.TargetAddrs, target.Subject)
+	}
+
 	for name, rawHashObj := range rawPlan.ProviderHashes {
 		if len(rawHashObj.Sha256) == 0 {
 			return nil, fmt.Errorf("no SHA256 hash for provider %q plugin", name)
@@ -298,6 +306,10 @@ func writeTfplan(plan *plans.Plan, w io.Writer) error {
 			return err
 		}
 		rawPlan.ResourceChanges = append(rawPlan.ResourceChanges, rawRC)
+	}
+
+	for _, targetAddr := range plan.TargetAddrs {
+		rawPlan.TargetAddrs = append(rawPlan.TargetAddrs, targetAddr.String())
 	}
 
 	for name, hash := range plan.ProviderSHA256s {
