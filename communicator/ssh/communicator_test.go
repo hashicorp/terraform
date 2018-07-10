@@ -292,7 +292,7 @@ func TestHostKey(t *testing.T) {
 	}
 }
 
-func TestCertificateAuth(t *testing.T) {
+func TestHostCert(t *testing.T) {
 	pk, _, _, _, err := ssh.ParseAuthorizedKey([]byte(testServerHostCert))
 	if err != nil {
 		t.Fatal(err)
@@ -425,7 +425,7 @@ xrrLXNUD2duBHKPVYE+7uVoDkpZXLUQ4x8argo/IwQM6Kh2ma1y83TYMT6XhL1+B
 -----END RSA PRIVATE KEY-----
 `
 
-func TestHostCert(t *testing.T) {
+func TestCertificateBasedAuth(t *testing.T) {
 	signer, err := ssh.ParsePrivateKey([]byte(SERVER_PEM))
 	if err != nil {
 		panic("unable to parse private key: " + err.Error())
