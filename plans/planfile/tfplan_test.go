@@ -85,6 +85,13 @@ func TestTFPlanRoundTrip(t *testing.T) {
 				},
 			},
 		},
+		TargetAddrs: []addrs.Targetable{
+			addrs.Resource{
+				Mode: addrs.ManagedResourceMode,
+				Type: "test_thing",
+				Name: "woot",
+			}.Absolute(addrs.RootModuleInstance),
+		},
 		ProviderSHA256s: map[string][]byte{
 			"test": []byte{
 				0xba, 0x5e, 0x1e, 0x55, 0xb0, 0x1d, 0xfa, 0xce,

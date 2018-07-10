@@ -32,6 +32,11 @@ message Plan {
     // at apply time.
     repeated OutputChange output_changes = 4;
 
+    // An unordered set of target addresses to include when applying. If no
+    // target addresses are present, the plan applies to the whole
+    // configuration.
+    repeated string target_addrs = 5;
+
     // The version string for the Terraform binary that created this plan.
     string terraform_version = 14;
 
