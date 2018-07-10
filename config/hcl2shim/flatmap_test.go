@@ -522,6 +522,19 @@ func TestHCL2ValueFromFlatmap(t *testing.T) {
 			}),
 			WantErr: `invalid count value for "foo." in state: strconv.Atoi: parsing "not-valid": invalid syntax`,
 		},
+		{
+			Flatmap: nil,
+			Type: cty.Object(map[string]cty.Type{
+				"foo": cty.Set(cty.Object(map[string]cty.Type{
+					"bar": cty.String,
+				})),
+			}),
+			Want: cty.NullVal(cty.Object(map[string]cty.Type{
+				"foo": cty.Set(cty.Object(map[string]cty.Type{
+					"bar": cty.String,
+				})),
+			})),
+		},
 	}
 
 	for _, test := range tests {
