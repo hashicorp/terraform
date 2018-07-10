@@ -228,6 +228,14 @@ func TestFlatmapValueFromHCL2(t *testing.T) {
 				"foo.0.bap.%": UnknownVariableValue,
 			},
 		},
+		{
+			cty.NullVal(cty.Object(map[string]cty.Type{
+				"foo": cty.Set(cty.Object(map[string]cty.Type{
+					"bar": cty.String,
+				})),
+			})),
+			nil,
+		},
 	}
 
 	for _, test := range tests {
