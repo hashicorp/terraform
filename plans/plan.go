@@ -20,6 +20,7 @@ import (
 type Plan struct {
 	VariableValues  map[string]DynamicValue
 	Changes         *Changes
+	TargetAddrs     []addrs.Targetable
 	ProviderSHA256s map[string][]byte
 	Backend         Backend
 }
