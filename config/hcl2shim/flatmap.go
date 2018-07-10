@@ -21,6 +21,10 @@ import (
 // so the given value must not have any maps of complex types or the result
 // is undefined.
 func FlatmapValueFromHCL2(v cty.Value) map[string]string {
+	if v.IsNull() {
+		return nil
+	}
+
 	if !v.Type().IsObjectType() {
 		panic(fmt.Sprintf("HCL2ValueFromFlatmap called on %#v", v.Type()))
 	}
