@@ -228,6 +228,14 @@ func TestFlatmapValueFromHCL2(t *testing.T) {
 				"foo.0.bap.%": UnknownVariableValue,
 			},
 		},
+		{
+			cty.NullVal(cty.Object(map[string]cty.Type{
+				"foo": cty.Set(cty.Object(map[string]cty.Type{
+					"bar": cty.String,
+				})),
+			})),
+			nil,
+		},
 	}
 
 	for _, test := range tests {
@@ -521,6 +529,19 @@ func TestHCL2ValueFromFlatmap(t *testing.T) {
 				"foo": cty.List(cty.String),
 			}),
 			WantErr: `invalid count value for "foo." in state: strconv.Atoi: parsing "not-valid": invalid syntax`,
+		},
+		{
+			Flatmap: nil,
+			Type: cty.Object(map[string]cty.Type{
+				"foo": cty.Set(cty.Object(map[string]cty.Type{
+					"bar": cty.String,
+				})),
+			}),
+			Want: cty.NullVal(cty.Object(map[string]cty.Type{
+				"foo": cty.Set(cty.Object(map[string]cty.Type{
+					"bar": cty.String,
+				})),
+			})),
 		},
 	}
 
