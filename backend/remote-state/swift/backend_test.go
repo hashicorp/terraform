@@ -68,13 +68,19 @@ func TestBackend(t *testing.T) {
 
 	container := fmt.Sprintf("terraform-state-swift-testbackend-%x", time.Now().Unix())
 
-	b := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
+	b1 := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
 		"container": container,
 	})).(*Backend)
 
-	defer deleteSwiftContainer(t, b.client, container)
+	b2 := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
+		"container": container,
+	})).(*Backend)
 
-	backend.TestBackendStates(t, b)
+	defer deleteSwiftContainer(t, b1.client, container)
+
+	backend.TestBackendStates(t, b1)
+	backend.TestBackendStateLocks(t, b1, b2)
+	backend.TestBackendStateForceUnlock(t, b1, b2)
 }
 
 func TestBackendPath(t *testing.T) {
