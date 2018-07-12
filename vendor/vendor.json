@@ -1363,10 +1363,34 @@
 			"revisionTime": "2017-08-08T02:16:21Z"
 		},
 		{
-			"checksumSHA1": "p3IB18uJRs4dL2K5yx24MrLYE9A=",
-			"path": "github.com/google/go-querystring/query",
-			"revision": "53e6ce116135b80d037921a7fdd5138cf32d7a8a",
-			"revisionTime": "2017-01-11T10:11:55Z"
+			"checksumSHA1": "TAXd73uN0hLjwdGGGNgnmF6iC0k=",
+			"path": "github.com/google/go-cmp/cmp",
+			"revision": "5411ab924f9ffa6566244a9e504bc347edacffd3",
+			"revisionTime": "2018-03-28T20:15:12Z"
+		},
+		{
+			"checksumSHA1": "KFdqX9FrWAq7YB23FzPZPvcpEU4=",
+			"path": "github.com/google/go-cmp/cmp/cmpopts",
+			"revision": "5411ab924f9ffa6566244a9e504bc347edacffd3",
+			"revisionTime": "2018-03-28T20:15:12Z"
+		},
+		{
+			"checksumSHA1": "oLBV7th4sxzxzmf1b91NVVbdOfI=",
+			"path": "github.com/google/go-cmp/cmp/internal/diff",
+			"revision": "5411ab924f9ffa6566244a9e504bc347edacffd3",
+			"revisionTime": "2018-03-28T20:15:12Z"
+		},
+		{
+			"checksumSHA1": "kYtvRhMjM0X4bvEjR3pqEHLw1qo=",
+			"path": "github.com/google/go-cmp/cmp/internal/function",
+			"revision": "5411ab924f9ffa6566244a9e504bc347edacffd3",
+			"revisionTime": "2018-03-28T20:15:12Z"
+		},
+		{
+			"checksumSHA1": "OQQ56f38ikfmG2Zd3lUlk4LUBIw=",
+			"path": "github.com/google/go-cmp/cmp/internal/value",
+			"revision": "5411ab924f9ffa6566244a9e504bc347edacffd3",
+			"revisionTime": "2018-03-28T20:15:12Z"
 		},
 		{
 			"checksumSHA1": "V/53BpqgOkSDZCX6snQCAkdO2fM=",
