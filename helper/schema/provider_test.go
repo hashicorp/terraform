@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/davecgh/go-spew/spew"
+	"github.com/google/go-cmp/cmp"
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/config"
@@ -61,7 +61,7 @@ func TestProviderGetSchema(t *testing.T) {
 			BlockTypes: map[string]*configschema.NestedBlock{},
 		},
 		ResourceTypes: map[string]*configschema.Block{
-			"foo": &configschema.Block{
+			"foo": testResource(&configschema.Block{
 				Attributes: map[string]*configschema.Attribute{
 					"bar": &configschema.Attribute{
 						Type:     cty.String,
@@ -69,10 +69,10 @@ func TestProviderGetSchema(t *testing.T) {
 					},
 				},
 				BlockTypes: map[string]*configschema.NestedBlock{},
-			},
+			}),
 		},
 		DataSources: map[string]*configschema.Block{
-			"baz": &configschema.Block{
+			"baz": testResource(&configschema.Block{
 				Attributes: map[string]*configschema.Attribute{
 					"bur": &configschema.Attribute{
 						Type:     cty.String,
@@ -80,7 +80,7 @@ func TestProviderGetSchema(t *testing.T) {
 					},
 				},
 				BlockTypes: map[string]*configschema.NestedBlock{},
-			},
+			}),
 		},
 	}
 	got, err := p.GetSchema(&terraform.ProviderSchemaRequest{
@@ -91,8 +91,8 @@ func TestProviderGetSchema(t *testing.T) {
 		t.Fatalf("unexpected error %s", err)
 	}
 
-	if !reflect.DeepEqual(got, want) {
-		t.Errorf("wrong result\ngot: %swant: %s", spew.Sdump(got), spew.Sdump(want))
+	if !cmp.Equal(got, want, equateEmpty, ignoreUnexported) {
+		t.Error("wrong result:\n", cmp.Diff(got, want, equateEmpty, ignoreUnexported))
 	}
 }
 
