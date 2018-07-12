@@ -11,8 +11,8 @@ import (
 )
 
 var (
-	ignoreUnexported = cmpopts.IgnoreUnexported(cty.Type{})
-	equateEmpty      = cmpopts.EquateEmpty()
+	equateEmpty  = cmpopts.EquateEmpty()
+	typeComparer = cmp.Comparer(cty.Type.Equals)
 )
 
 // add the implicit "id" attribute for test resources
@@ -305,8 +305,8 @@ func TestSchemaMapCoreConfigSchema(t *testing.T) {
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
 			got := schemaMap(test.Schema).CoreConfigSchema()
-			if !cmp.Equal(got, test.Want, equateEmpty, ignoreUnexported) {
-				cmp.Diff(got, test.Want, equateEmpty, ignoreUnexported)
+			if !cmp.Equal(got, test.Want, typeComparer) {
+				cmp.Diff(got, test.Want, typeComparer)
 			}
 		})
 	}
