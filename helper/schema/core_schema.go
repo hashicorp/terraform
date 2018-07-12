@@ -153,9 +153,29 @@ func (s *Schema) coreConfigSchemaType() cty.Type {
 	}
 }
 
-// CoreConfigSchema is a convenient shortcut for calling CoreConfigSchema
-// on the resource's schema.
+// CoreConfigSchema is a convenient shortcut for calling CoreConfigSchema on
+// the resource's schema. CoreConfigSchema adds the implicitly required "id"
+// attribute for top level resources if it doesn't exist.
 func (r *Resource) CoreConfigSchema() *configschema.Block {
+	block := r.coreConfigSchema()
+
+	if block.Attributes == nil {
+		block.Attributes = map[string]*configschema.Attribute{}
+	}
+
+	// Add the implicitly required "id" field if it doesn't exist
+	if block.Attributes["id"] == nil {
+		block.Attributes["id"] = &configschema.Attribute{
+			Type:     cty.String,
+			Optional: true,
+			Computed: true,
+		}
+	}
+
+	return block
+}
+
+func (r *Resource) coreConfigSchema() *configschema.Block {
 	return schemaMap(r.Schema).CoreConfigSchema()
 }
 
