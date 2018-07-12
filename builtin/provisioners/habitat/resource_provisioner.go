@@ -721,7 +721,7 @@ func (p *provisioner) uploadServiceGroupKey(o terraform.UIOutput, comm communica
 func (p *provisioner) uploadUserTOML(o terraform.UIOutput, comm communicator.Communicator, service Service) error {
 	// Create the hab svc directory to lay down the user.toml before loading the service
 	o.Output("Uploading user.toml for service: " + service.Name)
-	destDir := fmt.Sprintf("/hab/svc/%s", service.getPackageName(service.Name))
+	destDir := fmt.Sprintf("/hab/user/%s/config", service.getPackageName(service.Name))
 	command := fmt.Sprintf("mkdir -p %s", destDir)
 	if p.UseSudo {
 		command = fmt.Sprintf("sudo %s", command)
