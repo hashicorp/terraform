@@ -3440,7 +3440,10 @@ func TestResourceDataSetId(t *testing.T) {
 	d.SetId("foo")
 
 	actual := d.State()
-	if actual.ID != "foo" {
+
+	// SetId should set both the ID field as well as the attribute, to aid in
+	// transitioning to the new type system.
+	if actual.ID != "foo" && actual.Attributes["id"] != "foo" {
 		t.Fatalf("bad: %#v", actual)
 	}
 }
