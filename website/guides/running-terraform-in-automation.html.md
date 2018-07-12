@@ -45,7 +45,7 @@ such a tool.
 ## Automated Workflow Overview
 
 When running Terraform in automation, the focus is usually on the core
-plan/apply cycle. The main path, then, is the broadly same as for CLI
+plan/apply cycle. The main path, then, is broadly the same as for CLI
 usage:
 
 1. Initialize the Terraform working directory.
