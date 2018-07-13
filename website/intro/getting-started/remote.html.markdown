@@ -53,6 +53,7 @@ First, configure the backend in your configuration:
 terraform {
   backend "consul" {
     address = "demo.consul.io"
+    scheme  = "https"
     path    = "getting-started-RANDOMSTRING"
     lock    = false
     scheme  = "https"
