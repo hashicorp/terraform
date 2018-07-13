@@ -1,5 +1,16 @@
 package statemgr
 
+// Storage is the union of Transient and Persistent, for state managers that
+// have both transient and persistent storage.
+//
+// Types implementing this interface coordinate between their Transient
+// and Persistent implementations so that the persistent operations read
+// or write the transient store.
+type Storage interface {
+	Transient
+	Persistent
+}
+
 // Full is the union of all of the more-specific state interfaces.
 //
 // This interface may grow over time, so state implementations aiming to
@@ -10,7 +21,6 @@ package statemgr
 //
 //     var _ statemgr.Full = (*ImplementingType)(nil)
 type Full interface {
-	Transient
-	Persistent
+	Storage
 	Locker
 }
