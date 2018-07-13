@@ -34,6 +34,11 @@ type Filesystem struct {
 	// The file at readPath must never be written to by this manager.
 	readPath string
 
+	// backupPath is an optional extra path which, if non-empty, will be
+	// created or overwritten with the first state snapshot we read if there
+	// is a subsequent call to write a different state.
+	backupPath string
+
 	// the file handle corresponding to PathOut
 	stateFileOut *os.File
 
@@ -47,9 +52,11 @@ type Filesystem struct {
 	// hurt to remove file we never wrote to.
 	created bool
 
-	file     *statefile.File
-	readFile *statefile.File
-	written  bool
+	file          *statefile.File
+	readFile      *statefile.File
+	backupFile    *statefile.File
+	written       bool
+	writtenBackup bool
 }
 
 var (
@@ -79,11 +86,29 @@ func NewFilesystemBetweenPaths(readPath, writePath string) *Filesystem {
 	}
 }
 
+// SetBackupPath configures the receiever so that it will create a local
+// backup file of the next state snapshot it reads (in State) if a different
+// snapshot is subsequently written (in WriteState). Only one backup is
+// written for the lifetime of the object, unless reset as described below.
+//
+// For correct operation, this must be called before any other state methods
+// are called. If called multiple times, each call resets the backup
+// function so that the next read will become the backup snapshot and a
+// following write will save a backup of it.
+func (s *Filesystem) SetBackupPath(path string) {
+	s.backupPath = path
+	s.backupFile = nil
+	s.writtenBackup = false
+}
+
 // State is an implementation of Reader.
 func (s *Filesystem) State() *states.State {
 	defer s.mutex()()
 	if s.file == nil {
 		return nil
+	}
+	if s.backupPath != "" && s.backupFile == nil {
+		s.backupFile = s.file.DeepCopy()
 	}
 	return s.file.DeepCopy().State
 }
@@ -99,6 +124,23 @@ func (s *Filesystem) WriteState(state *states.State) error {
 	// the original.
 
 	defer s.mutex()()
+
+	// We'll try to write our backup first, so we can be sure we've created
+	// it successfully before clobbering the original file it came from.
+	if !s.writtenBackup && s.backupFile != nil && s.backupPath != "" && !statefile.StatesMarshalEqual(state, s.backupFile.State) {
+		bfh, err := os.Create(s.backupPath)
+		if err != nil {
+			return fmt.Errorf("failed to create local state backup file: %s", err)
+		}
+		defer bfh.Close()
+
+		err = statefile.Write(s.backupFile, bfh)
+		if err != nil {
+			return fmt.Errorf("failed to write to local state backup file: %s", err)
+		}
+
+		s.writtenBackup = true
+	}
 
 	if s.stateFileOut == nil {
 		if err := s.createStateFiles(); err != nil {

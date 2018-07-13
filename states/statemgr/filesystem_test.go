@@ -7,6 +7,8 @@ import (
 	"sync"
 	"testing"
 
+	"github.com/go-test/deep"
+
 	version "github.com/hashicorp/go-version"
 
 	"github.com/hashicorp/terraform/states/statefile"
@@ -129,6 +131,38 @@ func TestFilesystem_pathOut(t *testing.T) {
 	defer os.Remove(ls.path)
 
 	TestFull(t, ls)
+}
+
+func TestFilesystem_backup(t *testing.T) {
+	f, err := ioutil.TempFile("", "tf")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	f.Close()
+	defer os.Remove(f.Name())
+
+	ls := testFilesystem(t)
+	backupPath := f.Name()
+	ls.SetBackupPath(backupPath)
+
+	TestFull(t, ls)
+
+	// The backup functionality should've saved a copy of the original state
+	// prior to all of the modifications that TestFull does.
+	bfh, err := os.Open(backupPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	bf, err := statefile.Read(bfh)
+	if err != nil {
+		t.Fatal(err)
+	}
+	origState := TestFullInitialState()
+	if !bf.State.Equal(origState) {
+		for _, problem := range deep.Equal(origState, bf.State) {
+			t.Error(problem)
+		}
+	}
 }
 
 func TestFilesystem_nonExist(t *testing.T) {
