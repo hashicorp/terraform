@@ -163,6 +163,9 @@ type Meta struct {
 
 	// Used with the import command to allow import of state when no matching config exists.
 	allowMissingConfig bool
+
+	// Used with plan command to show possible state moves
+	ShowStateMoves bool
 }
 
 type PluginOverrides struct {
@@ -429,6 +432,15 @@ func (m *Meta) process(args []string, vars bool) ([]string, error) {
 	}
 
 	// Set colorization
+	m.ShowStateMoves = false
+	for i, v := range args {
+		if v == "-show-state-moves" {
+			m.ShowStateMoves = true
+			args = append(args[:i], args[i+1:]...)
+			break
+		}
+	}
+
 	m.color = m.Color
 	for i, v := range args {
 		if v == "-no-color" {

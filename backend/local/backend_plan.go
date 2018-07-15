@@ -131,8 +131,17 @@ func (b *Local) opPlan(
 			b.CLI.Output("\n" + b.Colorize().Color(strings.TrimSpace(planNoChanges)))
 			return
 		}
-
 		b.renderPlan(dispPlan)
+
+		if op.ShowStateMoves {
+			moves := dispPlan.PossibleMoves(op.ActualState)
+
+			b.CLI.Output(planShowMoves)
+
+			for k, v := range moves {
+				b.CLI.Output("terraform state mv " + k + " " + v)
+			}
+		}
 
 		// Give the user some next-steps, unless we're running in an automation
 		// tool which is presumed to provide its own UI for further actions.
@@ -230,4 +239,9 @@ const planRefreshing = `
 [reset][bold]Refreshing Terraform state in-memory prior to plan...[reset]
 The refreshed state will be used to calculate this plan, but will not be
 persisted to local or remote state storage.
+`
+
+const planShowMoves = `
+Instead, you can apply following terraform state mv, to avoid destroy & create in some cases.
+
 `

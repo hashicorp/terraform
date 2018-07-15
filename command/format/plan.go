@@ -347,3 +347,155 @@ func formatPlanInstanceDiff(buf *bytes.Buffer, r *InstanceDiff, keyLen int, colo
 	// Write the reset color so we don't bleed color into later text
 	buf.WriteString(colorizer.Color("[reset]\n"))
 }
+
+func (p *Plan) PossibleMoves(oldState *terraform.State) map[string]string {
+	result := make(map[string]string)
+	selectedDiffs := p.typeWiseDiff()
+
+	oldStateMap := p.oldState(oldState)
+
+	/**
+	If 0 Delete & N Create OR N Delete & 0
+	Create of a resource type then there will not be any state mv is required
+	So, ignore
+	*/
+	for key, value := range selectedDiffs {
+		_, exists := value[terraform.DiffDestroy]
+		if !exists {
+			delete(selectedDiffs, key)
+			continue
+		}
+		_, exists = value[terraform.DiffCreate]
+		if !exists {
+			delete(selectedDiffs, key)
+		}
+	}
+
+	for _, resourceGroupDiffs := range selectedDiffs {
+		/**
+		fmt.Println("*** Check Renaming for each resource type ***", "   ", eachResourceGroup)
+		*/
+		for _, aCreate := range resourceGroupDiffs[terraform.DiffCreate] {
+
+			for i, aDelete := range resourceGroupDiffs[terraform.DiffDestroy] {
+				yesRename := p.checkRename(aCreate, aDelete, oldStateMap)
+				if yesRename {
+					result[aDelete.Addr.String()] = aCreate.Addr.String()
+					resourceGroupDiffs[terraform.DiffDestroy] = append(resourceGroupDiffs[terraform.DiffDestroy][:i], resourceGroupDiffs[terraform.DiffDestroy][i+1:]...)
+				}
+			}
+
+		}
+
+	}
+	return result
+}
+
+func (p *Plan) getAttributValue(oldStateMap map[string]map[string]map[string]interface{}, aDiff *InstanceDiff, key string) interface{} {
+	if aDiff.Action == terraform.DiffDestroy {
+		return oldStateMap[aDiff.Addr.Type][aDiff.Addr.String()][key]
+	}
+	for _, attr := range aDiff.Attributes {
+		if attr.Path == key {
+			return attr.NewValue
+		}
+	}
+	return ""
+}
+
+func (p *Plan) checkRename(create *InstanceDiff, delete *InstanceDiff, oldStateMap map[string]map[string]map[string]interface{}) bool {
+	for _, attr := range create.Attributes {
+		if attr.NewValue == "" {
+			continue
+		}
+
+		if oldStateMap[delete.Addr.Type][delete.Addr.String()][attr.Path] != attr.NewValue {
+			return false
+		}
+	}
+	/**
+	It means eligible for state mv
+	*/
+	return true
+}
+
+func (p *Plan) typeWiseDiffMap() map[string]*InstanceDiff {
+	result := make(map[string]*InstanceDiff)
+	for _, diff := range p.Resources {
+		result[diff.Addr.String()] = diff
+	}
+	return result
+}
+
+func (p *Plan) typeWiseDiff() map[string]map[terraform.DiffChangeType][]*InstanceDiff {
+	selectedDiffs := make(map[string]map[terraform.DiffChangeType][]*InstanceDiff)
+
+	for _, diff := range p.Resources {
+		if !(diff.Action == terraform.DiffCreate || diff.Action == terraform.DiffDestroy) {
+			continue
+		}
+		_, ok := selectedDiffs[diff.Addr.Type]
+		if !ok {
+			statusDiffMap := make(map[terraform.DiffChangeType][]*InstanceDiff)
+			selectedDiffs[diff.Addr.Type] = statusDiffMap
+		}
+		selectedDiffs[diff.Addr.Type][diff.Action] = append(selectedDiffs[diff.Addr.Type][diff.Action], diff)
+	}
+
+	return selectedDiffs
+}
+
+func (p *Plan) oldState(state *terraform.State) map[string]map[string]map[string]interface{} {
+
+	/**
+	result[resource_type][resource_name][key][value]
+	*/
+	result := make(map[string]map[string]map[string]interface{})
+
+	if state == nil {
+		return result
+	}
+
+	for _, m := range state.Modules {
+		var modulePath []string
+		if !m.IsRoot() {
+			// trim off the leading "root" path segment, since it's implied
+			// when we use a path in a resource address.
+			modulePath = m.Path[1:]
+		}
+		//fmt.Println("m",m.String())
+		for k, v := range m.Resources {
+			if v.Primary == nil {
+				continue
+			}
+			addr, err := terraform.ParseResourceAddressForInstanceDiff(modulePath, k)
+
+			if err != nil {
+				// should never happen; indicates invalid diff
+				panic("invalid resource address in diff")
+			}
+
+			if result[v.Type] == nil {
+				result[v.Type] = make(map[string]map[string]interface{})
+			}
+			if result[v.Type][addr.String()] == nil {
+				result[v.Type][addr.String()] = make(map[string]interface{})
+			}
+
+			for k1, v1 := range v.Primary.Attributes {
+				result[v.Type][addr.String()][k1] = v1
+			}
+		}
+	}
+	return result
+}
+
+func (p *Plan) checkInInstanceDiff(addr *terraform.ResourceAddress, list []*InstanceDiff) bool {
+
+	for _, aDiff := range list {
+		if aDiff.Addr.String() == addr.String() {
+			return true
+		}
+	}
+	return false
+}

@@ -173,6 +173,7 @@ func (m *Meta) Operation() *backend.Operation {
 		Workspace:        m.Workspace(),
 		LockState:        m.stateLock,
 		StateLockTimeout: m.stateLockTimeout,
+		ShowStateMoves:   m.ShowStateMoves,
 	}
 }
 
