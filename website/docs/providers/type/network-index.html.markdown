@@ -23,8 +23,6 @@ in close collaboration with HashiCorp, and are tested by HashiCorp.
 
 [DNSimple](/docs/providers/dnsimple/index.html)
 
-[DNSMadeEasy](/docs/providers/dme/index.html)
-
 [HTTP](/docs/providers/http/index.html)
 
 [NS1](/docs/providers/ns1/index.html)
