@@ -6,6 +6,12 @@ import (
 	"github.com/zclconf/go-cty/cty"
 )
 
+func TestResource(t *testing.T) {
+	if err := dataSourceRemoteStateGetSchema().Block.InternalValidate(); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+}
+
 func TestState_basic(t *testing.T) {
 	var tests = []struct {
 		Config cty.Value
