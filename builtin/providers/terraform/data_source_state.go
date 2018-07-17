@@ -7,9 +7,40 @@ import (
 	"github.com/hashicorp/terraform/backend"
 	backendinit "github.com/hashicorp/terraform/backend/init"
 	"github.com/hashicorp/terraform/config/hcl2shim"
+	"github.com/hashicorp/terraform/configs/configschema"
+	"github.com/hashicorp/terraform/providers"
 	"github.com/hashicorp/terraform/tfdiags"
 	"github.com/zclconf/go-cty/cty"
 )
+
+func dataSourceRemoteStateGetSchema() providers.Schema {
+	return providers.Schema{
+		Block: &configschema.Block{
+			Attributes: map[string]*configschema.Attribute{
+				"backend": {
+					Type:     cty.String,
+					Required: true,
+				},
+				"config": {
+					Type:     cty.DynamicPseudoType,
+					Optional: true,
+				},
+				"defaults": {
+					Type:     cty.DynamicPseudoType,
+					Optional: true,
+				},
+				"outputs": {
+					Type:     cty.DynamicPseudoType,
+					Computed: true,
+				},
+				"workspace": {
+					Type:     cty.String,
+					Optional: true,
+				},
+			},
+		},
+	}
+}
 
 func dataSourceRemoteStateRead(d *cty.Value) (cty.Value, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
@@ -29,12 +60,13 @@ func dataSourceRemoteStateRead(d *cty.Value) (cty.Value, tfdiags.Diagnostics) {
 	log.Printf("[DEBUG] Initializing remote state backend: %s", backendType)
 	f := backendinit.Backend(backendType)
 	if f == nil {
-		return cty.NilVal, diags.Append(tfdiags.AttributeValue(
+		diags = diags.Append(tfdiags.AttributeValue(
 			tfdiags.Error,
+			"Invalid backend configuration",
 			fmt.Sprintf("Unknown backend type: %s", backendType),
-			"",
 			cty.Path(nil).GetAttr("backend"),
 		))
+		return cty.NilVal, diags
 	}
 	b := f()
 
@@ -45,27 +77,33 @@ func dataSourceRemoteStateRead(d *cty.Value) (cty.Value, tfdiags.Diagnostics) {
 	// Try to coerce the provided value into the desired configuration type.
 	configVal, err := schema.CoerceValue(config)
 	if err != nil {
-		return cty.NilVal, diags.Append(tfdiags.AttributeValue(
+		diags = diags.Append(tfdiags.AttributeValue(
 			tfdiags.Error,
-			fmt.Sprintf("invalid %s backend configuration: %s", backendType, tfdiags.FormatError(err)),
-			"",
+			"Invalid backend configuration",
+			fmt.Sprintf("The given configuration is not valid for backend %q: %s.", backendType,
+				tfdiags.FormatError(err)),
 			cty.Path(nil).GetAttr("backend"),
 		))
+		return cty.NilVal, diags
 	}
 
 	validateDiags := b.ValidateConfig(configVal)
+	diags = diags.Append(validateDiags)
 	if validateDiags.HasErrors() {
-		return cty.NilVal, diags.Append(validateDiags.Err())
+		return cty.NilVal, diags
 	}
+
 	configureDiags := b.Configure(configVal)
 	if configureDiags.HasErrors() {
-		return cty.NilVal, diags.Append(configureDiags.Err())
+		diags = diags.Append(configureDiags.Err())
+		return cty.NilVal, diags
 	}
 
 	var name string
-	if d.Type().HasAttribute("workspace") {
-		newState["workspace"] = d.GetAttr("workspace")
-		ws := d.GetAttr("workspace").AsString()
+
+	if workspaceVal := d.GetAttr("workspace"); !workspaceVal.IsNull() {
+		newState["workspace"] = workspaceVal
+		ws := workspaceVal.AsString()
 		if ws != backend.DefaultStateName {
 			name = ws
 		}
@@ -73,23 +111,25 @@ func dataSourceRemoteStateRead(d *cty.Value) (cty.Value, tfdiags.Diagnostics) {
 
 	state, err := b.State(name)
 	if err != nil {
-		return cty.NilVal, diags.Append(tfdiags.AttributeValue(
+		diags = diags.Append(tfdiags.AttributeValue(
 			tfdiags.Error,
+			"Error loading state error",
 			fmt.Sprintf("error loading the remote state: %s", err),
-			"",
 			cty.Path(nil).GetAttr("backend"),
 		))
+		return cty.NilVal, diags
 	}
+
 	if err := state.RefreshState(); err != nil {
-		return cty.NilVal, diags.Append(err)
+		diags = diags.Append(err)
+		return cty.NilVal, diags
 	}
 
 	outputs := make(map[string]cty.Value)
 
-	if d.Type().HasAttribute("defaults") {
-		defaults := d.GetAttr("defaults")
-		newState["defaults"] = d.GetAttr("defaults")
-		it := defaults.ElementIterator()
+	if defaultsVal := d.GetAttr("defaults"); !defaultsVal.IsNull() {
+		newState["defaults"] = defaultsVal
+		it := defaultsVal.ElementIterator()
 		for it.Next() {
 			k, v := it.Element()
 			outputs[k.AsString()] = v

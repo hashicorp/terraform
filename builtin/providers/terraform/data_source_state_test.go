@@ -107,14 +107,18 @@ func TestState_basic(t *testing.T) {
 		},
 	}
 	for _, test := range tests {
-		got, err := dataSourceRemoteStateRead(&test.Config)
+		schema := dataSourceRemoteStateGetSchema().Block
+		config, err := schema.CoerceValue(test.Config)
+		if err != nil {
+			t.Fatalf("unexpected error: %s", err)
+		}
+		got, diags := dataSourceRemoteStateRead(&config)
 
 		if test.Err {
-			if err == nil {
+			if !diags.HasErrors() {
 				t.Fatal("succeeded; want error")
 			}
-			return
-		} else if err != nil {
+		} else if diags.HasErrors() {
 			t.Fatalf("unexpected error: %s", err)
 		}
 

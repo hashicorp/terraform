@@ -2,10 +2,9 @@ package terraform
 
 import (
 	"fmt"
+	"log"
 
-	"github.com/hashicorp/terraform/config/configschema"
 	"github.com/hashicorp/terraform/providers"
-	"github.com/zclconf/go-cty/cty"
 )
 
 // Provider is an implementation of providers.Interface
@@ -25,36 +24,8 @@ func NewProvider() *Provider {
 // GetSchema returns the complete schema for the provider.
 func (p *Provider) GetSchema() providers.GetSchemaResponse {
 	return providers.GetSchemaResponse{
-		Provider: providers.Schema{
-			Version: 1,
-		},
 		DataSources: map[string]providers.Schema{
-			"terraform_remote_state": {
-				Block: &configschema.Block{
-					Attributes: map[string]*configschema.Attribute{
-						"backend": {
-							Type:     cty.String,
-							Required: true,
-						},
-						"config": {
-							Type:     cty.DynamicPseudoType,
-							Optional: true,
-						},
-						"defaults": {
-							Type:     cty.DynamicPseudoType,
-							Optional: true,
-						},
-						"outputs": {
-							Type:     cty.DynamicPseudoType,
-							Computed: true,
-						},
-						"workspace": {
-							Type:     cty.String,
-							Optional: true,
-						},
-					},
-				},
-			},
+			"terraform_remote_state": dataSourceRemoteStateGetSchema(),
 		},
 	}
 }
@@ -104,7 +75,8 @@ func (p *Provider) ReadDataSource(req providers.ReadDataSourceRequest) providers
 
 // Stop is called when the provider should halt any in-flight actions.
 func (p *Provider) Stop() error {
-	panic("unimplemented")
+	log.Println("[DEBUG] terraform provider cannot Stop")
+	return nil
 }
 
 // All the Resource-specific functions are below.
