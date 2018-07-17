@@ -1,142 +1,151 @@
 package terraform
 
 import (
-        "fmt"
-        "log"
-        "time"
+	"fmt"
+	"log"
 
-        "github.com/hashicorp/terraform/backend"
-        backendinit "github.com/hashicorp/terraform/backend/init"
-        "github.com/hashicorp/terraform/config/hcl2shim"
-        "github.com/hashicorp/terraform/helper/schema"
-        "github.com/hashicorp/terraform/tfdiags"
+	"github.com/hashicorp/terraform/backend"
+	backendinit "github.com/hashicorp/terraform/backend/init"
+	"github.com/hashicorp/terraform/config/hcl2shim"
+	"github.com/hashicorp/terraform/configs/configschema"
+	"github.com/hashicorp/terraform/providers"
+	"github.com/hashicorp/terraform/tfdiags"
+	"github.com/zclconf/go-cty/cty"
 )
 
-func dataSourceRemoteState() *schema.Resource {
-        return &schema.Resource{
-                Read: dataSourceRemoteStateRead,
-
-                Schema: map[string]*schema.Schema{
-                        "backend": {
-                                Type:     schema.TypeString,
-                                Required: true,
-                                ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
-                                        if vStr, ok := v.(string); ok && vStr == "_local" {
-                                                ws = append(ws, "Use of the %q backend is now officially "+
-                                                        "supported as %q. Please update your configuration to ensure "+
-                                                        "compatibility with future versions of Terraform.",
-                                                        "_local", "local")
-                                        }
-
-                                        return
-                                },
-                        },
-
-                        "config": {
-                                Type:     schema.TypeMap,
-                                Optional: true,
-                        },
-
-                        "defaults": {
-                                Type:     schema.TypeMap,
-                                Optional: true,
-                        },
-
-                        "environment": {
-                                Type:       schema.TypeString,
-                                Optional:   true,
-                                Default:    backend.DefaultStateName,
-                                Deprecated: "Terraform environments are now called workspaces. Please use the workspace key instead.",
-                        },
-
-                        "workspace": {
-                                Type:     schema.TypeString,
-                                Optional: true,
-                                Default:  backend.DefaultStateName,
-                        },
-
-                        "__has_dynamic_attributes": {
-                                Type:     schema.TypeString,
-                                Optional: true,
-                        },
-                },
-        }
+func dataSourceRemoteStateGetSchema() providers.Schema {
+	return providers.Schema{
+		Block: &configschema.Block{
+			Attributes: map[string]*configschema.Attribute{
+				"backend": {
+					Type:     cty.String,
+					Required: true,
+				},
+				"config": {
+					Type:     cty.DynamicPseudoType,
+					Optional: true,
+				},
+				"defaults": {
+					Type:     cty.DynamicPseudoType,
+					Optional: true,
+				},
+				"outputs": {
+					Type:     cty.DynamicPseudoType,
+					Computed: true,
+				},
+				"workspace": {
+					Type:     cty.String,
+					Optional: true,
+				},
+			},
+		},
+	}
 }
 
-func dataSourceRemoteStateRead(d *schema.ResourceData, meta interface{}) error {
-        backendType := d.Get("backend").(string)
+func dataSourceRemoteStateRead(d *cty.Value) (cty.Value, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
 
-        // Don't break people using the old _local syntax - but note warning above
-        if backendType == "_local" {
-			log.Println(`[INFO] Switching old (unsupported) backend "_local" to "local"`)
-			backendType = "local"
+	newState := make(map[string]cty.Value)
+	newState["backend"] = d.GetAttr("backend")
+
+	backendType := d.GetAttr("backend").AsString()
+
+	// Don't break people using the old _local syntax - but note warning above
+	if backendType == "_local" {
+		log.Println(`[INFO] Switching old (unsupported) backend "_local" to "local"`)
+		backendType = "local"
 	}
 
 	// Create the client to access our remote state
 	log.Printf("[DEBUG] Initializing remote state backend: %s", backendType)
 	f := backendinit.Backend(backendType)
 	if f == nil {
-			return fmt.Errorf("Unknown backend type: %s", backendType)
+		diags = diags.Append(tfdiags.AttributeValue(
+			tfdiags.Error,
+			"Invalid backend configuration",
+			fmt.Sprintf("Unknown backend type: %s", backendType),
+			cty.Path(nil).GetAttr("backend"),
+		))
+		return cty.NilVal, diags
 	}
 	b := f()
 
-	schema := b.ConfigSchema()
-	rawConfig := d.Get("config")
-	configVal := hcl2shim.HCL2ValueFromConfigValue(rawConfig)
+	config := d.GetAttr("config")
+	newState["config"] = config
 
+	schema := b.ConfigSchema()
 	// Try to coerce the provided value into the desired configuration type.
-	configVal, err := schema.CoerceValue(configVal)
+	configVal, err := schema.CoerceValue(config)
 	if err != nil {
-			return fmt.Errorf("invalid %s backend configuration: %s", backendType, tfdiags.FormatError(err))
+		diags = diags.Append(tfdiags.AttributeValue(
+			tfdiags.Error,
+			"Invalid backend configuration",
+			fmt.Sprintf("The given configuration is not valid for backend %q: %s.", backendType,
+				tfdiags.FormatError(err)),
+			cty.Path(nil).GetAttr("config"),
+		))
+		return cty.NilVal, diags
 	}
+
 	validateDiags := b.ValidateConfig(configVal)
+	diags = diags.Append(validateDiags)
 	if validateDiags.HasErrors() {
-			return validateDiags.Err()
+		return cty.NilVal, diags
 	}
+
 	configureDiags := b.Configure(configVal)
 	if configureDiags.HasErrors() {
-			return configureDiags.Err()
+		diags = diags.Append(configureDiags.Err())
+		return cty.NilVal, diags
 	}
 
-	// environment is deprecated in favour of workspace.
-	// If both keys are set workspace should win.
-	name := d.Get("environment").(string)
-	if ws, ok := d.GetOk("workspace"); ok && ws != backend.DefaultStateName {
-			name = ws.(string)
+	var name string
+
+	if workspaceVal := d.GetAttr("workspace"); !workspaceVal.IsNull() {
+		newState["workspace"] = workspaceVal
+		ws := workspaceVal.AsString()
+		if ws != backend.DefaultStateName {
+			name = ws
+		}
 	}
 
 	state, err := b.State(name)
 	if err != nil {
-			return fmt.Errorf("error loading the remote state: %s", err)
+		diags = diags.Append(tfdiags.AttributeValue(
+			tfdiags.Error,
+			"Error loading state error",
+			fmt.Sprintf("error loading the remote state: %s", err),
+			cty.Path(nil).GetAttr("backend"),
+		))
+		return cty.NilVal, diags
 	}
+
 	if err := state.RefreshState(); err != nil {
-			return err
+		diags = diags.Append(err)
+		return cty.NilVal, diags
 	}
-	d.SetId(time.Now().UTC().String())
 
-	outputMap := make(map[string]interface{})
+	outputs := make(map[string]cty.Value)
 
-	defaults := d.Get("defaults").(map[string]interface{})
-	for key, val := range defaults {
-			outputMap[key] = val
+	if defaultsVal := d.GetAttr("defaults"); !defaultsVal.IsNull() {
+		newState["defaults"] = defaultsVal
+		it := defaultsVal.ElementIterator()
+		for it.Next() {
+			k, v := it.Element()
+			outputs[k.AsString()] = v
+		}
 	}
 
 	remoteState := state.State()
 	if remoteState.Empty() {
-			log.Println("[DEBUG] empty remote state")
+		log.Println("[DEBUG] empty remote state")
 	} else {
-			for key, val := range remoteState.RootModule().Outputs {
-					if val.Value != nil {
-							outputMap[key] = val.Value
-					}
-			}
+		for k, os := range remoteState.RootModule().Outputs {
+			outputs[k] = hcl2shim.HCL2ValueFromConfigValue(os.Value)
+		}
 	}
 
-	mappedOutputs := remoteStateFlatten(outputMap)
+	newState["outputs"] = cty.ObjectVal(outputs)
 
-	for key, val := range mappedOutputs {
-			d.UnsafeSetFieldRaw(key, val)
-	}
-
-	return nil
+	return cty.ObjectVal(newState), diags
 }
