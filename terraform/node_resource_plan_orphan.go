@@ -40,6 +40,11 @@ func (n *NodePlannableResourceOrphan) EvalTree() EvalNode {
 				State:  &state,
 				Output: &diff,
 			},
+			&EvalCheckOnlyAdd{
+				Resource:   n.Config,
+				ResourceId: stateId,
+				Diff:       &diff,
+			},
 			&EvalCheckPreventDestroy{
 				Resource:   n.Config,
 				ResourceId: stateId,

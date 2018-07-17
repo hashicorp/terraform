@@ -1012,7 +1012,7 @@ func loadManagedResourcesHcl(list *ast.ObjectList) ([]*Resource, error) {
 			}
 
 			// Check for invalid keys
-			valid := []string{"create_before_destroy", "ignore_changes", "prevent_destroy"}
+			valid := []string{"create_before_destroy", "ignore_changes", "prevent_destroy", "only_add"}
 			if err := checkHCLKeys(o.Items[0].Val, valid); err != nil {
 				return nil, multierror.Prefix(err, fmt.Sprintf(
 					"%s[%s]:", t, k))

@@ -71,6 +71,11 @@ There are **meta-parameters** available to all resources:
     example, this can be used to create an new DNS record before removing an old
     record.
 
+  - `only_add` (bool) - This flag is used to ensure that terraform will perform
+     only additions of new resources.  Resources with `only_add` will not be
+     destroyed.  Unlike `prevent_destroy`, which results in an error when resources
+     would be destroyed, `only_add` will continue with remaining resource plans.
+
   - `prevent_destroy` (bool) - This flag provides extra protection against the
     destruction of a given resource. When this is set to `true`, any plan that
     includes a destroy of this resource will return an error message.

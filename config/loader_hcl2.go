@@ -90,6 +90,7 @@ func (t *hcl2Configurable) Config() (*Config, error) {
 	}
 	type resourceLifecycle struct {
 		CreateBeforeDestroy *bool     `hcl:"create_before_destroy,attr"`
+		OnlyAdd             *bool     `hcl:"only_add,attr"`
 		PreventDestroy      *bool     `hcl:"prevent_destroy,attr"`
 		IgnoreChanges       *[]string `hcl:"ignore_changes,attr"`
 	}
@@ -314,6 +315,9 @@ func (t *hcl2Configurable) Config() (*Config, error) {
 			var l ResourceLifecycle
 			if rawR.Lifecycle.CreateBeforeDestroy != nil {
 				l.CreateBeforeDestroy = *rawR.Lifecycle.CreateBeforeDestroy
+			}
+			if rawR.Lifecycle.OnlyAdd != nil {
+				l.OnlyAdd = *rawR.Lifecycle.OnlyAdd
 			}
 			if rawR.Lifecycle.PreventDestroy != nil {
 				l.PreventDestroy = *rawR.Lifecycle.PreventDestroy

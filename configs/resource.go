@@ -25,11 +25,13 @@ type ManagedResource struct {
 
 	CreateBeforeDestroy bool
 	PreventDestroy      bool
+	OnlyAdd             bool
 	IgnoreChanges       []hcl.Traversal
 	IgnoreAllChanges    bool
 
 	CreateBeforeDestroySet bool
 	PreventDestroySet      bool
+	OnlyAddSet             bool
 
 	DeclRange hcl.Range
 	TypeRange hcl.Range
@@ -110,6 +112,12 @@ func decodeResourceBlock(block *hcl.Block) (*ManagedResource, hcl.Diagnostics) {
 				valDiags := gohcl.DecodeExpression(attr.Expr, nil, &r.CreateBeforeDestroy)
 				diags = append(diags, valDiags...)
 				r.CreateBeforeDestroySet = true
+			}
+
+			if attr, exists := lcContent.Attributes["only_add"]; exists {
+				valDiags := gohcl.DecodeExpression(attr.Expr, nil, &r.OnlyAdd)
+				diags = append(diags, valDiags...)
+				r.OnlyAddSet = true
 			}
 
 			if attr, exists := lcContent.Attributes["prevent_destroy"]; exists {
@@ -414,6 +422,9 @@ var resourceLifecycleBlockSchema = &hcl.BodySchema{
 	Attributes: []hcl.AttributeSchema{
 		{
 			Name: "create_before_destroy",
+		},
+		{
+			Name: "only_add",
 		},
 		{
 			Name: "prevent_destroy",

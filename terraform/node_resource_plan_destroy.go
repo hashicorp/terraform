@@ -40,6 +40,10 @@ func (n *NodePlanDestroyableResource) EvalTree() EvalNode {
 				State:  &state,
 				Output: &diff,
 			},
+			&EvalCheckOnlyAdd{
+				Resource: n.Config,
+				Diff:     &diff,
+			},
 			&EvalCheckPreventDestroy{
 				Resource: n.Config,
 				Diff:     &diff,
