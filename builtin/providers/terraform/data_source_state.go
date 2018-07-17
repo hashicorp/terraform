@@ -82,7 +82,7 @@ func dataSourceRemoteStateRead(d *cty.Value) (cty.Value, tfdiags.Diagnostics) {
 			"Invalid backend configuration",
 			fmt.Sprintf("The given configuration is not valid for backend %q: %s.", backendType,
 				tfdiags.FormatError(err)),
-			cty.Path(nil).GetAttr("backend"),
+			cty.Path(nil).GetAttr("config"),
 		))
 		return cty.NilVal, diags
 	}
