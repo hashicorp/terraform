@@ -55,10 +55,10 @@
 			"versionExact": "v10.3.0-beta"
 		},
 		{
-			"checksumSHA1": "KWdWO4eMy7/x85pgQhngfaTiqz8=",
+			"checksumSHA1": "pbHi9xc373inHdf5me73LGIFV1w=",
 			"path": "github.com/Azure/azure-sdk-for-go/storage",
-			"revision": "57db66900881e9fd21fd041a9d013514700ecab3",
-			"revisionTime": "2017-08-18T20:19:01Z",
+			"revision": "34e80a61f817f18afd85d0c6d12ee6400d6506b2",
+			"revisionTime": "2018-07-13T17:08:29Z",
 			"version": "v10.3.0-beta",
 			"versionExact": "v10.3.0-beta"
 		},
@@ -1969,6 +1969,12 @@
 			"checksumSHA1": "7iMOW6SxJFNH0/m1tjjCXVZl+Z8=",
 			"path": "github.com/lusis/go-artifactory/src/artifactory.v401",
 			"revision": "7e4ce345df825841661d1b3ffbb1327083d4a22f"
+		},
+		{
+			"checksumSHA1": "T9E+5mKBQ/BX4wlNxgaPfetxdeI=",
+			"path": "github.com/marstr/guid",
+			"revision": "8bdf7d1a087ccc975cf37dd6507da50698fd19ca",
+			"revisionTime": "2017-04-27T23:51:15Z"
 		},
 		{
 			"checksumSHA1": "DlpjiTUHFFoU39yh4FIKS8g7L7A=",
