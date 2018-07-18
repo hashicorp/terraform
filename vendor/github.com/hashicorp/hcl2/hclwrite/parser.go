@@ -327,9 +327,54 @@ func parseBlock(nativeBlock *hclsyntax.Block, from, leadComments, lineComments, 
 }
 
 func parseExpression(nativeExpr hclsyntax.Expression, from inputTokens) *Expression {
-	// TODO: Populate VarRefs by analyzing the result of nativeExpr.Variables()
+	var allTokens TokenSeq
+	nativeVars := nativeExpr.Variables()
+	var absTraversals []*Traversal
+	for _, nativeTraversal := range nativeVars {
+		var traversalTokens TokenSeq
+		var before, traversalFrom inputTokens
+		before, traversalFrom, from = from.Partition(nativeTraversal.SourceRange())
+		if before.Len() > 0 {
+			allTokens = append(allTokens, before.Seq())
+		}
+
+		var steps []*Traverser
+
+		for _, nativeStep := range nativeTraversal {
+			var stepFrom inputTokens
+			before, stepFrom, traversalFrom = traversalFrom.Partition(nativeStep.SourceRange())
+			stepTokens := stepFrom.Seq()
+			if before.Len() > 0 {
+				traversalTokens = append(traversalTokens, before.Seq())
+			}
+			traversalTokens = append(traversalTokens, stepTokens)
+			step := &Traverser{
+				AllTokens: stepTokens,
+				Logical:   nativeStep,
+			}
+			steps = append(steps, step)
+		}
+		// Attach any straggler that don't belong to a step to the traversal itself.
+		if traversalFrom.Len() > 0 {
+			traversalTokens = append(traversalTokens, traversalFrom.Seq())
+		}
+		allTokens = append(allTokens, &traversalTokens)
+
+		absTraversals = append(absTraversals, &Traversal{
+			AllTokens: &traversalTokens,
+			Steps:     steps,
+		})
+	}
+	// Attach any stragglers that don't belong to a traversal to the expression
+	// itself. In an expression with no traversals at all, this is just the
+	// entirety of "from".
+	if from.Len() > 0 {
+		allTokens = append(allTokens, from.Seq())
+	}
+
 	return &Expression{
-		AllTokens: from.Seq(),
+		AllTokens:     &allTokens,
+		AbsTraversals: absTraversals,
 	}
 }
 
