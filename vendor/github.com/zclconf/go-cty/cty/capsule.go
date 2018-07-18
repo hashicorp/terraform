@@ -19,7 +19,7 @@ func (t *capsuleType) Equals(other Type) bool {
 	return false
 }
 
-func (t *capsuleType) FriendlyName() string {
+func (t *capsuleType) FriendlyName(mode friendlyTypeNameMode) string {
 	return t.Name
 }
 

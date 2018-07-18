@@ -51,7 +51,7 @@ func (t typeObject) Equals(other Type) bool {
 	return false
 }
 
-func (t typeObject) FriendlyName() string {
+func (t typeObject) FriendlyName(mode friendlyTypeNameMode) string {
 	// There isn't really a friendly way to write an object type due to its
 	// complexity, so we'll just do something English-ish. Callers will
 	// probably want to make some extra effort to avoid ever printing out
