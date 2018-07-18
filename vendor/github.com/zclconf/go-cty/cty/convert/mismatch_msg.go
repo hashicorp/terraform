@@ -32,9 +32,24 @@ func MismatchMessage(got, want cty.Type) string {
 		// about their respective attributes.
 		return mismatchMessageObjects(got, want)
 
+	case got.IsTupleType() && want.IsListType() && want.ElementType() == cty.DynamicPseudoType:
+		// If conversion from tuple to list failed then it's because we couldn't
+		// find a common type to convert all of the tuple elements to.
+		return "all list elements must have the same type"
+
+	case got.IsTupleType() && want.IsSetType() && want.ElementType() == cty.DynamicPseudoType:
+		// If conversion from tuple to set failed then it's because we couldn't
+		// find a common type to convert all of the tuple elements to.
+		return "all set elements must have the same type"
+
+	case got.IsObjectType() && want.IsMapType() && want.ElementType() == cty.DynamicPseudoType:
+		// If conversion from object to map failed then it's because we couldn't
+		// find a common type to convert all of the object attributes to.
+		return "all map elements must have the same type"
+
 	default:
 		// If we have nothing better to say, we'll just state what was required.
-		return want.FriendlyName() + " required"
+		return want.FriendlyNameForConstraint() + " required"
 	}
 }
 

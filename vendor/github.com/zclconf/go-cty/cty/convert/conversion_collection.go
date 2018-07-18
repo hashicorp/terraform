@@ -128,6 +128,76 @@ func conversionCollectionToMap(ety cty.Type, conv conversion) conversion {
 	}
 }
 
+// conversionTupleToSet returns a conversion that will take a value of the
+// given tuple type and return a set of the given element type.
+//
+// Will panic if the given tupleType isn't actually a tuple type.
+func conversionTupleToSet(tupleType cty.Type, listEty cty.Type, unsafe bool) conversion {
+	tupleEtys := tupleType.TupleElementTypes()
+
+	if len(tupleEtys) == 0 {
+		// Empty tuple short-circuit
+		return func(val cty.Value, path cty.Path) (cty.Value, error) {
+			return cty.ListValEmpty(listEty), nil
+		}
+	}
+
+	if listEty == cty.DynamicPseudoType {
+		// This is a special case where the caller wants us to find
+		// a suitable single type that all elements can convert to, if
+		// possible.
+		listEty, _ = unify(tupleEtys, unsafe)
+		if listEty == cty.NilType {
+			return nil
+		}
+	}
+
+	elemConvs := make([]conversion, len(tupleEtys))
+	for i, tupleEty := range tupleEtys {
+		if tupleEty.Equals(listEty) {
+			// no conversion required
+			continue
+		}
+
+		elemConvs[i] = getConversion(tupleEty, listEty, unsafe)
+		if elemConvs[i] == nil {
+			// If any of our element conversions are impossible, then the our
+			// whole conversion is impossible.
+			return nil
+		}
+	}
+
+	// If we fall out here then a conversion is possible, using the
+	// element conversions in elemConvs
+	return func(val cty.Value, path cty.Path) (cty.Value, error) {
+		elems := make([]cty.Value, 0, len(elemConvs))
+		path = append(path, nil)
+		i := int64(0)
+		it := val.ElementIterator()
+		for it.Next() {
+			_, val := it.Element()
+			var err error
+
+			path[len(path)-1] = cty.IndexStep{
+				Key: cty.NumberIntVal(i),
+			}
+
+			conv := elemConvs[i]
+			if conv != nil {
+				val, err = conv(val, path)
+				if err != nil {
+					return cty.NilVal, err
+				}
+			}
+			elems = append(elems, val)
+
+			i++
+		}
+
+		return cty.SetVal(elems), nil
+	}
+}
+
 // conversionTupleToList returns a conversion that will take a value of the
 // given tuple type and return a list of the given element type.
 //
