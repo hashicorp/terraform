@@ -162,12 +162,12 @@ func (n *Block) Tokens() *TokenSeq {
 }
 
 type Expression struct {
-	AllTokens *TokenSeq
-	VarRefs   []*VarRef
+	AllTokens     *TokenSeq
+	AbsTraversals []*Traversal
 }
 
 func (n *Expression) walkChildNodes(w internalWalkFunc) {
-	for _, name := range n.VarRefs {
+	for _, name := range n.AbsTraversals {
 		w(name)
 	}
 }
@@ -176,16 +176,30 @@ func (n *Expression) Tokens() *TokenSeq {
 	return n.AllTokens
 }
 
-type VarRef struct {
-	// Tokens alternate between TokenIdent and TokenDot, with the first
-	// and last elements always being TokenIdent.
+type Traversal struct {
 	AllTokens *TokenSeq
+	Steps     []*Traverser
 }
 
-func (n *VarRef) walkChildNodes(w internalWalkFunc) {
-	// no child nodes of a variable name
+func (n *Traversal) walkChildNodes(w internalWalkFunc) {
+	for _, step := range n.Steps {
+		w(step)
+	}
 }
 
-func (n *VarRef) Tokens() *TokenSeq {
+func (n *Traversal) Tokens() *TokenSeq {
 	return n.AllTokens
+}
+
+type Traverser struct {
+	AllTokens *TokenSeq
+	Logical   hcl.Traverser
+}
+
+func (n *Traverser) Tokens() *TokenSeq {
+	return n.AllTokens
+}
+
+func (n *Traverser) walkChildNodes(w internalWalkFunc) {
+	// No child nodes for a traversal step
 }

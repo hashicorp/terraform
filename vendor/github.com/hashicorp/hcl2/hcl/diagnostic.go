@@ -96,6 +96,17 @@ func (d Diagnostics) HasErrors() bool {
 	return false
 }
 
+func (d Diagnostics) Errs() []error {
+	var errs []error
+	for _, diag := range d {
+		if diag.Severity == DiagError {
+			errs = append(errs, diag)
+		}
+	}
+
+	return errs
+}
+
 // A DiagnosticWriter emits diagnostics somehow.
 type DiagnosticWriter interface {
 	WriteDiagnostic(*Diagnostic) error
