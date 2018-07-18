@@ -109,6 +109,10 @@ func getConversionKnown(in cty.Type, out cty.Type, unsafe bool) conversion {
 		outEty := out.ElementType()
 		return conversionTupleToList(in, outEty, unsafe)
 
+	case out.IsSetType() && in.IsTupleType():
+		outEty := out.ElementType()
+		return conversionTupleToSet(in, outEty, unsafe)
+
 	case out.IsMapType() && in.IsObjectType():
 		outEty := out.ElementType()
 		return conversionObjectToMap(in, outEty, unsafe)

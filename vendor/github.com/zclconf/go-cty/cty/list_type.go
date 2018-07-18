@@ -33,8 +33,14 @@ func (t typeList) Equals(other Type) bool {
 	return t.ElementTypeT.Equals(ot.ElementTypeT)
 }
 
-func (t typeList) FriendlyName() string {
-	return "list of " + t.ElementTypeT.FriendlyName()
+func (t typeList) FriendlyName(mode friendlyTypeNameMode) string {
+	elemName := t.ElementTypeT.friendlyNameMode(mode)
+	if mode == friendlyTypeConstraintName {
+		if t.ElementTypeT == DynamicPseudoType {
+			elemName = "any single type"
+		}
+	}
+	return "list of " + elemName
 }
 
 func (t typeList) ElementType() Type {
