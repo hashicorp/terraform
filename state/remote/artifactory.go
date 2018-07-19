@@ -16,35 +16,30 @@ func artifactoryFactory(conf map[string]string) (Client, error) {
 	if !ok {
 		userName = os.Getenv("ARTIFACTORY_USERNAME")
 		if userName == "" {
-			return nil, fmt.Errorf(
-				"missing 'username' configuration or ARTIFACTORY_USERNAME environment variable")
+			return nil, fmt.Errorf("missing 'username' configuration or ARTIFACTORY_USERNAME environment variable")
 		}
 	}
 	password, ok := conf["password"]
 	if !ok {
 		password = os.Getenv("ARTIFACTORY_PASSWORD")
 		if password == "" {
-			return nil, fmt.Errorf(
-				"missing 'password' configuration or ARTIFACTORY_PASSWORD environment variable")
+			return nil, fmt.Errorf("missing 'password' configuration or ARTIFACTORY_PASSWORD environment variable")
 		}
 	}
 	url, ok := conf["url"]
 	if !ok {
 		url = os.Getenv("ARTIFACTORY_URL")
 		if url == "" {
-			return nil, fmt.Errorf(
-				"missing 'url' configuration or ARTIFACTORY_URL environment variable")
+			return nil, fmt.Errorf("missing 'url' configuration or ARTIFACTORY_URL environment variable")
 		}
 	}
 	repo, ok := conf["repo"]
 	if !ok {
-		return nil, fmt.Errorf(
-			"missing 'repo' configuration")
+		return nil, fmt.Errorf("missing 'repo' configuration")
 	}
 	subpath, ok := conf["subpath"]
 	if !ok {
-		return nil, fmt.Errorf(
-			"missing 'subpath' configuration")
+		return nil, fmt.Errorf("missing 'subpath' configuration")
 	}
 
 	clientConf := &artifactory.ClientConfig{
