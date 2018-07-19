@@ -73,7 +73,7 @@ func (s *Schema) coreConfigSchemaAttribute() *configschema.Attribute {
 // of Resource, and will panic otherwise.
 func (s *Schema) coreConfigSchemaBlock() *configschema.NestedBlock {
 	ret := &configschema.NestedBlock{}
-	if nested := s.Elem.(*Resource).CoreConfigSchema(); nested != nil {
+	if nested := s.Elem.(*Resource).coreConfigSchema(); nested != nil {
 		ret.Block = *nested
 	}
 	switch s.Type {
@@ -126,7 +126,7 @@ func (s *Schema) coreConfigSchemaType() cty.Type {
 			// In practice we don't actually use this for normal schema
 			// construction because we construct a NestedBlock in that
 			// case instead. See schemaMap.CoreConfigSchema.
-			elemType = set.CoreConfigSchema().ImpliedType()
+			elemType = set.coreConfigSchema().ImpliedType()
 		default:
 			if set != nil {
 				// Should never happen for a valid schema

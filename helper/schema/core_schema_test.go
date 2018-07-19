@@ -304,9 +304,9 @@ func TestSchemaMapCoreConfigSchema(t *testing.T) {
 
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
-			got := schemaMap(test.Schema).CoreConfigSchema()
-			if !cmp.Equal(got, test.Want, typeComparer) {
-				cmp.Diff(got, test.Want, typeComparer)
+			got := (&Resource{Schema: test.Schema}).CoreConfigSchema()
+			if !cmp.Equal(got, test.Want, equateEmpty, typeComparer) {
+				t.Error(cmp.Diff(got, test.Want, equateEmpty, typeComparer))
 			}
 		})
 	}
