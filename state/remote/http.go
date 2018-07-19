@@ -11,6 +11,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
+	"os"
 	"strconv"
 
 	"github.com/hashicorp/terraform/state"
@@ -19,7 +20,10 @@ import (
 func httpFactory(conf map[string]string) (Client, error) {
 	address, ok := conf["address"]
 	if !ok {
-		return nil, fmt.Errorf("missing 'address' configuration")
+		address = os.Getenv("HTTP_REMOTE_ADDRESS")
+		if address == "" {
+			return nil, fmt.Errorf("missing 'address' configuration or HTTP_REMOTE_ADDRESS environment variable")
+		}
 	}
 
 	updateURL, err := url.Parse(address)
@@ -35,7 +39,13 @@ func httpFactory(conf map[string]string) (Client, error) {
 	}
 
 	var lockURL *url.URL
-	if lockAddress, ok := conf["lock_address"]; ok {
+	lockAddress, ok := conf["lock_address"]
+	if !ok {
+		lockAddress = os.Getenv("HTTP_REMOTE_LOCK_ADDRESS")
+	}
+	if lockAddress == "" {
+		lockURL = nil
+	} else {
 		var err error
 		lockURL, err = url.Parse(lockAddress)
 		if err != nil {
@@ -44,8 +54,6 @@ func httpFactory(conf map[string]string) (Client, error) {
 		if lockURL.Scheme != "http" && lockURL.Scheme != "https" {
 			return nil, fmt.Errorf("lockAddress must be HTTP or HTTPS")
 		}
-	} else {
-		lockURL = nil
 	}
 	lockMethod, ok := conf["lock_method"]
 	if !ok {
@@ -53,7 +61,13 @@ func httpFactory(conf map[string]string) (Client, error) {
 	}
 
 	var unlockURL *url.URL
-	if unlockAddress, ok := conf["unlock_address"]; ok {
+	unlockAddress, ok := conf["unlock_address"]
+	if !ok {
+		unlockAddress = os.Getenv("HTTP_REMOTE_UNLOCK_ADDRESS")
+	}
+	if unlockAddress == "" {
+		unlockURL = nil
+	} else {
 		var err error
 		unlockURL, err = url.Parse(unlockAddress)
 		if err != nil {
@@ -62,8 +76,6 @@ func httpFactory(conf map[string]string) (Client, error) {
 		if unlockURL.Scheme != "http" && unlockURL.Scheme != "https" {
 			return nil, fmt.Errorf("unlockAddress must be HTTP or HTTPS")
 		}
-	} else {
-		unlockURL = nil
 	}
 	unlockMethod, ok := conf["unlock_method"]
 	if !ok {
@@ -88,6 +100,16 @@ func httpFactory(conf map[string]string) (Client, error) {
 		}
 	}
 
+	username, ok := conf["username"]
+	if !ok {
+		username = os.Getenv("HTTP_REMOTE_USERNAME")
+	}
+
+	password, ok := conf["password"]
+	if !ok {
+		password = os.Getenv("HTTP_REMOTE_PASSWORD")
+	}
+
 	ret := &HTTPClient{
 		URL:          updateURL,
 		UpdateMethod: updateMethod,
@@ -97,8 +119,8 @@ func httpFactory(conf map[string]string) (Client, error) {
 		UnlockURL:    unlockURL,
 		UnlockMethod: unlockMethod,
 
-		Username: conf["username"],
-		Password: conf["password"],
+		Username: username,
+		Password: password,
 
 		// accessible only for testing use
 		Client: client,

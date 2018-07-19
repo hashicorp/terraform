@@ -87,7 +87,7 @@ func assertError(t *testing.T, err error, expected string) {
 func TestHTTPClientFactory(t *testing.T) {
 	// missing address
 	_, err := httpFactory(map[string]string{})
-	assertError(t, err, "missing 'address' configuration")
+	assertError(t, err, "missing 'address' configuration or HTTP_REMOTE_ADDRESS environment variable")
 
 	// defaults
 	conf := map[string]string{
