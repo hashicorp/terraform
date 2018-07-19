@@ -45,18 +45,18 @@ data "terraform_remote_state" "foo" {
 
 The following configuration options are supported:
 
- * `address` - (Required) The address of the REST endpoint
+ * `address` / `HTTP_REMOTE_ADDRESS` - (Required) The address of the REST endpoint
  * `update_method` - (Optional) HTTP method to use when updating state.
    Defaults to `POST`.
- * `lock_address` - (Optional) The address of the lock REST endpoint.
+ * `lock_address` / `HTTP_REMOTE_LOCK_ADDRESS` - (Optional) The address of the lock REST endpoint.
    Defaults to disabled.
  * `lock_method` - (Optional) The HTTP method to use when locking.
    Defaults to `LOCK`.
- * `unlock_address` - (Optional) The address of the unlock REST endpoint.
+ * `unlock_address` / `HTTP_REMOTE_UNLOCK_ADDRESS` - (Optional) The address of the unlock REST endpoint.
    Defaults to disabled.
  * `unlock_method` - (Optional) The HTTP method to use when unlocking.
    Defaults to `UNLOCK`.
- * `username` - (Optional) The username for HTTP basic authentication
- * `password` - (Optional) The password for HTTP basic authentication
+ * `username` / `HTTP_REMOTE_USERNAME` - (Optional) The username for HTTP basic authentication
+ * `password` / `HTTP_REMOTE_PASSWORD` - (Optional) The password for HTTP basic authentication
  * `skip_cert_verification` - (Optional) Whether to skip TLS verification.
    Defaults to `false`.
