@@ -4,6 +4,8 @@ import (
 	"testing"
 
 	"github.com/zclconf/go-cty/cty"
+
+	"github.com/hashicorp/terraform/tfdiags"
 )
 
 func TestCoerceValue(t *testing.T) {
@@ -66,7 +68,125 @@ func TestCoerceValue(t *testing.T) {
 				"foo": cty.True,
 			}),
 			cty.DynamicVal,
-			`an object is required`,
+			`.foo: an object is required`,
+		},
+		"list block with one item": {
+			&Block{
+				BlockTypes: map[string]*NestedBlock{
+					"foo": {
+						Block:   Block{},
+						Nesting: NestingList,
+					},
+				},
+			},
+			cty.ObjectVal(map[string]cty.Value{
+				"foo": cty.ListVal([]cty.Value{cty.EmptyObjectVal}),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"foo": cty.ListVal([]cty.Value{cty.EmptyObjectVal}),
+			}),
+			``,
+		},
+		"set block with one item": {
+			&Block{
+				BlockTypes: map[string]*NestedBlock{
+					"foo": {
+						Block:   Block{},
+						Nesting: NestingSet,
+					},
+				},
+			},
+			cty.ObjectVal(map[string]cty.Value{
+				"foo": cty.ListVal([]cty.Value{cty.EmptyObjectVal}), // can implicitly convert to set
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"foo": cty.SetVal([]cty.Value{cty.EmptyObjectVal}),
+			}),
+			``,
+		},
+		"map block with one item": {
+			&Block{
+				BlockTypes: map[string]*NestedBlock{
+					"foo": {
+						Block:   Block{},
+						Nesting: NestingMap,
+					},
+				},
+			},
+			cty.ObjectVal(map[string]cty.Value{
+				"foo": cty.MapVal(map[string]cty.Value{"foo": cty.EmptyObjectVal}),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"foo": cty.MapVal(map[string]cty.Value{"foo": cty.EmptyObjectVal}),
+			}),
+			``,
+		},
+		"list block with one item having an attribute": {
+			&Block{
+				BlockTypes: map[string]*NestedBlock{
+					"foo": {
+						Block: Block{
+							Attributes: map[string]*Attribute{
+								"bar": {
+									Type:     cty.String,
+									Required: true,
+								},
+							},
+						},
+						Nesting: NestingList,
+					},
+				},
+			},
+			cty.ObjectVal(map[string]cty.Value{
+				"foo": cty.ListVal([]cty.Value{cty.ObjectVal(map[string]cty.Value{
+					"bar": cty.StringVal("hello"),
+				})}),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"foo": cty.ListVal([]cty.Value{cty.ObjectVal(map[string]cty.Value{
+					"bar": cty.StringVal("hello"),
+				})}),
+			}),
+			``,
+		},
+		"list block with one item having a missing attribute": {
+			&Block{
+				BlockTypes: map[string]*NestedBlock{
+					"foo": {
+						Block: Block{
+							Attributes: map[string]*Attribute{
+								"bar": {
+									Type:     cty.String,
+									Required: true,
+								},
+							},
+						},
+						Nesting: NestingList,
+					},
+				},
+			},
+			cty.ObjectVal(map[string]cty.Value{
+				"foo": cty.ListVal([]cty.Value{cty.EmptyObjectVal}),
+			}),
+			cty.DynamicVal,
+			`.foo[0]: attribute "bar" is required`,
+		},
+		"list block with one item having an extraneous attribute": {
+			&Block{
+				BlockTypes: map[string]*NestedBlock{
+					"foo": {
+						Block:   Block{},
+						Nesting: NestingList,
+					},
+				},
+			},
+			cty.ObjectVal(map[string]cty.Value{
+				"foo": cty.ListVal([]cty.Value{cty.ObjectVal(map[string]cty.Value{
+					"bar": cty.StringVal("hello"),
+				})}),
+			}),
+			cty.DynamicVal,
+			`.foo[0]: unexpected attribute "bar"`,
 		},
 		"missing optional attribute": {
 			&Block{
@@ -207,6 +327,21 @@ func TestCoerceValue(t *testing.T) {
 			cty.DynamicVal,
 			`unexpected attribute "foo"`,
 		},
+		"wrong attribute type": {
+			&Block{
+				Attributes: map[string]*Attribute{
+					"foo": {
+						Type:     cty.Number,
+						Required: true,
+					},
+				},
+			},
+			cty.ObjectVal(map[string]cty.Value{
+				"foo": cty.False,
+			}),
+			cty.DynamicVal,
+			`.foo: number required`,
+		},
 	}
 
 	for name, test := range tests {
@@ -218,7 +353,7 @@ func TestCoerceValue(t *testing.T) {
 					t.Fatalf("coersion succeeded; want error: %q", test.WantErr)
 				}
 			} else {
-				gotErr := gotErrObj.Error()
+				gotErr := tfdiags.FormatError(gotErrObj)
 				if gotErr != test.WantErr {
 					t.Fatalf("wrong error\ngot:  %s\nwant: %s", gotErr, test.WantErr)
 				}

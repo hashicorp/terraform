@@ -108,7 +108,7 @@ func (b *Block) coerceValue(in cty.Value, path cty.Path) (cty.Value, error) {
 				}
 
 				if !coll.CanIterateElements() {
-					return cty.UnknownVal(b.ImpliedType()), path.NewErrorf("attribute %q must be a list", typeName)
+					return cty.UnknownVal(b.ImpliedType()), path.NewErrorf("must be a list")
 				}
 				l := coll.LengthInt()
 				if l < blockS.MinItems {
@@ -122,14 +122,17 @@ func (b *Block) coerceValue(in cty.Value, path cty.Path) (cty.Value, error) {
 					continue
 				}
 				elems := make([]cty.Value, 0, l)
-				for it := in.ElementIterator(); it.Next(); {
-					var err error
-					_, val := it.Element()
-					val, err = blockS.coerceValue(val, append(path, cty.GetAttrStep{Name: typeName}))
-					if err != nil {
-						return cty.UnknownVal(b.ImpliedType()), err
+				{
+					path = append(path, cty.GetAttrStep{Name: typeName})
+					for it := coll.ElementIterator(); it.Next(); {
+						var err error
+						idx, val := it.Element()
+						val, err = blockS.coerceValue(val, append(path, cty.IndexStep{Key: idx}))
+						if err != nil {
+							return cty.UnknownVal(b.ImpliedType()), err
+						}
+						elems = append(elems, val)
 					}
-					elems = append(elems, val)
 				}
 				attrs[typeName] = cty.ListVal(elems)
 			case blockS.MinItems == 0:
@@ -153,7 +156,7 @@ func (b *Block) coerceValue(in cty.Value, path cty.Path) (cty.Value, error) {
 				}
 
 				if !coll.CanIterateElements() {
-					return cty.UnknownVal(b.ImpliedType()), path.NewErrorf("attribute %q must be a set", typeName)
+					return cty.UnknownVal(b.ImpliedType()), path.NewErrorf("must be a set")
 				}
 				l := coll.LengthInt()
 				if l < blockS.MinItems {
@@ -167,14 +170,17 @@ func (b *Block) coerceValue(in cty.Value, path cty.Path) (cty.Value, error) {
 					continue
 				}
 				elems := make([]cty.Value, 0, l)
-				for it := in.ElementIterator(); it.Next(); {
-					var err error
-					_, val := it.Element()
-					val, err = blockS.coerceValue(val, append(path, cty.GetAttrStep{Name: typeName}))
-					if err != nil {
-						return cty.UnknownVal(b.ImpliedType()), err
+				{
+					path = append(path, cty.GetAttrStep{Name: typeName})
+					for it := coll.ElementIterator(); it.Next(); {
+						var err error
+						idx, val := it.Element()
+						val, err = blockS.coerceValue(val, append(path, cty.IndexStep{Key: idx}))
+						if err != nil {
+							return cty.UnknownVal(b.ImpliedType()), err
+						}
+						elems = append(elems, val)
 					}
-					elems = append(elems, val)
 				}
 				attrs[typeName] = cty.SetVal(elems)
 			case blockS.MinItems == 0:
@@ -198,7 +204,7 @@ func (b *Block) coerceValue(in cty.Value, path cty.Path) (cty.Value, error) {
 				}
 
 				if !coll.CanIterateElements() {
-					return cty.UnknownVal(b.ImpliedType()), path.NewErrorf("attribute %q must be a map", typeName)
+					return cty.UnknownVal(b.ImpliedType()), path.NewErrorf("must be a map")
 				}
 				l := coll.LengthInt()
 				if l == 0 {
@@ -206,17 +212,20 @@ func (b *Block) coerceValue(in cty.Value, path cty.Path) (cty.Value, error) {
 					continue
 				}
 				elems := make(map[string]cty.Value)
-				for it := in.ElementIterator(); it.Next(); {
-					var err error
-					key, val := it.Element()
-					if key.Type() != cty.String || key.IsNull() || !key.IsKnown() {
-						return cty.UnknownVal(b.ImpliedType()), path.NewErrorf("attribute %q must be a map", typeName)
+				{
+					path = append(path, cty.GetAttrStep{Name: typeName})
+					for it := coll.ElementIterator(); it.Next(); {
+						var err error
+						key, val := it.Element()
+						if key.Type() != cty.String || key.IsNull() || !key.IsKnown() {
+							return cty.UnknownVal(b.ImpliedType()), path.NewErrorf("must be a map")
+						}
+						val, err = blockS.coerceValue(val, append(path, cty.IndexStep{Key: key}))
+						if err != nil {
+							return cty.UnknownVal(b.ImpliedType()), err
+						}
+						elems[key.AsString()] = val
 					}
-					val, err = blockS.coerceValue(val, append(path, cty.GetAttrStep{Name: typeName}))
-					if err != nil {
-						return cty.UnknownVal(b.ImpliedType()), err
-					}
-					elems[key.AsString()] = val
 				}
 				attrs[typeName] = cty.MapVal(elems)
 			default:
