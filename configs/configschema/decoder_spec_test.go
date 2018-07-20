@@ -55,6 +55,11 @@ func TestBlockDecoderSpec(t *testing.T) {
 						Optional: true,
 						Computed: true,
 					},
+					"optional_computed_unknown": {
+						Type:     cty.String,
+						Optional: true,
+						Computed: true,
+					},
 				},
 			},
 			hcltest.MockBody(&hcl.BodyContent{
@@ -67,14 +72,19 @@ func TestBlockDecoderSpec(t *testing.T) {
 						Name: "optional_computed_overridden",
 						Expr: hcltest.MockExprLiteral(cty.True),
 					},
+					"optional_computed_unknown": {
+						Name: "optional_computed_overridden",
+						Expr: hcltest.MockExprLiteral(cty.UnknownVal(cty.String)),
+					},
 				},
 			}),
 			cty.ObjectVal(map[string]cty.Value{
 				"optional":                     cty.NullVal(cty.Number),
 				"required":                     cty.StringVal("5"), // converted from number to string
-				"computed":                     cty.UnknownVal(cty.List(cty.Bool)),
-				"optional_computed":            cty.UnknownVal(cty.Map(cty.Bool)),
+				"computed":                     cty.NullVal(cty.List(cty.Bool)),
+				"optional_computed":            cty.NullVal(cty.Map(cty.Bool)),
 				"optional_computed_overridden": cty.True,
+				"optional_computed_unknown":    cty.UnknownVal(cty.String),
 			}),
 			0,
 		},
