@@ -2,7 +2,6 @@ package configschema
 
 import (
 	"github.com/hashicorp/hcl2/hcldec"
-	"github.com/zclconf/go-cty/cty"
 )
 
 var mapLabelNames = []string{"key"}
@@ -11,9 +10,8 @@ var mapLabelNames = []string{"key"}
 // using the facilities in the hcldec package.
 //
 // The returned specification is guaranteed to return a value of the same type
-// returned by method ImpliedType, but it may contain null or unknown values if
-// any of the block attributes are defined as optional and/or computed
-// respectively.
+// returned by method ImpliedType, but it may contain null values if any of the
+// block attributes are defined as optional and/or computed respectively.
 func (b *Block) DecoderSpec() hcldec.Spec {
 	ret := hcldec.ObjectSpec{}
 	if b == nil {
@@ -21,30 +19,10 @@ func (b *Block) DecoderSpec() hcldec.Spec {
 	}
 
 	for name, attrS := range b.Attributes {
-		switch {
-		case attrS.Computed && attrS.Optional:
-			// In this special case we use an unknown value as a default
-			// to get the intended behavior that the result is computed
-			// unless it has been explicitly set in config.
-			ret[name] = &hcldec.DefaultSpec{
-				Primary: &hcldec.AttrSpec{
-					Name: name,
-					Type: attrS.Type,
-				},
-				Default: &hcldec.LiteralSpec{
-					Value: cty.UnknownVal(attrS.Type),
-				},
-			}
-		case attrS.Computed:
-			ret[name] = &hcldec.LiteralSpec{
-				Value: cty.UnknownVal(attrS.Type),
-			}
-		default:
-			ret[name] = &hcldec.AttrSpec{
-				Name:     name,
-				Type:     attrS.Type,
-				Required: attrS.Required,
-			}
+		ret[name] = &hcldec.AttrSpec{
+			Name:     name,
+			Type:     attrS.Type,
+			Required: attrS.Required,
 		}
 	}
 
