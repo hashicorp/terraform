@@ -342,6 +342,22 @@ func TestCoerceValue(t *testing.T) {
 			cty.DynamicVal,
 			`.foo: number required`,
 		},
+		"unset computed value": {
+			&Block{
+				Attributes: map[string]*Attribute{
+					"foo": {
+						Type:     cty.String,
+						Optional: true,
+						Computed: true,
+					},
+				},
+			},
+			cty.ObjectVal(map[string]cty.Value{}),
+			cty.ObjectVal(map[string]cty.Value{
+				"foo": cty.NullVal(cty.String),
+			}),
+			``,
+		},
 	}
 
 	for name, test := range tests {
