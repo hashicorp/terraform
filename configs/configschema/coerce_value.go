@@ -58,9 +58,7 @@ func (b *Block) coerceValue(in cty.Value, path cty.Path) (cty.Value, error) {
 		switch {
 		case ty.HasAttribute(name):
 			val = in.GetAttr(name)
-		case attrS.Computed:
-			val = cty.UnknownVal(attrS.Type)
-		case attrS.Optional:
+		case attrS.Computed || attrS.Optional:
 			val = cty.NullVal(attrS.Type)
 		default:
 			return cty.UnknownVal(b.ImpliedType()), path.NewErrorf("attribute %q is required", name)
