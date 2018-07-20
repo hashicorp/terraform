@@ -41,6 +41,7 @@ func Provisioner() terraform.ResourceProvisioner {
 func applyFn(ctx context.Context) error {
 	connState := ctx.Value(schema.ProvRawStateKey).(*terraform.InstanceState)
 	data := ctx.Value(schema.ProvConfigDataKey).(*schema.ResourceData)
+	o := ctx.Value(schema.ProvOutputKey).(terraform.UIOutput)
 
 	// Get a new communicator
 	comm, err := communicator.New(connState)
@@ -60,7 +61,7 @@ func applyFn(ctx context.Context) error {
 	// Begin the file copy
 	dst := data.Get("destination").(string)
 
-	if err := copyFiles(ctx, comm, src, dst); err != nil {
+	if err := copyFiles(ctx, o, comm, src, dst); err != nil {
 		return err
 	}
 	return nil
@@ -95,13 +96,13 @@ func getSrc(data *schema.ResourceData) (string, bool, error) {
 }
 
 // copyFiles is used to copy the files from a source to a destination
-func copyFiles(ctx context.Context, comm communicator.Communicator, src, dst string) error {
+func copyFiles(ctx context.Context, o terraform.UIOutput, comm communicator.Communicator, src, dst string) error {
 	retryCtx, cancel := context.WithTimeout(ctx, comm.Timeout())
 	defer cancel()
 
 	// Wait and retry until we establish the connection
 	err := communicator.Retry(retryCtx, func() error {
-		return comm.Connect(nil)
+		return comm.Connect(o)
 	})
 	if err != nil {
 		return err
