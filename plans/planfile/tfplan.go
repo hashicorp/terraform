@@ -52,8 +52,8 @@ func readTfplan(r io.Reader) (*plans.Plan, error) {
 	plan := &plans.Plan{
 		VariableValues: map[string]plans.DynamicValue{},
 		Changes: &plans.Changes{
-			RootOutputs: map[string]*plans.OutputChange{},
-			Resources:   []*plans.ResourceInstanceChange{},
+			RootOutputs: map[string]*plans.OutputChangeSrc{},
+			Resources:   []*plans.ResourceInstanceChangeSrc{},
 		},
 
 		ProviderSHA256s: map[string][]byte{},
@@ -66,8 +66,8 @@ func readTfplan(r io.Reader) (*plans.Plan, error) {
 			return nil, fmt.Errorf("invalid plan for output %q: %s", name, err)
 		}
 
-		plan.Changes.RootOutputs[name] = &plans.OutputChange{
-			Change:    *change,
+		plan.Changes.RootOutputs[name] = &plans.OutputChangeSrc{
+			ChangeSrc: *change,
 			Sensitive: rawOC.Sensitive,
 		}
 	}
@@ -123,14 +123,14 @@ func readTfplan(r io.Reader) (*plans.Plan, error) {
 	return plan, nil
 }
 
-func resourceChangeFromTfplan(rawChange *planproto.ResourceInstanceChange) (*plans.ResourceInstanceChange, error) {
+func resourceChangeFromTfplan(rawChange *planproto.ResourceInstanceChange) (*plans.ResourceInstanceChangeSrc, error) {
 	if rawChange == nil {
 		// Should never happen in practice, since protobuf can't represent
 		// a nil value in a list.
 		return nil, fmt.Errorf("resource change object is absent")
 	}
 
-	ret := &plans.ResourceInstanceChange{}
+	ret := &plans.ResourceInstanceChangeSrc{}
 
 	moduleAddr := addrs.RootModuleInstance
 	if rawChange.ModulePath != "" {
@@ -190,17 +190,17 @@ func resourceChangeFromTfplan(rawChange *planproto.ResourceInstanceChange) (*pla
 		return nil, fmt.Errorf("invalid plan for resource %s: %s", ret.Addr, err)
 	}
 
-	ret.Change = *change
+	ret.ChangeSrc = *change
 
 	return ret, nil
 }
 
-func changeFromTfplan(rawChange *planproto.Change) (*plans.Change, error) {
+func changeFromTfplan(rawChange *planproto.Change) (*plans.ChangeSrc, error) {
 	if rawChange == nil {
 		return nil, fmt.Errorf("change object is absent")
 	}
 
-	ret := &plans.Change{}
+	ret := &plans.ChangeSrc{}
 
 	// -1 indicates that there is no index. We'll customize these below
 	// depending on the change action, and then decode.
@@ -288,7 +288,7 @@ func writeTfplan(plan *plans.Plan, w io.Writer) error {
 		// Writing outputs as cty.DynamicPseudoType forces the stored values
 		// to also contain dynamic type information, so we can recover the
 		// original type when we read the values back in readTFPlan.
-		protoChange, err := changeToTfplan(&oc.Change)
+		protoChange, err := changeToTfplan(&oc.ChangeSrc)
 		if err != nil {
 			return fmt.Errorf("cannot write output value %q: %s", name, err)
 		}
@@ -341,7 +341,7 @@ func writeTfplan(plan *plans.Plan, w io.Writer) error {
 	return nil
 }
 
-func resourceChangeToTfplan(change *plans.ResourceInstanceChange) (*planproto.ResourceInstanceChange, error) {
+func resourceChangeToTfplan(change *plans.ResourceInstanceChangeSrc) (*planproto.ResourceInstanceChange, error) {
 	ret := &planproto.ResourceInstanceChange{}
 
 	ret.ModulePath = change.Addr.Module.String()
@@ -376,7 +376,7 @@ func resourceChangeToTfplan(change *plans.ResourceInstanceChange) (*planproto.Re
 	ret.DeposedKey = string(change.DeposedKey)
 	ret.Provider = change.ProviderAddr.String()
 
-	valChange, err := changeToTfplan(&change.Change)
+	valChange, err := changeToTfplan(&change.ChangeSrc)
 	if err != nil {
 		return nil, fmt.Errorf("failed to serialize resource %s change: %s", relAddr, err)
 	}
@@ -385,7 +385,7 @@ func resourceChangeToTfplan(change *plans.ResourceInstanceChange) (*planproto.Re
 	return ret, nil
 }
 
-func changeToTfplan(change *plans.Change) (*planproto.Change, error) {
+func changeToTfplan(change *plans.ChangeSrc) (*planproto.Change, error) {
 	ret := &planproto.Change{}
 
 	before := valueToTfplan(change.Before)
