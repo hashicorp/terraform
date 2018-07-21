@@ -160,7 +160,7 @@ func (s *SyncState) ResourceInstance(addr addrs.AbsResourceInstance) *ResourceIn
 //
 // The return value is a pointer to a copy of the object, which the caller may
 // then freely access and mutate.
-func (s *SyncState) ResourceInstanceObject(addr addrs.AbsResourceInstance, gen Generation) *ResourceInstanceObject {
+func (s *SyncState) ResourceInstanceObject(addr addrs.AbsResourceInstance, gen Generation) *ResourceInstanceObjectSrc {
 	s.lock.RLock()
 	defer s.lock.RUnlock()
 
@@ -215,7 +215,7 @@ func (s *SyncState) RemoveResource(addr addrs.AbsResource) {
 //
 // If the containing module for this resource or the resource itself are not
 // already tracked in state then they will be added as a side-effect.
-func (s *SyncState) SetResourceInstanceCurrent(addr addrs.AbsResourceInstance, obj *ResourceInstanceObject, provider addrs.AbsProviderConfig) {
+func (s *SyncState) SetResourceInstanceCurrent(addr addrs.AbsResourceInstance, obj *ResourceInstanceObjectSrc, provider addrs.AbsProviderConfig) {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 
@@ -246,7 +246,7 @@ func (s *SyncState) SetResourceInstanceCurrent(addr addrs.AbsResourceInstance, o
 //
 // If the containing module for this resource or the resource itself are not
 // already tracked in state then they will be added as a side-effect.
-func (s *SyncState) SetResourceInstanceDeposed(addr addrs.AbsResourceInstance, key DeposedKey, obj *ResourceInstanceObject) {
+func (s *SyncState) SetResourceInstanceDeposed(addr addrs.AbsResourceInstance, key DeposedKey, obj *ResourceInstanceObjectSrc) {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 
