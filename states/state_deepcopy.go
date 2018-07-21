@@ -107,7 +107,7 @@ func (is *ResourceInstance) DeepCopy() *ResourceInstance {
 		return nil
 	}
 
-	deposed := make(map[DeposedKey]*ResourceInstanceObject, len(is.Deposed))
+	deposed := make(map[DeposedKey]*ResourceInstanceObjectSrc, len(is.Deposed))
 	for k, obj := range is.Deposed {
 		deposed[k] = obj.DeepCopy()
 	}
@@ -126,7 +126,7 @@ func (is *ResourceInstance) DeepCopy() *ResourceInstance {
 // is the caller's responsibility to ensure mutual exclusion for the duration
 // of the operation, but may then freely modify the receiver and the returned
 // copy independently once this method returns.
-func (obj *ResourceInstanceObject) DeepCopy() *ResourceInstanceObject {
+func (obj *ResourceInstanceObjectSrc) DeepCopy() *ResourceInstanceObjectSrc {
 	if obj == nil {
 		return nil
 	}
@@ -149,7 +149,7 @@ func (obj *ResourceInstanceObject) DeepCopy() *ResourceInstanceObject {
 	// we treat them as immutable by convention and so we don't deep-copy here.
 	dependencies := make([]addrs.Referenceable, len(obj.Dependencies))
 
-	return &ResourceInstanceObject{
+	return &ResourceInstanceObjectSrc{
 		Status:        obj.Status,
 		SchemaVersion: obj.SchemaVersion,
 		Private:       obj.Private,
