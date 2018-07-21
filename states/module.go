@@ -89,7 +89,7 @@ func (ms *Module) RemoveResource(addr addrs.Resource) {
 // The provider address and "each mode" are resource-wide settings and so they
 // are updated for all other instances of the same resource as a side-effect of
 // this call.
-func (ms *Module) SetResourceInstanceCurrent(addr addrs.ResourceInstance, obj *ResourceInstanceObject, provider addrs.AbsProviderConfig) {
+func (ms *Module) SetResourceInstanceCurrent(addr addrs.ResourceInstance, obj *ResourceInstanceObjectSrc, provider addrs.AbsProviderConfig) {
 	ms.SetResourceMeta(addr.Resource, eachModeForInstanceKey(addr.Key), provider)
 
 	rs := ms.Resource(addr.Resource)
@@ -125,7 +125,7 @@ func (ms *Module) SetResourceInstanceCurrent(addr addrs.ResourceInstance, obj *R
 // is overwritten. Set obj to nil to remove the deposed object altogether. If
 // the instance is left with no objects after this operation then it will
 // be removed from its containing resource altogether.
-func (ms *Module) SetResourceInstanceDeposed(addr addrs.ResourceInstance, key DeposedKey, obj *ResourceInstanceObject) {
+func (ms *Module) SetResourceInstanceDeposed(addr addrs.ResourceInstance, key DeposedKey, obj *ResourceInstanceObjectSrc) {
 	rs := ms.Resource(addr.Resource)
 	if rs == nil {
 		panic(fmt.Sprintf("attempt to register deposed instance object for non-existent resource %s", addr.Resource.Absolute(ms.Addr)))
