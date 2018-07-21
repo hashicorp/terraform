@@ -139,7 +139,7 @@ func prepareStateV4(sV4 *stateV4) (*File, tfdiags.Diagnostics) {
 
 			instAddr := rAddr.Instance(key)
 
-			obj := &states.ResourceInstanceObject{
+			obj := &states.ResourceInstanceObjectSrc{
 				SchemaVersion: isV4.SchemaVersion,
 			}
 
@@ -455,7 +455,7 @@ func writeStateV4(file *File, w io.Writer) tfdiags.Diagnostics {
 	return diags
 }
 
-func appendInstanceObjectStateV4(rs *states.Resource, is *states.ResourceInstance, key addrs.InstanceKey, obj *states.ResourceInstanceObject, deposed states.DeposedKey, isV4s []instanceObjectStateV4) ([]instanceObjectStateV4, tfdiags.Diagnostics) {
+func appendInstanceObjectStateV4(rs *states.Resource, is *states.ResourceInstance, key addrs.InstanceKey, obj *states.ResourceInstanceObjectSrc, deposed states.DeposedKey, isV4s []instanceObjectStateV4) ([]instanceObjectStateV4, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
 	var status string

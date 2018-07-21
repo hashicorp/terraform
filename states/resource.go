@@ -57,20 +57,20 @@ func (rs *Resource) EnsureInstance(key addrs.InstanceKey) *ResourceInstance {
 type ResourceInstance struct {
 	// Current, if non-nil, is the remote object that is currently represented
 	// by the corresponding resource instance.
-	Current *ResourceInstanceObject
+	Current *ResourceInstanceObjectSrc
 
 	// Deposed, if len > 0, contains any remote objects that were previously
 	// represented by the corresponding resource instance but have been
 	// replaced and are pending destruction due to the create_before_destroy
 	// lifecycle mode.
-	Deposed map[DeposedKey]*ResourceInstanceObject
+	Deposed map[DeposedKey]*ResourceInstanceObjectSrc
 }
 
 // NewResourceInstance constructs and returns a new ResourceInstance, ready to
 // use.
 func NewResourceInstance() *ResourceInstance {
 	return &ResourceInstance{
-		Deposed: map[DeposedKey]*ResourceInstanceObject{},
+		Deposed: map[DeposedKey]*ResourceInstanceObjectSrc{},
 	}
 }
 
@@ -119,7 +119,7 @@ func (i *ResourceInstance) deposeCurrentObject() DeposedKey {
 // ResourceInstance, or returns nil if there is no such object.
 //
 // If the given generation is nil or invalid, this method will panic.
-func (i *ResourceInstance) GetGeneration(gen Generation) *ResourceInstanceObject {
+func (i *ResourceInstance) GetGeneration(gen Generation) *ResourceInstanceObjectSrc {
 	if gen == CurrentGen {
 		return i.Current
 	}
