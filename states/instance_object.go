@@ -2,6 +2,7 @@ package states
 
 import (
 	"github.com/zclconf/go-cty/cty"
+	ctyjson "github.com/zclconf/go-cty/cty/json"
 
 	"github.com/hashicorp/terraform/addrs"
 )
@@ -14,43 +15,9 @@ import (
 // It is not valid to mutate a ResourceInstanceObject once it has been created.
 // Instead, create a new object and replace the existing one.
 type ResourceInstanceObject struct {
-	// SchemaVersion identifies which version of the resource type schema the
-	// Attrs or AttrsFlat value conforms to. If this is less than the schema
-	// version number given by the current provider version then the value
-	// must be upgraded to the latest version before use. If it is greater
-	// than the current version number then the provider must be upgraded
-	// before any operations can be performed.
-	SchemaVersion uint64
-
-	// AttrsJSON is a JSON-encoded representation of the object attributes,
-	// encoding the value (of the object type implied by the associated resource
-	// type schema) that represents this remote object in Terraform Language
-	// expressions, and is compared with configuration when producing a diff.
-	//
-	// This is retained in JSON format here because it may require preprocessing
-	// before decoding if, for example, the stored attributes are for an older
-	// schema version which the provider must upgrade before use. If the
-	// version is current, it is valid to simply decode this using the
-	// type implied by the current schema, without the need for the provider
-	// to perform an upgrade first.
-	//
-	// When writing a ResourceInstanceObject into the state, AttrsJSON should
-	// always be conformant to the current schema version and the current
-	// schema version should be recorded in the SchemaVersion field.
-	AttrsJSON []byte
-
-	// AttrsFlat is a legacy form of attributes used in older state file
-	// formats, and in the new state format for objects that haven't yet been
-	// upgraded. This attribute is mutually exclusive with Attrs: for any
-	// ResourceInstanceObject, only one of these attributes may be populated
-	// and the other must be nil.
-	//
-	// An instance object with this field populated should be upgraded to use
-	// Attrs at the earliest opportunity, since this legacy flatmap-based
-	// format will be phased out over time. AttrsFlat should not be used when
-	// writing new or updated objects to state; instead, callers must follow
-	// the recommendations in the AttrsJSON documentation above.
-	AttrsFlat map[string]string
+	// Value is the object-typed value representing the remote object within
+	// Terraform.
+	Value cty.Value
 
 	// Internal is an opaque value set by the provider when this object was
 	// last created or updated. Terraform Core does not use this value in
@@ -85,3 +52,32 @@ const (
 	// ObjectRead state, a tainted object must be replaced.
 	ObjectTainted ObjectStatus = 'T'
 )
+
+// Encode marshals the value within the receiver to produce a
+// ResourceInstanceObjectSrc ready to be written to a state file.
+//
+// The given type must be the implied type of the resource type schema, and
+// the given value must conform to it. It is important to pass the schema
+// type and not the object's own type so that dynamically-typed attributes
+// will be stored correctly. The caller must also provide the version number
+// of the schema that the given type was derived from, which will be recorded
+// in the source object so it can be used to detect when schema migration is
+// required on read.
+//
+// The returned object may share internal references with the receiver and
+// so the caller must not mutate the receiver any further once once this
+// method is called.
+func (o *ResourceInstanceObject) Encode(val cty.Value, ty cty.Type, schemaVersion uint64) (*ResourceInstanceObjectSrc, error) {
+	src, err := ctyjson.Marshal(val, ty)
+	if err != nil {
+		return nil, err
+	}
+
+	return &ResourceInstanceObjectSrc{
+		SchemaVersion: schemaVersion,
+		AttrsJSON:     src,
+		Private:       o.Private,
+		Status:        o.Status,
+		Dependencies:  o.Dependencies,
+	}, nil
+}
