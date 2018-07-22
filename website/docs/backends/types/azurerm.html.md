@@ -54,6 +54,7 @@ The following configuration options are supported:
    * `usgovernment`
    * `german`
    * `china`
+ * `versioning` - (Optional) Enable/Disable automatic blob snapshotting
 
 The following configuration options must be supplied if `access_key` is not.
 
