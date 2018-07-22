@@ -82,6 +82,13 @@ func New() backend.Backend {
 				Description: "The Tenant ID.",
 				DefaultFunc: schema.EnvDefaultFunc("ARM_TENANT_ID", ""),
 			},
+
+			"versioning": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Description: "Enable/Disable automatic blob snapshotting",
+				Default:     true,
+			},
 		},
 	}
 
@@ -99,6 +106,7 @@ type Backend struct {
 	containerName string
 	keyName       string
 	leaseID       string
+	versioning    bool
 }
 
 type BackendConfig struct {
@@ -122,6 +130,7 @@ func (b *Backend) configure(ctx context.Context) error {
 
 	b.containerName = data.Get("container_name").(string)
 	b.keyName = data.Get("key").(string)
+	b.versioning = data.Get("versioning").(bool)
 
 	config := BackendConfig{
 		AccessKey:          data.Get("access_key").(string),

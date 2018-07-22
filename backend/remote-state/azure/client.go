@@ -27,6 +27,7 @@ type RemoteClient struct {
 	containerName string
 	keyName       string
 	leaseID       string
+	versioning    bool
 }
 
 func (c *RemoteClient) Get() (*remote.Payload, error) {
@@ -71,12 +72,15 @@ func (c *RemoteClient) Put(data []byte) error {
 	getOptions := &storage.GetBlobMetadataOptions{}
 	setOptions := &storage.SetBlobPropertiesOptions{}
 	putOptions := &storage.PutBlobOptions{}
+	// snapshotOptions := &storage.SnapshotOptions{}
 
 	containerReference := c.blobClient.GetContainerReference(c.containerName)
 	blobReference := containerReference.GetBlobReference(c.keyName)
 
 	// generate spnapshot
-	blobReference.CreateSnapshot(nil)
+	if c.versioning {
+		blobReference.CreateSnapshot(nil)
+	}
 
 	blobReference.Properties.ContentType = "application/json"
 	blobReference.Properties.ContentLength = int64(len(data))
