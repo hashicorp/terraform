@@ -83,3 +83,12 @@ This example will only taint a resource within a module:
 $ terraform taint -module=couchbase aws_instance.cb_node.9
 The resource aws_instance.couchbase.11 in the module root.couchbase has been marked as tainted!
 ```
+
+## Example: Tainting a Resource within a nested Module
+
+This example will only taint a resource within a nested module:
+
+```
+$ terraform taint -module=rds.rds_cluster aws_rds_cluster.cluster                                                               
+The resource aws_rds_cluster.cluster in the module root.rds.rds_cluster has been marked as tainted!
+```
