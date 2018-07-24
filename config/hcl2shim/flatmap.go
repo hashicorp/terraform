@@ -68,6 +68,10 @@ func flatmapValueFromHCL2Primitive(m map[string]string, key string, val cty.Valu
 }
 
 func flatmapValueFromHCL2Map(m map[string]string, prefix string, val cty.Value) {
+	if val.IsNull() {
+		// Omit entirely
+		return
+	}
 	if !val.IsKnown() {
 		switch {
 		case val.Type().IsObjectType():
@@ -95,6 +99,10 @@ func flatmapValueFromHCL2Map(m map[string]string, prefix string, val cty.Value) 
 }
 
 func flatmapValueFromHCL2Seq(m map[string]string, prefix string, val cty.Value) {
+	if val.IsNull() {
+		// Omit entirely
+		return
+	}
 	if !val.IsKnown() {
 		m[prefix+"#"] = UnknownVariableValue
 		return
