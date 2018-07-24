@@ -70,7 +70,7 @@ These endpoints list modules according to some criteria.
 ### Sample Request
 
 ```text
-$ curl 'https://registry.terraform.io/v1/modules&limit=2&verified=true'
+$ curl 'https://registry.terraform.io/v1/modules?limit=2&verified=true'
 ```
 
 ### Sample Response
