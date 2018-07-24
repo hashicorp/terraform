@@ -249,6 +249,73 @@ func TestFlatmapValueFromHCL2(t *testing.T) {
 	}
 }
 
+func TestFlatmapValueFromHCL2FromFlatmap(t *testing.T) {
+	tests := []struct {
+		Name string
+		Map  map[string]string
+		Type cty.Type
+	}{
+		{
+			"empty flatmap with collections",
+			map[string]string{},
+			cty.Object(map[string]cty.Type{
+				"foo": cty.Map(cty.String),
+				"bar": cty.Set(cty.String),
+			}),
+		},
+		{
+			"nil flatmap with collections",
+			nil,
+			cty.Object(map[string]cty.Type{
+				"foo": cty.Map(cty.String),
+				"bar": cty.Set(cty.String),
+			}),
+		},
+		{
+			"empty flatmap with nested collections",
+			map[string]string{},
+			cty.Object(map[string]cty.Type{
+				"foo": cty.Object(
+					map[string]cty.Type{
+						"baz": cty.Map(cty.String),
+					},
+				),
+				"bar": cty.Set(cty.String),
+			}),
+		},
+		{
+			"partial flatmap with nested collections",
+			map[string]string{
+				"foo.baz.%":   "1",
+				"foo.baz.key": "val",
+			},
+			cty.Object(map[string]cty.Type{
+				"foo": cty.Object(
+					map[string]cty.Type{
+						"baz": cty.Map(cty.String),
+						"biz": cty.Map(cty.String),
+					},
+				),
+				"bar": cty.Set(cty.String),
+			}),
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.Name, func(t *testing.T) {
+			val, err := HCL2ValueFromFlatmap(test.Map, test.Type)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			got := FlatmapValueFromHCL2(val)
+
+			for _, problem := range deep.Equal(got, test.Map) {
+				t.Error(problem)
+			}
+		})
+	}
+}
 func TestHCL2ValueFromFlatmap(t *testing.T) {
 	tests := []struct {
 		Flatmap map[string]string
