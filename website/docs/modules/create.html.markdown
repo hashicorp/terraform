@@ -212,8 +212,8 @@ If you've built a module that you intend to be reused, we recommend
 [Terraform Registry](https://registry.terraform.io). This will version
 your module, generate documentation, and more.
 
-Published modules can be easily consumed by Terraform, and in Terraform
-0.11 you'll also be able to constrain module versions for safe and predictable
+Published modules can be easily consumed by Terraform, and (from Terraform
+0.11) you can also [constrain module versions](usage.html#module-versions) for safe and predictable
 updates. The following example shows how easy it is to consume a module
 from the registry:
 
