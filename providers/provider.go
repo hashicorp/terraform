@@ -227,6 +227,12 @@ type ApplyResourceChangeRequest struct {
 	// represent the new state, minus any remaining computed attributes.
 	PlannedState cty.Value
 
+	// Config is the resource configuration, before being merged with the
+	// PriorState. Any value not explicitly set in the configuration will be
+	// null. Config is supplied for reference, but Provider implementations
+	// should prefer the PlannedState in most circumstances.
+	Config cty.Value
+
 	// PlannedPrivate is the same value as returned by PlanResourceChange.
 	PlannedPrivate []byte
 }
