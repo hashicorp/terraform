@@ -243,10 +243,6 @@ type ApplyResourceChangeResponse struct {
 	// known state of the resource, if it exists.
 	NewState cty.Value
 
-	// Connection is used to return any information provisioners might require
-	// to cty.Value
-	Connection cty.Value
-
 	// Private is an opaque blob that will be stored in state along with the
 	// resource. It is intended only for interpretation by the provider itself.
 	Private []byte
