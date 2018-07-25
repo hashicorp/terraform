@@ -13,7 +13,7 @@ description: |-
 ~> **This is an advanced guide!** When getting started with Terraform, it's
 recommended to use it locally from the command line. Automation can become
 valuable once Terraform is being used regularly in production, or by a larger
-team, but this guide assumes familiarity with the the normal, local CLI
+team, but this guide assumes familiarity with the normal, local CLI
 workflow.
 
 For teams that use Terraform as a key part of a change management and
