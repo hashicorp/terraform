@@ -14,9 +14,9 @@ self-serve, with links to information sources, clearly defined steps, and
 checkpoints.
 
 -> **Building your own provider?** If you're building your own provider and
-aren't interested in having HashiCorp officially approve and regularly test
-the provider, refer to the
-[Writing Custom Providers guide](/guides/writing-custom-terraform-providers.html).
+aren't interested in having HashiCorp officially approve and regularly test the
+provider, refer to the [Writing Custom Providers guide][writing] and the
+[Extending Terraform][extending] section. 
 
 ## What is a Terraform Provider?
 
@@ -89,10 +89,16 @@ language. The
 [Writing Custom Providers guide](/guides/writing-custom-terraform-providers.html)
 is a good resource for developers to begin writing a new provider.
 
-The best approach to building a new provider project is to use the
-[AWS provider](https://github.com/terraform-providers/terraform-provider-aws)
-as a reference.  Given the wide surface area of this provider, almost all
-resource types and preferred code constructs are covered in it.
+The best approach to building a new provider is to be familiar with both the
+[Writing Custom Providers][writing] guide and [Extending Terraform][extending]
+section. The guide will give you an introduction in code structure and the
+basics of authoring a plugin that Terraform can interact with. The Extending
+Terraform section contains guides, best practices, and API reference for
+developers writing Terraform plugins. Additionally developers are encouraged to
+use the [AWS
+provider](https://github.com/terraform-providers/terraform-provider-aws) as an
+implementation reference.  Given the wide surface area of this provider, almost
+all resource types and preferred code constructs are covered in it.
 
 It is recommended for vendors to first develop support for one or two resources
 and go through an initial review cycle before developing the code for the
@@ -224,3 +230,7 @@ in the section above.
 ## Contact Us
 
 For any questions or feedback please contact us at <terraform-provider-dev@hashicorp.com>.
+
+[writing]: /guides/writing-custom-terraform-providers.html 
+[extending]: /docs/extend/index.html 
+
