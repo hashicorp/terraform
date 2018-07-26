@@ -3,14 +3,14 @@ package remote
 import (
 	"bytes"
 	"fmt"
+	"github.com/hashicorp/go-cleanhttp"
+	"github.com/hashicorp/terraform/version"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
 	"reflect"
 	"testing"
-
-	"github.com/hashicorp/go-cleanhttp"
 )
 
 func TestHTTPClient_impl(t *testing.T) {
@@ -153,6 +153,10 @@ type testHTTPHandler struct {
 }
 
 func (h *testHTTPHandler) Handle(w http.ResponseWriter, r *http.Request) {
+	if r.Header.Get("User-Agent") != version.String() {
+		w.WriteHeader(500)
+		return
+	}
 	switch r.Method {
 	case "GET":
 		w.Write(h.Data)

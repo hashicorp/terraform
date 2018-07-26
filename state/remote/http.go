@@ -14,6 +14,7 @@ import (
 	"strconv"
 
 	"github.com/hashicorp/terraform/state"
+	"github.com/hashicorp/terraform/version"
 )
 
 func httpFactory(conf map[string]string) (Client, error) {
@@ -144,7 +145,8 @@ func (c *HTTPClient) httpRequest(method string, url *url.URL, data *[]byte, what
 	if c.Username != "" {
 		req.SetBasicAuth(c.Username, c.Password)
 	}
-
+	// Setup Useragent
+	req.Header.Set("User-Agent", version.String())
 	// Work with data/body
 	if data != nil {
 		req.Header.Set("Content-Type", "application/json")
