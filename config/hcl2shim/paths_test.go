@@ -143,7 +143,7 @@ func TestPathFromFlatmap(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(fmt.Sprintf("%s as %#v", test.Flatmap, test.Type), func(t *testing.T) {
-			got, err := PathFromFlatmapKey(test.Flatmap, test.Type)
+			got, err := requiresReplacePath(test.Flatmap, test.Type)
 
 			if test.WantErr != "" {
 				if err == nil {
