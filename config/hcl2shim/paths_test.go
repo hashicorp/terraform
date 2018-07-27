@@ -2,10 +2,10 @@ package hcl2shim
 
 import (
 	"fmt"
+	"reflect"
 	"strings"
 	"testing"
 
-	"github.com/go-test/deep"
 	"github.com/zclconf/go-cty/cty"
 )
 
@@ -69,13 +69,14 @@ func TestPathFromFlatmap(t *testing.T) {
 			},
 		},
 		{
+			// a set index returns the set itself, since this being applied to
+			// a diff and the set is changing.
 			Flatmap: "foo.24534534",
 			Type: cty.Object(map[string]cty.Type{
 				"foo": cty.Set(cty.String),
 			}),
 			Want: cty.Path{
 				cty.GetAttrStep{Name: "foo"},
-				cty.IndexStep{Key: cty.NumberIntVal(24534534)},
 			},
 		},
 		{
@@ -89,7 +90,6 @@ func TestPathFromFlatmap(t *testing.T) {
 		},
 		{
 			Flatmap: "foo.baz",
-			//FlatMap: "foo.bar.baz",
 			Type: cty.Object(map[string]cty.Type{
 				"foo": cty.Map(cty.Bool),
 			}),
@@ -109,6 +109,21 @@ func TestPathFromFlatmap(t *testing.T) {
 				cty.GetAttrStep{Name: "foo"},
 				cty.IndexStep{Key: cty.StringVal("bar")},
 				cty.IndexStep{Key: cty.StringVal("baz")},
+			},
+		},
+		{
+			Flatmap: "foo.bar.baz",
+			Type: cty.Object(map[string]cty.Type{
+				"foo": cty.Map(
+					cty.Object(map[string]cty.Type{
+						"baz": cty.String,
+					}),
+				),
+			}),
+			Want: cty.Path{
+				cty.GetAttrStep{Name: "foo"},
+				cty.IndexStep{Key: cty.StringVal("bar")},
+				cty.GetAttrStep{Name: "baz"},
 			},
 		},
 		{
@@ -135,8 +150,49 @@ func TestPathFromFlatmap(t *testing.T) {
 			}),
 			Want: cty.Path{
 				cty.GetAttrStep{Name: "foo"},
-				cty.IndexStep{Key: cty.NumberIntVal(34534534)},
-				cty.GetAttrStep{Name: "baz"},
+			},
+		},
+		{
+			Flatmap: "foo.bar.bang",
+			Type: cty.Object(map[string]cty.Type{
+				"foo": cty.String,
+			}),
+			WantErr: `invalid step "bar.bang"`,
+		},
+		{
+			// there should not be any attribute names with dots
+			Flatmap: "foo.bar.bang",
+			Type: cty.Object(map[string]cty.Type{
+				"foo.bar": cty.Map(cty.String),
+			}),
+			WantErr: `attribute "foo" not found`,
+		},
+		{
+			// We can only handle key names with dots if the map elements are a
+			// primitive type.
+			Flatmap: "foo.bar.bop",
+			Type: cty.Object(map[string]cty.Type{
+				"foo": cty.Map(cty.String),
+			}),
+			Want: cty.Path{
+				cty.GetAttrStep{Name: "foo"},
+				cty.IndexStep{Key: cty.StringVal("bar.bop")},
+			},
+		},
+		{
+			Flatmap: "foo.bar.0.baz",
+			Type: cty.Object(map[string]cty.Type{
+				"foo": cty.Map(
+					cty.List(
+						cty.Map(cty.String),
+					),
+				),
+			}),
+			Want: cty.Path{
+				cty.GetAttrStep{Name: "foo"},
+				cty.IndexStep{Key: cty.StringVal("bar")},
+				cty.IndexStep{Key: cty.NumberIntVal(0)},
+				cty.IndexStep{Key: cty.StringVal("baz")},
 			},
 		},
 	}
@@ -159,8 +215,8 @@ func TestPathFromFlatmap(t *testing.T) {
 				}
 			}
 
-			for _, problem := range deep.Equal(got, test.Want) {
-				t.Error(problem)
+			if !reflect.DeepEqual(got, test.Want) {
+				t.Fatalf("incorrect path\ngot:  %#v\nwant: %#v\n", got, test.Want)
 			}
 		})
 	}
