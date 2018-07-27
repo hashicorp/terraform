@@ -227,6 +227,12 @@ type ApplyResourceChangeRequest struct {
 	// represent the new state, minus any remaining computed attributes.
 	PlannedState cty.Value
 
+	// Config is the resource configuration, before being merged with the
+	// PriorState. Any value not explicitly set in the configuration will be
+	// null. Config is supplied for reference, but Provider implementations
+	// should prefer the PlannedState in most circumstances.
+	Config cty.Value
+
 	// PlannedPrivate is the same value as returned by PlanResourceChange.
 	PlannedPrivate []byte
 }
@@ -236,10 +242,6 @@ type ApplyResourceChangeResponse struct {
 	// In the event of an error, NewState should represent the most recent
 	// known state of the resource, if it exists.
 	NewState cty.Value
-
-	// Connection is used to return any information provisioners might require
-	// to cty.Value
-	Connection cty.Value
 
 	// Private is an opaque blob that will be stored in state along with the
 	// resource. It is intended only for interpretation by the provider itself.
