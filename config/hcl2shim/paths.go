@@ -13,7 +13,7 @@ import (
 // InstanceDiff.Attributes along with the corresponding cty.Type, and returns
 // the list of the cty.Paths that are flagged as causing the resource
 // replacement (RequiresNew).
-// This will filter out paths that inadvertently refer to flatmapped indexes
+// This will filter out redundant paths, paths that refer to flatmapped indexes
 // (e.g. "#", "%"), and will return any changes within a set as the path to the
 // set itself.
 func RequiresReplace(attrs []string, ty cty.Type) ([]cty.Path, error) {
@@ -30,7 +30,6 @@ func RequiresReplace(attrs []string, ty cty.Type) ([]cty.Path, error) {
 
 	// There may be redundant paths due to set elements or index attributes
 	// Do some ugly n^2 filtering, but these are always fairly small sets.
-
 	for i := 0; i < len(paths)-1; i++ {
 		for j := i + 1; j < len(paths); j++ {
 			if reflect.DeepEqual(paths[i], paths[j]) {
@@ -48,13 +47,14 @@ func RequiresReplace(attrs []string, ty cty.Type) ([]cty.Path, error) {
 // requiresReplacePath takes a key from a flatmap along with the cty.Type
 // describing the structure, and returns the cty.Path that would be used to
 // reference the nested value in the data structure.
-// This is used specifically to record the RequiresReplace attributes from a ResourceInstanceDiff.
+// This is used specifically to record the RequiresReplace attributes from a
+// ResourceInstanceDiff.
 func requiresReplacePath(k string, ty cty.Type) (cty.Path, error) {
 	if k == "" {
 		return nil, nil
 	}
 	if !ty.IsObjectType() {
-		panic(fmt.Sprintf("RequiresReplacePathFromKey called on %#v", ty))
+		panic(fmt.Sprintf("requires replace path on non-object type: %#v", ty))
 	}
 
 	path, err := pathFromFlatmapKeyObject(k, ty.AttributeTypes())
@@ -81,7 +81,7 @@ func pathFromFlatmapKeyObject(key string, atys map[string]cty.Type) (cty.Path, e
 
 	ty, ok := atys[k]
 	if !ok {
-		return path, fmt.Errorf("attribute %q not found", key)
+		return path, fmt.Errorf("attribute %q not found", k)
 	}
 
 	if rest == "" {
@@ -164,7 +164,10 @@ func pathFromFlatmapKeyMap(key string, ty cty.Type) (cty.Path, error) {
 	var path cty.Path
 	var err error
 
-	k, rest := pathSplit(key)
+	k, rest := key, ""
+	if !ty.ElementType().IsPrimitiveType() {
+		k, rest = pathSplit(key)
+	}
 
 	// we don't need to convert the index keys to paths
 	if k == "%" {
@@ -216,31 +219,7 @@ func pathFromFlatmapKeyList(key string, ty cty.Type) (cty.Path, error) {
 }
 
 func pathFromFlatmapKeySet(key string, ty cty.Type) (cty.Path, error) {
-	var path cty.Path
-	var err error
-
-	k, rest := pathSplit(key)
-
-	// we don't need to convert the index keys to paths
-	if k == "#" {
-		return path, nil
-	}
-
-	idx, err := strconv.Atoi(k)
-	if err != nil {
-		return path, err
-	}
-
-	path = cty.Path{cty.IndexStep{Key: cty.NumberIntVal(int64(idx))}}
-
-	if rest == "" {
-		return path, nil
-	}
-
-	p, err := pathFromFlatmapKeyValue(rest, ty.ElementType())
-	if err != nil {
-		return path, err
-	}
-
-	return append(path, p...), nil
+	// once we hit a set, we can't return consistent paths, so just mark the
+	// set as a whole changed.
+	return nil, nil
 }
