@@ -2,21 +2,59 @@ package hcl2shim
 
 import (
 	"fmt"
+	"reflect"
 	"strconv"
 	"strings"
 
 	"github.com/zclconf/go-cty/cty"
 )
 
-// PathFromFlatmapKey takes a key from a flatmap along with the cty.Type
+// RequiresReplace takes a list of flatmapped paths from a
+// InstanceDiff.Attributes along with the corresponding cty.Type, and returns
+// the list of the cty.Paths that are flagged as causing the resource
+// replacement (RequiresNew).
+// This will filter out paths that inadvertently refer to flatmapped indexes
+// (e.g. "#", "%"), and will return any changes within a set as the path to the
+// set itself.
+func RequiresReplace(attrs []string, ty cty.Type) ([]cty.Path, error) {
+	var paths []cty.Path
+
+	for _, attr := range attrs {
+		p, err := requiresReplacePath(attr, ty)
+		if err != nil {
+			return nil, err
+		}
+
+		paths = append(paths, p)
+	}
+
+	// There may be redundant paths due to set elements or index attributes
+	// Do some ugly n^2 filtering, but these are always fairly small sets.
+
+	for i := 0; i < len(paths)-1; i++ {
+		for j := i + 1; j < len(paths); j++ {
+			if reflect.DeepEqual(paths[i], paths[j]) {
+				// swap the tail and slice it off
+				paths[j], paths[len(paths)-1] = paths[len(paths)-1], paths[j]
+				paths = paths[:len(paths)-1]
+				j--
+			}
+		}
+	}
+
+	return paths, nil
+}
+
+// requiresReplacePath takes a key from a flatmap along with the cty.Type
 // describing the structure, and returns the cty.Path that would be used to
 // reference the nested value in the data structure.
-func PathFromFlatmapKey(k string, ty cty.Type) (cty.Path, error) {
+// This is used specifically to record the RequiresReplace attributes from a ResourceInstanceDiff.
+func requiresReplacePath(k string, ty cty.Type) (cty.Path, error) {
 	if k == "" {
 		return nil, nil
 	}
 	if !ty.IsObjectType() {
-		panic(fmt.Sprintf("PathFromFlatmapKey called on %#v", ty))
+		panic(fmt.Sprintf("RequiresReplacePathFromKey called on %#v", ty))
 	}
 
 	path, err := pathFromFlatmapKeyObject(k, ty.AttributeTypes())
