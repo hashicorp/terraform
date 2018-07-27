@@ -25,7 +25,8 @@ func Disco(s *httptest.Server) *disco.Disco {
 	services := map[string]interface{}{
 		// Note that both with and without trailing slashes are supported behaviours
 		// TODO: add specific tests to enumerate both possibilities.
-		"modules.v1": fmt.Sprintf("%s/v1/modules", s.URL),
+		"modules.v1":   fmt.Sprintf("%s/v1/modules", s.URL),
+		"providers.v1": fmt.Sprintf("%s/v1/providers", s.URL),
 	}
 	d := disco.NewDisco()
 
@@ -41,6 +42,20 @@ func Disco(s *httptest.Server) *disco.Disco {
 type testMod struct {
 	location string
 	version  string
+}
+
+// Map of provider names and location of test providers.
+// Only one version for now, as we only lookup latest from the registry.
+type testProvider struct {
+	version string
+}
+
+type testProviderVersion struct {
+	name                string
+	version             string
+	downloadURL         string
+	shasumsSignatureURL string
+	shasumsURL          string
 }
 
 const (
@@ -89,6 +104,26 @@ var testMods = map[string][]testMod{
 	},
 }
 
+var testProviders = map[string][]testProvider{
+	"terraform-providers/foo": {
+		{version: "0.2.3"},
+		{version: "0.3.0"},
+	},
+	"terraform-providers/bar": {
+		{version: "0.1.1"},
+		{version: "0.1.2"},
+	},
+}
+
+var testProviderVersions = map[string][]testProviderVersion{
+	"terraform-providers/foo": {{
+		downloadURL:         "file:///download/terraform-provider-null/1.0.0/terraform-provider-null_1.0.0/terraform-provider-null_1.0.0_linux_amd64.zip",
+		version:             "0.2.3",
+		shasumsSignatureURL: "terraform-provider-foo/1.0.0/terraform-provider-foo_1.0.0_SHA256SUMS.sig",
+		shasumsURL:          "terraform-provider-foo/1.0.0/terraform-provider-foo_1.0.0_SHA256SUMS",
+	}},
+}
+
 func latestVersion(versions []string) string {
 	var col version.Collection
 	for _, v := range versions {
@@ -106,7 +141,7 @@ func latestVersion(versions []string) string {
 func mockRegHandler() http.Handler {
 	mux := http.NewServeMux()
 
-	download := func(w http.ResponseWriter, r *http.Request) {
+	moduleDownload := func(w http.ResponseWriter, r *http.Request) {
 		p := strings.TrimLeft(r.URL.Path, "/")
 		// handle download request
 		re := regexp.MustCompile(`^([-a-z]+/\w+/\w+).*/download$`)
@@ -145,7 +180,7 @@ func mockRegHandler() http.Handler {
 		return
 	}
 
-	versions := func(w http.ResponseWriter, r *http.Request) {
+	moduleVersions := func(w http.ResponseWriter, r *http.Request) {
 		p := strings.TrimLeft(r.URL.Path, "/")
 		re := regexp.MustCompile(`^([-a-z]+/\w+/\w+)/versions$`)
 		matches := re.FindStringSubmatch(p)
@@ -197,12 +232,80 @@ func mockRegHandler() http.Handler {
 	mux.Handle("/v1/modules/",
 		http.StripPrefix("/v1/modules/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			if strings.HasSuffix(r.URL.Path, "/download") {
-				download(w, r)
+				moduleDownload(w, r)
 				return
 			}
 
 			if strings.HasSuffix(r.URL.Path, "/versions") {
-				versions(w, r)
+				moduleVersions(w, r)
+				return
+			}
+
+			http.NotFound(w, r)
+		})),
+	)
+
+	providerDownload := func(w http.ResponseWriter, r *http.Request) {}
+
+	providerVersions := func(w http.ResponseWriter, r *http.Request) {
+
+		p := strings.TrimLeft(r.URL.Path, "/")
+		re := regexp.MustCompile(`^([-a-z]+/\w+)/versions$`)
+		matches := re.FindStringSubmatch(p)
+
+		if len(matches) != 2 {
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+
+		// check for auth
+		if strings.Contains(matches[1], "private/") {
+			if !strings.Contains(r.Header.Get("Authorization"), testCred) {
+				http.Error(w, "", http.StatusForbidden)
+			}
+		}
+
+		name := matches[1]
+		fmt.Println(name)
+
+		versions, ok := testProviders[name]
+		if !ok {
+			http.NotFound(w, r)
+			return
+		}
+
+		// only adding the single requested provider for now
+		// this is the minimal that any regisry is epected to support
+		pvs := &response.TerraformProviderVersions{
+			ID: name,
+		}
+
+		for _, v := range versions {
+			pv := &response.TerraformProviderVersion{
+				Version: v.version,
+			}
+			pvs.Versions = append(pvs.Versions, pv)
+		}
+
+		js, err := json.Marshal(pvs)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		w.Write(js)
+	}
+
+	mux.Handle("/v1/providers/",
+		http.StripPrefix("/v1/providers/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if strings.HasSuffix(r.URL.Path, "/download") {
+				providerDownload(w, r)
+				return
+			}
+
+			if strings.HasSuffix(r.URL.Path, "/versions") {
+				providerVersions(w, r)
 				return
 			}
 
@@ -212,12 +315,12 @@ func mockRegHandler() http.Handler {
 
 	mux.HandleFunc("/.well-known/terraform.json", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		io.WriteString(w, `{"modules.v1":"http://localhost/v1/modules/"}`)
+		io.WriteString(w, `{"modules.v1":"http://localhost/v1/modules/", "providers.v1":"http://localhost/v1/providers/"}`)
 	})
 	return mux
 }
 
-// NewRegistry return an httptest server that mocks out some registry functionality.
+// Registry returns an httptest server that mocks out some registry functionality.
 func Registry() *httptest.Server {
 	return httptest.NewServer(mockRegHandler())
 }

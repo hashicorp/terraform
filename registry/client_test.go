@@ -1,6 +1,7 @@
 package registry
 
 import (
+	"fmt"
 	"os"
 	"strings"
 	"testing"
@@ -198,3 +199,43 @@ func TestLookupLookupModuleError(t *testing.T) {
 		t.Fatal("error should not include the hostname. got:", err)
 	}
 }
+
+func TestLookupProviderVersions(t *testing.T) {
+
+	server := test.Registry()
+	defer server.Close()
+
+	client := NewClient(test.Disco(server), nil, nil)
+
+	tests := []struct {
+		name string
+	}{
+		{"foo"},
+		{"bar"},
+	}
+	for _, tt := range tests {
+		provider, err := regsrc.NewTerraformProvider(tt.name)
+		resp, err := client.TerraformProviderVersions(provider)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		name := fmt.Sprintf("terraform-providers/%s", tt.name)
+		if resp.ID != name {
+			t.Fatalf("expected provider name %q, got %q", name, resp.ID)
+		}
+
+		if len(resp.Versions) != 2 {
+			t.Fatal("expected 2 versions, got", len(resp.Versions))
+		}
+
+		for _, v := range resp.Versions {
+			_, err := version.NewVersion(v.Version)
+			if err != nil {
+				t.Fatalf("invalid version %q: %s", v, err)
+			}
+		}
+	}
+}
+
+func TestLookupProviderDownloads(t *testing.T) {}
