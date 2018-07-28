@@ -51,6 +51,8 @@ type AttributeDiff struct {
 	NewComputed bool
 	Sensitive   bool
 	ForcesNew   bool
+
+	PlanFormatFunc func(string, string, string, string, string) string
 }
 
 // PlanStats gives summary counts for a Plan.
@@ -135,6 +137,8 @@ func NewPlan(plan *terraform.Plan) *Plan {
 					Sensitive:   a.Sensitive,
 					ForcesNew:   a.RequiresNew,
 					NewComputed: a.NewComputed,
+
+					PlanFormatFunc: a.PlanFormatFunc,
 				})
 			}
 
@@ -326,8 +330,7 @@ func formatPlanInstanceDiff(buf *bytes.Buffer, r *InstanceDiff, keyLen int, colo
 			default:
 				dispU = fmt.Sprintf("%q", u)
 			}
-			buf.WriteString(fmt.Sprintf(
-				"      %s:%s %s => %s%s\n",
+			buf.WriteString(attr.PlanFormatFunc(
 				attr.Path,
 				strings.Repeat(" ", keyLen-len(attr.Path)),
 				dispU, dispV,
