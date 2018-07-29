@@ -386,14 +386,15 @@ func (d *InstanceDiff) Unlock() { d.mu.Unlock() }
 
 // ResourceAttrDiff is the diff of a single attribute of a resource.
 type ResourceAttrDiff struct {
-	Old         string      // Old Value
-	New         string      // New Value
-	NewComputed bool        // True if new value is computed (unknown currently)
-	NewRemoved  bool        // True if this attribute is being removed
-	NewExtra    interface{} // Extra information for the provider
-	RequiresNew bool        // True if change requires new resource
-	Sensitive   bool        // True if the data should not be displayed in UI output
-	Type        DiffAttrType
+	Old            string      // Old Value
+	New            string      // New Value
+	NewComputed    bool        // True if new value is computed (unknown currently)
+	NewRemoved     bool        // True if this attribute is being removed
+	NewExtra       interface{} // Extra information for the provider
+	RequiresNew    bool        // True if change requires new resource
+	Sensitive      bool        // True if the data should not be displayed in UI output
+	Type           DiffAttrType
+	PlanFormatFunc func(string, string, string, string, string) string
 }
 
 // Empty returns true if the diff for this attr is neutral

@@ -94,6 +94,13 @@ type Schema struct {
 	Default     interface{}
 	DefaultFunc SchemaDefaultFunc
 
+	// If this is non-nil, the provided function will be used during
+	// construction of plan's output of this field. If this is nil, a default
+	// format for the type of the schema will be used.
+	//
+	// This allows complex output for multi-lines attributes for example
+	PlanFormatFunc SchemaPlanFormatFunc
+
 	// Description is used as the description for docs or asking for user
 	// input. It should be relatively short (a few sentences max) and should
 	// be formatted to fit a CLI.
@@ -209,6 +216,10 @@ type SchemaDiffSuppressFunc func(k, old, new string, d *ResourceData) bool
 // SchemaDefaultFunc is a function called to return a default value for
 // a field.
 type SchemaDefaultFunc func() (interface{}, error)
+
+// SchemaPlanFormatFunc is a function which can be used to override
+// plan's default output format
+type SchemaPlanFormatFunc func(path, blank, dispU, dispV, updateMsg string) string
 
 // EnvDefaultFunc is a helper function that returns the value of the
 // given environment variable, if one exists, or the default value
@@ -359,6 +370,20 @@ func (s *Schema) finalizeDiff(d *terraform.ResourceAttrDiff, customized bool) *t
 	if s.Sensitive {
 		// Set the Sensitive flag so output is hidden in the UI
 		d.Sensitive = true
+	}
+
+	if s.PlanFormatFunc != nil {
+		d.PlanFormatFunc = s.PlanFormatFunc
+	} else {
+		d.PlanFormatFunc = func(path, blank, dispU, dispV, updateMsg string) string {
+			return fmt.Sprintf(
+				"      %s:%s %s => %s%s\n",
+				path,
+				blank,
+				dispU, dispV,
+				updateMsg,
+			)
+		}
 	}
 
 	return d
