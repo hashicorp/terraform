@@ -85,6 +85,5 @@ func resourceAwsDefaultVpcDhcpOptionsCreate(d *schema.ResourceData, meta interfa
 
 func resourceAwsDefaultVpcDhcpOptionsDelete(d *schema.ResourceData, meta interface{}) error {
 	log.Printf("[WARN] Cannot destroy Default DHCP Options Set. Terraform will remove this resource from the state file, however resources may remain.")
-	d.SetId("")
 	return nil
 }

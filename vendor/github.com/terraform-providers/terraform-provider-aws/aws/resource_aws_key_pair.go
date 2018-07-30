@@ -35,10 +35,11 @@ func resourceAwsKeyPair() *schema.Resource {
 				ValidateFunc:  validateMaxLength(255),
 			},
 			"key_name_prefix": {
-				Type:         schema.TypeString,
-				Optional:     true,
-				ForceNew:     true,
-				ValidateFunc: validateMaxLength(255 - resource.UniqueIDSuffixLength),
+				Type:          schema.TypeString,
+				Optional:      true,
+				ForceNew:      true,
+				ConflictsWith: []string{"key_name"},
+				ValidateFunc:  validateMaxLength(255 - resource.UniqueIDSuffixLength),
 			},
 			"public_key": {
 				Type:     schema.TypeString,

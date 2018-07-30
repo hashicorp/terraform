@@ -160,6 +160,5 @@ func resourceAwsAcmCertificateValidationRead(d *schema.ResourceData, meta interf
 
 func resourceAwsAcmCertificateValidationDelete(d *schema.ResourceData, meta interface{}) error {
 	// No need to do anything, certificate will be deleted when acm_certificate is deleted
-	d.SetId("")
 	return nil
 }

@@ -34,6 +34,7 @@ func resourceAwsCodeDeployDeploymentConfig() *schema.Resource {
 						"type": {
 							Type:     schema.TypeString,
 							Required: true,
+							ForceNew: true,
 							ValidateFunc: validation.StringInSlice([]string{
 								codedeploy.MinimumHealthyHostsTypeHostCount,
 								codedeploy.MinimumHealthyHostsTypeFleetPercent,
@@ -42,6 +43,7 @@ func resourceAwsCodeDeployDeploymentConfig() *schema.Resource {
 						"value": {
 							Type:     schema.TypeInt,
 							Optional: true,
+							ForceNew: true,
 						},
 					},
 				},

@@ -5112,7 +5112,7 @@ type Activity struct {
 	Details *string `type:"string"`
 
 	// The end time of the activity.
-	EndTime *time.Time `type:"timestamp" timestampFormat:"iso8601"`
+	EndTime *time.Time `type:"timestamp"`
 
 	// A value between 0 and 100 that indicates the progress of the activity.
 	Progress *int64 `type:"integer"`
@@ -5120,7 +5120,7 @@ type Activity struct {
 	// The start time of the activity.
 	//
 	// StartTime is a required field
-	StartTime *time.Time `type:"timestamp" timestampFormat:"iso8601" required:"true"`
+	StartTime *time.Time `type:"timestamp" required:"true"`
 
 	// The current status of the activity.
 	//
@@ -8018,7 +8018,7 @@ type DescribeScheduledActionsInput struct {
 
 	// The latest scheduled start time to return. If scheduled action names are
 	// provided, this parameter is ignored.
-	EndTime *time.Time `type:"timestamp" timestampFormat:"iso8601"`
+	EndTime *time.Time `type:"timestamp"`
 
 	// The maximum number of items to return with this call. The default value is
 	// 50 and the maximum value is 100.
@@ -8039,7 +8039,7 @@ type DescribeScheduledActionsInput struct {
 
 	// The earliest scheduled start time to return. If scheduled action names are
 	// provided, this parameter is ignored.
-	StartTime *time.Time `type:"timestamp" timestampFormat:"iso8601"`
+	StartTime *time.Time `type:"timestamp"`
 }
 
 // String returns the string representation
@@ -9143,7 +9143,7 @@ type Group struct {
 	// The date and time the group was created.
 	//
 	// CreatedTime is a required field
-	CreatedTime *time.Time `type:"timestamp" timestampFormat:"iso8601" required:"true"`
+	CreatedTime *time.Time `type:"timestamp" required:"true"`
 
 	// The amount of time, in seconds, after a scaling activity completes before
 	// another scaling activity can start.
@@ -9625,7 +9625,7 @@ type LaunchConfiguration struct {
 	// The creation date and time for the launch configuration.
 	//
 	// CreatedTime is a required field
-	CreatedTime *time.Time `type:"timestamp" timestampFormat:"iso8601" required:"true"`
+	CreatedTime *time.Time `type:"timestamp" required:"true"`
 
 	// Controls whether the instance is optimized for EBS I/O (true) or not (false).
 	EbsOptimized *bool `type:"boolean"`
@@ -11007,7 +11007,7 @@ type PutScheduledUpdateGroupActionInput struct {
 
 	// The time for the recurring schedule to end. Auto Scaling does not perform
 	// the action after this time.
-	EndTime *time.Time `type:"timestamp" timestampFormat:"iso8601"`
+	EndTime *time.Time `type:"timestamp"`
 
 	// The maximum size for the Auto Scaling group.
 	MaxSize *int64 `type:"integer"`
@@ -11032,10 +11032,10 @@ type PutScheduledUpdateGroupActionInput struct {
 	//
 	// If you try to schedule your action in the past, Auto Scaling returns an error
 	// message.
-	StartTime *time.Time `type:"timestamp" timestampFormat:"iso8601"`
+	StartTime *time.Time `type:"timestamp"`
 
 	// This parameter is deprecated.
-	Time *time.Time `type:"timestamp" timestampFormat:"iso8601"`
+	Time *time.Time `type:"timestamp"`
 }
 
 // String returns the string representation
@@ -11483,7 +11483,7 @@ type ScheduledUpdateGroupAction struct {
 
 	// The date and time that the action is scheduled to end. This date and time
 	// can be up to one month in the future.
-	EndTime *time.Time `type:"timestamp" timestampFormat:"iso8601"`
+	EndTime *time.Time `type:"timestamp"`
 
 	// The maximum size of the group.
 	MaxSize *int64 `type:"integer"`
@@ -11505,10 +11505,10 @@ type ScheduledUpdateGroupAction struct {
 	//
 	// When StartTime and EndTime are specified with Recurrence, they form the boundaries
 	// of when the recurring action will start and stop.
-	StartTime *time.Time `type:"timestamp" timestampFormat:"iso8601"`
+	StartTime *time.Time `type:"timestamp"`
 
 	// This parameter is deprecated.
-	Time *time.Time `type:"timestamp" timestampFormat:"iso8601"`
+	Time *time.Time `type:"timestamp"`
 }
 
 // String returns the string representation

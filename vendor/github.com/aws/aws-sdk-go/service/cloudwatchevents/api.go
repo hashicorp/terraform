@@ -2447,7 +2447,7 @@ type PutEventsRequestEntry struct {
 
 	// The timestamp of the event, per RFC3339 (https://www.rfc-editor.org/rfc/rfc3339.txt).
 	// If no timestamp is provided, the timestamp of the PutEvents call is used.
-	Time *time.Time `type:"timestamp" timestampFormat:"unix"`
+	Time *time.Time `type:"timestamp"`
 }
 
 // String returns the string representation

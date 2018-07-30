@@ -473,6 +473,6 @@ func resourceAwsKmsKeyDelete(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	log.Printf("[DEBUG] KMS Key %s deactivated.", keyId)
-	d.SetId("")
+
 	return nil
 }

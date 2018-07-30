@@ -45,11 +45,12 @@ func resourceAwsDbOptionGroup() *schema.Resource {
 				ValidateFunc:  validateDbOptionGroupName,
 			},
 			"name_prefix": {
-				Type:         schema.TypeString,
-				Optional:     true,
-				Computed:     true,
-				ForceNew:     true,
-				ValidateFunc: validateDbOptionGroupNamePrefix,
+				Type:          schema.TypeString,
+				Optional:      true,
+				Computed:      true,
+				ForceNew:      true,
+				ConflictsWith: []string{"name"},
+				ValidateFunc:  validateDbOptionGroupNamePrefix,
 			},
 			"engine_name": {
 				Type:     schema.TypeString,
@@ -108,6 +109,10 @@ func resourceAwsDbOptionGroup() *schema.Resource {
 							Optional: true,
 							Elem:     &schema.Schema{Type: schema.TypeString},
 							Set:      schema.HashString,
+						},
+						"version": {
+							Type:     schema.TypeString,
+							Optional: true,
 						},
 					},
 				},
@@ -357,5 +362,10 @@ func resourceAwsDbOptionHash(v interface{}) int {
 	for _, sgRaw := range m["db_security_group_memberships"].(*schema.Set).List() {
 		buf.WriteString(fmt.Sprintf("%s-", sgRaw.(string)))
 	}
+
+	if v, ok := m["version"]; ok && v.(string) != "" {
+		buf.WriteString(fmt.Sprintf("%s-", v.(string)))
+	}
+
 	return hashcode.String(buf.String())
 }

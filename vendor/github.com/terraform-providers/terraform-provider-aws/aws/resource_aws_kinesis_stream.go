@@ -229,7 +229,6 @@ func resourceAwsKinesisStreamDelete(d *schema.ResourceData, meta interface{}) er
 			sn, err)
 	}
 
-	d.SetId("")
 	return nil
 }
 
@@ -456,7 +455,12 @@ func readKinesisStreamState(conn *kinesis.Kinesis, sn string) (*kinesisStreamSta
 		state.openShards = append(state.openShards, flattenShards(openShards(page.StreamDescription.Shards))...)
 		state.closedShards = append(state.closedShards, flattenShards(closedShards(page.StreamDescription.Shards))...)
 		state.shardLevelMetrics = flattenKinesisShardLevelMetrics(page.StreamDescription.EnhancedMonitoring)
-		state.encryptionType = aws.StringValue(page.StreamDescription.EncryptionType)
+		// EncryptionType can be nil in certain APIs, e.g. AWS China
+		if page.StreamDescription.EncryptionType != nil {
+			state.encryptionType = aws.StringValue(page.StreamDescription.EncryptionType)
+		} else {
+			state.encryptionType = kinesis.EncryptionTypeNone
+		}
 		state.keyId = aws.StringValue(page.StreamDescription.KeyId)
 		return !last
 	})

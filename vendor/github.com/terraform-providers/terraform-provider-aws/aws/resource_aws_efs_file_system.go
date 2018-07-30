@@ -221,7 +221,7 @@ func resourceAwsEfsFileSystemRead(d *schema.ResourceData, meta interface{}) erro
 		return err
 	}
 
-	var fs *efs.FileSystemDescription
+	var fs *efs.UpdateFileSystemOutput
 	for _, f := range resp.FileSystems {
 		if d.Id() == *f.FileSystemId {
 			fs = f

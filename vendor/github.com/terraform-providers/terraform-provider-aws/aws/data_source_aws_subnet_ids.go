@@ -12,6 +12,7 @@ func dataSourceAwsSubnetIDs() *schema.Resource {
 	return &schema.Resource{
 		Read: dataSourceAwsSubnetIDsRead,
 		Schema: map[string]*schema.Schema{
+			"filter": ec2CustomFiltersSchema(),
 
 			"tags": tagsSchemaComputed(),
 
@@ -35,15 +36,29 @@ func dataSourceAwsSubnetIDsRead(d *schema.ResourceData, meta interface{}) error 
 
 	req := &ec2.DescribeSubnetsInput{}
 
-	req.Filters = buildEC2AttributeFilterList(
-		map[string]string{
-			"vpc-id": d.Get("vpc_id").(string),
-		},
-	)
+	if vpc, vpcOk := d.GetOk("vpc_id"); vpcOk {
+		req.Filters = buildEC2AttributeFilterList(
+			map[string]string{
+				"vpc-id": vpc.(string),
+			},
+		)
+	}
 
-	req.Filters = append(req.Filters, buildEC2TagFilterList(
-		tagsFromMap(d.Get("tags").(map[string]interface{})),
-	)...)
+	if tags, tagsOk := d.GetOk("tags"); tagsOk {
+		req.Filters = append(req.Filters, buildEC2TagFilterList(
+			tagsFromMap(tags.(map[string]interface{})),
+		)...)
+	}
+
+	if filters, filtersOk := d.GetOk("filter"); filtersOk {
+		req.Filters = append(req.Filters, buildEC2CustomFilterList(
+			filters.(*schema.Set),
+		)...)
+	}
+
+	if len(req.Filters) == 0 {
+		req.Filters = nil
+	}
 
 	log.Printf("[DEBUG] DescribeSubnets %s\n", req)
 	resp, err := conn.DescribeSubnets(req)

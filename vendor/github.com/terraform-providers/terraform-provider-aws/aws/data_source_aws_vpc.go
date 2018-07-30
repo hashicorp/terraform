@@ -5,6 +5,7 @@ import (
 	"log"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/arn"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/hashicorp/terraform/helper/schema"
 )
@@ -18,6 +19,27 @@ func dataSourceAwsVpc() *schema.Resource {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
+			},
+
+			"cidr_block_associations": {
+				Type:     schema.TypeList,
+				Computed: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"association_id": {
+							Type:     schema.TypeString,
+							Computed: true,
+						},
+						"cidr_block": {
+							Type:     schema.TypeString,
+							Computed: true,
+						},
+						"state": {
+							Type:     schema.TypeString,
+							Computed: true,
+						},
+					},
+				},
 			},
 
 			"dhcp_options_id": {
@@ -68,6 +90,11 @@ func dataSourceAwsVpc() *schema.Resource {
 
 			"enable_dns_support": {
 				Type:     schema.TypeBool,
+				Computed: true,
+			},
+
+			"arn": {
+				Type:     schema.TypeString,
 				Computed: true,
 			},
 
@@ -140,6 +167,28 @@ func dataSourceAwsVpcRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("default", vpc.IsDefault)
 	d.Set("state", vpc.State)
 	d.Set("tags", tagsToMap(vpc.Tags))
+
+	arn := arn.ARN{
+		Partition: meta.(*AWSClient).partition,
+		Service:   "ec2",
+		Region:    meta.(*AWSClient).region,
+		AccountID: meta.(*AWSClient).accountid,
+		Resource:  fmt.Sprintf("vpc/%s", d.Id()),
+	}.String()
+	d.Set("arn", arn)
+
+	cidrAssociations := []interface{}{}
+	for _, associationSet := range vpc.CidrBlockAssociationSet {
+		association := map[string]interface{}{
+			"association_id": aws.StringValue(associationSet.AssociationId),
+			"cidr_block":     aws.StringValue(associationSet.CidrBlock),
+			"state":          aws.StringValue(associationSet.CidrBlockState.State),
+		}
+		cidrAssociations = append(cidrAssociations, association)
+	}
+	if err := d.Set("cidr_block_associations", cidrAssociations); err != nil {
+		return fmt.Errorf("error setting cidr_block_associations: %s", err)
+	}
 
 	if vpc.Ipv6CidrBlockAssociationSet != nil {
 		d.Set("ipv6_association_id", vpc.Ipv6CidrBlockAssociationSet[0].AssociationId)

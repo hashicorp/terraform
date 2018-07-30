@@ -91,11 +91,9 @@ func resourceAwsEcrLifecyclePolicyDelete(d *schema.ResourceData, meta interface{
 	_, err := conn.DeleteLifecyclePolicy(input)
 	if err != nil {
 		if isAWSErr(err, ecr.ErrCodeRepositoryNotFoundException, "") {
-			d.SetId("")
 			return nil
 		}
 		if isAWSErr(err, ecr.ErrCodeLifecyclePolicyNotFoundException, "") {
-			d.SetId("")
 			return nil
 		}
 		return err

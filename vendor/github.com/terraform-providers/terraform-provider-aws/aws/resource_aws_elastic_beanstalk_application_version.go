@@ -153,14 +153,12 @@ func resourceAwsElasticBeanstalkApplicationVersionDelete(d *schema.ResourceData,
 		if awserr, ok := err.(awserr.Error); ok {
 			// application version is pending delete, or no longer exists.
 			if awserr.Code() == "InvalidParameterValue" {
-				d.SetId("")
 				return nil
 			}
 		}
 		return err
 	}
 
-	d.SetId("")
 	return nil
 }
 

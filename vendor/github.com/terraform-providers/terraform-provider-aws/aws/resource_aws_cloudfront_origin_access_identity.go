@@ -119,8 +119,6 @@ func resourceAwsCloudFrontOriginAccessIdentityDelete(d *schema.ResourceData, met
 		return err
 	}
 
-	// Done
-	d.SetId("")
 	return nil
 }
 

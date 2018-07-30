@@ -50,31 +50,29 @@ func dataSourceAwsAutoscalingGroupsRead(d *schema.ResourceData, meta interface{}
 	d.SetId(time.Now().UTC().String())
 
 	var raw []string
+	var err error
 
 	tf := d.Get("filter").(*schema.Set)
 	if tf.Len() > 0 {
-		out, err := conn.DescribeTags(&autoscaling.DescribeTagsInput{
+		input := &autoscaling.DescribeTagsInput{
 			Filters: expandAsgTagFilters(tf.List()),
+		}
+		err = conn.DescribeTagsPages(input, func(resp *autoscaling.DescribeTagsOutput, lastPage bool) bool {
+			for _, v := range resp.Tags {
+				raw = append(raw, aws.StringValue(v.ResourceId))
+			}
+			return !lastPage
 		})
-		if err != nil {
-			return err
-		}
-
-		raw = make([]string, len(out.Tags))
-		for i, v := range out.Tags {
-			raw[i] = *v.ResourceId
-		}
 	} else {
-
-		resp, err := conn.DescribeAutoScalingGroups(&autoscaling.DescribeAutoScalingGroupsInput{})
-		if err != nil {
-			return fmt.Errorf("Error fetching Autoscaling Groups: %s", err)
-		}
-
-		raw = make([]string, len(resp.AutoScalingGroups))
-		for i, v := range resp.AutoScalingGroups {
-			raw[i] = *v.AutoScalingGroupName
-		}
+		err = conn.DescribeAutoScalingGroupsPages(&autoscaling.DescribeAutoScalingGroupsInput{}, func(resp *autoscaling.DescribeAutoScalingGroupsOutput, lastPage bool) bool {
+			for _, group := range resp.AutoScalingGroups {
+				raw = append(raw, aws.StringValue(group.AutoScalingGroupName))
+			}
+			return !lastPage
+		})
+	}
+	if err != nil {
+		return fmt.Errorf("Error fetching Autoscaling Groups: %s", err)
 	}
 
 	sort.Strings(raw)

@@ -4919,7 +4919,7 @@ type CacheCluster struct {
 	AutoMinorVersionUpgrade *bool `type:"boolean"`
 
 	// The date and time when the cluster was created.
-	CacheClusterCreateTime *time.Time `type:"timestamp" timestampFormat:"iso8601"`
+	CacheClusterCreateTime *time.Time `type:"timestamp"`
 
 	// The user-supplied identifier of the cluster. This identifier is a unique
 	// key that identifies a cluster.
@@ -5378,7 +5378,7 @@ type CacheNode struct {
 	_ struct{} `type:"structure"`
 
 	// The date and time when the cache node was created.
-	CacheNodeCreateTime *time.Time `type:"timestamp" timestampFormat:"iso8601"`
+	CacheNodeCreateTime *time.Time `type:"timestamp"`
 
 	// The cache node identifier. A node ID is a numeric identifier (0001, 0002,
 	// etc.). The combination of cluster ID and node ID uniquely identifies every
@@ -8423,7 +8423,7 @@ type DescribeEventsInput struct {
 	// 8601 format.
 	//
 	// Example: 2017-03-30T07:03:49.555Z
-	EndTime *time.Time `type:"timestamp" timestampFormat:"iso8601"`
+	EndTime *time.Time `type:"timestamp"`
 
 	// An optional marker returned from a prior request. Use this marker for pagination
 	// of results from this operation. If this parameter is specified, the response
@@ -8451,7 +8451,7 @@ type DescribeEventsInput struct {
 	// 8601 format.
 	//
 	// Example: 2017-03-30T07:03:49.555Z
-	StartTime *time.Time `type:"timestamp" timestampFormat:"iso8601"`
+	StartTime *time.Time `type:"timestamp"`
 }
 
 // String returns the string representation
@@ -9279,7 +9279,7 @@ type Event struct {
 	_ struct{} `type:"structure"`
 
 	// The date and time when the event occurred.
-	Date *time.Time `type:"timestamp" timestampFormat:"iso8601"`
+	Date *time.Time `type:"timestamp"`
 
 	// The text of the event.
 	Message *string `type:"string"`
@@ -10595,7 +10595,7 @@ type NodeSnapshot struct {
 	CacheClusterId *string `type:"string"`
 
 	// The date and time when the cache node was created in the source cluster.
-	CacheNodeCreateTime *time.Time `type:"timestamp" timestampFormat:"iso8601"`
+	CacheNodeCreateTime *time.Time `type:"timestamp"`
 
 	// The cache node identifier for the node in the source cluster.
 	CacheNodeId *string `type:"string"`
@@ -10611,7 +10611,7 @@ type NodeSnapshot struct {
 
 	// The date and time when the source node's metadata and cache data set was
 	// obtained for the snapshot.
-	SnapshotCreateTime *time.Time `type:"timestamp" timestampFormat:"iso8601"`
+	SnapshotCreateTime *time.Time `type:"timestamp"`
 }
 
 // String returns the string representation
@@ -11502,7 +11502,7 @@ type ReservedCacheNode struct {
 	ReservedCacheNodesOfferingId *string `type:"string"`
 
 	// The time the reservation started.
-	StartTime *time.Time `type:"timestamp" timestampFormat:"iso8601"`
+	StartTime *time.Time `type:"timestamp"`
 
 	// The state of the reserved cache node.
 	State *string `type:"string"`
@@ -12028,7 +12028,7 @@ type Snapshot struct {
 	AutomaticFailover *string `type:"string" enum:"AutomaticFailoverStatus"`
 
 	// The date and time when the source cluster was created.
-	CacheClusterCreateTime *time.Time `type:"timestamp" timestampFormat:"iso8601"`
+	CacheClusterCreateTime *time.Time `type:"timestamp"`
 
 	// The user-supplied identifier of the source cluster.
 	CacheClusterId *string `type:"string"`

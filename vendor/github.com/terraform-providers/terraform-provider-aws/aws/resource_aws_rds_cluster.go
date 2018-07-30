@@ -43,6 +43,12 @@ func resourceAwsRDSCluster() *schema.Resource {
 				Set:      schema.HashString,
 			},
 
+			"backtrack_window": {
+				Type:         schema.TypeInt,
+				Optional:     true,
+				ValidateFunc: validation.IntBetween(0, 259200),
+			},
+
 			"cluster_identifier": {
 				Type:          schema.TypeString,
 				Optional:      true,
@@ -52,11 +58,12 @@ func resourceAwsRDSCluster() *schema.Resource {
 				ValidateFunc:  validateRdsIdentifier,
 			},
 			"cluster_identifier_prefix": {
-				Type:         schema.TypeString,
-				Optional:     true,
-				Computed:     true,
-				ForceNew:     true,
-				ValidateFunc: validateRdsIdentifierPrefix,
+				Type:          schema.TypeString,
+				Optional:      true,
+				Computed:      true,
+				ForceNew:      true,
+				ConflictsWith: []string{"cluster_identifier"},
+				ValidateFunc:  validateRdsIdentifierPrefix,
 			},
 
 			"cluster_members": {
@@ -122,6 +129,45 @@ func resourceAwsRDSCluster() *schema.Resource {
 				Optional: true,
 				Default:  false,
 				ForceNew: true,
+			},
+
+			"s3_import": {
+				Type:     schema.TypeList,
+				Optional: true,
+				MaxItems: 1,
+				ConflictsWith: []string{
+					"snapshot_identifier",
+				},
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"bucket_name": {
+							Type:     schema.TypeString,
+							Required: true,
+							ForceNew: true,
+						},
+						"bucket_prefix": {
+							Type:     schema.TypeString,
+							Required: false,
+							Optional: true,
+							ForceNew: true,
+						},
+						"ingestion_role": {
+							Type:     schema.TypeString,
+							Required: true,
+							ForceNew: true,
+						},
+						"source_engine": {
+							Type:     schema.TypeString,
+							Required: true,
+							ForceNew: true,
+						},
+						"source_engine_version": {
+							Type:     schema.TypeString,
+							Required: true,
+							ForceNew: true,
+						},
+					},
+				},
 			},
 
 			"final_snapshot_identifier": {
@@ -256,6 +302,21 @@ func resourceAwsRDSCluster() *schema.Resource {
 				ForceNew: true,
 			},
 
+			"enabled_cloudwatch_logs_exports": {
+				Type:     schema.TypeList,
+				Computed: false,
+				Optional: true,
+				Elem: &schema.Schema{
+					Type: schema.TypeString,
+					ValidateFunc: validation.StringInSlice([]string{
+						"audit",
+						"error",
+						"general",
+						"slowquery",
+					}, false),
+				},
+			},
+
 			"tags": tagsSchema(),
 		},
 	}
@@ -290,9 +351,19 @@ func resourceAwsRDSClusterCreate(d *schema.ResourceData, meta interface{}) error
 	if _, ok := d.GetOk("snapshot_identifier"); ok {
 		opts := rds.RestoreDBClusterFromSnapshotInput{
 			DBClusterIdentifier: aws.String(d.Get("cluster_identifier").(string)),
-			SnapshotIdentifier:  aws.String(d.Get("snapshot_identifier").(string)),
 			Engine:              aws.String(d.Get("engine").(string)),
+			SnapshotIdentifier:  aws.String(d.Get("snapshot_identifier").(string)),
 			Tags:                tags,
+		}
+
+		// Need to check value > 0 due to:
+		// InvalidParameterValue: Backtrack is not enabled for the aurora-postgresql engine.
+		if v, ok := d.GetOk("backtrack_window"); ok && v.(int) > 0 {
+			opts.BacktrackWindow = aws.Int64(int64(v.(int)))
+		}
+
+		if attr, ok := d.GetOk("engine_version"); ok {
+			opts.EngineVersion = aws.String(attr.(string))
 		}
 
 		if attr := d.Get("availability_zones").(*schema.Set); attr.Len() > 0 {
@@ -315,6 +386,10 @@ func resourceAwsRDSClusterCreate(d *schema.ResourceData, meta interface{}) error
 			opts.Port = aws.Int64(int64(attr.(int)))
 		}
 
+		if attr, ok := d.GetOk("enabled_cloudwatch_logs_exports"); ok && len(attr.([]interface{})) > 0 {
+			opts.EnableCloudwatchLogsExports = expandStringList(attr.([]interface{}))
+		}
+
 		// Check if any of the parameters that require a cluster modification after creation are set
 		var clusterUpdate bool
 		if attr := d.Get("vpc_security_group_ids").(*schema.Set); attr.Len() > 0 {
@@ -331,7 +406,16 @@ func resourceAwsRDSClusterCreate(d *schema.ResourceData, meta interface{}) error
 		}
 
 		log.Printf("[DEBUG] RDS Cluster restore from snapshot configuration: %s", opts)
-		_, err := conn.RestoreDBClusterFromSnapshot(&opts)
+		err := resource.Retry(1*time.Minute, func() *resource.RetryError {
+			_, err := conn.RestoreDBClusterFromSnapshot(&opts)
+			if err != nil {
+				if isAWSErr(err, "InvalidParameterValue", "IAM role ARN value is invalid or does not include the required permissions") {
+					return resource.RetryableError(err)
+				}
+				return resource.NonRetryableError(err)
+			}
+			return nil
+		})
 		if err != nil {
 			return fmt.Errorf("Error creating RDS Cluster: %s", err)
 		}
@@ -373,6 +457,12 @@ func resourceAwsRDSClusterCreate(d *schema.ResourceData, meta interface{}) error
 			StorageEncrypted:            aws.Bool(d.Get("storage_encrypted").(bool)),
 			ReplicationSourceIdentifier: aws.String(d.Get("replication_source_identifier").(string)),
 			Tags: tags,
+		}
+
+		// Need to check value > 0 due to:
+		// InvalidParameterValue: Backtrack is not enabled for the aurora-postgresql engine.
+		if v, ok := d.GetOk("backtrack_window"); ok && v.(int) > 0 {
+			createOpts.BacktrackWindow = aws.Int64(int64(v.(int)))
 		}
 
 		if attr, ok := d.GetOk("port"); ok {
@@ -419,31 +509,55 @@ func resourceAwsRDSClusterCreate(d *schema.ResourceData, meta interface{}) error
 			createOpts.SourceRegion = aws.String(attr.(string))
 		}
 
+		if attr, ok := d.GetOk("enabled_cloudwatch_logs_exports"); ok && len(attr.([]interface{})) > 0 {
+			createOpts.EnableCloudwatchLogsExports = expandStringList(attr.([]interface{}))
+		}
+
 		log.Printf("[DEBUG] Create RDS Cluster as read replica: %s", createOpts)
-		resp, err := conn.CreateDBCluster(createOpts)
+		var resp *rds.CreateDBClusterOutput
+		err := resource.Retry(1*time.Minute, func() *resource.RetryError {
+			var err error
+			resp, err = conn.CreateDBCluster(createOpts)
+			if err != nil {
+				if isAWSErr(err, "InvalidParameterValue", "IAM role ARN value is invalid or does not include the required permissions") {
+					return resource.RetryableError(err)
+				}
+				return resource.NonRetryableError(err)
+			}
+			return nil
+		})
 		if err != nil {
-			log.Printf("[ERROR] Error creating RDS Cluster: %s", err)
-			return err
+			return fmt.Errorf("error creating RDS cluster: %s", err)
 		}
 
 		log.Printf("[DEBUG]: RDS Cluster create response: %s", resp)
 
-	} else {
+	} else if v, ok := d.GetOk("s3_import"); ok {
 		if _, ok := d.GetOk("master_password"); !ok {
-			return fmt.Errorf(`provider.aws: aws_rds_cluster: %s: "master_password": required field is not set`, d.Get("database_name").(string))
+			return fmt.Errorf(`provider.aws: aws_db_instance: %s: "master_password": required field is not set`, d.Get("name").(string))
 		}
-
 		if _, ok := d.GetOk("master_username"); !ok {
-			return fmt.Errorf(`provider.aws: aws_rds_cluster: %s: "master_username": required field is not set`, d.Get("database_name").(string))
+			return fmt.Errorf(`provider.aws: aws_db_instance: %s: "master_username": required field is not set`, d.Get("name").(string))
 		}
-
-		createOpts := &rds.CreateDBClusterInput{
+		s3_bucket := v.([]interface{})[0].(map[string]interface{})
+		createOpts := &rds.RestoreDBClusterFromS3Input{
 			DBClusterIdentifier: aws.String(d.Get("cluster_identifier").(string)),
 			Engine:              aws.String(d.Get("engine").(string)),
-			MasterUserPassword:  aws.String(d.Get("master_password").(string)),
 			MasterUsername:      aws.String(d.Get("master_username").(string)),
+			MasterUserPassword:  aws.String(d.Get("master_password").(string)),
+			S3BucketName:        aws.String(s3_bucket["bucket_name"].(string)),
+			S3IngestionRoleArn:  aws.String(s3_bucket["ingestion_role"].(string)),
+			S3Prefix:            aws.String(s3_bucket["bucket_prefix"].(string)),
+			SourceEngine:        aws.String(s3_bucket["source_engine"].(string)),
+			SourceEngineVersion: aws.String(s3_bucket["source_engine_version"].(string)),
 			StorageEncrypted:    aws.Bool(d.Get("storage_encrypted").(bool)),
 			Tags:                tags,
+		}
+
+		// Need to check value > 0 due to:
+		// InvalidParameterValue: Backtrack is not enabled for the aurora-postgresql engine.
+		if v, ok := d.GetOk("backtrack_window"); ok && v.(int) > 0 {
+			createOpts.BacktrackWindow = aws.Int64(int64(v.(int)))
 		}
 
 		if v := d.Get("database_name"); v.(string) != "" {
@@ -494,11 +608,128 @@ func resourceAwsRDSClusterCreate(d *schema.ResourceData, meta interface{}) error
 			createOpts.EnableIAMDatabaseAuthentication = aws.Bool(attr.(bool))
 		}
 
-		log.Printf("[DEBUG] RDS Cluster create options: %s", createOpts)
-		resp, err := conn.CreateDBCluster(createOpts)
+		if attr, ok := d.GetOk("enabled_cloudwatch_logs_exports"); ok && len(attr.([]interface{})) > 0 {
+			createOpts.EnableCloudwatchLogsExports = expandStringList(attr.([]interface{}))
+		}
+
+		log.Printf("[DEBUG] RDS Cluster restore options: %s", createOpts)
+		// Retry for IAM/S3 eventual consistency
+		err := resource.Retry(5*time.Minute, func() *resource.RetryError {
+			resp, err := conn.RestoreDBClusterFromS3(createOpts)
+			if err != nil {
+				// InvalidParameterValue: Files from the specified Amazon S3 bucket cannot be downloaded.
+				// Make sure that you have created an AWS Identity and Access Management (IAM) role that lets Amazon RDS access Amazon S3 for you.
+				if isAWSErr(err, "InvalidParameterValue", "Files from the specified Amazon S3 bucket cannot be downloaded") {
+					return resource.RetryableError(err)
+				}
+				if isAWSErr(err, "InvalidParameterValue", "S3_SNAPSHOT_INGESTION") {
+					return resource.RetryableError(err)
+				}
+				if isAWSErr(err, "InvalidParameterValue", "S3 bucket cannot be found") {
+					return resource.RetryableError(err)
+				}
+				return resource.NonRetryableError(err)
+			}
+			log.Printf("[DEBUG]: RDS Cluster create response: %s", resp)
+			return nil
+		})
+
 		if err != nil {
 			log.Printf("[ERROR] Error creating RDS Cluster: %s", err)
 			return err
+		}
+
+	} else {
+		if _, ok := d.GetOk("master_password"); !ok {
+			return fmt.Errorf(`provider.aws: aws_rds_cluster: %s: "master_password": required field is not set`, d.Get("database_name").(string))
+		}
+
+		if _, ok := d.GetOk("master_username"); !ok {
+			return fmt.Errorf(`provider.aws: aws_rds_cluster: %s: "master_username": required field is not set`, d.Get("database_name").(string))
+		}
+
+		createOpts := &rds.CreateDBClusterInput{
+			DBClusterIdentifier: aws.String(d.Get("cluster_identifier").(string)),
+			Engine:              aws.String(d.Get("engine").(string)),
+			MasterUserPassword:  aws.String(d.Get("master_password").(string)),
+			MasterUsername:      aws.String(d.Get("master_username").(string)),
+			StorageEncrypted:    aws.Bool(d.Get("storage_encrypted").(bool)),
+			Tags:                tags,
+		}
+
+		// Need to check value > 0 due to:
+		// InvalidParameterValue: Backtrack is not enabled for the aurora-postgresql engine.
+		if v, ok := d.GetOk("backtrack_window"); ok && v.(int) > 0 {
+			createOpts.BacktrackWindow = aws.Int64(int64(v.(int)))
+		}
+
+		if v := d.Get("database_name"); v.(string) != "" {
+			createOpts.DatabaseName = aws.String(v.(string))
+		}
+
+		if attr, ok := d.GetOk("port"); ok {
+			createOpts.Port = aws.Int64(int64(attr.(int)))
+		}
+
+		if attr, ok := d.GetOk("db_subnet_group_name"); ok {
+			createOpts.DBSubnetGroupName = aws.String(attr.(string))
+		}
+
+		if attr, ok := d.GetOk("db_cluster_parameter_group_name"); ok {
+			createOpts.DBClusterParameterGroupName = aws.String(attr.(string))
+		}
+
+		if attr, ok := d.GetOk("engine_version"); ok {
+			createOpts.EngineVersion = aws.String(attr.(string))
+		}
+
+		if attr := d.Get("vpc_security_group_ids").(*schema.Set); attr.Len() > 0 {
+			createOpts.VpcSecurityGroupIds = expandStringList(attr.List())
+		}
+
+		if attr := d.Get("availability_zones").(*schema.Set); attr.Len() > 0 {
+			createOpts.AvailabilityZones = expandStringList(attr.List())
+		}
+
+		if v, ok := d.GetOk("backup_retention_period"); ok {
+			createOpts.BackupRetentionPeriod = aws.Int64(int64(v.(int)))
+		}
+
+		if v, ok := d.GetOk("preferred_backup_window"); ok {
+			createOpts.PreferredBackupWindow = aws.String(v.(string))
+		}
+
+		if v, ok := d.GetOk("preferred_maintenance_window"); ok {
+			createOpts.PreferredMaintenanceWindow = aws.String(v.(string))
+		}
+
+		if attr, ok := d.GetOk("kms_key_id"); ok {
+			createOpts.KmsKeyId = aws.String(attr.(string))
+		}
+
+		if attr, ok := d.GetOk("iam_database_authentication_enabled"); ok {
+			createOpts.EnableIAMDatabaseAuthentication = aws.Bool(attr.(bool))
+		}
+
+		if attr, ok := d.GetOk("enabled_cloudwatch_logs_exports"); ok && len(attr.([]interface{})) > 0 {
+			createOpts.EnableCloudwatchLogsExports = expandStringList(attr.([]interface{}))
+		}
+
+		log.Printf("[DEBUG] RDS Cluster create options: %s", createOpts)
+		var resp *rds.CreateDBClusterOutput
+		err := resource.Retry(1*time.Minute, func() *resource.RetryError {
+			var err error
+			resp, err = conn.CreateDBCluster(createOpts)
+			if err != nil {
+				if isAWSErr(err, "InvalidParameterValue", "IAM role ARN value is invalid or does not include the required permissions") {
+					return resource.RetryableError(err)
+				}
+				return resource.NonRetryableError(err)
+			}
+			return nil
+		})
+		if err != nil {
+			return fmt.Errorf("error creating RDS cluster: %s", err)
 		}
 
 		log.Printf("[DEBUG]: RDS Cluster create response: %s", resp)
@@ -588,6 +819,7 @@ func flattenAwsRdsClusterResource(d *schema.ResourceData, meta interface{}, dbc 
 		d.Set("database_name", dbc.DatabaseName)
 	}
 
+	d.Set("backtrack_window", int(aws.Int64Value(dbc.BacktrackWindow)))
 	d.Set("cluster_identifier", dbc.DBClusterIdentifier)
 	d.Set("cluster_resource_id", dbc.DbClusterResourceId)
 	d.Set("db_subnet_group_name", dbc.DBSubnetGroup)
@@ -606,6 +838,10 @@ func flattenAwsRdsClusterResource(d *schema.ResourceData, meta interface{}, dbc 
 	d.Set("replication_source_identifier", dbc.ReplicationSourceIdentifier)
 	d.Set("iam_database_authentication_enabled", dbc.IAMDatabaseAuthenticationEnabled)
 	d.Set("hosted_zone_id", dbc.HostedZoneId)
+
+	if err := d.Set("enabled_cloudwatch_logs_exports", flattenStringList(dbc.EnabledCloudwatchLogsExports)); err != nil {
+		return fmt.Errorf("error setting enabled_cloudwatch_logs_exports: %s", err)
+	}
 
 	var vpcg []string
 	for _, g := range dbc.VpcSecurityGroups {
@@ -656,6 +892,11 @@ func resourceAwsRDSClusterUpdate(d *schema.ResourceData, meta interface{}) error
 		DBClusterIdentifier: aws.String(d.Id()),
 	}
 
+	if d.HasChange("backtrack_window") {
+		req.BacktrackWindow = aws.Int64(int64(d.Get("backtrack_window").(int)))
+		requestUpdate = true
+	}
+
 	if d.HasChange("master_password") {
 		req.MasterUserPassword = aws.String(d.Get("master_password").(string))
 		requestUpdate = true
@@ -696,12 +937,20 @@ func resourceAwsRDSClusterUpdate(d *schema.ResourceData, meta interface{}) error
 		requestUpdate = true
 	}
 
+	if d.HasChange("enabled_cloudwatch_logs_exports") && !d.IsNewResource() {
+		d.SetPartial("enabled_cloudwatch_logs_exports")
+		req.CloudwatchLogsExportConfiguration = buildCloudwatchLogsExportConfiguration(d)
+		requestUpdate = true
+	}
+
 	if requestUpdate {
 		err := resource.Retry(5*time.Minute, func() *resource.RetryError {
 			_, err := conn.ModifyDBCluster(req)
 			if err != nil {
-				awsErr, ok := err.(awserr.Error)
-				if ok && awsErr.Code() == rds.ErrCodeInvalidDBClusterStateFault {
+				if isAWSErr(err, "InvalidParameterValue", "IAM role ARN value is invalid or does not include the required permissions") {
+					return resource.RetryableError(err)
+				}
+				if isAWSErr(err, rds.ErrCodeInvalidDBClusterStateFault, "") {
 					return resource.RetryableError(err)
 				}
 				return resource.NonRetryableError(err)
@@ -710,6 +959,21 @@ func resourceAwsRDSClusterUpdate(d *schema.ResourceData, meta interface{}) error
 		})
 		if err != nil {
 			return fmt.Errorf("Failed to modify RDS Cluster (%s): %s", d.Id(), err)
+		}
+
+		stateConf := &resource.StateChangeConf{
+			Pending:    resourceAwsRdsClusterUpdatePendingStates,
+			Target:     []string{"available"},
+			Refresh:    resourceAwsRDSClusterStateRefreshFunc(d, meta),
+			Timeout:    d.Timeout(schema.TimeoutUpdate),
+			MinTimeout: 10 * time.Second,
+			Delay:      10 * time.Second,
+		}
+
+		log.Printf("[INFO] Waiting for RDS Cluster (%s) to modify", d.Id())
+		_, err = stateConf.WaitForState()
+		if err != nil {
+			return fmt.Errorf("error waiting for RDS Cluster (%s) to modify: %s", d.Id(), err)
 		}
 	}
 
@@ -893,4 +1157,10 @@ var resourceAwsRdsClusterDeletePendingStates = []string{
 	"deleting",
 	"backing-up",
 	"modifying",
+}
+
+var resourceAwsRdsClusterUpdatePendingStates = []string{
+	"backing-up",
+	"modifying",
+	"resetting-master-credentials",
 }

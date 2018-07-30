@@ -44,7 +44,7 @@ func resourceAwsGlueCatalogDatabase() *schema.Resource {
 			},
 			"parameters": {
 				Type:     schema.TypeMap,
-				Elem:     schema.TypeString,
+				Elem:     &schema.Schema{Type: schema.TypeString},
 				Optional: true,
 			},
 		},
@@ -76,7 +76,10 @@ func resourceAwsGlueCatalogDatabaseCreate(d *schema.ResourceData, meta interface
 func resourceAwsGlueCatalogDatabaseUpdate(d *schema.ResourceData, meta interface{}) error {
 	glueconn := meta.(*AWSClient).glueconn
 
-	catalogID, name := readAwsGlueCatalogID(d.Id())
+	catalogID, name, err := readAwsGlueCatalogID(d.Id())
+	if err != nil {
+		return err
+	}
 
 	dbUpdateInput := &glue.UpdateDatabaseInput{
 		CatalogId: aws.String(catalogID),
@@ -117,7 +120,10 @@ func resourceAwsGlueCatalogDatabaseUpdate(d *schema.ResourceData, meta interface
 func resourceAwsGlueCatalogDatabaseRead(d *schema.ResourceData, meta interface{}) error {
 	glueconn := meta.(*AWSClient).glueconn
 
-	catalogID, name := readAwsGlueCatalogID(d.Id())
+	catalogID, name, err := readAwsGlueCatalogID(d.Id())
+	if err != nil {
+		return err
+	}
 
 	input := &glue.GetDatabaseInput{
 		CatalogId: aws.String(catalogID),
@@ -130,6 +136,7 @@ func resourceAwsGlueCatalogDatabaseRead(d *schema.ResourceData, meta interface{}
 		if isAWSErr(err, glue.ErrCodeEntityNotFoundException, "") {
 			log.Printf("[WARN] Glue Catalog Database (%s) not found, removing from state", d.Id())
 			d.SetId("")
+			return nil
 		}
 
 		return fmt.Errorf("Error reading Glue Catalog Database: %s", err.Error())
@@ -153,10 +160,13 @@ func resourceAwsGlueCatalogDatabaseRead(d *schema.ResourceData, meta interface{}
 
 func resourceAwsGlueCatalogDatabaseDelete(d *schema.ResourceData, meta interface{}) error {
 	glueconn := meta.(*AWSClient).glueconn
-	catalogID, name := readAwsGlueCatalogID(d.Id())
+	catalogID, name, err := readAwsGlueCatalogID(d.Id())
+	if err != nil {
+		return err
+	}
 
 	log.Printf("[DEBUG] Glue Catalog Database: %s:%s", catalogID, name)
-	_, err := glueconn.DeleteDatabase(&glue.DeleteDatabaseInput{
+	_, err = glueconn.DeleteDatabase(&glue.DeleteDatabaseInput{
 		Name: aws.String(name),
 	})
 	if err != nil {
@@ -167,20 +177,32 @@ func resourceAwsGlueCatalogDatabaseDelete(d *schema.ResourceData, meta interface
 
 func resourceAwsGlueCatalogDatabaseExists(d *schema.ResourceData, meta interface{}) (bool, error) {
 	glueconn := meta.(*AWSClient).glueconn
-	catalogID, name := readAwsGlueCatalogID(d.Id())
+	catalogID, name, err := readAwsGlueCatalogID(d.Id())
+	if err != nil {
+		return false, err
+	}
 
 	input := &glue.GetDatabaseInput{
 		CatalogId: aws.String(catalogID),
 		Name:      aws.String(name),
 	}
 
-	_, err := glueconn.GetDatabase(input)
-	return err == nil, err
+	_, err = glueconn.GetDatabase(input)
+	if err != nil {
+		if isAWSErr(err, glue.ErrCodeEntityNotFoundException, "") {
+			return false, nil
+		}
+		return false, err
+	}
+	return true, nil
 }
 
-func readAwsGlueCatalogID(id string) (catalogID string, name string) {
+func readAwsGlueCatalogID(id string) (catalogID string, name string, err error) {
 	idParts := strings.Split(id, ":")
-	return idParts[0], idParts[1]
+	if len(idParts) != 2 {
+		return "", "", fmt.Errorf("Unexpected format of ID (%q), expected CATALOG-ID:DATABASE-NAME", id)
+	}
+	return idParts[0], idParts[1], nil
 }
 
 func createAwsGlueCatalogID(d *schema.ResourceData, accountid string) (catalogID string) {

@@ -16,7 +16,9 @@ func resourceAwsMediaStoreContainer() *schema.Resource {
 		Create: resourceAwsMediaStoreContainerCreate,
 		Read:   resourceAwsMediaStoreContainerRead,
 		Delete: resourceAwsMediaStoreContainerDelete,
-
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 		Schema: map[string]*schema.Schema{
 			"name": &schema.Schema{
 				Type:     schema.TypeString,
@@ -82,6 +84,7 @@ func resourceAwsMediaStoreContainerRead(d *schema.ResourceData, meta interface{}
 		return err
 	}
 	d.Set("arn", resp.Container.ARN)
+	d.Set("name", resp.Container.Name)
 	d.Set("endpoint", resp.Container.Endpoint)
 	return nil
 }
@@ -95,7 +98,6 @@ func resourceAwsMediaStoreContainerDelete(d *schema.ResourceData, meta interface
 	_, err := conn.DeleteContainer(input)
 	if err != nil {
 		if isAWSErr(err, mediastore.ErrCodeContainerNotFoundException, "") {
-			d.SetId("")
 			return nil
 		}
 		return err
@@ -118,7 +120,6 @@ func resourceAwsMediaStoreContainerDelete(d *schema.ResourceData, meta interface
 		return err
 	}
 
-	d.SetId("")
 	return nil
 }
 

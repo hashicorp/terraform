@@ -222,6 +222,22 @@ func dataSourceAwsInstance() *schema.Resource {
 					},
 				},
 			},
+			"credit_specification": {
+				Type:     schema.TypeList,
+				Computed: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"cpu_credits": {
+							Type:     schema.TypeString,
+							Computed: true,
+						},
+					},
+				},
+			},
+			"disable_api_termination": {
+				Type:     schema.TypeBool,
+				Computed: true,
+			},
 		},
 	}
 }
@@ -387,6 +403,15 @@ func instanceDescriptionAttributes(d *schema.ResourceData, instance *ec2.Instanc
 		}
 		if attr.UserData.Value != nil {
 			d.Set("user_data", userDataHashSum(*attr.UserData.Value))
+		}
+	}
+	{
+		creditSpecifications, err := getCreditSpecifications(conn, d.Id())
+		if err != nil && !isAWSErr(err, "UnsupportedOperation", "") {
+			return err
+		}
+		if err := d.Set("credit_specification", creditSpecifications); err != nil {
+			return fmt.Errorf("error setting credit_specification: %s", err)
 		}
 	}
 

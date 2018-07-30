@@ -28,9 +28,10 @@ func resourceAwsLightsailKeyPair() *schema.Resource {
 				ConflictsWith: []string{"name_prefix"},
 			},
 			"name_prefix": {
-				Type:     schema.TypeString,
-				Optional: true,
-				ForceNew: true,
+				Type:          schema.TypeString,
+				Optional:      true,
+				ForceNew:      true,
+				ConflictsWith: []string{"name"},
 			},
 
 			// optional fields
@@ -220,6 +221,5 @@ func resourceAwsLightsailKeyPairDelete(d *schema.ResourceData, meta interface{})
 			d.Id(), err)
 	}
 
-	d.SetId("")
 	return nil
 }

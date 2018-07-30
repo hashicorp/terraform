@@ -1,11 +1,11 @@
 package aws
 
 import (
+	"fmt"
 	"log"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/iam"
-	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -19,6 +19,10 @@ func dataSourceAwsIAMUser() *schema.Resource {
 				Computed: true,
 			},
 			"path": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+			"permissions_boundary": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
@@ -44,13 +48,17 @@ func dataSourceAwsIAMUserRead(d *schema.ResourceData, meta interface{}) error {
 	log.Printf("[DEBUG] Reading IAM User: %s", req)
 	resp, err := iamconn.GetUser(req)
 	if err != nil {
-		return errwrap.Wrapf("error getting user: {{err}}", err)
+		return fmt.Errorf("error getting user: %s", err)
 	}
 
 	user := resp.User
-	d.SetId(*user.UserId)
+	d.SetId(aws.StringValue(user.UserId))
 	d.Set("arn", user.Arn)
 	d.Set("path", user.Path)
+	d.Set("permissions_boundary", "")
+	if user.PermissionsBoundary != nil {
+		d.Set("permissions_boundary", user.PermissionsBoundary.PermissionsBoundaryArn)
+	}
 	d.Set("user_id", user.UserId)
 
 	return nil

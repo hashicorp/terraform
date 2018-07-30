@@ -52,9 +52,10 @@ func resourceAwsSnsTopic() *schema.Resource {
 				ConflictsWith: []string{"name_prefix"},
 			},
 			"name_prefix": {
-				Type:     schema.TypeString,
-				Optional: true,
-				ForceNew: true,
+				Type:          schema.TypeString,
+				Optional:      true,
+				ForceNew:      true,
+				ConflictsWith: []string{"name"},
 			},
 			"display_name": {
 				Type:     schema.TypeString,

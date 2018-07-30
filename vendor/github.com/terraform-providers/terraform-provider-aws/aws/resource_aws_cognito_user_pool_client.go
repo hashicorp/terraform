@@ -1,7 +1,9 @@
 package aws
 
 import (
+	"fmt"
 	"log"
+	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/cognitoidentityprovider"
@@ -18,7 +20,7 @@ func resourceAwsCognitoUserPoolClient() *schema.Resource {
 		Delete: resourceAwsCognitoUserPoolClientDelete,
 
 		Importer: &schema.ResourceImporter{
-			State: schema.ImportStatePassthrough,
+			State: resourceAwsCognitoUserPoolClientImport,
 		},
 
 		// https://docs.aws.amazon.com/cognito-user-identity-pools/latest/APIReference/API_CreateUserPoolClient.html
@@ -281,7 +283,7 @@ func resourceAwsCognitoUserPoolClientUpdate(d *schema.ResourceData, meta interfa
 	}
 
 	if d.HasChange("refresh_token_validity") {
-		params.RefreshTokenValidity = aws.Int64(d.Get("refresh_token_validity").(int64))
+		params.RefreshTokenValidity = aws.Int64(int64(d.Get("refresh_token_validity").(int)))
 	}
 
 	if d.HasChange("allowed_oauth_flows") {
@@ -339,4 +341,17 @@ func resourceAwsCognitoUserPoolClientDelete(d *schema.ResourceData, meta interfa
 	}
 
 	return nil
+}
+
+func resourceAwsCognitoUserPoolClientImport(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+	if len(strings.Split(d.Id(), "/")) != 2 || len(d.Id()) < 3 {
+		return []*schema.ResourceData{}, fmt.Errorf("[ERR] Wrong format of resource: %s. Please follow 'user-pool-id/client-id'", d.Id())
+	}
+	userPoolId := strings.Split(d.Id(), "/")[0]
+	clientId := strings.Split(d.Id(), "/")[1]
+	d.SetId(clientId)
+	d.Set("user_pool_id", userPoolId)
+	log.Printf("[DEBUG] Importing client %s for user pool %s", clientId, userPoolId)
+
+	return []*schema.ResourceData{d}, nil
 }

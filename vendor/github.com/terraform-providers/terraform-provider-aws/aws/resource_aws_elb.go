@@ -17,6 +17,7 @@ import (
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/hashicorp/terraform/helper/validation"
 )
 
 func resourceAwsElb() *schema.Resource {
@@ -39,10 +40,11 @@ func resourceAwsElb() *schema.Resource {
 				ValidateFunc:  validateElbName,
 			},
 			"name_prefix": &schema.Schema{
-				Type:         schema.TypeString,
-				Optional:     true,
-				ForceNew:     true,
-				ValidateFunc: validateElbNamePrefix,
+				Type:          schema.TypeString,
+				Optional:      true,
+				ForceNew:      true,
+				ConflictsWith: []string{"name"},
+				ValidateFunc:  validateElbNamePrefix,
 			},
 
 			"arn": &schema.Schema{
@@ -110,7 +112,7 @@ func resourceAwsElb() *schema.Resource {
 				Type:         schema.TypeInt,
 				Optional:     true,
 				Default:      60,
-				ValidateFunc: validateIntegerInRange(1, 4000),
+				ValidateFunc: validation.IntBetween(1, 4000),
 			},
 
 			"connection_draining": &schema.Schema{
@@ -162,25 +164,25 @@ func resourceAwsElb() *schema.Resource {
 						"instance_port": &schema.Schema{
 							Type:         schema.TypeInt,
 							Required:     true,
-							ValidateFunc: validateIntegerInRange(1, 65535),
+							ValidateFunc: validation.IntBetween(1, 65535),
 						},
 
 						"instance_protocol": &schema.Schema{
 							Type:         schema.TypeString,
 							Required:     true,
-							ValidateFunc: validateListenerProtocol,
+							ValidateFunc: validateListenerProtocol(),
 						},
 
 						"lb_port": &schema.Schema{
 							Type:         schema.TypeInt,
 							Required:     true,
-							ValidateFunc: validateIntegerInRange(1, 65535),
+							ValidateFunc: validation.IntBetween(1, 65535),
 						},
 
 						"lb_protocol": &schema.Schema{
 							Type:         schema.TypeString,
 							Required:     true,
-							ValidateFunc: validateListenerProtocol,
+							ValidateFunc: validateListenerProtocol(),
 						},
 
 						"ssl_certificate_id": &schema.Schema{
@@ -203,13 +205,13 @@ func resourceAwsElb() *schema.Resource {
 						"healthy_threshold": &schema.Schema{
 							Type:         schema.TypeInt,
 							Required:     true,
-							ValidateFunc: validateIntegerInRange(2, 10),
+							ValidateFunc: validation.IntBetween(2, 10),
 						},
 
 						"unhealthy_threshold": &schema.Schema{
 							Type:         schema.TypeInt,
 							Required:     true,
-							ValidateFunc: validateIntegerInRange(2, 10),
+							ValidateFunc: validation.IntBetween(2, 10),
 						},
 
 						"target": &schema.Schema{
@@ -221,13 +223,13 @@ func resourceAwsElb() *schema.Resource {
 						"interval": &schema.Schema{
 							Type:         schema.TypeInt,
 							Required:     true,
-							ValidateFunc: validateIntegerInRange(5, 300),
+							ValidateFunc: validation.IntBetween(5, 300),
 						},
 
 						"timeout": &schema.Schema{
 							Type:         schema.TypeInt,
 							Required:     true,
-							ValidateFunc: validateIntegerInRange(2, 60),
+							ValidateFunc: validation.IntBetween(2, 60),
 						},
 					},
 				},
@@ -584,17 +586,12 @@ func resourceAwsElbUpdate(d *schema.ResourceData, meta interface{}) error {
 		logs := d.Get("access_logs").([]interface{})
 		if len(logs) == 1 {
 			l := logs[0].(map[string]interface{})
-			accessLog := &elb.AccessLog{
-				Enabled:      aws.Bool(l["enabled"].(bool)),
-				EmitInterval: aws.Int64(int64(l["interval"].(int))),
-				S3BucketName: aws.String(l["bucket"].(string)),
+			attrs.LoadBalancerAttributes.AccessLog = &elb.AccessLog{
+				Enabled:        aws.Bool(l["enabled"].(bool)),
+				EmitInterval:   aws.Int64(int64(l["interval"].(int))),
+				S3BucketName:   aws.String(l["bucket"].(string)),
+				S3BucketPrefix: aws.String(l["bucket_prefix"].(string)),
 			}
-
-			if l["bucket_prefix"] != "" {
-				accessLog.S3BucketPrefix = aws.String(l["bucket_prefix"].(string))
-			}
-
-			attrs.LoadBalancerAttributes.AccessLog = accessLog
 		} else if len(logs) == 0 {
 			// disable access logs
 			attrs.LoadBalancerAttributes.AccessLog = &elb.AccessLog{
@@ -965,18 +962,6 @@ func validateHeathCheckTarget(v interface{}, k string) (ws []string, errors []er
 	return
 }
 
-func validateListenerProtocol(v interface{}, k string) (ws []string, errors []error) {
-	value := v.(string)
-
-	if !isValidProtocol(value) {
-		errors = append(errors, fmt.Errorf(
-			"%q contains an invalid Listener protocol %q. "+
-				"Valid protocols are either %q, %q, %q, or %q.",
-			k, value, "TCP", "SSL", "HTTP", "HTTPS"))
-	}
-	return
-}
-
 func isValidProtocol(s string) bool {
 	if s == "" {
 		return false
@@ -995,6 +980,15 @@ func isValidProtocol(s string) bool {
 	}
 
 	return true
+}
+
+func validateListenerProtocol() schema.SchemaValidateFunc {
+	return validation.StringInSlice([]string{
+		"HTTP",
+		"HTTPS",
+		"SSL",
+		"TCP",
+	}, true)
 }
 
 // ELB automatically creates ENI(s) on creation

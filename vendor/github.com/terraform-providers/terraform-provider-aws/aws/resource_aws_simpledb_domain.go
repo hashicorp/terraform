@@ -79,6 +79,5 @@ func resourceAwsSimpleDBDomainDelete(d *schema.ResourceData, meta interface{}) e
 		return fmt.Errorf("Delete SimpleDB Domain failed: %s", err)
 	}
 
-	d.SetId("")
 	return nil
 }

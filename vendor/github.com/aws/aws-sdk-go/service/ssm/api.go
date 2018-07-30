@@ -99,6 +99,10 @@ func (c *SSM) AddTagsToResourceRequest(input *AddTagsToResourceInput) (req *requ
 //   The Targets parameter includes too many tags. Remove one or more tags and
 //   try the command again.
 //
+//   * ErrCodeTooManyUpdates "TooManyUpdates"
+//   There are concurrent updates for a resource that supports one update at a
+//   time.
+//
 // See also, https://docs.aws.amazon.com/goto/WebAPI/ssm-2014-11-06/AddTagsToResource
 func (c *SSM) AddTagsToResource(input *AddTagsToResourceInput) (*AddTagsToResourceOutput, error) {
 	req, out := c.AddTagsToResourceRequest(input)
@@ -186,12 +190,12 @@ func (c *SSM) CancelCommandRequest(input *CancelCommandInput) (req *request.Requ
 //
 //   You do not have permission to access the instance.
 //
-//   The SSM Agent is not running. On managed instances and Linux instances, verify
+//   SSM Agent is not running. On managed instances and Linux instances, verify
 //   that the SSM Agent is running. On EC2 Windows instances, verify that the
 //   EC2Config service is running.
 //
-//   The SSM Agent or EC2Config service is not registered to the SSM endpoint.
-//   Try reinstalling the SSM Agent or EC2Config service.
+//   SSM Agent or EC2Config service is not registered to the SSM endpoint. Try
+//   reinstalling SSM Agent or EC2Config service.
 //
 //   The instance is not in valid state. Valid states are: Running, Pending, Stopped,
 //   Stopping. Invalid states are: Shutting-down and Terminated.
@@ -386,12 +390,12 @@ func (c *SSM) CreateAssociationRequest(input *CreateAssociationInput) (req *requ
 //
 //   You do not have permission to access the instance.
 //
-//   The SSM Agent is not running. On managed instances and Linux instances, verify
+//   SSM Agent is not running. On managed instances and Linux instances, verify
 //   that the SSM Agent is running. On EC2 Windows instances, verify that the
 //   EC2Config service is running.
 //
-//   The SSM Agent or EC2Config service is not registered to the SSM endpoint.
-//   Try reinstalling the SSM Agent or EC2Config service.
+//   SSM Agent or EC2Config service is not registered to the SSM endpoint. Try
+//   reinstalling SSM Agent or EC2Config service.
 //
 //   The instance is not in valid state. Valid states are: Running, Pending, Stopped,
 //   Stopping. Invalid states are: Shutting-down and Terminated.
@@ -513,12 +517,12 @@ func (c *SSM) CreateAssociationBatchRequest(input *CreateAssociationBatchInput) 
 //
 //   You do not have permission to access the instance.
 //
-//   The SSM Agent is not running. On managed instances and Linux instances, verify
+//   SSM Agent is not running. On managed instances and Linux instances, verify
 //   that the SSM Agent is running. On EC2 Windows instances, verify that the
 //   EC2Config service is running.
 //
-//   The SSM Agent or EC2Config service is not registered to the SSM endpoint.
-//   Try reinstalling the SSM Agent or EC2Config service.
+//   SSM Agent or EC2Config service is not registered to the SSM endpoint. Try
+//   reinstalling SSM Agent or EC2Config service.
 //
 //   The instance is not in valid state. Valid states are: Running, Pending, Stopped,
 //   Stopping. Invalid states are: Shutting-down and Terminated.
@@ -903,8 +907,8 @@ func (c *SSM) CreateResourceDataSyncRequest(input *CreateResourceDataSyncInput) 
 // you enable encryption in Amazon S3 to ensure secure data storage. We also
 // recommend that you secure access to the Amazon S3 bucket by creating a restrictive
 // bucket policy. To view an example of a restrictive Amazon S3 bucket policy
-// for Resource Data Sync, see Configuring Resource Data Sync for Inventory
-// (http://docs.aws.amazon.com/systems-manager/latest/userguide/sysman-inventory-configuring.html#sysman-inventory-datasync).
+// for Resource Data Sync, see Create a Resource Data Sync for Inventory (http://docs.aws.amazon.com/systems-manager/latest/userguide/sysman-inventory-datasync-create.html)
+// in the AWS Systems Manager User Guide.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -1115,12 +1119,12 @@ func (c *SSM) DeleteAssociationRequest(input *DeleteAssociationInput) (req *requ
 //
 //   You do not have permission to access the instance.
 //
-//   The SSM Agent is not running. On managed instances and Linux instances, verify
+//   SSM Agent is not running. On managed instances and Linux instances, verify
 //   that the SSM Agent is running. On EC2 Windows instances, verify that the
 //   EC2Config service is running.
 //
-//   The SSM Agent or EC2Config service is not registered to the SSM endpoint.
-//   Try reinstalling the SSM Agent or EC2Config service.
+//   SSM Agent or EC2Config service is not registered to the SSM endpoint. Try
+//   reinstalling SSM Agent or EC2Config service.
 //
 //   The instance is not in valid state. Valid states are: Running, Pending, Stopped,
 //   Stopping. Invalid states are: Shutting-down and Terminated.
@@ -1240,6 +1244,101 @@ func (c *SSM) DeleteDocument(input *DeleteDocumentInput) (*DeleteDocumentOutput,
 // for more information on using Contexts.
 func (c *SSM) DeleteDocumentWithContext(ctx aws.Context, input *DeleteDocumentInput, opts ...request.Option) (*DeleteDocumentOutput, error) {
 	req, out := c.DeleteDocumentRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+const opDeleteInventory = "DeleteInventory"
+
+// DeleteInventoryRequest generates a "aws/request.Request" representing the
+// client's request for the DeleteInventory operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfuly.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See DeleteInventory for more information on using the DeleteInventory
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the DeleteInventoryRequest method.
+//    req, resp := client.DeleteInventoryRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/ssm-2014-11-06/DeleteInventory
+func (c *SSM) DeleteInventoryRequest(input *DeleteInventoryInput) (req *request.Request, output *DeleteInventoryOutput) {
+	op := &request.Operation{
+		Name:       opDeleteInventory,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &DeleteInventoryInput{}
+	}
+
+	output = &DeleteInventoryOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// DeleteInventory API operation for Amazon Simple Systems Manager (SSM).
+//
+// Delete a custom inventory type, or the data associated with a custom Inventory
+// type. Deleting a custom inventory type is also referred to as deleting a
+// custom inventory schema.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Simple Systems Manager (SSM)'s
+// API operation DeleteInventory for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeInternalServerError "InternalServerError"
+//   An error occurred on the server side.
+//
+//   * ErrCodeInvalidTypeNameException "InvalidTypeNameException"
+//   The parameter type name is not valid.
+//
+//   * ErrCodeInvalidOptionException "InvalidOptionException"
+//   The delete inventory option specified is not valid. Verify the option and
+//   try again.
+//
+//   * ErrCodeInvalidDeleteInventoryParametersException "InvalidDeleteInventoryParametersException"
+//   One or more of the parameters specified for the delete operation is not valid.
+//   Verify all parameters and try again.
+//
+//   * ErrCodeInvalidInventoryRequestException "InvalidInventoryRequestException"
+//   The request is not valid.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/ssm-2014-11-06/DeleteInventory
+func (c *SSM) DeleteInventory(input *DeleteInventoryInput) (*DeleteInventoryOutput, error) {
+	req, out := c.DeleteInventoryRequest(input)
+	return out, req.Send()
+}
+
+// DeleteInventoryWithContext is the same as DeleteInventory with the addition of
+// the ability to pass a context and additional request options.
+//
+// See DeleteInventory for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *SSM) DeleteInventoryWithContext(ctx aws.Context, input *DeleteInventoryInput, opts ...request.Option) (*DeleteInventoryOutput, error) {
+	req, out := c.DeleteInventoryRequest(input)
 	req.SetContext(ctx)
 	req.ApplyOptions(opts...)
 	return out, req.Send()
@@ -1700,7 +1799,7 @@ func (c *SSM) DeregisterManagedInstanceRequest(input *DeregisterManagedInstanceI
 //
 // Removes the server or virtual machine from the list of registered servers.
 // You can reregister the instance again at any time. If you don't plan to use
-// Run Command on the server, we suggest uninstalling the SSM Agent first.
+// Run Command on the server, we suggest uninstalling SSM Agent first.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -1715,12 +1814,12 @@ func (c *SSM) DeregisterManagedInstanceRequest(input *DeregisterManagedInstanceI
 //
 //   You do not have permission to access the instance.
 //
-//   The SSM Agent is not running. On managed instances and Linux instances, verify
+//   SSM Agent is not running. On managed instances and Linux instances, verify
 //   that the SSM Agent is running. On EC2 Windows instances, verify that the
 //   EC2Config service is running.
 //
-//   The SSM Agent or EC2Config service is not registered to the SSM endpoint.
-//   Try reinstalling the SSM Agent or EC2Config service.
+//   SSM Agent or EC2Config service is not registered to the SSM endpoint. Try
+//   reinstalling SSM Agent or EC2Config service.
 //
 //   The instance is not in valid state. Valid states are: Running, Pending, Stopped,
 //   Stopping. Invalid states are: Shutting-down and Terminated.
@@ -2230,12 +2329,12 @@ func (c *SSM) DescribeAssociationRequest(input *DescribeAssociationInput) (req *
 //
 //   You do not have permission to access the instance.
 //
-//   The SSM Agent is not running. On managed instances and Linux instances, verify
+//   SSM Agent is not running. On managed instances and Linux instances, verify
 //   that the SSM Agent is running. On EC2 Windows instances, verify that the
 //   EC2Config service is running.
 //
-//   The SSM Agent or EC2Config service is not registered to the SSM endpoint.
-//   Try reinstalling the SSM Agent or EC2Config service.
+//   SSM Agent or EC2Config service is not registered to the SSM endpoint. Try
+//   reinstalling SSM Agent or EC2Config service.
 //
 //   The instance is not in valid state. Valid states are: Running, Pending, Stopped,
 //   Stopping. Invalid states are: Shutting-down and Terminated.
@@ -2257,6 +2356,180 @@ func (c *SSM) DescribeAssociation(input *DescribeAssociationInput) (*DescribeAss
 // for more information on using Contexts.
 func (c *SSM) DescribeAssociationWithContext(ctx aws.Context, input *DescribeAssociationInput, opts ...request.Option) (*DescribeAssociationOutput, error) {
 	req, out := c.DescribeAssociationRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+const opDescribeAssociationExecutionTargets = "DescribeAssociationExecutionTargets"
+
+// DescribeAssociationExecutionTargetsRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeAssociationExecutionTargets operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfuly.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See DescribeAssociationExecutionTargets for more information on using the DescribeAssociationExecutionTargets
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the DescribeAssociationExecutionTargetsRequest method.
+//    req, resp := client.DescribeAssociationExecutionTargetsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/ssm-2014-11-06/DescribeAssociationExecutionTargets
+func (c *SSM) DescribeAssociationExecutionTargetsRequest(input *DescribeAssociationExecutionTargetsInput) (req *request.Request, output *DescribeAssociationExecutionTargetsOutput) {
+	op := &request.Operation{
+		Name:       opDescribeAssociationExecutionTargets,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &DescribeAssociationExecutionTargetsInput{}
+	}
+
+	output = &DescribeAssociationExecutionTargetsOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// DescribeAssociationExecutionTargets API operation for Amazon Simple Systems Manager (SSM).
+//
+// Use this API action to view information about a specific execution of a specific
+// association.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Simple Systems Manager (SSM)'s
+// API operation DescribeAssociationExecutionTargets for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeInternalServerError "InternalServerError"
+//   An error occurred on the server side.
+//
+//   * ErrCodeAssociationDoesNotExist "AssociationDoesNotExist"
+//   The specified association does not exist.
+//
+//   * ErrCodeInvalidNextToken "InvalidNextToken"
+//   The specified token is not valid.
+//
+//   * ErrCodeAssociationExecutionDoesNotExist "AssociationExecutionDoesNotExist"
+//   The specified execution ID does not exist. Verify the ID number and try again.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/ssm-2014-11-06/DescribeAssociationExecutionTargets
+func (c *SSM) DescribeAssociationExecutionTargets(input *DescribeAssociationExecutionTargetsInput) (*DescribeAssociationExecutionTargetsOutput, error) {
+	req, out := c.DescribeAssociationExecutionTargetsRequest(input)
+	return out, req.Send()
+}
+
+// DescribeAssociationExecutionTargetsWithContext is the same as DescribeAssociationExecutionTargets with the addition of
+// the ability to pass a context and additional request options.
+//
+// See DescribeAssociationExecutionTargets for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *SSM) DescribeAssociationExecutionTargetsWithContext(ctx aws.Context, input *DescribeAssociationExecutionTargetsInput, opts ...request.Option) (*DescribeAssociationExecutionTargetsOutput, error) {
+	req, out := c.DescribeAssociationExecutionTargetsRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+const opDescribeAssociationExecutions = "DescribeAssociationExecutions"
+
+// DescribeAssociationExecutionsRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeAssociationExecutions operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfuly.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See DescribeAssociationExecutions for more information on using the DescribeAssociationExecutions
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the DescribeAssociationExecutionsRequest method.
+//    req, resp := client.DescribeAssociationExecutionsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/ssm-2014-11-06/DescribeAssociationExecutions
+func (c *SSM) DescribeAssociationExecutionsRequest(input *DescribeAssociationExecutionsInput) (req *request.Request, output *DescribeAssociationExecutionsOutput) {
+	op := &request.Operation{
+		Name:       opDescribeAssociationExecutions,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &DescribeAssociationExecutionsInput{}
+	}
+
+	output = &DescribeAssociationExecutionsOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// DescribeAssociationExecutions API operation for Amazon Simple Systems Manager (SSM).
+//
+// Use this API action to view all executions for a specific association ID.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Simple Systems Manager (SSM)'s
+// API operation DescribeAssociationExecutions for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeInternalServerError "InternalServerError"
+//   An error occurred on the server side.
+//
+//   * ErrCodeAssociationDoesNotExist "AssociationDoesNotExist"
+//   The specified association does not exist.
+//
+//   * ErrCodeInvalidNextToken "InvalidNextToken"
+//   The specified token is not valid.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/ssm-2014-11-06/DescribeAssociationExecutions
+func (c *SSM) DescribeAssociationExecutions(input *DescribeAssociationExecutionsInput) (*DescribeAssociationExecutionsOutput, error) {
+	req, out := c.DescribeAssociationExecutionsRequest(input)
+	return out, req.Send()
+}
+
+// DescribeAssociationExecutionsWithContext is the same as DescribeAssociationExecutions with the addition of
+// the ability to pass a context and additional request options.
+//
+// See DescribeAssociationExecutions for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *SSM) DescribeAssociationExecutionsWithContext(ctx aws.Context, input *DescribeAssociationExecutionsInput, opts ...request.Option) (*DescribeAssociationExecutionsOutput, error) {
+	req, out := c.DescribeAssociationExecutionsRequest(input)
 	req.SetContext(ctx)
 	req.ApplyOptions(opts...)
 	return out, req.Send()
@@ -2757,12 +3030,12 @@ func (c *SSM) DescribeEffectiveInstanceAssociationsRequest(input *DescribeEffect
 //
 //   You do not have permission to access the instance.
 //
-//   The SSM Agent is not running. On managed instances and Linux instances, verify
+//   SSM Agent is not running. On managed instances and Linux instances, verify
 //   that the SSM Agent is running. On EC2 Windows instances, verify that the
 //   EC2Config service is running.
 //
-//   The SSM Agent or EC2Config service is not registered to the SSM endpoint.
-//   Try reinstalling the SSM Agent or EC2Config service.
+//   SSM Agent or EC2Config service is not registered to the SSM endpoint. Try
+//   reinstalling SSM Agent or EC2Config service.
 //
 //   The instance is not in valid state. Valid states are: Running, Pending, Stopped,
 //   Stopping. Invalid states are: Shutting-down and Terminated.
@@ -2951,12 +3224,12 @@ func (c *SSM) DescribeInstanceAssociationsStatusRequest(input *DescribeInstanceA
 //
 //   You do not have permission to access the instance.
 //
-//   The SSM Agent is not running. On managed instances and Linux instances, verify
+//   SSM Agent is not running. On managed instances and Linux instances, verify
 //   that the SSM Agent is running. On EC2 Windows instances, verify that the
 //   EC2Config service is running.
 //
-//   The SSM Agent or EC2Config service is not registered to the SSM endpoint.
-//   Try reinstalling the SSM Agent or EC2Config service.
+//   SSM Agent or EC2Config service is not registered to the SSM endpoint. Try
+//   reinstalling SSM Agent or EC2Config service.
 //
 //   The instance is not in valid state. Valid states are: Running, Pending, Stopped,
 //   Stopping. Invalid states are: Shutting-down and Terminated.
@@ -3043,6 +3316,10 @@ func (c *SSM) DescribeInstanceInformationRequest(input *DescribeInstanceInformat
 // information for all your instances. If you specify an instance ID that is
 // not valid or an instance that you do not own, you receive an error.
 //
+// The IamRole field for this API action is the Amazon Identity and Access Management
+// (IAM) role assigned to on-premises instances. This call does not return the
+// IAM role for Amazon EC2 instances.
+//
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
 // the error.
@@ -3059,12 +3336,12 @@ func (c *SSM) DescribeInstanceInformationRequest(input *DescribeInstanceInformat
 //
 //   You do not have permission to access the instance.
 //
-//   The SSM Agent is not running. On managed instances and Linux instances, verify
+//   SSM Agent is not running. On managed instances and Linux instances, verify
 //   that the SSM Agent is running. On EC2 Windows instances, verify that the
 //   EC2Config service is running.
 //
-//   The SSM Agent or EC2Config service is not registered to the SSM endpoint.
-//   Try reinstalling the SSM Agent or EC2Config service.
+//   SSM Agent or EC2Config service is not registered to the SSM endpoint. Try
+//   reinstalling SSM Agent or EC2Config service.
 //
 //   The instance is not in valid state. Valid states are: Running, Pending, Stopped,
 //   Stopping. Invalid states are: Shutting-down and Terminated.
@@ -3382,12 +3659,12 @@ func (c *SSM) DescribeInstancePatchesRequest(input *DescribeInstancePatchesInput
 //
 //   You do not have permission to access the instance.
 //
-//   The SSM Agent is not running. On managed instances and Linux instances, verify
+//   SSM Agent is not running. On managed instances and Linux instances, verify
 //   that the SSM Agent is running. On EC2 Windows instances, verify that the
 //   EC2Config service is running.
 //
-//   The SSM Agent or EC2Config service is not registered to the SSM endpoint.
-//   Try reinstalling the SSM Agent or EC2Config service.
+//   SSM Agent or EC2Config service is not registered to the SSM endpoint. Try
+//   reinstalling SSM Agent or EC2Config service.
 //
 //   The instance is not in valid state. Valid states are: Running, Pending, Stopped,
 //   Stopping. Invalid states are: Shutting-down and Terminated.
@@ -3416,6 +3693,92 @@ func (c *SSM) DescribeInstancePatches(input *DescribeInstancePatchesInput) (*Des
 // for more information on using Contexts.
 func (c *SSM) DescribeInstancePatchesWithContext(ctx aws.Context, input *DescribeInstancePatchesInput, opts ...request.Option) (*DescribeInstancePatchesOutput, error) {
 	req, out := c.DescribeInstancePatchesRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+const opDescribeInventoryDeletions = "DescribeInventoryDeletions"
+
+// DescribeInventoryDeletionsRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeInventoryDeletions operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfuly.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See DescribeInventoryDeletions for more information on using the DescribeInventoryDeletions
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the DescribeInventoryDeletionsRequest method.
+//    req, resp := client.DescribeInventoryDeletionsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/ssm-2014-11-06/DescribeInventoryDeletions
+func (c *SSM) DescribeInventoryDeletionsRequest(input *DescribeInventoryDeletionsInput) (req *request.Request, output *DescribeInventoryDeletionsOutput) {
+	op := &request.Operation{
+		Name:       opDescribeInventoryDeletions,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &DescribeInventoryDeletionsInput{}
+	}
+
+	output = &DescribeInventoryDeletionsOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// DescribeInventoryDeletions API operation for Amazon Simple Systems Manager (SSM).
+//
+// Describes a specific delete inventory operation.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Simple Systems Manager (SSM)'s
+// API operation DescribeInventoryDeletions for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeInternalServerError "InternalServerError"
+//   An error occurred on the server side.
+//
+//   * ErrCodeInvalidDeletionIdException "InvalidDeletionIdException"
+//   The ID specified for the delete operation does not exist or is not valide.
+//   Verify the ID and try again.
+//
+//   * ErrCodeInvalidNextToken "InvalidNextToken"
+//   The specified token is not valid.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/ssm-2014-11-06/DescribeInventoryDeletions
+func (c *SSM) DescribeInventoryDeletions(input *DescribeInventoryDeletionsInput) (*DescribeInventoryDeletionsOutput, error) {
+	req, out := c.DescribeInventoryDeletionsRequest(input)
+	return out, req.Send()
+}
+
+// DescribeInventoryDeletionsWithContext is the same as DescribeInventoryDeletions with the addition of
+// the ability to pass a context and additional request options.
+//
+// See DescribeInventoryDeletions for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *SSM) DescribeInventoryDeletionsWithContext(ctx aws.Context, input *DescribeInventoryDeletionsInput, opts ...request.Option) (*DescribeInventoryDeletionsOutput, error) {
+	req, out := c.DescribeInventoryDeletionsRequest(input)
 	req.SetContext(ctx)
 	req.ApplyOptions(opts...)
 	return out, req.Send()
@@ -4470,12 +4833,12 @@ func (c *SSM) GetCommandInvocationRequest(input *GetCommandInvocationInput) (req
 //
 //   You do not have permission to access the instance.
 //
-//   The SSM Agent is not running. On managed instances and Linux instances, verify
+//   SSM Agent is not running. On managed instances and Linux instances, verify
 //   that the SSM Agent is running. On EC2 Windows instances, verify that the
 //   EC2Config service is running.
 //
-//   The SSM Agent or EC2Config service is not registered to the SSM endpoint.
-//   Try reinstalling the SSM Agent or EC2Config service.
+//   SSM Agent or EC2Config service is not registered to the SSM endpoint. Try
+//   reinstalling SSM Agent or EC2Config service.
 //
 //   The instance is not in valid state. Valid states are: Running, Pending, Stopped,
 //   Stopping. Invalid states are: Shutting-down and Terminated.
@@ -4556,6 +4919,9 @@ func (c *SSM) GetDefaultPatchBaselineRequest(input *GetDefaultPatchBaselineInput
 // Retrieves the default patch baseline. Note that Systems Manager supports
 // creating multiple default patch baselines. For example, you can create a
 // default patch baseline for each operating system.
+//
+// If you do not specify an operating system value, the default patch baseline
+// for Windows is returned.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -5415,7 +5781,8 @@ func (c *SSM) GetParameterRequest(input *GetParameterInput) (req *request.Reques
 
 // GetParameter API operation for Amazon Simple Systems Manager (SSM).
 //
-// Get information about a parameter by using the parameter name.
+// Get information about a parameter by using the parameter name. Don't confuse
+// this API action with the GetParameters API action.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -5648,7 +6015,8 @@ func (c *SSM) GetParametersRequest(input *GetParametersInput) (req *request.Requ
 
 // GetParameters API operation for Amazon Simple Systems Manager (SSM).
 //
-// Get details of a parameter.
+// Get details of a parameter. Don't confuse this API action with the GetParameter
+// API action.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -5737,7 +6105,8 @@ func (c *SSM) GetParametersByPathRequest(input *GetParametersByPathInput) (req *
 // GetParametersByPath API operation for Amazon Simple Systems Manager (SSM).
 //
 // Retrieve parameters in a specific hierarchy. For more information, see Working
-// with Systems Manager Parameters (http://docs.aws.amazon.com/systems-manager/latest/userguide/sysman-paramstore-working.html).
+// with Systems Manager Parameters (http://docs.aws.amazon.com/systems-manager/latest/userguide/sysman-paramstore-working.html)
+// in the AWS Systems Manager User Guide.
 //
 // Request results are returned on a best-effort basis. If you specify MaxResults
 // in the request, the response includes information up to the limit specified.
@@ -6315,12 +6684,12 @@ func (c *SSM) ListCommandInvocationsRequest(input *ListCommandInvocationsInput) 
 //
 //   You do not have permission to access the instance.
 //
-//   The SSM Agent is not running. On managed instances and Linux instances, verify
+//   SSM Agent is not running. On managed instances and Linux instances, verify
 //   that the SSM Agent is running. On EC2 Windows instances, verify that the
 //   EC2Config service is running.
 //
-//   The SSM Agent or EC2Config service is not registered to the SSM endpoint.
-//   Try reinstalling the SSM Agent or EC2Config service.
+//   SSM Agent or EC2Config service is not registered to the SSM endpoint. Try
+//   reinstalling SSM Agent or EC2Config service.
 //
 //   The instance is not in valid state. Valid states are: Running, Pending, Stopped,
 //   Stopping. Invalid states are: Shutting-down and Terminated.
@@ -6473,12 +6842,12 @@ func (c *SSM) ListCommandsRequest(input *ListCommandsInput) (req *request.Reques
 //
 //   You do not have permission to access the instance.
 //
-//   The SSM Agent is not running. On managed instances and Linux instances, verify
+//   SSM Agent is not running. On managed instances and Linux instances, verify
 //   that the SSM Agent is running. On EC2 Windows instances, verify that the
 //   EC2Config service is running.
 //
-//   The SSM Agent or EC2Config service is not registered to the SSM endpoint.
-//   Try reinstalling the SSM Agent or EC2Config service.
+//   SSM Agent or EC2Config service is not registered to the SSM endpoint. Try
+//   reinstalling SSM Agent or EC2Config service.
 //
 //   The instance is not in valid state. Valid states are: Running, Pending, Stopped,
 //   Stopping. Invalid states are: Shutting-down and Terminated.
@@ -7034,12 +7403,12 @@ func (c *SSM) ListInventoryEntriesRequest(input *ListInventoryEntriesInput) (req
 //
 //   You do not have permission to access the instance.
 //
-//   The SSM Agent is not running. On managed instances and Linux instances, verify
+//   SSM Agent is not running. On managed instances and Linux instances, verify
 //   that the SSM Agent is running. On EC2 Windows instances, verify that the
 //   EC2Config service is running.
 //
-//   The SSM Agent or EC2Config service is not registered to the SSM endpoint.
-//   Try reinstalling the SSM Agent or EC2Config service.
+//   SSM Agent or EC2Config service is not registered to the SSM endpoint. Try
+//   reinstalling SSM Agent or EC2Config service.
 //
 //   The instance is not in valid state. Valid states are: Running, Pending, Stopped,
 //   Stopping. Invalid states are: Shutting-down and Terminated.
@@ -7644,12 +8013,12 @@ func (c *SSM) PutInventoryRequest(input *PutInventoryInput) (req *request.Reques
 //
 //   You do not have permission to access the instance.
 //
-//   The SSM Agent is not running. On managed instances and Linux instances, verify
+//   SSM Agent is not running. On managed instances and Linux instances, verify
 //   that the SSM Agent is running. On EC2 Windows instances, verify that the
 //   EC2Config service is running.
 //
-//   The SSM Agent or EC2Config service is not registered to the SSM endpoint.
-//   Try reinstalling the SSM Agent or EC2Config service.
+//   SSM Agent or EC2Config service is not registered to the SSM endpoint. Try
+//   reinstalling SSM Agent or EC2Config service.
 //
 //   The instance is not in valid state. Valid states are: Running, Pending, Stopped,
 //   Stopping. Invalid states are: Shutting-down and Terminated.
@@ -7756,7 +8125,7 @@ func (c *SSM) PutParameterRequest(input *PutParameterInput) (req *request.Reques
 
 // PutParameter API operation for Amazon Simple Systems Manager (SSM).
 //
-// Add one or more parameters to the system.
+// Add a parameter to the system.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -7784,8 +8153,9 @@ func (c *SSM) PutParameterRequest(input *PutParameterInput) (req *request.Reques
 //   The parameter already exists. You can't create duplicate parameters.
 //
 //   * ErrCodeHierarchyLevelLimitExceededException "HierarchyLevelLimitExceededException"
-//   A hierarchy can have a maximum of 15 levels. For more information, see Working
-//   with Systems Manager Parameters (http://docs.aws.amazon.com/systems-manager/latest/userguide/sysman-paramstore-working.html).
+//   A hierarchy can have a maximum of 15 levels. For more information, see Requirements
+//   and Constraints for Parameter Names (http://docs.aws.amazon.com/systems-manager/latest/userguide/sysman-parameter-name-constraints.html)
+//   in the AWS Systems Manager User Guide.
 //
 //   * ErrCodeHierarchyTypeMismatchException "HierarchyTypeMismatchException"
 //   Parameter Store does not support changing a parameter type in a hierarchy.
@@ -8280,6 +8650,10 @@ func (c *SSM) RemoveTagsFromResourceRequest(input *RemoveTagsFromResourceInput) 
 //   * ErrCodeInternalServerError "InternalServerError"
 //   An error occurred on the server side.
 //
+//   * ErrCodeTooManyUpdates "TooManyUpdates"
+//   There are concurrent updates for a resource that supports one update at a
+//   time.
+//
 // See also, https://docs.aws.amazon.com/goto/WebAPI/ssm-2014-11-06/RemoveTagsFromResource
 func (c *SSM) RemoveTagsFromResource(input *RemoveTagsFromResourceInput) (*RemoveTagsFromResourceOutput, error) {
 	req, out := c.RemoveTagsFromResourceRequest(input)
@@ -8458,18 +8832,21 @@ func (c *SSM) SendCommandRequest(input *SendCommandInput) (req *request.Request,
 //
 //   You do not have permission to access the instance.
 //
-//   The SSM Agent is not running. On managed instances and Linux instances, verify
+//   SSM Agent is not running. On managed instances and Linux instances, verify
 //   that the SSM Agent is running. On EC2 Windows instances, verify that the
 //   EC2Config service is running.
 //
-//   The SSM Agent or EC2Config service is not registered to the SSM endpoint.
-//   Try reinstalling the SSM Agent or EC2Config service.
+//   SSM Agent or EC2Config service is not registered to the SSM endpoint. Try
+//   reinstalling SSM Agent or EC2Config service.
 //
 //   The instance is not in valid state. Valid states are: Running, Pending, Stopped,
 //   Stopping. Invalid states are: Shutting-down and Terminated.
 //
 //   * ErrCodeInvalidDocument "InvalidDocument"
 //   The specified document does not exist.
+//
+//   * ErrCodeInvalidDocumentVersion "InvalidDocumentVersion"
+//   The document version is not valid or does not exist.
 //
 //   * ErrCodeInvalidOutputFolder "InvalidOutputFolder"
 //   The S3 bucket does not exist.
@@ -8514,6 +8891,89 @@ func (c *SSM) SendCommand(input *SendCommandInput) (*SendCommandOutput, error) {
 // for more information on using Contexts.
 func (c *SSM) SendCommandWithContext(ctx aws.Context, input *SendCommandInput, opts ...request.Option) (*SendCommandOutput, error) {
 	req, out := c.SendCommandRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+const opStartAssociationsOnce = "StartAssociationsOnce"
+
+// StartAssociationsOnceRequest generates a "aws/request.Request" representing the
+// client's request for the StartAssociationsOnce operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfuly.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See StartAssociationsOnce for more information on using the StartAssociationsOnce
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the StartAssociationsOnceRequest method.
+//    req, resp := client.StartAssociationsOnceRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/ssm-2014-11-06/StartAssociationsOnce
+func (c *SSM) StartAssociationsOnceRequest(input *StartAssociationsOnceInput) (req *request.Request, output *StartAssociationsOnceOutput) {
+	op := &request.Operation{
+		Name:       opStartAssociationsOnce,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &StartAssociationsOnceInput{}
+	}
+
+	output = &StartAssociationsOnceOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// StartAssociationsOnce API operation for Amazon Simple Systems Manager (SSM).
+//
+// Use this API action to execute an association immediately and only one time.
+// This action can be helpful when troubleshooting associations.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Simple Systems Manager (SSM)'s
+// API operation StartAssociationsOnce for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeInvalidAssociation "InvalidAssociation"
+//   The association is not valid or does not exist.
+//
+//   * ErrCodeAssociationDoesNotExist "AssociationDoesNotExist"
+//   The specified association does not exist.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/ssm-2014-11-06/StartAssociationsOnce
+func (c *SSM) StartAssociationsOnce(input *StartAssociationsOnceInput) (*StartAssociationsOnceOutput, error) {
+	req, out := c.StartAssociationsOnceRequest(input)
+	return out, req.Send()
+}
+
+// StartAssociationsOnceWithContext is the same as StartAssociationsOnce with the addition of
+// the ability to pass a context and additional request options.
+//
+// See StartAssociationsOnce for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *SSM) StartAssociationsOnceWithContext(ctx aws.Context, input *StartAssociationsOnceInput, opts ...request.Option) (*StartAssociationsOnceOutput, error) {
+	req, out := c.StartAssociationsOnceRequest(input)
 	req.SetContext(ctx)
 	req.ApplyOptions(opts...)
 	return out, req.Send()
@@ -8890,12 +9350,12 @@ func (c *SSM) UpdateAssociationStatusRequest(input *UpdateAssociationStatusInput
 //
 //   You do not have permission to access the instance.
 //
-//   The SSM Agent is not running. On managed instances and Linux instances, verify
+//   SSM Agent is not running. On managed instances and Linux instances, verify
 //   that the SSM Agent is running. On EC2 Windows instances, verify that the
 //   EC2Config service is running.
 //
-//   The SSM Agent or EC2Config service is not registered to the SSM endpoint.
-//   Try reinstalling the SSM Agent or EC2Config service.
+//   SSM Agent or EC2Config service is not registered to the SSM endpoint. Try
+//   reinstalling SSM Agent or EC2Config service.
 //
 //   The instance is not in valid state. Valid states are: Running, Pending, Stopped,
 //   Stopping. Invalid states are: Shutting-down and Terminated.
@@ -9360,18 +9820,18 @@ func (c *SSM) UpdateMaintenanceWindowTaskRequest(input *UpdateMaintenanceWindowT
 // Modifies a task assigned to a Maintenance Window. You can't change the task
 // type, but you can change the following values:
 //
-// Task ARN. For example, you can change a RUN_COMMAND task from AWS-RunPowerShellScript
-// to AWS-RunShellScript.
+//    * TaskARN. For example, you can change a RUN_COMMAND task from AWS-RunPowerShellScript
+//    to AWS-RunShellScript.
 //
-// Service role ARN.
+//    * ServiceRoleArn
 //
-// Task parameters.
+//    * TaskInvocationParameters
 //
-// Task priority.
+//    * Priority
 //
-// Task MaxConcurrency and MaxErrors.
+//    * MaxConcurrency
 //
-// Log location.
+//    * MaxErrors
 //
 // If a parameter is null, then the corresponding field is not modified. Also,
 // if you set Replace to true, then all fields required by the RegisterTaskWithMaintenanceWindow
@@ -9478,12 +9938,12 @@ func (c *SSM) UpdateManagedInstanceRoleRequest(input *UpdateManagedInstanceRoleI
 //
 //   You do not have permission to access the instance.
 //
-//   The SSM Agent is not running. On managed instances and Linux instances, verify
+//   SSM Agent is not running. On managed instances and Linux instances, verify
 //   that the SSM Agent is running. On EC2 Windows instances, verify that the
 //   EC2Config service is running.
 //
-//   The SSM Agent or EC2Config service is not registered to the SSM endpoint.
-//   Try reinstalling the SSM Agent or EC2Config service.
+//   SSM Agent or EC2Config service is not registered to the SSM endpoint. Try
+//   reinstalling SSM Agent or EC2Config service.
 //
 //   The instance is not in valid state. Valid states are: Running, Pending, Stopped,
 //   Stopping. Invalid states are: Shutting-down and Terminated.
@@ -9613,7 +10073,7 @@ type Activation struct {
 	ActivationId *string `type:"string"`
 
 	// The date the activation was created.
-	CreatedDate *time.Time `type:"timestamp" timestampFormat:"unix"`
+	CreatedDate *time.Time `type:"timestamp"`
 
 	// A name for the managed instance when it is created.
 	DefaultInstanceName *string `type:"string"`
@@ -9622,7 +10082,7 @@ type Activation struct {
 	Description *string `type:"string"`
 
 	// The date when this activation can no longer be used to register managed instances.
-	ExpirationDate *time.Time `type:"timestamp" timestampFormat:"unix"`
+	ExpirationDate *time.Time `type:"timestamp"`
 
 	// Whether or not the activation is expired.
 	Expired *bool `type:"boolean"`
@@ -9708,15 +10168,28 @@ type AddTagsToResourceInput struct {
 
 	// The resource ID you want to tag.
 	//
-	// For the ManagedInstance, MaintenanceWindow, and PatchBaseline values, use
-	// the ID of the resource, such as mw-01234361858c9b57b for a Maintenance Window.
+	// Use the ID of the resource. Here are some examples:
+	//
+	// ManagedInstance: mi-012345abcde
+	//
+	// MaintenanceWindow: mw-012345abcde
+	//
+	// PatchBaseline: pb-012345abcde
 	//
 	// For the Document and Parameter values, use the name of the resource.
+	//
+	// The ManagedInstance type for this API action is only for on-premises managed
+	// instances. You must specify the the name of the managed instance in the following
+	// format: mi-ID_number. For example, mi-1a2b3c4d5e6f.
 	//
 	// ResourceId is a required field
 	ResourceId *string `type:"string" required:"true"`
 
 	// Specifies the type of resource you are tagging.
+	//
+	// The ManagedInstance type for this API action is for on-premises managed instances.
+	// You must specify the the name of the managed instance in the following format:
+	// mi-ID_number. For example, mi-1a2b3c4d5e6f.
 	//
 	// ResourceType is a required field
 	ResourceType *string `type:"string" required:"true" enum:"ResourceTypeForTagging"`
@@ -9724,6 +10197,8 @@ type AddTagsToResourceInput struct {
 	// One or more tags. The value parameter is required, but if you don't want
 	// the tag to have a value, specify the parameter with no value, and we set
 	// the value to an empty string.
+	//
+	// Do not enter personally identifiable information in this field.
 	//
 	// Tags is a required field
 	Tags []*Tag `type:"list" required:"true"`
@@ -9821,7 +10296,7 @@ type Association struct {
 	InstanceId *string `type:"string"`
 
 	// The date on which the association was last run.
-	LastExecutionDate *time.Time `type:"timestamp" timestampFormat:"unix"`
+	LastExecutionDate *time.Time `type:"timestamp"`
 
 	// The name of the Systems Manager document.
 	Name *string `type:"string"`
@@ -9920,7 +10395,7 @@ type AssociationDescription struct {
 	AssociationVersion *string `type:"string"`
 
 	// The date when the association was made.
-	Date *time.Time `type:"timestamp" timestampFormat:"unix"`
+	Date *time.Time `type:"timestamp"`
 
 	// The document version.
 	DocumentVersion *string `type:"string"`
@@ -9929,13 +10404,13 @@ type AssociationDescription struct {
 	InstanceId *string `type:"string"`
 
 	// The date on which the association was last run.
-	LastExecutionDate *time.Time `type:"timestamp" timestampFormat:"unix"`
+	LastExecutionDate *time.Time `type:"timestamp"`
 
 	// The last date on which the association was successfully run.
-	LastSuccessfulExecutionDate *time.Time `type:"timestamp" timestampFormat:"unix"`
+	LastSuccessfulExecutionDate *time.Time `type:"timestamp"`
 
 	// The date when the association was last updated.
-	LastUpdateAssociationDate *time.Time `type:"timestamp" timestampFormat:"unix"`
+	LastUpdateAssociationDate *time.Time `type:"timestamp"`
 
 	// The name of the Systems Manager document.
 	Name *string `type:"string"`
@@ -10065,6 +10540,319 @@ func (s *AssociationDescription) SetTargets(v []*Target) *AssociationDescription
 	return s
 }
 
+// Includes information about the specified association.
+type AssociationExecution struct {
+	_ struct{} `type:"structure"`
+
+	// The association ID.
+	AssociationId *string `type:"string"`
+
+	// The association version.
+	AssociationVersion *string `type:"string"`
+
+	// The time the execution started.
+	CreatedTime *time.Time `type:"timestamp"`
+
+	// Detailed status information about the execution.
+	DetailedStatus *string `type:"string"`
+
+	// The execution ID for the association. If the association does not run at
+	// intervals or according to a schedule, then the ExecutionID is the same as
+	// the AssociationID.
+	ExecutionId *string `type:"string"`
+
+	// The date of the last execution.
+	LastExecutionDate *time.Time `type:"timestamp"`
+
+	// An aggregate status of the resources in the execution based on the status
+	// type.
+	ResourceCountByStatus *string `type:"string"`
+
+	// The status of the association execution.
+	Status *string `type:"string"`
+}
+
+// String returns the string representation
+func (s AssociationExecution) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s AssociationExecution) GoString() string {
+	return s.String()
+}
+
+// SetAssociationId sets the AssociationId field's value.
+func (s *AssociationExecution) SetAssociationId(v string) *AssociationExecution {
+	s.AssociationId = &v
+	return s
+}
+
+// SetAssociationVersion sets the AssociationVersion field's value.
+func (s *AssociationExecution) SetAssociationVersion(v string) *AssociationExecution {
+	s.AssociationVersion = &v
+	return s
+}
+
+// SetCreatedTime sets the CreatedTime field's value.
+func (s *AssociationExecution) SetCreatedTime(v time.Time) *AssociationExecution {
+	s.CreatedTime = &v
+	return s
+}
+
+// SetDetailedStatus sets the DetailedStatus field's value.
+func (s *AssociationExecution) SetDetailedStatus(v string) *AssociationExecution {
+	s.DetailedStatus = &v
+	return s
+}
+
+// SetExecutionId sets the ExecutionId field's value.
+func (s *AssociationExecution) SetExecutionId(v string) *AssociationExecution {
+	s.ExecutionId = &v
+	return s
+}
+
+// SetLastExecutionDate sets the LastExecutionDate field's value.
+func (s *AssociationExecution) SetLastExecutionDate(v time.Time) *AssociationExecution {
+	s.LastExecutionDate = &v
+	return s
+}
+
+// SetResourceCountByStatus sets the ResourceCountByStatus field's value.
+func (s *AssociationExecution) SetResourceCountByStatus(v string) *AssociationExecution {
+	s.ResourceCountByStatus = &v
+	return s
+}
+
+// SetStatus sets the Status field's value.
+func (s *AssociationExecution) SetStatus(v string) *AssociationExecution {
+	s.Status = &v
+	return s
+}
+
+// Filters used in the request.
+type AssociationExecutionFilter struct {
+	_ struct{} `type:"structure"`
+
+	// The key value used in the request.
+	//
+	// Key is a required field
+	Key *string `type:"string" required:"true" enum:"AssociationExecutionFilterKey"`
+
+	// The filter type specified in the request.
+	//
+	// Type is a required field
+	Type *string `type:"string" required:"true" enum:"AssociationFilterOperatorType"`
+
+	// The value specified for the key.
+	//
+	// Value is a required field
+	Value *string `min:"1" type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s AssociationExecutionFilter) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s AssociationExecutionFilter) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *AssociationExecutionFilter) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "AssociationExecutionFilter"}
+	if s.Key == nil {
+		invalidParams.Add(request.NewErrParamRequired("Key"))
+	}
+	if s.Type == nil {
+		invalidParams.Add(request.NewErrParamRequired("Type"))
+	}
+	if s.Value == nil {
+		invalidParams.Add(request.NewErrParamRequired("Value"))
+	}
+	if s.Value != nil && len(*s.Value) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Value", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetKey sets the Key field's value.
+func (s *AssociationExecutionFilter) SetKey(v string) *AssociationExecutionFilter {
+	s.Key = &v
+	return s
+}
+
+// SetType sets the Type field's value.
+func (s *AssociationExecutionFilter) SetType(v string) *AssociationExecutionFilter {
+	s.Type = &v
+	return s
+}
+
+// SetValue sets the Value field's value.
+func (s *AssociationExecutionFilter) SetValue(v string) *AssociationExecutionFilter {
+	s.Value = &v
+	return s
+}
+
+// Includes information about the specified association execution.
+type AssociationExecutionTarget struct {
+	_ struct{} `type:"structure"`
+
+	// The association ID.
+	AssociationId *string `type:"string"`
+
+	// The association version.
+	AssociationVersion *string `type:"string"`
+
+	// Detailed information about the execution status.
+	DetailedStatus *string `type:"string"`
+
+	// The execution ID. If the association does not run at intervals or according
+	// to a schedule, then the ExecutionID is the same as the AssociationID.
+	ExecutionId *string `type:"string"`
+
+	// The date of the last execution.
+	LastExecutionDate *time.Time `type:"timestamp"`
+
+	// The location where the association details are saved.
+	OutputSource *OutputSource `type:"structure"`
+
+	// The resource ID, for example, the instance ID where the association ran.
+	ResourceId *string `min:"1" type:"string"`
+
+	// The resource type, for example, instance.
+	ResourceType *string `min:"1" type:"string"`
+
+	// The association execution status.
+	Status *string `type:"string"`
+}
+
+// String returns the string representation
+func (s AssociationExecutionTarget) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s AssociationExecutionTarget) GoString() string {
+	return s.String()
+}
+
+// SetAssociationId sets the AssociationId field's value.
+func (s *AssociationExecutionTarget) SetAssociationId(v string) *AssociationExecutionTarget {
+	s.AssociationId = &v
+	return s
+}
+
+// SetAssociationVersion sets the AssociationVersion field's value.
+func (s *AssociationExecutionTarget) SetAssociationVersion(v string) *AssociationExecutionTarget {
+	s.AssociationVersion = &v
+	return s
+}
+
+// SetDetailedStatus sets the DetailedStatus field's value.
+func (s *AssociationExecutionTarget) SetDetailedStatus(v string) *AssociationExecutionTarget {
+	s.DetailedStatus = &v
+	return s
+}
+
+// SetExecutionId sets the ExecutionId field's value.
+func (s *AssociationExecutionTarget) SetExecutionId(v string) *AssociationExecutionTarget {
+	s.ExecutionId = &v
+	return s
+}
+
+// SetLastExecutionDate sets the LastExecutionDate field's value.
+func (s *AssociationExecutionTarget) SetLastExecutionDate(v time.Time) *AssociationExecutionTarget {
+	s.LastExecutionDate = &v
+	return s
+}
+
+// SetOutputSource sets the OutputSource field's value.
+func (s *AssociationExecutionTarget) SetOutputSource(v *OutputSource) *AssociationExecutionTarget {
+	s.OutputSource = v
+	return s
+}
+
+// SetResourceId sets the ResourceId field's value.
+func (s *AssociationExecutionTarget) SetResourceId(v string) *AssociationExecutionTarget {
+	s.ResourceId = &v
+	return s
+}
+
+// SetResourceType sets the ResourceType field's value.
+func (s *AssociationExecutionTarget) SetResourceType(v string) *AssociationExecutionTarget {
+	s.ResourceType = &v
+	return s
+}
+
+// SetStatus sets the Status field's value.
+func (s *AssociationExecutionTarget) SetStatus(v string) *AssociationExecutionTarget {
+	s.Status = &v
+	return s
+}
+
+// Filters for the association execution.
+type AssociationExecutionTargetsFilter struct {
+	_ struct{} `type:"structure"`
+
+	// The key value used in the request.
+	//
+	// Key is a required field
+	Key *string `type:"string" required:"true" enum:"AssociationExecutionTargetsFilterKey"`
+
+	// The value specified for the key.
+	//
+	// Value is a required field
+	Value *string `min:"1" type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s AssociationExecutionTargetsFilter) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s AssociationExecutionTargetsFilter) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *AssociationExecutionTargetsFilter) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "AssociationExecutionTargetsFilter"}
+	if s.Key == nil {
+		invalidParams.Add(request.NewErrParamRequired("Key"))
+	}
+	if s.Value == nil {
+		invalidParams.Add(request.NewErrParamRequired("Value"))
+	}
+	if s.Value != nil && len(*s.Value) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Value", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetKey sets the Key field's value.
+func (s *AssociationExecutionTargetsFilter) SetKey(v string) *AssociationExecutionTargetsFilter {
+	s.Key = &v
+	return s
+}
+
+// SetValue sets the Value field's value.
+func (s *AssociationExecutionTargetsFilter) SetValue(v string) *AssociationExecutionTargetsFilter {
+	s.Value = &v
+	return s
+}
+
 // Describes a filter.
 type AssociationFilter struct {
 	_ struct{} `type:"structure"`
@@ -10175,7 +10963,7 @@ type AssociationStatus struct {
 	// The date when the status changed.
 	//
 	// Date is a required field
-	Date *time.Time `type:"timestamp" timestampFormat:"unix" required:"true"`
+	Date *time.Time `type:"timestamp" required:"true"`
 
 	// The reason for the status.
 	//
@@ -10259,7 +11047,7 @@ type AssociationVersionInfo struct {
 	AssociationVersion *string `type:"string"`
 
 	// The date the association version was created.
-	CreatedDate *time.Time `type:"timestamp" timestampFormat:"unix"`
+	CreatedDate *time.Time `type:"timestamp"`
 
 	// The version of a Systems Manager document used when the association version
 	// was created.
@@ -10381,10 +11169,10 @@ type AutomationExecution struct {
 	ExecutedBy *string `type:"string"`
 
 	// The time the execution finished.
-	ExecutionEndTime *time.Time `type:"timestamp" timestampFormat:"unix"`
+	ExecutionEndTime *time.Time `type:"timestamp"`
 
 	// The time the execution started.
-	ExecutionStartTime *time.Time `type:"timestamp" timestampFormat:"unix"`
+	ExecutionStartTime *time.Time `type:"timestamp"`
 
 	// A message describing why an execution has failed, if the status is set to
 	// Failed.
@@ -10661,10 +11449,10 @@ type AutomationExecutionMetadata struct {
 
 	// The time the execution finished. This is not populated if the execution is
 	// still in progress.
-	ExecutionEndTime *time.Time `type:"timestamp" timestampFormat:"unix"`
+	ExecutionEndTime *time.Time `type:"timestamp"`
 
 	// The time the execution started.>
-	ExecutionStartTime *time.Time `type:"timestamp" timestampFormat:"unix"`
+	ExecutionStartTime *time.Time `type:"timestamp"`
 
 	// The list of execution outputs as defined in the Automation document.
 	FailureMessage *string `type:"string"`
@@ -10898,9 +11686,61 @@ func (s CancelCommandOutput) GoString() string {
 	return s.String()
 }
 
+// Configuration options for sending command output to CloudWatch Logs.
+type CloudWatchOutputConfig struct {
+	_ struct{} `type:"structure"`
+
+	// The name of the CloudWatch log group where you want to send command output.
+	// If you don't specify a group name, Systems Manager automatically creates
+	// a log group for you. The log group uses the following naming format: aws/ssm/SystemsManagerDocumentName.
+	CloudWatchLogGroupName *string `min:"1" type:"string"`
+
+	// Enables Systems Manager to send command output to CloudWatch Logs.
+	CloudWatchOutputEnabled *bool `type:"boolean"`
+}
+
+// String returns the string representation
+func (s CloudWatchOutputConfig) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s CloudWatchOutputConfig) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *CloudWatchOutputConfig) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "CloudWatchOutputConfig"}
+	if s.CloudWatchLogGroupName != nil && len(*s.CloudWatchLogGroupName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("CloudWatchLogGroupName", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetCloudWatchLogGroupName sets the CloudWatchLogGroupName field's value.
+func (s *CloudWatchOutputConfig) SetCloudWatchLogGroupName(v string) *CloudWatchOutputConfig {
+	s.CloudWatchLogGroupName = &v
+	return s
+}
+
+// SetCloudWatchOutputEnabled sets the CloudWatchOutputEnabled field's value.
+func (s *CloudWatchOutputConfig) SetCloudWatchOutputEnabled(v bool) *CloudWatchOutputConfig {
+	s.CloudWatchOutputEnabled = &v
+	return s
+}
+
 // Describes a command request.
 type Command struct {
 	_ struct{} `type:"structure"`
+
+	// CloudWatch Logs information where you want Systems Manager to send the command
+	// output.
+	CloudWatchOutputConfig *CloudWatchOutputConfig `type:"structure"`
 
 	// A unique identifier for this command.
 	CommandId *string `min:"36" type:"string"`
@@ -10914,16 +11754,22 @@ type Command struct {
 	// Timed Out, Delivery Timed Out, Canceled, Terminated, or Undeliverable.
 	CompletedCount *int64 `type:"integer"`
 
+	// The number of targets for which the status is Delivery Timed Out.
+	DeliveryTimedOutCount *int64 `type:"integer"`
+
 	// The name of the document requested for execution.
 	DocumentName *string `type:"string"`
+
+	// The SSM document version.
+	DocumentVersion *string `type:"string"`
 
 	// The number of targets for which the status is Failed or Execution Timed Out.
 	ErrorCount *int64 `type:"integer"`
 
 	// If this time is reached and the command has not already started executing,
-	// it will not execute. Calculated based on the ExpiresAfter user input provided
+	// it will not run. Calculated based on the ExpiresAfter user input provided
 	// as part of the SendCommand API.
-	ExpiresAfter *time.Time `type:"timestamp" timestampFormat:"unix"`
+	ExpiresAfter *time.Time `type:"timestamp"`
 
 	// The instance IDs against which this command was requested.
 	InstanceIds []*string `type:"list"`
@@ -10931,15 +11777,17 @@ type Command struct {
 	// The maximum number of instances that are allowed to execute the command at
 	// the same time. You can specify a number of instances, such as 10, or a percentage
 	// of instances, such as 10%. The default value is 50. For more information
-	// about how to use MaxConcurrency, see Executing a Command Using Systems Manager
-	// Run Command (http://docs.aws.amazon.com/systems-manager/latest/userguide/run-command.html).
+	// about how to use MaxConcurrency, see Executing Commands Using Systems Manager
+	// Run Command (http://docs.aws.amazon.com/systems-manager/latest/userguide/run-command.html)
+	// in the AWS Systems Manager User Guide.
 	MaxConcurrency *string `min:"1" type:"string"`
 
 	// The maximum number of errors allowed before the system stops sending the
 	// command to additional targets. You can specify a number of errors, such as
 	// 10, or a percentage or errors, such as 10%. The default value is 0. For more
-	// information about how to use MaxErrors, see Executing a Command Using Systems
-	// Manager Run Command (http://docs.aws.amazon.com/systems-manager/latest/userguide/run-command.html).
+	// information about how to use MaxErrors, see Executing Commands Using Systems
+	// Manager Run Command (http://docs.aws.amazon.com/systems-manager/latest/userguide/run-command.html)
+	// in the AWS Systems Manager User Guide.
 	MaxErrors *string `min:"1" type:"string"`
 
 	// Configurations for sending notifications about command status changes.
@@ -10962,7 +11810,7 @@ type Command struct {
 	Parameters map[string][]*string `type:"map"`
 
 	// The date and time the command was requested.
-	RequestedDateTime *time.Time `type:"timestamp" timestampFormat:"unix"`
+	RequestedDateTime *time.Time `type:"timestamp"`
 
 	// The IAM service role that Run Command uses to act on your behalf when sending
 	// notifications about command status changes.
@@ -10974,8 +11822,10 @@ type Command struct {
 	// A detailed status of the command execution. StatusDetails includes more information
 	// than Status because it includes states resulting from error and concurrency
 	// control parameters. StatusDetails can show different results than Status.
-	// For more information about these statuses, see Run Command Status (http://docs.aws.amazon.com/systems-manager/latest/userguide/monitor-about-status.html).
-	// StatusDetails can be one of the following values:
+	// For more information about these statuses, see Understanding Command Statuses
+	// (http://docs.aws.amazon.com/systems-manager/latest/userguide/monitor-commands.html)
+	// in the AWS Systems Manager User Guide. StatusDetails can be one of the following
+	// values:
 	//
 	//    * Pending: The command has not been sent to any instances.
 	//
@@ -11025,6 +11875,12 @@ func (s Command) GoString() string {
 	return s.String()
 }
 
+// SetCloudWatchOutputConfig sets the CloudWatchOutputConfig field's value.
+func (s *Command) SetCloudWatchOutputConfig(v *CloudWatchOutputConfig) *Command {
+	s.CloudWatchOutputConfig = v
+	return s
+}
+
 // SetCommandId sets the CommandId field's value.
 func (s *Command) SetCommandId(v string) *Command {
 	s.CommandId = &v
@@ -11043,9 +11899,21 @@ func (s *Command) SetCompletedCount(v int64) *Command {
 	return s
 }
 
+// SetDeliveryTimedOutCount sets the DeliveryTimedOutCount field's value.
+func (s *Command) SetDeliveryTimedOutCount(v int64) *Command {
+	s.DeliveryTimedOutCount = &v
+	return s
+}
+
 // SetDocumentName sets the DocumentName field's value.
 func (s *Command) SetDocumentName(v string) *Command {
 	s.DocumentName = &v
+	return s
+}
+
+// SetDocumentVersion sets the DocumentVersion field's value.
+func (s *Command) SetDocumentVersion(v string) *Command {
+	s.DocumentVersion = &v
 	return s
 }
 
@@ -11209,6 +12077,10 @@ func (s *CommandFilter) SetValue(v string) *CommandFilter {
 type CommandInvocation struct {
 	_ struct{} `type:"structure"`
 
+	// CloudWatch Logs information where you want Systems Manager to send the command
+	// output.
+	CloudWatchOutputConfig *CloudWatchOutputConfig `type:"structure"`
+
 	// The command against which this invocation was requested.
 	CommandId *string `min:"36" type:"string"`
 
@@ -11220,6 +12092,9 @@ type CommandInvocation struct {
 
 	// The document name that was requested for execution.
 	DocumentName *string `type:"string"`
+
+	// The SSM document version.
+	DocumentVersion *string `type:"string"`
 
 	// The instance ID in which this invocation was requested.
 	InstanceId *string `type:"string"`
@@ -11234,7 +12109,7 @@ type CommandInvocation struct {
 	NotificationConfig *NotificationConfig `type:"structure"`
 
 	// The time and date the request was sent to this instance.
-	RequestedDateTime *time.Time `type:"timestamp" timestampFormat:"unix"`
+	RequestedDateTime *time.Time `type:"timestamp"`
 
 	// The IAM service role that Run Command uses to act on your behalf when sending
 	// notifications about command status changes on a per instance basis.
@@ -11259,8 +12134,9 @@ type CommandInvocation struct {
 	// targeted by the command). StatusDetails includes more information than Status
 	// because it includes states resulting from error and concurrency control parameters.
 	// StatusDetails can show different results than Status. For more information
-	// about these statuses, see Run Command Status (http://docs.aws.amazon.com/systems-manager/latest/userguide/monitor-about-status.html).
-	// StatusDetails can be one of the following values:
+	// about these statuses, see Understanding Command Statuses (http://docs.aws.amazon.com/systems-manager/latest/userguide/monitor-commands.html)
+	// in the AWS Systems Manager User Guide. StatusDetails can be one of the following
+	// values:
 	//
 	//    * Pending: The command has not been sent to the instance.
 	//
@@ -11313,6 +12189,12 @@ func (s CommandInvocation) GoString() string {
 	return s.String()
 }
 
+// SetCloudWatchOutputConfig sets the CloudWatchOutputConfig field's value.
+func (s *CommandInvocation) SetCloudWatchOutputConfig(v *CloudWatchOutputConfig) *CommandInvocation {
+	s.CloudWatchOutputConfig = v
+	return s
+}
+
 // SetCommandId sets the CommandId field's value.
 func (s *CommandInvocation) SetCommandId(v string) *CommandInvocation {
 	s.CommandId = &v
@@ -11334,6 +12216,12 @@ func (s *CommandInvocation) SetComment(v string) *CommandInvocation {
 // SetDocumentName sets the DocumentName field's value.
 func (s *CommandInvocation) SetDocumentName(v string) *CommandInvocation {
 	s.DocumentName = &v
+	return s
+}
+
+// SetDocumentVersion sets the DocumentVersion field's value.
+func (s *CommandInvocation) SetDocumentVersion(v string) *CommandInvocation {
+	s.DocumentVersion = &v
 	return s
 }
 
@@ -11449,10 +12337,10 @@ type CommandPlugin struct {
 
 	// The time the plugin stopped executing. Could stop prematurely if, for example,
 	// a cancel command was sent.
-	ResponseFinishDateTime *time.Time `type:"timestamp" timestampFormat:"unix"`
+	ResponseFinishDateTime *time.Time `type:"timestamp"`
 
 	// The time the plugin started executing.
-	ResponseStartDateTime *time.Time `type:"timestamp" timestampFormat:"unix"`
+	ResponseStartDateTime *time.Time `type:"timestamp"`
 
 	// The URL for the complete text written by the plugin to stderr. If execution
 	// is not yet complete, then this string is empty.
@@ -11469,8 +12357,10 @@ type CommandPlugin struct {
 	// A detailed status of the plugin execution. StatusDetails includes more information
 	// than Status because it includes states resulting from error and concurrency
 	// control parameters. StatusDetails can show different results than Status.
-	// For more information about these statuses, see Run Command Status (http://docs.aws.amazon.com/systems-manager/latest/userguide/monitor-about-status.html).
-	// StatusDetails can be one of the following values:
+	// For more information about these statuses, see Understanding Command Statuses
+	// (http://docs.aws.amazon.com/systems-manager/latest/userguide/monitor-commands.html)
+	// in the AWS Systems Manager User Guide. StatusDetails can be one of the following
+	// values:
 	//
 	//    * Pending: The command has not been sent to the instance.
 	//
@@ -11606,7 +12496,7 @@ type ComplianceExecutionSummary struct {
 	// format: yyyy-MM-dd'T'HH:mm:ss'Z'.
 	//
 	// ExecutionTime is a required field
-	ExecutionTime *time.Time `type:"timestamp" timestampFormat:"unix" required:"true"`
+	ExecutionTime *time.Time `type:"timestamp" required:"true"`
 
 	// The type of execution. For example, Command is a valid execution type.
 	ExecutionType *string `type:"string"`
@@ -11671,7 +12561,7 @@ type ComplianceItem struct {
 	ExecutionSummary *ComplianceExecutionSummary `type:"structure"`
 
 	// An ID for the compliance item. For example, if the compliance item is a Windows
-	// patch, the ID could be the number of the KB article. Here's an example: KB4010320.
+	// patch, the ID could be the number of the KB article; for example: KB4010320.
 	Id *string `min:"1" type:"string"`
 
 	// An ID for the resource. For a managed instance, this is the instance ID.
@@ -11689,8 +12579,8 @@ type ComplianceItem struct {
 	Status *string `type:"string" enum:"ComplianceStatus"`
 
 	// A title for the compliance item. For example, if the compliance item is a
-	// Windows patch, the title could be the title of the KB article for the patch.
-	// Here's an example: Security Update for Active Directory Federation Services.
+	// Windows patch, the title could be the title of the KB article for the patch;
+	// for example: Security Update for Active Directory Federation Services.
 	Title *string `type:"string"`
 }
 
@@ -11781,8 +12671,8 @@ type ComplianceItemEntry struct {
 	Status *string `type:"string" required:"true" enum:"ComplianceStatus"`
 
 	// The title of the compliance item. For example, if the compliance item is
-	// a Windows patch, the title could be the title of the KB article for the patch.
-	// Here's an example: Security Update for Active Directory Federation Services.
+	// a Windows patch, the title could be the title of the KB article for the patch;
+	// for example: Security Update for Active Directory Federation Services.
 	Title *string `type:"string"`
 }
 
@@ -11986,15 +12876,19 @@ type CreateActivationInput struct {
 
 	// The name of the registered, managed instance as it will appear in the Amazon
 	// EC2 console or when you use the AWS command line tools to list EC2 resources.
+	//
+	// Do not enter personally identifiable information in this field.
 	DefaultInstanceName *string `type:"string"`
 
-	// A userdefined description of the resource that you want to register with
+	// A user-defined description of the resource that you want to register with
 	// Amazon EC2.
+	//
+	// Do not enter personally identifiable information in this field.
 	Description *string `type:"string"`
 
 	// The date by which this activation request should expire. The default value
 	// is 24 hours.
-	ExpirationDate *time.Time `type:"timestamp" timestampFormat:"unix"`
+	ExpirationDate *time.Time `type:"timestamp"`
 
 	// The Amazon Identity and Access Management (IAM) role that you want to assign
 	// to the managed instance.
@@ -12730,12 +13624,16 @@ type CreatePatchBaselineInput struct {
 	ApprovalRules *PatchRuleGroup `type:"structure"`
 
 	// A list of explicitly approved patches for the baseline.
+	//
+	// For information about accepted formats for lists of approved patches and
+	// rejected patches, see Package Name Formats for Approved and Rejected Patch
+	// Lists (http://docs.aws.amazon.com/systems-manager/latest/userguide/patch-manager-approved-rejected-package-name-formats.html)
+	// in the AWS Systems Manager User Guide.
 	ApprovedPatches []*string `type:"list"`
 
 	// Defines the compliance level for approved patches. This means that if an
 	// approved patch is reported as missing, this is the severity of the compliance
-	// violation. Valid compliance severity levels include the following: CRITICAL,
-	// HIGH, MEDIUM, LOW, INFORMATIONAL, UNSPECIFIED. The default value is UNSPECIFIED.
+	// violation. The default value is UNSPECIFIED.
 	ApprovedPatchesComplianceLevel *string `type:"string" enum:"PatchComplianceLevel"`
 
 	// Indicates whether the list of approved patches includes non-security updates
@@ -12762,6 +13660,11 @@ type CreatePatchBaselineInput struct {
 	OperatingSystem *string `type:"string" enum:"OperatingSystem"`
 
 	// A list of explicitly rejected patches for the baseline.
+	//
+	// For information about accepted formats for lists of approved patches and
+	// rejected patches, see Package Name Formats for Approved and Rejected Patch
+	// Lists (http://docs.aws.amazon.com/systems-manager/latest/userguide/patch-manager-approved-rejected-package-name-formats.html)
+	// in the AWS Systems Manager User Guide.
 	RejectedPatches []*string `type:"list"`
 
 	// Information about the patches to use to update the instances, including target
@@ -13141,6 +14044,139 @@ func (s DeleteDocumentOutput) String() string {
 // GoString returns the string representation
 func (s DeleteDocumentOutput) GoString() string {
 	return s.String()
+}
+
+type DeleteInventoryInput struct {
+	_ struct{} `type:"structure"`
+
+	// User-provided idempotency token.
+	ClientToken *string `min:"1" type:"string" idempotencyToken:"true"`
+
+	// Use this option to view a summary of the deletion request without deleting
+	// any data or the data type. This option is useful when you only want to understand
+	// what will be deleted. Once you validate that the data to be deleted is what
+	// you intend to delete, you can run the same command without specifying the
+	// DryRun option.
+	DryRun *bool `type:"boolean"`
+
+	// Use the SchemaDeleteOption to delete a custom inventory type (schema). If
+	// you don't choose this option, the system only deletes existing inventory
+	// data associated with the custom inventory type. Choose one of the following
+	// options:
+	//
+	// DisableSchema: If you choose this option, the system ignores all inventory
+	// data for the specified version, and any earlier versions. To enable this
+	// schema again, you must call the PutInventory action for a version greater
+	// than the disbled version.
+	//
+	// DeleteSchema: This option deletes the specified custom type from the Inventory
+	// service. You can recreate the schema later, if you want.
+	SchemaDeleteOption *string `type:"string" enum:"InventorySchemaDeleteOption"`
+
+	// The name of the custom inventory type for which you want to delete either
+	// all previously collected data, or the inventory type itself.
+	//
+	// TypeName is a required field
+	TypeName *string `min:"1" type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s DeleteInventoryInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DeleteInventoryInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DeleteInventoryInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DeleteInventoryInput"}
+	if s.ClientToken != nil && len(*s.ClientToken) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ClientToken", 1))
+	}
+	if s.TypeName == nil {
+		invalidParams.Add(request.NewErrParamRequired("TypeName"))
+	}
+	if s.TypeName != nil && len(*s.TypeName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("TypeName", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetClientToken sets the ClientToken field's value.
+func (s *DeleteInventoryInput) SetClientToken(v string) *DeleteInventoryInput {
+	s.ClientToken = &v
+	return s
+}
+
+// SetDryRun sets the DryRun field's value.
+func (s *DeleteInventoryInput) SetDryRun(v bool) *DeleteInventoryInput {
+	s.DryRun = &v
+	return s
+}
+
+// SetSchemaDeleteOption sets the SchemaDeleteOption field's value.
+func (s *DeleteInventoryInput) SetSchemaDeleteOption(v string) *DeleteInventoryInput {
+	s.SchemaDeleteOption = &v
+	return s
+}
+
+// SetTypeName sets the TypeName field's value.
+func (s *DeleteInventoryInput) SetTypeName(v string) *DeleteInventoryInput {
+	s.TypeName = &v
+	return s
+}
+
+type DeleteInventoryOutput struct {
+	_ struct{} `type:"structure"`
+
+	// Every DeleteInventory action is assigned a unique ID. This option returns
+	// a unique ID. You can use this ID to query the status of a delete operation.
+	// This option is useful for ensuring that a delete operation has completed
+	// before you begin other actions.
+	DeletionId *string `type:"string"`
+
+	// A summary of the delete operation. For more information about this summary,
+	// see Understanding the Delete Inventory Summary (http://docs.aws.amazon.com/systems-manager/latest/userguide/sysman-inventory-delete.html#sysman-inventory-delete-summary)
+	// in the AWS Systems Manager User Guide.
+	DeletionSummary *InventoryDeletionSummary `type:"structure"`
+
+	// The name of the inventory data type specified in the request.
+	TypeName *string `min:"1" type:"string"`
+}
+
+// String returns the string representation
+func (s DeleteInventoryOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DeleteInventoryOutput) GoString() string {
+	return s.String()
+}
+
+// SetDeletionId sets the DeletionId field's value.
+func (s *DeleteInventoryOutput) SetDeletionId(v string) *DeleteInventoryOutput {
+	s.DeletionId = &v
+	return s
+}
+
+// SetDeletionSummary sets the DeletionSummary field's value.
+func (s *DeleteInventoryOutput) SetDeletionSummary(v *InventoryDeletionSummary) *DeleteInventoryOutput {
+	s.DeletionSummary = v
+	return s
+}
+
+// SetTypeName sets the TypeName field's value.
+func (s *DeleteInventoryOutput) SetTypeName(v string) *DeleteInventoryOutput {
+	s.TypeName = &v
+	return s
 }
 
 type DeleteMaintenanceWindowInput struct {
@@ -13907,6 +14943,265 @@ func (s *DescribeActivationsOutput) SetActivationList(v []*Activation) *Describe
 
 // SetNextToken sets the NextToken field's value.
 func (s *DescribeActivationsOutput) SetNextToken(v string) *DescribeActivationsOutput {
+	s.NextToken = &v
+	return s
+}
+
+type DescribeAssociationExecutionTargetsInput struct {
+	_ struct{} `type:"structure"`
+
+	// The association ID that includes the execution for which you want to view
+	// details.
+	//
+	// AssociationId is a required field
+	AssociationId *string `type:"string" required:"true"`
+
+	// The execution ID for which you want to view details.
+	//
+	// ExecutionId is a required field
+	ExecutionId *string `type:"string" required:"true"`
+
+	// Filters for the request. You can specify the following filters and values.
+	//
+	// Status (EQUAL)
+	//
+	// ResourceId (EQUAL)
+	//
+	// ResourceType (EQUAL)
+	Filters []*AssociationExecutionTargetsFilter `min:"1" type:"list"`
+
+	// The maximum number of items to return for this call. The call also returns
+	// a token that you can specify in a subsequent call to get the next set of
+	// results.
+	MaxResults *int64 `min:"1" type:"integer"`
+
+	// A token to start the list. Use this token to get the next set of results.
+	NextToken *string `type:"string"`
+}
+
+// String returns the string representation
+func (s DescribeAssociationExecutionTargetsInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DescribeAssociationExecutionTargetsInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DescribeAssociationExecutionTargetsInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DescribeAssociationExecutionTargetsInput"}
+	if s.AssociationId == nil {
+		invalidParams.Add(request.NewErrParamRequired("AssociationId"))
+	}
+	if s.ExecutionId == nil {
+		invalidParams.Add(request.NewErrParamRequired("ExecutionId"))
+	}
+	if s.Filters != nil && len(s.Filters) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Filters", 1))
+	}
+	if s.MaxResults != nil && *s.MaxResults < 1 {
+		invalidParams.Add(request.NewErrParamMinValue("MaxResults", 1))
+	}
+	if s.Filters != nil {
+		for i, v := range s.Filters {
+			if v == nil {
+				continue
+			}
+			if err := v.Validate(); err != nil {
+				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "Filters", i), err.(request.ErrInvalidParams))
+			}
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetAssociationId sets the AssociationId field's value.
+func (s *DescribeAssociationExecutionTargetsInput) SetAssociationId(v string) *DescribeAssociationExecutionTargetsInput {
+	s.AssociationId = &v
+	return s
+}
+
+// SetExecutionId sets the ExecutionId field's value.
+func (s *DescribeAssociationExecutionTargetsInput) SetExecutionId(v string) *DescribeAssociationExecutionTargetsInput {
+	s.ExecutionId = &v
+	return s
+}
+
+// SetFilters sets the Filters field's value.
+func (s *DescribeAssociationExecutionTargetsInput) SetFilters(v []*AssociationExecutionTargetsFilter) *DescribeAssociationExecutionTargetsInput {
+	s.Filters = v
+	return s
+}
+
+// SetMaxResults sets the MaxResults field's value.
+func (s *DescribeAssociationExecutionTargetsInput) SetMaxResults(v int64) *DescribeAssociationExecutionTargetsInput {
+	s.MaxResults = &v
+	return s
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *DescribeAssociationExecutionTargetsInput) SetNextToken(v string) *DescribeAssociationExecutionTargetsInput {
+	s.NextToken = &v
+	return s
+}
+
+type DescribeAssociationExecutionTargetsOutput struct {
+	_ struct{} `type:"structure"`
+
+	// Information about the execution.
+	AssociationExecutionTargets []*AssociationExecutionTarget `type:"list"`
+
+	// The token for the next set of items to return. Use this token to get the
+	// next set of results.
+	NextToken *string `type:"string"`
+}
+
+// String returns the string representation
+func (s DescribeAssociationExecutionTargetsOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DescribeAssociationExecutionTargetsOutput) GoString() string {
+	return s.String()
+}
+
+// SetAssociationExecutionTargets sets the AssociationExecutionTargets field's value.
+func (s *DescribeAssociationExecutionTargetsOutput) SetAssociationExecutionTargets(v []*AssociationExecutionTarget) *DescribeAssociationExecutionTargetsOutput {
+	s.AssociationExecutionTargets = v
+	return s
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *DescribeAssociationExecutionTargetsOutput) SetNextToken(v string) *DescribeAssociationExecutionTargetsOutput {
+	s.NextToken = &v
+	return s
+}
+
+type DescribeAssociationExecutionsInput struct {
+	_ struct{} `type:"structure"`
+
+	// The association ID for which you want to view execution history details.
+	//
+	// AssociationId is a required field
+	AssociationId *string `type:"string" required:"true"`
+
+	// Filters for the request. You can specify the following filters and values.
+	//
+	// ExecutionId (EQUAL)
+	//
+	// Status (EQUAL)
+	//
+	// CreatedTime (EQUAL, GREATER_THAN, LESS_THAN)
+	Filters []*AssociationExecutionFilter `min:"1" type:"list"`
+
+	// The maximum number of items to return for this call. The call also returns
+	// a token that you can specify in a subsequent call to get the next set of
+	// results.
+	MaxResults *int64 `min:"1" type:"integer"`
+
+	// A token to start the list. Use this token to get the next set of results.
+	NextToken *string `type:"string"`
+}
+
+// String returns the string representation
+func (s DescribeAssociationExecutionsInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DescribeAssociationExecutionsInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DescribeAssociationExecutionsInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DescribeAssociationExecutionsInput"}
+	if s.AssociationId == nil {
+		invalidParams.Add(request.NewErrParamRequired("AssociationId"))
+	}
+	if s.Filters != nil && len(s.Filters) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Filters", 1))
+	}
+	if s.MaxResults != nil && *s.MaxResults < 1 {
+		invalidParams.Add(request.NewErrParamMinValue("MaxResults", 1))
+	}
+	if s.Filters != nil {
+		for i, v := range s.Filters {
+			if v == nil {
+				continue
+			}
+			if err := v.Validate(); err != nil {
+				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "Filters", i), err.(request.ErrInvalidParams))
+			}
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetAssociationId sets the AssociationId field's value.
+func (s *DescribeAssociationExecutionsInput) SetAssociationId(v string) *DescribeAssociationExecutionsInput {
+	s.AssociationId = &v
+	return s
+}
+
+// SetFilters sets the Filters field's value.
+func (s *DescribeAssociationExecutionsInput) SetFilters(v []*AssociationExecutionFilter) *DescribeAssociationExecutionsInput {
+	s.Filters = v
+	return s
+}
+
+// SetMaxResults sets the MaxResults field's value.
+func (s *DescribeAssociationExecutionsInput) SetMaxResults(v int64) *DescribeAssociationExecutionsInput {
+	s.MaxResults = &v
+	return s
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *DescribeAssociationExecutionsInput) SetNextToken(v string) *DescribeAssociationExecutionsInput {
+	s.NextToken = &v
+	return s
+}
+
+type DescribeAssociationExecutionsOutput struct {
+	_ struct{} `type:"structure"`
+
+	// A list of the executions for the specified association ID.
+	AssociationExecutions []*AssociationExecution `type:"list"`
+
+	// The token for the next set of items to return. Use this token to get the
+	// next set of results.
+	NextToken *string `type:"string"`
+}
+
+// String returns the string representation
+func (s DescribeAssociationExecutionsOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DescribeAssociationExecutionsOutput) GoString() string {
+	return s.String()
+}
+
+// SetAssociationExecutions sets the AssociationExecutions field's value.
+func (s *DescribeAssociationExecutionsOutput) SetAssociationExecutions(v []*AssociationExecution) *DescribeAssociationExecutionsOutput {
+	s.AssociationExecutions = v
+	return s
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *DescribeAssociationExecutionsOutput) SetNextToken(v string) *DescribeAssociationExecutionsOutput {
 	s.NextToken = &v
 	return s
 }
@@ -15218,6 +16513,96 @@ func (s *DescribeInstancePatchesOutput) SetPatches(v []*PatchComplianceData) *De
 	return s
 }
 
+type DescribeInventoryDeletionsInput struct {
+	_ struct{} `type:"structure"`
+
+	// Specify the delete inventory ID for which you want information. This ID was
+	// returned by the DeleteInventory action.
+	DeletionId *string `type:"string"`
+
+	// The maximum number of items to return for this call. The call also returns
+	// a token that you can specify in a subsequent call to get the next set of
+	// results.
+	MaxResults *int64 `min:"1" type:"integer"`
+
+	// A token to start the list. Use this token to get the next set of results.
+	NextToken *string `type:"string"`
+}
+
+// String returns the string representation
+func (s DescribeInventoryDeletionsInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DescribeInventoryDeletionsInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DescribeInventoryDeletionsInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DescribeInventoryDeletionsInput"}
+	if s.MaxResults != nil && *s.MaxResults < 1 {
+		invalidParams.Add(request.NewErrParamMinValue("MaxResults", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetDeletionId sets the DeletionId field's value.
+func (s *DescribeInventoryDeletionsInput) SetDeletionId(v string) *DescribeInventoryDeletionsInput {
+	s.DeletionId = &v
+	return s
+}
+
+// SetMaxResults sets the MaxResults field's value.
+func (s *DescribeInventoryDeletionsInput) SetMaxResults(v int64) *DescribeInventoryDeletionsInput {
+	s.MaxResults = &v
+	return s
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *DescribeInventoryDeletionsInput) SetNextToken(v string) *DescribeInventoryDeletionsInput {
+	s.NextToken = &v
+	return s
+}
+
+type DescribeInventoryDeletionsOutput struct {
+	_ struct{} `type:"structure"`
+
+	// A list of status items for deleted inventory.
+	InventoryDeletions []*InventoryDeletionStatusItem `type:"list"`
+
+	// The token for the next set of items to return. Use this token to get the
+	// next set of results.
+	NextToken *string `type:"string"`
+}
+
+// String returns the string representation
+func (s DescribeInventoryDeletionsOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DescribeInventoryDeletionsOutput) GoString() string {
+	return s.String()
+}
+
+// SetInventoryDeletions sets the InventoryDeletions field's value.
+func (s *DescribeInventoryDeletionsOutput) SetInventoryDeletions(v []*InventoryDeletionStatusItem) *DescribeInventoryDeletionsOutput {
+	s.InventoryDeletions = v
+	return s
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *DescribeInventoryDeletionsOutput) SetNextToken(v string) *DescribeInventoryDeletionsOutput {
+	s.NextToken = &v
+	return s
+}
+
 type DescribeMaintenanceWindowExecutionTaskInvocationsInput struct {
 	_ struct{} `type:"structure"`
 
@@ -16408,7 +17793,7 @@ type DocumentDescription struct {
 	_ struct{} `type:"structure"`
 
 	// The date when the document was created.
-	CreatedDate *time.Time `type:"timestamp" timestampFormat:"unix"`
+	CreatedDate *time.Time `type:"timestamp"`
 
 	// The default version.
 	DefaultVersion *string `type:"string"`
@@ -16871,7 +18256,7 @@ type DocumentVersionInfo struct {
 	_ struct{} `type:"structure"`
 
 	// The date the document was created.
-	CreatedDate *time.Time `type:"timestamp" timestampFormat:"unix"`
+	CreatedDate *time.Time `type:"timestamp"`
 
 	// The document format, either JSON or YAML.
 	DocumentFormat *string `type:"string" enum:"DocumentFormat"`
@@ -17193,6 +18578,9 @@ func (s *GetCommandInvocationInput) SetPluginName(v string) *GetCommandInvocatio
 type GetCommandInvocationOutput struct {
 	_ struct{} `type:"structure"`
 
+	// CloudWatch Logs information where Systems Manager sent the command output.
+	CloudWatchOutputConfig *CloudWatchOutputConfig `type:"structure"`
+
 	// The parent command ID of the invocation plugin.
 	CommandId *string `min:"36" type:"string"`
 
@@ -17201,6 +18589,9 @@ type GetCommandInvocationOutput struct {
 
 	// The name of the document that was executed. For example, AWS-RunShellScript.
 	DocumentName *string `type:"string"`
+
+	// The SSM document version used in the request.
+	DocumentVersion *string `type:"string"`
 
 	// Duration since ExecutionStartDateTime.
 	ExecutionElapsedTime *string `type:"string"`
@@ -17254,16 +18645,16 @@ type GetCommandInvocationOutput struct {
 	// If an Amazon S3 bucket was not specified, then this string is empty.
 	StandardOutputUrl *string `type:"string"`
 
-	// The status of the parent command for this invocation. This status can be
-	// different than StatusDetails.
+	// The status of this invocation plugin. This status can be different than StatusDetails.
 	Status *string `type:"string" enum:"CommandInvocationStatus"`
 
 	// A detailed status of the command execution for an invocation. StatusDetails
 	// includes more information than Status because it includes states resulting
 	// from error and concurrency control parameters. StatusDetails can show different
-	// results than Status. For more information about these statuses, see Run Command
-	// Status (http://docs.aws.amazon.com/systems-manager/latest/userguide/monitor-about-status.html).
-	// StatusDetails can be one of the following values:
+	// results than Status. For more information about these statuses, see Understanding
+	// Command Statuses (http://docs.aws.amazon.com/systems-manager/latest/userguide/monitor-commands.html)
+	// in the AWS Systems Manager User Guide. StatusDetails can be one of the following
+	// values:
 	//
 	//    * Pending: The command has not been sent to the instance.
 	//
@@ -17318,6 +18709,12 @@ func (s GetCommandInvocationOutput) GoString() string {
 	return s.String()
 }
 
+// SetCloudWatchOutputConfig sets the CloudWatchOutputConfig field's value.
+func (s *GetCommandInvocationOutput) SetCloudWatchOutputConfig(v *CloudWatchOutputConfig) *GetCommandInvocationOutput {
+	s.CloudWatchOutputConfig = v
+	return s
+}
+
 // SetCommandId sets the CommandId field's value.
 func (s *GetCommandInvocationOutput) SetCommandId(v string) *GetCommandInvocationOutput {
 	s.CommandId = &v
@@ -17333,6 +18730,12 @@ func (s *GetCommandInvocationOutput) SetComment(v string) *GetCommandInvocationO
 // SetDocumentName sets the DocumentName field's value.
 func (s *GetCommandInvocationOutput) SetDocumentName(v string) *GetCommandInvocationOutput {
 	s.DocumentName = &v
+	return s
+}
+
+// SetDocumentVersion sets the DocumentVersion field's value.
+func (s *GetCommandInvocationOutput) SetDocumentVersion(v string) *GetCommandInvocationOutput {
+	s.DocumentVersion = &v
 	return s
 }
 
@@ -17991,10 +19394,10 @@ type GetMaintenanceWindowExecutionOutput struct {
 	_ struct{} `type:"structure"`
 
 	// The time the Maintenance Window finished executing.
-	EndTime *time.Time `type:"timestamp" timestampFormat:"unix"`
+	EndTime *time.Time `type:"timestamp"`
 
 	// The time the Maintenance Window started executing.
-	StartTime *time.Time `type:"timestamp" timestampFormat:"unix"`
+	StartTime *time.Time `type:"timestamp"`
 
 	// The status of the Maintenance Window execution.
 	Status *string `type:"string" enum:"MaintenanceWindowExecutionStatus"`
@@ -18194,7 +19597,7 @@ type GetMaintenanceWindowExecutionTaskInvocationOutput struct {
 	_ struct{} `type:"structure"`
 
 	// The time that the task finished executing on the target.
-	EndTime *time.Time `type:"timestamp" timestampFormat:"unix"`
+	EndTime *time.Time `type:"timestamp"`
 
 	// The execution ID.
 	ExecutionId *string `type:"string"`
@@ -18210,7 +19613,7 @@ type GetMaintenanceWindowExecutionTaskInvocationOutput struct {
 	Parameters *string `type:"string"`
 
 	// The time that the task started executing on the target.
-	StartTime *time.Time `type:"timestamp" timestampFormat:"unix"`
+	StartTime *time.Time `type:"timestamp"`
 
 	// The task status for an invocation.
 	Status *string `type:"string" enum:"MaintenanceWindowExecutionStatus"`
@@ -18319,7 +19722,7 @@ type GetMaintenanceWindowExecutionTaskOutput struct {
 	_ struct{} `type:"structure"`
 
 	// The time the task execution completed.
-	EndTime *time.Time `type:"timestamp" timestampFormat:"unix"`
+	EndTime *time.Time `type:"timestamp"`
 
 	// The defined maximum number of task executions that could be run in parallel.
 	MaxConcurrency *string `min:"1" type:"string"`
@@ -18335,7 +19738,7 @@ type GetMaintenanceWindowExecutionTaskOutput struct {
 	ServiceRole *string `type:"string"`
 
 	// The time the task execution started.
-	StartTime *time.Time `type:"timestamp" timestampFormat:"unix"`
+	StartTime *time.Time `type:"timestamp"`
 
 	// The status of the task.
 	Status *string `type:"string" enum:"MaintenanceWindowExecutionStatus"`
@@ -18350,8 +19753,14 @@ type GetMaintenanceWindowExecutionTaskOutput struct {
 	// was retrieved.
 	TaskExecutionId *string `min:"36" type:"string"`
 
-	// The parameters passed to the task when it was executed. The map has the following
-	// format:
+	// The parameters passed to the task when it was executed.
+	//
+	// TaskParameters has been deprecated. To specify parameters to pass to a task
+	// when it runs, instead use the Parameters option in the TaskInvocationParameters
+	// structure. For information about how Systems Manager handles these options
+	// for the supported Maintenance Window task types, see MaintenanceWindowTaskInvocationParameters.
+	//
+	// The map has the following format:
 	//
 	// Key: string, between 1 and 255 characters
 	//
@@ -18502,7 +19911,7 @@ type GetMaintenanceWindowOutput struct {
 	AllowUnassociatedTargets *bool `type:"boolean"`
 
 	// The date the Maintenance Window was created.
-	CreatedDate *time.Time `type:"timestamp" timestampFormat:"unix"`
+	CreatedDate *time.Time `type:"timestamp"`
 
 	// The number of hours before the end of the Maintenance Window that Systems
 	// Manager stops scheduling new tasks for execution.
@@ -18518,7 +19927,7 @@ type GetMaintenanceWindowOutput struct {
 	Enabled *bool `type:"boolean"`
 
 	// The date the Maintenance Window was last modified.
-	ModifiedDate *time.Time `type:"timestamp" timestampFormat:"unix"`
+	ModifiedDate *time.Time `type:"timestamp"`
 
 	// The name of the Maintenance Window.
 	Name *string `min:"3" type:"string"`
@@ -18665,6 +20074,11 @@ type GetMaintenanceWindowTaskOutput struct {
 	Description *string `min:"1" type:"string"`
 
 	// The location in Amazon S3 where the task results are logged.
+	//
+	// LoggingInfo has been deprecated. To specify an S3 bucket to contain logs,
+	// instead use the OutputS3BucketName and OutputS3KeyPrefix options in the TaskInvocationParameters
+	// structure. For information about how Systems Manager handles these options
+	// for the supported Maintenance Window task types, see MaintenanceWindowTaskInvocationParameters.
 	LoggingInfo *LoggingInfo `type:"structure"`
 
 	// The maximum number of targets allowed to run this task in parallel.
@@ -18696,6 +20110,11 @@ type GetMaintenanceWindowTaskOutput struct {
 	TaskInvocationParameters *MaintenanceWindowTaskInvocationParameters `type:"structure"`
 
 	// The parameters to pass to the task when it executes.
+	//
+	// TaskParameters has been deprecated. To specify parameters to pass to a task
+	// when it runs, instead use the Parameters option in the TaskInvocationParameters
+	// structure. For information about how Systems Manager handles these options
+	// for the supported Maintenance Window task types, see MaintenanceWindowTaskInvocationParameters.
 	TaskParameters map[string]*MaintenanceWindowTaskParameterValueExpression `type:"map"`
 
 	// The type of task to execute.
@@ -18996,16 +20415,24 @@ type GetParametersByPathInput struct {
 	NextToken *string `type:"string"`
 
 	// Filters to limit the request results.
+	//
+	// You can't filter using the parameter name.
 	ParameterFilters []*ParameterStringFilter `type:"list"`
 
 	// The hierarchy for the parameter. Hierarchies start with a forward slash (/)
-	// and end with the parameter name. A hierarchy can have a maximum of 15 levels.
-	// Here is an example of a hierarchy: /Finance/Prod/IAD/WinServ2016/license33
+	// and end with the parameter name. A parameter name hierarchy can have a maximum
+	// of 15 levels. Here is an example of a hierarchy: /Finance/Prod/IAD/WinServ2016/license33
 	//
 	// Path is a required field
 	Path *string `min:"1" type:"string" required:"true"`
 
 	// Retrieve all parameters within a hierarchy.
+	//
+	// If a user has access to a path, then the user can access all levels of that
+	// path. For example, if a user has permission to access path /a, then the user
+	// can also access /a/b. Even if a user has explicitly been denied access in
+	// IAM for parameter /a, they can still call the GetParametersByPath API action
+	// recursively and view /a/b.
 	Recursive *bool `type:"boolean"`
 
 	// Retrieve all parameters in a hierarchy with their value decrypted.
@@ -19360,7 +20787,7 @@ type GetPatchBaselineOutput struct {
 	BaselineId *string `min:"20" type:"string"`
 
 	// The date the patch baseline was created.
-	CreatedDate *time.Time `type:"timestamp" timestampFormat:"unix"`
+	CreatedDate *time.Time `type:"timestamp"`
 
 	// A description of the patch baseline.
 	Description *string `min:"1" type:"string"`
@@ -19369,7 +20796,7 @@ type GetPatchBaselineOutput struct {
 	GlobalFilters *PatchFilterGroup `type:"structure"`
 
 	// The date the patch baseline was last modified.
-	ModifiedDate *time.Time `type:"timestamp" timestampFormat:"unix"`
+	ModifiedDate *time.Time `type:"timestamp"`
 
 	// The name of the patch baseline.
 	Name *string `min:"3" type:"string"`
@@ -19652,7 +21079,7 @@ type InstanceAssociationStatusInfo struct {
 	ErrorCode *string `type:"string"`
 
 	// The date the instance association executed.
-	ExecutionDate *time.Time `type:"timestamp" timestampFormat:"unix"`
+	ExecutionDate *time.Time `type:"timestamp"`
 
 	// Summary information about association execution.
 	ExecutionSummary *string `min:"1" type:"string"`
@@ -19760,7 +21187,7 @@ type InstanceInformation struct {
 	// The activation ID created by Systems Manager when the server or VM was registered.
 	ActivationId *string `type:"string"`
 
-	// The version of the SSM Agent running on your Linux instance.
+	// The version of SSM Agent running on your Linux instance.
 	AgentVersion *string `type:"string"`
 
 	// Information about the association.
@@ -19775,32 +21202,33 @@ type InstanceInformation struct {
 	// The IP address of the managed instance.
 	IPAddress *string `min:"1" type:"string"`
 
-	// The Amazon Identity and Access Management (IAM) role assigned to EC2 instances
-	// or managed instances.
+	// The Amazon Identity and Access Management (IAM) role assigned to the on-premises
+	// Systems Manager managed instances. This call does not return the IAM role
+	// for Amazon EC2 instances.
 	IamRole *string `type:"string"`
 
 	// The instance ID.
 	InstanceId *string `type:"string"`
 
-	// Indicates whether latest version of the SSM Agent is running on your instance.
+	// Indicates whether latest version of SSM Agent is running on your instance.
 	// Some older versions of Windows Server use the EC2Config service to process
 	// SSM requests. For this reason, this field does not indicate whether or not
 	// the latest version is installed on Windows managed instances.
 	IsLatestVersion *bool `type:"boolean"`
 
 	// The date the association was last executed.
-	LastAssociationExecutionDate *time.Time `type:"timestamp" timestampFormat:"unix"`
+	LastAssociationExecutionDate *time.Time `type:"timestamp"`
 
 	// The date and time when agent last pinged Systems Manager service.
-	LastPingDateTime *time.Time `type:"timestamp" timestampFormat:"unix"`
+	LastPingDateTime *time.Time `type:"timestamp"`
 
 	// The last date the association was successfully run.
-	LastSuccessfulAssociationExecutionDate *time.Time `type:"timestamp" timestampFormat:"unix"`
+	LastSuccessfulAssociationExecutionDate *time.Time `type:"timestamp"`
 
 	// The name of the managed instance.
 	Name *string `type:"string"`
 
-	// Connection status of the SSM Agent.
+	// Connection status of SSM Agent.
 	PingStatus *string `type:"string" enum:"PingStatus"`
 
 	// The name of the operating system platform running on your instance.
@@ -19813,7 +21241,7 @@ type InstanceInformation struct {
 	PlatformVersion *string `type:"string"`
 
 	// The date the server or VM was registered with AWS as a managed instance.
-	RegistrationDate *time.Time `type:"timestamp" timestampFormat:"unix"`
+	RegistrationDate *time.Time `type:"timestamp"`
 
 	// The type of instance. Instances are either EC2 instances or managed instances.
 	ResourceType *string `type:"string" enum:"ResourceType"`
@@ -20107,14 +21535,14 @@ type InstancePatchState struct {
 	// The time the most recent patching operation completed on the instance.
 	//
 	// OperationEndTime is a required field
-	OperationEndTime *time.Time `type:"timestamp" timestampFormat:"unix" required:"true"`
+	OperationEndTime *time.Time `type:"timestamp" required:"true"`
 
 	// The time the most recent patching operation was started on the instance.
 	//
 	// OperationStartTime is a required field
-	OperationStartTime *time.Time `type:"timestamp" timestampFormat:"unix" required:"true"`
+	OperationStartTime *time.Time `type:"timestamp" required:"true"`
 
-	// Placeholder information, this field will always be empty in the current release
+	// Placeholder information. This field will always be empty in the current release
 	// of the service.
 	OwnerInformation *string `min:"1" type:"string"`
 
@@ -20348,6 +21776,172 @@ func (s *InventoryAggregator) SetAggregators(v []*InventoryAggregator) *Inventor
 // SetExpression sets the Expression field's value.
 func (s *InventoryAggregator) SetExpression(v string) *InventoryAggregator {
 	s.Expression = &v
+	return s
+}
+
+// Status information returned by the DeleteInventory action.
+type InventoryDeletionStatusItem struct {
+	_ struct{} `type:"structure"`
+
+	// The deletion ID returned by the DeleteInventory action.
+	DeletionId *string `type:"string"`
+
+	// The UTC timestamp when the delete operation started.
+	DeletionStartTime *time.Time `type:"timestamp"`
+
+	// Information about the delete operation. For more information about this summary,
+	// see Understanding the Delete Inventory Summary (http://docs.aws.amazon.com/systems-manager/latest/userguide/sysman-inventory-delete.html#sysman-inventory-delete-summary)
+	// in the AWS Systems Manager User Guide.
+	DeletionSummary *InventoryDeletionSummary `type:"structure"`
+
+	// The status of the operation. Possible values are InProgress and Complete.
+	LastStatus *string `type:"string" enum:"InventoryDeletionStatus"`
+
+	// Information about the status.
+	LastStatusMessage *string `type:"string"`
+
+	// The UTC timestamp of when the last status report.
+	LastStatusUpdateTime *time.Time `type:"timestamp"`
+
+	// The name of the inventory data type.
+	TypeName *string `min:"1" type:"string"`
+}
+
+// String returns the string representation
+func (s InventoryDeletionStatusItem) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s InventoryDeletionStatusItem) GoString() string {
+	return s.String()
+}
+
+// SetDeletionId sets the DeletionId field's value.
+func (s *InventoryDeletionStatusItem) SetDeletionId(v string) *InventoryDeletionStatusItem {
+	s.DeletionId = &v
+	return s
+}
+
+// SetDeletionStartTime sets the DeletionStartTime field's value.
+func (s *InventoryDeletionStatusItem) SetDeletionStartTime(v time.Time) *InventoryDeletionStatusItem {
+	s.DeletionStartTime = &v
+	return s
+}
+
+// SetDeletionSummary sets the DeletionSummary field's value.
+func (s *InventoryDeletionStatusItem) SetDeletionSummary(v *InventoryDeletionSummary) *InventoryDeletionStatusItem {
+	s.DeletionSummary = v
+	return s
+}
+
+// SetLastStatus sets the LastStatus field's value.
+func (s *InventoryDeletionStatusItem) SetLastStatus(v string) *InventoryDeletionStatusItem {
+	s.LastStatus = &v
+	return s
+}
+
+// SetLastStatusMessage sets the LastStatusMessage field's value.
+func (s *InventoryDeletionStatusItem) SetLastStatusMessage(v string) *InventoryDeletionStatusItem {
+	s.LastStatusMessage = &v
+	return s
+}
+
+// SetLastStatusUpdateTime sets the LastStatusUpdateTime field's value.
+func (s *InventoryDeletionStatusItem) SetLastStatusUpdateTime(v time.Time) *InventoryDeletionStatusItem {
+	s.LastStatusUpdateTime = &v
+	return s
+}
+
+// SetTypeName sets the TypeName field's value.
+func (s *InventoryDeletionStatusItem) SetTypeName(v string) *InventoryDeletionStatusItem {
+	s.TypeName = &v
+	return s
+}
+
+// Information about the delete operation.
+type InventoryDeletionSummary struct {
+	_ struct{} `type:"structure"`
+
+	// Remaining number of items to delete.
+	RemainingCount *int64 `type:"integer"`
+
+	// A list of counts and versions for deleted items.
+	SummaryItems []*InventoryDeletionSummaryItem `type:"list"`
+
+	// The total number of items to delete. This count does not change during the
+	// delete operation.
+	TotalCount *int64 `type:"integer"`
+}
+
+// String returns the string representation
+func (s InventoryDeletionSummary) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s InventoryDeletionSummary) GoString() string {
+	return s.String()
+}
+
+// SetRemainingCount sets the RemainingCount field's value.
+func (s *InventoryDeletionSummary) SetRemainingCount(v int64) *InventoryDeletionSummary {
+	s.RemainingCount = &v
+	return s
+}
+
+// SetSummaryItems sets the SummaryItems field's value.
+func (s *InventoryDeletionSummary) SetSummaryItems(v []*InventoryDeletionSummaryItem) *InventoryDeletionSummary {
+	s.SummaryItems = v
+	return s
+}
+
+// SetTotalCount sets the TotalCount field's value.
+func (s *InventoryDeletionSummary) SetTotalCount(v int64) *InventoryDeletionSummary {
+	s.TotalCount = &v
+	return s
+}
+
+// Either a count, remaining count, or a version number in a delete inventory
+// summary.
+type InventoryDeletionSummaryItem struct {
+	_ struct{} `type:"structure"`
+
+	// A count of the number of deleted items.
+	Count *int64 `type:"integer"`
+
+	// The remaining number of items to delete.
+	RemainingCount *int64 `type:"integer"`
+
+	// The inventory type version.
+	Version *string `type:"string"`
+}
+
+// String returns the string representation
+func (s InventoryDeletionSummaryItem) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s InventoryDeletionSummaryItem) GoString() string {
+	return s.String()
+}
+
+// SetCount sets the Count field's value.
+func (s *InventoryDeletionSummaryItem) SetCount(v int64) *InventoryDeletionSummaryItem {
+	s.Count = &v
+	return s
+}
+
+// SetRemainingCount sets the RemainingCount field's value.
+func (s *InventoryDeletionSummaryItem) SetRemainingCount(v int64) *InventoryDeletionSummaryItem {
+	s.RemainingCount = &v
+	return s
+}
+
+// SetVersion sets the Version field's value.
+func (s *InventoryDeletionSummaryItem) SetVersion(v string) *InventoryDeletionSummaryItem {
+	s.Version = &v
 	return s
 }
 
@@ -22061,6 +23655,11 @@ func (s *ListTagsForResourceOutput) SetTagList(v []*Tag) *ListTagsForResourceOut
 }
 
 // Information about an Amazon S3 bucket to write instance-level logs to.
+//
+// LoggingInfo has been deprecated. To specify an S3 bucket to contain logs,
+// instead use the OutputS3BucketName and OutputS3KeyPrefix options in the TaskInvocationParameters
+// structure. For information about how Systems Manager handles these options
+// for the supported Maintenance Window task types, see MaintenanceWindowTaskInvocationParameters.
 type LoggingInfo struct {
 	_ struct{} `type:"structure"`
 
@@ -22136,6 +23735,22 @@ type MaintenanceWindowAutomationParameters struct {
 	DocumentVersion *string `type:"string"`
 
 	// The parameters for the AUTOMATION task.
+	//
+	// For information about specifying and updating task parameters, see RegisterTaskWithMaintenanceWindow
+	// and UpdateMaintenanceWindowTask.
+	//
+	// LoggingInfo has been deprecated. To specify an S3 bucket to contain logs,
+	// instead use the OutputS3BucketName and OutputS3KeyPrefix options in the TaskInvocationParameters
+	// structure. For information about how Systems Manager handles these options
+	// for the supported Maintenance Window task types, see MaintenanceWindowTaskInvocationParameters.
+	//
+	// TaskParameters has been deprecated. To specify parameters to pass to a task
+	// when it runs, instead use the Parameters option in the TaskInvocationParameters
+	// structure. For information about how Systems Manager handles these options
+	// for the supported Maintenance Window task types, see MaintenanceWindowTaskInvocationParameters.
+	//
+	// For AUTOMATION task types, Systems Manager ignores any values specified for
+	// these parameters.
 	Parameters map[string][]*string `min:"1" type:"map"`
 }
 
@@ -22179,10 +23794,10 @@ type MaintenanceWindowExecution struct {
 	_ struct{} `type:"structure"`
 
 	// The time the execution finished.
-	EndTime *time.Time `type:"timestamp" timestampFormat:"unix"`
+	EndTime *time.Time `type:"timestamp"`
 
 	// The time the execution started.
-	StartTime *time.Time `type:"timestamp" timestampFormat:"unix"`
+	StartTime *time.Time `type:"timestamp"`
 
 	// The status of the execution.
 	Status *string `type:"string" enum:"MaintenanceWindowExecutionStatus"`
@@ -22249,10 +23864,10 @@ type MaintenanceWindowExecutionTaskIdentity struct {
 	_ struct{} `type:"structure"`
 
 	// The time the task execution finished.
-	EndTime *time.Time `type:"timestamp" timestampFormat:"unix"`
+	EndTime *time.Time `type:"timestamp"`
 
 	// The time the task execution started.
-	StartTime *time.Time `type:"timestamp" timestampFormat:"unix"`
+	StartTime *time.Time `type:"timestamp"`
 
 	// The status of the task execution.
 	Status *string `type:"string" enum:"MaintenanceWindowExecutionStatus"`
@@ -22338,7 +23953,7 @@ type MaintenanceWindowExecutionTaskInvocationIdentity struct {
 	_ struct{} `type:"structure"`
 
 	// The time the invocation finished.
-	EndTime *time.Time `type:"timestamp" timestampFormat:"unix"`
+	EndTime *time.Time `type:"timestamp"`
 
 	// The ID of the action performed in the service that actually handled the task
 	// invocation. If the task type is RUN_COMMAND, this value is the command ID.
@@ -22356,7 +23971,7 @@ type MaintenanceWindowExecutionTaskInvocationIdentity struct {
 	Parameters *string `type:"string"`
 
 	// The time the invocation started.
-	StartTime *time.Time `type:"timestamp" timestampFormat:"unix"`
+	StartTime *time.Time `type:"timestamp"`
 
 	// The status of the task invocation.
 	Status *string `type:"string" enum:"MaintenanceWindowExecutionStatus"`
@@ -22578,6 +24193,22 @@ func (s *MaintenanceWindowIdentity) SetWindowId(v string) *MaintenanceWindowIden
 }
 
 // The parameters for a LAMBDA task type.
+//
+// For information about specifying and updating task parameters, see RegisterTaskWithMaintenanceWindow
+// and UpdateMaintenanceWindowTask.
+//
+// LoggingInfo has been deprecated. To specify an S3 bucket to contain logs,
+// instead use the OutputS3BucketName and OutputS3KeyPrefix options in the TaskInvocationParameters
+// structure. For information about how Systems Manager handles these options
+// for the supported Maintenance Window task types, see MaintenanceWindowTaskInvocationParameters.
+//
+// TaskParameters has been deprecated. To specify parameters to pass to a task
+// when it runs, instead use the Parameters option in the TaskInvocationParameters
+// structure. For information about how Systems Manager handles these options
+// for the supported Maintenance Window task types, see MaintenanceWindowTaskInvocationParameters.
+//
+// For Lambda tasks, Systems Manager ignores any values specified for TaskParameters
+// and LoggingInfo.
 type MaintenanceWindowLambdaParameters struct {
 	_ struct{} `type:"structure"`
 
@@ -22643,6 +24274,22 @@ func (s *MaintenanceWindowLambdaParameters) SetQualifier(v string) *MaintenanceW
 }
 
 // The parameters for a RUN_COMMAND task type.
+//
+// For information about specifying and updating task parameters, see RegisterTaskWithMaintenanceWindow
+// and UpdateMaintenanceWindowTask.
+//
+// LoggingInfo has been deprecated. To specify an S3 bucket to contain logs,
+// instead use the OutputS3BucketName and OutputS3KeyPrefix options in the TaskInvocationParameters
+// structure. For information about how Systems Manager handles these options
+// for the supported Maintenance Window task types, see MaintenanceWindowTaskInvocationParameters.
+//
+// TaskParameters has been deprecated. To specify parameters to pass to a task
+// when it runs, instead use the Parameters option in the TaskInvocationParameters
+// structure. For information about how Systems Manager handles these options
+// for the supported Maintenance Window task types, see MaintenanceWindowTaskInvocationParameters.
+//
+// For Run Command tasks, Systems Manager uses specified values for TaskParameters
+// and LoggingInfo only if no values are specified for TaskInvocationParameters.
 type MaintenanceWindowRunCommandParameters struct {
 	_ struct{} `type:"structure"`
 
@@ -22757,7 +24404,23 @@ func (s *MaintenanceWindowRunCommandParameters) SetTimeoutSeconds(v int64) *Main
 	return s
 }
 
-// The parameters for the STEP_FUNCTION execution.
+// The parameters for a STEP_FUNCTION task.
+//
+// For information about specifying and updating task parameters, see RegisterTaskWithMaintenanceWindow
+// and UpdateMaintenanceWindowTask.
+//
+// LoggingInfo has been deprecated. To specify an S3 bucket to contain logs,
+// instead use the OutputS3BucketName and OutputS3KeyPrefix options in the TaskInvocationParameters
+// structure. For information about how Systems Manager handles these options
+// for the supported Maintenance Window task types, see MaintenanceWindowTaskInvocationParameters.
+//
+// TaskParameters has been deprecated. To specify parameters to pass to a task
+// when it runs, instead use the Parameters option in the TaskInvocationParameters
+// structure. For information about how Systems Manager handles these options
+// for the supported Maintenance Window task types, see MaintenanceWindowTaskInvocationParameters.
+//
+// For Step Functions tasks, Systems Manager ignores any values specified for
+// TaskParameters and LoggingInfo.
 type MaintenanceWindowStepFunctionsParameters struct {
 	_ struct{} `type:"structure"`
 
@@ -22891,6 +24554,11 @@ type MaintenanceWindowTask struct {
 	Description *string `min:"1" type:"string"`
 
 	// Information about an Amazon S3 bucket to write task-level logs to.
+	//
+	// LoggingInfo has been deprecated. To specify an S3 bucket to contain logs,
+	// instead use the OutputS3BucketName and OutputS3KeyPrefix options in the TaskInvocationParameters
+	// structure. For information about how Systems Manager handles these options
+	// for the supported Maintenance Window task types, see MaintenanceWindowTaskInvocationParameters.
 	LoggingInfo *LoggingInfo `type:"structure"`
 
 	// The maximum number of targets this task can be run for in parallel.
@@ -22921,6 +24589,11 @@ type MaintenanceWindowTask struct {
 	TaskArn *string `min:"1" type:"string"`
 
 	// The parameters that should be passed to the task when it is executed.
+	//
+	// TaskParameters has been deprecated. To specify parameters to pass to a task
+	// when it runs, instead use the Parameters option in the TaskInvocationParameters
+	// structure. For information about how Systems Manager handles these options
+	// for the supported Maintenance Window task types, see MaintenanceWindowTaskInvocationParameters.
 	TaskParameters map[string]*MaintenanceWindowTaskParameterValueExpression `type:"map"`
 
 	// The type of task. The type can be one of the following: RUN_COMMAND, AUTOMATION,
@@ -23026,7 +24699,7 @@ func (s *MaintenanceWindowTask) SetWindowTaskId(v string) *MaintenanceWindowTask
 type MaintenanceWindowTaskInvocationParameters struct {
 	_ struct{} `type:"structure"`
 
-	// The parameters for a AUTOMATION task type.
+	// The parameters for an AUTOMATION task type.
 	Automation *MaintenanceWindowAutomationParameters `type:"structure"`
 
 	// The parameters for a LAMBDA task type.
@@ -23260,8 +24933,8 @@ type NotificationConfig struct {
 
 	// The different events for which you can receive notifications. These events
 	// include the following: All (events), InProgress, Success, TimedOut, Cancelled,
-	// Failed. To learn more about these events, see Setting Up Events and Notifications
-	// (http://docs.aws.amazon.com/systems-manager/latest/userguide/monitor-commands.html)
+	// Failed. To learn more about these events, see Configuring Amazon SNS Notifications
+	// for Run Command (http://docs.aws.amazon.com/systems-manager/latest/userguide/rc-sns-notifications.html)
 	// in the AWS Systems Manager User Guide.
 	NotificationEvents []*string `type:"list"`
 
@@ -23296,6 +24969,41 @@ func (s *NotificationConfig) SetNotificationEvents(v []*string) *NotificationCon
 // SetNotificationType sets the NotificationType field's value.
 func (s *NotificationConfig) SetNotificationType(v string) *NotificationConfig {
 	s.NotificationType = &v
+	return s
+}
+
+// Information about the source where the association execution details are
+// stored.
+type OutputSource struct {
+	_ struct{} `type:"structure"`
+
+	// The ID of the output source, for example the URL of an Amazon S3 bucket.
+	OutputSourceId *string `min:"36" type:"string"`
+
+	// The type of source where the association execution details are stored, for
+	// example, Amazon S3.
+	OutputSourceType *string `type:"string"`
+}
+
+// String returns the string representation
+func (s OutputSource) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s OutputSource) GoString() string {
+	return s.String()
+}
+
+// SetOutputSourceId sets the OutputSourceId field's value.
+func (s *OutputSource) SetOutputSourceId(v string) *OutputSource {
+	s.OutputSourceId = &v
+	return s
+}
+
+// SetOutputSourceType sets the OutputSourceType field's value.
+func (s *OutputSource) SetOutputSourceType(v string) *OutputSource {
+	s.OutputSourceType = &v
 	return s
 }
 
@@ -23367,7 +25075,7 @@ type ParameterHistory struct {
 	KeyId *string `min:"1" type:"string"`
 
 	// Date the parameter was last changed or updated.
-	LastModifiedDate *time.Time `type:"timestamp" timestampFormat:"unix"`
+	LastModifiedDate *time.Time `type:"timestamp"`
 
 	// Amazon Resource Name (ARN) of the AWS user who last changed the parameter.
 	LastModifiedUser *string `type:"string"`
@@ -23466,7 +25174,7 @@ type ParameterMetadata struct {
 	KeyId *string `min:"1" type:"string"`
 
 	// Date the parameter was last changed or updated.
-	LastModifiedDate *time.Time `type:"timestamp" timestampFormat:"unix"`
+	LastModifiedDate *time.Time `type:"timestamp"`
 
 	// Amazon Resource Name (ARN) of the AWS user who last changed the parameter.
 	LastModifiedUser *string `type:"string"`
@@ -23541,6 +25249,8 @@ func (s *ParameterMetadata) SetVersion(v int64) *ParameterMetadata {
 }
 
 // One or more filters. Use a filter to return a more specific list of results.
+//
+// The Name field can't be used with the GetParametersByPath API action.
 type ParameterStringFilter struct {
 	_ struct{} `type:"structure"`
 
@@ -23699,7 +25409,7 @@ type Patch struct {
 	ProductFamily *string `type:"string"`
 
 	// The date the patch was released.
-	ReleaseDate *time.Time `type:"timestamp" timestampFormat:"unix"`
+	ReleaseDate *time.Time `type:"timestamp"`
 
 	// The title of the patch.
 	Title *string `type:"string"`
@@ -23873,7 +25583,7 @@ type PatchComplianceData struct {
 	// operating systems provide this level of information.
 	//
 	// InstalledTime is a required field
-	InstalledTime *time.Time `type:"timestamp" timestampFormat:"unix" required:"true"`
+	InstalledTime *time.Time `type:"timestamp" required:"true"`
 
 	// The operating system-specific ID of the patch.
 	//
@@ -23986,6 +25696,10 @@ func (s *PatchComplianceData) SetTitle(v string) *PatchComplianceData {
 //
 //    * WindowsServer2016
 //
+//    * *
+//
+// Use a wildcard character (*) to target all supported operating system versions.
+//
 // Supported key:CLASSIFICATION
 //
 // Supported values:
@@ -24036,6 +25750,10 @@ func (s *PatchComplianceData) SetTitle(v string) *PatchComplianceData {
 //    * Ubuntu14.04
 //
 //    * Ubuntu16.04
+//
+//    * *
+//
+// Use a wildcard character (*) to target all supported operating system versions.
 //
 // Supported key:PRIORITY
 //
@@ -24089,6 +25807,54 @@ func (s *PatchComplianceData) SetTitle(v string) *PatchComplianceData {
 //    * AmazonLinux2017.03
 //
 //    * AmazonLinux2017.09
+//
+//    * *
+//
+// Use a wildcard character (*) to target all supported operating system versions.
+//
+// Supported key:CLASSIFICATION
+//
+// Supported values:
+//
+//    * Security
+//
+//    * Bugfix
+//
+//    * Enhancement
+//
+//    * Recommended
+//
+//    * Newpackage
+//
+// Supported key:SEVERITY
+//
+// Supported values:
+//
+//    * Critical
+//
+//    * Important
+//
+//    * Medium
+//
+//    * Low
+//
+// Amazon Linux 2 Operating Systems
+//
+// The supported keys for Amazon Linux 2 operating systems are PRODUCT, CLASSIFICATION,
+// and SEVERITY. See the following lists for valid values for each of these
+// keys.
+//
+// Supported key:PRODUCT
+//
+// Supported values:
+//
+//    * AmazonLinux2
+//
+//    * AmazonLinux2.0
+//
+//    * *
+//
+// Use a wildcard character (*) to target all supported operating system versions.
 //
 // Supported key:CLASSIFICATION
 //
@@ -24146,6 +25912,10 @@ func (s *PatchComplianceData) SetTitle(v string) *PatchComplianceData {
 //
 //    * RedhatEnterpriseLinux7.4
 //
+//    * *
+//
+// Use a wildcard character (*) to target all supported operating system versions.
+//
 // Supported key:CLASSIFICATION
 //
 // Supported values:
@@ -24172,9 +25942,9 @@ func (s *PatchComplianceData) SetTitle(v string) *PatchComplianceData {
 //
 //    * Low
 //
-// SUSE Linux Enterprise Server (SUSE) Operating Systems
+// SUSE Linux Enterprise Server (SLES) Operating Systems
 //
-// The supported keys for SUSE operating systems are PRODUCT, CLASSIFICATION,
+// The supported keys for SLES operating systems are PRODUCT, CLASSIFICATION,
 // and SEVERITY. See the following lists for valid values for each of these
 // keys.
 //
@@ -24202,6 +25972,10 @@ func (s *PatchComplianceData) SetTitle(v string) *PatchComplianceData {
 //
 //    * Suse12.9
 //
+//    * *
+//
+// Use a wildcard character (*) to target all supported operating system versions.
+//
 // Supported key:CLASSIFICATION
 //
 // Supported values:
@@ -24227,6 +26001,66 @@ func (s *PatchComplianceData) SetTitle(v string) *PatchComplianceData {
 //    * Important
 //
 //    * Moderate
+//
+//    * Low
+//
+// CentOS Operating Systems
+//
+// The supported keys for CentOS operating systems are PRODUCT, CLASSIFICATION,
+// and SEVERITY. See the following lists for valid values for each of these
+// keys.
+//
+// Supported key:PRODUCT
+//
+// Supported values:
+//
+//    * CentOS6.5
+//
+//    * CentOS6.6
+//
+//    * CentOS6.7
+//
+//    * CentOS6.8
+//
+//    * CentOS6.9
+//
+//    * CentOS7.0
+//
+//    * CentOS7.1
+//
+//    * CentOS7.2
+//
+//    * CentOS7.3
+//
+//    * CentOS7.4
+//
+//    * *
+//
+// Use a wildcard character (*) to target all supported operating system versions.
+//
+// Supported key:CLASSIFICATION
+//
+// Supported values:
+//
+//    * Security
+//
+//    * Bugfix
+//
+//    * Enhancement
+//
+//    * Recommended
+//
+//    * Newpackage
+//
+// Supported key:SEVERITY
+//
+// Supported values:
+//
+//    * Critical
+//
+//    * Important
+//
+//    * Medium
 //
 //    * Low
 type PatchFilter struct {
@@ -24423,7 +26257,8 @@ type PatchRule struct {
 	_ struct{} `type:"structure"`
 
 	// The number of days after the release date of each patch matched by the rule
-	// the patch is marked as approved in the patch baseline.
+	// that the patch is marked as approved in the patch baseline. For example,
+	// a value of 7 means that patches are approved seven days after they are released.
 	//
 	// ApproveAfterDays is a required field
 	ApproveAfterDays *int64 `type:"integer" required:"true"`
@@ -24561,7 +26396,7 @@ type PatchSource struct {
 	//
 	// keepcache=0
 	//
-	// debualevel=2
+	// debuglevel=2
 	//
 	// Configuration is a required field
 	Configuration *string `min:"1" type:"string" required:"true"`
@@ -24637,7 +26472,7 @@ type PatchStatus struct {
 	_ struct{} `type:"structure"`
 
 	// The date the patch was approved (or will be approved if the status is PENDING_APPROVAL).
-	ApprovalDate *time.Time `type:"timestamp" timestampFormat:"unix"`
+	ApprovalDate *time.Time `type:"timestamp"`
 
 	// The compliance severity level for a patch.
 	ComplianceLevel *string `type:"string" enum:"PatchComplianceLevel"`
@@ -24892,6 +26727,9 @@ func (s *PutInventoryInput) SetItems(v []*InventoryItem) *PutInventoryInput {
 
 type PutInventoryOutput struct {
 	_ struct{} `type:"structure"`
+
+	// Information about the request.
+	Message *string `type:"string"`
 }
 
 // String returns the string representation
@@ -24904,6 +26742,12 @@ func (s PutInventoryOutput) GoString() string {
 	return s.String()
 }
 
+// SetMessage sets the Message field's value.
+func (s *PutInventoryOutput) SetMessage(v string) *PutInventoryOutput {
+	s.Message = &v
+	return s
+}
+
 type PutParameterInput struct {
 	_ struct{} `type:"structure"`
 
@@ -24912,20 +26756,49 @@ type PutParameterInput struct {
 	// AllowedPattern=^\d+$
 	AllowedPattern *string `type:"string"`
 
-	// Information about the parameter that you want to add to the system.
+	// Information about the parameter that you want to add to the system. Optional
+	// but recommended.
+	//
+	// Do not enter personally identifiable information in this field.
 	Description *string `type:"string"`
 
-	// The KMS Key ID that you want to use to encrypt a parameter when you choose
-	// the SecureString data type. If you don't specify a key ID, the system uses
-	// the default key associated with your AWS account.
+	// The KMS Key ID that you want to use to encrypt a parameter. Either the default
+	// AWS Key Management Service (AWS KMS) key automatically assigned to your AWS
+	// account or a custom key. Required for parameters that use the SecureString
+	// data type.
+	//
+	// If you don't specify a key ID, the system uses the default key associated
+	// with your AWS account.
+	//
+	//    * To use your default AWS KMS key, choose the SecureString data type,
+	//    and do not specify the Key ID when you create the parameter. The system
+	//    automatically populates Key ID with your default KMS key.
+	//
+	//    * To use a custom KMS key, choose the SecureString data type with the
+	//    Key ID parameter.
 	KeyId *string `min:"1" type:"string"`
 
 	// The fully qualified name of the parameter that you want to add to the system.
 	// The fully qualified name includes the complete hierarchy of the parameter
 	// path and name. For example: /Dev/DBServer/MySQL/db-string13
 	//
-	// For information about parameter name requirements and restrictions, see About
-	// Creating Systems Manager Parameters (http://docs.aws.amazon.com/systems-manager/latest/userguide/sysman-paramstore-su-create.html#sysman-paramstore-su-create-about)
+	// Naming Constraints:
+	//
+	//    * Parameter names are case sensitive.
+	//
+	//    * A parameter name must be unique within an AWS Region
+	//
+	//    * A parameter name can't be prefixed with "aws" or "ssm" (case-insensitive).
+	//
+	//    * Parameter names can include only the following symbols and letters:
+	//    a-zA-Z0-9_.-/
+	//
+	//    * A parameter name can't include spaces.
+	//
+	//    * Parameter hierarchies are limited to a maximum depth of fifteen levels.
+	//
+	// For additional information about valid values for parameter names, see Requirements
+	// and Constraints for Parameter Names (http://docs.aws.amazon.com/systems-manager/latest/userguide/sysman-parameter-name-constraints.html)
 	// in the AWS Systems Manager User Guide.
 	//
 	// The maximum length constraint listed below includes capacity for additional
@@ -24939,6 +26812,13 @@ type PutParameterInput struct {
 	Overwrite *bool `type:"boolean"`
 
 	// The type of parameter that you want to add to the system.
+	//
+	// Items in a StringList must be separated by a comma (,). You can't use other
+	// punctuation or special character to escape items in the list. If you have
+	// a parameter value that requires a comma, then use the String data type.
+	//
+	// SecureString is not currently supported for AWS CloudFormation templates
+	// or in the China Regions.
 	//
 	// Type is a required field
 	Type *string `type:"string" required:"true" enum:"ParameterType"`
@@ -25232,8 +27112,17 @@ type RegisterTargetWithMaintenanceWindowInput struct {
 	// ResourceType is a required field
 	ResourceType *string `type:"string" required:"true" enum:"MaintenanceWindowResourceType"`
 
-	// The targets (either instances or tags). Instances are specified using Key=instanceids,Values=<instanceid1>,<instanceid2>.
-	// Tags are specified using Key=<tag name>,Values=<tag value>.
+	// The targets (either instances or tags).
+	//
+	// Specify instances using the following format:
+	//
+	// Key=InstanceIds,Values=<instance-id-1>,<instance-id-2>
+	//
+	// Specify tags using either of the following formats:
+	//
+	// Key=tag:<tag-key>,Values=<tag-value-1>,<tag-value-2>
+	//
+	// Key=tag-key,Values=<tag-key-1>,<tag-key-2>
 	//
 	// Targets is a required field
 	Targets []*Target `type:"list" required:"true"`
@@ -25374,6 +27263,11 @@ type RegisterTaskWithMaintenanceWindowInput struct {
 
 	// A structure containing information about an Amazon S3 bucket to write instance-level
 	// logs to.
+	//
+	// LoggingInfo has been deprecated. To specify an S3 bucket to contain logs,
+	// instead use the OutputS3BucketName and OutputS3KeyPrefix options in the TaskInvocationParameters
+	// structure. For information about how Systems Manager handles these options
+	// for the supported Maintenance Window task types, see MaintenanceWindowTaskInvocationParameters.
 	LoggingInfo *LoggingInfo `type:"structure"`
 
 	// The maximum number of targets this task can be run for in parallel.
@@ -25399,8 +27293,15 @@ type RegisterTaskWithMaintenanceWindowInput struct {
 	// ServiceRoleArn is a required field
 	ServiceRoleArn *string `type:"string" required:"true"`
 
-	// The targets (either instances or tags). Instances are specified using Key=instanceids,Values=<instanceid1>,<instanceid2>.
-	// Tags are specified using Key=<tag name>,Values=<tag value>.
+	// The targets (either instances or Maintenance Window targets).
+	//
+	// Specify instances using the following format:
+	//
+	// Key=InstanceIds,Values=<instance-id-1>,<instance-id-2>
+	//
+	// Specify Maintenance Window targets using the following format:
+	//
+	// Key=<WindowTargetIds>,Values=<window-target-id-1>,<window-target-id-2>
 	//
 	// Targets is a required field
 	Targets []*Target `type:"list" required:"true"`
@@ -25415,6 +27316,11 @@ type RegisterTaskWithMaintenanceWindowInput struct {
 	TaskInvocationParameters *MaintenanceWindowTaskInvocationParameters `type:"structure"`
 
 	// The parameters that should be passed to the task when it is executed.
+	//
+	// TaskParameters has been deprecated. To specify parameters to pass to a task
+	// when it runs, instead use the Parameters option in the TaskInvocationParameters
+	// structure. For information about how Systems Manager handles these options
+	// for the supported Maintenance Window task types, see MaintenanceWindowTaskInvocationParameters.
 	TaskParameters map[string]*MaintenanceWindowTaskParameterValueExpression `type:"map"`
 
 	// The type of task being registered.
@@ -25422,7 +27328,7 @@ type RegisterTaskWithMaintenanceWindowInput struct {
 	// TaskType is a required field
 	TaskType *string `type:"string" required:"true" enum:"MaintenanceWindowTaskType"`
 
-	// The id of the Maintenance Window the task should be added to.
+	// The ID of the Maintenance Window the task should be added to.
 	//
 	// WindowId is a required field
 	WindowId *string `min:"20" type:"string" required:"true"`
@@ -25620,12 +27526,29 @@ func (s *RegisterTaskWithMaintenanceWindowOutput) SetWindowTaskId(v string) *Reg
 type RemoveTagsFromResourceInput struct {
 	_ struct{} `type:"structure"`
 
-	// The resource ID for which you want to remove tags.
+	// The resource ID for which you want to remove tags. Use the ID of the resource.
+	// Here are some examples:
+	//
+	// ManagedInstance: mi-012345abcde
+	//
+	// MaintenanceWindow: mw-012345abcde
+	//
+	// PatchBaseline: pb-012345abcde
+	//
+	// For the Document and Parameter values, use the name of the resource.
+	//
+	// The ManagedInstance type for this API action is only for on-premises managed
+	// instances. You must specify the the name of the managed instance in the following
+	// format: mi-ID_number. For example, mi-1a2b3c4d5e6f.
 	//
 	// ResourceId is a required field
 	ResourceId *string `type:"string" required:"true"`
 
 	// The type of resource of which you want to remove a tag.
+	//
+	// The ManagedInstance type for this API action is only for on-premises managed
+	// instances. You must specify the the name of the managed instance in the following
+	// format: mi-ID_number. For example, mi-1a2b3c4d5e6f.
 	//
 	// ResourceType is a required field
 	ResourceType *string `type:"string" required:"true" enum:"ResourceTypeForTagging"`
@@ -25828,19 +27751,19 @@ type ResourceDataSyncItem struct {
 	LastStatus *string `type:"string" enum:"LastResourceDataSyncStatus"`
 
 	// The last time the sync operations returned a status of SUCCESSFUL (UTC).
-	LastSuccessfulSyncTime *time.Time `type:"timestamp" timestampFormat:"unix"`
+	LastSuccessfulSyncTime *time.Time `type:"timestamp"`
 
 	// The status message details reported by the last sync.
 	LastSyncStatusMessage *string `type:"string"`
 
 	// The last time the configuration attempted to sync (UTC).
-	LastSyncTime *time.Time `type:"timestamp" timestampFormat:"unix"`
+	LastSyncTime *time.Time `type:"timestamp"`
 
 	// Configuration information for the target Amazon S3 bucket.
 	S3Destination *ResourceDataSyncS3Destination `type:"structure"`
 
 	// The date and time the configuration was created (UTC).
-	SyncCreatedTime *time.Time `type:"timestamp" timestampFormat:"unix"`
+	SyncCreatedTime *time.Time `type:"timestamp"`
 
 	// The name of the Resource Data Sync.
 	SyncName *string `min:"1" type:"string"`
@@ -26212,6 +28135,9 @@ func (s SendAutomationSignalOutput) GoString() string {
 type SendCommandInput struct {
 	_ struct{} `type:"structure"`
 
+	// Enables Systems Manager to send Run Command output to Amazon CloudWatch Logs.
+	CloudWatchOutputConfig *CloudWatchOutputConfig `type:"structure"`
+
 	// User-specified information about the command, such as a brief description
 	// of what the command should do.
 	Comment *string `type:"string"`
@@ -26232,24 +28158,40 @@ type SendCommandInput struct {
 	// DocumentName is a required field
 	DocumentName *string `type:"string" required:"true"`
 
+	// The SSM document version to use in the request. You can specify $DEFAULT,
+	// $LATEST, or a specific version number. If you execute commands by using the
+	// AWS CLI, then you must escape the first two options by using a backslash.
+	// If you specify a version number, then you don't need to use the backslash.
+	// For example:
+	//
+	// --document-version "\$DEFAULT"
+	//
+	// --document-version "\$LATEST"
+	//
+	// --document-version "3"
+	DocumentVersion *string `type:"string"`
+
 	// The instance IDs where the command should execute. You can specify a maximum
 	// of 50 IDs. If you prefer not to list individual instance IDs, you can instead
 	// send commands to a fleet of instances using the Targets parameter, which
 	// accepts EC2 tags. For more information about how to use Targets, see Sending
-	// Commands to a Fleet (http://docs.aws.amazon.com/systems-manager/latest/userguide/send-commands-multiple.html).
+	// Commands to a Fleet (http://docs.aws.amazon.com/systems-manager/latest/userguide/send-commands-multiple.html)
+	// in the AWS Systems Manager User Guide.
 	InstanceIds []*string `type:"list"`
 
 	// (Optional) The maximum number of instances that are allowed to execute the
 	// command at the same time. You can specify a number such as 10 or a percentage
 	// such as 10%. The default value is 50. For more information about how to use
-	// MaxConcurrency, see Using Concurrency Controls (http://docs.aws.amazon.com/systems-manager/latest/userguide/send-commands-velocity.html).
+	// MaxConcurrency, see Using Concurrency Controls (http://docs.aws.amazon.com/systems-manager/latest/userguide/send-commands-multiple.html#send-commands-velocity)
+	// in the AWS Systems Manager User Guide.
 	MaxConcurrency *string `min:"1" type:"string"`
 
 	// The maximum number of errors allowed without the command failing. When the
 	// command fails one more time beyond the value of MaxErrors, the systems stops
 	// sending the command to additional targets. You can specify a number like
 	// 10 or a percentage like 10%. The default value is 0. For more information
-	// about how to use MaxErrors, see Using Error Controls (http://docs.aws.amazon.com/systems-manager/latest/userguide/send-commands-maxerrors.html).
+	// about how to use MaxErrors, see Using Error Controls (http://docs.aws.amazon.com/systems-manager/latest/userguide/send-commands-multiple.html#send-commands-maxerrors)
+	// in the AWS Systems Manager User Guide.
 	MaxErrors *string `min:"1" type:"string"`
 
 	// Configurations for sending notifications.
@@ -26276,11 +28218,12 @@ type SendCommandInput struct {
 	// (Optional) An array of search criteria that targets instances using a Key,Value
 	// combination that you specify. Targets is required if you don't provide one
 	// or more instance IDs in the call. For more information about how to use Targets,
-	// see Sending Commands to a Fleet (http://docs.aws.amazon.com/systems-manager/latest/userguide/send-commands-multiple.html).
+	// see Sending Commands to a Fleet (http://docs.aws.amazon.com/systems-manager/latest/userguide/send-commands-multiple.html)
+	// in the AWS Systems Manager User Guide.
 	Targets []*Target `type:"list"`
 
 	// If this time is reached and the command has not already started executing,
-	// it will not execute.
+	// it will not run.
 	TimeoutSeconds *int64 `min:"30" type:"integer"`
 }
 
@@ -26315,6 +28258,11 @@ func (s *SendCommandInput) Validate() error {
 	if s.TimeoutSeconds != nil && *s.TimeoutSeconds < 30 {
 		invalidParams.Add(request.NewErrParamMinValue("TimeoutSeconds", 30))
 	}
+	if s.CloudWatchOutputConfig != nil {
+		if err := s.CloudWatchOutputConfig.Validate(); err != nil {
+			invalidParams.AddNested("CloudWatchOutputConfig", err.(request.ErrInvalidParams))
+		}
+	}
 	if s.Targets != nil {
 		for i, v := range s.Targets {
 			if v == nil {
@@ -26330,6 +28278,12 @@ func (s *SendCommandInput) Validate() error {
 		return invalidParams
 	}
 	return nil
+}
+
+// SetCloudWatchOutputConfig sets the CloudWatchOutputConfig field's value.
+func (s *SendCommandInput) SetCloudWatchOutputConfig(v *CloudWatchOutputConfig) *SendCommandInput {
+	s.CloudWatchOutputConfig = v
+	return s
 }
 
 // SetComment sets the Comment field's value.
@@ -26353,6 +28307,12 @@ func (s *SendCommandInput) SetDocumentHashType(v string) *SendCommandInput {
 // SetDocumentName sets the DocumentName field's value.
 func (s *SendCommandInput) SetDocumentName(v string) *SendCommandInput {
 	s.DocumentName = &v
+	return s
+}
+
+// SetDocumentVersion sets the DocumentVersion field's value.
+func (s *SendCommandInput) SetDocumentVersion(v string) *SendCommandInput {
+	s.DocumentVersion = &v
 	return s
 }
 
@@ -26526,6 +28486,61 @@ func (s *SeveritySummary) SetMediumCount(v int64) *SeveritySummary {
 func (s *SeveritySummary) SetUnspecifiedCount(v int64) *SeveritySummary {
 	s.UnspecifiedCount = &v
 	return s
+}
+
+type StartAssociationsOnceInput struct {
+	_ struct{} `type:"structure"`
+
+	// The association IDs that you want to execute immediately and only one time.
+	//
+	// AssociationIds is a required field
+	AssociationIds []*string `min:"1" type:"list" required:"true"`
+}
+
+// String returns the string representation
+func (s StartAssociationsOnceInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s StartAssociationsOnceInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *StartAssociationsOnceInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "StartAssociationsOnceInput"}
+	if s.AssociationIds == nil {
+		invalidParams.Add(request.NewErrParamRequired("AssociationIds"))
+	}
+	if s.AssociationIds != nil && len(s.AssociationIds) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("AssociationIds", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetAssociationIds sets the AssociationIds field's value.
+func (s *StartAssociationsOnceInput) SetAssociationIds(v []*string) *StartAssociationsOnceInput {
+	s.AssociationIds = v
+	return s
+}
+
+type StartAssociationsOnceOutput struct {
+	_ struct{} `type:"structure"`
+}
+
+// String returns the string representation
+func (s StartAssociationsOnceOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s StartAssociationsOnceOutput) GoString() string {
+	return s.String()
 }
 
 type StartAutomationExecutionInput struct {
@@ -26715,11 +28730,11 @@ type StepExecution struct {
 
 	// If a step has finished execution, this contains the time the execution ended.
 	// If the step has not yet concluded, this field is not populated.
-	ExecutionEndTime *time.Time `type:"timestamp" timestampFormat:"unix"`
+	ExecutionEndTime *time.Time `type:"timestamp"`
 
 	// If a step has begun execution, this contains the time the step started. If
 	// the step is in Pending status, this field is not populated.
-	ExecutionStartTime *time.Time `type:"timestamp" timestampFormat:"unix"`
+	ExecutionStartTime *time.Time `type:"timestamp"`
 
 	// Information about the Automation failure.
 	FailureDetails *FailureDetails `type:"structure"`
@@ -26730,9 +28745,22 @@ type StepExecution struct {
 	// Fully-resolved values passed into the step before execution.
 	Inputs map[string]*string `type:"map"`
 
+	// Enable this option to designate a step as critical for the successful completion
+	// of the Automation. If a step with this designation fails, then Automation
+	// reports the final status of the Automation as Failed.
+	IsCritical *bool `type:"boolean"`
+
+	// Enable this option to stop an Automation execution at the end of a specific
+	// step. The Automation execution stops if the step execution failed or succeeded.
+	IsEnd *bool `type:"boolean"`
+
 	// The maximum number of tries to run the action of the step. The default value
 	// is 1.
 	MaxAttempts *int64 `type:"integer"`
+
+	// Specifies which step in an Automation to process next after successfully
+	// completing a step.
+	NextStep *string `type:"string"`
 
 	// The action to take if the step fails. The default value is Abort.
 	OnFailure *string `type:"string"`
@@ -26761,6 +28789,16 @@ type StepExecution struct {
 
 	// The timeout seconds of the step.
 	TimeoutSeconds *int64 `type:"long"`
+
+	// ValidNextSteps offer different strategies for managing an Automation workflow
+	// when a step finishes. Automation dynamically processes ValidNextSteps when
+	// a step is completed. For example, you can specify Abort to stop the Automation
+	// when a step fails or Continue to ignore the failure of the current step and
+	// allow Automation to continue processing the next step. You can also specify
+	// step:step_name to jump to a designated step after a step succeeds. The result
+	// of the current step dynamically determines the ValidNextSteps. If a step
+	// finishes and no ValidNextStep is designated, then the Automation stops.
+	ValidNextSteps []*string `type:"list"`
 }
 
 // String returns the string representation
@@ -26809,9 +28847,27 @@ func (s *StepExecution) SetInputs(v map[string]*string) *StepExecution {
 	return s
 }
 
+// SetIsCritical sets the IsCritical field's value.
+func (s *StepExecution) SetIsCritical(v bool) *StepExecution {
+	s.IsCritical = &v
+	return s
+}
+
+// SetIsEnd sets the IsEnd field's value.
+func (s *StepExecution) SetIsEnd(v bool) *StepExecution {
+	s.IsEnd = &v
+	return s
+}
+
 // SetMaxAttempts sets the MaxAttempts field's value.
 func (s *StepExecution) SetMaxAttempts(v int64) *StepExecution {
 	s.MaxAttempts = &v
+	return s
+}
+
+// SetNextStep sets the NextStep field's value.
+func (s *StepExecution) SetNextStep(v string) *StepExecution {
+	s.NextStep = &v
 	return s
 }
 
@@ -26866,6 +28922,12 @@ func (s *StepExecution) SetStepStatus(v string) *StepExecution {
 // SetTimeoutSeconds sets the TimeoutSeconds field's value.
 func (s *StepExecution) SetTimeoutSeconds(v int64) *StepExecution {
 	s.TimeoutSeconds = &v
+	return s
+}
+
+// SetValidNextSteps sets the ValidNextSteps field's value.
+func (s *StepExecution) SetValidNextSteps(v []*string) *StepExecution {
+	s.ValidNextSteps = v
 	return s
 }
 
@@ -27064,14 +29126,16 @@ type Target struct {
 	// User-defined criteria for sending commands that target instances that meet
 	// the criteria. Key can be tag:<Amazon EC2 tag> or InstanceIds. For more information
 	// about how to send commands that target instances using Key,Value parameters,
-	// see Executing a Command Using Systems Manager Run Command (http://docs.aws.amazon.com/systems-manager/latest/userguide/send-commands-multiple.html).
+	// see Targeting Multiple Instances (http://docs.aws.amazon.com/systems-manager/latest/userguide/send-commands-multiple.html#send-commands-targeting)
+	// in the AWS Systems Manager User Guide.
 	Key *string `min:"1" type:"string"`
 
 	// User-defined criteria that maps to Key. For example, if you specified tag:ServerRole,
 	// you could specify value:WebServer to execute a command on instances that
 	// include Amazon EC2 tags of ServerRole,WebServer. For more information about
 	// how to send commands that target instances using Key,Value parameters, see
-	// Executing a Command Using Systems Manager Run Command (http://docs.aws.amazon.com/systems-manager/latest/userguide/send-commands-multiple.html).
+	// Sending Commands to a Fleet (http://docs.aws.amazon.com/systems-manager/latest/userguide/send-commands-multiple.html)
+	// in the AWS Systems Manager User Guide.
 	Values []*string `type:"list"`
 }
 
@@ -27957,6 +30021,11 @@ type UpdateMaintenanceWindowTaskInput struct {
 	Description *string `min:"1" type:"string"`
 
 	// The new logging location in Amazon S3 to specify.
+	//
+	// LoggingInfo has been deprecated. To specify an S3 bucket to contain logs,
+	// instead use the OutputS3BucketName and OutputS3KeyPrefix options in the TaskInvocationParameters
+	// structure. For information about how Systems Manager handles these options
+	// for the supported Maintenance Window task types, see MaintenanceWindowTaskInvocationParameters.
 	LoggingInfo *LoggingInfo `type:"structure"`
 
 	// The new MaxConcurrency value you want to specify. MaxConcurrency is the number
@@ -27995,7 +30064,14 @@ type UpdateMaintenanceWindowTaskInput struct {
 	// fields that match the task type. All other fields should be empty.
 	TaskInvocationParameters *MaintenanceWindowTaskInvocationParameters `type:"structure"`
 
-	// The parameters to modify. The map has the following format:
+	// The parameters to modify.
+	//
+	// TaskParameters has been deprecated. To specify parameters to pass to a task
+	// when it runs, instead use the Parameters option in the TaskInvocationParameters
+	// structure. For information about how Systems Manager handles these options
+	// for the supported Maintenance Window task types, see MaintenanceWindowTaskInvocationParameters.
+	//
+	// The map has the following format:
 	//
 	// Key: string, between 1 and 255 characters
 	//
@@ -28171,6 +30247,11 @@ type UpdateMaintenanceWindowTaskOutput struct {
 	Description *string `min:"1" type:"string"`
 
 	// The updated logging information in Amazon S3.
+	//
+	// LoggingInfo has been deprecated. To specify an S3 bucket to contain logs,
+	// instead use the OutputS3BucketName and OutputS3KeyPrefix options in the TaskInvocationParameters
+	// structure. For information about how Systems Manager handles these options
+	// for the supported Maintenance Window task types, see MaintenanceWindowTaskInvocationParameters.
 	LoggingInfo *LoggingInfo `type:"structure"`
 
 	// The updated MaxConcurrency value.
@@ -28198,6 +30279,11 @@ type UpdateMaintenanceWindowTaskOutput struct {
 	TaskInvocationParameters *MaintenanceWindowTaskInvocationParameters `type:"structure"`
 
 	// The updated parameter values.
+	//
+	// TaskParameters has been deprecated. To specify parameters to pass to a task
+	// when it runs, instead use the Parameters option in the TaskInvocationParameters
+	// structure. For information about how Systems Manager handles these options
+	// for the supported Maintenance Window task types, see MaintenanceWindowTaskInvocationParameters.
 	TaskParameters map[string]*MaintenanceWindowTaskParameterValueExpression `type:"map"`
 
 	// The ID of the Maintenance Window that was updated.
@@ -28368,6 +30454,11 @@ type UpdatePatchBaselineInput struct {
 	ApprovalRules *PatchRuleGroup `type:"structure"`
 
 	// A list of explicitly approved patches for the baseline.
+	//
+	// For information about accepted formats for lists of approved patches and
+	// rejected patches, see Package Name Formats for Approved and Rejected Patch
+	// Lists (http://docs.aws.amazon.com/systems-manager/latest/userguide/patch-manager-approved-rejected-package-name-formats.html)
+	// in the AWS Systems Manager User Guide.
 	ApprovedPatches []*string `type:"list"`
 
 	// Assigns a new compliance severity level to an existing patch baseline.
@@ -28393,6 +30484,11 @@ type UpdatePatchBaselineInput struct {
 	Name *string `min:"3" type:"string"`
 
 	// A list of explicitly rejected patches for the baseline.
+	//
+	// For information about accepted formats for lists of approved patches and
+	// rejected patches, see Package Name Formats for Approved and Rejected Patch
+	// Lists (http://docs.aws.amazon.com/systems-manager/latest/userguide/patch-manager-approved-rejected-package-name-formats.html)
+	// in the AWS Systems Manager User Guide.
 	RejectedPatches []*string `type:"list"`
 
 	// If True, then all fields that are required by the CreatePatchBaseline action
@@ -28545,7 +30641,7 @@ type UpdatePatchBaselineOutput struct {
 	BaselineId *string `min:"20" type:"string"`
 
 	// The date when the patch baseline was created.
-	CreatedDate *time.Time `type:"timestamp" timestampFormat:"unix"`
+	CreatedDate *time.Time `type:"timestamp"`
 
 	// A description of the Patch Baseline.
 	Description *string `min:"1" type:"string"`
@@ -28554,7 +30650,7 @@ type UpdatePatchBaselineOutput struct {
 	GlobalFilters *PatchFilterGroup `type:"structure"`
 
 	// The date when the patch baseline was last modified.
-	ModifiedDate *time.Time `type:"timestamp" timestampFormat:"unix"`
+	ModifiedDate *time.Time `type:"timestamp"`
 
 	// The name of the patch baseline.
 	Name *string `min:"3" type:"string"`
@@ -28659,6 +30755,28 @@ func (s *UpdatePatchBaselineOutput) SetSources(v []*PatchSource) *UpdatePatchBas
 }
 
 const (
+	// AssociationExecutionFilterKeyExecutionId is a AssociationExecutionFilterKey enum value
+	AssociationExecutionFilterKeyExecutionId = "ExecutionId"
+
+	// AssociationExecutionFilterKeyStatus is a AssociationExecutionFilterKey enum value
+	AssociationExecutionFilterKeyStatus = "Status"
+
+	// AssociationExecutionFilterKeyCreatedTime is a AssociationExecutionFilterKey enum value
+	AssociationExecutionFilterKeyCreatedTime = "CreatedTime"
+)
+
+const (
+	// AssociationExecutionTargetsFilterKeyStatus is a AssociationExecutionTargetsFilterKey enum value
+	AssociationExecutionTargetsFilterKeyStatus = "Status"
+
+	// AssociationExecutionTargetsFilterKeyResourceId is a AssociationExecutionTargetsFilterKey enum value
+	AssociationExecutionTargetsFilterKeyResourceId = "ResourceId"
+
+	// AssociationExecutionTargetsFilterKeyResourceType is a AssociationExecutionTargetsFilterKey enum value
+	AssociationExecutionTargetsFilterKeyResourceType = "ResourceType"
+)
+
+const (
 	// AssociationFilterKeyInstanceId is a AssociationFilterKey enum value
 	AssociationFilterKeyInstanceId = "InstanceId"
 
@@ -28679,6 +30797,17 @@ const (
 
 	// AssociationFilterKeyAssociationName is a AssociationFilterKey enum value
 	AssociationFilterKeyAssociationName = "AssociationName"
+)
+
+const (
+	// AssociationFilterOperatorTypeEqual is a AssociationFilterOperatorType enum value
+	AssociationFilterOperatorTypeEqual = "EQUAL"
+
+	// AssociationFilterOperatorTypeLessThan is a AssociationFilterOperatorType enum value
+	AssociationFilterOperatorTypeLessThan = "LESS_THAN"
+
+	// AssociationFilterOperatorTypeGreaterThan is a AssociationFilterOperatorType enum value
+	AssociationFilterOperatorTypeGreaterThan = "GREATER_THAN"
 )
 
 const (
@@ -29013,6 +31142,14 @@ const (
 )
 
 const (
+	// InventoryDeletionStatusInProgress is a InventoryDeletionStatus enum value
+	InventoryDeletionStatusInProgress = "InProgress"
+
+	// InventoryDeletionStatusComplete is a InventoryDeletionStatus enum value
+	InventoryDeletionStatusComplete = "Complete"
+)
+
+const (
 	// InventoryQueryOperatorTypeEqual is a InventoryQueryOperatorType enum value
 	InventoryQueryOperatorTypeEqual = "Equal"
 
@@ -29027,6 +31164,14 @@ const (
 
 	// InventoryQueryOperatorTypeGreaterThan is a InventoryQueryOperatorType enum value
 	InventoryQueryOperatorTypeGreaterThan = "GreaterThan"
+)
+
+const (
+	// InventorySchemaDeleteOptionDisableSchema is a InventorySchemaDeleteOption enum value
+	InventorySchemaDeleteOptionDisableSchema = "DisableSchema"
+
+	// InventorySchemaDeleteOptionDeleteSchema is a InventorySchemaDeleteOption enum value
+	InventorySchemaDeleteOptionDeleteSchema = "DeleteSchema"
 )
 
 const (
@@ -29119,6 +31264,9 @@ const (
 
 	// OperatingSystemAmazonLinux is a OperatingSystem enum value
 	OperatingSystemAmazonLinux = "AMAZON_LINUX"
+
+	// OperatingSystemAmazonLinux2 is a OperatingSystem enum value
+	OperatingSystemAmazonLinux2 = "AMAZON_LINUX_2"
 
 	// OperatingSystemUbuntu is a OperatingSystem enum value
 	OperatingSystemUbuntu = "UBUNTU"
