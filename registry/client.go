@@ -70,8 +70,8 @@ func (c *Client) Discover(host svchost.Hostname, serviceID string) *url.URL {
 	return service
 }
 
-// Versions queries the registry for a module, and returns the available versions.
-func (c *Client) Versions(module *regsrc.Module) (*response.ModuleVersions, error) {
+// ModuleVersions queries the registry for a module, and returns the available versions.
+func (c *Client) ModuleVersions(module *regsrc.Module) (*response.ModuleVersions, error) {
 	host, err := module.SvcHost()
 	if err != nil {
 		return nil, err
@@ -142,9 +142,9 @@ func (c *Client) addRequestCreds(host svchost.Hostname, req *http.Request) {
 	}
 }
 
-// Location find the download location for a specific version module.
+// ModuleLocation find the download location for a specific version module.
 // This returns a string, because the final location may contain special go-getter syntax.
-func (c *Client) Location(module *regsrc.Module, version string) (string, error) {
+func (c *Client) ModuleLocation(module *regsrc.Module, version string) (string, error) {
 	host, err := module.SvcHost()
 	if err != nil {
 		return "", err
