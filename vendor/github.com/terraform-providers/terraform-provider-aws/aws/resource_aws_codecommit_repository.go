@@ -21,30 +21,16 @@ func resourceAwsCodeCommitRepository() *schema.Resource {
 
 		Schema: map[string]*schema.Schema{
 			"repository_name": {
-				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: true,
-				ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
-					value := v.(string)
-					if len(value) > 100 {
-						errors = append(errors, fmt.Errorf(
-							"%q cannot be longer than 100 characters", k))
-					}
-					return
-				},
+				Type:         schema.TypeString,
+				Required:     true,
+				ForceNew:     true,
+				ValidateFunc: validateMaxLength(100),
 			},
 
 			"description": {
-				Type:     schema.TypeString,
-				Optional: true,
-				ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
-					value := v.(string)
-					if len(value) > 1000 {
-						errors = append(errors, fmt.Errorf(
-							"%q cannot be longer than 1000 characters", k))
-					}
-					return
-				},
+				Type:         schema.TypeString,
+				Optional:     true,
+				ValidateFunc: validateMaxLength(1000),
 			},
 
 			"arn": {

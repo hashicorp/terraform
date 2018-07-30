@@ -92,7 +92,7 @@ func resourceAwsApiGatewayVpcLinkRead(d *schema.ResourceData, meta interface{}) 
 
 	d.Set("name", resp.Name)
 	d.Set("description", resp.Description)
-	d.Set("target_arn", flattenStringList(resp.TargetArns))
+	d.Set("target_arns", flattenStringList(resp.TargetArns))
 	return nil
 }
 

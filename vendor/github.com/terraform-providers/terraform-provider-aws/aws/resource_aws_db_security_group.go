@@ -7,8 +7,10 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/arn"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/rds"
+
 	"github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/resource"
@@ -176,29 +178,28 @@ func resourceAwsDbSecurityGroupRead(d *schema.ResourceData, meta interface{}) er
 	d.Set("ingress", rules)
 
 	conn := meta.(*AWSClient).rdsconn
-	arn, err := buildRDSSecurityGroupARN(d.Id(), meta.(*AWSClient).partition, meta.(*AWSClient).accountid, meta.(*AWSClient).region)
+
+	arn := arn.ARN{
+		Partition: meta.(*AWSClient).partition,
+		Service:   "rds",
+		Region:    meta.(*AWSClient).region,
+		AccountID: meta.(*AWSClient).accountid,
+		Resource:  fmt.Sprintf("secgrp:%s", d.Id()),
+	}.String()
+	d.Set("arn", arn)
+	resp, err := conn.ListTagsForResource(&rds.ListTagsForResourceInput{
+		ResourceName: aws.String(arn),
+	})
+
 	if err != nil {
-		name := "<empty>"
-		if sg.DBSecurityGroupName != nil && *sg.DBSecurityGroupName != "" {
-			name = *sg.DBSecurityGroupName
-		}
-		log.Printf("[DEBUG] Error building ARN for DB Security Group, not setting Tags for DB Security Group %s", name)
-	} else {
-		d.Set("arn", arn)
-		resp, err := conn.ListTagsForResource(&rds.ListTagsForResourceInput{
-			ResourceName: aws.String(arn),
-		})
-
-		if err != nil {
-			log.Printf("[DEBUG] Error retrieving tags for ARN: %s", arn)
-		}
-
-		var dt []*rds.Tag
-		if len(resp.TagList) > 0 {
-			dt = resp.TagList
-		}
-		d.Set("tags", tagsToMapRDS(dt))
+		log.Printf("[DEBUG] Error retrieving tags for ARN: %s", arn)
 	}
+
+	var dt []*rds.Tag
+	if len(resp.TagList) > 0 {
+		dt = resp.TagList
+	}
+	d.Set("tags", tagsToMapRDS(dt))
 
 	return nil
 }
@@ -207,12 +208,18 @@ func resourceAwsDbSecurityGroupUpdate(d *schema.ResourceData, meta interface{}) 
 	conn := meta.(*AWSClient).rdsconn
 
 	d.Partial(true)
-	if arn, err := buildRDSSecurityGroupARN(d.Id(), meta.(*AWSClient).partition, meta.(*AWSClient).accountid, meta.(*AWSClient).region); err == nil {
-		if err := setTagsRDS(conn, d, arn); err != nil {
-			return err
-		} else {
-			d.SetPartial("tags")
-		}
+
+	arn := arn.ARN{
+		Partition: meta.(*AWSClient).partition,
+		Service:   "rds",
+		Region:    meta.(*AWSClient).region,
+		AccountID: meta.(*AWSClient).accountid,
+		Resource:  fmt.Sprintf("secgrp:%s", d.Id()),
+	}.String()
+	if err := setTagsRDS(conn, d, arn); err != nil {
+		return err
+	} else {
+		d.SetPartial("tags")
 	}
 
 	if d.HasChange("ingress") {
@@ -419,16 +426,4 @@ func resourceAwsDbSecurityGroupStateRefreshFunc(
 
 		return v, "authorized", nil
 	}
-}
-
-func buildRDSSecurityGroupARN(identifier, partition, accountid, region string) (string, error) {
-	if partition == "" {
-		return "", fmt.Errorf("Unable to construct RDS ARN because of missing AWS partition")
-	}
-	if accountid == "" {
-		return "", fmt.Errorf("Unable to construct RDS ARN because of missing AWS Account ID")
-	}
-	arn := fmt.Sprintf("arn:%s:rds:%s:%s:secgrp:%s", partition, region, accountid, identifier)
-	return arn, nil
-
 }

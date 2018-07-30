@@ -11,6 +11,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/efs"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/hashicorp/terraform/helper/validation"
 )
 
 func resourceAwsEfsFileSystem() *schema.Resource {
@@ -42,11 +43,14 @@ func resourceAwsEfsFileSystem() *schema.Resource {
 			},
 
 			"performance_mode": {
-				Type:         schema.TypeString,
-				Optional:     true,
-				Computed:     true,
-				ForceNew:     true,
-				ValidateFunc: validatePerformanceModeType,
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
+				ForceNew: true,
+				ValidateFunc: validation.StringInSlice([]string{
+					efs.PerformanceModeGeneralPurpose,
+					efs.PerformanceModeMaxIo,
+				}, false),
 			},
 
 			"encrypted": {
@@ -296,16 +300,6 @@ func validateReferenceName(v interface{}, k string) (ws []string, errors []error
 	if len(creationToken) > 64 {
 		errors = append(errors, fmt.Errorf(
 			"%q cannot take the Creation Token over the limit of 64 characters: %q", k, value))
-	}
-	return
-}
-
-func validatePerformanceModeType(v interface{}, k string) (ws []string, errors []error) {
-	value := v.(string)
-	if value != efs.PerformanceModeGeneralPurpose && value != efs.PerformanceModeMaxIo {
-		errors = append(errors, fmt.Errorf(
-			"%q contains an invalid Performance Mode %q. Valid modes are either %q or %q.",
-			k, value, efs.PerformanceModeGeneralPurpose, efs.PerformanceModeMaxIo))
 	}
 	return
 }

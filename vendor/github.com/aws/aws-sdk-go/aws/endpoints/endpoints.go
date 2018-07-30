@@ -347,6 +347,10 @@ type ResolvedEndpoint struct {
 	// The service name that should be used for signing requests.
 	SigningName string
 
+	// States that the signing name for this endpoint was derived from metadata
+	// passed in, but was not explicitly modeled.
+	SigningNameDerived bool
+
 	// The signing method that should be used for signing requests.
 	SigningMethod string
 }

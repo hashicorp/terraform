@@ -8,8 +8,10 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/arn"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/rds"
+
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
@@ -189,30 +191,27 @@ func resourceAwsDbOptionGroupRead(d *schema.ResourceData, meta interface{}) erro
 		d.Set("option", flattenOptions(option.Options))
 	}
 
-	optionGroup := options.OptionGroupsList[0]
-	arn, err := buildRDSOptionGroupARN(d.Id(), meta.(*AWSClient).partition, meta.(*AWSClient).accountid, meta.(*AWSClient).region)
+	arn := arn.ARN{
+		Partition: meta.(*AWSClient).partition,
+		Service:   "rds",
+		Region:    meta.(*AWSClient).region,
+		AccountID: meta.(*AWSClient).accountid,
+		Resource:  fmt.Sprintf("og:%s", d.Id()),
+	}.String()
+	d.Set("arn", arn)
+	resp, err := rdsconn.ListTagsForResource(&rds.ListTagsForResourceInput{
+		ResourceName: aws.String(arn),
+	})
+
 	if err != nil {
-		name := "<empty>"
-		if optionGroup.OptionGroupName != nil && *optionGroup.OptionGroupName != "" {
-			name = *optionGroup.OptionGroupName
-		}
-		log.Printf("[DEBUG] Error building ARN for DB Option Group, not setting Tags for Option Group %s", name)
-	} else {
-		d.Set("arn", arn)
-		resp, err := rdsconn.ListTagsForResource(&rds.ListTagsForResourceInput{
-			ResourceName: aws.String(arn),
-		})
-
-		if err != nil {
-			log.Printf("[DEBUG] Error retrieving tags for ARN: %s", arn)
-		}
-
-		var dt []*rds.Tag
-		if len(resp.TagList) > 0 {
-			dt = resp.TagList
-		}
-		d.Set("tags", tagsToMapRDS(dt))
+		log.Printf("[DEBUG] Error retrieving tags for ARN: %s", arn)
 	}
+
+	var dt []*rds.Tag
+	if len(resp.TagList) > 0 {
+		dt = resp.TagList
+	}
+	d.Set("tags", tagsToMapRDS(dt))
 
 	return nil
 }
@@ -284,12 +283,17 @@ func resourceAwsDbOptionGroupUpdate(d *schema.ResourceData, meta interface{}) er
 
 	}
 
-	if arn, err := buildRDSOptionGroupARN(d.Id(), meta.(*AWSClient).partition, meta.(*AWSClient).accountid, meta.(*AWSClient).region); err == nil {
-		if err := setTagsRDS(rdsconn, d, arn); err != nil {
-			return err
-		} else {
-			d.SetPartial("tags")
-		}
+	arn := arn.ARN{
+		Partition: meta.(*AWSClient).partition,
+		Service:   "rds",
+		Region:    meta.(*AWSClient).region,
+		AccountID: meta.(*AWSClient).accountid,
+		Resource:  fmt.Sprintf("og:%s", d.Id()),
+	}.String()
+	if err := setTagsRDS(rdsconn, d, arn); err != nil {
+		return err
+	} else {
+		d.SetPartial("tags")
 	}
 
 	return resourceAwsDbOptionGroupRead(d, meta)
@@ -354,15 +358,4 @@ func resourceAwsDbOptionHash(v interface{}) int {
 		buf.WriteString(fmt.Sprintf("%s-", sgRaw.(string)))
 	}
 	return hashcode.String(buf.String())
-}
-
-func buildRDSOptionGroupARN(identifier, partition, accountid, region string) (string, error) {
-	if partition == "" {
-		return "", fmt.Errorf("Unable to construct RDS Option Group ARN because of missing AWS partition")
-	}
-	if accountid == "" {
-		return "", fmt.Errorf("Unable to construct RDS Option Group ARN because of missing AWS Account ID")
-	}
-	arn := fmt.Sprintf("arn:%s:rds:%s:%s:og:%s", partition, region, accountid, identifier)
-	return arn, nil
 }

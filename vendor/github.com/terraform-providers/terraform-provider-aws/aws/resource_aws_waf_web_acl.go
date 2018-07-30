@@ -8,6 +8,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/waf"
 	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/hashicorp/terraform/helper/validation"
 )
 
 func resourceAwsWafWebAcl() *schema.Resource {
@@ -68,14 +69,10 @@ func resourceAwsWafWebAcl() *schema.Resource {
 							Type:     schema.TypeString,
 							Optional: true,
 							Default:  waf.WafRuleTypeRegular,
-							ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
-								value := v.(string)
-								if value != waf.WafRuleTypeRegular && value != waf.WafRuleTypeRateBased {
-									errors = append(errors, fmt.Errorf(
-										"%q must be one of %s | %s", k, waf.WafRuleTypeRegular, waf.WafRuleTypeRateBased))
-								}
-								return
-							},
+							ValidateFunc: validation.StringInSlice([]string{
+								waf.WafRuleTypeRegular,
+								waf.WafRuleTypeRateBased,
+							}, false),
 						},
 						"rule_id": &schema.Schema{
 							Type:     schema.TypeString,

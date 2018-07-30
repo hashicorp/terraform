@@ -3,6 +3,7 @@ package aws
 import (
 	"fmt"
 
+	"github.com/aws/aws-sdk-go/aws/arn"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -51,7 +52,14 @@ func dataSourceAwsCloudTrailServiceAccountRead(d *schema.ResourceData, meta inte
 
 	if accid, ok := cloudTrailServiceAccountPerRegionMap[region]; ok {
 		d.SetId(accid)
-		d.Set("arn", iamArnString(meta.(*AWSClient).partition, accid, "root"))
+		arn := arn.ARN{
+			Partition: meta.(*AWSClient).partition,
+			Service:   "iam",
+			AccountID: accid,
+			Resource:  "root",
+		}.String()
+		d.Set("arn", arn)
+
 		return nil
 	}
 

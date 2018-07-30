@@ -10,6 +10,7 @@ import (
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/helper/structure"
+	"github.com/hashicorp/terraform/helper/validation"
 )
 
 // Mutable attributes
@@ -88,7 +89,7 @@ func resourceAwsSnsTopic() *schema.Resource {
 			"application_success_feedback_sample_rate": {
 				Type:         schema.TypeInt,
 				Optional:     true,
-				ValidateFunc: validateIntegerInRange(0, 100),
+				ValidateFunc: validation.IntBetween(0, 100),
 			},
 			"application_failure_feedback_role_arn": {
 				Type:     schema.TypeString,
@@ -101,7 +102,7 @@ func resourceAwsSnsTopic() *schema.Resource {
 			"http_success_feedback_sample_rate": {
 				Type:         schema.TypeInt,
 				Optional:     true,
-				ValidateFunc: validateIntegerInRange(0, 100),
+				ValidateFunc: validation.IntBetween(0, 100),
 			},
 			"http_failure_feedback_role_arn": {
 				Type:     schema.TypeString,
@@ -114,7 +115,7 @@ func resourceAwsSnsTopic() *schema.Resource {
 			"lambda_success_feedback_sample_rate": {
 				Type:         schema.TypeInt,
 				Optional:     true,
-				ValidateFunc: validateIntegerInRange(0, 100),
+				ValidateFunc: validation.IntBetween(0, 100),
 			},
 			"lambda_failure_feedback_role_arn": {
 				Type:     schema.TypeString,
@@ -127,7 +128,7 @@ func resourceAwsSnsTopic() *schema.Resource {
 			"sqs_success_feedback_sample_rate": {
 				Type:         schema.TypeInt,
 				Optional:     true,
-				ValidateFunc: validateIntegerInRange(0, 100),
+				ValidateFunc: validation.IntBetween(0, 100),
 			},
 			"sqs_failure_feedback_role_arn": {
 				Type:     schema.TypeString,

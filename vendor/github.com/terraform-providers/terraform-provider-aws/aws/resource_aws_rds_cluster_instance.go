@@ -7,7 +7,9 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/arn"
 	"github.com/aws/aws-sdk-go/service/rds"
+
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 )
@@ -89,7 +91,7 @@ func resourceAwsRDSClusterInstance() *schema.Resource {
 				Optional:     true,
 				ForceNew:     true,
 				Default:      "aurora",
-				ValidateFunc: validateRdsEngine,
+				ValidateFunc: validateRdsEngine(),
 			},
 
 			"engine_version": {
@@ -307,6 +309,10 @@ func resourceAwsRDSClusterInstanceRead(d *schema.ResourceData, meta interface{})
 		d.SetId("")
 		return nil
 	}
+	// Database instance is not in RDS Cluster
+	if db.DBClusterIdentifier == nil {
+		return fmt.Errorf("Cluster identifier is missing from instance (%s). The aws_db_instance resource should be used for non-Aurora instances", d.Id())
+	}
 
 	// Retrieve DB Cluster information, to determine if this Instance is a writer
 	conn := meta.(*AWSClient).rdsconn
@@ -375,13 +381,15 @@ func resourceAwsRDSClusterInstanceRead(d *schema.ResourceData, meta interface{})
 	}
 
 	// Fetch and save tags
-	arn, err := buildRDSARN(d.Id(), meta.(*AWSClient).partition, meta.(*AWSClient).accountid, meta.(*AWSClient).region)
-	if err != nil {
-		log.Printf("[DEBUG] Error building ARN for RDS Cluster Instance (%s), not setting Tags", *db.DBInstanceIdentifier)
-	} else {
-		if err := saveTagsRDS(conn, d, arn); err != nil {
-			log.Printf("[WARN] Failed to save tags for RDS Cluster Instance (%s): %s", *db.DBClusterIdentifier, err)
-		}
+	arn := arn.ARN{
+		Partition: meta.(*AWSClient).partition,
+		Service:   "rds",
+		Region:    meta.(*AWSClient).region,
+		AccountID: meta.(*AWSClient).accountid,
+		Resource:  fmt.Sprintf("db:%s", d.Id()),
+	}.String()
+	if err := saveTagsRDS(conn, d, arn); err != nil {
+		log.Printf("[WARN] Failed to save tags for RDS Cluster Instance (%s): %s", *db.DBClusterIdentifier, err)
 	}
 
 	return nil
@@ -483,10 +491,15 @@ func resourceAwsRDSClusterInstanceUpdate(d *schema.ResourceData, meta interface{
 
 	}
 
-	if arn, err := buildRDSARN(d.Id(), meta.(*AWSClient).partition, meta.(*AWSClient).accountid, meta.(*AWSClient).region); err == nil {
-		if err := setTagsRDS(conn, d, arn); err != nil {
-			return err
-		}
+	arn := arn.ARN{
+		Partition: meta.(*AWSClient).partition,
+		Service:   "rds",
+		Region:    meta.(*AWSClient).region,
+		AccountID: meta.(*AWSClient).accountid,
+		Resource:  fmt.Sprintf("db:%s", d.Id()),
+	}.String()
+	if err := setTagsRDS(conn, d, arn); err != nil {
+		return err
 	}
 
 	return resourceAwsRDSClusterInstanceRead(d, meta)

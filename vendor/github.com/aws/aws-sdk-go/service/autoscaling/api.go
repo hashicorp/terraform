@@ -17,7 +17,7 @@ const opAttachInstances = "AttachInstances"
 
 // AttachInstancesRequest generates a "aws/request.Request" representing the
 // client's request for the AttachInstances operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -87,6 +87,9 @@ func (c *AutoScaling) AttachInstancesRequest(input *AttachInstancesInput) (req *
 //   You already have a pending update to an Auto Scaling resource (for example,
 //   a group, instance, or load balancer).
 //
+//   * ErrCodeServiceLinkedRoleFailure "ServiceLinkedRoleFailure"
+//   The service-linked role is not yet ready for use.
+//
 // See also, https://docs.aws.amazon.com/goto/WebAPI/autoscaling-2011-01-01/AttachInstances
 func (c *AutoScaling) AttachInstances(input *AttachInstancesInput) (*AttachInstancesOutput, error) {
 	req, out := c.AttachInstancesRequest(input)
@@ -113,7 +116,7 @@ const opAttachLoadBalancerTargetGroups = "AttachLoadBalancerTargetGroups"
 
 // AttachLoadBalancerTargetGroupsRequest generates a "aws/request.Request" representing the
 // client's request for the AttachLoadBalancerTargetGroups operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -174,6 +177,9 @@ func (c *AutoScaling) AttachLoadBalancerTargetGroupsRequest(input *AttachLoadBal
 //   You already have a pending update to an Auto Scaling resource (for example,
 //   a group, instance, or load balancer).
 //
+//   * ErrCodeServiceLinkedRoleFailure "ServiceLinkedRoleFailure"
+//   The service-linked role is not yet ready for use.
+//
 // See also, https://docs.aws.amazon.com/goto/WebAPI/autoscaling-2011-01-01/AttachLoadBalancerTargetGroups
 func (c *AutoScaling) AttachLoadBalancerTargetGroups(input *AttachLoadBalancerTargetGroupsInput) (*AttachLoadBalancerTargetGroupsOutput, error) {
 	req, out := c.AttachLoadBalancerTargetGroupsRequest(input)
@@ -200,7 +206,7 @@ const opAttachLoadBalancers = "AttachLoadBalancers"
 
 // AttachLoadBalancersRequest generates a "aws/request.Request" representing the
 // client's request for the AttachLoadBalancers operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -264,6 +270,9 @@ func (c *AutoScaling) AttachLoadBalancersRequest(input *AttachLoadBalancersInput
 //   You already have a pending update to an Auto Scaling resource (for example,
 //   a group, instance, or load balancer).
 //
+//   * ErrCodeServiceLinkedRoleFailure "ServiceLinkedRoleFailure"
+//   The service-linked role is not yet ready for use.
+//
 // See also, https://docs.aws.amazon.com/goto/WebAPI/autoscaling-2011-01-01/AttachLoadBalancers
 func (c *AutoScaling) AttachLoadBalancers(input *AttachLoadBalancersInput) (*AttachLoadBalancersOutput, error) {
 	req, out := c.AttachLoadBalancersRequest(input)
@@ -290,7 +299,7 @@ const opCompleteLifecycleAction = "CompleteLifecycleAction"
 
 // CompleteLifecycleActionRequest generates a "aws/request.Request" representing the
 // client's request for the CompleteLifecycleAction operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -392,7 +401,7 @@ const opCreateAutoScalingGroup = "CreateAutoScalingGroup"
 
 // CreateAutoScalingGroupRequest generates a "aws/request.Request" representing the
 // client's request for the CreateAutoScalingGroup operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -436,9 +445,10 @@ func (c *AutoScaling) CreateAutoScalingGroupRequest(input *CreateAutoScalingGrou
 //
 // Creates an Auto Scaling group with the specified name and attributes.
 //
-// If you exceed your maximum limit of Auto Scaling groups, which by default
-// is 20 per region, the call fails. For information about viewing and updating
-// this limit, see DescribeAccountLimits.
+// If you exceed your maximum limit of Auto Scaling groups, the call fails.
+// For information about viewing this limit, see DescribeAccountLimits. For
+// information about updating this limit, see Auto Scaling Limits (http://docs.aws.amazon.com/autoscaling/latest/userguide/as-account-limits.html)
+// in the Auto Scaling User Guide.
 //
 // For more information, see Auto Scaling Groups (http://docs.aws.amazon.com/autoscaling/latest/userguide/AutoScalingGroup.html)
 // in the Auto Scaling User Guide.
@@ -463,6 +473,9 @@ func (c *AutoScaling) CreateAutoScalingGroupRequest(input *CreateAutoScalingGrou
 //   * ErrCodeResourceContentionFault "ResourceContention"
 //   You already have a pending update to an Auto Scaling resource (for example,
 //   a group, instance, or load balancer).
+//
+//   * ErrCodeServiceLinkedRoleFailure "ServiceLinkedRoleFailure"
+//   The service-linked role is not yet ready for use.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/autoscaling-2011-01-01/CreateAutoScalingGroup
 func (c *AutoScaling) CreateAutoScalingGroup(input *CreateAutoScalingGroupInput) (*CreateAutoScalingGroupOutput, error) {
@@ -490,7 +503,7 @@ const opCreateLaunchConfiguration = "CreateLaunchConfiguration"
 
 // CreateLaunchConfigurationRequest generates a "aws/request.Request" representing the
 // client's request for the CreateLaunchConfiguration operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -534,9 +547,10 @@ func (c *AutoScaling) CreateLaunchConfigurationRequest(input *CreateLaunchConfig
 //
 // Creates a launch configuration.
 //
-// If you exceed your maximum limit of launch configurations, which by default
-// is 100 per region, the call fails. For information about viewing and updating
-// this limit, see DescribeAccountLimits.
+// If you exceed your maximum limit of launch configurations, the call fails.
+// For information about viewing this limit, see DescribeAccountLimits. For
+// information about updating this limit, see Auto Scaling Limits (http://docs.aws.amazon.com/autoscaling/latest/userguide/as-account-limits.html)
+// in the Auto Scaling User Guide.
 //
 // For more information, see Launch Configurations (http://docs.aws.amazon.com/autoscaling/latest/userguide/LaunchConfiguration.html)
 // in the Auto Scaling User Guide.
@@ -588,7 +602,7 @@ const opCreateOrUpdateTags = "CreateOrUpdateTags"
 
 // CreateOrUpdateTagsRequest generates a "aws/request.Request" representing the
 // client's request for the CreateOrUpdateTags operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -688,7 +702,7 @@ const opDeleteAutoScalingGroup = "DeleteAutoScalingGroup"
 
 // DeleteAutoScalingGroupRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteAutoScalingGroup operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -791,7 +805,7 @@ const opDeleteLaunchConfiguration = "DeleteLaunchConfiguration"
 
 // DeleteLaunchConfigurationRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteLaunchConfiguration operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -880,7 +894,7 @@ const opDeleteLifecycleHook = "DeleteLifecycleHook"
 
 // DeleteLifecycleHookRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteLifecycleHook operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -963,7 +977,7 @@ const opDeleteNotificationConfiguration = "DeleteNotificationConfiguration"
 
 // DeleteNotificationConfigurationRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteNotificationConfiguration operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -1045,7 +1059,7 @@ const opDeletePolicy = "DeletePolicy"
 
 // DeletePolicyRequest generates a "aws/request.Request" representing the
 // client's request for the DeletePolicy operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -1104,6 +1118,9 @@ func (c *AutoScaling) DeletePolicyRequest(input *DeletePolicyInput) (req *reques
 //   You already have a pending update to an Auto Scaling resource (for example,
 //   a group, instance, or load balancer).
 //
+//   * ErrCodeServiceLinkedRoleFailure "ServiceLinkedRoleFailure"
+//   The service-linked role is not yet ready for use.
+//
 // See also, https://docs.aws.amazon.com/goto/WebAPI/autoscaling-2011-01-01/DeletePolicy
 func (c *AutoScaling) DeletePolicy(input *DeletePolicyInput) (*DeletePolicyOutput, error) {
 	req, out := c.DeletePolicyRequest(input)
@@ -1130,7 +1147,7 @@ const opDeleteScheduledAction = "DeleteScheduledAction"
 
 // DeleteScheduledActionRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteScheduledAction operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -1212,7 +1229,7 @@ const opDeleteTags = "DeleteTags"
 
 // DeleteTagsRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteTags operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -1297,7 +1314,7 @@ const opDescribeAccountLimits = "DescribeAccountLimits"
 
 // DescribeAccountLimitsRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeAccountLimits operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -1339,9 +1356,9 @@ func (c *AutoScaling) DescribeAccountLimitsRequest(input *DescribeAccountLimitsI
 //
 // Describes the current Auto Scaling resource limits for your AWS account.
 //
-// For information about requesting an increase in these limits, see AWS Service
-// Limits (http://docs.aws.amazon.com/general/latest/gr/aws_service_limits.html)
-// in the Amazon Web Services General Reference.
+// For information about requesting an increase in these limits, see Auto Scaling
+// Limits (http://docs.aws.amazon.com/autoscaling/latest/userguide/as-account-limits.html)
+// in the Auto Scaling User Guide.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -1381,7 +1398,7 @@ const opDescribeAdjustmentTypes = "DescribeAdjustmentTypes"
 
 // DescribeAdjustmentTypesRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeAdjustmentTypes operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -1461,7 +1478,7 @@ const opDescribeAutoScalingGroups = "DescribeAutoScalingGroups"
 
 // DescribeAutoScalingGroupsRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeAutoScalingGroups operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -1600,7 +1617,7 @@ const opDescribeAutoScalingInstances = "DescribeAutoScalingInstances"
 
 // DescribeAutoScalingInstancesRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeAutoScalingInstances operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -1739,7 +1756,7 @@ const opDescribeAutoScalingNotificationTypes = "DescribeAutoScalingNotificationT
 
 // DescribeAutoScalingNotificationTypesRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeAutoScalingNotificationTypes operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -1819,7 +1836,7 @@ const opDescribeLaunchConfigurations = "DescribeLaunchConfigurations"
 
 // DescribeLaunchConfigurationsRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeLaunchConfigurations operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -1958,7 +1975,7 @@ const opDescribeLifecycleHookTypes = "DescribeLifecycleHookTypes"
 
 // DescribeLifecycleHookTypesRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeLifecycleHookTypes operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -2038,7 +2055,7 @@ const opDescribeLifecycleHooks = "DescribeLifecycleHooks"
 
 // DescribeLifecycleHooksRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeLifecycleHooks operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -2118,7 +2135,7 @@ const opDescribeLoadBalancerTargetGroups = "DescribeLoadBalancerTargetGroups"
 
 // DescribeLoadBalancerTargetGroupsRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeLoadBalancerTargetGroups operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -2198,7 +2215,7 @@ const opDescribeLoadBalancers = "DescribeLoadBalancers"
 
 // DescribeLoadBalancersRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeLoadBalancers operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -2281,7 +2298,7 @@ const opDescribeMetricCollectionTypes = "DescribeMetricCollectionTypes"
 
 // DescribeMetricCollectionTypesRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeMetricCollectionTypes operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -2364,7 +2381,7 @@ const opDescribeNotificationConfigurations = "DescribeNotificationConfigurations
 
 // DescribeNotificationConfigurationsRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeNotificationConfigurations operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -2504,7 +2521,7 @@ const opDescribePolicies = "DescribePolicies"
 
 // DescribePoliciesRequest generates a "aws/request.Request" representing the
 // client's request for the DescribePolicies operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -2566,6 +2583,9 @@ func (c *AutoScaling) DescribePoliciesRequest(input *DescribePoliciesInput) (req
 //   * ErrCodeResourceContentionFault "ResourceContention"
 //   You already have a pending update to an Auto Scaling resource (for example,
 //   a group, instance, or load balancer).
+//
+//   * ErrCodeServiceLinkedRoleFailure "ServiceLinkedRoleFailure"
+//   The service-linked role is not yet ready for use.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/autoscaling-2011-01-01/DescribePolicies
 func (c *AutoScaling) DescribePolicies(input *DescribePoliciesInput) (*DescribePoliciesOutput, error) {
@@ -2643,7 +2663,7 @@ const opDescribeScalingActivities = "DescribeScalingActivities"
 
 // DescribeScalingActivitiesRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeScalingActivities operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -2782,7 +2802,7 @@ const opDescribeScalingProcessTypes = "DescribeScalingProcessTypes"
 
 // DescribeScalingProcessTypesRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeScalingProcessTypes operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -2862,7 +2882,7 @@ const opDescribeScheduledActions = "DescribeScheduledActions"
 
 // DescribeScheduledActionsRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeScheduledActions operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -3002,7 +3022,7 @@ const opDescribeTags = "DescribeTags"
 
 // DescribeTagsRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeTags operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -3150,7 +3170,7 @@ const opDescribeTerminationPolicyTypes = "DescribeTerminationPolicyTypes"
 
 // DescribeTerminationPolicyTypesRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeTerminationPolicyTypes operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -3230,7 +3250,7 @@ const opDetachInstances = "DetachInstances"
 
 // DetachInstancesRequest generates a "aws/request.Request" representing the
 // client's request for the DetachInstances operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -3325,7 +3345,7 @@ const opDetachLoadBalancerTargetGroups = "DetachLoadBalancerTargetGroups"
 
 // DetachLoadBalancerTargetGroupsRequest generates a "aws/request.Request" representing the
 // client's request for the DetachLoadBalancerTargetGroups operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -3405,7 +3425,7 @@ const opDetachLoadBalancers = "DetachLoadBalancers"
 
 // DetachLoadBalancersRequest generates a "aws/request.Request" representing the
 // client's request for the DetachLoadBalancers operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -3494,7 +3514,7 @@ const opDisableMetricsCollection = "DisableMetricsCollection"
 
 // DisableMetricsCollectionRequest generates a "aws/request.Request" representing the
 // client's request for the DisableMetricsCollection operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -3576,7 +3596,7 @@ const opEnableMetricsCollection = "EnableMetricsCollection"
 
 // EnableMetricsCollectionRequest generates a "aws/request.Request" representing the
 // client's request for the EnableMetricsCollection operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -3660,7 +3680,7 @@ const opEnterStandby = "EnterStandby"
 
 // EnterStandbyRequest generates a "aws/request.Request" representing the
 // client's request for the EnterStandby operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -3744,7 +3764,7 @@ const opExecutePolicy = "ExecutePolicy"
 
 // ExecutePolicyRequest generates a "aws/request.Request" representing the
 // client's request for the ExecutePolicy operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -3830,7 +3850,7 @@ const opExitStandby = "ExitStandby"
 
 // ExitStandbyRequest generates a "aws/request.Request" representing the
 // client's request for the ExitStandby operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -3914,7 +3934,7 @@ const opPutLifecycleHook = "PutLifecycleHook"
 
 // PutLifecycleHookRequest generates a "aws/request.Request" representing the
 // client's request for the PutLifecycleHook operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -4029,7 +4049,7 @@ const opPutNotificationConfiguration = "PutNotificationConfiguration"
 
 // PutNotificationConfigurationRequest generates a "aws/request.Request" representing the
 // client's request for the PutNotificationConfiguration operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -4098,6 +4118,9 @@ func (c *AutoScaling) PutNotificationConfigurationRequest(input *PutNotification
 //   You already have a pending update to an Auto Scaling resource (for example,
 //   a group, instance, or load balancer).
 //
+//   * ErrCodeServiceLinkedRoleFailure "ServiceLinkedRoleFailure"
+//   The service-linked role is not yet ready for use.
+//
 // See also, https://docs.aws.amazon.com/goto/WebAPI/autoscaling-2011-01-01/PutNotificationConfiguration
 func (c *AutoScaling) PutNotificationConfiguration(input *PutNotificationConfigurationInput) (*PutNotificationConfigurationOutput, error) {
 	req, out := c.PutNotificationConfigurationRequest(input)
@@ -4124,7 +4147,7 @@ const opPutScalingPolicy = "PutScalingPolicy"
 
 // PutScalingPolicyRequest generates a "aws/request.Request" representing the
 // client's request for the PutScalingPolicy operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -4191,6 +4214,9 @@ func (c *AutoScaling) PutScalingPolicyRequest(input *PutScalingPolicyInput) (req
 //   You already have a pending update to an Auto Scaling resource (for example,
 //   a group, instance, or load balancer).
 //
+//   * ErrCodeServiceLinkedRoleFailure "ServiceLinkedRoleFailure"
+//   The service-linked role is not yet ready for use.
+//
 // See also, https://docs.aws.amazon.com/goto/WebAPI/autoscaling-2011-01-01/PutScalingPolicy
 func (c *AutoScaling) PutScalingPolicy(input *PutScalingPolicyInput) (*PutScalingPolicyOutput, error) {
 	req, out := c.PutScalingPolicyRequest(input)
@@ -4217,7 +4243,7 @@ const opPutScheduledUpdateGroupAction = "PutScheduledUpdateGroupAction"
 
 // PutScheduledUpdateGroupActionRequest generates a "aws/request.Request" representing the
 // client's request for the PutScheduledUpdateGroupAction operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -4313,7 +4339,7 @@ const opRecordLifecycleActionHeartbeat = "RecordLifecycleActionHeartbeat"
 
 // RecordLifecycleActionHeartbeatRequest generates a "aws/request.Request" representing the
 // client's request for the RecordLifecycleActionHeartbeat operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -4416,7 +4442,7 @@ const opResumeProcesses = "ResumeProcesses"
 
 // ResumeProcessesRequest generates a "aws/request.Request" representing the
 // client's request for the ResumeProcesses operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -4506,7 +4532,7 @@ const opSetDesiredCapacity = "SetDesiredCapacity"
 
 // SetDesiredCapacityRequest generates a "aws/request.Request" representing the
 // client's request for the SetDesiredCapacity operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -4595,7 +4621,7 @@ const opSetInstanceHealth = "SetInstanceHealth"
 
 // SetInstanceHealthRequest generates a "aws/request.Request" representing the
 // client's request for the SetInstanceHealth operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -4680,7 +4706,7 @@ const opSetInstanceProtection = "SetInstanceProtection"
 
 // SetInstanceProtectionRequest generates a "aws/request.Request" representing the
 // client's request for the SetInstanceProtection operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -4768,7 +4794,7 @@ const opSuspendProcesses = "SuspendProcesses"
 
 // SuspendProcessesRequest generates a "aws/request.Request" representing the
 // client's request for the SuspendProcesses operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -4863,7 +4889,7 @@ const opTerminateInstanceInAutoScalingGroup = "TerminateInstanceInAutoScalingGro
 
 // TerminateInstanceInAutoScalingGroupRequest generates a "aws/request.Request" representing the
 // client's request for the TerminateInstanceInAutoScalingGroup operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -4951,7 +4977,7 @@ const opUpdateAutoScalingGroup = "UpdateAutoScalingGroup"
 
 // UpdateAutoScalingGroupRequest generates a "aws/request.Request" representing the
 // client's request for the UpdateAutoScalingGroup operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -5032,6 +5058,9 @@ func (c *AutoScaling) UpdateAutoScalingGroupRequest(input *UpdateAutoScalingGrou
 //   * ErrCodeResourceContentionFault "ResourceContention"
 //   You already have a pending update to an Auto Scaling resource (for example,
 //   a group, instance, or load balancer).
+//
+//   * ErrCodeServiceLinkedRoleFailure "ServiceLinkedRoleFailure"
+//   The service-linked role is not yet ready for use.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/autoscaling-2011-01-01/UpdateAutoScalingGroup
 func (c *AutoScaling) UpdateAutoScalingGroup(input *UpdateAutoScalingGroupInput) (*UpdateAutoScalingGroupOutput, error) {
@@ -5241,7 +5270,7 @@ type AttachInstancesInput struct {
 	// AutoScalingGroupName is a required field
 	AutoScalingGroupName *string `min:"1" type:"string" required:"true"`
 
-	// One or more instance IDs.
+	// The IDs of the instances. You can specify up to 20 instances.
 	InstanceIds []*string `type:"list"`
 }
 
@@ -5305,7 +5334,8 @@ type AttachLoadBalancerTargetGroupsInput struct {
 	// AutoScalingGroupName is a required field
 	AutoScalingGroupName *string `min:"1" type:"string" required:"true"`
 
-	// The Amazon Resource Names (ARN) of the target groups.
+	// The Amazon Resource Names (ARN) of the target groups. You can specify up
+	// to 10 target groups.
 	//
 	// TargetGroupARNs is a required field
 	TargetGroupARNs []*string `type:"list" required:"true"`
@@ -5374,7 +5404,7 @@ type AttachLoadBalancersInput struct {
 	// AutoScalingGroupName is a required field
 	AutoScalingGroupName *string `min:"1" type:"string" required:"true"`
 
-	// One or more load balancer names.
+	// The names of the load balancers. You can specify up to 10 load balancers.
 	//
 	// LoadBalancerNames is a required field
 	LoadBalancerNames []*string `type:"list" required:"true"`
@@ -5725,6 +5755,12 @@ type CreateAutoScalingGroupInput struct {
 	// in the Amazon Elastic Compute Cloud User Guide.
 	PlacementGroup *string `min:"1" type:"string"`
 
+	// The Amazon Resource Name (ARN) of the service-linked role that the Auto Scaling
+	// group uses to call other AWS services on your behalf. By default, Auto Scaling
+	// uses a service-linked role named AWSServiceRoleForAutoScaling, which it creates
+	// if it does not exist.
+	ServiceLinkedRoleARN *string `min:"1" type:"string"`
+
 	// One or more tags.
 	//
 	// For more information, see Tagging Auto Scaling Groups and Instances (http://docs.aws.amazon.com/autoscaling/latest/userguide/autoscaling-tagging.html)
@@ -5792,6 +5828,9 @@ func (s *CreateAutoScalingGroupInput) Validate() error {
 	}
 	if s.PlacementGroup != nil && len(*s.PlacementGroup) < 1 {
 		invalidParams.Add(request.NewErrParamMinLen("PlacementGroup", 1))
+	}
+	if s.ServiceLinkedRoleARN != nil && len(*s.ServiceLinkedRoleARN) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ServiceLinkedRoleARN", 1))
 	}
 	if s.VPCZoneIdentifier != nil && len(*s.VPCZoneIdentifier) < 1 {
 		invalidParams.Add(request.NewErrParamMinLen("VPCZoneIdentifier", 1))
@@ -5918,6 +5957,12 @@ func (s *CreateAutoScalingGroupInput) SetPlacementGroup(v string) *CreateAutoSca
 	return s
 }
 
+// SetServiceLinkedRoleARN sets the ServiceLinkedRoleARN field's value.
+func (s *CreateAutoScalingGroupInput) SetServiceLinkedRoleARN(v string) *CreateAutoScalingGroupInput {
+	s.ServiceLinkedRoleARN = &v
+	return s
+}
+
 // SetTags sets the Tags field's value.
 func (s *CreateAutoScalingGroupInput) SetTags(v []*Tag) *CreateAutoScalingGroupInput {
 	s.Tags = v
@@ -5968,9 +6013,8 @@ type CreateLaunchConfigurationInput struct {
 	// you create your group.
 	//
 	// Default: If the instance is launched into a default subnet, the default is
-	// true. If the instance is launched into a nondefault subnet, the default is
-	// false. For more information, see Supported Platforms (http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-supported-platforms.html)
-	// in the Amazon Elastic Compute Cloud User Guide.
+	// to assign a public IP address. If the instance is launched into a nondefault
+	// subnet, the default is not to assign a public IP address.
 	AssociatePublicIpAddress *bool `type:"boolean"`
 
 	// One or more mappings that specify how block devices are exposed to the instance.
@@ -7106,7 +7150,7 @@ type DescribeAutoScalingInstancesInput struct {
 	InstanceIds []*string `type:"list"`
 
 	// The maximum number of items to return with this call. The default value is
-	// 50 and the maximum value is 100.
+	// 50 and the maximum value is 50.
 	MaxRecords *int64 `type:"integer"`
 
 	// The token for the next set of items to return. (You received this token from
@@ -7411,7 +7455,7 @@ type DescribeLoadBalancerTargetGroupsInput struct {
 	AutoScalingGroupName *string `min:"1" type:"string" required:"true"`
 
 	// The maximum number of items to return with this call. The default value is
-	// 50 and the maximum value is 100.
+	// 100 and the maximum value is 100.
 	MaxRecords *int64 `type:"integer"`
 
 	// The token for the next set of items to return. (You received this token from
@@ -7505,7 +7549,7 @@ type DescribeLoadBalancersInput struct {
 	AutoScalingGroupName *string `min:"1" type:"string" required:"true"`
 
 	// The maximum number of items to return with this call. The default value is
-	// 50 and the maximum value is 100.
+	// 100 and the maximum value is 100.
 	MaxRecords *int64 `type:"integer"`
 
 	// The token for the next set of items to return. (You received this token from
@@ -7838,7 +7882,7 @@ type DescribeScalingActivitiesInput struct {
 	AutoScalingGroupName *string `min:"1" type:"string"`
 
 	// The maximum number of items to return with this call. The default value is
-	// 100.
+	// 100 and the maximum value is 100.
 	MaxRecords *int64 `type:"integer"`
 
 	// The token for the next set of items to return. (You received this token from
@@ -8212,11 +8256,11 @@ type DetachInstancesInput struct {
 	// AutoScalingGroupName is a required field
 	AutoScalingGroupName *string `min:"1" type:"string" required:"true"`
 
-	// One or more instance IDs.
+	// The IDs of the instances. You can specify up to 20 instances.
 	InstanceIds []*string `type:"list"`
 
-	// If True, the Auto Scaling group decrements the desired capacity value by
-	// the number of instances detached.
+	// Indicates whether the Auto Scaling group decrements the desired capacity
+	// value by the number of instances detached.
 	//
 	// ShouldDecrementDesiredCapacity is a required field
 	ShouldDecrementDesiredCapacity *bool `type:"boolean" required:"true"`
@@ -8300,7 +8344,8 @@ type DetachLoadBalancerTargetGroupsInput struct {
 	// AutoScalingGroupName is a required field
 	AutoScalingGroupName *string `min:"1" type:"string" required:"true"`
 
-	// The Amazon Resource Names (ARN) of the target groups.
+	// The Amazon Resource Names (ARN) of the target groups. You can specify up
+	// to 10 target groups.
 	//
 	// TargetGroupARNs is a required field
 	TargetGroupARNs []*string `type:"list" required:"true"`
@@ -8369,7 +8414,7 @@ type DetachLoadBalancersInput struct {
 	// AutoScalingGroupName is a required field
 	AutoScalingGroupName *string `min:"1" type:"string" required:"true"`
 
-	// One or more load balancer names.
+	// The names of the load balancers. You can specify up to 10 load balancers.
 	//
 	// LoadBalancerNames is a required field
 	LoadBalancerNames []*string `type:"list" required:"true"`
@@ -8515,9 +8560,8 @@ func (s DisableMetricsCollectionOutput) GoString() string {
 type Ebs struct {
 	_ struct{} `type:"structure"`
 
-	// Indicates whether the volume is deleted on instance termination.
-	//
-	// Default: true
+	// Indicates whether the volume is deleted on instance termination. The default
+	// is true.
 	DeleteOnTermination *bool `type:"boolean"`
 
 	// Indicates whether the volume should be encrypted. Encrypted EBS volumes must
@@ -8779,14 +8823,11 @@ type EnterStandbyInput struct {
 	// AutoScalingGroupName is a required field
 	AutoScalingGroupName *string `min:"1" type:"string" required:"true"`
 
-	// One or more instances to move into Standby mode. You must specify at least
-	// one instance ID.
+	// The IDs of the instances. You can specify up to 20 instances.
 	InstanceIds []*string `type:"list"`
 
-	// Specifies whether the instances moved to Standby mode count as part of the
-	// Auto Scaling group's desired capacity. If set, the desired capacity for the
-	// Auto Scaling group decrements by the number of instances moved to Standby
-	// mode.
+	// Indicates whether to decrement the desired capacity of the Auto Scaling group
+	// by the number of instances moved to Standby mode.
 	//
 	// ShouldDecrementDesiredCapacity is a required field
 	ShouldDecrementDesiredCapacity *bool `type:"boolean" required:"true"`
@@ -8874,9 +8915,8 @@ type ExecutePolicyInput struct {
 	// otherwise.
 	BreachThreshold *float64 `type:"double"`
 
-	// If this parameter is true, Auto Scaling waits for the cooldown period to
-	// complete before executing the policy. Otherwise, Auto Scaling executes the
-	// policy without waiting for the cooldown period to complete.
+	// Indicates whether Auto Scaling waits for the cooldown period to complete
+	// before executing the policy.
 	//
 	// This parameter is not supported if the policy type is StepScaling.
 	//
@@ -8984,7 +9024,7 @@ type ExitStandbyInput struct {
 	// AutoScalingGroupName is a required field
 	AutoScalingGroupName *string `min:"1" type:"string" required:"true"`
 
-	// One or more instance IDs. You must specify at least one instance ID.
+	// The IDs of the instances. You can specify up to 20 instances.
 	InstanceIds []*string `type:"list"`
 }
 
@@ -9159,6 +9199,10 @@ type Group struct {
 	// in the Amazon Elastic Compute Cloud User Guide.
 	PlacementGroup *string `min:"1" type:"string"`
 
+	// The Amazon Resource Name (ARN) of the service-linked role that the Auto Scaling
+	// group uses to call other AWS services on your behalf.
+	ServiceLinkedRoleARN *string `min:"1" type:"string"`
+
 	// The current state of the group when DeleteAutoScalingGroup is in progress.
 	Status *string `min:"1" type:"string"`
 
@@ -9290,6 +9334,12 @@ func (s *Group) SetNewInstancesProtectedFromScaleIn(v bool) *Group {
 // SetPlacementGroup sets the PlacementGroup field's value.
 func (s *Group) SetPlacementGroup(v string) *Group {
 	s.PlacementGroup = &v
+	return s
+}
+
+// SetServiceLinkedRoleARN sets the ServiceLinkedRoleARN field's value.
+func (s *Group) SetServiceLinkedRoleARN(v string) *Group {
+	s.ServiceLinkedRoleARN = &v
 	return s
 }
 
@@ -9766,8 +9816,10 @@ type LaunchTemplateSpecification struct {
 	// or a template ID.
 	LaunchTemplateName *string `min:"3" type:"string"`
 
-	// The version number. By default, the default version of the launch template
-	// is used.
+	// The version number, $Latest, or $Default. If the value is $Latest, Auto Scaling
+	// selects the latest version of the launch template when launching instances.
+	// If the value is $Default, Auto Scaling selects the default version of the
+	// launch template when launching instances. The default value is $Default.
 	Version *string `min:"1" type:"string"`
 }
 
@@ -11542,10 +11594,10 @@ type SetDesiredCapacityInput struct {
 	// DesiredCapacity is a required field
 	DesiredCapacity *int64 `type:"integer" required:"true"`
 
-	// By default, SetDesiredCapacity overrides any cooldown period associated with
-	// the Auto Scaling group. Specify True to make Auto Scaling to wait for the
-	// cool-down period associated with the Auto Scaling group to complete before
-	// initiating a scaling activity to set your Auto Scaling group to its new capacity.
+	// Indicates whether Auto Scaling waits for the cooldown period to complete
+	// before initiating a scaling activity to set your Auto Scaling group to its
+	// new capacity. By default, Auto Scaling does not honor the cooldown period
+	// during manual scaling activities.
 	HonorCooldown *bool `type:"boolean"`
 }
 
@@ -12076,10 +12128,9 @@ type TargetTrackingConfiguration struct {
 	CustomizedMetricSpecification *CustomizedMetricSpecification `type:"structure"`
 
 	// Indicates whether scale in by the target tracking policy is disabled. If
-	// the value is true, scale in is disabled and the target tracking policy won't
-	// remove instances from the Auto Scaling group. Otherwise, scale in is enabled
-	// and the target tracking policy can remove instances from the Auto Scaling
-	// group. The default value is false.
+	// scale in is disabled, the target tracking policy won't remove instances from
+	// the Auto Scaling group. Otherwise, the target tracking policy can remove
+	// instances from the Auto Scaling group. The default is disabled.
 	DisableScaleIn *bool `type:"boolean"`
 
 	// A predefined metric. You can specify either a predefined metric or a customized
@@ -12157,8 +12208,8 @@ type TerminateInstanceInAutoScalingGroupInput struct {
 	// InstanceId is a required field
 	InstanceId *string `min:"1" type:"string" required:"true"`
 
-	// If true, terminating the instance also decrements the size of the Auto Scaling
-	// group.
+	// Indicates whether terminating the instance also decrements the size of the
+	// Auto Scaling group.
 	//
 	// ShouldDecrementDesiredCapacity is a required field
 	ShouldDecrementDesiredCapacity *bool `type:"boolean" required:"true"`
@@ -12262,12 +12313,12 @@ type UpdateAutoScalingGroupInput struct {
 	// The service to use for the health checks. The valid values are EC2 and ELB.
 	HealthCheckType *string `min:"1" type:"string"`
 
-	// The name of the launch configuration. You must specify either a launch configuration
-	// or a launch template.
+	// The name of the launch configuration. If you specify a launch configuration,
+	// you can't specify a launch template.
 	LaunchConfigurationName *string `min:"1" type:"string"`
 
-	// The launch template to use to specify the updates. You must specify a launch
-	// configuration or a launch template.
+	// The launch template to use to specify the updates. If you specify a launch
+	// template, you can't specify a launch configuration.
 	LaunchTemplate *LaunchTemplateSpecification `type:"structure"`
 
 	// The maximum size of the Auto Scaling group.
@@ -12284,6 +12335,10 @@ type UpdateAutoScalingGroupInput struct {
 	// if any. For more information, see Placement Groups (http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/placement-groups.html)
 	// in the Amazon Elastic Compute Cloud User Guide.
 	PlacementGroup *string `min:"1" type:"string"`
+
+	// The Amazon Resource Name (ARN) of the service-linked role that the Auto Scaling
+	// group uses to call other AWS services on your behalf.
+	ServiceLinkedRoleARN *string `min:"1" type:"string"`
 
 	// A standalone termination policy or a list of termination policies used to
 	// select the instance to terminate. The policies are executed in the order
@@ -12335,6 +12390,9 @@ func (s *UpdateAutoScalingGroupInput) Validate() error {
 	}
 	if s.PlacementGroup != nil && len(*s.PlacementGroup) < 1 {
 		invalidParams.Add(request.NewErrParamMinLen("PlacementGroup", 1))
+	}
+	if s.ServiceLinkedRoleARN != nil && len(*s.ServiceLinkedRoleARN) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ServiceLinkedRoleARN", 1))
 	}
 	if s.VPCZoneIdentifier != nil && len(*s.VPCZoneIdentifier) < 1 {
 		invalidParams.Add(request.NewErrParamMinLen("VPCZoneIdentifier", 1))
@@ -12420,6 +12478,12 @@ func (s *UpdateAutoScalingGroupInput) SetNewInstancesProtectedFromScaleIn(v bool
 // SetPlacementGroup sets the PlacementGroup field's value.
 func (s *UpdateAutoScalingGroupInput) SetPlacementGroup(v string) *UpdateAutoScalingGroupInput {
 	s.PlacementGroup = &v
+	return s
+}
+
+// SetServiceLinkedRoleARN sets the ServiceLinkedRoleARN field's value.
+func (s *UpdateAutoScalingGroupInput) SetServiceLinkedRoleARN(v string) *UpdateAutoScalingGroupInput {
+	s.ServiceLinkedRoleARN = &v
 	return s
 }
 

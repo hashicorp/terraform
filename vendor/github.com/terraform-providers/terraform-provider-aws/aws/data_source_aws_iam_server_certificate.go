@@ -10,6 +10,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/iam"
 	"github.com/hashicorp/errwrap"
+	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -24,28 +25,15 @@ func dataSourceAwsIAMServerCertificate() *schema.Resource {
 				Computed:      true,
 				ForceNew:      true,
 				ConflictsWith: []string{"name_prefix"},
-				ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
-					value := v.(string)
-					if len(value) > 128 {
-						errors = append(errors, fmt.Errorf(
-							"%q cannot be longer than 128 characters", k))
-					}
-					return
-				},
+				ValidateFunc:  validateMaxLength(128),
 			},
 
 			"name_prefix": {
-				Type:     schema.TypeString,
-				Optional: true,
-				ForceNew: true,
-				ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
-					value := v.(string)
-					if len(value) > 102 {
-						errors = append(errors, fmt.Errorf(
-							"%q cannot be longer than 102 characters, name is limited to 128", k))
-					}
-					return
-				},
+				Type:          schema.TypeString,
+				Optional:      true,
+				ForceNew:      true,
+				ConflictsWith: []string{"name"},
+				ValidateFunc:  validateMaxLength(128 - resource.UniqueIDSuffixLength),
 			},
 
 			"latest": {
@@ -114,7 +102,7 @@ func dataSourceAwsIAMServerCertificateRead(d *schema.ResourceData, meta interfac
 		}
 	}
 
-	var metadatas = []*iam.ServerCertificateMetadata{}
+	var metadatas []*iam.ServerCertificateMetadata
 	log.Printf("[DEBUG] Reading IAM Server Certificate")
 	err := iamconn.ListServerCertificatesPages(&iam.ListServerCertificatesInput{}, func(p *iam.ListServerCertificatesOutput, lastPage bool) bool {
 		for _, cert := range p.ServerCertificateMetadataList {

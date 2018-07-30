@@ -25,10 +25,13 @@ func resourceAwsGameliftBuild() *schema.Resource {
 				ValidateFunc: validation.StringLenBetween(1, 1024),
 			},
 			"operating_system": {
-				Type:         schema.TypeString,
-				Required:     true,
-				ForceNew:     true,
-				ValidateFunc: validateGameliftOperatingSystem,
+				Type:     schema.TypeString,
+				Required: true,
+				ForceNew: true,
+				ValidateFunc: validation.StringInSlice([]string{
+					gamelift.OperatingSystemAmazonLinux,
+					gamelift.OperatingSystemWindows2012,
+				}, false),
 			},
 			"storage_location": {
 				Type:     schema.TypeList,

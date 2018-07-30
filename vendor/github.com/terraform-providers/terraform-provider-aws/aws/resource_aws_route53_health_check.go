@@ -7,6 +7,7 @@ import (
 
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/hashicorp/terraform/helper/validation"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
@@ -84,16 +85,9 @@ func resourceAwsRoute53HealthCheck() *schema.Resource {
 				Set:      schema.HashString,
 			},
 			"child_health_threshold": {
-				Type:     schema.TypeInt,
-				Optional: true,
-				ValidateFunc: func(v interface{}, k string) (ws []string, es []error) {
-					value := v.(int)
-					if value > 256 {
-						es = append(es, fmt.Errorf(
-							"Child HealthThreshold cannot be more than 256"))
-					}
-					return
-				},
+				Type:         schema.TypeInt,
+				Optional:     true,
+				ValidateFunc: validation.IntAtMost(256),
 			},
 
 			"cloudwatch_alarm_name": {
