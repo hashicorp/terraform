@@ -13,6 +13,7 @@ func resourceAwsSsmMaintenanceWindowTarget() *schema.Resource {
 	return &schema.Resource{
 		Create: resourceAwsSsmMaintenanceWindowTargetCreate,
 		Read:   resourceAwsSsmMaintenanceWindowTargetRead,
+		Update: resourceAwsSsmMaintenanceWindowTargetUpdate,
 		Delete: resourceAwsSsmMaintenanceWindowTargetDelete,
 
 		Schema: map[string]*schema.Schema{
@@ -31,7 +32,6 @@ func resourceAwsSsmMaintenanceWindowTarget() *schema.Resource {
 			"targets": {
 				Type:     schema.TypeList,
 				Required: true,
-				ForceNew: true,
 				MaxItems: 5,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
@@ -50,7 +50,6 @@ func resourceAwsSsmMaintenanceWindowTarget() *schema.Resource {
 
 			"owner_information": {
 				Type:     schema.TypeString,
-				ForceNew: true,
 				Optional: true,
 			},
 		},
@@ -65,7 +64,7 @@ func resourceAwsSsmMaintenanceWindowTargetCreate(d *schema.ResourceData, meta in
 	params := &ssm.RegisterTargetWithMaintenanceWindowInput{
 		WindowId:     aws.String(d.Get("window_id").(string)),
 		ResourceType: aws.String(d.Get("resource_type").(string)),
-		Targets:      expandAwsSsmTargets(d),
+		Targets:      expandAwsSsmTargets(d.Get("targets").([]interface{})),
 	}
 
 	if v, ok := d.GetOk("owner_information"); ok {
@@ -119,6 +118,29 @@ func resourceAwsSsmMaintenanceWindowTargetRead(d *schema.ResourceData, meta inte
 		log.Printf("[INFO] Maintenance Window Target not found. Removing from state")
 		d.SetId("")
 		return nil
+	}
+
+	return nil
+}
+
+func resourceAwsSsmMaintenanceWindowTargetUpdate(d *schema.ResourceData, meta interface{}) error {
+	ssmconn := meta.(*AWSClient).ssmconn
+
+	log.Printf("[INFO] Updating SSM Maintenance Window Target: %s", d.Id())
+
+	params := &ssm.UpdateMaintenanceWindowTargetInput{
+		Targets:        expandAwsSsmTargets(d.Get("targets").([]interface{})),
+		WindowId:       aws.String(d.Get("window_id").(string)),
+		WindowTargetId: aws.String(d.Id()),
+	}
+
+	if d.HasChange("owner_information") {
+		params.OwnerInformation = aws.String(d.Get("owner_information").(string))
+	}
+
+	_, err := ssmconn.UpdateMaintenanceWindowTarget(params)
+	if err != nil {
+		return err
 	}
 
 	return nil

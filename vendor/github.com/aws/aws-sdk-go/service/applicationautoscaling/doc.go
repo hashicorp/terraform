@@ -3,9 +3,9 @@
 // Package applicationautoscaling provides the client and types for making API
 // requests to Application Auto Scaling.
 //
-// With Application Auto Scaling, you can automatically scale your AWS resources.
-// The experience is similar to that of Auto Scaling (https://aws.amazon.com/autoscaling/).
-// You can use Application Auto Scaling to accomplish the following tasks:
+// With Application Auto Scaling, you can configure automatic scaling for your
+// scalable AWS resources. You can use Application Auto Scaling to accomplish
+// the following tasks:
 //
 //    * Define scaling policies to automatically scale your AWS resources
 //
@@ -40,6 +40,13 @@
 //
 //    * Amazon Aurora Replicas. For more information, see Using Amazon Aurora
 //    Auto Scaling with Aurora Replicas (http://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Aurora.Integrating.AutoScaling.html).
+//
+//    * Amazon SageMaker endpoints. For more information, see Automatically
+//    Scaling Amazon SageMaker Models (http://docs.aws.amazon.com/sagemaker/latest/dg/endpoint-auto-scaling.html).
+//
+// To configure automatic scaling for multiple resources across multiple services,
+// use AWS Auto Scaling to create a scaling plan for your application. For more
+// information, see AWS Auto Scaling (http://aws.amazon.com/autoscaling).
 //
 // For a list of supported regions, see AWS Regions and Endpoints: Application
 // Auto Scaling (http://docs.aws.amazon.com/general/latest/gr/rande.html#as-app_region)

@@ -9,6 +9,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/iam"
 
 	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/hashicorp/terraform/helper/validation"
 )
 
 func resourceAwsIamUserSshKey() *schema.Resource {
@@ -38,9 +39,12 @@ func resourceAwsIamUserSshKey() *schema.Resource {
 			},
 
 			"encoding": &schema.Schema{
-				Type:         schema.TypeString,
-				Required:     true,
-				ValidateFunc: validateIamUserSSHKeyEncoding,
+				Type:     schema.TypeString,
+				Required: true,
+				ValidateFunc: validation.StringInSlice([]string{
+					iam.EncodingTypeSsh,
+					iam.EncodingTypePem,
+				}, false),
 			},
 
 			"status": &schema.Schema{
@@ -135,17 +139,4 @@ func resourceAwsIamUserSshKeyDelete(d *schema.ResourceData, meta interface{}) er
 		return fmt.Errorf("Error deleting IAM User SSH Key %s: %s", d.Id(), err)
 	}
 	return nil
-}
-
-func validateIamUserSSHKeyEncoding(v interface{}, k string) (ws []string, errors []error) {
-	value := v.(string)
-	encodingTypes := map[string]bool{
-		"PEM": true,
-		"SSH": true,
-	}
-
-	if !encodingTypes[value] {
-		errors = append(errors, fmt.Errorf("IAM User SSH Key Encoding can only be PEM or SSH"))
-	}
-	return
 }

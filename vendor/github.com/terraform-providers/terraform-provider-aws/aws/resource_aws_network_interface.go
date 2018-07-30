@@ -225,7 +225,7 @@ func resourceAwsNetworkInterfaceDetach(oa *schema.Set, meta interface{}, eniId s
 			}
 		}
 
-		log.Printf("[DEBUG] Waiting for ENI (%s) to become dettached", eniId)
+		log.Printf("[DEBUG] Waiting for ENI (%s) to become detached", eniId)
 		stateConf := &resource.StateChangeConf{
 			Pending: []string{"true"},
 			Target:  []string{"false"},
@@ -234,7 +234,7 @@ func resourceAwsNetworkInterfaceDetach(oa *schema.Set, meta interface{}, eniId s
 		}
 		if _, err := stateConf.WaitForState(); err != nil {
 			return fmt.Errorf(
-				"Error waiting for ENI (%s) to become dettached: %s", eniId, err)
+				"Error waiting for ENI (%s) to become detached: %s", eniId, err)
 		}
 	}
 

@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/arn"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/apigateway"
 	"github.com/hashicorp/terraform/helper/resource"
@@ -121,12 +122,14 @@ func resourceAwsApiGatewayDeploymentRead(d *schema.ResourceData, meta interface{
 
 	d.Set("invoke_url", buildApiGatewayInvokeURL(restApiId, region, stageName))
 
-	accountId := meta.(*AWSClient).accountid
-	arn, err := buildApiGatewayExecutionARN(restApiId, region, accountId)
-	if err != nil {
-		return err
-	}
-	d.Set("execution_arn", arn+"/"+stageName)
+	executionArn := arn.ARN{
+		Partition: meta.(*AWSClient).partition,
+		Service:   "execute-api",
+		Region:    meta.(*AWSClient).region,
+		AccountID: meta.(*AWSClient).accountid,
+		Resource:  fmt.Sprintf("%s/%s", restApiId, stageName),
+	}.String()
+	d.Set("execution_arn", executionArn)
 
 	if err := d.Set("created_date", out.CreatedDate.Format(time.RFC3339)); err != nil {
 		log.Printf("[DEBUG] Error setting created_date: %s", err)

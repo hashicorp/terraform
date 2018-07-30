@@ -56,6 +56,10 @@ func resourceAwsElasticBeanstalkEnvironment() *schema.Resource {
 		MigrateState:  resourceAwsElasticBeanstalkEnvironmentMigrateState,
 
 		Schema: map[string]*schema.Schema{
+			"arn": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
 			"name": {
 				Type:     schema.TypeString,
 				Required: true,
@@ -452,6 +456,63 @@ func resourceAwsElasticBeanstalkEnvironmentUpdate(d *schema.ResourceData, meta i
 		}
 	}
 
+	if d.HasChange("tags") {
+		o, n := d.GetChange("tags")
+		oldTags := tagsFromMapBeanstalk(o.(map[string]interface{}))
+		newTags := tagsFromMapBeanstalk(n.(map[string]interface{}))
+
+		tagsToAdd, tagNamesToRemove := diffTagsBeanstalk(oldTags, newTags)
+
+		updateTags := elasticbeanstalk.UpdateTagsForResourceInput{
+			ResourceArn:  aws.String(d.Get("arn").(string)),
+			TagsToAdd:    tagsToAdd,
+			TagsToRemove: tagNamesToRemove,
+		}
+
+		// Get the current time to filter getBeanstalkEnvironmentErrors messages
+		t := time.Now()
+		log.Printf("[DEBUG] Elastic Beanstalk Environment update tags: %s", updateTags)
+		_, err := conn.UpdateTagsForResource(&updateTags)
+		if err != nil {
+			return err
+		}
+
+		waitForReadyTimeOut, err := time.ParseDuration(d.Get("wait_for_ready_timeout").(string))
+		if err != nil {
+			return err
+		}
+		pollInterval, err := time.ParseDuration(d.Get("poll_interval").(string))
+		if err != nil {
+			pollInterval = 0
+			log.Printf("[WARN] Error parsing poll_interval, using default backoff")
+		}
+
+		stateConf := &resource.StateChangeConf{
+			Pending:      []string{"Launching", "Updating"},
+			Target:       []string{"Ready"},
+			Refresh:      environmentStateRefreshFunc(conn, d.Id(), t),
+			Timeout:      waitForReadyTimeOut,
+			Delay:        10 * time.Second,
+			PollInterval: pollInterval,
+			MinTimeout:   3 * time.Second,
+		}
+
+		_, err = stateConf.WaitForState()
+		if err != nil {
+			return fmt.Errorf(
+				"Error waiting for Elastic Beanstalk Environment (%s) to become ready: %s",
+				d.Id(), err)
+		}
+
+		envErrors, err := getBeanstalkEnvironmentErrors(conn, d.Id(), t)
+		if err != nil {
+			return err
+		}
+		if envErrors != nil {
+			return envErrors
+		}
+	}
+
 	return resourceAwsElasticBeanstalkEnvironmentRead(d, meta)
 }
 
@@ -495,6 +556,8 @@ func resourceAwsElasticBeanstalkEnvironmentRead(d *schema.ResourceData, meta int
 	if err != nil {
 		return err
 	}
+
+	d.Set("arn", env.EnvironmentArn)
 
 	if err := d.Set("name", env.EnvironmentName); err != nil {
 		return err
@@ -561,6 +624,18 @@ func resourceAwsElasticBeanstalkEnvironmentRead(d *schema.ResourceData, meta int
 		return err
 	}
 	if err := d.Set("triggers", flattenBeanstalkTrigger(resources.EnvironmentResources.Triggers)); err != nil {
+		return err
+	}
+
+	tags, err := conn.ListTagsForResource(&elasticbeanstalk.ListTagsForResourceInput{
+		ResourceArn: aws.String(d.Get("arn").(string)),
+	})
+
+	if err != nil {
+		return err
+	}
+
+	if err := d.Set("tags", tagsToMapBeanstalk(tags.ResourceTags)); err != nil {
 		return err
 	}
 

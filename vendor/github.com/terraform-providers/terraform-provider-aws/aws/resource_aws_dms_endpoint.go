@@ -53,8 +53,8 @@ func resourceAwsDmsEndpoint() *schema.Resource {
 				Type:     schema.TypeString,
 				Required: true,
 				ValidateFunc: validation.StringInSlice([]string{
-					"source",
-					"target",
+					dms.ReplicationEndpointTypeValueSource,
+					dms.ReplicationEndpointTypeValueTarget,
 				}, false),
 			},
 			"engine_name": {
@@ -67,6 +67,7 @@ func resourceAwsDmsEndpoint() *schema.Resource {
 					"dynamodb",
 					"mariadb",
 					"aurora",
+					"aurora-postgresql",
 					"redshift",
 					"sybase",
 					"sqlserver",
@@ -102,10 +103,10 @@ func resourceAwsDmsEndpoint() *schema.Resource {
 				Computed: true,
 				Optional: true,
 				ValidateFunc: validation.StringInSlice([]string{
-					"none",
-					"require",
-					"verify-ca",
-					"verify-full",
+					dms.DmsSslModeValueNone,
+					dms.DmsSslModeValueRequire,
+					dms.DmsSslModeValueVerifyCa,
+					dms.DmsSslModeValueVerifyFull,
 				}, false),
 			},
 			"tags": {

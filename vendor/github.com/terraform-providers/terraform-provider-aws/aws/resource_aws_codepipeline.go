@@ -11,6 +11,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/codepipeline"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/hashicorp/terraform/helper/validation"
 )
 
 func resourceAwsCodePipeline() *schema.Resource {
@@ -52,9 +53,11 @@ func resourceAwsCodePipeline() *schema.Resource {
 						},
 
 						"type": {
-							Type:         schema.TypeString,
-							Required:     true,
-							ValidateFunc: validateAwsCodePipelineArtifactStoreType,
+							Type:     schema.TypeString,
+							Required: true,
+							ValidateFunc: validation.StringInSlice([]string{
+								codepipeline.ArtifactStoreTypeS3,
+							}, false),
 						},
 
 						"encryption_key": {
@@ -69,9 +72,11 @@ func resourceAwsCodePipeline() *schema.Resource {
 									},
 
 									"type": {
-										Type:         schema.TypeString,
-										Required:     true,
-										ValidateFunc: validateAwsCodePipelineEncryptionKeyType,
+										Type:     schema.TypeString,
+										Required: true,
+										ValidateFunc: validation.StringInSlice([]string{
+											codepipeline.EncryptionKeyTypeKms,
+										}, false),
 									},
 								},
 							},
@@ -99,14 +104,25 @@ func resourceAwsCodePipeline() *schema.Resource {
 										Optional: true,
 									},
 									"category": {
-										Type:         schema.TypeString,
-										Required:     true,
-										ValidateFunc: validateAwsCodePipelineStageActionCategory,
+										Type:     schema.TypeString,
+										Required: true,
+										ValidateFunc: validation.StringInSlice([]string{
+											codepipeline.ActionCategorySource,
+											codepipeline.ActionCategoryBuild,
+											codepipeline.ActionCategoryDeploy,
+											codepipeline.ActionCategoryTest,
+											codepipeline.ActionCategoryInvoke,
+											codepipeline.ActionCategoryApproval,
+										}, false),
 									},
 									"owner": {
-										Type:         schema.TypeString,
-										Required:     true,
-										ValidateFunc: validateAwsCodePipelineStageActionOwner,
+										Type:     schema.TypeString,
+										Required: true,
+										ValidateFunc: validation.StringInSlice([]string{
+											codepipeline.ActionOwnerAws,
+											codepipeline.ActionOwnerThirdParty,
+											codepipeline.ActionOwnerCustom,
+										}, false),
 									},
 									"provider": {
 										Type:     schema.TypeString,
@@ -147,50 +163,6 @@ func resourceAwsCodePipeline() *schema.Resource {
 			},
 		},
 	}
-}
-func validateAwsCodePipelineEncryptionKeyType(v interface{}, k string) (ws []string, errors []error) {
-	if v.(string) != "KMS" {
-		errors = append(errors, fmt.Errorf("CodePipeline: encryption_key type can only be KMS"))
-	}
-	return
-}
-
-func validateAwsCodePipelineArtifactStoreType(v interface{}, k string) (ws []string, errors []error) {
-	if v.(string) != "S3" {
-		errors = append(errors, fmt.Errorf("CodePipeline: artifact_store type can only be S3"))
-	}
-	return
-}
-
-func validateAwsCodePipelineStageActionCategory(v interface{}, k string) (ws []string, errors []error) {
-	value := v.(string)
-	types := map[string]bool{
-		"Source":   true,
-		"Build":    true,
-		"Deploy":   true,
-		"Test":     true,
-		"Invoke":   true,
-		"Approval": true,
-	}
-
-	if !types[value] {
-		errors = append(errors, fmt.Errorf("CodePipeline: category can only be one of Source | Build | Deploy | Test | Invoke | Approval"))
-	}
-	return
-}
-
-func validateAwsCodePipelineStageActionOwner(v interface{}, k string) (ws []string, errors []error) {
-	value := v.(string)
-	types := map[string]bool{
-		"AWS":        true,
-		"ThirdParty": true,
-		"Custom":     true,
-	}
-
-	if !types[value] {
-		errors = append(errors, fmt.Errorf("CodePipeline: owner can only be one of AWS | ThirdParty | Custom"))
-	}
-	return
 }
 
 func validateAwsCodePipelineStageActionConfiguration(v interface{}, k string) (ws []string, errors []error) {

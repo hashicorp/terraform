@@ -32,11 +32,14 @@ func resourceAwsVpcEndpoint() *schema.Resource {
 				ForceNew: true,
 			},
 			"vpc_endpoint_type": {
-				Type:         schema.TypeString,
-				Optional:     true,
-				ForceNew:     true,
-				Default:      ec2.VpcEndpointTypeGateway,
-				ValidateFunc: validation.StringInSlice([]string{ec2.VpcEndpointTypeGateway, ec2.VpcEndpointTypeInterface}, false),
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+				Default:  ec2.VpcEndpointTypeGateway,
+				ValidateFunc: validation.StringInSlice([]string{
+					ec2.VpcEndpointTypeGateway,
+					ec2.VpcEndpointTypeInterface,
+				}, false),
 			},
 			"service_name": {
 				Type:     schema.TypeString,
@@ -347,8 +350,12 @@ func vpcEndpointAttributes(d *schema.ResourceData, vpce *ec2.VpcEndpoint, conn *
 
 	serviceName := aws.StringValue(vpce.ServiceName)
 	d.Set("service_name", serviceName)
-	vpceType := aws.StringValue(vpce.VpcEndpointType)
-	d.Set("vpc_endpoint_type", vpceType)
+	// VPC endpoints don't have types in GovCloud, so set type to default if empty
+	if aws.StringValue(vpce.VpcEndpointType) == "" {
+		d.Set("vpc_endpoint_type", ec2.VpcEndpointTypeGateway)
+	} else {
+		d.Set("vpc_endpoint_type", vpce.VpcEndpointType)
+	}
 
 	policy, err := structure.NormalizeJsonString(aws.StringValue(vpce.PolicyDocument))
 	if err != nil {

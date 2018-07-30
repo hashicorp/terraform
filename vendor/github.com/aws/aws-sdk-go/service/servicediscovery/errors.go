@@ -4,6 +4,10 @@ package servicediscovery
 
 const (
 
+	// ErrCodeCustomHealthNotFound for service response error code
+	// "CustomHealthNotFound".
+	ErrCodeCustomHealthNotFound = "CustomHealthNotFound"
+
 	// ErrCodeDuplicateRequest for service response error code
 	// "DuplicateRequest".
 	//

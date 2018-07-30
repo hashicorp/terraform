@@ -8,6 +8,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/codedeploy"
 	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/hashicorp/terraform/helper/validation"
 )
 
 func resourceAwsCodeDeployDeploymentConfig() *schema.Resource {
@@ -31,11 +32,13 @@ func resourceAwsCodeDeployDeploymentConfig() *schema.Resource {
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"type": {
-							Type:         schema.TypeString,
-							Required:     true,
-							ValidateFunc: validateMinimumHealtyHostsType,
+							Type:     schema.TypeString,
+							Required: true,
+							ValidateFunc: validation.StringInSlice([]string{
+								codedeploy.MinimumHealthyHostsTypeHostCount,
+								codedeploy.MinimumHealthyHostsTypeFleetPercent,
+							}, false),
 						},
-
 						"value": {
 							Type:     schema.TypeInt,
 							Optional: true,
@@ -140,13 +143,4 @@ func flattenAwsCodeDeployConfigMinimumHealthHosts(hosts *codedeploy.MinimumHealt
 	result = append(result, item)
 
 	return result
-}
-
-func validateMinimumHealtyHostsType(v interface{}, k string) (ws []string, errors []error) {
-	value := v.(string)
-	if value != "FLEET_PERCENT" && value != "HOST_COUNT" {
-		errors = append(errors, fmt.Errorf(
-			"%q must be one of \"FLEET_PERCENT\" or \"HOST_COUNT\"", k))
-	}
-	return
 }

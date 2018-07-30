@@ -17,7 +17,7 @@ const opAcceptMatch = "AcceptMatch"
 
 // AcceptMatchRequest generates a "aws/request.Request" representing the
 // client's request for the AcceptMatch operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -90,6 +90,8 @@ func (c *GameLift) AcceptMatchRequest(input *AcceptMatchInput) (req *request.Req
 //
 //    * AcceptMatch
 //
+//    * StartMatchBackfill
+//
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
 // the error.
@@ -140,7 +142,7 @@ const opCreateAlias = "CreateAlias"
 
 // CreateAliasRequest generates a "aws/request.Request" representing the
 // client's request for the CreateAlias operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -269,7 +271,7 @@ const opCreateBuild = "CreateBuild"
 
 // CreateBuildRequest generates a "aws/request.Request" representing the
 // client's request for the CreateBuild operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -410,7 +412,7 @@ const opCreateFleet = "CreateFleet"
 
 // CreateFleetRequest generates a "aws/request.Request" representing the
 // client's request for the CreateFleet operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -452,17 +454,15 @@ func (c *GameLift) CreateFleetRequest(input *CreateFleetInput) (req *request.Req
 //
 // Creates a new fleet to run your game servers. A fleet is a set of Amazon
 // Elastic Compute Cloud (Amazon EC2) instances, each of which can run multiple
-// server processes to host game sessions. You configure a fleet to create instances
+// server processes to host game sessions. You set up a fleet to use instances
 // with certain hardware specifications (see Amazon EC2 Instance Types (http://aws.amazon.com/ec2/instance-types/)
-// for more information), and deploy a specified game build to each instance.
-// A newly created fleet passes through several statuses; once it reaches the
-// ACTIVE status, it can begin hosting game sessions.
+// for more information), and deploy your game build to run on each instance.
 //
-// To create a new fleet, you must specify the following: (1) fleet name, (2)
-// build ID of an uploaded game build, (3) an EC2 instance type, and (4) a run-time
-// configuration that describes which server processes to run on each instance
-// in the fleet. (Although the run-time configuration is not a required parameter,
-// the fleet cannot be successfully activated without it.)
+// To create a new fleet, you must specify the following: (1) a fleet name,
+// (2) the build ID of a successfully uploaded game build, (3) an EC2 instance
+// type, and (4) a run-time configuration, which describes the server processes
+// to run on each instance in the fleet. If you don't specify a fleet type (on-demand
+// or spot), the new fleet uses on-demand instances by default.
 //
 // You can also configure the new fleet with the following settings:
 //
@@ -472,34 +472,36 @@ func (c *GameLift) CreateFleetRequest(input *CreateFleetInput) (req *request.Req
 //
 //    * Fleet-wide game session protection
 //
-//    * Resource creation limit
+//    * Resource usage limits
+//
+//    * VPC peering connection (see VPC Peering with Amazon GameLift Fleets
+//    (http://docs.aws.amazon.com/gamelift/latest/developerguide/vpc-peering.html))
 //
 // If you use Amazon CloudWatch for metrics, you can add the new fleet to a
-// metric group. This allows you to view aggregated metrics for a set of fleets.
-// Once you specify a metric group, the new fleet's metrics are included in
-// the metric group's data.
-//
-// You have the option of creating a VPC peering connection with the new fleet.
-// For more information, see VPC Peering with Amazon GameLift Fleets (http://docs.aws.amazon.com/gamelift/latest/developerguide/vpc-peering.html).
+// metric group. By adding multiple fleets to a metric group, you can view aggregated
+// metrics for all the fleets in the group.
 //
 // If the CreateFleet call is successful, Amazon GameLift performs the following
-// tasks:
+// tasks. You can track the process of a fleet by checking the fleet status
+// or by monitoring fleet creation events:
 //
-//    * Creates a fleet record and sets the status to NEW (followed by other
-//    statuses as the fleet is activated).
-//
-//    * Sets the fleet's target capacity to 1 (desired instances), which causes
-//    Amazon GameLift to start one new EC2 instance.
-//
-//    * Starts launching server processes on the instance. If the fleet is configured
-//    to run multiple server processes per instance, Amazon GameLift staggers
-//    each launch by a few seconds.
+//    * Creates a fleet record. Status: NEW.
 //
 //    * Begins writing events to the fleet event log, which can be accessed
 //    in the Amazon GameLift console.
 //
-//    * Sets the fleet's status to ACTIVE as soon as one server process in the
-//    fleet is ready to host a game session.
+// Sets the fleet's target capacity to 1 (desired instances), which triggers
+//    Amazon GameLift to start one new EC2 instance.
+//
+//    * Downloads the game build to the new instance and installs it. Statuses:
+//    DOWNLOADING, VALIDATING, BUILDING.
+//
+//    * Starts launching server processes on the instance. If the fleet is configured
+//    to run multiple server processes per instance, Amazon GameLift staggers
+//    each launch by a few seconds. Status: ACTIVATING.
+//
+//    * Sets the fleet's status to ACTIVE as soon as one server process is ready
+//    to host a game session.
 //
 // Fleet-related operations include:
 //
@@ -604,7 +606,7 @@ const opCreateGameSession = "CreateGameSession"
 
 // CreateGameSessionRequest generates a "aws/request.Request" representing the
 // client's request for the CreateGameSession operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -776,7 +778,7 @@ const opCreateGameSessionQueue = "CreateGameSessionQueue"
 
 // CreateGameSessionQueueRequest generates a "aws/request.Request" representing the
 // client's request for the CreateGameSessionQueue operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -907,7 +909,7 @@ const opCreateMatchmakingConfiguration = "CreateMatchmakingConfiguration"
 
 // CreateMatchmakingConfigurationRequest generates a "aws/request.Request" representing the
 // client's request for the CreateMatchmakingConfiguration operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -950,9 +952,9 @@ func (c *GameLift) CreateMatchmakingConfigurationRequest(input *CreateMatchmakin
 // Defines a new matchmaking configuration for use with FlexMatch. A matchmaking
 // configuration sets out guidelines for matching players and getting the matches
 // into games. You can set up multiple matchmaking configurations to handle
-// the scenarios needed for your game. Each matchmaking request (StartMatchmaking)
-// specifies a configuration for the match and provides player attributes to
-// support the configuration being used.
+// the scenarios needed for your game. Each matchmaking ticket (StartMatchmaking
+// or StartMatchBackfill) specifies a configuration for the match and provides
+// player attributes to support the configuration being used.
 //
 // To create a matchmaking configuration, at a minimum you must specify the
 // following: configuration name; a rule set that governs how to evaluate players
@@ -1046,7 +1048,7 @@ const opCreateMatchmakingRuleSet = "CreateMatchmakingRuleSet"
 
 // CreateMatchmakingRuleSetRequest generates a "aws/request.Request" representing the
 // client's request for the CreateMatchmakingRuleSet operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -1099,7 +1101,7 @@ func (c *GameLift) CreateMatchmakingRuleSetRequest(input *CreateMatchmakingRuleS
 // Game (http://docs.aws.amazon.com/gamelift/latest/developerguide/match-intro.html).
 //
 // Once created, matchmaking rule sets cannot be changed or deleted, so we recommend
-// checking the rule set syntax using ValidateMatchmakingRuleSetbefore creating
+// checking the rule set syntax using ValidateMatchmakingRuleSet before creating
 // the rule set.
 //
 // To create a matchmaking rule set, provide the set of rules and a unique name.
@@ -1170,7 +1172,7 @@ const opCreatePlayerSession = "CreatePlayerSession"
 
 // CreatePlayerSessionRequest generates a "aws/request.Request" representing the
 // client's request for the CreatePlayerSession operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -1303,7 +1305,7 @@ const opCreatePlayerSessions = "CreatePlayerSessions"
 
 // CreatePlayerSessionsRequest generates a "aws/request.Request" representing the
 // client's request for the CreatePlayerSessions operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -1437,7 +1439,7 @@ const opCreateVpcPeeringAuthorization = "CreateVpcPeeringAuthorization"
 
 // CreateVpcPeeringAuthorizationRequest generates a "aws/request.Request" representing the
 // client's request for the CreateVpcPeeringAuthorization operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -1570,7 +1572,7 @@ const opCreateVpcPeeringConnection = "CreateVpcPeeringConnection"
 
 // CreateVpcPeeringConnectionRequest generates a "aws/request.Request" representing the
 // client's request for the CreateVpcPeeringConnection operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -1698,7 +1700,7 @@ const opDeleteAlias = "DeleteAlias"
 
 // DeleteAliasRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteAlias operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -1808,7 +1810,7 @@ const opDeleteBuild = "DeleteBuild"
 
 // DeleteBuildRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteBuild operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -1919,7 +1921,7 @@ const opDeleteFleet = "DeleteFleet"
 
 // DeleteFleetRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteFleet operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -2066,7 +2068,7 @@ const opDeleteGameSessionQueue = "DeleteGameSessionQueue"
 
 // DeleteGameSessionQueueRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteGameSessionQueue operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -2170,7 +2172,7 @@ const opDeleteMatchmakingConfiguration = "DeleteMatchmakingConfiguration"
 
 // DeleteMatchmakingConfigurationRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteMatchmakingConfiguration operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -2280,7 +2282,7 @@ const opDeleteScalingPolicy = "DeleteScalingPolicy"
 
 // DeleteScalingPolicyRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteScalingPolicy operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -2420,7 +2422,7 @@ const opDeleteVpcPeeringAuthorization = "DeleteVpcPeeringAuthorization"
 
 // DeleteVpcPeeringAuthorizationRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteVpcPeeringAuthorization operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -2528,7 +2530,7 @@ const opDeleteVpcPeeringConnection = "DeleteVpcPeeringConnection"
 
 // DeleteVpcPeeringConnectionRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteVpcPeeringConnection operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -2642,7 +2644,7 @@ const opDescribeAlias = "DescribeAlias"
 
 // DescribeAliasRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeAlias operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -2752,7 +2754,7 @@ const opDescribeBuild = "DescribeBuild"
 
 // DescribeBuildRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeBuild operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -2857,7 +2859,7 @@ const opDescribeEC2InstanceLimits = "DescribeEC2InstanceLimits"
 
 // DescribeEC2InstanceLimitsRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeEC2InstanceLimits operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -2997,7 +2999,7 @@ const opDescribeFleetAttributes = "DescribeFleetAttributes"
 
 // DescribeFleetAttributesRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeFleetAttributes operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -3143,7 +3145,7 @@ const opDescribeFleetCapacity = "DescribeFleetCapacity"
 
 // DescribeFleetCapacityRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeFleetCapacity operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -3290,7 +3292,7 @@ const opDescribeFleetEvents = "DescribeFleetEvents"
 
 // DescribeFleetEventsRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeFleetEvents operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -3429,7 +3431,7 @@ const opDescribeFleetPortSettings = "DescribeFleetPortSettings"
 
 // DescribeFleetPortSettingsRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeFleetPortSettings operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -3570,7 +3572,7 @@ const opDescribeFleetUtilization = "DescribeFleetUtilization"
 
 // DescribeFleetUtilizationRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeFleetUtilization operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -3715,7 +3717,7 @@ const opDescribeGameSessionDetails = "DescribeGameSessionDetails"
 
 // DescribeGameSessionDetailsRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeGameSessionDetails operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -3846,7 +3848,7 @@ const opDescribeGameSessionPlacement = "DescribeGameSessionPlacement"
 
 // DescribeGameSessionPlacementRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeGameSessionPlacement operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -3962,7 +3964,7 @@ const opDescribeGameSessionQueues = "DescribeGameSessionQueues"
 
 // DescribeGameSessionQueuesRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeGameSessionQueues operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -4068,7 +4070,7 @@ const opDescribeGameSessions = "DescribeGameSessions"
 
 // DescribeGameSessionsRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeGameSessions operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -4200,7 +4202,7 @@ const opDescribeInstances = "DescribeInstances"
 
 // DescribeInstancesRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeInstances operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -4299,7 +4301,7 @@ const opDescribeMatchmaking = "DescribeMatchmaking"
 
 // DescribeMatchmakingRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeMatchmaking operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -4362,6 +4364,8 @@ func (c *GameLift) DescribeMatchmakingRequest(input *DescribeMatchmakingInput) (
 //
 //    * AcceptMatch
 //
+//    * StartMatchBackfill
+//
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
 // the error.
@@ -4408,7 +4412,7 @@ const opDescribeMatchmakingConfigurations = "DescribeMatchmakingConfigurations"
 
 // DescribeMatchmakingConfigurationsRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeMatchmakingConfigurations operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -4519,7 +4523,7 @@ const opDescribeMatchmakingRuleSets = "DescribeMatchmakingRuleSets"
 
 // DescribeMatchmakingRuleSetsRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeMatchmakingRuleSets operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -4631,7 +4635,7 @@ const opDescribePlayerSessions = "DescribePlayerSessions"
 
 // DescribePlayerSessionsRequest generates a "aws/request.Request" representing the
 // client's request for the DescribePlayerSessions operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -4751,7 +4755,7 @@ const opDescribeRuntimeConfiguration = "DescribeRuntimeConfiguration"
 
 // DescribeRuntimeConfigurationRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeRuntimeConfiguration operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -4889,7 +4893,7 @@ const opDescribeScalingPolicies = "DescribeScalingPolicies"
 
 // DescribeScalingPoliciesRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeScalingPolicies operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -5030,7 +5034,7 @@ const opDescribeVpcPeeringAuthorizations = "DescribeVpcPeeringAuthorizations"
 
 // DescribeVpcPeeringAuthorizationsRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeVpcPeeringAuthorizations operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -5134,7 +5138,7 @@ const opDescribeVpcPeeringConnections = "DescribeVpcPeeringConnections"
 
 // DescribeVpcPeeringConnectionsRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeVpcPeeringConnections operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -5247,7 +5251,7 @@ const opGetGameSessionLogUrl = "GetGameSessionLogUrl"
 
 // GetGameSessionLogUrlRequest generates a "aws/request.Request" representing the
 // client's request for the GetGameSessionLogUrl operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -5368,7 +5372,7 @@ const opGetInstanceAccess = "GetInstanceAccess"
 
 // GetInstanceAccessRequest generates a "aws/request.Request" representing the
 // client's request for the GetInstanceAccess operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -5475,7 +5479,7 @@ const opListAliases = "ListAliases"
 
 // ListAliasesRequest generates a "aws/request.Request" representing the
 // client's request for the ListAliases operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -5581,7 +5585,7 @@ const opListBuilds = "ListBuilds"
 
 // ListBuildsRequest generates a "aws/request.Request" representing the
 // client's request for the ListBuilds operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -5686,7 +5690,7 @@ const opListFleets = "ListFleets"
 
 // ListFleetsRequest generates a "aws/request.Request" representing the
 // client's request for the ListFleets operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -5826,7 +5830,7 @@ const opPutScalingPolicy = "PutScalingPolicy"
 
 // PutScalingPolicyRequest generates a "aws/request.Request" representing the
 // client's request for the PutScalingPolicy operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -5983,7 +5987,7 @@ const opRequestUploadCredentials = "RequestUploadCredentials"
 
 // RequestUploadCredentialsRequest generates a "aws/request.Request" representing the
 // client's request for the RequestUploadCredentials operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -6081,7 +6085,7 @@ const opResolveAlias = "ResolveAlias"
 
 // ResolveAliasRequest generates a "aws/request.Request" representing the
 // client's request for the ResolveAlias operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -6194,7 +6198,7 @@ const opSearchGameSessions = "SearchGameSessions"
 
 // SearchGameSessionsRequest generates a "aws/request.Request" representing the
 // client's request for the SearchGameSessions operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -6363,7 +6367,7 @@ const opStartGameSessionPlacement = "StartGameSessionPlacement"
 
 // StartGameSessionPlacementRequest generates a "aws/request.Request" representing the
 // client's request for the StartGameSessionPlacement operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -6517,7 +6521,7 @@ const opStartMatchBackfill = "StartMatchBackfill"
 
 // StartMatchBackfillRequest generates a "aws/request.Request" representing the
 // client's request for the StartMatchBackfill operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -6570,8 +6574,8 @@ func (c *GameLift) StartMatchBackfillRequest(input *StartMatchBackfillInput) (re
 // all current players in the game session. If successful, a match backfill
 // ticket is created and returned with status set to QUEUED. The ticket is placed
 // in the matchmaker's ticket pool and processed. Track the status of the ticket
-// to respond as needed. For more detail how to set up backfilling, see  Set
-// up Match Backfilling (http://docs.aws.amazon.com/gamelift/latest/developerguide/match-backfill.html).
+// to respond as needed. For more detail how to set up backfilling, see  Backfill
+// Existing Games with FlexMatch (http://docs.aws.amazon.com/gamelift/latest/developerguide/match-backfill.html).
 //
 // The process of finding backfill matches is essentially identical to the initial
 // matchmaking process. The matchmaker searches the pool and groups tickets
@@ -6592,6 +6596,8 @@ func (c *GameLift) StartMatchBackfillRequest(input *StartMatchBackfillInput) (re
 //    * StopMatchmaking
 //
 //    * AcceptMatch
+//
+//    * StartMatchBackfill
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -6643,7 +6649,7 @@ const opStartMatchmaking = "StartMatchmaking"
 
 // StartMatchmakingRequest generates a "aws/request.Request" representing the
 // client's request for the StartMatchmaking operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -6755,6 +6761,8 @@ func (c *GameLift) StartMatchmakingRequest(input *StartMatchmakingInput) (req *r
 //
 //    * AcceptMatch
 //
+//    * StartMatchBackfill
+//
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
 // the error.
@@ -6805,7 +6813,7 @@ const opStopGameSessionPlacement = "StopGameSessionPlacement"
 
 // StopGameSessionPlacementRequest generates a "aws/request.Request" representing the
 // client's request for the StopGameSessionPlacement operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -6921,7 +6929,7 @@ const opStopMatchmaking = "StopMatchmaking"
 
 // StopMatchmakingRequest generates a "aws/request.Request" representing the
 // client's request for the StopMatchmaking operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -6975,6 +6983,8 @@ func (c *GameLift) StopMatchmakingRequest(input *StopMatchmakingInput) (req *req
 //
 //    * AcceptMatch
 //
+//    * StartMatchBackfill
+//
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
 // the error.
@@ -7025,7 +7035,7 @@ const opUpdateAlias = "UpdateAlias"
 
 // UpdateAliasRequest generates a "aws/request.Request" representing the
 // client's request for the UpdateAlias operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -7134,7 +7144,7 @@ const opUpdateBuild = "UpdateBuild"
 
 // UpdateBuildRequest generates a "aws/request.Request" representing the
 // client's request for the UpdateBuild operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -7241,7 +7251,7 @@ const opUpdateFleetAttributes = "UpdateFleetAttributes"
 
 // UpdateFleetAttributesRequest generates a "aws/request.Request" representing the
 // client's request for the UpdateFleetAttributes operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -7393,7 +7403,7 @@ const opUpdateFleetCapacity = "UpdateFleetCapacity"
 
 // UpdateFleetCapacityRequest generates a "aws/request.Request" representing the
 // client's request for the UpdateFleetCapacity operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -7557,7 +7567,7 @@ const opUpdateFleetPortSettings = "UpdateFleetPortSettings"
 
 // UpdateFleetPortSettingsRequest generates a "aws/request.Request" representing the
 // client's request for the UpdateFleetPortSettings operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -7712,7 +7722,7 @@ const opUpdateGameSession = "UpdateGameSession"
 
 // UpdateGameSessionRequest generates a "aws/request.Request" representing the
 // client's request for the UpdateGameSession operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -7842,7 +7852,7 @@ const opUpdateGameSessionQueue = "UpdateGameSessionQueue"
 
 // UpdateGameSessionQueueRequest generates a "aws/request.Request" representing the
 // client's request for the UpdateGameSessionQueue operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -7947,7 +7957,7 @@ const opUpdateMatchmakingConfiguration = "UpdateMatchmakingConfiguration"
 
 // UpdateMatchmakingConfigurationRequest generates a "aws/request.Request" representing the
 // client's request for the UpdateMatchmakingConfiguration operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -8056,7 +8066,7 @@ const opUpdateRuntimeConfiguration = "UpdateRuntimeConfiguration"
 
 // UpdateRuntimeConfigurationRequest generates a "aws/request.Request" representing the
 // client's request for the UpdateRuntimeConfiguration operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -8212,7 +8222,7 @@ const opValidateMatchmakingRuleSet = "ValidateMatchmakingRuleSet"
 
 // ValidateMatchmakingRuleSetRequest generates a "aws/request.Request" representing the
 // client's request for the ValidateMatchmakingRuleSet operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -8970,6 +8980,16 @@ type CreateFleetInput struct {
 	// EC2InstanceType is a required field
 	EC2InstanceType *string `type:"string" required:"true" enum:"EC2InstanceType"`
 
+	// Indicates whether to use on-demand instances or spot instances for this fleet.
+	// If empty, the default is ON_DEMAND. Both categories of instances use identical
+	// hardware and configurations, based on the instance type selected for this
+	// fleet. You can acquire on-demand instances at any time for a fixed price
+	// and keep them as long as you need them. Spot instances have lower prices,
+	// but spot pricing is variable, and while in use they can be interrupted (with
+	// a two-minute notification). Learn more about Amazon GameLift spot instances
+	// with at  Choose Computing Resources (http://docs.aws.amazon.com/gamelift/latest/developerguide/gamelift-ec2-instances.html).
+	FleetType *string `type:"string" enum:"FleetType"`
+
 	// This parameter is no longer used. Instead, to specify where Amazon GameLift
 	// should store log files once a server process shuts down, use the Amazon GameLift
 	// server API ProcessReady() and specify one or more directory paths in logParameters.
@@ -9125,6 +9145,12 @@ func (s *CreateFleetInput) SetEC2InboundPermissions(v []*IpPermission) *CreateFl
 // SetEC2InstanceType sets the EC2InstanceType field's value.
 func (s *CreateFleetInput) SetEC2InstanceType(v string) *CreateFleetInput {
 	s.EC2InstanceType = &v
+	return s
+}
+
+// SetFleetType sets the FleetType field's value.
+func (s *CreateFleetInput) SetFleetType(v string) *CreateFleetInput {
+	s.FleetType = &v
 	return s
 }
 
@@ -12848,10 +12874,6 @@ type Event struct {
 
 	// Type of event being logged. The following events are currently in use:
 	//
-	// General events:
-	//
-	//    *  GENERIC_EVENT -- An unspecified event has occurred.
-	//
 	// Fleet creation events:
 	//
 	//    * FLEET_CREATED -- A fleet record was successfully created with a status
@@ -12927,6 +12949,11 @@ type Event struct {
 	//    * FLEET_VPC_PEERING_DELETED -- A VPC peering connection has been successfully
 	//    deleted.
 	//
+	// Spot instance events:
+	//
+	//    *  INSTANCE_INTERRUPTED -- A spot instance was interrupted by EC2 with
+	//    a two-minute notification.
+	//
 	// Other fleet events:
 	//
 	//    * FLEET_SCALING_EVENT -- A change was made to the fleet's capacity settings
@@ -12938,6 +12965,8 @@ type Event struct {
 	//    includes both the old and new policy setting.
 	//
 	//    * FLEET_DELETED -- A request to delete a fleet was initiated.
+	//
+	//    *  GENERIC_EVENT -- An unspecified event has occurred.
 	EventCode *string `type:"string" enum:"EventCode"`
 
 	// Unique identifier for a fleet event.
@@ -13069,6 +13098,16 @@ type FleetAttributes struct {
 	// Unique identifier for a fleet.
 	FleetId *string `type:"string"`
 
+	// Indicates whether the fleet uses on-demand or spot instances. A spot instance
+	// in use may be interrupted with a two-minute notification.
+	FleetType *string `type:"string" enum:"FleetType"`
+
+	// EC2 instance type indicating the computing resources of each instance in
+	// the fleet, including CPU, memory, storage, and networking capacity. See Amazon
+	// EC2 Instance Types (http://aws.amazon.com/ec2/instance-types/) for detailed
+	// descriptions.
+	InstanceType *string `type:"string" enum:"EC2InstanceType"`
+
 	// Location of default log files. When a server process is shut down, Amazon
 	// GameLift captures and stores any log files in this location. These logs are
 	// in addition to game session logs; see more on game session logs in the Amazon
@@ -13181,6 +13220,18 @@ func (s *FleetAttributes) SetFleetArn(v string) *FleetAttributes {
 // SetFleetId sets the FleetId field's value.
 func (s *FleetAttributes) SetFleetId(v string) *FleetAttributes {
 	s.FleetId = &v
+	return s
+}
+
+// SetFleetType sets the FleetType field's value.
+func (s *FleetAttributes) SetFleetType(v string) *FleetAttributes {
+	s.FleetType = &v
+	return s
+}
+
+// SetInstanceType sets the InstanceType field's value.
+func (s *FleetAttributes) SetInstanceType(v string) *FleetAttributes {
+	s.InstanceType = &v
 	return s
 }
 
@@ -13601,6 +13652,11 @@ type GameSession struct {
 	// to have player sessions.
 	Status *string `type:"string" enum:"GameSessionStatus"`
 
+	// Provides additional information about game session status. INTERRUPTED indicates
+	// that the game session was hosted on a spot instance that was reclaimed, causing
+	// the active game session to be terminated.
+	StatusReason *string `type:"string" enum:"GameSessionStatusReason"`
+
 	// Time stamp indicating when this data object was terminated. Format is a number
 	// expressed in Unix time as milliseconds (for example "1469498468.057").
 	TerminationTime *time.Time `type:"timestamp" timestampFormat:"unix"`
@@ -13697,6 +13753,12 @@ func (s *GameSession) SetPort(v int64) *GameSession {
 // SetStatus sets the Status field's value.
 func (s *GameSession) SetStatus(v string) *GameSession {
 	s.Status = &v
+	return s
+}
+
+// SetStatusReason sets the StatusReason field's value.
+func (s *GameSession) SetStatusReason(v string) *GameSession {
+	s.StatusReason = &v
 	return s
 }
 
@@ -13865,8 +13927,7 @@ type GameSessionPlacement struct {
 	// formated as a string. It identifies the matchmaking configuration used to
 	// create the match, and contains data on all players assigned to the match,
 	// including player attributes and team assignments. For more details on matchmaker
-	// data, see http://docs.aws.amazon.com/gamelift/latest/developerguide/match-server.html#match-server-data
-	// (http://docs.aws.amazon.com/gamelift/latest/developerguide/match-server.html#match-server-data).
+	// data, see Match Data (http://docs.aws.amazon.com/gamelift/latest/developerguide/match-server.html#match-server-data).
 	MatchmakerData *string `min:"1" type:"string"`
 
 	// Maximum number of players that can be connected simultaneously to the game
@@ -15223,9 +15284,9 @@ type MatchmakingTicket struct {
 	// game session is created for the match.
 	ConfigurationName *string `min:"1" type:"string"`
 
-	// Time stamp indicating when the matchmaking request stopped being processed
-	// due to successful completion, timeout, or cancellation. Format is a number
-	// expressed in Unix time as milliseconds (for example "1469498468.057").
+	// Time stamp indicating when this matchmaking request stopped being processed
+	// due to success, failure, or cancellation. Format is a number expressed in
+	// Unix time as milliseconds (for example "1469498468.057").
 	EndTime *time.Time `type:"timestamp" timestampFormat:"unix"`
 
 	// Average amount of time (in seconds) that players are currently waiting for
@@ -17121,13 +17182,14 @@ type StartMatchBackfillInput struct {
 	// session. This information is used by the matchmaker to find new players and
 	// add them to the existing game.
 	//
-	//    * PlayerID, PlayerAttributes, Team -- This information is maintained in
-	//    the GameSession object, MatchmakerData property, for all players who are
-	//    currently assigned to the game session. The matchmaker data is in JSON
-	//    syntax, formatted as a string. For more details, see  Match Data (http://docs.aws.amazon.com/gamelift/latest/developerguide/match-server.html#match-server-data).
+	//    * PlayerID, PlayerAttributes, Team -\\- This information is maintained
+	//    in the GameSession object, MatchmakerData property, for all players who
+	//    are currently assigned to the game session. The matchmaker data is in
+	//    JSON syntax, formatted as a string. For more details, see  Match Data
+	//    (http://docs.aws.amazon.com/gamelift/latest/developerguide/match-server.html#match-server-data).
 	//
 	//
-	//    * LatencyInMs -- If the matchmaker uses player latency, include a latency
+	//    * LatencyInMs -\\- If the matchmaker uses player latency, include a latency
 	//    value, in milliseconds, for the region that the game session is currently
 	//    in. Do not include latency values for any other region.
 	//
@@ -19023,6 +19085,9 @@ const (
 
 	// EventCodeFleetVpcPeeringDeleted is a EventCode enum value
 	EventCodeFleetVpcPeeringDeleted = "FLEET_VPC_PEERING_DELETED"
+
+	// EventCodeInstanceInterrupted is a EventCode enum value
+	EventCodeInstanceInterrupted = "INSTANCE_INTERRUPTED"
 )
 
 const (
@@ -19055,6 +19120,14 @@ const (
 )
 
 const (
+	// FleetTypeOnDemand is a FleetType enum value
+	FleetTypeOnDemand = "ON_DEMAND"
+
+	// FleetTypeSpot is a FleetType enum value
+	FleetTypeSpot = "SPOT"
+)
+
+const (
 	// GameSessionPlacementStatePending is a GameSessionPlacementState enum value
 	GameSessionPlacementStatePending = "PENDING"
 
@@ -19083,6 +19156,11 @@ const (
 
 	// GameSessionStatusError is a GameSessionStatus enum value
 	GameSessionStatusError = "ERROR"
+)
+
+const (
+	// GameSessionStatusReasonInterrupted is a GameSessionStatusReason enum value
+	GameSessionStatusReasonInterrupted = "INTERRUPTED"
 )
 
 const (
