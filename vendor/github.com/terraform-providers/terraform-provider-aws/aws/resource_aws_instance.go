@@ -78,6 +78,17 @@ func resourceAwsInstance() *schema.Resource {
 				Computed: true,
 			},
 
+			"get_password_data": {
+				Type:     schema.TypeBool,
+				Optional: true,
+				Default:  false,
+			},
+
+			"password_data": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+
 			"subnet_id": {
 				Type:     schema.TypeString,
 				Optional: true,
@@ -116,7 +127,7 @@ func resourceAwsInstance() *schema.Resource {
 						return ""
 					}
 				},
-				ValidateFunc: validateInstanceUserDataSize,
+				ValidateFunc: validateMaxLength(16384),
 			},
 
 			"user_data_base64": {
@@ -773,6 +784,17 @@ func resourceAwsInstanceRead(d *schema.ResourceData, meta interface{}) error {
 		}
 	}
 
+	if d.Get("get_password_data").(bool) {
+		passwordData, err := getAwsEc2InstancePasswordData(*instance.InstanceId, conn)
+		if err != nil {
+			return err
+		}
+		d.Set("password_data", passwordData)
+	} else {
+		d.Set("get_password_data", false)
+		d.Set("password_data", nil)
+	}
+
 	return nil
 }
 
@@ -920,6 +942,10 @@ func resourceAwsInstanceUpdate(d *schema.ResourceData, meta interface{}) error {
 			for _, v := range v.List() {
 				groups = append(groups, aws.String(v.(string)))
 			}
+		}
+
+		if len(groups) < 1 {
+			return fmt.Errorf("VPC-based instances require at least one security group to be attached.")
 		}
 		// If a user has multiple network interface attachments on the target EC2 instance, simply modifying the
 		// instance attributes via a `ModifyInstanceAttributes()` request would fail with the following error message:
@@ -1552,6 +1578,37 @@ func readSecurityGroups(d *schema.ResourceData, instance *ec2.Instance, conn *ec
 		}
 	}
 	return nil
+}
+
+func getAwsEc2InstancePasswordData(instanceID string, conn *ec2.EC2) (string, error) {
+	log.Printf("[INFO] Reading password data for instance %s", instanceID)
+
+	var passwordData string
+
+	err := resource.Retry(15*time.Minute, func() *resource.RetryError {
+		resp, err := conn.GetPasswordData(&ec2.GetPasswordDataInput{
+			InstanceId: aws.String(instanceID),
+		})
+
+		if err != nil {
+			return resource.NonRetryableError(err)
+		}
+
+		if resp.PasswordData == nil || *resp.PasswordData == "" {
+			return resource.RetryableError(fmt.Errorf("Password data is blank for instance ID: %s", instanceID))
+		}
+
+		passwordData = strings.TrimSpace(*resp.PasswordData)
+
+		log.Printf("[INFO] Password data read for instance %s", instanceID)
+		return nil
+	})
+
+	if err != nil {
+		return "", err
+	}
+
+	return passwordData, nil
 }
 
 type awsInstanceOpts struct {

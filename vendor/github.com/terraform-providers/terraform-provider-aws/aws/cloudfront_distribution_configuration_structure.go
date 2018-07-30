@@ -204,6 +204,9 @@ func defaultCacheBehaviorHash(v interface{}) int {
 	buf.WriteString(fmt.Sprintf("%s-", m["target_origin_id"].(string)))
 	buf.WriteString(fmt.Sprintf("%d-", forwardedValuesHash(m["forwarded_values"].(*schema.Set).List()[0].(map[string]interface{}))))
 	buf.WriteString(fmt.Sprintf("%d-", m["min_ttl"].(int)))
+	if d, ok := m["field_level_encryption_id"]; ok && d.(string) != "" {
+		buf.WriteString(fmt.Sprintf("%s-", d.(string)))
+	}
 	if d, ok := m["trusted_signers"]; ok {
 		for _, e := range sortInterfaceSlice(d.([]interface{})) {
 			buf.WriteString(fmt.Sprintf("%s-", e.(string)))
@@ -266,14 +269,16 @@ func flattenCacheBehaviors(cbs *cloudfront.CacheBehaviors) *schema.Set {
 
 func expandCacheBehavior(m map[string]interface{}) *cloudfront.CacheBehavior {
 	cb := &cloudfront.CacheBehavior{
-		Compress:             aws.Bool(m["compress"].(bool)),
-		ViewerProtocolPolicy: aws.String(m["viewer_protocol_policy"].(string)),
-		TargetOriginId:       aws.String(m["target_origin_id"].(string)),
-		ForwardedValues:      expandForwardedValues(m["forwarded_values"].(*schema.Set).List()[0].(map[string]interface{})),
-		MinTTL:               aws.Int64(int64(m["min_ttl"].(int))),
-		MaxTTL:               aws.Int64(int64(m["max_ttl"].(int))),
-		DefaultTTL:           aws.Int64(int64(m["default_ttl"].(int))),
+		Compress:               aws.Bool(m["compress"].(bool)),
+		FieldLevelEncryptionId: aws.String(m["field_level_encryption_id"].(string)),
+		ViewerProtocolPolicy:   aws.String(m["viewer_protocol_policy"].(string)),
+		TargetOriginId:         aws.String(m["target_origin_id"].(string)),
+		ForwardedValues:        expandForwardedValues(m["forwarded_values"].(*schema.Set).List()[0].(map[string]interface{})),
+		DefaultTTL:             aws.Int64(int64(m["default_ttl"].(int))),
+		MaxTTL:                 aws.Int64(int64(m["max_ttl"].(int))),
+		MinTTL:                 aws.Int64(int64(m["min_ttl"].(int))),
 	}
+
 	if v, ok := m["trusted_signers"]; ok {
 		cb.TrustedSigners = expandTrustedSigners(v.([]interface{}))
 	} else {
@@ -303,6 +308,7 @@ func flattenCacheBehavior(cb *cloudfront.CacheBehavior) map[string]interface{} {
 	m := make(map[string]interface{})
 
 	m["compress"] = *cb.Compress
+	m["field_level_encryption_id"] = aws.StringValue(cb.FieldLevelEncryptionId)
 	m["viewer_protocol_policy"] = *cb.ViewerProtocolPolicy
 	m["target_origin_id"] = *cb.TargetOriginId
 	m["forwarded_values"] = schema.NewSet(forwardedValuesHash, []interface{}{flattenForwardedValues(cb.ForwardedValues)})
@@ -345,6 +351,9 @@ func cacheBehaviorHash(v interface{}) int {
 	buf.WriteString(fmt.Sprintf("%s-", m["target_origin_id"].(string)))
 	buf.WriteString(fmt.Sprintf("%d-", forwardedValuesHash(m["forwarded_values"].(*schema.Set).List()[0].(map[string]interface{}))))
 	buf.WriteString(fmt.Sprintf("%d-", m["min_ttl"].(int)))
+	if d, ok := m["field_level_encryption_id"]; ok && d.(string) != "" {
+		buf.WriteString(fmt.Sprintf("%s-", d.(string)))
+	}
 	if d, ok := m["trusted_signers"]; ok {
 		for _, e := range sortInterfaceSlice(d.([]interface{})) {
 			buf.WriteString(fmt.Sprintf("%s-", e.(string)))

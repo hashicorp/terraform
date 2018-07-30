@@ -18,6 +18,10 @@ func resourceAwsAppsyncGraphqlApi() *schema.Resource {
 		Update: resourceAwsAppsyncGraphqlApiUpdate,
 		Delete: resourceAwsAppsyncGraphqlApiDelete,
 
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
+
 		Schema: map[string]*schema.Schema{
 			"authentication_type": {
 				Type:     schema.TypeString,

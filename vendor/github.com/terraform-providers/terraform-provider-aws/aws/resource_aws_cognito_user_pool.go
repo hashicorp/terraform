@@ -68,7 +68,7 @@ func resourceAwsCognitoUserPool() *schema.Resource {
 							Type:         schema.TypeInt,
 							Optional:     true,
 							Default:      7,
-							ValidateFunc: validateIntegerInRange(0, 90),
+							ValidateFunc: validation.IntBetween(0, 90),
 						},
 					},
 				},
@@ -79,8 +79,12 @@ func resourceAwsCognitoUserPool() *schema.Resource {
 				Optional: true,
 				ForceNew: true,
 				Elem: &schema.Schema{
-					Type:         schema.TypeString,
-					ValidateFunc: validateCognitoUserPoolAliasAttribute,
+					Type: schema.TypeString,
+					ValidateFunc: validation.StringInSlice([]string{
+						cognitoidentityprovider.AliasAttributeTypeEmail,
+						cognitoidentityprovider.AliasAttributeTypePhoneNumber,
+						cognitoidentityprovider.AliasAttributeTypePreferredUsername,
+					}, false),
 				},
 				ConflictsWith: []string{"username_attributes"},
 			},
@@ -94,8 +98,11 @@ func resourceAwsCognitoUserPool() *schema.Resource {
 				Type:     schema.TypeSet,
 				Optional: true,
 				Elem: &schema.Schema{
-					Type:         schema.TypeString,
-					ValidateFunc: validateCognitoUserPoolAutoVerifiedAttribute,
+					Type: schema.TypeString,
+					ValidateFunc: validation.StringInSlice([]string{
+						cognitoidentityprovider.VerifiedAttributeTypePhoneNumber,
+						cognitoidentityprovider.VerifiedAttributeTypeEmail,
+					}, false),
 				},
 			},
 
@@ -218,10 +225,14 @@ func resourceAwsCognitoUserPool() *schema.Resource {
 			},
 
 			"mfa_configuration": {
-				Type:         schema.TypeString,
-				Optional:     true,
-				Default:      cognitoidentityprovider.UserPoolMfaTypeOff,
-				ValidateFunc: validateCognitoUserPoolMfaConfiguration,
+				Type:     schema.TypeString,
+				Optional: true,
+				Default:  cognitoidentityprovider.UserPoolMfaTypeOff,
+				ValidateFunc: validation.StringInSlice([]string{
+					cognitoidentityprovider.UserPoolMfaTypeOff,
+					cognitoidentityprovider.UserPoolMfaTypeOn,
+					cognitoidentityprovider.UserPoolMfaTypeOptional,
+				}, false),
 			},
 
 			"name": {
@@ -240,7 +251,7 @@ func resourceAwsCognitoUserPool() *schema.Resource {
 						"minimum_length": {
 							Type:         schema.TypeInt,
 							Optional:     true,
-							ValidateFunc: validateIntegerInRange(6, 99),
+							ValidateFunc: validation.IntBetween(6, 99),
 						},
 						"require_lowercase": {
 							Type:     schema.TypeBool,
@@ -273,6 +284,7 @@ func resourceAwsCognitoUserPool() *schema.Resource {
 						"attribute_data_type": {
 							Type:     schema.TypeString,
 							Required: true,
+							ForceNew: true,
 							ValidateFunc: validation.StringInSlice([]string{
 								cognitoidentityprovider.AttributeDataTypeString,
 								cognitoidentityprovider.AttributeDataTypeNumber,
@@ -283,29 +295,35 @@ func resourceAwsCognitoUserPool() *schema.Resource {
 						"developer_only_attribute": {
 							Type:     schema.TypeBool,
 							Optional: true,
+							ForceNew: true,
 						},
 						"mutable": {
 							Type:     schema.TypeBool,
 							Optional: true,
+							ForceNew: true,
 						},
 						"name": {
 							Type:         schema.TypeString,
 							Required:     true,
+							ForceNew:     true,
 							ValidateFunc: validateCognitoUserPoolSchemaName,
 						},
 						"number_attribute_constraints": {
 							Type:     schema.TypeList,
 							Optional: true,
+							ForceNew: true,
 							MaxItems: 1,
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
 									"min_value": {
 										Type:     schema.TypeString,
 										Optional: true,
+										ForceNew: true,
 									},
 									"max_value": {
 										Type:     schema.TypeString,
 										Optional: true,
+										ForceNew: true,
 									},
 								},
 							},
@@ -313,20 +331,24 @@ func resourceAwsCognitoUserPool() *schema.Resource {
 						"required": {
 							Type:     schema.TypeBool,
 							Optional: true,
+							ForceNew: true,
 						},
 						"string_attribute_constraints": {
 							Type:     schema.TypeList,
 							Optional: true,
+							ForceNew: true,
 							MaxItems: 1,
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
 									"min_length": {
 										Type:     schema.TypeString,
 										Optional: true,
+										ForceNew: true,
 									},
 									"max_length": {
 										Type:     schema.TypeString,
 										Optional: true,
+										ForceNew: true,
 									},
 								},
 							},
@@ -390,10 +412,13 @@ func resourceAwsCognitoUserPool() *schema.Resource {
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"default_email_option": {
-							Type:         schema.TypeString,
-							Optional:     true,
-							Default:      cognitoidentityprovider.DefaultEmailOptionTypeConfirmWithCode,
-							ValidateFunc: validateCognitoUserPoolTemplateDefaultEmailOption,
+							Type:     schema.TypeString,
+							Optional: true,
+							Default:  cognitoidentityprovider.DefaultEmailOptionTypeConfirmWithCode,
+							ValidateFunc: validation.StringInSlice([]string{
+								cognitoidentityprovider.DefaultEmailOptionTypeConfirmWithLink,
+								cognitoidentityprovider.DefaultEmailOptionTypeConfirmWithCode,
+							}, false),
 						},
 						"email_message": {
 							Type:         schema.TypeString,
@@ -625,9 +650,8 @@ func resourceAwsCognitoUserPoolRead(d *schema.ResourceData, meta interface{}) er
 		Resource:  fmt.Sprintf("userpool/%s", d.Id()),
 	}
 	d.Set("arn", arn.String())
-	if resp.UserPool.AutoVerifiedAttributes != nil {
-		d.Set("auto_verified_attributes", flattenStringList(resp.UserPool.AutoVerifiedAttributes))
-	}
+	d.Set("auto_verified_attributes", flattenStringList(resp.UserPool.AutoVerifiedAttributes))
+
 	if resp.UserPool.EmailVerificationSubject != nil {
 		d.Set("email_verification_subject", *resp.UserPool.EmailVerificationSubject)
 	}
@@ -659,6 +683,14 @@ func resourceAwsCognitoUserPoolRead(d *schema.ResourceData, meta interface{}) er
 		if err := d.Set("password_policy", flattenCognitoUserPoolPasswordPolicy(resp.UserPool.Policies.PasswordPolicy)); err != nil {
 			return fmt.Errorf("Failed setting password_policy: %s", err)
 		}
+	}
+
+	var configuredSchema []interface{}
+	if v, ok := d.GetOk("schema"); ok {
+		configuredSchema = v.(*schema.Set).List()
+	}
+	if err := d.Set("schema", flattenCognitoUserPoolSchema(expandCognitoUserPoolSchema(configuredSchema), resp.UserPool.SchemaAttributes)); err != nil {
+		return fmt.Errorf("Failed setting schema: %s", err)
 	}
 
 	if err := d.Set("sms_configuration", flattenCognitoUserPoolSmsConfiguration(resp.UserPool.SmsConfiguration)); err != nil {

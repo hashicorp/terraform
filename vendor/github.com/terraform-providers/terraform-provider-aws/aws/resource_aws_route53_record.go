@@ -13,6 +13,7 @@ import (
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/hashicorp/terraform/helper/validation"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
@@ -51,22 +52,29 @@ func resourceAwsRoute53Record() *schema.Resource {
 			},
 
 			"type": {
-				Type:         schema.TypeString,
-				Required:     true,
-				ValidateFunc: validateRoute53RecordType,
+				Type:     schema.TypeString,
+				Required: true,
+				ValidateFunc: validation.StringInSlice([]string{
+					route53.RRTypeSoa,
+					route53.RRTypeA,
+					route53.RRTypeTxt,
+					route53.RRTypeNs,
+					route53.RRTypeCname,
+					route53.RRTypeMx,
+					route53.RRTypeNaptr,
+					route53.RRTypePtr,
+					route53.RRTypeSrv,
+					route53.RRTypeSpf,
+					route53.RRTypeAaaa,
+					route53.RRTypeCaa,
+				}, false),
 			},
 
 			"zone_id": {
-				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: true,
-				ValidateFunc: func(v interface{}, k string) (ws []string, es []error) {
-					value := v.(string)
-					if value == "" {
-						es = append(es, fmt.Errorf("Cannot have empty zone_id"))
-					}
-					return
-				},
+				Type:         schema.TypeString,
+				Required:     true,
+				ForceNew:     true,
+				ValidateFunc: validation.NoZeroValues,
 			},
 
 			"ttl": {
@@ -630,27 +638,35 @@ func findRecord(d *schema.ResourceData, meta interface{}) (*route53.ResourceReco
 
 	log.Printf("[DEBUG] List resource records sets for zone: %s, opts: %s",
 		zone, lopts)
-	resp, err := conn.ListResourceRecordSets(lopts)
+
+	var record *route53.ResourceRecordSet
+	err = conn.ListResourceRecordSetsPages(lopts, func(resp *route53.ListResourceRecordSetsOutput, lastPage bool) bool {
+		for _, recordSet := range resp.ResourceRecordSets {
+			name := cleanRecordName(*recordSet.Name)
+			if FQDN(strings.ToLower(name)) != FQDN(strings.ToLower(*lopts.StartRecordName)) {
+				continue
+			}
+			if strings.ToUpper(*recordSet.Type) != strings.ToUpper(*lopts.StartRecordType) {
+				continue
+			}
+
+			if recordSet.SetIdentifier != nil && *recordSet.SetIdentifier != d.Get("set_identifier") {
+				continue
+			}
+
+			record = recordSet
+			return false
+		}
+		return !lastPage
+	})
+
 	if err != nil {
 		return nil, err
 	}
-
-	for _, record := range resp.ResourceRecordSets {
-		name := cleanRecordName(*record.Name)
-		if FQDN(strings.ToLower(name)) != FQDN(strings.ToLower(*lopts.StartRecordName)) {
-			continue
-		}
-		if strings.ToUpper(*record.Type) != strings.ToUpper(*lopts.StartRecordType) {
-			continue
-		}
-
-		if record.SetIdentifier != nil && *record.SetIdentifier != d.Get("set_identifier") {
-			continue
-		}
-		// The only safe return where a record is found
-		return record, nil
+	if record == nil {
+		return nil, r53NoRecordsFound
 	}
-	return nil, r53NoRecordsFound
+	return record, nil
 }
 
 func resourceAwsRoute53RecordDelete(d *schema.ResourceData, meta interface{}) error {

@@ -4,11 +4,13 @@ import (
 	"fmt"
 	"log"
 	"regexp"
+	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/iam"
 
+	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -218,13 +220,25 @@ func resourceAwsIamUserDelete(d *schema.ResourceData, meta interface{}) error {
 			}
 		}
 
-		_, err = iamconn.DeleteLoginProfile(&iam.DeleteLoginProfileInput{
-			UserName: aws.String(d.Id()),
-		})
-		if err != nil {
-			if iamerr, ok := err.(awserr.Error); !ok || iamerr.Code() != "NoSuchEntity" {
-				return fmt.Errorf("Error deleting Account Login Profile: %s", err)
+		err = resource.Retry(1*time.Minute, func() *resource.RetryError {
+			_, err = iamconn.DeleteLoginProfile(&iam.DeleteLoginProfileInput{
+				UserName: aws.String(d.Id()),
+			})
+			if err != nil {
+				if isAWSErr(err, iam.ErrCodeNoSuchEntityException, "") {
+					return nil
+				}
+				// EntityTemporarilyUnmodifiable: Login Profile for User XXX cannot be modified while login profile is being created.
+				if isAWSErr(err, iam.ErrCodeEntityTemporarilyUnmodifiableException, "") {
+					return resource.RetryableError(err)
+				}
+				return resource.NonRetryableError(err)
 			}
+			return nil
+		})
+
+		if err != nil {
+			return fmt.Errorf("Error deleting Account Login Profile: %s", err)
 		}
 	}
 

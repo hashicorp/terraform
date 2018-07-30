@@ -15,6 +15,7 @@ import (
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/hashicorp/terraform/helper/validation"
 )
 
 func resourceAwsSecurityGroupRule() *schema.Resource {
@@ -29,11 +30,14 @@ func resourceAwsSecurityGroupRule() *schema.Resource {
 
 		Schema: map[string]*schema.Schema{
 			"type": {
-				Type:         schema.TypeString,
-				Required:     true,
-				ForceNew:     true,
-				Description:  "Type of rule, ingress (inbound) or egress (outbound).",
-				ValidateFunc: validateSecurityRuleType,
+				Type:        schema.TypeString,
+				Required:    true,
+				ForceNew:    true,
+				Description: "Type of rule, ingress (inbound) or egress (outbound).",
+				ValidateFunc: validation.StringInSlice([]string{
+					"ingress",
+					"egress",
+				}, false),
 			},
 
 			"from_port": {

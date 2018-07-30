@@ -8,11 +8,13 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/arn"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/ssm"
 	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/hashicorp/terraform/helper/validation"
 )
 
 const (
@@ -40,10 +42,23 @@ func resourceAwsSsmDocument() *schema.Resource {
 				Type:     schema.TypeString,
 				Required: true,
 			},
+			"document_format": {
+				Type:     schema.TypeString,
+				Optional: true,
+				Default:  ssm.DocumentFormatJson,
+				ValidateFunc: validation.StringInSlice([]string{
+					ssm.DocumentFormatJson,
+					ssm.DocumentFormatYaml,
+				}, false),
+			},
 			"document_type": {
-				Type:         schema.TypeString,
-				Required:     true,
-				ValidateFunc: validateAwsSSMDocumentType,
+				Type:     schema.TypeString,
+				Required: true,
+				ValidateFunc: validation.StringInSlice([]string{
+					ssm.DocumentTypeCommand,
+					ssm.DocumentTypePolicy,
+					ssm.DocumentTypeAutomation,
+				}, false),
 			},
 			"schema_version": {
 				Type:     schema.TypeString,
@@ -136,9 +151,10 @@ func resourceAwsSsmDocumentCreate(d *schema.ResourceData, meta interface{}) erro
 	log.Printf("[INFO] Creating SSM Document: %s", d.Get("name").(string))
 
 	docInput := &ssm.CreateDocumentInput{
-		Name:         aws.String(d.Get("name").(string)),
-		Content:      aws.String(d.Get("content").(string)),
-		DocumentType: aws.String(d.Get("document_type").(string)),
+		Name:           aws.String(d.Get("name").(string)),
+		Content:        aws.String(d.Get("content").(string)),
+		DocumentFormat: aws.String(d.Get("document_format").(string)),
+		DocumentType:   aws.String(d.Get("document_type").(string)),
 	}
 
 	log.Printf("[DEBUG] Waiting for SSM Document %q to be created", d.Get("name").(string))
@@ -197,6 +213,7 @@ func resourceAwsSsmDocumentRead(d *schema.ResourceData, meta interface{}) error 
 		d.Set("document_type", doc.DocumentType)
 	}
 
+	d.Set("document_format", doc.DocumentFormat)
 	d.Set("document_version", doc.DocumentVersion)
 	d.Set("hash", doc.Hash)
 	d.Set("hash_type", doc.HashType)
@@ -204,7 +221,13 @@ func resourceAwsSsmDocumentRead(d *schema.ResourceData, meta interface{}) error 
 	d.Set("name", doc.Name)
 	d.Set("owner", doc.Owner)
 	d.Set("platform_types", flattenStringList(doc.PlatformTypes))
-	if err := d.Set("arn", flattenAwsSsmDocumentArn(meta, doc.Name)); err != nil {
+	arn := arn.ARN{
+		Partition: meta.(*AWSClient).partition,
+		Service:   "ssm",
+		Region:    meta.(*AWSClient).region,
+		Resource:  fmt.Sprintf("document/%s", *doc.Name),
+	}.String()
+	if err := d.Set("arn", arn); err != nil {
 		return fmt.Errorf("[DEBUG] Error setting arn error: %#v", err)
 	}
 
@@ -248,12 +271,6 @@ func resourceAwsSsmDocumentRead(d *schema.ResourceData, meta interface{}) error 
 	}
 
 	return nil
-}
-
-func flattenAwsSsmDocumentArn(meta interface{}, docName *string) string {
-	region := meta.(*AWSClient).region
-
-	return fmt.Sprintf("arn:aws:ssm:%s::document/%s", region, *docName)
 }
 
 func resourceAwsSsmDocumentUpdate(d *schema.ResourceData, meta interface{}) error {
@@ -434,6 +451,7 @@ func updateAwsSSMDocument(d *schema.ResourceData, meta interface{}) error {
 	updateDocInput := &ssm.UpdateDocumentInput{
 		Name:            aws.String(name),
 		Content:         aws.String(d.Get("content").(string)),
+		DocumentFormat:  aws.String(d.Get("document_format").(string)),
 		DocumentVersion: aws.String(d.Get("default_version").(string)),
 	}
 
@@ -465,18 +483,4 @@ func updateAwsSSMDocument(d *schema.ResourceData, meta interface{}) error {
 		return errwrap.Wrapf("Error updating the default document version to that of the updated document: {{err}}", err)
 	}
 	return nil
-}
-
-func validateAwsSSMDocumentType(v interface{}, k string) (ws []string, errors []error) {
-	value := v.(string)
-	types := map[string]bool{
-		"Command":    true,
-		"Policy":     true,
-		"Automation": true,
-	}
-
-	if !types[value] {
-		errors = append(errors, fmt.Errorf("Document type %s is invalid. Valid types are Command, Policy or Automation", value))
-	}
-	return
 }

@@ -12,6 +12,7 @@ import (
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/helper/structure"
+	"github.com/hashicorp/terraform/helper/validation"
 )
 
 func resourceAwsKmsKey() *schema.Resource {
@@ -45,14 +46,10 @@ func resourceAwsKmsKey() *schema.Resource {
 				Optional: true,
 				Computed: true,
 				ForceNew: true,
-				ValidateFunc: func(v interface{}, k string) (ws []string, es []error) {
-					value := v.(string)
-					if !(value == "ENCRYPT_DECRYPT" || value == "") {
-						es = append(es, fmt.Errorf(
-							"%q must be ENCRYPT_DECRYPT or not specified", k))
-					}
-					return
-				},
+				ValidateFunc: validation.StringInSlice([]string{
+					"",
+					kms.KeyUsageTypeEncryptDecrypt,
+				}, false),
 			},
 			"policy": {
 				Type:             schema.TypeString,
@@ -72,16 +69,9 @@ func resourceAwsKmsKey() *schema.Resource {
 				Default:  false,
 			},
 			"deletion_window_in_days": {
-				Type:     schema.TypeInt,
-				Optional: true,
-				ValidateFunc: func(v interface{}, k string) (ws []string, es []error) {
-					value := v.(int)
-					if value > 30 || value < 7 {
-						es = append(es, fmt.Errorf(
-							"%q must be between 7 and 30 days inclusive", k))
-					}
-					return
-				},
+				Type:         schema.TypeInt,
+				Optional:     true,
+				ValidateFunc: validation.IntBetween(7, 30),
 			},
 			"tags": tagsSchema(),
 		},
