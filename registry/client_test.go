@@ -28,7 +28,7 @@ func TestLookupModuleVersions(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		resp, err := client.Versions(modsrc)
+		resp, err := client.ModuleVersions(modsrc)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -68,7 +68,7 @@ func TestInvalidRegistry(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if _, err := client.Versions(modsrc); err == nil {
+	if _, err := client.ModuleVersions(modsrc); err == nil {
 		t.Fatal("expected error")
 	}
 }
@@ -85,26 +85,26 @@ func TestRegistryAuth(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	_, err = client.Versions(mod)
-	if err != nil {
-		t.Fatal(err)
+	// both should fail without auth
+	_, err = client.ModuleVersions(mod)
+	if err == nil {
+		t.Fatal("expected error")
 	}
-	_, err = client.Location(mod, "1.0.0")
-	if err != nil {
-		t.Fatal(err)
+	_, err = client.ModuleLocation(mod, "1.0.0")
+	if err == nil {
+		t.Fatal("expected error")
 	}
 
 	// Also test without a credentials source
 	client.services.SetCredentialsSource(nil)
 
-	// both should fail without auth
-	_, err = client.Versions(mod)
-	if err == nil {
-		t.Fatal("expected error")
+	_, err = client.ModuleVersions(mod)
+	if err != nil {
+		t.Fatal(err)
 	}
-	_, err = client.Location(mod, "1.0.0")
-	if err == nil {
-		t.Fatal("expected error")
+	_, err = client.ModuleLocation(mod, "1.0.0")
+	if err != nil {
+		t.Fatal(err)
 	}
 }
 
@@ -120,7 +120,7 @@ func TestLookupModuleLocationRelative(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	got, err := client.Location(mod, "0.2.0")
+	got, err := client.ModuleLocation(mod, "0.2.0")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -148,7 +148,7 @@ func TestAccLookupModuleVersions(t *testing.T) {
 		}
 
 		s := NewClient(regDisco, nil)
-		resp, err := s.Versions(modsrc)
+		resp, err := s.ModuleVersions(modsrc)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -190,7 +190,7 @@ func TestLookupLookupModuleError(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	_, err = client.Location(mod, "0.2.0")
+	_, err = client.ModuleLocation(mod, "0.2.0")
 	if err == nil {
 		t.Fatal("expected error")
 	}
@@ -205,7 +205,7 @@ func TestLookupProviderVersions(t *testing.T) {
 	server := test.Registry()
 	defer server.Close()
 
-	client := NewClient(test.Disco(server), nil, nil)
+	client := NewClient(test.Disco(server), nil)
 
 	tests := []struct {
 		name string
@@ -242,7 +242,7 @@ func TestLookupProviderLocation(t *testing.T) {
 	server := test.Registry()
 	defer server.Close()
 
-	client := NewClient(test.Disco(server), nil, nil)
+	client := NewClient(test.Disco(server), nil)
 
 	tests := []struct {
 		Name    string
