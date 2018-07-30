@@ -161,7 +161,6 @@ func resourceAwsIamAccountPasswordPolicyDelete(d *schema.ResourceData, meta inte
 	if _, err := iamconn.DeleteAccountPasswordPolicy(input); err != nil {
 		return fmt.Errorf("Error deleting IAM Password Policy: %s", err)
 	}
-	d.SetId("")
 	log.Println("[DEBUG] Deleted IAM account password policy")
 
 	return nil

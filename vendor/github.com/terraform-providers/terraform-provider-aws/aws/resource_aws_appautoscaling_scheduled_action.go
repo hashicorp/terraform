@@ -184,11 +184,10 @@ func resourceAwsAppautoscalingScheduledActionDelete(d *schema.ResourceData, meta
 	if err != nil {
 		if isAWSErr(err, applicationautoscaling.ErrCodeObjectNotFoundException, "") {
 			log.Printf("[WARN] Application Autoscaling Scheduled Action (%s) already gone, removing from state", d.Id())
-			d.SetId("")
 			return nil
 		}
 		return err
 	}
-	d.SetId("")
+
 	return nil
 }

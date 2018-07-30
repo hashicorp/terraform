@@ -2925,7 +2925,7 @@ type DescribeEventsInput struct {
 
 	// The end of the time interval for which to retrieve events, specified in ISO
 	// 8601 format.
-	EndTime *time.Time `type:"timestamp" timestampFormat:"unix"`
+	EndTime *time.Time `type:"timestamp"`
 
 	// The maximum number of results to include in the response. If more results
 	// exist than the specified MaxResults value, a token is included in the response
@@ -2949,7 +2949,7 @@ type DescribeEventsInput struct {
 
 	// The beginning of the time interval to retrieve events for, specified in ISO
 	// 8601 format.
-	StartTime *time.Time `type:"timestamp" timestampFormat:"unix"`
+	StartTime *time.Time `type:"timestamp"`
 }
 
 // String returns the string representation
@@ -3343,7 +3343,7 @@ type Event struct {
 	_ struct{} `type:"structure"`
 
 	// The date and time when the event occurred.
-	Date *time.Time `type:"timestamp" timestampFormat:"unix"`
+	Date *time.Time `type:"timestamp"`
 
 	// A user-defined message associated with the event.
 	Message *string `type:"string"`
@@ -3573,7 +3573,7 @@ type Node struct {
 	Endpoint *Endpoint `type:"structure"`
 
 	// The date and time (in UNIX epoch format) when the node was launched.
-	NodeCreateTime *time.Time `type:"timestamp" timestampFormat:"unix"`
+	NodeCreateTime *time.Time `type:"timestamp"`
 
 	// A system-generated identifier for the node.
 	NodeId *string `type:"string"`

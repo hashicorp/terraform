@@ -55,10 +55,10 @@ func (c *DatabaseMigrationService) AddTagsToResourceRequest(input *AddTagsToReso
 
 // AddTagsToResource API operation for AWS Database Migration Service.
 //
-// Adds metadata tags to a DMS resource, including replication instance, endpoint,
-// security group, and migration task. These tags can also be used with cost
-// allocation reporting to track cost associated with DMS resources, or used
-// in a Condition statement in an IAM policy for DMS.
+// Adds metadata tags to an AWS DMS resource, including replication instance,
+// endpoint, security group, and migration task. These tags can also be used
+// with cost allocation reporting to track cost associated with DMS resources,
+// or used in a Condition statement in an IAM policy for DMS.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -4274,6 +4274,9 @@ func (c *DatabaseMigrationService) StartReplicationTaskRequest(input *StartRepli
 //   The resource is in a state that prevents it from being used for database
 //   migration.
 //
+//   * ErrCodeAccessDeniedFault "AccessDeniedFault"
+//   AWS DMS was denied access to the endpoint.
+//
 // See also, https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/StartReplicationTask
 func (c *DatabaseMigrationService) StartReplicationTask(input *StartReplicationTaskInput) (*StartReplicationTaskOutput, error) {
 	req, out := c.StartReplicationTaskRequest(input)
@@ -4695,7 +4698,7 @@ type Certificate struct {
 	CertificateArn *string `type:"string"`
 
 	// The date that the certificate was created.
-	CertificateCreationDate *time.Time `type:"timestamp" timestampFormat:"unix"`
+	CertificateCreationDate *time.Time `type:"timestamp"`
 
 	// The customer-assigned name of the certificate. Valid characters are A-z and
 	// 0-9.
@@ -4719,10 +4722,10 @@ type Certificate struct {
 	SigningAlgorithm *string `type:"string"`
 
 	// The beginning date that the certificate is valid.
-	ValidFromDate *time.Time `type:"timestamp" timestampFormat:"unix"`
+	ValidFromDate *time.Time `type:"timestamp"`
 
 	// The final date that the certificate is valid.
-	ValidToDate *time.Time `type:"timestamp" timestampFormat:"unix"`
+	ValidToDate *time.Time `type:"timestamp"`
 }
 
 // String returns the string representation
@@ -4875,6 +4878,27 @@ type CreateEndpointInput struct {
 	// The name of the endpoint database.
 	DatabaseName *string `type:"string"`
 
+	// The settings in JSON format for the DMS Transfer type source endpoint.
+	//
+	// Attributes include:
+	//
+	//    * serviceAccessRoleArn - The IAM role that has permission to access the
+	//    Amazon S3 bucket.
+	//
+	//    * bucketName - The name of the S3 bucket to use.
+	//
+	//    * compressionType - An optional parameter to use GZIP to compress the
+	//    target files. Set to NONE (the default) or do not use to leave the files
+	//    uncompressed.
+	//
+	// Shorthand syntax: ServiceAccessRoleArn=string ,BucketName=string,CompressionType=string
+	//
+	// JSON syntax:
+	//
+	// { "ServiceAccessRoleArn": "string", "BucketName": "string", "CompressionType":
+	// "none"|"gzip" }
+	DmsTransferSettings *DmsTransferSettings `type:"structure"`
+
 	// Settings in JSON format for the target Amazon DynamoDB endpoint. For more
 	// information about the available settings, see the Using Object Mapping to
 	// Migrate Data to DynamoDB section at  Using an Amazon DynamoDB Database as
@@ -4894,11 +4918,14 @@ type CreateEndpointInput struct {
 	EndpointType *string `type:"string" required:"true" enum:"ReplicationEndpointTypeValue"`
 
 	// The type of engine for the endpoint. Valid values, depending on the EndPointType,
-	// include mysql, oracle, postgres, mariadb, aurora, redshift, S3, sybase, dynamodb,
-	// mongodb, and sqlserver.
+	// include mysql, oracle, postgres, mariadb, aurora, aurora-postgresql, redshift,
+	// s3, db2, azuredb, sybase, dynamodb, mongodb, and sqlserver.
 	//
 	// EngineName is a required field
 	EngineName *string `type:"string" required:"true"`
+
+	// The external table definition.
+	ExternalTableDefinition *string `type:"string"`
 
 	// Additional attributes associated with the connection.
 	ExtraConnectionAttributes *string `type:"string"`
@@ -4913,7 +4940,7 @@ type CreateEndpointInput struct {
 	// Settings in JSON format for the source MongoDB endpoint. For more information
 	// about the available settings, see the Configuration Properties When Using
 	// MongoDB as a Source for AWS Database Migration Service section at  Using
-	// Amazon S3 as a Target for AWS Database Migration Service (http://docs.aws.amazon.com/dms/latest/userguide/CHAP_Source.MongoDB.html).
+	// MongoDB as a Target for AWS Database Migration Service (http://docs.aws.amazon.com/dms/latest/userguide/CHAP_Source.MongoDB.html).
 	MongoDbSettings *MongoDbSettings `type:"structure"`
 
 	// The password to be used to login to the endpoint database.
@@ -4922,13 +4949,17 @@ type CreateEndpointInput struct {
 	// The port used by the endpoint database.
 	Port *int64 `type:"integer"`
 
-	// Settings in JSON format for the target S3 endpoint. For more information
+	// Settings in JSON format for the target Amazon S3 endpoint. For more information
 	// about the available settings, see the Extra Connection Attributes section
 	// at  Using Amazon S3 as a Target for AWS Database Migration Service (http://docs.aws.amazon.com/dms/latest/userguide/CHAP_Target.S3.html).
 	S3Settings *S3Settings `type:"structure"`
 
 	// The name of the server where the endpoint database resides.
 	ServerName *string `type:"string"`
+
+	// The Amazon Resource Name (ARN) for the service access role you want to use
+	// to create the endpoint.
+	ServiceAccessRoleArn *string `type:"string"`
 
 	// The SSL mode to use for the SSL connection.
 	//
@@ -4990,6 +5021,12 @@ func (s *CreateEndpointInput) SetDatabaseName(v string) *CreateEndpointInput {
 	return s
 }
 
+// SetDmsTransferSettings sets the DmsTransferSettings field's value.
+func (s *CreateEndpointInput) SetDmsTransferSettings(v *DmsTransferSettings) *CreateEndpointInput {
+	s.DmsTransferSettings = v
+	return s
+}
+
 // SetDynamoDbSettings sets the DynamoDbSettings field's value.
 func (s *CreateEndpointInput) SetDynamoDbSettings(v *DynamoDbSettings) *CreateEndpointInput {
 	s.DynamoDbSettings = v
@@ -5011,6 +5048,12 @@ func (s *CreateEndpointInput) SetEndpointType(v string) *CreateEndpointInput {
 // SetEngineName sets the EngineName field's value.
 func (s *CreateEndpointInput) SetEngineName(v string) *CreateEndpointInput {
 	s.EngineName = &v
+	return s
+}
+
+// SetExternalTableDefinition sets the ExternalTableDefinition field's value.
+func (s *CreateEndpointInput) SetExternalTableDefinition(v string) *CreateEndpointInput {
+	s.ExternalTableDefinition = &v
 	return s
 }
 
@@ -5053,6 +5096,12 @@ func (s *CreateEndpointInput) SetS3Settings(v *S3Settings) *CreateEndpointInput 
 // SetServerName sets the ServerName field's value.
 func (s *CreateEndpointInput) SetServerName(v string) *CreateEndpointInput {
 	s.ServerName = &v
+	return s
+}
+
+// SetServiceAccessRoleArn sets the ServiceAccessRoleArn field's value.
+func (s *CreateEndpointInput) SetServiceAccessRoleArn(v string) *CreateEndpointInput {
+	s.ServiceAccessRoleArn = &v
 	return s
 }
 
@@ -5132,7 +5181,7 @@ type CreateEventSubscriptionInput struct {
 	// Valid values: replication-instance | migration-task
 	SourceType *string `type:"string"`
 
-	// The name of the DMS event notification subscription.
+	// The name of the AWS DMS event notification subscription.
 	//
 	// Constraints: The name must be less than 255 characters.
 	//
@@ -5557,8 +5606,34 @@ func (s *CreateReplicationSubnetGroupOutput) SetReplicationSubnetGroup(v *Replic
 type CreateReplicationTaskInput struct {
 	_ struct{} `type:"structure"`
 
-	// The start time for the Change Data Capture (CDC) operation.
-	CdcStartTime *time.Time `type:"timestamp" timestampFormat:"unix"`
+	// Indicates when you want a change data capture (CDC) operation to start. Use
+	// either CdcStartPosition or CdcStartTime to specify when you want a CDC operation
+	// to start. Specifying both values results in an error.
+	//
+	// The value can be in date, checkpoint, or LSN/SCN format.
+	//
+	// Date Example: --cdc-start-position “2018-03-08T12:12:12”
+	//
+	// Checkpoint Example: --cdc-start-position "checkpoint:V1#27#mysql-bin-changelog.157832:1975:-1:2002:677883278264080:mysql-bin-changelog.157832:1876#0#0#*#0#93"
+	//
+	// LSN Example: --cdc-start-position “mysql-bin-changelog.000024:373”
+	CdcStartPosition *string `type:"string"`
+
+	// Indicates the start time for a change data capture (CDC) operation. Use either
+	// CdcStartTime or CdcStartPosition to specify when you want a CDC operation
+	// to start. Specifying both values results in an error.
+	//
+	// Timestamp Example: --cdc-start-time “2018-03-08T12:12:12”
+	CdcStartTime *time.Time `type:"timestamp"`
+
+	// Indicates when you want a change data capture (CDC) operation to stop. The
+	// value can be either server time or commit time.
+	//
+	// Server time example: --cdc-stop-position “server_time:3018-02-09T12:12:12”
+	//
+	// Commit time example: --cdc-stop-position “commit_time: 3018-02-09T12:12:12
+	// “
+	CdcStopPosition *string `type:"string"`
 
 	// The migration type.
 	//
@@ -5649,9 +5724,21 @@ func (s *CreateReplicationTaskInput) Validate() error {
 	return nil
 }
 
+// SetCdcStartPosition sets the CdcStartPosition field's value.
+func (s *CreateReplicationTaskInput) SetCdcStartPosition(v string) *CreateReplicationTaskInput {
+	s.CdcStartPosition = &v
+	return s
+}
+
 // SetCdcStartTime sets the CdcStartTime field's value.
 func (s *CreateReplicationTaskInput) SetCdcStartTime(v time.Time) *CreateReplicationTaskInput {
 	s.CdcStartTime = &v
+	return s
+}
+
+// SetCdcStopPosition sets the CdcStopPosition field's value.
+func (s *CreateReplicationTaskInput) SetCdcStopPosition(v string) *CreateReplicationTaskInput {
+	s.CdcStopPosition = &v
 	return s
 }
 
@@ -6731,7 +6818,7 @@ type DescribeEventsInput struct {
 	Duration *int64 `type:"integer"`
 
 	// The end time for the events to be listed.
-	EndTime *time.Time `type:"timestamp" timestampFormat:"unix"`
+	EndTime *time.Time `type:"timestamp"`
 
 	// A list of event categories for a source type that you want to subscribe to.
 	EventCategories []*string `type:"list"`
@@ -6764,7 +6851,7 @@ type DescribeEventsInput struct {
 	SourceType *string `type:"string" enum:"SourceType"`
 
 	// The start time for the events to be listed.
-	StartTime *time.Time `type:"timestamp" timestampFormat:"unix"`
+	StartTime *time.Time `type:"timestamp"`
 }
 
 // String returns the string representation
@@ -7766,6 +7853,39 @@ func (s *DescribeTableStatisticsOutput) SetTableStatistics(v []*TableStatistics)
 	return s
 }
 
+// The settings in JSON format for the DMS Transfer type source endpoint.
+type DmsTransferSettings struct {
+	_ struct{} `type:"structure"`
+
+	// The name of the S3 bucket to use.
+	BucketName *string `type:"string"`
+
+	// The IAM role that has permission to access the Amazon S3 bucket.
+	ServiceAccessRoleArn *string `type:"string"`
+}
+
+// String returns the string representation
+func (s DmsTransferSettings) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DmsTransferSettings) GoString() string {
+	return s.String()
+}
+
+// SetBucketName sets the BucketName field's value.
+func (s *DmsTransferSettings) SetBucketName(v string) *DmsTransferSettings {
+	s.BucketName = &v
+	return s
+}
+
+// SetServiceAccessRoleArn sets the ServiceAccessRoleArn field's value.
+func (s *DmsTransferSettings) SetServiceAccessRoleArn(v string) *DmsTransferSettings {
+	s.ServiceAccessRoleArn = &v
+	return s
+}
+
 type DynamoDbSettings struct {
 	_ struct{} `type:"structure"`
 
@@ -7813,6 +7933,27 @@ type Endpoint struct {
 	// The name of the database at the endpoint.
 	DatabaseName *string `type:"string"`
 
+	// The settings in JSON format for the DMS Transfer type source endpoint.
+	//
+	// Attributes include:
+	//
+	//    * serviceAccessRoleArn - The IAM role that has permission to access the
+	//    Amazon S3 bucket.
+	//
+	//    * bucketName - The name of the S3 bucket to use.
+	//
+	//    * compressionType - An optional parameter to use GZIP to compress the
+	//    target files. Set to NONE (the default) or do not use to leave the files
+	//    uncompressed.
+	//
+	// Shorthand syntax: ServiceAccessRoleArn=string ,BucketName=string,CompressionType=string
+	//
+	// JSON syntax:
+	//
+	// { "ServiceAccessRoleArn": "string", "BucketName": "string", "CompressionType":
+	// "none"|"gzip" }
+	DmsTransferSettings *DmsTransferSettings `type:"structure"`
+
 	// The settings for the target DynamoDB database. For more information, see
 	// the DynamoDBSettings structure.
 	DynamoDbSettings *DynamoDbSettings `type:"structure"`
@@ -7828,15 +7969,22 @@ type Endpoint struct {
 	// The type of endpoint.
 	EndpointType *string `type:"string" enum:"ReplicationEndpointTypeValue"`
 
+	// The expanded name for the engine name. For example, if the EngineName parameter
+	// is "aurora," this value would be "Amazon Aurora MySQL."
+	EngineDisplayName *string `type:"string"`
+
 	// The database engine name. Valid values, depending on the EndPointType, include
-	// mysql, oracle, postgres, mariadb, aurora, redshift, S3, sybase, dynamodb,
-	// mongodb, and sqlserver.
+	// mysql, oracle, postgres, mariadb, aurora, aurora-postgresql, redshift, s3,
+	// db2, azuredb, sybase, sybase, dynamodb, mongodb, and sqlserver.
 	EngineName *string `type:"string"`
 
 	// Value returned by a call to CreateEndpoint that can be used for cross-account
 	// validation. Use it on a subsequent call to CreateEndpoint to create the endpoint
 	// with a cross-account.
 	ExternalId *string `type:"string"`
+
+	// The external table definition.
+	ExternalTableDefinition *string `type:"string"`
 
 	// Additional connection attributes used to connect to the endpoint.
 	ExtraConnectionAttributes *string `type:"string"`
@@ -7861,6 +8009,9 @@ type Endpoint struct {
 
 	// The name of the server at the endpoint.
 	ServerName *string `type:"string"`
+
+	// The Amazon Resource Name (ARN) used by the service access IAM role.
+	ServiceAccessRoleArn *string `type:"string"`
 
 	// The SSL mode used to connect to the endpoint.
 	//
@@ -7898,6 +8049,12 @@ func (s *Endpoint) SetDatabaseName(v string) *Endpoint {
 	return s
 }
 
+// SetDmsTransferSettings sets the DmsTransferSettings field's value.
+func (s *Endpoint) SetDmsTransferSettings(v *DmsTransferSettings) *Endpoint {
+	s.DmsTransferSettings = v
+	return s
+}
+
 // SetDynamoDbSettings sets the DynamoDbSettings field's value.
 func (s *Endpoint) SetDynamoDbSettings(v *DynamoDbSettings) *Endpoint {
 	s.DynamoDbSettings = v
@@ -7922,6 +8079,12 @@ func (s *Endpoint) SetEndpointType(v string) *Endpoint {
 	return s
 }
 
+// SetEngineDisplayName sets the EngineDisplayName field's value.
+func (s *Endpoint) SetEngineDisplayName(v string) *Endpoint {
+	s.EngineDisplayName = &v
+	return s
+}
+
 // SetEngineName sets the EngineName field's value.
 func (s *Endpoint) SetEngineName(v string) *Endpoint {
 	s.EngineName = &v
@@ -7931,6 +8094,12 @@ func (s *Endpoint) SetEngineName(v string) *Endpoint {
 // SetExternalId sets the ExternalId field's value.
 func (s *Endpoint) SetExternalId(v string) *Endpoint {
 	s.ExternalId = &v
+	return s
+}
+
+// SetExternalTableDefinition sets the ExternalTableDefinition field's value.
+func (s *Endpoint) SetExternalTableDefinition(v string) *Endpoint {
+	s.ExternalTableDefinition = &v
 	return s
 }
 
@@ -7970,6 +8139,12 @@ func (s *Endpoint) SetServerName(v string) *Endpoint {
 	return s
 }
 
+// SetServiceAccessRoleArn sets the ServiceAccessRoleArn field's value.
+func (s *Endpoint) SetServiceAccessRoleArn(v string) *Endpoint {
+	s.ServiceAccessRoleArn = &v
+	return s
+}
+
 // SetSslMode sets the SslMode field's value.
 func (s *Endpoint) SetSslMode(v string) *Endpoint {
 	s.SslMode = &v
@@ -7992,7 +8167,7 @@ type Event struct {
 	_ struct{} `type:"structure"`
 
 	// The date of the event.
-	Date *time.Time `type:"timestamp" timestampFormat:"unix"`
+	Date *time.Time `type:"timestamp"`
 
 	// The event categories available for the specified source type.
 	EventCategories []*string `type:"list"`
@@ -8409,6 +8584,27 @@ type ModifyEndpointInput struct {
 	// The name of the endpoint database.
 	DatabaseName *string `type:"string"`
 
+	// The settings in JSON format for the DMS Transfer type source endpoint.
+	//
+	// Attributes include:
+	//
+	//    * serviceAccessRoleArn - The IAM role that has permission to access the
+	//    Amazon S3 bucket.
+	//
+	//    * BucketName - The name of the S3 bucket to use.
+	//
+	//    * compressionType - An optional parameter to use GZIP to compress the
+	//    target files. Set to NONE (the default) or do not use to leave the files
+	//    uncompressed.
+	//
+	// Shorthand syntax: ServiceAccessRoleArn=string ,BucketName=string,CompressionType=string
+	//
+	// JSON syntax:
+	//
+	// { "ServiceAccessRoleArn": "string", "BucketName": "string", "CompressionType":
+	// "none"|"gzip" }
+	DmsTransferSettings *DmsTransferSettings `type:"structure"`
+
 	// Settings in JSON format for the target Amazon DynamoDB endpoint. For more
 	// information about the available settings, see the Using Object Mapping to
 	// Migrate Data to DynamoDB section at  Using an Amazon DynamoDB Database as
@@ -8429,9 +8625,12 @@ type ModifyEndpointInput struct {
 	EndpointType *string `type:"string" enum:"ReplicationEndpointTypeValue"`
 
 	// The type of engine for the endpoint. Valid values, depending on the EndPointType,
-	// include mysql, oracle, postgres, mariadb, aurora, redshift, S3, sybase, dynamodb,
-	// mongodb, and sqlserver.
+	// include mysql, oracle, postgres, mariadb, aurora, aurora-postgresql, redshift,
+	// s3, db2, azuredb, sybase, sybase, dynamodb, mongodb, and sqlserver.
 	EngineName *string `type:"string"`
+
+	// The external table definition.
+	ExternalTableDefinition *string `type:"string"`
 
 	// Additional attributes associated with the connection. To reset this parameter,
 	// pass the empty string ("") as an argument.
@@ -8456,6 +8655,10 @@ type ModifyEndpointInput struct {
 
 	// The name of the server where the endpoint database resides.
 	ServerName *string `type:"string"`
+
+	// The Amazon Resource Name (ARN) for the service access role you want to use
+	// to modify the endpoint.
+	ServiceAccessRoleArn *string `type:"string"`
 
 	// The SSL mode to be used.
 	//
@@ -8508,6 +8711,12 @@ func (s *ModifyEndpointInput) SetDatabaseName(v string) *ModifyEndpointInput {
 	return s
 }
 
+// SetDmsTransferSettings sets the DmsTransferSettings field's value.
+func (s *ModifyEndpointInput) SetDmsTransferSettings(v *DmsTransferSettings) *ModifyEndpointInput {
+	s.DmsTransferSettings = v
+	return s
+}
+
 // SetDynamoDbSettings sets the DynamoDbSettings field's value.
 func (s *ModifyEndpointInput) SetDynamoDbSettings(v *DynamoDbSettings) *ModifyEndpointInput {
 	s.DynamoDbSettings = v
@@ -8535,6 +8744,12 @@ func (s *ModifyEndpointInput) SetEndpointType(v string) *ModifyEndpointInput {
 // SetEngineName sets the EngineName field's value.
 func (s *ModifyEndpointInput) SetEngineName(v string) *ModifyEndpointInput {
 	s.EngineName = &v
+	return s
+}
+
+// SetExternalTableDefinition sets the ExternalTableDefinition field's value.
+func (s *ModifyEndpointInput) SetExternalTableDefinition(v string) *ModifyEndpointInput {
+	s.ExternalTableDefinition = &v
 	return s
 }
 
@@ -8571,6 +8786,12 @@ func (s *ModifyEndpointInput) SetS3Settings(v *S3Settings) *ModifyEndpointInput 
 // SetServerName sets the ServerName field's value.
 func (s *ModifyEndpointInput) SetServerName(v string) *ModifyEndpointInput {
 	s.ServerName = &v
+	return s
+}
+
+// SetServiceAccessRoleArn sets the ServiceAccessRoleArn field's value.
+func (s *ModifyEndpointInput) SetServiceAccessRoleArn(v string) *ModifyEndpointInput {
+	s.ServiceAccessRoleArn = &v
 	return s
 }
 
@@ -8984,8 +9205,34 @@ func (s *ModifyReplicationSubnetGroupOutput) SetReplicationSubnetGroup(v *Replic
 type ModifyReplicationTaskInput struct {
 	_ struct{} `type:"structure"`
 
-	// The start time for the Change Data Capture (CDC) operation.
-	CdcStartTime *time.Time `type:"timestamp" timestampFormat:"unix"`
+	// Indicates when you want a change data capture (CDC) operation to start. Use
+	// either CdcStartPosition or CdcStartTime to specify when you want a CDC operation
+	// to start. Specifying both values results in an error.
+	//
+	// The value can be in date, checkpoint, or LSN/SCN format.
+	//
+	// Date Example: --cdc-start-position “2018-03-08T12:12:12”
+	//
+	// Checkpoint Example: --cdc-start-position "checkpoint:V1#27#mysql-bin-changelog.157832:1975:-1:2002:677883278264080:mysql-bin-changelog.157832:1876#0#0#*#0#93"
+	//
+	// LSN Example: --cdc-start-position “mysql-bin-changelog.000024:373”
+	CdcStartPosition *string `type:"string"`
+
+	// Indicates the start time for a change data capture (CDC) operation. Use either
+	// CdcStartTime or CdcStartPosition to specify when you want a CDC operation
+	// to start. Specifying both values results in an error.
+	//
+	// Timestamp Example: --cdc-start-time “2018-03-08T12:12:12”
+	CdcStartTime *time.Time `type:"timestamp"`
+
+	// Indicates when you want a change data capture (CDC) operation to stop. The
+	// value can be either server time or commit time.
+	//
+	// Server time example: --cdc-stop-position “server_time:3018-02-09T12:12:12”
+	//
+	// Commit time example: --cdc-stop-position “commit_time: 3018-02-09T12:12:12
+	// “
+	CdcStopPosition *string `type:"string"`
 
 	// The migration type.
 	//
@@ -9042,9 +9289,21 @@ func (s *ModifyReplicationTaskInput) Validate() error {
 	return nil
 }
 
+// SetCdcStartPosition sets the CdcStartPosition field's value.
+func (s *ModifyReplicationTaskInput) SetCdcStartPosition(v string) *ModifyReplicationTaskInput {
+	s.CdcStartPosition = &v
+	return s
+}
+
 // SetCdcStartTime sets the CdcStartTime field's value.
 func (s *ModifyReplicationTaskInput) SetCdcStartTime(v time.Time) *ModifyReplicationTaskInput {
 	s.CdcStartTime = &v
+	return s
+}
+
+// SetCdcStopPosition sets the CdcStopPosition field's value.
+func (s *ModifyReplicationTaskInput) SetCdcStopPosition(v string) *ModifyReplicationTaskInput {
+	s.CdcStopPosition = &v
 	return s
 }
 
@@ -9140,6 +9399,13 @@ type MongoDbSettings struct {
 	// Default value is false.
 	ExtractDocId *string `type:"string"`
 
+	// The KMS key identifier that will be used to encrypt the connection parameters.
+	// If you do not specify a value for the KmsKeyId parameter, then AWS DMS will
+	// use your default encryption key. AWS KMS creates the default encryption key
+	// for your AWS account. Your AWS account has a different default encryption
+	// key for each AWS region.
+	KmsKeyId *string `type:"string"`
+
 	// Specifies either document or table mode.
 	//
 	// Valid values: NONE, ONE
@@ -9204,6 +9470,12 @@ func (s *MongoDbSettings) SetDocsToInvestigate(v string) *MongoDbSettings {
 // SetExtractDocId sets the ExtractDocId field's value.
 func (s *MongoDbSettings) SetExtractDocId(v string) *MongoDbSettings {
 	s.ExtractDocId = &v
+	return s
+}
+
+// SetKmsKeyId sets the KmsKeyId field's value.
+func (s *MongoDbSettings) SetKmsKeyId(v string) *MongoDbSettings {
+	s.KmsKeyId = &v
 	return s
 }
 
@@ -9477,7 +9749,7 @@ type RefreshSchemasStatus struct {
 	LastFailureMessage *string `type:"string"`
 
 	// The date the schema was last refreshed.
-	LastRefreshDate *time.Time `type:"timestamp" timestampFormat:"unix"`
+	LastRefreshDate *time.Time `type:"timestamp"`
 
 	// The Amazon Resource Name (ARN) of the replication instance.
 	ReplicationInstanceArn *string `type:"string"`
@@ -9529,7 +9801,16 @@ func (s *RefreshSchemasStatus) SetStatus(v string) *RefreshSchemasStatus {
 type ReloadTablesInput struct {
 	_ struct{} `type:"structure"`
 
-	// The Amazon Resource Name (ARN) of the replication instance.
+	// Options for reload. Specify data-reload to reload the data and re-validate
+	// it if validation is enabled. Specify validate-only to re-validate the table.
+	// This option applies only when validation is enabled for the task.
+	//
+	// Valid values: data-reload, validate-only
+	//
+	// Default value is data-reload.
+	ReloadOption *string `type:"string" enum:"ReloadOptionValue"`
+
+	// The Amazon Resource Name (ARN) of the replication task.
 	//
 	// ReplicationTaskArn is a required field
 	ReplicationTaskArn *string `type:"string" required:"true"`
@@ -9564,6 +9845,12 @@ func (s *ReloadTablesInput) Validate() error {
 		return invalidParams
 	}
 	return nil
+}
+
+// SetReloadOption sets the ReloadOption field's value.
+func (s *ReloadTablesInput) SetReloadOption(v string) *ReloadTablesInput {
+	s.ReloadOption = &v
+	return s
 }
 
 // SetReplicationTaskArn sets the ReplicationTaskArn field's value.
@@ -9685,8 +9972,12 @@ type ReplicationInstance struct {
 	// The engine version number of the replication instance.
 	EngineVersion *string `type:"string"`
 
+	// The expiration date of the free replication instance that is part of the
+	// Free DMS program.
+	FreeUntil *time.Time `type:"timestamp"`
+
 	// The time the replication instance was created.
-	InstanceCreateTime *time.Time `type:"timestamp" timestampFormat:"unix"`
+	InstanceCreateTime *time.Time `type:"timestamp"`
 
 	// The KMS key identifier that is used to encrypt the content on the replication
 	// instance. If you do not specify a value for the KmsKeyId parameter, then
@@ -9789,6 +10080,12 @@ func (s *ReplicationInstance) SetAvailabilityZone(v string) *ReplicationInstance
 // SetEngineVersion sets the EngineVersion field's value.
 func (s *ReplicationInstance) SetEngineVersion(v string) *ReplicationInstance {
 	s.EngineVersion = &v
+	return s
+}
+
+// SetFreeUntil sets the FreeUntil field's value.
+func (s *ReplicationInstance) SetFreeUntil(v time.Time) *ReplicationInstance {
+	s.FreeUntil = &v
 	return s
 }
 
@@ -10053,11 +10350,38 @@ func (s *ReplicationSubnetGroup) SetVpcId(v string) *ReplicationSubnetGroup {
 type ReplicationTask struct {
 	_ struct{} `type:"structure"`
 
+	// Indicates when you want a change data capture (CDC) operation to start. Use
+	// either CdcStartPosition or CdcStartTime to specify when you want a CDC operation
+	// to start. Specifying both values results in an error.
+	//
+	// The value can be in date, checkpoint, or LSN/SCN format.
+	//
+	// Date Example: --cdc-start-position “2018-03-08T12:12:12”
+	//
+	// Checkpoint Example: --cdc-start-position "checkpoint:V1#27#mysql-bin-changelog.157832:1975:-1:2002:677883278264080:mysql-bin-changelog.157832:1876#0#0#*#0#93"
+	//
+	// LSN Example: --cdc-start-position “mysql-bin-changelog.000024:373”
+	CdcStartPosition *string `type:"string"`
+
+	// Indicates when you want a change data capture (CDC) operation to stop. The
+	// value can be either server time or commit time.
+	//
+	// Server time example: --cdc-stop-position “server_time:3018-02-09T12:12:12”
+	//
+	// Commit time example: --cdc-stop-position “commit_time: 3018-02-09T12:12:12
+	// “
+	CdcStopPosition *string `type:"string"`
+
 	// The last error (failure) message generated for the replication instance.
 	LastFailureMessage *string `type:"string"`
 
 	// The type of migration.
 	MigrationType *string `type:"string" enum:"MigrationTypeValue"`
+
+	// Indicates the last checkpoint that occurred during a change data capture
+	// (CDC) operation. You can provide this value to the CdcStartPosition parameter
+	// to start a CDC operation that begins at that checkpoint.
+	RecoveryCheckpoint *string `type:"string"`
 
 	// The Amazon Resource Name (ARN) of the replication instance.
 	ReplicationInstanceArn *string `type:"string"`
@@ -10066,9 +10390,9 @@ type ReplicationTask struct {
 	ReplicationTaskArn *string `type:"string"`
 
 	// The date the replication task was created.
-	ReplicationTaskCreationDate *time.Time `type:"timestamp" timestampFormat:"unix"`
+	ReplicationTaskCreationDate *time.Time `type:"timestamp"`
 
-	// The replication task identifier.
+	// The user-assigned replication task identifier or name.
 	//
 	// Constraints:
 	//
@@ -10083,7 +10407,7 @@ type ReplicationTask struct {
 	ReplicationTaskSettings *string `type:"string"`
 
 	// The date the replication task is scheduled to start.
-	ReplicationTaskStartDate *time.Time `type:"timestamp" timestampFormat:"unix"`
+	ReplicationTaskStartDate *time.Time `type:"timestamp"`
 
 	// The statistics for the task, including elapsed time, tables loaded, and table
 	// errors.
@@ -10115,6 +10439,18 @@ func (s ReplicationTask) GoString() string {
 	return s.String()
 }
 
+// SetCdcStartPosition sets the CdcStartPosition field's value.
+func (s *ReplicationTask) SetCdcStartPosition(v string) *ReplicationTask {
+	s.CdcStartPosition = &v
+	return s
+}
+
+// SetCdcStopPosition sets the CdcStopPosition field's value.
+func (s *ReplicationTask) SetCdcStopPosition(v string) *ReplicationTask {
+	s.CdcStopPosition = &v
+	return s
+}
+
 // SetLastFailureMessage sets the LastFailureMessage field's value.
 func (s *ReplicationTask) SetLastFailureMessage(v string) *ReplicationTask {
 	s.LastFailureMessage = &v
@@ -10124,6 +10460,12 @@ func (s *ReplicationTask) SetLastFailureMessage(v string) *ReplicationTask {
 // SetMigrationType sets the MigrationType field's value.
 func (s *ReplicationTask) SetMigrationType(v string) *ReplicationTask {
 	s.MigrationType = &v
+	return s
+}
+
+// SetRecoveryCheckpoint sets the RecoveryCheckpoint field's value.
+func (s *ReplicationTask) SetRecoveryCheckpoint(v string) *ReplicationTask {
+	s.RecoveryCheckpoint = &v
 	return s
 }
 
@@ -10220,7 +10562,7 @@ type ReplicationTaskAssessmentResult struct {
 	ReplicationTaskIdentifier *string `type:"string"`
 
 	// The date the task assessment was completed.
-	ReplicationTaskLastAssessmentDate *time.Time `type:"timestamp" timestampFormat:"unix"`
+	ReplicationTaskLastAssessmentDate *time.Time `type:"timestamp"`
 
 	// The URL of the S3 object containing the task assessment results.
 	S3ObjectUrl *string `type:"string"`
@@ -10370,6 +10712,7 @@ type S3Settings struct {
 	// carriage return (\n).
 	CsvRowDelimiter *string `type:"string"`
 
+	// The external table definition.
 	ExternalTableDefinition *string `type:"string"`
 
 	// The Amazon Resource Name (ARN) used by the service access IAM role.
@@ -10492,8 +10835,34 @@ func (s *StartReplicationTaskAssessmentOutput) SetReplicationTask(v *Replication
 type StartReplicationTaskInput struct {
 	_ struct{} `type:"structure"`
 
-	// The start time for the Change Data Capture (CDC) operation.
-	CdcStartTime *time.Time `type:"timestamp" timestampFormat:"unix"`
+	// Indicates when you want a change data capture (CDC) operation to start. Use
+	// either CdcStartPosition or CdcStartTime to specify when you want a CDC operation
+	// to start. Specifying both values results in an error.
+	//
+	// The value can be in date, checkpoint, or LSN/SCN format.
+	//
+	// Date Example: --cdc-start-position “2018-03-08T12:12:12”
+	//
+	// Checkpoint Example: --cdc-start-position "checkpoint:V1#27#mysql-bin-changelog.157832:1975:-1:2002:677883278264080:mysql-bin-changelog.157832:1876#0#0#*#0#93"
+	//
+	// LSN Example: --cdc-start-position “mysql-bin-changelog.000024:373”
+	CdcStartPosition *string `type:"string"`
+
+	// Indicates the start time for a change data capture (CDC) operation. Use either
+	// CdcStartTime or CdcStartPosition to specify when you want a CDC operation
+	// to start. Specifying both values results in an error.
+	//
+	// Timestamp Example: --cdc-start-time “2018-03-08T12:12:12”
+	CdcStartTime *time.Time `type:"timestamp"`
+
+	// Indicates when you want a change data capture (CDC) operation to stop. The
+	// value can be either server time or commit time.
+	//
+	// Server time example: --cdc-stop-position “server_time:3018-02-09T12:12:12”
+	//
+	// Commit time example: --cdc-stop-position “commit_time: 3018-02-09T12:12:12
+	// “
+	CdcStopPosition *string `type:"string"`
 
 	// The Amazon Resource Name (ARN) of the replication task to be started.
 	//
@@ -10532,9 +10901,21 @@ func (s *StartReplicationTaskInput) Validate() error {
 	return nil
 }
 
+// SetCdcStartPosition sets the CdcStartPosition field's value.
+func (s *StartReplicationTaskInput) SetCdcStartPosition(v string) *StartReplicationTaskInput {
+	s.CdcStartPosition = &v
+	return s
+}
+
 // SetCdcStartTime sets the CdcStartTime field's value.
 func (s *StartReplicationTaskInput) SetCdcStartTime(v time.Time) *StartReplicationTaskInput {
 	s.CdcStartTime = &v
+	return s
+}
+
+// SetCdcStopPosition sets the CdcStopPosition field's value.
+func (s *StartReplicationTaskInput) SetCdcStopPosition(v string) *StartReplicationTaskInput {
+	s.CdcStopPosition = &v
 	return s
 }
 
@@ -10681,9 +11062,13 @@ type SupportedEndpointType struct {
 	// The type of endpoint.
 	EndpointType *string `type:"string" enum:"ReplicationEndpointTypeValue"`
 
+	// The expanded name for the engine name. For example, if the EngineName parameter
+	// is "aurora," this value would be "Amazon Aurora MySQL."
+	EngineDisplayName *string `type:"string"`
+
 	// The database engine name. Valid values, depending on the EndPointType, include
-	// mysql, oracle, postgres, mariadb, aurora, redshift, S3, sybase, dynamodb,
-	// mongodb, and sqlserver.
+	// mysql, oracle, postgres, mariadb, aurora, aurora-postgresql, redshift, s3,
+	// db2, azuredb, sybase, sybase, dynamodb, mongodb, and sqlserver.
 	EngineName *string `type:"string"`
 
 	// Indicates if Change Data Capture (CDC) is supported.
@@ -10703,6 +11088,12 @@ func (s SupportedEndpointType) GoString() string {
 // SetEndpointType sets the EndpointType field's value.
 func (s *SupportedEndpointType) SetEndpointType(v string) *SupportedEndpointType {
 	s.EndpointType = &v
+	return s
+}
+
+// SetEngineDisplayName sets the EngineDisplayName field's value.
+func (s *SupportedEndpointType) SetEngineDisplayName(v string) *SupportedEndpointType {
+	s.EngineDisplayName = &v
 	return s
 }
 
@@ -10743,7 +11134,7 @@ type TableStatistics struct {
 	Inserts *int64 `type:"long"`
 
 	// The last time the table was updated.
-	LastUpdateTime *time.Time `type:"timestamp" timestampFormat:"unix"`
+	LastUpdateTime *time.Time `type:"timestamp"`
 
 	// The schema name.
 	SchemaName *string `type:"string"`
@@ -10792,6 +11183,9 @@ type TableStatistics struct {
 	//
 	//    * Error—The table could not be validated because of an unexpected error.
 	ValidationState *string `type:"string"`
+
+	// Additional details about the state of validation.
+	ValidationStateDetails *string `type:"string"`
 
 	// The number of records that could not be validated.
 	ValidationSuspendedRecords *int64 `type:"long"`
@@ -10888,6 +11282,12 @@ func (s *TableStatistics) SetValidationPendingRecords(v int64) *TableStatistics 
 // SetValidationState sets the ValidationState field's value.
 func (s *TableStatistics) SetValidationState(v string) *TableStatistics {
 	s.ValidationState = &v
+	return s
+}
+
+// SetValidationStateDetails sets the ValidationStateDetails field's value.
+func (s *TableStatistics) SetValidationStateDetails(v string) *TableStatistics {
+	s.ValidationStateDetails = &v
 	return s
 }
 
@@ -11143,6 +11543,14 @@ const (
 
 	// RefreshSchemasStatusTypeValueRefreshing is a RefreshSchemasStatusTypeValue enum value
 	RefreshSchemasStatusTypeValueRefreshing = "refreshing"
+)
+
+const (
+	// ReloadOptionValueDataReload is a ReloadOptionValue enum value
+	ReloadOptionValueDataReload = "data-reload"
+
+	// ReloadOptionValueValidateOnly is a ReloadOptionValue enum value
+	ReloadOptionValueValidateOnly = "validate-only"
 )
 
 const (

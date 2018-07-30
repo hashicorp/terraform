@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -98,6 +99,7 @@ func resourceAwsRoute() *schema.Resource {
 			"route_table_id": {
 				Type:     schema.TypeString,
 				Required: true,
+				ForceNew: true,
 			},
 
 			"vpc_peering_connection_id": {
@@ -205,7 +207,7 @@ func resourceAwsRouteCreate(d *schema.ResourceData, meta interface{}) error {
 		}
 
 	default:
-		return fmt.Errorf("An invalid target type specified: %s", setTarget)
+		return fmt.Errorf("A valid target type is missing. Specify one of the following attributes: %s", strings.Join(allowedTargets, ", "))
 	}
 	log.Printf("[DEBUG] Route create config: %s", createOpts)
 
@@ -425,7 +427,6 @@ func resourceAwsRouteDelete(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 
-	d.SetId("")
 	return nil
 }
 

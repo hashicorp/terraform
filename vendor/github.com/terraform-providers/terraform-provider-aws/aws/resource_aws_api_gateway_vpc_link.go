@@ -17,6 +17,9 @@ func resourceAwsApiGatewayVpcLink() *schema.Resource {
 		Read:   resourceAwsApiGatewayVpcLinkRead,
 		Update: resourceAwsApiGatewayVpcLinkUpdate,
 		Delete: resourceAwsApiGatewayVpcLinkDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"name": {

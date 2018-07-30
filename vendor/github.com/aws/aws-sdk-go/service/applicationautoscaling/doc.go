@@ -4,10 +4,10 @@
 // requests to Application Auto Scaling.
 //
 // With Application Auto Scaling, you can configure automatic scaling for your
-// scalable AWS resources. You can use Application Auto Scaling to accomplish
-// the following tasks:
+// scalable resources. You can use Application Auto Scaling to accomplish the
+// following tasks:
 //
-//    * Define scaling policies to automatically scale your AWS resources
+//    * Define scaling policies to automatically scale your AWS or custom resources
 //
 //    * Scale your resources in response to CloudWatch alarms
 //
@@ -15,7 +15,7 @@
 //
 //    * View the history of your scaling events
 //
-// Application Auto Scaling can scale the following AWS resources:
+// Application Auto Scaling can scale the following resources:
 //
 //    * Amazon ECS services. For more information, see Service Auto Scaling
 //    (http://docs.aws.amazon.com/AmazonECS/latest/developerguide/service-auto-scaling.html)
@@ -41,16 +41,19 @@
 //    * Amazon Aurora Replicas. For more information, see Using Amazon Aurora
 //    Auto Scaling with Aurora Replicas (http://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Aurora.Integrating.AutoScaling.html).
 //
-//    * Amazon SageMaker endpoints. For more information, see Automatically
+//    * Amazon SageMaker endpoint variants. For more information, see Automatically
 //    Scaling Amazon SageMaker Models (http://docs.aws.amazon.com/sagemaker/latest/dg/endpoint-auto-scaling.html).
+//
+//    * Custom resources provided by your own applications or services. More
+//    information is available in our GitHub repository (https://github.com/aws/aws-auto-scaling-custom-resource).
+//
+//
+// To learn more about Application Auto Scaling, see the Application Auto Scaling
+// User Guide (http://docs.aws.amazon.com/autoscaling/application/userguide/what-is-application-auto-scaling.html).
 //
 // To configure automatic scaling for multiple resources across multiple services,
 // use AWS Auto Scaling to create a scaling plan for your application. For more
-// information, see AWS Auto Scaling (http://aws.amazon.com/autoscaling).
-//
-// For a list of supported regions, see AWS Regions and Endpoints: Application
-// Auto Scaling (http://docs.aws.amazon.com/general/latest/gr/rande.html#as-app_region)
-// in the AWS General Reference.
+// information, see the AWS Auto Scaling User Guide (http://docs.aws.amazon.com/autoscaling/plans/userguide/what-is-aws-auto-scaling.html).
 //
 // See https://docs.aws.amazon.com/goto/WebAPI/application-autoscaling-2016-02-06 for more information on this service.
 //

@@ -122,7 +122,7 @@ func resourceAwsIamAccessKeyRead(d *schema.ResourceData, meta interface{}) error
 			d.SetId("")
 			return nil
 		}
-		return fmt.Errorf("Error reading IAM acces key: %s", err)
+		return fmt.Errorf("Error reading IAM access key: %s", err)
 	}
 
 	for _, key := range getResp.AccessKeyMetadata {

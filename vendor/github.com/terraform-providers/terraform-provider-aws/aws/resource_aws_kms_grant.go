@@ -393,13 +393,16 @@ func findKmsGrantById(conn *kms.KMS, keyId string, grantId string, marker *strin
 
 		return nil
 	})
+	if err != nil {
+		return nil, fmt.Errorf("error listing KMS Grants: %s", err)
+	}
 
 	grant = getKmsGrantById(out.Grants, grantId)
 	if grant != nil {
 		return grant, nil
 	}
-	if *out.Truncated {
-		log.Printf("[DEBUG] KMS Grant list truncated, getting next page via marker: %s", *out.NextMarker)
+	if aws.BoolValue(out.Truncated) {
+		log.Printf("[DEBUG] KMS Grant list truncated, getting next page via marker: %s", aws.StringValue(out.NextMarker))
 		return findKmsGrantById(conn, keyId, grantId, out.NextMarker)
 	}
 
@@ -520,11 +523,24 @@ func flattenKmsGrantConstraints(constraint *kms.GrantConstraints) *schema.Set {
 }
 
 func decodeKmsGrantId(id string) (string, string, error) {
-	parts := strings.Split(id, ":")
-	if len(parts) != 2 {
-		return "", "", fmt.Errorf("unexpected format of ID (%q), expected KeyID:GrantID", id)
+	if strings.HasPrefix(id, "arn:aws") {
+		arn_parts := strings.Split(id, "/")
+		if len(arn_parts) != 2 {
+			return "", "", fmt.Errorf("unexpected format of ARN (%q), expected KeyID:GrantID", id)
+		}
+		arn_prefix := arn_parts[0]
+		parts := strings.Split(arn_parts[1], ":")
+		if len(parts) != 2 {
+			return "", "", fmt.Errorf("unexpected format of ID (%q), expected KeyID:GrantID", id)
+		}
+		return fmt.Sprintf("%s/%s", arn_prefix, parts[0]), parts[1], nil
+	} else {
+		parts := strings.Split(id, ":")
+		if len(parts) != 2 {
+			return "", "", fmt.Errorf("unexpected format of ID (%q), expected KeyID:GrantID", id)
+		}
+		return parts[0], parts[1], nil
 	}
-	return parts[0], parts[1], nil
 }
 
 // Custom error, so we don't have to rely on

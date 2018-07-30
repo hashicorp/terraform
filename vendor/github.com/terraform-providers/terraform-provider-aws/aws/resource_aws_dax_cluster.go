@@ -485,8 +485,6 @@ func resourceAwsDaxClusterDelete(d *schema.ResourceData, meta interface{}) error
 		return fmt.Errorf("Error waiting for DAX (%s) to delete: %s", d.Id(), sterr)
 	}
 
-	d.SetId("")
-
 	return nil
 }
 

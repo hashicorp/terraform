@@ -11462,7 +11462,7 @@ type ApiKey struct {
 	_ struct{} `type:"structure"`
 
 	// The timestamp when the API Key was created.
-	CreatedDate *time.Time `locationName:"createdDate" type:"timestamp" timestampFormat:"unix"`
+	CreatedDate *time.Time `locationName:"createdDate" type:"timestamp"`
 
 	// An AWS Marketplace customer identifier , when integrating with the AWS SaaS
 	// Marketplace.
@@ -11478,7 +11478,7 @@ type ApiKey struct {
 	Id *string `locationName:"id" type:"string"`
 
 	// The timestamp when the API Key was last updated.
-	LastUpdatedDate *time.Time `locationName:"lastUpdatedDate" type:"timestamp" timestampFormat:"unix"`
+	LastUpdatedDate *time.Time `locationName:"lastUpdatedDate" type:"timestamp"`
 
 	// The name of the API Key.
 	Name *string `locationName:"name" type:"string"`
@@ -11563,6 +11563,10 @@ type ApiStage struct {
 
 	// API stage name of the associated API stage in a usage plan.
 	Stage *string `locationName:"stage" type:"string"`
+
+	// Map containing method level throttling information for API stage in a usage
+	// plan.
+	Throttle map[string]*ThrottleSettings `locationName:"throttle" type:"map"`
 }
 
 // String returns the string representation
@@ -11584,6 +11588,12 @@ func (s *ApiStage) SetApiId(v string) *ApiStage {
 // SetStage sets the Stage field's value.
 func (s *ApiStage) SetStage(v string) *ApiStage {
 	s.Stage = &v
+	return s
+}
+
+// SetThrottle sets the Throttle field's value.
+func (s *ApiStage) SetThrottle(v map[string]*ThrottleSettings) *ApiStage {
+	s.Throttle = v
 	return s
 }
 
@@ -11851,13 +11861,13 @@ type ClientCertificate struct {
 	ClientCertificateId *string `locationName:"clientCertificateId" type:"string"`
 
 	// The timestamp when the client certificate was created.
-	CreatedDate *time.Time `locationName:"createdDate" type:"timestamp" timestampFormat:"unix"`
+	CreatedDate *time.Time `locationName:"createdDate" type:"timestamp"`
 
 	// The description of the client certificate.
 	Description *string `locationName:"description" type:"string"`
 
 	// The timestamp when the client certificate will expire.
-	ExpirationDate *time.Time `locationName:"expirationDate" type:"timestamp" timestampFormat:"unix"`
+	ExpirationDate *time.Time `locationName:"expirationDate" type:"timestamp"`
 
 	// The PEM-encoded public key of the client certificate, which can be used to
 	// configure certificate authentication in the integration endpoint .
@@ -14747,7 +14757,7 @@ type Deployment struct {
 	ApiSummary map[string]map[string]*MethodSnapshot `locationName:"apiSummary" type:"map"`
 
 	// The date and time that the deployment resource was created.
-	CreatedDate *time.Time `locationName:"createdDate" type:"timestamp" timestampFormat:"unix"`
+	CreatedDate *time.Time `locationName:"createdDate" type:"timestamp"`
 
 	// The description for the deployment resource.
 	Description *string `locationName:"description" type:"string"`
@@ -15014,7 +15024,7 @@ type DocumentationVersion struct {
 	_ struct{} `type:"structure"`
 
 	// The date when the API documentation snapshot is created.
-	CreatedDate *time.Time `locationName:"createdDate" type:"timestamp" timestampFormat:"unix"`
+	CreatedDate *time.Time `locationName:"createdDate" type:"timestamp"`
 
 	// The description of the API documentation snapshot.
 	Description *string `locationName:"description" type:"string"`
@@ -15077,7 +15087,7 @@ type DomainName struct {
 
 	// The timestamp when the certificate that was used by edge-optimized endpoint
 	// for this domain name was uploaded.
-	CertificateUploadDate *time.Time `locationName:"certificateUploadDate" type:"timestamp" timestampFormat:"unix"`
+	CertificateUploadDate *time.Time `locationName:"certificateUploadDate" type:"timestamp"`
 
 	// The domain name of the Amazon CloudFront distribution associated with this
 	// custom domain name for an edge-optimized endpoint. You set up this association
@@ -15203,7 +15213,7 @@ type EndpointConfiguration struct {
 	// A list of endpoint types of an API (RestApi) or its custom domain name (DomainName).
 	// For an edge-optimized API and its custom domain name, the endpoint type is
 	// "EDGE". For a regional API and its custom domain name, the endpoint type
-	// is REGIONAL.
+	// is REGIONAL. For a private API, the endpoint type is PRIVATE.
 	Types []*string `locationName:"types" type:"list"`
 }
 
@@ -16577,11 +16587,11 @@ type GetExportInput struct {
 
 	// A key-value map of query string parameters that specify properties of the
 	// export, depending on the requested exportType. For exportTypeswagger, any
-	// combination of the following parameters are supported: integrations will
-	// export the API with x-amazon-apigateway-integration extensions. authorizers
-	// will export the API with x-amazon-apigateway-authorizer extensions. postman
-	// will export the API with Postman extensions, allowing for import to the Postman
-	// tool
+	// combination of the following parameters are supported: extensions='integrations'
+	// or extensions='apigateway' will export the API with x-amazon-apigateway-integration
+	// extensions. extensions='authorizers' will export the API with x-amazon-apigateway-authorizer
+	// extensions. postman will export the API with Postman extensions, allowing
+	// for import to the Postman tool
 	Parameters map[string]*string `location:"querystring" locationName:"parameters" type:"map"`
 
 	// [Required] The string identifier of the associated RestApi.
@@ -19141,8 +19151,9 @@ type ImportRestApiInput struct {
 	//
 	// To exclude DocumentationParts from the import, set parameters as ignore=documentation.
 	//
-	// To configure the endpoint type, set parameters as endpointConfigurationTypes=EDGE
-	// orendpointConfigurationTypes=REGIONAL. The default endpoint type is EDGE.
+	// To configure the endpoint type, set parameters as endpointConfigurationTypes=EDGE,
+	// endpointConfigurationTypes=REGIONAL, or endpointConfigurationTypes=PRIVATE.
+	// The default endpoint type is EDGE.
 	//
 	// To handle imported basePath, set parameters as basePath=ignore, basePath=prepend
 	// or basePath=split.
@@ -19151,11 +19162,11 @@ type ImportRestApiInput struct {
 	// API is:
 	//
 	//    aws apigateway import-rest-api --parameters ignore=documentation --body
-	//    'file:///path/to/imported-api-body.json
+	//    'file:///path/to/imported-api-body.json'
 	// The AWS CLI command to set the regional endpoint on the imported API is:
 	//
 	//    aws apigateway import-rest-api --parameters endpointConfigurationTypes=REGIONAL
-	//    --body 'file:///path/to/imported-api-body.json
+	//    --body 'file:///path/to/imported-api-body.json'
 	Parameters map[string]*string `location:"querystring" locationName:"parameters" type:"map"`
 }
 
@@ -20996,7 +21007,7 @@ type PutRestApiInput struct {
 	// Custom header parameters as part of the request. For example, to exclude
 	// DocumentationParts from an imported API, set ignore=documentation as a parameters
 	// value, as in the AWS CLI command of aws apigateway import-rest-api --parameters
-	// ignore=documentation --body 'file:///path/to/imported-api-body.json.
+	// ignore=documentation --body 'file:///path/to/imported-api-body.json'.
 	Parameters map[string]*string `location:"querystring" locationName:"parameters" type:"map"`
 
 	// [Required] The string identifier of the associated RestApi.
@@ -21241,7 +21252,7 @@ type RestApi struct {
 	BinaryMediaTypes []*string `locationName:"binaryMediaTypes" type:"list"`
 
 	// The timestamp when the API was created.
-	CreatedDate *time.Time `locationName:"createdDate" type:"timestamp" timestampFormat:"unix"`
+	CreatedDate *time.Time `locationName:"createdDate" type:"timestamp"`
 
 	// The API's description.
 	Description *string `locationName:"description" type:"string"`
@@ -21490,7 +21501,7 @@ type Stage struct {
 	ClientCertificateId *string `locationName:"clientCertificateId" type:"string"`
 
 	// The timestamp when the stage was created.
-	CreatedDate *time.Time `locationName:"createdDate" type:"timestamp" timestampFormat:"unix"`
+	CreatedDate *time.Time `locationName:"createdDate" type:"timestamp"`
 
 	// The identifier of the Deployment that the stage points to.
 	DeploymentId *string `locationName:"deploymentId" type:"string"`
@@ -21502,7 +21513,7 @@ type Stage struct {
 	DocumentationVersion *string `locationName:"documentationVersion" type:"string"`
 
 	// The timestamp when the stage last updated.
-	LastUpdatedDate *time.Time `locationName:"lastUpdatedDate" type:"timestamp" timestampFormat:"unix"`
+	LastUpdatedDate *time.Time `locationName:"lastUpdatedDate" type:"timestamp"`
 
 	// A map that defines the method settings for a Stage resource. Keys (designated
 	// as /{method_setting_key below) are method paths defined as {resource_path}/{http_method}
@@ -24162,15 +24173,19 @@ const (
 	DocumentationPartTypeResponseBody = "RESPONSE_BODY"
 )
 
-// The endpoint type. The valid value is EDGE for edge-optimized API setup,
-// most suitable for mobile applications, REGIONAL for regional API endpoint
-// setup, most suitable for calling from AWS Region
+// The endpoint type. The valid values are EDGE for edge-optimized API setup,
+// most suitable for mobile applications; REGIONAL for regional API endpoint
+// setup, most suitable for calling from AWS Region; and PRIVATE for private
+// APIs.
 const (
 	// EndpointTypeRegional is a EndpointType enum value
 	EndpointTypeRegional = "REGIONAL"
 
 	// EndpointTypeEdge is a EndpointType enum value
 	EndpointTypeEdge = "EDGE"
+
+	// EndpointTypePrivate is a EndpointType enum value
+	EndpointTypePrivate = "PRIVATE"
 )
 
 const (

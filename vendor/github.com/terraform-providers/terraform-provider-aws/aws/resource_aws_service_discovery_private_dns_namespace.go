@@ -1,7 +1,6 @@
 package aws
 
 import (
-	"fmt"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -47,9 +46,17 @@ func resourceAwsServiceDiscoveryPrivateDnsNamespace() *schema.Resource {
 func resourceAwsServiceDiscoveryPrivateDnsNamespaceCreate(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).sdconn
 
-	requestId := resource.PrefixedUniqueId(fmt.Sprintf("tf-%s", d.Get("name").(string)))
+	name := d.Get("name").(string)
+	// The CreatorRequestId has a limit of 64 bytes
+	var requestId string
+	if len(name) > (64 - resource.UniqueIDSuffixLength) {
+		requestId = resource.PrefixedUniqueId(name[0:(64 - resource.UniqueIDSuffixLength - 1)])
+	} else {
+		requestId = resource.PrefixedUniqueId(name)
+	}
+
 	input := &servicediscovery.CreatePrivateDnsNamespaceInput{
-		Name:             aws.String(d.Get("name").(string)),
+		Name:             aws.String(name),
 		Vpc:              aws.String(d.Get("vpc").(string)),
 		CreatorRequestId: aws.String(requestId),
 	}
@@ -127,6 +134,5 @@ func resourceAwsServiceDiscoveryPrivateDnsNamespaceDelete(d *schema.ResourceData
 		return err
 	}
 
-	d.SetId("")
 	return nil
 }

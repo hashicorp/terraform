@@ -153,7 +153,6 @@ func resourceAwsEcrRepositoryPolicyDelete(d *schema.ResourceData, meta interface
 		if ecrerr, ok := err.(awserr.Error); ok {
 			switch ecrerr.Code() {
 			case "RepositoryNotFoundException", "RepositoryPolicyNotFoundException":
-				d.SetId("")
 				return nil
 			default:
 				return err

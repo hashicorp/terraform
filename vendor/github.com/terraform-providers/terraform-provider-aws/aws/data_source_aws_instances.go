@@ -8,6 +8,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/hashicorp/terraform/helper/validation"
 )
 
 func dataSourceAwsInstances() *schema.Resource {
@@ -17,6 +18,21 @@ func dataSourceAwsInstances() *schema.Resource {
 		Schema: map[string]*schema.Schema{
 			"filter":        dataSourceFiltersSchema(),
 			"instance_tags": tagsSchemaComputed(),
+			"instance_state_names": {
+				Type:     schema.TypeSet,
+				Optional: true,
+				Elem: &schema.Schema{
+					Type: schema.TypeString,
+					ValidateFunc: validation.StringInSlice([]string{
+						ec2.InstanceStateNamePending,
+						ec2.InstanceStateNameRunning,
+						ec2.InstanceStateNameShuttingDown,
+						ec2.InstanceStateNameStopped,
+						ec2.InstanceStateNameStopping,
+						ec2.InstanceStateNameTerminated,
+					}, false),
+				},
+			},
 
 			"ids": {
 				Type:     schema.TypeList,
@@ -47,14 +63,19 @@ func dataSourceAwsInstancesRead(d *schema.ResourceData, meta interface{}) error 
 		return fmt.Errorf("One of filters or instance_tags must be assigned")
 	}
 
+	instanceStateNames := []*string{aws.String(ec2.InstanceStateNameRunning)}
+	if v, ok := d.GetOk("instance_state_names"); ok && len(v.(*schema.Set).List()) > 0 {
+		instanceStateNames = expandStringSet(v.(*schema.Set))
+	}
 	params := &ec2.DescribeInstancesInput{
 		Filters: []*ec2.Filter{
 			&ec2.Filter{
 				Name:   aws.String("instance-state-name"),
-				Values: []*string{aws.String("running")},
+				Values: instanceStateNames,
 			},
 		},
 	}
+
 	if filtersOk {
 		params.Filters = append(params.Filters,
 			buildAwsDataSourceFilters(filters.(*schema.Set))...)

@@ -193,6 +193,11 @@ func resourceAwsRedshiftCluster() *schema.Resource {
 				Computed: true,
 			},
 
+			"dns_name": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+
 			"cluster_public_key": {
 				Type:     schema.TypeString,
 				Optional: true,
@@ -567,6 +572,7 @@ func resourceAwsRedshiftClusterRead(d *schema.ResourceData, meta interface{}) er
 		if rsc.Endpoint.Port != nil {
 			endpoint = fmt.Sprintf("%s:%d", endpoint, *rsc.Endpoint.Port)
 		}
+		d.Set("dns_name", rsc.Endpoint.Address)
 		d.Set("port", rsc.Endpoint.Port)
 		d.Set("endpoint", endpoint)
 	}
@@ -642,25 +648,17 @@ func resourceAwsRedshiftClusterUpdate(d *schema.ResourceData, meta interface{}) 
 		ClusterIdentifier: aws.String(d.Id()),
 	}
 
-	if d.HasChange("cluster_type") {
+	// If the cluster type, node type, or number of nodes changed, then the AWS API expects all three
+	// items to be sent over
+	if d.HasChange("cluster_type") || d.HasChange("node_type") || d.HasChange("number_of_nodes") {
 		req.ClusterType = aws.String(d.Get("cluster_type").(string))
-		requestUpdate = true
-	}
-
-	if d.HasChange("node_type") {
 		req.NodeType = aws.String(d.Get("node_type").(string))
-		requestUpdate = true
-	}
-
-	if d.HasChange("number_of_nodes") {
 		if v := d.Get("number_of_nodes").(int); v > 1 {
 			req.ClusterType = aws.String("multi-node")
 			req.NumberOfNodes = aws.Int64(int64(d.Get("number_of_nodes").(int)))
 		} else {
 			req.ClusterType = aws.String("single-node")
 		}
-
-		req.NodeType = aws.String(d.Get("node_type").(string))
 		requestUpdate = true
 	}
 

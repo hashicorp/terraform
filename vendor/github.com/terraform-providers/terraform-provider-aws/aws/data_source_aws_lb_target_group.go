@@ -50,6 +50,11 @@ func dataSourceAwsLbTargetGroup() *schema.Resource {
 				Computed: true,
 			},
 
+			"slow_start": {
+				Type:     schema.TypeInt,
+				Computed: true,
+			},
+
 			"stickiness": {
 				Type:     schema.TypeList,
 				Computed: true,

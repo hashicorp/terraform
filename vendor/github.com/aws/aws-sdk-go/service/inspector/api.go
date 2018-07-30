@@ -182,6 +182,10 @@ func (c *Inspector) CreateAssessmentTargetRequest(input *CreateAssessmentTargetI
 //   The request was rejected because it referenced an entity that does not exist.
 //   The error code describes the entity.
 //
+//   * ErrCodeInvalidCrossAccountRoleException "InvalidCrossAccountRoleException"
+//   Amazon Inspector cannot assume the cross-account role that it needs to list
+//   your EC2 instances during the assessment run.
+//
 // See also, https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/CreateAssessmentTarget
 func (c *Inspector) CreateAssessmentTarget(input *CreateAssessmentTargetInput) (*CreateAssessmentTargetOutput, error) {
 	req, out := c.CreateAssessmentTargetRequest(input)
@@ -297,6 +301,102 @@ func (c *Inspector) CreateAssessmentTemplate(input *CreateAssessmentTemplateInpu
 // for more information on using Contexts.
 func (c *Inspector) CreateAssessmentTemplateWithContext(ctx aws.Context, input *CreateAssessmentTemplateInput, opts ...request.Option) (*CreateAssessmentTemplateOutput, error) {
 	req, out := c.CreateAssessmentTemplateRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+const opCreateExclusionsPreview = "CreateExclusionsPreview"
+
+// CreateExclusionsPreviewRequest generates a "aws/request.Request" representing the
+// client's request for the CreateExclusionsPreview operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfuly.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See CreateExclusionsPreview for more information on using the CreateExclusionsPreview
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the CreateExclusionsPreviewRequest method.
+//    req, resp := client.CreateExclusionsPreviewRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/CreateExclusionsPreview
+func (c *Inspector) CreateExclusionsPreviewRequest(input *CreateExclusionsPreviewInput) (req *request.Request, output *CreateExclusionsPreviewOutput) {
+	op := &request.Operation{
+		Name:       opCreateExclusionsPreview,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &CreateExclusionsPreviewInput{}
+	}
+
+	output = &CreateExclusionsPreviewOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// CreateExclusionsPreview API operation for Amazon Inspector.
+//
+// Starts the generation of an exclusions preview for the specified assessment
+// template. The exclusions preview lists the potential exclusions (ExclusionPreview)
+// that Inspector can detect before it runs the assessment.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Inspector's
+// API operation CreateExclusionsPreview for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeInvalidInputException "InvalidInputException"
+//   The request was rejected because an invalid or out-of-range value was supplied
+//   for an input parameter.
+//
+//   * ErrCodePreviewGenerationInProgressException "PreviewGenerationInProgressException"
+//   The request is rejected. The specified assessment template is currently generating
+//   an exclusions preview.
+//
+//   * ErrCodeInternalException "InternalException"
+//   Internal server error.
+//
+//   * ErrCodeAccessDeniedException "AccessDeniedException"
+//   You do not have required permissions to access the requested resource.
+//
+//   * ErrCodeNoSuchEntityException "NoSuchEntityException"
+//   The request was rejected because it referenced an entity that does not exist.
+//   The error code describes the entity.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/CreateExclusionsPreview
+func (c *Inspector) CreateExclusionsPreview(input *CreateExclusionsPreviewInput) (*CreateExclusionsPreviewOutput, error) {
+	req, out := c.CreateExclusionsPreviewRequest(input)
+	return out, req.Send()
+}
+
+// CreateExclusionsPreviewWithContext is the same as CreateExclusionsPreview with the addition of
+// the ability to pass a context and additional request options.
+//
+// See CreateExclusionsPreview for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *Inspector) CreateExclusionsPreviewWithContext(ctx aws.Context, input *CreateExclusionsPreviewInput, opts ...request.Option) (*CreateExclusionsPreviewOutput, error) {
+	req, out := c.CreateExclusionsPreviewRequest(input)
 	req.SetContext(ctx)
 	req.ApplyOptions(opts...)
 	return out, req.Send()
@@ -1017,6 +1117,89 @@ func (c *Inspector) DescribeCrossAccountAccessRoleWithContext(ctx aws.Context, i
 	return out, req.Send()
 }
 
+const opDescribeExclusions = "DescribeExclusions"
+
+// DescribeExclusionsRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeExclusions operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfuly.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See DescribeExclusions for more information on using the DescribeExclusions
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the DescribeExclusionsRequest method.
+//    req, resp := client.DescribeExclusionsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/DescribeExclusions
+func (c *Inspector) DescribeExclusionsRequest(input *DescribeExclusionsInput) (req *request.Request, output *DescribeExclusionsOutput) {
+	op := &request.Operation{
+		Name:       opDescribeExclusions,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &DescribeExclusionsInput{}
+	}
+
+	output = &DescribeExclusionsOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// DescribeExclusions API operation for Amazon Inspector.
+//
+// Describes the exclusions that are specified by the exclusions' ARNs.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Inspector's
+// API operation DescribeExclusions for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeInternalException "InternalException"
+//   Internal server error.
+//
+//   * ErrCodeInvalidInputException "InvalidInputException"
+//   The request was rejected because an invalid or out-of-range value was supplied
+//   for an input parameter.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/DescribeExclusions
+func (c *Inspector) DescribeExclusions(input *DescribeExclusionsInput) (*DescribeExclusionsOutput, error) {
+	req, out := c.DescribeExclusionsRequest(input)
+	return out, req.Send()
+}
+
+// DescribeExclusionsWithContext is the same as DescribeExclusions with the addition of
+// the ability to pass a context and additional request options.
+//
+// See DescribeExclusions for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *Inspector) DescribeExclusionsWithContext(ctx aws.Context, input *DescribeExclusionsInput, opts ...request.Option) (*DescribeExclusionsOutput, error) {
+	req, out := c.DescribeExclusionsRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
 const opDescribeFindings = "DescribeFindings"
 
 // DescribeFindingsRequest generates a "aws/request.Request" representing the
@@ -1368,6 +1551,154 @@ func (c *Inspector) GetAssessmentReportWithContext(ctx aws.Context, input *GetAs
 	req.SetContext(ctx)
 	req.ApplyOptions(opts...)
 	return out, req.Send()
+}
+
+const opGetExclusionsPreview = "GetExclusionsPreview"
+
+// GetExclusionsPreviewRequest generates a "aws/request.Request" representing the
+// client's request for the GetExclusionsPreview operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfuly.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See GetExclusionsPreview for more information on using the GetExclusionsPreview
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the GetExclusionsPreviewRequest method.
+//    req, resp := client.GetExclusionsPreviewRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/GetExclusionsPreview
+func (c *Inspector) GetExclusionsPreviewRequest(input *GetExclusionsPreviewInput) (req *request.Request, output *GetExclusionsPreviewOutput) {
+	op := &request.Operation{
+		Name:       opGetExclusionsPreview,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+		Paginator: &request.Paginator{
+			InputTokens:     []string{"nextToken"},
+			OutputTokens:    []string{"nextToken"},
+			LimitToken:      "maxResults",
+			TruncationToken: "",
+		},
+	}
+
+	if input == nil {
+		input = &GetExclusionsPreviewInput{}
+	}
+
+	output = &GetExclusionsPreviewOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// GetExclusionsPreview API operation for Amazon Inspector.
+//
+// Retrieves the exclusions preview (a list of ExclusionPreview objects) specified
+// by the preview token. You can obtain the preview token by running the CreateExclusionsPreview
+// API.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Inspector's
+// API operation GetExclusionsPreview for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeInvalidInputException "InvalidInputException"
+//   The request was rejected because an invalid or out-of-range value was supplied
+//   for an input parameter.
+//
+//   * ErrCodeInternalException "InternalException"
+//   Internal server error.
+//
+//   * ErrCodeAccessDeniedException "AccessDeniedException"
+//   You do not have required permissions to access the requested resource.
+//
+//   * ErrCodeNoSuchEntityException "NoSuchEntityException"
+//   The request was rejected because it referenced an entity that does not exist.
+//   The error code describes the entity.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/GetExclusionsPreview
+func (c *Inspector) GetExclusionsPreview(input *GetExclusionsPreviewInput) (*GetExclusionsPreviewOutput, error) {
+	req, out := c.GetExclusionsPreviewRequest(input)
+	return out, req.Send()
+}
+
+// GetExclusionsPreviewWithContext is the same as GetExclusionsPreview with the addition of
+// the ability to pass a context and additional request options.
+//
+// See GetExclusionsPreview for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *Inspector) GetExclusionsPreviewWithContext(ctx aws.Context, input *GetExclusionsPreviewInput, opts ...request.Option) (*GetExclusionsPreviewOutput, error) {
+	req, out := c.GetExclusionsPreviewRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+// GetExclusionsPreviewPages iterates over the pages of a GetExclusionsPreview operation,
+// calling the "fn" function with the response data for each page. To stop
+// iterating, return false from the fn function.
+//
+// See GetExclusionsPreview method for more information on how to use this operation.
+//
+// Note: This operation can generate multiple requests to a service.
+//
+//    // Example iterating over at most 3 pages of a GetExclusionsPreview operation.
+//    pageNum := 0
+//    err := client.GetExclusionsPreviewPages(params,
+//        func(page *GetExclusionsPreviewOutput, lastPage bool) bool {
+//            pageNum++
+//            fmt.Println(page)
+//            return pageNum <= 3
+//        })
+//
+func (c *Inspector) GetExclusionsPreviewPages(input *GetExclusionsPreviewInput, fn func(*GetExclusionsPreviewOutput, bool) bool) error {
+	return c.GetExclusionsPreviewPagesWithContext(aws.BackgroundContext(), input, fn)
+}
+
+// GetExclusionsPreviewPagesWithContext same as GetExclusionsPreviewPages except
+// it takes a Context and allows setting request options on the pages.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *Inspector) GetExclusionsPreviewPagesWithContext(ctx aws.Context, input *GetExclusionsPreviewInput, fn func(*GetExclusionsPreviewOutput, bool) bool, opts ...request.Option) error {
+	p := request.Pagination{
+		NewRequest: func() (*request.Request, error) {
+			var inCpy *GetExclusionsPreviewInput
+			if input != nil {
+				tmp := *input
+				inCpy = &tmp
+			}
+			req, _ := c.GetExclusionsPreviewRequest(inCpy)
+			req.SetContext(ctx)
+			req.ApplyOptions(opts...)
+			return req, nil
+		},
+	}
+
+	cont := true
+	for p.Next() && cont {
+		cont = fn(p.Page().(*GetExclusionsPreviewOutput), !p.HasNextPage())
+	}
+	return p.Err()
 }
 
 const opGetTelemetryMetadata = "GetTelemetryMetadata"
@@ -2190,6 +2521,152 @@ func (c *Inspector) ListEventSubscriptionsPagesWithContext(ctx aws.Context, inpu
 	cont := true
 	for p.Next() && cont {
 		cont = fn(p.Page().(*ListEventSubscriptionsOutput), !p.HasNextPage())
+	}
+	return p.Err()
+}
+
+const opListExclusions = "ListExclusions"
+
+// ListExclusionsRequest generates a "aws/request.Request" representing the
+// client's request for the ListExclusions operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfuly.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See ListExclusions for more information on using the ListExclusions
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the ListExclusionsRequest method.
+//    req, resp := client.ListExclusionsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/ListExclusions
+func (c *Inspector) ListExclusionsRequest(input *ListExclusionsInput) (req *request.Request, output *ListExclusionsOutput) {
+	op := &request.Operation{
+		Name:       opListExclusions,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+		Paginator: &request.Paginator{
+			InputTokens:     []string{"nextToken"},
+			OutputTokens:    []string{"nextToken"},
+			LimitToken:      "maxResults",
+			TruncationToken: "",
+		},
+	}
+
+	if input == nil {
+		input = &ListExclusionsInput{}
+	}
+
+	output = &ListExclusionsOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// ListExclusions API operation for Amazon Inspector.
+//
+// List exclusions that are generated by the assessment run.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Inspector's
+// API operation ListExclusions for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeInternalException "InternalException"
+//   Internal server error.
+//
+//   * ErrCodeInvalidInputException "InvalidInputException"
+//   The request was rejected because an invalid or out-of-range value was supplied
+//   for an input parameter.
+//
+//   * ErrCodeAccessDeniedException "AccessDeniedException"
+//   You do not have required permissions to access the requested resource.
+//
+//   * ErrCodeNoSuchEntityException "NoSuchEntityException"
+//   The request was rejected because it referenced an entity that does not exist.
+//   The error code describes the entity.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/ListExclusions
+func (c *Inspector) ListExclusions(input *ListExclusionsInput) (*ListExclusionsOutput, error) {
+	req, out := c.ListExclusionsRequest(input)
+	return out, req.Send()
+}
+
+// ListExclusionsWithContext is the same as ListExclusions with the addition of
+// the ability to pass a context and additional request options.
+//
+// See ListExclusions for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *Inspector) ListExclusionsWithContext(ctx aws.Context, input *ListExclusionsInput, opts ...request.Option) (*ListExclusionsOutput, error) {
+	req, out := c.ListExclusionsRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+// ListExclusionsPages iterates over the pages of a ListExclusions operation,
+// calling the "fn" function with the response data for each page. To stop
+// iterating, return false from the fn function.
+//
+// See ListExclusions method for more information on how to use this operation.
+//
+// Note: This operation can generate multiple requests to a service.
+//
+//    // Example iterating over at most 3 pages of a ListExclusions operation.
+//    pageNum := 0
+//    err := client.ListExclusionsPages(params,
+//        func(page *ListExclusionsOutput, lastPage bool) bool {
+//            pageNum++
+//            fmt.Println(page)
+//            return pageNum <= 3
+//        })
+//
+func (c *Inspector) ListExclusionsPages(input *ListExclusionsInput, fn func(*ListExclusionsOutput, bool) bool) error {
+	return c.ListExclusionsPagesWithContext(aws.BackgroundContext(), input, fn)
+}
+
+// ListExclusionsPagesWithContext same as ListExclusionsPages except
+// it takes a Context and allows setting request options on the pages.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *Inspector) ListExclusionsPagesWithContext(ctx aws.Context, input *ListExclusionsInput, fn func(*ListExclusionsOutput, bool) bool, opts ...request.Option) error {
+	p := request.Pagination{
+		NewRequest: func() (*request.Request, error) {
+			var inCpy *ListExclusionsInput
+			if input != nil {
+				tmp := *input
+				inCpy = &tmp
+			}
+			req, _ := c.ListExclusionsRequest(inCpy)
+			req.SetContext(ctx)
+			req.ApplyOptions(opts...)
+			return req, nil
+		},
+	}
+
+	cont := true
+	for p.Next() && cont {
+		cont = fn(p.Page().(*ListExclusionsOutput), !p.HasNextPage())
 	}
 	return p.Err()
 }
@@ -3779,12 +4256,12 @@ type AssessmentRun struct {
 
 	// The assessment run completion time that corresponds to the rules packages
 	// evaluation completion time or failure.
-	CompletedAt *time.Time `locationName:"completedAt" type:"timestamp" timestampFormat:"unix"`
+	CompletedAt *time.Time `locationName:"completedAt" type:"timestamp"`
 
 	// The time when StartAssessmentRun was called.
 	//
 	// CreatedAt is a required field
-	CreatedAt *time.Time `locationName:"createdAt" type:"timestamp" timestampFormat:"unix" required:"true"`
+	CreatedAt *time.Time `locationName:"createdAt" type:"timestamp" required:"true"`
 
 	// A Boolean value (true or false) that specifies whether the process of collecting
 	// data from the agents is completed.
@@ -3819,7 +4296,7 @@ type AssessmentRun struct {
 	RulesPackageArns []*string `locationName:"rulesPackageArns" min:"1" type:"list" required:"true"`
 
 	// The time when StartAssessmentRun was called.
-	StartedAt *time.Time `locationName:"startedAt" type:"timestamp" timestampFormat:"unix"`
+	StartedAt *time.Time `locationName:"startedAt" type:"timestamp"`
 
 	// The state of the assessment run.
 	//
@@ -3829,7 +4306,7 @@ type AssessmentRun struct {
 	// The last time when the assessment run's state changed.
 	//
 	// StateChangedAt is a required field
-	StateChangedAt *time.Time `locationName:"stateChangedAt" type:"timestamp" timestampFormat:"unix" required:"true"`
+	StateChangedAt *time.Time `locationName:"stateChangedAt" type:"timestamp" required:"true"`
 
 	// A list of the assessment run state changes.
 	//
@@ -4151,7 +4628,7 @@ type AssessmentRunNotification struct {
 	// The date of the notification.
 	//
 	// Date is a required field
-	Date *time.Time `locationName:"date" type:"timestamp" timestampFormat:"unix" required:"true"`
+	Date *time.Time `locationName:"date" type:"timestamp" required:"true"`
 
 	// The Boolean value that specifies whether the notification represents an error.
 	//
@@ -4231,7 +4708,7 @@ type AssessmentRunStateChange struct {
 	// The last time the assessment run state changed.
 	//
 	// StateChangedAt is a required field
-	StateChangedAt *time.Time `locationName:"stateChangedAt" type:"timestamp" timestampFormat:"unix" required:"true"`
+	StateChangedAt *time.Time `locationName:"stateChangedAt" type:"timestamp" required:"true"`
 }
 
 // String returns the string representation
@@ -4269,7 +4746,7 @@ type AssessmentTarget struct {
 	// The time at which the assessment target is created.
 	//
 	// CreatedAt is a required field
-	CreatedAt *time.Time `locationName:"createdAt" type:"timestamp" timestampFormat:"unix" required:"true"`
+	CreatedAt *time.Time `locationName:"createdAt" type:"timestamp" required:"true"`
 
 	// The name of the Amazon Inspector assessment target.
 	//
@@ -4278,14 +4755,12 @@ type AssessmentTarget struct {
 
 	// The ARN that specifies the resource group that is associated with the assessment
 	// target.
-	//
-	// ResourceGroupArn is a required field
-	ResourceGroupArn *string `locationName:"resourceGroupArn" min:"1" type:"string" required:"true"`
+	ResourceGroupArn *string `locationName:"resourceGroupArn" min:"1" type:"string"`
 
 	// The time at which UpdateAssessmentTarget is called.
 	//
 	// UpdatedAt is a required field
-	UpdatedAt *time.Time `locationName:"updatedAt" type:"timestamp" timestampFormat:"unix" required:"true"`
+	UpdatedAt *time.Time `locationName:"updatedAt" type:"timestamp" required:"true"`
 }
 
 // String returns the string representation
@@ -4392,9 +4867,9 @@ type AssessmentTemplate struct {
 	// The time at which the assessment template is created.
 	//
 	// CreatedAt is a required field
-	CreatedAt *time.Time `locationName:"createdAt" type:"timestamp" timestampFormat:"unix" required:"true"`
+	CreatedAt *time.Time `locationName:"createdAt" type:"timestamp" required:"true"`
 
-	// The duration in seconds specified for this assessment tempate. The default
+	// The duration in seconds specified for this assessment template. The default
 	// value is 3600 seconds (one hour). The maximum value is 86400 seconds (one
 	// day).
 	//
@@ -4403,7 +4878,7 @@ type AssessmentTemplate struct {
 
 	// The Amazon Resource Name (ARN) of the most recent assessment run associated
 	// with this assessment template. This value exists only when the value of assessmentRunCount
-	// is greater than zero.
+	// is greaterpa than zero.
 	LastAssessmentRunArn *string `locationName:"lastAssessmentRunArn" min:"1" type:"string"`
 
 	// The name of the assessment template.
@@ -4692,9 +5167,7 @@ type CreateAssessmentTargetInput struct {
 
 	// The ARN that specifies the resource group that is used to create the assessment
 	// target.
-	//
-	// ResourceGroupArn is a required field
-	ResourceGroupArn *string `locationName:"resourceGroupArn" min:"1" type:"string" required:"true"`
+	ResourceGroupArn *string `locationName:"resourceGroupArn" min:"1" type:"string"`
 }
 
 // String returns the string representation
@@ -4715,9 +5188,6 @@ func (s *CreateAssessmentTargetInput) Validate() error {
 	}
 	if s.AssessmentTargetName != nil && len(*s.AssessmentTargetName) < 1 {
 		invalidParams.Add(request.NewErrParamMinLen("AssessmentTargetName", 1))
-	}
-	if s.ResourceGroupArn == nil {
-		invalidParams.Add(request.NewErrParamRequired("ResourceGroupArn"))
 	}
 	if s.ResourceGroupArn != nil && len(*s.ResourceGroupArn) < 1 {
 		invalidParams.Add(request.NewErrParamMinLen("ResourceGroupArn", 1))
@@ -4905,6 +5375,75 @@ func (s CreateAssessmentTemplateOutput) GoString() string {
 // SetAssessmentTemplateArn sets the AssessmentTemplateArn field's value.
 func (s *CreateAssessmentTemplateOutput) SetAssessmentTemplateArn(v string) *CreateAssessmentTemplateOutput {
 	s.AssessmentTemplateArn = &v
+	return s
+}
+
+type CreateExclusionsPreviewInput struct {
+	_ struct{} `type:"structure"`
+
+	// The ARN that specifies the assessment template for which you want to create
+	// an exclusions preview.
+	//
+	// AssessmentTemplateArn is a required field
+	AssessmentTemplateArn *string `locationName:"assessmentTemplateArn" min:"1" type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s CreateExclusionsPreviewInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s CreateExclusionsPreviewInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *CreateExclusionsPreviewInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "CreateExclusionsPreviewInput"}
+	if s.AssessmentTemplateArn == nil {
+		invalidParams.Add(request.NewErrParamRequired("AssessmentTemplateArn"))
+	}
+	if s.AssessmentTemplateArn != nil && len(*s.AssessmentTemplateArn) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("AssessmentTemplateArn", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetAssessmentTemplateArn sets the AssessmentTemplateArn field's value.
+func (s *CreateExclusionsPreviewInput) SetAssessmentTemplateArn(v string) *CreateExclusionsPreviewInput {
+	s.AssessmentTemplateArn = &v
+	return s
+}
+
+type CreateExclusionsPreviewOutput struct {
+	_ struct{} `type:"structure"`
+
+	// Specifies the unique identifier of the requested exclusions preview. You
+	// can use the unique identifier to retrieve the exclusions preview when running
+	// the GetExclusionsPreview API.
+	//
+	// PreviewToken is a required field
+	PreviewToken *string `locationName:"previewToken" type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s CreateExclusionsPreviewOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s CreateExclusionsPreviewOutput) GoString() string {
+	return s.String()
+}
+
+// SetPreviewToken sets the PreviewToken field's value.
+func (s *CreateExclusionsPreviewOutput) SetPreviewToken(v string) *CreateExclusionsPreviewOutput {
+	s.PreviewToken = &v
 	return s
 }
 
@@ -5403,7 +5942,7 @@ type DescribeCrossAccountAccessRoleOutput struct {
 	// The date when the cross-account access role was registered.
 	//
 	// RegisteredAt is a required field
-	RegisteredAt *time.Time `locationName:"registeredAt" type:"timestamp" timestampFormat:"unix" required:"true"`
+	RegisteredAt *time.Time `locationName:"registeredAt" type:"timestamp" required:"true"`
 
 	// The ARN that specifies the IAM role that Amazon Inspector uses to access
 	// your AWS account.
@@ -5443,6 +5982,94 @@ func (s *DescribeCrossAccountAccessRoleOutput) SetRoleArn(v string) *DescribeCro
 // SetValid sets the Valid field's value.
 func (s *DescribeCrossAccountAccessRoleOutput) SetValid(v bool) *DescribeCrossAccountAccessRoleOutput {
 	s.Valid = &v
+	return s
+}
+
+type DescribeExclusionsInput struct {
+	_ struct{} `type:"structure"`
+
+	// The list of ARNs that specify the exclusions that you want to describe.
+	//
+	// ExclusionArns is a required field
+	ExclusionArns []*string `locationName:"exclusionArns" min:"1" type:"list" required:"true"`
+
+	// The locale into which you want to translate the exclusion's title, description,
+	// and recommendation.
+	Locale *string `locationName:"locale" type:"string" enum:"Locale"`
+}
+
+// String returns the string representation
+func (s DescribeExclusionsInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DescribeExclusionsInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DescribeExclusionsInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DescribeExclusionsInput"}
+	if s.ExclusionArns == nil {
+		invalidParams.Add(request.NewErrParamRequired("ExclusionArns"))
+	}
+	if s.ExclusionArns != nil && len(s.ExclusionArns) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ExclusionArns", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetExclusionArns sets the ExclusionArns field's value.
+func (s *DescribeExclusionsInput) SetExclusionArns(v []*string) *DescribeExclusionsInput {
+	s.ExclusionArns = v
+	return s
+}
+
+// SetLocale sets the Locale field's value.
+func (s *DescribeExclusionsInput) SetLocale(v string) *DescribeExclusionsInput {
+	s.Locale = &v
+	return s
+}
+
+type DescribeExclusionsOutput struct {
+	_ struct{} `type:"structure"`
+
+	// Information about the exclusions.
+	//
+	// Exclusions is a required field
+	Exclusions map[string]*Exclusion `locationName:"exclusions" min:"1" type:"map" required:"true"`
+
+	// Exclusion details that cannot be described. An error code is provided for
+	// each failed item.
+	//
+	// FailedItems is a required field
+	FailedItems map[string]*FailedItemDetails `locationName:"failedItems" type:"map" required:"true"`
+}
+
+// String returns the string representation
+func (s DescribeExclusionsOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DescribeExclusionsOutput) GoString() string {
+	return s.String()
+}
+
+// SetExclusions sets the Exclusions field's value.
+func (s *DescribeExclusionsOutput) SetExclusions(v map[string]*Exclusion) *DescribeExclusionsOutput {
+	s.Exclusions = v
+	return s
+}
+
+// SetFailedItems sets the FailedItems field's value.
+func (s *DescribeExclusionsOutput) SetFailedItems(v map[string]*FailedItemDetails) *DescribeExclusionsOutput {
+	s.FailedItems = v
 	return s
 }
 
@@ -5762,7 +6389,7 @@ type EventSubscription struct {
 	// The time at which SubscribeToEvent is called.
 	//
 	// SubscribedAt is a required field
-	SubscribedAt *time.Time `locationName:"subscribedAt" type:"timestamp" timestampFormat:"unix" required:"true"`
+	SubscribedAt *time.Time `locationName:"subscribedAt" type:"timestamp" required:"true"`
 }
 
 // String returns the string representation
@@ -5784,6 +6411,154 @@ func (s *EventSubscription) SetEvent(v string) *EventSubscription {
 // SetSubscribedAt sets the SubscribedAt field's value.
 func (s *EventSubscription) SetSubscribedAt(v time.Time) *EventSubscription {
 	s.SubscribedAt = &v
+	return s
+}
+
+// Contains information about what was excluded from an assessment run.
+type Exclusion struct {
+	_ struct{} `type:"structure"`
+
+	// The ARN that specifies the exclusion.
+	//
+	// Arn is a required field
+	Arn *string `locationName:"arn" min:"1" type:"string" required:"true"`
+
+	// The system-defined attributes for the exclusion.
+	Attributes []*Attribute `locationName:"attributes" type:"list"`
+
+	// The description of the exclusion.
+	//
+	// Description is a required field
+	Description *string `locationName:"description" type:"string" required:"true"`
+
+	// The recommendation for the exclusion.
+	//
+	// Recommendation is a required field
+	Recommendation *string `locationName:"recommendation" type:"string" required:"true"`
+
+	// The AWS resources for which the exclusion pertains.
+	//
+	// Scopes is a required field
+	Scopes []*Scope `locationName:"scopes" min:"1" type:"list" required:"true"`
+
+	// The name of the exclusion.
+	//
+	// Title is a required field
+	Title *string `locationName:"title" type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s Exclusion) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s Exclusion) GoString() string {
+	return s.String()
+}
+
+// SetArn sets the Arn field's value.
+func (s *Exclusion) SetArn(v string) *Exclusion {
+	s.Arn = &v
+	return s
+}
+
+// SetAttributes sets the Attributes field's value.
+func (s *Exclusion) SetAttributes(v []*Attribute) *Exclusion {
+	s.Attributes = v
+	return s
+}
+
+// SetDescription sets the Description field's value.
+func (s *Exclusion) SetDescription(v string) *Exclusion {
+	s.Description = &v
+	return s
+}
+
+// SetRecommendation sets the Recommendation field's value.
+func (s *Exclusion) SetRecommendation(v string) *Exclusion {
+	s.Recommendation = &v
+	return s
+}
+
+// SetScopes sets the Scopes field's value.
+func (s *Exclusion) SetScopes(v []*Scope) *Exclusion {
+	s.Scopes = v
+	return s
+}
+
+// SetTitle sets the Title field's value.
+func (s *Exclusion) SetTitle(v string) *Exclusion {
+	s.Title = &v
+	return s
+}
+
+// Contains information about what is excluded from an assessment run given
+// the current state of the assessment template.
+type ExclusionPreview struct {
+	_ struct{} `type:"structure"`
+
+	// The system-defined attributes for the exclusion preview.
+	Attributes []*Attribute `locationName:"attributes" type:"list"`
+
+	// The description of the exclusion preview.
+	//
+	// Description is a required field
+	Description *string `locationName:"description" type:"string" required:"true"`
+
+	// The recommendation for the exclusion preview.
+	//
+	// Recommendation is a required field
+	Recommendation *string `locationName:"recommendation" type:"string" required:"true"`
+
+	// The AWS resources for which the exclusion preview pertains.
+	//
+	// Scopes is a required field
+	Scopes []*Scope `locationName:"scopes" min:"1" type:"list" required:"true"`
+
+	// The name of the exclusion preview.
+	//
+	// Title is a required field
+	Title *string `locationName:"title" type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s ExclusionPreview) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ExclusionPreview) GoString() string {
+	return s.String()
+}
+
+// SetAttributes sets the Attributes field's value.
+func (s *ExclusionPreview) SetAttributes(v []*Attribute) *ExclusionPreview {
+	s.Attributes = v
+	return s
+}
+
+// SetDescription sets the Description field's value.
+func (s *ExclusionPreview) SetDescription(v string) *ExclusionPreview {
+	s.Description = &v
+	return s
+}
+
+// SetRecommendation sets the Recommendation field's value.
+func (s *ExclusionPreview) SetRecommendation(v string) *ExclusionPreview {
+	s.Recommendation = &v
+	return s
+}
+
+// SetScopes sets the Scopes field's value.
+func (s *ExclusionPreview) SetScopes(v []*Scope) *ExclusionPreview {
+	s.Scopes = v
+	return s
+}
+
+// SetTitle sets the Title field's value.
+func (s *ExclusionPreview) SetTitle(v string) *ExclusionPreview {
+	s.Title = &v
 	return s
 }
 
@@ -5852,7 +6627,7 @@ type Finding struct {
 	// The time when the finding was generated.
 	//
 	// CreatedAt is a required field
-	CreatedAt *time.Time `locationName:"createdAt" type:"timestamp" timestampFormat:"unix" required:"true"`
+	CreatedAt *time.Time `locationName:"createdAt" type:"timestamp" required:"true"`
 
 	// The description of the finding.
 	Description *string `locationName:"description" type:"string"`
@@ -5887,7 +6662,7 @@ type Finding struct {
 	// The time when AddAttributesToFindings is called.
 	//
 	// UpdatedAt is a required field
-	UpdatedAt *time.Time `locationName:"updatedAt" type:"timestamp" timestampFormat:"unix" required:"true"`
+	UpdatedAt *time.Time `locationName:"updatedAt" type:"timestamp" required:"true"`
 
 	// The user-defined attributes that are assigned to the finding.
 	//
@@ -6249,6 +7024,143 @@ func (s *GetAssessmentReportOutput) SetStatus(v string) *GetAssessmentReportOutp
 // SetUrl sets the Url field's value.
 func (s *GetAssessmentReportOutput) SetUrl(v string) *GetAssessmentReportOutput {
 	s.Url = &v
+	return s
+}
+
+type GetExclusionsPreviewInput struct {
+	_ struct{} `type:"structure"`
+
+	// The ARN that specifies the assessment template for which the exclusions preview
+	// was requested.
+	//
+	// AssessmentTemplateArn is a required field
+	AssessmentTemplateArn *string `locationName:"assessmentTemplateArn" min:"1" type:"string" required:"true"`
+
+	// The locale into which you want to translate the exclusion's title, description,
+	// and recommendation.
+	Locale *string `locationName:"locale" type:"string" enum:"Locale"`
+
+	// You can use this parameter to indicate the maximum number of items you want
+	// in the response. The default value is 100. The maximum value is 500.
+	MaxResults *int64 `locationName:"maxResults" type:"integer"`
+
+	// You can use this parameter when paginating results. Set the value of this
+	// parameter to null on your first call to the GetExclusionsPreviewRequest action.
+	// Subsequent calls to the action fill nextToken in the request with the value
+	// of nextToken from the previous response to continue listing data.
+	NextToken *string `locationName:"nextToken" min:"1" type:"string"`
+
+	// The unique identifier associated of the exclusions preview.
+	//
+	// PreviewToken is a required field
+	PreviewToken *string `locationName:"previewToken" type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s GetExclusionsPreviewInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s GetExclusionsPreviewInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *GetExclusionsPreviewInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "GetExclusionsPreviewInput"}
+	if s.AssessmentTemplateArn == nil {
+		invalidParams.Add(request.NewErrParamRequired("AssessmentTemplateArn"))
+	}
+	if s.AssessmentTemplateArn != nil && len(*s.AssessmentTemplateArn) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("AssessmentTemplateArn", 1))
+	}
+	if s.NextToken != nil && len(*s.NextToken) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("NextToken", 1))
+	}
+	if s.PreviewToken == nil {
+		invalidParams.Add(request.NewErrParamRequired("PreviewToken"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetAssessmentTemplateArn sets the AssessmentTemplateArn field's value.
+func (s *GetExclusionsPreviewInput) SetAssessmentTemplateArn(v string) *GetExclusionsPreviewInput {
+	s.AssessmentTemplateArn = &v
+	return s
+}
+
+// SetLocale sets the Locale field's value.
+func (s *GetExclusionsPreviewInput) SetLocale(v string) *GetExclusionsPreviewInput {
+	s.Locale = &v
+	return s
+}
+
+// SetMaxResults sets the MaxResults field's value.
+func (s *GetExclusionsPreviewInput) SetMaxResults(v int64) *GetExclusionsPreviewInput {
+	s.MaxResults = &v
+	return s
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *GetExclusionsPreviewInput) SetNextToken(v string) *GetExclusionsPreviewInput {
+	s.NextToken = &v
+	return s
+}
+
+// SetPreviewToken sets the PreviewToken field's value.
+func (s *GetExclusionsPreviewInput) SetPreviewToken(v string) *GetExclusionsPreviewInput {
+	s.PreviewToken = &v
+	return s
+}
+
+type GetExclusionsPreviewOutput struct {
+	_ struct{} `type:"structure"`
+
+	// Information about the exclusions included in the preview.
+	ExclusionPreviews []*ExclusionPreview `locationName:"exclusionPreviews" type:"list"`
+
+	// When a response is generated, if there is more data to be listed, this parameters
+	// is present in the response and contains the value to use for the nextToken
+	// parameter in a subsequent pagination request. If there is no more data to
+	// be listed, this parameter is set to null.
+	NextToken *string `locationName:"nextToken" min:"1" type:"string"`
+
+	// Specifies the status of the request to generate an exclusions preview.
+	//
+	// PreviewStatus is a required field
+	PreviewStatus *string `locationName:"previewStatus" type:"string" required:"true" enum:"PreviewStatus"`
+}
+
+// String returns the string representation
+func (s GetExclusionsPreviewOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s GetExclusionsPreviewOutput) GoString() string {
+	return s.String()
+}
+
+// SetExclusionPreviews sets the ExclusionPreviews field's value.
+func (s *GetExclusionsPreviewOutput) SetExclusionPreviews(v []*ExclusionPreview) *GetExclusionsPreviewOutput {
+	s.ExclusionPreviews = v
+	return s
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *GetExclusionsPreviewOutput) SetNextToken(v string) *GetExclusionsPreviewOutput {
+	s.NextToken = &v
+	return s
+}
+
+// SetPreviewStatus sets the PreviewStatus field's value.
+func (s *GetExclusionsPreviewOutput) SetPreviewStatus(v string) *GetExclusionsPreviewOutput {
+	s.PreviewStatus = &v
 	return s
 }
 
@@ -6877,6 +7789,110 @@ func (s *ListEventSubscriptionsOutput) SetSubscriptions(v []*Subscription) *List
 	return s
 }
 
+type ListExclusionsInput struct {
+	_ struct{} `type:"structure"`
+
+	// The ARN of the assessment run that generated the exclusions that you want
+	// to list.
+	//
+	// AssessmentRunArn is a required field
+	AssessmentRunArn *string `locationName:"assessmentRunArn" min:"1" type:"string" required:"true"`
+
+	// You can use this parameter to indicate the maximum number of items you want
+	// in the response. The default value is 100. The maximum value is 500.
+	MaxResults *int64 `locationName:"maxResults" type:"integer"`
+
+	// You can use this parameter when paginating results. Set the value of this
+	// parameter to null on your first call to the ListExclusionsRequest action.
+	// Subsequent calls to the action fill nextToken in the request with the value
+	// of nextToken from the previous response to continue listing data.
+	NextToken *string `locationName:"nextToken" min:"1" type:"string"`
+}
+
+// String returns the string representation
+func (s ListExclusionsInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ListExclusionsInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ListExclusionsInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ListExclusionsInput"}
+	if s.AssessmentRunArn == nil {
+		invalidParams.Add(request.NewErrParamRequired("AssessmentRunArn"))
+	}
+	if s.AssessmentRunArn != nil && len(*s.AssessmentRunArn) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("AssessmentRunArn", 1))
+	}
+	if s.NextToken != nil && len(*s.NextToken) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("NextToken", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetAssessmentRunArn sets the AssessmentRunArn field's value.
+func (s *ListExclusionsInput) SetAssessmentRunArn(v string) *ListExclusionsInput {
+	s.AssessmentRunArn = &v
+	return s
+}
+
+// SetMaxResults sets the MaxResults field's value.
+func (s *ListExclusionsInput) SetMaxResults(v int64) *ListExclusionsInput {
+	s.MaxResults = &v
+	return s
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *ListExclusionsInput) SetNextToken(v string) *ListExclusionsInput {
+	s.NextToken = &v
+	return s
+}
+
+type ListExclusionsOutput struct {
+	_ struct{} `type:"structure"`
+
+	// A list of exclusions' ARNs returned by the action.
+	//
+	// ExclusionArns is a required field
+	ExclusionArns []*string `locationName:"exclusionArns" type:"list" required:"true"`
+
+	// When a response is generated, if there is more data to be listed, this parameters
+	// is present in the response and contains the value to use for the nextToken
+	// parameter in a subsequent pagination request. If there is no more data to
+	// be listed, this parameter is set to null.
+	NextToken *string `locationName:"nextToken" min:"1" type:"string"`
+}
+
+// String returns the string representation
+func (s ListExclusionsOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ListExclusionsOutput) GoString() string {
+	return s.String()
+}
+
+// SetExclusionArns sets the ExclusionArns field's value.
+func (s *ListExclusionsOutput) SetExclusionArns(v []*string) *ListExclusionsOutput {
+	s.ExclusionArns = v
+	return s
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *ListExclusionsOutput) SetNextToken(v string) *ListExclusionsOutput {
+	s.NextToken = &v
+	return s
+}
+
 type ListFindingsInput struct {
 	_ struct{} `type:"structure"`
 
@@ -7399,7 +8415,7 @@ type ResourceGroup struct {
 	// The time at which resource group is created.
 	//
 	// CreatedAt is a required field
-	CreatedAt *time.Time `locationName:"createdAt" type:"timestamp" timestampFormat:"unix" required:"true"`
+	CreatedAt *time.Time `locationName:"createdAt" type:"timestamp" required:"true"`
 
 	// The tags (key and value pairs) of the resource group. This data type property
 	// is used in the CreateResourceGroup action.
@@ -7556,6 +8572,39 @@ func (s *RulesPackage) SetProvider(v string) *RulesPackage {
 // SetVersion sets the Version field's value.
 func (s *RulesPackage) SetVersion(v string) *RulesPackage {
 	s.Version = &v
+	return s
+}
+
+// This data type contains key-value pairs that identify various Amazon resources.
+type Scope struct {
+	_ struct{} `type:"structure"`
+
+	// The type of the scope.
+	Key *string `locationName:"key" type:"string" enum:"ScopeType"`
+
+	// The resource identifier for the specified scope type.
+	Value *string `locationName:"value" type:"string"`
+}
+
+// String returns the string representation
+func (s Scope) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s Scope) GoString() string {
+	return s.String()
+}
+
+// SetKey sets the Key field's value.
+func (s *Scope) SetKey(v string) *Scope {
+	s.Key = &v
+	return s
+}
+
+// SetValue sets the Value field's value.
+func (s *Scope) SetValue(v string) *Scope {
+	s.Value = &v
 	return s
 }
 
@@ -8073,10 +9122,10 @@ type TimestampRange struct {
 	_ struct{} `type:"structure"`
 
 	// The minimum value of the timestamp range.
-	BeginDate *time.Time `locationName:"beginDate" type:"timestamp" timestampFormat:"unix"`
+	BeginDate *time.Time `locationName:"beginDate" type:"timestamp"`
 
 	// The maximum value of the timestamp range.
-	EndDate *time.Time `locationName:"endDate" type:"timestamp" timestampFormat:"unix"`
+	EndDate *time.Time `locationName:"endDate" type:"timestamp"`
 }
 
 // String returns the string representation
@@ -8203,9 +9252,7 @@ type UpdateAssessmentTargetInput struct {
 
 	// The ARN of the resource group that is used to specify the new resource group
 	// to associate with the assessment target.
-	//
-	// ResourceGroupArn is a required field
-	ResourceGroupArn *string `locationName:"resourceGroupArn" min:"1" type:"string" required:"true"`
+	ResourceGroupArn *string `locationName:"resourceGroupArn" min:"1" type:"string"`
 }
 
 // String returns the string representation
@@ -8232,9 +9279,6 @@ func (s *UpdateAssessmentTargetInput) Validate() error {
 	}
 	if s.AssessmentTargetName != nil && len(*s.AssessmentTargetName) < 1 {
 		invalidParams.Add(request.NewErrParamMinLen("AssessmentTargetName", 1))
-	}
-	if s.ResourceGroupArn == nil {
-		invalidParams.Add(request.NewErrParamRequired("ResourceGroupArn"))
 	}
 	if s.ResourceGroupArn != nil && len(*s.ResourceGroupArn) < 1 {
 		invalidParams.Add(request.NewErrParamMinLen("ResourceGroupArn", 1))
@@ -8653,6 +9697,14 @@ const (
 )
 
 const (
+	// PreviewStatusWorkInProgress is a PreviewStatus enum value
+	PreviewStatusWorkInProgress = "WORK_IN_PROGRESS"
+
+	// PreviewStatusCompleted is a PreviewStatus enum value
+	PreviewStatusCompleted = "COMPLETED"
+)
+
+const (
 	// ReportFileFormatHtml is a ReportFileFormat enum value
 	ReportFileFormatHtml = "HTML"
 
@@ -8677,6 +9729,14 @@ const (
 
 	// ReportTypeFull is a ReportType enum value
 	ReportTypeFull = "FULL"
+)
+
+const (
+	// ScopeTypeInstanceId is a ScopeType enum value
+	ScopeTypeInstanceId = "INSTANCE_ID"
+
+	// ScopeTypeRulesPackageArn is a ScopeType enum value
+	ScopeTypeRulesPackageArn = "RULES_PACKAGE_ARN"
 )
 
 const (

@@ -121,7 +121,7 @@ func resourceAwsCloudWatchLogDestinationDelete(d *schema.ResourceData, meta inte
 	if err != nil {
 		return fmt.Errorf("Error deleting Destination with name %s", name)
 	}
-	d.SetId("")
+
 	return nil
 }
 

@@ -73,7 +73,7 @@ func (c *CloudTrail) AddTagsRequest(input *AddTagsInput) (req *request.Request, 
 //   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
 //   This exception is thrown when the specified resource is not found.
 //
-//   * ErrCodeARNInvalidException "ARNInvalidException"
+//   * ErrCodeARNInvalidException "CloudTrailARNInvalidException"
 //   This exception is thrown when an operation is called with an invalid trail
 //   ARN. The format of a trail ARN is:
 //
@@ -842,7 +842,7 @@ func (c *CloudTrail) ListTagsRequest(input *ListTagsInput) (req *request.Request
 //   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
 //   This exception is thrown when the specified resource is not found.
 //
-//   * ErrCodeARNInvalidException "ARNInvalidException"
+//   * ErrCodeARNInvalidException "CloudTrailARNInvalidException"
 //   This exception is thrown when an operation is called with an invalid trail
 //   ARN. The format of a trail ARN is:
 //
@@ -1271,7 +1271,7 @@ func (c *CloudTrail) RemoveTagsRequest(input *RemoveTagsInput) (req *request.Req
 //   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
 //   This exception is thrown when the specified resource is not found.
 //
-//   * ErrCodeARNInvalidException "ARNInvalidException"
+//   * ErrCodeARNInvalidException "CloudTrailARNInvalidException"
 //   This exception is thrown when an operation is called with an invalid trail
 //   ARN. The format of a trail ARN is:
 //
@@ -2296,7 +2296,7 @@ type Event struct {
 	EventSource *string `type:"string"`
 
 	// The date and time of the event returned.
-	EventTime *time.Time `type:"timestamp" timestampFormat:"unix"`
+	EventTime *time.Time `type:"timestamp"`
 
 	// A list of resources referenced by the event returned.
 	Resources []*Resource `type:"list"`
@@ -2564,7 +2564,7 @@ type GetTrailStatusOutput struct {
 
 	// Displays the most recent date and time when CloudTrail delivered logs to
 	// CloudWatch Logs.
-	LatestCloudWatchLogsDeliveryTime *time.Time `type:"timestamp" timestampFormat:"unix"`
+	LatestCloudWatchLogsDeliveryTime *time.Time `type:"timestamp"`
 
 	// This field is deprecated.
 	LatestDeliveryAttemptSucceeded *string `type:"string"`
@@ -2585,7 +2585,7 @@ type GetTrailStatusOutput struct {
 
 	// Specifies the date and time that CloudTrail last delivered log files to an
 	// account's Amazon S3 bucket.
-	LatestDeliveryTime *time.Time `type:"timestamp" timestampFormat:"unix"`
+	LatestDeliveryTime *time.Time `type:"timestamp"`
 
 	// Displays any Amazon S3 error that CloudTrail encountered when attempting
 	// to deliver a digest file to the designated bucket. For more information see
@@ -2600,7 +2600,7 @@ type GetTrailStatusOutput struct {
 
 	// Specifies the date and time that CloudTrail last delivered a digest file
 	// to an account's Amazon S3 bucket.
-	LatestDigestDeliveryTime *time.Time `type:"timestamp" timestampFormat:"unix"`
+	LatestDigestDeliveryTime *time.Time `type:"timestamp"`
 
 	// This field is deprecated.
 	LatestNotificationAttemptSucceeded *string `type:"string"`
@@ -2615,15 +2615,15 @@ type GetTrailStatusOutput struct {
 
 	// Specifies the date and time of the most recent Amazon SNS notification that
 	// CloudTrail has written a new log file to an account's Amazon S3 bucket.
-	LatestNotificationTime *time.Time `type:"timestamp" timestampFormat:"unix"`
+	LatestNotificationTime *time.Time `type:"timestamp"`
 
 	// Specifies the most recent date and time when CloudTrail started recording
 	// API calls for an AWS account.
-	StartLoggingTime *time.Time `type:"timestamp" timestampFormat:"unix"`
+	StartLoggingTime *time.Time `type:"timestamp"`
 
 	// Specifies the most recent date and time when CloudTrail stopped recording
 	// API calls for an AWS account.
-	StopLoggingTime *time.Time `type:"timestamp" timestampFormat:"unix"`
+	StopLoggingTime *time.Time `type:"timestamp"`
 
 	// This field is deprecated.
 	TimeLoggingStarted *string `type:"string"`
@@ -2750,7 +2750,7 @@ type ListPublicKeysInput struct {
 
 	// Optionally specifies, in UTC, the end of the time range to look up public
 	// keys for CloudTrail digest files. If not specified, the current time is used.
-	EndTime *time.Time `type:"timestamp" timestampFormat:"unix"`
+	EndTime *time.Time `type:"timestamp"`
 
 	// Reserved for future use.
 	NextToken *string `type:"string"`
@@ -2758,7 +2758,7 @@ type ListPublicKeysInput struct {
 	// Optionally specifies, in UTC, the start of the time range to look up public
 	// keys for CloudTrail digest files. If not specified, the current time is used,
 	// and the current public key is returned.
-	StartTime *time.Time `type:"timestamp" timestampFormat:"unix"`
+	StartTime *time.Time `type:"timestamp"`
 }
 
 // String returns the string representation
@@ -2970,7 +2970,7 @@ type LookupEventsInput struct {
 	// Specifies that only events that occur before or at the specified time are
 	// returned. If the specified end time is before the specified start time, an
 	// error is returned.
-	EndTime *time.Time `type:"timestamp" timestampFormat:"unix"`
+	EndTime *time.Time `type:"timestamp"`
 
 	// Contains a list of lookup attributes. Currently the list can contain only
 	// one item.
@@ -2990,7 +2990,7 @@ type LookupEventsInput struct {
 	// Specifies that only events that occur after or at the specified time are
 	// returned. If the specified start time is after the specified end time, an
 	// error is returned.
-	StartTime *time.Time `type:"timestamp" timestampFormat:"unix"`
+	StartTime *time.Time `type:"timestamp"`
 }
 
 // String returns the string representation
@@ -3103,10 +3103,10 @@ type PublicKey struct {
 	Fingerprint *string `type:"string"`
 
 	// The ending time of validity of the public key.
-	ValidityEndTime *time.Time `type:"timestamp" timestampFormat:"unix"`
+	ValidityEndTime *time.Time `type:"timestamp"`
 
 	// The starting time of validity of the public key.
-	ValidityStartTime *time.Time `type:"timestamp" timestampFormat:"unix"`
+	ValidityStartTime *time.Time `type:"timestamp"`
 
 	// The DER encoded public key value in PKCS#1 format.
 	//

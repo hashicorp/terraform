@@ -31,10 +31,19 @@ func resourceAwsDbEventSubscription() *schema.Resource {
 				Computed: true,
 			},
 			"name": {
-				Type:         schema.TypeString,
-				Required:     true,
-				ForceNew:     true,
-				ValidateFunc: validateDbEventSubscriptionName,
+				Type:          schema.TypeString,
+				Optional:      true,
+				Computed:      true,
+				ForceNew:      true,
+				ConflictsWith: []string{"name_prefix"},
+				ValidateFunc:  validateDbEventSubscriptionName,
+			},
+			"name_prefix": {
+				Type:          schema.TypeString,
+				Optional:      true,
+				ForceNew:      true,
+				ConflictsWith: []string{"name"},
+				ValidateFunc:  validateDbEventSubscriptionName,
 			},
 			"sns_topic": {
 				Type:     schema.TypeString,
@@ -74,7 +83,15 @@ func resourceAwsDbEventSubscription() *schema.Resource {
 
 func resourceAwsDbEventSubscriptionCreate(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).rdsconn
-	name := d.Get("name").(string)
+	var name string
+	if v, ok := d.GetOk("name"); ok {
+		name = v.(string)
+	} else if v, ok := d.GetOk("name_prefix"); ok {
+		name = resource.PrefixedUniqueId(v.(string))
+	} else {
+		name = resource.UniqueId()
+	}
+
 	tags := tagsFromMapRDS(d.Get("tags").(map[string]interface{}))
 
 	sourceIdsSet := d.Get("source_ids").(*schema.Set)
@@ -136,7 +153,7 @@ func resourceAwsDbEventSubscriptionCreate(d *schema.ResourceData, meta interface
 func resourceAwsDbEventSubscriptionRead(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).rdsconn
 
-	sub, err := resourceAwsDbEventSubscriptionRetrieve(d.Get("name").(string), conn)
+	sub, err := resourceAwsDbEventSubscriptionRetrieve(d.Id(), conn)
 	if err != nil {
 		return fmt.Errorf("Error retrieving RDS Event Subscription %s: %s", d.Id(), err)
 	}

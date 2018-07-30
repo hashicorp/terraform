@@ -1944,7 +1944,7 @@ type ActivityListItem struct {
 	// The date the activity is created.
 	//
 	// CreationDate is a required field
-	CreationDate *time.Time `locationName:"creationDate" type:"timestamp" timestampFormat:"unix" required:"true"`
+	CreationDate *time.Time `locationName:"creationDate" type:"timestamp" required:"true"`
 
 	// The name of the activity.
 	//
@@ -2229,7 +2229,7 @@ type CreateActivityOutput struct {
 	// The date the activity is created.
 	//
 	// CreationDate is a required field
-	CreationDate *time.Time `locationName:"creationDate" type:"timestamp" timestampFormat:"unix" required:"true"`
+	CreationDate *time.Time `locationName:"creationDate" type:"timestamp" required:"true"`
 }
 
 // String returns the string representation
@@ -2350,7 +2350,7 @@ type CreateStateMachineOutput struct {
 	// The date the state machine is created.
 	//
 	// CreationDate is a required field
-	CreationDate *time.Time `locationName:"creationDate" type:"timestamp" timestampFormat:"unix" required:"true"`
+	CreationDate *time.Time `locationName:"creationDate" type:"timestamp" required:"true"`
 
 	// The Amazon Resource Name (ARN) that identifies the created state machine.
 	//
@@ -2542,7 +2542,7 @@ type DescribeActivityOutput struct {
 	// The date the activity is created.
 	//
 	// CreationDate is a required field
-	CreationDate *time.Time `locationName:"creationDate" type:"timestamp" timestampFormat:"unix" required:"true"`
+	CreationDate *time.Time `locationName:"creationDate" type:"timestamp" required:"true"`
 
 	// The name of the activity.
 	//
@@ -2668,7 +2668,7 @@ type DescribeExecutionOutput struct {
 	// The date the execution is started.
 	//
 	// StartDate is a required field
-	StartDate *time.Time `locationName:"startDate" type:"timestamp" timestampFormat:"unix" required:"true"`
+	StartDate *time.Time `locationName:"startDate" type:"timestamp" required:"true"`
 
 	// The Amazon Resource Name (ARN) of the executed stated machine.
 	//
@@ -2681,7 +2681,7 @@ type DescribeExecutionOutput struct {
 	Status *string `locationName:"status" type:"string" required:"true" enum:"ExecutionStatus"`
 
 	// If the execution has already ended, the date the execution stopped.
-	StopDate *time.Time `locationName:"stopDate" type:"timestamp" timestampFormat:"unix"`
+	StopDate *time.Time `locationName:"stopDate" type:"timestamp"`
 }
 
 // String returns the string representation
@@ -2812,7 +2812,7 @@ type DescribeStateMachineForExecutionOutput struct {
 	// For a newly created state machine, this is the creation date.
 	//
 	// UpdateDate is a required field
-	UpdateDate *time.Time `locationName:"updateDate" type:"timestamp" timestampFormat:"unix" required:"true"`
+	UpdateDate *time.Time `locationName:"updateDate" type:"timestamp" required:"true"`
 }
 
 // String returns the string representation
@@ -2902,7 +2902,7 @@ type DescribeStateMachineOutput struct {
 	// The date the state machine is created.
 	//
 	// CreationDate is a required field
-	CreationDate *time.Time `locationName:"creationDate" type:"timestamp" timestampFormat:"unix" required:"true"`
+	CreationDate *time.Time `locationName:"creationDate" type:"timestamp" required:"true"`
 
 	// The Amazon States Language definition of the state machine.
 	//
@@ -3083,7 +3083,7 @@ type ExecutionListItem struct {
 	// The date the execution started.
 	//
 	// StartDate is a required field
-	StartDate *time.Time `locationName:"startDate" type:"timestamp" timestampFormat:"unix" required:"true"`
+	StartDate *time.Time `locationName:"startDate" type:"timestamp" required:"true"`
 
 	// The Amazon Resource Name (ARN) of the executed state machine.
 	//
@@ -3096,7 +3096,7 @@ type ExecutionListItem struct {
 	Status *string `locationName:"status" type:"string" required:"true" enum:"ExecutionStatus"`
 
 	// If the execution already ended, the date the execution stopped.
-	StopDate *time.Time `locationName:"stopDate" type:"timestamp" timestampFormat:"unix"`
+	StopDate *time.Time `locationName:"stopDate" type:"timestamp"`
 }
 
 // String returns the string representation
@@ -3524,7 +3524,7 @@ type HistoryEvent struct {
 	// The date the event occurred.
 	//
 	// Timestamp is a required field
-	Timestamp *time.Time `locationName:"timestamp" type:"timestamp" timestampFormat:"unix" required:"true"`
+	Timestamp *time.Time `locationName:"timestamp" type:"timestamp" required:"true"`
 
 	// The type of the event.
 	//
@@ -4498,7 +4498,7 @@ type StartExecutionOutput struct {
 	// The date the execution is started.
 	//
 	// StartDate is a required field
-	StartDate *time.Time `locationName:"startDate" type:"timestamp" timestampFormat:"unix" required:"true"`
+	StartDate *time.Time `locationName:"startDate" type:"timestamp" required:"true"`
 }
 
 // String returns the string representation
@@ -4612,7 +4612,7 @@ type StateMachineListItem struct {
 	// The date the state machine is created.
 	//
 	// CreationDate is a required field
-	CreationDate *time.Time `locationName:"creationDate" type:"timestamp" timestampFormat:"unix" required:"true"`
+	CreationDate *time.Time `locationName:"creationDate" type:"timestamp" required:"true"`
 
 	// The name of the state machine.
 	//
@@ -4730,7 +4730,7 @@ type StopExecutionOutput struct {
 	// The date the execution is stopped.
 	//
 	// StopDate is a required field
-	StopDate *time.Time `locationName:"stopDate" type:"timestamp" timestampFormat:"unix" required:"true"`
+	StopDate *time.Time `locationName:"stopDate" type:"timestamp" required:"true"`
 }
 
 // String returns the string representation
@@ -4820,7 +4820,7 @@ type UpdateStateMachineOutput struct {
 	// The date and time the state machine was updated.
 	//
 	// UpdateDate is a required field
-	UpdateDate *time.Time `locationName:"updateDate" type:"timestamp" timestampFormat:"unix" required:"true"`
+	UpdateDate *time.Time `locationName:"updateDate" type:"timestamp" required:"true"`
 }
 
 // String returns the string representation

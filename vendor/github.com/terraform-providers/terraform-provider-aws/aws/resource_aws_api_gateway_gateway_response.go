@@ -39,13 +39,13 @@ func resourceAwsApiGatewayGatewayResponse() *schema.Resource {
 
 			"response_templates": {
 				Type:     schema.TypeMap,
-				Elem:     schema.TypeString,
+				Elem:     &schema.Schema{Type: schema.TypeString},
 				Optional: true,
 			},
 
 			"response_parameters": {
 				Type:     schema.TypeMap,
-				Elem:     schema.TypeString,
+				Elem:     &schema.Schema{Type: schema.TypeString},
 				Optional: true,
 			},
 		},

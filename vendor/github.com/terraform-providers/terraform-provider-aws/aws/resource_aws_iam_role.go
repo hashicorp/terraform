@@ -2,6 +2,7 @@ package aws
 
 import (
 	"fmt"
+	"log"
 	"net/url"
 	"regexp"
 	"time"
@@ -58,9 +59,10 @@ func resourceAwsIamRole() *schema.Resource {
 			},
 
 			"name_prefix": {
-				Type:     schema.TypeString,
-				Optional: true,
-				ForceNew: true,
+				Type:          schema.TypeString,
+				Optional:      true,
+				ForceNew:      true,
+				ConflictsWith: []string{"name"},
 				ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
 					// https://github.com/boto/botocore/blob/2485f5c/botocore/data/iam/2010-05-08/service-2.json#L8329-L8334
 					value := v.(string)
@@ -317,7 +319,11 @@ func resourceAwsIamRoleDelete(d *schema.ResourceData, meta interface{}) error {
 					RoleName:  aws.String(d.Id()),
 				})
 				if err != nil {
-					return fmt.Errorf("Error deleting IAM Role %s: %s", d.Id(), err)
+					if isAWSErr(err, iam.ErrCodeNoSuchEntityException, "") {
+						log.Printf("[WARN] Role policy attachment (%s) was already removed from role (%s)", aws.StringValue(parn), d.Id())
+					} else {
+						return fmt.Errorf("Error deleting IAM Role %s: %s", d.Id(), err)
+					}
 				}
 			}
 		}
@@ -342,7 +348,11 @@ func resourceAwsIamRoleDelete(d *schema.ResourceData, meta interface{}) error {
 					RoleName:   aws.String(d.Id()),
 				})
 				if err != nil {
-					return fmt.Errorf("Error deleting inline policy of IAM Role %s: %s", d.Id(), err)
+					if isAWSErr(err, iam.ErrCodeNoSuchEntityException, "") {
+						log.Printf("[WARN] Inline role policy (%s) was already removed from role (%s)", aws.StringValue(pname), d.Id())
+					} else {
+						return fmt.Errorf("Error deleting inline policy of IAM Role %s: %s", d.Id(), err)
+					}
 				}
 			}
 		}

@@ -10,6 +10,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/codedeploy"
+	"github.com/hashicorp/terraform/helper/validation"
 )
 
 func resourceAwsCodeDeployApp() *schema.Resource {
@@ -20,14 +21,25 @@ func resourceAwsCodeDeployApp() *schema.Resource {
 		Delete: resourceAwsCodeDeployAppDelete,
 
 		Schema: map[string]*schema.Schema{
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
 
+			"compute_platform": {
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+				ValidateFunc: validation.StringInSlice([]string{
+					codedeploy.ComputePlatformServer,
+					codedeploy.ComputePlatformLambda,
+				}, false),
+				Default: codedeploy.ComputePlatformServer,
+			},
+
 			// The unique ID is set by AWS on create.
-			"unique_id": &schema.Schema{
+			"unique_id": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
@@ -40,10 +52,12 @@ func resourceAwsCodeDeployAppCreate(d *schema.ResourceData, meta interface{}) er
 	conn := meta.(*AWSClient).codedeployconn
 
 	application := d.Get("name").(string)
+	computePlatform := d.Get("compute_platform").(string)
 	log.Printf("[DEBUG] Creating CodeDeploy application %s", application)
 
 	resp, err := conn.CreateApplication(&codedeploy.CreateApplicationInput{
 		ApplicationName: aws.String(application),
+		ComputePlatform: aws.String(computePlatform),
 	})
 	if err != nil {
 		return err
@@ -78,6 +92,7 @@ func resourceAwsCodeDeployAppRead(d *schema.ResourceData, meta interface{}) erro
 		}
 	}
 
+	d.Set("compute_platform", resp.Application.ComputePlatform)
 	d.Set("name", resp.Application.ApplicationName)
 
 	return nil
@@ -110,7 +125,6 @@ func resourceAwsCodeDeployAppDelete(d *schema.ResourceData, meta interface{}) er
 	})
 	if err != nil {
 		if cderr, ok := err.(awserr.Error); ok && cderr.Code() == "InvalidApplicationNameException" {
-			d.SetId("")
 			return nil
 		} else {
 			log.Printf("[ERROR] Error deleting CodeDeploy application: %s", err)
