@@ -903,8 +903,10 @@
 		{
 			"checksumSHA1": "AO97b1GChOs2geiFc//6YcpVfX8=",
 			"path": "github.com/aws/aws-sdk-go/service/lexmodelbuildingservice",
-			"revision": "f63b41ba024702aca32b063327a0852f9758d914",
-			"revisionTime": "2018-04-19T23:04:09Z"
+			"revision": "7f68df2a5baf19398d17def23a514a6e617e5937",
+			"revisionTime": "2018-04-04T18:37:54Z",
+			"version": "v1.13.28",
+			"versionExact": "v1.13.28"
 		},
 		{
 			"checksumSHA1": "jyxQ6TEdSl9/j7qC0LCkVMSXkog=",
@@ -941,8 +943,10 @@
 		{
 			"checksumSHA1": "smOJ/rypXb18/Rjryf2a85paSa4=",
 			"path": "github.com/aws/aws-sdk-go/service/organizations",
-			"revision": "f63b41ba024702aca32b063327a0852f9758d914",
-			"revisionTime": "2018-04-19T23:04:09Z"
+			"revision": "7f68df2a5baf19398d17def23a514a6e617e5937",
+			"revisionTime": "2018-04-04T18:37:54Z",
+			"version": "v1.13.28",
+			"versionExact": "v1.13.28"
 		},
 		{
 			"checksumSHA1": "vL235vodhgG61BkUxRD4B7io+zk=",
