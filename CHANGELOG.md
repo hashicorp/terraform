@@ -5,6 +5,8 @@ IMPROVEMENTS:
 * cli: display workspace name in apply and destroy commands if not default [GH-18253]
 * cli: Remove error on empty outputs when `-json` is set [GH-11721]
 * helper/schema: Resources have a new `DeprecationMessage` property that can be set to a string, allowing full resources to be deprecated [GH-18286]
+* backend/s3: Allow fallback to session-derived credentials (e.g. session via `AWS_PROFILE` environment variable and shared configuration) [GH-17901]
+* backend/s3: Allow usage of `AWS_EC2_METADATA_DISABLED` environment variable [GH-17901]
 
 BUG FIXES:
 
