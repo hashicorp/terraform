@@ -78,7 +78,7 @@ func resourceAwsCognitoUserPoolClient() *schema.Resource {
 				Type:         schema.TypeInt,
 				Optional:     true,
 				Default:      30,
-				ValidateFunc: validateIntegerInRange(0, 3650),
+				ValidateFunc: validation.IntBetween(0, 3650),
 			},
 
 			"allowed_oauth_flows": {
@@ -103,8 +103,13 @@ func resourceAwsCognitoUserPoolClient() *schema.Resource {
 			"allowed_oauth_scopes": {
 				Type:     schema.TypeSet,
 				Optional: true,
+				MaxItems: 25,
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
+					// https://docs.aws.amazon.com/cognito/latest/developerguide/authorization-endpoint.html
+					// System reserved scopes are openid, email, phone, profile, and aws.cognito.signin.user.admin.
+					// https://docs.aws.amazon.com/cognito-user-identity-pools/latest/APIReference/API_CreateUserPoolClient.html#CognitoUserPools-CreateUserPoolClient-request-AllowedOAuthScopes
+					// Constraints seem like to be designed for custom scopes which are not supported yet?
 				},
 			},
 
@@ -292,7 +297,7 @@ func resourceAwsCognitoUserPoolClientUpdate(d *schema.ResourceData, meta interfa
 	}
 
 	if d.HasChange("callback_urls") {
-		params.ReadAttributes = expandStringList(d.Get("callback_urls").([]interface{}))
+		params.CallbackURLs = expandStringList(d.Get("callback_urls").([]interface{}))
 	}
 
 	if d.HasChange("default_redirect_uri") {

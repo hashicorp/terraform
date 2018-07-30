@@ -7,7 +7,7 @@
 //
 // You can use ACM to manage SSL/TLS certificates for your AWS-based websites
 // and applications. For general information about using ACM, see the AWS Certificate
-// Manager User Guide (http://docs.aws.amazon.com/acm/latest/userguide/).
+// Manager User Guide (http://docs.aws.amazon.com/http:/docs.aws.amazon.comacm/latest/userguide/).
 //
 // See https://docs.aws.amazon.com/goto/WebAPI/acm-2015-12-08 for more information on this service.
 //

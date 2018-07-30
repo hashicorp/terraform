@@ -14,6 +14,7 @@ import (
 	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/hashicorp/terraform/helper/validation"
 )
 
 func resourceAwsLbTargetGroup() *schema.Resource {
@@ -46,27 +47,27 @@ func resourceAwsLbTargetGroup() *schema.Resource {
 				Computed:      true,
 				ForceNew:      true,
 				ConflictsWith: []string{"name_prefix"},
-				ValidateFunc:  validateAwsLbTargetGroupName,
+				ValidateFunc:  validateMaxLength(32),
 			},
 			"name_prefix": {
 				Type:         schema.TypeString,
 				Optional:     true,
 				ForceNew:     true,
-				ValidateFunc: validateAwsLbTargetGroupNamePrefix,
+				ValidateFunc: validateMaxLength(32 - resource.UniqueIDSuffixLength),
 			},
 
 			"port": {
 				Type:         schema.TypeInt,
 				Required:     true,
 				ForceNew:     true,
-				ValidateFunc: validateAwsLbTargetGroupPort,
+				ValidateFunc: validation.IntBetween(1, 65535),
 			},
 
 			"protocol": {
 				Type:         schema.TypeString,
 				Required:     true,
 				ForceNew:     true,
-				ValidateFunc: validateAwsLbTargetGroupProtocol,
+				ValidateFunc: validateLbListenerProtocol(),
 			},
 
 			"vpc_id": {
@@ -79,7 +80,7 @@ func resourceAwsLbTargetGroup() *schema.Resource {
 				Type:         schema.TypeInt,
 				Optional:     true,
 				Default:      300,
-				ValidateFunc: validateAwsLbTargetGroupDeregistrationDelay,
+				ValidateFunc: validation.IntBetween(0, 3600),
 			},
 
 			"target_type": {
@@ -102,15 +103,17 @@ func resourceAwsLbTargetGroup() *schema.Resource {
 							Default:  true,
 						},
 						"type": {
-							Type:         schema.TypeString,
-							Required:     true,
-							ValidateFunc: validateAwsLbTargetGroupStickinessType,
+							Type:     schema.TypeString,
+							Required: true,
+							ValidateFunc: validation.StringInSlice([]string{
+								"lb_cookie",
+							}, false),
 						},
 						"cookie_duration": {
 							Type:         schema.TypeInt,
 							Optional:     true,
 							Default:      86400,
-							ValidateFunc: validateAwsLbTargetGroupStickinessCookieDuration,
+							ValidateFunc: validation.IntBetween(0, 604800),
 						},
 					},
 				},
@@ -150,21 +153,21 @@ func resourceAwsLbTargetGroup() *schema.Resource {
 							StateFunc: func(v interface{}) string {
 								return strings.ToUpper(v.(string))
 							},
-							ValidateFunc: validateAwsLbTargetGroupHealthCheckProtocol,
+							ValidateFunc: validateLbListenerProtocol(),
 						},
 
 						"timeout": {
 							Type:         schema.TypeInt,
 							Optional:     true,
 							Computed:     true,
-							ValidateFunc: validateAwsLbTargetGroupHealthCheckTimeout,
+							ValidateFunc: validation.IntBetween(2, 60),
 						},
 
 						"healthy_threshold": {
 							Type:         schema.TypeInt,
 							Optional:     true,
 							Default:      3,
-							ValidateFunc: validateAwsLbTargetGroupHealthCheckHealthyThreshold,
+							ValidateFunc: validation.IntBetween(2, 10),
 						},
 
 						"matcher": {
@@ -177,7 +180,7 @@ func resourceAwsLbTargetGroup() *schema.Resource {
 							Type:         schema.TypeInt,
 							Optional:     true,
 							Default:      3,
-							ValidateFunc: validateAwsLbTargetGroupHealthCheckHealthyThreshold,
+							ValidateFunc: validation.IntBetween(2, 10),
 						},
 					},
 				},
@@ -425,74 +428,6 @@ func validateAwsLbTargetGroupHealthCheckPort(v interface{}, k string) (ws []stri
 	return
 }
 
-func validateAwsLbTargetGroupHealthCheckHealthyThreshold(v interface{}, k string) (ws []string, errors []error) {
-	value := v.(int)
-	if value < 2 || value > 10 {
-		errors = append(errors, fmt.Errorf("%q must be an integer between 2 and 10", k))
-	}
-	return
-}
-
-func validateAwsLbTargetGroupHealthCheckTimeout(v interface{}, k string) (ws []string, errors []error) {
-	value := v.(int)
-	if value < 2 || value > 60 {
-		errors = append(errors, fmt.Errorf("%q must be an integer between 2 and 60", k))
-	}
-	return
-}
-
-func validateAwsLbTargetGroupHealthCheckProtocol(v interface{}, k string) (ws []string, errors []error) {
-	value := strings.ToLower(v.(string))
-	if value == "http" || value == "https" || value == "tcp" {
-		return
-	}
-
-	errors = append(errors, fmt.Errorf("%q must be either %q, %q or %q", k, "HTTP", "HTTPS", "TCP"))
-	return
-}
-
-func validateAwsLbTargetGroupPort(v interface{}, k string) (ws []string, errors []error) {
-	port := v.(int)
-	if port < 1 || port > 65536 {
-		errors = append(errors, fmt.Errorf("%q must be a valid port number (1-65536)", k))
-	}
-	return
-}
-
-func validateAwsLbTargetGroupProtocol(v interface{}, k string) (ws []string, errors []error) {
-	protocol := strings.ToLower(v.(string))
-	if protocol == "http" || protocol == "https" || protocol == "tcp" {
-		return
-	}
-
-	errors = append(errors, fmt.Errorf("%q must be either %q, %q or %q", k, "HTTP", "HTTPS", "TCP"))
-	return
-}
-
-func validateAwsLbTargetGroupDeregistrationDelay(v interface{}, k string) (ws []string, errors []error) {
-	delay := v.(int)
-	if delay < 0 || delay > 3600 {
-		errors = append(errors, fmt.Errorf("%q must be in the range 0-3600 seconds", k))
-	}
-	return
-}
-
-func validateAwsLbTargetGroupStickinessType(v interface{}, k string) (ws []string, errors []error) {
-	stickinessType := v.(string)
-	if stickinessType != "lb_cookie" {
-		errors = append(errors, fmt.Errorf("%q must have the value %q", k, "lb_cookie"))
-	}
-	return
-}
-
-func validateAwsLbTargetGroupStickinessCookieDuration(v interface{}, k string) (ws []string, errors []error) {
-	duration := v.(int)
-	if duration < 1 || duration > 604800 {
-		errors = append(errors, fmt.Errorf("%q must be a between 1 second and 1 week (1-604800 seconds))", k))
-	}
-	return
-}
-
 func lbTargetGroupSuffixFromARN(arn *string) string {
 	if arn == nil {
 		return ""
@@ -530,7 +465,7 @@ func flattenAwsLbTargetGroupResource(d *schema.ResourceData, meta interface{}, t
 	if targetGroup.HealthCheckPath != nil {
 		healthCheck["path"] = *targetGroup.HealthCheckPath
 	}
-	if targetGroup.Matcher.HttpCode != nil {
+	if targetGroup.Matcher != nil && targetGroup.Matcher.HttpCode != nil {
 		healthCheck["matcher"] = *targetGroup.Matcher.HttpCode
 	}
 
@@ -650,6 +585,9 @@ func resourceAwsLbTargetGroupCustomizeDiff(diff *schema.ResourceDiff, v interfac
 				// timeout has a default value, so only check this if this is a network
 				// LB and is a first run
 				return fmt.Errorf("%s: custom timeout is not supported for target_groups with TCP protocol", diff.Id())
+			}
+			if healthCheck["healthy_threshold"].(int) != healthCheck["unhealthy_threshold"].(int) {
+				return fmt.Errorf("%s: healthy_threshold %d and unhealthy_threshold %d must be the same for target_groups with TCP protocol", diff.Id(), healthCheck["healthy_threshold"].(int), healthCheck["unhealthy_threshold"].(int))
 			}
 		}
 	}

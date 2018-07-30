@@ -17,7 +17,7 @@ const opBatchGetRepositories = "BatchGetRepositories"
 
 // BatchGetRepositoriesRequest generates a "aws/request.Request" representing the
 // client's request for the BatchGetRepositories operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -128,7 +128,7 @@ const opCreateBranch = "CreateBranch"
 
 // CreateBranchRequest generates a "aws/request.Request" representing the
 // client's request for the CreateBranch operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -256,7 +256,7 @@ const opCreatePullRequest = "CreatePullRequest"
 
 // CreatePullRequestRequest generates a "aws/request.Request" representing the
 // client's request for the CreatePullRequest operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -433,7 +433,7 @@ const opCreateRepository = "CreateRepository"
 
 // CreateRepositoryRequest generates a "aws/request.Request" representing the
 // client's request for the CreateRepository operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -543,7 +543,7 @@ const opDeleteBranch = "DeleteBranch"
 
 // DeleteBranchRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteBranch operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -659,7 +659,7 @@ const opDeleteCommentContent = "DeleteCommentContent"
 
 // DeleteCommentContentRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteCommentContent operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -750,7 +750,7 @@ const opDeleteRepository = "DeleteRepository"
 
 // DeleteRepositoryRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteRepository operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -856,7 +856,7 @@ const opDescribePullRequestEvents = "DescribePullRequestEvents"
 
 // DescribePullRequestEventsRequest generates a "aws/request.Request" representing the
 // client's request for the DescribePullRequestEvents operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -1032,7 +1032,7 @@ const opGetBlob = "GetBlob"
 
 // GetBlobRequest generates a "aws/request.Request" representing the
 // client's request for the GetBlob operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -1150,7 +1150,7 @@ const opGetBranch = "GetBranch"
 
 // GetBranchRequest generates a "aws/request.Request" representing the
 // client's request for the GetBranch operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -1264,7 +1264,7 @@ const opGetComment = "GetComment"
 
 // GetCommentRequest generates a "aws/request.Request" representing the
 // client's request for the GetComment operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -1355,7 +1355,7 @@ const opGetCommentsForComparedCommit = "GetCommentsForComparedCommit"
 
 // GetCommentsForComparedCommitRequest generates a "aws/request.Request" representing the
 // client's request for the GetCommentsForComparedCommit operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -1531,7 +1531,7 @@ const opGetCommentsForPullRequest = "GetCommentsForPullRequest"
 
 // GetCommentsForPullRequestRequest generates a "aws/request.Request" representing the
 // client's request for the GetCommentsForPullRequest operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -1724,7 +1724,7 @@ const opGetCommit = "GetCommit"
 
 // GetCommitRequest generates a "aws/request.Request" representing the
 // client's request for the GetCommit operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -1838,7 +1838,7 @@ const opGetDifferences = "GetDifferences"
 
 // GetDifferencesRequest generates a "aws/request.Request" representing the
 // client's request for the GetDifferences operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -2025,7 +2025,7 @@ const opGetMergeConflicts = "GetMergeConflicts"
 
 // GetMergeConflictsRequest generates a "aws/request.Request" representing the
 // client's request for the GetMergeConflicts operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -2159,7 +2159,7 @@ const opGetPullRequest = "GetPullRequest"
 
 // GetPullRequestRequest generates a "aws/request.Request" representing the
 // client's request for the GetPullRequest operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -2262,7 +2262,7 @@ const opGetRepository = "GetRepository"
 
 // GetRepositoryRequest generates a "aws/request.Request" representing the
 // client's request for the GetRepository operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -2372,7 +2372,7 @@ const opGetRepositoryTriggers = "GetRepositoryTriggers"
 
 // GetRepositoryTriggersRequest generates a "aws/request.Request" representing the
 // client's request for the GetRepositoryTriggers operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -2476,7 +2476,7 @@ const opListBranches = "ListBranches"
 
 // ListBranchesRequest generates a "aws/request.Request" representing the
 // client's request for the ListBranches operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -2639,7 +2639,7 @@ const opListPullRequests = "ListPullRequests"
 
 // ListPullRequestsRequest generates a "aws/request.Request" representing the
 // client's request for the ListPullRequests operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -2817,7 +2817,7 @@ const opListRepositories = "ListRepositories"
 
 // ListRepositoriesRequest generates a "aws/request.Request" representing the
 // client's request for the ListRepositories operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -2958,7 +2958,7 @@ const opMergePullRequestByFastForward = "MergePullRequestByFastForward"
 
 // MergePullRequestByFastForwardRequest generates a "aws/request.Request" representing the
 // client's request for the MergePullRequestByFastForward operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -3094,7 +3094,7 @@ const opPostCommentForComparedCommit = "PostCommentForComparedCommit"
 
 // PostCommentForComparedCommitRequest generates a "aws/request.Request" representing the
 // client's request for the PostCommentForComparedCommit operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -3254,7 +3254,7 @@ const opPostCommentForPullRequest = "PostCommentForPullRequest"
 
 // PostCommentForPullRequestRequest generates a "aws/request.Request" representing the
 // client's request for the PostCommentForPullRequest operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -3434,7 +3434,7 @@ const opPostCommentReply = "PostCommentReply"
 
 // PostCommentReplyRequest generates a "aws/request.Request" representing the
 // client's request for the PostCommentReply operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -3539,11 +3539,197 @@ func (c *CodeCommit) PostCommentReplyWithContext(ctx aws.Context, input *PostCom
 	return out, req.Send()
 }
 
+const opPutFile = "PutFile"
+
+// PutFileRequest generates a "aws/request.Request" representing the
+// client's request for the PutFile operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfuly.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See PutFile for more information on using the PutFile
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the PutFileRequest method.
+//    req, resp := client.PutFileRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/codecommit-2015-04-13/PutFile
+func (c *CodeCommit) PutFileRequest(input *PutFileInput) (req *request.Request, output *PutFileOutput) {
+	op := &request.Operation{
+		Name:       opPutFile,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &PutFileInput{}
+	}
+
+	output = &PutFileOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// PutFile API operation for AWS CodeCommit.
+//
+// Adds or updates a file in an AWS CodeCommit repository.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS CodeCommit's
+// API operation PutFile for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeRepositoryNameRequiredException "RepositoryNameRequiredException"
+//   A repository name is required but was not specified.
+//
+//   * ErrCodeInvalidRepositoryNameException "InvalidRepositoryNameException"
+//   At least one specified repository name is not valid.
+//
+//   This exception only occurs when a specified repository name is not valid.
+//   Other exceptions occur when a required repository parameter is missing, or
+//   when a specified repository does not exist.
+//
+//   * ErrCodeRepositoryDoesNotExistException "RepositoryDoesNotExistException"
+//   The specified repository does not exist.
+//
+//   * ErrCodeParentCommitIdRequiredException "ParentCommitIdRequiredException"
+//   A parent commit ID is required. To view the full commit ID of a branch in
+//   a repository, use GetBranch or a Git command (for example, git pull or git
+//   log).
+//
+//   * ErrCodeInvalidParentCommitIdException "InvalidParentCommitIdException"
+//   The parent commit ID is not valid. The commit ID cannot be empty, and must
+//   match the head commit ID for the branch of the repository where you want
+//   to add or update a file.
+//
+//   * ErrCodeParentCommitDoesNotExistException "ParentCommitDoesNotExistException"
+//   The parent commit ID is not valid. The specified parent commit ID does not
+//   exist in the specified branch of the repository.
+//
+//   * ErrCodeParentCommitIdOutdatedException "ParentCommitIdOutdatedException"
+//   The file could not be added because the provided parent commit ID is not
+//   the current tip of the specified branch. To view the full commit ID of the
+//   current head of the branch, use GetBranch.
+//
+//   * ErrCodeFileContentRequiredException "FileContentRequiredException"
+//   The file cannot be added because it is empty. Empty files cannot be added
+//   to the repository with this API.
+//
+//   * ErrCodeFileContentSizeLimitExceededException "FileContentSizeLimitExceededException"
+//   The file cannot be added because it is too large. The maximum file size that
+//   can be added using PutFile is 6 MB. For files larger than 6 MB but smaller
+//   than 2 GB, add them using a Git client.
+//
+//   * ErrCodePathRequiredException "PathRequiredException"
+//   The filePath for a location cannot be empty or null.
+//
+//   * ErrCodeInvalidPathException "InvalidPathException"
+//   The specified path is not valid.
+//
+//   * ErrCodeBranchNameRequiredException "BranchNameRequiredException"
+//   A branch name is required but was not specified.
+//
+//   * ErrCodeInvalidBranchNameException "InvalidBranchNameException"
+//   The specified reference name is not valid.
+//
+//   * ErrCodeBranchDoesNotExistException "BranchDoesNotExistException"
+//   The specified branch does not exist.
+//
+//   * ErrCodeBranchNameIsTagNameException "BranchNameIsTagNameException"
+//   The specified branch name is not valid because it is a tag name. Type the
+//   name of a current branch in the repository. For a list of valid branch names,
+//   use ListBranches.
+//
+//   * ErrCodeInvalidFileModeException "InvalidFileModeException"
+//   The specified file mode permission is not valid. For a list of valid file
+//   mode permissions, see PutFile.
+//
+//   * ErrCodeNameLengthExceededException "NameLengthExceededException"
+//   The file name is not valid because it has exceeded the character limit for
+//   file names. File names, including the path to the file, cannot exceed the
+//   character limit.
+//
+//   * ErrCodeInvalidEmailException "InvalidEmailException"
+//   The specified email address either contains one or more characters that are
+//   not allowed, or it exceeds the maximum number of characters allowed for an
+//   email address.
+//
+//   * ErrCodeCommitMessageLengthExceededException "CommitMessageLengthExceededException"
+//   The commit message is too long. Provide a shorter string.
+//
+//   * ErrCodeEncryptionIntegrityChecksFailedException "EncryptionIntegrityChecksFailedException"
+//   An encryption integrity check failed.
+//
+//   * ErrCodeEncryptionKeyAccessDeniedException "EncryptionKeyAccessDeniedException"
+//   An encryption key could not be accessed.
+//
+//   * ErrCodeEncryptionKeyDisabledException "EncryptionKeyDisabledException"
+//   The encryption key is disabled.
+//
+//   * ErrCodeEncryptionKeyNotFoundException "EncryptionKeyNotFoundException"
+//   No encryption key was found.
+//
+//   * ErrCodeEncryptionKeyUnavailableException "EncryptionKeyUnavailableException"
+//   The encryption key is not available.
+//
+//   * ErrCodeSameFileContentException "SameFileContentException"
+//   The file was not added or updated because the content of the file is exactly
+//   the same as the content of that file in the repository and branch that you
+//   specified.
+//
+//   * ErrCodeFileNameConflictsWithDirectoryNameException "FileNameConflictsWithDirectoryNameException"
+//   A file cannot be added to the repository because the specified file name
+//   has the same name as a directory in this repository. Either provide another
+//   name for the file, or add the file in a directory that does not match the
+//   file name.
+//
+//   * ErrCodeDirectoryNameConflictsWithFileNameException "DirectoryNameConflictsWithFileNameException"
+//   A file cannot be added to the repository because the specified path name
+//   has the same name as a file that already exists in this repository. Either
+//   provide a different name for the file, or specify a different path for the
+//   file.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/codecommit-2015-04-13/PutFile
+func (c *CodeCommit) PutFile(input *PutFileInput) (*PutFileOutput, error) {
+	req, out := c.PutFileRequest(input)
+	return out, req.Send()
+}
+
+// PutFileWithContext is the same as PutFile with the addition of
+// the ability to pass a context and additional request options.
+//
+// See PutFile for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *CodeCommit) PutFileWithContext(ctx aws.Context, input *PutFileInput, opts ...request.Option) (*PutFileOutput, error) {
+	req, out := c.PutFileRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
 const opPutRepositoryTriggers = "PutRepositoryTriggers"
 
 // PutRepositoryTriggersRequest generates a "aws/request.Request" representing the
 // client's request for the PutRepositoryTriggers operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -3693,7 +3879,7 @@ const opTestRepositoryTriggers = "TestRepositoryTriggers"
 
 // TestRepositoryTriggersRequest generates a "aws/request.Request" representing the
 // client's request for the TestRepositoryTriggers operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -3845,7 +4031,7 @@ const opUpdateComment = "UpdateComment"
 
 // UpdateCommentRequest generates a "aws/request.Request" representing the
 // client's request for the UpdateComment operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -3947,7 +4133,7 @@ const opUpdateDefaultBranch = "UpdateDefaultBranch"
 
 // UpdateDefaultBranchRequest generates a "aws/request.Request" representing the
 // client's request for the UpdateDefaultBranch operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -4066,7 +4252,7 @@ const opUpdatePullRequestDescription = "UpdatePullRequestDescription"
 
 // UpdatePullRequestDescriptionRequest generates a "aws/request.Request" representing the
 // client's request for the UpdatePullRequestDescription operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -4161,7 +4347,7 @@ const opUpdatePullRequestStatus = "UpdatePullRequestStatus"
 
 // UpdatePullRequestStatusRequest generates a "aws/request.Request" representing the
 // client's request for the UpdatePullRequestStatus operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -4275,7 +4461,7 @@ const opUpdatePullRequestTitle = "UpdatePullRequestTitle"
 
 // UpdatePullRequestTitleRequest generates a "aws/request.Request" representing the
 // client's request for the UpdatePullRequestTitle operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -4373,7 +4559,7 @@ const opUpdateRepositoryDescription = "UpdateRepositoryDescription"
 
 // UpdateRepositoryDescriptionRequest generates a "aws/request.Request" representing the
 // client's request for the UpdateRepositoryDescription operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -4488,7 +4674,7 @@ const opUpdateRepositoryName = "UpdateRepositoryName"
 
 // UpdateRepositoryNameRequest generates a "aws/request.Request" representing the
 // client's request for the UpdateRepositoryName operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -5032,7 +5218,8 @@ type Commit struct {
 	// The commit message associated with the specified commit.
 	Message *string `locationName:"message" type:"string"`
 
-	// The parent list for the specified commit.
+	// A list of parent commits for the specified commit. Each parent commit ID
+	// is the full commit ID.
 	Parents []*string `locationName:"parents" type:"list"`
 
 	// Tree information for the specified commit.
@@ -8083,6 +8270,198 @@ func (s *PullRequestTarget) SetSourceReference(v string) *PullRequestTarget {
 	return s
 }
 
+type PutFileInput struct {
+	_ struct{} `type:"structure"`
+
+	// The name of the branch where you want to add or update the file.
+	//
+	// BranchName is a required field
+	BranchName *string `locationName:"branchName" min:"1" type:"string" required:"true"`
+
+	// A message about why this file was added or updated. While optional, adding
+	// a message is strongly encouraged in order to provide a more useful commit
+	// history for your repository.
+	CommitMessage *string `locationName:"commitMessage" type:"string"`
+
+	// An email address for the person adding or updating the file.
+	Email *string `locationName:"email" type:"string"`
+
+	// The content of the file, in binary object format.
+	//
+	// FileContent is automatically base64 encoded/decoded by the SDK.
+	//
+	// FileContent is a required field
+	FileContent []byte `locationName:"fileContent" type:"blob" required:"true"`
+
+	// The file mode permissions of the blob. Valid file mode permissions are listed
+	// below.
+	FileMode *string `locationName:"fileMode" type:"string" enum:"FileModeTypeEnum"`
+
+	// The name of the file you want to add or update, including the relative path
+	// to the file in the repository.
+	//
+	// If the path does not currently exist in the repository, the path will be
+	// created as part of adding the file.
+	//
+	// FilePath is a required field
+	FilePath *string `locationName:"filePath" type:"string" required:"true"`
+
+	// The name of the person adding or updating the file. While optional, adding
+	// a name is strongly encouraged in order to provide a more useful commit history
+	// for your repository.
+	Name *string `locationName:"name" type:"string"`
+
+	// The full commit ID of the head commit in the branch where you want to add
+	// or update the file. If the commit ID does not match the ID of the head commit
+	// at the time of the operation, an error will occur, and the file will not
+	// be added or updated.
+	ParentCommitId *string `locationName:"parentCommitId" type:"string"`
+
+	// The name of the repository where you want to add or update the file.
+	//
+	// RepositoryName is a required field
+	RepositoryName *string `locationName:"repositoryName" min:"1" type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s PutFileInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s PutFileInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *PutFileInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "PutFileInput"}
+	if s.BranchName == nil {
+		invalidParams.Add(request.NewErrParamRequired("BranchName"))
+	}
+	if s.BranchName != nil && len(*s.BranchName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("BranchName", 1))
+	}
+	if s.FileContent == nil {
+		invalidParams.Add(request.NewErrParamRequired("FileContent"))
+	}
+	if s.FilePath == nil {
+		invalidParams.Add(request.NewErrParamRequired("FilePath"))
+	}
+	if s.RepositoryName == nil {
+		invalidParams.Add(request.NewErrParamRequired("RepositoryName"))
+	}
+	if s.RepositoryName != nil && len(*s.RepositoryName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("RepositoryName", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetBranchName sets the BranchName field's value.
+func (s *PutFileInput) SetBranchName(v string) *PutFileInput {
+	s.BranchName = &v
+	return s
+}
+
+// SetCommitMessage sets the CommitMessage field's value.
+func (s *PutFileInput) SetCommitMessage(v string) *PutFileInput {
+	s.CommitMessage = &v
+	return s
+}
+
+// SetEmail sets the Email field's value.
+func (s *PutFileInput) SetEmail(v string) *PutFileInput {
+	s.Email = &v
+	return s
+}
+
+// SetFileContent sets the FileContent field's value.
+func (s *PutFileInput) SetFileContent(v []byte) *PutFileInput {
+	s.FileContent = v
+	return s
+}
+
+// SetFileMode sets the FileMode field's value.
+func (s *PutFileInput) SetFileMode(v string) *PutFileInput {
+	s.FileMode = &v
+	return s
+}
+
+// SetFilePath sets the FilePath field's value.
+func (s *PutFileInput) SetFilePath(v string) *PutFileInput {
+	s.FilePath = &v
+	return s
+}
+
+// SetName sets the Name field's value.
+func (s *PutFileInput) SetName(v string) *PutFileInput {
+	s.Name = &v
+	return s
+}
+
+// SetParentCommitId sets the ParentCommitId field's value.
+func (s *PutFileInput) SetParentCommitId(v string) *PutFileInput {
+	s.ParentCommitId = &v
+	return s
+}
+
+// SetRepositoryName sets the RepositoryName field's value.
+func (s *PutFileInput) SetRepositoryName(v string) *PutFileInput {
+	s.RepositoryName = &v
+	return s
+}
+
+type PutFileOutput struct {
+	_ struct{} `type:"structure"`
+
+	// The ID of the blob, which is its SHA-1 pointer.
+	//
+	// BlobId is a required field
+	BlobId *string `locationName:"blobId" type:"string" required:"true"`
+
+	// The full SHA of the commit that contains this file change.
+	//
+	// CommitId is a required field
+	CommitId *string `locationName:"commitId" type:"string" required:"true"`
+
+	// Tree information for the commit that contains this file change.
+	//
+	// TreeId is a required field
+	TreeId *string `locationName:"treeId" type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s PutFileOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s PutFileOutput) GoString() string {
+	return s.String()
+}
+
+// SetBlobId sets the BlobId field's value.
+func (s *PutFileOutput) SetBlobId(v string) *PutFileOutput {
+	s.BlobId = &v
+	return s
+}
+
+// SetCommitId sets the CommitId field's value.
+func (s *PutFileOutput) SetCommitId(v string) *PutFileOutput {
+	s.CommitId = &v
+	return s
+}
+
+// SetTreeId sets the TreeId field's value.
+func (s *PutFileOutput) SetTreeId(v string) *PutFileOutput {
+	s.TreeId = &v
+	return s
+}
+
 // Represents the input ofa put repository triggers operation.
 type PutRepositoryTriggersInput struct {
 	_ struct{} `type:"structure"`
@@ -9132,7 +9511,8 @@ func (s UpdateRepositoryNameOutput) GoString() string {
 type UserInfo struct {
 	_ struct{} `type:"structure"`
 
-	// The date when the specified commit was pushed to the repository.
+	// The date when the specified commit was commited, in timestamp format with
+	// GMT offset.
 	Date *string `locationName:"date" type:"string"`
 
 	// The email address associated with the user who made the commit, if any.
@@ -9179,6 +9559,17 @@ const (
 
 	// ChangeTypeEnumD is a ChangeTypeEnum enum value
 	ChangeTypeEnumD = "D"
+)
+
+const (
+	// FileModeTypeEnumExecutable is a FileModeTypeEnum enum value
+	FileModeTypeEnumExecutable = "EXECUTABLE"
+
+	// FileModeTypeEnumNormal is a FileModeTypeEnum enum value
+	FileModeTypeEnumNormal = "NORMAL"
+
+	// FileModeTypeEnumSymlink is a FileModeTypeEnum enum value
+	FileModeTypeEnumSymlink = "SYMLINK"
 )
 
 const (

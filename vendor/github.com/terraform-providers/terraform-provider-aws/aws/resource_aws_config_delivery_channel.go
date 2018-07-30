@@ -54,7 +54,7 @@ func resourceAwsConfigDeliveryChannel() *schema.Resource {
 						"delivery_frequency": {
 							Type:         schema.TypeString,
 							Optional:     true,
-							ValidateFunc: validateConfigExecutionFrequency,
+							ValidateFunc: validateConfigExecutionFrequency(),
 						},
 					},
 				},

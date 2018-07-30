@@ -26,27 +26,21 @@ func resourceAwsKeyPair() *schema.Resource {
 		MigrateState:  resourceAwsKeyPairMigrateState,
 
 		Schema: map[string]*schema.Schema{
-			"key_name": &schema.Schema{
+			"key_name": {
 				Type:          schema.TypeString,
 				Optional:      true,
 				Computed:      true,
 				ForceNew:      true,
 				ConflictsWith: []string{"key_name_prefix"},
+				ValidateFunc:  validateMaxLength(255),
 			},
-			"key_name_prefix": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
-				ForceNew: true,
-				ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
-					value := v.(string)
-					if len(value) > 100 {
-						errors = append(errors, fmt.Errorf(
-							"%q cannot be longer than 100 characters, name is limited to 255", k))
-					}
-					return
-				},
+			"key_name_prefix": {
+				Type:         schema.TypeString,
+				Optional:     true,
+				ForceNew:     true,
+				ValidateFunc: validateMaxLength(255 - resource.UniqueIDSuffixLength),
 			},
-			"public_key": &schema.Schema{
+			"public_key": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
@@ -59,7 +53,7 @@ func resourceAwsKeyPair() *schema.Resource {
 					}
 				},
 			},
-			"fingerprint": &schema.Schema{
+			"fingerprint": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},

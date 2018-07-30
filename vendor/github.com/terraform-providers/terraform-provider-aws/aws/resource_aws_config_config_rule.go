@@ -9,6 +9,7 @@ import (
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/hashicorp/terraform/helper/validation"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
@@ -53,7 +54,7 @@ func resourceAwsConfigConfigRule() *schema.Resource {
 			"maximum_execution_frequency": {
 				Type:         schema.TypeString,
 				Optional:     true,
-				ValidateFunc: validateConfigExecutionFrequency,
+				ValidateFunc: validateConfigExecutionFrequency(),
 			},
 			"scope": {
 				Type:     schema.TypeList,
@@ -96,9 +97,12 @@ func resourceAwsConfigConfigRule() *schema.Resource {
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"owner": {
-							Type:         schema.TypeString,
-							Required:     true,
-							ValidateFunc: validateConfigRuleSourceOwner,
+							Type:     schema.TypeString,
+							Required: true,
+							ValidateFunc: validation.StringInSlice([]string{
+								configservice.OwnerCustomLambda,
+								configservice.OwnerAws,
+							}, false),
 						},
 						"source_detail": {
 							Type:     schema.TypeSet,
@@ -115,7 +119,7 @@ func resourceAwsConfigConfigRule() *schema.Resource {
 									"maximum_execution_frequency": {
 										Type:         schema.TypeString,
 										Optional:     true,
-										ValidateFunc: validateConfigExecutionFrequency,
+										ValidateFunc: validateConfigExecutionFrequency(),
 									},
 									"message_type": {
 										Type:     schema.TypeString,

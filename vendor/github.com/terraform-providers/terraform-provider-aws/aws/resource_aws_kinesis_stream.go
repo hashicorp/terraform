@@ -44,17 +44,10 @@ func resourceAwsKinesisStream() *schema.Resource {
 			},
 
 			"retention_period": {
-				Type:     schema.TypeInt,
-				Optional: true,
-				Default:  24,
-				ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
-					value := v.(int)
-					if value < 24 || value > 168 {
-						errors = append(errors, fmt.Errorf(
-							"%q must be between 24 and 168 hours", k))
-					}
-					return
-				},
+				Type:         schema.TypeInt,
+				Optional:     true,
+				Default:      24,
+				ValidateFunc: validation.IntBetween(24, 168),
 			},
 
 			"shard_level_metrics": {
@@ -65,10 +58,13 @@ func resourceAwsKinesisStream() *schema.Resource {
 			},
 
 			"encryption_type": {
-				Type:         schema.TypeString,
-				Optional:     true,
-				Default:      "NONE",
-				ValidateFunc: validation.StringInSlice([]string{"NONE", "KMS"}, true),
+				Type:     schema.TypeString,
+				Optional: true,
+				Default:  "NONE",
+				ValidateFunc: validation.StringInSlice([]string{
+					kinesis.EncryptionTypeNone,
+					kinesis.EncryptionTypeKms,
+				}, true),
 				DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
 					if strings.ToLower(old) == strings.ToLower(new) {
 						return true

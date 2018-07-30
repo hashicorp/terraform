@@ -11,6 +11,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/opsworks"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/hashicorp/terraform/helper/validation"
 )
 
 func resourceAwsOpsworksApplication() *schema.Resource {
@@ -30,27 +31,18 @@ func resourceAwsOpsworksApplication() *schema.Resource {
 				Computed: true,
 				Optional: true,
 			},
-			// aws-flow-ruby | java | rails | php | nodejs | static | other
 			"type": {
 				Type:     schema.TypeString,
 				Required: true,
-				ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
-					value := v.(string)
-
-					expected := [7]string{"aws-flow-ruby", "java", "rails", "php", "nodejs", "static", "other"}
-
-					found := false
-					for _, b := range expected {
-						if b == value {
-							found = true
-						}
-					}
-					if !found {
-						errors = append(errors, fmt.Errorf(
-							"%q has to be one of [aws-flow-ruby, java, rails, php, nodejs, static, other]", k))
-					}
-					return
-				},
+				ValidateFunc: validation.StringInSlice([]string{
+					opsworks.AppTypeAwsFlowRuby,
+					opsworks.AppTypeJava,
+					opsworks.AppTypeRails,
+					opsworks.AppTypePhp,
+					opsworks.AppTypeNodejs,
+					opsworks.AppTypeStatic,
+					opsworks.AppTypeOther,
+				}, false),
 			},
 			"stack_id": {
 				Type:     schema.TypeString,

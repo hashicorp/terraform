@@ -9,6 +9,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/hashicorp/terraform/helper/validation"
 )
 
 func dataSourceAwsAmi() *schema.Resource {
@@ -27,7 +28,7 @@ func dataSourceAwsAmi() *schema.Resource {
 				Type:         schema.TypeString,
 				Optional:     true,
 				ForceNew:     true,
-				ValidateFunc: validateNameRegex,
+				ValidateFunc: validation.ValidateRegexp,
 			},
 			"most_recent": {
 				Type:     schema.TypeBool,
@@ -431,15 +432,4 @@ func amiProductCodesHash(v interface{}) int {
 	buf.WriteString(fmt.Sprintf("%s-", m["product_code_id"].(string)))
 	buf.WriteString(fmt.Sprintf("%s-", m["product_code_type"].(string)))
 	return hashcode.String(buf.String())
-}
-
-func validateNameRegex(v interface{}, k string) (ws []string, errors []error) {
-	value := v.(string)
-
-	if _, err := regexp.Compile(value); err != nil {
-		errors = append(errors, fmt.Errorf(
-			"%q contains an invalid regular expression: %s",
-			k, err))
-	}
-	return
 }

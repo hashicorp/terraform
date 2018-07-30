@@ -116,10 +116,6 @@ func resourceAwsAmiCreate(d *schema.ResourceData, meta interface{}) error {
 
 	id := *res.ImageId
 	d.SetId(id)
-	d.Partial(true)
-	d.Set("manage_ebs_block_devices", false)
-	d.SetPartial("manage_ebs_block_devices")
-	d.Partial(false)
 
 	_, err = resourceAwsAmiWaitForAvailable(d.Timeout(schema.TimeoutCreate), id, client)
 	if err != nil {

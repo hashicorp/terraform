@@ -277,7 +277,11 @@ func resourceAwsEcsTaskDefinitionRead(d *schema.ResourceData, meta interface{}) 
 	d.Set("cpu", taskDefinition.Cpu)
 	d.Set("memory", taskDefinition.Memory)
 	d.Set("network_mode", taskDefinition.NetworkMode)
-	d.Set("volumes", flattenEcsVolumes(taskDefinition.Volumes))
+
+	if err := d.Set("volume", flattenEcsVolumes(taskDefinition.Volumes)); err != nil {
+		return fmt.Errorf("error setting volume: %s", err)
+	}
+
 	if err := d.Set("placement_constraints", flattenPlacementConstraints(taskDefinition.PlacementConstraints)); err != nil {
 		log.Printf("[ERR] Error setting placement_constraints for (%s): %s", d.Id(), err)
 	}
