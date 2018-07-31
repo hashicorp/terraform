@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/arn"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/cognitoidentity"
 	"github.com/hashicorp/terraform/helper/resource"
@@ -28,6 +29,11 @@ func resourceAwsCognitoIdentityPool() *schema.Resource {
 				Required:     true,
 				ForceNew:     true,
 				ValidateFunc: validateCognitoIdentityPoolName,
+			},
+
+			"arn": {
+				Type:     schema.TypeString,
+				Computed: true,
 			},
 
 			"cognito_identity_providers": {
@@ -151,6 +157,14 @@ func resourceAwsCognitoIdentityPoolRead(d *schema.ResourceData, meta interface{}
 		return err
 	}
 
+	arn := arn.ARN{
+		Partition: meta.(*AWSClient).partition,
+		Region:    meta.(*AWSClient).region,
+		Service:   "cognito-identity",
+		AccountID: meta.(*AWSClient).accountid,
+		Resource:  fmt.Sprintf("identitypool/%s", d.Id()),
+	}
+	d.Set("arn", arn.String())
 	d.Set("identity_pool_name", ip.IdentityPoolName)
 	d.Set("allow_unauthenticated_identities", ip.AllowUnauthenticatedIdentities)
 	d.Set("developer_provider_name", ip.DeveloperProviderName)

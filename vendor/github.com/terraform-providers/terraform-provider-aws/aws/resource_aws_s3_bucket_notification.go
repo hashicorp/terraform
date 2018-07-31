@@ -346,8 +346,6 @@ func resourceAwsS3BucketNotificationDelete(d *schema.ResourceData, meta interfac
 		return fmt.Errorf("Error deleting S3 notification configuration: %s", err)
 	}
 
-	d.SetId("")
-
 	return nil
 }
 

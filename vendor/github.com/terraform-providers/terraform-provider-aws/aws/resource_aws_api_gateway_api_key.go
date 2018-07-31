@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/apigateway"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
@@ -98,7 +97,7 @@ func resourceAwsApiGatewayApiKeyCreate(d *schema.ResourceData, meta interface{})
 		return fmt.Errorf("Error creating API Gateway: %s", err)
 	}
 
-	d.SetId(*apiKey.Id)
+	d.SetId(aws.StringValue(apiKey.Id))
 
 	return resourceAwsApiGatewayApiKeyRead(d, meta)
 }
@@ -112,7 +111,7 @@ func resourceAwsApiGatewayApiKeyRead(d *schema.ResourceData, meta interface{}) e
 		IncludeValue: aws.Bool(true),
 	})
 	if err != nil {
-		if awsErr, ok := err.(awserr.Error); ok && awsErr.Code() == "NotFoundException" {
+		if isAWSErr(err, apigateway.ErrCodeNotFoundException, "") {
 			log.Printf("[WARN] API Gateway API Key (%s) not found, removing from state", d.Id())
 			d.SetId("")
 			return nil
@@ -195,8 +194,10 @@ func resourceAwsApiGatewayApiKeyDelete(d *schema.ResourceData, meta interface{})
 			return nil
 		}
 
-		if apigatewayErr, ok := err.(awserr.Error); ok && apigatewayErr.Code() == "NotFoundException" {
-			return nil
+		if err != nil {
+			if isAWSErr(err, apigateway.ErrCodeNotFoundException, "") {
+				return nil
+			}
 		}
 
 		return resource.NonRetryableError(err)

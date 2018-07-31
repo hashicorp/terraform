@@ -36,6 +36,12 @@ func dataSourceAwsIAMServerCertificate() *schema.Resource {
 				ValidateFunc:  validateMaxLength(128 - resource.UniqueIDSuffixLength),
 			},
 
+			"path_prefix": {
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+			},
+
 			"latest": {
 				Type:     schema.TypeBool,
 				Optional: true,
@@ -103,8 +109,12 @@ func dataSourceAwsIAMServerCertificateRead(d *schema.ResourceData, meta interfac
 	}
 
 	var metadatas []*iam.ServerCertificateMetadata
+	input := &iam.ListServerCertificatesInput{}
+	if v, ok := d.GetOk("path_prefix"); ok {
+		input.PathPrefix = aws.String(v.(string))
+	}
 	log.Printf("[DEBUG] Reading IAM Server Certificate")
-	err := iamconn.ListServerCertificatesPages(&iam.ListServerCertificatesInput{}, func(p *iam.ListServerCertificatesOutput, lastPage bool) bool {
+	err := iamconn.ListServerCertificatesPages(input, func(p *iam.ListServerCertificatesOutput, lastPage bool) bool {
 		for _, cert := range p.ServerCertificateMetadataList {
 			if matcher(cert) {
 				metadatas = append(metadatas, cert)

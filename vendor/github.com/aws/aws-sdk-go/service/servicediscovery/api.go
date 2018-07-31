@@ -3963,7 +3963,7 @@ type Namespace struct {
 	// Universal Time (UTC). The value of CreateDate is accurate to milliseconds.
 	// For example, the value 1516925490.087 represents Friday, January 26, 2018
 	// 12:11:30.087 AM.
-	CreateDate *time.Time `type:"timestamp" timestampFormat:"unix"`
+	CreateDate *time.Time `type:"timestamp"`
 
 	// A unique string that identifies the request and that allows failed requests
 	// to be retried without the risk of executing an operation twice.
@@ -4216,7 +4216,7 @@ type Operation struct {
 	// and Coordinated Universal Time (UTC). The value of CreateDate is accurate
 	// to milliseconds. For example, the value 1516925490.087 represents Friday,
 	// January 26, 2018 12:11:30.087 AM.
-	CreateDate *time.Time `type:"timestamp" timestampFormat:"unix"`
+	CreateDate *time.Time `type:"timestamp"`
 
 	// The code associated with ErrorMessage. Values for ErrorCode include the following:
 	//
@@ -4269,7 +4269,7 @@ type Operation struct {
 	// in Unix date/time format and Coordinated Universal Time (UTC). The value
 	// of UpdateDate is accurate to milliseconds. For example, the value 1516925490.087
 	// represents Friday, January 26, 2018 12:11:30.087 AM.
-	UpdateDate *time.Time `type:"timestamp" timestampFormat:"unix"`
+	UpdateDate *time.Time `type:"timestamp"`
 }
 
 // String returns the string representation
@@ -4670,7 +4670,7 @@ type Service struct {
 	// Universal Time (UTC). The value of CreateDate is accurate to milliseconds.
 	// For example, the value 1516925490.087 represents Friday, January 26, 2018
 	// 12:11:30.087 AM.
-	CreateDate *time.Time `type:"timestamp" timestampFormat:"unix"`
+	CreateDate *time.Time `type:"timestamp"`
 
 	// A unique string that identifies the request and that allows failed requests
 	// to be retried without the risk of executing the operation twice. CreatorRequestId

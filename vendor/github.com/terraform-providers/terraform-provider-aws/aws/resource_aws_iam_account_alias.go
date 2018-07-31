@@ -88,7 +88,5 @@ func resourceAwsIamAccountAliasDelete(d *schema.ResourceData, meta interface{}) 
 		return fmt.Errorf("Error deleting account alias with name '%s': %s", account_alias, err)
 	}
 
-	d.SetId("")
-
 	return nil
 }

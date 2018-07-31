@@ -144,6 +144,5 @@ func resourceAwsConfigConfigurationRecorderDelete(d *schema.ResourceData, meta i
 		return fmt.Errorf("Deleting Configuration Recorder failed: %s", err)
 	}
 
-	d.SetId("")
 	return nil
 }

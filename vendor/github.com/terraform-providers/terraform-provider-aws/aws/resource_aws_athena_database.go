@@ -2,8 +2,11 @@ package aws
 
 import (
 	"fmt"
+	"regexp"
 	"strings"
 	"time"
+
+	"github.com/hashicorp/terraform/helper/validation"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/athena"
@@ -20,9 +23,10 @@ func resourceAwsAthenaDatabase() *schema.Resource {
 
 		Schema: map[string]*schema.Schema{
 			"name": {
-				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: true,
+				Type:         schema.TypeString,
+				Required:     true,
+				ForceNew:     true,
+				ValidateFunc: validation.StringMatch(regexp.MustCompile("^[_a-z0-9]+$"), "see https://docs.aws.amazon.com/athena/latest/ug/tables-databases-columns-names.html"),
 			},
 			"bucket": {
 				Type:     schema.TypeString,
@@ -42,7 +46,7 @@ func resourceAwsAthenaDatabaseCreate(d *schema.ResourceData, meta interface{}) e
 	conn := meta.(*AWSClient).athenaconn
 
 	input := &athena.StartQueryExecutionInput{
-		QueryString: aws.String(fmt.Sprintf("create database %s;", d.Get("name").(string))),
+		QueryString: aws.String(fmt.Sprintf("create database `%s`;", d.Get("name").(string))),
 		ResultConfiguration: &athena.ResultConfiguration{
 			OutputLocation: aws.String("s3://" + d.Get("bucket").(string)),
 		},
@@ -92,7 +96,7 @@ func resourceAwsAthenaDatabaseDelete(d *schema.ResourceData, meta interface{}) e
 	name := d.Get("name").(string)
 	bucket := d.Get("bucket").(string)
 
-	queryString := fmt.Sprintf("drop database %s", name)
+	queryString := fmt.Sprintf("drop database `%s`", name)
 	if d.Get("force_destroy").(bool) {
 		queryString += " cascade"
 	}

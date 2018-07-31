@@ -3,9 +3,11 @@ package aws
 import (
 	"fmt"
 	"log"
+	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/arn"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/apigateway"
 	"github.com/hashicorp/terraform/helper/resource"
@@ -20,6 +22,27 @@ func resourceAwsApiGatewayStage() *schema.Resource {
 		Delete: resourceAwsApiGatewayStageDelete,
 
 		Schema: map[string]*schema.Schema{
+			"access_log_settings": {
+				Type:     schema.TypeList,
+				MaxItems: 1,
+				Optional: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"destination_arn": {
+							Type:     schema.TypeString,
+							Required: true,
+							StateFunc: func(arn interface{}) string {
+								// arns coming from a TF reference to a log group contain a trailing `:*` which is not valid
+								return strings.TrimSuffix(arn.(string), ":*")
+							},
+						},
+						"format": {
+							Type:     schema.TypeString,
+							Required: true,
+						},
+					},
+				},
+			},
 			"cache_cluster_enabled": {
 				Type:     schema.TypeBool,
 				Optional: true,
@@ -44,6 +67,14 @@ func resourceAwsApiGatewayStage() *schema.Resource {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
+			"execution_arn": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+			"invoke_url": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
 			"rest_api_id": {
 				Type:     schema.TypeString,
 				Required: true,
@@ -58,6 +89,7 @@ func resourceAwsApiGatewayStage() *schema.Resource {
 				Type:     schema.TypeMap,
 				Optional: true,
 			},
+			"tags": tagsSchema(),
 		},
 	}
 }
@@ -94,6 +126,13 @@ func resourceAwsApiGatewayStageCreate(d *schema.ResourceData, meta interface{}) 
 			variables[k] = v.(string)
 		}
 		input.Variables = aws.StringMap(variables)
+	}
+	if vars, ok := d.GetOk("tags"); ok {
+		newMap := make(map[string]string, len(vars.(map[string]interface{})))
+		for k, v := range vars.(map[string]interface{}) {
+			newMap[k] = v.(string)
+		}
+		input.Tags = aws.StringMap(newMap)
 	}
 
 	out, err := conn.CreateStage(&input)
@@ -136,6 +175,9 @@ func resourceAwsApiGatewayStageCreate(d *schema.ResourceData, meta interface{}) 
 	if _, ok := d.GetOk("client_certificate_id"); ok {
 		return resourceAwsApiGatewayStageUpdate(d, meta)
 	}
+	if _, ok := d.GetOk("access_log_settings"); ok {
+		return resourceAwsApiGatewayStageUpdate(d, meta)
+	}
 	return resourceAwsApiGatewayStageRead(d, meta)
 }
 
@@ -143,9 +185,11 @@ func resourceAwsApiGatewayStageRead(d *schema.ResourceData, meta interface{}) er
 	conn := meta.(*AWSClient).apigateway
 
 	log.Printf("[DEBUG] Reading API Gateway Stage %s", d.Id())
+	restApiId := d.Get("rest_api_id").(string)
+	stageName := d.Get("stage_name").(string)
 	input := apigateway.GetStageInput{
-		RestApiId: aws.String(d.Get("rest_api_id").(string)),
-		StageName: aws.String(d.Get("stage_name").(string)),
+		RestApiId: aws.String(restApiId),
+		StageName: aws.String(stageName),
 	}
 	stage, err := conn.GetStage(&input)
 	if err != nil {
@@ -157,6 +201,10 @@ func resourceAwsApiGatewayStageRead(d *schema.ResourceData, meta interface{}) er
 		return err
 	}
 	log.Printf("[DEBUG] Received API Gateway Stage: %s", stage)
+
+	if err := d.Set("access_log_settings", flattenApiGatewayStageAccessLogSettings(stage.AccessLogSettings)); err != nil {
+		return fmt.Errorf("error setting access_log_settings: %s", err)
+	}
 
 	d.Set("client_certificate_id", stage.ClientCertificateId)
 
@@ -172,6 +220,19 @@ func resourceAwsApiGatewayStageRead(d *schema.ResourceData, meta interface{}) er
 	d.Set("description", stage.Description)
 	d.Set("documentation_version", stage.DocumentationVersion)
 	d.Set("variables", aws.StringValueMap(stage.Variables))
+	d.Set("tags", aws.StringValueMap(stage.Tags))
+
+	region := meta.(*AWSClient).region
+	d.Set("invoke_url", buildApiGatewayInvokeURL(restApiId, region, stageName))
+
+	executionArn := arn.ARN{
+		Partition: meta.(*AWSClient).partition,
+		Service:   "execute-api",
+		Region:    meta.(*AWSClient).region,
+		AccountID: meta.(*AWSClient).accountid,
+		Resource:  fmt.Sprintf("%s/%s", restApiId, stageName),
+	}.String()
+	d.Set("execution_arn", executionArn)
 
 	return nil
 }
@@ -180,6 +241,18 @@ func resourceAwsApiGatewayStageUpdate(d *schema.ResourceData, meta interface{}) 
 	conn := meta.(*AWSClient).apigateway
 
 	d.Partial(true)
+
+	stageArn := arn.ARN{
+		Partition: meta.(*AWSClient).partition,
+		Region:    meta.(*AWSClient).region,
+		Service:   "apigateway",
+		Resource:  fmt.Sprintf("/restapis/%s/stages/%s", d.Get("rest_api_id").(string), d.Get("stage_name").(string)),
+	}.String()
+	if tagErr := setTagsAPIGatewayStage(conn, d, stageArn); tagErr != nil {
+		return tagErr
+	}
+	d.SetPartial("tags")
+
 	operations := make([]*apigateway.PatchOperation, 0)
 	waitForCache := false
 	if d.HasChange("cache_cluster_enabled") {
@@ -231,6 +304,27 @@ func resourceAwsApiGatewayStageUpdate(d *schema.ResourceData, meta interface{}) 
 		oldV := o.(map[string]interface{})
 		newV := n.(map[string]interface{})
 		operations = append(operations, diffVariablesOps("/variables/", oldV, newV)...)
+	}
+	if d.HasChange("access_log_settings") {
+		accessLogSettings := d.Get("access_log_settings").([]interface{})
+		if len(accessLogSettings) == 1 {
+			operations = append(operations,
+				&apigateway.PatchOperation{
+					Op:   aws.String("replace"),
+					Path: aws.String("/accessLogSettings/destinationArn"),
+					// arns coming from a TF reference to a log group contain a trailing `:*` which is not valid
+					Value: aws.String(strings.TrimSuffix(d.Get("access_log_settings.0.destination_arn").(string), ":*")),
+				}, &apigateway.PatchOperation{
+					Op:    aws.String("replace"),
+					Path:  aws.String("/accessLogSettings/format"),
+					Value: aws.String(d.Get("access_log_settings.0.format").(string)),
+				})
+		} else if len(accessLogSettings) == 0 {
+			operations = append(operations, &apigateway.PatchOperation{
+				Op:   aws.String("remove"),
+				Path: aws.String("/accessLogSettings"),
+			})
+		}
 	}
 
 	input := apigateway.UpdateStageInput{
@@ -339,4 +433,15 @@ func resourceAwsApiGatewayStageDelete(d *schema.ResourceData, meta interface{}) 
 	}
 
 	return nil
+}
+
+func flattenApiGatewayStageAccessLogSettings(accessLogSettings *apigateway.AccessLogSettings) []map[string]interface{} {
+	result := make([]map[string]interface{}, 0, 1)
+	if accessLogSettings != nil {
+		result = append(result, map[string]interface{}{
+			"destination_arn": aws.StringValue(accessLogSettings.DestinationArn),
+			"format":          aws.StringValue(accessLogSettings.Format),
+		})
+	}
+	return result
 }

@@ -4944,7 +4944,7 @@ type Comment struct {
 	Content *string `locationName:"content" type:"string"`
 
 	// The date and time the comment was created, in timestamp format.
-	CreationDate *time.Time `locationName:"creationDate" type:"timestamp" timestampFormat:"unix"`
+	CreationDate *time.Time `locationName:"creationDate" type:"timestamp"`
 
 	// A Boolean value indicating whether the comment has been deleted.
 	Deleted *bool `locationName:"deleted" type:"boolean"`
@@ -4953,7 +4953,7 @@ type Comment struct {
 	InReplyTo *string `locationName:"inReplyTo" type:"string"`
 
 	// The date and time the comment was most recently modified, in timestamp format.
-	LastModifiedDate *time.Time `locationName:"lastModifiedDate" type:"timestamp" timestampFormat:"unix"`
+	LastModifiedDate *time.Time `locationName:"lastModifiedDate" type:"timestamp"`
 }
 
 // String returns the string representation
@@ -7912,7 +7912,7 @@ type PullRequest struct {
 	ClientRequestToken *string `locationName:"clientRequestToken" type:"string"`
 
 	// The date and time the pull request was originally created, in timestamp format.
-	CreationDate *time.Time `locationName:"creationDate" type:"timestamp" timestampFormat:"unix"`
+	CreationDate *time.Time `locationName:"creationDate" type:"timestamp"`
 
 	// The user-defined description of the pull request. This description can be
 	// used to clarify what should be reviewed and other details of the request.
@@ -7920,7 +7920,7 @@ type PullRequest struct {
 
 	// The day and time of the last user or system activity on the pull request,
 	// in timestamp format.
-	LastActivityDate *time.Time `locationName:"lastActivityDate" type:"timestamp" timestampFormat:"unix"`
+	LastActivityDate *time.Time `locationName:"lastActivityDate" type:"timestamp"`
 
 	// The system-generated ID of the pull request.
 	PullRequestId *string `locationName:"pullRequestId" type:"string"`
@@ -8012,7 +8012,7 @@ type PullRequestEvent struct {
 	ActorArn *string `locationName:"actorArn" type:"string"`
 
 	// The day and time of the pull request event, in timestamp format.
-	EventDate *time.Time `locationName:"eventDate" type:"timestamp" timestampFormat:"unix"`
+	EventDate *time.Time `locationName:"eventDate" type:"timestamp"`
 
 	// The type of the pull request event, for example a status change event (PULL_REQUEST_STATUS_CHANGED)
 	// or update event (PULL_REQUEST_SOURCE_REFERENCE_UPDATED).
@@ -8569,13 +8569,13 @@ type RepositoryMetadata struct {
 	CloneUrlSsh *string `locationName:"cloneUrlSsh" type:"string"`
 
 	// The date and time the repository was created, in timestamp format.
-	CreationDate *time.Time `locationName:"creationDate" type:"timestamp" timestampFormat:"unix"`
+	CreationDate *time.Time `locationName:"creationDate" type:"timestamp"`
 
 	// The repository's default branch name.
 	DefaultBranch *string `locationName:"defaultBranch" min:"1" type:"string"`
 
 	// The date and time the repository was last modified, in timestamp format.
-	LastModifiedDate *time.Time `locationName:"lastModifiedDate" type:"timestamp" timestampFormat:"unix"`
+	LastModifiedDate *time.Time `locationName:"lastModifiedDate" type:"timestamp"`
 
 	// A comment or description about the repository.
 	RepositoryDescription *string `locationName:"repositoryDescription" type:"string"`

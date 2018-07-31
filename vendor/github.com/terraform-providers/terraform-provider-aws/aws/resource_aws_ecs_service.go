@@ -14,6 +14,7 @@ import (
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/hashicorp/terraform/helper/validation"
 )
 
 var taskDefinitionRE = regexp.MustCompile("^([a-zA-Z0-9_-]+):([0-9]+)$")
@@ -50,12 +51,18 @@ func resourceAwsEcsService() *schema.Resource {
 			"desired_count": {
 				Type:     schema.TypeInt,
 				Optional: true,
+				DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
+					if d.Get("scheduling_strategy").(string) == ecs.SchedulingStrategyDaemon {
+						return true
+					}
+					return false
+				},
 			},
 
 			"health_check_grace_period_seconds": {
 				Type:         schema.TypeInt,
 				Optional:     true,
-				ValidateFunc: validateAwsEcsServiceHealthCheckGracePeriodSeconds,
+				ValidateFunc: validation.IntBetween(0, 7200),
 			},
 
 			"launch_type": {
@@ -63,6 +70,17 @@ func resourceAwsEcsService() *schema.Resource {
 				ForceNew: true,
 				Optional: true,
 				Default:  "EC2",
+			},
+
+			"scheduling_strategy": {
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+				Default:  ecs.SchedulingStrategyReplica,
+				ValidateFunc: validation.StringInSlice([]string{
+					ecs.SchedulingStrategyDaemon,
+					ecs.SchedulingStrategyReplica,
+				}, false),
 			},
 
 			"iam_role": {
@@ -76,12 +94,24 @@ func resourceAwsEcsService() *schema.Resource {
 				Type:     schema.TypeInt,
 				Optional: true,
 				Default:  200,
+				DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
+					if d.Get("scheduling_strategy").(string) == ecs.SchedulingStrategyDaemon {
+						return true
+					}
+					return false
+				},
 			},
 
 			"deployment_minimum_healthy_percent": {
 				Type:     schema.TypeInt,
 				Optional: true,
 				Default:  100,
+				DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
+					if d.Get("scheduling_strategy").(string) == ecs.SchedulingStrategyDaemon {
+						return true
+					}
+					return false
+				},
 			},
 
 			"load_balancer": {
@@ -145,10 +175,12 @@ func resourceAwsEcsService() *schema.Resource {
 				},
 			},
 			"placement_strategy": {
-				Type:     schema.TypeSet,
-				Optional: true,
-				ForceNew: true,
-				MaxItems: 5,
+				Type:          schema.TypeSet,
+				Optional:      true,
+				ForceNew:      true,
+				MaxItems:      5,
+				ConflictsWith: []string{"ordered_placement_strategy"},
+				Deprecated:    "Use `ordered_placement_strategy` instead",
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"type": {
@@ -184,7 +216,40 @@ func resourceAwsEcsService() *schema.Resource {
 					return hashcode.String(buf.String())
 				},
 			},
-
+			"ordered_placement_strategy": {
+				Type:          schema.TypeList,
+				Optional:      true,
+				ForceNew:      true,
+				MaxItems:      5,
+				ConflictsWith: []string{"placement_strategy"},
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"type": {
+							Type:     schema.TypeString,
+							ForceNew: true,
+							Required: true,
+						},
+						"field": {
+							Type:     schema.TypeString,
+							ForceNew: true,
+							Optional: true,
+							StateFunc: func(v interface{}) string {
+								value := v.(string)
+								if value == "host" {
+									return "instanceId"
+								}
+								return value
+							},
+							DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
+								if strings.ToLower(old) == strings.ToLower(new) {
+									return true
+								}
+								return false
+							},
+						},
+					},
+				},
+			},
 			"placement_constraints": {
 				Type:     schema.TypeSet,
 				Optional: true,
@@ -201,6 +266,36 @@ func resourceAwsEcsService() *schema.Resource {
 							Type:     schema.TypeString,
 							ForceNew: true,
 							Optional: true,
+						},
+					},
+				},
+			},
+
+			"service_registries": {
+				Type:     schema.TypeSet,
+				Optional: true,
+				ForceNew: true,
+				MaxItems: 1,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"container_name": {
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+						"container_port": {
+							Type:         schema.TypeInt,
+							Optional:     true,
+							ValidateFunc: validation.IntBetween(0, 65536),
+						},
+						"port": {
+							Type:         schema.TypeInt,
+							Optional:     true,
+							ValidateFunc: validation.IntBetween(0, 65536),
+						},
+						"registry_arn": {
+							Type:         schema.TypeString,
+							Required:     true,
+							ValidateFunc: validateArn,
 						},
 					},
 				},
@@ -255,6 +350,14 @@ func resourceAwsEcsServiceCreate(d *schema.ResourceData, meta interface{}) error
 		input.LaunchType = aws.String(v.(string))
 	}
 
+	schedulingStrategy := d.Get("scheduling_strategy").(string)
+	input.SchedulingStrategy = aws.String(schedulingStrategy)
+	if schedulingStrategy == ecs.SchedulingStrategyDaemon {
+		// unset these if DAEMON
+		input.DeploymentConfiguration = nil
+		input.DesiredCount = nil
+	}
+
 	loadBalancers := expandEcsLoadBalancers(d.Get("load_balancer").(*schema.Set).List())
 	if len(loadBalancers) > 0 {
 		log.Printf("[DEBUG] Adding ECS load balancers: %s", loadBalancers)
@@ -266,20 +369,16 @@ func resourceAwsEcsServiceCreate(d *schema.ResourceData, meta interface{}) error
 
 	input.NetworkConfiguration = expandEcsNetworkConfiguration(d.Get("network_configuration").([]interface{}))
 
-	strategies := d.Get("placement_strategy").(*schema.Set).List()
-	if len(strategies) > 0 {
-		var ps []*ecs.PlacementStrategy
-		for _, raw := range strategies {
-			p := raw.(map[string]interface{})
-			t := p["type"].(string)
-			f := p["field"].(string)
-			if err := validateAwsEcsPlacementStrategy(t, f); err != nil {
-				return err
-			}
-			ps = append(ps, &ecs.PlacementStrategy{
-				Type:  aws.String(p["type"].(string)),
-				Field: aws.String(p["field"].(string)),
-			})
+	if v, ok := d.GetOk("ordered_placement_strategy"); ok {
+		ps, err := expandPlacementStrategy(v.([]interface{}))
+		if err != nil {
+			return err
+		}
+		input.PlacementStrategy = ps
+	} else {
+		ps, err := expandPlacementStrategyDeprecated(d.Get("placement_strategy").(*schema.Set))
+		if err != nil {
+			return err
 		}
 		input.PlacementStrategy = ps
 	}
@@ -304,6 +403,29 @@ func resourceAwsEcsServiceCreate(d *schema.ResourceData, meta interface{}) error
 			pc = append(pc, constraint)
 		}
 		input.PlacementConstraints = pc
+	}
+
+	serviceRegistries := d.Get("service_registries").(*schema.Set).List()
+	if len(serviceRegistries) > 0 {
+		srs := make([]*ecs.ServiceRegistry, 0, len(serviceRegistries))
+		for _, v := range serviceRegistries {
+			raw := v.(map[string]interface{})
+			sr := &ecs.ServiceRegistry{
+				RegistryArn: aws.String(raw["registry_arn"].(string)),
+			}
+			if port, ok := raw["port"].(int); ok && port != 0 {
+				sr.Port = aws.Int64(int64(port))
+			}
+			if raw, ok := raw["container_port"].(int); ok && raw != 0 {
+				sr.ContainerPort = aws.Int64(int64(raw))
+			}
+			if raw, ok := raw["container_name"].(string); ok && raw != "" {
+				sr.ContainerName = aws.String(raw)
+			}
+
+			srs = append(srs, sr)
+		}
+		input.ServiceRegistries = srs
 	}
 
 	log.Printf("[DEBUG] Creating ECS service: %s", input)
@@ -404,6 +526,7 @@ func resourceAwsEcsServiceRead(d *schema.ResourceData, meta interface{}) error {
 		d.Set("task_definition", taskDefinition)
 	}
 
+	d.Set("scheduling_strategy", service.SchedulingStrategy)
 	d.Set("desired_count", service.DesiredCount)
 	d.Set("health_check_grace_period_seconds", service.HealthCheckGracePeriodSeconds)
 	d.Set("launch_type", service.LaunchType)
@@ -435,8 +558,14 @@ func resourceAwsEcsServiceRead(d *schema.ResourceData, meta interface{}) error {
 		d.Set("load_balancer", flattenEcsLoadBalancers(service.LoadBalancers))
 	}
 
-	if err := d.Set("placement_strategy", flattenPlacementStrategy(service.PlacementStrategy)); err != nil {
-		log.Printf("[ERR] Error setting placement_strategy for (%s): %s", d.Id(), err)
+	if _, ok := d.GetOk("placement_strategy"); ok {
+		if err := d.Set("placement_strategy", flattenPlacementStrategyDeprecated(service.PlacementStrategy)); err != nil {
+			return fmt.Errorf("error setting placement_strategy: %s", err)
+		}
+	} else {
+		if err := d.Set("ordered_placement_strategy", flattenPlacementStrategy(service.PlacementStrategy)); err != nil {
+			return fmt.Errorf("error setting ordered_placement_strategy: %s", err)
+		}
 	}
 	if err := d.Set("placement_constraints", flattenServicePlacementConstraints(service.PlacementConstraints)); err != nil {
 		log.Printf("[ERR] Error setting placement_constraints for (%s): %s", d.Id(), err)
@@ -444,6 +573,10 @@ func resourceAwsEcsServiceRead(d *schema.ResourceData, meta interface{}) error {
 
 	if err := d.Set("network_configuration", flattenEcsNetworkConfiguration(service.NetworkConfiguration)); err != nil {
 		return fmt.Errorf("[ERR] Error setting network_configuration for (%s): %s", d.Id(), err)
+	}
+
+	if err := d.Set("service_registries", flattenServiceRegistries(service.ServiceRegistries)); err != nil {
+		return fmt.Errorf("[ERR] Error setting service_registries for (%s): %s", d.Id(), err)
 	}
 
 	return nil
@@ -502,7 +635,7 @@ func flattenServicePlacementConstraints(pcs []*ecs.PlacementConstraint) []map[st
 	return results
 }
 
-func flattenPlacementStrategy(pss []*ecs.PlacementStrategy) []map[string]interface{} {
+func flattenPlacementStrategyDeprecated(pss []*ecs.PlacementStrategy) []map[string]interface{} {
 	if len(pss) == 0 {
 		return nil
 	}
@@ -522,6 +655,89 @@ func flattenPlacementStrategy(pss []*ecs.PlacementStrategy) []map[string]interfa
 	return results
 }
 
+func expandPlacementStrategy(s []interface{}) ([]*ecs.PlacementStrategy, error) {
+	if len(s) == 0 {
+		return nil, nil
+	}
+	ps := make([]*ecs.PlacementStrategy, 0)
+	for _, raw := range s {
+		p := raw.(map[string]interface{})
+		t := p["type"].(string)
+		f := p["field"].(string)
+		if err := validateAwsEcsPlacementStrategy(t, f); err != nil {
+			return nil, err
+		}
+		ps = append(ps, &ecs.PlacementStrategy{
+			Type:  aws.String(t),
+			Field: aws.String(f),
+		})
+	}
+	return ps, nil
+}
+
+func expandPlacementStrategyDeprecated(s *schema.Set) ([]*ecs.PlacementStrategy, error) {
+	if len(s.List()) == 0 {
+		return nil, nil
+	}
+	ps := make([]*ecs.PlacementStrategy, 0)
+	for _, raw := range s.List() {
+		p := raw.(map[string]interface{})
+		t := p["type"].(string)
+		f := p["field"].(string)
+		if err := validateAwsEcsPlacementStrategy(t, f); err != nil {
+			return nil, err
+		}
+		ps = append(ps, &ecs.PlacementStrategy{
+			Type:  aws.String(t),
+			Field: aws.String(f),
+		})
+	}
+	return ps, nil
+}
+
+func flattenPlacementStrategy(pss []*ecs.PlacementStrategy) []interface{} {
+	if len(pss) == 0 {
+		return nil
+	}
+	results := make([]interface{}, 0, len(pss))
+	for _, ps := range pss {
+		c := make(map[string]interface{})
+		c["type"] = *ps.Type
+		c["field"] = *ps.Field
+
+		// for some fields the API requires lowercase for creation but will return uppercase on query
+		if *ps.Field == "MEMORY" || *ps.Field == "CPU" {
+			c["field"] = strings.ToLower(*ps.Field)
+		}
+
+		results = append(results, c)
+	}
+	return results
+}
+
+func flattenServiceRegistries(srs []*ecs.ServiceRegistry) []map[string]interface{} {
+	if len(srs) == 0 {
+		return nil
+	}
+	results := make([]map[string]interface{}, 0)
+	for _, sr := range srs {
+		c := map[string]interface{}{
+			"registry_arn": aws.StringValue(sr.RegistryArn),
+		}
+		if sr.Port != nil {
+			c["port"] = int(aws.Int64Value(sr.Port))
+		}
+		if sr.ContainerPort != nil {
+			c["container_port"] = int(aws.Int64Value(sr.ContainerPort))
+		}
+		if sr.ContainerName != nil {
+			c["container_name"] = aws.StringValue(sr.ContainerName)
+		}
+		results = append(results, c)
+	}
+	return results
+}
+
 func resourceAwsEcsServiceUpdate(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).ecsconn
 
@@ -531,7 +747,9 @@ func resourceAwsEcsServiceUpdate(d *schema.ResourceData, meta interface{}) error
 		Cluster: aws.String(d.Get("cluster").(string)),
 	}
 
-	if d.HasChange("desired_count") {
+	schedulingStrategy := d.Get("scheduling_strategy").(string)
+	// Automatically ignore desired count if DAEMON
+	if schedulingStrategy != ecs.SchedulingStrategyDaemon && d.HasChange("desired_count") {
 		_, n := d.GetChange("desired_count")
 		input.DesiredCount = aws.Int64(int64(n.(int)))
 	}
@@ -544,7 +762,7 @@ func resourceAwsEcsServiceUpdate(d *schema.ResourceData, meta interface{}) error
 		input.TaskDefinition = aws.String(n.(string))
 	}
 
-	if d.HasChange("deployment_maximum_percent") || d.HasChange("deployment_minimum_healthy_percent") {
+	if schedulingStrategy != ecs.SchedulingStrategyDaemon && (d.HasChange("deployment_maximum_percent") || d.HasChange("deployment_minimum_healthy_percent")) {
 		input.DeploymentConfiguration = &ecs.DeploymentConfiguration{
 			MaximumPercent:        aws.Int64(int64(d.Get("deployment_maximum_percent").(int))),
 			MinimumHealthyPercent: aws.Int64(int64(d.Get("deployment_minimum_healthy_percent").(int))),
@@ -586,7 +804,6 @@ func resourceAwsEcsServiceDelete(d *schema.ResourceData, meta interface{}) error
 	if err != nil {
 		if isAWSErr(err, ecs.ErrCodeServiceNotFoundException, "") {
 			log.Printf("[DEBUG] Removing ECS Service from state, %q is already gone", d.Id())
-			d.SetId("")
 			return nil
 		}
 		return err
@@ -594,7 +811,6 @@ func resourceAwsEcsServiceDelete(d *schema.ResourceData, meta interface{}) error
 
 	if len(resp.Services) == 0 {
 		log.Printf("[DEBUG] Removing ECS Service from state, %q is already gone", d.Id())
-		d.SetId("")
 		return nil
 	}
 
@@ -605,7 +821,7 @@ func resourceAwsEcsServiceDelete(d *schema.ResourceData, meta interface{}) error
 	}
 
 	// Drain the ECS service
-	if *resp.Services[0].Status != "DRAINING" {
+	if *resp.Services[0].Status != "DRAINING" && aws.StringValue(resp.Services[0].SchedulingStrategy) != ecs.SchedulingStrategyDaemon {
 		log.Printf("[DEBUG] Draining ECS service %s", d.Id())
 		_, err = conn.UpdateService(&ecs.UpdateServiceInput{
 			Service:      aws.String(d.Id()),
@@ -704,12 +920,4 @@ func parseTaskDefinition(taskDefinition string) (string, string, error) {
 	}
 
 	return matches[0][1], matches[0][2], nil
-}
-
-func validateAwsEcsServiceHealthCheckGracePeriodSeconds(v interface{}, k string) (ws []string, errors []error) {
-	value := v.(int)
-	if (value < 0) || (value > 1800) {
-		errors = append(errors, fmt.Errorf("%q must be between 0 and 1800", k))
-	}
-	return
 }

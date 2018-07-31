@@ -2,7 +2,11 @@ package aws
 
 import (
 	"fmt"
+	"net/url"
+	"time"
 
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/service/iam"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -25,6 +29,10 @@ func dataSourceAwsIAMRole() *schema.Resource {
 				Computed: true,
 			},
 			"path": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+			"permissions_boundary": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
@@ -63,6 +71,8 @@ func dataSourceAwsIAMRole() *schema.Resource {
 }
 
 func dataSourceAwsIAMRoleRead(d *schema.ResourceData, meta interface{}) error {
+	iamconn := meta.(*AWSClient).iamconn
+
 	name, hasName := d.GetOk("name")
 	roleName, hasRoleName := d.GetOk("role_name")
 
@@ -78,10 +88,40 @@ func dataSourceAwsIAMRoleRead(d *schema.ResourceData, meta interface{}) error {
 	}
 	d.SetId(id)
 
-	data := resourceAwsIamRoleRead(d, meta)
-	// Keep backward compatibility with previous attributes
-	d.Set("role_id", d.Get("unique_id").(string))
-	d.Set("assume_role_policy_document", d.Get("assume_role_policy").(string))
+	input := &iam.GetRoleInput{
+		RoleName: aws.String(d.Id()),
+	}
 
-	return data
+	output, err := iamconn.GetRole(input)
+	if err != nil {
+		return fmt.Errorf("Error reading IAM Role %s: %s", d.Id(), err)
+	}
+
+	d.Set("arn", output.Role.Arn)
+	if err := d.Set("create_date", output.Role.CreateDate.Format(time.RFC3339)); err != nil {
+		return err
+	}
+	d.Set("description", output.Role.Description)
+	d.Set("max_session_duration", output.Role.MaxSessionDuration)
+	d.Set("name", output.Role.RoleName)
+	d.Set("path", output.Role.Path)
+	d.Set("permissions_boundary", "")
+	if output.Role.PermissionsBoundary != nil {
+		d.Set("permissions_boundary", output.Role.PermissionsBoundary.PermissionsBoundaryArn)
+	}
+	d.Set("unique_id", output.Role.RoleId)
+
+	assumRolePolicy, err := url.QueryUnescape(aws.StringValue(output.Role.AssumeRolePolicyDocument))
+	if err != nil {
+		return err
+	}
+	if err := d.Set("assume_role_policy", assumRolePolicy); err != nil {
+		return err
+	}
+
+	// Keep backward compatibility with previous attributes
+	d.Set("role_id", output.Role.RoleId)
+	d.Set("assume_role_policy_document", assumRolePolicy)
+
+	return nil
 }

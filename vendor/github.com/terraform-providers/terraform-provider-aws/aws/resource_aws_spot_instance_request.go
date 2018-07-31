@@ -10,6 +10,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/hashicorp/terraform/helper/validation"
 )
 
 func resourceAwsSpotInstanceRequest() *schema.Resource {
@@ -43,7 +44,7 @@ func resourceAwsSpotInstanceRequest() *schema.Resource {
 
 			s["spot_price"] = &schema.Schema{
 				Type:     schema.TypeString,
-				Required: true,
+				Optional: true,
 				ForceNew: true,
 			}
 			s["spot_type"] = &schema.Schema{
@@ -81,8 +82,27 @@ func resourceAwsSpotInstanceRequest() *schema.Resource {
 			s["instance_interruption_behaviour"] = &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
-				Default:  "terminate",
+				Default:  ec2.InstanceInterruptionBehaviorTerminate,
 				ForceNew: true,
+				ValidateFunc: validation.StringInSlice([]string{
+					ec2.InstanceInterruptionBehaviorTerminate,
+					ec2.InstanceInterruptionBehaviorStop,
+					ec2.InstanceInterruptionBehaviorHibernate,
+				}, false),
+			}
+			s["valid_from"] = &schema.Schema{
+				Type:         schema.TypeString,
+				Optional:     true,
+				ForceNew:     true,
+				ValidateFunc: validateRFC3339TimeString,
+				Computed:     true,
+			}
+			s["valid_until"] = &schema.Schema{
+				Type:         schema.TypeString,
+				Optional:     true,
+				ForceNew:     true,
+				ValidateFunc: validateRFC3339TimeString,
+				Computed:     true,
 			}
 			return s
 		}(),
@@ -115,7 +135,6 @@ func resourceAwsSpotInstanceRequestCreate(d *schema.ResourceData, meta interface
 			ImageId:             instanceOpts.ImageID,
 			InstanceType:        instanceOpts.InstanceType,
 			KeyName:             instanceOpts.KeyName,
-			Placement:           instanceOpts.SpotPlacement,
 			SecurityGroupIds:    instanceOpts.SecurityGroupIDs,
 			SecurityGroups:      instanceOpts.SecurityGroups,
 			SubnetId:            instanceOpts.SubnetID,
@@ -130,6 +149,27 @@ func resourceAwsSpotInstanceRequestCreate(d *schema.ResourceData, meta interface
 
 	if v, ok := d.GetOk("launch_group"); ok {
 		spotOpts.LaunchGroup = aws.String(v.(string))
+	}
+
+	if v, ok := d.GetOk("valid_from"); ok {
+		valid_from, err := time.Parse(time.RFC3339, v.(string))
+		if err != nil {
+			return err
+		}
+		spotOpts.ValidFrom = aws.Time(valid_from)
+	}
+
+	if v, ok := d.GetOk("valid_until"); ok {
+		valid_until, err := time.Parse(time.RFC3339, v.(string))
+		if err != nil {
+			return err
+		}
+		spotOpts.ValidUntil = aws.Time(valid_until)
+	}
+
+	// Placement GroupName can only be specified when instanceInterruptionBehavior is not set or set to 'terminate'
+	if v, exists := d.GetOkExists("instance_interruption_behaviour"); v.(string) == ec2.InstanceInterruptionBehaviorTerminate || !exists {
+		spotOpts.LaunchSpecification.Placement = instanceOpts.SpotPlacement
 	}
 
 	// Make the spot instance request
@@ -236,6 +276,8 @@ func resourceAwsSpotInstanceRequestRead(d *schema.ResourceData, meta interface{}
 	d.Set("block_duration_minutes", request.BlockDurationMinutes)
 	d.Set("tags", tagsToMap(request.Tags))
 	d.Set("instance_interruption_behaviour", request.InstanceInterruptionBehavior)
+	d.Set("valid_from", aws.TimeValue(request.ValidFrom).Format(time.RFC3339))
+	d.Set("valid_until", aws.TimeValue(request.ValidUntil).Format(time.RFC3339))
 
 	return nil
 }
@@ -308,6 +350,17 @@ func readInstance(d *schema.ResourceData, meta interface{}) error {
 
 		if err := d.Set("ipv6_addresses", ipv6Addresses); err != nil {
 			log.Printf("[WARN] Error setting ipv6_addresses for AWS Spot Instance (%s): %s", d.Id(), err)
+		}
+
+		if d.Get("get_password_data").(bool) {
+			passwordData, err := getAwsEc2InstancePasswordData(*instance.InstanceId, conn)
+			if err != nil {
+				return err
+			}
+			d.Set("password_data", passwordData)
+		} else {
+			d.Set("get_password_data", false)
+			d.Set("password_data", nil)
 		}
 	}
 

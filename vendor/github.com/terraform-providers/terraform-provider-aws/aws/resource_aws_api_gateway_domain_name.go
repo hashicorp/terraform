@@ -10,6 +10,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/apigateway"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/hashicorp/terraform/helper/validation"
 )
 
 func resourceAwsApiGatewayDomainName() *schema.Resource {
@@ -28,20 +29,20 @@ func resourceAwsApiGatewayDomainName() *schema.Resource {
 				Type:          schema.TypeString,
 				ForceNew:      true,
 				Optional:      true,
-				ConflictsWith: []string{"certificate_arn"},
+				ConflictsWith: []string{"certificate_arn", "regional_certificate_arn"},
 			},
 
 			"certificate_chain": {
 				Type:          schema.TypeString,
 				ForceNew:      true,
 				Optional:      true,
-				ConflictsWith: []string{"certificate_arn"},
+				ConflictsWith: []string{"certificate_arn", "regional_certificate_arn"},
 			},
 
 			"certificate_name": {
 				Type:          schema.TypeString,
 				Optional:      true,
-				ConflictsWith: []string{"certificate_arn"},
+				ConflictsWith: []string{"certificate_arn", "regional_certificate_arn", "regional_certificate_name"},
 			},
 
 			"certificate_private_key": {
@@ -49,7 +50,7 @@ func resourceAwsApiGatewayDomainName() *schema.Resource {
 				ForceNew:      true,
 				Optional:      true,
 				Sensitive:     true,
-				ConflictsWith: []string{"certificate_arn"},
+				ConflictsWith: []string{"certificate_arn", "regional_certificate_arn"},
 			},
 
 			"domain_name": {
@@ -61,7 +62,7 @@ func resourceAwsApiGatewayDomainName() *schema.Resource {
 			"certificate_arn": {
 				Type:          schema.TypeString,
 				Optional:      true,
-				ConflictsWith: []string{"certificate_body", "certificate_chain", "certificate_name", "certificate_private_key"},
+				ConflictsWith: []string{"certificate_body", "certificate_chain", "certificate_name", "certificate_private_key", "regional_certificate_arn", "regional_certificate_name"},
 			},
 
 			"cloudfront_domain_name": {
@@ -75,6 +76,54 @@ func resourceAwsApiGatewayDomainName() *schema.Resource {
 			},
 
 			"cloudfront_zone_id": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+
+			"endpoint_configuration": {
+				Type:     schema.TypeList,
+				Optional: true,
+				Computed: true,
+				MinItems: 1,
+				MaxItems: 1,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"types": {
+							Type:     schema.TypeList,
+							Required: true,
+							MinItems: 1,
+							// BadRequestException: Cannot create an api with multiple Endpoint Types
+							MaxItems: 1,
+							Elem: &schema.Schema{
+								Type: schema.TypeString,
+								ValidateFunc: validation.StringInSlice([]string{
+									apigateway.EndpointTypeEdge,
+									apigateway.EndpointTypeRegional,
+								}, false),
+							},
+						},
+					},
+				},
+			},
+
+			"regional_certificate_arn": {
+				Type:          schema.TypeString,
+				Optional:      true,
+				ConflictsWith: []string{"certificate_arn", "certificate_body", "certificate_chain", "certificate_name", "certificate_private_key", "regional_certificate_name"},
+			},
+
+			"regional_certificate_name": {
+				Type:          schema.TypeString,
+				Optional:      true,
+				ConflictsWith: []string{"certificate_arn", "certificate_name", "regional_certificate_arn"},
+			},
+
+			"regional_domain_name": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+
+			"regional_zone_id": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
@@ -110,14 +159,24 @@ func resourceAwsApiGatewayDomainNameCreate(d *schema.ResourceData, meta interfac
 		params.CertificatePrivateKey = aws.String(v.(string))
 	}
 
+	if v, ok := d.GetOk("endpoint_configuration"); ok {
+		params.EndpointConfiguration = expandApiGatewayEndpointConfiguration(v.([]interface{}))
+	}
+
+	if v, ok := d.GetOk("regional_certificate_arn"); ok && v.(string) != "" {
+		params.RegionalCertificateArn = aws.String(v.(string))
+	}
+
+	if v, ok := d.GetOk("regional_certificate_name"); ok && v.(string) != "" {
+		params.RegionalCertificateName = aws.String(v.(string))
+	}
+
 	domainName, err := conn.CreateDomainName(params)
 	if err != nil {
 		return fmt.Errorf("Error creating API Gateway Domain Name: %s", err)
 	}
 
 	d.SetId(*domainName.DomainName)
-	d.Set("cloudfront_domain_name", domainName.DistributionDomainName)
-	d.Set("cloudfront_zone_id", cloudFrontRoute53ZoneID)
 
 	return resourceAwsApiGatewayDomainNameRead(d, meta)
 }
@@ -139,13 +198,23 @@ func resourceAwsApiGatewayDomainNameRead(d *schema.ResourceData, meta interface{
 		return err
 	}
 
+	d.Set("certificate_arn", domainName.CertificateArn)
 	d.Set("certificate_name", domainName.CertificateName)
 	if err := d.Set("certificate_upload_date", domainName.CertificateUploadDate.Format(time.RFC3339)); err != nil {
 		log.Printf("[DEBUG] Error setting certificate_upload_date: %s", err)
 	}
 	d.Set("cloudfront_domain_name", domainName.DistributionDomainName)
+	d.Set("cloudfront_zone_id", cloudFrontRoute53ZoneID)
 	d.Set("domain_name", domainName.DomainName)
-	d.Set("certificate_arn", domainName.CertificateArn)
+
+	if err := d.Set("endpoint_configuration", flattenApiGatewayEndpointConfiguration(domainName.EndpointConfiguration)); err != nil {
+		return fmt.Errorf("error setting endpoint_configuration: %s", err)
+	}
+
+	d.Set("regional_certificate_arn", domainName.RegionalCertificateArn)
+	d.Set("regional_certificate_name", domainName.RegionalCertificateName)
+	d.Set("regional_domain_name", domainName.RegionalDomainName)
+	d.Set("regional_zone_id", domainName.RegionalHostedZoneId)
 
 	return nil
 }
@@ -167,6 +236,36 @@ func resourceAwsApiGatewayDomainNameUpdateOperations(d *schema.ResourceData) []*
 			Path:  aws.String("/certificateArn"),
 			Value: aws.String(d.Get("certificate_arn").(string)),
 		})
+	}
+
+	if d.HasChange("regional_certificate_name") {
+		operations = append(operations, &apigateway.PatchOperation{
+			Op:    aws.String("replace"),
+			Path:  aws.String("/regionalCertificateName"),
+			Value: aws.String(d.Get("regional_certificate_name").(string)),
+		})
+	}
+
+	if d.HasChange("regional_certificate_arn") {
+		operations = append(operations, &apigateway.PatchOperation{
+			Op:    aws.String("replace"),
+			Path:  aws.String("/regionalCertificateArn"),
+			Value: aws.String(d.Get("regional_certificate_arn").(string)),
+		})
+	}
+
+	if d.HasChange("endpoint_configuration.0.types") {
+		// The domain name must have an endpoint type.
+		// If attempting to remove the configuration, do nothing.
+		if v, ok := d.GetOk("endpoint_configuration"); ok && len(v.([]interface{})) > 0 {
+			m := v.([]interface{})[0].(map[string]interface{})
+
+			operations = append(operations, &apigateway.PatchOperation{
+				Op:    aws.String("replace"),
+				Path:  aws.String("/endpointConfiguration/types/0"),
+				Value: aws.String(m["types"].([]interface{})[0].(string)),
+			})
+		}
 	}
 
 	return operations

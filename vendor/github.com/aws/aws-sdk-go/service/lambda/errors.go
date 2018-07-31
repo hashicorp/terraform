@@ -130,6 +130,14 @@ const (
 	// The resource already exists.
 	ErrCodeResourceConflictException = "ResourceConflictException"
 
+	// ErrCodeResourceInUseException for service response error code
+	// "ResourceInUseException".
+	//
+	// The operation conflicts with the resource's availability. For example, you
+	// attempted to update an EventSoure Mapping in CREATING, or tried to delete
+	// a EventSoure mapping currently in the UPDATING state.
+	ErrCodeResourceInUseException = "ResourceInUseException"
+
 	// ErrCodeResourceNotFoundException for service response error code
 	// "ResourceNotFoundException".
 	//

@@ -66,10 +66,11 @@ func resourceAwsIAMServerCertificate() *schema.Resource {
 			},
 
 			"name_prefix": {
-				Type:         schema.TypeString,
-				Optional:     true,
-				ForceNew:     true,
-				ValidateFunc: validateMaxLength(128 - resource.UniqueIDSuffixLength),
+				Type:          schema.TypeString,
+				Optional:      true,
+				ForceNew:      true,
+				ConflictsWith: []string{"name"},
+				ValidateFunc:  validateMaxLength(128 - resource.UniqueIDSuffixLength),
 			},
 
 			"arn": {
@@ -173,8 +174,6 @@ func resourceAwsIAMServerCertificateDelete(d *schema.ResourceData, meta interfac
 					return resource.RetryableError(err)
 				}
 				if awsErr.Code() == "NoSuchEntity" {
-					log.Printf("[WARN] IAM Server Certificate (%s) not found, removing from state", d.Id())
-					d.SetId("")
 					return nil
 				}
 			}
@@ -187,7 +186,6 @@ func resourceAwsIAMServerCertificateDelete(d *schema.ResourceData, meta interfac
 		return err
 	}
 
-	d.SetId("")
 	return nil
 }
 

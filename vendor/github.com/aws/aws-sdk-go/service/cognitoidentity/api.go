@@ -1970,7 +1970,7 @@ type Credentials struct {
 	AccessKeyId *string `type:"string"`
 
 	// The date at which these credentials will expire.
-	Expiration *time.Time `type:"timestamp" timestampFormat:"unix"`
+	Expiration *time.Time `type:"timestamp"`
 
 	// The Secret Access Key portion of the credentials
 	SecretKey *string `type:"string"`
@@ -2728,13 +2728,13 @@ type IdentityDescription struct {
 	_ struct{} `type:"structure"`
 
 	// Date on which the identity was created.
-	CreationDate *time.Time `type:"timestamp" timestampFormat:"unix"`
+	CreationDate *time.Time `type:"timestamp"`
 
 	// A unique identifier in the format REGION:GUID.
 	IdentityId *string `min:"1" type:"string"`
 
 	// Date on which the identity was last modified.
-	LastModifiedDate *time.Time `type:"timestamp" timestampFormat:"unix"`
+	LastModifiedDate *time.Time `type:"timestamp"`
 
 	// A set of optional name-value pairs that map provider names to provider tokens.
 	Logins []*string `type:"list"`

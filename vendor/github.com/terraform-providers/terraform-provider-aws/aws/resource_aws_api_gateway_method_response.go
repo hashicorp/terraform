@@ -52,12 +52,12 @@ func resourceAwsApiGatewayMethodResponse() *schema.Resource {
 			"response_models": &schema.Schema{
 				Type:     schema.TypeMap,
 				Optional: true,
-				Elem:     schema.TypeString,
+				Elem:     &schema.Schema{Type: schema.TypeString},
 			},
 
 			"response_parameters": &schema.Schema{
 				Type:          schema.TypeMap,
-				Elem:          schema.TypeBool,
+				Elem:          &schema.Schema{Type: schema.TypeBool},
 				Optional:      true,
 				ConflictsWith: []string{"response_parameters_in_json"},
 			},

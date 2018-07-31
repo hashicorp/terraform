@@ -236,7 +236,6 @@ func resourceAwsCustomerGatewayDelete(d *schema.ResourceData, meta interface{}) 
 	})
 	if err != nil {
 		if ec2err, ok := err.(awserr.Error); ok && ec2err.Code() == "InvalidCustomerGatewayID.NotFound" {
-			d.SetId("")
 			return nil
 		} else {
 			log.Printf("[ERROR] Error deleting CustomerGateway: %s", err)

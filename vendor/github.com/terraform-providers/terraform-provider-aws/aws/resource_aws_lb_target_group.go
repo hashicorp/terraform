@@ -50,10 +50,11 @@ func resourceAwsLbTargetGroup() *schema.Resource {
 				ValidateFunc:  validateMaxLength(32),
 			},
 			"name_prefix": {
-				Type:         schema.TypeString,
-				Optional:     true,
-				ForceNew:     true,
-				ValidateFunc: validateMaxLength(32 - resource.UniqueIDSuffixLength),
+				Type:          schema.TypeString,
+				Optional:      true,
+				ForceNew:      true,
+				ConflictsWith: []string{"name"},
+				ValidateFunc:  validateMaxLength(32 - resource.UniqueIDSuffixLength),
 			},
 
 			"port": {
@@ -81,6 +82,19 @@ func resourceAwsLbTargetGroup() *schema.Resource {
 				Optional:     true,
 				Default:      300,
 				ValidateFunc: validation.IntBetween(0, 3600),
+			},
+
+			"slow_start": {
+				Type:         schema.TypeInt,
+				Optional:     true,
+				Default:      0,
+				ValidateFunc: validateSlowStart,
+			},
+
+			"proxy_protocol_v2": {
+				Type:     schema.TypeBool,
+				Optional: true,
+				Default:  false,
 			},
 
 			"target_type": {
@@ -333,6 +347,20 @@ func resourceAwsLbTargetGroupUpdate(d *schema.ResourceData, meta interface{}) er
 		})
 	}
 
+	if d.HasChange("slow_start") {
+		attrs = append(attrs, &elbv2.TargetGroupAttribute{
+			Key:   aws.String("slow_start.duration_seconds"),
+			Value: aws.String(fmt.Sprintf("%d", d.Get("slow_start").(int))),
+		})
+	}
+
+	if d.HasChange("proxy_protocol_v2") {
+		attrs = append(attrs, &elbv2.TargetGroupAttribute{
+			Key:   aws.String("proxy_protocol_v2.enabled"),
+			Value: aws.String(strconv.FormatBool(d.Get("proxy_protocol_v2").(bool))),
+		})
+	}
+
 	// In CustomizeDiff we allow LB stickiness to be declared for TCP target
 	// groups, so long as it's not enabled. This allows for better support for
 	// modules, but also means we need to completely skip sending the data to the
@@ -409,6 +437,19 @@ func validateAwsLbTargetGroupHealthCheckPath(v interface{}, k string) (ws []stri
 	return
 }
 
+func validateSlowStart(v interface{}, k string) (ws []string, errors []error) {
+	value := v.(int)
+
+	// Check if the value is between 30-900 or 0 (seconds).
+	if value != 0 && !(value >= 30 && value <= 900) {
+		errors = append(errors, fmt.Errorf(
+			"%q contains an invalid Slow Start Duration \"%d\". "+
+				"Valid intervals are 30-900 or 0 to disable.",
+			k, value))
+	}
+	return
+}
+
 func validateAwsLbTargetGroupHealthCheckPort(v interface{}, k string) (ws []string, errors []error) {
 	value := v.(string)
 
@@ -478,6 +519,23 @@ func flattenAwsLbTargetGroupResource(d *schema.ResourceData, meta interface{}, t
 	})
 	if err != nil {
 		return errwrap.Wrapf("Error retrieving Target Group Attributes: {{err}}", err)
+	}
+
+	for _, attr := range attrResp.Attributes {
+		switch *attr.Key {
+		case "proxy_protocol_v2.enabled":
+			enabled, err := strconv.ParseBool(*attr.Value)
+			if err != nil {
+				return fmt.Errorf("Error converting proxy_protocol_v2.enabled to bool: %s", *attr.Value)
+			}
+			d.Set("proxy_protocol_v2", enabled)
+		case "slow_start.duration_seconds":
+			slowStart, err := strconv.Atoi(aws.StringValue(attr.Value))
+			if err != nil {
+				return fmt.Errorf("Error converting slow_start.duration_seconds to int: %s", aws.StringValue(attr.Value))
+			}
+			d.Set("slow_start", slowStart)
+		}
 	}
 
 	// We only read in the stickiness attributes if the target group is not

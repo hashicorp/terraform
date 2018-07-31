@@ -147,17 +147,11 @@ func resourceAwsVpcDhcpOptionsRead(d *schema.ResourceData, meta interface{}) err
 
 	resp, err := conn.DescribeDhcpOptions(req)
 	if err != nil {
-		ec2err, ok := err.(awserr.Error)
-		if !ok {
-			return fmt.Errorf("Error retrieving DHCP Options: %s", err.Error())
-		}
-
-		if ec2err.Code() == "InvalidDhcpOptionID.NotFound" {
+		if isNoSuchDhcpOptionIDErr(err) {
 			log.Printf("[WARN] DHCP Options (%s) not found, removing from state", d.Id())
 			d.SetId("")
 			return nil
 		}
-
 		return fmt.Errorf("Error retrieving DHCP Options: %s", err.Error())
 	}
 
@@ -212,7 +206,7 @@ func resourceAwsVpcDhcpOptionsDelete(d *schema.ResourceData, meta interface{}) e
 		}
 
 		switch ec2err.Code() {
-		case "InvalidDhcpOptionsID.NotFound":
+		case "InvalidDhcpOptionsID.NotFound", "InvalidDhcpOptionID.NotFound":
 			return nil
 		case "DependencyViolation":
 			// If it is a dependency violation, we want to disassociate
@@ -272,7 +266,7 @@ func resourceDHCPOptionsStateRefreshFunc(conn *ec2.EC2, id string) resource.Stat
 
 		resp, err := conn.DescribeDhcpOptions(DescribeDhcpOpts)
 		if err != nil {
-			if ec2err, ok := err.(awserr.Error); ok && ec2err.Code() == "InvalidDhcpOptionsID.NotFound" {
+			if isNoSuchDhcpOptionIDErr(err) {
 				resp = nil
 			} else {
 				log.Printf("Error on DHCPOptionsStateRefresh: %s", err)
@@ -289,4 +283,8 @@ func resourceDHCPOptionsStateRefreshFunc(conn *ec2.EC2, id string) resource.Stat
 		dos := resp.DhcpOptions[0]
 		return dos, "created", nil
 	}
+}
+
+func isNoSuchDhcpOptionIDErr(err error) bool {
+	return isAWSErr(err, "InvalidDhcpOptionID.NotFound", "") || isAWSErr(err, "InvalidDhcpOptionsID.NotFound", "")
 }

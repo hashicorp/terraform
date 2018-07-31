@@ -213,8 +213,6 @@ func resourceAwsVolumeAttachmentDelete(d *schema.ResourceData, meta interface{})
 	conn := meta.(*AWSClient).ec2conn
 
 	if _, ok := d.GetOk("skip_destroy"); ok {
-		log.Printf("[INFO] Found skip_destroy to be true, removing attachment %q from state", d.Id())
-		d.SetId("")
 		return nil
 	}
 
@@ -250,7 +248,7 @@ func resourceAwsVolumeAttachmentDelete(d *schema.ResourceData, meta interface{})
 			"Error waiting for Volume (%s) to detach from Instance: %s",
 			vID, iID)
 	}
-	d.SetId("")
+
 	return nil
 }
 

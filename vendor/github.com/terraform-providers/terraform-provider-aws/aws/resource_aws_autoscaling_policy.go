@@ -273,7 +273,6 @@ func resourceAwsAutoscalingPolicyDelete(d *schema.ResourceData, meta interface{}
 		return fmt.Errorf("Autoscaling Scaling Policy: %s ", err)
 	}
 
-	d.SetId("")
 	return nil
 }
 

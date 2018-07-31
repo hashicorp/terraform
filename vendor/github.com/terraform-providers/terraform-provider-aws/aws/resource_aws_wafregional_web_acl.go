@@ -8,6 +8,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/waf"
 	"github.com/aws/aws-sdk-go/service/wafregional"
 	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/hashicorp/terraform/helper/validation"
 )
 
 func resourceAwsWafRegionalWebAcl() *schema.Resource {
@@ -48,7 +49,20 @@ func resourceAwsWafRegionalWebAcl() *schema.Resource {
 					Schema: map[string]*schema.Schema{
 						"action": &schema.Schema{
 							Type:     schema.TypeList,
-							Required: true,
+							Optional: true,
+							MaxItems: 1,
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"type": &schema.Schema{
+										Type:     schema.TypeString,
+										Required: true,
+									},
+								},
+							},
+						},
+						"override_action": &schema.Schema{
+							Type:     schema.TypeList,
+							Optional: true,
 							MaxItems: 1,
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
@@ -62,6 +76,16 @@ func resourceAwsWafRegionalWebAcl() *schema.Resource {
 						"priority": &schema.Schema{
 							Type:     schema.TypeInt,
 							Required: true,
+						},
+						"type": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+							Default:  waf.WafRuleTypeRegular,
+							ValidateFunc: validation.StringInSlice([]string{
+								waf.WafRuleTypeRegular,
+								waf.WafRuleTypeRateBased,
+								waf.WafRuleTypeGroup,
+							}, false),
 						},
 						"rule_id": &schema.Schema{
 							Type:     schema.TypeString,
@@ -217,24 +241,51 @@ func flattenDefaultActionWR(n *waf.WafAction) []map[string]interface{} {
 func flattenWafWebAclRules(ts []*waf.ActivatedRule) []interface{} {
 	out := make([]interface{}, len(ts), len(ts))
 	for i, r := range ts {
-		actionMap := map[string]interface{}{
-			"type": *r.Action.Type,
-		}
 		m := make(map[string]interface{})
-		m["action"] = []interface{}{actionMap}
+
+		switch *r.Type {
+		case waf.WafRuleTypeGroup:
+			actionMap := map[string]interface{}{
+				"type": *r.OverrideAction.Type,
+			}
+			m["override_action"] = []interface{}{actionMap}
+		default:
+			actionMap := map[string]interface{}{
+				"type": *r.Action.Type,
+			}
+			m["action"] = []interface{}{actionMap}
+		}
+
 		m["priority"] = *r.Priority
 		m["rule_id"] = *r.RuleId
+		m["type"] = *r.Type
 		out[i] = m
 	}
 	return out
 }
 
 func expandWafWebAclUpdate(updateAction string, aclRule map[string]interface{}) *waf.WebACLUpdate {
-	ruleAction := aclRule["action"].([]interface{})[0].(map[string]interface{})
-	rule := &waf.ActivatedRule{
-		Action:   &waf.WafAction{Type: aws.String(ruleAction["type"].(string))},
-		Priority: aws.Int64(int64(aclRule["priority"].(int))),
-		RuleId:   aws.String(aclRule["rule_id"].(string)),
+	var rule *waf.ActivatedRule
+
+	switch aclRule["type"].(string) {
+	case waf.WafRuleTypeGroup:
+		ruleAction := aclRule["override_action"].([]interface{})[0].(map[string]interface{})
+
+		rule = &waf.ActivatedRule{
+			OverrideAction: &waf.WafOverrideAction{Type: aws.String(ruleAction["type"].(string))},
+			Priority:       aws.Int64(int64(aclRule["priority"].(int))),
+			RuleId:         aws.String(aclRule["rule_id"].(string)),
+			Type:           aws.String(aclRule["type"].(string)),
+		}
+	default:
+		ruleAction := aclRule["action"].([]interface{})[0].(map[string]interface{})
+
+		rule = &waf.ActivatedRule{
+			Action:   &waf.WafAction{Type: aws.String(ruleAction["type"].(string))},
+			Priority: aws.Int64(int64(aclRule["priority"].(int))),
+			RuleId:   aws.String(aclRule["rule_id"].(string)),
+			Type:     aws.String(aclRule["type"].(string)),
+		}
 	}
 
 	update := &waf.WebACLUpdate{

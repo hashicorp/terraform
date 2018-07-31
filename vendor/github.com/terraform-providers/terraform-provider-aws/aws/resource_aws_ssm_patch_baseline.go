@@ -24,6 +24,7 @@ var ssmPatchOSs = []string{
 	ssm.OperatingSystemAmazonLinux,
 	ssm.OperatingSystemUbuntu,
 	ssm.OperatingSystemRedhatEnterpriseLinux,
+	ssm.OperatingSystemCentos,
 }
 
 func resourceAwsSsmPatchBaseline() *schema.Resource {
@@ -78,6 +79,12 @@ func resourceAwsSsmPatchBaseline() *schema.Resource {
 							Optional:     true,
 							Default:      ssm.PatchComplianceLevelUnspecified,
 							ValidateFunc: validation.StringInSlice(ssmPatchComplianceLevels, false),
+						},
+
+						"enable_non_security": {
+							Type:     schema.TypeBool,
+							Optional: true,
+							Default:  false,
 						},
 
 						"patch_filter": {
@@ -327,9 +334,10 @@ func expandAwsSsmPatchRuleGroup(d *schema.ResourceData) *ssm.PatchRuleGroup {
 		}
 
 		rule := &ssm.PatchRule{
-			ApproveAfterDays: aws.Int64(int64(rCfg["approve_after_days"].(int))),
-			PatchFilterGroup: filterGroup,
-			ComplianceLevel:  aws.String(rCfg["compliance_level"].(string)),
+			ApproveAfterDays:  aws.Int64(int64(rCfg["approve_after_days"].(int))),
+			PatchFilterGroup:  filterGroup,
+			ComplianceLevel:   aws.String(rCfg["compliance_level"].(string)),
+			EnableNonSecurity: aws.Bool(rCfg["enable_non_security"].(bool)),
 		}
 
 		rules = append(rules, rule)
@@ -351,6 +359,7 @@ func flattenAwsSsmPatchRuleGroup(group *ssm.PatchRuleGroup) []map[string]interfa
 		r := make(map[string]interface{})
 		r["approve_after_days"] = *rule.ApproveAfterDays
 		r["compliance_level"] = *rule.ComplianceLevel
+		r["enable_non_security"] = *rule.EnableNonSecurity
 		r["patch_filter"] = flattenAwsSsmPatchFilterGroup(rule.PatchFilterGroup)
 		result = append(result, r)
 	}

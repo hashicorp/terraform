@@ -264,17 +264,17 @@ const (
 	ErrCodeNoSuchStreamingDistribution = "NoSuchStreamingDistribution"
 
 	// ErrCodeOriginAccessIdentityAlreadyExists for service response error code
-	// "OriginAccessIdentityAlreadyExists".
+	// "CloudFrontOriginAccessIdentityAlreadyExists".
 	//
 	// If the CallerReference is a value you already sent in a previous request
 	// to create an identity but the content of the CloudFrontOriginAccessIdentityConfig
 	// is different from the original request, CloudFront returns a CloudFrontOriginAccessIdentityAlreadyExists
 	// error.
-	ErrCodeOriginAccessIdentityAlreadyExists = "OriginAccessIdentityAlreadyExists"
+	ErrCodeOriginAccessIdentityAlreadyExists = "CloudFrontOriginAccessIdentityAlreadyExists"
 
 	// ErrCodeOriginAccessIdentityInUse for service response error code
-	// "OriginAccessIdentityInUse".
-	ErrCodeOriginAccessIdentityInUse = "OriginAccessIdentityInUse"
+	// "CloudFrontOriginAccessIdentityInUse".
+	ErrCodeOriginAccessIdentityInUse = "CloudFrontOriginAccessIdentityInUse"
 
 	// ErrCodePreconditionFailed for service response error code
 	// "PreconditionFailed".
@@ -300,10 +300,6 @@ const (
 	//
 	// No profile specified for the field-level encryption query argument.
 	ErrCodeQueryArgProfileEmpty = "QueryArgProfileEmpty"
-
-	// ErrCodeResourceInUse for service response error code
-	// "ResourceInUse".
-	ErrCodeResourceInUse = "ResourceInUse"
 
 	// ErrCodeStreamingDistributionAlreadyExists for service response error code
 	// "StreamingDistributionAlreadyExists".

@@ -87,7 +87,8 @@ func (c *AppSync) CreateApiKeyRequest(input *CreateApiKeyInput) (req *request.Re
 //   The API key exceeded a limit. Try your request again.
 //
 //   * ErrCodeApiKeyValidityOutOfBoundsException "ApiKeyValidityOutOfBoundsException"
-//   The API key expiration must be set to a value between 1 and 365 days.
+//   The API key expiration must be set to a value between 1 and 365 days from
+//   creation (for CreateApiKey) or from update (for UpdateApiKey).
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/appsync-2017-07-25/CreateApiKey
 func (c *AppSync) CreateApiKey(input *CreateApiKeyInput) (*CreateApiKeyOutput, error) {
@@ -275,9 +276,6 @@ func (c *AppSync) CreateGraphqlApiRequest(input *CreateGraphqlApiInput) (req *re
 //
 //   * ErrCodeInternalFailureException "InternalFailureException"
 //   An internal AWS AppSync error occurred. Try your request again.
-//
-//   * ErrCodeLimitExceededException "LimitExceededException"
-//   The request exceeded a limit. Try your request again.
 //
 //   * ErrCodeApiLimitExceededException "ApiLimitExceededException"
 //   The GraphQL API exceeded a limit. Try your request again.
@@ -1543,6 +1541,11 @@ func (c *AppSync) ListApiKeysRequest(input *ListApiKeysInput) (req *request.Requ
 //
 // Lists the API keys for a given API.
 //
+// API keys are deleted automatically sometime after they expire. However, they
+// may still be included in the response until they have actually been deleted.
+// You can safely call DeleteApiKey to manually delete a key before it's automatically
+// deleted.
+//
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
 // the error.
@@ -2115,7 +2118,8 @@ func (c *AppSync) UpdateApiKeyRequest(input *UpdateApiKeyInput) (req *request.Re
 //   An internal AWS AppSync error occurred. Try your request again.
 //
 //   * ErrCodeApiKeyValidityOutOfBoundsException "ApiKeyValidityOutOfBoundsException"
-//   The API key expiration must be set to a value between 1 and 365 days.
+//   The API key expiration must be set to a value between 1 and 365 days from
+//   creation (for CreateApiKey) or from update (for UpdateApiKey).
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/appsync-2017-07-25/UpdateApiKey
 func (c *AppSync) UpdateApiKey(input *UpdateApiKeyInput) (*UpdateApiKeyOutput, error) {
@@ -2512,6 +2516,43 @@ func (c *AppSync) UpdateTypeWithContext(ctx aws.Context, input *UpdateTypeInput,
 }
 
 // Describes an API key.
+//
+// Customers invoke AWS AppSync GraphQL APIs with API keys as an identity mechanism.
+// There are two key versions:
+//
+// da1: This version was introduced at launch in November 2017. These keys always
+// expire after 7 days. Key expiration is managed by DynamoDB TTL. The keys
+// will cease to be valid after Feb 21, 2018 and should not be used after that
+// date.
+//
+//    * ListApiKeys returns the expiration time in milliseconds.
+//
+//    * CreateApiKey returns the expiration time in milliseconds.
+//
+//    * UpdateApiKey is not available for this key version.
+//
+//    * DeleteApiKey deletes the item from the table.
+//
+//    * Expiration is stored in DynamoDB as milliseconds. This results in a
+//    bug where keys are not automatically deleted because DynamoDB expects
+//    the TTL to be stored in seconds. As a one-time action, we will delete
+//    these keys from the table after Feb 21, 2018.
+//
+// da2: This version was introduced in February 2018 when AppSync added support
+// to extend key expiration.
+//
+//    * ListApiKeys returns the expiration time in seconds.
+//
+//    * CreateApiKey returns the expiration time in seconds and accepts a user-provided
+//    expiration time in seconds.
+//
+//    * UpdateApiKey returns the expiration time in seconds and accepts a user-provided
+//    expiration time in seconds. Key expiration can only be updated while the
+//    key has not expired.
+//
+//    * DeleteApiKey deletes the item from the table.
+//
+//    * Expiration is stored in DynamoDB as seconds.
 type ApiKey struct {
 	_ struct{} `type:"structure"`
 
@@ -2565,9 +2606,10 @@ type CreateApiKeyInput struct {
 	// A description of the purpose of the API key.
 	Description *string `locationName:"description" type:"string"`
 
-	// The time after which the API key expires. The date is represented as seconds
-	// since the epoch, rounded down to the nearest hour. The default value for
-	// this parameter is 7 days from creation time.
+	// The time from creation time after which the API key expires. The date is
+	// represented as seconds since the epoch, rounded down to the nearest hour.
+	// The default value for this parameter is 7 days from creation time. For more
+	// information, see .
 	Expires *int64 `locationName:"expires" type:"long"`
 }
 
@@ -2651,6 +2693,9 @@ type CreateDataSourceInput struct {
 
 	// Amazon Elasticsearch settings.
 	ElasticsearchConfig *ElasticsearchDataSourceConfig `locationName:"elasticsearchConfig" type:"structure"`
+
+	// Http endpoint settings.
+	HttpConfig *HttpDataSourceConfig `locationName:"httpConfig" type:"structure"`
 
 	// AWS Lambda settings.
 	LambdaConfig *LambdaDataSourceConfig `locationName:"lambdaConfig" type:"structure"`
@@ -2738,6 +2783,12 @@ func (s *CreateDataSourceInput) SetElasticsearchConfig(v *ElasticsearchDataSourc
 	return s
 }
 
+// SetHttpConfig sets the HttpConfig field's value.
+func (s *CreateDataSourceInput) SetHttpConfig(v *HttpDataSourceConfig) *CreateDataSourceInput {
+	s.HttpConfig = v
+	return s
+}
+
 // SetLambdaConfig sets the LambdaConfig field's value.
 func (s *CreateDataSourceInput) SetLambdaConfig(v *LambdaDataSourceConfig) *CreateDataSourceInput {
 	s.LambdaConfig = v
@@ -2793,10 +2844,16 @@ type CreateGraphqlApiInput struct {
 	// AuthenticationType is a required field
 	AuthenticationType *string `locationName:"authenticationType" type:"string" required:"true" enum:"AuthenticationType"`
 
+	// The Amazon CloudWatch logs configuration.
+	LogConfig *LogConfig `locationName:"logConfig" type:"structure"`
+
 	// A user-supplied name for the GraphqlApi.
 	//
 	// Name is a required field
 	Name *string `locationName:"name" type:"string" required:"true"`
+
+	// The Open Id Connect configuration configuration.
+	OpenIDConnectConfig *OpenIDConnectConfig `locationName:"openIDConnectConfig" type:"structure"`
 
 	// The Amazon Cognito User Pool configuration.
 	UserPoolConfig *UserPoolConfig `locationName:"userPoolConfig" type:"structure"`
@@ -2821,6 +2878,16 @@ func (s *CreateGraphqlApiInput) Validate() error {
 	if s.Name == nil {
 		invalidParams.Add(request.NewErrParamRequired("Name"))
 	}
+	if s.LogConfig != nil {
+		if err := s.LogConfig.Validate(); err != nil {
+			invalidParams.AddNested("LogConfig", err.(request.ErrInvalidParams))
+		}
+	}
+	if s.OpenIDConnectConfig != nil {
+		if err := s.OpenIDConnectConfig.Validate(); err != nil {
+			invalidParams.AddNested("OpenIDConnectConfig", err.(request.ErrInvalidParams))
+		}
+	}
 	if s.UserPoolConfig != nil {
 		if err := s.UserPoolConfig.Validate(); err != nil {
 			invalidParams.AddNested("UserPoolConfig", err.(request.ErrInvalidParams))
@@ -2839,9 +2906,21 @@ func (s *CreateGraphqlApiInput) SetAuthenticationType(v string) *CreateGraphqlAp
 	return s
 }
 
+// SetLogConfig sets the LogConfig field's value.
+func (s *CreateGraphqlApiInput) SetLogConfig(v *LogConfig) *CreateGraphqlApiInput {
+	s.LogConfig = v
+	return s
+}
+
 // SetName sets the Name field's value.
 func (s *CreateGraphqlApiInput) SetName(v string) *CreateGraphqlApiInput {
 	s.Name = &v
+	return s
+}
+
+// SetOpenIDConnectConfig sets the OpenIDConnectConfig field's value.
+func (s *CreateGraphqlApiInput) SetOpenIDConnectConfig(v *OpenIDConnectConfig) *CreateGraphqlApiInput {
+	s.OpenIDConnectConfig = v
 	return s
 }
 
@@ -2899,10 +2978,10 @@ type CreateResolverInput struct {
 	// in Apache Velocity Template Language (VTL).
 	//
 	// RequestMappingTemplate is a required field
-	RequestMappingTemplate *string `locationName:"requestMappingTemplate" type:"string" required:"true"`
+	RequestMappingTemplate *string `locationName:"requestMappingTemplate" min:"1" type:"string" required:"true"`
 
 	// The mapping template to be used for responses from the data source.
-	ResponseMappingTemplate *string `locationName:"responseMappingTemplate" type:"string"`
+	ResponseMappingTemplate *string `locationName:"responseMappingTemplate" min:"1" type:"string"`
 
 	// The name of the Type.
 	//
@@ -2934,6 +3013,12 @@ func (s *CreateResolverInput) Validate() error {
 	}
 	if s.RequestMappingTemplate == nil {
 		invalidParams.Add(request.NewErrParamRequired("RequestMappingTemplate"))
+	}
+	if s.RequestMappingTemplate != nil && len(*s.RequestMappingTemplate) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("RequestMappingTemplate", 1))
+	}
+	if s.ResponseMappingTemplate != nil && len(*s.ResponseMappingTemplate) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ResponseMappingTemplate", 1))
 	}
 	if s.TypeName == nil {
 		invalidParams.Add(request.NewErrParamRequired("TypeName"))
@@ -3111,6 +3196,9 @@ type DataSource struct {
 	// Amazon Elasticsearch settings.
 	ElasticsearchConfig *ElasticsearchDataSourceConfig `locationName:"elasticsearchConfig" type:"structure"`
 
+	// Http endpoint settings.
+	HttpConfig *HttpDataSourceConfig `locationName:"httpConfig" type:"structure"`
+
 	// Lambda settings.
 	LambdaConfig *LambdaDataSourceConfig `locationName:"lambdaConfig" type:"structure"`
 
@@ -3130,8 +3218,12 @@ type DataSource struct {
 	//
 	//    * AWS_LAMBDA: The data source is an AWS Lambda function.
 	//
-	//    * NONE: There is no data source. This type is used when the required information
-	//    can be computed on the fly without connecting to a back-end data source.
+	//    * NONE: There is no data source. This type is used when when you wish
+	//    to invoke a GraphQL operation without connecting to a data source, such
+	//    as performing data transformation with resolvers or triggering a subscription
+	//    to be invoked from a mutation.
+	//
+	//    * HTTP: The data source is an HTTP endpoint.
 	Type *string `locationName:"type" type:"string" enum:"DataSourceType"`
 }
 
@@ -3166,6 +3258,12 @@ func (s *DataSource) SetDynamodbConfig(v *DynamodbDataSourceConfig) *DataSource 
 // SetElasticsearchConfig sets the ElasticsearchConfig field's value.
 func (s *DataSource) SetElasticsearchConfig(v *ElasticsearchDataSourceConfig) *DataSource {
 	s.ElasticsearchConfig = v
+	return s
+}
+
+// SetHttpConfig sets the HttpConfig field's value.
+func (s *DataSource) SetHttpConfig(v *HttpDataSourceConfig) *DataSource {
+	s.HttpConfig = v
 	return s
 }
 
@@ -4113,8 +4211,14 @@ type GraphqlApi struct {
 	// The authentication type.
 	AuthenticationType *string `locationName:"authenticationType" type:"string" enum:"AuthenticationType"`
 
+	// The Amazon CloudWatch Logs configuration.
+	LogConfig *LogConfig `locationName:"logConfig" type:"structure"`
+
 	// The API name.
 	Name *string `locationName:"name" type:"string"`
+
+	// The Open Id Connect configuration.
+	OpenIDConnectConfig *OpenIDConnectConfig `locationName:"openIDConnectConfig" type:"structure"`
 
 	// The URIs.
 	Uris map[string]*string `locationName:"uris" type:"map"`
@@ -4151,9 +4255,21 @@ func (s *GraphqlApi) SetAuthenticationType(v string) *GraphqlApi {
 	return s
 }
 
+// SetLogConfig sets the LogConfig field's value.
+func (s *GraphqlApi) SetLogConfig(v *LogConfig) *GraphqlApi {
+	s.LogConfig = v
+	return s
+}
+
 // SetName sets the Name field's value.
 func (s *GraphqlApi) SetName(v string) *GraphqlApi {
 	s.Name = &v
+	return s
+}
+
+// SetOpenIDConnectConfig sets the OpenIDConnectConfig field's value.
+func (s *GraphqlApi) SetOpenIDConnectConfig(v *OpenIDConnectConfig) *GraphqlApi {
+	s.OpenIDConnectConfig = v
 	return s
 }
 
@@ -4166,6 +4282,33 @@ func (s *GraphqlApi) SetUris(v map[string]*string) *GraphqlApi {
 // SetUserPoolConfig sets the UserPoolConfig field's value.
 func (s *GraphqlApi) SetUserPoolConfig(v *UserPoolConfig) *GraphqlApi {
 	s.UserPoolConfig = v
+	return s
+}
+
+// Describes a Http data source configuration.
+type HttpDataSourceConfig struct {
+	_ struct{} `type:"structure"`
+
+	// The Http url endpoint. You can either specify the domain name or ip and port
+	// combination and the url scheme must be http(s). If the port is not specified,
+	// AWS AppSync will use the default port 80 for http endpoint and port 443 for
+	// https endpoints.
+	Endpoint *string `locationName:"endpoint" type:"string"`
+}
+
+// String returns the string representation
+func (s HttpDataSourceConfig) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s HttpDataSourceConfig) GoString() string {
+	return s.String()
+}
+
+// SetEndpoint sets the Endpoint field's value.
+func (s *HttpDataSourceConfig) SetEndpoint(v string) *HttpDataSourceConfig {
+	s.Endpoint = &v
 	return s
 }
 
@@ -4662,6 +4805,147 @@ func (s *ListTypesOutput) SetTypes(v []*Type) *ListTypesOutput {
 	return s
 }
 
+// The CloudWatch Logs configuration.
+type LogConfig struct {
+	_ struct{} `type:"structure"`
+
+	// The service role that AWS AppSync will assume to publish to Amazon CloudWatch
+	// logs in your account.
+	//
+	// CloudWatchLogsRoleArn is a required field
+	CloudWatchLogsRoleArn *string `locationName:"cloudWatchLogsRoleArn" type:"string" required:"true"`
+
+	// The field logging level. Values can be NONE, ERROR, ALL.
+	//
+	//    * NONE: No field-level logs are captured.
+	//
+	//    * ERROR: Logs the following information only for the fields that are in
+	//    error:
+	//
+	// The error section in the server response.
+	//
+	// Field-level errors.
+	//
+	// The generated request/response functions that got resolved for error fields.
+	//
+	//    * ALL: The following information is logged for all fields in the query:
+	//
+	// Field-level tracing information.
+	//
+	// The generated request/response functions that got resolved for each field.
+	//
+	// FieldLogLevel is a required field
+	FieldLogLevel *string `locationName:"fieldLogLevel" type:"string" required:"true" enum:"FieldLogLevel"`
+}
+
+// String returns the string representation
+func (s LogConfig) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s LogConfig) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *LogConfig) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "LogConfig"}
+	if s.CloudWatchLogsRoleArn == nil {
+		invalidParams.Add(request.NewErrParamRequired("CloudWatchLogsRoleArn"))
+	}
+	if s.FieldLogLevel == nil {
+		invalidParams.Add(request.NewErrParamRequired("FieldLogLevel"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetCloudWatchLogsRoleArn sets the CloudWatchLogsRoleArn field's value.
+func (s *LogConfig) SetCloudWatchLogsRoleArn(v string) *LogConfig {
+	s.CloudWatchLogsRoleArn = &v
+	return s
+}
+
+// SetFieldLogLevel sets the FieldLogLevel field's value.
+func (s *LogConfig) SetFieldLogLevel(v string) *LogConfig {
+	s.FieldLogLevel = &v
+	return s
+}
+
+// Describes an Open Id Connect configuration.
+type OpenIDConnectConfig struct {
+	_ struct{} `type:"structure"`
+
+	// The number of milliseconds a token is valid after being authenticated.
+	AuthTTL *int64 `locationName:"authTTL" type:"long"`
+
+	// The client identifier of the Relying party at the OpenID Provider. This identifier
+	// is typically obtained when the Relying party is registered with the OpenID
+	// Provider. You can specify a regular expression so the AWS AppSync can validate
+	// against multiple client identifiers at a time
+	ClientId *string `locationName:"clientId" type:"string"`
+
+	// The number of milliseconds a token is valid after being issued to a user.
+	IatTTL *int64 `locationName:"iatTTL" type:"long"`
+
+	// The issuer for the open id connect configuration. The issuer returned by
+	// discovery MUST exactly match the value of iss in the ID Token.
+	//
+	// Issuer is a required field
+	Issuer *string `locationName:"issuer" type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s OpenIDConnectConfig) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s OpenIDConnectConfig) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *OpenIDConnectConfig) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "OpenIDConnectConfig"}
+	if s.Issuer == nil {
+		invalidParams.Add(request.NewErrParamRequired("Issuer"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetAuthTTL sets the AuthTTL field's value.
+func (s *OpenIDConnectConfig) SetAuthTTL(v int64) *OpenIDConnectConfig {
+	s.AuthTTL = &v
+	return s
+}
+
+// SetClientId sets the ClientId field's value.
+func (s *OpenIDConnectConfig) SetClientId(v string) *OpenIDConnectConfig {
+	s.ClientId = &v
+	return s
+}
+
+// SetIatTTL sets the IatTTL field's value.
+func (s *OpenIDConnectConfig) SetIatTTL(v int64) *OpenIDConnectConfig {
+	s.IatTTL = &v
+	return s
+}
+
+// SetIssuer sets the Issuer field's value.
+func (s *OpenIDConnectConfig) SetIssuer(v string) *OpenIDConnectConfig {
+	s.Issuer = &v
+	return s
+}
+
 // Describes a resolver.
 type Resolver struct {
 	_ struct{} `type:"structure"`
@@ -4673,13 +4957,13 @@ type Resolver struct {
 	FieldName *string `locationName:"fieldName" type:"string"`
 
 	// The request mapping template.
-	RequestMappingTemplate *string `locationName:"requestMappingTemplate" type:"string"`
+	RequestMappingTemplate *string `locationName:"requestMappingTemplate" min:"1" type:"string"`
 
 	// The resolver ARN.
 	ResolverArn *string `locationName:"resolverArn" type:"string"`
 
 	// The response mapping template.
-	ResponseMappingTemplate *string `locationName:"responseMappingTemplate" type:"string"`
+	ResponseMappingTemplate *string `locationName:"responseMappingTemplate" min:"1" type:"string"`
 
 	// The resolver type name.
 	TypeName *string `locationName:"typeName" type:"string"`
@@ -4880,8 +5164,8 @@ type UpdateApiKeyInput struct {
 	// A description of the purpose of the API key.
 	Description *string `locationName:"description" type:"string"`
 
-	// The time after which the API key expires. The date is represented as seconds
-	// since the epoch.
+	// The time from update time after which the API key expires. The date is represented
+	// as seconds since the epoch. For more information, see .
 	Expires *int64 `locationName:"expires" type:"long"`
 
 	// The API key ID.
@@ -4980,6 +5264,9 @@ type UpdateDataSourceInput struct {
 	// The new Elasticsearch configuration.
 	ElasticsearchConfig *ElasticsearchDataSourceConfig `locationName:"elasticsearchConfig" type:"structure"`
 
+	// The new http endpoint configuration
+	HttpConfig *HttpDataSourceConfig `locationName:"httpConfig" type:"structure"`
+
 	// The new Lambda configuration.
 	LambdaConfig *LambdaDataSourceConfig `locationName:"lambdaConfig" type:"structure"`
 
@@ -5065,6 +5352,12 @@ func (s *UpdateDataSourceInput) SetElasticsearchConfig(v *ElasticsearchDataSourc
 	return s
 }
 
+// SetHttpConfig sets the HttpConfig field's value.
+func (s *UpdateDataSourceInput) SetHttpConfig(v *HttpDataSourceConfig) *UpdateDataSourceInput {
+	s.HttpConfig = v
+	return s
+}
+
 // SetLambdaConfig sets the LambdaConfig field's value.
 func (s *UpdateDataSourceInput) SetLambdaConfig(v *LambdaDataSourceConfig) *UpdateDataSourceInput {
 	s.LambdaConfig = v
@@ -5123,10 +5416,16 @@ type UpdateGraphqlApiInput struct {
 	// The new authentication type for the GraphqlApi object.
 	AuthenticationType *string `locationName:"authenticationType" type:"string" enum:"AuthenticationType"`
 
+	// The Amazon CloudWatch logs configuration for the GraphqlApi object.
+	LogConfig *LogConfig `locationName:"logConfig" type:"structure"`
+
 	// The new name for the GraphqlApi object.
 	//
 	// Name is a required field
 	Name *string `locationName:"name" type:"string" required:"true"`
+
+	// The Open Id Connect configuration configuration for the GraphqlApi object.
+	OpenIDConnectConfig *OpenIDConnectConfig `locationName:"openIDConnectConfig" type:"structure"`
 
 	// The new Amazon Cognito User Pool configuration for the GraphqlApi object.
 	UserPoolConfig *UserPoolConfig `locationName:"userPoolConfig" type:"structure"`
@@ -5150,6 +5449,16 @@ func (s *UpdateGraphqlApiInput) Validate() error {
 	}
 	if s.Name == nil {
 		invalidParams.Add(request.NewErrParamRequired("Name"))
+	}
+	if s.LogConfig != nil {
+		if err := s.LogConfig.Validate(); err != nil {
+			invalidParams.AddNested("LogConfig", err.(request.ErrInvalidParams))
+		}
+	}
+	if s.OpenIDConnectConfig != nil {
+		if err := s.OpenIDConnectConfig.Validate(); err != nil {
+			invalidParams.AddNested("OpenIDConnectConfig", err.(request.ErrInvalidParams))
+		}
 	}
 	if s.UserPoolConfig != nil {
 		if err := s.UserPoolConfig.Validate(); err != nil {
@@ -5175,9 +5484,21 @@ func (s *UpdateGraphqlApiInput) SetAuthenticationType(v string) *UpdateGraphqlAp
 	return s
 }
 
+// SetLogConfig sets the LogConfig field's value.
+func (s *UpdateGraphqlApiInput) SetLogConfig(v *LogConfig) *UpdateGraphqlApiInput {
+	s.LogConfig = v
+	return s
+}
+
 // SetName sets the Name field's value.
 func (s *UpdateGraphqlApiInput) SetName(v string) *UpdateGraphqlApiInput {
 	s.Name = &v
+	return s
+}
+
+// SetOpenIDConnectConfig sets the OpenIDConnectConfig field's value.
+func (s *UpdateGraphqlApiInput) SetOpenIDConnectConfig(v *OpenIDConnectConfig) *UpdateGraphqlApiInput {
+	s.OpenIDConnectConfig = v
 	return s
 }
 
@@ -5231,10 +5552,10 @@ type UpdateResolverInput struct {
 	// The new request mapping template.
 	//
 	// RequestMappingTemplate is a required field
-	RequestMappingTemplate *string `locationName:"requestMappingTemplate" type:"string" required:"true"`
+	RequestMappingTemplate *string `locationName:"requestMappingTemplate" min:"1" type:"string" required:"true"`
 
 	// The new response mapping template.
-	ResponseMappingTemplate *string `locationName:"responseMappingTemplate" type:"string"`
+	ResponseMappingTemplate *string `locationName:"responseMappingTemplate" min:"1" type:"string"`
 
 	// The new type name.
 	//
@@ -5266,6 +5587,12 @@ func (s *UpdateResolverInput) Validate() error {
 	}
 	if s.RequestMappingTemplate == nil {
 		invalidParams.Add(request.NewErrParamRequired("RequestMappingTemplate"))
+	}
+	if s.RequestMappingTemplate != nil && len(*s.RequestMappingTemplate) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("RequestMappingTemplate", 1))
+	}
+	if s.ResponseMappingTemplate != nil && len(*s.ResponseMappingTemplate) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ResponseMappingTemplate", 1))
 	}
 	if s.TypeName == nil {
 		invalidParams.Add(request.NewErrParamRequired("TypeName"))
@@ -5522,6 +5849,9 @@ const (
 
 	// AuthenticationTypeAmazonCognitoUserPools is a AuthenticationType enum value
 	AuthenticationTypeAmazonCognitoUserPools = "AMAZON_COGNITO_USER_POOLS"
+
+	// AuthenticationTypeOpenidConnect is a AuthenticationType enum value
+	AuthenticationTypeOpenidConnect = "OPENID_CONNECT"
 )
 
 const (
@@ -5536,6 +5866,9 @@ const (
 
 	// DataSourceTypeNone is a DataSourceType enum value
 	DataSourceTypeNone = "NONE"
+
+	// DataSourceTypeHttp is a DataSourceType enum value
+	DataSourceTypeHttp = "HTTP"
 )
 
 const (
@@ -5544,6 +5877,17 @@ const (
 
 	// DefaultActionDeny is a DefaultAction enum value
 	DefaultActionDeny = "DENY"
+)
+
+const (
+	// FieldLogLevelNone is a FieldLogLevel enum value
+	FieldLogLevelNone = "NONE"
+
+	// FieldLogLevelError is a FieldLogLevel enum value
+	FieldLogLevelError = "ERROR"
+
+	// FieldLogLevelAll is a FieldLogLevel enum value
+	FieldLogLevelAll = "ALL"
 )
 
 const (

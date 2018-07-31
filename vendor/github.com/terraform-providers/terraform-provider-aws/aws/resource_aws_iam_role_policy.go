@@ -41,10 +41,11 @@ func resourceAwsIamRolePolicy() *schema.Resource {
 				ValidateFunc:  validateIamRolePolicyName,
 			},
 			"name_prefix": {
-				Type:         schema.TypeString,
-				Optional:     true,
-				ForceNew:     true,
-				ValidateFunc: validateIamRolePolicyNamePrefix,
+				Type:          schema.TypeString,
+				Optional:      true,
+				ForceNew:      true,
+				ConflictsWith: []string{"name"},
+				ValidateFunc:  validateIamRolePolicyNamePrefix,
 			},
 			"role": {
 				Type:     schema.TypeString,

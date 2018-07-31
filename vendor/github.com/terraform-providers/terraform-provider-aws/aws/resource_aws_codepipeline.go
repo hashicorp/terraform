@@ -488,7 +488,5 @@ func resourceAwsCodePipelineDelete(d *schema.ResourceData, meta interface{}) err
 		return err
 	}
 
-	d.SetId("")
-
 	return nil
 }

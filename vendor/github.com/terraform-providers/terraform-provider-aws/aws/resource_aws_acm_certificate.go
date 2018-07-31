@@ -251,6 +251,5 @@ func resourceAwsAcmCertificateDelete(d *schema.ResourceData, meta interface{}) e
 		return fmt.Errorf("Error deleting certificate: %s", err)
 	}
 
-	d.SetId("")
 	return nil
 }

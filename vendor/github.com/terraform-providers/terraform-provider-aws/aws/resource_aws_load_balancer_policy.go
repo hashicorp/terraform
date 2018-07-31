@@ -205,7 +205,6 @@ func resourceAwsLoadBalancerPolicyDelete(d *schema.ResourceData, meta interface{
 		return fmt.Errorf("Error deleting Load Balancer Policy %s: %s", d.Id(), err)
 	}
 
-	d.SetId("")
 	return nil
 }
 

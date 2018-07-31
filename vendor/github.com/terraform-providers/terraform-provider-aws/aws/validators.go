@@ -17,6 +17,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/waf"
+	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/helper/structure"
 	"github.com/hashicorp/terraform/helper/validation"
@@ -32,6 +33,27 @@ func validateRFC3339TimeString(v interface{}, k string) (ws []string, errors []e
 }
 
 func validateRdsIdentifier(v interface{}, k string) (ws []string, errors []error) {
+	value := v.(string)
+	if !regexp.MustCompile(`^[0-9a-z-]+$`).MatchString(value) {
+		errors = append(errors, fmt.Errorf(
+			"only lowercase alphanumeric characters and hyphens allowed in %q", k))
+	}
+	if !regexp.MustCompile(`^[a-z]`).MatchString(value) {
+		errors = append(errors, fmt.Errorf(
+			"first character of %q must be a letter", k))
+	}
+	if regexp.MustCompile(`--`).MatchString(value) {
+		errors = append(errors, fmt.Errorf(
+			"%q cannot contain two consecutive hyphens", k))
+	}
+	if regexp.MustCompile(`-$`).MatchString(value) {
+		errors = append(errors, fmt.Errorf(
+			"%q cannot end with a hyphen", k))
+	}
+	return
+}
+
+func validateNeptuneIdentifier(v interface{}, k string) (ws []string, errors []error) {
 	value := v.(string)
 	if !regexp.MustCompile(`^[0-9a-z-]+$`).MatchString(value) {
 		errors = append(errors, fmt.Errorf(
@@ -69,11 +91,34 @@ func validateRdsIdentifierPrefix(v interface{}, k string) (ws []string, errors [
 	return
 }
 
+func validateNeptuneIdentifierPrefix(v interface{}, k string) (ws []string, errors []error) {
+	value := v.(string)
+	if !regexp.MustCompile(`^[0-9a-z-]+$`).MatchString(value) {
+		errors = append(errors, fmt.Errorf(
+			"only lowercase alphanumeric characters and hyphens allowed in %q", k))
+	}
+	if !regexp.MustCompile(`^[a-z]`).MatchString(value) {
+		errors = append(errors, fmt.Errorf(
+			"first character of %q must be a letter", k))
+	}
+	if regexp.MustCompile(`--`).MatchString(value) {
+		errors = append(errors, fmt.Errorf(
+			"%q cannot contain two consecutive hyphens", k))
+	}
+	return
+}
+
 func validateRdsEngine() schema.SchemaValidateFunc {
 	return validation.StringInSlice([]string{
 		"aurora",
 		"aurora-mysql",
 		"aurora-postgresql",
+	}, false)
+}
+
+func validateNeptuneEngine() schema.SchemaValidateFunc {
+	return validation.StringInSlice([]string{
+		"neptune",
 	}, false)
 }
 
@@ -128,23 +173,23 @@ func validateDbParamGroupName(v interface{}, k string) (ws []string, errors []er
 	value := v.(string)
 	if !regexp.MustCompile(`^[0-9a-z-]+$`).MatchString(value) {
 		errors = append(errors, fmt.Errorf(
-			"only lowercase alphanumeric characters and hyphens allowed in %q", k))
+			"only lowercase alphanumeric characters and hyphens allowed in parameter group %q", k))
 	}
 	if !regexp.MustCompile(`^[a-z]`).MatchString(value) {
 		errors = append(errors, fmt.Errorf(
-			"first character of %q must be a letter", k))
+			"first character of parameter group %q must be a letter", k))
 	}
 	if regexp.MustCompile(`--`).MatchString(value) {
 		errors = append(errors, fmt.Errorf(
-			"%q cannot contain two consecutive hyphens", k))
+			"parameter group %q cannot contain two consecutive hyphens", k))
 	}
 	if regexp.MustCompile(`-$`).MatchString(value) {
 		errors = append(errors, fmt.Errorf(
-			"%q cannot end with a hyphen", k))
+			"parameter group %q cannot end with a hyphen", k))
 	}
 	if len(value) > 255 {
 		errors = append(errors, fmt.Errorf(
-			"%q cannot be greater than 255 characters", k))
+			"parameter group %q cannot be greater than 255 characters", k))
 	}
 	return
 }
@@ -153,19 +198,19 @@ func validateDbParamGroupNamePrefix(v interface{}, k string) (ws []string, error
 	value := v.(string)
 	if !regexp.MustCompile(`^[0-9a-z-]+$`).MatchString(value) {
 		errors = append(errors, fmt.Errorf(
-			"only lowercase alphanumeric characters and hyphens allowed in %q", k))
+			"only lowercase alphanumeric characters and hyphens allowed in parameter group %q", k))
 	}
 	if !regexp.MustCompile(`^[a-z]`).MatchString(value) {
 		errors = append(errors, fmt.Errorf(
-			"first character of %q must be a letter", k))
+			"first character of parameter group %q must be a letter", k))
 	}
 	if regexp.MustCompile(`--`).MatchString(value) {
 		errors = append(errors, fmt.Errorf(
-			"%q cannot contain two consecutive hyphens", k))
+			"parameter group %q cannot contain two consecutive hyphens", k))
 	}
 	if len(value) > 255 {
 		errors = append(errors, fmt.Errorf(
-			"%q cannot be greater than 226 characters", k))
+			"parameter group %q cannot be greater than 226 characters", k))
 	}
 	return
 }
@@ -368,6 +413,24 @@ func validateLambdaPermissionAction(v interface{}, k string) (ws []string, error
 	return
 }
 
+func validateLambdaPermissionEventSourceToken(v interface{}, k string) (ws []string, errors []error) {
+	// https://docs.aws.amazon.com/lambda/latest/dg/API_AddPermission.html
+	value := v.(string)
+
+	if len(value) > 256 {
+		errors = append(errors, fmt.Errorf("%q cannot be longer than 256 characters: %q", k, value))
+	}
+
+	pattern := `^[a-zA-Z0-9._\-]+$`
+	if !regexp.MustCompile(pattern).MatchString(value) {
+		errors = append(errors, fmt.Errorf(
+			"%q doesn't comply with restrictions (%q): %q",
+			k, pattern, value))
+	}
+
+	return
+}
+
 func validateAwsAccountId(v interface{}, k string) (ws []string, errors []error) {
 	value := v.(string)
 
@@ -543,6 +606,7 @@ func validateS3BucketLifecycleTimestamp(v interface{}, k string) (ws []string, e
 
 func validateS3BucketLifecycleStorageClass() schema.SchemaValidateFunc {
 	return validation.StringInSlice([]string{
+		s3.TransitionStorageClassOnezoneIa,
 		s3.TransitionStorageClassStandardIa,
 		s3.TransitionStorageClassGlacier,
 	}, false)
@@ -947,6 +1011,23 @@ func validateDbSubnetGroupName(v interface{}, k string) (ws []string, errors []e
 	return
 }
 
+func validateNeptuneSubnetGroupName(v interface{}, k string) (ws []string, errors []error) {
+	value := v.(string)
+	if !regexp.MustCompile(`^[ .0-9a-z-_]+$`).MatchString(value) {
+		errors = append(errors, fmt.Errorf(
+			"only lowercase alphanumeric characters, hyphens, underscores, periods, and spaces allowed in %q", k))
+	}
+	if len(value) > 255 {
+		errors = append(errors, fmt.Errorf(
+			"%q cannot be longer than 255 characters", k))
+	}
+	if value == "default" {
+		errors = append(errors, fmt.Errorf(
+			"%q is not allowed as %q", "Default", k))
+	}
+	return
+}
+
 func validateDbSubnetGroupNamePrefix(v interface{}, k string) (ws []string, errors []error) {
 	value := v.(string)
 	if !regexp.MustCompile(`^[ .0-9a-z-_]+$`).MatchString(value) {
@@ -956,6 +1037,20 @@ func validateDbSubnetGroupNamePrefix(v interface{}, k string) (ws []string, erro
 	if len(value) > 229 {
 		errors = append(errors, fmt.Errorf(
 			"%q cannot be longer than 229 characters", k))
+	}
+	return
+}
+
+func validateNeptuneSubnetGroupNamePrefix(v interface{}, k string) (ws []string, errors []error) {
+	value := v.(string)
+	if !regexp.MustCompile(`^[ .0-9a-z-_]+$`).MatchString(value) {
+		errors = append(errors, fmt.Errorf(
+			"only lowercase alphanumeric characters, hyphens, underscores, periods, and spaces allowed in %q", k))
+	}
+	prefixMaxLength := 255 - resource.UniqueIDSuffixLength
+	if len(value) > prefixMaxLength {
+		errors = append(errors, fmt.Errorf(
+			"%q cannot be longer than %d characters", k, prefixMaxLength))
 	}
 	return
 }
@@ -1385,6 +1480,21 @@ func validateCognitoUserPoolClientURL(v interface{}, k string) (ws []string, es 
 	return
 }
 
+func validateCognitoResourceServerScopeName(v interface{}, k string) (ws []string, errors []error) {
+	value := v.(string)
+
+	if len(value) < 1 {
+		errors = append(errors, fmt.Errorf("%q cannot be less than 1 character", k))
+	}
+	if len(value) > 256 {
+		errors = append(errors, fmt.Errorf("%q cannot be longer than 256 character", k))
+	}
+	if !regexp.MustCompile(`[\x21\x23-\x2E\x30-\x5B\x5D-\x7E]+`).MatchString(value) {
+		errors = append(errors, fmt.Errorf("%q must satisfy regular expression pattern: [\\x21\\x23-\\x2E\\x30-\\x5B\\x5D-\\x7E]+", k))
+	}
+	return
+}
+
 func validateWafMetricName(v interface{}, k string) (ws []string, errors []error) {
 	value := v.(string)
 	if !regexp.MustCompile(`^[0-9A-Za-z]+$`).MatchString(value) {
@@ -1397,12 +1507,13 @@ func validateWafMetricName(v interface{}, k string) (ws []string, errors []error
 
 func validateWafPredicatesType() schema.SchemaValidateFunc {
 	return validation.StringInSlice([]string{
-		waf.PredicateTypeIpmatch,
 		waf.PredicateTypeByteMatch,
-		waf.PredicateTypeSqlInjectionMatch,
-		waf.PredicateTypeSizeConstraint,
-		waf.PredicateTypeXssMatch,
 		waf.PredicateTypeGeoMatch,
+		waf.PredicateTypeIpmatch,
+		waf.PredicateTypeRegexMatch,
+		waf.PredicateTypeSizeConstraint,
+		waf.PredicateTypeSqlInjectionMatch,
+		waf.PredicateTypeXssMatch,
 	}, false)
 }
 
@@ -1739,4 +1850,78 @@ func validateDynamoDbTableAttributes(d *schema.ResourceDiff) error {
 	}
 
 	return nil
+}
+
+func validateLaunchTemplateName(v interface{}, k string) (ws []string, errors []error) {
+	value := v.(string)
+	if len(value) < 3 {
+		errors = append(errors, fmt.Errorf("%q cannot be less than 3 characters", k))
+	} else if strings.HasSuffix(k, "prefix") && len(value) > 99 {
+		errors = append(errors, fmt.Errorf("%q cannot be longer than 99 characters, name is limited to 125", k))
+	} else if !strings.HasSuffix(k, "prefix") && len(value) > 125 {
+		errors = append(errors, fmt.Errorf("%q cannot be longer than 125 characters", k))
+	} else if !regexp.MustCompile(`^[0-9a-zA-Z()./_\-]+$`).MatchString(value) {
+		errors = append(errors, fmt.Errorf("%q can only alphanumeric characters and ()./_- symbols", k))
+	}
+	return
+}
+
+func validateLaunchTemplateId(v interface{}, k string) (ws []string, errors []error) {
+	value := v.(string)
+	if len(value) < 1 {
+		errors = append(errors, fmt.Errorf("%q cannot be shorter than 1 character", k))
+	} else if len(value) > 255 {
+		errors = append(errors, fmt.Errorf("%q cannot be longer than 255 characters", k))
+	} else if !regexp.MustCompile(`^lt\-[a-z0-9]+$`).MatchString(value) {
+		errors = append(errors, fmt.Errorf(
+			"%q must begin with 'lt-' and be comprised of only alphanumeric characters: %v", k, value))
+	}
+	return
+}
+
+func validateNeptuneParamGroupName(v interface{}, k string) (ws []string, errors []error) {
+	value := v.(string)
+	if !regexp.MustCompile(`^[0-9a-z-]+$`).MatchString(value) {
+		errors = append(errors, fmt.Errorf(
+			"only lowercase alphanumeric characters and hyphens allowed in %q", k))
+	}
+	if !regexp.MustCompile(`^[a-z]`).MatchString(value) {
+		errors = append(errors, fmt.Errorf(
+			"first character of %q must be a letter", k))
+	}
+	if regexp.MustCompile(`--`).MatchString(value) {
+		errors = append(errors, fmt.Errorf(
+			"%q cannot contain two consecutive hyphens", k))
+	}
+	if regexp.MustCompile(`-$`).MatchString(value) {
+		errors = append(errors, fmt.Errorf(
+			"%q cannot end with a hyphen", k))
+	}
+	if len(value) > 255 {
+		errors = append(errors, fmt.Errorf(
+			"%q cannot be greater than 255 characters", k))
+	}
+	return
+}
+
+func validateNeptuneParamGroupNamePrefix(v interface{}, k string) (ws []string, errors []error) {
+	value := v.(string)
+	if !regexp.MustCompile(`^[0-9a-z-]+$`).MatchString(value) {
+		errors = append(errors, fmt.Errorf(
+			"only lowercase alphanumeric characters and hyphens allowed in %q", k))
+	}
+	if !regexp.MustCompile(`^[a-z]`).MatchString(value) {
+		errors = append(errors, fmt.Errorf(
+			"first character of %q must be a letter", k))
+	}
+	if regexp.MustCompile(`--`).MatchString(value) {
+		errors = append(errors, fmt.Errorf(
+			"%q cannot contain two consecutive hyphens", k))
+	}
+	prefixMaxLength := 255 - resource.UniqueIDSuffixLength
+	if len(value) > prefixMaxLength {
+		errors = append(errors, fmt.Errorf(
+			"%q cannot be greater than %d characters", k, prefixMaxLength))
+	}
+	return
 }

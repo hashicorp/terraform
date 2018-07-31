@@ -178,6 +178,5 @@ func resourceAwsConfigDeliveryChannelDelete(d *schema.ResourceData, meta interfa
 		return fmt.Errorf("Unable to delete delivery channel: %s", err)
 	}
 
-	d.SetId("")
 	return nil
 }
