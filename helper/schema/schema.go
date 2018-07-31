@@ -364,6 +364,11 @@ func (s *Schema) finalizeDiff(d *terraform.ResourceAttrDiff, customized bool) *t
 	return d
 }
 
+// InternalMap is used to aid in the transition to the new schema types and
+// protocol. The name is not meant to convey any usefulness, as this is not to
+// be used directly by any providers.
+type InternalMap = schemaMap
+
 // schemaMap is a wrapper that adds nice functions on top of schemas.
 type schemaMap map[string]*Schema
 
