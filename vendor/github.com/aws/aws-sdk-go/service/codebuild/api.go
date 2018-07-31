@@ -388,7 +388,7 @@ func (c *CodeBuild) CreateWebhookRequest(input *CreateWebhookInput) (req *reques
 // AWS CodePipeline. Because billing is on a per-build basis, you will be billed
 // for both builds. Therefore, if you are using AWS CodePipeline, we recommend
 // that you disable webhooks in CodeBuild. In the AWS CodeBuild console, clear
-// the Webhook box. For more information, see step 9 in Change a Build Project's
+// the Webhook box. For more information, see step 5 in Change a Build Project's
 // Settings (http://docs.aws.amazon.com/codebuild/latest/userguide/change-project.html#change-project-console).
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
@@ -1586,7 +1586,7 @@ type Build struct {
 	CurrentPhase *string `locationName:"currentPhase" type:"string"`
 
 	// When the build process ended, expressed in Unix time format.
-	EndTime *time.Time `locationName:"endTime" type:"timestamp" timestampFormat:"unix"`
+	EndTime *time.Time `locationName:"endTime" type:"timestamp"`
 
 	// Information about the build environment for this build.
 	Environment *ProjectEnvironment `locationName:"environment" type:"structure"`
@@ -1619,6 +1619,9 @@ type Build struct {
 	// The name of the AWS CodeBuild project.
 	ProjectName *string `locationName:"projectName" min:"1" type:"string"`
 
+	// The name of a service role used for this build.
+	ServiceRole *string `locationName:"serviceRole" min:"1" type:"string"`
+
 	// Information about the source code to be built.
 	Source *ProjectSource `locationName:"source" type:"structure"`
 
@@ -1626,7 +1629,7 @@ type Build struct {
 	SourceVersion *string `locationName:"sourceVersion" min:"1" type:"string"`
 
 	// When the build process started, expressed in Unix time format.
-	StartTime *time.Time `locationName:"startTime" type:"timestamp" timestampFormat:"unix"`
+	StartTime *time.Time `locationName:"startTime" type:"timestamp"`
 
 	// How long, in minutes, for AWS CodeBuild to wait before timing out this build
 	// if it does not get marked as completed.
@@ -1730,6 +1733,12 @@ func (s *Build) SetPhases(v []*BuildPhase) *Build {
 // SetProjectName sets the ProjectName field's value.
 func (s *Build) SetProjectName(v string) *Build {
 	s.ProjectName = &v
+	return s
+}
+
+// SetServiceRole sets the ServiceRole field's value.
+func (s *Build) SetServiceRole(v string) *Build {
+	s.ServiceRole = &v
 	return s
 }
 
@@ -1863,7 +1872,7 @@ type BuildPhase struct {
 	DurationInSeconds *int64 `locationName:"durationInSeconds" type:"long"`
 
 	// When the build phase ended, expressed in Unix time format.
-	EndTime *time.Time `locationName:"endTime" type:"timestamp" timestampFormat:"unix"`
+	EndTime *time.Time `locationName:"endTime" type:"timestamp"`
 
 	// The current status of the build phase. Valid values include:
 	//
@@ -1905,7 +1914,7 @@ type BuildPhase struct {
 	PhaseType *string `locationName:"phaseType" type:"string" enum:"BuildPhaseType"`
 
 	// When the build phase started, expressed in Unix time format.
-	StartTime *time.Time `locationName:"startTime" type:"timestamp" timestampFormat:"unix"`
+	StartTime *time.Time `locationName:"startTime" type:"timestamp"`
 }
 
 // String returns the string representation
@@ -1993,7 +2002,9 @@ type CreateProjectInput struct {
 	// The ARN of the AWS Identity and Access Management (IAM) role that enables
 	// AWS CodeBuild to interact with dependent AWS services on behalf of the AWS
 	// account.
-	ServiceRole *string `locationName:"serviceRole" min:"1" type:"string"`
+	//
+	// ServiceRole is a required field
+	ServiceRole *string `locationName:"serviceRole" min:"1" type:"string" required:"true"`
 
 	// Information about the build input source code for the build project.
 	//
@@ -2042,6 +2053,9 @@ func (s *CreateProjectInput) Validate() error {
 	}
 	if s.Name != nil && len(*s.Name) < 2 {
 		invalidParams.Add(request.NewErrParamMinLen("Name", 2))
+	}
+	if s.ServiceRole == nil {
+		invalidParams.Add(request.NewErrParamRequired("ServiceRole"))
 	}
 	if s.ServiceRole != nil && len(*s.ServiceRole) < 1 {
 		invalidParams.Add(request.NewErrParamMinLen("ServiceRole", 1))
@@ -3074,7 +3088,7 @@ type Project struct {
 	Cache *ProjectCache `locationName:"cache" type:"structure"`
 
 	// When the build project was created, expressed in Unix time format.
-	Created *time.Time `locationName:"created" type:"timestamp" timestampFormat:"unix"`
+	Created *time.Time `locationName:"created" type:"timestamp"`
 
 	// A description that makes the build project easy to identify.
 	Description *string `locationName:"description" type:"string"`
@@ -3091,7 +3105,7 @@ type Project struct {
 
 	// When the build project's settings were last modified, expressed in Unix time
 	// format.
-	LastModified *time.Time `locationName:"lastModified" type:"timestamp" timestampFormat:"unix"`
+	LastModified *time.Time `locationName:"lastModified" type:"timestamp"`
 
 	// The name of the build project.
 	Name *string `locationName:"name" min:"2" type:"string"`
@@ -3256,10 +3270,21 @@ type ProjectArtifacts struct {
 	//    because no build output will be produced.
 	//
 	//    * If type is set to S3, this is the name of the output artifact object.
+	//    If you set the name to be a forward slash ("/"), then the artifact is
+	//    stored in the root of the output bucket.
 	//
-	// For example, if path is set to MyArtifacts, namespaceType is set to BUILD_ID,
-	// and name is set to MyArtifact.zip, then the output artifact would be stored
-	// in MyArtifacts/build-ID/MyArtifact.zip.
+	// For example:
+	//
+	//    *  If path is set to MyArtifacts, namespaceType is set to BUILD_ID, and
+	//    name is set to MyArtifact.zip, then the output artifact would be stored
+	//    in MyArtifacts/build-ID/MyArtifact.zip.
+	//
+	//    *  If path is empty, namespaceType is set to NONE, and name is set to
+	//    "/", then the output artifact would be stored in the root of the output
+	//    bucket.
+	//
+	//    *  If path is set to MyArtifacts, namespaceType is set to BUILD_ID, and
+	//    name is set to "/", then the output artifact would be stored in MyArtifacts/build-ID.
 	Name *string `locationName:"name" type:"string"`
 
 	// Along with path and name, the pattern that AWS CodeBuild will use to determine
@@ -3522,8 +3547,17 @@ type ProjectEnvironment struct {
 	// build commands. (Do not run the following build commands if the specified
 	// build environment image is provided by AWS CodeBuild with Docker support.)
 	//
+	// If the operating system's base image is Ubuntu Linux:
+	//
 	// - nohup /usr/local/bin/dockerd --host=unix:///var/run/docker.sock --host=tcp://0.0.0.0:2375
-	// --storage-driver=overlay& - timeout -t 15 sh -c "until docker info; do echo
+	// --storage-driver=overlay& - timeout 15 sh -c "until docker info; do echo
+	// .; sleep 1; done"
+	//
+	// If the operating system's base image is Alpine Linux, add the -t argument
+	// to timeout:
+	//
+	// - nohup /usr/local/bin/dockerd --host=unix:///var/run/docker.sock --host=tcp://0.0.0.0:2375
+	// --storage-driver=overlay& - timeout 15 -t sh -c "until docker info; do echo
 	// .; sleep 1; done"
 	PrivilegedMode *bool `locationName:"privilegedMode" type:"boolean"`
 
@@ -3677,6 +3711,12 @@ type ProjectSource struct {
 	//    source object, set the auth object's type value to OAUTH.
 	Location *string `locationName:"location" type:"string"`
 
+	// Set to true to report the status of a build's start and finish to your source
+	// provider. This option is only valid when your source provider is GitHub.
+	// If this is set and you use a different source provider, an invalidInputException
+	// is thrown.
+	ReportBuildStatus *bool `locationName:"reportBuildStatus" type:"boolean"`
+
 	// The type of repository that contains the source code to be built. Valid values
 	// include:
 	//
@@ -3754,6 +3794,12 @@ func (s *ProjectSource) SetLocation(v string) *ProjectSource {
 	return s
 }
 
+// SetReportBuildStatus sets the ReportBuildStatus field's value.
+func (s *ProjectSource) SetReportBuildStatus(v bool) *ProjectSource {
+	s.ReportBuildStatus = &v
+	return s
+}
+
 // SetType sets the Type field's value.
 func (s *ProjectSource) SetType(v string) *ProjectSource {
 	s.Type = &v
@@ -3825,6 +3871,22 @@ type StartBuildInput struct {
 	// one already defined in the build project.
 	BuildspecOverride *string `locationName:"buildspecOverride" type:"string"`
 
+	// A ProjectCache object specified for this build that overrides the one defined
+	// in the build project.
+	CacheOverride *ProjectCache `locationName:"cacheOverride" type:"structure"`
+
+	// The name of a certificate for this build that overrides the one specified
+	// in the build project.
+	CertificateOverride *string `locationName:"certificateOverride" type:"string"`
+
+	// The name of a compute type for this build that overrides the one specified
+	// in the build project.
+	ComputeTypeOverride *string `locationName:"computeTypeOverride" type:"string" enum:"ComputeType"`
+
+	// A container type for this build that overrides the one specified in the build
+	// project.
+	EnvironmentTypeOverride *string `locationName:"environmentTypeOverride" type:"string" enum:"EnvironmentType"`
+
 	// A set of environment variables that overrides, for this build only, the latest
 	// ones already defined in the build project.
 	EnvironmentVariablesOverride []*EnvironmentVariable `locationName:"environmentVariablesOverride" type:"list"`
@@ -3833,10 +3895,52 @@ type StartBuildInput struct {
 	// for this build only, any previous depth of history defined in the build project.
 	GitCloneDepthOverride *int64 `locationName:"gitCloneDepthOverride" type:"integer"`
 
+	// A unique, case sensitive identifier you provide to ensure the idempotency
+	// of the StartBuild request. The token is included in the StartBuild request
+	// and is valid for 12 hours. If you repeat the StartBuild request with the
+	// same token, but change a parameter, AWS CodeBuild returns a parameter mismatch
+	// error.
+	IdempotencyToken *string `locationName:"idempotencyToken" type:"string"`
+
+	// The name of an image for this build that overrides the one specified in the
+	// build project.
+	ImageOverride *string `locationName:"imageOverride" min:"1" type:"string"`
+
+	// Enable this flag to override the insecure SSL setting that is specified in
+	// the build project. The insecure SSL setting determines whether to ignore
+	// SSL warnings while connecting to the project source code. This override applies
+	// only if the build's source is GitHub Enterprise.
+	InsecureSslOverride *bool `locationName:"insecureSslOverride" type:"boolean"`
+
+	// Enable this flag to override privileged mode in the build project.
+	PrivilegedModeOverride *bool `locationName:"privilegedModeOverride" type:"boolean"`
+
 	// The name of the AWS CodeBuild build project to start running a build.
 	//
 	// ProjectName is a required field
 	ProjectName *string `locationName:"projectName" min:"1" type:"string" required:"true"`
+
+	// Set to true to report to your source provider the status of a build's start
+	// and completion. If you use this option with a source provider other than
+	// GitHub, an invalidInputException is thrown.
+	ReportBuildStatusOverride *bool `locationName:"reportBuildStatusOverride" type:"boolean"`
+
+	// The name of a service role for this build that overrides the one specified
+	// in the build project.
+	ServiceRoleOverride *string `locationName:"serviceRoleOverride" min:"1" type:"string"`
+
+	// An authorization type for this build that overrides the one defined in the
+	// build project. This override applies only if the build project's source is
+	// BitBucket or GitHub.
+	SourceAuthOverride *SourceAuth `locationName:"sourceAuthOverride" type:"structure"`
+
+	// A location that overrides for this build the source location for the one
+	// defined in the build project.
+	SourceLocationOverride *string `locationName:"sourceLocationOverride" type:"string"`
+
+	// A source input type for this build that overrides the source input defined
+	// in the build project
+	SourceTypeOverride *string `locationName:"sourceTypeOverride" type:"string" enum:"SourceType"`
 
 	// A version of the build input to be built, for this build only. If not specified,
 	// the latest version will be used. If specified, must be one of:
@@ -3877,11 +3981,17 @@ func (s StartBuildInput) GoString() string {
 // Validate inspects the fields of the type to determine if they are valid.
 func (s *StartBuildInput) Validate() error {
 	invalidParams := request.ErrInvalidParams{Context: "StartBuildInput"}
+	if s.ImageOverride != nil && len(*s.ImageOverride) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ImageOverride", 1))
+	}
 	if s.ProjectName == nil {
 		invalidParams.Add(request.NewErrParamRequired("ProjectName"))
 	}
 	if s.ProjectName != nil && len(*s.ProjectName) < 1 {
 		invalidParams.Add(request.NewErrParamMinLen("ProjectName", 1))
+	}
+	if s.ServiceRoleOverride != nil && len(*s.ServiceRoleOverride) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ServiceRoleOverride", 1))
 	}
 	if s.TimeoutInMinutesOverride != nil && *s.TimeoutInMinutesOverride < 5 {
 		invalidParams.Add(request.NewErrParamMinValue("TimeoutInMinutesOverride", 5))
@@ -3889,6 +3999,11 @@ func (s *StartBuildInput) Validate() error {
 	if s.ArtifactsOverride != nil {
 		if err := s.ArtifactsOverride.Validate(); err != nil {
 			invalidParams.AddNested("ArtifactsOverride", err.(request.ErrInvalidParams))
+		}
+	}
+	if s.CacheOverride != nil {
+		if err := s.CacheOverride.Validate(); err != nil {
+			invalidParams.AddNested("CacheOverride", err.(request.ErrInvalidParams))
 		}
 	}
 	if s.EnvironmentVariablesOverride != nil {
@@ -3899,6 +4014,11 @@ func (s *StartBuildInput) Validate() error {
 			if err := v.Validate(); err != nil {
 				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "EnvironmentVariablesOverride", i), err.(request.ErrInvalidParams))
 			}
+		}
+	}
+	if s.SourceAuthOverride != nil {
+		if err := s.SourceAuthOverride.Validate(); err != nil {
+			invalidParams.AddNested("SourceAuthOverride", err.(request.ErrInvalidParams))
 		}
 	}
 
@@ -3920,6 +4040,30 @@ func (s *StartBuildInput) SetBuildspecOverride(v string) *StartBuildInput {
 	return s
 }
 
+// SetCacheOverride sets the CacheOverride field's value.
+func (s *StartBuildInput) SetCacheOverride(v *ProjectCache) *StartBuildInput {
+	s.CacheOverride = v
+	return s
+}
+
+// SetCertificateOverride sets the CertificateOverride field's value.
+func (s *StartBuildInput) SetCertificateOverride(v string) *StartBuildInput {
+	s.CertificateOverride = &v
+	return s
+}
+
+// SetComputeTypeOverride sets the ComputeTypeOverride field's value.
+func (s *StartBuildInput) SetComputeTypeOverride(v string) *StartBuildInput {
+	s.ComputeTypeOverride = &v
+	return s
+}
+
+// SetEnvironmentTypeOverride sets the EnvironmentTypeOverride field's value.
+func (s *StartBuildInput) SetEnvironmentTypeOverride(v string) *StartBuildInput {
+	s.EnvironmentTypeOverride = &v
+	return s
+}
+
 // SetEnvironmentVariablesOverride sets the EnvironmentVariablesOverride field's value.
 func (s *StartBuildInput) SetEnvironmentVariablesOverride(v []*EnvironmentVariable) *StartBuildInput {
 	s.EnvironmentVariablesOverride = v
@@ -3932,9 +4076,63 @@ func (s *StartBuildInput) SetGitCloneDepthOverride(v int64) *StartBuildInput {
 	return s
 }
 
+// SetIdempotencyToken sets the IdempotencyToken field's value.
+func (s *StartBuildInput) SetIdempotencyToken(v string) *StartBuildInput {
+	s.IdempotencyToken = &v
+	return s
+}
+
+// SetImageOverride sets the ImageOverride field's value.
+func (s *StartBuildInput) SetImageOverride(v string) *StartBuildInput {
+	s.ImageOverride = &v
+	return s
+}
+
+// SetInsecureSslOverride sets the InsecureSslOverride field's value.
+func (s *StartBuildInput) SetInsecureSslOverride(v bool) *StartBuildInput {
+	s.InsecureSslOverride = &v
+	return s
+}
+
+// SetPrivilegedModeOverride sets the PrivilegedModeOverride field's value.
+func (s *StartBuildInput) SetPrivilegedModeOverride(v bool) *StartBuildInput {
+	s.PrivilegedModeOverride = &v
+	return s
+}
+
 // SetProjectName sets the ProjectName field's value.
 func (s *StartBuildInput) SetProjectName(v string) *StartBuildInput {
 	s.ProjectName = &v
+	return s
+}
+
+// SetReportBuildStatusOverride sets the ReportBuildStatusOverride field's value.
+func (s *StartBuildInput) SetReportBuildStatusOverride(v bool) *StartBuildInput {
+	s.ReportBuildStatusOverride = &v
+	return s
+}
+
+// SetServiceRoleOverride sets the ServiceRoleOverride field's value.
+func (s *StartBuildInput) SetServiceRoleOverride(v string) *StartBuildInput {
+	s.ServiceRoleOverride = &v
+	return s
+}
+
+// SetSourceAuthOverride sets the SourceAuthOverride field's value.
+func (s *StartBuildInput) SetSourceAuthOverride(v *SourceAuth) *StartBuildInput {
+	s.SourceAuthOverride = v
+	return s
+}
+
+// SetSourceLocationOverride sets the SourceLocationOverride field's value.
+func (s *StartBuildInput) SetSourceLocationOverride(v string) *StartBuildInput {
+	s.SourceLocationOverride = &v
+	return s
+}
+
+// SetSourceTypeOverride sets the SourceTypeOverride field's value.
+func (s *StartBuildInput) SetSourceTypeOverride(v string) *StartBuildInput {
+	s.SourceTypeOverride = &v
 	return s
 }
 
@@ -4465,7 +4663,7 @@ type Webhook struct {
 	BranchFilter *string `locationName:"branchFilter" type:"string"`
 
 	// A timestamp indicating the last time a repository's secret token was modified.
-	LastModifiedSecret *time.Time `locationName:"lastModifiedSecret" type:"timestamp" timestampFormat:"unix"`
+	LastModifiedSecret *time.Time `locationName:"lastModifiedSecret" type:"timestamp"`
 
 	// The CodeBuild endpoint where webhook events are sent.
 	PayloadUrl *string `locationName:"payloadUrl" min:"1" type:"string"`
@@ -4596,6 +4794,9 @@ const (
 )
 
 const (
+	// EnvironmentTypeWindowsContainer is a EnvironmentType enum value
+	EnvironmentTypeWindowsContainer = "WINDOWS_CONTAINER"
+
 	// EnvironmentTypeLinuxContainer is a EnvironmentType enum value
 	EnvironmentTypeLinuxContainer = "LINUX_CONTAINER"
 )
@@ -4646,6 +4847,9 @@ const (
 
 	// PlatformTypeUbuntu is a PlatformType enum value
 	PlatformTypeUbuntu = "UBUNTU"
+
+	// PlatformTypeWindowsServer is a PlatformType enum value
+	PlatformTypeWindowsServer = "WINDOWS_SERVER"
 )
 
 const (

@@ -35,8 +35,9 @@ func resourceAwsCloudWatchMetricAlarm() *schema.Resource {
 				Required: true,
 			},
 			"evaluation_periods": {
-				Type:     schema.TypeInt,
-				Required: true,
+				Type:         schema.TypeInt,
+				Required:     true,
+				ValidateFunc: validation.IntAtLeast(1),
 			},
 			"metric_name": {
 				Type:     schema.TypeString,
@@ -75,8 +76,9 @@ func resourceAwsCloudWatchMetricAlarm() *schema.Resource {
 				Optional: true,
 			},
 			"datapoints_to_alarm": {
-				Type:     schema.TypeInt,
-				Optional: true,
+				Type:         schema.TypeInt,
+				Optional:     true,
+				ValidateFunc: validation.IntAtLeast(1),
 			},
 			"dimensions": {
 				Type:     schema.TypeMap,
@@ -224,7 +226,6 @@ func resourceAwsCloudWatchMetricAlarmDelete(d *schema.ResourceData, meta interfa
 	}
 	log.Println("[INFO] CloudWatch Metric Alarm deleted")
 
-	d.SetId("")
 	return nil
 }
 

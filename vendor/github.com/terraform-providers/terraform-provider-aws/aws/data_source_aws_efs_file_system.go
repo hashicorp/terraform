@@ -105,7 +105,7 @@ func dataSourceAwsEfsFileSystemRead(d *schema.ResourceData, meta interface{}) er
 		return err
 	}
 
-	var fs *efs.FileSystemDescription
+	var fs *efs.UpdateFileSystemOutput
 	for _, f := range describeResp.FileSystems {
 		if d.Id() == *f.FileSystemId {
 			fs = f

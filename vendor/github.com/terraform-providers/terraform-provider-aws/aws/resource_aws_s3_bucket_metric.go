@@ -109,14 +109,11 @@ func resourceAwsS3BucketMetricDelete(d *schema.ResourceData, meta interface{}) e
 	_, err = conn.DeleteBucketMetricsConfiguration(input)
 	if err != nil {
 		if isAWSErr(err, s3.ErrCodeNoSuchBucket, "") || isAWSErr(err, "NoSuchConfiguration", "The specified configuration does not exist.") {
-			log.Printf("[WARN] %s S3 bucket metrics configuration not found, removing from state.", d.Id())
-			d.SetId("")
 			return nil
 		}
 		return fmt.Errorf("Error deleting S3 metric configuration: %s", err)
 	}
 
-	d.SetId("")
 	return nil
 }
 

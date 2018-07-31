@@ -17,17 +17,20 @@ func dataSourceAwsLbListener() *schema.Resource {
 			"arn": {
 				Type:          schema.TypeString,
 				Optional:      true,
+				Computed:      true,
 				ConflictsWith: []string{"load_balancer_arn", "port"},
 			},
 
 			"load_balancer_arn": {
 				Type:          schema.TypeString,
 				Optional:      true,
+				Computed:      true,
 				ConflictsWith: []string{"arn"},
 			},
 			"port": {
 				Type:          schema.TypeInt,
 				Optional:      true,
+				Computed:      true,
 				ConflictsWith: []string{"arn"},
 			},
 

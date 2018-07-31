@@ -13,6 +13,7 @@ import (
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/hashicorp/terraform/helper/validation"
 )
 
 func cloudWatchLoggingOptionsSchema() *schema.Schema {
@@ -223,14 +224,15 @@ func flattenFirehoseExtendedS3Configuration(description *firehose.ExtendedS3Dest
 	}
 
 	m := map[string]interface{}{
-		"bucket_arn":                 aws.StringValue(description.BucketARN),
-		"cloudwatch_logging_options": flattenCloudwatchLoggingOptions(description.CloudWatchLoggingOptions),
-		"compression_format":         aws.StringValue(description.CompressionFormat),
-		"prefix":                     aws.StringValue(description.Prefix),
-		"processing_configuration":   flattenProcessingConfiguration(description.ProcessingConfiguration, aws.StringValue(description.RoleARN)),
-		"role_arn":                   aws.StringValue(description.RoleARN),
-		"s3_backup_configuration":    flattenFirehoseS3Configuration(description.S3BackupDescription),
-		"s3_backup_mode":             aws.StringValue(description.S3BackupMode),
+		"bucket_arn":                           aws.StringValue(description.BucketARN),
+		"cloudwatch_logging_options":           flattenCloudwatchLoggingOptions(description.CloudWatchLoggingOptions),
+		"compression_format":                   aws.StringValue(description.CompressionFormat),
+		"data_format_conversion_configuration": flattenFirehoseDataFormatConversionConfiguration(description.DataFormatConversionConfiguration),
+		"prefix":                   aws.StringValue(description.Prefix),
+		"processing_configuration": flattenProcessingConfiguration(description.ProcessingConfiguration, aws.StringValue(description.RoleARN)),
+		"role_arn":                 aws.StringValue(description.RoleARN),
+		"s3_backup_configuration":  flattenFirehoseS3Configuration(description.S3BackupDescription),
+		"s3_backup_mode":           aws.StringValue(description.S3BackupMode),
 	}
 
 	if description.BufferingHints != nil {
@@ -254,6 +256,7 @@ func flattenFirehoseRedshiftConfiguration(description *firehose.RedshiftDestinat
 		"cloudwatch_logging_options": flattenCloudwatchLoggingOptions(description.CloudWatchLoggingOptions),
 		"cluster_jdbcurl":            aws.StringValue(description.ClusterJDBCURL),
 		"password":                   configuredPassword,
+		"processing_configuration":   flattenProcessingConfiguration(description.ProcessingConfiguration, aws.StringValue(description.RoleARN)),
 		"role_arn":                   aws.StringValue(description.RoleARN),
 		"s3_backup_configuration":    flattenFirehoseS3Configuration(description.S3BackupDescription),
 		"s3_backup_mode":             aws.StringValue(description.S3BackupMode),
@@ -314,6 +317,209 @@ func flattenFirehoseS3Configuration(description *firehose.S3DestinationDescripti
 
 	if description.EncryptionConfiguration != nil && description.EncryptionConfiguration.KMSEncryptionConfig != nil {
 		m["kms_key_arn"] = aws.StringValue(description.EncryptionConfiguration.KMSEncryptionConfig.AWSKMSKeyARN)
+	}
+
+	return []map[string]interface{}{m}
+}
+
+func flattenFirehoseDataFormatConversionConfiguration(dfcc *firehose.DataFormatConversionConfiguration) []map[string]interface{} {
+	if dfcc == nil {
+		return []map[string]interface{}{}
+	}
+
+	m := map[string]interface{}{
+		"enabled":                     aws.BoolValue(dfcc.Enabled),
+		"input_format_configuration":  flattenFirehoseInputFormatConfiguration(dfcc.InputFormatConfiguration),
+		"output_format_configuration": flattenFirehoseOutputFormatConfiguration(dfcc.OutputFormatConfiguration),
+		"schema_configuration":        flattenFirehoseSchemaConfiguration(dfcc.SchemaConfiguration),
+	}
+
+	return []map[string]interface{}{m}
+}
+
+func flattenFirehoseInputFormatConfiguration(ifc *firehose.InputFormatConfiguration) []map[string]interface{} {
+	if ifc == nil {
+		return []map[string]interface{}{}
+	}
+
+	m := map[string]interface{}{
+		"deserializer": flattenFirehoseDeserializer(ifc.Deserializer),
+	}
+
+	return []map[string]interface{}{m}
+}
+
+func flattenFirehoseDeserializer(deserializer *firehose.Deserializer) []map[string]interface{} {
+	if deserializer == nil {
+		return []map[string]interface{}{}
+	}
+
+	m := map[string]interface{}{
+		"hive_json_ser_de":   flattenFirehoseHiveJsonSerDe(deserializer.HiveJsonSerDe),
+		"open_x_json_ser_de": flattenFirehoseOpenXJsonSerDe(deserializer.OpenXJsonSerDe),
+	}
+
+	return []map[string]interface{}{m}
+}
+
+func flattenFirehoseHiveJsonSerDe(hjsd *firehose.HiveJsonSerDe) []map[string]interface{} {
+	if hjsd == nil {
+		return []map[string]interface{}{}
+	}
+
+	m := map[string]interface{}{
+		"timestamp_formats": flattenStringList(hjsd.TimestampFormats),
+	}
+
+	return []map[string]interface{}{m}
+}
+
+func flattenFirehoseOpenXJsonSerDe(oxjsd *firehose.OpenXJsonSerDe) []map[string]interface{} {
+	if oxjsd == nil {
+		return []map[string]interface{}{}
+	}
+
+	m := map[string]interface{}{
+		"column_to_json_key_mappings":              aws.StringValueMap(oxjsd.ColumnToJsonKeyMappings),
+		"convert_dots_in_json_keys_to_underscores": aws.BoolValue(oxjsd.ConvertDotsInJsonKeysToUnderscores),
+	}
+
+	// API omits default values
+	// Return defaults that are not type zero values to prevent extraneous difference
+
+	m["case_insensitive"] = true
+	if oxjsd.CaseInsensitive != nil {
+		m["case_insensitive"] = aws.BoolValue(oxjsd.CaseInsensitive)
+	}
+
+	return []map[string]interface{}{m}
+}
+
+func flattenFirehoseOutputFormatConfiguration(ofc *firehose.OutputFormatConfiguration) []map[string]interface{} {
+	if ofc == nil {
+		return []map[string]interface{}{}
+	}
+
+	m := map[string]interface{}{
+		"serializer": flattenFirehoseSerializer(ofc.Serializer),
+	}
+
+	return []map[string]interface{}{m}
+}
+
+func flattenFirehoseSerializer(serializer *firehose.Serializer) []map[string]interface{} {
+	if serializer == nil {
+		return []map[string]interface{}{}
+	}
+
+	m := map[string]interface{}{
+		"orc_ser_de":     flattenFirehoseOrcSerDe(serializer.OrcSerDe),
+		"parquet_ser_de": flattenFirehoseParquetSerDe(serializer.ParquetSerDe),
+	}
+
+	return []map[string]interface{}{m}
+}
+
+func flattenFirehoseOrcSerDe(osd *firehose.OrcSerDe) []map[string]interface{} {
+	if osd == nil {
+		return []map[string]interface{}{}
+	}
+
+	m := map[string]interface{}{
+		"bloom_filter_columns":     aws.StringValueSlice(osd.BloomFilterColumns),
+		"dictionary_key_threshold": aws.Float64Value(osd.DictionaryKeyThreshold),
+		"enable_padding":           aws.BoolValue(osd.EnablePadding),
+	}
+
+	// API omits default values
+	// Return defaults that are not type zero values to prevent extraneous difference
+
+	m["block_size_bytes"] = 268435456
+	if osd.BlockSizeBytes != nil {
+		m["block_size_bytes"] = int(aws.Int64Value(osd.BlockSizeBytes))
+	}
+
+	m["bloom_filter_false_positive_probability"] = 0.05
+	if osd.BloomFilterFalsePositiveProbability != nil {
+		m["bloom_filter_false_positive_probability"] = aws.Float64Value(osd.BloomFilterFalsePositiveProbability)
+	}
+
+	m["compression"] = firehose.OrcCompressionSnappy
+	if osd.Compression != nil {
+		m["compression"] = aws.StringValue(osd.Compression)
+	}
+
+	m["format_version"] = firehose.OrcFormatVersionV012
+	if osd.FormatVersion != nil {
+		m["format_version"] = aws.StringValue(osd.FormatVersion)
+	}
+
+	m["padding_tolerance"] = 0.05
+	if osd.PaddingTolerance != nil {
+		m["padding_tolerance"] = aws.Float64Value(osd.PaddingTolerance)
+	}
+
+	m["row_index_stride"] = 10000
+	if osd.RowIndexStride != nil {
+		m["row_index_stride"] = int(aws.Int64Value(osd.RowIndexStride))
+	}
+
+	m["stripe_size_bytes"] = 67108864
+	if osd.StripeSizeBytes != nil {
+		m["stripe_size_bytes"] = int(aws.Int64Value(osd.StripeSizeBytes))
+	}
+
+	return []map[string]interface{}{m}
+}
+
+func flattenFirehoseParquetSerDe(psd *firehose.ParquetSerDe) []map[string]interface{} {
+	if psd == nil {
+		return []map[string]interface{}{}
+	}
+
+	m := map[string]interface{}{
+		"enable_dictionary_compression": aws.BoolValue(psd.EnableDictionaryCompression),
+		"max_padding_bytes":             int(aws.Int64Value(psd.MaxPaddingBytes)),
+	}
+
+	// API omits default values
+	// Return defaults that are not type zero values to prevent extraneous difference
+
+	m["block_size_bytes"] = 268435456
+	if psd.BlockSizeBytes != nil {
+		m["block_size_bytes"] = int(aws.Int64Value(psd.BlockSizeBytes))
+	}
+
+	m["compression"] = firehose.ParquetCompressionSnappy
+	if psd.Compression != nil {
+		m["compression"] = aws.StringValue(psd.Compression)
+	}
+
+	m["page_size_bytes"] = 1048576
+	if psd.PageSizeBytes != nil {
+		m["page_size_bytes"] = int(aws.Int64Value(psd.PageSizeBytes))
+	}
+
+	m["writer_version"] = firehose.ParquetWriterVersionV1
+	if psd.WriterVersion != nil {
+		m["writer_version"] = aws.StringValue(psd.WriterVersion)
+	}
+
+	return []map[string]interface{}{m}
+}
+
+func flattenFirehoseSchemaConfiguration(sc *firehose.SchemaConfiguration) []map[string]interface{} {
+	if sc == nil {
+		return []map[string]interface{}{}
+	}
+
+	m := map[string]interface{}{
+		"catalog_id":    aws.StringValue(sc.CatalogId),
+		"database_name": aws.StringValue(sc.DatabaseName),
+		"region":        aws.StringValue(sc.Region),
+		"role_arn":      aws.StringValue(sc.RoleARN),
+		"table_name":    aws.StringValue(sc.TableName),
+		"version_id":    aws.StringValue(sc.VersionId),
 	}
 
 	return []map[string]interface{}{m}
@@ -467,12 +673,14 @@ func resourceAwsKinesisFirehoseDeliveryStream() *schema.Resource {
 						"kinesis_stream_arn": {
 							Type:         schema.TypeString,
 							Required:     true,
+							ForceNew:     true,
 							ValidateFunc: validateArn,
 						},
 
 						"role_arn": {
 							Type:         schema.TypeString,
 							Required:     true,
+							ForceNew:     true,
 							ValidateFunc: validateArn,
 						},
 					},
@@ -527,6 +735,264 @@ func resourceAwsKinesisFirehoseDeliveryStream() *schema.Resource {
 							Type:     schema.TypeString,
 							Optional: true,
 							Default:  "UNCOMPRESSED",
+						},
+
+						"data_format_conversion_configuration": {
+							Type:     schema.TypeList,
+							Optional: true,
+							MaxItems: 1,
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"enabled": {
+										Type:     schema.TypeBool,
+										Optional: true,
+										Default:  true,
+									},
+									"input_format_configuration": {
+										Type:     schema.TypeList,
+										Required: true,
+										MaxItems: 1,
+										Elem: &schema.Resource{
+											Schema: map[string]*schema.Schema{
+												"deserializer": {
+													Type:     schema.TypeList,
+													Required: true,
+													MaxItems: 1,
+													Elem: &schema.Resource{
+														Schema: map[string]*schema.Schema{
+															"hive_json_ser_de": {
+																Type:          schema.TypeList,
+																Optional:      true,
+																MaxItems:      1,
+																ConflictsWith: []string{"extended_s3_configuration.0.data_format_conversion_configuration.0.input_format_configuration.0.deserializer.0.open_x_json_ser_de"},
+																Elem: &schema.Resource{
+																	Schema: map[string]*schema.Schema{
+																		"timestamp_formats": {
+																			Type:     schema.TypeList,
+																			Optional: true,
+																			Elem:     &schema.Schema{Type: schema.TypeString},
+																		},
+																	},
+																},
+															},
+															"open_x_json_ser_de": {
+																Type:          schema.TypeList,
+																Optional:      true,
+																MaxItems:      1,
+																ConflictsWith: []string{"extended_s3_configuration.0.data_format_conversion_configuration.0.input_format_configuration.0.deserializer.0.hive_json_ser_de"},
+																Elem: &schema.Resource{
+																	Schema: map[string]*schema.Schema{
+																		"case_insensitive": {
+																			Type:     schema.TypeBool,
+																			Optional: true,
+																			Default:  true,
+																		},
+																		"column_to_json_key_mappings": {
+																			Type:     schema.TypeMap,
+																			Optional: true,
+																			Elem:     &schema.Schema{Type: schema.TypeString},
+																		},
+																		"convert_dots_in_json_keys_to_underscores": {
+																			Type:     schema.TypeBool,
+																			Optional: true,
+																			Default:  false,
+																		},
+																	},
+																},
+															},
+														},
+													},
+												},
+											},
+										},
+									},
+									"output_format_configuration": {
+										Type:     schema.TypeList,
+										Required: true,
+										MaxItems: 1,
+										Elem: &schema.Resource{
+											Schema: map[string]*schema.Schema{
+												"serializer": {
+													Type:     schema.TypeList,
+													Required: true,
+													MaxItems: 1,
+													Elem: &schema.Resource{
+														Schema: map[string]*schema.Schema{
+															"orc_ser_de": {
+																Type:          schema.TypeList,
+																Optional:      true,
+																MaxItems:      1,
+																ConflictsWith: []string{"extended_s3_configuration.0.data_format_conversion_configuration.0.output_format_configuration.0.serializer.0.parquet_ser_de"},
+																Elem: &schema.Resource{
+																	Schema: map[string]*schema.Schema{
+																		"block_size_bytes": {
+																			Type:     schema.TypeInt,
+																			Optional: true,
+																			// 256 MiB
+																			Default: 268435456,
+																			// 64 MiB
+																			ValidateFunc: validation.IntAtLeast(67108864),
+																		},
+																		"bloom_filter_columns": {
+																			Type:     schema.TypeList,
+																			Optional: true,
+																			Elem:     &schema.Schema{Type: schema.TypeString},
+																		},
+																		"bloom_filter_false_positive_probability": {
+																			Type:     schema.TypeFloat,
+																			Optional: true,
+																			Default:  0.05,
+																		},
+																		"compression": {
+																			Type:     schema.TypeString,
+																			Optional: true,
+																			Default:  firehose.OrcCompressionSnappy,
+																			ValidateFunc: validation.StringInSlice([]string{
+																				firehose.OrcCompressionNone,
+																				firehose.OrcCompressionSnappy,
+																				firehose.OrcCompressionZlib,
+																			}, false),
+																		},
+																		"dictionary_key_threshold": {
+																			Type:     schema.TypeFloat,
+																			Optional: true,
+																			Default:  0.0,
+																		},
+																		"enable_padding": {
+																			Type:     schema.TypeBool,
+																			Optional: true,
+																			Default:  false,
+																		},
+																		"format_version": {
+																			Type:     schema.TypeString,
+																			Optional: true,
+																			Default:  firehose.OrcFormatVersionV012,
+																			ValidateFunc: validation.StringInSlice([]string{
+																				firehose.OrcFormatVersionV011,
+																				firehose.OrcFormatVersionV012,
+																			}, false),
+																		},
+																		"padding_tolerance": {
+																			Type:     schema.TypeFloat,
+																			Optional: true,
+																			Default:  0.05,
+																		},
+																		"row_index_stride": {
+																			Type:         schema.TypeInt,
+																			Optional:     true,
+																			Default:      10000,
+																			ValidateFunc: validation.IntAtLeast(1000),
+																		},
+																		"stripe_size_bytes": {
+																			Type:     schema.TypeInt,
+																			Optional: true,
+																			// 64 MiB
+																			Default: 67108864,
+																			// 8 MiB
+																			ValidateFunc: validation.IntAtLeast(8388608),
+																		},
+																	},
+																},
+															},
+															"parquet_ser_de": {
+																Type:          schema.TypeList,
+																Optional:      true,
+																MaxItems:      1,
+																ConflictsWith: []string{"extended_s3_configuration.0.data_format_conversion_configuration.0.output_format_configuration.0.serializer.0.orc_ser_de"},
+																Elem: &schema.Resource{
+																	Schema: map[string]*schema.Schema{
+																		"block_size_bytes": {
+																			Type:     schema.TypeInt,
+																			Optional: true,
+																			// 256 MiB
+																			Default: 268435456,
+																			// 64 MiB
+																			ValidateFunc: validation.IntAtLeast(67108864),
+																		},
+																		"compression": {
+																			Type:     schema.TypeString,
+																			Optional: true,
+																			Default:  firehose.ParquetCompressionSnappy,
+																			ValidateFunc: validation.StringInSlice([]string{
+																				firehose.ParquetCompressionGzip,
+																				firehose.ParquetCompressionSnappy,
+																				firehose.ParquetCompressionUncompressed,
+																			}, false),
+																		},
+																		"enable_dictionary_compression": {
+																			Type:     schema.TypeBool,
+																			Optional: true,
+																			Default:  false,
+																		},
+																		"max_padding_bytes": {
+																			Type:     schema.TypeInt,
+																			Optional: true,
+																			Default:  0,
+																		},
+																		"page_size_bytes": {
+																			Type:     schema.TypeInt,
+																			Optional: true,
+																			// 1 MiB
+																			Default: 1048576,
+																			// 64 KiB
+																			ValidateFunc: validation.IntAtLeast(65536),
+																		},
+																		"writer_version": {
+																			Type:     schema.TypeString,
+																			Optional: true,
+																			Default:  firehose.ParquetWriterVersionV1,
+																			ValidateFunc: validation.StringInSlice([]string{
+																				firehose.ParquetWriterVersionV1,
+																				firehose.ParquetWriterVersionV2,
+																			}, false),
+																		},
+																	},
+																},
+															},
+														},
+													},
+												},
+											},
+										},
+									},
+									"schema_configuration": {
+										Type:     schema.TypeList,
+										Required: true,
+										MaxItems: 1,
+										Elem: &schema.Resource{
+											Schema: map[string]*schema.Schema{
+												"catalog_id": {
+													Type:     schema.TypeString,
+													Optional: true,
+													Computed: true,
+												},
+												"database_name": {
+													Type:     schema.TypeString,
+													Required: true,
+												},
+												"region": {
+													Type:     schema.TypeString,
+													Optional: true,
+													Computed: true,
+												},
+												"role_arn": {
+													Type:     schema.TypeString,
+													Required: true,
+												},
+												"table_name": {
+													Type:     schema.TypeString,
+													Required: true,
+												},
+												"version_id": {
+													Type:     schema.TypeString,
+													Optional: true,
+													Default:  "LATEST",
+												},
+											},
+										},
+									},
+								},
+							},
 						},
 
 						"kms_key_arn": {
@@ -589,6 +1055,8 @@ func resourceAwsKinesisFirehoseDeliveryStream() *schema.Resource {
 							Required:  true,
 							Sensitive: true,
 						},
+
+						"processing_configuration": processingConfigurationSchema(),
 
 						"role_arn": {
 							Type:     schema.TypeString,
@@ -911,9 +1379,10 @@ func createExtendedS3Config(d *schema.ResourceData) *firehose.ExtendedS3Destinat
 			IntervalInSeconds: aws.Int64(int64(s3["buffer_interval"].(int))),
 			SizeInMBs:         aws.Int64(int64(s3["buffer_size"].(int))),
 		},
-		Prefix:                  extractPrefixConfiguration(s3),
-		CompressionFormat:       aws.String(s3["compression_format"].(string)),
-		EncryptionConfiguration: extractEncryptionConfiguration(s3),
+		Prefix:                            extractPrefixConfiguration(s3),
+		CompressionFormat:                 aws.String(s3["compression_format"].(string)),
+		DataFormatConversionConfiguration: expandFirehoseDataFormatConversionConfiguration(s3["data_format_conversion_configuration"].([]interface{})),
+		EncryptionConfiguration:           extractEncryptionConfiguration(s3),
 	}
 
 	if _, ok := s3["processing_configuration"]; ok {
@@ -993,11 +1462,12 @@ func updateExtendedS3Config(d *schema.ResourceData) *firehose.ExtendedS3Destinat
 			IntervalInSeconds: aws.Int64((int64)(s3["buffer_interval"].(int))),
 			SizeInMBs:         aws.Int64((int64)(s3["buffer_size"].(int))),
 		},
-		Prefix:                   extractPrefixConfiguration(s3),
-		CompressionFormat:        aws.String(s3["compression_format"].(string)),
-		EncryptionConfiguration:  extractEncryptionConfiguration(s3),
-		CloudWatchLoggingOptions: extractCloudWatchLoggingConfiguration(s3),
-		ProcessingConfiguration:  extractProcessingConfiguration(s3),
+		Prefix:                            extractPrefixConfiguration(s3),
+		CompressionFormat:                 aws.String(s3["compression_format"].(string)),
+		EncryptionConfiguration:           extractEncryptionConfiguration(s3),
+		DataFormatConversionConfiguration: expandFirehoseDataFormatConversionConfiguration(s3["data_format_conversion_configuration"].([]interface{})),
+		CloudWatchLoggingOptions:          extractCloudWatchLoggingConfiguration(s3),
+		ProcessingConfiguration:           extractProcessingConfiguration(s3),
 	}
 
 	if _, ok := s3["cloudwatch_logging_options"]; ok {
@@ -1010,6 +1480,180 @@ func updateExtendedS3Config(d *schema.ResourceData) *firehose.ExtendedS3Destinat
 	}
 
 	return configuration
+}
+
+func expandFirehoseDataFormatConversionConfiguration(l []interface{}) *firehose.DataFormatConversionConfiguration {
+	if len(l) == 0 {
+		return nil
+	}
+
+	m := l[0].(map[string]interface{})
+
+	return &firehose.DataFormatConversionConfiguration{
+		Enabled:                   aws.Bool(m["enabled"].(bool)),
+		InputFormatConfiguration:  expandFirehoseInputFormatConfiguration(m["input_format_configuration"].([]interface{})),
+		OutputFormatConfiguration: expandFirehoseOutputFormatConfiguration(m["output_format_configuration"].([]interface{})),
+		SchemaConfiguration:       expandFirehoseSchemaConfiguration(m["schema_configuration"].([]interface{})),
+	}
+}
+
+func expandFirehoseInputFormatConfiguration(l []interface{}) *firehose.InputFormatConfiguration {
+	if len(l) == 0 {
+		return nil
+	}
+
+	m := l[0].(map[string]interface{})
+
+	return &firehose.InputFormatConfiguration{
+		Deserializer: expandFirehoseDeserializer(m["deserializer"].([]interface{})),
+	}
+}
+
+func expandFirehoseDeserializer(l []interface{}) *firehose.Deserializer {
+	if len(l) == 0 {
+		return nil
+	}
+
+	m := l[0].(map[string]interface{})
+
+	return &firehose.Deserializer{
+		HiveJsonSerDe:  expandFirehoseHiveJsonSerDe(m["hive_json_ser_de"].([]interface{})),
+		OpenXJsonSerDe: expandFirehoseOpenXJsonSerDe(m["open_x_json_ser_de"].([]interface{})),
+	}
+}
+
+func expandFirehoseHiveJsonSerDe(l []interface{}) *firehose.HiveJsonSerDe {
+	if len(l) == 0 {
+		return nil
+	}
+
+	if l[0] == nil {
+		return &firehose.HiveJsonSerDe{}
+	}
+
+	m := l[0].(map[string]interface{})
+
+	return &firehose.HiveJsonSerDe{
+		TimestampFormats: expandStringList(m["timestamp_formats"].([]interface{})),
+	}
+}
+
+func expandFirehoseOpenXJsonSerDe(l []interface{}) *firehose.OpenXJsonSerDe {
+	if len(l) == 0 {
+		return nil
+	}
+
+	if l[0] == nil {
+		return &firehose.OpenXJsonSerDe{}
+	}
+
+	m := l[0].(map[string]interface{})
+
+	return &firehose.OpenXJsonSerDe{
+		CaseInsensitive:                    aws.Bool(m["case_insensitive"].(bool)),
+		ColumnToJsonKeyMappings:            stringMapToPointers(m["column_to_json_key_mappings"].(map[string]interface{})),
+		ConvertDotsInJsonKeysToUnderscores: aws.Bool(m["convert_dots_in_json_keys_to_underscores"].(bool)),
+	}
+}
+
+func expandFirehoseOutputFormatConfiguration(l []interface{}) *firehose.OutputFormatConfiguration {
+	if len(l) == 0 {
+		return nil
+	}
+
+	m := l[0].(map[string]interface{})
+
+	return &firehose.OutputFormatConfiguration{
+		Serializer: expandFirehoseSerializer(m["serializer"].([]interface{})),
+	}
+}
+
+func expandFirehoseSerializer(l []interface{}) *firehose.Serializer {
+	if len(l) == 0 {
+		return nil
+	}
+
+	m := l[0].(map[string]interface{})
+
+	return &firehose.Serializer{
+		OrcSerDe:     expandFirehoseOrcSerDe(m["orc_ser_de"].([]interface{})),
+		ParquetSerDe: expandFirehoseParquetSerDe(m["parquet_ser_de"].([]interface{})),
+	}
+}
+
+func expandFirehoseOrcSerDe(l []interface{}) *firehose.OrcSerDe {
+	if len(l) == 0 {
+		return nil
+	}
+
+	if l[0] == nil {
+		return &firehose.OrcSerDe{}
+	}
+
+	m := l[0].(map[string]interface{})
+
+	orcSerDe := &firehose.OrcSerDe{
+		BlockSizeBytes:                      aws.Int64(int64(m["block_size_bytes"].(int))),
+		BloomFilterFalsePositiveProbability: aws.Float64(m["bloom_filter_false_positive_probability"].(float64)),
+		Compression:                         aws.String(m["compression"].(string)),
+		DictionaryKeyThreshold:              aws.Float64(m["dictionary_key_threshold"].(float64)),
+		EnablePadding:                       aws.Bool(m["enable_padding"].(bool)),
+		FormatVersion:                       aws.String(m["format_version"].(string)),
+		PaddingTolerance:                    aws.Float64(m["padding_tolerance"].(float64)),
+		RowIndexStride:                      aws.Int64(int64(m["row_index_stride"].(int))),
+		StripeSizeBytes:                     aws.Int64(int64(m["stripe_size_bytes"].(int))),
+	}
+
+	if v, ok := m["bloom_filter_columns"].([]interface{}); ok && len(v) > 0 {
+		orcSerDe.BloomFilterColumns = expandStringList(v)
+	}
+
+	return orcSerDe
+}
+
+func expandFirehoseParquetSerDe(l []interface{}) *firehose.ParquetSerDe {
+	if len(l) == 0 {
+		return nil
+	}
+
+	if l[0] == nil {
+		return &firehose.ParquetSerDe{}
+	}
+
+	m := l[0].(map[string]interface{})
+
+	return &firehose.ParquetSerDe{
+		BlockSizeBytes:              aws.Int64(int64(m["block_size_bytes"].(int))),
+		Compression:                 aws.String(m["compression"].(string)),
+		EnableDictionaryCompression: aws.Bool(m["enable_dictionary_compression"].(bool)),
+		MaxPaddingBytes:             aws.Int64(int64(m["max_padding_bytes"].(int))),
+		PageSizeBytes:               aws.Int64(int64(m["page_size_bytes"].(int))),
+		WriterVersion:               aws.String(m["writer_version"].(string)),
+	}
+}
+
+func expandFirehoseSchemaConfiguration(l []interface{}) *firehose.SchemaConfiguration {
+	if len(l) == 0 {
+		return nil
+	}
+
+	m := l[0].(map[string]interface{})
+
+	config := &firehose.SchemaConfiguration{
+		DatabaseName: aws.String(m["database_name"].(string)),
+		RoleARN:      aws.String(m["role_arn"].(string)),
+		TableName:    aws.String(m["table_name"].(string)),
+		VersionId:    aws.String(m["version_id"].(string)),
+	}
+
+	if v, ok := m["catalog_id"].(string); ok && v != "" {
+		config.CatalogId = aws.String(v)
+	}
+	if v, ok := m["region"].(string); ok && v != "" {
+		config.Region = aws.String(v)
+	}
+
+	return config
 }
 
 func extractProcessingConfiguration(s3 map[string]interface{}) *firehose.ProcessingConfiguration {
@@ -1129,6 +1773,9 @@ func createRedshiftConfig(d *schema.ResourceData, s3Config *firehose.S3Destinati
 	if _, ok := redshift["cloudwatch_logging_options"]; ok {
 		configuration.CloudWatchLoggingOptions = extractCloudWatchLoggingConfiguration(redshift)
 	}
+	if _, ok := redshift["processing_configuration"]; ok {
+		configuration.ProcessingConfiguration = extractProcessingConfiguration(redshift)
+	}
 	if s3BackupMode, ok := redshift["s3_backup_mode"]; ok {
 		configuration.S3BackupMode = aws.String(s3BackupMode.(string))
 		configuration.S3BackupConfiguration = expandS3BackupConfig(d.Get("redshift_configuration").([]interface{})[0].(map[string]interface{}))
@@ -1158,6 +1805,9 @@ func updateRedshiftConfig(d *schema.ResourceData, s3Update *firehose.S3Destinati
 
 	if _, ok := redshift["cloudwatch_logging_options"]; ok {
 		configuration.CloudWatchLoggingOptions = extractCloudWatchLoggingConfiguration(redshift)
+	}
+	if _, ok := redshift["processing_configuration"]; ok {
+		configuration.ProcessingConfiguration = extractProcessingConfiguration(redshift)
 	}
 	if s3BackupMode, ok := redshift["s3_backup_mode"]; ok {
 		configuration.S3BackupMode = aws.String(s3BackupMode.(string))
@@ -1411,15 +2061,13 @@ func resourceAwsKinesisFirehoseDeliveryStreamCreate(d *schema.ResourceData, meta
 		}
 	}
 
-	var lastError error
 	err := resource.Retry(1*time.Minute, func() *resource.RetryError {
 		_, err := conn.CreateDeliveryStream(createInput)
 		if err != nil {
 			log.Printf("[DEBUG] Error creating Firehose Delivery Stream: %s", err)
-			lastError = err
 
 			// Retry for IAM eventual consistency
-			if isAWSErr(err, firehose.ErrCodeInvalidArgumentException, "is not authorized to perform") {
+			if isAWSErr(err, firehose.ErrCodeInvalidArgumentException, "is not authorized to") {
 				return resource.RetryableError(err)
 			}
 			// IAM roles can take ~10 seconds to propagate in AWS:
@@ -1538,7 +2186,28 @@ func resourceAwsKinesisFirehoseDeliveryStreamUpdate(d *schema.ResourceData, meta
 		}
 	}
 
-	_, err := conn.UpdateDestination(updateInput)
+	err := resource.Retry(1*time.Minute, func() *resource.RetryError {
+		_, err := conn.UpdateDestination(updateInput)
+		if err != nil {
+			log.Printf("[DEBUG] Error creating Firehose Delivery Stream: %s", err)
+
+			// Retry for IAM eventual consistency
+			if isAWSErr(err, firehose.ErrCodeInvalidArgumentException, "is not authorized to") {
+				return resource.RetryableError(err)
+			}
+			// IAM roles can take ~10 seconds to propagate in AWS:
+			// http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/iam-roles-for-amazon-ec2.html#launch-instance-with-role-console
+			if isAWSErr(err, firehose.ErrCodeInvalidArgumentException, "Firehose is unable to assume role") {
+				log.Printf("[DEBUG] Firehose could not assume role referenced, retrying...")
+				return resource.RetryableError(err)
+			}
+			// Not retryable
+			return resource.NonRetryableError(err)
+		}
+
+		return nil
+	})
+
 	if err != nil {
 		return fmt.Errorf(
 			"Error Updating Kinesis Firehose Delivery Stream: \"%s\"\n%s",
@@ -1601,7 +2270,6 @@ func resourceAwsKinesisFirehoseDeliveryStreamDelete(d *schema.ResourceData, meta
 			sn, err)
 	}
 
-	d.SetId("")
 	return nil
 }
 

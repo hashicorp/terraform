@@ -51,6 +51,11 @@ func dataSourceAwsRoute53Zone() *schema.Resource {
 				Optional: true,
 				Computed: true,
 			},
+			"name_servers": &schema.Schema{
+				Type:     schema.TypeList,
+				Elem:     &schema.Schema{Type: schema.TypeString},
+				Computed: true,
+			},
 		},
 	}
 }
@@ -135,7 +140,6 @@ func dataSourceAwsRoute53ZoneRead(d *schema.ResourceData, meta interface{}) erro
 							break
 						}
 					}
-
 				}
 
 				if matchingTags && matchingVPC {
@@ -146,7 +150,6 @@ func dataSourceAwsRoute53ZoneRead(d *schema.ResourceData, meta interface{}) erro
 					hostedZoneFound = hostedZone
 				}
 			}
-
 		}
 		if *resp.IsTruncated {
 			nextMarker = resp.NextMarker
@@ -166,6 +169,13 @@ func dataSourceAwsRoute53ZoneRead(d *schema.ResourceData, meta interface{}) erro
 	d.Set("private_zone", hostedZoneFound.Config.PrivateZone)
 	d.Set("caller_reference", hostedZoneFound.CallerReference)
 	d.Set("resource_record_set_count", hostedZoneFound.ResourceRecordSetCount)
+
+	nameServers, err := hostedZoneNameServers(idHostedZone, conn)
+	if err != nil {
+		return fmt.Errorf("Error finding Route 53 Hosted Zone: %v", err)
+	}
+	d.Set("name_servers", nameServers)
+
 	return nil
 }
 
@@ -176,4 +186,27 @@ func hostedZoneName(name string) string {
 	}
 
 	return name + "."
+}
+
+// used to retrieve name servers
+func hostedZoneNameServers(id string, conn *route53.Route53) ([]string, error) {
+	req := &route53.GetHostedZoneInput{}
+	req.Id = aws.String(id)
+
+	resp, err := conn.GetHostedZone(req)
+	if err != nil {
+		return []string{}, err
+	}
+
+	if resp.DelegationSet == nil {
+		return []string{}, nil
+	}
+
+	servers := []string{}
+	for _, server := range resp.DelegationSet.NameServers {
+		if server != nil {
+			servers = append(servers, *server)
+		}
+	}
+	return servers, nil
 }

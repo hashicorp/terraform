@@ -258,7 +258,6 @@ func resourceAwsDmsReplicationTaskDelete(d *schema.ResourceData, meta interface{
 	if err != nil {
 		if dmserr, ok := err.(awserr.Error); ok && dmserr.Code() == "ResourceNotFoundFault" {
 			log.Printf("[DEBUG] DMS Replication Task %q Not Found", d.Id())
-			d.SetId("")
 			return nil
 		}
 		return err

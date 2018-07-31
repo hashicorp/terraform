@@ -163,6 +163,11 @@ func resourceAwsCognitoUserPool() *schema.Resource {
 				ValidateFunc: validateCognitoUserPoolEmailVerificationMessage,
 			},
 
+			"endpoint": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+
 			"lambda_config": {
 				Type:     schema.TypeList,
 				Optional: true,
@@ -206,6 +211,11 @@ func resourceAwsCognitoUserPool() *schema.Resource {
 							ValidateFunc: validateArn,
 						},
 						"pre_token_generation": {
+							Type:         schema.TypeString,
+							Optional:     true,
+							ValidateFunc: validateArn,
+						},
+						"user_migration": {
 							Type:         schema.TypeString,
 							Optional:     true,
 							ValidateFunc: validateArn,
@@ -650,6 +660,7 @@ func resourceAwsCognitoUserPoolRead(d *schema.ResourceData, meta interface{}) er
 		Resource:  fmt.Sprintf("userpool/%s", d.Id()),
 	}
 	d.Set("arn", arn.String())
+	d.Set("endpoint", fmt.Sprintf("cognito-idp.%s.amazonaws.com/%s", meta.(*AWSClient).region, d.Id()))
 	d.Set("auto_verified_attributes", flattenStringList(resp.UserPool.AutoVerifiedAttributes))
 
 	if resp.UserPool.EmailVerificationSubject != nil {

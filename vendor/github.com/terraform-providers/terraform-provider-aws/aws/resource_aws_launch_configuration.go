@@ -2,8 +2,6 @@ package aws
 
 import (
 	"bytes"
-	"crypto/sha1"
-	"encoding/hex"
 	"fmt"
 	"log"
 	"time"
@@ -37,10 +35,11 @@ func resourceAwsLaunchConfiguration() *schema.Resource {
 			},
 
 			"name_prefix": {
-				Type:         schema.TypeString,
-				Optional:     true,
-				ForceNew:     true,
-				ValidateFunc: validation.StringLenBetween(1, 255-resource.UniqueIDSuffixLength),
+				Type:          schema.TypeString,
+				Optional:      true,
+				ForceNew:      true,
+				ConflictsWith: []string{"name"},
+				ValidateFunc:  validation.StringLenBetween(1, 255-resource.UniqueIDSuffixLength),
 			},
 
 			"image_id": {
@@ -69,19 +68,35 @@ func resourceAwsLaunchConfiguration() *schema.Resource {
 			},
 
 			"user_data": {
-				Type:     schema.TypeString,
-				Optional: true,
-				ForceNew: true,
+				Type:          schema.TypeString,
+				Optional:      true,
+				ForceNew:      true,
+				ConflictsWith: []string{"user_data_base64"},
 				StateFunc: func(v interface{}) string {
 					switch v.(type) {
 					case string:
-						hash := sha1.Sum([]byte(v.(string)))
-						return hex.EncodeToString(hash[:])
+						return userDataHashSum(v.(string))
 					default:
 						return ""
 					}
 				},
 				ValidateFunc: validation.StringLenBetween(1, 16384),
+			},
+
+			"user_data_base64": {
+				Type:          schema.TypeString,
+				Optional:      true,
+				ForceNew:      true,
+				ConflictsWith: []string{"user_data"},
+				ValidateFunc: func(v interface{}, name string) (warns []string, errs []error) {
+					s := v.(string)
+					if !isBase64Encoded([]byte(s)) {
+						errs = append(errs, fmt.Errorf(
+							"%s: must be base64-encoded", name,
+						))
+					}
+					return
+				},
 			},
 
 			"security_groups": {
@@ -286,6 +301,8 @@ func resourceAwsLaunchConfigurationCreate(d *schema.ResourceData, meta interface
 	if v, ok := d.GetOk("user_data"); ok {
 		userData := base64Encode([]byte(v.(string)))
 		createLaunchConfigurationOpts.UserData = aws.String(userData)
+	} else if v, ok := d.GetOk("user_data_base64"); ok {
+		createLaunchConfigurationOpts.UserData = aws.String(v.(string))
 	}
 
 	createLaunchConfigurationOpts.InstanceMonitoring = &autoscaling.InstanceMonitoring{
@@ -523,8 +540,13 @@ func resourceAwsLaunchConfigurationRead(d *schema.ResourceData, meta interface{}
 	if err := d.Set("security_groups", flattenStringList(lc.SecurityGroups)); err != nil {
 		return fmt.Errorf("error setting security_groups: %s", err)
 	}
-	if aws.StringValue(lc.UserData) != "" {
-		d.Set("user_data", userDataHashSum(*lc.UserData))
+	if v := aws.StringValue(lc.UserData); v != "" {
+		_, b64 := d.GetOk("user_data_base64")
+		if b64 {
+			d.Set("user_data_base64", v)
+		} else {
+			d.Set("user_data", userDataHashSum(v))
+		}
 	}
 
 	d.Set("vpc_classic_link_id", lc.ClassicLinkVPCId)

@@ -231,7 +231,6 @@ func resourceAwsElasticacheParameterGroupDelete(d *schema.ResourceData, meta int
 		if err != nil {
 			awsErr, ok := err.(awserr.Error)
 			if ok && awsErr.Code() == "CacheParameterGroupNotFoundFault" {
-				d.SetId("")
 				return nil
 			}
 			if ok && awsErr.Code() == "InvalidCacheParameterGroupState" {

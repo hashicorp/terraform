@@ -539,6 +539,92 @@ func (c *DeviceFarm) CreateUploadWithContext(ctx aws.Context, input *CreateUploa
 	return out, req.Send()
 }
 
+const opCreateVPCEConfiguration = "CreateVPCEConfiguration"
+
+// CreateVPCEConfigurationRequest generates a "aws/request.Request" representing the
+// client's request for the CreateVPCEConfiguration operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfuly.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See CreateVPCEConfiguration for more information on using the CreateVPCEConfiguration
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the CreateVPCEConfigurationRequest method.
+//    req, resp := client.CreateVPCEConfigurationRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/devicefarm-2015-06-23/CreateVPCEConfiguration
+func (c *DeviceFarm) CreateVPCEConfigurationRequest(input *CreateVPCEConfigurationInput) (req *request.Request, output *CreateVPCEConfigurationOutput) {
+	op := &request.Operation{
+		Name:       opCreateVPCEConfiguration,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &CreateVPCEConfigurationInput{}
+	}
+
+	output = &CreateVPCEConfigurationOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// CreateVPCEConfiguration API operation for AWS Device Farm.
+//
+// Creates a configuration record in Device Farm for your Amazon Virtual Private
+// Cloud (VPC) endpoint.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Device Farm's
+// API operation CreateVPCEConfiguration for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeArgumentException "ArgumentException"
+//   An invalid argument was specified.
+//
+//   * ErrCodeLimitExceededException "LimitExceededException"
+//   A limit was exceeded.
+//
+//   * ErrCodeServiceAccountException "ServiceAccountException"
+//   There was a problem with the service account.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/devicefarm-2015-06-23/CreateVPCEConfiguration
+func (c *DeviceFarm) CreateVPCEConfiguration(input *CreateVPCEConfigurationInput) (*CreateVPCEConfigurationOutput, error) {
+	req, out := c.CreateVPCEConfigurationRequest(input)
+	return out, req.Send()
+}
+
+// CreateVPCEConfigurationWithContext is the same as CreateVPCEConfiguration with the addition of
+// the ability to pass a context and additional request options.
+//
+// See CreateVPCEConfiguration for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *DeviceFarm) CreateVPCEConfigurationWithContext(ctx aws.Context, input *CreateVPCEConfigurationInput, opts ...request.Option) (*CreateVPCEConfigurationOutput, error) {
+	req, out := c.CreateVPCEConfigurationRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
 const opDeleteDevicePool = "DeleteDevicePool"
 
 // DeleteDevicePoolRequest generates a "aws/request.Request" representing the
@@ -1155,6 +1241,95 @@ func (c *DeviceFarm) DeleteUpload(input *DeleteUploadInput) (*DeleteUploadOutput
 // for more information on using Contexts.
 func (c *DeviceFarm) DeleteUploadWithContext(ctx aws.Context, input *DeleteUploadInput, opts ...request.Option) (*DeleteUploadOutput, error) {
 	req, out := c.DeleteUploadRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+const opDeleteVPCEConfiguration = "DeleteVPCEConfiguration"
+
+// DeleteVPCEConfigurationRequest generates a "aws/request.Request" representing the
+// client's request for the DeleteVPCEConfiguration operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfuly.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See DeleteVPCEConfiguration for more information on using the DeleteVPCEConfiguration
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the DeleteVPCEConfigurationRequest method.
+//    req, resp := client.DeleteVPCEConfigurationRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/devicefarm-2015-06-23/DeleteVPCEConfiguration
+func (c *DeviceFarm) DeleteVPCEConfigurationRequest(input *DeleteVPCEConfigurationInput) (req *request.Request, output *DeleteVPCEConfigurationOutput) {
+	op := &request.Operation{
+		Name:       opDeleteVPCEConfiguration,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &DeleteVPCEConfigurationInput{}
+	}
+
+	output = &DeleteVPCEConfigurationOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// DeleteVPCEConfiguration API operation for AWS Device Farm.
+//
+// Deletes a configuration for your Amazon Virtual Private Cloud (VPC) endpoint.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Device Farm's
+// API operation DeleteVPCEConfiguration for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeArgumentException "ArgumentException"
+//   An invalid argument was specified.
+//
+//   * ErrCodeNotFoundException "NotFoundException"
+//   The specified entity was not found.
+//
+//   * ErrCodeServiceAccountException "ServiceAccountException"
+//   There was a problem with the service account.
+//
+//   * ErrCodeInvalidOperationException "InvalidOperationException"
+//   There was an error with the update request, or you do not have sufficient
+//   permissions to update this VPC endpoint configuration.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/devicefarm-2015-06-23/DeleteVPCEConfiguration
+func (c *DeviceFarm) DeleteVPCEConfiguration(input *DeleteVPCEConfigurationInput) (*DeleteVPCEConfigurationOutput, error) {
+	req, out := c.DeleteVPCEConfigurationRequest(input)
+	return out, req.Send()
+}
+
+// DeleteVPCEConfigurationWithContext is the same as DeleteVPCEConfiguration with the addition of
+// the ability to pass a context and additional request options.
+//
+// See DeleteVPCEConfiguration for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *DeviceFarm) DeleteVPCEConfigurationWithContext(ctx aws.Context, input *DeleteVPCEConfigurationInput, opts ...request.Option) (*DeleteVPCEConfigurationOutput, error) {
+	req, out := c.DeleteVPCEConfigurationRequest(input)
 	req.SetContext(ctx)
 	req.ApplyOptions(opts...)
 	return out, req.Send()
@@ -2542,6 +2717,92 @@ func (c *DeviceFarm) GetUpload(input *GetUploadInput) (*GetUploadOutput, error) 
 // for more information on using Contexts.
 func (c *DeviceFarm) GetUploadWithContext(ctx aws.Context, input *GetUploadInput, opts ...request.Option) (*GetUploadOutput, error) {
 	req, out := c.GetUploadRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+const opGetVPCEConfiguration = "GetVPCEConfiguration"
+
+// GetVPCEConfigurationRequest generates a "aws/request.Request" representing the
+// client's request for the GetVPCEConfiguration operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfuly.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See GetVPCEConfiguration for more information on using the GetVPCEConfiguration
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the GetVPCEConfigurationRequest method.
+//    req, resp := client.GetVPCEConfigurationRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/devicefarm-2015-06-23/GetVPCEConfiguration
+func (c *DeviceFarm) GetVPCEConfigurationRequest(input *GetVPCEConfigurationInput) (req *request.Request, output *GetVPCEConfigurationOutput) {
+	op := &request.Operation{
+		Name:       opGetVPCEConfiguration,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &GetVPCEConfigurationInput{}
+	}
+
+	output = &GetVPCEConfigurationOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// GetVPCEConfiguration API operation for AWS Device Farm.
+//
+// Returns information about the configuration settings for your Amazon Virtual
+// Private Cloud (VPC) endpoint.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Device Farm's
+// API operation GetVPCEConfiguration for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeArgumentException "ArgumentException"
+//   An invalid argument was specified.
+//
+//   * ErrCodeNotFoundException "NotFoundException"
+//   The specified entity was not found.
+//
+//   * ErrCodeServiceAccountException "ServiceAccountException"
+//   There was a problem with the service account.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/devicefarm-2015-06-23/GetVPCEConfiguration
+func (c *DeviceFarm) GetVPCEConfiguration(input *GetVPCEConfigurationInput) (*GetVPCEConfigurationOutput, error) {
+	req, out := c.GetVPCEConfigurationRequest(input)
+	return out, req.Send()
+}
+
+// GetVPCEConfigurationWithContext is the same as GetVPCEConfiguration with the addition of
+// the ability to pass a context and additional request options.
+//
+// See GetVPCEConfiguration for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *DeviceFarm) GetVPCEConfigurationWithContext(ctx aws.Context, input *GetVPCEConfigurationInput, opts ...request.Option) (*GetVPCEConfigurationOutput, error) {
+	req, out := c.GetVPCEConfigurationRequest(input)
 	req.SetContext(ctx)
 	req.ApplyOptions(opts...)
 	return out, req.Send()
@@ -4976,6 +5237,89 @@ func (c *DeviceFarm) ListUploadsPagesWithContext(ctx aws.Context, input *ListUpl
 	return p.Err()
 }
 
+const opListVPCEConfigurations = "ListVPCEConfigurations"
+
+// ListVPCEConfigurationsRequest generates a "aws/request.Request" representing the
+// client's request for the ListVPCEConfigurations operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfuly.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See ListVPCEConfigurations for more information on using the ListVPCEConfigurations
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the ListVPCEConfigurationsRequest method.
+//    req, resp := client.ListVPCEConfigurationsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/devicefarm-2015-06-23/ListVPCEConfigurations
+func (c *DeviceFarm) ListVPCEConfigurationsRequest(input *ListVPCEConfigurationsInput) (req *request.Request, output *ListVPCEConfigurationsOutput) {
+	op := &request.Operation{
+		Name:       opListVPCEConfigurations,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &ListVPCEConfigurationsInput{}
+	}
+
+	output = &ListVPCEConfigurationsOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// ListVPCEConfigurations API operation for AWS Device Farm.
+//
+// Returns information about all Amazon Virtual Private Cloud (VPC) endpoint
+// configurations in the AWS account.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Device Farm's
+// API operation ListVPCEConfigurations for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeArgumentException "ArgumentException"
+//   An invalid argument was specified.
+//
+//   * ErrCodeServiceAccountException "ServiceAccountException"
+//   There was a problem with the service account.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/devicefarm-2015-06-23/ListVPCEConfigurations
+func (c *DeviceFarm) ListVPCEConfigurations(input *ListVPCEConfigurationsInput) (*ListVPCEConfigurationsOutput, error) {
+	req, out := c.ListVPCEConfigurationsRequest(input)
+	return out, req.Send()
+}
+
+// ListVPCEConfigurationsWithContext is the same as ListVPCEConfigurations with the addition of
+// the ability to pass a context and additional request options.
+//
+// See ListVPCEConfigurations for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *DeviceFarm) ListVPCEConfigurationsWithContext(ctx aws.Context, input *ListVPCEConfigurationsInput, opts ...request.Option) (*ListVPCEConfigurationsOutput, error) {
+	req, out := c.ListVPCEConfigurationsRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
 const opPurchaseOffering = "PurchaseOffering"
 
 // PurchaseOfferingRequest generates a "aws/request.Request" representing the
@@ -5883,6 +6227,96 @@ func (c *DeviceFarm) UpdateProjectWithContext(ctx aws.Context, input *UpdateProj
 	return out, req.Send()
 }
 
+const opUpdateVPCEConfiguration = "UpdateVPCEConfiguration"
+
+// UpdateVPCEConfigurationRequest generates a "aws/request.Request" representing the
+// client's request for the UpdateVPCEConfiguration operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfuly.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See UpdateVPCEConfiguration for more information on using the UpdateVPCEConfiguration
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the UpdateVPCEConfigurationRequest method.
+//    req, resp := client.UpdateVPCEConfigurationRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/devicefarm-2015-06-23/UpdateVPCEConfiguration
+func (c *DeviceFarm) UpdateVPCEConfigurationRequest(input *UpdateVPCEConfigurationInput) (req *request.Request, output *UpdateVPCEConfigurationOutput) {
+	op := &request.Operation{
+		Name:       opUpdateVPCEConfiguration,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &UpdateVPCEConfigurationInput{}
+	}
+
+	output = &UpdateVPCEConfigurationOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// UpdateVPCEConfiguration API operation for AWS Device Farm.
+//
+// Updates information about an existing Amazon Virtual Private Cloud (VPC)
+// endpoint configuration.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Device Farm's
+// API operation UpdateVPCEConfiguration for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeArgumentException "ArgumentException"
+//   An invalid argument was specified.
+//
+//   * ErrCodeNotFoundException "NotFoundException"
+//   The specified entity was not found.
+//
+//   * ErrCodeServiceAccountException "ServiceAccountException"
+//   There was a problem with the service account.
+//
+//   * ErrCodeInvalidOperationException "InvalidOperationException"
+//   There was an error with the update request, or you do not have sufficient
+//   permissions to update this VPC endpoint configuration.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/devicefarm-2015-06-23/UpdateVPCEConfiguration
+func (c *DeviceFarm) UpdateVPCEConfiguration(input *UpdateVPCEConfigurationInput) (*UpdateVPCEConfigurationOutput, error) {
+	req, out := c.UpdateVPCEConfigurationRequest(input)
+	return out, req.Send()
+}
+
+// UpdateVPCEConfigurationWithContext is the same as UpdateVPCEConfiguration with the addition of
+// the ability to pass a context and additional request options.
+//
+// See UpdateVPCEConfiguration for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *DeviceFarm) UpdateVPCEConfigurationWithContext(ctx aws.Context, input *UpdateVPCEConfigurationInput, opts ...request.Option) (*UpdateVPCEConfigurationOutput, error) {
+	req, out := c.UpdateVPCEConfigurationRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
 // A container for account-level settings within AWS Device Farm.
 type AccountSettings struct {
 	_ struct{} `type:"structure"`
@@ -6671,6 +7105,9 @@ type CreateRemoteAccessSessionConfiguration struct {
 
 	// The billing method for the remote access session.
 	BillingMethod *string `locationName:"billingMethod" type:"string" enum:"BillingMethod"`
+
+	// An array of Amazon Resource Names (ARNs) included in the VPC endpoint configuration.
+	VpceConfigurationArns []*string `locationName:"vpceConfigurationArns" type:"list"`
 }
 
 // String returns the string representation
@@ -6686,6 +7123,12 @@ func (s CreateRemoteAccessSessionConfiguration) GoString() string {
 // SetBillingMethod sets the BillingMethod field's value.
 func (s *CreateRemoteAccessSessionConfiguration) SetBillingMethod(v string) *CreateRemoteAccessSessionConfiguration {
 	s.BillingMethod = &v
+	return s
+}
+
+// SetVpceConfigurationArns sets the VpceConfigurationArns field's value.
+func (s *CreateRemoteAccessSessionConfiguration) SetVpceConfigurationArns(v []*string) *CreateRemoteAccessSessionConfiguration {
+	s.VpceConfigurationArns = v
 	return s
 }
 
@@ -7039,6 +7482,107 @@ func (s CreateUploadOutput) GoString() string {
 // SetUpload sets the Upload field's value.
 func (s *CreateUploadOutput) SetUpload(v *Upload) *CreateUploadOutput {
 	s.Upload = v
+	return s
+}
+
+type CreateVPCEConfigurationInput struct {
+	_ struct{} `type:"structure"`
+
+	// The DNS name of the service running in your VPC that you want Device Farm
+	// to test.
+	//
+	// ServiceDnsName is a required field
+	ServiceDnsName *string `locationName:"serviceDnsName" type:"string" required:"true"`
+
+	// An optional description, providing more details about your VPC endpoint configuration.
+	VpceConfigurationDescription *string `locationName:"vpceConfigurationDescription" type:"string"`
+
+	// The friendly name you give to your VPC endpoint configuration, to manage
+	// your configurations more easily.
+	//
+	// VpceConfigurationName is a required field
+	VpceConfigurationName *string `locationName:"vpceConfigurationName" type:"string" required:"true"`
+
+	// The name of the VPC endpoint service running inside your AWS account that
+	// you want Device Farm to test.
+	//
+	// VpceServiceName is a required field
+	VpceServiceName *string `locationName:"vpceServiceName" type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s CreateVPCEConfigurationInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s CreateVPCEConfigurationInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *CreateVPCEConfigurationInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "CreateVPCEConfigurationInput"}
+	if s.ServiceDnsName == nil {
+		invalidParams.Add(request.NewErrParamRequired("ServiceDnsName"))
+	}
+	if s.VpceConfigurationName == nil {
+		invalidParams.Add(request.NewErrParamRequired("VpceConfigurationName"))
+	}
+	if s.VpceServiceName == nil {
+		invalidParams.Add(request.NewErrParamRequired("VpceServiceName"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetServiceDnsName sets the ServiceDnsName field's value.
+func (s *CreateVPCEConfigurationInput) SetServiceDnsName(v string) *CreateVPCEConfigurationInput {
+	s.ServiceDnsName = &v
+	return s
+}
+
+// SetVpceConfigurationDescription sets the VpceConfigurationDescription field's value.
+func (s *CreateVPCEConfigurationInput) SetVpceConfigurationDescription(v string) *CreateVPCEConfigurationInput {
+	s.VpceConfigurationDescription = &v
+	return s
+}
+
+// SetVpceConfigurationName sets the VpceConfigurationName field's value.
+func (s *CreateVPCEConfigurationInput) SetVpceConfigurationName(v string) *CreateVPCEConfigurationInput {
+	s.VpceConfigurationName = &v
+	return s
+}
+
+// SetVpceServiceName sets the VpceServiceName field's value.
+func (s *CreateVPCEConfigurationInput) SetVpceServiceName(v string) *CreateVPCEConfigurationInput {
+	s.VpceServiceName = &v
+	return s
+}
+
+type CreateVPCEConfigurationOutput struct {
+	_ struct{} `type:"structure"`
+
+	// An object containing information about your VPC endpoint configuration.
+	VpceConfiguration *VPCEConfiguration `locationName:"vpceConfiguration" type:"structure"`
+}
+
+// String returns the string representation
+func (s CreateVPCEConfigurationOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s CreateVPCEConfigurationOutput) GoString() string {
+	return s.String()
+}
+
+// SetVpceConfiguration sets the VpceConfiguration field's value.
+func (s *CreateVPCEConfigurationOutput) SetVpceConfiguration(v *VPCEConfiguration) *CreateVPCEConfigurationOutput {
+	s.VpceConfiguration = v
 	return s
 }
 
@@ -7490,6 +8034,62 @@ func (s DeleteUploadOutput) String() string {
 
 // GoString returns the string representation
 func (s DeleteUploadOutput) GoString() string {
+	return s.String()
+}
+
+type DeleteVPCEConfigurationInput struct {
+	_ struct{} `type:"structure"`
+
+	// The Amazon Resource Name (ARN) of the VPC endpoint configuration you want
+	// to delete.
+	//
+	// Arn is a required field
+	Arn *string `locationName:"arn" min:"32" type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s DeleteVPCEConfigurationInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DeleteVPCEConfigurationInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DeleteVPCEConfigurationInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DeleteVPCEConfigurationInput"}
+	if s.Arn == nil {
+		invalidParams.Add(request.NewErrParamRequired("Arn"))
+	}
+	if s.Arn != nil && len(*s.Arn) < 32 {
+		invalidParams.Add(request.NewErrParamMinLen("Arn", 32))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetArn sets the Arn field's value.
+func (s *DeleteVPCEConfigurationInput) SetArn(v string) *DeleteVPCEConfigurationInput {
+	s.Arn = &v
+	return s
+}
+
+type DeleteVPCEConfigurationOutput struct {
+	_ struct{} `type:"structure"`
+}
+
+// String returns the string representation
+func (s DeleteVPCEConfigurationOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DeleteVPCEConfigurationOutput) GoString() string {
 	return s.String()
 }
 
@@ -8163,6 +8763,9 @@ type GetDevicePoolCompatibilityInput struct {
 	// The ARN of the app that is associated with the specified device pool.
 	AppArn *string `locationName:"appArn" min:"32" type:"string"`
 
+	// An object containing information about the settings for a run.
+	Configuration *ScheduleRunConfiguration `locationName:"configuration" type:"structure"`
+
 	// The device pool's ARN.
 	//
 	// DevicePoolArn is a required field
@@ -8229,6 +8832,11 @@ func (s *GetDevicePoolCompatibilityInput) Validate() error {
 	if s.DevicePoolArn != nil && len(*s.DevicePoolArn) < 32 {
 		invalidParams.Add(request.NewErrParamMinLen("DevicePoolArn", 32))
 	}
+	if s.Configuration != nil {
+		if err := s.Configuration.Validate(); err != nil {
+			invalidParams.AddNested("Configuration", err.(request.ErrInvalidParams))
+		}
+	}
 	if s.Test != nil {
 		if err := s.Test.Validate(); err != nil {
 			invalidParams.AddNested("Test", err.(request.ErrInvalidParams))
@@ -8244,6 +8852,12 @@ func (s *GetDevicePoolCompatibilityInput) Validate() error {
 // SetAppArn sets the AppArn field's value.
 func (s *GetDevicePoolCompatibilityInput) SetAppArn(v string) *GetDevicePoolCompatibilityInput {
 	s.AppArn = &v
+	return s
+}
+
+// SetConfiguration sets the Configuration field's value.
+func (s *GetDevicePoolCompatibilityInput) SetConfiguration(v *ScheduleRunConfiguration) *GetDevicePoolCompatibilityInput {
+	s.Configuration = v
 	return s
 }
 
@@ -9040,6 +9654,71 @@ func (s *GetUploadOutput) SetUpload(v *Upload) *GetUploadOutput {
 	return s
 }
 
+type GetVPCEConfigurationInput struct {
+	_ struct{} `type:"structure"`
+
+	// The Amazon Resource Name (ARN) of the VPC endpoint configuration you want
+	// to describe.
+	//
+	// Arn is a required field
+	Arn *string `locationName:"arn" min:"32" type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s GetVPCEConfigurationInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s GetVPCEConfigurationInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *GetVPCEConfigurationInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "GetVPCEConfigurationInput"}
+	if s.Arn == nil {
+		invalidParams.Add(request.NewErrParamRequired("Arn"))
+	}
+	if s.Arn != nil && len(*s.Arn) < 32 {
+		invalidParams.Add(request.NewErrParamMinLen("Arn", 32))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetArn sets the Arn field's value.
+func (s *GetVPCEConfigurationInput) SetArn(v string) *GetVPCEConfigurationInput {
+	s.Arn = &v
+	return s
+}
+
+type GetVPCEConfigurationOutput struct {
+	_ struct{} `type:"structure"`
+
+	// An object containing information about your VPC endpoint configuration.
+	VpceConfiguration *VPCEConfiguration `locationName:"vpceConfiguration" type:"structure"`
+}
+
+// String returns the string representation
+func (s GetVPCEConfigurationOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s GetVPCEConfigurationOutput) GoString() string {
+	return s.String()
+}
+
+// SetVpceConfiguration sets the VpceConfiguration field's value.
+func (s *GetVPCEConfigurationOutput) SetVpceConfiguration(v *VPCEConfiguration) *GetVPCEConfigurationOutput {
+	s.VpceConfiguration = v
+	return s
+}
+
 // Represents information about incompatibility.
 type IncompatibilityMessage struct {
 	_ struct{} `type:"structure"`
@@ -9259,7 +9938,7 @@ type Job struct {
 	Counters *Counters `locationName:"counters" type:"structure"`
 
 	// When the job was created.
-	Created *time.Time `locationName:"created" type:"timestamp" timestampFormat:"unix"`
+	Created *time.Time `locationName:"created" type:"timestamp"`
 
 	// The device (phone or tablet).
 	Device *Device `locationName:"device" type:"structure"`
@@ -9296,7 +9975,7 @@ type Job struct {
 	Result *string `locationName:"result" type:"string" enum:"ExecutionResult"`
 
 	// The job's start time.
-	Started *time.Time `locationName:"started" type:"timestamp" timestampFormat:"unix"`
+	Started *time.Time `locationName:"started" type:"timestamp"`
 
 	// The job's status.
 	//
@@ -9322,7 +10001,7 @@ type Job struct {
 	Status *string `locationName:"status" type:"string" enum:"ExecutionStatus"`
 
 	// The job's stop time.
-	Stopped *time.Time `locationName:"stopped" type:"timestamp" timestampFormat:"unix"`
+	Stopped *time.Time `locationName:"stopped" type:"timestamp"`
 
 	// The job's type.
 	//
@@ -11052,6 +11731,87 @@ func (s *ListUploadsOutput) SetUploads(v []*Upload) *ListUploadsOutput {
 	return s
 }
 
+type ListVPCEConfigurationsInput struct {
+	_ struct{} `type:"structure"`
+
+	// An integer specifying the maximum number of items you want to return in the
+	// API response.
+	MaxResults *int64 `locationName:"maxResults" type:"integer"`
+
+	// An identifier that was returned from the previous call to this operation,
+	// which can be used to return the next set of items in the list.
+	NextToken *string `locationName:"nextToken" min:"4" type:"string"`
+}
+
+// String returns the string representation
+func (s ListVPCEConfigurationsInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ListVPCEConfigurationsInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ListVPCEConfigurationsInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ListVPCEConfigurationsInput"}
+	if s.NextToken != nil && len(*s.NextToken) < 4 {
+		invalidParams.Add(request.NewErrParamMinLen("NextToken", 4))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetMaxResults sets the MaxResults field's value.
+func (s *ListVPCEConfigurationsInput) SetMaxResults(v int64) *ListVPCEConfigurationsInput {
+	s.MaxResults = &v
+	return s
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *ListVPCEConfigurationsInput) SetNextToken(v string) *ListVPCEConfigurationsInput {
+	s.NextToken = &v
+	return s
+}
+
+type ListVPCEConfigurationsOutput struct {
+	_ struct{} `type:"structure"`
+
+	// An identifier that was returned from the previous call to this operation,
+	// which can be used to return the next set of items in the list.
+	NextToken *string `locationName:"nextToken" min:"4" type:"string"`
+
+	// An array of VPCEConfiguration objects containing information about your VPC
+	// endpoint configuration.
+	VpceConfigurations []*VPCEConfiguration `locationName:"vpceConfigurations" type:"list"`
+}
+
+// String returns the string representation
+func (s ListVPCEConfigurationsOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ListVPCEConfigurationsOutput) GoString() string {
+	return s.String()
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *ListVPCEConfigurationsOutput) SetNextToken(v string) *ListVPCEConfigurationsOutput {
+	s.NextToken = &v
+	return s
+}
+
+// SetVpceConfigurations sets the VpceConfigurations field's value.
+func (s *ListVPCEConfigurationsOutput) SetVpceConfigurations(v []*VPCEConfiguration) *ListVPCEConfigurationsOutput {
+	s.VpceConfigurations = v
+	return s
+}
+
 // Represents a latitude and longitude pair, expressed in geographic coordinate
 // system degrees (for example 47.6204, -122.3491).
 //
@@ -11366,7 +12126,7 @@ type OfferingStatus struct {
 	_ struct{} `type:"structure"`
 
 	// The date on which the offering is effective.
-	EffectiveOn *time.Time `locationName:"effectiveOn" type:"timestamp" timestampFormat:"unix"`
+	EffectiveOn *time.Time `locationName:"effectiveOn" type:"timestamp"`
 
 	// Represents the metadata of an offering status.
 	Offering *Offering `locationName:"offering" type:"structure"`
@@ -11420,7 +12180,7 @@ type OfferingTransaction struct {
 	Cost *MonetaryAmount `locationName:"cost" type:"structure"`
 
 	// The date on which an offering transaction was created.
-	CreatedOn *time.Time `locationName:"createdOn" type:"timestamp" timestampFormat:"unix"`
+	CreatedOn *time.Time `locationName:"createdOn" type:"timestamp"`
 
 	// The ID that corresponds to a device offering promotion.
 	OfferingPromotionId *string `locationName:"offeringPromotionId" min:"4" type:"string"`
@@ -11608,7 +12368,7 @@ type Project struct {
 	Arn *string `locationName:"arn" min:"32" type:"string"`
 
 	// When the project was created.
-	Created *time.Time `locationName:"created" type:"timestamp" timestampFormat:"unix"`
+	Created *time.Time `locationName:"created" type:"timestamp"`
 
 	// The default number of minutes (at the project level) a test run will execute
 	// before it times out. Default value is 60 minutes.
@@ -11836,7 +12596,7 @@ type RemoteAccessSession struct {
 	ClientId *string `locationName:"clientId" type:"string"`
 
 	// The date and time the remote access session was created.
-	Created *time.Time `locationName:"created" type:"timestamp" timestampFormat:"unix"`
+	Created *time.Time `locationName:"created" type:"timestamp"`
 
 	// The device (phone or tablet) used in the remote access session.
 	Device *Device `locationName:"device" type:"structure"`
@@ -11918,7 +12678,7 @@ type RemoteAccessSession struct {
 	SkipAppResign *bool `locationName:"skipAppResign" type:"boolean"`
 
 	// The date and time the remote access session was started.
-	Started *time.Time `locationName:"started" type:"timestamp" timestampFormat:"unix"`
+	Started *time.Time `locationName:"started" type:"timestamp"`
 
 	// The status of the remote access session. Can be any of the following:
 	//
@@ -11942,7 +12702,7 @@ type RemoteAccessSession struct {
 	Status *string `locationName:"status" type:"string" enum:"ExecutionStatus"`
 
 	// The date and time the remote access session was stopped.
-	Stopped *time.Time `locationName:"stopped" type:"timestamp" timestampFormat:"unix"`
+	Stopped *time.Time `locationName:"stopped" type:"timestamp"`
 }
 
 // String returns the string representation
@@ -12279,7 +13039,7 @@ type Run struct {
 	Counters *Counters `locationName:"counters" type:"structure"`
 
 	// When the run was created.
-	Created *time.Time `locationName:"created" type:"timestamp" timestampFormat:"unix"`
+	Created *time.Time `locationName:"created" type:"timestamp"`
 
 	// Output CustomerArtifactPaths object for the test run.
 	CustomerArtifactPaths *CustomerArtifactPaths `locationName:"customerArtifactPaths" type:"structure"`
@@ -12366,7 +13126,7 @@ type Run struct {
 	SkipAppResign *bool `locationName:"skipAppResign" type:"boolean"`
 
 	// The run's start time.
-	Started *time.Time `locationName:"started" type:"timestamp" timestampFormat:"unix"`
+	Started *time.Time `locationName:"started" type:"timestamp"`
 
 	// The run's status.
 	//
@@ -12392,7 +13152,7 @@ type Run struct {
 	Status *string `locationName:"status" type:"string" enum:"ExecutionStatus"`
 
 	// The run's stop time.
-	Stopped *time.Time `locationName:"stopped" type:"timestamp" timestampFormat:"unix"`
+	Stopped *time.Time `locationName:"stopped" type:"timestamp"`
 
 	// The total number of jobs for the run.
 	TotalJobs *int64 `locationName:"totalJobs" type:"integer"`
@@ -12735,6 +13495,9 @@ type ScheduleRunConfiguration struct {
 
 	// Information about the radio states for the run.
 	Radios *Radios `locationName:"radios" type:"structure"`
+
+	// An array of Amazon Resource Names (ARNs) for your VPC endpoint configurations.
+	VpceConfigurationArns []*string `locationName:"vpceConfigurationArns" type:"list"`
 }
 
 // String returns the string representation
@@ -12813,6 +13576,12 @@ func (s *ScheduleRunConfiguration) SetNetworkProfileArn(v string) *ScheduleRunCo
 // SetRadios sets the Radios field's value.
 func (s *ScheduleRunConfiguration) SetRadios(v *Radios) *ScheduleRunConfiguration {
 	s.Radios = v
+	return s
+}
+
+// SetVpceConfigurationArns sets the VpceConfigurationArns field's value.
+func (s *ScheduleRunConfiguration) SetVpceConfigurationArns(v []*string) *ScheduleRunConfiguration {
+	s.VpceConfigurationArns = v
 	return s
 }
 
@@ -13282,7 +14051,7 @@ type Suite struct {
 	Counters *Counters `locationName:"counters" type:"structure"`
 
 	// When the suite was created.
-	Created *time.Time `locationName:"created" type:"timestamp" timestampFormat:"unix"`
+	Created *time.Time `locationName:"created" type:"timestamp"`
 
 	// Represents the total (metered or unmetered) minutes used by the test suite.
 	DeviceMinutes *DeviceMinutes `locationName:"deviceMinutes" type:"structure"`
@@ -13313,7 +14082,7 @@ type Suite struct {
 	Result *string `locationName:"result" type:"string" enum:"ExecutionResult"`
 
 	// The suite's start time.
-	Started *time.Time `locationName:"started" type:"timestamp" timestampFormat:"unix"`
+	Started *time.Time `locationName:"started" type:"timestamp"`
 
 	// The suite's status.
 	//
@@ -13339,7 +14108,7 @@ type Suite struct {
 	Status *string `locationName:"status" type:"string" enum:"ExecutionStatus"`
 
 	// The suite's stop time.
-	Stopped *time.Time `locationName:"stopped" type:"timestamp" timestampFormat:"unix"`
+	Stopped *time.Time `locationName:"stopped" type:"timestamp"`
 
 	// The suite's type.
 	//
@@ -13464,7 +14233,7 @@ type Test struct {
 	Counters *Counters `locationName:"counters" type:"structure"`
 
 	// When the test was created.
-	Created *time.Time `locationName:"created" type:"timestamp" timestampFormat:"unix"`
+	Created *time.Time `locationName:"created" type:"timestamp"`
 
 	// Represents the total (metered or unmetered) minutes used by the test.
 	DeviceMinutes *DeviceMinutes `locationName:"deviceMinutes" type:"structure"`
@@ -13495,7 +14264,7 @@ type Test struct {
 	Result *string `locationName:"result" type:"string" enum:"ExecutionResult"`
 
 	// The test's start time.
-	Started *time.Time `locationName:"started" type:"timestamp" timestampFormat:"unix"`
+	Started *time.Time `locationName:"started" type:"timestamp"`
 
 	// The test's status.
 	//
@@ -13521,7 +14290,7 @@ type Test struct {
 	Status *string `locationName:"status" type:"string" enum:"ExecutionStatus"`
 
 	// The test's stop time.
-	Stopped *time.Time `locationName:"stopped" type:"timestamp" timestampFormat:"unix"`
+	Stopped *time.Time `locationName:"stopped" type:"timestamp"`
 
 	// The test's type.
 	//
@@ -14251,6 +15020,110 @@ func (s *UpdateProjectOutput) SetProject(v *Project) *UpdateProjectOutput {
 	return s
 }
 
+type UpdateVPCEConfigurationInput struct {
+	_ struct{} `type:"structure"`
+
+	// The Amazon Resource Name (ARN) of the VPC endpoint configuration you want
+	// to update.
+	//
+	// Arn is a required field
+	Arn *string `locationName:"arn" min:"32" type:"string" required:"true"`
+
+	// The DNS (domain) name used to connect to your private service in your Amazon
+	// VPC. The DNS name must not already be in use on the Internet.
+	ServiceDnsName *string `locationName:"serviceDnsName" type:"string"`
+
+	// An optional description, providing more details about your VPC endpoint configuration.
+	VpceConfigurationDescription *string `locationName:"vpceConfigurationDescription" type:"string"`
+
+	// The friendly name you give to your VPC endpoint configuration, to manage
+	// your configurations more easily.
+	VpceConfigurationName *string `locationName:"vpceConfigurationName" type:"string"`
+
+	// The name of the VPC endpoint service running inside your AWS account that
+	// you want Device Farm to test.
+	VpceServiceName *string `locationName:"vpceServiceName" type:"string"`
+}
+
+// String returns the string representation
+func (s UpdateVPCEConfigurationInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s UpdateVPCEConfigurationInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *UpdateVPCEConfigurationInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "UpdateVPCEConfigurationInput"}
+	if s.Arn == nil {
+		invalidParams.Add(request.NewErrParamRequired("Arn"))
+	}
+	if s.Arn != nil && len(*s.Arn) < 32 {
+		invalidParams.Add(request.NewErrParamMinLen("Arn", 32))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetArn sets the Arn field's value.
+func (s *UpdateVPCEConfigurationInput) SetArn(v string) *UpdateVPCEConfigurationInput {
+	s.Arn = &v
+	return s
+}
+
+// SetServiceDnsName sets the ServiceDnsName field's value.
+func (s *UpdateVPCEConfigurationInput) SetServiceDnsName(v string) *UpdateVPCEConfigurationInput {
+	s.ServiceDnsName = &v
+	return s
+}
+
+// SetVpceConfigurationDescription sets the VpceConfigurationDescription field's value.
+func (s *UpdateVPCEConfigurationInput) SetVpceConfigurationDescription(v string) *UpdateVPCEConfigurationInput {
+	s.VpceConfigurationDescription = &v
+	return s
+}
+
+// SetVpceConfigurationName sets the VpceConfigurationName field's value.
+func (s *UpdateVPCEConfigurationInput) SetVpceConfigurationName(v string) *UpdateVPCEConfigurationInput {
+	s.VpceConfigurationName = &v
+	return s
+}
+
+// SetVpceServiceName sets the VpceServiceName field's value.
+func (s *UpdateVPCEConfigurationInput) SetVpceServiceName(v string) *UpdateVPCEConfigurationInput {
+	s.VpceServiceName = &v
+	return s
+}
+
+type UpdateVPCEConfigurationOutput struct {
+	_ struct{} `type:"structure"`
+
+	// An object containing information about your VPC endpoint configuration.
+	VpceConfiguration *VPCEConfiguration `locationName:"vpceConfiguration" type:"structure"`
+}
+
+// String returns the string representation
+func (s UpdateVPCEConfigurationOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s UpdateVPCEConfigurationOutput) GoString() string {
+	return s.String()
+}
+
+// SetVpceConfiguration sets the VpceConfiguration field's value.
+func (s *UpdateVPCEConfigurationOutput) SetVpceConfiguration(v *VPCEConfiguration) *UpdateVPCEConfigurationOutput {
+	s.VpceConfiguration = v
+	return s
+}
+
 // An app or a set of one or more tests to upload or that have been uploaded.
 type Upload struct {
 	_ struct{} `type:"structure"`
@@ -14262,7 +15135,7 @@ type Upload struct {
 	ContentType *string `locationName:"contentType" type:"string"`
 
 	// When the upload was created.
-	Created *time.Time `locationName:"created" type:"timestamp" timestampFormat:"unix"`
+	Created *time.Time `locationName:"created" type:"timestamp"`
 
 	// A message about the upload's result.
 	Message *string `locationName:"message" type:"string"`
@@ -14394,6 +15267,69 @@ func (s *Upload) SetType(v string) *Upload {
 // SetUrl sets the Url field's value.
 func (s *Upload) SetUrl(v string) *Upload {
 	s.Url = &v
+	return s
+}
+
+// Represents an Amazon Virtual Private Cloud (VPC) endpoint configuration.
+type VPCEConfiguration struct {
+	_ struct{} `type:"structure"`
+
+	// The Amazon Resource Name (ARN) of the VPC endpoint configuration.
+	Arn *string `locationName:"arn" min:"32" type:"string"`
+
+	// The DNS name that maps to the private IP address of the service you want
+	// to access.
+	ServiceDnsName *string `locationName:"serviceDnsName" type:"string"`
+
+	// An optional description, providing more details about your VPC endpoint configuration.
+	VpceConfigurationDescription *string `locationName:"vpceConfigurationDescription" type:"string"`
+
+	// The friendly name you give to your VPC endpoint configuration, to manage
+	// your configurations more easily.
+	VpceConfigurationName *string `locationName:"vpceConfigurationName" type:"string"`
+
+	// The name of the VPC endpoint service running inside your AWS account that
+	// you want Device Farm to test.
+	VpceServiceName *string `locationName:"vpceServiceName" type:"string"`
+}
+
+// String returns the string representation
+func (s VPCEConfiguration) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s VPCEConfiguration) GoString() string {
+	return s.String()
+}
+
+// SetArn sets the Arn field's value.
+func (s *VPCEConfiguration) SetArn(v string) *VPCEConfiguration {
+	s.Arn = &v
+	return s
+}
+
+// SetServiceDnsName sets the ServiceDnsName field's value.
+func (s *VPCEConfiguration) SetServiceDnsName(v string) *VPCEConfiguration {
+	s.ServiceDnsName = &v
+	return s
+}
+
+// SetVpceConfigurationDescription sets the VpceConfigurationDescription field's value.
+func (s *VPCEConfiguration) SetVpceConfigurationDescription(v string) *VPCEConfiguration {
+	s.VpceConfigurationDescription = &v
+	return s
+}
+
+// SetVpceConfigurationName sets the VpceConfigurationName field's value.
+func (s *VPCEConfiguration) SetVpceConfigurationName(v string) *VPCEConfiguration {
+	s.VpceConfigurationName = &v
+	return s
+}
+
+// SetVpceServiceName sets the VpceServiceName field's value.
+func (s *VPCEConfiguration) SetVpceServiceName(v string) *VPCEConfiguration {
+	s.VpceServiceName = &v
 	return s
 }
 
@@ -14531,6 +15467,9 @@ const (
 
 	// DeviceAttributeInstanceLabels is a DeviceAttribute enum value
 	DeviceAttributeInstanceLabels = "INSTANCE_LABELS"
+
+	// DeviceAttributeFleetType is a DeviceAttribute enum value
+	DeviceAttributeFleetType = "FLEET_TYPE"
 )
 
 const (
@@ -14583,6 +15522,9 @@ const (
 const (
 	// ExecutionResultCodeParsingFailed is a ExecutionResultCode enum value
 	ExecutionResultCodeParsingFailed = "PARSING_FAILED"
+
+	// ExecutionResultCodeVpcEndpointSetupFailed is a ExecutionResultCode enum value
+	ExecutionResultCodeVpcEndpointSetupFailed = "VPC_ENDPOINT_SETUP_FAILED"
 )
 
 const (

@@ -7,8 +7,10 @@ import (
 	"time"
 
 	"github.com/hashicorp/errwrap"
+	"github.com/hashicorp/terraform/helper/customdiff"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/hashicorp/terraform/helper/validation"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
@@ -48,8 +50,39 @@ func resourceAwsAutoscalingGroup() *schema.Resource {
 			},
 
 			"launch_configuration": {
-				Type:     schema.TypeString,
-				Required: true,
+				Type:          schema.TypeString,
+				Optional:      true,
+				ConflictsWith: []string{"launch_template"},
+			},
+
+			"launch_template": {
+				Type:          schema.TypeList,
+				MaxItems:      1,
+				Optional:      true,
+				ConflictsWith: []string{"launch_configuration"},
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"id": {
+							Type:          schema.TypeString,
+							Optional:      true,
+							Computed:      true,
+							ConflictsWith: []string{"launch_template.0.name"},
+							ValidateFunc:  validateLaunchTemplateId,
+						},
+						"name": {
+							Type:          schema.TypeString,
+							Optional:      true,
+							Computed:      true,
+							ConflictsWith: []string{"launch_template.0.id"},
+							ValidateFunc:  validateLaunchTemplateName,
+						},
+						"version": {
+							Type:         schema.TypeString,
+							Optional:     true,
+							ValidateFunc: validation.StringLenBetween(1, 255),
+						},
+					},
+				},
 			},
 
 			"desired_capacity": {
@@ -249,6 +282,15 @@ func resourceAwsAutoscalingGroup() *schema.Resource {
 				Computed: true,
 			},
 		},
+
+		CustomizeDiff: customdiff.Sequence(
+			customdiff.ComputedIf("launch_template.0.id", func(diff *schema.ResourceDiff, meta interface{}) bool {
+				return diff.HasChange("launch_template.0.name")
+			}),
+			customdiff.ComputedIf("launch_template.0.name", func(diff *schema.ResourceDiff, meta interface{}) bool {
+				return diff.HasChange("launch_template.0.id")
+			}),
+		),
 	}
 }
 
@@ -310,7 +352,6 @@ func resourceAwsAutoscalingGroupCreate(d *schema.ResourceData, meta interface{})
 
 	createOpts := autoscaling.CreateAutoScalingGroupInput{
 		AutoScalingGroupName:             aws.String(asgName),
-		LaunchConfigurationName:          aws.String(d.Get("launch_configuration").(string)),
 		NewInstancesProtectedFromScaleIn: aws.Bool(d.Get("protect_from_scale_in").(bool)),
 	}
 	updateOpts := autoscaling.UpdateAutoScalingGroupInput{
@@ -339,6 +380,25 @@ func resourceAwsAutoscalingGroupCreate(d *schema.ResourceData, meta interface{})
 
 		if v, ok := d.GetOk("desired_capacity"); ok {
 			createOpts.DesiredCapacity = aws.Int64(int64(v.(int)))
+		}
+	}
+
+	launchConfigurationValue, launchConfigurationOk := d.GetOk("launch_configuration")
+	launchTemplateValue, launchTemplateOk := d.GetOk("launch_template")
+
+	if !launchConfigurationOk && !launchTemplateOk {
+		return fmt.Errorf("One of `launch_configuration` or `launch_template` must be set for an autoscaling group")
+	}
+
+	if launchConfigurationOk {
+		createOpts.LaunchConfigurationName = aws.String(launchConfigurationValue.(string))
+	}
+
+	if launchTemplateOk {
+		var err error
+		createOpts.LaunchTemplate, err = expandLaunchTemplateSpecification(launchTemplateValue.([]interface{}))
+		if err != nil {
+			return err
 		}
 	}
 
@@ -465,8 +525,15 @@ func resourceAwsAutoscalingGroupRead(d *schema.ResourceData, meta interface{}) e
 	d.Set("desired_capacity", g.DesiredCapacity)
 	d.Set("health_check_grace_period", g.HealthCheckGracePeriod)
 	d.Set("health_check_type", g.HealthCheckType)
-	d.Set("launch_configuration", g.LaunchConfigurationName)
 	d.Set("load_balancers", flattenStringList(g.LoadBalancerNames))
+
+	d.Set("launch_configuration", g.LaunchConfigurationName)
+
+	if g.LaunchTemplate != nil {
+		d.Set("launch_template", flattenLaunchTemplateSpecification(g.LaunchTemplate))
+	} else {
+		d.Set("launch_template", nil)
+	}
 
 	if err := d.Set("suspended_processes", flattenAsgSuspendedProcesses(g.SuspendedProcesses)); err != nil {
 		log.Printf("[WARN] Error setting suspended_processes for %q: %s", d.Id(), err)
@@ -572,7 +639,15 @@ func resourceAwsAutoscalingGroupUpdate(d *schema.ResourceData, meta interface{})
 	}
 
 	if d.HasChange("launch_configuration") {
-		opts.LaunchConfigurationName = aws.String(d.Get("launch_configuration").(string))
+		if v, ok := d.GetOk("launch_configuration"); ok {
+			opts.LaunchConfigurationName = aws.String(v.(string))
+		}
+	}
+
+	if d.HasChange("launch_template") {
+		if v, ok := d.GetOk("launch_template"); ok && len(v.([]interface{})) > 0 {
+			opts.LaunchTemplate, _ = expandLaunchTemplateSpecification(v.([]interface{}))
+		}
 	}
 
 	if d.HasChange("min_size") {
@@ -746,7 +821,6 @@ func resourceAwsAutoscalingGroupDelete(d *schema.ResourceData, meta interface{})
 	}
 	if g == nil {
 		log.Printf("[WARN] Autoscaling Group (%s) not found, removing from state", d.Id())
-		d.SetId("")
 		return nil
 	}
 	if len(g.Instances) > 0 || *g.DesiredCapacity > 0 {

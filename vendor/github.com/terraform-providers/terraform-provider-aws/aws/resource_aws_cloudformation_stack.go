@@ -559,8 +559,6 @@ func resourceAwsCloudFormationStackDelete(d *schema.ResourceData, meta interface
 
 	log.Printf("[DEBUG] CloudFormation stack %q has been deleted", d.Id())
 
-	d.SetId("")
-
 	return nil
 }
 

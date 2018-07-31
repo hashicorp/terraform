@@ -40,6 +40,10 @@ func resourceAwsRouteTableImportState(
 				continue
 			}
 
+			if route.Origin != nil && *route.Origin == "EnableVgwRoutePropagation" {
+				continue
+			}
+
 			if route.DestinationPrefixListId != nil {
 				// Skipping because VPC endpoint routes are handled separately
 				// See aws_vpc_endpoint

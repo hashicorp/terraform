@@ -709,6 +709,91 @@ func (c *ConfigService) DeletePendingAggregationRequestWithContext(ctx aws.Conte
 	return out, req.Send()
 }
 
+const opDeleteRetentionConfiguration = "DeleteRetentionConfiguration"
+
+// DeleteRetentionConfigurationRequest generates a "aws/request.Request" representing the
+// client's request for the DeleteRetentionConfiguration operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfuly.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See DeleteRetentionConfiguration for more information on using the DeleteRetentionConfiguration
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the DeleteRetentionConfigurationRequest method.
+//    req, resp := client.DeleteRetentionConfigurationRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/DeleteRetentionConfiguration
+func (c *ConfigService) DeleteRetentionConfigurationRequest(input *DeleteRetentionConfigurationInput) (req *request.Request, output *DeleteRetentionConfigurationOutput) {
+	op := &request.Operation{
+		Name:       opDeleteRetentionConfiguration,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &DeleteRetentionConfigurationInput{}
+	}
+
+	output = &DeleteRetentionConfigurationOutput{}
+	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Remove(jsonrpc.UnmarshalHandler)
+	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
+	return
+}
+
+// DeleteRetentionConfiguration API operation for AWS Config.
+//
+// Deletes the retention configuration.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Config's
+// API operation DeleteRetentionConfiguration for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeInvalidParameterValueException "InvalidParameterValueException"
+//   One or more of the specified parameters are invalid. Verify that your parameters
+//   are valid and try again.
+//
+//   * ErrCodeNoSuchRetentionConfigurationException "NoSuchRetentionConfigurationException"
+//   You have specified a retention configuration that does not exist.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/DeleteRetentionConfiguration
+func (c *ConfigService) DeleteRetentionConfiguration(input *DeleteRetentionConfigurationInput) (*DeleteRetentionConfigurationOutput, error) {
+	req, out := c.DeleteRetentionConfigurationRequest(input)
+	return out, req.Send()
+}
+
+// DeleteRetentionConfigurationWithContext is the same as DeleteRetentionConfiguration with the addition of
+// the ability to pass a context and additional request options.
+//
+// See DeleteRetentionConfiguration for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *ConfigService) DeleteRetentionConfigurationWithContext(ctx aws.Context, input *DeleteRetentionConfigurationInput, opts ...request.Option) (*DeleteRetentionConfigurationOutput, error) {
+	req, out := c.DeleteRetentionConfigurationRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
 const opDeliverConfigSnapshot = "DeliverConfigSnapshot"
 
 // DeliverConfigSnapshotRequest generates a "aws/request.Request" representing the
@@ -1985,6 +2070,98 @@ func (c *ConfigService) DescribePendingAggregationRequestsWithContext(ctx aws.Co
 	return out, req.Send()
 }
 
+const opDescribeRetentionConfigurations = "DescribeRetentionConfigurations"
+
+// DescribeRetentionConfigurationsRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeRetentionConfigurations operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfuly.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See DescribeRetentionConfigurations for more information on using the DescribeRetentionConfigurations
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the DescribeRetentionConfigurationsRequest method.
+//    req, resp := client.DescribeRetentionConfigurationsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/DescribeRetentionConfigurations
+func (c *ConfigService) DescribeRetentionConfigurationsRequest(input *DescribeRetentionConfigurationsInput) (req *request.Request, output *DescribeRetentionConfigurationsOutput) {
+	op := &request.Operation{
+		Name:       opDescribeRetentionConfigurations,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &DescribeRetentionConfigurationsInput{}
+	}
+
+	output = &DescribeRetentionConfigurationsOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// DescribeRetentionConfigurations API operation for AWS Config.
+//
+// Returns the details of one or more retention configurations. If the retention
+// configuration name is not specified, this action returns the details for
+// all the retention configurations for that account.
+//
+// Currently, AWS Config supports only one retention configuration per region
+// in your account.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Config's
+// API operation DescribeRetentionConfigurations for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeInvalidParameterValueException "InvalidParameterValueException"
+//   One or more of the specified parameters are invalid. Verify that your parameters
+//   are valid and try again.
+//
+//   * ErrCodeNoSuchRetentionConfigurationException "NoSuchRetentionConfigurationException"
+//   You have specified a retention configuration that does not exist.
+//
+//   * ErrCodeInvalidNextTokenException "InvalidNextTokenException"
+//   The specified next token is invalid. Specify the nextToken string that was
+//   returned in the previous response to get the next page of results.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/DescribeRetentionConfigurations
+func (c *ConfigService) DescribeRetentionConfigurations(input *DescribeRetentionConfigurationsInput) (*DescribeRetentionConfigurationsOutput, error) {
+	req, out := c.DescribeRetentionConfigurationsRequest(input)
+	return out, req.Send()
+}
+
+// DescribeRetentionConfigurationsWithContext is the same as DescribeRetentionConfigurations with the addition of
+// the ability to pass a context and additional request options.
+//
+// See DescribeRetentionConfigurations for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *ConfigService) DescribeRetentionConfigurationsWithContext(ctx aws.Context, input *DescribeRetentionConfigurationsInput, opts ...request.Option) (*DescribeRetentionConfigurationsOutput, error) {
+	req, out := c.DescribeRetentionConfigurationsRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
 const opGetAggregateComplianceDetailsByConfigRule = "GetAggregateComplianceDetailsByConfigRule"
 
 // GetAggregateComplianceDetailsByConfigRuleRequest generates a "aws/request.Request" representing the
@@ -2673,7 +2850,9 @@ func (c *ConfigService) GetResourceConfigHistoryRequest(input *GetResourceConfig
 //
 // Returns a list of configuration items for the specified resource. The list
 // contains details about each state of the resource during the specified time
-// interval.
+// interval. If you specified a retention period to retain your ConfigurationItems
+// between a minimum of 30 days and a maximum of 7 years (2557 days), AWS Config
+// returns the ConfigurationItems for the specified retention period.
 //
 // The response is paginated. By default, AWS Config returns a limit of 10 configuration
 // items per page. You can customize this number with the limit parameter. The
@@ -3153,9 +3332,15 @@ func (c *ConfigService) PutConfigurationAggregatorRequest(input *PutConfiguratio
 // PutConfigurationAggregator API operation for AWS Config.
 //
 // Creates and updates the configuration aggregator with the selected source
-// accounts and regions.
+// accounts and regions. The source account can be individual account(s) or
+// an organization.
 //
-// AWS Config should be enabled in accounts and regions you want to aggreagate.
+// AWS Config should be enabled in source accounts and regions you want to aggregate.
+//
+// If your source type is an organization, you must be signed in to the master
+// account and all features must be enabled in your organization. AWS Config
+// calls EnableAwsServiceAccess API to enable integration between AWS Config
+// and AWS Organizations.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -3511,6 +3696,97 @@ func (c *ConfigService) PutEvaluationsWithContext(ctx aws.Context, input *PutEva
 	return out, req.Send()
 }
 
+const opPutRetentionConfiguration = "PutRetentionConfiguration"
+
+// PutRetentionConfigurationRequest generates a "aws/request.Request" representing the
+// client's request for the PutRetentionConfiguration operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfuly.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See PutRetentionConfiguration for more information on using the PutRetentionConfiguration
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the PutRetentionConfigurationRequest method.
+//    req, resp := client.PutRetentionConfigurationRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/PutRetentionConfiguration
+func (c *ConfigService) PutRetentionConfigurationRequest(input *PutRetentionConfigurationInput) (req *request.Request, output *PutRetentionConfigurationOutput) {
+	op := &request.Operation{
+		Name:       opPutRetentionConfiguration,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &PutRetentionConfigurationInput{}
+	}
+
+	output = &PutRetentionConfigurationOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// PutRetentionConfiguration API operation for AWS Config.
+//
+// Creates and updates the retention configuration with details about retention
+// period (number of days) that AWS Config stores your historical information.
+// The API creates the RetentionConfiguration object and names the object as
+// default. When you have a RetentionConfiguration object named default, calling
+// the API modifies the default object.
+//
+// Currently, AWS Config supports only one retention configuration per region
+// in your account.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Config's
+// API operation PutRetentionConfiguration for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeInvalidParameterValueException "InvalidParameterValueException"
+//   One or more of the specified parameters are invalid. Verify that your parameters
+//   are valid and try again.
+//
+//   * ErrCodeMaxNumberOfRetentionConfigurationsExceededException "MaxNumberOfRetentionConfigurationsExceededException"
+//   Failed to add the retention configuration because a retention configuration
+//   with that name already exists.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/PutRetentionConfiguration
+func (c *ConfigService) PutRetentionConfiguration(input *PutRetentionConfigurationInput) (*PutRetentionConfigurationOutput, error) {
+	req, out := c.PutRetentionConfigurationRequest(input)
+	return out, req.Send()
+}
+
+// PutRetentionConfigurationWithContext is the same as PutRetentionConfiguration with the addition of
+// the ability to pass a context and additional request options.
+//
+// See PutRetentionConfiguration for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *ConfigService) PutRetentionConfigurationWithContext(ctx aws.Context, input *PutRetentionConfigurationInput, opts ...request.Option) (*PutRetentionConfigurationOutput, error) {
+	req, out := c.PutRetentionConfigurationRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
 const opStartConfigRulesEvaluation = "StartConfigRulesEvaluation"
 
 // StartConfigRulesEvaluationRequest generates a "aws/request.Request" representing the
@@ -3811,7 +4087,7 @@ type AccountAggregationSource struct {
 	// AccountIds is a required field
 	AccountIds []*string `min:"1" type:"list" required:"true"`
 
-	// If true, aggreagate existing AWS Config regions and future regions.
+	// If true, aggregate existing AWS Config regions and future regions.
 	AllAwsRegions *bool `type:"boolean"`
 
 	// The source regions being aggregated.
@@ -3979,13 +4255,13 @@ type AggregateEvaluationResult struct {
 	ComplianceType *string `type:"string" enum:"ComplianceType"`
 
 	// The time when the AWS Config rule evaluated the AWS resource.
-	ConfigRuleInvokedTime *time.Time `type:"timestamp" timestampFormat:"unix"`
+	ConfigRuleInvokedTime *time.Time `type:"timestamp"`
 
 	// Uniquely identifies the evaluation result.
 	EvaluationResultIdentifier *EvaluationResultIdentifier `type:"structure"`
 
 	// The time when AWS Config recorded the aggregate evaluation result.
-	ResultRecordedTime *time.Time `type:"timestamp" timestampFormat:"unix"`
+	ResultRecordedTime *time.Time `type:"timestamp"`
 }
 
 // String returns the string representation
@@ -4065,7 +4341,7 @@ type AggregatedSourceStatus struct {
 	LastUpdateStatus *string `type:"string" enum:"AggregatedSourceStatusType"`
 
 	// The time of the last update.
-	LastUpdateTime *time.Time `type:"timestamp" timestampFormat:"unix"`
+	LastUpdateTime *time.Time `type:"timestamp"`
 
 	// The source account ID or an organization.
 	SourceId *string `type:"string"`
@@ -4141,7 +4417,7 @@ type AggregationAuthorization struct {
 	AuthorizedAwsRegion *string `min:"1" type:"string"`
 
 	// The time stamp when the aggregation authorization was created.
-	CreationTime *time.Time `type:"timestamp" timestampFormat:"unix"`
+	CreationTime *time.Time `type:"timestamp"`
 }
 
 // String returns the string representation
@@ -4198,7 +4474,7 @@ type BaseConfigurationItem struct {
 	Configuration *string `locationName:"configuration" type:"string"`
 
 	// The time when the configuration recording was initiated.
-	ConfigurationItemCaptureTime *time.Time `locationName:"configurationItemCaptureTime" type:"timestamp" timestampFormat:"unix"`
+	ConfigurationItemCaptureTime *time.Time `locationName:"configurationItemCaptureTime" type:"timestamp"`
 
 	// The configuration item status.
 	ConfigurationItemStatus *string `locationName:"configurationItemStatus" type:"string" enum:"ConfigurationItemStatus"`
@@ -4208,10 +4484,10 @@ type BaseConfigurationItem struct {
 	ConfigurationStateId *string `locationName:"configurationStateId" type:"string"`
 
 	// The time stamp when the resource was created.
-	ResourceCreationTime *time.Time `locationName:"resourceCreationTime" type:"timestamp" timestampFormat:"unix"`
+	ResourceCreationTime *time.Time `locationName:"resourceCreationTime" type:"timestamp"`
 
 	// The ID of the resource (for example., sg-xxxxxx).
-	ResourceId *string `locationName:"resourceId" type:"string"`
+	ResourceId *string `locationName:"resourceId" min:"1" type:"string"`
 
 	// The custom name of the resource, if available.
 	ResourceName *string `locationName:"resourceName" type:"string"`
@@ -4579,7 +4855,7 @@ type ComplianceSummary struct {
 	_ struct{} `type:"structure"`
 
 	// The time that AWS Config created the compliance summary.
-	ComplianceSummaryTimestamp *time.Time `type:"timestamp" timestampFormat:"unix"`
+	ComplianceSummaryTimestamp *time.Time `type:"timestamp"`
 
 	// The number of AWS Config rules or AWS resources that are compliant, up to
 	// a maximum of 25 for rules and 100 for resources.
@@ -4660,7 +4936,7 @@ type ConfigExportDeliveryInfo struct {
 	_ struct{} `type:"structure"`
 
 	// The time of the last attempted delivery.
-	LastAttemptTime *time.Time `locationName:"lastAttemptTime" type:"timestamp" timestampFormat:"unix"`
+	LastAttemptTime *time.Time `locationName:"lastAttemptTime" type:"timestamp"`
 
 	// The error code from the last attempted delivery.
 	LastErrorCode *string `locationName:"lastErrorCode" type:"string"`
@@ -4672,10 +4948,10 @@ type ConfigExportDeliveryInfo struct {
 	LastStatus *string `locationName:"lastStatus" type:"string" enum:"DeliveryStatus"`
 
 	// The time of the last successful delivery.
-	LastSuccessfulTime *time.Time `locationName:"lastSuccessfulTime" type:"timestamp" timestampFormat:"unix"`
+	LastSuccessfulTime *time.Time `locationName:"lastSuccessfulTime" type:"timestamp"`
 
 	// The time that the next delivery occurs.
-	NextDeliveryTime *time.Time `locationName:"nextDeliveryTime" type:"timestamp" timestampFormat:"unix"`
+	NextDeliveryTime *time.Time `locationName:"nextDeliveryTime" type:"timestamp"`
 }
 
 // String returns the string representation
@@ -5032,7 +5308,7 @@ type ConfigRuleEvaluationStatus struct {
 	ConfigRuleName *string `min:"1" type:"string"`
 
 	// The time that you first activated the AWS Config rule.
-	FirstActivatedTime *time.Time `type:"timestamp" timestampFormat:"unix"`
+	FirstActivatedTime *time.Time `type:"timestamp"`
 
 	// Indicates whether AWS Config has evaluated your resources against the rule
 	// at least once.
@@ -5052,19 +5328,19 @@ type ConfigRuleEvaluationStatus struct {
 
 	// The time that AWS Config last failed to evaluate your AWS resources against
 	// the rule.
-	LastFailedEvaluationTime *time.Time `type:"timestamp" timestampFormat:"unix"`
+	LastFailedEvaluationTime *time.Time `type:"timestamp"`
 
 	// The time that AWS Config last failed to invoke the AWS Config rule to evaluate
 	// your AWS resources.
-	LastFailedInvocationTime *time.Time `type:"timestamp" timestampFormat:"unix"`
+	LastFailedInvocationTime *time.Time `type:"timestamp"`
 
 	// The time that AWS Config last successfully evaluated your AWS resources against
 	// the rule.
-	LastSuccessfulEvaluationTime *time.Time `type:"timestamp" timestampFormat:"unix"`
+	LastSuccessfulEvaluationTime *time.Time `type:"timestamp"`
 
 	// The time that AWS Config last successfully invoked the AWS Config rule to
 	// evaluate your AWS resources.
-	LastSuccessfulInvocationTime *time.Time `type:"timestamp" timestampFormat:"unix"`
+	LastSuccessfulInvocationTime *time.Time `type:"timestamp"`
 }
 
 // String returns the string representation
@@ -5224,7 +5500,7 @@ type ConfigStreamDeliveryInfo struct {
 	LastStatus *string `locationName:"lastStatus" type:"string" enum:"DeliveryStatus"`
 
 	// The time from the last status change.
-	LastStatusChangeTime *time.Time `locationName:"lastStatusChangeTime" type:"timestamp" timestampFormat:"unix"`
+	LastStatusChangeTime *time.Time `locationName:"lastStatusChangeTime" type:"timestamp"`
 }
 
 // String returns the string representation
@@ -5276,10 +5552,10 @@ type ConfigurationAggregator struct {
 	ConfigurationAggregatorName *string `min:"1" type:"string"`
 
 	// The time stamp when the configuration aggregator was created.
-	CreationTime *time.Time `type:"timestamp" timestampFormat:"unix"`
+	CreationTime *time.Time `type:"timestamp"`
 
 	// The time of the last update.
-	LastUpdatedTime *time.Time `type:"timestamp" timestampFormat:"unix"`
+	LastUpdatedTime *time.Time `type:"timestamp"`
 
 	// Provides an organization and list of regions to be aggregated.
 	OrganizationAggregationSource *OrganizationAggregationSource `type:"structure"`
@@ -5351,7 +5627,7 @@ type ConfigurationItem struct {
 	Configuration *string `locationName:"configuration" type:"string"`
 
 	// The time when the configuration recording was initiated.
-	ConfigurationItemCaptureTime *time.Time `locationName:"configurationItemCaptureTime" type:"timestamp" timestampFormat:"unix"`
+	ConfigurationItemCaptureTime *time.Time `locationName:"configurationItemCaptureTime" type:"timestamp"`
 
 	// Unique MD5 hash that represents the configuration item's state.
 	//
@@ -5380,10 +5656,10 @@ type ConfigurationItem struct {
 	Relationships []*Relationship `locationName:"relationships" type:"list"`
 
 	// The time stamp when the resource was created.
-	ResourceCreationTime *time.Time `locationName:"resourceCreationTime" type:"timestamp" timestampFormat:"unix"`
+	ResourceCreationTime *time.Time `locationName:"resourceCreationTime" type:"timestamp"`
 
 	// The ID of the resource (for example, sg-xxxxxx).
-	ResourceId *string `locationName:"resourceId" type:"string"`
+	ResourceId *string `locationName:"resourceId" min:"1" type:"string"`
 
 	// The custom name of the resource, if available.
 	ResourceName *string `locationName:"resourceName" type:"string"`
@@ -5591,16 +5867,16 @@ type ConfigurationRecorderStatus struct {
 	LastErrorMessage *string `locationName:"lastErrorMessage" type:"string"`
 
 	// The time the recorder was last started.
-	LastStartTime *time.Time `locationName:"lastStartTime" type:"timestamp" timestampFormat:"unix"`
+	LastStartTime *time.Time `locationName:"lastStartTime" type:"timestamp"`
 
 	// The last (previous) status of the recorder.
 	LastStatus *string `locationName:"lastStatus" type:"string" enum:"RecorderStatus"`
 
 	// The time when the status was last changed.
-	LastStatusChangeTime *time.Time `locationName:"lastStatusChangeTime" type:"timestamp" timestampFormat:"unix"`
+	LastStatusChangeTime *time.Time `locationName:"lastStatusChangeTime" type:"timestamp"`
 
 	// The time the recorder was last stopped.
-	LastStopTime *time.Time `locationName:"lastStopTime" type:"timestamp" timestampFormat:"unix"`
+	LastStopTime *time.Time `locationName:"lastStopTime" type:"timestamp"`
 
 	// The name of the configuration recorder.
 	Name *string `locationName:"name" type:"string"`
@@ -6085,6 +6361,61 @@ func (s DeletePendingAggregationRequestOutput) String() string {
 
 // GoString returns the string representation
 func (s DeletePendingAggregationRequestOutput) GoString() string {
+	return s.String()
+}
+
+type DeleteRetentionConfigurationInput struct {
+	_ struct{} `type:"structure"`
+
+	// The name of the retention configuration to delete.
+	//
+	// RetentionConfigurationName is a required field
+	RetentionConfigurationName *string `min:"1" type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s DeleteRetentionConfigurationInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DeleteRetentionConfigurationInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DeleteRetentionConfigurationInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DeleteRetentionConfigurationInput"}
+	if s.RetentionConfigurationName == nil {
+		invalidParams.Add(request.NewErrParamRequired("RetentionConfigurationName"))
+	}
+	if s.RetentionConfigurationName != nil && len(*s.RetentionConfigurationName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("RetentionConfigurationName", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetRetentionConfigurationName sets the RetentionConfigurationName field's value.
+func (s *DeleteRetentionConfigurationInput) SetRetentionConfigurationName(v string) *DeleteRetentionConfigurationInput {
+	s.RetentionConfigurationName = &v
+	return s
+}
+
+type DeleteRetentionConfigurationOutput struct {
+	_ struct{} `type:"structure"`
+}
+
+// String returns the string representation
+func (s DeleteRetentionConfigurationOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DeleteRetentionConfigurationOutput) GoString() string {
 	return s.String()
 }
 
@@ -6905,7 +7236,7 @@ func (s *DescribeConfigurationAggregatorSourcesStatusInput) SetUpdateStatus(v []
 type DescribeConfigurationAggregatorSourcesStatusOutput struct {
 	_ struct{} `type:"structure"`
 
-	// Retuns an AggregatedSourceStatus object.
+	// Returns an AggregatedSourceStatus object.
 	AggregatedSourceStatusList []*AggregatedSourceStatus `type:"list"`
 
 	// The nextToken string returned on a previous page that you use to get the
@@ -7272,6 +7603,77 @@ func (s *DescribePendingAggregationRequestsOutput) SetPendingAggregationRequests
 	return s
 }
 
+type DescribeRetentionConfigurationsInput struct {
+	_ struct{} `type:"structure"`
+
+	// The nextToken string returned on a previous page that you use to get the
+	// next page of results in a paginated response.
+	NextToken *string `type:"string"`
+
+	// A list of names of retention configurations for which you want details. If
+	// you do not specify a name, AWS Config returns details for all the retention
+	// configurations for that account.
+	//
+	// Currently, AWS Config supports only one retention configuration per region
+	// in your account.
+	RetentionConfigurationNames []*string `type:"list"`
+}
+
+// String returns the string representation
+func (s DescribeRetentionConfigurationsInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DescribeRetentionConfigurationsInput) GoString() string {
+	return s.String()
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *DescribeRetentionConfigurationsInput) SetNextToken(v string) *DescribeRetentionConfigurationsInput {
+	s.NextToken = &v
+	return s
+}
+
+// SetRetentionConfigurationNames sets the RetentionConfigurationNames field's value.
+func (s *DescribeRetentionConfigurationsInput) SetRetentionConfigurationNames(v []*string) *DescribeRetentionConfigurationsInput {
+	s.RetentionConfigurationNames = v
+	return s
+}
+
+type DescribeRetentionConfigurationsOutput struct {
+	_ struct{} `type:"structure"`
+
+	// The nextToken string returned on a previous page that you use to get the
+	// next page of results in a paginated response.
+	NextToken *string `type:"string"`
+
+	// Returns a retention configuration object.
+	RetentionConfigurations []*RetentionConfiguration `type:"list"`
+}
+
+// String returns the string representation
+func (s DescribeRetentionConfigurationsOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DescribeRetentionConfigurationsOutput) GoString() string {
+	return s.String()
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *DescribeRetentionConfigurationsOutput) SetNextToken(v string) *DescribeRetentionConfigurationsOutput {
+	s.NextToken = &v
+	return s
+}
+
+// SetRetentionConfigurations sets the RetentionConfigurations field's value.
+func (s *DescribeRetentionConfigurationsOutput) SetRetentionConfigurations(v []*RetentionConfiguration) *DescribeRetentionConfigurationsOutput {
+	s.RetentionConfigurations = v
+	return s
+}
+
 // Identifies an AWS resource and indicates whether it complies with the AWS
 // Config rule that it was evaluated against.
 type Evaluation struct {
@@ -7312,7 +7714,7 @@ type Evaluation struct {
 	// (for example, every 24 hours).
 	//
 	// OrderingTimestamp is a required field
-	OrderingTimestamp *time.Time `type:"timestamp" timestampFormat:"unix" required:"true"`
+	OrderingTimestamp *time.Time `type:"timestamp" required:"true"`
 }
 
 // String returns the string representation
@@ -7404,13 +7806,13 @@ type EvaluationResult struct {
 	ComplianceType *string `type:"string" enum:"ComplianceType"`
 
 	// The time when the AWS Config rule evaluated the AWS resource.
-	ConfigRuleInvokedTime *time.Time `type:"timestamp" timestampFormat:"unix"`
+	ConfigRuleInvokedTime *time.Time `type:"timestamp"`
 
 	// Uniquely identifies the evaluation result.
 	EvaluationResultIdentifier *EvaluationResultIdentifier `type:"structure"`
 
 	// The time when AWS Config recorded the evaluation result.
-	ResultRecordedTime *time.Time `type:"timestamp" timestampFormat:"unix"`
+	ResultRecordedTime *time.Time `type:"timestamp"`
 
 	// An encrypted token that associates an evaluation with an AWS Config rule.
 	// The token identifies the rule, the AWS resource being evaluated, and the
@@ -7476,7 +7878,7 @@ type EvaluationResultIdentifier struct {
 	// The time can indicate when AWS Config delivered a configuration item change
 	// notification, or it can indicate when AWS Config delivered the configuration
 	// snapshot, depending on which event triggered the evaluation.
-	OrderingTimestamp *time.Time `type:"timestamp" timestampFormat:"unix"`
+	OrderingTimestamp *time.Time `type:"timestamp"`
 }
 
 // String returns the string representation
@@ -8256,11 +8658,11 @@ type GetResourceConfigHistoryInput struct {
 	// The time stamp that indicates an earlier time. If not specified, the action
 	// returns paginated results that contain configuration items that start when
 	// the first configuration item was recorded.
-	EarlierTime *time.Time `locationName:"earlierTime" type:"timestamp" timestampFormat:"unix"`
+	EarlierTime *time.Time `locationName:"earlierTime" type:"timestamp"`
 
 	// The time stamp that indicates a later time. If not specified, current time
 	// is taken.
-	LaterTime *time.Time `locationName:"laterTime" type:"timestamp" timestampFormat:"unix"`
+	LaterTime *time.Time `locationName:"laterTime" type:"timestamp"`
 
 	// The maximum number of configuration items returned on each page. The default
 	// is 10. You cannot specify a number greater than 100. If you specify 0, AWS
@@ -8274,7 +8676,7 @@ type GetResourceConfigHistoryInput struct {
 	// The ID of the resource (for example., sg-xxxxxx).
 	//
 	// ResourceId is a required field
-	ResourceId *string `locationName:"resourceId" type:"string" required:"true"`
+	ResourceId *string `locationName:"resourceId" min:"1" type:"string" required:"true"`
 
 	// The resource type.
 	//
@@ -8297,6 +8699,9 @@ func (s *GetResourceConfigHistoryInput) Validate() error {
 	invalidParams := request.ErrInvalidParams{Context: "GetResourceConfigHistoryInput"}
 	if s.ResourceId == nil {
 		invalidParams.Add(request.NewErrParamRequired("ResourceId"))
+	}
+	if s.ResourceId != nil && len(*s.ResourceId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ResourceId", 1))
 	}
 	if s.ResourceType == nil {
 		invalidParams.Add(request.NewErrParamRequired("ResourceType"))
@@ -8514,7 +8919,7 @@ func (s *ListDiscoveredResourcesOutput) SetResourceIdentifiers(v []*ResourceIden
 type OrganizationAggregationSource struct {
 	_ struct{} `type:"structure"`
 
-	// If true, aggreagate existing AWS Config regions and future regions.
+	// If true, aggregate existing AWS Config regions and future regions.
 	AllAwsRegions *bool `type:"boolean"`
 
 	// The source regions being aggregated.
@@ -9053,6 +9458,72 @@ func (s *PutEvaluationsOutput) SetFailedEvaluations(v []*Evaluation) *PutEvaluat
 	return s
 }
 
+type PutRetentionConfigurationInput struct {
+	_ struct{} `type:"structure"`
+
+	// Number of days AWS Config stores your historical information.
+	//
+	// Currently, only applicable to the configuration item history.
+	//
+	// RetentionPeriodInDays is a required field
+	RetentionPeriodInDays *int64 `min:"30" type:"integer" required:"true"`
+}
+
+// String returns the string representation
+func (s PutRetentionConfigurationInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s PutRetentionConfigurationInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *PutRetentionConfigurationInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "PutRetentionConfigurationInput"}
+	if s.RetentionPeriodInDays == nil {
+		invalidParams.Add(request.NewErrParamRequired("RetentionPeriodInDays"))
+	}
+	if s.RetentionPeriodInDays != nil && *s.RetentionPeriodInDays < 30 {
+		invalidParams.Add(request.NewErrParamMinValue("RetentionPeriodInDays", 30))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetRetentionPeriodInDays sets the RetentionPeriodInDays field's value.
+func (s *PutRetentionConfigurationInput) SetRetentionPeriodInDays(v int64) *PutRetentionConfigurationInput {
+	s.RetentionPeriodInDays = &v
+	return s
+}
+
+type PutRetentionConfigurationOutput struct {
+	_ struct{} `type:"structure"`
+
+	// Returns a retention configuration object.
+	RetentionConfiguration *RetentionConfiguration `type:"structure"`
+}
+
+// String returns the string representation
+func (s PutRetentionConfigurationOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s PutRetentionConfigurationOutput) GoString() string {
+	return s.String()
+}
+
+// SetRetentionConfiguration sets the RetentionConfiguration field's value.
+func (s *PutRetentionConfigurationOutput) SetRetentionConfiguration(v *RetentionConfiguration) *PutRetentionConfigurationOutput {
+	s.RetentionConfiguration = v
+	return s
+}
+
 // Specifies the types of AWS resource for which AWS Config records configuration
 // changes.
 //
@@ -9161,7 +9632,7 @@ type Relationship struct {
 	RelationshipName *string `locationName:"relationshipName" type:"string"`
 
 	// The ID of the related resource (for example, sg-xxxxxx).
-	ResourceId *string `locationName:"resourceId" type:"string"`
+	ResourceId *string `locationName:"resourceId" min:"1" type:"string"`
 
 	// The custom name of the related resource, if available.
 	ResourceName *string `locationName:"resourceName" type:"string"`
@@ -9243,10 +9714,10 @@ type ResourceIdentifier struct {
 	_ struct{} `type:"structure"`
 
 	// The time that the resource was deleted.
-	ResourceDeletionTime *time.Time `locationName:"resourceDeletionTime" type:"timestamp" timestampFormat:"unix"`
+	ResourceDeletionTime *time.Time `locationName:"resourceDeletionTime" type:"timestamp"`
 
 	// The ID of the resource (for example, sg-xxxxxx).
-	ResourceId *string `locationName:"resourceId" type:"string"`
+	ResourceId *string `locationName:"resourceId" min:"1" type:"string"`
 
 	// The custom name of the resource (if available).
 	ResourceName *string `locationName:"resourceName" type:"string"`
@@ -9297,7 +9768,7 @@ type ResourceKey struct {
 	// The ID of the resource (for example., sg-xxxxxx).
 	//
 	// ResourceId is a required field
-	ResourceId *string `locationName:"resourceId" type:"string" required:"true"`
+	ResourceId *string `locationName:"resourceId" min:"1" type:"string" required:"true"`
 
 	// The resource type.
 	//
@@ -9321,6 +9792,9 @@ func (s *ResourceKey) Validate() error {
 	if s.ResourceId == nil {
 		invalidParams.Add(request.NewErrParamRequired("ResourceId"))
 	}
+	if s.ResourceId != nil && len(*s.ResourceId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ResourceId", 1))
+	}
 	if s.ResourceType == nil {
 		invalidParams.Add(request.NewErrParamRequired("ResourceType"))
 	}
@@ -9340,6 +9814,47 @@ func (s *ResourceKey) SetResourceId(v string) *ResourceKey {
 // SetResourceType sets the ResourceType field's value.
 func (s *ResourceKey) SetResourceType(v string) *ResourceKey {
 	s.ResourceType = &v
+	return s
+}
+
+// An object with the name of the retention configuration and the retention
+// period in days. The object stores the configuration for data retention in
+// AWS Config.
+type RetentionConfiguration struct {
+	_ struct{} `type:"structure"`
+
+	// The name of the retention configuration object.
+	//
+	// Name is a required field
+	Name *string `min:"1" type:"string" required:"true"`
+
+	// Number of days AWS Config stores your historical information.
+	//
+	// Currently, only applicable to the configuration item history.
+	//
+	// RetentionPeriodInDays is a required field
+	RetentionPeriodInDays *int64 `min:"30" type:"integer" required:"true"`
+}
+
+// String returns the string representation
+func (s RetentionConfiguration) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s RetentionConfiguration) GoString() string {
+	return s.String()
+}
+
+// SetName sets the Name field's value.
+func (s *RetentionConfiguration) SetName(v string) *RetentionConfiguration {
+	s.Name = &v
+	return s
+}
+
+// SetRetentionPeriodInDays sets the RetentionPeriodInDays field's value.
+func (s *RetentionConfiguration) SetRetentionPeriodInDays(v int64) *RetentionConfiguration {
+	s.RetentionPeriodInDays = &v
 	return s
 }
 
@@ -9541,7 +10056,8 @@ type SourceDetail struct {
 	//    when AWS Config delivers a configuration snapshot.
 	//
 	// If you want your custom rule to be triggered by configuration changes, specify
-	// both ConfigurationItemChangeNotification and OversizedConfigurationItemChangeNotification.
+	// two SourceDetail objects, one for ConfigurationItemChangeNotification and
+	// one for OversizedConfigurationItemChangeNotification.
 	MessageType *string `type:"string" enum:"MessageType"`
 }
 
@@ -10034,4 +10550,28 @@ const (
 
 	// ResourceTypeAwsCloudFrontStreamingDistribution is a ResourceType enum value
 	ResourceTypeAwsCloudFrontStreamingDistribution = "AWS::CloudFront::StreamingDistribution"
+
+	// ResourceTypeAwsWafRuleGroup is a ResourceType enum value
+	ResourceTypeAwsWafRuleGroup = "AWS::WAF::RuleGroup"
+
+	// ResourceTypeAwsWafregionalRuleGroup is a ResourceType enum value
+	ResourceTypeAwsWafregionalRuleGroup = "AWS::WAFRegional::RuleGroup"
+
+	// ResourceTypeAwsLambdaFunction is a ResourceType enum value
+	ResourceTypeAwsLambdaFunction = "AWS::Lambda::Function"
+
+	// ResourceTypeAwsElasticBeanstalkApplication is a ResourceType enum value
+	ResourceTypeAwsElasticBeanstalkApplication = "AWS::ElasticBeanstalk::Application"
+
+	// ResourceTypeAwsElasticBeanstalkApplicationVersion is a ResourceType enum value
+	ResourceTypeAwsElasticBeanstalkApplicationVersion = "AWS::ElasticBeanstalk::ApplicationVersion"
+
+	// ResourceTypeAwsElasticBeanstalkEnvironment is a ResourceType enum value
+	ResourceTypeAwsElasticBeanstalkEnvironment = "AWS::ElasticBeanstalk::Environment"
+
+	// ResourceTypeAwsElasticLoadBalancingLoadBalancer is a ResourceType enum value
+	ResourceTypeAwsElasticLoadBalancingLoadBalancer = "AWS::ElasticLoadBalancing::LoadBalancer"
+
+	// ResourceTypeAwsXrayEncryptionConfig is a ResourceType enum value
+	ResourceTypeAwsXrayEncryptionConfig = "AWS::XRay::EncryptionConfig"
 )

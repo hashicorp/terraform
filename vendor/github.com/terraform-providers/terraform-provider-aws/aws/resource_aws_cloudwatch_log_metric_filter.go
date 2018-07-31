@@ -189,7 +189,5 @@ func resourceAwsCloudWatchLogMetricFilterDelete(d *schema.ResourceData, meta int
 	}
 	log.Println("[INFO] CloudWatch Log Metric Filter deleted")
 
-	d.SetId("")
-
 	return nil
 }

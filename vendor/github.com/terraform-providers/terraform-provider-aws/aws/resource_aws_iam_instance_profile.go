@@ -3,6 +3,7 @@ package aws
 import (
 	"fmt"
 	"regexp"
+	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
@@ -60,9 +61,10 @@ func resourceAwsIamInstanceProfile() *schema.Resource {
 			},
 
 			"name_prefix": {
-				Type:     schema.TypeString,
-				Optional: true,
-				ForceNew: true,
+				Type:          schema.TypeString,
+				Optional:      true,
+				ForceNew:      true,
+				ConflictsWith: []string{"name"},
 				ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
 					// https://github.com/boto/botocore/blob/2485f5c/botocore/data/iam/2010-05-08/service-2.json#L8196-L8201
 					value := v.(string)
@@ -295,7 +297,7 @@ func resourceAwsIamInstanceProfileDelete(d *schema.ResourceData, meta interface{
 	if err != nil {
 		return fmt.Errorf("Error deleting IAM instance profile %s: %s", d.Id(), err)
 	}
-	d.SetId("")
+
 	return nil
 }
 
@@ -305,6 +307,9 @@ func instanceProfileReadResult(d *schema.ResourceData, result *iam.InstanceProfi
 		return err
 	}
 	if err := d.Set("arn", result.Arn); err != nil {
+		return err
+	}
+	if err := d.Set("create_date", result.CreateDate.Format(time.RFC3339)); err != nil {
 		return err
 	}
 	if err := d.Set("path", result.Path); err != nil {

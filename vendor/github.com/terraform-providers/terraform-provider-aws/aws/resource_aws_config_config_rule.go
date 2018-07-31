@@ -295,7 +295,6 @@ func resourceAwsConfigConfigRuleDelete(d *schema.ResourceData, meta interface{})
 
 	log.Printf("[DEBUG] AWS Config config rule %q deleted", name)
 
-	d.SetId("")
 	return nil
 }
 

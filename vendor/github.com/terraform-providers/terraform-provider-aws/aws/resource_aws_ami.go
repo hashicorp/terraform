@@ -307,8 +307,6 @@ func resourceAwsAmiDelete(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 
-	// No error, ami was deleted successfully
-	d.SetId("")
 	return nil
 }
 

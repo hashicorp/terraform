@@ -13,9 +13,13 @@ import (
 	"github.com/aws/aws-sdk-go/private/protocol"
 )
 
-// BuildXML will serialize params into an xml.Encoder.
-// Error will be returned if the serialization of any of the params or nested values fails.
+// BuildXML will serialize params into an xml.Encoder. Error will be returned
+// if the serialization of any of the params or nested values fails.
 func BuildXML(params interface{}, e *xml.Encoder) error {
+	return buildXML(params, e, false)
+}
+
+func buildXML(params interface{}, e *xml.Encoder, sorted bool) error {
 	b := xmlBuilder{encoder: e, namespaces: map[string]string{}}
 	root := NewXMLElement(xml.Name{})
 	if err := b.buildValue(reflect.ValueOf(params), root, ""); err != nil {
@@ -23,7 +27,7 @@ func BuildXML(params interface{}, e *xml.Encoder) error {
 	}
 	for _, c := range root.Children {
 		for _, v := range c {
-			return StructToXML(e, v, false)
+			return StructToXML(e, v, sorted)
 		}
 	}
 	return nil
@@ -278,8 +282,12 @@ func (b *xmlBuilder) buildScalar(value reflect.Value, current *XMLNode, tag refl
 	case float32:
 		str = strconv.FormatFloat(float64(converted), 'f', -1, 32)
 	case time.Time:
-		const ISO8601UTC = "2006-01-02T15:04:05Z"
-		str = converted.UTC().Format(ISO8601UTC)
+		format := tag.Get("timestampFormat")
+		if len(format) == 0 {
+			format = protocol.ISO8601TimeFormatName
+		}
+
+		str = protocol.FormatTime(format, converted)
 	default:
 		return fmt.Errorf("unsupported value for param %s: %v (%s)",
 			tag.Get("locationName"), value.Interface(), value.Type().Name())

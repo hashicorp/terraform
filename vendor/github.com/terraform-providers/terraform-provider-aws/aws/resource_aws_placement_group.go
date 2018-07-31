@@ -148,6 +148,5 @@ func resourceAwsPlacementGroupDelete(d *schema.ResourceData, meta interface{}) e
 		return err
 	}
 
-	d.SetId("")
 	return nil
 }

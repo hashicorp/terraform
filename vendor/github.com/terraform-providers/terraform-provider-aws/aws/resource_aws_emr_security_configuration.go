@@ -28,10 +28,11 @@ func resourceAwsEMRSecurityConfiguration() *schema.Resource {
 				ValidateFunc:  validateMaxLength(10280),
 			},
 			"name_prefix": {
-				Type:         schema.TypeString,
-				Optional:     true,
-				ForceNew:     true,
-				ValidateFunc: validateMaxLength(10280 - resource.UniqueIDSuffixLength),
+				Type:          schema.TypeString,
+				Optional:      true,
+				ForceNew:      true,
+				ConflictsWith: []string{"name"},
+				ValidateFunc:  validateMaxLength(10280 - resource.UniqueIDSuffixLength),
 			},
 
 			"configuration": {
@@ -106,12 +107,10 @@ func resourceAwsEmrSecurityConfigurationDelete(d *schema.ResourceData, meta inte
 	})
 	if err != nil {
 		if isAWSErr(err, "InvalidRequestException", "does not exist") {
-			d.SetId("")
 			return nil
 		}
 		return err
 	}
-	d.SetId("")
 
 	return nil
 }

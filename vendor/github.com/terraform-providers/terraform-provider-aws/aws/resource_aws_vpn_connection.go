@@ -461,7 +461,6 @@ func resourceAwsVpnConnectionDelete(d *schema.ResourceData, meta interface{}) er
 	})
 	if err != nil {
 		if ec2err, ok := err.(awserr.Error); ok && ec2err.Code() == "InvalidVpnConnectionID.NotFound" {
-			d.SetId("")
 			return nil
 		} else {
 			log.Printf("[ERROR] Error deleting VPN connection: %s", err)
@@ -568,8 +567,8 @@ func validateVpnConnectionTunnelPreSharedKey(v interface{}, k string) (ws []stri
 		errors = append(errors, fmt.Errorf("%q cannot start with zero character", k))
 	}
 
-	if !regexp.MustCompile(`^[0-9a-zA-Z_]+$`).MatchString(value) {
-		errors = append(errors, fmt.Errorf("%q can only contain alphanumeric and underscore characters", k))
+	if !regexp.MustCompile(`^[0-9a-zA-Z_.]+$`).MatchString(value) {
+		errors = append(errors, fmt.Errorf("%q can only contain alphanumeric, period and underscore characters", k))
 	}
 
 	return

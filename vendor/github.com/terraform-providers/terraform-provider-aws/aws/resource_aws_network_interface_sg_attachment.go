@@ -116,7 +116,6 @@ func resourceAwsNetworkInterfaceSGAttachmentDelete(d *schema.ResourceData, meta 
 		return err
 	}
 
-	d.SetId("")
 	return nil
 }
 

@@ -152,7 +152,6 @@ func resourceAwsMqBroker() *schema.Resource {
 					},
 				},
 			},
-
 			"arn": {
 				Type:     schema.TypeString,
 				Computed: true,

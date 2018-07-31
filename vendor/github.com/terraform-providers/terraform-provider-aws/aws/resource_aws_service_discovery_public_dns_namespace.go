@@ -126,7 +126,6 @@ func resourceAwsServiceDiscoveryPublicDnsNamespaceDelete(d *schema.ResourceData,
 		return err
 	}
 
-	d.SetId("")
 	return nil
 }
 

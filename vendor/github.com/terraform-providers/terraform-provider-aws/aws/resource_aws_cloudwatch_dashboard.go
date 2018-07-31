@@ -102,15 +102,12 @@ func resourceAwsCloudWatchDashboardDelete(d *schema.ResourceData, meta interface
 
 	if _, err := conn.DeleteDashboards(&params); err != nil {
 		if isCloudWatchDashboardNotFoundErr(err) {
-			log.Printf("[WARN] CloudWatch Dashboard %s is already gone", d.Id())
-			d.SetId("")
 			return nil
 		}
 		return fmt.Errorf("Error deleting CloudWatch Dashboard: %s", err)
 	}
 	log.Printf("[INFO] CloudWatch Dashboard %s deleted", d.Id())
 
-	d.SetId("")
 	return nil
 }
 

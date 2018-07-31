@@ -89,7 +89,7 @@ func resourceAwsRoute53ZoneCreate(d *schema.ResourceData, meta interface{}) erro
 	req := &route53.CreateHostedZoneInput{
 		Name:             aws.String(d.Get("name").(string)),
 		HostedZoneConfig: &route53.HostedZoneConfig{Comment: aws.String(d.Get("comment").(string))},
-		CallerReference:  aws.String(time.Now().Format(time.RFC3339Nano)),
+		CallerReference:  aws.String(resource.UniqueId()),
 	}
 	if v := d.Get("vpc_id"); v != "" {
 		req.VPC = &route53.VPC{
@@ -277,8 +277,6 @@ func resourceAwsRoute53ZoneDelete(d *schema.ResourceData, meta interface{}) erro
 	_, err := r53.DeleteHostedZone(&route53.DeleteHostedZoneInput{Id: aws.String(d.Id())})
 	if err != nil {
 		if r53err, ok := err.(awserr.Error); ok && r53err.Code() == "NoSuchHostedZone" {
-			log.Printf("[DEBUG] No matching Route 53 Zone found for: %s, removing from state file", d.Id())
-			d.SetId("")
 			return nil
 		}
 		return err

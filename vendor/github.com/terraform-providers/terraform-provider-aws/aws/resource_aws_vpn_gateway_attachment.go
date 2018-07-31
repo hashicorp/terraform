@@ -85,7 +85,7 @@ func resourceAwsVpnGatewayAttachmentRead(d *schema.ResourceData, meta interface{
 
 	if err != nil {
 		awsErr, ok := err.(awserr.Error)
-		if ok && awsErr.Code() == "InvalidVPNGatewayID.NotFound" {
+		if ok && awsErr.Code() == "InvalidVpnGatewayID.NotFound" {
 			log.Printf("[WARN] VPN Gateway %q not found.", vgwId)
 			d.SetId("")
 			return nil
@@ -130,15 +130,9 @@ func resourceAwsVpnGatewayAttachmentDelete(d *schema.ResourceData, meta interfac
 		awsErr, ok := err.(awserr.Error)
 		if ok {
 			switch awsErr.Code() {
-			case "InvalidVPNGatewayID.NotFound":
-				log.Printf("[WARN] VPN Gateway %q not found.", vgwId)
-				d.SetId("")
+			case "InvalidVpnGatewayID.NotFound":
 				return nil
 			case "InvalidVpnGatewayAttachment.NotFound":
-				log.Printf(
-					"[WARN] VPN Gateway %q attachment to VPC %q not found.",
-					vgwId, vpcId)
-				d.SetId("")
 				return nil
 			}
 		}
@@ -163,7 +157,6 @@ func resourceAwsVpnGatewayAttachmentDelete(d *schema.ResourceData, meta interfac
 	}
 	log.Printf("[DEBUG] VPN Gateway %q detached from VPC %q.", vgwId, vpcId)
 
-	d.SetId("")
 	return nil
 }
 
@@ -183,7 +176,7 @@ func vpnGatewayAttachmentStateRefresh(conn *ec2.EC2, vpcId, vgwId string) resour
 			awsErr, ok := err.(awserr.Error)
 			if ok {
 				switch awsErr.Code() {
-				case "InvalidVPNGatewayID.NotFound":
+				case "InvalidVpnGatewayID.NotFound":
 					fallthrough
 				case "InvalidVpnGatewayAttachment.NotFound":
 					return nil, "", nil

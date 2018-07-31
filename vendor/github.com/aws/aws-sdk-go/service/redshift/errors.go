@@ -49,6 +49,12 @@ const (
 	// The ClusterIdentifier parameter does not refer to an existing cluster.
 	ErrCodeClusterNotFoundFault = "ClusterNotFound"
 
+	// ErrCodeClusterOnLatestRevisionFault for service response error code
+	// "ClusterOnLatestRevision".
+	//
+	// Cluster is already on the latest database revision.
+	ErrCodeClusterOnLatestRevisionFault = "ClusterOnLatestRevision"
+
 	// ErrCodeClusterParameterGroupAlreadyExistsFault for service response error code
 	// "ClusterParameterGroupAlreadyExists".
 	//
@@ -308,6 +314,12 @@ const (
 	// in use by one or more Amazon Redshift clusters.
 	ErrCodeInvalidHsmConfigurationStateFault = "InvalidHsmConfigurationStateFault"
 
+	// ErrCodeInvalidReservedNodeStateFault for service response error code
+	// "InvalidReservedNodeState".
+	//
+	// Indicates that the Reserved Node being exchanged is not in an active state.
+	ErrCodeInvalidReservedNodeStateFault = "InvalidReservedNodeState"
+
 	// ErrCodeInvalidRestoreFault for service response error code
 	// "InvalidRestore".
 	//
@@ -395,6 +407,12 @@ const (
 	//
 	// User already has a reservation with the given identifier.
 	ErrCodeReservedNodeAlreadyExistsFault = "ReservedNodeAlreadyExists"
+
+	// ErrCodeReservedNodeAlreadyMigratedFault for service response error code
+	// "ReservedNodeAlreadyMigrated".
+	//
+	// Indicates that the reserved node has already been exchanged.
+	ErrCodeReservedNodeAlreadyMigratedFault = "ReservedNodeAlreadyMigrated"
 
 	// ErrCodeReservedNodeNotFoundFault for service response error code
 	// "ReservedNodeNotFound".
@@ -535,6 +553,13 @@ const (
 	// The allowed values are ERROR and INFO.
 	ErrCodeSubscriptionSeverityNotFoundFault = "SubscriptionSeverityNotFound"
 
+	// ErrCodeTableLimitExceededFault for service response error code
+	// "TableLimitExceeded".
+	//
+	// The number of tables in the cluster exceeds the limit for the requested new
+	// cluster node type.
+	ErrCodeTableLimitExceededFault = "TableLimitExceeded"
+
 	// ErrCodeTableRestoreNotFoundFault for service response error code
 	// "TableRestoreNotFoundFault".
 	//
@@ -544,7 +569,8 @@ const (
 	// ErrCodeTagLimitExceededFault for service response error code
 	// "TagLimitExceededFault".
 	//
-	// The request exceeds the limit of 10 tags for the resource.
+	// The number of tables in your source cluster exceeds the limit for the target
+	// cluster. Resize to a larger cluster node type.
 	ErrCodeTagLimitExceededFault = "TagLimitExceededFault"
 
 	// ErrCodeUnauthorizedOperation for service response error code

@@ -2212,7 +2212,7 @@ type QueryExecutionStatus struct {
 	_ struct{} `type:"structure"`
 
 	// The date and time that the query completed.
-	CompletionDateTime *time.Time `type:"timestamp" timestampFormat:"unix"`
+	CompletionDateTime *time.Time `type:"timestamp"`
 
 	// The state of query execution. SUBMITTED indicates that the query is queued
 	// for execution. RUNNING indicates that the query is scanning data and returning
@@ -2225,7 +2225,7 @@ type QueryExecutionStatus struct {
 	StateChangeReason *string `type:"string"`
 
 	// The date and time that the query was submitted.
-	SubmissionDateTime *time.Time `type:"timestamp" timestampFormat:"unix"`
+	SubmissionDateTime *time.Time `type:"timestamp"`
 }
 
 // String returns the string representation

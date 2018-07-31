@@ -36,11 +36,12 @@ func resourceAwsNetworkAcl() *schema.Resource {
 				Computed: false,
 			},
 			"subnet_id": {
-				Type:       schema.TypeString,
-				Optional:   true,
-				ForceNew:   true,
-				Computed:   false,
-				Deprecated: "Attribute subnet_id is deprecated on network_acl resources. Use subnet_ids instead",
+				Type:          schema.TypeString,
+				Optional:      true,
+				ForceNew:      true,
+				Computed:      false,
+				ConflictsWith: []string{"subnet_ids"},
+				Deprecated:    "Attribute subnet_id is deprecated on network_acl resources. Use subnet_ids instead",
 			},
 			"subnet_ids": {
 				Type:          schema.TypeSet,

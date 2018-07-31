@@ -130,7 +130,6 @@ func resourceAwsAppautoscalingTargetDelete(d *schema.ResourceData, meta interfac
 	}
 	if t == nil {
 		log.Printf("[INFO] Application AutoScaling Target %q not found", d.Id())
-		d.SetId("")
 		return nil
 	}
 
