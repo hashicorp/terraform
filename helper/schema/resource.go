@@ -8,6 +8,7 @@ import (
 
 	"github.com/hashicorp/terraform/config"
 	"github.com/hashicorp/terraform/terraform"
+	"github.com/zclconf/go-cty/cty"
 )
 
 // Resource represents a thing in Terraform that has a set of configurable
@@ -44,6 +45,21 @@ type Resource struct {
 	// their Versioning at any integer >= 1
 	SchemaVersion int
 
+	// LegacySchema is a record of the last schema version and type that
+	// existed before the addition of an UpgradeState function.
+	//
+	// This allows the resource schema to continue to evolve, while providing a
+	// record of how to decode a legacy state to be upgraded.
+	//
+	// LegacySchema is required when implementing UpgradeState.
+	LegacySchema LegacySchemaVersion
+
+	// MigrateState is deprecated and any new changes to a resource's schema
+	// should be handled by UpgradeState. Existing MigrateState implementations
+	// should remain for compatibility with existing state. MigrateState will
+	// still be called if the stored SchemaVersion is lower than the
+	// LegacySchema.Version value.
+	//
 	// MigrateState is responsible for updating an InstanceState with an old
 	// version to the format expected by the current version of the Schema.
 	//
@@ -55,6 +71,17 @@ type Resource struct {
 	// provider's configured meta interface{}, in case the migration process
 	// needs to make any remote API calls.
 	MigrateState StateMigrateFunc
+
+	// UpgradeState is responsible for upgrading an existing state with an old
+	// schema version to the current schema. It is called specifically by
+	// Terraform when the stored schema version is less than the current
+	// SchemaVersion of the Resource.
+	//
+	// StateUpgradeFunc takes the schema version, the state decoded using the
+	// default json types in a map[string]interface{}, and the provider meta
+	// value. The returned map value should encode into the proper format json
+	// to match the current provider schema.
+	UpgradeState StateUpgradeFunc
 
 	// The functions below are the CRUD operations for this resource.
 	//
@@ -136,6 +163,11 @@ type Resource struct {
 	Timeouts *ResourceTimeout
 }
 
+type LegacySchemaVersion struct {
+	Version int
+	Type    cty.Type
+}
+
 // See Resource documentation.
 type CreateFunc func(*ResourceData, interface{}) error
 
@@ -154,6 +186,9 @@ type ExistsFunc func(*ResourceData, interface{}) (bool, error)
 // See Resource documentation.
 type StateMigrateFunc func(
 	int, *terraform.InstanceState, interface{}) (*terraform.InstanceState, error)
+
+// See Resource documentation.
+type StateUpgradeFunc func(int, map[string]interface{}, interface{}) (map[string]interface{}, error)
 
 // See Resource documentation.
 type CustomizeDiffFunc func(*ResourceDiff, interface{}) error
@@ -435,6 +470,14 @@ func (r *Resource) InternalValidate(topSchemaMap schemaMap, writable bool) error
 				return fmt.Errorf("%s is a reserved field name", k)
 			}
 		}
+	}
+
+	if r.LegacySchema.Version >= r.SchemaVersion {
+		return errors.New("LegacySchema.Version cannot be >= SchemaVersion")
+	}
+
+	if r.UpgradeState != nil && !r.LegacySchema.Type.IsObjectType() {
+		return fmt.Errorf("LegacySchema.Type requires a cty.Object, got: %#v", r.LegacySchema.Type)
 	}
 
 	// Data source
