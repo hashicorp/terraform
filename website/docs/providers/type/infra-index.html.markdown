@@ -22,6 +22,8 @@ and are tested by HashiCorp.
 
 [Consul](/docs/providers/consul/index.html)
 
+[Docker](/docs/providers/docker/index.html)
+
 [Kubernetes](/docs/providers/kubernetes/index.html)
 
 [Mailgun](/docs/providers/mailgun/index.html)
