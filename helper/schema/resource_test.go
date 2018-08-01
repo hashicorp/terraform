@@ -1,6 +1,7 @@
 package schema
 
 import (
+	"encoding/json"
 	"fmt"
 	"reflect"
 	"strconv"
@@ -8,7 +9,11 @@ import (
 	"time"
 
 	"github.com/hashicorp/terraform/config"
+	"github.com/hashicorp/terraform/config/hcl2shim"
 	"github.com/hashicorp/terraform/terraform"
+
+	"github.com/zclconf/go-cty/cty"
+	ctyjson "github.com/zclconf/go-cty/cty/json"
 )
 
 func TestResourceApply_create(t *testing.T) {
@@ -1366,5 +1371,113 @@ func TestResourceData_timeouts(t *testing.T) {
 
 	if !reflect.DeepEqual(timeouts, data.timeouts) {
 		t.Fatalf("incorrect ResourceData timeouts: %#v\n", *data.timeouts)
+	}
+}
+
+func TestResource_UpgradeState(t *testing.T) {
+	// Schema v2 it deals only in newfoo, which tracks foo as an int
+	r := &Resource{
+		SchemaVersion: 2,
+		Schema: map[string]*Schema{
+			"newfoo": &Schema{
+				Type:     TypeInt,
+				Optional: true,
+			},
+		},
+	}
+
+	r.LegacySchema.Version = 1
+	r.LegacySchema.Type = cty.Object(map[string]cty.Type{
+		"id":     cty.String,
+		"oldfoo": cty.Number,
+	})
+
+	r.UpgradeState = func(
+		v int,
+		m map[string]interface{},
+		meta interface{}) (map[string]interface{}, error) {
+
+		oldfoo, ok := m["oldfoo"].(float64)
+		if !ok {
+			t.Fatalf("expected 1.2, got %#v", m["oldfoo"])
+		}
+		m["newfoo"] = int(oldfoo * 10)
+		delete(m, "oldfoo")
+
+		return m, nil
+	}
+
+	oldStateAttrs := map[string]string{
+		"id":     "bar",
+		"oldfoo": "1.2",
+	}
+
+	// convert the legacy flatmap state to the json equivalent
+	val, err := hcl2shim.HCL2ValueFromFlatmap(oldStateAttrs, r.LegacySchema.Type)
+	if err != nil {
+		t.Fatal(err)
+	}
+	js, err := ctyjson.Marshal(val, r.LegacySchema.Type)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// unmarshal the state using the json default types
+	var m map[string]interface{}
+	if err := json.Unmarshal(js, &m); err != nil {
+		t.Fatal(err)
+	}
+
+	actual, err := r.UpgradeState(2, m, nil)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	expected := map[string]interface{}{
+		"id":     "bar",
+		"newfoo": 12,
+	}
+
+	if !reflect.DeepEqual(expected, actual) {
+		t.Fatalf("expected: %#v\ngot: %#v\n", expected, actual)
+	}
+}
+
+func TestResource_ValidateUpgradeState(t *testing.T) {
+	r := &Resource{
+		SchemaVersion: 2,
+		Schema: map[string]*Schema{
+			"newfoo": &Schema{
+				Type:     TypeInt,
+				Optional: true,
+			},
+		},
+	}
+
+	if err := r.InternalValidate(nil, true); err != nil {
+		t.Fatal(err)
+	}
+
+	r.LegacySchema.Version = 2
+	if err := r.InternalValidate(nil, true); err == nil {
+		t.Fatal("LegacySchema.Version cannot be >= SchemaVersion")
+	}
+
+	r.LegacySchema.Version = 1
+
+	r.UpgradeState = func(v int, m map[string]interface{}, _ interface{}) (map[string]interface{}, error) {
+		return m, nil
+	}
+
+	if err := r.InternalValidate(nil, true); err == nil {
+		t.Fatal("UpgradeState requires LegacySchema.Type")
+	}
+
+	r.LegacySchema.Type = cty.Object(map[string]cty.Type{
+		"id": cty.String,
+	})
+
+	if err := r.InternalValidate(nil, true); err != nil {
+		t.Fatal(err)
 	}
 }
