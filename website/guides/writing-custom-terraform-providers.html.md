@@ -563,6 +563,98 @@ func resourceServerRead(d *schema.ResourceData, m interface{}) error {
 }
 ```
 
+## Implementing CustomizeDiff
+
+In addition to all of the above, there is an advanced, optional `CustomizeDiff`
+callback that can be used for extended diff validation.
+
+Like all of the CRUD callbacks, this is passed an object representing the data,
+and an interface to the provider. The data however is represented as a
+[`schema.ResourceDiff
+type`](https://godoc.org/github.com/hashicorp/terraform/helper/schema#ResourceDiff)
+, which, while having an API that closely matches `schema.ResourceData`, lacks
+some of the write functionality such as `Set` and `SetId`. What you get instead
+are a set of powerful functions that allow you to manipulate the diff in ways
+that are not possible in the normal workflow.
+
+```go
+func resourceServer() *schema.Resource {
+	return &schema.Resource{
+    ...
+		CustomizeDiff: resourceServerCustomizeDiff,
+    ...
+  }
+}
+
+func resourceServerCustomizeDiff(d *schema.ResourceDiff, m interface{}) error {
+  // Client API connections are available in the same way they are in standard
+  // CRUD. This allows you to call out to it as needed.
+  client := m.(*MyClient)
+
+  // Most of the read-only functions that are available in ResourceData are also
+  // available in ResourceDiff. For the full list make sure to check the linked
+  // godoc above.
+  if d.HasChange("quota") {
+    o, n := d.GetChange("quota")
+    oQuota := o.(int)
+    nQuota := n.(int)
+    switch {
+    case !d.NewValueKnown("quota"):
+      // You can "veto" certain changes to the diff that don't match certain
+      // criteria. This is a fancy way of saying you are returning an error for
+      // unsupported changes.
+      //
+      // This case uses NewValueKnown to veto the quota value if it's still
+      // pending interpolation, as futher cases depend on these values being
+      // available.
+      return errors.New("quota cannot be computed")
+    case nQuota - oQuota > oQuota * 1.10:
+      // Here, we are blocking a workflow that we know the provider won't
+      // support.
+      return fmt.Errorf("new quota must be no more than 10% larger than old quota")
+    case nQuota < oQuota:
+      // You can also force a new resource on a field that is not normally set
+      // to ForceNew in the schema.
+      d.ForceNew("quota")
+    }
+  }
+
+  if id := d.Id(); id != "" {
+    obj, ok := client.Get(d.Id())
+    if !ok {
+      return fmt.Errorf("server with ID %q not found", id)
+    }
+    switch uri := obj.NewUri {
+    case service.NoChange:
+      // No change, break
+    case service.Unknown:
+      // You can use SetNewComputed to trigger a change in the resource when you
+      // don't necessarily know the value yet. This will ensure that this resource
+      // is updated on the next apply. This only works on values marked as
+      // Computed in the schema.
+      d.SetNewComputed("uri")
+    default:
+      // SetNew can be used to set a concrete new value in the diff. Like
+      // SetNewComputed, this value only works on keys that have been marked as
+      // Computed in the schema.
+      d.SetNew("uri", uri)
+    }
+  }
+
+  return nil
+}
+```
+
+~> **NOTE:** If a diff forces a new resource, diff customization runs _twice_,
+the second time without a state, meaning that some old values, IDs, and other
+fields that may have existed in the first invocation will not exist. It's
+important that `CustomizeDiff` accounts for both of these scenarios.
+
+-> **NOTE:** The [customdiff
+package](https://godoc.org/github.com/hashicorp/terraform/helper/customdiff)
+contains a number of semantically declarative helpers that can be useful when
+working with routine diff customization workflows.
+
 ## Next Steps
 
 This guide covers the schema and structure for implementing a Terraform provider
