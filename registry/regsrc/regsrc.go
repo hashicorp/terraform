@@ -4,5 +4,5 @@ package regsrc
 
 var (
 	// PublicRegistryHost is a FriendlyHost that represents the public registry.
-	PublicRegistryHost = NewFriendlyHost("tf-registry-staging.herokuapp.com")
+	PublicRegistryHost = NewFriendlyHost("registry.terraform.io")
 )
