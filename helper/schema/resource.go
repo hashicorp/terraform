@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"log"
-	"sort"
 	"strconv"
 
 	"github.com/hashicorp/terraform/config"
@@ -49,8 +48,8 @@ type Resource struct {
 	// MigrateState is deprecated and any new changes to a resource's schema
 	// should be handled by StateUpgraders. Existing MigrateState implementations
 	// should remain for compatibility with existing state. MigrateState will
-	// still be called if the stored SchemaVersion is lower than the
-	// LegacySchema.Version value.
+	// still be called if the stored SchemaVersion is less than the
+	// first version of the StateUpgraders.
 	//
 	// MigrateState is responsible for updating an InstanceState with an old
 	// version to the format expected by the current version of the Schema.
@@ -69,10 +68,11 @@ type Resource struct {
 	// called specifically by Terraform when the stored schema version is less
 	// than the current SchemaVersion of the Resource.
 	//
-	// StateUpgraders map specific schema versions to an StateUpgrader
-	// function. The registered versions are expected to be consecutive values.
-	// The initial value may be greater than 0 to account for legacy schemas
-	// that weren't recorded and can be handled by MigrateState.
+	// StateUpgraders map specific schema versions to a StateUpgrader
+	// function. The registered versions are expected to be ordered,
+	// consecutive values. The initial value may be greater than 0 to account
+	// for legacy schemas that weren't recorded and can be handled by
+	// MigrateState.
 	StateUpgraders []StateUpgrader
 
 	// The functions below are the CRUD operations for this resource.
@@ -185,12 +185,15 @@ type StateUpgrader struct {
 	Type cty.Type
 
 	// Upgrade takes the JSON encoded state and the provider meta value, and
-	// upgrades the state one single schema version.
+	// upgrades the state one single schema version. The provided state is
+	// deocded into the default json types using a map[string]interface{}. It
+	// is up to the StateUpgradeFunc to ensure that the returned value can be
+	// encoded using the new schema.
 	Upgrade StateUpgradeFunc
 }
 
-// See Resource documentation.
-type StateUpgradeFunc func(map[string]interface{}, interface{}) (map[string]interface{}, error)
+// See StateUpgrader
+type StateUpgradeFunc func(rawState map[string]interface{}, meta interface{}) (map[string]interface{}, error)
 
 // See Resource documentation.
 type CustomizeDiffFunc func(*ResourceDiff, interface{}) error
@@ -473,11 +476,6 @@ func (r *Resource) InternalValidate(topSchemaMap schemaMap, writable bool) error
 			}
 		}
 	}
-
-	// verify state upgraders are consecutive and have registered schema types
-	sort.Slice(r.StateUpgraders, func(i, j int) bool {
-		return r.StateUpgraders[i].Version < r.StateUpgraders[j].Version
-	})
 
 	lastVersion := -1
 	for _, u := range r.StateUpgraders {

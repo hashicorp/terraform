@@ -1507,8 +1507,7 @@ func TestResource_ValidateUpgradeState(t *testing.T) {
 		t.Fatal("StateUpgraders cannot skip versions")
 	}
 
-	// add the missing version
-	// out of order upgraders should be OK
+	// add the missing version, but fail because it's still out of order
 	r.StateUpgraders = append(r.StateUpgraders, StateUpgrader{
 		Version: 1,
 		Type: cty.Object(map[string]cty.Type{
@@ -1518,6 +1517,11 @@ func TestResource_ValidateUpgradeState(t *testing.T) {
 			return m, nil
 		},
 	})
+	if err := r.InternalValidate(nil, true); err == nil {
+		t.Fatal("upgraders must be defined in order")
+	}
+
+	r.StateUpgraders[1], r.StateUpgraders[2] = r.StateUpgraders[2], r.StateUpgraders[1]
 	if err := r.InternalValidate(nil, true); err != nil {
 		t.Fatal(err)
 	}
