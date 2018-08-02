@@ -1375,7 +1375,9 @@ func TestResourceData_timeouts(t *testing.T) {
 }
 
 func TestResource_UpgradeState(t *testing.T) {
-	// Schema v2 it deals only in newfoo, which tracks foo as an int
+	// While this really only calls itself and therefore doesn't test any of
+	// the Resource code directly, it still serves as an example of registering
+	// a StateUpgrader.
 	r := &Resource{
 		SchemaVersion: 2,
 		Schema: map[string]*Schema{
@@ -1386,25 +1388,25 @@ func TestResource_UpgradeState(t *testing.T) {
 		},
 	}
 
-	r.LegacySchema.Version = 1
-	r.LegacySchema.Type = cty.Object(map[string]cty.Type{
-		"id":     cty.String,
-		"oldfoo": cty.Number,
-	})
+	r.StateUpgraders = []StateUpgrader{
+		{
+			Version: 1,
+			Type: cty.Object(map[string]cty.Type{
+				"id":     cty.String,
+				"oldfoo": cty.Number,
+			}),
+			Upgrade: func(m map[string]interface{}, meta interface{}) (map[string]interface{}, error) {
 
-	r.UpgradeState = func(
-		v int,
-		m map[string]interface{},
-		meta interface{}) (map[string]interface{}, error) {
+				oldfoo, ok := m["oldfoo"].(float64)
+				if !ok {
+					t.Fatalf("expected 1.2, got %#v", m["oldfoo"])
+				}
+				m["newfoo"] = int(oldfoo * 10)
+				delete(m, "oldfoo")
 
-		oldfoo, ok := m["oldfoo"].(float64)
-		if !ok {
-			t.Fatalf("expected 1.2, got %#v", m["oldfoo"])
-		}
-		m["newfoo"] = int(oldfoo * 10)
-		delete(m, "oldfoo")
-
-		return m, nil
+				return m, nil
+			},
+		},
 	}
 
 	oldStateAttrs := map[string]string{
@@ -1413,11 +1415,12 @@ func TestResource_UpgradeState(t *testing.T) {
 	}
 
 	// convert the legacy flatmap state to the json equivalent
-	val, err := hcl2shim.HCL2ValueFromFlatmap(oldStateAttrs, r.LegacySchema.Type)
+	ty := r.StateUpgraders[0].Type
+	val, err := hcl2shim.HCL2ValueFromFlatmap(oldStateAttrs, ty)
 	if err != nil {
 		t.Fatal(err)
 	}
-	js, err := ctyjson.Marshal(val, r.LegacySchema.Type)
+	js, err := ctyjson.Marshal(val, ty)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1428,7 +1431,7 @@ func TestResource_UpgradeState(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	actual, err := r.UpgradeState(2, m, nil)
+	actual, err := r.StateUpgraders[0].Upgrade(m, nil)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -1445,7 +1448,7 @@ func TestResource_UpgradeState(t *testing.T) {
 
 func TestResource_ValidateUpgradeState(t *testing.T) {
 	r := &Resource{
-		SchemaVersion: 2,
+		SchemaVersion: 3,
 		Schema: map[string]*Schema{
 			"newfoo": &Schema{
 				Type:     TypeInt,
@@ -1458,26 +1461,78 @@ func TestResource_ValidateUpgradeState(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	r.LegacySchema.Version = 2
+	r.StateUpgraders = append(r.StateUpgraders, StateUpgrader{
+		Version: 2,
+		Type: cty.Object(map[string]cty.Type{
+			"id": cty.String,
+		}),
+		Upgrade: func(m map[string]interface{}, _ interface{}) (map[string]interface{}, error) {
+			return m, nil
+		},
+	})
+	if err := r.InternalValidate(nil, true); err != nil {
+		t.Fatal(err)
+	}
+
+	// check for missing type
+	r.StateUpgraders[0].Type = cty.Type{}
 	if err := r.InternalValidate(nil, true); err == nil {
-		t.Fatal("LegacySchema.Version cannot be >= SchemaVersion")
+		t.Fatal("StateUpgrader must have type")
 	}
-
-	r.LegacySchema.Version = 1
-
-	r.UpgradeState = func(v int, m map[string]interface{}, _ interface{}) (map[string]interface{}, error) {
-		return m, nil
-	}
-
-	if err := r.InternalValidate(nil, true); err == nil {
-		t.Fatal("UpgradeState requires LegacySchema.Type")
-	}
-
-	r.LegacySchema.Type = cty.Object(map[string]cty.Type{
+	r.StateUpgraders[0].Type = cty.Object(map[string]cty.Type{
 		"id": cty.String,
 	})
 
+	// check for missing Upgrade func
+	r.StateUpgraders[0].Upgrade = nil
+	if err := r.InternalValidate(nil, true); err == nil {
+		t.Fatal("StateUpgrader must have an Upgrade func")
+	}
+	r.StateUpgraders[0].Upgrade = func(m map[string]interface{}, _ interface{}) (map[string]interface{}, error) {
+		return m, nil
+	}
+
+	// check for skipped version
+	r.StateUpgraders[0].Version = 0
+	r.StateUpgraders = append(r.StateUpgraders, StateUpgrader{
+		Version: 2,
+		Type: cty.Object(map[string]cty.Type{
+			"id": cty.String,
+		}),
+		Upgrade: func(m map[string]interface{}, _ interface{}) (map[string]interface{}, error) {
+			return m, nil
+		},
+	})
+	if err := r.InternalValidate(nil, true); err == nil {
+		t.Fatal("StateUpgraders cannot skip versions")
+	}
+
+	// add the missing version
+	// out of order upgraders should be OK
+	r.StateUpgraders = append(r.StateUpgraders, StateUpgrader{
+		Version: 1,
+		Type: cty.Object(map[string]cty.Type{
+			"id": cty.String,
+		}),
+		Upgrade: func(m map[string]interface{}, _ interface{}) (map[string]interface{}, error) {
+			return m, nil
+		},
+	})
 	if err := r.InternalValidate(nil, true); err != nil {
 		t.Fatal(err)
+	}
+
+	// can't add an upgrader for a schema >= the current version
+	r.StateUpgraders = append(r.StateUpgraders, StateUpgrader{
+		Version: 3,
+		Type: cty.Object(map[string]cty.Type{
+			"id": cty.String,
+		}),
+		Upgrade: func(m map[string]interface{}, _ interface{}) (map[string]interface{}, error) {
+			return m, nil
+		},
+	})
+	if err := r.InternalValidate(nil, true); err == nil {
+		t.Fatal("StateUpgraders cannot have a version >= current SchemaVersion")
 	}
 }

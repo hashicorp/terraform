@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"sort"
 	"strconv"
 
 	"github.com/hashicorp/terraform/config"
@@ -45,17 +46,8 @@ type Resource struct {
 	// their Versioning at any integer >= 1
 	SchemaVersion int
 
-	// LegacySchema is a record of the last schema version and type that
-	// existed before the addition of an UpgradeState function.
-	//
-	// This allows the resource schema to continue to evolve, while providing a
-	// record of how to decode a legacy state to be upgraded.
-	//
-	// LegacySchema is required when implementing UpgradeState.
-	LegacySchema LegacySchemaVersion
-
 	// MigrateState is deprecated and any new changes to a resource's schema
-	// should be handled by UpgradeState. Existing MigrateState implementations
+	// should be handled by StateUpgraders. Existing MigrateState implementations
 	// should remain for compatibility with existing state. MigrateState will
 	// still be called if the stored SchemaVersion is lower than the
 	// LegacySchema.Version value.
@@ -72,16 +64,16 @@ type Resource struct {
 	// needs to make any remote API calls.
 	MigrateState StateMigrateFunc
 
-	// UpgradeState is responsible for upgrading an existing state with an old
-	// schema version to the current schema. It is called specifically by
-	// Terraform when the stored schema version is less than the current
-	// SchemaVersion of the Resource.
+	// StateUpgraders contains the functions responsible for upgrading an
+	// existing state with an old schema version to a newer schema. It is
+	// called specifically by Terraform when the stored schema version is less
+	// than the current SchemaVersion of the Resource.
 	//
-	// StateUpgradeFunc takes the schema version, the state decoded using the
-	// default json types in a map[string]interface{}, and the provider meta
-	// value. The returned map value should encode into the proper format json
-	// to match the current provider schema.
-	UpgradeState StateUpgradeFunc
+	// StateUpgraders map specific schema versions to an StateUpgrader
+	// function. The registered versions are expected to be consecutive values.
+	// The initial value may be greater than 0 to account for legacy schemas
+	// that weren't recorded and can be handled by MigrateState.
+	StateUpgraders []StateUpgrader
 
 	// The functions below are the CRUD operations for this resource.
 	//
@@ -163,11 +155,6 @@ type Resource struct {
 	Timeouts *ResourceTimeout
 }
 
-type LegacySchemaVersion struct {
-	Version int
-	Type    cty.Type
-}
-
 // See Resource documentation.
 type CreateFunc func(*ResourceData, interface{}) error
 
@@ -187,8 +174,23 @@ type ExistsFunc func(*ResourceData, interface{}) (bool, error)
 type StateMigrateFunc func(
 	int, *terraform.InstanceState, interface{}) (*terraform.InstanceState, error)
 
+type StateUpgrader struct {
+	// Version is the version schema that this Upgrader will handle, converting
+	// it to Version+1.
+	Version int
+
+	// Type describes the schema that this function can upgrade. Type is
+	// required to decode the schema if the state was stored in a legacy
+	// flatmap format.
+	Type cty.Type
+
+	// Upgrade takes the JSON encoded state and the provider meta value, and
+	// upgrades the state one single schema version.
+	Upgrade StateUpgradeFunc
+}
+
 // See Resource documentation.
-type StateUpgradeFunc func(int, map[string]interface{}, interface{}) (map[string]interface{}, error)
+type StateUpgradeFunc func(map[string]interface{}, interface{}) (map[string]interface{}, error)
 
 // See Resource documentation.
 type CustomizeDiffFunc func(*ResourceDiff, interface{}) error
@@ -472,12 +474,34 @@ func (r *Resource) InternalValidate(topSchemaMap schemaMap, writable bool) error
 		}
 	}
 
-	if r.LegacySchema.Version >= r.SchemaVersion {
-		return errors.New("LegacySchema.Version cannot be >= SchemaVersion")
+	// verify state upgraders are consecutive and have registered schema types
+	sort.Slice(r.StateUpgraders, func(i, j int) bool {
+		return r.StateUpgraders[i].Version < r.StateUpgraders[j].Version
+	})
+
+	lastVersion := -1
+	for _, u := range r.StateUpgraders {
+		if lastVersion >= 0 && u.Version-lastVersion > 1 {
+			return fmt.Errorf("missing schema version between %d and %d", lastVersion, u.Version)
+		}
+
+		if u.Version >= r.SchemaVersion {
+			return fmt.Errorf("StateUpgrader version %d is >= current version %d", u.Version, r.SchemaVersion)
+		}
+
+		if !u.Type.IsObjectType() {
+			return fmt.Errorf("StateUpgrader %d type is not cty.Object", u.Version)
+		}
+
+		if u.Upgrade == nil {
+			return fmt.Errorf("StateUpgrader %d missing StateUpgradeFunc", u.Version)
+		}
+
+		lastVersion = u.Version
 	}
 
-	if r.UpgradeState != nil && !r.LegacySchema.Type.IsObjectType() {
-		return fmt.Errorf("LegacySchema.Type requires a cty.Object, got: %#v", r.LegacySchema.Type)
+	if lastVersion >= 0 && lastVersion != r.SchemaVersion-1 {
+		return fmt.Errorf("missing StateUpgrader between %d and %d", lastVersion, r.SchemaVersion)
 	}
 
 	// Data source
