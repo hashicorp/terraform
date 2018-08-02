@@ -27,7 +27,7 @@ type TerraformProvider struct {
 }
 
 // NewTerraformProvider constructs a new provider source.
-func NewTerraformProvider(name, os, arch string) (*TerraformProvider, error) {
+func NewTerraformProvider(name, os, arch string) *TerraformProvider {
 	if os == "" {
 		os = runtime.GOOS
 	}
@@ -43,7 +43,7 @@ func NewTerraformProvider(name, os, arch string) (*TerraformProvider, error) {
 		Arch:         arch,
 	}
 
-	return p, nil
+	return p
 }
 
 // Provider returns just the registry ID of the provider
