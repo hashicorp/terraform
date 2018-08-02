@@ -1,5 +1,7 @@
 package response
 
+import version "github.com/hashicorp/go-version"
+
 // TerraformProvider is the response structure for all required information for
 // Terraform to choose a download URL. It must include all versions and all
 // platforms for Terraform to perform version and os/arch constraint matching
@@ -44,4 +46,23 @@ type TerraformProviderPlatformLocation struct {
 	DownloadURL         string `json:"download_url"`
 	ShasumsURL          string `json:"shasums_url"`
 	ShasumsSignatureURL string `json:"shasums_signature_url"`
+}
+
+// Collection type implements the sort.Sort interface so that
+// an array of TerraformProviderVersion can be sorted.
+type Collection []*TerraformProviderVersion
+
+func (v Collection) Len() int {
+	return len(v)
+}
+
+func (v Collection) Less(i, j int) bool {
+	versionA, _ := version.NewVersion(v[i].Version)
+	versionB, _ := version.NewVersion(v[j].Version)
+
+	return versionA.LessThan(versionB)
+}
+
+func (v Collection) Swap(i, j int) {
+	v[i], v[j] = v[j], v[i]
 }

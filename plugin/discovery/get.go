@@ -10,6 +10,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -17,7 +18,12 @@ import (
 
 	getter "github.com/hashicorp/go-getter"
 	multierror "github.com/hashicorp/go-multierror"
+
 	"github.com/hashicorp/terraform/httpclient"
+	"github.com/hashicorp/terraform/registry"
+	"github.com/hashicorp/terraform/registry/regsrc"
+	"github.com/hashicorp/terraform/registry/response"
+	"github.com/hashicorp/terraform/svchost/disco"
 	"github.com/mitchellh/cli"
 )
 
@@ -31,9 +37,12 @@ import (
 
 const protocolVersionHeader = "x-terraform-protocol-version"
 
-var releaseHost = "https://releases.hashicorp.com"
+//var releaseHost = "https://releases.hashicorp.com"
+var releaseHost = "https://tf-registry-staging.herokuapp.com"
 
 var httpClient *http.Client
+
+var errVersionNotFound = errors.New("version not found")
 
 func init() {
 	httpClient = httpclient.New()
@@ -79,6 +88,13 @@ type ProviderInstaller struct {
 	SkipVerify bool
 
 	Ui cli.Ui // Ui for output
+
+	// Services is a required *disco.Disco, which may have services and
+	// credentials pre-loaded.
+	Services *disco.Disco
+
+	// registry client
+	registry *registry.Client
 }
 
 // Get is part of an implementation of type Installer, and attempts to download
@@ -101,23 +117,40 @@ type ProviderInstaller struct {
 // be presented alongside context about what is being installed, and thus the
 // error messages do not redundantly include such information.
 func (i *ProviderInstaller) Get(provider string, req Constraints) (PluginMeta, error) {
-	versions, err := i.listProviderVersions(provider)
+	// a little bit of initialization
+	if i.OS == "" {
+		i.OS = runtime.GOOS
+	}
+	if i.Arch == "" {
+		i.Arch = runtime.GOARCH
+	}
+	if i.registry == nil {
+		i.registry = registry.NewClient(i.Services, nil, nil)
+	}
+
+	allVersions, err := i.listProviderVersions(provider)
+
 	// TODO: return multiple errors
 	if err != nil {
 		return PluginMeta{}, err
 	}
-
-	if len(versions) == 0 {
+	if len(allVersions.Versions) == 0 {
 		return PluginMeta{}, ErrorNoSuitableVersion
 	}
 
-	versions = allowedVersions(versions, req)
+	// Filter the list of plugin versions to those which meet the version constraints
+	versions := allowedVersions(allVersions, req)
 	if len(versions) == 0 {
 		return PluginMeta{}, ErrorNoSuitableVersion
 	}
 
 	// sort them newest to oldest
-	Versions(versions).Sort()
+	sort.Sort(response.Collection(versions))
+	// the winning version is the newest
+	versionMeta := versions[0]
+	// get a Version from the version string
+	// we already know this will not error from the preceding functions
+	v, _ := VersionStr(versionMeta.Version).Parse()
 
 	// Ensure that our installation directory exists
 	err = os.MkdirAll(i.Dir, os.ModePerm)
@@ -125,71 +158,109 @@ func (i *ProviderInstaller) Get(provider string, req Constraints) (PluginMeta, e
 		return PluginMeta{}, fmt.Errorf("failed to create plugin dir %s: %s", i.Dir, err)
 	}
 
-	// take the first matching plugin we find
-	for _, v := range versions {
-		url := i.providerURL(provider, v.String())
-
-		if !i.SkipVerify {
-			sha256, err := i.getProviderChecksum(provider, v.String())
-			if err != nil {
-				return PluginMeta{}, err
-			}
-
-			// add the checksum parameter for go-getter to verify the download for us.
-			if sha256 != "" {
-				url = url + "?checksum=sha256:" + sha256
-			}
-		}
-
-		log.Printf("[DEBUG] fetching provider info for %s version %s", provider, v)
-		if checkPlugin(url, i.PluginProtocolVersion) {
-			i.Ui.Info(fmt.Sprintf("- Downloading plugin for provider %q (%s)...", provider, v.String()))
-			log.Printf("[DEBUG] getting provider %q version %q", provider, v)
-			err := i.install(provider, v, url)
-			if err != nil {
-				return PluginMeta{}, err
-			}
-
-			// Find what we just installed
-			// (This is weird, because go-getter doesn't directly return
-			//  information about what was extracted, and we just extracted
-			//  the archive directly into a shared dir here.)
-			log.Printf("[DEBUG] looking for the %s %s plugin we just installed", provider, v)
-			metas := FindPlugins("provider", []string{i.Dir})
-			log.Printf("[DEBUG] all plugins found %#v", metas)
-			metas, _ = metas.ValidateVersions()
-			metas = metas.WithName(provider).WithVersion(v)
-			log.Printf("[DEBUG] filtered plugins %#v", metas)
-			if metas.Count() == 0 {
-				// This should never happen. Suggests that the release archive
-				// contains an executable file whose name doesn't match the
-				// expected convention.
-				return PluginMeta{}, fmt.Errorf(
-					"failed to find installed plugin version %s; this is a bug in Terraform and should be reported",
-					v,
-				)
-			}
-
-			if metas.Count() > 1 {
-				// This should also never happen, and suggests that a
-				// particular version was re-released with a different
-				// executable filename. We consider releases as immutable, so
-				// this is an error.
-				return PluginMeta{}, fmt.Errorf(
-					"multiple plugins installed for version %s; this is a bug in Terraform and should be reported",
-					v,
-				)
-			}
-
-			// By now we know we have exactly one meta, and so "Newest" will
-			// return that one.
-			return metas.Newest(), nil
-		}
-
-		log.Printf("[INFO] incompatible ProtocolVersion for %s version %s", provider, v)
+	// check plugin protocol compatibility
+	// We only validate the most recent version that meets the version constraints.
+	// see RFC TF-055: Provider Protocol Versioning for more information
+	protoString := strconv.Itoa(int(i.PluginProtocolVersion))
+	protocolVersion, err := VersionStr(protoString).Parse()
+	if err != nil {
+		return PluginMeta{}, fmt.Errorf("invalid plugin protocol version: %q", i.PluginProtocolVersion)
+	}
+	protocolConstraint, err := protocolVersion.MinorUpgradeConstraintStr().Parse()
+	if err != nil {
+		// This should not fail if the preceding function succeeded.
+		return PluginMeta{}, fmt.Errorf("invalid plugin protocol version: %q", protocolVersion.String())
 	}
 
-	return PluginMeta{}, ErrorNoVersionCompatible
+	for _, p := range versionMeta.Protocols {
+		proPro, err := VersionStr(p).Parse()
+		if err != nil {
+			// invalid protocol reported by the registry. Move along.
+			log.Printf("[WARN] invalid provider protocol version %q found in the registry", provider, versionMeta.Version)
+			continue
+		}
+		if !protocolConstraint.Allows(proPro) {
+			// TODO: get most recent compatible plugin and return a handy-dandy string for the user
+			// latest, err := getNewestCompatiblePlugin
+			// i.Ui.output|info): "the latest version of plugin BLAH which supports protocol BLAH is BLAH"
+			// Add this to your provider block:
+			// version = ~BLAH
+			// and if none is found, return ErrorNoVersionCompatible
+			return PluginMeta{}, fmt.Errorf("The latest version of plugin %q does not support plugin protocol version %q", provider, protocolVersion)
+		}
+	}
+
+	var downloadURLs *response.TerraformProviderPlatformLocation
+	// check plugin platform compatibility
+	for _, p := range versionMeta.Platforms {
+		if p.Arch == i.Arch && p.OS == i.OS {
+			downloadURLs, err = i.listProviderDownloadURLs(provider, versionMeta.Version)
+			if err != nil {
+				return PluginMeta{}, fmt.Errorf("Problem getting ")
+			}
+			break
+		}
+		// TODO: return the most recent compatible versions
+		// return PluginMeta{}, ErrorNoVersionCompatibleWithPlatform
+		return PluginMeta{}, fmt.Errorf("The latest version of plugin %q does not support the requested platform %s %s", provider, i.OS, i.Arch)
+	}
+
+	providerURL := downloadURLs.DownloadURL
+
+	if !i.SkipVerify {
+		sha256, err := i.getProviderChecksum(provider, downloadURLs)
+		if err != nil {
+			return PluginMeta{}, err
+		}
+
+		// add the checksum parameter for go-getter to verify the download for us.
+		if sha256 != "" {
+			providerURL = providerURL + "?checksum=sha256:" + sha256
+		}
+	}
+
+	i.Ui.Info(fmt.Sprintf("- Downloading plugin for provider %q (%s)...", provider, versionMeta.Version))
+	log.Printf("[DEBUG] getting provider %q version %q", provider, versionMeta.Version)
+	err = i.install(provider, v, providerURL)
+	if err != nil {
+		return PluginMeta{}, err
+	}
+
+	// Find what we just installed
+	// (This is weird, because go-getter doesn't directly return
+	//  information about what was extracted, and we just extracted
+	//  the archive directly into a shared dir here.)
+	log.Printf("[DEBUG] looking for the %s %s plugin we just installed", provider, versionMeta.Version)
+	metas := FindPlugins("provider", []string{i.Dir})
+	log.Printf("[DEBUG] all plugins found %#v", metas)
+	metas, _ = metas.ValidateVersions()
+	metas = metas.WithName(provider).WithVersion(v)
+	log.Printf("[DEBUG] filtered plugins %#v", metas)
+	if metas.Count() == 0 {
+		// This should never happen. Suggests that the release archive
+		// contains an executable file whose name doesn't match the
+		// expected convention.
+		return PluginMeta{}, fmt.Errorf(
+			"failed to find installed plugin version %s; this is a bug in Terraform and should be reported",
+			versionMeta.Version,
+		)
+	}
+
+	if metas.Count() > 1 {
+		// This should also never happen, and suggests that a
+		// particular version was re-released with a different
+		// executable filename. We consider releases as immutable, so
+		// this is an error.
+		return PluginMeta{}, fmt.Errorf(
+			"multiple plugins installed for version %s; this is a bug in Terraform and should be reported",
+			versionMeta.Version,
+		)
+	}
+
+	// By now we know we have exactly one meta, and so "Newest" will
+	// return that one.
+	return metas.Newest(), nil
+
 }
 
 func (i *ProviderInstaller) install(provider string, version Version, url string) error {
@@ -353,67 +424,34 @@ func (i *ProviderInstaller) providerChecksumURL(name, version string) string {
 	return u
 }
 
-func (i *ProviderInstaller) getProviderChecksum(name, version string) (string, error) {
-	checksums, err := getPluginSHA256SUMs(i.providerChecksumURL(name, version))
+func (i *ProviderInstaller) getProviderChecksum(name string, urls *response.TerraformProviderPlatformLocation) (string, error) {
+	checksums, err := getPluginSHA256SUMs(urls.ShasumsURL, urls.ShasumsSignatureURL)
 	if err != nil {
 		return "", err
 	}
 
-	return checksumForFile(checksums, i.providerFileName(name, version)), nil
+	return checksumForFile(checksums, urls.Filename), nil
 }
 
-// Return the plugin version by making a HEAD request to the provided url.
-// If the header is not present, we assume the latest version will be
-// compatible, and leave the check for discovery or execution.
-func checkPlugin(url string, pluginProtocolVersion uint) bool {
-	resp, err := httpClient.Head(url)
-	if err != nil {
-		log.Printf("[ERROR] error fetching plugin headers: %s", err)
-		return false
-	}
-
-	if resp.StatusCode != http.StatusOK {
-		log.Println("[ERROR] non-200 status fetching plugin headers:", resp.Status)
-		return false
-	}
-
-	proto := resp.Header.Get(protocolVersionHeader)
-	if proto == "" {
-		// The header isn't present, but we don't make this error fatal since
-		// the latest version will probably work.
-		log.Printf("[WARN] missing %s from: %s", protocolVersionHeader, url)
-		return true
-	}
-
-	protoVersion, err := strconv.Atoi(proto)
-	if err != nil {
-		log.Printf("[ERROR] invalid ProtocolVersion: %s", proto)
-		return false
-	}
-
-	return protoVersion == int(pluginProtocolVersion)
+// list all versions available for the named provider
+func (i *ProviderInstaller) listProviderVersions(name string) (*response.TerraformProviderVersions, error) {
+	provider := regsrc.NewTerraformProvider(name, i.OS, i.Arch)
+	versions, err := i.registry.TerraformProviderVersions(provider)
+	return versions, err
 }
-
-// list the version available for the named plugin
-func (i *ProviderInstaller) listProviderVersions(name string) ([]Version, error) {
-	versions, err := listPluginVersions(i.providerVersionsURL(name))
-	if err != nil {
-		// listPluginVersions returns a verbose error message indicating
-		// what was being accessed and what failed
-		return nil, err
-	}
-	return versions, nil
-}
-
-var errVersionNotFound = errors.New("version not found")
 
 // take the list of available versions for a plugin, and filter out those that
 // don't fit the constraints.
-func allowedVersions(available []Version, required Constraints) []Version {
-	var allowed []Version
+func allowedVersions(available *response.TerraformProviderVersions, required Constraints) []*response.TerraformProviderVersion {
+	var allowed []*response.TerraformProviderVersion
 
-	for _, v := range available {
-		if required.Allows(v) {
+	for _, v := range available.Versions {
+		version, err := VersionStr(v.Version).Parse()
+		if err != nil {
+			log.Printf("[WARN] invalid version found for %q: %s", available.ID, err)
+			continue
+		}
+		if required.Allows(version) {
 			allowed = append(allowed, v)
 		}
 	}
@@ -505,9 +543,7 @@ func checksumForFile(sums []byte, name string) string {
 }
 
 // fetch the SHA256SUMS file provided, and verify its signature.
-func getPluginSHA256SUMs(sumsURL string) ([]byte, error) {
-	sigURL := sumsURL + ".sig"
-
+func getPluginSHA256SUMs(sumsURL, sigURL string) ([]byte, error) {
 	sums, err := getFile(sumsURL)
 	if err != nil {
 		return nil, fmt.Errorf("error fetching checksums: %s", err)
@@ -545,4 +581,9 @@ func getFile(url string) ([]byte, error) {
 
 func GetReleaseHost() string {
 	return releaseHost
+}
+
+func (i *ProviderInstaller) listProviderDownloadURLs(name, version string) (*response.TerraformProviderPlatformLocation, error) {
+	urls, err := i.registry.TerraformProviderLocation(regsrc.NewTerraformProvider(name, i.OS, i.Arch), version)
+	return urls, err
 }
