@@ -290,11 +290,10 @@ func (c *Client) TerraformProviderLocation(provider *regsrc.TerraformProvider, v
 
 	service := c.Discover(host, providersServiceID)
 	if service == nil {
-		return nil, fmt.Errorf("host %s does not provide Terraform providers", host.ForDisplay())
+		return nil, fmt.Errorf("host %s does not provide Terraform providers", host)
 	}
 
-	var p *url.URL
-	p, err = url.Parse(path.Join(
+	p, err := url.Parse(path.Join(
 		provider.TerraformProvider(),
 		version,
 		"download",
@@ -305,11 +304,11 @@ func (c *Client) TerraformProviderLocation(provider *regsrc.TerraformProvider, v
 		return nil, err
 	}
 
-	download := service.ResolveReference(p)
+	service = service.ResolveReference(p)
 
-	log.Printf("[DEBUG] looking up provider location from %q", download)
+	log.Printf("[DEBUG] fetching provider location from %q", service)
 
-	req, err := http.NewRequest("GET", download.String(), nil)
+	req, err := http.NewRequest("GET", service.String(), nil)
 	if err != nil {
 		return nil, err
 	}
