@@ -33,6 +33,7 @@ workflow](/docs/enterprise/run/cli.html) instead.
 terraform {
   backend "atlas" {
     name = "example_corp/networking-prod"
+    address = "https://app.terraform.io" # optional
   }
 }
 ```
@@ -60,5 +61,6 @@ The following configuration options / environment variables are supported:
   token](/docs/enterprise/users-teams-organizations/users.html#api-tokens). We
   recommend using the `ATLAS_TOKEN` environment variable rather than setting
   `access_token` in the configuration.
-* `address` - (Optional) The hostname of a Terraform Enterprise instance.
-  (Defaults to the SaaS version of Terraform Enterprise.)
+* `address` - (Optional) The URL of a Terraform Enterprise instance. Defaults to
+  the SaaS version of Terraform Enterprise, at `"https://app.terraform.io"`; if
+  you use a private install, provide its URL here.
