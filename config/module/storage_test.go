@@ -22,7 +22,7 @@ func TestGetModule(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer os.RemoveAll(td)
-	storage := NewStorage(td, disco, nil)
+	storage := NewStorage(td, disco)
 
 	// this module exists in a test fixture, and is known by the test.Registry
 	// relative to our cwd.
@@ -139,7 +139,7 @@ func TestAccRegistryDiscover(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	s := NewStorage("/tmp", nil, nil)
+	s := NewStorage("/tmp", nil)
 	loc, err := s.registry.Location(module, "")
 	if err != nil {
 		t.Fatal(err)

@@ -5,7 +5,6 @@ import (
 
 	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/registry"
-	"github.com/hashicorp/terraform/svchost/auth"
 	"github.com/hashicorp/terraform/svchost/disco"
 	"github.com/spf13/afero"
 )
@@ -39,10 +38,6 @@ type Config struct {
 	// not supported, which should be true only in specialized circumstances
 	// such as in tests.
 	Services *disco.Disco
-
-	// Creds is a credentials store for communicating with remote module
-	// registry endpoints. If this is nil then no credentials will be used.
-	Creds auth.CredentialsSource
 }
 
 // NewLoader creates and returns a loader that reads configuration from the
@@ -54,7 +49,7 @@ type Config struct {
 func NewLoader(config *Config) (*Loader, error) {
 	fs := afero.NewOsFs()
 	parser := configs.NewParser(fs)
-	reg := registry.NewClient(config.Services, config.Creds, nil)
+	reg := registry.NewClient(config.Services, nil)
 
 	ret := &Loader{
 		parser: parser,
@@ -63,7 +58,6 @@ func NewLoader(config *Config) (*Loader, error) {
 			CanInstall: true,
 			Dir:        config.ModulesDir,
 			Services:   config.Services,
-			Creds:      config.Creds,
 			Registry:   reg,
 		},
 	}

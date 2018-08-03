@@ -30,15 +30,12 @@ const (
 	OutputPrefix = "o:"
 )
 
-func initCommands(config *Config) {
+func initCommands(config *Config, services *disco.Disco) {
 	var inAutomation bool
 	if v := os.Getenv(runningInAutomationEnvName); v != "" {
 		inAutomation = true
 	}
 
-	credsSrc := credentialsSource(config)
-	services := disco.NewDisco()
-	services.SetCredentialsSource(credsSrc)
 	for userHost, hostConfig := range config.Hosts {
 		host, err := svchost.ForComparison(userHost)
 		if err != nil {
@@ -57,8 +54,7 @@ func initCommands(config *Config) {
 		PluginOverrides:  &PluginOverrides,
 		Ui:               Ui,
 
-		Services:    services,
-		Credentials: credsSrc,
+		Services: services,
 
 		RunningInAutomation: inAutomation,
 		PluginCacheDir:      config.PluginCacheDir,

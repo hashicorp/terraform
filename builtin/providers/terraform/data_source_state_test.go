@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"testing"
 
-	backendinit "github.com/hashicorp/terraform/backend/init"
+	backendInit "github.com/hashicorp/terraform/backend/init"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -26,8 +26,8 @@ func TestState_basic(t *testing.T) {
 }
 
 func TestState_backends(t *testing.T) {
-	backendinit.Set("_ds_test", backendinit.Backend("local"))
-	defer backendinit.Set("_ds_test", nil)
+	backendInit.Set("_ds_test", backendInit.Backend("local"))
+	defer backendInit.Set("_ds_test", nil)
 
 	resource.UnitTest(t, resource.TestCase{
 		PreCheck:  func() { testAccPreCheck(t) },

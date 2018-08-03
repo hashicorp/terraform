@@ -18,13 +18,14 @@ import (
 // public fields without any locks.
 func TestLocal(t *testing.T) (*Local, func()) {
 	tempDir := testTempDir(t)
-	local := &Local{
-		StatePath:         filepath.Join(tempDir, "state.tfstate"),
-		StateOutPath:      filepath.Join(tempDir, "state.tfstate"),
-		StateBackupPath:   filepath.Join(tempDir, "state.tfstate.bak"),
-		StateWorkspaceDir: filepath.Join(tempDir, "state.tfstate.d"),
-		ContextOpts:       &terraform.ContextOpts{},
-	}
+
+	local := New()
+	local.StatePath = filepath.Join(tempDir, "state.tfstate")
+	local.StateOutPath = filepath.Join(tempDir, "state.tfstate")
+	local.StateBackupPath = filepath.Join(tempDir, "state.tfstate.bak")
+	local.StateWorkspaceDir = filepath.Join(tempDir, "state.tfstate.d")
+	local.ContextOpts = &terraform.ContextOpts{}
+
 	cleanup := func() {
 		if err := os.RemoveAll(tempDir); err != nil {
 			t.Fatal("error clecanup up test:", err)
@@ -69,7 +70,7 @@ func TestLocalProvider(t *testing.T, b *Local, name string) *terraform.MockResou
 // TestNewLocalSingle is a factory for creating a TestLocalSingleState.
 // This function matches the signature required for backend/init.
 func TestNewLocalSingle() backend.Backend {
-	return &TestLocalSingleState{}
+	return &TestLocalSingleState{Local: New()}
 }
 
 // TestLocalSingleState is a backend implementation that wraps Local
@@ -79,7 +80,7 @@ func TestNewLocalSingle() backend.Backend {
 // This isn't an actual use case, this is exported just to provide a
 // easy way to test that behavior.
 type TestLocalSingleState struct {
-	Local
+	*Local
 }
 
 func (b *TestLocalSingleState) State(name string) (state.State, error) {
@@ -96,6 +97,50 @@ func (b *TestLocalSingleState) States() ([]string, error) {
 
 func (b *TestLocalSingleState) DeleteState(string) error {
 	return backend.ErrNamedStatesNotSupported
+}
+
+// TestNewLocalNoDefault is a factory for creating a TestLocalNoDefaultState.
+// This function matches the signature required for backend/init.
+func TestNewLocalNoDefault() backend.Backend {
+	return &TestLocalNoDefaultState{Local: New()}
+}
+
+// TestLocalNoDefaultState is a backend implementation that wraps
+// Local and modifies it to support named states, but not the
+// default state. It returns ErrDefaultStateNotSupported when the
+// DefaultStateName is used.
+type TestLocalNoDefaultState struct {
+	*Local
+}
+
+func (b *TestLocalNoDefaultState) State(name string) (state.State, error) {
+	if name == backend.DefaultStateName {
+		return nil, backend.ErrDefaultStateNotSupported
+	}
+	return b.Local.State(name)
+}
+
+func (b *TestLocalNoDefaultState) States() ([]string, error) {
+	states, err := b.Local.States()
+	if err != nil {
+		return nil, err
+	}
+
+	filtered := states[:0]
+	for _, name := range states {
+		if name != backend.DefaultStateName {
+			filtered = append(filtered, name)
+		}
+	}
+
+	return filtered, nil
+}
+
+func (b *TestLocalNoDefaultState) DeleteState(name string) error {
+	if name == backend.DefaultStateName {
+		return backend.ErrDefaultStateNotSupported
+	}
+	return b.Local.DeleteState(name)
 }
 
 func testTempDir(t *testing.T) string {

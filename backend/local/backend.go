@@ -91,92 +91,104 @@ type Local struct {
 
 	schema *schema.Backend
 	opLock sync.Mutex
-	once   sync.Once
 }
 
-func (b *Local) Input(
-	ui terraform.UIInput, c *terraform.ResourceConfig) (*terraform.ResourceConfig, error) {
-	b.once.Do(b.init)
+// New returns a new initialized local backend.
+func New() *Local {
+	return NewWithBackend(nil)
+}
 
+// NewWithBackend returns a new local backend initialized with a
+// dedicated backend for non-enhanced behavior.
+func NewWithBackend(backend backend.Backend) *Local {
+	b := &Local{
+		Backend: backend,
+	}
+
+	b.schema = &schema.Backend{
+		Schema: map[string]*schema.Schema{
+			"path": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				Default:  "",
+			},
+
+			"workspace_dir": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				Default:  "",
+			},
+
+			"environment_dir": &schema.Schema{
+				Type:          schema.TypeString,
+				Optional:      true,
+				Default:       "",
+				ConflictsWith: []string{"workspace_dir"},
+				Deprecated:    "workspace_dir should be used instead, with the same meaning",
+			},
+		},
+
+		ConfigureFunc: b.configure,
+	}
+
+	return b
+}
+
+func (b *Local) configure(ctx context.Context) error {
+	d := schema.FromContextBackendConfig(ctx)
+
+	// Set the path if it is set
+	pathRaw, ok := d.GetOk("path")
+	if ok {
+		path := pathRaw.(string)
+		if path == "" {
+			return fmt.Errorf("configured path is empty")
+		}
+
+		b.StatePath = path
+		b.StateOutPath = path
+	}
+
+	if raw, ok := d.GetOk("workspace_dir"); ok {
+		path := raw.(string)
+		if path != "" {
+			b.StateWorkspaceDir = path
+		}
+	}
+
+	// Legacy name, which ConflictsWith workspace_dir
+	if raw, ok := d.GetOk("environment_dir"); ok {
+		path := raw.(string)
+		if path != "" {
+			b.StateWorkspaceDir = path
+		}
+	}
+
+	return nil
+}
+
+func (b *Local) Input(ui terraform.UIInput, c *terraform.ResourceConfig) (*terraform.ResourceConfig, error) {
 	f := b.schema.Input
 	if b.Backend != nil {
 		f = b.Backend.Input
 	}
-
 	return f(ui, c)
 }
 
 func (b *Local) Validate(c *terraform.ResourceConfig) ([]string, []error) {
-	b.once.Do(b.init)
-
 	f := b.schema.Validate
 	if b.Backend != nil {
 		f = b.Backend.Validate
 	}
-
 	return f(c)
 }
 
 func (b *Local) Configure(c *terraform.ResourceConfig) error {
-	b.once.Do(b.init)
-
 	f := b.schema.Configure
 	if b.Backend != nil {
 		f = b.Backend.Configure
 	}
-
 	return f(c)
-}
-
-func (b *Local) States() ([]string, error) {
-	// If we have a backend handling state, defer to that.
-	if b.Backend != nil {
-		return b.Backend.States()
-	}
-
-	// the listing always start with "default"
-	envs := []string{backend.DefaultStateName}
-
-	entries, err := ioutil.ReadDir(b.stateWorkspaceDir())
-	// no error if there's no envs configured
-	if os.IsNotExist(err) {
-		return envs, nil
-	}
-	if err != nil {
-		return nil, err
-	}
-
-	var listed []string
-	for _, entry := range entries {
-		if entry.IsDir() {
-			listed = append(listed, filepath.Base(entry.Name()))
-		}
-	}
-
-	sort.Strings(listed)
-	envs = append(envs, listed...)
-
-	return envs, nil
-}
-
-// DeleteState removes a named state.
-// The "default" state cannot be removed.
-func (b *Local) DeleteState(name string) error {
-	// If we have a backend handling state, defer to that.
-	if b.Backend != nil {
-		return b.Backend.DeleteState(name)
-	}
-
-	if name == "" {
-		return errors.New("empty state name")
-	}
-
-	if name == backend.DefaultStateName {
-		return errors.New("cannot delete default state")
-	}
-
-	delete(b.states, name)
-	return os.RemoveAll(filepath.Join(b.stateWorkspaceDir(), name))
 }
 
 func (b *Local) State(name string) (state.State, error) {
@@ -214,6 +226,57 @@ func (b *Local) State(name string) (state.State, error) {
 	}
 	b.states[name] = s
 	return s, nil
+}
+
+// DeleteState removes a named state.
+// The "default" state cannot be removed.
+func (b *Local) DeleteState(name string) error {
+	// If we have a backend handling state, defer to that.
+	if b.Backend != nil {
+		return b.Backend.DeleteState(name)
+	}
+
+	if name == "" {
+		return errors.New("empty state name")
+	}
+
+	if name == backend.DefaultStateName {
+		return errors.New("cannot delete default state")
+	}
+
+	delete(b.states, name)
+	return os.RemoveAll(filepath.Join(b.stateWorkspaceDir(), name))
+}
+
+func (b *Local) States() ([]string, error) {
+	// If we have a backend handling state, defer to that.
+	if b.Backend != nil {
+		return b.Backend.States()
+	}
+
+	// the listing always start with "default"
+	envs := []string{backend.DefaultStateName}
+
+	entries, err := ioutil.ReadDir(b.stateWorkspaceDir())
+	// no error if there's no envs configured
+	if os.IsNotExist(err) {
+		return envs, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	var listed []string
+	for _, entry := range entries {
+		if entry.IsDir() {
+			listed = append(listed, filepath.Base(entry.Name()))
+		}
+	}
+
+	sort.Strings(listed)
+	envs = append(envs, listed...)
+
+	return envs, nil
 }
 
 // Operation implements backend.Enhanced
@@ -346,68 +409,6 @@ func (b *Local) Colorize() *colorstring.Colorize {
 		Colors:  colorstring.DefaultColors,
 		Disable: true,
 	}
-}
-
-func (b *Local) init() {
-	b.schema = &schema.Backend{
-		Schema: map[string]*schema.Schema{
-			"path": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
-				Default:  "",
-			},
-
-			"workspace_dir": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
-				Default:  "",
-			},
-
-			"environment_dir": &schema.Schema{
-				Type:          schema.TypeString,
-				Optional:      true,
-				Default:       "",
-				ConflictsWith: []string{"workspace_dir"},
-
-				Deprecated: "workspace_dir should be used instead, with the same meaning",
-			},
-		},
-
-		ConfigureFunc: b.schemaConfigure,
-	}
-}
-
-func (b *Local) schemaConfigure(ctx context.Context) error {
-	d := schema.FromContextBackendConfig(ctx)
-
-	// Set the path if it is set
-	pathRaw, ok := d.GetOk("path")
-	if ok {
-		path := pathRaw.(string)
-		if path == "" {
-			return fmt.Errorf("configured path is empty")
-		}
-
-		b.StatePath = path
-		b.StateOutPath = path
-	}
-
-	if raw, ok := d.GetOk("workspace_dir"); ok {
-		path := raw.(string)
-		if path != "" {
-			b.StateWorkspaceDir = path
-		}
-	}
-
-	// Legacy name, which ConflictsWith workspace_dir
-	if raw, ok := d.GetOk("environment_dir"); ok {
-		path := raw.(string)
-		if path != "" {
-			b.StateWorkspaceDir = path
-		}
-	}
-
-	return nil
 }
 
 // StatePaths returns the StatePath, StateOutPath, and StateBackupPath as

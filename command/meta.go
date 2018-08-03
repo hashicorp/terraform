@@ -25,7 +25,6 @@ import (
 	"github.com/hashicorp/terraform/helper/experiment"
 	"github.com/hashicorp/terraform/helper/variables"
 	"github.com/hashicorp/terraform/helper/wrappedstreams"
-	"github.com/hashicorp/terraform/svchost/auth"
 	"github.com/hashicorp/terraform/svchost/disco"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/hashicorp/terraform/tfdiags"
@@ -50,10 +49,6 @@ type Meta struct {
 	// Services provides access to remote endpoint information for
 	// "terraform-native' services running at a specific user-facing hostname.
 	Services *disco.Disco
-
-	// Credentials provides access to credentials for "terraform-native"
-	// services, which are accessed by a service hostname.
-	Credentials auth.CredentialsSource
 
 	// RunningInAutomation indicates that commands are being run by an
 	// automated system rather than directly at a command prompt.
@@ -410,7 +405,7 @@ func (m *Meta) flagSet(n string) *flag.FlagSet {
 // moduleStorage returns the module.Storage implementation used to store
 // modules for commands.
 func (m *Meta) moduleStorage(root string, mode module.GetMode) *module.Storage {
-	s := module.NewStorage(filepath.Join(root, "modules"), m.Services, m.Credentials)
+	s := module.NewStorage(filepath.Join(root, "modules"), m.Services)
 	s.Ui = m.Ui
 	s.Mode = mode
 	return s
