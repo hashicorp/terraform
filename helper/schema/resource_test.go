@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/hashicorp/terraform/config"
 	"github.com/hashicorp/terraform/config/hcl2shim"
 	"github.com/hashicorp/terraform/terraform"
@@ -1538,5 +1539,158 @@ func TestResource_ValidateUpgradeState(t *testing.T) {
 	})
 	if err := r.InternalValidate(nil, true); err == nil {
 		t.Fatal("StateUpgraders cannot have a version >= current SchemaVersion")
+	}
+}
+
+// The legacy provider will need to be able to handle both types of schema
+// transformations, which has been retrofitted into the Refresh method.
+func TestResource_migrateAndUpgrade(t *testing.T) {
+	r := &Resource{
+		SchemaVersion: 4,
+		Schema: map[string]*Schema{
+			"four": {
+				Type:     TypeInt,
+				Required: true,
+			},
+		},
+		// this MigrateState will take the state to version 2
+		MigrateState: func(v int, is *terraform.InstanceState, _ interface{}) (*terraform.InstanceState, error) {
+			switch v {
+			case 0:
+				_, ok := is.Attributes["zero"]
+				if !ok {
+					return nil, fmt.Errorf("zero not found in %#v", is.Attributes)
+				}
+				is.Attributes["one"] = "1"
+				delete(is.Attributes, "zero")
+				fallthrough
+			case 1:
+				_, ok := is.Attributes["one"]
+				if !ok {
+					return nil, fmt.Errorf("one not found in %#v", is.Attributes)
+				}
+				is.Attributes["two"] = "2"
+				delete(is.Attributes, "one")
+			default:
+				return nil, fmt.Errorf("invalid schema version %d", v)
+			}
+			return is, nil
+		},
+	}
+
+	r.Read = func(d *ResourceData, m interface{}) error {
+		return d.Set("four", 4)
+	}
+
+	r.StateUpgraders = []StateUpgrader{
+		{
+			Version: 2,
+			Type: cty.Object(map[string]cty.Type{
+				"id":  cty.String,
+				"two": cty.Number,
+			}),
+			Upgrade: func(m map[string]interface{}, meta interface{}) (map[string]interface{}, error) {
+				_, ok := m["two"].(float64)
+				if !ok {
+					return nil, fmt.Errorf("two not found in %#v", m)
+				}
+				m["three"] = float64(3)
+				delete(m, "two")
+				return m, nil
+			},
+		},
+		{
+			Version: 3,
+			Type: cty.Object(map[string]cty.Type{
+				"id":    cty.String,
+				"three": cty.Number,
+			}),
+			Upgrade: func(m map[string]interface{}, meta interface{}) (map[string]interface{}, error) {
+				_, ok := m["three"].(float64)
+				if !ok {
+					return nil, fmt.Errorf("three not found in %#v", m)
+				}
+				m["four"] = float64(4)
+				delete(m, "three")
+				return m, nil
+			},
+		},
+	}
+
+	testStates := []*terraform.InstanceState{
+		{
+			ID: "bar",
+			Attributes: map[string]string{
+				"id":   "bar",
+				"zero": "0",
+			},
+			Meta: map[string]interface{}{
+				"schema_version": "0",
+			},
+		},
+		{
+			ID: "bar",
+			Attributes: map[string]string{
+				"id":  "bar",
+				"one": "1",
+			},
+			Meta: map[string]interface{}{
+				"schema_version": "1",
+			},
+		},
+		{
+			ID: "bar",
+			Attributes: map[string]string{
+				"id":  "bar",
+				"two": "2",
+			},
+			Meta: map[string]interface{}{
+				"schema_version": "2",
+			},
+		},
+		{
+			ID: "bar",
+			Attributes: map[string]string{
+				"id":    "bar",
+				"three": "3",
+			},
+			Meta: map[string]interface{}{
+				"schema_version": "3",
+			},
+		},
+		{
+			ID: "bar",
+			Attributes: map[string]string{
+				"id":   "bar",
+				"four": "4",
+			},
+			Meta: map[string]interface{}{
+				"schema_version": "4",
+			},
+		},
+	}
+
+	for i, s := range testStates {
+		t.Run(fmt.Sprintf("%d", i), func(t *testing.T) {
+			newState, err := r.Refresh(s, nil)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			expected := &terraform.InstanceState{
+				ID: "bar",
+				Attributes: map[string]string{
+					"id":   "bar",
+					"four": "4",
+				},
+				Meta: map[string]interface{}{
+					"schema_version": "4",
+				},
+			}
+
+			if !cmp.Equal(expected, newState, equateEmpty) {
+				t.Fatal(cmp.Diff(expected, newState, equateEmpty))
+			}
+		})
 	}
 }
