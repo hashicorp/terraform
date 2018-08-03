@@ -340,6 +340,59 @@ func (r *Resource) ReadDataApply(
 	return r.recordCurrentSchemaVersion(state), err
 }
 
+// RefreshWithoutUpgrade reads the instance state, but does not call
+// MigrateState or the StateUpgraders, since those are now invoked in a
+// separate API call.
+// RefreshWithoutUpgrade is part of the new plugin shims.
+func (r *Resource) RefreshWithoutUpgrade(
+	s *terraform.InstanceState,
+	meta interface{}) (*terraform.InstanceState, error) {
+	// If the ID is already somehow blank, it doesn't exist
+	if s.ID == "" {
+		return nil, nil
+	}
+
+	rt := ResourceTimeout{}
+	if _, ok := s.Meta[TimeoutKey]; ok {
+		if err := rt.StateDecode(s); err != nil {
+			log.Printf("[ERR] Error decoding ResourceTimeout: %s", err)
+		}
+	}
+
+	if r.Exists != nil {
+		// Make a copy of data so that if it is modified it doesn't
+		// affect our Read later.
+		data, err := schemaMap(r.Schema).Data(s, nil)
+		data.timeouts = &rt
+
+		if err != nil {
+			return s, err
+		}
+
+		exists, err := r.Exists(data, meta)
+		if err != nil {
+			return s, err
+		}
+		if !exists {
+			return nil, nil
+		}
+	}
+
+	data, err := schemaMap(r.Schema).Data(s, nil)
+	data.timeouts = &rt
+	if err != nil {
+		return s, err
+	}
+
+	err = r.Read(data, meta)
+	state := data.State()
+	if state != nil && state.ID == "" {
+		state = nil
+	}
+
+	return r.recordCurrentSchemaVersion(state), err
+}
+
 // Refresh refreshes the state of the resource.
 func (r *Resource) Refresh(
 	s *terraform.InstanceState,
@@ -375,12 +428,10 @@ func (r *Resource) Refresh(
 		}
 	}
 
-	needsMigration, stateSchemaVersion := r.checkSchemaVersion(s)
-	if needsMigration && r.MigrateState != nil {
-		s, err := r.MigrateState(stateSchemaVersion, s, meta)
-		if err != nil {
-			return s, err
-		}
+	// there may be new StateUpgraders that need to be run
+	s, err := r.upgradeState(s, meta)
+	if err != nil {
+		return s, err
 	}
 
 	data, err := schemaMap(r.Schema).Data(s, nil)
@@ -396,6 +447,72 @@ func (r *Resource) Refresh(
 	}
 
 	return r.recordCurrentSchemaVersion(state), err
+}
+
+func (r *Resource) upgradeState(s *terraform.InstanceState, meta interface{}) (*terraform.InstanceState, error) {
+	var err error
+
+	needsMigration, stateSchemaVersion := r.checkSchemaVersion(s)
+	migrate := needsMigration && r.MigrateState != nil
+
+	if migrate {
+		s, err = r.MigrateState(stateSchemaVersion, s, meta)
+		if err != nil {
+			return s, err
+		}
+	}
+
+	if len(r.StateUpgraders) == 0 {
+		return s, nil
+	}
+
+	// If we ran MigrateState, then the stateSchemaVersion value is no longer
+	// correct. We can expect the first upgrade function to be the correct
+	// schema type version.
+	if migrate {
+		stateSchemaVersion = r.StateUpgraders[0].Version
+	}
+
+	schemaType := r.CoreConfigSchema().ImpliedType()
+	// find the expected type to convert the state
+	for _, upgrader := range r.StateUpgraders {
+		if stateSchemaVersion == upgrader.Version {
+			schemaType = upgrader.Type
+		}
+	}
+
+	// StateUpgraders only operate on the new JSON format state, so the state
+	// need to be converted.
+	stateVal, err := StateValueFromInstanceState(s, schemaType)
+	if err != nil {
+		return nil, err
+	}
+
+	jsonState, err := StateValueToJSONMap(stateVal, schemaType)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, upgrader := range r.StateUpgraders {
+		if stateSchemaVersion != upgrader.Version {
+			continue
+		}
+
+		jsonState, err = upgrader.Upgrade(jsonState, meta)
+		if err != nil {
+			return nil, err
+		}
+		stateSchemaVersion++
+	}
+
+	// now we need to re-flatmap the new state
+	stateVal, err = JSONMapToStateValue(jsonState, r.CoreConfigSchema())
+	if err != nil {
+		return nil, err
+	}
+
+	s = InstanceStateFromStateValue(stateVal, r.SchemaVersion)
+	return s, nil
 }
 
 // InternalValidate should be called to validate the structure
@@ -603,7 +720,15 @@ func (r *Resource) checkSchemaVersion(is *terraform.InstanceState) (bool, int) {
 	}
 
 	stateSchemaVersion, _ := strconv.Atoi(rawString)
-	return stateSchemaVersion < r.SchemaVersion, stateSchemaVersion
+
+	// Don't run MigrateState if the version is handled by a StateUpgrader,
+	// since StateMigrateFuncs are not required to handle unknown versions
+	maxVersion := r.SchemaVersion
+	if len(r.StateUpgraders) > 0 {
+		maxVersion = r.StateUpgraders[0].Version
+	}
+
+	return stateSchemaVersion < maxVersion, stateSchemaVersion
 }
 
 func (r *Resource) recordCurrentSchemaVersion(
