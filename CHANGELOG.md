@@ -1,5 +1,9 @@
 ## 0.11.8 (Unreleased)
 
+NEW FEATURES:
+
+* **New `remote` backend**: Inital release of the `remote` backend for use with (Private) Terraform Enterpise [GH-18596] 
+
 IMPROVEMENTS:
 
 * cli: display workspace name in apply and destroy commands if not default [GH-18253]
