@@ -1363,6 +1363,12 @@
 			"revisionTime": "2017-08-08T02:16:21Z"
 		},
 		{
+			"checksumSHA1": "p3IB18uJRs4dL2K5yx24MrLYE9A=",
+			"path": "github.com/google/go-querystring/query",
+			"revision": "53e6ce116135b80d037921a7fdd5138cf32d7a8a",
+			"revisionTime": "2017-01-11T10:11:55Z"
+		},
+		{
 			"checksumSHA1": "V/53BpqgOkSDZCX6snQCAkdO2fM=",
 			"path": "github.com/googleapis/gax-go",
 			"revision": "da06d194a00e19ce00d9011a13931c3f6f6887c7",
@@ -1790,6 +1796,18 @@
 			"path": "github.com/hashicorp/go-safetemp",
 			"revision": "b1a1dbde6fdc11e3ae79efd9039009e22d4ae240",
 			"revisionTime": "2018-03-26T21:11:50Z"
+		},
+		{
+			"checksumSHA1": "CdPSnO0sFf6G9CtXBzLEI9Pcmsw=",
+			"path": "github.com/hashicorp/go-slug",
+			"revision": "cc9d70694ef317c2e6443e20b7927363d69c8b1e",
+			"revisionTime": "2018-07-12T07:51:27Z"
+		},
+		{
+			"checksumSHA1": "926/ijhO8KTdgb02B/++x3w+Ykc=",
+			"path": "github.com/hashicorp/go-tfe",
+			"revision": "0e7cd8ef626181232db2d6886263a3db937708cd",
+			"revisionTime": "2018-08-01T08:24:33Z"
 		},
 		{
 			"checksumSHA1": "85XUnluYJL7F55ptcwdmN8eSOsk=",
@@ -2336,6 +2354,12 @@
 			"path": "github.com/spf13/afero/mem",
 			"revision": "bb8f1927f2a9d3ab41c9340aa034f6b803f4359c",
 			"revisionTime": "2018-01-15T19:27:20Z"
+		},
+		{
+			"checksumSHA1": "byoZ+QptbiPnkoOXvGZulTFS9/M=",
+			"path": "github.com/svanharmelen/jsonapi",
+			"revision": "0c0828c3f16d3732cc7edecf49934d95550894e7",
+			"revisionTime": "2018-06-18T11:39:44Z"
 		},
 		{
 			"checksumSHA1": "GwjOkJpLvKznbv5zS2hFbg9fI4g=",
