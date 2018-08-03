@@ -18,7 +18,7 @@ func TestConfigure_envAddr(t *testing.T) {
 	defer os.Setenv("ATLAS_ADDRESS", os.Getenv("ATLAS_ADDRESS"))
 	os.Setenv("ATLAS_ADDRESS", "http://foo.com")
 
-	b := &Backend{}
+	b := New()
 	err := b.Configure(terraform.NewResourceConfig(config.TestRawConfig(t, map[string]interface{}{
 		"name": "foo/bar",
 	})))
@@ -35,7 +35,7 @@ func TestConfigure_envToken(t *testing.T) {
 	defer os.Setenv("ATLAS_TOKEN", os.Getenv("ATLAS_TOKEN"))
 	os.Setenv("ATLAS_TOKEN", "foo")
 
-	b := &Backend{}
+	b := New()
 	err := b.Configure(terraform.NewResourceConfig(config.TestRawConfig(t, map[string]interface{}{
 		"name": "foo/bar",
 	})))

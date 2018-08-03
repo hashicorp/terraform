@@ -10,8 +10,8 @@ import (
 	"testing"
 
 	"github.com/hashicorp/terraform/backend"
-	backendinit "github.com/hashicorp/terraform/backend/init"
-	backendlocal "github.com/hashicorp/terraform/backend/local"
+	backendInit "github.com/hashicorp/terraform/backend/init"
+	backendLocal "github.com/hashicorp/terraform/backend/local"
 	"github.com/hashicorp/terraform/helper/copy"
 	"github.com/hashicorp/terraform/state"
 	"github.com/hashicorp/terraform/terraform"
@@ -994,8 +994,8 @@ func TestMetaBackend_reconfigureChange(t *testing.T) {
 	defer testChdir(t, td)()
 
 	// Register the single-state backend
-	backendinit.Set("local-single", backendlocal.TestNewLocalSingle)
-	defer backendinit.Set("local-single", nil)
+	backendInit.Set("local-single", backendLocal.TestNewLocalSingle)
+	defer backendInit.Set("local-single", nil)
 
 	// Setup the meta
 	m := testMetaBackend(t, nil)
@@ -1093,8 +1093,8 @@ func TestMetaBackend_configuredChangeCopy_singleState(t *testing.T) {
 	defer testChdir(t, td)()
 
 	// Register the single-state backend
-	backendinit.Set("local-single", backendlocal.TestNewLocalSingle)
-	defer backendinit.Set("local-single", nil)
+	backendInit.Set("local-single", backendLocal.TestNewLocalSingle)
+	defer backendInit.Set("local-single", nil)
 
 	// Ask input
 	defer testInputMap(t, map[string]string{
@@ -1149,8 +1149,8 @@ func TestMetaBackend_configuredChangeCopy_multiToSingleDefault(t *testing.T) {
 	defer testChdir(t, td)()
 
 	// Register the single-state backend
-	backendinit.Set("local-single", backendlocal.TestNewLocalSingle)
-	defer backendinit.Set("local-single", nil)
+	backendInit.Set("local-single", backendLocal.TestNewLocalSingle)
+	defer backendInit.Set("local-single", nil)
 
 	// Ask input
 	defer testInputMap(t, map[string]string{
@@ -1204,8 +1204,8 @@ func TestMetaBackend_configuredChangeCopy_multiToSingle(t *testing.T) {
 	defer testChdir(t, td)()
 
 	// Register the single-state backend
-	backendinit.Set("local-single", backendlocal.TestNewLocalSingle)
-	defer backendinit.Set("local-single", nil)
+	backendInit.Set("local-single", backendLocal.TestNewLocalSingle)
+	defer backendInit.Set("local-single", nil)
 
 	// Ask input
 	defer testInputMap(t, map[string]string{
@@ -1250,7 +1250,7 @@ func TestMetaBackend_configuredChangeCopy_multiToSingle(t *testing.T) {
 	}
 
 	// Verify existing workspaces exist
-	envPath := filepath.Join(backendlocal.DefaultWorkspaceDir, "env2", backendlocal.DefaultStateFilename)
+	envPath := filepath.Join(backendLocal.DefaultWorkspaceDir, "env2", backendLocal.DefaultStateFilename)
 	if _, err := os.Stat(envPath); err != nil {
 		t.Fatal("env should exist")
 	}
@@ -1271,8 +1271,8 @@ func TestMetaBackend_configuredChangeCopy_multiToSingleCurrentEnv(t *testing.T) 
 	defer testChdir(t, td)()
 
 	// Register the single-state backend
-	backendinit.Set("local-single", backendlocal.TestNewLocalSingle)
-	defer backendinit.Set("local-single", nil)
+	backendInit.Set("local-single", backendLocal.TestNewLocalSingle)
+	defer backendInit.Set("local-single", nil)
 
 	// Ask input
 	defer testInputMap(t, map[string]string{
@@ -1322,7 +1322,7 @@ func TestMetaBackend_configuredChangeCopy_multiToSingleCurrentEnv(t *testing.T) 
 	}
 
 	// Verify existing workspaces exist
-	envPath := filepath.Join(backendlocal.DefaultWorkspaceDir, "env2", backendlocal.DefaultStateFilename)
+	envPath := filepath.Join(backendLocal.DefaultWorkspaceDir, "env2", backendLocal.DefaultStateFilename)
 	if _, err := os.Stat(envPath); err != nil {
 		t.Fatal("env should exist")
 	}
@@ -1407,7 +1407,7 @@ func TestMetaBackend_configuredChangeCopy_multiToMulti(t *testing.T) {
 
 	{
 		// Verify existing workspaces exist
-		envPath := filepath.Join(backendlocal.DefaultWorkspaceDir, "env2", backendlocal.DefaultStateFilename)
+		envPath := filepath.Join(backendLocal.DefaultWorkspaceDir, "env2", backendLocal.DefaultStateFilename)
 		if _, err := os.Stat(envPath); err != nil {
 			t.Fatal("env should exist")
 		}
@@ -1415,7 +1415,113 @@ func TestMetaBackend_configuredChangeCopy_multiToMulti(t *testing.T) {
 
 	{
 		// Verify new workspaces exist
-		envPath := filepath.Join("envdir-new", "env2", backendlocal.DefaultStateFilename)
+		envPath := filepath.Join("envdir-new", "env2", backendLocal.DefaultStateFilename)
+		if _, err := os.Stat(envPath); err != nil {
+			t.Fatal("env should exist")
+		}
+	}
+}
+
+// Changing a configured backend that supports multi-state to a
+// backend that also supports multi-state, but doesn't allow a
+// default state while the default state is non-empty.
+func TestMetaBackend_configuredChangeCopy_multiToNoDefaultWithDefault(t *testing.T) {
+	// Create a temporary working directory that is empty
+	td := tempDir(t)
+	copy.CopyDir(testFixturePath("backend-change-multi-to-no-default-with-default"), td)
+	defer os.RemoveAll(td)
+	defer testChdir(t, td)()
+
+	// Register the single-state backend
+	backendInit.Set("local-no-default", backendLocal.TestNewLocalNoDefault)
+	defer backendInit.Set("local-no-default", nil)
+
+	// Ask input
+	defer testInputMap(t, map[string]string{
+		"backend-migrate-to-new":                   "yes",
+		"backend-migrate-multistate-to-multistate": "yes",
+	})()
+
+	// Setup the meta
+	m := testMetaBackend(t, nil)
+
+	// Get the backend
+	_, err := m.Backend(&BackendOpts{Init: true})
+	if err == nil || !strings.Contains(err.Error(), "default state not supported") {
+		t.Fatalf("expected error to contain %q\ngot: %s", "default state not supported", err)
+	}
+}
+
+// Changing a configured backend that supports multi-state to a
+// backend that also supports multi-state, but doesn't allow a
+// default state while the default state is empty.
+func TestMetaBackend_configuredChangeCopy_multiToNoDefaultWithoutDefault(t *testing.T) {
+	// Create a temporary working directory that is empty
+	td := tempDir(t)
+	copy.CopyDir(testFixturePath("backend-change-multi-to-no-default-without-default"), td)
+	defer os.RemoveAll(td)
+	defer testChdir(t, td)()
+
+	// Register the single-state backend
+	backendInit.Set("local-no-default", backendLocal.TestNewLocalNoDefault)
+	defer backendInit.Set("local-no-default", nil)
+
+	// Ask input
+	defer testInputMap(t, map[string]string{
+		"backend-migrate-to-new":                   "yes",
+		"backend-migrate-multistate-to-multistate": "yes",
+	})()
+
+	// Setup the meta
+	m := testMetaBackend(t, nil)
+
+	// Get the backend
+	b, err := m.Backend(&BackendOpts{Init: true})
+	if err != nil {
+		t.Fatalf("bad: %s", err)
+	}
+
+	// Check resulting states
+	states, err := b.States()
+	if err != nil {
+		t.Fatalf("bad: %s", err)
+	}
+
+	sort.Strings(states)
+	expected := []string{"env2"}
+	if !reflect.DeepEqual(states, expected) {
+		t.Fatalf("bad: %#v", states)
+	}
+
+	{
+		// Check the named state
+		s, err := b.State("env2")
+		if err != nil {
+			t.Fatalf("bad: %s", err)
+		}
+		if err := s.RefreshState(); err != nil {
+			t.Fatalf("bad: %s", err)
+		}
+		state := s.State()
+		if state == nil {
+			t.Fatal("state should not be nil")
+		}
+		if state.Lineage != "backend-change-env2" {
+			t.Fatalf("bad: %#v", state)
+		}
+	}
+
+	{
+		// Verify existing workspaces exist
+		envPath := filepath.Join(backendLocal.DefaultWorkspaceDir, "env2", backendLocal.DefaultStateFilename)
+		if _, err := os.Stat(envPath); err != nil {
+			t.Fatal("env should exist")
+		}
+	}
+
+	{
+		// Verify new workspaces exist
+		envPath := filepath.Join("envdir-new", "env2", backendLocal.DefaultStateFilename)
 		if _, err := os.Stat(envPath); err != nil {
 			t.Fatal("env should exist")
 		}
@@ -3351,7 +3457,7 @@ func TestMetaBackend_configureWithExtra(t *testing.T) {
 	}
 
 	// Check the state
-	s := testStateRead(t, filepath.Join(DefaultDataDir, backendlocal.DefaultStateFilename))
+	s := testStateRead(t, filepath.Join(DefaultDataDir, backendLocal.DefaultStateFilename))
 	if s.Backend.Hash != backendCfg.Hash {
 		t.Fatal("mismatched state and config backend hashes")
 	}
@@ -3373,7 +3479,7 @@ func TestMetaBackend_configureWithExtra(t *testing.T) {
 	}
 
 	// Check the state
-	s = testStateRead(t, filepath.Join(DefaultDataDir, backendlocal.DefaultStateFilename))
+	s = testStateRead(t, filepath.Join(DefaultDataDir, backendLocal.DefaultStateFilename))
 	if s.Backend.Hash != backendCfg.Hash {
 		t.Fatal("mismatched state and config backend hashes")
 	}
@@ -3442,7 +3548,7 @@ func TestMetaBackend_configToExtra(t *testing.T) {
 	}
 
 	// Check the state
-	s := testStateRead(t, filepath.Join(DefaultDataDir, backendlocal.DefaultStateFilename))
+	s := testStateRead(t, filepath.Join(DefaultDataDir, backendLocal.DefaultStateFilename))
 	backendHash := s.Backend.Hash
 
 	// init again but remove the path option from the config
@@ -3463,7 +3569,7 @@ func TestMetaBackend_configToExtra(t *testing.T) {
 		t.Fatalf("bad: %s", err)
 	}
 
-	s = testStateRead(t, filepath.Join(DefaultDataDir, backendlocal.DefaultStateFilename))
+	s = testStateRead(t, filepath.Join(DefaultDataDir, backendLocal.DefaultStateFilename))
 
 	if s.Backend.Hash == backendHash {
 		t.Fatal("state.Backend.Hash was not updated")

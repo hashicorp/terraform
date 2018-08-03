@@ -47,15 +47,27 @@ func TestBackendConfig(t *testing.T, b Backend, c map[string]interface{}) Backen
 func TestBackendStates(t *testing.T, b Backend) {
 	t.Helper()
 
+	noDefault := false
+	if _, err := b.State(DefaultStateName); err != nil {
+		if err == ErrDefaultStateNotSupported {
+			noDefault = true
+		} else {
+			t.Fatalf("error: %v", err)
+		}
+	}
+
 	states, err := b.States()
-	if err == ErrNamedStatesNotSupported {
-		t.Logf("TestBackend: named states not supported in %T, skipping", b)
-		return
+	if err != nil {
+		if err == ErrNamedStatesNotSupported {
+			t.Logf("TestBackend: named states not supported in %T, skipping", b)
+			return
+		}
+		t.Fatalf("error: %v", err)
 	}
 
 	// Test it starts with only the default
-	if len(states) != 1 || states[0] != DefaultStateName {
-		t.Fatalf("should only have default to start: %#v", states)
+	if !noDefault && (len(states) != 1 || states[0] != DefaultStateName) {
+		t.Fatalf("should have default to start: %#v", states)
 	}
 
 	// Create a couple states
@@ -175,6 +187,9 @@ func TestBackendStates(t *testing.T, b Backend) {
 
 		sort.Strings(states)
 		expected := []string{"bar", "default", "foo"}
+		if noDefault {
+			expected = []string{"bar", "foo"}
+		}
 		if !reflect.DeepEqual(states, expected) {
 			t.Fatalf("bad: %#v", states)
 		}
@@ -218,6 +233,9 @@ func TestBackendStates(t *testing.T, b Backend) {
 
 		sort.Strings(states)
 		expected := []string{"bar", "default"}
+		if noDefault {
+			expected = []string{"bar"}
+		}
 		if !reflect.DeepEqual(states, expected) {
 			t.Fatalf("bad: %#v", states)
 		}

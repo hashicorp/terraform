@@ -22,7 +22,7 @@ import (
 type CLI interface {
 	Backend
 
-	// CLIIinit is called once with options. The options passed to this
+	// CLIInit is called once with options. The options passed to this
 	// function may not be modified after calling this since they can be
 	// read/written at any time by the Backend implementation.
 	//
