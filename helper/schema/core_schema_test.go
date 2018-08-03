@@ -4,15 +4,9 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/configs/configschema"
-)
-
-var (
-	equateEmpty  = cmpopts.EquateEmpty()
-	typeComparer = cmp.Comparer(cty.Type.Equals)
 )
 
 // add the implicit "id" attribute for test resources
