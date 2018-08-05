@@ -43,20 +43,6 @@ func TestRemote_config(t *testing.T) {
 			},
 			err: nil,
 		},
-		"with_two_workspace_entries": {
-			config: map[string]interface{}{
-				"organization": "hashicorp",
-				"workspaces": []interface{}{
-					map[string]interface{}{
-						"name": "prod",
-					},
-					map[string]interface{}{
-						"prefix": "my-app-",
-					},
-				},
-			},
-			err: errors.New("only one 'workspaces' block allowed"),
-		},
 		"without_either_a_name_and_a_prefix": {
 			config: map[string]interface{}{
 				"organization": "hashicorp",

@@ -98,6 +98,8 @@ func New(services *disco.Disco) *Remote {
 				Type:        schema.TypeSet,
 				Required:    true,
 				Description: schemaDescriptions["workspaces"],
+				MinItems:    1,
+				MaxItems:    1,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"name": &schema.Schema{
@@ -129,15 +131,8 @@ func (b *Remote) configure(ctx context.Context) error {
 	b.hostname = d.Get("hostname").(string)
 	b.organization = d.Get("organization").(string)
 
-	// Get the workspaces configuration.
-	workspaces := d.Get("workspaces").(*schema.Set)
-	if workspaces.Len() != 1 {
-		return fmt.Errorf("only one 'workspaces' block allowed")
-	}
-
-	// After checking that we have exactly one workspace block, we can now get
-	// and assert that one workspace from the set.
-	workspace := workspaces.List()[0].(map[string]interface{})
+	// Get and assert the workspaces configuration block.
+	workspace := d.Get("workspaces").(*schema.Set).List()[0].(map[string]interface{})
 
 	// Get the default workspace name and prefix.
 	b.workspace = workspace["name"].(string)
