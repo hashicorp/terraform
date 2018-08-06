@@ -276,7 +276,8 @@ type PublicKey interface {
 	Type() string
 
 	// Marshal returns the serialized key data in SSH wire format,
-	// with the name prefix.
+	// with the name prefix. To unmarshal the returned data, use
+	// the ParsePublicKey function.
 	Marshal() []byte
 
 	// Verify that sig is a signature on the given data using this
@@ -816,6 +817,8 @@ func ParseRawPrivateKey(pemBytes []byte) (interface{}, error) {
 	switch block.Type {
 	case "RSA PRIVATE KEY":
 		return x509.ParsePKCS1PrivateKey(block.Bytes)
+	case "PRIVATE KEY":
+		return x509.ParsePKCS8PrivateKey(block.Bytes)
 	case "EC PRIVATE KEY":
 		return x509.ParseECPrivateKey(block.Bytes)
 	case "DSA PRIVATE KEY":
