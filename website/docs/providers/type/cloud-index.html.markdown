@@ -57,6 +57,4 @@ vendor in close collaboration with HashiCorp, and are tested by HashiCorp.
 
 [Triton](/docs/providers/triton/index.html)
 
-[vCloud Director](/docs/providers/vcd/index.html)
-
 [1&1](/docs/providers/oneandone/index.html)
