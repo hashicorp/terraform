@@ -35,4 +35,6 @@ tested by HashiCorp.
 
 [VMware NSX-T](/docs/providers/nsxt/index.html)
 
+[vCloud Director](/docs/providers/vcd/index.html)
+
 [VMware vSphere](/docs/providers/vsphere/index.html)
