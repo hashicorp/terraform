@@ -29,7 +29,7 @@ echo "Upgrading packages ..."
 apt-get update ${APT_OPTS} >/dev/null
 apt-get upgrade ${APT_OPTS} >/dev/null
 echo "Installing prerequisites ..."
-apt-get install ${APT_OPTS} build-essential curl git-core libpcre3-dev mercurial pkg-config zip >/dev/null
+apt-get install ${APT_OPTS} build-essential curl git-core libpcre3-dev mercurial pkg-config zip make >/dev/null
 
 # Install Go
 echo "Downloading go (${GOVERSION}) ..."
