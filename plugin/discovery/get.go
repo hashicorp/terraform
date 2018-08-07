@@ -135,26 +135,32 @@ func (i *ProviderInstaller) Get(provider string, req Constraints) (PluginMeta, e
 
 	// sort them newest to oldest. The newest version wins!
 	response.Collection(versions).Sort()
+
+	// if the chosen provider version does not support the requested platform,
+	// filter the list of acceptable versions to those that support that platform
+	if err := i.checkPlatformCompatibility(versions[0]); err != nil {
+		versions = i.platformCompatibleVersions(versions)
+		if len(versions) == 0 {
+			return PluginMeta{}, ErrorNoVersionCompatibleWithPlatform
+		}
+	}
+
+	// we now have a winning platform-compatible version
 	versionMeta := versions[0]
 	v := VersionStr(versionMeta.Version).MustParse()
-
-	// check platform compatibility
-	if err := i.checkPlatformCompatibility(versionMeta); err != nil {
-		// filter the list of versions to those that support the requested OS_ARCH
-		// reset the "current" versionMeta
-		// versionMeta = filteredVersions[0]
-		return PluginMeta{}, ErrorNoVersionCompatible
-	}
 
 	// check protocol compatibility
 	if err := i.checkPluginProtocol(versionMeta); err != nil {
 		closestMatch, err := i.findProtocolCompatibleVersion(versions)
 		if err == nil {
 			if err := i.checkPlatformCompatibility(closestMatch); err != nil {
-				// This is where we give up instead of leap-frogging every version to check protocol & platform
+				// At this point, we have protocol compatibility but not platform,
+				// and we give up trying to find a compatible version.
+				// This error message should be improved.
 				return PluginMeta{}, ErrorNoSuitableVersion
 			}
-			// This is a placeholder message.
+			// TODO: This is a placeholder UI message. We must choose to send
+			// providerProtocolTooOld or providerProtocolTooNew message to the UI
 			i.Ui.Error(fmt.Sprintf("the most recent version of %s to match your platform is %s", provider, closestMatch))
 			return PluginMeta{}, ErrorNoVersionCompatible
 		}
@@ -240,7 +246,7 @@ func (i *ProviderInstaller) install(provider string, version Version, url string
 		}
 
 		// Link or copy the cached binary into our install dir so the
-		// normal resolution machinery can find                                                     it.
+		// normal resolution machinery can find it.
 		filename := filepath.Base(cached)
 		targetPath := filepath.Join(i.Dir, filename)
 
@@ -382,7 +388,6 @@ func (i *ProviderInstaller) findProtocolCompatibleVersion(versions []*response.T
 func (i *ProviderInstaller) checkPluginProtocol(versionMeta *response.TerraformProviderVersion) error {
 	// TODO: should this be a different error? We should probably differentiate between
 	// no compatible versions and no protocol versions listed at all
-	// No protocols at all!
 	if len(versionMeta.Protocols) == 0 {
 		return fmt.Errorf("no plugin protocol versions listed")
 	}
@@ -425,6 +430,18 @@ func (i *ProviderInstaller) findPlatformCompatibleVersion(versions []*response.T
 	}
 
 	return nil, ErrorNoVersionCompatibleWithPlatform
+}
+
+// platformCompatibleVersions returns a list of provider versions that are
+// compatible with the requested platform.
+func (i *ProviderInstaller) platformCompatibleVersions(versions []*response.TerraformProviderVersion) []*response.TerraformProviderVersion {
+	var v []*response.TerraformProviderVersion
+	for _, version := range versions {
+		if err := i.checkPlatformCompatibility(version); err == nil {
+			v = append(v, version)
+		}
+	}
+	return v
 }
 
 func (i *ProviderInstaller) checkPlatformCompatibility(versionMeta *response.TerraformProviderVersion) error {
