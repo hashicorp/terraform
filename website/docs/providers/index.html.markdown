@@ -27,6 +27,7 @@ down to see all providers.
     <td><a href="/docs/providers/arukas/index.html">Arukas</a></td>
     </tr>
     <tr>
+    <td><a href="/docs/providers/aws/index.html">AWS</a></td>
     <td><a href="/docs/providers/azurerm/index.html">Azure</a></td>
     <td><a href="/docs/providers/azurestack/index.html">Azure Stack</a></td>
     </tr>
