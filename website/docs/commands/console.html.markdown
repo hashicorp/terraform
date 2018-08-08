@@ -56,7 +56,7 @@ The `terraform console` command will read configured state even if it
 is [remote](/docs/state/remote.html). This is great for scripting
 state reading in CI environments or other remote scenarios.
 
-After configuring remote state, run a `terraform remote pull` command
+After configuring remote state, run a `terraform refresh` command
 to sync state locally. The `terraform console` command will use this
 state for operations.
 
