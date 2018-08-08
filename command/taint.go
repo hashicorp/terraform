@@ -6,6 +6,7 @@ import (
 	"log"
 	"strings"
 
+	"github.com/gobwas/glob"
 	"github.com/hashicorp/terraform/command/clistate"
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -50,17 +51,6 @@ func (c *TaintCommand) Run(args []string) int {
 		module = "root"
 	} else {
 		module = "root." + module
-	}
-
-	rsk, err := terraform.ParseResourceStateKey(name)
-	if err != nil {
-		c.Ui.Error(fmt.Sprintf("Failed to parse resource name: %s", err))
-		return 1
-	}
-
-	if !rsk.Mode.Taintable() {
-		c.Ui.Error(fmt.Sprintf("Resource '%s' cannot be tainted", name))
-		return 1
 	}
 
 	// Load the backend
@@ -132,9 +122,28 @@ func (c *TaintCommand) Run(args []string) int {
 		return 1
 	}
 
-	// Get the resource we're looking for
-	rs, ok := mod.Resources[name]
-	if !ok {
+	g, err := glob.Compile(name)
+	if err != nil {
+		//The error message should be something better
+		c.Ui.Error(fmt.Sprintf(
+			"The glob %s is not correct.",
+			name))
+	}
+	resources := make(map[string]*terraform.ResourceState)
+
+	if err == nil {
+		for key, rs := range mod.Resources {
+			if g.Match(key) {
+				//The rs always should be parseable
+				rsk, _ := terraform.ParseResourceStateKey(key)
+				if rsk.Mode.Taintable() {
+					resources[key] = rs
+				}
+
+			}
+		}
+	}
+	if len(resources) == 0 {
 		if allowMissing {
 			return c.allowMissingExit(name, module)
 		}
@@ -146,8 +155,13 @@ func (c *TaintCommand) Run(args []string) int {
 		return 1
 	}
 
-	// Taint the resource
-	rs.Taint()
+	for target, rs := range resources {
+		// Taint  the resource
+		rs.Taint()
+		c.Ui.Output(fmt.Sprintf(
+			"The resource %s in the module %s has been marked as tainted!",
+			target, module))
+	}
 
 	log.Printf("[INFO] Writing state output to: %s", c.Meta.StateOutPath())
 	if err := st.WriteState(s); err != nil {
@@ -159,9 +173,6 @@ func (c *TaintCommand) Run(args []string) int {
 		return 1
 	}
 
-	c.Ui.Output(fmt.Sprintf(
-		"The resource %s in the module %s has been marked as tainted!",
-		name, module))
 	return 0
 }
 
