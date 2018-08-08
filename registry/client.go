@@ -65,7 +65,7 @@ func NewClient(services *disco.Disco, creds auth.CredentialsSource, client *http
 	}
 }
 
-// Discover qeuries the host, and returns the url for the registry.
+// Discover queries the host, and returns the url for the registry.
 func (c *Client) Discover(host svchost.Hostname, serviceID string) *url.URL {
 	service := c.services.DiscoverServiceURL(host, serviceID)
 	if service == nil {
@@ -86,7 +86,7 @@ func (c *Client) ModuleVersions(module *regsrc.Module) (*response.ModuleVersions
 
 	service := c.Discover(host, modulesServiceID)
 	if service == nil {
-		return nil, fmt.Errorf("host %s does not provide Terraform modules", host)
+		return nil, &errServiceNotProvided{host: host.ForDisplay(), service: "modules"}
 	}
 
 	p, err := url.Parse(path.Join(module.Module(), "versions"))
@@ -163,7 +163,7 @@ func (c *Client) ModuleLocation(module *regsrc.Module, version string) (string, 
 
 	service := c.Discover(host, modulesServiceID)
 	if service == nil {
-		return "", fmt.Errorf("host %s does not provide Terraform modules", host.ForDisplay())
+		return "", &errServiceNotProvided{host: host.ForDisplay(), service: "modules"}
 	}
 
 	var p *url.URL
@@ -247,7 +247,7 @@ func (c *Client) TerraformProviderVersions(provider *regsrc.TerraformProvider) (
 
 	service := c.Discover(host, providersServiceID)
 	if service == nil {
-		return nil, fmt.Errorf("host %s does not provide Terraform providers", host)
+		return nil, &errServiceNotProvided{host: host.ForDisplay(), service: "providers"}
 	}
 
 	p, err := url.Parse(path.Join(provider.TerraformProvider(), "versions"))
@@ -301,7 +301,7 @@ func (c *Client) TerraformProviderLocation(provider *regsrc.TerraformProvider, v
 
 	service := c.Discover(host, providersServiceID)
 	if service == nil {
-		return nil, fmt.Errorf("host %s does not provide Terraform providers", host)
+		return nil, &errServiceNotProvided{host: host.ForDisplay(), service: "providers"}
 	}
 
 	p, err := url.Parse(path.Join(
