@@ -121,6 +121,9 @@ func (i *ProviderInstaller) Get(provider string, req Constraints) (PluginMeta, e
 
 	// TODO: return multiple errors
 	if err != nil {
+		if registry.IsServiceNotProvided(err) {
+			return PluginMeta{}, err
+		}
 		return PluginMeta{}, ErrorNoSuchProvider
 	}
 	if len(allVersions.Versions) == 0 {
