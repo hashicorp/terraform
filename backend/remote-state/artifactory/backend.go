@@ -2,6 +2,7 @@ package artifactory
 
 import (
 	"context"
+	"net/http"
 
 	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/helper/schema"
@@ -68,6 +69,9 @@ func (b *Backend) configure(ctx context.Context) error {
 		BaseURL:  url,
 		Username: userName,
 		Password: password,
+		Transport: &http.Transport{
+			Proxy: http.ProxyFromEnvironment,
+		},
 	}
 	nativeClient := artifactory.NewClient(clientConf)
 
