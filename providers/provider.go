@@ -79,7 +79,7 @@ type GetSchemaResponse struct {
 }
 
 // Schema pairs a provider or resource schema with that schema's version.
-// This is used to be able to upgrade the schema in
+// This is used to be able to upgrade the schema in UpgradeResourceState.
 type Schema struct {
 	Version int
 	Block   *configschema.Block
@@ -149,6 +149,11 @@ type UpgradeResourceStateResponse struct {
 }
 
 type ConfigureRequest struct {
+	// Terraform version is the version string from the running instance of
+	// terraform. Providers can use TerraformVersion to verify compatibility,
+	// and to store for informational purposes.
+	TerraformVersion string
+
 	// Config is the complete configuration value for the provider.
 	Config cty.Value
 }
@@ -275,10 +280,10 @@ type ImportResourceStateResponse struct {
 // help of a provider. An ImportedObject is a RemoteObject that has been read
 // by the provider's import handler but hasn't yet been committed to state.
 type ImportedResource struct {
-	// ResourceType is the name of the resource type associated with the
+	// TypeName is the name of the resource type associated with the
 	// returned state. It's possible for providers to import multiple related
 	// types with a single import request.
-	ResourceType string
+	TypeName string
 
 	// State is the state of the remote object being imported. This may not be
 	// complete, but must contain enough information to uniquely identify the
