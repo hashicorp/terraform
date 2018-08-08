@@ -4,6 +4,7 @@ import (
 	"net/rpc"
 
 	"github.com/hashicorp/go-plugin"
+	"github.com/hashicorp/terraform/configs/configschema"
 	"github.com/hashicorp/terraform/terraform"
 )
 
@@ -26,6 +27,11 @@ func (p *ResourceProvisionerPlugin) Client(
 type ResourceProvisioner struct {
 	Broker *plugin.MuxBroker
 	Client *rpc.Client
+}
+
+func (p *ResourceProvisioner) GetConfigSchema() (*configschema.Block, error) {
+	panic("not implemented")
+	return nil, nil
 }
 
 func (p *ResourceProvisioner) Validate(c *terraform.ResourceConfig) ([]string, []error) {
