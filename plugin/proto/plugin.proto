@@ -295,8 +295,10 @@ message ValidateProvisionerConfig {
 message ProvisionResource {
     message Request {
         DynamicValue config = 1;
+        DynamicValue connection = 2;
     }
     message Response {
         string output  = 1;
+        repeated Diagnostic diagnostics = 2;
     }   
 }
