@@ -2,7 +2,7 @@
 
 NEW FEATURES:
 
-* **New `remote` backend**: Inital release of the `remote` backend for use with (Private) Terraform Enterpise [GH-18596] 
+* **New `remote` backend**: Inital release of the `remote` backend for use with Terraform Enterprise and Private Terraform Enterprise [GH-18596] 
 
 IMPROVEMENTS:
 
