@@ -53,10 +53,10 @@ type TerraformProviderPlatformLocation struct {
 }
 
 // Collection type for TerraformProviderVersion
-type Collection []*TerraformProviderVersion
+type ProviderVersionCollection []*TerraformProviderVersion
 
 // Sort sorts versions from newest to oldest.
-func (v Collection) Sort() {
+func (v ProviderVersionCollection) Sort() {
 	sort.Slice(v, func(i, j int) bool {
 		versionA, _ := version.NewVersion(v[i].Version)
 		versionB, _ := version.NewVersion(v[j].Version)

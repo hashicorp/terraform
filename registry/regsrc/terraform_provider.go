@@ -10,10 +10,6 @@ import (
 var (
 	// DefaultProviderNamespace represents the namespace for canonical
 	// HashiCorp-controlled providers.
-	// REVIEWERS: Naming things is hard.
-	// * HashiCorpProviderNameSpace?
-	// * OfficialP...?
-	// * CanonicalP...?
 	DefaultProviderNamespace = "terraform-providers"
 )
 
