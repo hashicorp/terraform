@@ -18,27 +18,28 @@ please fill out this [community providers form](https://docs.google.com/forms/d/
 ---
 
 <table class="table">
-    <td><a href="https://github.com/vancluever/terraform-provider-acme">ACME/Let's Encrypt</a></td>
+
     <td><a href="https://github.com/GSLabDev/terraform-provider-ad">Active Directory</a></td>
     <td><a href="https://github.com/zambien/terraform-provider-apigee">Apigee</a></td>
+    <td><a href="https://github.com/atlassian/terraform-provider-artifactory">Artifactory</a></td>
     </tr>
     <tr>
-    <td><a href="https://github.com/atlassian/terraform-provider-artifactory">Artifactory</a></td>
     <td><a href="https://github.com/bocodigitalmedia/terraform-provider-auth0">Auth0</a></td>
     <td><a href="https://github.com/avinetworks/terraform-provider-avi">AVI</a></td>
+    <td><a href="https://github.com/AviatrixSystems/terraform-provider-aviatrix">Aviatrix</a></td>
     </tr>
     <tr>
-    <td><a href="https://github.com/AviatrixSystems/terraform-provider-aviatrix">Aviatrix</a></td>
     <td><a href="https://github.com/cloudamqp/terraform-provider">CloudAMQP</a></td>
     <td><a href="https://github.com/cloudkarafka/terraform-provider">CloudKarafka</a></td>
+    <td><a href="https://github.com/cloudmqtt/terraform-provider">CloudMQTT</a></td>
     </tr>
     <tr>
-    <td><a href="https://github.com/cloudmqtt/terraform-provider">CloudMQTT</a></td>
     <td><a href="https://github.com/Ashald/terraform-provider-consulacl">Consul ACL</a></td>
     <td><a href="https://github.com/coreos/terraform-provider-ct">CoreOS Container Linux Configs</a></td>
+    <td><a href="https://github.com/nicolai86/terraform-provider-couchdb">CouchDB</a></td>
     </tr>
     <tr>
-    <td><a href="https://github.com/nicolai86/terraform-provider-couchdb">CouchDB</a></td>
+    <td><a href="https://github.com/betabandido/terraform-provider-databricks">Databricks</a></td>
     <td><a href="https://github.com/rackn/terraform-provider-drp/">Digital Rebar</a></td>
     <td><a href="https://github.com/gstruct/terraform-provider-dockermachine">Docker Machine</a></td>
     </tr>
@@ -120,12 +121,17 @@ please fill out this [community providers form](https://docs.google.com/forms/d/
     <tr>
     <td><a href="https://github.com/Ashald/terraform-provider-stateful">Stateful</a></td>
     <td><a href="https://github.com/bocodigitalmedia/terraform-provider-transloadit">Transloadit</a></td>
+    <td><a href="https://github.com/mvisonneau/terraform-provider-updown">Updown.io</a></td>
+    </tr>
+    <tr>
+    <td><a href="https://github.com/SpamapS/terraform-provider-uptimerobot">Uptimerobot</a></td>
+    <td><a href="https://github.com/GSLabDev/terraform-provider-vra">vRealize Automation</a></td>
     <td><a href="https://github.com/PortOfPortland/terraform-provider-windns">Win DNS</a></td>
     </tr>
     <tr>
-    <td><a href="https://github.com/GSLabDev/terraform-provider-vra">vRealize Automation</a></td>
     <td><a href="https://github.com/Ashald/terraform-provider-yaml">YAML</a></td>
     <td><a href="https://github.com/cormacrelf/terraform-provider-zerotier">ZeroTier</a></td>
+    <td><a></a></td>
     </tr>
 
 </table>
