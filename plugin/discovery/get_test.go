@@ -160,7 +160,7 @@ func TestVersionListing(t *testing.T) {
 		versions = append(versions, v)
 	}
 
-	response.Collection(versions).Sort()
+	response.ProviderVersionCollection(versions).Sort()
 
 	expected := []*response.TerraformProviderVersion{
 		{Version: "1.2.4"},
