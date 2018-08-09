@@ -22,7 +22,7 @@ down to see all providers.
 
 <table class="table">
 
-    <td><a href="/docs/providers/acme/index.html">Acme</a></td>
+    <td><a href="/docs/providers/acme/index.html">ACME</a></td>
     <td><a href="/docs/providers/alicloud/index.html">Alicloud</a></td>
     <td><a href="/docs/providers/archive/index.html">Archive</a></td>
     </tr>
