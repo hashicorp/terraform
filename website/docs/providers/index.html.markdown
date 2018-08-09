@@ -22,14 +22,19 @@ down to see all providers.
 
 <table class="table">
 
+    <td><a href="/docs/providers/acme/index.html">ACME</a></td>
     <td><a href="/docs/providers/alicloud/index.html">Alicloud</a></td>
     <td><a href="/docs/providers/archive/index.html">Archive</a></td>
-    <td><a href="/docs/providers/aws/index.html">AWS</a></td>
     </tr>
     <tr>
+    <td><a href="/docs/providers/arukas/index.html">Arukas</a></td>
+    <td><a href="/docs/providers/aws/index.html">AWS</a></td>
     <td><a href="/docs/providers/azurerm/index.html">Azure</a></td>
+    </tr>
+    <tr>
     <td><a href="/docs/providers/azurestack/index.html">Azure Stack</a></td>
     <td><a href="/docs/providers/bitbucket/index.html">Bitbucket</a></td>
+    <td><a href="/docs/providers/brightbox/index.html">Brightbox</a></td>
     </tr>
     <tr>
     <td><a href="/docs/providers/clc/index.html">CenturyLinkCloud</a></td>
@@ -73,63 +78,68 @@ down to see all providers.
     </tr>
     <tr>
     <td><a href="/docs/providers/http/index.html">HTTP</a></td>
+    <td><a href="/docs/providers/huaweicloud/index.html">HuaweiCloud</a></td>
     <td><a href="/docs/providers/icinga2/index.html">Icinga2</a></td>
-    <td><a href="/docs/providers/ignition/index.html">Ignition</a></td>
     </tr>
     <tr>
+    <td><a href="/docs/providers/ignition/index.html">Ignition</a></td>
     <td><a href="/docs/providers/influxdb/index.html">InfluxDB</a></td>
     <td><a href="/docs/providers/kubernetes/index.html">Kubernetes</a></td>
-    <td><a href="/docs/providers/librato/index.html">Librato</a></td>
     </tr>
     <tr>
+    <td><a href="/docs/providers/librato/index.html">Librato</a></td>
     <td><a href="/docs/providers/local/index.html">Local</a></td>
     <td><a href="/docs/providers/logentries/index.html">Logentries</a></td>
-    <td><a href="/docs/providers/logicmonitor/index.html">LogicMonitor</a></td>
     </tr>
     <tr>
+    <td><a href="/docs/providers/logicmonitor/index.html">LogicMonitor</a></td>
     <td><a href="/docs/providers/mailgun/index.html">Mailgun</a></td>
     <td><a href="/docs/providers/mysql/index.html">MySQL</a></td>
-    <td><a href="/docs/providers/newrelic/index.html">New Relic</a></td>
     </tr>
     <tr>
+    <td><a href="/docs/providers/newrelic/index.html">New Relic</a></td>
     <td><a href="/docs/providers/nomad/index.html">Nomad</a></td>
     <td><a href="/docs/providers/ns1/index.html">NS1</a></td>
-    <td><a href="/docs/providers/null/index.html">Null</a></td>
     </tr>
     <tr>
+    <td><a href="/docs/providers/null/index.html">Null</a></td>
     <td><a href="/docs/providers/oneandone/index.html">1&1</a></td>
     <td><a href="/docs/providers/openstack/index.html">OpenStack</a></td>
-    <td><a href="/docs/providers/opentelekomcloud/index.html">OpenTelekomCloud</a></td>
     </tr>
     <tr>
+    <td><a href="/docs/providers/opentelekomcloud/index.html">OpenTelekomCloud</a></td>
     <td><a href="/docs/providers/opsgenie/index.html">OpsGenie</a></td>
     <td><a href="/docs/providers/opc/index.html">Oracle Public Cloud</a></td>
-    <td><a href="/docs/providers/oraclepaas/index.html">Oracle Cloud Platform </a></td>
     </tr>
     <tr>
+    <td><a href="/docs/providers/oraclepaas/index.html">Oracle Cloud Platform </a></td>
     <td><a href="/docs/providers/ovh/index.html">OVH</a></td>
     <td><a href="/docs/providers/packet/index.html">Packet</a></td>
-    <td><a href="/docs/providers/pagerduty/index.html">PagerDuty</a></td>
     </tr>
     <tr>
+    <td><a href="/docs/providers/pagerduty/index.html">PagerDuty</a></td>
     <td><a href="/docs/providers/panos/index.html">Palo Alto Networks</a></td>
     <td><a href="/docs/providers/postgresql/index.html">PostgreSQL</a></td>
-    <td><a href="/docs/providers/powerdns/index.html">PowerDNS</a></td>
     </tr>
     <tr>
+    <td><a href="/docs/providers/powerdns/index.html">PowerDNS</a></td>
     <td><a href="/docs/providers/profitbricks/index.html">ProfitBricks</a></td>
     <td><a href="/docs/providers/rabbitmq/index.html">RabbitMQ</a></td>
-    <td><a href="/docs/providers/rancher/index.html">Rancher</a></td>
     </tr>
     <tr>
+    <td><a href="/docs/providers/rancher/index.html">Rancher</a></td>
     <td><a href="/docs/providers/random/index.html">Random</a></td>
     <td><a href="/docs/providers/rundeck/index.html">Rundeck</a></td>
-    <td><a href="/docs/providers/scaleway/index.html">Scaleway</a></td>
     </tr>
     <tr>
+    <td><a href="/docs/providers/runscope/index.html">Runscope</a></td>
+    <td><a href="/docs/providers/scaleway/index.html">Scaleway</a></td>
     <td><a href="/docs/providers/softlayer/index.html">SoftLayer</a></td>
+    </tr>
+    <tr>
     <td><a href="/docs/providers/statuscake/index.html">StatusCake</a></td>
     <td><a href="/docs/providers/spotinst/index.html">Spotinst</a></td>
+    <td><a href="/docs/providers/telefonicaopencloud/index.html">TelefonicaOpenCloud</a></td>
     </tr>
     <tr>
     <td><a href="/docs/providers/template/index.html">Template</a></td>
