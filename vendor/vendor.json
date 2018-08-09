@@ -1327,6 +1327,12 @@
 			"revisionTime": "2018-01-28T22:55:04Z"
 		},
 		{
+			"checksumSHA1": "kpDdn8FTTpe3DOSH7qDyfvIIzrY=",
+			"path": "github.com/golang/mock/gomock",
+			"revision": "22bbf0ddf08105dfa364d0a2fa619dfa71014af5",
+			"revisionTime": "2018-05-03T01:48:54Z"
+		},
+		{
 			"checksumSHA1": "JZV+pLo8Z/kIYExrZr1Zu9KSKyU=",
 			"path": "github.com/golang/protobuf/proto",
 			"revision": "05f48f4eaf0e05663b562bab533cdd472238ce29",
