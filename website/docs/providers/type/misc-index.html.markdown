@@ -14,6 +14,7 @@ by the vendors and the Terraform community, and are tested by HashiCorp.
 
 ---
 
+[ACME](/docs/providers/acme/index.html)
 
 [Archive](/docs/providers/archive/index.html)
 
