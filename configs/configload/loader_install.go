@@ -293,7 +293,7 @@ func (l *Loader) installRegistryModule(req *configs.ModuleRequest, key string, i
 	reg := l.modules.Registry
 
 	log.Printf("[DEBUG] %s listing available versions of %s at %s", key, addr, hostname)
-	resp, err := reg.Versions(addr)
+	resp, err := reg.ModuleVersions(addr)
 	if err != nil {
 		if registry.IsModuleNotFound(err) {
 			diags = append(diags, &hcl.Diagnostic{
@@ -393,7 +393,7 @@ func (l *Loader) installRegistryModule(req *configs.ModuleRequest, key string, i
 	// If we manage to get down here then we've found a suitable version to
 	// install, so we need to ask the registry where we should download it from.
 	// The response to this is a go-getter-style address string.
-	dlAddr, err := reg.Location(addr, latestMatch.String())
+	dlAddr, err := reg.ModuleLocation(addr, latestMatch.String())
 	if err != nil {
 		log.Printf("[ERROR] %s from %s %s: %s", key, addr, latestMatch, err)
 		diags = append(diags, &hcl.Diagnostic{
