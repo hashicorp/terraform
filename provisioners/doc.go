@@ -1,3 +1,3 @@
-// Package provisioner contains the interface and primary types to implement a
+// Package provisioners contains the interface and primary types to implement a
 // Terraform resource provisioner.
-package provisioner
+package provisioners

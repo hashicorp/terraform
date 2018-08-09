@@ -1,4 +1,4 @@
-package provisioner
+package provisioners
 
 import (
 	"github.com/hashicorp/terraform/configs/configschema"
