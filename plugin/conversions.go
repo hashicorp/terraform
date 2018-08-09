@@ -62,7 +62,6 @@ func schemaNestedBlock(b *proto.Schema_NestedBlock) *configschema.NestedBlock {
 }
 
 // ProtoToDiagnostics converts a list of proto.Diagnostics to a tf.Diagnostics.
-// for now we assume these only contain a basic message
 func ProtoToDiagnostics(ds []*proto.Diagnostic) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 	for _, d := range ds {
