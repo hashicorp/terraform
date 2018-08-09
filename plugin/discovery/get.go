@@ -137,7 +137,7 @@ func (i *ProviderInstaller) Get(provider string, req Constraints) (PluginMeta, e
 	}
 
 	// sort them newest to oldest. The newest version wins!
-	response.Collection(versions).Sort()
+	response.ProviderVersionCollection(versions).Sort()
 
 	// if the chosen provider version does not support the requested platform,
 	// filter the list of acceptable versions to those that support that platform
