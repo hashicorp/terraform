@@ -91,7 +91,6 @@ func New(services *disco.Disco) *Remote {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Description: schemaDescriptions["token"],
-				DefaultFunc: schema.EnvDefaultFunc("TFE_TOKEN", ""),
 			},
 
 			"workspaces": &schema.Schema{
@@ -260,9 +259,15 @@ func (b *Remote) State(workspace string) (state.State, error) {
 
 	if !exists {
 		options := tfe.WorkspaceCreateOptions{
-			Name:             tfe.String(workspace),
-			TerraformVersion: tfe.String(version.Version),
+			Name: tfe.String(workspace),
 		}
+
+		// We only set the Terraform Version for the new workspace if this is
+		// a release candidate or a final release.
+		if version.Prerelease == "" || strings.HasPrefix(version.Prerelease, "rc") {
+			options.TerraformVersion = tfe.String(version.String())
+		}
+
 		_, err = b.client.Workspaces.Create(context.Background(), b.organization, options)
 		if err != nil {
 			return nil, fmt.Errorf("Error creating workspace %s: %v", workspace, err)
@@ -434,9 +439,8 @@ persists please open a support ticket to get help resolving the problem.
 var schemaDescriptions = map[string]string{
 	"hostname":     "The remote backend hostname to connect to (defaults to app.terraform.io).",
 	"organization": "The name of the organization containing the targeted workspace(s).",
-	"token": "The token used to authenticate with the remote backend. If TFE_TOKEN is set\n" +
-		"or credentials for the host are configured in the CLI Config File, then this\n" +
-		"this will override any saved value for this.",
+	"token": "The token used to authenticate with the remote backend. If credentials for the\n" +
+		"host are configured in the CLI Config File, then those will be used instead.",
 	"workspaces": "Workspaces contains arguments used to filter down to a set of workspaces\n" +
 		"to work on.",
 	"name": "A workspace name used to map the default workspace to a named remote workspace.\n" +
