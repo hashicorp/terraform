@@ -65,7 +65,6 @@ terraform {
   backend "remote" {
     hostname = "app.terraform.io"
     organization = "company"
-    token = ""
 
     workspaces {
       name = "workspace"
@@ -74,9 +73,6 @@ terraform {
   }
 }
 ```
-
-We recommend omitting the token which can be provided as an environment
-variable or set as [credentials in the CLI Config File](/docs/commands/cli-config.html#credentials).
 
 ## Example Reference
 
@@ -98,13 +94,13 @@ data "terraform_remote_state" "foo" {
 
 The following configuration options are supported:
 
-* `hostname` - (Optional) The remote backend hostname to connect to. Default
+* `hostname` - (Optional) The remote backend hostname to connect to. Defaults
   to app.terraform.io.
 * `organization` - (Required) The name of the organization containing the
   targeted workspace(s).
 * `token` - (Optional) The token used to authenticate with the remote backend.
-  If `TFE_TOKEN` is set or credentials for the host are configured in the CLI
-  Config File, then this this will override any saved value for this.
+	We recommend omitting the token which can be set as `credentials` in the
+  [CLI config file](/docs/commands/cli-config.html#credentials).
 * `workspaces` - (Required) Workspaces contains arguments used to filter down
   to a set of workspaces to work on. Parameters defined below.
 
