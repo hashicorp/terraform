@@ -10,7 +10,6 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/cloudwatchlogs"
-	"github.com/hashicorp/errwrap"
 )
 
 func resourceAwsCloudWatchLogGroup() *schema.Resource {
@@ -100,12 +99,12 @@ func resourceAwsCloudWatchLogGroupCreate(d *schema.ResourceData, meta interface{
 func resourceAwsCloudWatchLogGroupRead(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).cloudwatchlogsconn
 	log.Printf("[DEBUG] Reading CloudWatch Log Group: %q", d.Get("name").(string))
-	lg, exists, err := lookupCloudWatchLogGroup(conn, d.Id(), nil)
+	lg, err := lookupCloudWatchLogGroup(conn, d.Id())
 	if err != nil {
 		return err
 	}
 
-	if !exists {
+	if lg == nil {
 		log.Printf("[DEBUG] CloudWatch Group %q Not Found", d.Id())
 		d.SetId("")
 		return nil
@@ -116,44 +115,42 @@ func resourceAwsCloudWatchLogGroupRead(d *schema.ResourceData, meta interface{})
 	d.Set("arn", lg.Arn)
 	d.Set("name", lg.LogGroupName)
 	d.Set("kms_key_id", lg.KmsKeyId)
+	d.Set("retention_in_days", lg.RetentionInDays)
 
-	if lg.RetentionInDays != nil {
-		d.Set("retention_in_days", lg.RetentionInDays)
+	tags := make(map[string]string, 0)
+	tagsOutput, err := conn.ListTagsLogGroup(&cloudwatchlogs.ListTagsLogGroupInput{
+		LogGroupName: aws.String(d.Id()),
+	})
+	if err != nil {
+		return fmt.Errorf("error listing CloudWatch Logs Group %q tags: %s", d.Id(), err)
 	}
-
-	if !meta.(*AWSClient).IsChinaCloud() && !meta.(*AWSClient).IsGovCloud() {
-		tags, err := flattenCloudWatchTags(d, conn)
-		if err != nil {
-			return err
-		}
-		d.Set("tags", tags)
+	if tagsOutput != nil {
+		tags = aws.StringValueMap(tagsOutput.Tags)
 	}
+	d.Set("tags", tags)
 
 	return nil
 }
 
-func lookupCloudWatchLogGroup(conn *cloudwatchlogs.CloudWatchLogs,
-	name string, nextToken *string) (*cloudwatchlogs.LogGroup, bool, error) {
+func lookupCloudWatchLogGroup(conn *cloudwatchlogs.CloudWatchLogs, name string) (*cloudwatchlogs.LogGroup, error) {
 	input := &cloudwatchlogs.DescribeLogGroupsInput{
 		LogGroupNamePrefix: aws.String(name),
-		NextToken:          nextToken,
 	}
-	resp, err := conn.DescribeLogGroups(input)
-	if err != nil {
-		return nil, true, err
-	}
-
-	for _, lg := range resp.LogGroups {
-		if *lg.LogGroupName == name {
-			return lg, true, nil
+	var logGroup *cloudwatchlogs.LogGroup
+	err := conn.DescribeLogGroupsPages(input, func(page *cloudwatchlogs.DescribeLogGroupsOutput, lastPage bool) bool {
+		for _, lg := range page.LogGroups {
+			if aws.StringValue(lg.LogGroupName) == name {
+				logGroup = lg
+				return false
+			}
 		}
+		return !lastPage
+	})
+	if err != nil {
+		return nil, err
 	}
 
-	if resp.NextToken != nil {
-		return lookupCloudWatchLogGroup(conn, name, resp.NextToken)
-	}
-
-	return nil, false, nil
+	return logGroup, nil
 }
 
 func resourceAwsCloudWatchLogGroupUpdate(d *schema.ResourceData, meta interface{}) error {
@@ -184,9 +181,7 @@ func resourceAwsCloudWatchLogGroupUpdate(d *schema.ResourceData, meta interface{
 		}
 	}
 
-	restricted := meta.(*AWSClient).IsChinaCloud() || meta.(*AWSClient).IsGovCloud()
-
-	if !restricted && d.HasChange("tags") {
+	if d.HasChange("tags") {
 		oraw, nraw := d.GetChange("tags")
 		o := oraw.(map[string]interface{})
 		n := nraw.(map[string]interface{})
@@ -267,27 +262,5 @@ func resourceAwsCloudWatchLogGroupDelete(d *schema.ResourceData, meta interface{
 	}
 	log.Println("[INFO] CloudWatch Log Group deleted")
 
-	d.SetId("")
-
 	return nil
-}
-
-func flattenCloudWatchTags(d *schema.ResourceData, conn *cloudwatchlogs.CloudWatchLogs) (map[string]interface{}, error) {
-	tagsOutput, err := conn.ListTagsLogGroup(&cloudwatchlogs.ListTagsLogGroupInput{
-		LogGroupName: aws.String(d.Get("name").(string)),
-	})
-	if err != nil {
-		return nil, errwrap.Wrapf("Error Getting CloudWatch Logs Tag List: {{err}}", err)
-	}
-	if tagsOutput != nil {
-		output := make(map[string]interface{}, len(tagsOutput.Tags))
-
-		for i, v := range tagsOutput.Tags {
-			output[i] = *v
-		}
-
-		return output, nil
-	}
-
-	return make(map[string]interface{}), nil
 }

@@ -66,7 +66,9 @@ func TestBackend(t *testing.T) {
 	})
 
 	// Test
-	backend.TestBackend(t, b1, b2)
+	backend.TestBackendStates(t, b1)
+	backend.TestBackendStateLocks(t, b1, b2)
+	backend.TestBackendStateForceUnlock(t, b1, b2)
 }
 
 func TestBackend_lockDisabled(t *testing.T) {
@@ -89,5 +91,5 @@ func TestBackend_lockDisabled(t *testing.T) {
 	})
 
 	// Test
-	backend.TestBackend(t, b1, b2)
+	backend.TestBackendStateLocks(t, b1, b2)
 }

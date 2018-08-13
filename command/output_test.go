@@ -1,7 +1,6 @@
 package command
 
 import (
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -236,6 +235,71 @@ func TestOutput_json(t *testing.T) {
 	}
 }
 
+func TestOutput_emptyOutputsErr(t *testing.T) {
+	originalState := &terraform.State{
+		Modules: []*terraform.ModuleState{
+			{
+				Path:    []string{"root"},
+				Outputs: map[string]*terraform.OutputState{},
+			},
+		},
+	}
+
+	statePath := testStateFile(t, originalState)
+
+	p := testProvider()
+	ui := new(cli.MockUi)
+	c := &OutputCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
+		},
+	}
+
+	args := []string{
+		"-state", statePath,
+	}
+	if code := c.Run(args); code != 1 {
+		t.Fatalf("bad: \n%s", ui.ErrorWriter.String())
+	}
+}
+
+func TestOutput_jsonEmptyOutputs(t *testing.T) {
+	originalState := &terraform.State{
+		Modules: []*terraform.ModuleState{
+			{
+				Path:    []string{"root"},
+				Outputs: map[string]*terraform.OutputState{},
+			},
+		},
+	}
+
+	statePath := testStateFile(t, originalState)
+
+	p := testProvider()
+	ui := new(cli.MockUi)
+	c := &OutputCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
+		},
+	}
+
+	args := []string{
+		"-state", statePath,
+		"-json",
+	}
+	if code := c.Run(args); code != 0 {
+		t.Fatalf("bad: \n%s", ui.ErrorWriter.String())
+	}
+
+	actual := strings.TrimSpace(ui.OutputWriter.String())
+	expected := "{}"
+	if actual != expected {
+		t.Fatalf("bad:\n%#v\n%#v", expected, actual)
+	}
+}
+
 func TestMissingModuleOutput(t *testing.T) {
 	originalState := &terraform.State{
 		Modules: []*terraform.ModuleState{
@@ -451,10 +515,7 @@ func TestOutput_stateDefault(t *testing.T) {
 
 	// Write the state file in a temporary directory with the
 	// default filename.
-	td, err := ioutil.TempDir("", "tf")
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
+	td := testTempDir(t)
 	statePath := filepath.Join(td, DefaultStateFilename)
 
 	f, err := os.Create(statePath)

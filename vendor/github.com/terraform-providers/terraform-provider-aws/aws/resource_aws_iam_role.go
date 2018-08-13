@@ -2,6 +2,7 @@ package aws
 
 import (
 	"fmt"
+	"log"
 	"net/url"
 	"regexp"
 	"time"
@@ -12,6 +13,7 @@ import (
 
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/hashicorp/terraform/helper/validation"
 )
 
 func resourceAwsIamRole() *schema.Resource {
@@ -57,9 +59,10 @@ func resourceAwsIamRole() *schema.Resource {
 			},
 
 			"name_prefix": {
-				Type:     schema.TypeString,
-				Optional: true,
-				ForceNew: true,
+				Type:          schema.TypeString,
+				Optional:      true,
+				ForceNew:      true,
+				ConflictsWith: []string{"name"},
 				ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
 					// https://github.com/boto/botocore/blob/2485f5c/botocore/data/iam/2010-05-08/service-2.json#L8329-L8334
 					value := v.(string)
@@ -105,6 +108,13 @@ func resourceAwsIamRole() *schema.Resource {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
+
+			"max_session_duration": {
+				Type:         schema.TypeInt,
+				Optional:     true,
+				Default:      3600,
+				ValidateFunc: validation.IntBetween(3600, 43200),
+			},
 		},
 	}
 }
@@ -135,6 +145,10 @@ func resourceAwsIamRoleCreate(d *schema.ResourceData, meta interface{}) error {
 
 	if v, ok := d.GetOk("description"); ok {
 		request.Description = aws.String(v.(string))
+	}
+
+	if v, ok := d.GetOk("max_session_duration"); ok {
+		request.MaxSessionDuration = aws.Int64(int64(v.(int)))
 	}
 
 	var createResp *iam.CreateRoleOutput
@@ -174,6 +188,9 @@ func resourceAwsIamRoleRead(d *schema.ResourceData, meta interface{}) error {
 	role := getResp.Role
 
 	if err := d.Set("name", role.RoleName); err != nil {
+		return err
+	}
+	if err := d.Set("max_session_duration", role.MaxSessionDuration); err != nil {
 		return err
 	}
 	if err := d.Set("arn", role.Arn); err != nil {
@@ -239,6 +256,21 @@ func resourceAwsIamRoleUpdate(d *schema.ResourceData, meta interface{}) error {
 		}
 	}
 
+	if d.HasChange("max_session_duration") {
+		roleMaxDurationInput := &iam.UpdateRoleInput{
+			RoleName:           aws.String(d.Id()),
+			MaxSessionDuration: aws.Int64(int64(d.Get("max_session_duration").(int))),
+		}
+		_, err := iamconn.UpdateRole(roleMaxDurationInput)
+		if err != nil {
+			if isAWSErr(err, iam.ErrCodeNoSuchEntityException, "") {
+				d.SetId("")
+				return nil
+			}
+			return fmt.Errorf("Error Updating IAM Role (%s) Max Session Duration: %s", d.Id(), err)
+		}
+	}
+
 	return nil
 }
 
@@ -287,7 +319,11 @@ func resourceAwsIamRoleDelete(d *schema.ResourceData, meta interface{}) error {
 					RoleName:  aws.String(d.Id()),
 				})
 				if err != nil {
-					return fmt.Errorf("Error deleting IAM Role %s: %s", d.Id(), err)
+					if isAWSErr(err, iam.ErrCodeNoSuchEntityException, "") {
+						log.Printf("[WARN] Role policy attachment (%s) was already removed from role (%s)", aws.StringValue(parn), d.Id())
+					} else {
+						return fmt.Errorf("Error deleting IAM Role %s: %s", d.Id(), err)
+					}
 				}
 			}
 		}
@@ -312,7 +348,11 @@ func resourceAwsIamRoleDelete(d *schema.ResourceData, meta interface{}) error {
 					RoleName:   aws.String(d.Id()),
 				})
 				if err != nil {
-					return fmt.Errorf("Error deleting inline policy of IAM Role %s: %s", d.Id(), err)
+					if isAWSErr(err, iam.ErrCodeNoSuchEntityException, "") {
+						log.Printf("[WARN] Inline role policy (%s) was already removed from role (%s)", aws.StringValue(pname), d.Id())
+					} else {
+						return fmt.Errorf("Error deleting inline policy of IAM Role %s: %s", d.Id(), err)
+					}
 				}
 			}
 		}

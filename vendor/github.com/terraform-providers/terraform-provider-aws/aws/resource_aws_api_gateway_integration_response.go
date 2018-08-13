@@ -37,7 +37,7 @@ func resourceAwsApiGatewayIntegrationResponse() *schema.Resource {
 				Type:         schema.TypeString,
 				Required:     true,
 				ForceNew:     true,
-				ValidateFunc: validateHTTPMethod,
+				ValidateFunc: validateHTTPMethod(),
 			},
 
 			"status_code": {
@@ -53,12 +53,12 @@ func resourceAwsApiGatewayIntegrationResponse() *schema.Resource {
 			"response_templates": {
 				Type:     schema.TypeMap,
 				Optional: true,
-				Elem:     schema.TypeString,
+				Elem:     &schema.Schema{Type: schema.TypeString},
 			},
 
 			"response_parameters": {
 				Type:          schema.TypeMap,
-				Elem:          schema.TypeString,
+				Elem:          &schema.Schema{Type: schema.TypeString},
 				Optional:      true,
 				ConflictsWith: []string{"response_parameters_in_json"},
 			},
@@ -73,7 +73,7 @@ func resourceAwsApiGatewayIntegrationResponse() *schema.Resource {
 			"content_handling": {
 				Type:         schema.TypeString,
 				Optional:     true,
-				ValidateFunc: validateApiGatewayIntegrationContentHandling,
+				ValidateFunc: validateApiGatewayIntegrationContentHandling(),
 			},
 		},
 	}

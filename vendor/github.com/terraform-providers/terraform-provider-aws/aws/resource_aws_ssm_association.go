@@ -6,7 +6,6 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ssm"
-	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -73,7 +72,6 @@ func resourceAwsSsmAssociation() *schema.Resource {
 			"targets": {
 				Type:     schema.TypeList,
 				Optional: true,
-				ForceNew: true,
 				Computed: true,
 				MaxItems: 5,
 				Elem: &schema.Resource{
@@ -124,7 +122,7 @@ func resourceAwsSsmAssociationCreate(d *schema.ResourceData, meta interface{}) e
 	}
 
 	if _, ok := d.GetOk("targets"); ok {
-		assosciationInput.Targets = expandAwsSsmTargets(d)
+		assosciationInput.Targets = expandAwsSsmTargets(d.Get("targets").([]interface{}))
 	}
 
 	if v, ok := d.GetOk("output_location"); ok {
@@ -133,7 +131,7 @@ func resourceAwsSsmAssociationCreate(d *schema.ResourceData, meta interface{}) e
 
 	resp, err := ssmconn.CreateAssociation(assosciationInput)
 	if err != nil {
-		return errwrap.Wrapf("[ERROR] Error creating SSM association: {{err}}", err)
+		return fmt.Errorf("[ERROR] Error creating SSM association: %s", err)
 	}
 
 	if resp.AssociationDescription == nil {
@@ -158,7 +156,11 @@ func resourceAwsSsmAssociationRead(d *schema.ResourceData, meta interface{}) err
 	resp, err := ssmconn.DescribeAssociation(params)
 
 	if err != nil {
-		return errwrap.Wrapf("[ERROR] Error reading SSM association: {{err}}", err)
+		if isAWSErr(err, ssm.ErrCodeAssociationDoesNotExist, "") {
+			d.SetId("")
+			return nil
+		}
+		return fmt.Errorf("[ERROR] Error reading SSM association: %s", err)
 	}
 	if resp.AssociationDescription == nil {
 		return fmt.Errorf("[ERROR] AssociationDescription was nil")
@@ -213,9 +215,13 @@ func resourceAwsSsmAssocationUpdate(d *schema.ResourceData, meta interface{}) er
 		associationInput.OutputLocation = expandSSMAssociationOutputLocation(d.Get("output_location").([]interface{}))
 	}
 
+	if d.HasChange("targets") {
+		associationInput.Targets = expandAwsSsmTargets(d.Get("targets").([]interface{}))
+	}
+
 	_, err := ssmconn.UpdateAssociation(associationInput)
 	if err != nil {
-		return errwrap.Wrapf("[ERROR] Error updating SSM association: {{err}}", err)
+		return fmt.Errorf("[ERROR] Error updating SSM association: %s", err)
 	}
 
 	return resourceAwsSsmAssociationRead(d, meta)
@@ -233,7 +239,7 @@ func resourceAwsSsmAssociationDelete(d *schema.ResourceData, meta interface{}) e
 	_, err := ssmconn.DeleteAssociation(params)
 
 	if err != nil {
-		return errwrap.Wrapf("[ERROR] Error deleting SSM association: {{err}}", err)
+		return fmt.Errorf("[ERROR] Error deleting SSM association: %s", err)
 	}
 
 	return nil

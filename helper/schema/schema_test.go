@@ -2866,6 +2866,48 @@ func TestSchemaMap_Diff(t *testing.T) {
 		},
 
 		{
+			// NOTE: This case is technically impossible in the current
+			// implementation, because optional+computed values never show up in the
+			// diff. In the event behavior changes this test should ensure that the
+			// intended diff still shows up.
+			Name: "overridden removed attribute diff with a CustomizeDiff function, ForceNew not in schema",
+			Schema: map[string]*Schema{
+				"availability_zone": &Schema{
+					Type:     TypeString,
+					Optional: true,
+					Computed: true,
+				},
+			},
+
+			State: nil,
+
+			Config: map[string]interface{}{},
+
+			CustomizeDiff: func(d *ResourceDiff, meta interface{}) error {
+				if err := d.SetNew("availability_zone", "bar"); err != nil {
+					return err
+				}
+				if err := d.ForceNew("availability_zone"); err != nil {
+					return err
+				}
+				return nil
+			},
+
+			Diff: &terraform.InstanceDiff{
+				Attributes: map[string]*terraform.ResourceAttrDiff{
+					"availability_zone": &terraform.ResourceAttrDiff{
+						Old:         "",
+						New:         "bar",
+						RequiresNew: true,
+					},
+				},
+			},
+
+			Err: false,
+		},
+
+		{
+
 			Name: "overridden diff with a CustomizeDiff function, ForceNew in schema",
 			Schema: map[string]*Schema{
 				"availability_zone": &Schema{
@@ -4528,6 +4570,42 @@ func TestSchemaMap_Validate(t *testing.T) {
 			},
 		},
 
+		"Map with type specified as value type": {
+			Schema: map[string]*Schema{
+				"user_data": &Schema{
+					Type:     TypeMap,
+					Optional: true,
+					Elem:     TypeBool,
+				},
+			},
+
+			Config: map[string]interface{}{
+				"user_data": map[string]interface{}{
+					"foo": "not_a_bool",
+				},
+			},
+
+			Err: true,
+		},
+
+		"Map with type specified as nested Schema": {
+			Schema: map[string]*Schema{
+				"user_data": &Schema{
+					Type:     TypeMap,
+					Optional: true,
+					Elem:     &Schema{Type: TypeBool},
+				},
+			},
+
+			Config: map[string]interface{}{
+				"user_data": map[string]interface{}{
+					"foo": "not_a_bool",
+				},
+			},
+
+			Err: true,
+		},
+
 		"Bad map: just a slice": {
 			Schema: map[string]*Schema{
 				"user_data": &Schema{
@@ -4754,7 +4832,7 @@ func TestSchemaMap_Validate(t *testing.T) {
 
 			Err: true,
 			Errors: []error{
-				fmt.Errorf("\"blacklist\": conflicts with whitelist (\"white-val\")"),
+				fmt.Errorf("\"blacklist\": conflicts with whitelist"),
 			},
 		},
 
@@ -4798,7 +4876,7 @@ func TestSchemaMap_Validate(t *testing.T) {
 
 			Err: true,
 			Errors: []error{
-				fmt.Errorf(`"optional_att": conflicts with required_att ("required-val")`),
+				fmt.Errorf(`"optional_att": conflicts with required_att`),
 			},
 		},
 
@@ -4825,8 +4903,8 @@ func TestSchemaMap_Validate(t *testing.T) {
 
 			Err: true,
 			Errors: []error{
-				fmt.Errorf(`"foo_att": conflicts with bar_att ("bar-val")`),
-				fmt.Errorf(`"bar_att": conflicts with foo_att ("foo-val")`),
+				fmt.Errorf(`"foo_att": conflicts with bar_att`),
+				fmt.Errorf(`"bar_att": conflicts with foo_att`),
 			},
 		},
 

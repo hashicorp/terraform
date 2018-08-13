@@ -72,6 +72,27 @@ func getConversionKnown(in cty.Type, out cty.Type, unsafe bool) conversion {
 		}
 		return conversionCollectionToList(outEty, convEty)
 
+	case out.IsSetType() && (in.IsListType() || in.IsSetType()):
+		if in.IsListType() && !unsafe {
+			// Conversion from list to map is unsafe because it will lose
+			// information: the ordering will not be preserved, and any
+			// duplicate elements will be conflated.
+			return nil
+		}
+		inEty := in.ElementType()
+		outEty := out.ElementType()
+		convEty := getConversion(inEty, outEty, unsafe)
+		if inEty.Equals(outEty) {
+			// This indicates that we're converting from set to list with
+			// the same element type, so we don't need an element converter.
+			return conversionCollectionToSet(outEty, nil)
+		}
+
+		if convEty == nil {
+			return nil
+		}
+		return conversionCollectionToSet(outEty, convEty)
+
 	case out.IsListType() && in.IsTupleType():
 		outEty := out.ElementType()
 		return conversionTupleToList(in, outEty, unsafe)

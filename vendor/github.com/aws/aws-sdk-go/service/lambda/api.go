@@ -17,7 +17,7 @@ const opAddPermission = "AddPermission"
 
 // AddPermissionRequest generates a "aws/request.Request" representing the
 // client's request for the AddPermission operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -64,7 +64,7 @@ func (c *Lambda) AddPermissionRequest(input *AddPermissionInput) (req *request.R
 // you add to the resource policy allows an event source, permission to invoke
 // the Lambda function.
 //
-// For information about the push model, see AWS Lambda: How it Works (http://docs.aws.amazon.com/lambda/latest/dg/lambda-introduction.html).
+// For information about the push model, see Lambda Functions (http://docs.aws.amazon.com/lambda/latest/dg/lambda-introduction.html).
 //
 // If you are using versioning, the permissions you add are specific to the
 // Lambda function version or alias you specify in the AddPermission request
@@ -132,7 +132,7 @@ const opCreateAlias = "CreateAlias"
 
 // CreateAliasRequest generates a "aws/request.Request" representing the
 // client's request for the CreateAlias operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -229,7 +229,7 @@ const opCreateEventSourceMapping = "CreateEventSourceMapping"
 
 // CreateEventSourceMappingRequest generates a "aws/request.Request" representing the
 // client's request for the CreateEventSourceMapping operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -269,24 +269,21 @@ func (c *Lambda) CreateEventSourceMappingRequest(input *CreateEventSourceMapping
 
 // CreateEventSourceMapping API operation for AWS Lambda.
 //
-// Identifies a stream as an event source for a Lambda function. It can be either
-// an Amazon Kinesis stream or an Amazon DynamoDB stream. AWS Lambda invokes
-// the specified function when records are posted to the stream.
+// Identifies a poll-based event source for a Lambda function. It can be either
+// an Amazon Kinesis or DynamoDB stream, or an Amazon SQS queue. AWS Lambda
+// invokes the specified function when records are posted to the event source.
 //
-// This association between a stream source and a Lambda function is called
+// This association between a poll-based source and a Lambda function is called
 // the event source mapping.
 //
-// This event source mapping is relevant only in the AWS Lambda pull model,
-// where AWS Lambda invokes the function. For more information, see AWS Lambda:
-// How it Works (http://docs.aws.amazon.com/lambda/latest/dg/lambda-introduction.html)
-// in the AWS Lambda Developer Guide.
+// You provide mapping information (for example, which stream or SQS queue to
+// read from and which Lambda function to invoke) in the request body.
 //
-// You provide mapping information (for example, which stream to read from and
-// which Lambda function to invoke) in the request body.
-//
-// Each event source, such as an Amazon Kinesis or a DynamoDB stream, can be
-// associated with multiple AWS Lambda function. A given Lambda function can
-// be associated with multiple AWS event sources.
+// Amazon Kinesis or DynamoDB stream event sources can be associated with multiple
+// AWS Lambda functions and a given Lambda function can be associated with multiple
+// AWS event sources. For Amazon SQS, you can configure multiple queues as event
+// sources for a single Lambda function, but an SQS queue can be mapped only
+// to a single Lambda function.
 //
 // If you are using versioning, you can specify a specific function version
 // or an alias via the function name parameter. For more information about versioning,
@@ -346,7 +343,7 @@ const opCreateFunction = "CreateFunction"
 
 // CreateFunctionRequest generates a "aws/request.Request" representing the
 // client's request for the CreateFunction operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -451,7 +448,7 @@ const opDeleteAlias = "DeleteAlias"
 
 // DeleteAliasRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteAlias operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -542,7 +539,7 @@ const opDeleteEventSourceMapping = "DeleteEventSourceMapping"
 
 // DeleteEventSourceMappingRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteEventSourceMapping operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -610,6 +607,11 @@ func (c *Lambda) DeleteEventSourceMappingRequest(input *DeleteEventSourceMapping
 //
 //   * ErrCodeTooManyRequestsException "TooManyRequestsException"
 //
+//   * ErrCodeResourceInUseException "ResourceInUseException"
+//   The operation conflicts with the resource's availability. For example, you
+//   attempted to update an EventSoure Mapping in CREATING, or tried to delete
+//   a EventSoure mapping currently in the UPDATING state.
+//
 // See also, https://docs.aws.amazon.com/goto/WebAPI/lambda-2015-03-31/DeleteEventSourceMapping
 func (c *Lambda) DeleteEventSourceMapping(input *DeleteEventSourceMappingInput) (*EventSourceMappingConfiguration, error) {
 	req, out := c.DeleteEventSourceMappingRequest(input)
@@ -636,7 +638,7 @@ const opDeleteFunction = "DeleteFunction"
 
 // DeleteFunctionRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteFunction operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -743,7 +745,7 @@ const opDeleteFunctionConcurrency = "DeleteFunctionConcurrency"
 
 // DeleteFunctionConcurrencyRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteFunctionConcurrency operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -836,7 +838,7 @@ const opGetAccountSettings = "GetAccountSettings"
 
 // GetAccountSettingsRequest generates a "aws/request.Request" representing the
 // client's request for the GetAccountSettings operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -923,7 +925,7 @@ const opGetAlias = "GetAlias"
 
 // GetAliasRequest generates a "aws/request.Request" representing the
 // client's request for the GetAlias operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -1017,7 +1019,7 @@ const opGetEventSourceMapping = "GetEventSourceMapping"
 
 // GetEventSourceMappingRequest generates a "aws/request.Request" representing the
 // client's request for the GetEventSourceMapping operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -1110,7 +1112,7 @@ const opGetFunction = "GetFunction"
 
 // GetFunctionRequest generates a "aws/request.Request" representing the
 // client's request for the GetFunction operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -1212,7 +1214,7 @@ const opGetFunctionConfiguration = "GetFunctionConfiguration"
 
 // GetFunctionConfigurationRequest generates a "aws/request.Request" representing the
 // client's request for the GetFunctionConfiguration operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -1314,7 +1316,7 @@ const opGetPolicy = "GetPolicy"
 
 // GetPolicyRequest generates a "aws/request.Request" representing the
 // client's request for the GetPolicy operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -1411,7 +1413,7 @@ const opInvoke = "Invoke"
 
 // InvokeRequest generates a "aws/request.Request" representing the
 // client's request for the Invoke operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -1577,7 +1579,7 @@ const opInvokeAsync = "InvokeAsync"
 
 // InvokeAsyncRequest generates a "aws/request.Request" representing the
 // client's request for the InvokeAsync operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -1675,7 +1677,7 @@ const opListAliases = "ListAliases"
 
 // ListAliasesRequest generates a "aws/request.Request" representing the
 // client's request for the ListAliases operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -1770,7 +1772,7 @@ const opListEventSourceMappings = "ListEventSourceMappings"
 
 // ListEventSourceMappingsRequest generates a "aws/request.Request" representing the
 // client's request for the ListEventSourceMappings operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -1928,7 +1930,7 @@ const opListFunctions = "ListFunctions"
 
 // ListFunctionsRequest generates a "aws/request.Request" representing the
 // client's request for the ListFunctions operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -2078,7 +2080,7 @@ const opListTags = "ListTags"
 
 // ListTagsRequest generates a "aws/request.Request" representing the
 // client's request for the ListTags operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -2119,7 +2121,9 @@ func (c *Lambda) ListTagsRequest(input *ListTagsInput) (req *request.Request, ou
 // ListTags API operation for AWS Lambda.
 //
 // Returns a list of tags assigned to a function when supplied the function
-// ARN (Amazon Resource Name).
+// ARN (Amazon Resource Name). For more information on Tagging, see Tagging
+// Lambda Functions (http://docs.aws.amazon.com/lambda/latest/dg/tagging.html)
+// in the AWS Lambda Developer Guide.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -2169,7 +2173,7 @@ const opListVersionsByFunction = "ListVersionsByFunction"
 
 // ListVersionsByFunctionRequest generates a "aws/request.Request" representing the
 // client's request for the ListVersionsByFunction operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -2260,7 +2264,7 @@ const opPublishVersion = "PublishVersion"
 
 // PublishVersionRequest generates a "aws/request.Request" representing the
 // client's request for the PublishVersion operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -2362,7 +2366,7 @@ const opPutFunctionConcurrency = "PutFunctionConcurrency"
 
 // PutFunctionConcurrencyRequest generates a "aws/request.Request" representing the
 // client's request for the PutFunctionConcurrency operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -2457,7 +2461,7 @@ const opRemovePermission = "RemovePermission"
 
 // RemovePermissionRequest generates a "aws/request.Request" representing the
 // client's request for the RemovePermission operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -2566,7 +2570,7 @@ const opTagResource = "TagResource"
 
 // TagResourceRequest generates a "aws/request.Request" representing the
 // client's request for the TagResource operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -2611,6 +2615,8 @@ func (c *Lambda) TagResourceRequest(input *TagResourceInput) (req *request.Reque
 // Creates a list of tags (key-value pairs) on the Lambda function. Requires
 // the Lambda function ARN (Amazon Resource Name). If a key is specified without
 // a value, Lambda creates a tag with the specified key and a value of null.
+// For more information, see Tagging Lambda Functions (http://docs.aws.amazon.com/lambda/latest/dg/tagging.html)
+// in the AWS Lambda Developer Guide.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -2660,7 +2666,7 @@ const opUntagResource = "UntagResource"
 
 // UntagResourceRequest generates a "aws/request.Request" representing the
 // client's request for the UntagResource operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -2703,7 +2709,8 @@ func (c *Lambda) UntagResourceRequest(input *UntagResourceInput) (req *request.R
 // UntagResource API operation for AWS Lambda.
 //
 // Removes tags from a Lambda function. Requires the function ARN (Amazon Resource
-// Name).
+// Name). For more information, see Tagging Lambda Functions (http://docs.aws.amazon.com/lambda/latest/dg/tagging.html)
+// in the AWS Lambda Developer Guide.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -2753,7 +2760,7 @@ const opUpdateAlias = "UpdateAlias"
 
 // UpdateAliasRequest generates a "aws/request.Request" representing the
 // client's request for the UpdateAlias operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -2852,7 +2859,7 @@ const opUpdateEventSourceMapping = "UpdateEventSourceMapping"
 
 // UpdateEventSourceMappingRequest generates a "aws/request.Request" representing the
 // client's request for the UpdateEventSourceMapping operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -2935,6 +2942,11 @@ func (c *Lambda) UpdateEventSourceMappingRequest(input *UpdateEventSourceMapping
 //   * ErrCodeResourceConflictException "ResourceConflictException"
 //   The resource already exists.
 //
+//   * ErrCodeResourceInUseException "ResourceInUseException"
+//   The operation conflicts with the resource's availability. For example, you
+//   attempted to update an EventSoure Mapping in CREATING, or tried to delete
+//   a EventSoure mapping currently in the UPDATING state.
+//
 // See also, https://docs.aws.amazon.com/goto/WebAPI/lambda-2015-03-31/UpdateEventSourceMapping
 func (c *Lambda) UpdateEventSourceMapping(input *UpdateEventSourceMappingInput) (*EventSourceMappingConfiguration, error) {
 	req, out := c.UpdateEventSourceMappingRequest(input)
@@ -2961,7 +2973,7 @@ const opUpdateFunctionCode = "UpdateFunctionCode"
 
 // UpdateFunctionCodeRequest generates a "aws/request.Request" representing the
 // client's request for the UpdateFunctionCode operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -3067,7 +3079,7 @@ const opUpdateFunctionConfiguration = "UpdateFunctionConfiguration"
 
 // UpdateFunctionConfigurationRequest generates a "aws/request.Request" representing the
 // client's request for the UpdateFunctionConfiguration operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -3684,18 +3696,18 @@ type CreateEventSourceMappingInput struct {
 
 	// The largest number of records that AWS Lambda will retrieve from your event
 	// source at the time of invoking your function. Your function receives an event
-	// with all the retrieved records. The default is 100 records.
+	// with all the retrieved records. The default for Amazon Kinesis and Amazon
+	// DynamoDB is 100 records. For SQS, the default is 1.
 	BatchSize *int64 `min:"1" type:"integer"`
 
 	// Indicates whether AWS Lambda should begin polling the event source. By default,
 	// Enabled is true.
 	Enabled *bool `type:"boolean"`
 
-	// The Amazon Resource Name (ARN) of the Amazon Kinesis or the Amazon DynamoDB
-	// stream that is the event source. Any record added to this stream could cause
-	// AWS Lambda to invoke your Lambda function, it depends on the BatchSize. AWS
-	// Lambda POSTs the Amazon Kinesis event, containing records, to your Lambda
-	// function as JSON.
+	// The Amazon Resource Name (ARN) of the event source. Any record added to this
+	// source could cause AWS Lambda to invoke your Lambda function, it depends
+	// on the BatchSize. AWS Lambda POSTs the event's records to your Lambda function
+	// as JSON.
 	//
 	// EventSourceArn is a required field
 	EventSourceArn *string `type:"string" required:"true"`
@@ -3719,20 +3731,20 @@ type CreateEventSourceMappingInput struct {
 	// FunctionName is a required field
 	FunctionName *string `min:"1" type:"string" required:"true"`
 
-	// The position in the stream where AWS Lambda should start reading. Valid only
-	// for Kinesis streams. For more information, see ShardIteratorType (http://docs.aws.amazon.com/kinesis/latest/APIReference/API_GetShardIterator.html#Kinesis-GetShardIterator-request-ShardIteratorType)
-	// in the Amazon Kinesis API Reference.
-	//
-	// StartingPosition is a required field
-	StartingPosition *string `type:"string" required:"true" enum:"EventSourcePosition"`
+	// The position in the DynamoDB or Kinesis stream where AWS Lambda should start
+	// reading. For more information, see GetShardIterator (http://docs.aws.amazon.com/kinesis/latest/APIReference/API_GetShardIterator.html#Kinesis-GetShardIterator-request-ShardIteratorType)
+	// in the Amazon Kinesis API Reference Guide or GetShardIterator (http://docs.aws.amazon.com/amazondynamodb/latest/APIReference/API_streams_GetShardIterator.html)
+	// in the Amazon DynamoDB API Reference Guide. The AT_TIMESTAMP value is supported
+	// only for Kinesis streams (http://docs.aws.amazon.com/streams/latest/dev/amazon-kinesis-streams.html).
+	StartingPosition *string `type:"string" enum:"EventSourcePosition"`
 
 	// The timestamp of the data record from which to start reading. Used with shard
 	// iterator type (http://docs.aws.amazon.com/kinesis/latest/APIReference/API_GetShardIterator.html#Kinesis-GetShardIterator-request-ShardIteratorType)
 	// AT_TIMESTAMP. If a record with this exact timestamp does not exist, the iterator
 	// returned is for the next (later) record. If the timestamp is older than the
 	// current trim horizon, the iterator returned is for the oldest untrimmed data
-	// record (TRIM_HORIZON). Valid only for Kinesis streams.
-	StartingPositionTimestamp *time.Time `type:"timestamp" timestampFormat:"unix"`
+	// record (TRIM_HORIZON). Valid only for Kinesis streams (http://docs.aws.amazon.com/streams/latest/dev/amazon-kinesis-streams.html).
+	StartingPositionTimestamp *time.Time `type:"timestamp"`
 }
 
 // String returns the string representation
@@ -3759,9 +3771,6 @@ func (s *CreateEventSourceMappingInput) Validate() error {
 	}
 	if s.FunctionName != nil && len(*s.FunctionName) < 1 {
 		invalidParams.Add(request.NewErrParamMinLen("FunctionName", 1))
-	}
-	if s.StartingPosition == nil {
-		invalidParams.Add(request.NewErrParamRequired("StartingPosition"))
 	}
 
 	if invalidParams.Len() > 0 {
@@ -3815,7 +3824,7 @@ type CreateFunctionInput struct {
 	Code *FunctionCode `type:"structure" required:"true"`
 
 	// The parent object that contains the target ARN (Amazon Resource Name) of
-	// an Amazon SQS queue or Amazon SNS topic.
+	// an Amazon SQS queue or Amazon SNS topic. For more information, see dlq.
 	DeadLetterConfig *DeadLetterConfig `type:"structure"`
 
 	// A short, user-defined function description. Lambda does not use this value.
@@ -3871,7 +3880,8 @@ type CreateFunctionInput struct {
 	// To use the Python runtime v3.6, set the value to "python3.6". To use the
 	// Python runtime v2.7, set the value to "python2.7". To use the Node.js runtime
 	// v6.10, set the value to "nodejs6.10". To use the Node.js runtime v4.3, set
-	// the value to "nodejs4.3".
+	// the value to "nodejs4.3". To use the .NET Core runtime v1.0, set the value
+	// to "dotnetcore1.0". To use the .NET Core runtime v2.0, set the value to "dotnetcore2.0".
 	//
 	// Node v0.10.42 is currently marked as deprecated. You must migrate existing
 	// functions to the newer Node.js runtime versions available on AWS Lambda (nodejs4.3
@@ -3882,7 +3892,9 @@ type CreateFunctionInput struct {
 	// Runtime is a required field
 	Runtime *string `type:"string" required:"true" enum:"Runtime"`
 
-	// The list of tags (key-value pairs) assigned to the new function.
+	// The list of tags (key-value pairs) assigned to the new function. For more
+	// information, see Tagging Lambda Functions (http://docs.aws.amazon.com/lambda/latest/dg/tagging.html)
+	// in the AWS Lambda Developer Guide.
 	Tags map[string]*string `type:"map"`
 
 	// The function execution time at which Lambda should terminate the function.
@@ -4039,13 +4051,14 @@ func (s *CreateFunctionInput) SetVpcConfig(v *VpcConfig) *CreateFunctionInput {
 	return s
 }
 
-// The parent object that contains the target ARN (Amazon Resource Name) of
-// an Amazon SQS queue or Amazon SNS topic.
+// The Amazon Resource Name (ARN) of an Amazon SQS queue or Amazon SNS topic
+// you specify as your Dead Letter Queue (DLQ). For more information, see dlq.
 type DeadLetterConfig struct {
 	_ struct{} `type:"structure"`
 
 	// The Amazon Resource Name (ARN) of an Amazon SQS queue or Amazon SNS topic
-	// you specify as your Dead Letter Queue (DLQ).
+	// you specify as your Dead Letter Queue (DLQ). dlq. For more information, see
+	// dlq.
 	TargetArn *string `type:"string"`
 }
 
@@ -4416,7 +4429,8 @@ func (s *EnvironmentResponse) SetVariables(v map[string]*string) *EnvironmentRes
 	return s
 }
 
-// Describes mapping between an Amazon Kinesis stream and a Lambda function.
+// Describes mapping between an Amazon Kinesis or DynamoDB stream or an Amazon
+// SQS queue and a Lambda function.
 type EventSourceMappingConfiguration struct {
 	_ struct{} `type:"structure"`
 
@@ -4425,15 +4439,16 @@ type EventSourceMappingConfiguration struct {
 	// with all the retrieved records.
 	BatchSize *int64 `min:"1" type:"integer"`
 
-	// The Amazon Resource Name (ARN) of the Amazon Kinesis stream that is the source
-	// of events.
+	// The Amazon Resource Name (ARN) of the Amazon Kinesis or DynamoDB stream or
+	// the SQS queue that is the source of events.
 	EventSourceArn *string `type:"string"`
 
-	// The Lambda function to invoke when AWS Lambda detects an event on the stream.
+	// The Lambda function to invoke when AWS Lambda detects an event on the poll-based
+	// source.
 	FunctionArn *string `type:"string"`
 
 	// The UTC time string indicating the last time the event mapping was updated.
-	LastModified *time.Time `type:"timestamp" timestampFormat:"unix"`
+	LastModified *time.Time `type:"timestamp"`
 
 	// The result of the last AWS Lambda invocation of your Lambda function.
 	LastProcessingResult *string `type:"string"`
@@ -4632,7 +4647,7 @@ type FunctionConfiguration struct {
 	CodeSize *int64 `type:"long"`
 
 	// The parent object that contains the target ARN (Amazon Resource Name) of
-	// an Amazon SQS queue or Amazon SNS topic.
+	// an Amazon SQS queue or Amazon SNS topic. For more information, see dlq.
 	DeadLetterConfig *DeadLetterConfig `type:"structure"`
 
 	// The user-provided description.
@@ -5113,7 +5128,9 @@ type GetFunctionOutput struct {
 	// A complex type that describes function metadata.
 	Configuration *FunctionConfiguration `type:"structure"`
 
-	// Returns the list of tags associated with the function.
+	// Returns the list of tags associated with the function. For more information,
+	// see Tagging Lambda Functions (http://docs.aws.amazon.com/lambda/latest/dg/tagging.html)
+	// in the AWS Lambda Developer Guide.
 	Tags map[string]*string `type:"map"`
 }
 
@@ -5640,8 +5657,8 @@ func (s *ListAliasesOutput) SetNextMarker(v string) *ListAliasesOutput {
 type ListEventSourceMappingsInput struct {
 	_ struct{} `type:"structure"`
 
-	// The Amazon Resource Name (ARN) of the Amazon Kinesis stream. (This parameter
-	// is optional.)
+	// The Amazon Resource Name (ARN) of the Amazon Kinesis or DynamoDB stream,
+	// or an SQS queue. (This parameter is optional.)
 	EventSourceArn *string `location:"querystring" locationName:"EventSourceArn" type:"string"`
 
 	// The name of the Lambda function.
@@ -5865,7 +5882,9 @@ func (s *ListFunctionsOutput) SetNextMarker(v string) *ListFunctionsOutput {
 type ListTagsInput struct {
 	_ struct{} `type:"structure"`
 
-	// The ARN (Amazon Resource Name) of the function.
+	// The ARN (Amazon Resource Name) of the function. For more information, see
+	// Tagging Lambda Functions (http://docs.aws.amazon.com/lambda/latest/dg/tagging.html)
+	// in the AWS Lambda Developer Guide.
 	//
 	// Resource is a required field
 	Resource *string `location:"uri" locationName:"ARN" type:"string" required:"true"`
@@ -5903,7 +5922,9 @@ func (s *ListTagsInput) SetResource(v string) *ListTagsInput {
 type ListTagsOutput struct {
 	_ struct{} `type:"structure"`
 
-	// The list of tags assigned to the function.
+	// The list of tags assigned to the function. For more information, see Tagging
+	// Lambda Functions (http://docs.aws.amazon.com/lambda/latest/dg/tagging.html)
+	// in the AWS Lambda Developer Guide.
 	Tags map[string]*string `type:"map"`
 }
 
@@ -6296,12 +6317,16 @@ func (s RemovePermissionOutput) GoString() string {
 type TagResourceInput struct {
 	_ struct{} `type:"structure"`
 
-	// The ARN (Amazon Resource Name) of the Lambda function.
+	// The ARN (Amazon Resource Name) of the Lambda function. For more information,
+	// see Tagging Lambda Functions (http://docs.aws.amazon.com/lambda/latest/dg/tagging.html)
+	// in the AWS Lambda Developer Guide.
 	//
 	// Resource is a required field
 	Resource *string `location:"uri" locationName:"ARN" type:"string" required:"true"`
 
 	// The list of tags (key-value pairs) you are assigning to the Lambda function.
+	// For more information, see Tagging Lambda Functions (http://docs.aws.amazon.com/lambda/latest/dg/tagging.html)
+	// in the AWS Lambda Developer Guide.
 	//
 	// Tags is a required field
 	Tags map[string]*string `type:"map" required:"true"`
@@ -6414,12 +6439,16 @@ func (s *TracingConfigResponse) SetMode(v string) *TracingConfigResponse {
 type UntagResourceInput struct {
 	_ struct{} `type:"structure"`
 
-	// The ARN (Amazon Resource Name) of the function.
+	// The ARN (Amazon Resource Name) of the function. For more information, see
+	// Tagging Lambda Functions (http://docs.aws.amazon.com/lambda/latest/dg/tagging.html)
+	// in the AWS Lambda Developer Guide.
 	//
 	// Resource is a required field
 	Resource *string `location:"uri" locationName:"ARN" type:"string" required:"true"`
 
-	// The list of tag keys to be deleted from the function.
+	// The list of tag keys to be deleted from the function. For more information,
+	// see Tagging Lambda Functions (http://docs.aws.amazon.com/lambda/latest/dg/tagging.html)
+	// in the AWS Lambda Developer Guide.
 	//
 	// TagKeys is a required field
 	TagKeys []*string `location:"querystring" locationName:"tagKeys" type:"list" required:"true"`
@@ -6718,8 +6747,7 @@ type UpdateFunctionCodeInput struct {
 	// are using the web API directly, the contents of the zip file must be base64-encoded.
 	// If you are using the AWS SDKs or the AWS CLI, the SDKs or CLI will do the
 	// encoding for you. For more information about creating a .zip file, see Execution
-	// Permissions (http://docs.aws.amazon.com/lambda/latest/dg/intro-permission-model.html#lambda-intro-execution-role.html)
-	// in the AWS Lambda Developer Guide.
+	// Permissions (http://docs.aws.amazon.com/lambda/latest/dg/intro-permission-model.html#lambda-intro-execution-role.html).
 	//
 	// ZipFile is automatically base64 encoded/decoded by the SDK.
 	ZipFile []byte `type:"blob"`
@@ -6812,7 +6840,7 @@ type UpdateFunctionConfigurationInput struct {
 	_ struct{} `type:"structure"`
 
 	// The parent object that contains the target ARN (Amazon Resource Name) of
-	// an Amazon SQS queue or Amazon SNS topic.
+	// an Amazon SQS queue or Amazon SNS topic. For more information, see dlq.
 	DeadLetterConfig *DeadLetterConfig `type:"structure"`
 
 	// A short user-defined function description. AWS Lambda does not use this value.
@@ -6866,8 +6894,8 @@ type UpdateFunctionConfigurationInput struct {
 	// To use the Python runtime v3.6, set the value to "python3.6". To use the
 	// Python runtime v2.7, set the value to "python2.7". To use the Node.js runtime
 	// v6.10, set the value to "nodejs6.10". To use the Node.js runtime v4.3, set
-	// the value to "nodejs4.3". To use the Python runtime v3.6, set the value to
-	// "python3.6".
+	// the value to "nodejs4.3". To use the .NET Core runtime v1.0, set the value
+	// to "dotnetcore1.0". To use the .NET Core runtime v2.0, set the value to "dotnetcore2.0".
 	//
 	// Node v0.10.42 is currently marked as deprecated. You must migrate existing
 	// functions to the newer Node.js runtime versions available on AWS Lambda (nodejs4.3
@@ -7124,6 +7152,9 @@ const (
 	// RuntimeNodejs610 is a Runtime enum value
 	RuntimeNodejs610 = "nodejs6.10"
 
+	// RuntimeNodejs810 is a Runtime enum value
+	RuntimeNodejs810 = "nodejs8.10"
+
 	// RuntimeJava8 is a Runtime enum value
 	RuntimeJava8 = "java8"
 
@@ -7138,6 +7169,9 @@ const (
 
 	// RuntimeDotnetcore20 is a Runtime enum value
 	RuntimeDotnetcore20 = "dotnetcore2.0"
+
+	// RuntimeDotnetcore21 is a Runtime enum value
+	RuntimeDotnetcore21 = "dotnetcore2.1"
 
 	// RuntimeNodejs43Edge is a Runtime enum value
 	RuntimeNodejs43Edge = "nodejs4.3-edge"

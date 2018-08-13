@@ -3,6 +3,7 @@ package aws
 import (
 	"fmt"
 
+	"github.com/aws/aws-sdk-go/aws/arn"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -51,7 +52,14 @@ func dataSourceAwsRedshiftServiceAccountRead(d *schema.ResourceData, meta interf
 
 	if accid, ok := redshiftServiceAccountPerRegionMap[region]; ok {
 		d.SetId(accid)
-		d.Set("arn", iamArnString(meta.(*AWSClient).partition, accid, "user/logs"))
+		arn := arn.ARN{
+			Partition: meta.(*AWSClient).partition,
+			Service:   "iam",
+			AccountID: accid,
+			Resource:  "user/logs",
+		}.String()
+		d.Set("arn", arn)
+
 		return nil
 	}
 

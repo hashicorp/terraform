@@ -85,9 +85,27 @@ func dataSourceAwsVpcEndpointServiceRead(d *schema.ResourceData, meta interface{
 	if err != nil {
 		return fmt.Errorf("Error fetching VPC Endpoint Services: %s", err)
 	}
-	if resp == nil || len(resp.ServiceDetails) == 0 {
+
+	if resp == nil || (len(resp.ServiceNames) == 0 && len(resp.ServiceDetails) == 0) {
 		return fmt.Errorf("no matching VPC Endpoint Service found")
 	}
+
+	// Note: AWS Commercial now returns a response with `ServiceNames` and
+	// `ServiceDetails`, but GovCloud responses only include `ServiceNames`
+	if len(resp.ServiceDetails) == 0 {
+		// GovCloud doesn't respect the filter.
+		names := aws.StringValueSlice(resp.ServiceNames)
+		for _, name := range names {
+			if name == serviceName {
+				d.SetId(strconv.Itoa(hashcode.String(name)))
+				d.Set("service_name", name)
+				return nil
+			}
+		}
+
+		return fmt.Errorf("no matching VPC Endpoint Service found")
+	}
+
 	if len(resp.ServiceDetails) > 1 {
 		return fmt.Errorf("multiple VPC Endpoint Services matched; use additional constraints to reduce matches to a single VPC Endpoint Service")
 	}

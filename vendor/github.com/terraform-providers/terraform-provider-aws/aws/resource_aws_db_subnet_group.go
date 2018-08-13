@@ -9,6 +9,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/rds"
+
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 )
@@ -38,11 +39,12 @@ func resourceAwsDbSubnetGroup() *schema.Resource {
 				ValidateFunc:  validateDbSubnetGroupName,
 			},
 			"name_prefix": &schema.Schema{
-				Type:         schema.TypeString,
-				Optional:     true,
-				Computed:     true,
-				ForceNew:     true,
-				ValidateFunc: validateDbSubnetGroupNamePrefix,
+				Type:          schema.TypeString,
+				Optional:      true,
+				Computed:      true,
+				ForceNew:      true,
+				ConflictsWith: []string{"name"},
+				ValidateFunc:  validateDbSubnetGroupNamePrefix,
 			},
 
 			"description": &schema.Schema{
@@ -147,25 +149,22 @@ func resourceAwsDbSubnetGroupRead(d *schema.ResourceData, meta interface{}) erro
 	// list tags for resource
 	// set tags
 	conn := meta.(*AWSClient).rdsconn
-	arn, err := buildRDSsubgrpARN(d.Id(), meta.(*AWSClient).partition, meta.(*AWSClient).accountid, meta.(*AWSClient).region)
+
+	arn := aws.StringValue(subnetGroup.DBSubnetGroupArn)
+	d.Set("arn", arn)
+	resp, err := conn.ListTagsForResource(&rds.ListTagsForResourceInput{
+		ResourceName: aws.String(arn),
+	})
+
 	if err != nil {
-		log.Printf("[DEBUG] Error building ARN for DB Subnet Group, not setting Tags for group %s", *subnetGroup.DBSubnetGroupName)
-	} else {
-		d.Set("arn", arn)
-		resp, err := conn.ListTagsForResource(&rds.ListTagsForResourceInput{
-			ResourceName: aws.String(arn),
-		})
-
-		if err != nil {
-			log.Printf("[DEBUG] Error retreiving tags for ARN: %s", arn)
-		}
-
-		var dt []*rds.Tag
-		if len(resp.TagList) > 0 {
-			dt = resp.TagList
-		}
-		d.Set("tags", tagsToMapRDS(dt))
+		log.Printf("[DEBUG] Error retreiving tags for ARN: %s", arn)
 	}
+
+	var dt []*rds.Tag
+	if len(resp.TagList) > 0 {
+		dt = resp.TagList
+	}
+	d.Set("tags", tagsToMapRDS(dt))
 
 	return nil
 }
@@ -195,12 +194,11 @@ func resourceAwsDbSubnetGroupUpdate(d *schema.ResourceData, meta interface{}) er
 		}
 	}
 
-	if arn, err := buildRDSsubgrpARN(d.Id(), meta.(*AWSClient).partition, meta.(*AWSClient).accountid, meta.(*AWSClient).region); err == nil {
-		if err := setTagsRDS(conn, d, arn); err != nil {
-			return err
-		} else {
-			d.SetPartial("tags")
-		}
+	arn := d.Get("arn").(string)
+	if err := setTagsRDS(conn, d, arn); err != nil {
+		return err
+	} else {
+		d.SetPartial("tags")
 	}
 
 	return resourceAwsDbSubnetGroupRead(d, meta)
@@ -242,16 +240,4 @@ func resourceAwsDbSubnetGroupDeleteRefreshFunc(
 
 		return d, "destroyed", nil
 	}
-}
-
-func buildRDSsubgrpARN(identifier, partition, accountid, region string) (string, error) {
-	if partition == "" {
-		return "", fmt.Errorf("Unable to construct RDS ARN because of missing AWS partition")
-	}
-	if accountid == "" {
-		return "", fmt.Errorf("Unable to construct RDS ARN because of missing AWS Account ID")
-	}
-	arn := fmt.Sprintf("arn:%s:rds:%s:%s:subgrp:%s", partition, region, accountid, identifier)
-	return arn, nil
-
 }

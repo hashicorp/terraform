@@ -11,7 +11,6 @@ import (
 	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/terraform/backend"
-	"github.com/hashicorp/terraform/command/clistate"
 	"github.com/hashicorp/terraform/command/format"
 	"github.com/hashicorp/terraform/config/module"
 	"github.com/hashicorp/terraform/state"
@@ -55,25 +54,6 @@ func (b *Local) opApply(
 		return
 	}
 
-	if op.LockState {
-		lockCtx, cancel := context.WithTimeout(stopCtx, op.StateLockTimeout)
-		defer cancel()
-
-		lockInfo := state.NewLockInfo()
-		lockInfo.Operation = op.Type.String()
-		lockID, err := clistate.Lock(lockCtx, opState, lockInfo, b.CLI, b.Colorize())
-		if err != nil {
-			runningOp.Err = errwrap.Wrapf("Error locking state: {{err}}", err)
-			return
-		}
-
-		defer func() {
-			if err := clistate.Unlock(opState, lockID, b.CLI, b.Colorize()); err != nil {
-				runningOp.Err = multierror.Append(runningOp.Err, err)
-			}
-		}()
-	}
-
 	// Setup the state
 	runningOp.State = tfCtx.State()
 
@@ -100,18 +80,25 @@ func (b *Local) opApply(
 		dispPlan := format.NewPlan(plan)
 		trivialPlan := dispPlan.Empty()
 		hasUI := op.UIOut != nil && op.UIIn != nil
-		mustConfirm := hasUI && ((op.Destroy && !op.DestroyForce) || (!op.Destroy && !op.AutoApprove && !trivialPlan))
+		mustConfirm := hasUI && ((op.Destroy && (!op.DestroyForce && !op.AutoApprove)) || (!op.Destroy && !op.AutoApprove && !trivialPlan))
 		if mustConfirm {
 			var desc, query string
 			if op.Destroy {
-				// Default destroy message
+				if op.Workspace != "default" {
+					query = "Do you really want to destroy all resources in workspace \"" + op.Workspace + "\"?"
+				} else {
+					query = "Do you really want to destroy all resources?"
+				}
 				desc = "Terraform will destroy all your managed infrastructure, as shown above.\n" +
 					"There is no undo. Only 'yes' will be accepted to confirm."
-				query = "Do you really want to destroy?"
 			} else {
+				if op.Workspace != "default" {
+					query = "Do you want to perform these actions in workspace \"" + op.Workspace + "\"?"
+				} else {
+					query = "Do you want to perform these actions?"
+				}
 				desc = "Terraform will perform the actions described above.\n" +
 					"Only 'yes' will be accepted to approve."
-				query = "Do you want to perform these actions?"
 			}
 
 			if !trivialPlan {

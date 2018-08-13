@@ -23,7 +23,7 @@ switch ($winver)
 
 if ([System.IntPtr]::Size -eq 4) {$machine_arch = "i686"} else {$machine_arch = "x86_64"}
 
-$url = "http://www.chef.io/chef/download?p=windows&pv=$machine_os&m=$machine_arch&v=%s"
+$url = "http://omnitruck.chef.io/%s/chef/download?p=windows&pv=$machine_os&m=$machine_arch&v=%s"
 $dest = [System.IO.Path]::GetTempFileName()
 $dest = [System.IO.Path]::ChangeExtension($dest, ".msi")
 $downloader = New-Object System.Net.WebClient
@@ -48,7 +48,7 @@ Start-Process -FilePath msiexec -ArgumentList /qn, /i, $dest -Wait
 
 func (p *provisioner) windowsInstallChefClient(o terraform.UIOutput, comm communicator.Communicator) error {
 	script := path.Join(path.Dir(comm.ScriptPath()), "ChefClient.ps1")
-	content := fmt.Sprintf(installScript, p.Version, p.HTTPProxy, strings.Join(p.NOProxy, ","))
+	content := fmt.Sprintf(installScript, p.Channel, p.Version, p.HTTPProxy, strings.Join(p.NOProxy, ","))
 
 	// Copy the script to the new instance
 	if err := comm.UploadScript(script, strings.NewReader(content)); err != nil {

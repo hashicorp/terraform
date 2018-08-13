@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"testing"
 
-	backendinit "github.com/hashicorp/terraform/backend/init"
+	backendInit "github.com/hashicorp/terraform/backend/init"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -26,8 +26,8 @@ func TestState_basic(t *testing.T) {
 }
 
 func TestState_backends(t *testing.T) {
-	backendinit.Set("_ds_test", backendinit.Backend("local"))
-	defer backendinit.Set("_ds_test", nil)
+	backendInit.Set("_ds_test", backendInit.Backend("local"))
+	defer backendInit.Set("_ds_test", nil)
 
 	resource.UnitTest(t, resource.TestCase{
 		PreCheck:  func() { testAccPreCheck(t) },
@@ -58,6 +58,20 @@ func TestState_complexOutputs(t *testing.T) {
 					testAccCheckStateValue("terraform_remote_state.foo", `map.%`, "2"),
 					testAccCheckStateValue("terraform_remote_state.foo", `map.key`, "test"),
 				),
+			},
+		},
+	})
+}
+
+// outputs should never have a null value, but don't crash if we ever encounter
+// them.
+func TestState_nullOutputs(t *testing.T) {
+	resource.UnitTest(t, resource.TestCase{
+		PreCheck:  func() { testAccPreCheck(t) },
+		Providers: testAccProviders,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccState_nullOutputs,
 			},
 		},
 	})
@@ -115,6 +129,27 @@ func testAccCheckStateValue(id, name, value string) resource.TestCheckFunc {
 	}
 }
 
+// make sure that the deprecated environment field isn't overridden by the
+// default value for workspace.
+func TestState_deprecatedEnvironment(t *testing.T) {
+	resource.UnitTest(t, resource.TestCase{
+		PreCheck:  func() { testAccPreCheck(t) },
+		Providers: testAccProviders,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccState_deprecatedEnvironment,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckStateValue(
+						// if the workspace default value overrides the
+						// environment, this will get the foo value from the
+						// default state.
+						"data.terraform_remote_state.foo", "foo", ""),
+				),
+			},
+		},
+	})
+}
+
 const testAccState_basic = `
 data "terraform_remote_state" "foo" {
 	backend = "local"
@@ -142,6 +177,15 @@ resource "terraform_remote_state" "foo" {
 	}
 }`
 
+const testAccState_nullOutputs = `
+resource "terraform_remote_state" "foo" {
+	backend = "local"
+
+	config {
+		path = "./test-fixtures/null_outputs.tfstate"
+	}
+}`
+
 const testAccEmptyState_defaults = `
 data "terraform_remote_state" "foo" {
 	backend = "local"
@@ -165,5 +209,15 @@ data "terraform_remote_state" "foo" {
 
 	defaults {
 		foo = "not bar"
+	}
+}`
+
+const testAccState_deprecatedEnvironment = `
+data "terraform_remote_state" "foo" {
+	backend = "local"
+	environment = "deprecated"
+
+	config {
+		path = "./test-fixtures/basic.tfstate"
 	}
 }`

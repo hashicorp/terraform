@@ -124,9 +124,7 @@ type Resource struct {
 	Importer *ResourceImporter
 
 	// If non-empty, this string is emitted as a warning during Validate.
-	// This is a private interface for now, for use by DataSourceResourceShim,
-	// and not for general use. (But maybe later...)
-	deprecationMessage string
+	DeprecationMessage string
 
 	// Timeouts allow users to specify specific time durations in which an
 	// operation should time out, to allow them to extend an action to suit their
@@ -269,8 +267,8 @@ func (r *Resource) Diff(
 func (r *Resource) Validate(c *terraform.ResourceConfig) ([]string, []error) {
 	warns, errs := schemaMap(r.Schema).Validate(c)
 
-	if r.deprecationMessage != "" {
-		warns = append(warns, r.deprecationMessage)
+	if r.DeprecationMessage != "" {
+		warns = append(warns, r.DeprecationMessage)
 	}
 
 	return warns, errs
@@ -490,6 +488,12 @@ func (r *Resource) Data(s *terraform.InstanceState) *ResourceData {
 		// non-nil errors). We panic to find this in the future if we have to.
 		// I don't see a reason for Data to ever return an error.
 		panic(err)
+	}
+
+	// load the Resource timeouts
+	result.timeouts = r.Timeouts
+	if result.timeouts == nil {
+		result.timeouts = &ResourceTimeout{}
 	}
 
 	// Set the schema version to latest by default

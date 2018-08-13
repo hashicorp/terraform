@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	backendlocal "github.com/hashicorp/terraform/backend/local"
+	backendLocal "github.com/hashicorp/terraform/backend/local"
 	"github.com/hashicorp/terraform/state"
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -49,7 +49,7 @@ func (c *StateMeta) State() (state.State, error) {
 			// This should never fail
 			panic(err)
 		}
-		localB := localRaw.(*backendlocal.Local)
+		localB := localRaw.(*backendLocal.Local)
 		_, stateOutPath, _ = localB.StatePaths(env)
 		if err != nil {
 			return nil, err

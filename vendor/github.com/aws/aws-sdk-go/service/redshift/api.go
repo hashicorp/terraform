@@ -12,11 +12,111 @@ import (
 	"github.com/aws/aws-sdk-go/private/protocol/query"
 )
 
+const opAcceptReservedNodeExchange = "AcceptReservedNodeExchange"
+
+// AcceptReservedNodeExchangeRequest generates a "aws/request.Request" representing the
+// client's request for the AcceptReservedNodeExchange operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfuly.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See AcceptReservedNodeExchange for more information on using the AcceptReservedNodeExchange
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the AcceptReservedNodeExchangeRequest method.
+//    req, resp := client.AcceptReservedNodeExchangeRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/redshift-2012-12-01/AcceptReservedNodeExchange
+func (c *Redshift) AcceptReservedNodeExchangeRequest(input *AcceptReservedNodeExchangeInput) (req *request.Request, output *AcceptReservedNodeExchangeOutput) {
+	op := &request.Operation{
+		Name:       opAcceptReservedNodeExchange,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &AcceptReservedNodeExchangeInput{}
+	}
+
+	output = &AcceptReservedNodeExchangeOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// AcceptReservedNodeExchange API operation for Amazon Redshift.
+//
+// Exchanges a DC1 Reserved Node for a DC2 Reserved Node with no changes to
+// the configuration (term, payment type, or number of nodes) and no additional
+// costs.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Redshift's
+// API operation AcceptReservedNodeExchange for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeReservedNodeNotFoundFault "ReservedNodeNotFound"
+//   The specified reserved compute node not found.
+//
+//   * ErrCodeInvalidReservedNodeStateFault "InvalidReservedNodeState"
+//   Indicates that the Reserved Node being exchanged is not in an active state.
+//
+//   * ErrCodeReservedNodeAlreadyMigratedFault "ReservedNodeAlreadyMigrated"
+//   Indicates that the reserved node has already been exchanged.
+//
+//   * ErrCodeReservedNodeOfferingNotFoundFault "ReservedNodeOfferingNotFound"
+//   Specified offering does not exist.
+//
+//   * ErrCodeUnsupportedOperationFault "UnsupportedOperation"
+//   The requested operation isn't supported.
+//
+//   * ErrCodeDependentServiceUnavailableFault "DependentServiceUnavailableFault"
+//   Your request cannot be completed because a dependent internal service is
+//   temporarily unavailable. Wait 30 to 60 seconds and try again.
+//
+//   * ErrCodeReservedNodeAlreadyExistsFault "ReservedNodeAlreadyExists"
+//   User already has a reservation with the given identifier.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/redshift-2012-12-01/AcceptReservedNodeExchange
+func (c *Redshift) AcceptReservedNodeExchange(input *AcceptReservedNodeExchangeInput) (*AcceptReservedNodeExchangeOutput, error) {
+	req, out := c.AcceptReservedNodeExchangeRequest(input)
+	return out, req.Send()
+}
+
+// AcceptReservedNodeExchangeWithContext is the same as AcceptReservedNodeExchange with the addition of
+// the ability to pass a context and additional request options.
+//
+// See AcceptReservedNodeExchange for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *Redshift) AcceptReservedNodeExchangeWithContext(ctx aws.Context, input *AcceptReservedNodeExchangeInput, opts ...request.Option) (*AcceptReservedNodeExchangeOutput, error) {
+	req, out := c.AcceptReservedNodeExchangeRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
 const opAuthorizeClusterSecurityGroupIngress = "AuthorizeClusterSecurityGroupIngress"
 
 // AuthorizeClusterSecurityGroupIngressRequest generates a "aws/request.Request" representing the
 // client's request for the AuthorizeClusterSecurityGroupIngress operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -125,7 +225,7 @@ const opAuthorizeSnapshotAccess = "AuthorizeSnapshotAccess"
 
 // AuthorizeSnapshotAccessRequest generates a "aws/request.Request" representing the
 // client's request for the AuthorizeSnapshotAccess operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -226,7 +326,7 @@ const opCopyClusterSnapshot = "CopyClusterSnapshot"
 
 // CopyClusterSnapshotRequest generates a "aws/request.Request" representing the
 // client's request for the CopyClusterSnapshot operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -329,7 +429,7 @@ const opCreateCluster = "CreateCluster"
 
 // CreateClusterRequest generates a "aws/request.Request" representing the
 // client's request for the CreateCluster operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -371,10 +471,10 @@ func (c *Redshift) CreateClusterRequest(input *CreateClusterInput) (req *request
 //
 // Creates a new cluster.
 //
-// To create the cluster in Virtual Private Cloud (VPC), you must provide a
-// cluster subnet group name. The cluster subnet group identifies the subnets
-// of your VPC that Amazon Redshift uses when creating the cluster. For more
-// information about managing clusters, go to Amazon Redshift Clusters (http://docs.aws.amazon.com/redshift/latest/mgmt/working-with-clusters.html)
+// To create a cluster in Virtual Private Cloud (VPC), you must provide a cluster
+// subnet group name. The cluster subnet group identifies the subnets of your
+// VPC that Amazon Redshift uses when creating the cluster. For more information
+// about managing clusters, go to Amazon Redshift Clusters (http://docs.aws.amazon.com/redshift/latest/mgmt/working-with-clusters.html)
 // in the Amazon Redshift Cluster Management Guide.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
@@ -440,7 +540,8 @@ func (c *Redshift) CreateClusterRequest(input *CreateClusterInput) (req *request
 //   The Elastic IP (EIP) is invalid or cannot be found.
 //
 //   * ErrCodeTagLimitExceededFault "TagLimitExceededFault"
-//   The request exceeds the limit of 10 tags for the resource.
+//   The number of tables in your source cluster exceeds the limit for the target
+//   cluster. Resize to a larger cluster node type.
 //
 //   * ErrCodeInvalidTagFault "InvalidTagFault"
 //   The tag is invalid.
@@ -478,7 +579,7 @@ const opCreateClusterParameterGroup = "CreateClusterParameterGroup"
 
 // CreateClusterParameterGroupRequest generates a "aws/request.Request" representing the
 // client's request for the CreateClusterParameterGroup operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -548,7 +649,8 @@ func (c *Redshift) CreateClusterParameterGroupRequest(input *CreateClusterParame
 //   A cluster parameter group with the same name already exists.
 //
 //   * ErrCodeTagLimitExceededFault "TagLimitExceededFault"
-//   The request exceeds the limit of 10 tags for the resource.
+//   The number of tables in your source cluster exceeds the limit for the target
+//   cluster. Resize to a larger cluster node type.
 //
 //   * ErrCodeInvalidTagFault "InvalidTagFault"
 //   The tag is invalid.
@@ -579,7 +681,7 @@ const opCreateClusterSecurityGroup = "CreateClusterSecurityGroup"
 
 // CreateClusterSecurityGroupRequest generates a "aws/request.Request" representing the
 // client's request for the CreateClusterSecurityGroup operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -644,7 +746,8 @@ func (c *Redshift) CreateClusterSecurityGroupRequest(input *CreateClusterSecurit
 //   in the Amazon Redshift Cluster Management Guide.
 //
 //   * ErrCodeTagLimitExceededFault "TagLimitExceededFault"
-//   The request exceeds the limit of 10 tags for the resource.
+//   The number of tables in your source cluster exceeds the limit for the target
+//   cluster. Resize to a larger cluster node type.
 //
 //   * ErrCodeInvalidTagFault "InvalidTagFault"
 //   The tag is invalid.
@@ -675,7 +778,7 @@ const opCreateClusterSnapshot = "CreateClusterSnapshot"
 
 // CreateClusterSnapshotRequest generates a "aws/request.Request" representing the
 // client's request for the CreateClusterSnapshot operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -745,7 +848,8 @@ func (c *Redshift) CreateClusterSnapshotRequest(input *CreateClusterSnapshotInpu
 //   snapshots.
 //
 //   * ErrCodeTagLimitExceededFault "TagLimitExceededFault"
-//   The request exceeds the limit of 10 tags for the resource.
+//   The number of tables in your source cluster exceeds the limit for the target
+//   cluster. Resize to a larger cluster node type.
 //
 //   * ErrCodeInvalidTagFault "InvalidTagFault"
 //   The tag is invalid.
@@ -776,7 +880,7 @@ const opCreateClusterSubnetGroup = "CreateClusterSubnetGroup"
 
 // CreateClusterSubnetGroupRequest generates a "aws/request.Request" representing the
 // client's request for the CreateClusterSubnetGroup operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -855,7 +959,8 @@ func (c *Redshift) CreateClusterSubnetGroupRequest(input *CreateClusterSubnetGro
 //   Your account is not authorized to perform the requested operation.
 //
 //   * ErrCodeTagLimitExceededFault "TagLimitExceededFault"
-//   The request exceeds the limit of 10 tags for the resource.
+//   The number of tables in your source cluster exceeds the limit for the target
+//   cluster. Resize to a larger cluster node type.
 //
 //   * ErrCodeInvalidTagFault "InvalidTagFault"
 //   The tag is invalid.
@@ -890,7 +995,7 @@ const opCreateEventSubscription = "CreateEventSubscription"
 
 // CreateEventSubscriptionRequest generates a "aws/request.Request" representing the
 // client's request for the CreateEventSubscription operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -999,7 +1104,8 @@ func (c *Redshift) CreateEventSubscriptionRequest(input *CreateEventSubscription
 //   The specified Amazon Redshift event source could not be found.
 //
 //   * ErrCodeTagLimitExceededFault "TagLimitExceededFault"
-//   The request exceeds the limit of 10 tags for the resource.
+//   The number of tables in your source cluster exceeds the limit for the target
+//   cluster. Resize to a larger cluster node type.
 //
 //   * ErrCodeInvalidTagFault "InvalidTagFault"
 //   The tag is invalid.
@@ -1030,7 +1136,7 @@ const opCreateHsmClientCertificate = "CreateHsmClientCertificate"
 
 // CreateHsmClientCertificateRequest generates a "aws/request.Request" representing the
 // client's request for the CreateHsmClientCertificate operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -1098,7 +1204,8 @@ func (c *Redshift) CreateHsmClientCertificateRequest(input *CreateHsmClientCerti
 //   in the Amazon Redshift Cluster Management Guide.
 //
 //   * ErrCodeTagLimitExceededFault "TagLimitExceededFault"
-//   The request exceeds the limit of 10 tags for the resource.
+//   The number of tables in your source cluster exceeds the limit for the target
+//   cluster. Resize to a larger cluster node type.
 //
 //   * ErrCodeInvalidTagFault "InvalidTagFault"
 //   The tag is invalid.
@@ -1129,7 +1236,7 @@ const opCreateHsmConfiguration = "CreateHsmConfiguration"
 
 // CreateHsmConfigurationRequest generates a "aws/request.Request" representing the
 // client's request for the CreateHsmConfiguration operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -1198,7 +1305,8 @@ func (c *Redshift) CreateHsmConfigurationRequest(input *CreateHsmConfigurationIn
 //   in the Amazon Redshift Cluster Management Guide.
 //
 //   * ErrCodeTagLimitExceededFault "TagLimitExceededFault"
-//   The request exceeds the limit of 10 tags for the resource.
+//   The number of tables in your source cluster exceeds the limit for the target
+//   cluster. Resize to a larger cluster node type.
 //
 //   * ErrCodeInvalidTagFault "InvalidTagFault"
 //   The tag is invalid.
@@ -1229,7 +1337,7 @@ const opCreateSnapshotCopyGrant = "CreateSnapshotCopyGrant"
 
 // CreateSnapshotCopyGrantRequest generates a "aws/request.Request" representing the
 // client's request for the CreateSnapshotCopyGrant operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -1297,7 +1405,8 @@ func (c *Redshift) CreateSnapshotCopyGrantRequest(input *CreateSnapshotCopyGrant
 //   The encryption key has exceeded its grant limit in AWS KMS.
 //
 //   * ErrCodeTagLimitExceededFault "TagLimitExceededFault"
-//   The request exceeds the limit of 10 tags for the resource.
+//   The number of tables in your source cluster exceeds the limit for the target
+//   cluster. Resize to a larger cluster node type.
 //
 //   * ErrCodeInvalidTagFault "InvalidTagFault"
 //   The tag is invalid.
@@ -1332,7 +1441,7 @@ const opCreateTags = "CreateTags"
 
 // CreateTagsRequest generates a "aws/request.Request" representing the
 // client's request for the CreateTags operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -1376,7 +1485,7 @@ func (c *Redshift) CreateTagsRequest(input *CreateTagsInput) (req *request.Reque
 //
 // Adds one or more tags to a specified resource.
 //
-// A resource can have up to 10 tags. If you try to create more than 10 tags
+// A resource can have up to 50 tags. If you try to create more than 50 tags
 // for a resource, you will receive an error and the attempt will fail.
 //
 // If you specify a key that already exists for the resource, the value for
@@ -1391,7 +1500,8 @@ func (c *Redshift) CreateTagsRequest(input *CreateTagsInput) (req *request.Reque
 //
 // Returned Error Codes:
 //   * ErrCodeTagLimitExceededFault "TagLimitExceededFault"
-//   The request exceeds the limit of 10 tags for the resource.
+//   The number of tables in your source cluster exceeds the limit for the target
+//   cluster. Resize to a larger cluster node type.
 //
 //   * ErrCodeResourceNotFoundFault "ResourceNotFoundFault"
 //   The resource could not be found.
@@ -1425,7 +1535,7 @@ const opDeleteCluster = "DeleteCluster"
 
 // DeleteClusterRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteCluster operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -1531,7 +1641,7 @@ const opDeleteClusterParameterGroup = "DeleteClusterParameterGroup"
 
 // DeleteClusterParameterGroupRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteClusterParameterGroup operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -1619,7 +1729,7 @@ const opDeleteClusterSecurityGroup = "DeleteClusterSecurityGroup"
 
 // DeleteClusterSecurityGroupRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteClusterSecurityGroup operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -1711,7 +1821,7 @@ const opDeleteClusterSnapshot = "DeleteClusterSnapshot"
 
 // DeleteClusterSnapshotRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteClusterSnapshot operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -1801,7 +1911,7 @@ const opDeleteClusterSubnetGroup = "DeleteClusterSubnetGroup"
 
 // DeleteClusterSubnetGroupRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteClusterSubnetGroup operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -1889,7 +1999,7 @@ const opDeleteEventSubscription = "DeleteEventSubscription"
 
 // DeleteEventSubscriptionRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteEventSubscription operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -1975,7 +2085,7 @@ const opDeleteHsmClientCertificate = "DeleteHsmClientCertificate"
 
 // DeleteHsmClientCertificateRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteHsmClientCertificate operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -2060,7 +2170,7 @@ const opDeleteHsmConfiguration = "DeleteHsmConfiguration"
 
 // DeleteHsmConfigurationRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteHsmConfiguration operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -2145,7 +2255,7 @@ const opDeleteSnapshotCopyGrant = "DeleteSnapshotCopyGrant"
 
 // DeleteSnapshotCopyGrantRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteSnapshotCopyGrant operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -2231,7 +2341,7 @@ const opDeleteTags = "DeleteTags"
 
 // DeleteTagsRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteTags operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -2312,11 +2422,90 @@ func (c *Redshift) DeleteTagsWithContext(ctx aws.Context, input *DeleteTagsInput
 	return out, req.Send()
 }
 
+const opDescribeClusterDbRevisions = "DescribeClusterDbRevisions"
+
+// DescribeClusterDbRevisionsRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeClusterDbRevisions operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfuly.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See DescribeClusterDbRevisions for more information on using the DescribeClusterDbRevisions
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the DescribeClusterDbRevisionsRequest method.
+//    req, resp := client.DescribeClusterDbRevisionsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/redshift-2012-12-01/DescribeClusterDbRevisions
+func (c *Redshift) DescribeClusterDbRevisionsRequest(input *DescribeClusterDbRevisionsInput) (req *request.Request, output *DescribeClusterDbRevisionsOutput) {
+	op := &request.Operation{
+		Name:       opDescribeClusterDbRevisions,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &DescribeClusterDbRevisionsInput{}
+	}
+
+	output = &DescribeClusterDbRevisionsOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// DescribeClusterDbRevisions API operation for Amazon Redshift.
+//
+// Returns an array of ClusterDbRevision objects.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Redshift's
+// API operation DescribeClusterDbRevisions for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeClusterNotFoundFault "ClusterNotFound"
+//   The ClusterIdentifier parameter does not refer to an existing cluster.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/redshift-2012-12-01/DescribeClusterDbRevisions
+func (c *Redshift) DescribeClusterDbRevisions(input *DescribeClusterDbRevisionsInput) (*DescribeClusterDbRevisionsOutput, error) {
+	req, out := c.DescribeClusterDbRevisionsRequest(input)
+	return out, req.Send()
+}
+
+// DescribeClusterDbRevisionsWithContext is the same as DescribeClusterDbRevisions with the addition of
+// the ability to pass a context and additional request options.
+//
+// See DescribeClusterDbRevisions for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *Redshift) DescribeClusterDbRevisionsWithContext(ctx aws.Context, input *DescribeClusterDbRevisionsInput, opts ...request.Option) (*DescribeClusterDbRevisionsOutput, error) {
+	req, out := c.DescribeClusterDbRevisionsRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
 const opDescribeClusterParameterGroups = "DescribeClusterParameterGroups"
 
 // DescribeClusterParameterGroupsRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeClusterParameterGroups operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -2472,7 +2661,7 @@ const opDescribeClusterParameters = "DescribeClusterParameters"
 
 // DescribeClusterParametersRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeClusterParameters operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -2618,7 +2807,7 @@ const opDescribeClusterSecurityGroups = "DescribeClusterSecurityGroups"
 
 // DescribeClusterSecurityGroupsRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeClusterSecurityGroups operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -2773,7 +2962,7 @@ const opDescribeClusterSnapshots = "DescribeClusterSnapshots"
 
 // DescribeClusterSnapshotsRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeClusterSnapshots operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -2843,6 +3032,9 @@ func (c *Redshift) DescribeClusterSnapshotsRequest(input *DescribeClusterSnapsho
 // API operation DescribeClusterSnapshots for usage and error information.
 //
 // Returned Error Codes:
+//   * ErrCodeClusterNotFoundFault "ClusterNotFound"
+//   The ClusterIdentifier parameter does not refer to an existing cluster.
+//
 //   * ErrCodeClusterSnapshotNotFoundFault "ClusterSnapshotNotFound"
 //   The snapshot identifier does not refer to an existing cluster snapshot.
 //
@@ -2925,7 +3117,7 @@ const opDescribeClusterSubnetGroups = "DescribeClusterSubnetGroups"
 
 // DescribeClusterSubnetGroupsRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeClusterSubnetGroups operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -3076,7 +3268,7 @@ const opDescribeClusterVersions = "DescribeClusterVersions"
 
 // DescribeClusterVersionsRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeClusterVersions operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -3210,7 +3402,7 @@ const opDescribeClusters = "DescribeClusters"
 
 // DescribeClustersRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeClusters operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -3361,7 +3553,7 @@ const opDescribeDefaultClusterParameters = "DescribeDefaultClusterParameters"
 
 // DescribeDefaultClusterParametersRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeDefaultClusterParameters operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -3495,7 +3687,7 @@ const opDescribeEventCategories = "DescribeEventCategories"
 
 // DescribeEventCategoriesRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeEventCategories operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -3571,7 +3763,7 @@ const opDescribeEventSubscriptions = "DescribeEventSubscriptions"
 
 // DescribeEventSubscriptionsRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeEventSubscriptions operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -3722,7 +3914,7 @@ const opDescribeEvents = "DescribeEvents"
 
 // DescribeEventsRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeEvents operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -3855,7 +4047,7 @@ const opDescribeHsmClientCertificates = "DescribeHsmClientCertificates"
 
 // DescribeHsmClientCertificatesRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeHsmClientCertificates operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -4005,7 +4197,7 @@ const opDescribeHsmConfigurations = "DescribeHsmConfigurations"
 
 // DescribeHsmConfigurationsRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeHsmConfigurations operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -4155,7 +4347,7 @@ const opDescribeLoggingStatus = "DescribeLoggingStatus"
 
 // DescribeLoggingStatusRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeLoggingStatus operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -4235,7 +4427,7 @@ const opDescribeOrderableClusterOptions = "DescribeOrderableClusterOptions"
 
 // DescribeOrderableClusterOptionsRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeOrderableClusterOptions operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -4373,7 +4565,7 @@ const opDescribeReservedNodeOfferings = "DescribeReservedNodeOfferings"
 
 // DescribeReservedNodeOfferingsRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeReservedNodeOfferings operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -4524,7 +4716,7 @@ const opDescribeReservedNodes = "DescribeReservedNodes"
 
 // DescribeReservedNodesRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeReservedNodes operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -4663,7 +4855,7 @@ const opDescribeResize = "DescribeResize"
 
 // DescribeResizeRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeResize operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -4751,7 +4943,7 @@ const opDescribeSnapshotCopyGrants = "DescribeSnapshotCopyGrants"
 
 // DescribeSnapshotCopyGrantsRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeSnapshotCopyGrants operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -4839,7 +5031,7 @@ const opDescribeTableRestoreStatus = "DescribeTableRestoreStatus"
 
 // DescribeTableRestoreStatusRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeTableRestoreStatus operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -4925,7 +5117,7 @@ const opDescribeTags = "DescribeTags"
 
 // DescribeTagsRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeTags operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -5029,7 +5221,7 @@ const opDisableLogging = "DisableLogging"
 
 // DisableLoggingRequest generates a "aws/request.Request" representing the
 // client's request for the DisableLogging operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -5109,7 +5301,7 @@ const opDisableSnapshotCopy = "DisableSnapshotCopy"
 
 // DisableSnapshotCopyRequest generates a "aws/request.Request" representing the
 // client's request for the DisableSnapshotCopy operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -5202,7 +5394,7 @@ const opEnableLogging = "EnableLogging"
 
 // EnableLoggingRequest generates a "aws/request.Request" representing the
 // client's request for the EnableLogging operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -5298,7 +5490,7 @@ const opEnableSnapshotCopy = "EnableSnapshotCopy"
 
 // EnableSnapshotCopyRequest generates a "aws/request.Request" representing the
 // client's request for the EnableSnapshotCopy operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -5407,7 +5599,7 @@ const opGetClusterCredentials = "GetClusterCredentials"
 
 // GetClusterCredentialsRequest generates a "aws/request.Request" representing the
 // client's request for the GetClusterCredentials operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -5508,11 +5700,107 @@ func (c *Redshift) GetClusterCredentialsWithContext(ctx aws.Context, input *GetC
 	return out, req.Send()
 }
 
+const opGetReservedNodeExchangeOfferings = "GetReservedNodeExchangeOfferings"
+
+// GetReservedNodeExchangeOfferingsRequest generates a "aws/request.Request" representing the
+// client's request for the GetReservedNodeExchangeOfferings operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfuly.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See GetReservedNodeExchangeOfferings for more information on using the GetReservedNodeExchangeOfferings
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the GetReservedNodeExchangeOfferingsRequest method.
+//    req, resp := client.GetReservedNodeExchangeOfferingsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/redshift-2012-12-01/GetReservedNodeExchangeOfferings
+func (c *Redshift) GetReservedNodeExchangeOfferingsRequest(input *GetReservedNodeExchangeOfferingsInput) (req *request.Request, output *GetReservedNodeExchangeOfferingsOutput) {
+	op := &request.Operation{
+		Name:       opGetReservedNodeExchangeOfferings,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &GetReservedNodeExchangeOfferingsInput{}
+	}
+
+	output = &GetReservedNodeExchangeOfferingsOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// GetReservedNodeExchangeOfferings API operation for Amazon Redshift.
+//
+// Returns an array of ReservedNodeOfferings which is filtered by payment type,
+// term, and instance type.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Redshift's
+// API operation GetReservedNodeExchangeOfferings for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeReservedNodeNotFoundFault "ReservedNodeNotFound"
+//   The specified reserved compute node not found.
+//
+//   * ErrCodeInvalidReservedNodeStateFault "InvalidReservedNodeState"
+//   Indicates that the Reserved Node being exchanged is not in an active state.
+//
+//   * ErrCodeReservedNodeAlreadyMigratedFault "ReservedNodeAlreadyMigrated"
+//   Indicates that the reserved node has already been exchanged.
+//
+//   * ErrCodeReservedNodeOfferingNotFoundFault "ReservedNodeOfferingNotFound"
+//   Specified offering does not exist.
+//
+//   * ErrCodeUnsupportedOperationFault "UnsupportedOperation"
+//   The requested operation isn't supported.
+//
+//   * ErrCodeDependentServiceUnavailableFault "DependentServiceUnavailableFault"
+//   Your request cannot be completed because a dependent internal service is
+//   temporarily unavailable. Wait 30 to 60 seconds and try again.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/redshift-2012-12-01/GetReservedNodeExchangeOfferings
+func (c *Redshift) GetReservedNodeExchangeOfferings(input *GetReservedNodeExchangeOfferingsInput) (*GetReservedNodeExchangeOfferingsOutput, error) {
+	req, out := c.GetReservedNodeExchangeOfferingsRequest(input)
+	return out, req.Send()
+}
+
+// GetReservedNodeExchangeOfferingsWithContext is the same as GetReservedNodeExchangeOfferings with the addition of
+// the ability to pass a context and additional request options.
+//
+// See GetReservedNodeExchangeOfferings for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *Redshift) GetReservedNodeExchangeOfferingsWithContext(ctx aws.Context, input *GetReservedNodeExchangeOfferingsInput, opts ...request.Option) (*GetReservedNodeExchangeOfferingsOutput, error) {
+	req, out := c.GetReservedNodeExchangeOfferingsRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
 const opModifyCluster = "ModifyCluster"
 
 // ModifyClusterRequest generates a "aws/request.Request" representing the
 // client's request for the ModifyCluster operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -5625,6 +5913,10 @@ func (c *Redshift) ModifyClusterRequest(input *ModifyClusterInput) (req *request
 //   * ErrCodeInvalidElasticIpFault "InvalidElasticIpFault"
 //   The Elastic IP (EIP) is invalid or cannot be found.
 //
+//   * ErrCodeTableLimitExceededFault "TableLimitExceeded"
+//   The number of tables in the cluster exceeds the limit for the requested new
+//   cluster node type.
+//
 // See also, https://docs.aws.amazon.com/goto/WebAPI/redshift-2012-12-01/ModifyCluster
 func (c *Redshift) ModifyCluster(input *ModifyClusterInput) (*ModifyClusterOutput, error) {
 	req, out := c.ModifyClusterRequest(input)
@@ -5647,11 +5939,97 @@ func (c *Redshift) ModifyClusterWithContext(ctx aws.Context, input *ModifyCluste
 	return out, req.Send()
 }
 
+const opModifyClusterDbRevision = "ModifyClusterDbRevision"
+
+// ModifyClusterDbRevisionRequest generates a "aws/request.Request" representing the
+// client's request for the ModifyClusterDbRevision operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfuly.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See ModifyClusterDbRevision for more information on using the ModifyClusterDbRevision
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the ModifyClusterDbRevisionRequest method.
+//    req, resp := client.ModifyClusterDbRevisionRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/redshift-2012-12-01/ModifyClusterDbRevision
+func (c *Redshift) ModifyClusterDbRevisionRequest(input *ModifyClusterDbRevisionInput) (req *request.Request, output *ModifyClusterDbRevisionOutput) {
+	op := &request.Operation{
+		Name:       opModifyClusterDbRevision,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &ModifyClusterDbRevisionInput{}
+	}
+
+	output = &ModifyClusterDbRevisionOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// ModifyClusterDbRevision API operation for Amazon Redshift.
+//
+// Modifies the database revision of a cluster. The database revision is a unique
+// revision of the database running in a cluster.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Redshift's
+// API operation ModifyClusterDbRevision for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeClusterNotFoundFault "ClusterNotFound"
+//   The ClusterIdentifier parameter does not refer to an existing cluster.
+//
+//   * ErrCodeClusterOnLatestRevisionFault "ClusterOnLatestRevision"
+//   Cluster is already on the latest database revision.
+//
+//   * ErrCodeInvalidClusterStateFault "InvalidClusterState"
+//   The specified cluster is not in the available state.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/redshift-2012-12-01/ModifyClusterDbRevision
+func (c *Redshift) ModifyClusterDbRevision(input *ModifyClusterDbRevisionInput) (*ModifyClusterDbRevisionOutput, error) {
+	req, out := c.ModifyClusterDbRevisionRequest(input)
+	return out, req.Send()
+}
+
+// ModifyClusterDbRevisionWithContext is the same as ModifyClusterDbRevision with the addition of
+// the ability to pass a context and additional request options.
+//
+// See ModifyClusterDbRevision for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *Redshift) ModifyClusterDbRevisionWithContext(ctx aws.Context, input *ModifyClusterDbRevisionInput, opts ...request.Option) (*ModifyClusterDbRevisionOutput, error) {
+	req, out := c.ModifyClusterDbRevisionRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
 const opModifyClusterIamRoles = "ModifyClusterIamRoles"
 
 // ModifyClusterIamRolesRequest generates a "aws/request.Request" representing the
 // client's request for the ModifyClusterIamRoles operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -5736,7 +6114,7 @@ const opModifyClusterParameterGroup = "ModifyClusterParameterGroup"
 
 // ModifyClusterParameterGroupRequest generates a "aws/request.Request" representing the
 // client's request for the ModifyClusterParameterGroup operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -5824,7 +6202,7 @@ const opModifyClusterSubnetGroup = "ModifyClusterSubnetGroup"
 
 // ModifyClusterSubnetGroupRequest generates a "aws/request.Request" representing the
 // client's request for the ModifyClusterSubnetGroup operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -5926,7 +6304,7 @@ const opModifyEventSubscription = "ModifyEventSubscription"
 
 // ModifyEventSubscriptionRequest generates a "aws/request.Request" representing the
 // client's request for the ModifyEventSubscription operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -6037,7 +6415,7 @@ const opModifySnapshotCopyRetentionPeriod = "ModifySnapshotCopyRetentionPeriod"
 
 // ModifySnapshotCopyRetentionPeriodRequest generates a "aws/request.Request" representing the
 // client's request for the ModifySnapshotCopyRetentionPeriod operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -6126,7 +6504,7 @@ const opPurchaseReservedNodeOffering = "PurchaseReservedNodeOffering"
 
 // PurchaseReservedNodeOfferingRequest generates a "aws/request.Request" representing the
 // client's request for the PurchaseReservedNodeOffering operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -6224,7 +6602,7 @@ const opRebootCluster = "RebootCluster"
 
 // RebootClusterRequest generates a "aws/request.Request" representing the
 // client's request for the RebootCluster operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -6312,7 +6690,7 @@ const opResetClusterParameterGroup = "ResetClusterParameterGroup"
 
 // ResetClusterParameterGroupRequest generates a "aws/request.Request" representing the
 // client's request for the ResetClusterParameterGroup operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -6399,7 +6777,7 @@ const opRestoreFromClusterSnapshot = "RestoreFromClusterSnapshot"
 
 // RestoreFromClusterSnapshotRequest generates a "aws/request.Request" representing the
 // client's request for the RestoreFromClusterSnapshot operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -6564,7 +6942,7 @@ const opRestoreTableFromClusterSnapshot = "RestoreTableFromClusterSnapshot"
 
 // RestoreTableFromClusterSnapshotRequest generates a "aws/request.Request" representing the
 // client's request for the RestoreTableFromClusterSnapshot operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -6676,7 +7054,7 @@ const opRevokeClusterSecurityGroupIngress = "RevokeClusterSecurityGroupIngress"
 
 // RevokeClusterSecurityGroupIngressRequest generates a "aws/request.Request" representing the
 // client's request for the RevokeClusterSecurityGroupIngress operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -6767,7 +7145,7 @@ const opRevokeSnapshotAccess = "RevokeSnapshotAccess"
 
 // RevokeSnapshotAccessRequest generates a "aws/request.Request" representing the
 // client's request for the RevokeSnapshotAccess operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -6860,7 +7238,7 @@ const opRotateEncryptionKey = "RotateEncryptionKey"
 
 // RotateEncryptionKeyRequest generates a "aws/request.Request" representing the
 // client's request for the RotateEncryptionKey operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -6940,6 +7318,82 @@ func (c *Redshift) RotateEncryptionKeyWithContext(ctx aws.Context, input *Rotate
 	req.SetContext(ctx)
 	req.ApplyOptions(opts...)
 	return out, req.Send()
+}
+
+type AcceptReservedNodeExchangeInput struct {
+	_ struct{} `type:"structure"`
+
+	// A string representing the identifier of the Reserved Node to be exchanged.
+	//
+	// ReservedNodeId is a required field
+	ReservedNodeId *string `type:"string" required:"true"`
+
+	// The unique identifier of the Reserved Node offering to be used for the exchange.
+	//
+	// TargetReservedNodeOfferingId is a required field
+	TargetReservedNodeOfferingId *string `type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s AcceptReservedNodeExchangeInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s AcceptReservedNodeExchangeInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *AcceptReservedNodeExchangeInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "AcceptReservedNodeExchangeInput"}
+	if s.ReservedNodeId == nil {
+		invalidParams.Add(request.NewErrParamRequired("ReservedNodeId"))
+	}
+	if s.TargetReservedNodeOfferingId == nil {
+		invalidParams.Add(request.NewErrParamRequired("TargetReservedNodeOfferingId"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetReservedNodeId sets the ReservedNodeId field's value.
+func (s *AcceptReservedNodeExchangeInput) SetReservedNodeId(v string) *AcceptReservedNodeExchangeInput {
+	s.ReservedNodeId = &v
+	return s
+}
+
+// SetTargetReservedNodeOfferingId sets the TargetReservedNodeOfferingId field's value.
+func (s *AcceptReservedNodeExchangeInput) SetTargetReservedNodeOfferingId(v string) *AcceptReservedNodeExchangeInput {
+	s.TargetReservedNodeOfferingId = &v
+	return s
+}
+
+type AcceptReservedNodeExchangeOutput struct {
+	_ struct{} `type:"structure"`
+
+	// Describes a reserved node. You can call the DescribeReservedNodeOfferings
+	// API to obtain the available reserved node offerings.
+	ExchangedReservedNode *ReservedNode `type:"structure"`
+}
+
+// String returns the string representation
+func (s AcceptReservedNodeExchangeOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s AcceptReservedNodeExchangeOutput) GoString() string {
+	return s.String()
+}
+
+// SetExchangedReservedNode sets the ExchangedReservedNode field's value.
+func (s *AcceptReservedNodeExchangeOutput) SetExchangedReservedNode(v *ReservedNode) *AcceptReservedNodeExchangeOutput {
+	s.ExchangedReservedNode = v
+	return s
 }
 
 // Describes an AWS customer account authorized to restore a snapshot.
@@ -7163,6 +7617,8 @@ type AvailabilityZone struct {
 
 	// The name of the availability zone.
 	Name *string `type:"string"`
+
+	SupportedPlatforms []*SupportedPlatform `locationNameList:"SupportedPlatform" type:"list"`
 }
 
 // String returns the string representation
@@ -7181,6 +7637,12 @@ func (s *AvailabilityZone) SetName(v string) *AvailabilityZone {
 	return s
 }
 
+// SetSupportedPlatforms sets the SupportedPlatforms field's value.
+func (s *AvailabilityZone) SetSupportedPlatforms(v []*SupportedPlatform) *AvailabilityZone {
+	s.SupportedPlatforms = v
+	return s
+}
+
 // Describes a cluster.
 type Cluster struct {
 	_ struct{} `type:"structure"`
@@ -7196,7 +7658,7 @@ type Cluster struct {
 	AvailabilityZone *string `type:"string"`
 
 	// The date and time that the cluster was created.
-	ClusterCreateTime *time.Time `type:"timestamp" timestampFormat:"iso8601"`
+	ClusterCreateTime *time.Time `type:"timestamp"`
 
 	// The unique identifier of the cluster.
 	ClusterIdentifier *string `type:"string"`
@@ -7322,6 +7784,9 @@ type Cluster struct {
 
 	// The number of compute nodes in the cluster.
 	NumberOfNodes *int64 `type:"integer"`
+
+	// Cluster operations that are waiting to be started.
+	PendingActions []*string `type:"list"`
 
 	// A value that, if present, indicates that changes to the cluster are pending.
 	// Specific pending changes are identified by subelements.
@@ -7517,6 +7982,12 @@ func (s *Cluster) SetNumberOfNodes(v int64) *Cluster {
 	return s
 }
 
+// SetPendingActions sets the PendingActions field's value.
+func (s *Cluster) SetPendingActions(v []*string) *Cluster {
+	s.PendingActions = v
+	return s
+}
+
 // SetPendingModifiedValues sets the PendingModifiedValues field's value.
 func (s *Cluster) SetPendingModifiedValues(v *PendingModifiedValues) *Cluster {
 	s.PendingModifiedValues = v
@@ -7556,6 +8027,58 @@ func (s *Cluster) SetVpcId(v string) *Cluster {
 // SetVpcSecurityGroups sets the VpcSecurityGroups field's value.
 func (s *Cluster) SetVpcSecurityGroups(v []*VpcSecurityGroupMembership) *Cluster {
 	s.VpcSecurityGroups = v
+	return s
+}
+
+// Describes a ClusterDbRevision.
+type ClusterDbRevision struct {
+	_ struct{} `type:"structure"`
+
+	// The unique identifier of the cluster.
+	ClusterIdentifier *string `type:"string"`
+
+	// A string representing the current cluster version.
+	CurrentDatabaseRevision *string `type:"string"`
+
+	// The date on which the database revision was released.
+	DatabaseRevisionReleaseDate *time.Time `type:"timestamp"`
+
+	// A list of RevisionTarget objects, where each object describes the database
+	// revision that a cluster can be updated to.
+	RevisionTargets []*RevisionTarget `locationNameList:"RevisionTarget" type:"list"`
+}
+
+// String returns the string representation
+func (s ClusterDbRevision) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ClusterDbRevision) GoString() string {
+	return s.String()
+}
+
+// SetClusterIdentifier sets the ClusterIdentifier field's value.
+func (s *ClusterDbRevision) SetClusterIdentifier(v string) *ClusterDbRevision {
+	s.ClusterIdentifier = &v
+	return s
+}
+
+// SetCurrentDatabaseRevision sets the CurrentDatabaseRevision field's value.
+func (s *ClusterDbRevision) SetCurrentDatabaseRevision(v string) *ClusterDbRevision {
+	s.CurrentDatabaseRevision = &v
+	return s
+}
+
+// SetDatabaseRevisionReleaseDate sets the DatabaseRevisionReleaseDate field's value.
+func (s *ClusterDbRevision) SetDatabaseRevisionReleaseDate(v time.Time) *ClusterDbRevision {
+	s.DatabaseRevisionReleaseDate = &v
+	return s
+}
+
+// SetRevisionTargets sets the RevisionTargets field's value.
+func (s *ClusterDbRevision) SetRevisionTargets(v []*RevisionTarget) *ClusterDbRevision {
+	s.RevisionTargets = v
 	return s
 }
 
@@ -8397,7 +8920,7 @@ type CreateClusterInput struct {
 	//
 	// Constraints:
 	//
-	//    * Must be 1 - 128 alphanumeric characters.
+	//    * Must be 1 - 128 alphanumeric characters. The user name can't be PUBLIC.
 	//
 	//    * First character must be a letter.
 	//
@@ -8412,8 +8935,8 @@ type CreateClusterInput struct {
 	// types, go to  Working with Clusters (http://docs.aws.amazon.com/redshift/latest/mgmt/working-with-clusters.html#how-many-nodes)
 	// in the Amazon Redshift Cluster Management Guide.
 	//
-	// Valid Values: ds1.xlarge | ds1.8xlarge | ds2.xlarge | ds2.8xlarge | dc1.large
-	// | dc1.8xlarge.
+	// Valid Values: ds2.xlarge | ds2.8xlarge | ds2.xlarge | ds2.8xlarge | dc1.large
+	// | dc1.8xlarge | dc2.large | dc2.8xlarge
 	//
 	// NodeType is a required field
 	NodeType *string `type:"string" required:"true"`
@@ -10332,6 +10855,100 @@ func (s DeleteTagsOutput) GoString() string {
 	return s.String()
 }
 
+type DescribeClusterDbRevisionsInput struct {
+	_ struct{} `type:"structure"`
+
+	// A unique identifier for a cluster whose ClusterDbRevisions you are requesting.
+	// This parameter is case sensitive. All clusters defined for an account are
+	// returned by default.
+	ClusterIdentifier *string `type:"string"`
+
+	// An optional parameter that specifies the starting point for returning a set
+	// of response records. When the results of a DescribeClusterDbRevisions request
+	// exceed the value specified in MaxRecords, Amazon Redshift returns a value
+	// in the marker field of the response. You can retrieve the next set of response
+	// records by providing the returned marker value in the marker parameter and
+	// retrying the request.
+	//
+	// Constraints: You can specify either the ClusterIdentifier parameter, or the
+	// marker parameter, but not both.
+	Marker *string `type:"string"`
+
+	// The maximum number of response records to return in each call. If the number
+	// of remaining response records exceeds the specified MaxRecords value, a value
+	// is returned in the marker field of the response. You can retrieve the next
+	// set of response records by providing the returned marker value in the marker
+	// parameter and retrying the request.
+	//
+	// Default: 100
+	//
+	// Constraints: minimum 20, maximum 100.
+	MaxRecords *int64 `type:"integer"`
+}
+
+// String returns the string representation
+func (s DescribeClusterDbRevisionsInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DescribeClusterDbRevisionsInput) GoString() string {
+	return s.String()
+}
+
+// SetClusterIdentifier sets the ClusterIdentifier field's value.
+func (s *DescribeClusterDbRevisionsInput) SetClusterIdentifier(v string) *DescribeClusterDbRevisionsInput {
+	s.ClusterIdentifier = &v
+	return s
+}
+
+// SetMarker sets the Marker field's value.
+func (s *DescribeClusterDbRevisionsInput) SetMarker(v string) *DescribeClusterDbRevisionsInput {
+	s.Marker = &v
+	return s
+}
+
+// SetMaxRecords sets the MaxRecords field's value.
+func (s *DescribeClusterDbRevisionsInput) SetMaxRecords(v int64) *DescribeClusterDbRevisionsInput {
+	s.MaxRecords = &v
+	return s
+}
+
+type DescribeClusterDbRevisionsOutput struct {
+	_ struct{} `type:"structure"`
+
+	// A list of revisions.
+	ClusterDbRevisions []*ClusterDbRevision `locationNameList:"ClusterDbRevision" type:"list"`
+
+	// A string representing the starting point for the next set of revisions. If
+	// a value is returned in a response, you can retrieve the next set of revisions
+	// by providing the value in the marker parameter and retrying the command.
+	// If the marker field is empty, all revisions have already been returned.
+	Marker *string `type:"string"`
+}
+
+// String returns the string representation
+func (s DescribeClusterDbRevisionsOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DescribeClusterDbRevisionsOutput) GoString() string {
+	return s.String()
+}
+
+// SetClusterDbRevisions sets the ClusterDbRevisions field's value.
+func (s *DescribeClusterDbRevisionsOutput) SetClusterDbRevisions(v []*ClusterDbRevision) *DescribeClusterDbRevisionsOutput {
+	s.ClusterDbRevisions = v
+	return s
+}
+
+// SetMarker sets the Marker field's value.
+func (s *DescribeClusterDbRevisionsOutput) SetMarker(v string) *DescribeClusterDbRevisionsOutput {
+	s.Marker = &v
+	return s
+}
+
 type DescribeClusterParameterGroupsInput struct {
 	_ struct{} `type:"structure"`
 
@@ -10700,6 +11317,12 @@ func (s *DescribeClusterSecurityGroupsOutput) SetMarker(v string) *DescribeClust
 type DescribeClusterSnapshotsInput struct {
 	_ struct{} `type:"structure"`
 
+	// A value that indicates whether to return snapshots only for an existing cluster.
+	// Table-level restore can be performed only using a snapshot of an existing
+	// cluster, that is, a cluster that has not been deleted. If ClusterExists is
+	// set to true, ClusterIdentifier is required.
+	ClusterExists *bool `type:"boolean"`
+
 	// The identifier of the cluster for which information about snapshots is requested.
 	ClusterIdentifier *string `type:"string"`
 
@@ -10708,7 +11331,7 @@ type DescribeClusterSnapshotsInput struct {
 	// about ISO 8601, go to the ISO8601 Wikipedia page. (http://en.wikipedia.org/wiki/ISO_8601)
 	//
 	// Example: 2012-07-16T18:00:00Z
-	EndTime *time.Time `type:"timestamp" timestampFormat:"iso8601"`
+	EndTime *time.Time `type:"timestamp"`
 
 	// An optional parameter that specifies the starting point to return a set of
 	// response records. When the results of a DescribeClusterSnapshots request
@@ -10748,7 +11371,7 @@ type DescribeClusterSnapshotsInput struct {
 	// ISO 8601, go to the ISO8601 Wikipedia page. (http://en.wikipedia.org/wiki/ISO_8601)
 	//
 	// Example: 2012-07-16T18:00:00Z
-	StartTime *time.Time `type:"timestamp" timestampFormat:"iso8601"`
+	StartTime *time.Time `type:"timestamp"`
 
 	// A tag key or keys for which you want to return all matching cluster snapshots
 	// that are associated with the specified key or keys. For example, suppose
@@ -10775,6 +11398,12 @@ func (s DescribeClusterSnapshotsInput) String() string {
 // GoString returns the string representation
 func (s DescribeClusterSnapshotsInput) GoString() string {
 	return s.String()
+}
+
+// SetClusterExists sets the ClusterExists field's value.
+func (s *DescribeClusterSnapshotsInput) SetClusterExists(v bool) *DescribeClusterSnapshotsInput {
+	s.ClusterExists = &v
+	return s
 }
 
 // SetClusterIdentifier sets the ClusterIdentifier field's value.
@@ -11495,7 +12124,7 @@ type DescribeEventsInput struct {
 	// page. (http://en.wikipedia.org/wiki/ISO_8601)
 	//
 	// Example: 2009-07-08T18:00Z
-	EndTime *time.Time `type:"timestamp" timestampFormat:"iso8601"`
+	EndTime *time.Time `type:"timestamp"`
 
 	// An optional parameter that specifies the starting point to return a set of
 	// response records. When the results of a DescribeEvents request exceed the
@@ -11554,7 +12183,7 @@ type DescribeEventsInput struct {
 	// page. (http://en.wikipedia.org/wiki/ISO_8601)
 	//
 	// Example: 2009-07-08T18:00Z
-	StartTime *time.Time `type:"timestamp" timestampFormat:"iso8601"`
+	StartTime *time.Time `type:"timestamp"`
 }
 
 // String returns the string representation
@@ -13179,7 +13808,7 @@ type Event struct {
 	_ struct{} `type:"structure"`
 
 	// The date and time of the event.
-	Date *time.Time `type:"timestamp" timestampFormat:"iso8601"`
+	Date *time.Time `type:"timestamp"`
 
 	// A list of the event categories.
 	//
@@ -13394,7 +14023,7 @@ type EventSubscription struct {
 
 	// The date and time the Amazon Redshift event notification subscription was
 	// created.
-	SubscriptionCreationTime *time.Time `type:"timestamp" timestampFormat:"iso8601"`
+	SubscriptionCreationTime *time.Time `type:"timestamp"`
 
 	// The list of tags for the event subscription.
 	Tags []*Tag `locationNameList:"Tag" type:"list"`
@@ -13542,7 +14171,8 @@ type GetClusterCredentialsInput struct {
 	//
 	// Constraints:
 	//
-	//    * Must be 1 to 64 alphanumeric characters or hyphens
+	//    * Must be 1 to 64 alphanumeric characters or hyphens. The user name can't
+	//    be PUBLIC.
 	//
 	//    * Must contain only lowercase letters, numbers, underscore, plus sign,
 	//    period (dot), at symbol (@), or hyphen.
@@ -13646,7 +14276,7 @@ type GetClusterCredentialsOutput struct {
 	DbUser *string `type:"string"`
 
 	// The date and time the password in DbPassword expires.
-	Expiration *time.Time `type:"timestamp" timestampFormat:"iso8601"`
+	Expiration *time.Time `type:"timestamp"`
 }
 
 // String returns the string representation
@@ -13674,6 +14304,99 @@ func (s *GetClusterCredentialsOutput) SetDbUser(v string) *GetClusterCredentials
 // SetExpiration sets the Expiration field's value.
 func (s *GetClusterCredentialsOutput) SetExpiration(v time.Time) *GetClusterCredentialsOutput {
 	s.Expiration = &v
+	return s
+}
+
+type GetReservedNodeExchangeOfferingsInput struct {
+	_ struct{} `type:"structure"`
+
+	// A value that indicates the starting point for the next set of ReservedNodeOfferings.
+	Marker *string `type:"string"`
+
+	// An integer setting the maximum number of ReservedNodeOfferings to retrieve.
+	MaxRecords *int64 `type:"integer"`
+
+	// A string representing the node identifier for the Reserved Node to be exchanged.
+	//
+	// ReservedNodeId is a required field
+	ReservedNodeId *string `type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s GetReservedNodeExchangeOfferingsInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s GetReservedNodeExchangeOfferingsInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *GetReservedNodeExchangeOfferingsInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "GetReservedNodeExchangeOfferingsInput"}
+	if s.ReservedNodeId == nil {
+		invalidParams.Add(request.NewErrParamRequired("ReservedNodeId"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetMarker sets the Marker field's value.
+func (s *GetReservedNodeExchangeOfferingsInput) SetMarker(v string) *GetReservedNodeExchangeOfferingsInput {
+	s.Marker = &v
+	return s
+}
+
+// SetMaxRecords sets the MaxRecords field's value.
+func (s *GetReservedNodeExchangeOfferingsInput) SetMaxRecords(v int64) *GetReservedNodeExchangeOfferingsInput {
+	s.MaxRecords = &v
+	return s
+}
+
+// SetReservedNodeId sets the ReservedNodeId field's value.
+func (s *GetReservedNodeExchangeOfferingsInput) SetReservedNodeId(v string) *GetReservedNodeExchangeOfferingsInput {
+	s.ReservedNodeId = &v
+	return s
+}
+
+type GetReservedNodeExchangeOfferingsOutput struct {
+	_ struct{} `type:"structure"`
+
+	// An optional parameter that specifies the starting point for returning a set
+	// of response records. When the results of a GetReservedNodeExchangeOfferings
+	// request exceed the value specified in MaxRecords, Amazon Redshift returns
+	// a value in the marker field of the response. You can retrieve the next set
+	// of response records by providing the returned marker value in the marker
+	// parameter and retrying the request.
+	Marker *string `type:"string"`
+
+	// Returns an array of ReservedNodeOffering objects.
+	ReservedNodeOfferings []*ReservedNodeOffering `locationNameList:"ReservedNodeOffering" type:"list"`
+}
+
+// String returns the string representation
+func (s GetReservedNodeExchangeOfferingsOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s GetReservedNodeExchangeOfferingsOutput) GoString() string {
+	return s.String()
+}
+
+// SetMarker sets the Marker field's value.
+func (s *GetReservedNodeExchangeOfferingsOutput) SetMarker(v string) *GetReservedNodeExchangeOfferingsOutput {
+	s.Marker = &v
+	return s
+}
+
+// SetReservedNodeOfferings sets the ReservedNodeOfferings field's value.
+func (s *GetReservedNodeExchangeOfferingsOutput) SetReservedNodeOfferings(v []*ReservedNodeOffering) *GetReservedNodeExchangeOfferingsOutput {
+	s.ReservedNodeOfferings = v
 	return s
 }
 
@@ -13885,10 +14608,10 @@ type LoggingStatus struct {
 	LastFailureMessage *string `type:"string"`
 
 	// The last time when logs failed to be delivered.
-	LastFailureTime *time.Time `type:"timestamp" timestampFormat:"iso8601"`
+	LastFailureTime *time.Time `type:"timestamp"`
 
 	// The last time that logs were delivered.
-	LastSuccessfulDeliveryTime *time.Time `type:"timestamp" timestampFormat:"iso8601"`
+	LastSuccessfulDeliveryTime *time.Time `type:"timestamp"`
 
 	// true if logging is on, false if logging is off.
 	LoggingEnabled *bool `type:"boolean"`
@@ -13940,6 +14663,84 @@ func (s *LoggingStatus) SetLoggingEnabled(v bool) *LoggingStatus {
 // SetS3KeyPrefix sets the S3KeyPrefix field's value.
 func (s *LoggingStatus) SetS3KeyPrefix(v string) *LoggingStatus {
 	s.S3KeyPrefix = &v
+	return s
+}
+
+type ModifyClusterDbRevisionInput struct {
+	_ struct{} `type:"structure"`
+
+	// The unique identifier of a cluster whose database revision you want to modify.
+	//
+	// Example: examplecluster
+	//
+	// ClusterIdentifier is a required field
+	ClusterIdentifier *string `type:"string" required:"true"`
+
+	// The identifier of the database revision. You can retrieve this value from
+	// the response to the DescribeClusterDbRevisions request.
+	//
+	// RevisionTarget is a required field
+	RevisionTarget *string `type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s ModifyClusterDbRevisionInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ModifyClusterDbRevisionInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ModifyClusterDbRevisionInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ModifyClusterDbRevisionInput"}
+	if s.ClusterIdentifier == nil {
+		invalidParams.Add(request.NewErrParamRequired("ClusterIdentifier"))
+	}
+	if s.RevisionTarget == nil {
+		invalidParams.Add(request.NewErrParamRequired("RevisionTarget"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetClusterIdentifier sets the ClusterIdentifier field's value.
+func (s *ModifyClusterDbRevisionInput) SetClusterIdentifier(v string) *ModifyClusterDbRevisionInput {
+	s.ClusterIdentifier = &v
+	return s
+}
+
+// SetRevisionTarget sets the RevisionTarget field's value.
+func (s *ModifyClusterDbRevisionInput) SetRevisionTarget(v string) *ModifyClusterDbRevisionInput {
+	s.RevisionTarget = &v
+	return s
+}
+
+type ModifyClusterDbRevisionOutput struct {
+	_ struct{} `type:"structure"`
+
+	// Describes a cluster.
+	Cluster *Cluster `type:"structure"`
+}
+
+// String returns the string representation
+func (s ModifyClusterDbRevisionOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ModifyClusterDbRevisionOutput) GoString() string {
+	return s.String()
+}
+
+// SetCluster sets the Cluster field's value.
+func (s *ModifyClusterDbRevisionOutput) SetCluster(v *Cluster) *ModifyClusterDbRevisionOutput {
+	s.Cluster = v
 	return s
 }
 
@@ -14183,8 +14984,8 @@ type ModifyClusterInput struct {
 	// permissions for the cluster are restored. You can use DescribeResize to track
 	// the progress of the resize request.
 	//
-	// Valid Values:  ds1.xlarge | ds1.8xlarge |  ds2.xlarge | ds2.8xlarge | dc1.large
-	// | dc1.8xlarge.
+	// Valid Values: ds2.xlarge | ds2.8xlarge | dc1.large | dc1.8xlarge | dc2.large
+	// | dc2.8xlarge
 	NodeType *string `type:"string"`
 
 	// The new number of nodes of the cluster. If you specify a new number of nodes,
@@ -14224,7 +15025,7 @@ type ModifyClusterInput struct {
 	PubliclyAccessible *bool `type:"boolean"`
 
 	// A list of virtual private cloud (VPC) security groups to be associated with
-	// the cluster.
+	// the cluster. This change is asynchronously applied as soon as possible.
 	VpcSecurityGroupIds []*string `locationNameList:"VpcSecurityGroupId" type:"list"`
 }
 
@@ -15211,9 +16012,11 @@ type ReservedNode struct {
 	// The identifier for the reserved node offering.
 	ReservedNodeOfferingId *string `type:"string"`
 
+	ReservedNodeOfferingType *string `type:"string" enum:"ReservedNodeOfferingType"`
+
 	// The time the reservation started. You purchase a reserved node offering for
 	// a duration. This is the start time of that duration.
-	StartTime *time.Time `type:"timestamp" timestampFormat:"iso8601"`
+	StartTime *time.Time `type:"timestamp"`
 
 	// The state of the reserved compute node.
 	//
@@ -15226,6 +16029,11 @@ type ReservedNode struct {
 	//    use.
 	//
 	//    * payment-failed-Payment failed for the purchase attempt.
+	//
+	//    * retired-The reserved node is no longer available.
+	//
+	//    * exchanging-The owner is exchanging the reserved node for another reserved
+	//    node.
 	State *string `type:"string"`
 
 	// The hourly rate Amazon Redshift charges you for this reserved node.
@@ -15296,6 +16104,12 @@ func (s *ReservedNode) SetReservedNodeOfferingId(v string) *ReservedNode {
 	return s
 }
 
+// SetReservedNodeOfferingType sets the ReservedNodeOfferingType field's value.
+func (s *ReservedNode) SetReservedNodeOfferingType(v string) *ReservedNode {
+	s.ReservedNodeOfferingType = &v
+	return s
+}
+
 // SetStartTime sets the StartTime field's value.
 func (s *ReservedNode) SetStartTime(v time.Time) *ReservedNode {
 	s.StartTime = &v
@@ -15342,6 +16156,8 @@ type ReservedNodeOffering struct {
 
 	// The offering identifier.
 	ReservedNodeOfferingId *string `type:"string"`
+
+	ReservedNodeOfferingType *string `type:"string" enum:"ReservedNodeOfferingType"`
 
 	// The rate you are charged for each hour the cluster that is using the offering
 	// is running.
@@ -15397,6 +16213,12 @@ func (s *ReservedNodeOffering) SetRecurringCharges(v []*RecurringCharge) *Reserv
 // SetReservedNodeOfferingId sets the ReservedNodeOfferingId field's value.
 func (s *ReservedNodeOffering) SetReservedNodeOfferingId(v string) *ReservedNodeOffering {
 	s.ReservedNodeOfferingId = &v
+	return s
+}
+
+// SetReservedNodeOfferingType sets the ReservedNodeOfferingType field's value.
+func (s *ReservedNodeOffering) SetReservedNodeOfferingType(v string) *ReservedNodeOffering {
+	s.ReservedNodeOfferingType = &v
 	return s
 }
 
@@ -15581,12 +16403,14 @@ type RestoreFromClusterSnapshotInput struct {
 	// Default: The node type of the cluster from which the snapshot was taken.
 	// You can modify this if you are using any DS node type. In that case, you
 	// can choose to restore into another DS node type of the same size. For example,
-	// you can restore ds1.8xlarge into ds2.8xlarge, or ds2.xlarge into ds1.xlarge.
+	// you can restore ds1.8xlarge into ds2.8xlarge, or ds1.xlarge into ds2.xlarge.
 	// If you have a DC instance type, you must restore into that same instance
 	// type and size. In other words, you can only restore a dc1.large instance
-	// type into another dc1.large instance type. For more information about node
-	// types, see  About Clusters and Nodes (http://docs.aws.amazon.com/redshift/latest/mgmt/working-with-clusters.html#rs-about-clusters-and-nodes)
-	// in the Amazon Redshift Cluster Management Guide
+	// type into another dc1.large instance type or dc2.large instance type. You
+	// can't restore dc1.8xlarge to dc2.8xlarge. First restore to a dc1.8xlareg
+	// cluster, then resize to a dc2.8large cluster. For more information about
+	// node types, see  About Clusters and Nodes (http://docs.aws.amazon.com/redshift/latest/mgmt/working-with-clusters.html#rs-about-clusters-and-nodes)
+	// in the Amazon Redshift Cluster Management Guide.
 	NodeType *string `type:"string"`
 
 	// The AWS customer account used to create or copy the snapshot. Required if
@@ -16042,6 +16866,50 @@ func (s *RestoreTableFromClusterSnapshotOutput) SetTableRestoreStatus(v *TableRe
 	return s
 }
 
+// Describes a RevisionTarget.
+type RevisionTarget struct {
+	_ struct{} `type:"structure"`
+
+	// A unique string that identifies the version to update the cluster to. You
+	// can use this value in ModifyClusterDbRevision.
+	DatabaseRevision *string `type:"string"`
+
+	// The date on which the database revision was released.
+	DatabaseRevisionReleaseDate *time.Time `type:"timestamp"`
+
+	// A string that describes the changes and features that will be applied to
+	// the cluster when it is updated to the corresponding ClusterDbRevision.
+	Description *string `type:"string"`
+}
+
+// String returns the string representation
+func (s RevisionTarget) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s RevisionTarget) GoString() string {
+	return s.String()
+}
+
+// SetDatabaseRevision sets the DatabaseRevision field's value.
+func (s *RevisionTarget) SetDatabaseRevision(v string) *RevisionTarget {
+	s.DatabaseRevision = &v
+	return s
+}
+
+// SetDatabaseRevisionReleaseDate sets the DatabaseRevisionReleaseDate field's value.
+func (s *RevisionTarget) SetDatabaseRevisionReleaseDate(v time.Time) *RevisionTarget {
+	s.DatabaseRevisionReleaseDate = &v
+	return s
+}
+
+// SetDescription sets the Description field's value.
+func (s *RevisionTarget) SetDescription(v string) *RevisionTarget {
+	s.Description = &v
+	return s
+}
+
 type RevokeClusterSecurityGroupIngressInput struct {
 	_ struct{} `type:"structure"`
 
@@ -16308,7 +17176,7 @@ type Snapshot struct {
 	BackupProgressInMegaBytes *float64 `type:"double"`
 
 	// The time (UTC) when the cluster was originally created.
-	ClusterCreateTime *time.Time `type:"timestamp" timestampFormat:"iso8601"`
+	ClusterCreateTime *time.Time `type:"timestamp"`
 
 	// The identifier of the cluster for which the snapshot was taken.
 	ClusterIdentifier *string `type:"string"`
@@ -16376,7 +17244,7 @@ type Snapshot struct {
 
 	// The time (UTC) when Amazon Redshift began the snapshot. A snapshot contains
 	// a copy of the cluster data as of this exact time.
-	SnapshotCreateTime *time.Time `type:"timestamp" timestampFormat:"iso8601"`
+	SnapshotCreateTime *time.Time `type:"timestamp"`
 
 	// The snapshot identifier that is provided in the request.
 	SnapshotIdentifier *string `type:"string"`
@@ -16687,6 +17555,29 @@ func (s *Subnet) SetSubnetStatus(v string) *Subnet {
 	return s
 }
 
+// A list of supported platforms for orderable clusters.
+type SupportedPlatform struct {
+	_ struct{} `type:"structure"`
+
+	Name *string `type:"string"`
+}
+
+// String returns the string representation
+func (s SupportedPlatform) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s SupportedPlatform) GoString() string {
+	return s.String()
+}
+
+// SetName sets the Name field's value.
+func (s *SupportedPlatform) SetName(v string) *SupportedPlatform {
+	s.Name = &v
+	return s
+}
+
 // Describes the status of a RestoreTableFromClusterSnapshot operation.
 type TableRestoreStatus struct {
 	_ struct{} `type:"structure"`
@@ -16707,7 +17598,7 @@ type TableRestoreStatus struct {
 
 	// The time that the table restore request was made, in Universal Coordinated
 	// Time (UTC).
-	RequestTime *time.Time `type:"timestamp" timestampFormat:"iso8601"`
+	RequestTime *time.Time `type:"timestamp"`
 
 	// The identifier of the snapshot that the table is being restored from.
 	SnapshotIdentifier *string `type:"string"`
@@ -16971,6 +17862,14 @@ const (
 
 	// ParameterApplyTypeDynamic is a ParameterApplyType enum value
 	ParameterApplyTypeDynamic = "dynamic"
+)
+
+const (
+	// ReservedNodeOfferingTypeRegular is a ReservedNodeOfferingType enum value
+	ReservedNodeOfferingTypeRegular = "Regular"
+
+	// ReservedNodeOfferingTypeUpgradable is a ReservedNodeOfferingType enum value
+	ReservedNodeOfferingTypeUpgradable = "Upgradable"
 )
 
 const (

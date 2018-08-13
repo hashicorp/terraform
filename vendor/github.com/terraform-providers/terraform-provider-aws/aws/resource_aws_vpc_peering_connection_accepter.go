@@ -69,6 +69,5 @@ func resourceAwsVPCPeeringAccepterCreate(d *schema.ResourceData, meta interface{
 
 func resourceAwsVPCPeeringAccepterDelete(d *schema.ResourceData, meta interface{}) error {
 	log.Printf("[WARN] Will not delete VPC peering connection. Terraform will remove this resource from the state file, however resources may remain.")
-	d.SetId("")
 	return nil
 }

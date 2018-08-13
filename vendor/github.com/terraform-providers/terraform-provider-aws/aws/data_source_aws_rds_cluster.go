@@ -58,6 +58,12 @@ func dataSourceAwsRdsCluster() *schema.Resource {
 				Computed: true,
 			},
 
+			"enabled_cloudwatch_logs_exports": {
+				Type:     schema.TypeList,
+				Computed: true,
+				Elem:     &schema.Schema{Type: schema.TypeString},
+			},
+
 			"endpoint": {
 				Type:     schema.TypeString,
 				Computed: true,

@@ -17,7 +17,7 @@
 //    a game session.
 //
 //    * Configure and manage game server resources -- Manage builds, fleets,
-//    queues, and aliases; set autoscaling policies; retrieve logs and metrics.
+//    queues, and aliases; set auto-scaling policies; retrieve logs and metrics.
 //
 // This reference guide describes the low-level service API for Amazon GameLift.
 // You can use the API functionality with these tools:
@@ -94,18 +94,18 @@
 // CreateGameSession -- Start a new game session on a specific fleet. Available
 //    in Amazon GameLift Local.
 //
-//    * Start new game sessions with FlexMatch matchmaking
+//    * Match players to game sessions with FlexMatch matchmaking
 //
 // StartMatchmaking -- Request matchmaking for one players or a group who want
 //    to play together.
+//
+// StartMatchBackfill - Request additional player matches to fill empty slots
+//    in an existing game session.
 //
 // DescribeMatchmaking -- Get details on a matchmaking request, including status.
 //
 // AcceptMatch -- Register that a player accepts a proposed match, for matches
 //    that require player acceptance.
-//
-// StartMatchBackfill - Request additional player matches to fill empty slots
-//    in an existing game session.
 //
 // StopMatchmaking -- Cancel a matchmaking request.
 //
@@ -188,15 +188,19 @@
 //    and the current number of instances in a fleet; adjust fleet capacity
 //    settings to scale up or down.
 //
-// Autoscale -- Manage autoscaling rules and apply them to a fleet.
+// Autoscale -- Manage auto-scaling rules and apply them to a fleet.
 //
-// PutScalingPolicy -- Create a new autoscaling policy, or update an existing
+// PutScalingPolicy -- Create a new auto-scaling policy, or update an existing
 //    one.
 //
-// DescribeScalingPolicies -- Retrieve an existing autoscaling policy.
+// DescribeScalingPolicies -- Retrieve an existing auto-scaling policy.
 //
-// DeleteScalingPolicy -- Delete an autoscaling policy and stop it from affecting
+// DeleteScalingPolicy -- Delete an auto-scaling policy and stop it from affecting
 //    a fleet's capacity.
+//
+// StartFleetActions -- Restart a fleet's auto-scaling policies.
+//
+// StopFleetActions -- Suspend a fleet's auto-scaling policies.
 //
 //    * Manage VPC peering connections for fleets
 //

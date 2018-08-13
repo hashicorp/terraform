@@ -116,7 +116,7 @@ access, a function call, or even another conditional. The true and false
 value can also be any valid interpolation syntax. The returned types by
 the true and false side must be the same.
 
-The support operators are:
+The supported operators are:
 
   * Equality: `==` and `!=`
   * Numerical comparison: `>`, `<`, `>=`, `<=`

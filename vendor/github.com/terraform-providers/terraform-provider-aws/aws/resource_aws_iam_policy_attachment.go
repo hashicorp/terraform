@@ -11,6 +11,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/iam"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/hashicorp/terraform/helper/validation"
 )
 
 func resourceAwsIamPolicyAttachment() *schema.Resource {
@@ -22,16 +23,10 @@ func resourceAwsIamPolicyAttachment() *schema.Resource {
 
 		Schema: map[string]*schema.Schema{
 			"name": &schema.Schema{
-				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: true,
-				ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
-					if v.(string) == "" {
-						errors = append(errors, fmt.Errorf(
-							"%q cannot be an empty string", k))
-					}
-					return
-				},
+				Type:         schema.TypeString,
+				Required:     true,
+				ForceNew:     true,
+				ValidateFunc: validation.NoZeroValues,
 			},
 			"users": &schema.Schema{
 				Type:     schema.TypeSet,

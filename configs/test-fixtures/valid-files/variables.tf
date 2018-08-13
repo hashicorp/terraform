@@ -12,7 +12,7 @@ variable "baz" {
 
 variable "bar-baz" {
   default = []
-  type    = list
+  type    = list(string)
 }
 
 variable "cheeze_pizza" {

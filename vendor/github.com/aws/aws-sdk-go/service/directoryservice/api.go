@@ -15,7 +15,7 @@ const opAddIpRoutes = "AddIpRoutes"
 
 // AddIpRoutesRequest generates a "aws/request.Request" representing the
 // client's request for the AddIpRoutes operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -122,7 +122,7 @@ const opAddTagsToResource = "AddTagsToResource"
 
 // AddTagsToResourceRequest generates a "aws/request.Request" representing the
 // client's request for the AddTagsToResource operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -215,7 +215,7 @@ const opCancelSchemaExtension = "CancelSchemaExtension"
 
 // CancelSchemaExtensionRequest generates a "aws/request.Request" representing the
 // client's request for the CancelSchemaExtension operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -303,7 +303,7 @@ const opConnectDirectory = "ConnectDirectory"
 
 // ConnectDirectoryRequest generates a "aws/request.Request" representing the
 // client's request for the ConnectDirectory operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -398,7 +398,7 @@ const opCreateAlias = "CreateAlias"
 
 // CreateAliasRequest generates a "aws/request.Request" representing the
 // client's request for the CreateAlias operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -494,7 +494,7 @@ const opCreateComputer = "CreateComputer"
 
 // CreateComputerRequest generates a "aws/request.Request" representing the
 // client's request for the CreateComputer operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -595,7 +595,7 @@ const opCreateConditionalForwarder = "CreateConditionalForwarder"
 
 // CreateConditionalForwarderRequest generates a "aws/request.Request" representing the
 // client's request for the CreateConditionalForwarder operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -694,7 +694,7 @@ const opCreateDirectory = "CreateDirectory"
 
 // CreateDirectoryRequest generates a "aws/request.Request" representing the
 // client's request for the CreateDirectory operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -789,7 +789,7 @@ const opCreateMicrosoftAD = "CreateMicrosoftAD"
 
 // CreateMicrosoftADRequest generates a "aws/request.Request" representing the
 // client's request for the CreateMicrosoftAD operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -887,7 +887,7 @@ const opCreateSnapshot = "CreateSnapshot"
 
 // CreateSnapshotRequest generates a "aws/request.Request" representing the
 // client's request for the CreateSnapshot operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -982,7 +982,7 @@ const opCreateTrust = "CreateTrust"
 
 // CreateTrustRequest generates a "aws/request.Request" representing the
 // client's request for the CreateTrust operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -1083,7 +1083,7 @@ const opDeleteConditionalForwarder = "DeleteConditionalForwarder"
 
 // DeleteConditionalForwarderRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteConditionalForwarder operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -1177,7 +1177,7 @@ const opDeleteDirectory = "DeleteDirectory"
 
 // DeleteDirectoryRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteDirectory operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -1267,7 +1267,7 @@ const opDeleteSnapshot = "DeleteSnapshot"
 
 // DeleteSnapshotRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteSnapshot operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -1355,7 +1355,7 @@ const opDeleteTrust = "DeleteTrust"
 
 // DeleteTrustRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteTrust operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -1447,7 +1447,7 @@ const opDeregisterEventTopic = "DeregisterEventTopic"
 
 // DeregisterEventTopicRequest generates a "aws/request.Request" representing the
 // client's request for the DeregisterEventTopic operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -1535,7 +1535,7 @@ const opDescribeConditionalForwarders = "DescribeConditionalForwarders"
 
 // DescribeConditionalForwardersRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeConditionalForwarders operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -1632,7 +1632,7 @@ const opDescribeDirectories = "DescribeDirectories"
 
 // DescribeDirectoriesRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeDirectories operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -1734,7 +1734,7 @@ const opDescribeDomainControllers = "DescribeDomainControllers"
 
 // DescribeDomainControllersRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeDomainControllers operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -1884,7 +1884,7 @@ const opDescribeEventTopics = "DescribeEventTopics"
 
 // DescribeEventTopicsRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeEventTopics operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -1976,7 +1976,7 @@ const opDescribeSnapshots = "DescribeSnapshots"
 
 // DescribeSnapshotsRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeSnapshots operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -2074,7 +2074,7 @@ const opDescribeTrusts = "DescribeTrusts"
 
 // DescribeTrustsRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeTrusts operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -2171,7 +2171,7 @@ const opDisableRadius = "DisableRadius"
 
 // DisableRadiusRequest generates a "aws/request.Request" representing the
 // client's request for the DisableRadius operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -2257,7 +2257,7 @@ const opDisableSso = "DisableSso"
 
 // DisableSsoRequest generates a "aws/request.Request" representing the
 // client's request for the DisableSso operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -2348,7 +2348,7 @@ const opEnableRadius = "EnableRadius"
 
 // EnableRadiusRequest generates a "aws/request.Request" representing the
 // client's request for the EnableRadius operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -2440,7 +2440,7 @@ const opEnableSso = "EnableSso"
 
 // EnableSsoRequest generates a "aws/request.Request" representing the
 // client's request for the EnableSso operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -2531,7 +2531,7 @@ const opGetDirectoryLimits = "GetDirectoryLimits"
 
 // GetDirectoryLimitsRequest generates a "aws/request.Request" representing the
 // client's request for the GetDirectoryLimits operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -2616,7 +2616,7 @@ const opGetSnapshotLimits = "GetSnapshotLimits"
 
 // GetSnapshotLimitsRequest generates a "aws/request.Request" representing the
 // client's request for the GetSnapshotLimits operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -2701,7 +2701,7 @@ const opListIpRoutes = "ListIpRoutes"
 
 // ListIpRoutesRequest generates a "aws/request.Request" representing the
 // client's request for the ListIpRoutes operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -2792,7 +2792,7 @@ const opListSchemaExtensions = "ListSchemaExtensions"
 
 // ListSchemaExtensionsRequest generates a "aws/request.Request" representing the
 // client's request for the ListSchemaExtensions operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -2880,7 +2880,7 @@ const opListTagsForResource = "ListTagsForResource"
 
 // ListTagsForResourceRequest generates a "aws/request.Request" representing the
 // client's request for the ListTagsForResource operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -2971,7 +2971,7 @@ const opRegisterEventTopic = "RegisterEventTopic"
 
 // RegisterEventTopicRequest generates a "aws/request.Request" representing the
 // client's request for the RegisterEventTopic operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -3064,7 +3064,7 @@ const opRemoveIpRoutes = "RemoveIpRoutes"
 
 // RemoveIpRoutesRequest generates a "aws/request.Request" representing the
 // client's request for the RemoveIpRoutes operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -3155,7 +3155,7 @@ const opRemoveTagsFromResource = "RemoveTagsFromResource"
 
 // RemoveTagsFromResourceRequest generates a "aws/request.Request" representing the
 // client's request for the RemoveTagsFromResource operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -3239,11 +3239,110 @@ func (c *DirectoryService) RemoveTagsFromResourceWithContext(ctx aws.Context, in
 	return out, req.Send()
 }
 
+const opResetUserPassword = "ResetUserPassword"
+
+// ResetUserPasswordRequest generates a "aws/request.Request" representing the
+// client's request for the ResetUserPassword operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfuly.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See ResetUserPassword for more information on using the ResetUserPassword
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the ResetUserPasswordRequest method.
+//    req, resp := client.ResetUserPasswordRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/ds-2015-04-16/ResetUserPassword
+func (c *DirectoryService) ResetUserPasswordRequest(input *ResetUserPasswordInput) (req *request.Request, output *ResetUserPasswordOutput) {
+	op := &request.Operation{
+		Name:       opResetUserPassword,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &ResetUserPasswordInput{}
+	}
+
+	output = &ResetUserPasswordOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// ResetUserPassword API operation for AWS Directory Service.
+//
+// Resets the password for any user in your AWS Managed Microsoft AD or Simple
+// AD directory.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Directory Service's
+// API operation ResetUserPassword for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeDirectoryUnavailableException "DirectoryUnavailableException"
+//   The specified directory is unavailable or could not be found.
+//
+//   * ErrCodeUserDoesNotExistException "UserDoesNotExistException"
+//   The user provided a username that does not exist in your directory.
+//
+//   * ErrCodeInvalidPasswordException "InvalidPasswordException"
+//   The new password provided by the user does not meet the password complexity
+//   requirements defined in your directory.
+//
+//   * ErrCodeUnsupportedOperationException "UnsupportedOperationException"
+//   The operation is not supported.
+//
+//   * ErrCodeEntityDoesNotExistException "EntityDoesNotExistException"
+//   The specified entity could not be found.
+//
+//   * ErrCodeClientException "ClientException"
+//   A client exception has occurred.
+//
+//   * ErrCodeServiceException "ServiceException"
+//   An exception has occurred in AWS Directory Service.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/ds-2015-04-16/ResetUserPassword
+func (c *DirectoryService) ResetUserPassword(input *ResetUserPasswordInput) (*ResetUserPasswordOutput, error) {
+	req, out := c.ResetUserPasswordRequest(input)
+	return out, req.Send()
+}
+
+// ResetUserPasswordWithContext is the same as ResetUserPassword with the addition of
+// the ability to pass a context and additional request options.
+//
+// See ResetUserPassword for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *DirectoryService) ResetUserPasswordWithContext(ctx aws.Context, input *ResetUserPasswordInput, opts ...request.Option) (*ResetUserPasswordOutput, error) {
+	req, out := c.ResetUserPasswordRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
 const opRestoreFromSnapshot = "RestoreFromSnapshot"
 
 // RestoreFromSnapshotRequest generates a "aws/request.Request" representing the
 // client's request for the RestoreFromSnapshot operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -3339,7 +3438,7 @@ const opStartSchemaExtension = "StartSchemaExtension"
 
 // StartSchemaExtensionRequest generates a "aws/request.Request" representing the
 // client's request for the StartSchemaExtension operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -3435,7 +3534,7 @@ const opUpdateConditionalForwarder = "UpdateConditionalForwarder"
 
 // UpdateConditionalForwarderRequest generates a "aws/request.Request" representing the
 // client's request for the UpdateConditionalForwarder operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -3529,7 +3628,7 @@ const opUpdateNumberOfDomainControllers = "UpdateNumberOfDomainControllers"
 
 // UpdateNumberOfDomainControllersRequest generates a "aws/request.Request" representing the
 // client's request for the UpdateNumberOfDomainControllers operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -3632,7 +3731,7 @@ const opUpdateRadius = "UpdateRadius"
 
 // UpdateRadiusRequest generates a "aws/request.Request" representing the
 // client's request for the UpdateRadius operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -3721,7 +3820,7 @@ const opVerifyTrust = "VerifyTrust"
 
 // VerifyTrustRequest generates a "aws/request.Request" representing the
 // client's request for the VerifyTrust operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -6172,7 +6271,7 @@ type DirectoryDescription struct {
 	Edition *string `type:"string" enum:"DirectoryEdition"`
 
 	// Specifies when the directory was created.
-	LaunchTime *time.Time `type:"timestamp" timestampFormat:"unix"`
+	LaunchTime *time.Time `type:"timestamp"`
 
 	// The fully-qualified name of the directory.
 	Name *string `type:"string"`
@@ -6198,7 +6297,7 @@ type DirectoryDescription struct {
 	Stage *string `type:"string" enum:"DirectoryStage"`
 
 	// The date and time that the stage was last updated.
-	StageLastUpdatedDateTime *time.Time `type:"timestamp" timestampFormat:"unix"`
+	StageLastUpdatedDateTime *time.Time `type:"timestamp"`
 
 	// Additional information about the directory stage.
 	StageReason *string `type:"string"`
@@ -6703,13 +6802,13 @@ type DomainController struct {
 	DomainControllerId *string `type:"string"`
 
 	// Specifies when the domain controller was created.
-	LaunchTime *time.Time `type:"timestamp" timestampFormat:"unix"`
+	LaunchTime *time.Time `type:"timestamp"`
 
 	// The status of the domain controller.
 	Status *string `type:"string" enum:"DomainControllerStatus"`
 
 	// The date and time that the status was last updated.
-	StatusLastUpdatedDateTime *time.Time `type:"timestamp" timestampFormat:"unix"`
+	StatusLastUpdatedDateTime *time.Time `type:"timestamp"`
 
 	// A description of the domain controller state.
 	StatusReason *string `type:"string"`
@@ -6957,7 +7056,7 @@ type EventTopic struct {
 	_ struct{} `type:"structure"`
 
 	// The date and time of when you associated your directory with the SNS topic.
-	CreatedDateTime *time.Time `type:"timestamp" timestampFormat:"unix"`
+	CreatedDateTime *time.Time `type:"timestamp"`
 
 	// The Directory ID of an AWS Directory Service directory that will publish
 	// status messages to an SNS topic.
@@ -7158,7 +7257,7 @@ type IpRouteInfo struct {
 	_ struct{} `type:"structure"`
 
 	// The date and time the address block was added to the directory.
-	AddedDateTime *time.Time `type:"timestamp" timestampFormat:"unix"`
+	AddedDateTime *time.Time `type:"timestamp"`
 
 	// IP address block in the IpRoute.
 	CidrIp *string `type:"string"`
@@ -7812,6 +7911,93 @@ func (s RemoveTagsFromResourceOutput) GoString() string {
 	return s.String()
 }
 
+type ResetUserPasswordInput struct {
+	_ struct{} `type:"structure"`
+
+	// Identifier of the AWS Managed Microsoft AD or Simple AD directory in which
+	// the user resides.
+	//
+	// DirectoryId is a required field
+	DirectoryId *string `type:"string" required:"true"`
+
+	// The new password that will be reset.
+	//
+	// NewPassword is a required field
+	NewPassword *string `min:"1" type:"string" required:"true"`
+
+	// The username of the user whose password will be reset.
+	//
+	// UserName is a required field
+	UserName *string `min:"1" type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s ResetUserPasswordInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ResetUserPasswordInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ResetUserPasswordInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ResetUserPasswordInput"}
+	if s.DirectoryId == nil {
+		invalidParams.Add(request.NewErrParamRequired("DirectoryId"))
+	}
+	if s.NewPassword == nil {
+		invalidParams.Add(request.NewErrParamRequired("NewPassword"))
+	}
+	if s.NewPassword != nil && len(*s.NewPassword) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("NewPassword", 1))
+	}
+	if s.UserName == nil {
+		invalidParams.Add(request.NewErrParamRequired("UserName"))
+	}
+	if s.UserName != nil && len(*s.UserName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("UserName", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetDirectoryId sets the DirectoryId field's value.
+func (s *ResetUserPasswordInput) SetDirectoryId(v string) *ResetUserPasswordInput {
+	s.DirectoryId = &v
+	return s
+}
+
+// SetNewPassword sets the NewPassword field's value.
+func (s *ResetUserPasswordInput) SetNewPassword(v string) *ResetUserPasswordInput {
+	s.NewPassword = &v
+	return s
+}
+
+// SetUserName sets the UserName field's value.
+func (s *ResetUserPasswordInput) SetUserName(v string) *ResetUserPasswordInput {
+	s.UserName = &v
+	return s
+}
+
+type ResetUserPasswordOutput struct {
+	_ struct{} `type:"structure"`
+}
+
+// String returns the string representation
+func (s ResetUserPasswordOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ResetUserPasswordOutput) GoString() string {
+	return s.String()
+}
+
 // An object representing the inputs for the RestoreFromSnapshot operation.
 type RestoreFromSnapshotInput struct {
 	_ struct{} `type:"structure"`
@@ -7877,7 +8063,7 @@ type SchemaExtensionInfo struct {
 	DirectoryId *string `type:"string"`
 
 	// The date and time that the schema extension was completed.
-	EndDateTime *time.Time `type:"timestamp" timestampFormat:"unix"`
+	EndDateTime *time.Time `type:"timestamp"`
 
 	// The identifier of the schema extension.
 	SchemaExtensionId *string `type:"string"`
@@ -7890,7 +8076,7 @@ type SchemaExtensionInfo struct {
 
 	// The date and time that the schema extension started being applied to the
 	// directory.
-	StartDateTime *time.Time `type:"timestamp" timestampFormat:"unix"`
+	StartDateTime *time.Time `type:"timestamp"`
 }
 
 // String returns the string representation
@@ -7959,7 +8145,7 @@ type Snapshot struct {
 	SnapshotId *string `type:"string"`
 
 	// The date and time that the snapshot was taken.
-	StartTime *time.Time `type:"timestamp" timestampFormat:"unix"`
+	StartTime *time.Time `type:"timestamp"`
 
 	// The snapshot status.
 	Status *string `type:"string" enum:"SnapshotStatus"`
@@ -8232,20 +8418,20 @@ type Trust struct {
 	_ struct{} `type:"structure"`
 
 	// The date and time that the trust relationship was created.
-	CreatedDateTime *time.Time `type:"timestamp" timestampFormat:"unix"`
+	CreatedDateTime *time.Time `type:"timestamp"`
 
 	// The Directory ID of the AWS directory involved in the trust relationship.
 	DirectoryId *string `type:"string"`
 
 	// The date and time that the trust relationship was last updated.
-	LastUpdatedDateTime *time.Time `type:"timestamp" timestampFormat:"unix"`
+	LastUpdatedDateTime *time.Time `type:"timestamp"`
 
 	// The Fully Qualified Domain Name (FQDN) of the external domain involved in
 	// the trust relationship.
 	RemoteDomainName *string `type:"string"`
 
 	// The date and time that the TrustState was last updated.
-	StateLastUpdatedDateTime *time.Time `type:"timestamp" timestampFormat:"unix"`
+	StateLastUpdatedDateTime *time.Time `type:"timestamp"`
 
 	// The trust relationship direction.
 	TrustDirection *string `type:"string" enum:"TrustDirection"`

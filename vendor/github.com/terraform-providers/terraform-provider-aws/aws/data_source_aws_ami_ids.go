@@ -8,6 +8,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/hashicorp/terraform/helper/validation"
 )
 
 func dataSourceAwsAmiIds() *schema.Resource {
@@ -26,7 +27,7 @@ func dataSourceAwsAmiIds() *schema.Resource {
 				Type:         schema.TypeString,
 				Optional:     true,
 				ForceNew:     true,
-				ValidateFunc: validateNameRegex,
+				ValidateFunc: validation.ValidateRegexp,
 			},
 			"owners": {
 				Type:     schema.TypeList,

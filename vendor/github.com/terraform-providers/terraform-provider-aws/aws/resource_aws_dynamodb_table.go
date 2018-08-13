@@ -2,6 +2,7 @@ package aws
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"log"
 	"strings"
@@ -9,9 +10,11 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
+	"github.com/hashicorp/terraform/helper/customdiff"
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/hashicorp/terraform/helper/validation"
 )
 
 func resourceAwsDynamoDbTable() *schema.Resource {
@@ -30,9 +33,32 @@ func resourceAwsDynamoDbTable() *schema.Resource {
 			Update: schema.DefaultTimeout(10 * time.Minute),
 		},
 
-		CustomizeDiff: func(diff *schema.ResourceDiff, v interface{}) error {
-			return validateDynamoDbStreamSpec(diff)
-		},
+		CustomizeDiff: customdiff.Sequence(
+			func(diff *schema.ResourceDiff, v interface{}) error {
+				return validateDynamoDbStreamSpec(diff)
+			},
+			func(diff *schema.ResourceDiff, v interface{}) error {
+				return validateDynamoDbTableAttributes(diff)
+			},
+			func(diff *schema.ResourceDiff, v interface{}) error {
+				if diff.Id() != "" && diff.HasChange("server_side_encryption") {
+					o, n := diff.GetChange("server_side_encryption")
+					if isDynamoDbTableOptionDisabled(o) && isDynamoDbTableOptionDisabled(n) {
+						return diff.Clear("server_side_encryption")
+					}
+				}
+				return nil
+			},
+			func(diff *schema.ResourceDiff, v interface{}) error {
+				if diff.Id() != "" && diff.HasChange("point_in_time_recovery") {
+					o, n := diff.GetChange("point_in_time_recovery")
+					if isDynamoDbTableOptionDisabled(o) && isDynamoDbTableOptionDisabled(n) {
+						return diff.Clear("point_in_time_recovery")
+					}
+				}
+				return nil
+			},
+		),
 
 		SchemaVersion: 1,
 		MigrateState:  resourceAwsDynamoDbTableMigrateState,
@@ -75,9 +101,13 @@ func resourceAwsDynamoDbTable() *schema.Resource {
 							Required: true,
 						},
 						"type": {
-							Type:         schema.TypeString,
-							Required:     true,
-							ValidateFunc: validateDynamoAttributeType,
+							Type:     schema.TypeString,
+							Required: true,
+							ValidateFunc: validation.StringInSlice([]string{
+								dynamodb.ScalarAttributeTypeB,
+								dynamodb.ScalarAttributeTypeN,
+								dynamodb.ScalarAttributeTypeS,
+							}, false),
 						},
 					},
 				},
@@ -186,7 +216,13 @@ func resourceAwsDynamoDbTable() *schema.Resource {
 					value := v.(string)
 					return strings.ToUpper(value)
 				},
-				ValidateFunc: validateStreamViewType,
+				ValidateFunc: validation.StringInSlice([]string{
+					"",
+					dynamodb.StreamViewTypeNewImage,
+					dynamodb.StreamViewTypeOldImage,
+					dynamodb.StreamViewTypeNewAndOldImages,
+					dynamodb.StreamViewTypeKeysOnly,
+				}, false),
 			},
 			"stream_arn": {
 				Type:     schema.TypeString,
@@ -196,7 +232,36 @@ func resourceAwsDynamoDbTable() *schema.Resource {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
+			"server_side_encryption": {
+				Type:     schema.TypeList,
+				Optional: true,
+				Computed: true,
+				MaxItems: 1,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"enabled": {
+							Type:     schema.TypeBool,
+							Required: true,
+							ForceNew: true,
+						},
+					},
+				},
+			},
 			"tags": tagsSchema(),
+			"point_in_time_recovery": {
+				Type:     schema.TypeList,
+				Optional: true,
+				Computed: true,
+				MaxItems: 1,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"enabled": {
+							Type:     schema.TypeBool,
+							Required: true,
+						},
+					},
+				},
+			},
 		},
 	}
 }
@@ -248,6 +313,16 @@ func resourceAwsDynamoDbTableCreate(d *schema.ResourceData, meta interface{}) er
 			StreamEnabled:  aws.Bool(v.(bool)),
 			StreamViewType: aws.String(d.Get("stream_view_type").(string)),
 		}
+	}
+
+	if v, ok := d.GetOk("server_side_encryption"); ok {
+		options := v.([]interface{})
+		if options[0] == nil {
+			return fmt.Errorf("At least one field is expected inside server_side_encryption")
+		}
+
+		s := options[0].(map[string]interface{})
+		req.SSESpecification = expandDynamoDbEncryptAtRestOptions(s)
 	}
 
 	var output *dynamodb.CreateTableOutput
@@ -326,11 +401,10 @@ func resourceAwsDynamoDbTableUpdate(d *schema.ResourceData, meta interface{}) er
 		}
 	}
 
-	if d.HasChange("global_secondary_index") && !d.IsNewResource() {
-		var attributes []*dynamodb.AttributeDefinition
-		if v, ok := d.GetOk("attribute"); ok {
-			attributes = expandDynamoDbAttributes(v.(*schema.Set).List())
-		}
+	// Indexes and attributes are tightly coupled (DynamoDB requires attribute definitions
+	// for all indexed attributes) so it's necessary to update these together.
+	if (d.HasChange("global_secondary_index") || d.HasChange("attribute")) && !d.IsNewResource() {
+		attributes := d.Get("attribute").(*schema.Set).List()
 
 		o, n := d.GetChange("global_secondary_index")
 		ops, err := diffDynamoDbGSI(o.(*schema.Set).List(), n.(*schema.Set).List())
@@ -341,12 +415,13 @@ func resourceAwsDynamoDbTableUpdate(d *schema.ResourceData, meta interface{}) er
 
 		input := &dynamodb.UpdateTableInput{
 			TableName:            aws.String(d.Id()),
-			AttributeDefinitions: attributes,
+			AttributeDefinitions: expandDynamoDbAttributes(attributes),
 		}
 
 		// Only 1 online index can be created or deleted simultaneously per table
 		for _, op := range ops {
 			input.GlobalSecondaryIndexUpdates = []*dynamodb.GlobalSecondaryIndexUpdate{op}
+			log.Printf("[DEBUG] Updating DynamoDB Table: %s", input)
 			_, err := conn.UpdateTable(input)
 			if err != nil {
 				return err
@@ -371,6 +446,14 @@ func resourceAwsDynamoDbTableUpdate(d *schema.ResourceData, meta interface{}) er
 			}
 		}
 
+		// We may only be changing the attribute type
+		if len(ops) == 0 {
+			_, err := conn.UpdateTable(input)
+			if err != nil {
+				return err
+			}
+		}
+
 		if err := waitForDynamoDbTableToBeActive(d.Id(), d.Timeout(schema.TimeoutUpdate), conn); err != nil {
 			return fmt.Errorf("Error waiting for DynamoDB Table op: %s", err)
 		}
@@ -386,6 +469,15 @@ func resourceAwsDynamoDbTableUpdate(d *schema.ResourceData, meta interface{}) er
 	if d.HasChange("tags") {
 		if err := setTagsDynamoDb(conn, d); err != nil {
 			return err
+		}
+	}
+
+	if d.HasChange("point_in_time_recovery") {
+		_, enabled := d.GetChange("point_in_time_recovery.0.enabled")
+		if !d.IsNewResource() || enabled.(bool) {
+			if err := updateDynamoDbPITR(d, conn); err != nil {
+				return err
+			}
 		}
 	}
 
@@ -432,6 +524,14 @@ func resourceAwsDynamoDbTableRead(d *schema.ResourceData, meta interface{}) erro
 	}
 	d.Set("tags", tags)
 
+	pitrOut, err := conn.DescribeContinuousBackups(&dynamodb.DescribeContinuousBackupsInput{
+		TableName: aws.String(d.Id()),
+	})
+	if err != nil && !isAWSErr(err, "UnknownOperationException", "") {
+		return err
+	}
+	d.Set("point_in_time_recovery", flattenDynamoDbPitr(pitrOut))
+
 	return nil
 }
 
@@ -440,9 +540,7 @@ func resourceAwsDynamoDbTableDelete(d *schema.ResourceData, meta interface{}) er
 
 	log.Printf("[DEBUG] DynamoDB delete table: %s", d.Id())
 
-	_, err := conn.DeleteTable(&dynamodb.DeleteTableInput{
-		TableName: aws.String(d.Id()),
-	})
+	err := deleteAwsDynamoDbTable(d.Id(), conn)
 	if err != nil {
 		if isAWSErr(err, dynamodb.ErrCodeResourceNotFoundException, "Requested resource not found: Table: ") {
 			return nil
@@ -475,6 +573,35 @@ func resourceAwsDynamoDbTableDelete(d *schema.ResourceData, meta interface{}) er
 	}
 	_, err = stateConf.WaitForState()
 	return err
+}
+
+func deleteAwsDynamoDbTable(tableName string, conn *dynamodb.DynamoDB) error {
+	input := &dynamodb.DeleteTableInput{
+		TableName: aws.String(tableName),
+	}
+
+	return resource.Retry(1*time.Minute, func() *resource.RetryError {
+		_, err := conn.DeleteTable(input)
+		if err != nil {
+			// Subscriber limit exceeded: Only 10 tables can be created, updated, or deleted simultaneously
+			if isAWSErr(err, dynamodb.ErrCodeLimitExceededException, "simultaneously") {
+				return resource.RetryableError(err)
+			}
+			// This handles multiple scenarios in the DynamoDB API:
+			// 1. Updating a table immediately before deletion may return:
+			//    ResourceInUseException: Attempt to change a resource which is still in use: Table is being updated:
+			// 2. Removing a table from a DynamoDB global table may return:
+			//    ResourceInUseException: Attempt to change a resource which is still in use: Table is being deleted:
+			if isAWSErr(err, dynamodb.ErrCodeResourceInUseException, "") {
+				return resource.RetryableError(err)
+			}
+			if isAWSErr(err, dynamodb.ErrCodeResourceNotFoundException, "Requested resource not found: Table: ") {
+				return resource.NonRetryableError(err)
+			}
+			return resource.NonRetryableError(err)
+		}
+		return nil
+	})
 }
 
 func updateDynamoDbTimeToLive(d *schema.ResourceData, conn *dynamodb.DynamoDB) error {
@@ -522,6 +649,41 @@ func updateDynamoDbTimeToLive(d *schema.ResourceData, conn *dynamodb.DynamoDB) e
 	return nil
 }
 
+func updateDynamoDbPITR(d *schema.ResourceData, conn *dynamodb.DynamoDB) error {
+	toEnable := d.Get("point_in_time_recovery.0.enabled").(bool)
+
+	input := &dynamodb.UpdateContinuousBackupsInput{
+		TableName: aws.String(d.Id()),
+		PointInTimeRecoverySpecification: &dynamodb.PointInTimeRecoverySpecification{
+			PointInTimeRecoveryEnabled: aws.Bool(toEnable),
+		},
+	}
+
+	log.Printf("[DEBUG] Updating DynamoDB point in time recovery status to %v", toEnable)
+
+	err := resource.Retry(20*time.Minute, func() *resource.RetryError {
+		_, err := conn.UpdateContinuousBackups(input)
+		if err != nil {
+			// Backups are still being enabled for this newly created table
+			if isAWSErr(err, dynamodb.ErrCodeContinuousBackupsUnavailableException, "Backups are being enabled") {
+				return resource.RetryableError(err)
+			}
+			return resource.NonRetryableError(err)
+		}
+		return nil
+	})
+
+	if err != nil {
+		return err
+	}
+
+	if err := waitForDynamoDbBackupUpdateToBeCompleted(d.Id(), toEnable, conn); err != nil {
+		return fmt.Errorf("Error waiting for DynamoDB PITR update: %s", err)
+	}
+
+	return nil
+}
+
 func readDynamoDbTableTags(arn string, conn *dynamodb.DynamoDB) (map[string]string, error) {
 	output, err := conn.ListTagsOfResource(&dynamodb.ListTagsOfResourceInput{
 		ResourceArn: aws.String(arn),
@@ -535,6 +697,18 @@ func readDynamoDbTableTags(arn string, conn *dynamodb.DynamoDB) (map[string]stri
 	// TODO Read NextToken if available
 
 	return result, nil
+}
+
+func readDynamoDbPITR(table string, conn *dynamodb.DynamoDB) (bool, error) {
+	output, err := conn.DescribeContinuousBackups(&dynamodb.DescribeContinuousBackupsInput{
+		TableName: aws.String(table),
+	})
+	if err != nil {
+		return false, fmt.Errorf("Error reading backup status from dynamodb resource: %s", err)
+	}
+
+	pitr := output.ContinuousBackupsDescription.PointInTimeRecoveryDescription
+	return *pitr.PointInTimeRecoveryStatus == dynamodb.PointInTimeRecoveryStatusEnabled, nil
 }
 
 // Waiters
@@ -634,6 +808,41 @@ func waitForDynamoDbTableToBeActive(tableName string, timeout time.Duration, con
 	return err
 }
 
+func waitForDynamoDbBackupUpdateToBeCompleted(tableName string, toEnable bool, conn *dynamodb.DynamoDB) error {
+	var pending []string
+	target := []string{dynamodb.TimeToLiveStatusDisabled}
+
+	if toEnable {
+		pending = []string{
+			"ENABLING",
+		}
+		target = []string{dynamodb.PointInTimeRecoveryStatusEnabled}
+	}
+
+	stateConf := &resource.StateChangeConf{
+		Pending: pending,
+		Target:  target,
+		Timeout: 10 * time.Second,
+		Refresh: func() (interface{}, string, error) {
+			result, err := conn.DescribeContinuousBackups(&dynamodb.DescribeContinuousBackupsInput{
+				TableName: aws.String(tableName),
+			})
+			if err != nil {
+				return 42, "", err
+			}
+
+			if result.ContinuousBackupsDescription == nil || result.ContinuousBackupsDescription.PointInTimeRecoveryDescription == nil {
+				return 42, "", errors.New("Error reading backup status from dynamodb resource: empty description")
+			}
+			pitr := result.ContinuousBackupsDescription.PointInTimeRecoveryDescription
+
+			return result, *pitr.PointInTimeRecoveryStatus, nil
+		},
+	}
+	_, err := stateConf.WaitForState()
+	return err
+}
+
 func waitForDynamoDbTtlUpdateToBeCompleted(tableName string, toEnable bool, conn *dynamodb.DynamoDB) error {
 	pending := []string{
 		dynamodb.TimeToLiveStatusEnabled,
@@ -669,4 +878,13 @@ func waitForDynamoDbTtlUpdateToBeCompleted(tableName string, toEnable bool, conn
 
 	_, err := stateConf.WaitForState()
 	return err
+}
+
+func isDynamoDbTableOptionDisabled(v interface{}) bool {
+	options := v.([]interface{})
+	if len(options) == 0 {
+		return true
+	}
+	e := options[0].(map[string]interface{})["enabled"]
+	return !e.(bool)
 }

@@ -85,7 +85,7 @@ reference cycles are not allowed. That is, a local cannot refer to itself
 or to a variable that refers (directly or indirectly) back to it.
 
 It's recommended to group together logically-related local values into
-a single block, particulary if they depend on each other. This will help
+a single block, particularly if they depend on each other. This will help
 the reader understand the relationships between variables. Conversely,
 prefer to define _unrelated_ local values in _separate_ blocks, and consider
 annotating each block with a comment describing any context common to all

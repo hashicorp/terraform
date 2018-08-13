@@ -18,6 +18,9 @@ func resourceAwsEipAssociation() *schema.Resource {
 		Create: resourceAwsEipAssociationCreate,
 		Read:   resourceAwsEipAssociationRead,
 		Delete: resourceAwsEipAssociationDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"allocation_id": &schema.Schema{
@@ -172,6 +175,9 @@ func resourceAwsEipAssociationDelete(d *schema.ResourceData, meta interface{}) e
 
 	_, err := conn.DisassociateAddress(opts)
 	if err != nil {
+		if isAWSErr(err, "InvalidAssociationID.NotFound", "") {
+			return nil
+		}
 		return fmt.Errorf("Error deleting Elastic IP association: %s", err)
 	}
 

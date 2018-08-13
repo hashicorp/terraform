@@ -9,6 +9,7 @@ import (
 	"io"
 	"io/ioutil"
 	"log"
+	"os"
 	"reflect"
 	"sort"
 	"strconv"
@@ -1876,11 +1877,19 @@ var ErrNoState = errors.New("no state")
 // ReadState reads a state structure out of a reader in the format that
 // was written by WriteState.
 func ReadState(src io.Reader) (*State, error) {
-	buf := bufio.NewReader(src)
-	if _, err := buf.Peek(1); err != nil {
-		// the error is either io.EOF or "invalid argument", and both are from
-		// an empty state.
+	// check for a nil file specifically, since that produces a platform
+	// specific error if we try to use it in a bufio.Reader.
+	if f, ok := src.(*os.File); ok && f == nil {
 		return nil, ErrNoState
+	}
+
+	buf := bufio.NewReader(src)
+
+	if _, err := buf.Peek(1); err != nil {
+		if err == io.EOF {
+			return nil, ErrNoState
+		}
+		return nil, err
 	}
 
 	if err := testForV0State(buf); err != nil {

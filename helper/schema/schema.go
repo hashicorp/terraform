@@ -395,7 +395,7 @@ func (m *schemaMap) DeepCopy() schemaMap {
 	if err != nil {
 		panic(err)
 	}
-	return copy.(schemaMap)
+	return *copy.(*schemaMap)
 }
 
 // Diff returns the diff for a resource given the schema map,
@@ -1270,9 +1270,9 @@ func (m schemaMap) validateConflictingAttributes(
 	}
 
 	for _, conflicting_key := range schema.ConflictsWith {
-		if value, ok := c.Get(conflicting_key); ok {
+		if _, ok := c.Get(conflicting_key); ok {
 			return fmt.Errorf(
-				"%q: conflicts with %s (%#v)", k, conflicting_key, value)
+				"%q: conflicts with %s", k, conflicting_key)
 		}
 	}
 
@@ -1461,13 +1461,10 @@ func getValueType(k string, schema *Schema) (ValueType, error) {
 		return vt, nil
 	}
 
+	// If a Schema is provided to a Map, we use the Type of that schema
+	// as the type for each element in the Map.
 	if s, ok := schema.Elem.(*Schema); ok {
-		if s.Elem == nil {
-			return TypeString, nil
-		}
-		if vt, ok := s.Elem.(ValueType); ok {
-			return vt, nil
-		}
+		return s.Type, nil
 	}
 
 	if _, ok := schema.Elem.(*Resource); ok {

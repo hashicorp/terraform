@@ -41,6 +41,7 @@ terraform {
     address    = "demo.consul.io"
     datacenter = "nyc3"
     path       = "tfdemo"
+    scheme     = "https"
   }
 }
 ```

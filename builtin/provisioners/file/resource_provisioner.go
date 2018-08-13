@@ -48,9 +48,6 @@ func applyFn(ctx context.Context) error {
 		return err
 	}
 
-	ctx, cancel := context.WithTimeout(ctx, comm.Timeout())
-	defer cancel()
-
 	// Get the source
 	src, deleteSource, err := getSrc(data)
 	if err != nil {
@@ -99,8 +96,11 @@ func getSrc(data *schema.ResourceData) (string, bool, error) {
 
 // copyFiles is used to copy the files from a source to a destination
 func copyFiles(ctx context.Context, comm communicator.Communicator, src, dst string) error {
+	retryCtx, cancel := context.WithTimeout(ctx, comm.Timeout())
+	defer cancel()
+
 	// Wait and retry until we establish the connection
-	err := communicator.Retry(ctx, func() error {
+	err := communicator.Retry(retryCtx, func() error {
 		return comm.Connect(nil)
 	})
 	if err != nil {

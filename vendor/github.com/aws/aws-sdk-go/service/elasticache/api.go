@@ -16,7 +16,7 @@ const opAddTagsToResource = "AddTagsToResource"
 
 // AddTagsToResourceRequest generates a "aws/request.Request" representing the
 // client's request for the AddTagsToResource operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -116,7 +116,7 @@ const opAuthorizeCacheSecurityGroupIngress = "AuthorizeCacheSecurityGroupIngress
 
 // AuthorizeCacheSecurityGroupIngressRequest generates a "aws/request.Request" representing the
 // client's request for the AuthorizeCacheSecurityGroupIngress operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -214,7 +214,7 @@ const opCopySnapshot = "CopySnapshot"
 
 // CopySnapshotRequest generates a "aws/request.Request" representing the
 // client's request for the CopySnapshot operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -374,7 +374,7 @@ const opCreateCacheCluster = "CreateCacheCluster"
 
 // CreateCacheClusterRequest generates a "aws/request.Request" representing the
 // client's request for the CreateCacheCluster operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -506,7 +506,7 @@ const opCreateCacheParameterGroup = "CreateCacheParameterGroup"
 
 // CreateCacheParameterGroupRequest generates a "aws/request.Request" representing the
 // client's request for the CreateCacheParameterGroup operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -612,7 +612,7 @@ const opCreateCacheSecurityGroup = "CreateCacheSecurityGroup"
 
 // CreateCacheSecurityGroupRequest generates a "aws/request.Request" representing the
 // client's request for the CreateCacheSecurityGroup operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -707,7 +707,7 @@ const opCreateCacheSubnetGroup = "CreateCacheSubnetGroup"
 
 // CreateCacheSubnetGroupRequest generates a "aws/request.Request" representing the
 // client's request for the CreateCacheSubnetGroup operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -801,7 +801,7 @@ const opCreateReplicationGroup = "CreateReplicationGroup"
 
 // CreateReplicationGroupRequest generates a "aws/request.Request" representing the
 // client's request for the CreateReplicationGroup operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -955,7 +955,7 @@ const opCreateSnapshot = "CreateSnapshot"
 
 // CreateSnapshotRequest generates a "aws/request.Request" representing the
 // client's request for the CreateSnapshot operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -1070,7 +1070,7 @@ const opDeleteCacheCluster = "DeleteCacheCluster"
 
 // DeleteCacheClusterRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteCacheCluster operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -1187,7 +1187,7 @@ const opDeleteCacheParameterGroup = "DeleteCacheParameterGroup"
 
 // DeleteCacheParameterGroupRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteCacheParameterGroup operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -1280,7 +1280,7 @@ const opDeleteCacheSecurityGroup = "DeleteCacheSecurityGroup"
 
 // DeleteCacheSecurityGroupRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteCacheSecurityGroup operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -1373,7 +1373,7 @@ const opDeleteCacheSubnetGroup = "DeleteCacheSubnetGroup"
 
 // DeleteCacheSubnetGroupRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteCacheSubnetGroup operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -1460,7 +1460,7 @@ const opDeleteReplicationGroup = "DeleteReplicationGroup"
 
 // DeleteReplicationGroupRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteReplicationGroup operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -1576,7 +1576,7 @@ const opDeleteSnapshot = "DeleteSnapshot"
 
 // DeleteSnapshotRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteSnapshot operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -1669,7 +1669,7 @@ const opDescribeCacheClusters = "DescribeCacheClusters"
 
 // DescribeCacheClustersRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeCacheClusters operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -1831,7 +1831,7 @@ const opDescribeCacheEngineVersions = "DescribeCacheEngineVersions"
 
 // DescribeCacheEngineVersionsRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeCacheEngineVersions operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -1961,7 +1961,7 @@ const opDescribeCacheParameterGroups = "DescribeCacheParameterGroups"
 
 // DescribeCacheParameterGroupsRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeCacheParameterGroups operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -2105,7 +2105,7 @@ const opDescribeCacheParameters = "DescribeCacheParameters"
 
 // DescribeCacheParametersRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeCacheParameters operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -2247,7 +2247,7 @@ const opDescribeCacheSecurityGroups = "DescribeCacheSecurityGroups"
 
 // DescribeCacheSecurityGroupsRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeCacheSecurityGroups operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -2390,7 +2390,7 @@ const opDescribeCacheSubnetGroups = "DescribeCacheSubnetGroups"
 
 // DescribeCacheSubnetGroupsRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeCacheSubnetGroups operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -2527,7 +2527,7 @@ const opDescribeEngineDefaultParameters = "DescribeEngineDefaultParameters"
 
 // DescribeEngineDefaultParametersRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeEngineDefaultParameters operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -2666,7 +2666,7 @@ const opDescribeEvents = "DescribeEvents"
 
 // DescribeEventsRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeEvents operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -2809,7 +2809,7 @@ const opDescribeReplicationGroups = "DescribeReplicationGroups"
 
 // DescribeReplicationGroupsRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeReplicationGroups operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -2954,7 +2954,7 @@ const opDescribeReservedCacheNodes = "DescribeReservedCacheNodes"
 
 // DescribeReservedCacheNodesRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeReservedCacheNodes operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -3096,7 +3096,7 @@ const opDescribeReservedCacheNodesOfferings = "DescribeReservedCacheNodesOfferin
 
 // DescribeReservedCacheNodesOfferingsRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeReservedCacheNodesOfferings operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -3237,7 +3237,7 @@ const opDescribeSnapshots = "DescribeSnapshots"
 
 // DescribeSnapshotsRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeSnapshots operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -3386,7 +3386,7 @@ const opListAllowedNodeTypeModifications = "ListAllowedNodeTypeModifications"
 
 // ListAllowedNodeTypeModificationsRequest generates a "aws/request.Request" representing the
 // client's request for the ListAllowedNodeTypeModifications operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -3479,7 +3479,7 @@ const opListTagsForResource = "ListTagsForResource"
 
 // ListTagsForResourceRequest generates a "aws/request.Request" representing the
 // client's request for the ListTagsForResource operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -3571,7 +3571,7 @@ const opModifyCacheCluster = "ModifyCacheCluster"
 
 // ModifyCacheClusterRequest generates a "aws/request.Request" representing the
 // client's request for the ModifyCacheCluster operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -3687,7 +3687,7 @@ const opModifyCacheParameterGroup = "ModifyCacheParameterGroup"
 
 // ModifyCacheParameterGroupRequest generates a "aws/request.Request" representing the
 // client's request for the ModifyCacheParameterGroup operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -3779,7 +3779,7 @@ const opModifyCacheSubnetGroup = "ModifyCacheSubnetGroup"
 
 // ModifyCacheSubnetGroupRequest generates a "aws/request.Request" representing the
 // client's request for the ModifyCacheSubnetGroup operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -3869,7 +3869,7 @@ const opModifyReplicationGroup = "ModifyReplicationGroup"
 
 // ModifyReplicationGroupRequest generates a "aws/request.Request" representing the
 // client's request for the ModifyReplicationGroup operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -3995,7 +3995,7 @@ const opModifyReplicationGroupShardConfiguration = "ModifyReplicationGroupShardC
 
 // ModifyReplicationGroupShardConfigurationRequest generates a "aws/request.Request" representing the
 // client's request for the ModifyReplicationGroupShardConfiguration operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -4109,7 +4109,7 @@ const opPurchaseReservedCacheNodesOffering = "PurchaseReservedCacheNodesOffering
 
 // PurchaseReservedCacheNodesOfferingRequest generates a "aws/request.Request" representing the
 // client's request for the PurchaseReservedCacheNodesOffering operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -4201,7 +4201,7 @@ const opRebootCacheCluster = "RebootCacheCluster"
 
 // RebootCacheClusterRequest generates a "aws/request.Request" representing the
 // client's request for the RebootCacheCluster operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -4299,7 +4299,7 @@ const opRemoveTagsFromResource = "RemoveTagsFromResource"
 
 // RemoveTagsFromResourceRequest generates a "aws/request.Request" representing the
 // client's request for the RemoveTagsFromResource operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -4387,7 +4387,7 @@ const opResetCacheParameterGroup = "ResetCacheParameterGroup"
 
 // ResetCacheParameterGroupRequest generates a "aws/request.Request" representing the
 // client's request for the ResetCacheParameterGroup operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -4480,7 +4480,7 @@ const opRevokeCacheSecurityGroupIngress = "RevokeCacheSecurityGroupIngress"
 
 // RevokeCacheSecurityGroupIngressRequest generates a "aws/request.Request" representing the
 // client's request for the RevokeCacheSecurityGroupIngress operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -4574,7 +4574,7 @@ const opTestFailover = "TestFailover"
 
 // TestFailoverRequest generates a "aws/request.Request" representing the
 // client's request for the TestFailover operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -4919,7 +4919,7 @@ type CacheCluster struct {
 	AutoMinorVersionUpgrade *bool `type:"boolean"`
 
 	// The date and time when the cluster was created.
-	CacheClusterCreateTime *time.Time `type:"timestamp" timestampFormat:"iso8601"`
+	CacheClusterCreateTime *time.Time `type:"timestamp"`
 
 	// The user-supplied identifier of the cluster. This identifier is a unique
 	// key that identifies a cluster.
@@ -5378,7 +5378,7 @@ type CacheNode struct {
 	_ struct{} `type:"structure"`
 
 	// The date and time when the cache node was created.
-	CacheNodeCreateTime *time.Time `type:"timestamp" timestampFormat:"iso8601"`
+	CacheNodeCreateTime *time.Time `type:"timestamp"`
 
 	// The cache node identifier. A node ID is a numeric identifier (0001, 0002,
 	// etc.). The combination of cluster ID and node ID uniquely identifies every
@@ -8423,7 +8423,7 @@ type DescribeEventsInput struct {
 	// 8601 format.
 	//
 	// Example: 2017-03-30T07:03:49.555Z
-	EndTime *time.Time `type:"timestamp" timestampFormat:"iso8601"`
+	EndTime *time.Time `type:"timestamp"`
 
 	// An optional marker returned from a prior request. Use this marker for pagination
 	// of results from this operation. If this parameter is specified, the response
@@ -8451,7 +8451,7 @@ type DescribeEventsInput struct {
 	// 8601 format.
 	//
 	// Example: 2017-03-30T07:03:49.555Z
-	StartTime *time.Time `type:"timestamp" timestampFormat:"iso8601"`
+	StartTime *time.Time `type:"timestamp"`
 }
 
 // String returns the string representation
@@ -9279,7 +9279,7 @@ type Event struct {
 	_ struct{} `type:"structure"`
 
 	// The date and time when the event occurred.
-	Date *time.Time `type:"timestamp" timestampFormat:"iso8601"`
+	Date *time.Time `type:"timestamp"`
 
 	// The text of the event.
 	Message *string `type:"string"`
@@ -10595,7 +10595,7 @@ type NodeSnapshot struct {
 	CacheClusterId *string `type:"string"`
 
 	// The date and time when the cache node was created in the source cluster.
-	CacheNodeCreateTime *time.Time `type:"timestamp" timestampFormat:"iso8601"`
+	CacheNodeCreateTime *time.Time `type:"timestamp"`
 
 	// The cache node identifier for the node in the source cluster.
 	CacheNodeId *string `type:"string"`
@@ -10611,7 +10611,7 @@ type NodeSnapshot struct {
 
 	// The date and time when the source node's metadata and cache data set was
 	// obtained for the snapshot.
-	SnapshotCreateTime *time.Time `type:"timestamp" timestampFormat:"iso8601"`
+	SnapshotCreateTime *time.Time `type:"timestamp"`
 }
 
 // String returns the string representation
@@ -11502,7 +11502,7 @@ type ReservedCacheNode struct {
 	ReservedCacheNodesOfferingId *string `type:"string"`
 
 	// The time the reservation started.
-	StartTime *time.Time `type:"timestamp" timestampFormat:"iso8601"`
+	StartTime *time.Time `type:"timestamp"`
 
 	// The state of the reserved cache node.
 	State *string `type:"string"`
@@ -12028,7 +12028,7 @@ type Snapshot struct {
 	AutomaticFailover *string `type:"string" enum:"AutomaticFailoverStatus"`
 
 	// The date and time when the source cluster was created.
-	CacheClusterCreateTime *time.Time `type:"timestamp" timestampFormat:"iso8601"`
+	CacheClusterCreateTime *time.Time `type:"timestamp"`
 
 	// The user-supplied identifier of the source cluster.
 	CacheClusterId *string `type:"string"`

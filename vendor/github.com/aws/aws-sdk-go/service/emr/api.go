@@ -17,7 +17,7 @@ const opAddInstanceFleet = "AddInstanceFleet"
 
 // AddInstanceFleetRequest generates a "aws/request.Request" representing the
 // client's request for the AddInstanceFleet operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -102,7 +102,7 @@ const opAddInstanceGroups = "AddInstanceGroups"
 
 // AddInstanceGroupsRequest generates a "aws/request.Request" representing the
 // client's request for the AddInstanceGroups operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -182,7 +182,7 @@ const opAddJobFlowSteps = "AddJobFlowSteps"
 
 // AddJobFlowStepsRequest generates a "aws/request.Request" representing the
 // client's request for the AddJobFlowSteps operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -284,7 +284,7 @@ const opAddTags = "AddTags"
 
 // AddTagsRequest generates a "aws/request.Request" representing the
 // client's request for the AddTags operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -368,7 +368,7 @@ const opCancelSteps = "CancelSteps"
 
 // CancelStepsRequest generates a "aws/request.Request" representing the
 // client's request for the CancelSteps operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -455,7 +455,7 @@ const opCreateSecurityConfiguration = "CreateSecurityConfiguration"
 
 // CreateSecurityConfigurationRequest generates a "aws/request.Request" representing the
 // client's request for the CreateSecurityConfiguration operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -538,7 +538,7 @@ const opDeleteSecurityConfiguration = "DeleteSecurityConfiguration"
 
 // DeleteSecurityConfigurationRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteSecurityConfiguration operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -620,7 +620,7 @@ const opDescribeCluster = "DescribeCluster"
 
 // DescribeClusterRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeCluster operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -661,7 +661,7 @@ func (c *EMR) DescribeClusterRequest(input *DescribeClusterInput) (req *request.
 // DescribeCluster API operation for Amazon Elastic MapReduce.
 //
 // Provides cluster-level details including status, hardware and software configuration,
-// VPC settings, and so on. For information about the cluster steps, see ListSteps.
+// VPC settings, and so on.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -703,7 +703,7 @@ const opDescribeJobFlows = "DescribeJobFlows"
 
 // DescribeJobFlowsRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeJobFlows operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -805,7 +805,7 @@ const opDescribeSecurityConfiguration = "DescribeSecurityConfiguration"
 
 // DescribeSecurityConfigurationRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeSecurityConfiguration operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -888,7 +888,7 @@ const opDescribeStep = "DescribeStep"
 
 // DescribeStepRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeStep operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -970,7 +970,7 @@ const opListBootstrapActions = "ListBootstrapActions"
 
 // ListBootstrapActionsRequest generates a "aws/request.Request" representing the
 // client's request for the ListBootstrapActions operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -1108,7 +1108,7 @@ const opListClusters = "ListClusters"
 
 // ListClustersRequest generates a "aws/request.Request" representing the
 // client's request for the ListClusters operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -1250,7 +1250,7 @@ const opListInstanceFleets = "ListInstanceFleets"
 
 // ListInstanceFleetsRequest generates a "aws/request.Request" representing the
 // client's request for the ListInstanceFleets operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -1391,7 +1391,7 @@ const opListInstanceGroups = "ListInstanceGroups"
 
 // ListInstanceGroupsRequest generates a "aws/request.Request" representing the
 // client's request for the ListInstanceGroups operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -1529,7 +1529,7 @@ const opListInstances = "ListInstances"
 
 // ListInstancesRequest generates a "aws/request.Request" representing the
 // client's request for the ListInstances operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -1670,7 +1670,7 @@ const opListSecurityConfigurations = "ListSecurityConfigurations"
 
 // ListSecurityConfigurationsRequest generates a "aws/request.Request" representing the
 // client's request for the ListSecurityConfigurations operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -1755,7 +1755,7 @@ const opListSteps = "ListSteps"
 
 // ListStepsRequest generates a "aws/request.Request" representing the
 // client's request for the ListSteps operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -1894,7 +1894,7 @@ const opModifyInstanceFleet = "ModifyInstanceFleet"
 
 // ModifyInstanceFleetRequest generates a "aws/request.Request" representing the
 // client's request for the ModifyInstanceFleet operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -1983,7 +1983,7 @@ const opModifyInstanceGroups = "ModifyInstanceGroups"
 
 // ModifyInstanceGroupsRequest generates a "aws/request.Request" representing the
 // client's request for the ModifyInstanceGroups operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -2068,7 +2068,7 @@ const opPutAutoScalingPolicy = "PutAutoScalingPolicy"
 
 // PutAutoScalingPolicyRequest generates a "aws/request.Request" representing the
 // client's request for the PutAutoScalingPolicy operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -2145,7 +2145,7 @@ const opRemoveAutoScalingPolicy = "RemoveAutoScalingPolicy"
 
 // RemoveAutoScalingPolicyRequest generates a "aws/request.Request" representing the
 // client's request for the RemoveAutoScalingPolicy operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -2220,7 +2220,7 @@ const opRemoveTags = "RemoveTags"
 
 // RemoveTagsRequest generates a "aws/request.Request" representing the
 // client's request for the RemoveTags operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -2306,7 +2306,7 @@ const opRunJobFlow = "RunJobFlow"
 
 // RunJobFlowRequest generates a "aws/request.Request" representing the
 // client's request for the RunJobFlow operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -2412,7 +2412,7 @@ const opSetTerminationProtection = "SetTerminationProtection"
 
 // SetTerminationProtectionRequest generates a "aws/request.Request" representing the
 // client's request for the SetTerminationProtection operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -2510,7 +2510,7 @@ const opSetVisibleToAllUsers = "SetVisibleToAllUsers"
 
 // SetVisibleToAllUsersRequest generates a "aws/request.Request" representing the
 // client's request for the SetVisibleToAllUsers operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -2597,7 +2597,7 @@ const opTerminateJobFlows = "TerminateJobFlows"
 
 // TerminateJobFlowsRequest generates a "aws/request.Request" representing the
 // client's request for the TerminateJobFlows operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -3675,7 +3675,14 @@ type Cluster struct {
 	// the actual billing rate.
 	NormalizedInstanceHours *int64 `type:"integer"`
 
-	// The release label for the Amazon EMR release.
+	// The Amazon EMR release label, which determines the version of open-source
+	// application packages installed on the cluster. Release labels are in the
+	// form emr-x.x.x, where x.x.x is an Amazon EMR release version, for example,
+	// emr-5.14.0. For more information about Amazon EMR release versions and included
+	// application versions and features, see http://docs.aws.amazon.com/emr/latest/ReleaseGuide/
+	// (http://docs.aws.amazon.com/emr/latest/ReleaseGuide/). The release label
+	// applies only to Amazon EMR releases versions 4.x and later. Earlier versions
+	// use AmiVersion.
 	ReleaseLabel *string `type:"string"`
 
 	// Applies only when CustomAmiID is used. Specifies the type of updates that
@@ -4027,13 +4034,13 @@ type ClusterTimeline struct {
 	_ struct{} `type:"structure"`
 
 	// The creation date and time of the cluster.
-	CreationDateTime *time.Time `type:"timestamp" timestampFormat:"unix"`
+	CreationDateTime *time.Time `type:"timestamp"`
 
 	// The date and time when the cluster was terminated.
-	EndDateTime *time.Time `type:"timestamp" timestampFormat:"unix"`
+	EndDateTime *time.Time `type:"timestamp"`
 
 	// The date and time when the cluster was ready to execute steps.
-	ReadyDateTime *time.Time `type:"timestamp" timestampFormat:"unix"`
+	ReadyDateTime *time.Time `type:"timestamp"`
 }
 
 // String returns the string representation
@@ -4215,7 +4222,7 @@ type CreateSecurityConfigurationOutput struct {
 	// The date and time the security configuration was created.
 	//
 	// CreationDateTime is a required field
-	CreationDateTime *time.Time `type:"timestamp" timestampFormat:"unix" required:"true"`
+	CreationDateTime *time.Time `type:"timestamp" required:"true"`
 
 	// The name of the security configuration.
 	//
@@ -4365,10 +4372,10 @@ type DescribeJobFlowsInput struct {
 	_ struct{} `type:"structure"`
 
 	// Return only job flows created after this date and time.
-	CreatedAfter *time.Time `type:"timestamp" timestampFormat:"unix"`
+	CreatedAfter *time.Time `type:"timestamp"`
 
 	// Return only job flows created before this date and time.
-	CreatedBefore *time.Time `type:"timestamp" timestampFormat:"unix"`
+	CreatedBefore *time.Time `type:"timestamp"`
 
 	// Return only job flows whose job flow ID is contained in this list.
 	JobFlowIds []*string `type:"list"`
@@ -4477,7 +4484,7 @@ type DescribeSecurityConfigurationOutput struct {
 	_ struct{} `type:"structure"`
 
 	// The date and time the security configuration was created
-	CreationDateTime *time.Time `type:"timestamp" timestampFormat:"unix"`
+	CreationDateTime *time.Time `type:"timestamp"`
 
 	// The name of the security configuration.
 	Name *string `type:"string"`
@@ -5713,13 +5720,13 @@ type InstanceFleetTimeline struct {
 	_ struct{} `type:"structure"`
 
 	// The time and date the instance fleet was created.
-	CreationDateTime *time.Time `type:"timestamp" timestampFormat:"unix"`
+	CreationDateTime *time.Time `type:"timestamp"`
 
 	// The time and date the instance fleet terminated.
-	EndDateTime *time.Time `type:"timestamp" timestampFormat:"unix"`
+	EndDateTime *time.Time `type:"timestamp"`
 
 	// The time and date the instance fleet was ready to run jobs.
-	ReadyDateTime *time.Time `type:"timestamp" timestampFormat:"unix"`
+	ReadyDateTime *time.Time `type:"timestamp"`
 }
 
 // String returns the string representation
@@ -5761,8 +5768,12 @@ type InstanceGroup struct {
 	// of a CloudWatch metric. See PutAutoScalingPolicy.
 	AutoScalingPolicy *AutoScalingPolicyDescription `type:"structure"`
 
-	// The bid price for each EC2 instance in the instance group when launching
-	// nodes as Spot Instances, expressed in USD.
+	// The maximum Spot price your are willing to pay for EC2 instances.
+	//
+	// An optional, nullable field that applies if the MarketType for the instance
+	// group is specified as SPOT. Specify the maximum spot price in USD. If the
+	// value is NULL and SPOT is specified, the maximum Spot price is set equal
+	// to the On-Demand price.
 	BidPrice *string `type:"string"`
 
 	// Amazon EMR releases 4.x or later.
@@ -5913,8 +5924,12 @@ type InstanceGroupConfig struct {
 	// of a CloudWatch metric. See PutAutoScalingPolicy.
 	AutoScalingPolicy *AutoScalingPolicy `type:"structure"`
 
-	// Bid price for each EC2 instance in the instance group when launching nodes
-	// as Spot Instances, expressed in USD.
+	// The maximum Spot price your are willing to pay for EC2 instances.
+	//
+	// An optional, nullable field that applies if the MarketType for the instance
+	// group is specified as SPOT. Specify the maximum spot price in USD. If the
+	// value is NULL and SPOT is specified, the maximum Spot price is set equal
+	// to the On-Demand price.
 	BidPrice *string `type:"string"`
 
 	// Amazon EMR releases 4.x or later.
@@ -6050,17 +6065,20 @@ func (s *InstanceGroupConfig) SetName(v string) *InstanceGroupConfig {
 type InstanceGroupDetail struct {
 	_ struct{} `type:"structure"`
 
-	// Bid price for EC2 Instances when launching nodes as Spot Instances, expressed
-	// in USD.
+	// The maximum Spot price your are willing to pay for EC2 instances.
+	//
+	// An optional, nullable field that applies if the MarketType for the instance
+	// group is specified as SPOT. Specified in USD. If the value is NULL and SPOT
+	// is specified, the maximum Spot price is set equal to the On-Demand price.
 	BidPrice *string `type:"string"`
 
 	// The date/time the instance group was created.
 	//
 	// CreationDateTime is a required field
-	CreationDateTime *time.Time `type:"timestamp" timestampFormat:"unix" required:"true"`
+	CreationDateTime *time.Time `type:"timestamp" required:"true"`
 
 	// The date/time the instance group was terminated.
-	EndDateTime *time.Time `type:"timestamp" timestampFormat:"unix"`
+	EndDateTime *time.Time `type:"timestamp"`
 
 	// Unique identifier for the instance group.
 	InstanceGroupId *string `type:"string"`
@@ -6097,10 +6115,10 @@ type InstanceGroupDetail struct {
 	Name *string `type:"string"`
 
 	// The date/time the instance group was available to the cluster.
-	ReadyDateTime *time.Time `type:"timestamp" timestampFormat:"unix"`
+	ReadyDateTime *time.Time `type:"timestamp"`
 
 	// The date/time the instance group was started.
-	StartDateTime *time.Time `type:"timestamp" timestampFormat:"unix"`
+	StartDateTime *time.Time `type:"timestamp"`
 
 	// State of instance group. The following values are deprecated: STARTING, TERMINATED,
 	// and FAILED.
@@ -6350,13 +6368,13 @@ type InstanceGroupTimeline struct {
 	_ struct{} `type:"structure"`
 
 	// The creation date and time of the instance group.
-	CreationDateTime *time.Time `type:"timestamp" timestampFormat:"unix"`
+	CreationDateTime *time.Time `type:"timestamp"`
 
 	// The date and time when the instance group terminated.
-	EndDateTime *time.Time `type:"timestamp" timestampFormat:"unix"`
+	EndDateTime *time.Time `type:"timestamp"`
 
 	// The date and time when the instance group became ready to perform tasks.
-	ReadyDateTime *time.Time `type:"timestamp" timestampFormat:"unix"`
+	ReadyDateTime *time.Time `type:"timestamp"`
 }
 
 // String returns the string representation
@@ -6511,13 +6529,13 @@ type InstanceTimeline struct {
 	_ struct{} `type:"structure"`
 
 	// The creation date and time of the instance.
-	CreationDateTime *time.Time `type:"timestamp" timestampFormat:"unix"`
+	CreationDateTime *time.Time `type:"timestamp"`
 
 	// The date and time when the instance was terminated.
-	EndDateTime *time.Time `type:"timestamp" timestampFormat:"unix"`
+	EndDateTime *time.Time `type:"timestamp"`
 
 	// The date and time when the instance was ready to perform tasks.
-	ReadyDateTime *time.Time `type:"timestamp" timestampFormat:"unix"`
+	ReadyDateTime *time.Time `type:"timestamp"`
 }
 
 // String returns the string representation
@@ -6751,10 +6769,8 @@ func (s *InstanceTypeSpecification) SetWeightedCapacity(v int64) *InstanceTypeSp
 type JobFlowDetail struct {
 	_ struct{} `type:"structure"`
 
-	// Used only for version 2.x and 3.x of Amazon EMR. The version of the AMI used
-	// to initialize Amazon EC2 instances in the job flow. For a list of AMI versions
-	// supported by Amazon EMR, see AMI Versions Supported in EMR (http://docs.aws.amazon.com/emr/latest/DeveloperGuide/emr-dg.pdf#nameddest=ami-versions-supported)
-	// in the Amazon EMR Developer Guide.
+	// Applies only to Amazon EMR AMI versions 3.x and 2.x. For Amazon EMR releases
+	// 4.0 and later, ReleaseLabel is used. To specify a custom AMI, use CustomAmiID.
 	AmiVersion *string `type:"string"`
 
 	// An IAM role for automatic scaling policies. The default role is EMR_AutoScaling_DefaultRole.
@@ -6929,20 +6945,20 @@ type JobFlowExecutionStatusDetail struct {
 	// The creation date and time of the job flow.
 	//
 	// CreationDateTime is a required field
-	CreationDateTime *time.Time `type:"timestamp" timestampFormat:"unix" required:"true"`
+	CreationDateTime *time.Time `type:"timestamp" required:"true"`
 
 	// The completion date and time of the job flow.
-	EndDateTime *time.Time `type:"timestamp" timestampFormat:"unix"`
+	EndDateTime *time.Time `type:"timestamp"`
 
 	// Description of the job flow last changed state.
 	LastStateChangeReason *string `type:"string"`
 
 	// The date and time when the job flow was ready to start running bootstrap
 	// actions.
-	ReadyDateTime *time.Time `type:"timestamp" timestampFormat:"unix"`
+	ReadyDateTime *time.Time `type:"timestamp"`
 
 	// The start date and time of the job flow.
-	StartDateTime *time.Time `type:"timestamp" timestampFormat:"unix"`
+	StartDateTime *time.Time `type:"timestamp"`
 
 	// The state of the job flow.
 	//
@@ -7041,11 +7057,12 @@ type JobFlowInstancesConfig struct {
 	// The identifier of the Amazon EC2 security group for the slave nodes.
 	EmrManagedSlaveSecurityGroup *string `type:"string"`
 
-	// The Hadoop version for the cluster. Valid inputs are "0.18" (deprecated),
-	// "0.20" (deprecated), "0.20.205" (deprecated), "1.0.3", "2.2.0", or "2.4.0".
-	// If you do not set this value, the default of 0.18 is used, unless the AmiVersion
-	// parameter is set in the RunJobFlow call, in which case the default version
-	// of Hadoop for that AMI version is used.
+	// Applies only to Amazon EMR release versions earlier than 4.0. The Hadoop
+	// version for the cluster. Valid inputs are "0.18" (deprecated), "0.20" (deprecated),
+	// "0.20.205" (deprecated), "1.0.3", "2.2.0", or "2.4.0". If you do not set
+	// this value, the default of 0.18 is used, unless the AmiVersion parameter
+	// is set in the RunJobFlow call, in which case the default version of Hadoop
+	// for that AMI version is used.
 	HadoopVersion *string `type:"string"`
 
 	// The number of EC2 instances in the cluster.
@@ -7596,10 +7613,10 @@ type ListClustersInput struct {
 	ClusterStates []*string `type:"list"`
 
 	// The creation date and time beginning value filter for listing clusters.
-	CreatedAfter *time.Time `type:"timestamp" timestampFormat:"unix"`
+	CreatedAfter *time.Time `type:"timestamp"`
 
 	// The creation date and time end value filter for listing clusters.
-	CreatedBefore *time.Time `type:"timestamp" timestampFormat:"unix"`
+	CreatedBefore *time.Time `type:"timestamp"`
 
 	// The pagination token that indicates the next set of results to retrieve.
 	Marker *string `type:"string"`
@@ -8591,22 +8608,8 @@ type RunJobFlowInput struct {
 	// A JSON string for selecting additional features.
 	AdditionalInfo *string `type:"string"`
 
-	// For Amazon EMR AMI versions 3.x and 2.x. For Amazon EMR releases 4.0 and
-	// later, the Linux AMI is determined by the ReleaseLabel specified or by CustomAmiID.
-	// The version of the Amazon Machine Image (AMI) to use when launching Amazon
-	// EC2 instances in the job flow. For details about the AMI versions currently
-	// supported in EMR version 3.x and 2.x, see AMI Versions Supported in EMR (emr/latest/DeveloperGuide/emr-dg.pdf#nameddest=ami-versions-supported)
-	// in the Amazon EMR Developer Guide.
-	//
-	// If the AMI supports multiple versions of Hadoop (for example, AMI 1.0 supports
-	// both Hadoop 0.18 and 0.20), you can use the JobFlowInstancesConfigHadoopVersion
-	// parameter to modify the version of Hadoop from the defaults shown above.
-	//
-	// Previously, the EMR AMI version API parameter options allowed you to use
-	// latest for the latest AMI version rather than specify a numerical value.
-	// Some regions no longer support this deprecated option as they only have a
-	// newer release label version of EMR, which requires you to specify an EMR
-	// release label release (EMR 4.x or later).
+	// Applies only to Amazon EMR AMI versions 3.x and 2.x. For Amazon EMR releases
+	// 4.0 and later, ReleaseLabel is used. To specify a custom AMI, use CustomAmiID.
 	AmiVersion *string `type:"string"`
 
 	// For Amazon EMR releases 4.0 and later. A list of applications for the cluster.
@@ -8698,8 +8701,14 @@ type RunJobFlowInput struct {
 	//    * "ganglia" - launch the cluster with the Ganglia Monitoring System installed.
 	NewSupportedProducts []*SupportedProductConfig `type:"list"`
 
-	// The release label for the Amazon EMR release. For Amazon EMR 3.x and 2.x
-	// AMIs, use AmiVersion instead.
+	// The Amazon EMR release label, which determines the version of open-source
+	// application packages installed on the cluster. Release labels are in the
+	// form emr-x.x.x, where x.x.x is an Amazon EMR release version, for example,
+	// emr-5.14.0. For more information about Amazon EMR release versions and included
+	// application versions and features, see http://docs.aws.amazon.com/emr/latest/ReleaseGuide/
+	// (http://docs.aws.amazon.com/emr/latest/ReleaseGuide/). The release label
+	// applies only to Amazon EMR releases versions 4.x and later. Earlier versions
+	// use AmiVersion.
 	ReleaseLabel *string `type:"string"`
 
 	// Applies only when CustomAmiID is used. Specifies which updates from the Amazon
@@ -9279,7 +9288,7 @@ type SecurityConfigurationSummary struct {
 	_ struct{} `type:"structure"`
 
 	// The date and time the security configuration was created.
-	CreationDateTime *time.Time `type:"timestamp" timestampFormat:"unix"`
+	CreationDateTime *time.Time `type:"timestamp"`
 
 	// The name of the security configuration.
 	Name *string `type:"string"`
@@ -9814,16 +9823,16 @@ type StepExecutionStatusDetail struct {
 	// The creation date and time of the step.
 	//
 	// CreationDateTime is a required field
-	CreationDateTime *time.Time `type:"timestamp" timestampFormat:"unix" required:"true"`
+	CreationDateTime *time.Time `type:"timestamp" required:"true"`
 
 	// The completion date and time of the step.
-	EndDateTime *time.Time `type:"timestamp" timestampFormat:"unix"`
+	EndDateTime *time.Time `type:"timestamp"`
 
 	// A description of the step's current state.
 	LastStateChangeReason *string `type:"string"`
 
 	// The start date and time of the step.
-	StartDateTime *time.Time `type:"timestamp" timestampFormat:"unix"`
+	StartDateTime *time.Time `type:"timestamp"`
 
 	// The state of the step.
 	//
@@ -10023,13 +10032,13 @@ type StepTimeline struct {
 	_ struct{} `type:"structure"`
 
 	// The date and time when the cluster step was created.
-	CreationDateTime *time.Time `type:"timestamp" timestampFormat:"unix"`
+	CreationDateTime *time.Time `type:"timestamp"`
 
 	// The date and time when the cluster step execution completed or failed.
-	EndDateTime *time.Time `type:"timestamp" timestampFormat:"unix"`
+	EndDateTime *time.Time `type:"timestamp"`
 
 	// The date and time when the cluster step execution started.
-	StartDateTime *time.Time `type:"timestamp" timestampFormat:"unix"`
+	StartDateTime *time.Time `type:"timestamp"`
 }
 
 // String returns the string representation

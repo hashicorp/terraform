@@ -15,14 +15,14 @@ func (val Value) GoString() string {
 	}
 
 	if val.ty == DynamicPseudoType {
-		return "cty.DynamicValue"
+		return "cty.DynamicVal"
 	}
 
 	if !val.IsKnown() {
-		return fmt.Sprintf("cty.Unknown(%#v)", val.ty)
+		return fmt.Sprintf("cty.UnknownVal(%#v)", val.ty)
 	}
 	if val.IsNull() {
-		return fmt.Sprintf("cty.Null(%#v)", val.ty)
+		return fmt.Sprintf("cty.NullVal(%#v)", val.ty)
 	}
 
 	// By the time we reach here we've dealt with all of the exceptions around
@@ -540,6 +540,8 @@ func (val Value) GetAttr(name string) Value {
 	if !val.ty.IsObjectType() {
 		panic("value is not an object")
 	}
+
+	name = NormalizeString(name)
 	if !val.ty.HasAttribute(name) {
 		panic("value has no attribute of that name")
 	}
@@ -756,6 +758,9 @@ func (val Value) HasElement(elem Value) Value {
 	if val.IsNull() {
 		panic("can't call HasElement on a nil value")
 	}
+	if ty.ElementType() != elem.Type() {
+		return False
+	}
 
 	s := val.v.(set.Set)
 	return BoolVal(s.Has(elem.v))
@@ -967,7 +972,7 @@ func (val Value) AsString() string {
 // cty.Number value, or panics if called on any other value.
 //
 // For more convenient conversions to other native numeric types, use the
-// "convert" package.
+// "gocty" package.
 func (val Value) AsBigFloat() *big.Float {
 	if val.ty != Number {
 		panic("not a number")
@@ -983,6 +988,72 @@ func (val Value) AsBigFloat() *big.Float {
 	ret := *(val.v.(*big.Float))
 
 	return &ret
+}
+
+// AsValueSlice returns a []cty.Value representation of a non-null, non-unknown
+// value of any type that CanIterateElements, or panics if called on
+// any other value.
+//
+// For more convenient conversions to slices of more specific types, use
+// the "gocty" package.
+func (val Value) AsValueSlice() []Value {
+	l := val.LengthInt()
+	if l == 0 {
+		return nil
+	}
+
+	ret := make([]Value, 0, l)
+	for it := val.ElementIterator(); it.Next(); {
+		_, v := it.Element()
+		ret = append(ret, v)
+	}
+	return ret
+}
+
+// AsValueMap returns a map[string]cty.Value representation of a non-null,
+// non-unknown value of any type that CanIterateElements, or panics if called
+// on any other value.
+//
+// For more convenient conversions to maps of more specific types, use
+// the "gocty" package.
+func (val Value) AsValueMap() map[string]Value {
+	l := val.LengthInt()
+	if l == 0 {
+		return nil
+	}
+
+	ret := make(map[string]Value, l)
+	for it := val.ElementIterator(); it.Next(); {
+		k, v := it.Element()
+		ret[k.AsString()] = v
+	}
+	return ret
+}
+
+// AsValueSet returns a ValueSet representation of a non-null,
+// non-unknown value of any collection type, or panics if called
+// on any other value.
+//
+// Unlike AsValueSlice and AsValueMap, this method requires specifically a
+// collection type (list, set or map) and does not allow structural types
+// (tuple or object), because the ValueSet type requires homogenous
+// element types.
+//
+// The returned ValueSet can store only values of the receiver's element type.
+func (val Value) AsValueSet() ValueSet {
+	if !val.Type().IsCollectionType() {
+		panic("not a collection type")
+	}
+
+	// We don't give the caller our own set.Set (assuming we're a cty.Set value)
+	// because then the caller could mutate our internals, which is forbidden.
+	// Instead, we will construct a new set and append our elements into it.
+	ret := NewValueSet(val.Type().ElementType())
+	for it := val.ElementIterator(); it.Next(); {
+		_, v := it.Element()
+		ret.Add(v)
+	}
+	return ret
 }
 
 // EncapsulatedValue returns the native value encapsulated in a non-null,

@@ -3,7 +3,7 @@ layout: "docs"
 page_title: "Infrastructure Software Providers"
 sidebar_current: "docs-providers-infra"
 description: |-
-  Category for standard cloud vendors.
+  Category for infrastructure management vendors.
 ---
 
 # Infrastructure Software Providers
@@ -21,6 +21,8 @@ and are tested by HashiCorp.
 [Chef](/docs/providers/chef/index.html)
 
 [Consul](/docs/providers/consul/index.html)
+
+[Docker](/docs/providers/docker/index.html)
 
 [Kubernetes](/docs/providers/kubernetes/index.html)
 

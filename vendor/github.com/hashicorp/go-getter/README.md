@@ -232,6 +232,9 @@ The options below are available to all protocols:
   * `checksum` - Checksum to verify the downloaded file or archive. See
     the entire section on checksumming above for format and more details.
 
+  * `filename` - When in file download mode, allows specifying the name of the
+    downloaded file on disk. Has no effect in directory mode.
+
 ### Local Files (`file`)
 
 None
@@ -282,7 +285,7 @@ be used automatically.
   * `aws_access_key_id` (required) - Minio access key.
   * `aws_access_key_secret` (required) - Minio access key secret.
   * `region` (optional - defaults to us-east-1) - Region identifier to use.
-  * `version` (optional - fefaults to Minio default) - Configuration file format.
+  * `version` (optional - defaults to Minio default) - Configuration file format.
 
 #### S3 Bucket Examples
 

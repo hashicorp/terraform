@@ -64,7 +64,6 @@ func resourceAwsVpnGatewayRoutePropagationDisable(d *schema.ResourceData, meta i
 		return fmt.Errorf("error disabling VGW propagation: %s", err)
 	}
 
-	d.SetId("")
 	return nil
 }
 

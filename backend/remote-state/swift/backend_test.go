@@ -67,7 +67,7 @@ func TestBackend(t *testing.T) {
 
 	defer deleteSwiftContainer(t, b.client, container)
 
-	backend.TestBackend(t, b, nil)
+	backend.TestBackendStates(t, b)
 }
 
 func TestBackendPath(t *testing.T) {

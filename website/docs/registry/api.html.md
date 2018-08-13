@@ -70,7 +70,7 @@ These endpoints list modules according to some criteria.
 ### Sample Request
 
 ```text
-$ curl 'https://registry.terraform.io/v1/modules&limit=2&verified=true'
+$ curl 'https://registry.terraform.io/v1/modules?limit=2&verified=true'
 ```
 
 ### Sample Response
@@ -661,9 +661,6 @@ download endpoint (above) for the latest version.
   This is required and is specified as part of the URL path.
 
 - `provider` `(string: <required>)` - The name of the provider.
-  This is required and is specified as part of the URL path.
-
-- `version` `(string: <required>)` - The version of the module.
   This is required and is specified as part of the URL path.
 
 ### Sample Request

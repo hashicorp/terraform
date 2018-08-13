@@ -104,8 +104,6 @@ func resourceAwsLbAttachmentDelete(d *schema.ResourceData, meta interface{}) err
 		return errwrap.Wrapf("Error deregistering Targets: {{err}}", err)
 	}
 
-	d.SetId("")
-
 	return nil
 }
 

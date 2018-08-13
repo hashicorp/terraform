@@ -11,6 +11,7 @@ import (
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/hashicorp/terraform/helper/validation"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
@@ -26,30 +27,16 @@ func resourceAwsCodeDeployDeploymentGroup() *schema.Resource {
 
 		Schema: map[string]*schema.Schema{
 			"app_name": &schema.Schema{
-				Type:     schema.TypeString,
-				Required: true,
-				ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
-					value := v.(string)
-					if len(value) > 100 {
-						errors = append(errors, fmt.Errorf(
-							"%q cannot exceed 100 characters", k))
-					}
-					return
-				},
+				Type:         schema.TypeString,
+				Required:     true,
+				ValidateFunc: validateMaxLength(100),
 			},
 
 			"deployment_group_name": &schema.Schema{
-				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: true,
-				ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
-					value := v.(string)
-					if len(value) > 100 {
-						errors = append(errors, fmt.Errorf(
-							"%q cannot exceed 100 characters", k))
-					}
-					return
-				},
+				Type:         schema.TypeString,
+				Required:     true,
+				ForceNew:     true,
+				ValidateFunc: validateMaxLength(100),
 			},
 
 			"deployment_style": &schema.Schema{
@@ -60,15 +47,20 @@ func resourceAwsCodeDeployDeploymentGroup() *schema.Resource {
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"deployment_option": &schema.Schema{
-							Type:         schema.TypeString,
-							Optional:     true,
-							ValidateFunc: validateDeploymentOption,
+							Type:     schema.TypeString,
+							Optional: true,
+							ValidateFunc: validation.StringInSlice([]string{
+								codedeploy.DeploymentOptionWithTrafficControl,
+								codedeploy.DeploymentOptionWithoutTrafficControl,
+							}, false),
 						},
-
 						"deployment_type": &schema.Schema{
-							Type:         schema.TypeString,
-							Optional:     true,
-							ValidateFunc: validateDeploymentType,
+							Type:     schema.TypeString,
+							Optional: true,
+							ValidateFunc: validation.StringInSlice([]string{
+								codedeploy.DeploymentTypeInPlace,
+								codedeploy.DeploymentTypeBlueGreen,
+							}, false),
 						},
 					},
 				},
@@ -88,9 +80,12 @@ func resourceAwsCodeDeployDeploymentGroup() *schema.Resource {
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
 									"action_on_timeout": &schema.Schema{
-										Type:         schema.TypeString,
-										Optional:     true,
-										ValidateFunc: validateDeploymentReadyOption,
+										Type:     schema.TypeString,
+										Optional: true,
+										ValidateFunc: validation.StringInSlice([]string{
+											codedeploy.DeploymentReadyActionContinueDeployment,
+											codedeploy.DeploymentReadyActionStopDeployment,
+										}, false),
 									},
 									"wait_time_in_minutes": &schema.Schema{
 										Type:     schema.TypeInt,
@@ -108,9 +103,12 @@ func resourceAwsCodeDeployDeploymentGroup() *schema.Resource {
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
 									"action": &schema.Schema{
-										Type:         schema.TypeString,
-										Optional:     true,
-										ValidateFunc: validateGreenFleetProvisioningOption,
+										Type:     schema.TypeString,
+										Optional: true,
+										ValidateFunc: validation.StringInSlice([]string{
+											codedeploy.GreenFleetProvisioningActionDiscoverExisting,
+											codedeploy.GreenFleetProvisioningActionCopyAutoScalingGroup,
+										}, false),
 									},
 								},
 							},
@@ -123,9 +121,12 @@ func resourceAwsCodeDeployDeploymentGroup() *schema.Resource {
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
 									"action": &schema.Schema{
-										Type:         schema.TypeString,
-										Optional:     true,
-										ValidateFunc: validateBlueInstanceTerminationOption,
+										Type:     schema.TypeString,
+										Optional: true,
+										ValidateFunc: validation.StringInSlice([]string{
+											codedeploy.InstanceActionTerminate,
+											codedeploy.InstanceActionKeepAlive,
+										}, false),
 									},
 									"termination_wait_time_in_minutes": &schema.Schema{
 										Type:     schema.TypeInt,
@@ -238,17 +239,44 @@ func resourceAwsCodeDeployDeploymentGroup() *schema.Resource {
 			},
 
 			"deployment_config_name": &schema.Schema{
-				Type:     schema.TypeString,
+				Type:         schema.TypeString,
+				Optional:     true,
+				Default:      "CodeDeployDefault.OneAtATime",
+				ValidateFunc: validateMaxLength(100),
+			},
+
+			"ec2_tag_set": &schema.Schema{
+				Type:     schema.TypeSet,
 				Optional: true,
-				Default:  "CodeDeployDefault.OneAtATime",
-				ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
-					value := v.(string)
-					if len(value) > 100 {
-						errors = append(errors, fmt.Errorf(
-							"%q cannot exceed 100 characters", k))
-					}
-					return
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"ec2_tag_filter": &schema.Schema{
+							Type:     schema.TypeSet,
+							Optional: true,
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"key": &schema.Schema{
+										Type:     schema.TypeString,
+										Optional: true,
+									},
+
+									"type": &schema.Schema{
+										Type:         schema.TypeString,
+										Optional:     true,
+										ValidateFunc: validateTagFilters,
+									},
+
+									"value": &schema.Schema{
+										Type:     schema.TypeString,
+										Optional: true,
+									},
+								},
+							},
+							Set: resourceAwsCodeDeployTagFilterHash,
+						},
+					},
 				},
+				Set: resourceAwsCodeDeployTagSetHash,
 			},
 
 			"ec2_tag_filter": &schema.Schema{
@@ -311,8 +339,19 @@ func resourceAwsCodeDeployDeploymentGroup() *schema.Resource {
 							Required: true,
 							Set:      schema.HashString,
 							Elem: &schema.Schema{
-								Type:         schema.TypeString,
-								ValidateFunc: validateTriggerEvent,
+								Type: schema.TypeString,
+								ValidateFunc: validation.StringInSlice([]string{
+									codedeploy.TriggerEventTypeDeploymentStart,
+									codedeploy.TriggerEventTypeDeploymentSuccess,
+									codedeploy.TriggerEventTypeDeploymentFailure,
+									codedeploy.TriggerEventTypeDeploymentStop,
+									codedeploy.TriggerEventTypeDeploymentRollback,
+									codedeploy.TriggerEventTypeDeploymentReady,
+									codedeploy.TriggerEventTypeInstanceStart,
+									codedeploy.TriggerEventTypeInstanceSuccess,
+									codedeploy.TriggerEventTypeInstanceFailure,
+									codedeploy.TriggerEventTypeInstanceReady,
+								}, false),
 							},
 						},
 
@@ -362,9 +401,12 @@ func resourceAwsCodeDeployDeploymentGroupCreate(d *schema.ResourceData, meta int
 		input.OnPremisesInstanceTagFilters = onPremFilters
 	}
 
+	if attr, ok := d.GetOk("ec2_tag_set"); ok {
+		input.Ec2TagSet = buildEC2TagSet(attr.(*schema.Set).List())
+	}
+
 	if attr, ok := d.GetOk("ec2_tag_filter"); ok {
-		ec2TagFilters := buildEC2TagFilters(attr.(*schema.Set).List())
-		input.Ec2TagFilters = ec2TagFilters
+		input.Ec2TagFilters = buildEC2TagFilters(attr.(*schema.Set).List())
 	}
 
 	if attr, ok := d.GetOk("trigger_configuration"); ok {
@@ -455,6 +497,10 @@ func resourceAwsCodeDeployDeploymentGroupRead(d *schema.ResourceData, meta inter
 		return err
 	}
 
+	if err := d.Set("ec2_tag_set", ec2TagSetToMap(resp.DeploymentGroupInfo.Ec2TagSet)); err != nil {
+		return err
+	}
+
 	if err := d.Set("ec2_tag_filter", ec2TagFiltersToMap(resp.DeploymentGroupInfo.Ec2TagFilters)); err != nil {
 		return err
 	}
@@ -520,6 +566,12 @@ func resourceAwsCodeDeployDeploymentGroupUpdate(d *schema.ResourceData, meta int
 		_, n := d.GetChange("on_premises_instance_tag_filter")
 		onPremFilters := buildOnPremTagFilters(n.(*schema.Set).List())
 		input.OnPremisesInstanceTagFilters = onPremFilters
+	}
+
+	if d.HasChange("ec2_tag_set") {
+		_, n := d.GetChange("ec2_tag_set")
+		ec2TagSet := buildEC2TagSet(n.(*schema.Set).List())
+		input.Ec2TagSet = ec2TagSet
 	}
 
 	if d.HasChange("ec2_tag_filter") {
@@ -603,8 +655,6 @@ func resourceAwsCodeDeployDeploymentGroupDelete(d *schema.ResourceData, meta int
 		return err
 	}
 
-	d.SetId("")
-
 	return nil
 }
 
@@ -648,6 +698,18 @@ func buildEC2TagFilters(configured []interface{}) []*codedeploy.EC2TagFilter {
 	}
 
 	return filters
+}
+
+// buildEC2TagSet converts raw schema lists into a codedeploy.EC2TagSet.
+func buildEC2TagSet(configured []interface{}) *codedeploy.EC2TagSet {
+	filterSets := make([][]*codedeploy.EC2TagFilter, 0)
+	for _, raw := range configured {
+		m := raw.(map[string]interface{})
+		rawFilters := m["ec2_tag_filter"].(*schema.Set)
+		filters := buildEC2TagFilters(rawFilters.List())
+		filterSets = append(filterSets, filters)
+	}
+	return &codedeploy.EC2TagSet{Ec2TagSetList: filterSets}
 }
 
 // buildTriggerConfigs converts a raw schema list into a list of
@@ -841,11 +903,11 @@ func expandBlueGreenDeploymentConfig(list []interface{}) *codedeploy.BlueGreenDe
 	return blueGreenDeploymentConfig
 }
 
-// ec2TagFiltersToMap converts lists of tag filters into a []map[string]string.
-func ec2TagFiltersToMap(list []*codedeploy.EC2TagFilter) []map[string]string {
-	result := make([]map[string]string, 0, len(list))
+// ec2TagFiltersToMap converts lists of tag filters into a []map[string]interface{}.
+func ec2TagFiltersToMap(list []*codedeploy.EC2TagFilter) []map[string]interface{} {
+	result := make([]map[string]interface{}, 0, len(list))
 	for _, tf := range list {
-		l := make(map[string]string)
+		l := make(map[string]interface{})
 		if tf.Key != nil && *tf.Key != "" {
 			l["key"] = *tf.Key
 		}
@@ -875,6 +937,28 @@ func onPremisesTagFiltersToMap(list []*codedeploy.TagFilter) []map[string]string
 			l["type"] = *tf.Type
 		}
 		result = append(result, l)
+	}
+	return result
+}
+
+// ec2TagSetToMap converts lists of tag filters into a [][]map[string]string.
+func ec2TagSetToMap(tagSet *codedeploy.EC2TagSet) []map[string]interface{} {
+	var result []map[string]interface{}
+	if tagSet == nil {
+		result = make([]map[string]interface{}, 0)
+	} else {
+		result = make([]map[string]interface{}, 0, len(tagSet.Ec2TagSetList))
+		for _, filterSet := range tagSet.Ec2TagSetList {
+			filters := ec2TagFiltersToMap(filterSet)
+			filtersAsIntfSlice := make([]interface{}, 0, len(filters))
+			for _, item := range filters {
+				filtersAsIntfSlice = append(filtersAsIntfSlice, item)
+			}
+			tagFilters := map[string]interface{}{
+				"ec2_tag_filter": schema.NewSet(resourceAwsCodeDeployTagFilterHash, filtersAsIntfSlice),
+			}
+			result = append(result, tagFilters)
+		}
 	}
 	return result
 }
@@ -1062,6 +1146,19 @@ func resourceAwsCodeDeployTagFilterHash(v interface{}) int {
 	return hashcode.String(buf.String())
 }
 
+func resourceAwsCodeDeployTagSetHash(v interface{}) int {
+	tagSetMap := v.(map[string]interface{})
+	filterSet := tagSetMap["ec2_tag_filter"]
+	filterSetSlice := filterSet.(*schema.Set).List()
+
+	var x uint64
+	x = 1
+	for i, filter := range filterSetSlice {
+		x = ((x << 7) | (x >> (64 - 7))) ^ uint64(i) ^ uint64(resourceAwsCodeDeployTagFilterHash(filter))
+	}
+	return int(x)
+}
+
 func resourceAwsCodeDeployTriggerConfigHash(v interface{}) int {
 	var buf bytes.Buffer
 	m := v.(map[string]interface{})
@@ -1096,88 +1193,4 @@ func loadBalancerInfoHash(v interface{}) int {
 	}
 
 	return hashcode.String(buf.String())
-}
-
-func validateTriggerEvent(v interface{}, k string) (ws []string, errors []error) {
-	value := v.(string)
-	triggerEvents := map[string]bool{
-		"DeploymentStart":    true,
-		"DeploymentStop":     true,
-		"DeploymentSuccess":  true,
-		"DeploymentFailure":  true,
-		"DeploymentRollback": true,
-		"InstanceStart":      true,
-		"InstanceSuccess":    true,
-		"InstanceFailure":    true,
-	}
-
-	if !triggerEvents[value] {
-		errors = append(errors, fmt.Errorf("%q must be a valid event type value: %q", k, value))
-	}
-	return
-}
-
-func validateDeploymentOption(v interface{}, k string) (ws []string, errors []error) {
-	value := v.(string)
-	validOptions := map[string]bool{
-		"WITH_TRAFFIC_CONTROL":    true,
-		"WITHOUT_TRAFFIC_CONTROL": true,
-	}
-
-	if !validOptions[value] {
-		errors = append(errors, fmt.Errorf("%q must be a valid deployment option: %q", k, value))
-	}
-	return
-}
-
-func validateDeploymentType(v interface{}, k string) (ws []string, errors []error) {
-	value := v.(string)
-	validTypes := map[string]bool{
-		"IN_PLACE":   true,
-		"BLUE_GREEN": true,
-	}
-
-	if !validTypes[value] {
-		errors = append(errors, fmt.Errorf("%q must be a valid deployment type: %q", k, value))
-	}
-	return
-}
-
-func validateDeploymentReadyOption(v interface{}, k string) (ws []string, errors []error) {
-	value := v.(string)
-	validOptions := map[string]bool{
-		"CONTINUE_DEPLOYMENT": true,
-		"STOP_DEPLOYMENT":     true,
-	}
-
-	if !validOptions[value] {
-		errors = append(errors, fmt.Errorf("%q must be a valid deployment_ready_option:action_on_timeout value: %q", k, value))
-	}
-	return
-}
-
-func validateGreenFleetProvisioningOption(v interface{}, k string) (ws []string, errors []error) {
-	value := v.(string)
-	validOptions := map[string]bool{
-		"DISCOVER_EXISTING":       true,
-		"COPY_AUTO_SCALING_GROUP": true,
-	}
-
-	if !validOptions[value] {
-		errors = append(errors, fmt.Errorf("%q must be a valid green_fleet_provisioning_option:action value: %q", k, value))
-	}
-	return
-}
-
-func validateBlueInstanceTerminationOption(v interface{}, k string) (ws []string, errors []error) {
-	value := v.(string)
-	validOptions := map[string]bool{
-		"TERMINATE":  true,
-		"KEEP_ALIVE": true,
-	}
-
-	if !validOptions[value] {
-		errors = append(errors, fmt.Errorf("%q must be a valid terminate_blue_instances_on_deployment_success:action value: %q", k, value))
-	}
-	return
 }

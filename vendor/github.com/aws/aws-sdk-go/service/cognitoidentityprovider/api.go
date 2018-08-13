@@ -18,7 +18,7 @@ const opAddCustomAttributes = "AddCustomAttributes"
 
 // AddCustomAttributesRequest generates a "aws/request.Request" representing the
 // client's request for the AddCustomAttributes operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -116,7 +116,7 @@ const opAdminAddUserToGroup = "AdminAddUserToGroup"
 
 // AdminAddUserToGroupRequest generates a "aws/request.Request" representing the
 // client's request for the AdminAddUserToGroup operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -217,7 +217,7 @@ const opAdminConfirmSignUp = "AdminConfirmSignUp"
 
 // AdminConfirmSignUpRequest generates a "aws/request.Request" representing the
 // client's request for the AdminConfirmSignUp operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -337,7 +337,7 @@ const opAdminCreateUser = "AdminCreateUser"
 
 // AdminCreateUserRequest generates a "aws/request.Request" representing the
 // client's request for the AdminCreateUser operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -488,7 +488,7 @@ const opAdminDeleteUser = "AdminDeleteUser"
 
 // AdminDeleteUserRequest generates a "aws/request.Request" representing the
 // client's request for the AdminDeleteUser operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -589,7 +589,7 @@ const opAdminDeleteUserAttributes = "AdminDeleteUserAttributes"
 
 // AdminDeleteUserAttributesRequest generates a "aws/request.Request" representing the
 // client's request for the AdminDeleteUserAttributes operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -689,7 +689,7 @@ const opAdminDisableProviderForUser = "AdminDisableProviderForUser"
 
 // AdminDisableProviderForUserRequest generates a "aws/request.Request" representing the
 // client's request for the AdminDisableProviderForUser operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -820,7 +820,7 @@ const opAdminDisableUser = "AdminDisableUser"
 
 // AdminDisableUserRequest generates a "aws/request.Request" representing the
 // client's request for the AdminDisableUser operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -919,7 +919,7 @@ const opAdminEnableUser = "AdminEnableUser"
 
 // AdminEnableUserRequest generates a "aws/request.Request" representing the
 // client's request for the AdminEnableUser operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -1018,7 +1018,7 @@ const opAdminForgetDevice = "AdminForgetDevice"
 
 // AdminForgetDeviceRequest generates a "aws/request.Request" representing the
 // client's request for the AdminForgetDevice operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -1122,7 +1122,7 @@ const opAdminGetDevice = "AdminGetDevice"
 
 // AdminGetDeviceRequest generates a "aws/request.Request" representing the
 // client's request for the AdminGetDevice operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -1221,7 +1221,7 @@ const opAdminGetUser = "AdminGetUser"
 
 // AdminGetUserRequest generates a "aws/request.Request" representing the
 // client's request for the AdminGetUser operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -1321,7 +1321,7 @@ const opAdminInitiateAuth = "AdminInitiateAuth"
 
 // AdminInitiateAuthRequest generates a "aws/request.Request" representing the
 // client's request for the AdminInitiateAuth operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -1455,7 +1455,7 @@ const opAdminLinkProviderForUser = "AdminLinkProviderForUser"
 
 // AdminLinkProviderForUserRequest generates a "aws/request.Request" representing the
 // client's request for the AdminLinkProviderForUser operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -1576,7 +1576,7 @@ const opAdminListDevices = "AdminListDevices"
 
 // AdminListDevicesRequest generates a "aws/request.Request" representing the
 // client's request for the AdminListDevices operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -1675,7 +1675,7 @@ const opAdminListGroupsForUser = "AdminListGroupsForUser"
 
 // AdminListGroupsForUserRequest generates a "aws/request.Request" representing the
 // client's request for the AdminListGroupsForUser operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -1774,7 +1774,7 @@ const opAdminListUserAuthEvents = "AdminListUserAuthEvents"
 
 // AdminListUserAuthEventsRequest generates a "aws/request.Request" representing the
 // client's request for the AdminListUserAuthEvents operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -1875,7 +1875,7 @@ const opAdminRemoveUserFromGroup = "AdminRemoveUserFromGroup"
 
 // AdminRemoveUserFromGroupRequest generates a "aws/request.Request" representing the
 // client's request for the AdminRemoveUserFromGroup operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -1976,7 +1976,7 @@ const opAdminResetUserPassword = "AdminResetUserPassword"
 
 // AdminResetUserPasswordRequest generates a "aws/request.Request" representing the
 // client's request for the AdminResetUserPassword operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -2116,7 +2116,7 @@ const opAdminRespondToAuthChallenge = "AdminRespondToAuthChallenge"
 
 // AdminRespondToAuthChallengeRequest generates a "aws/request.Request" representing the
 // client's request for the AdminRespondToAuthChallenge operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -2271,7 +2271,7 @@ const opAdminSetUserMFAPreference = "AdminSetUserMFAPreference"
 
 // AdminSetUserMFAPreferenceRequest generates a "aws/request.Request" representing the
 // client's request for the AdminSetUserMFAPreference operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -2370,7 +2370,7 @@ const opAdminSetUserSettings = "AdminSetUserSettings"
 
 // AdminSetUserSettingsRequest generates a "aws/request.Request" representing the
 // client's request for the AdminSetUserSettings operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -2465,7 +2465,7 @@ const opAdminUpdateAuthEventFeedback = "AdminUpdateAuthEventFeedback"
 
 // AdminUpdateAuthEventFeedbackRequest generates a "aws/request.Request" representing the
 // client's request for the AdminUpdateAuthEventFeedback operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -2567,7 +2567,7 @@ const opAdminUpdateDeviceStatus = "AdminUpdateDeviceStatus"
 
 // AdminUpdateDeviceStatusRequest generates a "aws/request.Request" representing the
 // client's request for the AdminUpdateDeviceStatus operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -2669,7 +2669,7 @@ const opAdminUpdateUserAttributes = "AdminUpdateUserAttributes"
 
 // AdminUpdateUserAttributesRequest generates a "aws/request.Request" representing the
 // client's request for the AdminUpdateUserAttributes operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -2793,7 +2793,7 @@ const opAdminUserGlobalSignOut = "AdminUserGlobalSignOut"
 
 // AdminUserGlobalSignOutRequest generates a "aws/request.Request" representing the
 // client's request for the AdminUserGlobalSignOut operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -2892,7 +2892,7 @@ const opAssociateSoftwareToken = "AssociateSoftwareToken"
 
 // AssociateSoftwareTokenRequest generates a "aws/request.Request" representing the
 // client's request for the AssociateSoftwareToken operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -2987,7 +2987,7 @@ const opChangePassword = "ChangePassword"
 
 // ChangePasswordRequest generates a "aws/request.Request" representing the
 // client's request for the ChangePassword operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -3099,7 +3099,7 @@ const opConfirmDevice = "ConfirmDevice"
 
 // ConfirmDeviceRequest generates a "aws/request.Request" representing the
 // client's request for the ConfirmDevice operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -3218,7 +3218,7 @@ const opConfirmForgotPassword = "ConfirmForgotPassword"
 
 // ConfirmForgotPasswordRequest generates a "aws/request.Request" representing the
 // client's request for the ConfirmForgotPassword operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -3350,7 +3350,7 @@ const opConfirmSignUp = "ConfirmSignUp"
 
 // ConfirmSignUpRequest generates a "aws/request.Request" representing the
 // client's request for the ConfirmSignUp operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -3482,7 +3482,7 @@ const opCreateGroup = "CreateGroup"
 
 // CreateGroupRequest generates a "aws/request.Request" representing the
 // client's request for the CreateGroup operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -3586,7 +3586,7 @@ const opCreateIdentityProvider = "CreateIdentityProvider"
 
 // CreateIdentityProviderRequest generates a "aws/request.Request" representing the
 // client's request for the CreateIdentityProvider operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -3688,7 +3688,7 @@ const opCreateResourceServer = "CreateResourceServer"
 
 // CreateResourceServerRequest generates a "aws/request.Request" representing the
 // client's request for the CreateResourceServer operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -3786,7 +3786,7 @@ const opCreateUserImportJob = "CreateUserImportJob"
 
 // CreateUserImportJobRequest generates a "aws/request.Request" representing the
 // client's request for the CreateUserImportJob operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -3887,7 +3887,7 @@ const opCreateUserPool = "CreateUserPool"
 
 // CreateUserPoolRequest generates a "aws/request.Request" representing the
 // client's request for the CreateUserPool operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -3999,7 +3999,7 @@ const opCreateUserPoolClient = "CreateUserPoolClient"
 
 // CreateUserPoolClientRequest generates a "aws/request.Request" representing the
 // client's request for the CreateUserPoolClient operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -4103,7 +4103,7 @@ const opCreateUserPoolDomain = "CreateUserPoolDomain"
 
 // CreateUserPoolDomainRequest generates a "aws/request.Request" representing the
 // client's request for the CreateUserPoolDomain operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -4193,7 +4193,7 @@ const opDeleteGroup = "DeleteGroup"
 
 // DeleteGroupRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteGroup operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -4291,7 +4291,7 @@ const opDeleteIdentityProvider = "DeleteIdentityProvider"
 
 // DeleteIdentityProviderRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteIdentityProvider operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -4390,7 +4390,7 @@ const opDeleteResourceServer = "DeleteResourceServer"
 
 // DeleteResourceServerRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteResourceServer operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -4486,7 +4486,7 @@ const opDeleteUser = "DeleteUser"
 
 // DeleteUserRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteUser operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -4592,7 +4592,7 @@ const opDeleteUserAttributes = "DeleteUserAttributes"
 
 // DeleteUserAttributesRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteUserAttributes operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -4696,7 +4696,7 @@ const opDeleteUserPool = "DeleteUserPool"
 
 // DeleteUserPoolRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteUserPool operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -4796,7 +4796,7 @@ const opDeleteUserPoolClient = "DeleteUserPoolClient"
 
 // DeleteUserPoolClientRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteUserPoolClient operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -4892,7 +4892,7 @@ const opDeleteUserPoolDomain = "DeleteUserPoolDomain"
 
 // DeleteUserPoolDomainRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteUserPoolDomain operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -4982,7 +4982,7 @@ const opDescribeIdentityProvider = "DescribeIdentityProvider"
 
 // DescribeIdentityProviderRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeIdentityProvider operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -5076,7 +5076,7 @@ const opDescribeResourceServer = "DescribeResourceServer"
 
 // DescribeResourceServerRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeResourceServer operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -5170,7 +5170,7 @@ const opDescribeRiskConfiguration = "DescribeRiskConfiguration"
 
 // DescribeRiskConfigurationRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeRiskConfiguration operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -5267,7 +5267,7 @@ const opDescribeUserImportJob = "DescribeUserImportJob"
 
 // DescribeUserImportJobRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeUserImportJob operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -5361,7 +5361,7 @@ const opDescribeUserPool = "DescribeUserPool"
 
 // DescribeUserPoolRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeUserPool operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -5459,7 +5459,7 @@ const opDescribeUserPoolClient = "DescribeUserPoolClient"
 
 // DescribeUserPoolClientRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeUserPoolClient operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -5554,7 +5554,7 @@ const opDescribeUserPoolDomain = "DescribeUserPoolDomain"
 
 // DescribeUserPoolDomainRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeUserPoolDomain operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -5644,7 +5644,7 @@ const opForgetDevice = "ForgetDevice"
 
 // ForgetDeviceRequest generates a "aws/request.Request" representing the
 // client's request for the ForgetDevice operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -5752,7 +5752,7 @@ const opForgotPassword = "ForgotPassword"
 
 // ForgotPasswordRequest generates a "aws/request.Request" representing the
 // client's request for the ForgotPassword operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -5893,7 +5893,7 @@ const opGetCSVHeader = "GetCSVHeader"
 
 // GetCSVHeaderRequest generates a "aws/request.Request" representing the
 // client's request for the GetCSVHeader operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -5988,7 +5988,7 @@ const opGetDevice = "GetDevice"
 
 // GetDeviceRequest generates a "aws/request.Request" representing the
 // client's request for the GetDevice operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -6094,7 +6094,7 @@ const opGetGroup = "GetGroup"
 
 // GetGroupRequest generates a "aws/request.Request" representing the
 // client's request for the GetGroup operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -6190,7 +6190,7 @@ const opGetIdentityProviderByIdentifier = "GetIdentityProviderByIdentifier"
 
 // GetIdentityProviderByIdentifierRequest generates a "aws/request.Request" representing the
 // client's request for the GetIdentityProviderByIdentifier operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -6280,11 +6280,94 @@ func (c *CognitoIdentityProvider) GetIdentityProviderByIdentifierWithContext(ctx
 	return out, req.Send()
 }
 
+const opGetSigningCertificate = "GetSigningCertificate"
+
+// GetSigningCertificateRequest generates a "aws/request.Request" representing the
+// client's request for the GetSigningCertificate operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfuly.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See GetSigningCertificate for more information on using the GetSigningCertificate
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the GetSigningCertificateRequest method.
+//    req, resp := client.GetSigningCertificateRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cognito-idp-2016-04-18/GetSigningCertificate
+func (c *CognitoIdentityProvider) GetSigningCertificateRequest(input *GetSigningCertificateInput) (req *request.Request, output *GetSigningCertificateOutput) {
+	op := &request.Operation{
+		Name:       opGetSigningCertificate,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &GetSigningCertificateInput{}
+	}
+
+	output = &GetSigningCertificateOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// GetSigningCertificate API operation for Amazon Cognito Identity Provider.
+//
+// This method takes a user pool ID, and returns the signing certificate.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Cognito Identity Provider's
+// API operation GetSigningCertificate for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeInternalErrorException "InternalErrorException"
+//   This exception is thrown when Amazon Cognito encounters an internal error.
+//
+//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
+//   This exception is thrown when the Amazon Cognito service cannot find the
+//   requested resource.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cognito-idp-2016-04-18/GetSigningCertificate
+func (c *CognitoIdentityProvider) GetSigningCertificate(input *GetSigningCertificateInput) (*GetSigningCertificateOutput, error) {
+	req, out := c.GetSigningCertificateRequest(input)
+	return out, req.Send()
+}
+
+// GetSigningCertificateWithContext is the same as GetSigningCertificate with the addition of
+// the ability to pass a context and additional request options.
+//
+// See GetSigningCertificate for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *CognitoIdentityProvider) GetSigningCertificateWithContext(ctx aws.Context, input *GetSigningCertificateInput, opts ...request.Option) (*GetSigningCertificateOutput, error) {
+	req, out := c.GetSigningCertificateRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
 const opGetUICustomization = "GetUICustomization"
 
 // GetUICustomizationRequest generates a "aws/request.Request" representing the
 // client's request for the GetUICustomization operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -6381,7 +6464,7 @@ const opGetUser = "GetUser"
 
 // GetUserRequest generates a "aws/request.Request" representing the
 // client's request for the GetUser operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -6485,7 +6568,7 @@ const opGetUserAttributeVerificationCode = "GetUserAttributeVerificationCode"
 
 // GetUserAttributeVerificationCodeRequest generates a "aws/request.Request" representing the
 // client's request for the GetUserAttributeVerificationCode operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -6622,7 +6705,7 @@ const opGetUserPoolMfaConfig = "GetUserPoolMfaConfig"
 
 // GetUserPoolMfaConfigRequest generates a "aws/request.Request" representing the
 // client's request for the GetUserPoolMfaConfig operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -6716,7 +6799,7 @@ const opGlobalSignOut = "GlobalSignOut"
 
 // GlobalSignOutRequest generates a "aws/request.Request" representing the
 // client's request for the GlobalSignOut operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -6816,7 +6899,7 @@ const opInitiateAuth = "InitiateAuth"
 
 // InitiateAuthRequest generates a "aws/request.Request" representing the
 // client's request for the InitiateAuth operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -6934,7 +7017,7 @@ const opListDevices = "ListDevices"
 
 // ListDevicesRequest generates a "aws/request.Request" representing the
 // client's request for the ListDevices operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -7040,7 +7123,7 @@ const opListGroups = "ListGroups"
 
 // ListGroupsRequest generates a "aws/request.Request" representing the
 // client's request for the ListGroups operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -7136,7 +7219,7 @@ const opListIdentityProviders = "ListIdentityProviders"
 
 // ListIdentityProvidersRequest generates a "aws/request.Request" representing the
 // client's request for the ListIdentityProviders operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -7230,7 +7313,7 @@ const opListResourceServers = "ListResourceServers"
 
 // ListResourceServersRequest generates a "aws/request.Request" representing the
 // client's request for the ListResourceServers operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -7324,7 +7407,7 @@ const opListUserImportJobs = "ListUserImportJobs"
 
 // ListUserImportJobsRequest generates a "aws/request.Request" representing the
 // client's request for the ListUserImportJobs operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -7418,7 +7501,7 @@ const opListUserPoolClients = "ListUserPoolClients"
 
 // ListUserPoolClientsRequest generates a "aws/request.Request" representing the
 // client's request for the ListUserPoolClients operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -7512,7 +7595,7 @@ const opListUserPools = "ListUserPools"
 
 // ListUserPoolsRequest generates a "aws/request.Request" representing the
 // client's request for the ListUserPools operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -7602,7 +7685,7 @@ const opListUsers = "ListUsers"
 
 // ListUsersRequest generates a "aws/request.Request" representing the
 // client's request for the ListUsers operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -7696,7 +7779,7 @@ const opListUsersInGroup = "ListUsersInGroup"
 
 // ListUsersInGroupRequest generates a "aws/request.Request" representing the
 // client's request for the ListUsersInGroup operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -7792,7 +7875,7 @@ const opResendConfirmationCode = "ResendConfirmationCode"
 
 // ResendConfirmationCodeRequest generates a "aws/request.Request" representing the
 // client's request for the ResendConfirmationCode operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -7924,7 +8007,7 @@ const opRespondToAuthChallenge = "RespondToAuthChallenge"
 
 // RespondToAuthChallengeRequest generates a "aws/request.Request" representing the
 // client's request for the RespondToAuthChallenge operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -8077,7 +8160,7 @@ const opSetRiskConfiguration = "SetRiskConfiguration"
 
 // SetRiskConfigurationRequest generates a "aws/request.Request" representing the
 // client's request for the SetRiskConfiguration operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -8187,7 +8270,7 @@ const opSetUICustomization = "SetUICustomization"
 
 // SetUICustomizationRequest generates a "aws/request.Request" representing the
 // client's request for the SetUICustomization operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -8292,7 +8375,7 @@ const opSetUserMFAPreference = "SetUserMFAPreference"
 
 // SetUserMFAPreferenceRequest generates a "aws/request.Request" representing the
 // client's request for the SetUserMFAPreference operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -8391,7 +8474,7 @@ const opSetUserPoolMfaConfig = "SetUserPoolMfaConfig"
 
 // SetUserPoolMfaConfigRequest generates a "aws/request.Request" representing the
 // client's request for the SetUserPoolMfaConfig operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -8495,7 +8578,7 @@ const opSetUserSettings = "SetUserSettings"
 
 // SetUserSettingsRequest generates a "aws/request.Request" representing the
 // client's request for the SetUserSettings operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -8597,7 +8680,7 @@ const opSignUp = "SignUp"
 
 // SignUpRequest generates a "aws/request.Request" representing the
 // client's request for the SignUp operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -8730,7 +8813,7 @@ const opStartUserImportJob = "StartUserImportJob"
 
 // StartUserImportJobRequest generates a "aws/request.Request" representing the
 // client's request for the StartUserImportJob operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -8827,7 +8910,7 @@ const opStopUserImportJob = "StopUserImportJob"
 
 // StopUserImportJobRequest generates a "aws/request.Request" representing the
 // client's request for the StopUserImportJob operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -8924,7 +9007,7 @@ const opUpdateAuthEventFeedback = "UpdateAuthEventFeedback"
 
 // UpdateAuthEventFeedbackRequest generates a "aws/request.Request" representing the
 // client's request for the UpdateAuthEventFeedback operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -9026,7 +9109,7 @@ const opUpdateDeviceStatus = "UpdateDeviceStatus"
 
 // UpdateDeviceStatusRequest generates a "aws/request.Request" representing the
 // client's request for the UpdateDeviceStatus operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -9132,7 +9215,7 @@ const opUpdateGroup = "UpdateGroup"
 
 // UpdateGroupRequest generates a "aws/request.Request" representing the
 // client's request for the UpdateGroup operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -9228,7 +9311,7 @@ const opUpdateIdentityProvider = "UpdateIdentityProvider"
 
 // UpdateIdentityProviderRequest generates a "aws/request.Request" representing the
 // client's request for the UpdateIdentityProvider operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -9325,7 +9408,7 @@ const opUpdateResourceServer = "UpdateResourceServer"
 
 // UpdateResourceServerRequest generates a "aws/request.Request" representing the
 // client's request for the UpdateResourceServer operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -9419,7 +9502,7 @@ const opUpdateUserAttributes = "UpdateUserAttributes"
 
 // UpdateUserAttributesRequest generates a "aws/request.Request" representing the
 // client's request for the UpdateUserAttributes operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -9565,7 +9648,7 @@ const opUpdateUserPool = "UpdateUserPool"
 
 // UpdateUserPoolRequest generates a "aws/request.Request" representing the
 // client's request for the UpdateUserPool operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -9683,7 +9766,7 @@ const opUpdateUserPoolClient = "UpdateUserPoolClient"
 
 // UpdateUserPoolClientRequest generates a "aws/request.Request" representing the
 // client's request for the UpdateUserPoolClient operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -9787,7 +9870,7 @@ const opVerifySoftwareToken = "VerifySoftwareToken"
 
 // VerifySoftwareTokenRequest generates a "aws/request.Request" representing the
 // client's request for the VerifySoftwareToken operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -9828,7 +9911,8 @@ func (c *CognitoIdentityProvider) VerifySoftwareTokenRequest(input *VerifySoftwa
 // VerifySoftwareToken API operation for Amazon Cognito Identity Provider.
 //
 // Use this API to register a user's entered TOTP code and mark the user's software
-// token MFA status as "verified" if successful,
+// token MFA status as "verified" if successful. The request takes an access
+// token or a session string, but not both.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -9909,7 +9993,7 @@ const opVerifyUserAttribute = "VerifyUserAttribute"
 
 // VerifyUserAttributeRequest generates a "aws/request.Request" representing the
 // client's request for the VerifyUserAttribute operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -11402,10 +11486,10 @@ type AdminGetUserOutput struct {
 	UserAttributes []*AttributeType `type:"list"`
 
 	// The date the user was created.
-	UserCreateDate *time.Time `type:"timestamp" timestampFormat:"unix"`
+	UserCreateDate *time.Time `type:"timestamp"`
 
 	// The date the user was last modified.
-	UserLastModifiedDate *time.Time `type:"timestamp" timestampFormat:"unix"`
+	UserLastModifiedDate *time.Time `type:"timestamp"`
 
 	// The list of the user's MFA settings.
 	UserMFASettingList []*string `type:"list"`
@@ -11510,6 +11594,9 @@ type AdminInitiateAuthInput struct {
 	//    * USER_SRP_AUTH will take in USERNAME and SRP_A and return the SRP variables
 	//    to be used for next challenge execution.
 	//
+	//    * USER_PASSWORD_AUTH will take in USERNAME and PASSWORD and return the
+	//    next challenge or tokens.
+	//
 	// Valid values include:
 	//
 	//    * USER_SRP_AUTH: Authentication flow for the Secure Remote Password (SRP)
@@ -11524,6 +11611,11 @@ type AdminInitiateAuthInput struct {
 	//    USERNAME and PASSWORD directly if the flow is enabled for calling the
 	//    app client.
 	//
+	//    * USER_PASSWORD_AUTH: Non-SRP authentication flow; USERNAME and PASSWORD
+	//    are passed directly. If a user migration Lambda trigger is set, this flow
+	//    will invoke the user migration Lambda if the USERNAME is not found in
+	//    the user pool.
+	//
 	// AuthFlow is a required field
 	AuthFlow *string `type:"string" required:"true" enum:"AuthFlowType"`
 
@@ -11533,9 +11625,8 @@ type AdminInitiateAuthInput struct {
 	//    * For USER_SRP_AUTH: USERNAME (required), SRP_A (required), SECRET_HASH
 	//    (required if the app client is configured with a client secret), DEVICE_KEY
 	//
-	//    * For REFRESH_TOKEN_AUTH/REFRESH_TOKEN: USERNAME (required), SECRET_HASH
-	//    (required if the app client is configured with a client secret), REFRESH_TOKEN
-	//    (required), DEVICE_KEY
+	//    * For REFRESH_TOKEN_AUTH/REFRESH_TOKEN: REFRESH_TOKEN (required), SECRET_HASH
+	//    (required if the app client is configured with a client secret), DEVICE_KEY
 	//
 	//    * For ADMIN_NO_SRP_AUTH: USERNAME (required), SECRET_HASH (if app client
 	//    is configured with client secret), PASSWORD (required), DEVICE_KEY
@@ -11661,6 +11752,13 @@ type AdminInitiateAuthOutput struct {
 	// is returned to you in the AdminInitiateAuth response if you need to pass
 	// another challenge.
 	//
+	//    * MFA_SETUP: If MFA is required, users who do not have at least one of
+	//    the MFA methods set up are presented with an MFA_SETUP challenge. The
+	//    user must set up at least one MFA type to continue to authenticate.
+	//
+	//    * SELECT_MFA_TYPE: Selects the MFA type. Valid MFA options are SMS_MFA
+	//    for text SMS MFA, and SOFTWARE_TOKEN_MFA for TOTP software token MFA.
+	//
 	//    * SMS_MFA: Next challenge is to supply an SMS_MFA_CODE, delivered via
 	//    SMS.
 	//
@@ -11693,7 +11791,7 @@ type AdminInitiateAuthOutput struct {
 	//
 	// All challenges require USERNAME and SECRET_HASH (if applicable).
 	//
-	// The value of the USER_IF_FOR_SRP attribute will be the user's actual username,
+	// The value of the USER_ID_FOR_SRP attribute will be the user's actual username,
 	// not an alias (such as email address or phone number), even if you specified
 	// an alias in your call to AdminInitiateAuth. This is because, in the AdminRespondToAuthChallenge
 	// API ChallengeResponses, the USERNAME attribute cannot be an alias.
@@ -12099,7 +12197,7 @@ type AdminListUserAuthEventsInput struct {
 	// UserPoolId is a required field
 	UserPoolId *string `min:"1" type:"string" required:"true"`
 
-	// The user pool username.
+	// The user pool username or an alias.
 	//
 	// Username is a required field
 	Username *string `min:"1" type:"string" required:"true"`
@@ -12573,7 +12671,7 @@ type AdminSetUserMFAPreferenceInput struct {
 	// UserPoolId is a required field
 	UserPoolId *string `min:"1" type:"string" required:"true"`
 
-	// The user pool username.
+	// The user pool username or alias.
 	//
 	// Username is a required field
 	Username *string `min:"1" type:"string" required:"true"`
@@ -13377,7 +13475,7 @@ type AuthEventType struct {
 	ChallengeResponses []*ChallengeResponseType `type:"list"`
 
 	// The creation date
-	CreationDate *time.Time `type:"timestamp" timestampFormat:"unix"`
+	CreationDate *time.Time `type:"timestamp"`
 
 	// The user context data captured at the time of an event request. It provides
 	// additional information about the client from which event the request is received.
@@ -13465,7 +13563,7 @@ type AuthenticationResultType struct {
 	// The access token.
 	AccessToken *string `type:"string"`
 
-	// The expiration period of the authentication result.
+	// The expiration period of the authentication result in seconds.
 	ExpiresIn *int64 `type:"integer"`
 
 	// The ID token.
@@ -14761,7 +14859,19 @@ type CreateUserPoolClientInput struct {
 	// user pool.
 	AnalyticsConfiguration *AnalyticsConfigurationType `type:"structure"`
 
-	// A list of allowed callback URLs for the identity providers.
+	// A list of allowed redirect (callback) URLs for the identity providers.
+	//
+	// A redirect URI must:
+	//
+	//    * Be an absolute URI.
+	//
+	//    * Be registered with the authorization server.
+	//
+	//    * Not use HTTP without TLS (i.e. use HTTPS instead of HTTP).
+	//
+	//    * Not include a fragment component.
+	//
+	// See OAuth 2.0 - Redirection Endpoint (https://tools.ietf.org/html/rfc6749#section-3.1.2).
 	CallbackURLs []*string `type:"list"`
 
 	// The client name for the user pool client you would like to create.
@@ -14770,6 +14880,18 @@ type CreateUserPoolClientInput struct {
 	ClientName *string `min:"1" type:"string" required:"true"`
 
 	// The default redirect URI. Must be in the CallbackURLs list.
+	//
+	// A redirect URI must:
+	//
+	//    * Be an absolute URI.
+	//
+	//    * Be registered with the authorization server.
+	//
+	//    * Not use HTTP without TLS (i.e. use HTTPS instead of HTTP).
+	//
+	//    * Not include a fragment component.
+	//
+	// See OAuth 2.0 - Redirection Endpoint (https://tools.ietf.org/html/rfc6749#section-3.1.2).
 	DefaultRedirectURI *string `min:"1" type:"string"`
 
 	// The explicit authentication flows.
@@ -15055,6 +15177,15 @@ type CreateUserPoolInput struct {
 	EmailVerificationSubject *string `min:"1" type:"string"`
 
 	// The Lambda trigger configuration information for the new user pool.
+	//
+	// In a push model, event sources (such as Amazon S3 and custom applications)
+	// need permission to invoke a function. So you will need to make an extra call
+	// to add permission for these event sources to invoke your Lambda function.
+	//
+	// For more information on using the Lambda API to add permission, see  AddPermission
+	//  (https://docs.aws.amazon.com/lambda/latest/dg/API_AddPermission.html).
+	//
+	// For adding permission using the AWS CLI, see  add-permission  (https://docs.aws.amazon.com/cli/latest/reference/lambda/add-permission.html).
 	LambdaConfig *LambdaConfigType `type:"structure"`
 
 	// Specifies MFA configuration details.
@@ -16481,16 +16612,16 @@ type DeviceType struct {
 	DeviceAttributes []*AttributeType `type:"list"`
 
 	// The creation date of the device.
-	DeviceCreateDate *time.Time `type:"timestamp" timestampFormat:"unix"`
+	DeviceCreateDate *time.Time `type:"timestamp"`
 
 	// The device key.
 	DeviceKey *string `min:"1" type:"string"`
 
 	// The date in which the device was last authenticated.
-	DeviceLastAuthenticatedDate *time.Time `type:"timestamp" timestampFormat:"unix"`
+	DeviceLastAuthenticatedDate *time.Time `type:"timestamp"`
 
 	// The last modified date of the device.
-	DeviceLastModifiedDate *time.Time `type:"timestamp" timestampFormat:"unix"`
+	DeviceLastModifiedDate *time.Time `type:"timestamp"`
 }
 
 // String returns the string representation
@@ -16722,7 +16853,7 @@ type EventFeedbackType struct {
 	_ struct{} `type:"structure"`
 
 	// The event feedback date.
-	FeedbackDate *time.Time `type:"timestamp" timestampFormat:"unix"`
+	FeedbackDate *time.Time `type:"timestamp"`
 
 	// The event feedback value.
 	//
@@ -17299,6 +17430,72 @@ func (s *GetIdentityProviderByIdentifierOutput) SetIdentityProvider(v *IdentityP
 	return s
 }
 
+// Request to get a signing certificate from Cognito.
+type GetSigningCertificateInput struct {
+	_ struct{} `type:"structure"`
+
+	// The user pool ID.
+	//
+	// UserPoolId is a required field
+	UserPoolId *string `min:"1" type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s GetSigningCertificateInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s GetSigningCertificateInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *GetSigningCertificateInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "GetSigningCertificateInput"}
+	if s.UserPoolId == nil {
+		invalidParams.Add(request.NewErrParamRequired("UserPoolId"))
+	}
+	if s.UserPoolId != nil && len(*s.UserPoolId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("UserPoolId", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetUserPoolId sets the UserPoolId field's value.
+func (s *GetSigningCertificateInput) SetUserPoolId(v string) *GetSigningCertificateInput {
+	s.UserPoolId = &v
+	return s
+}
+
+// Response from Cognito for a signing certificate request.
+type GetSigningCertificateOutput struct {
+	_ struct{} `type:"structure"`
+
+	// The signing certificate.
+	Certificate *string `type:"string"`
+}
+
+// String returns the string representation
+func (s GetSigningCertificateOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s GetSigningCertificateOutput) GoString() string {
+	return s.String()
+}
+
+// SetCertificate sets the Certificate field's value.
+func (s *GetSigningCertificateOutput) SetCertificate(v string) *GetSigningCertificateOutput {
+	s.Certificate = &v
+	return s
+}
+
 type GetUICustomizationInput struct {
 	_ struct{} `type:"structure"`
 
@@ -17710,7 +17907,7 @@ type GroupType struct {
 	_ struct{} `type:"structure"`
 
 	// The date the group was created.
-	CreationDate *time.Time `type:"timestamp" timestampFormat:"unix"`
+	CreationDate *time.Time `type:"timestamp"`
 
 	// A string containing the description of the group.
 	Description *string `type:"string"`
@@ -17719,7 +17916,7 @@ type GroupType struct {
 	GroupName *string `min:"1" type:"string"`
 
 	// The date the group was last modified.
-	LastModifiedDate *time.Time `type:"timestamp" timestampFormat:"unix"`
+	LastModifiedDate *time.Time `type:"timestamp"`
 
 	// A nonnegative integer value that specifies the precedence of this group relative
 	// to the other groups that a user can belong to in the user pool. If a user
@@ -17838,13 +18035,13 @@ type IdentityProviderType struct {
 	AttributeMapping map[string]*string `type:"map"`
 
 	// The date the identity provider was created.
-	CreationDate *time.Time `type:"timestamp" timestampFormat:"unix"`
+	CreationDate *time.Time `type:"timestamp"`
 
 	// A list of identity provider identifiers.
 	IdpIdentifiers []*string `type:"list"`
 
 	// The date the identity provider was last modified.
-	LastModifiedDate *time.Time `type:"timestamp" timestampFormat:"unix"`
+	LastModifiedDate *time.Time `type:"timestamp"`
 
 	// The identity provider details, such as MetadataURL and MetadataFile.
 	ProviderDetails map[string]*string `type:"map"`
@@ -17934,6 +18131,9 @@ type InitiateAuthInput struct {
 	//    * USER_SRP_AUTH will take in USERNAME and SRP_A and return the SRP variables
 	//    to be used for next challenge execution.
 	//
+	//    * USER_PASSWORD_AUTH will take in USERNAME and PASSWORD and return the
+	//    next challenge or tokens.
+	//
 	// Valid values include:
 	//
 	//    * USER_SRP_AUTH: Authentication flow for the Secure Remote Password (SRP)
@@ -17943,6 +18143,11 @@ type InitiateAuthInput struct {
 	//    the access token and ID token by supplying a valid refresh token.
 	//
 	//    * CUSTOM_AUTH: Custom authentication flow.
+	//
+	//    * USER_PASSWORD_AUTH: Non-SRP authentication flow; USERNAME and PASSWORD
+	//    are passed directly. If a user migration Lambda trigger is set, this flow
+	//    will invoke the user migration Lambda if the USERNAME is not found in
+	//    the user pool.
 	//
 	// ADMIN_NO_SRP_AUTH is not a valid value.
 	//
@@ -17955,9 +18160,8 @@ type InitiateAuthInput struct {
 	//    * For USER_SRP_AUTH: USERNAME (required), SRP_A (required), SECRET_HASH
 	//    (required if the app client is configured with a client secret), DEVICE_KEY
 	//
-	//    * For REFRESH_TOKEN_AUTH/REFRESH_TOKEN: USERNAME (required), SECRET_HASH
-	//    (required if the app client is configured with a client secret), REFRESH_TOKEN
-	//    (required), DEVICE_KEY
+	//    * For REFRESH_TOKEN_AUTH/REFRESH_TOKEN: REFRESH_TOKEN (required), SECRET_HASH
+	//    (required if the app client is configured with a client secret), DEVICE_KEY
 	//
 	//    * For CUSTOM_AUTH: USERNAME (required), SECRET_HASH (if app client is
 	//    configured with client secret), DEVICE_KEY
@@ -18160,6 +18364,9 @@ type LambdaConfigType struct {
 	// A Lambda trigger that is invoked before token generation.
 	PreTokenGeneration *string `min:"20" type:"string"`
 
+	// The user migration Lambda config type.
+	UserMigration *string `min:"20" type:"string"`
+
 	// Verifies the authentication challenge response.
 	VerifyAuthChallengeResponse *string `min:"20" type:"string"`
 }
@@ -18200,6 +18407,9 @@ func (s *LambdaConfigType) Validate() error {
 	}
 	if s.PreTokenGeneration != nil && len(*s.PreTokenGeneration) < 20 {
 		invalidParams.Add(request.NewErrParamMinLen("PreTokenGeneration", 20))
+	}
+	if s.UserMigration != nil && len(*s.UserMigration) < 20 {
+		invalidParams.Add(request.NewErrParamMinLen("UserMigration", 20))
 	}
 	if s.VerifyAuthChallengeResponse != nil && len(*s.VerifyAuthChallengeResponse) < 20 {
 		invalidParams.Add(request.NewErrParamMinLen("VerifyAuthChallengeResponse", 20))
@@ -18256,6 +18466,12 @@ func (s *LambdaConfigType) SetPreSignUp(v string) *LambdaConfigType {
 // SetPreTokenGeneration sets the PreTokenGeneration field's value.
 func (s *LambdaConfigType) SetPreTokenGeneration(v string) *LambdaConfigType {
 	s.PreTokenGeneration = &v
+	return s
+}
+
+// SetUserMigration sets the UserMigration field's value.
+func (s *LambdaConfigType) SetUserMigration(v string) *LambdaConfigType {
+	s.UserMigration = &v
 	return s
 }
 
@@ -19653,10 +19869,10 @@ type ProviderDescription struct {
 	_ struct{} `type:"structure"`
 
 	// The date the provider was added to the user pool.
-	CreationDate *time.Time `type:"timestamp" timestampFormat:"unix"`
+	CreationDate *time.Time `type:"timestamp"`
 
 	// The date the provider was last modified.
-	LastModifiedDate *time.Time `type:"timestamp" timestampFormat:"unix"`
+	LastModifiedDate *time.Time `type:"timestamp"`
 
 	// The identity provider name.
 	ProviderName *string `min:"1" type:"string"`
@@ -20170,7 +20386,7 @@ type RiskConfigurationType struct {
 	CompromisedCredentialsRiskConfiguration *CompromisedCredentialsRiskConfigurationType `type:"structure"`
 
 	// The last modified date.
-	LastModifiedDate *time.Time `type:"timestamp" timestampFormat:"unix"`
+	LastModifiedDate *time.Time `type:"timestamp"`
 
 	// The configuration to override the risk decision.
 	RiskExceptionConfiguration *RiskExceptionConfigurationType `type:"structure"`
@@ -20304,7 +20520,7 @@ type SchemaAttributeType struct {
 	// Specifies whether the attribute type is developer only.
 	DeveloperOnlyAttribute *bool `type:"boolean"`
 
-	// Specifies whether the attribute can be changed once it has been created.
+	// Specifies whether the value of the attribute can be changed.
 	Mutable *bool `type:"boolean"`
 
 	// A schema attribute of the name type.
@@ -21442,13 +21658,13 @@ type UICustomizationType struct {
 	ClientId *string `min:"1" type:"string"`
 
 	// The creation date for the UI customization.
-	CreationDate *time.Time `type:"timestamp" timestampFormat:"unix"`
+	CreationDate *time.Time `type:"timestamp"`
 
 	// The logo image for the UI customization.
 	ImageUrl *string `type:"string"`
 
 	// The last-modified date for the UI customization.
-	LastModifiedDate *time.Time `type:"timestamp" timestampFormat:"unix"`
+	LastModifiedDate *time.Time `type:"timestamp"`
 
 	// The user pool ID for the user pool.
 	UserPoolId *string `min:"1" type:"string"`
@@ -22160,7 +22376,19 @@ type UpdateUserPoolClientInput struct {
 	// user pool.
 	AnalyticsConfiguration *AnalyticsConfigurationType `type:"structure"`
 
-	// A list of allowed callback URLs for the identity providers.
+	// A list of allowed redirect (callback) URLs for the identity providers.
+	//
+	// A redirect URI must:
+	//
+	//    * Be an absolute URI.
+	//
+	//    * Be registered with the authorization server.
+	//
+	//    * Not use HTTP without TLS (i.e. use HTTPS instead of HTTP).
+	//
+	//    * Not include a fragment component.
+	//
+	// See OAuth 2.0 - Redirection Endpoint (https://tools.ietf.org/html/rfc6749#section-3.1.2).
 	CallbackURLs []*string `type:"list"`
 
 	// The ID of the client associated with the user pool.
@@ -22172,6 +22400,18 @@ type UpdateUserPoolClientInput struct {
 	ClientName *string `min:"1" type:"string"`
 
 	// The default redirect URI. Must be in the CallbackURLs list.
+	//
+	// A redirect URI must:
+	//
+	//    * Be an absolute URI.
+	//
+	//    * Be registered with the authorization server.
+	//
+	//    * Not use HTTP without TLS (i.e. use HTTPS instead of HTTP).
+	//
+	//    * Not include a fragment component.
+	//
+	// See OAuth 2.0 - Redirection Endpoint (https://tools.ietf.org/html/rfc6749#section-3.1.2).
 	DefaultRedirectURI *string `min:"1" type:"string"`
 
 	// Explicit authentication flows.
@@ -22650,13 +22890,13 @@ type UserImportJobType struct {
 	CloudWatchLogsRoleArn *string `min:"20" type:"string"`
 
 	// The date when the user import job was completed.
-	CompletionDate *time.Time `type:"timestamp" timestampFormat:"unix"`
+	CompletionDate *time.Time `type:"timestamp"`
 
 	// The message returned when the user import job is completed.
 	CompletionMessage *string `min:"1" type:"string"`
 
 	// The date the user import job was created.
-	CreationDate *time.Time `type:"timestamp" timestampFormat:"unix"`
+	CreationDate *time.Time `type:"timestamp"`
 
 	// The number of users that could not be imported.
 	FailedUsers *int64 `type:"long"`
@@ -22677,7 +22917,7 @@ type UserImportJobType struct {
 	SkippedUsers *int64 `type:"long"`
 
 	// The date when the user import job was started.
-	StartDate *time.Time `type:"timestamp" timestampFormat:"unix"`
+	StartDate *time.Time `type:"timestamp"`
 
 	// The status of the user import job. One of the following:
 	//
@@ -22900,7 +23140,19 @@ type UserPoolClientType struct {
 	// The Amazon Pinpoint analytics configuration for the user pool client.
 	AnalyticsConfiguration *AnalyticsConfigurationType `type:"structure"`
 
-	// A list of allowed callback URLs for the identity providers.
+	// A list of allowed redirect (callback) URLs for the identity providers.
+	//
+	// A redirect URI must:
+	//
+	//    * Be an absolute URI.
+	//
+	//    * Be registered with the authorization server.
+	//
+	//    * Not use HTTP without TLS (i.e. use HTTPS instead of HTTP).
+	//
+	//    * Not include a fragment component.
+	//
+	// See OAuth 2.0 - Redirection Endpoint (https://tools.ietf.org/html/rfc6749#section-3.1.2).
 	CallbackURLs []*string `type:"list"`
 
 	// The ID of the client associated with the user pool.
@@ -22913,16 +23165,28 @@ type UserPoolClientType struct {
 	ClientSecret *string `min:"1" type:"string"`
 
 	// The date the user pool client was created.
-	CreationDate *time.Time `type:"timestamp" timestampFormat:"unix"`
+	CreationDate *time.Time `type:"timestamp"`
 
 	// The default redirect URI. Must be in the CallbackURLs list.
+	//
+	// A redirect URI must:
+	//
+	//    * Be an absolute URI.
+	//
+	//    * Be registered with the authorization server.
+	//
+	//    * Not use HTTP without TLS (i.e. use HTTPS instead of HTTP).
+	//
+	//    * Not include a fragment component.
+	//
+	// See OAuth 2.0 - Redirection Endpoint (https://tools.ietf.org/html/rfc6749#section-3.1.2).
 	DefaultRedirectURI *string `min:"1" type:"string"`
 
 	// The explicit authentication flows.
 	ExplicitAuthFlows []*string `type:"list"`
 
 	// The date the user pool client was last modified.
-	LastModifiedDate *time.Time `type:"timestamp" timestampFormat:"unix"`
+	LastModifiedDate *time.Time `type:"timestamp"`
 
 	// A list of allowed logout URLs for the identity providers.
 	LogoutURLs []*string `type:"list"`
@@ -23068,7 +23332,7 @@ type UserPoolDescriptionType struct {
 	_ struct{} `type:"structure"`
 
 	// The date the user pool description was created.
-	CreationDate *time.Time `type:"timestamp" timestampFormat:"unix"`
+	CreationDate *time.Time `type:"timestamp"`
 
 	// The ID in a user pool description.
 	Id *string `min:"1" type:"string"`
@@ -23077,7 +23341,7 @@ type UserPoolDescriptionType struct {
 	LambdaConfig *LambdaConfigType `type:"structure"`
 
 	// The date the user pool description was last modified.
-	LastModifiedDate *time.Time `type:"timestamp" timestampFormat:"unix"`
+	LastModifiedDate *time.Time `type:"timestamp"`
 
 	// The name in a user pool description.
 	Name *string `min:"1" type:"string"`
@@ -23181,11 +23445,14 @@ type UserPoolType struct {
 	// Specifies the attributes that are aliased in a user pool.
 	AliasAttributes []*string `type:"list"`
 
+	// The Amazon Resource Name (ARN) for the user pool.
+	Arn *string `min:"20" type:"string"`
+
 	// Specifies the attributes that are auto-verified in a user pool.
 	AutoVerifiedAttributes []*string `type:"list"`
 
 	// The date the user pool was created.
-	CreationDate *time.Time `type:"timestamp" timestampFormat:"unix"`
+	CreationDate *time.Time `type:"timestamp"`
 
 	// The device configuration.
 	DeviceConfiguration *DeviceConfigurationType `type:"structure"`
@@ -23211,11 +23478,11 @@ type UserPoolType struct {
 	// The ID of the user pool.
 	Id *string `min:"1" type:"string"`
 
-	// The AWS Lambda triggers associated with tue user pool.
+	// The AWS Lambda triggers associated with the user pool.
 	LambdaConfig *LambdaConfigType `type:"structure"`
 
 	// The date the user pool was last modified.
-	LastModifiedDate *time.Time `type:"timestamp" timestampFormat:"unix"`
+	LastModifiedDate *time.Time `type:"timestamp"`
 
 	// Can be one of the following values:
 	//
@@ -23286,6 +23553,12 @@ func (s *UserPoolType) SetAdminCreateUserConfig(v *AdminCreateUserConfigType) *U
 // SetAliasAttributes sets the AliasAttributes field's value.
 func (s *UserPoolType) SetAliasAttributes(v []*string) *UserPoolType {
 	s.AliasAttributes = v
+	return s
+}
+
+// SetArn sets the Arn field's value.
+func (s *UserPoolType) SetArn(v string) *UserPoolType {
+	s.Arn = &v
 	return s
 }
 
@@ -23453,10 +23726,10 @@ type UserType struct {
 	MFAOptions []*MFAOptionType `type:"list"`
 
 	// The creation date of the user.
-	UserCreateDate *time.Time `type:"timestamp" timestampFormat:"unix"`
+	UserCreateDate *time.Time `type:"timestamp"`
 
 	// The last modified date of the user.
-	UserLastModifiedDate *time.Time `type:"timestamp" timestampFormat:"unix"`
+	UserLastModifiedDate *time.Time `type:"timestamp"`
 
 	// The user status. Can be one of the following:
 	//
@@ -23881,6 +24154,9 @@ const (
 
 	// AuthFlowTypeAdminNoSrpAuth is a AuthFlowType enum value
 	AuthFlowTypeAdminNoSrpAuth = "ADMIN_NO_SRP_AUTH"
+
+	// AuthFlowTypeUserPasswordAuth is a AuthFlowType enum value
+	AuthFlowTypeUserPasswordAuth = "USER_PASSWORD_AUTH"
 )
 
 const (
@@ -24016,6 +24292,9 @@ const (
 
 	// ExplicitAuthFlowsTypeCustomAuthFlowOnly is a ExplicitAuthFlowsType enum value
 	ExplicitAuthFlowsTypeCustomAuthFlowOnly = "CUSTOM_AUTH_FLOW_ONLY"
+
+	// ExplicitAuthFlowsTypeUserPasswordAuth is a ExplicitAuthFlowsType enum value
+	ExplicitAuthFlowsTypeUserPasswordAuth = "USER_PASSWORD_AUTH"
 )
 
 const (
@@ -24038,6 +24317,9 @@ const (
 
 	// IdentityProviderTypeTypeLoginWithAmazon is a IdentityProviderTypeType enum value
 	IdentityProviderTypeTypeLoginWithAmazon = "LoginWithAmazon"
+
+	// IdentityProviderTypeTypeOidc is a IdentityProviderTypeType enum value
+	IdentityProviderTypeTypeOidc = "OIDC"
 )
 
 const (

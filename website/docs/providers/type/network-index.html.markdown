@@ -3,7 +3,7 @@ layout: "docs"
 page_title: "Network Providers"
 sidebar_current: "docs-providers-network"
 description: |-
-  Category for netowrk vendors.
+  Category for network vendors.
 ---
 
 # Network Providers

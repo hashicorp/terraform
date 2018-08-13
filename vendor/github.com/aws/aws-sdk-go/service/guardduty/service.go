@@ -29,8 +29,9 @@ var initRequest func(*request.Request)
 
 // Service information constants
 const (
-	ServiceName = "guardduty" // Service endpoint prefix API calls made to.
-	EndpointsID = ServiceName // Service ID for Regions and Endpoints metadata.
+	ServiceName = "guardduty" // Name of service.
+	EndpointsID = ServiceName // ID to lookup a service endpoint with.
+	ServiceID   = "GuardDuty" // ServiceID is a unique identifer of a specific service.
 )
 
 // New creates a new instance of the GuardDuty client with a session.
@@ -45,19 +46,20 @@ const (
 //     svc := guardduty.New(mySession, aws.NewConfig().WithRegion("us-west-2"))
 func New(p client.ConfigProvider, cfgs ...*aws.Config) *GuardDuty {
 	c := p.ClientConfig(EndpointsID, cfgs...)
+	if c.SigningNameDerived || len(c.SigningName) == 0 {
+		c.SigningName = "guardduty"
+	}
 	return newClient(*c.Config, c.Handlers, c.Endpoint, c.SigningRegion, c.SigningName)
 }
 
 // newClient creates, initializes and returns a new service client instance.
 func newClient(cfg aws.Config, handlers request.Handlers, endpoint, signingRegion, signingName string) *GuardDuty {
-	if len(signingName) == 0 {
-		signingName = "guardduty"
-	}
 	svc := &GuardDuty{
 		Client: client.New(
 			cfg,
 			metadata.ClientInfo{
 				ServiceName:   ServiceName,
+				ServiceID:     ServiceID,
 				SigningName:   signingName,
 				SigningRegion: signingRegion,
 				Endpoint:      endpoint,

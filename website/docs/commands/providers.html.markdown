@@ -20,7 +20,7 @@ Provider dependencies are created in several different ways:
 * Use of any resource belonging to a particular provider in a `resource` or
   `data` block in configuration.
 
-* Existance of any resource instance belonging to a particular provider in
+* Existence of any resource instance belonging to a particular provider in
   the current _state_. For example, if a particular resource is removed
   from configuration, it continues to create a dependency on its provider
   until its instances have been destroyed.

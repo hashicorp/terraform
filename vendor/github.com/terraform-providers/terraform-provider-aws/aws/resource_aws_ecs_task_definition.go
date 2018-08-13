@@ -4,13 +4,13 @@ import (
 	"bytes"
 	"fmt"
 	"log"
-	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ecs"
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/helper/structure"
+	"github.com/hashicorp/terraform/helper/validation"
 )
 
 func resourceAwsEcsTaskDefinition() *schema.Resource {
@@ -79,11 +79,16 @@ func resourceAwsEcsTaskDefinition() *schema.Resource {
 			},
 
 			"network_mode": {
-				Type:         schema.TypeString,
-				Optional:     true,
-				Computed:     true,
-				ForceNew:     true,
-				ValidateFunc: validateAwsEcsTaskDefinitionNetworkMode,
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
+				ForceNew: true,
+				ValidateFunc: validation.StringInSlice([]string{
+					ecs.NetworkModeBridge,
+					ecs.NetworkModeHost,
+					ecs.NetworkModeAwsvpc,
+					ecs.NetworkModeNone,
+				}, false),
 			},
 
 			"volume": {
@@ -137,21 +142,6 @@ func resourceAwsEcsTaskDefinition() *schema.Resource {
 			},
 		},
 	}
-}
-
-func validateAwsEcsTaskDefinitionNetworkMode(v interface{}, k string) (ws []string, errors []error) {
-	value := strings.ToLower(v.(string))
-	validTypes := map[string]struct{}{
-		"bridge": {},
-		"host":   {},
-		"awsvpc": {},
-		"none":   {},
-	}
-
-	if _, ok := validTypes[value]; !ok {
-		errors = append(errors, fmt.Errorf("ECS Task Definition network_mode %q is invalid, must be `bridge`, `host`, `awsvpc` or `none`", value))
-	}
-	return
 }
 
 func validateAwsEcsTaskDefinitionContainerDefinitions(v interface{}, k string) (ws []string, errors []error) {
@@ -277,7 +267,11 @@ func resourceAwsEcsTaskDefinitionRead(d *schema.ResourceData, meta interface{}) 
 	d.Set("cpu", taskDefinition.Cpu)
 	d.Set("memory", taskDefinition.Memory)
 	d.Set("network_mode", taskDefinition.NetworkMode)
-	d.Set("volumes", flattenEcsVolumes(taskDefinition.Volumes))
+
+	if err := d.Set("volume", flattenEcsVolumes(taskDefinition.Volumes)); err != nil {
+		return fmt.Errorf("error setting volume: %s", err)
+	}
+
 	if err := d.Set("placement_constraints", flattenPlacementConstraints(taskDefinition.PlacementConstraints)); err != nil {
 		log.Printf("[ERR] Error setting placement_constraints for (%s): %s", d.Id(), err)
 	}

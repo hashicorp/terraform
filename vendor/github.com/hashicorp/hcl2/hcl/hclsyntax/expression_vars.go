@@ -39,6 +39,10 @@ func (e *ObjectConsExpr) Variables() []hcl.Traversal {
 	return Variables(e)
 }
 
+func (e *ObjectConsKeyExpr) Variables() []hcl.Traversal {
+	return Variables(e)
+}
+
 func (e *RelativeTraversalExpr) Variables() []hcl.Traversal {
 	return Variables(e)
 }

@@ -86,7 +86,7 @@ func (p *Parser) loadConfigFile(path string, override bool) (*File, hcl.Diagnost
 			}
 
 		case "variable":
-			cfg, cfgDiags := decodeVariableBlock(block)
+			cfg, cfgDiags := decodeVariableBlock(block, override)
 			diags = append(diags, cfgDiags...)
 			if cfg != nil {
 				file.Variables = append(file.Variables, cfg)

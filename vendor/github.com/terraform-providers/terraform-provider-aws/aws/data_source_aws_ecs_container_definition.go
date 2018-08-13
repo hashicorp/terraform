@@ -53,12 +53,12 @@ func dataSourceAwsEcsContainerDefinition() *schema.Resource {
 			"docker_labels": {
 				Type:     schema.TypeMap,
 				Computed: true,
-				Elem:     schema.TypeString,
+				Elem:     &schema.Schema{Type: schema.TypeString},
 			},
 			"environment": {
 				Type:     schema.TypeMap,
 				Computed: true,
-				Elem:     schema.TypeString,
+				Elem:     &schema.Schema{Type: schema.TypeString},
 			},
 		},
 	}

@@ -196,12 +196,8 @@ func TestPlan_outPath(t *testing.T) {
 	tmp, cwd := testCwd(t)
 	defer testFixCwd(t, tmp, cwd)
 
-	tf, err := ioutil.TempFile("", "tf")
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	outPath := tf.Name()
-	os.Remove(tf.Name())
+	td := testTempDir(t)
+	outPath := filepath.Join(td, "test.plan")
 
 	p := testProvider()
 	ui := new(cli.MockUi)
@@ -253,12 +249,8 @@ func TestPlan_outPathNoChange(t *testing.T) {
 	}
 	statePath := testStateFile(t, originalState)
 
-	tf, err := ioutil.TempFile("", "tf")
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	outPath := tf.Name()
-	os.Remove(tf.Name())
+	td := testTempDir(t)
+	outPath := filepath.Join(td, "test.plan")
 
 	p := testProvider()
 	ui := new(cli.MockUi)
@@ -433,20 +425,8 @@ func TestPlan_refresh(t *testing.T) {
 }
 
 func TestPlan_state(t *testing.T) {
-	// Write out some prior state
-	tf, err := ioutil.TempFile("", "tf")
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	statePath := tf.Name()
-	defer os.Remove(tf.Name())
-
 	originalState := testState()
-	err = terraform.WriteState(originalState, tf)
-	tf.Close()
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
+	statePath := testStateFile(t, originalState)
 
 	p := testProvider()
 	ui := new(cli.MockUi)
@@ -475,24 +455,7 @@ func TestPlan_state(t *testing.T) {
 
 func TestPlan_stateDefault(t *testing.T) {
 	originalState := testState()
-
-	// Write the state file in a temporary directory with the
-	// default filename.
-	td, err := ioutil.TempDir("", "tf")
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	statePath := filepath.Join(td, DefaultStateFilename)
-
-	f, err := os.Create(statePath)
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	err = terraform.WriteState(originalState, f)
-	f.Close()
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
+	statePath := testStateFile(t, originalState)
 
 	// Change to that directory
 	cwd, err := os.Getwd()
@@ -514,6 +477,7 @@ func TestPlan_stateDefault(t *testing.T) {
 	}
 
 	args := []string{
+		"-state", statePath,
 		testFixturePath("plan"),
 	}
 	if code := c.Run(args); code != 0 {

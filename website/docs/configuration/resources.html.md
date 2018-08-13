@@ -71,11 +71,6 @@ There are **meta-parameters** available to all resources:
     example, this can be used to create an new DNS record before removing an old
     record.
 
-        ~> Resources that utilize the `create_before_destroy` key can only
-        depend on other resources that also include `create_before_destroy`.
-        Referencing a resource that does not include `create_before_destroy`
-        will result in a dependency graph cycle.
-
   - `prevent_destroy` (bool) - This flag provides extra protection against the
     destruction of a given resource. When this is set to `true`, any plan that
     includes a destroy of this resource will return an error message.
@@ -92,6 +87,8 @@ There are **meta-parameters** available to all resources:
         which will match all attribute names. Using a partial string together
         with a wildcard (e.g. `"rout*"`) is **not** supported.
 
+  -> Interpolations are not currently supported in the `lifecycle` configuration block (see [issue #3116](https://github.com/hashicorp/terraform/issues/3116))
+
 ### Timeouts
 
 Individual Resources may provide a `timeouts` block to enable users to configure the
@@ -99,7 +96,7 @@ amount of time a specific operation is allowed to take before being considered
 an error. For example, the
 [aws_db_instance](/docs/providers/aws/r/db_instance.html#timeouts)
 resource provides configurable timeouts for the
-`create`, `update`, and `delete` operations. Any Resource that provies Timeouts
+`create`, `update`, and `delete` operations. Any Resource that provides Timeouts
 will document the default values for that operation, and users can overwrite
 them in their configuration.
 

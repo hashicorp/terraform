@@ -156,24 +156,23 @@ func runScripts(
 	o terraform.UIOutput,
 	comm communicator.Communicator,
 	scripts []io.ReadCloser) error {
-	// Wrap out context in a cancelation function that we use to
-	// kill the connection.
-	ctx, cancelFunc := context.WithTimeout(ctx, comm.Timeout())
-	defer cancelFunc()
+
+	retryCtx, cancel := context.WithTimeout(ctx, comm.Timeout())
+	defer cancel()
+
+	// Wait and retry until we establish the connection
+	err := communicator.Retry(retryCtx, func() error {
+		return comm.Connect(o)
+	})
+	if err != nil {
+		return err
+	}
 
 	// Wait for the context to end and then disconnect
 	go func() {
 		<-ctx.Done()
 		comm.Disconnect()
 	}()
-
-	// Wait and retry until we establish the connection
-	err := communicator.Retry(ctx, func() error {
-		return comm.Connect(o)
-	})
-	if err != nil {
-		return err
-	}
 
 	for _, script := range scripts {
 		var cmd *remote.Cmd
@@ -201,9 +200,8 @@ func runScripts(
 			return fmt.Errorf("Error starting script: %v", err)
 		}
 
-		cmd.Wait()
-		if cmd.ExitStatus != 0 {
-			err = fmt.Errorf("Script exited with non-zero exit status: %d", cmd.ExitStatus)
+		if err := cmd.Wait(); err != nil {
+			return err
 		}
 
 		// Upload a blank follow up file in the same path to prevent residual

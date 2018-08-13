@@ -13,6 +13,7 @@ import (
 	"sync"
 
 	"github.com/hashicorp/terraform/backend"
+	"github.com/hashicorp/terraform/command/clistate"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/state"
 	"github.com/hashicorp/terraform/terraform"
@@ -98,41 +99,161 @@ type Local struct {
 
 	schema *schema.Backend
 	opLock sync.Mutex
-	once   sync.Once
 }
 
-func (b *Local) Input(
-	ui terraform.UIInput, c *terraform.ResourceConfig) (*terraform.ResourceConfig, error) {
-	b.once.Do(b.init)
+// New returns a new initialized local backend.
+func New() *Local {
+	return NewWithBackend(nil)
+}
 
+// NewWithBackend returns a new local backend initialized with a
+// dedicated backend for non-enhanced behavior.
+func NewWithBackend(backend backend.Backend) *Local {
+	b := &Local{
+		Backend: backend,
+	}
+
+	b.schema = &schema.Backend{
+		Schema: map[string]*schema.Schema{
+			"path": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				Default:  "",
+			},
+
+			"workspace_dir": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				Default:  "",
+			},
+
+			"environment_dir": &schema.Schema{
+				Type:          schema.TypeString,
+				Optional:      true,
+				Default:       "",
+				ConflictsWith: []string{"workspace_dir"},
+				Deprecated:    "workspace_dir should be used instead, with the same meaning",
+			},
+		},
+
+		ConfigureFunc: b.configure,
+	}
+
+	return b
+}
+
+func (b *Local) configure(ctx context.Context) error {
+	d := schema.FromContextBackendConfig(ctx)
+
+	// Set the path if it is set
+	pathRaw, ok := d.GetOk("path")
+	if ok {
+		path := pathRaw.(string)
+		if path == "" {
+			return fmt.Errorf("configured path is empty")
+		}
+
+		b.StatePath = path
+		b.StateOutPath = path
+	}
+
+	if raw, ok := d.GetOk("workspace_dir"); ok {
+		path := raw.(string)
+		if path != "" {
+			b.StateWorkspaceDir = path
+		}
+	}
+
+	// Legacy name, which ConflictsWith workspace_dir
+	if raw, ok := d.GetOk("environment_dir"); ok {
+		path := raw.(string)
+		if path != "" {
+			b.StateWorkspaceDir = path
+		}
+	}
+
+	return nil
+}
+
+func (b *Local) Input(ui terraform.UIInput, c *terraform.ResourceConfig) (*terraform.ResourceConfig, error) {
 	f := b.schema.Input
 	if b.Backend != nil {
 		f = b.Backend.Input
 	}
-
 	return f(ui, c)
 }
 
 func (b *Local) Validate(c *terraform.ResourceConfig) ([]string, []error) {
-	b.once.Do(b.init)
-
 	f := b.schema.Validate
 	if b.Backend != nil {
 		f = b.Backend.Validate
 	}
-
 	return f(c)
 }
 
 func (b *Local) Configure(c *terraform.ResourceConfig) error {
-	b.once.Do(b.init)
-
 	f := b.schema.Configure
 	if b.Backend != nil {
 		f = b.Backend.Configure
 	}
-
 	return f(c)
+}
+
+func (b *Local) State(name string) (state.State, error) {
+	statePath, stateOutPath, backupPath := b.StatePaths(name)
+
+	// If we have a backend handling state, delegate to that.
+	if b.Backend != nil {
+		return b.Backend.State(name)
+	}
+
+	if s, ok := b.states[name]; ok {
+		return s, nil
+	}
+
+	if err := b.createState(name); err != nil {
+		return nil, err
+	}
+
+	// Otherwise, we need to load the state.
+	var s state.State = &state.LocalState{
+		Path:    statePath,
+		PathOut: stateOutPath,
+	}
+
+	// If we are backing up the state, wrap it
+	if backupPath != "" {
+		s = &state.BackupState{
+			Real: s,
+			Path: backupPath,
+		}
+	}
+
+	if b.states == nil {
+		b.states = map[string]state.State{}
+	}
+	b.states[name] = s
+	return s, nil
+}
+
+// DeleteState removes a named state.
+// The "default" state cannot be removed.
+func (b *Local) DeleteState(name string) error {
+	// If we have a backend handling state, defer to that.
+	if b.Backend != nil {
+		return b.Backend.DeleteState(name)
+	}
+
+	if name == "" {
+		return errors.New("empty state name")
+	}
+
+	if name == backend.DefaultStateName {
+		return errors.New("cannot delete default state")
+	}
+
+	delete(b.states, name)
+	return os.RemoveAll(filepath.Join(b.stateWorkspaceDir(), name))
 }
 
 func (b *Local) States() ([]string, error) {
@@ -164,67 +285,6 @@ func (b *Local) States() ([]string, error) {
 	envs = append(envs, listed...)
 
 	return envs, nil
-}
-
-// DeleteState removes a named state.
-// The "default" state cannot be removed.
-func (b *Local) DeleteState(name string) error {
-	// If we have a backend handling state, defer to that.
-	if b.Backend != nil {
-		return b.Backend.DeleteState(name)
-	}
-
-	if name == "" {
-		return errors.New("empty state name")
-	}
-
-	if name == backend.DefaultStateName {
-		return errors.New("cannot delete default state")
-	}
-
-	delete(b.states, name)
-	return os.RemoveAll(filepath.Join(b.stateWorkspaceDir(), name))
-}
-
-func (b *Local) State(name string) (state.State, error) {
-	statePath, stateOutPath, backupPath := b.StatePaths(name)
-
-	// If we have a backend handling state, delegate to that.
-	if b.Backend != nil {
-		return b.Backend.State(name)
-	}
-
-	if s, ok := b.states[name]; ok {
-		return s, nil
-	}
-
-	if err := b.createState(name); err != nil {
-		return nil, err
-	}
-
-	// Otherwise, we need to load the state.
-	var s state.State = &state.LocalState{
-		Path:             statePath,
-		PathOut:          stateOutPath,
-		PasswordFilePath: b.PasswordFilePath,
-		Seal:             b.Seal,
-	}
-
-	// If we are backing up the state, wrap it
-	if backupPath != "" {
-		s = &state.BackupState{
-			Real:             s,
-			Path:             backupPath,
-			PasswordFilePath: b.PasswordFilePath,
-			Seal:             b.Seal,
-		}
-	}
-
-	if b.states == nil {
-		b.states = map[string]state.State{}
-	}
-	b.states[name] = s
-	return s, nil
 }
 
 // Operation implements backend.Enhanced
@@ -272,11 +332,23 @@ func (b *Local) Operation(ctx context.Context, op *backend.Operation) (*backend.
 	cancelCtx, cancel := context.WithCancel(context.Background())
 	runningOp.Cancel = cancel
 
+	if op.LockState {
+		op.StateLocker = clistate.NewLocker(stopCtx, op.StateLockTimeout, b.CLI, b.Colorize())
+	} else {
+		op.StateLocker = clistate.NewNoopLocker()
+	}
+
 	// Do it
 	go func() {
 		defer done()
 		defer stop()
 		defer cancel()
+
+		// the state was locked during context creation, unlock the state when
+		// the operation completes
+		defer func() {
+			runningOp.Err = op.StateLocker.Unlock(runningOp.Err)
+		}()
 
 		defer b.opLock.Unlock()
 		f(stopCtx, cancelCtx, op, runningOp)

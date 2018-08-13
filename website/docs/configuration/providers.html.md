@@ -133,7 +133,7 @@ multiple regions, multiple hosts, etc. The primary use case for this is
 using multiple cloud regions. Other use-cases include targeting multiple
 Docker hosts, multiple Consul hosts, etc.
 
-To include multiple configurations fo a given provider, include multiple
+To include multiple configurations for a given provider, include multiple
 `provider` blocks with the same provider name, but set the `alias` field to an
 instance name to use for each additional instance. For example:
 

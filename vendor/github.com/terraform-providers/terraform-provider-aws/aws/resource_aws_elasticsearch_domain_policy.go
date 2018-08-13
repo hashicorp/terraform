@@ -122,6 +122,5 @@ func resourceAwsElasticSearchDomainPolicyDelete(d *schema.ResourceData, meta int
 		return err
 	}
 
-	d.SetId("")
 	return nil
 }

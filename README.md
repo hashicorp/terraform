@@ -34,17 +34,21 @@ All documentation is available on the [Terraform website](http://www.terraform.i
 Developing Terraform
 --------------------
 
-If you wish to work on Terraform itself or any of its built-in providers, you'll first need [Go](http://www.golang.org) installed on your machine (version 1.9+ is *required*). Alternatively, you can use the Vagrantfile in the root of this repo to stand up a virtual machine with the appropriate dev tooling already set up for you.
+If you wish to work on Terraform itself or any of its built-in providers, you'll first need [Go](http://www.golang.org) installed on your machine (version 1.10+ is *required*). Alternatively, you can use the Vagrantfile in the root of this repo to stand up a virtual machine with the appropriate dev tooling already set up for you.
 
 This repository contains only Terraform core, which includes the command line interface and the main graph engine. Providers are implemented as plugins that each have their own repository in [the `terraform-providers` organization](https://github.com/terraform-providers) on GitHub. Instructions for developing each provider are in the associated README file. For more information, see [the provider development overview](https://www.terraform.io/docs/plugins/provider.html).
 
 For local development of Terraform core, first make sure Go is properly installed and that a
 [GOPATH](http://golang.org/doc/code.html#GOPATH) has been set. You will also need to add `$GOPATH/bin` to your `$PATH`.
 
-Next, using [Git](https://git-scm.com/), clone this repository into `$GOPATH/src/github.com/hashicorp/terraform`. All the necessary dependencies are either vendored or automatically installed, so you just need to type `make`. This will compile the code and then run the tests. If this exits with exit status 0, then everything is working!
+Next, using [Git](https://git-scm.com/), clone this repository into `$GOPATH/src/github.com/hashicorp/terraform`.
+
+You'll need to run `make tools` to install some required tools, then `make`.  This will compile the code and then run the tests. If this exits with exit status 0, then everything is working!
+You only need torun `make tools` once (or when the tools change).
 
 ```sh
 $ cd "$GOPATH/src/github.com/hashicorp/terraform"
+$ make tools
 $ make
 ```
 

@@ -62,28 +62,15 @@ func resourceAwsIAMServerCertificate() *schema.Resource {
 				Computed:      true,
 				ForceNew:      true,
 				ConflictsWith: []string{"name_prefix"},
-				ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
-					value := v.(string)
-					if len(value) > 128 {
-						errors = append(errors, fmt.Errorf(
-							"%q cannot be longer than 128 characters", k))
-					}
-					return
-				},
+				ValidateFunc:  validateMaxLength(128),
 			},
 
 			"name_prefix": {
-				Type:     schema.TypeString,
-				Optional: true,
-				ForceNew: true,
-				ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
-					value := v.(string)
-					if len(value) > 102 {
-						errors = append(errors, fmt.Errorf(
-							"%q cannot be longer than 102 characters, name is limited to 128", k))
-					}
-					return
-				},
+				Type:          schema.TypeString,
+				Optional:      true,
+				ForceNew:      true,
+				ConflictsWith: []string{"name"},
+				ValidateFunc:  validateMaxLength(128 - resource.UniqueIDSuffixLength),
 			},
 
 			"arn": {
@@ -187,8 +174,6 @@ func resourceAwsIAMServerCertificateDelete(d *schema.ResourceData, meta interfac
 					return resource.RetryableError(err)
 				}
 				if awsErr.Code() == "NoSuchEntity" {
-					log.Printf("[WARN] IAM Server Certificate (%s) not found, removing from state", d.Id())
-					d.SetId("")
 					return nil
 				}
 			}
@@ -201,7 +186,6 @@ func resourceAwsIAMServerCertificateDelete(d *schema.ResourceData, meta interfac
 		return err
 	}
 
-	d.SetId("")
 	return nil
 }
 

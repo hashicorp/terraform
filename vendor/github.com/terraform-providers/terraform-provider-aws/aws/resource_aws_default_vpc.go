@@ -61,6 +61,5 @@ func resourceAwsDefaultVpcCreate(d *schema.ResourceData, meta interface{}) error
 
 func resourceAwsDefaultVpcDelete(d *schema.ResourceData, meta interface{}) error {
 	log.Printf("[WARN] Cannot destroy Default VPC. Terraform will remove this resource from the state file, however resources may remain.")
-	d.SetId("")
 	return nil
 }

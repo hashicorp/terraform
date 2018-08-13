@@ -73,6 +73,7 @@ func Handlers() request.Handlers {
 	handlers.Validate.PushBackNamed(corehandlers.ValidateEndpointHandler)
 	handlers.Validate.AfterEachFn = request.HandlerListStopOnError
 	handlers.Build.PushBackNamed(corehandlers.SDKVersionUserAgentHandler)
+	handlers.Build.PushBackNamed(corehandlers.AddHostExecEnvUserAgentHander)
 	handlers.Build.AfterEachFn = request.HandlerListStopOnError
 	handlers.Sign.PushBackNamed(corehandlers.BuildContentLengthHandler)
 	handlers.Send.PushBackNamed(corehandlers.ValidateReqSigHandler)
@@ -91,12 +92,23 @@ func Handlers() request.Handlers {
 func CredChain(cfg *aws.Config, handlers request.Handlers) *credentials.Credentials {
 	return credentials.NewCredentials(&credentials.ChainProvider{
 		VerboseErrors: aws.BoolValue(cfg.CredentialsChainVerboseErrors),
-		Providers: []credentials.Provider{
-			&credentials.EnvProvider{},
-			&credentials.SharedCredentialsProvider{Filename: "", Profile: ""},
-			RemoteCredProvider(*cfg, handlers),
-		},
+		Providers:     CredProviders(cfg, handlers),
 	})
+}
+
+// CredProviders returns the slice of providers used in
+// the default credential chain.
+//
+// For applications that need to use some other provider (for example use
+// different  environment variables for legacy reasons) but still fall back
+// on the default chain of providers. This allows that default chaint to be
+// automatically updated
+func CredProviders(cfg *aws.Config, handlers request.Handlers) []credentials.Provider {
+	return []credentials.Provider{
+		&credentials.EnvProvider{},
+		&credentials.SharedCredentialsProvider{Filename: "", Profile: ""},
+		RemoteCredProvider(*cfg, handlers),
+	}
 }
 
 const (

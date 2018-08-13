@@ -5,6 +5,7 @@ import (
 	"log"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/arn"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/waf"
 	"github.com/aws/aws-sdk-go/service/wafregional"
@@ -23,6 +24,10 @@ func resourceAwsWafRegionalIPSet() *schema.Resource {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
+			},
+			"arn": &schema.Schema{
+				Type:     schema.TypeString,
+				Computed: true,
 			},
 			"ip_set_descriptor": &schema.Schema{
 				Type:     schema.TypeSet,
@@ -84,6 +89,15 @@ func resourceAwsWafRegionalIPSetRead(d *schema.ResourceData, meta interface{}) e
 
 	d.Set("ip_set_descriptor", flattenWafIpSetDescriptorWR(resp.IPSet.IPSetDescriptors))
 	d.Set("name", resp.IPSet.Name)
+
+	arn := arn.ARN{
+		Partition: meta.(*AWSClient).partition,
+		Service:   "waf-regional",
+		Region:    meta.(*AWSClient).region,
+		AccountID: meta.(*AWSClient).accountid,
+		Resource:  fmt.Sprintf("ipset/%s", d.Id()),
+	}
+	d.Set("arn", arn.String())
 
 	return nil
 }

@@ -157,6 +157,7 @@ func (n *EvalValidateProvisioner) validateConnConfig(connConfig *ResourceConfig)
 		// For type=winrm only (enforced in winrm communicator)
 		HTTPS    interface{} `mapstructure:"https"`
 		Insecure interface{} `mapstructure:"insecure"`
+		NTLM     interface{} `mapstructure:"use_ntlm"`
 		CACert   interface{} `mapstructure:"cacert"`
 	}
 

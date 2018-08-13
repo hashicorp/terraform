@@ -51,6 +51,9 @@ The following arguments are supported:
   form "/bin/bash", "-c", "echo foo". If `interpreter` is unspecified,
   sensible defaults will be chosen based on the system OS.
 
+* `environment` - (Optional) block of key value pairs representing the
+  environment of the executed command. inherits the current process environment.
+
 ### Interpreter Examples
 
 ```hcl
@@ -67,6 +70,22 @@ resource "null_resource" "example2" {
   provisioner "local-exec" {
     command = "Get-Date > completed.txt"
     interpreter = ["PowerShell", "-Command"]
+  }
+}
+```
+
+```hcl
+resource "aws_instance" "web" {
+  # ...
+
+  provisioner "local-exec" {
+    command = "echo $FOO $BAR $BAZ >> env_vars.txt"
+
+    environment {
+      FOO = "bar"
+      BAR = 1
+      BAZ = "true"
+    }
   }
 }
 ```

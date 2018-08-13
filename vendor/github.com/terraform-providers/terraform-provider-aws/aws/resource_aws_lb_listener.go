@@ -8,11 +8,11 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/elbv2"
 	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/hashicorp/terraform/helper/validation"
 )
 
 func resourceAwsLbListener() *schema.Resource {
@@ -40,7 +40,7 @@ func resourceAwsLbListener() *schema.Resource {
 			"port": {
 				Type:         schema.TypeInt,
 				Required:     true,
-				ValidateFunc: validateAwsLbListenerPort,
+				ValidateFunc: validation.IntBetween(1, 65535),
 			},
 
 			"protocol": {
@@ -50,7 +50,7 @@ func resourceAwsLbListener() *schema.Resource {
 				StateFunc: func(v interface{}) string {
 					return strings.ToUpper(v.(string))
 				},
-				ValidateFunc: validateAwsLbListenerProtocol,
+				ValidateFunc: validateLbListenerProtocol(),
 			},
 
 			"ssl_policy": {
@@ -76,7 +76,7 @@ func resourceAwsLbListener() *schema.Resource {
 						"type": {
 							Type:         schema.TypeString,
 							Required:     true,
-							ValidateFunc: validateAwsLbListenerActionType,
+							ValidateFunc: validateLbListenerActionType(),
 						},
 					},
 				},
@@ -126,16 +126,12 @@ func resourceAwsLbListenerCreate(d *schema.ResourceData, meta interface{}) error
 		var err error
 		log.Printf("[DEBUG] Creating LB listener for ARN: %s", d.Get("load_balancer_arn").(string))
 		resp, err = elbconn.CreateListener(params)
-		if awsErr, ok := err.(awserr.Error); ok {
-			if awsErr.Code() == "CertificateNotFound" {
-				log.Printf("[WARN] Got an error while trying to create LB listener for ARN: %s: %s", lbArn, err)
+		if err != nil {
+			if isAWSErr(err, elbv2.ErrCodeCertificateNotFoundException, "") {
 				return resource.RetryableError(err)
 			}
-		}
-		if err != nil {
 			return resource.NonRetryableError(err)
 		}
-
 		return nil
 	})
 
@@ -159,7 +155,7 @@ func resourceAwsLbListenerRead(d *schema.ResourceData, meta interface{}) error {
 		ListenerArns: []*string{aws.String(d.Id())},
 	})
 	if err != nil {
-		if isListenerNotFound(err) {
+		if isAWSErr(err, elbv2.ErrCodeListenerNotFoundException, "") {
 			log.Printf("[WARN] DescribeListeners - removing %s from state", d.Id())
 			d.SetId("")
 			return nil
@@ -231,7 +227,16 @@ func resourceAwsLbListenerUpdate(d *schema.ResourceData, meta interface{}) error
 		}
 	}
 
-	_, err := elbconn.ModifyListener(params)
+	err := resource.Retry(5*time.Minute, func() *resource.RetryError {
+		_, err := elbconn.ModifyListener(params)
+		if err != nil {
+			if isAWSErr(err, elbv2.ErrCodeCertificateNotFoundException, "") {
+				return resource.RetryableError(err)
+			}
+			return resource.NonRetryableError(err)
+		}
+		return nil
+	})
 	if err != nil {
 		return errwrap.Wrapf("Error modifying LB Listener: {{err}}", err)
 	}
@@ -252,33 +257,16 @@ func resourceAwsLbListenerDelete(d *schema.ResourceData, meta interface{}) error
 	return nil
 }
 
-func validateAwsLbListenerPort(v interface{}, k string) (ws []string, errors []error) {
-	port := v.(int)
-	if port < 1 || port > 65536 {
-		errors = append(errors, fmt.Errorf("%q must be a valid port number (1-65536)", k))
-	}
-	return
+func validateLbListenerActionType() schema.SchemaValidateFunc {
+	return validation.StringInSlice([]string{
+		elbv2.ActionTypeEnumForward,
+	}, true)
 }
 
-func validateAwsLbListenerProtocol(v interface{}, k string) (ws []string, errors []error) {
-	value := strings.ToLower(v.(string))
-	if value == "http" || value == "https" || value == "tcp" {
-		return
-	}
-
-	errors = append(errors, fmt.Errorf("%q must be either %q, %q or %q", k, "HTTP", "HTTPS", "TCP"))
-	return
-}
-
-func validateAwsLbListenerActionType(v interface{}, k string) (ws []string, errors []error) {
-	value := strings.ToLower(v.(string))
-	if value != "forward" {
-		errors = append(errors, fmt.Errorf("%q must have the value %q", k, "forward"))
-	}
-	return
-}
-
-func isListenerNotFound(err error) bool {
-	elberr, ok := err.(awserr.Error)
-	return ok && elberr.Code() == "ListenerNotFound"
+func validateLbListenerProtocol() schema.SchemaValidateFunc {
+	return validation.StringInSlice([]string{
+		"http",
+		"https",
+		"tcp",
+	}, true)
 }

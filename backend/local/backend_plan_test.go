@@ -15,7 +15,8 @@ import (
 )
 
 func TestLocal_planBasic(t *testing.T) {
-	b := TestLocal(t)
+	b, cleanup := TestLocal(t)
+	defer cleanup()
 	p := TestLocalProvider(t, b, "test")
 
 	mod, modCleanup := module.TestTree(t, "./test-fixtures/plan")
@@ -40,7 +41,8 @@ func TestLocal_planBasic(t *testing.T) {
 }
 
 func TestLocal_planInAutomation(t *testing.T) {
-	b := TestLocal(t)
+	b, cleanup := TestLocal(t)
+	defer cleanup()
 	TestLocalProvider(t, b, "test")
 
 	mod, modCleanup := module.TestTree(t, "./test-fixtures/plan")
@@ -103,7 +105,8 @@ func TestLocal_planInAutomation(t *testing.T) {
 }
 
 func TestLocal_planNoConfig(t *testing.T) {
-	b := TestLocal(t)
+	b, cleanup := TestLocal(t)
+	defer cleanup()
 	TestLocalProvider(t, b, "test")
 
 	op := testOperationPlan()
@@ -126,7 +129,8 @@ func TestLocal_planNoConfig(t *testing.T) {
 }
 
 func TestLocal_planRefreshFalse(t *testing.T) {
-	b := TestLocal(t)
+	b, cleanup := TestLocal(t)
+	defer cleanup()
 	p := TestLocalProvider(t, b, "test")
 	terraform.TestStateFile(t, b.StatePath, testPlanState())
 
@@ -155,7 +159,8 @@ func TestLocal_planRefreshFalse(t *testing.T) {
 }
 
 func TestLocal_planDestroy(t *testing.T) {
-	b := TestLocal(t)
+	b, cleanup := TestLocal(t)
+	defer cleanup()
 	p := TestLocalProvider(t, b, "test")
 	terraform.TestStateFile(t, b.StatePath, testPlanState())
 
@@ -200,7 +205,8 @@ func TestLocal_planDestroy(t *testing.T) {
 }
 
 func TestLocal_planOutPathNoChange(t *testing.T) {
-	b := TestLocal(t)
+	b, cleanup := TestLocal(t)
+	defer cleanup()
 	TestLocalProvider(t, b, "test")
 	terraform.TestStateFile(t, b.StatePath, testPlanState())
 
@@ -237,7 +243,8 @@ func TestLocal_planOutPathNoChange(t *testing.T) {
 // checks to make sure the correct resource count is ultimately given to the
 // UI.
 func TestLocal_planScaleOutNoDupeCount(t *testing.T) {
-	b := TestLocal(t)
+	b, cleanup := TestLocal(t)
+	defer cleanup()
 	TestLocalProvider(t, b, "test")
 	state := &terraform.State{
 		Version: 2,

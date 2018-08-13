@@ -11,11 +11,10 @@ import (
 	"strings"
 	"time"
 
-	cleanhttp "github.com/hashicorp/go-cleanhttp"
+	"github.com/hashicorp/terraform/httpclient"
 	"github.com/hashicorp/terraform/registry/regsrc"
 	"github.com/hashicorp/terraform/registry/response"
 	"github.com/hashicorp/terraform/svchost"
-	"github.com/hashicorp/terraform/svchost/auth"
 	"github.com/hashicorp/terraform/svchost/disco"
 	"github.com/hashicorp/terraform/version"
 )
@@ -37,30 +36,24 @@ type Client struct {
 	// services is a required *disco.Disco, which may have services and
 	// credentials pre-loaded.
 	services *disco.Disco
-
-	// Creds optionally provides credentials for communicating with service
-	// providers.
-	creds auth.CredentialsSource
 }
 
-func NewClient(services *disco.Disco, creds auth.CredentialsSource, client *http.Client) *Client {
+// NewClient returns a new initialized registry client.
+func NewClient(services *disco.Disco, client *http.Client) *Client {
 	if services == nil {
-		services = disco.NewDisco()
+		services = disco.New()
 	}
 
-	services.SetCredentialsSource(creds)
-
 	if client == nil {
-		client = cleanhttp.DefaultPooledClient()
+		client = httpclient.New()
 		client.Timeout = requestTimeout
 	}
 
-	services.Transport = client.Transport.(*http.Transport)
+	services.Transport = client.Transport
 
 	return &Client{
 		client:   client,
 		services: services,
-		creds:    creds,
 	}
 }
 
@@ -137,11 +130,7 @@ func (c *Client) Versions(module *regsrc.Module) (*response.ModuleVersions, erro
 }
 
 func (c *Client) addRequestCreds(host svchost.Hostname, req *http.Request) {
-	if c.creds == nil {
-		return
-	}
-
-	creds, err := c.creds.ForHost(host)
+	creds, err := c.services.CredentialsForHost(host)
 	if err != nil {
 		log.Printf("[WARN] Failed to get credentials for %s: %s (ignoring)", host, err)
 		return

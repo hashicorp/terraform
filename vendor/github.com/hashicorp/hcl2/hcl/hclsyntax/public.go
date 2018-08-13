@@ -20,6 +20,12 @@ func ParseConfig(src []byte, filename string, start hcl.Pos) (*hcl.File, hcl.Dia
 	parser := &parser{peeker: peeker}
 	body, parseDiags := parser.ParseBody(TokenEOF)
 	diags = append(diags, parseDiags...)
+
+	// Panic if the parser uses incorrect stack discipline with the peeker's
+	// newlines stack, since otherwise it will produce confusing downstream
+	// errors.
+	peeker.AssertEmptyIncludeNewlinesStack()
+
 	return &hcl.File{
 		Body:  body,
 		Bytes: src,
@@ -54,6 +60,13 @@ func ParseExpression(src []byte, filename string, start hcl.Pos) (Expression, hc
 		})
 	}
 
+	parser.PopIncludeNewlines()
+
+	// Panic if the parser uses incorrect stack discipline with the peeker's
+	// newlines stack, since otherwise it will produce confusing downstream
+	// errors.
+	peeker.AssertEmptyIncludeNewlinesStack()
+
 	return expr, diags
 }
 
@@ -65,6 +78,12 @@ func ParseTemplate(src []byte, filename string, start hcl.Pos) (Expression, hcl.
 	parser := &parser{peeker: peeker}
 	expr, parseDiags := parser.ParseTemplate()
 	diags = append(diags, parseDiags...)
+
+	// Panic if the parser uses incorrect stack discipline with the peeker's
+	// newlines stack, since otherwise it will produce confusing downstream
+	// errors.
+	peeker.AssertEmptyIncludeNewlinesStack()
+
 	return expr, diags
 }
 
@@ -85,6 +104,14 @@ func ParseTraversalAbs(src []byte, filename string, start hcl.Pos) (hcl.Traversa
 
 	expr, parseDiags := parser.ParseTraversalAbs()
 	diags = append(diags, parseDiags...)
+
+	parser.PopIncludeNewlines()
+
+	// Panic if the parser uses incorrect stack discipline with the peeker's
+	// newlines stack, since otherwise it will produce confusing downstream
+	// errors.
+	peeker.AssertEmptyIncludeNewlinesStack()
+
 	return expr, diags
 }
 

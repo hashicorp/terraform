@@ -252,10 +252,7 @@ func TestApply_configInvalid(t *testing.T) {
 }
 
 func TestApply_defaultState(t *testing.T) {
-	td, err := ioutil.TempDir("", "tf")
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
+	td := testTempDir(t)
 	statePath := filepath.Join(td, DefaultStateFilename)
 
 	// Change to the temporary directory
@@ -735,10 +732,7 @@ func TestApply_planVars(t *testing.T) {
 // we should be able to apply a plan file with no other file dependencies
 func TestApply_planNoModuleFiles(t *testing.T) {
 	// temporary data directory which we can remove between commands
-	td, err := ioutil.TempDir("", "tf")
-	if err != nil {
-		t.Fatal(err)
-	}
+	td := testTempDir(t)
 	defer os.RemoveAll(td)
 
 	defer testChdir(t, td)()

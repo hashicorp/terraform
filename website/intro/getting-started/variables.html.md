@@ -93,7 +93,7 @@ specify a file. These files are the same syntax as Terraform
 configuration files. And like Terraform configuration files, these files
 can also be JSON.
 
-We don't recommend saving usernames and password to version control, But you
+We don't recommend saving usernames and password to version control, but you
 can create a local secret variables file and use `-var-file` to load it.
 
 You can use multiple `-var-file` arguments in a single command, with some

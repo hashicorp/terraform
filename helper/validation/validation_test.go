@@ -144,6 +144,101 @@ func TestValidationRegexp(t *testing.T) {
 	})
 }
 
+func TestValidationSingleIP(t *testing.T) {
+	runTestCases(t, []testCase{
+		{
+			val: "172.10.10.10",
+			f:   SingleIP(),
+		},
+		{
+			val:         "1.1.1",
+			f:           SingleIP(),
+			expectedErr: regexp.MustCompile(regexp.QuoteMeta("expected test_property to contain a valid IP, got:")),
+		},
+		{
+			val:         "1.1.1.0/20",
+			f:           SingleIP(),
+			expectedErr: regexp.MustCompile(regexp.QuoteMeta("expected test_property to contain a valid IP, got:")),
+		},
+		{
+			val:         "256.1.1.1",
+			f:           SingleIP(),
+			expectedErr: regexp.MustCompile(regexp.QuoteMeta("expected test_property to contain a valid IP, got:")),
+		},
+	})
+}
+
+func TestValidationIPRange(t *testing.T) {
+	runTestCases(t, []testCase{
+		{
+			val: "172.10.10.10-172.10.10.12",
+			f:   IPRange(),
+		},
+		{
+			val:         "172.10.10.20",
+			f:           IPRange(),
+			expectedErr: regexp.MustCompile(regexp.QuoteMeta("expected test_property to contain a valid IP range, got:")),
+		},
+		{
+			val:         "172.10.10.20-172.10.10.12",
+			f:           IPRange(),
+			expectedErr: regexp.MustCompile(regexp.QuoteMeta("expected test_property to contain a valid IP range, got:")),
+		},
+	})
+}
+
+func TestValidateRFC3339TimeString(t *testing.T) {
+	runTestCases(t, []testCase{
+		{
+			val: "2018-03-01T00:00:00Z",
+			f:   ValidateRFC3339TimeString,
+		},
+		{
+			val: "2018-03-01T00:00:00-05:00",
+			f:   ValidateRFC3339TimeString,
+		},
+		{
+			val: "2018-03-01T00:00:00+05:00",
+			f:   ValidateRFC3339TimeString,
+		},
+		{
+			val:         "03/01/2018",
+			f:           ValidateRFC3339TimeString,
+			expectedErr: regexp.MustCompile(regexp.QuoteMeta(`invalid RFC3339 timestamp`)),
+		},
+		{
+			val:         "03-01-2018",
+			f:           ValidateRFC3339TimeString,
+			expectedErr: regexp.MustCompile(regexp.QuoteMeta(`invalid RFC3339 timestamp`)),
+		},
+		{
+			val:         "2018-03-01",
+			f:           ValidateRFC3339TimeString,
+			expectedErr: regexp.MustCompile(regexp.QuoteMeta(`invalid RFC3339 timestamp`)),
+		},
+		{
+			val:         "2018-03-01T",
+			f:           ValidateRFC3339TimeString,
+			expectedErr: regexp.MustCompile(regexp.QuoteMeta(`invalid RFC3339 timestamp`)),
+		},
+		{
+			val:         "2018-03-01T00:00:00",
+			f:           ValidateRFC3339TimeString,
+			expectedErr: regexp.MustCompile(regexp.QuoteMeta(`invalid RFC3339 timestamp`)),
+		},
+		{
+			val:         "2018-03-01T00:00:00Z05:00",
+			f:           ValidateRFC3339TimeString,
+			expectedErr: regexp.MustCompile(regexp.QuoteMeta(`invalid RFC3339 timestamp`)),
+		},
+		{
+			val:         "2018-03-01T00:00:00Z-05:00",
+			f:           ValidateRFC3339TimeString,
+			expectedErr: regexp.MustCompile(regexp.QuoteMeta(`invalid RFC3339 timestamp`)),
+		},
+	})
+}
+
 func TestValidateJsonString(t *testing.T) {
 	type testCases struct {
 		Value    string

@@ -112,6 +112,13 @@ func (c *GraphCommand) Run(args []string) int {
 		return 1
 	}
 
+	defer func() {
+		err := opReq.StateLocker.Unlock(nil)
+		if err != nil {
+			c.Ui.Error(err.Error())
+		}
+	}()
+
 	// Determine the graph type
 	graphType := terraform.GraphTypePlan
 	if plan != nil {

@@ -8,6 +8,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/waf"
 	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/hashicorp/terraform/helper/validation"
 )
 
 func resourceAwsWafWebAcl() *schema.Resource {
@@ -16,6 +17,9 @@ func resourceAwsWafWebAcl() *schema.Resource {
 		Read:   resourceAwsWafWebAclRead,
 		Update: resourceAwsWafWebAclUpdate,
 		Delete: resourceAwsWafWebAclDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"name": &schema.Schema{
@@ -49,7 +53,20 @@ func resourceAwsWafWebAcl() *schema.Resource {
 					Schema: map[string]*schema.Schema{
 						"action": &schema.Schema{
 							Type:     schema.TypeSet,
-							Required: true,
+							Optional: true,
+							MaxItems: 1,
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"type": &schema.Schema{
+										Type:     schema.TypeString,
+										Required: true,
+									},
+								},
+							},
+						},
+						"override_action": &schema.Schema{
+							Type:     schema.TypeSet,
+							Optional: true,
 							MaxItems: 1,
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
@@ -68,14 +85,11 @@ func resourceAwsWafWebAcl() *schema.Resource {
 							Type:     schema.TypeString,
 							Optional: true,
 							Default:  waf.WafRuleTypeRegular,
-							ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
-								value := v.(string)
-								if value != waf.WafRuleTypeRegular && value != waf.WafRuleTypeRateBased {
-									errors = append(errors, fmt.Errorf(
-										"%q must be one of %s | %s", k, waf.WafRuleTypeRegular, waf.WafRuleTypeRateBased))
-								}
-								return
-							},
+							ValidateFunc: validation.StringInSlice([]string{
+								waf.WafRuleTypeRegular,
+								waf.WafRuleTypeRateBased,
+								waf.WafRuleTypeGroup,
+							}, false),
 						},
 						"rule_id": &schema.Schema{
 							Type:     schema.TypeString,
@@ -187,16 +201,33 @@ func updateWebAclResource(d *schema.ResourceData, meta interface{}, ChangeAction
 		rules := d.Get("rules").(*schema.Set)
 		for _, rule := range rules.List() {
 			aclRule := rule.(map[string]interface{})
-			action := aclRule["action"].(*schema.Set).List()[0].(map[string]interface{})
-			aclRuleUpdate := &waf.WebACLUpdate{
-				Action: aws.String(ChangeAction),
-				ActivatedRule: &waf.ActivatedRule{
-					Priority: aws.Int64(int64(aclRule["priority"].(int))),
-					RuleId:   aws.String(aclRule["rule_id"].(string)),
-					Type:     aws.String(aclRule["type"].(string)),
-					Action:   &waf.WafAction{Type: aws.String(action["type"].(string))},
-				},
+
+			var aclRuleUpdate *waf.WebACLUpdate
+			switch aclRule["type"].(string) {
+			case waf.WafRuleTypeGroup:
+				overrideAction := aclRule["override_action"].(*schema.Set).List()[0].(map[string]interface{})
+				aclRuleUpdate = &waf.WebACLUpdate{
+					Action: aws.String(ChangeAction),
+					ActivatedRule: &waf.ActivatedRule{
+						Priority:       aws.Int64(int64(aclRule["priority"].(int))),
+						RuleId:         aws.String(aclRule["rule_id"].(string)),
+						Type:           aws.String(aclRule["type"].(string)),
+						OverrideAction: &waf.WafOverrideAction{Type: aws.String(overrideAction["type"].(string))},
+					},
+				}
+			default:
+				action := aclRule["action"].(*schema.Set).List()[0].(map[string]interface{})
+				aclRuleUpdate = &waf.WebACLUpdate{
+					Action: aws.String(ChangeAction),
+					ActivatedRule: &waf.ActivatedRule{
+						Priority: aws.Int64(int64(aclRule["priority"].(int))),
+						RuleId:   aws.String(aclRule["rule_id"].(string)),
+						Type:     aws.String(aclRule["type"].(string)),
+						Action:   &waf.WafAction{Type: aws.String(action["type"].(string))},
+					},
+				}
 			}
+
 			req.Updates = append(req.Updates, aclRuleUpdate)
 		}
 		return conn.UpdateWebACL(req)

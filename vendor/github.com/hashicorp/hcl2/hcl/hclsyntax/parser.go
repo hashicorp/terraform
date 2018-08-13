@@ -132,7 +132,7 @@ func (p *parser) ParseBodyItem() (Node, hcl.Diagnostics) {
 	switch next.Type {
 	case TokenEqual:
 		return p.finishParsingBodyAttribute(ident)
-	case TokenOQuote, TokenOBrace:
+	case TokenOQuote, TokenOBrace, TokenIdent:
 		return p.finishParsingBodyBlock(ident)
 	default:
 		p.recoverAfterBodyItem()
@@ -167,25 +167,15 @@ func (p *parser) finishParsingBodyAttribute(ident Token) (Node, hcl.Diagnostics)
 		p.recoverAfterBodyItem()
 	} else {
 		end := p.Peek()
-		if end.Type != TokenNewline {
+		if end.Type != TokenNewline && end.Type != TokenEOF {
 			if !p.recovery {
-				if end.Type == TokenEOF {
-					diags = append(diags, &hcl.Diagnostic{
-						Severity: hcl.DiagError,
-						Summary:  "Missing newline after attribute definition",
-						Detail:   "A newline is required after an attribute definition at the end of a file.",
-						Subject:  &end.Range,
-						Context:  hcl.RangeBetween(ident.Range, end.Range).Ptr(),
-					})
-				} else {
-					diags = append(diags, &hcl.Diagnostic{
-						Severity: hcl.DiagError,
-						Summary:  "Missing newline after attribute definition",
-						Detail:   "An attribute definition must end with a newline.",
-						Subject:  &end.Range,
-						Context:  hcl.RangeBetween(ident.Range, end.Range).Ptr(),
-					})
-				}
+				diags = append(diags, &hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Missing newline after attribute definition",
+					Detail:   "An attribute definition must end with a newline.",
+					Subject:  &end.Range,
+					Context:  hcl.RangeBetween(ident.Range, end.Range).Ptr(),
+				})
 			}
 			endRange = p.PrevRange()
 			p.recoverAfterBodyItem()
@@ -242,6 +232,12 @@ Token:
 				}, diags
 			}
 
+		case TokenIdent:
+			tok = p.Read() // eat token
+			label, labelRange := string(tok.Bytes), tok.Range
+			labels = append(labels, label)
+			labelRanges = append(labelRanges, labelRange)
+
 		default:
 			switch tok.Type {
 			case TokenEqual:
@@ -294,27 +290,17 @@ Token:
 	cBraceRange := p.PrevRange()
 
 	eol := p.Peek()
-	if eol.Type == TokenNewline {
+	if eol.Type == TokenNewline || eol.Type == TokenEOF {
 		p.Read() // eat newline
 	} else {
 		if !p.recovery {
-			if eol.Type == TokenEOF {
-				diags = append(diags, &hcl.Diagnostic{
-					Severity: hcl.DiagError,
-					Summary:  "Missing newline after block definition",
-					Detail:   "A newline is required after a block definition at the end of a file.",
-					Subject:  &eol.Range,
-					Context:  hcl.RangeBetween(ident.Range, eol.Range).Ptr(),
-				})
-			} else {
-				diags = append(diags, &hcl.Diagnostic{
-					Severity: hcl.DiagError,
-					Summary:  "Missing newline after block definition",
-					Detail:   "A block definition must end with a newline.",
-					Subject:  &eol.Range,
-					Context:  hcl.RangeBetween(ident.Range, eol.Range).Ptr(),
-				})
-			}
+			diags = append(diags, &hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Missing newline after block definition",
+				Detail:   "A block definition must end with a newline.",
+				Subject:  &eol.Range,
+				Context:  hcl.RangeBetween(ident.Range, eol.Range).Ptr(),
+			})
 		}
 		p.recoverAfterBodyItem()
 	}
@@ -497,6 +483,53 @@ Traversal:
 
 				ret = makeRelativeTraversal(ret, step, rng)
 
+			case TokenNumberLit:
+				// This is a weird form we inherited from HIL, allowing numbers
+				// to be used as attributes as a weird way of writing [n].
+				// This was never actually a first-class thing in HIL, but
+				// HIL tolerated sequences like .0. in its variable names and
+				// calling applications like Terraform exploited that to
+				// introduce indexing syntax where none existed.
+				numTok := p.Read() // eat token
+				attrTok = numTok
+
+				// This syntax is ambiguous if multiple indices are used in
+				// succession, like foo.0.1.baz: that actually parses as
+				// a fractional number 0.1. Since we're only supporting this
+				// syntax for compatibility with legacy Terraform
+				// configurations, and Terraform does not tend to have lists
+				// of lists, we'll choose to reject that here with a helpful
+				// error message, rather than failing later because the index
+				// isn't a whole number.
+				if dotIdx := bytes.IndexByte(numTok.Bytes, '.'); dotIdx >= 0 {
+					first := numTok.Bytes[:dotIdx]
+					second := numTok.Bytes[dotIdx+1:]
+					diags = append(diags, &hcl.Diagnostic{
+						Severity: hcl.DiagError,
+						Summary:  "Invalid legacy index syntax",
+						Detail:   fmt.Sprintf("When using the legacy index syntax, chaining two indexes together is not permitted. Use the proper index syntax instead, like [%s][%s].", first, second),
+						Subject:  &attrTok.Range,
+					})
+					rng := hcl.RangeBetween(dot.Range, numTok.Range)
+					step := hcl.TraverseIndex{
+						Key:      cty.DynamicVal,
+						SrcRange: rng,
+					}
+					ret = makeRelativeTraversal(ret, step, rng)
+					break
+				}
+
+				numVal, numDiags := p.numberLitValue(numTok)
+				diags = append(diags, numDiags...)
+
+				rng := hcl.RangeBetween(dot.Range, numTok.Range)
+				step := hcl.TraverseIndex{
+					Key:      numVal,
+					SrcRange: rng,
+				}
+
+				ret = makeRelativeTraversal(ret, step, rng)
+
 			case TokenStar:
 				// "Attribute-only" splat expression.
 				// (This is a kinda weird construct inherited from HIL, which
@@ -517,6 +550,27 @@ Traversal:
 						// into a list, for expressions like:
 						// foo.bar.*.baz.0.foo
 						numTok := p.Read()
+
+						// Weird special case if the user writes something
+						// like foo.bar.*.baz.0.0.foo, where 0.0 parses
+						// as a number.
+						if dotIdx := bytes.IndexByte(numTok.Bytes, '.'); dotIdx >= 0 {
+							first := numTok.Bytes[:dotIdx]
+							second := numTok.Bytes[dotIdx+1:]
+							diags = append(diags, &hcl.Diagnostic{
+								Severity: hcl.DiagError,
+								Summary:  "Invalid legacy index syntax",
+								Detail:   fmt.Sprintf("When using the legacy index syntax, chaining two indexes together is not permitted. Use the proper index syntax with a full splat expression [*] instead, like [%s][%s].", first, second),
+								Subject:  &attrTok.Range,
+							})
+							trav = append(trav, hcl.TraverseIndex{
+								Key:      cty.DynamicVal,
+								SrcRange: hcl.RangeBetween(dot.Range, numTok.Range),
+							})
+							lastRange = numTok.Range
+							continue
+						}
+
 						numVal, numDiags := p.numberLitValue(numTok)
 						diags = append(diags, numDiags...)
 						trav = append(trav, hcl.TraverseIndex{
@@ -623,7 +677,7 @@ Traversal:
 					close = p.recover(TokenCBrack)
 				}
 			}
-			p.PushIncludeNewlines(true)
+			p.PopIncludeNewlines()
 
 			if lit, isLit := keyExpr.(*LiteralValueExpr); isLit {
 				litKey, _ := lit.Value(nil)
@@ -1057,23 +1111,9 @@ func (p *parser) parseObjectCons() (Expression, hcl.Diagnostics) {
 			break
 		}
 
-		// As a special case, we allow the key to be a literal identifier.
-		// This means that a variable reference or function call can't appear
-		// directly as key expression, and must instead be wrapped in some
-		// disambiguation punctuation, like (var.a) = "b" or "${var.a}" = "b".
 		var key Expression
 		var keyDiags hcl.Diagnostics
-		if p.Peek().Type == TokenIdent {
-			nameTok := p.Read()
-			key = &LiteralValueExpr{
-				Val: cty.StringVal(string(nameTok.Bytes)),
-
-				SrcRange: nameTok.Range,
-			}
-		} else {
-			key, keyDiags = p.ParseExpression()
-		}
-
+		key, keyDiags = p.ParseExpression()
 		diags = append(diags, keyDiags...)
 
 		if p.recovery && keyDiags.HasErrors() {
@@ -1083,6 +1123,11 @@ func (p *parser) parseObjectCons() (Expression, hcl.Diagnostics) {
 			close = p.recover(TokenCBrace)
 			break
 		}
+
+		// We wrap up the key expression in a special wrapper that deals
+		// with our special case that naked identifiers as object keys
+		// are interpreted as literal strings.
+		key = &ObjectConsKeyExpr{Wrapped: key}
 
 		next = p.Peek()
 		if next.Type != TokenEqual && next.Type != TokenColon {

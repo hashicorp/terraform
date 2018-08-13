@@ -131,7 +131,6 @@ func resourceAwsAutoscalingLifecycleHookDelete(d *schema.ResourceData, meta inte
 		return errwrap.Wrapf("Autoscaling Lifecycle Hook: {{err}}", err)
 	}
 
-	d.SetId("")
 	return nil
 }
 

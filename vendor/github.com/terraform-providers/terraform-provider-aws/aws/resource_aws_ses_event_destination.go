@@ -7,6 +7,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ses"
 	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/hashicorp/terraform/helper/validation"
 )
 
 func resourceAwsSesEventDestination() *schema.Resource {
@@ -44,8 +45,17 @@ func resourceAwsSesEventDestination() *schema.Resource {
 				ForceNew: true,
 				Set:      schema.HashString,
 				Elem: &schema.Schema{
-					Type:         schema.TypeString,
-					ValidateFunc: validateMatchingTypes,
+					Type: schema.TypeString,
+					ValidateFunc: validation.StringInSlice([]string{
+						ses.EventTypeSend,
+						ses.EventTypeReject,
+						ses.EventTypeBounce,
+						ses.EventTypeComplaint,
+						ses.EventTypeDelivery,
+						ses.EventTypeOpen,
+						ses.EventTypeClick,
+						ses.EventTypeRenderingFailure,
+					}, false),
 				},
 			},
 
@@ -68,9 +78,13 @@ func resourceAwsSesEventDestination() *schema.Resource {
 						},
 
 						"value_source": {
-							Type:         schema.TypeString,
-							Required:     true,
-							ValidateFunc: validateDimensionValueSource,
+							Type:     schema.TypeString,
+							Required: true,
+							ValidateFunc: validation.StringInSlice([]string{
+								ses.DimensionValueSourceMessageTag,
+								ses.DimensionValueSourceEmailHeader,
+								ses.DimensionValueSourceLinkTag,
+							}, false),
 						},
 					},
 				},
@@ -191,37 +205,6 @@ func resourceAwsSesEventDestinationDelete(d *schema.ResourceData, meta interface
 	}
 
 	return nil
-}
-
-func validateMatchingTypes(v interface{}, k string) (ws []string, errors []error) {
-	value := v.(string)
-	matchingTypes := map[string]bool{
-		"send":      true,
-		"reject":    true,
-		"bounce":    true,
-		"complaint": true,
-		"delivery":  true,
-		"open":      true,
-		"click":     true,
-	}
-
-	if !matchingTypes[value] {
-		errors = append(errors, fmt.Errorf("%q must be a valid matching event type value: %q", k, value))
-	}
-	return
-}
-
-func validateDimensionValueSource(v interface{}, k string) (ws []string, errors []error) {
-	value := v.(string)
-	matchingSource := map[string]bool{
-		"messageTag":  true,
-		"emailHeader": true,
-	}
-
-	if !matchingSource[value] {
-		errors = append(errors, fmt.Errorf("%q must be a valid dimension value: %q", k, value))
-	}
-	return
 }
 
 func generateCloudWatchDestination(v []interface{}) []*ses.CloudWatchDimensionConfiguration {

@@ -69,8 +69,5 @@ func resourceAwsInspectorResourceGroupRead(d *schema.ResourceData, meta interfac
 }
 
 func resourceAwsInspectorResourceGroupDelete(d *schema.ResourceData, meta interface{}) error {
-	d.Set("arn", "")
-	d.SetId("")
-
 	return nil
 }

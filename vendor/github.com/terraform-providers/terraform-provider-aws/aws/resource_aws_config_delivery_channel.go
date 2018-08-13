@@ -54,7 +54,7 @@ func resourceAwsConfigDeliveryChannel() *schema.Resource {
 						"delivery_frequency": {
 							Type:         schema.TypeString,
 							Optional:     true,
-							ValidateFunc: validateConfigExecutionFrequency,
+							ValidateFunc: validateConfigExecutionFrequency(),
 						},
 					},
 				},
@@ -178,6 +178,5 @@ func resourceAwsConfigDeliveryChannelDelete(d *schema.ResourceData, meta interfa
 		return fmt.Errorf("Unable to delete delivery channel: %s", err)
 	}
 
-	d.SetId("")
 	return nil
 }

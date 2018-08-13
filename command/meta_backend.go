@@ -21,8 +21,8 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/mitchellh/mapstructure"
 
-	backendinit "github.com/hashicorp/terraform/backend/init"
-	backendlocal "github.com/hashicorp/terraform/backend/local"
+	backendInit "github.com/hashicorp/terraform/backend/init"
+	backendLocal "github.com/hashicorp/terraform/backend/local"
 )
 
 // BackendOpts are the options used to initialize a backend.Backend.
@@ -94,7 +94,7 @@ func (m *Meta) Backend(opts *BackendOpts) (backend.Enhanced, error) {
 		log.Printf("[INFO] command: backend initialized: %T", b)
 	}
 
-	// Setup the CLI opts we pass into backends that support it
+	// Setup the CLI opts we pass into backends that support it.
 	cliOpts := &backend.CLIOpts{
 		CLI:                 m.Ui,
 		CLIColor:            m.Colorize(),
@@ -106,7 +106,7 @@ func (m *Meta) Backend(opts *BackendOpts) (backend.Enhanced, error) {
 		RunningInAutomation: m.RunningInAutomation,
 	}
 
-	// Don't validate if we have a plan.  Validation is normally harmless here,
+	// Don't validate if we have a plan. Validation is normally harmless here,
 	// but validation requires interpolation, and `file()` function calls may
 	// not have the original files in the current execution context.
 	cliOpts.Validation = opts.Plan == nil
@@ -136,7 +136,7 @@ func (m *Meta) Backend(opts *BackendOpts) (backend.Enhanced, error) {
 	}
 
 	// Build the local backend
-	local := &backendlocal.Local{Backend: b}
+	local := backendLocal.NewWithBackend(b)
 	if err := local.CLIInit(cliOpts); err != nil {
 		// Local backend isn't allowed to fail. It would be a bug.
 		panic(err)
@@ -149,7 +149,7 @@ func (m *Meta) Backend(opts *BackendOpts) (backend.Enhanced, error) {
 // for some checks that require a remote backend.
 func (m *Meta) IsLocalBackend(b backend.Backend) bool {
 	// Is it a local backend?
-	bLocal, ok := b.(*backendlocal.Local)
+	bLocal, ok := b.(*backendLocal.Local)
 
 	// If it is, does it not have an alternate state backend?
 	if ok {
@@ -231,7 +231,7 @@ func (m *Meta) backendConfig(opts *BackendOpts) (*config.Backend, error) {
 		rc, err := config.NewRawConfig(opts.ConfigExtra)
 		if err != nil {
 			return nil, fmt.Errorf(
-				"Error adding extra configuration file for backend: %s", err)
+				"Error adding extra backend configuration from CLI: %s", err)
 		}
 
 		// Merge in the configuration
@@ -583,18 +583,11 @@ func (m *Meta) backendFromPlan(opts *BackendOpts) (backend.Backend, error) {
 	}
 
 	if m.stateLock {
-		lockCtx, cancel := context.WithTimeout(context.Background(), m.stateLockTimeout)
-		defer cancel()
-
-		// Lock the state if we can
-		lockInfo := state.NewLockInfo()
-		lockInfo.Operation = "backend from plan"
-
-		lockID, err := clistate.Lock(lockCtx, realMgr, lockInfo, m.Ui, m.Colorize())
-		if err != nil {
+		stateLocker := clistate.NewLocker(context.Background(), m.stateLockTimeout, m.Ui, m.Colorize())
+		if err := stateLocker.Lock(realMgr, "backend from plan"); err != nil {
 			return nil, fmt.Errorf("Error locking state: %s", err)
 		}
-		defer clistate.Unlock(realMgr, lockID, m.Ui, m.Colorize())
+		defer stateLocker.Unlock(nil)
 	}
 
 	if err := realMgr.RefreshState(); err != nil {
@@ -746,7 +739,7 @@ func (m *Meta) backend_c_R_s(
 	config := terraform.NewResourceConfig(rawC)
 
 	// Get the backend
-	f := backendinit.Backend(s.Remote.Type)
+	f := backendInit.Backend(s.Remote.Type)
 	if f == nil {
 		return nil, fmt.Errorf(strings.TrimSpace(errBackendLegacyUnknown), s.Remote.Type)
 	}
@@ -944,8 +937,8 @@ func (m *Meta) backend_C_r_s(
 		// can get us here too. Don't delete our state if the old and new paths
 		// are the same.
 		erase := true
-		if newLocalB, ok := b.(*backendlocal.Local); ok {
-			if localB, ok := localB.(*backendlocal.Local); ok {
+		if newLocalB, ok := b.(*backendLocal.Local); ok {
+			if localB, ok := localB.(*backendLocal.Local); ok {
 				if newLocalB.StatePath == localB.StatePath {
 					erase = false
 				}
@@ -964,18 +957,11 @@ func (m *Meta) backend_C_r_s(
 	}
 
 	if m.stateLock {
-		lockCtx, cancel := context.WithTimeout(context.Background(), m.stateLockTimeout)
-		defer cancel()
-
-		// Lock the state if we can
-		lockInfo := state.NewLockInfo()
-		lockInfo.Operation = "backend from config"
-
-		lockID, err := clistate.Lock(lockCtx, sMgr, lockInfo, m.Ui, m.Colorize())
-		if err != nil {
+		stateLocker := clistate.NewLocker(context.Background(), m.stateLockTimeout, m.Ui, m.Colorize())
+		if err := stateLocker.Lock(sMgr, "backend from plan"); err != nil {
 			return nil, fmt.Errorf("Error locking state: %s", err)
 		}
-		defer clistate.Unlock(sMgr, lockID, m.Ui, m.Colorize())
+		defer stateLocker.Unlock(nil)
 	}
 
 	// Store the metadata in our saved state location
@@ -1047,18 +1033,11 @@ func (m *Meta) backend_C_r_S_changed(
 	}
 
 	if m.stateLock {
-		lockCtx, cancel := context.WithTimeout(context.Background(), m.stateLockTimeout)
-		defer cancel()
-
-		// Lock the state if we can
-		lockInfo := state.NewLockInfo()
-		lockInfo.Operation = "backend from config"
-
-		lockID, err := clistate.Lock(lockCtx, sMgr, lockInfo, m.Ui, m.Colorize())
-		if err != nil {
+		stateLocker := clistate.NewLocker(context.Background(), m.stateLockTimeout, m.Ui, m.Colorize())
+		if err := stateLocker.Lock(sMgr, "backend from plan"); err != nil {
 			return nil, fmt.Errorf("Error locking state: %s", err)
 		}
-		defer clistate.Unlock(sMgr, lockID, m.Ui, m.Colorize())
+		defer stateLocker.Unlock(nil)
 	}
 
 	// Update the backend state
@@ -1112,7 +1091,7 @@ func (m *Meta) backend_C_r_S_unchanged(
 	config := terraform.NewResourceConfig(rawC)
 
 	// Get the backend
-	f := backendinit.Backend(s.Backend.Type)
+	f := backendInit.Backend(s.Backend.Type)
 	if f == nil {
 		return nil, fmt.Errorf(strings.TrimSpace(errBackendSavedUnknown), s.Backend.Type)
 	}
@@ -1190,18 +1169,11 @@ func (m *Meta) backend_C_R_S_unchanged(
 	}
 
 	if m.stateLock {
-		lockCtx, cancel := context.WithTimeout(context.Background(), m.stateLockTimeout)
-		defer cancel()
-
-		// Lock the state if we can
-		lockInfo := state.NewLockInfo()
-		lockInfo.Operation = "backend from config"
-
-		lockID, err := clistate.Lock(lockCtx, sMgr, lockInfo, m.Ui, m.Colorize())
-		if err != nil {
+		stateLocker := clistate.NewLocker(context.Background(), m.stateLockTimeout, m.Ui, m.Colorize())
+		if err := stateLocker.Lock(sMgr, "backend from plan"); err != nil {
 			return nil, fmt.Errorf("Error locking state: %s", err)
 		}
-		defer clistate.Unlock(sMgr, lockID, m.Ui, m.Colorize())
+		defer stateLocker.Unlock(nil)
 	}
 
 	// Unset the remote state
@@ -1236,7 +1208,7 @@ func (m *Meta) backendInitFromConfig(c *config.Backend) (backend.Backend, error)
 	config := terraform.NewResourceConfig(c.RawConfig)
 
 	// Get the backend
-	f := backendinit.Backend(c.Type)
+	f := backendInit.Backend(c.Type)
 	if f == nil {
 		return nil, fmt.Errorf(strings.TrimSpace(errBackendNewUnknown), c.Type)
 	}
@@ -1293,7 +1265,7 @@ func (m *Meta) backendInitFromLegacy(s *terraform.RemoteState) (backend.Backend,
 	config := terraform.NewResourceConfig(rawC)
 
 	// Get the backend
-	f := backendinit.Backend(s.Type)
+	f := backendInit.Backend(s.Type)
 	if f == nil {
 		return nil, fmt.Errorf(strings.TrimSpace(errBackendLegacyUnknown), s.Type)
 	}
@@ -1318,7 +1290,7 @@ func (m *Meta) backendInitFromSaved(s *terraform.BackendState) (backend.Backend,
 	config := terraform.NewResourceConfig(rawC)
 
 	// Get the backend
-	f := backendinit.Backend(s.Type)
+	f := backendInit.Backend(s.Type)
 	if f == nil {
 		return nil, fmt.Errorf(strings.TrimSpace(errBackendSavedUnknown), s.Type)
 	}
@@ -1528,7 +1500,7 @@ different states.
 
 The most common cause of seeing this error is using a plan that was
 created against a different state. Perhaps the plan is very old and the
-state has since been recreated, or perhaps the plan was against a competely
+state has since been recreated, or perhaps the plan was against a completely
 different infrastructure.
 `
 

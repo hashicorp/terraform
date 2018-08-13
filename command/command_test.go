@@ -19,6 +19,7 @@ import (
 	"syscall"
 	"testing"
 
+	backendInit "github.com/hashicorp/terraform/backend/init"
 	"github.com/hashicorp/terraform/config/module"
 	"github.com/hashicorp/terraform/helper/logging"
 	"github.com/hashicorp/terraform/terraform"
@@ -27,8 +28,14 @@ import (
 // This is the directory where our test fixtures are.
 var fixtureDir = "./test-fixtures"
 
+// a top level temp directory which will be cleaned after all tests
+var testingDir string
+
 func init() {
 	test = true
+
+	// Initialize the backends
+	backendInit.Init(nil)
 
 	// Expand the fixture dir on init because we change the working
 	// directory in some tests.
@@ -37,9 +44,16 @@ func init() {
 	if err != nil {
 		panic(err)
 	}
+
+	testingDir, err = ioutil.TempDir(testingDir, "tf")
+	if err != nil {
+		panic(err)
+	}
 }
 
 func TestMain(m *testing.M) {
+	defer os.RemoveAll(testingDir)
+
 	flag.Parse()
 	if testing.Verbose() {
 		// if we're verbose, use the logging requested by TF_LOG
@@ -55,7 +69,7 @@ func TestMain(m *testing.M) {
 func tempDir(t *testing.T) string {
 	t.Helper()
 
-	dir, err := ioutil.TempDir("", "tf")
+	dir, err := ioutil.TempDir(testingDir, "tf")
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -107,7 +121,7 @@ func testModule(t *testing.T, name string) *module.Tree {
 		t.Fatalf("err: %s", err)
 	}
 
-	s := module.NewStorage(tempDir(t), nil, nil)
+	s := module.NewStorage(tempDir(t), nil)
 	s.Mode = module.GetModeGet
 	if err := mod.Load(s); err != nil {
 		t.Fatalf("err: %s", err)
@@ -305,7 +319,7 @@ func testTempFile(t *testing.T) string {
 func testTempDir(t *testing.T) string {
 	t.Helper()
 
-	d, err := ioutil.TempDir("", "tf")
+	d, err := ioutil.TempDir(testingDir, "tf")
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -358,7 +372,7 @@ func testChdir(t *testing.T, new string) func() {
 func testCwd(t *testing.T) (string, string) {
 	t.Helper()
 
-	tmp, err := ioutil.TempDir("", "tf")
+	tmp, err := ioutil.TempDir(testingDir, "tf")
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -595,7 +609,7 @@ func testRemoteState(t *testing.T, s *terraform.State, c int) (*terraform.Remote
 // supplied to locate the statelocker.go source.
 func testLockState(sourceDir, path string) (func(), error) {
 	// build and run the binary ourselves so we can quickly terminate it for cleanup
-	buildDir, err := ioutil.TempDir("", "locker")
+	buildDir, err := ioutil.TempDir(testingDir, "locker")
 	if err != nil {
 		return nil, err
 	}

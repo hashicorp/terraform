@@ -2,7 +2,6 @@ package command
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -95,11 +94,7 @@ func TestMultiVersionProviderResolver(t *testing.T) {
 }
 
 func TestPluginPath(t *testing.T) {
-	td, err := ioutil.TempDir("", "tf")
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer os.RemoveAll(td)
+	td := testTempDir(t)
 	defer testChdir(t, td)()
 
 	pluginPath := []string{"a", "b", "c"}

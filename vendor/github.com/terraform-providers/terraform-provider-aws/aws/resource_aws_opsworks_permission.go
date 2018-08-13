@@ -1,7 +1,6 @@
 package aws
 
 import (
-	"fmt"
 	"log"
 	"time"
 
@@ -10,6 +9,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/opsworks"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/hashicorp/terraform/helper/validation"
 )
 
 func resourceAwsOpsworksPermission() *schema.Resource {
@@ -34,28 +34,17 @@ func resourceAwsOpsworksPermission() *schema.Resource {
 				Type:     schema.TypeString,
 				Required: true,
 			},
-			// one of deny, show, deploy, manage, iam_only
 			"level": {
 				Type:     schema.TypeString,
 				Computed: true,
 				Optional: true,
-				ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
-					value := v.(string)
-
-					expected := [5]string{"deny", "show", "deploy", "manage", "iam_only"}
-
-					found := false
-					for _, b := range expected {
-						if b == value {
-							found = true
-						}
-					}
-					if !found {
-						errors = append(errors, fmt.Errorf(
-							"%q has to be one of [deny, show, deploy, manage, iam_only]", k))
-					}
-					return
-				},
+				ValidateFunc: validation.StringInSlice([]string{
+					"deny",
+					"show",
+					"deploy",
+					"manage",
+					"iam_only",
+				}, false),
 			},
 			"stack_id": {
 				Type:     schema.TypeString,

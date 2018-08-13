@@ -62,9 +62,10 @@ func resourceAwsIamPolicy() *schema.Resource {
 				},
 			},
 			"name_prefix": {
-				Type:     schema.TypeString,
-				Optional: true,
-				ForceNew: true,
+				Type:          schema.TypeString,
+				Optional:      true,
+				ForceNew:      true,
+				ConflictsWith: []string{"name"},
 				ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
 					// https://github.com/boto/botocore/blob/2485f5c/botocore/data/iam/2010-05-08/service-2.json#L8329-L8334
 					value := v.(string)

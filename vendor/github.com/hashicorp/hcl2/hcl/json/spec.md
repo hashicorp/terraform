@@ -13,19 +13,36 @@ grammar as-is, and merely defines a specific methodology for interpreting
 JSON constructs into HCL structural elements and expressions.
 
 This mapping is defined such that valid JSON-serialized HCL input can be
-produced using standard JSON implementations in various programming languages.
+_produced_ using standard JSON implementations in various programming languages.
 _Parsing_ such JSON has some additional constraints not beyond what is normally
-supported by JSON parsers, though adaptations are defined to allow processing
-with an off-the-shelf JSON parser with certain caveats, described in later
-sections.
+supported by JSON parsers, so a specialized parser may be required that
+is able to:
+
+* Preserve the relative ordering of properties defined in an object.
+* Preserve multiple definitions of the same property name.
+* Preserve numeric values to the precision required by the number type
+  in [the HCL syntax-agnostic information model](../spec.md).
+* Retain source location information for parsed tokens/constructs in order
+  to produce good error messages.
 
 ## Structural Elements
 
-The HCL language-agnostic information model defines a _body_ as an abstract
-container for attribute definitions and child blocks. A body is represented
-in JSON as a JSON _object_.
+[The HCL syntax-agnostic information model](../spec.md) defines a _body_ as an
+abstract container for attribute definitions and child blocks. A body is
+represented in JSON as either a single JSON object or a JSON array of objects.
 
-As defined in the language-agnostic model, body processing is done in terms
+Body processing is in terms of JSON object properties, visited in the order
+they appear in the input. Where a body is represented by a single JSON object,
+the properties of that object are visited in order. Where a body is
+represented by a JSON array, each of its elements are visited in order and
+each element has its properties visited in order. If any element of the array
+is not a JSON object then the input is erroneous.
+
+When a body is being processed in the _dynamic attributes_ mode, the allowance
+of a JSON array in the previous paragraph does not apply and instead a single
+JSON object is always required.
+
+As defined in the language-agnostic model, body processing is in terms
 of a schema which provides context for interpreting the body's content. For
 JSON bodies, the schema is crucial to allow differentiation of attribute
 definitions and block definitions, both of which are represented via object
@@ -61,14 +78,16 @@ the following provides a definition for that attribute:
 
 ### Blocks
 
-Where the given schema describes a block with a given type name, the object
-property with the matching name — if present — serves as a definition of
-zero or more blocks of that type.
+Where the given schema describes a block with a given type name, each object
+property with the matching name serves as a definition of zero or more blocks
+of that type.
 
 Processing of child blocks is in terms of nested JSON objects and arrays.
-If the schema defines one or more _labels_ for the block type, a nested
-object is required for each labelling level, with the object keys serving as
-the label values at that level.
+If the schema defines one or more _labels_ for the block type, a nested JSON
+object or JSON array of objects is required for each labelling level. These
+are flattened to a single ordered sequence of object properties using the
+same algorithm as for body content as defined above. Each object property
+serves as a label value at the corresponding level.
 
 After any labelling levels, the next nested value is either a JSON object
 representing a single block body, or a JSON array of JSON objects that each
@@ -111,7 +130,8 @@ of zero blocks, though generators should prefer to omit the property entirely
 in this scenario.
 
 Given a schema that calls for a block type named "foo" with _two_ labels, the
-extra label levels must be represented as objects as in the following examples:
+extra label levels must be represented as objects or arrays of objects as in
+the following examples:
 
 ```json
 {
@@ -132,6 +152,7 @@ extra label levels must be represented as objects as in the following examples:
   }
 }
 ```
+
 ```json
 {
   "foo": {
@@ -157,10 +178,70 @@ extra label levels must be represented as objects as in the following examples:
 }
 ```
 
-Where multiple definitions are included for the same type and labels, the
-JSON array is always the value of the property representing the final label,
-and contains objects representing block bodies. It is not valid to use an array
-at any other point in the block definition structure.
+```json
+{
+  "foo": [
+    {
+      "bar": {
+        "baz": {
+          "child_attr": "baz"
+        },
+        "boz": {
+          "child_attr": "baz"
+        }
+      },
+    },
+    {
+      "bar": {
+        "baz": [
+          {
+            "child_attr": "baz"
+          },
+          {
+            "child_attr": "boz"
+          }
+        ]
+      }
+    }
+  ]
+}
+```
+
+```json
+{
+  "foo": {
+    "bar": {
+      "baz": {
+        "child_attr": "baz"
+      },
+      "boz": {
+        "child_attr": "baz"
+      }
+    },
+    "bar": {
+      "baz": [
+        {
+          "child_attr": "baz"
+        },
+        {
+          "child_attr": "boz"
+        }
+      ]
+    }
+  }
+}
+```
+
+Arrays can be introduced at either the label definition or block body
+definition levels to define multiple definitions of the same block type
+or labels while preserving order.
+
+A JSON HCL parser _must_ support duplicate definitions of the same property
+name within a single object, preserving all of them and the relative ordering
+between them. The array-based forms are also required so that JSON HCL
+configurations can be produced with JSON producing libraries that are not
+able to preserve property definition order and multiple definitions of
+the same property.
 
 ## Expressions
 
@@ -174,17 +255,24 @@ When interpreted as an expression, a JSON object represents a value of a HCL
 object type.
 
 Each property of the JSON object represents an attribute of the HCL object type.
-The object type is constructed by enumerating the JSON object properties,
-creating for each an attribute whose name exactly matches the property name,
-and whose type is the result of recursively applying the expression mapping
-rules.
+The property name string given in the JSON input is interpreted as a string
+expression as described below, and its result is converted to string as defined
+by the syntax-agnostic information model. If such a conversion is not possible,
+an error is produced and evaluation fails.
 
 An instance of the constructed object type is then created, whose values
 are interpreted by again recursively applying the mapping rules defined in
-this section.
+this section to each of the property values.
+
+If any evaluated property name strings produce null values, an error is
+produced and evaluation fails. If any produce _unknown_ values, the _entire
+object's_ result is an unknown value of the dynamic pseudo-type, signalling
+that the type of the object cannot be determined.
 
 It is an error to define the same property name multiple times within a single
-JSON object interpreted as an expression.
+JSON object interpreted as an expression. In full expression mode, this
+constraint applies to the name expression results after conversion to string,
+rather than the raw string that may contain interpolation expressions.
 
 ### Arrays
 
@@ -205,18 +293,25 @@ section.
 
 When interpreted as an expression, a JSON number represents a HCL number value.
 
-HCL numbers are arbitrary-precision decimal values, so an ideal implementation
-of this specification will translate exactly the value given to a number of
-corresponding precision.
+HCL numbers are arbitrary-precision decimal values, so a JSON HCL parser must
+be able to translate exactly the value given to a number of corresponding
+precision, within the constraints set by the HCL syntax-agnostic information
+model.
 
-In practice, off-the-shelf JSON parsers often do not support customizing the
+In practice, off-the-shelf JSON serializers often do not support customizing the
 processing of numbers, and instead force processing as 32-bit or 64-bit
-floating point values with a potential loss of precision. It is permissable
-for a HCL JSON parser to pass on such limitations _if and only if_ the
-available precision and other constraints are defined in its documentation.
-Calling applications each have differing precision requirements, so calling
-applications are free to select an implementation with more limited precision
-capabilities should high precision not be required for that application.
+floating point values.
+
+A _producer_ of JSON HCL that uses such a serializer can provide numeric values
+as JSON strings where they have precision too great for representation in the
+serializer's chosen numeric type in situations where the result will be
+converted to number (using the standard conversion rules) by a calling
+application.
+
+Alternatively, for expressions that are evaluated in full expression mode an
+embedded template interpolation can be used to faithfully represent a number,
+such as `"${1e150}"`, which will then be evaluated by the underlying HCL native
+syntax expression evaluator.
 
 ### Boolean Values
 
@@ -263,3 +358,48 @@ the result must be a number, rather than a string representation of a number:
 ```json
 "${ a + b }"
 ```
+
+## Static Analysis
+
+The HCL static analysis operations are implemented for JSON values that
+represent expressions, as described in the following sections.
+
+Due to the limited expressive power of the JSON syntax alone, use of these
+static analyses functions rather than normal expression evaluation is used
+as additional context for how a JSON value is to be interpreted, which means
+that static analyses can result in a different interpretation of a given
+expression than normal evaluation.
+
+### Static List
+
+An expression interpreted as a static list must be a JSON array. Each of the
+values in the array is interpreted as an expression and returned.
+
+### Static Map
+
+An expression interpreted as a static map must be a JSON object. Each of the
+key/value pairs in the object is presented as a pair of expressions. Since
+object property names are always strings, evaluating the key expression with
+a non-`nil` evaluation context will evaluate any template sequences given
+in the property name.
+
+### Static Call
+
+An expression interpreted as a static call must be a string. The content of
+the string is interpreted as a native syntax expression (not a _template_,
+unlike normal evaluation) and then the static call analysis is delegated to
+that expression.
+
+If the original expression is not a string or its contents cannot be parsed
+as a native syntax expression then static call analysis is not supported.
+
+### Static Traversal
+
+An expression interpreted as a static traversal must be a string. The content
+of the string is interpreted as a native syntax expression (not a _template_,
+unlike normal evaluation) and then static traversal analysis is delegated
+to that expression.
+
+If the original expression is not a string or its contents cannot be parsed
+as a native syntax expression then static call analysis is not supported.
+

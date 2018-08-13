@@ -217,6 +217,12 @@ func filterPartialOutputs(v interface{}, targetedNodes *dag.Set, g *Graph) bool 
 		if _, ok := d.(*NodeCountBoundary); ok {
 			continue
 		}
+
+		if !targetedNodes.Include(d) {
+			// this one is going to be removed, so it doesn't count
+			continue
+		}
+
 		// as soon as we see a real dependency, we mark this as
 		// non-removable
 		return true

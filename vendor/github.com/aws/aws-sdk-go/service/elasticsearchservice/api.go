@@ -17,7 +17,7 @@ const opAddTags = "AddTags"
 
 // AddTagsRequest generates a "aws/request.Request" representing the
 // client's request for the AddTags operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -110,7 +110,7 @@ const opCreateElasticsearchDomain = "CreateElasticsearchDomain"
 
 // CreateElasticsearchDomainRequest generates a "aws/request.Request" representing the
 // client's request for the CreateElasticsearchDomain operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -213,7 +213,7 @@ const opDeleteElasticsearchDomain = "DeleteElasticsearchDomain"
 
 // DeleteElasticsearchDomainRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteElasticsearchDomain operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -303,7 +303,7 @@ const opDeleteElasticsearchServiceRole = "DeleteElasticsearchServiceRole"
 
 // DeleteElasticsearchServiceRoleRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteElasticsearchServiceRole operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -394,7 +394,7 @@ const opDescribeElasticsearchDomain = "DescribeElasticsearchDomain"
 
 // DescribeElasticsearchDomainRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeElasticsearchDomain operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -484,7 +484,7 @@ const opDescribeElasticsearchDomainConfig = "DescribeElasticsearchDomainConfig"
 
 // DescribeElasticsearchDomainConfigRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeElasticsearchDomainConfig operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -575,7 +575,7 @@ const opDescribeElasticsearchDomains = "DescribeElasticsearchDomains"
 
 // DescribeElasticsearchDomainsRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeElasticsearchDomains operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -661,7 +661,7 @@ const opDescribeElasticsearchInstanceTypeLimits = "DescribeElasticsearchInstance
 
 // DescribeElasticsearchInstanceTypeLimitsRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeElasticsearchInstanceTypeLimits operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -756,11 +756,303 @@ func (c *ElasticsearchService) DescribeElasticsearchInstanceTypeLimitsWithContex
 	return out, req.Send()
 }
 
+const opDescribeReservedElasticsearchInstanceOfferings = "DescribeReservedElasticsearchInstanceOfferings"
+
+// DescribeReservedElasticsearchInstanceOfferingsRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeReservedElasticsearchInstanceOfferings operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfuly.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See DescribeReservedElasticsearchInstanceOfferings for more information on using the DescribeReservedElasticsearchInstanceOfferings
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the DescribeReservedElasticsearchInstanceOfferingsRequest method.
+//    req, resp := client.DescribeReservedElasticsearchInstanceOfferingsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+func (c *ElasticsearchService) DescribeReservedElasticsearchInstanceOfferingsRequest(input *DescribeReservedElasticsearchInstanceOfferingsInput) (req *request.Request, output *DescribeReservedElasticsearchInstanceOfferingsOutput) {
+	op := &request.Operation{
+		Name:       opDescribeReservedElasticsearchInstanceOfferings,
+		HTTPMethod: "GET",
+		HTTPPath:   "/2015-01-01/es/reservedInstanceOfferings",
+		Paginator: &request.Paginator{
+			InputTokens:     []string{"NextToken"},
+			OutputTokens:    []string{"NextToken"},
+			LimitToken:      "MaxResults",
+			TruncationToken: "",
+		},
+	}
+
+	if input == nil {
+		input = &DescribeReservedElasticsearchInstanceOfferingsInput{}
+	}
+
+	output = &DescribeReservedElasticsearchInstanceOfferingsOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// DescribeReservedElasticsearchInstanceOfferings API operation for Amazon Elasticsearch Service.
+//
+// Lists available reserved Elasticsearch instance offerings.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elasticsearch Service's
+// API operation DescribeReservedElasticsearchInstanceOfferings for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
+//   An exception for accessing or deleting a resource that does not exist. Gives
+//   http status code of 400.
+//
+//   * ErrCodeValidationException "ValidationException"
+//   An exception for missing / invalid input fields. Gives http status code of
+//   400.
+//
+//   * ErrCodeDisabledOperationException "DisabledOperationException"
+//   An error occured because the client wanted to access a not supported operation.
+//   Gives http status code of 409.
+//
+//   * ErrCodeInternalException "InternalException"
+//   The request processing has failed because of an unknown error, exception
+//   or failure (the failure is internal to the service) . Gives http status code
+//   of 500.
+//
+func (c *ElasticsearchService) DescribeReservedElasticsearchInstanceOfferings(input *DescribeReservedElasticsearchInstanceOfferingsInput) (*DescribeReservedElasticsearchInstanceOfferingsOutput, error) {
+	req, out := c.DescribeReservedElasticsearchInstanceOfferingsRequest(input)
+	return out, req.Send()
+}
+
+// DescribeReservedElasticsearchInstanceOfferingsWithContext is the same as DescribeReservedElasticsearchInstanceOfferings with the addition of
+// the ability to pass a context and additional request options.
+//
+// See DescribeReservedElasticsearchInstanceOfferings for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *ElasticsearchService) DescribeReservedElasticsearchInstanceOfferingsWithContext(ctx aws.Context, input *DescribeReservedElasticsearchInstanceOfferingsInput, opts ...request.Option) (*DescribeReservedElasticsearchInstanceOfferingsOutput, error) {
+	req, out := c.DescribeReservedElasticsearchInstanceOfferingsRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+// DescribeReservedElasticsearchInstanceOfferingsPages iterates over the pages of a DescribeReservedElasticsearchInstanceOfferings operation,
+// calling the "fn" function with the response data for each page. To stop
+// iterating, return false from the fn function.
+//
+// See DescribeReservedElasticsearchInstanceOfferings method for more information on how to use this operation.
+//
+// Note: This operation can generate multiple requests to a service.
+//
+//    // Example iterating over at most 3 pages of a DescribeReservedElasticsearchInstanceOfferings operation.
+//    pageNum := 0
+//    err := client.DescribeReservedElasticsearchInstanceOfferingsPages(params,
+//        func(page *DescribeReservedElasticsearchInstanceOfferingsOutput, lastPage bool) bool {
+//            pageNum++
+//            fmt.Println(page)
+//            return pageNum <= 3
+//        })
+//
+func (c *ElasticsearchService) DescribeReservedElasticsearchInstanceOfferingsPages(input *DescribeReservedElasticsearchInstanceOfferingsInput, fn func(*DescribeReservedElasticsearchInstanceOfferingsOutput, bool) bool) error {
+	return c.DescribeReservedElasticsearchInstanceOfferingsPagesWithContext(aws.BackgroundContext(), input, fn)
+}
+
+// DescribeReservedElasticsearchInstanceOfferingsPagesWithContext same as DescribeReservedElasticsearchInstanceOfferingsPages except
+// it takes a Context and allows setting request options on the pages.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *ElasticsearchService) DescribeReservedElasticsearchInstanceOfferingsPagesWithContext(ctx aws.Context, input *DescribeReservedElasticsearchInstanceOfferingsInput, fn func(*DescribeReservedElasticsearchInstanceOfferingsOutput, bool) bool, opts ...request.Option) error {
+	p := request.Pagination{
+		NewRequest: func() (*request.Request, error) {
+			var inCpy *DescribeReservedElasticsearchInstanceOfferingsInput
+			if input != nil {
+				tmp := *input
+				inCpy = &tmp
+			}
+			req, _ := c.DescribeReservedElasticsearchInstanceOfferingsRequest(inCpy)
+			req.SetContext(ctx)
+			req.ApplyOptions(opts...)
+			return req, nil
+		},
+	}
+
+	cont := true
+	for p.Next() && cont {
+		cont = fn(p.Page().(*DescribeReservedElasticsearchInstanceOfferingsOutput), !p.HasNextPage())
+	}
+	return p.Err()
+}
+
+const opDescribeReservedElasticsearchInstances = "DescribeReservedElasticsearchInstances"
+
+// DescribeReservedElasticsearchInstancesRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeReservedElasticsearchInstances operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfuly.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See DescribeReservedElasticsearchInstances for more information on using the DescribeReservedElasticsearchInstances
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the DescribeReservedElasticsearchInstancesRequest method.
+//    req, resp := client.DescribeReservedElasticsearchInstancesRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+func (c *ElasticsearchService) DescribeReservedElasticsearchInstancesRequest(input *DescribeReservedElasticsearchInstancesInput) (req *request.Request, output *DescribeReservedElasticsearchInstancesOutput) {
+	op := &request.Operation{
+		Name:       opDescribeReservedElasticsearchInstances,
+		HTTPMethod: "GET",
+		HTTPPath:   "/2015-01-01/es/reservedInstances",
+		Paginator: &request.Paginator{
+			InputTokens:     []string{"NextToken"},
+			OutputTokens:    []string{"NextToken"},
+			LimitToken:      "MaxResults",
+			TruncationToken: "",
+		},
+	}
+
+	if input == nil {
+		input = &DescribeReservedElasticsearchInstancesInput{}
+	}
+
+	output = &DescribeReservedElasticsearchInstancesOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// DescribeReservedElasticsearchInstances API operation for Amazon Elasticsearch Service.
+//
+// Returns information about reserved Elasticsearch instances for this account.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elasticsearch Service's
+// API operation DescribeReservedElasticsearchInstances for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
+//   An exception for accessing or deleting a resource that does not exist. Gives
+//   http status code of 400.
+//
+//   * ErrCodeInternalException "InternalException"
+//   The request processing has failed because of an unknown error, exception
+//   or failure (the failure is internal to the service) . Gives http status code
+//   of 500.
+//
+//   * ErrCodeValidationException "ValidationException"
+//   An exception for missing / invalid input fields. Gives http status code of
+//   400.
+//
+//   * ErrCodeDisabledOperationException "DisabledOperationException"
+//   An error occured because the client wanted to access a not supported operation.
+//   Gives http status code of 409.
+//
+func (c *ElasticsearchService) DescribeReservedElasticsearchInstances(input *DescribeReservedElasticsearchInstancesInput) (*DescribeReservedElasticsearchInstancesOutput, error) {
+	req, out := c.DescribeReservedElasticsearchInstancesRequest(input)
+	return out, req.Send()
+}
+
+// DescribeReservedElasticsearchInstancesWithContext is the same as DescribeReservedElasticsearchInstances with the addition of
+// the ability to pass a context and additional request options.
+//
+// See DescribeReservedElasticsearchInstances for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *ElasticsearchService) DescribeReservedElasticsearchInstancesWithContext(ctx aws.Context, input *DescribeReservedElasticsearchInstancesInput, opts ...request.Option) (*DescribeReservedElasticsearchInstancesOutput, error) {
+	req, out := c.DescribeReservedElasticsearchInstancesRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+// DescribeReservedElasticsearchInstancesPages iterates over the pages of a DescribeReservedElasticsearchInstances operation,
+// calling the "fn" function with the response data for each page. To stop
+// iterating, return false from the fn function.
+//
+// See DescribeReservedElasticsearchInstances method for more information on how to use this operation.
+//
+// Note: This operation can generate multiple requests to a service.
+//
+//    // Example iterating over at most 3 pages of a DescribeReservedElasticsearchInstances operation.
+//    pageNum := 0
+//    err := client.DescribeReservedElasticsearchInstancesPages(params,
+//        func(page *DescribeReservedElasticsearchInstancesOutput, lastPage bool) bool {
+//            pageNum++
+//            fmt.Println(page)
+//            return pageNum <= 3
+//        })
+//
+func (c *ElasticsearchService) DescribeReservedElasticsearchInstancesPages(input *DescribeReservedElasticsearchInstancesInput, fn func(*DescribeReservedElasticsearchInstancesOutput, bool) bool) error {
+	return c.DescribeReservedElasticsearchInstancesPagesWithContext(aws.BackgroundContext(), input, fn)
+}
+
+// DescribeReservedElasticsearchInstancesPagesWithContext same as DescribeReservedElasticsearchInstancesPages except
+// it takes a Context and allows setting request options on the pages.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *ElasticsearchService) DescribeReservedElasticsearchInstancesPagesWithContext(ctx aws.Context, input *DescribeReservedElasticsearchInstancesInput, fn func(*DescribeReservedElasticsearchInstancesOutput, bool) bool, opts ...request.Option) error {
+	p := request.Pagination{
+		NewRequest: func() (*request.Request, error) {
+			var inCpy *DescribeReservedElasticsearchInstancesInput
+			if input != nil {
+				tmp := *input
+				inCpy = &tmp
+			}
+			req, _ := c.DescribeReservedElasticsearchInstancesRequest(inCpy)
+			req.SetContext(ctx)
+			req.ApplyOptions(opts...)
+			return req, nil
+		},
+	}
+
+	cont := true
+	for p.Next() && cont {
+		cont = fn(p.Page().(*DescribeReservedElasticsearchInstancesOutput), !p.HasNextPage())
+	}
+	return p.Err()
+}
+
 const opListDomainNames = "ListDomainNames"
 
 // ListDomainNamesRequest generates a "aws/request.Request" representing the
 // client's request for the ListDomainNames operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -841,7 +1133,7 @@ const opListElasticsearchInstanceTypes = "ListElasticsearchInstanceTypes"
 
 // ListElasticsearchInstanceTypesRequest generates a "aws/request.Request" representing the
 // client's request for the ListElasticsearchInstanceTypes operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -986,7 +1278,7 @@ const opListElasticsearchVersions = "ListElasticsearchVersions"
 
 // ListElasticsearchVersionsRequest generates a "aws/request.Request" representing the
 // client's request for the ListElasticsearchVersions operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -1131,7 +1423,7 @@ const opListTags = "ListTags"
 
 // ListTagsRequest generates a "aws/request.Request" representing the
 // client's request for the ListTags operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -1216,11 +1508,109 @@ func (c *ElasticsearchService) ListTagsWithContext(ctx aws.Context, input *ListT
 	return out, req.Send()
 }
 
+const opPurchaseReservedElasticsearchInstanceOffering = "PurchaseReservedElasticsearchInstanceOffering"
+
+// PurchaseReservedElasticsearchInstanceOfferingRequest generates a "aws/request.Request" representing the
+// client's request for the PurchaseReservedElasticsearchInstanceOffering operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfuly.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See PurchaseReservedElasticsearchInstanceOffering for more information on using the PurchaseReservedElasticsearchInstanceOffering
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the PurchaseReservedElasticsearchInstanceOfferingRequest method.
+//    req, resp := client.PurchaseReservedElasticsearchInstanceOfferingRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+func (c *ElasticsearchService) PurchaseReservedElasticsearchInstanceOfferingRequest(input *PurchaseReservedElasticsearchInstanceOfferingInput) (req *request.Request, output *PurchaseReservedElasticsearchInstanceOfferingOutput) {
+	op := &request.Operation{
+		Name:       opPurchaseReservedElasticsearchInstanceOffering,
+		HTTPMethod: "POST",
+		HTTPPath:   "/2015-01-01/es/purchaseReservedInstanceOffering",
+	}
+
+	if input == nil {
+		input = &PurchaseReservedElasticsearchInstanceOfferingInput{}
+	}
+
+	output = &PurchaseReservedElasticsearchInstanceOfferingOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// PurchaseReservedElasticsearchInstanceOffering API operation for Amazon Elasticsearch Service.
+//
+// Allows you to purchase reserved Elasticsearch instances.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elasticsearch Service's
+// API operation PurchaseReservedElasticsearchInstanceOffering for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
+//   An exception for accessing or deleting a resource that does not exist. Gives
+//   http status code of 400.
+//
+//   * ErrCodeResourceAlreadyExistsException "ResourceAlreadyExistsException"
+//   An exception for creating a resource that already exists. Gives http status
+//   code of 400.
+//
+//   * ErrCodeLimitExceededException "LimitExceededException"
+//   An exception for trying to create more than allowed resources or sub-resources.
+//   Gives http status code of 409.
+//
+//   * ErrCodeDisabledOperationException "DisabledOperationException"
+//   An error occured because the client wanted to access a not supported operation.
+//   Gives http status code of 409.
+//
+//   * ErrCodeValidationException "ValidationException"
+//   An exception for missing / invalid input fields. Gives http status code of
+//   400.
+//
+//   * ErrCodeInternalException "InternalException"
+//   The request processing has failed because of an unknown error, exception
+//   or failure (the failure is internal to the service) . Gives http status code
+//   of 500.
+//
+func (c *ElasticsearchService) PurchaseReservedElasticsearchInstanceOffering(input *PurchaseReservedElasticsearchInstanceOfferingInput) (*PurchaseReservedElasticsearchInstanceOfferingOutput, error) {
+	req, out := c.PurchaseReservedElasticsearchInstanceOfferingRequest(input)
+	return out, req.Send()
+}
+
+// PurchaseReservedElasticsearchInstanceOfferingWithContext is the same as PurchaseReservedElasticsearchInstanceOffering with the addition of
+// the ability to pass a context and additional request options.
+//
+// See PurchaseReservedElasticsearchInstanceOffering for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *ElasticsearchService) PurchaseReservedElasticsearchInstanceOfferingWithContext(ctx aws.Context, input *PurchaseReservedElasticsearchInstanceOfferingInput, opts ...request.Option) (*PurchaseReservedElasticsearchInstanceOfferingOutput, error) {
+	req, out := c.PurchaseReservedElasticsearchInstanceOfferingRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
 const opRemoveTags = "RemoveTags"
 
 // RemoveTagsRequest generates a "aws/request.Request" representing the
 // client's request for the RemoveTags operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -1307,7 +1697,7 @@ const opUpdateElasticsearchDomainConfig = "UpdateElasticsearchDomainConfig"
 
 // UpdateElasticsearchDomainConfigRequest generates a "aws/request.Request" representing the
 // client's request for the UpdateElasticsearchDomainConfig operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -1608,6 +1998,116 @@ func (s *AdvancedOptionsStatus) SetStatus(v *OptionStatus) *AdvancedOptionsStatu
 	return s
 }
 
+// Options to specify the Cognito user and identity pools for Kibana authentication.
+// For more information, see Amazon Cognito Authentication for Kibana (http://docs.aws.amazon.com/elasticsearch-service/latest/developerguide/es-cognito-auth.html).
+type CognitoOptions struct {
+	_ struct{} `type:"structure"`
+
+	// Specifies the option to enable Cognito for Kibana authentication.
+	Enabled *bool `type:"boolean"`
+
+	// Specifies the Cognito identity pool ID for Kibana authentication.
+	IdentityPoolId *string `min:"1" type:"string"`
+
+	// Specifies the role ARN that provides Elasticsearch permissions for accessing
+	// Cognito resources.
+	RoleArn *string `min:"20" type:"string"`
+
+	// Specifies the Cognito user pool ID for Kibana authentication.
+	UserPoolId *string `min:"1" type:"string"`
+}
+
+// String returns the string representation
+func (s CognitoOptions) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s CognitoOptions) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *CognitoOptions) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "CognitoOptions"}
+	if s.IdentityPoolId != nil && len(*s.IdentityPoolId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("IdentityPoolId", 1))
+	}
+	if s.RoleArn != nil && len(*s.RoleArn) < 20 {
+		invalidParams.Add(request.NewErrParamMinLen("RoleArn", 20))
+	}
+	if s.UserPoolId != nil && len(*s.UserPoolId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("UserPoolId", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetEnabled sets the Enabled field's value.
+func (s *CognitoOptions) SetEnabled(v bool) *CognitoOptions {
+	s.Enabled = &v
+	return s
+}
+
+// SetIdentityPoolId sets the IdentityPoolId field's value.
+func (s *CognitoOptions) SetIdentityPoolId(v string) *CognitoOptions {
+	s.IdentityPoolId = &v
+	return s
+}
+
+// SetRoleArn sets the RoleArn field's value.
+func (s *CognitoOptions) SetRoleArn(v string) *CognitoOptions {
+	s.RoleArn = &v
+	return s
+}
+
+// SetUserPoolId sets the UserPoolId field's value.
+func (s *CognitoOptions) SetUserPoolId(v string) *CognitoOptions {
+	s.UserPoolId = &v
+	return s
+}
+
+// Status of the Cognito options for the specified Elasticsearch domain.
+type CognitoOptionsStatus struct {
+	_ struct{} `type:"structure"`
+
+	// Specifies the Cognito options for the specified Elasticsearch domain.
+	//
+	// Options is a required field
+	Options *CognitoOptions `type:"structure" required:"true"`
+
+	// Specifies the status of the Cognito options for the specified Elasticsearch
+	// domain.
+	//
+	// Status is a required field
+	Status *OptionStatus `type:"structure" required:"true"`
+}
+
+// String returns the string representation
+func (s CognitoOptionsStatus) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s CognitoOptionsStatus) GoString() string {
+	return s.String()
+}
+
+// SetOptions sets the Options field's value.
+func (s *CognitoOptionsStatus) SetOptions(v *CognitoOptions) *CognitoOptionsStatus {
+	s.Options = v
+	return s
+}
+
+// SetStatus sets the Status field's value.
+func (s *CognitoOptionsStatus) SetStatus(v *OptionStatus) *CognitoOptionsStatus {
+	s.Status = v
+	return s
+}
+
 type CreateElasticsearchDomainInput struct {
 	_ struct{} `type:"structure"`
 
@@ -1619,6 +2119,10 @@ type CreateElasticsearchDomainInput struct {
 	// is true. See Configuration Advanced Options (http://docs.aws.amazon.com/elasticsearch-service/latest/developerguide/es-createupdatedomains.html#es-createdomain-configure-advanced-options)
 	// for more information.
 	AdvancedOptions map[string]*string `type:"map"`
+
+	// Options to specify the Cognito user and identity pools for Kibana authentication.
+	// For more information, see Amazon Cognito Authentication for Kibana (http://docs.aws.amazon.com/elasticsearch-service/latest/developerguide/es-cognito-auth.html).
+	CognitoOptions *CognitoOptions `type:"structure"`
 
 	// The name of the Elasticsearch domain that you are creating. Domain names
 	// are unique across the domains owned by an account within an AWS region. Domain
@@ -1677,6 +2181,11 @@ func (s *CreateElasticsearchDomainInput) Validate() error {
 	if s.DomainName != nil && len(*s.DomainName) < 3 {
 		invalidParams.Add(request.NewErrParamMinLen("DomainName", 3))
 	}
+	if s.CognitoOptions != nil {
+		if err := s.CognitoOptions.Validate(); err != nil {
+			invalidParams.AddNested("CognitoOptions", err.(request.ErrInvalidParams))
+		}
+	}
 	if s.EncryptionAtRestOptions != nil {
 		if err := s.EncryptionAtRestOptions.Validate(); err != nil {
 			invalidParams.AddNested("EncryptionAtRestOptions", err.(request.ErrInvalidParams))
@@ -1698,6 +2207,12 @@ func (s *CreateElasticsearchDomainInput) SetAccessPolicies(v string) *CreateElas
 // SetAdvancedOptions sets the AdvancedOptions field's value.
 func (s *CreateElasticsearchDomainInput) SetAdvancedOptions(v map[string]*string) *CreateElasticsearchDomainInput {
 	s.AdvancedOptions = v
+	return s
+}
+
+// SetCognitoOptions sets the CognitoOptions field's value.
+func (s *CreateElasticsearchDomainInput) SetCognitoOptions(v *CognitoOptions) *CreateElasticsearchDomainInput {
+	s.CognitoOptions = v
 	return s
 }
 
@@ -2174,6 +2689,163 @@ func (s *DescribeElasticsearchInstanceTypeLimitsOutput) SetLimitsByRole(v map[st
 	return s
 }
 
+// Container for parameters to DescribeReservedElasticsearchInstanceOfferings
+type DescribeReservedElasticsearchInstanceOfferingsInput struct {
+	_ struct{} `type:"structure"`
+
+	// Set this value to limit the number of results returned. If not specified,
+	// defaults to 100.
+	MaxResults *int64 `location:"querystring" locationName:"maxResults" type:"integer"`
+
+	// NextToken should be sent in case if earlier API call produced result containing
+	// NextToken. It is used for pagination.
+	NextToken *string `location:"querystring" locationName:"nextToken" type:"string"`
+
+	// The offering identifier filter value. Use this parameter to show only the
+	// available offering that matches the specified reservation identifier.
+	ReservedElasticsearchInstanceOfferingId *string `location:"querystring" locationName:"offeringId" type:"string"`
+}
+
+// String returns the string representation
+func (s DescribeReservedElasticsearchInstanceOfferingsInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DescribeReservedElasticsearchInstanceOfferingsInput) GoString() string {
+	return s.String()
+}
+
+// SetMaxResults sets the MaxResults field's value.
+func (s *DescribeReservedElasticsearchInstanceOfferingsInput) SetMaxResults(v int64) *DescribeReservedElasticsearchInstanceOfferingsInput {
+	s.MaxResults = &v
+	return s
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *DescribeReservedElasticsearchInstanceOfferingsInput) SetNextToken(v string) *DescribeReservedElasticsearchInstanceOfferingsInput {
+	s.NextToken = &v
+	return s
+}
+
+// SetReservedElasticsearchInstanceOfferingId sets the ReservedElasticsearchInstanceOfferingId field's value.
+func (s *DescribeReservedElasticsearchInstanceOfferingsInput) SetReservedElasticsearchInstanceOfferingId(v string) *DescribeReservedElasticsearchInstanceOfferingsInput {
+	s.ReservedElasticsearchInstanceOfferingId = &v
+	return s
+}
+
+// Container for results from DescribeReservedElasticsearchInstanceOfferings
+type DescribeReservedElasticsearchInstanceOfferingsOutput struct {
+	_ struct{} `type:"structure"`
+
+	// Provides an identifier to allow retrieval of paginated results.
+	NextToken *string `type:"string"`
+
+	// List of reserved Elasticsearch instance offerings
+	ReservedElasticsearchInstanceOfferings []*ReservedElasticsearchInstanceOffering `type:"list"`
+}
+
+// String returns the string representation
+func (s DescribeReservedElasticsearchInstanceOfferingsOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DescribeReservedElasticsearchInstanceOfferingsOutput) GoString() string {
+	return s.String()
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *DescribeReservedElasticsearchInstanceOfferingsOutput) SetNextToken(v string) *DescribeReservedElasticsearchInstanceOfferingsOutput {
+	s.NextToken = &v
+	return s
+}
+
+// SetReservedElasticsearchInstanceOfferings sets the ReservedElasticsearchInstanceOfferings field's value.
+func (s *DescribeReservedElasticsearchInstanceOfferingsOutput) SetReservedElasticsearchInstanceOfferings(v []*ReservedElasticsearchInstanceOffering) *DescribeReservedElasticsearchInstanceOfferingsOutput {
+	s.ReservedElasticsearchInstanceOfferings = v
+	return s
+}
+
+// Container for parameters to DescribeReservedElasticsearchInstances
+type DescribeReservedElasticsearchInstancesInput struct {
+	_ struct{} `type:"structure"`
+
+	// Set this value to limit the number of results returned. If not specified,
+	// defaults to 100.
+	MaxResults *int64 `location:"querystring" locationName:"maxResults" type:"integer"`
+
+	// NextToken should be sent in case if earlier API call produced result containing
+	// NextToken. It is used for pagination.
+	NextToken *string `location:"querystring" locationName:"nextToken" type:"string"`
+
+	// The reserved instance identifier filter value. Use this parameter to show
+	// only the reservation that matches the specified reserved Elasticsearch instance
+	// ID.
+	ReservedElasticsearchInstanceId *string `location:"querystring" locationName:"reservationId" type:"string"`
+}
+
+// String returns the string representation
+func (s DescribeReservedElasticsearchInstancesInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DescribeReservedElasticsearchInstancesInput) GoString() string {
+	return s.String()
+}
+
+// SetMaxResults sets the MaxResults field's value.
+func (s *DescribeReservedElasticsearchInstancesInput) SetMaxResults(v int64) *DescribeReservedElasticsearchInstancesInput {
+	s.MaxResults = &v
+	return s
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *DescribeReservedElasticsearchInstancesInput) SetNextToken(v string) *DescribeReservedElasticsearchInstancesInput {
+	s.NextToken = &v
+	return s
+}
+
+// SetReservedElasticsearchInstanceId sets the ReservedElasticsearchInstanceId field's value.
+func (s *DescribeReservedElasticsearchInstancesInput) SetReservedElasticsearchInstanceId(v string) *DescribeReservedElasticsearchInstancesInput {
+	s.ReservedElasticsearchInstanceId = &v
+	return s
+}
+
+// Container for results from DescribeReservedElasticsearchInstances
+type DescribeReservedElasticsearchInstancesOutput struct {
+	_ struct{} `type:"structure"`
+
+	// Provides an identifier to allow retrieval of paginated results.
+	NextToken *string `type:"string"`
+
+	// List of reserved Elasticsearch instances.
+	ReservedElasticsearchInstances []*ReservedElasticsearchInstance `type:"list"`
+}
+
+// String returns the string representation
+func (s DescribeReservedElasticsearchInstancesOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DescribeReservedElasticsearchInstancesOutput) GoString() string {
+	return s.String()
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *DescribeReservedElasticsearchInstancesOutput) SetNextToken(v string) *DescribeReservedElasticsearchInstancesOutput {
+	s.NextToken = &v
+	return s
+}
+
+// SetReservedElasticsearchInstances sets the ReservedElasticsearchInstances field's value.
+func (s *DescribeReservedElasticsearchInstancesOutput) SetReservedElasticsearchInstances(v []*ReservedElasticsearchInstance) *DescribeReservedElasticsearchInstancesOutput {
+	s.ReservedElasticsearchInstances = v
+	return s
+}
+
 type DomainInfo struct {
 	_ struct{} `type:"structure"`
 
@@ -2410,6 +3082,10 @@ type ElasticsearchDomainConfig struct {
 	// for more information.
 	AdvancedOptions *AdvancedOptionsStatus `type:"structure"`
 
+	// The CognitoOptions for the specified domain. For more information, see Amazon
+	// Cognito Authentication for Kibana (http://docs.aws.amazon.com/elasticsearch-service/latest/developerguide/es-cognito-auth.html).
+	CognitoOptions *CognitoOptionsStatus `type:"structure"`
+
 	// Specifies the EBSOptions for the Elasticsearch domain.
 	EBSOptions *EBSOptionsStatus `type:"structure"`
 
@@ -2452,6 +3128,12 @@ func (s *ElasticsearchDomainConfig) SetAccessPolicies(v *AccessPoliciesStatus) *
 // SetAdvancedOptions sets the AdvancedOptions field's value.
 func (s *ElasticsearchDomainConfig) SetAdvancedOptions(v *AdvancedOptionsStatus) *ElasticsearchDomainConfig {
 	s.AdvancedOptions = v
+	return s
+}
+
+// SetCognitoOptions sets the CognitoOptions field's value.
+func (s *ElasticsearchDomainConfig) SetCognitoOptions(v *CognitoOptionsStatus) *ElasticsearchDomainConfig {
+	s.CognitoOptions = v
 	return s
 }
 
@@ -2513,6 +3195,10 @@ type ElasticsearchDomainStatus struct {
 
 	// Specifies the status of the AdvancedOptions
 	AdvancedOptions map[string]*string `type:"map"`
+
+	// The CognitoOptions for the specified domain. For more information, see Amazon
+	// Cognito Authentication for Kibana (http://docs.aws.amazon.com/elasticsearch-service/latest/developerguide/es-cognito-auth.html).
+	CognitoOptions *CognitoOptions `type:"structure"`
 
 	// The domain creation status. True if the creation of an Elasticsearch domain
 	// is complete. False if domain creation is still in progress.
@@ -2601,6 +3287,12 @@ func (s *ElasticsearchDomainStatus) SetAccessPolicies(v string) *ElasticsearchDo
 // SetAdvancedOptions sets the AdvancedOptions field's value.
 func (s *ElasticsearchDomainStatus) SetAdvancedOptions(v map[string]*string) *ElasticsearchDomainStatus {
 	s.AdvancedOptions = v
+	return s
+}
+
+// SetCognitoOptions sets the CognitoOptions field's value.
+func (s *ElasticsearchDomainStatus) SetCognitoOptions(v *CognitoOptions) *ElasticsearchDomainStatus {
+	s.CognitoOptions = v
 	return s
 }
 
@@ -3287,7 +3979,7 @@ type OptionStatus struct {
 	// Timestamp which tells the creation date for the entity.
 	//
 	// CreationDate is a required field
-	CreationDate *time.Time `type:"timestamp" timestampFormat:"unix" required:"true"`
+	CreationDate *time.Time `type:"timestamp" required:"true"`
 
 	// Indicates whether the Elasticsearch domain is being deleted.
 	PendingDeletion *bool `type:"boolean"`
@@ -3300,7 +3992,7 @@ type OptionStatus struct {
 	// Timestamp which tells the last updated time for the entity.
 	//
 	// UpdateDate is a required field
-	UpdateDate *time.Time `type:"timestamp" timestampFormat:"unix" required:"true"`
+	UpdateDate *time.Time `type:"timestamp" required:"true"`
 
 	// Specifies the latest version for the entity.
 	UpdateVersion *int64 `type:"integer"`
@@ -3343,6 +4035,142 @@ func (s *OptionStatus) SetUpdateDate(v time.Time) *OptionStatus {
 // SetUpdateVersion sets the UpdateVersion field's value.
 func (s *OptionStatus) SetUpdateVersion(v int64) *OptionStatus {
 	s.UpdateVersion = &v
+	return s
+}
+
+// Container for parameters to PurchaseReservedElasticsearchInstanceOffering
+type PurchaseReservedElasticsearchInstanceOfferingInput struct {
+	_ struct{} `type:"structure"`
+
+	// The number of Elasticsearch instances to reserve.
+	InstanceCount *int64 `min:"1" type:"integer"`
+
+	// A customer-specified identifier to track this reservation.
+	//
+	// ReservationName is a required field
+	ReservationName *string `min:"5" type:"string" required:"true"`
+
+	// The ID of the reserved Elasticsearch instance offering to purchase.
+	//
+	// ReservedElasticsearchInstanceOfferingId is a required field
+	ReservedElasticsearchInstanceOfferingId *string `type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s PurchaseReservedElasticsearchInstanceOfferingInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s PurchaseReservedElasticsearchInstanceOfferingInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *PurchaseReservedElasticsearchInstanceOfferingInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "PurchaseReservedElasticsearchInstanceOfferingInput"}
+	if s.InstanceCount != nil && *s.InstanceCount < 1 {
+		invalidParams.Add(request.NewErrParamMinValue("InstanceCount", 1))
+	}
+	if s.ReservationName == nil {
+		invalidParams.Add(request.NewErrParamRequired("ReservationName"))
+	}
+	if s.ReservationName != nil && len(*s.ReservationName) < 5 {
+		invalidParams.Add(request.NewErrParamMinLen("ReservationName", 5))
+	}
+	if s.ReservedElasticsearchInstanceOfferingId == nil {
+		invalidParams.Add(request.NewErrParamRequired("ReservedElasticsearchInstanceOfferingId"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetInstanceCount sets the InstanceCount field's value.
+func (s *PurchaseReservedElasticsearchInstanceOfferingInput) SetInstanceCount(v int64) *PurchaseReservedElasticsearchInstanceOfferingInput {
+	s.InstanceCount = &v
+	return s
+}
+
+// SetReservationName sets the ReservationName field's value.
+func (s *PurchaseReservedElasticsearchInstanceOfferingInput) SetReservationName(v string) *PurchaseReservedElasticsearchInstanceOfferingInput {
+	s.ReservationName = &v
+	return s
+}
+
+// SetReservedElasticsearchInstanceOfferingId sets the ReservedElasticsearchInstanceOfferingId field's value.
+func (s *PurchaseReservedElasticsearchInstanceOfferingInput) SetReservedElasticsearchInstanceOfferingId(v string) *PurchaseReservedElasticsearchInstanceOfferingInput {
+	s.ReservedElasticsearchInstanceOfferingId = &v
+	return s
+}
+
+// Represents the output of a PurchaseReservedElasticsearchInstanceOffering
+// operation.
+type PurchaseReservedElasticsearchInstanceOfferingOutput struct {
+	_ struct{} `type:"structure"`
+
+	// The customer-specified identifier used to track this reservation.
+	ReservationName *string `min:"5" type:"string"`
+
+	// Details of the reserved Elasticsearch instance which was purchased.
+	ReservedElasticsearchInstanceId *string `type:"string"`
+}
+
+// String returns the string representation
+func (s PurchaseReservedElasticsearchInstanceOfferingOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s PurchaseReservedElasticsearchInstanceOfferingOutput) GoString() string {
+	return s.String()
+}
+
+// SetReservationName sets the ReservationName field's value.
+func (s *PurchaseReservedElasticsearchInstanceOfferingOutput) SetReservationName(v string) *PurchaseReservedElasticsearchInstanceOfferingOutput {
+	s.ReservationName = &v
+	return s
+}
+
+// SetReservedElasticsearchInstanceId sets the ReservedElasticsearchInstanceId field's value.
+func (s *PurchaseReservedElasticsearchInstanceOfferingOutput) SetReservedElasticsearchInstanceId(v string) *PurchaseReservedElasticsearchInstanceOfferingOutput {
+	s.ReservedElasticsearchInstanceId = &v
+	return s
+}
+
+// Contains the specific price and frequency of a recurring charges for a reserved
+// Elasticsearch instance, or for a reserved Elasticsearch instance offering.
+type RecurringCharge struct {
+	_ struct{} `type:"structure"`
+
+	// The monetary amount of the recurring charge.
+	RecurringChargeAmount *float64 `type:"double"`
+
+	// The frequency of the recurring charge.
+	RecurringChargeFrequency *string `type:"string"`
+}
+
+// String returns the string representation
+func (s RecurringCharge) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s RecurringCharge) GoString() string {
+	return s.String()
+}
+
+// SetRecurringChargeAmount sets the RecurringChargeAmount field's value.
+func (s *RecurringCharge) SetRecurringChargeAmount(v float64) *RecurringCharge {
+	s.RecurringChargeAmount = &v
+	return s
+}
+
+// SetRecurringChargeFrequency sets the RecurringChargeFrequency field's value.
+func (s *RecurringCharge) SetRecurringChargeFrequency(v string) *RecurringCharge {
+	s.RecurringChargeFrequency = &v
 	return s
 }
 
@@ -3415,6 +4243,232 @@ func (s RemoveTagsOutput) String() string {
 // GoString returns the string representation
 func (s RemoveTagsOutput) GoString() string {
 	return s.String()
+}
+
+// Details of a reserved Elasticsearch instance.
+type ReservedElasticsearchInstance struct {
+	_ struct{} `type:"structure"`
+
+	// The currency code for the reserved Elasticsearch instance offering.
+	CurrencyCode *string `type:"string"`
+
+	// The duration, in seconds, for which the Elasticsearch instance is reserved.
+	Duration *int64 `type:"integer"`
+
+	// The number of Elasticsearch instances that have been reserved.
+	ElasticsearchInstanceCount *int64 `type:"integer"`
+
+	// The Elasticsearch instance type offered by the reserved instance offering.
+	ElasticsearchInstanceType *string `type:"string" enum:"ESPartitionInstanceType"`
+
+	// The upfront fixed charge you will paid to purchase the specific reserved
+	// Elasticsearch instance offering.
+	FixedPrice *float64 `type:"double"`
+
+	// The payment option as defined in the reserved Elasticsearch instance offering.
+	PaymentOption *string `type:"string" enum:"ReservedElasticsearchInstancePaymentOption"`
+
+	// The charge to your account regardless of whether you are creating any domains
+	// using the instance offering.
+	RecurringCharges []*RecurringCharge `type:"list"`
+
+	// The customer-specified identifier to track this reservation.
+	ReservationName *string `min:"5" type:"string"`
+
+	// The unique identifier for the reservation.
+	ReservedElasticsearchInstanceId *string `type:"string"`
+
+	// The offering identifier.
+	ReservedElasticsearchInstanceOfferingId *string `type:"string"`
+
+	// The time the reservation started.
+	StartTime *time.Time `type:"timestamp"`
+
+	// The state of the reserved Elasticsearch instance.
+	State *string `type:"string"`
+
+	// The rate you are charged for each hour for the domain that is using this
+	// reserved instance.
+	UsagePrice *float64 `type:"double"`
+}
+
+// String returns the string representation
+func (s ReservedElasticsearchInstance) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ReservedElasticsearchInstance) GoString() string {
+	return s.String()
+}
+
+// SetCurrencyCode sets the CurrencyCode field's value.
+func (s *ReservedElasticsearchInstance) SetCurrencyCode(v string) *ReservedElasticsearchInstance {
+	s.CurrencyCode = &v
+	return s
+}
+
+// SetDuration sets the Duration field's value.
+func (s *ReservedElasticsearchInstance) SetDuration(v int64) *ReservedElasticsearchInstance {
+	s.Duration = &v
+	return s
+}
+
+// SetElasticsearchInstanceCount sets the ElasticsearchInstanceCount field's value.
+func (s *ReservedElasticsearchInstance) SetElasticsearchInstanceCount(v int64) *ReservedElasticsearchInstance {
+	s.ElasticsearchInstanceCount = &v
+	return s
+}
+
+// SetElasticsearchInstanceType sets the ElasticsearchInstanceType field's value.
+func (s *ReservedElasticsearchInstance) SetElasticsearchInstanceType(v string) *ReservedElasticsearchInstance {
+	s.ElasticsearchInstanceType = &v
+	return s
+}
+
+// SetFixedPrice sets the FixedPrice field's value.
+func (s *ReservedElasticsearchInstance) SetFixedPrice(v float64) *ReservedElasticsearchInstance {
+	s.FixedPrice = &v
+	return s
+}
+
+// SetPaymentOption sets the PaymentOption field's value.
+func (s *ReservedElasticsearchInstance) SetPaymentOption(v string) *ReservedElasticsearchInstance {
+	s.PaymentOption = &v
+	return s
+}
+
+// SetRecurringCharges sets the RecurringCharges field's value.
+func (s *ReservedElasticsearchInstance) SetRecurringCharges(v []*RecurringCharge) *ReservedElasticsearchInstance {
+	s.RecurringCharges = v
+	return s
+}
+
+// SetReservationName sets the ReservationName field's value.
+func (s *ReservedElasticsearchInstance) SetReservationName(v string) *ReservedElasticsearchInstance {
+	s.ReservationName = &v
+	return s
+}
+
+// SetReservedElasticsearchInstanceId sets the ReservedElasticsearchInstanceId field's value.
+func (s *ReservedElasticsearchInstance) SetReservedElasticsearchInstanceId(v string) *ReservedElasticsearchInstance {
+	s.ReservedElasticsearchInstanceId = &v
+	return s
+}
+
+// SetReservedElasticsearchInstanceOfferingId sets the ReservedElasticsearchInstanceOfferingId field's value.
+func (s *ReservedElasticsearchInstance) SetReservedElasticsearchInstanceOfferingId(v string) *ReservedElasticsearchInstance {
+	s.ReservedElasticsearchInstanceOfferingId = &v
+	return s
+}
+
+// SetStartTime sets the StartTime field's value.
+func (s *ReservedElasticsearchInstance) SetStartTime(v time.Time) *ReservedElasticsearchInstance {
+	s.StartTime = &v
+	return s
+}
+
+// SetState sets the State field's value.
+func (s *ReservedElasticsearchInstance) SetState(v string) *ReservedElasticsearchInstance {
+	s.State = &v
+	return s
+}
+
+// SetUsagePrice sets the UsagePrice field's value.
+func (s *ReservedElasticsearchInstance) SetUsagePrice(v float64) *ReservedElasticsearchInstance {
+	s.UsagePrice = &v
+	return s
+}
+
+// Details of a reserved Elasticsearch instance offering.
+type ReservedElasticsearchInstanceOffering struct {
+	_ struct{} `type:"structure"`
+
+	// The currency code for the reserved Elasticsearch instance offering.
+	CurrencyCode *string `type:"string"`
+
+	// The duration, in seconds, for which the offering will reserve the Elasticsearch
+	// instance.
+	Duration *int64 `type:"integer"`
+
+	// The Elasticsearch instance type offered by the reserved instance offering.
+	ElasticsearchInstanceType *string `type:"string" enum:"ESPartitionInstanceType"`
+
+	// The upfront fixed charge you will pay to purchase the specific reserved Elasticsearch
+	// instance offering.
+	FixedPrice *float64 `type:"double"`
+
+	// Payment option for the reserved Elasticsearch instance offering
+	PaymentOption *string `type:"string" enum:"ReservedElasticsearchInstancePaymentOption"`
+
+	// The charge to your account regardless of whether you are creating any domains
+	// using the instance offering.
+	RecurringCharges []*RecurringCharge `type:"list"`
+
+	// The Elasticsearch reserved instance offering identifier.
+	ReservedElasticsearchInstanceOfferingId *string `type:"string"`
+
+	// The rate you are charged for each hour the domain that is using the offering
+	// is running.
+	UsagePrice *float64 `type:"double"`
+}
+
+// String returns the string representation
+func (s ReservedElasticsearchInstanceOffering) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ReservedElasticsearchInstanceOffering) GoString() string {
+	return s.String()
+}
+
+// SetCurrencyCode sets the CurrencyCode field's value.
+func (s *ReservedElasticsearchInstanceOffering) SetCurrencyCode(v string) *ReservedElasticsearchInstanceOffering {
+	s.CurrencyCode = &v
+	return s
+}
+
+// SetDuration sets the Duration field's value.
+func (s *ReservedElasticsearchInstanceOffering) SetDuration(v int64) *ReservedElasticsearchInstanceOffering {
+	s.Duration = &v
+	return s
+}
+
+// SetElasticsearchInstanceType sets the ElasticsearchInstanceType field's value.
+func (s *ReservedElasticsearchInstanceOffering) SetElasticsearchInstanceType(v string) *ReservedElasticsearchInstanceOffering {
+	s.ElasticsearchInstanceType = &v
+	return s
+}
+
+// SetFixedPrice sets the FixedPrice field's value.
+func (s *ReservedElasticsearchInstanceOffering) SetFixedPrice(v float64) *ReservedElasticsearchInstanceOffering {
+	s.FixedPrice = &v
+	return s
+}
+
+// SetPaymentOption sets the PaymentOption field's value.
+func (s *ReservedElasticsearchInstanceOffering) SetPaymentOption(v string) *ReservedElasticsearchInstanceOffering {
+	s.PaymentOption = &v
+	return s
+}
+
+// SetRecurringCharges sets the RecurringCharges field's value.
+func (s *ReservedElasticsearchInstanceOffering) SetRecurringCharges(v []*RecurringCharge) *ReservedElasticsearchInstanceOffering {
+	s.RecurringCharges = v
+	return s
+}
+
+// SetReservedElasticsearchInstanceOfferingId sets the ReservedElasticsearchInstanceOfferingId field's value.
+func (s *ReservedElasticsearchInstanceOffering) SetReservedElasticsearchInstanceOfferingId(v string) *ReservedElasticsearchInstanceOffering {
+	s.ReservedElasticsearchInstanceOfferingId = &v
+	return s
+}
+
+// SetUsagePrice sets the UsagePrice field's value.
+func (s *ReservedElasticsearchInstanceOffering) SetUsagePrice(v float64) *ReservedElasticsearchInstanceOffering {
+	s.UsagePrice = &v
+	return s
 }
 
 // Specifies the time, in UTC format, when the service takes a daily automated
@@ -3646,6 +4700,10 @@ type UpdateElasticsearchDomainConfigInput struct {
 	// for more information.
 	AdvancedOptions map[string]*string `type:"map"`
 
+	// Options to specify the Cognito user and identity pools for Kibana authentication.
+	// For more information, see Amazon Cognito Authentication for Kibana (http://docs.aws.amazon.com/elasticsearch-service/latest/developerguide/es-cognito-auth.html).
+	CognitoOptions *CognitoOptions `type:"structure"`
+
 	// The name of the Elasticsearch domain that you are updating.
 	//
 	// DomainName is a required field
@@ -3690,6 +4748,11 @@ func (s *UpdateElasticsearchDomainConfigInput) Validate() error {
 	if s.DomainName != nil && len(*s.DomainName) < 3 {
 		invalidParams.Add(request.NewErrParamMinLen("DomainName", 3))
 	}
+	if s.CognitoOptions != nil {
+		if err := s.CognitoOptions.Validate(); err != nil {
+			invalidParams.AddNested("CognitoOptions", err.(request.ErrInvalidParams))
+		}
+	}
 
 	if invalidParams.Len() > 0 {
 		return invalidParams
@@ -3706,6 +4769,12 @@ func (s *UpdateElasticsearchDomainConfigInput) SetAccessPolicies(v string) *Upda
 // SetAdvancedOptions sets the AdvancedOptions field's value.
 func (s *UpdateElasticsearchDomainConfigInput) SetAdvancedOptions(v map[string]*string) *UpdateElasticsearchDomainConfigInput {
 	s.AdvancedOptions = v
+	return s
+}
+
+// SetCognitoOptions sets the CognitoOptions field's value.
+func (s *UpdateElasticsearchDomainConfigInput) SetCognitoOptions(v *CognitoOptions) *UpdateElasticsearchDomainConfigInput {
+	s.CognitoOptions = v
 	return s
 }
 
@@ -4048,6 +5117,17 @@ const (
 
 	// OptionStateActive is a OptionState enum value
 	OptionStateActive = "Active"
+)
+
+const (
+	// ReservedElasticsearchInstancePaymentOptionAllUpfront is a ReservedElasticsearchInstancePaymentOption enum value
+	ReservedElasticsearchInstancePaymentOptionAllUpfront = "ALL_UPFRONT"
+
+	// ReservedElasticsearchInstancePaymentOptionPartialUpfront is a ReservedElasticsearchInstancePaymentOption enum value
+	ReservedElasticsearchInstancePaymentOptionPartialUpfront = "PARTIAL_UPFRONT"
+
+	// ReservedElasticsearchInstancePaymentOptionNoUpfront is a ReservedElasticsearchInstancePaymentOption enum value
+	ReservedElasticsearchInstancePaymentOptionNoUpfront = "NO_UPFRONT"
 )
 
 // The type of EBS volume, standard, gp2, or io1. See Configuring EBS-based

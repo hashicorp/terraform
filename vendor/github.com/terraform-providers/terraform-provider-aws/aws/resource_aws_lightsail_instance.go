@@ -230,7 +230,6 @@ func resourceAwsLightsailInstanceDelete(d *schema.ResourceData, meta interface{}
 			d.Id(), err)
 	}
 
-	d.SetId("")
 	return nil
 }
 

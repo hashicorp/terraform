@@ -1,7 +1,15 @@
 package getter
 
+import (
+	"strings"
+)
+
 // Decompressor defines the interface that must be implemented to add
 // support for decompressing a type.
+//
+// Important: if you're implementing a decompressor, please use the
+// containsDotDot helper in this file to ensure that files can't be
+// decompressed outside of the specified directory.
 type Decompressor interface {
 	// Decompress should decompress src to dst. dir specifies whether dst
 	// is a directory or single file. src is guaranteed to be a single file
@@ -31,3 +39,20 @@ func init() {
 		"zip":     new(ZipDecompressor),
 	}
 }
+
+// containsDotDot checks if the filepath value v contains a ".." entry.
+// This will check filepath components by splitting along / or \. This
+// function is copied directly from the Go net/http implementation.
+func containsDotDot(v string) bool {
+	if !strings.Contains(v, "..") {
+		return false
+	}
+	for _, ent := range strings.FieldsFunc(v, isSlashRune) {
+		if ent == ".." {
+			return true
+		}
+	}
+	return false
+}
+
+func isSlashRune(r rune) bool { return r == '/' || r == '\\' }

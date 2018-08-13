@@ -17,6 +17,13 @@ var JSONEncodeFunc = function.New(&function.Spec{
 	Type: function.StaticReturnType(cty.String),
 	Impl: func(args []cty.Value, retType cty.Type) (cty.Value, error) {
 		val := args[0]
+		if !val.IsWhollyKnown() {
+			// We can't serialize unknowns, so if the value is unknown or
+			// contains any _nested_ unknowns then our result must be
+			// unknown.
+			return cty.UnknownVal(retType), nil
+		}
+
 		buf, err := json.Marshal(val, val.Type())
 		if err != nil {
 			return cty.NilVal, err

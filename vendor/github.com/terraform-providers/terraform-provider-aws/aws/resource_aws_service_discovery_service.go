@@ -52,13 +52,28 @@ func resourceAwsServiceDiscoveryService() *schema.Resource {
 										Required: true,
 									},
 									"type": {
-										Type:         schema.TypeString,
-										Required:     true,
-										ForceNew:     true,
-										ValidateFunc: validateServiceDiscoveryServiceDnsRecordsType,
+										Type:     schema.TypeString,
+										Required: true,
+										ForceNew: true,
+										ValidateFunc: validateStringIn(
+											servicediscovery.RecordTypeSrv,
+											servicediscovery.RecordTypeA,
+											servicediscovery.RecordTypeAaaa,
+											servicediscovery.RecordTypeCname,
+										),
 									},
 								},
 							},
+						},
+						"routing_policy": {
+							Type:     schema.TypeString,
+							Optional: true,
+							ForceNew: true,
+							Default:  servicediscovery.RoutingPolicyMultivalue,
+							ValidateFunc: validateStringIn(
+								servicediscovery.RoutingPolicyMultivalue,
+								servicediscovery.RoutingPolicyWeighted,
+							),
 						},
 					},
 				},
@@ -78,10 +93,29 @@ func resourceAwsServiceDiscoveryService() *schema.Resource {
 							Optional: true,
 						},
 						"type": {
-							Type:         schema.TypeString,
-							Optional:     true,
-							ForceNew:     true,
-							ValidateFunc: validateServiceDiscoveryServiceHealthCheckConfigType,
+							Type:     schema.TypeString,
+							Optional: true,
+							ForceNew: true,
+							ValidateFunc: validateStringIn(
+								servicediscovery.HealthCheckTypeHttp,
+								servicediscovery.HealthCheckTypeHttps,
+								servicediscovery.HealthCheckTypeTcp,
+							),
+						},
+					},
+				},
+			},
+			"health_check_custom_config": {
+				Type:     schema.TypeList,
+				Optional: true,
+				ForceNew: true,
+				MaxItems: 1,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"failure_threshold": {
+							Type:     schema.TypeInt,
+							Optional: true,
+							ForceNew: true,
 						},
 					},
 				},
@@ -109,6 +143,11 @@ func resourceAwsServiceDiscoveryServiceCreate(d *schema.ResourceData, meta inter
 	hcconfig := d.Get("health_check_config").([]interface{})
 	if len(hcconfig) > 0 {
 		input.HealthCheckConfig = expandServiceDiscoveryHealthCheckConfig(hcconfig[0].(map[string]interface{}))
+	}
+
+	healthCustomConfig := d.Get("health_check_custom_config").([]interface{})
+	if len(healthCustomConfig) > 0 {
+		input.HealthCheckCustomConfig = expandServiceDiscoveryHealthCheckCustomConfig(healthCustomConfig[0].(map[string]interface{}))
 	}
 
 	resp, err := conn.CreateService(input)
@@ -144,6 +183,7 @@ func resourceAwsServiceDiscoveryServiceRead(d *schema.ResourceData, meta interfa
 	d.Set("description", service.Description)
 	d.Set("dns_config", flattenServiceDiscoveryDnsConfig(service.DnsConfig))
 	d.Set("health_check_config", flattenServiceDiscoveryHealthCheckConfig(service.HealthCheckConfig))
+	d.Set("health_check_custom_config", flattenServiceDiscoveryHealthCheckCustomConfig(service.HealthCheckCustomConfig))
 	return nil
 }
 
@@ -220,6 +260,9 @@ func expandServiceDiscoveryDnsConfig(configured map[string]interface{}) *service
 		drs[i] = dr
 	}
 	result.DnsRecords = drs
+	if v, ok := configured["routing_policy"]; ok && v != "" {
+		result.RoutingPolicy = aws.String(v.(string))
+	}
 
 	return result
 }
@@ -228,6 +271,7 @@ func flattenServiceDiscoveryDnsConfig(config *servicediscovery.DnsConfig) []map[
 	result := map[string]interface{}{}
 
 	result["namespace_id"] = *config.NamespaceId
+	result["routing_policy"] = *config.RoutingPolicy
 	drs := make([]map[string]interface{}, 0)
 	for _, v := range config.DnsRecords {
 		dr := map[string]interface{}{}
@@ -291,6 +335,36 @@ func flattenServiceDiscoveryHealthCheckConfig(config *servicediscovery.HealthChe
 	}
 	if config.Type != nil {
 		result["type"] = *config.Type
+	}
+
+	if len(result) < 1 {
+		return nil
+	}
+
+	return []map[string]interface{}{result}
+}
+
+func expandServiceDiscoveryHealthCheckCustomConfig(configured map[string]interface{}) *servicediscovery.HealthCheckCustomConfig {
+	if len(configured) < 1 {
+		return nil
+	}
+	result := &servicediscovery.HealthCheckCustomConfig{}
+
+	if v, ok := configured["failure_threshold"]; ok && v.(int) != 0 {
+		result.FailureThreshold = aws.Int64(int64(v.(int)))
+	}
+
+	return result
+}
+
+func flattenServiceDiscoveryHealthCheckCustomConfig(config *servicediscovery.HealthCheckCustomConfig) []map[string]interface{} {
+	if config == nil {
+		return nil
+	}
+	result := map[string]interface{}{}
+
+	if config.FailureThreshold != nil {
+		result["failure_threshold"] = *config.FailureThreshold
 	}
 
 	if len(result) < 1 {

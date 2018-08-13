@@ -48,10 +48,6 @@ The "backend" in Terraform defines how Terraform operates. The default
 backend performs all operations locally on your machine. Your configuration
 is configured to use a non-local backend. This backend doesn't support this
 operation.
-
-If you want to use the state from the backend but force all other data
-(configuration, variables, etc.) to come locally, you can force local
-behavior with the "-local" flag.
 `
 
 // ModulePath returns the path to the root module from the CLI args.

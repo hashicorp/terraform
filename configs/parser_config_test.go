@@ -97,12 +97,7 @@ func TestParserLoadConfigFileFailureMessages(t *testing.T) {
 		{
 			"invalid-files/variable-type-unknown.tf",
 			hcl.DiagError,
-			"Invalid variable type hint",
-		},
-		{
-			"valid-files/variable-type-quoted.tf",
-			hcl.DiagWarning,
-			"Quoted keywords are deprecated",
+			"Invalid type specification",
 		},
 		{
 			"invalid-files/unexpected-attr.tf",
@@ -120,16 +115,6 @@ func TestParserLoadConfigFileFailureMessages(t *testing.T) {
 			"Unsuitable value type",
 		},
 		{
-			"valid-files/resources-dependson-quoted.tf",
-			hcl.DiagWarning,
-			"Quoted references are deprecated",
-		},
-		{
-			"valid-files/resources-ignorechanges-quoted.tf",
-			hcl.DiagWarning,
-			"Quoted references are deprecated",
-		},
-		{
 			"valid-files/resources-ignorechanges-all-legacy.tf",
 			hcl.DiagWarning,
 			"Deprecated ignore_changes wildcard",
@@ -138,16 +123,6 @@ func TestParserLoadConfigFileFailureMessages(t *testing.T) {
 			"valid-files/resources-ignorechanges-all-legacy.tf.json",
 			hcl.DiagWarning,
 			"Deprecated ignore_changes wildcard",
-		},
-		{
-			"valid-files/resources-provisioner-when-quoted.tf",
-			hcl.DiagWarning,
-			"Quoted keywords are deprecated",
-		},
-		{
-			"valid-files/resources-provisioner-onfailure-quoted.tf",
-			hcl.DiagWarning,
-			"Quoted keywords are deprecated",
 		},
 	}
 
