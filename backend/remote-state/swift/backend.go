@@ -23,7 +23,7 @@ func New() backend.Backend {
 			"auth_url": &schema.Schema{
 				Type:        schema.TypeString,
 				Required:    true,
-				DefaultFunc: schema.EnvDefaultFunc("OS_AUTH_URL", nil),
+				DefaultFunc: schema.EnvDefaultFunc("OS_AUTH_URL", ""),
 				Description: descriptions["auth_url"],
 			},
 
@@ -70,33 +70,69 @@ func New() backend.Backend {
 			},
 
 			"token": &schema.Schema{
-				Type:        schema.TypeString,
-				Optional:    true,
-				DefaultFunc: schema.EnvDefaultFunc("OS_AUTH_TOKEN", ""),
-				Description: descriptions["token"],
-			},
-
-			"domain_id": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
 				DefaultFunc: schema.MultiEnvDefaultFunc([]string{
-					"OS_USER_DOMAIN_ID",
-					"OS_PROJECT_DOMAIN_ID",
-					"OS_DOMAIN_ID",
+					"OS_TOKEN",
+					"OS_AUTH_TOKEN",
 				}, ""),
+				Description: descriptions["token"],
+			},
+
+			"user_domain_name": &schema.Schema{
+				Type:        schema.TypeString,
+				Optional:    true,
+				DefaultFunc: schema.EnvDefaultFunc("OS_USER_DOMAIN_NAME", ""),
+				Description: descriptions["user_domain_name"],
+			},
+
+			"user_domain_id": &schema.Schema{
+				Type:        schema.TypeString,
+				Optional:    true,
+				DefaultFunc: schema.EnvDefaultFunc("OS_USER_DOMAIN_ID", ""),
+				Description: descriptions["user_domain_id"],
+			},
+
+			"project_domain_name": &schema.Schema{
+				Type:        schema.TypeString,
+				Optional:    true,
+				DefaultFunc: schema.EnvDefaultFunc("OS_PROJECT_DOMAIN_NAME", ""),
+				Description: descriptions["project_domain_name"],
+			},
+
+			"project_domain_id": &schema.Schema{
+				Type:        schema.TypeString,
+				Optional:    true,
+				DefaultFunc: schema.EnvDefaultFunc("OS_PROJECT_DOMAIN_ID", ""),
+				Description: descriptions["project_domain_id"],
+			},
+
+			"domain_id": &schema.Schema{
+				Type:        schema.TypeString,
+				Optional:    true,
+				DefaultFunc: schema.EnvDefaultFunc("OS_DOMAIN_ID", ""),
 				Description: descriptions["domain_id"],
 			},
 
 			"domain_name": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
-				DefaultFunc: schema.MultiEnvDefaultFunc([]string{
-					"OS_USER_DOMAIN_NAME",
-					"OS_PROJECT_DOMAIN_NAME",
-					"OS_DOMAIN_NAME",
-					"OS_DEFAULT_DOMAIN",
-				}, ""),
+				Type:        schema.TypeString,
+				Optional:    true,
+				DefaultFunc: schema.EnvDefaultFunc("OS_DOMAIN_NAME", ""),
 				Description: descriptions["domain_name"],
+			},
+
+			"default_domain": &schema.Schema{
+				Type:        schema.TypeString,
+				Optional:    true,
+				DefaultFunc: schema.EnvDefaultFunc("OS_DEFAULT_DOMAIN", "default"),
+				Description: descriptions["default_domain"],
+			},
+
+			"cloud": &schema.Schema{
+				Type:        schema.TypeString,
+				Optional:    true,
+				DefaultFunc: schema.EnvDefaultFunc("OS_CLOUD", ""),
+				Description: descriptions["cloud"],
 			},
 
 			"region_name": &schema.Schema{
@@ -208,9 +244,21 @@ func init() {
 
 		"token": "Authentication token to use as an alternative to username/password.",
 
+		"user_domain_name": "The name of the domain where the user resides (Identity v3).",
+
+		"user_domain_id": "The ID of the domain where the user resides (Identity v3).",
+
+		"project_domain_name": "The name of the domain where the project resides (Identity v3).",
+
+		"project_domain_id": "The ID of the domain where the proejct resides (Identity v3).",
+
 		"domain_id": "The ID of the Domain to scope to (Identity v3).",
 
 		"domain_name": "The name of the Domain to scope to (Identity v3).",
+
+		"default_domain": "The name of the Domain ID to scope to if no other domain is specified. Defaults to `default` (Identity v3).",
+
+		"cloud": "An entry in a `clouds.yaml` file to use.",
 
 		"region_name": "The name of the Region to use.",
 
@@ -256,19 +304,25 @@ func (b *Backend) configure(ctx context.Context) error {
 	// Grab the resource data
 	data := schema.FromContextBackendConfig(ctx)
 	config := &tf_openstack.Config{
-		CACertFile:       data.Get("cacert_file").(string),
-		ClientCertFile:   data.Get("cert").(string),
-		ClientKeyFile:    data.Get("key").(string),
-		DomainID:         data.Get("domain_id").(string),
-		DomainName:       data.Get("domain_name").(string),
-		EndpointType:     data.Get("endpoint_type").(string),
-		IdentityEndpoint: data.Get("auth_url").(string),
-		Password:         data.Get("password").(string),
-		Token:            data.Get("token").(string),
-		TenantID:         data.Get("tenant_id").(string),
-		TenantName:       data.Get("tenant_name").(string),
-		Username:         data.Get("user_name").(string),
-		UserID:           data.Get("user_id").(string),
+		CACertFile:        data.Get("cacert_file").(string),
+		ClientCertFile:    data.Get("cert").(string),
+		ClientKeyFile:     data.Get("key").(string),
+		Cloud:             data.Get("cloud").(string),
+		DefaultDomain:     data.Get("default_domain").(string),
+		DomainID:          data.Get("domain_id").(string),
+		DomainName:        data.Get("domain_name").(string),
+		EndpointType:      data.Get("endpoint_type").(string),
+		IdentityEndpoint:  data.Get("auth_url").(string),
+		Password:          data.Get("password").(string),
+		ProjectDomainID:   data.Get("project_domain_id").(string),
+		ProjectDomainName: data.Get("project_domain_name").(string),
+		Token:             data.Get("token").(string),
+		TenantID:          data.Get("tenant_id").(string),
+		TenantName:        data.Get("tenant_name").(string),
+		UserDomainID:      data.Get("user_domain_id").(string),
+		UserDomainName:    data.Get("user_domain_name").(string),
+		Username:          data.Get("user_name").(string),
+		UserID:            data.Get("user_id").(string),
 	}
 
 	if v, ok := data.GetOkExists("insecure"); ok {
