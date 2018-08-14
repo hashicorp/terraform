@@ -2,6 +2,12 @@ package terraform
 
 import (
 	"testing"
+
+	"github.com/zclconf/go-cty/cty"
+
+	"github.com/hashicorp/terraform/addrs"
+	"github.com/hashicorp/terraform/plans"
+	"github.com/hashicorp/terraform/states"
 )
 
 func TestNilHook_impl(t *testing.T) {
@@ -15,6 +21,8 @@ type testHook struct {
 	Calls []*testHookCall
 }
 
+var _ Hook = (*testHook)(nil)
+
 // testHookCall represents a single call in testHook.
 // This hook just logs string names to make it easy to write "want" expressions
 // in tests that can DeepEqual against the real calls.
@@ -23,73 +31,71 @@ type testHookCall struct {
 	InstanceID string
 }
 
-func (h *testHook) PreApply(i *InstanceInfo, s *InstanceState, d *InstanceDiff) (HookAction, error) {
-	h.Calls = append(h.Calls, &testHookCall{"PreApply", i.ResourceAddress().String()})
+func (h *testHook) PreApply(addr addrs.AbsResourceInstance, gen states.Generation, action plans.Action, priorState, plannedNewState cty.Value) (HookAction, error) {
+	h.Calls = append(h.Calls, &testHookCall{"PreApply", addr.String()})
 	return HookActionContinue, nil
 }
 
-func (h *testHook) PostApply(i *InstanceInfo, s *InstanceState, err error) (HookAction, error) {
-	h.Calls = append(h.Calls, &testHookCall{"PostApply", i.ResourceAddress().String()})
+func (h *testHook) PostApply(addr addrs.AbsResourceInstance, gen states.Generation, newState cty.Value, err error) (HookAction, error) {
+	h.Calls = append(h.Calls, &testHookCall{"PostApply", addr.String()})
 	return HookActionContinue, nil
 }
 
-func (h *testHook) PreDiff(i *InstanceInfo, s *InstanceState) (HookAction, error) {
-	h.Calls = append(h.Calls, &testHookCall{"PreDiff", i.ResourceAddress().String()})
+func (h *testHook) PreDiff(addr addrs.AbsResourceInstance, gen states.Generation, priorState, proposedNewState cty.Value) (HookAction, error) {
+	h.Calls = append(h.Calls, &testHookCall{"PreDiff", addr.String()})
 	return HookActionContinue, nil
 }
 
-func (h *testHook) PostDiff(i *InstanceInfo, d *InstanceDiff) (HookAction, error) {
-	h.Calls = append(h.Calls, &testHookCall{"PostDiff", i.ResourceAddress().String()})
+func (h *testHook) PostDiff(addr addrs.AbsResourceInstance, gen states.Generation, action plans.Action, priorState, plannedNewState cty.Value) (HookAction, error) {
+	h.Calls = append(h.Calls, &testHookCall{"PostDiff", addr.String()})
 	return HookActionContinue, nil
 }
 
-func (h *testHook) PreProvisionResource(i *InstanceInfo, s *InstanceState) (HookAction, error) {
-	h.Calls = append(h.Calls, &testHookCall{"PreProvisionResource", i.ResourceAddress().String()})
+func (h *testHook) PreProvisionInstance(addr addrs.AbsResourceInstance, state cty.Value) (HookAction, error) {
+	h.Calls = append(h.Calls, &testHookCall{"PreProvisionInstance", addr.String()})
 	return HookActionContinue, nil
 }
 
-func (h *testHook) PostProvisionResource(i *InstanceInfo, s *InstanceState) (HookAction, error) {
-	h.Calls = append(h.Calls, &testHookCall{"PostProvisionResource", i.ResourceAddress().String()})
+func (h *testHook) PostProvisionInstance(addr addrs.AbsResourceInstance, state cty.Value) (HookAction, error) {
+	h.Calls = append(h.Calls, &testHookCall{"PostProvisionInstance", addr.String()})
 	return HookActionContinue, nil
 }
 
-func (h *testHook) PreProvision(i *InstanceInfo, n string) (HookAction, error) {
-	h.Calls = append(h.Calls, &testHookCall{"PreProvision", i.ResourceAddress().String()})
+func (h *testHook) PreProvisionInstanceStep(addr addrs.AbsResourceInstance, typeName string) (HookAction, error) {
+	h.Calls = append(h.Calls, &testHookCall{"PreProvisionInstanceStep", addr.String()})
 	return HookActionContinue, nil
 }
 
-func (h *testHook) PostProvision(i *InstanceInfo, n string, err error) (HookAction, error) {
-	h.Calls = append(h.Calls, &testHookCall{"PostProvision", i.ResourceAddress().String()})
+func (h *testHook) PostProvisionInstanceStep(addr addrs.AbsResourceInstance, typeName string, err error) (HookAction, error) {
+	h.Calls = append(h.Calls, &testHookCall{"PostProvisionInstanceStep", addr.String()})
 	return HookActionContinue, nil
 }
 
-func (h *testHook) ProvisionOutput(i *InstanceInfo, n string, m string) {
-	h.Calls = append(h.Calls, &testHookCall{"ProvisionOutput", i.ResourceAddress().String()})
+func (h *testHook) ProvisionOutput(addr addrs.AbsResourceInstance, typeName string, line string) {
+	h.Calls = append(h.Calls, &testHookCall{"ProvisionOutput", addr.String()})
 }
 
-func (h *testHook) PreRefresh(i *InstanceInfo, s *InstanceState) (HookAction, error) {
-	h.Calls = append(h.Calls, &testHookCall{"PreRefresh", i.ResourceAddress().String()})
+func (h *testHook) PreRefresh(addr addrs.AbsResourceInstance, gen states.Generation, priorState cty.Value) (HookAction, error) {
+	h.Calls = append(h.Calls, &testHookCall{"PreRefresh", addr.String()})
 	return HookActionContinue, nil
 }
 
-func (h *testHook) PostRefresh(i *InstanceInfo, s *InstanceState) (HookAction, error) {
-	h.Calls = append(h.Calls, &testHookCall{"PostRefresh", i.ResourceAddress().String()})
+func (h *testHook) PostRefresh(addr addrs.AbsResourceInstance, gen states.Generation, priorState cty.Value, newState cty.Value) (HookAction, error) {
+	h.Calls = append(h.Calls, &testHookCall{"PostRefresh", addr.String()})
 	return HookActionContinue, nil
 }
 
-func (h *testHook) PreImportState(i *InstanceInfo, n string) (HookAction, error) {
-	h.Calls = append(h.Calls, &testHookCall{"PreImportState", i.ResourceAddress().String()})
+func (h *testHook) PreImportState(addr addrs.AbsResourceInstance, importID string) (HookAction, error) {
+	h.Calls = append(h.Calls, &testHookCall{"PreImportState", addr.String()})
 	return HookActionContinue, nil
 }
 
-func (h *testHook) PostImportState(i *InstanceInfo, ss []*InstanceState) (HookAction, error) {
-	h.Calls = append(h.Calls, &testHookCall{"PostImportState", i.ResourceAddress().String()})
+func (h *testHook) PostImportState(addr addrs.AbsResourceInstance, imported []*states.ImportedObject) (HookAction, error) {
+	h.Calls = append(h.Calls, &testHookCall{"PostImportState", addr.String()})
 	return HookActionContinue, nil
 }
 
-func (h *testHook) PostStateUpdate(s *State) (HookAction, error) {
+func (h *testHook) PostStateUpdate(new *states.State) (HookAction, error) {
 	h.Calls = append(h.Calls, &testHookCall{"PostStateUpdate", ""})
 	return HookActionContinue, nil
 }
-
-var _ Hook = new(testHook)

@@ -1,19 +1,17 @@
 package terraform
 
 import (
-	"sync"
 	"testing"
 
-	"github.com/hashicorp/terraform/addrs"
 	"github.com/zclconf/go-cty/cty"
+
+	"github.com/hashicorp/terraform/addrs"
 )
 
 func TestNodeRefreshableDataResourceDynamicExpand_scaleOut(t *testing.T) {
-	var stateLock sync.RWMutex
-
 	m := testModule(t, "refresh-data-scale-inout")
 
-	state := &State{
+	state := mustShimLegacyState(&State{
 		Modules: []*ModuleState{
 			&ModuleState{
 				Path: rootModulePath,
@@ -37,7 +35,7 @@ func TestNodeRefreshableDataResourceDynamicExpand_scaleOut(t *testing.T) {
 				},
 			},
 		},
-	}
+	})
 
 	n := &NodeRefreshableDataResource{
 		NodeAbstractResource: &NodeAbstractResource{
@@ -52,8 +50,7 @@ func TestNodeRefreshableDataResourceDynamicExpand_scaleOut(t *testing.T) {
 
 	g, err := n.DynamicExpand(&MockEvalContext{
 		PathPath:   addrs.RootModuleInstance,
-		StateState: state,
-		StateLock:  &stateLock,
+		StateState: state.SyncWrapper(),
 
 		// DynamicExpand will call EvaluateExpr to evaluate the "count"
 		// expression, which is just a literal number 3 in the fixture config
@@ -79,11 +76,9 @@ root - terraform.graphNodeRoot
 }
 
 func TestNodeRefreshableDataResourceDynamicExpand_scaleIn(t *testing.T) {
-	var stateLock sync.RWMutex
-
 	m := testModule(t, "refresh-data-scale-inout")
 
-	state := &State{
+	state := mustShimLegacyState(&State{
 		Modules: []*ModuleState{
 			&ModuleState{
 				Path: rootModulePath,
@@ -123,7 +118,7 @@ func TestNodeRefreshableDataResourceDynamicExpand_scaleIn(t *testing.T) {
 				},
 			},
 		},
-	}
+	})
 
 	n := &NodeRefreshableDataResource{
 		NodeAbstractResource: &NodeAbstractResource{
@@ -138,8 +133,7 @@ func TestNodeRefreshableDataResourceDynamicExpand_scaleIn(t *testing.T) {
 
 	g, err := n.DynamicExpand(&MockEvalContext{
 		PathPath:   addrs.RootModuleInstance,
-		StateState: state,
-		StateLock:  &stateLock,
+		StateState: state.SyncWrapper(),
 
 		// DynamicExpand will call EvaluateExpr to evaluate the "count"
 		// expression, which is just a literal number 3 in the fixture config

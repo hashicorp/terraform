@@ -1,7 +1,7 @@
 package state
 
 import (
-	"github.com/hashicorp/terraform/terraform"
+	"github.com/hashicorp/terraform/states"
 )
 
 // LockDisabled implements State and Locker but disables state locking.
@@ -13,11 +13,11 @@ type LockDisabled struct {
 	Inner State
 }
 
-func (s *LockDisabled) State() *terraform.State {
+func (s *LockDisabled) State() *states.State {
 	return s.Inner.State()
 }
 
-func (s *LockDisabled) WriteState(v *terraform.State) error {
+func (s *LockDisabled) WriteState(v *states.State) error {
 	return s.Inner.WriteState(v)
 }
 

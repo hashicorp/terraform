@@ -51,10 +51,6 @@ func (g *Graph) walk(walker GraphWalker) tfdiags.Diagnostics {
 		debugName = g.debugName + "-" + debugName
 	}
 
-	debugBuf := dbug.NewFileWriter(debugName)
-	g.SetDebugWriter(debugBuf)
-	defer debugBuf.Close()
-
 	// Walk the graph.
 	var walkFn dag.WalkFunc
 	walkFn = func(v dag.Vertex) (diags tfdiags.Diagnostics) {

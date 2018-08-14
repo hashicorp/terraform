@@ -3,6 +3,7 @@ package terraform
 import (
 	"log"
 
+	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/tfdiags"
 
 	"github.com/hashicorp/terraform/addrs"
@@ -26,8 +27,8 @@ type RefreshGraphBuilder struct {
 	// Config is the configuration tree.
 	Config *configs.Config
 
-	// State is the current state
-	State *State
+	// State is the prior state
+	State *states.State
 
 	// Components is a factory for the plug-in components (providers and
 	// provisioners) available for use.

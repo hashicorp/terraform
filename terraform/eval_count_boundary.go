@@ -1,6 +1,7 @@
 package terraform
 
 import (
+	"fmt"
 	"log"
 )
 
@@ -13,23 +14,26 @@ type EvalCountFixZeroOneBoundaryGlobal struct{}
 
 // TODO: test
 func (n *EvalCountFixZeroOneBoundaryGlobal) Eval(ctx EvalContext) (interface{}, error) {
-	// Get the state and lock it since we'll potentially modify it
-	state, lock := ctx.State()
-	lock.Lock()
-	defer lock.Unlock()
+	return nil, fmt.Errorf("EvalCountFixZeroOneBoundaryGlobal not yet updated for new state types")
+	/*
+		// Get the state and lock it since we'll potentially modify it
+		state, lock := ctx.State()
+		lock.Lock()
+		defer lock.Unlock()
 
-	// Prune the state since we require a clean state to work
-	state.prune()
+		// Prune the state since we require a clean state to work
+		state.prune()
 
-	// Go through each modules since the boundaries are restricted to a
-	// module scope.
-	for _, m := range state.Modules {
-		if err := n.fixModule(m); err != nil {
-			return nil, err
+		// Go through each modules since the boundaries are restricted to a
+		// module scope.
+		for _, m := range state.Modules {
+			if err := n.fixModule(m); err != nil {
+				return nil, err
+			}
 		}
-	}
 
-	return nil, nil
+		return nil, nil
+	*/
 }
 
 func (n *EvalCountFixZeroOneBoundaryGlobal) fixModule(m *ModuleState) error {

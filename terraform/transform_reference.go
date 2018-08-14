@@ -400,6 +400,10 @@ func NewReferenceMap(vs []dag.Vertex) *ReferenceMap {
 
 		// Go through and cache them
 		for _, ref := range rn.References() {
+			if ref.Subject == nil {
+				// Should never happen
+				panic(fmt.Sprintf("%T.References returned reference with nil subject", rn))
+			}
 			key := m.referenceMapKey(v, ref.Subject)
 			edges[key] = append(edges[key], v)
 		}

@@ -33,14 +33,6 @@ func (b *BasicGraphBuilder) Build(path addrs.ModuleInstance) (*Graph, tfdiags.Di
 	var diags tfdiags.Diagnostics
 	g := &Graph{Path: path}
 
-	debugName := "graph.json"
-	if b.Name != "" {
-		debugName = b.Name + "-" + debugName
-	}
-	debugBuf := dbug.NewFileWriter(debugName)
-	g.SetDebugWriter(debugBuf)
-	defer debugBuf.Close()
-
 	var lastStepStr string
 	for _, step := range b.Steps {
 		if step == nil {

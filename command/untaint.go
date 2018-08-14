@@ -3,8 +3,11 @@ package command
 import (
 	"context"
 	"fmt"
-	"log"
 	"strings"
+
+	"github.com/hashicorp/terraform/states"
+
+	"github.com/hashicorp/terraform/tfdiags"
 
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/command/clistate"
@@ -37,6 +40,8 @@ func (c *UntaintCommand) Run(args []string) int {
 		return 1
 	}
 
+	var diags tfdiags.Diagnostics
+
 	// Require the one argument for the resource to untaint
 	args = cmdFlags.Args()
 	if len(args) != 1 {
@@ -45,23 +50,29 @@ func (c *UntaintCommand) Run(args []string) int {
 		return 1
 	}
 
-	name := args[0]
-	if module == "" {
-		module = "root"
-	} else {
-		module = "root." + module
+	if module != "" {
+		c.Ui.Error("The -module option is no longer used. Instead, include the module path in the main resource address, like \"module.foo.module.bar.null_resource.baz\".")
+		return 1
+	}
+
+	addr, addrDiags := addrs.ParseAbsResourceInstanceStr(args[0])
+	diags = diags.Append(addrDiags)
+	if addrDiags.HasErrors() {
+		c.showDiagnostics(diags)
+		return 1
 	}
 
 	// Load the backend
 	b, backendDiags := c.Backend(nil)
+	diags = diags.Append(backendDiags)
 	if backendDiags.HasErrors() {
-		c.showDiagnostics(backendDiags)
+		c.showDiagnostics(diags)
 		return 1
 	}
 
 	// Get the state
-	env := c.Workspace()
-	st, err := b.State(env)
+	workspace := c.Workspace()
+	st, err := b.StateMgr(workspace)
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf("Failed to load state: %s", err))
 		return 1
@@ -85,63 +96,69 @@ func (c *UntaintCommand) Run(args []string) int {
 	s := st.State()
 	if s.Empty() {
 		if allowMissing {
-			return c.allowMissingExit(name, module)
+			return c.allowMissingExit(addr)
 		}
 
-		c.Ui.Error(fmt.Sprintf(
-			"The state is empty. The most common reason for this is that\n" +
-				"an invalid state file path was given or Terraform has never\n " +
-				"been run for this infrastructure. Infrastructure must exist\n" +
-				"for it to be untainted."))
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"No such resource instance",
+			"The state currently contains no resource instances whatsoever. This may occur if the configuration has never been applied or if it has recently been destroyed.",
+		))
+		c.showDiagnostics(diags)
 		return 1
 	}
 
-	// Get the ModuleState where we will untaint. This is provided in a legacy
-	// string form that doesn't support module instance keys, so we'll shim
-	// it here.
-	modPath := addrs.Module(strings.Split(module, ".")).UnkeyedInstanceShim()
-	mod := s.ModuleByPath(modPath)
-	if mod == nil {
+	state := s.SyncWrapper()
+
+	// Get the resource and instance we're going to taint
+	rs := state.Resource(addr.ContainingResource())
+	is := state.ResourceInstance(addr)
+	if is == nil {
 		if allowMissing {
-			return c.allowMissingExit(name, module)
+			return c.allowMissingExit(addr)
 		}
 
-		c.Ui.Error(fmt.Sprintf(
-			"The module %s could not be found. There is nothing to untaint.",
-			module))
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"No such resource instance",
+			fmt.Sprintf("There is no resource instance in the state with the address %s. If the resource configuration has just been added, you must run \"terraform apply\" once to create the corresponding instance(s) before they can be tainted.", addr),
+		))
+		c.showDiagnostics(diags)
 		return 1
 	}
 
-	// If there are no resources in this module, it is an error
-	if len(mod.Resources) == 0 {
-		if allowMissing {
-			return c.allowMissingExit(name, module)
+	obj := is.Current
+	if obj == nil {
+		if len(is.Deposed) != 0 {
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"No such resource instance",
+				fmt.Sprintf("Resource instance %s is currently part-way through a create_before_destroy replacement action. Run \"terraform apply\" to complete its replacement before tainting it.", addr),
+			))
+		} else {
+			// Don't know why we're here, but we'll produce a generic error message anyway.
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"No such resource instance",
+				fmt.Sprintf("Resource instance %s does not currently have a remote object associated with it, so it cannot be tainted.", addr),
+			))
 		}
-
-		c.Ui.Error(fmt.Sprintf(
-			"The module %s has no resources. There is nothing to untaint.",
-			module))
+		c.showDiagnostics(diags)
 		return 1
 	}
 
-	// Get the resource we're looking for
-	rs, ok := mod.Resources[name]
-	if !ok {
-		if allowMissing {
-			return c.allowMissingExit(name, module)
-		}
-
-		c.Ui.Error(fmt.Sprintf(
-			"The resource %s couldn't be found in the module %s.",
-			name,
-			module))
+	if obj.Status != states.ObjectTainted {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Resource instance is not tainted",
+			fmt.Sprintf("Resource instance %s is not currently tainted, and so it cannot be untainted.", addr),
+		))
+		c.showDiagnostics(diags)
 		return 1
 	}
+	obj.Status = states.ObjectReady
+	state.SetResourceInstanceCurrent(addr, obj, rs.ProviderConfig)
 
-	// Untaint the resource
-	rs.Untaint()
-
-	log.Printf("[INFO] Writing state output to: %s", c.Meta.StateOutPath())
 	if err := st.WriteState(s); err != nil {
 		c.Ui.Error(fmt.Sprintf("Error writing state file: %s", err))
 		return 1
@@ -151,9 +168,7 @@ func (c *UntaintCommand) Run(args []string) int {
 		return 1
 	}
 
-	c.Ui.Output(fmt.Sprintf(
-		"The resource %s in the module %s has been successfully untainted!",
-		name, module))
+	c.Ui.Output(fmt.Sprintf("Resource instance %s has been successfully untainted.", addr))
 	return 0
 }
 
@@ -203,10 +218,11 @@ func (c *UntaintCommand) Synopsis() string {
 	return "Manually unmark a resource as tainted"
 }
 
-func (c *UntaintCommand) allowMissingExit(name, module string) int {
-	c.Ui.Output(fmt.Sprintf(
-		"The resource %s in the module %s was not found, but\n"+
-			"-allow-missing is set, so we're exiting successfully.",
-		name, module))
+func (c *UntaintCommand) allowMissingExit(name addrs.AbsResourceInstance) int {
+	c.showDiagnostics(tfdiags.Sourceless(
+		tfdiags.Warning,
+		"No such resource instance",
+		"Resource instance %s was not found, but this is not an error because -allow-missing was set.",
+	))
 	return 0
 }

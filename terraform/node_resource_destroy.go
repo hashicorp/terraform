@@ -1,13 +1,24 @@
 package terraform
 
 import (
+	"fmt"
+	"log"
+
+	"github.com/hashicorp/terraform/plans"
+
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs"
+	"github.com/hashicorp/terraform/states"
 )
 
 // NodeDestroyResource represents a resource that is to be destroyed.
 type NodeDestroyResourceInstance struct {
 	*NodeAbstractResourceInstance
+
+	// If DeposedKey is set to anything other than states.NotDeposed then
+	// this node destroys a deposed object of the associated instance
+	// rather than its current object.
+	DeposedKey states.DeposedKey
 
 	CreateBeforeDestroyOverride *bool
 }
@@ -105,12 +116,14 @@ func (n *NodeDestroyResourceInstance) References() []*addrs.Reference {
 
 // GraphNodeDynamicExpandable
 func (n *NodeDestroyResourceInstance) DynamicExpand(ctx EvalContext) (*Graph, error) {
-	// stateId is the legacy-style ID to put into the state
-	stateId := NewLegacyResourceInstanceAddress(n.ResourceInstanceAddr()).stateId()
+	if n.DeposedKey != states.NotDeposed {
+		return nil, fmt.Errorf("NodeDestroyResourceInstance not yet updated to deal with explicit DeposedKey")
+	}
 
-	state, lock := ctx.State()
-	lock.RLock()
-	defer lock.RUnlock()
+	// Our graph transformers require direct access to read the entire state
+	// structure, so we'll lock the whole state for the duration of this work.
+	state := ctx.State().Lock()
+	defer ctx.State().Unlock()
 
 	// Start creating the steps
 	steps := make([]GraphTransformer, 0, 5)
@@ -118,7 +131,7 @@ func (n *NodeDestroyResourceInstance) DynamicExpand(ctx EvalContext) (*Graph, er
 	// We want deposed resources in the state to be destroyed
 	steps = append(steps, &DeposedTransformer{
 		State:            state,
-		View:             stateId,
+		InstanceAddr:     n.ResourceInstanceAddr(),
 		ResolvedProvider: n.ResolvedProvider,
 	})
 
@@ -143,20 +156,20 @@ func (n *NodeDestroyResourceInstance) DynamicExpand(ctx EvalContext) (*Graph, er
 func (n *NodeDestroyResourceInstance) EvalTree() EvalNode {
 	addr := n.ResourceInstanceAddr()
 
-	// stateId is the legacy-style ID to put into the state
-	stateId := NewLegacyResourceInstanceAddress(n.ResourceInstanceAddr()).stateId()
-
 	// Get our state
 	rs := n.ResourceState
-	if rs == nil {
-		rs = &ResourceState{
-			Provider: n.ResolvedProvider.String(),
-		}
+	var is *states.ResourceInstance
+	if rs != nil {
+		is = rs.Instance(n.InstanceKey)
+	}
+	if is == nil {
+		log.Printf("[WARN] NodeDestroyResourceInstance for %s with no state", addr)
 	}
 
-	var diffApply *InstanceDiff
+	var changeApply *plans.ResourceInstanceChange
 	var provider ResourceProvider
-	var state *InstanceState
+	var providerSchema *ProviderSchema
+	var state *states.ResourceInstanceObject
 	var err error
 	return &EvalOpFilter{
 		Ops: []walkOperation{walkApply, walkDestroy},
@@ -164,22 +177,17 @@ func (n *NodeDestroyResourceInstance) EvalTree() EvalNode {
 			Nodes: []EvalNode{
 				// Get the saved diff for apply
 				&EvalReadDiff{
-					Name: stateId,
-					Diff: &diffApply,
-				},
-
-				// Filter the diff so we only get the destroy
-				&EvalFilterDiff{
-					Diff:    &diffApply,
-					Output:  &diffApply,
-					Destroy: true,
+					Addr:   addr.Resource,
+					Change: &changeApply,
 				},
 
 				// If we're not destroying, then compare diffs
 				&EvalIf{
 					If: func(ctx EvalContext) (bool, error) {
-						if diffApply != nil && diffApply.GetDestroy() {
-							return true, nil
+						if changeApply != nil {
+							if changeApply.Action == plans.Delete || changeApply.Action == plans.Replace {
+								return true, nil
+							}
 						}
 
 						return true, EvalEarlyExitError{}
@@ -190,10 +198,13 @@ func (n *NodeDestroyResourceInstance) EvalTree() EvalNode {
 				&EvalGetProvider{
 					Addr:   n.ResolvedProvider,
 					Output: &provider,
+					Schema: &providerSchema,
 				},
 				&EvalReadState{
-					Name:   stateId,
-					Output: &state,
+					Addr:           addr.Resource,
+					Output:         &state,
+					Provider:       &provider,
+					ProviderSchema: &providerSchema,
 				},
 				&EvalRequireState{
 					State: &state,
@@ -201,15 +212,15 @@ func (n *NodeDestroyResourceInstance) EvalTree() EvalNode {
 
 				// Call pre-apply hook
 				&EvalApplyPre{
-					Addr:  addr.Resource,
-					State: &state,
-					Diff:  &diffApply,
+					Addr:   addr.Resource,
+					State:  &state,
+					Change: &changeApply,
 				},
 
 				// Run destroy provisioners if not tainted
 				&EvalIf{
 					If: func(ctx EvalContext) (bool, error) {
-						if state != nil && state.Tainted {
+						if state != nil && state.Status == states.ObjectTainted {
 							return false, nil
 						}
 
@@ -247,25 +258,24 @@ func (n *NodeDestroyResourceInstance) EvalTree() EvalNode {
 
 					Then: &EvalReadDataApply{
 						Addr:     addr.Resource,
-						Diff:     &diffApply,
+						Change:   &changeApply,
 						Provider: &provider,
 						Output:   &state,
 					},
 					Else: &EvalApply{
 						Addr:     addr.Resource,
 						State:    &state,
-						Diff:     &diffApply,
+						Change:   &changeApply,
 						Provider: &provider,
 						Output:   &state,
 						Error:    &err,
 					},
 				},
 				&EvalWriteState{
-					Name:         stateId,
-					ResourceType: addr.Resource.Resource.Type,
-					Provider:     n.ResolvedProvider,
-					Dependencies: rs.Dependencies,
-					State:        &state,
+					Addr:           addr.Resource,
+					ProviderAddr:   n.ResolvedProvider,
+					ProviderSchema: &providerSchema,
+					State:          &state,
 				},
 				&EvalApplyPost{
 					Addr:  addr.Resource,

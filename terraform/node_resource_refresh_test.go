@@ -2,22 +2,18 @@ package terraform
 
 import (
 	"reflect"
-	"sync"
 	"testing"
 
+	"github.com/davecgh/go-spew/spew"
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/addrs"
-
-	"github.com/davecgh/go-spew/spew"
 )
 
 func TestNodeRefreshableManagedResourceDynamicExpand_scaleOut(t *testing.T) {
-	var stateLock sync.RWMutex
-
 	m := testModule(t, "refresh-resource-scale-inout")
 
-	state := &State{
+	state := mustShimLegacyState(&State{
 		Modules: []*ModuleState{
 			&ModuleState{
 				Path: rootModulePath,
@@ -41,7 +37,7 @@ func TestNodeRefreshableManagedResourceDynamicExpand_scaleOut(t *testing.T) {
 				},
 			},
 		},
-	}
+	}).SyncWrapper()
 
 	n := &NodeRefreshableManagedResource{
 		NodeAbstractResource: &NodeAbstractResource{
@@ -55,7 +51,6 @@ func TestNodeRefreshableManagedResourceDynamicExpand_scaleOut(t *testing.T) {
 	g, err := n.DynamicExpand(&MockEvalContext{
 		PathPath:   addrs.RootModuleInstance,
 		StateState: state,
-		StateLock:  &stateLock,
 
 		// DynamicExpand will call EvaluateExpr to evaluate the "count"
 		// expression, which is just a literal number 3 in the fixture config
@@ -81,11 +76,9 @@ root - terraform.graphNodeRoot
 }
 
 func TestNodeRefreshableManagedResourceDynamicExpand_scaleIn(t *testing.T) {
-	var stateLock sync.RWMutex
-
 	m := testModule(t, "refresh-resource-scale-inout")
 
-	state := &State{
+	state := mustShimLegacyState(&State{
 		Modules: []*ModuleState{
 			&ModuleState{
 				Path: rootModulePath,
@@ -125,7 +118,7 @@ func TestNodeRefreshableManagedResourceDynamicExpand_scaleIn(t *testing.T) {
 				},
 			},
 		},
-	}
+	}).SyncWrapper()
 
 	n := &NodeRefreshableManagedResource{
 		NodeAbstractResource: &NodeAbstractResource{
@@ -139,7 +132,6 @@ func TestNodeRefreshableManagedResourceDynamicExpand_scaleIn(t *testing.T) {
 	g, err := n.DynamicExpand(&MockEvalContext{
 		PathPath:   addrs.RootModuleInstance,
 		StateState: state,
-		StateLock:  &stateLock,
 
 		// DynamicExpand will call EvaluateExpr to evaluate the "count"
 		// expression, which is just a literal number 3 in the fixture config

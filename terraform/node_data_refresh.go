@@ -2,6 +2,8 @@ package terraform
 
 import (
 	"github.com/hashicorp/terraform/dag"
+	"github.com/hashicorp/terraform/plans"
+	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/tfdiags"
 	"github.com/zclconf/go-cty/cty"
 )
@@ -34,10 +36,10 @@ func (n *NodeRefreshableDataResource) DynamicExpand(ctx EvalContext) (*Graph, er
 	// if we're transitioning whether "count" is set at all.
 	fixResourceCountSetTransition(ctx, n.ResourceAddr().Resource, count != -1)
 
-	// Grab the state which we read
-	state, lock := ctx.State()
-	lock.RLock()
-	defer lock.RUnlock()
+	// Our graph transformers require access to the full state, so we'll
+	// temporarily lock it while we work on this.
+	state := ctx.State().Lock()
+	defer ctx.State().Unlock()
 
 	// The concrete resource factory we'll use
 	concreteResource := func(a *NodeAbstractResourceInstance) dag.Vertex {
@@ -114,54 +116,31 @@ type NodeRefreshableDataResourceInstance struct {
 func (n *NodeRefreshableDataResourceInstance) EvalTree() EvalNode {
 	addr := n.ResourceInstanceAddr()
 
-	// State still uses legacy-style internal ids, so we need to shim to get
-	// a suitable key to use.
-	stateId := NewLegacyResourceInstanceAddress(addr).stateId()
-
-	// Get the state if we have it. If not, we'll build it.
-	rs := n.ResourceState
-	if rs == nil {
-		rs = &ResourceState{
-			Type:     addr.Resource.Resource.Type,
-			Provider: n.ResolvedProvider.String(),
-		}
-	}
-
-	// If we have a configuration then we'll build a fresh state.
-	if n.Config != nil {
-		rs = &ResourceState{
-			Type:         addr.Resource.Resource.Type,
-			Provider:     n.ResolvedProvider.String(),
-			Dependencies: n.StateReferences(),
-		}
-	}
-
 	// These variables are the state for the eval sequence below, and are
 	// updated through pointers.
 	var provider ResourceProvider
 	var providerSchema *ProviderSchema
-	var diff *InstanceDiff
-	var state *InstanceState
+	var change *plans.ResourceInstanceChange
+	var state *states.ResourceInstanceObject
 	var configVal cty.Value
 
 	return &EvalSequence{
 		Nodes: []EvalNode{
+			&EvalGetProvider{
+				Addr:   n.ResolvedProvider,
+				Output: &provider,
+				Schema: &providerSchema,
+			},
+
 			// Always destroy the existing state first, since we must
 			// make sure that values from a previous read will not
 			// get interpolated if we end up needing to defer our
 			// loading until apply time.
 			&EvalWriteState{
-				Name:         stateId,
-				ResourceType: rs.Type,
-				Provider:     n.ResolvedProvider,
-				Dependencies: rs.Dependencies,
-				State:        &state, // state is nil here
-			},
-
-			&EvalGetProvider{
-				Addr:   n.ResolvedProvider,
-				Output: &provider,
-				Schema: &providerSchema,
+				Addr:           addr.Resource,
+				ProviderAddr:   n.ResolvedProvider,
+				State:          &state, // a pointer to nil, here
+				ProviderSchema: &providerSchema,
 			},
 
 			&EvalReadDataDiff{
@@ -169,7 +148,7 @@ func (n *NodeRefreshableDataResourceInstance) EvalTree() EvalNode {
 				Config:         n.Config,
 				Provider:       &provider,
 				ProviderSchema: &providerSchema,
-				Output:         &diff,
+				Output:         &change,
 				OutputValue:    &configVal,
 				OutputState:    &state,
 			},
@@ -198,17 +177,16 @@ func (n *NodeRefreshableDataResourceInstance) EvalTree() EvalNode {
 
 			&EvalReadDataApply{
 				Addr:     addr.Resource,
-				Diff:     &diff,
+				Change:   &change,
 				Provider: &provider,
 				Output:   &state,
 			},
 
 			&EvalWriteState{
-				Name:         stateId,
-				ResourceType: rs.Type,
-				Provider:     n.ResolvedProvider,
-				Dependencies: rs.Dependencies,
-				State:        &state,
+				Addr:           addr.Resource,
+				ProviderAddr:   n.ResolvedProvider,
+				State:          &state,
+				ProviderSchema: &providerSchema,
 			},
 
 			&EvalUpdateStateHook{},

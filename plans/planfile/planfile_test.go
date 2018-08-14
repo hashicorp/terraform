@@ -7,12 +7,10 @@ import (
 	"testing"
 
 	"github.com/davecgh/go-spew/spew"
-
-	"github.com/hashicorp/terraform/plans"
-
 	version "github.com/hashicorp/go-version"
 
 	"github.com/hashicorp/terraform/configs/configload"
+	"github.com/hashicorp/terraform/plans"
 	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/states/statefile"
 )
@@ -45,8 +43,8 @@ func TestRoundtrip(t *testing.T) {
 	// file is tested more fully in tfplan_test.go .
 	planIn := &plans.Plan{
 		Changes: &plans.Changes{
-			Resources:   []*plans.ResourceInstanceChange{},
-			RootOutputs: map[string]*plans.OutputChange{},
+			Resources:   []*plans.ResourceInstanceChangeSrc{},
+			RootOutputs: map[string]*plans.OutputChangeSrc{},
 		},
 		ProviderSHA256s: map[string][]byte{},
 		VariableValues: map[string]plans.DynamicValue{

@@ -1,8 +1,6 @@
 package states
 
 import (
-	"fmt"
-
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/addrs"
@@ -125,14 +123,41 @@ func (ms *Module) SetResourceInstanceCurrent(addr addrs.ResourceInstance, obj *R
 // is overwritten. Set obj to nil to remove the deposed object altogether. If
 // the instance is left with no objects after this operation then it will
 // be removed from its containing resource altogether.
-func (ms *Module) SetResourceInstanceDeposed(addr addrs.ResourceInstance, key DeposedKey, obj *ResourceInstanceObjectSrc) {
+func (ms *Module) SetResourceInstanceDeposed(addr addrs.ResourceInstance, key DeposedKey, obj *ResourceInstanceObjectSrc, provider addrs.AbsProviderConfig) {
+	ms.SetResourceMeta(addr.Resource, eachModeForInstanceKey(addr.Key), provider)
+
+	rs := ms.Resource(addr.Resource)
+	is := rs.EnsureInstance(addr.Key)
+	if obj != nil {
+		is.Deposed[key] = obj
+	} else {
+		delete(is.Deposed, key)
+	}
+
+	if !is.HasObjects() {
+		// If we have no objects at all then we'll clean up.
+		delete(rs.Instances, addr.Key)
+	}
+	if rs.EachMode == NoEach && len(rs.Instances) == 0 {
+		// Also clean up if we only expect to have one instance anyway
+		// and there are none. We leave the resource behind if an each mode
+		// is active because an empty list or map of instances is a valid state.
+		delete(ms.Resources, addr.Resource.String())
+	}
+}
+
+// ForgetResourceInstanceDeposed removes the record of the deposed object with
+// the given address and key, if present. If not present, this is a no-op.
+func (ms *Module) ForgetResourceInstanceDeposed(addr addrs.ResourceInstance, key DeposedKey) {
 	rs := ms.Resource(addr.Resource)
 	if rs == nil {
-		panic(fmt.Sprintf("attempt to register deposed instance object for non-existent resource %s", addr.Resource.Absolute(ms.Addr)))
+		return
 	}
-	is := rs.EnsureInstance(addr.Key)
-
-	is.Current = obj
+	is := rs.Instance(addr.Key)
+	if is == nil {
+		return
+	}
+	delete(is.Deposed, key)
 
 	if !is.HasObjects() {
 		// If we have no objects at all then we'll clean up.

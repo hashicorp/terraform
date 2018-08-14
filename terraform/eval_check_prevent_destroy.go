@@ -3,6 +3,8 @@ package terraform
 import (
 	"fmt"
 
+	"github.com/hashicorp/terraform/plans"
+
 	"github.com/hashicorp/hcl2/hcl"
 
 	"github.com/hashicorp/terraform/addrs"
@@ -16,18 +18,18 @@ import (
 type EvalCheckPreventDestroy struct {
 	Addr   addrs.ResourceInstance
 	Config *configs.Resource
-	Diff   **InstanceDiff
+	Change **plans.ResourceInstanceChange
 }
 
 func (n *EvalCheckPreventDestroy) Eval(ctx EvalContext) (interface{}, error) {
-	if n.Diff == nil || *n.Diff == nil || n.Config == nil || n.Config.Managed == nil {
+	if n.Change == nil || *n.Change == nil || n.Config == nil || n.Config.Managed == nil {
 		return nil, nil
 	}
 
-	diff := *n.Diff
+	change := *n.Change
 	preventDestroy := n.Config.Managed.PreventDestroy
 
-	if diff.GetDestroy() && preventDestroy {
+	if (change.Action == plans.Delete || change.Action == plans.Replace) && preventDestroy {
 		var diags tfdiags.Diagnostics
 		diags = diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagError,

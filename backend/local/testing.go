@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	"github.com/hashicorp/terraform/backend"
-	"github.com/hashicorp/terraform/state"
+	"github.com/hashicorp/terraform/states/statemgr"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/hashicorp/terraform/tfdiags"
 )
@@ -97,12 +97,12 @@ type TestLocalSingleState struct {
 	*Local
 }
 
-func (b *TestLocalSingleState) State(name string) (state.State, error) {
+func (b *TestLocalSingleState) State(name string) (statemgr.Full, error) {
 	if name != backend.DefaultStateName {
 		return nil, backend.ErrNamedStatesNotSupported
 	}
 
-	return b.Local.State(name)
+	return b.Local.StateMgr(name)
 }
 
 func (b *TestLocalSingleState) States() ([]string, error) {
