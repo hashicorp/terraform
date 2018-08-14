@@ -5,12 +5,32 @@ import (
 	"errors"
 	"sync"
 
+	plugin "github.com/hashicorp/go-plugin"
 	"github.com/hashicorp/terraform/plugin/proto"
 	"github.com/hashicorp/terraform/providers"
 	"github.com/hashicorp/terraform/version"
 	"github.com/zclconf/go-cty/cty/msgpack"
 	"google.golang.org/grpc"
 )
+
+// GRPCProviderPlugin implements plugin.GRPCPlugin for the go-plugin package.
+type GRPCProviderPlugin struct {
+	plugin.Plugin
+	GRPCProvider func() proto.ProviderServer
+}
+
+func (p *GRPCProviderPlugin) GRPCClient(ctx context.Context, broker *plugin.GRPCBroker, c *grpc.ClientConn) (interface{}, error) {
+	return &GRPCProvider{
+		conn:   c,
+		client: proto.NewProviderClient(c),
+		ctx:    ctx,
+	}, nil
+}
+
+func (p *GRPCProviderPlugin) GRPCServer(broker *plugin.GRPCBroker, s *grpc.Server) error {
+	proto.RegisterProviderServer(s, p.GRPCProvider())
+	return nil
+}
 
 // GRPCProvider handles the client, or core side of the plugin rpc connection.
 // The GRPCProvider methods are mostly a translation layer between the
