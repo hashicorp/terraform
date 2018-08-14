@@ -17,7 +17,7 @@ and are tested by HashiCorp.
 
 ---
 
-[Atlas]((/docs/providers/terraform-enterprise/index.html))
+[Atlas](/docs/providers/terraform-enterprise/index.html)
 
 [Chef](/docs/providers/chef/index.html)
 
