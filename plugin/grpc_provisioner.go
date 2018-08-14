@@ -6,6 +6,7 @@ import (
 	"io"
 	"sync"
 
+	plugin "github.com/hashicorp/go-plugin"
 	"github.com/hashicorp/terraform/configs/configschema"
 	"github.com/hashicorp/terraform/plugin/proto"
 	"github.com/hashicorp/terraform/provisioners"
@@ -13,6 +14,25 @@ import (
 	"github.com/zclconf/go-cty/cty/msgpack"
 	"google.golang.org/grpc"
 )
+
+// GRPCProvisionerPlugin is the plugin.GRPCPlugin implementation.
+type GRPCProvisionerPlugin struct {
+	plugin.Plugin
+	GRPCProvisioner func() proto.ProvisionerServer
+}
+
+func (p *GRPCProvisionerPlugin) GRPCClient(ctx context.Context, broker *plugin.GRPCBroker, c *grpc.ClientConn) (interface{}, error) {
+	return &GRPCProvisioner{
+		conn:   c,
+		client: proto.NewProvisionerClient(c),
+		ctx:    ctx,
+	}, nil
+}
+
+func (p *GRPCProvisionerPlugin) GRPCServer(broker *plugin.GRPCBroker, s *grpc.Server) error {
+	proto.RegisterProvisionerServer(s, p.GRPCProvisioner())
+	return nil
+}
 
 // provisioners.Interface grpc implementation
 type GRPCProvisioner struct {
