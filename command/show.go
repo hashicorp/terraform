@@ -6,8 +6,12 @@ import (
 	"os"
 	"strings"
 
+	"github.com/hashicorp/terraform/plans/planfile"
+	"github.com/hashicorp/terraform/states/statefile"
+
 	"github.com/hashicorp/terraform/command/format"
-	"github.com/hashicorp/terraform/terraform"
+	"github.com/hashicorp/terraform/plans"
+	"github.com/hashicorp/terraform/states"
 )
 
 // ShowCommand is a Command implementation that reads and outputs the
@@ -42,31 +46,30 @@ func (c *ShowCommand) Run(args []string) int {
 
 	var planErr, stateErr error
 	var path string
-	var plan *terraform.Plan
-	var state *terraform.State
+	var plan *plans.Plan
+	var state *states.State
 	if len(args) > 0 {
 		path = args[0]
-		f, err := os.Open(path)
+		pr, err := planfile.Open(path)
 		if err != nil {
-			c.Ui.Error(fmt.Sprintf("Error loading file: %s", err))
-			return 1
-		}
-		defer f.Close()
-
-		plan, err = terraform.ReadPlan(f)
-		if err != nil {
-			if _, err := f.Seek(0, 0); err != nil {
-				c.Ui.Error(fmt.Sprintf("Error reading file: %s", err))
+			f, err := os.Open(path)
+			if err != nil {
+				c.Ui.Error(fmt.Sprintf("Error loading file: %s", err))
 				return 1
 			}
+			defer f.Close()
 
-			plan = nil
-			planErr = err
-		}
-		if plan == nil {
-			state, err = terraform.ReadState(f)
+			var stateFile *statefile.File
+			stateFile, err = statefile.Read(f)
 			if err != nil {
 				stateErr = err
+			} else {
+				state = stateFile.State
+			}
+		} else {
+			plan, err = pr.ReadPlan()
+			if err != nil {
+				planErr = err
 			}
 		}
 	} else {
@@ -80,7 +83,7 @@ func (c *ShowCommand) Run(args []string) int {
 		env := c.Workspace()
 
 		// Get the state
-		stateStore, err := b.State(env)
+		stateStore, err := b.StateMgr(env)
 		if err != nil {
 			c.Ui.Error(fmt.Sprintf("Failed to load state: %s", err))
 			return 1
@@ -110,7 +113,7 @@ func (c *ShowCommand) Run(args []string) int {
 	}
 
 	if plan != nil {
-		dispPlan := format.NewPlan(plan)
+		dispPlan := format.NewPlan(plan.Changes)
 		c.Ui.Output(dispPlan.Format(c.Colorize()))
 		return 0
 	}

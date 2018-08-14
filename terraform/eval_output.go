@@ -1,17 +1,12 @@
 package terraform
 
 import (
-	"fmt"
 	"log"
 
 	"github.com/hashicorp/hcl2/hcl"
 	"github.com/zclconf/go-cty/cty"
-	"github.com/zclconf/go-cty/cty/convert"
-	"github.com/zclconf/go-cty/cty/gocty"
 
 	"github.com/hashicorp/terraform/addrs"
-	"github.com/hashicorp/terraform/config"
-	"github.com/hashicorp/terraform/config/hcl2shim"
 )
 
 // EvalDeleteOutput is an EvalNode implementation that deletes an output
@@ -22,23 +17,12 @@ type EvalDeleteOutput struct {
 
 // TODO: test
 func (n *EvalDeleteOutput) Eval(ctx EvalContext) (interface{}, error) {
-	state, lock := ctx.State()
+	state := ctx.State()
 	if state == nil {
 		return nil, nil
 	}
 
-	// Get a write lock so we can access this instance
-	lock.Lock()
-	defer lock.Unlock()
-
-	// Look for the module state. If we don't have one, create it.
-	mod := state.ModuleByPath(ctx.Path())
-	if mod == nil {
-		return nil, nil
-	}
-
-	delete(mod.Outputs, n.Addr.Name)
-
+	state.RemoveOutputValue(n.Addr.Absolute(ctx.Path()))
 	return nil, nil
 }
 
@@ -59,98 +43,26 @@ func (n *EvalWriteOutput) Eval(ctx EvalContext) (interface{}, error) {
 	val, diags := ctx.EvaluateExpr(n.Expr, cty.DynamicPseudoType, nil)
 	// We'll handle errors below, after we have loaded the module.
 
-	state, lock := ctx.State()
+	state := ctx.State()
 	if state == nil {
-		return nil, fmt.Errorf("cannot write state to nil state")
+		return nil, nil
 	}
 
-	// Get a write lock so we can access this instance
-	lock.Lock()
-	defer lock.Unlock()
-	// Look for the module state. If we don't have one, create it.
-	mod := state.ModuleByPath(ctx.Path())
-	if mod == nil {
-		mod = state.AddModule(ctx.Path())
-	}
+	addr := n.Addr.Absolute(ctx.Path())
 
 	// handling the interpolation error
 	if diags.HasErrors() {
 		if n.ContinueOnErr || flagWarnOutputErrors {
 			log.Printf("[ERROR] Output interpolation %q failed: %s", n.Addr.Name, diags.Err())
 			// if we're continuing, make sure the output is included, and
-			// marked as unknown
-			mod.Outputs[n.Addr.Name] = &OutputState{
-				Type:  "string",
-				Value: config.UnknownVariableValue,
-			}
+			// marked as unknown. If the evaluator was able to find a type
+			// for the value in spite of the error then we'll use it.
+			state.SetOutputValue(addr, cty.UnknownVal(val.Type()), n.Sensitive)
 			return nil, EvalEarlyExitError{}
 		}
 		return nil, diags.Err()
 	}
 
-	ty := val.Type()
-	switch {
-	case ty.IsPrimitiveType():
-		// For now we record all primitive types as strings, for compatibility
-		// with our existing state formats.
-		// FIXME: Revise the state format to support any type.
-		var valueTyped string
-		switch {
-		case !val.IsKnown():
-			// Legacy handling of unknown values as a special string.
-			valueTyped = config.UnknownVariableValue
-		case val.IsNull():
-			// State doesn't currently support null, so we'll save as empty string.
-			valueTyped = ""
-		default:
-			strVal, err := convert.Convert(val, cty.String)
-			if err != nil {
-				// Should never happen, because all primitives can convert to string.
-				return nil, fmt.Errorf("cannot marshal %#v for storage in state: %s", val, err)
-			}
-			err = gocty.FromCtyValue(strVal, &valueTyped)
-			if err != nil {
-				// Should never happen, because we already converted to string.
-				return nil, fmt.Errorf("cannot marshal %#v for storage in state: %s", val, err)
-			}
-		}
-		mod.Outputs[n.Addr.Name] = &OutputState{
-			Type:      "string",
-			Sensitive: n.Sensitive,
-			Value:     valueTyped,
-		}
-	case ty.IsListType() || ty.IsTupleType() || ty.IsSetType():
-		// For now we'll use our legacy storage forms for list-like types.
-		// This produces a []interface{}.
-		valueTyped := hcl2shim.ConfigValueFromHCL2(val)
-		mod.Outputs[n.Addr.Name] = &OutputState{
-			Type:      "list",
-			Sensitive: n.Sensitive,
-			Value:     valueTyped,
-		}
-	case ty.IsMapType() || ty.IsObjectType():
-		// For now we'll use our legacy storage forms for map-like types.
-		// This produces a map[string]interface{}.
-		valueTyped := hcl2shim.ConfigValueFromHCL2(val)
-		mod.Outputs[n.Addr.Name] = &OutputState{
-			Type:      "map",
-			Sensitive: n.Sensitive,
-			Value:     valueTyped,
-		}
-	case ty == cty.DynamicPseudoType || !val.IsWhollyKnown():
-		// While we're still using our existing state format, we can't represent
-		// partially-unknown values properly, so we'll just stub the whole
-		// thing out.
-		// FIXME: After the state format is revised, remove this special case
-		// and just store the unknown value directly.
-		mod.Outputs[n.Addr.Name] = &OutputState{
-			Type:      "unknown",
-			Sensitive: n.Sensitive,
-			Value:     hcl2shim.UnknownVariableValue,
-		}
-	default:
-		return nil, fmt.Errorf("output %s is not a valid type (%s)", n.Addr.Name, ty.FriendlyName())
-	}
-
+	state.SetOutputValue(addr, val, n.Sensitive)
 	return nil, nil
 }

@@ -3,6 +3,7 @@ package terraform
 import (
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs"
+	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/tfdiags"
 )
 
@@ -40,7 +41,7 @@ type ImportTarget struct {
 // Further, this operation also gracefully handles partial state. If during
 // an import there is a failure, all previously imported resources remain
 // imported.
-func (c *Context) Import(opts *ImportOpts) (*State, tfdiags.Diagnostics) {
+func (c *Context) Import(opts *ImportOpts) (*states.State, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
 	// Hold a lock since we can modify our own state here
@@ -77,9 +78,6 @@ func (c *Context) Import(opts *ImportOpts) (*State, tfdiags.Diagnostics) {
 	if walkDiags.HasErrors() {
 		return c.state, diags
 	}
-
-	// Clean the state
-	c.state.prune()
 
 	return c.state, diags
 }

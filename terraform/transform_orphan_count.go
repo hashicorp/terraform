@@ -5,6 +5,7 @@ import (
 
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/dag"
+	"github.com/hashicorp/terraform/states"
 )
 
 // OrphanResourceCountTransformer is a GraphTransformer that adds orphans
@@ -19,33 +20,18 @@ type OrphanResourceCountTransformer struct {
 
 	Count int               // Actual count of the resource, or -1 if count is not set at all
 	Addr  addrs.AbsResource // Addr of the resource to look for orphans
-	State *State            // Full global state
+	State *states.State     // Full global state
 }
 
 func (t *OrphanResourceCountTransformer) Transform(g *Graph) error {
-
-	// Grab the module in the state just for this resource address
-	ms := t.State.ModuleByPath(t.Addr.Module)
-	if ms == nil {
-		// If no state, there can't be orphans
-		return nil
+	rs := t.State.Resource(t.Addr)
+	if rs == nil {
+		return nil // Resource doesn't exist in state, so nothing to do!
 	}
 
 	haveKeys := make(map[addrs.InstanceKey]struct{})
-	for legacyAddrStr := range ms.Resources {
-		legacyAddr, err := parseResourceAddressInternal(legacyAddrStr)
-		if err != nil {
-			return err
-		}
-		legacyAddr.Path = ms.Path[1:]
-		addr := legacyAddr.AbsResourceInstanceAddr()
-
-		if addr.ContainingResource().String() != t.Addr.String() {
-			// Not one of our instances
-			continue
-		}
-
-		haveKeys[addr.Resource.Key] = struct{}{}
+	for key := range rs.Instances {
+		haveKeys[key] = struct{}{}
 	}
 
 	if t.Count < 0 {

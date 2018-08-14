@@ -4,7 +4,10 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/zclconf/go-cty/cty"
+
 	"github.com/hashicorp/terraform/addrs"
+	"github.com/hashicorp/terraform/plans"
 )
 
 func TestDiffTransformer_nilDiff(t *testing.T) {
@@ -21,20 +24,32 @@ func TestDiffTransformer_nilDiff(t *testing.T) {
 
 func TestDiffTransformer(t *testing.T) {
 	g := Graph{Path: addrs.RootModuleInstance}
+
+	beforeVal, err := plans.NewDynamicValue(cty.StringVal(""), cty.String)
+	if err != nil {
+		t.Fatal(err)
+	}
+	afterVal, err := plans.NewDynamicValue(cty.StringVal(""), cty.String)
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	tf := &DiffTransformer{
-		Diff: &Diff{
-			Modules: []*ModuleDiff{
-				&ModuleDiff{
-					Path: []string{"root"},
-					Resources: map[string]*InstanceDiff{
-						"aws_instance.foo": &InstanceDiff{
-							Attributes: map[string]*ResourceAttrDiff{
-								"name": &ResourceAttrDiff{
-									Old: "",
-									New: "foo",
-								},
-							},
-						},
+		Changes: &plans.Changes{
+			Resources: []*plans.ResourceInstanceChangeSrc{
+				{
+					Addr: addrs.Resource{
+						Mode: addrs.ManagedResourceMode,
+						Type: "aws_instance",
+						Name: "foo",
+					}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+					ProviderAddr: addrs.ProviderConfig{
+						Type: "aws",
+					}.Absolute(addrs.RootModuleInstance),
+					ChangeSrc: plans.ChangeSrc{
+						Action: plans.Update,
+						Before: beforeVal,
+						After:  afterVal,
 					},
 				},
 			},

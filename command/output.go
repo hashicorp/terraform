@@ -2,14 +2,15 @@ package command
 
 import (
 	"bytes"
-	"encoding/json"
 	"flag"
 	"fmt"
 	"sort"
 	"strings"
 
-	"github.com/hashicorp/terraform/addrs"
+	"github.com/zclconf/go-cty/cty"
+	ctyjson "github.com/zclconf/go-cty/cty/json"
 
+	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/tfdiags"
 )
 
@@ -63,7 +64,7 @@ func (c *OutputCommand) Run(args []string) int {
 	env := c.Workspace()
 
 	// Get the state
-	stateStore, err := b.State(env)
+	stateStore, err := b.StateMgr(env)
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf("Failed to load state: %s", err))
 		return 1
@@ -74,13 +75,15 @@ func (c *OutputCommand) Run(args []string) int {
 		return 1
 	}
 
-	// This command uses a legacy shorthand syntax for the module path that
-	// can't deal with keyed instances, so we'll just shim it for now and
-	// make the breaking change for this interface later.
-	modPath := addrs.Module(strings.Split(module, ".")).UnkeyedInstanceShim()
+	moduleAddr, addrDiags := addrs.ParseModuleInstanceStr(module)
+	diags = diags.Append(addrDiags)
+	if addrDiags.HasErrors() {
+		c.showDiagnostics(diags)
+		return 1
+	}
 
 	state := stateStore.State()
-	mod := state.ModuleByPath(modPath)
+	mod := state.Module(moduleAddr)
 	if mod == nil {
 		c.Ui.Error(fmt.Sprintf(
 			"The module %s could not be found. There is nothing to output.",
@@ -88,7 +91,12 @@ func (c *OutputCommand) Run(args []string) int {
 		return 1
 	}
 
-	if !jsonOutput && (state.Empty() || len(mod.Outputs) == 0) {
+	// TODO: We need to do an eval walk here to make sure all of the output
+	// values recorded in the state are up-to-date.
+	c.Ui.Error("output command not yet updated to do eval walk")
+	return 1
+
+	if !jsonOutput && (state.Empty() || len(mod.OutputValues) == 0) {
 		c.Ui.Error(
 			"The state file either has no outputs defined, or all the defined\n" +
 				"outputs are empty. Please define an output in your configuration\n" +
@@ -101,7 +109,12 @@ func (c *OutputCommand) Run(args []string) int {
 
 	if name == "" {
 		if jsonOutput {
-			jsonOutputs, err := json.MarshalIndent(mod.Outputs, "", "    ")
+			vals := make(map[string]cty.Value, len(mod.OutputValues))
+			for n, os := range mod.OutputValues {
+				vals[n] = os.Value
+			}
+			valsObj := cty.ObjectVal(vals)
+			jsonOutputs, err := ctyjson.Marshal(valsObj, valsObj.Type())
 			if err != nil {
 				return 1
 			}
@@ -109,12 +122,12 @@ func (c *OutputCommand) Run(args []string) int {
 			c.Ui.Output(string(jsonOutputs))
 			return 0
 		} else {
-			c.Ui.Output(outputsAsString(state, modPath, nil, false))
+			c.Ui.Output(outputsAsString(state, moduleAddr, nil, false))
 			return 0
 		}
 	}
 
-	v, ok := mod.Outputs[name]
+	os, ok := mod.OutputValues[name]
 	if !ok {
 		c.Ui.Error(fmt.Sprintf(
 			"The output variable requested could not be found in the state\n" +
@@ -123,29 +136,18 @@ func (c *OutputCommand) Run(args []string) int {
 				"with new output variables until that command is run."))
 		return 1
 	}
+	v := os.Value
 
 	if jsonOutput {
-		jsonOutputs, err := json.MarshalIndent(v, "", "    ")
+		jsonOutput, err := ctyjson.Marshal(v, v.Type())
 		if err != nil {
 			return 1
 		}
 
-		c.Ui.Output(string(jsonOutputs))
+		c.Ui.Output(string(jsonOutput))
 	} else {
-		switch output := v.Value.(type) {
-		case string:
-			c.Ui.Output(output)
-			return 0
-		case []interface{}:
-			c.Ui.Output(formatListOutput("", "", output))
-			return 0
-		case map[string]interface{}:
-			c.Ui.Output(formatMapOutput("", "", output))
-			return 0
-		default:
-			c.Ui.Error(fmt.Sprintf("Unknown output type: %T", v.Type))
-			return 1
-		}
+		c.Ui.Error("TODO: update output command to use the same value renderer as the console")
+		return 1
 	}
 
 	return 0

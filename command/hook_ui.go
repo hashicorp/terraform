@@ -10,9 +10,15 @@ import (
 	"time"
 	"unicode"
 
-	"github.com/hashicorp/terraform/terraform"
+	"github.com/hashicorp/terraform/plans"
+
 	"github.com/mitchellh/cli"
 	"github.com/mitchellh/colorstring"
+	"github.com/zclconf/go-cty/cty"
+
+	"github.com/hashicorp/terraform/addrs"
+	"github.com/hashicorp/terraform/states"
+	"github.com/hashicorp/terraform/terraform"
 )
 
 const defaultPeriodicUiTimer = 10 * time.Second
@@ -30,6 +36,8 @@ type UiHook struct {
 	resources map[string]uiResourceState
 	ui        cli.Ui
 }
+
+var _ terraform.Hook = (*UiHook)(nil)
 
 // uiResourceState tracks the state of a single resource
 type uiResourceState struct {
@@ -53,37 +61,21 @@ const (
 	uiResourceDestroy
 )
 
-func (h *UiHook) PreApply(
-	n *terraform.InstanceInfo,
-	s *terraform.InstanceState,
-	d *terraform.InstanceDiff) (terraform.HookAction, error) {
+func (h *UiHook) PreApply(addr addrs.AbsResourceInstance, gen states.Generation, action plans.Action, priorState, plannedNewState cty.Value) (terraform.HookAction, error) {
 	h.once.Do(h.init)
 
-	// if there's no diff, there's nothing to output
-	if d.Empty() {
-		return terraform.HookActionContinue, nil
-	}
-
-	id := n.HumanId()
-	addr := n.ResourceAddress()
-
-	op := uiResourceModify
-	if d.Destroy {
-		op = uiResourceDestroy
-	} else if s.ID == "" {
-		op = uiResourceCreate
-	}
-
 	var operation string
-	switch op {
-	case uiResourceModify:
-		operation = "Modifying..."
-	case uiResourceDestroy:
+	var op uiResourceOp
+	switch action {
+	case plans.Delete:
 		operation = "Destroying..."
-	case uiResourceCreate:
+		op = uiResourceDestroy
+	case plans.Create:
 		operation = "Creating..."
-	case uiResourceUnknown:
-		return terraform.HookActionContinue, nil
+		op = uiResourceCreate
+	default:
+		operation = "Modifying..."
+		op = uiResourceModify
 	}
 
 	attrBuf := new(bytes.Buffer)
@@ -92,7 +84,11 @@ func (h *UiHook) PreApply(
 	// determine the longest key so that we can align them all.
 	keyLen := 0
 
-	dAttrs := d.CopyAttributes()
+	// FIXME: This is stubbed out in preparation for rewriting it to use
+	// a structural presentation rather than the old-style flatmap one.
+	// We just assume no attributes at all for now, pending new code to
+	// work with the two cty.Values we are given.
+	dAttrs := map[string]terraform.ResourceAttrDiff{}
 	keys := make([]string, 0, len(dAttrs))
 	for key, _ := range dAttrs {
 		// Skip the ID since we do that specially
@@ -109,7 +105,7 @@ func (h *UiHook) PreApply(
 
 	// Go through and output each attribute
 	for _, attrK := range keys {
-		attrDiff, _ := d.GetAttribute(attrK)
+		attrDiff := dAttrs[attrK]
 
 		v := attrDiff.New
 		u := attrDiff.Old
@@ -136,18 +132,16 @@ func (h *UiHook) PreApply(
 	}
 
 	var stateId, stateIdSuffix string
-	if s != nil && s.ID != "" {
-		stateId = s.ID
-		stateIdSuffix = fmt.Sprintf(" (ID: %s)", truncateId(s.ID, maxIdLen))
-	}
 
 	h.ui.Output(h.Colorize.Color(fmt.Sprintf(
 		"[reset][bold]%s: %s%s[reset]%s",
 		addr,
 		operation,
 		stateIdSuffix,
-		attrString)))
+		attrString,
+	)))
 
+	id := addr.String()
 	uiState := uiResourceState{
 		Name:       id,
 		ResourceId: stateId,
@@ -205,13 +199,9 @@ func (h *UiHook) stillApplying(state uiResourceState) {
 	}
 }
 
-func (h *UiHook) PostApply(
-	n *terraform.InstanceInfo,
-	s *terraform.InstanceState,
-	applyerr error) (terraform.HookAction, error) {
+func (h *UiHook) PostApply(addr addrs.AbsResourceInstance, gen states.Generation, newState cty.Value, applyerr error) (terraform.HookAction, error) {
 
-	id := n.HumanId()
-	addr := n.ResourceAddress()
+	id := addr.String()
 
 	h.l.Lock()
 	state := h.resources[id]
@@ -223,9 +213,6 @@ func (h *UiHook) PostApply(
 	h.l.Unlock()
 
 	var stateIdSuffix string
-	if s != nil && s.ID != "" {
-		stateIdSuffix = fmt.Sprintf(" (ID: %s)", truncateId(s.ID, maxIdLen))
-	}
 
 	var msg string
 	switch state.Op {
@@ -253,31 +240,23 @@ func (h *UiHook) PostApply(
 	return terraform.HookActionContinue, nil
 }
 
-func (h *UiHook) PreDiff(
-	n *terraform.InstanceInfo,
-	s *terraform.InstanceState) (terraform.HookAction, error) {
+func (h *UiHook) PreDiff(addr addrs.AbsResourceInstance, gen states.Generation, priorState, proposedNewState cty.Value) (terraform.HookAction, error) {
 	return terraform.HookActionContinue, nil
 }
 
-func (h *UiHook) PreProvision(
-	n *terraform.InstanceInfo,
-	provId string) (terraform.HookAction, error) {
-	addr := n.ResourceAddress()
+func (h *UiHook) PreProvisionInstanceStep(addr addrs.AbsResourceInstance, typeName string) (terraform.HookAction, error) {
 	h.ui.Output(h.Colorize.Color(fmt.Sprintf(
 		"[reset][bold]%s: Provisioning with '%s'...[reset]",
-		addr, provId)))
+		addr, typeName,
+	)))
 	return terraform.HookActionContinue, nil
 }
 
-func (h *UiHook) ProvisionOutput(
-	n *terraform.InstanceInfo,
-	provId string,
-	msg string) {
-	addr := n.ResourceAddress()
+func (h *UiHook) ProvisionOutput(addr addrs.AbsResourceInstance, typeName string, msg string) {
 	var buf bytes.Buffer
 	buf.WriteString(h.Colorize.Color("[reset]"))
 
-	prefix := fmt.Sprintf("%s (%s): ", addr, provId)
+	prefix := fmt.Sprintf("%s (%s): ", addr, typeName)
 	s := bufio.NewScanner(strings.NewReader(msg))
 	s.Split(scanLines)
 	for s.Scan() {
@@ -290,19 +269,10 @@ func (h *UiHook) ProvisionOutput(
 	h.ui.Output(strings.TrimSpace(buf.String()))
 }
 
-func (h *UiHook) PreRefresh(
-	n *terraform.InstanceInfo,
-	s *terraform.InstanceState) (terraform.HookAction, error) {
+func (h *UiHook) PreRefresh(addr addrs.AbsResourceInstance, gen states.Generation, priorState cty.Value) (terraform.HookAction, error) {
 	h.once.Do(h.init)
 
-	addr := n.ResourceAddress()
-
 	var stateIdSuffix string
-	// Data resources refresh before they have ids, whereas managed
-	// resources are only refreshed when they have ids.
-	if s.ID != "" {
-		stateIdSuffix = fmt.Sprintf(" (ID: %s)", truncateId(s.ID, maxIdLen))
-	}
 
 	h.ui.Output(h.Colorize.Color(fmt.Sprintf(
 		"[reset][bold]%s: Refreshing state...%s",
@@ -310,30 +280,26 @@ func (h *UiHook) PreRefresh(
 	return terraform.HookActionContinue, nil
 }
 
-func (h *UiHook) PreImportState(
-	n *terraform.InstanceInfo,
-	id string) (terraform.HookAction, error) {
+func (h *UiHook) PreImportState(addr addrs.AbsResourceInstance, importID string) (terraform.HookAction, error) {
 	h.once.Do(h.init)
 
-	addr := n.ResourceAddress()
 	h.ui.Output(h.Colorize.Color(fmt.Sprintf(
 		"[reset][bold]%s: Importing from ID %q...",
-		addr, id)))
+		addr, importID,
+	)))
 	return terraform.HookActionContinue, nil
 }
 
-func (h *UiHook) PostImportState(
-	n *terraform.InstanceInfo,
-	s []*terraform.InstanceState) (terraform.HookAction, error) {
+func (h *UiHook) PostImportState(addr addrs.AbsResourceInstance, imported []*states.ImportedObject) (terraform.HookAction, error) {
 	h.once.Do(h.init)
 
-	addr := n.ResourceAddress()
 	h.ui.Output(h.Colorize.Color(fmt.Sprintf(
 		"[reset][bold][green]%s: Import complete!", addr)))
-	for _, s := range s {
+	for _, s := range imported {
 		h.ui.Output(h.Colorize.Color(fmt.Sprintf(
-			"[reset][green]  Imported %s (ID: %s)",
-			s.Ephemeral.Type, s.ID)))
+			"[reset][green]  Imported %s",
+			s.ResourceType,
+		)))
 	}
 
 	return terraform.HookActionContinue, nil

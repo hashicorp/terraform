@@ -185,7 +185,7 @@ func (t *ProviderTransformer) Transform(g *Graph) error {
 				key = target.(GraphNodeProvider).ProviderAddr().String()
 			}
 
-			log.Printf("[DEBUG] %s needs %s", dag.VertexName(v), dag.VertexName(target))
+			log.Printf("[DEBUG] ProviderTransformer: %q (%T) needs %s", dag.VertexName(v), v, dag.VertexName(target))
 			if pv, ok := v.(GraphNodeProviderConsumer); ok {
 				pv.SetProvider(target.ProviderAddr())
 			}

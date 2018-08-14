@@ -5,7 +5,6 @@ import (
 
 	"github.com/hashicorp/hcl2/hcl"
 	"github.com/hashicorp/terraform/addrs"
-	"github.com/hashicorp/terraform/config/hcl2shim"
 	"github.com/zclconf/go-cty/cty"
 )
 
@@ -23,30 +22,12 @@ func (n *EvalLocal) Eval(ctx EvalContext) (interface{}, error) {
 		return nil, diags.Err()
 	}
 
-	state, lock := ctx.State()
+	state := ctx.State()
 	if state == nil {
 		return nil, fmt.Errorf("cannot write local value to nil state")
 	}
 
-	// Get a write lock so we can access the state
-	lock.Lock()
-	defer lock.Unlock()
-
-	// Look for the module state. If we don't have one, create it.
-	mod := state.ModuleByPath(ctx.Path())
-	if mod == nil {
-		mod = state.AddModule(ctx.Path())
-	}
-
-	// Lower the value to the legacy form that our state structures still expect.
-	// FIXME: Update mod.Locals to be a map[string]cty.Value .
-	legacyVal := hcl2shim.ConfigValueFromHCL2(val)
-
-	if mod.Locals == nil {
-		// initialize
-		mod.Locals = map[string]interface{}{}
-	}
-	mod.Locals[n.Addr.Name] = legacyVal
+	state.SetLocalValue(n.Addr.Absolute(ctx.Path()), val)
 
 	return nil, nil
 }
@@ -59,22 +40,11 @@ type EvalDeleteLocal struct {
 }
 
 func (n *EvalDeleteLocal) Eval(ctx EvalContext) (interface{}, error) {
-	state, lock := ctx.State()
+	state := ctx.State()
 	if state == nil {
 		return nil, nil
 	}
 
-	// Get a write lock so we can access this instance
-	lock.Lock()
-	defer lock.Unlock()
-
-	// Look for the module state. If we don't have one, create it.
-	mod := state.ModuleByPath(ctx.Path())
-	if mod == nil {
-		return nil, nil
-	}
-
-	delete(mod.Locals, n.Addr.Name)
-
+	state.RemoveLocalValue(n.Addr.Absolute(ctx.Path()))
 	return nil, nil
 }

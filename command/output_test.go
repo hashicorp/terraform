@@ -6,24 +6,21 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/hashicorp/terraform/terraform"
 	"github.com/mitchellh/cli"
+	"github.com/zclconf/go-cty/cty"
+
+	"github.com/hashicorp/terraform/addrs"
+	"github.com/hashicorp/terraform/states"
 )
 
 func TestOutput(t *testing.T) {
-	originalState := &terraform.State{
-		Modules: []*terraform.ModuleState{
-			{
-				Path: []string{"root"},
-				Outputs: map[string]*terraform.OutputState{
-					"foo": {
-						Value: "bar",
-						Type:  "string",
-					},
-				},
-			},
-		},
-	}
+	originalState := states.BuildState(func(s *states.SyncState) {
+		s.SetOutputValue(
+			addrs.OutputValue{Name: "foo"}.Absolute(addrs.RootModuleInstance),
+			cty.StringVal("bar"),
+			false,
+		)
+	})
 
 	statePath := testStateFile(t, originalState)
 
@@ -50,28 +47,18 @@ func TestOutput(t *testing.T) {
 }
 
 func TestModuleOutput(t *testing.T) {
-	originalState := &terraform.State{
-		Modules: []*terraform.ModuleState{
-			{
-				Path: []string{"root"},
-				Outputs: map[string]*terraform.OutputState{
-					"foo": {
-						Value: "bar",
-						Type:  "string",
-					},
-				},
-			},
-			{
-				Path: []string{"root", "my_module"},
-				Outputs: map[string]*terraform.OutputState{
-					"blah": {
-						Value: "tastatur",
-						Type:  "string",
-					},
-				},
-			},
-		},
-	}
+	originalState := states.BuildState(func(s *states.SyncState) {
+		s.SetOutputValue(
+			addrs.OutputValue{Name: "foo"}.Absolute(addrs.RootModuleInstance),
+			cty.StringVal("bar"),
+			false,
+		)
+		s.SetOutputValue(
+			addrs.OutputValue{Name: "blah"}.Absolute(addrs.Module{"my_module"}.UnkeyedInstanceShim()),
+			cty.StringVal("tastatur"),
+			false,
+		)
+	})
 
 	statePath := testStateFile(t, originalState)
 
@@ -100,28 +87,18 @@ func TestModuleOutput(t *testing.T) {
 }
 
 func TestModuleOutputs(t *testing.T) {
-	originalState := &terraform.State{
-		Modules: []*terraform.ModuleState{
-			{
-				Path: []string{"root"},
-				Outputs: map[string]*terraform.OutputState{
-					"foo": {
-						Value: "bar",
-						Type:  "string",
-					},
-				},
-			},
-			{
-				Path: []string{"root", "my_module"},
-				Outputs: map[string]*terraform.OutputState{
-					"blah": {
-						Value: "tastatur",
-						Type:  "string",
-					},
-				},
-			},
-		},
-	}
+	originalState := states.BuildState(func(s *states.SyncState) {
+		s.SetOutputValue(
+			addrs.OutputValue{Name: "foo"}.Absolute(addrs.RootModuleInstance),
+			cty.StringVal("bar"),
+			false,
+		)
+		s.SetOutputValue(
+			addrs.OutputValue{Name: "blah"}.Absolute(addrs.Module{"my_module"}.UnkeyedInstanceShim()),
+			cty.StringVal("tastatur"),
+			false,
+		)
+	})
 
 	statePath := testStateFile(t, originalState)
 
@@ -149,28 +126,21 @@ func TestModuleOutputs(t *testing.T) {
 }
 
 func TestOutput_nestedListAndMap(t *testing.T) {
-	originalState := &terraform.State{
-		Modules: []*terraform.ModuleState{
-			{
-				Path: []string{"root"},
-				Outputs: map[string]*terraform.OutputState{
-					"foo": {
-						Value: []interface{}{
-							map[string]interface{}{
-								"key":  "value",
-								"key2": "value2",
-							},
-							map[string]interface{}{
-								"key": "value",
-							},
-						},
-						Type: "list",
-					},
-				},
-			},
-		},
-	}
-
+	originalState := states.BuildState(func(s *states.SyncState) {
+		s.SetOutputValue(
+			addrs.OutputValue{Name: "foo"}.Absolute(addrs.RootModuleInstance),
+			cty.ListVal([]cty.Value{
+				cty.MapVal(map[string]cty.Value{
+					"key":  cty.StringVal("value"),
+					"key2": cty.StringVal("value2"),
+				}),
+				cty.MapVal(map[string]cty.Value{
+					"key": cty.StringVal("value"),
+				}),
+			}),
+			false,
+		)
+	})
 	statePath := testStateFile(t, originalState)
 
 	ui := new(cli.MockUi)
@@ -196,19 +166,13 @@ func TestOutput_nestedListAndMap(t *testing.T) {
 }
 
 func TestOutput_json(t *testing.T) {
-	originalState := &terraform.State{
-		Modules: []*terraform.ModuleState{
-			{
-				Path: []string{"root"},
-				Outputs: map[string]*terraform.OutputState{
-					"foo": {
-						Value: "bar",
-						Type:  "string",
-					},
-				},
-			},
-		},
-	}
+	originalState := states.BuildState(func(s *states.SyncState) {
+		s.SetOutputValue(
+			addrs.OutputValue{Name: "foo"}.Absolute(addrs.RootModuleInstance),
+			cty.StringVal("bar"),
+			false,
+		)
+	})
 
 	statePath := testStateFile(t, originalState)
 
@@ -236,15 +200,7 @@ func TestOutput_json(t *testing.T) {
 }
 
 func TestOutput_emptyOutputsErr(t *testing.T) {
-	originalState := &terraform.State{
-		Modules: []*terraform.ModuleState{
-			{
-				Path:    []string{"root"},
-				Outputs: map[string]*terraform.OutputState{},
-			},
-		},
-	}
-
+	originalState := states.NewState()
 	statePath := testStateFile(t, originalState)
 
 	p := testProvider()
@@ -265,15 +221,7 @@ func TestOutput_emptyOutputsErr(t *testing.T) {
 }
 
 func TestOutput_jsonEmptyOutputs(t *testing.T) {
-	originalState := &terraform.State{
-		Modules: []*terraform.ModuleState{
-			{
-				Path:    []string{"root"},
-				Outputs: map[string]*terraform.OutputState{},
-			},
-		},
-	}
-
+	originalState := states.NewState()
 	statePath := testStateFile(t, originalState)
 
 	p := testProvider()
@@ -301,20 +249,13 @@ func TestOutput_jsonEmptyOutputs(t *testing.T) {
 }
 
 func TestMissingModuleOutput(t *testing.T) {
-	originalState := &terraform.State{
-		Modules: []*terraform.ModuleState{
-			{
-				Path: []string{"root"},
-				Outputs: map[string]*terraform.OutputState{
-					"foo": {
-						Value: "bar",
-						Type:  "string",
-					},
-				},
-			},
-		},
-	}
-
+	originalState := states.BuildState(func(s *states.SyncState) {
+		s.SetOutputValue(
+			addrs.OutputValue{Name: "foo"}.Absolute(addrs.RootModuleInstance),
+			cty.StringVal("bar"),
+			false,
+		)
+	})
 	statePath := testStateFile(t, originalState)
 
 	ui := new(cli.MockUi)
@@ -337,20 +278,13 @@ func TestMissingModuleOutput(t *testing.T) {
 }
 
 func TestOutput_badVar(t *testing.T) {
-	originalState := &terraform.State{
-		Modules: []*terraform.ModuleState{
-			{
-				Path: []string{"root"},
-				Outputs: map[string]*terraform.OutputState{
-					"foo": {
-						Value: "bar",
-						Type:  "string",
-					},
-				},
-			},
-		},
-	}
-
+	originalState := states.BuildState(func(s *states.SyncState) {
+		s.SetOutputValue(
+			addrs.OutputValue{Name: "foo"}.Absolute(addrs.RootModuleInstance),
+			cty.StringVal("bar"),
+			false,
+		)
+	})
 	statePath := testStateFile(t, originalState)
 
 	ui := new(cli.MockUi)
@@ -371,24 +305,18 @@ func TestOutput_badVar(t *testing.T) {
 }
 
 func TestOutput_blank(t *testing.T) {
-	originalState := &terraform.State{
-		Modules: []*terraform.ModuleState{
-			{
-				Path: []string{"root"},
-				Outputs: map[string]*terraform.OutputState{
-					"foo": {
-						Value: "bar",
-						Type:  "string",
-					},
-					"name": {
-						Value: "john-doe",
-						Type:  "string",
-					},
-				},
-			},
-		},
-	}
-
+	originalState := states.BuildState(func(s *states.SyncState) {
+		s.SetOutputValue(
+			addrs.OutputValue{Name: "foo"}.Absolute(addrs.RootModuleInstance),
+			cty.StringVal("bar"),
+			false,
+		)
+		s.SetOutputValue(
+			addrs.OutputValue{Name: "name"}.Absolute(addrs.RootModuleInstance),
+			cty.StringVal("john-doe"),
+			false,
+		)
+	})
 	statePath := testStateFile(t, originalState)
 
 	ui := new(cli.MockUi)
@@ -449,7 +377,7 @@ func TestOutput_noArgs(t *testing.T) {
 }
 
 func TestOutput_noState(t *testing.T) {
-	originalState := &terraform.State{}
+	originalState := states.NewState()
 	statePath := testStateFile(t, originalState)
 
 	ui := new(cli.MockUi)
@@ -470,14 +398,7 @@ func TestOutput_noState(t *testing.T) {
 }
 
 func TestOutput_noVars(t *testing.T) {
-	originalState := &terraform.State{
-		Modules: []*terraform.ModuleState{
-			{
-				Path:    []string{"root"},
-				Outputs: map[string]*terraform.OutputState{},
-			},
-		},
-	}
+	originalState := states.NewState()
 
 	statePath := testStateFile(t, originalState)
 
@@ -499,19 +420,13 @@ func TestOutput_noVars(t *testing.T) {
 }
 
 func TestOutput_stateDefault(t *testing.T) {
-	originalState := &terraform.State{
-		Modules: []*terraform.ModuleState{
-			{
-				Path: []string{"root"},
-				Outputs: map[string]*terraform.OutputState{
-					"foo": {
-						Value: "bar",
-						Type:  "string",
-					},
-				},
-			},
-		},
-	}
+	originalState := states.BuildState(func(s *states.SyncState) {
+		s.SetOutputValue(
+			addrs.OutputValue{Name: "foo"}.Absolute(addrs.RootModuleInstance),
+			cty.StringVal("bar"),
+			false,
+		)
+	})
 
 	// Write the state file in a temporary directory with the
 	// default filename.
@@ -522,7 +437,7 @@ func TestOutput_stateDefault(t *testing.T) {
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
-	err = terraform.WriteState(originalState, f)
+	err = writeStateForTesting(originalState, f)
 	f.Close()
 	if err != nil {
 		t.Fatalf("err: %s", err)

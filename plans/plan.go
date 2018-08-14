@@ -4,6 +4,8 @@ import (
 	"sort"
 
 	"github.com/hashicorp/terraform/addrs"
+	"github.com/hashicorp/terraform/configs/configschema"
+	"github.com/zclconf/go-cty/cty"
 )
 
 // Plan is the top-level type representing a planned set of changes.
@@ -42,6 +44,19 @@ type Backend struct {
 	// but storing this explicitly allows us to return a better error message
 	// in the situation where the user has the wrong workspace selected.)
 	Workspace string
+}
+
+func NewBackend(typeName string, config cty.Value, configSchema *configschema.Block, workspaceName string) (*Backend, error) {
+	dv, err := NewDynamicValue(config, configSchema.ImpliedType())
+	if err != nil {
+		return nil, err
+	}
+
+	return &Backend{
+		Type:      typeName,
+		Config:    dv,
+		Workspace: workspaceName,
+	}, nil
 }
 
 // ProviderAddrs returns a list of all of the provider configuration addresses
