@@ -5,9 +5,9 @@ import (
 )
 
 func TestResourceInstanceDeposeCurrentObject(t *testing.T) {
-	obj := &ResourceInstanceObject{
-	// Empty for the sake of this test, because we're just going to
-	// compare by pointer below anyway.
+	obj := &ResourceInstanceObjectSrc{
+		// Empty for the sake of this test, because we're just going to
+		// compare by pointer below anyway.
 	}
 
 	is := NewResourceInstance()

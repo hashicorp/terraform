@@ -4,31 +4,27 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/hashicorp/terraform/terraform"
 	"github.com/mitchellh/cli"
+
+	"github.com/hashicorp/terraform/addrs"
+	"github.com/hashicorp/terraform/states"
 )
 
 func TestStateShow(t *testing.T) {
-	state := &terraform.State{
-		Modules: []*terraform.ModuleState{
-			&terraform.ModuleState{
-				Path: []string{"root"},
-				Resources: map[string]*terraform.ResourceState{
-					"test_instance.foo": &terraform.ResourceState{
-						Type: "test_instance",
-						Primary: &terraform.InstanceState{
-							ID: "bar",
-							Attributes: map[string]string{
-								"foo": "value",
-								"bar": "value",
-							},
-						},
-					},
-				},
+	state := states.BuildState(func(s *states.SyncState) {
+		s.SetResourceInstanceCurrent(
+			addrs.Resource{
+				Mode: addrs.ManagedResourceMode,
+				Type: "test_instance",
+				Name: "foo",
+			}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+			&states.ResourceInstanceObjectSrc{
+				AttrsJSON: []byte(`{"id":"bar","foo":"value","bar":"value"}`),
+				Status:    states.ObjectReady,
 			},
-		},
-	}
-
+			addrs.ProviderConfig{Type: "test"}.Absolute(addrs.RootModuleInstance),
+		)
+	})
 	statePath := testStateFile(t, state)
 
 	p := testProvider()
@@ -57,36 +53,32 @@ func TestStateShow(t *testing.T) {
 }
 
 func TestStateShow_multi(t *testing.T) {
-	state := &terraform.State{
-		Modules: []*terraform.ModuleState{
-			&terraform.ModuleState{
-				Path: []string{"root"},
-				Resources: map[string]*terraform.ResourceState{
-					"test_instance.foo.0": &terraform.ResourceState{
-						Type: "test_instance",
-						Primary: &terraform.InstanceState{
-							ID: "bar",
-							Attributes: map[string]string{
-								"foo": "value",
-								"bar": "value",
-							},
-						},
-					},
-					"test_instance.foo.1": &terraform.ResourceState{
-						Type: "test_instance",
-						Primary: &terraform.InstanceState{
-							ID: "bar",
-							Attributes: map[string]string{
-								"foo": "value",
-								"bar": "value",
-							},
-						},
-					},
-				},
+	state := states.BuildState(func(s *states.SyncState) {
+		s.SetResourceInstanceCurrent(
+			addrs.Resource{
+				Mode: addrs.ManagedResourceMode,
+				Type: "test_instance",
+				Name: "foo",
+			}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+			&states.ResourceInstanceObjectSrc{
+				AttrsJSON: []byte(`{"id":"bar","foo":"value","bar":"value"}`),
+				Status:    states.ObjectReady,
 			},
-		},
-	}
-
+			addrs.ProviderConfig{Type: "test"}.Absolute(addrs.RootModuleInstance),
+		)
+		s.SetResourceInstanceCurrent(
+			addrs.Resource{
+				Mode: addrs.ManagedResourceMode,
+				Type: "test_instance",
+				Name: "bar",
+			}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+			&states.ResourceInstanceObjectSrc{
+				AttrsJSON: []byte(`{"id":"foo","foo":"value","bar":"value"}`),
+				Status:    states.ObjectReady,
+			},
+			addrs.ProviderConfig{Type: "test"}.Absolute(addrs.RootModuleInstance),
+		)
+	})
 	statePath := testStateFile(t, state)
 
 	p := testProvider()
@@ -127,8 +119,7 @@ func TestStateShow_noState(t *testing.T) {
 }
 
 func TestStateShow_emptyState(t *testing.T) {
-	state := terraform.NewState()
-
+	state := states.NewState()
 	statePath := testStateFile(t, state)
 
 	p := testProvider()
@@ -143,34 +134,6 @@ func TestStateShow_emptyState(t *testing.T) {
 	args := []string{
 		"-state", statePath,
 		"test_instance.foo",
-	}
-	if code := c.Run(args); code != 0 {
-		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
-	}
-}
-
-func TestStateShow_emptyStateWithModule(t *testing.T) {
-	// empty state with empty module
-	state := terraform.NewState()
-
-	mod := &terraform.ModuleState{
-		Path: []string{"root", "mod"},
-	}
-	state.Modules = append(state.Modules, mod)
-
-	statePath := testStateFile(t, state)
-
-	p := testProvider()
-	ui := new(cli.MockUi)
-	c := &StateShowCommand{
-		Meta: Meta{
-			testingOverrides: metaOverridesForProvider(p),
-			Ui:               ui,
-		},
-	}
-
-	args := []string{
-		"-state", statePath,
 	}
 	if code := c.Run(args); code != 0 {
 		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())

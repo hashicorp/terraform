@@ -8,7 +8,7 @@ import (
 )
 
 func TestOrphanResourceCountTransformer(t *testing.T) {
-	state := &State{
+	state := mustShimLegacyState(&State{
 		Modules: []*ModuleState{
 			&ModuleState{
 				Path: []string{"root"},
@@ -36,7 +36,7 @@ func TestOrphanResourceCountTransformer(t *testing.T) {
 				},
 			},
 		},
-	}
+	})
 
 	g := Graph{Path: addrs.RootModuleInstance}
 
@@ -62,7 +62,7 @@ func TestOrphanResourceCountTransformer(t *testing.T) {
 }
 
 func TestOrphanResourceCountTransformer_zero(t *testing.T) {
-	state := &State{
+	state := mustShimLegacyState(&State{
 		Modules: []*ModuleState{
 			&ModuleState{
 				Path: []string{"root"},
@@ -90,7 +90,7 @@ func TestOrphanResourceCountTransformer_zero(t *testing.T) {
 				},
 			},
 		},
-	}
+	})
 
 	g := Graph{Path: addrs.RootModuleInstance}
 
@@ -116,7 +116,7 @@ func TestOrphanResourceCountTransformer_zero(t *testing.T) {
 }
 
 func TestOrphanResourceCountTransformer_oneNoIndex(t *testing.T) {
-	state := &State{
+	state := mustShimLegacyState(&State{
 		Modules: []*ModuleState{
 			&ModuleState{
 				Path: []string{"root"},
@@ -144,7 +144,7 @@ func TestOrphanResourceCountTransformer_oneNoIndex(t *testing.T) {
 				},
 			},
 		},
-	}
+	})
 
 	g := Graph{Path: addrs.RootModuleInstance}
 
@@ -170,7 +170,7 @@ func TestOrphanResourceCountTransformer_oneNoIndex(t *testing.T) {
 }
 
 func TestOrphanResourceCountTransformer_oneIndex(t *testing.T) {
-	state := &State{
+	state := mustShimLegacyState(&State{
 		Modules: []*ModuleState{
 			&ModuleState{
 				Path: []string{"root"},
@@ -198,7 +198,7 @@ func TestOrphanResourceCountTransformer_oneIndex(t *testing.T) {
 				},
 			},
 		},
-	}
+	})
 
 	g := Graph{Path: addrs.RootModuleInstance}
 
@@ -224,7 +224,7 @@ func TestOrphanResourceCountTransformer_oneIndex(t *testing.T) {
 }
 
 func TestOrphanResourceCountTransformer_zeroAndNone(t *testing.T) {
-	state := &State{
+	state := mustShimLegacyState(&State{
 		Modules: []*ModuleState{
 			&ModuleState{
 				Path: []string{"root"},
@@ -252,7 +252,7 @@ func TestOrphanResourceCountTransformer_zeroAndNone(t *testing.T) {
 				},
 			},
 		},
-	}
+	})
 
 	g := Graph{Path: addrs.RootModuleInstance}
 
@@ -278,7 +278,7 @@ func TestOrphanResourceCountTransformer_zeroAndNone(t *testing.T) {
 }
 
 func TestOrphanResourceCountTransformer_zeroAndNoneCount(t *testing.T) {
-	state := &State{
+	state := mustShimLegacyState(&State{
 		Modules: []*ModuleState{
 			&ModuleState{
 				Path: []string{"root"},
@@ -306,7 +306,7 @@ func TestOrphanResourceCountTransformer_zeroAndNoneCount(t *testing.T) {
 				},
 			},
 		},
-	}
+	})
 
 	g := Graph{Path: addrs.RootModuleInstance}
 

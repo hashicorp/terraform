@@ -1,8 +1,6 @@
 package terraform
 
 import (
-	"sync"
-
 	"github.com/hashicorp/hcl2/hcl"
 	"github.com/hashicorp/hcl2/hcldec"
 	"github.com/zclconf/go-cty/cty"
@@ -12,6 +10,8 @@ import (
 	"github.com/hashicorp/terraform/config"
 	"github.com/hashicorp/terraform/configs/configschema"
 	"github.com/hashicorp/terraform/lang"
+	"github.com/hashicorp/terraform/plans"
+	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/tfdiags"
 )
 
@@ -127,13 +127,11 @@ type MockEvalContext struct {
 	SetModuleCallArgumentsModule addrs.ModuleCallInstance
 	SetModuleCallArgumentsValues map[string]cty.Value
 
-	DiffCalled bool
-	DiffDiff   *Diff
-	DiffLock   *sync.RWMutex
+	ChangesCalled  bool
+	ChangesChanges *plans.ChangesSync
 
 	StateCalled bool
-	StateState  *State
-	StateLock   *sync.RWMutex
+	StateState  *states.SyncState
 }
 
 // MockEvalContext implements EvalContext
@@ -338,12 +336,12 @@ func (c *MockEvalContext) SetModuleCallArguments(n addrs.ModuleCallInstance, val
 	c.SetModuleCallArgumentsValues = values
 }
 
-func (c *MockEvalContext) Diff() (*Diff, *sync.RWMutex) {
-	c.DiffCalled = true
-	return c.DiffDiff, c.DiffLock
+func (c *MockEvalContext) Changes() *plans.ChangesSync {
+	c.ChangesCalled = true
+	return c.ChangesChanges
 }
 
-func (c *MockEvalContext) State() (*State, *sync.RWMutex) {
+func (c *MockEvalContext) State() *states.SyncState {
 	c.StateCalled = true
-	return c.StateState, c.StateLock
+	return c.StateState
 }

@@ -113,39 +113,10 @@ func evaluateResourceCountExpression(expr hcl.Expression, ctx EvalContext) (int,
 // on the state. The caller must therefore not also be holding a state lock,
 // or this function will block forever awaiting the lock.
 func fixResourceCountSetTransition(ctx EvalContext, addr addrs.Resource, countEnabled bool) {
-	huntAddr := addr.Instance(addrs.NoKey)
-	replaceAddr := addr.Instance(addrs.IntKey(0))
-	if !countEnabled {
-		huntAddr, replaceAddr = replaceAddr, huntAddr
-	}
-
 	path := ctx.Path()
-
-	// The state still uses our legacy internal address string format, so we
-	// need to shim here.
-	huntKey := NewLegacyResourceInstanceAddress(huntAddr.Absolute(path)).stateId()
-	replaceKey := NewLegacyResourceInstanceAddress(replaceAddr.Absolute(path)).stateId()
-
-	state, lock := ctx.State()
-	lock.Lock()
-	defer lock.Unlock()
-
-	mod := state.ModuleByPath(path)
-	if mod == nil {
-		return
+	state := ctx.State()
+	changed := state.MaybeFixUpResourceInstanceAddressForCount(addr.Absolute(path), countEnabled)
+	if changed {
+		log.Printf("[TRACE] renamed first %s instance in transient state due to count argument change", addr)
 	}
-
-	rs, ok := mod.Resources[huntKey]
-	if !ok {
-		return
-	}
-
-	// If the replacement key also exists then we do nothing and keep both.
-	if _, ok := mod.Resources[replaceKey]; ok {
-		return
-	}
-
-	mod.Resources[replaceKey] = rs
-	delete(mod.Resources, huntKey)
-	log.Printf("[TRACE] renamed %s to %s in transient state due to count argument change", huntKey, replaceKey)
 }

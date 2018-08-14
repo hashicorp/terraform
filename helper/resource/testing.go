@@ -14,16 +14,16 @@ import (
 	"syscall"
 	"testing"
 
-	"github.com/hashicorp/terraform/addrs"
-
-	"github.com/hashicorp/terraform/configs/configload"
-
 	"github.com/davecgh/go-spew/spew"
 	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/logutils"
+
+	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs"
+	"github.com/hashicorp/terraform/configs/configload"
 	"github.com/hashicorp/terraform/helper/logging"
+	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/terraform"
 )
 
@@ -674,17 +674,24 @@ func testIDOnlyRefresh(c TestCase, opts terraform.ContextOpts, step TestStep, r 
 		return nil
 	}
 
-	name := fmt.Sprintf("%s.foo", r.Type)
+	addr := addrs.Resource{
+		Mode: addrs.ManagedResourceMode,
+		Type: r.Type,
+		Name: "foo",
+	}.Instance(addrs.NoKey)
+	absAddr := addr.Absolute(addrs.RootModuleInstance)
 
 	// Build the state. The state is just the resource with an ID. There
 	// are no attributes. We only set what is needed to perform a refresh.
-	state := terraform.NewState()
-	state.RootModule().Resources[name] = &terraform.ResourceState{
-		Type: r.Type,
-		Primary: &terraform.InstanceState{
-			ID: r.Primary.ID,
+	state := states.NewState()
+	state.RootModule().SetResourceInstanceCurrent(
+		addr,
+		&states.ResourceInstanceObjectSrc{
+			AttrsFlat: r.Primary.Attributes,
+			Status:    states.ObjectReady,
 		},
-	}
+		addrs.ProviderConfig{Type: "placeholder"}.Absolute(addrs.RootModuleInstance),
+	)
 
 	// Create the config module. We use the full config because Refresh
 	// doesn't have access to it and we may need things like provider
@@ -717,14 +724,14 @@ func testIDOnlyRefresh(c TestCase, opts terraform.ContextOpts, step TestStep, r 
 	}
 
 	// Verify attribute equivalence.
-	actualR := state.RootModule().Resources[name]
+	actualR := state.ResourceInstance(absAddr)
 	if actualR == nil {
 		return fmt.Errorf("Resource gone!")
 	}
-	if actualR.Primary == nil {
+	if actualR.Current == nil {
 		return fmt.Errorf("Resource has no primary instance")
 	}
-	actual := actualR.Primary.Attributes
+	actual := actualR.Current.AttrsFlat
 	expected := r.Primary.Attributes
 	// Remove fields we're ignoring
 	for _, v := range c.IDRefreshIgnore {

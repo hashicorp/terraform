@@ -7,6 +7,7 @@ import (
 
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs/configschema"
+	"github.com/hashicorp/terraform/states"
 	"github.com/zclconf/go-cty/cty"
 )
 
@@ -102,21 +103,22 @@ func TestContextImport_collision(t *testing.T) {
 			},
 		),
 
-		State: &State{
-			Modules: []*ModuleState{
-				&ModuleState{
-					Path: []string{"root"},
-					Resources: map[string]*ResourceState{
-						"aws_instance.foo": &ResourceState{
-							Type: "aws_instance",
-							Primary: &InstanceState{
-								ID: "bar",
-							},
-						},
+		State: states.BuildState(func(s *states.SyncState) {
+			s.SetResourceInstanceCurrent(
+				addrs.Resource{
+					Mode: addrs.ManagedResourceMode,
+					Type: "aws_instance",
+					Name: "foo",
+				}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+				&states.ResourceInstanceObjectSrc{
+					AttrsFlat: map[string]string{
+						"id": "bar",
 					},
+					Status: states.ObjectReady,
 				},
-			},
-		},
+				addrs.ProviderConfig{Type: "aws"}.Absolute(addrs.RootModuleInstance),
+			)
+		}),
 	})
 
 	p.ImportStateReturn = []*InstanceState{
@@ -595,21 +597,22 @@ func TestContextImport_moduleDiff(t *testing.T) {
 			},
 		),
 
-		State: &State{
-			Modules: []*ModuleState{
-				&ModuleState{
-					Path: []string{"root", "bar"},
-					Resources: map[string]*ResourceState{
-						"aws_instance.bar": &ResourceState{
-							Type: "aws_instance",
-							Primary: &InstanceState{
-								ID: "bar",
-							},
-						},
+		State: states.BuildState(func(s *states.SyncState) {
+			s.SetResourceInstanceCurrent(
+				addrs.Resource{
+					Mode: addrs.ManagedResourceMode,
+					Type: "aws_instance",
+					Name: "bar",
+				}.Instance(addrs.NoKey).Absolute(addrs.Module{"bar"}.UnkeyedInstanceShim()),
+				&states.ResourceInstanceObjectSrc{
+					AttrsFlat: map[string]string{
+						"id": "bar",
 					},
+					Status: states.ObjectReady,
 				},
-			},
-		},
+				addrs.ProviderConfig{Type: "aws"}.Absolute(addrs.RootModuleInstance),
+			)
+		}),
 	})
 
 	p.ImportStateReturn = []*InstanceState{
@@ -652,21 +655,22 @@ func TestContextImport_moduleExisting(t *testing.T) {
 			},
 		),
 
-		State: &State{
-			Modules: []*ModuleState{
-				&ModuleState{
-					Path: []string{"root", "foo"},
-					Resources: map[string]*ResourceState{
-						"aws_instance.bar": &ResourceState{
-							Type: "aws_instance",
-							Primary: &InstanceState{
-								ID: "bar",
-							},
-						},
+		State: states.BuildState(func(s *states.SyncState) {
+			s.SetResourceInstanceCurrent(
+				addrs.Resource{
+					Mode: addrs.ManagedResourceMode,
+					Type: "aws_instance",
+					Name: "bar",
+				}.Instance(addrs.NoKey).Absolute(addrs.Module{"foo"}.UnkeyedInstanceShim()),
+				&states.ResourceInstanceObjectSrc{
+					AttrsFlat: map[string]string{
+						"id": "bar",
 					},
+					Status: states.ObjectReady,
 				},
-			},
-		},
+				addrs.ProviderConfig{Type: "aws"}.Absolute(addrs.RootModuleInstance),
+			)
+		}),
 	})
 
 	p.ImportStateReturn = []*InstanceState{

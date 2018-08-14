@@ -1,5 +1,10 @@
 package terraform
 
+import (
+	"github.com/hashicorp/terraform/plans"
+	"github.com/hashicorp/terraform/states"
+)
+
 // NodePlannableResourceInstanceOrphan represents a resource that is "applyable":
 // it is ready to be applied and is represented by a diff.
 type NodePlannableResourceInstanceOrphan struct {
@@ -29,41 +34,47 @@ func (n *NodePlannableResourceInstanceOrphan) Name() string {
 func (n *NodePlannableResourceInstanceOrphan) EvalTree() EvalNode {
 	addr := n.ResourceInstanceAddr()
 
-	// State still uses legacy-style internal ids, so we need to shim to get
-	// a suitable key to use.
-	stateId := NewLegacyResourceInstanceAddress(addr).stateId()
-
 	// Declare a bunch of variables that are used for state during
 	// evaluation. Most of this are written to by-address below.
-	var diff *InstanceDiff
-	var state *InstanceState
+	var change *plans.ResourceInstanceChange
+	var state *states.ResourceInstanceObject
+	var provider ResourceProvider
+	var providerSchema *ProviderSchema
 
 	return &EvalSequence{
 		Nodes: []EvalNode{
+			&EvalGetProvider{
+				Addr:   n.ResolvedProvider,
+				Output: &provider,
+				Schema: &providerSchema,
+			},
 			&EvalReadState{
-				Name:   stateId,
+				Addr:           addr.Resource,
+				Provider:       &provider,
+				ProviderSchema: &providerSchema,
+
 				Output: &state,
 			},
 			&EvalDiffDestroy{
 				Addr:        addr.Resource,
 				State:       &state,
-				Output:      &diff,
+				Output:      &change,
 				OutputState: &state, // Will point to a nil state after this complete, signalling destroyed
 			},
 			&EvalCheckPreventDestroy{
 				Addr:   addr.Resource,
 				Config: n.Config,
-				Diff:   &diff,
+				Change: &change,
 			},
 			&EvalWriteDiff{
-				Name: stateId,
-				Diff: &diff,
+				Addr:   addr.Resource,
+				Change: &change,
 			},
 			&EvalWriteState{
-				Name:         stateId,
-				ResourceType: addr.Resource.Resource.Type,
-				Provider:     n.ResolvedProvider,
-				State:        &state,
+				Addr:           addr.Resource,
+				ProviderAddr:   n.ResolvedProvider,
+				ProviderSchema: &providerSchema,
+				State:          &state,
 			},
 		},
 	}

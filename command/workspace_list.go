@@ -53,7 +53,7 @@ func (c *WorkspaceListCommand) Run(args []string) int {
 		return 1
 	}
 
-	states, err := b.States()
+	states, err := b.Workspaces()
 	if err != nil {
 		c.Ui.Error(err.Error())
 		return 1

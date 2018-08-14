@@ -11,6 +11,9 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/hashicorp/terraform/states"
+	"github.com/hashicorp/terraform/states/statemgr"
+
 	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/command/clistate"
 	"github.com/hashicorp/terraform/state"
@@ -43,8 +46,8 @@ func (m *Meta) backendMigrateState(opts *backendMigrateOpts) error {
 	// We need to check what the named state status is. If we're converting
 	// from multi-state to single-state for example, we need to handle that.
 	var oneSingle, twoSingle bool
-	oneStates, err := opts.One.States()
-	if err == backend.ErrNamedStatesNotSupported {
+	oneStates, err := opts.One.Workspaces()
+	if err == backend.ErrWorkspacesNotSupported {
 		oneSingle = true
 		err = nil
 	}
@@ -53,8 +56,8 @@ func (m *Meta) backendMigrateState(opts *backendMigrateOpts) error {
 			errMigrateLoadStates), opts.OneType, err)
 	}
 
-	_, err = opts.Two.States()
-	if err == backend.ErrNamedStatesNotSupported {
+	_, err = opts.Two.Workspaces()
+	if err == backend.ErrWorkspacesNotSupported {
 		twoSingle = true
 		err = nil
 	}
@@ -144,7 +147,7 @@ func (m *Meta) backendMigrateState_S_S(opts *backendMigrateOpts) error {
 	}
 
 	// Read all the states
-	oneStates, err := opts.One.States()
+	oneStates, err := opts.One.Workspaces()
 	if err != nil {
 		return fmt.Errorf(strings.TrimSpace(
 			errMigrateLoadStates), opts.OneType, err)
@@ -260,7 +263,7 @@ func (m *Meta) backendMigrateState_S_s(opts *backendMigrateOpts) error {
 
 // Single state to single state, assumed default state name.
 func (m *Meta) backendMigrateState_s_s(opts *backendMigrateOpts) error {
-	stateOne, err := opts.One.State(opts.oneEnv)
+	stateOne, err := opts.One.StateMgr(opts.oneEnv)
 	if err != nil {
 		return fmt.Errorf(strings.TrimSpace(
 			errMigrateSingleLoadDefault), opts.OneType, err)
@@ -270,47 +273,7 @@ func (m *Meta) backendMigrateState_s_s(opts *backendMigrateOpts) error {
 			errMigrateSingleLoadDefault), opts.OneType, err)
 	}
 
-	// Do not migrate workspaces without state.
-	if stateOne.State() == nil {
-		return nil
-	}
-
-	stateTwo, err := opts.Two.State(opts.twoEnv)
-	if err == backend.ErrDefaultStateNotSupported {
-		// If the backend doesn't support using the default state, we ask the user
-		// for a new name and migrate the default state to the given named state.
-		stateTwo, err = func() (state.State, error) {
-			name, err := m.UIInput().Input(&terraform.InputOpts{
-				Id: "new-state-name",
-				Query: fmt.Sprintf(
-					"[reset][bold][yellow]The %q backend configuration only allows "+
-						"named workspaces![reset]",
-					opts.TwoType),
-				Description: strings.TrimSpace(inputBackendNewWorkspaceName),
-			})
-			if err != nil {
-				return nil, fmt.Errorf("Error asking for new state name: %s", err)
-			}
-
-			// Update the name of the target state.
-			opts.twoEnv = name
-
-			stateTwo, err := opts.Two.State(opts.twoEnv)
-			if err != nil {
-				return nil, err
-			}
-
-			// If the currently selected workspace is the default workspace, then set
-			// the named workspace as the new selected workspace.
-			if m.Workspace() == backend.DefaultStateName {
-				if err := m.SetWorkspace(opts.twoEnv); err != nil {
-					return nil, fmt.Errorf("Failed to set new workspace: %s", err)
-				}
-			}
-
-			return stateTwo, nil
-		}()
-	}
+	stateTwo, err := opts.Two.StateMgr(opts.twoEnv)
 	if err != nil {
 		return fmt.Errorf(strings.TrimSpace(
 			errMigrateSingleLoadDefault), opts.TwoType, err)
@@ -328,8 +291,15 @@ func (m *Meta) backendMigrateState_s_s(opts *backendMigrateOpts) error {
 	// no reason to migrate if the state is already there
 	if one.Equal(two) {
 		// Equal isn't identical; it doesn't check lineage.
-		if one != nil && two != nil && one.Lineage == two.Lineage {
-			return nil
+		sm1, _ := stateOne.(statemgr.PersistentMeta)
+		sm2, _ := stateTwo.(statemgr.PersistentMeta)
+		if one != nil && two != nil {
+			if sm1 == nil || sm2 == nil {
+				return nil
+			}
+			if sm1.StateSnapshotMeta().Lineage == sm2.StateSnapshotMeta().Lineage {
+				return nil
+			}
 		}
 	}
 
@@ -361,15 +331,6 @@ func (m *Meta) backendMigrateState_s_s(opts *backendMigrateOpts) error {
 
 		one = stateOne.State()
 		two = stateTwo.State()
-	}
-
-	// Clear the legacy remote state in both cases. If we're at the migration
-	// step then this won't be used anymore.
-	if one != nil {
-		one.Remote = nil
-	}
-	if two != nil {
-		two.Remote = nil
 	}
 
 	var confirmFunc func(state.State, state.State, *backendMigrateOpts) (bool, error)
@@ -453,14 +414,9 @@ func (m *Meta) backendMigrateNonEmptyConfirm(
 	defer os.RemoveAll(td)
 
 	// Helper to write the state
-	saveHelper := func(n, path string, s *terraform.State) error {
-		f, err := os.Create(path)
-		if err != nil {
-			return err
-		}
-		defer f.Close()
-
-		return terraform.WriteState(s, f)
+	saveHelper := func(n, path string, s *states.State) error {
+		mgr := statemgr.NewFilesystem(path)
+		return mgr.WriteState(s)
 	}
 
 	// Write the states

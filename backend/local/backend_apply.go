@@ -8,9 +8,12 @@ import (
 	"log"
 
 	"github.com/hashicorp/errwrap"
+
 	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/command/format"
-	"github.com/hashicorp/terraform/state"
+	"github.com/hashicorp/terraform/states"
+	"github.com/hashicorp/terraform/states/statefile"
+	"github.com/hashicorp/terraform/states/statemgr"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/hashicorp/terraform/tfdiags"
 )
@@ -23,10 +26,11 @@ func (b *Local) opApply(
 	log.Printf("[INFO] backend/local: starting Apply operation")
 
 	var diags tfdiags.Diagnostics
+	var err error
 
 	// If we have a nil module at this point, then set it to an empty tree
 	// to avoid any potential crashes.
-	if op.Plan == nil && !op.Destroy && !op.HasConfig() {
+	if op.PlanFile == nil && !op.Destroy && !op.HasConfig() {
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
 			"No configuration files",
@@ -47,9 +51,9 @@ func (b *Local) opApply(
 	b.ContextOpts.Hooks = append(b.ContextOpts.Hooks, countHook, stateHook)
 
 	// Get our context
-	tfCtx, opState, err := b.context(op)
-	if err != nil {
-		diags = diags.Append(err)
+	tfCtx, _, opState, contextDiags := b.context(op)
+	diags = diags.Append(contextDiags)
+	if contextDiags.HasErrors() {
 		b.ReportResult(runningOp, diags)
 		return
 	}
@@ -58,7 +62,7 @@ func (b *Local) opApply(
 	runningOp.State = tfCtx.State()
 
 	// If we weren't given a plan, then we refresh/plan
-	if op.Plan == nil {
+	if op.PlanFile == nil {
 		// If we're refreshing before apply, perform that
 		if op.PlanRefresh {
 			log.Printf("[INFO] backend/local: apply calling Refresh")
@@ -80,7 +84,7 @@ func (b *Local) opApply(
 			return
 		}
 
-		dispPlan := format.NewPlan(plan)
+		dispPlan := format.NewPlan(plan.Changes)
 		trivialPlan := dispPlan.Empty()
 		hasUI := op.UIOut != nil && op.UIIn != nil
 		mustConfirm := hasUI && ((op.Destroy && (!op.DestroyForce && !op.AutoApprove)) || (!op.Destroy && !op.AutoApprove && !trivialPlan))
@@ -133,10 +137,10 @@ func (b *Local) opApply(
 	}
 
 	// Setup our hook for continuous state updates
-	stateHook.State = opState
+	stateHook.StateMgr = opState
 
 	// Start the apply in a goroutine so that we can be interrupted.
-	var applyState *terraform.State
+	var applyState *states.State
 	var applyDiags tfdiags.Diagnostics
 	doneCh := make(chan struct{})
 	go func() {
@@ -152,14 +156,8 @@ func (b *Local) opApply(
 
 	// Store the final state
 	runningOp.State = applyState
-
-	// Persist the state
-	if err := opState.WriteState(applyState); err != nil {
-		diags = diags.Append(b.backupStateForError(applyState, err))
-		b.ReportResult(runningOp, diags)
-		return
-	}
-	if err := opState.PersistState(); err != nil {
+	err = statemgr.WriteAndPersist(opState, applyState)
+	if err != nil {
 		diags = diags.Append(b.backupStateForError(applyState, err))
 		b.ReportResult(runningOp, diags)
 		return
@@ -211,10 +209,10 @@ func (b *Local) opApply(
 // to local disk to help the user recover. This is a "last ditch effort" sort
 // of thing, so we really don't want to end up in this codepath; we should do
 // everything we possibly can to get the state saved _somewhere_.
-func (b *Local) backupStateForError(applyState *terraform.State, err error) error {
+func (b *Local) backupStateForError(applyState *states.State, err error) error {
 	b.CLI.Error(fmt.Sprintf("Failed to save state: %s\n", err))
 
-	local := &state.LocalState{Path: "errored.tfstate"}
+	local := statemgr.NewFilesystem("errored.tfstate")
 	writeErr := local.WriteState(applyState)
 	if writeErr != nil {
 		b.CLI.Error(fmt.Sprintf(
@@ -226,7 +224,10 @@ func (b *Local) backupStateForError(applyState *terraform.State, err error) erro
 		// but at least the user has _some_ path to recover if we end up
 		// here for some reason.
 		stateBuf := new(bytes.Buffer)
-		jsonErr := terraform.WriteState(applyState, stateBuf)
+		stateFile := &statefile.File{
+			State: applyState,
+		}
+		jsonErr := statefile.Write(stateFile, stateBuf)
 		if jsonErr != nil {
 			b.CLI.Error(fmt.Sprintf(
 				"Also failed to JSON-serialize the state to print it: %s\n\n", jsonErr,

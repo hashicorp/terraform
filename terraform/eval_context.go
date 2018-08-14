@@ -1,12 +1,12 @@
 package terraform
 
 import (
-	"sync"
-
 	"github.com/hashicorp/hcl2/hcl"
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs/configschema"
 	"github.com/hashicorp/terraform/lang"
+	"github.com/hashicorp/terraform/plans"
+	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/tfdiags"
 	"github.com/zclconf/go-cty/cty"
 )
@@ -121,11 +121,11 @@ type EvalContext interface {
 	// previously-set keys that are not present in the new map.
 	SetModuleCallArguments(addrs.ModuleCallInstance, map[string]cty.Value)
 
-	// Diff returns the global diff as well as the lock that should
-	// be used to modify that diff.
-	Diff() (*Diff, *sync.RWMutex)
+	// Changes returns the writer object that can be used to write new proposed
+	// changes into the global changes set.
+	Changes() *plans.ChangesSync
 
-	// State returns the global state as well as the lock that should
-	// be used to modify that state.
-	State() (*State, *sync.RWMutex)
+	// State returns a wrapper object that provides safe concurrent access to
+	// the global state.
+	State() *states.SyncState
 }

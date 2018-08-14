@@ -5,14 +5,15 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"os"
 	"strings"
-
-	"github.com/hashicorp/terraform/tfdiags"
 
 	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/command/format"
+	"github.com/hashicorp/terraform/plans"
+	"github.com/hashicorp/terraform/plans/planfile"
+	"github.com/hashicorp/terraform/states/statemgr"
 	"github.com/hashicorp/terraform/terraform"
+	"github.com/hashicorp/terraform/tfdiags"
 )
 
 func (b *Local) opPlan(
@@ -24,8 +25,9 @@ func (b *Local) opPlan(
 	log.Printf("[INFO] backend/local: starting Plan operation")
 
 	var diags tfdiags.Diagnostics
+	var err error
 
-	if b.CLI != nil && op.Plan != nil {
+	if b.CLI != nil && op.PlanFile != nil {
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
 			"Can't re-plan a saved plan",
@@ -56,9 +58,9 @@ func (b *Local) opPlan(
 	b.ContextOpts.Hooks = append(b.ContextOpts.Hooks, countHook)
 
 	// Get our context
-	tfCtx, opState, err := b.context(op)
-	if err != nil {
-		diags = diags.Append(err)
+	tfCtx, configSnap, opState, ctxDiags := b.context(op)
+	diags = diags.Append(ctxDiags)
+	if ctxDiags.HasErrors() {
 		b.ReportResult(runningOp, diags)
 		return
 	}
@@ -67,6 +69,7 @@ func (b *Local) opPlan(
 	runningOp.State = tfCtx.State()
 
 	// If we're refreshing before plan, perform that
+	baseState := runningOp.State
 	if op.PlanRefresh {
 		log.Printf("[INFO] backend/local: plan calling Refresh")
 
@@ -74,19 +77,20 @@ func (b *Local) opPlan(
 			b.CLI.Output(b.Colorize().Color(strings.TrimSpace(planRefreshing) + "\n"))
 		}
 
-		_, err := tfCtx.Refresh()
+		refreshedState, err := tfCtx.Refresh()
 		if err != nil {
 			diags = diags.Append(err)
 			b.ReportResult(runningOp, diags)
 			return
 		}
+		baseState = refreshedState // plan will be relative to our refreshed state
 		if b.CLI != nil {
 			b.CLI.Output("\n------------------------------------------------------------------------")
 		}
 	}
 
 	// Perform the plan in a goroutine so we can be interrupted
-	var plan *terraform.Plan
+	var plan *plans.Plan
 	var planDiags tfdiags.Diagnostics
 	doneCh := make(chan struct{})
 	go func() {
@@ -105,25 +109,19 @@ func (b *Local) opPlan(
 		return
 	}
 	// Record state
-	runningOp.PlanEmpty = plan.Diff.Empty()
+	runningOp.PlanEmpty = plan.Changes.Empty()
 
 	// Save the plan to disk
 	if path := op.PlanOutPath; path != "" {
-		// Write the backend if we have one
-		plan.Backend = op.PlanOutBackend
+		plan.Backend = *op.PlanOutBackend
 
-		// This works around a bug (#12871) which is no longer possible to
-		// trigger but will exist for already corrupted upgrades.
-		if plan.Backend != nil && plan.State != nil {
-			plan.State.Remote = nil
-		}
+		// We may have updated the state in the refresh step above, but we
+		// will freeze that updated state in the plan file for now and
+		// only write it if this plan is subsequently applied.
+		plannedStateFile := statemgr.PlannedStateUpdate(opState, baseState)
 
 		log.Printf("[INFO] backend/local: writing plan output to: %s", path)
-		f, err := os.Create(path)
-		if err == nil {
-			err = terraform.WritePlan(plan, f)
-		}
-		f.Close()
+		err = planfile.Create(path, configSnap, plannedStateFile, plan)
 		if err != nil {
 			diags = diags.Append(tfdiags.Sourceless(
 				tfdiags.Error,
@@ -137,7 +135,7 @@ func (b *Local) opPlan(
 
 	// Perform some output tasks if we have a CLI to output to.
 	if b.CLI != nil {
-		dispPlan := format.NewPlan(plan)
+		dispPlan := format.NewPlan(plan.Changes)
 		if dispPlan.Empty() {
 			b.CLI.Output("\n" + b.Colorize().Color(strings.TrimSpace(planNoChanges)))
 			return

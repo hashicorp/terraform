@@ -18,7 +18,7 @@ import (
 	"github.com/hashicorp/terraform/command/clistate"
 	"github.com/hashicorp/terraform/configs/configschema"
 	"github.com/hashicorp/terraform/helper/schema"
-	"github.com/hashicorp/terraform/state"
+	"github.com/hashicorp/terraform/states/statemgr"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/mitchellh/cli"
 	"github.com/mitchellh/colorstring"
@@ -65,7 +65,7 @@ type Local struct {
 
 	// We only want to create a single instance of a local state, so store them
 	// here as they're loaded.
-	states map[string]state.State
+	states map[string]statemgr.Full
 
 	// Terraform context. Many of these will be overridden or merged by
 	// Operation. See Operation for more details.
@@ -98,6 +98,8 @@ type Local struct {
 
 	opLock sync.Mutex
 }
+
+var _ backend.Backend = (*Local)(nil)
 
 func (b *Local) ConfigSchema() *configschema.Block {
 	if b.Backend != nil {
@@ -184,12 +186,10 @@ func (b *Local) Configure(obj cty.Value) tfdiags.Diagnostics {
 	return diags
 }
 
-func (b *Local) State(name string) (state.State, error) {
-	statePath, stateOutPath, backupPath := b.StatePaths(name)
-
-	// If we have a backend handling state, delegate to that.
+func (b *Local) Workspaces() ([]string, error) {
+	// If we have a backend handling state, defer to that.
 	if b.Backend != nil {
-		return b.Backend.State(name)
+		return b.Backend.Workspaces()
 	}
 
 	if s, ok := b.states[name]; ok {
@@ -221,12 +221,13 @@ func (b *Local) State(name string) (state.State, error) {
 	return s, nil
 }
 
-// DeleteState removes a named state.
-// The "default" state cannot be removed.
-func (b *Local) DeleteState(name string) error {
+// DeleteWorkspace removes a workspace.
+//
+// The "default" workspace cannot be removed.
+func (b *Local) DeleteWorkspace(name string) error {
 	// If we have a backend handling state, defer to that.
 	if b.Backend != nil {
-		return b.Backend.DeleteState(name)
+		return b.Backend.DeleteWorkspace(name)
 	}
 
 	if name == "" {
@@ -241,10 +242,12 @@ func (b *Local) DeleteState(name string) error {
 	return os.RemoveAll(filepath.Join(b.stateWorkspaceDir(), name))
 }
 
-func (b *Local) States() ([]string, error) {
-	// If we have a backend handling state, defer to that.
+func (b *Local) StateMgr(name string) (statemgr.Full, error) {
+	statePath, stateOutPath, backupPath := b.StatePaths(name)
+
+	// If we have a backend handling state, delegate to that.
 	if b.Backend != nil {
-		return b.Backend.States()
+		return b.Backend.StateMgr(name)
 	}
 
 	// the listing always start with "default"
@@ -255,21 +258,17 @@ func (b *Local) States() ([]string, error) {
 	if os.IsNotExist(err) {
 		return envs, nil
 	}
-	if err != nil {
-		return nil, err
+
+	s := statemgr.NewFilesystemBetweenPaths(statePath, stateOutPath)
+	if backupPath != "" {
+		s.SetBackupPath(backupPath)
 	}
 
-	var listed []string
-	for _, entry := range entries {
-		if entry.IsDir() {
-			listed = append(listed, filepath.Base(entry.Name()))
-		}
+	if b.states == nil {
+		b.states = map[string]statemgr.Full{}
 	}
-
-	sort.Strings(listed)
-	envs = append(envs, listed...)
-
-	return envs, nil
+	b.states[name] = s
+	return s, nil
 }
 
 // Operation implements backend.Enhanced
@@ -354,7 +353,7 @@ func (b *Local) opWait(
 	stopCtx context.Context,
 	cancelCtx context.Context,
 	tfCtx *terraform.Context,
-	opState state.State) (canceled bool) {
+	opStateMgr statemgr.Persister) (canceled bool) {
 	// Wait for the operation to finish or for us to be interrupted so
 	// we can handle it properly.
 	select {
@@ -365,7 +364,7 @@ func (b *Local) opWait(
 
 		// try to force a PersistState just in case the process is terminated
 		// before we can complete.
-		if err := opState.PersistState(); err != nil {
+		if err := opStateMgr.PersistState(); err != nil {
 			// We can't error out from here, but warn the user if there was an error.
 			// If this isn't transient, we will catch it again below, and
 			// attempt to save the state another way.
@@ -465,7 +464,7 @@ func (b *Local) schemaConfigure(ctx context.Context) error {
 
 // StatePaths returns the StatePath, StateOutPath, and StateBackupPath as
 // configured from the CLI.
-func (b *Local) StatePaths(name string) (string, string, string) {
+func (b *Local) StatePaths(name string) (stateIn, stateOut, backupOut string) {
 	statePath := b.StatePath
 	stateOutPath := b.StateOutPath
 	backupPath := b.StateBackupPath

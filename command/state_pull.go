@@ -1,11 +1,9 @@
 package command
 
 import (
-	"bytes"
 	"fmt"
 	"strings"
 
-	"github.com/hashicorp/terraform/terraform"
 	"github.com/mitchellh/cli"
 )
 
@@ -36,7 +34,7 @@ func (c *StatePullCommand) Run(args []string) int {
 
 	// Get the state
 	env := c.Workspace()
-	state, err := b.State(env)
+	state, err := b.StateMgr(env)
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf("Failed to load state: %s", err))
 		return 1
@@ -54,13 +52,19 @@ func (c *StatePullCommand) Run(args []string) int {
 		return 0
 	}
 
-	var buf bytes.Buffer
-	if err := terraform.WriteState(s, &buf); err != nil {
-		c.Ui.Error(fmt.Sprintf("Failed to load state: %s", err))
-		return 1
-	}
+	c.Ui.Error("state pull not yet updated for new state types")
+	return 1
 
-	c.Ui.Output(buf.String())
+	/*
+		var buf bytes.Buffer
+		if err := terraform.WriteState(s, &buf); err != nil {
+			c.Ui.Error(fmt.Sprintf("Failed to load state: %s", err))
+			return 1
+		}
+
+		c.Ui.Output(buf.String())
+	*/
+
 	return 0
 }
 

@@ -7,6 +7,7 @@ import (
 
 	backendLocal "github.com/hashicorp/terraform/backend/local"
 	"github.com/hashicorp/terraform/state"
+	"github.com/hashicorp/terraform/states/statemgr"
 	"github.com/hashicorp/terraform/terraform"
 )
 
@@ -26,9 +27,7 @@ func (c *StateMeta) State() (state.State, error) {
 
 	// use the specified state
 	if c.statePath != "" {
-		realState = &state.LocalState{
-			Path: c.statePath,
-		}
+		realState = statemgr.NewFilesystem(c.statePath)
 	} else {
 		// Load the backend
 		b, backendDiags := c.Backend(nil)
@@ -36,9 +35,9 @@ func (c *StateMeta) State() (state.State, error) {
 			return nil, backendDiags.Err()
 		}
 
-		env := c.Workspace()
+		workspace := c.Workspace()
 		// Get the state
-		s, err := b.State(env)
+		s, err := b.StateMgr(workspace)
 		if err != nil {
 			return nil, err
 		}
@@ -49,8 +48,8 @@ func (c *StateMeta) State() (state.State, error) {
 			// This should never fail
 			panic(backendDiags.Err())
 		}
-		localB := localRaw.(*backendLocal.Local)
-		_, stateOutPath, _ = localB.StatePaths(env)
+		localB := localRaw.(*backendlocal.Local)
+		_, stateOutPath, _ = localB.StatePaths(workspace)
 		if err != nil {
 			return nil, err
 		}
@@ -70,10 +69,10 @@ func (c *StateMeta) State() (state.State, error) {
 			DefaultBackupExtension)
 	}
 
-	// Wrap it for backups
-	realState = &state.BackupState{
-		Real: realState,
-		Path: backupPath,
+	// If the backend is local (which it should always be, given our asserting
+	// of it above) we can now enable backups for it.
+	if lb, ok := realState.(*statemgr.Filesystem); ok {
+		lb.SetBackupPath(backupPath)
 	}
 
 	return realState, nil

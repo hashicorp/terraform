@@ -3,20 +3,13 @@ package terraform
 import (
 	"bytes"
 	"encoding/gob"
-	"errors"
 	"fmt"
 	"io"
-	"log"
 	"sync"
 
-	"github.com/hashicorp/hcl2/hcl"
-	"github.com/hashicorp/hcl2/hcl/hclsyntax"
 	"github.com/zclconf/go-cty/cty"
 
-	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs"
-	"github.com/hashicorp/terraform/tfdiags"
-	"github.com/hashicorp/terraform/version"
 )
 
 func init() {
@@ -84,88 +77,6 @@ type Plan struct {
 	once sync.Once
 }
 
-// Context returns a Context with the data encapsulated in this plan.
-//
-// The following fields in opts are overridden by the plan: Config,
-// Diff, Variables.
-//
-// If State is not provided, it is set from the plan. If it _is_ provided,
-// it must be Equal to the state stored in plan, but may have a newer
-// serial.
-func (p *Plan) Context(opts *ContextOpts) (*Context, tfdiags.Diagnostics) {
-	var err error
-	opts, err = p.contextOpts(opts)
-	if err != nil {
-		var diags tfdiags.Diagnostics
-		diags = diags.Append(err)
-		return nil, diags
-	}
-	return NewContext(opts)
-}
-
-// contextOpts mutates the given base ContextOpts in place to use input
-// objects obtained from the receiving plan.
-func (p *Plan) contextOpts(base *ContextOpts) (*ContextOpts, error) {
-	opts := base
-
-	opts.Diff = p.Diff
-	opts.Config = p.Config
-	opts.ProviderSHA256s = p.ProviderSHA256s
-	opts.Destroy = p.Destroy
-
-	if len(p.Targets) != 0 {
-		// We're still using target strings in the Plan struct, so we need to
-		// convert to our address representation here.
-		// FIXME: Change the Plan struct to use addrs.Targetable itself, and
-		// then handle these conversions when we read/write plans on disk.
-		targets := make([]addrs.Targetable, len(p.Targets))
-		for i, targetStr := range p.Targets {
-			traversal, travDiags := hclsyntax.ParseTraversalAbs([]byte(targetStr), "", hcl.Pos{})
-			if travDiags.HasErrors() {
-				return nil, travDiags
-			}
-			target, targDiags := addrs.ParseTarget(traversal)
-			if targDiags.HasErrors() {
-				return nil, targDiags.Err()
-			}
-			targets[i] = target.Subject
-		}
-		opts.Targets = targets
-	}
-
-	if opts.State == nil {
-		opts.State = p.State
-	} else if !opts.State.Equal(p.State) {
-		// Even if we're overriding the state, it should be logically equal
-		// to what's in plan. The only valid change to have made by the time
-		// we get here is to have incremented the serial.
-		//
-		// Due to the fact that serialization may change the representation of
-		// the state, there is little chance that these aren't actually equal.
-		// Log the error condition for reference, but continue with the state
-		// we have.
-		log.Println("[WARN] Plan state and ContextOpts state are not equal")
-	}
-
-	thisVersion := version.String()
-	if p.TerraformVersion != "" && p.TerraformVersion != thisVersion {
-		return nil, fmt.Errorf(
-			"plan was created with a different version of Terraform (created with %s, but running %s)",
-			p.TerraformVersion, thisVersion,
-		)
-	}
-
-	opts.Variables = make(InputValues)
-	for k, v := range p.Vars {
-		opts.Variables[k] = &InputValue{
-			Value:      v,
-			SourceType: ValueFromPlan,
-		}
-	}
-
-	return opts, nil
-}
-
 func (p *Plan) String() string {
 	buf := new(bytes.Buffer)
 	buf.WriteString("DIFF:\n\n")
@@ -202,65 +113,10 @@ const planFormatVersion byte = 2
 // ReadPlan reads a plan structure out of a reader in the format that
 // was written by WritePlan.
 func ReadPlan(src io.Reader) (*Plan, error) {
-	var result *Plan
-	var err error
-	n := 0
-
-	// Verify the magic bytes
-	magic := make([]byte, len(planFormatMagic))
-	for n < len(magic) {
-		n, err = src.Read(magic[n:])
-		if err != nil {
-			return nil, fmt.Errorf("error while reading magic bytes: %s", err)
-		}
-	}
-	if string(magic) != planFormatMagic {
-		return nil, fmt.Errorf("not a valid plan file")
-	}
-
-	// Verify the version is something we can read
-	var formatByte [1]byte
-	n, err = src.Read(formatByte[:])
-	if err != nil {
-		return nil, err
-	}
-	if n != len(formatByte) {
-		return nil, errors.New("failed to read plan version byte")
-	}
-
-	if formatByte[0] != planFormatVersion {
-		return nil, fmt.Errorf("unknown plan file version: %d", formatByte[0])
-	}
-
-	dec := gob.NewDecoder(src)
-	if err := dec.Decode(&result); err != nil {
-		return nil, err
-	}
-
-	return result, nil
+	return nil, fmt.Errorf("terraform.ReadPlan is no longer in use; use planfile.Open instead")
 }
 
 // WritePlan writes a plan somewhere in a binary format.
 func WritePlan(d *Plan, dst io.Writer) error {
-	return fmt.Errorf("plan serialization is temporarily disabled, pending implementation of the new file format")
-
-	// Write the magic bytes so we can determine the file format later
-	n, err := dst.Write([]byte(planFormatMagic))
-	if err != nil {
-		return err
-	}
-	if n != len(planFormatMagic) {
-		return errors.New("failed to write plan format magic bytes")
-	}
-
-	// Write a version byte so we can iterate on version at some point
-	n, err = dst.Write([]byte{planFormatVersion})
-	if err != nil {
-		return err
-	}
-	if n != 1 {
-		return errors.New("failed to write plan version byte")
-	}
-
-	return gob.NewEncoder(dst).Encode(d)
+	return fmt.Errorf("terraform.WritePlan is no longer in use; use planfile.Create instead")
 }

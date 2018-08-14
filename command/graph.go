@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/hashicorp/terraform/plans"
 	"github.com/hashicorp/terraform/tfdiags"
 
 	"github.com/hashicorp/terraform/backend"
@@ -46,12 +47,13 @@ func (c *GraphCommand) Run(args []string) int {
 	}
 
 	// Check if the path is a plan
-	plan, err := c.Plan(configPath)
+	var plan *plans.Plan
+	planFile, err := c.PlanFile(configPath)
 	if err != nil {
 		c.Ui.Error(err.Error())
 		return 1
 	}
-	if plan != nil {
+	if planFile != nil {
 		// Reset for backend loading
 		configPath = ""
 	}
@@ -84,10 +86,10 @@ func (c *GraphCommand) Run(args []string) int {
 	}
 
 	// Build the operation
-	opReq := c.Operation()
+	opReq := c.Operation(b)
 	opReq.ConfigDir = configPath
 	opReq.ConfigLoader, err = c.initConfigLoader()
-	opReq.Plan = plan
+	opReq.PlanFile = planFile
 	if err != nil {
 		diags = diags.Append(err)
 		c.showDiagnostics(diags)

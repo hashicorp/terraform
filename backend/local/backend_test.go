@@ -10,7 +10,7 @@ import (
 	"testing"
 
 	"github.com/hashicorp/terraform/backend"
-	"github.com/hashicorp/terraform/state"
+	"github.com/hashicorp/terraform/states/statemgr"
 	"github.com/hashicorp/terraform/terraform"
 )
 
@@ -94,8 +94,8 @@ func TestLocal_addAndRemoveStates(t *testing.T) {
 	dflt := backend.DefaultStateName
 	expectedStates := []string{dflt}
 
-	b := New()
-	states, err := b.States()
+	b := &Local{}
+	states, err := b.Workspaces()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -105,11 +105,11 @@ func TestLocal_addAndRemoveStates(t *testing.T) {
 	}
 
 	expectedA := "test_A"
-	if _, err := b.State(expectedA); err != nil {
+	if _, err := b.StateMgr(expectedA); err != nil {
 		t.Fatal(err)
 	}
 
-	states, err = b.States()
+	states, err = b.Workspaces()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -120,11 +120,11 @@ func TestLocal_addAndRemoveStates(t *testing.T) {
 	}
 
 	expectedB := "test_B"
-	if _, err := b.State(expectedB); err != nil {
+	if _, err := b.StateMgr(expectedB); err != nil {
 		t.Fatal(err)
 	}
 
-	states, err = b.States()
+	states, err = b.Workspaces()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -134,11 +134,11 @@ func TestLocal_addAndRemoveStates(t *testing.T) {
 		t.Fatalf("expected %q, got %q", expectedStates, states)
 	}
 
-	if err := b.DeleteState(expectedA); err != nil {
+	if err := b.DeleteWorkspace(expectedA); err != nil {
 		t.Fatal(err)
 	}
 
-	states, err = b.States()
+	states, err = b.Workspaces()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -148,11 +148,11 @@ func TestLocal_addAndRemoveStates(t *testing.T) {
 		t.Fatalf("expected %q, got %q", expectedStates, states)
 	}
 
-	if err := b.DeleteState(expectedB); err != nil {
+	if err := b.DeleteWorkspace(expectedB); err != nil {
 		t.Fatal(err)
 	}
 
-	states, err = b.States()
+	states, err = b.Workspaces()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -162,7 +162,7 @@ func TestLocal_addAndRemoveStates(t *testing.T) {
 		t.Fatalf("expected %q, got %q", expectedStates, states)
 	}
 
-	if err := b.DeleteState(dflt); err == nil {
+	if err := b.DeleteWorkspace(dflt); err == nil {
 		t.Fatal("expected error deleting default state")
 	}
 }
@@ -182,14 +182,11 @@ var errTestDelegateState = errors.New("State called")
 var errTestDelegateStates = errors.New("States called")
 var errTestDelegateDeleteState = errors.New("Delete called")
 
-func (b *testDelegateBackend) State(name string) (state.State, error) {
+func (b *testDelegateBackend) State(name string) (statemgr.Full, error) {
 	if b.stateErr {
 		return nil, errTestDelegateState
 	}
-	s := &state.LocalState{
-		Path:    "terraform.tfstate",
-		PathOut: "terraform.tfstate",
-	}
+	s := statemgr.NewFilesystem("terraform.tfstate")
 	return s, nil
 }
 
@@ -216,15 +213,15 @@ func TestLocal_multiStateBackend(t *testing.T) {
 		deleteErr: true,
 	})
 
-	if _, err := b.State("test"); err != errTestDelegateState {
+	if _, err := b.StateMgr("test"); err != errTestDelegateState {
 		t.Fatal("expected errTestDelegateState, got:", err)
 	}
 
-	if _, err := b.States(); err != errTestDelegateStates {
+	if _, err := b.Workspaces(); err != errTestDelegateStates {
 		t.Fatal("expected errTestDelegateStates, got:", err)
 	}
 
-	if err := b.DeleteState("test"); err != errTestDelegateDeleteState {
+	if err := b.DeleteWorkspace("test"); err != errTestDelegateDeleteState {
 		t.Fatal("expected errTestDelegateDeleteState, got:", err)
 	}
 }

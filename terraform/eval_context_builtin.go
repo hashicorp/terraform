@@ -6,6 +6,10 @@ import (
 	"log"
 	"sync"
 
+	"github.com/hashicorp/terraform/plans"
+
+	"github.com/hashicorp/terraform/states"
+
 	"github.com/hashicorp/hcl2/hcl"
 	"github.com/hashicorp/terraform/configs/configschema"
 	"github.com/hashicorp/terraform/lang"
@@ -54,10 +58,8 @@ type BuiltinEvalContext struct {
 	ProviderLock        *sync.Mutex
 	ProvisionerCache    map[string]ResourceProvisioner
 	ProvisionerLock     *sync.Mutex
-	DiffValue           *Diff
-	DiffLock            *sync.RWMutex
-	StateValue          *State
-	StateLock           *sync.RWMutex
+	ChangesValue        *plans.ChangesSync
+	StateValue          *states.SyncState
 
 	once sync.Once
 }
@@ -318,12 +320,12 @@ func (ctx *BuiltinEvalContext) SetModuleCallArguments(n addrs.ModuleCallInstance
 	}
 }
 
-func (ctx *BuiltinEvalContext) Diff() (*Diff, *sync.RWMutex) {
-	return ctx.DiffValue, ctx.DiffLock
+func (ctx *BuiltinEvalContext) Changes() *plans.ChangesSync {
+	return ctx.ChangesValue
 }
 
-func (ctx *BuiltinEvalContext) State() (*State, *sync.RWMutex) {
-	return ctx.StateValue, ctx.StateLock
+func (ctx *BuiltinEvalContext) State() *states.SyncState {
+	return ctx.StateValue
 }
 
 func (ctx *BuiltinEvalContext) init() {

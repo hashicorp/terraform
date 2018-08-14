@@ -15,8 +15,6 @@ import (
 	backendInit "github.com/hashicorp/terraform/backend/init"
 	"github.com/hashicorp/terraform/command/format"
 	"github.com/hashicorp/terraform/helper/logging"
-	"github.com/hashicorp/terraform/svchost/disco"
-	"github.com/hashicorp/terraform/terraform"
 	"github.com/mattn/go-colorable"
 	"github.com/mattn/go-shellwords"
 	"github.com/mitchellh/cli"
@@ -112,9 +110,6 @@ func init() {
 
 func wrappedMain() int {
 	var err error
-
-	// We always need to close the DebugInfo before we exit.
-	defer terraform.CloseDebugInfo()
 
 	log.SetOutput(os.Stderr)
 	log.Printf(

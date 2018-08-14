@@ -15,6 +15,7 @@ import (
 	multierror "github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/terraform/helper/slowmessage"
 	"github.com/hashicorp/terraform/state"
+	"github.com/hashicorp/terraform/states/statemgr"
 	"github.com/mitchellh/cli"
 	"github.com/mitchellh/colorstring"
 )
@@ -60,8 +61,8 @@ that no one else is holding a lock.
 // Unlock, which is at a minimum the LockID string returned by the
 // state.Locker.
 type Locker interface {
-	// Lock the provided state, storing the reason string in the LockInfo.
-	Lock(s state.State, reason string) error
+	// Lock the provided state manager, storing the reason string in the LockInfo.
+	Lock(s statemgr.Locker, reason string) error
 	// Unlock the previously locked state.
 	// An optional error can be passed in, and will be combined with any error
 	// from the Unlock operation.
@@ -72,7 +73,7 @@ type locker struct {
 	mu      sync.Mutex
 	ctx     context.Context
 	timeout time.Duration
-	state   state.State
+	state   statemgr.Locker
 	ui      cli.Ui
 	color   *colorstring.Colorize
 	lockID  string
@@ -100,7 +101,7 @@ func NewLocker(
 // Locker locks the given state and outputs to the user if locking is taking
 // longer than the threshold. The lock is retried until the context is
 // cancelled.
-func (l *locker) Lock(s state.State, reason string) error {
+func (l *locker) Lock(s statemgr.Locker, reason string) error {
 	l.mu.Lock()
 	defer l.mu.Unlock()
 
@@ -113,7 +114,7 @@ func (l *locker) Lock(s state.State, reason string) error {
 	lockInfo.Operation = reason
 
 	err := slowmessage.Do(LockThreshold, func() error {
-		id, err := state.LockWithContext(ctx, s, lockInfo)
+		id, err := statemgr.LockWithContext(ctx, s, lockInfo)
 		l.lockID = id
 		return err
 	}, func() {
@@ -165,7 +166,7 @@ func NewNoopLocker() Locker {
 	return noopLocker{}
 }
 
-func (l noopLocker) Lock(state.State, string) error {
+func (l noopLocker) Lock(statemgr.Locker, string) error {
 	return nil
 }
 

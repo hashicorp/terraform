@@ -5,8 +5,8 @@ import (
 	"testing"
 
 	"github.com/hashicorp/terraform/addrs"
-
 	"github.com/hashicorp/terraform/dag"
+	"github.com/hashicorp/terraform/states"
 )
 
 func TestMissingProvisionerTransformer(t *testing.T) {
@@ -57,31 +57,44 @@ func TestMissingProvisionerTransformer_module(t *testing.T) {
 			return a
 		}
 
-		var state State
-		state.init()
-		state.Modules = []*ModuleState{
-			&ModuleState{
-				Path: []string{"root"},
-				Resources: map[string]*ResourceState{
-					"aws_instance.foo": &ResourceState{
-						Primary: &InstanceState{ID: "foo"},
+		state := states.BuildState(func(s *states.SyncState) {
+			s.SetResourceInstanceCurrent(
+				addrs.Resource{
+					Mode: addrs.ManagedResourceMode,
+					Type: "aws_instance",
+					Name: "foo",
+				}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+				&states.ResourceInstanceObjectSrc{
+					AttrsFlat: map[string]string{
+						"id": "foo",
 					},
+					Status: states.ObjectReady,
 				},
-			},
-
-			&ModuleState{
-				Path: []string{"root", "child"},
-				Resources: map[string]*ResourceState{
-					"aws_instance.foo": &ResourceState{
-						Primary: &InstanceState{ID: "foo"},
+				addrs.ProviderConfig{
+					Type: "aws",
+				}.Absolute(addrs.RootModuleInstance),
+			)
+			s.SetResourceInstanceCurrent(
+				addrs.Resource{
+					Mode: addrs.ManagedResourceMode,
+					Type: "aws_instance",
+					Name: "foo",
+				}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance.Child("child", addrs.NoKey)),
+				&states.ResourceInstanceObjectSrc{
+					AttrsFlat: map[string]string{
+						"id": "foo",
 					},
+					Status: states.ObjectReady,
 				},
-			},
-		}
+				addrs.ProviderConfig{
+					Type: "aws",
+				}.Absolute(addrs.RootModuleInstance),
+			)
+		})
 
 		tf := &StateTransformer{
 			Concrete: concreteResource,
-			State:    &state,
+			State:    state,
 		}
 		if err := tf.Transform(&g); err != nil {
 			t.Fatalf("err: %s", err)
