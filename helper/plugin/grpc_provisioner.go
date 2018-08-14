@@ -12,6 +12,19 @@ import (
 	context "golang.org/x/net/context"
 )
 
+// NewGRPCProvisionerServerShim wraps a terraform.ResourceProvisioner in a
+// proto.ProvisionerServer implementation. If the provided provisioner is not a
+// *schema.Provisioner, this will return nil,
+func NewGRPCProvisionerServerShim(p terraform.ResourceProvisioner) *GRPCProvisionerServer {
+	sp, ok := p.(*schema.Provisioner)
+	if !ok {
+		return nil
+	}
+	return &GRPCProvisionerServer{
+		provisioner: sp,
+	}
+}
+
 type GRPCProvisionerServer struct {
 	provisioner *schema.Provisioner
 }
