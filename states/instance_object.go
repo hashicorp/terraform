@@ -67,8 +67,8 @@ const (
 // The returned object may share internal references with the receiver and
 // so the caller must not mutate the receiver any further once once this
 // method is called.
-func (o *ResourceInstanceObject) Encode(val cty.Value, ty cty.Type, schemaVersion uint64) (*ResourceInstanceObjectSrc, error) {
-	src, err := ctyjson.Marshal(val, ty)
+func (o *ResourceInstanceObject) Encode(ty cty.Type, schemaVersion uint64) (*ResourceInstanceObjectSrc, error) {
+	src, err := ctyjson.Marshal(o.Value, ty)
 	if err != nil {
 		return nil, err
 	}

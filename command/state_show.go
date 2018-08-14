@@ -2,12 +2,9 @@ package command
 
 import (
 	"fmt"
-	"sort"
 	"strings"
 
-	"github.com/hashicorp/terraform/terraform"
 	"github.com/mitchellh/cli"
-	"github.com/ryanuber/columnize"
 )
 
 // StateShowCommand is a Command implementation that shows a single resource.
@@ -38,7 +35,7 @@ func (c *StateShowCommand) Run(args []string) int {
 
 	// Get the state
 	env := c.Workspace()
-	state, err := b.State(env)
+	state, err := b.StateMgr(env)
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf("Failed to load state: %s", err))
 		return 1
@@ -54,50 +51,55 @@ func (c *StateShowCommand) Run(args []string) int {
 		return 1
 	}
 
-	filter := &terraform.StateFilter{State: stateReal}
-	results, err := filter.Filter(args...)
-	if err != nil {
-		c.Ui.Error(fmt.Sprintf(errStateFilter, err))
-		return 1
-	}
+	c.Ui.Error("state show not yet updated for new state types")
+	return 1
 
-	if len(results) == 0 {
-		return 0
-	}
-
-	instance, err := c.filterInstance(results)
-	if err != nil {
-		c.Ui.Error(err.Error())
-		return 1
-	}
-
-	if instance == nil {
-		return 0
-	}
-
-	is := instance.Value.(*terraform.InstanceState)
-
-	// Sort the keys
-	var keys []string
-	for k, _ := range is.Attributes {
-		keys = append(keys, k)
-	}
-	sort.Strings(keys)
-
-	// Build the output
-	var output []string
-	output = append(output, fmt.Sprintf("id | %s", is.ID))
-	for _, k := range keys {
-		if k != "id" {
-			output = append(output, fmt.Sprintf("%s | %s", k, is.Attributes[k]))
+	/*
+		filter := &terraform.StateFilter{State: stateReal}
+		results, err := filter.Filter(args...)
+		if err != nil {
+			c.Ui.Error(fmt.Sprintf(errStateFilter, err))
+			return 1
 		}
-	}
 
-	// Output
-	config := columnize.DefaultConfig()
-	config.Glue = " = "
-	c.Ui.Output(columnize.Format(output, config))
-	return 0
+		if len(results) == 0 {
+			return 0
+		}
+
+		instance, err := c.filterInstance(results)
+		if err != nil {
+			c.Ui.Error(err.Error())
+			return 1
+		}
+
+		if instance == nil {
+			return 0
+		}
+
+		is := instance.Value.(*terraform.InstanceState)
+
+		// Sort the keys
+		var keys []string
+		for k, _ := range is.Attributes {
+			keys = append(keys, k)
+		}
+		sort.Strings(keys)
+
+		// Build the output
+		var output []string
+		output = append(output, fmt.Sprintf("id | %s", is.ID))
+		for _, k := range keys {
+			if k != "id" {
+				output = append(output, fmt.Sprintf("%s | %s", k, is.Attributes[k]))
+			}
+		}
+
+		// Output
+		config := columnize.DefaultConfig()
+		config.Glue = " = "
+		c.Ui.Output(columnize.Format(output, config))
+		return 0
+	*/
 }
 
 func (c *StateShowCommand) Help() string {

@@ -1,8 +1,9 @@
 package terraform
 
 import (
-	"sync"
 	"testing"
+
+	"github.com/hashicorp/terraform/states"
 
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/zclconf/go-cty/cty"
@@ -10,8 +11,7 @@ import (
 
 func TestEvalWriteMapOutput(t *testing.T) {
 	ctx := new(MockEvalContext)
-	ctx.StateState = NewState()
-	ctx.StateLock = new(sync.RWMutex)
+	ctx.StateState = states.NewState().SyncWrapper()
 
 	cases := []struct {
 		name string

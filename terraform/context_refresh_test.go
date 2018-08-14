@@ -15,57 +15,60 @@ import (
 )
 
 func TestContext2Refresh(t *testing.T) {
-	p := testProvider("aws")
-	m := testModule(t, "refresh-basic")
-	ctx := testContext2(t, &ContextOpts{
-		Config: m,
-		ProviderResolver: ResourceProviderResolverFixed(
-			map[string]ResourceProviderFactory{
-				"aws": testProviderFuncFixed(p),
-			},
-		),
-		State: &State{
-			Modules: []*ModuleState{
-				&ModuleState{
-					Path: rootModulePath,
-					Resources: map[string]*ResourceState{
-						"aws_instance.web": &ResourceState{
-							Type: "aws_instance",
-							Primary: &InstanceState{
-								ID: "foo",
+	t.Fatalf("not yet updated for new provider interface")
+	/*
+		p := testProvider("aws")
+		m := testModule(t, "refresh-basic")
+		ctx := testContext2(t, &ContextOpts{
+			Config: m,
+			ProviderResolver: ResourceProviderResolverFixed(
+				map[string]ResourceProviderFactory{
+					"aws": testProviderFuncFixed(p),
+				},
+			),
+			State: mustShimLegacyState(&State{
+				Modules: []*ModuleState{
+					&ModuleState{
+						Path: rootModulePath,
+						Resources: map[string]*ResourceState{
+							"aws_instance.web": &ResourceState{
+								Type: "aws_instance",
+								Primary: &InstanceState{
+									ID: "foo",
+								},
 							},
 						},
 					},
 				},
-			},
-		},
-	})
+			}),
+		})
 
-	p.RefreshFn = nil
-	p.RefreshReturn = &InstanceState{
-		ID: "foo",
-	}
-
-	s, err := ctx.Refresh()
-	mod := s.RootModule()
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	if !p.RefreshCalled {
-		t.Fatal("refresh should be called")
-	}
-	if p.RefreshState.ID != "foo" {
-		t.Fatalf("bad: %#v", p.RefreshState)
-	}
-	if !reflect.DeepEqual(mod.Resources["aws_instance.web"].Primary, p.RefreshReturn) {
-		t.Fatalf("bad: %#v %#v", mod.Resources["aws_instance.web"], p.RefreshReturn)
-	}
-
-	for _, r := range mod.Resources {
-		if r.Type == "" {
-			t.Fatalf("no type: %#v", r)
+		p.RefreshFn = nil
+		p.RefreshReturn = &InstanceState{
+			ID: "foo",
 		}
-	}
+
+		s, err := ctx.Refresh()
+		mod := s.RootModule()
+		if err != nil {
+			t.Fatalf("err: %s", err)
+		}
+		if !p.RefreshCalled {
+			t.Fatal("refresh should be called")
+		}
+		if p.RefreshState.ID != "foo" {
+			t.Fatalf("bad: %#v", p.RefreshState)
+		}
+		if !reflect.DeepEqual(mod.Resources["aws_instance.web"].Primary, p.RefreshReturn) {
+			t.Fatalf("bad: %#v %#v", mod.Resources["aws_instance.web"], p.RefreshReturn)
+		}
+
+		for _, r := range mod.Resources {
+			if r.Type == "" {
+				t.Fatalf("no type: %#v", r)
+			}
+		}
+	*/
 }
 
 func TestContext2Refresh_dataComputedModuleVar(t *testing.T) {
@@ -168,7 +171,7 @@ func TestContext2Refresh_targeted(t *testing.T) {
 				"aws": testProviderFuncFixed(p),
 			},
 		),
-		State: &State{
+		State: mustShimLegacyState(&State{
 			Modules: []*ModuleState{
 				&ModuleState{
 					Path: rootModulePath,
@@ -180,7 +183,7 @@ func TestContext2Refresh_targeted(t *testing.T) {
 					},
 				},
 			},
-		},
+		}),
 		Targets: []addrs.Targetable{
 			addrs.RootModuleInstance.Resource(
 				addrs.ManagedResourceMode, "aws_instance", "me",
@@ -249,7 +252,7 @@ func TestContext2Refresh_targetedCount(t *testing.T) {
 				"aws": testProviderFuncFixed(p),
 			},
 		),
-		State: &State{
+		State: mustShimLegacyState(&State{
 			Modules: []*ModuleState{
 				&ModuleState{
 					Path: rootModulePath,
@@ -263,7 +266,7 @@ func TestContext2Refresh_targetedCount(t *testing.T) {
 					},
 				},
 			},
-		},
+		}),
 		Targets: []addrs.Targetable{
 			addrs.RootModuleInstance.Resource(
 				addrs.ManagedResourceMode, "aws_instance", "me",
@@ -340,7 +343,7 @@ func TestContext2Refresh_targetedCountIndex(t *testing.T) {
 				"aws": testProviderFuncFixed(p),
 			},
 		),
-		State: &State{
+		State: mustShimLegacyState(&State{
 			Modules: []*ModuleState{
 				&ModuleState{
 					Path: rootModulePath,
@@ -354,7 +357,7 @@ func TestContext2Refresh_targetedCountIndex(t *testing.T) {
 					},
 				},
 			},
-		},
+		}),
 		Targets: []addrs.Targetable{
 			addrs.RootModuleInstance.ResourceInstance(
 				addrs.ManagedResourceMode, "aws_instance", "me", addrs.IntKey(0),
@@ -426,7 +429,7 @@ func TestContext2Refresh_delete(t *testing.T) {
 				"aws": testProviderFuncFixed(p),
 			},
 		),
-		State: &State{
+		State: mustShimLegacyState(&State{
 			Modules: []*ModuleState{
 				&ModuleState{
 					Path: rootModulePath,
@@ -440,7 +443,7 @@ func TestContext2Refresh_delete(t *testing.T) {
 					},
 				},
 			},
-		},
+		}),
 	})
 
 	p.RefreshFn = nil
@@ -496,7 +499,7 @@ func TestContext2Refresh_hook(t *testing.T) {
 				"aws": testProviderFuncFixed(p),
 			},
 		),
-		State: &State{
+		State: mustShimLegacyState(&State{
 			Modules: []*ModuleState{
 				&ModuleState{
 					Path: rootModulePath,
@@ -510,7 +513,7 @@ func TestContext2Refresh_hook(t *testing.T) {
 					},
 				},
 			},
-		},
+		}),
 	})
 
 	if _, diags := ctx.Refresh(); diags.HasErrors() {
@@ -527,7 +530,7 @@ func TestContext2Refresh_hook(t *testing.T) {
 func TestContext2Refresh_modules(t *testing.T) {
 	p := testProvider("aws")
 	m := testModule(t, "refresh-modules")
-	state := &State{
+	state := mustShimLegacyState(&State{
 		Modules: []*ModuleState{
 			&ModuleState{
 				Path: rootModulePath,
@@ -554,7 +557,7 @@ func TestContext2Refresh_modules(t *testing.T) {
 				},
 			},
 		},
-	}
+	})
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
 		ProviderResolver: ResourceProviderResolverFixed(
@@ -687,7 +690,7 @@ func TestContext2Refresh_output(t *testing.T) {
 				"aws": testProviderFuncFixed(p),
 			},
 		),
-		State: &State{
+		State: mustShimLegacyState(&State{
 			Modules: []*ModuleState{
 				&ModuleState{
 					Path: rootModulePath,
@@ -712,7 +715,7 @@ func TestContext2Refresh_output(t *testing.T) {
 					},
 				},
 			},
-		},
+		}),
 	})
 
 	p.RefreshFn = func(info *InstanceInfo, s *InstanceState) (*InstanceState, error) {
@@ -741,7 +744,7 @@ func TestContext2Refresh_outputPartial(t *testing.T) {
 				"aws": testProviderFuncFixed(p),
 			},
 		),
-		State: &State{
+		State: mustShimLegacyState(&State{
 			Modules: []*ModuleState{
 				&ModuleState{
 					Path: rootModulePath,
@@ -756,7 +759,7 @@ func TestContext2Refresh_outputPartial(t *testing.T) {
 					Outputs: map[string]*OutputState{},
 				},
 			},
-		},
+		}),
 	})
 
 	p.RefreshFn = nil
@@ -789,61 +792,64 @@ func TestContext2Refresh_outputPartial(t *testing.T) {
 }
 
 func TestContext2Refresh_stateBasic(t *testing.T) {
-	p := testProvider("aws")
-	m := testModule(t, "refresh-basic")
-	state := &State{
-		Modules: []*ModuleState{
-			&ModuleState{
-				Path: rootModulePath,
-				Resources: map[string]*ResourceState{
-					"aws_instance.web": &ResourceState{
-						Type: "aws_instance",
-						Primary: &InstanceState{
-							ID: "bar",
+	t.Fatalf("not yet updated for new provider interface")
+	/*
+		p := testProvider("aws")
+		m := testModule(t, "refresh-basic")
+		state := mustShimLegacyState(&State{
+			Modules: []*ModuleState{
+				&ModuleState{
+					Path: rootModulePath,
+					Resources: map[string]*ResourceState{
+						"aws_instance.web": &ResourceState{
+							Type: "aws_instance",
+							Primary: &InstanceState{
+								ID: "bar",
+							},
 						},
 					},
 				},
 			},
-		},
-	}
-	ctx := testContext2(t, &ContextOpts{
-		Config: m,
-		ProviderResolver: ResourceProviderResolverFixed(
-			map[string]ResourceProviderFactory{
-				"aws": testProviderFuncFixed(p),
-			},
-		),
-		State: state,
-	})
+		})
+		ctx := testContext2(t, &ContextOpts{
+			Config: m,
+			ProviderResolver: ResourceProviderResolverFixed(
+				map[string]ResourceProviderFactory{
+					"aws": testProviderFuncFixed(p),
+				},
+			),
+			State: state,
+		})
 
-	p.RefreshFn = nil
-	p.RefreshReturn = &InstanceState{
-		ID: "foo",
-	}
+		p.RefreshFn = nil
+		p.RefreshReturn = &InstanceState{
+			ID: "foo",
+		}
 
-	s, diags := ctx.Refresh()
-	if diags.HasErrors() {
-		t.Fatalf("refresh errors: %s", diags.Err())
-	}
-	originalMod := state.RootModule()
-	mod := s.RootModule()
-	if !p.RefreshCalled {
-		t.Fatal("refresh should be called")
-	}
-	if !reflect.DeepEqual(p.RefreshState, originalMod.Resources["aws_instance.web"].Primary) {
-		t.Fatalf(
-			"bad:\n\n%#v\n\n%#v",
-			p.RefreshState,
-			originalMod.Resources["aws_instance.web"].Primary)
-	}
-	if !reflect.DeepEqual(mod.Resources["aws_instance.web"].Primary, p.RefreshReturn) {
-		t.Fatalf("bad: %#v", mod.Resources)
-	}
+		s, diags := ctx.Refresh()
+		if diags.HasErrors() {
+			t.Fatalf("refresh errors: %s", diags.Err())
+		}
+		originalMod := state.RootModule()
+		mod := s.RootModule()
+		if !p.RefreshCalled {
+			t.Fatal("refresh should be called")
+		}
+		if !reflect.DeepEqual(p.RefreshState, originalMod.Resources["aws_instance.web"].Primary) {
+			t.Fatalf(
+				"bad:\n\n%#v\n\n%#v",
+				p.RefreshState,
+				originalMod.Resources["aws_instance.web"].Primary)
+		}
+		if !reflect.DeepEqual(mod.Resources["aws_instance.web"].Primary, p.RefreshReturn) {
+			t.Fatalf("bad: %#v", mod.Resources)
+		}
+	*/
 }
 
 func TestContext2Refresh_dataOrphan(t *testing.T) {
 	p := testProvider("null")
-	state := &State{
+	state := mustShimLegacyState(&State{
 		Modules: []*ModuleState{
 			&ModuleState{
 				Path: rootModulePath,
@@ -858,7 +864,7 @@ func TestContext2Refresh_dataOrphan(t *testing.T) {
 				},
 			},
 		},
-	}
+	})
 	ctx := testContext2(t, &ContextOpts{
 		ProviderResolver: ResourceProviderResolverFixed(
 			map[string]ResourceProviderFactory{
@@ -877,91 +883,94 @@ func TestContext2Refresh_dataOrphan(t *testing.T) {
 }
 
 func TestContext2Refresh_dataState(t *testing.T) {
-	m := testModule(t, "refresh-data-resource-basic")
+	t.Fatalf("not yet updated for new provider interface")
+	/*
+		m := testModule(t, "refresh-data-resource-basic")
 
-	state := &State{
-		Modules: []*ModuleState{
-			&ModuleState{
-				Path: rootModulePath,
-				// Intentionally no resources since data resources are
-				// supposed to refresh themselves even if they didn't
-				// already exist.
-				Resources: map[string]*ResourceState{},
+		state := mustShimLegacyState(&State{
+			Modules: []*ModuleState{
+				&ModuleState{
+					Path: rootModulePath,
+					// Intentionally no resources since data resources are
+					// supposed to refresh themselves even if they didn't
+					// already exist.
+					Resources: map[string]*ResourceState{},
+				},
 			},
-		},
-	}
+		})
 
-	p := testProvider("null")
-	p.GetSchemaReturn = &ProviderSchema{
-		Provider: &configschema.Block{},
-		DataSources: map[string]*configschema.Block{
-			"null_data_source": {
-				Attributes: map[string]*configschema.Attribute{
-					"inputs": {
-						Type:     cty.Map(cty.String),
-						Optional: true,
+		p := testProvider("null")
+		p.GetSchemaReturn = &ProviderSchema{
+			Provider: &configschema.Block{},
+			DataSources: map[string]*configschema.Block{
+				"null_data_source": {
+					Attributes: map[string]*configschema.Attribute{
+						"inputs": {
+							Type:     cty.Map(cty.String),
+							Optional: true,
+						},
 					},
 				},
 			},
-		},
-	}
+		}
 
-	ctx := testContext2(t, &ContextOpts{
-		Config: m,
-		ProviderResolver: ResourceProviderResolverFixed(
-			map[string]ResourceProviderFactory{
-				"null": testProviderFuncFixed(p),
+		ctx := testContext2(t, &ContextOpts{
+			Config: m,
+			ProviderResolver: ResourceProviderResolverFixed(
+				map[string]ResourceProviderFactory{
+					"null": testProviderFuncFixed(p),
+				},
+			),
+			State: state,
+		})
+
+		p.ReadDataDiffFn = nil
+		p.ReadDataDiffReturn = &InstanceDiff{
+			Attributes: map[string]*ResourceAttrDiff{
+				"inputs.#": {
+					Old:  "0",
+					New:  "1",
+					Type: DiffAttrInput,
+				},
+				"inputs.test": {
+					Old:  "",
+					New:  "yes",
+					Type: DiffAttrInput,
+				},
+				"outputs.#": {
+					Old:         "",
+					New:         "",
+					NewComputed: true,
+					Type:        DiffAttrOutput,
+				},
 			},
-		),
-		State: state,
-	})
+		}
 
-	p.ReadDataDiffFn = nil
-	p.ReadDataDiffReturn = &InstanceDiff{
-		Attributes: map[string]*ResourceAttrDiff{
-			"inputs.#": {
-				Old:  "0",
-				New:  "1",
-				Type: DiffAttrInput,
-			},
-			"inputs.test": {
-				Old:  "",
-				New:  "yes",
-				Type: DiffAttrInput,
-			},
-			"outputs.#": {
-				Old:         "",
-				New:         "",
-				NewComputed: true,
-				Type:        DiffAttrOutput,
-			},
-		},
-	}
+		p.ReadDataApplyFn = nil
+		p.ReadDataApplyReturn = &InstanceState{
+			ID: "-",
+		}
 
-	p.ReadDataApplyFn = nil
-	p.ReadDataApplyReturn = &InstanceState{
-		ID: "-",
-	}
+		s, diags := ctx.Refresh()
+		if diags.HasErrors() {
+			t.Fatalf("refresh errors: %s", diags.Err())
+		}
 
-	s, diags := ctx.Refresh()
-	if diags.HasErrors() {
-		t.Fatalf("refresh errors: %s", diags.Err())
-	}
+		if !p.ReadDataDiffCalled {
+			t.Fatal("ReadDataDiff should have been called")
+		}
+		if !p.ReadDataApplyCalled {
+			t.Fatal("ReadDataApply should have been called")
+		}
 
-	if !p.ReadDataDiffCalled {
-		t.Fatal("ReadDataDiff should have been called")
-	}
-	if !p.ReadDataApplyCalled {
-		t.Fatal("ReadDataApply should have been called")
-	}
-
-	mod := s.RootModule()
-	if got := mod.Resources["data.null_data_source.testing"].Primary.ID; got != "-" {
-		t.Fatalf("resource id is %q; want %s", got, "-")
-	}
-	if !reflect.DeepEqual(mod.Resources["data.null_data_source.testing"].Primary, p.ReadDataApplyReturn) {
-		t.Fatalf("bad: %#v", mod.Resources)
-	}
+		mod := s.RootModule()
+		if got := mod.Resources["data.null_data_source.testing"].Primary.ID; got != "-" {
+			t.Fatalf("resource id is %q; want %s", got, "-")
+		}
+		if !reflect.DeepEqual(mod.Resources["data.null_data_source.testing"].Primary, p.ReadDataApplyReturn) {
+			t.Fatalf("bad: %#v", mod.Resources)
+		}
+	*/
 }
 
 func TestContext2Refresh_dataStateRefData(t *testing.T) {
@@ -985,7 +994,7 @@ func TestContext2Refresh_dataStateRefData(t *testing.T) {
 	}
 
 	m := testModule(t, "refresh-data-ref-data")
-	state := &State{
+	state := mustShimLegacyState(&State{
 		Modules: []*ModuleState{
 			&ModuleState{
 				Path: rootModulePath,
@@ -995,7 +1004,7 @@ func TestContext2Refresh_dataStateRefData(t *testing.T) {
 				Resources: map[string]*ResourceState{},
 			},
 		},
-	}
+	})
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
 		ProviderResolver: ResourceProviderResolverFixed(
@@ -1024,7 +1033,7 @@ func TestContext2Refresh_dataStateRefData(t *testing.T) {
 func TestContext2Refresh_tainted(t *testing.T) {
 	p := testProvider("aws")
 	m := testModule(t, "refresh-basic")
-	state := &State{
+	state := mustShimLegacyState(&State{
 		Modules: []*ModuleState{
 			&ModuleState{
 				Path: rootModulePath,
@@ -1039,7 +1048,7 @@ func TestContext2Refresh_tainted(t *testing.T) {
 				},
 			},
 		},
-	}
+	})
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
 		ProviderResolver: ResourceProviderResolverFixed(
@@ -1086,8 +1095,7 @@ func TestContext2Refresh_unknownProvider(t *testing.T) {
 		ProviderResolver: ResourceProviderResolverFixed(
 			map[string]ResourceProviderFactory{},
 		),
-		Shadow: true,
-		State: &State{
+		State: mustShimLegacyState(&State{
 			Modules: []*ModuleState{
 				&ModuleState{
 					Path: rootModulePath,
@@ -1101,7 +1109,7 @@ func TestContext2Refresh_unknownProvider(t *testing.T) {
 					},
 				},
 			},
-		},
+		}),
 	})
 
 	if !diags.HasErrors() {
@@ -1114,76 +1122,79 @@ func TestContext2Refresh_unknownProvider(t *testing.T) {
 }
 
 func TestContext2Refresh_vars(t *testing.T) {
-	p := testProvider("aws")
-	p.GetSchemaReturn = &ProviderSchema{
-		Provider: &configschema.Block{},
-		ResourceTypes: map[string]*configschema.Block{
-			"aws_instance": {
-				Attributes: map[string]*configschema.Attribute{
-					"ami": {
-						Type:     cty.String,
-						Optional: true,
-					},
-					"id": {
-						Type:     cty.String,
-						Computed: true,
-					},
-				},
-			},
-		},
-	}
-
-	m := testModule(t, "refresh-vars")
-	ctx := testContext2(t, &ContextOpts{
-		Config: m,
-		ProviderResolver: ResourceProviderResolverFixed(
-			map[string]ResourceProviderFactory{
-				"aws": testProviderFuncFixed(p),
-			},
-		),
-		State: &State{
-
-			Modules: []*ModuleState{
-				&ModuleState{
-					Path: rootModulePath,
-					Resources: map[string]*ResourceState{
-						"aws_instance.web": &ResourceState{
-							Type: "aws_instance",
-							Primary: &InstanceState{
-								ID: "foo",
-							},
+	t.Fatalf("not yet updated for new provider interface")
+	/*
+		p := testProvider("aws")
+		p.GetSchemaReturn = &ProviderSchema{
+			Provider: &configschema.Block{},
+			ResourceTypes: map[string]*configschema.Block{
+				"aws_instance": {
+					Attributes: map[string]*configschema.Attribute{
+						"ami": {
+							Type:     cty.String,
+							Optional: true,
+						},
+						"id": {
+							Type:     cty.String,
+							Computed: true,
 						},
 					},
 				},
 			},
-		},
-	})
-
-	p.RefreshFn = nil
-	p.RefreshReturn = &InstanceState{
-		ID: "foo",
-	}
-
-	s, diags := ctx.Refresh()
-	if diags.HasErrors() {
-		t.Fatalf("refresh errors: %s", diags.Err())
-	}
-	mod := s.RootModule()
-	if !p.RefreshCalled {
-		t.Fatal("refresh should be called")
-	}
-	if p.RefreshState.ID != "foo" {
-		t.Fatalf("bad: %#v", p.RefreshState)
-	}
-	if !reflect.DeepEqual(mod.Resources["aws_instance.web"].Primary, p.RefreshReturn) {
-		t.Fatalf("bad: %#v", mod.Resources["aws_instance.web"])
-	}
-
-	for _, r := range mod.Resources {
-		if r.Type == "" {
-			t.Fatalf("no type: %#v", r)
 		}
-	}
+
+		m := testModule(t, "refresh-vars")
+		ctx := testContext2(t, &ContextOpts{
+			Config: m,
+			ProviderResolver: ResourceProviderResolverFixed(
+				map[string]ResourceProviderFactory{
+					"aws": testProviderFuncFixed(p),
+				},
+			),
+			State: mustShimLegacyState(&State{
+
+				Modules: []*ModuleState{
+					&ModuleState{
+						Path: rootModulePath,
+						Resources: map[string]*ResourceState{
+							"aws_instance.web": &ResourceState{
+								Type: "aws_instance",
+								Primary: &InstanceState{
+									ID: "foo",
+								},
+							},
+						},
+					},
+				},
+			}),
+		})
+
+		p.RefreshFn = nil
+		p.RefreshReturn = &InstanceState{
+			ID: "foo",
+		}
+
+		s, diags := ctx.Refresh()
+		if diags.HasErrors() {
+			t.Fatalf("refresh errors: %s", diags.Err())
+		}
+		mod := s.RootModule()
+		if !p.RefreshCalled {
+			t.Fatal("refresh should be called")
+		}
+		if p.RefreshState.ID != "foo" {
+			t.Fatalf("bad: %#v", p.RefreshState)
+		}
+		if !reflect.DeepEqual(mod.Resources["aws_instance.web"].Primary, p.RefreshReturn) {
+			t.Fatalf("bad: %#v", mod.Resources["aws_instance.web"])
+		}
+
+		for _, r := range mod.Resources {
+			if r.Addr.Type == "" {
+				t.Fatalf("no type: %#v", r)
+			}
+		}
+	*/
 }
 
 func TestContext2Refresh_orphanModule(t *testing.T) {
@@ -1209,7 +1220,7 @@ func TestContext2Refresh_orphanModule(t *testing.T) {
 		},
 	}
 
-	state := &State{
+	state := mustShimLegacyState(&State{
 		Modules: []*ModuleState{
 			&ModuleState{
 				Path: rootModulePath,
@@ -1278,7 +1289,7 @@ func TestContext2Refresh_orphanModule(t *testing.T) {
 				},
 			},
 		},
-	}
+	})
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
 		ProviderResolver: ResourceProviderResolverFixed(
@@ -1356,7 +1367,7 @@ func TestContext2Refresh_noDiffHookOnScaleOut(t *testing.T) {
 		},
 	}
 
-	state := &State{
+	state := mustShimLegacyState(&State{
 		Modules: []*ModuleState{
 			&ModuleState{
 				Path: rootModulePath,
@@ -1380,7 +1391,7 @@ func TestContext2Refresh_noDiffHookOnScaleOut(t *testing.T) {
 				},
 			},
 		},
-	}
+	})
 
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
@@ -1417,7 +1428,7 @@ func TestContext2Refresh_updateProviderInState(t *testing.T) {
 		},
 	}
 
-	s := &State{
+	s := mustShimLegacyState(&State{
 		Modules: []*ModuleState{
 			&ModuleState{
 				Path: rootModulePath,
@@ -1432,7 +1443,7 @@ func TestContext2Refresh_updateProviderInState(t *testing.T) {
 				},
 			},
 		},
-	}
+	})
 
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,

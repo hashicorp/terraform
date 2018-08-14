@@ -9,7 +9,8 @@ import (
 
 	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/terraform/backend"
-	"github.com/hashicorp/terraform/terraform"
+	"github.com/hashicorp/terraform/states"
+	"github.com/hashicorp/terraform/states/statemgr"
 	"github.com/hashicorp/terraform/tfdiags"
 )
 
@@ -42,7 +43,7 @@ func (b *Local) opRefresh(
 	}
 
 	// Get our context
-	tfCtx, opState, contextDiags := b.context(op)
+	tfCtx, _, opState, contextDiags := b.context(op)
 	diags = diags.Append(contextDiags)
 	if contextDiags.HasErrors() {
 		b.ReportResult(runningOp, diags)
@@ -51,15 +52,19 @@ func (b *Local) opRefresh(
 
 	// Set our state
 	runningOp.State = opState.State()
-	if runningOp.State.Empty() || !runningOp.State.HasResources() {
+	if !runningOp.State.HasResources() {
 		if b.CLI != nil {
-			b.CLI.Output(b.Colorize().Color(
-				strings.TrimSpace(refreshNoState) + "\n"))
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Warning,
+				"Empty or non-existent state",
+				"There are currently no resources tracked in the state, so there is nothing to refresh.",
+			))
+			b.CLI.Output(b.Colorize().Color(strings.TrimSpace(refreshNoState) + "\n"))
 		}
 	}
 
 	// Perform the refresh in a goroutine so we can be interrupted
-	var newState *terraform.State
+	var newState *states.State
 	var refreshDiags tfdiags.Diagnostics
 	doneCh := make(chan struct{})
 	go func() {
@@ -80,14 +85,9 @@ func (b *Local) opRefresh(
 		return
 	}
 
-	// Write and persist the state
-	if err := opState.WriteState(newState); err != nil {
+	err := statemgr.WriteAndPersist(opState, newState)
+	if err != nil {
 		diags = diags.Append(errwrap.Wrapf("Failed to write state: {{err}}", err))
-		b.ReportResult(runningOp, diags)
-		return
-	}
-	if err := opState.PersistState(); err != nil {
-		diags = diags.Append(errwrap.Wrapf("Failed to save state: {{err}}", err))
 		b.ReportResult(runningOp, diags)
 		return
 	}

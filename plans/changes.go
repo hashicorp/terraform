@@ -23,6 +23,38 @@ func NewChanges() *Changes {
 	}
 }
 
+func (c *Changes) Empty() bool {
+	return (len(c.Resources) + len(c.RootOutputs)) == 0
+}
+
+// ResourceInstance returns the planned change for the current object of the
+// resource instance of the given address, if any. Returns nil if no change is
+// planned.
+func (c *Changes) ResourceInstance(addr addrs.AbsResourceInstance) *ResourceInstanceChangeSrc {
+	addrStr := addr.String()
+	for _, rc := range c.Resources {
+		if rc.Addr.String() == addrStr && rc.DeposedKey == states.NotDeposed {
+			return rc
+		}
+	}
+
+	return nil
+}
+
+// ResourceInstanceDeposed returns the plan change of a deposed object of
+// the resource instance of the given address, if any. Returns nil if no change
+// is planned.
+func (c *Changes) ResourceInstanceDeposed(addr addrs.AbsResourceInstance, key states.DeposedKey) *ResourceInstanceChangeSrc {
+	addrStr := addr.String()
+	for _, rc := range c.Resources {
+		if rc.Addr.String() == addrStr && rc.DeposedKey == key {
+			return rc
+		}
+	}
+
+	return nil
+}
+
 // ResourceInstanceChange describes a change to a particular resource instance
 // object.
 type ResourceInstanceChange struct {

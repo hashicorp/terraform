@@ -30,7 +30,7 @@ func TestState(t *testing.T) {
 			Type: "test_thing",
 			Name: "baz",
 		}.Instance(addrs.IntKey(0)),
-		&ResourceInstanceObject{
+		&ResourceInstanceObjectSrc{
 			Status:        ObjectReady,
 			SchemaVersion: 1,
 			AttrsJSON:     []byte(`{"woozles":"confuzles"}`),
@@ -70,12 +70,12 @@ func TestState(t *testing.T) {
 						EachMode: EachList,
 						Instances: map[addrs.InstanceKey]*ResourceInstance{
 							addrs.IntKey(0): {
-								Current: &ResourceInstanceObject{
+								Current: &ResourceInstanceObjectSrc{
 									SchemaVersion: 1,
 									Status:        ObjectReady,
 									AttrsJSON:     []byte(`{"woozles":"confuzles"}`),
 								},
-								Deposed: map[DeposedKey]*ResourceInstanceObject{},
+								Deposed: map[DeposedKey]*ResourceInstanceObjectSrc{},
 							},
 						},
 						ProviderConfig: addrs.ProviderConfig{

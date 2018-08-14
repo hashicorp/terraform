@@ -3,12 +3,11 @@ package terraform
 import (
 	"sync"
 
-	"github.com/hashicorp/terraform/tfdiags"
-
 	"github.com/hashicorp/terraform/addrs"
-
 	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/dag"
+	"github.com/hashicorp/terraform/states"
+	"github.com/hashicorp/terraform/tfdiags"
 )
 
 // PlanGraphBuilder implements GraphBuilder and is responsible for building
@@ -27,7 +26,7 @@ type PlanGraphBuilder struct {
 	Config *configs.Config
 
 	// State is the current state
-	State *State
+	State *states.State
 
 	// Components is a factory for the plug-in components (providers and
 	// provisioners) available for use.

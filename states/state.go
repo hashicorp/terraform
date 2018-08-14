@@ -34,6 +34,30 @@ func NewState() *State {
 	}
 }
 
+// BuildState is a helper -- primarily intended for tests -- to build a state
+// using imperative code against the StateSync type while still acting as
+// an expression of type *State to assign into a containing struct.
+func BuildState(cb func(*SyncState)) *State {
+	s := NewState()
+	cb(s.SyncWrapper())
+	return s
+}
+
+// Empty returns true if there are no resources or populated output values
+// in the receiver. In other words, if this state could be safely replaced
+// with the return value of NewState and be functionally equivalent.
+func (s *State) Empty() bool {
+	for _, ms := range s.Modules {
+		if len(ms.Resources) != 0 {
+			return false
+		}
+		if len(ms.OutputValues) != 0 {
+			return false
+		}
+	}
+	return true
+}
+
 // Module returns the state for the module with the given address, or nil if
 // the requested module is not tracked in the state.
 func (s *State) Module(addr addrs.ModuleInstance) *Module {
@@ -74,6 +98,20 @@ func (s *State) EnsureModule(addr addrs.ModuleInstance) *Module {
 		s.Modules[addr.String()] = ms
 	}
 	return ms
+}
+
+// HasResources returns true if there is at least one resource (of any mode)
+// present in the receiving state.
+func (s *State) HasResources() bool {
+	if s == nil {
+		return false
+	}
+	for _, ms := range s.Modules {
+		if len(ms.Resources) > 0 {
+			return true
+		}
+	}
+	return false
 }
 
 // Resource returns the state for the resource with the given address, or nil

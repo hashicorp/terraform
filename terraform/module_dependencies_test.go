@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/go-test/deep"
+
 	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/moduledeps"
 	"github.com/hashicorp/terraform/plugin/discovery"
@@ -223,7 +224,8 @@ func TestModuleTreeDependencies(t *testing.T) {
 				},
 				Children: []*moduledeps.Module{
 					{
-						Name: "child",
+						Name:      "child",
+						Providers: make(moduledeps.Providers),
 						Children: []*moduledeps.Module{
 							{
 								Name: "grandchild",
@@ -248,7 +250,7 @@ func TestModuleTreeDependencies(t *testing.T) {
 				root = testModule(t, test.ConfigDir)
 			}
 
-			got := ConfigTreeDependencies(root, test.State)
+			got := ConfigTreeDependencies(root, mustShimLegacyState(test.State))
 			for _, problem := range deep.Equal(got, test.Want) {
 				t.Error(problem)
 			}

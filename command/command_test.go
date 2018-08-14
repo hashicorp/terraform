@@ -19,10 +19,20 @@ import (
 	"syscall"
 	"testing"
 
+	"github.com/zclconf/go-cty/cty"
+
+	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/configs/configload"
+	"github.com/hashicorp/terraform/configs/configschema"
 	"github.com/hashicorp/terraform/helper/logging"
+	"github.com/hashicorp/terraform/plans"
+	"github.com/hashicorp/terraform/plans/planfile"
+	"github.com/hashicorp/terraform/states"
+	"github.com/hashicorp/terraform/states/statefile"
+	"github.com/hashicorp/terraform/states/statemgr"
 	"github.com/hashicorp/terraform/terraform"
+	"github.com/hashicorp/terraform/version"
 )
 
 // This is the directory where our test fixtures are.
@@ -115,6 +125,12 @@ func metaOverridesForProviderAndProvisioner(p terraform.ResourceProvider, pr ter
 
 func testModule(t *testing.T, name string) *configs.Config {
 	t.Helper()
+	c, _ := testModuleWithSnapshot(t, name)
+	return c
+}
+
+func testModuleWithSnapshot(t *testing.T, name string) (*configs.Config, *configload.Snapshot) {
+	t.Helper()
 
 	dir := filepath.Join(fixtureDir, name)
 
@@ -131,46 +147,57 @@ func testModule(t *testing.T, name string) *configs.Config {
 		t.Fatal(diags.Error())
 	}
 
-	config, diags := loader.LoadConfig(dir)
+	config, snap, diags := loader.LoadConfigWithSnapshot(dir)
 	if diags.HasErrors() {
 		t.Fatal(diags.Error())
 	}
 
-	return config
+	return config, snap
 }
 
 // testPlan returns a non-nil noop plan.
-func testPlan(t *testing.T) *terraform.Plan {
+func testPlan(t *testing.T) *plans.Plan {
 	t.Helper()
-
-	state := terraform.NewState()
-	state.RootModule().Outputs["foo"] = &terraform.OutputState{
-		Type:  "string",
-		Value: "foo",
-	}
-
-	return &terraform.Plan{
-		Config: testModule(t, "apply"),
-		State:  state,
+	return &plans.Plan{
+		Changes: plans.NewChanges(),
 	}
 }
 
-func testPlanFile(t *testing.T, plan *terraform.Plan) string {
+func testPlanFile(t *testing.T, configSnap *configload.Snapshot, state *states.State, plan *plans.Plan) string {
 	t.Helper()
 
-	path := testTempFile(t)
-
-	f, err := os.Create(path)
-	if err != nil {
-		t.Fatalf("err: %s", err)
+	stateFile := &statefile.File{
+		Lineage:          "command.testPlanFile",
+		State:            state,
+		TerraformVersion: version.SemVer,
 	}
-	defer f.Close()
 
-	if err := terraform.WritePlan(plan, f); err != nil {
-		t.Fatalf("err: %s", err)
+	path := testTempFile(t)
+	err := planfile.Create(path, configSnap, stateFile, plan)
+	if err != nil {
+		t.Fatalf("failed to create temporary plan file: %s", err)
 	}
 
 	return path
+}
+
+// testPlanFileNoop is a shortcut function that creates a plan file that
+// represents no changes and returns its path. This is useful when a test
+// just needs any plan file, and it doesn't matter what is inside it.
+func testPlanFileNoop(t *testing.T) string {
+	snap := &configload.Snapshot{
+		Modules: map[string]*configload.SnapshotModule{
+			"": {
+				Dir: ".",
+				Files: map[string][]byte{
+					"main.tf": nil,
+				},
+			},
+		},
+	}
+	state := states.NewState()
+	plan := testPlan(t)
+	return testPlanFile(t, snap, state, plan)
 }
 
 func testReadPlan(t *testing.T, path string) *terraform.Plan {
@@ -191,40 +218,110 @@ func testReadPlan(t *testing.T, path string) *terraform.Plan {
 }
 
 // testState returns a test State structure that we use for a lot of tests.
-func testState() *terraform.State {
-	state := &terraform.State{
-		Modules: []*terraform.ModuleState{
-			&terraform.ModuleState{
-				Path: []string{"root"},
-				Resources: map[string]*terraform.ResourceState{
-					"test_instance.foo": &terraform.ResourceState{
-						Type: "test_instance",
-						Primary: &terraform.InstanceState{
-							ID: "bar",
-						},
-					},
-				},
-				Outputs: map[string]*terraform.OutputState{},
+func testState() *states.State {
+	return states.BuildState(func(s *states.SyncState) {
+		s.SetResourceInstanceCurrent(
+			addrs.Resource{
+				Mode: addrs.ManagedResourceMode,
+				Type: "test_instance",
+				Name: "foo",
+			}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+			&states.ResourceInstanceObjectSrc{
+				AttrsJSON: []byte(`{"id":"bar"}`),
+				Status:    states.ObjectReady,
 			},
-		},
-	}
-	state.Init()
-	return state
+			addrs.ProviderConfig{
+				Type: "test",
+			}.Absolute(addrs.RootModuleInstance),
+		)
+	})
 }
 
-func testStateFile(t *testing.T, s *terraform.State) string {
+// writeStateForTesting is a helper that writes the given naked state to the
+// given writer, generating a stub *statefile.File wrapper which is then
+// immediately discarded.
+func writeStateForTesting(state *states.State, w io.Writer) error {
+	sf := &statefile.File{
+		Serial:  0,
+		Lineage: "fake-for-testing",
+		State:   state,
+	}
+	return statefile.Write(sf, w)
+}
+
+// testStateMgrCurrentLineage returns the current lineage for the given state
+// manager, or the empty string if it does not use lineage. This is primarily
+// for testing against the local backend, which always supports lineage.
+func testStateMgrCurrentLineage(mgr statemgr.Persistent) string {
+	if pm, ok := mgr.(statemgr.PersistentMeta); ok {
+		m := pm.StateSnapshotMeta()
+		return m.Lineage
+	}
+	return ""
+}
+
+// markStateForMatching is a helper that writes a specific marker value to
+// a state so that it can be recognized later with getStateMatchingMarker.
+//
+// Internally this just sets a root module output value called "testing_mark"
+// to the given string value. If the state is being checked in other ways,
+// the test code may need to compensate for the addition or overwriting of this
+// special output value name.
+//
+// The given mark string is returned verbatim, to allow the following pattern
+// in tests:
+//
+//     mark := markStateForMatching(state, "foo")
+//     // (do stuff to the state)
+//     assertStateHasMarker(state, mark)
+func markStateForMatching(state *states.State, mark string) string {
+	state.RootModule().SetOutputValue("testing_mark", cty.StringVal(mark), false)
+	return mark
+}
+
+// getStateMatchingMarker is used with markStateForMatching to retrieve the
+// mark string previously added to the given state. If no such mark is present,
+// the result is an empty string.
+func getStateMatchingMarker(state *states.State) string {
+	os := state.RootModule().OutputValues["testing_mark"]
+	if os == nil {
+		return ""
+	}
+	v := os.Value
+	if v.Type() == cty.String && v.IsKnown() && !v.IsNull() {
+		return v.AsString()
+	}
+	return ""
+}
+
+// stateHasMarker is a helper around getStateMatchingMarker that also includes
+// the equality test, for more convenient use in test assertion branches.
+func stateHasMarker(state *states.State, want string) bool {
+	return getStateMatchingMarker(state) == want
+}
+
+// assertStateHasMarker wraps stateHasMarker to automatically generate a
+// fatal test result (i.e. t.Fatal) if the marker doesn't match.
+func assertStateHasMarker(t *testing.T, state *states.State, want string) {
+	if !stateHasMarker(state, want) {
+		t.Fatalf("wrong state marker\ngot:  %q\nwant: %q", getStateMatchingMarker(state), want)
+	}
+}
+
+func testStateFile(t *testing.T, s *states.State) string {
 	t.Helper()
 
 	path := testTempFile(t)
 
 	f, err := os.Create(path)
 	if err != nil {
-		t.Fatalf("err: %s", err)
+		t.Fatalf("failed to create temporary state file %s: %s", path, err)
 	}
 	defer f.Close()
 
-	if err := terraform.WriteState(s, f); err != nil {
-		t.Fatalf("err: %s", err)
+	err = writeStateForTesting(s, f)
+	if err != nil {
+		t.Fatalf("failed to write state to temporary file %s: %s", path, err)
 	}
 
 	return path
@@ -272,7 +369,7 @@ func testStateFileRemote(t *testing.T, s *terraform.State) string {
 }
 
 // testStateRead reads the state from a file
-func testStateRead(t *testing.T, path string) *terraform.State {
+func testStateRead(t *testing.T, path string) *states.State {
 	t.Helper()
 
 	f, err := os.Open(path)
@@ -281,12 +378,34 @@ func testStateRead(t *testing.T, path string) *terraform.State {
 	}
 	defer f.Close()
 
-	newState, err := terraform.ReadState(f)
+	sf, err := statefile.Read(f)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
-	return newState
+	return sf.State
+}
+
+// testDataStateRead reads a "data state", which is a file format resembling
+// our state format v3 that is used only to track current backend settings.
+//
+// This old format still uses *terraform.State, but should be replaced with
+// a more specialized type in a later release.
+func testDataStateRead(t *testing.T, path string) *terraform.State {
+	t.Helper()
+
+	f, err := os.Open(path)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	defer f.Close()
+
+	s, err := terraform.ReadState(f)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	return s
 }
 
 // testStateOutput tests that the state at the given path contains
@@ -571,7 +690,11 @@ func testBackendState(t *testing.T, s *terraform.State, c int) (*terraform.State
 
 // testRemoteState is used to make a test HTTP server to return a given
 // state file that can be used for testing legacy remote state.
-func testRemoteState(t *testing.T, s *terraform.State, c int) (*terraform.RemoteState, *httptest.Server) {
+//
+// The return values are a *terraform.State instance that should be written
+// as the "data state" (really: backend state) and the server that the
+// returned data state refers to.
+func testRemoteState(t *testing.T, s *states.State, c int) (*terraform.State, *httptest.Server) {
 	t.Helper()
 
 	var b64md5 string
@@ -591,25 +714,32 @@ func testRemoteState(t *testing.T, s *terraform.State, c int) (*terraform.Remote
 		resp.Write(buf.Bytes())
 	}
 
+	retState := terraform.NewState()
+
 	srv := httptest.NewServer(http.HandlerFunc(cb))
-	remote := &terraform.RemoteState{
-		Type:   "http",
-		Config: map[string]string{"address": srv.URL},
+	b := &terraform.BackendState{
+		Type: "http",
 	}
+	b.SetConfig(cty.ObjectVal(map[string]cty.Value{
+		"address": cty.StringVal(srv.URL),
+	}), &configschema.Block{
+		Attributes: map[string]*configschema.Attribute{
+			"address": {
+				Type:     cty.String,
+				Required: true,
+			},
+		},
+	})
+	retState.Backend = b
 
 	if s != nil {
-		// Set the remote data
-		s.Remote = remote
-
-		enc := json.NewEncoder(buf)
-		if err := enc.Encode(s); err != nil {
-			t.Fatalf("err: %v", err)
+		err := statefile.Write(&statefile.File{State: s}, buf)
+		if err != nil {
+			t.Fatalf("failed to write initial state: %v", err)
 		}
-		md5 := md5.Sum(buf.Bytes())
-		b64md5 = base64.StdEncoding.EncodeToString(md5[:16])
 	}
 
-	return remote, srv
+	return retState, srv
 }
 
 // testlockState calls a separate process to the lock the state file at path.

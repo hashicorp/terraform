@@ -12,7 +12,7 @@ import (
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/state"
 	"github.com/hashicorp/terraform/state/remote"
-	"github.com/hashicorp/terraform/terraform"
+	statespkg "github.com/hashicorp/terraform/states"
 )
 
 // we keep the states and locks in package-level variables, so that they can be
@@ -87,7 +87,7 @@ func (b *Backend) configure(ctx context.Context) error {
 	return nil
 }
 
-func (b *Backend) States() ([]string, error) {
+func (b *Backend) Workspaces() ([]string, error) {
 	states.Lock()
 	defer states.Unlock()
 
@@ -101,7 +101,7 @@ func (b *Backend) States() ([]string, error) {
 	return workspaces, nil
 }
 
-func (b *Backend) DeleteState(name string) error {
+func (b *Backend) DeleteWorkspace(name string) error {
 	states.Lock()
 	defer states.Unlock()
 
@@ -113,7 +113,7 @@ func (b *Backend) DeleteState(name string) error {
 	return nil
 }
 
-func (b *Backend) State(name string) (state.State, error) {
+func (b *Backend) StateMgr(name string) (state.State, error) {
 	states.Lock()
 	defer states.Unlock()
 
@@ -138,7 +138,7 @@ func (b *Backend) State(name string) (state.State, error) {
 
 		// If we have no state, we have to create an empty state
 		if v := s.State(); v == nil {
-			if err := s.WriteState(terraform.NewState()); err != nil {
+			if err := s.WriteState(statespkg.NewState()); err != nil {
 				return nil, err
 			}
 			if err := s.PersistState(); err != nil {

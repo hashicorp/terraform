@@ -5,7 +5,6 @@ import (
 	"log"
 	"os"
 	"strconv"
-	"strings"
 	"sync"
 
 	"github.com/agext/levenshtein"
@@ -14,10 +13,10 @@ import (
 	"github.com/zclconf/go-cty/cty/convert"
 
 	"github.com/hashicorp/terraform/addrs"
-	"github.com/hashicorp/terraform/configs/configschema"
-	"github.com/hashicorp/terraform/config/hcl2shim"
 	"github.com/hashicorp/terraform/configs"
+	"github.com/hashicorp/terraform/configs/configschema"
 	"github.com/hashicorp/terraform/lang"
+	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/tfdiags"
 )
 
@@ -52,11 +51,9 @@ type Evaluator struct {
 	// This must not be mutated during evaluation.
 	Schemas *Schemas
 
-	// State is the current state. During some operations this structure
-	// is mutated concurrently, and so it must be accessed only while holding
-	// StateLock.
-	State     *State
-	StateLock *sync.RWMutex
+	// State is the current state, embedded in a wrapper that ensures that
+	// it can be safely accessed and modified concurrently.
+	State *states.SyncState
 }
 
 // Scope creates an evaluation scope for the given module path and optional
@@ -273,27 +270,11 @@ func (d *evaluationStateData) GetLocalValue(addr addrs.LocalValue, rng tfdiags.S
 		return cty.DynamicVal, diags
 	}
 
-	// Now we'll retrieve the value from the state, which means we need to hold
-	// the state lock.
-	d.Evaluator.StateLock.RLock()
-	defer d.Evaluator.StateLock.RUnlock()
-
-	ms := d.Evaluator.State.ModuleByPath(d.ModulePath)
-	if ms == nil {
+	val := d.Evaluator.State.LocalValue(addr.Absolute(d.ModulePath))
+	if val == cty.NilVal {
 		// Not evaluated yet?
-		return cty.DynamicVal, diags
+		val = cty.DynamicVal
 	}
-
-	rawV, exists := ms.Locals[addr.Name]
-	if !exists {
-		// Not evaluated yet?
-		return cty.DynamicVal, diags
-	}
-
-	// The state structures haven't yet been updated to the new type system,
-	// so we'll need to shim here.
-	// FIXME: Remove this once ms.Locals is itself a map[string]cty.Value.
-	val := hcl2shim.HCL2ValueFromConfigValue(rawV)
 
 	return val, diags
 }
@@ -316,36 +297,17 @@ func (d *evaluationStateData) GetModuleInstance(addr addrs.ModuleCallInstance, r
 	}
 	outputConfigs := moduleConfig.Module.Outputs
 
-	// Now we'll retrieve the values from the state, which means we need to hold
-	// the state lock.
-	d.Evaluator.StateLock.RLock()
-	defer d.Evaluator.StateLock.RUnlock()
-
-	ms := d.Evaluator.State.ModuleByPath(moduleAddr)
-	if ms == nil {
-		// Not evaluated yet?
-		// We'll return an unknown value of a suitable object type so that we
-		// can still detect attempts to access outputs that aren't defined.
-		attrs := map[string]cty.Type{}
-		for name := range outputConfigs {
-			attrs[name] = cty.DynamicPseudoType
-		}
-		return cty.UnknownVal(cty.Object(attrs)), diags
-	}
-
 	vals := map[string]cty.Value{}
-	for name := range outputConfigs {
-		os, exists := ms.Outputs[name]
-		if !exists {
+	for n := range outputConfigs {
+		addr := addrs.OutputValue{Name: n}.Absolute(moduleAddr)
+		os := d.Evaluator.State.OutputValue(addr)
+		if os == nil {
 			// Not evaluated yet?
-			vals[name] = cty.DynamicVal
+			vals[n] = cty.DynamicVal
 			continue
 		}
 
-		// The state structures haven't yet been updated to the new type system,
-		// so we'll need to shim here.
-		// FIXME: Remove this once ms.Outputs itself contains cty.Value.
-		vals[name] = hcl2shim.HCL2ValueFromConfigValue(os.Value)
+		vals[n] = os.Value
 	}
 	return cty.ObjectVal(vals), diags
 }
@@ -387,30 +349,13 @@ func (d *evaluationStateData) GetModuleInstanceOutput(addr addrs.ModuleCallOutpu
 		return cty.DynamicVal, diags
 	}
 
-	// Now we'll retrieve the value from the state, which means we need to hold
-	// the state lock.
-	d.Evaluator.StateLock.RLock()
-	defer d.Evaluator.StateLock.RUnlock()
-
-	ms := d.Evaluator.State.ModuleByPath(moduleAddr)
-	if ms == nil {
+	os := d.Evaluator.State.OutputValue(absAddr)
+	if os == nil {
 		// Not evaluated yet?
 		return cty.DynamicVal, diags
 	}
 
-	os, exists := ms.Outputs[addr.Name]
-	if !exists {
-		// Not evaluated yet?
-		return cty.DynamicVal, diags
-	}
-
-	// The state structures haven't yet been updated to the new type system,
-	// so we'll need to shim here.
-	// FIXME: Remove this once ms.Outputs itself contains cty.Value.
-	val := hcl2shim.HCL2ValueFromConfigValue(os.Value)
-
-	return val, diags
-
+	return os.Value, diags
 }
 
 func (d *evaluationStateData) GetPathAttr(addr addrs.PathAttr, rng tfdiags.SourceRange) (cty.Value, tfdiags.Diagnostics) {
@@ -467,7 +412,7 @@ func (d *evaluationStateData) GetResourceInstance(addr addrs.ResourceInstance, r
 	// the instances of a particular resource. The reference resolver can't
 	// resolve the ambiguity itself, so we must do it in here.
 
-	// First we'll consult the configuration to see if an output of this
+	// First we'll consult the configuration to see if an resource of this
 	// name is declared at all.
 	moduleAddr := d.ModulePath
 	moduleConfig := d.Evaluator.Config.DescendentForInstance(moduleAddr)
@@ -488,83 +433,95 @@ func (d *evaluationStateData) GetResourceInstance(addr addrs.ResourceInstance, r
 		return cty.DynamicVal, diags
 	}
 
-	// We need to shim our address to the legacy form still used in the state structs.
-	addrKey := NewLegacyResourceInstanceAddress(addr.Absolute(d.ModulePath)).stateId()
+	// First we'll find the state for the resource as a whole, and decide
+	// from there whether we're going to interpret the given address as a
+	// resource or a resource instance address.
+	rs := d.Evaluator.State.Resource(addr.ContainingResource().Absolute(d.ModulePath))
 
-	// We'll get the values for the instance(s) from state, so we'll need a read lock.
-	d.Evaluator.StateLock.RLock()
-	defer d.Evaluator.StateLock.RUnlock()
+	if rs == nil {
+		schema := d.getResourceSchema(addr.ContainingResource(), config.ProviderConfigAddr().Absolute(d.ModulePath))
 
-	ms := d.Evaluator.State.ModuleByPath(d.ModulePath)
-	if ms == nil {
-		// If we have no module state in the apply walk, that suggests we've hit
-		// a rather awkward edge-case: the resource this variable refers to
-		// has count = 0 and is the only resource processed so far on this walk,
-		// and so we've ended up not creating any resource states yet. We don't
-		// create a module state until the first resource is written into it,
-		// so the module state doesn't exist when we get here.
-		//
-		// In this case we act as we would if we had been passed a module
-		// with an empty resource state map.
-		ms = &ModuleState{}
+		// If it doesn't exist at all then we can't reliably determine whether
+		// single-instance or whole-resource interpretation was intended, but
+		// we can decide this partially...
+		if addr.Key != addrs.NoKey {
+			// If there's an instance key then the user must be intending
+			// single-instance interpretation, and so we can return a
+			// properly-typed unknown value to help with type checking.
+			return cty.UnknownVal(schema.ImpliedType()), diags
+		}
+
+		// otherwise we must return DynamicVal so that both interpretations
+		// can proceed without generating errors, and we'll deal with this
+		// in a later step where more information is gathered.
+		// (In practice we should only end up here during the validate walk,
+		// since later walks should have at least partial states populated
+		// for all resources in the configuration.)
+		return cty.DynamicVal, diags
 	}
 
-	// Note that the state structs currently have confusing legacy names:
-	// ResourceState is actually the state for what we call an "instance"
-	// elsewhere, and then InstanceState is the state for a particular _phase_
-	// of that instance (primary vs. deposed). This should be addressed when
-	// we revise the state structs to natively support the HCL type system.
-	rs := ms.Resources[addrKey]
+	schema := d.getResourceSchema(addr.ContainingResource(), rs.ProviderConfig)
 
-	var providerAddr addrs.AbsProviderConfig
-	if rs != nil {
-		var err error
-		providerAddr, err = rs.ProviderAddr()
-		if err != nil {
-			// This indicates corruption of or tampering with the state file
+	// If we are able to automatically convert to the "right" type of instance
+	// key for this each mode then we'll do so, to match with how we generally
+	// treat values elsewhere in the language. This allows code below to
+	// assume that any possible conversions have already been dealt with and
+	// just worry about validation.
+	key := d.coerceInstanceKey(addr.Key, rs.EachMode)
+
+	multi := false
+
+	switch rs.EachMode {
+	case states.NoEach:
+		if key != addrs.NoKey {
 			diags = diags.Append(&hcl.Diagnostic{
 				Severity: hcl.DiagError,
-				Summary:  `Invalid provider address in state`,
-				Detail:   fmt.Sprintf("The state for the referenced resource refers to a syntactically-invalid provider address %q. This can occur if the state data is incorrectly edited by hand.", rs.Provider),
+				Summary:  "Invalid resource index",
+				Detail:   fmt.Sprintf("Resource %s does not have either \"count\" or \"for_each\" set, so it cannot be indexed.", addr.ContainingResource()),
 				Subject:  rng.ToHCL().Ptr(),
 			})
 			return cty.DynamicVal, diags
 		}
-	} else {
-		// Must assume a provider address from the config, then.
-		// This result is usually ignored since we'll probably end up in
-		// the getResourceInstancesAll path after this (if our instance
-		// actually has a key). However, we can also end up here in strange
-		// cases like "terraform console", which might be used before a
-		// particular resource has been created in state at all.
-		providerAddr = config.ProviderConfigAddr().Absolute(d.ModulePath)
+	case states.EachList:
+		multi = key != addrs.NoKey
+		if _, ok := addr.Key.(addrs.IntKey); !multi && !ok {
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Invalid resource index",
+				Detail:   fmt.Sprintf("Resource %s must be indexed with a number value.", addr.ContainingResource()),
+				Subject:  rng.ToHCL().Ptr(),
+			})
+			return cty.DynamicVal, diags
+		}
+	case states.EachMap:
+		multi = key != addrs.NoKey
+		if _, ok := addr.Key.(addrs.IntKey); !multi && !ok {
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Invalid resource index",
+				Detail:   fmt.Sprintf("Resource %s must be indexed with a string value.", addr.ContainingResource()),
+				Subject:  rng.ToHCL().Ptr(),
+			})
+			return cty.DynamicVal, diags
+		}
 	}
 
-	// If we have an exact match for the requested instance and it has non-nil
-	// primary data then we'll use it directly. This is the easy path.
-	if rs != nil && rs.Primary != nil {
+	if !multi {
 		log.Printf("[TRACE] GetResourceInstance: %s is a single instance", addr)
-		return d.getResourceInstanceSingle(addr, rng, rs.Primary, providerAddr)
+		is := rs.Instance(key)
+		if is == nil {
+			return cty.UnknownVal(schema.ImpliedType()), diags
+		}
+		return d.getResourceInstanceSingle(addr, rng, is, config, rs.ProviderConfig)
 	}
 
-	// If we get down here then we might have a request for the list of all
-	// instances of a particular resource, but only if we have a no-key address.
-	// If we have a _keyed_ address then instead it's a single instance that
-	// isn't evaluated yet.
-	if addr.Key != addrs.NoKey {
-		log.Printf("[TRACE] GetResourceInstance: %s is pending", addr)
-		return d.getResourceInstancePending(addr, rng, providerAddr)
-	}
-
-	return d.getResourceInstancesAll(addr.ContainingResource(), config, ms, providerAddr)
+	log.Printf("[TRACE] GetResourceInstance: %s has multiple keyed instances", addr)
+	return d.getResourceInstancesAll(addr.ContainingResource(), rng, config, rs, rs.ProviderConfig)
 }
 
-func (d *evaluationStateData) getResourceInstanceSingle(addr addrs.ResourceInstance, rng tfdiags.SourceRange, is *InstanceState, providerAddr addrs.AbsProviderConfig) (cty.Value, tfdiags.Diagnostics) {
+func (d *evaluationStateData) getResourceInstanceSingle(addr addrs.ResourceInstance, rng tfdiags.SourceRange, is *states.ResourceInstance, config *configs.Resource, providerAddr addrs.AbsProviderConfig) (cty.Value, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
-	// To properly decode the "flatmap"-based values from the state, we need
-	// to know the resource's schema, which we should already have cached
-	// from when the provider was initialized.
 	schema := d.getResourceSchema(addr.ContainingResource(), providerAddr)
 	if schema == nil {
 		// This shouldn't happen, since validation before we get here should've
@@ -579,163 +536,122 @@ func (d *evaluationStateData) getResourceInstanceSingle(addr addrs.ResourceInsta
 	}
 
 	ty := schema.ImpliedType()
-	if is == nil {
+	if is == nil || is.Current == nil {
 		// Assume we're dealing with an instance that hasn't been created yet.
 		return cty.UnknownVal(ty), diags
 	}
 
-	flatmapVal := is.Attributes
-	val, err := hcl2shim.HCL2ValueFromFlatmap(flatmapVal, ty)
+	ios, err := is.Current.Decode(ty)
 	if err != nil {
-		// A value in the flatmap value could not be conformed to the schema
+		// This shouldn't happen, since by the time we get here
+		// we should've upgraded the state data already.
 		diags = diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagError,
-			Summary:  `Invalid value in state`,
-			Detail:   fmt.Sprintf("The state data stored for %s does not conform to the resource schema: %s", addr, err),
-			Subject:  rng.ToHCL().Ptr(),
+			Summary:  "Invalid resource instance data in state",
+			Detail:   fmt.Sprintf("Instance %s data could not be decoded from the state: %s.", addr.Absolute(d.ModulePath), err),
+			Subject:  &config.DeclRange,
 		})
 		return cty.UnknownVal(ty), diags
 	}
 
-	return val, diags
+	return ios.Value, nil
 }
 
-func (d *evaluationStateData) getResourceInstancesAll(addr addrs.Resource, config *configs.Resource, ms *ModuleState, providerAddr addrs.AbsProviderConfig) (cty.Value, tfdiags.Diagnostics) {
-	var diags tfdiags.Diagnostics
-	rng := tfdiags.SourceRangeFromHCL(config.DeclRange)
-	hasCount := config.Count != nil
-
-	// Currently the only multi-instance construct we support is "count", which
-	// ensures that all of the instances will have integer keys, and so we
-	// can produce a tuple value of them.
-	//
-	// The legacy state structs are not designed to unambigiously represent
-	// a list of instances associated with a resource, and so we need to infer
-	// what exists based on which keys we find. Our returned tuple is therefore
-	// long enough to accommodate the highest index we find, and may contain
-	// unknown values filling in any "gaps" for instances that have been
-	// tainted or not yet created.
-
-	// Keys in the resources map are resource addresses followed by a period
-	// and then an integer index. Keys without an integer index are possible
-	// too, but we already took care of those in GetResourceInstance by
-	// branching directly into getResourceInstanceSingle, so we know that
-	// we're dealing with keyed instances here.
-	prefix := addr.String() + "."
-	length := 0
-	instanceVals := map[addrs.InstanceKey]cty.Value{}
-	for fullKey, rs := range ms.Resources {
-		if !strings.HasPrefix(fullKey, prefix) {
-			continue
-		}
-		if rs.Primary == nil {
-			continue
-		}
-
-		keyStr := fullKey[len(prefix):]
-		var key addrs.InstanceKey
-		if i, err := strconv.Atoi(keyStr); err == nil {
-			key = addrs.IntKey(i)
-			if i >= length {
-				length = i + 1
-			}
-		} else {
-			key = addrs.StringKey(keyStr)
-		}
-
-		// In this case we'll ignore our given providerAddr, since it was
-		// for a single unkeyed ResourceState, not the keyed one we have now.
-		providerAddr, err := rs.ProviderAddr()
-		if err != nil {
-			// This indicates corruption of or tampering with the state file
-			diags = diags.Append(&hcl.Diagnostic{
-				Severity: hcl.DiagError,
-				Summary:  `Invalid provider address in state`,
-				Detail:   fmt.Sprintf("The state for %s refers to a syntactically-invalid provider address %q. This can occur if the state data is incorrectly edited by hand.", addr.Instance(key), rs.Provider),
-				Subject:  rng.ToHCL().Ptr(),
-			})
-			continue
-		}
-
-		val, instanceDiags := d.getResourceInstanceSingle(addr.Instance(key), rng, rs.Primary, providerAddr)
-		diags = diags.Append(instanceDiags)
-
-		instanceVals[key] = val
-	}
-
-	if length == 0 && !hasCount {
-		// If we have nothing at all and the configuration lacks a count
-		// argument then we'll assume that we're dealing with a resource that
-		// is pending creation (e.g. during the validate walk) and that it
-		// will eventually have only one unkeyed instance.
-		// In this case we _do_ use the given providerAddr, since that
-		// is for the unkeyed instance we found in GetResourceInstance.
-		log.Printf("[TRACE] GetResourceInstance: %s has no instances yet", addr)
-		return d.getResourceInstanceSingle(addr.Instance(addrs.NoKey), rng, nil, providerAddr)
-	}
-
-	log.Printf("[TRACE] GetResourceInstance: %s has multiple keyed instances (%d)", addr, length)
-
-	// TODO: In future, when for_each is implemented, we'll need to decide here
-	// whether to return a tuple value or an object value. However, by that
-	// time we should've revised the state structs so we can see unambigously
-	// which to use, rather than trying to guess based on the presence of
-	// keys.
-
-	valsSeq := make([]cty.Value, length)
-	for i := 0; i < length; i++ {
-		val, exists := instanceVals[addrs.IntKey(i)]
-		if exists {
-			valsSeq[i] = val
-		} else {
-			// FIXME: Ideally we'd return an unknown value of the schema's
-			// implied type here, but this shim-ish implementation of resource
-			// evaluation is already tricky enough so we'll just cheat for
-			// now. Once we refactor for the new state format, reorganize this
-			// code so that the schema is available here.
-			valsSeq[i] = cty.DynamicVal // not yet known
-		}
-	}
-
-	// We use a tuple rather than a list here because resource schemas may
-	// include dynamically-typed attributes, which will then cause each
-	// instance to potentially have a different runtime type.
-	return cty.TupleVal(valsSeq), diags
-}
-
-func (d *evaluationStateData) getResourceInstancePending(addr addrs.ResourceInstance, rng tfdiags.SourceRange, providerAddr addrs.AbsProviderConfig) (cty.Value, tfdiags.Diagnostics) {
+func (d *evaluationStateData) getResourceInstancesAll(addr addrs.Resource, rng tfdiags.SourceRange, config *configs.Resource, rs *states.Resource, providerAddr addrs.AbsProviderConfig) (cty.Value, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
-	// We'd ideally like to return a properly-typed unknown value here, in
-	// order to give the type checker maximum information to detect type
-	// mismatches even if concrete values aren't yet known.
-	//
-	// To do this we need to know the resource's schema, which we should
-	// already have cached from when the provider was initialized.  However, we
-	// first need to look in configuration to find out which provider address
-	// will be responsible for creating this.
-	moduleConfig := d.Evaluator.Config.DescendentForInstance(d.ModulePath)
-	if moduleConfig == nil {
-		// should never happen, since we can't be evaluating in a module
-		// that wasn't mentioned in configuration.
-		panic(fmt.Sprintf("reference to instance from %s, which has no configuration", d.ModulePath))
-	}
-
-	// Everything after here is best-effort: if we can't gather enough
-	// information to return a typed value then we'll give up and return an
-	// entirely-untyped value, assuming that we're in a special situation
-	// such as accessing an orphaned resource, which should get error-checked
-	// elsewhere.
-	rc := moduleConfig.Module.ResourceByAddr(addr.ContainingResource())
-	if rc == nil {
-		return cty.DynamicVal, diags
-	}
-	schema := d.getResourceSchema(addr.ContainingResource(), providerAddr)
+	schema := d.getResourceSchema(addr, providerAddr)
 	if schema == nil {
+		// This shouldn't happen, since validation before we get here should've
+		// taken care of it, but we'll show a reasonable error message anyway.
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  `Missing resource type schema`,
+			Detail:   fmt.Sprintf("No schema is available for %s in %s. This is a bug in Terraform and should be reported.", addr, providerAddr),
+			Subject:  rng.ToHCL().Ptr(),
+		})
 		return cty.DynamicVal, diags
 	}
 
-	return cty.UnknownVal(schema.ImpliedType()), diags
+	switch rs.EachMode {
+
+	case states.EachList:
+		// We need to infer the length of our resulting tuple by searching
+		// for the max IntKey in our instances map.
+		length := 0
+		for k := range rs.Instances {
+			if ik, ok := k.(addrs.IntKey); ok {
+				if int(ik) >= length {
+					length = int(ik) + 1
+				}
+			}
+		}
+
+		vals := make([]cty.Value, length)
+		for i := 0; i < length; i++ {
+			ty := schema.ImpliedType()
+			key := addrs.IntKey(i)
+			is, exists := rs.Instances[key]
+			if exists {
+				ios, err := is.Current.Decode(ty)
+				if err != nil {
+					// This shouldn't happen, since by the time we get here
+					// we should've upgraded the state data already.
+					diags = diags.Append(&hcl.Diagnostic{
+						Severity: hcl.DiagError,
+						Summary:  "Invalid resource instance data in state",
+						Detail:   fmt.Sprintf("Instance %s data could not be decoded from the state: %s.", addr.Instance(key).Absolute(d.ModulePath), err),
+						Subject:  &config.DeclRange,
+					})
+					continue
+				}
+				vals[i] = ios.Value
+			} else {
+				// There shouldn't normally be "gaps" in our list but we'll
+				// allow it under the assumption that we're in a weird situation
+				// where e.g. someone has run "terraform state mv" to reorder
+				// a list and left a hole behind.
+				vals[i] = cty.UnknownVal(schema.ImpliedType())
+			}
+		}
+
+		// We use a tuple rather than a list here because resource schemas may
+		// include dynamically-typed attributes, which will then cause each
+		// instance to potentially have a different runtime type even though
+		// they all conform to the static schema.
+		return cty.TupleVal(vals), diags
+
+	case states.EachMap:
+		ty := schema.ImpliedType()
+		vals := make(map[string]cty.Value, len(rs.Instances))
+		for k, is := range rs.Instances {
+			if sk, ok := k.(addrs.StringKey); ok {
+				ios, err := is.Current.Decode(ty)
+				if err != nil {
+					// This shouldn't happen, since by the time we get here
+					// we should've upgraded the state data already.
+					diags = diags.Append(&hcl.Diagnostic{
+						Severity: hcl.DiagError,
+						Summary:  "Invalid resource instance data in state",
+						Detail:   fmt.Sprintf("Instance %s data could not be decoded from the state: %s.", addr.Instance(k).Absolute(d.ModulePath), err),
+						Subject:  &config.DeclRange,
+					})
+					continue
+				}
+				vals[string(sk)] = ios.Value
+			}
+		}
+
+		// We use an object rather than a map here because resource schemas may
+		// include dynamically-typed attributes, which will then cause each
+		// instance to potentially have a different runtime type even though
+		// they all conform to the static schema.
+		return cty.ObjectVal(vals), diags
+
+	default:
+		// Should never happen since caller should deal with other modes
+		panic(fmt.Sprintf("unsupported EachMode %s", rs.EachMode))
+	}
 }
 
 func (d *evaluationStateData) getResourceSchema(addr addrs.Resource, providerAddr addrs.AbsProviderConfig) *configschema.Block {
@@ -750,6 +666,43 @@ func (d *evaluationStateData) getResourceSchema(addr addrs.Resource, providerAdd
 	default:
 		log.Printf("[WARN] Don't know how to fetch schema for resource %s", providerAddr)
 		return nil
+	}
+}
+
+// coerceInstanceKey attempts to convert the given key to the type expected
+// for the given EachMode.
+//
+// If the key is already of the correct type or if it cannot be converted then
+// it is returned verbatim. If conversion is required and possible, the
+// converted value is returned. Callers should not try to determine if
+// conversion was possible, should instead just check if the result is of
+// the expected type.
+func (d *evaluationStateData) coerceInstanceKey(key addrs.InstanceKey, mode states.EachMode) addrs.InstanceKey {
+	if key == addrs.NoKey {
+		// An absent key can't be converted
+		return key
+	}
+
+	switch mode {
+	case states.NoEach:
+		// No conversions possible at all
+		return key
+	case states.EachMap:
+		if intKey, isInt := key.(addrs.IntKey); isInt {
+			return addrs.StringKey(strconv.Itoa(int(intKey)))
+		}
+		return key
+	case states.EachList:
+		if strKey, isStr := key.(addrs.StringKey); isStr {
+			i, err := strconv.Atoi(string(strKey))
+			if err != nil {
+				return key
+			}
+			return addrs.IntKey(i)
+		}
+		return key
+	default:
+		return key
 	}
 }
 

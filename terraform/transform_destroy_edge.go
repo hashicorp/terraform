@@ -4,6 +4,7 @@ import (
 	"log"
 
 	"github.com/hashicorp/terraform/addrs"
+	"github.com/hashicorp/terraform/states"
 
 	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/dag"
@@ -43,7 +44,7 @@ type DestroyEdgeTransformer struct {
 	// These are needed to properly build the graph of dependencies
 	// to determine what a destroy node depends on. Any of these can be nil.
 	Config *configs.Config
-	State  *State
+	State  *states.State
 
 	// If configuration is present then Schemas is required in order to
 	// obtain schema information from providers and provisioners in order
@@ -53,8 +54,8 @@ type DestroyEdgeTransformer struct {
 
 func (t *DestroyEdgeTransformer) Transform(g *Graph) error {
 	// Build a map of what is being destroyed (by address string) to
-	// the list of destroyers. In general there will only be one destroyer
-	// but to make it more robust we support multiple.
+	// the list of destroyers. Usually there will be at most one destroyer
+	// per node, but we allow multiple if present for completeness.
 	destroyers := make(map[string][]GraphNodeDestroyer)
 	destroyerAddrs := make(map[string]addrs.AbsResourceInstance)
 	for _, v := range g.Vertices() {

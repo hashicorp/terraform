@@ -2,7 +2,7 @@ package backend
 
 import (
 	"github.com/hashicorp/terraform/configs/configschema"
-	"github.com/hashicorp/terraform/state"
+	"github.com/hashicorp/terraform/states/statemgr"
 	"github.com/hashicorp/terraform/tfdiags"
 	"github.com/zclconf/go-cty/cty"
 )
@@ -25,15 +25,16 @@ func (Nil) Configure(cty.Value) tfdiags.Diagnostics {
 	return nil
 }
 
-func (Nil) State(string) (state.State, error) {
-	// We have to return a non-nil state to adhere to the interface
-	return &state.InmemState{}, nil
+func (Nil) StateMgr(string) (statemgr.Full, error) {
+	// We must return a non-nil manager to adhere to the interface, so
+	// we'll return an in-memory-only one.
+	return statemgr.NewFullFake(statemgr.NewTransientInMemory(nil), nil), nil
 }
 
-func (Nil) DeleteState(string) error {
+func (Nil) DeleteWorkspace(string) error {
 	return nil
 }
 
-func (Nil) States() ([]string, error) {
+func (Nil) Workspaces() ([]string, error) {
 	return []string{DefaultStateName}, nil
 }

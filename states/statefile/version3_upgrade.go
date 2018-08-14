@@ -219,7 +219,7 @@ func upgradeInstanceObjectV3ToV4(rsOld *resourceStateV2, isOld *instanceStateV2,
 	// SDK, and not a first-class concept in the state format. Here we're
 	// sniffing for the pre-0.12 SDK's way of representing schema versions
 	// and promoting it to our first-class field if we find it. We'll ignore
-	// if if it doesn't look like what the SDK would've written. If this
+	// it if it doesn't look like what the SDK would've written. If this
 	// sniffing fails then we'll assume schema version 0.
 	var schemaVersion uint64
 	migratedSchemaVersion := false
@@ -269,11 +269,34 @@ func upgradeInstanceObjectV3ToV4(rsOld *resourceStateV2, isOld *instanceStateV2,
 		}
 	}
 
+	var attributes map[string]string
+	if isOld.Attributes != nil {
+		attributes = make(map[string]string, len(isOld.Attributes))
+		for k, v := range isOld.Attributes {
+			attributes[k] = v
+		}
+	}
+	if isOld.ID != "" {
+		// As a special case, if we don't already have an "id" attribute and
+		// yet there's a non-empty first-class ID on the old object then we'll
+		// create a synthetic id attribute to avoid losing that first-class id.
+		// In practice this generally arises only in tests where state literals
+		// are hand-written in a non-standard way; real code prior to 0.12
+		// would always force the first-class ID to be copied into the
+		// id attribute before storing.
+		if attributes == nil {
+			attributes = make(map[string]string, len(isOld.Attributes))
+		}
+		if idVal := attributes["id"]; idVal == "" {
+			attributes["id"] = isOld.ID
+		}
+	}
+
 	return &instanceObjectStateV4{
 		IndexKey:       instKeyRaw,
 		Status:         status,
 		Deposed:        string(deposedKey),
-		AttributesFlat: isOld.Attributes,
+		AttributesFlat: attributes,
 		Dependencies:   rsOld.Dependencies,
 		SchemaVersion:  schemaVersion,
 		PrivateRaw:     privateJSON,

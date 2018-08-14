@@ -4,6 +4,7 @@ import (
 	"log"
 
 	"github.com/hashicorp/terraform/dag"
+	"github.com/hashicorp/terraform/states"
 )
 
 // GraphNodeAttachResourceState is an interface that can be implemented
@@ -19,51 +20,46 @@ type GraphNodeAttachResourceState interface {
 	GraphNodeResourceInstance
 
 	// Sets the state
-	AttachResourceState(*ResourceState)
+	AttachResourceState(*states.Resource)
 }
 
 // AttachStateTransformer goes through the graph and attaches
 // state to nodes that implement the interfaces above.
 type AttachStateTransformer struct {
-	State *State // State is the root state
+	State *states.State // State is the root state
 }
 
 func (t *AttachStateTransformer) Transform(g *Graph) error {
 	// If no state, then nothing to do
 	if t.State == nil {
-		log.Printf("[DEBUG] Not attaching any state: state is nil")
+		log.Printf("[DEBUG] Not attaching any node states: overall state is nil")
 		return nil
 	}
 
-	filter := &StateFilter{State: t.State}
 	for _, v := range g.Vertices() {
-		// Only care about nodes requesting we're adding state
+		// Nodes implement this interface to request state attachment.
 		an, ok := v.(GraphNodeAttachResourceState)
 		if !ok {
 			continue
 		}
 		addr := an.ResourceInstanceAddr()
 
-		// Get the module state
-		results, err := filter.Filter(addr.String())
-		if err != nil {
-			return err
+		rs := t.State.Resource(addr.ContainingResource())
+		if rs == nil {
+			log.Printf("[DEBUG] Resource state not found for node %q, instance %s", dag.VertexName(v), addr)
+			continue
 		}
 
-		// Attach the first resource state we get
-		found := false
-		for _, result := range results {
-			if rs, ok := result.Value.(*ResourceState); ok {
-				log.Printf("[DEBUG] Attaching resource state to %q: %#v", dag.VertexName(v), rs)
-				an.AttachResourceState(rs)
-				found = true
-				break
-			}
+		is := rs.Instance(addr.Resource.Key)
+		if is == nil {
+			// We don't actually need this here, since we'll attach the whole
+			// resource state, but we still check because it'd be weird
+			// for the specific instance we're attaching to not to exist.
+			log.Printf("[DEBUG] Resource instance state not found for node %q, instance %s", dag.VertexName(v), addr)
+			continue
 		}
 
-		if !found {
-			log.Printf("[DEBUG] Resource state not found for %q: %s", dag.VertexName(v), addr)
-		}
+		an.AttachResourceState(rs)
 	}
 
 	return nil

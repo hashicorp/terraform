@@ -8,17 +8,19 @@ import (
 	"strings"
 
 	"github.com/hashicorp/hcl2/hcl"
+	"github.com/posener/complete"
+	"github.com/zclconf/go-cty/cty"
+
 	"github.com/hashicorp/terraform/backend"
 	backendinit "github.com/hashicorp/terraform/backend/init"
 	"github.com/hashicorp/terraform/config"
-	"github.com/hashicorp/terraform/configs/configschema"
 	"github.com/hashicorp/terraform/configs"
+	"github.com/hashicorp/terraform/configs/configschema"
 	"github.com/hashicorp/terraform/plugin"
 	"github.com/hashicorp/terraform/plugin/discovery"
+	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/hashicorp/terraform/tfdiags"
-	"github.com/posener/complete"
-	"github.com/zclconf/go-cty/cty"
 )
 
 // InitCommand is a Command implementation that takes a Terraform
@@ -266,13 +268,13 @@ func (c *InitCommand) Run(args []string) int {
 		}
 	}
 
-	var state *terraform.State
+	var state *states.State
 
 	// If we have a functional backend (either just initialized or initialized
 	// on a previous run) we'll use the current state as a potential source
 	// of provider dependencies.
 	if back != nil {
-		sMgr, err := back.State(c.Workspace())
+		sMgr, err := back.StateMgr(c.Workspace())
 		if err != nil {
 			c.Ui.Error(fmt.Sprintf("Error loading state: %s", err))
 			return 1
@@ -391,14 +393,9 @@ func (c *InitCommand) backendConfigOverrideBody(flags rawFlags, schema *configsc
 
 // Load the complete module tree, and fetch any missing providers.
 // This method outputs its own Ui.
-func (c *InitCommand) getProviders(path string, state *terraform.State, upgrade bool) tfdiags.Diagnostics {
+func (c *InitCommand) getProviders(path string, state *states.State, upgrade bool) tfdiags.Diagnostics {
 	config, diags := c.loadConfig(path)
 	if diags.HasErrors() {
-		return diags
-	}
-
-	if err := terraform.CheckStateVersion(state, false); err != nil {
-		diags = diags.Append(err)
 		return diags
 	}
 

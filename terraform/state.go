@@ -16,6 +16,9 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/hashicorp/errwrap"
+	"github.com/hashicorp/terraform/plans"
+
 	"github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/go-uuid"
 	"github.com/hashicorp/go-version"
@@ -23,8 +26,8 @@ import (
 	"github.com/hashicorp/hcl2/hcl/hclsyntax"
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/config"
-	"github.com/hashicorp/terraform/configs/configschema"
 	"github.com/hashicorp/terraform/configs"
+	"github.com/hashicorp/terraform/configs/configschema"
 	"github.com/hashicorp/terraform/tfdiags"
 	tfversion "github.com/hashicorp/terraform/version"
 	"github.com/mitchellh/copystructure"
@@ -787,6 +790,9 @@ func (s *BackendState) Empty() bool {
 // given schema.
 func (s *BackendState) Config(schema *configschema.Block) (cty.Value, error) {
 	ty := schema.ImpliedType()
+	if s == nil {
+		return cty.NullVal(ty), nil
+	}
 	return ctyjson.Unmarshal(s.ConfigRaw, ty)
 }
 
@@ -803,6 +809,24 @@ func (s *BackendState) SetConfig(val cty.Value, schema *configschema.Block) erro
 	}
 	s.ConfigRaw = buf
 	return nil
+}
+
+// ForPlan produces an alternative representation of the reciever that is
+// suitable for storing in a plan. The current workspace must additionally
+// be provided, to be stored alongside the backend configuration.
+//
+// The backend configuration schema is required in order to properly
+// encode the backend-specific configuration settings.
+func (s *BackendState) ForPlan(schema *configschema.Block, workspaceName string) (*plans.Backend, error) {
+	if s == nil {
+		return nil, nil
+	}
+
+	configVal, err := s.Config(schema)
+	if err != nil {
+		return nil, errwrap.Wrapf("failed to decode backend config: {{err}}", err)
+	}
+	return plans.NewBackend(s.Type, configVal, schema, workspaceName)
 }
 
 // RemoteState is used to track the information about a remote
@@ -2174,29 +2198,6 @@ func (s moduleStateSort) Less(i, j int) bool {
 
 func (s moduleStateSort) Swap(i, j int) {
 	s[i], s[j] = s[j], s[i]
-}
-
-// CheckStateVersion returns error diagnostics if the state is not compatible
-// with the current version of Terraform Core.
-func CheckStateVersion(state *State, allowFuture bool) tfdiags.Diagnostics {
-	var diags tfdiags.Diagnostics
-
-	if state == nil {
-		return diags
-	}
-
-	if state.FromFutureTerraform() && !allowFuture {
-		diags = diags.Append(tfdiags.Sourceless(
-			tfdiags.Error,
-			"Incompatible Terraform state format",
-			fmt.Sprintf(
-				"For safety reasons, Terraform will not run operations against a state that was written by a future Terraform version. Your current version is %s, but the state requires at least %s. To proceed, upgrade Terraform to a suitable version.",
-				tfversion.String(), state.TFVersion,
-			),
-		))
-	}
-
-	return diags
 }
 
 const stateValidateErrMultiModule = `

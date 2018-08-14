@@ -13,10 +13,13 @@ import (
 
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/command/clistate"
-	"github.com/hashicorp/terraform/configs/configschema"
 	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/configs/configload"
-	"github.com/hashicorp/terraform/state"
+	"github.com/hashicorp/terraform/configs/configschema"
+	"github.com/hashicorp/terraform/plans"
+	"github.com/hashicorp/terraform/plans/planfile"
+	"github.com/hashicorp/terraform/states"
+	"github.com/hashicorp/terraform/states/statemgr"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/hashicorp/terraform/tfdiags"
 )
@@ -25,25 +28,18 @@ import (
 // backend must have. This state cannot be deleted.
 const DefaultStateName = "default"
 
-// This must be returned rather than a custom error so that the Terraform
-// CLI can detect it and handle it appropriately.
-var (
-	// ErrDefaultStateNotSupported is returned when an operation does not support
-	// using the default state, but requires a named state to be selected.
-	ErrDefaultStateNotSupported = errors.New("default state not supported\n" +
-		"You can create a new workspace with the \"workspace new\" command.")
+// ErrWorkspacesNotSupported is an error returned when a caller attempts
+// to perform an operation on a workspace other than "default" for a
+// backend that doesn't support multiple workspaces.
+//
+// The caller can detect this to do special fallback behavior or produce
+// a specific, helpful error message.
+var ErrWorkspacesNotSupported = errors.New("workspaces not supported")
 
-	// ErrNamedStatesNotSupported is returned when a named state operation
-	// isn't supported.
-	ErrNamedStatesNotSupported = errors.New("named states not supported")
-
-	// ErrOperationNotSupported is returned when an unsupported operation
-	// is detected by the configured backend.
-	ErrOperationNotSupported = errors.New("operation not supported")
-)
-
-// InitFn is used to initialize a new backend.
-type InitFn func() Backend
+// ErrNamedStatesNotSupported is an older name for ErrWorkspacesNotSupported.
+//
+// Deprecated: Use ErrWorkspacesNotSupported instead.
+var ErrNamedStatesNotSupported = ErrWorkspacesNotSupported
 
 // Backend is the minimal interface that must be implemented to enable Terraform.
 type Backend interface {
@@ -87,25 +83,26 @@ type Backend interface {
 	// is undefined and no other methods may be called.
 	Configure(cty.Value) tfdiags.Diagnostics
 
-	// State returns the current state for this environment. This state may
-	// not be loaded locally: the proper APIs should be called on state.State
-	// to load the state. If the state.State is a state.Locker, it's up to the
-	// caller to call Lock and Unlock as needed.
+	// StateMgr returns the state manager for the given workspace name.
 	//
-	// If the named state doesn't exist it will be created. The "default" state
-	// is always assumed to exist.
-	State(name string) (state.State, error)
-
-	// DeleteState removes the named state if it exists. It is an error
-	// to delete the default state.
+	// If the returned state manager also implements statemgr.Locker then
+	// it's the caller's responsibility to call Lock and Unlock as appropriate.
 	//
-	// DeleteState does not prevent deleting a state that is in use. It is the
-	// responsibility of the caller to hold a Lock on the state when calling
-	// this method.
-	DeleteState(name string) error
+	// If the named workspace doesn't exist, or if it has no state, it will
+	// be created either immediately on this call or the first time
+	// PersistState is called, depending on the state manager implementation.
+	StateMgr(workspace string) (statemgr.Full, error)
 
-	// States returns a list of configured named states.
-	States() ([]string, error)
+	// DeleteWorkspace removes the workspace with the given name if it exists.
+	//
+	// DeleteWorkspace cannot prevent deleting a state that is in use. It is
+	// the responsibility of the caller to hold a Lock for the state manager
+	// belonging to this workspace before calling this method.
+	DeleteWorkspace(name string) error
+
+	// States returns a list of the names of all of the workspaces that exist
+	// in this backend.
+	Workspaces() ([]string, error)
 }
 
 // Enhanced implements additional behavior on top of a normal backend.
@@ -136,7 +133,7 @@ type Enhanced interface {
 type Local interface {
 	// Context returns a runnable terraform Context. The operation parameter
 	// doesn't need a Type set but it needs other options set such as Module.
-	Context(*Operation) (*terraform.Context, state.State, tfdiags.Diagnostics)
+	Context(*Operation) (*terraform.Context, statemgr.Full, tfdiags.Diagnostics)
 }
 
 // An operation represents an operation for Terraform to execute.
@@ -166,7 +163,7 @@ type Operation struct {
 	PlanId         string
 	PlanRefresh    bool   // PlanRefresh will do a refresh before a plan
 	PlanOutPath    string // PlanOutPath is the path to save the plan
-	PlanOutBackend *terraform.BackendState
+	PlanOutBackend *plans.Backend
 
 	// ConfigDir is the path to the directory containing the configuration's
 	// root module.
@@ -178,11 +175,10 @@ type Operation struct {
 
 	// Plan is a plan that was passed as an argument. This is valid for
 	// plan and apply arguments but may not work for all backends.
-	Plan *terraform.Plan
+	PlanFile *planfile.Reader
 
 	// The options below are more self-explanatory and affect the runtime
 	// behavior of the operation.
-	AutoApprove  bool
 	Destroy      bool
 	Targets      []addrs.Targetable
 	Variables    map[string]UnparsedVariableValue
@@ -259,7 +255,7 @@ type RunningOperation struct {
 	// State is the final state after the operation completed. Persisting
 	// this state is managed by the backend. This should only be read
 	// after the operation completes to avoid read/write races.
-	State *terraform.State
+	State *states.State
 }
 
 // OperationResult describes the result status of an operation.

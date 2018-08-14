@@ -3,6 +3,10 @@ package terraform
 import (
 	"fmt"
 
+	"github.com/hashicorp/terraform/plans"
+
+	"github.com/hashicorp/terraform/states"
+
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/dag"
 	"github.com/hashicorp/terraform/tfdiags"
@@ -37,10 +41,10 @@ func (n *NodeRefreshableManagedResource) DynamicExpand(ctx EvalContext) (*Graph,
 	// if we're transitioning whether "count" is set at all.
 	fixResourceCountSetTransition(ctx, n.ResourceAddr().Resource, count != -1)
 
-	// Grab the state which we read
-	state, lock := ctx.State()
-	lock.RLock()
-	defer lock.RUnlock()
+	// Our graph transformers require access to the full state, so we'll
+	// temporarily lock it while we work on this.
+	state := ctx.State().Lock()
+	defer ctx.State().Unlock()
 
 	// The concrete resource factory we'll use
 	concreteResource := func(a *NodeAbstractResourceInstance) dag.Vertex {
@@ -155,14 +159,11 @@ func (n *NodeRefreshableManagedResourceInstance) EvalTree() EvalNode {
 func (n *NodeRefreshableManagedResourceInstance) evalTreeManagedResource() EvalNode {
 	addr := n.ResourceInstanceAddr()
 
-	// State still uses legacy-style internal ids, so we need to shim to get
-	// a suitable key to use.
-	stateId := NewLegacyResourceInstanceAddress(addr).stateId()
-
 	// Declare a bunch of variables that are used for state during
 	// evaluation. Most of this are written to by-address below.
 	var provider ResourceProvider
-	var state *InstanceState
+	var providerSchema *ProviderSchema
+	var state *states.ResourceInstanceObject
 
 	// This happened during initial development. All known cases were
 	// fixed and tested but as a sanity check let's assert here.
@@ -177,14 +178,18 @@ func (n *NodeRefreshableManagedResourceInstance) evalTreeManagedResource() EvalN
 
 	return &EvalSequence{
 		Nodes: []EvalNode{
-			&EvalReadState{
-				Name:   stateId,
-				Output: &state,
-			},
-
 			&EvalGetProvider{
 				Addr:   n.ResolvedProvider,
 				Output: &provider,
+				Schema: &providerSchema,
+			},
+
+			&EvalReadState{
+				Addr:           addr.Resource,
+				Provider:       &provider,
+				ProviderSchema: &providerSchema,
+
+				Output: &state,
 			},
 
 			&EvalRefresh{
@@ -195,11 +200,10 @@ func (n *NodeRefreshableManagedResourceInstance) evalTreeManagedResource() EvalN
 			},
 
 			&EvalWriteState{
-				Name:         stateId,
-				ResourceType: n.ResourceState.Type,
-				Provider:     n.ResolvedProvider,
-				Dependencies: n.ResourceState.Dependencies,
-				State:        &state,
+				Addr:           addr.Resource,
+				ProviderAddr:   n.ResolvedProvider,
+				ProviderSchema: &providerSchema,
+				State:          &state,
 			},
 		},
 	}
@@ -223,27 +227,27 @@ func (n *NodeRefreshableManagedResourceInstance) evalTreeManagedResourceNoState(
 	// evaluation. Most of this are written to by-address below.
 	var provider ResourceProvider
 	var providerSchema *ProviderSchema
-	var diff *InstanceDiff
-	var state *InstanceState
-
-	// State still uses legacy-style internal ids, so we need to shim to get
-	// a suitable key to use.
-	stateID := NewLegacyResourceInstanceAddress(addr).stateId()
+	var change *plans.ResourceInstanceChange
+	var state *states.ResourceInstanceObject
 
 	// Determine the dependencies for the state.
-	stateDeps := n.StateReferences()
+	// TODO: Update StateReferences to return []addrs.Referenceable
+	//state.Dependencies = n.StateReferences()
 
 	return &EvalSequence{
 		Nodes: []EvalNode{
-			&EvalReadState{
-				Name:   stateID,
-				Output: &state,
-			},
-
 			&EvalGetProvider{
 				Addr:   n.ResolvedProvider,
 				Output: &provider,
 				Schema: &providerSchema,
+			},
+
+			&EvalReadState{
+				Addr:           addr.Resource,
+				Provider:       &provider,
+				ProviderSchema: &providerSchema,
+
+				Output: &state,
 			},
 
 			&EvalDiff{
@@ -252,17 +256,16 @@ func (n *NodeRefreshableManagedResourceInstance) evalTreeManagedResourceNoState(
 				Provider:       &provider,
 				ProviderSchema: &providerSchema,
 				State:          &state,
-				OutputDiff:     &diff,
+				OutputChange:   &change,
 				OutputState:    &state,
 				Stub:           true,
 			},
 
 			&EvalWriteState{
-				Name:         stateID,
-				ResourceType: n.Config.Type,
-				Provider:     n.ResolvedProvider,
-				Dependencies: stateDeps,
-				State:        &state,
+				Addr:           addr.Resource,
+				ProviderAddr:   n.ResolvedProvider,
+				ProviderSchema: &providerSchema,
+				State:          &state,
 			},
 		},
 	}

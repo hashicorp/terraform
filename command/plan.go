@@ -53,37 +53,35 @@ func (c *PlanCommand) Run(args []string) int {
 		return 1
 	}
 
-	// Check if the path is a plan
-	plan, err := c.Plan(configPath)
+	// Check if the path is a plan, which is not permitted
+	planFileReader, err := c.PlanFile(configPath)
 	if err != nil {
 		c.Ui.Error(err.Error())
 		return 1
 	}
-	if plan != nil {
-		// Disable refreshing no matter what since we only want to show the plan
-		refresh = false
-
-		// Set the config path to empty for backend loading
-		configPath = ""
+	if planFileReader != nil {
+		c.showDiagnostics(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Invalid configuration directory",
+			fmt.Sprintf("Cannot pass a saved plan file to the 'terraform plan' command. To apply a saved plan, use: terraform apply %s", configPath),
+		))
+		return 1
 	}
 
 	var diags tfdiags.Diagnostics
 
 	var backendConfig *configs.Backend
-	if plan == nil {
-		var configDiags tfdiags.Diagnostics
-		backendConfig, configDiags = c.loadBackendConfig(configPath)
-		diags = diags.Append(configDiags)
-		if configDiags.HasErrors() {
-			c.showDiagnostics(diags)
-			return 1
-		}
+	var configDiags tfdiags.Diagnostics
+	backendConfig, configDiags = c.loadBackendConfig(configPath)
+	diags = diags.Append(configDiags)
+	if configDiags.HasErrors() {
+		c.showDiagnostics(diags)
+		return 1
 	}
 
 	// Load the backend
 	b, backendDiags := c.Backend(&BackendOpts{
 		Config: backendConfig,
-		Plan:   plan,
 	})
 	diags = diags.Append(backendDiags)
 	if backendDiags.HasErrors() {
@@ -97,10 +95,10 @@ func (c *PlanCommand) Run(args []string) int {
 	diags = nil
 
 	// Build the operation
-	opReq := c.Operation()
+	opReq := c.Operation(b)
 	opReq.Destroy = destroy
 	opReq.ConfigDir = configPath
-	opReq.Plan = plan
+	opReq.PlanRefresh = refresh
 	opReq.PlanOutPath = outPath
 	opReq.PlanRefresh = refresh
 	opReq.Type = backend.OperationTypePlan

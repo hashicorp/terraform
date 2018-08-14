@@ -5,18 +5,17 @@ import (
 	"sort"
 	"testing"
 
-	"github.com/hashicorp/terraform/configs"
-
-	"github.com/hashicorp/terraform/config/hcl2shim"
-
-	"github.com/hashicorp/terraform/tfdiags"
-
-	"github.com/hashicorp/hcl2/hcldec"
-
 	uuid "github.com/hashicorp/go-uuid"
 	"github.com/hashicorp/hcl2/hcl"
+	"github.com/hashicorp/hcl2/hcldec"
+
+	"github.com/hashicorp/terraform/addrs"
+	"github.com/hashicorp/terraform/config/hcl2shim"
+	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/state"
-	"github.com/hashicorp/terraform/terraform"
+	"github.com/hashicorp/terraform/states"
+	"github.com/hashicorp/terraform/states/statemgr"
+	"github.com/hashicorp/terraform/tfdiags"
 )
 
 // TestBackendConfig validates and configures the backend with the
@@ -67,31 +66,19 @@ func TestWrapConfig(raw map[string]interface{}) hcl.Body {
 func TestBackendStates(t *testing.T, b Backend) {
 	t.Helper()
 
-	noDefault := false
-	if _, err := b.State(DefaultStateName); err != nil {
-		if err == ErrDefaultStateNotSupported {
-			noDefault = true
-		} else {
-			t.Fatalf("error: %v", err)
-		}
-	}
-
-	states, err := b.States()
-	if err != nil {
-		if err == ErrNamedStatesNotSupported {
-			t.Logf("TestBackend: named states not supported in %T, skipping", b)
-			return
-		}
-		t.Fatalf("error: %v", err)
+	workspaces, err := b.Workspaces()
+	if err == ErrNamedStatesNotSupported {
+		t.Logf("TestBackend: workspaces not supported in %T, skipping", b)
+		return
 	}
 
 	// Test it starts with only the default
-	if !noDefault && (len(states) != 1 || states[0] != DefaultStateName) {
-		t.Fatalf("should have default to start: %#v", states)
+	if len(workspaces) != 1 || workspaces[0] != DefaultStateName {
+		t.Fatalf("should only have default to start: %#v", workspaces)
 	}
 
 	// Create a couple states
-	foo, err := b.State("foo")
+	foo, err := b.StateMgr("foo")
 	if err != nil {
 		t.Fatalf("error: %s", err)
 	}
@@ -102,7 +89,7 @@ func TestBackendStates(t *testing.T, b Backend) {
 		t.Fatalf("should be empty: %s", v)
 	}
 
-	bar, err := b.State("bar")
+	bar, err := b.StateMgr("bar")
 	if err != nil {
 		t.Fatalf("error: %s", err)
 	}
@@ -115,24 +102,10 @@ func TestBackendStates(t *testing.T, b Backend) {
 
 	// Verify they are distinct states that can be read back from storage
 	{
-		// start with a fresh state, and record the lineage being
-		// written to "bar"
-		barState := terraform.NewState()
-
-		// creating the named state may have created a lineage, so use that if it exists.
-		if s := bar.State(); s != nil && s.Lineage != "" {
-			barState.Lineage = s.Lineage
-		}
-		barLineage := barState.Lineage
-
-		// the foo lineage should be distinct from bar, and unchanged after
-		// modifying bar
-		fooState := terraform.NewState()
-		// creating the named state may have created a lineage, so use that if it exists.
-		if s := foo.State(); s != nil && s.Lineage != "" {
-			fooState.Lineage = s.Lineage
-		}
-		fooLineage := fooState.Lineage
+		// We'll use two distinct states here and verify that changing one
+		// does not also change the other.
+		barState := states.NewState()
+		fooState := states.NewState()
 
 		// write a known state to foo
 		if err := foo.WriteState(fooState); err != nil {
@@ -141,6 +114,25 @@ func TestBackendStates(t *testing.T, b Backend) {
 		if err := foo.PersistState(); err != nil {
 			t.Fatal("error persisting foo state:", err)
 		}
+
+		// We'll make "bar" different by adding a fake resource state to it.
+		barState.SyncWrapper().SetResourceInstanceCurrent(
+			addrs.ResourceInstance{
+				Resource: addrs.Resource{
+					Mode: addrs.ManagedResourceMode,
+					Type: "test_thing",
+					Name: "foo",
+				},
+			}.Absolute(addrs.RootModuleInstance),
+			&states.ResourceInstanceObjectSrc{
+				AttrsJSON:     []byte("{}"),
+				Status:        states.ObjectReady,
+				SchemaVersion: 0,
+			},
+			addrs.ProviderConfig{
+				Type: "test",
+			}.Absolute(addrs.RootModuleInstance),
+		)
 
 		// write a distinct known state to bar
 		if err := bar.WriteState(barState); err != nil {
@@ -155,17 +147,12 @@ func TestBackendStates(t *testing.T, b Backend) {
 			t.Fatal("error refreshing foo:", err)
 		}
 		fooState = foo.State()
-		switch {
-		case fooState == nil:
-			t.Fatal("nil state read from foo")
-		case fooState.Lineage == barLineage:
-			t.Fatalf("bar lineage read from foo: %#v", fooState)
-		case fooState.Lineage != fooLineage:
-			t.Fatal("foo lineage alterred")
+		if fooState.HasResources() {
+			t.Fatal("after writing a resource to bar, foo now has resources too")
 		}
 
 		// fetch foo again from the backend
-		foo, err = b.State("foo")
+		foo, err = b.StateMgr("foo")
 		if err != nil {
 			t.Fatal("error re-fetching state:", err)
 		}
@@ -173,15 +160,12 @@ func TestBackendStates(t *testing.T, b Backend) {
 			t.Fatal("error refreshing foo:", err)
 		}
 		fooState = foo.State()
-		switch {
-		case fooState == nil:
-			t.Fatal("nil state read from foo")
-		case fooState.Lineage != fooLineage:
-			t.Fatal("incorrect state returned from backend")
+		if fooState.HasResources() {
+			t.Fatal("after writing a resource to bar and re-reading foo, foo now has resources too")
 		}
 
 		// fetch the bar  again from the backend
-		bar, err = b.State("bar")
+		bar, err = b.StateMgr("bar")
 		if err != nil {
 			t.Fatal("error re-fetching state:", err)
 		}
@@ -189,46 +173,40 @@ func TestBackendStates(t *testing.T, b Backend) {
 			t.Fatal("error refreshing bar:", err)
 		}
 		barState = bar.State()
-		switch {
-		case barState == nil:
-			t.Fatal("nil state read from bar")
-		case barState.Lineage != barLineage:
-			t.Fatal("incorrect state returned from backend")
+		if !barState.HasResources() {
+			t.Fatal("after writing a resource instance object to bar and re-reading it, the object has vanished")
 		}
 	}
 
 	// Verify we can now list them
 	{
 		// we determined that named stated are supported earlier
-		states, err := b.States()
+		workspaces, err := b.Workspaces()
 		if err != nil {
 			t.Fatal(err)
 		}
 
-		sort.Strings(states)
+		sort.Strings(workspaces)
 		expected := []string{"bar", "default", "foo"}
-		if noDefault {
-			expected = []string{"bar", "foo"}
-		}
-		if !reflect.DeepEqual(states, expected) {
-			t.Fatalf("bad: %#v", states)
+		if !reflect.DeepEqual(workspaces, expected) {
+			t.Fatalf("wrong workspaces list\ngot:  %#v\nwant: %#v", workspaces, expected)
 		}
 	}
 
-	// Delete some states
-	if err := b.DeleteState("foo"); err != nil {
+	// Delete some workspaces
+	if err := b.DeleteWorkspace("foo"); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
 	// Verify the default state can't be deleted
-	if err := b.DeleteState(DefaultStateName); err == nil {
+	if err := b.DeleteWorkspace(DefaultStateName); err == nil {
 		t.Fatal("expected error")
 	}
 
-	// Create and delete the foo state again.
+	// Create and delete the foo workspace again.
 	// Make sure that there are no leftover artifacts from a deleted state
 	// preventing re-creation.
-	foo, err = b.State("foo")
+	foo, err = b.StateMgr("foo")
 	if err != nil {
 		t.Fatalf("error: %s", err)
 	}
@@ -239,23 +217,20 @@ func TestBackendStates(t *testing.T, b Backend) {
 		t.Fatalf("should be empty: %s", v)
 	}
 	// and delete it again
-	if err := b.DeleteState("foo"); err != nil {
+	if err := b.DeleteWorkspace("foo"); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
 	// Verify deletion
 	{
-		states, err := b.States()
-		if err == ErrNamedStatesNotSupported {
+		states, err := b.Workspaces()
+		if err == ErrWorkspacesNotSupported {
 			t.Logf("TestBackend: named states not supported in %T, skipping", b)
 			return
 		}
 
 		sort.Strings(states)
 		expected := []string{"bar", "default"}
-		if noDefault {
-			expected = []string{"bar"}
-		}
 		if !reflect.DeepEqual(states, expected) {
 			t.Fatalf("bad: %#v", states)
 		}
@@ -282,7 +257,7 @@ func testLocks(t *testing.T, b1, b2 Backend, testForceUnlock bool) {
 	t.Helper()
 
 	// Get the default state for each
-	b1StateMgr, err := b1.State(DefaultStateName)
+	b1StateMgr, err := b1.StateMgr(DefaultStateName)
 	if err != nil {
 		t.Fatalf("error: %s", err)
 	}
@@ -298,7 +273,7 @@ func testLocks(t *testing.T, b1, b2 Backend, testForceUnlock bool) {
 
 	t.Logf("TestBackend: testing state locking for %T", b1)
 
-	b2StateMgr, err := b2.State(DefaultStateName)
+	b2StateMgr, err := b2.StateMgr(DefaultStateName)
 	if err != nil {
 		t.Fatalf("error: %s", err)
 	}
@@ -326,7 +301,7 @@ func testLocks(t *testing.T, b1, b2 Backend, testForceUnlock bool) {
 	// Make sure we can still get the state.State from another instance even
 	// when locked.  This should only happen when a state is loaded via the
 	// backend, and as a remote state.
-	_, err = b2.State(DefaultStateName)
+	_, err = b2.StateMgr(DefaultStateName)
 	if err != nil {
 		t.Errorf("failed to read locked state from another backend instance: %s", err)
 	}
@@ -389,10 +364,10 @@ func testLocks(t *testing.T, b1, b2 Backend, testForceUnlock bool) {
 		t.Fatal("client B obtained lock while held by client A")
 	}
 
-	infoErr, ok := err.(*state.LockError)
+	infoErr, ok := err.(*statemgr.LockError)
 	if !ok {
 		unlock()
-		t.Fatalf("expected type *state.LockError, got : %#v", err)
+		t.Fatalf("expected type *statemgr.LockError, got : %#v", err)
 	}
 
 	// try to unlock with the second unlocker, using the ID from the error

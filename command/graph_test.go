@@ -5,8 +5,11 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/hashicorp/terraform/terraform"
 	"github.com/mitchellh/cli"
+
+	"github.com/hashicorp/terraform/addrs"
+	"github.com/hashicorp/terraform/plans"
+	"github.com/hashicorp/terraform/states"
 )
 
 func TestGraph(t *testing.T) {
@@ -107,22 +110,25 @@ func TestGraph_plan(t *testing.T) {
 	tmp, cwd := testCwd(t)
 	defer testFixCwd(t, tmp, cwd)
 
-	planPath := testPlanFile(t, &terraform.Plan{
-		Diff: &terraform.Diff{
-			Modules: []*terraform.ModuleDiff{
-				&terraform.ModuleDiff{
-					Path: []string{"root"},
-					Resources: map[string]*terraform.InstanceDiff{
-						"test_instance.bar": &terraform.InstanceDiff{
-							Destroy: true,
-						},
-					},
-				},
-			},
+	plan := &plans.Plan{
+		Changes: plans.NewChanges(),
+	}
+	plan.Changes.Resources = append(plan.Changes.Resources, &plans.ResourceInstanceChangeSrc{
+		Addr: addrs.Resource{
+			Mode: addrs.ManagedResourceMode,
+			Type: "test_instance",
+			Name: "bar",
+		}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+		ChangeSrc: plans.ChangeSrc{
+			Action: plans.Delete,
+			Before: plans.DynamicValue(`{}`),
+			After:  plans.DynamicValue(`null`),
 		},
-
-		Config: testModule(t, "graph"),
+		ProviderAddr: addrs.ProviderConfig{Type: "test"}.Absolute(addrs.RootModuleInstance),
 	})
+	_, configSnap := testModuleWithSnapshot(t, "graph")
+
+	planPath := testPlanFile(t, configSnap, states.NewState(), plan)
 
 	ui := new(cli.MockUi)
 	c := &GraphCommand{
