@@ -16,6 +16,20 @@ import (
 	"github.com/zclconf/go-cty/cty/msgpack"
 )
 
+// NewGRPCProviderServerShim wraps a terraform.ResourceProvider in a
+// proto.ProviderServer implementation. If the provided provider is not a
+// *schema.Provider, this will return nil,
+func NewGRPCProviderServerShim(p terraform.ResourceProvider) *GRPCProviderServer {
+	sp, ok := p.(*schema.Provider)
+	if !ok {
+		return nil
+	}
+
+	return &GRPCProviderServer{
+		provider: sp,
+	}
+}
+
 // GRPCProviderServer handles the server, or plugin side of the rpc connection.
 type GRPCProviderServer struct {
 	provider *schema.Provider
