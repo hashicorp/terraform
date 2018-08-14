@@ -1802,10 +1802,10 @@
 			"revision": "d30f09973e19c1dfcd120b2d9c4f168e68d6b5d5"
 		},
 		{
-			"checksumSHA1": "y3op+t01flBlSBKlzUNqH5d4XHQ=",
+			"checksumSHA1": "8X6scmZ/Xfkme6wM7KPWs6vBvsY=",
 			"path": "github.com/hashicorp/go-plugin",
-			"revision": "e53f54cbf51efde642d4711313e829a1ff0c236d",
-			"revisionTime": "2018-01-25T19:04:38Z",
+			"revision": "a4620f9913d19f03a6bf19b2f304daaaf83ea130",
+			"revisionTime": "2018-08-14T22:25:01Z",
 			"version": "master",
 			"versionExact": "master"
 		},
