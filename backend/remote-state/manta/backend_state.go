@@ -8,15 +8,16 @@ import (
 	"sort"
 	"strings"
 
+	tritonErrors "github.com/joyent/triton-go/errors"
+	"github.com/joyent/triton-go/storage"
+
 	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/state"
 	"github.com/hashicorp/terraform/state/remote"
-	"github.com/hashicorp/terraform/terraform"
-	tritonErrors "github.com/joyent/triton-go/errors"
-	"github.com/joyent/triton-go/storage"
+	"github.com/hashicorp/terraform/states"
 )
 
-func (b *Backend) States() ([]string, error) {
+func (b *Backend) Workspaces() ([]string, error) {
 	result := []string{backend.DefaultStateName}
 
 	objs, err := b.storageClient.Dir().List(context.Background(), &storage.ListDirectoryInput{
@@ -39,7 +40,7 @@ func (b *Backend) States() ([]string, error) {
 	return result, nil
 }
 
-func (b *Backend) DeleteState(name string) error {
+func (b *Backend) DeleteWorkspace(name string) error {
 	if name == backend.DefaultStateName || name == "" {
 		return fmt.Errorf("can't delete default state")
 	}
@@ -63,7 +64,7 @@ func (b *Backend) DeleteState(name string) error {
 	return nil
 }
 
-func (b *Backend) State(name string) (state.State, error) {
+func (b *Backend) StateMgr(name string) (state.State, error) {
 	if name == "" {
 		return nil, errors.New("missing state name")
 	}
@@ -103,7 +104,7 @@ func (b *Backend) State(name string) (state.State, error) {
 
 		// If we have no state, we have to create an empty state
 		if v := stateMgr.State(); v == nil {
-			if err := stateMgr.WriteState(terraform.NewState()); err != nil {
+			if err := stateMgr.WriteState(states.NewState()); err != nil {
 				err = lockUnlock(err)
 				return nil, err
 			}

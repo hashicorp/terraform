@@ -174,15 +174,13 @@ func (m *Module) testString() string {
 		// CAUTION: Since deposed keys are now random strings instead of
 		// incrementing integers, this result will not be deterministic
 		// if there is more than one deposed object.
-		var idx int
-		for _, t := range is.Deposed {
+		for k, t := range is.Deposed {
 			id := legacyInstanceObjectID(t)
 			taintStr := ""
 			if t.Status == ObjectTainted {
 				taintStr = " (tainted)"
 			}
-			buf.WriteString(fmt.Sprintf("  Deposed ID %d = %s%s\n", idx+1, id, taintStr))
-			idx++
+			buf.WriteString(fmt.Sprintf("  Deposed ID %s = %s%s\n", k, id, taintStr))
 		}
 
 		if obj := is.Current; obj != nil && len(obj.Dependencies) > 0 {

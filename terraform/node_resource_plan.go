@@ -34,10 +34,10 @@ func (n *NodePlannableResource) DynamicExpand(ctx EvalContext) (*Graph, error) {
 	// if we're transitioning whether "count" is set at all.
 	fixResourceCountSetTransition(ctx, n.ResourceAddr().Resource, count != -1)
 
-	// Grab the state which we read
-	state, lock := ctx.State()
-	lock.RLock()
-	defer lock.RUnlock()
+	// Our graph transformers require access to the full state, so we'll
+	// temporarily lock it while we work on this.
+	state := ctx.State().Lock()
+	defer ctx.State().Unlock()
 
 	// The concrete resource factory we'll use
 	concreteResource := func(a *NodeAbstractResourceInstance) dag.Vertex {

@@ -7,6 +7,10 @@ import (
 	"sync"
 	"testing"
 
+	"github.com/hashicorp/terraform/addrs"
+
+	"github.com/hashicorp/terraform/states"
+
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/configs/configschema"
@@ -681,39 +685,37 @@ func TestContext2Input_varPartiallyComputed(t *testing.T) {
 			},
 		},
 		UIInput: input,
-		State: &State{
-			Modules: []*ModuleState{
-				&ModuleState{
-					Path: rootModulePath,
-					Resources: map[string]*ResourceState{
-						"aws_instance.foo": &ResourceState{
-							Type: "aws_instance",
-							Primary: &InstanceState{
-								ID: "i-abc123",
-								Attributes: map[string]string{
-									"id": "i-abc123",
-								},
-							},
-						},
+		State: states.BuildState(func(s *states.SyncState) {
+			s.SetResourceInstanceCurrent(
+				addrs.Resource{
+					Mode: addrs.ManagedResourceMode,
+					Type: "aws_instance",
+					Name: "foo",
+				}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+				&states.ResourceInstanceObjectSrc{
+					AttrsFlat: map[string]string{
+						"id": "i-abc123",
 					},
+					Status: states.ObjectReady,
 				},
-				&ModuleState{
-					Path: append(rootModulePath, "child"),
-					Resources: map[string]*ResourceState{
-						"aws_instance.mod": &ResourceState{
-							Type: "aws_instance",
-							Primary: &InstanceState{
-								ID: "i-bcd345",
-								Attributes: map[string]string{
-									"id":    "i-bcd345",
-									"value": "one,i-abc123",
-								},
-							},
-						},
+				addrs.ProviderConfig{Type: "aws"}.Absolute(addrs.RootModuleInstance),
+			)
+			s.SetResourceInstanceCurrent(
+				addrs.Resource{
+					Mode: addrs.ManagedResourceMode,
+					Type: "aws_instance",
+					Name: "mode",
+				}.Instance(addrs.NoKey).Absolute(addrs.Module{"child"}.UnkeyedInstanceShim()),
+				&states.ResourceInstanceObjectSrc{
+					AttrsFlat: map[string]string{
+						"id":    "i-bcd345",
+						"value": "one,i-abc123",
 					},
+					Status: states.ObjectReady,
 				},
-			},
-		},
+				addrs.ProviderConfig{Type: "aws"}.Absolute(addrs.RootModuleInstance),
+			)
+		}),
 	})
 
 	if diags := ctx.Input(InputModeStd); diags.HasErrors() {
@@ -850,26 +852,25 @@ func TestContext2Input_dataSourceRequiresRefresh(t *testing.T) {
 	}
 	p.ReadDataDiffFn = testDataDiffFn
 
-	state := &State{
-		Modules: []*ModuleState{
-			&ModuleState{
-				Path: rootModulePath,
-				Resources: map[string]*ResourceState{
-					"data.null_data_source.bar": &ResourceState{
-						Type: "null_data_source",
-						Primary: &InstanceState{
-							ID: "-",
-							Attributes: map[string]string{
-								"foo.#": "1",
-								"foo.0": "a",
-								// foo.1 exists in the data source, but needs to be refreshed.
-							},
-						},
-					},
+	state := states.BuildState(func(s *states.SyncState) {
+		s.SetResourceInstanceCurrent(
+			addrs.Resource{
+				Mode: addrs.DataResourceMode,
+				Type: "null_data_source",
+				Name: "bar",
+			}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+			&states.ResourceInstanceObjectSrc{
+				AttrsFlat: map[string]string{
+					"id":    "-",
+					"foo.#": "1",
+					"foo.0": "a",
+					// foo.1 exists in the data source, but needs to be refreshed.
 				},
+				Status: states.ObjectReady,
 			},
-		},
-	}
+			addrs.ProviderConfig{Type: "null"}.Absolute(addrs.RootModuleInstance),
+		)
+	})
 
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,

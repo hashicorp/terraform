@@ -4,6 +4,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/hashicorp/terraform/plans"
+
 	"github.com/hashicorp/terraform/addrs"
 )
 
@@ -12,54 +14,30 @@ func TestApplyGraphBuilder_impl(t *testing.T) {
 }
 
 func TestApplyGraphBuilder(t *testing.T) {
-	diff := &Diff{
-		Modules: []*ModuleDiff{
-			&ModuleDiff{
-				Path: []string{"root"},
-				Resources: map[string]*InstanceDiff{
-					// Verify noop doesn't show up in graph
-					"test_object.noop": &InstanceDiff{},
-
-					"test_object.create": &InstanceDiff{
-						Attributes: map[string]*ResourceAttrDiff{
-							"test_string": &ResourceAttrDiff{
-								Old: "",
-								New: "foo",
-							},
-						},
-					},
-
-					"test_object.other": &InstanceDiff{
-						Attributes: map[string]*ResourceAttrDiff{
-							"test_string": &ResourceAttrDiff{
-								Old: "",
-								New: "foo",
-							},
-						},
-					},
+	changes := &plans.Changes{
+		Resources: []*plans.ResourceInstanceChangeSrc{
+			{
+				Addr: mustResourceInstanceAddr("test_object.create"),
+				ChangeSrc: plans.ChangeSrc{
+					Action: plans.Create,
 				},
 			},
-
-			&ModuleDiff{
-				Path: []string{"root", "child"},
-				Resources: map[string]*InstanceDiff{
-					"test_object.create": &InstanceDiff{
-						Attributes: map[string]*ResourceAttrDiff{
-							"test_string": &ResourceAttrDiff{
-								Old: "",
-								New: "foo",
-							},
-						},
-					},
-
-					"test_object.other": &InstanceDiff{
-						Attributes: map[string]*ResourceAttrDiff{
-							"test_string": &ResourceAttrDiff{
-								Old: "",
-								New: "foo",
-							},
-						},
-					},
+			{
+				Addr: mustResourceInstanceAddr("test_object.other"),
+				ChangeSrc: plans.ChangeSrc{
+					Action: plans.Update,
+				},
+			},
+			{
+				Addr: mustResourceInstanceAddr("module.child.test_object.create"),
+				ChangeSrc: plans.ChangeSrc{
+					Action: plans.Create,
+				},
+			},
+			{
+				Addr: mustResourceInstanceAddr("module.child.test_object.other"),
+				ChangeSrc: plans.ChangeSrc{
+					Action: plans.Create,
 				},
 			},
 		},
@@ -67,7 +45,7 @@ func TestApplyGraphBuilder(t *testing.T) {
 
 	b := &ApplyGraphBuilder{
 		Config:        testModule(t, "graph-builder-apply-basic"),
-		Diff:          diff,
+		Changes:       changes,
 		Components:    simpleMockComponentFactory(),
 		Schemas:       simpleTestSchemas(),
 		DisableReduce: true,
@@ -92,28 +70,18 @@ func TestApplyGraphBuilder(t *testing.T) {
 // This tests the ordering of two resources where a non-CBD depends
 // on a CBD. GH-11349.
 func TestApplyGraphBuilder_depCbd(t *testing.T) {
-	diff := &Diff{
-		Modules: []*ModuleDiff{
-			&ModuleDiff{
-				Path: []string{"root"},
-				Resources: map[string]*InstanceDiff{"test_object.A": &InstanceDiff{Destroy: true,
-					Attributes: map[string]*ResourceAttrDiff{
-						"test_string": &ResourceAttrDiff{
-							Old:         "",
-							New:         "foo",
-							RequiresNew: true,
-						},
-					},
+	changes := &plans.Changes{
+		Resources: []*plans.ResourceInstanceChangeSrc{
+			{
+				Addr: mustResourceInstanceAddr("test_object.A"),
+				ChangeSrc: plans.ChangeSrc{
+					Action: plans.Replace,
 				},
-
-					"test_object.B": &InstanceDiff{
-						Attributes: map[string]*ResourceAttrDiff{
-							"test_string": &ResourceAttrDiff{
-								Old: "",
-								New: "foo",
-							},
-						},
-					},
+			},
+			{
+				Addr: mustResourceInstanceAddr("test_object.B"),
+				ChangeSrc: plans.ChangeSrc{
+					Action: plans.Update,
 				},
 			},
 		},
@@ -121,7 +89,7 @@ func TestApplyGraphBuilder_depCbd(t *testing.T) {
 
 	b := &ApplyGraphBuilder{
 		Config:        testModule(t, "graph-builder-apply-dep-cbd"),
-		Diff:          diff,
+		Changes:       changes,
 		Components:    simpleMockComponentFactory(),
 		Schemas:       simpleTestSchemas(),
 		DisableReduce: true,
@@ -156,30 +124,18 @@ func TestApplyGraphBuilder_depCbd(t *testing.T) {
 // This tests the ordering of two resources that are both CBD that
 // require destroy/create.
 func TestApplyGraphBuilder_doubleCBD(t *testing.T) {
-	diff := &Diff{
-		Modules: []*ModuleDiff{
-			&ModuleDiff{
-				Path: []string{"root"},
-				Resources: map[string]*InstanceDiff{
-					"test_object.A": &InstanceDiff{
-						Destroy: true,
-						Attributes: map[string]*ResourceAttrDiff{
-							"test_string": &ResourceAttrDiff{
-								Old: "",
-								New: "foo",
-							},
-						},
-					},
-
-					"test_object.B": &InstanceDiff{
-						Destroy: true,
-						Attributes: map[string]*ResourceAttrDiff{
-							"test_string": &ResourceAttrDiff{
-								Old: "",
-								New: "foo",
-							},
-						},
-					},
+	changes := &plans.Changes{
+		Resources: []*plans.ResourceInstanceChangeSrc{
+			{
+				Addr: mustResourceInstanceAddr("test_object.A"),
+				ChangeSrc: plans.ChangeSrc{
+					Action: plans.Replace,
+				},
+			},
+			{
+				Addr: mustResourceInstanceAddr("test_object.B"),
+				ChangeSrc: plans.ChangeSrc{
+					Action: plans.Replace,
 				},
 			},
 		},
@@ -187,7 +143,7 @@ func TestApplyGraphBuilder_doubleCBD(t *testing.T) {
 
 	b := &ApplyGraphBuilder{
 		Config:        testModule(t, "graph-builder-apply-double-cbd"),
-		Diff:          diff,
+		Changes:       changes,
 		Components:    simpleMockComponentFactory(),
 		Schemas:       simpleTestSchemas(),
 		DisableReduce: true,
@@ -212,24 +168,24 @@ func TestApplyGraphBuilder_doubleCBD(t *testing.T) {
 // This tests the ordering of two resources being destroyed that depend
 // on each other from only state. GH-11749
 func TestApplyGraphBuilder_destroyStateOnly(t *testing.T) {
-	diff := &Diff{
-		Modules: []*ModuleDiff{
-			&ModuleDiff{
-				Path: []string{"root", "child"},
-				Resources: map[string]*InstanceDiff{
-					"test_object.A": &InstanceDiff{
-						Destroy: true,
-					},
-
-					"test_object.B": &InstanceDiff{
-						Destroy: true,
-					},
+	changes := &plans.Changes{
+		Resources: []*plans.ResourceInstanceChangeSrc{
+			{
+				Addr: mustResourceInstanceAddr("module.child.test_object.A"),
+				ChangeSrc: plans.ChangeSrc{
+					Action: plans.Delete,
+				},
+			},
+			{
+				Addr: mustResourceInstanceAddr("module.child.test_object.B"),
+				ChangeSrc: plans.ChangeSrc{
+					Action: plans.Delete,
 				},
 			},
 		},
 	}
 
-	state := &State{
+	state := mustShimLegacyState(&State{
 		Modules: []*ModuleState{
 			&ModuleState{
 				Path: []string{"root", "child"},
@@ -240,6 +196,7 @@ func TestApplyGraphBuilder_destroyStateOnly(t *testing.T) {
 							ID:         "foo",
 							Attributes: map[string]string{},
 						},
+						Provider: "provider.test",
 					},
 
 					"test_object.B": &ResourceState{
@@ -249,26 +206,27 @@ func TestApplyGraphBuilder_destroyStateOnly(t *testing.T) {
 							Attributes: map[string]string{},
 						},
 						Dependencies: []string{"test_object.A"},
+						Provider:     "provider.test",
 					},
 				},
 			},
 		},
-	}
+	})
 
 	b := &ApplyGraphBuilder{
 		Config:        testModule(t, "empty"),
-		Diff:          diff,
+		Changes:       changes,
 		State:         state,
 		Components:    simpleMockComponentFactory(),
 		Schemas:       simpleTestSchemas(),
 		DisableReduce: true,
 	}
 
-	g, err := b.Build(addrs.RootModuleInstance)
-	if err != nil {
-		t.Fatalf("err: %s", err)
+	g, diags := b.Build(addrs.RootModuleInstance)
+	if diags.HasErrors() {
+		t.Fatalf("err: %s", diags.Err())
 	}
-	t.Logf("Graph: %s", g.String())
+	t.Logf("Graph:\n%s", g.String())
 
 	if g.Path.String() != addrs.RootModuleInstance.String() {
 		t.Fatalf("wrong path %q", g.Path.String())
@@ -282,23 +240,18 @@ func TestApplyGraphBuilder_destroyStateOnly(t *testing.T) {
 
 // This tests the ordering of destroying a single count of a resource.
 func TestApplyGraphBuilder_destroyCount(t *testing.T) {
-	diff := &Diff{
-		Modules: []*ModuleDiff{
-			&ModuleDiff{
-				Path: []string{"root"},
-				Resources: map[string]*InstanceDiff{
-					"test_object.A.1": &InstanceDiff{
-						Destroy: true,
-					},
-
-					"test_object.B": &InstanceDiff{
-						Attributes: map[string]*ResourceAttrDiff{
-							"name": &ResourceAttrDiff{
-								Old: "",
-								New: "foo",
-							},
-						},
-					},
+	changes := &plans.Changes{
+		Resources: []*plans.ResourceInstanceChangeSrc{
+			{
+				Addr: mustResourceInstanceAddr("test_object.A[1]"),
+				ChangeSrc: plans.ChangeSrc{
+					Action: plans.Delete,
+				},
+			},
+			{
+				Addr: mustResourceInstanceAddr("test_object.B"),
+				ChangeSrc: plans.ChangeSrc{
+					Action: plans.Update,
 				},
 			},
 		},
@@ -306,7 +259,7 @@ func TestApplyGraphBuilder_destroyCount(t *testing.T) {
 
 	b := &ApplyGraphBuilder{
 		Config:        testModule(t, "graph-builder-apply-count"),
-		Diff:          diff,
+		Changes:       changes,
 		Components:    simpleMockComponentFactory(),
 		Schemas:       simpleTestSchemas(),
 		DisableReduce: true,
@@ -329,23 +282,18 @@ func TestApplyGraphBuilder_destroyCount(t *testing.T) {
 }
 
 func TestApplyGraphBuilder_moduleDestroy(t *testing.T) {
-	diff := &Diff{
-		Modules: []*ModuleDiff{
-			&ModuleDiff{
-				Path: []string{"root", "A"},
-				Resources: map[string]*InstanceDiff{
-					"test_object.foo": &InstanceDiff{
-						Destroy: true,
-					},
+	changes := &plans.Changes{
+		Resources: []*plans.ResourceInstanceChangeSrc{
+			{
+				Addr: mustResourceInstanceAddr("module.A.test_object.foo"),
+				ChangeSrc: plans.ChangeSrc{
+					Action: plans.Delete,
 				},
 			},
-
-			&ModuleDiff{
-				Path: []string{"root", "B"},
-				Resources: map[string]*InstanceDiff{
-					"test_object.foo": &InstanceDiff{
-						Destroy: true,
-					},
+			{
+				Addr: mustResourceInstanceAddr("module.B.test_object.foo"),
+				ChangeSrc: plans.ChangeSrc{
+					Action: plans.Delete,
 				},
 			},
 		},
@@ -353,7 +301,7 @@ func TestApplyGraphBuilder_moduleDestroy(t *testing.T) {
 
 	b := &ApplyGraphBuilder{
 		Config:     testModule(t, "graph-builder-apply-module-destroy"),
-		Diff:       diff,
+		Changes:    changes,
 		Components: simpleMockComponentFactory(),
 		Schemas:    simpleTestSchemas(),
 	}
@@ -371,19 +319,12 @@ func TestApplyGraphBuilder_moduleDestroy(t *testing.T) {
 }
 
 func TestApplyGraphBuilder_provisioner(t *testing.T) {
-	diff := &Diff{
-		Modules: []*ModuleDiff{
-			&ModuleDiff{
-				Path: []string{"root"},
-				Resources: map[string]*InstanceDiff{
-					"test_object.foo": &InstanceDiff{
-						Attributes: map[string]*ResourceAttrDiff{
-							"test_string": &ResourceAttrDiff{
-								Old: "",
-								New: "foo",
-							},
-						},
-					},
+	changes := &plans.Changes{
+		Resources: []*plans.ResourceInstanceChangeSrc{
+			{
+				Addr: mustResourceInstanceAddr("test_object.foo"),
+				ChangeSrc: plans.ChangeSrc{
+					Action: plans.Create,
 				},
 			},
 		},
@@ -391,7 +332,7 @@ func TestApplyGraphBuilder_provisioner(t *testing.T) {
 
 	b := &ApplyGraphBuilder{
 		Config:     testModule(t, "graph-builder-apply-provisioner"),
-		Diff:       diff,
+		Changes:    changes,
 		Components: simpleMockComponentFactory(),
 		Schemas:    simpleTestSchemas(),
 	}
@@ -410,14 +351,12 @@ func TestApplyGraphBuilder_provisioner(t *testing.T) {
 }
 
 func TestApplyGraphBuilder_provisionerDestroy(t *testing.T) {
-	diff := &Diff{
-		Modules: []*ModuleDiff{
-			&ModuleDiff{
-				Path: []string{"root"},
-				Resources: map[string]*InstanceDiff{
-					"test_object.foo": &InstanceDiff{
-						Destroy: true,
-					},
+	changes := &plans.Changes{
+		Resources: []*plans.ResourceInstanceChangeSrc{
+			{
+				Addr: mustResourceInstanceAddr("test_object.foo"),
+				ChangeSrc: plans.ChangeSrc{
+					Action: plans.Delete,
 				},
 			},
 		},
@@ -426,7 +365,7 @@ func TestApplyGraphBuilder_provisionerDestroy(t *testing.T) {
 	b := &ApplyGraphBuilder{
 		Destroy:    true,
 		Config:     testModule(t, "graph-builder-apply-provisioner"),
-		Diff:       diff,
+		Changes:    changes,
 		Components: simpleMockComponentFactory(),
 		Schemas:    simpleTestSchemas(),
 	}
@@ -445,32 +384,18 @@ func TestApplyGraphBuilder_provisionerDestroy(t *testing.T) {
 }
 
 func TestApplyGraphBuilder_targetModule(t *testing.T) {
-	diff := &Diff{
-		Modules: []*ModuleDiff{
-			&ModuleDiff{
-				Path: []string{"root"},
-				Resources: map[string]*InstanceDiff{
-					"test_object.foo": &InstanceDiff{
-						Attributes: map[string]*ResourceAttrDiff{
-							"test_string": &ResourceAttrDiff{
-								Old: "",
-								New: "foo",
-							},
-						},
-					},
+	changes := &plans.Changes{
+		Resources: []*plans.ResourceInstanceChangeSrc{
+			{
+				Addr: mustResourceInstanceAddr("test_object.foo"),
+				ChangeSrc: plans.ChangeSrc{
+					Action: plans.Update,
 				},
 			},
-			&ModuleDiff{
-				Path: []string{"root", "child2"},
-				Resources: map[string]*InstanceDiff{
-					"test_object.foo": &InstanceDiff{
-						Attributes: map[string]*ResourceAttrDiff{
-							"test_string": &ResourceAttrDiff{
-								Old: "",
-								New: "foo",
-							},
-						},
-					},
+			{
+				Addr: mustResourceInstanceAddr("module.child2.test_object.foo"),
+				ChangeSrc: plans.ChangeSrc{
+					Action: plans.Update,
 				},
 			},
 		},
@@ -478,7 +403,7 @@ func TestApplyGraphBuilder_targetModule(t *testing.T) {
 
 	b := &ApplyGraphBuilder{
 		Config:     testModule(t, "graph-builder-apply-target-module"),
-		Diff:       diff,
+		Changes:    changes,
 		Components: simpleMockComponentFactory(),
 		Schemas:    simpleTestSchemas(),
 		Targets: []addrs.Targetable{

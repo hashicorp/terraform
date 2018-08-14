@@ -2,7 +2,6 @@ package terraform
 
 import (
 	"flag"
-	"fmt"
 	"io"
 	"io/ioutil"
 	"log"
@@ -12,12 +11,16 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/hashicorp/terraform/configs/configload"
+	"github.com/zclconf/go-cty/cty"
+	"github.com/zclconf/go-cty/cty/convert"
 
+	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs"
-
+	"github.com/hashicorp/terraform/configs/configload"
 	"github.com/hashicorp/terraform/helper/experiment"
 	"github.com/hashicorp/terraform/helper/logging"
+	"github.com/hashicorp/terraform/plans"
+	"github.com/hashicorp/terraform/states"
 )
 
 // This is the directory where our test fixtures are.
@@ -81,6 +84,12 @@ func tempEnv(t *testing.T, k string, v string) func() {
 
 func testModule(t *testing.T, name string) *configs.Config {
 	t.Helper()
+	c, _ := testModuleWithSnapshot(t, name)
+	return c
+}
+
+func testModuleWithSnapshot(t *testing.T, name string) (*configs.Config, *configload.Snapshot) {
+	t.Helper()
 
 	dir := filepath.Join(fixtureDir, name)
 
@@ -97,12 +106,12 @@ func testModule(t *testing.T, name string) *configs.Config {
 		t.Fatal(diags.Error())
 	}
 
-	config, diags := loader.LoadConfig(dir)
+	config, snap, diags := loader.LoadConfigWithSnapshot(dir)
 	if diags.HasErrors() {
 		t.Fatal(diags.Error())
 	}
 
-	return config
+	return config, snap
 }
 
 // testModuleInline takes a map of path -> config strings and yields a config
@@ -137,10 +146,8 @@ func testModuleInline(t *testing.T, sources map[string]string) *configs.Config {
 		}
 	}
 
-	// FIXME: We're not dealing with the cleanup function here because
-	// this testModule function is used all over and so we don't want to
-	// change its interface at this late stage.
-	loader, _ := configload.NewLoaderForTests(t)
+	loader, cleanup := configload.NewLoaderForTests(t)
+	defer cleanup()
 
 	// Test modules usually do not refer to remote sources, and for local
 	// sources only this ultimately just records all of the module paths
@@ -158,16 +165,6 @@ func testModuleInline(t *testing.T, sources map[string]string) *configs.Config {
 	return config
 }
 
-func testStringMatch(t *testing.T, s fmt.Stringer, expected string) {
-	t.Helper()
-
-	actual := strings.TrimSpace(s.String())
-	expected = strings.TrimSpace(expected)
-	if actual != expected {
-		t.Fatalf("Actual\n\n%s\n\nExpected:\n\n%s", actual, expected)
-	}
-}
-
 func testProviderFuncFixed(rp ResourceProvider) ResourceProviderFactory {
 	return func() (ResourceProvider, error) {
 		return rp, nil
@@ -180,6 +177,30 @@ func testProvisionerFuncFixed(rp ResourceProvisioner) ResourceProvisionerFactory
 	}
 }
 
+func mustResourceInstanceAddr(s string) addrs.AbsResourceInstance {
+	addr, diags := addrs.ParseAbsResourceInstanceStr(s)
+	if diags.HasErrors() {
+		panic(diags.Err())
+	}
+	return addr
+}
+
+func instanceObjectIdForTests(obj *states.ResourceInstanceObject) string {
+	v := obj.Value
+	if v.IsNull() || !v.IsKnown() {
+		return ""
+	}
+	idVal := v.GetAttr("id")
+	if idVal.IsNull() || !idVal.IsKnown() {
+		return ""
+	}
+	idVal, err := convert.Convert(idVal, cty.String)
+	if err != nil {
+		return "<invalid>" // placeholder value
+	}
+	return idVal.AsString()
+}
+
 // HookRecordApplyOrder is a test hook that records the order of applies
 // by recording the PreApply event.
 type HookRecordApplyOrder struct {
@@ -188,17 +209,14 @@ type HookRecordApplyOrder struct {
 	Active bool
 
 	IDs    []string
-	States []*InstanceState
-	Diffs  []*InstanceDiff
+	States []cty.Value
+	Diffs  []*plans.Change
 
 	l sync.Mutex
 }
 
-func (h *HookRecordApplyOrder) PreApply(
-	info *InstanceInfo,
-	s *InstanceState,
-	d *InstanceDiff) (HookAction, error) {
-	if d.Empty() {
+func (h *HookRecordApplyOrder) PreApply(addr addrs.AbsResourceInstance, gen states.Generation, action plans.Action, priorState, plannedNewState cty.Value) (HookAction, error) {
+	if plannedNewState.RawEquals(priorState) {
 		return HookActionContinue, nil
 	}
 
@@ -206,9 +224,13 @@ func (h *HookRecordApplyOrder) PreApply(
 		h.l.Lock()
 		defer h.l.Unlock()
 
-		h.IDs = append(h.IDs, info.Id)
-		h.Diffs = append(h.Diffs, d)
-		h.States = append(h.States, s)
+		h.IDs = append(h.IDs, addr.String())
+		h.Diffs = append(h.Diffs, &plans.Change{
+			Action: action,
+			Before: priorState,
+			After:  plannedNewState,
+		})
+		h.States = append(h.States, priorState)
 	}
 
 	return HookActionContinue, nil

@@ -2,7 +2,9 @@ package statefile
 
 import (
 	version "github.com/hashicorp/go-version"
+
 	"github.com/hashicorp/terraform/states"
+	tfversion "github.com/hashicorp/terraform/version"
 )
 
 // File is the in-memory representation of a state file. It includes the state
@@ -27,6 +29,15 @@ type File struct {
 
 	// State is the actual state represented by this file.
 	State *states.State
+}
+
+func New(state *states.State, lineage string, serial uint64) *File {
+	return &File{
+		TerraformVersion: tfversion.SemVer,
+		State:            state,
+		Lineage:          lineage,
+		Serial:           serial,
+	}
 }
 
 // DeepCopy is a convenience method to create a new File object whose state

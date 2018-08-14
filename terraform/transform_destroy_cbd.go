@@ -6,6 +6,7 @@ import (
 
 	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/dag"
+	"github.com/hashicorp/terraform/states"
 )
 
 // GraphNodeDestroyerCBD must be implemented by nodes that might be
@@ -53,7 +54,7 @@ type CBDEdgeTransformer struct {
 	// Module and State are only needed to look up dependencies in
 	// any way possible. Either can be nil if not availabile.
 	Config *configs.Config
-	State  *State
+	State  *states.State
 
 	// If configuration is present then Schemas is required in order to
 	// obtain schema information from providers and provisioners so we can

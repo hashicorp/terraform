@@ -1,7 +1,12 @@
 package terraform
 
 import (
+	"fmt"
+
 	"github.com/hashicorp/terraform/addrs"
+	"github.com/hashicorp/terraform/dag"
+	"github.com/hashicorp/terraform/plans"
+	"github.com/hashicorp/terraform/states"
 )
 
 // NodePlanDestroyableResourceInstance represents a resource that is ready
@@ -20,6 +25,7 @@ var (
 	_ GraphNodeAttachResourceConfig = (*NodePlanDestroyableResourceInstance)(nil)
 	_ GraphNodeAttachResourceState  = (*NodePlanDestroyableResourceInstance)(nil)
 	_ GraphNodeEvalable             = (*NodePlanDestroyableResourceInstance)(nil)
+	_ GraphNodeProviderConsumer     = (*NodePlanDestroyableResourceInstance)(nil)
 )
 
 // GraphNodeDestroyer
@@ -32,34 +38,47 @@ func (n *NodePlanDestroyableResourceInstance) DestroyAddr() *addrs.AbsResourceIn
 func (n *NodePlanDestroyableResourceInstance) EvalTree() EvalNode {
 	addr := n.ResourceInstanceAddr()
 
-	// State still uses legacy-style internal ids, so we need to shim to get
-	// a suitable key to use.
-	stateId := NewLegacyResourceInstanceAddress(addr).stateId()
-
 	// Declare a bunch of variables that are used for state during
-	// evaluation. Most of this are written to by-address below.
-	var diff *InstanceDiff
-	var state *InstanceState
+	// evaluation. These are written to by address in the EvalNodes we
+	// declare below.
+	var provider ResourceProvider
+	var providerSchema *ProviderSchema
+	var change *plans.ResourceInstanceChange
+	var state *states.ResourceInstanceObject
+
+	if n.ResolvedProvider.ProviderConfig.Type == "" {
+		// Should never happen; indicates that the graph was not constructed
+		// correctly since we didn't get our provider attached.
+		panic(fmt.Sprintf("%T %q was not assigned a resolved provider", n, dag.VertexName(n)))
+	}
 
 	return &EvalSequence{
 		Nodes: []EvalNode{
+			&EvalGetProvider{
+				Addr:   n.ResolvedProvider,
+				Output: &provider,
+				Schema: &providerSchema,
+			},
 			&EvalReadState{
-				Name:   stateId,
+				Addr:           addr.Resource,
+				Provider:       &provider,
+				ProviderSchema: &providerSchema,
+
 				Output: &state,
 			},
 			&EvalDiffDestroy{
 				Addr:   addr.Resource,
 				State:  &state,
-				Output: &diff,
+				Output: &change,
 			},
 			&EvalCheckPreventDestroy{
 				Addr:   addr.Resource,
 				Config: n.Config,
-				Diff:   &diff,
+				Change: &change,
 			},
 			&EvalWriteDiff{
-				Name: stateId,
-				Diff: &diff,
+				Addr:   addr.Resource,
+				Change: &change,
 			},
 		},
 	}

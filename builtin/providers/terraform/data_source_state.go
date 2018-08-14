@@ -4,13 +4,13 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/zclconf/go-cty/cty"
+
 	"github.com/hashicorp/terraform/backend"
 	backendinit "github.com/hashicorp/terraform/backend/init"
-	"github.com/hashicorp/terraform/config/hcl2shim"
 	"github.com/hashicorp/terraform/configs/configschema"
 	"github.com/hashicorp/terraform/providers"
 	"github.com/hashicorp/terraform/tfdiags"
-	"github.com/zclconf/go-cty/cty"
 )
 
 func dataSourceRemoteStateGetSchema() providers.Schema {
@@ -109,7 +109,7 @@ func dataSourceRemoteStateRead(d *cty.Value) (cty.Value, tfdiags.Diagnostics) {
 		}
 	}
 
-	state, err := b.State(name)
+	state, err := b.StateMgr(name)
 	if err != nil {
 		diags = diags.Append(tfdiags.AttributeValue(
 			tfdiags.Error,
@@ -137,11 +137,10 @@ func dataSourceRemoteStateRead(d *cty.Value) (cty.Value, tfdiags.Diagnostics) {
 	}
 
 	remoteState := state.State()
-	if remoteState.Empty() {
-		log.Println("[DEBUG] empty remote state")
-	} else {
-		for k, os := range remoteState.RootModule().Outputs {
-			outputs[k] = hcl2shim.HCL2ValueFromConfigValue(os.Value)
+	mod := remoteState.RootModule()
+	if mod != nil { // should always have a root module in any valid state
+		for k, os := range mod.OutputValues {
+			outputs[k] = os.Value
 		}
 	}
 

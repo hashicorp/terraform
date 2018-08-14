@@ -47,10 +47,15 @@ func (c *StateRmCommand) Run(args []string) int {
 		return 1
 	}
 
-	if err := stateReal.Remove(args...); err != nil {
-		c.Ui.Error(fmt.Sprintf(errStateRm, err))
-		return 1
-	}
+	c.Ui.Error("state rm not yet updated for new state types")
+	return 1
+
+	/*
+		if err := stateReal.Remove(args...); err != nil {
+			c.Ui.Error(fmt.Sprintf(errStateRm, err))
+			return 1
+		}
+	*/
 
 	c.Ui.Output(fmt.Sprintf("%d items removed.", len(args)))
 

@@ -4,14 +4,13 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/hashicorp/hcl2/hcl"
-	"github.com/hashicorp/hcl2/hcl/hclsyntax"
-
 	"github.com/hashicorp/terraform/addrs"
-	"github.com/hashicorp/terraform/configs/configschema"
 	"github.com/hashicorp/terraform/configs"
+	"github.com/hashicorp/terraform/configs/configschema"
 	"github.com/hashicorp/terraform/dag"
 	"github.com/hashicorp/terraform/lang"
+	"github.com/hashicorp/terraform/states"
+	"github.com/hashicorp/terraform/tfdiags"
 )
 
 // ConcreteResourceNodeFunc is a callback type used to convert an
@@ -93,7 +92,7 @@ type NodeAbstractResourceInstance struct {
 	// interfaces if you're running those transforms, but also be explicitly
 	// set if you already have that information.
 
-	ResourceState *ResourceState // the ResourceState for this instance
+	ResourceState *states.Resource
 }
 
 var (
@@ -224,26 +223,30 @@ func (n *NodeAbstractResourceInstance) References() []*addrs.Reference {
 
 	// Otherwise, if we have state then we'll use the values stored in state
 	// as a fallback.
-	if s := n.ResourceState; s != nil {
-		// State is still storing dependencies as old-style strings, so we'll
-		// need to do a little work here to massage this to the form we now
-		// want.
-		var result []*addrs.Reference
-		for _, legacyDep := range s.Dependencies {
-			traversal, diags := hclsyntax.ParseTraversalAbs([]byte(legacyDep), "", hcl.Pos{})
-			if diags.HasErrors() {
-				log.Printf("[ERROR] Can't parse %q from dependencies in state as a reference: invalid syntax", legacyDep)
-				continue
-			}
-			ref, err := addrs.ParseRef(traversal)
-			if err != nil {
-				log.Printf("[ERROR] Can't parse %q from dependencies in state as a reference: invalid syntax", legacyDep)
-				continue
-			}
+	if rs := n.ResourceState; rs != nil {
+		if s := rs.Instance(n.InstanceKey); s != nil {
+			// State is still storing dependencies as old-style strings, so we'll
+			// need to do a little work here to massage this to the form we now
+			// want.
+			var result []*addrs.Reference
+			for _, addr := range s.Current.Dependencies {
+				if addr == nil {
+					// Should never happen; indicates a bug in the state loader
+					panic(fmt.Sprintf("dependencies for current object on %s contains nil address", n.ResourceInstanceAddr()))
+				}
 
-			result = append(result, ref)
+				// This is a little weird: we need to manufacture an addrs.Reference
+				// with a fake range here because the state isn't something we can
+				// make source references into.
+				result = append(result, &addrs.Reference{
+					Subject: addr,
+					SourceRange: tfdiags.SourceRange{
+						Filename: "(state file)",
+					},
+				})
+			}
+			return result
 		}
-		return result
 	}
 
 	// If we have neither config nor state then we have no references.
@@ -252,7 +255,7 @@ func (n *NodeAbstractResourceInstance) References() []*addrs.Reference {
 
 // converts an instance address to the legacy dotted notation
 func dottedInstanceAddr(tr addrs.ResourceInstance) string {
-	// For historical reasons, state uses dot-separated instance keys,
+	// The legacy state format uses dot-separated instance keys,
 	// rather than bracketed as in our modern syntax.
 	var suffix string
 	switch tk := tr.Key.(type) {
@@ -329,26 +332,13 @@ func (n *NodeAbstractResourceInstance) ProvidedBy() (addrs.AbsProviderConfig, bo
 	}
 
 	// If we have state, then we will use the provider from there
-	if n.ResourceState != nil && n.ResourceState.Provider != "" {
-		traversal, parseDiags := hclsyntax.ParseTraversalAbs([]byte(n.ResourceState.Provider), "", hcl.Pos{})
-		if parseDiags.HasErrors() {
-			log.Printf("[ERROR] %s has syntax-invalid provider address %q", n.Addr, n.ResourceState.Provider)
-			goto Guess
-		}
-
-		addr, diags := addrs.ParseAbsProviderConfig(traversal)
-		if diags.HasErrors() {
-			log.Printf("[ERROR] %s has content-invalid provider address %q", n.Addr, n.ResourceState.Provider)
-			goto Guess
-		}
-
+	if n.ResourceState != nil {
 		// An address from the state must match exactly, since we must ensure
 		// we refresh/destroy a resource with the same provider configuration
 		// that created it.
-		return addr, true
+		return n.ResourceState.ProviderConfig, true
 	}
 
-Guess:
 	// Use our type and containing module path to guess a provider configuration address
 	return n.Addr.Resource.DefaultProviderConfig().Absolute(n.Path()), false
 }
@@ -399,7 +389,7 @@ func (n *NodeAbstractResource) SetTargets(targets []addrs.Targetable) {
 }
 
 // GraphNodeAttachResourceState
-func (n *NodeAbstractResourceInstance) AttachResourceState(s *ResourceState) {
+func (n *NodeAbstractResourceInstance) AttachResourceState(s *states.Resource) {
 	n.ResourceState = s
 }
 

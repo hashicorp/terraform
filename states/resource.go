@@ -206,5 +206,16 @@ func (k DeposedKey) GoString() string {
 	}
 }
 
+// Generation is a helper method to convert a DeposedKey into a Generation.
+// If the reciever is anything other than NotDeposed then the result is
+// just the same value as a Generation. If the receiver is NotDeposed then
+// the result is CurrentGen.
+func (k DeposedKey) Generation() Generation {
+	if k == NotDeposed {
+		return CurrentGen
+	}
+	return k
+}
+
 // generation is an implementation of Generation.
 func (k DeposedKey) generation() {}

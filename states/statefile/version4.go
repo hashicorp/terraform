@@ -151,12 +151,11 @@ func prepareStateV4(sV4 *stateV4) (*File, tfdiags.Diagnostics) {
 				case isV4.AttributesFlat != nil:
 					obj.AttrsFlat = isV4.AttributesFlat
 				default:
-					diags = diags.Append(tfdiags.Sourceless(
-						tfdiags.Error,
-						"Invalid resource instance attributes in state",
-						fmt.Sprintf("Instance %s does not have any stored attributes.", instAddr.Absolute(moduleAddr)),
-					))
-					continue
+					// This is odd, but we'll accept it and just treat the
+					// object has being empty. In practice this should arise
+					// only from the contrived sort of state objects we tend
+					// to hand-write inline in tests.
+					obj.AttrsJSON = []byte{'{', '}'}
 				}
 			}
 
@@ -219,6 +218,10 @@ func prepareStateV4(sV4 *stateV4) (*File, tfdiags.Diagnostics) {
 							fmt.Sprintf("Instance %s declares dependency on %q, which is not a reference to a dependable object.", instAddr.Absolute(moduleAddr), depRaw),
 						))
 					}
+					if ref.Subject == nil {
+						// Should never happen
+						panic(fmt.Sprintf("parsing dependency %q for instance %s returned a nil address", depRaw, instAddr.Absolute(moduleAddr)))
+					}
 					deps = append(deps, ref.Subject)
 				}
 				obj.Dependencies = deps
@@ -245,7 +248,7 @@ func prepareStateV4(sV4 *stateV4) (*File, tfdiags.Diagnostics) {
 					continue
 				}
 
-				ms.SetResourceInstanceDeposed(instAddr, dk, obj)
+				ms.SetResourceInstanceDeposed(instAddr, dk, obj, providerAddr)
 			default:
 				is := ms.ResourceInstance(instAddr)
 				if is.HasCurrent() {

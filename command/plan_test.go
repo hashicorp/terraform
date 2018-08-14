@@ -11,7 +11,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/helper/copy"
+	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/mitchellh/cli"
 )
@@ -83,9 +85,7 @@ func TestPlan_plan(t *testing.T) {
 	tmp, cwd := testCwd(t)
 	defer testFixCwd(t, tmp, cwd)
 
-	planPath := testPlanFile(t, &terraform.Plan{
-		Config: testModule(t, "apply"),
-	})
+	planPath := testPlanFileNoop(t)
 
 	p := testProvider()
 	ui := new(cli.MockUi)
@@ -107,22 +107,20 @@ func TestPlan_plan(t *testing.T) {
 }
 
 func TestPlan_destroy(t *testing.T) {
-	originalState := &terraform.State{
-		Modules: []*terraform.ModuleState{
-			&terraform.ModuleState{
-				Path: []string{"root"},
-				Resources: map[string]*terraform.ResourceState{
-					"test_instance.foo": &terraform.ResourceState{
-						Type: "test_instance",
-						Primary: &terraform.InstanceState{
-							ID: "bar",
-						},
-					},
-				},
+	originalState := states.BuildState(func(s *states.SyncState) {
+		s.SetResourceInstanceCurrent(
+			addrs.Resource{
+				Mode: addrs.ManagedResourceMode,
+				Type: "test_instance",
+				Name: "foo",
+			}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+			&states.ResourceInstanceObjectSrc{
+				AttrsJSON: []byte(`{"id":"bar"}`),
+				Status:    states.ObjectReady,
 			},
-		},
-	}
-
+			addrs.ProviderConfig{Type: "test"}.Absolute(addrs.RootModuleInstance),
+		)
+	})
 	outPath := testTempFile(t)
 	statePath := testStateFile(t, originalState)
 
@@ -232,21 +230,20 @@ func TestPlan_outPath(t *testing.T) {
 }
 
 func TestPlan_outPathNoChange(t *testing.T) {
-	originalState := &terraform.State{
-		Modules: []*terraform.ModuleState{
-			&terraform.ModuleState{
-				Path: []string{"root"},
-				Resources: map[string]*terraform.ResourceState{
-					"test_instance.foo": &terraform.ResourceState{
-						Type: "test_instance",
-						Primary: &terraform.InstanceState{
-							ID: "bar",
-						},
-					},
-				},
+	originalState := states.BuildState(func(s *states.SyncState) {
+		s.SetResourceInstanceCurrent(
+			addrs.Resource{
+				Mode: addrs.ManagedResourceMode,
+				Type: "test_instance",
+				Name: "foo",
+			}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+			&states.ResourceInstanceObjectSrc{
+				AttrsJSON: []byte(`{"id":"bar"}`),
+				Status:    states.ObjectReady,
 			},
-		},
-	}
+			addrs.ProviderConfig{Type: "test"}.Absolute(addrs.RootModuleInstance),
+		)
+	})
 	statePath := testStateFile(t, originalState)
 
 	td := testTempDir(t)
@@ -334,67 +331,6 @@ func TestPlan_outBackend(t *testing.T) {
 	}
 	if !reflect.DeepEqual(plan.Backend, dataState.Backend) {
 		t.Fatalf("bad: %#v", plan.Backend)
-	}
-}
-
-// When using "-out" with a legacy remote state, the plan should encode
-// the backend config
-func TestPlan_outBackendLegacy(t *testing.T) {
-	// Create a temporary working directory that is empty
-	td := tempDir(t)
-	copy.CopyDir(testFixturePath("plan-out-backend-legacy"), td)
-	defer os.RemoveAll(td)
-	defer testChdir(t, td)()
-
-	// Our state
-	originalState := &terraform.State{
-		Modules: []*terraform.ModuleState{
-			&terraform.ModuleState{
-				Path: []string{"root"},
-				Resources: map[string]*terraform.ResourceState{
-					"test_instance.foo": &terraform.ResourceState{
-						Type: "test_instance",
-						Primary: &terraform.InstanceState{
-							ID: "bar",
-						},
-					},
-				},
-			},
-		},
-	}
-	originalState.Init()
-
-	// Setup our legacy state
-	remoteState, srv := testRemoteState(t, originalState, 200)
-	defer srv.Close()
-	dataState := terraform.NewState()
-	dataState.Remote = remoteState
-	testStateFileRemote(t, dataState)
-
-	outPath := "foo"
-	p := testProvider()
-	ui := new(cli.MockUi)
-	c := &PlanCommand{
-		Meta: Meta{
-			testingOverrides: metaOverridesForProvider(p),
-			Ui:               ui,
-		},
-	}
-
-	args := []string{
-		"-out", outPath,
-	}
-	if code := c.Run(args); code != 0 {
-		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
-	}
-
-	plan := testReadPlan(t, outPath)
-	if !plan.Diff.Empty() {
-		t.Fatalf("Expected empty plan to be written to plan file, got: %s", plan)
-	}
-
-	if plan.State.Remote.Empty() {
-		t.Fatal("should have remote info")
 	}
 }
 
@@ -489,70 +425,6 @@ func TestPlan_stateDefault(t *testing.T) {
 	expected := strings.TrimSpace(testPlanStateDefaultStr)
 	if actual != expected {
 		t.Fatalf("bad:\n\n%s", actual)
-	}
-}
-
-func TestPlan_stateFuture(t *testing.T) {
-	originalState := testState()
-	originalState.TFVersion = "99.99.99"
-	statePath := testStateFile(t, originalState)
-
-	p := testProvider()
-	ui := new(cli.MockUi)
-	c := &PlanCommand{
-		Meta: Meta{
-			testingOverrides: metaOverridesForProvider(p),
-			Ui:               ui,
-		},
-	}
-
-	args := []string{
-		"-state", statePath,
-		testFixturePath("plan"),
-	}
-	if code := c.Run(args); code == 0 {
-		t.Fatal("should fail")
-	}
-
-	f, err := os.Open(statePath)
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	newState, err := terraform.ReadState(f)
-	f.Close()
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	if !newState.Equal(originalState) {
-		t.Fatalf("bad: %#v", newState)
-	}
-	if newState.TFVersion != originalState.TFVersion {
-		t.Fatalf("bad: %#v", newState)
-	}
-}
-
-func TestPlan_statePast(t *testing.T) {
-	originalState := testState()
-	originalState.TFVersion = "0.1.0"
-	statePath := testStateFile(t, originalState)
-
-	p := testProvider()
-	ui := new(cli.MockUi)
-	c := &PlanCommand{
-		Meta: Meta{
-			testingOverrides: metaOverridesForProvider(p),
-			Ui:               ui,
-		},
-	}
-
-	args := []string{
-		"-state", statePath,
-		testFixturePath("plan"),
-	}
-	if code := c.Run(args); code != 0 {
-		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
 	}
 }
 

@@ -61,7 +61,7 @@ func (m *Meta) completePredictWorkspaceName() complete.Predictor {
 			return nil
 		}
 
-		names, _ := b.States()
+		names, _ := b.Workspaces()
 		return names
 	})
 }

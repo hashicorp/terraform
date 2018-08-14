@@ -1,19 +1,31 @@
 package terraform
 
 import (
+	"bufio"
+	"bytes"
 	"fmt"
+	"io/ioutil"
+	"os"
+	"path/filepath"
+	"sort"
 	"strings"
 	"testing"
 	"time"
 
+	"github.com/hashicorp/go-version"
 	"github.com/hashicorp/hil"
-	"github.com/hashicorp/terraform/config"
-	"github.com/hashicorp/terraform/configs/configschema"
-	"github.com/hashicorp/terraform/configs"
 	"github.com/zclconf/go-cty/cty"
 
-	"github.com/hashicorp/go-version"
+	"github.com/hashicorp/terraform/config"
+	"github.com/hashicorp/terraform/config/hcl2shim"
+	"github.com/hashicorp/terraform/configs"
+	"github.com/hashicorp/terraform/configs/configload"
+	"github.com/hashicorp/terraform/configs/configschema"
 	"github.com/hashicorp/terraform/flatmap"
+	"github.com/hashicorp/terraform/plans"
+	"github.com/hashicorp/terraform/plans/planfile"
+	"github.com/hashicorp/terraform/states"
+	"github.com/hashicorp/terraform/states/statefile"
 	tfversion "github.com/hashicorp/terraform/version"
 )
 
@@ -97,68 +109,8 @@ func TestNewContextRequiredVersion(t *testing.T) {
 	}
 }
 
-func TestNewContextState(t *testing.T) {
-	cases := map[string]struct {
-		Input *ContextOpts
-		Err   bool
-	}{
-		"empty TFVersion": {
-			&ContextOpts{
-				State: &State{},
-			},
-			false,
-		},
-
-		"past TFVersion": {
-			&ContextOpts{
-				State: &State{TFVersion: "0.1.2"},
-			},
-			false,
-		},
-
-		"equal TFVersion": {
-			&ContextOpts{
-				State: &State{TFVersion: tfversion.Version},
-			},
-			false,
-		},
-
-		"future TFVersion": {
-			&ContextOpts{
-				State: &State{TFVersion: "99.99.99"},
-			},
-			true,
-		},
-
-		"future TFVersion, allowed": {
-			&ContextOpts{
-				State:              &State{TFVersion: "99.99.99"},
-				StateFutureAllowed: true,
-			},
-			false,
-		},
-	}
-
-	for k, tc := range cases {
-		ctx, err := NewContext(tc.Input)
-		if (err != nil) != tc.Err {
-			t.Fatalf("%s: err: %s", k, err)
-		}
-		if err != nil {
-			continue
-		}
-
-		// Version should always be set to our current
-		if ctx.state.TFVersion != tfversion.Version {
-			t.Fatalf("%s: state not set to current version", k)
-		}
-	}
-}
-
 func testContext2(t *testing.T, opts *ContextOpts) *Context {
 	t.Helper()
-	// Enable the shadow graph
-	opts.Shadow = true
 
 	ctx, diags := NewContext(opts)
 	if diags.HasErrors() {
@@ -434,13 +386,13 @@ func testProvisioner() *MockResourceProvisioner {
 	return p
 }
 
-func checkStateString(t *testing.T, state *State, expected string) {
+func checkStateString(t *testing.T, state *states.State, expected string) {
 	t.Helper()
 	actual := strings.TrimSpace(state.String())
 	expected = strings.TrimSpace(expected)
 
 	if actual != expected {
-		t.Fatalf("state does not match! actual:\n%s\n\nexpected:\n%s", actual, expected)
+		t.Fatalf("incorrect state\ngot:\n%s\n\nwant:\n%s", actual, expected)
 	}
 }
 
@@ -694,6 +646,290 @@ func testProviderSchema(name string) *ProviderSchema {
 		},
 	}
 
+}
+
+// contextForPlanViaFile is a helper that creates a temporary plan file, then
+// reads it back in again and produces a ContextOpts object containing the
+// planned changes, prior state and config from the plan file.
+//
+// This is intended for testing the separated plan/apply workflow in a more
+// convenient way than spelling out all of these steps every time. Normally
+// only the command and backend packages need to deal with such things, but
+// our context tests try to exercise lots of stuff at once and so having them
+// round-trip things through on-disk files is often an important part of
+// fully representing an old bug in a regression test.
+func contextOptsForPlanViaFile(configSnap *configload.Snapshot, state *states.State, plan *plans.Plan) (*ContextOpts, error) {
+	dir, err := ioutil.TempDir("", "terraform-contextForPlanViaFile")
+	if err != nil {
+		return nil, err
+	}
+	defer os.RemoveAll(dir)
+
+	// We'll just create a dummy statefile.File here because we're not going
+	// to run through any of the codepaths that care about Lineage/Serial/etc
+	// here anyway.
+	stateFile := &statefile.File{
+		State: state,
+	}
+
+	filename := filepath.Join(dir, "tfplan")
+	err = planfile.Create(filename, configSnap, stateFile, plan)
+	if err != nil {
+		return nil, err
+	}
+
+	pr, err := planfile.Open(filename)
+	if err != nil {
+		return nil, err
+	}
+
+	config, diags := pr.ReadConfig()
+	if diags.HasErrors() {
+		return nil, diags.Err()
+	}
+
+	stateFile, err = pr.ReadStateFile()
+	if err != nil {
+		return nil, err
+	}
+
+	plan, err = pr.ReadPlan()
+	if err != nil {
+		return nil, err
+	}
+
+	vars := make(InputValues)
+	for name, vv := range plan.VariableValues {
+		val, err := vv.Decode(cty.DynamicPseudoType)
+		if err != nil {
+			return nil, fmt.Errorf("can't decode value for variable %q: %s", name, err)
+		}
+		vars[name] = &InputValue{
+			Value:      val,
+			SourceType: ValueFromPlan,
+		}
+	}
+
+	return &ContextOpts{
+		Config:          config,
+		State:           stateFile.State,
+		Changes:         plan.Changes,
+		Variables:       vars,
+		Targets:         plan.TargetAddrs,
+		ProviderSHA256s: plan.ProviderSHA256s,
+	}, nil
+}
+
+// shimLegacyState is a helper that takes the legacy state type and
+// converts it to the new state type.
+//
+// This is implemented as a state file upgrade, so it will not preserve
+// parts of the state structure that are not included in a serialized state,
+// such as the resolved results of any local values, outputs in non-root
+// modules, etc.
+func shimLegacyState(legacy *State) (*states.State, error) {
+	if legacy == nil {
+		return nil, nil
+	}
+	var buf bytes.Buffer
+	err := WriteState(legacy, &buf)
+	if err != nil {
+		return nil, err
+	}
+	f, err := statefile.Read(&buf)
+	if err != nil {
+		return nil, err
+	}
+	return f.State, err
+}
+
+// mustShimLegacyState is a wrapper around ShimLegacyState that panics if
+// the conversion does not succeed. This is primarily intended for tests where
+// the given legacy state is an object constructed within the test.
+func mustShimLegacyState(legacy *State) *states.State {
+	ret, err := shimLegacyState(legacy)
+	if err != nil {
+		panic(err)
+	}
+	return ret
+}
+
+// legacyPlanComparisonString produces a string representation of the changes
+// from a plan and a given state togther, as was formerly produced by the
+// String method of terraform.Plan.
+//
+// This is here only for compatibility with existing tests that predate our
+// new plan and state types, and should not be used in new tests. Instead, use
+// a library like "cmp" to do a deep equality check and diff on the two
+// data structures.
+func legacyPlanComparisonString(state *states.State, changes *plans.Changes) string {
+	return fmt.Sprintf(
+		"DIFF:\n\n%s\n\nSTATE:\n\n%s",
+		legacyDiffComparisonString(changes),
+		state.String(),
+	)
+}
+
+// legacyDiffComparisonString produces a string representation of the changes
+// from a planned changes object, as was formerly produced by the String method
+// of terraform.Diff.
+//
+// This is here only for compatibility with existing tests that predate our
+// new plan types, and should not be used in new tests. Instead, use a library
+// like "cmp" to do a deep equality check and diff on the two data structures.
+func legacyDiffComparisonString(changes *plans.Changes) string {
+	// The old string representation of a plan was grouped by module, but
+	// our new plan structure is not grouped in that way and so we'll need
+	// to preprocess it in order to produce that grouping.
+	type ResourceChanges struct {
+		Current *plans.ResourceInstanceChangeSrc
+		Deposed map[states.DeposedKey]*plans.ResourceInstanceChangeSrc
+	}
+	byModule := map[string]map[string]*ResourceChanges{}
+	resourceKeys := map[string][]string{}
+	var moduleKeys []string
+	for _, rc := range changes.Resources {
+		moduleKey := rc.Addr.Module.String()
+		if _, exists := byModule[moduleKey]; !exists {
+			moduleKeys = append(moduleKeys, moduleKey)
+			byModule[moduleKey] = make(map[string]*ResourceChanges)
+		}
+		resourceKey := rc.Addr.Resource.String()
+		if _, exists := byModule[moduleKey][resourceKey]; !exists {
+			resourceKeys[moduleKey] = append(resourceKeys[moduleKey], resourceKey)
+			byModule[moduleKey][resourceKey] = &ResourceChanges{
+				Deposed: make(map[states.DeposedKey]*plans.ResourceInstanceChangeSrc),
+			}
+		}
+
+		if rc.DeposedKey == states.NotDeposed {
+			byModule[moduleKey][resourceKey].Current = rc
+		} else {
+			byModule[moduleKey][resourceKey].Deposed[rc.DeposedKey] = rc
+		}
+	}
+	sort.Strings(moduleKeys)
+	for _, ks := range resourceKeys {
+		sort.Strings(ks)
+	}
+
+	var buf bytes.Buffer
+
+	for _, moduleKey := range moduleKeys {
+		rcs := byModule[moduleKey]
+		var mBuf bytes.Buffer
+
+		for _, resourceKey := range resourceKeys[moduleKey] {
+			rc := rcs[resourceKey]
+
+			crud := "UPDATE"
+			if rc.Current != nil {
+				switch rc.Current.Action {
+				case plans.Replace:
+					crud = "DESTROY/CREATE"
+				case plans.Delete:
+					crud = "DESTROY"
+				case plans.Create:
+					crud = "CREATE"
+				}
+			} else {
+				// We must be working on a deposed object then, in which
+				// case destroying is the only possible action.
+				crud = "DESTROY"
+			}
+
+			extra := ""
+			if rc.Current == nil && len(rc.Deposed) > 0 {
+				extra = " (deposed only)"
+			}
+
+			fmt.Fprintf(
+				&mBuf, "%s: %s%s\n",
+				crud, resourceKey, extra,
+			)
+
+			attrNames := map[string]bool{}
+			var oldAttrs map[string]string
+			var newAttrs map[string]string
+			if before := rc.Current.Before; before != nil {
+				ty, err := before.ImpliedType()
+				if err == nil {
+					val, err := before.Decode(ty)
+					if err == nil {
+						oldAttrs = hcl2shim.FlatmapValueFromHCL2(val)
+						for k := range oldAttrs {
+							attrNames[k] = true
+						}
+					}
+				}
+			}
+			if after := rc.Current.After; after != nil {
+				ty, err := after.ImpliedType()
+				if err == nil {
+					val, err := after.Decode(ty)
+					if err == nil {
+						newAttrs = hcl2shim.FlatmapValueFromHCL2(val)
+						for k := range newAttrs {
+							attrNames[k] = true
+						}
+					}
+				}
+			}
+			if oldAttrs == nil {
+				oldAttrs = make(map[string]string)
+			}
+			if newAttrs == nil {
+				newAttrs = make(map[string]string)
+			}
+
+			attrNamesOrder := make([]string, 0, len(attrNames))
+			keyLen := 0
+			for n := range attrNames {
+				attrNamesOrder = append(attrNamesOrder, n)
+				if len(n) > keyLen {
+					keyLen = len(n)
+				}
+			}
+
+			for _, attrK := range attrNamesOrder {
+				v := newAttrs[attrK]
+				u := oldAttrs[attrK]
+
+				if v == config.UnknownVariableValue {
+					v = "<computed>"
+				}
+				// NOTE: we don't support <sensitive> here because we would
+				// need schema to do that. Excluding sensitive values
+				// is now done at the UI layer, and so should not be tested
+				// at the core layer.
+
+				updateMsg := ""
+				// TODO: Mark " (forces new resource)" in updateMsg when appropriate.
+
+				fmt.Fprintf(
+					&mBuf, "  %s:%s %#v => %#v%s\n",
+					attrK,
+					strings.Repeat(" ", keyLen-len(attrK)),
+					u, v,
+					updateMsg,
+				)
+			}
+		}
+
+		if moduleKey == "" { // root module
+			buf.Write(mBuf.Bytes())
+			buf.WriteByte('\n')
+			continue
+		}
+
+		fmt.Fprintf(&buf, "%s:\n", moduleKey)
+		s := bufio.NewScanner(&mBuf)
+		for s.Scan() {
+			buf.WriteString(fmt.Sprintf("  %s\n", s.Text()))
+		}
+	}
+
+	return buf.String()
 }
 
 const testContextGraph = `

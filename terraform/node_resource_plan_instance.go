@@ -3,6 +3,9 @@ package terraform
 import (
 	"fmt"
 
+	"github.com/hashicorp/terraform/plans"
+	"github.com/hashicorp/terraform/states"
+
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/zclconf/go-cty/cty"
 )
@@ -51,21 +54,24 @@ func (n *NodePlannableResourceInstance) evalTreeDataResource(addr addrs.AbsResou
 	config := n.Config
 	var provider ResourceProvider
 	var providerSchema *ProviderSchema
-	var diff *InstanceDiff
-	var state *InstanceState
+	var change *plans.ResourceInstanceChange
+	var state *states.ResourceInstanceObject
 	var configVal cty.Value
 
 	return &EvalSequence{
 		Nodes: []EvalNode{
-			&EvalReadState{
-				Name:   stateId,
-				Output: &state,
-			},
-
 			&EvalGetProvider{
 				Addr:   n.ResolvedProvider,
 				Output: &provider,
 				Schema: &providerSchema,
+			},
+
+			&EvalReadState{
+				Addr:           addr.Resource,
+				Provider:       &provider,
+				ProviderSchema: &providerSchema,
+
+				Output: &state,
 			},
 
 			&EvalValidateSelfRef{
@@ -79,22 +85,21 @@ func (n *NodePlannableResourceInstance) evalTreeDataResource(addr addrs.AbsResou
 				Config:         n.Config,
 				Provider:       &provider,
 				ProviderSchema: &providerSchema,
-				Output:         &diff,
+				Output:         &change,
 				OutputValue:    &configVal,
 				OutputState:    &state,
 			},
 
 			&EvalWriteState{
-				Name:         stateId,
-				ResourceType: n.Config.Type,
-				Provider:     n.ResolvedProvider,
-				Dependencies: stateDeps,
-				State:        &state,
+				Addr:           addr.Resource,
+				ProviderAddr:   n.ResolvedProvider,
+				ProviderSchema: &providerSchema,
+				State:          &state,
 			},
 
 			&EvalWriteDiff{
-				Name: stateId,
-				Diff: &diff,
+				Addr:   addr.Resource,
+				Change: &change,
 			},
 		},
 	}
@@ -104,20 +109,23 @@ func (n *NodePlannableResourceInstance) evalTreeManagedResource(addr addrs.AbsRe
 	config := n.Config
 	var provider ResourceProvider
 	var providerSchema *ProviderSchema
-	var diff *InstanceDiff
-	var state *InstanceState
+	var change *plans.ResourceInstanceChange
+	var state *states.ResourceInstanceObject
 
 	return &EvalSequence{
 		Nodes: []EvalNode{
-			&EvalReadState{
-				Name:   stateId,
-				Output: &state,
-			},
-
 			&EvalGetProvider{
 				Addr:   n.ResolvedProvider,
 				Output: &provider,
 				Schema: &providerSchema,
+			},
+
+			&EvalReadState{
+				Addr:           addr.Resource,
+				Provider:       &provider,
+				ProviderSchema: &providerSchema,
+
+				Output: &state,
 			},
 
 			&EvalValidateSelfRef{
@@ -132,24 +140,23 @@ func (n *NodePlannableResourceInstance) evalTreeManagedResource(addr addrs.AbsRe
 				Provider:       &provider,
 				ProviderSchema: &providerSchema,
 				State:          &state,
-				OutputDiff:     &diff,
+				OutputChange:   &change,
 				OutputState:    &state,
 			},
 			&EvalCheckPreventDestroy{
 				Addr:   addr.Resource,
 				Config: n.Config,
-				Diff:   &diff,
+				Change: &change,
 			},
 			&EvalWriteState{
-				Name:         stateId,
-				ResourceType: n.Config.Type,
-				Provider:     n.ResolvedProvider,
-				Dependencies: stateDeps,
-				State:        &state,
+				Addr:           addr.Resource,
+				ProviderAddr:   n.ResolvedProvider,
+				State:          &state,
+				ProviderSchema: &providerSchema,
 			},
 			&EvalWriteDiff{
-				Name: stateId,
-				Diff: &diff,
+				Addr:   addr.Resource,
+				Change: &change,
 			},
 		},
 	}

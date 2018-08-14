@@ -70,7 +70,7 @@ func (c *RefreshCommand) Run(args []string) int {
 	diags = nil
 
 	// Build the operation
-	opReq := c.Operation()
+	opReq := c.Operation(b)
 	opReq.Type = backend.OperationTypeRefresh
 	opReq.ConfigDir = configPath
 	opReq.ConfigLoader, err = c.initConfigLoader()

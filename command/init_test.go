@@ -285,8 +285,7 @@ func TestInit_backendUnset(t *testing.T) {
 			t.Fatalf("bad: \n%s", ui.ErrorWriter.String())
 		}
 
-		s := testStateRead(t, filepath.Join(
-			DefaultDataDir, DefaultStateFilename))
+		s := testDataStateRead(t, filepath.Join(DefaultDataDir, DefaultStateFilename))
 		if !s.Backend.Empty() {
 			t.Fatal("should not have backend config")
 		}
@@ -314,7 +313,7 @@ func TestInit_backendConfigFile(t *testing.T) {
 	}
 
 	// Read our saved backend config and verify we have our settings
-	state := testStateRead(t, filepath.Join(DefaultDataDir, DefaultStateFilename))
+	state := testDataStateRead(t, filepath.Join(DefaultDataDir, DefaultStateFilename))
 	if got, want := string(state.Backend.ConfigRaw), `{"path":"hello"}`; got != want {
 		t.Errorf("wrong config\ngot:  %s\nwant: %s", got, want)
 	}
@@ -346,7 +345,7 @@ func TestInit_backendConfigFileChange(t *testing.T) {
 	}
 
 	// Read our saved backend config and verify we have our settings
-	state := testStateRead(t, filepath.Join(DefaultDataDir, DefaultStateFilename))
+	state := testDataStateRead(t, filepath.Join(DefaultDataDir, DefaultStateFilename))
 	if got, want := string(state.Backend.ConfigRaw), `{"path":"hello"}`; got != want {
 		t.Errorf("wrong config\ngot:  %s\nwant: %s", got, want)
 	}
@@ -373,7 +372,7 @@ func TestInit_backendConfigKV(t *testing.T) {
 	}
 
 	// Read our saved backend config and verify we have our settings
-	state := testStateRead(t, filepath.Join(DefaultDataDir, DefaultStateFilename))
+	state := testDataStateRead(t, filepath.Join(DefaultDataDir, DefaultStateFilename))
 	if got, want := string(state.Backend.ConfigRaw), `{"path":"hello"}`; got != want {
 		t.Errorf("wrong config\ngot:  %s\nwant: %s", got, want)
 	}
@@ -447,7 +446,7 @@ func TestInit_backendReinitWithExtra(t *testing.T) {
 	}
 
 	// Read our saved backend config and verify we have our settings
-	state := testStateRead(t, filepath.Join(DefaultDataDir, DefaultStateFilename))
+	state := testDataStateRead(t, filepath.Join(DefaultDataDir, DefaultStateFilename))
 	if got, want := string(state.Backend.ConfigRaw), `{"path":"hello"}`; got != want {
 		t.Errorf("wrong config\ngot:  %s\nwant: %s", got, want)
 	}
@@ -460,7 +459,7 @@ func TestInit_backendReinitWithExtra(t *testing.T) {
 	if code := c.Run(args); code != 0 {
 		t.Fatalf("bad: \n%s", ui.ErrorWriter.String())
 	}
-	state = testStateRead(t, filepath.Join(DefaultDataDir, DefaultStateFilename))
+	state = testDataStateRead(t, filepath.Join(DefaultDataDir, DefaultStateFilename))
 	if got, want := string(state.Backend.ConfigRaw), `{"path":"hello"}`; got != want {
 		t.Errorf("wrong config\ngot:  %s\nwant: %s", got, want)
 	}
@@ -489,7 +488,7 @@ func TestInit_backendReinitConfigToExtra(t *testing.T) {
 	}
 
 	// Read our saved backend config and verify we have our settings
-	state := testStateRead(t, filepath.Join(DefaultDataDir, DefaultStateFilename))
+	state := testDataStateRead(t, filepath.Join(DefaultDataDir, DefaultStateFilename))
 	if got, want := string(state.Backend.ConfigRaw), `{"path":"foo"}`; got != want {
 		t.Errorf("wrong config\ngot:  %s\nwant: %s", got, want)
 	}
@@ -506,7 +505,7 @@ func TestInit_backendReinitConfigToExtra(t *testing.T) {
 	if code := c.Run(args); code != 0 {
 		t.Fatalf("bad: \n%s", ui.ErrorWriter.String())
 	}
-	state = testStateRead(t, filepath.Join(DefaultDataDir, DefaultStateFilename))
+	state = testDataStateRead(t, filepath.Join(DefaultDataDir, DefaultStateFilename))
 
 	if state.Backend.Hash == backendHash {
 		t.Fatal("state.Backend.Hash was not updated")
