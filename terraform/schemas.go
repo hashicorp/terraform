@@ -4,9 +4,10 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/hashicorp/terraform/addrs"
-	"github.com/hashicorp/terraform/configs/configschema"
 	"github.com/hashicorp/terraform/configs"
+	"github.com/hashicorp/terraform/configs/configschema"
+	"github.com/hashicorp/terraform/providers"
+	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/tfdiags"
 )
 
@@ -91,7 +92,7 @@ func (ss *Schemas) ProvisionerConfig(name string) *configschema.Block {
 // either misbehavior on the part of one of the providers or of the provider
 // protocol itself. When returned with errors, the returned schemas object is
 // still valid but may be incomplete.
-func LoadSchemas(config *configs.Config, state *State, components contextComponentFactory) (*Schemas, error) {
+func LoadSchemas(config *configs.Config, state *states.State, components contextComponentFactory) (*Schemas, error) {
 	schemas := &Schemas{
 		providers:    map[string]*ProviderSchema{},
 		provisioners: map[string]*configschema.Block{},
@@ -106,7 +107,7 @@ func LoadSchemas(config *configs.Config, state *State, components contextCompone
 	return schemas, diags.Err()
 }
 
-func loadProviderSchemas(schemas map[string]*ProviderSchema, config *configs.Config, state *State, components contextComponentFactory) tfdiags.Diagnostics {
+func loadProviderSchemas(schemas map[string]*ProviderSchema, config *configs.Config, state *states.State, components contextComponentFactory) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 
 	ensure := func(typeName string) {
@@ -171,33 +172,9 @@ func loadProviderSchemas(schemas map[string]*ProviderSchema, config *configs.Con
 	}
 
 	if state != nil {
-		// TODO: After adapting this to use *states.State, use
-		// providers.AddressedTypes(state.ProviderAddrs()) to collect
-		// our list of required provider types.
-		for _, ms := range state.Modules {
-			for rsKey, rs := range ms.Resources {
-				providerAddrStr := rs.Provider
-				providerAddr, addrDiags := addrs.ParseAbsProviderConfigStr(providerAddrStr)
-				if addrDiags.HasErrors() {
-					// Should happen only if someone has tampered manually with
-					// the state, since we always write valid provider addrs.
-					moduleAddrStr := normalizeModulePath(ms.Path).String()
-					if moduleAddrStr == "" {
-						moduleAddrStr = "the root module"
-					}
-					// For now this is a warning, since there are many existing
-					// test fixtures that have invalid provider configurations.
-					// There's a check deeper in Terraform that makes this a
-					// failure when an empty/invalid provider string is present
-					// in practice.
-					log.Printf("[WARN] LoadSchemas: Resource %s in %s has invalid provider address %q in its state", rsKey, moduleAddrStr, providerAddrStr)
-					diags = diags.Append(
-						tfdiags.SimpleWarning(fmt.Sprintf("Resource %s in %s has invalid provider address %q in its state", rsKey, moduleAddrStr, providerAddrStr)),
-					)
-					continue
-				}
-				ensure(providerAddr.ProviderConfig.Type)
-			}
+		needed := providers.AddressedTypesAbs(state.ProviderAddrs())
+		for _, typeName := range needed {
+			ensure(typeName)
 		}
 	}
 

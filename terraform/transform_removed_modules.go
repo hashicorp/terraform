@@ -4,13 +4,14 @@ import (
 	"log"
 
 	"github.com/hashicorp/terraform/configs"
+	"github.com/hashicorp/terraform/states"
 )
 
 // RemovedModuleTransformer implements GraphTransformer to add nodes indicating
 // when a module was removed from the configuration.
 type RemovedModuleTransformer struct {
 	Config *configs.Config // root node in the config tree
-	State  *State
+	State  *states.State
 }
 
 func (t *RemovedModuleTransformer) Transform(g *Graph) error {
@@ -20,14 +21,13 @@ func (t *RemovedModuleTransformer) Transform(g *Graph) error {
 	}
 
 	for _, m := range t.State.Modules {
-		path := normalizeModulePath(m.Path)
-		cc := t.Config.DescendentForInstance(path)
+		cc := t.Config.DescendentForInstance(m.Addr)
 		if cc != nil {
 			continue
 		}
 
-		log.Printf("[DEBUG] %s is no longer in configuration\n", path)
-		g.Add(&NodeModuleRemoved{Addr: path})
+		log.Printf("[DEBUG] %s is no longer in configuration\n", m.Addr)
+		g.Add(&NodeModuleRemoved{Addr: m.Addr})
 	}
 	return nil
 }

@@ -10,13 +10,15 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/hashicorp/terraform/backend"
-	"github.com/hashicorp/terraform/configs/configschema"
-	"github.com/hashicorp/terraform/configs/configload"
-	"github.com/hashicorp/terraform/state"
-	"github.com/hashicorp/terraform/terraform"
 	"github.com/mitchellh/cli"
 	"github.com/zclconf/go-cty/cty"
+
+	"github.com/hashicorp/terraform/backend"
+	"github.com/hashicorp/terraform/configs/configload"
+	"github.com/hashicorp/terraform/configs/configschema"
+	"github.com/hashicorp/terraform/states"
+	"github.com/hashicorp/terraform/states/statemgr"
+	"github.com/hashicorp/terraform/terraform"
 )
 
 func TestLocal_applyBasic(t *testing.T) {
@@ -226,19 +228,17 @@ type backendWithFailingState struct {
 	Local
 }
 
-func (b *backendWithFailingState) State(name string) (state.State, error) {
+func (b *backendWithFailingState) StateMgr(name string) (statemgr.Full, error) {
 	return &failingState{
-		&state.LocalState{
-			Path: "failing-state.tfstate",
-		},
+		statemgr.NewFilesystem("failing-state.tfstate"),
 	}, nil
 }
 
 type failingState struct {
-	*state.LocalState
+	*statemgr.Filesystem
 }
 
-func (s failingState) WriteState(state *terraform.State) error {
+func (s failingState) WriteState(state *states.State) error {
 	return errors.New("fake failure")
 }
 

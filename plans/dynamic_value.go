@@ -69,3 +69,17 @@ func (v DynamicValue) Decode(ty cty.Type) (cty.Value, error) {
 
 	return ctymsgpack.Unmarshal([]byte(v), ty)
 }
+
+// ImpliedType returns the type implied by the serialized structure of the
+// receiving value.
+//
+// This will not necessarily be exactly the type that was given when the
+// value was encoded, and in particular must not be used for values that
+// were encoded with their static type given as cty.DynamicPseudoType.
+// It is however safe to use this method for values that were encoded using
+// their runtime type as the conforming type, with the result being
+// semantically equivalent but with all lists and sets represented as tuples,
+// and maps as objects, due to ambiguities of the serialization.
+func (v DynamicValue) ImpliedType() (cty.Type, error) {
+	return ctymsgpack.ImpliedType([]byte(v))
+}

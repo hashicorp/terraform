@@ -4,6 +4,8 @@ import (
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/dag"
+	"github.com/hashicorp/terraform/plans"
+	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/tfdiags"
 )
 
@@ -18,11 +20,11 @@ type ApplyGraphBuilder struct {
 	// Config is the configuration tree that the diff was built from.
 	Config *configs.Config
 
-	// Diff is the diff to apply.
-	Diff *Diff
+	// Changes describes the changes that we need apply.
+	Changes *plans.Changes
 
 	// State is the current state
-	State *State
+	State *states.State
 
 	// Components is a factory for the plug-in components (providers and
 	// provisioners) available for use.
@@ -76,7 +78,7 @@ func (b *ApplyGraphBuilder) Steps() []GraphTransformer {
 		// Creates all the nodes represented in the diff.
 		&DiffTransformer{
 			Concrete: concreteResource,
-			Diff:     b.Diff,
+			Changes:  b.Changes,
 		},
 
 		// Create orphan output nodes

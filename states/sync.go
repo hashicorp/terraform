@@ -195,6 +195,52 @@ func (s *SyncState) RemoveResource(addr addrs.AbsResource) {
 	s.maybePruneModule(addr.Module)
 }
 
+// MaybeFixUpResourceInstanceAddressForCount deals with the situation where a
+// resource has changed from having "count" set to not set, or vice-versa, and
+// so we need to rename the zeroth instance key to no key at all, or vice-versa.
+//
+// Set countEnabled to true if the resource has count set in its new
+// configuration, or false if it does not.
+//
+// The state is modified in-place if necessary, moving a resource instance
+// between the two addresses. The return value is true if a change was made,
+// and false otherwise.
+func (s *SyncState) MaybeFixUpResourceInstanceAddressForCount(addr addrs.AbsResource, countEnabled bool) bool {
+	s.lock.Lock()
+	defer s.lock.Unlock()
+
+	ms := s.state.Module(addr.Module)
+	if ms == nil {
+		return false
+	}
+
+	relAddr := addr.Resource
+	rs := ms.Resource(relAddr)
+	if rs == nil {
+		return false
+	}
+	huntKey := addrs.NoKey
+	replaceKey := addrs.InstanceKey(addrs.IntKey(0))
+	if !countEnabled {
+		huntKey, replaceKey = replaceKey, huntKey
+	}
+
+	is, exists := rs.Instances[huntKey]
+	if !exists {
+		return false
+	}
+
+	if _, exists := rs.Instances[replaceKey]; exists {
+		// If the replacement key also exists then we'll do nothing and keep both.
+		return false
+	}
+
+	// If we get here then we need to "rename" from hunt to replace
+	rs.Instances[replaceKey] = is
+	delete(rs.Instances, huntKey)
+	return true
+}
+
 // SetResourceInstanceCurrent saves the given instance object as the current
 // generation of the resource instance with the given address, simulataneously
 // updating the recorded provider configuration address, dependencies, and
@@ -246,12 +292,12 @@ func (s *SyncState) SetResourceInstanceCurrent(addr addrs.AbsResourceInstance, o
 //
 // If the containing module for this resource or the resource itself are not
 // already tracked in state then they will be added as a side-effect.
-func (s *SyncState) SetResourceInstanceDeposed(addr addrs.AbsResourceInstance, key DeposedKey, obj *ResourceInstanceObjectSrc) {
+func (s *SyncState) SetResourceInstanceDeposed(addr addrs.AbsResourceInstance, key DeposedKey, obj *ResourceInstanceObjectSrc, provider addrs.AbsProviderConfig) {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 
 	ms := s.state.EnsureModule(addr.Module)
-	ms.SetResourceInstanceDeposed(addr.Resource, key, obj.DeepCopy())
+	ms.SetResourceInstanceDeposed(addr.Resource, key, obj.DeepCopy(), provider)
 }
 
 // DeposeResourceInstanceObject moves the current instance object for the
@@ -275,6 +321,19 @@ func (s *SyncState) DeposeResourceInstanceObject(addr addrs.AbsResourceInstance)
 	}
 
 	return ms.deposeResourceInstanceObject(addr.Resource)
+}
+
+// ForgetResourceInstanceDeposed removes the record of the deposed object with
+// the given address and key, if present. If not present, this is a no-op.
+func (s *SyncState) ForgetResourceInstanceDeposed(addr addrs.AbsResourceInstance, key DeposedKey) {
+	s.lock.Lock()
+	defer s.lock.Unlock()
+
+	ms := s.state.Module(addr.Module)
+	if ms == nil {
+		return
+	}
+	ms.ForgetResourceInstanceDeposed(addr.Resource, key)
 }
 
 // Lock acquires an explicit lock on the state, allowing direct read and write

@@ -2,7 +2,6 @@ package terraform
 
 import (
 	"fmt"
-	"log"
 
 	"github.com/hashicorp/terraform/addrs"
 )
@@ -33,7 +32,7 @@ func (n *NodeModuleRemoved) Path() addrs.ModuleInstance {
 func (n *NodeModuleRemoved) EvalTree() EvalNode {
 	return &EvalOpFilter{
 		Ops: []walkOperation{walkRefresh, walkApply, walkDestroy},
-		Node: &EvalDeleteModule{
+		Node: &EvalCheckModuleRemoved{
 			Addr: n.Addr,
 		},
 	}
@@ -64,42 +63,19 @@ func (n *NodeModuleRemoved) References() []*addrs.Reference {
 	}
 }
 
-// EvalDeleteModule is an EvalNode implementation that removes an empty module
-// entry from the state.
-type EvalDeleteModule struct {
+// EvalCheckModuleRemoved is an EvalNode implementation that verifies that
+// a module has been removed from the state as expected.
+type EvalCheckModuleRemoved struct {
 	Addr addrs.ModuleInstance
 }
 
-func (n *EvalDeleteModule) Eval(ctx EvalContext) (interface{}, error) {
-	state, lock := ctx.State()
-	if state == nil {
-		return nil, nil
-	}
-
-	// Get a write lock so we can access this instance
-	lock.Lock()
-	defer lock.Unlock()
-
-	// Make sure we have a clean state
-	// Destroyed resources aren't deleted, they're written with an ID of "".
-	state.prune()
-
-	// find the module and delete it
-	for i, m := range state.Modules {
-		// Since state is still using our old-style []string path representation,
-		// comparison is a little awkward. This can be simplified once state
-		// is updated to use addrs.ModuleInstance too.
-		if normalizeModulePath(m.Path).String() != n.Addr.String() {
-			continue
-		}
-		if !m.Empty() {
-			// a targeted apply may leave module resources even without a config,
-			// so just log this and return.
-			log.Printf("[DEBUG] not removing %s from state: not empty", n.Addr)
-			break
-		}
-		state.Modules = append(state.Modules[:i], state.Modules[i+1:]...)
-		break
+func (n *EvalCheckModuleRemoved) Eval(ctx EvalContext) (interface{}, error) {
+	mod := ctx.State().Module(n.Addr)
+	if mod != nil {
+		// If we get here then that indicates a bug either in the states
+		// module or in an earlier step of the graph walk, since we should've
+		// pruned out the module when the last resource was removed from it.
+		return nil, fmt.Errorf("leftover module %s in state that should have been removed; this is a bug in Terraform and should be reported", n.Addr)
 	}
 	return nil, nil
 }

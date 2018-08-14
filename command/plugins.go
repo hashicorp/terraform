@@ -13,7 +13,6 @@ import (
 	"strings"
 
 	plugin "github.com/hashicorp/go-plugin"
-	terraformProvider "github.com/hashicorp/terraform/builtin/providers/terraform"
 	tfplugin "github.com/hashicorp/terraform/plugin"
 	"github.com/hashicorp/terraform/plugin/discovery"
 	"github.com/hashicorp/terraform/terraform"
@@ -280,9 +279,11 @@ func (m *Meta) providerResolver() terraform.ResourceProviderResolver {
 
 func (m *Meta) internalProviders() map[string]terraform.ResourceProviderFactory {
 	return map[string]terraform.ResourceProviderFactory{
-		"terraform": func() (terraform.ResourceProvider, error) {
-			return terraformProvider.Provider(), nil
-		},
+		// FIXME: Re-enable this once the internal provider system is updated
+		// for the new provider interface.
+		//"terraform": func() (terraform.ResourceProvider, error) {
+		//	return terraformProvider.Provider(), nil
+		//},
 	}
 }
 

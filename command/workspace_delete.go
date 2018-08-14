@@ -69,7 +69,7 @@ func (c *WorkspaceDeleteCommand) Run(args []string) int {
 		return 1
 	}
 
-	states, err := b.States()
+	states, err := b.Workspaces()
 	if err != nil {
 		c.Ui.Error(err.Error())
 		return 1
@@ -94,7 +94,7 @@ func (c *WorkspaceDeleteCommand) Run(args []string) int {
 	}
 
 	// we need the actual state to see if it's empty
-	sMgr, err := b.State(delEnv)
+	sMgr, err := b.StateMgr(delEnv)
 	if err != nil {
 		c.Ui.Error(err.Error())
 		return 1
@@ -134,7 +134,7 @@ func (c *WorkspaceDeleteCommand) Run(args []string) int {
 	// be delegated from the Backend to the State itself.
 	stateLocker.Unlock(nil)
 
-	err = b.DeleteState(delEnv)
+	err = b.DeleteWorkspace(delEnv)
 	if err != nil {
 		c.Ui.Error(err.Error())
 		return 1

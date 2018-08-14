@@ -66,7 +66,7 @@ func (c *ConsoleCommand) Run(args []string) int {
 	}
 
 	// Build the operation
-	opReq := c.Operation()
+	opReq := c.Operation(b)
 	opReq.ConfigDir = configPath
 	opReq.ConfigLoader, err = c.initConfigLoader()
 	if err != nil {

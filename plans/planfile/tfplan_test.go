@@ -21,16 +21,16 @@ func TestTFPlanRoundTrip(t *testing.T) {
 			"foo": mustNewDynamicValueStr("foo value"),
 		},
 		Changes: &plans.Changes{
-			RootOutputs: map[string]*plans.OutputChange{
+			RootOutputs: map[string]*plans.OutputChangeSrc{
 				"bar": {
-					Change: plans.Change{
+					ChangeSrc: plans.ChangeSrc{
 						Action: plans.Create,
 						After:  mustNewDynamicValueStr("bar value"),
 					},
 					Sensitive: false,
 				},
 				"baz": {
-					Change: plans.Change{
+					ChangeSrc: plans.ChangeSrc{
 						Action: plans.NoOp,
 						Before: mustNewDynamicValueStr("baz value"),
 						After:  mustNewDynamicValueStr("baz value"),
@@ -38,7 +38,7 @@ func TestTFPlanRoundTrip(t *testing.T) {
 					Sensitive: false,
 				},
 				"secret": {
-					Change: plans.Change{
+					ChangeSrc: plans.ChangeSrc{
 						Action: plans.Update,
 						Before: mustNewDynamicValueStr("old secret value"),
 						After:  mustNewDynamicValueStr("new secret value"),
@@ -46,7 +46,7 @@ func TestTFPlanRoundTrip(t *testing.T) {
 					Sensitive: true,
 				},
 			},
-			Resources: []*plans.ResourceInstanceChange{
+			Resources: []*plans.ResourceInstanceChangeSrc{
 				{
 					Addr: addrs.Resource{
 						Mode: addrs.ManagedResourceMode,
@@ -56,7 +56,7 @@ func TestTFPlanRoundTrip(t *testing.T) {
 					ProviderAddr: addrs.ProviderConfig{
 						Type: "test",
 					}.Absolute(addrs.RootModuleInstance),
-					Change: plans.Change{
+					ChangeSrc: plans.ChangeSrc{
 						Action: plans.Replace,
 						Before: mustNewDynamicValue(cty.ObjectVal(map[string]cty.Value{
 							"id": cty.StringVal("foo-bar-baz"),
@@ -76,7 +76,7 @@ func TestTFPlanRoundTrip(t *testing.T) {
 					ProviderAddr: addrs.ProviderConfig{
 						Type: "test",
 					}.Absolute(addrs.RootModuleInstance),
-					Change: plans.Change{
+					ChangeSrc: plans.ChangeSrc{
 						Action: plans.Delete,
 						Before: mustNewDynamicValue(cty.ObjectVal(map[string]cty.Value{
 							"id": cty.StringVal("bar-baz-foo"),

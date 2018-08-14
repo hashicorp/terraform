@@ -5,6 +5,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/hashicorp/terraform/states"
+
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/addrs"
@@ -423,7 +425,7 @@ func TestContext2Validate_moduleProviderInheritOrphan(t *testing.T) {
 				"aws": testProviderFuncFixed(p),
 			},
 		),
-		State: &State{
+		State: mustShimLegacyState(&State{
 			Modules: []*ModuleState{
 				&ModuleState{
 					Path: []string{"root", "child"},
@@ -437,7 +439,7 @@ func TestContext2Validate_moduleProviderInheritOrphan(t *testing.T) {
 					},
 				},
 			},
-		},
+		}),
 	})
 
 	p.ValidateFn = func(c *ResourceConfig) ([]string, []error) {
@@ -552,7 +554,7 @@ func TestContext2Validate_orphans(t *testing.T) {
 	}
 
 	m := testModule(t, "validate-good")
-	state := &State{
+	state := mustShimLegacyState(&State{
 		Modules: []*ModuleState{
 			&ModuleState{
 				Path: rootModulePath,
@@ -566,7 +568,7 @@ func TestContext2Validate_orphans(t *testing.T) {
 				},
 			},
 		},
-	}
+	})
 	c := testContext2(t, &ContextOpts{
 		Config: m,
 		ProviderResolver: ResourceProviderResolverFixed(
@@ -867,7 +869,7 @@ func TestContext2Validate_tainted(t *testing.T) {
 	}
 
 	m := testModule(t, "validate-good")
-	state := &State{
+	state := mustShimLegacyState(&State{
 		Modules: []*ModuleState{
 			&ModuleState{
 				Path: rootModulePath,
@@ -882,7 +884,7 @@ func TestContext2Validate_tainted(t *testing.T) {
 				},
 			},
 		},
-	}
+	})
 	c := testContext2(t, &ContextOpts{
 		Config: m,
 		ProviderResolver: ResourceProviderResolverFixed(
@@ -931,7 +933,7 @@ func TestContext2Validate_targetedDestroy(t *testing.T) {
 		Provisioners: map[string]ResourceProvisionerFactory{
 			"shell": testProvisionerFuncFixed(pr),
 		},
-		State: &State{
+		State: mustShimLegacyState(&State{
 			Modules: []*ModuleState{
 				&ModuleState{
 					Path: rootModulePath,
@@ -941,7 +943,7 @@ func TestContext2Validate_targetedDestroy(t *testing.T) {
 					},
 				},
 			},
-		},
+		}),
 		Targets: []addrs.Targetable{
 			addrs.RootModuleInstance.Resource(
 				addrs.ManagedResourceMode, "aws_instance", "foo",
@@ -1125,7 +1127,7 @@ func TestContext2Validate_PlanGraphBuilder(t *testing.T) {
 
 	graph, diags := (&PlanGraphBuilder{
 		Config:     c.config,
-		State:      NewState(),
+		State:      states.NewState(),
 		Components: c.components,
 		Schemas:    c.schemas,
 		Targets:    c.targets,

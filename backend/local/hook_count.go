@@ -1,9 +1,13 @@
 package local
 
 import (
-	"strings"
 	"sync"
 
+	"github.com/zclconf/go-cty/cty"
+
+	"github.com/hashicorp/terraform/addrs"
+	"github.com/hashicorp/terraform/plans"
+	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/terraform"
 )
 
@@ -19,11 +23,13 @@ type CountHook struct {
 	ToRemove       int
 	ToRemoveAndAdd int
 
-	pending map[string]countHookAction
+	pending map[string]plans.Action
 
 	sync.Mutex
 	terraform.NilHook
 }
+
+var _ terraform.Hook = (*CountHook)(nil)
 
 func (h *CountHook) Reset() {
 	h.Lock()
@@ -35,52 +41,39 @@ func (h *CountHook) Reset() {
 	h.Removed = 0
 }
 
-func (h *CountHook) PreApply(
-	n *terraform.InstanceInfo,
-	s *terraform.InstanceState,
-	d *terraform.InstanceDiff) (terraform.HookAction, error) {
+func (h *CountHook) PreApply(addr addrs.AbsResourceInstance, gen states.Generation, action plans.Action, priorState, plannedNewState cty.Value) (terraform.HookAction, error) {
 	h.Lock()
 	defer h.Unlock()
 
-	if d.Empty() {
-		return terraform.HookActionContinue, nil
-	}
-
 	if h.pending == nil {
-		h.pending = make(map[string]countHookAction)
+		h.pending = make(map[string]plans.Action)
 	}
 
-	action := countHookActionChange
-	if d.GetDestroy() {
-		action = countHookActionRemove
-	} else if s.ID == "" {
-		action = countHookActionAdd
-	}
-
-	h.pending[n.HumanId()] = action
+	h.pending[addr.String()] = action
 
 	return terraform.HookActionContinue, nil
 }
 
-func (h *CountHook) PostApply(
-	n *terraform.InstanceInfo,
-	s *terraform.InstanceState,
-	e error) (terraform.HookAction, error) {
+func (h *CountHook) PostApply(addr addrs.AbsResourceInstance, gen states.Generation, newState cty.Value, err error) (terraform.HookAction, error) {
 	h.Lock()
 	defer h.Unlock()
 
 	if h.pending != nil {
-		if a, ok := h.pending[n.HumanId()]; ok {
-			delete(h.pending, n.HumanId())
+		pendingKey := addr.String()
+		if action, ok := h.pending[pendingKey]; ok {
+			delete(h.pending, pendingKey)
 
-			if e == nil {
-				switch a {
-				case countHookActionAdd:
-					h.Added += 1
-				case countHookActionChange:
-					h.Changed += 1
-				case countHookActionRemove:
-					h.Removed += 1
+			if err == nil {
+				switch action {
+				case plans.Replace:
+					h.Added++
+					h.Removed++
+				case plans.Create:
+					h.Added++
+				case plans.Delete:
+					h.Changed++
+				case plans.Update:
+					h.Removed++
 				}
 			}
 		}
@@ -89,25 +82,23 @@ func (h *CountHook) PostApply(
 	return terraform.HookActionContinue, nil
 }
 
-func (h *CountHook) PostDiff(
-	n *terraform.InstanceInfo, d *terraform.InstanceDiff) (
-	terraform.HookAction, error) {
+func (h *CountHook) PostDiff(addr addrs.AbsResourceInstance, gen states.Generation, action plans.Action, priorState, plannedNewState cty.Value) (terraform.HookAction, error) {
 	h.Lock()
 	defer h.Unlock()
 
-	// We don't count anything for data sources
-	if strings.HasPrefix(n.Id, "data.") {
+	// We don't count anything for data resources
+	if addr.Resource.Resource.Mode == addrs.DataResourceMode {
 		return terraform.HookActionContinue, nil
 	}
 
-	switch d.ChangeType() {
-	case terraform.DiffDestroyCreate:
+	switch action {
+	case plans.Replace:
 		h.ToRemoveAndAdd += 1
-	case terraform.DiffCreate:
+	case plans.Create:
 		h.ToAdd += 1
-	case terraform.DiffDestroy:
+	case plans.Delete:
 		h.ToRemove += 1
-	case terraform.DiffUpdate:
+	case plans.Update:
 		h.ToChange += 1
 	}
 

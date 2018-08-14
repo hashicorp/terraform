@@ -7,11 +7,14 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/backend/local"
 	"github.com/hashicorp/terraform/backend/remote-state/inmem"
 	"github.com/hashicorp/terraform/helper/copy"
 	"github.com/hashicorp/terraform/state"
+	"github.com/hashicorp/terraform/states"
+	"github.com/hashicorp/terraform/states/statemgr"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/mitchellh/cli"
 )
@@ -227,24 +230,22 @@ func TestWorkspace_createWithState(t *testing.T) {
 		t.Fatalf("bad: \n%s", ui.ErrorWriter.String())
 	}
 
-	// create a non-empty state
-	originalState := &terraform.State{
-		Modules: []*terraform.ModuleState{
-			&terraform.ModuleState{
-				Path: []string{"root"},
-				Resources: map[string]*terraform.ResourceState{
-					"test_instance.foo": &terraform.ResourceState{
-						Type: "test_instance",
-						Primary: &terraform.InstanceState{
-							ID: "bar",
-						},
-					},
-				},
+	originalState := states.BuildState(func(s *states.SyncState) {
+		s.SetResourceInstanceCurrent(
+			addrs.Resource{
+				Mode: addrs.ManagedResourceMode,
+				Type: "test_instance",
+				Name: "foo",
+			}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+			&states.ResourceInstanceObjectSrc{
+				AttrsJSON: []byte(`{"id":"bar"}`),
+				Status:    states.ObjectReady,
 			},
-		},
-	}
+			addrs.ProviderConfig{Type: "test"}.Absolute(addrs.RootModuleInstance),
+		)
+	})
 
-	err := (&state.LocalState{Path: "test.tfstate"}).WriteState(originalState)
+	err := statemgr.NewFilesystem("test.tfstate").WriteState(originalState)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -268,14 +269,13 @@ func TestWorkspace_createWithState(t *testing.T) {
 	}
 
 	b := backend.TestBackendConfig(t, inmem.New(), nil)
-	sMgr, err := b.State(workspace)
+	sMgr, err := b.StateMgr(workspace)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	newState := sMgr.State()
 
-	originalState.Version = newState.Version // the round-trip through the state manager implicitly populates version
 	if !originalState.Equal(newState) {
 		t.Fatalf("states not equal\norig: %s\nnew: %s", originalState, newState)
 	}

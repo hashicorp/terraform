@@ -20,3 +20,21 @@ type ImportedObject struct {
 	// will be available for future operations.
 	Private cty.Value
 }
+
+// AsInstanceObject converts the receiving ImportedObject into a
+// ResourceInstanceObject that has status ObjectReady.
+//
+// The returned object does not know its own resource type, so the caller must
+// retain the ResourceType value from the source object if this information is
+// needed.
+//
+// The returned object also has no dependency addresses, but the caller may
+// freely modify the direct fields of the returned object without affecting
+// the receiver.
+func (io *ImportedObject) AsInstanceObject() *ResourceInstanceObject {
+	return &ResourceInstanceObject{
+		Status:  ObjectReady,
+		Value:   io.Value,
+		Private: io.Private,
+	}
+}

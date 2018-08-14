@@ -2,17 +2,16 @@ package terraform
 
 import (
 	"reflect"
-	"sync"
 	"testing"
 
-	"github.com/hashicorp/terraform/config/hcl2shim"
-
+	"github.com/davecgh/go-spew/spew"
 	"github.com/hashicorp/hcl2/hcl"
 	"github.com/hashicorp/hcl2/hcl/hclsyntax"
+	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/addrs"
-
-	"github.com/davecgh/go-spew/spew"
+	"github.com/hashicorp/terraform/config/hcl2shim"
+	"github.com/hashicorp/terraform/states"
 )
 
 func TestEvalLocal_impl(t *testing.T) {
@@ -49,8 +48,7 @@ func TestEvalLocal(t *testing.T) {
 				Expr: expr,
 			}
 			ctx := &MockEvalContext{
-				StateState: &State{},
-				StateLock:  &sync.RWMutex{},
+				StateState: states.NewState().SyncWrapper(),
 
 				EvaluateExprResult: hcl2shim.HCL2ValueFromConfigValue(test.Want),
 			}
@@ -64,10 +62,10 @@ func TestEvalLocal(t *testing.T) {
 				}
 			}
 
-			ms := ctx.StateState.ModuleByPath(addrs.RootModuleInstance)
-			gotLocals := ms.Locals
-			wantLocals := map[string]interface{}{
-				"foo": test.Want,
+			ms := ctx.StateState.Module(addrs.RootModuleInstance)
+			gotLocals := ms.LocalValues
+			wantLocals := map[string]cty.Value{
+				"foo": hcl2shim.HCL2ValueFromConfigValue(test.Want),
 			}
 
 			if !reflect.DeepEqual(gotLocals, wantLocals) {

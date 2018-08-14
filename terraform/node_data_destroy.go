@@ -1,5 +1,9 @@
 package terraform
 
+import (
+	"github.com/hashicorp/terraform/states"
+)
+
 // NodeDestroyableDataResource represents a resource that is "destroyable":
 // it is ready to be destroyed.
 type NodeDestroyableDataResource struct {
@@ -10,13 +14,10 @@ type NodeDestroyableDataResource struct {
 func (n *NodeDestroyableDataResource) EvalTree() EvalNode {
 	addr := n.ResourceInstanceAddr()
 
-	// stateId is the ID to put into the state
-	stateId := NewLegacyResourceInstanceAddress(addr).stateId()
-
 	// Just destroy it.
-	var state *InstanceState
+	var state *states.ResourceInstanceObject
 	return &EvalWriteState{
-		Name:  stateId,
+		Addr:  addr.Resource,
 		State: &state, // state is nil here
 	}
 }

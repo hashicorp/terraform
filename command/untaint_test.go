@@ -5,27 +5,27 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/hashicorp/terraform/addrs"
+	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/mitchellh/cli"
 )
 
 func TestUntaint(t *testing.T) {
-	state := &terraform.State{
-		Modules: []*terraform.ModuleState{
-			&terraform.ModuleState{
-				Path: []string{"root"},
-				Resources: map[string]*terraform.ResourceState{
-					"test_instance.foo": &terraform.ResourceState{
-						Type: "test_instance",
-						Primary: &terraform.InstanceState{
-							ID:      "bar",
-							Tainted: true,
-						},
-					},
-				},
+	state := states.BuildState(func(s *states.SyncState) {
+		s.SetResourceInstanceCurrent(
+			addrs.Resource{
+				Mode: addrs.ManagedResourceMode,
+				Type: "test_instance",
+				Name: "foo",
+			}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+			&states.ResourceInstanceObjectSrc{
+				AttrsJSON: []byte(`{"id":"bar"}`),
+				Status:    states.ObjectTainted,
 			},
-		},
-	}
+			addrs.ProviderConfig{Type: "test"}.Absolute(addrs.RootModuleInstance),
+		)
+	})
 	statePath := testStateFile(t, state)
 
 	ui := new(cli.MockUi)
@@ -51,22 +51,20 @@ test_instance.foo:
 }
 
 func TestUntaint_lockedState(t *testing.T) {
-	state := &terraform.State{
-		Modules: []*terraform.ModuleState{
-			&terraform.ModuleState{
-				Path: []string{"root"},
-				Resources: map[string]*terraform.ResourceState{
-					"test_instance.foo": &terraform.ResourceState{
-						Type: "test_instance",
-						Primary: &terraform.InstanceState{
-							ID:      "bar",
-							Tainted: true,
-						},
-					},
-				},
+	state := states.BuildState(func(s *states.SyncState) {
+		s.SetResourceInstanceCurrent(
+			addrs.Resource{
+				Mode: addrs.ManagedResourceMode,
+				Type: "test_instance",
+				Name: "foo",
+			}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+			&states.ResourceInstanceObjectSrc{
+				AttrsJSON: []byte(`{"id":"bar"}`),
+				Status:    states.ObjectTainted,
 			},
-		},
-	}
+			addrs.ProviderConfig{Type: "test"}.Absolute(addrs.RootModuleInstance),
+		)
+	})
 	statePath := testStateFile(t, state)
 	unlock, err := testLockState("./testdata", statePath)
 	if err != nil {
@@ -257,22 +255,20 @@ test_instance.foo:
 }
 
 func TestUntaint_missing(t *testing.T) {
-	state := &terraform.State{
-		Modules: []*terraform.ModuleState{
-			&terraform.ModuleState{
-				Path: []string{"root"},
-				Resources: map[string]*terraform.ResourceState{
-					"test_instance.foo": &terraform.ResourceState{
-						Type: "test_instance",
-						Primary: &terraform.InstanceState{
-							ID:      "bar",
-							Tainted: true,
-						},
-					},
-				},
+	state := states.BuildState(func(s *states.SyncState) {
+		s.SetResourceInstanceCurrent(
+			addrs.Resource{
+				Mode: addrs.ManagedResourceMode,
+				Type: "test_instance",
+				Name: "foo",
+			}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+			&states.ResourceInstanceObjectSrc{
+				AttrsJSON: []byte(`{"id":"bar"}`),
+				Status:    states.ObjectTainted,
 			},
-		},
-	}
+			addrs.ProviderConfig{Type: "test"}.Absolute(addrs.RootModuleInstance),
+		)
+	})
 	statePath := testStateFile(t, state)
 
 	ui := new(cli.MockUi)
@@ -292,22 +288,20 @@ func TestUntaint_missing(t *testing.T) {
 }
 
 func TestUntaint_missingAllow(t *testing.T) {
-	state := &terraform.State{
-		Modules: []*terraform.ModuleState{
-			&terraform.ModuleState{
-				Path: []string{"root"},
-				Resources: map[string]*terraform.ResourceState{
-					"test_instance.foo": &terraform.ResourceState{
-						Type: "test_instance",
-						Primary: &terraform.InstanceState{
-							ID:      "bar",
-							Tainted: true,
-						},
-					},
-				},
+	state := states.BuildState(func(s *states.SyncState) {
+		s.SetResourceInstanceCurrent(
+			addrs.Resource{
+				Mode: addrs.ManagedResourceMode,
+				Type: "test_instance",
+				Name: "foo",
+			}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+			&states.ResourceInstanceObjectSrc{
+				AttrsJSON: []byte(`{"id":"bar"}`),
+				Status:    states.ObjectTainted,
 			},
-		},
-	}
+			addrs.ProviderConfig{Type: "test"}.Absolute(addrs.RootModuleInstance),
+		)
+	})
 	statePath := testStateFile(t, state)
 
 	ui := new(cli.MockUi)
@@ -377,34 +371,32 @@ test_instance.foo:
 }
 
 func TestUntaint_module(t *testing.T) {
-	state := &terraform.State{
-		Modules: []*terraform.ModuleState{
-			&terraform.ModuleState{
-				Path: []string{"root"},
-				Resources: map[string]*terraform.ResourceState{
-					"test_instance.foo": &terraform.ResourceState{
-						Type: "test_instance",
-						Primary: &terraform.InstanceState{
-							ID:      "bar",
-							Tainted: true,
-						},
-					},
-				},
+	state := states.BuildState(func(s *states.SyncState) {
+		s.SetResourceInstanceCurrent(
+			addrs.Resource{
+				Mode: addrs.ManagedResourceMode,
+				Type: "test_instance",
+				Name: "foo",
+			}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+			&states.ResourceInstanceObjectSrc{
+				AttrsJSON: []byte(`{"id":"bar"}`),
+				Status:    states.ObjectTainted,
 			},
-			&terraform.ModuleState{
-				Path: []string{"root", "child"},
-				Resources: map[string]*terraform.ResourceState{
-					"test_instance.blah": &terraform.ResourceState{
-						Type: "test_instance",
-						Primary: &terraform.InstanceState{
-							ID:      "bar",
-							Tainted: true,
-						},
-					},
-				},
+			addrs.ProviderConfig{Type: "test"}.Absolute(addrs.RootModuleInstance),
+		)
+		s.SetResourceInstanceCurrent(
+			addrs.Resource{
+				Mode: addrs.ManagedResourceMode,
+				Type: "test_instance",
+				Name: "blah",
+			}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance.Child("child", addrs.NoKey)),
+			&states.ResourceInstanceObjectSrc{
+				AttrsJSON: []byte(`{"id":"bar"}`),
+				Status:    states.ObjectTainted,
 			},
-		},
-	}
+			addrs.ProviderConfig{Type: "test"}.Absolute(addrs.RootModuleInstance),
+		)
+	})
 	statePath := testStateFile(t, state)
 
 	ui := new(cli.MockUi)
