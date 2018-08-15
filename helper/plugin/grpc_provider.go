@@ -10,6 +10,7 @@ import (
 	"github.com/hashicorp/terraform/config/hcl2shim"
 	"github.com/hashicorp/terraform/configs/configschema"
 	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/hashicorp/terraform/plugin/convert"
 	"github.com/hashicorp/terraform/plugin/proto"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/zclconf/go-cty/cty"
@@ -42,20 +43,20 @@ func (s *GRPCProviderServer) GetSchema(_ context.Context, req *proto.GetProvider
 	}
 
 	resp.Provider = &proto.Schema{
-		Block: protoSchemaBlock(s.getProviderSchemaBlock()),
+		Block: convert.ConfigSchemaToProto(s.getProviderSchemaBlock()),
 	}
 
 	for typ, res := range s.provider.ResourcesMap {
 		resp.ResourceSchemas[typ] = &proto.Schema{
 			Version: int64(res.SchemaVersion),
-			Block:   protoSchemaBlock(res.CoreConfigSchema()),
+			Block:   convert.ConfigSchemaToProto(res.CoreConfigSchema()),
 		}
 	}
 
 	for typ, dat := range s.provider.DataSourcesMap {
 		resp.DataSourceSchemas[typ] = &proto.Schema{
 			Version: int64(dat.SchemaVersion),
-			Block:   protoSchemaBlock(dat.CoreConfigSchema()),
+			Block:   convert.ConfigSchemaToProto(dat.CoreConfigSchema()),
 		}
 	}
 
@@ -83,14 +84,14 @@ func (s *GRPCProviderServer) ValidateProviderConfig(_ context.Context, req *prot
 
 	configVal, err := msgpack.Unmarshal(req.Config.Msgpack, block.ImpliedType())
 	if err != nil {
-		resp.Diagnostics = appendDiag(resp.Diagnostics, err)
+		resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
 		return resp, nil
 	}
 
 	config := terraform.NewResourceConfigShimmed(configVal, block)
 
 	warns, errs := s.provider.Validate(config)
-	resp.Diagnostics = appendDiag(resp.Diagnostics, diagsFromWarnsErrs(warns, errs))
+	resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, convert.WarnsAndErrsToProto(warns, errs))
 
 	return resp, nil
 }
@@ -102,14 +103,14 @@ func (s *GRPCProviderServer) ValidateResourceTypeConfig(_ context.Context, req *
 
 	configVal, err := msgpack.Unmarshal(req.Config.Msgpack, block.ImpliedType())
 	if err != nil {
-		resp.Diagnostics = appendDiag(resp.Diagnostics, err)
+		resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
 		return resp, nil
 	}
 
 	config := terraform.NewResourceConfigShimmed(configVal, block)
 
 	warns, errs := s.provider.ValidateResource(req.TypeName, config)
-	resp.Diagnostics = appendDiag(resp.Diagnostics, diagsFromWarnsErrs(warns, errs))
+	resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, convert.WarnsAndErrsToProto(warns, errs))
 
 	return resp, nil
 }
@@ -121,14 +122,14 @@ func (s *GRPCProviderServer) ValidateDataSourceConfig(_ context.Context, req *pr
 
 	configVal, err := msgpack.Unmarshal(req.Config.Msgpack, block.ImpliedType())
 	if err != nil {
-		resp.Diagnostics = appendDiag(resp.Diagnostics, err)
+		resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
 		return resp, nil
 	}
 
 	config := terraform.NewResourceConfigShimmed(configVal, block)
 
 	warns, errs := s.provider.ValidateResource(req.TypeName, config)
-	resp.Diagnostics = appendDiag(resp.Diagnostics, diagsFromWarnsErrs(warns, errs))
+	resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, convert.WarnsAndErrsToProto(warns, errs))
 
 	return resp, nil
 }
@@ -148,7 +149,7 @@ func (s *GRPCProviderServer) UpgradeResourceState(_ context.Context, req *proto.
 	if req.RawState.Json != nil {
 		err = json.Unmarshal(req.RawState.Json, &jsonMap)
 		if err != nil {
-			resp.Diagnostics = appendDiag(resp.Diagnostics, err)
+			resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
 			return resp, nil
 		}
 	}
@@ -158,7 +159,7 @@ func (s *GRPCProviderServer) UpgradeResourceState(_ context.Context, req *proto.
 	if req.RawState.Flatmap != nil {
 		jsonMap, version, err = s.upgradeFlatmapState(version, req.RawState.Flatmap, res)
 		if err != nil {
-			resp.Diagnostics = appendDiag(resp.Diagnostics, err)
+			resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
 			return resp, nil
 		}
 	}
@@ -166,7 +167,7 @@ func (s *GRPCProviderServer) UpgradeResourceState(_ context.Context, req *proto.
 	// complete the upgrade of the JSON states
 	jsonMap, err = s.upgradeJSONState(version, jsonMap, res)
 	if err != nil {
-		resp.Diagnostics = appendDiag(resp.Diagnostics, err)
+		resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
 		return resp, nil
 	}
 
@@ -174,14 +175,14 @@ func (s *GRPCProviderServer) UpgradeResourceState(_ context.Context, req *proto.
 	// that it can be re-decoded using the actual schema.
 	val, err := schema.JSONMapToStateValue(jsonMap, block)
 	if err != nil {
-		resp.Diagnostics = appendDiag(resp.Diagnostics, err)
+		resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
 		return resp, nil
 	}
 
 	// encode the final state to the expected msgpack format
 	newStateMP, err := msgpack.Marshal(val, block.ImpliedType())
 	if err != nil {
-		resp.Diagnostics = appendDiag(resp.Diagnostics, err)
+		resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
 		return resp, nil
 	}
 
@@ -299,13 +300,13 @@ func (s *GRPCProviderServer) Configure(_ context.Context, req *proto.Configure_R
 
 	configVal, err := msgpack.Unmarshal(req.Config.Msgpack, block.ImpliedType())
 	if err != nil {
-		resp.Diagnostics = appendDiag(resp.Diagnostics, err)
+		resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
 		return resp, nil
 	}
 
 	config := terraform.NewResourceConfigShimmed(configVal, block)
 	err = s.provider.Configure(config)
-	resp.Diagnostics = appendDiag(resp.Diagnostics, err)
+	resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
 
 	return resp, nil
 }
@@ -318,7 +319,7 @@ func (s *GRPCProviderServer) ReadResource(_ context.Context, req *proto.ReadReso
 
 	stateVal, err := msgpack.Unmarshal(req.CurrentState.Msgpack, block.ImpliedType())
 	if err != nil {
-		resp.Diagnostics = appendDiag(resp.Diagnostics, err)
+		resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
 		return resp, nil
 	}
 
@@ -326,7 +327,7 @@ func (s *GRPCProviderServer) ReadResource(_ context.Context, req *proto.ReadReso
 
 	newInstanceState, err := res.RefreshWithoutUpgrade(instanceState, s.provider.Meta())
 	if err != nil {
-		resp.Diagnostics = appendDiag(resp.Diagnostics, err)
+		resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
 		return resp, nil
 	}
 
@@ -335,13 +336,13 @@ func (s *GRPCProviderServer) ReadResource(_ context.Context, req *proto.ReadReso
 
 	newConfigVal, err := hcl2shim.HCL2ValueFromFlatmap(newInstanceState.Attributes, block.ImpliedType())
 	if err != nil {
-		resp.Diagnostics = appendDiag(resp.Diagnostics, err)
+		resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
 		return resp, nil
 	}
 
 	newConfigMP, err := msgpack.Marshal(newConfigVal, block.ImpliedType())
 	if err != nil {
-		resp.Diagnostics = appendDiag(resp.Diagnostics, err)
+		resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
 		return resp, nil
 	}
 
@@ -360,13 +361,13 @@ func (s *GRPCProviderServer) PlanResourceChange(_ context.Context, req *proto.Pl
 
 	priorStateVal, err := msgpack.Unmarshal(req.PriorState.Msgpack, block.ImpliedType())
 	if err != nil {
-		resp.Diagnostics = appendDiag(resp.Diagnostics, err)
+		resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
 		return resp, nil
 	}
 
 	proposedNewStateVal, err := msgpack.Unmarshal(req.ProposedNewState.Msgpack, block.ImpliedType())
 	if err != nil {
-		resp.Diagnostics = appendDiag(resp.Diagnostics, err)
+		resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
 		return resp, nil
 	}
 
@@ -381,20 +382,20 @@ func (s *GRPCProviderServer) PlanResourceChange(_ context.Context, req *proto.Pl
 
 	diff, err := s.provider.Diff(info, priorState, config)
 	if err != nil {
-		resp.Diagnostics = appendDiag(resp.Diagnostics, err)
+		resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
 		return resp, nil
 	}
 
 	// now we need to apply the diff to the prior state, so get the planned state
 	plannedStateVal, err := schema.ApplyDiff(priorStateVal, diff, block)
 	if err != nil {
-		resp.Diagnostics = appendDiag(resp.Diagnostics, err)
+		resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
 		return resp, nil
 	}
 
 	plannedMP, err := msgpack.Marshal(plannedStateVal, block.ImpliedType())
 	if err != nil {
-		resp.Diagnostics = appendDiag(resp.Diagnostics, err)
+		resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
 		return resp, nil
 	}
 	resp.PlannedState.Msgpack = plannedMP
@@ -402,7 +403,7 @@ func (s *GRPCProviderServer) PlanResourceChange(_ context.Context, req *proto.Pl
 	// the Meta field gets encoded into PlannedPrivate
 	plannedPrivate, err := json.Marshal(diff.Meta)
 	if err != nil {
-		resp.Diagnostics = appendDiag(resp.Diagnostics, err)
+		resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
 		return resp, nil
 	}
 	resp.PlannedPrivate = plannedPrivate
@@ -418,7 +419,7 @@ func (s *GRPCProviderServer) PlanResourceChange(_ context.Context, req *proto.Pl
 
 	requiresReplace, err := hcl2shim.RequiresReplace(requiresNew, block.ImpliedType())
 	if err != nil {
-		resp.Diagnostics = appendDiag(resp.Diagnostics, err)
+		resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
 		return resp, nil
 	}
 
@@ -438,13 +439,13 @@ func (s *GRPCProviderServer) ApplyResourceChange(_ context.Context, req *proto.A
 
 	priorStateVal, err := msgpack.Unmarshal(req.PriorState.Msgpack, block.ImpliedType())
 	if err != nil {
-		resp.Diagnostics = appendDiag(resp.Diagnostics, err)
+		resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
 		return resp, nil
 	}
 
 	plannedStateVal, err := msgpack.Unmarshal(req.PlannedState.Msgpack, block.ImpliedType())
 	if err != nil {
-		resp.Diagnostics = appendDiag(resp.Diagnostics, err)
+		resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
 		return resp, nil
 	}
 
@@ -456,38 +457,38 @@ func (s *GRPCProviderServer) ApplyResourceChange(_ context.Context, req *proto.A
 
 	var private map[string]interface{}
 	if err := json.Unmarshal(req.PlannedPrivate, &private); err != nil {
-		resp.Diagnostics = appendDiag(resp.Diagnostics, err)
+		resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
 		return resp, nil
 	}
 
 	diff, err := schema.DiffFromValues(priorStateVal, plannedStateVal, res)
 	if err != nil {
-		resp.Diagnostics = appendDiag(resp.Diagnostics, err)
+		resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
 		return resp, nil
 	}
 
 	newInstanceState, err := s.provider.Apply(info, priorState, diff)
 	if err != nil {
-		resp.Diagnostics = appendDiag(resp.Diagnostics, err)
+		resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
 		return resp, nil
 	}
 
 	newStateVal, err := schema.StateValueFromInstanceState(newInstanceState, block.ImpliedType())
 	if err != nil {
-		resp.Diagnostics = appendDiag(resp.Diagnostics, err)
+		resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
 		return resp, nil
 	}
 
 	newStateMP, err := msgpack.Marshal(newStateVal, block.ImpliedType())
 	if err != nil {
-		resp.Diagnostics = appendDiag(resp.Diagnostics, err)
+		resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
 		return resp, nil
 	}
 	resp.NewState.Msgpack = newStateMP
 
 	meta, err := json.Marshal(newInstanceState.Meta)
 	if err != nil {
-		resp.Diagnostics = appendDiag(resp.Diagnostics, err)
+		resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
 		return resp, nil
 	}
 	resp.Private = meta
@@ -506,7 +507,7 @@ func (s *GRPCProviderServer) ImportResourceState(_ context.Context, req *proto.I
 
 	newInstanceStates, err := s.provider.ImportState(info, req.Id)
 	if err != nil {
-		resp.Diagnostics = appendDiag(resp.Diagnostics, err)
+		resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
 		return resp, nil
 	}
 
@@ -516,19 +517,19 @@ func (s *GRPCProviderServer) ImportResourceState(_ context.Context, req *proto.I
 
 		newStateVal, err := hcl2shim.HCL2ValueFromFlatmap(is.Attributes, block.ImpliedType())
 		if err != nil {
-			resp.Diagnostics = appendDiag(resp.Diagnostics, err)
+			resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
 			return resp, nil
 		}
 
 		newStateMP, err := msgpack.Marshal(newStateVal, block.ImpliedType())
 		if err != nil {
-			resp.Diagnostics = appendDiag(resp.Diagnostics, err)
+			resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
 			return resp, nil
 		}
 
 		meta, err := json.Marshal(is.Meta)
 		if err != nil {
-			resp.Diagnostics = appendDiag(resp.Diagnostics, err)
+			resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
 			return resp, nil
 		}
 
@@ -555,7 +556,7 @@ func (s *GRPCProviderServer) ReadDataSource(_ context.Context, req *proto.ReadDa
 
 	configVal, err := msgpack.Unmarshal(req.Config.Msgpack, block.ImpliedType())
 	if err != nil {
-		resp.Diagnostics = appendDiag(resp.Diagnostics, err)
+		resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
 		return resp, nil
 	}
 
@@ -569,26 +570,26 @@ func (s *GRPCProviderServer) ReadDataSource(_ context.Context, req *proto.ReadDa
 	// the old behavior
 	diff, err := s.provider.ReadDataDiff(info, config)
 	if err != nil {
-		resp.Diagnostics = appendDiag(resp.Diagnostics, err)
+		resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
 		return resp, nil
 	}
 
 	// now we can get the new complete data source
 	newInstanceState, err := s.provider.ReadDataApply(info, diff)
 	if err != nil {
-		resp.Diagnostics = appendDiag(resp.Diagnostics, err)
+		resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
 		return resp, nil
 	}
 
 	newStateVal, err := schema.StateValueFromInstanceState(newInstanceState, block.ImpliedType())
 	if err != nil {
-		resp.Diagnostics = appendDiag(resp.Diagnostics, err)
+		resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
 		return resp, nil
 	}
 
 	newStateMP, err := msgpack.Marshal(newStateVal, block.ImpliedType())
 	if err != nil {
-		resp.Diagnostics = appendDiag(resp.Diagnostics, err)
+		resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
 		return resp, nil
 	}
 	resp.State.Msgpack = newStateMP

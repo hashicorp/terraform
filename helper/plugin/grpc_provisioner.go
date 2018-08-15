@@ -4,10 +4,11 @@ import (
 	"log"
 
 	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/hashicorp/terraform/plugin/convert"
 	"github.com/hashicorp/terraform/plugin/proto"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/zclconf/go-cty/cty"
-	"github.com/zclconf/go-cty/cty/convert"
+	ctyconvert "github.com/zclconf/go-cty/cty/convert"
 	"github.com/zclconf/go-cty/cty/msgpack"
 	context "golang.org/x/net/context"
 )
@@ -33,7 +34,7 @@ func (s *GRPCProvisionerServer) GetSchema(_ context.Context, req *proto.GetProvi
 	resp := &proto.GetProvisionerSchema_Response{}
 
 	resp.Provisioner = &proto.Schema{
-		Block: protoSchemaBlock(schema.InternalMap(s.provisioner.Schema).CoreConfigSchema()),
+		Block: convert.ConfigSchemaToProto(schema.InternalMap(s.provisioner.Schema).CoreConfigSchema()),
 	}
 
 	return resp, nil
@@ -46,14 +47,14 @@ func (s *GRPCProvisionerServer) ValidateProvisionerConfig(_ context.Context, req
 
 	configVal, err := msgpack.Unmarshal(req.Config.Msgpack, cfgSchema.ImpliedType())
 	if err != nil {
-		resp.Diagnostics = appendDiag(resp.Diagnostics, err)
+		resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
 		return resp, nil
 	}
 
 	config := terraform.NewResourceConfigShimmed(configVal, cfgSchema)
 
 	warns, errs := s.provisioner.Validate(config)
-	resp.Diagnostics = appendDiag(resp.Diagnostics, diagsFromWarnsErrs(warns, errs))
+	resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, convert.WarnsAndErrsToProto(warns, errs))
 
 	return resp, nil
 }
@@ -74,7 +75,7 @@ func stringMapFromValue(val cty.Value) map[string]string {
 			continue
 		}
 
-		av, _ = convert.Convert(av, cty.String)
+		av, _ = ctyconvert.Convert(av, cty.String)
 		m[name] = av.AsString()
 	}
 
@@ -104,7 +105,7 @@ func (s *GRPCProvisionerServer) ProvisionResource(req *proto.ProvisionResource_R
 	cfgSchema := schema.InternalMap(s.provisioner.Schema).CoreConfigSchema()
 	cfgVal, err := msgpack.Unmarshal(req.Config.Msgpack, cfgSchema.ImpliedType())
 	if err != nil {
-		srvResp.Diagnostics = appendDiag(srvResp.Diagnostics, err)
+		srvResp.Diagnostics = convert.AppendProtoDiag(srvResp.Diagnostics, err)
 		srv.Send(srvResp)
 		return nil
 	}
@@ -112,7 +113,7 @@ func (s *GRPCProvisionerServer) ProvisionResource(req *proto.ProvisionResource_R
 
 	connVal, err := msgpack.Unmarshal(req.Connection.Msgpack, cty.Map(cty.String))
 	if err != nil {
-		srvResp.Diagnostics = appendDiag(srvResp.Diagnostics, err)
+		srvResp.Diagnostics = convert.AppendProtoDiag(srvResp.Diagnostics, err)
 		srv.Send(srvResp)
 		return nil
 	}
@@ -127,7 +128,7 @@ func (s *GRPCProvisionerServer) ProvisionResource(req *proto.ProvisionResource_R
 
 	err = s.provisioner.Apply(uiOutput{srv}, instanceState, resourceConfig)
 	if err != nil {
-		srvResp.Diagnostics = appendDiag(srvResp.Diagnostics, err)
+		srvResp.Diagnostics = convert.AppendProtoDiag(srvResp.Diagnostics, err)
 		srv.Send(srvResp)
 	}
 	return nil

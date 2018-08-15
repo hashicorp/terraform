@@ -8,6 +8,7 @@ import (
 
 	plugin "github.com/hashicorp/go-plugin"
 	"github.com/hashicorp/terraform/configs/configschema"
+	"github.com/hashicorp/terraform/plugin/convert"
 	"github.com/hashicorp/terraform/plugin/proto"
 	"github.com/hashicorp/terraform/provisioners"
 	"github.com/zclconf/go-cty/cty"
@@ -66,7 +67,7 @@ func (p *GRPCProvisioner) GetSchema() (resp provisioners.GetSchemaResponse) {
 		return resp
 	}
 
-	resp.Provisioner = schemaBlock(protoResp.Provisioner.Block)
+	resp.Provisioner = convert.ProtoToConfigSchema(protoResp.Provisioner.Block)
 
 	p.schema = resp.Provisioner
 
@@ -94,7 +95,7 @@ func (p *GRPCProvisioner) ValidateProvisionerConfig(r provisioners.ValidateProvi
 		resp.Diagnostics = resp.Diagnostics.Append(err)
 		return resp
 	}
-	resp.Diagnostics = resp.Diagnostics.Append(ProtoToDiagnostics(protoResp.Diagnostics))
+	resp.Diagnostics = resp.Diagnostics.Append(convert.ProtoToDiagnostics(protoResp.Diagnostics))
 	return resp
 }
 
@@ -142,7 +143,7 @@ func (p *GRPCProvisioner) ProvisionResource(r provisioners.ProvisionResourceRequ
 		}
 
 		if len(rcv.Diagnostics) > 0 {
-			resp.Diagnostics = resp.Diagnostics.Append(ProtoToDiagnostics(rcv.Diagnostics))
+			resp.Diagnostics = resp.Diagnostics.Append(convert.ProtoToDiagnostics(rcv.Diagnostics))
 			break
 		}
 	}
