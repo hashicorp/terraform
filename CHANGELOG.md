@@ -1,22 +1,22 @@
-## 0.11.8 (Unreleased)
+## 0.11.8 (August 15, 2018)
 
 NEW FEATURES:
 
-* **New `remote` backend**: Inital release of the `remote` backend for use with Terraform Enterprise and Private Terraform Enterprise [GH-18596] 
+* **New `remote` backend**: Inital release of the `remote` backend for use with Terraform Enterprise and Private Terraform Enterprise [[#18596](https://github.com/hashicorp/terraform/issues/18596)] 
 
 IMPROVEMENTS:
 
-* cli: display workspace name in apply and destroy commands if not default [GH-18253]
-* cli: Remove error on empty outputs when `-json` is set [GH-11721]
-* helper/schema: Resources have a new `DeprecationMessage` property that can be set to a string, allowing full resources to be deprecated [GH-18286]
-* backend/s3: Allow fallback to session-derived credentials (e.g. session via `AWS_PROFILE` environment variable and shared configuration) [GH-17901]
-* backend/s3: Allow usage of `AWS_EC2_METADATA_DISABLED` environment variable [GH-17901]
+* cli: display workspace name in apply and destroy commands if not default ([#18253](https://github.com/hashicorp/terraform/issues/18253))
+* cli: Remove error on empty outputs when `-json` is set ([#11721](https://github.com/hashicorp/terraform/issues/11721))
+* helper/schema: Resources have a new `DeprecationMessage` property that can be set to a string, allowing full resources to be deprecated ([#18286](https://github.com/hashicorp/terraform/issues/18286))
+* backend/s3: Allow fallback to session-derived credentials (e.g. session via `AWS_PROFILE` environment variable and shared configuration) ([#17901](https://github.com/hashicorp/terraform/issues/17901))
+* backend/s3: Allow usage of `AWS_EC2_METADATA_DISABLED` environment variable ([#17901](https://github.com/hashicorp/terraform/issues/17901))
 
 BUG FIXES:
 
-* config: The `rsadecrypt` interpolation function will no longer include the private key in an error message if it cannot be processed. [GH-18333]
-* provisioner/habitat: add missing space for service url [GH-18400]
-* backend/s3: Skip extraneous EC2 metadata redirect [GH-18570]
+* config: The `rsadecrypt` interpolation function will no longer include the private key in an error message if it cannot be processed. ([#18333](https://github.com/hashicorp/terraform/issues/18333))
+* provisioner/habitat: add missing space for service url ([#18400](https://github.com/hashicorp/terraform/issues/18400))
+* backend/s3: Skip extraneous EC2 metadata redirect ([#18570](https://github.com/hashicorp/terraform/issues/18570))
 
 ## 0.11.7 (April 10, 2018)
 
