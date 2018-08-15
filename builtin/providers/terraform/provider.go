@@ -122,3 +122,8 @@ func (p *Provider) ValidateResourceTypeConfig(providers.ValidateResourceTypeConf
 	var res providers.ValidateResourceTypeConfigResponse
 	return res
 }
+
+// Close is a noop for this provider, since it's run in-process.
+func (p *Provider) Close() error {
+	return nil
+}
