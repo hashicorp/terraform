@@ -32,6 +32,9 @@ type Interface interface {
 	// stop somehow failed and that the user should expect potentially waiting
 	// a longer period of time.
 	Stop() error
+
+	// Close shuts down the plugin process if applicable.
+	Close() error
 }
 
 type GetSchemaResponse struct {
