@@ -10,7 +10,6 @@ import (
 	"hash"
 	"io"
 	"io/ioutil"
-	"log"
 	"net"
 	"os"
 	"os/exec"
@@ -71,16 +70,23 @@ var (
 //
 // See NewClient and ClientConfig for using a Client.
 type Client struct {
-	config      *ClientConfig
-	exited      bool
-	doneLogging chan struct{}
-	l           sync.Mutex
-	address     net.Addr
-	process     *os.Process
-	client      ClientProtocol
-	protocol    Protocol
-	logger      hclog.Logger
-	doneCtx     context.Context
+	config            *ClientConfig
+	exited            bool
+	doneLogging       chan struct{}
+	l                 sync.Mutex
+	address           net.Addr
+	process           *os.Process
+	client            ClientProtocol
+	protocol          Protocol
+	logger            hclog.Logger
+	doneCtx           context.Context
+	negotiatedVersion int
+}
+
+// NegotiatedVersion returns the protocol version negotiated with the server.
+// This is only valid after Start() is called.
+func (c *Client) NegotiatedVersion() int {
+	return c.negotiatedVersion
 }
 
 // ClientConfig is the configuration used to initialize a new
@@ -91,7 +97,13 @@ type ClientConfig struct {
 	HandshakeConfig
 
 	// Plugins are the plugins that can be consumed.
-	Plugins map[string]Plugin
+	// The implied version of this PluginSet is the Handshake.ProtocolVersion.
+	Plugins PluginSet
+
+	// VersionedPlugins is a map of PluginSets for specific protocol versions.
+	// These can be used to negotiate a compatible version between client and
+	// server. If this is set, Handshake.ProtocolVersion is not required.
+	VersionedPlugins map[int]PluginSet
 
 	// One of the following must be set, but not both.
 	//
@@ -234,7 +246,6 @@ func CleanupClients() {
 	}
 	managedClientsLock.Unlock()
 
-	log.Println("[DEBUG] plugin: waiting for all plugin processes to complete...")
 	wg.Wait()
 }
 
@@ -479,10 +490,30 @@ func (c *Client) Start() (addr net.Addr, err error) {
 		return c.address, nil
 	}
 
+	if c.config.VersionedPlugins == nil {
+		c.config.VersionedPlugins = make(map[int]PluginSet)
+	}
+
+	// handle all plugins as versioned, using the handshake config as the default.
+	version := int(c.config.ProtocolVersion)
+
+	// Make sure we're not overwriting a real version 0. If ProtocolVersion was
+	// non-zero, then we have to just assume the user made sure that
+	// VersionedPlugins doesn't conflict.
+	if _, ok := c.config.VersionedPlugins[version]; !ok && c.config.Plugins != nil {
+		c.config.VersionedPlugins[version] = c.config.Plugins
+	}
+
+	var versionStrings []string
+	for v := range c.config.VersionedPlugins {
+		versionStrings = append(versionStrings, strconv.Itoa(v))
+	}
+
 	env := []string{
 		fmt.Sprintf("%s=%s", c.config.MagicCookieKey, c.config.MagicCookieValue),
 		fmt.Sprintf("PLUGIN_MIN_PORT=%d", c.config.MinPort),
 		fmt.Sprintf("PLUGIN_MAX_PORT=%d", c.config.MaxPort),
+		fmt.Sprintf("PLUGIN_PROTOCOL_VERSIONS=%s", strings.Join(versionStrings, ",")),
 	}
 
 	stdout_r, stdout_w := io.Pipe()
@@ -624,20 +655,18 @@ func (c *Client) Start() (addr net.Addr, err error) {
 			}
 		}
 
-		// Parse the protocol version
-		var protocol int64
-		protocol, err = strconv.ParseInt(parts[1], 10, 0)
+		// Test the API version
+		version, pluginSet, err := c.checkProtoVersion(parts[1])
 		if err != nil {
-			err = fmt.Errorf("Error parsing protocol version: %s", err)
-			return
+			return addr, err
 		}
 
-		// Test the API version
-		if uint(protocol) != c.config.ProtocolVersion {
-			err = fmt.Errorf("Incompatible API version with plugin. "+
-				"Plugin version: %s, Core version: %d", parts[1], c.config.ProtocolVersion)
-			return
-		}
+		// set the Plugins value to the compatible set, so the version
+		// doesn't need to be passed through to the ClientProtocol
+		// implementation.
+		c.config.Plugins = pluginSet
+		c.negotiatedVersion = version
+		c.logger.Debug("using plugin", "version", version)
 
 		switch parts[2] {
 		case "tcp":
@@ -665,13 +694,40 @@ func (c *Client) Start() (addr net.Addr, err error) {
 		if !found {
 			err = fmt.Errorf("Unsupported plugin protocol %q. Supported: %v",
 				c.protocol, c.config.AllowedProtocols)
-			return
+			return addr, err
 		}
 
 	}
 
 	c.address = addr
 	return
+}
+
+// checkProtoVersion returns the negotiated version and PluginSet.
+// This returns an error if the server returned an incompatible protocol
+// version, or an invalid handshake response.
+func (c *Client) checkProtoVersion(protoVersion string) (int, PluginSet, error) {
+	serverVersion, err := strconv.Atoi(protoVersion)
+	if err != nil {
+		return 0, nil, fmt.Errorf("Error parsing protocol version %q: %s", protoVersion, err)
+	}
+
+	// record these for the error message
+	var clientVersions []int
+
+	// all versions, including the legacy ProtocolVersion have been added to
+	// the versions set
+	for version, plugins := range c.config.VersionedPlugins {
+		clientVersions = append(clientVersions, version)
+
+		if serverVersion != version {
+			continue
+		}
+		return version, plugins, nil
+	}
+
+	return 0, nil, fmt.Errorf("Incompatible API version with plugin. "+
+		"Plugin version: %d, Client versions: %d", serverVersion, clientVersions)
 }
 
 // ReattachConfig returns the information that must be provided to NewClient
@@ -753,13 +809,13 @@ func (c *Client) dialer(_ string, timeout time.Duration) (net.Conn, error) {
 
 func (c *Client) logStderr(r io.Reader) {
 	bufR := bufio.NewReader(r)
+	l := c.logger.Named(filepath.Base(c.config.Cmd.Path))
+
 	for {
 		line, err := bufR.ReadString('\n')
 		if line != "" {
 			c.config.Stderr.Write([]byte(line))
 			line = strings.TrimRightFunc(line, unicode.IsSpace)
-
-			l := c.logger.Named(filepath.Base(c.config.Cmd.Path))
 
 			entry, err := parseJSON(line)
 			// If output is not JSON format, print directly to Debug
@@ -768,7 +824,7 @@ func (c *Client) logStderr(r io.Reader) {
 			} else {
 				out := flattenKVPairs(entry.KVPairs)
 
-				l = l.With("timestamp", entry.Timestamp.Format(hclog.TimeFormat))
+				out = append(out, "timestamp", entry.Timestamp.Format(hclog.TimeFormat))
 				switch hclog.LevelFromString(entry.Level) {
 				case hclog.Trace:
 					l.Trace(entry.Message, out...)
