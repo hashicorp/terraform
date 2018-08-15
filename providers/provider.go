@@ -62,6 +62,9 @@ type Interface interface {
 
 	// ReadDataSource returns the data source's current state.
 	ReadDataSource(ReadDataSourceRequest) ReadDataSourceResponse
+
+	// Close shuts down the plugin process if applicable.
+	Close() error
 }
 
 type GetSchemaResponse struct {
