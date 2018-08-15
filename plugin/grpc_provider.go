@@ -6,6 +6,7 @@ import (
 	"sync"
 
 	plugin "github.com/hashicorp/go-plugin"
+	"github.com/hashicorp/terraform/plugin/convert"
 	"github.com/hashicorp/terraform/plugin/proto"
 	"github.com/hashicorp/terraform/providers"
 	"github.com/hashicorp/terraform/version"
@@ -116,14 +117,14 @@ func (p *GRPCProvider) GetSchema() (resp providers.GetSchemaResponse) {
 		return resp
 	}
 
-	resp.Provider = ProtoToProviderSchema(protoResp.Provider)
+	resp.Provider = convert.ProtoToProviderSchema(protoResp.Provider)
 
 	for name, res := range protoResp.ResourceSchemas {
-		resp.ResourceTypes[name] = ProtoToProviderSchema(res)
+		resp.ResourceTypes[name] = convert.ProtoToProviderSchema(res)
 	}
 
 	for name, data := range protoResp.DataSourceSchemas {
-		resp.DataSources[name] = ProtoToProviderSchema(data)
+		resp.DataSources[name] = convert.ProtoToProviderSchema(data)
 	}
 
 	p.schemas = resp
@@ -148,7 +149,7 @@ func (p *GRPCProvider) ValidateProviderConfig(r providers.ValidateProviderConfig
 		resp.Diagnostics = resp.Diagnostics.Append(err)
 		return resp
 	}
-	resp.Diagnostics = resp.Diagnostics.Append(ProtoToDiagnostics(protoResp.Diagnostics))
+	resp.Diagnostics = resp.Diagnostics.Append(convert.ProtoToDiagnostics(protoResp.Diagnostics))
 	return resp
 }
 
@@ -172,7 +173,7 @@ func (p *GRPCProvider) ValidateResourceTypeConfig(r providers.ValidateResourceTy
 		return resp
 	}
 
-	resp.Diagnostics = resp.Diagnostics.Append(ProtoToDiagnostics(protoResp.Diagnostics))
+	resp.Diagnostics = resp.Diagnostics.Append(convert.ProtoToDiagnostics(protoResp.Diagnostics))
 	return resp
 }
 
@@ -195,7 +196,7 @@ func (p *GRPCProvider) ValidateDataSourceConfig(r providers.ValidateDataSourceCo
 		resp.Diagnostics = resp.Diagnostics.Append(err)
 		return resp
 	}
-	resp.Diagnostics = resp.Diagnostics.Append(ProtoToDiagnostics(protoResp.Diagnostics))
+	resp.Diagnostics = resp.Diagnostics.Append(convert.ProtoToDiagnostics(protoResp.Diagnostics))
 	return resp
 }
 
@@ -225,7 +226,7 @@ func (p *GRPCProvider) UpgradeResourceState(r providers.UpgradeResourceStateRequ
 
 	resp.UpgradedState = state
 
-	resp.Diagnostics = resp.Diagnostics.Append(ProtoToDiagnostics(protoResp.Diagnostics))
+	resp.Diagnostics = resp.Diagnostics.Append(convert.ProtoToDiagnostics(protoResp.Diagnostics))
 	return resp
 }
 
@@ -253,7 +254,7 @@ func (p *GRPCProvider) Configure(r providers.ConfigureRequest) (resp providers.C
 		resp.Diagnostics = resp.Diagnostics.Append(err)
 		return resp
 	}
-	resp.Diagnostics = resp.Diagnostics.Append(ProtoToDiagnostics(protoResp.Diagnostics))
+	resp.Diagnostics = resp.Diagnostics.Append(convert.ProtoToDiagnostics(protoResp.Diagnostics))
 	return resp
 }
 
@@ -289,7 +290,7 @@ func (p *GRPCProvider) ReadResource(r providers.ReadResourceRequest) (resp provi
 		return resp
 	}
 
-	resp.Diagnostics = resp.Diagnostics.Append(ProtoToDiagnostics(protoResp.Diagnostics))
+	resp.Diagnostics = resp.Diagnostics.Append(convert.ProtoToDiagnostics(protoResp.Diagnostics))
 
 	state, err := msgpack.Unmarshal(protoResp.NewState.Msgpack, resSchema.Block.ImpliedType())
 	if err != nil {
@@ -328,7 +329,7 @@ func (p *GRPCProvider) PlanResourceChange(r providers.PlanResourceChangeRequest)
 		return resp
 	}
 
-	resp.Diagnostics = resp.Diagnostics.Append(ProtoToDiagnostics(protoResp.Diagnostics))
+	resp.Diagnostics = resp.Diagnostics.Append(convert.ProtoToDiagnostics(protoResp.Diagnostics))
 
 	state, err := msgpack.Unmarshal(protoResp.PlannedState.Msgpack, resSchema.Block.ImpliedType())
 	if err != nil {
@@ -339,7 +340,7 @@ func (p *GRPCProvider) PlanResourceChange(r providers.PlanResourceChangeRequest)
 	resp.PlannedState = state
 
 	for _, p := range protoResp.RequiresReplace {
-		resp.RequiresReplace = append(resp.RequiresReplace, attributePath(p))
+		resp.RequiresReplace = append(resp.RequiresReplace, convert.AttributePathToPath(p))
 	}
 
 	resp.PlannedPrivate = protoResp.PlannedPrivate
