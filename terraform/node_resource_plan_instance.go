@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/terraform/plans"
+	"github.com/hashicorp/terraform/providers"
 	"github.com/hashicorp/terraform/states"
 
 	"github.com/hashicorp/terraform/addrs"
@@ -52,7 +53,7 @@ func (n *NodePlannableResourceInstance) EvalTree() EvalNode {
 
 func (n *NodePlannableResourceInstance) evalTreeDataResource(addr addrs.AbsResourceInstance, stateId string, stateDeps []string) EvalNode {
 	config := n.Config
-	var provider ResourceProvider
+	var provider providers.Interface
 	var providerSchema *ProviderSchema
 	var change *plans.ResourceInstanceChange
 	var state *states.ResourceInstanceObject
@@ -107,7 +108,7 @@ func (n *NodePlannableResourceInstance) evalTreeDataResource(addr addrs.AbsResou
 
 func (n *NodePlannableResourceInstance) evalTreeManagedResource(addr addrs.AbsResourceInstance, stateId string, stateDeps []string) EvalNode {
 	config := n.Config
-	var provider ResourceProvider
+	var provider providers.Interface
 	var providerSchema *ProviderSchema
 	var change *plans.ResourceInstanceChange
 	var state *states.ResourceInstanceObject

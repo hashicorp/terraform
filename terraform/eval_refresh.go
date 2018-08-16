@@ -5,6 +5,7 @@ import (
 	"log"
 
 	"github.com/hashicorp/terraform/addrs"
+	"github.com/hashicorp/terraform/providers"
 	"github.com/hashicorp/terraform/states"
 )
 
@@ -12,7 +13,7 @@ import (
 // a resource.
 type EvalRefresh struct {
 	Addr     addrs.ResourceInstance
-	Provider *ResourceProvider
+	Provider *providers.Interface
 	State    **states.ResourceInstanceObject
 	Output   **states.ResourceInstanceObject
 }

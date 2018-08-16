@@ -15,6 +15,7 @@ import (
 	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/lang"
 	"github.com/hashicorp/terraform/plans"
+	"github.com/hashicorp/terraform/providers"
 	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/tfdiags"
 )
@@ -63,7 +64,7 @@ type ContextOpts struct {
 
 	Hooks            []Hook
 	Parallelism      int
-	ProviderResolver ResourceProviderResolver
+	ProviderResolver providers.Resolver
 	Provisioners     map[string]ResourceProvisionerFactory
 
 	// If non-nil, will apply as additional constraints on the provider
@@ -165,7 +166,7 @@ func NewContext(opts *ContextOpts) (*Context, tfdiags.Diagnostics) {
 	variables = variables.Override(opts.Variables)
 
 	// Bind available provider plugins to the constraints in config
-	var providers map[string]ResourceProviderFactory
+	var providerFactories map[string]providers.Factory
 	if opts.ProviderResolver != nil {
 		var err error
 		deps := ConfigTreeDependencies(opts.Config, state)
@@ -173,17 +174,17 @@ func NewContext(opts *ContextOpts) (*Context, tfdiags.Diagnostics) {
 		if opts.ProviderSHA256s != nil && !opts.SkipProviderVerify {
 			reqd.LockExecutables(opts.ProviderSHA256s)
 		}
-		providers, err = resourceProviderFactories(opts.ProviderResolver, reqd)
+		providerFactories, err = resourceProviderFactories(opts.ProviderResolver, reqd)
 		if err != nil {
 			diags = diags.Append(err)
 			return nil, diags
 		}
 	} else {
-		providers = make(map[string]ResourceProviderFactory)
+		providerFactories = make(map[string]providers.Factory)
 	}
 
 	components := &basicComponentFactory{
-		providers:    providers,
+		providers:    providerFactories,
 		provisioners: opts.Provisioners,
 	}
 
@@ -757,7 +758,7 @@ func (c *Context) watchStop(walker *ContextGraphWalker) (chan struct{}, <-chan s
 			// Copy the providers so that a misbehaved blocking Stop doesn't
 			// completely hang Terraform.
 			walker.providerLock.Lock()
-			ps := make([]ResourceProvider, 0, len(walker.providerCache))
+			ps := make([]providers.Interface, 0, len(walker.providerCache))
 			for _, p := range walker.providerCache {
 				ps = append(ps, p)
 			}

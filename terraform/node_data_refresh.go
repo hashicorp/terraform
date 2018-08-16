@@ -3,6 +3,7 @@ package terraform
 import (
 	"github.com/hashicorp/terraform/dag"
 	"github.com/hashicorp/terraform/plans"
+	"github.com/hashicorp/terraform/providers"
 	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/tfdiags"
 	"github.com/zclconf/go-cty/cty"
@@ -118,7 +119,7 @@ func (n *NodeRefreshableDataResourceInstance) EvalTree() EvalNode {
 
 	// These variables are the state for the eval sequence below, and are
 	// updated through pointers.
-	var provider ResourceProvider
+	var provider providers.Interface
 	var providerSchema *ProviderSchema
 	var change *plans.ResourceInstanceChange
 	var state *states.ResourceInstanceObject

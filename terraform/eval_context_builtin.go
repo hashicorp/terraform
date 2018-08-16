@@ -7,6 +7,8 @@ import (
 	"sync"
 
 	"github.com/hashicorp/terraform/plans"
+	"github.com/hashicorp/terraform/providers"
+	"github.com/hashicorp/terraform/version"
 
 	"github.com/hashicorp/terraform/states"
 
@@ -53,7 +55,7 @@ type BuiltinEvalContext struct {
 	Components          contextComponentFactory
 	Hooks               []Hook
 	InputValue          UIInput
-	ProviderCache       map[string]ResourceProvider
+	ProviderCache       map[string]providers.Interface
 	ProviderInputConfig map[string]map[string]cty.Value
 	ProviderLock        *sync.Mutex
 	ProvisionerCache    map[string]ResourceProvisioner
@@ -100,7 +102,7 @@ func (ctx *BuiltinEvalContext) Input() UIInput {
 	return ctx.InputValue
 }
 
-func (ctx *BuiltinEvalContext) InitProvider(typeName string, addr addrs.ProviderConfig) (ResourceProvider, error) {
+func (ctx *BuiltinEvalContext) InitProvider(typeName string, addr addrs.ProviderConfig) (providers.Interface, error) {
 	ctx.once.Do(ctx.init)
 	absAddr := addr.Absolute(ctx.Path())
 
@@ -127,7 +129,7 @@ func (ctx *BuiltinEvalContext) InitProvider(typeName string, addr addrs.Provider
 	return p, nil
 }
 
-func (ctx *BuiltinEvalContext) Provider(addr addrs.AbsProviderConfig) ResourceProvider {
+func (ctx *BuiltinEvalContext) Provider(addr addrs.AbsProviderConfig) providers.Interface {
 	ctx.once.Do(ctx.init)
 
 	ctx.ProviderLock.Lock()
@@ -149,13 +151,10 @@ func (ctx *BuiltinEvalContext) CloseProvider(addr addrs.ProviderConfig) error {
 	defer ctx.ProviderLock.Unlock()
 
 	key := addr.Absolute(ctx.Path()).String()
-	var provider interface{}
-	provider = ctx.ProviderCache[key]
+	provider := ctx.ProviderCache[key]
 	if provider != nil {
-		if p, ok := provider.(ResourceProviderCloser); ok {
-			delete(ctx.ProviderCache, key)
-			return p.Close()
-		}
+		delete(ctx.ProviderCache, key)
+		return provider.Close()
 	}
 
 	return nil
@@ -176,13 +175,13 @@ func (ctx *BuiltinEvalContext) ConfigureProvider(addr addrs.ProviderConfig, cfg 
 		return diags
 	}
 
-	// FIXME: The provider API isn't yet updated to take a cty.Value directly.
-	rc := NewResourceConfigShimmed(cfg, providerSchema.Provider)
-	err := p.Configure(rc)
-	if err != nil {
-		diags = diags.Append(err)
+	req := providers.ConfigureRequest{
+		TerraformVersion: version.String(),
+		Config:           cfg,
 	}
-	return diags
+
+	resp := p.Configure(req)
+	return resp.Diagnostics
 }
 
 func (ctx *BuiltinEvalContext) ProviderInput(pc addrs.ProviderConfig) map[string]cty.Value {

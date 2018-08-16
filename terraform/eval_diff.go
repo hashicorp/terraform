@@ -12,6 +12,7 @@ import (
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/plans"
+	"github.com/hashicorp/terraform/providers"
 	"github.com/hashicorp/terraform/states"
 )
 
@@ -81,7 +82,7 @@ func (n *EvalCompareDiff) Eval(ctx EvalContext) (interface{}, error) {
 type EvalDiff struct {
 	Addr           addrs.ResourceInstance
 	Config         *configs.Resource
-	Provider       *ResourceProvider
+	Provider       *providers.Interface
 	ProviderSchema **ProviderSchema
 	State          **states.ResourceInstanceObject
 	PreviousDiff   **plans.ResourceInstanceChange
