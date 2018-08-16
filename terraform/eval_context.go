@@ -6,6 +6,7 @@ import (
 	"github.com/hashicorp/terraform/configs/configschema"
 	"github.com/hashicorp/terraform/lang"
 	"github.com/hashicorp/terraform/plans"
+	"github.com/hashicorp/terraform/providers"
 	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/tfdiags"
 	"github.com/zclconf/go-cty/cty"
@@ -31,7 +32,7 @@ type EvalContext interface {
 	// returns the implementation of the resource provider or an error.
 	//
 	// It is an error to initialize the same provider more than once.
-	InitProvider(typ string, addr addrs.ProviderConfig) (ResourceProvider, error)
+	InitProvider(typ string, addr addrs.ProviderConfig) (providers.Interface, error)
 
 	// Provider gets the provider instance with the given address (already
 	// initialized) or returns nil if the provider isn't initialized.
@@ -40,7 +41,7 @@ type EvalContext interface {
 	// resources in one module are able to use providers from other modules.
 	// InitProvider must've been called on the EvalContext of the module
 	// that owns the given provider before calling this method.
-	Provider(addrs.AbsProviderConfig) ResourceProvider
+	Provider(addrs.AbsProviderConfig) providers.Interface
 
 	// ProviderSchema retrieves the schema for a particular provider, which
 	// must have already been initialized with InitProvider.

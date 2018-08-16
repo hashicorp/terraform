@@ -5,6 +5,7 @@ import (
 	"log"
 
 	"github.com/hashicorp/terraform/plans"
+	"github.com/hashicorp/terraform/providers"
 
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs"
@@ -167,7 +168,7 @@ func (n *NodeDestroyResourceInstance) EvalTree() EvalNode {
 	}
 
 	var changeApply *plans.ResourceInstanceChange
-	var provider ResourceProvider
+	var provider providers.Interface
 	var providerSchema *ProviderSchema
 	var state *states.ResourceInstanceObject
 	var err error

@@ -11,6 +11,7 @@ import (
 	"github.com/hashicorp/terraform/configs/configschema"
 	"github.com/hashicorp/terraform/dag"
 	"github.com/hashicorp/terraform/plans"
+	"github.com/hashicorp/terraform/providers"
 	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/tfdiags"
 )
@@ -38,7 +39,7 @@ type ContextGraphWalker struct {
 	contextLock        sync.Mutex
 	variableValues     map[string]map[string]cty.Value
 	variableValuesLock sync.Mutex
-	providerCache      map[string]ResourceProvider
+	providerCache      map[string]providers.Interface
 	providerSchemas    map[string]*ProviderSchema
 	providerLock       sync.Mutex
 	provisionerCache   map[string]ResourceProvisioner
@@ -139,7 +140,7 @@ func (w *ContextGraphWalker) ExitEvalTree(v dag.Vertex, output interface{}, err 
 
 func (w *ContextGraphWalker) init() {
 	w.contexts = make(map[string]*BuiltinEvalContext)
-	w.providerCache = make(map[string]ResourceProvider)
+	w.providerCache = make(map[string]providers.Interface)
 	w.providerSchemas = make(map[string]*ProviderSchema)
 	w.provisionerCache = make(map[string]ResourceProvisioner)
 	w.provisionerSchemas = make(map[string]*configschema.Block)
