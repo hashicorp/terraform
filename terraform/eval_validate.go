@@ -6,8 +6,9 @@ import (
 
 	"github.com/hashicorp/hcl2/hcl"
 	"github.com/hashicorp/terraform/addrs"
-	"github.com/hashicorp/terraform/configs/configschema"
 	"github.com/hashicorp/terraform/configs"
+	"github.com/hashicorp/terraform/configs/configschema"
+	"github.com/hashicorp/terraform/providers"
 	"github.com/hashicorp/terraform/tfdiags"
 	"github.com/zclconf/go-cty/cty"
 	"github.com/zclconf/go-cty/cty/convert"
@@ -66,7 +67,7 @@ RETURN:
 // a provider configuration.
 type EvalValidateProvider struct {
 	Addr     addrs.ProviderConfig
-	Provider *ResourceProvider
+	Provider *providers.Interface
 	Config   *configs.Provider
 }
 
@@ -76,16 +77,13 @@ func (n *EvalValidateProvider) Eval(ctx EvalContext) (interface{}, error) {
 
 	configBody := buildProviderConfig(ctx, n.Addr, n.Config)
 
-	schema, err := provider.GetSchema(&ProviderSchemaRequest{})
-	if err != nil {
-		diags = diags.Append(err)
+	resp := provider.GetSchema()
+	diags = diags.Append(resp.Diagnostics)
+	if diags.HasErrors() {
 		return nil, diags.NonFatalErr()
 	}
-	if schema == nil {
-		return nil, fmt.Errorf("no schema is available for %s", n.Addr)
-	}
 
-	configSchema := schema.Provider
+	configSchema := resp.Provider.Block
 	if configSchema == nil {
 		// Should never happen in real code, but often comes up in tests where
 		// mock schemas are being used that tend to be incomplete.
@@ -99,23 +97,12 @@ func (n *EvalValidateProvider) Eval(ctx EvalContext) (interface{}, error) {
 		return nil, diags.NonFatalErr()
 	}
 
-	// The provider API expects our legacy ResourceConfig type, so we'll need
-	// to shim here.
-	rc := NewResourceConfigShimmed(configVal, configSchema)
-
-	warns, errs := provider.Validate(rc)
-	if len(warns) == 0 && len(errs) == 0 {
-		return nil, nil
+	req := providers.ValidateProviderConfigRequest{
+		Config: configVal,
 	}
 
-	// FIXME: Once provider.Validate itself returns diagnostics, just
-	// return diags.NonFatalErr() immediately here.
-	for _, warn := range warns {
-		diags = diags.Append(tfdiags.SimpleWarning(warn))
-	}
-	for _, err := range errs {
-		diags = diags.Append(err)
-	}
+	validateResp := provider.ValidateProviderConfig(req)
+	diags = diags.Append(validateResp.Diagnostics)
 
 	return nil, diags.NonFatalErr()
 }
@@ -338,7 +325,7 @@ var connectionBlockSupersetSchema = &configschema.Block{
 // the configuration of a resource.
 type EvalValidateResource struct {
 	Addr           addrs.Resource
-	Provider       *ResourceProvider
+	Provider       *providers.Interface
 	ProviderSchema **ProviderSchema
 	Config         *configs.Resource
 
@@ -393,9 +380,6 @@ func (n *EvalValidateResource) Eval(ctx EvalContext) (interface{}, error) {
 		}
 	}
 
-	var warns []string
-	var errs []error
-
 	// Provider entry point varies depending on resource mode, because
 	// managed resources and data resources are two distinct concepts
 	// in the provider abstraction.
@@ -418,10 +402,13 @@ func (n *EvalValidateResource) Eval(ctx EvalContext) (interface{}, error) {
 			return nil, diags.Err()
 		}
 
-		// The provider API still expects our legacy types, so we must do some
-		// shimming here.
-		legacyCfg := NewResourceConfigShimmed(configVal, schema)
-		warns, errs = provider.ValidateResource(cfg.Type, legacyCfg)
+		req := providers.ValidateResourceTypeConfigRequest{
+			TypeName: cfg.Type,
+			Config:   configVal,
+		}
+
+		resp := provider.ValidateResourceTypeConfig(req)
+		diags = diags.Append(resp.Diagnostics)
 
 		if n.ConfigVal != nil {
 			*n.ConfigVal = configVal
@@ -445,24 +432,13 @@ func (n *EvalValidateResource) Eval(ctx EvalContext) (interface{}, error) {
 			return nil, diags.Err()
 		}
 
-		// The provider API still expects our legacy types, so we must do some
-		// shimming here.
-		legacyCfg := NewResourceConfigShimmed(configVal, schema)
-		warns, errs = provider.ValidateDataSource(cfg.Type, legacyCfg)
-
-		if n.ConfigVal != nil {
-			*n.ConfigVal = configVal
+		req := providers.ValidateDataSourceConfigRequest{
+			TypeName: cfg.Type,
+			Config:   configVal,
 		}
-	}
 
-	// FIXME: Update the provider API to actually return diagnostics here,
-	// and then we can remove all this shimming and use its diagnostics
-	// directly.
-	for _, warn := range warns {
-		diags = diags.Append(tfdiags.SimpleWarning(warn))
-	}
-	for _, err := range errs {
-		diags = diags.Append(err)
+		resp := provider.ValidateDataSourceConfig(req)
+		diags = diags.Append(resp.Diagnostics)
 	}
 
 	if n.IgnoreWarnings {

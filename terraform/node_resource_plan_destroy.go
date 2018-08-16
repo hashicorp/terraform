@@ -6,6 +6,7 @@ import (
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/dag"
 	"github.com/hashicorp/terraform/plans"
+	"github.com/hashicorp/terraform/providers"
 	"github.com/hashicorp/terraform/states"
 )
 
@@ -41,7 +42,7 @@ func (n *NodePlanDestroyableResourceInstance) EvalTree() EvalNode {
 	// Declare a bunch of variables that are used for state during
 	// evaluation. These are written to by address in the EvalNodes we
 	// declare below.
-	var provider ResourceProvider
+	var provider providers.Interface
 	var providerSchema *ProviderSchema
 	var change *plans.ResourceInstanceChange
 	var state *states.ResourceInstanceObject

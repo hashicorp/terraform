@@ -2,6 +2,8 @@ package terraform
 
 import (
 	"fmt"
+
+	"github.com/hashicorp/terraform/providers"
 )
 
 // contextComponentFactory is the interface that Context uses
@@ -12,7 +14,7 @@ type contextComponentFactory interface {
 	// ResourceProvider creates a new ResourceProvider with the given
 	// type. The "uid" is a unique identifier for this provider being
 	// initialized that can be used for internal tracking.
-	ResourceProvider(typ, uid string) (ResourceProvider, error)
+	ResourceProvider(typ, uid string) (providers.Interface, error)
 	ResourceProviders() []string
 
 	// ResourceProvisioner creates a new ResourceProvisioner with the
@@ -24,7 +26,7 @@ type contextComponentFactory interface {
 
 // basicComponentFactory just calls a factory from a map directly.
 type basicComponentFactory struct {
-	providers    map[string]ResourceProviderFactory
+	providers    map[string]providers.Factory
 	provisioners map[string]ResourceProvisionerFactory
 }
 
@@ -46,7 +48,7 @@ func (c *basicComponentFactory) ResourceProvisioners() []string {
 	return result
 }
 
-func (c *basicComponentFactory) ResourceProvider(typ, uid string) (ResourceProvider, error) {
+func (c *basicComponentFactory) ResourceProvider(typ, uid string) (providers.Interface, error) {
 	f, ok := c.providers[typ]
 	if !ok {
 		return nil, fmt.Errorf("unknown provider %q", typ)

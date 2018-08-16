@@ -5,6 +5,7 @@ import (
 
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/plans"
+	"github.com/hashicorp/terraform/providers"
 	"github.com/hashicorp/terraform/states"
 )
 
@@ -80,7 +81,7 @@ func (n *graphNodeDeposedResource) SetProvider(addr addrs.AbsProviderConfig) {
 func (n *graphNodeDeposedResource) EvalTree() EvalNode {
 	addr := n.Addr
 
-	var provider ResourceProvider
+	var provider providers.Interface
 	var providerSchema *ProviderSchema
 	var state *states.ResourceInstanceObject
 

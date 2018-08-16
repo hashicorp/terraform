@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/terraform/addrs"
+	"github.com/hashicorp/terraform/providers"
 	"github.com/hashicorp/terraform/states"
 )
 
@@ -19,7 +20,7 @@ type EvalReadState struct {
 	// Provider is the provider that will subsequently perform actions on
 	// the the state object. This is used to perform any schema upgrades
 	// that might be required to prepare the stored data for use.
-	Provider *ResourceProvider
+	Provider *providers.Interface
 
 	// Output will be written with a pointer to the retrieved object.
 	Output **states.ResourceInstanceObject
@@ -75,7 +76,7 @@ type EvalReadStateDeposed struct {
 	// Provider is the provider that will subsequently perform actions on
 	// the the state object. This is used to perform any schema upgrades
 	// that might be required to prepare the stored data for use.
-	Provider *ResourceProvider
+	Provider *providers.Interface
 
 	// Output will be written with a pointer to the retrieved object.
 	Output **states.ResourceInstanceObject

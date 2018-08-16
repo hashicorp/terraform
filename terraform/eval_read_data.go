@@ -3,6 +3,7 @@ package terraform
 import (
 	"fmt"
 
+	"github.com/hashicorp/terraform/providers"
 	"github.com/hashicorp/terraform/states"
 
 	"github.com/zclconf/go-cty/cty"
@@ -17,7 +18,7 @@ import (
 type EvalReadDataDiff struct {
 	Addr           addrs.ResourceInstance
 	Config         *configs.Resource
-	Provider       *ResourceProvider
+	Provider       *providers.Interface
 	ProviderSchema **ProviderSchema
 
 	Output      **plans.ResourceInstanceChange
@@ -134,7 +135,7 @@ func (n *EvalReadDataDiff) Eval(ctx EvalContext) (interface{}, error) {
 // resource's ReadDataApply method to read data from the data source.
 type EvalReadDataApply struct {
 	Addr     addrs.ResourceInstance
-	Provider *ResourceProvider
+	Provider *providers.Interface
 	Output   **states.ResourceInstanceObject
 	Change   **plans.ResourceInstanceChange
 }
