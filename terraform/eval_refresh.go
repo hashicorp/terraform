@@ -39,16 +39,18 @@ func (n *EvalRefresh) Eval(ctx EvalContext) (interface{}, error) {
 
 	// Refresh!
 	priorVal := state.Value
-	// TODO: Shim our new state type into the old one
-	//provider := *n.Provider
-	//state, err = provider.Refresh(legacyInfo, state)
-	return nil, fmt.Errorf("EvalRefresh is not yet updated for new state type")
-	if err != nil {
-		return nil, fmt.Errorf("%s: %s", n.Addr.Absolute(ctx.Path()), err.Error())
+	req := providers.ReadResourceRequest{
+		TypeName:   n.Addr.Resource.Type,
+		PriorState: priorVal,
 	}
-	if state == nil {
-		log.Printf("[TRACE] EvalRefresh: after refresh, %s has nil state", n.Addr)
+
+	provider := *n.Provider
+	resp := provider.ReadResource(req)
+	if resp.Diagnostics.HasErrors() {
+		return nil, fmt.Errorf("%s: %s", n.Addr.Absolute(ctx.Path()), resp.Diagnostics.Err())
 	}
+
+	state.Value = resp.NewState
 
 	// Call post-refresh hook
 	err = ctx.Hook(func(h Hook) (HookAction, error) {
