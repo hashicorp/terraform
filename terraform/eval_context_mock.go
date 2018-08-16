@@ -11,6 +11,7 @@ import (
 	"github.com/hashicorp/terraform/configs/configschema"
 	"github.com/hashicorp/terraform/lang"
 	"github.com/hashicorp/terraform/plans"
+	"github.com/hashicorp/terraform/providers"
 	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/tfdiags"
 )
@@ -31,12 +32,12 @@ type MockEvalContext struct {
 	InitProviderCalled   bool
 	InitProviderType     string
 	InitProviderAddr     addrs.ProviderConfig
-	InitProviderProvider ResourceProvider
+	InitProviderProvider providers.Interface
 	InitProviderError    error
 
 	ProviderCalled   bool
 	ProviderAddr     addrs.AbsProviderConfig
-	ProviderProvider ResourceProvider
+	ProviderProvider providers.Interface
 
 	ProviderSchemaCalled bool
 	ProviderSchemaAddr   addrs.AbsProviderConfig
@@ -44,7 +45,7 @@ type MockEvalContext struct {
 
 	CloseProviderCalled   bool
 	CloseProviderAddr     addrs.ProviderConfig
-	CloseProviderProvider ResourceProvider
+	CloseProviderProvider providers.Interface
 
 	ProviderInputCalled bool
 	ProviderInputAddr   addrs.ProviderConfig
@@ -158,14 +159,14 @@ func (c *MockEvalContext) Input() UIInput {
 	return c.InputInput
 }
 
-func (c *MockEvalContext) InitProvider(t string, addr addrs.ProviderConfig) (ResourceProvider, error) {
+func (c *MockEvalContext) InitProvider(t string, addr addrs.ProviderConfig) (providers.Interface, error) {
 	c.InitProviderCalled = true
 	c.InitProviderType = t
 	c.InitProviderAddr = addr
 	return c.InitProviderProvider, c.InitProviderError
 }
 
-func (c *MockEvalContext) Provider(addr addrs.AbsProviderConfig) ResourceProvider {
+func (c *MockEvalContext) Provider(addr addrs.AbsProviderConfig) providers.Interface {
 	c.ProviderCalled = true
 	c.ProviderAddr = addr
 	return c.ProviderProvider

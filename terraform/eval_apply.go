@@ -9,6 +9,7 @@ import (
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/plans"
+	"github.com/hashicorp/terraform/providers"
 	"github.com/hashicorp/terraform/states"
 )
 
@@ -18,7 +19,7 @@ type EvalApply struct {
 	Addr      addrs.ResourceInstance
 	State     **states.ResourceInstanceObject
 	Change    **plans.ResourceInstanceChange
-	Provider  *ResourceProvider
+	Provider  *providers.Interface
 	Output    **states.ResourceInstanceObject
 	CreateNew *bool
 	Error     *error

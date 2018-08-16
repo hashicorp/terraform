@@ -5,6 +5,7 @@ import (
 
 	multierror "github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/terraform/plugin/discovery"
+	"github.com/hashicorp/terraform/providers"
 )
 
 // ResourceProvider is an interface that must be implemented by any
@@ -295,7 +296,7 @@ func ProviderHasDataSource(p ResourceProvider, n string) bool {
 // This should be called only with configurations that have passed calls
 // to config.Validate(), which ensures that all of the given version
 // constraints are valid. It will panic if any invalid constraints are present.
-func resourceProviderFactories(resolver ResourceProviderResolver, reqd discovery.PluginRequirements) (map[string]ResourceProviderFactory, error) {
+func resourceProviderFactories(resolver providers.Resolver, reqd discovery.PluginRequirements) (map[string]providers.Factory, error) {
 	ret, errs := resolver.ResolveProviders(reqd)
 	if errs != nil {
 		return nil, &ResourceProviderError{

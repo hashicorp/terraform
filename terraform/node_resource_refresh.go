@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/terraform/plans"
+	"github.com/hashicorp/terraform/providers"
 
 	"github.com/hashicorp/terraform/states"
 
@@ -161,7 +162,7 @@ func (n *NodeRefreshableManagedResourceInstance) evalTreeManagedResource() EvalN
 
 	// Declare a bunch of variables that are used for state during
 	// evaluation. Most of this are written to by-address below.
-	var provider ResourceProvider
+	var provider providers.Interface
 	var providerSchema *ProviderSchema
 	var state *states.ResourceInstanceObject
 
@@ -225,7 +226,7 @@ func (n *NodeRefreshableManagedResourceInstance) evalTreeManagedResourceNoState(
 
 	// Declare a bunch of variables that are used for state during
 	// evaluation. Most of this are written to by-address below.
-	var provider ResourceProvider
+	var provider providers.Interface
 	var providerSchema *ProviderSchema
 	var change *plans.ResourceInstanceChange
 	var state *states.ResourceInstanceObject

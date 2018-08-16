@@ -8,6 +8,7 @@ import (
 
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs"
+	"github.com/hashicorp/terraform/providers"
 	"github.com/hashicorp/terraform/tfdiags"
 )
 
@@ -49,7 +50,7 @@ func buildProviderConfig(ctx EvalContext, addr addrs.ProviderConfig, config *con
 // a provider that is already initialized and retrieved.
 type EvalConfigProvider struct {
 	Addr     addrs.ProviderConfig
-	Provider *ResourceProvider
+	Provider *providers.Interface
 	Config   *configs.Provider
 }
 
@@ -64,16 +65,13 @@ func (n *EvalConfigProvider) Eval(ctx EvalContext) (interface{}, error) {
 
 	configBody := buildProviderConfig(ctx, n.Addr, config)
 
-	schema, err := provider.GetSchema(&ProviderSchemaRequest{})
-	if err != nil {
-		diags = diags.Append(err)
+	resp := provider.GetSchema()
+	diags = diags.Append(resp.Diagnostics)
+	if diags.HasErrors() {
 		return nil, diags.NonFatalErr()
 	}
-	if schema == nil {
-		return nil, fmt.Errorf("schema not available for %s", n.Addr)
-	}
 
-	configSchema := schema.Provider
+	configSchema := resp.Provider.Block
 	configVal, configBody, evalDiags := ctx.EvaluateBlock(configBody, configSchema, nil, EvalDataForNoInstanceKey)
 	diags = diags.Append(evalDiags)
 	if evalDiags.HasErrors() {
@@ -119,7 +117,7 @@ func (n *EvalCloseProvider) Eval(ctx EvalContext) (interface{}, error) {
 // interface GraphNodeProviderConsumer.
 type EvalGetProvider struct {
 	Addr   addrs.AbsProviderConfig
-	Output *ResourceProvider
+	Output *providers.Interface
 
 	// If non-nil, Schema will be updated after eval to refer to the
 	// schema of the provider.

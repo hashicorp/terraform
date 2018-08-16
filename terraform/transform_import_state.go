@@ -3,6 +3,7 @@ package terraform
 import (
 	"fmt"
 
+	"github.com/hashicorp/terraform/providers"
 	"github.com/hashicorp/terraform/states"
 
 	"github.com/hashicorp/terraform/addrs"
@@ -69,7 +70,7 @@ func (n *graphNodeImportState) Path() addrs.ModuleInstance {
 
 // GraphNodeEvalable impl.
 func (n *graphNodeImportState) EvalTree() EvalNode {
-	var provider ResourceProvider
+	var provider providers.Interface
 
 	// Reset our states
 	n.states = nil
@@ -200,7 +201,7 @@ func (n *graphNodeImportStateSub) EvalTree() EvalNode {
 
 	state := n.State.AsInstanceObject()
 
-	var provider ResourceProvider
+	var provider providers.Interface
 	var providerSchema *ProviderSchema
 	return &EvalSequence{
 		Nodes: []EvalNode{
