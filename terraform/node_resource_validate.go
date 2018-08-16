@@ -2,6 +2,7 @@ package terraform
 
 import (
 	"github.com/hashicorp/terraform/configs/configschema"
+	"github.com/hashicorp/terraform/providers"
 	"github.com/zclconf/go-cty/cty"
 )
 
@@ -28,7 +29,7 @@ func (n *NodeValidatableResource) EvalTree() EvalNode {
 	// Declare the variables will be used are used to pass values along
 	// the evaluation sequence below. These are written to via pointers
 	// passed to the EvalNodes.
-	var provider ResourceProvider
+	var provider providers.Interface
 	var providerSchema *ProviderSchema
 	var configVal cty.Value
 

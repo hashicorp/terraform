@@ -2,6 +2,7 @@ package terraform
 
 import (
 	"github.com/hashicorp/terraform/plans"
+	"github.com/hashicorp/terraform/providers"
 	"github.com/hashicorp/terraform/states"
 )
 
@@ -38,7 +39,7 @@ func (n *NodePlannableResourceInstanceOrphan) EvalTree() EvalNode {
 	// evaluation. Most of this are written to by-address below.
 	var change *plans.ResourceInstanceChange
 	var state *states.ResourceInstanceObject
-	var provider ResourceProvider
+	var provider providers.Interface
 	var providerSchema *ProviderSchema
 
 	return &EvalSequence{

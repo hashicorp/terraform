@@ -3,6 +3,7 @@ package terraform
 import (
 	"fmt"
 
+	"github.com/hashicorp/terraform/providers"
 	"github.com/hashicorp/terraform/states"
 
 	"github.com/hashicorp/terraform/plans"
@@ -120,7 +121,7 @@ func (n *NodeApplyableResourceInstance) EvalTree() EvalNode {
 }
 
 func (n *NodeApplyableResourceInstance) evalTreeDataResource(addr addrs.AbsResourceInstance, stateId string, stateDeps []string) EvalNode {
-	var provider ResourceProvider
+	var provider providers.Interface
 	var providerSchema *ProviderSchema
 	var change *plans.ResourceInstanceChange
 	var state *states.ResourceInstanceObject
@@ -192,7 +193,7 @@ func (n *NodeApplyableResourceInstance) evalTreeDataResource(addr addrs.AbsResou
 func (n *NodeApplyableResourceInstance) evalTreeManagedResource(addr addrs.AbsResourceInstance, stateId string, stateDeps []string) EvalNode {
 	// Declare a bunch of variables that are used for state during
 	// evaluation. Most of this are written to by-address below.
-	var provider ResourceProvider
+	var provider providers.Interface
 	var providerSchema *ProviderSchema
 	var diff, diffApply *plans.ResourceInstanceChange
 	var state *states.ResourceInstanceObject

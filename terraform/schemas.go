@@ -127,42 +127,35 @@ func loadProviderSchemas(schemas map[string]*ProviderSchema, config *configs.Con
 			return
 		}
 		defer func() {
-			if closer, ok := provider.(ResourceProviderCloser); ok {
-				closer.Close()
-			}
+			provider.Close()
 		}()
 
-		// FIXME: The provider interface is currently awkward in that it
-		// requires us to tell the provider which resources types and data
-		// sources we need. In future this will change to just return
-		// everything available, but for now we'll fake that by fetching all
-		// of the available names and then requesting them.
-		resourceTypes := provider.Resources()
-		dataSources := provider.DataSources()
-		resourceTypeNames := make([]string, len(resourceTypes))
-		for i, o := range resourceTypes {
-			resourceTypeNames[i] = o.Name
-		}
-		dataSourceNames := make([]string, len(dataSources))
-		for i, o := range dataSources {
-			dataSourceNames[i] = o.Name
-		}
-
-		schema, err := provider.GetSchema(&ProviderSchemaRequest{
-			ResourceTypes: resourceTypeNames,
-			DataSources:   dataSourceNames,
-		})
-		if err != nil {
+		resp := provider.GetSchema()
+		if resp.Diagnostics.HasErrors() {
 			// We'll put a stub in the map so we won't re-attempt this on
 			// future calls.
 			schemas[typeName] = &ProviderSchema{}
 			diags = diags.Append(
-				fmt.Errorf("Failed to retrieve schema from provider %q: %s", typeName, err),
+				fmt.Errorf("Failed to retrieve schema from provider %q: %s", typeName, resp.Diagnostics.Err()),
 			)
 			return
 		}
 
-		schemas[typeName] = schema
+		s := &ProviderSchema{
+			Provider:      resp.Provider.Block,
+			ResourceTypes: make(map[string]*configschema.Block),
+			DataSources:   make(map[string]*configschema.Block),
+		}
+
+		for t, r := range resp.ResourceTypes {
+			s.ResourceTypes[t] = r.Block
+		}
+
+		for t, d := range resp.DataSources {
+			s.DataSources[t] = d.Block
+		}
+
+		schemas[typeName] = s
 	}
 
 	if config != nil {
