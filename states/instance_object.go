@@ -23,7 +23,7 @@ type ResourceInstanceObject struct {
 	// last created or updated. Terraform Core does not use this value in
 	// any way and it is not exposed anywhere in the user interface, so
 	// a provider can use it for retaining any necessary private state.
-	Private cty.Value
+	Private []byte
 
 	// Status represents the "readiness" of the object as of the last time
 	// it was updated.
