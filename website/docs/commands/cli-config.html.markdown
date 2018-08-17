@@ -60,15 +60,16 @@ The following settings can be set in the CLI configuration file:
   [plugin caching](/docs/configuration/providers.html#provider-plugin-cache)
   and specifies, as a string, the location of the plugin cache directory.
 
-- `credentials` — provides credentials for use with Terraform Enterprise's
-    [private module registry.](/docs/enterprise/registry/index.html) This is
-    only necessary when running Terraform on the command line; runs managed by
-    Terraform Enterprise can access private modules automatically.
+- `credentials` — provides credentials for use with Terraform Enterprise.
+    Terraform uses this when performing remote operations or state access with
+    the [remote backend](../backends/types/remote.html) and when accessing
+    Terraform Enterprise's [private module registry.](/docs/enterprise/registry/index.html)
 
     This setting is a repeatable block, where the block label is a hostname
     (either `app.terraform.io` or the hostname of your private install) and
-    the block body contains a `token` attribute. Whenever Terraform requests
-    module data from that hostname, it will authenticate with that token.
+    the block body contains a `token` attribute. Whenever Terraform accesses
+    state, modules, or remote operations from that hostname, it will
+    authenticate with that API token.
 
     ``` hcl
     credentials "app.terraform.io" {
@@ -76,11 +77,16 @@ The following settings can be set in the CLI configuration file:
     }
     ```
 
-    ~> **Note:** The credentials hostname must match the hostname in your module
-    sources. If your Terraform Enterprise instance is available at multiple
-    hostnames, use one of them consistently. (The SaaS version of Terraform
-    Enterprise responds to API calls at both its newer hostname,
-    app.terraform.io, and its historical hostname, atlas.hashicorp.com.)
+    ~> **Important:** The token provided here must be a
+    [user API token](/docs/enterprise/users-teams-organizations/users.html#api-tokens),
+    and not a team or organization token.
+
+    -> **Note:** The credentials hostname must match the hostname in your module
+    sources and/or backend configuration. If your Terraform Enterprise instance
+    is available at multiple hostnames, use one of them consistently. (The SaaS
+    version of Terraform Enterprise responds to API calls at both its newer
+    hostname, app.terraform.io, and its historical hostname,
+    atlas.hashicorp.com.)
 
 ## Deprecated Settings
 
