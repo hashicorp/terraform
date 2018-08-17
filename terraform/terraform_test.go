@@ -20,6 +20,8 @@ import (
 	"github.com/hashicorp/terraform/helper/experiment"
 	"github.com/hashicorp/terraform/helper/logging"
 	"github.com/hashicorp/terraform/plans"
+	"github.com/hashicorp/terraform/providers"
+	"github.com/hashicorp/terraform/provisioners"
 	"github.com/hashicorp/terraform/states"
 )
 
@@ -165,14 +167,14 @@ func testModuleInline(t *testing.T, sources map[string]string) *configs.Config {
 	return config
 }
 
-func testProviderFuncFixed(rp ResourceProvider) ResourceProviderFactory {
-	return func() (ResourceProvider, error) {
+func testProviderFuncFixed(rp providers.Interface) providers.Factory {
+	return func() (providers.Interface, error) {
 		return rp, nil
 	}
 }
 
-func testProvisionerFuncFixed(rp ResourceProvisioner) ResourceProvisionerFactory {
-	return func() (ResourceProvisioner, error) {
+func testProvisionerFuncFixed(rp provisioners.Interface) ProvisionerFactory {
+	return func() (provisioners.Interface, error) {
 		return rp, nil
 	}
 }

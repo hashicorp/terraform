@@ -2,13 +2,15 @@ package terraform
 
 import (
 	"testing"
+
+	"github.com/hashicorp/terraform/provisioners"
 )
 
 func TestMockResourceProvisioner_impl(t *testing.T) {
 	var _ ResourceProvisioner = new(MockResourceProvisioner)
 }
 
-// simpleMockProvisioner returns a MockResourceProvisioner that is pre-configured
+// simpleMockProvisioner returns a MockProvisioner that is pre-configured
 // with schema for its own config, with the same content as returned by
 // function simpleTestSchema.
 //
@@ -22,8 +24,10 @@ func TestMockResourceProvisioner_impl(t *testing.T) {
 // the default schema stored in the field GetSchemaReturn. Each new call to
 // simpleTestProvisioner produces entirely new instances of all of the nested
 // objects so that callers can mutate without affecting mock objects.
-func simpleMockProvisioner() *MockResourceProvisioner {
-	return &MockResourceProvisioner{
-		GetConfigSchemaReturnSchema: simpleTestSchema(),
+func simpleMockProvisioner() *MockProvisioner {
+	return &MockProvisioner{
+		GetSchemaResponse: provisioners.GetSchemaResponse{
+			Provisioner: simpleTestSchema(),
+		},
 	}
 }

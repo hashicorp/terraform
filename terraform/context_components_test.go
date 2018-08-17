@@ -4,6 +4,8 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/configs/configschema"
+	"github.com/hashicorp/terraform/providers"
+	"github.com/hashicorp/terraform/provisioners"
 )
 
 // simpleMockComponentFactory returns a component factory pre-configured with
@@ -24,13 +26,13 @@ func simpleMockComponentFactory() *basicComponentFactory {
 	provider := simpleMockProvider()
 	provisioner := simpleMockProvisioner()
 	return &basicComponentFactory{
-		providers: map[string]ResourceProviderFactory{
-			"test": func() (ResourceProvider, error) {
+		providers: map[string]providers.Factory{
+			"test": func() (providers.Interface, error) {
 				return provider, nil
 			},
 		},
-		provisioners: map[string]ResourceProvisionerFactory{
-			"test": func() (ResourceProvisioner, error) {
+		provisioners: map[string]ProvisionerFactory{
+			"test": func() (provisioners.Interface, error) {
 				return provisioner, nil
 			},
 		},
