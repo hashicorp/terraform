@@ -7,8 +7,9 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/addrs"
-	"github.com/hashicorp/terraform/configs/configschema"
 	"github.com/hashicorp/terraform/configs"
+	"github.com/hashicorp/terraform/configs/configschema"
+	"github.com/hashicorp/terraform/providers"
 )
 
 func TestBuildProviderConfig(t *testing.T) {
@@ -65,7 +66,7 @@ func TestEvalConfigProvider(t *testing.T) {
 		}),
 	}
 	provider := mockProviderWithConfigSchema(simpleTestSchema())
-	rp := ResourceProvider(provider)
+	rp := providers.Interface(provider)
 	n := &EvalConfigProvider{
 		Addr:     addrs.ProviderConfig{Type: "foo"},
 		Config:   config,
@@ -99,7 +100,7 @@ func TestEvalInitProvider(t *testing.T) {
 	n := &EvalInitProvider{
 		Addr: addrs.ProviderConfig{Type: "foo"},
 	}
-	provider := &MockResourceProvider{}
+	provider := &MockProvider{}
 	ctx := &MockEvalContext{InitProviderProvider: provider}
 	if _, err := n.Eval(ctx); err != nil {
 		t.Fatalf("err: %s", err)
@@ -117,7 +118,7 @@ func TestEvalCloseProvider(t *testing.T) {
 	n := &EvalCloseProvider{
 		Addr: addrs.ProviderConfig{Type: "foo"},
 	}
-	provider := &MockResourceProvider{}
+	provider := &MockProvider{}
 	ctx := &MockEvalContext{CloseProviderProvider: provider}
 	if _, err := n.Eval(ctx); err != nil {
 		t.Fatalf("err: %s", err)
@@ -136,12 +137,12 @@ func TestEvalGetProvider_impl(t *testing.T) {
 }
 
 func TestEvalGetProvider(t *testing.T) {
-	var actual ResourceProvider
+	var actual providers.Interface
 	n := &EvalGetProvider{
 		Addr:   addrs.RootModuleInstance.ProviderConfigDefault("foo"),
 		Output: &actual,
 	}
-	provider := &MockResourceProvider{}
+	provider := &MockProvider{}
 	ctx := &MockEvalContext{ProviderProvider: provider}
 	if _, err := n.Eval(ctx); err != nil {
 		t.Fatalf("err: %s", err)

@@ -2,6 +2,8 @@ package terraform
 
 import (
 	"testing"
+
+	"github.com/hashicorp/terraform/provisioners"
 )
 
 func TestEvalInitProvisioner_impl(t *testing.T) {
@@ -10,7 +12,7 @@ func TestEvalInitProvisioner_impl(t *testing.T) {
 
 func TestEvalInitProvisioner(t *testing.T) {
 	n := &EvalInitProvisioner{Name: "foo"}
-	provisioner := &MockResourceProvisioner{}
+	provisioner := &MockProvisioner{}
 	ctx := &MockEvalContext{InitProvisionerProvisioner: provisioner}
 	if _, err := n.Eval(ctx); err != nil {
 		t.Fatalf("err: %s", err)
@@ -26,7 +28,7 @@ func TestEvalInitProvisioner(t *testing.T) {
 
 func TestEvalCloseProvisioner(t *testing.T) {
 	n := &EvalCloseProvisioner{Name: "foo"}
-	provisioner := &MockResourceProvisioner{}
+	provisioner := &MockProvisioner{}
 	ctx := &MockEvalContext{CloseProvisionerProvisioner: provisioner}
 	if _, err := n.Eval(ctx); err != nil {
 		t.Fatalf("err: %s", err)
@@ -45,9 +47,9 @@ func TestEvalGetProvisioner_impl(t *testing.T) {
 }
 
 func TestEvalGetProvisioner(t *testing.T) {
-	var actual ResourceProvisioner
+	var actual provisioners.Interface
 	n := &EvalGetProvisioner{Name: "foo", Output: &actual}
-	provisioner := &MockResourceProvisioner{}
+	provisioner := &MockProvisioner{}
 	ctx := &MockEvalContext{ProvisionerProvisioner: provisioner}
 	if _, err := n.Eval(ctx); err != nil {
 		t.Fatalf("err: %s", err)
