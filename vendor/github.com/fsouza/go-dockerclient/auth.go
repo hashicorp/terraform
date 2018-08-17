@@ -46,21 +46,45 @@ type dockerConfig struct {
 	Email string `json:"email"`
 }
 
-// NewAuthConfigurationsFromDockerCfg returns AuthConfigurations from the
-// ~/.dockercfg file.
-func NewAuthConfigurationsFromDockerCfg() (*AuthConfigurations, error) {
-	var r io.Reader
-	var err error
-	p := path.Join(os.Getenv("HOME"), ".docker", "config.json")
-	r, err = os.Open(p)
+// NewAuthConfigurationsFromFile returns AuthConfigurations from a path containing JSON
+// in the same format as the .dockercfg file.
+func NewAuthConfigurationsFromFile(path string) (*AuthConfigurations, error) {
+	r, err := os.Open(path)
 	if err != nil {
-		p := path.Join(os.Getenv("HOME"), ".dockercfg")
-		r, err = os.Open(p)
-		if err != nil {
-			return nil, err
-		}
+		return nil, err
 	}
 	return NewAuthConfigurations(r)
+}
+
+func cfgPaths(dockerConfigEnv string, homeEnv string) []string {
+	var paths []string
+	if dockerConfigEnv != "" {
+		paths = append(paths, path.Join(dockerConfigEnv, "config.json"))
+	}
+	if homeEnv != "" {
+		paths = append(paths, path.Join(homeEnv, ".docker", "config.json"))
+		paths = append(paths, path.Join(homeEnv, ".dockercfg"))
+	}
+	return paths
+}
+
+// NewAuthConfigurationsFromDockerCfg returns AuthConfigurations from
+// system config files. The following files are checked in the order listed:
+// - $DOCKER_CONFIG/config.json if DOCKER_CONFIG set in the environment,
+// - $HOME/.docker/config.json
+// - $HOME/.dockercfg
+func NewAuthConfigurationsFromDockerCfg() (*AuthConfigurations, error) {
+	err := fmt.Errorf("No docker configuration found")
+	var auths *AuthConfigurations
+
+	pathsToTry := cfgPaths(os.Getenv("DOCKER_CONFIG"), os.Getenv("HOME"))
+	for _, path := range pathsToTry {
+		auths, err = NewAuthConfigurationsFromFile(path)
+		if err == nil {
+			return auths, nil
+		}
+	}
+	return auths, err
 }
 
 // NewAuthConfigurations returns AuthConfigurations from a JSON encoded string in the
@@ -105,6 +129,9 @@ func authConfigs(confs map[string]dockerConfig) (*AuthConfigurations, error) {
 		Configs: make(map[string]AuthConfiguration),
 	}
 	for reg, conf := range confs {
+		if conf.Auth == "" {
+			continue
+		}
 		data, err := base64.StdEncoding.DecodeString(conf.Auth)
 		if err != nil {
 			return nil, err
@@ -125,8 +152,8 @@ func authConfigs(confs map[string]dockerConfig) (*AuthConfigurations, error) {
 
 // AuthStatus returns the authentication status for Docker API versions >= 1.23.
 type AuthStatus struct {
-	Status        string `json:"Status,omitempty" yaml:"Status,omitempty"`
-	IdentityToken string `json:"IdentityToken,omitempty" yaml:"IdentityToken,omitempty"`
+	Status        string `json:"Status,omitempty" yaml:"Status,omitempty" toml:"Status,omitempty"`
+	IdentityToken string `json:"IdentityToken,omitempty" yaml:"IdentityToken,omitempty" toml:"IdentityToken,omitempty"`
 }
 
 // AuthCheck validates the given credentials. It returns nil if successful.
@@ -137,7 +164,7 @@ type AuthStatus struct {
 func (c *Client) AuthCheck(conf *AuthConfiguration) (AuthStatus, error) {
 	var authStatus AuthStatus
 	if conf == nil {
-		return authStatus, fmt.Errorf("conf is nil")
+		return authStatus, errors.New("conf is nil")
 	}
 	resp, err := c.do("POST", "/auth", doOptions{data: conf})
 	if err != nil {

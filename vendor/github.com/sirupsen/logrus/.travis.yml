@@ -1,0 +1,13 @@
+language: go
+go:
+  - 1.9.x
+  - 1.10.x
+env:
+  - GOMAXPROCS=4 GORACE=halt_on_error=1
+install:
+  - go get github.com/stretchr/testify/assert
+  - go get gopkg.in/gemnasium/logrus-airbrake-hook.v2
+  - go get golang.org/x/sys/unix
+  - go get golang.org/x/sys/windows
+script:
+  - go test -race -v ./...

@@ -1,0 +1,30 @@
+language: go
+sudo: required
+go:
+  - 1.9.x
+  - 1.10.x
+os:
+  - linux
+  - osx
+env:
+  matrix:
+    - GOARCH=amd64 DOCKER_PKG_VERSION=18.03.0~ce-0~ubuntu
+    - GOARCH=386   DOCKER_PKG_VERSION=18.03.0~ce-0~ubuntu
+    - GOARCH=amd64 DOCKER_PKG_VERSION=18.02.0~ce-0~ubuntu
+    - GOARCH=386   DOCKER_PKG_VERSION=18.02.0~ce-0~ubuntu
+  global:
+    - DOCKER_HOST=tcp://127.0.0.1:2375
+install:
+  - make testdeps
+  - travis_retry travis-scripts/install-docker.bash
+script:
+  - travis-scripts/run-tests.bash
+services:
+  - docker
+matrix:
+  fast_finish: true
+  exclude:
+    - os: osx
+      env: GOARCH=amd64 DOCKER_PKG_VERSION=18.02.0~ce-0~ubuntu
+    - os: osx
+      env: GOARCH=386   DOCKER_PKG_VERSION=18.02.0~ce-0~ubuntu

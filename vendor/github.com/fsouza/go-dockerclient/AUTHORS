@@ -1,136 +1,194 @@
 # This is the official list of go-dockerclient authors for copyright purposes.
 
-Abhishek Chanda <abhishek.becs@gmail.com>
-Adam Bell-Hanssen <adamb@aller.no>
-Adrien Kohlbecker <adrien.kohlbecker@gmail.com>
-Aldrin Leal <aldrin@leal.eng.br>
-Andreas Jaekle <andreas@jaekle.net>
-Andrews Medina <andrewsmedina@gmail.com>
-Andrey Sibiryov <kobolog@uber.com>
-Andy Goldstein <andy.goldstein@redhat.com>
-Antonio Murdaca <runcom@redhat.com>
-Artem Sidorenko <artem@2realities.com>
-Ben Marini <ben@remind101.com>
-Ben McCann <benmccann.com>
-Ben Parees <bparees@redhat.com>
-Benno van den Berg <bennovandenberg@gmail.com>
-Bradley Cicenas <bradley.cicenas@gmail.com>
-Brendan Fosberry <brendan@codeship.com>
-Brian Lalor <blalor@bravo5.org>
-Brian P. Hamachek <brian@brianhama.com>
-Brian Palmer <brianp@instructure.com>
-Bryan Boreham <bjboreham@gmail.com>
-Burke Libbey <burke@libbey.me>
-Carlos Diaz-Padron <cpadron@mozilla.com>
-Cesar Wong <cewong@redhat.com>
-Cezar Sa Espinola <cezar.sa@corp.globo.com>
-Cheah Chu Yeow <chuyeow@gmail.com>
-cheneydeng <cheneydeng@qq.com>
-Chris Bednarski <banzaimonkey@gmail.com>
-CMGS <ilskdw@gmail.com>
-Colin Hebert <hebert.colin@gmail.com>
-Craig Jellick <craig@rancher.com>
-Dan Williams <dcbw@redhat.com>
-Daniel, Dao Quang Minh <dqminh89@gmail.com>
-Daniel Garcia <daniel@danielgarcia.info>
-Daniel Hiltgen <daniel.hiltgen@docker.com>
-Darren Shepherd <darren@rancher.com>
-Dave Choi <dave.choi@daumkakao.com>
-David Huie <dahuie@gmail.com>
-Dawn Chen <dawnchen@google.com>
-Dinesh Subhraveti <dinesh@gemini-systems.net>
-Drew Wells <drew.wells00@gmail.com>
-Ed <edrocksit@gmail.com>
-Elias G. Schneevoigt <eliasgs@gmail.com>
-Erez Horev <erez.horev@elastifile.com>
-Eric Anderson <anderson@copperegg.com>
-Ewout Prangsma <ewout@prangsma.net>
-Fabio Rehm <fgrehm@gmail.com>
-Fatih Arslan <ftharsln@gmail.com>
-Flavia Missi <flaviamissi@gmail.com>
-Francisco Souza <f@souza.cc>
-Frank Groeneveld <frank@frankgroeneveld.nl>
-George Moura <gwmoura@gmail.com>
-Grégoire Delattre <gregoire.delattre@gmail.com>
-Guillermo Álvarez Fernández <guillermo@cientifico.net>
-Harry Zhang <harryzhang@zju.edu.cn>
-He Simei <hesimei@zju.edu.cn>
-Ivan Mikushin <i.mikushin@gmail.com>
-James Bardin <jbardin@litl.com>
-James Nugent <james@jen20.com>
-Jari Kolehmainen <jari.kolehmainen@digia.com>
-Jason Wilder <jwilder@litl.com>
-Jawher Moussa <jawher.moussa@gmail.com>
-Jean-Baptiste Dalido <jeanbaptiste@appgratis.com>
-Jeff Mitchell <jeffrey.mitchell@gmail.com>
-Jeffrey Hulten <jhulten@gmail.com>
-Jen Andre <jandre@gmail.com>
-Jérôme Laurens <jeromelaurens@gmail.com>
-Johan Euphrosine <proppy@google.com>
-John Hughes <hughesj@visa.com>
-Kamil Domanski <kamil@domanski.co>
-Karan Misra <kidoman@gmail.com>
-Ken Herner <chosenken@gmail.com>
-Kim, Hirokuni <hirokuni.kim@kvh.co.jp>
-Kyle Allan <kallan357@gmail.com>
-Liron Levin <levinlir@gmail.com>
-Lior Yankovich <lior@twistlock.com>
-Liu Peng <vslene@gmail.com>
-Lorenz Leutgeb <lorenz.leutgeb@gmail.com>
-Lucas Clemente <lucas@clemente.io>
-Lucas Weiblen <lucasweiblen@gmail.com>
-Lyon Hill <lyondhill@gmail.com>
-Mantas Matelis <mmatelis@coursera.org>
-Martin Sweeney <martin@sweeney.io>
-Máximo Cuadros Ortiz <mcuadros@gmail.com>
-Michael Schmatz <michaelschmatz@gmail.com>
-Michal Fojtik <mfojtik@redhat.com>
-Mike Dillon <mike.dillon@synctree.com>
-Mrunal Patel <mrunalp@gmail.com>
-Nate Jones <nate@endot.org>
-Nguyen Sy Thanh Son <sonnst@sigma-solutions.eu>
-Nicholas Van Wiggeren <nvanwiggeren@digitalocean.com>
-Nick Ethier <ncethier@gmail.com>
-Omeid Matten <public@omeid.me>
-Orivej Desh <orivej@gmx.fr>
-Paul Bellamy <paul.a.bellamy@gmail.com>
-Paul Morie <pmorie@gmail.com>
-Paul Weil <pweil@redhat.com>
-Peter Edge <peter.edge@gmail.com>
-Peter Jihoon Kim <raingrove@gmail.com>
-Phil Lu <lu@stackengine.com>
-Philippe Lafoucrière <philippe.lafoucriere@tech-angels.com>
-Rafe Colton <rafael.colton@gmail.com>
-Raphaël Pinson <raphael.pinson@camptocamp.com>
-Rob Miller <rob@kalistra.com>
-Robbert Klarenbeek <robbertkl@renbeek.nl>
-Robert Williamson <williamson.robert@gmail.com>
-Roman Khlystik <roman.khlystik@gmail.com>
-Salvador Gironès <salvadorgirones@gmail.com>
-Sam Rijs <srijs@airpost.net>
-Sami Wagiaalla <swagiaal@redhat.com>
-Samuel Archambault <sarchambault@lapresse.ca>
-Samuel Karp <skarp@amazon.com>
-Seth Jennings <sjenning@redhat.com>
-Silas Sewell <silas@sewell.org>
-Simon Eskildsen <sirup@sirupsen.com>
-Simon Menke <simon.menke@gmail.com>
-Skolos <skolos@gopherlab.com>
-Soulou <leo@unbekandt.eu>
-Sridhar Ratnakumar <sridharr@activestate.com>
-Summer Mousa <smousa@zenoss.com>
-Sunjin Lee <styner32@gmail.com>
-Tarsis Azevedo <tarsis@corp.globo.com>
-Tim Schindler <tim@catalyst-zero.com>
-Timothy St. Clair <tstclair@redhat.com>
-Tobi Knaup <tobi@mesosphere.io>
-Tom Wilkie <tom.wilkie@gmail.com>
-Tonic <tonicbupt@gmail.com>
-ttyh061 <ttyh061@gmail.com>
-Victor Marmol <vmarmol@google.com>
-Vincenzo Prignano <vincenzo.prignano@gmail.com>
-Vlad Alexandru Ionescu <vlad.alexandru.ionescu@gmail.com>
-Wiliam Souza <wiliamsouza83@gmail.com>
-Ye Yin <eyniy@qq.com>
-Yu, Zou <zouyu7@huawei.com>
-Yuriy Bogdanov <chinsay@gmail.com>
+Abhishek Chanda
+Adam Bell-Hanssen
+Adnan Khan
+Adrien Kohlbecker
+Aithal
+Aldrin Leal
+Alex Dadgar
+Alfonso Acosta
+André Carvalho
+Andreas Jaekle
+Andrew Snodgrass
+Andrews Medina
+Andrey Sibiryov
+Andy Goldstein
+Anirudh Aithal
+Antonio Murdaca
+Artem Sidorenko
+Arthur Rodrigues
+Ben Marini
+Ben McCann
+Ben Parees
+Benno van den Berg
+Bradley Cicenas
+Brendan Fosberry
+Brian Lalor
+Brian P. Hamachek
+Brian Palmer
+Bryan Boreham
+Burke Libbey
+Carlos Diaz-Padron
+Carson A
+Cássio Botaro
+Cesar Wong
+Cezar Sa Espinola
+Changping Chen
+Cheah Chu Yeow
+cheneydeng
+Chris Bednarski
+Chris Stavropoulos
+Christian Stewart
+Christophe Mourette
+Clayton Coleman
+Clint Armstrong
+CMGS
+Colin Hebert
+Craig Jellick
+Damien Lespiau
+Damon Wang
+Dan Williams
+Daniel, Dao Quang Minh
+Daniel Garcia
+Daniel Hiltgen
+Daniel Nephin
+Daniel Tsui
+Darren Shepherd
+Dave Choi
+David Huie
+Dawn Chen
+Denis Makogon
+Derek Petersen
+Dinesh Subhraveti
+Drew Wells
+Ed
+Elias G. Schneevoigt
+Erez Horev
+Eric Anderson
+Eric J. Holmes
+Eric Mountain
+Erwin van Eyk
+Ethan Mosbaugh
+Ewout Prangsma
+Fabio Rehm
+Fatih Arslan
+Faye Salwin
+Felipe Oliveira
+Flavia Missi
+Florent Aide
+Francisco Souza
+Frank Groeneveld
+George Moura
+Grégoire Delattre
+Guilherme Rezende
+Guillermo Álvarez Fernández
+Harry Zhang
+He Simei
+Isaac Schnitzer
+Ivan Mikushin
+James Bardin
+James Nugent
+Jamie Snell
+Januar Wayong
+Jari Kolehmainen
+Jason Wilder
+Jawher Moussa
+Jean-Baptiste Dalido
+Jeff Mitchell
+Jeffrey Hulten
+Jen Andre
+Jérôme Laurens
+Jim Minter
+Johan Euphrosine
+Johannes Scheuermann
+John Hughes
+Jorge Marey
+Julian Einwag
+Kamil Domanski
+Karan Misra
+Ken Herner
+Kevin Lin
+Kevin Xu
+Kim, Hirokuni
+Kostas Lekkas
+Kyle Allan
+Yunhee Lee
+Liron Levin
+Lior Yankovich
+Liu Peng
+Lorenz Leutgeb
+Lucas Clemente
+Lucas Weiblen
+Lyon Hill
+Mantas Matelis
+Manuel Vogel
+Marguerite des Trois Maisons
+Mariusz Borsa
+Martin Sweeney
+Máximo Cuadros Ortiz
+Michael Schmatz
+Michal Fojtik
+Mike Dillon
+Mrunal Patel
+Nate Jones
+Nguyen Sy Thanh Son
+Nicholas Van Wiggeren
+Nick Ethier
+niko83
+Omeid Matten
+Orivej Desh
+Paul Bellamy
+Paul Morie
+Paul Weil
+Peter Edge
+Peter Jihoon Kim
+Peter Teich
+Phil Lu
+Philippe Lafoucrière
+Radek Simko
+Rafe Colton
+Raphaël Pinson
+Reed Allman
+RJ Catalano
+Rob Miller
+Robbert Klarenbeek
+Robert Williamson
+Roman Khlystik
+Russell Haering
+Salvador Gironès
+Sam Rijs
+Sami Wagiaalla
+Samuel Archambault
+Samuel Karp
+Sebastian Borza
+Seth Jennings
+Shane Xie
+Silas Sewell
+Simon Eskildsen
+Simon Menke
+Skolos
+Soulou
+Sridhar Ratnakumar
+Steven Jack
+Summer Mousa
+Sunjin Lee
+Sunny
+Swaroop Ramachandra
+Tarsis Azevedo
+Tim Schindler
+Timothy St. Clair
+Tobi Knaup
+Tom Wilkie
+Tonic
+ttyh061
+upccup
+Victor Marmol
+Vincenzo Prignano
+Vlad Alexandru Ionescu
+Weitao Zhou
+Wiliam Souza
+Ye Yin
+Yosuke Otosu
+Yu, Zou
+Yuriy Bogdanov

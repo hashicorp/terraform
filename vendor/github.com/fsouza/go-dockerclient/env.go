@@ -162,7 +162,11 @@ func (env *Env) Map() map[string]string {
 	m := make(map[string]string)
 	for _, kv := range *env {
 		parts := strings.SplitN(kv, "=", 2)
-		m[parts[0]] = parts[1]
+		if len(parts) == 1 {
+			m[parts[0]] = ""
+		} else {
+			m[parts[0]] = parts[1]
+		}
 	}
 	return m
 }

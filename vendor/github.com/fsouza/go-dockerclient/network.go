@@ -5,7 +5,7 @@
 package docker
 
 import (
-	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -29,6 +29,7 @@ type Network struct {
 	Options    map[string]string
 	Internal   bool
 	EnableIPv6 bool `json:"EnableIPv6"`
+	Labels     map[string]string
 }
 
 // Endpoint contains network resources allocated and used for a container in a network
@@ -66,11 +67,11 @@ type NetworkFilterOpts map[string]map[string]bool
 //
 // See goo.gl/zd2mx4 for more details.
 func (c *Client) FilteredListNetworks(opts NetworkFilterOpts) ([]Network, error) {
-	params := bytes.NewBuffer(nil)
-	if err := json.NewEncoder(params).Encode(&opts); err != nil {
+	params, err := json.Marshal(opts)
+	if err != nil {
 		return nil, err
 	}
-	path := "/networks?filters=" + params.String()
+	path := "/networks?filters=" + string(params)
 	resp, err := c.do("GET", path, doOptions{})
 	if err != nil {
 		return nil, err
@@ -108,21 +109,24 @@ func (c *Client) NetworkInfo(id string) (*Network, error) {
 //
 // See https://goo.gl/6GugX3 for more details.
 type CreateNetworkOptions struct {
-	Name           string                 `json:"Name"`
-	CheckDuplicate bool                   `json:"CheckDuplicate"`
-	Driver         string                 `json:"Driver"`
-	IPAM           IPAMOptions            `json:"IPAM"`
-	Options        map[string]interface{} `json:"Options"`
-	Internal       bool                   `json:"Internal"`
-	EnableIPv6     bool                   `json:"EnableIPv6"`
+	Name           string                 `json:"Name" yaml:"Name" toml:"Name"`
+	Driver         string                 `json:"Driver" yaml:"Driver" toml:"Driver"`
+	IPAM           *IPAMOptions           `json:"IPAM,omitempty" yaml:"IPAM" toml:"IPAM"`
+	Options        map[string]interface{} `json:"Options" yaml:"Options" toml:"Options"`
+	Labels         map[string]string      `json:"Labels" yaml:"Labels" toml:"Labels"`
+	CheckDuplicate bool                   `json:"CheckDuplicate" yaml:"CheckDuplicate" toml:"CheckDuplicate"`
+	Internal       bool                   `json:"Internal" yaml:"Internal" toml:"Internal"`
+	EnableIPv6     bool                   `json:"EnableIPv6" yaml:"EnableIPv6" toml:"EnableIPv6"`
+	Context        context.Context        `json:"-"`
 }
 
 // IPAMOptions controls IP Address Management when creating a network
 //
 // See https://goo.gl/T8kRVH for more details.
 type IPAMOptions struct {
-	Driver string       `json:"Driver"`
-	Config []IPAMConfig `json:"Config"`
+	Driver  string            `json:"Driver" yaml:"Driver" toml:"Driver"`
+	Config  []IPAMConfig      `json:"Config" yaml:"Config" toml:"Config"`
+	Options map[string]string `json:"Options" yaml:"Options" toml:"Options"`
 }
 
 // IPAMConfig represents IPAM configurations
@@ -144,13 +148,11 @@ func (c *Client) CreateNetwork(opts CreateNetworkOptions) (*Network, error) {
 		"POST",
 		"/networks/create",
 		doOptions{
-			data: opts,
+			data:    opts,
+			context: opts.Context,
 		},
 	)
 	if err != nil {
-		if e, ok := err.(*Error); ok && e.Status == http.StatusConflict {
-			return nil, ErrNetworkAlreadyExists
-		}
 		return nil, err
 	}
 	defer resp.Body.Close()
@@ -200,15 +202,26 @@ type NetworkConnectionOptions struct {
 
 	// Force is only applicable to the DisconnectNetwork call
 	Force bool
+
+	Context context.Context `json:"-"`
 }
 
 // EndpointConfig stores network endpoint details
 //
 // See https://goo.gl/RV7BJU for more details.
 type EndpointConfig struct {
-	IPAMConfig *EndpointIPAMConfig
-	Links      []string
-	Aliases    []string
+	IPAMConfig          *EndpointIPAMConfig `json:"IPAMConfig,omitempty" yaml:"IPAMConfig,omitempty" toml:"IPAMConfig,omitempty"`
+	Links               []string            `json:"Links,omitempty" yaml:"Links,omitempty" toml:"Links,omitempty"`
+	Aliases             []string            `json:"Aliases,omitempty" yaml:"Aliases,omitempty" toml:"Aliases,omitempty"`
+	NetworkID           string              `json:"NetworkID,omitempty" yaml:"NetworkID,omitempty" toml:"NetworkID,omitempty"`
+	EndpointID          string              `json:"EndpointID,omitempty" yaml:"EndpointID,omitempty" toml:"EndpointID,omitempty"`
+	Gateway             string              `json:"Gateway,omitempty" yaml:"Gateway,omitempty" toml:"Gateway,omitempty"`
+	IPAddress           string              `json:"IPAddress,omitempty" yaml:"IPAddress,omitempty" toml:"IPAddress,omitempty"`
+	IPPrefixLen         int                 `json:"IPPrefixLen,omitempty" yaml:"IPPrefixLen,omitempty" toml:"IPPrefixLen,omitempty"`
+	IPv6Gateway         string              `json:"IPv6Gateway,omitempty" yaml:"IPv6Gateway,omitempty" toml:"IPv6Gateway,omitempty"`
+	GlobalIPv6Address   string              `json:"GlobalIPv6Address,omitempty" yaml:"GlobalIPv6Address,omitempty" toml:"GlobalIPv6Address,omitempty"`
+	GlobalIPv6PrefixLen int                 `json:"GlobalIPv6PrefixLen,omitempty" yaml:"GlobalIPv6PrefixLen,omitempty" toml:"GlobalIPv6PrefixLen,omitempty"`
+	MacAddress          string              `json:"MacAddress,omitempty" yaml:"MacAddress,omitempty" toml:"MacAddress,omitempty"`
 }
 
 // EndpointIPAMConfig represents IPAM configurations for an
@@ -225,7 +238,10 @@ type EndpointIPAMConfig struct {
 //
 // See https://goo.gl/6GugX3 for more details.
 func (c *Client) ConnectNetwork(id string, opts NetworkConnectionOptions) error {
-	resp, err := c.do("POST", "/networks/"+id+"/connect", doOptions{data: opts})
+	resp, err := c.do("POST", "/networks/"+id+"/connect", doOptions{
+		data:    opts,
+		context: opts.Context,
+	})
 	if err != nil {
 		if e, ok := err.(*Error); ok && e.Status == http.StatusNotFound {
 			return &NoSuchNetworkOrContainer{NetworkID: id, ContainerID: opts.Container}
@@ -250,6 +266,38 @@ func (c *Client) DisconnectNetwork(id string, opts NetworkConnectionOptions) err
 	}
 	resp.Body.Close()
 	return nil
+}
+
+// PruneNetworksOptions specify parameters to the PruneNetworks function.
+//
+// See https://goo.gl/kX0S9h for more details.
+type PruneNetworksOptions struct {
+	Filters map[string][]string
+	Context context.Context
+}
+
+// PruneNetworksResults specify results from the PruneNetworks function.
+//
+// See https://goo.gl/kX0S9h for more details.
+type PruneNetworksResults struct {
+	NetworksDeleted []string
+}
+
+// PruneNetworks deletes networks which are unused.
+//
+// See https://goo.gl/kX0S9h for more details.
+func (c *Client) PruneNetworks(opts PruneNetworksOptions) (*PruneNetworksResults, error) {
+	path := "/networks/prune?" + queryString(opts)
+	resp, err := c.do("POST", path, doOptions{context: opts.Context})
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+	var results PruneNetworksResults
+	if err := json.NewDecoder(resp.Body).Decode(&results); err != nil {
+		return nil, err
+	}
+	return &results, nil
 }
 
 // NoSuchNetwork is the error returned when a given network does not exist.

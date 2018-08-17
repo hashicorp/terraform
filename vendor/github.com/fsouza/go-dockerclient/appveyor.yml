@@ -1,0 +1,21 @@
+version: '{build}'
+platform: x64
+clone_depth: 2
+clone_folder: c:\gopath\src\github.com\fsouza\go-dockerclient
+environment:
+  GOPATH: c:\gopath
+  matrix:
+    - GOVERSION: 1.9.7
+    - GOVERSION: 1.10.3
+install:
+  - set PATH=%GOPATH%\bin;c:\go\bin;%PATH%
+  - rmdir c:\go /s /q
+  - appveyor DownloadFile https://storage.googleapis.com/golang/go%GOVERSION%.windows-amd64.zip
+  - 7z x go%GOVERSION%.windows-amd64.zip -y -oC:\ > NUL
+build_script:
+  - go get -u github.com/golang/dep/cmd/dep
+  - dep ensure -v
+test_script:
+  - for /f "" %%G in ('go list ./... ^| find /i /v "/vendor/"') do ( go test %%G & IF ERRORLEVEL == 1 EXIT 1)
+matrix:
+  fast_finish: true

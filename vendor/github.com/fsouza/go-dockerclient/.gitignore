@@ -1,0 +1,4 @@
+# temporary symlink for testing
+testing/data/symlink
+Gopkg.lock
+vendor/

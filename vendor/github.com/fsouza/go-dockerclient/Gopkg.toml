@@ -1,0 +1,28 @@
+[[constraint]]
+  name = "github.com/Microsoft/go-winio"
+  version = "v0.4.5"
+
+[[constraint]]
+  name = "github.com/docker/docker"
+  revision = "3dfb26ab3cbf961298f8ce3f94659b5fe4146ceb"
+
+[[constraint]]
+  name = "github.com/docker/go-units"
+  version = "v0.3.2"
+
+[[constraint]]
+  name = "github.com/google/go-cmp"
+  version = "v0.2.0"
+
+[[constraint]]
+  name = "github.com/gorilla/mux"
+  version = "v1.5.0"
+
+[[override]]
+  name = "github.com/Nvveen/Gotty"
+  source = "https://github.com/ijc25/Gotty.git"
+  revision = "a8b993ba6abdb0e0c12b0125c603323a71c7790c"
+
+[[override]]
+  name = "github.com/docker/libnetwork"
+  revision = "19279f0492417475b6bfbd0aa529f73e8f178fb5"
