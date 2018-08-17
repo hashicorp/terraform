@@ -9,6 +9,7 @@ import (
 	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/configs/configschema"
 	"github.com/hashicorp/terraform/providers"
+	"github.com/hashicorp/terraform/provisioners"
 	"github.com/hashicorp/terraform/tfdiags"
 	"github.com/zclconf/go-cty/cty"
 	"github.com/zclconf/go-cty/cty/convert"
@@ -111,7 +112,7 @@ func (n *EvalValidateProvider) Eval(ctx EvalContext) (interface{}, error) {
 // the configuration of a provisioner belonging to a resource.
 type EvalValidateProvisioner struct {
 	ResourceAddr     addrs.Resource
-	Provisioner      *ResourceProvisioner
+	Provisioner      *provisioners.Interface
 	Schema           **configschema.Block
 	Config           *configs.Provisioner
 	ConnConfig       *configs.Connection
@@ -122,9 +123,6 @@ func (n *EvalValidateProvisioner) Eval(ctx EvalContext) (interface{}, error) {
 	provisioner := *n.Provisioner
 	config := *n.Config
 	schema := *n.Schema
-
-	var warns []string
-	var errs []error
 
 	var diags tfdiags.Diagnostics
 
@@ -142,22 +140,12 @@ func (n *EvalValidateProvisioner) Eval(ctx EvalContext) (interface{}, error) {
 			return nil, fmt.Errorf("EvaluateBlock returned nil value")
 		}
 
-		// The provisioner API still uses our legacy ResourceConfig type, so
-		// we need to shim it.
-		legacyRC := NewResourceConfigShimmed(configVal, schema)
-
-		w, e := provisioner.Validate(legacyRC)
-		warns = append(warns, w...)
-		errs = append(errs, e...)
-
-		// FIXME: Once the provisioner API itself returns diagnostics, just
-		// return diags.NonFatalErr() here.
-		for _, warn := range warns {
-			diags = diags.Append(tfdiags.SimpleWarning(warn))
+		req := provisioners.ValidateProvisionerConfigRequest{
+			Config: configVal,
 		}
-		for _, err := range errs {
-			diags = diags.Append(err)
-		}
+
+		resp := provisioner.ValidateProvisionerConfig(req)
+		diags = diags.Append(resp.Diagnostics)
 	}
 
 	{

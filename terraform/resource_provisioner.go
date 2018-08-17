@@ -2,6 +2,7 @@ package terraform
 
 import (
 	"github.com/hashicorp/terraform/configs/configschema"
+	"github.com/hashicorp/terraform/provisioners"
 )
 
 // ResourceProvisioner is an interface that must be implemented by any
@@ -63,3 +64,7 @@ type ResourceProvisionerCloser interface {
 // ResourceProvisionerFactory is a function type that creates a new instance
 // of a resource provisioner.
 type ResourceProvisionerFactory func() (ResourceProvisioner, error)
+
+// ProvisionerFactory is a function type that creates a new instance
+// of a provisioners.Interface.
+type ProvisionerFactory func() (provisioners.Interface, error)

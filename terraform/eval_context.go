@@ -7,6 +7,7 @@ import (
 	"github.com/hashicorp/terraform/lang"
 	"github.com/hashicorp/terraform/plans"
 	"github.com/hashicorp/terraform/providers"
+	"github.com/hashicorp/terraform/provisioners"
 	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/tfdiags"
 	"github.com/zclconf/go-cty/cty"
@@ -68,11 +69,11 @@ type EvalContext interface {
 	// returns the implementation of the resource provisioner or an error.
 	//
 	// It is an error to initialize the same provisioner more than once.
-	InitProvisioner(string) (ResourceProvisioner, error)
+	InitProvisioner(string) (provisioners.Interface, error)
 
 	// Provisioner gets the provisioner instance with the given name (already
 	// initialized) or returns nil if the provisioner isn't initialized.
-	Provisioner(string) ResourceProvisioner
+	Provisioner(string) provisioners.Interface
 
 	// ProvisionerSchema retrieves the main configuration schema for a
 	// particular provisioner, which must have already been initialized with
