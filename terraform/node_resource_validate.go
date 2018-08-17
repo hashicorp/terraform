@@ -3,6 +3,7 @@ package terraform
 import (
 	"github.com/hashicorp/terraform/configs/configschema"
 	"github.com/hashicorp/terraform/providers"
+	"github.com/hashicorp/terraform/provisioners"
 	"github.com/zclconf/go-cty/cty"
 )
 
@@ -55,7 +56,7 @@ func (n *NodeValidatableResource) EvalTree() EvalNode {
 
 		// Validate all the provisioners
 		for _, p := range managed.Provisioners {
-			var provisioner ResourceProvisioner
+			var provisioner provisioners.Interface
 			var provisionerSchema *configschema.Block
 			seq.Nodes = append(
 				seq.Nodes,
