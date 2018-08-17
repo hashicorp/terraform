@@ -17,8 +17,6 @@ and are tested by HashiCorp.
 
 ---
 
-[Atlas](/docs/providers/terraform-enterprise/index.html)
-
 [Chef](/docs/providers/chef/index.html)
 
 [Consul](/docs/providers/consul/index.html)
