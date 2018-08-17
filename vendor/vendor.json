@@ -2727,10 +2727,10 @@
 			"revisionTime": "2016-12-14T09:25:55Z"
 		},
 		{
-			"checksumSHA1": "Tkb1hBdBWeO7SGjixS2Hm48F6+s=",
+			"checksumSHA1": "7Gocawl8bm27cpAILtuf21xvVD8=",
 			"path": "golang.org/x/sys/unix",
-			"revision": "0b25a408a50076fbbcae6b7ac0ea5fbb0b085e79",
-			"revisionTime": "2017-06-08T11:43:49Z",
+			"revision": "1c9583448a9c3aa0f9a6a5241bf73c0bd8aafded",
+			"revisionTime": "2018-08-15T07:37:39Z",
 			"version": "master",
 			"versionExact": "master"
 		},
