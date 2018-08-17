@@ -3,8 +3,9 @@ package terraform
 import (
 	"testing"
 
-	"github.com/hashicorp/terraform/configs/configschema"
 	"github.com/hashicorp/terraform/configs"
+	"github.com/hashicorp/terraform/configs/configschema"
+	"github.com/hashicorp/terraform/providers"
 	"github.com/zclconf/go-cty/cty"
 )
 
@@ -13,8 +14,8 @@ import (
 // situations used as the basis for multiple tests.
 type contextTestFixture struct {
 	Config           *configs.Config
-	ProviderResolver ResourceProviderResolver
-	Provisioners     map[string]ResourceProvisionerFactory
+	ProviderResolver providers.Resolver
+	Provisioners     map[string]ProvisionerFactory
 }
 
 // ContextOpts returns a ContextOps pre-populated with the elements of this
@@ -49,8 +50,8 @@ func contextFixtureApplyVars(t *testing.T) *contextTestFixture {
 	p.DiffFn = testDiffFn
 	return &contextTestFixture{
 		Config: c,
-		ProviderResolver: ResourceProviderResolverFixed(
-			map[string]ResourceProviderFactory{
+		ProviderResolver: providers.ResolverFixed(
+			map[string]providers.Factory{
 				"aws": testProviderFuncFixed(p),
 			},
 		),
@@ -75,8 +76,8 @@ func contextFixtureApplyVarsEnv(t *testing.T) *contextTestFixture {
 	p.DiffFn = testDiffFn
 	return &contextTestFixture{
 		Config: c,
-		ProviderResolver: ResourceProviderResolverFixed(
-			map[string]ResourceProviderFactory{
+		ProviderResolver: providers.ResolverFixed(
+			map[string]providers.Factory{
 				"aws": testProviderFuncFixed(p),
 			},
 		),

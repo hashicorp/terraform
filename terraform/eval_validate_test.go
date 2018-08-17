@@ -10,8 +10,10 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/addrs"
-	"github.com/hashicorp/terraform/configs/configschema"
 	"github.com/hashicorp/terraform/configs"
+	"github.com/hashicorp/terraform/configs/configschema"
+	"github.com/hashicorp/terraform/providers"
+	"github.com/hashicorp/terraform/provisioners"
 	"github.com/hashicorp/terraform/tfdiags"
 )
 
@@ -30,7 +32,7 @@ func TestEvalValidateResource_managedResource(t *testing.T) {
 		return
 	}
 
-	p := ResourceProvider(mp)
+	p := providers.Interface(mp)
 	rc := &configs.Resource{
 		Mode: addrs.ManagedResourceMode,
 		Type: "test_object",
@@ -78,7 +80,7 @@ func TestEvalValidateResource_managedResourceCount(t *testing.T) {
 		return
 	}
 
-	p := ResourceProvider(mp)
+	p := providers.Interface(mp)
 	rc := &configs.Resource{
 		Mode:  addrs.ManagedResourceMode,
 		Type:  "test_object",
@@ -127,7 +129,7 @@ func TestEvalValidateResource_dataSource(t *testing.T) {
 		return
 	}
 
-	p := ResourceProvider(mp)
+	p := providers.Interface(mp)
 	rc := &configs.Resource{
 		Mode: addrs.DataResourceMode,
 		Type: "test_object",
@@ -167,7 +169,7 @@ func TestEvalValidateResource_validReturnsNilError(t *testing.T) {
 		return
 	}
 
-	p := ResourceProvider(mp)
+	p := providers.Interface(mp)
 	rc := &configs.Resource{
 		Mode:   addrs.ManagedResourceMode,
 		Type:   "test_object",
@@ -202,7 +204,7 @@ func TestEvalValidateResource_warningsAndErrorsPassedThrough(t *testing.T) {
 		return
 	}
 
-	p := ResourceProvider(mp)
+	p := providers.Interface(mp)
 	rc := &configs.Resource{
 		Mode:   addrs.ManagedResourceMode,
 		Type:   "test_object",
@@ -249,7 +251,7 @@ func TestEvalValidateResource_ignoreWarnings(t *testing.T) {
 		return
 	}
 
-	p := ResourceProvider(mp)
+	p := providers.Interface(mp)
 	rc := &configs.Resource{
 		Mode:   addrs.ManagedResourceMode,
 		Type:   "test_object",
@@ -286,7 +288,7 @@ func TestEvalValidateResource_invalidDependsOn(t *testing.T) {
 
 	// We'll check a _valid_ config first, to make sure we're not failing
 	// for some other reason, and then make it invalid.
-	p := ResourceProvider(mp)
+	p := providers.Interface(mp)
 	rc := &configs.Resource{
 		Mode:   addrs.ManagedResourceMode,
 		Type:   "test_object",
@@ -355,8 +357,8 @@ func TestEvalValidateResource_invalidDependsOn(t *testing.T) {
 }
 
 func TestEvalValidateProvisioner_valid(t *testing.T) {
-	mp := &MockResourceProvisioner{}
-	var p ResourceProvisioner = mp
+	mp := &MockProvisioner{}
+	var p provisioners.Interface = mp
 	ctx := &MockEvalContext{}
 	ctx.installSimpleEval()
 
@@ -394,8 +396,8 @@ func TestEvalValidateProvisioner_valid(t *testing.T) {
 }
 
 func TestEvalValidateProvisioner_warning(t *testing.T) {
-	mp := &MockResourceProvisioner{}
-	var p ResourceProvisioner = mp
+	mp := &MockProvisioner{}
+	var p provisioners.Interface = mp
 	ctx := &MockEvalContext{}
 	ctx.installSimpleEval()
 
@@ -446,7 +448,7 @@ func TestEvalValidateProvisioner_warning(t *testing.T) {
 }
 
 func TestEvalValidateProvisioner_connectionInvalid(t *testing.T) {
-	var p ResourceProvisioner = &MockResourceProvisioner{}
+	var p provisioners.Interface = &MockProvisioner{}
 	ctx := &MockEvalContext{}
 	ctx.installSimpleEval()
 

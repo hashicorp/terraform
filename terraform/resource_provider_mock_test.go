@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/hashicorp/terraform/configs/configschema"
+	"github.com/hashicorp/terraform/providers"
 	"github.com/zclconf/go-cty/cty"
 )
 
@@ -14,47 +15,53 @@ func TestMockResourceProvider_impl(t *testing.T) {
 
 // testProviderComponentFactory creates a componentFactory that contains only
 // a single given.
-func testProviderComponentFactory(name string, provider ResourceProvider) *basicComponentFactory {
+func testProviderComponentFactory(name string, provider providers.Interface) *basicComponentFactory {
 	return &basicComponentFactory{
-		providers: map[string]ResourceProviderFactory{
-			name: ResourceProviderFactoryFixed(provider),
+		providers: map[string]providers.Factory{
+			name: providers.FactoryFixed(provider),
 		},
 	}
 }
 
 // mockProviderWithConfigSchema is a test helper to concisely create a mock
 // provider with the given schema for its own configuration.
-func mockProviderWithConfigSchema(schema *configschema.Block) *MockResourceProvider {
-	return &MockResourceProvider{
-		GetSchemaReturn: &ProviderSchema{
-			Provider: schema,
+func mockProviderWithConfigSchema(schema *configschema.Block) *MockProvider {
+	return &MockProvider{
+		GetSchemaResponse: providers.GetSchemaResponse{
+			Provider: providers.Schema{
+				Block: schema,
+			},
 		},
 	}
 }
 
 // mockProviderWithResourceTypeSchema is a test helper to concisely create a mock
 // provider with a schema containing a single resource type.
-func mockProviderWithResourceTypeSchema(name string, schema *configschema.Block) *MockResourceProvider {
-	return &MockResourceProvider{
-		GetSchemaReturn: &ProviderSchema{
-			Provider: &configschema.Block{
-				Attributes: map[string]*configschema.Attribute{
-					"string": {
-						Type:     cty.String,
-						Optional: true,
-					},
-					"list": {
-						Type:     cty.List(cty.String),
-						Optional: true,
-					},
-					"root": {
-						Type:     cty.Map(cty.String),
-						Optional: true,
+func mockProviderWithResourceTypeSchema(name string, schema *configschema.Block) *MockProvider {
+	return &MockProvider{
+		GetSchemaResponse: providers.GetSchemaResponse{
+			Provider: providers.Schema{
+				Block: &configschema.Block{
+					Attributes: map[string]*configschema.Attribute{
+						"string": {
+							Type:     cty.String,
+							Optional: true,
+						},
+						"list": {
+							Type:     cty.List(cty.String),
+							Optional: true,
+						},
+						"root": {
+							Type:     cty.Map(cty.String),
+							Optional: true,
+						},
 					},
 				},
 			},
-			ResourceTypes: map[string]*configschema.Block{
-				name: schema,
+			ResourceTypes: map[string]providers.Schema{
+				name: {
+					Block: schema,
+				},
 			},
 		},
 	}
@@ -72,7 +79,7 @@ func mockProviderWithDataSourceSchema(name string, schema *configschema.Block) *
 	}
 }
 
-// simpleMockProvider returns a MockResourceProvider that is pre-configured
+// simpleMockProvider returns a MockProvider that is pre-configured
 // with schema for its own config, for a resource type called "test_object" and
 // for a data source also called "test_object".
 //
@@ -89,15 +96,21 @@ func mockProviderWithDataSourceSchema(name string, schema *configschema.Block) *
 // the default schema stored in the field GetSchemaReturn. Each new call to
 // simpleTestProvider produces entirely new instances of all of the nested
 // objects so that callers can mutate without affecting mock objects.
-func simpleMockProvider() *MockResourceProvider {
-	return &MockResourceProvider{
-		GetSchemaReturn: &ProviderSchema{
-			Provider: simpleTestSchema(),
-			ResourceTypes: map[string]*configschema.Block{
-				"test_object": simpleTestSchema(),
+func simpleMockProvider() *MockProvider {
+	return &MockProvider{
+		GetSchemaResponse: providers.GetSchemaResponse{
+			Provider: providers.Schema{
+				Block: simpleTestSchema(),
 			},
-			DataSources: map[string]*configschema.Block{
-				"test_object": simpleTestSchema(),
+			ResourceTypes: map[string]providers.Schema{
+				"test_object": {
+					Block: simpleTestSchema(),
+				},
+			},
+			DataSources: map[string]providers.Schema{
+				"test_object": {
+					Block: simpleTestSchema(),
+				},
 			},
 		},
 	}

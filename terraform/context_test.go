@@ -24,6 +24,8 @@ import (
 	"github.com/hashicorp/terraform/flatmap"
 	"github.com/hashicorp/terraform/plans"
 	"github.com/hashicorp/terraform/plans/planfile"
+	"github.com/hashicorp/terraform/providers"
+	"github.com/hashicorp/terraform/provisioners"
 	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/states/statefile"
 	tfversion "github.com/hashicorp/terraform/version"
@@ -349,15 +351,10 @@ func testFlatAttrDiffs(k string, i interface{}) map[string]*ResourceAttrDiff {
 	return diffs
 }
 
-func testProvider(prefix string) *MockResourceProvider {
-	p := new(MockResourceProvider)
-	p.RefreshFn = func(info *InstanceInfo, s *InstanceState) (*InstanceState, error) {
-		return s, nil
-	}
-	p.ResourcesReturn = []ResourceType{
-		ResourceType{
-			Name: fmt.Sprintf("%s_instance", prefix),
-		},
+func testProvider(prefix string) *MockProvider {
+	p := new(MockProvider)
+	p.ReadResourceFn = func(req providers.ReadResourceRequest) providers.ReadResourceResponse {
+		return providers.ReadResourceResponse{NewState: req.PriorState}
 	}
 
 	p.GetSchemaReturn = testProviderSchema(prefix)
@@ -365,21 +362,23 @@ func testProvider(prefix string) *MockResourceProvider {
 	return p
 }
 
-func testProvisioner() *MockResourceProvisioner {
-	p := new(MockResourceProvisioner)
-	p.GetConfigSchemaReturnSchema = &configschema.Block{
-		Attributes: map[string]*configschema.Attribute{
-			"command": {
-				Type:     cty.String,
-				Optional: true,
-			},
-			"order": {
-				Type:     cty.String,
-				Optional: true,
-			},
-			"when": {
-				Type:     cty.String,
-				Optional: true,
+func testProvisioner() *MockProvisioner {
+	p := new(MockProvisioner)
+	p.GetSchemaResponse = provisioners.GetSchemaResponse{
+		Provisioner: &configschema.Block{
+			Attributes: map[string]*configschema.Attribute{
+				"command": {
+					Type:     cty.String,
+					Optional: true,
+				},
+				"order": {
+					Type:     cty.String,
+					Optional: true,
+				},
+				"when": {
+					Type:     cty.String,
+					Optional: true,
+				},
 			},
 		},
 	}
