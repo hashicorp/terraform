@@ -16,6 +16,7 @@ import (
 	"github.com/hashicorp/terraform/lang"
 	"github.com/hashicorp/terraform/plans"
 	"github.com/hashicorp/terraform/providers"
+	"github.com/hashicorp/terraform/provisioners"
 	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/tfdiags"
 )
@@ -65,7 +66,7 @@ type ContextOpts struct {
 	Hooks            []Hook
 	Parallelism      int
 	ProviderResolver providers.Resolver
-	Provisioners     map[string]ResourceProvisionerFactory
+	Provisioners     map[string]ProvisionerFactory
 
 	// If non-nil, will apply as additional constraints on the provider
 	// plugins that will be requested from the provider resolver.
@@ -775,7 +776,7 @@ func (c *Context) watchStop(walker *ContextGraphWalker) (chan struct{}, <-chan s
 		{
 			// Call stop on all the provisioners
 			walker.provisionerLock.Lock()
-			ps := make([]ResourceProvisioner, 0, len(walker.provisionerCache))
+			ps := make([]provisioners.Interface, 0, len(walker.provisionerCache))
 			for _, p := range walker.provisionerCache {
 				ps = append(ps, p)
 			}
