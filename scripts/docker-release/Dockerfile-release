@@ -7,7 +7,7 @@
 # tree, without any dependency on there being an existing release on
 # releases.hashicorp.com.
 
-FROM alpine:latest
+FROM alpine:latest AS build-env
 MAINTAINER "HashiCorp Terraform Team <terraform@hashicorp.com>"
 
 # This is intended to be run from the hooks/build script, which sets this
@@ -23,7 +23,7 @@ COPY releases_public_key .
 # - Extract the zip file so it can be run
 
 RUN echo Building image for Terraform ${TERRAFORM_VERSION} && \
-    apk add --update git curl openssh gnupg && \
+    apk add --update curl gnupg && \
     curl https://releases.hashicorp.com/terraform/${TERRAFORM_VERSION}/terraform_${TERRAFORM_VERSION}_linux_amd64.zip > terraform_${TERRAFORM_VERSION}_linux_amd64.zip && \
     curl https://releases.hashicorp.com/terraform/${TERRAFORM_VERSION}/terraform_${TERRAFORM_VERSION}_SHA256SUMS.sig > terraform_${TERRAFORM_VERSION}_SHA256SUMS.sig && \
     curl https://releases.hashicorp.com/terraform/${TERRAFORM_VERSION}/terraform_${TERRAFORM_VERSION}_SHA256SUMS > terraform_${TERRAFORM_VERSION}_SHA256SUMS && \
@@ -34,6 +34,8 @@ RUN echo Building image for Terraform ${TERRAFORM_VERSION} && \
     unzip terraform_${TERRAFORM_VERSION}_linux_amd64.zip -d /bin && \
     rm -f terraform_${TERRAFORM_VERSION}_linux_amd64.zip terraform_${TERRAFORM_VERSION}_SHA256SUMS*
 
-LABEL "com.hashicorp.terraform.version"="${TERRAFORM_VERSION}"
-
+FROM alpine:latest
+COPY --from=build-env /bin/terraform /bin/terraform
+RUN apk add --update git openssh
 ENTRYPOINT ["/bin/terraform"]
+LABEL "com.hashicorp.terraform.version"="${TERRAFORM_VERSION}"
