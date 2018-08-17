@@ -12,6 +12,7 @@ import (
 
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs/configschema"
+	"github.com/hashicorp/terraform/providers"
 )
 
 func TestContext2Refresh(t *testing.T) {
@@ -21,8 +22,8 @@ func TestContext2Refresh(t *testing.T) {
 		m := testModule(t, "refresh-basic")
 		ctx := testContext2(t, &ContextOpts{
 			Config: m,
-			ProviderResolver: ResourceProviderResolverFixed(
-				map[string]ResourceProviderFactory{
+			ProviderResolver: providers.ResolverFixed(
+				map[string]providers.Factory{
 					"aws": testProviderFuncFixed(p),
 				},
 			),
@@ -76,8 +77,8 @@ func TestContext2Refresh_dataComputedModuleVar(t *testing.T) {
 	m := testModule(t, "refresh-data-module-var")
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: ResourceProviderResolverFixed(
-			map[string]ResourceProviderFactory{
+		ProviderResolver: providers.ResolverFixed(
+			map[string]providers.Factory{
 				"aws": testProviderFuncFixed(p),
 			},
 		),
@@ -166,8 +167,8 @@ func TestContext2Refresh_targeted(t *testing.T) {
 	m := testModule(t, "refresh-targeted")
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: ResourceProviderResolverFixed(
-			map[string]ResourceProviderFactory{
+		ProviderResolver: providers.ResolverFixed(
+			map[string]providers.Factory{
 				"aws": testProviderFuncFixed(p),
 			},
 		),
@@ -247,8 +248,8 @@ func TestContext2Refresh_targetedCount(t *testing.T) {
 	m := testModule(t, "refresh-targeted-count")
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: ResourceProviderResolverFixed(
-			map[string]ResourceProviderFactory{
+		ProviderResolver: providers.ResolverFixed(
+			map[string]providers.Factory{
 				"aws": testProviderFuncFixed(p),
 			},
 		),
@@ -338,8 +339,8 @@ func TestContext2Refresh_targetedCountIndex(t *testing.T) {
 	m := testModule(t, "refresh-targeted-count")
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: ResourceProviderResolverFixed(
-			map[string]ResourceProviderFactory{
+		ProviderResolver: providers.ResolverFixed(
+			map[string]providers.Factory{
 				"aws": testProviderFuncFixed(p),
 			},
 		),
@@ -405,8 +406,8 @@ func TestContext2Refresh_moduleComputedVar(t *testing.T) {
 	m := testModule(t, "refresh-module-computed-var")
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: ResourceProviderResolverFixed(
-			map[string]ResourceProviderFactory{
+		ProviderResolver: providers.ResolverFixed(
+			map[string]providers.Factory{
 				"aws": testProviderFuncFixed(p),
 			},
 		),
@@ -424,8 +425,8 @@ func TestContext2Refresh_delete(t *testing.T) {
 	m := testModule(t, "refresh-basic")
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: ResourceProviderResolverFixed(
-			map[string]ResourceProviderFactory{
+		ProviderResolver: providers.ResolverFixed(
+			map[string]providers.Factory{
 				"aws": testProviderFuncFixed(p),
 			},
 		),
@@ -465,8 +466,8 @@ func TestContext2Refresh_ignoreUncreated(t *testing.T) {
 	m := testModule(t, "refresh-basic")
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: ResourceProviderResolverFixed(
-			map[string]ResourceProviderFactory{
+		ProviderResolver: providers.ResolverFixed(
+			map[string]providers.Factory{
 				"aws": testProviderFuncFixed(p),
 			},
 		),
@@ -494,8 +495,8 @@ func TestContext2Refresh_hook(t *testing.T) {
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
 		Hooks:  []Hook{h},
-		ProviderResolver: ResourceProviderResolverFixed(
-			map[string]ResourceProviderFactory{
+		ProviderResolver: providers.ResolverFixed(
+			map[string]providers.Factory{
 				"aws": testProviderFuncFixed(p),
 			},
 		),
@@ -560,8 +561,8 @@ func TestContext2Refresh_modules(t *testing.T) {
 	})
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: ResourceProviderResolverFixed(
-			map[string]ResourceProviderFactory{
+		ProviderResolver: providers.ResolverFixed(
+			map[string]providers.Factory{
 				"aws": testProviderFuncFixed(p),
 			},
 		),
@@ -613,8 +614,8 @@ func TestContext2Refresh_moduleInputComputedOutput(t *testing.T) {
 
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: ResourceProviderResolverFixed(
-			map[string]ResourceProviderFactory{
+		ProviderResolver: providers.ResolverFixed(
+			map[string]providers.Factory{
 				"aws": testProviderFuncFixed(p),
 			},
 		),
@@ -631,8 +632,8 @@ func TestContext2Refresh_moduleVarModule(t *testing.T) {
 	p.DiffFn = testDiffFn
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: ResourceProviderResolverFixed(
-			map[string]ResourceProviderFactory{
+		ProviderResolver: providers.ResolverFixed(
+			map[string]providers.Factory{
 				"aws": testProviderFuncFixed(p),
 			},
 		),
@@ -649,8 +650,8 @@ func TestContext2Refresh_noState(t *testing.T) {
 	m := testModule(t, "refresh-no-state")
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: ResourceProviderResolverFixed(
-			map[string]ResourceProviderFactory{
+		ProviderResolver: providers.ResolverFixed(
+			map[string]providers.Factory{
 				"aws": testProviderFuncFixed(p),
 			},
 		),
@@ -685,8 +686,8 @@ func TestContext2Refresh_output(t *testing.T) {
 	m := testModule(t, "refresh-output")
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: ResourceProviderResolverFixed(
-			map[string]ResourceProviderFactory{
+		ProviderResolver: providers.ResolverFixed(
+			map[string]providers.Factory{
 				"aws": testProviderFuncFixed(p),
 			},
 		),
@@ -739,8 +740,8 @@ func TestContext2Refresh_outputPartial(t *testing.T) {
 	m := testModule(t, "refresh-output-partial")
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: ResourceProviderResolverFixed(
-			map[string]ResourceProviderFactory{
+		ProviderResolver: providers.ResolverFixed(
+			map[string]providers.Factory{
 				"aws": testProviderFuncFixed(p),
 			},
 		),
@@ -813,8 +814,8 @@ func TestContext2Refresh_stateBasic(t *testing.T) {
 		})
 		ctx := testContext2(t, &ContextOpts{
 			Config: m,
-			ProviderResolver: ResourceProviderResolverFixed(
-				map[string]ResourceProviderFactory{
+			ProviderResolver: providers.ResolverFixed(
+				map[string]providers.Factory{
 					"aws": testProviderFuncFixed(p),
 				},
 			),
@@ -866,8 +867,8 @@ func TestContext2Refresh_dataOrphan(t *testing.T) {
 		},
 	})
 	ctx := testContext2(t, &ContextOpts{
-		ProviderResolver: ResourceProviderResolverFixed(
-			map[string]ResourceProviderFactory{
+		ProviderResolver: providers.ResolverFixed(
+			map[string]providers.Factory{
 				"null": testProviderFuncFixed(p),
 			},
 		),
@@ -916,8 +917,8 @@ func TestContext2Refresh_dataState(t *testing.T) {
 
 		ctx := testContext2(t, &ContextOpts{
 			Config: m,
-			ProviderResolver: ResourceProviderResolverFixed(
-				map[string]ResourceProviderFactory{
+			ProviderResolver: providers.ResolverFixed(
+				map[string]providers.Factory{
 					"null": testProviderFuncFixed(p),
 				},
 			),
@@ -1007,8 +1008,8 @@ func TestContext2Refresh_dataStateRefData(t *testing.T) {
 	})
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: ResourceProviderResolverFixed(
-			map[string]ResourceProviderFactory{
+		ProviderResolver: providers.ResolverFixed(
+			map[string]providers.Factory{
 				"null": testProviderFuncFixed(p),
 			},
 		),
@@ -1051,8 +1052,8 @@ func TestContext2Refresh_tainted(t *testing.T) {
 	})
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: ResourceProviderResolverFixed(
-			map[string]ResourceProviderFactory{
+		ProviderResolver: providers.ResolverFixed(
+			map[string]providers.Factory{
 				"aws": testProviderFuncFixed(p),
 			},
 		),
@@ -1092,8 +1093,8 @@ func TestContext2Refresh_unknownProvider(t *testing.T) {
 
 	_, diags := NewContext(&ContextOpts{
 		Config: m,
-		ProviderResolver: ResourceProviderResolverFixed(
-			map[string]ResourceProviderFactory{},
+		ProviderResolver: providers.ResolverFixed(
+			map[string]providers.Factory{},
 		),
 		State: mustShimLegacyState(&State{
 			Modules: []*ModuleState{
@@ -1146,8 +1147,8 @@ func TestContext2Refresh_vars(t *testing.T) {
 		m := testModule(t, "refresh-vars")
 		ctx := testContext2(t, &ContextOpts{
 			Config: m,
-			ProviderResolver: ResourceProviderResolverFixed(
-				map[string]ResourceProviderFactory{
+			ProviderResolver: providers.ResolverFixed(
+				map[string]providers.Factory{
 					"aws": testProviderFuncFixed(p),
 				},
 			),
@@ -1292,8 +1293,8 @@ func TestContext2Refresh_orphanModule(t *testing.T) {
 	})
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: ResourceProviderResolverFixed(
-			map[string]ResourceProviderFactory{
+		ProviderResolver: providers.ResolverFixed(
+			map[string]providers.Factory{
 				"aws": testProviderFuncFixed(p),
 			},
 		),
@@ -1337,8 +1338,8 @@ func TestContext2Validate(t *testing.T) {
 	m := testModule(t, "validate-good")
 	c := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: ResourceProviderResolverFixed(
-			map[string]ResourceProviderFactory{
+		ProviderResolver: providers.ResolverFixed(
+			map[string]providers.Factory{
 				"aws": testProviderFuncFixed(p),
 			},
 		),
@@ -1396,8 +1397,8 @@ func TestContext2Refresh_noDiffHookOnScaleOut(t *testing.T) {
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
 		Hooks:  []Hook{h},
-		ProviderResolver: ResourceProviderResolverFixed(
-			map[string]ResourceProviderFactory{
+		ProviderResolver: providers.ResolverFixed(
+			map[string]providers.Factory{
 				"aws": testProviderFuncFixed(p),
 			},
 		),
@@ -1447,8 +1448,8 @@ func TestContext2Refresh_updateProviderInState(t *testing.T) {
 
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: ResourceProviderResolverFixed(
-			map[string]ResourceProviderFactory{
+		ProviderResolver: providers.ResolverFixed(
+			map[string]providers.Factory{
 				"aws": testProviderFuncFixed(p),
 			},
 		),

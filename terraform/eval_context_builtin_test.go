@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/hashicorp/terraform/addrs"
+	"github.com/hashicorp/terraform/providers"
 	"github.com/zclconf/go-cty/cty"
 )
 
@@ -45,7 +46,7 @@ func TestBuiltinEvalContextProviderInput(t *testing.T) {
 func TestBuildingEvalContextInitProvider(t *testing.T) {
 	var lock sync.Mutex
 
-	testP := &MockResourceProvider{
+	testP := &MockProvider{
 		ResourcesReturn: []ResourceType{
 			{
 				Name:            "test_thing",
@@ -62,10 +63,10 @@ func TestBuildingEvalContextInitProvider(t *testing.T) {
 
 	ctx := testBuiltinEvalContext(t)
 	ctx.ProviderLock = &lock
-	ctx.ProviderCache = make(map[string]ResourceProvider)
+	ctx.ProviderCache = make(map[string]providers.Interface)
 	ctx.Components = &basicComponentFactory{
-		providers: map[string]ResourceProviderFactory{
-			"test": ResourceProviderFactoryFixed(testP),
+		providers: map[string]providers.Factory{
+			"test": providers.FactoryFixed(testP),
 		},
 	}
 
