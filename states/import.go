@@ -18,7 +18,7 @@ type ImportedObject struct {
 	// Private corresponds to the field of the same name on
 	// ResourceInstanceObject, where the provider can record private data that
 	// will be available for future operations.
-	Private cty.Value
+	Private []byte
 }
 
 // AsInstanceObject converts the receiving ImportedObject into a

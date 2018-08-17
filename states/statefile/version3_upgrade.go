@@ -224,12 +224,19 @@ func upgradeInstanceObjectV3ToV4(rsOld *resourceStateV2, isOld *instanceStateV2,
 	var schemaVersion uint64
 	migratedSchemaVersion := false
 	if raw, exists := isOld.Meta["schema_version"]; exists {
-		if rawStr, ok := raw.(string); ok {
-			v, err := strconv.ParseUint(rawStr, 10, 64)
+		switch tv := raw.(type) {
+		case string:
+			v, err := strconv.ParseUint(tv, 10, 64)
 			if err == nil {
 				schemaVersion = v
 				migratedSchemaVersion = true
 			}
+		case int:
+			schemaVersion = uint64(tv)
+			migratedSchemaVersion = true
+		case float64:
+			schemaVersion = uint64(tv)
+			migratedSchemaVersion = true
 		}
 	}
 
