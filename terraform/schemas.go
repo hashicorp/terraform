@@ -199,18 +199,18 @@ func loadProvisionerSchemas(schemas map[string]*configschema.Block, config *conf
 			}
 		}()
 
-		schema, err := provisioner.GetConfigSchema()
-		if err != nil {
+		resp := provisioner.GetSchema()
+		if resp.Diagnostics.HasErrors() {
 			// We'll put a stub in the map so we won't re-attempt this on
 			// future calls.
 			schemas[name] = &configschema.Block{}
 			diags = diags.Append(
-				fmt.Errorf("Failed to retrieve schema from provisioner %q: %s", name, err),
+				fmt.Errorf("Failed to retrieve schema from provisioner %q: %s", name, resp.Diagnostics.Err()),
 			)
 			return
 		}
 
-		schemas[name] = schema
+		schemas[name] = resp.Provisioner
 	}
 
 	if config != nil {
