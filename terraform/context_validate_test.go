@@ -5,6 +5,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/hashicorp/terraform/providers"
 	"github.com/hashicorp/terraform/states"
 
 	"github.com/zclconf/go-cty/cty"
@@ -26,8 +27,8 @@ func TestContext2Validate_badCount(t *testing.T) {
 	m := testModule(t, "validate-bad-count")
 	c := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: ResourceProviderResolverFixed(
-			map[string]ResourceProviderFactory{
+		ProviderResolver: providers.ResolverFixed(
+			map[string]providers.Factory{
 				"aws": testProviderFuncFixed(p),
 			},
 		),
@@ -55,8 +56,8 @@ func TestContext2Validate_badVar(t *testing.T) {
 	m := testModule(t, "validate-bad-var")
 	c := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: ResourceProviderResolverFixed(
-			map[string]ResourceProviderFactory{
+		ProviderResolver: providers.ResolverFixed(
+			map[string]providers.Factory{
 				"aws": testProviderFuncFixed(p),
 			},
 		),
@@ -86,8 +87,8 @@ func TestContext2Validate_varMapOverrideOld(t *testing.T) {
 
 	c := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: ResourceProviderResolverFixed(
-			map[string]ResourceProviderFactory{
+		ProviderResolver: providers.ResolverFixed(
+			map[string]providers.Factory{
 				"aws": testProviderFuncFixed(p),
 			},
 		),
@@ -145,8 +146,8 @@ func TestContext2Validate_computedVar(t *testing.T) {
 	m := testModule(t, "validate-computed-var")
 	c := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: ResourceProviderResolverFixed(
-			map[string]ResourceProviderFactory{
+		ProviderResolver: providers.ResolverFixed(
+			map[string]providers.Factory{
 				"aws":  testProviderFuncFixed(p),
 				"test": testProviderFuncFixed(pt),
 			},
@@ -161,7 +162,7 @@ func TestContext2Validate_computedVar(t *testing.T) {
 		return nil, c.CheckSet([]string{"value"})
 	}
 
-	p.ConfigureFn = func(c *ResourceConfig) error {
+	p.ConfigureFn = func(providers.ConfigRequest) error {
 		return fmt.Errorf("Configure should not be called for provider")
 	}
 
@@ -195,8 +196,8 @@ func TestContext2Validate_countComputed(t *testing.T) {
 	m := testModule(t, "validate-count-computed")
 	c := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: ResourceProviderResolverFixed(
-			map[string]ResourceProviderFactory{
+		ProviderResolver: providers.ResolverFixed(
+			map[string]providers.Factory{
 				"aws": testProviderFuncFixed(p),
 			},
 		),
@@ -221,8 +222,8 @@ func TestContext2Validate_countNegative(t *testing.T) {
 	m := testModule(t, "validate-count-negative")
 	c := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: ResourceProviderResolverFixed(
-			map[string]ResourceProviderFactory{
+		ProviderResolver: providers.ResolverFixed(
+			map[string]providers.Factory{
 				"aws": testProviderFuncFixed(p),
 			},
 		),
@@ -249,8 +250,8 @@ func TestContext2Validate_countVariable(t *testing.T) {
 	m := testModule(t, "apply-count-variable")
 	c := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: ResourceProviderResolverFixed(
-			map[string]ResourceProviderFactory{
+		ProviderResolver: providers.ResolverFixed(
+			map[string]providers.Factory{
 				"aws": testProviderFuncFixed(p),
 			},
 		),
@@ -277,8 +278,8 @@ func TestContext2Validate_countVariableNoDefault(t *testing.T) {
 
 	c := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: ResourceProviderResolverFixed(
-			map[string]ResourceProviderFactory{
+		ProviderResolver: providers.ResolverFixed(
+			map[string]providers.Factory{
 				"aws": testProviderFuncFixed(p),
 			},
 		),
@@ -305,8 +306,8 @@ func TestContext2Validate_moduleBadOutput(t *testing.T) {
 	m := testModule(t, "validate-bad-module-output")
 	c := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: ResourceProviderResolverFixed(
-			map[string]ResourceProviderFactory{
+		ProviderResolver: providers.ResolverFixed(
+			map[string]providers.Factory{
 				"aws": testProviderFuncFixed(p),
 			},
 		),
@@ -333,8 +334,8 @@ func TestContext2Validate_moduleGood(t *testing.T) {
 	m := testModule(t, "validate-good-module")
 	c := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: ResourceProviderResolverFixed(
-			map[string]ResourceProviderFactory{
+		ProviderResolver: providers.ResolverFixed(
+			map[string]providers.Factory{
 				"aws": testProviderFuncFixed(p),
 			},
 		),
@@ -359,8 +360,8 @@ func TestContext2Validate_moduleBadResource(t *testing.T) {
 
 	c := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: ResourceProviderResolverFixed(
-			map[string]ResourceProviderFactory{
+		ProviderResolver: providers.ResolverFixed(
+			map[string]providers.Factory{
 				"aws": testProviderFuncFixed(p),
 			},
 		),
@@ -389,8 +390,8 @@ func TestContext2Validate_moduleDepsShouldNotCycle(t *testing.T) {
 
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: ResourceProviderResolverFixed(
-			map[string]ResourceProviderFactory{
+		ProviderResolver: providers.ResolverFixed(
+			map[string]providers.Factory{
 				"aws": testProviderFuncFixed(p),
 			},
 		),
@@ -420,8 +421,8 @@ func TestContext2Validate_moduleProviderInheritOrphan(t *testing.T) {
 
 	c := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: ResourceProviderResolverFixed(
-			map[string]ResourceProviderFactory{
+		ProviderResolver: providers.ResolverFixed(
+			map[string]providers.Factory{
 				"aws": testProviderFuncFixed(p),
 			},
 		),
@@ -480,8 +481,8 @@ func TestContext2Validate_moduleProviderVar(t *testing.T) {
 
 	c := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: ResourceProviderResolverFixed(
-			map[string]ResourceProviderFactory{
+		ProviderResolver: providers.ResolverFixed(
+			map[string]providers.Factory{
 				"aws": testProviderFuncFixed(p),
 			},
 		),
@@ -523,8 +524,8 @@ func TestContext2Validate_moduleProviderInheritUnused(t *testing.T) {
 
 	c := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: ResourceProviderResolverFixed(
-			map[string]ResourceProviderFactory{
+		ProviderResolver: providers.ResolverFixed(
+			map[string]providers.Factory{
 				"aws": testProviderFuncFixed(p),
 			},
 		),
@@ -571,8 +572,8 @@ func TestContext2Validate_orphans(t *testing.T) {
 	})
 	c := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: ResourceProviderResolverFixed(
-			map[string]ResourceProviderFactory{
+		ProviderResolver: providers.ResolverFixed(
+			map[string]providers.Factory{
 				"aws": testProviderFuncFixed(p),
 			},
 		),
@@ -608,8 +609,8 @@ func TestContext2Validate_providerConfig_bad(t *testing.T) {
 
 	c := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: ResourceProviderResolverFixed(
-			map[string]ResourceProviderFactory{
+		ProviderResolver: providers.ResolverFixed(
+			map[string]providers.Factory{
 				"aws": testProviderFuncFixed(p),
 			},
 		),
@@ -644,8 +645,8 @@ func TestContext2Validate_providerConfig_badEmpty(t *testing.T) {
 
 	c := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: ResourceProviderResolverFixed(
-			map[string]ResourceProviderFactory{
+		ProviderResolver: providers.ResolverFixed(
+			map[string]providers.Factory{
 				"aws": testProviderFuncFixed(p),
 			},
 		),
@@ -677,8 +678,8 @@ func TestContext2Validate_providerConfig_good(t *testing.T) {
 
 	c := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: ResourceProviderResolverFixed(
-			map[string]ResourceProviderFactory{
+		ProviderResolver: providers.ResolverFixed(
+			map[string]providers.Factory{
 				"aws": testProviderFuncFixed(p),
 			},
 		),
@@ -707,12 +708,12 @@ func TestContext2Validate_provisionerConfig_bad(t *testing.T) {
 
 	c := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: ResourceProviderResolverFixed(
-			map[string]ResourceProviderFactory{
+		ProviderResolver: providers.ResolverFixed(
+			map[string]providers.Factory{
 				"aws": testProviderFuncFixed(p),
 			},
 		),
-		Provisioners: map[string]ResourceProvisionerFactory{
+		Provisioners: map[string]ProvisionerFactory{
 			"shell": testProvisionerFuncFixed(pr),
 		},
 	})
@@ -753,12 +754,12 @@ func TestContext2Validate_provisionerConfig_good(t *testing.T) {
 
 	c := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: ResourceProviderResolverFixed(
-			map[string]ResourceProviderFactory{
+		ProviderResolver: providers.ResolverFixed(
+			map[string]providers.Factory{
 				"aws": testProviderFuncFixed(p),
 			},
 		),
-		Provisioners: map[string]ResourceProvisionerFactory{
+		Provisioners: map[string]ProvisionerFactory{
 			"shell": testProvisionerFuncFixed(pr),
 		},
 	})
@@ -784,8 +785,8 @@ func TestContext2Validate_requiredVar(t *testing.T) {
 
 	c := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: ResourceProviderResolverFixed(
-			map[string]ResourceProviderFactory{
+		ProviderResolver: providers.ResolverFixed(
+			map[string]providers.Factory{
 				"aws": testProviderFuncFixed(p),
 			},
 		),
@@ -812,8 +813,8 @@ func TestContext2Validate_resourceConfig_bad(t *testing.T) {
 
 	c := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: ResourceProviderResolverFixed(
-			map[string]ResourceProviderFactory{
+		ProviderResolver: providers.ResolverFixed(
+			map[string]providers.Factory{
 				"aws": testProviderFuncFixed(p),
 			},
 		),
@@ -842,8 +843,8 @@ func TestContext2Validate_resourceConfig_good(t *testing.T) {
 
 	c := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: ResourceProviderResolverFixed(
-			map[string]ResourceProviderFactory{
+		ProviderResolver: providers.ResolverFixed(
+			map[string]providers.Factory{
 				"aws": testProviderFuncFixed(p),
 			},
 		),
@@ -887,8 +888,8 @@ func TestContext2Validate_tainted(t *testing.T) {
 	})
 	c := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: ResourceProviderResolverFixed(
-			map[string]ResourceProviderFactory{
+		ProviderResolver: providers.ResolverFixed(
+			map[string]providers.Factory{
 				"aws": testProviderFuncFixed(p),
 			},
 		),
@@ -925,12 +926,12 @@ func TestContext2Validate_targetedDestroy(t *testing.T) {
 
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: ResourceProviderResolverFixed(
-			map[string]ResourceProviderFactory{
+		ProviderResolver: providers.ResolverFixed(
+			map[string]providers.Factory{
 				"aws": testProviderFuncFixed(p),
 			},
 		),
-		Provisioners: map[string]ResourceProvisionerFactory{
+		Provisioners: map[string]ProvisionerFactory{
 			"shell": testProvisionerFuncFixed(pr),
 		},
 		State: mustShimLegacyState(&State{
@@ -972,8 +973,8 @@ func TestContext2Validate_varRefFilled(t *testing.T) {
 	}
 	c := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: ResourceProviderResolverFixed(
-			map[string]ResourceProviderFactory{
+		ProviderResolver: providers.ResolverFixed(
+			map[string]providers.Factory{
 				"aws": testProviderFuncFixed(p),
 			},
 		),
@@ -1018,8 +1019,8 @@ func TestContext2Validate_interpolateVar(t *testing.T) {
 
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: ResourceProviderResolverFixed(
-			map[string]ResourceProviderFactory{
+		ProviderResolver: providers.ResolverFixed(
+			map[string]providers.Factory{
 				"template": testProviderFuncFixed(p),
 			},
 		),
@@ -1053,8 +1054,8 @@ func TestContext2Validate_interpolateComputedModuleVarDef(t *testing.T) {
 
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: ResourceProviderResolverFixed(
-			map[string]ResourceProviderFactory{
+		ProviderResolver: providers.ResolverFixed(
+			map[string]providers.Factory{
 				"aws": testProviderFuncFixed(p),
 			},
 		),
@@ -1078,8 +1079,8 @@ func TestContext2Validate_interpolateMap(t *testing.T) {
 
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: ResourceProviderResolverFixed(
-			map[string]ResourceProviderFactory{
+		ProviderResolver: providers.ResolverFixed(
+			map[string]providers.Factory{
 				"template": testProviderFuncFixed(p),
 			},
 		),
@@ -1158,8 +1159,8 @@ output "out" {
 	p := testProvider("aws")
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: ResourceProviderResolverFixed(
-			map[string]ResourceProviderFactory{
+		ProviderResolver: providers.ResolverFixed(
+			map[string]providers.Factory{
 				"aws": testProviderFuncFixed(p),
 			},
 		),
@@ -1194,8 +1195,8 @@ resource "aws_instance" "foo" {
 	p := testProvider("aws")
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: ResourceProviderResolverFixed(
-			map[string]ResourceProviderFactory{
+		ProviderResolver: providers.ResolverFixed(
+			map[string]providers.Factory{
 				"aws": testProviderFuncFixed(p),
 			},
 		),

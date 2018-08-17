@@ -8,6 +8,7 @@ import (
 
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs/configschema"
+	"github.com/hashicorp/terraform/providers"
 	"github.com/hashicorp/terraform/states"
 )
 
@@ -96,7 +97,7 @@ func TestEvalReadState(t *testing.T) {
 		},
 	})
 	providerSchema := mockProvider.GetSchemaReturn
-	provider := ResourceProvider(mockProvider)
+	provider := providers.Interface(mockProvider)
 
 	cases := map[string]struct {
 		Resources          map[string]*ResourceState
