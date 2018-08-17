@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/terraform/providers"
+	"github.com/hashicorp/terraform/provisioners"
 )
 
 // contextComponentFactory is the interface that Context uses
@@ -20,14 +21,14 @@ type contextComponentFactory interface {
 	// ResourceProvisioner creates a new ResourceProvisioner with the
 	// given type. The "uid" is a unique identifier for this provisioner
 	// being initialized that can be used for internal tracking.
-	ResourceProvisioner(typ, uid string) (ResourceProvisioner, error)
+	ResourceProvisioner(typ, uid string) (provisioners.Interface, error)
 	ResourceProvisioners() []string
 }
 
 // basicComponentFactory just calls a factory from a map directly.
 type basicComponentFactory struct {
 	providers    map[string]providers.Factory
-	provisioners map[string]ResourceProvisionerFactory
+	provisioners map[string]ProvisionerFactory
 }
 
 func (c *basicComponentFactory) ResourceProviders() []string {
@@ -57,7 +58,7 @@ func (c *basicComponentFactory) ResourceProvider(typ, uid string) (providers.Int
 	return f()
 }
 
-func (c *basicComponentFactory) ResourceProvisioner(typ, uid string) (ResourceProvisioner, error) {
+func (c *basicComponentFactory) ResourceProvisioner(typ, uid string) (provisioners.Interface, error) {
 	f, ok := c.provisioners[typ]
 	if !ok {
 		return nil, fmt.Errorf("unknown provisioner %q", typ)

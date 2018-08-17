@@ -12,6 +12,7 @@ import (
 	"github.com/hashicorp/terraform/lang"
 	"github.com/hashicorp/terraform/plans"
 	"github.com/hashicorp/terraform/providers"
+	"github.com/hashicorp/terraform/provisioners"
 	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/tfdiags"
 )
@@ -62,12 +63,12 @@ type MockEvalContext struct {
 
 	InitProvisionerCalled      bool
 	InitProvisionerName        string
-	InitProvisionerProvisioner ResourceProvisioner
+	InitProvisionerProvisioner provisioners.Interface
 	InitProvisionerError       error
 
 	ProvisionerCalled      bool
 	ProvisionerName        string
-	ProvisionerProvisioner ResourceProvisioner
+	ProvisionerProvisioner provisioners.Interface
 
 	ProvisionerSchemaCalled bool
 	ProvisionerSchemaName   string
@@ -75,7 +76,7 @@ type MockEvalContext struct {
 
 	CloseProvisionerCalled      bool
 	CloseProvisionerName        string
-	CloseProvisionerProvisioner ResourceProvisioner
+	CloseProvisionerProvisioner provisioners.Interface
 
 	EvaluateBlockCalled     bool
 	EvaluateBlockBody       hcl.Body
@@ -203,13 +204,13 @@ func (c *MockEvalContext) SetProviderInput(addr addrs.ProviderConfig, vals map[s
 	c.SetProviderInputValues = vals
 }
 
-func (c *MockEvalContext) InitProvisioner(n string) (ResourceProvisioner, error) {
+func (c *MockEvalContext) InitProvisioner(n string) (provisioners.Interface, error) {
 	c.InitProvisionerCalled = true
 	c.InitProvisionerName = n
 	return c.InitProvisionerProvisioner, c.InitProvisionerError
 }
 
-func (c *MockEvalContext) Provisioner(n string) ResourceProvisioner {
+func (c *MockEvalContext) Provisioner(n string) provisioners.Interface {
 	c.ProvisionerCalled = true
 	c.ProvisionerName = n
 	return c.ProvisionerProvisioner

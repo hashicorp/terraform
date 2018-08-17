@@ -8,6 +8,7 @@ import (
 
 	"github.com/hashicorp/terraform/plans"
 	"github.com/hashicorp/terraform/providers"
+	"github.com/hashicorp/terraform/provisioners"
 	"github.com/hashicorp/terraform/version"
 
 	"github.com/hashicorp/terraform/states"
@@ -58,7 +59,7 @@ type BuiltinEvalContext struct {
 	ProviderCache       map[string]providers.Interface
 	ProviderInputConfig map[string]map[string]cty.Value
 	ProviderLock        *sync.Mutex
-	ProvisionerCache    map[string]ResourceProvisioner
+	ProvisionerCache    map[string]provisioners.Interface
 	ProvisionerLock     *sync.Mutex
 	ChangesValue        *plans.ChangesSync
 	StateValue          *states.SyncState
@@ -211,7 +212,7 @@ func (ctx *BuiltinEvalContext) SetProviderInput(pc addrs.ProviderConfig, c map[s
 	ctx.ProviderLock.Unlock()
 }
 
-func (ctx *BuiltinEvalContext) InitProvisioner(n string) (ResourceProvisioner, error) {
+func (ctx *BuiltinEvalContext) InitProvisioner(n string) (provisioners.Interface, error) {
 	ctx.once.Do(ctx.init)
 
 	// If we already initialized, it is an error
@@ -236,7 +237,7 @@ func (ctx *BuiltinEvalContext) InitProvisioner(n string) (ResourceProvisioner, e
 	return p, nil
 }
 
-func (ctx *BuiltinEvalContext) Provisioner(n string) ResourceProvisioner {
+func (ctx *BuiltinEvalContext) Provisioner(n string) provisioners.Interface {
 	ctx.once.Do(ctx.init)
 
 	ctx.ProvisionerLock.Lock()
@@ -260,13 +261,9 @@ func (ctx *BuiltinEvalContext) CloseProvisioner(n string) error {
 
 	key := PathObjectCacheKey(ctx.Path(), n)
 
-	var prov interface{}
-	prov = ctx.ProvisionerCache[key]
+	prov := ctx.ProvisionerCache[key]
 	if prov != nil {
-		if p, ok := prov.(ResourceProvisionerCloser); ok {
-			delete(ctx.ProvisionerCache, key)
-			return p.Close()
-		}
+		return prov.Close()
 	}
 
 	return nil
