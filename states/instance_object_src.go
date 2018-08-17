@@ -51,7 +51,7 @@ type ResourceInstanceObjectSrc struct {
 
 	// These fields all correspond to the fields of the same name on
 	// ResourceInstanceObject.
-	Private      cty.Value
+	Private      []byte
 	Status       ObjectStatus
 	Dependencies []addrs.Referenceable
 }

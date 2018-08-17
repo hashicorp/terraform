@@ -7,7 +7,6 @@ import (
 	"sort"
 
 	version "github.com/hashicorp/go-version"
-	"github.com/zclconf/go-cty/cty"
 	ctyjson "github.com/zclconf/go-cty/cty/json"
 
 	"github.com/hashicorp/terraform/addrs"
@@ -178,28 +177,7 @@ func prepareStateV4(sV4 *stateV4) (*File, tfdiags.Diagnostics) {
 			}
 
 			if raw := isV4.PrivateRaw; len(raw) > 0 {
-				// Private metadata
-				ty, err := ctyjson.ImpliedType(raw)
-				if err != nil {
-					diags = diags.Append(tfdiags.Sourceless(
-						tfdiags.Error,
-						"Invalid resource instance metadata in state",
-						fmt.Sprintf("Instance %s has invalid private metadata: %s.", instAddr.Absolute(moduleAddr), err),
-					))
-					continue
-				}
-
-				val, err := ctyjson.Unmarshal(raw, ty)
-				if err != nil {
-					diags = diags.Append(tfdiags.Sourceless(
-						tfdiags.Error,
-						"Invalid resource instance metadata in state",
-						fmt.Sprintf("Instance %s has invalid private metadata: %s.", instAddr.Absolute(moduleAddr), err),
-					))
-					continue
-				}
-
-				obj.Private = val
+				obj.Private = raw
 			}
 
 			{
@@ -475,17 +453,9 @@ func appendInstanceObjectStateV4(rs *states.Resource, is *states.ResourceInstanc
 		))
 	}
 
-	var privateRaw json.RawMessage
-	if obj.Private != cty.NilVal {
-		var err error
-		privateRaw, err = ctyjson.Marshal(obj.Private, obj.Private.Type())
-		if err != nil {
-			diags = diags.Append(tfdiags.Sourceless(
-				tfdiags.Error,
-				"Failed to serialize resource instance in state",
-				fmt.Sprintf("Failed to serialize instance %s private metadata: %s.", rs.Addr.Instance(key), err),
-			))
-		}
+	var privateRaw []byte
+	if len(obj.Private) > 0 {
+		privateRaw = obj.Private
 	}
 
 	deps := make([]string, len(obj.Dependencies))
@@ -565,7 +535,7 @@ type instanceObjectStateV4 struct {
 	AttributesRaw  json.RawMessage   `json:"attributes,omitempty"`
 	AttributesFlat map[string]string `json:"attributes_flat,omitempty"`
 
-	PrivateRaw json.RawMessage `json:"private,omitempty"`
+	PrivateRaw []byte `json:"private,omitempty"`
 
 	Dependencies []string `json:"depends_on,omitempty"`
 }
