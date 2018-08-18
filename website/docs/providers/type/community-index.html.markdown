@@ -79,8 +79,8 @@ please fill out this [community providers form](https://docs.google.com/forms/d/
     <td><a href="https://github.com/geekmuse/jumpcloud-terraform-provider">JumpCloud</a></td>
     </tr>
     <tr>
-    <td><a href="https://github.com/plmwong/terraform-provider-keboola">Kaboola</a></td>
     <td><a href="https://github.com/Mongey/terraform-provider-kafka">Kafka</a></td>
+    <td><a href="https://github.com/plmwong/terraform-provider-keboola">Keboola</a></td>
     <td><a href="https://github.com/ewilde/terraform-provider-kibana">Kibana</a></td>
     </tr>
     <tr>
