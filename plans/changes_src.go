@@ -33,6 +33,11 @@ type ResourceInstanceChangeSrc struct {
 
 	// ChangeSrc is an embedded description of the not-yet-decoded change.
 	ChangeSrc
+
+	// Private allows a provider to stash any extra data that is opaque to
+	// Terraform that relates to this change. Terraform will save this
+	// byte-for-byte and return it to the provider in the apply call.
+	Private []byte
 }
 
 // Decode unmarshals the raw representation of the instance object being
@@ -48,6 +53,7 @@ func (rcs *ResourceInstanceChangeSrc) Decode(ty cty.Type) (*ResourceInstanceChan
 		DeposedKey:   rcs.DeposedKey,
 		ProviderAddr: rcs.ProviderAddr,
 		Change:       *change,
+		Private:      rcs.Private,
 	}, nil
 }
 
