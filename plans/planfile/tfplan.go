@@ -192,6 +192,10 @@ func resourceChangeFromTfplan(rawChange *planproto.ResourceInstanceChange) (*pla
 
 	ret.ChangeSrc = *change
 
+	if len(rawChange.Private) != 0 {
+		ret.Private = rawChange.Private
+	}
+
 	return ret, nil
 }
 
@@ -381,6 +385,10 @@ func resourceChangeToTfplan(change *plans.ResourceInstanceChangeSrc) (*planproto
 		return nil, fmt.Errorf("failed to serialize resource %s change: %s", relAddr, err)
 	}
 	ret.Change = valChange
+
+	if len(change.Private) > 0 {
+		ret.Private = change.Private
+	}
 
 	return ret, nil
 }
