@@ -93,7 +93,7 @@ func CopyDir(src string, dst string) (err error) {
 
 		// If the entry is a symlink, we copy the contents
 		for entry.Mode()&os.ModeSymlink != 0 {
-			target, err := os.Readlink(srcPath)
+			target, err := filepath.EvalSymlinks(srcPath)
 			if err != nil {
 				return err
 			}
