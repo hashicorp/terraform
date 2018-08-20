@@ -53,7 +53,7 @@ Terraform has a "planning" step where it generates an _execution plan_. The
 execution plan shows what Terraform will do when you call apply. This lets you
 avoid any surprises when Terraform manipulates infrastructure.
 
-### Resource Graph
+### Resource
 
 Terraform builds a graph of all your resources, and parallelizes the creation
 and modification of any non-dependent resources. Because of this, Terraform
