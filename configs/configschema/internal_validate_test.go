@@ -187,6 +187,42 @@ func TestBlockInternalValidate(t *testing.T) {
 			},
 			1, // nested_bad is both required and optional
 		},
+		"nested list block with dynamically-typed attribute": {
+			&Block{
+				BlockTypes: map[string]*NestedBlock{
+					"bad": &NestedBlock{
+						Nesting: NestingList,
+						Block: Block{
+							Attributes: map[string]*Attribute{
+								"nested_bad": &Attribute{
+									Type:     cty.DynamicPseudoType,
+									Optional: true,
+								},
+							},
+						},
+					},
+				},
+			},
+			0,
+		},
+		"nested set block with dynamically-typed attribute": {
+			&Block{
+				BlockTypes: map[string]*NestedBlock{
+					"bad": &NestedBlock{
+						Nesting: NestingSet,
+						Block: Block{
+							Attributes: map[string]*Attribute{
+								"nested_bad": &Attribute{
+									Type:     cty.DynamicPseudoType,
+									Optional: true,
+								},
+							},
+						},
+					},
+				},
+			},
+			1, // NestingSet blocks may not contain attributes of cty.DynamicPseudoType
+		},
 		"nil": {
 			nil,
 			1, // block is nil
