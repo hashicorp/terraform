@@ -76,6 +76,15 @@ func (b *Block) internalValidate(prefix string, err error) error {
 			if blockS.MinItems > blockS.MaxItems && blockS.MaxItems != 0 {
 				err = multierror.Append(err, fmt.Errorf("%s%s: MinItems must be less than or equal to MaxItems in %s mode", prefix, name, blockS.Nesting))
 			}
+			if blockS.Nesting == NestingSet {
+				ety := blockS.Block.ImpliedType()
+				if ety.HasDynamicTypes() {
+					// This is not permitted because the HCL (cty) set implementation
+					// needs to know the exact type of set elements in order to
+					// properly hash them, and so can't support mixed types.
+					err = multierror.Append(err, fmt.Errorf("%s%s: NestingSet blocks may not contain attributes of cty.DynamicPseudoType", prefix, name))
+				}
+			}
 		case NestingMap:
 			if blockS.MinItems != 0 || blockS.MaxItems != 0 {
 				err = multierror.Append(err, fmt.Errorf("%s%s: MinItems and MaxItems must both be 0 in NestingMap mode", prefix, name))
