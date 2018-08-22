@@ -171,6 +171,61 @@ func TestProposedNewObject(t *testing.T) {
 				},
 			},
 			cty.ObjectVal(map[string]cty.Value{
+				"foo": cty.ListVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"bar": cty.StringVal("beep"),
+						"baz": cty.StringVal("boop"),
+					}),
+				}),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"foo": cty.ListVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"bar": cty.StringVal("bap"),
+						"baz": cty.NullVal(cty.String),
+					}),
+					cty.ObjectVal(map[string]cty.Value{
+						"bar": cty.StringVal("blep"),
+						"baz": cty.NullVal(cty.String),
+					}),
+				}),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"foo": cty.ListVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"bar": cty.StringVal("bap"),
+						"baz": cty.StringVal("boop"),
+					}),
+					cty.ObjectVal(map[string]cty.Value{
+						"bar": cty.StringVal("blep"),
+						"baz": cty.NullVal(cty.String),
+					}),
+				}),
+			}),
+		},
+		"prior nested list with dynamic": {
+			&configschema.Block{
+				BlockTypes: map[string]*configschema.NestedBlock{
+					"foo": {
+						Nesting: configschema.NestingList,
+						Block: configschema.Block{
+							Attributes: map[string]*configschema.Attribute{
+								"bar": {
+									Type:     cty.String,
+									Optional: true,
+									Computed: true,
+								},
+								"baz": {
+									Type:     cty.DynamicPseudoType,
+									Optional: true,
+									Computed: true,
+								},
+							},
+						},
+					},
+				},
+			},
+			cty.ObjectVal(map[string]cty.Value{
 				"foo": cty.TupleVal([]cty.Value{
 					cty.ObjectVal(map[string]cty.Value{
 						"bar": cty.StringVal("beep"),
@@ -217,6 +272,65 @@ func TestProposedNewObject(t *testing.T) {
 								},
 								"baz": {
 									Type:     cty.String,
+									Optional: true,
+									Computed: true,
+								},
+							},
+						},
+					},
+				},
+			},
+			cty.ObjectVal(map[string]cty.Value{
+				"foo": cty.MapVal(map[string]cty.Value{
+					"a": cty.ObjectVal(map[string]cty.Value{
+						"bar": cty.StringVal("beep"),
+						"baz": cty.StringVal("boop"),
+					}),
+					"b": cty.ObjectVal(map[string]cty.Value{
+						"bar": cty.StringVal("blep"),
+						"baz": cty.StringVal("boot"),
+					}),
+				}),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"foo": cty.MapVal(map[string]cty.Value{
+					"a": cty.ObjectVal(map[string]cty.Value{
+						"bar": cty.StringVal("bap"),
+						"baz": cty.NullVal(cty.String),
+					}),
+					"c": cty.ObjectVal(map[string]cty.Value{
+						"bar": cty.StringVal("bosh"),
+						"baz": cty.NullVal(cty.String),
+					}),
+				}),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"foo": cty.MapVal(map[string]cty.Value{
+					"a": cty.ObjectVal(map[string]cty.Value{
+						"bar": cty.StringVal("bap"),
+						"baz": cty.StringVal("boop"),
+					}),
+					"c": cty.ObjectVal(map[string]cty.Value{
+						"bar": cty.StringVal("bosh"),
+						"baz": cty.NullVal(cty.String),
+					}),
+				}),
+			}),
+		},
+		"prior nested map with dynamic": {
+			&configschema.Block{
+				BlockTypes: map[string]*configschema.NestedBlock{
+					"foo": {
+						Nesting: configschema.NestingMap,
+						Block: configschema.Block{
+							Attributes: map[string]*configschema.Attribute{
+								"bar": {
+									Type:     cty.String,
+									Optional: true,
+									Computed: true,
+								},
+								"baz": {
+									Type:     cty.DynamicPseudoType,
 									Optional: true,
 									Computed: true,
 								},
