@@ -4,6 +4,10 @@ object resources. An object is a resource that represents and contains data
 - such as documents, images, and so on. You can also store custom metadata
 with an object.
 
+Note: When referencing the Object Storage API docs, some of the API actions
+are listed under "containers" rather than "objects". This was an intentional
+design in Gophercloud to make some object actions feel more natural.
+
 Example to List Objects
 
 	containerName := "my_container"
