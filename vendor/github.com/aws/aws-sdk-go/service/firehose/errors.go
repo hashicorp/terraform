@@ -17,10 +17,6 @@ const (
 	// The specified input parameter has a value that is not valid.
 	ErrCodeInvalidArgumentException = "InvalidArgumentException"
 
-	// ErrCodeInvalidStreamTypeException for service response error code
-	// "InvalidStreamTypeException".
-	ErrCodeInvalidStreamTypeException = "InvalidStreamTypeException"
-
 	// ErrCodeLimitExceededException for service response error code
 	// "LimitExceededException".
 	//
@@ -42,9 +38,9 @@ const (
 	// ErrCodeServiceUnavailableException for service response error code
 	// "ServiceUnavailableException".
 	//
-	// The service is unavailable, back off and retry the operation. If you continue
+	// The service is unavailable. Back off and retry the operation. If you continue
 	// to see the exception, throughput limits for the delivery stream may have
 	// been exceeded. For more information about limits and how to request an increase,
-	// see Amazon Kinesis Firehose Limits (http://docs.aws.amazon.com/firehose/latest/dev/limits.html).
+	// see Amazon Kinesis Data Firehose Limits (http://docs.aws.amazon.com/firehose/latest/dev/limits.html).
 	ErrCodeServiceUnavailableException = "ServiceUnavailableException"
 )

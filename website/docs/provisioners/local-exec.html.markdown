@@ -39,6 +39,10 @@ The following arguments are supported:
   It is evaluated in a shell, and can use environment variables or Terraform
   variables.
 
+* `working_dir` - (Optional) If provided, specifies the working directory where
+  `command` will be executed. It can be provided as as a relative path to the
+   current working directory or as an absolute path. The directory must exist.
+
 * `interpreter` - (Optional) If provided, this is a list of interpreter
   arguments used to execute the command. The first argument is the
   interpreter itself. It can be provided as a relative path to the current
@@ -46,6 +50,9 @@ The following arguments are supported:
   appended prior to the command.  This allows building command lines of the
   form "/bin/bash", "-c", "echo foo". If `interpreter` is unspecified,
   sensible defaults will be chosen based on the system OS.
+
+* `environment` - (Optional) block of key value pairs representing the
+  environment of the executed command. inherits the current process environment.
 
 ### Interpreter Examples
 
@@ -63,6 +70,22 @@ resource "null_resource" "example2" {
   provisioner "local-exec" {
     command = "Get-Date > completed.txt"
     interpreter = ["PowerShell", "-Command"]
+  }
+}
+```
+
+```hcl
+resource "aws_instance" "web" {
+  # ...
+
+  provisioner "local-exec" {
+    command = "echo $FOO $BAR $BAZ >> env_vars.txt"
+
+    environment {
+      FOO = "bar"
+      BAR = 1
+      BAZ = "true"
+    }
   }
 }
 ```

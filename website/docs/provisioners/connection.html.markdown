@@ -83,11 +83,16 @@ provisioner "file" {
 
 * `agent_identity` - The preferred identity from the ssh agent for authentication.
 
+* `host_key` - The public key from the remote host or the signing CA, used to
+  verify the connection.
+
 **Additional arguments only supported by the `winrm` connection type:**
 
 * `https` - Set to `true` to connect using HTTPS instead of HTTP.
 
 * `insecure` - Set to `true` to not validate the HTTPS certificate chain.
+
+* `use_ntlm` - Set to `true` to use NTLM authentication, rather than default (basic authentication), removing the requirement for basic authentication to be enabled within the target guest. Further reading for remote connection authentication can be found [here](https://msdn.microsoft.com/en-us/library/aa384295(v=vs.85).aspx).
 
 * `cacert` - The CA certificate to validate against.
 
@@ -99,6 +104,9 @@ The `ssh` connection also supports the following fields to facilitate connnectio
 
 * `bastion_host` - Setting this enables the bastion Host connection. This host
   will be connected to first, and then the `host` connection will be made from there.
+
+* `bastion_host_key` - The public key from the remote host or the signing CA,
+  used to verify the host connection.
 
 * `bastion_port` - The port to use connect to the bastion host. Defaults to the
   value of the `port` field.

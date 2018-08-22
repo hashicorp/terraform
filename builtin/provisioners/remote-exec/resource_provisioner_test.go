@@ -3,14 +3,14 @@ package remoteexec
 import (
 	"bytes"
 	"context"
-	"errors"
 	"io"
-	"net"
 	"testing"
 	"time"
 
 	"strings"
 
+	"github.com/hashicorp/terraform/communicator"
+	"github.com/hashicorp/terraform/communicator/remote"
 	"github.com/hashicorp/terraform/config"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/terraform"
@@ -210,62 +210,57 @@ func TestResourceProvider_CollectScripts_scriptsEmpty(t *testing.T) {
 	}
 }
 
-func TestRetryFunc(t *testing.T) {
-	origMax := maxBackoffDelay
-	maxBackoffDelay = time.Second
-	origStart := initialBackoffDelay
-	initialBackoffDelay = 10 * time.Millisecond
+func TestProvisionerTimeout(t *testing.T) {
+	o := new(terraform.MockUIOutput)
+	c := new(communicator.MockCommunicator)
 
-	defer func() {
-		maxBackoffDelay = origMax
-		initialBackoffDelay = origStart
-	}()
-
-	// succeed on the third try
-	errs := []error{io.EOF, &net.OpError{Err: errors.New("ERROR")}, nil}
-	count := 0
-
-	err := retryFunc(context.Background(), time.Second, func() error {
-		if count >= len(errs) {
-			return errors.New("failed to stop after nil error")
-		}
-
-		err := errs[count]
-		count++
-
-		return err
-	})
-
-	if count != 3 {
-		t.Fatal("retry func should have been called 3 times")
+	disconnected := make(chan struct{})
+	c.DisconnectFunc = func() error {
+		close(disconnected)
+		return nil
 	}
 
+	completed := make(chan struct{})
+	c.CommandFunc = func(cmd *remote.Cmd) error {
+		defer close(completed)
+		cmd.Init()
+		time.Sleep(2 * time.Second)
+		cmd.SetExitStatus(0, nil)
+		return nil
+	}
+	c.ConnTimeout = time.Second
+	c.UploadScripts = map[string]string{"hello": "echo hello"}
+	c.RemoteScriptPath = "hello"
+
+	p := Provisioner().(*schema.Provisioner)
+	conf := map[string]interface{}{
+		"inline": []interface{}{"echo hello"},
+	}
+
+	scripts, err := collectScripts(schema.TestResourceDataRaw(
+		t, p.Schema, conf))
 	if err != nil {
 		t.Fatal(err)
 	}
-}
 
-func TestRetryFuncBackoff(t *testing.T) {
-	origMax := maxBackoffDelay
-	maxBackoffDelay = time.Second
-	origStart := initialBackoffDelay
-	initialBackoffDelay = 100 * time.Millisecond
+	ctx := context.Background()
 
-	defer func() {
-		maxBackoffDelay = origMax
-		initialBackoffDelay = origStart
+	done := make(chan struct{})
+
+	go func() {
+		defer close(done)
+		if err := runScripts(ctx, o, c, scripts); err != nil {
+			t.Fatal(err)
+		}
 	}()
 
-	count := 0
-
-	retryFunc(context.Background(), time.Second, func() error {
-		count++
-		return io.EOF
-	})
-
-	if count > 4 {
-		t.Fatalf("retry func failed to backoff. called %d times", count)
+	select {
+	case <-disconnected:
+		t.Fatal("communicator disconnected before command completed")
+	case <-completed:
 	}
+
+	<-done
 }
 
 func testConfig(t *testing.T, c map[string]interface{}) *terraform.ResourceConfig {

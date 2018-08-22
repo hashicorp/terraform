@@ -14,12 +14,12 @@ func dataSourceAwsEip() *schema.Resource {
 		Read: dataSourceAwsEipRead,
 
 		Schema: map[string]*schema.Schema{
-			"id": &schema.Schema{
+			"id": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 			},
-			"public_ip": &schema.Schema{
+			"public_ip": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
@@ -41,7 +41,7 @@ func dataSourceAwsEipRead(d *schema.ResourceData, meta interface{}) error {
 		req.PublicIps = []*string{aws.String(public_ip.(string))}
 	}
 
-	log.Printf("[DEBUG] DescribeAddresses %s\n", req)
+	log.Printf("[DEBUG] Reading EIP: %s", req)
 	resp, err := conn.DescribeAddresses(req)
 	if err != nil {
 		return err

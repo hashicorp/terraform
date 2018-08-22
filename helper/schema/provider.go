@@ -59,7 +59,7 @@ type Provider struct {
 
 	meta interface{}
 
-	// a mutex is required because TestReset can directly repalce the stopCtx
+	// a mutex is required because TestReset can directly replace the stopCtx
 	stopMu        sync.Mutex
 	stopCtx       context.Context
 	stopCtxCancel context.CancelFunc

@@ -7,6 +7,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ses"
 	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/hashicorp/terraform/helper/validation"
 )
 
 func resourceAwsSesTemplate() *schema.Resource {
@@ -25,12 +26,12 @@ func resourceAwsSesTemplate() *schema.Resource {
 				Type:         schema.TypeString,
 				Required:     true,
 				ForceNew:     true,
-				ValidateFunc: validateSesTemplateName,
+				ValidateFunc: validation.StringLenBetween(1, 64),
 			},
 			"html": {
 				Type:         schema.TypeString,
 				Optional:     true,
-				ValidateFunc: validateSesTemplateHtml,
+				ValidateFunc: validateMaxLength(512000),
 			},
 			"subject": {
 				Type:     schema.TypeString,
@@ -39,7 +40,7 @@ func resourceAwsSesTemplate() *schema.Resource {
 			"text": {
 				Type:         schema.TypeString,
 				Optional:     true,
-				ValidateFunc: validateSesTemplateText,
+				ValidateFunc: validateMaxLength(512000),
 			},
 		},
 	}
@@ -110,10 +111,19 @@ func resourceAwsSesTemplateUpdate(d *schema.ResourceData, meta interface{}) erro
 	templateName := d.Id()
 
 	template := ses.Template{
-		HtmlPart:     aws.String(d.Get("html").(string)),
 		TemplateName: aws.String(templateName),
-		SubjectPart:  aws.String(d.Get("subject").(string)),
-		TextPart:     aws.String(d.Get("text").(string)),
+	}
+
+	if v, ok := d.GetOk("html"); ok {
+		template.HtmlPart = aws.String(v.(string))
+	}
+
+	if v, ok := d.GetOk("subject"); ok {
+		template.SubjectPart = aws.String(v.(string))
+	}
+
+	if v, ok := d.GetOk("text"); ok {
+		template.TextPart = aws.String(v.(string))
 	}
 
 	input := ses.UpdateTemplateInput{

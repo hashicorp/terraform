@@ -252,10 +252,7 @@ func TestApply_configInvalid(t *testing.T) {
 }
 
 func TestApply_defaultState(t *testing.T) {
-	td, err := ioutil.TempDir("", "tf")
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
+	td := testTempDir(t)
 	statePath := filepath.Join(td, DefaultStateFilename)
 
 	// Change to the temporary directory
@@ -735,10 +732,7 @@ func TestApply_planVars(t *testing.T) {
 // we should be able to apply a plan file with no other file dependencies
 func TestApply_planNoModuleFiles(t *testing.T) {
 	// temporary data directory which we can remove between commands
-	td, err := ioutil.TempDir("", "tf")
-	if err != nil {
-		t.Fatal(err)
-	}
+	td := testTempDir(t)
 	defer os.RemoveAll(td)
 
 	defer testChdir(t, td)()
@@ -824,12 +818,11 @@ func TestApply_refresh(t *testing.T) {
 }
 
 func TestApply_shutdown(t *testing.T) {
-	cancelled := false
-	stopped := make(chan struct{})
+	cancelled := make(chan struct{})
+	shutdownCh := make(chan struct{})
 
 	statePath := testTempFile(t)
 	p := testProvider()
-	shutdownCh := make(chan struct{})
 
 	ui := new(cli.MockUi)
 	c := &ApplyCommand{
@@ -841,8 +834,7 @@ func TestApply_shutdown(t *testing.T) {
 	}
 
 	p.StopFn = func() error {
-		close(stopped)
-		cancelled = true
+		close(cancelled)
 		return nil
 	}
 
@@ -858,15 +850,26 @@ func TestApply_shutdown(t *testing.T) {
 			},
 		}, nil
 	}
+
+	var once sync.Once
 	p.ApplyFn = func(
 		*terraform.InstanceInfo,
 		*terraform.InstanceState,
 		*terraform.InstanceDiff) (*terraform.InstanceState, error) {
+
 		// only cancel once
-		if !cancelled {
+		once.Do(func() {
 			shutdownCh <- struct{}{}
-			<-stopped
-		}
+		})
+
+		// Because of the internal lock in the MockProvider, we can't
+		// coordiante directly with the calling of Stop, and making the
+		// MockProvider concurrent is disruptive to a lot of existing tests.
+		// Wait here a moment to help make sure the main goroutine gets to the
+		// Stop call before we exit, or the plan may finish before it can be
+		// canceled.
+		time.Sleep(200 * time.Millisecond)
+
 		return &terraform.InstanceState{
 			ID: "foo",
 			Attributes: map[string]string{
@@ -888,7 +891,9 @@ func TestApply_shutdown(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	if !cancelled {
+	select {
+	case <-cancelled:
+	default:
 		t.Fatal("command not cancelled")
 	}
 

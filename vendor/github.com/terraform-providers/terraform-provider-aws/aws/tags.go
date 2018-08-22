@@ -333,53 +333,49 @@ func tagsFromMapDynamoDb(m map[string]interface{}) []*dynamodb.Tag {
 // method from the ec2 tag resource handling. Also the `UntagResource` method
 // for dynamoDB only requires a list of tag keys, instead of the full map of keys.
 func setTagsDynamoDb(conn *dynamodb.DynamoDB, d *schema.ResourceData) error {
-	if d.HasChange("tags") {
-		arn := d.Get("arn").(string)
-		oraw, nraw := d.GetChange("tags")
-		o := oraw.(map[string]interface{})
-		n := nraw.(map[string]interface{})
-		create, remove := diffTagsDynamoDb(tagsFromMapDynamoDb(o), tagsFromMapDynamoDb(n))
+	arn := d.Get("arn").(string)
+	oraw, nraw := d.GetChange("tags")
+	o := oraw.(map[string]interface{})
+	n := nraw.(map[string]interface{})
+	create, remove := diffTagsDynamoDb(tagsFromMapDynamoDb(o), tagsFromMapDynamoDb(n))
 
-		// Set tags
-		if len(remove) > 0 {
-			err := resource.Retry(2*time.Minute, func() *resource.RetryError {
-				log.Printf("[DEBUG] Removing tags: %#v from %s", remove, d.Id())
-				_, err := conn.UntagResource(&dynamodb.UntagResourceInput{
-					ResourceArn: aws.String(arn),
-					TagKeys:     remove,
-				})
-				if err != nil {
-					ec2err, ok := err.(awserr.Error)
-					if ok && strings.Contains(ec2err.Code(), "ResourceNotFoundException") {
-						return resource.RetryableError(err) // retry
-					}
-					return resource.NonRetryableError(err)
-				}
-				return nil
+	// Set tags
+	if len(remove) > 0 {
+		err := resource.Retry(2*time.Minute, func() *resource.RetryError {
+			log.Printf("[DEBUG] Removing tags: %#v from %s", remove, d.Id())
+			_, err := conn.UntagResource(&dynamodb.UntagResourceInput{
+				ResourceArn: aws.String(arn),
+				TagKeys:     remove,
 			})
 			if err != nil {
-				return err
+				if isAWSErr(err, dynamodb.ErrCodeResourceNotFoundException, "") {
+					return resource.RetryableError(err)
+				}
+				return resource.NonRetryableError(err)
 			}
+			return nil
+		})
+		if err != nil {
+			return err
 		}
-		if len(create) > 0 {
-			err := resource.Retry(2*time.Minute, func() *resource.RetryError {
-				log.Printf("[DEBUG] Creating tags: %s for %s", create, d.Id())
-				_, err := conn.TagResource(&dynamodb.TagResourceInput{
-					ResourceArn: aws.String(arn),
-					Tags:        create,
-				})
-				if err != nil {
-					ec2err, ok := err.(awserr.Error)
-					if ok && strings.Contains(ec2err.Code(), "ResourceNotFoundException") {
-						return resource.RetryableError(err) // retry
-					}
-					return resource.NonRetryableError(err)
-				}
-				return nil
+	}
+	if len(create) > 0 {
+		err := resource.Retry(2*time.Minute, func() *resource.RetryError {
+			log.Printf("[DEBUG] Creating tags: %s for %s", create, d.Id())
+			_, err := conn.TagResource(&dynamodb.TagResourceInput{
+				ResourceArn: aws.String(arn),
+				Tags:        create,
 			})
 			if err != nil {
-				return err
+				if isAWSErr(err, dynamodb.ErrCodeResourceNotFoundException, "") {
+					return resource.RetryableError(err)
+				}
+				return resource.NonRetryableError(err)
 			}
+			return nil
+		})
+		if err != nil {
+			return err
 		}
 	}
 

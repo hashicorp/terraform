@@ -2,10 +2,9 @@ package aws
 
 import (
 	"fmt"
-	"log"
+	"strings"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/ec2"
+	"github.com/aws/aws-sdk-go/aws/endpoints"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -14,21 +13,27 @@ func dataSourceAwsRegion() *schema.Resource {
 		Read: dataSourceAwsRegionRead,
 
 		Schema: map[string]*schema.Schema{
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 			},
 
-			"current": &schema.Schema{
-				Type:     schema.TypeBool,
+			"current": {
+				Type:       schema.TypeBool,
+				Optional:   true,
+				Computed:   true,
+				Deprecated: "Defaults to current provider region if no other filtering is enabled",
+			},
+
+			"endpoint": {
+				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 			},
 
-			"endpoint": &schema.Schema{
+			"description": {
 				Type:     schema.TypeString,
-				Optional: true,
 				Computed: true,
 			},
 		},
@@ -36,48 +41,78 @@ func dataSourceAwsRegion() *schema.Resource {
 }
 
 func dataSourceAwsRegionRead(d *schema.ResourceData, meta interface{}) error {
-	conn := meta.(*AWSClient).ec2conn
-	currentRegion := meta.(*AWSClient).region
+	providerRegion := meta.(*AWSClient).region
 
-	req := &ec2.DescribeRegionsInput{}
+	var region *endpoints.Region
 
-	req.RegionNames = make([]*string, 0, 2)
-	if name := d.Get("name").(string); name != "" {
-		req.RegionNames = append(req.RegionNames, aws.String(name))
+	if v, ok := d.GetOk("endpoint"); ok {
+		endpoint := v.(string)
+		matchingRegion, err := findRegionByEc2Endpoint(endpoint)
+		if err != nil {
+			return err
+		}
+		region = matchingRegion
 	}
 
-	if d.Get("current").(bool) {
-		req.RegionNames = append(req.RegionNames, aws.String(currentRegion))
+	if v, ok := d.GetOk("name"); ok {
+		name := v.(string)
+		matchingRegion, err := findRegionByName(name)
+		if err != nil {
+			return err
+		}
+		if region != nil && region.ID() != matchingRegion.ID() {
+			return fmt.Errorf("multiple regions matched; use additional constraints to reduce matches to a single region")
+		}
+		region = matchingRegion
 	}
 
-	req.Filters = buildEC2AttributeFilterList(
-		map[string]string{
-			"endpoint": d.Get("endpoint").(string),
-		},
-	)
-	if len(req.Filters) == 0 {
-		// Don't send an empty filters list; the EC2 API won't accept it.
-		req.Filters = nil
+	// Default to provider current region if no other filters matched
+	if region == nil {
+		matchingRegion, err := findRegionByName(providerRegion)
+		if err != nil {
+			return err
+		}
+		region = matchingRegion
 	}
 
-	log.Printf("[DEBUG] DescribeRegions %s\n", req)
-	resp, err := conn.DescribeRegions(req)
+	d.SetId(region.ID())
+	d.Set("current", region.ID() == providerRegion)
+
+	regionEndpointEc2, err := region.ResolveEndpoint(endpoints.Ec2ServiceID)
 	if err != nil {
 		return err
 	}
-	if resp == nil || len(resp.Regions) == 0 {
-		return fmt.Errorf("no matching regions found")
-	}
-	if len(resp.Regions) > 1 {
-		return fmt.Errorf("multiple regions matched; use additional constraints to reduce matches to a single region")
-	}
+	d.Set("endpoint", strings.TrimPrefix(regionEndpointEc2.URL, "https://"))
 
-	region := resp.Regions[0]
+	d.Set("name", region.ID())
 
-	d.SetId(*region.RegionName)
-	d.Set("name", region.RegionName)
-	d.Set("endpoint", region.Endpoint)
-	d.Set("current", *region.RegionName == currentRegion)
+	d.Set("description", region.Description())
 
 	return nil
+}
+
+func findRegionByEc2Endpoint(endpoint string) (*endpoints.Region, error) {
+	for _, partition := range endpoints.DefaultPartitions() {
+		for _, region := range partition.Regions() {
+			regionEndpointEc2, err := region.ResolveEndpoint(endpoints.Ec2ServiceID)
+			if err != nil {
+				return nil, err
+			}
+			if strings.TrimPrefix(regionEndpointEc2.URL, "https://") == endpoint {
+				return &region, nil
+			}
+		}
+	}
+	return nil, fmt.Errorf("region not found for endpoint: %s", endpoint)
+}
+
+func findRegionByName(name string) (*endpoints.Region, error) {
+	for _, partition := range endpoints.DefaultPartitions() {
+		for _, region := range partition.Regions() {
+			if region.ID() == name {
+				return &region, nil
+			}
+		}
+	}
+	return nil, fmt.Errorf("region not found for name: %s", name)
 }

@@ -205,13 +205,13 @@ func dataSourceAwsDbInstance() *schema.Resource {
 func dataSourceAwsDbInstanceRead(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).rdsconn
 
-	opts := rds.DescribeDBInstancesInput{
+	opts := &rds.DescribeDBInstancesInput{
 		DBInstanceIdentifier: aws.String(d.Get("db_instance_identifier").(string)),
 	}
 
-	log.Printf("[DEBUG] DB Instance describe configuration: %#v", opts)
+	log.Printf("[DEBUG] Reading DB Instance: %s", opts)
 
-	resp, err := conn.DescribeDBInstances(&opts)
+	resp, err := conn.DescribeDBInstances(opts)
 	if err != nil {
 		return err
 	}
@@ -252,7 +252,12 @@ func dataSourceAwsDbInstanceRead(d *schema.ResourceData, meta interface{}) error
 		return fmt.Errorf("[DEBUG] Error setting db_security_groups attribute: %#v, error: %#v", dbSecurityGroups, err)
 	}
 
-	d.Set("db_subnet_group", dbInstance.DBSubnetGroup.DBSubnetGroupName)
+	if dbInstance.DBSubnetGroup != nil {
+		d.Set("db_subnet_group", dbInstance.DBSubnetGroup.DBSubnetGroupName)
+	} else {
+		d.Set("db_subnet_group", "")
+	}
+
 	d.Set("db_instance_port", dbInstance.DbInstancePort)
 	d.Set("engine", dbInstance.Engine)
 	d.Set("engine_version", dbInstance.EngineVersion)

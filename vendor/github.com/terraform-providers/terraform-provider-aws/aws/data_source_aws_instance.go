@@ -38,11 +38,24 @@ func dataSourceAwsInstance() *schema.Resource {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
+			"placement_group": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
 			"tenancy": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
 			"key_name": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+			"get_password_data": {
+				Type:     schema.TypeBool,
+				Optional: true,
+				Default:  false,
+			},
+			"password_data": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
@@ -169,6 +182,11 @@ func dataSourceAwsInstance() *schema.Resource {
 							Type:     schema.TypeString,
 							Computed: true,
 						},
+
+						"volume_id": {
+							Type:     schema.TypeString,
+							Computed: true,
+						},
 					},
 				},
 			},
@@ -196,8 +214,29 @@ func dataSourceAwsInstance() *schema.Resource {
 							Type:     schema.TypeString,
 							Computed: true,
 						},
+
+						"volume_id": {
+							Type:     schema.TypeString,
+							Computed: true,
+						},
 					},
 				},
+			},
+			"credit_specification": {
+				Type:     schema.TypeList,
+				Computed: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"cpu_credits": {
+							Type:     schema.TypeString,
+							Computed: true,
+						},
+					},
+				},
+			},
+			"disable_api_termination": {
+				Type:     schema.TypeBool,
+				Computed: true,
 			},
 		},
 	}
@@ -229,7 +268,7 @@ func dataSourceAwsInstanceRead(d *schema.ResourceData, meta interface{}) error {
 		)...)
 	}
 
-	// Perform the lookup
+	log.Printf("[DEBUG] Reading IAM Instance: %s", params)
 	resp, err := conn.DescribeInstances(params)
 	if err != nil {
 		return err
@@ -266,7 +305,19 @@ func dataSourceAwsInstanceRead(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	log.Printf("[DEBUG] aws_instance - Single Instance ID found: %s", *instance.InstanceId)
-	return instanceDescriptionAttributes(d, instance, conn)
+	if err := instanceDescriptionAttributes(d, instance, conn); err != nil {
+		return err
+	}
+
+	if d.Get("get_password_data").(bool) {
+		passwordData, err := getAwsEc2InstancePasswordData(*instance.InstanceId, conn)
+		if err != nil {
+			return err
+		}
+		d.Set("password_data", passwordData)
+	}
+
+	return nil
 }
 
 // Populate instance attribute fields with the returned instance
@@ -276,6 +327,9 @@ func instanceDescriptionAttributes(d *schema.ResourceData, instance *ec2.Instanc
 	d.Set("instance_state", instance.State.Name)
 	if instance.Placement != nil {
 		d.Set("availability_zone", instance.Placement.AvailabilityZone)
+	}
+	if instance.Placement.GroupName != nil {
+		d.Set("placement_group", instance.Placement.GroupName)
 	}
 	if instance.Placement.Tenancy != nil {
 		d.Set("tenancy", instance.Placement.Tenancy)
@@ -349,6 +403,15 @@ func instanceDescriptionAttributes(d *schema.ResourceData, instance *ec2.Instanc
 		}
 		if attr.UserData.Value != nil {
 			d.Set("user_data", userDataHashSum(*attr.UserData.Value))
+		}
+	}
+	{
+		creditSpecifications, err := getCreditSpecifications(conn, d.Id())
+		if err != nil && !isAWSErr(err, "UnsupportedOperation", "") {
+			return err
+		}
+		if err := d.Set("credit_specification", creditSpecifications); err != nil {
+			return fmt.Errorf("error setting credit_specification: %s", err)
 		}
 	}
 

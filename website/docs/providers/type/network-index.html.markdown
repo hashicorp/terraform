@@ -3,7 +3,7 @@ layout: "docs"
 page_title: "Network Providers"
 sidebar_current: "docs-providers-network"
 description: |-
-  Category for netowrk vendors.
+  Category for network vendors.
 ---
 
 # Network Providers
@@ -28,6 +28,8 @@ in close collaboration with HashiCorp, and are tested by HashiCorp.
 [HTTP](/docs/providers/http/index.html)
 
 [NS1](/docs/providers/ns1/index.html)
+
+[Palo Alto Networks](/docs/providers/panos/index.html)
 
 [PowerDNS](/docs/providers/powerdns/index.html)
 

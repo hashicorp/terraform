@@ -25,7 +25,7 @@ func (b *Block) AsHCLBlock() *hcl.Block {
 	}
 }
 
-// Body is the implementation of hcl.Body for the zcl native syntax.
+// Body is the implementation of hcl.Body for the HCL native syntax.
 type Body struct {
 	Attributes Attributes
 	Blocks     Blocks

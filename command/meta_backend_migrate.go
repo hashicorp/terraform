@@ -211,6 +211,13 @@ func (m *Meta) backendMigrateState_s_s(opts *backendMigrateOpts) error {
 
 	stateTwo, err := opts.Two.State(opts.twoEnv)
 	if err != nil {
+		if err == backend.ErrDefaultStateNotSupported && stateOne.State() == nil {
+			// When using named workspaces it is common that the default
+			// workspace is not actually used. So we first check if there
+			// actually is a state to be migrated, if not we just return
+			// and silently ignore the unused default worksopace.
+			return nil
+		}
 		return fmt.Errorf(strings.TrimSpace(
 			errMigrateSingleLoadDefault), opts.TwoType, err)
 	}
@@ -233,28 +240,19 @@ func (m *Meta) backendMigrateState_s_s(opts *backendMigrateOpts) error {
 	}
 
 	if m.stateLock {
-		lockCtx, cancel := context.WithTimeout(context.Background(), m.stateLockTimeout)
-		defer cancel()
+		lockCtx := context.Background()
 
-		lockInfoOne := state.NewLockInfo()
-		lockInfoOne.Operation = "migration"
-		lockInfoOne.Info = "source state"
-
-		lockIDOne, err := clistate.Lock(lockCtx, stateOne, lockInfoOne, m.Ui, m.Colorize())
-		if err != nil {
+		lockerOne := clistate.NewLocker(lockCtx, m.stateLockTimeout, m.Ui, m.Colorize())
+		if err := lockerOne.Lock(stateOne, "migration source state"); err != nil {
 			return fmt.Errorf("Error locking source state: %s", err)
 		}
-		defer clistate.Unlock(stateOne, lockIDOne, m.Ui, m.Colorize())
+		defer lockerOne.Unlock(nil)
 
-		lockInfoTwo := state.NewLockInfo()
-		lockInfoTwo.Operation = "migration"
-		lockInfoTwo.Info = "destination state"
-
-		lockIDTwo, err := clistate.Lock(lockCtx, stateTwo, lockInfoTwo, m.Ui, m.Colorize())
-		if err != nil {
+		lockerTwo := clistate.NewLocker(lockCtx, m.stateLockTimeout, m.Ui, m.Colorize())
+		if err := lockerTwo.Lock(stateTwo, "migration destination state"); err != nil {
 			return fmt.Errorf("Error locking destination state: %s", err)
 		}
-		defer clistate.Unlock(stateTwo, lockIDTwo, m.Ui, m.Colorize())
+		defer lockerTwo.Unlock(nil)
 
 		// We now own a lock, so double check that we have the version
 		// corresponding to the lock.
@@ -427,8 +425,8 @@ above error and try again.
 `
 
 const errMigrateMulti = `
-Error migrating the workspace %q from the previous %q backend to the newly
-configured %q backend:
+Error migrating the workspace %q from the previous %q backend
+to the newly configured %q backend:
     %s
 
 Terraform copies workspaces in alphabetical order. Any workspaces
@@ -441,7 +439,8 @@ This will attempt to copy (with permission) all workspaces again.
 `
 
 const errBackendStateCopy = `
-Error copying state from the previous %q backend to the newly configured %q backend:
+Error copying state from the previous %q backend to the newly configured 
+%q backend:
     %s
 
 The state in the previous backend remains intact and unmodified. Please resolve

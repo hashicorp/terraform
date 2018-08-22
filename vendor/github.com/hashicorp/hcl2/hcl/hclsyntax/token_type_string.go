@@ -2,7 +2,7 @@
 
 package hclsyntax
 
-import "fmt"
+import "strconv"
 
 const _TokenType_name = "TokenNilTokenNewlineTokenBangTokenPercentTokenBitwiseAndTokenOParenTokenCParenTokenStarTokenPlusTokenCommaTokenMinusTokenDotTokenSlashTokenColonTokenSemicolonTokenLessThanTokenEqualTokenGreaterThanTokenQuestionTokenCommentTokenOHeredocTokenIdentTokenNumberLitTokenQuotedLitTokenStringLitTokenOBrackTokenCBrackTokenBitwiseXorTokenBacktickTokenCHeredocTokenOBraceTokenBitwiseOrTokenCBraceTokenBitwiseNotTokenOQuoteTokenCQuoteTokenTemplateControlTokenEllipsisTokenFatArrowTokenTemplateSeqEndTokenAndTokenOrTokenTemplateInterpTokenEqualOpTokenNotEqualTokenLessThanEqTokenGreaterThanEqTokenEOFTokenTabsTokenStarStarTokenInvalidTokenBadUTF8"
 
@@ -65,5 +65,5 @@ func (i TokenType) String() string {
 	if str, ok := _TokenType_map[i]; ok {
 		return str
 	}
-	return fmt.Sprintf("TokenType(%d)", i)
+	return "TokenType(" + strconv.FormatInt(int64(i), 10) + ")"
 }

@@ -9,6 +9,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/hashicorp/terraform/helper/validation"
 )
 
 func dataSourceAwsAvailabilityZones() *schema.Resource {
@@ -22,9 +23,14 @@ func dataSourceAwsAvailabilityZones() *schema.Resource {
 				Elem:     &schema.Schema{Type: schema.TypeString},
 			},
 			"state": {
-				Type:         schema.TypeString,
-				Optional:     true,
-				ValidateFunc: validateStateType,
+				Type:     schema.TypeString,
+				Optional: true,
+				ValidateFunc: validation.StringInSlice([]string{
+					ec2.AvailabilityZoneStateAvailable,
+					ec2.AvailabilityZoneStateInformation,
+					ec2.AvailabilityZoneStateImpaired,
+					ec2.AvailabilityZoneStateUnavailable,
+				}, false),
 			},
 		},
 	}
@@ -47,8 +53,7 @@ func dataSourceAwsAvailabilityZonesRead(d *schema.ResourceData, meta interface{}
 		}
 	}
 
-	log.Printf("[DEBUG] Availability Zones request options: %#v", *request)
-
+	log.Printf("[DEBUG] Reading Availability Zones: %s", request)
 	resp, err := conn.DescribeAvailabilityZones(request)
 	if err != nil {
 		return fmt.Errorf("Error fetching Availability Zones: %s", err)
@@ -66,22 +71,4 @@ func dataSourceAwsAvailabilityZonesRead(d *schema.ResourceData, meta interface{}
 	}
 
 	return nil
-}
-
-func validateStateType(v interface{}, k string) (ws []string, errors []error) {
-	value := v.(string)
-
-	validState := map[string]bool{
-		"available":   true,
-		"information": true,
-		"impaired":    true,
-		"unavailable": true,
-	}
-
-	if !validState[value] {
-		errors = append(errors, fmt.Errorf(
-			"%q contains an invalid Availability Zone state %q. Valid states are: %q, %q, %q and %q.",
-			k, value, "available", "information", "impaired", "unavailable"))
-	}
-	return
 }

@@ -636,11 +636,12 @@ const testTerraformApplyProvisionerFailCreateNoIdStr = `
 `
 
 const testTerraformApplyProvisionerFailCreateBeforeDestroyStr = `
-aws_instance.bar: (1 deposed)
-  ID = bar
+aws_instance.bar: (tainted) (1 deposed)
+  ID = foo
   provider = provider.aws
-  require_new = abc
-  Deposed ID 1 = foo (tainted)
+  require_new = xyz
+  type = aws_instance
+  Deposed ID 1 = bar
 `
 
 const testTerraformApplyProvisionerResourceRefStr = `
@@ -1675,7 +1676,10 @@ aws_instance.foo:
 const testTFPlanDiffIgnoreChangesWithFlatmaps = `
 UPDATE: aws_instance.foo
   lst.#:   "1" => "2"
+  lst.0:   "j" => "j"
   lst.1:   "" => "k"
+  set.#:   "1" => "1"
+  set.0.a: "1" => "1"
   set.0.b: "" => "2"
   type:    "" => "aws_instance"
 `

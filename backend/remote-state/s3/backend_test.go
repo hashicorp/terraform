@@ -103,7 +103,7 @@ func TestBackend(t *testing.T) {
 	createS3Bucket(t, b.s3Client, bucketName)
 	defer deleteS3Bucket(t, b.s3Client, bucketName)
 
-	backend.TestBackend(t, b, nil)
+	backend.TestBackendStates(t, b)
 }
 
 func TestBackendLocked(t *testing.T) {
@@ -131,7 +131,8 @@ func TestBackendLocked(t *testing.T) {
 	createDynamoDBTable(t, b1.dynClient, bucketName)
 	defer deleteDynamoDBTable(t, b1.dynClient, bucketName)
 
-	backend.TestBackend(t, b1, b2)
+	backend.TestBackendStateLocks(t, b1, b2)
+	backend.TestBackendStateForceUnlock(t, b1, b2)
 }
 
 // add some extra junk in S3 to try and confuse the env listing.
@@ -249,6 +250,35 @@ func TestBackendExtraPaths(t *testing.T) {
 	}
 }
 
+// ensure we can separate the workspace prefix when it also matches the prefix
+// of the workspace name itself.
+func TestBackendPrefixInWorkspace(t *testing.T) {
+	testACC(t)
+	bucketName := fmt.Sprintf("terraform-remote-s3-test-%x", time.Now().Unix())
+
+	b := backend.TestBackendConfig(t, New(), map[string]interface{}{
+		"bucket": bucketName,
+		"key":    "test-env.tfstate",
+		"workspace_key_prefix": "env",
+	}).(*Backend)
+
+	createS3Bucket(t, b.s3Client, bucketName)
+	defer deleteS3Bucket(t, b.s3Client, bucketName)
+
+	// get a state that contains the prefix as a substring
+	sMgr, err := b.State("env-1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := sMgr.RefreshState(); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := checkStateList(b, []string{"default", "env-1"}); err != nil {
+		t.Fatal(err)
+	}
+}
+
 func TestKeyEnv(t *testing.T) {
 	testACC(t)
 	keyName := "some/paths/tfstate"
@@ -305,9 +335,9 @@ func TestKeyEnv(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	backend.TestBackend(t, b0, nil)
-	backend.TestBackend(t, b1, nil)
-	backend.TestBackend(t, b2, nil)
+	backend.TestBackendStates(t, b0)
+	backend.TestBackendStates(t, b1)
+	backend.TestBackendStates(t, b2)
 }
 
 func testGetWorkspaceForKey(b *Backend, key string, expected string) error {

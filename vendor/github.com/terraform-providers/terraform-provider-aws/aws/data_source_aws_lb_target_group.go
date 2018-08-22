@@ -2,6 +2,7 @@ package aws
 
 import (
 	"fmt"
+	"log"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/elbv2"
@@ -45,6 +46,11 @@ func dataSourceAwsLbTargetGroup() *schema.Resource {
 			},
 
 			"deregistration_delay": {
+				Type:     schema.TypeInt,
+				Computed: true,
+			},
+
+			"slow_start": {
 				Type:     schema.TypeInt,
 				Computed: true,
 			},
@@ -138,6 +144,7 @@ func dataSourceAwsLbTargetGroupRead(d *schema.ResourceData, meta interface{}) er
 		describeTgOpts.Names = []*string{aws.String(tgName)}
 	}
 
+	log.Printf("[DEBUG] Reading Load Balancer Target Group: %s", describeTgOpts)
 	describeResp, err := elbconn.DescribeTargetGroups(describeTgOpts)
 	if err != nil {
 		return errwrap.Wrapf("Error retrieving LB Target Group: {{err}}", err)

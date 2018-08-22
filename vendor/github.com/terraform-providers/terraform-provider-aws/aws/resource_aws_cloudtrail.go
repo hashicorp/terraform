@@ -9,6 +9,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/cloudtrail"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/hashicorp/terraform/helper/validation"
 )
 
 func resourceAwsCloudTrail() *schema.Resource {
@@ -72,6 +73,51 @@ func resourceAwsCloudTrail() *schema.Resource {
 				Optional:     true,
 				ValidateFunc: validateArn,
 			},
+			"event_selector": {
+				Type:     schema.TypeList,
+				Optional: true,
+				MaxItems: 5,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"read_write_type": {
+							Type:     schema.TypeString,
+							Optional: true,
+							Default:  cloudtrail.ReadWriteTypeAll,
+							ValidateFunc: validation.StringInSlice([]string{
+								cloudtrail.ReadWriteTypeAll,
+								cloudtrail.ReadWriteTypeReadOnly,
+								cloudtrail.ReadWriteTypeWriteOnly,
+							}, false),
+						},
+
+						"include_management_events": {
+							Type:     schema.TypeBool,
+							Optional: true,
+							Default:  true,
+						},
+
+						"data_resource": {
+							Type:     schema.TypeList,
+							Optional: true,
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"type": {
+										Type:         schema.TypeString,
+										Required:     true,
+										ValidateFunc: validation.StringInSlice([]string{"AWS::S3::Object", "AWS::Lambda::Function"}, false),
+									},
+									"values": {
+										Type:     schema.TypeList,
+										Required: true,
+										MaxItems: 250,
+										Elem:     &schema.Schema{Type: schema.TypeString},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
 			"home_region": {
 				Type:     schema.TypeString,
 				Computed: true,
@@ -99,7 +145,7 @@ func resourceAwsCloudTrailCreate(d *schema.ResourceData, meta interface{}) error
 	if v, ok := d.GetOk("cloud_watch_logs_role_arn"); ok {
 		input.CloudWatchLogsRoleArn = aws.String(v.(string))
 	}
-	if v, ok := d.GetOk("include_global_service_events"); ok {
+	if v, ok := d.GetOkExists("include_global_service_events"); ok {
 		input.IncludeGlobalServiceEvents = aws.Bool(v.(bool))
 	}
 	if v, ok := d.GetOk("is_multi_region_trail"); ok {
@@ -146,6 +192,13 @@ func resourceAwsCloudTrailCreate(d *schema.ResourceData, meta interface{}) error
 	if v, ok := d.GetOk("enable_logging"); ok && v.(bool) {
 		err := cloudTrailSetLogging(conn, v.(bool), d.Id())
 		if err != nil {
+			return err
+		}
+	}
+
+	// Event Selectors
+	if _, ok := d.GetOk("event_selector"); ok {
+		if err := cloudTrailSetEventSelectors(conn, d); err != nil {
 			return err
 		}
 	}
@@ -227,6 +280,18 @@ func resourceAwsCloudTrailRead(d *schema.ResourceData, meta interface{}) error {
 	}
 	d.Set("enable_logging", logstatus)
 
+	// Get EventSelectors
+	eventSelectorsOut, err := conn.GetEventSelectors(&cloudtrail.GetEventSelectorsInput{
+		TrailName: aws.String(d.Id()),
+	})
+	if err != nil {
+		return err
+	}
+
+	if err := d.Set("event_selector", flattenAwsCloudTrailEventSelector(eventSelectorsOut.EventSelectors)); err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -300,6 +365,13 @@ func resourceAwsCloudTrailUpdate(d *schema.ResourceData, meta interface{}) error
 		}
 	}
 
+	if !d.IsNewResource() && d.HasChange("event_selector") {
+		log.Printf("[DEBUG] Updating event selector on CloudTrail: %s", input)
+		if err := cloudTrailSetEventSelectors(conn, d); err != nil {
+			return err
+		}
+	}
+
 	log.Printf("[DEBUG] CloudTrail updated: %s", t)
 
 	return resourceAwsCloudTrailRead(d, meta)
@@ -356,4 +428,99 @@ func cloudTrailSetLogging(conn *cloudtrail.CloudTrail, enabled bool, id string) 
 	}
 
 	return nil
+}
+
+func cloudTrailSetEventSelectors(conn *cloudtrail.CloudTrail, d *schema.ResourceData) error {
+	input := &cloudtrail.PutEventSelectorsInput{
+		TrailName: aws.String(d.Id()),
+	}
+
+	eventSelectors := expandAwsCloudTrailEventSelector(d.Get("event_selector").([]interface{}))
+	input.EventSelectors = eventSelectors
+
+	if err := input.Validate(); err != nil {
+		return fmt.Errorf("Error validate CloudTrail (%s): %s", d.Id(), err)
+	}
+
+	_, err := conn.PutEventSelectors(input)
+	if err != nil {
+		return fmt.Errorf("Error set event selector on CloudTrail (%s): %s", d.Id(), err)
+	}
+
+	return nil
+}
+
+func expandAwsCloudTrailEventSelector(configured []interface{}) []*cloudtrail.EventSelector {
+	eventSelectors := make([]*cloudtrail.EventSelector, 0, len(configured))
+
+	for _, raw := range configured {
+		data := raw.(map[string]interface{})
+		dataResources := expandAwsCloudTrailEventSelectorDataResource(data["data_resource"].([]interface{}))
+
+		es := &cloudtrail.EventSelector{
+			IncludeManagementEvents: aws.Bool(data["include_management_events"].(bool)),
+			ReadWriteType:           aws.String(data["read_write_type"].(string)),
+			DataResources:           dataResources,
+		}
+		eventSelectors = append(eventSelectors, es)
+	}
+
+	return eventSelectors
+}
+
+func expandAwsCloudTrailEventSelectorDataResource(configured []interface{}) []*cloudtrail.DataResource {
+	dataResources := make([]*cloudtrail.DataResource, 0, len(configured))
+
+	for _, raw := range configured {
+		data := raw.(map[string]interface{})
+
+		values := make([]*string, len(data["values"].([]interface{})))
+		for i, vv := range data["values"].([]interface{}) {
+			str := vv.(string)
+			values[i] = aws.String(str)
+		}
+
+		dataResource := &cloudtrail.DataResource{
+			Type:   aws.String(data["type"].(string)),
+			Values: values,
+		}
+
+		dataResources = append(dataResources, dataResource)
+	}
+
+	return dataResources
+}
+
+func flattenAwsCloudTrailEventSelector(configured []*cloudtrail.EventSelector) []map[string]interface{} {
+	eventSelectors := make([]map[string]interface{}, 0, len(configured))
+
+	// Prevent default configurations shows differences
+	if len(configured) == 1 && len(configured[0].DataResources) == 0 {
+		return eventSelectors
+	}
+
+	for _, raw := range configured {
+		item := make(map[string]interface{})
+		item["read_write_type"] = *raw.ReadWriteType
+		item["include_management_events"] = *raw.IncludeManagementEvents
+		item["data_resource"] = flattenAwsCloudTrailEventSelectorDataResource(raw.DataResources)
+
+		eventSelectors = append(eventSelectors, item)
+	}
+
+	return eventSelectors
+}
+
+func flattenAwsCloudTrailEventSelectorDataResource(configured []*cloudtrail.DataResource) []map[string]interface{} {
+	dataResources := make([]map[string]interface{}, 0, len(configured))
+
+	for _, raw := range configured {
+		item := make(map[string]interface{})
+		item["type"] = *raw.Type
+		item["values"] = flattenStringList(raw.Values)
+
+		dataResources = append(dataResources, item)
+	}
+
+	return dataResources
 }

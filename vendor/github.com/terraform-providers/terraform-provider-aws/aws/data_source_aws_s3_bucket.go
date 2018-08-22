@@ -5,6 +5,7 @@ import (
 	"log"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/arn"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/hashicorp/terraform/helper/schema"
 )
@@ -63,7 +64,12 @@ func dataSourceAwsS3BucketRead(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	d.SetId(bucket)
-	d.Set("arn", fmt.Sprintf("arn:%s:s3:::%s", meta.(*AWSClient).partition, bucket))
+	arn := arn.ARN{
+		Partition: meta.(*AWSClient).partition,
+		Service:   "s3",
+		Resource:  bucket,
+	}.String()
+	d.Set("arn", arn)
 	d.Set("bucket_domain_name", bucketDomainName(bucket))
 
 	if err := bucketLocation(d, bucket, conn); err != nil {
@@ -91,9 +97,11 @@ func bucketLocation(d *schema.ResourceData, bucket string, conn *s3.S3) error {
 		return err
 	}
 
-	hostedZoneID := HostedZoneIDForRegion(region)
-	if err := d.Set("hosted_zone_id", hostedZoneID); err != nil {
-		return err
+	hostedZoneID, err := HostedZoneIDForRegion(region)
+	if err != nil {
+		log.Printf("[WARN] %s", err)
+	} else {
+		d.Set("hosted_zone_id", hostedZoneID)
 	}
 
 	_, websiteErr := conn.GetBucketWebsite(

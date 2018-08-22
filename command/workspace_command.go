@@ -33,16 +33,8 @@ func (c *WorkspaceCommand) Help() string {
 	helpText := `
 Usage: terraform workspace
 
-  Create, change and delete Terraform workspaces.
+  Create, list, change and delete Terraform workspaces.
 
-
-Subcommands:
-
-    show      Show the current workspace name.
-    list      List workspaces.
-    select    Select a workspace.
-    new       Create a new workspace.
-    delete    Delete an existing workspace.
 `
 	return strings.TrimSpace(helpText)
 }

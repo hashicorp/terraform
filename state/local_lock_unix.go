@@ -3,7 +3,7 @@
 package state
 
 import (
-	"os"
+	"io"
 	"syscall"
 )
 
@@ -12,7 +12,7 @@ import (
 func (s *LocalState) lock() error {
 	flock := &syscall.Flock_t{
 		Type:   syscall.F_RDLCK | syscall.F_WRLCK,
-		Whence: int16(os.SEEK_SET),
+		Whence: int16(io.SeekStart),
 		Start:  0,
 		Len:    0,
 	}
@@ -24,7 +24,7 @@ func (s *LocalState) lock() error {
 func (s *LocalState) unlock() error {
 	flock := &syscall.Flock_t{
 		Type:   syscall.F_UNLCK,
-		Whence: int16(os.SEEK_SET),
+		Whence: int16(io.SeekStart),
 		Start:  0,
 		Len:    0,
 	}

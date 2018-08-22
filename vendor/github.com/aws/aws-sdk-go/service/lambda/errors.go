@@ -41,9 +41,7 @@ const (
 	//
 	// One of the parameters in the request is invalid. For example, if you provided
 	// an IAM role for AWS Lambda to assume in the CreateFunction or the UpdateFunctionConfiguration
-	// API, that AWS Lambda is unable to assume you will get this exception. You
-	// will also get this exception if you have selected a deprecated runtime, such
-	// as Node v0.10.42.
+	// API, that AWS Lambda is unable to assume you will get this exception.
 	ErrCodeInvalidParameterValueException = "InvalidParameterValueException"
 
 	// ErrCodeInvalidRequestContentException for service response error code
@@ -111,6 +109,14 @@ const (
 	// Lambda function access policy is limited to 20 KB.
 	ErrCodePolicyLengthExceededException = "PolicyLengthExceededException"
 
+	// ErrCodePreconditionFailedException for service response error code
+	// "PreconditionFailedException".
+	//
+	// The RevisionId provided does not match the latest RevisionId for the Lambda
+	// function or alias. Call the GetFunction or the GetAlias API to retrieve the
+	// latest RevisionId for your resource.
+	ErrCodePreconditionFailedException = "PreconditionFailedException"
+
 	// ErrCodeRequestTooLargeException for service response error code
 	// "RequestTooLargeException".
 	//
@@ -123,6 +129,14 @@ const (
 	//
 	// The resource already exists.
 	ErrCodeResourceConflictException = "ResourceConflictException"
+
+	// ErrCodeResourceInUseException for service response error code
+	// "ResourceInUseException".
+	//
+	// The operation conflicts with the resource's availability. For example, you
+	// attempted to update an EventSoure Mapping in CREATING, or tried to delete
+	// a EventSoure mapping currently in the UPDATING state.
+	ErrCodeResourceInUseException = "ResourceInUseException"
 
 	// ErrCodeResourceNotFoundException for service response error code
 	// "ResourceNotFoundException".

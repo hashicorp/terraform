@@ -44,17 +44,10 @@ func resourceAwsKinesisStream() *schema.Resource {
 			},
 
 			"retention_period": {
-				Type:     schema.TypeInt,
-				Optional: true,
-				Default:  24,
-				ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
-					value := v.(int)
-					if value < 24 || value > 168 {
-						errors = append(errors, fmt.Errorf(
-							"%q must be between 24 and 168 hours", k))
-					}
-					return
-				},
+				Type:         schema.TypeInt,
+				Optional:     true,
+				Default:      24,
+				ValidateFunc: validation.IntBetween(24, 168),
 			},
 
 			"shard_level_metrics": {
@@ -65,10 +58,13 @@ func resourceAwsKinesisStream() *schema.Resource {
 			},
 
 			"encryption_type": {
-				Type:         schema.TypeString,
-				Optional:     true,
-				Default:      "NONE",
-				ValidateFunc: validation.StringInSlice([]string{"NONE", "KMS"}, true),
+				Type:     schema.TypeString,
+				Optional: true,
+				Default:  "NONE",
+				ValidateFunc: validation.StringInSlice([]string{
+					kinesis.EncryptionTypeNone,
+					kinesis.EncryptionTypeKms,
+				}, true),
 				DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
 					if strings.ToLower(old) == strings.ToLower(new) {
 						return true
@@ -106,19 +102,7 @@ func resourceAwsKinesisStreamCreate(d *schema.ResourceData, meta interface{}) er
 		StreamName: aws.String(sn),
 	}
 
-	err := resource.Retry(5*time.Minute, func() *resource.RetryError {
-		_, err := conn.CreateStream(createOpts)
-		if isAWSErr(err, "LimitExceededException", "simultaneously be in CREATING or DELETING") {
-			return resource.RetryableError(err)
-		}
-		// AWS (un)helpfully raises LimitExceededException
-		// rather than ThrottlingException here
-		if isAWSErr(err, "LimitExceededException", "Rate exceeded for stream") {
-			return resource.RetryableError(err)
-		}
-		return resource.NonRetryableError(err)
-	})
-
+	_, err := conn.CreateStream(createOpts)
 	if err != nil {
 		return fmt.Errorf("Unable to create stream: %s", err)
 	}
@@ -221,10 +205,10 @@ func resourceAwsKinesisStreamRead(d *schema.ResourceData, meta interface{}) erro
 func resourceAwsKinesisStreamDelete(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).kinesisconn
 	sn := d.Get("name").(string)
+
 	_, err := conn.DeleteStream(&kinesis.DeleteStreamInput{
 		StreamName: aws.String(sn),
 	})
-
 	if err != nil {
 		return err
 	}
@@ -245,7 +229,6 @@ func resourceAwsKinesisStreamDelete(d *schema.ResourceData, meta interface{}) er
 			sn, err)
 	}
 
-	d.SetId("")
 	return nil
 }
 
@@ -472,7 +455,12 @@ func readKinesisStreamState(conn *kinesis.Kinesis, sn string) (*kinesisStreamSta
 		state.openShards = append(state.openShards, flattenShards(openShards(page.StreamDescription.Shards))...)
 		state.closedShards = append(state.closedShards, flattenShards(closedShards(page.StreamDescription.Shards))...)
 		state.shardLevelMetrics = flattenKinesisShardLevelMetrics(page.StreamDescription.EnhancedMonitoring)
-		state.encryptionType = aws.StringValue(page.StreamDescription.EncryptionType)
+		// EncryptionType can be nil in certain APIs, e.g. AWS China
+		if page.StreamDescription.EncryptionType != nil {
+			state.encryptionType = aws.StringValue(page.StreamDescription.EncryptionType)
+		} else {
+			state.encryptionType = kinesis.EncryptionTypeNone
+		}
 		state.keyId = aws.StringValue(page.StreamDescription.KeyId)
 		return !last
 	})

@@ -161,8 +161,9 @@ standard structure.
   own IAM policy choices.
 
 * **Examples**. Examples of using the module should exist under the
-  `examples/` subdirectory. Each example may have a README to explain the
-  goal and usage of the example.
+  `examples/` subdirectory at the root of the repository. Each example may have
+  a README to explain the goal and usage of the example. Examples for
+  submodules should also be placed in the root `examples/` directory.
 
 A minimal recommended module following the standard structure is shown below.
 While the root module is the only required element, we recommend the structure
@@ -211,8 +212,8 @@ If you've built a module that you intend to be reused, we recommend
 [Terraform Registry](https://registry.terraform.io). This will version
 your module, generate documentation, and more.
 
-Published modules can be easily consumed by Terraform, and in Terraform
-0.11 you'll also be able to constrain module versions for safe and predictable
+Published modules can be easily consumed by Terraform, and (from Terraform
+0.11) you can also [constrain module versions](usage.html#module-versions) for safe and predictable
 updates. The following example shows how easy it is to consume a module
 from the registry:
 

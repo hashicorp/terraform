@@ -8,7 +8,7 @@ import (
 )
 
 func TestInit(t *testing.T) {
-	m := make(map[string]func() backend.Backend)
+	m := make(map[string]backend.InitFn)
 	Init(m)
 
 	for k, _ := range remote.BuiltinClients {
@@ -24,7 +24,7 @@ func TestInit(t *testing.T) {
 }
 
 func TestInit_ignoreExisting(t *testing.T) {
-	m := make(map[string]func() backend.Backend)
+	m := make(map[string]backend.InitFn)
 	m["local"] = nil
 	Init(m)
 

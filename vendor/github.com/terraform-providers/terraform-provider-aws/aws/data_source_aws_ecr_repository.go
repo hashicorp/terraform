@@ -39,10 +39,11 @@ func dataSourceAwsEcrRepositoryRead(d *schema.ResourceData, meta interface{}) er
 	conn := meta.(*AWSClient).ecrconn
 
 	repositoryName := d.Get("name").(string)
-	log.Printf("[DEBUG] Reading ECR repository %s", repositoryName)
-	out, err := conn.DescribeRepositories(&ecr.DescribeRepositoriesInput{
+	params := &ecr.DescribeRepositoriesInput{
 		RepositoryNames: []*string{aws.String(repositoryName)},
-	})
+	}
+	log.Printf("[DEBUG] Reading ECR repository: %s", params)
+	out, err := conn.DescribeRepositories(params)
 	if err != nil {
 		if ecrerr, ok := err.(awserr.Error); ok && ecrerr.Code() == "RepositoryNotFoundException" {
 			log.Printf("[WARN] ECR Repository %s not found, removing from state", d.Id())

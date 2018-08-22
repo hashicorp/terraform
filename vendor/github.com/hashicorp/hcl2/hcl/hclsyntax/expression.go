@@ -9,7 +9,7 @@ import (
 	"github.com/zclconf/go-cty/cty/function"
 )
 
-// Expression is the abstract type for nodes that behave as zcl expressions.
+// Expression is the abstract type for nodes that behave as HCL expressions.
 type Expression interface {
 	Node
 
@@ -47,6 +47,51 @@ func (e *LiteralValueExpr) StartRange() hcl.Range {
 	return e.SrcRange
 }
 
+// Implementation for hcl.AbsTraversalForExpr.
+func (e *LiteralValueExpr) AsTraversal() hcl.Traversal {
+	// This one's a little weird: the contract for AsTraversal is to interpret
+	// an expression as if it were traversal syntax, and traversal syntax
+	// doesn't have the special keywords "null", "true", and "false" so these
+	// are expected to be treated like variables in that case.
+	// Since our parser already turned them into LiteralValueExpr by the time
+	// we get here, we need to undo this and infer the name that would've
+	// originally led to our value.
+	// We don't do anything for any other values, since they don't overlap
+	// with traversal roots.
+
+	if e.Val.IsNull() {
+		// In practice the parser only generates null values of the dynamic
+		// pseudo-type for literals, so we can safely assume that any null
+		// was orignally the keyword "null".
+		return hcl.Traversal{
+			hcl.TraverseRoot{
+				Name:     "null",
+				SrcRange: e.SrcRange,
+			},
+		}
+	}
+
+	switch e.Val {
+	case cty.True:
+		return hcl.Traversal{
+			hcl.TraverseRoot{
+				Name:     "true",
+				SrcRange: e.SrcRange,
+			},
+		}
+	case cty.False:
+		return hcl.Traversal{
+			hcl.TraverseRoot{
+				Name:     "false",
+				SrcRange: e.SrcRange,
+			},
+		}
+	default:
+		// No traversal is possible for any other value.
+		return nil
+	}
+}
+
 // ScopeTraversalExpr is an Expression that retrieves a value from the scope
 // using a traversal.
 type ScopeTraversalExpr struct {
@@ -68,6 +113,11 @@ func (e *ScopeTraversalExpr) Range() hcl.Range {
 
 func (e *ScopeTraversalExpr) StartRange() hcl.Range {
 	return e.SrcRange
+}
+
+// Implementation for hcl.AbsTraversalForExpr.
+func (e *ScopeTraversalExpr) AsTraversal() hcl.Traversal {
+	return e.Traversal
 }
 
 // RelativeTraversalExpr is an Expression that retrieves a value from another
@@ -95,6 +145,20 @@ func (e *RelativeTraversalExpr) Range() hcl.Range {
 
 func (e *RelativeTraversalExpr) StartRange() hcl.Range {
 	return e.SrcRange
+}
+
+// Implementation for hcl.AbsTraversalForExpr.
+func (e *RelativeTraversalExpr) AsTraversal() hcl.Traversal {
+	// We can produce a traversal only if our source can.
+	st, diags := hcl.AbsTraversalForExpr(e.Source)
+	if diags.HasErrors() {
+		return nil
+	}
+
+	ret := make(hcl.Traversal, len(st)+len(e.Traversal))
+	copy(ret, st)
+	copy(ret[len(st):], e.Traversal)
+	return ret
 }
 
 // FunctionCallExpr is an Expression that calls a function from the EvalContext
@@ -353,6 +417,21 @@ func (e *FunctionCallExpr) StartRange() hcl.Range {
 	return hcl.RangeBetween(e.NameRange, e.OpenParenRange)
 }
 
+// Implementation for hcl.ExprCall.
+func (e *FunctionCallExpr) ExprCall() *hcl.StaticCall {
+	ret := &hcl.StaticCall{
+		Name:      e.Name,
+		NameRange: e.NameRange,
+		Arguments: make([]hcl.Expression, len(e.Args)),
+		ArgsRange: hcl.RangeBetween(e.OpenParenRange, e.CloseParenRange),
+	}
+	// Need to convert our own Expression objects into hcl.Expression.
+	for i, arg := range e.Args {
+		ret.Arguments[i] = arg
+	}
+	return ret
+}
+
 type ConditionalExpr struct {
 	Condition   Expression
 	TrueResult  Expression
@@ -539,6 +618,15 @@ func (e *TupleConsExpr) StartRange() hcl.Range {
 	return e.OpenRange
 }
 
+// Implementation for hcl.ExprList
+func (e *TupleConsExpr) ExprList() []hcl.Expression {
+	ret := make([]hcl.Expression, len(e.Exprs))
+	for i, expr := range e.Exprs {
+		ret[i] = expr
+	}
+	return ret
+}
+
 type ObjectConsExpr struct {
 	Items []ObjectConsItem
 
@@ -632,6 +720,72 @@ func (e *ObjectConsExpr) Range() hcl.Range {
 
 func (e *ObjectConsExpr) StartRange() hcl.Range {
 	return e.OpenRange
+}
+
+// Implementation for hcl.ExprMap
+func (e *ObjectConsExpr) ExprMap() []hcl.KeyValuePair {
+	ret := make([]hcl.KeyValuePair, len(e.Items))
+	for i, item := range e.Items {
+		ret[i] = hcl.KeyValuePair{
+			Key:   item.KeyExpr,
+			Value: item.ValueExpr,
+		}
+	}
+	return ret
+}
+
+// ObjectConsKeyExpr is a special wrapper used only for ObjectConsExpr keys,
+// which deals with the special case that a naked identifier in that position
+// must be interpreted as a literal string rather than evaluated directly.
+type ObjectConsKeyExpr struct {
+	Wrapped Expression
+}
+
+func (e *ObjectConsKeyExpr) literalName() string {
+	// This is our logic for deciding whether to behave like a literal string.
+	// We lean on our AbsTraversalForExpr implementation here, which already
+	// deals with some awkward cases like the expression being the result
+	// of the keywords "null", "true" and "false" which we'd want to interpret
+	// as keys here too.
+	return hcl.ExprAsKeyword(e.Wrapped)
+}
+
+func (e *ObjectConsKeyExpr) walkChildNodes(w internalWalkFunc) {
+	// We only treat our wrapped expression as a real expression if we're
+	// not going to interpret it as a literal.
+	if e.literalName() == "" {
+		e.Wrapped = w(e.Wrapped).(Expression)
+	}
+}
+
+func (e *ObjectConsKeyExpr) Value(ctx *hcl.EvalContext) (cty.Value, hcl.Diagnostics) {
+	if ln := e.literalName(); ln != "" {
+		return cty.StringVal(ln), nil
+	}
+	return e.Wrapped.Value(ctx)
+}
+
+func (e *ObjectConsKeyExpr) Range() hcl.Range {
+	return e.Wrapped.Range()
+}
+
+func (e *ObjectConsKeyExpr) StartRange() hcl.Range {
+	return e.Wrapped.StartRange()
+}
+
+// Implementation for hcl.AbsTraversalForExpr.
+func (e *ObjectConsKeyExpr) AsTraversal() hcl.Traversal {
+	// We can produce a traversal only if our wrappee can.
+	st, diags := hcl.AbsTraversalForExpr(e.Wrapped)
+	if diags.HasErrors() {
+		return nil
+	}
+
+	return st
+}
+
+func (e *ObjectConsKeyExpr) UnwrapExpression() Expression {
+	return e.Wrapped
 }
 
 // ForExpr represents iteration constructs:

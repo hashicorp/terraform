@@ -80,6 +80,32 @@ const (
 	//    a resource with which a web ACL cannot be associated.
 	ErrCodeWAFInvalidParameterException = "WAFInvalidParameterException"
 
+	// ErrCodeWAFInvalidPermissionPolicyException for service response error code
+	// "WAFInvalidPermissionPolicyException".
+	//
+	// The operation failed because the specified policy is not in the proper format.
+	//
+	// The policy is subject to the following restrictions:
+	//
+	//    * You can attach only one policy with each PutPermissionPolicy request.
+	//
+	//    * The policy must include an Effect, Action and Principal.
+	//
+	//    * Effect must specify Allow.
+	//
+	//    * The Action in the policy must be waf:UpdateWebACL or waf-regional:UpdateWebACL.
+	//    Any extra or wildcard actions in the policy will be rejected.
+	//
+	//    * The policy cannot include a Resource parameter.
+	//
+	//    * The ARN in the request must be a valid WAF RuleGroup ARN and the RuleGroup
+	//    must exist in the same region.
+	//
+	//    * The user making the request must be the owner of the RuleGroup.
+	//
+	//    * Your policy must be composed using IAM Policy version 2012-10-17.
+	ErrCodeWAFInvalidPermissionPolicyException = "WAFInvalidPermissionPolicyException"
+
 	// ErrCodeWAFInvalidRegexPatternException for service response error code
 	// "WAFInvalidRegexPatternException".
 	//
@@ -154,6 +180,12 @@ const (
 	// The operation failed because you tried to create, update, or delete an object
 	// by using a change token that has already been used.
 	ErrCodeWAFStaleDataException = "WAFStaleDataException"
+
+	// ErrCodeWAFSubscriptionNotFoundException for service response error code
+	// "WAFSubscriptionNotFoundException".
+	//
+	// The specified subscription does not exist.
+	ErrCodeWAFSubscriptionNotFoundException = "WAFSubscriptionNotFoundException"
 
 	// ErrCodeWAFUnavailableEntityException for service response error code
 	// "WAFUnavailableEntityException".

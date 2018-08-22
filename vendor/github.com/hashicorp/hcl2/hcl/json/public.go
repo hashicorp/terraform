@@ -9,29 +9,32 @@ import (
 )
 
 // Parse attempts to parse the given buffer as JSON and, if successful, returns
-// a hcl.File for the zcl configuration represented by it.
+// a hcl.File for the HCL configuration represented by it.
 //
 // This is not a generic JSON parser. Instead, it deals only with the profile
-// of JSON used to express zcl configuration.
+// of JSON used to express HCL configuration.
 //
 // The returned file is valid only if the returned diagnostics returns false
 // from its HasErrors method. If HasErrors returns true, the file represents
 // the subset of data that was able to be parsed, which may be none.
 func Parse(src []byte, filename string) (*hcl.File, hcl.Diagnostics) {
 	rootNode, diags := parseFileContent(src, filename)
-	if _, ok := rootNode.(*objectVal); !ok {
+
+	switch rootNode.(type) {
+	case *objectVal, *arrayVal:
+		// okay
+	default:
 		diags = diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagError,
 			Summary:  "Root value must be object",
-			Detail:   "The root value in a JSON-based configuration must be a JSON object.",
+			Detail:   "The root value in a JSON-based configuration must be either a JSON object or a JSON array of objects.",
 			Subject:  rootNode.StartRange().Ptr(),
 		})
-		// Put in a placeholder objectVal just so the caller always gets
-		// a valid file, even if it appears empty. This is useful for callers
-		// that are doing static analysis of possibly-erroneous source code,
-		// which will try to process the returned file even if we return
-		// diagnostics of severity error. This way, they'll get a file that
-		// has an empty body rather than a body that panics when probed.
+
+		// Since we've already produced an error message for this being
+		// invalid, we'll return an empty placeholder here so that trying to
+		// extract content from our root body won't produce a redundant
+		// error saying the same thing again in more general terms.
 		fakePos := hcl.Pos{
 			Byte:   0,
 			Line:   1,
@@ -43,17 +46,18 @@ func Parse(src []byte, filename string) (*hcl.File, hcl.Diagnostics) {
 			End:      fakePos,
 		}
 		rootNode = &objectVal{
-			Attrs:     map[string]*objectAttr{},
+			Attrs:     []*objectAttr{},
 			SrcRange:  fakeRange,
 			OpenRange: fakeRange,
 		}
 	}
+
 	file := &hcl.File{
 		Body: &body{
-			obj: rootNode.(*objectVal),
+			val: rootNode,
 		},
 		Bytes: src,
-		Nav:   navigation{rootNode.(*objectVal)},
+		Nav:   navigation{rootNode},
 	}
 	return file, diags
 }
@@ -87,29 +91,4 @@ func ParseFile(filename string) (*hcl.File, hcl.Diagnostics) {
 	}
 
 	return Parse(src, filename)
-}
-
-// ParseWithHIL is like Parse except the returned file will use the HIL
-// template syntax for expressions in strings, rather than the native zcl
-// template syntax.
-//
-// This is intended for providing backward compatibility for applications that
-// used to use HCL/HIL and thus had a JSON-based format with HIL
-// interpolations.
-func ParseWithHIL(src []byte, filename string) (*hcl.File, hcl.Diagnostics) {
-	file, diags := Parse(src, filename)
-	if file != nil && file.Body != nil {
-		file.Body.(*body).useHIL = true
-	}
-	return file, diags
-}
-
-// ParseFileWithHIL is like ParseWithHIL but it reads data from a file before
-// parsing it.
-func ParseFileWithHIL(filename string) (*hcl.File, hcl.Diagnostics) {
-	file, diags := ParseFile(filename)
-	if file != nil && file.Body != nil {
-		file.Body.(*body).useHIL = true
-	}
-	return file, diags
 }

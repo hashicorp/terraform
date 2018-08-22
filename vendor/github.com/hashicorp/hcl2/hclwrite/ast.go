@@ -82,7 +82,7 @@ func (n *Body) AppendUnstructuredTokens(seq *TokenSeq) {
 // given name, or returns nil if there is currently no matching attribute.
 //
 // A valid AST has only one definition of each attribute, but that constraint
-// is not enforced in the zclwrite AST, so a tree that has been mutated by
+// is not enforced in the hclwrite AST, so a tree that has been mutated by
 // other calls may contain additional matching attributes that cannot be seen
 // by this method.
 func (n *Body) FindAttribute(name string) *Attribute {

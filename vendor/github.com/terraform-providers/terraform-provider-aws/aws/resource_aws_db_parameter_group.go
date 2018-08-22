@@ -40,11 +40,12 @@ func resourceAwsDbParameterGroup() *schema.Resource {
 				ValidateFunc:  validateDbParamGroupName,
 			},
 			"name_prefix": &schema.Schema{
-				Type:         schema.TypeString,
-				Optional:     true,
-				Computed:     true,
-				ForceNew:     true,
-				ValidateFunc: validateDbParamGroupNamePrefix,
+				Type:          schema.TypeString,
+				Optional:      true,
+				Computed:      true,
+				ForceNew:      true,
+				ConflictsWith: []string{"name"},
+				ValidateFunc:  validateDbParamGroupNamePrefix,
 			},
 			"family": &schema.Schema{
 				Type:     schema.TypeString,
@@ -108,7 +109,7 @@ func resourceAwsDbParameterGroupCreate(d *schema.ResourceData, meta interface{})
 	}
 
 	log.Printf("[DEBUG] Create DB Parameter Group: %#v", createOpts)
-	_, err := rdsconn.CreateDBParameterGroup(&createOpts)
+	resp, err := rdsconn.CreateDBParameterGroup(&createOpts)
 	if err != nil {
 		return fmt.Errorf("Error creating DB Parameter Group: %s", err)
 	}
@@ -119,7 +120,8 @@ func resourceAwsDbParameterGroupCreate(d *schema.ResourceData, meta interface{})
 	d.SetPartial("description")
 	d.Partial(false)
 
-	d.SetId(*createOpts.DBParameterGroupName)
+	d.SetId(aws.StringValue(resp.DBParameterGroup.DBParameterGroupName))
+	d.Set("arn", resp.DBParameterGroup.DBParameterGroupArn)
 	log.Printf("[INFO] DB Parameter Group ID: %s", d.Id())
 
 	return resourceAwsDbParameterGroupUpdate(d, meta)
@@ -134,6 +136,11 @@ func resourceAwsDbParameterGroupRead(d *schema.ResourceData, meta interface{}) e
 
 	describeResp, err := rdsconn.DescribeDBParameterGroups(&describeOpts)
 	if err != nil {
+		if isAWSErr(err, rds.ErrCodeDBParameterGroupNotFoundFault, "") {
+			log.Printf("[WARN] DB Parameter Group (%s) not found, removing from state", d.Id())
+			d.SetId("")
+			return nil
+		}
 		return err
 	}
 
@@ -146,43 +153,97 @@ func resourceAwsDbParameterGroupRead(d *schema.ResourceData, meta interface{}) e
 	d.Set("family", describeResp.DBParameterGroups[0].DBParameterGroupFamily)
 	d.Set("description", describeResp.DBParameterGroups[0].Description)
 
-	// Only include user customized parameters as there's hundreds of system/default ones
+	configParams := d.Get("parameter").(*schema.Set)
 	describeParametersOpts := rds.DescribeDBParametersInput{
 		DBParameterGroupName: aws.String(d.Id()),
-		Source:               aws.String("user"),
+	}
+	if configParams.Len() < 1 {
+		// if we don't have any params in the ResourceData already, two possibilities
+		// first, we don't have a config available to us. Second, we do, but it has
+		// no parameters. We're going to assume the first, to be safe. In this case,
+		// we're only going to ask for the user-modified values, because any defaults
+		// the user may have _also_ set are indistinguishable from the hundreds of
+		// defaults AWS sets. If the user hasn't set any parameters, this will return
+		// an empty list anyways, so we just make some unnecessary requests. But in
+		// the more common case (I assume) of an import, this will make fewer requests
+		// and "do the right thing".
+		describeParametersOpts.Source = aws.String("user")
 	}
 
-	describeParametersResp, err := rdsconn.DescribeDBParameters(&describeParametersOpts)
+	var parameters []*rds.Parameter
+	err = rdsconn.DescribeDBParametersPages(&describeParametersOpts,
+		func(describeParametersResp *rds.DescribeDBParametersOutput, lastPage bool) bool {
+			parameters = append(parameters, describeParametersResp.Parameters...)
+			return !lastPage
+		})
 	if err != nil {
 		return err
 	}
 
-	d.Set("parameter", flattenParameters(describeParametersResp.Parameters))
-
-	paramGroup := describeResp.DBParameterGroups[0]
-	arn, err := buildRDSPGARN(d.Id(), meta.(*AWSClient).partition, meta.(*AWSClient).accountid, meta.(*AWSClient).region)
-	if err != nil {
-		name := "<empty>"
-		if paramGroup.DBParameterGroupName != nil && *paramGroup.DBParameterGroupName != "" {
-			name = *paramGroup.DBParameterGroupName
-		}
-		log.Printf("[DEBUG] Error building ARN for DB Parameter Group, not setting Tags for Param Group %s", name)
+	var userParams []*rds.Parameter
+	if configParams.Len() < 1 {
+		// if we have no config/no parameters in config, we've already asked for only
+		// user-modified values, so we can just use the entire response.
+		userParams = parameters
 	} else {
-		d.Set("arn", arn)
-		resp, err := rdsconn.ListTagsForResource(&rds.ListTagsForResourceInput{
-			ResourceName: aws.String(arn),
-		})
-
+		// if we have a config available to us, we have two possible classes of value
+		// in the config. On the one hand, the user could have specified a parameter
+		// that _actually_ changed things, in which case its Source would be set to
+		// user. On the other, they may have specified a parameter that coincides with
+		// the default value. In that case, the Source will be set to "system" or
+		// "engine-default". We need to set the union of all "user" Source parameters
+		// _and_ the "system"/"engine-default" Source parameters _that appear in the
+		// config_ in the state, or the user gets a perpetual diff. See
+		// terraform-providers/terraform-provider-aws#593 for more context and details.
+		confParams, err := expandParameters(configParams.List())
 		if err != nil {
-			log.Printf("[DEBUG] Error retrieving tags for ARN: %s", arn)
+			return err
 		}
-
-		var dt []*rds.Tag
-		if len(resp.TagList) > 0 {
-			dt = resp.TagList
+		for _, param := range parameters {
+			if param.Source == nil || param.ParameterName == nil {
+				continue
+			}
+			if *param.Source == "user" {
+				userParams = append(userParams, param)
+				continue
+			}
+			var paramFound bool
+			for _, cp := range confParams {
+				if cp.ParameterName == nil {
+					continue
+				}
+				if *cp.ParameterName == *param.ParameterName {
+					userParams = append(userParams, param)
+					break
+				}
+			}
+			if !paramFound {
+				log.Printf("[DEBUG] Not persisting %s to state, as its source is %q and it isn't in the config", *param.ParameterName, *param.Source)
+			}
 		}
-		d.Set("tags", tagsToMapRDS(dt))
 	}
+
+	err = d.Set("parameter", flattenParameters(userParams))
+	if err != nil {
+		return fmt.Errorf("error setting 'parameter' in state: %#v", err)
+	}
+
+	arn := aws.StringValue(describeResp.DBParameterGroups[0].DBParameterGroupArn)
+	d.Set("arn", arn)
+
+	resp, err := rdsconn.ListTagsForResource(&rds.ListTagsForResourceInput{
+		ResourceName: aws.String(arn),
+	})
+
+	if err != nil {
+		log.Printf("[DEBUG] Error retrieving tags for ARN: %s", arn)
+	}
+
+	var dt []*rds.Tag
+	if len(resp.TagList) > 0 {
+		dt = resp.TagList
+	}
+	d.Set("tags", tagsToMapRDS(dt))
 
 	return nil
 }
@@ -236,12 +297,10 @@ func resourceAwsDbParameterGroupUpdate(d *schema.ResourceData, meta interface{})
 		}
 	}
 
-	if arn, err := buildRDSPGARN(d.Id(), meta.(*AWSClient).partition, meta.(*AWSClient).accountid, meta.(*AWSClient).region); err == nil {
-		if err := setTagsRDS(rdsconn, d, arn); err != nil {
-			return err
-		} else {
-			d.SetPartial("tags")
-		}
+	if err := setTagsRDS(rdsconn, d, d.Get("arn").(string)); err != nil {
+		return err
+	} else {
+		d.SetPartial("tags")
 	}
 
 	d.Partial(false)
@@ -278,16 +337,4 @@ func resourceAwsDbParameterHash(v interface{}) int {
 	buf.WriteString(fmt.Sprintf("%s-", strings.ToLower(m["value"].(string))))
 
 	return hashcode.String(buf.String())
-}
-
-func buildRDSPGARN(identifier, partition, accountid, region string) (string, error) {
-	if partition == "" {
-		return "", fmt.Errorf("Unable to construct RDS ARN because of missing AWS partition")
-	}
-	if accountid == "" {
-		return "", fmt.Errorf("Unable to construct RDS ARN because of missing AWS Account ID")
-	}
-	arn := fmt.Sprintf("arn:%s:rds:%s:%s:pg:%s", partition, region, accountid, identifier)
-	return arn, nil
-
 }

@@ -2,6 +2,7 @@ package plugin
 
 import (
 	"bytes"
+	"context"
 	"net"
 	"net/rpc"
 
@@ -77,6 +78,35 @@ func TestPluginRPCConn(t testing.T, ps map[string]Plugin) (*RPCClient, *RPCServe
 	return client, server
 }
 
+// TestGRPCConn returns a gRPC client conn and grpc server that are connected
+// together and configured. The register function is used to register services
+// prior to the Serve call. This is used to test gRPC connections.
+func TestGRPCConn(t testing.T, register func(*grpc.Server)) (*grpc.ClientConn, *grpc.Server) {
+	// Create a listener
+	l, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	server := grpc.NewServer()
+	register(server)
+	go server.Serve(l)
+
+	// Connect to the server
+	conn, err := grpc.Dial(
+		l.Addr().String(),
+		grpc.WithBlock(),
+		grpc.WithInsecure())
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Connection successful, close the listener
+	l.Close()
+
+	return conn, server
+}
+
 // TestPluginGRPCConn returns a plugin gRPC client and server that are connected
 // together and configured. This is used to test gRPC connections.
 func TestPluginGRPCConn(t testing.T, ps map[string]Plugin) (*GRPCClient, *GRPCServer) {
@@ -107,13 +137,17 @@ func TestPluginGRPCConn(t testing.T, ps map[string]Plugin) (*GRPCClient, *GRPCSe
 		t.Fatalf("err: %s", err)
 	}
 
-	// Connection successful, close the listener
-	l.Close()
+	brokerGRPCClient := newGRPCBrokerClient(conn)
+	broker := newGRPCBroker(brokerGRPCClient, nil)
+	go broker.Run()
+	go brokerGRPCClient.StartStream()
 
 	// Create the client
 	client := &GRPCClient{
 		Conn:    conn,
 		Plugins: ps,
+		broker:  broker,
+		doneCtx: context.Background(),
 	}
 
 	return client, server

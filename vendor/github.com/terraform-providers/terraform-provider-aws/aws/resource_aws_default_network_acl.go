@@ -243,7 +243,6 @@ func resourceAwsDefaultNetworkAclUpdate(d *schema.ResourceData, meta interface{}
 
 func resourceAwsDefaultNetworkAclDelete(d *schema.ResourceData, meta interface{}) error {
 	log.Printf("[WARN] Cannot destroy Default Network ACL. Terraform will remove this resource from the state file, however resources may remain.")
-	d.SetId("")
 	return nil
 }
 

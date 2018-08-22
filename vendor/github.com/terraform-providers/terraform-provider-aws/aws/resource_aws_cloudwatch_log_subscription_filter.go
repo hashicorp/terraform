@@ -48,6 +48,10 @@ func resourceAwsCloudwatchLogSubscriptionFilter() *schema.Resource {
 				Optional: true,
 				Computed: true,
 			},
+			"distribution": {
+				Type:     schema.TypeString,
+				Optional: true,
+			},
 		},
 	}
 }
@@ -121,6 +125,10 @@ func getAwsCloudWatchLogsSubscriptionFilterInput(d *schema.ResourceData) cloudwa
 		params.RoleArn = aws.String(d.Get("role_arn").(string))
 	}
 
+	if _, ok := d.GetOk("distribution"); ok {
+		params.Distribution = aws.String(d.Get("distribution").(string))
+	}
+
 	return params
 }
 
@@ -172,7 +180,7 @@ func resourceAwsCloudwatchLogSubscriptionFilterDelete(d *schema.ResourceData, me
 		return fmt.Errorf(
 			"Error deleting Subscription Filter from log group: %s with name filter name %s: %+v", log_group_name, name, err)
 	}
-	d.SetId("")
+
 	return nil
 }
 

@@ -61,7 +61,7 @@ These endpoints list modules according to some criteria.
 
 ### Query Parameters
 
-- `offset`, `limit` `(int: <optional>)` - See [Pagination](#Pagination) for details.
+- `offset`, `limit` `(int: <optional>)` - See [Pagination](#pagination) for details.
 - `provider` `(string: <optional>)` - Limits modules to a specific provider.
 - `verified` `(bool: <optional>)` - If `true`, limits results to only verified
   modules. Any other value including none returns all modules _including_
@@ -70,7 +70,7 @@ These endpoints list modules according to some criteria.
 ### Sample Request
 
 ```text
-$ curl 'https://registry.terraform.io/v1/modules&limit=2&verified=true'
+$ curl 'https://registry.terraform.io/v1/modules?limit=2&verified=true'
 ```
 
 ### Sample Response
@@ -127,7 +127,7 @@ This endpoint allows searching modules.
 - `q` `(string: <required>)` - The search string. Search syntax understood
   depends on registry implementation. The public registry supports basic keyword
   or phrase searches.
-- `offset`, `limit` `(int: <optional>)` - See [Pagination](#Pagination) for details.
+- `offset`, `limit` `(int: <optional>)` - See [Pagination](#pagination) for details.
 - `provider` `(string: <optional>)` - Limits results to a specific provider.
 - `namespace` `(string: <optional>)` - Limits results to a specific namespace.
 - `verified` `(bool: <optional>)` - If `true`, limits results to only verified
@@ -345,7 +345,7 @@ This endpoint returns the latest version of each provider for a module.
 
 ### Query Parameters
 
-- `offset`, `limit` `(int: <optional>)` - See [Pagination](#Pagination) for details.
+- `offset`, `limit` `(int: <optional>)` - See [Pagination](#pagination) for details.
 
 ### Sample Request
 
@@ -661,9 +661,6 @@ download endpoint (above) for the latest version.
   This is required and is specified as part of the URL path.
 
 - `provider` `(string: <required>)` - The name of the provider.
-  This is required and is specified as part of the URL path.
-
-- `version` `(string: <required>)` - The version of the module.
   This is required and is specified as part of the URL path.
 
 ### Sample Request

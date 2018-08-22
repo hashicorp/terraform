@@ -1,7 +1,6 @@
 package aws
 
 import (
-	"fmt"
 	"log"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -20,33 +19,20 @@ func resourceAwsEMRSecurityConfiguration() *schema.Resource {
 		},
 
 		Schema: map[string]*schema.Schema{
-			"name": &schema.Schema{
+			"name": {
 				Type:          schema.TypeString,
 				Optional:      true,
 				Computed:      true,
 				ForceNew:      true,
 				ConflictsWith: []string{"name_prefix"},
-				ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
-					value := v.(string)
-					if len(value) > 10280 {
-						errors = append(errors, fmt.Errorf(
-							"%q cannot be longer than 10280 characters", k))
-					}
-					return
-				},
+				ValidateFunc:  validateMaxLength(10280),
 			},
-			"name_prefix": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
-				ForceNew: true,
-				ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
-					value := v.(string)
-					if len(value) > 10000 {
-						errors = append(errors, fmt.Errorf(
-							"%q cannot be longer than 10000 characters, name is limited to 10280", k))
-					}
-					return
-				},
+			"name_prefix": {
+				Type:          schema.TypeString,
+				Optional:      true,
+				ForceNew:      true,
+				ConflictsWith: []string{"name"},
+				ValidateFunc:  validateMaxLength(10280 - resource.UniqueIDSuffixLength),
 			},
 
 			"configuration": {
@@ -121,12 +107,10 @@ func resourceAwsEmrSecurityConfigurationDelete(d *schema.ResourceData, meta inte
 	})
 	if err != nil {
 		if isAWSErr(err, "InvalidRequestException", "does not exist") {
-			d.SetId("")
 			return nil
 		}
 		return err
 	}
-	d.SetId("")
 
 	return nil
 }

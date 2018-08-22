@@ -5,6 +5,7 @@ import (
 	"log"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/arn"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/waf"
 	"github.com/hashicorp/terraform/helper/schema"
@@ -16,12 +17,19 @@ func resourceAwsWafIPSet() *schema.Resource {
 		Read:   resourceAwsWafIPSetRead,
 		Update: resourceAwsWafIPSetUpdate,
 		Delete: resourceAwsWafIPSetDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"name": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
+			},
+			"arn": &schema.Schema{
+				Type:     schema.TypeString,
+				Computed: true,
 			},
 			"ip_set_descriptors": &schema.Schema{
 				Type:     schema.TypeSet,
@@ -72,7 +80,7 @@ func resourceAwsWafIPSetRead(d *schema.ResourceData, meta interface{}) error {
 	resp, err := conn.GetIPSet(params)
 	if err != nil {
 		if awsErr, ok := err.(awserr.Error); ok && awsErr.Code() == "WAFNonexistentItemException" {
-			log.Printf("[WARN] WAF IPSet (%s) not found, error code (404)", d.Id())
+			log.Printf("[WARN] WAF IPSet (%s) not found, removing from state", d.Id())
 			d.SetId("")
 			return nil
 		}
@@ -93,6 +101,14 @@ func resourceAwsWafIPSetRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("ip_set_descriptors", descriptors)
 
 	d.Set("name", resp.IPSet.Name)
+
+	arn := arn.ARN{
+		Partition: meta.(*AWSClient).partition,
+		Service:   "waf",
+		AccountID: meta.(*AWSClient).accountid,
+		Resource:  fmt.Sprintf("ipset/%s", d.Id()),
+	}
+	d.Set("arn", arn.String())
 
 	return nil
 }

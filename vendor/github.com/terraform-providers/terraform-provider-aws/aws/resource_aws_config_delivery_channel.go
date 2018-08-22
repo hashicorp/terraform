@@ -54,7 +54,7 @@ func resourceAwsConfigDeliveryChannel() *schema.Resource {
 						"delivery_frequency": {
 							Type:         schema.TypeString,
 							Optional:     true,
-							ValidateFunc: validateConfigExecutionFrequency,
+							ValidateFunc: validateConfigExecutionFrequency(),
 						},
 					},
 				},
@@ -162,11 +162,21 @@ func resourceAwsConfigDeliveryChannelDelete(d *schema.ResourceData, meta interfa
 	input := configservice.DeleteDeliveryChannelInput{
 		DeliveryChannelName: aws.String(d.Id()),
 	}
-	_, err := conn.DeleteDeliveryChannel(&input)
+
+	err := resource.Retry(30*time.Second, func() *resource.RetryError {
+		_, err := conn.DeleteDeliveryChannel(&input)
+		if err != nil {
+			if isAWSErr(err, configservice.ErrCodeLastDeliveryChannelDeleteFailedException, "there is a running configuration recorder") {
+				return resource.RetryableError(err)
+			}
+
+			return resource.NonRetryableError(err)
+		}
+		return nil
+	})
 	if err != nil {
 		return fmt.Errorf("Unable to delete delivery channel: %s", err)
 	}
 
-	d.SetId("")
 	return nil
 }

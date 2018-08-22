@@ -17,7 +17,7 @@ const opCreateFileSystem = "CreateFileSystem"
 
 // CreateFileSystemRequest generates a "aws/request.Request" representing the
 // client's request for the CreateFileSystem operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -38,8 +38,8 @@ const opCreateFileSystem = "CreateFileSystem"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticfilesystem-2015-02-01/CreateFileSystem
-func (c *EFS) CreateFileSystemRequest(input *CreateFileSystemInput) (req *request.Request, output *FileSystemDescription) {
+// See also, https://docs.aws.amazon.com/goto/WebAPI/elasticfilesystem-2015-02-01/CreateFileSystem
+func (c *EFS) CreateFileSystemRequest(input *CreateFileSystemInput) (req *request.Request, output *UpdateFileSystemOutput) {
 	op := &request.Operation{
 		Name:       opCreateFileSystem,
 		HTTPMethod: "POST",
@@ -50,7 +50,7 @@ func (c *EFS) CreateFileSystemRequest(input *CreateFileSystemInput) (req *reques
 		input = &CreateFileSystemInput{}
 	}
 
-	output = &FileSystemDescription{}
+	output = &UpdateFileSystemOutput{}
 	req = c.newRequest(op, input, output)
 	return
 }
@@ -124,11 +124,22 @@ func (c *EFS) CreateFileSystemRequest(input *CreateFileSystemInput) (req *reques
 //   the creation token you provided.
 //
 //   * ErrCodeFileSystemLimitExceeded "FileSystemLimitExceeded"
-//   Returned if the AWS account has already created maximum number of file systems
-//   allowed per account.
+//   Returned if the AWS account has already created the maximum number of file
+//   systems allowed per account.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticfilesystem-2015-02-01/CreateFileSystem
-func (c *EFS) CreateFileSystem(input *CreateFileSystemInput) (*FileSystemDescription, error) {
+//   * ErrCodeInsufficientThroughputCapacity "InsufficientThroughputCapacity"
+//   Returned if there's not enough capacity to provision additional throughput.
+//   This value might be returned when you try to create a file system in provisioned
+//   throughput mode, when you attempt to increase the provisioned throughput
+//   of an existing file system, or when you attempt to change an existing file
+//   system from bursting to provisioned throughput mode.
+//
+//   * ErrCodeThroughputLimitExceeded "ThroughputLimitExceeded"
+//   Returned if the throughput mode or amount of provisioned throughput can't
+//   be changed because the throughput limit of 1024 MiB/s has been reached.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/elasticfilesystem-2015-02-01/CreateFileSystem
+func (c *EFS) CreateFileSystem(input *CreateFileSystemInput) (*UpdateFileSystemOutput, error) {
 	req, out := c.CreateFileSystemRequest(input)
 	return out, req.Send()
 }
@@ -142,7 +153,7 @@ func (c *EFS) CreateFileSystem(input *CreateFileSystemInput) (*FileSystemDescrip
 // the context is nil a panic will occur. In the future the SDK may create
 // sub-contexts for http.Requests. See https://golang.org/pkg/context/
 // for more information on using Contexts.
-func (c *EFS) CreateFileSystemWithContext(ctx aws.Context, input *CreateFileSystemInput, opts ...request.Option) (*FileSystemDescription, error) {
+func (c *EFS) CreateFileSystemWithContext(ctx aws.Context, input *CreateFileSystemInput, opts ...request.Option) (*UpdateFileSystemOutput, error) {
 	req, out := c.CreateFileSystemRequest(input)
 	req.SetContext(ctx)
 	req.ApplyOptions(opts...)
@@ -153,7 +164,7 @@ const opCreateMountTarget = "CreateMountTarget"
 
 // CreateMountTargetRequest generates a "aws/request.Request" representing the
 // client's request for the CreateMountTarget operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -174,7 +185,7 @@ const opCreateMountTarget = "CreateMountTarget"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticfilesystem-2015-02-01/CreateMountTarget
+// See also, https://docs.aws.amazon.com/goto/WebAPI/elasticfilesystem-2015-02-01/CreateMountTarget
 func (c *EFS) CreateMountTargetRequest(input *CreateMountTargetInput) (req *request.Request, output *MountTargetDescription) {
 	op := &request.Operation{
 		Name:       opCreateMountTarget,
@@ -305,11 +316,11 @@ func (c *EFS) CreateMountTargetRequest(input *CreateMountTargetInput) (req *requ
 //   Returned if an error occurred on the server side.
 //
 //   * ErrCodeFileSystemNotFound "FileSystemNotFound"
-//   Returned if the specified FileSystemId does not exist in the requester's
+//   Returned if the specified FileSystemId value doesn't exist in the requester's
 //   AWS account.
 //
 //   * ErrCodeIncorrectFileSystemLifeCycleState "IncorrectFileSystemLifeCycleState"
-//   Returned if the file system's life cycle state is not "created".
+//   Returned if the file system's lifecycle state is not "available".
 //
 //   * ErrCodeMountTargetConflict "MountTargetConflict"
 //   Returned if the mount target would violate one of the specified restrictions
@@ -327,23 +338,24 @@ func (c *EFS) CreateMountTargetRequest(input *CreateMountTargetInput) (req *requ
 //   the subnet.
 //
 //   * ErrCodeNetworkInterfaceLimitExceeded "NetworkInterfaceLimitExceeded"
-//   The calling account has reached the ENI limit for the specific AWS region.
-//   Client should try to delete some ENIs or get its account limit raised. For
-//   more information, see Amazon VPC Limits (http://docs.aws.amazon.com/AmazonVPC/latest/UserGuide/VPC_Appendix_Limits.html)
-//   in the Amazon Virtual Private Cloud User Guide (see the Network interfaces
-//   per VPC entry in the table).
+//   The calling account has reached the limit for elastic network interfaces
+//   for the specific AWS Region. The client should try to delete some elastic
+//   network interfaces or get the account limit raised. For more information,
+//   see Amazon VPC Limits (http://docs.aws.amazon.com/AmazonVPC/latest/UserGuide/VPC_Appendix_Limits.html)
+//   in the Amazon VPC User Guide  (see the Network interfaces per VPC entry in
+//   the table).
 //
 //   * ErrCodeSecurityGroupLimitExceeded "SecurityGroupLimitExceeded"
 //   Returned if the size of SecurityGroups specified in the request is greater
 //   than five.
 //
 //   * ErrCodeSecurityGroupNotFound "SecurityGroupNotFound"
-//   Returned if one of the specified security groups does not exist in the subnet's
+//   Returned if one of the specified security groups doesn't exist in the subnet's
 //   VPC.
 //
 //   * ErrCodeUnsupportedAvailabilityZone "UnsupportedAvailabilityZone"
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticfilesystem-2015-02-01/CreateMountTarget
+// See also, https://docs.aws.amazon.com/goto/WebAPI/elasticfilesystem-2015-02-01/CreateMountTarget
 func (c *EFS) CreateMountTarget(input *CreateMountTargetInput) (*MountTargetDescription, error) {
 	req, out := c.CreateMountTargetRequest(input)
 	return out, req.Send()
@@ -369,7 +381,7 @@ const opCreateTags = "CreateTags"
 
 // CreateTagsRequest generates a "aws/request.Request" representing the
 // client's request for the CreateTags operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -390,7 +402,7 @@ const opCreateTags = "CreateTags"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticfilesystem-2015-02-01/CreateTags
+// See also, https://docs.aws.amazon.com/goto/WebAPI/elasticfilesystem-2015-02-01/CreateTags
 func (c *EFS) CreateTagsRequest(input *CreateTagsInput) (req *request.Request, output *CreateTagsOutput) {
 	op := &request.Operation{
 		Name:       opCreateTags,
@@ -435,10 +447,10 @@ func (c *EFS) CreateTagsRequest(input *CreateTagsInput) (req *request.Request, o
 //   Returned if an error occurred on the server side.
 //
 //   * ErrCodeFileSystemNotFound "FileSystemNotFound"
-//   Returned if the specified FileSystemId does not exist in the requester's
+//   Returned if the specified FileSystemId value doesn't exist in the requester's
 //   AWS account.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticfilesystem-2015-02-01/CreateTags
+// See also, https://docs.aws.amazon.com/goto/WebAPI/elasticfilesystem-2015-02-01/CreateTags
 func (c *EFS) CreateTags(input *CreateTagsInput) (*CreateTagsOutput, error) {
 	req, out := c.CreateTagsRequest(input)
 	return out, req.Send()
@@ -464,7 +476,7 @@ const opDeleteFileSystem = "DeleteFileSystem"
 
 // DeleteFileSystemRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteFileSystem operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -485,7 +497,7 @@ const opDeleteFileSystem = "DeleteFileSystem"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticfilesystem-2015-02-01/DeleteFileSystem
+// See also, https://docs.aws.amazon.com/goto/WebAPI/elasticfilesystem-2015-02-01/DeleteFileSystem
 func (c *EFS) DeleteFileSystemRequest(input *DeleteFileSystemInput) (req *request.Request, output *DeleteFileSystemOutput) {
 	op := &request.Operation{
 		Name:       opDeleteFileSystem,
@@ -539,13 +551,13 @@ func (c *EFS) DeleteFileSystemRequest(input *DeleteFileSystemInput) (req *reques
 //   Returned if an error occurred on the server side.
 //
 //   * ErrCodeFileSystemNotFound "FileSystemNotFound"
-//   Returned if the specified FileSystemId does not exist in the requester's
+//   Returned if the specified FileSystemId value doesn't exist in the requester's
 //   AWS account.
 //
 //   * ErrCodeFileSystemInUse "FileSystemInUse"
 //   Returned if a file system has mount targets.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticfilesystem-2015-02-01/DeleteFileSystem
+// See also, https://docs.aws.amazon.com/goto/WebAPI/elasticfilesystem-2015-02-01/DeleteFileSystem
 func (c *EFS) DeleteFileSystem(input *DeleteFileSystemInput) (*DeleteFileSystemOutput, error) {
 	req, out := c.DeleteFileSystemRequest(input)
 	return out, req.Send()
@@ -571,7 +583,7 @@ const opDeleteMountTarget = "DeleteMountTarget"
 
 // DeleteMountTargetRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteMountTarget operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -592,7 +604,7 @@ const opDeleteMountTarget = "DeleteMountTarget"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticfilesystem-2015-02-01/DeleteMountTarget
+// See also, https://docs.aws.amazon.com/goto/WebAPI/elasticfilesystem-2015-02-01/DeleteMountTarget
 func (c *EFS) DeleteMountTargetRequest(input *DeleteMountTargetInput) (req *request.Request, output *DeleteMountTargetOutput) {
 	op := &request.Operation{
 		Name:       opDeleteMountTarget,
@@ -662,7 +674,7 @@ func (c *EFS) DeleteMountTargetRequest(input *DeleteMountTargetInput) (req *requ
 //   Returned if there is no mount target with the specified ID found in the caller's
 //   account.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticfilesystem-2015-02-01/DeleteMountTarget
+// See also, https://docs.aws.amazon.com/goto/WebAPI/elasticfilesystem-2015-02-01/DeleteMountTarget
 func (c *EFS) DeleteMountTarget(input *DeleteMountTargetInput) (*DeleteMountTargetOutput, error) {
 	req, out := c.DeleteMountTargetRequest(input)
 	return out, req.Send()
@@ -688,7 +700,7 @@ const opDeleteTags = "DeleteTags"
 
 // DeleteTagsRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteTags operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -709,7 +721,7 @@ const opDeleteTags = "DeleteTags"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticfilesystem-2015-02-01/DeleteTags
+// See also, https://docs.aws.amazon.com/goto/WebAPI/elasticfilesystem-2015-02-01/DeleteTags
 func (c *EFS) DeleteTagsRequest(input *DeleteTagsInput) (req *request.Request, output *DeleteTagsOutput) {
 	op := &request.Operation{
 		Name:       opDeleteTags,
@@ -755,10 +767,10 @@ func (c *EFS) DeleteTagsRequest(input *DeleteTagsInput) (req *request.Request, o
 //   Returned if an error occurred on the server side.
 //
 //   * ErrCodeFileSystemNotFound "FileSystemNotFound"
-//   Returned if the specified FileSystemId does not exist in the requester's
+//   Returned if the specified FileSystemId value doesn't exist in the requester's
 //   AWS account.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticfilesystem-2015-02-01/DeleteTags
+// See also, https://docs.aws.amazon.com/goto/WebAPI/elasticfilesystem-2015-02-01/DeleteTags
 func (c *EFS) DeleteTags(input *DeleteTagsInput) (*DeleteTagsOutput, error) {
 	req, out := c.DeleteTagsRequest(input)
 	return out, req.Send()
@@ -784,7 +796,7 @@ const opDescribeFileSystems = "DescribeFileSystems"
 
 // DescribeFileSystemsRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeFileSystems operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -805,7 +817,7 @@ const opDescribeFileSystems = "DescribeFileSystems"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticfilesystem-2015-02-01/DescribeFileSystems
+// See also, https://docs.aws.amazon.com/goto/WebAPI/elasticfilesystem-2015-02-01/DescribeFileSystems
 func (c *EFS) DescribeFileSystemsRequest(input *DescribeFileSystemsInput) (req *request.Request, output *DescribeFileSystemsOutput) {
 	op := &request.Operation{
 		Name:       opDescribeFileSystems,
@@ -867,10 +879,10 @@ func (c *EFS) DescribeFileSystemsRequest(input *DescribeFileSystemsInput) (req *
 //   Returned if an error occurred on the server side.
 //
 //   * ErrCodeFileSystemNotFound "FileSystemNotFound"
-//   Returned if the specified FileSystemId does not exist in the requester's
+//   Returned if the specified FileSystemId value doesn't exist in the requester's
 //   AWS account.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticfilesystem-2015-02-01/DescribeFileSystems
+// See also, https://docs.aws.amazon.com/goto/WebAPI/elasticfilesystem-2015-02-01/DescribeFileSystems
 func (c *EFS) DescribeFileSystems(input *DescribeFileSystemsInput) (*DescribeFileSystemsOutput, error) {
 	req, out := c.DescribeFileSystemsRequest(input)
 	return out, req.Send()
@@ -896,7 +908,7 @@ const opDescribeMountTargetSecurityGroups = "DescribeMountTargetSecurityGroups"
 
 // DescribeMountTargetSecurityGroupsRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeMountTargetSecurityGroups operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -917,7 +929,7 @@ const opDescribeMountTargetSecurityGroups = "DescribeMountTargetSecurityGroups"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticfilesystem-2015-02-01/DescribeMountTargetSecurityGroups
+// See also, https://docs.aws.amazon.com/goto/WebAPI/elasticfilesystem-2015-02-01/DescribeMountTargetSecurityGroups
 func (c *EFS) DescribeMountTargetSecurityGroupsRequest(input *DescribeMountTargetSecurityGroupsInput) (req *request.Request, output *DescribeMountTargetSecurityGroupsOutput) {
 	op := &request.Operation{
 		Name:       opDescribeMountTargetSecurityGroups,
@@ -970,7 +982,7 @@ func (c *EFS) DescribeMountTargetSecurityGroupsRequest(input *DescribeMountTarge
 //   * ErrCodeIncorrectMountTargetState "IncorrectMountTargetState"
 //   Returned if the mount target is not in the correct state for the operation.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticfilesystem-2015-02-01/DescribeMountTargetSecurityGroups
+// See also, https://docs.aws.amazon.com/goto/WebAPI/elasticfilesystem-2015-02-01/DescribeMountTargetSecurityGroups
 func (c *EFS) DescribeMountTargetSecurityGroups(input *DescribeMountTargetSecurityGroupsInput) (*DescribeMountTargetSecurityGroupsOutput, error) {
 	req, out := c.DescribeMountTargetSecurityGroupsRequest(input)
 	return out, req.Send()
@@ -996,7 +1008,7 @@ const opDescribeMountTargets = "DescribeMountTargets"
 
 // DescribeMountTargetsRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeMountTargets operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -1017,7 +1029,7 @@ const opDescribeMountTargets = "DescribeMountTargets"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticfilesystem-2015-02-01/DescribeMountTargets
+// See also, https://docs.aws.amazon.com/goto/WebAPI/elasticfilesystem-2015-02-01/DescribeMountTargets
 func (c *EFS) DescribeMountTargetsRequest(input *DescribeMountTargetsInput) (req *request.Request, output *DescribeMountTargetsOutput) {
 	op := &request.Operation{
 		Name:       opDescribeMountTargets,
@@ -1060,14 +1072,14 @@ func (c *EFS) DescribeMountTargetsRequest(input *DescribeMountTargetsInput) (req
 //   Returned if an error occurred on the server side.
 //
 //   * ErrCodeFileSystemNotFound "FileSystemNotFound"
-//   Returned if the specified FileSystemId does not exist in the requester's
+//   Returned if the specified FileSystemId value doesn't exist in the requester's
 //   AWS account.
 //
 //   * ErrCodeMountTargetNotFound "MountTargetNotFound"
 //   Returned if there is no mount target with the specified ID found in the caller's
 //   account.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticfilesystem-2015-02-01/DescribeMountTargets
+// See also, https://docs.aws.amazon.com/goto/WebAPI/elasticfilesystem-2015-02-01/DescribeMountTargets
 func (c *EFS) DescribeMountTargets(input *DescribeMountTargetsInput) (*DescribeMountTargetsOutput, error) {
 	req, out := c.DescribeMountTargetsRequest(input)
 	return out, req.Send()
@@ -1093,7 +1105,7 @@ const opDescribeTags = "DescribeTags"
 
 // DescribeTagsRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeTags operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -1114,7 +1126,7 @@ const opDescribeTags = "DescribeTags"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticfilesystem-2015-02-01/DescribeTags
+// See also, https://docs.aws.amazon.com/goto/WebAPI/elasticfilesystem-2015-02-01/DescribeTags
 func (c *EFS) DescribeTagsRequest(input *DescribeTagsInput) (req *request.Request, output *DescribeTagsOutput) {
 	op := &request.Operation{
 		Name:       opDescribeTags,
@@ -1156,10 +1168,10 @@ func (c *EFS) DescribeTagsRequest(input *DescribeTagsInput) (req *request.Reques
 //   Returned if an error occurred on the server side.
 //
 //   * ErrCodeFileSystemNotFound "FileSystemNotFound"
-//   Returned if the specified FileSystemId does not exist in the requester's
+//   Returned if the specified FileSystemId value doesn't exist in the requester's
 //   AWS account.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticfilesystem-2015-02-01/DescribeTags
+// See also, https://docs.aws.amazon.com/goto/WebAPI/elasticfilesystem-2015-02-01/DescribeTags
 func (c *EFS) DescribeTags(input *DescribeTagsInput) (*DescribeTagsOutput, error) {
 	req, out := c.DescribeTagsRequest(input)
 	return out, req.Send()
@@ -1185,7 +1197,7 @@ const opModifyMountTargetSecurityGroups = "ModifyMountTargetSecurityGroups"
 
 // ModifyMountTargetSecurityGroupsRequest generates a "aws/request.Request" representing the
 // client's request for the ModifyMountTargetSecurityGroups operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -1206,7 +1218,7 @@ const opModifyMountTargetSecurityGroups = "ModifyMountTargetSecurityGroups"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticfilesystem-2015-02-01/ModifyMountTargetSecurityGroups
+// See also, https://docs.aws.amazon.com/goto/WebAPI/elasticfilesystem-2015-02-01/ModifyMountTargetSecurityGroups
 func (c *EFS) ModifyMountTargetSecurityGroupsRequest(input *ModifyMountTargetSecurityGroupsInput) (req *request.Request, output *ModifyMountTargetSecurityGroupsOutput) {
 	op := &request.Operation{
 		Name:       opModifyMountTargetSecurityGroups,
@@ -1271,10 +1283,10 @@ func (c *EFS) ModifyMountTargetSecurityGroupsRequest(input *ModifyMountTargetSec
 //   than five.
 //
 //   * ErrCodeSecurityGroupNotFound "SecurityGroupNotFound"
-//   Returned if one of the specified security groups does not exist in the subnet's
+//   Returned if one of the specified security groups doesn't exist in the subnet's
 //   VPC.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticfilesystem-2015-02-01/ModifyMountTargetSecurityGroups
+// See also, https://docs.aws.amazon.com/goto/WebAPI/elasticfilesystem-2015-02-01/ModifyMountTargetSecurityGroups
 func (c *EFS) ModifyMountTargetSecurityGroups(input *ModifyMountTargetSecurityGroupsInput) (*ModifyMountTargetSecurityGroupsOutput, error) {
 	req, out := c.ModifyMountTargetSecurityGroupsRequest(input)
 	return out, req.Send()
@@ -1296,7 +1308,112 @@ func (c *EFS) ModifyMountTargetSecurityGroupsWithContext(ctx aws.Context, input 
 	return out, req.Send()
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticfilesystem-2015-02-01/CreateFileSystemRequest
+const opUpdateFileSystem = "UpdateFileSystem"
+
+// UpdateFileSystemRequest generates a "aws/request.Request" representing the
+// client's request for the UpdateFileSystem operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfuly.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See UpdateFileSystem for more information on using the UpdateFileSystem
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the UpdateFileSystemRequest method.
+//    req, resp := client.UpdateFileSystemRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/elasticfilesystem-2015-02-01/UpdateFileSystem
+func (c *EFS) UpdateFileSystemRequest(input *UpdateFileSystemInput) (req *request.Request, output *UpdateFileSystemOutput) {
+	op := &request.Operation{
+		Name:       opUpdateFileSystem,
+		HTTPMethod: "PUT",
+		HTTPPath:   "/2015-02-01/file-systems/{FileSystemId}",
+	}
+
+	if input == nil {
+		input = &UpdateFileSystemInput{}
+	}
+
+	output = &UpdateFileSystemOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// UpdateFileSystem API operation for Amazon Elastic File System.
+//
+// Updates the throughput mode or the amount of provisioned throughput of an
+// existing file system.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic File System's
+// API operation UpdateFileSystem for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeBadRequest "BadRequest"
+//   Returned if the request is malformed or contains an error such as an invalid
+//   parameter value or a missing required parameter.
+//
+//   * ErrCodeFileSystemNotFound "FileSystemNotFound"
+//   Returned if the specified FileSystemId value doesn't exist in the requester's
+//   AWS account.
+//
+//   * ErrCodeIncorrectFileSystemLifeCycleState "IncorrectFileSystemLifeCycleState"
+//   Returned if the file system's lifecycle state is not "available".
+//
+//   * ErrCodeInsufficientThroughputCapacity "InsufficientThroughputCapacity"
+//   Returned if there's not enough capacity to provision additional throughput.
+//   This value might be returned when you try to create a file system in provisioned
+//   throughput mode, when you attempt to increase the provisioned throughput
+//   of an existing file system, or when you attempt to change an existing file
+//   system from bursting to provisioned throughput mode.
+//
+//   * ErrCodeInternalServerError "InternalServerError"
+//   Returned if an error occurred on the server side.
+//
+//   * ErrCodeThroughputLimitExceeded "ThroughputLimitExceeded"
+//   Returned if the throughput mode or amount of provisioned throughput can't
+//   be changed because the throughput limit of 1024 MiB/s has been reached.
+//
+//   * ErrCodeTooManyRequests "TooManyRequests"
+//   Returned if you don’t wait at least 24 hours before changing the throughput
+//   mode, or decreasing the Provisioned Throughput value.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/elasticfilesystem-2015-02-01/UpdateFileSystem
+func (c *EFS) UpdateFileSystem(input *UpdateFileSystemInput) (*UpdateFileSystemOutput, error) {
+	req, out := c.UpdateFileSystemRequest(input)
+	return out, req.Send()
+}
+
+// UpdateFileSystemWithContext is the same as UpdateFileSystem with the addition of
+// the ability to pass a context and additional request options.
+//
+// See UpdateFileSystem for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *EFS) UpdateFileSystemWithContext(ctx aws.Context, input *UpdateFileSystemInput, opts ...request.Option) (*UpdateFileSystemOutput, error) {
+	req, out := c.UpdateFileSystemRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
 type CreateFileSystemInput struct {
 	_ struct{} `type:"structure"`
 
@@ -1306,30 +1423,29 @@ type CreateFileSystemInput struct {
 	// CreationToken is a required field
 	CreationToken *string `min:"1" type:"string" required:"true"`
 
-	// A boolean value that, if true, creates an encrypted file system. When creating
+	// A Boolean value that, if true, creates an encrypted file system. When creating
 	// an encrypted file system, you have the option of specifying a CreateFileSystemRequest$KmsKeyId
 	// for an existing AWS Key Management Service (AWS KMS) customer master key
 	// (CMK). If you don't specify a CMK, then the default CMK for Amazon EFS, /aws/elasticfilesystem,
 	// is used to protect the encrypted file system.
 	Encrypted *bool `type:"boolean"`
 
-	// The id of the AWS KMS CMK that will be used to protect the encrypted file
-	// system. This parameter is only required if you want to use a non-default
-	// CMK. If this parameter is not specified, the default CMK for Amazon EFS is
-	// used. This id can be in one of the following formats:
+	// The ID of the AWS KMS CMK to be used to protect the encrypted file system.
+	// This parameter is only required if you want to use a non-default CMK. If
+	// this parameter is not specified, the default CMK for Amazon EFS is used.
+	// This ID can be in one of the following formats:
 	//
-	//    * Key ID - A unique identifier of the key. For example, 1234abcd-12ab-34cd-56ef-1234567890ab.
+	//    * Key ID - A unique identifier of the key, for example, 1234abcd-12ab-34cd-56ef-1234567890ab.
 	//
-	//    * ARN - An Amazon Resource Name for the key. For example, arn:aws:kms:us-west-2:111122223333:key/1234abcd-12ab-34cd-56ef-1234567890ab.
+	//    * ARN - An Amazon Resource Name (ARN) for the key, for example, arn:aws:kms:us-west-2:111122223333:key/1234abcd-12ab-34cd-56ef-1234567890ab.
 	//
 	//    * Key alias - A previously created display name for a key. For example,
 	//    alias/projectKey1.
 	//
-	//    * Key alias ARN - An Amazon Resource Name for a key alias. For example,
-	//    arn:aws:kms:us-west-2:444455556666:alias/projectKey1.
+	//    * Key alias ARN - An ARN for a key alias, for example, arn:aws:kms:us-west-2:444455556666:alias/projectKey1.
 	//
-	// Note that if the KmsKeyId is specified, the CreateFileSystemRequest$Encrypted
-	// parameter must be set to true.
+	// If KmsKeyId is specified, the CreateFileSystemRequest$Encrypted parameter
+	// must be set to true.
 	KmsKeyId *string `min:"1" type:"string"`
 
 	// The PerformanceMode of the file system. We recommend generalPurpose performance
@@ -1338,6 +1454,20 @@ type CreateFileSystemInput struct {
 	// with a tradeoff of slightly higher latencies for most file operations. This
 	// can't be changed after the file system has been created.
 	PerformanceMode *string `type:"string" enum:"PerformanceMode"`
+
+	// The throughput, measured in MiB/s, that you want to provision for a file
+	// system that you're creating. The limit on throughput is 1024 MiB/s. You can
+	// get these limits increased by contacting AWS Support. For more information,
+	// see Amazon EFS Limits That You Can Increase (http://docs.aws.amazon.com/efs/latest/ug/limits.html#soft-limits)
+	// in the Amazon EFS User Guide.
+	ProvisionedThroughputInMibps *float64 `type:"double"`
+
+	// The throughput mode for the file system to be created. There are two throughput
+	// modes to choose from for your file system: bursting and provisioned. You
+	// can decrease your file system's throughput in Provisioned Throughput mode
+	// or change between the throughput modes as long as it’s been more than 24
+	// hours since the last decrease or throughput mode change.
+	ThroughputMode *string `type:"string" enum:"ThroughputMode"`
 }
 
 // String returns the string representation
@@ -1393,7 +1523,18 @@ func (s *CreateFileSystemInput) SetPerformanceMode(v string) *CreateFileSystemIn
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticfilesystem-2015-02-01/CreateMountTargetRequest
+// SetProvisionedThroughputInMibps sets the ProvisionedThroughputInMibps field's value.
+func (s *CreateFileSystemInput) SetProvisionedThroughputInMibps(v float64) *CreateFileSystemInput {
+	s.ProvisionedThroughputInMibps = &v
+	return s
+}
+
+// SetThroughputMode sets the ThroughputMode field's value.
+func (s *CreateFileSystemInput) SetThroughputMode(v string) *CreateFileSystemInput {
+	s.ThroughputMode = &v
+	return s
+}
+
 type CreateMountTargetInput struct {
 	_ struct{} `type:"structure"`
 
@@ -1465,7 +1606,6 @@ func (s *CreateMountTargetInput) SetSubnetId(v string) *CreateMountTargetInput {
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticfilesystem-2015-02-01/CreateTagsRequest
 type CreateTagsInput struct {
 	_ struct{} `type:"structure"`
 
@@ -1529,7 +1669,6 @@ func (s *CreateTagsInput) SetTags(v []*Tag) *CreateTagsInput {
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticfilesystem-2015-02-01/CreateTagsOutput
 type CreateTagsOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -1544,7 +1683,6 @@ func (s CreateTagsOutput) GoString() string {
 	return s.String()
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticfilesystem-2015-02-01/DeleteFileSystemRequest
 type DeleteFileSystemInput struct {
 	_ struct{} `type:"structure"`
 
@@ -1583,7 +1721,6 @@ func (s *DeleteFileSystemInput) SetFileSystemId(v string) *DeleteFileSystemInput
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticfilesystem-2015-02-01/DeleteFileSystemOutput
 type DeleteFileSystemOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -1598,7 +1735,6 @@ func (s DeleteFileSystemOutput) GoString() string {
 	return s.String()
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticfilesystem-2015-02-01/DeleteMountTargetRequest
 type DeleteMountTargetInput struct {
 	_ struct{} `type:"structure"`
 
@@ -1637,7 +1773,6 @@ func (s *DeleteMountTargetInput) SetMountTargetId(v string) *DeleteMountTargetIn
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticfilesystem-2015-02-01/DeleteMountTargetOutput
 type DeleteMountTargetOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -1652,7 +1787,6 @@ func (s DeleteMountTargetOutput) GoString() string {
 	return s.String()
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticfilesystem-2015-02-01/DeleteTagsRequest
 type DeleteTagsInput struct {
 	_ struct{} `type:"structure"`
 
@@ -1705,7 +1839,6 @@ func (s *DeleteTagsInput) SetTagKeys(v []*string) *DeleteTagsInput {
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticfilesystem-2015-02-01/DeleteTagsOutput
 type DeleteTagsOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -1720,7 +1853,6 @@ func (s DeleteTagsOutput) GoString() string {
 	return s.String()
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticfilesystem-2015-02-01/DescribeFileSystemsRequest
 type DescribeFileSystemsInput struct {
 	_ struct{} `type:"structure"`
 
@@ -1795,12 +1927,11 @@ func (s *DescribeFileSystemsInput) SetMaxItems(v int64) *DescribeFileSystemsInpu
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticfilesystem-2015-02-01/DescribeFileSystemsResponse
 type DescribeFileSystemsOutput struct {
 	_ struct{} `type:"structure"`
 
 	// Array of file system descriptions.
-	FileSystems []*FileSystemDescription `type:"list"`
+	FileSystems []*UpdateFileSystemOutput `type:"list"`
 
 	// Present if provided by caller in the request (String).
 	Marker *string `type:"string"`
@@ -1821,7 +1952,7 @@ func (s DescribeFileSystemsOutput) GoString() string {
 }
 
 // SetFileSystems sets the FileSystems field's value.
-func (s *DescribeFileSystemsOutput) SetFileSystems(v []*FileSystemDescription) *DescribeFileSystemsOutput {
+func (s *DescribeFileSystemsOutput) SetFileSystems(v []*UpdateFileSystemOutput) *DescribeFileSystemsOutput {
 	s.FileSystems = v
 	return s
 }
@@ -1838,7 +1969,6 @@ func (s *DescribeFileSystemsOutput) SetNextMarker(v string) *DescribeFileSystems
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticfilesystem-2015-02-01/DescribeMountTargetSecurityGroupsRequest
 type DescribeMountTargetSecurityGroupsInput struct {
 	_ struct{} `type:"structure"`
 
@@ -1877,7 +2007,6 @@ func (s *DescribeMountTargetSecurityGroupsInput) SetMountTargetId(v string) *Des
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticfilesystem-2015-02-01/DescribeMountTargetSecurityGroupsResponse
 type DescribeMountTargetSecurityGroupsOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -1903,7 +2032,6 @@ func (s *DescribeMountTargetSecurityGroupsOutput) SetSecurityGroups(v []*string)
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticfilesystem-2015-02-01/DescribeMountTargetsRequest
 type DescribeMountTargetsInput struct {
 	_ struct{} `type:"structure"`
 
@@ -1972,7 +2100,6 @@ func (s *DescribeMountTargetsInput) SetMountTargetId(v string) *DescribeMountTar
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticfilesystem-2015-02-01/DescribeMountTargetsResponse
 type DescribeMountTargetsOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -2018,7 +2145,6 @@ func (s *DescribeMountTargetsOutput) SetNextMarker(v string) *DescribeMountTarge
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticfilesystem-2015-02-01/DescribeTagsRequest
 type DescribeTagsInput struct {
 	_ struct{} `type:"structure"`
 
@@ -2081,7 +2207,6 @@ func (s *DescribeTagsInput) SetMaxItems(v int64) *DescribeTagsInput {
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticfilesystem-2015-02-01/DescribeTagsResponse
 type DescribeTagsOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -2128,150 +2253,6 @@ func (s *DescribeTagsOutput) SetTags(v []*Tag) *DescribeTagsOutput {
 	return s
 }
 
-// Description of the file system.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticfilesystem-2015-02-01/FileSystemDescription
-type FileSystemDescription struct {
-	_ struct{} `type:"structure"`
-
-	// Time that the file system was created, in seconds (since 1970-01-01T00:00:00Z).
-	//
-	// CreationTime is a required field
-	CreationTime *time.Time `type:"timestamp" timestampFormat:"unix" required:"true"`
-
-	// Opaque string specified in the request.
-	//
-	// CreationToken is a required field
-	CreationToken *string `min:"1" type:"string" required:"true"`
-
-	// A boolean value that, if true, indicates that the file system is encrypted.
-	Encrypted *bool `type:"boolean"`
-
-	// ID of the file system, assigned by Amazon EFS.
-	//
-	// FileSystemId is a required field
-	FileSystemId *string `type:"string" required:"true"`
-
-	// The id of an AWS Key Management Service (AWS KMS) customer master key (CMK)
-	// that was used to protect the encrypted file system.
-	KmsKeyId *string `min:"1" type:"string"`
-
-	// Lifecycle phase of the file system.
-	//
-	// LifeCycleState is a required field
-	LifeCycleState *string `type:"string" required:"true" enum:"LifeCycleState"`
-
-	// You can add tags to a file system, including a Name tag. For more information,
-	// see CreateTags. If the file system has a Name tag, Amazon EFS returns the
-	// value in this field.
-	Name *string `type:"string"`
-
-	// Current number of mount targets that the file system has. For more information,
-	// see CreateMountTarget.
-	//
-	// NumberOfMountTargets is a required field
-	NumberOfMountTargets *int64 `type:"integer" required:"true"`
-
-	// AWS account that created the file system. If the file system was created
-	// by an IAM user, the parent account to which the user belongs is the owner.
-	//
-	// OwnerId is a required field
-	OwnerId *string `type:"string" required:"true"`
-
-	// The PerformanceMode of the file system.
-	//
-	// PerformanceMode is a required field
-	PerformanceMode *string `type:"string" required:"true" enum:"PerformanceMode"`
-
-	// Latest known metered size (in bytes) of data stored in the file system, in
-	// bytes, in its Value field, and the time at which that size was determined
-	// in its Timestamp field. The Timestamp value is the integer number of seconds
-	// since 1970-01-01T00:00:00Z. Note that the value does not represent the size
-	// of a consistent snapshot of the file system, but it is eventually consistent
-	// when there are no writes to the file system. That is, the value will represent
-	// actual size only if the file system is not modified for a period longer than
-	// a couple of hours. Otherwise, the value is not the exact size the file system
-	// was at any instant in time.
-	//
-	// SizeInBytes is a required field
-	SizeInBytes *FileSystemSize `type:"structure" required:"true"`
-}
-
-// String returns the string representation
-func (s FileSystemDescription) String() string {
-	return awsutil.Prettify(s)
-}
-
-// GoString returns the string representation
-func (s FileSystemDescription) GoString() string {
-	return s.String()
-}
-
-// SetCreationTime sets the CreationTime field's value.
-func (s *FileSystemDescription) SetCreationTime(v time.Time) *FileSystemDescription {
-	s.CreationTime = &v
-	return s
-}
-
-// SetCreationToken sets the CreationToken field's value.
-func (s *FileSystemDescription) SetCreationToken(v string) *FileSystemDescription {
-	s.CreationToken = &v
-	return s
-}
-
-// SetEncrypted sets the Encrypted field's value.
-func (s *FileSystemDescription) SetEncrypted(v bool) *FileSystemDescription {
-	s.Encrypted = &v
-	return s
-}
-
-// SetFileSystemId sets the FileSystemId field's value.
-func (s *FileSystemDescription) SetFileSystemId(v string) *FileSystemDescription {
-	s.FileSystemId = &v
-	return s
-}
-
-// SetKmsKeyId sets the KmsKeyId field's value.
-func (s *FileSystemDescription) SetKmsKeyId(v string) *FileSystemDescription {
-	s.KmsKeyId = &v
-	return s
-}
-
-// SetLifeCycleState sets the LifeCycleState field's value.
-func (s *FileSystemDescription) SetLifeCycleState(v string) *FileSystemDescription {
-	s.LifeCycleState = &v
-	return s
-}
-
-// SetName sets the Name field's value.
-func (s *FileSystemDescription) SetName(v string) *FileSystemDescription {
-	s.Name = &v
-	return s
-}
-
-// SetNumberOfMountTargets sets the NumberOfMountTargets field's value.
-func (s *FileSystemDescription) SetNumberOfMountTargets(v int64) *FileSystemDescription {
-	s.NumberOfMountTargets = &v
-	return s
-}
-
-// SetOwnerId sets the OwnerId field's value.
-func (s *FileSystemDescription) SetOwnerId(v string) *FileSystemDescription {
-	s.OwnerId = &v
-	return s
-}
-
-// SetPerformanceMode sets the PerformanceMode field's value.
-func (s *FileSystemDescription) SetPerformanceMode(v string) *FileSystemDescription {
-	s.PerformanceMode = &v
-	return s
-}
-
-// SetSizeInBytes sets the SizeInBytes field's value.
-func (s *FileSystemDescription) SetSizeInBytes(v *FileSystemSize) *FileSystemDescription {
-	s.SizeInBytes = v
-	return s
-}
-
 // Latest known metered size (in bytes) of data stored in the file system, in
 // its Value field, and the time at which that size was determined in its Timestamp
 // field. Note that the value does not represent the size of a consistent snapshot
@@ -2280,13 +2261,12 @@ func (s *FileSystemDescription) SetSizeInBytes(v *FileSystemSize) *FileSystemDes
 // if the file system is not modified for a period longer than a couple of hours.
 // Otherwise, the value is not necessarily the exact size the file system was
 // at any instant in time.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticfilesystem-2015-02-01/FileSystemSize
 type FileSystemSize struct {
 	_ struct{} `type:"structure"`
 
 	// Time at which the size of data, returned in the Value field, was determined.
 	// The value is the integer number of seconds since 1970-01-01T00:00:00Z.
-	Timestamp *time.Time `type:"timestamp" timestampFormat:"unix"`
+	Timestamp *time.Time `type:"timestamp"`
 
 	// Latest known metered size (in bytes) of data stored in the file system.
 	//
@@ -2316,7 +2296,6 @@ func (s *FileSystemSize) SetValue(v int64) *FileSystemSize {
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticfilesystem-2015-02-01/ModifyMountTargetSecurityGroupsRequest
 type ModifyMountTargetSecurityGroupsInput struct {
 	_ struct{} `type:"structure"`
 
@@ -2364,7 +2343,6 @@ func (s *ModifyMountTargetSecurityGroupsInput) SetSecurityGroups(v []*string) *M
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticfilesystem-2015-02-01/ModifyMountTargetSecurityGroupsOutput
 type ModifyMountTargetSecurityGroupsOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -2380,7 +2358,6 @@ func (s ModifyMountTargetSecurityGroupsOutput) GoString() string {
 }
 
 // Provides a description of a mount target.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticfilesystem-2015-02-01/MountTargetDescription
 type MountTargetDescription struct {
 	_ struct{} `type:"structure"`
 
@@ -2469,7 +2446,6 @@ func (s *MountTargetDescription) SetSubnetId(v string) *MountTargetDescription {
 
 // A tag is a key-value pair. Allowed characters: letters, whitespace, and numbers,
 // representable in UTF-8, and the following characters: + - = . _ : /
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticfilesystem-2015-02-01/Tag
 type Tag struct {
 	_ struct{} `type:"structure"`
 
@@ -2525,12 +2501,244 @@ func (s *Tag) SetValue(v string) *Tag {
 	return s
 }
 
+type UpdateFileSystemInput struct {
+	_ struct{} `type:"structure"`
+
+	// The ID of the file system that you want to update.
+	//
+	// FileSystemId is a required field
+	FileSystemId *string `location:"uri" locationName:"FileSystemId" type:"string" required:"true"`
+
+	// (Optional) The amount of throughput, in MiB/s, that you want to provision
+	// for your file system. If you're not updating the amount of provisioned throughput
+	// for your file system, you don't need to provide this value in your request.
+	ProvisionedThroughputInMibps *float64 `type:"double"`
+
+	// (Optional) The throughput mode that you want your file system to use. If
+	// you're not updating your throughput mode, you don't need to provide this
+	// value in your request.
+	ThroughputMode *string `type:"string" enum:"ThroughputMode"`
+}
+
+// String returns the string representation
+func (s UpdateFileSystemInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s UpdateFileSystemInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *UpdateFileSystemInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "UpdateFileSystemInput"}
+	if s.FileSystemId == nil {
+		invalidParams.Add(request.NewErrParamRequired("FileSystemId"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetFileSystemId sets the FileSystemId field's value.
+func (s *UpdateFileSystemInput) SetFileSystemId(v string) *UpdateFileSystemInput {
+	s.FileSystemId = &v
+	return s
+}
+
+// SetProvisionedThroughputInMibps sets the ProvisionedThroughputInMibps field's value.
+func (s *UpdateFileSystemInput) SetProvisionedThroughputInMibps(v float64) *UpdateFileSystemInput {
+	s.ProvisionedThroughputInMibps = &v
+	return s
+}
+
+// SetThroughputMode sets the ThroughputMode field's value.
+func (s *UpdateFileSystemInput) SetThroughputMode(v string) *UpdateFileSystemInput {
+	s.ThroughputMode = &v
+	return s
+}
+
+// Description of the file system.
+type UpdateFileSystemOutput struct {
+	_ struct{} `type:"structure"`
+
+	// Time that the file system was created, in seconds (since 1970-01-01T00:00:00Z).
+	//
+	// CreationTime is a required field
+	CreationTime *time.Time `type:"timestamp" required:"true"`
+
+	// Opaque string specified in the request.
+	//
+	// CreationToken is a required field
+	CreationToken *string `min:"1" type:"string" required:"true"`
+
+	// A Boolean value that, if true, indicates that the file system is encrypted.
+	Encrypted *bool `type:"boolean"`
+
+	// ID of the file system, assigned by Amazon EFS.
+	//
+	// FileSystemId is a required field
+	FileSystemId *string `type:"string" required:"true"`
+
+	// The ID of an AWS Key Management Service (AWS KMS) customer master key (CMK)
+	// that was used to protect the encrypted file system.
+	KmsKeyId *string `min:"1" type:"string"`
+
+	// Lifecycle phase of the file system.
+	//
+	// LifeCycleState is a required field
+	LifeCycleState *string `type:"string" required:"true" enum:"LifeCycleState"`
+
+	// You can add tags to a file system, including a Name tag. For more information,
+	// see CreateTags. If the file system has a Name tag, Amazon EFS returns the
+	// value in this field.
+	Name *string `type:"string"`
+
+	// Current number of mount targets that the file system has. For more information,
+	// see CreateMountTarget.
+	//
+	// NumberOfMountTargets is a required field
+	NumberOfMountTargets *int64 `type:"integer" required:"true"`
+
+	// AWS account that created the file system. If the file system was created
+	// by an IAM user, the parent account to which the user belongs is the owner.
+	//
+	// OwnerId is a required field
+	OwnerId *string `type:"string" required:"true"`
+
+	// The PerformanceMode of the file system.
+	//
+	// PerformanceMode is a required field
+	PerformanceMode *string `type:"string" required:"true" enum:"PerformanceMode"`
+
+	// The throughput, measured in MiB/s, that you want to provision for a file
+	// system. The limit on throughput is 1024 MiB/s. You can get these limits increased
+	// by contacting AWS Support. For more information, see Amazon EFS Limits That
+	// You Can Increase (http://docs.aws.amazon.com/efs/latest/ug/limits.html#soft-limits)
+	// in the Amazon EFS User Guide.
+	ProvisionedThroughputInMibps *float64 `type:"double"`
+
+	// Latest known metered size (in bytes) of data stored in the file system, in
+	// its Value field, and the time at which that size was determined in its Timestamp
+	// field. The Timestamp value is the integer number of seconds since 1970-01-01T00:00:00Z.
+	// The SizeInBytes value doesn't represent the size of a consistent snapshot
+	// of the file system, but it is eventually consistent when there are no writes
+	// to the file system. That is, SizeInBytes represents actual size only if the
+	// file system is not modified for a period longer than a couple of hours. Otherwise,
+	// the value is not the exact size that the file system was at any point in
+	// time.
+	//
+	// SizeInBytes is a required field
+	SizeInBytes *FileSystemSize `type:"structure" required:"true"`
+
+	// The throughput mode for a file system. There are two throughput modes to
+	// choose from for your file system: bursting and provisioned. You can decrease
+	// your file system's throughput in Provisioned Throughput mode or change between
+	// the throughput modes as long as it’s been more than 24 hours since the last
+	// decrease or throughput mode change.
+	ThroughputMode *string `type:"string" enum:"ThroughputMode"`
+}
+
+// String returns the string representation
+func (s UpdateFileSystemOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s UpdateFileSystemOutput) GoString() string {
+	return s.String()
+}
+
+// SetCreationTime sets the CreationTime field's value.
+func (s *UpdateFileSystemOutput) SetCreationTime(v time.Time) *UpdateFileSystemOutput {
+	s.CreationTime = &v
+	return s
+}
+
+// SetCreationToken sets the CreationToken field's value.
+func (s *UpdateFileSystemOutput) SetCreationToken(v string) *UpdateFileSystemOutput {
+	s.CreationToken = &v
+	return s
+}
+
+// SetEncrypted sets the Encrypted field's value.
+func (s *UpdateFileSystemOutput) SetEncrypted(v bool) *UpdateFileSystemOutput {
+	s.Encrypted = &v
+	return s
+}
+
+// SetFileSystemId sets the FileSystemId field's value.
+func (s *UpdateFileSystemOutput) SetFileSystemId(v string) *UpdateFileSystemOutput {
+	s.FileSystemId = &v
+	return s
+}
+
+// SetKmsKeyId sets the KmsKeyId field's value.
+func (s *UpdateFileSystemOutput) SetKmsKeyId(v string) *UpdateFileSystemOutput {
+	s.KmsKeyId = &v
+	return s
+}
+
+// SetLifeCycleState sets the LifeCycleState field's value.
+func (s *UpdateFileSystemOutput) SetLifeCycleState(v string) *UpdateFileSystemOutput {
+	s.LifeCycleState = &v
+	return s
+}
+
+// SetName sets the Name field's value.
+func (s *UpdateFileSystemOutput) SetName(v string) *UpdateFileSystemOutput {
+	s.Name = &v
+	return s
+}
+
+// SetNumberOfMountTargets sets the NumberOfMountTargets field's value.
+func (s *UpdateFileSystemOutput) SetNumberOfMountTargets(v int64) *UpdateFileSystemOutput {
+	s.NumberOfMountTargets = &v
+	return s
+}
+
+// SetOwnerId sets the OwnerId field's value.
+func (s *UpdateFileSystemOutput) SetOwnerId(v string) *UpdateFileSystemOutput {
+	s.OwnerId = &v
+	return s
+}
+
+// SetPerformanceMode sets the PerformanceMode field's value.
+func (s *UpdateFileSystemOutput) SetPerformanceMode(v string) *UpdateFileSystemOutput {
+	s.PerformanceMode = &v
+	return s
+}
+
+// SetProvisionedThroughputInMibps sets the ProvisionedThroughputInMibps field's value.
+func (s *UpdateFileSystemOutput) SetProvisionedThroughputInMibps(v float64) *UpdateFileSystemOutput {
+	s.ProvisionedThroughputInMibps = &v
+	return s
+}
+
+// SetSizeInBytes sets the SizeInBytes field's value.
+func (s *UpdateFileSystemOutput) SetSizeInBytes(v *FileSystemSize) *UpdateFileSystemOutput {
+	s.SizeInBytes = v
+	return s
+}
+
+// SetThroughputMode sets the ThroughputMode field's value.
+func (s *UpdateFileSystemOutput) SetThroughputMode(v string) *UpdateFileSystemOutput {
+	s.ThroughputMode = &v
+	return s
+}
+
 const (
 	// LifeCycleStateCreating is a LifeCycleState enum value
 	LifeCycleStateCreating = "creating"
 
 	// LifeCycleStateAvailable is a LifeCycleState enum value
 	LifeCycleStateAvailable = "available"
+
+	// LifeCycleStateUpdating is a LifeCycleState enum value
+	LifeCycleStateUpdating = "updating"
 
 	// LifeCycleStateDeleting is a LifeCycleState enum value
 	LifeCycleStateDeleting = "deleting"
@@ -2545,4 +2753,12 @@ const (
 
 	// PerformanceModeMaxIo is a PerformanceMode enum value
 	PerformanceModeMaxIo = "maxIO"
+)
+
+const (
+	// ThroughputModeBursting is a ThroughputMode enum value
+	ThroughputModeBursting = "bursting"
+
+	// ThroughputModeProvisioned is a ThroughputMode enum value
+	ThroughputModeProvisioned = "provisioned"
 )

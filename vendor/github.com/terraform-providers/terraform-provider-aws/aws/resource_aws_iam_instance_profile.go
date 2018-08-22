@@ -3,6 +3,7 @@ package aws
 import (
 	"fmt"
 	"regexp"
+	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
@@ -60,9 +61,10 @@ func resourceAwsIamInstanceProfile() *schema.Resource {
 			},
 
 			"name_prefix": {
-				Type:     schema.TypeString,
-				Optional: true,
-				ForceNew: true,
+				Type:          schema.TypeString,
+				Optional:      true,
+				ForceNew:      true,
+				ConflictsWith: []string{"name"},
 				ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
 					// https://github.com/boto/botocore/blob/2485f5c/botocore/data/iam/2010-05-08/service-2.json#L8196-L8201
 					value := v.(string)
@@ -210,10 +212,19 @@ func instanceProfileSetRoles(d *schema.ResourceData, iamconn *iam.IAM) error {
 }
 
 func instanceProfileRemoveAllRoles(d *schema.ResourceData, iamconn *iam.IAM) error {
-	for _, role := range d.Get("roles").(*schema.Set).List() {
+	role, hasRole := d.GetOk("role")
+	roles, hasRoles := d.GetOk("roles")
+	if hasRole && !hasRoles { // "roles" will always be a superset of "role", if set
 		err := instanceProfileRemoveRole(iamconn, d.Id(), role.(string))
 		if err != nil {
 			return fmt.Errorf("Error removing role %s from IAM instance profile %s: %s", role, d.Id(), err)
+		}
+	} else {
+		for _, role := range roles.(*schema.Set).List() {
+			err := instanceProfileRemoveRole(iamconn, d.Id(), role.(string))
+			if err != nil {
+				return fmt.Errorf("Error removing role %s from IAM instance profile %s: %s", role, d.Id(), err)
+			}
 		}
 	}
 	return nil
@@ -286,7 +297,7 @@ func resourceAwsIamInstanceProfileDelete(d *schema.ResourceData, meta interface{
 	if err != nil {
 		return fmt.Errorf("Error deleting IAM instance profile %s: %s", d.Id(), err)
 	}
-	d.SetId("")
+
 	return nil
 }
 
@@ -296,6 +307,9 @@ func instanceProfileReadResult(d *schema.ResourceData, result *iam.InstanceProfi
 		return err
 	}
 	if err := d.Set("arn", result.Arn); err != nil {
+		return err
+	}
+	if err := d.Set("create_date", result.CreateDate.Format(time.RFC3339)); err != nil {
 		return err
 	}
 	if err := d.Set("path", result.Path); err != nil {

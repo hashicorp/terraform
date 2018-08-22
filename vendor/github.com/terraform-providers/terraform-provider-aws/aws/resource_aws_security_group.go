@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/arn"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/hashicorp/terraform/helper/hashcode"
@@ -27,6 +28,11 @@ func resourceAwsSecurityGroup() *schema.Resource {
 			State: resourceAwsSecurityGroupImportState,
 		},
 
+		Timeouts: &schema.ResourceTimeout{
+			Create: schema.DefaultTimeout(10 * time.Minute),
+			Delete: schema.DefaultTimeout(10 * time.Minute),
+		},
+
 		SchemaVersion: 1,
 		MigrateState:  resourceAwsSecurityGroupMigrateState,
 
@@ -37,43 +43,23 @@ func resourceAwsSecurityGroup() *schema.Resource {
 				Computed:      true,
 				ForceNew:      true,
 				ConflictsWith: []string{"name_prefix"},
-				ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
-					value := v.(string)
-					if len(value) > 255 {
-						errors = append(errors, fmt.Errorf(
-							"%q cannot be longer than 255 characters", k))
-					}
-					return
-				},
+				ValidateFunc:  validateMaxLength(255),
 			},
 
 			"name_prefix": {
-				Type:     schema.TypeString,
-				Optional: true,
-				ForceNew: true,
-				ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
-					value := v.(string)
-					if len(value) > 100 {
-						errors = append(errors, fmt.Errorf(
-							"%q cannot be longer than 100 characters, name is limited to 255", k))
-					}
-					return
-				},
+				Type:          schema.TypeString,
+				Optional:      true,
+				ForceNew:      true,
+				ConflictsWith: []string{"name"},
+				ValidateFunc:  validateMaxLength(100),
 			},
 
 			"description": {
-				Type:     schema.TypeString,
-				Optional: true,
-				ForceNew: true,
-				Default:  "Managed by Terraform",
-				ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
-					value := v.(string)
-					if len(value) > 255 {
-						errors = append(errors, fmt.Errorf(
-							"%q cannot be longer than 255 characters", k))
-					}
-					return
-				},
+				Type:         schema.TypeString,
+				Optional:     true,
+				ForceNew:     true,
+				Default:      "Managed by Terraform",
+				ValidateFunc: validateMaxLength(255),
 			},
 
 			"vpc_id": {
@@ -215,6 +201,11 @@ func resourceAwsSecurityGroup() *schema.Resource {
 				Set: resourceAwsSecurityGroupRuleHash,
 			},
 
+			"arn": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+
 			"owner_id": {
 				Type:     schema.TypeString,
 				Computed: true,
@@ -267,17 +258,7 @@ func resourceAwsSecurityGroupCreate(d *schema.ResourceData, meta interface{}) er
 	log.Printf("[INFO] Security Group ID: %s", d.Id())
 
 	// Wait for the security group to truly exist
-	log.Printf(
-		"[DEBUG] Waiting for Security Group (%s) to exist",
-		d.Id())
-	stateConf := &resource.StateChangeConf{
-		Pending: []string{""},
-		Target:  []string{"exists"},
-		Refresh: SGStateRefreshFunc(conn, d.Id()),
-		Timeout: 10 * time.Minute,
-	}
-
-	resp, err := stateConf.WaitForState()
+	resp, err := waitForSgToExist(conn, d.Id(), d.Timeout(schema.TimeoutCreate))
 	if err != nil {
 		return fmt.Errorf(
 			"Error waiting for Security Group (%s) to become available: %s",
@@ -352,11 +333,20 @@ func resourceAwsSecurityGroupCreate(d *schema.ResourceData, meta interface{}) er
 func resourceAwsSecurityGroupRead(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).ec2conn
 
-	sgRaw, _, err := SGStateRefreshFunc(conn, d.Id())()
+	var sgRaw interface{}
+	var err error
+	if d.IsNewResource() {
+		sgRaw, err = waitForSgToExist(conn, d.Id(), d.Timeout(schema.TimeoutRead))
+	} else {
+		sgRaw, _, err = SGStateRefreshFunc(conn, d.Id())()
+	}
+
 	if err != nil {
 		return err
 	}
+
 	if sgRaw == nil {
+		log.Printf("[WARN] Security group (%s) not found, removing from state", d.Id())
 		d.SetId("")
 		return nil
 	}
@@ -374,6 +364,15 @@ func resourceAwsSecurityGroupRead(d *schema.ResourceData, meta interface{}) erro
 	ingressRules := matchRules("ingress", localIngressRules, remoteIngressRules)
 	egressRules := matchRules("egress", localEgressRules, remoteEgressRules)
 
+	sgArn := arn.ARN{
+		AccountID: aws.StringValue(sg.OwnerId),
+		Partition: meta.(*AWSClient).partition,
+		Region:    meta.(*AWSClient).region,
+		Resource:  fmt.Sprintf("security-group/%s", aws.StringValue(sg.GroupId)),
+		Service:   ec2.ServiceName,
+	}
+
+	d.Set("arn", sgArn.String())
 	d.Set("description", sg.Description)
 	d.Set("name", sg.GroupName)
 	d.Set("vpc_id", sg.VpcId)
@@ -394,11 +393,19 @@ func resourceAwsSecurityGroupRead(d *schema.ResourceData, meta interface{}) erro
 func resourceAwsSecurityGroupUpdate(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).ec2conn
 
-	sgRaw, _, err := SGStateRefreshFunc(conn, d.Id())()
+	var sgRaw interface{}
+	var err error
+	if d.IsNewResource() {
+		sgRaw, err = waitForSgToExist(conn, d.Id(), d.Timeout(schema.TimeoutRead))
+	} else {
+		sgRaw, _, err = SGStateRefreshFunc(conn, d.Id())()
+	}
+
 	if err != nil {
 		return err
 	}
 	if sgRaw == nil {
+		log.Printf("[WARN] Security group (%s) not found, removing from state", d.Id())
 		d.SetId("")
 		return nil
 	}
@@ -443,7 +450,7 @@ func resourceAwsSecurityGroupDelete(d *schema.ResourceData, meta interface{}) er
 		}
 	}
 
-	return resource.Retry(5*time.Minute, func() *resource.RetryError {
+	return resource.Retry(d.Timeout(schema.TimeoutDelete), func() *resource.RetryError {
 		_, err := conn.DeleteSecurityGroup(&ec2.DeleteSecurityGroupInput{
 			GroupId: aws.String(d.Id()),
 		})
@@ -584,122 +591,83 @@ func resourceAwsSecurityGroupRuleHash(v interface{}) int {
 func resourceAwsSecurityGroupIPPermGather(groupId string, permissions []*ec2.IpPermission, ownerId *string) []map[string]interface{} {
 	ruleMap := make(map[string]map[string]interface{})
 	for _, perm := range permissions {
-		var fromPort, toPort int64
-		if v := perm.FromPort; v != nil {
-			fromPort = *v
-		}
-		if v := perm.ToPort; v != nil {
-			toPort = *v
-		}
-
-		k := fmt.Sprintf("%s-%d-%d", *perm.IpProtocol, fromPort, toPort)
-		m, ok := ruleMap[k]
-		if !ok {
-			m = make(map[string]interface{})
-			ruleMap[k] = m
-		}
-
-		m["from_port"] = fromPort
-		m["to_port"] = toPort
-		m["protocol"] = *perm.IpProtocol
-
-		var description string
-
 		if len(perm.IpRanges) > 0 {
-			raw, ok := m["cidr_blocks"]
-			if !ok {
-				raw = make([]string, 0, len(perm.IpRanges))
-			}
-			list := raw.([]string)
-
 			for _, ip := range perm.IpRanges {
-				list = append(list, *ip.CidrIp)
-
 				desc := aws.StringValue(ip.Description)
-				if desc != "" {
-					description = desc
-				}
-			}
 
-			m["cidr_blocks"] = list
+				rule := initSecurityGroupRule(ruleMap, perm, desc)
+
+				raw, ok := rule["cidr_blocks"]
+				if !ok {
+					raw = make([]string, 0)
+				}
+				list := raw.([]string)
+
+				rule["cidr_blocks"] = append(list, *ip.CidrIp)
+			}
 		}
 
 		if len(perm.Ipv6Ranges) > 0 {
-			raw, ok := m["ipv6_cidr_blocks"]
-			if !ok {
-				raw = make([]string, 0, len(perm.Ipv6Ranges))
-			}
-			list := raw.([]string)
-
 			for _, ip := range perm.Ipv6Ranges {
-				list = append(list, *ip.CidrIpv6)
-
 				desc := aws.StringValue(ip.Description)
-				if desc != "" {
-					description = desc
-				}
-			}
 
-			m["ipv6_cidr_blocks"] = list
+				rule := initSecurityGroupRule(ruleMap, perm, desc)
+
+				raw, ok := rule["ipv6_cidr_blocks"]
+				if !ok {
+					raw = make([]string, 0)
+				}
+				list := raw.([]string)
+
+				rule["ipv6_cidr_blocks"] = append(list, *ip.CidrIpv6)
+			}
 		}
 
 		if len(perm.PrefixListIds) > 0 {
-			raw, ok := m["prefix_list_ids"]
-			if !ok {
-				raw = make([]string, 0, len(perm.PrefixListIds))
-			}
-			list := raw.([]string)
-
 			for _, pl := range perm.PrefixListIds {
-				list = append(list, *pl.PrefixListId)
-
 				desc := aws.StringValue(pl.Description)
-				if desc != "" {
-					description = desc
-				}
-			}
 
-			m["prefix_list_ids"] = list
+				rule := initSecurityGroupRule(ruleMap, perm, desc)
+
+				raw, ok := rule["prefix_list_ids"]
+				if !ok {
+					raw = make([]string, 0)
+				}
+				list := raw.([]string)
+
+				rule["prefix_list_ids"] = append(list, *pl.PrefixListId)
+			}
 		}
 
 		groups := flattenSecurityGroups(perm.UserIdGroupPairs, ownerId)
-		for i, g := range groups {
-			if *g.GroupId == groupId {
-				groups[i], groups = groups[len(groups)-1], groups[:len(groups)-1]
-				m["self"] = true
-
-				desc := aws.StringValue(g.Description)
-				if desc != "" {
-					description = desc
-				}
-			}
-		}
-
 		if len(groups) > 0 {
-			raw, ok := m["security_groups"]
-			if !ok {
-				raw = schema.NewSet(schema.HashString, nil)
-			}
-			list := raw.(*schema.Set)
-
 			for _, g := range groups {
+				desc := aws.StringValue(g.Description)
+
+				rule := initSecurityGroupRule(ruleMap, perm, desc)
+
+				if *g.GroupId == groupId {
+					rule["self"] = true
+					continue
+				}
+
+				raw, ok := rule["security_groups"]
+				if !ok {
+					raw = schema.NewSet(schema.HashString, nil)
+				}
+				list := raw.(*schema.Set)
+
 				if g.GroupName != nil {
 					list.Add(*g.GroupName)
 				} else {
 					list.Add(*g.GroupId)
 				}
-
-				desc := aws.StringValue(g.Description)
-				if desc != "" {
-					description = desc
-				}
+				rule["security_groups"] = list
 			}
-
-			m["security_groups"] = list
 		}
 
-		m["description"] = description
 	}
+
 	rules := make([]map[string]interface{}, 0, len(ruleMap))
 	for _, m := range ruleMap {
 		rules = append(rules, m)
@@ -721,14 +689,14 @@ func resourceAwsSecurityGroupUpdateRules(
 			n = new(schema.Set)
 		}
 
-		os := o.(*schema.Set)
-		ns := n.(*schema.Set)
+		os := resourceAwsSecurityGroupExpandRules(o.(*schema.Set))
+		ns := resourceAwsSecurityGroupExpandRules(n.(*schema.Set))
 
-		remove, err := expandIPPerms(group, os.Difference(ns).List())
+		remove, err := expandIPPerms(group, resourceAwsSecurityGroupCollapseRules(ruleset, os.Difference(ns).List()))
 		if err != nil {
 			return err
 		}
-		add, err := expandIPPerms(group, ns.Difference(os).List())
+		add, err := expandIPPerms(group, resourceAwsSecurityGroupCollapseRules(ruleset, ns.Difference(os).List()))
 		if err != nil {
 			return err
 		}
@@ -839,6 +807,18 @@ func SGStateRefreshFunc(conn *ec2.EC2, id string) resource.StateRefreshFunc {
 		group := resp.SecurityGroups[0]
 		return group, "exists", nil
 	}
+}
+
+func waitForSgToExist(conn *ec2.EC2, id string, timeout time.Duration) (interface{}, error) {
+	log.Printf("[DEBUG] Waiting for Security Group (%s) to exist", id)
+	stateConf := &resource.StateChangeConf{
+		Pending: []string{""},
+		Target:  []string{"exists"},
+		Refresh: SGStateRefreshFunc(conn, id),
+		Timeout: timeout,
+	}
+
+	return stateConf.WaitForState()
 }
 
 // matchRules receives the group id, type of rules, and the local / remote maps
@@ -1164,6 +1144,175 @@ func matchRules(rType string, local []interface{}, remote []map[string]interface
 	return saves
 }
 
+// Duplicate ingress/egress block structure and fill out all
+// the required fields
+func resourceAwsSecurityGroupCopyRule(src map[string]interface{}, self bool, k string, v interface{}) map[string]interface{} {
+	var keys_to_copy = []string{"description", "from_port", "to_port", "protocol"}
+
+	dst := make(map[string]interface{})
+	for _, key := range keys_to_copy {
+		if val, ok := src[key]; ok {
+			dst[key] = val
+		}
+	}
+	if k != "" {
+		dst[k] = v
+	}
+	if _, ok := src["self"]; ok {
+		dst["self"] = self
+	}
+	return dst
+}
+
+// Given a set of SG rules (ingress/egress blocks), this function
+// will group the rules by from_port/to_port/protocol/description
+// tuples. This is inverse operation of
+// resourceAwsSecurityGroupExpandRules()
+//
+// For more detail, see comments for
+// resourceAwsSecurityGroupExpandRules()
+func resourceAwsSecurityGroupCollapseRules(ruleset string, rules []interface{}) []interface{} {
+
+	var keys_to_collapse = []string{"cidr_blocks", "ipv6_cidr_blocks", "prefix_list_ids", "security_groups"}
+
+	collapsed := make(map[string]map[string]interface{})
+
+	for _, rule := range rules {
+		r := rule.(map[string]interface{})
+
+		ruleHash := idCollapseHash(ruleset, r["protocol"].(string), int64(r["to_port"].(int)), int64(r["from_port"].(int)), r["description"].(string))
+
+		if _, ok := collapsed[ruleHash]; ok {
+			if v, ok := r["self"]; ok && v.(bool) {
+				collapsed[ruleHash]["self"] = r["self"]
+			}
+		} else {
+			collapsed[ruleHash] = r
+			continue
+		}
+
+		for _, key := range keys_to_collapse {
+			if _, ok := r[key]; ok {
+				if _, ok := collapsed[ruleHash][key]; ok {
+					if key == "security_groups" {
+						collapsed[ruleHash][key] = collapsed[ruleHash][key].(*schema.Set).Union(r[key].(*schema.Set))
+					} else {
+						collapsed[ruleHash][key] = append(collapsed[ruleHash][key].([]interface{}), r[key].([]interface{})...)
+					}
+				} else {
+					collapsed[ruleHash][key] = r[key]
+				}
+			}
+		}
+	}
+
+	values := make([]interface{}, 0, len(collapsed))
+	for _, val := range collapsed {
+		values = append(values, val)
+	}
+	return values
+}
+
+// resourceAwsSecurityGroupExpandRules works in pair with
+// resourceAwsSecurityGroupCollapseRules and is used as a
+// workaround for the problem explained in
+// https://github.com/terraform-providers/terraform-provider-aws/pull/4726
+//
+// This function converts every ingress/egress block that
+// contains multiple rules to multiple blocks with only one
+// rule. Doing a Difference operation on such a normalized
+// set helps to avoid unnecessary removal of unchanged
+// rules during the Apply step.
+//
+// For example, in terraform syntax, the following block:
+//
+// ingress {
+//   from_port = 80
+//   to_port = 80
+//   protocol = "tcp"
+//   cidr_blocks = [
+//     "192.168.0.1/32",
+//     "192.168.0.2/32",
+//   ]
+// }
+//
+// will be converted to the two blocks below:
+//
+// ingress {
+//   from_port = 80
+//   to_port = 80
+//   protocol = "tcp"
+//   cidr_blocks = [ "192.168.0.1/32" ]
+// }
+//
+// ingress {
+//   from_port = 80
+//   to_port = 80
+//   protocol = "tcp"
+//   cidr_blocks = [ "192.168.0.2/32" ]
+// }
+//
+// Then the Difference operation is executed on the new set
+// to find which rules got modified, and the resulting set
+// is then passed to resourceAwsSecurityGroupCollapseRules
+// to convert the "diff" back to a more compact form for
+// execution. Such compact form helps reduce the number of
+// API calls.
+//
+func resourceAwsSecurityGroupExpandRules(rules *schema.Set) *schema.Set {
+	var keys_to_expand = []string{"cidr_blocks", "ipv6_cidr_blocks", "prefix_list_ids", "security_groups"}
+
+	normalized := schema.NewSet(resourceAwsSecurityGroupRuleHash, nil)
+
+	for _, rawRule := range rules.List() {
+		rule := rawRule.(map[string]interface{})
+
+		if v, ok := rule["self"]; ok && v.(bool) {
+			new_rule := resourceAwsSecurityGroupCopyRule(rule, true, "", nil)
+			normalized.Add(new_rule)
+		}
+		for _, key := range keys_to_expand {
+			item, exists := rule[key]
+			if exists {
+				var list []interface{}
+				if key == "security_groups" {
+					list = item.(*schema.Set).List()
+				} else {
+					list = item.([]interface{})
+				}
+				for _, v := range list {
+					var new_rule map[string]interface{}
+					if key == "security_groups" {
+						new_v := schema.NewSet(schema.HashString, nil)
+						new_v.Add(v)
+						new_rule = resourceAwsSecurityGroupCopyRule(rule, false, key, new_v)
+					} else {
+						new_v := make([]interface{}, 0)
+						new_v = append(new_v, v)
+						new_rule = resourceAwsSecurityGroupCopyRule(rule, false, key, new_v)
+					}
+					normalized.Add(new_rule)
+				}
+			}
+		}
+	}
+
+	return normalized
+}
+
+// Convert type-to_port-from_port-protocol-description tuple
+// to a hash to use as a key in Set.
+func idCollapseHash(rType, protocol string, toPort, fromPort int64, description string) string {
+	var buf bytes.Buffer
+	buf.WriteString(fmt.Sprintf("%s-", rType))
+	buf.WriteString(fmt.Sprintf("%d-", toPort))
+	buf.WriteString(fmt.Sprintf("%d-", fromPort))
+	buf.WriteString(fmt.Sprintf("%s-", strings.ToLower(protocol)))
+	buf.WriteString(fmt.Sprintf("%s-", description))
+
+	return fmt.Sprintf("rule-%d", hashcode.String(buf.String()))
+}
+
 // Creates a unique hash for the type, ports, and protocol, used as a key in
 // maps
 func idHash(rType, protocol string, toPort, fromPort int64, self bool) string {
@@ -1281,7 +1430,7 @@ func deleteLingeringLambdaENIs(conn *ec2.EC2, d *schema.ResourceData) error {
 				Pending: []string{"true"},
 				Target:  []string{"false"},
 				Refresh: networkInterfaceAttachedRefreshFunc(conn, *eni.NetworkInterfaceId),
-				Timeout: 10 * time.Minute,
+				Timeout: d.Timeout(schema.TimeoutDelete),
 			}
 			if _, err := stateConf.WaitForState(); err != nil {
 				return fmt.Errorf(
@@ -1320,4 +1469,28 @@ func networkInterfaceAttachedRefreshFunc(conn *ec2.EC2, id string) resource.Stat
 		log.Printf("[DEBUG] ENI %s has attachment state %s", id, hasAttachment)
 		return eni, hasAttachment, nil
 	}
+}
+
+func initSecurityGroupRule(ruleMap map[string]map[string]interface{}, perm *ec2.IpPermission, desc string) map[string]interface{} {
+	var fromPort, toPort int64
+	if v := perm.FromPort; v != nil {
+		fromPort = *v
+	}
+	if v := perm.ToPort; v != nil {
+		toPort = *v
+	}
+	k := fmt.Sprintf("%s-%d-%d-%s", *perm.IpProtocol, fromPort, toPort, desc)
+	rule, ok := ruleMap[k]
+	if !ok {
+		rule = make(map[string]interface{})
+		ruleMap[k] = rule
+	}
+	rule["protocol"] = *perm.IpProtocol
+	rule["from_port"] = fromPort
+	rule["to_port"] = toPort
+	if desc != "" {
+		rule["description"] = desc
+	}
+
+	return rule
 }

@@ -166,8 +166,6 @@ func resourceAwsProxyProtocolPolicyDelete(d *schema.ResourceData, meta interface
 	resp, err := elbconn.DescribeLoadBalancers(req)
 	if err != nil {
 		if isLoadBalancerNotFound(err) {
-			// The ELB is gone now, so just remove it from the state
-			d.SetId("")
 			return nil
 		}
 		return fmt.Errorf("Error retrieving ELB attributes: %s", err)

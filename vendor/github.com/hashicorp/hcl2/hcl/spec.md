@@ -7,7 +7,7 @@ concrete syntaxes for configuration, each with a mapping to the model defined
 in this specification.
 
 The two primary syntaxes intended for use in conjunction with this model are
-[the HCL native syntax](./zclsyntax/spec.md) and [the JSON syntax](./json/spec.md).
+[the HCL native syntax](./hclsyntax/spec.md) and [the JSON syntax](./json/spec.md).
 In principle other syntaxes are possible as long as either their language model
 is sufficiently rich to express the concepts described in this specification
 or the language targets a well-defined subset of the specification.
@@ -159,7 +159,7 @@ a computation in terms of literal values, variables, and functions.
 Each syntax defines its own representation of expressions. For syntaxes based
 in languages that do not have any non-literal expression syntax, it is
 recommended to embed the template language from
-[the native syntax](./zclsyntax/spec.md) e.g. as a post-processing step on
+[the native syntax](./hclsyntax/spec.md) e.g. as a post-processing step on
 string literals.
 
 ### Expression Evaluation
@@ -616,6 +616,48 @@ Two tuple types of the same length unify constructing a new type of the
 same length whose elements are the unification of the corresponding elements
 in the two input types.
 
+## Static Analysis
+
+In most applications, full expression evaluation is sufficient for understanding
+the provided configuration. However, some specialized applications require more
+direct access to the physical structures in the expressions, which can for
+example allow the construction of new language constructs in terms of the
+existing syntax elements.
+
+Since static analysis analyses the physical structure of configuration, the
+details will vary depending on syntax. Each syntax must decide which of its
+physical structures corresponds to the following analyses, producing error
+diagnostics if they are applied to inappropriate expressions.
+
+The following are the required static analysis functions:
+
+* **Static List**: Require list/tuple construction syntax to be used and
+  return a list of expressions for each of the elements given.
+
+* **Static Map**: Require map/object construction syntax to be used and
+  return a list of key/value pairs -- both expressions -- for each of
+  the elements given. The usual constraint that a map key must be a string
+  must not apply to this analysis, thus allowing applications to interpret
+  arbitrary keys as they see fit.
+
+* **Static Call**: Require function call syntax to be used and return an
+  object describing the called function name and a list of expressions
+  representing each of the call arguments.
+
+* **Static Traversal**: Require a reference to a symbol in the variable
+  scope and return a description of the path from the root scope to the
+  accessed attribute or index.
+
+The intent of a calling application using these features is to require a more
+rigid interpretation of the configuration than in expression evaluation.
+Syntax implementations should make use of the extra contextual information
+provided in order to make an intuitive mapping onto the constructs of the
+underlying syntax, possibly interpreting the expression slightly differently
+than it would be interpreted in normal evaluation.
+
+Each syntax must define which of its expression elements each of the analyses
+above applies to, and how those analyses behave given those expression elements.
+
 ## Implementation Considerations
 
 Implementations of this specification are free to adopt any strategy that
@@ -638,6 +680,9 @@ are implemented separately for each syntax:
 
 * Providing an evaluation function for all possible expressions that produces
   a value given an evaluation context.
+
+* Providing the static analysis functionality described above in a manner that
+  makes sense within the convention of the syntax.
 
 The suggested implementation strategy is to use an implementation language's
 closest concept to an _abstract type_, _virtual type_ or _interface type_

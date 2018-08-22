@@ -2,8 +2,11 @@ package aws
 
 import (
 	"fmt"
+	"regexp"
 	"strings"
 	"time"
+
+	"github.com/hashicorp/terraform/helper/validation"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/athena"
@@ -15,18 +18,25 @@ func resourceAwsAthenaDatabase() *schema.Resource {
 	return &schema.Resource{
 		Create: resourceAwsAthenaDatabaseCreate,
 		Read:   resourceAwsAthenaDatabaseRead,
+		Update: resourceAwsAthenaDatabaseUpdate,
 		Delete: resourceAwsAthenaDatabaseDelete,
 
 		Schema: map[string]*schema.Schema{
 			"name": {
-				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: true,
+				Type:         schema.TypeString,
+				Required:     true,
+				ForceNew:     true,
+				ValidateFunc: validation.StringMatch(regexp.MustCompile("^[_a-z0-9]+$"), "see https://docs.aws.amazon.com/athena/latest/ug/tables-databases-columns-names.html"),
 			},
 			"bucket": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
+			},
+			"force_destroy": {
+				Type:     schema.TypeBool,
+				Optional: true,
+				Default:  false,
 			},
 		},
 	}
@@ -36,7 +46,7 @@ func resourceAwsAthenaDatabaseCreate(d *schema.ResourceData, meta interface{}) e
 	conn := meta.(*AWSClient).athenaconn
 
 	input := &athena.StartQueryExecutionInput{
-		QueryString: aws.String(fmt.Sprintf("create database %s;", d.Get("name").(string))),
+		QueryString: aws.String(fmt.Sprintf("create database `%s`;", d.Get("name").(string))),
 		ResultConfiguration: &athena.ResultConfiguration{
 			OutputLocation: aws.String("s3://" + d.Get("bucket").(string)),
 		},
@@ -76,12 +86,24 @@ func resourceAwsAthenaDatabaseRead(d *schema.ResourceData, meta interface{}) err
 	return nil
 }
 
+func resourceAwsAthenaDatabaseUpdate(d *schema.ResourceData, meta interface{}) error {
+	return resourceAwsAthenaDatabaseRead(d, meta)
+}
+
 func resourceAwsAthenaDatabaseDelete(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).athenaconn
 
+	name := d.Get("name").(string)
 	bucket := d.Get("bucket").(string)
+
+	queryString := fmt.Sprintf("drop database `%s`", name)
+	if d.Get("force_destroy").(bool) {
+		queryString += " cascade"
+	}
+	queryString += ";"
+
 	input := &athena.StartQueryExecutionInput{
-		QueryString: aws.String(fmt.Sprintf("drop database %s;", d.Get("name").(string))),
+		QueryString: aws.String(queryString),
 		ResultConfiguration: &athena.ResultConfiguration{
 			OutputLocation: aws.String("s3://" + bucket),
 		},
@@ -168,7 +190,12 @@ func queryExecutionStateRefreshFunc(qeid string, conn *athena.Athena) resource.S
 		if err != nil {
 			return nil, "failed", err
 		}
-		return out, *out.QueryExecution.Status.State, nil
+		status := out.QueryExecution.Status
+		if *status.State == athena.QueryExecutionStateFailed &&
+			status.StateChangeReason != nil {
+			err = fmt.Errorf("reason: %s", *status.StateChangeReason)
+		}
+		return out, *out.QueryExecution.Status.State, err
 	}
 }
 

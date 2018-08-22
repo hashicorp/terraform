@@ -1,7 +1,6 @@
 package command
 
 import (
-	"context"
 	"fmt"
 	"strings"
 
@@ -75,16 +74,8 @@ func (c *RefreshCommand) Run(args []string) int {
 	opReq.Type = backend.OperationTypeRefresh
 	opReq.Module = mod
 
-	// Perform the operation
-	op, err := b.Operation(context.Background(), opReq)
+	op, err := c.RunOperation(b, opReq)
 	if err != nil {
-		c.Ui.Error(fmt.Sprintf("Error starting operation: %s", err))
-		return 1
-	}
-
-	// Wait for the operation to complete
-	<-op.Done()
-	if err := op.Err; err != nil {
 		diags = diags.Append(err)
 	}
 

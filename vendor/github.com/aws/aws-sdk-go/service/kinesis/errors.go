@@ -10,6 +10,13 @@ const (
 	// The provided iterator exceeds the maximum age allowed.
 	ErrCodeExpiredIteratorException = "ExpiredIteratorException"
 
+	// ErrCodeExpiredNextTokenException for service response error code
+	// "ExpiredNextTokenException".
+	//
+	// The pagination token passed to the ListShards operation is expired. For more
+	// information, see ListShardsInput$NextToken.
+	ErrCodeExpiredNextTokenException = "ExpiredNextTokenException"
+
 	// ErrCodeInvalidArgumentException for service response error code
 	// "InvalidArgumentException".
 	//
@@ -27,7 +34,8 @@ const (
 	// ErrCodeKMSDisabledException for service response error code
 	// "KMSDisabledException".
 	//
-	// The request was rejected because the specified CMK isn't enabled.
+	// The request was rejected because the specified customer master key (CMK)
+	// isn't enabled.
 	ErrCodeKMSDisabledException = "KMSDisabledException"
 
 	// ErrCodeKMSInvalidStateException for service response error code
@@ -42,8 +50,8 @@ const (
 	// ErrCodeKMSNotFoundException for service response error code
 	// "KMSNotFoundException".
 	//
-	// The request was rejected because the specified entity or resource couldn't
-	// be found.
+	// The request was rejected because the specified entity or resource can't be
+	// found.
 	ErrCodeKMSNotFoundException = "KMSNotFoundException"
 
 	// ErrCodeKMSOptInRequired for service response error code
@@ -64,7 +72,7 @@ const (
 	// "LimitExceededException".
 	//
 	// The requested resource exceeds the maximum number allowed, or the number
-	// of concurrent stream requests exceeds the maximum number allowed (5).
+	// of concurrent stream requests exceeds the maximum number allowed.
 	ErrCodeLimitExceededException = "LimitExceededException"
 
 	// ErrCodeProvisionedThroughputExceededException for service response error code
@@ -73,8 +81,8 @@ const (
 	// The request rate for the stream is too high, or the requested data is too
 	// large for the available throughput. Reduce the frequency or size of your
 	// requests. For more information, see Streams Limits (http://docs.aws.amazon.com/kinesis/latest/dev/service-sizes-and-limits.html)
-	// in the Amazon Kinesis Streams Developer Guide, and Error Retries and Exponential
-	// Backoff in AWS (http://docs.aws.amazon.com/general/latest/gr/api-retries.html)
+	// in the Amazon Kinesis Data Streams Developer Guide, and Error Retries and
+	// Exponential Backoff in AWS (http://docs.aws.amazon.com/general/latest/gr/api-retries.html)
 	// in the AWS General Reference.
 	ErrCodeProvisionedThroughputExceededException = "ProvisionedThroughputExceededException"
 
@@ -82,7 +90,7 @@ const (
 	// "ResourceInUseException".
 	//
 	// The resource is not available for this operation. For successful operation,
-	// the resource needs to be in the ACTIVE state.
+	// the resource must be in the ACTIVE state.
 	ErrCodeResourceInUseException = "ResourceInUseException"
 
 	// ErrCodeResourceNotFoundException for service response error code

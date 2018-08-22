@@ -366,6 +366,13 @@ func (d *ResourceData) State() *terraform.InstanceState {
 func (d *ResourceData) Timeout(key string) time.Duration {
 	key = strings.ToLower(key)
 
+	// System default of 20 minutes
+	defaultTimeout := 20 * time.Minute
+
+	if d.timeouts == nil {
+		return defaultTimeout
+	}
+
 	var timeout *time.Duration
 	switch key {
 	case TimeoutCreate:
@@ -386,8 +393,7 @@ func (d *ResourceData) Timeout(key string) time.Duration {
 		return *d.timeouts.Default
 	}
 
-	// Return system default of 20 minutes
-	return 20 * time.Minute
+	return defaultTimeout
 }
 
 func (d *ResourceData) init() {

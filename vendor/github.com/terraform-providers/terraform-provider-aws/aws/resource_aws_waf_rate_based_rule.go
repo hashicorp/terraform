@@ -8,6 +8,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/waf"
 	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/hashicorp/terraform/helper/validation"
 )
 
 func resourceAwsWafRateBasedRule() *schema.Resource {
@@ -39,28 +40,14 @@ func resourceAwsWafRateBasedRule() *schema.Resource {
 							Required: true,
 						},
 						"data_id": &schema.Schema{
-							Type:     schema.TypeString,
-							Required: true,
-							ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
-								value := v.(string)
-								if len(value) > 128 {
-									errors = append(errors, fmt.Errorf(
-										"%q cannot be longer than 128 characters", k))
-								}
-								return
-							},
+							Type:         schema.TypeString,
+							Required:     true,
+							ValidateFunc: validateMaxLength(128),
 						},
 						"type": &schema.Schema{
-							Type:     schema.TypeString,
-							Required: true,
-							ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
-								value := v.(string)
-								if value != "IPMatch" && value != "ByteMatch" && value != "SqlInjectionMatch" && value != "SizeConstraint" && value != "XssMatch" {
-									errors = append(errors, fmt.Errorf(
-										"%q must be one of IPMatch | ByteMatch | SqlInjectionMatch | SizeConstraint | XssMatch", k))
-								}
-								return
-							},
+							Type:         schema.TypeString,
+							Required:     true,
+							ValidateFunc: validateWafPredicatesType(),
 						},
 					},
 				},
@@ -70,15 +57,9 @@ func resourceAwsWafRateBasedRule() *schema.Resource {
 				Required: true,
 			},
 			"rate_limit": &schema.Schema{
-				Type:     schema.TypeInt,
-				Required: true,
-				ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
-					value := v.(int)
-					if value < 2000 {
-						errors = append(errors, fmt.Errorf("%q cannot be less than 2000", k))
-					}
-					return
-				},
+				Type:         schema.TypeInt,
+				Required:     true,
+				ValidateFunc: validation.IntAtLeast(2000),
 			},
 		},
 	}
@@ -117,7 +98,7 @@ func resourceAwsWafRateBasedRuleRead(d *schema.ResourceData, meta interface{}) e
 	resp, err := conn.GetRateBasedRule(params)
 	if err != nil {
 		if awsErr, ok := err.(awserr.Error); ok && awsErr.Code() == "WAFNonexistentItemException" {
-			log.Printf("[WARN] WAF Rate Based Rule (%s) not found, error code (404)", d.Id())
+			log.Printf("[WARN] WAF Rate Based Rule (%s) not found, removing from state", d.Id())
 			d.SetId("")
 			return nil
 		}

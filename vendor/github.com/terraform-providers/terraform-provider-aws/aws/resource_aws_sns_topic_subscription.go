@@ -9,6 +9,8 @@ import (
 
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/hashicorp/terraform/helper/structure"
+	"github.com/hashicorp/terraform/helper/validation"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
@@ -24,6 +26,7 @@ var SNSSubscriptionAttributeMap = map[string]string{
 	"endpoint":             "Endpoint",
 	"protocol":             "Protocol",
 	"raw_message_delivery": "RawMessageDelivery",
+	"filter_policy":        "FilterPolicy",
 }
 
 func resourceAwsSnsTopicSubscription() *schema.Resource {
@@ -38,14 +41,23 @@ func resourceAwsSnsTopicSubscription() *schema.Resource {
 
 		Schema: map[string]*schema.Schema{
 			"protocol": {
-				Type:         schema.TypeString,
-				Required:     true,
-				ForceNew:     false,
-				ValidateFunc: validateSNSSubscriptionProtocol,
+				Type:     schema.TypeString,
+				Required: true,
+				ForceNew: true,
+				ValidateFunc: validation.StringInSlice([]string{
+					// email and email-json not supported
+					"application",
+					"http",
+					"https",
+					"lambda",
+					"sms",
+					"sqs",
+				}, true),
 			},
 			"endpoint": {
 				Type:     schema.TypeString,
 				Required: true,
+				ForceNew: true,
 			},
 			"endpoint_auto_confirms": {
 				Type:     schema.TypeBool,
@@ -60,6 +72,7 @@ func resourceAwsSnsTopicSubscription() *schema.Resource {
 			"topic_arn": {
 				Type:     schema.TypeString,
 				Required: true,
+				ForceNew: true,
 			},
 			"delivery_policy": {
 				Type:     schema.TypeString,
@@ -73,6 +86,16 @@ func resourceAwsSnsTopicSubscription() *schema.Resource {
 			"arn": {
 				Type:     schema.TypeString,
 				Computed: true,
+			},
+			"filter_policy": {
+				Type:             schema.TypeString,
+				Optional:         true,
+				ValidateFunc:     validateJsonString,
+				DiffSuppressFunc: suppressEquivalentJsonDiffs,
+				StateFunc: func(v interface{}) string {
+					json, _ := structure.NormalizeJsonString(v)
+					return json
+				},
 			},
 		},
 	}
@@ -96,31 +119,13 @@ func resourceAwsSnsTopicSubscriptionCreate(d *schema.ResourceData, meta interfac
 	d.SetId(*output.SubscriptionArn)
 
 	// Write the ARN to the 'arn' field for export
-	d.Set("arn", *output.SubscriptionArn)
+	d.Set("arn", output.SubscriptionArn)
 
 	return resourceAwsSnsTopicSubscriptionUpdate(d, meta)
 }
 
 func resourceAwsSnsTopicSubscriptionUpdate(d *schema.ResourceData, meta interface{}) error {
 	snsconn := meta.(*AWSClient).snsconn
-
-	// If any changes happened, un-subscribe and re-subscribe
-	if !d.IsNewResource() && (d.HasChange("protocol") || d.HasChange("endpoint") || d.HasChange("topic_arn")) {
-		log.Printf("[DEBUG] Updating subscription %s", d.Id())
-		// Unsubscribe
-		_, err := snsconn.Unsubscribe(&sns.UnsubscribeInput{
-			SubscriptionArn: aws.String(d.Id()),
-		})
-
-		if err != nil {
-			return fmt.Errorf("Error unsubscribing from SNS topic: %s", err)
-		}
-
-		// Re-subscribe and set id
-		output, err := subscribeToSNSTopic(d, snsconn)
-		d.SetId(*output.SubscriptionArn)
-		d.Set("arn", *output.SubscriptionArn)
-	}
 
 	if d.HasChange("raw_message_delivery") {
 		_, n := d.GetChange("raw_message_delivery")
@@ -143,6 +148,22 @@ func resourceAwsSnsTopicSubscriptionUpdate(d *schema.ResourceData, meta interfac
 		}
 	}
 
+	if d.HasChange("filter_policy") {
+		_, n := d.GetChange("filter_policy")
+
+		attrValue := n.(string)
+
+		req := &sns.SetSubscriptionAttributesInput{
+			SubscriptionArn: aws.String(d.Id()),
+			AttributeName:   aws.String("FilterPolicy"),
+			AttributeValue:  aws.String(attrValue),
+		}
+		_, err := snsconn.SetSubscriptionAttributes(req)
+
+		if err != nil {
+			return fmt.Errorf("Unable to set filter policy attribute on subscription: %s", err)
+		}
+	}
 	return resourceAwsSnsTopicSubscriptionRead(d, meta)
 }
 

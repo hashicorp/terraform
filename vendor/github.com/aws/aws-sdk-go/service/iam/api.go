@@ -17,7 +17,7 @@ const opAddClientIDToOpenIDConnectProvider = "AddClientIDToOpenIDConnectProvider
 
 // AddClientIDToOpenIDConnectProviderRequest generates a "aws/request.Request" representing the
 // client's request for the AddClientIDToOpenIDConnectProvider operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -38,7 +38,7 @@ const opAddClientIDToOpenIDConnectProvider = "AddClientIDToOpenIDConnectProvider
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/AddClientIDToOpenIDConnectProvider
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/AddClientIDToOpenIDConnectProvider
 func (c *IAM) AddClientIDToOpenIDConnectProviderRequest(input *AddClientIDToOpenIDConnectProviderInput) (req *request.Request, output *AddClientIDToOpenIDConnectProviderOutput) {
 	op := &request.Operation{
 		Name:       opAddClientIDToOpenIDConnectProvider,
@@ -62,8 +62,8 @@ func (c *IAM) AddClientIDToOpenIDConnectProviderRequest(input *AddClientIDToOpen
 // Adds a new client ID (also known as audience) to the list of client IDs already
 // registered for the specified IAM OpenID Connect (OIDC) provider resource.
 //
-// This action is idempotent; it does not fail or return an error if you add
-// an existing client ID to the provider.
+// This operation is idempotent; it does not fail or return an error if you
+// add an existing client ID to the provider.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -89,7 +89,7 @@ func (c *IAM) AddClientIDToOpenIDConnectProviderRequest(input *AddClientIDToOpen
 //   The request processing has failed because of an unknown error, exception
 //   or failure.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/AddClientIDToOpenIDConnectProvider
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/AddClientIDToOpenIDConnectProvider
 func (c *IAM) AddClientIDToOpenIDConnectProvider(input *AddClientIDToOpenIDConnectProviderInput) (*AddClientIDToOpenIDConnectProviderOutput, error) {
 	req, out := c.AddClientIDToOpenIDConnectProviderRequest(input)
 	return out, req.Send()
@@ -115,7 +115,7 @@ const opAddRoleToInstanceProfile = "AddRoleToInstanceProfile"
 
 // AddRoleToInstanceProfileRequest generates a "aws/request.Request" representing the
 // client's request for the AddRoleToInstanceProfile operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -136,7 +136,7 @@ const opAddRoleToInstanceProfile = "AddRoleToInstanceProfile"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/AddRoleToInstanceProfile
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/AddRoleToInstanceProfile
 func (c *IAM) AddRoleToInstanceProfileRequest(input *AddRoleToInstanceProfileInput) (req *request.Request, output *AddRoleToInstanceProfileOutput) {
 	op := &request.Operation{
 		Name:       opAddRoleToInstanceProfile,
@@ -158,7 +158,13 @@ func (c *IAM) AddRoleToInstanceProfileRequest(input *AddRoleToInstanceProfileInp
 // AddRoleToInstanceProfile API operation for AWS Identity and Access Management.
 //
 // Adds the specified IAM role to the specified instance profile. An instance
-// profile can contain only one role, and this limit cannot be increased.
+// profile can contain only one role, and this limit cannot be increased. You
+// can remove the existing role and then add a different role to an instance
+// profile. You must then wait for the change to appear across all of AWS because
+// of eventual consistency (https://en.wikipedia.org/wiki/Eventual_consistency).
+// To force the change, you must disassociate the instance profile (https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_DisassociateIamInstanceProfile.html)
+// and then associate the instance profile (https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_AssociateIamInstanceProfile.html),
+// or you can stop your instance and then restart it.
 //
 // The caller of this API must be granted the PassRole permission on the IAM
 // role by a permission policy.
@@ -197,7 +203,7 @@ func (c *IAM) AddRoleToInstanceProfileRequest(input *AddRoleToInstanceProfileInp
 //   The request processing has failed because of an unknown error, exception
 //   or failure.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/AddRoleToInstanceProfile
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/AddRoleToInstanceProfile
 func (c *IAM) AddRoleToInstanceProfile(input *AddRoleToInstanceProfileInput) (*AddRoleToInstanceProfileOutput, error) {
 	req, out := c.AddRoleToInstanceProfileRequest(input)
 	return out, req.Send()
@@ -223,7 +229,7 @@ const opAddUserToGroup = "AddUserToGroup"
 
 // AddUserToGroupRequest generates a "aws/request.Request" representing the
 // client's request for the AddUserToGroup operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -244,7 +250,7 @@ const opAddUserToGroup = "AddUserToGroup"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/AddUserToGroup
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/AddUserToGroup
 func (c *IAM) AddUserToGroupRequest(input *AddUserToGroupInput) (req *request.Request, output *AddUserToGroupOutput) {
 	op := &request.Operation{
 		Name:       opAddUserToGroup,
@@ -287,7 +293,7 @@ func (c *IAM) AddUserToGroupRequest(input *AddUserToGroupInput) (req *request.Re
 //   The request processing has failed because of an unknown error, exception
 //   or failure.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/AddUserToGroup
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/AddUserToGroup
 func (c *IAM) AddUserToGroup(input *AddUserToGroupInput) (*AddUserToGroupOutput, error) {
 	req, out := c.AddUserToGroupRequest(input)
 	return out, req.Send()
@@ -313,7 +319,7 @@ const opAttachGroupPolicy = "AttachGroupPolicy"
 
 // AttachGroupPolicyRequest generates a "aws/request.Request" representing the
 // client's request for the AttachGroupPolicy operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -334,7 +340,7 @@ const opAttachGroupPolicy = "AttachGroupPolicy"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/AttachGroupPolicy
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/AttachGroupPolicy
 func (c *IAM) AttachGroupPolicyRequest(input *AttachGroupPolicyInput) (req *request.Request, output *AttachGroupPolicyOutput) {
 	op := &request.Operation{
 		Name:       opAttachGroupPolicy,
@@ -392,7 +398,7 @@ func (c *IAM) AttachGroupPolicyRequest(input *AttachGroupPolicyInput) (req *requ
 //   The request processing has failed because of an unknown error, exception
 //   or failure.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/AttachGroupPolicy
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/AttachGroupPolicy
 func (c *IAM) AttachGroupPolicy(input *AttachGroupPolicyInput) (*AttachGroupPolicyOutput, error) {
 	req, out := c.AttachGroupPolicyRequest(input)
 	return out, req.Send()
@@ -418,7 +424,7 @@ const opAttachRolePolicy = "AttachRolePolicy"
 
 // AttachRolePolicyRequest generates a "aws/request.Request" representing the
 // client's request for the AttachRolePolicy operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -439,7 +445,7 @@ const opAttachRolePolicy = "AttachRolePolicy"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/AttachRolePolicy
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/AttachRolePolicy
 func (c *IAM) AttachRolePolicyRequest(input *AttachRolePolicyInput) (req *request.Request, output *AttachRolePolicyOutput) {
 	op := &request.Operation{
 		Name:       opAttachRolePolicy,
@@ -507,7 +513,7 @@ func (c *IAM) AttachRolePolicyRequest(input *AttachRolePolicyInput) (req *reques
 //   The request processing has failed because of an unknown error, exception
 //   or failure.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/AttachRolePolicy
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/AttachRolePolicy
 func (c *IAM) AttachRolePolicy(input *AttachRolePolicyInput) (*AttachRolePolicyOutput, error) {
 	req, out := c.AttachRolePolicyRequest(input)
 	return out, req.Send()
@@ -533,7 +539,7 @@ const opAttachUserPolicy = "AttachUserPolicy"
 
 // AttachUserPolicyRequest generates a "aws/request.Request" representing the
 // client's request for the AttachUserPolicy operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -554,7 +560,7 @@ const opAttachUserPolicy = "AttachUserPolicy"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/AttachUserPolicy
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/AttachUserPolicy
 func (c *IAM) AttachUserPolicyRequest(input *AttachUserPolicyInput) (req *request.Request, output *AttachUserPolicyOutput) {
 	op := &request.Operation{
 		Name:       opAttachUserPolicy,
@@ -612,7 +618,7 @@ func (c *IAM) AttachUserPolicyRequest(input *AttachUserPolicyInput) (req *reques
 //   The request processing has failed because of an unknown error, exception
 //   or failure.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/AttachUserPolicy
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/AttachUserPolicy
 func (c *IAM) AttachUserPolicy(input *AttachUserPolicyInput) (*AttachUserPolicyOutput, error) {
 	req, out := c.AttachUserPolicyRequest(input)
 	return out, req.Send()
@@ -638,7 +644,7 @@ const opChangePassword = "ChangePassword"
 
 // ChangePasswordRequest generates a "aws/request.Request" representing the
 // client's request for the ChangePassword operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -659,7 +665,7 @@ const opChangePassword = "ChangePassword"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/ChangePassword
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/ChangePassword
 func (c *IAM) ChangePasswordRequest(input *ChangePasswordInput) (req *request.Request, output *ChangePasswordOutput) {
 	op := &request.Operation{
 		Name:       opChangePassword,
@@ -680,8 +686,8 @@ func (c *IAM) ChangePasswordRequest(input *ChangePasswordInput) (req *request.Re
 
 // ChangePassword API operation for AWS Identity and Access Management.
 //
-// Changes the password of the IAM user who is calling this action. The root
-// account password is not affected by this action.
+// Changes the password of the IAM user who is calling this operation. The AWS
+// account root user password is not affected by this operation.
 //
 // To change the password for a different user, see UpdateLoginProfile. For
 // more information about modifying passwords, see Managing Passwords (http://docs.aws.amazon.com/IAM/latest/UserGuide/Using_ManagingLogins.html)
@@ -721,7 +727,7 @@ func (c *IAM) ChangePasswordRequest(input *ChangePasswordInput) (req *request.Re
 //   The request processing has failed because of an unknown error, exception
 //   or failure.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/ChangePassword
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/ChangePassword
 func (c *IAM) ChangePassword(input *ChangePasswordInput) (*ChangePasswordOutput, error) {
 	req, out := c.ChangePasswordRequest(input)
 	return out, req.Send()
@@ -747,7 +753,7 @@ const opCreateAccessKey = "CreateAccessKey"
 
 // CreateAccessKeyRequest generates a "aws/request.Request" representing the
 // client's request for the CreateAccessKey operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -768,7 +774,7 @@ const opCreateAccessKey = "CreateAccessKey"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/CreateAccessKey
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/CreateAccessKey
 func (c *IAM) CreateAccessKeyRequest(input *CreateAccessKeyInput) (req *request.Request, output *CreateAccessKeyOutput) {
 	op := &request.Operation{
 		Name:       opCreateAccessKey,
@@ -791,9 +797,10 @@ func (c *IAM) CreateAccessKeyRequest(input *CreateAccessKeyInput) (req *request.
 // the specified user. The default status for new keys is Active.
 //
 // If you do not specify a user name, IAM determines the user name implicitly
-// based on the AWS access key ID signing the request. Because this action works
-// for access keys under the AWS account, you can use this action to manage
-// root credentials even if the AWS account has no associated users.
+// based on the AWS access key ID signing the request. Because this operation
+// works for access keys under the AWS account, you can use this operation to
+// manage AWS account root user credentials. This is true even if the AWS account
+// has no associated users.
 //
 // For information about limits on the number of keys you can create, see Limitations
 // on IAM Entities (http://docs.aws.amazon.com/IAM/latest/UserGuide/LimitationsOnEntities.html)
@@ -825,7 +832,7 @@ func (c *IAM) CreateAccessKeyRequest(input *CreateAccessKeyInput) (req *request.
 //   The request processing has failed because of an unknown error, exception
 //   or failure.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/CreateAccessKey
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/CreateAccessKey
 func (c *IAM) CreateAccessKey(input *CreateAccessKeyInput) (*CreateAccessKeyOutput, error) {
 	req, out := c.CreateAccessKeyRequest(input)
 	return out, req.Send()
@@ -851,7 +858,7 @@ const opCreateAccountAlias = "CreateAccountAlias"
 
 // CreateAccountAliasRequest generates a "aws/request.Request" representing the
 // client's request for the CreateAccountAlias operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -872,7 +879,7 @@ const opCreateAccountAlias = "CreateAccountAlias"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/CreateAccountAlias
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/CreateAccountAlias
 func (c *IAM) CreateAccountAliasRequest(input *CreateAccountAliasInput) (req *request.Request, output *CreateAccountAliasOutput) {
 	op := &request.Operation{
 		Name:       opCreateAccountAlias,
@@ -917,7 +924,7 @@ func (c *IAM) CreateAccountAliasRequest(input *CreateAccountAliasInput) (req *re
 //   The request processing has failed because of an unknown error, exception
 //   or failure.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/CreateAccountAlias
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/CreateAccountAlias
 func (c *IAM) CreateAccountAlias(input *CreateAccountAliasInput) (*CreateAccountAliasOutput, error) {
 	req, out := c.CreateAccountAliasRequest(input)
 	return out, req.Send()
@@ -943,7 +950,7 @@ const opCreateGroup = "CreateGroup"
 
 // CreateGroupRequest generates a "aws/request.Request" representing the
 // client's request for the CreateGroup operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -964,7 +971,7 @@ const opCreateGroup = "CreateGroup"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/CreateGroup
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/CreateGroup
 func (c *IAM) CreateGroupRequest(input *CreateGroupInput) (req *request.Request, output *CreateGroupOutput) {
 	op := &request.Operation{
 		Name:       opCreateGroup,
@@ -1013,7 +1020,7 @@ func (c *IAM) CreateGroupRequest(input *CreateGroupInput) (req *request.Request,
 //   The request processing has failed because of an unknown error, exception
 //   or failure.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/CreateGroup
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/CreateGroup
 func (c *IAM) CreateGroup(input *CreateGroupInput) (*CreateGroupOutput, error) {
 	req, out := c.CreateGroupRequest(input)
 	return out, req.Send()
@@ -1039,7 +1046,7 @@ const opCreateInstanceProfile = "CreateInstanceProfile"
 
 // CreateInstanceProfileRequest generates a "aws/request.Request" representing the
 // client's request for the CreateInstanceProfile operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -1060,7 +1067,7 @@ const opCreateInstanceProfile = "CreateInstanceProfile"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/CreateInstanceProfile
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/CreateInstanceProfile
 func (c *IAM) CreateInstanceProfileRequest(input *CreateInstanceProfileInput) (req *request.Request, output *CreateInstanceProfileOutput) {
 	op := &request.Operation{
 		Name:       opCreateInstanceProfile,
@@ -1106,7 +1113,7 @@ func (c *IAM) CreateInstanceProfileRequest(input *CreateInstanceProfileInput) (r
 //   The request processing has failed because of an unknown error, exception
 //   or failure.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/CreateInstanceProfile
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/CreateInstanceProfile
 func (c *IAM) CreateInstanceProfile(input *CreateInstanceProfileInput) (*CreateInstanceProfileOutput, error) {
 	req, out := c.CreateInstanceProfileRequest(input)
 	return out, req.Send()
@@ -1132,7 +1139,7 @@ const opCreateLoginProfile = "CreateLoginProfile"
 
 // CreateLoginProfileRequest generates a "aws/request.Request" representing the
 // client's request for the CreateLoginProfile operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -1153,7 +1160,7 @@ const opCreateLoginProfile = "CreateLoginProfile"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/CreateLoginProfile
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/CreateLoginProfile
 func (c *IAM) CreateLoginProfileRequest(input *CreateLoginProfileInput) (req *request.Request, output *CreateLoginProfileOutput) {
 	op := &request.Operation{
 		Name:       opCreateLoginProfile,
@@ -1205,7 +1212,7 @@ func (c *IAM) CreateLoginProfileRequest(input *CreateLoginProfileInput) (req *re
 //   The request processing has failed because of an unknown error, exception
 //   or failure.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/CreateLoginProfile
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/CreateLoginProfile
 func (c *IAM) CreateLoginProfile(input *CreateLoginProfileInput) (*CreateLoginProfileOutput, error) {
 	req, out := c.CreateLoginProfileRequest(input)
 	return out, req.Send()
@@ -1231,7 +1238,7 @@ const opCreateOpenIDConnectProvider = "CreateOpenIDConnectProvider"
 
 // CreateOpenIDConnectProviderRequest generates a "aws/request.Request" representing the
 // client's request for the CreateOpenIDConnectProvider operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -1252,7 +1259,7 @@ const opCreateOpenIDConnectProvider = "CreateOpenIDConnectProvider"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/CreateOpenIDConnectProvider
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/CreateOpenIDConnectProvider
 func (c *IAM) CreateOpenIDConnectProviderRequest(input *CreateOpenIDConnectProviderInput) (req *request.Request, output *CreateOpenIDConnectProviderOutput) {
 	op := &request.Operation{
 		Name:       opCreateOpenIDConnectProvider,
@@ -1275,19 +1282,24 @@ func (c *IAM) CreateOpenIDConnectProviderRequest(input *CreateOpenIDConnectProvi
 // OpenID Connect (OIDC) (http://openid.net/connect/).
 //
 // The OIDC provider that you create with this operation can be used as a principal
-// in a role's trust policy to establish a trust relationship between AWS and
-// the OIDC provider.
+// in a role's trust policy. Such a policy establishes a trust relationship
+// between AWS and the OIDC provider.
 //
-// When you create the IAM OIDC provider, you specify the URL of the OIDC identity
-// provider (IdP) to trust, a list of client IDs (also known as audiences) that
-// identify the application or applications that are allowed to authenticate
-// using the OIDC provider, and a list of thumbprints of the server certificate(s)
-// that the IdP uses. You get all of this information from the OIDC IdP that
-// you want to use for access to AWS.
+// When you create the IAM OIDC provider, you specify the following:
 //
-// Because trust for the OIDC provider is ultimately derived from the IAM provider
-// that this action creates, it is a best practice to limit access to the CreateOpenIDConnectProvider
-// action to highly-privileged users.
+//    * The URL of the OIDC identity provider (IdP) to trust
+//
+//    * A list of client IDs (also known as audiences) that identify the application
+//    or applications that are allowed to authenticate using the OIDC provider
+//
+//    * A list of thumbprints of the server certificate(s) that the IdP uses.
+//
+// You get all of this information from the OIDC IdP that you want to use to
+// access AWS.
+//
+// Because trust for the OIDC provider is derived from the IAM provider that
+// this operation creates, it is best to limit access to the CreateOpenIDConnectProvider
+// operation to highly privileged users.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -1313,7 +1325,7 @@ func (c *IAM) CreateOpenIDConnectProviderRequest(input *CreateOpenIDConnectProvi
 //   The request processing has failed because of an unknown error, exception
 //   or failure.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/CreateOpenIDConnectProvider
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/CreateOpenIDConnectProvider
 func (c *IAM) CreateOpenIDConnectProvider(input *CreateOpenIDConnectProviderInput) (*CreateOpenIDConnectProviderOutput, error) {
 	req, out := c.CreateOpenIDConnectProviderRequest(input)
 	return out, req.Send()
@@ -1339,7 +1351,7 @@ const opCreatePolicy = "CreatePolicy"
 
 // CreatePolicyRequest generates a "aws/request.Request" representing the
 // client's request for the CreatePolicy operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -1360,7 +1372,7 @@ const opCreatePolicy = "CreatePolicy"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/CreatePolicy
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/CreatePolicy
 func (c *IAM) CreatePolicyRequest(input *CreatePolicyInput) (req *request.Request, output *CreatePolicyOutput) {
 	op := &request.Operation{
 		Name:       opCreatePolicy,
@@ -1418,7 +1430,7 @@ func (c *IAM) CreatePolicyRequest(input *CreatePolicyInput) (req *request.Reques
 //   The request processing has failed because of an unknown error, exception
 //   or failure.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/CreatePolicy
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/CreatePolicy
 func (c *IAM) CreatePolicy(input *CreatePolicyInput) (*CreatePolicyOutput, error) {
 	req, out := c.CreatePolicyRequest(input)
 	return out, req.Send()
@@ -1444,7 +1456,7 @@ const opCreatePolicyVersion = "CreatePolicyVersion"
 
 // CreatePolicyVersionRequest generates a "aws/request.Request" representing the
 // client's request for the CreatePolicyVersion operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -1465,7 +1477,7 @@ const opCreatePolicyVersion = "CreatePolicyVersion"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/CreatePolicyVersion
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/CreatePolicyVersion
 func (c *IAM) CreatePolicyVersionRequest(input *CreatePolicyVersionInput) (req *request.Request, output *CreatePolicyVersionOutput) {
 	op := &request.Operation{
 		Name:       opCreatePolicyVersion,
@@ -1525,7 +1537,7 @@ func (c *IAM) CreatePolicyVersionRequest(input *CreatePolicyVersionInput) (req *
 //   The request processing has failed because of an unknown error, exception
 //   or failure.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/CreatePolicyVersion
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/CreatePolicyVersion
 func (c *IAM) CreatePolicyVersion(input *CreatePolicyVersionInput) (*CreatePolicyVersionOutput, error) {
 	req, out := c.CreatePolicyVersionRequest(input)
 	return out, req.Send()
@@ -1551,7 +1563,7 @@ const opCreateRole = "CreateRole"
 
 // CreateRoleRequest generates a "aws/request.Request" representing the
 // client's request for the CreateRole operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -1572,7 +1584,7 @@ const opCreateRole = "CreateRole"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/CreateRole
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/CreateRole
 func (c *IAM) CreateRoleRequest(input *CreateRoleInput) (req *request.Request, output *CreateRoleOutput) {
 	op := &request.Operation{
 		Name:       opCreateRole,
@@ -1592,7 +1604,7 @@ func (c *IAM) CreateRoleRequest(input *CreateRoleInput) (req *request.Request, o
 // CreateRole API operation for AWS Identity and Access Management.
 //
 // Creates a new role for your AWS account. For more information about roles,
-// go to Working with Roles (http://docs.aws.amazon.com/IAM/latest/UserGuide/WorkingWithRoles.html).
+// go to IAM Roles (http://docs.aws.amazon.com/IAM/latest/UserGuide/WorkingWithRoles.html).
 // For information about limitations on role names and the number of roles you
 // can create, go to Limitations on IAM Entities (http://docs.aws.amazon.com/IAM/latest/UserGuide/LimitationsOnEntities.html)
 // in the IAM User Guide.
@@ -1625,7 +1637,7 @@ func (c *IAM) CreateRoleRequest(input *CreateRoleInput) (req *request.Request, o
 //   The request processing has failed because of an unknown error, exception
 //   or failure.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/CreateRole
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/CreateRole
 func (c *IAM) CreateRole(input *CreateRoleInput) (*CreateRoleOutput, error) {
 	req, out := c.CreateRoleRequest(input)
 	return out, req.Send()
@@ -1651,7 +1663,7 @@ const opCreateSAMLProvider = "CreateSAMLProvider"
 
 // CreateSAMLProviderRequest generates a "aws/request.Request" representing the
 // client's request for the CreateSAMLProvider operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -1672,7 +1684,7 @@ const opCreateSAMLProvider = "CreateSAMLProvider"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/CreateSAMLProvider
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/CreateSAMLProvider
 func (c *IAM) CreateSAMLProviderRequest(input *CreateSAMLProviderInput) (req *request.Request, output *CreateSAMLProviderOutput) {
 	op := &request.Operation{
 		Name:       opCreateSAMLProvider,
@@ -1695,14 +1707,14 @@ func (c *IAM) CreateSAMLProviderRequest(input *CreateSAMLProviderInput) (req *re
 // SAML 2.0.
 //
 // The SAML provider resource that you create with this operation can be used
-// as a principal in an IAM role's trust policy to enable federated users who
-// sign-in using the SAML IdP to assume the role. You can create an IAM role
-// that supports Web-based single sign-on (SSO) to the AWS Management Console
-// or one that supports API access to AWS.
+// as a principal in an IAM role's trust policy. Such a policy can enable federated
+// users who sign-in using the SAML IdP to assume the role. You can create an
+// IAM role that supports Web-based single sign-on (SSO) to the AWS Management
+// Console or one that supports API access to AWS.
 //
-// When you create the SAML provider resource, you upload an a SAML metadata
-// document that you get from your IdP and that includes the issuer's name,
-// expiration information, and keys that can be used to validate the SAML authentication
+// When you create the SAML provider resource, you upload a SAML metadata document
+// that you get from your IdP. That document includes the issuer's name, expiration
+// information, and keys that can be used to validate the SAML authentication
 // response (assertions) that the IdP sends. You must generate the metadata
 // document using the identity management software that is used as your organization's
 // IdP.
@@ -1738,7 +1750,7 @@ func (c *IAM) CreateSAMLProviderRequest(input *CreateSAMLProviderInput) (req *re
 //   The request processing has failed because of an unknown error, exception
 //   or failure.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/CreateSAMLProvider
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/CreateSAMLProvider
 func (c *IAM) CreateSAMLProvider(input *CreateSAMLProviderInput) (*CreateSAMLProviderOutput, error) {
 	req, out := c.CreateSAMLProviderRequest(input)
 	return out, req.Send()
@@ -1764,7 +1776,7 @@ const opCreateServiceLinkedRole = "CreateServiceLinkedRole"
 
 // CreateServiceLinkedRoleRequest generates a "aws/request.Request" representing the
 // client's request for the CreateServiceLinkedRole operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -1785,7 +1797,7 @@ const opCreateServiceLinkedRole = "CreateServiceLinkedRole"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/CreateServiceLinkedRole
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/CreateServiceLinkedRole
 func (c *IAM) CreateServiceLinkedRoleRequest(input *CreateServiceLinkedRoleInput) (req *request.Request, output *CreateServiceLinkedRoleOutput) {
 	op := &request.Operation{
 		Name:       opCreateServiceLinkedRole,
@@ -1811,7 +1823,7 @@ func (c *IAM) CreateServiceLinkedRoleRequest(input *CreateServiceLinkedRoleInput
 // the service to control the role helps improve service stability and proper
 // cleanup when a service and its role are no longer needed.
 //
-// The name of the role is autogenerated by combining the string that you specify
+// The name of the role is generated by combining the string that you specify
 // for the AWSServiceName parameter with the string that you specify for the
 // CustomSuffix parameter. The resulting name must be unique in your account
 // or the request fails.
@@ -1843,7 +1855,7 @@ func (c *IAM) CreateServiceLinkedRoleRequest(input *CreateServiceLinkedRoleInput
 //   The request processing has failed because of an unknown error, exception
 //   or failure.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/CreateServiceLinkedRole
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/CreateServiceLinkedRole
 func (c *IAM) CreateServiceLinkedRole(input *CreateServiceLinkedRoleInput) (*CreateServiceLinkedRoleOutput, error) {
 	req, out := c.CreateServiceLinkedRoleRequest(input)
 	return out, req.Send()
@@ -1869,7 +1881,7 @@ const opCreateServiceSpecificCredential = "CreateServiceSpecificCredential"
 
 // CreateServiceSpecificCredentialRequest generates a "aws/request.Request" representing the
 // client's request for the CreateServiceSpecificCredential operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -1890,7 +1902,7 @@ const opCreateServiceSpecificCredential = "CreateServiceSpecificCredential"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/CreateServiceSpecificCredential
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/CreateServiceSpecificCredential
 func (c *IAM) CreateServiceSpecificCredentialRequest(input *CreateServiceSpecificCredentialInput) (req *request.Request, output *CreateServiceSpecificCredentialOutput) {
 	op := &request.Operation{
 		Name:       opCreateServiceSpecificCredential,
@@ -1943,7 +1955,7 @@ func (c *IAM) CreateServiceSpecificCredentialRequest(input *CreateServiceSpecifi
 //   * ErrCodeServiceNotSupportedException "NotSupportedService"
 //   The specified service does not support service-specific credentials.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/CreateServiceSpecificCredential
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/CreateServiceSpecificCredential
 func (c *IAM) CreateServiceSpecificCredential(input *CreateServiceSpecificCredentialInput) (*CreateServiceSpecificCredentialOutput, error) {
 	req, out := c.CreateServiceSpecificCredentialRequest(input)
 	return out, req.Send()
@@ -1969,7 +1981,7 @@ const opCreateUser = "CreateUser"
 
 // CreateUserRequest generates a "aws/request.Request" representing the
 // client's request for the CreateUser operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -1990,7 +2002,7 @@ const opCreateUser = "CreateUser"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/CreateUser
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/CreateUser
 func (c *IAM) CreateUserRequest(input *CreateUserInput) (req *request.Request, output *CreateUserOutput) {
 	op := &request.Operation{
 		Name:       opCreateUser,
@@ -2039,7 +2051,7 @@ func (c *IAM) CreateUserRequest(input *CreateUserInput) (req *request.Request, o
 //   The request processing has failed because of an unknown error, exception
 //   or failure.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/CreateUser
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/CreateUser
 func (c *IAM) CreateUser(input *CreateUserInput) (*CreateUserOutput, error) {
 	req, out := c.CreateUserRequest(input)
 	return out, req.Send()
@@ -2065,7 +2077,7 @@ const opCreateVirtualMFADevice = "CreateVirtualMFADevice"
 
 // CreateVirtualMFADeviceRequest generates a "aws/request.Request" representing the
 // client's request for the CreateVirtualMFADevice operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -2086,7 +2098,7 @@ const opCreateVirtualMFADevice = "CreateVirtualMFADevice"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/CreateVirtualMFADevice
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/CreateVirtualMFADevice
 func (c *IAM) CreateVirtualMFADeviceRequest(input *CreateVirtualMFADeviceInput) (req *request.Request, output *CreateVirtualMFADeviceOutput) {
 	op := &request.Operation{
 		Name:       opCreateVirtualMFADevice,
@@ -2140,7 +2152,7 @@ func (c *IAM) CreateVirtualMFADeviceRequest(input *CreateVirtualMFADeviceInput) 
 //   The request processing has failed because of an unknown error, exception
 //   or failure.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/CreateVirtualMFADevice
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/CreateVirtualMFADevice
 func (c *IAM) CreateVirtualMFADevice(input *CreateVirtualMFADeviceInput) (*CreateVirtualMFADeviceOutput, error) {
 	req, out := c.CreateVirtualMFADeviceRequest(input)
 	return out, req.Send()
@@ -2166,7 +2178,7 @@ const opDeactivateMFADevice = "DeactivateMFADevice"
 
 // DeactivateMFADeviceRequest generates a "aws/request.Request" representing the
 // client's request for the DeactivateMFADevice operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -2187,7 +2199,7 @@ const opDeactivateMFADevice = "DeactivateMFADevice"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/DeactivateMFADevice
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/DeactivateMFADevice
 func (c *IAM) DeactivateMFADeviceRequest(input *DeactivateMFADeviceInput) (req *request.Request, output *DeactivateMFADeviceOutput) {
 	op := &request.Operation{
 		Name:       opDeactivateMFADevice,
@@ -2241,7 +2253,7 @@ func (c *IAM) DeactivateMFADeviceRequest(input *DeactivateMFADeviceInput) (req *
 //   The request processing has failed because of an unknown error, exception
 //   or failure.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/DeactivateMFADevice
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/DeactivateMFADevice
 func (c *IAM) DeactivateMFADevice(input *DeactivateMFADeviceInput) (*DeactivateMFADeviceOutput, error) {
 	req, out := c.DeactivateMFADeviceRequest(input)
 	return out, req.Send()
@@ -2267,7 +2279,7 @@ const opDeleteAccessKey = "DeleteAccessKey"
 
 // DeleteAccessKeyRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteAccessKey operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -2288,7 +2300,7 @@ const opDeleteAccessKey = "DeleteAccessKey"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/DeleteAccessKey
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/DeleteAccessKey
 func (c *IAM) DeleteAccessKeyRequest(input *DeleteAccessKeyInput) (req *request.Request, output *DeleteAccessKeyOutput) {
 	op := &request.Operation{
 		Name:       opDeleteAccessKey,
@@ -2312,9 +2324,10 @@ func (c *IAM) DeleteAccessKeyRequest(input *DeleteAccessKeyInput) (req *request.
 // Deletes the access key pair associated with the specified IAM user.
 //
 // If you do not specify a user name, IAM determines the user name implicitly
-// based on the AWS access key ID signing the request. Because this action works
-// for access keys under the AWS account, you can use this action to manage
-// root credentials even if the AWS account has no associated users.
+// based on the AWS access key ID signing the request. Because this operation
+// works for access keys under the AWS account, you can use this operation to
+// manage AWS account root user credentials even if the AWS account has no associated
+// users.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -2336,7 +2349,7 @@ func (c *IAM) DeleteAccessKeyRequest(input *DeleteAccessKeyInput) (req *request.
 //   The request processing has failed because of an unknown error, exception
 //   or failure.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/DeleteAccessKey
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/DeleteAccessKey
 func (c *IAM) DeleteAccessKey(input *DeleteAccessKeyInput) (*DeleteAccessKeyOutput, error) {
 	req, out := c.DeleteAccessKeyRequest(input)
 	return out, req.Send()
@@ -2362,7 +2375,7 @@ const opDeleteAccountAlias = "DeleteAccountAlias"
 
 // DeleteAccountAliasRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteAccountAlias operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -2383,7 +2396,7 @@ const opDeleteAccountAlias = "DeleteAccountAlias"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/DeleteAccountAlias
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/DeleteAccountAlias
 func (c *IAM) DeleteAccountAliasRequest(input *DeleteAccountAliasInput) (req *request.Request, output *DeleteAccountAliasOutput) {
 	op := &request.Operation{
 		Name:       opDeleteAccountAlias,
@@ -2428,7 +2441,7 @@ func (c *IAM) DeleteAccountAliasRequest(input *DeleteAccountAliasInput) (req *re
 //   The request processing has failed because of an unknown error, exception
 //   or failure.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/DeleteAccountAlias
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/DeleteAccountAlias
 func (c *IAM) DeleteAccountAlias(input *DeleteAccountAliasInput) (*DeleteAccountAliasOutput, error) {
 	req, out := c.DeleteAccountAliasRequest(input)
 	return out, req.Send()
@@ -2454,7 +2467,7 @@ const opDeleteAccountPasswordPolicy = "DeleteAccountPasswordPolicy"
 
 // DeleteAccountPasswordPolicyRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteAccountPasswordPolicy operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -2475,7 +2488,7 @@ const opDeleteAccountPasswordPolicy = "DeleteAccountPasswordPolicy"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/DeleteAccountPasswordPolicy
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/DeleteAccountPasswordPolicy
 func (c *IAM) DeleteAccountPasswordPolicyRequest(input *DeleteAccountPasswordPolicyInput) (req *request.Request, output *DeleteAccountPasswordPolicyOutput) {
 	op := &request.Operation{
 		Name:       opDeleteAccountPasswordPolicy,
@@ -2518,7 +2531,7 @@ func (c *IAM) DeleteAccountPasswordPolicyRequest(input *DeleteAccountPasswordPol
 //   The request processing has failed because of an unknown error, exception
 //   or failure.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/DeleteAccountPasswordPolicy
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/DeleteAccountPasswordPolicy
 func (c *IAM) DeleteAccountPasswordPolicy(input *DeleteAccountPasswordPolicyInput) (*DeleteAccountPasswordPolicyOutput, error) {
 	req, out := c.DeleteAccountPasswordPolicyRequest(input)
 	return out, req.Send()
@@ -2544,7 +2557,7 @@ const opDeleteGroup = "DeleteGroup"
 
 // DeleteGroupRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteGroup operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -2565,7 +2578,7 @@ const opDeleteGroup = "DeleteGroup"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/DeleteGroup
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/DeleteGroup
 func (c *IAM) DeleteGroupRequest(input *DeleteGroupInput) (req *request.Request, output *DeleteGroupOutput) {
 	op := &request.Operation{
 		Name:       opDeleteGroup,
@@ -2613,7 +2626,7 @@ func (c *IAM) DeleteGroupRequest(input *DeleteGroupInput) (req *request.Request,
 //   The request processing has failed because of an unknown error, exception
 //   or failure.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/DeleteGroup
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/DeleteGroup
 func (c *IAM) DeleteGroup(input *DeleteGroupInput) (*DeleteGroupOutput, error) {
 	req, out := c.DeleteGroupRequest(input)
 	return out, req.Send()
@@ -2639,7 +2652,7 @@ const opDeleteGroupPolicy = "DeleteGroupPolicy"
 
 // DeleteGroupPolicyRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteGroupPolicy operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -2660,7 +2673,7 @@ const opDeleteGroupPolicy = "DeleteGroupPolicy"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/DeleteGroupPolicy
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/DeleteGroupPolicy
 func (c *IAM) DeleteGroupPolicyRequest(input *DeleteGroupPolicyInput) (req *request.Request, output *DeleteGroupPolicyOutput) {
 	op := &request.Operation{
 		Name:       opDeleteGroupPolicy,
@@ -2709,7 +2722,7 @@ func (c *IAM) DeleteGroupPolicyRequest(input *DeleteGroupPolicyInput) (req *requ
 //   The request processing has failed because of an unknown error, exception
 //   or failure.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/DeleteGroupPolicy
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/DeleteGroupPolicy
 func (c *IAM) DeleteGroupPolicy(input *DeleteGroupPolicyInput) (*DeleteGroupPolicyOutput, error) {
 	req, out := c.DeleteGroupPolicyRequest(input)
 	return out, req.Send()
@@ -2735,7 +2748,7 @@ const opDeleteInstanceProfile = "DeleteInstanceProfile"
 
 // DeleteInstanceProfileRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteInstanceProfile operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -2756,7 +2769,7 @@ const opDeleteInstanceProfile = "DeleteInstanceProfile"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/DeleteInstanceProfile
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/DeleteInstanceProfile
 func (c *IAM) DeleteInstanceProfileRequest(input *DeleteInstanceProfileInput) (req *request.Request, output *DeleteInstanceProfileOutput) {
 	op := &request.Operation{
 		Name:       opDeleteInstanceProfile,
@@ -2780,9 +2793,9 @@ func (c *IAM) DeleteInstanceProfileRequest(input *DeleteInstanceProfileInput) (r
 // Deletes the specified instance profile. The instance profile must not have
 // an associated role.
 //
-// Make sure you do not have any Amazon EC2 instances running with the instance
-// profile you are about to delete. Deleting a role or instance profile that
-// is associated with a running instance will break any applications running
+// Make sure that you do not have any Amazon EC2 instances running with the
+// instance profile you are about to delete. Deleting a role or instance profile
+// that is associated with a running instance will break any applications running
 // on the instance.
 //
 // For more information about instance profiles, go to About Instance Profiles
@@ -2812,7 +2825,7 @@ func (c *IAM) DeleteInstanceProfileRequest(input *DeleteInstanceProfileInput) (r
 //   The request processing has failed because of an unknown error, exception
 //   or failure.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/DeleteInstanceProfile
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/DeleteInstanceProfile
 func (c *IAM) DeleteInstanceProfile(input *DeleteInstanceProfileInput) (*DeleteInstanceProfileOutput, error) {
 	req, out := c.DeleteInstanceProfileRequest(input)
 	return out, req.Send()
@@ -2838,7 +2851,7 @@ const opDeleteLoginProfile = "DeleteLoginProfile"
 
 // DeleteLoginProfileRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteLoginProfile operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -2859,7 +2872,7 @@ const opDeleteLoginProfile = "DeleteLoginProfile"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/DeleteLoginProfile
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/DeleteLoginProfile
 func (c *IAM) DeleteLoginProfileRequest(input *DeleteLoginProfileInput) (req *request.Request, output *DeleteLoginProfileOutput) {
 	op := &request.Operation{
 		Name:       opDeleteLoginProfile,
@@ -2914,7 +2927,7 @@ func (c *IAM) DeleteLoginProfileRequest(input *DeleteLoginProfileInput) (req *re
 //   The request processing has failed because of an unknown error, exception
 //   or failure.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/DeleteLoginProfile
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/DeleteLoginProfile
 func (c *IAM) DeleteLoginProfile(input *DeleteLoginProfileInput) (*DeleteLoginProfileOutput, error) {
 	req, out := c.DeleteLoginProfileRequest(input)
 	return out, req.Send()
@@ -2940,7 +2953,7 @@ const opDeleteOpenIDConnectProvider = "DeleteOpenIDConnectProvider"
 
 // DeleteOpenIDConnectProviderRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteOpenIDConnectProvider operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -2961,7 +2974,7 @@ const opDeleteOpenIDConnectProvider = "DeleteOpenIDConnectProvider"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/DeleteOpenIDConnectProvider
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/DeleteOpenIDConnectProvider
 func (c *IAM) DeleteOpenIDConnectProviderRequest(input *DeleteOpenIDConnectProviderInput) (req *request.Request, output *DeleteOpenIDConnectProviderOutput) {
 	op := &request.Operation{
 		Name:       opDeleteOpenIDConnectProvider,
@@ -2988,8 +3001,8 @@ func (c *IAM) DeleteOpenIDConnectProviderRequest(input *DeleteOpenIDConnectProvi
 // the provider as a principal in their trust policies. Any attempt to assume
 // a role that references a deleted provider fails.
 //
-// This action is idempotent; it does not fail or return an error if you call
-// the action for a provider that does not exist.
+// This operation is idempotent; it does not fail or return an error if you
+// call the operation for a provider that does not exist.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -3011,7 +3024,7 @@ func (c *IAM) DeleteOpenIDConnectProviderRequest(input *DeleteOpenIDConnectProvi
 //   The request processing has failed because of an unknown error, exception
 //   or failure.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/DeleteOpenIDConnectProvider
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/DeleteOpenIDConnectProvider
 func (c *IAM) DeleteOpenIDConnectProvider(input *DeleteOpenIDConnectProviderInput) (*DeleteOpenIDConnectProviderOutput, error) {
 	req, out := c.DeleteOpenIDConnectProviderRequest(input)
 	return out, req.Send()
@@ -3037,7 +3050,7 @@ const opDeletePolicy = "DeletePolicy"
 
 // DeletePolicyRequest generates a "aws/request.Request" representing the
 // client's request for the DeletePolicy operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -3058,7 +3071,7 @@ const opDeletePolicy = "DeletePolicy"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/DeletePolicy
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/DeletePolicy
 func (c *IAM) DeletePolicyRequest(input *DeletePolicyInput) (req *request.Request, output *DeletePolicyOutput) {
 	op := &request.Operation{
 		Name:       opDeletePolicy,
@@ -3082,14 +3095,14 @@ func (c *IAM) DeletePolicyRequest(input *DeletePolicyInput) (req *request.Reques
 // Deletes the specified managed policy.
 //
 // Before you can delete a managed policy, you must first detach the policy
-// from all users, groups, and roles that it is attached to, and you must delete
-// all of the policy's versions. The following steps describe the process for
-// deleting a managed policy:
+// from all users, groups, and roles that it is attached to. In addition you
+// must delete all the policy's versions. The following steps describe the process
+// for deleting a managed policy:
 //
 //    * Detach the policy from all users, groups, and roles that the policy
 //    is attached to, using the DetachUserPolicy, DetachGroupPolicy, or DetachRolePolicy
-//    APIs. To list all the users, groups, and roles that a policy is attached
-//    to, use ListEntitiesForPolicy.
+//    API operations. To list all the users, groups, and roles that a policy
+//    is attached to, use ListEntitiesForPolicy.
 //
 //    * Delete all versions of the policy using DeletePolicyVersion. To list
 //    the policy's versions, use ListPolicyVersions. You cannot use DeletePolicyVersion
@@ -3131,7 +3144,7 @@ func (c *IAM) DeletePolicyRequest(input *DeletePolicyInput) (req *request.Reques
 //   The request processing has failed because of an unknown error, exception
 //   or failure.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/DeletePolicy
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/DeletePolicy
 func (c *IAM) DeletePolicy(input *DeletePolicyInput) (*DeletePolicyOutput, error) {
 	req, out := c.DeletePolicyRequest(input)
 	return out, req.Send()
@@ -3157,7 +3170,7 @@ const opDeletePolicyVersion = "DeletePolicyVersion"
 
 // DeletePolicyVersionRequest generates a "aws/request.Request" representing the
 // client's request for the DeletePolicyVersion operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -3178,7 +3191,7 @@ const opDeletePolicyVersion = "DeletePolicyVersion"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/DeletePolicyVersion
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/DeletePolicyVersion
 func (c *IAM) DeletePolicyVersionRequest(input *DeletePolicyVersionInput) (req *request.Request, output *DeletePolicyVersionOutput) {
 	op := &request.Operation{
 		Name:       opDeletePolicyVersion,
@@ -3237,7 +3250,7 @@ func (c *IAM) DeletePolicyVersionRequest(input *DeletePolicyVersionInput) (req *
 //   The request processing has failed because of an unknown error, exception
 //   or failure.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/DeletePolicyVersion
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/DeletePolicyVersion
 func (c *IAM) DeletePolicyVersion(input *DeletePolicyVersionInput) (*DeletePolicyVersionOutput, error) {
 	req, out := c.DeletePolicyVersionRequest(input)
 	return out, req.Send()
@@ -3263,7 +3276,7 @@ const opDeleteRole = "DeleteRole"
 
 // DeleteRoleRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteRole operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -3284,7 +3297,7 @@ const opDeleteRole = "DeleteRole"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/DeleteRole
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/DeleteRole
 func (c *IAM) DeleteRoleRequest(input *DeleteRoleInput) (req *request.Request, output *DeleteRoleOutput) {
 	op := &request.Operation{
 		Name:       opDeleteRole,
@@ -3308,9 +3321,10 @@ func (c *IAM) DeleteRoleRequest(input *DeleteRoleInput) (req *request.Request, o
 // Deletes the specified role. The role must not have any policies attached.
 // For more information about roles, go to Working with Roles (http://docs.aws.amazon.com/IAM/latest/UserGuide/WorkingWithRoles.html).
 //
-// Make sure you do not have any Amazon EC2 instances running with the role
-// you are about to delete. Deleting a role or instance profile that is associated
-// with a running instance will break any applications running on the instance.
+// Make sure that you do not have any Amazon EC2 instances running with the
+// role you are about to delete. Deleting a role or instance profile that is
+// associated with a running instance will break any applications running on
+// the instance.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -3342,7 +3356,7 @@ func (c *IAM) DeleteRoleRequest(input *DeleteRoleInput) (req *request.Request, o
 //   The request processing has failed because of an unknown error, exception
 //   or failure.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/DeleteRole
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/DeleteRole
 func (c *IAM) DeleteRole(input *DeleteRoleInput) (*DeleteRoleOutput, error) {
 	req, out := c.DeleteRoleRequest(input)
 	return out, req.Send()
@@ -3364,11 +3378,107 @@ func (c *IAM) DeleteRoleWithContext(ctx aws.Context, input *DeleteRoleInput, opt
 	return out, req.Send()
 }
 
+const opDeleteRolePermissionsBoundary = "DeleteRolePermissionsBoundary"
+
+// DeleteRolePermissionsBoundaryRequest generates a "aws/request.Request" representing the
+// client's request for the DeleteRolePermissionsBoundary operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfuly.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See DeleteRolePermissionsBoundary for more information on using the DeleteRolePermissionsBoundary
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the DeleteRolePermissionsBoundaryRequest method.
+//    req, resp := client.DeleteRolePermissionsBoundaryRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/DeleteRolePermissionsBoundary
+func (c *IAM) DeleteRolePermissionsBoundaryRequest(input *DeleteRolePermissionsBoundaryInput) (req *request.Request, output *DeleteRolePermissionsBoundaryOutput) {
+	op := &request.Operation{
+		Name:       opDeleteRolePermissionsBoundary,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &DeleteRolePermissionsBoundaryInput{}
+	}
+
+	output = &DeleteRolePermissionsBoundaryOutput{}
+	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
+	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
+	return
+}
+
+// DeleteRolePermissionsBoundary API operation for AWS Identity and Access Management.
+//
+// Deletes the permissions boundary for the specified IAM role.
+//
+// Deleting the permissions boundary for a role might increase its permissions
+// by allowing anyone who assumes the role to perform all the actions granted
+// in its permissions policies.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Identity and Access Management's
+// API operation DeleteRolePermissionsBoundary for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeNoSuchEntityException "NoSuchEntity"
+//   The request was rejected because it referenced an entity that does not exist.
+//   The error message describes the entity.
+//
+//   * ErrCodeUnmodifiableEntityException "UnmodifiableEntity"
+//   The request was rejected because only the service that depends on the service-linked
+//   role can modify or delete the role on your behalf. The error message includes
+//   the name of the service that depends on this service-linked role. You must
+//   request the change through that service.
+//
+//   * ErrCodeServiceFailureException "ServiceFailure"
+//   The request processing has failed because of an unknown error, exception
+//   or failure.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/DeleteRolePermissionsBoundary
+func (c *IAM) DeleteRolePermissionsBoundary(input *DeleteRolePermissionsBoundaryInput) (*DeleteRolePermissionsBoundaryOutput, error) {
+	req, out := c.DeleteRolePermissionsBoundaryRequest(input)
+	return out, req.Send()
+}
+
+// DeleteRolePermissionsBoundaryWithContext is the same as DeleteRolePermissionsBoundary with the addition of
+// the ability to pass a context and additional request options.
+//
+// See DeleteRolePermissionsBoundary for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *IAM) DeleteRolePermissionsBoundaryWithContext(ctx aws.Context, input *DeleteRolePermissionsBoundaryInput, opts ...request.Option) (*DeleteRolePermissionsBoundaryOutput, error) {
+	req, out := c.DeleteRolePermissionsBoundaryRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
 const opDeleteRolePolicy = "DeleteRolePolicy"
 
 // DeleteRolePolicyRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteRolePolicy operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -3389,7 +3499,7 @@ const opDeleteRolePolicy = "DeleteRolePolicy"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/DeleteRolePolicy
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/DeleteRolePolicy
 func (c *IAM) DeleteRolePolicyRequest(input *DeleteRolePolicyInput) (req *request.Request, output *DeleteRolePolicyOutput) {
 	op := &request.Operation{
 		Name:       opDeleteRolePolicy,
@@ -3444,7 +3554,7 @@ func (c *IAM) DeleteRolePolicyRequest(input *DeleteRolePolicyInput) (req *reques
 //   The request processing has failed because of an unknown error, exception
 //   or failure.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/DeleteRolePolicy
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/DeleteRolePolicy
 func (c *IAM) DeleteRolePolicy(input *DeleteRolePolicyInput) (*DeleteRolePolicyOutput, error) {
 	req, out := c.DeleteRolePolicyRequest(input)
 	return out, req.Send()
@@ -3470,7 +3580,7 @@ const opDeleteSAMLProvider = "DeleteSAMLProvider"
 
 // DeleteSAMLProviderRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteSAMLProvider operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -3491,7 +3601,7 @@ const opDeleteSAMLProvider = "DeleteSAMLProvider"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/DeleteSAMLProvider
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/DeleteSAMLProvider
 func (c *IAM) DeleteSAMLProviderRequest(input *DeleteSAMLProviderInput) (req *request.Request, output *DeleteSAMLProviderOutput) {
 	op := &request.Operation{
 		Name:       opDeleteSAMLProvider,
@@ -3545,7 +3655,7 @@ func (c *IAM) DeleteSAMLProviderRequest(input *DeleteSAMLProviderInput) (req *re
 //   The request processing has failed because of an unknown error, exception
 //   or failure.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/DeleteSAMLProvider
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/DeleteSAMLProvider
 func (c *IAM) DeleteSAMLProvider(input *DeleteSAMLProviderInput) (*DeleteSAMLProviderOutput, error) {
 	req, out := c.DeleteSAMLProviderRequest(input)
 	return out, req.Send()
@@ -3571,7 +3681,7 @@ const opDeleteSSHPublicKey = "DeleteSSHPublicKey"
 
 // DeleteSSHPublicKeyRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteSSHPublicKey operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -3592,7 +3702,7 @@ const opDeleteSSHPublicKey = "DeleteSSHPublicKey"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/DeleteSSHPublicKey
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/DeleteSSHPublicKey
 func (c *IAM) DeleteSSHPublicKeyRequest(input *DeleteSSHPublicKeyInput) (req *request.Request, output *DeleteSSHPublicKeyOutput) {
 	op := &request.Operation{
 		Name:       opDeleteSSHPublicKey,
@@ -3615,7 +3725,7 @@ func (c *IAM) DeleteSSHPublicKeyRequest(input *DeleteSSHPublicKeyInput) (req *re
 //
 // Deletes the specified SSH public key.
 //
-// The SSH public key deleted by this action is used only for authenticating
+// The SSH public key deleted by this operation is used only for authenticating
 // the associated IAM user to an AWS CodeCommit repository. For more information
 // about using SSH keys to authenticate to an AWS CodeCommit repository, see
 // Set up AWS CodeCommit for SSH Connections (http://docs.aws.amazon.com/codecommit/latest/userguide/setting-up-credentials-ssh.html)
@@ -3633,7 +3743,7 @@ func (c *IAM) DeleteSSHPublicKeyRequest(input *DeleteSSHPublicKeyInput) (req *re
 //   The request was rejected because it referenced an entity that does not exist.
 //   The error message describes the entity.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/DeleteSSHPublicKey
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/DeleteSSHPublicKey
 func (c *IAM) DeleteSSHPublicKey(input *DeleteSSHPublicKeyInput) (*DeleteSSHPublicKeyOutput, error) {
 	req, out := c.DeleteSSHPublicKeyRequest(input)
 	return out, req.Send()
@@ -3659,7 +3769,7 @@ const opDeleteServerCertificate = "DeleteServerCertificate"
 
 // DeleteServerCertificateRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteServerCertificate operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -3680,7 +3790,7 @@ const opDeleteServerCertificate = "DeleteServerCertificate"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/DeleteServerCertificate
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/DeleteServerCertificate
 func (c *IAM) DeleteServerCertificateRequest(input *DeleteServerCertificateInput) (req *request.Request, output *DeleteServerCertificateOutput) {
 	op := &request.Operation{
 		Name:       opDeleteServerCertificate,
@@ -3703,10 +3813,10 @@ func (c *IAM) DeleteServerCertificateRequest(input *DeleteServerCertificateInput
 //
 // Deletes the specified server certificate.
 //
-// For more information about working with server certificates, including a
-// list of AWS services that can use the server certificates that you manage
-// with IAM, go to Working with Server Certificates (http://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_server-certs.html)
-// in the IAM User Guide.
+// For more information about working with server certificates, see Working
+// with Server Certificates (http://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_server-certs.html)
+// in the IAM User Guide. This topic also includes a list of AWS services that
+// can use the server certificates that you manage with IAM.
 //
 // If you are using a server certificate with Elastic Load Balancing, deleting
 // the certificate could have implications for your application. If Elastic
@@ -3742,7 +3852,7 @@ func (c *IAM) DeleteServerCertificateRequest(input *DeleteServerCertificateInput
 //   The request processing has failed because of an unknown error, exception
 //   or failure.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/DeleteServerCertificate
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/DeleteServerCertificate
 func (c *IAM) DeleteServerCertificate(input *DeleteServerCertificateInput) (*DeleteServerCertificateOutput, error) {
 	req, out := c.DeleteServerCertificateRequest(input)
 	return out, req.Send()
@@ -3768,7 +3878,7 @@ const opDeleteServiceLinkedRole = "DeleteServiceLinkedRole"
 
 // DeleteServiceLinkedRoleRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteServiceLinkedRole operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -3789,7 +3899,7 @@ const opDeleteServiceLinkedRole = "DeleteServiceLinkedRole"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/DeleteServiceLinkedRole
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/DeleteServiceLinkedRole
 func (c *IAM) DeleteServiceLinkedRoleRequest(input *DeleteServiceLinkedRoleInput) (req *request.Request, output *DeleteServiceLinkedRoleOutput) {
 	op := &request.Operation{
 		Name:       opDeleteServiceLinkedRole,
@@ -3818,8 +3928,8 @@ func (c *IAM) DeleteServiceLinkedRoleRequest(input *DeleteServiceLinkedRoleInput
 // If you submit a deletion request for a service-linked role whose linked service
 // is still accessing a resource, then the deletion task fails. If it fails,
 // the GetServiceLinkedRoleDeletionStatus API operation returns the reason for
-// the failure, including the resources that must be deleted. To delete the
-// service-linked role, you must first remove those resources from the linked
+// the failure, usually including the resources that must be deleted. To delete
+// the service-linked role, you must first remove those resources from the linked
 // service and then submit the deletion request again. Resources are specific
 // to the service that is linked to the role. For more information about removing
 // resources from a service, see the AWS documentation (http://docs.aws.amazon.com/)
@@ -3849,7 +3959,7 @@ func (c *IAM) DeleteServiceLinkedRoleRequest(input *DeleteServiceLinkedRoleInput
 //   The request processing has failed because of an unknown error, exception
 //   or failure.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/DeleteServiceLinkedRole
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/DeleteServiceLinkedRole
 func (c *IAM) DeleteServiceLinkedRole(input *DeleteServiceLinkedRoleInput) (*DeleteServiceLinkedRoleOutput, error) {
 	req, out := c.DeleteServiceLinkedRoleRequest(input)
 	return out, req.Send()
@@ -3875,7 +3985,7 @@ const opDeleteServiceSpecificCredential = "DeleteServiceSpecificCredential"
 
 // DeleteServiceSpecificCredentialRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteServiceSpecificCredential operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -3896,7 +4006,7 @@ const opDeleteServiceSpecificCredential = "DeleteServiceSpecificCredential"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/DeleteServiceSpecificCredential
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/DeleteServiceSpecificCredential
 func (c *IAM) DeleteServiceSpecificCredentialRequest(input *DeleteServiceSpecificCredentialInput) (req *request.Request, output *DeleteServiceSpecificCredentialOutput) {
 	op := &request.Operation{
 		Name:       opDeleteServiceSpecificCredential,
@@ -3931,7 +4041,7 @@ func (c *IAM) DeleteServiceSpecificCredentialRequest(input *DeleteServiceSpecifi
 //   The request was rejected because it referenced an entity that does not exist.
 //   The error message describes the entity.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/DeleteServiceSpecificCredential
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/DeleteServiceSpecificCredential
 func (c *IAM) DeleteServiceSpecificCredential(input *DeleteServiceSpecificCredentialInput) (*DeleteServiceSpecificCredentialOutput, error) {
 	req, out := c.DeleteServiceSpecificCredentialRequest(input)
 	return out, req.Send()
@@ -3957,7 +4067,7 @@ const opDeleteSigningCertificate = "DeleteSigningCertificate"
 
 // DeleteSigningCertificateRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteSigningCertificate operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -3978,7 +4088,7 @@ const opDeleteSigningCertificate = "DeleteSigningCertificate"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/DeleteSigningCertificate
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/DeleteSigningCertificate
 func (c *IAM) DeleteSigningCertificateRequest(input *DeleteSigningCertificateInput) (req *request.Request, output *DeleteSigningCertificateOutput) {
 	op := &request.Operation{
 		Name:       opDeleteSigningCertificate,
@@ -4002,9 +4112,10 @@ func (c *IAM) DeleteSigningCertificateRequest(input *DeleteSigningCertificateInp
 // Deletes a signing certificate associated with the specified IAM user.
 //
 // If you do not specify a user name, IAM determines the user name implicitly
-// based on the AWS access key ID signing the request. Because this action works
-// for access keys under the AWS account, you can use this action to manage
-// root credentials even if the AWS account has no associated IAM users.
+// based on the AWS access key ID signing the request. Because this operation
+// works for access keys under the AWS account, you can use this operation to
+// manage AWS account root user credentials even if the AWS account has no associated
+// IAM users.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -4026,7 +4137,7 @@ func (c *IAM) DeleteSigningCertificateRequest(input *DeleteSigningCertificateInp
 //   The request processing has failed because of an unknown error, exception
 //   or failure.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/DeleteSigningCertificate
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/DeleteSigningCertificate
 func (c *IAM) DeleteSigningCertificate(input *DeleteSigningCertificateInput) (*DeleteSigningCertificateOutput, error) {
 	req, out := c.DeleteSigningCertificateRequest(input)
 	return out, req.Send()
@@ -4052,7 +4163,7 @@ const opDeleteUser = "DeleteUser"
 
 // DeleteUserRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteUser operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -4073,7 +4184,7 @@ const opDeleteUser = "DeleteUser"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/DeleteUser
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/DeleteUser
 func (c *IAM) DeleteUserRequest(input *DeleteUserInput) (req *request.Request, output *DeleteUserOutput) {
 	op := &request.Operation{
 		Name:       opDeleteUser,
@@ -4121,7 +4232,7 @@ func (c *IAM) DeleteUserRequest(input *DeleteUserInput) (req *request.Request, o
 //   The request processing has failed because of an unknown error, exception
 //   or failure.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/DeleteUser
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/DeleteUser
 func (c *IAM) DeleteUser(input *DeleteUserInput) (*DeleteUserOutput, error) {
 	req, out := c.DeleteUserRequest(input)
 	return out, req.Send()
@@ -4143,11 +4254,101 @@ func (c *IAM) DeleteUserWithContext(ctx aws.Context, input *DeleteUserInput, opt
 	return out, req.Send()
 }
 
+const opDeleteUserPermissionsBoundary = "DeleteUserPermissionsBoundary"
+
+// DeleteUserPermissionsBoundaryRequest generates a "aws/request.Request" representing the
+// client's request for the DeleteUserPermissionsBoundary operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfuly.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See DeleteUserPermissionsBoundary for more information on using the DeleteUserPermissionsBoundary
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the DeleteUserPermissionsBoundaryRequest method.
+//    req, resp := client.DeleteUserPermissionsBoundaryRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/DeleteUserPermissionsBoundary
+func (c *IAM) DeleteUserPermissionsBoundaryRequest(input *DeleteUserPermissionsBoundaryInput) (req *request.Request, output *DeleteUserPermissionsBoundaryOutput) {
+	op := &request.Operation{
+		Name:       opDeleteUserPermissionsBoundary,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &DeleteUserPermissionsBoundaryInput{}
+	}
+
+	output = &DeleteUserPermissionsBoundaryOutput{}
+	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
+	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
+	return
+}
+
+// DeleteUserPermissionsBoundary API operation for AWS Identity and Access Management.
+//
+// Deletes the permissions boundary for the specified IAM user.
+//
+// Deleting the permissions boundary for a user might increase its permissions
+// by allowing the user to perform all the actions granted in its permissions
+// policies.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Identity and Access Management's
+// API operation DeleteUserPermissionsBoundary for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeNoSuchEntityException "NoSuchEntity"
+//   The request was rejected because it referenced an entity that does not exist.
+//   The error message describes the entity.
+//
+//   * ErrCodeServiceFailureException "ServiceFailure"
+//   The request processing has failed because of an unknown error, exception
+//   or failure.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/DeleteUserPermissionsBoundary
+func (c *IAM) DeleteUserPermissionsBoundary(input *DeleteUserPermissionsBoundaryInput) (*DeleteUserPermissionsBoundaryOutput, error) {
+	req, out := c.DeleteUserPermissionsBoundaryRequest(input)
+	return out, req.Send()
+}
+
+// DeleteUserPermissionsBoundaryWithContext is the same as DeleteUserPermissionsBoundary with the addition of
+// the ability to pass a context and additional request options.
+//
+// See DeleteUserPermissionsBoundary for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *IAM) DeleteUserPermissionsBoundaryWithContext(ctx aws.Context, input *DeleteUserPermissionsBoundaryInput, opts ...request.Option) (*DeleteUserPermissionsBoundaryOutput, error) {
+	req, out := c.DeleteUserPermissionsBoundaryRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
 const opDeleteUserPolicy = "DeleteUserPolicy"
 
 // DeleteUserPolicyRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteUserPolicy operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -4168,7 +4369,7 @@ const opDeleteUserPolicy = "DeleteUserPolicy"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/DeleteUserPolicy
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/DeleteUserPolicy
 func (c *IAM) DeleteUserPolicyRequest(input *DeleteUserPolicyInput) (req *request.Request, output *DeleteUserPolicyOutput) {
 	op := &request.Operation{
 		Name:       opDeleteUserPolicy,
@@ -4217,7 +4418,7 @@ func (c *IAM) DeleteUserPolicyRequest(input *DeleteUserPolicyInput) (req *reques
 //   The request processing has failed because of an unknown error, exception
 //   or failure.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/DeleteUserPolicy
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/DeleteUserPolicy
 func (c *IAM) DeleteUserPolicy(input *DeleteUserPolicyInput) (*DeleteUserPolicyOutput, error) {
 	req, out := c.DeleteUserPolicyRequest(input)
 	return out, req.Send()
@@ -4243,7 +4444,7 @@ const opDeleteVirtualMFADevice = "DeleteVirtualMFADevice"
 
 // DeleteVirtualMFADeviceRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteVirtualMFADevice operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -4264,7 +4465,7 @@ const opDeleteVirtualMFADevice = "DeleteVirtualMFADevice"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/DeleteVirtualMFADevice
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/DeleteVirtualMFADevice
 func (c *IAM) DeleteVirtualMFADeviceRequest(input *DeleteVirtualMFADeviceInput) (req *request.Request, output *DeleteVirtualMFADeviceOutput) {
 	op := &request.Operation{
 		Name:       opDeleteVirtualMFADevice,
@@ -4314,7 +4515,7 @@ func (c *IAM) DeleteVirtualMFADeviceRequest(input *DeleteVirtualMFADeviceInput) 
 //   The request processing has failed because of an unknown error, exception
 //   or failure.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/DeleteVirtualMFADevice
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/DeleteVirtualMFADevice
 func (c *IAM) DeleteVirtualMFADevice(input *DeleteVirtualMFADeviceInput) (*DeleteVirtualMFADeviceOutput, error) {
 	req, out := c.DeleteVirtualMFADeviceRequest(input)
 	return out, req.Send()
@@ -4340,7 +4541,7 @@ const opDetachGroupPolicy = "DetachGroupPolicy"
 
 // DetachGroupPolicyRequest generates a "aws/request.Request" representing the
 // client's request for the DetachGroupPolicy operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -4361,7 +4562,7 @@ const opDetachGroupPolicy = "DetachGroupPolicy"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/DetachGroupPolicy
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/DetachGroupPolicy
 func (c *IAM) DetachGroupPolicyRequest(input *DetachGroupPolicyInput) (req *request.Request, output *DetachGroupPolicyOutput) {
 	op := &request.Operation{
 		Name:       opDetachGroupPolicy,
@@ -4413,7 +4614,7 @@ func (c *IAM) DetachGroupPolicyRequest(input *DetachGroupPolicyInput) (req *requ
 //   The request processing has failed because of an unknown error, exception
 //   or failure.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/DetachGroupPolicy
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/DetachGroupPolicy
 func (c *IAM) DetachGroupPolicy(input *DetachGroupPolicyInput) (*DetachGroupPolicyOutput, error) {
 	req, out := c.DetachGroupPolicyRequest(input)
 	return out, req.Send()
@@ -4439,7 +4640,7 @@ const opDetachRolePolicy = "DetachRolePolicy"
 
 // DetachRolePolicyRequest generates a "aws/request.Request" representing the
 // client's request for the DetachRolePolicy operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -4460,7 +4661,7 @@ const opDetachRolePolicy = "DetachRolePolicy"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/DetachRolePolicy
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/DetachRolePolicy
 func (c *IAM) DetachRolePolicyRequest(input *DetachRolePolicyInput) (req *request.Request, output *DetachRolePolicyOutput) {
 	op := &request.Operation{
 		Name:       opDetachRolePolicy,
@@ -4518,7 +4719,7 @@ func (c *IAM) DetachRolePolicyRequest(input *DetachRolePolicyInput) (req *reques
 //   The request processing has failed because of an unknown error, exception
 //   or failure.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/DetachRolePolicy
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/DetachRolePolicy
 func (c *IAM) DetachRolePolicy(input *DetachRolePolicyInput) (*DetachRolePolicyOutput, error) {
 	req, out := c.DetachRolePolicyRequest(input)
 	return out, req.Send()
@@ -4544,7 +4745,7 @@ const opDetachUserPolicy = "DetachUserPolicy"
 
 // DetachUserPolicyRequest generates a "aws/request.Request" representing the
 // client's request for the DetachUserPolicy operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -4565,7 +4766,7 @@ const opDetachUserPolicy = "DetachUserPolicy"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/DetachUserPolicy
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/DetachUserPolicy
 func (c *IAM) DetachUserPolicyRequest(input *DetachUserPolicyInput) (req *request.Request, output *DetachUserPolicyOutput) {
 	op := &request.Operation{
 		Name:       opDetachUserPolicy,
@@ -4617,7 +4818,7 @@ func (c *IAM) DetachUserPolicyRequest(input *DetachUserPolicyInput) (req *reques
 //   The request processing has failed because of an unknown error, exception
 //   or failure.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/DetachUserPolicy
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/DetachUserPolicy
 func (c *IAM) DetachUserPolicy(input *DetachUserPolicyInput) (*DetachUserPolicyOutput, error) {
 	req, out := c.DetachUserPolicyRequest(input)
 	return out, req.Send()
@@ -4643,7 +4844,7 @@ const opEnableMFADevice = "EnableMFADevice"
 
 // EnableMFADeviceRequest generates a "aws/request.Request" representing the
 // client's request for the EnableMFADevice operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -4664,7 +4865,7 @@ const opEnableMFADevice = "EnableMFADevice"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/EnableMFADevice
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/EnableMFADevice
 func (c *IAM) EnableMFADeviceRequest(input *EnableMFADeviceInput) (req *request.Request, output *EnableMFADeviceOutput) {
 	op := &request.Operation{
 		Name:       opEnableMFADevice,
@@ -4723,7 +4924,7 @@ func (c *IAM) EnableMFADeviceRequest(input *EnableMFADeviceInput) (req *request.
 //   The request processing has failed because of an unknown error, exception
 //   or failure.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/EnableMFADevice
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/EnableMFADevice
 func (c *IAM) EnableMFADevice(input *EnableMFADeviceInput) (*EnableMFADeviceOutput, error) {
 	req, out := c.EnableMFADeviceRequest(input)
 	return out, req.Send()
@@ -4749,7 +4950,7 @@ const opGenerateCredentialReport = "GenerateCredentialReport"
 
 // GenerateCredentialReportRequest generates a "aws/request.Request" representing the
 // client's request for the GenerateCredentialReport operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -4770,7 +4971,7 @@ const opGenerateCredentialReport = "GenerateCredentialReport"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/GenerateCredentialReport
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/GenerateCredentialReport
 func (c *IAM) GenerateCredentialReportRequest(input *GenerateCredentialReportInput) (req *request.Request, output *GenerateCredentialReportOutput) {
 	op := &request.Operation{
 		Name:       opGenerateCredentialReport,
@@ -4809,7 +5010,7 @@ func (c *IAM) GenerateCredentialReportRequest(input *GenerateCredentialReportInp
 //   The request processing has failed because of an unknown error, exception
 //   or failure.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/GenerateCredentialReport
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/GenerateCredentialReport
 func (c *IAM) GenerateCredentialReport(input *GenerateCredentialReportInput) (*GenerateCredentialReportOutput, error) {
 	req, out := c.GenerateCredentialReportRequest(input)
 	return out, req.Send()
@@ -4835,7 +5036,7 @@ const opGetAccessKeyLastUsed = "GetAccessKeyLastUsed"
 
 // GetAccessKeyLastUsedRequest generates a "aws/request.Request" representing the
 // client's request for the GetAccessKeyLastUsed operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -4856,7 +5057,7 @@ const opGetAccessKeyLastUsed = "GetAccessKeyLastUsed"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/GetAccessKeyLastUsed
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/GetAccessKeyLastUsed
 func (c *IAM) GetAccessKeyLastUsedRequest(input *GetAccessKeyLastUsedInput) (req *request.Request, output *GetAccessKeyLastUsedOutput) {
 	op := &request.Operation{
 		Name:       opGetAccessKeyLastUsed,
@@ -4892,7 +5093,7 @@ func (c *IAM) GetAccessKeyLastUsedRequest(input *GetAccessKeyLastUsedInput) (req
 //   The request was rejected because it referenced an entity that does not exist.
 //   The error message describes the entity.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/GetAccessKeyLastUsed
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/GetAccessKeyLastUsed
 func (c *IAM) GetAccessKeyLastUsed(input *GetAccessKeyLastUsedInput) (*GetAccessKeyLastUsedOutput, error) {
 	req, out := c.GetAccessKeyLastUsedRequest(input)
 	return out, req.Send()
@@ -4918,7 +5119,7 @@ const opGetAccountAuthorizationDetails = "GetAccountAuthorizationDetails"
 
 // GetAccountAuthorizationDetailsRequest generates a "aws/request.Request" representing the
 // client's request for the GetAccountAuthorizationDetails operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -4939,7 +5140,7 @@ const opGetAccountAuthorizationDetails = "GetAccountAuthorizationDetails"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/GetAccountAuthorizationDetails
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/GetAccountAuthorizationDetails
 func (c *IAM) GetAccountAuthorizationDetailsRequest(input *GetAccountAuthorizationDetailsInput) (req *request.Request, output *GetAccountAuthorizationDetailsOutput) {
 	op := &request.Operation{
 		Name:       opGetAccountAuthorizationDetails,
@@ -4969,6 +5170,12 @@ func (c *IAM) GetAccountAuthorizationDetailsRequest(input *GetAccountAuthorizati
 // API to obtain a snapshot of the configuration of IAM permissions (users,
 // groups, roles, and policies) in your account.
 //
+// Policies returned by this API are URL-encoded compliant with RFC 3986 (https://tools.ietf.org/html/rfc3986).
+// You can use a URL decoding method to convert the policy back to plain JSON
+// text. For example, if you use Java, you can use the decode method of the
+// java.net.URLDecoder utility class in the Java SDK. Other languages and SDKs
+// provide similar functionality.
+//
 // You can optionally filter the results using the Filter parameter. You can
 // paginate the results using the MaxItems and Marker parameters.
 //
@@ -4984,7 +5191,7 @@ func (c *IAM) GetAccountAuthorizationDetailsRequest(input *GetAccountAuthorizati
 //   The request processing has failed because of an unknown error, exception
 //   or failure.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/GetAccountAuthorizationDetails
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/GetAccountAuthorizationDetails
 func (c *IAM) GetAccountAuthorizationDetails(input *GetAccountAuthorizationDetailsInput) (*GetAccountAuthorizationDetailsOutput, error) {
 	req, out := c.GetAccountAuthorizationDetailsRequest(input)
 	return out, req.Send()
@@ -5060,7 +5267,7 @@ const opGetAccountPasswordPolicy = "GetAccountPasswordPolicy"
 
 // GetAccountPasswordPolicyRequest generates a "aws/request.Request" representing the
 // client's request for the GetAccountPasswordPolicy operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -5081,7 +5288,7 @@ const opGetAccountPasswordPolicy = "GetAccountPasswordPolicy"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/GetAccountPasswordPolicy
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/GetAccountPasswordPolicy
 func (c *IAM) GetAccountPasswordPolicyRequest(input *GetAccountPasswordPolicyInput) (req *request.Request, output *GetAccountPasswordPolicyOutput) {
 	op := &request.Operation{
 		Name:       opGetAccountPasswordPolicy,
@@ -5119,7 +5326,7 @@ func (c *IAM) GetAccountPasswordPolicyRequest(input *GetAccountPasswordPolicyInp
 //   The request processing has failed because of an unknown error, exception
 //   or failure.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/GetAccountPasswordPolicy
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/GetAccountPasswordPolicy
 func (c *IAM) GetAccountPasswordPolicy(input *GetAccountPasswordPolicyInput) (*GetAccountPasswordPolicyOutput, error) {
 	req, out := c.GetAccountPasswordPolicyRequest(input)
 	return out, req.Send()
@@ -5145,7 +5352,7 @@ const opGetAccountSummary = "GetAccountSummary"
 
 // GetAccountSummaryRequest generates a "aws/request.Request" representing the
 // client's request for the GetAccountSummary operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -5166,7 +5373,7 @@ const opGetAccountSummary = "GetAccountSummary"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/GetAccountSummary
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/GetAccountSummary
 func (c *IAM) GetAccountSummaryRequest(input *GetAccountSummaryInput) (req *request.Request, output *GetAccountSummaryOutput) {
 	op := &request.Operation{
 		Name:       opGetAccountSummary,
@@ -5203,7 +5410,7 @@ func (c *IAM) GetAccountSummaryRequest(input *GetAccountSummaryInput) (req *requ
 //   The request processing has failed because of an unknown error, exception
 //   or failure.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/GetAccountSummary
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/GetAccountSummary
 func (c *IAM) GetAccountSummary(input *GetAccountSummaryInput) (*GetAccountSummaryOutput, error) {
 	req, out := c.GetAccountSummaryRequest(input)
 	return out, req.Send()
@@ -5229,7 +5436,7 @@ const opGetContextKeysForCustomPolicy = "GetContextKeysForCustomPolicy"
 
 // GetContextKeysForCustomPolicyRequest generates a "aws/request.Request" representing the
 // client's request for the GetContextKeysForCustomPolicy operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -5250,7 +5457,7 @@ const opGetContextKeysForCustomPolicy = "GetContextKeysForCustomPolicy"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/GetContextKeysForCustomPolicy
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/GetContextKeysForCustomPolicy
 func (c *IAM) GetContextKeysForCustomPolicyRequest(input *GetContextKeysForCustomPolicyInput) (req *request.Request, output *GetContextKeysForPolicyResponse) {
 	op := &request.Operation{
 		Name:       opGetContextKeysForCustomPolicy,
@@ -5274,10 +5481,10 @@ func (c *IAM) GetContextKeysForCustomPolicyRequest(input *GetContextKeysForCusto
 // keys from policies associated with an IAM user, group, or role, use GetContextKeysForPrincipalPolicy.
 //
 // Context keys are variables maintained by AWS and its services that provide
-// details about the context of an API query request, and can be evaluated by
-// testing against a value specified in an IAM policy. Use GetContextKeysForCustomPolicy
+// details about the context of an API query request. Context keys can be evaluated
+// by testing against a value specified in an IAM policy. Use GetContextKeysForCustomPolicy
 // to understand what key names and values you must supply when you call SimulateCustomPolicy.
-// Note that all parameters are shown in unencoded form here for clarity, but
+// Note that all parameters are shown in unencoded form here for clarity but
 // must be URL encoded to be included as a part of a real HTML request.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
@@ -5292,7 +5499,7 @@ func (c *IAM) GetContextKeysForCustomPolicyRequest(input *GetContextKeysForCusto
 //   The request was rejected because an invalid or out-of-range value was supplied
 //   for an input parameter.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/GetContextKeysForCustomPolicy
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/GetContextKeysForCustomPolicy
 func (c *IAM) GetContextKeysForCustomPolicy(input *GetContextKeysForCustomPolicyInput) (*GetContextKeysForPolicyResponse, error) {
 	req, out := c.GetContextKeysForCustomPolicyRequest(input)
 	return out, req.Send()
@@ -5318,7 +5525,7 @@ const opGetContextKeysForPrincipalPolicy = "GetContextKeysForPrincipalPolicy"
 
 // GetContextKeysForPrincipalPolicyRequest generates a "aws/request.Request" representing the
 // client's request for the GetContextKeysForPrincipalPolicy operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -5339,7 +5546,7 @@ const opGetContextKeysForPrincipalPolicy = "GetContextKeysForPrincipalPolicy"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/GetContextKeysForPrincipalPolicy
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/GetContextKeysForPrincipalPolicy
 func (c *IAM) GetContextKeysForPrincipalPolicyRequest(input *GetContextKeysForPrincipalPolicyInput) (req *request.Request, output *GetContextKeysForPolicyResponse) {
 	op := &request.Operation{
 		Name:       opGetContextKeysForPrincipalPolicy,
@@ -5358,10 +5565,10 @@ func (c *IAM) GetContextKeysForPrincipalPolicyRequest(input *GetContextKeysForPr
 
 // GetContextKeysForPrincipalPolicy API operation for AWS Identity and Access Management.
 //
-// Gets a list of all of the context keys referenced in all of the IAM policies
-// attached to the specified IAM entity. The entity can be an IAM user, group,
-// or role. If you specify a user, then the request also includes all of the
-// policies attached to groups that the user is a member of.
+// Gets a list of all of the context keys referenced in all the IAM policies
+// that are attached to the specified IAM entity. The entity can be an IAM user,
+// group, or role. If you specify a user, then the request also includes all
+// of the policies attached to groups that the user is a member of.
 //
 // You can optionally include a list of one or more additional policies, specified
 // as strings. If you want to include only a list of policies by string, use
@@ -5372,8 +5579,8 @@ func (c *IAM) GetContextKeysForPrincipalPolicyRequest(input *GetContextKeysForPr
 // allowing them to use GetContextKeysForCustomPolicy instead.
 //
 // Context keys are variables maintained by AWS and its services that provide
-// details about the context of an API query request, and can be evaluated by
-// testing against a value in an IAM policy. Use GetContextKeysForPrincipalPolicy
+// details about the context of an API query request. Context keys can be evaluated
+// by testing against a value in an IAM policy. Use GetContextKeysForPrincipalPolicy
 // to understand what key names and values you must supply when you call SimulatePrincipalPolicy.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
@@ -5392,7 +5599,7 @@ func (c *IAM) GetContextKeysForPrincipalPolicyRequest(input *GetContextKeysForPr
 //   The request was rejected because an invalid or out-of-range value was supplied
 //   for an input parameter.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/GetContextKeysForPrincipalPolicy
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/GetContextKeysForPrincipalPolicy
 func (c *IAM) GetContextKeysForPrincipalPolicy(input *GetContextKeysForPrincipalPolicyInput) (*GetContextKeysForPolicyResponse, error) {
 	req, out := c.GetContextKeysForPrincipalPolicyRequest(input)
 	return out, req.Send()
@@ -5418,7 +5625,7 @@ const opGetCredentialReport = "GetCredentialReport"
 
 // GetCredentialReportRequest generates a "aws/request.Request" representing the
 // client's request for the GetCredentialReport operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -5439,7 +5646,7 @@ const opGetCredentialReport = "GetCredentialReport"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/GetCredentialReport
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/GetCredentialReport
 func (c *IAM) GetCredentialReportRequest(input *GetCredentialReportInput) (req *request.Request, output *GetCredentialReportOutput) {
 	op := &request.Operation{
 		Name:       opGetCredentialReport,
@@ -5488,7 +5695,7 @@ func (c *IAM) GetCredentialReportRequest(input *GetCredentialReportInput) (req *
 //   The request processing has failed because of an unknown error, exception
 //   or failure.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/GetCredentialReport
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/GetCredentialReport
 func (c *IAM) GetCredentialReport(input *GetCredentialReportInput) (*GetCredentialReportOutput, error) {
 	req, out := c.GetCredentialReportRequest(input)
 	return out, req.Send()
@@ -5514,7 +5721,7 @@ const opGetGroup = "GetGroup"
 
 // GetGroupRequest generates a "aws/request.Request" representing the
 // client's request for the GetGroup operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -5535,7 +5742,7 @@ const opGetGroup = "GetGroup"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/GetGroup
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/GetGroup
 func (c *IAM) GetGroupRequest(input *GetGroupInput) (req *request.Request, output *GetGroupOutput) {
 	op := &request.Operation{
 		Name:       opGetGroup,
@@ -5579,7 +5786,7 @@ func (c *IAM) GetGroupRequest(input *GetGroupInput) (req *request.Request, outpu
 //   The request processing has failed because of an unknown error, exception
 //   or failure.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/GetGroup
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/GetGroup
 func (c *IAM) GetGroup(input *GetGroupInput) (*GetGroupOutput, error) {
 	req, out := c.GetGroupRequest(input)
 	return out, req.Send()
@@ -5655,7 +5862,7 @@ const opGetGroupPolicy = "GetGroupPolicy"
 
 // GetGroupPolicyRequest generates a "aws/request.Request" representing the
 // client's request for the GetGroupPolicy operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -5676,7 +5883,7 @@ const opGetGroupPolicy = "GetGroupPolicy"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/GetGroupPolicy
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/GetGroupPolicy
 func (c *IAM) GetGroupPolicyRequest(input *GetGroupPolicyInput) (req *request.Request, output *GetGroupPolicyOutput) {
 	op := &request.Operation{
 		Name:       opGetGroupPolicy,
@@ -5729,7 +5936,7 @@ func (c *IAM) GetGroupPolicyRequest(input *GetGroupPolicyInput) (req *request.Re
 //   The request processing has failed because of an unknown error, exception
 //   or failure.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/GetGroupPolicy
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/GetGroupPolicy
 func (c *IAM) GetGroupPolicy(input *GetGroupPolicyInput) (*GetGroupPolicyOutput, error) {
 	req, out := c.GetGroupPolicyRequest(input)
 	return out, req.Send()
@@ -5755,7 +5962,7 @@ const opGetInstanceProfile = "GetInstanceProfile"
 
 // GetInstanceProfileRequest generates a "aws/request.Request" representing the
 // client's request for the GetInstanceProfile operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -5776,7 +5983,7 @@ const opGetInstanceProfile = "GetInstanceProfile"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/GetInstanceProfile
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/GetInstanceProfile
 func (c *IAM) GetInstanceProfileRequest(input *GetInstanceProfileInput) (req *request.Request, output *GetInstanceProfileOutput) {
 	op := &request.Operation{
 		Name:       opGetInstanceProfile,
@@ -5816,7 +6023,7 @@ func (c *IAM) GetInstanceProfileRequest(input *GetInstanceProfileInput) (req *re
 //   The request processing has failed because of an unknown error, exception
 //   or failure.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/GetInstanceProfile
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/GetInstanceProfile
 func (c *IAM) GetInstanceProfile(input *GetInstanceProfileInput) (*GetInstanceProfileOutput, error) {
 	req, out := c.GetInstanceProfileRequest(input)
 	return out, req.Send()
@@ -5842,7 +6049,7 @@ const opGetLoginProfile = "GetLoginProfile"
 
 // GetLoginProfileRequest generates a "aws/request.Request" representing the
 // client's request for the GetLoginProfile operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -5863,7 +6070,7 @@ const opGetLoginProfile = "GetLoginProfile"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/GetLoginProfile
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/GetLoginProfile
 func (c *IAM) GetLoginProfileRequest(input *GetLoginProfileInput) (req *request.Request, output *GetLoginProfileOutput) {
 	op := &request.Operation{
 		Name:       opGetLoginProfile,
@@ -5883,8 +6090,8 @@ func (c *IAM) GetLoginProfileRequest(input *GetLoginProfileInput) (req *request.
 // GetLoginProfile API operation for AWS Identity and Access Management.
 //
 // Retrieves the user name and password-creation date for the specified IAM
-// user. If the user has not been assigned a password, the action returns a
-// 404 (NoSuchEntity) error.
+// user. If the user has not been assigned a password, the operation returns
+// a 404 (NoSuchEntity) error.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -5902,7 +6109,7 @@ func (c *IAM) GetLoginProfileRequest(input *GetLoginProfileInput) (req *request.
 //   The request processing has failed because of an unknown error, exception
 //   or failure.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/GetLoginProfile
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/GetLoginProfile
 func (c *IAM) GetLoginProfile(input *GetLoginProfileInput) (*GetLoginProfileOutput, error) {
 	req, out := c.GetLoginProfileRequest(input)
 	return out, req.Send()
@@ -5928,7 +6135,7 @@ const opGetOpenIDConnectProvider = "GetOpenIDConnectProvider"
 
 // GetOpenIDConnectProviderRequest generates a "aws/request.Request" representing the
 // client's request for the GetOpenIDConnectProvider operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -5949,7 +6156,7 @@ const opGetOpenIDConnectProvider = "GetOpenIDConnectProvider"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/GetOpenIDConnectProvider
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/GetOpenIDConnectProvider
 func (c *IAM) GetOpenIDConnectProviderRequest(input *GetOpenIDConnectProviderInput) (req *request.Request, output *GetOpenIDConnectProviderOutput) {
 	op := &request.Operation{
 		Name:       opGetOpenIDConnectProvider,
@@ -5991,7 +6198,7 @@ func (c *IAM) GetOpenIDConnectProviderRequest(input *GetOpenIDConnectProviderInp
 //   The request processing has failed because of an unknown error, exception
 //   or failure.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/GetOpenIDConnectProvider
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/GetOpenIDConnectProvider
 func (c *IAM) GetOpenIDConnectProvider(input *GetOpenIDConnectProviderInput) (*GetOpenIDConnectProviderOutput, error) {
 	req, out := c.GetOpenIDConnectProviderRequest(input)
 	return out, req.Send()
@@ -6017,7 +6224,7 @@ const opGetPolicy = "GetPolicy"
 
 // GetPolicyRequest generates a "aws/request.Request" representing the
 // client's request for the GetPolicy operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -6038,7 +6245,7 @@ const opGetPolicy = "GetPolicy"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/GetPolicy
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/GetPolicy
 func (c *IAM) GetPolicyRequest(input *GetPolicyInput) (req *request.Request, output *GetPolicyOutput) {
 	op := &request.Operation{
 		Name:       opGetPolicy,
@@ -6092,7 +6299,7 @@ func (c *IAM) GetPolicyRequest(input *GetPolicyInput) (req *request.Request, out
 //   The request processing has failed because of an unknown error, exception
 //   or failure.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/GetPolicy
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/GetPolicy
 func (c *IAM) GetPolicy(input *GetPolicyInput) (*GetPolicyOutput, error) {
 	req, out := c.GetPolicyRequest(input)
 	return out, req.Send()
@@ -6118,7 +6325,7 @@ const opGetPolicyVersion = "GetPolicyVersion"
 
 // GetPolicyVersionRequest generates a "aws/request.Request" representing the
 // client's request for the GetPolicyVersion operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -6139,7 +6346,7 @@ const opGetPolicyVersion = "GetPolicyVersion"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/GetPolicyVersion
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/GetPolicyVersion
 func (c *IAM) GetPolicyVersionRequest(input *GetPolicyVersionInput) (req *request.Request, output *GetPolicyVersionOutput) {
 	op := &request.Operation{
 		Name:       opGetPolicyVersion,
@@ -6201,7 +6408,7 @@ func (c *IAM) GetPolicyVersionRequest(input *GetPolicyVersionInput) (req *reques
 //   The request processing has failed because of an unknown error, exception
 //   or failure.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/GetPolicyVersion
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/GetPolicyVersion
 func (c *IAM) GetPolicyVersion(input *GetPolicyVersionInput) (*GetPolicyVersionOutput, error) {
 	req, out := c.GetPolicyVersionRequest(input)
 	return out, req.Send()
@@ -6227,7 +6434,7 @@ const opGetRole = "GetRole"
 
 // GetRoleRequest generates a "aws/request.Request" representing the
 // client's request for the GetRole operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -6248,7 +6455,7 @@ const opGetRole = "GetRole"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/GetRole
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/GetRole
 func (c *IAM) GetRoleRequest(input *GetRoleInput) (req *request.Request, output *GetRoleOutput) {
 	op := &request.Operation{
 		Name:       opGetRole,
@@ -6293,7 +6500,7 @@ func (c *IAM) GetRoleRequest(input *GetRoleInput) (req *request.Request, output 
 //   The request processing has failed because of an unknown error, exception
 //   or failure.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/GetRole
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/GetRole
 func (c *IAM) GetRole(input *GetRoleInput) (*GetRoleOutput, error) {
 	req, out := c.GetRoleRequest(input)
 	return out, req.Send()
@@ -6319,7 +6526,7 @@ const opGetRolePolicy = "GetRolePolicy"
 
 // GetRolePolicyRequest generates a "aws/request.Request" representing the
 // client's request for the GetRolePolicy operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -6340,7 +6547,7 @@ const opGetRolePolicy = "GetRolePolicy"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/GetRolePolicy
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/GetRolePolicy
 func (c *IAM) GetRolePolicyRequest(input *GetRolePolicyInput) (req *request.Request, output *GetRolePolicyOutput) {
 	op := &request.Operation{
 		Name:       opGetRolePolicy,
@@ -6396,7 +6603,7 @@ func (c *IAM) GetRolePolicyRequest(input *GetRolePolicyInput) (req *request.Requ
 //   The request processing has failed because of an unknown error, exception
 //   or failure.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/GetRolePolicy
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/GetRolePolicy
 func (c *IAM) GetRolePolicy(input *GetRolePolicyInput) (*GetRolePolicyOutput, error) {
 	req, out := c.GetRolePolicyRequest(input)
 	return out, req.Send()
@@ -6422,7 +6629,7 @@ const opGetSAMLProvider = "GetSAMLProvider"
 
 // GetSAMLProviderRequest generates a "aws/request.Request" representing the
 // client's request for the GetSAMLProvider operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -6443,7 +6650,7 @@ const opGetSAMLProvider = "GetSAMLProvider"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/GetSAMLProvider
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/GetSAMLProvider
 func (c *IAM) GetSAMLProviderRequest(input *GetSAMLProviderInput) (req *request.Request, output *GetSAMLProviderOutput) {
 	op := &request.Operation{
 		Name:       opGetSAMLProvider,
@@ -6487,7 +6694,7 @@ func (c *IAM) GetSAMLProviderRequest(input *GetSAMLProviderInput) (req *request.
 //   The request processing has failed because of an unknown error, exception
 //   or failure.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/GetSAMLProvider
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/GetSAMLProvider
 func (c *IAM) GetSAMLProvider(input *GetSAMLProviderInput) (*GetSAMLProviderOutput, error) {
 	req, out := c.GetSAMLProviderRequest(input)
 	return out, req.Send()
@@ -6513,7 +6720,7 @@ const opGetSSHPublicKey = "GetSSHPublicKey"
 
 // GetSSHPublicKeyRequest generates a "aws/request.Request" representing the
 // client's request for the GetSSHPublicKey operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -6534,7 +6741,7 @@ const opGetSSHPublicKey = "GetSSHPublicKey"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/GetSSHPublicKey
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/GetSSHPublicKey
 func (c *IAM) GetSSHPublicKeyRequest(input *GetSSHPublicKeyInput) (req *request.Request, output *GetSSHPublicKeyOutput) {
 	op := &request.Operation{
 		Name:       opGetSSHPublicKey,
@@ -6555,7 +6762,7 @@ func (c *IAM) GetSSHPublicKeyRequest(input *GetSSHPublicKeyInput) (req *request.
 //
 // Retrieves the specified SSH public key, including metadata about the key.
 //
-// The SSH public key retrieved by this action is used only for authenticating
+// The SSH public key retrieved by this operation is used only for authenticating
 // the associated IAM user to an AWS CodeCommit repository. For more information
 // about using SSH keys to authenticate to an AWS CodeCommit repository, see
 // Set up AWS CodeCommit for SSH Connections (http://docs.aws.amazon.com/codecommit/latest/userguide/setting-up-credentials-ssh.html)
@@ -6577,7 +6784,7 @@ func (c *IAM) GetSSHPublicKeyRequest(input *GetSSHPublicKeyInput) (req *request.
 //   The request was rejected because the public key encoding format is unsupported
 //   or unrecognized.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/GetSSHPublicKey
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/GetSSHPublicKey
 func (c *IAM) GetSSHPublicKey(input *GetSSHPublicKeyInput) (*GetSSHPublicKeyOutput, error) {
 	req, out := c.GetSSHPublicKeyRequest(input)
 	return out, req.Send()
@@ -6603,7 +6810,7 @@ const opGetServerCertificate = "GetServerCertificate"
 
 // GetServerCertificateRequest generates a "aws/request.Request" representing the
 // client's request for the GetServerCertificate operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -6624,7 +6831,7 @@ const opGetServerCertificate = "GetServerCertificate"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/GetServerCertificate
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/GetServerCertificate
 func (c *IAM) GetServerCertificateRequest(input *GetServerCertificateInput) (req *request.Request, output *GetServerCertificateOutput) {
 	op := &request.Operation{
 		Name:       opGetServerCertificate,
@@ -6645,10 +6852,10 @@ func (c *IAM) GetServerCertificateRequest(input *GetServerCertificateInput) (req
 //
 // Retrieves information about the specified server certificate stored in IAM.
 //
-// For more information about working with server certificates, including a
-// list of AWS services that can use the server certificates that you manage
-// with IAM, go to Working with Server Certificates (http://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_server-certs.html)
-// in the IAM User Guide.
+// For more information about working with server certificates, see Working
+// with Server Certificates (http://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_server-certs.html)
+// in the IAM User Guide. This topic includes a list of AWS services that can
+// use the server certificates that you manage with IAM.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -6666,7 +6873,7 @@ func (c *IAM) GetServerCertificateRequest(input *GetServerCertificateInput) (req
 //   The request processing has failed because of an unknown error, exception
 //   or failure.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/GetServerCertificate
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/GetServerCertificate
 func (c *IAM) GetServerCertificate(input *GetServerCertificateInput) (*GetServerCertificateOutput, error) {
 	req, out := c.GetServerCertificateRequest(input)
 	return out, req.Send()
@@ -6692,7 +6899,7 @@ const opGetServiceLinkedRoleDeletionStatus = "GetServiceLinkedRoleDeletionStatus
 
 // GetServiceLinkedRoleDeletionStatusRequest generates a "aws/request.Request" representing the
 // client's request for the GetServiceLinkedRoleDeletionStatus operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -6713,7 +6920,7 @@ const opGetServiceLinkedRoleDeletionStatus = "GetServiceLinkedRoleDeletionStatus
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/GetServiceLinkedRoleDeletionStatus
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/GetServiceLinkedRoleDeletionStatus
 func (c *IAM) GetServiceLinkedRoleDeletionStatusRequest(input *GetServiceLinkedRoleDeletionStatusInput) (req *request.Request, output *GetServiceLinkedRoleDeletionStatusOutput) {
 	op := &request.Operation{
 		Name:       opGetServiceLinkedRoleDeletionStatus,
@@ -6736,7 +6943,8 @@ func (c *IAM) GetServiceLinkedRoleDeletionStatusRequest(input *GetServiceLinkedR
 // the DeleteServiceLinkedRole API operation to submit a service-linked role
 // for deletion, you can use the DeletionTaskId parameter in GetServiceLinkedRoleDeletionStatus
 // to check the status of the deletion. If the deletion fails, this operation
-// returns the reason that it failed.
+// returns the reason that it failed, if that information is returned by the
+// service.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -6758,7 +6966,7 @@ func (c *IAM) GetServiceLinkedRoleDeletionStatusRequest(input *GetServiceLinkedR
 //   The request processing has failed because of an unknown error, exception
 //   or failure.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/GetServiceLinkedRoleDeletionStatus
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/GetServiceLinkedRoleDeletionStatus
 func (c *IAM) GetServiceLinkedRoleDeletionStatus(input *GetServiceLinkedRoleDeletionStatusInput) (*GetServiceLinkedRoleDeletionStatusOutput, error) {
 	req, out := c.GetServiceLinkedRoleDeletionStatusRequest(input)
 	return out, req.Send()
@@ -6784,7 +6992,7 @@ const opGetUser = "GetUser"
 
 // GetUserRequest generates a "aws/request.Request" representing the
 // client's request for the GetUser operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -6805,7 +7013,7 @@ const opGetUser = "GetUser"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/GetUser
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/GetUser
 func (c *IAM) GetUserRequest(input *GetUserInput) (req *request.Request, output *GetUserOutput) {
 	op := &request.Operation{
 		Name:       opGetUser,
@@ -6846,7 +7054,7 @@ func (c *IAM) GetUserRequest(input *GetUserInput) (req *request.Request, output 
 //   The request processing has failed because of an unknown error, exception
 //   or failure.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/GetUser
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/GetUser
 func (c *IAM) GetUser(input *GetUserInput) (*GetUserOutput, error) {
 	req, out := c.GetUserRequest(input)
 	return out, req.Send()
@@ -6872,7 +7080,7 @@ const opGetUserPolicy = "GetUserPolicy"
 
 // GetUserPolicyRequest generates a "aws/request.Request" representing the
 // client's request for the GetUserPolicy operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -6893,7 +7101,7 @@ const opGetUserPolicy = "GetUserPolicy"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/GetUserPolicy
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/GetUserPolicy
 func (c *IAM) GetUserPolicyRequest(input *GetUserPolicyInput) (req *request.Request, output *GetUserPolicyOutput) {
 	op := &request.Operation{
 		Name:       opGetUserPolicy,
@@ -6946,7 +7154,7 @@ func (c *IAM) GetUserPolicyRequest(input *GetUserPolicyInput) (req *request.Requ
 //   The request processing has failed because of an unknown error, exception
 //   or failure.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/GetUserPolicy
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/GetUserPolicy
 func (c *IAM) GetUserPolicy(input *GetUserPolicyInput) (*GetUserPolicyOutput, error) {
 	req, out := c.GetUserPolicyRequest(input)
 	return out, req.Send()
@@ -6972,7 +7180,7 @@ const opListAccessKeys = "ListAccessKeys"
 
 // ListAccessKeysRequest generates a "aws/request.Request" representing the
 // client's request for the ListAccessKeys operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -6993,7 +7201,7 @@ const opListAccessKeys = "ListAccessKeys"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/ListAccessKeys
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/ListAccessKeys
 func (c *IAM) ListAccessKeysRequest(input *ListAccessKeysInput) (req *request.Request, output *ListAccessKeysOutput) {
 	op := &request.Operation{
 		Name:       opListAccessKeys,
@@ -7019,15 +7227,16 @@ func (c *IAM) ListAccessKeysRequest(input *ListAccessKeysInput) (req *request.Re
 // ListAccessKeys API operation for AWS Identity and Access Management.
 //
 // Returns information about the access key IDs associated with the specified
-// IAM user. If there are none, the action returns an empty list.
+// IAM user. If there are none, the operation returns an empty list.
 //
 // Although each user is limited to a small number of keys, you can still paginate
 // the results using the MaxItems and Marker parameters.
 //
-// If the UserName field is not specified, the UserName is determined implicitly
-// based on the AWS access key ID used to sign the request. Because this action
-// works for access keys under the AWS account, you can use this action to manage
-// root credentials even if the AWS account has no associated users.
+// If the UserName field is not specified, the user name is determined implicitly
+// based on the AWS access key ID used to sign the request. Because this operation
+// works for access keys under the AWS account, you can use this operation to
+// manage AWS account root user credentials even if the AWS account has no associated
+// users.
 //
 // To ensure the security of your AWS account, the secret access key is accessible
 // only during key and user creation.
@@ -7048,7 +7257,7 @@ func (c *IAM) ListAccessKeysRequest(input *ListAccessKeysInput) (req *request.Re
 //   The request processing has failed because of an unknown error, exception
 //   or failure.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/ListAccessKeys
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/ListAccessKeys
 func (c *IAM) ListAccessKeys(input *ListAccessKeysInput) (*ListAccessKeysOutput, error) {
 	req, out := c.ListAccessKeysRequest(input)
 	return out, req.Send()
@@ -7124,7 +7333,7 @@ const opListAccountAliases = "ListAccountAliases"
 
 // ListAccountAliasesRequest generates a "aws/request.Request" representing the
 // client's request for the ListAccountAliases operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -7145,7 +7354,7 @@ const opListAccountAliases = "ListAccountAliases"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/ListAccountAliases
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/ListAccountAliases
 func (c *IAM) ListAccountAliasesRequest(input *ListAccountAliasesInput) (req *request.Request, output *ListAccountAliasesOutput) {
 	op := &request.Operation{
 		Name:       opListAccountAliases,
@@ -7187,7 +7396,7 @@ func (c *IAM) ListAccountAliasesRequest(input *ListAccountAliasesInput) (req *re
 //   The request processing has failed because of an unknown error, exception
 //   or failure.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/ListAccountAliases
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/ListAccountAliases
 func (c *IAM) ListAccountAliases(input *ListAccountAliasesInput) (*ListAccountAliasesOutput, error) {
 	req, out := c.ListAccountAliasesRequest(input)
 	return out, req.Send()
@@ -7263,7 +7472,7 @@ const opListAttachedGroupPolicies = "ListAttachedGroupPolicies"
 
 // ListAttachedGroupPoliciesRequest generates a "aws/request.Request" representing the
 // client's request for the ListAttachedGroupPolicies operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -7284,7 +7493,7 @@ const opListAttachedGroupPolicies = "ListAttachedGroupPolicies"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/ListAttachedGroupPolicies
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/ListAttachedGroupPolicies
 func (c *IAM) ListAttachedGroupPoliciesRequest(input *ListAttachedGroupPoliciesInput) (req *request.Request, output *ListAttachedGroupPoliciesOutput) {
 	op := &request.Operation{
 		Name:       opListAttachedGroupPolicies,
@@ -7319,7 +7528,7 @@ func (c *IAM) ListAttachedGroupPoliciesRequest(input *ListAttachedGroupPoliciesI
 // You can paginate the results using the MaxItems and Marker parameters. You
 // can use the PathPrefix parameter to limit the list of policies to only those
 // matching the specified path prefix. If there are no policies attached to
-// the specified group (or none that match the specified path prefix), the action
+// the specified group (or none that match the specified path prefix), the operation
 // returns an empty list.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
@@ -7342,7 +7551,7 @@ func (c *IAM) ListAttachedGroupPoliciesRequest(input *ListAttachedGroupPoliciesI
 //   The request processing has failed because of an unknown error, exception
 //   or failure.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/ListAttachedGroupPolicies
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/ListAttachedGroupPolicies
 func (c *IAM) ListAttachedGroupPolicies(input *ListAttachedGroupPoliciesInput) (*ListAttachedGroupPoliciesOutput, error) {
 	req, out := c.ListAttachedGroupPoliciesRequest(input)
 	return out, req.Send()
@@ -7418,7 +7627,7 @@ const opListAttachedRolePolicies = "ListAttachedRolePolicies"
 
 // ListAttachedRolePoliciesRequest generates a "aws/request.Request" representing the
 // client's request for the ListAttachedRolePolicies operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -7439,7 +7648,7 @@ const opListAttachedRolePolicies = "ListAttachedRolePolicies"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/ListAttachedRolePolicies
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/ListAttachedRolePolicies
 func (c *IAM) ListAttachedRolePoliciesRequest(input *ListAttachedRolePoliciesInput) (req *request.Request, output *ListAttachedRolePoliciesOutput) {
 	op := &request.Operation{
 		Name:       opListAttachedRolePolicies,
@@ -7474,7 +7683,7 @@ func (c *IAM) ListAttachedRolePoliciesRequest(input *ListAttachedRolePoliciesInp
 // You can paginate the results using the MaxItems and Marker parameters. You
 // can use the PathPrefix parameter to limit the list of policies to only those
 // matching the specified path prefix. If there are no policies attached to
-// the specified role (or none that match the specified path prefix), the action
+// the specified role (or none that match the specified path prefix), the operation
 // returns an empty list.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
@@ -7497,7 +7706,7 @@ func (c *IAM) ListAttachedRolePoliciesRequest(input *ListAttachedRolePoliciesInp
 //   The request processing has failed because of an unknown error, exception
 //   or failure.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/ListAttachedRolePolicies
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/ListAttachedRolePolicies
 func (c *IAM) ListAttachedRolePolicies(input *ListAttachedRolePoliciesInput) (*ListAttachedRolePoliciesOutput, error) {
 	req, out := c.ListAttachedRolePoliciesRequest(input)
 	return out, req.Send()
@@ -7573,7 +7782,7 @@ const opListAttachedUserPolicies = "ListAttachedUserPolicies"
 
 // ListAttachedUserPoliciesRequest generates a "aws/request.Request" representing the
 // client's request for the ListAttachedUserPolicies operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -7594,7 +7803,7 @@ const opListAttachedUserPolicies = "ListAttachedUserPolicies"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/ListAttachedUserPolicies
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/ListAttachedUserPolicies
 func (c *IAM) ListAttachedUserPoliciesRequest(input *ListAttachedUserPoliciesInput) (req *request.Request, output *ListAttachedUserPoliciesOutput) {
 	op := &request.Operation{
 		Name:       opListAttachedUserPolicies,
@@ -7629,7 +7838,7 @@ func (c *IAM) ListAttachedUserPoliciesRequest(input *ListAttachedUserPoliciesInp
 // You can paginate the results using the MaxItems and Marker parameters. You
 // can use the PathPrefix parameter to limit the list of policies to only those
 // matching the specified path prefix. If there are no policies attached to
-// the specified group (or none that match the specified path prefix), the action
+// the specified group (or none that match the specified path prefix), the operation
 // returns an empty list.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
@@ -7652,7 +7861,7 @@ func (c *IAM) ListAttachedUserPoliciesRequest(input *ListAttachedUserPoliciesInp
 //   The request processing has failed because of an unknown error, exception
 //   or failure.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/ListAttachedUserPolicies
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/ListAttachedUserPolicies
 func (c *IAM) ListAttachedUserPolicies(input *ListAttachedUserPoliciesInput) (*ListAttachedUserPoliciesOutput, error) {
 	req, out := c.ListAttachedUserPoliciesRequest(input)
 	return out, req.Send()
@@ -7728,7 +7937,7 @@ const opListEntitiesForPolicy = "ListEntitiesForPolicy"
 
 // ListEntitiesForPolicyRequest generates a "aws/request.Request" representing the
 // client's request for the ListEntitiesForPolicy operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -7749,7 +7958,7 @@ const opListEntitiesForPolicy = "ListEntitiesForPolicy"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/ListEntitiesForPolicy
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/ListEntitiesForPolicy
 func (c *IAM) ListEntitiesForPolicyRequest(input *ListEntitiesForPolicyInput) (req *request.Request, output *ListEntitiesForPolicyOutput) {
 	op := &request.Operation{
 		Name:       opListEntitiesForPolicy,
@@ -7804,7 +8013,7 @@ func (c *IAM) ListEntitiesForPolicyRequest(input *ListEntitiesForPolicyInput) (r
 //   The request processing has failed because of an unknown error, exception
 //   or failure.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/ListEntitiesForPolicy
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/ListEntitiesForPolicy
 func (c *IAM) ListEntitiesForPolicy(input *ListEntitiesForPolicyInput) (*ListEntitiesForPolicyOutput, error) {
 	req, out := c.ListEntitiesForPolicyRequest(input)
 	return out, req.Send()
@@ -7880,7 +8089,7 @@ const opListGroupPolicies = "ListGroupPolicies"
 
 // ListGroupPoliciesRequest generates a "aws/request.Request" representing the
 // client's request for the ListGroupPolicies operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -7901,7 +8110,7 @@ const opListGroupPolicies = "ListGroupPolicies"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/ListGroupPolicies
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/ListGroupPolicies
 func (c *IAM) ListGroupPoliciesRequest(input *ListGroupPoliciesInput) (req *request.Request, output *ListGroupPoliciesOutput) {
 	op := &request.Operation{
 		Name:       opListGroupPolicies,
@@ -7936,7 +8145,7 @@ func (c *IAM) ListGroupPoliciesRequest(input *ListGroupPoliciesInput) (req *requ
 // in the IAM User Guide.
 //
 // You can paginate the results using the MaxItems and Marker parameters. If
-// there are no inline policies embedded with the specified group, the action
+// there are no inline policies embedded with the specified group, the operation
 // returns an empty list.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
@@ -7955,7 +8164,7 @@ func (c *IAM) ListGroupPoliciesRequest(input *ListGroupPoliciesInput) (req *requ
 //   The request processing has failed because of an unknown error, exception
 //   or failure.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/ListGroupPolicies
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/ListGroupPolicies
 func (c *IAM) ListGroupPolicies(input *ListGroupPoliciesInput) (*ListGroupPoliciesOutput, error) {
 	req, out := c.ListGroupPoliciesRequest(input)
 	return out, req.Send()
@@ -8031,7 +8240,7 @@ const opListGroups = "ListGroups"
 
 // ListGroupsRequest generates a "aws/request.Request" representing the
 // client's request for the ListGroups operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -8052,7 +8261,7 @@ const opListGroups = "ListGroups"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/ListGroups
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/ListGroups
 func (c *IAM) ListGroupsRequest(input *ListGroupsInput) (req *request.Request, output *ListGroupsOutput) {
 	op := &request.Operation{
 		Name:       opListGroups,
@@ -8093,7 +8302,7 @@ func (c *IAM) ListGroupsRequest(input *ListGroupsInput) (req *request.Request, o
 //   The request processing has failed because of an unknown error, exception
 //   or failure.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/ListGroups
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/ListGroups
 func (c *IAM) ListGroups(input *ListGroupsInput) (*ListGroupsOutput, error) {
 	req, out := c.ListGroupsRequest(input)
 	return out, req.Send()
@@ -8169,7 +8378,7 @@ const opListGroupsForUser = "ListGroupsForUser"
 
 // ListGroupsForUserRequest generates a "aws/request.Request" representing the
 // client's request for the ListGroupsForUser operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -8190,7 +8399,7 @@ const opListGroupsForUser = "ListGroupsForUser"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/ListGroupsForUser
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/ListGroupsForUser
 func (c *IAM) ListGroupsForUserRequest(input *ListGroupsForUserInput) (req *request.Request, output *ListGroupsForUserOutput) {
 	op := &request.Operation{
 		Name:       opListGroupsForUser,
@@ -8235,7 +8444,7 @@ func (c *IAM) ListGroupsForUserRequest(input *ListGroupsForUserInput) (req *requ
 //   The request processing has failed because of an unknown error, exception
 //   or failure.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/ListGroupsForUser
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/ListGroupsForUser
 func (c *IAM) ListGroupsForUser(input *ListGroupsForUserInput) (*ListGroupsForUserOutput, error) {
 	req, out := c.ListGroupsForUserRequest(input)
 	return out, req.Send()
@@ -8311,7 +8520,7 @@ const opListInstanceProfiles = "ListInstanceProfiles"
 
 // ListInstanceProfilesRequest generates a "aws/request.Request" representing the
 // client's request for the ListInstanceProfiles operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -8332,7 +8541,7 @@ const opListInstanceProfiles = "ListInstanceProfiles"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/ListInstanceProfiles
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/ListInstanceProfiles
 func (c *IAM) ListInstanceProfilesRequest(input *ListInstanceProfilesInput) (req *request.Request, output *ListInstanceProfilesOutput) {
 	op := &request.Operation{
 		Name:       opListInstanceProfiles,
@@ -8358,8 +8567,8 @@ func (c *IAM) ListInstanceProfilesRequest(input *ListInstanceProfilesInput) (req
 // ListInstanceProfiles API operation for AWS Identity and Access Management.
 //
 // Lists the instance profiles that have the specified path prefix. If there
-// are none, the action returns an empty list. For more information about instance
-// profiles, go to About Instance Profiles (http://docs.aws.amazon.com/IAM/latest/UserGuide/AboutInstanceProfiles.html).
+// are none, the operation returns an empty list. For more information about
+// instance profiles, go to About Instance Profiles (http://docs.aws.amazon.com/IAM/latest/UserGuide/AboutInstanceProfiles.html).
 //
 // You can paginate the results using the MaxItems and Marker parameters.
 //
@@ -8375,7 +8584,7 @@ func (c *IAM) ListInstanceProfilesRequest(input *ListInstanceProfilesInput) (req
 //   The request processing has failed because of an unknown error, exception
 //   or failure.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/ListInstanceProfiles
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/ListInstanceProfiles
 func (c *IAM) ListInstanceProfiles(input *ListInstanceProfilesInput) (*ListInstanceProfilesOutput, error) {
 	req, out := c.ListInstanceProfilesRequest(input)
 	return out, req.Send()
@@ -8451,7 +8660,7 @@ const opListInstanceProfilesForRole = "ListInstanceProfilesForRole"
 
 // ListInstanceProfilesForRoleRequest generates a "aws/request.Request" representing the
 // client's request for the ListInstanceProfilesForRole operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -8472,7 +8681,7 @@ const opListInstanceProfilesForRole = "ListInstanceProfilesForRole"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/ListInstanceProfilesForRole
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/ListInstanceProfilesForRole
 func (c *IAM) ListInstanceProfilesForRoleRequest(input *ListInstanceProfilesForRoleInput) (req *request.Request, output *ListInstanceProfilesForRoleOutput) {
 	op := &request.Operation{
 		Name:       opListInstanceProfilesForRole,
@@ -8498,7 +8707,7 @@ func (c *IAM) ListInstanceProfilesForRoleRequest(input *ListInstanceProfilesForR
 // ListInstanceProfilesForRole API operation for AWS Identity and Access Management.
 //
 // Lists the instance profiles that have the specified associated IAM role.
-// If there are none, the action returns an empty list. For more information
+// If there are none, the operation returns an empty list. For more information
 // about instance profiles, go to About Instance Profiles (http://docs.aws.amazon.com/IAM/latest/UserGuide/AboutInstanceProfiles.html).
 //
 // You can paginate the results using the MaxItems and Marker parameters.
@@ -8519,7 +8728,7 @@ func (c *IAM) ListInstanceProfilesForRoleRequest(input *ListInstanceProfilesForR
 //   The request processing has failed because of an unknown error, exception
 //   or failure.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/ListInstanceProfilesForRole
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/ListInstanceProfilesForRole
 func (c *IAM) ListInstanceProfilesForRole(input *ListInstanceProfilesForRoleInput) (*ListInstanceProfilesForRoleOutput, error) {
 	req, out := c.ListInstanceProfilesForRoleRequest(input)
 	return out, req.Send()
@@ -8595,7 +8804,7 @@ const opListMFADevices = "ListMFADevices"
 
 // ListMFADevicesRequest generates a "aws/request.Request" representing the
 // client's request for the ListMFADevices operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -8616,7 +8825,7 @@ const opListMFADevices = "ListMFADevices"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/ListMFADevices
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/ListMFADevices
 func (c *IAM) ListMFADevicesRequest(input *ListMFADevicesInput) (req *request.Request, output *ListMFADevicesOutput) {
 	op := &request.Operation{
 		Name:       opListMFADevices,
@@ -8642,7 +8851,7 @@ func (c *IAM) ListMFADevicesRequest(input *ListMFADevicesInput) (req *request.Re
 // ListMFADevices API operation for AWS Identity and Access Management.
 //
 // Lists the MFA devices for an IAM user. If the request includes a IAM user
-// name, then this action lists all the MFA devices associated with the specified
+// name, then this operation lists all the MFA devices associated with the specified
 // user. If you do not specify a user name, IAM determines the user name implicitly
 // based on the AWS access key ID signing the request for this API.
 //
@@ -8664,7 +8873,7 @@ func (c *IAM) ListMFADevicesRequest(input *ListMFADevicesInput) (req *request.Re
 //   The request processing has failed because of an unknown error, exception
 //   or failure.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/ListMFADevices
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/ListMFADevices
 func (c *IAM) ListMFADevices(input *ListMFADevicesInput) (*ListMFADevicesOutput, error) {
 	req, out := c.ListMFADevicesRequest(input)
 	return out, req.Send()
@@ -8740,7 +8949,7 @@ const opListOpenIDConnectProviders = "ListOpenIDConnectProviders"
 
 // ListOpenIDConnectProvidersRequest generates a "aws/request.Request" representing the
 // client's request for the ListOpenIDConnectProviders operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -8761,7 +8970,7 @@ const opListOpenIDConnectProviders = "ListOpenIDConnectProviders"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/ListOpenIDConnectProviders
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/ListOpenIDConnectProviders
 func (c *IAM) ListOpenIDConnectProvidersRequest(input *ListOpenIDConnectProvidersInput) (req *request.Request, output *ListOpenIDConnectProvidersOutput) {
 	op := &request.Operation{
 		Name:       opListOpenIDConnectProviders,
@@ -8795,7 +9004,7 @@ func (c *IAM) ListOpenIDConnectProvidersRequest(input *ListOpenIDConnectProvider
 //   The request processing has failed because of an unknown error, exception
 //   or failure.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/ListOpenIDConnectProviders
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/ListOpenIDConnectProviders
 func (c *IAM) ListOpenIDConnectProviders(input *ListOpenIDConnectProvidersInput) (*ListOpenIDConnectProvidersOutput, error) {
 	req, out := c.ListOpenIDConnectProvidersRequest(input)
 	return out, req.Send()
@@ -8821,7 +9030,7 @@ const opListPolicies = "ListPolicies"
 
 // ListPoliciesRequest generates a "aws/request.Request" representing the
 // client's request for the ListPolicies operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -8842,7 +9051,7 @@ const opListPolicies = "ListPolicies"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/ListPolicies
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/ListPolicies
 func (c *IAM) ListPoliciesRequest(input *ListPoliciesInput) (req *request.Request, output *ListPoliciesOutput) {
 	op := &request.Operation{
 		Name:       opListPolicies,
@@ -8893,7 +9102,7 @@ func (c *IAM) ListPoliciesRequest(input *ListPoliciesInput) (req *request.Reques
 //   The request processing has failed because of an unknown error, exception
 //   or failure.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/ListPolicies
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/ListPolicies
 func (c *IAM) ListPolicies(input *ListPoliciesInput) (*ListPoliciesOutput, error) {
 	req, out := c.ListPoliciesRequest(input)
 	return out, req.Send()
@@ -8969,7 +9178,7 @@ const opListPolicyVersions = "ListPolicyVersions"
 
 // ListPolicyVersionsRequest generates a "aws/request.Request" representing the
 // client's request for the ListPolicyVersions operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -8990,7 +9199,7 @@ const opListPolicyVersions = "ListPolicyVersions"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/ListPolicyVersions
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/ListPolicyVersions
 func (c *IAM) ListPolicyVersionsRequest(input *ListPolicyVersionsInput) (req *request.Request, output *ListPolicyVersionsOutput) {
 	op := &request.Operation{
 		Name:       opListPolicyVersions,
@@ -9042,7 +9251,7 @@ func (c *IAM) ListPolicyVersionsRequest(input *ListPolicyVersionsInput) (req *re
 //   The request processing has failed because of an unknown error, exception
 //   or failure.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/ListPolicyVersions
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/ListPolicyVersions
 func (c *IAM) ListPolicyVersions(input *ListPolicyVersionsInput) (*ListPolicyVersionsOutput, error) {
 	req, out := c.ListPolicyVersionsRequest(input)
 	return out, req.Send()
@@ -9118,7 +9327,7 @@ const opListRolePolicies = "ListRolePolicies"
 
 // ListRolePoliciesRequest generates a "aws/request.Request" representing the
 // client's request for the ListRolePolicies operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -9139,7 +9348,7 @@ const opListRolePolicies = "ListRolePolicies"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/ListRolePolicies
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/ListRolePolicies
 func (c *IAM) ListRolePoliciesRequest(input *ListRolePoliciesInput) (req *request.Request, output *ListRolePoliciesOutput) {
 	op := &request.Operation{
 		Name:       opListRolePolicies,
@@ -9173,7 +9382,7 @@ func (c *IAM) ListRolePoliciesRequest(input *ListRolePoliciesInput) (req *reques
 // in the IAM User Guide.
 //
 // You can paginate the results using the MaxItems and Marker parameters. If
-// there are no inline policies embedded with the specified role, the action
+// there are no inline policies embedded with the specified role, the operation
 // returns an empty list.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
@@ -9192,7 +9401,7 @@ func (c *IAM) ListRolePoliciesRequest(input *ListRolePoliciesInput) (req *reques
 //   The request processing has failed because of an unknown error, exception
 //   or failure.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/ListRolePolicies
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/ListRolePolicies
 func (c *IAM) ListRolePolicies(input *ListRolePoliciesInput) (*ListRolePoliciesOutput, error) {
 	req, out := c.ListRolePoliciesRequest(input)
 	return out, req.Send()
@@ -9268,7 +9477,7 @@ const opListRoles = "ListRoles"
 
 // ListRolesRequest generates a "aws/request.Request" representing the
 // client's request for the ListRoles operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -9289,7 +9498,7 @@ const opListRoles = "ListRoles"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/ListRoles
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/ListRoles
 func (c *IAM) ListRolesRequest(input *ListRolesInput) (req *request.Request, output *ListRolesOutput) {
 	op := &request.Operation{
 		Name:       opListRoles,
@@ -9315,8 +9524,8 @@ func (c *IAM) ListRolesRequest(input *ListRolesInput) (req *request.Request, out
 // ListRoles API operation for AWS Identity and Access Management.
 //
 // Lists the IAM roles that have the specified path prefix. If there are none,
-// the action returns an empty list. For more information about roles, go to
-// Working with Roles (http://docs.aws.amazon.com/IAM/latest/UserGuide/WorkingWithRoles.html).
+// the operation returns an empty list. For more information about roles, go
+// to Working with Roles (http://docs.aws.amazon.com/IAM/latest/UserGuide/WorkingWithRoles.html).
 //
 // You can paginate the results using the MaxItems and Marker parameters.
 //
@@ -9332,7 +9541,7 @@ func (c *IAM) ListRolesRequest(input *ListRolesInput) (req *request.Request, out
 //   The request processing has failed because of an unknown error, exception
 //   or failure.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/ListRoles
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/ListRoles
 func (c *IAM) ListRoles(input *ListRolesInput) (*ListRolesOutput, error) {
 	req, out := c.ListRolesRequest(input)
 	return out, req.Send()
@@ -9408,7 +9617,7 @@ const opListSAMLProviders = "ListSAMLProviders"
 
 // ListSAMLProvidersRequest generates a "aws/request.Request" representing the
 // client's request for the ListSAMLProviders operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -9429,7 +9638,7 @@ const opListSAMLProviders = "ListSAMLProviders"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/ListSAMLProviders
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/ListSAMLProviders
 func (c *IAM) ListSAMLProvidersRequest(input *ListSAMLProvidersInput) (req *request.Request, output *ListSAMLProvidersOutput) {
 	op := &request.Operation{
 		Name:       opListSAMLProviders,
@@ -9464,7 +9673,7 @@ func (c *IAM) ListSAMLProvidersRequest(input *ListSAMLProvidersInput) (req *requ
 //   The request processing has failed because of an unknown error, exception
 //   or failure.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/ListSAMLProviders
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/ListSAMLProviders
 func (c *IAM) ListSAMLProviders(input *ListSAMLProvidersInput) (*ListSAMLProvidersOutput, error) {
 	req, out := c.ListSAMLProvidersRequest(input)
 	return out, req.Send()
@@ -9490,7 +9699,7 @@ const opListSSHPublicKeys = "ListSSHPublicKeys"
 
 // ListSSHPublicKeysRequest generates a "aws/request.Request" representing the
 // client's request for the ListSSHPublicKeys operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -9511,7 +9720,7 @@ const opListSSHPublicKeys = "ListSSHPublicKeys"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/ListSSHPublicKeys
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/ListSSHPublicKeys
 func (c *IAM) ListSSHPublicKeysRequest(input *ListSSHPublicKeysInput) (req *request.Request, output *ListSSHPublicKeysOutput) {
 	op := &request.Operation{
 		Name:       opListSSHPublicKeys,
@@ -9537,9 +9746,9 @@ func (c *IAM) ListSSHPublicKeysRequest(input *ListSSHPublicKeysInput) (req *requ
 // ListSSHPublicKeys API operation for AWS Identity and Access Management.
 //
 // Returns information about the SSH public keys associated with the specified
-// IAM user. If there are none, the action returns an empty list.
+// IAM user. If there are none, the operation returns an empty list.
 //
-// The SSH public keys returned by this action are used only for authenticating
+// The SSH public keys returned by this operation are used only for authenticating
 // the IAM user to an AWS CodeCommit repository. For more information about
 // using SSH keys to authenticate to an AWS CodeCommit repository, see Set up
 // AWS CodeCommit for SSH Connections (http://docs.aws.amazon.com/codecommit/latest/userguide/setting-up-credentials-ssh.html)
@@ -9560,7 +9769,7 @@ func (c *IAM) ListSSHPublicKeysRequest(input *ListSSHPublicKeysInput) (req *requ
 //   The request was rejected because it referenced an entity that does not exist.
 //   The error message describes the entity.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/ListSSHPublicKeys
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/ListSSHPublicKeys
 func (c *IAM) ListSSHPublicKeys(input *ListSSHPublicKeysInput) (*ListSSHPublicKeysOutput, error) {
 	req, out := c.ListSSHPublicKeysRequest(input)
 	return out, req.Send()
@@ -9636,7 +9845,7 @@ const opListServerCertificates = "ListServerCertificates"
 
 // ListServerCertificatesRequest generates a "aws/request.Request" representing the
 // client's request for the ListServerCertificates operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -9657,7 +9866,7 @@ const opListServerCertificates = "ListServerCertificates"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/ListServerCertificates
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/ListServerCertificates
 func (c *IAM) ListServerCertificatesRequest(input *ListServerCertificatesInput) (req *request.Request, output *ListServerCertificatesOutput) {
 	op := &request.Operation{
 		Name:       opListServerCertificates,
@@ -9683,14 +9892,14 @@ func (c *IAM) ListServerCertificatesRequest(input *ListServerCertificatesInput) 
 // ListServerCertificates API operation for AWS Identity and Access Management.
 //
 // Lists the server certificates stored in IAM that have the specified path
-// prefix. If none exist, the action returns an empty list.
+// prefix. If none exist, the operation returns an empty list.
 //
 // You can paginate the results using the MaxItems and Marker parameters.
 //
-// For more information about working with server certificates, including a
-// list of AWS services that can use the server certificates that you manage
-// with IAM, go to Working with Server Certificates (http://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_server-certs.html)
-// in the IAM User Guide.
+// For more information about working with server certificates, see Working
+// with Server Certificates (http://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_server-certs.html)
+// in the IAM User Guide. This topic also includes a list of AWS services that
+// can use the server certificates that you manage with IAM.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -9704,7 +9913,7 @@ func (c *IAM) ListServerCertificatesRequest(input *ListServerCertificatesInput) 
 //   The request processing has failed because of an unknown error, exception
 //   or failure.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/ListServerCertificates
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/ListServerCertificates
 func (c *IAM) ListServerCertificates(input *ListServerCertificatesInput) (*ListServerCertificatesOutput, error) {
 	req, out := c.ListServerCertificatesRequest(input)
 	return out, req.Send()
@@ -9780,7 +9989,7 @@ const opListServiceSpecificCredentials = "ListServiceSpecificCredentials"
 
 // ListServiceSpecificCredentialsRequest generates a "aws/request.Request" representing the
 // client's request for the ListServiceSpecificCredentials operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -9801,7 +10010,7 @@ const opListServiceSpecificCredentials = "ListServiceSpecificCredentials"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/ListServiceSpecificCredentials
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/ListServiceSpecificCredentials
 func (c *IAM) ListServiceSpecificCredentialsRequest(input *ListServiceSpecificCredentialsInput) (req *request.Request, output *ListServiceSpecificCredentialsOutput) {
 	op := &request.Operation{
 		Name:       opListServiceSpecificCredentials,
@@ -9821,11 +10030,11 @@ func (c *IAM) ListServiceSpecificCredentialsRequest(input *ListServiceSpecificCr
 // ListServiceSpecificCredentials API operation for AWS Identity and Access Management.
 //
 // Returns information about the service-specific credentials associated with
-// the specified IAM user. If there are none, the action returns an empty list.
-// The service-specific credentials returned by this action are used only for
-// authenticating the IAM user to a specific service. For more information about
-// using service-specific credentials to authenticate to an AWS service, see
-// Set Up service-specific credentials (http://docs.aws.amazon.com/codecommit/latest/userguide/setting-up-gc.html)
+// the specified IAM user. If there are none, the operation returns an empty
+// list. The service-specific credentials returned by this operation are used
+// only for authenticating the IAM user to a specific service. For more information
+// about using service-specific credentials to authenticate to an AWS service,
+// see Set Up service-specific credentials (http://docs.aws.amazon.com/codecommit/latest/userguide/setting-up-gc.html)
 // in the AWS CodeCommit User Guide.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
@@ -9843,7 +10052,7 @@ func (c *IAM) ListServiceSpecificCredentialsRequest(input *ListServiceSpecificCr
 //   * ErrCodeServiceNotSupportedException "NotSupportedService"
 //   The specified service does not support service-specific credentials.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/ListServiceSpecificCredentials
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/ListServiceSpecificCredentials
 func (c *IAM) ListServiceSpecificCredentials(input *ListServiceSpecificCredentialsInput) (*ListServiceSpecificCredentialsOutput, error) {
 	req, out := c.ListServiceSpecificCredentialsRequest(input)
 	return out, req.Send()
@@ -9869,7 +10078,7 @@ const opListSigningCertificates = "ListSigningCertificates"
 
 // ListSigningCertificatesRequest generates a "aws/request.Request" representing the
 // client's request for the ListSigningCertificates operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -9890,7 +10099,7 @@ const opListSigningCertificates = "ListSigningCertificates"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/ListSigningCertificates
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/ListSigningCertificates
 func (c *IAM) ListSigningCertificatesRequest(input *ListSigningCertificatesInput) (req *request.Request, output *ListSigningCertificatesOutput) {
 	op := &request.Operation{
 		Name:       opListSigningCertificates,
@@ -9916,16 +10125,16 @@ func (c *IAM) ListSigningCertificatesRequest(input *ListSigningCertificatesInput
 // ListSigningCertificates API operation for AWS Identity and Access Management.
 //
 // Returns information about the signing certificates associated with the specified
-// IAM user. If there are none, the action returns an empty list.
+// IAM user. If there are none, the operation returns an empty list.
 //
 // Although each user is limited to a small number of signing certificates,
 // you can still paginate the results using the MaxItems and Marker parameters.
 //
 // If the UserName field is not specified, the user name is determined implicitly
 // based on the AWS access key ID used to sign the request for this API. Because
-// this action works for access keys under the AWS account, you can use this
-// action to manage root credentials even if the AWS account has no associated
-// users.
+// this operation works for access keys under the AWS account, you can use this
+// operation to manage AWS account root user credentials even if the AWS account
+// has no associated users.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -9943,7 +10152,7 @@ func (c *IAM) ListSigningCertificatesRequest(input *ListSigningCertificatesInput
 //   The request processing has failed because of an unknown error, exception
 //   or failure.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/ListSigningCertificates
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/ListSigningCertificates
 func (c *IAM) ListSigningCertificates(input *ListSigningCertificatesInput) (*ListSigningCertificatesOutput, error) {
 	req, out := c.ListSigningCertificatesRequest(input)
 	return out, req.Send()
@@ -10019,7 +10228,7 @@ const opListUserPolicies = "ListUserPolicies"
 
 // ListUserPoliciesRequest generates a "aws/request.Request" representing the
 // client's request for the ListUserPolicies operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -10040,7 +10249,7 @@ const opListUserPolicies = "ListUserPolicies"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/ListUserPolicies
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/ListUserPolicies
 func (c *IAM) ListUserPoliciesRequest(input *ListUserPoliciesInput) (req *request.Request, output *ListUserPoliciesOutput) {
 	op := &request.Operation{
 		Name:       opListUserPolicies,
@@ -10073,7 +10282,7 @@ func (c *IAM) ListUserPoliciesRequest(input *ListUserPoliciesInput) (req *reques
 // in the IAM User Guide.
 //
 // You can paginate the results using the MaxItems and Marker parameters. If
-// there are no inline policies embedded with the specified user, the action
+// there are no inline policies embedded with the specified user, the operation
 // returns an empty list.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
@@ -10092,7 +10301,7 @@ func (c *IAM) ListUserPoliciesRequest(input *ListUserPoliciesInput) (req *reques
 //   The request processing has failed because of an unknown error, exception
 //   or failure.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/ListUserPolicies
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/ListUserPolicies
 func (c *IAM) ListUserPolicies(input *ListUserPoliciesInput) (*ListUserPoliciesOutput, error) {
 	req, out := c.ListUserPoliciesRequest(input)
 	return out, req.Send()
@@ -10168,7 +10377,7 @@ const opListUsers = "ListUsers"
 
 // ListUsersRequest generates a "aws/request.Request" representing the
 // client's request for the ListUsers operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -10189,7 +10398,7 @@ const opListUsers = "ListUsers"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/ListUsers
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/ListUsers
 func (c *IAM) ListUsersRequest(input *ListUsersInput) (req *request.Request, output *ListUsersOutput) {
 	op := &request.Operation{
 		Name:       opListUsers,
@@ -10215,8 +10424,8 @@ func (c *IAM) ListUsersRequest(input *ListUsersInput) (req *request.Request, out
 // ListUsers API operation for AWS Identity and Access Management.
 //
 // Lists the IAM users that have the specified path prefix. If no path prefix
-// is specified, the action returns all users in the AWS account. If there are
-// none, the action returns an empty list.
+// is specified, the operation returns all users in the AWS account. If there
+// are none, the operation returns an empty list.
 //
 // You can paginate the results using the MaxItems and Marker parameters.
 //
@@ -10232,7 +10441,7 @@ func (c *IAM) ListUsersRequest(input *ListUsersInput) (req *request.Request, out
 //   The request processing has failed because of an unknown error, exception
 //   or failure.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/ListUsers
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/ListUsers
 func (c *IAM) ListUsers(input *ListUsersInput) (*ListUsersOutput, error) {
 	req, out := c.ListUsersRequest(input)
 	return out, req.Send()
@@ -10308,7 +10517,7 @@ const opListVirtualMFADevices = "ListVirtualMFADevices"
 
 // ListVirtualMFADevicesRequest generates a "aws/request.Request" representing the
 // client's request for the ListVirtualMFADevices operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -10329,7 +10538,7 @@ const opListVirtualMFADevices = "ListVirtualMFADevices"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/ListVirtualMFADevices
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/ListVirtualMFADevices
 func (c *IAM) ListVirtualMFADevicesRequest(input *ListVirtualMFADevicesInput) (req *request.Request, output *ListVirtualMFADevicesOutput) {
 	op := &request.Operation{
 		Name:       opListVirtualMFADevices,
@@ -10355,9 +10564,9 @@ func (c *IAM) ListVirtualMFADevicesRequest(input *ListVirtualMFADevicesInput) (r
 // ListVirtualMFADevices API operation for AWS Identity and Access Management.
 //
 // Lists the virtual MFA devices defined in the AWS account by assignment status.
-// If you do not specify an assignment status, the action returns a list of
-// all virtual MFA devices. Assignment status can be Assigned, Unassigned, or
-// Any.
+// If you do not specify an assignment status, the operation returns a list
+// of all virtual MFA devices. Assignment status can be Assigned, Unassigned,
+// or Any.
 //
 // You can paginate the results using the MaxItems and Marker parameters.
 //
@@ -10367,7 +10576,7 @@ func (c *IAM) ListVirtualMFADevicesRequest(input *ListVirtualMFADevicesInput) (r
 //
 // See the AWS API reference guide for AWS Identity and Access Management's
 // API operation ListVirtualMFADevices for usage and error information.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/ListVirtualMFADevices
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/ListVirtualMFADevices
 func (c *IAM) ListVirtualMFADevices(input *ListVirtualMFADevicesInput) (*ListVirtualMFADevicesOutput, error) {
 	req, out := c.ListVirtualMFADevicesRequest(input)
 	return out, req.Send()
@@ -10443,7 +10652,7 @@ const opPutGroupPolicy = "PutGroupPolicy"
 
 // PutGroupPolicyRequest generates a "aws/request.Request" representing the
 // client's request for the PutGroupPolicy operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -10464,7 +10673,7 @@ const opPutGroupPolicy = "PutGroupPolicy"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/PutGroupPolicy
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/PutGroupPolicy
 func (c *IAM) PutGroupPolicyRequest(input *PutGroupPolicyInput) (req *request.Request, output *PutGroupPolicyOutput) {
 	op := &request.Operation{
 		Name:       opPutGroupPolicy,
@@ -10527,7 +10736,7 @@ func (c *IAM) PutGroupPolicyRequest(input *PutGroupPolicyInput) (req *request.Re
 //   The request processing has failed because of an unknown error, exception
 //   or failure.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/PutGroupPolicy
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/PutGroupPolicy
 func (c *IAM) PutGroupPolicy(input *PutGroupPolicyInput) (*PutGroupPolicyOutput, error) {
 	req, out := c.PutGroupPolicyRequest(input)
 	return out, req.Send()
@@ -10549,11 +10758,123 @@ func (c *IAM) PutGroupPolicyWithContext(ctx aws.Context, input *PutGroupPolicyIn
 	return out, req.Send()
 }
 
+const opPutRolePermissionsBoundary = "PutRolePermissionsBoundary"
+
+// PutRolePermissionsBoundaryRequest generates a "aws/request.Request" representing the
+// client's request for the PutRolePermissionsBoundary operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfuly.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See PutRolePermissionsBoundary for more information on using the PutRolePermissionsBoundary
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the PutRolePermissionsBoundaryRequest method.
+//    req, resp := client.PutRolePermissionsBoundaryRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/PutRolePermissionsBoundary
+func (c *IAM) PutRolePermissionsBoundaryRequest(input *PutRolePermissionsBoundaryInput) (req *request.Request, output *PutRolePermissionsBoundaryOutput) {
+	op := &request.Operation{
+		Name:       opPutRolePermissionsBoundary,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &PutRolePermissionsBoundaryInput{}
+	}
+
+	output = &PutRolePermissionsBoundaryOutput{}
+	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
+	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
+	return
+}
+
+// PutRolePermissionsBoundary API operation for AWS Identity and Access Management.
+//
+// Adds or updates the policy that is specified as the IAM role's permissions
+// boundary. You can use an AWS managed policy or a customer managed policy
+// to set the boundary for a role. Use the boundary to control the maximum permissions
+// that the role can have. Setting a permissions boundary is an advanced feature
+// that can affect the permissions for the role.
+//
+// You cannot set the boundary for a service-linked role.
+//
+// Policies used as permissions boundaries do not provide permissions. You must
+// also attach a permissions policy to the role. To learn how the effective
+// permissions for a role are evaluated, see IAM JSON Policy Evaluation Logic
+// (https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_evaluation-logic.html)
+// in the IAM User Guide.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Identity and Access Management's
+// API operation PutRolePermissionsBoundary for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeNoSuchEntityException "NoSuchEntity"
+//   The request was rejected because it referenced an entity that does not exist.
+//   The error message describes the entity.
+//
+//   * ErrCodeInvalidInputException "InvalidInput"
+//   The request was rejected because an invalid or out-of-range value was supplied
+//   for an input parameter.
+//
+//   * ErrCodeUnmodifiableEntityException "UnmodifiableEntity"
+//   The request was rejected because only the service that depends on the service-linked
+//   role can modify or delete the role on your behalf. The error message includes
+//   the name of the service that depends on this service-linked role. You must
+//   request the change through that service.
+//
+//   * ErrCodePolicyNotAttachableException "PolicyNotAttachable"
+//   The request failed because AWS service role policies can only be attached
+//   to the service-linked role for that service.
+//
+//   * ErrCodeServiceFailureException "ServiceFailure"
+//   The request processing has failed because of an unknown error, exception
+//   or failure.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/PutRolePermissionsBoundary
+func (c *IAM) PutRolePermissionsBoundary(input *PutRolePermissionsBoundaryInput) (*PutRolePermissionsBoundaryOutput, error) {
+	req, out := c.PutRolePermissionsBoundaryRequest(input)
+	return out, req.Send()
+}
+
+// PutRolePermissionsBoundaryWithContext is the same as PutRolePermissionsBoundary with the addition of
+// the ability to pass a context and additional request options.
+//
+// See PutRolePermissionsBoundary for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *IAM) PutRolePermissionsBoundaryWithContext(ctx aws.Context, input *PutRolePermissionsBoundaryInput, opts ...request.Option) (*PutRolePermissionsBoundaryOutput, error) {
+	req, out := c.PutRolePermissionsBoundaryRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
 const opPutRolePolicy = "PutRolePolicy"
 
 // PutRolePolicyRequest generates a "aws/request.Request" representing the
 // client's request for the PutRolePolicy operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -10574,7 +10895,7 @@ const opPutRolePolicy = "PutRolePolicy"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/PutRolePolicy
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/PutRolePolicy
 func (c *IAM) PutRolePolicyRequest(input *PutRolePolicyInput) (req *request.Request, output *PutRolePolicyOutput) {
 	op := &request.Operation{
 		Name:       opPutRolePolicy,
@@ -10649,7 +10970,7 @@ func (c *IAM) PutRolePolicyRequest(input *PutRolePolicyInput) (req *request.Requ
 //   The request processing has failed because of an unknown error, exception
 //   or failure.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/PutRolePolicy
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/PutRolePolicy
 func (c *IAM) PutRolePolicy(input *PutRolePolicyInput) (*PutRolePolicyOutput, error) {
 	req, out := c.PutRolePolicyRequest(input)
 	return out, req.Send()
@@ -10671,11 +10992,115 @@ func (c *IAM) PutRolePolicyWithContext(ctx aws.Context, input *PutRolePolicyInpu
 	return out, req.Send()
 }
 
+const opPutUserPermissionsBoundary = "PutUserPermissionsBoundary"
+
+// PutUserPermissionsBoundaryRequest generates a "aws/request.Request" representing the
+// client's request for the PutUserPermissionsBoundary operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfuly.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See PutUserPermissionsBoundary for more information on using the PutUserPermissionsBoundary
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the PutUserPermissionsBoundaryRequest method.
+//    req, resp := client.PutUserPermissionsBoundaryRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/PutUserPermissionsBoundary
+func (c *IAM) PutUserPermissionsBoundaryRequest(input *PutUserPermissionsBoundaryInput) (req *request.Request, output *PutUserPermissionsBoundaryOutput) {
+	op := &request.Operation{
+		Name:       opPutUserPermissionsBoundary,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &PutUserPermissionsBoundaryInput{}
+	}
+
+	output = &PutUserPermissionsBoundaryOutput{}
+	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
+	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
+	return
+}
+
+// PutUserPermissionsBoundary API operation for AWS Identity and Access Management.
+//
+// Adds or updates the policy that is specified as the IAM user's permissions
+// boundary. You can use an AWS managed policy or a customer managed policy
+// to set the boundary for a user. Use the boundary to control the maximum permissions
+// that the user can have. Setting a permissions boundary is an advanced feature
+// that can affect the permissions for the user.
+//
+// Policies that are used as permissions boundaries do not provide permissions.
+// You must also attach a permissions policy to the user. To learn how the effective
+// permissions for a user are evaluated, see IAM JSON Policy Evaluation Logic
+// (https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_evaluation-logic.html)
+// in the IAM User Guide.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Identity and Access Management's
+// API operation PutUserPermissionsBoundary for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeNoSuchEntityException "NoSuchEntity"
+//   The request was rejected because it referenced an entity that does not exist.
+//   The error message describes the entity.
+//
+//   * ErrCodeInvalidInputException "InvalidInput"
+//   The request was rejected because an invalid or out-of-range value was supplied
+//   for an input parameter.
+//
+//   * ErrCodePolicyNotAttachableException "PolicyNotAttachable"
+//   The request failed because AWS service role policies can only be attached
+//   to the service-linked role for that service.
+//
+//   * ErrCodeServiceFailureException "ServiceFailure"
+//   The request processing has failed because of an unknown error, exception
+//   or failure.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/PutUserPermissionsBoundary
+func (c *IAM) PutUserPermissionsBoundary(input *PutUserPermissionsBoundaryInput) (*PutUserPermissionsBoundaryOutput, error) {
+	req, out := c.PutUserPermissionsBoundaryRequest(input)
+	return out, req.Send()
+}
+
+// PutUserPermissionsBoundaryWithContext is the same as PutUserPermissionsBoundary with the addition of
+// the ability to pass a context and additional request options.
+//
+// See PutUserPermissionsBoundary for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *IAM) PutUserPermissionsBoundaryWithContext(ctx aws.Context, input *PutUserPermissionsBoundaryInput, opts ...request.Option) (*PutUserPermissionsBoundaryOutput, error) {
+	req, out := c.PutUserPermissionsBoundaryRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
 const opPutUserPolicy = "PutUserPolicy"
 
 // PutUserPolicyRequest generates a "aws/request.Request" representing the
 // client's request for the PutUserPolicy operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -10696,7 +11121,7 @@ const opPutUserPolicy = "PutUserPolicy"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/PutUserPolicy
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/PutUserPolicy
 func (c *IAM) PutUserPolicyRequest(input *PutUserPolicyInput) (req *request.Request, output *PutUserPolicyOutput) {
 	op := &request.Operation{
 		Name:       opPutUserPolicy,
@@ -10759,7 +11184,7 @@ func (c *IAM) PutUserPolicyRequest(input *PutUserPolicyInput) (req *request.Requ
 //   The request processing has failed because of an unknown error, exception
 //   or failure.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/PutUserPolicy
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/PutUserPolicy
 func (c *IAM) PutUserPolicy(input *PutUserPolicyInput) (*PutUserPolicyOutput, error) {
 	req, out := c.PutUserPolicyRequest(input)
 	return out, req.Send()
@@ -10785,7 +11210,7 @@ const opRemoveClientIDFromOpenIDConnectProvider = "RemoveClientIDFromOpenIDConne
 
 // RemoveClientIDFromOpenIDConnectProviderRequest generates a "aws/request.Request" representing the
 // client's request for the RemoveClientIDFromOpenIDConnectProvider operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -10806,7 +11231,7 @@ const opRemoveClientIDFromOpenIDConnectProvider = "RemoveClientIDFromOpenIDConne
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/RemoveClientIDFromOpenIDConnectProvider
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/RemoveClientIDFromOpenIDConnectProvider
 func (c *IAM) RemoveClientIDFromOpenIDConnectProviderRequest(input *RemoveClientIDFromOpenIDConnectProviderInput) (req *request.Request, output *RemoveClientIDFromOpenIDConnectProviderOutput) {
 	op := &request.Operation{
 		Name:       opRemoveClientIDFromOpenIDConnectProvider,
@@ -10831,8 +11256,8 @@ func (c *IAM) RemoveClientIDFromOpenIDConnectProviderRequest(input *RemoveClient
 // client IDs registered for the specified IAM OpenID Connect (OIDC) provider
 // resource object.
 //
-// This action is idempotent; it does not fail or return an error if you try
-// to remove a client ID that does not exist.
+// This operation is idempotent; it does not fail or return an error if you
+// try to remove a client ID that does not exist.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -10854,7 +11279,7 @@ func (c *IAM) RemoveClientIDFromOpenIDConnectProviderRequest(input *RemoveClient
 //   The request processing has failed because of an unknown error, exception
 //   or failure.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/RemoveClientIDFromOpenIDConnectProvider
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/RemoveClientIDFromOpenIDConnectProvider
 func (c *IAM) RemoveClientIDFromOpenIDConnectProvider(input *RemoveClientIDFromOpenIDConnectProviderInput) (*RemoveClientIDFromOpenIDConnectProviderOutput, error) {
 	req, out := c.RemoveClientIDFromOpenIDConnectProviderRequest(input)
 	return out, req.Send()
@@ -10880,7 +11305,7 @@ const opRemoveRoleFromInstanceProfile = "RemoveRoleFromInstanceProfile"
 
 // RemoveRoleFromInstanceProfileRequest generates a "aws/request.Request" representing the
 // client's request for the RemoveRoleFromInstanceProfile operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -10901,7 +11326,7 @@ const opRemoveRoleFromInstanceProfile = "RemoveRoleFromInstanceProfile"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/RemoveRoleFromInstanceProfile
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/RemoveRoleFromInstanceProfile
 func (c *IAM) RemoveRoleFromInstanceProfileRequest(input *RemoveRoleFromInstanceProfileInput) (req *request.Request, output *RemoveRoleFromInstanceProfileOutput) {
 	op := &request.Operation{
 		Name:       opRemoveRoleFromInstanceProfile,
@@ -10924,10 +11349,10 @@ func (c *IAM) RemoveRoleFromInstanceProfileRequest(input *RemoveRoleFromInstance
 //
 // Removes the specified IAM role from the specified EC2 instance profile.
 //
-// Make sure you do not have any Amazon EC2 instances running with the role
-// you are about to remove from the instance profile. Removing a role from an
-// instance profile that is associated with a running instance might break any
-// applications running on the instance.
+// Make sure that you do not have any Amazon EC2 instances running with the
+// role you are about to remove from the instance profile. Removing a role from
+// an instance profile that is associated with a running instance might break
+// any applications running on the instance.
 //
 // For more information about IAM roles, go to Working with Roles (http://docs.aws.amazon.com/IAM/latest/UserGuide/WorkingWithRoles.html).
 // For more information about instance profiles, go to About Instance Profiles
@@ -10959,7 +11384,7 @@ func (c *IAM) RemoveRoleFromInstanceProfileRequest(input *RemoveRoleFromInstance
 //   The request processing has failed because of an unknown error, exception
 //   or failure.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/RemoveRoleFromInstanceProfile
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/RemoveRoleFromInstanceProfile
 func (c *IAM) RemoveRoleFromInstanceProfile(input *RemoveRoleFromInstanceProfileInput) (*RemoveRoleFromInstanceProfileOutput, error) {
 	req, out := c.RemoveRoleFromInstanceProfileRequest(input)
 	return out, req.Send()
@@ -10985,7 +11410,7 @@ const opRemoveUserFromGroup = "RemoveUserFromGroup"
 
 // RemoveUserFromGroupRequest generates a "aws/request.Request" representing the
 // client's request for the RemoveUserFromGroup operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -11006,7 +11431,7 @@ const opRemoveUserFromGroup = "RemoveUserFromGroup"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/RemoveUserFromGroup
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/RemoveUserFromGroup
 func (c *IAM) RemoveUserFromGroupRequest(input *RemoveUserFromGroupInput) (req *request.Request, output *RemoveUserFromGroupOutput) {
 	op := &request.Operation{
 		Name:       opRemoveUserFromGroup,
@@ -11049,7 +11474,7 @@ func (c *IAM) RemoveUserFromGroupRequest(input *RemoveUserFromGroupInput) (req *
 //   The request processing has failed because of an unknown error, exception
 //   or failure.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/RemoveUserFromGroup
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/RemoveUserFromGroup
 func (c *IAM) RemoveUserFromGroup(input *RemoveUserFromGroupInput) (*RemoveUserFromGroupOutput, error) {
 	req, out := c.RemoveUserFromGroupRequest(input)
 	return out, req.Send()
@@ -11075,7 +11500,7 @@ const opResetServiceSpecificCredential = "ResetServiceSpecificCredential"
 
 // ResetServiceSpecificCredentialRequest generates a "aws/request.Request" representing the
 // client's request for the ResetServiceSpecificCredential operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -11096,7 +11521,7 @@ const opResetServiceSpecificCredential = "ResetServiceSpecificCredential"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/ResetServiceSpecificCredential
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/ResetServiceSpecificCredential
 func (c *IAM) ResetServiceSpecificCredentialRequest(input *ResetServiceSpecificCredentialInput) (req *request.Request, output *ResetServiceSpecificCredentialOutput) {
 	op := &request.Operation{
 		Name:       opResetServiceSpecificCredential,
@@ -11132,7 +11557,7 @@ func (c *IAM) ResetServiceSpecificCredentialRequest(input *ResetServiceSpecificC
 //   The request was rejected because it referenced an entity that does not exist.
 //   The error message describes the entity.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/ResetServiceSpecificCredential
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/ResetServiceSpecificCredential
 func (c *IAM) ResetServiceSpecificCredential(input *ResetServiceSpecificCredentialInput) (*ResetServiceSpecificCredentialOutput, error) {
 	req, out := c.ResetServiceSpecificCredentialRequest(input)
 	return out, req.Send()
@@ -11158,7 +11583,7 @@ const opResyncMFADevice = "ResyncMFADevice"
 
 // ResyncMFADeviceRequest generates a "aws/request.Request" representing the
 // client's request for the ResyncMFADevice operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -11179,7 +11604,7 @@ const opResyncMFADevice = "ResyncMFADevice"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/ResyncMFADevice
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/ResyncMFADevice
 func (c *IAM) ResyncMFADeviceRequest(input *ResyncMFADeviceInput) (req *request.Request, output *ResyncMFADeviceOutput) {
 	op := &request.Operation{
 		Name:       opResyncMFADevice,
@@ -11231,7 +11656,7 @@ func (c *IAM) ResyncMFADeviceRequest(input *ResyncMFADeviceInput) (req *request.
 //   The request processing has failed because of an unknown error, exception
 //   or failure.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/ResyncMFADevice
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/ResyncMFADevice
 func (c *IAM) ResyncMFADevice(input *ResyncMFADeviceInput) (*ResyncMFADeviceOutput, error) {
 	req, out := c.ResyncMFADeviceRequest(input)
 	return out, req.Send()
@@ -11257,7 +11682,7 @@ const opSetDefaultPolicyVersion = "SetDefaultPolicyVersion"
 
 // SetDefaultPolicyVersionRequest generates a "aws/request.Request" representing the
 // client's request for the SetDefaultPolicyVersion operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -11278,7 +11703,7 @@ const opSetDefaultPolicyVersion = "SetDefaultPolicyVersion"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/SetDefaultPolicyVersion
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/SetDefaultPolicyVersion
 func (c *IAM) SetDefaultPolicyVersionRequest(input *SetDefaultPolicyVersionInput) (req *request.Request, output *SetDefaultPolicyVersionOutput) {
 	op := &request.Operation{
 		Name:       opSetDefaultPolicyVersion,
@@ -11302,7 +11727,7 @@ func (c *IAM) SetDefaultPolicyVersionRequest(input *SetDefaultPolicyVersionInput
 // Sets the specified version of the specified policy as the policy's default
 // (operative) version.
 //
-// This action affects all users, groups, and roles that the policy is attached
+// This operation affects all users, groups, and roles that the policy is attached
 // to. To list the users, groups, and roles that the policy is attached to,
 // use the ListEntitiesForPolicy API.
 //
@@ -11334,7 +11759,7 @@ func (c *IAM) SetDefaultPolicyVersionRequest(input *SetDefaultPolicyVersionInput
 //   The request processing has failed because of an unknown error, exception
 //   or failure.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/SetDefaultPolicyVersion
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/SetDefaultPolicyVersion
 func (c *IAM) SetDefaultPolicyVersion(input *SetDefaultPolicyVersionInput) (*SetDefaultPolicyVersionOutput, error) {
 	req, out := c.SetDefaultPolicyVersionRequest(input)
 	return out, req.Send()
@@ -11360,7 +11785,7 @@ const opSimulateCustomPolicy = "SimulateCustomPolicy"
 
 // SimulateCustomPolicyRequest generates a "aws/request.Request" representing the
 // client's request for the SimulateCustomPolicy operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -11381,7 +11806,7 @@ const opSimulateCustomPolicy = "SimulateCustomPolicy"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/SimulateCustomPolicy
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/SimulateCustomPolicy
 func (c *IAM) SimulateCustomPolicyRequest(input *SimulateCustomPolicyInput) (req *request.Request, output *SimulatePolicyResponse) {
 	op := &request.Operation{
 		Name:       opSimulateCustomPolicy,
@@ -11407,11 +11832,11 @@ func (c *IAM) SimulateCustomPolicyRequest(input *SimulateCustomPolicyInput) (req
 // SimulateCustomPolicy API operation for AWS Identity and Access Management.
 //
 // Simulate how a set of IAM policies and optionally a resource-based policy
-// works with a list of API actions and AWS resources to determine the policies'
+// works with a list of API operations and AWS resources to determine the policies'
 // effective permissions. The policies are provided as strings.
 //
-// The simulation does not perform the API actions; it only checks the authorization
-// to determine if the simulated policies allow or deny the actions.
+// The simulation does not perform the API operations; it only checks the authorization
+// to determine if the simulated policies allow or deny the operations.
 //
 // If you want to simulate existing policies attached to an IAM user, group,
 // or role, use SimulatePrincipalPolicy instead.
@@ -11440,7 +11865,7 @@ func (c *IAM) SimulateCustomPolicyRequest(input *SimulateCustomPolicyInput) (req
 //   The request failed because a provided policy could not be successfully evaluated.
 //   An additional detailed message indicates the source of the failure.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/SimulateCustomPolicy
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/SimulateCustomPolicy
 func (c *IAM) SimulateCustomPolicy(input *SimulateCustomPolicyInput) (*SimulatePolicyResponse, error) {
 	req, out := c.SimulateCustomPolicyRequest(input)
 	return out, req.Send()
@@ -11516,7 +11941,7 @@ const opSimulatePrincipalPolicy = "SimulatePrincipalPolicy"
 
 // SimulatePrincipalPolicyRequest generates a "aws/request.Request" representing the
 // client's request for the SimulatePrincipalPolicy operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -11537,7 +11962,7 @@ const opSimulatePrincipalPolicy = "SimulatePrincipalPolicy"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/SimulatePrincipalPolicy
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/SimulatePrincipalPolicy
 func (c *IAM) SimulatePrincipalPolicyRequest(input *SimulatePrincipalPolicyInput) (req *request.Request, output *SimulatePolicyResponse) {
 	op := &request.Operation{
 		Name:       opSimulatePrincipalPolicy,
@@ -11563,10 +11988,10 @@ func (c *IAM) SimulatePrincipalPolicyRequest(input *SimulatePrincipalPolicyInput
 // SimulatePrincipalPolicy API operation for AWS Identity and Access Management.
 //
 // Simulate how a set of IAM policies attached to an IAM entity works with a
-// list of API actions and AWS resources to determine the policies' effective
+// list of API operations and AWS resources to determine the policies' effective
 // permissions. The entity can be an IAM user, group, or role. If you specify
 // a user, then the simulation also includes all of the policies that are attached
-// to groups that the user belongs to .
+// to groups that the user belongs to.
 //
 // You can optionally include a list of one or more additional policies specified
 // as strings to include in the simulation. If you want to simulate only policies
@@ -11575,8 +12000,8 @@ func (c *IAM) SimulatePrincipalPolicyRequest(input *SimulatePrincipalPolicyInput
 // You can also optionally include one resource-based policy to be evaluated
 // with each of the resources included in the simulation.
 //
-// The simulation does not perform the API actions, it only checks the authorization
-// to determine if the simulated policies allow or deny the actions.
+// The simulation does not perform the API operations, it only checks the authorization
+// to determine if the simulated policies allow or deny the operations.
 //
 // Note: This API discloses information about the permissions granted to other
 // users. If you do not want users to see other user's permissions, then consider
@@ -11610,7 +12035,7 @@ func (c *IAM) SimulatePrincipalPolicyRequest(input *SimulatePrincipalPolicyInput
 //   The request failed because a provided policy could not be successfully evaluated.
 //   An additional detailed message indicates the source of the failure.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/SimulatePrincipalPolicy
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/SimulatePrincipalPolicy
 func (c *IAM) SimulatePrincipalPolicy(input *SimulatePrincipalPolicyInput) (*SimulatePolicyResponse, error) {
 	req, out := c.SimulatePrincipalPolicyRequest(input)
 	return out, req.Send()
@@ -11686,7 +12111,7 @@ const opUpdateAccessKey = "UpdateAccessKey"
 
 // UpdateAccessKeyRequest generates a "aws/request.Request" representing the
 // client's request for the UpdateAccessKey operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -11707,7 +12132,7 @@ const opUpdateAccessKey = "UpdateAccessKey"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/UpdateAccessKey
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/UpdateAccessKey
 func (c *IAM) UpdateAccessKeyRequest(input *UpdateAccessKeyInput) (req *request.Request, output *UpdateAccessKeyOutput) {
 	op := &request.Operation{
 		Name:       opUpdateAccessKey,
@@ -11729,13 +12154,14 @@ func (c *IAM) UpdateAccessKeyRequest(input *UpdateAccessKeyInput) (req *request.
 // UpdateAccessKey API operation for AWS Identity and Access Management.
 //
 // Changes the status of the specified access key from Active to Inactive, or
-// vice versa. This action can be used to disable a user's key as part of a
-// key rotation work flow.
+// vice versa. This operation can be used to disable a user's key as part of
+// a key rotation workflow.
 //
-// If the UserName field is not specified, the UserName is determined implicitly
-// based on the AWS access key ID used to sign the request. Because this action
-// works for access keys under the AWS account, you can use this action to manage
-// root credentials even if the AWS account has no associated users.
+// If the UserName field is not specified, the user name is determined implicitly
+// based on the AWS access key ID used to sign the request. Because this operation
+// works for access keys under the AWS account, you can use this operation to
+// manage AWS account root user credentials even if the AWS account has no associated
+// users.
 //
 // For information about rotating keys, see Managing Keys and Certificates (http://docs.aws.amazon.com/IAM/latest/UserGuide/ManagingCredentials.html)
 // in the IAM User Guide.
@@ -11760,7 +12186,7 @@ func (c *IAM) UpdateAccessKeyRequest(input *UpdateAccessKeyInput) (req *request.
 //   The request processing has failed because of an unknown error, exception
 //   or failure.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/UpdateAccessKey
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/UpdateAccessKey
 func (c *IAM) UpdateAccessKey(input *UpdateAccessKeyInput) (*UpdateAccessKeyOutput, error) {
 	req, out := c.UpdateAccessKeyRequest(input)
 	return out, req.Send()
@@ -11786,7 +12212,7 @@ const opUpdateAccountPasswordPolicy = "UpdateAccountPasswordPolicy"
 
 // UpdateAccountPasswordPolicyRequest generates a "aws/request.Request" representing the
 // client's request for the UpdateAccountPasswordPolicy operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -11807,7 +12233,7 @@ const opUpdateAccountPasswordPolicy = "UpdateAccountPasswordPolicy"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/UpdateAccountPasswordPolicy
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/UpdateAccountPasswordPolicy
 func (c *IAM) UpdateAccountPasswordPolicyRequest(input *UpdateAccountPasswordPolicyInput) (req *request.Request, output *UpdateAccountPasswordPolicyOutput) {
 	op := &request.Operation{
 		Name:       opUpdateAccountPasswordPolicy,
@@ -11830,10 +12256,12 @@ func (c *IAM) UpdateAccountPasswordPolicyRequest(input *UpdateAccountPasswordPol
 //
 // Updates the password policy settings for the AWS account.
 //
-// This action does not support partial updates. No parameters are required,
+// This operation does not support partial updates. No parameters are required,
 // but if you do not specify a parameter, that parameter's value reverts to
 // its default value. See the Request Parameters section for each parameter's
-// default value.
+// default value. Also note that some parameters do not allow the default parameter
+// to be explicitly set. Instead, to invoke the default value, do not include
+// that parameter when you invoke the operation.
 //
 // For more information about using a password policy, see Managing an IAM Password
 // Policy (http://docs.aws.amazon.com/IAM/latest/UserGuide/Using_ManagingPasswordPolicies.html)
@@ -11863,7 +12291,7 @@ func (c *IAM) UpdateAccountPasswordPolicyRequest(input *UpdateAccountPasswordPol
 //   The request processing has failed because of an unknown error, exception
 //   or failure.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/UpdateAccountPasswordPolicy
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/UpdateAccountPasswordPolicy
 func (c *IAM) UpdateAccountPasswordPolicy(input *UpdateAccountPasswordPolicyInput) (*UpdateAccountPasswordPolicyOutput, error) {
 	req, out := c.UpdateAccountPasswordPolicyRequest(input)
 	return out, req.Send()
@@ -11889,7 +12317,7 @@ const opUpdateAssumeRolePolicy = "UpdateAssumeRolePolicy"
 
 // UpdateAssumeRolePolicyRequest generates a "aws/request.Request" representing the
 // client's request for the UpdateAssumeRolePolicy operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -11910,7 +12338,7 @@ const opUpdateAssumeRolePolicy = "UpdateAssumeRolePolicy"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/UpdateAssumeRolePolicy
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/UpdateAssumeRolePolicy
 func (c *IAM) UpdateAssumeRolePolicyRequest(input *UpdateAssumeRolePolicyInput) (req *request.Request, output *UpdateAssumeRolePolicyOutput) {
 	op := &request.Operation{
 		Name:       opUpdateAssumeRolePolicy,
@@ -11966,7 +12394,7 @@ func (c *IAM) UpdateAssumeRolePolicyRequest(input *UpdateAssumeRolePolicyInput) 
 //   The request processing has failed because of an unknown error, exception
 //   or failure.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/UpdateAssumeRolePolicy
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/UpdateAssumeRolePolicy
 func (c *IAM) UpdateAssumeRolePolicy(input *UpdateAssumeRolePolicyInput) (*UpdateAssumeRolePolicyOutput, error) {
 	req, out := c.UpdateAssumeRolePolicyRequest(input)
 	return out, req.Send()
@@ -11992,7 +12420,7 @@ const opUpdateGroup = "UpdateGroup"
 
 // UpdateGroupRequest generates a "aws/request.Request" representing the
 // client's request for the UpdateGroup operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -12013,7 +12441,7 @@ const opUpdateGroup = "UpdateGroup"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/UpdateGroup
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/UpdateGroup
 func (c *IAM) UpdateGroupRequest(input *UpdateGroupInput) (req *request.Request, output *UpdateGroupOutput) {
 	op := &request.Operation{
 		Name:       opUpdateGroup,
@@ -12040,11 +12468,12 @@ func (c *IAM) UpdateGroupRequest(input *UpdateGroupInput) (req *request.Request,
 // For more information, see Renaming Users and Groups (http://docs.aws.amazon.com/IAM/latest/UserGuide/Using_WorkingWithGroupsAndUsers.html)
 // in the IAM User Guide.
 //
-// To change an IAM group name the requester must have appropriate permissions
-// on both the source object and the target object. For example, to change "Managers"
-// to "MGRs", the entity making the request must have permission on both "Managers"
-// and "MGRs", or must have permission on all (*). For more information about
-// permissions, see Permissions and Policies (http://docs.aws.amazon.com/IAM/latest/UserGuide/PermissionsAndPolicies.html).
+// The person making the request (the principal), must have permission to change
+// the role group with the old name and the new name. For example, to change
+// the group named Managers to MGRs, the principal must have a policy that allows
+// them to update both groups. If the principal has permission to update the
+// Managers group, but not the MGRs group, then the update fails. For more information
+// about permissions, see Access Management (http://docs.aws.amazon.com/IAM/latest/UserGuide/access.html).
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -12070,7 +12499,7 @@ func (c *IAM) UpdateGroupRequest(input *UpdateGroupInput) (req *request.Request,
 //   The request processing has failed because of an unknown error, exception
 //   or failure.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/UpdateGroup
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/UpdateGroup
 func (c *IAM) UpdateGroup(input *UpdateGroupInput) (*UpdateGroupOutput, error) {
 	req, out := c.UpdateGroupRequest(input)
 	return out, req.Send()
@@ -12096,7 +12525,7 @@ const opUpdateLoginProfile = "UpdateLoginProfile"
 
 // UpdateLoginProfileRequest generates a "aws/request.Request" representing the
 // client's request for the UpdateLoginProfile operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -12117,7 +12546,7 @@ const opUpdateLoginProfile = "UpdateLoginProfile"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/UpdateLoginProfile
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/UpdateLoginProfile
 func (c *IAM) UpdateLoginProfileRequest(input *UpdateLoginProfileInput) (req *request.Request, output *UpdateLoginProfileOutput) {
 	op := &request.Operation{
 		Name:       opUpdateLoginProfile,
@@ -12174,7 +12603,7 @@ func (c *IAM) UpdateLoginProfileRequest(input *UpdateLoginProfileInput) (req *re
 //   The request processing has failed because of an unknown error, exception
 //   or failure.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/UpdateLoginProfile
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/UpdateLoginProfile
 func (c *IAM) UpdateLoginProfile(input *UpdateLoginProfileInput) (*UpdateLoginProfileOutput, error) {
 	req, out := c.UpdateLoginProfileRequest(input)
 	return out, req.Send()
@@ -12200,7 +12629,7 @@ const opUpdateOpenIDConnectProviderThumbprint = "UpdateOpenIDConnectProviderThum
 
 // UpdateOpenIDConnectProviderThumbprintRequest generates a "aws/request.Request" representing the
 // client's request for the UpdateOpenIDConnectProviderThumbprint operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -12221,7 +12650,7 @@ const opUpdateOpenIDConnectProviderThumbprint = "UpdateOpenIDConnectProviderThum
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/UpdateOpenIDConnectProviderThumbprint
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/UpdateOpenIDConnectProviderThumbprint
 func (c *IAM) UpdateOpenIDConnectProviderThumbprintRequest(input *UpdateOpenIDConnectProviderThumbprintInput) (req *request.Request, output *UpdateOpenIDConnectProviderThumbprintOutput) {
 	op := &request.Operation{
 		Name:       opUpdateOpenIDConnectProviderThumbprint,
@@ -12245,7 +12674,7 @@ func (c *IAM) UpdateOpenIDConnectProviderThumbprintRequest(input *UpdateOpenIDCo
 // Replaces the existing list of server certificate thumbprints associated with
 // an OpenID Connect (OIDC) provider resource object with a new list of thumbprints.
 //
-// The list that you pass with this action completely replaces the existing
+// The list that you pass with this operation completely replaces the existing
 // list of thumbprints. (The lists are not merged.)
 //
 // Typically, you need to update a thumbprint only when the identity provider's
@@ -12253,10 +12682,9 @@ func (c *IAM) UpdateOpenIDConnectProviderThumbprintRequest(input *UpdateOpenIDCo
 // does change, any attempt to assume an IAM role that specifies the OIDC provider
 // as a principal fails until the certificate thumbprint is updated.
 //
-// Because trust for the OIDC provider is ultimately derived from the provider's
-// certificate and is validated by the thumbprint, it is a best practice to
-// limit access to the UpdateOpenIDConnectProviderThumbprint action to highly-privileged
-// users.
+// Because trust for the OIDC provider is derived from the provider's certificate
+// and is validated by the thumbprint, it is best to limit access to the UpdateOpenIDConnectProviderThumbprint
+// operation to highly privileged users.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -12278,7 +12706,7 @@ func (c *IAM) UpdateOpenIDConnectProviderThumbprintRequest(input *UpdateOpenIDCo
 //   The request processing has failed because of an unknown error, exception
 //   or failure.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/UpdateOpenIDConnectProviderThumbprint
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/UpdateOpenIDConnectProviderThumbprint
 func (c *IAM) UpdateOpenIDConnectProviderThumbprint(input *UpdateOpenIDConnectProviderThumbprintInput) (*UpdateOpenIDConnectProviderThumbprintOutput, error) {
 	req, out := c.UpdateOpenIDConnectProviderThumbprintRequest(input)
 	return out, req.Send()
@@ -12300,11 +12728,101 @@ func (c *IAM) UpdateOpenIDConnectProviderThumbprintWithContext(ctx aws.Context, 
 	return out, req.Send()
 }
 
+const opUpdateRole = "UpdateRole"
+
+// UpdateRoleRequest generates a "aws/request.Request" representing the
+// client's request for the UpdateRole operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfuly.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See UpdateRole for more information on using the UpdateRole
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the UpdateRoleRequest method.
+//    req, resp := client.UpdateRoleRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/UpdateRole
+func (c *IAM) UpdateRoleRequest(input *UpdateRoleInput) (req *request.Request, output *UpdateRoleOutput) {
+	op := &request.Operation{
+		Name:       opUpdateRole,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &UpdateRoleInput{}
+	}
+
+	output = &UpdateRoleOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// UpdateRole API operation for AWS Identity and Access Management.
+//
+// Updates the description or maximum session duration setting of a role.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Identity and Access Management's
+// API operation UpdateRole for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeUnmodifiableEntityException "UnmodifiableEntity"
+//   The request was rejected because only the service that depends on the service-linked
+//   role can modify or delete the role on your behalf. The error message includes
+//   the name of the service that depends on this service-linked role. You must
+//   request the change through that service.
+//
+//   * ErrCodeNoSuchEntityException "NoSuchEntity"
+//   The request was rejected because it referenced an entity that does not exist.
+//   The error message describes the entity.
+//
+//   * ErrCodeServiceFailureException "ServiceFailure"
+//   The request processing has failed because of an unknown error, exception
+//   or failure.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/UpdateRole
+func (c *IAM) UpdateRole(input *UpdateRoleInput) (*UpdateRoleOutput, error) {
+	req, out := c.UpdateRoleRequest(input)
+	return out, req.Send()
+}
+
+// UpdateRoleWithContext is the same as UpdateRole with the addition of
+// the ability to pass a context and additional request options.
+//
+// See UpdateRole for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *IAM) UpdateRoleWithContext(ctx aws.Context, input *UpdateRoleInput, opts ...request.Option) (*UpdateRoleOutput, error) {
+	req, out := c.UpdateRoleRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
 const opUpdateRoleDescription = "UpdateRoleDescription"
 
 // UpdateRoleDescriptionRequest generates a "aws/request.Request" representing the
 // client's request for the UpdateRoleDescription operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -12325,7 +12843,7 @@ const opUpdateRoleDescription = "UpdateRoleDescription"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/UpdateRoleDescription
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/UpdateRoleDescription
 func (c *IAM) UpdateRoleDescriptionRequest(input *UpdateRoleDescriptionInput) (req *request.Request, output *UpdateRoleDescriptionOutput) {
 	op := &request.Operation{
 		Name:       opUpdateRoleDescription,
@@ -12344,7 +12862,10 @@ func (c *IAM) UpdateRoleDescriptionRequest(input *UpdateRoleDescriptionInput) (r
 
 // UpdateRoleDescription API operation for AWS Identity and Access Management.
 //
-// Modifies the description of a role.
+// Use instead.
+//
+// Modifies only the description of a role. This operation performs the same
+// function as the Description parameter in the UpdateRole operation.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -12368,7 +12889,7 @@ func (c *IAM) UpdateRoleDescriptionRequest(input *UpdateRoleDescriptionInput) (r
 //   The request processing has failed because of an unknown error, exception
 //   or failure.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/UpdateRoleDescription
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/UpdateRoleDescription
 func (c *IAM) UpdateRoleDescription(input *UpdateRoleDescriptionInput) (*UpdateRoleDescriptionOutput, error) {
 	req, out := c.UpdateRoleDescriptionRequest(input)
 	return out, req.Send()
@@ -12394,7 +12915,7 @@ const opUpdateSAMLProvider = "UpdateSAMLProvider"
 
 // UpdateSAMLProviderRequest generates a "aws/request.Request" representing the
 // client's request for the UpdateSAMLProvider operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -12415,7 +12936,7 @@ const opUpdateSAMLProvider = "UpdateSAMLProvider"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/UpdateSAMLProvider
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/UpdateSAMLProvider
 func (c *IAM) UpdateSAMLProviderRequest(input *UpdateSAMLProviderInput) (req *request.Request, output *UpdateSAMLProviderOutput) {
 	op := &request.Operation{
 		Name:       opUpdateSAMLProvider,
@@ -12462,7 +12983,7 @@ func (c *IAM) UpdateSAMLProviderRequest(input *UpdateSAMLProviderInput) (req *re
 //   The request processing has failed because of an unknown error, exception
 //   or failure.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/UpdateSAMLProvider
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/UpdateSAMLProvider
 func (c *IAM) UpdateSAMLProvider(input *UpdateSAMLProviderInput) (*UpdateSAMLProviderOutput, error) {
 	req, out := c.UpdateSAMLProviderRequest(input)
 	return out, req.Send()
@@ -12488,7 +13009,7 @@ const opUpdateSSHPublicKey = "UpdateSSHPublicKey"
 
 // UpdateSSHPublicKeyRequest generates a "aws/request.Request" representing the
 // client's request for the UpdateSSHPublicKey operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -12509,7 +13030,7 @@ const opUpdateSSHPublicKey = "UpdateSSHPublicKey"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/UpdateSSHPublicKey
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/UpdateSSHPublicKey
 func (c *IAM) UpdateSSHPublicKeyRequest(input *UpdateSSHPublicKeyInput) (req *request.Request, output *UpdateSSHPublicKeyOutput) {
 	op := &request.Operation{
 		Name:       opUpdateSSHPublicKey,
@@ -12531,11 +13052,11 @@ func (c *IAM) UpdateSSHPublicKeyRequest(input *UpdateSSHPublicKeyInput) (req *re
 // UpdateSSHPublicKey API operation for AWS Identity and Access Management.
 //
 // Sets the status of an IAM user's SSH public key to active or inactive. SSH
-// public keys that are inactive cannot be used for authentication. This action
+// public keys that are inactive cannot be used for authentication. This operation
 // can be used to disable a user's SSH public key as part of a key rotation
 // work flow.
 //
-// The SSH public key affected by this action is used only for authenticating
+// The SSH public key affected by this operation is used only for authenticating
 // the associated IAM user to an AWS CodeCommit repository. For more information
 // about using SSH keys to authenticate to an AWS CodeCommit repository, see
 // Set up AWS CodeCommit for SSH Connections (http://docs.aws.amazon.com/codecommit/latest/userguide/setting-up-credentials-ssh.html)
@@ -12553,7 +13074,7 @@ func (c *IAM) UpdateSSHPublicKeyRequest(input *UpdateSSHPublicKeyInput) (req *re
 //   The request was rejected because it referenced an entity that does not exist.
 //   The error message describes the entity.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/UpdateSSHPublicKey
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/UpdateSSHPublicKey
 func (c *IAM) UpdateSSHPublicKey(input *UpdateSSHPublicKeyInput) (*UpdateSSHPublicKeyOutput, error) {
 	req, out := c.UpdateSSHPublicKeyRequest(input)
 	return out, req.Send()
@@ -12579,7 +13100,7 @@ const opUpdateServerCertificate = "UpdateServerCertificate"
 
 // UpdateServerCertificateRequest generates a "aws/request.Request" representing the
 // client's request for the UpdateServerCertificate operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -12600,7 +13121,7 @@ const opUpdateServerCertificate = "UpdateServerCertificate"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/UpdateServerCertificate
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/UpdateServerCertificate
 func (c *IAM) UpdateServerCertificateRequest(input *UpdateServerCertificateInput) (req *request.Request, output *UpdateServerCertificateOutput) {
 	op := &request.Operation{
 		Name:       opUpdateServerCertificate,
@@ -12624,22 +13145,23 @@ func (c *IAM) UpdateServerCertificateRequest(input *UpdateServerCertificateInput
 // Updates the name and/or the path of the specified server certificate stored
 // in IAM.
 //
-// For more information about working with server certificates, including a
-// list of AWS services that can use the server certificates that you manage
-// with IAM, go to Working with Server Certificates (http://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_server-certs.html)
-// in the IAM User Guide.
+// For more information about working with server certificates, see Working
+// with Server Certificates (http://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_server-certs.html)
+// in the IAM User Guide. This topic also includes a list of AWS services that
+// can use the server certificates that you manage with IAM.
 //
 // You should understand the implications of changing a server certificate's
 // path or name. For more information, see Renaming a Server Certificate (http://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_server-certs_manage.html#RenamingServerCerts)
 // in the IAM User Guide.
 //
-// To change a server certificate name the requester must have appropriate permissions
-// on both the source object and the target object. For example, to change the
-// name from "ProductionCert" to "ProdCert", the entity making the request must
-// have permission on "ProductionCert" and "ProdCert", or must have permission
-// on all (*). For more information about permissions, see Access Management
-// (http://docs.aws.amazon.com/IAM/latest/UserGuide/access.html) in the IAM
-// User Guide.
+// The person making the request (the principal), must have permission to change
+// the server certificate with the old name and the new name. For example, to
+// change the certificate named ProductionCert to ProdCert, the principal must
+// have a policy that allows them to update both certificates. If the principal
+// has permission to update the ProductionCert group, but not the ProdCert certificate,
+// then the update fails. For more information about permissions, see Access
+// Management (http://docs.aws.amazon.com/IAM/latest/UserGuide/access.html)
+// in the IAM User Guide.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -12665,7 +13187,7 @@ func (c *IAM) UpdateServerCertificateRequest(input *UpdateServerCertificateInput
 //   The request processing has failed because of an unknown error, exception
 //   or failure.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/UpdateServerCertificate
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/UpdateServerCertificate
 func (c *IAM) UpdateServerCertificate(input *UpdateServerCertificateInput) (*UpdateServerCertificateOutput, error) {
 	req, out := c.UpdateServerCertificateRequest(input)
 	return out, req.Send()
@@ -12691,7 +13213,7 @@ const opUpdateServiceSpecificCredential = "UpdateServiceSpecificCredential"
 
 // UpdateServiceSpecificCredentialRequest generates a "aws/request.Request" representing the
 // client's request for the UpdateServiceSpecificCredential operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -12712,7 +13234,7 @@ const opUpdateServiceSpecificCredential = "UpdateServiceSpecificCredential"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/UpdateServiceSpecificCredential
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/UpdateServiceSpecificCredential
 func (c *IAM) UpdateServiceSpecificCredentialRequest(input *UpdateServiceSpecificCredentialInput) (req *request.Request, output *UpdateServiceSpecificCredentialOutput) {
 	op := &request.Operation{
 		Name:       opUpdateServiceSpecificCredential,
@@ -12735,8 +13257,8 @@ func (c *IAM) UpdateServiceSpecificCredentialRequest(input *UpdateServiceSpecifi
 //
 // Sets the status of a service-specific credential to Active or Inactive. Service-specific
 // credentials that are inactive cannot be used for authentication to the service.
-// This action can be used to disable a user’s service-specific credential as
-// part of a credential rotation work flow.
+// This operation can be used to disable a user's service-specific credential
+// as part of a credential rotation work flow.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -12750,7 +13272,7 @@ func (c *IAM) UpdateServiceSpecificCredentialRequest(input *UpdateServiceSpecifi
 //   The request was rejected because it referenced an entity that does not exist.
 //   The error message describes the entity.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/UpdateServiceSpecificCredential
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/UpdateServiceSpecificCredential
 func (c *IAM) UpdateServiceSpecificCredential(input *UpdateServiceSpecificCredentialInput) (*UpdateServiceSpecificCredentialOutput, error) {
 	req, out := c.UpdateServiceSpecificCredentialRequest(input)
 	return out, req.Send()
@@ -12776,7 +13298,7 @@ const opUpdateSigningCertificate = "UpdateSigningCertificate"
 
 // UpdateSigningCertificateRequest generates a "aws/request.Request" representing the
 // client's request for the UpdateSigningCertificate operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -12797,7 +13319,7 @@ const opUpdateSigningCertificate = "UpdateSigningCertificate"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/UpdateSigningCertificate
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/UpdateSigningCertificate
 func (c *IAM) UpdateSigningCertificateRequest(input *UpdateSigningCertificateInput) (req *request.Request, output *UpdateSigningCertificateOutput) {
 	op := &request.Operation{
 		Name:       opUpdateSigningCertificate,
@@ -12819,13 +13341,14 @@ func (c *IAM) UpdateSigningCertificateRequest(input *UpdateSigningCertificateInp
 // UpdateSigningCertificate API operation for AWS Identity and Access Management.
 //
 // Changes the status of the specified user signing certificate from active
-// to disabled, or vice versa. This action can be used to disable an IAM user's
-// signing certificate as part of a certificate rotation work flow.
+// to disabled, or vice versa. This operation can be used to disable an IAM
+// user's signing certificate as part of a certificate rotation work flow.
 //
-// If the UserName field is not specified, the UserName is determined implicitly
-// based on the AWS access key ID used to sign the request. Because this action
-// works for access keys under the AWS account, you can use this action to manage
-// root credentials even if the AWS account has no associated users.
+// If the UserName field is not specified, the user name is determined implicitly
+// based on the AWS access key ID used to sign the request. Because this operation
+// works for access keys under the AWS account, you can use this operation to
+// manage AWS account root user credentials even if the AWS account has no associated
+// users.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -12847,7 +13370,7 @@ func (c *IAM) UpdateSigningCertificateRequest(input *UpdateSigningCertificateInp
 //   The request processing has failed because of an unknown error, exception
 //   or failure.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/UpdateSigningCertificate
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/UpdateSigningCertificate
 func (c *IAM) UpdateSigningCertificate(input *UpdateSigningCertificateInput) (*UpdateSigningCertificateOutput, error) {
 	req, out := c.UpdateSigningCertificateRequest(input)
 	return out, req.Send()
@@ -12873,7 +13396,7 @@ const opUpdateUser = "UpdateUser"
 
 // UpdateUserRequest generates a "aws/request.Request" representing the
 // client's request for the UpdateUser operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -12894,7 +13417,7 @@ const opUpdateUser = "UpdateUser"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/UpdateUser
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/UpdateUser
 func (c *IAM) UpdateUserRequest(input *UpdateUserInput) (req *request.Request, output *UpdateUserOutput) {
 	op := &request.Operation{
 		Name:       opUpdateUser,
@@ -12922,7 +13445,7 @@ func (c *IAM) UpdateUserRequest(input *UpdateUserInput) (req *request.Request, o
 // and Renaming an IAM Group (http://docs.aws.amazon.com/IAM/latest/UserGuide/id_groups_manage_rename.html)
 // in the IAM User Guide.
 //
-// To change a user name the requester must have appropriate permissions on
+// To change a user name, the requester must have appropriate permissions on
 // both the source object and the target object. For example, to change Bob
 // to Robert, the entity making the request must have permission on Bob and
 // Robert, or must have permission on all (*). For more information about permissions,
@@ -12958,7 +13481,7 @@ func (c *IAM) UpdateUserRequest(input *UpdateUserInput) (req *request.Request, o
 //   The request processing has failed because of an unknown error, exception
 //   or failure.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/UpdateUser
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/UpdateUser
 func (c *IAM) UpdateUser(input *UpdateUserInput) (*UpdateUserOutput, error) {
 	req, out := c.UpdateUserRequest(input)
 	return out, req.Send()
@@ -12984,7 +13507,7 @@ const opUploadSSHPublicKey = "UploadSSHPublicKey"
 
 // UploadSSHPublicKeyRequest generates a "aws/request.Request" representing the
 // client's request for the UploadSSHPublicKey operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -13005,7 +13528,7 @@ const opUploadSSHPublicKey = "UploadSSHPublicKey"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/UploadSSHPublicKey
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/UploadSSHPublicKey
 func (c *IAM) UploadSSHPublicKeyRequest(input *UploadSSHPublicKeyInput) (req *request.Request, output *UploadSSHPublicKeyOutput) {
 	op := &request.Operation{
 		Name:       opUploadSSHPublicKey,
@@ -13026,7 +13549,7 @@ func (c *IAM) UploadSSHPublicKeyRequest(input *UploadSSHPublicKeyInput) (req *re
 //
 // Uploads an SSH public key and associates it with the specified IAM user.
 //
-// The SSH public key uploaded by this action can be used only for authenticating
+// The SSH public key uploaded by this operation can be used only for authenticating
 // the associated IAM user to an AWS CodeCommit repository. For more information
 // about using SSH keys to authenticate to an AWS CodeCommit repository, see
 // Set up AWS CodeCommit for SSH Connections (http://docs.aws.amazon.com/codecommit/latest/userguide/setting-up-credentials-ssh.html)
@@ -13060,7 +13583,7 @@ func (c *IAM) UploadSSHPublicKeyRequest(input *UploadSSHPublicKeyInput) (req *re
 //   The request was rejected because the public key encoding format is unsupported
 //   or unrecognized.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/UploadSSHPublicKey
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/UploadSSHPublicKey
 func (c *IAM) UploadSSHPublicKey(input *UploadSSHPublicKeyInput) (*UploadSSHPublicKeyOutput, error) {
 	req, out := c.UploadSSHPublicKeyRequest(input)
 	return out, req.Send()
@@ -13086,7 +13609,7 @@ const opUploadServerCertificate = "UploadServerCertificate"
 
 // UploadServerCertificateRequest generates a "aws/request.Request" representing the
 // client's request for the UploadServerCertificate operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -13107,7 +13630,7 @@ const opUploadServerCertificate = "UploadServerCertificate"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/UploadServerCertificate
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/UploadServerCertificate
 func (c *IAM) UploadServerCertificateRequest(input *UploadServerCertificateInput) (req *request.Request, output *UploadServerCertificateOutput) {
 	op := &request.Operation{
 		Name:       opUploadServerCertificate,
@@ -13136,10 +13659,10 @@ func (c *IAM) UploadServerCertificateRequest(input *UploadServerCertificateInput
 // renewals for you. Certificates provided by ACM are free. For more information
 // about using ACM, see the AWS Certificate Manager User Guide (http://docs.aws.amazon.com/acm/latest/userguide/).
 //
-// For more information about working with server certificates, including a
-// list of AWS services that can use the server certificates that you manage
-// with IAM, go to Working with Server Certificates (http://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_server-certs.html)
-// in the IAM User Guide.
+// For more information about working with server certificates, see Working
+// with Server Certificates (http://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_server-certs.html)
+// in the IAM User Guide. This topic includes a list of AWS services that can
+// use the server certificates that you manage with IAM.
 //
 // For information about the number of server certificates you can upload, see
 // Limitations on IAM Entities and Objects (http://docs.aws.amazon.com/IAM/latest/UserGuide/reference_iam-limits.html)
@@ -13181,7 +13704,7 @@ func (c *IAM) UploadServerCertificateRequest(input *UploadServerCertificateInput
 //   The request processing has failed because of an unknown error, exception
 //   or failure.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/UploadServerCertificate
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/UploadServerCertificate
 func (c *IAM) UploadServerCertificate(input *UploadServerCertificateInput) (*UploadServerCertificateOutput, error) {
 	req, out := c.UploadServerCertificateRequest(input)
 	return out, req.Send()
@@ -13207,7 +13730,7 @@ const opUploadSigningCertificate = "UploadSigningCertificate"
 
 // UploadSigningCertificateRequest generates a "aws/request.Request" representing the
 // client's request for the UploadSigningCertificate operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -13228,7 +13751,7 @@ const opUploadSigningCertificate = "UploadSigningCertificate"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/UploadSigningCertificate
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/UploadSigningCertificate
 func (c *IAM) UploadSigningCertificateRequest(input *UploadSigningCertificateInput) (req *request.Request, output *UploadSigningCertificateOutput) {
 	op := &request.Operation{
 		Name:       opUploadSigningCertificate,
@@ -13253,11 +13776,12 @@ func (c *IAM) UploadSigningCertificateRequest(input *UploadSigningCertificateInp
 // its default status is Active.
 //
 // If the UserName field is not specified, the IAM user name is determined implicitly
-// based on the AWS access key ID used to sign the request. Because this action
-// works for access keys under the AWS account, you can use this action to manage
-// root credentials even if the AWS account has no associated users.
+// based on the AWS access key ID used to sign the request. Because this operation
+// works for access keys under the AWS account, you can use this operation to
+// manage AWS account root user credentials even if the AWS account has no associated
+// users.
 //
-// Because the body of a X.509 certificate can be large, you should use POST
+// Because the body of an X.509 certificate can be large, you should use POST
 // rather than GET when calling UploadSigningCertificate. For information about
 // setting up signatures and authorization through the API, go to Signing AWS
 // API Requests (http://docs.aws.amazon.com/general/latest/gr/signing_aws_api_requests.html)
@@ -13300,7 +13824,7 @@ func (c *IAM) UploadSigningCertificateRequest(input *UploadSigningCertificateInp
 //   The request processing has failed because of an unknown error, exception
 //   or failure.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/UploadSigningCertificate
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/UploadSigningCertificate
 func (c *IAM) UploadSigningCertificate(input *UploadSigningCertificateInput) (*UploadSigningCertificateOutput, error) {
 	req, out := c.UploadSigningCertificateRequest(input)
 	return out, req.Send()
@@ -13325,13 +13849,12 @@ func (c *IAM) UploadSigningCertificateWithContext(ctx aws.Context, input *Upload
 // Contains information about an AWS access key.
 //
 // This data type is used as a response element in the CreateAccessKey and ListAccessKeys
-// actions.
+// operations.
 //
 // The SecretAccessKey value is returned only in response to CreateAccessKey.
 // You can get a secret access key only when you first create an access key;
 // you cannot recover the secret access key later. If you lose a secret access
 // key, you must create a new access key.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/AccessKey
 type AccessKey struct {
 	_ struct{} `type:"structure"`
 
@@ -13341,15 +13864,15 @@ type AccessKey struct {
 	AccessKeyId *string `min:"16" type:"string" required:"true"`
 
 	// The date when the access key was created.
-	CreateDate *time.Time `type:"timestamp" timestampFormat:"iso8601"`
+	CreateDate *time.Time `type:"timestamp"`
 
 	// The secret key used to sign requests.
 	//
 	// SecretAccessKey is a required field
 	SecretAccessKey *string `type:"string" required:"true"`
 
-	// The status of the access key. Active means the key is valid for API calls,
-	// while Inactive means it is not.
+	// The status of the access key. Active means that the key is valid for API
+	// calls, while Inactive means it is not.
 	//
 	// Status is a required field
 	Status *string `type:"string" required:"true" enum:"statusType"`
@@ -13403,13 +13926,13 @@ func (s *AccessKey) SetUserName(v string) *AccessKey {
 // Contains information about the last time an AWS access key was used.
 //
 // This data type is used as a response element in the GetAccessKeyLastUsed
-// action.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/AccessKeyLastUsed
+// operation.
 type AccessKeyLastUsed struct {
 	_ struct{} `type:"structure"`
 
 	// The date and time, in ISO 8601 date-time format (http://www.iso.org/iso/iso8601),
-	// when the access key was most recently used. This field is null when:
+	// when the access key was most recently used. This field is null in the following
+	// situations:
 	//
 	//    * The user does not have an access key.
 	//
@@ -13419,10 +13942,10 @@ type AccessKeyLastUsed struct {
 	//    * There is no sign-in data associated with the user
 	//
 	// LastUsedDate is a required field
-	LastUsedDate *time.Time `type:"timestamp" timestampFormat:"iso8601" required:"true"`
+	LastUsedDate *time.Time `type:"timestamp" required:"true"`
 
 	// The AWS region where this access key was most recently used. This field is
-	// displays "N/A" when:
+	// displays "N/A" in the following situations:
 	//
 	//    * The user does not have an access key.
 	//
@@ -13438,7 +13961,7 @@ type AccessKeyLastUsed struct {
 	Region *string `type:"string" required:"true"`
 
 	// The name of the AWS service with which this access key was most recently
-	// used. This field displays "N/A" when:
+	// used. This field displays "N/A" in the following situations:
 	//
 	//    * The user does not have an access key.
 	//
@@ -13481,8 +14004,7 @@ func (s *AccessKeyLastUsed) SetServiceName(v string) *AccessKeyLastUsed {
 
 // Contains information about an AWS access key, without its secret key.
 //
-// This data type is used as a response element in the ListAccessKeys action.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/AccessKeyMetadata
+// This data type is used as a response element in the ListAccessKeys operation.
 type AccessKeyMetadata struct {
 	_ struct{} `type:"structure"`
 
@@ -13490,7 +14012,7 @@ type AccessKeyMetadata struct {
 	AccessKeyId *string `min:"16" type:"string"`
 
 	// The date when the access key was created.
-	CreateDate *time.Time `type:"timestamp" timestampFormat:"iso8601"`
+	CreateDate *time.Time `type:"timestamp"`
 
 	// The status of the access key. Active means the key is valid for API calls;
 	// Inactive means it is not.
@@ -13534,7 +14056,6 @@ func (s *AccessKeyMetadata) SetUserName(v string) *AccessKeyMetadata {
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/AddClientIDToOpenIDConnectProviderRequest
 type AddClientIDToOpenIDConnectProviderInput struct {
 	_ struct{} `type:"structure"`
 
@@ -13546,7 +14067,7 @@ type AddClientIDToOpenIDConnectProviderInput struct {
 
 	// The Amazon Resource Name (ARN) of the IAM OpenID Connect (OIDC) provider
 	// resource to add the client ID to. You can get a list of OIDC provider ARNs
-	// by using the ListOpenIDConnectProviders action.
+	// by using the ListOpenIDConnectProviders operation.
 	//
 	// OpenIDConnectProviderArn is a required field
 	OpenIDConnectProviderArn *string `min:"20" type:"string" required:"true"`
@@ -13596,7 +14117,6 @@ func (s *AddClientIDToOpenIDConnectProviderInput) SetOpenIDConnectProviderArn(v 
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/AddClientIDToOpenIDConnectProviderOutput
 type AddClientIDToOpenIDConnectProviderOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -13611,7 +14131,6 @@ func (s AddClientIDToOpenIDConnectProviderOutput) GoString() string {
 	return s.String()
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/AddRoleToInstanceProfileRequest
 type AddRoleToInstanceProfileInput struct {
 	_ struct{} `type:"structure"`
 
@@ -13619,7 +14138,7 @@ type AddRoleToInstanceProfileInput struct {
 	//
 	// This parameter allows (per its regex pattern (http://wikipedia.org/wiki/regex))
 	// a string of characters consisting of upper and lowercase alphanumeric characters
-	// with no spaces. You can also include any of the following characters: =,.@-
+	// with no spaces. You can also include any of the following characters: _+=,.@-
 	//
 	// InstanceProfileName is a required field
 	InstanceProfileName *string `min:"1" type:"string" required:"true"`
@@ -13678,7 +14197,6 @@ func (s *AddRoleToInstanceProfileInput) SetRoleName(v string) *AddRoleToInstance
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/AddRoleToInstanceProfileOutput
 type AddRoleToInstanceProfileOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -13693,7 +14211,6 @@ func (s AddRoleToInstanceProfileOutput) GoString() string {
 	return s.String()
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/AddUserToGroupRequest
 type AddUserToGroupInput struct {
 	_ struct{} `type:"structure"`
 
@@ -13701,7 +14218,7 @@ type AddUserToGroupInput struct {
 	//
 	// This parameter allows (per its regex pattern (http://wikipedia.org/wiki/regex))
 	// a string of characters consisting of upper and lowercase alphanumeric characters
-	// with no spaces. You can also include any of the following characters: =,.@-
+	// with no spaces. You can also include any of the following characters: _+=,.@-
 	//
 	// GroupName is a required field
 	GroupName *string `min:"1" type:"string" required:"true"`
@@ -13710,7 +14227,7 @@ type AddUserToGroupInput struct {
 	//
 	// This parameter allows (per its regex pattern (http://wikipedia.org/wiki/regex))
 	// a string of characters consisting of upper and lowercase alphanumeric characters
-	// with no spaces. You can also include any of the following characters: =,.@-
+	// with no spaces. You can also include any of the following characters: _+=,.@-
 	//
 	// UserName is a required field
 	UserName *string `min:"1" type:"string" required:"true"`
@@ -13760,7 +14277,6 @@ func (s *AddUserToGroupInput) SetUserName(v string) *AddUserToGroupInput {
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/AddUserToGroupOutput
 type AddUserToGroupOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -13775,7 +14291,6 @@ func (s AddUserToGroupOutput) GoString() string {
 	return s.String()
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/AttachGroupPolicyRequest
 type AttachGroupPolicyInput struct {
 	_ struct{} `type:"structure"`
 
@@ -13783,7 +14298,7 @@ type AttachGroupPolicyInput struct {
 	//
 	// This parameter allows (per its regex pattern (http://wikipedia.org/wiki/regex))
 	// a string of characters consisting of upper and lowercase alphanumeric characters
-	// with no spaces. You can also include any of the following characters: =,.@-
+	// with no spaces. You can also include any of the following characters: _+=,.@-
 	//
 	// GroupName is a required field
 	GroupName *string `min:"1" type:"string" required:"true"`
@@ -13842,7 +14357,6 @@ func (s *AttachGroupPolicyInput) SetPolicyArn(v string) *AttachGroupPolicyInput 
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/AttachGroupPolicyOutput
 type AttachGroupPolicyOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -13857,7 +14371,6 @@ func (s AttachGroupPolicyOutput) GoString() string {
 	return s.String()
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/AttachRolePolicyRequest
 type AttachRolePolicyInput struct {
 	_ struct{} `type:"structure"`
 
@@ -13924,7 +14437,6 @@ func (s *AttachRolePolicyInput) SetRoleName(v string) *AttachRolePolicyInput {
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/AttachRolePolicyOutput
 type AttachRolePolicyOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -13939,7 +14451,6 @@ func (s AttachRolePolicyOutput) GoString() string {
 	return s.String()
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/AttachUserPolicyRequest
 type AttachUserPolicyInput struct {
 	_ struct{} `type:"structure"`
 
@@ -13956,7 +14467,7 @@ type AttachUserPolicyInput struct {
 	//
 	// This parameter allows (per its regex pattern (http://wikipedia.org/wiki/regex))
 	// a string of characters consisting of upper and lowercase alphanumeric characters
-	// with no spaces. You can also include any of the following characters: =,.@-
+	// with no spaces. You can also include any of the following characters: _+=,.@-
 	//
 	// UserName is a required field
 	UserName *string `min:"1" type:"string" required:"true"`
@@ -14006,7 +14517,6 @@ func (s *AttachUserPolicyInput) SetUserName(v string) *AttachUserPolicyInput {
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/AttachUserPolicyOutput
 type AttachUserPolicyOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -14021,17 +14531,59 @@ func (s AttachUserPolicyOutput) GoString() string {
 	return s.String()
 }
 
+// Contains information about an attached permissions boundary.
+//
+// An attached permissions boundary is a managed policy that has been attached
+// to a user or role to set the permissions boundary.
+//
+// For more information about permissions boundaries, see Permissions Boundaries
+// for IAM Identities  (https://docs.aws.amazon.com/IAM/latest/UserGuide/access_policies_boundaries.html)
+// in the IAM User Guide.
+type AttachedPermissionsBoundary struct {
+	_ struct{} `type:"structure"`
+
+	// The ARN of the policy used to set the permissions boundary for the user or
+	// role.
+	PermissionsBoundaryArn *string `min:"20" type:"string"`
+
+	// The permissions boundary usage type that indicates what type of IAM resource
+	// is used as the permissions boundary for an entity. This data type can only
+	// have a value of Policy.
+	PermissionsBoundaryType *string `type:"string" enum:"PermissionsBoundaryAttachmentType"`
+}
+
+// String returns the string representation
+func (s AttachedPermissionsBoundary) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s AttachedPermissionsBoundary) GoString() string {
+	return s.String()
+}
+
+// SetPermissionsBoundaryArn sets the PermissionsBoundaryArn field's value.
+func (s *AttachedPermissionsBoundary) SetPermissionsBoundaryArn(v string) *AttachedPermissionsBoundary {
+	s.PermissionsBoundaryArn = &v
+	return s
+}
+
+// SetPermissionsBoundaryType sets the PermissionsBoundaryType field's value.
+func (s *AttachedPermissionsBoundary) SetPermissionsBoundaryType(v string) *AttachedPermissionsBoundary {
+	s.PermissionsBoundaryType = &v
+	return s
+}
+
 // Contains information about an attached policy.
 //
 // An attached policy is a managed policy that has been attached to a user,
 // group, or role. This data type is used as a response element in the ListAttachedGroupPolicies,
 // ListAttachedRolePolicies, ListAttachedUserPolicies, and GetAccountAuthorizationDetails
-// actions.
+// operations.
 //
 // For more information about managed policies, refer to Managed Policies and
 // Inline Policies (http://docs.aws.amazon.com/IAM/latest/UserGuide/policies-managed-vs-inline.html)
 // in the Using IAM guide.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/AttachedPolicy
 type AttachedPolicy struct {
 	_ struct{} `type:"structure"`
 
@@ -14068,21 +14620,20 @@ func (s *AttachedPolicy) SetPolicyName(v string) *AttachedPolicy {
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/ChangePasswordRequest
 type ChangePasswordInput struct {
 	_ struct{} `type:"structure"`
 
 	// The new password. The new password must conform to the AWS account's password
 	// policy, if one exists.
 	//
-	// The regex pattern (http://wikipedia.org/wiki/regex) used to validate this
-	// parameter is a string of characters consisting of almost any printable ASCII
-	// character from the space (\u0020) through the end of the ASCII character
-	// range (\u00FF). You can also include the tab (\u0009), line feed (\u000A),
-	// and carriage return (\u000D) characters. Although any of these characters
-	// are valid in a password, note that many tools, such as the AWS Management
-	// Console, might restrict the ability to enter certain characters because they
-	// have special meaning within that tool.
+	// The regex pattern (http://wikipedia.org/wiki/regex) that is used to validate
+	// this parameter is a string of characters. That string can include almost
+	// any printable ASCII character from the space (\u0020) through the end of
+	// the ASCII character range (\u00FF). You can also include the tab (\u0009),
+	// line feed (\u000A), and carriage return (\u000D) characters. Any of these
+	// characters are valid in a password. However, many tools, such as the AWS
+	// Management Console, might restrict the ability to type certain characters
+	// because they have special meaning within that tool.
 	//
 	// NewPassword is a required field
 	NewPassword *string `min:"1" type:"string" required:"true"`
@@ -14137,7 +14688,6 @@ func (s *ChangePasswordInput) SetOldPassword(v string) *ChangePasswordInput {
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/ChangePasswordOutput
 type ChangePasswordOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -14159,7 +14709,6 @@ func (s ChangePasswordOutput) GoString() string {
 //
 // This data type is used as an input parameter to SimulateCustomPolicy and
 // SimulateCustomPolicy.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/ContextEntry
 type ContextEntry struct {
 	_ struct{} `type:"structure"`
 
@@ -14172,8 +14721,8 @@ type ContextEntry struct {
 	ContextKeyType *string `type:"string" enum:"ContextKeyTypeEnum"`
 
 	// The value (or values, if the condition context key supports multiple values)
-	// to provide to the simulation for use when the key is referenced by a Condition
-	// element in an input policy.
+	// to provide to the simulation when the key is referenced by a Condition element
+	// in an input policy.
 	ContextKeyValues []*string `type:"list"`
 }
 
@@ -14218,7 +14767,6 @@ func (s *ContextEntry) SetContextKeyValues(v []*string) *ContextEntry {
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/CreateAccessKeyRequest
 type CreateAccessKeyInput struct {
 	_ struct{} `type:"structure"`
 
@@ -14226,7 +14774,7 @@ type CreateAccessKeyInput struct {
 	//
 	// This parameter allows (per its regex pattern (http://wikipedia.org/wiki/regex))
 	// a string of characters consisting of upper and lowercase alphanumeric characters
-	// with no spaces. You can also include any of the following characters: =,.@-
+	// with no spaces. You can also include any of the following characters: _+=,.@-
 	UserName *string `min:"1" type:"string"`
 }
 
@@ -14260,7 +14808,6 @@ func (s *CreateAccessKeyInput) SetUserName(v string) *CreateAccessKeyInput {
 }
 
 // Contains the response to a successful CreateAccessKey request.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/CreateAccessKeyResponse
 type CreateAccessKeyOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -14286,7 +14833,6 @@ func (s *CreateAccessKeyOutput) SetAccessKey(v *AccessKey) *CreateAccessKeyOutpu
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/CreateAccountAliasRequest
 type CreateAccountAliasInput struct {
 	_ struct{} `type:"structure"`
 
@@ -14333,7 +14879,6 @@ func (s *CreateAccountAliasInput) SetAccountAlias(v string) *CreateAccountAliasI
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/CreateAccountAliasOutput
 type CreateAccountAliasOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -14348,7 +14893,6 @@ func (s CreateAccountAliasOutput) GoString() string {
 	return s.String()
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/CreateGroupRequest
 type CreateGroupInput struct {
 	_ struct{} `type:"structure"`
 
@@ -14356,7 +14900,7 @@ type CreateGroupInput struct {
 	//
 	// This parameter allows (per its regex pattern (http://wikipedia.org/wiki/regex))
 	// a string of characters consisting of upper and lowercase alphanumeric characters
-	// with no spaces. You can also include any of the following characters: =,.@-.
+	// with no spaces. You can also include any of the following characters: _+=,.@-.
 	// The group name must be unique within the account. Group names are not distinguished
 	// by case. For example, you cannot create groups named both "ADMINS" and "admins".
 	//
@@ -14370,11 +14914,12 @@ type CreateGroupInput struct {
 	// This parameter is optional. If it is not included, it defaults to a slash
 	// (/).
 	//
-	// This paramater allows (per its regex pattern (http://wikipedia.org/wiki/regex))
+	// This parameter allows (per its regex pattern (http://wikipedia.org/wiki/regex))
 	// a string of characters consisting of either a forward slash (/) by itself
-	// or a string that must begin and end with forward slashes, containing any
-	// ASCII character from the ! (\u0021) thru the DEL character (\u007F), including
-	// most punctuation characters, digits, and upper and lowercased letters.
+	// or a string that must begin and end with forward slashes. In addition, it
+	// can contain any ASCII character from the ! (\u0021) through the DEL character
+	// (\u007F), including most punctuation characters, digits, and upper and lowercased
+	// letters.
 	Path *string `min:"1" type:"string"`
 }
 
@@ -14420,7 +14965,6 @@ func (s *CreateGroupInput) SetPath(v string) *CreateGroupInput {
 }
 
 // Contains the response to a successful CreateGroup request.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/CreateGroupResponse
 type CreateGroupOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -14446,7 +14990,6 @@ func (s *CreateGroupOutput) SetGroup(v *Group) *CreateGroupOutput {
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/CreateInstanceProfileRequest
 type CreateInstanceProfileInput struct {
 	_ struct{} `type:"structure"`
 
@@ -14454,7 +14997,7 @@ type CreateInstanceProfileInput struct {
 	//
 	// This parameter allows (per its regex pattern (http://wikipedia.org/wiki/regex))
 	// a string of characters consisting of upper and lowercase alphanumeric characters
-	// with no spaces. You can also include any of the following characters: =,.@-
+	// with no spaces. You can also include any of the following characters: _+=,.@-
 	//
 	// InstanceProfileName is a required field
 	InstanceProfileName *string `min:"1" type:"string" required:"true"`
@@ -14466,11 +15009,12 @@ type CreateInstanceProfileInput struct {
 	// This parameter is optional. If it is not included, it defaults to a slash
 	// (/).
 	//
-	// This paramater allows (per its regex pattern (http://wikipedia.org/wiki/regex))
+	// This parameter allows (per its regex pattern (http://wikipedia.org/wiki/regex))
 	// a string of characters consisting of either a forward slash (/) by itself
-	// or a string that must begin and end with forward slashes, containing any
-	// ASCII character from the ! (\u0021) thru the DEL character (\u007F), including
-	// most punctuation characters, digits, and upper and lowercased letters.
+	// or a string that must begin and end with forward slashes. In addition, it
+	// can contain any ASCII character from the ! (\u0021) through the DEL character
+	// (\u007F), including most punctuation characters, digits, and upper and lowercased
+	// letters.
 	Path *string `min:"1" type:"string"`
 }
 
@@ -14516,7 +15060,6 @@ func (s *CreateInstanceProfileInput) SetPath(v string) *CreateInstanceProfileInp
 }
 
 // Contains the response to a successful CreateInstanceProfile request.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/CreateInstanceProfileResponse
 type CreateInstanceProfileOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -14542,20 +15085,19 @@ func (s *CreateInstanceProfileOutput) SetInstanceProfile(v *InstanceProfile) *Cr
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/CreateLoginProfileRequest
 type CreateLoginProfileInput struct {
 	_ struct{} `type:"structure"`
 
 	// The new password for the user.
 	//
-	// The regex pattern (http://wikipedia.org/wiki/regex) used to validate this
-	// parameter is a string of characters consisting of almost any printable ASCII
-	// character from the space (\u0020) through the end of the ASCII character
-	// range (\u00FF). You can also include the tab (\u0009), line feed (\u000A),
-	// and carriage return (\u000D) characters. Although any of these characters
-	// are valid in a password, note that many tools, such as the AWS Management
-	// Console, might restrict the ability to enter certain characters because they
-	// have special meaning within that tool.
+	// The regex pattern (http://wikipedia.org/wiki/regex) that is used to validate
+	// this parameter is a string of characters. That string can include almost
+	// any printable ASCII character from the space (\u0020) through the end of
+	// the ASCII character range (\u00FF). You can also include the tab (\u0009),
+	// line feed (\u000A), and carriage return (\u000D) characters. Any of these
+	// characters are valid in a password. However, many tools, such as the AWS
+	// Management Console, might restrict the ability to type certain characters
+	// because they have special meaning within that tool.
 	//
 	// Password is a required field
 	Password *string `min:"1" type:"string" required:"true"`
@@ -14568,7 +15110,7 @@ type CreateLoginProfileInput struct {
 	//
 	// This parameter allows (per its regex pattern (http://wikipedia.org/wiki/regex))
 	// a string of characters consisting of upper and lowercase alphanumeric characters
-	// with no spaces. You can also include any of the following characters: =,.@-
+	// with no spaces. You can also include any of the following characters: _+=,.@-
 	//
 	// UserName is a required field
 	UserName *string `min:"1" type:"string" required:"true"`
@@ -14625,7 +15167,6 @@ func (s *CreateLoginProfileInput) SetUserName(v string) *CreateLoginProfileInput
 }
 
 // Contains the response to a successful CreateLoginProfile request.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/CreateLoginProfileResponse
 type CreateLoginProfileOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -14651,7 +15192,6 @@ func (s *CreateLoginProfileOutput) SetLoginProfile(v *LoginProfile) *CreateLogin
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/CreateOpenIDConnectProviderRequest
 type CreateOpenIDConnectProviderInput struct {
 	_ struct{} `type:"structure"`
 
@@ -14665,11 +15205,11 @@ type CreateOpenIDConnectProviderInput struct {
 	// cannot register more than 100 client IDs with a single IAM OIDC provider.
 	//
 	// There is no defined format for a client ID. The CreateOpenIDConnectProviderRequest
-	// action accepts client IDs up to 255 characters long.
+	// operation accepts client IDs up to 255 characters long.
 	ClientIDList []*string `type:"list"`
 
 	// A list of server certificate thumbprints for the OpenID Connect (OIDC) identity
-	// provider's server certificate(s). Typically this list includes only one entry.
+	// provider's server certificates. Typically this list includes only one entry.
 	// However, IAM lets you have up to five thumbprints for an OIDC provider. This
 	// lets you maintain multiple thumbprints if the identity provider is rotating
 	// certificates.
@@ -14679,10 +15219,10 @@ type CreateOpenIDConnectProviderInput struct {
 	// makes its keys available. It is always a 40-character string.
 	//
 	// You must provide at least one thumbprint when creating an IAM OIDC provider.
-	// For example, if the OIDC provider is server.example.com and the provider
-	// stores its keys at "https://keys.server.example.com/openid-connect", the
-	// thumbprint string would be the hex-encoded SHA-1 hash value of the certificate
-	// used by https://keys.server.example.com.
+	// For example, assume that the OIDC provider is server.example.com and the
+	// provider stores its keys at https://keys.server.example.com/openid-connect.
+	// In that case, the thumbprint string would be the hex-encoded SHA-1 hash value
+	// of the certificate used by https://keys.server.example.com.
 	//
 	// For more information about obtaining the OIDC provider's thumbprint, see
 	// Obtaining the Thumbprint for an OpenID Connect Provider (http://docs.aws.amazon.com/IAM/latest/UserGuide/identity-providers-oidc-obtain-thumbprint.html)
@@ -14691,11 +15231,11 @@ type CreateOpenIDConnectProviderInput struct {
 	// ThumbprintList is a required field
 	ThumbprintList []*string `type:"list" required:"true"`
 
-	// The URL of the identity provider. The URL must begin with "https://" and
-	// should correspond to the iss claim in the provider's OpenID Connect ID tokens.
-	// Per the OIDC standard, path components are allowed but query parameters are
-	// not. Typically the URL consists of only a host name, like "https://server.example.org"
-	// or "https://example.com".
+	// The URL of the identity provider. The URL must begin with https:// and should
+	// correspond to the iss claim in the provider's OpenID Connect ID tokens. Per
+	// the OIDC standard, path components are allowed but query parameters are not.
+	// Typically the URL consists of only a hostname, like https://server.example.org
+	// or https://example.com.
 	//
 	// You cannot register the same provider multiple times in a single AWS account.
 	// If you try to submit a URL that has already been used for an OpenID Connect
@@ -14753,7 +15293,6 @@ func (s *CreateOpenIDConnectProviderInput) SetUrl(v string) *CreateOpenIDConnect
 }
 
 // Contains the response to a successful CreateOpenIDConnectProvider request.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/CreateOpenIDConnectProviderResponse
 type CreateOpenIDConnectProviderOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -14778,7 +15317,6 @@ func (s *CreateOpenIDConnectProviderOutput) SetOpenIDConnectProviderArn(v string
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/CreatePolicyRequest
 type CreatePolicyInput struct {
 	_ struct{} `type:"structure"`
 
@@ -14799,22 +15337,28 @@ type CreatePolicyInput struct {
 	// This parameter is optional. If it is not included, it defaults to a slash
 	// (/).
 	//
-	// This paramater allows (per its regex pattern (http://wikipedia.org/wiki/regex))
+	// This parameter allows (per its regex pattern (http://wikipedia.org/wiki/regex))
 	// a string of characters consisting of either a forward slash (/) by itself
-	// or a string that must begin and end with forward slashes, containing any
-	// ASCII character from the ! (\u0021) thru the DEL character (\u007F), including
-	// most punctuation characters, digits, and upper and lowercased letters.
+	// or a string that must begin and end with forward slashes. In addition, it
+	// can contain any ASCII character from the ! (\u0021) through the DEL character
+	// (\u007F), including most punctuation characters, digits, and upper and lowercased
+	// letters.
 	Path *string `type:"string"`
 
 	// The JSON policy document that you want to use as the content for the new
 	// policy.
 	//
 	// The regex pattern (http://wikipedia.org/wiki/regex) used to validate this
-	// parameter is a string of characters consisting of any printable ASCII character
-	// ranging from the space character (\u0020) through end of the ASCII character
-	// range as well as the printable characters in the Basic Latin and Latin-1
-	// Supplement character set (through \u00FF). It also includes the special characters
-	// tab (\u0009), line feed (\u000A), and carriage return (\u000D).
+	// parameter is a string of characters consisting of the following:
+	//
+	//    * Any printable ASCII character ranging from the space character (\u0020)
+	//    through the end of the ASCII character range
+	//
+	//    * The printable characters in the Basic Latin and Latin-1 Supplement character
+	//    set (through \u00FF)
+	//
+	//    * The special characters tab (\u0009), line feed (\u000A), and carriage
+	//    return (\u000D)
 	//
 	// PolicyDocument is a required field
 	PolicyDocument *string `min:"1" type:"string" required:"true"`
@@ -14823,7 +15367,7 @@ type CreatePolicyInput struct {
 	//
 	// This parameter allows (per its regex pattern (http://wikipedia.org/wiki/regex))
 	// a string of characters consisting of upper and lowercase alphanumeric characters
-	// with no spaces. You can also include any of the following characters: =,.@-+
+	// with no spaces. You can also include any of the following characters: _+=,.@-
 	//
 	// PolicyName is a required field
 	PolicyName *string `min:"1" type:"string" required:"true"`
@@ -14886,7 +15430,6 @@ func (s *CreatePolicyInput) SetPolicyName(v string) *CreatePolicyInput {
 }
 
 // Contains the response to a successful CreatePolicy request.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/CreatePolicyResponse
 type CreatePolicyOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -14910,7 +15453,6 @@ func (s *CreatePolicyOutput) SetPolicy(v *Policy) *CreatePolicyOutput {
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/CreatePolicyVersionRequest
 type CreatePolicyVersionInput struct {
 	_ struct{} `type:"structure"`
 
@@ -14928,11 +15470,16 @@ type CreatePolicyVersionInput struct {
 	// version of the policy.
 	//
 	// The regex pattern (http://wikipedia.org/wiki/regex) used to validate this
-	// parameter is a string of characters consisting of any printable ASCII character
-	// ranging from the space character (\u0020) through end of the ASCII character
-	// range as well as the printable characters in the Basic Latin and Latin-1
-	// Supplement character set (through \u00FF). It also includes the special characters
-	// tab (\u0009), line feed (\u000A), and carriage return (\u000D).
+	// parameter is a string of characters consisting of the following:
+	//
+	//    * Any printable ASCII character ranging from the space character (\u0020)
+	//    through the end of the ASCII character range
+	//
+	//    * The printable characters in the Basic Latin and Latin-1 Supplement character
+	//    set (through \u00FF)
+	//
+	//    * The special characters tab (\u0009), line feed (\u000A), and carriage
+	//    return (\u000D)
 	//
 	// PolicyDocument is a required field
 	PolicyDocument *string `min:"1" type:"string" required:"true"`
@@ -14940,8 +15487,8 @@ type CreatePolicyVersionInput struct {
 	// Specifies whether to set this version as the policy's default version.
 	//
 	// When this parameter is true, the new policy version becomes the operative
-	// version; that is, the version that is in effect for the IAM users, groups,
-	// and roles that the policy is attached to.
+	// version. That is, it becomes the version that is in effect for the IAM users,
+	// groups, and roles that the policy is attached to.
 	//
 	// For more information about managed policy versions, see Versioning for Managed
 	// Policies (http://docs.aws.amazon.com/IAM/latest/UserGuide/policies-managed-versions.html)
@@ -15000,7 +15547,6 @@ func (s *CreatePolicyVersionInput) SetSetAsDefault(v bool) *CreatePolicyVersionI
 }
 
 // Contains the response to a successful CreatePolicyVersion request.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/CreatePolicyVersionResponse
 type CreatePolicyVersionOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -15024,7 +15570,6 @@ func (s *CreatePolicyVersionOutput) SetPolicyVersion(v *PolicyVersion) *CreatePo
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/CreateRoleRequest
 type CreateRoleInput struct {
 	_ struct{} `type:"structure"`
 
@@ -15032,17 +15577,38 @@ type CreateRoleInput struct {
 	// assume the role.
 	//
 	// The regex pattern (http://wikipedia.org/wiki/regex) used to validate this
-	// parameter is a string of characters consisting of any printable ASCII character
-	// ranging from the space character (\u0020) through end of the ASCII character
-	// range as well as the printable characters in the Basic Latin and Latin-1
-	// Supplement character set (through \u00FF). It also includes the special characters
-	// tab (\u0009), line feed (\u000A), and carriage return (\u000D).
+	// parameter is a string of characters consisting of the following:
+	//
+	//    * Any printable ASCII character ranging from the space character (\u0020)
+	//    through the end of the ASCII character range
+	//
+	//    * The printable characters in the Basic Latin and Latin-1 Supplement character
+	//    set (through \u00FF)
+	//
+	//    * The special characters tab (\u0009), line feed (\u000A), and carriage
+	//    return (\u000D)
 	//
 	// AssumeRolePolicyDocument is a required field
 	AssumeRolePolicyDocument *string `min:"1" type:"string" required:"true"`
 
-	// A customer-provided description of the role.
+	// A description of the role.
 	Description *string `type:"string"`
+
+	// The maximum session duration (in seconds) that you want to set for the specified
+	// role. If you do not specify a value for this setting, the default maximum
+	// of one hour is applied. This setting can have a value from 1 hour to 12 hours.
+	//
+	// Anyone who assumes the role from the AWS CLI or API can use the DurationSeconds
+	// API parameter or the duration-seconds CLI parameter to request a longer session.
+	// The MaxSessionDuration setting determines the maximum duration that can be
+	// requested using the DurationSeconds parameter. If users don't specify a value
+	// for the DurationSeconds parameter, their security credentials are valid for
+	// one hour by default. This applies when you use the AssumeRole* API operations
+	// or the assume-role* CLI operations but does not apply when you use those
+	// operations to create a console URL. For more information, see Using IAM Roles
+	// (http://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_use.html) in the
+	// IAM User Guide.
+	MaxSessionDuration *int64 `min:"3600" type:"integer"`
 
 	// The path to the role. For more information about paths, see IAM Identifiers
 	// (http://docs.aws.amazon.com/IAM/latest/UserGuide/Using_Identifiers.html)
@@ -15051,12 +15617,17 @@ type CreateRoleInput struct {
 	// This parameter is optional. If it is not included, it defaults to a slash
 	// (/).
 	//
-	// This paramater allows (per its regex pattern (http://wikipedia.org/wiki/regex))
+	// This parameter allows (per its regex pattern (http://wikipedia.org/wiki/regex))
 	// a string of characters consisting of either a forward slash (/) by itself
-	// or a string that must begin and end with forward slashes, containing any
-	// ASCII character from the ! (\u0021) thru the DEL character (\u007F), including
-	// most punctuation characters, digits, and upper and lowercased letters.
+	// or a string that must begin and end with forward slashes. In addition, it
+	// can contain any ASCII character from the ! (\u0021) through the DEL character
+	// (\u007F), including most punctuation characters, digits, and upper and lowercased
+	// letters.
 	Path *string `min:"1" type:"string"`
+
+	// The ARN of the policy that is used to set the permissions boundary for the
+	// role.
+	PermissionsBoundary *string `min:"20" type:"string"`
 
 	// The name of the role to create.
 	//
@@ -15090,8 +15661,14 @@ func (s *CreateRoleInput) Validate() error {
 	if s.AssumeRolePolicyDocument != nil && len(*s.AssumeRolePolicyDocument) < 1 {
 		invalidParams.Add(request.NewErrParamMinLen("AssumeRolePolicyDocument", 1))
 	}
+	if s.MaxSessionDuration != nil && *s.MaxSessionDuration < 3600 {
+		invalidParams.Add(request.NewErrParamMinValue("MaxSessionDuration", 3600))
+	}
 	if s.Path != nil && len(*s.Path) < 1 {
 		invalidParams.Add(request.NewErrParamMinLen("Path", 1))
+	}
+	if s.PermissionsBoundary != nil && len(*s.PermissionsBoundary) < 20 {
+		invalidParams.Add(request.NewErrParamMinLen("PermissionsBoundary", 20))
 	}
 	if s.RoleName == nil {
 		invalidParams.Add(request.NewErrParamRequired("RoleName"))
@@ -15118,9 +15695,21 @@ func (s *CreateRoleInput) SetDescription(v string) *CreateRoleInput {
 	return s
 }
 
+// SetMaxSessionDuration sets the MaxSessionDuration field's value.
+func (s *CreateRoleInput) SetMaxSessionDuration(v int64) *CreateRoleInput {
+	s.MaxSessionDuration = &v
+	return s
+}
+
 // SetPath sets the Path field's value.
 func (s *CreateRoleInput) SetPath(v string) *CreateRoleInput {
 	s.Path = &v
+	return s
+}
+
+// SetPermissionsBoundary sets the PermissionsBoundary field's value.
+func (s *CreateRoleInput) SetPermissionsBoundary(v string) *CreateRoleInput {
+	s.PermissionsBoundary = &v
 	return s
 }
 
@@ -15131,7 +15720,6 @@ func (s *CreateRoleInput) SetRoleName(v string) *CreateRoleInput {
 }
 
 // Contains the response to a successful CreateRole request.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/CreateRoleResponse
 type CreateRoleOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -15157,7 +15745,6 @@ func (s *CreateRoleOutput) SetRole(v *Role) *CreateRoleOutput {
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/CreateSAMLProviderRequest
 type CreateSAMLProviderInput struct {
 	_ struct{} `type:"structure"`
 
@@ -15165,7 +15752,7 @@ type CreateSAMLProviderInput struct {
 	//
 	// This parameter allows (per its regex pattern (http://wikipedia.org/wiki/regex))
 	// a string of characters consisting of upper and lowercase alphanumeric characters
-	// with no spaces. You can also include any of the following characters: =,.@-
+	// with no spaces. You can also include any of the following characters: _+=,.@-
 	//
 	// Name is a required field
 	Name *string `min:"1" type:"string" required:"true"`
@@ -15228,7 +15815,6 @@ func (s *CreateSAMLProviderInput) SetSAMLMetadataDocument(v string) *CreateSAMLP
 }
 
 // Contains the response to a successful CreateSAMLProvider request.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/CreateSAMLProviderResponse
 type CreateSAMLProviderOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -15252,7 +15838,6 @@ func (s *CreateSAMLProviderOutput) SetSAMLProviderArn(v string) *CreateSAMLProvi
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/CreateServiceLinkedRoleRequest
 type CreateServiceLinkedRoleInput struct {
 	_ struct{} `type:"structure"`
 
@@ -15320,7 +15905,6 @@ func (s *CreateServiceLinkedRoleInput) SetDescription(v string) *CreateServiceLi
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/CreateServiceLinkedRoleResponse
 type CreateServiceLinkedRoleOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -15344,7 +15928,6 @@ func (s *CreateServiceLinkedRoleOutput) SetRole(v *Role) *CreateServiceLinkedRol
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/CreateServiceSpecificCredentialRequest
 type CreateServiceSpecificCredentialInput struct {
 	_ struct{} `type:"structure"`
 
@@ -15361,7 +15944,7 @@ type CreateServiceSpecificCredentialInput struct {
 	//
 	// This parameter allows (per its regex pattern (http://wikipedia.org/wiki/regex))
 	// a string of characters consisting of upper and lowercase alphanumeric characters
-	// with no spaces. You can also include any of the following characters: =,.@-
+	// with no spaces. You can also include any of the following characters: _+=,.@-
 	//
 	// UserName is a required field
 	UserName *string `min:"1" type:"string" required:"true"`
@@ -15408,7 +15991,6 @@ func (s *CreateServiceSpecificCredentialInput) SetUserName(v string) *CreateServ
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/CreateServiceSpecificCredentialResponse
 type CreateServiceSpecificCredentialOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -15437,7 +16019,6 @@ func (s *CreateServiceSpecificCredentialOutput) SetServiceSpecificCredential(v *
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/CreateUserRequest
 type CreateUserInput struct {
 	_ struct{} `type:"structure"`
 
@@ -15448,18 +16029,23 @@ type CreateUserInput struct {
 	// This parameter is optional. If it is not included, it defaults to a slash
 	// (/).
 	//
-	// This paramater allows (per its regex pattern (http://wikipedia.org/wiki/regex))
+	// This parameter allows (per its regex pattern (http://wikipedia.org/wiki/regex))
 	// a string of characters consisting of either a forward slash (/) by itself
-	// or a string that must begin and end with forward slashes, containing any
-	// ASCII character from the ! (\u0021) thru the DEL character (\u007F), including
-	// most punctuation characters, digits, and upper and lowercased letters.
+	// or a string that must begin and end with forward slashes. In addition, it
+	// can contain any ASCII character from the ! (\u0021) through the DEL character
+	// (\u007F), including most punctuation characters, digits, and upper and lowercased
+	// letters.
 	Path *string `min:"1" type:"string"`
+
+	// The ARN of the policy that is used to set the permissions boundary for the
+	// user.
+	PermissionsBoundary *string `min:"20" type:"string"`
 
 	// The name of the user to create.
 	//
 	// This parameter allows (per its regex pattern (http://wikipedia.org/wiki/regex))
 	// a string of characters consisting of upper and lowercase alphanumeric characters
-	// with no spaces. You can also include any of the following characters: =,.@-.
+	// with no spaces. You can also include any of the following characters: _+=,.@-.
 	// User names are not distinguished by case. For example, you cannot create
 	// users named both "TESTUSER" and "testuser".
 	//
@@ -15483,6 +16069,9 @@ func (s *CreateUserInput) Validate() error {
 	if s.Path != nil && len(*s.Path) < 1 {
 		invalidParams.Add(request.NewErrParamMinLen("Path", 1))
 	}
+	if s.PermissionsBoundary != nil && len(*s.PermissionsBoundary) < 20 {
+		invalidParams.Add(request.NewErrParamMinLen("PermissionsBoundary", 20))
+	}
 	if s.UserName == nil {
 		invalidParams.Add(request.NewErrParamRequired("UserName"))
 	}
@@ -15502,6 +16091,12 @@ func (s *CreateUserInput) SetPath(v string) *CreateUserInput {
 	return s
 }
 
+// SetPermissionsBoundary sets the PermissionsBoundary field's value.
+func (s *CreateUserInput) SetPermissionsBoundary(v string) *CreateUserInput {
+	s.PermissionsBoundary = &v
+	return s
+}
+
 // SetUserName sets the UserName field's value.
 func (s *CreateUserInput) SetUserName(v string) *CreateUserInput {
 	s.UserName = &v
@@ -15509,7 +16104,6 @@ func (s *CreateUserInput) SetUserName(v string) *CreateUserInput {
 }
 
 // Contains the response to a successful CreateUser request.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/CreateUserResponse
 type CreateUserOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -15533,7 +16127,6 @@ func (s *CreateUserOutput) SetUser(v *User) *CreateUserOutput {
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/CreateVirtualMFADeviceRequest
 type CreateVirtualMFADeviceInput struct {
 	_ struct{} `type:"structure"`
 
@@ -15544,11 +16137,12 @@ type CreateVirtualMFADeviceInput struct {
 	// This parameter is optional. If it is not included, it defaults to a slash
 	// (/).
 	//
-	// This paramater allows (per its regex pattern (http://wikipedia.org/wiki/regex))
+	// This parameter allows (per its regex pattern (http://wikipedia.org/wiki/regex))
 	// a string of characters consisting of either a forward slash (/) by itself
-	// or a string that must begin and end with forward slashes, containing any
-	// ASCII character from the ! (\u0021) thru the DEL character (\u007F), including
-	// most punctuation characters, digits, and upper and lowercased letters.
+	// or a string that must begin and end with forward slashes. In addition, it
+	// can contain any ASCII character from the ! (\u0021) through the DEL character
+	// (\u007F), including most punctuation characters, digits, and upper and lowercased
+	// letters.
 	Path *string `min:"1" type:"string"`
 
 	// The name of the virtual MFA device. Use with path to uniquely identify a
@@ -15556,7 +16150,7 @@ type CreateVirtualMFADeviceInput struct {
 	//
 	// This parameter allows (per its regex pattern (http://wikipedia.org/wiki/regex))
 	// a string of characters consisting of upper and lowercase alphanumeric characters
-	// with no spaces. You can also include any of the following characters: =,.@-
+	// with no spaces. You can also include any of the following characters: _+=,.@-
 	//
 	// VirtualMFADeviceName is a required field
 	VirtualMFADeviceName *string `min:"1" type:"string" required:"true"`
@@ -15604,7 +16198,6 @@ func (s *CreateVirtualMFADeviceInput) SetVirtualMFADeviceName(v string) *CreateV
 }
 
 // Contains the response to a successful CreateVirtualMFADevice request.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/CreateVirtualMFADeviceResponse
 type CreateVirtualMFADeviceOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -15630,7 +16223,6 @@ func (s *CreateVirtualMFADeviceOutput) SetVirtualMFADevice(v *VirtualMFADevice) 
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/DeactivateMFADeviceRequest
 type DeactivateMFADeviceInput struct {
 	_ struct{} `type:"structure"`
 
@@ -15648,7 +16240,7 @@ type DeactivateMFADeviceInput struct {
 	//
 	// This parameter allows (per its regex pattern (http://wikipedia.org/wiki/regex))
 	// a string of characters consisting of upper and lowercase alphanumeric characters
-	// with no spaces. You can also include any of the following characters: =,.@-
+	// with no spaces. You can also include any of the following characters: _+=,.@-
 	//
 	// UserName is a required field
 	UserName *string `min:"1" type:"string" required:"true"`
@@ -15698,7 +16290,6 @@ func (s *DeactivateMFADeviceInput) SetUserName(v string) *DeactivateMFADeviceInp
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/DeactivateMFADeviceOutput
 type DeactivateMFADeviceOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -15713,7 +16304,6 @@ func (s DeactivateMFADeviceOutput) GoString() string {
 	return s.String()
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/DeleteAccessKeyRequest
 type DeleteAccessKeyInput struct {
 	_ struct{} `type:"structure"`
 
@@ -15731,7 +16321,7 @@ type DeleteAccessKeyInput struct {
 	//
 	// This parameter allows (per its regex pattern (http://wikipedia.org/wiki/regex))
 	// a string of characters consisting of upper and lowercase alphanumeric characters
-	// with no spaces. You can also include any of the following characters: =,.@-
+	// with no spaces. You can also include any of the following characters: _+=,.@-
 	UserName *string `min:"1" type:"string"`
 }
 
@@ -15776,7 +16366,6 @@ func (s *DeleteAccessKeyInput) SetUserName(v string) *DeleteAccessKeyInput {
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/DeleteAccessKeyOutput
 type DeleteAccessKeyOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -15791,7 +16380,6 @@ func (s DeleteAccessKeyOutput) GoString() string {
 	return s.String()
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/DeleteAccountAliasRequest
 type DeleteAccountAliasInput struct {
 	_ struct{} `type:"structure"`
 
@@ -15838,7 +16426,6 @@ func (s *DeleteAccountAliasInput) SetAccountAlias(v string) *DeleteAccountAliasI
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/DeleteAccountAliasOutput
 type DeleteAccountAliasOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -15853,7 +16440,6 @@ func (s DeleteAccountAliasOutput) GoString() string {
 	return s.String()
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/DeleteAccountPasswordPolicyInput
 type DeleteAccountPasswordPolicyInput struct {
 	_ struct{} `type:"structure"`
 }
@@ -15868,7 +16454,6 @@ func (s DeleteAccountPasswordPolicyInput) GoString() string {
 	return s.String()
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/DeleteAccountPasswordPolicyOutput
 type DeleteAccountPasswordPolicyOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -15883,7 +16468,6 @@ func (s DeleteAccountPasswordPolicyOutput) GoString() string {
 	return s.String()
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/DeleteGroupRequest
 type DeleteGroupInput struct {
 	_ struct{} `type:"structure"`
 
@@ -15891,7 +16475,7 @@ type DeleteGroupInput struct {
 	//
 	// This parameter allows (per its regex pattern (http://wikipedia.org/wiki/regex))
 	// a string of characters consisting of upper and lowercase alphanumeric characters
-	// with no spaces. You can also include any of the following characters: =,.@-
+	// with no spaces. You can also include any of the following characters: _+=,.@-
 	//
 	// GroupName is a required field
 	GroupName *string `min:"1" type:"string" required:"true"`
@@ -15929,7 +16513,6 @@ func (s *DeleteGroupInput) SetGroupName(v string) *DeleteGroupInput {
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/DeleteGroupOutput
 type DeleteGroupOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -15944,7 +16527,6 @@ func (s DeleteGroupOutput) GoString() string {
 	return s.String()
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/DeleteGroupPolicyRequest
 type DeleteGroupPolicyInput struct {
 	_ struct{} `type:"structure"`
 
@@ -15953,7 +16535,7 @@ type DeleteGroupPolicyInput struct {
 	//
 	// This parameter allows (per its regex pattern (http://wikipedia.org/wiki/regex))
 	// a string of characters consisting of upper and lowercase alphanumeric characters
-	// with no spaces. You can also include any of the following characters: =,.@-
+	// with no spaces. You can also include any of the following characters: _+=,.@-
 	//
 	// GroupName is a required field
 	GroupName *string `min:"1" type:"string" required:"true"`
@@ -15962,7 +16544,7 @@ type DeleteGroupPolicyInput struct {
 	//
 	// This parameter allows (per its regex pattern (http://wikipedia.org/wiki/regex))
 	// a string of characters consisting of upper and lowercase alphanumeric characters
-	// with no spaces. You can also include any of the following characters: =,.@-+
+	// with no spaces. You can also include any of the following characters: _+=,.@-
 	//
 	// PolicyName is a required field
 	PolicyName *string `min:"1" type:"string" required:"true"`
@@ -16012,7 +16594,6 @@ func (s *DeleteGroupPolicyInput) SetPolicyName(v string) *DeleteGroupPolicyInput
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/DeleteGroupPolicyOutput
 type DeleteGroupPolicyOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -16027,7 +16608,6 @@ func (s DeleteGroupPolicyOutput) GoString() string {
 	return s.String()
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/DeleteInstanceProfileRequest
 type DeleteInstanceProfileInput struct {
 	_ struct{} `type:"structure"`
 
@@ -16035,7 +16615,7 @@ type DeleteInstanceProfileInput struct {
 	//
 	// This parameter allows (per its regex pattern (http://wikipedia.org/wiki/regex))
 	// a string of characters consisting of upper and lowercase alphanumeric characters
-	// with no spaces. You can also include any of the following characters: =,.@-
+	// with no spaces. You can also include any of the following characters: _+=,.@-
 	//
 	// InstanceProfileName is a required field
 	InstanceProfileName *string `min:"1" type:"string" required:"true"`
@@ -16073,7 +16653,6 @@ func (s *DeleteInstanceProfileInput) SetInstanceProfileName(v string) *DeleteIns
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/DeleteInstanceProfileOutput
 type DeleteInstanceProfileOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -16088,7 +16667,6 @@ func (s DeleteInstanceProfileOutput) GoString() string {
 	return s.String()
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/DeleteLoginProfileRequest
 type DeleteLoginProfileInput struct {
 	_ struct{} `type:"structure"`
 
@@ -16096,7 +16674,7 @@ type DeleteLoginProfileInput struct {
 	//
 	// This parameter allows (per its regex pattern (http://wikipedia.org/wiki/regex))
 	// a string of characters consisting of upper and lowercase alphanumeric characters
-	// with no spaces. You can also include any of the following characters: =,.@-
+	// with no spaces. You can also include any of the following characters: _+=,.@-
 	//
 	// UserName is a required field
 	UserName *string `min:"1" type:"string" required:"true"`
@@ -16134,7 +16712,6 @@ func (s *DeleteLoginProfileInput) SetUserName(v string) *DeleteLoginProfileInput
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/DeleteLoginProfileOutput
 type DeleteLoginProfileOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -16149,13 +16726,12 @@ func (s DeleteLoginProfileOutput) GoString() string {
 	return s.String()
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/DeleteOpenIDConnectProviderRequest
 type DeleteOpenIDConnectProviderInput struct {
 	_ struct{} `type:"structure"`
 
 	// The Amazon Resource Name (ARN) of the IAM OpenID Connect provider resource
 	// object to delete. You can get a list of OpenID Connect provider resource
-	// ARNs by using the ListOpenIDConnectProviders action.
+	// ARNs by using the ListOpenIDConnectProviders operation.
 	//
 	// OpenIDConnectProviderArn is a required field
 	OpenIDConnectProviderArn *string `min:"20" type:"string" required:"true"`
@@ -16193,7 +16769,6 @@ func (s *DeleteOpenIDConnectProviderInput) SetOpenIDConnectProviderArn(v string)
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/DeleteOpenIDConnectProviderOutput
 type DeleteOpenIDConnectProviderOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -16208,7 +16783,6 @@ func (s DeleteOpenIDConnectProviderOutput) GoString() string {
 	return s.String()
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/DeletePolicyRequest
 type DeletePolicyInput struct {
 	_ struct{} `type:"structure"`
 
@@ -16254,7 +16828,6 @@ func (s *DeletePolicyInput) SetPolicyArn(v string) *DeletePolicyInput {
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/DeletePolicyOutput
 type DeletePolicyOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -16269,7 +16842,6 @@ func (s DeletePolicyOutput) GoString() string {
 	return s.String()
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/DeletePolicyVersionRequest
 type DeletePolicyVersionInput struct {
 	_ struct{} `type:"structure"`
 
@@ -16339,7 +16911,6 @@ func (s *DeletePolicyVersionInput) SetVersionId(v string) *DeletePolicyVersionIn
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/DeletePolicyVersionOutput
 type DeletePolicyVersionOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -16354,7 +16925,6 @@ func (s DeletePolicyVersionOutput) GoString() string {
 	return s.String()
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/DeleteRoleRequest
 type DeleteRoleInput struct {
 	_ struct{} `type:"structure"`
 
@@ -16400,7 +16970,6 @@ func (s *DeleteRoleInput) SetRoleName(v string) *DeleteRoleInput {
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/DeleteRoleOutput
 type DeleteRoleOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -16415,7 +16984,62 @@ func (s DeleteRoleOutput) GoString() string {
 	return s.String()
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/DeleteRolePolicyRequest
+type DeleteRolePermissionsBoundaryInput struct {
+	_ struct{} `type:"structure"`
+
+	// The name (friendly name, not ARN) of the IAM role from which you want to
+	// remove the permissions boundary.
+	//
+	// RoleName is a required field
+	RoleName *string `min:"1" type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s DeleteRolePermissionsBoundaryInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DeleteRolePermissionsBoundaryInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DeleteRolePermissionsBoundaryInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DeleteRolePermissionsBoundaryInput"}
+	if s.RoleName == nil {
+		invalidParams.Add(request.NewErrParamRequired("RoleName"))
+	}
+	if s.RoleName != nil && len(*s.RoleName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("RoleName", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetRoleName sets the RoleName field's value.
+func (s *DeleteRolePermissionsBoundaryInput) SetRoleName(v string) *DeleteRolePermissionsBoundaryInput {
+	s.RoleName = &v
+	return s
+}
+
+type DeleteRolePermissionsBoundaryOutput struct {
+	_ struct{} `type:"structure"`
+}
+
+// String returns the string representation
+func (s DeleteRolePermissionsBoundaryOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DeleteRolePermissionsBoundaryOutput) GoString() string {
+	return s.String()
+}
+
 type DeleteRolePolicyInput struct {
 	_ struct{} `type:"structure"`
 
@@ -16423,7 +17047,7 @@ type DeleteRolePolicyInput struct {
 	//
 	// This parameter allows (per its regex pattern (http://wikipedia.org/wiki/regex))
 	// a string of characters consisting of upper and lowercase alphanumeric characters
-	// with no spaces. You can also include any of the following characters: =,.@-+
+	// with no spaces. You can also include any of the following characters: _+=,.@-
 	//
 	// PolicyName is a required field
 	PolicyName *string `min:"1" type:"string" required:"true"`
@@ -16483,7 +17107,6 @@ func (s *DeleteRolePolicyInput) SetRoleName(v string) *DeleteRolePolicyInput {
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/DeleteRolePolicyOutput
 type DeleteRolePolicyOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -16498,7 +17121,6 @@ func (s DeleteRolePolicyOutput) GoString() string {
 	return s.String()
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/DeleteSAMLProviderRequest
 type DeleteSAMLProviderInput struct {
 	_ struct{} `type:"structure"`
 
@@ -16540,7 +17162,6 @@ func (s *DeleteSAMLProviderInput) SetSAMLProviderArn(v string) *DeleteSAMLProvid
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/DeleteSAMLProviderOutput
 type DeleteSAMLProviderOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -16555,7 +17176,6 @@ func (s DeleteSAMLProviderOutput) GoString() string {
 	return s.String()
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/DeleteSSHPublicKeyRequest
 type DeleteSSHPublicKeyInput struct {
 	_ struct{} `type:"structure"`
 
@@ -16572,7 +17192,7 @@ type DeleteSSHPublicKeyInput struct {
 	//
 	// This parameter allows (per its regex pattern (http://wikipedia.org/wiki/regex))
 	// a string of characters consisting of upper and lowercase alphanumeric characters
-	// with no spaces. You can also include any of the following characters: =,.@-
+	// with no spaces. You can also include any of the following characters: _+=,.@-
 	//
 	// UserName is a required field
 	UserName *string `min:"1" type:"string" required:"true"`
@@ -16622,7 +17242,6 @@ func (s *DeleteSSHPublicKeyInput) SetUserName(v string) *DeleteSSHPublicKeyInput
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/DeleteSSHPublicKeyOutput
 type DeleteSSHPublicKeyOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -16637,7 +17256,6 @@ func (s DeleteSSHPublicKeyOutput) GoString() string {
 	return s.String()
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/DeleteServerCertificateRequest
 type DeleteServerCertificateInput struct {
 	_ struct{} `type:"structure"`
 
@@ -16645,7 +17263,7 @@ type DeleteServerCertificateInput struct {
 	//
 	// This parameter allows (per its regex pattern (http://wikipedia.org/wiki/regex))
 	// a string of characters consisting of upper and lowercase alphanumeric characters
-	// with no spaces. You can also include any of the following characters: =,.@-
+	// with no spaces. You can also include any of the following characters: _+=,.@-
 	//
 	// ServerCertificateName is a required field
 	ServerCertificateName *string `min:"1" type:"string" required:"true"`
@@ -16683,7 +17301,6 @@ func (s *DeleteServerCertificateInput) SetServerCertificateName(v string) *Delet
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/DeleteServerCertificateOutput
 type DeleteServerCertificateOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -16698,7 +17315,6 @@ func (s DeleteServerCertificateOutput) GoString() string {
 	return s.String()
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/DeleteServiceLinkedRoleRequest
 type DeleteServiceLinkedRoleInput struct {
 	_ struct{} `type:"structure"`
 
@@ -16740,7 +17356,6 @@ func (s *DeleteServiceLinkedRoleInput) SetRoleName(v string) *DeleteServiceLinke
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/DeleteServiceLinkedRoleResponse
 type DeleteServiceLinkedRoleOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -16767,7 +17382,6 @@ func (s *DeleteServiceLinkedRoleOutput) SetDeletionTaskId(v string) *DeleteServi
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/DeleteServiceSpecificCredentialRequest
 type DeleteServiceSpecificCredentialInput struct {
 	_ struct{} `type:"structure"`
 
@@ -16787,7 +17401,7 @@ type DeleteServiceSpecificCredentialInput struct {
 	//
 	// This parameter allows (per its regex pattern (http://wikipedia.org/wiki/regex))
 	// a string of characters consisting of upper and lowercase alphanumeric characters
-	// with no spaces. You can also include any of the following characters: =,.@-
+	// with no spaces. You can also include any of the following characters: _+=,.@-
 	UserName *string `min:"1" type:"string"`
 }
 
@@ -16832,7 +17446,6 @@ func (s *DeleteServiceSpecificCredentialInput) SetUserName(v string) *DeleteServ
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/DeleteServiceSpecificCredentialOutput
 type DeleteServiceSpecificCredentialOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -16847,7 +17460,6 @@ func (s DeleteServiceSpecificCredentialOutput) GoString() string {
 	return s.String()
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/DeleteSigningCertificateRequest
 type DeleteSigningCertificateInput struct {
 	_ struct{} `type:"structure"`
 
@@ -16864,7 +17476,7 @@ type DeleteSigningCertificateInput struct {
 	//
 	// This parameter allows (per its regex pattern (http://wikipedia.org/wiki/regex))
 	// a string of characters consisting of upper and lowercase alphanumeric characters
-	// with no spaces. You can also include any of the following characters: =,.@-
+	// with no spaces. You can also include any of the following characters: _+=,.@-
 	UserName *string `min:"1" type:"string"`
 }
 
@@ -16909,7 +17521,6 @@ func (s *DeleteSigningCertificateInput) SetUserName(v string) *DeleteSigningCert
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/DeleteSigningCertificateOutput
 type DeleteSigningCertificateOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -16924,7 +17535,6 @@ func (s DeleteSigningCertificateOutput) GoString() string {
 	return s.String()
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/DeleteUserRequest
 type DeleteUserInput struct {
 	_ struct{} `type:"structure"`
 
@@ -16932,7 +17542,7 @@ type DeleteUserInput struct {
 	//
 	// This parameter allows (per its regex pattern (http://wikipedia.org/wiki/regex))
 	// a string of characters consisting of upper and lowercase alphanumeric characters
-	// with no spaces. You can also include any of the following characters: =,.@-
+	// with no spaces. You can also include any of the following characters: _+=,.@-
 	//
 	// UserName is a required field
 	UserName *string `min:"1" type:"string" required:"true"`
@@ -16970,7 +17580,6 @@ func (s *DeleteUserInput) SetUserName(v string) *DeleteUserInput {
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/DeleteUserOutput
 type DeleteUserOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -16985,7 +17594,62 @@ func (s DeleteUserOutput) GoString() string {
 	return s.String()
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/DeleteUserPolicyRequest
+type DeleteUserPermissionsBoundaryInput struct {
+	_ struct{} `type:"structure"`
+
+	// The name (friendly name, not ARN) of the IAM user from which you want to
+	// remove the permissions boundary.
+	//
+	// UserName is a required field
+	UserName *string `min:"1" type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s DeleteUserPermissionsBoundaryInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DeleteUserPermissionsBoundaryInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DeleteUserPermissionsBoundaryInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DeleteUserPermissionsBoundaryInput"}
+	if s.UserName == nil {
+		invalidParams.Add(request.NewErrParamRequired("UserName"))
+	}
+	if s.UserName != nil && len(*s.UserName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("UserName", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetUserName sets the UserName field's value.
+func (s *DeleteUserPermissionsBoundaryInput) SetUserName(v string) *DeleteUserPermissionsBoundaryInput {
+	s.UserName = &v
+	return s
+}
+
+type DeleteUserPermissionsBoundaryOutput struct {
+	_ struct{} `type:"structure"`
+}
+
+// String returns the string representation
+func (s DeleteUserPermissionsBoundaryOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DeleteUserPermissionsBoundaryOutput) GoString() string {
+	return s.String()
+}
+
 type DeleteUserPolicyInput struct {
 	_ struct{} `type:"structure"`
 
@@ -16993,7 +17657,7 @@ type DeleteUserPolicyInput struct {
 	//
 	// This parameter allows (per its regex pattern (http://wikipedia.org/wiki/regex))
 	// a string of characters consisting of upper and lowercase alphanumeric characters
-	// with no spaces. You can also include any of the following characters: =,.@-+
+	// with no spaces. You can also include any of the following characters: _+=,.@-
 	//
 	// PolicyName is a required field
 	PolicyName *string `min:"1" type:"string" required:"true"`
@@ -17003,7 +17667,7 @@ type DeleteUserPolicyInput struct {
 	//
 	// This parameter allows (per its regex pattern (http://wikipedia.org/wiki/regex))
 	// a string of characters consisting of upper and lowercase alphanumeric characters
-	// with no spaces. You can also include any of the following characters: =,.@-
+	// with no spaces. You can also include any of the following characters: _+=,.@-
 	//
 	// UserName is a required field
 	UserName *string `min:"1" type:"string" required:"true"`
@@ -17053,7 +17717,6 @@ func (s *DeleteUserPolicyInput) SetUserName(v string) *DeleteUserPolicyInput {
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/DeleteUserPolicyOutput
 type DeleteUserPolicyOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -17068,7 +17731,6 @@ func (s DeleteUserPolicyOutput) GoString() string {
 	return s.String()
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/DeleteVirtualMFADeviceRequest
 type DeleteVirtualMFADeviceInput struct {
 	_ struct{} `type:"structure"`
 
@@ -17115,7 +17777,6 @@ func (s *DeleteVirtualMFADeviceInput) SetSerialNumber(v string) *DeleteVirtualMF
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/DeleteVirtualMFADeviceOutput
 type DeleteVirtualMFADeviceOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -17134,7 +17795,6 @@ func (s DeleteVirtualMFADeviceOutput) GoString() string {
 //
 // This data type is used as a response element in the GetServiceLinkedRoleDeletionStatus
 // operation.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/DeletionTaskFailureReasonType
 type DeletionTaskFailureReasonType struct {
 	_ struct{} `type:"structure"`
 
@@ -17142,11 +17802,11 @@ type DeletionTaskFailureReasonType struct {
 	Reason *string `type:"string"`
 
 	// A list of objects that contains details about the service-linked role deletion
-	// failure. If the service-linked role has active sessions or if any resources
-	// that were used by the role have not been deleted from the linked service,
-	// the role can't be deleted. This parameter includes a list of the resources
-	// that are associated with the role and the region in which the resources are
-	// being used.
+	// failure, if that information is returned by the service. If the service-linked
+	// role has active sessions or if any resources that were used by the role have
+	// not been deleted from the linked service, the role can't be deleted. This
+	// parameter includes a list of the resources that are associated with the role
+	// and the region in which the resources are being used.
 	RoleUsageList []*RoleUsageType `type:"list"`
 }
 
@@ -17172,7 +17832,6 @@ func (s *DeletionTaskFailureReasonType) SetRoleUsageList(v []*RoleUsageType) *De
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/DetachGroupPolicyRequest
 type DetachGroupPolicyInput struct {
 	_ struct{} `type:"structure"`
 
@@ -17180,7 +17839,7 @@ type DetachGroupPolicyInput struct {
 	//
 	// This parameter allows (per its regex pattern (http://wikipedia.org/wiki/regex))
 	// a string of characters consisting of upper and lowercase alphanumeric characters
-	// with no spaces. You can also include any of the following characters: =,.@-
+	// with no spaces. You can also include any of the following characters: _+=,.@-
 	//
 	// GroupName is a required field
 	GroupName *string `min:"1" type:"string" required:"true"`
@@ -17239,7 +17898,6 @@ func (s *DetachGroupPolicyInput) SetPolicyArn(v string) *DetachGroupPolicyInput 
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/DetachGroupPolicyOutput
 type DetachGroupPolicyOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -17254,7 +17912,6 @@ func (s DetachGroupPolicyOutput) GoString() string {
 	return s.String()
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/DetachRolePolicyRequest
 type DetachRolePolicyInput struct {
 	_ struct{} `type:"structure"`
 
@@ -17321,7 +17978,6 @@ func (s *DetachRolePolicyInput) SetRoleName(v string) *DetachRolePolicyInput {
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/DetachRolePolicyOutput
 type DetachRolePolicyOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -17336,7 +17992,6 @@ func (s DetachRolePolicyOutput) GoString() string {
 	return s.String()
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/DetachUserPolicyRequest
 type DetachUserPolicyInput struct {
 	_ struct{} `type:"structure"`
 
@@ -17353,7 +18008,7 @@ type DetachUserPolicyInput struct {
 	//
 	// This parameter allows (per its regex pattern (http://wikipedia.org/wiki/regex))
 	// a string of characters consisting of upper and lowercase alphanumeric characters
-	// with no spaces. You can also include any of the following characters: =,.@-
+	// with no spaces. You can also include any of the following characters: _+=,.@-
 	//
 	// UserName is a required field
 	UserName *string `min:"1" type:"string" required:"true"`
@@ -17403,7 +18058,6 @@ func (s *DetachUserPolicyInput) SetUserName(v string) *DetachUserPolicyInput {
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/DetachUserPolicyOutput
 type DetachUserPolicyOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -17418,13 +18072,12 @@ func (s DetachUserPolicyOutput) GoString() string {
 	return s.String()
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/EnableMFADeviceRequest
 type EnableMFADeviceInput struct {
 	_ struct{} `type:"structure"`
 
 	// An authentication code emitted by the device.
 	//
-	// The format for this parameter is a string of 6 digits.
+	// The format for this parameter is a string of six digits.
 	//
 	// Submit your request immediately after generating the authentication codes.
 	// If you generate the codes and then wait too long to submit the request, the
@@ -17438,7 +18091,7 @@ type EnableMFADeviceInput struct {
 
 	// A subsequent authentication code emitted by the device.
 	//
-	// The format for this parameter is a string of 6 digits.
+	// The format for this parameter is a string of six digits.
 	//
 	// Submit your request immediately after generating the authentication codes.
 	// If you generate the codes and then wait too long to submit the request, the
@@ -17464,7 +18117,7 @@ type EnableMFADeviceInput struct {
 	//
 	// This parameter allows (per its regex pattern (http://wikipedia.org/wiki/regex))
 	// a string of characters consisting of upper and lowercase alphanumeric characters
-	// with no spaces. You can also include any of the following characters: =,.@-
+	// with no spaces. You can also include any of the following characters: _+=,.@-
 	//
 	// UserName is a required field
 	UserName *string `min:"1" type:"string" required:"true"`
@@ -17538,7 +18191,6 @@ func (s *EnableMFADeviceInput) SetUserName(v string) *EnableMFADeviceInput {
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/EnableMFADeviceOutput
 type EnableMFADeviceOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -17557,11 +18209,10 @@ func (s EnableMFADeviceOutput) GoString() string {
 //
 // This data type is used by the return parameter of SimulateCustomPolicy and
 // SimulatePrincipalPolicy.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/EvaluationResult
 type EvaluationResult struct {
 	_ struct{} `type:"structure"`
 
-	// The name of the API action tested on the indicated resource.
+	// The name of the API operation tested on the indicated resource.
 	//
 	// EvalActionName is a required field
 	EvalActionName *string `min:"3" type:"string" required:"true"`
@@ -17579,12 +18230,12 @@ type EvaluationResult struct {
 	// Policies (http://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_compare-resource-policies.html)
 	EvalDecisionDetails map[string]*string `type:"map"`
 
-	// The ARN of the resource that the indicated API action was tested on.
+	// The ARN of the resource that the indicated API operation was tested on.
 	EvalResourceName *string `min:"1" type:"string"`
 
 	// A list of the statements in the input policies that determine the result
-	// for this scenario. Remember that even if multiple statements allow the action
-	// on the resource, if only one statement denies that action, then the explicit
+	// for this scenario. Remember that even if multiple statements allow the operation
+	// on the resource, if only one statement denies that operation, then the explicit
 	// deny overrides any allow, and the deny statement is the only entry included
 	// in the result.
 	MatchedStatements []*Statement `type:"list"`
@@ -17603,8 +18254,8 @@ type EvaluationResult struct {
 	// account is part of an organization.
 	OrganizationsDecisionDetail *OrganizationsDecisionDetail `type:"structure"`
 
-	// The individual results of the simulation of the API action specified in EvalActionName
-	// on each resource.
+	// The individual results of the simulation of the API operation specified in
+	// EvalActionName on each resource.
 	ResourceSpecificResults []*ResourceSpecificResult `type:"list"`
 }
 
@@ -17666,7 +18317,6 @@ func (s *EvaluationResult) SetResourceSpecificResults(v []*ResourceSpecificResul
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/GenerateCredentialReportInput
 type GenerateCredentialReportInput struct {
 	_ struct{} `type:"structure"`
 }
@@ -17682,7 +18332,6 @@ func (s GenerateCredentialReportInput) GoString() string {
 }
 
 // Contains the response to a successful GenerateCredentialReport request.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/GenerateCredentialReportResponse
 type GenerateCredentialReportOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -17715,7 +18364,6 @@ func (s *GenerateCredentialReportOutput) SetState(v string) *GenerateCredentialR
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/GetAccessKeyLastUsedRequest
 type GetAccessKeyLastUsedInput struct {
 	_ struct{} `type:"structure"`
 
@@ -17764,7 +18412,6 @@ func (s *GetAccessKeyLastUsedInput) SetAccessKeyId(v string) *GetAccessKeyLastUs
 // Contains the response to a successful GetAccessKeyLastUsed request. It is
 // also returned as a member of the AccessKeyMetaData structure returned by
 // the ListAccessKeys action.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/GetAccessKeyLastUsedResponse
 type GetAccessKeyLastUsedOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -17797,7 +18444,6 @@ func (s *GetAccessKeyLastUsedOutput) SetUserName(v string) *GetAccessKeyLastUsed
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/GetAccountAuthorizationDetailsRequest
 type GetAccountAuthorizationDetailsInput struct {
 	_ struct{} `type:"structure"`
 
@@ -17873,7 +18519,6 @@ func (s *GetAccountAuthorizationDetailsInput) SetMaxItems(v int64) *GetAccountAu
 }
 
 // Contains the response to a successful GetAccountAuthorizationDetails request.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/GetAccountAuthorizationDetailsResponse
 type GetAccountAuthorizationDetailsOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -17948,7 +18593,6 @@ func (s *GetAccountAuthorizationDetailsOutput) SetUserDetailList(v []*UserDetail
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/GetAccountPasswordPolicyInput
 type GetAccountPasswordPolicyInput struct {
 	_ struct{} `type:"structure"`
 }
@@ -17964,7 +18608,6 @@ func (s GetAccountPasswordPolicyInput) GoString() string {
 }
 
 // Contains the response to a successful GetAccountPasswordPolicy request.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/GetAccountPasswordPolicyResponse
 type GetAccountPasswordPolicyOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -17990,7 +18633,6 @@ func (s *GetAccountPasswordPolicyOutput) SetPasswordPolicy(v *PasswordPolicy) *G
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/GetAccountSummaryInput
 type GetAccountSummaryInput struct {
 	_ struct{} `type:"structure"`
 }
@@ -18006,7 +18648,6 @@ func (s GetAccountSummaryInput) GoString() string {
 }
 
 // Contains the response to a successful GetAccountSummary request.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/GetAccountSummaryResponse
 type GetAccountSummaryOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -18031,7 +18672,6 @@ func (s *GetAccountSummaryOutput) SetSummaryMap(v map[string]*int64) *GetAccount
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/GetContextKeysForCustomPolicyRequest
 type GetContextKeysForCustomPolicyInput struct {
 	_ struct{} `type:"structure"`
 
@@ -18040,11 +18680,16 @@ type GetContextKeysForCustomPolicyInput struct {
 	// complete, valid JSON text of an IAM policy.
 	//
 	// The regex pattern (http://wikipedia.org/wiki/regex) used to validate this
-	// parameter is a string of characters consisting of any printable ASCII character
-	// ranging from the space character (\u0020) through end of the ASCII character
-	// range as well as the printable characters in the Basic Latin and Latin-1
-	// Supplement character set (through \u00FF). It also includes the special characters
-	// tab (\u0009), line feed (\u000A), and carriage return (\u000D).
+	// parameter is a string of characters consisting of the following:
+	//
+	//    * Any printable ASCII character ranging from the space character (\u0020)
+	//    through the end of the ASCII character range
+	//
+	//    * The printable characters in the Basic Latin and Latin-1 Supplement character
+	//    set (through \u00FF)
+	//
+	//    * The special characters tab (\u0009), line feed (\u000A), and carriage
+	//    return (\u000D)
 	//
 	// PolicyInputList is a required field
 	PolicyInputList []*string `type:"list" required:"true"`
@@ -18081,7 +18726,6 @@ func (s *GetContextKeysForCustomPolicyInput) SetPolicyInputList(v []*string) *Ge
 
 // Contains the response to a successful GetContextKeysForPrincipalPolicy or
 // GetContextKeysForCustomPolicy request.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/GetContextKeysForPolicyResponse
 type GetContextKeysForPolicyResponse struct {
 	_ struct{} `type:"structure"`
 
@@ -18105,7 +18749,6 @@ func (s *GetContextKeysForPolicyResponse) SetContextKeyNames(v []*string) *GetCo
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/GetContextKeysForPrincipalPolicyRequest
 type GetContextKeysForPrincipalPolicyInput struct {
 	_ struct{} `type:"structure"`
 
@@ -18113,20 +18756,26 @@ type GetContextKeysForPrincipalPolicyInput struct {
 	// keys that are referenced.
 	//
 	// The regex pattern (http://wikipedia.org/wiki/regex) used to validate this
-	// parameter is a string of characters consisting of any printable ASCII character
-	// ranging from the space character (\u0020) through end of the ASCII character
-	// range as well as the printable characters in the Basic Latin and Latin-1
-	// Supplement character set (through \u00FF). It also includes the special characters
-	// tab (\u0009), line feed (\u000A), and carriage return (\u000D).
+	// parameter is a string of characters consisting of the following:
+	//
+	//    * Any printable ASCII character ranging from the space character (\u0020)
+	//    through the end of the ASCII character range
+	//
+	//    * The printable characters in the Basic Latin and Latin-1 Supplement character
+	//    set (through \u00FF)
+	//
+	//    * The special characters tab (\u0009), line feed (\u000A), and carriage
+	//    return (\u000D)
 	PolicyInputList []*string `type:"list"`
 
 	// The ARN of a user, group, or role whose policies contain the context keys
 	// that you want listed. If you specify a user, the list includes context keys
-	// that are found in all policies attached to the user as well as to all groups
-	// that the user is a member of. If you pick a group or a role, then it includes
-	// only those context keys that are found in policies attached to that entity.
-	// Note that all parameters are shown in unencoded form here for clarity, but
-	// must be URL encoded to be included as a part of a real HTML request.
+	// that are found in all policies that are attached to the user. The list also
+	// includes all groups that the user is a member of. If you pick a group or
+	// a role, then it includes only those context keys that are found in policies
+	// attached to that entity. Note that all parameters are shown in unencoded
+	// form here for clarity, but must be URL encoded to be included as a part of
+	// a real HTML request.
 	//
 	// For more information about ARNs, see Amazon Resource Names (ARNs) and AWS
 	// Service Namespaces (http://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html)
@@ -18174,7 +18823,6 @@ func (s *GetContextKeysForPrincipalPolicyInput) SetPolicySourceArn(v string) *Ge
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/GetCredentialReportInput
 type GetCredentialReportInput struct {
 	_ struct{} `type:"structure"`
 }
@@ -18190,7 +18838,6 @@ func (s GetCredentialReportInput) GoString() string {
 }
 
 // Contains the response to a successful GetCredentialReport request.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/GetCredentialReportResponse
 type GetCredentialReportOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -18201,7 +18848,7 @@ type GetCredentialReportOutput struct {
 
 	// The date and time when the credential report was created, in ISO 8601 date-time
 	// format (http://www.iso.org/iso/iso8601).
-	GeneratedTime *time.Time `type:"timestamp" timestampFormat:"iso8601"`
+	GeneratedTime *time.Time `type:"timestamp"`
 
 	// The format (MIME type) of the credential report.
 	ReportFormat *string `type:"string" enum:"ReportFormatType"`
@@ -18235,7 +18882,6 @@ func (s *GetCredentialReportOutput) SetReportFormat(v string) *GetCredentialRepo
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/GetGroupRequest
 type GetGroupInput struct {
 	_ struct{} `type:"structure"`
 
@@ -18243,7 +18889,7 @@ type GetGroupInput struct {
 	//
 	// This parameter allows (per its regex pattern (http://wikipedia.org/wiki/regex))
 	// a string of characters consisting of upper and lowercase alphanumeric characters
-	// with no spaces. You can also include any of the following characters: =,.@-
+	// with no spaces. You can also include any of the following characters: _+=,.@-
 	//
 	// GroupName is a required field
 	GroupName *string `min:"1" type:"string" required:"true"`
@@ -18317,7 +18963,6 @@ func (s *GetGroupInput) SetMaxItems(v int64) *GetGroupInput {
 }
 
 // Contains the response to a successful GetGroup request.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/GetGroupResponse
 type GetGroupOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -18378,7 +19023,6 @@ func (s *GetGroupOutput) SetUsers(v []*User) *GetGroupOutput {
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/GetGroupPolicyRequest
 type GetGroupPolicyInput struct {
 	_ struct{} `type:"structure"`
 
@@ -18386,7 +19030,7 @@ type GetGroupPolicyInput struct {
 	//
 	// This parameter allows (per its regex pattern (http://wikipedia.org/wiki/regex))
 	// a string of characters consisting of upper and lowercase alphanumeric characters
-	// with no spaces. You can also include any of the following characters: =,.@-
+	// with no spaces. You can also include any of the following characters: _+=,.@-
 	//
 	// GroupName is a required field
 	GroupName *string `min:"1" type:"string" required:"true"`
@@ -18395,7 +19039,7 @@ type GetGroupPolicyInput struct {
 	//
 	// This parameter allows (per its regex pattern (http://wikipedia.org/wiki/regex))
 	// a string of characters consisting of upper and lowercase alphanumeric characters
-	// with no spaces. You can also include any of the following characters: =,.@-+
+	// with no spaces. You can also include any of the following characters: _+=,.@-
 	//
 	// PolicyName is a required field
 	PolicyName *string `min:"1" type:"string" required:"true"`
@@ -18446,7 +19090,6 @@ func (s *GetGroupPolicyInput) SetPolicyName(v string) *GetGroupPolicyInput {
 }
 
 // Contains the response to a successful GetGroupPolicy request.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/GetGroupPolicyResponse
 type GetGroupPolicyOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -18494,7 +19137,6 @@ func (s *GetGroupPolicyOutput) SetPolicyName(v string) *GetGroupPolicyOutput {
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/GetInstanceProfileRequest
 type GetInstanceProfileInput struct {
 	_ struct{} `type:"structure"`
 
@@ -18502,7 +19144,7 @@ type GetInstanceProfileInput struct {
 	//
 	// This parameter allows (per its regex pattern (http://wikipedia.org/wiki/regex))
 	// a string of characters consisting of upper and lowercase alphanumeric characters
-	// with no spaces. You can also include any of the following characters: =,.@-
+	// with no spaces. You can also include any of the following characters: _+=,.@-
 	//
 	// InstanceProfileName is a required field
 	InstanceProfileName *string `min:"1" type:"string" required:"true"`
@@ -18541,7 +19183,6 @@ func (s *GetInstanceProfileInput) SetInstanceProfileName(v string) *GetInstanceP
 }
 
 // Contains the response to a successful GetInstanceProfile request.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/GetInstanceProfileResponse
 type GetInstanceProfileOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -18567,7 +19208,6 @@ func (s *GetInstanceProfileOutput) SetInstanceProfile(v *InstanceProfile) *GetIn
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/GetLoginProfileRequest
 type GetLoginProfileInput struct {
 	_ struct{} `type:"structure"`
 
@@ -18575,7 +19215,7 @@ type GetLoginProfileInput struct {
 	//
 	// This parameter allows (per its regex pattern (http://wikipedia.org/wiki/regex))
 	// a string of characters consisting of upper and lowercase alphanumeric characters
-	// with no spaces. You can also include any of the following characters: =,.@-
+	// with no spaces. You can also include any of the following characters: _+=,.@-
 	//
 	// UserName is a required field
 	UserName *string `min:"1" type:"string" required:"true"`
@@ -18614,7 +19254,6 @@ func (s *GetLoginProfileInput) SetUserName(v string) *GetLoginProfileInput {
 }
 
 // Contains the response to a successful GetLoginProfile request.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/GetLoginProfileResponse
 type GetLoginProfileOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -18640,13 +19279,12 @@ func (s *GetLoginProfileOutput) SetLoginProfile(v *LoginProfile) *GetLoginProfil
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/GetOpenIDConnectProviderRequest
 type GetOpenIDConnectProviderInput struct {
 	_ struct{} `type:"structure"`
 
 	// The Amazon Resource Name (ARN) of the OIDC provider resource object in IAM
 	// to get information for. You can get a list of OIDC provider resource ARNs
-	// by using the ListOpenIDConnectProviders action.
+	// by using the ListOpenIDConnectProviders operation.
 	//
 	// For more information about ARNs, see Amazon Resource Names (ARNs) and AWS
 	// Service Namespaces (http://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html)
@@ -18689,7 +19327,6 @@ func (s *GetOpenIDConnectProviderInput) SetOpenIDConnectProviderArn(v string) *G
 }
 
 // Contains the response to a successful GetOpenIDConnectProvider request.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/GetOpenIDConnectProviderResponse
 type GetOpenIDConnectProviderOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -18699,7 +19336,7 @@ type GetOpenIDConnectProviderOutput struct {
 
 	// The date and time when the IAM OIDC provider resource object was created
 	// in the AWS account.
-	CreateDate *time.Time `type:"timestamp" timestampFormat:"iso8601"`
+	CreateDate *time.Time `type:"timestamp"`
 
 	// A list of certificate thumbprints that are associated with the specified
 	// IAM OIDC provider resource object. For more information, see CreateOpenIDConnectProvider.
@@ -18744,7 +19381,6 @@ func (s *GetOpenIDConnectProviderOutput) SetUrl(v string) *GetOpenIDConnectProvi
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/GetPolicyRequest
 type GetPolicyInput struct {
 	_ struct{} `type:"structure"`
 
@@ -18792,7 +19428,6 @@ func (s *GetPolicyInput) SetPolicyArn(v string) *GetPolicyInput {
 }
 
 // Contains the response to a successful GetPolicy request.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/GetPolicyResponse
 type GetPolicyOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -18816,7 +19451,6 @@ func (s *GetPolicyOutput) SetPolicy(v *Policy) *GetPolicyOutput {
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/GetPolicyVersionRequest
 type GetPolicyVersionInput struct {
 	_ struct{} `type:"structure"`
 
@@ -18883,7 +19517,6 @@ func (s *GetPolicyVersionInput) SetVersionId(v string) *GetPolicyVersionInput {
 }
 
 // Contains the response to a successful GetPolicyVersion request.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/GetPolicyVersionResponse
 type GetPolicyVersionOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -18907,7 +19540,6 @@ func (s *GetPolicyVersionOutput) SetPolicyVersion(v *PolicyVersion) *GetPolicyVe
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/GetRoleRequest
 type GetRoleInput struct {
 	_ struct{} `type:"structure"`
 
@@ -18954,7 +19586,6 @@ func (s *GetRoleInput) SetRoleName(v string) *GetRoleInput {
 }
 
 // Contains the response to a successful GetRole request.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/GetRoleResponse
 type GetRoleOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -18980,7 +19611,6 @@ func (s *GetRoleOutput) SetRole(v *Role) *GetRoleOutput {
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/GetRolePolicyRequest
 type GetRolePolicyInput struct {
 	_ struct{} `type:"structure"`
 
@@ -18988,7 +19618,7 @@ type GetRolePolicyInput struct {
 	//
 	// This parameter allows (per its regex pattern (http://wikipedia.org/wiki/regex))
 	// a string of characters consisting of upper and lowercase alphanumeric characters
-	// with no spaces. You can also include any of the following characters: =,.@-+
+	// with no spaces. You can also include any of the following characters: _+=,.@-
 	//
 	// PolicyName is a required field
 	PolicyName *string `min:"1" type:"string" required:"true"`
@@ -19048,7 +19678,6 @@ func (s *GetRolePolicyInput) SetRoleName(v string) *GetRolePolicyInput {
 }
 
 // Contains the response to a successful GetRolePolicy request.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/GetRolePolicyResponse
 type GetRolePolicyOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -19096,7 +19725,6 @@ func (s *GetRolePolicyOutput) SetRoleName(v string) *GetRolePolicyOutput {
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/GetSAMLProviderRequest
 type GetSAMLProviderInput struct {
 	_ struct{} `type:"structure"`
 
@@ -19144,18 +19772,17 @@ func (s *GetSAMLProviderInput) SetSAMLProviderArn(v string) *GetSAMLProviderInpu
 }
 
 // Contains the response to a successful GetSAMLProvider request.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/GetSAMLProviderResponse
 type GetSAMLProviderOutput struct {
 	_ struct{} `type:"structure"`
 
 	// The date and time when the SAML provider was created.
-	CreateDate *time.Time `type:"timestamp" timestampFormat:"iso8601"`
+	CreateDate *time.Time `type:"timestamp"`
 
 	// The XML metadata document that includes information about an identity provider.
 	SAMLMetadataDocument *string `min:"1000" type:"string"`
 
 	// The expiration date and time for the SAML provider.
-	ValidUntil *time.Time `type:"timestamp" timestampFormat:"iso8601"`
+	ValidUntil *time.Time `type:"timestamp"`
 }
 
 // String returns the string representation
@@ -19186,7 +19813,6 @@ func (s *GetSAMLProviderOutput) SetValidUntil(v time.Time) *GetSAMLProviderOutpu
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/GetSSHPublicKeyRequest
 type GetSSHPublicKeyInput struct {
 	_ struct{} `type:"structure"`
 
@@ -19210,7 +19836,7 @@ type GetSSHPublicKeyInput struct {
 	//
 	// This parameter allows (per its regex pattern (http://wikipedia.org/wiki/regex))
 	// a string of characters consisting of upper and lowercase alphanumeric characters
-	// with no spaces. You can also include any of the following characters: =,.@-
+	// with no spaces. You can also include any of the following characters: _+=,.@-
 	//
 	// UserName is a required field
 	UserName *string `min:"1" type:"string" required:"true"`
@@ -19270,7 +19896,6 @@ func (s *GetSSHPublicKeyInput) SetUserName(v string) *GetSSHPublicKeyInput {
 }
 
 // Contains the response to a successful GetSSHPublicKey request.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/GetSSHPublicKeyResponse
 type GetSSHPublicKeyOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -19294,7 +19919,6 @@ func (s *GetSSHPublicKeyOutput) SetSSHPublicKey(v *SSHPublicKey) *GetSSHPublicKe
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/GetServerCertificateRequest
 type GetServerCertificateInput struct {
 	_ struct{} `type:"structure"`
 
@@ -19302,7 +19926,7 @@ type GetServerCertificateInput struct {
 	//
 	// This parameter allows (per its regex pattern (http://wikipedia.org/wiki/regex))
 	// a string of characters consisting of upper and lowercase alphanumeric characters
-	// with no spaces. You can also include any of the following characters: =,.@-
+	// with no spaces. You can also include any of the following characters: _+=,.@-
 	//
 	// ServerCertificateName is a required field
 	ServerCertificateName *string `min:"1" type:"string" required:"true"`
@@ -19341,7 +19965,6 @@ func (s *GetServerCertificateInput) SetServerCertificateName(v string) *GetServe
 }
 
 // Contains the response to a successful GetServerCertificate request.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/GetServerCertificateResponse
 type GetServerCertificateOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -19367,7 +19990,6 @@ func (s *GetServerCertificateOutput) SetServerCertificate(v *ServerCertificate) 
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/GetServiceLinkedRoleDeletionStatusRequest
 type GetServiceLinkedRoleDeletionStatusInput struct {
 	_ struct{} `type:"structure"`
 
@@ -19410,7 +20032,6 @@ func (s *GetServiceLinkedRoleDeletionStatusInput) SetDeletionTaskId(v string) *G
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/GetServiceLinkedRoleDeletionStatusResponse
 type GetServiceLinkedRoleDeletionStatusOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -19445,7 +20066,6 @@ func (s *GetServiceLinkedRoleDeletionStatusOutput) SetStatus(v string) *GetServi
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/GetUserRequest
 type GetUserInput struct {
 	_ struct{} `type:"structure"`
 
@@ -19454,7 +20074,7 @@ type GetUserInput struct {
 	// This parameter is optional. If it is not included, it defaults to the user
 	// making the request. This parameter allows (per its regex pattern (http://wikipedia.org/wiki/regex))
 	// a string of characters consisting of upper and lowercase alphanumeric characters
-	// with no spaces. You can also include any of the following characters: =,.@-
+	// with no spaces. You can also include any of the following characters: _+=,.@-
 	UserName *string `min:"1" type:"string"`
 }
 
@@ -19488,11 +20108,27 @@ func (s *GetUserInput) SetUserName(v string) *GetUserInput {
 }
 
 // Contains the response to a successful GetUser request.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/GetUserResponse
 type GetUserOutput struct {
 	_ struct{} `type:"structure"`
 
 	// A structure containing details about the IAM user.
+	//
+	// Due to a service issue, password last used data does not include password
+	// use from May 3rd 2018 22:50 PDT to May 23rd 2018 14:08 PDT. This affects
+	// last sign-in (http://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_finding-unused.html)
+	// dates shown in the IAM console and password last used dates in the IAM credential
+	// report (http://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_getting-report.html),
+	// and returned by this GetUser API. If users signed in during the affected
+	// time, the password last used date that is returned is the date the user last
+	// signed in before May 3rd 2018. For users that signed in after May 23rd 2018
+	// 14:08 PDT, the returned password last used date is accurate.
+	//
+	// If you use password last used information to identify unused credentials
+	// for deletion, such as deleting users who did not sign in to AWS in the last
+	// 90 days, we recommend that you adjust your evaluation window to include dates
+	// after May 23rd 2018. Alternatively, if your users use access keys to access
+	// AWS programmatically you can refer to access key last used information because
+	// it is accurate for all dates.
 	//
 	// User is a required field
 	User *User `type:"structure" required:"true"`
@@ -19514,7 +20150,6 @@ func (s *GetUserOutput) SetUser(v *User) *GetUserOutput {
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/GetUserPolicyRequest
 type GetUserPolicyInput struct {
 	_ struct{} `type:"structure"`
 
@@ -19522,7 +20157,7 @@ type GetUserPolicyInput struct {
 	//
 	// This parameter allows (per its regex pattern (http://wikipedia.org/wiki/regex))
 	// a string of characters consisting of upper and lowercase alphanumeric characters
-	// with no spaces. You can also include any of the following characters: =,.@-+
+	// with no spaces. You can also include any of the following characters: _+=,.@-
 	//
 	// PolicyName is a required field
 	PolicyName *string `min:"1" type:"string" required:"true"`
@@ -19531,7 +20166,7 @@ type GetUserPolicyInput struct {
 	//
 	// This parameter allows (per its regex pattern (http://wikipedia.org/wiki/regex))
 	// a string of characters consisting of upper and lowercase alphanumeric characters
-	// with no spaces. You can also include any of the following characters: =,.@-
+	// with no spaces. You can also include any of the following characters: _+=,.@-
 	//
 	// UserName is a required field
 	UserName *string `min:"1" type:"string" required:"true"`
@@ -19582,7 +20217,6 @@ func (s *GetUserPolicyInput) SetUserName(v string) *GetUserPolicyInput {
 }
 
 // Contains the response to a successful GetUserPolicy request.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/GetUserPolicyResponse
 type GetUserPolicyOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -19632,14 +20266,13 @@ func (s *GetUserPolicyOutput) SetUserName(v string) *GetUserPolicyOutput {
 
 // Contains information about an IAM group entity.
 //
-// This data type is used as a response element in the following actions:
+// This data type is used as a response element in the following operations:
 //
 //    * CreateGroup
 //
 //    * GetGroup
 //
 //    * ListGroups
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/Group
 type Group struct {
 	_ struct{} `type:"structure"`
 
@@ -19654,7 +20287,7 @@ type Group struct {
 	// when the group was created.
 	//
 	// CreateDate is a required field
-	CreateDate *time.Time `type:"timestamp" timestampFormat:"iso8601" required:"true"`
+	CreateDate *time.Time `type:"timestamp" required:"true"`
 
 	// The stable and unique string identifying the group. For more information
 	// about IDs, see IAM Identifiers (http://docs.aws.amazon.com/IAM/latest/UserGuide/Using_Identifiers.html)
@@ -19719,8 +20352,7 @@ func (s *Group) SetPath(v string) *Group {
 // Contains information about an IAM group, including all of the group's policies.
 //
 // This data type is used as a response element in the GetAccountAuthorizationDetails
-// action.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/GroupDetail
+// operation.
 type GroupDetail struct {
 	_ struct{} `type:"structure"`
 
@@ -19736,7 +20368,7 @@ type GroupDetail struct {
 
 	// The date and time, in ISO 8601 date-time format (http://www.iso.org/iso/iso8601),
 	// when the group was created.
-	CreateDate *time.Time `type:"timestamp" timestampFormat:"iso8601"`
+	CreateDate *time.Time `type:"timestamp"`
 
 	// The stable and unique string identifying the group. For more information
 	// about IDs, see IAM Identifiers (http://docs.aws.amazon.com/IAM/latest/UserGuide/Using_Identifiers.html)
@@ -19809,7 +20441,7 @@ func (s *GroupDetail) SetPath(v string) *GroupDetail {
 
 // Contains information about an instance profile.
 //
-// This data type is used as a response element in the following actions:
+// This data type is used as a response element in the following operations:
 //
 //    * CreateInstanceProfile
 //
@@ -19818,7 +20450,6 @@ func (s *GroupDetail) SetPath(v string) *GroupDetail {
 //    * ListInstanceProfiles
 //
 //    * ListInstanceProfilesForRole
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/InstanceProfile
 type InstanceProfile struct {
 	_ struct{} `type:"structure"`
 
@@ -19833,7 +20464,7 @@ type InstanceProfile struct {
 	// The date when the instance profile was created.
 	//
 	// CreateDate is a required field
-	CreateDate *time.Time `type:"timestamp" timestampFormat:"iso8601" required:"true"`
+	CreateDate *time.Time `type:"timestamp" required:"true"`
 
 	// The stable and unique string identifying the instance profile. For more information
 	// about IDs, see IAM Identifiers (http://docs.aws.amazon.com/IAM/latest/UserGuide/Using_Identifiers.html)
@@ -19906,7 +20537,6 @@ func (s *InstanceProfile) SetRoles(v []*Role) *InstanceProfile {
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/ListAccessKeysRequest
 type ListAccessKeysInput struct {
 	_ struct{} `type:"structure"`
 
@@ -19931,7 +20561,7 @@ type ListAccessKeysInput struct {
 	//
 	// This parameter allows (per its regex pattern (http://wikipedia.org/wiki/regex))
 	// a string of characters consisting of upper and lowercase alphanumeric characters
-	// with no spaces. You can also include any of the following characters: =,.@-
+	// with no spaces. You can also include any of the following characters: _+=,.@-
 	UserName *string `min:"1" type:"string"`
 }
 
@@ -19983,7 +20613,6 @@ func (s *ListAccessKeysInput) SetUserName(v string) *ListAccessKeysInput {
 }
 
 // Contains the response to a successful ListAccessKeys request.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/ListAccessKeysResponse
 type ListAccessKeysOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -20033,7 +20662,6 @@ func (s *ListAccessKeysOutput) SetMarker(v string) *ListAccessKeysOutput {
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/ListAccountAliasesRequest
 type ListAccountAliasesInput struct {
 	_ struct{} `type:"structure"`
 
@@ -20094,7 +20722,6 @@ func (s *ListAccountAliasesInput) SetMaxItems(v int64) *ListAccountAliasesInput 
 }
 
 // Contains the response to a successful ListAccountAliases request.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/ListAccountAliasesResponse
 type ListAccountAliasesOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -20145,7 +20772,6 @@ func (s *ListAccountAliasesOutput) SetMarker(v string) *ListAccountAliasesOutput
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/ListAttachedGroupPoliciesRequest
 type ListAttachedGroupPoliciesInput struct {
 	_ struct{} `type:"structure"`
 
@@ -20154,7 +20780,7 @@ type ListAttachedGroupPoliciesInput struct {
 	//
 	// This parameter allows (per its regex pattern (http://wikipedia.org/wiki/regex))
 	// a string of characters consisting of upper and lowercase alphanumeric characters
-	// with no spaces. You can also include any of the following characters: =,.@-
+	// with no spaces. You can also include any of the following characters: _+=,.@-
 	//
 	// GroupName is a required field
 	GroupName *string `min:"1" type:"string" required:"true"`
@@ -20179,11 +20805,12 @@ type ListAttachedGroupPoliciesInput struct {
 	// The path prefix for filtering the results. This parameter is optional. If
 	// it is not included, it defaults to a slash (/), listing all policies.
 	//
-	// This paramater allows (per its regex pattern (http://wikipedia.org/wiki/regex))
+	// This parameter allows (per its regex pattern (http://wikipedia.org/wiki/regex))
 	// a string of characters consisting of either a forward slash (/) by itself
-	// or a string that must begin and end with forward slashes, containing any
-	// ASCII character from the ! (\u0021) thru the DEL character (\u007F), including
-	// most punctuation characters, digits, and upper and lowercased letters.
+	// or a string that must begin and end with forward slashes. In addition, it
+	// can contain any ASCII character from the ! (\u0021) through the DEL character
+	// (\u007F), including most punctuation characters, digits, and upper and lowercased
+	// letters.
 	PathPrefix *string `type:"string"`
 }
 
@@ -20244,7 +20871,6 @@ func (s *ListAttachedGroupPoliciesInput) SetPathPrefix(v string) *ListAttachedGr
 }
 
 // Contains the response to a successful ListAttachedGroupPolicies request.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/ListAttachedGroupPoliciesResponse
 type ListAttachedGroupPoliciesOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -20292,7 +20918,6 @@ func (s *ListAttachedGroupPoliciesOutput) SetMarker(v string) *ListAttachedGroup
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/ListAttachedRolePoliciesRequest
 type ListAttachedRolePoliciesInput struct {
 	_ struct{} `type:"structure"`
 
@@ -20316,11 +20941,12 @@ type ListAttachedRolePoliciesInput struct {
 	// The path prefix for filtering the results. This parameter is optional. If
 	// it is not included, it defaults to a slash (/), listing all policies.
 	//
-	// This paramater allows (per its regex pattern (http://wikipedia.org/wiki/regex))
+	// This parameter allows (per its regex pattern (http://wikipedia.org/wiki/regex))
 	// a string of characters consisting of either a forward slash (/) by itself
-	// or a string that must begin and end with forward slashes, containing any
-	// ASCII character from the ! (\u0021) thru the DEL character (\u007F), including
-	// most punctuation characters, digits, and upper and lowercased letters.
+	// or a string that must begin and end with forward slashes. In addition, it
+	// can contain any ASCII character from the ! (\u0021) through the DEL character
+	// (\u007F), including most punctuation characters, digits, and upper and lowercased
+	// letters.
 	PathPrefix *string `type:"string"`
 
 	// The name (friendly name, not ARN) of the role to list attached policies for.
@@ -20390,7 +21016,6 @@ func (s *ListAttachedRolePoliciesInput) SetRoleName(v string) *ListAttachedRoleP
 }
 
 // Contains the response to a successful ListAttachedRolePolicies request.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/ListAttachedRolePoliciesResponse
 type ListAttachedRolePoliciesOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -20438,7 +21063,6 @@ func (s *ListAttachedRolePoliciesOutput) SetMarker(v string) *ListAttachedRolePo
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/ListAttachedUserPoliciesRequest
 type ListAttachedUserPoliciesInput struct {
 	_ struct{} `type:"structure"`
 
@@ -20462,18 +21086,19 @@ type ListAttachedUserPoliciesInput struct {
 	// The path prefix for filtering the results. This parameter is optional. If
 	// it is not included, it defaults to a slash (/), listing all policies.
 	//
-	// This paramater allows (per its regex pattern (http://wikipedia.org/wiki/regex))
+	// This parameter allows (per its regex pattern (http://wikipedia.org/wiki/regex))
 	// a string of characters consisting of either a forward slash (/) by itself
-	// or a string that must begin and end with forward slashes, containing any
-	// ASCII character from the ! (\u0021) thru the DEL character (\u007F), including
-	// most punctuation characters, digits, and upper and lowercased letters.
+	// or a string that must begin and end with forward slashes. In addition, it
+	// can contain any ASCII character from the ! (\u0021) through the DEL character
+	// (\u007F), including most punctuation characters, digits, and upper and lowercased
+	// letters.
 	PathPrefix *string `type:"string"`
 
 	// The name (friendly name, not ARN) of the user to list attached policies for.
 	//
 	// This parameter allows (per its regex pattern (http://wikipedia.org/wiki/regex))
 	// a string of characters consisting of upper and lowercase alphanumeric characters
-	// with no spaces. You can also include any of the following characters: =,.@-
+	// with no spaces. You can also include any of the following characters: _+=,.@-
 	//
 	// UserName is a required field
 	UserName *string `min:"1" type:"string" required:"true"`
@@ -20536,7 +21161,6 @@ func (s *ListAttachedUserPoliciesInput) SetUserName(v string) *ListAttachedUserP
 }
 
 // Contains the response to a successful ListAttachedUserPolicies request.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/ListAttachedUserPoliciesResponse
 type ListAttachedUserPoliciesOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -20584,7 +21208,6 @@ func (s *ListAttachedUserPoliciesOutput) SetMarker(v string) *ListAttachedUserPo
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/ListEntitiesForPolicyRequest
 type ListEntitiesForPolicyInput struct {
 	_ struct{} `type:"structure"`
 
@@ -20616,11 +21239,12 @@ type ListEntitiesForPolicyInput struct {
 	// The path prefix for filtering the results. This parameter is optional. If
 	// it is not included, it defaults to a slash (/), listing all entities.
 	//
-	// This paramater allows (per its regex pattern (http://wikipedia.org/wiki/regex))
+	// This parameter allows (per its regex pattern (http://wikipedia.org/wiki/regex))
 	// a string of characters consisting of either a forward slash (/) by itself
-	// or a string that must begin and end with forward slashes, containing any
-	// ASCII character from the ! (\u0021) thru the DEL character (\u007F), including
-	// most punctuation characters, digits, and upper and lowercased letters.
+	// or a string that must begin and end with forward slashes. In addition, it
+	// can contain any ASCII character from the ! (\u0021) through the DEL character
+	// (\u007F), including most punctuation characters, digits, and upper and lowercased
+	// letters.
 	PathPrefix *string `min:"1" type:"string"`
 
 	// The Amazon Resource Name (ARN) of the IAM policy for which you want the versions.
@@ -20631,6 +21255,15 @@ type ListEntitiesForPolicyInput struct {
 	//
 	// PolicyArn is a required field
 	PolicyArn *string `min:"20" type:"string" required:"true"`
+
+	// The policy usage method to use for filtering the results.
+	//
+	// To list only permissions policies, set PolicyUsageFilter to PermissionsPolicy.
+	// To list only the policies used to set permissions boundaries, set the value
+	// to PermissionsBoundary.
+	//
+	// This parameter is optional. If it is not included, all policies are returned.
+	PolicyUsageFilter *string `type:"string" enum:"PolicyUsageType"`
 }
 
 // String returns the string representation
@@ -20698,8 +21331,13 @@ func (s *ListEntitiesForPolicyInput) SetPolicyArn(v string) *ListEntitiesForPoli
 	return s
 }
 
+// SetPolicyUsageFilter sets the PolicyUsageFilter field's value.
+func (s *ListEntitiesForPolicyInput) SetPolicyUsageFilter(v string) *ListEntitiesForPolicyInput {
+	s.PolicyUsageFilter = &v
+	return s
+}
+
 // Contains the response to a successful ListEntitiesForPolicy request.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/ListEntitiesForPolicyResponse
 type ListEntitiesForPolicyOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -20765,7 +21403,6 @@ func (s *ListEntitiesForPolicyOutput) SetPolicyUsers(v []*PolicyUser) *ListEntit
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/ListGroupPoliciesRequest
 type ListGroupPoliciesInput struct {
 	_ struct{} `type:"structure"`
 
@@ -20773,7 +21410,7 @@ type ListGroupPoliciesInput struct {
 	//
 	// This parameter allows (per its regex pattern (http://wikipedia.org/wiki/regex))
 	// a string of characters consisting of upper and lowercase alphanumeric characters
-	// with no spaces. You can also include any of the following characters: =,.@-
+	// with no spaces. You can also include any of the following characters: _+=,.@-
 	//
 	// GroupName is a required field
 	GroupName *string `min:"1" type:"string" required:"true"`
@@ -20847,7 +21484,6 @@ func (s *ListGroupPoliciesInput) SetMaxItems(v int64) *ListGroupPoliciesInput {
 }
 
 // Contains the response to a successful ListGroupPolicies request.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/ListGroupPoliciesResponse
 type ListGroupPoliciesOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -20867,7 +21503,7 @@ type ListGroupPoliciesOutput struct {
 	//
 	// This parameter allows (per its regex pattern (http://wikipedia.org/wiki/regex))
 	// a string of characters consisting of upper and lowercase alphanumeric characters
-	// with no spaces. You can also include any of the following characters: =,.@-+
+	// with no spaces. You can also include any of the following characters: _+=,.@-
 	//
 	// PolicyNames is a required field
 	PolicyNames []*string `type:"list" required:"true"`
@@ -20901,7 +21537,6 @@ func (s *ListGroupPoliciesOutput) SetPolicyNames(v []*string) *ListGroupPolicies
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/ListGroupsForUserRequest
 type ListGroupsForUserInput struct {
 	_ struct{} `type:"structure"`
 
@@ -20926,7 +21561,7 @@ type ListGroupsForUserInput struct {
 	//
 	// This parameter allows (per its regex pattern (http://wikipedia.org/wiki/regex))
 	// a string of characters consisting of upper and lowercase alphanumeric characters
-	// with no spaces. You can also include any of the following characters: =,.@-
+	// with no spaces. You can also include any of the following characters: _+=,.@-
 	//
 	// UserName is a required field
 	UserName *string `min:"1" type:"string" required:"true"`
@@ -20983,7 +21618,6 @@ func (s *ListGroupsForUserInput) SetUserName(v string) *ListGroupsForUserInput {
 }
 
 // Contains the response to a successful ListGroupsForUser request.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/ListGroupsForUserResponse
 type ListGroupsForUserOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -21033,7 +21667,6 @@ func (s *ListGroupsForUserOutput) SetMarker(v string) *ListGroupsForUserOutput {
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/ListGroupsRequest
 type ListGroupsInput struct {
 	_ struct{} `type:"structure"`
 
@@ -21058,11 +21691,12 @@ type ListGroupsInput struct {
 	// gets all groups whose path starts with /division_abc/subdivision_xyz/.
 	//
 	// This parameter is optional. If it is not included, it defaults to a slash
-	// (/), listing all groups. This paramater allows (per its regex pattern (http://wikipedia.org/wiki/regex))
+	// (/), listing all groups. This parameter allows (per its regex pattern (http://wikipedia.org/wiki/regex))
 	// a string of characters consisting of either a forward slash (/) by itself
-	// or a string that must begin and end with forward slashes, containing any
-	// ASCII character from the ! (\u0021) thru the DEL character (\u007F), including
-	// most punctuation characters, digits, and upper and lowercased letters.
+	// or a string that must begin and end with forward slashes. In addition, it
+	// can contain any ASCII character from the ! (\u0021) through the DEL character
+	// (\u007F), including most punctuation characters, digits, and upper and lowercased
+	// letters.
 	PathPrefix *string `min:"1" type:"string"`
 }
 
@@ -21114,7 +21748,6 @@ func (s *ListGroupsInput) SetPathPrefix(v string) *ListGroupsInput {
 }
 
 // Contains the response to a successful ListGroups request.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/ListGroupsResponse
 type ListGroupsOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -21164,7 +21797,6 @@ func (s *ListGroupsOutput) SetMarker(v string) *ListGroupsOutput {
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/ListInstanceProfilesForRoleRequest
 type ListInstanceProfilesForRoleInput struct {
 	_ struct{} `type:"structure"`
 
@@ -21246,7 +21878,6 @@ func (s *ListInstanceProfilesForRoleInput) SetRoleName(v string) *ListInstancePr
 }
 
 // Contains the response to a successful ListInstanceProfilesForRole request.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/ListInstanceProfilesForRoleResponse
 type ListInstanceProfilesForRoleOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -21296,7 +21927,6 @@ func (s *ListInstanceProfilesForRoleOutput) SetMarker(v string) *ListInstancePro
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/ListInstanceProfilesRequest
 type ListInstanceProfilesInput struct {
 	_ struct{} `type:"structure"`
 
@@ -21321,12 +21951,12 @@ type ListInstanceProfilesInput struct {
 	// gets all instance profiles whose path starts with /application_abc/component_xyz/.
 	//
 	// This parameter is optional. If it is not included, it defaults to a slash
-	// (/), listing all instance profiles. This paramater allows (per its regex
+	// (/), listing all instance profiles. This parameter allows (per its regex
 	// pattern (http://wikipedia.org/wiki/regex)) a string of characters consisting
 	// of either a forward slash (/) by itself or a string that must begin and end
-	// with forward slashes, containing any ASCII character from the ! (\u0021)
-	// thru the DEL character (\u007F), including most punctuation characters, digits,
-	// and upper and lowercased letters.
+	// with forward slashes. In addition, it can contain any ASCII character from
+	// the ! (\u0021) through the DEL character (\u007F), including most punctuation
+	// characters, digits, and upper and lowercased letters.
 	PathPrefix *string `min:"1" type:"string"`
 }
 
@@ -21378,7 +22008,6 @@ func (s *ListInstanceProfilesInput) SetPathPrefix(v string) *ListInstanceProfile
 }
 
 // Contains the response to a successful ListInstanceProfiles request.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/ListInstanceProfilesResponse
 type ListInstanceProfilesOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -21428,7 +22057,6 @@ func (s *ListInstanceProfilesOutput) SetMarker(v string) *ListInstanceProfilesOu
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/ListMFADevicesRequest
 type ListMFADevicesInput struct {
 	_ struct{} `type:"structure"`
 
@@ -21453,7 +22081,7 @@ type ListMFADevicesInput struct {
 	//
 	// This parameter allows (per its regex pattern (http://wikipedia.org/wiki/regex))
 	// a string of characters consisting of upper and lowercase alphanumeric characters
-	// with no spaces. You can also include any of the following characters: =,.@-
+	// with no spaces. You can also include any of the following characters: _+=,.@-
 	UserName *string `min:"1" type:"string"`
 }
 
@@ -21505,7 +22133,6 @@ func (s *ListMFADevicesInput) SetUserName(v string) *ListMFADevicesInput {
 }
 
 // Contains the response to a successful ListMFADevices request.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/ListMFADevicesResponse
 type ListMFADevicesOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -21555,7 +22182,6 @@ func (s *ListMFADevicesOutput) SetMarker(v string) *ListMFADevicesOutput {
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/ListOpenIDConnectProvidersRequest
 type ListOpenIDConnectProvidersInput struct {
 	_ struct{} `type:"structure"`
 }
@@ -21571,7 +22197,6 @@ func (s ListOpenIDConnectProvidersInput) GoString() string {
 }
 
 // Contains the response to a successful ListOpenIDConnectProviders request.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/ListOpenIDConnectProvidersResponse
 type ListOpenIDConnectProvidersOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -21595,7 +22220,6 @@ func (s *ListOpenIDConnectProvidersOutput) SetOpenIDConnectProviderList(v []*Ope
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/ListPoliciesRequest
 type ListPoliciesInput struct {
 	_ struct{} `type:"structure"`
 
@@ -21625,12 +22249,22 @@ type ListPoliciesInput struct {
 
 	// The path prefix for filtering the results. This parameter is optional. If
 	// it is not included, it defaults to a slash (/), listing all policies. This
-	// paramater allows (per its regex pattern (http://wikipedia.org/wiki/regex))
+	// parameter allows (per its regex pattern (http://wikipedia.org/wiki/regex))
 	// a string of characters consisting of either a forward slash (/) by itself
-	// or a string that must begin and end with forward slashes, containing any
-	// ASCII character from the ! (\u0021) thru the DEL character (\u007F), including
-	// most punctuation characters, digits, and upper and lowercased letters.
+	// or a string that must begin and end with forward slashes. In addition, it
+	// can contain any ASCII character from the ! (\u0021) through the DEL character
+	// (\u007F), including most punctuation characters, digits, and upper and lowercased
+	// letters.
 	PathPrefix *string `type:"string"`
+
+	// The policy usage method to use for filtering the results.
+	//
+	// To list only permissions policies, set PolicyUsageFilter to PermissionsPolicy.
+	// To list only the policies used to set permissions boundaries, set the value
+	// to PermissionsBoundary.
+	//
+	// This parameter is optional. If it is not included, all policies are returned.
+	PolicyUsageFilter *string `type:"string" enum:"PolicyUsageType"`
 
 	// The scope to use for filtering the results.
 	//
@@ -21692,6 +22326,12 @@ func (s *ListPoliciesInput) SetPathPrefix(v string) *ListPoliciesInput {
 	return s
 }
 
+// SetPolicyUsageFilter sets the PolicyUsageFilter field's value.
+func (s *ListPoliciesInput) SetPolicyUsageFilter(v string) *ListPoliciesInput {
+	s.PolicyUsageFilter = &v
+	return s
+}
+
 // SetScope sets the Scope field's value.
 func (s *ListPoliciesInput) SetScope(v string) *ListPoliciesInput {
 	s.Scope = &v
@@ -21699,7 +22339,6 @@ func (s *ListPoliciesInput) SetScope(v string) *ListPoliciesInput {
 }
 
 // Contains the response to a successful ListPolicies request.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/ListPoliciesResponse
 type ListPoliciesOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -21747,7 +22386,6 @@ func (s *ListPoliciesOutput) SetPolicies(v []*Policy) *ListPoliciesOutput {
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/ListPolicyVersionsRequest
 type ListPolicyVersionsInput struct {
 	_ struct{} `type:"structure"`
 
@@ -21829,7 +22467,6 @@ func (s *ListPolicyVersionsInput) SetPolicyArn(v string) *ListPolicyVersionsInpu
 }
 
 // Contains the response to a successful ListPolicyVersions request.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/ListPolicyVersionsResponse
 type ListPolicyVersionsOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -21881,7 +22518,6 @@ func (s *ListPolicyVersionsOutput) SetVersions(v []*PolicyVersion) *ListPolicyVe
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/ListRolePoliciesRequest
 type ListRolePoliciesInput struct {
 	_ struct{} `type:"structure"`
 
@@ -21963,7 +22599,6 @@ func (s *ListRolePoliciesInput) SetRoleName(v string) *ListRolePoliciesInput {
 }
 
 // Contains the response to a successful ListRolePolicies request.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/ListRolePoliciesResponse
 type ListRolePoliciesOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -22013,7 +22648,6 @@ func (s *ListRolePoliciesOutput) SetPolicyNames(v []*string) *ListRolePoliciesOu
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/ListRolesRequest
 type ListRolesInput struct {
 	_ struct{} `type:"structure"`
 
@@ -22038,11 +22672,12 @@ type ListRolesInput struct {
 	// gets all roles whose path starts with /application_abc/component_xyz/.
 	//
 	// This parameter is optional. If it is not included, it defaults to a slash
-	// (/), listing all roles. This paramater allows (per its regex pattern (http://wikipedia.org/wiki/regex))
+	// (/), listing all roles. This parameter allows (per its regex pattern (http://wikipedia.org/wiki/regex))
 	// a string of characters consisting of either a forward slash (/) by itself
-	// or a string that must begin and end with forward slashes, containing any
-	// ASCII character from the ! (\u0021) thru the DEL character (\u007F), including
-	// most punctuation characters, digits, and upper and lowercased letters.
+	// or a string that must begin and end with forward slashes. In addition, it
+	// can contain any ASCII character from the ! (\u0021) through the DEL character
+	// (\u007F), including most punctuation characters, digits, and upper and lowercased
+	// letters.
 	PathPrefix *string `min:"1" type:"string"`
 }
 
@@ -22094,7 +22729,6 @@ func (s *ListRolesInput) SetPathPrefix(v string) *ListRolesInput {
 }
 
 // Contains the response to a successful ListRoles request.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/ListRolesResponse
 type ListRolesOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -22144,7 +22778,6 @@ func (s *ListRolesOutput) SetRoles(v []*Role) *ListRolesOutput {
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/ListSAMLProvidersRequest
 type ListSAMLProvidersInput struct {
 	_ struct{} `type:"structure"`
 }
@@ -22160,7 +22793,6 @@ func (s ListSAMLProvidersInput) GoString() string {
 }
 
 // Contains the response to a successful ListSAMLProviders request.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/ListSAMLProvidersResponse
 type ListSAMLProvidersOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -22184,7 +22816,6 @@ func (s *ListSAMLProvidersOutput) SetSAMLProviderList(v []*SAMLProviderListEntry
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/ListSSHPublicKeysRequest
 type ListSSHPublicKeysInput struct {
 	_ struct{} `type:"structure"`
 
@@ -22211,7 +22842,7 @@ type ListSSHPublicKeysInput struct {
 	//
 	// This parameter allows (per its regex pattern (http://wikipedia.org/wiki/regex))
 	// a string of characters consisting of upper and lowercase alphanumeric characters
-	// with no spaces. You can also include any of the following characters: =,.@-
+	// with no spaces. You can also include any of the following characters: _+=,.@-
 	UserName *string `min:"1" type:"string"`
 }
 
@@ -22263,7 +22894,6 @@ func (s *ListSSHPublicKeysInput) SetUserName(v string) *ListSSHPublicKeysInput {
 }
 
 // Contains the response to a successful ListSSHPublicKeys request.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/ListSSHPublicKeysResponse
 type ListSSHPublicKeysOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -22311,7 +22941,6 @@ func (s *ListSSHPublicKeysOutput) SetSSHPublicKeys(v []*SSHPublicKeyMetadata) *L
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/ListServerCertificatesRequest
 type ListServerCertificatesInput struct {
 	_ struct{} `type:"structure"`
 
@@ -22336,12 +22965,12 @@ type ListServerCertificatesInput struct {
 	// would get all server certificates for which the path starts with /company/servercerts.
 	//
 	// This parameter is optional. If it is not included, it defaults to a slash
-	// (/), listing all server certificates. This paramater allows (per its regex
+	// (/), listing all server certificates. This parameter allows (per its regex
 	// pattern (http://wikipedia.org/wiki/regex)) a string of characters consisting
 	// of either a forward slash (/) by itself or a string that must begin and end
-	// with forward slashes, containing any ASCII character from the ! (\u0021)
-	// thru the DEL character (\u007F), including most punctuation characters, digits,
-	// and upper and lowercased letters.
+	// with forward slashes. In addition, it can contain any ASCII character from
+	// the ! (\u0021) through the DEL character (\u007F), including most punctuation
+	// characters, digits, and upper and lowercased letters.
 	PathPrefix *string `min:"1" type:"string"`
 }
 
@@ -22393,7 +23022,6 @@ func (s *ListServerCertificatesInput) SetPathPrefix(v string) *ListServerCertifi
 }
 
 // Contains the response to a successful ListServerCertificates request.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/ListServerCertificatesResponse
 type ListServerCertificatesOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -22443,7 +23071,6 @@ func (s *ListServerCertificatesOutput) SetServerCertificateMetadataList(v []*Ser
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/ListServiceSpecificCredentialsRequest
 type ListServiceSpecificCredentialsInput struct {
 	_ struct{} `type:"structure"`
 
@@ -22452,12 +23079,12 @@ type ListServiceSpecificCredentialsInput struct {
 	ServiceName *string `type:"string"`
 
 	// The name of the user whose service-specific credentials you want information
-	// about. If this value is not specified then the operation assumes the user
+	// about. If this value is not specified, then the operation assumes the user
 	// whose credentials are used to call the operation.
 	//
 	// This parameter allows (per its regex pattern (http://wikipedia.org/wiki/regex))
 	// a string of characters consisting of upper and lowercase alphanumeric characters
-	// with no spaces. You can also include any of the following characters: =,.@-
+	// with no spaces. You can also include any of the following characters: _+=,.@-
 	UserName *string `min:"1" type:"string"`
 }
 
@@ -22496,7 +23123,6 @@ func (s *ListServiceSpecificCredentialsInput) SetUserName(v string) *ListService
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/ListServiceSpecificCredentialsResponse
 type ListServiceSpecificCredentialsOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -22520,7 +23146,6 @@ func (s *ListServiceSpecificCredentialsOutput) SetServiceSpecificCredentials(v [
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/ListSigningCertificatesRequest
 type ListSigningCertificatesInput struct {
 	_ struct{} `type:"structure"`
 
@@ -22545,7 +23170,7 @@ type ListSigningCertificatesInput struct {
 	//
 	// This parameter allows (per its regex pattern (http://wikipedia.org/wiki/regex))
 	// a string of characters consisting of upper and lowercase alphanumeric characters
-	// with no spaces. You can also include any of the following characters: =,.@-
+	// with no spaces. You can also include any of the following characters: _+=,.@-
 	UserName *string `min:"1" type:"string"`
 }
 
@@ -22597,7 +23222,6 @@ func (s *ListSigningCertificatesInput) SetUserName(v string) *ListSigningCertifi
 }
 
 // Contains the response to a successful ListSigningCertificates request.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/ListSigningCertificatesResponse
 type ListSigningCertificatesOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -22647,7 +23271,6 @@ func (s *ListSigningCertificatesOutput) SetMarker(v string) *ListSigningCertific
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/ListUserPoliciesRequest
 type ListUserPoliciesInput struct {
 	_ struct{} `type:"structure"`
 
@@ -22672,7 +23295,7 @@ type ListUserPoliciesInput struct {
 	//
 	// This parameter allows (per its regex pattern (http://wikipedia.org/wiki/regex))
 	// a string of characters consisting of upper and lowercase alphanumeric characters
-	// with no spaces. You can also include any of the following characters: =,.@-
+	// with no spaces. You can also include any of the following characters: _+=,.@-
 	//
 	// UserName is a required field
 	UserName *string `min:"1" type:"string" required:"true"`
@@ -22729,7 +23352,6 @@ func (s *ListUserPoliciesInput) SetUserName(v string) *ListUserPoliciesInput {
 }
 
 // Contains the response to a successful ListUserPolicies request.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/ListUserPoliciesResponse
 type ListUserPoliciesOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -22779,7 +23401,6 @@ func (s *ListUserPoliciesOutput) SetPolicyNames(v []*string) *ListUserPoliciesOu
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/ListUsersRequest
 type ListUsersInput struct {
 	_ struct{} `type:"structure"`
 
@@ -22804,12 +23425,12 @@ type ListUsersInput struct {
 	// which would get all user names whose path starts with /division_abc/subdivision_xyz/.
 	//
 	// This parameter is optional. If it is not included, it defaults to a slash
-	// (/), listing all user names. This paramater allows (per its regex pattern
+	// (/), listing all user names. This parameter allows (per its regex pattern
 	// (http://wikipedia.org/wiki/regex)) a string of characters consisting of either
 	// a forward slash (/) by itself or a string that must begin and end with forward
-	// slashes, containing any ASCII character from the ! (\u0021) thru the DEL
-	// character (\u007F), including most punctuation characters, digits, and upper
-	// and lowercased letters.
+	// slashes. In addition, it can contain any ASCII character from the ! (\u0021)
+	// through the DEL character (\u007F), including most punctuation characters,
+	// digits, and upper and lowercased letters.
 	PathPrefix *string `min:"1" type:"string"`
 }
 
@@ -22861,7 +23482,6 @@ func (s *ListUsersInput) SetPathPrefix(v string) *ListUsersInput {
 }
 
 // Contains the response to a successful ListUsers request.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/ListUsersResponse
 type ListUsersOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -22911,12 +23531,11 @@ func (s *ListUsersOutput) SetUsers(v []*User) *ListUsersOutput {
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/ListVirtualMFADevicesRequest
 type ListVirtualMFADevicesInput struct {
 	_ struct{} `type:"structure"`
 
 	// The status (Unassigned or Assigned) of the devices to list. If you do not
-	// specify an AssignmentStatus, the action defaults to Any which lists both
+	// specify an AssignmentStatus, the operation defaults to Any which lists both
 	// assigned and unassigned virtual MFA devices.
 	AssignmentStatus *string `type:"string" enum:"assignmentStatusType"`
 
@@ -22983,7 +23602,6 @@ func (s *ListVirtualMFADevicesInput) SetMaxItems(v int64) *ListVirtualMFADevices
 }
 
 // Contains the response to a successful ListVirtualMFADevices request.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/ListVirtualMFADevicesResponse
 type ListVirtualMFADevicesOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -23037,15 +23655,14 @@ func (s *ListVirtualMFADevicesOutput) SetVirtualMFADevices(v []*VirtualMFADevice
 // Contains the user name and password create date for a user.
 //
 // This data type is used as a response element in the CreateLoginProfile and
-// GetLoginProfile actions.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/LoginProfile
+// GetLoginProfile operations.
 type LoginProfile struct {
 	_ struct{} `type:"structure"`
 
 	// The date when the password for the user was created.
 	//
 	// CreateDate is a required field
-	CreateDate *time.Time `type:"timestamp" timestampFormat:"iso8601" required:"true"`
+	CreateDate *time.Time `type:"timestamp" required:"true"`
 
 	// Specifies whether the user is required to set a new password on next sign-in.
 	PasswordResetRequired *bool `type:"boolean"`
@@ -23087,15 +23704,14 @@ func (s *LoginProfile) SetUserName(v string) *LoginProfile {
 
 // Contains information about an MFA device.
 //
-// This data type is used as a response element in the ListMFADevices action.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/MFADevice
+// This data type is used as a response element in the ListMFADevices operation.
 type MFADevice struct {
 	_ struct{} `type:"structure"`
 
 	// The date when the MFA device was enabled for the user.
 	//
 	// EnableDate is a required field
-	EnableDate *time.Time `type:"timestamp" timestampFormat:"iso8601" required:"true"`
+	EnableDate *time.Time `type:"timestamp" required:"true"`
 
 	// The serial number that uniquely identifies the MFA device. For virtual MFA
 	// devices, the serial number is the device ARN.
@@ -23142,12 +23758,11 @@ func (s *MFADevice) SetUserName(v string) *MFADevice {
 // that the policy is attached to.
 //
 // This data type is used as a response element in the GetAccountAuthorizationDetails
-// action.
+// operation.
 //
 // For more information about managed policies, see Managed Policies and Inline
 // Policies (http://docs.aws.amazon.com/IAM/latest/UserGuide/policies-managed-vs-inline.html)
 // in the Using IAM guide.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/ManagedPolicyDetail
 type ManagedPolicyDetail struct {
 	_ struct{} `type:"structure"`
 
@@ -23164,7 +23779,7 @@ type ManagedPolicyDetail struct {
 
 	// The date and time, in ISO 8601 date-time format (http://www.iso.org/iso/iso8601),
 	// when the policy was created.
-	CreateDate *time.Time `type:"timestamp" timestampFormat:"iso8601"`
+	CreateDate *time.Time `type:"timestamp"`
 
 	// The identifier for the version of the policy that is set as the default (operative)
 	// version.
@@ -23186,6 +23801,14 @@ type ManagedPolicyDetail struct {
 	// in the Using IAM guide.
 	Path *string `type:"string"`
 
+	// The number of entities (users and roles) for which the policy is used as
+	// the permissions boundary.
+	//
+	// For more information about permissions boundaries, see Permissions Boundaries
+	// for IAM Identities  (https://docs.aws.amazon.com/IAM/latest/UserGuide/access_policies_boundaries.html)
+	// in the IAM User Guide.
+	PermissionsBoundaryUsageCount *int64 `type:"integer"`
+
 	// The stable and unique string identifying the policy.
 	//
 	// For more information about IDs, see IAM Identifiers (http://docs.aws.amazon.com/IAM/latest/UserGuide/Using_Identifiers.html)
@@ -23205,7 +23828,7 @@ type ManagedPolicyDetail struct {
 	// when the policy was created. When a policy has more than one version, this
 	// field contains the date and time when the most recent policy version was
 	// created.
-	UpdateDate *time.Time `type:"timestamp" timestampFormat:"iso8601"`
+	UpdateDate *time.Time `type:"timestamp"`
 }
 
 // String returns the string representation
@@ -23260,6 +23883,12 @@ func (s *ManagedPolicyDetail) SetPath(v string) *ManagedPolicyDetail {
 	return s
 }
 
+// SetPermissionsBoundaryUsageCount sets the PermissionsBoundaryUsageCount field's value.
+func (s *ManagedPolicyDetail) SetPermissionsBoundaryUsageCount(v int64) *ManagedPolicyDetail {
+	s.PermissionsBoundaryUsageCount = &v
+	return s
+}
+
 // SetPolicyId sets the PolicyId field's value.
 func (s *ManagedPolicyDetail) SetPolicyId(v string) *ManagedPolicyDetail {
 	s.PolicyId = &v
@@ -23285,7 +23914,6 @@ func (s *ManagedPolicyDetail) SetUpdateDate(v time.Time) *ManagedPolicyDetail {
 }
 
 // Contains the Amazon Resource Name (ARN) for an IAM OpenID Connect provider.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/OpenIDConnectProviderListEntry
 type OpenIDConnectProviderListEntry struct {
 	_ struct{} `type:"structure"`
 
@@ -23313,12 +23941,11 @@ func (s *OpenIDConnectProviderListEntry) SetArn(v string) *OpenIDConnectProvider
 	return s
 }
 
-// Contains information about AWS Organizations's affect on a policy simulation.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/OrganizationsDecisionDetail
+// Contains information about AWS Organizations's effect on a policy simulation.
 type OrganizationsDecisionDetail struct {
 	_ struct{} `type:"structure"`
 
-	// Specifies whether the simulated action is allowed by the AWS Organizations
+	// Specifies whether the simulated operation is allowed by the AWS Organizations
 	// service control policies that impact the simulated user's account.
 	AllowedByOrganizations *bool `type:"boolean"`
 }
@@ -23342,8 +23969,7 @@ func (s *OrganizationsDecisionDetail) SetAllowedByOrganizations(v bool) *Organiz
 // Contains information about the account password policy.
 //
 // This data type is used as a response element in the GetAccountPasswordPolicy
-// action.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/PasswordPolicy
+// operation.
 type PasswordPolicy struct {
 	_ struct{} `type:"structure"`
 
@@ -23351,8 +23977,8 @@ type PasswordPolicy struct {
 	AllowUsersToChangePassword *bool `type:"boolean"`
 
 	// Indicates whether passwords in the account expire. Returns true if MaxPasswordAge
-	// is contains a value greater than 0. Returns false if MaxPasswordAge is 0
-	// or not present.
+	// contains a value greater than 0. Returns false if MaxPasswordAge is 0 or
+	// not present.
 	ExpirePasswords *bool `type:"boolean"`
 
 	// Specifies whether IAM users are prevented from setting a new password after
@@ -23455,12 +24081,11 @@ func (s *PasswordPolicy) SetRequireUppercaseCharacters(v bool) *PasswordPolicy {
 // Contains information about a managed policy.
 //
 // This data type is used as a response element in the CreatePolicy, GetPolicy,
-// and ListPolicies actions.
+// and ListPolicies operations.
 //
 // For more information about managed policies, refer to Managed Policies and
 // Inline Policies (http://docs.aws.amazon.com/IAM/latest/UserGuide/policies-managed-vs-inline.html)
 // in the Using IAM guide.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/Policy
 type Policy struct {
 	_ struct{} `type:"structure"`
 
@@ -23477,7 +24102,7 @@ type Policy struct {
 
 	// The date and time, in ISO 8601 date-time format (http://www.iso.org/iso/iso8601),
 	// when the policy was created.
-	CreateDate *time.Time `type:"timestamp" timestampFormat:"iso8601"`
+	CreateDate *time.Time `type:"timestamp"`
 
 	// The identifier for the version of the policy that is set as the default version.
 	DefaultVersionId *string `type:"string"`
@@ -23497,6 +24122,14 @@ type Policy struct {
 	// in the Using IAM guide.
 	Path *string `type:"string"`
 
+	// The number of entities (users and roles) for which the policy is used to
+	// set the permissions boundary.
+	//
+	// For more information about permissions boundaries, see Permissions Boundaries
+	// for IAM Identities  (https://docs.aws.amazon.com/IAM/latest/UserGuide/access_policies_boundaries.html)
+	// in the IAM User Guide.
+	PermissionsBoundaryUsageCount *int64 `type:"integer"`
+
 	// The stable and unique string identifying the policy.
 	//
 	// For more information about IDs, see IAM Identifiers (http://docs.aws.amazon.com/IAM/latest/UserGuide/Using_Identifiers.html)
@@ -23513,7 +24146,7 @@ type Policy struct {
 	// when the policy was created. When a policy has more than one version, this
 	// field contains the date and time when the most recent policy version was
 	// created.
-	UpdateDate *time.Time `type:"timestamp" timestampFormat:"iso8601"`
+	UpdateDate *time.Time `type:"timestamp"`
 }
 
 // String returns the string representation
@@ -23568,6 +24201,12 @@ func (s *Policy) SetPath(v string) *Policy {
 	return s
 }
 
+// SetPermissionsBoundaryUsageCount sets the PermissionsBoundaryUsageCount field's value.
+func (s *Policy) SetPermissionsBoundaryUsageCount(v int64) *Policy {
+	s.PermissionsBoundaryUsageCount = &v
+	return s
+}
+
 // SetPolicyId sets the PolicyId field's value.
 func (s *Policy) SetPolicyId(v string) *Policy {
 	s.PolicyId = &v
@@ -23589,8 +24228,7 @@ func (s *Policy) SetUpdateDate(v time.Time) *Policy {
 // Contains information about an IAM policy, including the policy document.
 //
 // This data type is used as a response element in the GetAccountAuthorizationDetails
-// action.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/PolicyDetail
+// operation.
 type PolicyDetail struct {
 	_ struct{} `type:"structure"`
 
@@ -23626,12 +24264,11 @@ func (s *PolicyDetail) SetPolicyName(v string) *PolicyDetail {
 // Contains information about a group that a managed policy is attached to.
 //
 // This data type is used as a response element in the ListEntitiesForPolicy
-// action.
+// operation.
 //
 // For more information about managed policies, refer to Managed Policies and
 // Inline Policies (http://docs.aws.amazon.com/IAM/latest/UserGuide/policies-managed-vs-inline.html)
 // in the Using IAM guide.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/PolicyGroup
 type PolicyGroup struct {
 	_ struct{} `type:"structure"`
 
@@ -23669,12 +24306,11 @@ func (s *PolicyGroup) SetGroupName(v string) *PolicyGroup {
 // Contains information about a role that a managed policy is attached to.
 //
 // This data type is used as a response element in the ListEntitiesForPolicy
-// action.
+// operation.
 //
 // For more information about managed policies, refer to Managed Policies and
 // Inline Policies (http://docs.aws.amazon.com/IAM/latest/UserGuide/policies-managed-vs-inline.html)
 // in the Using IAM guide.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/PolicyRole
 type PolicyRole struct {
 	_ struct{} `type:"structure"`
 
@@ -23712,12 +24348,11 @@ func (s *PolicyRole) SetRoleName(v string) *PolicyRole {
 // Contains information about a user that a managed policy is attached to.
 //
 // This data type is used as a response element in the ListEntitiesForPolicy
-// action.
+// operation.
 //
 // For more information about managed policies, refer to Managed Policies and
 // Inline Policies (http://docs.aws.amazon.com/IAM/latest/UserGuide/policies-managed-vs-inline.html)
 // in the Using IAM guide.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/PolicyUser
 type PolicyUser struct {
 	_ struct{} `type:"structure"`
 
@@ -23756,24 +24391,29 @@ func (s *PolicyUser) SetUserName(v string) *PolicyUser {
 //
 // This data type is used as a response element in the CreatePolicyVersion,
 // GetPolicyVersion, ListPolicyVersions, and GetAccountAuthorizationDetails
-// actions.
+// operations.
 //
 // For more information about managed policies, refer to Managed Policies and
 // Inline Policies (http://docs.aws.amazon.com/IAM/latest/UserGuide/policies-managed-vs-inline.html)
 // in the Using IAM guide.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/PolicyVersion
 type PolicyVersion struct {
 	_ struct{} `type:"structure"`
 
 	// The date and time, in ISO 8601 date-time format (http://www.iso.org/iso/iso8601),
 	// when the policy version was created.
-	CreateDate *time.Time `type:"timestamp" timestampFormat:"iso8601"`
+	CreateDate *time.Time `type:"timestamp"`
 
 	// The policy document.
 	//
 	// The policy document is returned in the response to the GetPolicyVersion and
 	// GetAccountAuthorizationDetails operations. It is not returned in the response
 	// to the CreatePolicyVersion or ListPolicyVersions operations.
+	//
+	// The policy document returned in this structure is URL-encoded compliant with
+	// RFC 3986 (https://tools.ietf.org/html/rfc3986). You can use a URL decoding
+	// method to convert the policy back to plain JSON text. For example, if you
+	// use Java, you can use the decode method of the java.net.URLDecoder utility
+	// class in the Java SDK. Other languages and SDKs provide similar functionality.
 	Document *string `min:"1" type:"string"`
 
 	// Specifies whether the policy version is set as the policy's default version.
@@ -23824,7 +24464,6 @@ func (s *PolicyVersion) SetVersionId(v string) *PolicyVersion {
 // document.
 //
 // This data type is used as a member of the Statement type.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/Position
 type Position struct {
 	_ struct{} `type:"structure"`
 
@@ -23857,7 +24496,6 @@ func (s *Position) SetLine(v int64) *Position {
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/PutGroupPolicyRequest
 type PutGroupPolicyInput struct {
 	_ struct{} `type:"structure"`
 
@@ -23865,7 +24503,7 @@ type PutGroupPolicyInput struct {
 	//
 	// This parameter allows (per its regex pattern (http://wikipedia.org/wiki/regex))
 	// a string of characters consisting of upper and lowercase alphanumeric characters
-	// with no spaces. You can also include any of the following characters: =,.@-
+	// with no spaces. You can also include any of the following characters: _+=,.@-
 	//
 	// GroupName is a required field
 	GroupName *string `min:"1" type:"string" required:"true"`
@@ -23873,11 +24511,16 @@ type PutGroupPolicyInput struct {
 	// The policy document.
 	//
 	// The regex pattern (http://wikipedia.org/wiki/regex) used to validate this
-	// parameter is a string of characters consisting of any printable ASCII character
-	// ranging from the space character (\u0020) through end of the ASCII character
-	// range as well as the printable characters in the Basic Latin and Latin-1
-	// Supplement character set (through \u00FF). It also includes the special characters
-	// tab (\u0009), line feed (\u000A), and carriage return (\u000D).
+	// parameter is a string of characters consisting of the following:
+	//
+	//    * Any printable ASCII character ranging from the space character (\u0020)
+	//    through the end of the ASCII character range
+	//
+	//    * The printable characters in the Basic Latin and Latin-1 Supplement character
+	//    set (through \u00FF)
+	//
+	//    * The special characters tab (\u0009), line feed (\u000A), and carriage
+	//    return (\u000D)
 	//
 	// PolicyDocument is a required field
 	PolicyDocument *string `min:"1" type:"string" required:"true"`
@@ -23886,7 +24529,7 @@ type PutGroupPolicyInput struct {
 	//
 	// This parameter allows (per its regex pattern (http://wikipedia.org/wiki/regex))
 	// a string of characters consisting of upper and lowercase alphanumeric characters
-	// with no spaces. You can also include any of the following characters: =,.@-+
+	// with no spaces. You can also include any of the following characters: _+=,.@-
 	//
 	// PolicyName is a required field
 	PolicyName *string `min:"1" type:"string" required:"true"`
@@ -23948,7 +24591,6 @@ func (s *PutGroupPolicyInput) SetPolicyName(v string) *PutGroupPolicyInput {
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/PutGroupPolicyOutput
 type PutGroupPolicyOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -23963,18 +24605,96 @@ func (s PutGroupPolicyOutput) GoString() string {
 	return s.String()
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/PutRolePolicyRequest
+type PutRolePermissionsBoundaryInput struct {
+	_ struct{} `type:"structure"`
+
+	// The ARN of the policy that is used to set the permissions boundary for the
+	// role.
+	//
+	// PermissionsBoundary is a required field
+	PermissionsBoundary *string `min:"20" type:"string" required:"true"`
+
+	// The name (friendly name, not ARN) of the IAM role for which you want to set
+	// the permissions boundary.
+	//
+	// RoleName is a required field
+	RoleName *string `min:"1" type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s PutRolePermissionsBoundaryInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s PutRolePermissionsBoundaryInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *PutRolePermissionsBoundaryInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "PutRolePermissionsBoundaryInput"}
+	if s.PermissionsBoundary == nil {
+		invalidParams.Add(request.NewErrParamRequired("PermissionsBoundary"))
+	}
+	if s.PermissionsBoundary != nil && len(*s.PermissionsBoundary) < 20 {
+		invalidParams.Add(request.NewErrParamMinLen("PermissionsBoundary", 20))
+	}
+	if s.RoleName == nil {
+		invalidParams.Add(request.NewErrParamRequired("RoleName"))
+	}
+	if s.RoleName != nil && len(*s.RoleName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("RoleName", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetPermissionsBoundary sets the PermissionsBoundary field's value.
+func (s *PutRolePermissionsBoundaryInput) SetPermissionsBoundary(v string) *PutRolePermissionsBoundaryInput {
+	s.PermissionsBoundary = &v
+	return s
+}
+
+// SetRoleName sets the RoleName field's value.
+func (s *PutRolePermissionsBoundaryInput) SetRoleName(v string) *PutRolePermissionsBoundaryInput {
+	s.RoleName = &v
+	return s
+}
+
+type PutRolePermissionsBoundaryOutput struct {
+	_ struct{} `type:"structure"`
+}
+
+// String returns the string representation
+func (s PutRolePermissionsBoundaryOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s PutRolePermissionsBoundaryOutput) GoString() string {
+	return s.String()
+}
+
 type PutRolePolicyInput struct {
 	_ struct{} `type:"structure"`
 
 	// The policy document.
 	//
 	// The regex pattern (http://wikipedia.org/wiki/regex) used to validate this
-	// parameter is a string of characters consisting of any printable ASCII character
-	// ranging from the space character (\u0020) through end of the ASCII character
-	// range as well as the printable characters in the Basic Latin and Latin-1
-	// Supplement character set (through \u00FF). It also includes the special characters
-	// tab (\u0009), line feed (\u000A), and carriage return (\u000D).
+	// parameter is a string of characters consisting of the following:
+	//
+	//    * Any printable ASCII character ranging from the space character (\u0020)
+	//    through the end of the ASCII character range
+	//
+	//    * The printable characters in the Basic Latin and Latin-1 Supplement character
+	//    set (through \u00FF)
+	//
+	//    * The special characters tab (\u0009), line feed (\u000A), and carriage
+	//    return (\u000D)
 	//
 	// PolicyDocument is a required field
 	PolicyDocument *string `min:"1" type:"string" required:"true"`
@@ -23983,7 +24703,7 @@ type PutRolePolicyInput struct {
 	//
 	// This parameter allows (per its regex pattern (http://wikipedia.org/wiki/regex))
 	// a string of characters consisting of upper and lowercase alphanumeric characters
-	// with no spaces. You can also include any of the following characters: =,.@-+
+	// with no spaces. You can also include any of the following characters: _+=,.@-
 	//
 	// PolicyName is a required field
 	PolicyName *string `min:"1" type:"string" required:"true"`
@@ -24054,7 +24774,6 @@ func (s *PutRolePolicyInput) SetRoleName(v string) *PutRolePolicyInput {
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/PutRolePolicyOutput
 type PutRolePolicyOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -24069,18 +24788,96 @@ func (s PutRolePolicyOutput) GoString() string {
 	return s.String()
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/PutUserPolicyRequest
+type PutUserPermissionsBoundaryInput struct {
+	_ struct{} `type:"structure"`
+
+	// The ARN of the policy that is used to set the permissions boundary for the
+	// user.
+	//
+	// PermissionsBoundary is a required field
+	PermissionsBoundary *string `min:"20" type:"string" required:"true"`
+
+	// The name (friendly name, not ARN) of the IAM user for which you want to set
+	// the permissions boundary.
+	//
+	// UserName is a required field
+	UserName *string `min:"1" type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s PutUserPermissionsBoundaryInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s PutUserPermissionsBoundaryInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *PutUserPermissionsBoundaryInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "PutUserPermissionsBoundaryInput"}
+	if s.PermissionsBoundary == nil {
+		invalidParams.Add(request.NewErrParamRequired("PermissionsBoundary"))
+	}
+	if s.PermissionsBoundary != nil && len(*s.PermissionsBoundary) < 20 {
+		invalidParams.Add(request.NewErrParamMinLen("PermissionsBoundary", 20))
+	}
+	if s.UserName == nil {
+		invalidParams.Add(request.NewErrParamRequired("UserName"))
+	}
+	if s.UserName != nil && len(*s.UserName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("UserName", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetPermissionsBoundary sets the PermissionsBoundary field's value.
+func (s *PutUserPermissionsBoundaryInput) SetPermissionsBoundary(v string) *PutUserPermissionsBoundaryInput {
+	s.PermissionsBoundary = &v
+	return s
+}
+
+// SetUserName sets the UserName field's value.
+func (s *PutUserPermissionsBoundaryInput) SetUserName(v string) *PutUserPermissionsBoundaryInput {
+	s.UserName = &v
+	return s
+}
+
+type PutUserPermissionsBoundaryOutput struct {
+	_ struct{} `type:"structure"`
+}
+
+// String returns the string representation
+func (s PutUserPermissionsBoundaryOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s PutUserPermissionsBoundaryOutput) GoString() string {
+	return s.String()
+}
+
 type PutUserPolicyInput struct {
 	_ struct{} `type:"structure"`
 
 	// The policy document.
 	//
 	// The regex pattern (http://wikipedia.org/wiki/regex) used to validate this
-	// parameter is a string of characters consisting of any printable ASCII character
-	// ranging from the space character (\u0020) through end of the ASCII character
-	// range as well as the printable characters in the Basic Latin and Latin-1
-	// Supplement character set (through \u00FF). It also includes the special characters
-	// tab (\u0009), line feed (\u000A), and carriage return (\u000D).
+	// parameter is a string of characters consisting of the following:
+	//
+	//    * Any printable ASCII character ranging from the space character (\u0020)
+	//    through the end of the ASCII character range
+	//
+	//    * The printable characters in the Basic Latin and Latin-1 Supplement character
+	//    set (through \u00FF)
+	//
+	//    * The special characters tab (\u0009), line feed (\u000A), and carriage
+	//    return (\u000D)
 	//
 	// PolicyDocument is a required field
 	PolicyDocument *string `min:"1" type:"string" required:"true"`
@@ -24089,7 +24886,7 @@ type PutUserPolicyInput struct {
 	//
 	// This parameter allows (per its regex pattern (http://wikipedia.org/wiki/regex))
 	// a string of characters consisting of upper and lowercase alphanumeric characters
-	// with no spaces. You can also include any of the following characters: =,.@-+
+	// with no spaces. You can also include any of the following characters: _+=,.@-
 	//
 	// PolicyName is a required field
 	PolicyName *string `min:"1" type:"string" required:"true"`
@@ -24098,7 +24895,7 @@ type PutUserPolicyInput struct {
 	//
 	// This parameter allows (per its regex pattern (http://wikipedia.org/wiki/regex))
 	// a string of characters consisting of upper and lowercase alphanumeric characters
-	// with no spaces. You can also include any of the following characters: =,.@-
+	// with no spaces. You can also include any of the following characters: _+=,.@-
 	//
 	// UserName is a required field
 	UserName *string `min:"1" type:"string" required:"true"`
@@ -24160,7 +24957,6 @@ func (s *PutUserPolicyInput) SetUserName(v string) *PutUserPolicyInput {
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/PutUserPolicyOutput
 type PutUserPolicyOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -24175,7 +24971,6 @@ func (s PutUserPolicyOutput) GoString() string {
 	return s.String()
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/RemoveClientIDFromOpenIDConnectProviderRequest
 type RemoveClientIDFromOpenIDConnectProviderInput struct {
 	_ struct{} `type:"structure"`
 
@@ -24187,7 +24982,7 @@ type RemoveClientIDFromOpenIDConnectProviderInput struct {
 
 	// The Amazon Resource Name (ARN) of the IAM OIDC provider resource to remove
 	// the client ID from. You can get a list of OIDC provider ARNs by using the
-	// ListOpenIDConnectProviders action.
+	// ListOpenIDConnectProviders operation.
 	//
 	// For more information about ARNs, see Amazon Resource Names (ARNs) and AWS
 	// Service Namespaces (http://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html)
@@ -24241,7 +25036,6 @@ func (s *RemoveClientIDFromOpenIDConnectProviderInput) SetOpenIDConnectProviderA
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/RemoveClientIDFromOpenIDConnectProviderOutput
 type RemoveClientIDFromOpenIDConnectProviderOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -24256,7 +25050,6 @@ func (s RemoveClientIDFromOpenIDConnectProviderOutput) GoString() string {
 	return s.String()
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/RemoveRoleFromInstanceProfileRequest
 type RemoveRoleFromInstanceProfileInput struct {
 	_ struct{} `type:"structure"`
 
@@ -24264,7 +25057,7 @@ type RemoveRoleFromInstanceProfileInput struct {
 	//
 	// This parameter allows (per its regex pattern (http://wikipedia.org/wiki/regex))
 	// a string of characters consisting of upper and lowercase alphanumeric characters
-	// with no spaces. You can also include any of the following characters: =,.@-
+	// with no spaces. You can also include any of the following characters: _+=,.@-
 	//
 	// InstanceProfileName is a required field
 	InstanceProfileName *string `min:"1" type:"string" required:"true"`
@@ -24323,7 +25116,6 @@ func (s *RemoveRoleFromInstanceProfileInput) SetRoleName(v string) *RemoveRoleFr
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/RemoveRoleFromInstanceProfileOutput
 type RemoveRoleFromInstanceProfileOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -24338,7 +25130,6 @@ func (s RemoveRoleFromInstanceProfileOutput) GoString() string {
 	return s.String()
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/RemoveUserFromGroupRequest
 type RemoveUserFromGroupInput struct {
 	_ struct{} `type:"structure"`
 
@@ -24346,7 +25137,7 @@ type RemoveUserFromGroupInput struct {
 	//
 	// This parameter allows (per its regex pattern (http://wikipedia.org/wiki/regex))
 	// a string of characters consisting of upper and lowercase alphanumeric characters
-	// with no spaces. You can also include any of the following characters: =,.@-
+	// with no spaces. You can also include any of the following characters: _+=,.@-
 	//
 	// GroupName is a required field
 	GroupName *string `min:"1" type:"string" required:"true"`
@@ -24355,7 +25146,7 @@ type RemoveUserFromGroupInput struct {
 	//
 	// This parameter allows (per its regex pattern (http://wikipedia.org/wiki/regex))
 	// a string of characters consisting of upper and lowercase alphanumeric characters
-	// with no spaces. You can also include any of the following characters: =,.@-
+	// with no spaces. You can also include any of the following characters: _+=,.@-
 	//
 	// UserName is a required field
 	UserName *string `min:"1" type:"string" required:"true"`
@@ -24405,7 +25196,6 @@ func (s *RemoveUserFromGroupInput) SetUserName(v string) *RemoveUserFromGroupInp
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/RemoveUserFromGroupOutput
 type RemoveUserFromGroupOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -24420,7 +25210,6 @@ func (s RemoveUserFromGroupOutput) GoString() string {
 	return s.String()
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/ResetServiceSpecificCredentialRequest
 type ResetServiceSpecificCredentialInput struct {
 	_ struct{} `type:"structure"`
 
@@ -24439,7 +25228,7 @@ type ResetServiceSpecificCredentialInput struct {
 	//
 	// This parameter allows (per its regex pattern (http://wikipedia.org/wiki/regex))
 	// a string of characters consisting of upper and lowercase alphanumeric characters
-	// with no spaces. You can also include any of the following characters: =,.@-
+	// with no spaces. You can also include any of the following characters: _+=,.@-
 	UserName *string `min:"1" type:"string"`
 }
 
@@ -24484,7 +25273,6 @@ func (s *ResetServiceSpecificCredentialInput) SetUserName(v string) *ResetServic
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/ResetServiceSpecificCredentialResponse
 type ResetServiceSpecificCredentialOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -24512,11 +25300,10 @@ func (s *ResetServiceSpecificCredentialOutput) SetServiceSpecificCredential(v *S
 	return s
 }
 
-// Contains the result of the simulation of a single API action call on a single
-// resource.
+// Contains the result of the simulation of a single API operation call on a
+// single resource.
 //
 // This data type is used by a member of the EvaluationResult data type.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/ResourceSpecificResult
 type ResourceSpecificResult struct {
 	_ struct{} `type:"structure"`
 
@@ -24527,7 +25314,7 @@ type ResourceSpecificResult struct {
 	// caller's IAM policy must grant access.
 	EvalDecisionDetails map[string]*string `type:"map"`
 
-	// The result of the simulation of the simulated API action on the resource
+	// The result of the simulation of the simulated API operation on the resource
 	// specified in EvalResourceName.
 	//
 	// EvalResourceDecision is a required field
@@ -24540,9 +25327,9 @@ type ResourceSpecificResult struct {
 
 	// A list of the statements in the input policies that determine the result
 	// for this part of the simulation. Remember that even if multiple statements
-	// allow the action on the resource, if any statement denies that action, then
-	// the explicit deny overrides any allow, and the deny statement is the only
-	// entry included in the result.
+	// allow the operation on the resource, if any statement denies that operation,
+	// then the explicit deny overrides any allow, and the deny statement is the
+	// only entry included in the result.
 	MatchedStatements []*Statement `type:"list"`
 
 	// A list of context keys that are required by the included input policies but
@@ -24596,7 +25383,6 @@ func (s *ResourceSpecificResult) SetMissingContextValues(v []*string) *ResourceS
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/ResyncMFADeviceRequest
 type ResyncMFADeviceInput struct {
 	_ struct{} `type:"structure"`
 
@@ -24618,7 +25404,7 @@ type ResyncMFADeviceInput struct {
 	//
 	// This parameter allows (per its regex pattern (http://wikipedia.org/wiki/regex))
 	// a string of characters consisting of upper and lowercase alphanumeric characters
-	// with no spaces. You can also include any of the following characters: =,.@-
+	// with no spaces. You can also include any of the following characters: _+=,.@-
 	//
 	// SerialNumber is a required field
 	SerialNumber *string `min:"9" type:"string" required:"true"`
@@ -24627,7 +25413,7 @@ type ResyncMFADeviceInput struct {
 	//
 	// This parameter allows (per its regex pattern (http://wikipedia.org/wiki/regex))
 	// a string of characters consisting of upper and lowercase alphanumeric characters
-	// with no spaces. You can also include any of the following characters: =,.@-
+	// with no spaces. You can also include any of the following characters: _+=,.@-
 	//
 	// UserName is a required field
 	UserName *string `min:"1" type:"string" required:"true"`
@@ -24701,7 +25487,6 @@ func (s *ResyncMFADeviceInput) SetUserName(v string) *ResyncMFADeviceInput {
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/ResyncMFADeviceOutput
 type ResyncMFADeviceOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -24717,8 +25502,7 @@ func (s ResyncMFADeviceOutput) GoString() string {
 }
 
 // Contains information about an IAM role. This structure is returned as a response
-// element in several APIs that interact with roles.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/Role
+// element in several API operations that interact with roles.
 type Role struct {
 	_ struct{} `type:"structure"`
 
@@ -24736,10 +25520,15 @@ type Role struct {
 	// when the role was created.
 	//
 	// CreateDate is a required field
-	CreateDate *time.Time `type:"timestamp" timestampFormat:"iso8601" required:"true"`
+	CreateDate *time.Time `type:"timestamp" required:"true"`
 
 	// A description of the role that you provide.
 	Description *string `type:"string"`
+
+	// The maximum session duration (in seconds) for the specified role. Anyone
+	// who uses the AWS CLI or API to assume the role can specify the duration using
+	// the optional DurationSeconds API parameter or duration-seconds CLI parameter.
+	MaxSessionDuration *int64 `min:"3600" type:"integer"`
 
 	// The path to the role. For more information about paths, see IAM Identifiers
 	// (http://docs.aws.amazon.com/IAM/latest/UserGuide/Using_Identifiers.html)
@@ -24747,6 +25536,13 @@ type Role struct {
 	//
 	// Path is a required field
 	Path *string `min:"1" type:"string" required:"true"`
+
+	// The ARN of the policy used to set the permissions boundary for the role.
+	//
+	// For more information about permissions boundaries, see Permissions Boundaries
+	// for IAM Identities  (https://docs.aws.amazon.com/IAM/latest/UserGuide/access_policies_boundaries.html)
+	// in the IAM User Guide.
+	PermissionsBoundary *AttachedPermissionsBoundary `type:"structure"`
 
 	// The stable and unique string identifying the role. For more information about
 	// IDs, see IAM Identifiers (http://docs.aws.amazon.com/IAM/latest/UserGuide/Using_Identifiers.html)
@@ -24795,9 +25591,21 @@ func (s *Role) SetDescription(v string) *Role {
 	return s
 }
 
+// SetMaxSessionDuration sets the MaxSessionDuration field's value.
+func (s *Role) SetMaxSessionDuration(v int64) *Role {
+	s.MaxSessionDuration = &v
+	return s
+}
+
 // SetPath sets the Path field's value.
 func (s *Role) SetPath(v string) *Role {
 	s.Path = &v
+	return s
+}
+
+// SetPermissionsBoundary sets the PermissionsBoundary field's value.
+func (s *Role) SetPermissionsBoundary(v *AttachedPermissionsBoundary) *Role {
+	s.PermissionsBoundary = v
 	return s
 }
 
@@ -24816,8 +25624,7 @@ func (s *Role) SetRoleName(v string) *Role {
 // Contains information about an IAM role, including all of the role's policies.
 //
 // This data type is used as a response element in the GetAccountAuthorizationDetails
-// action.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/RoleDetail
+// operation.
 type RoleDetail struct {
 	_ struct{} `type:"structure"`
 
@@ -24837,7 +25644,7 @@ type RoleDetail struct {
 
 	// The date and time, in ISO 8601 date-time format (http://www.iso.org/iso/iso8601),
 	// when the role was created.
-	CreateDate *time.Time `type:"timestamp" timestampFormat:"iso8601"`
+	CreateDate *time.Time `type:"timestamp"`
 
 	// A list of instance profiles that contain this role.
 	InstanceProfileList []*InstanceProfile `type:"list"`
@@ -24846,6 +25653,13 @@ type RoleDetail struct {
 	// (http://docs.aws.amazon.com/IAM/latest/UserGuide/Using_Identifiers.html)
 	// in the Using IAM guide.
 	Path *string `min:"1" type:"string"`
+
+	// The ARN of the policy used to set the permissions boundary for the role.
+	//
+	// For more information about permissions boundaries, see Permissions Boundaries
+	// for IAM Identities  (https://docs.aws.amazon.com/IAM/latest/UserGuide/access_policies_boundaries.html)
+	// in the IAM User Guide.
+	PermissionsBoundary *AttachedPermissionsBoundary `type:"structure"`
 
 	// The stable and unique string identifying the role. For more information about
 	// IDs, see IAM Identifiers (http://docs.aws.amazon.com/IAM/latest/UserGuide/Using_Identifiers.html)
@@ -24906,6 +25720,12 @@ func (s *RoleDetail) SetPath(v string) *RoleDetail {
 	return s
 }
 
+// SetPermissionsBoundary sets the PermissionsBoundary field's value.
+func (s *RoleDetail) SetPermissionsBoundary(v *AttachedPermissionsBoundary) *RoleDetail {
+	s.PermissionsBoundary = v
+	return s
+}
+
 // SetRoleId sets the RoleId field's value.
 func (s *RoleDetail) SetRoleId(v string) *RoleDetail {
 	s.RoleId = &v
@@ -24924,11 +25744,11 @@ func (s *RoleDetail) SetRolePolicyList(v []*PolicyDetail) *RoleDetail {
 	return s
 }
 
-// An object that contains details about how a service-linked role is used.
+// An object that contains details about how a service-linked role is used,
+// if that information is returned by the service.
 //
 // This data type is used as a response element in the GetServiceLinkedRoleDeletionStatus
 // operation.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/RoleUsageType
 type RoleUsageType struct {
 	_ struct{} `type:"structure"`
 
@@ -24962,7 +25782,6 @@ func (s *RoleUsageType) SetResources(v []*string) *RoleUsageType {
 }
 
 // Contains the list of SAML providers for this account.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/SAMLProviderListEntry
 type SAMLProviderListEntry struct {
 	_ struct{} `type:"structure"`
 
@@ -24970,10 +25789,10 @@ type SAMLProviderListEntry struct {
 	Arn *string `min:"20" type:"string"`
 
 	// The date and time when the SAML provider was created.
-	CreateDate *time.Time `type:"timestamp" timestampFormat:"iso8601"`
+	CreateDate *time.Time `type:"timestamp"`
 
 	// The expiration date and time for the SAML provider.
-	ValidUntil *time.Time `type:"timestamp" timestampFormat:"iso8601"`
+	ValidUntil *time.Time `type:"timestamp"`
 }
 
 // String returns the string representation
@@ -25007,8 +25826,7 @@ func (s *SAMLProviderListEntry) SetValidUntil(v time.Time) *SAMLProviderListEntr
 // Contains information about an SSH public key.
 //
 // This data type is used as a response element in the GetSSHPublicKey and UploadSSHPublicKey
-// actions.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/SSHPublicKey
+// operations.
 type SSHPublicKey struct {
 	_ struct{} `type:"structure"`
 
@@ -25027,15 +25845,16 @@ type SSHPublicKey struct {
 	// SSHPublicKeyId is a required field
 	SSHPublicKeyId *string `min:"20" type:"string" required:"true"`
 
-	// The status of the SSH public key. Active means the key can be used for authentication
-	// with an AWS CodeCommit repository. Inactive means the key cannot be used.
+	// The status of the SSH public key. Active means that the key can be used for
+	// authentication with an AWS CodeCommit repository. Inactive means that the
+	// key cannot be used.
 	//
 	// Status is a required field
 	Status *string `type:"string" required:"true" enum:"statusType"`
 
 	// The date and time, in ISO 8601 date-time format (http://www.iso.org/iso/iso8601),
 	// when the SSH public key was uploaded.
-	UploadDate *time.Time `type:"timestamp" timestampFormat:"iso8601"`
+	UploadDate *time.Time `type:"timestamp"`
 
 	// The name of the IAM user associated with the SSH public key.
 	//
@@ -25091,8 +25910,7 @@ func (s *SSHPublicKey) SetUserName(v string) *SSHPublicKey {
 
 // Contains information about an SSH public key, without the key's body or fingerprint.
 //
-// This data type is used as a response element in the ListSSHPublicKeys action.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/SSHPublicKeyMetadata
+// This data type is used as a response element in the ListSSHPublicKeys operation.
 type SSHPublicKeyMetadata struct {
 	_ struct{} `type:"structure"`
 
@@ -25101,8 +25919,9 @@ type SSHPublicKeyMetadata struct {
 	// SSHPublicKeyId is a required field
 	SSHPublicKeyId *string `min:"20" type:"string" required:"true"`
 
-	// The status of the SSH public key. Active means the key can be used for authentication
-	// with an AWS CodeCommit repository. Inactive means the key cannot be used.
+	// The status of the SSH public key. Active means that the key can be used for
+	// authentication with an AWS CodeCommit repository. Inactive means that the
+	// key cannot be used.
 	//
 	// Status is a required field
 	Status *string `type:"string" required:"true" enum:"statusType"`
@@ -25111,7 +25930,7 @@ type SSHPublicKeyMetadata struct {
 	// when the SSH public key was uploaded.
 	//
 	// UploadDate is a required field
-	UploadDate *time.Time `type:"timestamp" timestampFormat:"iso8601" required:"true"`
+	UploadDate *time.Time `type:"timestamp" required:"true"`
 
 	// The name of the IAM user associated with the SSH public key.
 	//
@@ -25156,8 +25975,7 @@ func (s *SSHPublicKeyMetadata) SetUserName(v string) *SSHPublicKeyMetadata {
 // Contains information about a server certificate.
 //
 // This data type is used as a response element in the GetServerCertificate
-// action.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/ServerCertificate
+// operation.
 type ServerCertificate struct {
 	_ struct{} `type:"structure"`
 
@@ -25208,8 +26026,7 @@ func (s *ServerCertificate) SetServerCertificateMetadata(v *ServerCertificateMet
 // certificate chain, and private key.
 //
 // This data type is used as a response element in the UploadServerCertificate
-// and ListServerCertificates actions.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/ServerCertificateMetadata
+// and ListServerCertificates operations.
 type ServerCertificateMetadata struct {
 	_ struct{} `type:"structure"`
 
@@ -25222,7 +26039,7 @@ type ServerCertificateMetadata struct {
 	Arn *string `min:"20" type:"string" required:"true"`
 
 	// The date on which the certificate is set to expire.
-	Expiration *time.Time `type:"timestamp" timestampFormat:"iso8601"`
+	Expiration *time.Time `type:"timestamp"`
 
 	// The path to the server certificate. For more information about paths, see
 	// IAM Identifiers (http://docs.aws.amazon.com/IAM/latest/UserGuide/Using_Identifiers.html)
@@ -25244,7 +26061,7 @@ type ServerCertificateMetadata struct {
 	ServerCertificateName *string `min:"1" type:"string" required:"true"`
 
 	// The date when the server certificate was uploaded.
-	UploadDate *time.Time `type:"timestamp" timestampFormat:"iso8601"`
+	UploadDate *time.Time `type:"timestamp"`
 }
 
 // String returns the string representation
@@ -25293,8 +26110,7 @@ func (s *ServerCertificateMetadata) SetUploadDate(v time.Time) *ServerCertificat
 	return s
 }
 
-// Contains the details of a service specific credential.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/ServiceSpecificCredential
+// Contains the details of a service-specific credential.
 type ServiceSpecificCredential struct {
 	_ struct{} `type:"structure"`
 
@@ -25302,7 +26118,7 @@ type ServiceSpecificCredential struct {
 	// when the service-specific credential were created.
 	//
 	// CreateDate is a required field
-	CreateDate *time.Time `type:"timestamp" timestampFormat:"iso8601" required:"true"`
+	CreateDate *time.Time `type:"timestamp" required:"true"`
 
 	// The name of the service associated with the service-specific credential.
 	//
@@ -25327,8 +26143,8 @@ type ServiceSpecificCredential struct {
 	// ServiceUserName is a required field
 	ServiceUserName *string `min:"17" type:"string" required:"true"`
 
-	// The status of the service-specific credential. Active means the key is valid
-	// for API calls, while Inactive means it is not.
+	// The status of the service-specific credential. Active means that the key
+	// is valid for API calls, while Inactive means it is not.
 	//
 	// Status is a required field
 	Status *string `type:"string" required:"true" enum:"statusType"`
@@ -25392,7 +26208,6 @@ func (s *ServiceSpecificCredential) SetUserName(v string) *ServiceSpecificCreden
 }
 
 // Contains additional details about a service-specific credential.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/ServiceSpecificCredentialMetadata
 type ServiceSpecificCredentialMetadata struct {
 	_ struct{} `type:"structure"`
 
@@ -25400,7 +26215,7 @@ type ServiceSpecificCredentialMetadata struct {
 	// when the service-specific credential were created.
 	//
 	// CreateDate is a required field
-	CreateDate *time.Time `type:"timestamp" timestampFormat:"iso8601" required:"true"`
+	CreateDate *time.Time `type:"timestamp" required:"true"`
 
 	// The name of the service associated with the service-specific credential.
 	//
@@ -25417,8 +26232,8 @@ type ServiceSpecificCredentialMetadata struct {
 	// ServiceUserName is a required field
 	ServiceUserName *string `min:"17" type:"string" required:"true"`
 
-	// The status of the service-specific credential. Active means the key is valid
-	// for API calls, while Inactive means it is not.
+	// The status of the service-specific credential. Active means that the key
+	// is valid for API calls, while Inactive means it is not.
 	//
 	// Status is a required field
 	Status *string `type:"string" required:"true" enum:"statusType"`
@@ -25475,7 +26290,6 @@ func (s *ServiceSpecificCredentialMetadata) SetUserName(v string) *ServiceSpecif
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/SetDefaultPolicyVersionRequest
 type SetDefaultPolicyVersionInput struct {
 	_ struct{} `type:"structure"`
 
@@ -25540,7 +26354,6 @@ func (s *SetDefaultPolicyVersionInput) SetVersionId(v string) *SetDefaultPolicyV
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/SetDefaultPolicyVersionOutput
 type SetDefaultPolicyVersionOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -25558,8 +26371,7 @@ func (s SetDefaultPolicyVersionOutput) GoString() string {
 // Contains information about an X.509 signing certificate.
 //
 // This data type is used as a response element in the UploadSigningCertificate
-// and ListSigningCertificates actions.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/SigningCertificate
+// and ListSigningCertificates operations.
 type SigningCertificate struct {
 	_ struct{} `type:"structure"`
 
@@ -25573,14 +26385,14 @@ type SigningCertificate struct {
 	// CertificateId is a required field
 	CertificateId *string `min:"24" type:"string" required:"true"`
 
-	// The status of the signing certificate. Active means the key is valid for
-	// API calls, while Inactive means it is not.
+	// The status of the signing certificate. Active means that the key is valid
+	// for API calls, while Inactive means it is not.
 	//
 	// Status is a required field
 	Status *string `type:"string" required:"true" enum:"statusType"`
 
 	// The date when the signing certificate was uploaded.
-	UploadDate *time.Time `type:"timestamp" timestampFormat:"iso8601"`
+	UploadDate *time.Time `type:"timestamp"`
 
 	// The name of the user the signing certificate is associated with.
 	//
@@ -25628,20 +26440,20 @@ func (s *SigningCertificate) SetUserName(v string) *SigningCertificate {
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/SimulateCustomPolicyRequest
 type SimulateCustomPolicyInput struct {
 	_ struct{} `type:"structure"`
 
-	// A list of names of API actions to evaluate in the simulation. Each action
-	// is evaluated against each resource. Each action must include the service
+	// A list of names of API operations to evaluate in the simulation. Each operation
+	// is evaluated against each resource. Each operation must include the service
 	// identifier, such as iam:CreateUser.
 	//
 	// ActionNames is a required field
 	ActionNames []*string `type:"list" required:"true"`
 
 	// The ARN of the IAM user that you want to use as the simulated caller of the
-	// APIs. CallerArn is required if you include a ResourcePolicy so that the policy's
-	// Principal element has a value to use in evaluating the policy.
+	// API operations. CallerArn is required if you include a ResourcePolicy so
+	// that the policy's Principal element has a value to use in evaluating the
+	// policy.
 	//
 	// You can specify only the ARN of an IAM user. You cannot specify the ARN of
 	// an assumed role, federated user, or a service principal.
@@ -25676,14 +26488,20 @@ type SimulateCustomPolicyInput struct {
 	// The policies cannot be "scope-down" policies, such as you could include in
 	// a call to GetFederationToken (http://docs.aws.amazon.com/IAM/latest/APIReference/API_GetFederationToken.html)
 	// or one of the AssumeRole (http://docs.aws.amazon.com/IAM/latest/APIReference/API_AssumeRole.html)
-	// APIs to restrict what a user can do while using the temporary credentials.
+	// API operations. In other words, do not use policies designed to restrict
+	// what a user can do while using the temporary credentials.
 	//
 	// The regex pattern (http://wikipedia.org/wiki/regex) used to validate this
-	// parameter is a string of characters consisting of any printable ASCII character
-	// ranging from the space character (\u0020) through end of the ASCII character
-	// range as well as the printable characters in the Basic Latin and Latin-1
-	// Supplement character set (through \u00FF). It also includes the special characters
-	// tab (\u0009), line feed (\u000A), and carriage return (\u000D).
+	// parameter is a string of characters consisting of the following:
+	//
+	//    * Any printable ASCII character ranging from the space character (\u0020)
+	//    through the end of the ASCII character range
+	//
+	//    * The printable characters in the Basic Latin and Latin-1 Supplement character
+	//    set (through \u00FF)
+	//
+	//    * The special characters tab (\u0009), line feed (\u000A), and carriage
+	//    return (\u000D)
 	//
 	// PolicyInputList is a required field
 	PolicyInputList []*string `type:"list" required:"true"`
@@ -25706,13 +26524,13 @@ type SimulateCustomPolicyInput struct {
 	// in the AWS General Reference.
 	ResourceArns []*string `type:"list"`
 
-	// Specifies the type of simulation to run. Different APIs that support resource-based
-	// policies require different combinations of resources. By specifying the type
-	// of simulation to run, you enable the policy simulator to enforce the presence
-	// of the required resources to ensure reliable simulation results. If your
-	// simulation does not match one of the following scenarios, then you can omit
-	// this parameter. The following list shows each of the supported scenario values
-	// and the resources that you must define to run the simulation.
+	// Specifies the type of simulation to run. Different API operations that support
+	// resource-based policies require different combinations of resources. By specifying
+	// the type of simulation to run, you enable the policy simulator to enforce
+	// the presence of the required resources to ensure reliable simulation results.
+	// If your simulation does not match one of the following scenarios, then you
+	// can omit this parameter. The following list shows each of the supported scenario
+	// values and the resources that you must define to run the simulation.
 	//
 	// Each of the EC2 scenarios requires that you specify instance, image, and
 	// security-group resources. If your scenario includes an EBS volume, then you
@@ -25720,7 +26538,7 @@ type SimulateCustomPolicyInput struct {
 	// then you must supply the network-interface resource. If it includes an IP
 	// subnet, then you must specify the subnet resource. For more information on
 	// the EC2 scenario options, see Supported Platforms (http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-supported-platforms.html)
-	// in the AWS EC2 User Guide.
+	// in the Amazon EC2 User Guide.
 	//
 	//    * EC2-Classic-InstanceStore
 	//
@@ -25747,15 +26565,19 @@ type SimulateCustomPolicyInput struct {
 	// instance, image, security-group, network-interface, subnet, volume
 	ResourceHandlingOption *string `min:"1" type:"string"`
 
-	// An AWS account ID that specifies the owner of any simulated resource that
-	// does not identify its owner in the resource ARN, such as an S3 bucket or
-	// object. If ResourceOwner is specified, it is also used as the account owner
-	// of any ResourcePolicy included in the simulation. If the ResourceOwner parameter
-	// is not specified, then the owner of the resources and the resource policy
-	// defaults to the account of the identity provided in CallerArn. This parameter
-	// is required only if you specify a resource-based policy and account that
-	// owns the resource is different from the account that owns the simulated calling
-	// user CallerArn.
+	// An ARN representing the AWS account ID that specifies the owner of any simulated
+	// resource that does not identify its owner in the resource ARN, such as an
+	// S3 bucket or object. If ResourceOwner is specified, it is also used as the
+	// account owner of any ResourcePolicy included in the simulation. If the ResourceOwner
+	// parameter is not specified, then the owner of the resources and the resource
+	// policy defaults to the account of the identity provided in CallerArn. This
+	// parameter is required only if you specify a resource-based policy and account
+	// that owns the resource is different from the account that owns the simulated
+	// calling user CallerArn.
+	//
+	// The ARN for an account uses the following syntax: arn:aws:iam::AWS-account-ID:root.
+	// For example, to represent the account with the 112233445566 ID, use the following
+	// ARN: arn:aws:iam::112233445566-ID:root.
 	ResourceOwner *string `min:"1" type:"string"`
 
 	// A resource-based policy to include in the simulation provided as a string.
@@ -25763,11 +26585,16 @@ type SimulateCustomPolicyInput struct {
 	// You can include only one resource-based policy in a simulation.
 	//
 	// The regex pattern (http://wikipedia.org/wiki/regex) used to validate this
-	// parameter is a string of characters consisting of any printable ASCII character
-	// ranging from the space character (\u0020) through end of the ASCII character
-	// range as well as the printable characters in the Basic Latin and Latin-1
-	// Supplement character set (through \u00FF). It also includes the special characters
-	// tab (\u0009), line feed (\u000A), and carriage return (\u000D).
+	// parameter is a string of characters consisting of the following:
+	//
+	//    * Any printable ASCII character ranging from the space character (\u0020)
+	//    through the end of the ASCII character range
+	//
+	//    * The printable characters in the Basic Latin and Latin-1 Supplement character
+	//    set (through \u00FF)
+	//
+	//    * The special characters tab (\u0009), line feed (\u000A), and carriage
+	//    return (\u000D)
 	ResourcePolicy *string `min:"1" type:"string"`
 }
 
@@ -25887,7 +26714,6 @@ func (s *SimulateCustomPolicyInput) SetResourcePolicy(v string) *SimulateCustomP
 
 // Contains the response to a successful SimulatePrincipalPolicy or SimulateCustomPolicy
 // request.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/SimulatePolicyResponse
 type SimulatePolicyResponse struct {
 	_ struct{} `type:"structure"`
 
@@ -25935,23 +26761,23 @@ func (s *SimulatePolicyResponse) SetMarker(v string) *SimulatePolicyResponse {
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/SimulatePrincipalPolicyRequest
 type SimulatePrincipalPolicyInput struct {
 	_ struct{} `type:"structure"`
 
-	// A list of names of API actions to evaluate in the simulation. Each action
-	// is evaluated for each resource. Each action must include the service identifier,
+	// A list of names of API operations to evaluate in the simulation. Each operation
+	// is evaluated for each resource. Each operation must include the service identifier,
 	// such as iam:CreateUser.
 	//
 	// ActionNames is a required field
 	ActionNames []*string `type:"list" required:"true"`
 
 	// The ARN of the IAM user that you want to specify as the simulated caller
-	// of the APIs. If you do not specify a CallerArn, it defaults to the ARN of
-	// the user that you specify in PolicySourceArn, if you specified a user. If
-	// you include both a PolicySourceArn (for example, arn:aws:iam::123456789012:user/David)
+	// of the API operations. If you do not specify a CallerArn, it defaults to
+	// the ARN of the user that you specify in PolicySourceArn, if you specified
+	// a user. If you include both a PolicySourceArn (for example, arn:aws:iam::123456789012:user/David)
 	// and a CallerArn (for example, arn:aws:iam::123456789012:user/Bob), the result
-	// is that you simulate calling the APIs as Bob, as if Bob had David's policies.
+	// is that you simulate calling the API operations as Bob, as if Bob had David's
+	// policies.
 	//
 	// You can specify only the ARN of an IAM user. You cannot specify the ARN of
 	// an assumed role, federated user, or a service principal.
@@ -25992,11 +26818,16 @@ type SimulatePrincipalPolicyInput struct {
 	// text of an IAM policy.
 	//
 	// The regex pattern (http://wikipedia.org/wiki/regex) used to validate this
-	// parameter is a string of characters consisting of any printable ASCII character
-	// ranging from the space character (\u0020) through end of the ASCII character
-	// range as well as the printable characters in the Basic Latin and Latin-1
-	// Supplement character set (through \u00FF). It also includes the special characters
-	// tab (\u0009), line feed (\u000A), and carriage return (\u000D).
+	// parameter is a string of characters consisting of the following:
+	//
+	//    * Any printable ASCII character ranging from the space character (\u0020)
+	//    through the end of the ASCII character range
+	//
+	//    * The printable characters in the Basic Latin and Latin-1 Supplement character
+	//    set (through \u00FF)
+	//
+	//    * The special characters tab (\u0009), line feed (\u000A), and carriage
+	//    return (\u000D)
 	PolicyInputList []*string `type:"list"`
 
 	// The Amazon Resource Name (ARN) of a user, group, or role whose policies you
@@ -26013,7 +26844,7 @@ type SimulatePrincipalPolicyInput struct {
 	PolicySourceArn *string `min:"20" type:"string" required:"true"`
 
 	// A list of ARNs of AWS resources to include in the simulation. If this parameter
-	// is not provided then the value defaults to * (all resources). Each API in
+	// is not provided, then the value defaults to * (all resources). Each API in
 	// the ActionNames parameter is evaluated for each resource in this list. The
 	// simulation determines the access result (allowed or denied) of each combination
 	// and reports it in the response.
@@ -26027,13 +26858,13 @@ type SimulatePrincipalPolicyInput struct {
 	// in the AWS General Reference.
 	ResourceArns []*string `type:"list"`
 
-	// Specifies the type of simulation to run. Different APIs that support resource-based
-	// policies require different combinations of resources. By specifying the type
-	// of simulation to run, you enable the policy simulator to enforce the presence
-	// of the required resources to ensure reliable simulation results. If your
-	// simulation does not match one of the following scenarios, then you can omit
-	// this parameter. The following list shows each of the supported scenario values
-	// and the resources that you must define to run the simulation.
+	// Specifies the type of simulation to run. Different API operations that support
+	// resource-based policies require different combinations of resources. By specifying
+	// the type of simulation to run, you enable the policy simulator to enforce
+	// the presence of the required resources to ensure reliable simulation results.
+	// If your simulation does not match one of the following scenarios, then you
+	// can omit this parameter. The following list shows each of the supported scenario
+	// values and the resources that you must define to run the simulation.
 	//
 	// Each of the EC2 scenarios requires that you specify instance, image, and
 	// security-group resources. If your scenario includes an EBS volume, then you
@@ -26041,7 +26872,7 @@ type SimulatePrincipalPolicyInput struct {
 	// then you must supply the network-interface resource. If it includes an IP
 	// subnet, then you must specify the subnet resource. For more information on
 	// the EC2 scenario options, see Supported Platforms (http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-supported-platforms.html)
-	// in the AWS EC2 User Guide.
+	// in the Amazon EC2 User Guide.
 	//
 	//    * EC2-Classic-InstanceStore
 	//
@@ -26084,11 +26915,16 @@ type SimulatePrincipalPolicyInput struct {
 	// You can include only one resource-based policy in a simulation.
 	//
 	// The regex pattern (http://wikipedia.org/wiki/regex) used to validate this
-	// parameter is a string of characters consisting of any printable ASCII character
-	// ranging from the space character (\u0020) through end of the ASCII character
-	// range as well as the printable characters in the Basic Latin and Latin-1
-	// Supplement character set (through \u00FF). It also includes the special characters
-	// tab (\u0009), line feed (\u000A), and carriage return (\u000D).
+	// parameter is a string of characters consisting of the following:
+	//
+	//    * Any printable ASCII character ranging from the space character (\u0020)
+	//    through the end of the ASCII character range
+	//
+	//    * The printable characters in the Basic Latin and Latin-1 Supplement character
+	//    set (through \u00FF)
+	//
+	//    * The special characters tab (\u0009), line feed (\u000A), and carriage
+	//    return (\u000D)
 	ResourcePolicy *string `min:"1" type:"string"`
 }
 
@@ -26220,7 +27056,6 @@ func (s *SimulatePrincipalPolicyInput) SetResourcePolicy(v string) *SimulatePrin
 //
 // This data type is used by the MatchedStatements member of the EvaluationResult
 // type.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/Statement
 type Statement struct {
 	_ struct{} `type:"structure"`
 
@@ -26271,7 +27106,6 @@ func (s *Statement) SetStartPosition(v *Position) *Statement {
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/UpdateAccessKeyRequest
 type UpdateAccessKeyInput struct {
 	_ struct{} `type:"structure"`
 
@@ -26284,9 +27118,9 @@ type UpdateAccessKeyInput struct {
 	// AccessKeyId is a required field
 	AccessKeyId *string `min:"16" type:"string" required:"true"`
 
-	// The status you want to assign to the secret access key. Active means the
-	// key can be used for API calls to AWS, while Inactive means the key cannot
-	// be used.
+	// The status you want to assign to the secret access key. Active means that
+	// the key can be used for API calls to AWS, while Inactive means that the key
+	// cannot be used.
 	//
 	// Status is a required field
 	Status *string `type:"string" required:"true" enum:"statusType"`
@@ -26295,7 +27129,7 @@ type UpdateAccessKeyInput struct {
 	//
 	// This parameter allows (per its regex pattern (http://wikipedia.org/wiki/regex))
 	// a string of characters consisting of upper and lowercase alphanumeric characters
-	// with no spaces. You can also include any of the following characters: =,.@-
+	// with no spaces. You can also include any of the following characters: _+=,.@-
 	UserName *string `min:"1" type:"string"`
 }
 
@@ -26349,7 +27183,6 @@ func (s *UpdateAccessKeyInput) SetUserName(v string) *UpdateAccessKeyInput {
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/UpdateAccessKeyOutput
 type UpdateAccessKeyOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -26364,7 +27197,6 @@ func (s UpdateAccessKeyOutput) GoString() string {
 	return s.String()
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/UpdateAccountPasswordPolicyRequest
 type UpdateAccountPasswordPolicyInput struct {
 	_ struct{} `type:"structure"`
 
@@ -26373,42 +27205,53 @@ type UpdateAccountPasswordPolicyInput struct {
 	// Their Own Passwords (http://docs.aws.amazon.com/IAM/latest/UserGuide/HowToPwdIAMUser.html)
 	// in the IAM User Guide.
 	//
-	// Default value: false
+	// If you do not specify a value for this parameter, then the operation uses
+	// the default value of false. The result is that IAM users in the account do
+	// not automatically have permissions to change their own password.
 	AllowUsersToChangePassword *bool `type:"boolean"`
 
 	// Prevents IAM users from setting a new password after their password has expired.
+	// The IAM user cannot be accessed until an administrator resets the password.
 	//
-	// Default value: false
+	// If you do not specify a value for this parameter, then the operation uses
+	// the default value of false. The result is that IAM users can change their
+	// passwords after they expire and continue to sign in as the user.
 	HardExpiry *bool `type:"boolean"`
 
-	// The number of days that an IAM user password is valid. The default value
-	// of 0 means IAM user passwords never expire.
+	// The number of days that an IAM user password is valid.
 	//
-	// Default value: 0
+	// If you do not specify a value for this parameter, then the operation uses
+	// the default value of 0. The result is that IAM user passwords never expire.
 	MaxPasswordAge *int64 `min:"1" type:"integer"`
 
 	// The minimum number of characters allowed in an IAM user password.
 	//
-	// Default value: 6
+	// If you do not specify a value for this parameter, then the operation uses
+	// the default value of 6.
 	MinimumPasswordLength *int64 `min:"6" type:"integer"`
 
 	// Specifies the number of previous passwords that IAM users are prevented from
-	// reusing. The default value of 0 means IAM users are not prevented from reusing
-	// previous passwords.
+	// reusing.
 	//
-	// Default value: 0
+	// If you do not specify a value for this parameter, then the operation uses
+	// the default value of 0. The result is that IAM users are not prevented from
+	// reusing previous passwords.
 	PasswordReusePrevention *int64 `min:"1" type:"integer"`
 
 	// Specifies whether IAM user passwords must contain at least one lowercase
 	// character from the ISO basic Latin alphabet (a to z).
 	//
-	// Default value: false
+	// If you do not specify a value for this parameter, then the operation uses
+	// the default value of false. The result is that passwords do not require at
+	// least one lowercase character.
 	RequireLowercaseCharacters *bool `type:"boolean"`
 
 	// Specifies whether IAM user passwords must contain at least one numeric character
 	// (0 to 9).
 	//
-	// Default value: false
+	// If you do not specify a value for this parameter, then the operation uses
+	// the default value of false. The result is that passwords do not require at
+	// least one numeric character.
 	RequireNumbers *bool `type:"boolean"`
 
 	// Specifies whether IAM user passwords must contain at least one of the following
@@ -26416,13 +27259,17 @@ type UpdateAccountPasswordPolicyInput struct {
 	//
 	// ! @ # $ % ^ & * ( ) _ + - = [ ] { } | '
 	//
-	// Default value: false
+	// If you do not specify a value for this parameter, then the operation uses
+	// the default value of false. The result is that passwords do not require at
+	// least one symbol character.
 	RequireSymbols *bool `type:"boolean"`
 
 	// Specifies whether IAM user passwords must contain at least one uppercase
 	// character from the ISO basic Latin alphabet (A to Z).
 	//
-	// Default value: false
+	// If you do not specify a value for this parameter, then the operation uses
+	// the default value of false. The result is that passwords do not require at
+	// least one uppercase character.
 	RequireUppercaseCharacters *bool `type:"boolean"`
 }
 
@@ -26509,7 +27356,6 @@ func (s *UpdateAccountPasswordPolicyInput) SetRequireUppercaseCharacters(v bool)
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/UpdateAccountPasswordPolicyOutput
 type UpdateAccountPasswordPolicyOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -26524,18 +27370,22 @@ func (s UpdateAccountPasswordPolicyOutput) GoString() string {
 	return s.String()
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/UpdateAssumeRolePolicyRequest
 type UpdateAssumeRolePolicyInput struct {
 	_ struct{} `type:"structure"`
 
 	// The policy that grants an entity permission to assume the role.
 	//
 	// The regex pattern (http://wikipedia.org/wiki/regex) used to validate this
-	// parameter is a string of characters consisting of any printable ASCII character
-	// ranging from the space character (\u0020) through end of the ASCII character
-	// range as well as the printable characters in the Basic Latin and Latin-1
-	// Supplement character set (through \u00FF). It also includes the special characters
-	// tab (\u0009), line feed (\u000A), and carriage return (\u000D).
+	// parameter is a string of characters consisting of the following:
+	//
+	//    * Any printable ASCII character ranging from the space character (\u0020)
+	//    through the end of the ASCII character range
+	//
+	//    * The printable characters in the Basic Latin and Latin-1 Supplement character
+	//    set (through \u00FF)
+	//
+	//    * The special characters tab (\u0009), line feed (\u000A), and carriage
+	//    return (\u000D)
 	//
 	// PolicyDocument is a required field
 	PolicyDocument *string `min:"1" type:"string" required:"true"`
@@ -26594,7 +27444,6 @@ func (s *UpdateAssumeRolePolicyInput) SetRoleName(v string) *UpdateAssumeRolePol
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/UpdateAssumeRolePolicyOutput
 type UpdateAssumeRolePolicyOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -26609,7 +27458,6 @@ func (s UpdateAssumeRolePolicyOutput) GoString() string {
 	return s.String()
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/UpdateGroupRequest
 type UpdateGroupInput struct {
 	_ struct{} `type:"structure"`
 
@@ -26618,7 +27466,7 @@ type UpdateGroupInput struct {
 	//
 	// This parameter allows (per its regex pattern (http://wikipedia.org/wiki/regex))
 	// a string of characters consisting of upper and lowercase alphanumeric characters
-	// with no spaces. You can also include any of the following characters: =,.@-
+	// with no spaces. You can also include any of the following characters: _+=,.@-
 	//
 	// GroupName is a required field
 	GroupName *string `min:"1" type:"string" required:"true"`
@@ -26627,16 +27475,17 @@ type UpdateGroupInput struct {
 	//
 	// This parameter allows (per its regex pattern (http://wikipedia.org/wiki/regex))
 	// a string of characters consisting of upper and lowercase alphanumeric characters
-	// with no spaces. You can also include any of the following characters: =,.@-
+	// with no spaces. You can also include any of the following characters: _+=,.@-
 	NewGroupName *string `min:"1" type:"string"`
 
 	// New path for the IAM group. Only include this if changing the group's path.
 	//
-	// This paramater allows (per its regex pattern (http://wikipedia.org/wiki/regex))
+	// This parameter allows (per its regex pattern (http://wikipedia.org/wiki/regex))
 	// a string of characters consisting of either a forward slash (/) by itself
-	// or a string that must begin and end with forward slashes, containing any
-	// ASCII character from the ! (\u0021) thru the DEL character (\u007F), including
-	// most punctuation characters, digits, and upper and lowercased letters.
+	// or a string that must begin and end with forward slashes. In addition, it
+	// can contain any ASCII character from the ! (\u0021) through the DEL character
+	// (\u007F), including most punctuation characters, digits, and upper and lowercased
+	// letters.
 	NewPath *string `min:"1" type:"string"`
 }
 
@@ -26690,7 +27539,6 @@ func (s *UpdateGroupInput) SetNewPath(v string) *UpdateGroupInput {
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/UpdateGroupOutput
 type UpdateGroupOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -26705,20 +27553,26 @@ func (s UpdateGroupOutput) GoString() string {
 	return s.String()
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/UpdateLoginProfileRequest
 type UpdateLoginProfileInput struct {
 	_ struct{} `type:"structure"`
 
 	// The new password for the specified IAM user.
 	//
 	// The regex pattern (http://wikipedia.org/wiki/regex) used to validate this
-	// parameter is a string of characters consisting of any printable ASCII character
-	// ranging from the space character (\u0020) through end of the ASCII character
-	// range as well as the printable characters in the Basic Latin and Latin-1
-	// Supplement character set (through \u00FF). It also includes the special characters
-	// tab (\u0009), line feed (\u000A), and carriage return (\u000D). However,
-	// the format can be further restricted by the account administrator by setting
-	// a password policy on the AWS account. For more information, see UpdateAccountPasswordPolicy.
+	// parameter is a string of characters consisting of the following:
+	//
+	//    * Any printable ASCII character ranging from the space character (\u0020)
+	//    through the end of the ASCII character range
+	//
+	//    * The printable characters in the Basic Latin and Latin-1 Supplement character
+	//    set (through \u00FF)
+	//
+	//    * The special characters tab (\u0009), line feed (\u000A), and carriage
+	//    return (\u000D)
+	//
+	// However, the format can be further restricted by the account administrator
+	// by setting a password policy on the AWS account. For more information, see
+	// UpdateAccountPasswordPolicy.
 	Password *string `min:"1" type:"string"`
 
 	// Allows this new password to be used only once by requiring the specified
@@ -26729,7 +27583,7 @@ type UpdateLoginProfileInput struct {
 	//
 	// This parameter allows (per its regex pattern (http://wikipedia.org/wiki/regex))
 	// a string of characters consisting of upper and lowercase alphanumeric characters
-	// with no spaces. You can also include any of the following characters: =,.@-
+	// with no spaces. You can also include any of the following characters: _+=,.@-
 	//
 	// UserName is a required field
 	UserName *string `min:"1" type:"string" required:"true"`
@@ -26782,7 +27636,6 @@ func (s *UpdateLoginProfileInput) SetUserName(v string) *UpdateLoginProfileInput
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/UpdateLoginProfileOutput
 type UpdateLoginProfileOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -26797,13 +27650,12 @@ func (s UpdateLoginProfileOutput) GoString() string {
 	return s.String()
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/UpdateOpenIDConnectProviderThumbprintRequest
 type UpdateOpenIDConnectProviderThumbprintInput struct {
 	_ struct{} `type:"structure"`
 
 	// The Amazon Resource Name (ARN) of the IAM OIDC provider resource object for
 	// which you want to update the thumbprint. You can get a list of OIDC provider
-	// ARNs by using the ListOpenIDConnectProviders action.
+	// ARNs by using the ListOpenIDConnectProviders operation.
 	//
 	// For more information about ARNs, see Amazon Resource Names (ARNs) and AWS
 	// Service Namespaces (http://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html)
@@ -26860,7 +27712,6 @@ func (s *UpdateOpenIDConnectProviderThumbprintInput) SetThumbprintList(v []*stri
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/UpdateOpenIDConnectProviderThumbprintOutput
 type UpdateOpenIDConnectProviderThumbprintOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -26875,7 +27726,6 @@ func (s UpdateOpenIDConnectProviderThumbprintOutput) GoString() string {
 	return s.String()
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/UpdateRoleDescriptionRequest
 type UpdateRoleDescriptionInput struct {
 	_ struct{} `type:"structure"`
 
@@ -26931,7 +27781,6 @@ func (s *UpdateRoleDescriptionInput) SetRoleName(v string) *UpdateRoleDescriptio
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/UpdateRoleDescriptionResponse
 type UpdateRoleDescriptionOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -26955,7 +27804,95 @@ func (s *UpdateRoleDescriptionOutput) SetRole(v *Role) *UpdateRoleDescriptionOut
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/UpdateSAMLProviderRequest
+type UpdateRoleInput struct {
+	_ struct{} `type:"structure"`
+
+	// The new description that you want to apply to the specified role.
+	Description *string `type:"string"`
+
+	// The maximum session duration (in seconds) that you want to set for the specified
+	// role. If you do not specify a value for this setting, the default maximum
+	// of one hour is applied. This setting can have a value from 1 hour to 12 hours.
+	//
+	// Anyone who assumes the role from the AWS CLI or API can use the DurationSeconds
+	// API parameter or the duration-seconds CLI parameter to request a longer session.
+	// The MaxSessionDuration setting determines the maximum duration that can be
+	// requested using the DurationSeconds parameter. If users don't specify a value
+	// for the DurationSeconds parameter, their security credentials are valid for
+	// one hour by default. This applies when you use the AssumeRole* API operations
+	// or the assume-role* CLI operations but does not apply when you use those
+	// operations to create a console URL. For more information, see Using IAM Roles
+	// (http://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_use.html) in the
+	// IAM User Guide.
+	MaxSessionDuration *int64 `min:"3600" type:"integer"`
+
+	// The name of the role that you want to modify.
+	//
+	// RoleName is a required field
+	RoleName *string `min:"1" type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s UpdateRoleInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s UpdateRoleInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *UpdateRoleInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "UpdateRoleInput"}
+	if s.MaxSessionDuration != nil && *s.MaxSessionDuration < 3600 {
+		invalidParams.Add(request.NewErrParamMinValue("MaxSessionDuration", 3600))
+	}
+	if s.RoleName == nil {
+		invalidParams.Add(request.NewErrParamRequired("RoleName"))
+	}
+	if s.RoleName != nil && len(*s.RoleName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("RoleName", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetDescription sets the Description field's value.
+func (s *UpdateRoleInput) SetDescription(v string) *UpdateRoleInput {
+	s.Description = &v
+	return s
+}
+
+// SetMaxSessionDuration sets the MaxSessionDuration field's value.
+func (s *UpdateRoleInput) SetMaxSessionDuration(v int64) *UpdateRoleInput {
+	s.MaxSessionDuration = &v
+	return s
+}
+
+// SetRoleName sets the RoleName field's value.
+func (s *UpdateRoleInput) SetRoleName(v string) *UpdateRoleInput {
+	s.RoleName = &v
+	return s
+}
+
+type UpdateRoleOutput struct {
+	_ struct{} `type:"structure"`
+}
+
+// String returns the string representation
+func (s UpdateRoleOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s UpdateRoleOutput) GoString() string {
+	return s.String()
+}
+
 type UpdateSAMLProviderInput struct {
 	_ struct{} `type:"structure"`
 
@@ -27023,7 +27960,6 @@ func (s *UpdateSAMLProviderInput) SetSAMLProviderArn(v string) *UpdateSAMLProvid
 }
 
 // Contains the response to a successful UpdateSAMLProvider request.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/UpdateSAMLProviderResponse
 type UpdateSAMLProviderOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -27047,7 +27983,6 @@ func (s *UpdateSAMLProviderOutput) SetSAMLProviderArn(v string) *UpdateSAMLProvi
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/UpdateSSHPublicKeyRequest
 type UpdateSSHPublicKeyInput struct {
 	_ struct{} `type:"structure"`
 
@@ -27060,9 +27995,9 @@ type UpdateSSHPublicKeyInput struct {
 	// SSHPublicKeyId is a required field
 	SSHPublicKeyId *string `min:"20" type:"string" required:"true"`
 
-	// The status to assign to the SSH public key. Active means the key can be used
-	// for authentication with an AWS CodeCommit repository. Inactive means the
-	// key cannot be used.
+	// The status to assign to the SSH public key. Active means that the key can
+	// be used for authentication with an AWS CodeCommit repository. Inactive means
+	// that the key cannot be used.
 	//
 	// Status is a required field
 	Status *string `type:"string" required:"true" enum:"statusType"`
@@ -27071,7 +28006,7 @@ type UpdateSSHPublicKeyInput struct {
 	//
 	// This parameter allows (per its regex pattern (http://wikipedia.org/wiki/regex))
 	// a string of characters consisting of upper and lowercase alphanumeric characters
-	// with no spaces. You can also include any of the following characters: =,.@-
+	// with no spaces. You can also include any of the following characters: _+=,.@-
 	//
 	// UserName is a required field
 	UserName *string `min:"1" type:"string" required:"true"`
@@ -27130,7 +28065,6 @@ func (s *UpdateSSHPublicKeyInput) SetUserName(v string) *UpdateSSHPublicKeyInput
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/UpdateSSHPublicKeyOutput
 type UpdateSSHPublicKeyOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -27145,18 +28079,18 @@ func (s UpdateSSHPublicKeyOutput) GoString() string {
 	return s.String()
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/UpdateServerCertificateRequest
 type UpdateServerCertificateInput struct {
 	_ struct{} `type:"structure"`
 
 	// The new path for the server certificate. Include this only if you are updating
 	// the server certificate's path.
 	//
-	// This paramater allows (per its regex pattern (http://wikipedia.org/wiki/regex))
+	// This parameter allows (per its regex pattern (http://wikipedia.org/wiki/regex))
 	// a string of characters consisting of either a forward slash (/) by itself
-	// or a string that must begin and end with forward slashes, containing any
-	// ASCII character from the ! (\u0021) thru the DEL character (\u007F), including
-	// most punctuation characters, digits, and upper and lowercased letters.
+	// or a string that must begin and end with forward slashes. In addition, it
+	// can contain any ASCII character from the ! (\u0021) through the DEL character
+	// (\u007F), including most punctuation characters, digits, and upper and lowercased
+	// letters.
 	NewPath *string `min:"1" type:"string"`
 
 	// The new name for the server certificate. Include this only if you are updating
@@ -27165,14 +28099,14 @@ type UpdateServerCertificateInput struct {
 	//
 	// This parameter allows (per its regex pattern (http://wikipedia.org/wiki/regex))
 	// a string of characters consisting of upper and lowercase alphanumeric characters
-	// with no spaces. You can also include any of the following characters: =,.@-
+	// with no spaces. You can also include any of the following characters: _+=,.@-
 	NewServerCertificateName *string `min:"1" type:"string"`
 
 	// The name of the server certificate that you want to update.
 	//
 	// This parameter allows (per its regex pattern (http://wikipedia.org/wiki/regex))
 	// a string of characters consisting of upper and lowercase alphanumeric characters
-	// with no spaces. You can also include any of the following characters: =,.@-
+	// with no spaces. You can also include any of the following characters: _+=,.@-
 	//
 	// ServerCertificateName is a required field
 	ServerCertificateName *string `min:"1" type:"string" required:"true"`
@@ -27228,7 +28162,6 @@ func (s *UpdateServerCertificateInput) SetServerCertificateName(v string) *Updat
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/UpdateServerCertificateOutput
 type UpdateServerCertificateOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -27243,7 +28176,6 @@ func (s UpdateServerCertificateOutput) GoString() string {
 	return s.String()
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/UpdateServiceSpecificCredentialRequest
 type UpdateServiceSpecificCredentialInput struct {
 	_ struct{} `type:"structure"`
 
@@ -27267,7 +28199,7 @@ type UpdateServiceSpecificCredentialInput struct {
 	//
 	// This parameter allows (per its regex pattern (http://wikipedia.org/wiki/regex))
 	// a string of characters consisting of upper and lowercase alphanumeric characters
-	// with no spaces. You can also include any of the following characters: =,.@-
+	// with no spaces. You can also include any of the following characters: _+=,.@-
 	UserName *string `min:"1" type:"string"`
 }
 
@@ -27321,7 +28253,6 @@ func (s *UpdateServiceSpecificCredentialInput) SetUserName(v string) *UpdateServ
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/UpdateServiceSpecificCredentialOutput
 type UpdateServiceSpecificCredentialOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -27336,7 +28267,6 @@ func (s UpdateServiceSpecificCredentialOutput) GoString() string {
 	return s.String()
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/UpdateSigningCertificateRequest
 type UpdateSigningCertificateInput struct {
 	_ struct{} `type:"structure"`
 
@@ -27349,8 +28279,8 @@ type UpdateSigningCertificateInput struct {
 	// CertificateId is a required field
 	CertificateId *string `min:"24" type:"string" required:"true"`
 
-	// The status you want to assign to the certificate. Active means the certificate
-	// can be used for API calls to AWS, while Inactive means the certificate cannot
+	// The status you want to assign to the certificate. Active means that the certificate
+	// can be used for API calls to AWS Inactive means that the certificate cannot
 	// be used.
 	//
 	// Status is a required field
@@ -27360,7 +28290,7 @@ type UpdateSigningCertificateInput struct {
 	//
 	// This parameter allows (per its regex pattern (http://wikipedia.org/wiki/regex))
 	// a string of characters consisting of upper and lowercase alphanumeric characters
-	// with no spaces. You can also include any of the following characters: =,.@-
+	// with no spaces. You can also include any of the following characters: _+=,.@-
 	UserName *string `min:"1" type:"string"`
 }
 
@@ -27414,7 +28344,6 @@ func (s *UpdateSigningCertificateInput) SetUserName(v string) *UpdateSigningCert
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/UpdateSigningCertificateOutput
 type UpdateSigningCertificateOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -27429,18 +28358,18 @@ func (s UpdateSigningCertificateOutput) GoString() string {
 	return s.String()
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/UpdateUserRequest
 type UpdateUserInput struct {
 	_ struct{} `type:"structure"`
 
 	// New path for the IAM user. Include this parameter only if you're changing
 	// the user's path.
 	//
-	// This paramater allows (per its regex pattern (http://wikipedia.org/wiki/regex))
+	// This parameter allows (per its regex pattern (http://wikipedia.org/wiki/regex))
 	// a string of characters consisting of either a forward slash (/) by itself
-	// or a string that must begin and end with forward slashes, containing any
-	// ASCII character from the ! (\u0021) thru the DEL character (\u007F), including
-	// most punctuation characters, digits, and upper and lowercased letters.
+	// or a string that must begin and end with forward slashes. In addition, it
+	// can contain any ASCII character from the ! (\u0021) through the DEL character
+	// (\u007F), including most punctuation characters, digits, and upper and lowercased
+	// letters.
 	NewPath *string `min:"1" type:"string"`
 
 	// New name for the user. Include this parameter only if you're changing the
@@ -27448,7 +28377,7 @@ type UpdateUserInput struct {
 	//
 	// This parameter allows (per its regex pattern (http://wikipedia.org/wiki/regex))
 	// a string of characters consisting of upper and lowercase alphanumeric characters
-	// with no spaces. You can also include any of the following characters: =,.@-
+	// with no spaces. You can also include any of the following characters: _+=,.@-
 	NewUserName *string `min:"1" type:"string"`
 
 	// Name of the user to update. If you're changing the name of the user, this
@@ -27456,7 +28385,7 @@ type UpdateUserInput struct {
 	//
 	// This parameter allows (per its regex pattern (http://wikipedia.org/wiki/regex))
 	// a string of characters consisting of upper and lowercase alphanumeric characters
-	// with no spaces. You can also include any of the following characters: =,.@-
+	// with no spaces. You can also include any of the following characters: _+=,.@-
 	//
 	// UserName is a required field
 	UserName *string `min:"1" type:"string" required:"true"`
@@ -27512,7 +28441,6 @@ func (s *UpdateUserInput) SetUserName(v string) *UpdateUserInput {
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/UpdateUserOutput
 type UpdateUserOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -27527,19 +28455,25 @@ func (s UpdateUserOutput) GoString() string {
 	return s.String()
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/UploadSSHPublicKeyRequest
 type UploadSSHPublicKeyInput struct {
 	_ struct{} `type:"structure"`
 
 	// The SSH public key. The public key must be encoded in ssh-rsa format or PEM
-	// format.
+	// format. The miminum bit-length of the public key is 2048 bits. For example,
+	// you can generate a 2048-bit key, and the resulting PEM file is 1679 bytes
+	// long.
 	//
 	// The regex pattern (http://wikipedia.org/wiki/regex) used to validate this
-	// parameter is a string of characters consisting of any printable ASCII character
-	// ranging from the space character (\u0020) through end of the ASCII character
-	// range as well as the printable characters in the Basic Latin and Latin-1
-	// Supplement character set (through \u00FF). It also includes the special characters
-	// tab (\u0009), line feed (\u000A), and carriage return (\u000D).
+	// parameter is a string of characters consisting of the following:
+	//
+	//    * Any printable ASCII character ranging from the space character (\u0020)
+	//    through the end of the ASCII character range
+	//
+	//    * The printable characters in the Basic Latin and Latin-1 Supplement character
+	//    set (through \u00FF)
+	//
+	//    * The special characters tab (\u0009), line feed (\u000A), and carriage
+	//    return (\u000D)
 	//
 	// SSHPublicKeyBody is a required field
 	SSHPublicKeyBody *string `min:"1" type:"string" required:"true"`
@@ -27548,7 +28482,7 @@ type UploadSSHPublicKeyInput struct {
 	//
 	// This parameter allows (per its regex pattern (http://wikipedia.org/wiki/regex))
 	// a string of characters consisting of upper and lowercase alphanumeric characters
-	// with no spaces. You can also include any of the following characters: =,.@-
+	// with no spaces. You can also include any of the following characters: _+=,.@-
 	//
 	// UserName is a required field
 	UserName *string `min:"1" type:"string" required:"true"`
@@ -27599,7 +28533,6 @@ func (s *UploadSSHPublicKeyInput) SetUserName(v string) *UploadSSHPublicKeyInput
 }
 
 // Contains the response to a successful UploadSSHPublicKey request.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/UploadSSHPublicKeyResponse
 type UploadSSHPublicKeyOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -27623,18 +28556,22 @@ func (s *UploadSSHPublicKeyOutput) SetSSHPublicKey(v *SSHPublicKey) *UploadSSHPu
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/UploadServerCertificateRequest
 type UploadServerCertificateInput struct {
 	_ struct{} `type:"structure"`
 
 	// The contents of the public key certificate in PEM-encoded format.
 	//
 	// The regex pattern (http://wikipedia.org/wiki/regex) used to validate this
-	// parameter is a string of characters consisting of any printable ASCII character
-	// ranging from the space character (\u0020) through end of the ASCII character
-	// range as well as the printable characters in the Basic Latin and Latin-1
-	// Supplement character set (through \u00FF). It also includes the special characters
-	// tab (\u0009), line feed (\u000A), and carriage return (\u000D).
+	// parameter is a string of characters consisting of the following:
+	//
+	//    * Any printable ASCII character ranging from the space character (\u0020)
+	//    through the end of the ASCII character range
+	//
+	//    * The printable characters in the Basic Latin and Latin-1 Supplement character
+	//    set (through \u00FF)
+	//
+	//    * The special characters tab (\u0009), line feed (\u000A), and carriage
+	//    return (\u000D)
 	//
 	// CertificateBody is a required field
 	CertificateBody *string `min:"1" type:"string" required:"true"`
@@ -27643,11 +28580,16 @@ type UploadServerCertificateInput struct {
 	// of the PEM-encoded public key certificates of the chain.
 	//
 	// The regex pattern (http://wikipedia.org/wiki/regex) used to validate this
-	// parameter is a string of characters consisting of any printable ASCII character
-	// ranging from the space character (\u0020) through end of the ASCII character
-	// range as well as the printable characters in the Basic Latin and Latin-1
-	// Supplement character set (through \u00FF). It also includes the special characters
-	// tab (\u0009), line feed (\u000A), and carriage return (\u000D).
+	// parameter is a string of characters consisting of the following:
+	//
+	//    * Any printable ASCII character ranging from the space character (\u0020)
+	//    through the end of the ASCII character range
+	//
+	//    * The printable characters in the Basic Latin and Latin-1 Supplement character
+	//    set (through \u00FF)
+	//
+	//    * The special characters tab (\u0009), line feed (\u000A), and carriage
+	//    return (\u000D)
 	CertificateChain *string `min:"1" type:"string"`
 
 	// The path for the server certificate. For more information about paths, see
@@ -27655,14 +28597,15 @@ type UploadServerCertificateInput struct {
 	// in the IAM User Guide.
 	//
 	// This parameter is optional. If it is not included, it defaults to a slash
-	// (/). This paramater allows (per its regex pattern (http://wikipedia.org/wiki/regex))
+	// (/). This parameter allows (per its regex pattern (http://wikipedia.org/wiki/regex))
 	// a string of characters consisting of either a forward slash (/) by itself
-	// or a string that must begin and end with forward slashes, containing any
-	// ASCII character from the ! (\u0021) thru the DEL character (\u007F), including
-	// most punctuation characters, digits, and upper and lowercased letters.
+	// or a string that must begin and end with forward slashes. In addition, it
+	// can contain any ASCII character from the ! (\u0021) through the DEL character
+	// (\u007F), including most punctuation characters, digits, and upper and lowercased
+	// letters.
 	//
 	// If you are uploading a server certificate specifically for use with Amazon
-	// CloudFront distributions, you must specify a path using the --path option.
+	// CloudFront distributions, you must specify a path using the path parameter.
 	// The path must begin with /cloudfront and must include a trailing slash (for
 	// example, /cloudfront/test/).
 	Path *string `min:"1" type:"string"`
@@ -27670,11 +28613,16 @@ type UploadServerCertificateInput struct {
 	// The contents of the private key in PEM-encoded format.
 	//
 	// The regex pattern (http://wikipedia.org/wiki/regex) used to validate this
-	// parameter is a string of characters consisting of any printable ASCII character
-	// ranging from the space character (\u0020) through end of the ASCII character
-	// range as well as the printable characters in the Basic Latin and Latin-1
-	// Supplement character set (through \u00FF). It also includes the special characters
-	// tab (\u0009), line feed (\u000A), and carriage return (\u000D).
+	// parameter is a string of characters consisting of the following:
+	//
+	//    * Any printable ASCII character ranging from the space character (\u0020)
+	//    through the end of the ASCII character range
+	//
+	//    * The printable characters in the Basic Latin and Latin-1 Supplement character
+	//    set (through \u00FF)
+	//
+	//    * The special characters tab (\u0009), line feed (\u000A), and carriage
+	//    return (\u000D)
 	//
 	// PrivateKey is a required field
 	PrivateKey *string `min:"1" type:"string" required:"true"`
@@ -27684,7 +28632,7 @@ type UploadServerCertificateInput struct {
 	//
 	// This parameter allows (per its regex pattern (http://wikipedia.org/wiki/regex))
 	// a string of characters consisting of upper and lowercase alphanumeric characters
-	// with no spaces. You can also include any of the following characters: =,.@-
+	// with no spaces. You can also include any of the following characters: _+=,.@-
 	//
 	// ServerCertificateName is a required field
 	ServerCertificateName *string `min:"1" type:"string" required:"true"`
@@ -27765,7 +28713,6 @@ func (s *UploadServerCertificateInput) SetServerCertificateName(v string) *Uploa
 }
 
 // Contains the response to a successful UploadServerCertificate request.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/UploadServerCertificateResponse
 type UploadServerCertificateOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -27790,18 +28737,22 @@ func (s *UploadServerCertificateOutput) SetServerCertificateMetadata(v *ServerCe
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/UploadSigningCertificateRequest
 type UploadSigningCertificateInput struct {
 	_ struct{} `type:"structure"`
 
 	// The contents of the signing certificate.
 	//
 	// The regex pattern (http://wikipedia.org/wiki/regex) used to validate this
-	// parameter is a string of characters consisting of any printable ASCII character
-	// ranging from the space character (\u0020) through end of the ASCII character
-	// range as well as the printable characters in the Basic Latin and Latin-1
-	// Supplement character set (through \u00FF). It also includes the special characters
-	// tab (\u0009), line feed (\u000A), and carriage return (\u000D).
+	// parameter is a string of characters consisting of the following:
+	//
+	//    * Any printable ASCII character ranging from the space character (\u0020)
+	//    through the end of the ASCII character range
+	//
+	//    * The printable characters in the Basic Latin and Latin-1 Supplement character
+	//    set (through \u00FF)
+	//
+	//    * The special characters tab (\u0009), line feed (\u000A), and carriage
+	//    return (\u000D)
 	//
 	// CertificateBody is a required field
 	CertificateBody *string `min:"1" type:"string" required:"true"`
@@ -27810,7 +28761,7 @@ type UploadSigningCertificateInput struct {
 	//
 	// This parameter allows (per its regex pattern (http://wikipedia.org/wiki/regex))
 	// a string of characters consisting of upper and lowercase alphanumeric characters
-	// with no spaces. You can also include any of the following characters: =,.@-
+	// with no spaces. You can also include any of the following characters: _+=,.@-
 	UserName *string `min:"1" type:"string"`
 }
 
@@ -27856,7 +28807,6 @@ func (s *UploadSigningCertificateInput) SetUserName(v string) *UploadSigningCert
 }
 
 // Contains the response to a successful UploadSigningCertificate request.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/UploadSigningCertificateResponse
 type UploadSigningCertificateOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -27884,14 +28834,13 @@ func (s *UploadSigningCertificateOutput) SetCertificate(v *SigningCertificate) *
 
 // Contains information about an IAM user entity.
 //
-// This data type is used as a response element in the following actions:
+// This data type is used as a response element in the following operations:
 //
 //    * CreateUser
 //
 //    * GetUser
 //
 //    * ListUsers
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/User
 type User struct {
 	_ struct{} `type:"structure"`
 
@@ -27906,7 +28855,7 @@ type User struct {
 	// when the user was created.
 	//
 	// CreateDate is a required field
-	CreateDate *time.Time `type:"timestamp" timestampFormat:"iso8601" required:"true"`
+	CreateDate *time.Time `type:"timestamp" required:"true"`
 
 	// The date and time, in ISO 8601 date-time format (http://www.iso.org/iso/iso8601),
 	// when the user's password was last used to sign in to an AWS website. For
@@ -27926,8 +28875,8 @@ type User struct {
 	// does not currently have a password, but had one in the past, then this field
 	// contains the date and time the most recent password was used.
 	//
-	// This value is returned only in the GetUser and ListUsers actions.
-	PasswordLastUsed *time.Time `type:"timestamp" timestampFormat:"iso8601"`
+	// This value is returned only in the GetUser and ListUsers operations.
+	PasswordLastUsed *time.Time `type:"timestamp"`
 
 	// The path to the user. For more information about paths, see IAM Identifiers
 	// (http://docs.aws.amazon.com/IAM/latest/UserGuide/Using_Identifiers.html)
@@ -27935,6 +28884,13 @@ type User struct {
 	//
 	// Path is a required field
 	Path *string `min:"1" type:"string" required:"true"`
+
+	// The ARN of the policy used to set the permissions boundary for the user.
+	//
+	// For more information about permissions boundaries, see Permissions Boundaries
+	// for IAM Identities  (https://docs.aws.amazon.com/IAM/latest/UserGuide/access_policies_boundaries.html)
+	// in the IAM User Guide.
+	PermissionsBoundary *AttachedPermissionsBoundary `type:"structure"`
 
 	// The stable and unique string identifying the user. For more information about
 	// IDs, see IAM Identifiers (http://docs.aws.amazon.com/IAM/latest/UserGuide/Using_Identifiers.html)
@@ -27983,6 +28939,12 @@ func (s *User) SetPath(v string) *User {
 	return s
 }
 
+// SetPermissionsBoundary sets the PermissionsBoundary field's value.
+func (s *User) SetPermissionsBoundary(v *AttachedPermissionsBoundary) *User {
+	s.PermissionsBoundary = v
+	return s
+}
+
 // SetUserId sets the UserId field's value.
 func (s *User) SetUserId(v string) *User {
 	s.UserId = &v
@@ -27999,8 +28961,7 @@ func (s *User) SetUserName(v string) *User {
 // and all the IAM groups the user is in.
 //
 // This data type is used as a response element in the GetAccountAuthorizationDetails
-// action.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/UserDetail
+// operation.
 type UserDetail struct {
 	_ struct{} `type:"structure"`
 
@@ -28016,7 +28977,7 @@ type UserDetail struct {
 
 	// The date and time, in ISO 8601 date-time format (http://www.iso.org/iso/iso8601),
 	// when the user was created.
-	CreateDate *time.Time `type:"timestamp" timestampFormat:"iso8601"`
+	CreateDate *time.Time `type:"timestamp"`
 
 	// A list of IAM groups that the user is in.
 	GroupList []*string `type:"list"`
@@ -28025,6 +28986,13 @@ type UserDetail struct {
 	// (http://docs.aws.amazon.com/IAM/latest/UserGuide/Using_Identifiers.html)
 	// in the Using IAM guide.
 	Path *string `min:"1" type:"string"`
+
+	// The ARN of the policy used to set the permissions boundary for the user.
+	//
+	// For more information about permissions boundaries, see Permissions Boundaries
+	// for IAM Identities  (https://docs.aws.amazon.com/IAM/latest/UserGuide/access_policies_boundaries.html)
+	// in the IAM User Guide.
+	PermissionsBoundary *AttachedPermissionsBoundary `type:"structure"`
 
 	// The stable and unique string identifying the user. For more information about
 	// IDs, see IAM Identifiers (http://docs.aws.amazon.com/IAM/latest/UserGuide/Using_Identifiers.html)
@@ -28078,6 +29046,12 @@ func (s *UserDetail) SetPath(v string) *UserDetail {
 	return s
 }
 
+// SetPermissionsBoundary sets the PermissionsBoundary field's value.
+func (s *UserDetail) SetPermissionsBoundary(v *AttachedPermissionsBoundary) *UserDetail {
+	s.PermissionsBoundary = v
+	return s
+}
+
 // SetUserId sets the UserId field's value.
 func (s *UserDetail) SetUserId(v string) *UserDetail {
 	s.UserId = &v
@@ -28097,7 +29071,6 @@ func (s *UserDetail) SetUserPolicyList(v []*PolicyDetail) *UserDetail {
 }
 
 // Contains information about a virtual MFA device.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/VirtualMFADevice
 type VirtualMFADevice struct {
 	_ struct{} `type:"structure"`
 
@@ -28108,7 +29081,7 @@ type VirtualMFADevice struct {
 	Base32StringSeed []byte `type:"blob"`
 
 	// The date and time on which the virtual MFA device was enabled.
-	EnableDate *time.Time `type:"timestamp" timestampFormat:"iso8601"`
+	EnableDate *time.Time `type:"timestamp"`
 
 	// A QR code PNG image that encodes otpauth://totp/$virtualMFADeviceName@$AccountName?secret=$Base32String
 	// where $virtualMFADeviceName is one of the create call arguments, AccountName
@@ -28237,6 +29210,11 @@ const (
 )
 
 const (
+	// PermissionsBoundaryAttachmentTypePermissionsBoundaryPolicy is a PermissionsBoundaryAttachmentType enum value
+	PermissionsBoundaryAttachmentTypePermissionsBoundaryPolicy = "PermissionsBoundaryPolicy"
+)
+
+const (
 	// PolicyEvaluationDecisionTypeAllowed is a PolicyEvaluationDecisionType enum value
 	PolicyEvaluationDecisionTypeAllowed = "allowed"
 
@@ -28268,6 +29246,20 @@ const (
 
 	// PolicySourceTypeNone is a PolicySourceType enum value
 	PolicySourceTypeNone = "none"
+)
+
+// The policy usage type that indicates whether the policy is used as a permissions
+// policy or as the permissions boundary for an entity.
+//
+// For more information about permissions boundaries, see Permissions Boundaries
+// for IAM Identities  (https://docs.aws.amazon.com/IAM/latest/UserGuide/access_policies_boundaries.html)
+// in the IAM User Guide.
+const (
+	// PolicyUsageTypePermissionsPolicy is a PolicyUsageType enum value
+	PolicyUsageTypePermissionsPolicy = "PermissionsPolicy"
+
+	// PolicyUsageTypePermissionsBoundary is a PolicyUsageType enum value
+	PolicyUsageTypePermissionsBoundary = "PermissionsBoundary"
 )
 
 const (

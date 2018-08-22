@@ -3,8 +3,11 @@ package aws
 import (
 	"bytes"
 	"encoding/json"
+	"log"
 	"reflect"
+	"sort"
 
+	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/private/protocol/json/jsonutil"
 	"github.com/aws/aws-sdk-go/service/ecs"
 	"github.com/mitchellh/copystructure"
@@ -34,12 +37,18 @@ func ecsContainerDefinitionsAreEquivalent(def1, def2 string) (bool, error) {
 	if err != nil {
 		return false, err
 	}
+
 	canonicalJson2, err := jsonutil.BuildJSON(obj2)
 	if err != nil {
 		return false, err
 	}
 
-	return bytes.Compare(canonicalJson1, canonicalJson2) == 0, nil
+	equal := bytes.Compare(canonicalJson1, canonicalJson2) == 0
+	if !equal {
+		log.Printf("[DEBUG] Canonical definitions are not equal.\nFirst: %s\nSecond: %s\n",
+			canonicalJson1, canonicalJson2)
+	}
+	return equal, nil
 }
 
 type containerDefinitions []*ecs.ContainerDefinition
@@ -47,6 +56,12 @@ type containerDefinitions []*ecs.ContainerDefinition
 func (cd containerDefinitions) Reduce() error {
 	for i, def := range cd {
 		// Deal with special fields which have defaults
+		if def.Cpu != nil && *def.Cpu == 0 {
+			def.Cpu = nil
+		}
+		if def.Essential == nil {
+			def.Essential = aws.Bool(true)
+		}
 		for j, pm := range def.PortMappings {
 			if pm.Protocol != nil && *pm.Protocol == "tcp" {
 				cd[i].PortMappings[j].Protocol = nil
@@ -55,6 +70,11 @@ func (cd containerDefinitions) Reduce() error {
 				cd[i].PortMappings[j].HostPort = nil
 			}
 		}
+
+		// Deal with fields which may be re-ordered in the API
+		sort.Slice(def.Environment, func(i, j int) bool {
+			return *def.Environment[i].Name < *def.Environment[j].Name
+		})
 
 		// Create a mutable copy
 		defCopy, err := copystructure.Copy(def)

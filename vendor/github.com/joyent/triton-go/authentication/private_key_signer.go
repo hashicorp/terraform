@@ -1,3 +1,11 @@
+//
+// Copyright (c) 2018, Joyent, Inc. All rights reserved.
+//
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at http://mozilla.org/MPL/2.0/.
+//
+
 package authentication
 
 import (
@@ -7,12 +15,10 @@ import (
 	"crypto/x509"
 	"encoding/base64"
 	"encoding/pem"
-	"errors"
 	"fmt"
-	"path"
 	"strings"
 
-	"github.com/hashicorp/errwrap"
+	"github.com/pkg/errors"
 	"golang.org/x/crypto/ssh"
 )
 
@@ -44,12 +50,12 @@ func NewPrivateKeySigner(input PrivateKeySignerInput) (*PrivateKeySigner, error)
 
 	rsakey, err := x509.ParsePKCS1PrivateKey(block.Bytes)
 	if err != nil {
-		return nil, errwrap.Wrapf("Error parsing private key: {{err}}", err)
+		return nil, errors.Wrap(err, "unable to parse private key")
 	}
 
 	sshPublicKey, err := ssh.NewPublicKey(rsakey.Public())
 	if err != nil {
-		return nil, errwrap.Wrapf("Error parsing SSH key from private key: {{err}}", err)
+		return nil, errors.Wrap(err, "unable to parse SSH key from private key")
 	}
 
 	matchKeyFingerprint := formatPublicKeyFingerprint(sshPublicKey, false)
@@ -80,7 +86,7 @@ func NewPrivateKeySigner(input PrivateKeySignerInput) (*PrivateKeySigner, error)
 	return signer, nil
 }
 
-func (s *PrivateKeySigner) Sign(dateHeader string) (string, error) {
+func (s *PrivateKeySigner) Sign(dateHeader string, isManta bool) (string, error) {
 	const headerName = "date"
 
 	hash := s.hashFunc.New()
@@ -89,18 +95,18 @@ func (s *PrivateKeySigner) Sign(dateHeader string) (string, error) {
 
 	signed, err := rsa.SignPKCS1v15(rand.Reader, s.privateKey, s.hashFunc, digest)
 	if err != nil {
-		return "", errwrap.Wrapf("Error signing date header: {{err}}", err)
+		return "", errors.Wrap(err, "unable to sign date header")
 	}
 	signedBase64 := base64.StdEncoding.EncodeToString(signed)
 
-	var keyID string
-	if s.userName != "" {
-
-		keyID = path.Join("/", s.accountName, "users", s.userName, "keys", s.formattedKeyFingerprint)
-	} else {
-		keyID = path.Join("/", s.accountName, "keys", s.formattedKeyFingerprint)
+	key := &KeyID{
+		UserName:    s.userName,
+		AccountName: s.accountName,
+		Fingerprint: s.formattedKeyFingerprint,
+		IsManta:     isManta,
 	}
-	return fmt.Sprintf(authorizationHeaderFormat, keyID, "rsa-sha1", headerName, signedBase64), nil
+
+	return fmt.Sprintf(authorizationHeaderFormat, key.generate(), "rsa-sha1", headerName, signedBase64), nil
 }
 
 func (s *PrivateKeySigner) SignRaw(toSign string) (string, string, error) {
@@ -110,7 +116,7 @@ func (s *PrivateKeySigner) SignRaw(toSign string) (string, string, error) {
 
 	signed, err := rsa.SignPKCS1v15(rand.Reader, s.privateKey, s.hashFunc, digest)
 	if err != nil {
-		return "", "", errwrap.Wrapf("Error signing date header: {{err}}", err)
+		return "", "", errors.Wrap(err, "unable to sign date header")
 	}
 	signedBase64 := base64.StdEncoding.EncodeToString(signed)
 	return signedBase64, "rsa-sha1", nil

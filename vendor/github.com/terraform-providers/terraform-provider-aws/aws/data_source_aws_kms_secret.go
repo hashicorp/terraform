@@ -13,29 +13,30 @@ import (
 
 func dataSourceAwsKmsSecret() *schema.Resource {
 	return &schema.Resource{
-		Read: dataSourceAwsKmsSecretRead,
+		DeprecationMessage: "This data source will be removed in Terraform AWS provider version 2.0. Please see migration information available in: https://www.terraform.io/docs/providers/aws/guides/version-2-upgrade.html#data-source-aws_kms_secret",
+		Read:               dataSourceAwsKmsSecretRead,
 
 		Schema: map[string]*schema.Schema{
-			"secret": &schema.Schema{
+			"secret": {
 				Type:     schema.TypeSet,
 				Required: true,
 				ForceNew: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"name": &schema.Schema{
+						"name": {
 							Type:     schema.TypeString,
 							Required: true,
 						},
-						"payload": &schema.Schema{
+						"payload": {
 							Type:     schema.TypeString,
 							Required: true,
 						},
-						"context": &schema.Schema{
+						"context": {
 							Type:     schema.TypeMap,
 							Optional: true,
 							Elem:     &schema.Schema{Type: schema.TypeString},
 						},
-						"grant_tokens": &schema.Schema{
+						"grant_tokens": {
 							Type:     schema.TypeList,
 							Optional: true,
 							Elem:     &schema.Schema{Type: schema.TypeString},

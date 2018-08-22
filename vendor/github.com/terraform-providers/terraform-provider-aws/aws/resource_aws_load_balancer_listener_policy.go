@@ -128,7 +128,6 @@ func resourceAwsLoadBalancerListenerPoliciesDelete(d *schema.ResourceData, meta 
 		return fmt.Errorf("Error setting LoadBalancerPoliciesOfListener: %s", err)
 	}
 
-	d.SetId("")
 	return nil
 }
 

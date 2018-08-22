@@ -99,7 +99,7 @@ func resourceAwsApiGatewayBasePathMappingRead(d *schema.ResourceData, meta inter
 	})
 	if err != nil {
 		if err, ok := err.(awserr.Error); ok && err.Code() == "NotFoundException" {
-			log.Printf("[WARN] API gateway base path mapping %s has vanished\n", d.Id())
+			log.Printf("[WARN] API Gateway Base Path Mapping (%s) not found, removing from state", d.Id())
 			d.SetId("")
 			return nil
 		}

@@ -135,7 +135,7 @@ func dataSourceAwsRouteTableRead(d *schema.ResourceData, meta interface{}) error
 		filter.(*schema.Set),
 	)...)
 
-	log.Printf("[DEBUG] Describe Route Tables %v\n", req)
+	log.Printf("[DEBUG] Reading Route Table: %s", req)
 	resp, err := conn.DescribeRouteTables(req)
 	if err != nil {
 		return err

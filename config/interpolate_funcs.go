@@ -1698,7 +1698,7 @@ func interpolationFuncRsaDecrypt() ast.Function {
 
 			b, err := base64.StdEncoding.DecodeString(s)
 			if err != nil {
-				return "", fmt.Errorf("Failed to decode input %q: cipher text must be base64-encoded", key)
+				return "", fmt.Errorf("Failed to decode input %q: cipher text must be base64-encoded", s)
 			}
 
 			block, _ := pem.Decode([]byte(key))

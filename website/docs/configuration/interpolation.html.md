@@ -116,7 +116,7 @@ access, a function call, or even another conditional. The true and false
 value can also be any valid interpolation syntax. The returned types by
 the true and false side must be the same.
 
-The support operators are:
+The supported operators are:
 
   * Equality: `==` and `!=`
   * Numerical comparison: `>`, `<`, `>=`, `<=`
@@ -187,6 +187,11 @@ The supported built-in functions are:
 
   * `chomp(string)` - Removes trailing newlines from the given string.
 
+  * `chunklist(list, size)` - Returns the `list` items chunked by `size`.
+    Examples:
+    * `chunklist(aws_subnet.foo.*.id, 1)`: will outputs `[["id1"], ["id2"], ["id3"]]`
+    * `chunklist(var.list_of_strings, 2)`: will outputs `[["id1", "id2"], ["id3", "id4"], ["id5"]]`
+
   * `cidrhost(iprange, hostnum)` - Takes an IP address range in CIDR notation
     and creates an IP address with the given host number. If given host
     number is negative, the count starts from the end of the range.
@@ -237,15 +242,10 @@ The supported built-in functions are:
       * `element(aws_subnet.foo.*.id, count.index)`
       * `element(var.list_of_strings, 2)`
 
-  * `chunklist(list, size)` - Returns the `list` items chunked by `size`.
-      Examples:
-      * `chunklist(aws_subnet.foo.*.id, 1)`: will outputs `[["id1"], ["id2"], ["id3"]]`
-      * `chunklist(var.list_of_strings, 2)`: will outputs `[["id1", "id2"], ["id3", "id4"], ["id5"]]`
-
   * `file(path)` - Reads the contents of a file into the string. Variables
       in this file are _not_ interpolated. The contents of the file are
       read as-is. The `path` is interpreted relative to the working directory.
-      [Path variables](#path-variables) can be used to reference paths relative
+      [Path variables](#path-information) can be used to reference paths relative
       to other base locations. For example, when using `file()` from inside a
       module, you generally want to make the path relative to the module base,
       like this: `file("${path.module}/file")`.

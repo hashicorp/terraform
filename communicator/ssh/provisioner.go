@@ -18,6 +18,7 @@ import (
 	"github.com/xanzy/ssh-agent"
 	"golang.org/x/crypto/ssh"
 	"golang.org/x/crypto/ssh/agent"
+	"golang.org/x/crypto/ssh/knownhosts"
 )
 
 const (
@@ -43,6 +44,7 @@ type connectionInfo struct {
 	Password   string
 	PrivateKey string `mapstructure:"private_key"`
 	Host       string
+	HostKey    string `mapstructure:"host_key"`
 	Port       int
 	Agent      bool
 	Timeout    string
@@ -53,6 +55,7 @@ type connectionInfo struct {
 	BastionPassword   string `mapstructure:"bastion_password"`
 	BastionPrivateKey string `mapstructure:"bastion_private_key"`
 	BastionHost       string `mapstructure:"bastion_host"`
+	BastionHostKey    string `mapstructure:"bastion_host_key"`
 	BastionPort       int    `mapstructure:"bastion_port"`
 
 	AgentIdentity string `mapstructure:"agent_identity"`
@@ -144,34 +147,38 @@ func prepareSSHConfig(connInfo *connectionInfo) (*sshConfig, error) {
 		return nil, err
 	}
 
+	host := fmt.Sprintf("%s:%d", connInfo.Host, connInfo.Port)
+
 	sshConf, err := buildSSHClientConfig(sshClientConfigOpts{
 		user:       connInfo.User,
+		host:       host,
 		privateKey: connInfo.PrivateKey,
 		password:   connInfo.Password,
+		hostKey:    connInfo.HostKey,
 		sshAgent:   sshAgent,
 	})
 	if err != nil {
 		return nil, err
 	}
 
+	connectFunc := ConnectFunc("tcp", host)
+
 	var bastionConf *ssh.ClientConfig
 	if connInfo.BastionHost != "" {
+		bastionHost := fmt.Sprintf("%s:%d", connInfo.BastionHost, connInfo.BastionPort)
+
 		bastionConf, err = buildSSHClientConfig(sshClientConfigOpts{
 			user:       connInfo.BastionUser,
+			host:       bastionHost,
 			privateKey: connInfo.BastionPrivateKey,
 			password:   connInfo.BastionPassword,
+			hostKey:    connInfo.HostKey,
 			sshAgent:   sshAgent,
 		})
 		if err != nil {
 			return nil, err
 		}
-	}
 
-	host := fmt.Sprintf("%s:%d", connInfo.Host, connInfo.Port)
-	connectFunc := ConnectFunc("tcp", host)
-
-	if bastionConf != nil {
-		bastionHost := fmt.Sprintf("%s:%d", connInfo.BastionHost, connInfo.BastionPort)
 		connectFunc = BastionConnectFunc("tcp", bastionHost, bastionConf, "tcp", host)
 	}
 
@@ -188,11 +195,41 @@ type sshClientConfigOpts struct {
 	password   string
 	sshAgent   *sshAgent
 	user       string
+	host       string
+	hostKey    string
 }
 
 func buildSSHClientConfig(opts sshClientConfigOpts) (*ssh.ClientConfig, error) {
+	hkCallback := ssh.InsecureIgnoreHostKey()
+
+	if opts.hostKey != "" {
+		// The knownhosts package only takes paths to files, but terraform
+		// generally wants to handle config data in-memory. Rather than making
+		// the known_hosts file an exception, write out the data to a temporary
+		// file to create the HostKeyCallback.
+		tf, err := ioutil.TempFile("", "tf-known_hosts")
+		if err != nil {
+			return nil, fmt.Errorf("failed to create temp known_hosts file: %s", err)
+		}
+		defer tf.Close()
+		defer os.RemoveAll(tf.Name())
+
+		// we mark this as a CA as well, but the host key fallback will still
+		// use it as a direct match if the remote host doesn't return a
+		// certificate.
+		if _, err := tf.WriteString(fmt.Sprintf("@cert-authority %s %s\n", opts.host, opts.hostKey)); err != nil {
+			return nil, fmt.Errorf("failed to write temp known_hosts file: %s", err)
+		}
+		tf.Sync()
+
+		hkCallback, err = knownhosts.New(tf.Name())
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	conf := &ssh.ClientConfig{
-		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
+		HostKeyCallback: hkCallback,
 		User:            opts.user,
 	}
 

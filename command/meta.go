@@ -3,6 +3,7 @@ package command
 import (
 	"bufio"
 	"bytes"
+	"context"
 	"errors"
 	"flag"
 	"fmt"
@@ -24,7 +25,6 @@ import (
 	"github.com/hashicorp/terraform/helper/experiment"
 	"github.com/hashicorp/terraform/helper/variables"
 	"github.com/hashicorp/terraform/helper/wrappedstreams"
-	"github.com/hashicorp/terraform/svchost/auth"
 	"github.com/hashicorp/terraform/svchost/disco"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/hashicorp/terraform/tfdiags"
@@ -49,10 +49,6 @@ type Meta struct {
 	// Services provides access to remote endpoint information for
 	// "terraform-native' services running at a specific user-facing hostname.
 	Services *disco.Disco
-
-	// Credentials provides access to credentials for "terraform-native"
-	// services, which are accessed by a service hostname.
-	Credentials auth.CredentialsSource
 
 	// RunningInAutomation indicates that commands are being run by an
 	// automated system rather than directly at a command prompt.
@@ -259,6 +255,54 @@ func (m *Meta) StdinPiped() bool {
 	return fi.Mode()&os.ModeNamedPipe != 0
 }
 
+func (m *Meta) RunOperation(b backend.Enhanced, opReq *backend.Operation) (*backend.RunningOperation, error) {
+	op, err := b.Operation(context.Background(), opReq)
+	if err != nil {
+		return nil, fmt.Errorf("error starting operation: %s", err)
+	}
+
+	// Wait for the operation to complete or an interrupt to occur
+	select {
+	case <-m.ShutdownCh:
+		// gracefully stop the operation
+		op.Stop()
+
+		// Notify the user
+		m.Ui.Output(outputInterrupt)
+
+		// Still get the result, since there is still one
+		select {
+		case <-m.ShutdownCh:
+			m.Ui.Error(
+				"Two interrupts received. Exiting immediately. Note that data\n" +
+					"loss may have occurred.")
+
+			// cancel the operation completely
+			op.Cancel()
+
+			// the operation should return asap
+			// but timeout just in case
+			select {
+			case <-op.Done():
+			case <-time.After(5 * time.Second):
+			}
+
+			return nil, errors.New("operation canceled")
+
+		case <-op.Done():
+			// operation completed after Stop
+		}
+	case <-op.Done():
+		// operation completed normally
+	}
+
+	if op.Err != nil {
+		return op, op.Err
+	}
+
+	return op, nil
+}
+
 const (
 	ProviderSkipVerifyEnvVar = "TF_SKIP_PROVIDER_VERIFY"
 )
@@ -361,7 +405,7 @@ func (m *Meta) flagSet(n string) *flag.FlagSet {
 // moduleStorage returns the module.Storage implementation used to store
 // modules for commands.
 func (m *Meta) moduleStorage(root string, mode module.GetMode) *module.Storage {
-	s := module.NewStorage(filepath.Join(root, "modules"), m.Services, m.Credentials)
+	s := module.NewStorage(filepath.Join(root, "modules"), m.Services)
 	s.Ui = m.Ui
 	s.Mode = mode
 	return s

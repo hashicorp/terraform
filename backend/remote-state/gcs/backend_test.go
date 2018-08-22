@@ -39,7 +39,7 @@ func TestStateFile(t *testing.T) {
 		{"state", "legacy.state", "test", "state/test.tfstate", "state/test.tflock"},
 	}
 	for _, c := range cases {
-		b := &gcsBackend{
+		b := &Backend{
 			prefix:           c.prefix,
 			defaultStateFile: c.defaultStateFile,
 		}
@@ -136,8 +136,11 @@ func TestBackend(t *testing.T) {
 
 	be1 := setupBackend(t, bucket, noPrefix, noEncryptionKey)
 
-	backend.TestBackend(t, be0, be1)
+	backend.TestBackendStates(t, be0)
+	backend.TestBackendStateLocks(t, be0, be1)
+	backend.TestBackendStateForceUnlock(t, be0, be1)
 }
+
 func TestBackendWithPrefix(t *testing.T) {
 	t.Parallel()
 
@@ -149,7 +152,8 @@ func TestBackendWithPrefix(t *testing.T) {
 
 	be1 := setupBackend(t, bucket, prefix+"/", noEncryptionKey)
 
-	backend.TestBackend(t, be0, be1)
+	backend.TestBackendStates(t, be0)
+	backend.TestBackendStateLocks(t, be0, be1)
 }
 func TestBackendWithEncryption(t *testing.T) {
 	t.Parallel()
@@ -161,7 +165,8 @@ func TestBackendWithEncryption(t *testing.T) {
 
 	be1 := setupBackend(t, bucket, noPrefix, encryptionKey)
 
-	backend.TestBackend(t, be0, be1)
+	backend.TestBackendStates(t, be0)
+	backend.TestBackendStateLocks(t, be0, be1)
 }
 
 // setupBackend returns a new GCS backend.
@@ -183,7 +188,7 @@ func setupBackend(t *testing.T, bucket, prefix, key string) backend.Backend {
 	}
 
 	b := backend.TestBackendConfig(t, New(), config)
-	be := b.(*gcsBackend)
+	be := b.(*Backend)
 
 	// create the bucket if it doesn't exist
 	bkt := be.storageClient.Bucket(bucket)
@@ -208,7 +213,7 @@ func setupBackend(t *testing.T, bucket, prefix, key string) backend.Backend {
 // teardownBackend deletes all states from be except the default state.
 func teardownBackend(t *testing.T, be backend.Backend, prefix string) {
 	t.Helper()
-	gcsBE, ok := be.(*gcsBackend)
+	gcsBE, ok := be.(*Backend)
 	if !ok {
 		t.Fatalf("be is a %T, want a *gcsBackend", be)
 	}

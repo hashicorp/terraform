@@ -2,6 +2,7 @@ package aws
 
 import (
 	"fmt"
+	"log"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ecs"
@@ -13,29 +14,29 @@ func dataSourceAwsEcsTaskDefinition() *schema.Resource {
 		Read: dataSourceAwsEcsTaskDefinitionRead,
 
 		Schema: map[string]*schema.Schema{
-			"task_definition": &schema.Schema{
+			"task_definition": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
 			// Computed values.
-			"family": &schema.Schema{
+			"family": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"network_mode": &schema.Schema{
+			"network_mode": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"revision": &schema.Schema{
+			"revision": {
 				Type:     schema.TypeInt,
 				Computed: true,
 			},
-			"status": &schema.Schema{
+			"status": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"task_role_arn": &schema.Schema{
+			"task_role_arn": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
@@ -46,9 +47,11 @@ func dataSourceAwsEcsTaskDefinition() *schema.Resource {
 func dataSourceAwsEcsTaskDefinitionRead(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).ecsconn
 
-	desc, err := conn.DescribeTaskDefinition(&ecs.DescribeTaskDefinitionInput{
+	params := &ecs.DescribeTaskDefinitionInput{
 		TaskDefinition: aws.String(d.Get("task_definition").(string)),
-	})
+	}
+	log.Printf("[DEBUG] Reading ECS Task Definition: %s", params)
+	desc, err := conn.DescribeTaskDefinition(params)
 
 	if err != nil {
 		return fmt.Errorf("Failed getting task definition %s %q", err, d.Get("task_definition").(string))

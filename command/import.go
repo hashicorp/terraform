@@ -184,6 +184,13 @@ func (c *ImportCommand) Run(args []string) int {
 		return 1
 	}
 
+	defer func() {
+		err := opReq.StateLocker.Unlock(nil)
+		if err != nil {
+			c.Ui.Error(err.Error())
+		}
+	}()
+
 	// Perform the import. Note that as you can see it is possible for this
 	// API to import more than one resource at once. For now, we only allow
 	// one while we stabilize this feature.

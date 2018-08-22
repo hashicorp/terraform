@@ -266,6 +266,15 @@ type TestStep struct {
 	// below.
 	PreConfig func()
 
+	// Taint is a list of resource addresses to taint prior to the execution of
+	// the step. Be sure to only include this at a step where the referenced
+	// address will be present in state, as it will fail the test if the resource
+	// is missing.
+	//
+	// This option is ignored on ImportState tests, and currently only works for
+	// resources in the root module path.
+	Taint []string
+
 	//---------------------------------------------------------------
 	// Test modes. One of the following groups of settings must be
 	// set to determine what the test step will do. Ideally we would've
@@ -309,6 +318,11 @@ type TestStep struct {
 	// actually apply it. This is useful for ensuring config changes result in
 	// no-op plans
 	PlanOnly bool
+
+	// PreventDiskCleanup can be set to true for testing terraform modules which
+	// require access to disk at runtime. Note that this will leave files in the
+	// temp folder
+	PreventDiskCleanup bool
 
 	// PreventPostDestroyRefresh can be set to true for cases where data sources
 	// are tested alongside real resources
@@ -564,6 +578,7 @@ func Test(t TestT, c TestCase) {
 			Config:                    lastStep.Config,
 			Check:                     c.CheckDestroy,
 			Destroy:                   true,
+			PreventDiskCleanup:        lastStep.PreventDiskCleanup,
 			PreventPostDestroyRefresh: c.PreventPostDestroyRefresh,
 		}
 
@@ -730,9 +745,7 @@ func testIDOnlyRefresh(c TestCase, opts terraform.ContextOpts, step TestStep, r 
 	return nil
 }
 
-func testModule(
-	opts terraform.ContextOpts,
-	step TestStep) (*module.Tree, error) {
+func testModule(opts terraform.ContextOpts, step TestStep) (*module.Tree, error) {
 	if step.PreConfig != nil {
 		step.PreConfig()
 	}
@@ -742,7 +755,12 @@ func testModule(
 		return nil, fmt.Errorf(
 			"Error creating temporary directory for config: %s", err)
 	}
-	defer os.RemoveAll(cfgPath)
+
+	if step.PreventDiskCleanup {
+		log.Printf("[INFO] Skipping defer os.RemoveAll call")
+	} else {
+		defer os.RemoveAll(cfgPath)
+	}
 
 	// Write the configuration
 	cfgF, err := os.Create(filepath.Join(cfgPath, "main.tf"))
@@ -1135,6 +1153,10 @@ func modulePrimaryInstanceState(s *terraform.State, ms *terraform.ModuleState, n
 // given resource name in a given module path.
 func modulePathPrimaryInstanceState(s *terraform.State, mp []string, name string) (*terraform.InstanceState, error) {
 	ms := s.ModuleByPath(mp)
+	if ms == nil {
+		return nil, fmt.Errorf("No module found at: %s", mp)
+	}
+
 	return modulePrimaryInstanceState(s, ms, name)
 }
 

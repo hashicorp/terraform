@@ -3,6 +3,7 @@ package aws
 import (
 	"fmt"
 
+	"github.com/aws/aws-sdk-go/aws/arn"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -21,7 +22,9 @@ var cloudTrailServiceAccountPerRegionMap = map[string]string{
 	"eu-central-1":   "035351147821",
 	"eu-west-1":      "859597730677",
 	"eu-west-2":      "282025262664",
+	"eu-west-3":      "262312530599",
 	"sa-east-1":      "814480443879",
+	"cn-northwest-1": "681348832753",
 }
 
 func dataSourceAwsCloudTrailServiceAccount() *schema.Resource {
@@ -29,7 +32,7 @@ func dataSourceAwsCloudTrailServiceAccount() *schema.Resource {
 		Read: dataSourceAwsCloudTrailServiceAccountRead,
 
 		Schema: map[string]*schema.Schema{
-			"region": &schema.Schema{
+			"region": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
@@ -49,7 +52,14 @@ func dataSourceAwsCloudTrailServiceAccountRead(d *schema.ResourceData, meta inte
 
 	if accid, ok := cloudTrailServiceAccountPerRegionMap[region]; ok {
 		d.SetId(accid)
-		d.Set("arn", iamArnString(meta.(*AWSClient).partition, accid, "root"))
+		arn := arn.ARN{
+			Partition: meta.(*AWSClient).partition,
+			Service:   "iam",
+			AccountID: accid,
+			Resource:  "root",
+		}.String()
+		d.Set("arn", arn)
+
 		return nil
 	}
 

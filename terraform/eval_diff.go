@@ -256,13 +256,15 @@ func (n *EvalDiff) processIgnoreChanges(diff *InstanceDiff) error {
 		containers := groupContainers(diff)
 		keep := map[string]bool{}
 		for _, v := range containers {
-			if v.keepDiff() {
+			if v.keepDiff(ignorableAttrKeys) {
 				// At least one key has changes, so list all the sibling keys
-				// to keep in the diff if any values have changed
+				// to keep in the diff
 				for k := range v {
-					if v[k].Modified() {
-						keep[k] = true
-					}
+					keep[k] = true
+					// this key may have been added by the user to ignore, but
+					// if it's a subkey in a container, we need to un-ignore it
+					// to keep the complete containter.
+					delete(ignorableAttrKeys, k)
 				}
 			}
 		}
@@ -294,10 +296,17 @@ func (n *EvalDiff) processIgnoreChanges(diff *InstanceDiff) error {
 // a group of key-*ResourceAttrDiff pairs from the same flatmapped container
 type flatAttrDiff map[string]*ResourceAttrDiff
 
-// we need to keep all keys if any of them have a diff
-func (f flatAttrDiff) keepDiff() bool {
-	for _, v := range f {
-		if !v.Empty() && !v.NewComputed {
+// we need to keep all keys if any of them have a diff that's not ignored
+func (f flatAttrDiff) keepDiff(ignoreChanges map[string]bool) bool {
+	for k, v := range f {
+		ignore := false
+		for attr := range ignoreChanges {
+			if strings.HasPrefix(k, attr) {
+				ignore = true
+			}
+		}
+
+		if !v.Empty() && !v.NewComputed && !ignore {
 			return true
 		}
 	}

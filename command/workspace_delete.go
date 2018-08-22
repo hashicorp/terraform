@@ -6,7 +6,6 @@ import (
 	"strings"
 
 	"github.com/hashicorp/terraform/command/clistate"
-	"github.com/hashicorp/terraform/state"
 	"github.com/mitchellh/cli"
 	"github.com/posener/complete"
 )
@@ -97,6 +96,17 @@ func (c *WorkspaceDeleteCommand) Run(args []string) int {
 		return 1
 	}
 
+	var stateLocker clistate.Locker
+	if c.stateLock {
+		stateLocker = clistate.NewLocker(context.Background(), c.stateLockTimeout, c.Ui, c.Colorize())
+		if err := stateLocker.Lock(sMgr, "workspace_delete"); err != nil {
+			c.Ui.Error(fmt.Sprintf("Error locking state: %s", err))
+			return 1
+		}
+	} else {
+		stateLocker = clistate.NewNoopLocker()
+	}
+
 	if err := sMgr.RefreshState(); err != nil {
 		c.Ui.Error(err.Error())
 		return 1
@@ -109,31 +119,16 @@ func (c *WorkspaceDeleteCommand) Run(args []string) int {
 		return 1
 	}
 
-	// Honor the lock request, for consistency and one final safety check.
-	if c.stateLock {
-		lockCtx, cancel := context.WithTimeout(context.Background(), c.stateLockTimeout)
-		defer cancel()
-
-		// Lock the state if we can
-		lockInfo := state.NewLockInfo()
-		lockInfo.Operation = "workspace delete"
-		lockID, err := clistate.Lock(lockCtx, sMgr, lockInfo, c.Ui, c.Colorize())
-		if err != nil {
-			c.Ui.Error(fmt.Sprintf("Error locking state: %s", err))
-			return 1
-		}
-
-		// We need to release the lock just before deleting the state, in case
-		// the backend can't remove the resource while holding the lock. This
-		// is currently true for Windows local files.
-		//
-		// TODO: While there is little safety in locking while deleting the
-		// state, it might be nice to be able to coordinate processes around
-		// state deletion, i.e. in a CI environment. Adding Delete() as a
-		// required method of States would allow the removal of the resource to
-		// be delegated from the Backend to the State itself.
-		clistate.Unlock(sMgr, lockID, c.Ui, c.Colorize())
-	}
+	// We need to release the lock just before deleting the state, in case
+	// the backend can't remove the resource while holding the lock. This
+	// is currently true for Windows local files.
+	//
+	// TODO: While there is little safety in locking while deleting the
+	// state, it might be nice to be able to coordinate processes around
+	// state deletion, i.e. in a CI environment. Adding Delete() as a
+	// required method of States would allow the removal of the resource to
+	// be delegated from the Backend to the State itself.
+	stateLocker.Unlock(nil)
 
 	err = b.DeleteState(delEnv)
 	if err != nil {

@@ -49,7 +49,7 @@ func formatIndent(lines []formatLine) {
 
 	// We'll start our indent stack at a reasonable capacity to minimize the
 	// chance of us needing to grow it; 10 here means 10 levels of indent,
-	// which should be more than enough for reasonable zcl uses.
+	// which should be more than enough for reasonable HCL uses.
 	indents := make([]int, 0, 10)
 
 	for i := range lines {

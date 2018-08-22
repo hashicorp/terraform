@@ -35,9 +35,9 @@ func resourceAwsDmsReplicationTask() *schema.Resource {
 				Type:     schema.TypeString,
 				Required: true,
 				ValidateFunc: validation.StringInSlice([]string{
-					"full-load",
-					"cdc",
-					"full-load-and-cdc",
+					dms.MigrationTypeValueFullLoad,
+					dms.MigrationTypeValueCdc,
+					dms.MigrationTypeValueFullLoadAndCdc,
 				}, false),
 			},
 			"replication_instance_arn": {
@@ -258,7 +258,6 @@ func resourceAwsDmsReplicationTaskDelete(d *schema.ResourceData, meta interface{
 	if err != nil {
 		if dmserr, ok := err.(awserr.Error); ok && dmserr.Code() == "ResourceNotFoundFault" {
 			log.Printf("[DEBUG] DMS Replication Task %q Not Found", d.Id())
-			d.SetId("")
 			return nil
 		}
 		return err

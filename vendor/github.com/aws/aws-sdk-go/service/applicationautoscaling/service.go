@@ -29,8 +29,9 @@ var initRequest func(*request.Request)
 
 // Service information constants
 const (
-	ServiceName = "autoscaling"             // Service endpoint prefix API calls made to.
-	EndpointsID = "application-autoscaling" // Service ID for Regions and Endpoints metadata.
+	ServiceName = "autoscaling"              // Name of service.
+	EndpointsID = "application-autoscaling"  // ID to lookup a service endpoint with.
+	ServiceID   = "Application Auto Scaling" // ServiceID is a unique identifer of a specific service.
 )
 
 // New creates a new instance of the ApplicationAutoScaling client with a session.
@@ -45,19 +46,20 @@ const (
 //     svc := applicationautoscaling.New(mySession, aws.NewConfig().WithRegion("us-west-2"))
 func New(p client.ConfigProvider, cfgs ...*aws.Config) *ApplicationAutoScaling {
 	c := p.ClientConfig(EndpointsID, cfgs...)
+	if c.SigningNameDerived || len(c.SigningName) == 0 {
+		c.SigningName = "application-autoscaling"
+	}
 	return newClient(*c.Config, c.Handlers, c.Endpoint, c.SigningRegion, c.SigningName)
 }
 
 // newClient creates, initializes and returns a new service client instance.
 func newClient(cfg aws.Config, handlers request.Handlers, endpoint, signingRegion, signingName string) *ApplicationAutoScaling {
-	if len(signingName) == 0 {
-		signingName = "application-autoscaling"
-	}
 	svc := &ApplicationAutoScaling{
 		Client: client.New(
 			cfg,
 			metadata.ClientInfo{
 				ServiceName:   ServiceName,
+				ServiceID:     ServiceID,
 				SigningName:   signingName,
 				SigningRegion: signingRegion,
 				Endpoint:      endpoint,

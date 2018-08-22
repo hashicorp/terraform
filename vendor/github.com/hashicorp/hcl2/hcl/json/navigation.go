@@ -1,14 +1,15 @@
 package json
 
 import (
+	"fmt"
 	"strings"
 )
 
 type navigation struct {
-	root *objectVal
+	root node
 }
 
-// Implementation of zcled.ContextString
+// Implementation of hcled.ContextString
 func (n navigation) ContextString(offset int) string {
 	steps := navigationStepsRev(n.root, offset)
 	if steps == nil {
@@ -21,21 +22,49 @@ func (n navigation) ContextString(offset int) string {
 		steps[i], steps[len(steps)-1-i] = steps[len(steps)-1-i], steps[i]
 	}
 
-	return strings.Join(steps, ".")
+	ret := strings.Join(steps, "")
+	if len(ret) > 0 && ret[0] == '.' {
+		ret = ret[1:]
+	}
+	return ret
 }
 
-func navigationStepsRev(obj *objectVal, offset int) []string {
-	// Do any of our properties have an object that contains the target
-	// offset?
-	for k, attr := range obj.Attrs {
-		ov, ok := attr.Value.(*objectVal)
-		if !ok {
-			continue
-		}
+func navigationStepsRev(v node, offset int) []string {
+	switch tv := v.(type) {
+	case *objectVal:
+		// Do any of our properties have an object that contains the target
+		// offset?
+		for _, attr := range tv.Attrs {
+			k := attr.Name
+			av := attr.Value
 
-		if ov.SrcRange.ContainsOffset(offset) {
-			return append(navigationStepsRev(ov, offset), k)
+			switch av.(type) {
+			case *objectVal, *arrayVal:
+				// okay
+			default:
+				continue
+			}
+
+			if av.Range().ContainsOffset(offset) {
+				return append(navigationStepsRev(av, offset), "."+k)
+			}
+		}
+	case *arrayVal:
+		// Do any of our elements contain the target offset?
+		for i, elem := range tv.Values {
+
+			switch elem.(type) {
+			case *objectVal, *arrayVal:
+				// okay
+			default:
+				continue
+			}
+
+			if elem.Range().ContainsOffset(offset) {
+				return append(navigationStepsRev(elem, offset), fmt.Sprintf("[%d]", i))
+			}
 		}
 	}
+
 	return nil
 }

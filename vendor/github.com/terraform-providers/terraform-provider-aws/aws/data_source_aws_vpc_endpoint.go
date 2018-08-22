@@ -5,9 +5,7 @@ import (
 	"log"
 
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/ec2"
-	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -21,11 +19,6 @@ func dataSourceAwsVpcEndpoint() *schema.Resource {
 				Optional: true,
 				Computed: true,
 			},
-			"state": {
-				Type:     schema.TypeString,
-				Optional: true,
-				Computed: true,
-			},
 			"vpc_id": {
 				Type:     schema.TypeString,
 				Optional: true,
@@ -34,6 +27,15 @@ func dataSourceAwsVpcEndpoint() *schema.Resource {
 			"service_name": {
 				Type:     schema.TypeString,
 				Optional: true,
+				Computed: true,
+			},
+			"state": {
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
+			},
+			"vpc_endpoint_type": {
+				Type:     schema.TypeString,
 				Computed: true,
 			},
 			"policy": {
@@ -50,14 +52,55 @@ func dataSourceAwsVpcEndpoint() *schema.Resource {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
+			"cidr_blocks": {
+				Type:     schema.TypeList,
+				Computed: true,
+				Elem:     &schema.Schema{Type: schema.TypeString},
+			},
+			"subnet_ids": {
+				Type:     schema.TypeSet,
+				Computed: true,
+				Elem:     &schema.Schema{Type: schema.TypeString},
+				Set:      schema.HashString,
+			},
+			"network_interface_ids": {
+				Type:     schema.TypeSet,
+				Computed: true,
+				Elem:     &schema.Schema{Type: schema.TypeString},
+				Set:      schema.HashString,
+			},
+			"security_group_ids": {
+				Type:     schema.TypeSet,
+				Computed: true,
+				Elem:     &schema.Schema{Type: schema.TypeString},
+				Set:      schema.HashString,
+			},
+			"private_dns_enabled": {
+				Type:     schema.TypeBool,
+				Computed: true,
+			},
+			"dns_entry": {
+				Type:     schema.TypeList,
+				Computed: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"dns_name": {
+							Type:     schema.TypeString,
+							Computed: true,
+						},
+						"hosted_zone_id": {
+							Type:     schema.TypeString,
+							Computed: true,
+						},
+					},
+				},
+			},
 		},
 	}
 }
 
 func dataSourceAwsVpcEndpointRead(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).ec2conn
-
-	log.Printf("[DEBUG] Reading VPC Endpoints.")
 
 	req := &ec2.DescribeVpcEndpointsInput{}
 
@@ -77,6 +120,7 @@ func dataSourceAwsVpcEndpointRead(d *schema.ResourceData, meta interface{}) erro
 		req.Filters = nil
 	}
 
+	log.Printf("[DEBUG] Reading VPC Endpoint: %s", req)
 	resp, err := conn.DescribeVpcEndpoints(req)
 	if err != nil {
 		return err
@@ -89,43 +133,7 @@ func dataSourceAwsVpcEndpointRead(d *schema.ResourceData, meta interface{}) erro
 	}
 
 	vpce := resp.VpcEndpoints[0]
-	policy, err := normalizeJsonString(*vpce.PolicyDocument)
-	if err != nil {
-		return errwrap.Wrapf("policy contains an invalid JSON: {{err}}", err)
-	}
-
-	prefixListServiceName := *vpce.ServiceName
-	prefixListInput := &ec2.DescribePrefixListsInput{
-		Filters: []*ec2.Filter{
-			{Name: aws.String("prefix-list-name"), Values: []*string{aws.String(prefixListServiceName)}},
-		},
-	}
-	log.Printf("[DEBUG] Reading VPC Endpoint prefix list: %s", prefixListServiceName)
-	prefixListsOutput, err := conn.DescribePrefixLists(prefixListInput)
-
-	if err != nil {
-		_, ok := err.(awserr.Error)
-		if !ok {
-			return fmt.Errorf("Error reading VPC Endpoint prefix list: %s", err.Error())
-		}
-	}
-
-	if len(prefixListsOutput.PrefixLists) != 1 {
-		return fmt.Errorf("There are multiple prefix lists associated with the service name '%s'. Unexpected", prefixListServiceName)
-	}
-
 	d.SetId(aws.StringValue(vpce.VpcEndpointId))
-	d.Set("state", vpce.State)
-	d.Set("vpc_id", vpce.VpcId)
-	d.Set("service_name", vpce.ServiceName)
-	d.Set("policy", policy)
 
-	pl := prefixListsOutput.PrefixLists[0]
-	d.Set("prefix_list_id", pl.PrefixListId)
-
-	if err := d.Set("route_table_ids", aws.StringValueSlice(vpce.RouteTableIds)); err != nil {
-		return err
-	}
-
-	return nil
+	return vpcEndpointAttributes(d, vpce, conn)
 }

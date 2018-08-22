@@ -12,6 +12,7 @@ import (
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/hashicorp/terraform/helper/validation"
 )
 
 func resourceAwsAppautoscalingPolicy() *schema.Resource {
@@ -26,14 +27,8 @@ func resourceAwsAppautoscalingPolicy() *schema.Resource {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
-				ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
-					// https://github.com/boto/botocore/blob/9f322b1/botocore/data/autoscaling/2011-01-01/service-2.json#L1862-L1873
-					value := v.(string)
-					if len(value) > 255 {
-						errors = append(errors, fmt.Errorf("%s cannot be longer than 255 characters", k))
-					}
-					return
-				},
+				// https://github.com/boto/botocore/blob/9f322b1/botocore/data/autoscaling/2011-01-01/service-2.json#L1862-L1873
+				ValidateFunc: validateMaxLength(255),
 			},
 			"arn": &schema.Schema{
 				Type:     schema.TypeString,
@@ -49,16 +44,14 @@ func resourceAwsAppautoscalingPolicy() *schema.Resource {
 				Required: true,
 			},
 			"scalable_dimension": &schema.Schema{
-				Type:         schema.TypeString,
-				Required:     true,
-				ForceNew:     true,
-				ValidateFunc: validateAppautoscalingScalableDimension,
+				Type:     schema.TypeString,
+				Required: true,
+				ForceNew: true,
 			},
 			"service_namespace": &schema.Schema{
-				Type:         schema.TypeString,
-				Required:     true,
-				ForceNew:     true,
-				ValidateFunc: validateAppautoscalingServiceNamespace,
+				Type:     schema.TypeString,
+				Required: true,
+				ForceNew: true,
 			},
 			"step_scaling_policy_configuration": {
 				Type:     schema.TypeList,
@@ -193,9 +186,15 @@ func resourceAwsAppautoscalingPolicy() *schema.Resource {
 										Required: true,
 									},
 									"statistic": &schema.Schema{
-										Type:         schema.TypeString,
-										Required:     true,
-										ValidateFunc: validateAppautoscalingCustomizedMetricSpecificationStatistic,
+										Type:     schema.TypeString,
+										Required: true,
+										ValidateFunc: validation.StringInSlice([]string{
+											applicationautoscaling.MetricStatisticAverage,
+											applicationautoscaling.MetricStatisticMinimum,
+											applicationautoscaling.MetricStatisticMaximum,
+											applicationautoscaling.MetricStatisticSampleCount,
+											applicationautoscaling.MetricStatisticSum,
+										}, false),
 									},
 									"unit": &schema.Schema{
 										Type:     schema.TypeString,
@@ -212,14 +211,13 @@ func resourceAwsAppautoscalingPolicy() *schema.Resource {
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
 									"predefined_metric_type": &schema.Schema{
-										Type:         schema.TypeString,
-										Required:     true,
-										ValidateFunc: validateAppautoscalingPredefinedMetricSpecification,
+										Type:     schema.TypeString,
+										Required: true,
 									},
 									"resource_label": &schema.Schema{
 										Type:         schema.TypeString,
 										Optional:     true,
-										ValidateFunc: validateAppautoscalingPredefinedResourceLabel,
+										ValidateFunc: validateMaxLength(1023),
 									},
 								},
 							},
@@ -258,10 +256,13 @@ func resourceAwsAppautoscalingPolicyCreate(d *schema.ResourceData, meta interfac
 
 	log.Printf("[DEBUG] ApplicationAutoScaling PutScalingPolicy: %#v", params)
 	var resp *applicationautoscaling.PutScalingPolicyOutput
-	err = resource.Retry(1*time.Minute, func() *resource.RetryError {
+	err = resource.Retry(2*time.Minute, func() *resource.RetryError {
 		var err error
 		resp, err = conn.PutScalingPolicy(&params)
 		if err != nil {
+			if isAWSErr(err, "FailedResourceAccessException", "Rate exceeded") {
+				return resource.RetryableError(err)
+			}
 			if isAWSErr(err, "FailedResourceAccessException", "is not authorized to perform") {
 				return resource.RetryableError(err)
 			}
@@ -284,11 +285,25 @@ func resourceAwsAppautoscalingPolicyCreate(d *schema.ResourceData, meta interfac
 }
 
 func resourceAwsAppautoscalingPolicyRead(d *schema.ResourceData, meta interface{}) error {
-	p, err := getAwsAppautoscalingPolicy(d, meta)
+	var p *applicationautoscaling.ScalingPolicy
+
+	err := resource.Retry(2*time.Minute, func() *resource.RetryError {
+		var err error
+		p, err = getAwsAppautoscalingPolicy(d, meta)
+		if err != nil {
+			if isAWSErr(err, applicationautoscaling.ErrCodeFailedResourceAccessException, "") {
+				return resource.RetryableError(err)
+			}
+			return resource.NonRetryableError(err)
+		}
+		return nil
+	})
 	if err != nil {
-		return err
+		return fmt.Errorf("Failed to read scaling policy: %s", err)
 	}
+
 	if p == nil {
+		log.Printf("[WARN] Application AutoScaling Policy (%s) not found, removing from state", d.Id())
 		d.SetId("")
 		return nil
 	}
@@ -318,7 +333,16 @@ func resourceAwsAppautoscalingPolicyUpdate(d *schema.ResourceData, meta interfac
 	}
 
 	log.Printf("[DEBUG] Application Autoscaling Update Scaling Policy: %#v", params)
-	_, err := conn.PutScalingPolicy(&params)
+	err := resource.Retry(2*time.Minute, func() *resource.RetryError {
+		_, err := conn.PutScalingPolicy(&params)
+		if err != nil {
+			if isAWSErr(err, applicationautoscaling.ErrCodeFailedResourceAccessException, "") {
+				return resource.RetryableError(err)
+			}
+			return resource.NonRetryableError(err)
+		}
+		return nil
+	})
 	if err != nil {
 		return fmt.Errorf("Failed to update scaling policy: %s", err)
 	}
@@ -343,11 +367,19 @@ func resourceAwsAppautoscalingPolicyDelete(d *schema.ResourceData, meta interfac
 		ServiceNamespace:  aws.String(d.Get("service_namespace").(string)),
 	}
 	log.Printf("[DEBUG] Deleting Application AutoScaling Policy opts: %#v", params)
-	if _, err := conn.DeleteScalingPolicy(&params); err != nil {
-		return fmt.Errorf("Failed to delete autoscaling policy: %s", err)
+	err = resource.Retry(2*time.Minute, func() *resource.RetryError {
+		_, err = conn.DeleteScalingPolicy(&params)
+		if err != nil {
+			if isAWSErr(err, applicationautoscaling.ErrCodeFailedResourceAccessException, "") {
+				return resource.RetryableError(err)
+			}
+			return resource.NonRetryableError(err)
+		}
+		return nil
+	})
+	if err != nil {
+		return fmt.Errorf("Failed to delete scaling policy: %s", err)
 	}
-
-	d.SetId("")
 	return nil
 }
 
@@ -563,8 +595,10 @@ func getAwsAppautoscalingPolicy(d *schema.ResourceData, meta interface{}) (*appl
 	conn := meta.(*AWSClient).appautoscalingconn
 
 	params := applicationautoscaling.DescribeScalingPoliciesInput{
-		PolicyNames:      []*string{aws.String(d.Get("name").(string))},
-		ServiceNamespace: aws.String(d.Get("service_namespace").(string)),
+		PolicyNames:       []*string{aws.String(d.Get("name").(string))},
+		ResourceId:        aws.String(d.Get("resource_id").(string)),
+		ScalableDimension: aws.String(d.Get("scalable_dimension").(string)),
+		ServiceNamespace:  aws.String(d.Get("service_namespace").(string)),
 	}
 
 	log.Printf("[DEBUG] Application AutoScaling Policy Describe Params: %#v", params)
@@ -572,17 +606,11 @@ func getAwsAppautoscalingPolicy(d *schema.ResourceData, meta interface{}) (*appl
 	if err != nil {
 		return nil, fmt.Errorf("Error retrieving scaling policies: %s", err)
 	}
-
-	// find scaling policy
-	name := d.Get("name").(string)
-	dimension := d.Get("scalable_dimension").(string)
-	for idx, sp := range resp.ScalingPolicies {
-		if *sp.PolicyName == name && *sp.ScalableDimension == dimension {
-			return resp.ScalingPolicies[idx], nil
-		}
+	if len(resp.ScalingPolicies) == 0 {
+		return nil, nil
 	}
 
-	return nil, nil
+	return resp.ScalingPolicies[0], nil
 }
 
 func expandStepScalingPolicyConfiguration(cfg []interface{}) *applicationautoscaling.StepScalingPolicyConfiguration {

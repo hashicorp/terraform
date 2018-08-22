@@ -6,8 +6,12 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/arn"
 	"github.com/aws/aws-sdk-go/aws/awserr"
+	"github.com/aws/aws-sdk-go/service/dynamodb"
+	"github.com/aws/aws-sdk-go/service/kinesis"
 	"github.com/aws/aws-sdk-go/service/lambda"
+	"github.com/aws/aws-sdk-go/service/sqs"
 
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
@@ -35,13 +39,38 @@ func resourceAwsLambdaEventSourceMapping() *schema.Resource {
 			},
 			"starting_position": {
 				Type:     schema.TypeString,
-				Required: true,
+				Optional: true,
 				ForceNew: true,
 			},
 			"batch_size": {
 				Type:     schema.TypeInt,
 				Optional: true,
-				Default:  100,
+				DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
+					// When AWS repurposed EventSourceMapping for use with SQS they kept
+					// the default for BatchSize at 100 for Kinesis and DynamoDB, but made
+					// the default 10 for SQS.  As such, we had to make batch_size optional.
+					// Because of this, we need to ensure that if someone doesn't have
+					// batch_size specified that it is not treated as a diff for those
+					if new != "" && new != "0" {
+						return false
+					}
+
+					eventSourceARN, err := arn.Parse(d.Get("event_source_arn").(string))
+					if err != nil {
+						return false
+					}
+					switch eventSourceARN.Service {
+					case dynamodb.ServiceName, kinesis.ServiceName:
+						if old == "100" {
+							return true
+						}
+					case sqs.ServiceName:
+						if old == "10" {
+							return true
+						}
+					}
+					return false
+				},
 			},
 			"enabled": {
 				Type:     schema.TypeBool,
@@ -87,11 +116,17 @@ func resourceAwsLambdaEventSourceMappingCreate(d *schema.ResourceData, meta inte
 	log.Printf("[DEBUG] Creating Lambda event source mapping: source %s to function %s", eventSourceArn, functionName)
 
 	params := &lambda.CreateEventSourceMappingInput{
-		EventSourceArn:   aws.String(eventSourceArn),
-		FunctionName:     aws.String(functionName),
-		StartingPosition: aws.String(d.Get("starting_position").(string)),
-		BatchSize:        aws.Int64(int64(d.Get("batch_size").(int))),
-		Enabled:          aws.Bool(d.Get("enabled").(bool)),
+		EventSourceArn: aws.String(eventSourceArn),
+		FunctionName:   aws.String(functionName),
+		Enabled:        aws.Bool(d.Get("enabled").(bool)),
+	}
+
+	if batchSize, ok := d.GetOk("batch_size"); ok {
+		params.BatchSize = aws.Int64(int64(batchSize.(int)))
+	}
+
+	if startingPosition, ok := d.GetOk("starting_position"); ok {
+		params.StartingPosition = aws.String(startingPosition.(string))
 	}
 
 	// IAM profiles and roles can take some time to propagate in AWS:
@@ -170,12 +205,20 @@ func resourceAwsLambdaEventSourceMappingDelete(d *schema.ResourceData, meta inte
 		UUID: aws.String(d.Id()),
 	}
 
-	_, err := conn.DeleteEventSourceMapping(params)
+	err := resource.Retry(5*time.Minute, func() *resource.RetryError {
+		_, err := conn.DeleteEventSourceMapping(params)
+		if err != nil {
+			if isAWSErr(err, lambda.ErrCodeResourceInUseException, "") {
+				return resource.RetryableError(err)
+			}
+			return resource.NonRetryableError(err)
+		}
+		return nil
+	})
+
 	if err != nil {
 		return fmt.Errorf("Error deleting Lambda event source mapping: %s", err)
 	}
-
-	d.SetId("")
 
 	return nil
 }
@@ -197,10 +240,10 @@ func resourceAwsLambdaEventSourceMappingUpdate(d *schema.ResourceData, meta inte
 	err := resource.Retry(5*time.Minute, func() *resource.RetryError {
 		_, err := conn.UpdateEventSourceMapping(params)
 		if err != nil {
-			if awserr, ok := err.(awserr.Error); ok {
-				if awserr.Code() == "InvalidParameterValueException" {
-					return resource.RetryableError(awserr)
-				}
+			if isAWSErr(err, lambda.ErrCodeInvalidParameterValueException, "") ||
+				isAWSErr(err, lambda.ErrCodeResourceInUseException, "") {
+
+				return resource.RetryableError(err)
 			}
 			return resource.NonRetryableError(err)
 		}

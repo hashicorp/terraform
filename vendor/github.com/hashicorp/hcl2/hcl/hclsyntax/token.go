@@ -110,6 +110,7 @@ type scanMode int
 const (
 	scanNormal scanMode = iota
 	scanTemplate
+	scanIdentOnly
 )
 
 type tokenAccum struct {
@@ -132,7 +133,7 @@ func (f *tokenAccum) emitToken(ty TokenType, startOfs, endOfs int) {
 	b := f.Bytes[startOfs:endOfs]
 	for len(b) > 0 {
 		advance, seq, _ := textseg.ScanGraphemeClusters(b, true)
-		if len(seq) == 1 && seq[0] == '\n' {
+		if (len(seq) == 1 && seq[0] == '\n') || (len(seq) == 2 && seq[0] == '\r' && seq[1] == '\n') {
 			end.Line++
 			end.Column = 1
 		} else {

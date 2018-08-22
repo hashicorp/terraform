@@ -3,52 +3,43 @@ layout: "registry"
 page_title: "Terraform Registry - Private Registry"
 sidebar_current: "docs-registry-private"
 description: |-
-  Terraform is capable of loading modules from private registries for private modules via Terraform Enterprise.
+  Terraform can load private modules from private registries via Terraform Enterprise.
 ---
 
-# Private Registry
+# Private Registries
 
 The registry at [registry.terraform.io](https://registry.terraform.io)
-may only host public modules. Terraform is capable of loading modules from
-private registries for private modules.
+only hosts public modules, but most organizations have some modules that
+can't, shouldn't, or don't need to be public.
 
-Official private registries are available via [Terraform Enterprise](https://www.hashicorp.com/products/terraform).
-There are two tiers: Pro and Enterprise. The Pro version is only available
-as a SaaS service whereas the Enterprise version is available for private
-install. Both versions fully support private registries.
+You can load private modules [directly from version control and other
+sources](/docs/modules/sources.html), but those sources don't support [version
+constraints](/docs/modules/usage.html#module-versions) or a browsable
+marketplace of modules, both of which are important for enabling a
+producers-and-consumers content model in a large organization.
 
-Terraform interacts with module registries using [the registry API](/docs/registry/api.html).
+If your organization is specialized enough that teams frequently use modules
+created by other teams, you will benefit from a private module registry.
+
+## Terraform Enterprise's Private Registry
+
+[Terraform Enterprise](https://www.hashicorp.com/products/terraform) (TFE)
+includes a private module registry, available at both Pro and Premium tiers.
+
+It uses the same VCS-backed tagged release workflow as the Terraform Registry,
+but imports modules from your private VCS repos (on any of TFE's supported VCS
+providers) instead of requiring public GitHub repos. You can seamlessly
+reference private modules in your Terraform configurations (just include a
+hostname in the module source), and TFE's UI provides a searchable marketplace
+of private modules to help your users find the code they need.
+
+[Terraform Enterprise's private module registry is documented here.](/docs/enterprise/registry/index.html)
+
+## Other Private Registries
+
+Terraform can use versioned modules from any service that implements
+[the registry API](/docs/registry/api.html).
 The Terraform open source project does not provide a server implementation, but
 we welcome community members to create their own private registries by following
 the published protocol.
 
-Modules can alternatively be referenced
-[directly from version control and other sources](/docs/modules/sources.html),
-but only registry modules support certain features such as
-[version constraints](/docs/modules/usage.html#module-versions).
-
-## Private Registry Module Sources
-
-Public Terraform Registry modules have source strings of the form
-`namespace/name/provider`. Private registries -- whether integrated into
-Terraform Enterprise or via a third-party implementation -- require an
-additional hostname prefix:
-
-```hcl
-module "example" {
-  source = "example.com/namespace/name/provider"
-}
-```
-
-Private registry module sources are supported in Terraform v0.11.0 and
-newer.
-
-## Coming Soon
-
-Terraform Enterprise will be publicly available for self service signup
-soon. In the mean time, if you're interested in private
-registries and being part of the beta, please contact us at
-[hello@hashicorp.com](mailto:hello@hashicorp.com).
-
-When Terraform Enterprise is publicly available, Private Registry documentation
-will be available here.

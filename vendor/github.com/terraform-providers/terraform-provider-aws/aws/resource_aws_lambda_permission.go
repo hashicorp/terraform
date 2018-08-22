@@ -30,6 +30,12 @@ func resourceAwsLambdaPermission() *schema.Resource {
 				ForceNew:     true,
 				ValidateFunc: validateLambdaPermissionAction,
 			},
+			"event_source_token": {
+				Type:         schema.TypeString,
+				Optional:     true,
+				ForceNew:     true,
+				ValidateFunc: validateLambdaPermissionEventSourceToken,
+			},
 			"function_name": {
 				Type:         schema.TypeString,
 				Required:     true,
@@ -60,10 +66,19 @@ func resourceAwsLambdaPermission() *schema.Resource {
 				ValidateFunc: validateArn,
 			},
 			"statement_id": {
-				Type:         schema.TypeString,
-				Required:     true,
-				ForceNew:     true,
-				ValidateFunc: validatePolicyStatementId,
+				Type:          schema.TypeString,
+				Optional:      true,
+				Computed:      true,
+				ForceNew:      true,
+				ConflictsWith: []string{"statement_id_prefix"},
+				ValidateFunc:  validatePolicyStatementId,
+			},
+			"statement_id_prefix": {
+				Type:          schema.TypeString,
+				Optional:      true,
+				ForceNew:      true,
+				ConflictsWith: []string{"statement_id"},
+				ValidateFunc:  validatePolicyStatementId,
 			},
 		},
 	}
@@ -73,6 +88,15 @@ func resourceAwsLambdaPermissionCreate(d *schema.ResourceData, meta interface{})
 	conn := meta.(*AWSClient).lambdaconn
 
 	functionName := d.Get("function_name").(string)
+
+	var statementId string
+	if v, ok := d.GetOk("statement_id"); ok {
+		statementId = v.(string)
+	} else if v, ok := d.GetOk("statement_id_prefix"); ok {
+		statementId = resource.PrefixedUniqueId(v.(string))
+	} else {
+		statementId = resource.UniqueId()
+	}
 
 	// There is a bug in the API (reported and acknowledged by AWS)
 	// which causes some permissions to be ignored when API calls are sent in parallel
@@ -84,9 +108,12 @@ func resourceAwsLambdaPermissionCreate(d *schema.ResourceData, meta interface{})
 		Action:       aws.String(d.Get("action").(string)),
 		FunctionName: aws.String(functionName),
 		Principal:    aws.String(d.Get("principal").(string)),
-		StatementId:  aws.String(d.Get("statement_id").(string)),
+		StatementId:  aws.String(statementId),
 	}
 
+	if v, ok := d.GetOk("event_source_token"); ok {
+		input.EventSourceToken = aws.String(v.(string))
+	}
 	if v, ok := d.GetOk("qualifier"); ok {
 		input.Qualifier = aws.String(v.(string))
 	}
@@ -127,10 +154,10 @@ func resourceAwsLambdaPermissionCreate(d *schema.ResourceData, meta interface{})
 		log.Printf("[DEBUG] Created new Lambda permission, but no Statement was included")
 	}
 
-	d.SetId(d.Get("statement_id").(string))
+	d.SetId(statementId)
 
 	err = resource.Retry(5*time.Minute, func() *resource.RetryError {
-		// IAM is eventually cosistent :/
+		// IAM is eventually consistent :/
 		err := resourceAwsLambdaPermissionRead(d, meta)
 		if err != nil {
 			if strings.HasPrefix(err.Error(), "Error reading Lambda policy: ResourceNotFoundException") {
@@ -167,7 +194,7 @@ func resourceAwsLambdaPermissionRead(d *schema.ResourceData, meta interface{}) e
 	var out *lambda.GetPolicyOutput
 	var statement *LambdaPolicyStatement
 	err := resource.Retry(1*time.Minute, func() *resource.RetryError {
-		// IAM is eventually cosistent :/
+		// IAM is eventually consistent :/
 		var err error
 		out, err = conn.GetPolicy(&input)
 		if err != nil {
@@ -239,11 +266,14 @@ func resourceAwsLambdaPermissionRead(d *schema.ResourceData, meta interface{}) e
 
 	if stringEquals, ok := statement.Condition["StringEquals"]; ok {
 		d.Set("source_account", stringEquals["AWS:SourceAccount"])
+		d.Set("event_source_token", stringEquals["lambda:EventSourceToken"])
 	}
 
 	if arnLike, ok := statement.Condition["ArnLike"]; ok {
 		d.Set("source_arn", arnLike["AWS:SourceArn"])
 	}
+
+	d.Set("statement_id", statement.Sid)
 
 	return nil
 }
@@ -321,7 +351,6 @@ func resourceAwsLambdaPermissionDelete(d *schema.ResourceData, meta interface{})
 	}
 
 	log.Printf("[DEBUG] Lambda permission with ID %q removed", d.Id())
-	d.SetId("")
 
 	return nil
 }

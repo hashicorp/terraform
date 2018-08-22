@@ -3,13 +3,14 @@ package aws
 import (
 	"fmt"
 	"log"
-	"regexp"
+	"strings"
 	"time"
 
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/arn"
 	"github.com/aws/aws-sdk-go/service/kms"
 )
 
@@ -25,33 +26,32 @@ func resourceAwsKmsAlias() *schema.Resource {
 		},
 
 		Schema: map[string]*schema.Schema{
-			"arn": &schema.Schema{
+			"arn": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"name": &schema.Schema{
+			"name": {
 				Type:          schema.TypeString,
 				Optional:      true,
 				ForceNew:      true,
 				ConflictsWith: []string{"name_prefix"},
 				ValidateFunc:  validateAwsKmsName,
 			},
-			"name_prefix": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
-				ForceNew: true,
-				ValidateFunc: func(v interface{}, k string) (ws []string, es []error) {
-					value := v.(string)
-					if !regexp.MustCompile(`^(alias\/)[a-zA-Z0-9:/_-]+$`).MatchString(value) {
-						es = append(es, fmt.Errorf(
-							"%q must begin with 'alias/' and be comprised of only [a-zA-Z0-9:/_-]", k))
-					}
-					return
-				},
+			"name_prefix": {
+				Type:          schema.TypeString,
+				Optional:      true,
+				ForceNew:      true,
+				ConflictsWith: []string{"name"},
+				ValidateFunc:  validateAwsKmsName,
 			},
-			"target_key_id": &schema.Schema{
+			"target_key_id": {
+				Type:             schema.TypeString,
+				Required:         true,
+				DiffSuppressFunc: suppressEquivalentTargetKeyIdAndARN,
+			},
+			"target_key_arn": {
 				Type:     schema.TypeString,
-				Required: true,
+				Computed: true,
 			},
 		},
 	}
@@ -113,6 +113,19 @@ func resourceAwsKmsAliasRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("arn", alias.AliasArn)
 	d.Set("target_key_id", alias.TargetKeyId)
 
+	aliasARN, err := arn.Parse(*alias.AliasArn)
+	if err != nil {
+		return err
+	}
+	targetKeyARN := arn.ARN{
+		Partition: aliasARN.Partition,
+		Service:   aliasARN.Service,
+		Region:    aliasARN.Region,
+		AccountID: aliasARN.AccountID,
+		Resource:  fmt.Sprintf("key/%s", *alias.TargetKeyId),
+	}
+	d.Set("target_key_arn", targetKeyARN.String())
+
 	return nil
 }
 
@@ -124,6 +137,7 @@ func resourceAwsKmsAliasUpdate(d *schema.ResourceData, meta interface{}) error {
 		if err != nil {
 			return err
 		}
+		return resourceAwsKmsAliasRead(d, meta)
 	}
 	return nil
 }
@@ -155,7 +169,7 @@ func resourceAwsKmsAliasDelete(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	log.Printf("[DEBUG] KMS Alias: (%s) deleted.", d.Id())
-	d.SetId("")
+
 	return nil
 }
 
@@ -208,4 +222,15 @@ func findKmsAliasByName(conn *kms.KMS, name string, marker *string) (*kms.AliasL
 func resourceAwsKmsAliasImport(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
 	d.Set("name", d.Id())
 	return []*schema.ResourceData{d}, nil
+}
+
+func suppressEquivalentTargetKeyIdAndARN(k, old, new string, d *schema.ResourceData) bool {
+	newARN, err := arn.Parse(new)
+	if err != nil {
+		log.Printf("[DEBUG] %q can not be parsed as an ARN: %q", new, err)
+		return false
+	}
+
+	resource := strings.TrimPrefix(newARN.Resource, "key/")
+	return old == resource
 }

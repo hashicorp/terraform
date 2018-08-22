@@ -7,6 +7,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/cloudwatch"
 	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/hashicorp/terraform/helper/structure"
 )
 
 func resourceAwsCloudWatchDashboard() *schema.Resource {
@@ -34,7 +35,7 @@ func resourceAwsCloudWatchDashboard() *schema.Resource {
 				Required:     true,
 				ValidateFunc: validateJsonString,
 				StateFunc: func(v interface{}) string {
-					json, _ := normalizeJsonString(v)
+					json, _ := structure.NormalizeJsonString(v)
 					return json
 				},
 				DiffSuppressFunc: suppressEquivalentJsonDiffs,
@@ -101,15 +102,12 @@ func resourceAwsCloudWatchDashboardDelete(d *schema.ResourceData, meta interface
 
 	if _, err := conn.DeleteDashboards(&params); err != nil {
 		if isCloudWatchDashboardNotFoundErr(err) {
-			log.Printf("[WARN] CloudWatch Dashboard %s is already gone", d.Id())
-			d.SetId("")
 			return nil
 		}
 		return fmt.Errorf("Error deleting CloudWatch Dashboard: %s", err)
 	}
 	log.Printf("[INFO] CloudWatch Dashboard %s deleted", d.Id())
 
-	d.SetId("")
 	return nil
 }
 

@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -11,7 +13,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/apigateway"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
-	"strings"
+	"github.com/hashicorp/terraform/helper/validation"
 )
 
 func resourceAwsApiGatewayIntegration() *schema.Resource {
@@ -38,20 +40,40 @@ func resourceAwsApiGatewayIntegration() *schema.Resource {
 				Type:         schema.TypeString,
 				Required:     true,
 				ForceNew:     true,
-				ValidateFunc: validateHTTPMethod,
+				ValidateFunc: validateHTTPMethod(),
 			},
 
 			"type": {
-				Type:         schema.TypeString,
-				Required:     true,
-				ForceNew:     true,
-				ValidateFunc: validateApiGatewayIntegrationType,
+				Type:     schema.TypeString,
+				Required: true,
+				ForceNew: true,
+				ValidateFunc: validation.StringInSlice([]string{
+					apigateway.IntegrationTypeHttp,
+					apigateway.IntegrationTypeAws,
+					apigateway.IntegrationTypeMock,
+					apigateway.IntegrationTypeHttpProxy,
+					apigateway.IntegrationTypeAwsProxy,
+				}, false),
+			},
+
+			"connection_type": {
+				Type:     schema.TypeString,
+				Optional: true,
+				Default:  apigateway.ConnectionTypeInternet,
+				ValidateFunc: validation.StringInSlice([]string{
+					apigateway.ConnectionTypeInternet,
+					apigateway.ConnectionTypeVpcLink,
+				}, false),
+			},
+
+			"connection_id": {
+				Type:     schema.TypeString,
+				Optional: true,
 			},
 
 			"uri": {
 				Type:     schema.TypeString,
 				Optional: true,
-				ForceNew: true,
 			},
 
 			"credentials": {
@@ -64,18 +86,18 @@ func resourceAwsApiGatewayIntegration() *schema.Resource {
 				Type:         schema.TypeString,
 				Optional:     true,
 				ForceNew:     true,
-				ValidateFunc: validateHTTPMethod,
+				ValidateFunc: validateHTTPMethod(),
 			},
 
 			"request_templates": {
 				Type:     schema.TypeMap,
 				Optional: true,
-				Elem:     schema.TypeString,
+				Elem:     &schema.Schema{Type: schema.TypeString},
 			},
 
 			"request_parameters": {
 				Type:          schema.TypeMap,
-				Elem:          schema.TypeString,
+				Elem:          &schema.Schema{Type: schema.TypeString},
 				Optional:      true,
 				ConflictsWith: []string{"request_parameters_in_json"},
 			},
@@ -90,16 +112,19 @@ func resourceAwsApiGatewayIntegration() *schema.Resource {
 			"content_handling": {
 				Type:         schema.TypeString,
 				Optional:     true,
-				ForceNew:     true,
-				ValidateFunc: validateApiGatewayIntegrationContentHandling,
+				ValidateFunc: validateApiGatewayIntegrationContentHandling(),
 			},
 
 			"passthrough_behavior": {
-				Type:         schema.TypeString,
-				Optional:     true,
-				Computed:     true,
-				ForceNew:     true,
-				ValidateFunc: validateApiGatewayIntegrationPassthroughBehavior,
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
+				ForceNew: true,
+				ValidateFunc: validation.StringInSlice([]string{
+					"WHEN_NO_MATCH",
+					"WHEN_NO_TEMPLATES",
+					"NEVER",
+				}, false),
 			},
 
 			"cache_key_parameters": {
@@ -114,6 +139,13 @@ func resourceAwsApiGatewayIntegration() *schema.Resource {
 				Optional: true,
 				Computed: true,
 			},
+
+			"timeout_milliseconds": {
+				Type:         schema.TypeInt,
+				Optional:     true,
+				ValidateFunc: validation.IntBetween(50, 29000),
+				Default:      29000,
+			},
 		},
 	}
 }
@@ -122,14 +154,26 @@ func resourceAwsApiGatewayIntegrationCreate(d *schema.ResourceData, meta interfa
 	conn := meta.(*AWSClient).apigateway
 
 	log.Print("[DEBUG] Creating API Gateway Integration")
+
+	connectionType := aws.String(d.Get("connection_type").(string))
+	var connectionId *string
+	if *connectionType == apigateway.ConnectionTypeVpcLink {
+		if _, ok := d.GetOk("connection_id"); !ok {
+			return fmt.Errorf("connection_id required when connection_type set to VPC_LINK")
+		}
+		connectionId = aws.String(d.Get("connection_id").(string))
+	}
+
 	var integrationHttpMethod *string
 	if v, ok := d.GetOk("integration_http_method"); ok {
 		integrationHttpMethod = aws.String(v.(string))
 	}
+
 	var uri *string
 	if v, ok := d.GetOk("uri"); ok {
 		uri = aws.String(v.(string))
 	}
+
 	templates := make(map[string]string)
 	for k, v := range d.Get("request_templates").(map[string]interface{}) {
 		templates[k] = v.(string)
@@ -177,6 +221,11 @@ func resourceAwsApiGatewayIntegrationCreate(d *schema.ResourceData, meta interfa
 		cacheNamespace = aws.String(v.(string))
 	}
 
+	var timeoutInMillis *int64
+	if v, ok := d.GetOk("timeout_milliseconds"); ok {
+		timeoutInMillis = aws.Int64(int64(v.(int)))
+	}
+
 	_, err := conn.PutIntegration(&apigateway.PutIntegrationInput{
 		HttpMethod: aws.String(d.Get("http_method").(string)),
 		ResourceId: aws.String(d.Get("resource_id").(string)),
@@ -191,6 +240,9 @@ func resourceAwsApiGatewayIntegrationCreate(d *schema.ResourceData, meta interfa
 		CacheKeyParameters:  cacheKeyParameters,
 		PassthroughBehavior: passthroughBehavior,
 		ContentHandling:     contentHandling,
+		ConnectionType:      connectionType,
+		ConnectionId:        connectionId,
+		TimeoutInMillis:     timeoutInMillis,
 	})
 	if err != nil {
 		return fmt.Errorf("Error creating API Gateway Integration: %s", err)
@@ -212,6 +264,7 @@ func resourceAwsApiGatewayIntegrationRead(d *schema.ResourceData, meta interface
 	})
 	if err != nil {
 		if awsErr, ok := err.(awserr.Error); ok && awsErr.Code() == "NotFoundException" {
+			log.Printf("[WARN] API Gateway Integration (%s) not found, removing from state", d.Id())
 			d.SetId("")
 			return nil
 		}
@@ -230,6 +283,12 @@ func resourceAwsApiGatewayIntegrationRead(d *schema.ResourceData, meta interface
 	d.Set("request_parameters", aws.StringValueMap(integration.RequestParameters))
 	d.Set("request_parameters_in_json", aws.StringValueMap(integration.RequestParameters))
 	d.Set("passthrough_behavior", integration.PassthroughBehavior)
+	if integration.ConnectionType != nil {
+		d.Set("connection_type", integration.ConnectionType)
+	} else {
+		d.Set("connection_type", apigateway.ConnectionTypeInternet)
+	}
+	d.Set("connection_id", integration.ConnectionId)
 
 	if integration.Uri != nil {
 		d.Set("uri", integration.Uri)
@@ -247,6 +306,10 @@ func resourceAwsApiGatewayIntegrationRead(d *schema.ResourceData, meta interface
 
 	if integration.CacheNamespace != nil {
 		d.Set("cache_namespace", integration.CacheNamespace)
+	}
+
+	if integration.TimeoutInMillis != nil {
+		d.Set("timeout_milliseconds", integration.TimeoutInMillis)
 	}
 
 	return nil
@@ -366,6 +429,49 @@ func resourceAwsApiGatewayIntegrationUpdate(d *schema.ResourceData, meta interfa
 			Op:    aws.String("replace"),
 			Path:  aws.String("/cacheNamespace"),
 			Value: aws.String(d.Get("cache_namespace").(string)),
+		})
+	}
+
+	// The documentation https://docs.aws.amazon.com/apigateway/api-reference/link-relation/integration-update/ says
+	// that uri changes are only supported for non-mock types. Because the uri value is not used in mock
+	// resources, it means that the uri can always be updated
+	if d.HasChange("uri") {
+		operations = append(operations, &apigateway.PatchOperation{
+			Op:    aws.String("replace"),
+			Path:  aws.String("/uri"),
+			Value: aws.String(d.Get("uri").(string)),
+		})
+	}
+
+	if d.HasChange("content_handling") {
+		operations = append(operations, &apigateway.PatchOperation{
+			Op:    aws.String("replace"),
+			Path:  aws.String("/contentHandling"),
+			Value: aws.String(d.Get("content_handling").(string)),
+		})
+	}
+
+	if d.HasChange("connection_type") {
+		operations = append(operations, &apigateway.PatchOperation{
+			Op:    aws.String("replace"),
+			Path:  aws.String("/connectionType"),
+			Value: aws.String(d.Get("connection_type").(string)),
+		})
+	}
+
+	if d.HasChange("connection_id") {
+		operations = append(operations, &apigateway.PatchOperation{
+			Op:    aws.String("replace"),
+			Path:  aws.String("/connectionId"),
+			Value: aws.String(d.Get("connection_id").(string)),
+		})
+	}
+
+	if d.HasChange("timeout_milliseconds") {
+		operations = append(operations, &apigateway.PatchOperation{
+			Op:    aws.String("replace"),
+			Path:  aws.String("/timeoutInMillis"),
+			Value: aws.String(strconv.Itoa(d.Get("timeout_milliseconds").(int))),
 		})
 	}
 

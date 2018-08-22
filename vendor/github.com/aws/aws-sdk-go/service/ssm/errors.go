@@ -30,6 +30,12 @@ const (
 	// The specified association does not exist.
 	ErrCodeAssociationDoesNotExist = "AssociationDoesNotExist"
 
+	// ErrCodeAssociationExecutionDoesNotExist for service response error code
+	// "AssociationExecutionDoesNotExist".
+	//
+	// The specified execution ID does not exist. Verify the ID number and try again.
+	ErrCodeAssociationExecutionDoesNotExist = "AssociationExecutionDoesNotExist"
+
 	// ErrCodeAssociationLimitExceeded for service response error code
 	// "AssociationLimitExceeded".
 	//
@@ -68,6 +74,13 @@ const (
 	// There is no automation execution information for the requested automation
 	// execution ID.
 	ErrCodeAutomationExecutionNotFoundException = "AutomationExecutionNotFoundException"
+
+	// ErrCodeAutomationStepNotFoundException for service response error code
+	// "AutomationStepNotFoundException".
+	//
+	// The specified step name and execution ID don't exist. Verify the information
+	// and try again.
+	ErrCodeAutomationStepNotFoundException = "AutomationStepNotFoundException"
 
 	// ErrCodeComplianceTypeCountLimitExceededException for service response error code
 	// "ComplianceTypeCountLimitExceededException".
@@ -113,8 +126,11 @@ const (
 	// ErrCodeDoesNotExistException for service response error code
 	// "DoesNotExistException".
 	//
-	// Error returned when the ID specified for a resource (e.g. a Maintenance Window)
-	// doesn't exist.
+	// Error returned when the ID specified for a resource, such as a Maintenance
+	// Window or Patch baseline, doesn't exist.
+	//
+	// For information about resource limits in Systems Manager, see AWS Systems
+	// Manager Limits (http://docs.aws.amazon.com/general/latest/gr/aws_service_limits.html#limits_ssm).
 	ErrCodeDoesNotExistException = "DoesNotExistException"
 
 	// ErrCodeDuplicateDocumentContent for service response error code
@@ -140,11 +156,9 @@ const (
 	// ErrCodeHierarchyLevelLimitExceededException for service response error code
 	// "HierarchyLevelLimitExceededException".
 	//
-	// A hierarchy can have a maximum of five levels. For example:
-	//
-	// /Finance/Prod/IAD/OS/WinServ2016/license15
-	//
-	// For more information, see Working with Systems Manager Parameters (http://docs.aws.amazon.com/systems-manager/latest/userguide/sysman-paramstore-working.html).
+	// A hierarchy can have a maximum of 15 levels. For more information, see Requirements
+	// and Constraints for Parameter Names (http://docs.aws.amazon.com/systems-manager/latest/userguide/sysman-parameter-name-constraints.html)
+	// in the AWS Systems Manager User Guide.
 	ErrCodeHierarchyLevelLimitExceededException = "HierarchyLevelLimitExceededException"
 
 	// ErrCodeHierarchyTypeMismatchException for service response error code
@@ -188,6 +202,12 @@ const (
 	// The request does not meet the regular expression requirement.
 	ErrCodeInvalidAllowedPatternException = "InvalidAllowedPatternException"
 
+	// ErrCodeInvalidAssociation for service response error code
+	// "InvalidAssociation".
+	//
+	// The association is not valid or does not exist.
+	ErrCodeInvalidAssociation = "InvalidAssociation"
+
 	// ErrCodeInvalidAssociationVersion for service response error code
 	// "InvalidAssociationVersion".
 	//
@@ -210,9 +230,29 @@ const (
 	// The signal is not valid for the current Automation execution.
 	ErrCodeInvalidAutomationSignalException = "InvalidAutomationSignalException"
 
+	// ErrCodeInvalidAutomationStatusUpdateException for service response error code
+	// "InvalidAutomationStatusUpdateException".
+	//
+	// The specified update status operation is not valid.
+	ErrCodeInvalidAutomationStatusUpdateException = "InvalidAutomationStatusUpdateException"
+
 	// ErrCodeInvalidCommandId for service response error code
 	// "InvalidCommandId".
 	ErrCodeInvalidCommandId = "InvalidCommandId"
+
+	// ErrCodeInvalidDeleteInventoryParametersException for service response error code
+	// "InvalidDeleteInventoryParametersException".
+	//
+	// One or more of the parameters specified for the delete operation is not valid.
+	// Verify all parameters and try again.
+	ErrCodeInvalidDeleteInventoryParametersException = "InvalidDeleteInventoryParametersException"
+
+	// ErrCodeInvalidDeletionIdException for service response error code
+	// "InvalidDeletionIdException".
+	//
+	// The ID specified for the delete operation does not exist or is not valide.
+	// Verify the ID and try again.
+	ErrCodeInvalidDeletionIdException = "InvalidDeletionIdException"
 
 	// ErrCodeInvalidDocument for service response error code
 	// "InvalidDocument".
@@ -278,12 +318,12 @@ const (
 	//
 	// You do not have permission to access the instance.
 	//
-	// The SSM Agent is not running. On managed instances and Linux instances, verify
+	// SSM Agent is not running. On managed instances and Linux instances, verify
 	// that the SSM Agent is running. On EC2 Windows instances, verify that the
 	// EC2Config service is running.
 	//
-	// The SSM Agent or EC2Config service is not registered to the SSM endpoint.
-	// Try reinstalling the SSM Agent or EC2Config service.
+	// SSM Agent or EC2Config service is not registered to the SSM endpoint. Try
+	// reinstalling SSM Agent or EC2Config service.
 	//
 	// The instance is not in valid state. Valid states are: Running, Pending, Stopped,
 	// Stopping. Invalid states are: Shutting-down and Terminated.
@@ -301,6 +341,12 @@ const (
 	// You specified invalid keys or values in the Context attribute for InventoryItem.
 	// Verify the keys and values, and try again.
 	ErrCodeInvalidInventoryItemContextException = "InvalidInventoryItemContextException"
+
+	// ErrCodeInvalidInventoryRequestException for service response error code
+	// "InvalidInventoryRequestException".
+	//
+	// The request is not valid.
+	ErrCodeInvalidInventoryRequestException = "InvalidInventoryRequestException"
 
 	// ErrCodeInvalidItemContentException for service response error code
 	// "InvalidItemContentException".
@@ -326,6 +372,13 @@ const (
 	// One or more configuration items is not valid. Verify that a valid Amazon
 	// Resource Name (ARN) was provided for an Amazon SNS topic.
 	ErrCodeInvalidNotificationConfig = "InvalidNotificationConfig"
+
+	// ErrCodeInvalidOptionException for service response error code
+	// "InvalidOptionException".
+	//
+	// The delete inventory option specified is not valid. Verify the option and
+	// try again.
+	ErrCodeInvalidOptionException = "InvalidOptionException"
 
 	// ErrCodeInvalidOutputFolder for service response error code
 	// "InvalidOutputFolder".
@@ -387,7 +440,7 @@ const (
 	// an IAM role for notifications that includes the required trust policy. For
 	// information about configuring the IAM role for Run Command notifications,
 	// see Configuring Amazon SNS Notifications for Run Command (http://docs.aws.amazon.com/systems-manager/latest/userguide/rc-sns-notifications.html)
-	// in the Amazon EC2 Systems Manager User Guide.
+	// in the AWS Systems Manager User Guide.
 	ErrCodeInvalidRole = "InvalidRole"
 
 	// ErrCodeInvalidSchedule for service response error code
@@ -512,8 +565,11 @@ const (
 	// ErrCodeResourceLimitExceededException for service response error code
 	// "ResourceLimitExceededException".
 	//
-	// Error returned when the caller has exceeded the default resource limits (e.g.
-	// too many Maintenance Windows have been created).
+	// Error returned when the caller has exceeded the default resource limits.
+	// For example, too many Maintenance Windows or Patch baselines have been created.
+	//
+	// For information about resource limits in Systems Manager, see AWS Systems
+	// Manager Limits (http://docs.aws.amazon.com/general/latest/gr/aws_service_limits.html#limits_ssm).
 	ErrCodeResourceLimitExceededException = "ResourceLimitExceededException"
 
 	// ErrCodeStatusUnchanged for service response error code

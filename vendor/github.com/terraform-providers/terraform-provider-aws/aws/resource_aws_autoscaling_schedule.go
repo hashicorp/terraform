@@ -135,7 +135,7 @@ func resourceAwsAutoscalingScheduleRead(d *schema.ResourceData, meta interface{}
 	}
 
 	if !exists {
-		log.Printf("Error retrieving Autoscaling Scheduled Actions. Removing from state")
+		log.Printf("[WARN] Autoscaling Scheduled Action (%s) not found, removing from state", d.Id())
 		d.SetId("")
 		return nil
 	}
@@ -202,7 +202,7 @@ func resourceAwsASGScheduledActionRetrieve(d *schema.ResourceData, meta interfac
 	if err != nil {
 		//A ValidationError here can mean that either the Schedule is missing OR the Autoscaling Group is missing
 		if ec2err, ok := err.(awserr.Error); ok && ec2err.Code() == "ValidationError" {
-			log.Printf("[WARNING] %s not found, removing from state", d.Id())
+			log.Printf("[WARN] Autoscaling Scheduled Action (%s) not found, removing from state", d.Id())
 			d.SetId("")
 
 			return nil, nil, false

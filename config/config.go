@@ -231,7 +231,10 @@ func (r *Resource) Count() (int, error) {
 
 	v, err := strconv.ParseInt(count, 0, 0)
 	if err != nil {
-		return 0, err
+		return 0, fmt.Errorf(
+			"cannot parse %q as an integer",
+			count,
+		)
 	}
 
 	return int(v), nil

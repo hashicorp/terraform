@@ -54,14 +54,16 @@ func resourceAwsNetworkAclRule() *schema.Resource {
 				ForceNew: true,
 			},
 			"cidr_block": {
-				Type:     schema.TypeString,
-				Optional: true,
-				ForceNew: true,
+				Type:          schema.TypeString,
+				Optional:      true,
+				ForceNew:      true,
+				ConflictsWith: []string{"ipv6_cidr_block"},
 			},
 			"ipv6_cidr_block": {
-				Type:     schema.TypeString,
-				Optional: true,
-				ForceNew: true,
+				Type:          schema.TypeString,
+				Optional:      true,
+				ForceNew:      true,
+				ConflictsWith: []string{"cidr_block"},
 			},
 			"from_port": {
 				Type:     schema.TypeInt,

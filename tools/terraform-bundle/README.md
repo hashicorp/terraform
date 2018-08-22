@@ -53,6 +53,12 @@ providers {
   # two expressions match different versions then _both_ are included in
   # the bundle archive.
   google = ["~> 1.0", "~> 2.0"]
+
+  # Include a custom plugin to the bundle. Will search for the plugin in the 
+  # plugins directory, and package it with the bundle archive. Plugin must have
+  # a name of the form: terraform-provider-*, and must be build with the operating
+  # system and architecture that terraform enterprise is running, e.g. linux and amd64
+  customplugin = ["0.1"]
 }
 
 ```
@@ -100,6 +106,13 @@ this composite version number so that bundle archives can be easily
 distinguished from official release archives and from each other when multiple
 bundles contain the same core Terraform version.
 
+To include custom plugins in the bundle file, create a local directory "./plugins"
+and put all the plugins you want to include there. Optionally, you can use the 
+`-plugin-dir` flag to specify a location where to find the plugins. To be recognized
+as a valid plugin, the file must have a name of the form: "terraform-provider-*-v*". In 
+addition, ensure that the plugin is build using the same operating system and 
+architecture used for terraform enterprise. Typically this will be linux and amd64.
+
 ## Provider Resolution Behavior
 
 Terraform's provider resolution behavior is such that if a given constraint
@@ -111,13 +124,6 @@ that version constraints within Terraform configurations do not exclude all
 of the versions available from the bundle. If a suitable version cannot be
 found in the bundle, Terraform _will_ attempt to satisfy that dependency by
 automatic installation from the official repository.
-
-To disable automatic installation altogether -- and thus cause a hard failure
-if no local plugins match -- the `-plugin-dir` option can be passed to
-`terraform init`, giving the directory into which the bundle was extracted.
-The presence of this option overrides all of the normal automatic discovery
-and installation behavior, and thus forces the use of only the plugins that
-can be found in the directory indicated.
 
 The downloaded provider archives are verified using the same signature check
 that is used for auto-installed plugins, using Hashicorp's release key. At
