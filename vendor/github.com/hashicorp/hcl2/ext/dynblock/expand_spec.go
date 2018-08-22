@@ -43,19 +43,23 @@ func (b *expandBody) decodeSpec(blockS *hcl.BlockHeaderSchema, rawSpec *hcl.Bloc
 
 	if !eachVal.CanIterateElements() {
 		diags = append(diags, &hcl.Diagnostic{
-			Severity: hcl.DiagError,
-			Summary:  "Invalid dynamic for_each value",
-			Detail:   fmt.Sprintf("Cannot use a value of type %s in for_each. An iterable collection is required.", eachVal.Type()),
-			Subject:  eachAttr.Expr.Range().Ptr(),
+			Severity:    hcl.DiagError,
+			Summary:     "Invalid dynamic for_each value",
+			Detail:      fmt.Sprintf("Cannot use a value of type %s in for_each. An iterable collection is required.", eachVal.Type()),
+			Subject:     eachAttr.Expr.Range().Ptr(),
+			Expression:  eachAttr.Expr,
+			EvalContext: b.forEachCtx,
 		})
 		return nil, diags
 	}
 	if eachVal.IsNull() {
 		diags = append(diags, &hcl.Diagnostic{
-			Severity: hcl.DiagError,
-			Summary:  "Invalid dynamic for_each value",
-			Detail:   "Cannot use a null value in for_each.",
-			Subject:  eachAttr.Expr.Range().Ptr(),
+			Severity:    hcl.DiagError,
+			Summary:     "Invalid dynamic for_each value",
+			Detail:      "Cannot use a null value in for_each.",
+			Subject:     eachAttr.Expr.Range().Ptr(),
+			Expression:  eachAttr.Expr,
+			EvalContext: b.forEachCtx,
 		})
 		return nil, diags
 	}
@@ -159,28 +163,34 @@ func (s *expandSpec) newBlock(i *iteration, ctx *hcl.EvalContext) (*hcl.Block, h
 		labelVal, convErr = convert.Convert(labelVal, cty.String)
 		if convErr != nil {
 			diags = append(diags, &hcl.Diagnostic{
-				Severity: hcl.DiagError,
-				Summary:  "Invalid dynamic block label",
-				Detail:   fmt.Sprintf("Cannot use this value as a dynamic block label: %s.", convErr),
-				Subject:  labelExpr.Range().Ptr(),
+				Severity:    hcl.DiagError,
+				Summary:     "Invalid dynamic block label",
+				Detail:      fmt.Sprintf("Cannot use this value as a dynamic block label: %s.", convErr),
+				Subject:     labelExpr.Range().Ptr(),
+				Expression:  labelExpr,
+				EvalContext: lCtx,
 			})
 			return nil, diags
 		}
 		if labelVal.IsNull() {
 			diags = append(diags, &hcl.Diagnostic{
-				Severity: hcl.DiagError,
-				Summary:  "Invalid dynamic block label",
-				Detail:   "Cannot use a null value as a dynamic block label.",
-				Subject:  labelExpr.Range().Ptr(),
+				Severity:    hcl.DiagError,
+				Summary:     "Invalid dynamic block label",
+				Detail:      "Cannot use a null value as a dynamic block label.",
+				Subject:     labelExpr.Range().Ptr(),
+				Expression:  labelExpr,
+				EvalContext: lCtx,
 			})
 			return nil, diags
 		}
 		if !labelVal.IsKnown() {
 			diags = append(diags, &hcl.Diagnostic{
-				Severity: hcl.DiagError,
-				Summary:  "Invalid dynamic block label",
-				Detail:   "This value is not yet known. Dynamic block labels must be immediately-known values.",
-				Subject:  labelExpr.Range().Ptr(),
+				Severity:    hcl.DiagError,
+				Summary:     "Invalid dynamic block label",
+				Detail:      "This value is not yet known. Dynamic block labels must be immediately-known values.",
+				Subject:     labelExpr.Range().Ptr(),
+				Expression:  labelExpr,
+				EvalContext: lCtx,
 			})
 			return nil, diags
 		}
