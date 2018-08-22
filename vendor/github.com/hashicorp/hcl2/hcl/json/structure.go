@@ -432,7 +432,8 @@ func (e *expression) Value(ctx *hcl.EvalContext) (cty.Value, hcl.Diagnostics) {
 				Value:    jsonAttr.Name,
 				SrcRange: jsonAttr.NameRange,
 			}}).Value(ctx)
-			val, valDiags := (&expression{src: jsonAttr.Value}).Value(ctx)
+			valExpr := &expression{src: jsonAttr.Value}
+			val, valDiags := valExpr.Value(ctx)
 			diags = append(diags, nameDiags...)
 			diags = append(diags, valDiags...)
 
@@ -440,19 +441,23 @@ func (e *expression) Value(ctx *hcl.EvalContext) (cty.Value, hcl.Diagnostics) {
 			name, err = convert.Convert(name, cty.String)
 			if err != nil {
 				diags = append(diags, &hcl.Diagnostic{
-					Severity: hcl.DiagError,
-					Summary:  "Invalid object key expression",
-					Detail:   fmt.Sprintf("Cannot use this expression as an object key: %s.", err),
-					Subject:  &jsonAttr.NameRange,
+					Severity:    hcl.DiagError,
+					Summary:     "Invalid object key expression",
+					Detail:      fmt.Sprintf("Cannot use this expression as an object key: %s.", err),
+					Subject:     &jsonAttr.NameRange,
+					Expression:  valExpr,
+					EvalContext: ctx,
 				})
 				continue
 			}
 			if name.IsNull() {
 				diags = append(diags, &hcl.Diagnostic{
-					Severity: hcl.DiagError,
-					Summary:  "Invalid object key expression",
-					Detail:   "Cannot use null value as an object key.",
-					Subject:  &jsonAttr.NameRange,
+					Severity:    hcl.DiagError,
+					Summary:     "Invalid object key expression",
+					Detail:      "Cannot use null value as an object key.",
+					Subject:     &jsonAttr.NameRange,
+					Expression:  valExpr,
+					EvalContext: ctx,
 				})
 				continue
 			}
@@ -471,10 +476,12 @@ func (e *expression) Value(ctx *hcl.EvalContext) (cty.Value, hcl.Diagnostics) {
 			nameStr := name.AsString()
 			if _, defined := attrs[nameStr]; defined {
 				diags = append(diags, &hcl.Diagnostic{
-					Severity: hcl.DiagError,
-					Summary:  "Duplicate object attribute",
-					Detail:   fmt.Sprintf("An attribute named %q was already defined at %s.", nameStr, attrRanges[nameStr]),
-					Subject:  &jsonAttr.NameRange,
+					Severity:    hcl.DiagError,
+					Summary:     "Duplicate object attribute",
+					Detail:      fmt.Sprintf("An attribute named %q was already defined at %s.", nameStr, attrRanges[nameStr]),
+					Subject:     &jsonAttr.NameRange,
+					Expression:  e,
+					EvalContext: ctx,
 				})
 				continue
 			}
