@@ -11,12 +11,12 @@ description: |-
 **Kind: Enhanced**
 
 The remote backend stores state and runs operations remotely. In order
-use this backend you need a Terraform Enterprise account or have Private
+use this backend, you need a Terraform Enterprise account or an installation of Private
 Terraform Enterprise running on-premises.
 
 ### Commands
 
-Currently the remote backend supports the following Terraform commands:
+Currently, the remote backend supports the following Terraform commands:
 
  1.  fmt
  2.  get
@@ -32,17 +32,17 @@ Currently the remote backend supports the following Terraform commands:
  11. workspace
 
 ### Workspaces
-To work with remote workspaces we need either a name or a prefix. You will
-get a configuration error when neither or both options are configured.
+To work with remote workspaces we need either a name or a prefix. Exactly one
+of these is required. Providing both or neither will result in a configuration error.
 
 #### Name
 When a name is provided, that name is used to make a one-to-one mapping
-between your local “default” workspace and a named remote workspace. This
-option assumes you are not using workspaces when working with TF, so it
-will act as a backend that does not support names states.
+between the local “default” workspace and a named remote workspace. This
+option assumes you are not using Terraform workspaces, so it will act as 
+a backend that does not support named states.
 
 #### Prefix
-When a prefix is provided it will be used to filter and map workspaces that
+When a prefix is provided, it will be used to filter and map workspaces that
 can be used with a single configuration. This allows you to dynamically
 filter and map all remote workspaces with a matching prefix.
 
@@ -51,12 +51,12 @@ again when receiving the responses. This way any locally used workspace
 names will remain the same short names (e.g. “tst”, “acc”) while the remote
 names will be mapped by adding the prefix.
 
-It is assumed that you are only using named workspaces when working with
-Terraform and so the “default” workspace is ignored in this case. If there
-is a state file for the “default” config, this will give an error during
+When using a prefix, the assumption is that you are only using named Terraform workspaces, 
+so the “default” workspace is ignored in this case. If there
+is a state file for the “default” config, this will result in an error during
 `terraform init`. If the default workspace is selected when running the
-`init` command, the `init` process will succeed but will end with a message
-that tells you how to select an existing workspace or create a new one.
+`init` command, the `init` process will succeed, but will end with a message
+explaining how to select an existing workspace or create a new one.
 
 ## Example Configuration
 
@@ -105,6 +105,7 @@ The following configuration options are supported:
   to a set of workspaces to work on. Parameters defined below.
 
 The `workspaces` block supports the following keys:
+
 * `name` - (Optional) A workspace name used to map the default workspace to a
   named remote workspace. When configured only the default workspace can be
   used. This option conflicts with `prefix`.
