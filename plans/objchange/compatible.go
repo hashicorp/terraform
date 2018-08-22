@@ -80,30 +80,65 @@ func assertObjectCompatible(schema *configschema.Block, planned, actual cty.Valu
 			moreErrs := assertObjectCompatible(&blockS.Block, plannedV, actualV, path)
 			errs = append(errs, moreErrs...)
 		case configschema.NestingList:
+			// A NestingList might either be a list or a tuple, depending on
+			// whether there are dynamically-typed attributes inside. However,
+			// both support a similar-enough API that we can treat them the
+			// same for our purposes here.
 			plannedL := plannedV.LengthInt()
 			actualL := actualV.LengthInt()
 			if plannedL != actualL {
 				errs = append(errs, path.NewErrorf("block count changed from %d to %d", plannedL, actualL))
 				continue
 			}
-		case configschema.NestingMap:
-			plannedAtys := plannedV.Type().AttributeTypes()
-			actualAtys := actualV.Type().AttributeTypes()
-			for k := range plannedAtys {
-				if _, ok := actualAtys[k]; !ok {
-					errs = append(errs, path.NewErrorf("block key %q has vanished", k))
+			for it := plannedV.ElementIterator(); it.Next(); {
+				idx, plannedEV := it.Element()
+				if !actualV.HasIndex(idx).True() {
 					continue
 				}
-
-				plannedEV := plannedV.GetAttr(k)
-				actualEV := actualV.GetAttr(k)
-				moreErrs := assertObjectCompatible(&blockS.Block, plannedEV, actualEV, append(path, cty.GetAttrStep{Name: k}))
+				actualEV := actualV.Index(idx)
+				moreErrs := assertObjectCompatible(&blockS.Block, plannedEV, actualEV, append(path, cty.IndexStep{Key: idx}))
 				errs = append(errs, moreErrs...)
 			}
-			for k := range actualAtys {
-				if _, ok := plannedAtys[k]; !ok {
-					errs = append(errs, path.NewErrorf("new block key %q has appeared", k))
+		case configschema.NestingMap:
+			// A NestingMap might either be a map or an object, depending on
+			// whether there are dynamically-typed attributes inside, but
+			// that's decided statically and so both values will have the same
+			// kind.
+			if plannedV.Type().IsObjectType() {
+				plannedAtys := plannedV.Type().AttributeTypes()
+				actualAtys := actualV.Type().AttributeTypes()
+				for k := range plannedAtys {
+					if _, ok := actualAtys[k]; !ok {
+						errs = append(errs, path.NewErrorf("block key %q has vanished", k))
+						continue
+					}
+
+					plannedEV := plannedV.GetAttr(k)
+					actualEV := actualV.GetAttr(k)
+					moreErrs := assertObjectCompatible(&blockS.Block, plannedEV, actualEV, append(path, cty.GetAttrStep{Name: k}))
+					errs = append(errs, moreErrs...)
+				}
+				for k := range actualAtys {
+					if _, ok := plannedAtys[k]; !ok {
+						errs = append(errs, path.NewErrorf("new block key %q has appeared", k))
+						continue
+					}
+				}
+			} else {
+				plannedL := plannedV.LengthInt()
+				actualL := actualV.LengthInt()
+				if plannedL != actualL {
+					errs = append(errs, path.NewErrorf("block count changed from %d to %d", plannedL, actualL))
 					continue
+				}
+				for it := plannedV.ElementIterator(); it.Next(); {
+					idx, plannedEV := it.Element()
+					if !actualV.HasIndex(idx).True() {
+						continue
+					}
+					actualEV := actualV.Index(idx)
+					moreErrs := assertObjectCompatible(&blockS.Block, plannedEV, actualEV, append(path, cty.IndexStep{Key: idx}))
+					errs = append(errs, moreErrs...)
 				}
 			}
 		case configschema.NestingSet:
