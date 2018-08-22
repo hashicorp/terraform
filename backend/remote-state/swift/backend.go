@@ -256,13 +256,18 @@ func (b *Backend) configure(ctx context.Context) error {
 		DomainName:       data.Get("domain_name").(string),
 		EndpointType:     data.Get("endpoint_type").(string),
 		IdentityEndpoint: data.Get("auth_url").(string),
-		Insecure:         data.Get("insecure").(bool),
 		Password:         data.Get("password").(string),
 		Token:            data.Get("token").(string),
 		TenantID:         data.Get("tenant_id").(string),
 		TenantName:       data.Get("tenant_name").(string),
 		Username:         data.Get("user_name").(string),
 		UserID:           data.Get("user_id").(string),
+	}
+
+	v, ok := data.GetOkExists("insecure")
+	if ok {
+		insecure := v.(bool)
+		config.Insecure = &insecure
 	}
 
 	if err := config.LoadAndValidate(); err != nil {

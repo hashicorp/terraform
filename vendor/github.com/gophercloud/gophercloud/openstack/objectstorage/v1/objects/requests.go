@@ -24,9 +24,9 @@ type ListOptsBuilder interface {
 // ListOpts is a structure that holds parameters for listing objects.
 type ListOpts struct {
 	// Full is a true/false value that represents the amount of object information
-	// returned. If Full is set to true, then the content-type, number of bytes, hash
-	// date last modified, and name are returned. If set to false or not set, then
-	// only the object names are returned.
+	// returned. If Full is set to true, then the content-type, number of bytes,
+	// hash date last modified, and name are returned. If set to false or not set,
+	// then only the object names are returned.
 	Full      bool
 	Limit     int    `q:"limit"`
 	Marker    string `q:"marker"`
@@ -44,9 +44,10 @@ func (opts ListOpts) ToObjectListParams() (bool, string, error) {
 	return opts.Full, q.String(), err
 }
 
-// List is a function that retrieves all objects in a container. It also returns the details
-// for the container. To extract only the object information or names, pass the ListResult
-// response to the ExtractInfo or ExtractNames function, respectively.
+// List is a function that retrieves all objects in a container. It also returns
+// the details for the container. To extract only the object information or names,
+// pass the ListResult response to the ExtractInfo or ExtractNames function,
+// respectively.
 func List(c *gophercloud.ServiceClient, containerName string, opts ListOptsBuilder) pagination.Pager {
 	headers := map[string]string{"Accept": "text/plain", "Content-Type": "text/plain"}
 
@@ -144,6 +145,7 @@ type CreateOptsBuilder interface {
 type CreateOpts struct {
 	Content            io.Reader
 	Metadata           map[string]string
+	NoETag             bool
 	CacheControl       string `h:"Cache-Control"`
 	ContentDisposition string `h:"Content-Disposition"`
 	ContentEncoding    string `h:"Content-Encoding"`
@@ -178,6 +180,15 @@ func (opts CreateOpts) ToObjectCreateParams() (io.Reader, map[string]string, str
 		h["X-Object-Meta-"+k] = v
 	}
 
+	if opts.NoETag {
+		delete(h, "etag")
+		return opts.Content, h, q.String(), nil
+	}
+
+	if h["ETag"] != "" {
+		return opts.Content, h, q.String(), nil
+	}
+
 	hash := md5.New()
 	buf := bytes.NewBuffer([]byte{})
 	_, err = io.Copy(io.MultiWriter(hash, buf), opts.Content)
@@ -190,8 +201,10 @@ func (opts CreateOpts) ToObjectCreateParams() (io.Reader, map[string]string, str
 	return buf, h, q.String(), nil
 }
 
-// Create is a function that creates a new object or replaces an existing object. If the returned response's ETag
-// header fails to match the local checksum, the failed request will automatically be retried up to a maximum of 3 times.
+// Create is a function that creates a new object or replaces an existing
+// object. If the returned response's ETag header fails to match the local
+// checksum, the failed request will automatically be retried up to a maximum
+// of 3 times.
 func Create(c *gophercloud.ServiceClient, containerName, objectName string, opts CreateOptsBuilder) (r CreateResult) {
 	url := createURL(c, containerName, objectName)
 	h := make(map[string]string)
@@ -315,7 +328,8 @@ type GetOptsBuilder interface {
 	ToObjectGetQuery() (string, error)
 }
 
-// GetOpts is a structure that holds parameters for getting an object's metadata.
+// GetOpts is a structure that holds parameters for getting an object's
+// metadata.
 type GetOpts struct {
 	Expires   string `q:"expires"`
 	Signature string `q:"signature"`
@@ -327,8 +341,9 @@ func (opts GetOpts) ToObjectGetQuery() (string, error) {
 	return q.String(), err
 }
 
-// Get is a function that retrieves the metadata of an object. To extract just the custom
-// metadata, pass the GetResult response to the ExtractMetadata function.
+// Get is a function that retrieves the metadata of an object. To extract just
+// the custom metadata, pass the GetResult response to the ExtractMetadata
+// function.
 func Get(c *gophercloud.ServiceClient, containerName, objectName string, opts GetOptsBuilder) (r GetResult) {
 	url := getURL(c, containerName, objectName)
 	if opts != nil {
@@ -355,8 +370,8 @@ type UpdateOptsBuilder interface {
 	ToObjectUpdateMap() (map[string]string, error)
 }
 
-// UpdateOpts is a structure that holds parameters for updating, creating, or deleting an
-// object's metadata.
+// UpdateOpts is a structure that holds parameters for updating, creating, or
+// deleting an object's metadata.
 type UpdateOpts struct {
 	Metadata           map[string]string
 	ContentDisposition string `h:"Content-Disposition"`
@@ -410,17 +425,20 @@ type HTTPMethod string
 var (
 	// GET represents an HTTP "GET" method.
 	GET HTTPMethod = "GET"
+
 	// POST represents an HTTP "POST" method.
 	POST HTTPMethod = "POST"
 )
 
 // CreateTempURLOpts are options for creating a temporary URL for an object.
 type CreateTempURLOpts struct {
-	// (REQUIRED) Method is the HTTP method to allow for users of the temp URL. Valid values
-	// are "GET" and "POST".
+	// (REQUIRED) Method is the HTTP method to allow for users of the temp URL.
+	// Valid values are "GET" and "POST".
 	Method HTTPMethod
+
 	// (REQUIRED) TTL is the number of seconds the temp URL should be active.
 	TTL int
+
 	// (Optional) Split is the string on which to split the object URL. Since only
 	// the object path is used in the hash, the object URL needs to be parsed. If
 	// empty, the default OpenStack URL split point will be used ("/v1/").

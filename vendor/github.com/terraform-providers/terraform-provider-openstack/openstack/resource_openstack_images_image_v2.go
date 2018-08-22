@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/gophercloud/gophercloud"
@@ -29,6 +30,8 @@ func resourceImagesImageV2() *schema.Resource {
 			State: schema.ImportStatePassthrough,
 		},
 
+		CustomizeDiff: resourceImagesImageV2UpdateComputedAttributes,
+
 		Timeouts: &schema.ResourceTimeout{
 			Create: schema.DefaultTimeout(30 * time.Minute),
 		},
@@ -41,21 +44,11 @@ func resourceImagesImageV2() *schema.Resource {
 				ForceNew: true,
 			},
 
-			"checksum": &schema.Schema{
-				Type:     schema.TypeString,
-				Computed: true,
-			},
-
 			"container_format": &schema.Schema{
 				Type:         schema.TypeString,
 				Required:     true,
 				ForceNew:     true,
 				ValidateFunc: resourceImagesImageV2ValidateContainerFormat,
-			},
-
-			"created_at": &schema.Schema{
-				Type:     schema.TypeString,
-				Computed: true,
 			},
 
 			"disk_format": &schema.Schema{
@@ -90,11 +83,6 @@ func resourceImagesImageV2() *schema.Resource {
 				ConflictsWith: []string{"image_source_url"},
 			},
 
-			"metadata": &schema.Schema{
-				Type:     schema.TypeMap,
-				Computed: true,
-			},
-
 			"min_disk_gb": &schema.Schema{
 				Type:         schema.TypeInt,
 				Optional:     true,
@@ -117,16 +105,61 @@ func resourceImagesImageV2() *schema.Resource {
 				ForceNew: false,
 			},
 
-			"owner": &schema.Schema{
-				Type:     schema.TypeString,
-				Computed: true,
-			},
-
 			"protected": &schema.Schema{
 				Type:     schema.TypeBool,
 				Optional: true,
 				ForceNew: true,
 				Default:  false,
+			},
+
+			"tags": &schema.Schema{
+				Type:     schema.TypeSet,
+				Optional: true,
+				Elem:     &schema.Schema{Type: schema.TypeString},
+				Set:      schema.HashString,
+			},
+
+			"verify_checksum": &schema.Schema{
+				Type:     schema.TypeBool,
+				Optional: true,
+				ForceNew: false,
+				Default:  true,
+			},
+
+			"visibility": &schema.Schema{
+				Type:         schema.TypeString,
+				Optional:     true,
+				ForceNew:     false,
+				ValidateFunc: resourceImagesImageV2ValidateVisibility,
+				Default:      "private",
+			},
+
+			"properties": &schema.Schema{
+				Type:     schema.TypeMap,
+				Optional: true,
+				Computed: true,
+				ForceNew: true,
+			},
+
+			// Computed-only
+			"checksum": &schema.Schema{
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+
+			"created_at": &schema.Schema{
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+
+			"metadata": &schema.Schema{
+				Type:     schema.TypeMap,
+				Computed: true,
+			},
+
+			"owner": &schema.Schema{
+				Type:     schema.TypeString,
+				Computed: true,
 			},
 
 			"schema": &schema.Schema{
@@ -144,24 +177,9 @@ func resourceImagesImageV2() *schema.Resource {
 				Computed: true,
 			},
 
-			"tags": &schema.Schema{
-				Type:     schema.TypeSet,
-				Optional: true,
-				Elem:     &schema.Schema{Type: schema.TypeString},
-				Set:      schema.HashString,
-			},
-
 			"update_at": &schema.Schema{
 				Type:     schema.TypeString,
 				Computed: true,
-			},
-
-			"visibility": &schema.Schema{
-				Type:         schema.TypeString,
-				Optional:     true,
-				ForceNew:     false,
-				ValidateFunc: resourceImagesImageV2ValidateVisibility,
-				Default:      "private",
 			},
 		},
 	}
@@ -176,6 +194,10 @@ func resourceImagesImageV2Create(d *schema.ResourceData, meta interface{}) error
 
 	protected := d.Get("protected").(bool)
 	visibility := resourceImagesImageV2VisibilityFromString(d.Get("visibility").(string))
+
+	properties := d.Get("properties").(map[string]interface{})
+	imageProperties := resourceImagesImageV2ExpandProperties(properties)
+
 	createOpts := &images.CreateOpts{
 		Name:            d.Get("name").(string),
 		ContainerFormat: d.Get("container_format").(string),
@@ -184,6 +206,7 @@ func resourceImagesImageV2Create(d *schema.ResourceData, meta interface{}) error
 		MinRAM:          d.Get("min_ram_mb").(int),
 		Protected:       &protected,
 		Visibility:      &visibility,
+		Properties:      imageProperties,
 	}
 
 	if v, ok := d.GetOk("tags"); ok {
@@ -229,7 +252,7 @@ func resourceImagesImageV2Create(d *schema.ResourceData, meta interface{}) error
 	stateConf := &resource.StateChangeConf{
 		Pending:    []string{string(images.ImageStatusQueued), string(images.ImageStatusSaving)},
 		Target:     []string{string(images.ImageStatusActive)},
-		Refresh:    resourceImagesImageV2RefreshFunc(imageClient, d.Id(), fileSize, fileChecksum),
+		Refresh:    resourceImagesImageV2RefreshFunc(imageClient, d.Id()),
 		Timeout:    d.Timeout(schema.TimeoutCreate),
 		Delay:      10 * time.Second,
 		MinTimeout: 3 * time.Second,
@@ -237,6 +260,16 @@ func resourceImagesImageV2Create(d *schema.ResourceData, meta interface{}) error
 
 	if _, err = stateConf.WaitForState(); err != nil {
 		return fmt.Errorf("Error waiting for Image: %s", err)
+	}
+
+	img, err := images.Get(imageClient, d.Id()).Extract()
+	if err != nil {
+		return CheckDeleted(d, err, "image")
+	}
+
+	verifyChecksum := d.Get("verify_checksum").(bool)
+	if img.Checksum != fileChecksum && verifyChecksum {
+		return fmt.Errorf("Error wrong checksum: got %q, expected %q", img.Checksum, fileChecksum)
 	}
 
 	d.Partial(false)
@@ -278,6 +311,11 @@ func resourceImagesImageV2Read(d *schema.ResourceData, meta interface{}) error {
 	d.Set("tags", img.Tags)
 	d.Set("visibility", img.Visibility)
 	d.Set("region", GetRegion(d, config))
+
+	properties := resourceImagesImageV2ExpandProperties(img.Properties)
+	if err := d.Set("properties", properties); err != nil {
+		log.Printf("[WARN] unable to set properties for image %s: %s", img.ID, err)
+	}
 
 	return nil
 }
@@ -358,7 +396,7 @@ func resourceImagesImageV2ValidateVisibility(v interface{}, k string) (ws []stri
 
 func validatePositiveInt(v interface{}, k string) (ws []string, errors []error) {
 	value := v.(int)
-	if value > 0 {
+	if value >= 0 {
 		return
 	}
 	errors = append(errors, fmt.Errorf("%q must be a positive integer", k))
@@ -378,7 +416,7 @@ func resourceImagesImageV2ValidateDiskFormat(v interface{}, k string) (ws []stri
 	return
 }
 
-var ContainerFormats = [9]string{"ami", "ari", "aki", "bare", "ovf"}
+var ContainerFormats = [9]string{"ami", "ari", "aki", "bare", "ovf", "ova"}
 
 func resourceImagesImageV2ValidateContainerFormat(v interface{}, k string) (ws []string, errors []error) {
 	value := v.(string)
@@ -389,6 +427,21 @@ func resourceImagesImageV2ValidateContainerFormat(v interface{}, k string) (ws [
 	}
 	errors = append(errors, fmt.Errorf("%q must be one of %v", k, ContainerFormats))
 	return
+}
+
+func resourceImagesImageV2MemberStatusFromString(v string) images.ImageMemberStatus {
+	switch v {
+	case "accepted":
+		return images.ImageMemberStatusAccepted
+	case "pending":
+		return images.ImageMemberStatusPending
+	case "rejected":
+		return images.ImageMemberStatusRejected
+	case "all":
+		return images.ImageMemberStatusAll
+	}
+
+	return ""
 }
 
 func resourceImagesImageV2VisibilityFromString(v string) images.ImageVisibility {
@@ -477,17 +530,13 @@ func resourceImagesImageV2File(d *schema.ResourceData) (string, error) {
 	}
 }
 
-func resourceImagesImageV2RefreshFunc(client *gophercloud.ServiceClient, id string, fileSize int64, checksum string) resource.StateRefreshFunc {
+func resourceImagesImageV2RefreshFunc(client *gophercloud.ServiceClient, id string) resource.StateRefreshFunc {
 	return func() (interface{}, string, error) {
 		img, err := images.Get(client, id).Extract()
 		if err != nil {
 			return nil, "", err
 		}
 		log.Printf("[DEBUG] OpenStack image status is: %s", img.Status)
-
-		if img.Checksum != checksum || int64(img.SizeBytes) != fileSize {
-			return img, fmt.Sprintf("%s", img.Status), fmt.Errorf("Error wrong size %v or checksum %q", img.SizeBytes, img.Checksum)
-		}
 
 		return img, fmt.Sprintf("%s", img.Status), nil
 	}
@@ -500,4 +549,72 @@ func resourceImagesImageV2BuildTags(v []interface{}) []string {
 	}
 
 	return tags
+}
+
+func resourceImagesImageV2ExpandProperties(v map[string]interface{}) map[string]string {
+	properties := map[string]string{}
+	for key, value := range v {
+		if v, ok := value.(string); ok {
+			properties[key] = v
+		}
+	}
+
+	return properties
+}
+
+func resourceImagesImageV2UpdateComputedAttributes(diff *schema.ResourceDiff, meta interface{}) error {
+	if diff.HasChange("properties") {
+		// Only check if the image has been created.
+		if diff.Id() != "" {
+			// Try to reconcile the properties set by the server
+			// with the properties set by the user.
+			//
+			// old = user properties + server properties
+			// new = user properties only
+			old, new := diff.GetChange("properties")
+
+			oldProperties := resourceImagesImageV2ExpandProperties(old.(map[string]interface{}))
+			newProperties := resourceImagesImageV2ExpandProperties(new.(map[string]interface{}))
+
+			// If there is a new property that is not part of the old properties,
+			// then the user has explicitly set a new property and we need to ForceNew
+			// since updating properties in images is not supported.
+			for newKey, newValue := range newProperties {
+				var found bool
+				for oldKey, oldValue := range oldProperties {
+					if newKey == oldKey && newValue == oldValue {
+						found = true
+					}
+				}
+
+				if !found {
+					log.Printf("[DEBUG] Triggering rebuild of image %s due to new user properties %#v => %#v",
+						diff.Id(), oldProperties, newProperties)
+
+					diff.ForceNew("properties")
+					return nil
+				}
+			}
+
+			// If the user did not change any properties, try to reconcile
+			// the properties that the server has set with the properties
+			// that the user set.
+			for oldKey, oldValue := range old.(map[string]interface{}) {
+				if strings.HasPrefix(oldKey, "os_") {
+					if v, ok := oldValue.(string); ok {
+						newProperties[oldKey] = v
+					}
+				}
+			}
+
+			// Set the diff to the newProperties, which includes the server-side
+			// os_ properties.
+			//
+			// If the user has removed properties, they will be caught at this
+			// point, too.
+			diff.SetNew("properties", newProperties)
+		}
+	}
+
+	return nil
 }

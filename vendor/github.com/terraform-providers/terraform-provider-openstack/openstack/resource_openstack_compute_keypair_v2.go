@@ -33,7 +33,16 @@ func resourceComputeKeypairV2() *schema.Resource {
 			"public_key": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
+				Computed: true,
 				ForceNew: true,
+			},
+			"private_key": &schema.Schema{
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+			"fingerprint": &schema.Schema{
+				Type:     schema.TypeString,
+				Computed: true,
 			},
 			"value_specs": &schema.Schema{
 				Type:     schema.TypeMap,
@@ -67,6 +76,9 @@ func resourceComputeKeypairV2Create(d *schema.ResourceData, meta interface{}) er
 
 	d.SetId(kp.Name)
 
+	// Private Key is only available in the response to a create.
+	d.Set("private_key", kp.PrivateKey)
+
 	return resourceComputeKeypairV2Read(d, meta)
 }
 
@@ -84,6 +96,7 @@ func resourceComputeKeypairV2Read(d *schema.ResourceData, meta interface{}) erro
 
 	d.Set("name", kp.Name)
 	d.Set("public_key", kp.PublicKey)
+	d.Set("fingerprint", kp.Fingerprint)
 	d.Set("region", GetRegion(d, config))
 
 	return nil

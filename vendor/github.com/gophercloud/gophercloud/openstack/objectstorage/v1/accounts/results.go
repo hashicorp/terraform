@@ -14,7 +14,8 @@ type UpdateResult struct {
 	gophercloud.HeaderResult
 }
 
-// UpdateHeader represents the headers returned in the response from an Update request.
+// UpdateHeader represents the headers returned in the response from an Update
+// request.
 type UpdateHeader struct {
 	ContentLength int64     `json:"-"`
 	ContentType   string    `json:"Content-Type"`
@@ -51,8 +52,8 @@ func (r *UpdateHeader) UnmarshalJSON(b []byte) error {
 	return err
 }
 
-// Extract will return a struct of headers returned from a call to Get. To obtain
-// a map of headers, call the ExtractHeader method on the GetResult.
+// Extract will return a struct of headers returned from a call to Get. To
+// obtain a map of headers, call the Extract method on the GetResult.
 func (r UpdateResult) Extract() (*UpdateHeader, error) {
 	var s *UpdateHeader
 	err := r.ExtractInto(&s)
@@ -141,15 +142,14 @@ type GetResult struct {
 	gophercloud.HeaderResult
 }
 
-// Extract will return a struct of headers returned from a call to Get. To obtain
-// a map of headers, call the ExtractHeader method on the GetResult.
+// Extract will return a struct of headers returned from a call to Get.
 func (r GetResult) Extract() (*GetHeader, error) {
 	var s *GetHeader
 	err := r.ExtractInto(&s)
 	return s, err
 }
 
-// ExtractMetadata is a function that takes a GetResult (of type *htts.Response)
+// ExtractMetadata is a function that takes a GetResult (of type *http.Response)
 // and returns the custom metatdata associated with the account.
 func (r GetResult) ExtractMetadata() (map[string]string, error) {
 	if r.Err != nil {
