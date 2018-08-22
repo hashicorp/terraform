@@ -3,6 +3,7 @@ package configschema
 import (
 	"testing"
 
+	"github.com/apparentlymart/go-dump/dump"
 	"github.com/davecgh/go-spew/spew"
 
 	"github.com/hashicorp/hcl2/hcl"
@@ -236,6 +237,95 @@ func TestBlockDecoderSpec(t *testing.T) {
 			}),
 			0,
 		},
+		"blocks with dynamically-typed attributes": {
+			&Block{
+				BlockTypes: map[string]*NestedBlock{
+					"single": {
+						Nesting: NestingSingle,
+						Block: Block{
+							Attributes: map[string]*Attribute{
+								"a": {
+									Type:     cty.DynamicPseudoType,
+									Optional: true,
+								},
+							},
+						},
+					},
+					"list": {
+						Nesting: NestingList,
+						Block: Block{
+							Attributes: map[string]*Attribute{
+								"a": {
+									Type:     cty.DynamicPseudoType,
+									Optional: true,
+								},
+							},
+						},
+					},
+					"map": {
+						Nesting: NestingMap,
+						Block: Block{
+							Attributes: map[string]*Attribute{
+								"a": {
+									Type:     cty.DynamicPseudoType,
+									Optional: true,
+								},
+							},
+						},
+					},
+				},
+			},
+			hcltest.MockBody(&hcl.BodyContent{
+				Blocks: hcl.Blocks{
+					&hcl.Block{
+						Type: "list",
+						Body: hcl.EmptyBody(),
+					},
+					&hcl.Block{
+						Type: "single",
+						Body: hcl.EmptyBody(),
+					},
+					&hcl.Block{
+						Type: "list",
+						Body: hcl.EmptyBody(),
+					},
+					&hcl.Block{
+						Type:        "map",
+						Labels:      []string{"foo"},
+						LabelRanges: []hcl.Range{hcl.Range{}},
+						Body:        hcl.EmptyBody(),
+					},
+					&hcl.Block{
+						Type:        "map",
+						Labels:      []string{"bar"},
+						LabelRanges: []hcl.Range{hcl.Range{}},
+						Body:        hcl.EmptyBody(),
+					},
+				},
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"single": cty.ObjectVal(map[string]cty.Value{
+					"a": cty.NullVal(cty.DynamicPseudoType),
+				}),
+				"list": cty.TupleVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"a": cty.NullVal(cty.DynamicPseudoType),
+					}),
+					cty.ObjectVal(map[string]cty.Value{
+						"a": cty.NullVal(cty.DynamicPseudoType),
+					}),
+				}),
+				"map": cty.ObjectVal(map[string]cty.Value{
+					"foo": cty.ObjectVal(map[string]cty.Value{
+						"a": cty.NullVal(cty.DynamicPseudoType),
+					}),
+					"bar": cty.ObjectVal(map[string]cty.Value{
+						"a": cty.NullVal(cty.DynamicPseudoType),
+					}),
+				}),
+			}),
+			0,
+		},
 		"too many list items": {
 			&Block{
 				BlockTypes: map[string]*NestedBlock{
@@ -294,7 +384,7 @@ func TestBlockDecoderSpec(t *testing.T) {
 
 			if !got.RawEquals(test.Want) {
 				t.Logf("[INFO] implied schema is %s", spew.Sdump(hcldec.ImpliedSchema(spec)))
-				t.Errorf("wrong result\ngot:  %#v\nwant: %#v", got, test.Want)
+				t.Errorf("wrong result\ngot:  %s\nwant: %s", dump.Value(got), dump.Value(test.Want))
 			}
 
 			// Double-check that we're producing consistent results for DecoderSpec
