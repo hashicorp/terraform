@@ -90,13 +90,6 @@ func ProposedNewObject(schema *configschema.Block, prior, config cty.Value) cty.
 			newV = ProposedNewObject(&blockType.Block, priorV, configV)
 
 		case configschema.NestingList:
-			if !configV.Type().IsTupleType() {
-				// Despite the name, we expect NestingList to produce a tuple
-				// type so that different elements may have dynamically-typed
-				// attributes that have a different actual type.
-				panic("configschema.NestingList value is not a tuple as expected")
-			}
-
 			// Nested blocks are correlated by index.
 			if l := configV.LengthInt(); l > 0 {
 				newVals := make([]cty.Value, 0, l)
@@ -113,45 +106,73 @@ func ProposedNewObject(schema *configschema.Block, prior, config cty.Value) cty.
 					newEV := ProposedNewObject(&blockType.Block, priorEV, configEV)
 					newVals = append(newVals, newEV)
 				}
-				// Although we call the nesting mode "list", we actually use
-				// tuple values so that elements might have different types
-				// in case of dynamically-typed attributes.
-				newV = cty.TupleVal(newVals)
+				// Despite the name, a NestingList might also be a tuple, if
+				// its nested schema contains dynamically-typed attributes.
+				if configV.Type().IsTupleType() {
+					newV = cty.TupleVal(newVals)
+				} else {
+					newV = cty.ListVal(newVals)
+				}
 			} else {
-				newV = cty.EmptyTupleVal
+				// Despite the name, a NestingList might also be a tuple, if
+				// its nested schema contains dynamically-typed attributes.
+				if configV.Type().IsTupleType() {
+					newV = cty.EmptyTupleVal
+				} else {
+					newV = cty.ListValEmpty(blockType.ImpliedType())
+				}
 			}
 
 		case configschema.NestingMap:
-			if !configV.Type().IsObjectType() {
-				// Despite the name, we expect NestingMap to produce an object
-				// type so that different elements may have dynamically-typed
-				// attributes that have a different actual type.
-				panic("configschema.NestingMap value is not an object as expected")
-			}
+			// Despite the name, a NestingMap may produce either a map or
+			// object value, depending on whether the nested schema contains
+			// dynamically-typed attributes.
+			if configV.Type().IsObjectType() {
+				// Nested blocks are correlated by key.
+				if l := configV.LengthInt(); l > 0 {
+					newVals := make(map[string]cty.Value, l)
+					atys := configV.Type().AttributeTypes()
+					for name := range atys {
+						configEV := configV.GetAttr(name)
+						if !priorV.Type().HasAttribute(name) {
+							// If there is no corresponding prior element then
+							// we just take the config value as-is.
+							newVals[name] = configEV
+							continue
+						}
+						priorEV := priorV.GetAttr(name)
 
-			// Nested blocks are correlated by key.
-			if l := configV.LengthInt(); l > 0 {
-				newVals := make(map[string]cty.Value, l)
-				atys := configV.Type().AttributeTypes()
-				for name := range atys {
-					configEV := configV.GetAttr(name)
-					if !priorV.Type().HasAttribute(name) {
-						// If there is no corresponding prior element then
-						// we just take the config value as-is.
-						newVals[name] = configEV
-						continue
+						newEV := ProposedNewObject(&blockType.Block, priorEV, configEV)
+						newVals[name] = newEV
 					}
-					priorEV := priorV.GetAttr(name)
-
-					newEV := ProposedNewObject(&blockType.Block, priorEV, configEV)
-					newVals[name] = newEV
+					// Although we call the nesting mode "map", we actually use
+					// object values so that elements might have different types
+					// in case of dynamically-typed attributes.
+					newV = cty.ObjectVal(newVals)
+				} else {
+					newV = cty.EmptyObjectVal
 				}
-				// Although we call the nesting mode "map", we actually use
-				// object values so that elements might have different types
-				// in case of dynamically-typed attributes.
-				newV = cty.ObjectVal(newVals)
 			} else {
-				newV = cty.EmptyObjectVal
+				if l := configV.LengthInt(); l > 0 {
+					newVals := make(map[string]cty.Value, l)
+					for it := configV.ElementIterator(); it.Next(); {
+						idx, configEV := it.Element()
+						k := idx.AsString()
+						if !priorV.HasIndex(idx).True() {
+							// If there is no corresponding prior element then
+							// we just take the config value as-is.
+							newVals[k] = configEV
+							continue
+						}
+						priorEV := priorV.Index(idx)
+
+						newEV := ProposedNewObject(&blockType.Block, priorEV, configEV)
+						newVals[k] = newEV
+					}
+					newV = cty.MapVal(newVals)
+				} else {
+					newV = cty.MapValEmpty(blockType.ImpliedType())
+				}
 			}
 
 		case configschema.NestingSet:
