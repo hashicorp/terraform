@@ -1,7 +1,10 @@
 package terraform
 
 import (
+	"fmt"
 	"sync"
+
+	"github.com/hashicorp/terraform/tfdiags"
 
 	"github.com/hashicorp/terraform/providers"
 )
@@ -16,8 +19,8 @@ type MockProvider struct {
 	// Anything you want, in case you need to store extra data with the mock.
 	Meta interface{}
 
-	GetSchemaCalled   bool
-	GetSchemaResponse providers.GetSchemaResponse
+	GetSchemaCalled bool
+	GetSchemaReturn *ProviderSchema // This is using ProviderSchema directly rather than providers.GetSchemaResponse for compatibility with old tests
 
 	ValidateProviderConfigCalled   bool
 	ValidateProviderConfigResponse providers.ValidateProviderConfigResponse
@@ -45,7 +48,7 @@ type MockProvider struct {
 	ConfigureCalled   bool
 	ConfigureResponse providers.ConfigureResponse
 	ConfigureRequest  providers.ConfigureRequest
-	ConfigureFn       func(providers.ConfigureRequest) providers.ConfigureResponse
+	ConfigureNewFn    func(providers.ConfigureRequest) providers.ConfigureResponse // Named ConfigureNewFn so we can still have the legacy ConfigureFn declared below
 
 	StopCalled   bool
 	StopFn       func() error
@@ -78,6 +81,15 @@ type MockProvider struct {
 
 	CloseCalled bool
 	CloseError  error
+
+	// Legacy callbacks: if these are set, we will shim incoming calls for
+	// new-style methods to these old-fashioned terraform.ResourceProvider
+	// mock callbacks, for the benefit of older tests that were written against
+	// the old mock API.
+	ValidateFn  func(c *ResourceConfig) (ws []string, es []error)
+	ConfigureFn func(c *ResourceConfig) error
+	DiffFn      func(info *InstanceInfo, s *InstanceState, c *ResourceConfig) (*InstanceDiff, error)
+	ApplyFn     func(info *InstanceInfo, s *InstanceState, d *InstanceDiff) (*InstanceState, error)
 }
 
 func (p *MockProvider) GetSchema() providers.GetSchemaResponse {
@@ -85,7 +97,24 @@ func (p *MockProvider) GetSchema() providers.GetSchemaResponse {
 	defer p.Unlock()
 
 	p.GetSchemaCalled = true
-	return p.GetSchemaResponse
+	ret := providers.GetSchemaResponse{
+		Provider: providers.Schema{
+			Block: p.GetSchemaReturn.Provider,
+		},
+		DataSources:   map[string]providers.Schema{},
+		ResourceTypes: map[string]providers.Schema{},
+	}
+	for n, s := range p.GetSchemaReturn.DataSources {
+		ret.DataSources[n] = providers.Schema{
+			Block: s,
+		}
+	}
+	for n, s := range p.GetSchemaReturn.ResourceTypes {
+		ret.ResourceTypes[n] = providers.Schema{
+			Block: s,
+		}
+	}
+	return ret
 }
 
 func (p *MockProvider) ValidateProviderConfig(r providers.ValidateProviderConfigRequest) providers.ValidateProviderConfigResponse {
@@ -107,6 +136,11 @@ func (p *MockProvider) ValidateResourceTypeConfig(r providers.ValidateResourceTy
 	p.ValidateResourceTypeConfigCalled = true
 	p.ValidateResourceTypeConfigRequest = r
 
+	if p.ValidateFn != nil {
+		return providers.ValidateResourceTypeConfigResponse{
+			Diagnostics: tfdiags.Diagnostics(nil).Append(fmt.Errorf("legacy ValidateFn handling in MockProvider not actually implemented yet")),
+		}
+	}
 	if p.ValidateResourceTypeConfigFn != nil {
 		return p.ValidateResourceTypeConfigFn(r)
 	}
@@ -150,7 +184,12 @@ func (p *MockProvider) Configure(r providers.ConfigureRequest) providers.Configu
 	p.ConfigureRequest = r
 
 	if p.ConfigureFn != nil {
-		return p.ConfigureFn(r)
+		return providers.ConfigureResponse{
+			Diagnostics: tfdiags.Diagnostics(nil).Append(fmt.Errorf("legacy ConfigureFn handling in MockProvider not actually implemented yet")),
+		}
+	}
+	if p.ConfigureNewFn != nil {
+		return p.ConfigureNewFn(r)
 	}
 
 	return p.ConfigureResponse
@@ -186,6 +225,11 @@ func (p *MockProvider) PlanResourceChange(r providers.PlanResourceChangeRequest)
 	p.PlanResourceChangeCalled = true
 	p.PlanResourceChangeRequest = r
 
+	if p.DiffFn != nil {
+		return providers.PlanResourceChangeResponse{
+			Diagnostics: tfdiags.Diagnostics(nil).Append(fmt.Errorf("legacy DiffFn handling in MockProvider not actually implemented yet")),
+		}
+	}
 	if p.PlanResourceChangeFn != nil {
 		return p.PlanResourceChangeFn(r)
 	}
@@ -199,6 +243,11 @@ func (p *MockProvider) ApplyResourceChange(r providers.ApplyResourceChangeReques
 	p.ApplyResourceChangeRequest = r
 	p.Unlock()
 
+	if p.DiffFn != nil {
+		return providers.ApplyResourceChangeResponse{
+			Diagnostics: tfdiags.Diagnostics(nil).Append(fmt.Errorf("legacy ApplyFn handling in MockProvider not actually implemented yet")),
+		}
+	}
 	if p.ApplyResourceChangeFn != nil {
 		return p.ApplyResourceChangeFn(r)
 	}

@@ -444,172 +444,176 @@ func ParallelTest(t TestT, c TestCase) {
 // long, we require the verbose flag so users are able to see progress
 // output.
 func Test(t TestT, c TestCase) {
-	// We only run acceptance tests if an env var is set because they're
-	// slow and generally require some outside configuration. You can opt out
-	// of this with OverrideEnvVar on individual TestCases.
-	if os.Getenv(TestEnvVar) == "" && !c.IsUnitTest {
-		t.Skip(fmt.Sprintf(
-			"Acceptance tests skipped unless env '%s' set",
-			TestEnvVar))
-		return
-	}
-
-	logWriter, err := LogOutput(t)
-	if err != nil {
-		t.Error(fmt.Errorf("error setting up logging: %s", err))
-	}
-	log.SetOutput(logWriter)
-
-	// We require verbose mode so that the user knows what is going on.
-	if !testTesting && !testing.Verbose() && !c.IsUnitTest {
-		t.Fatal("Acceptance tests must be run with the -v flag on tests")
-		return
-	}
-
-	// Run the PreCheck if we have it
-	if c.PreCheck != nil {
-		c.PreCheck()
-	}
-
-	providerResolver, err := testProviderResolver(c)
-	if err != nil {
-		t.Fatal(err)
-	}
-	opts := terraform.ContextOpts{ProviderResolver: providerResolver}
-
-	// A single state variable to track the lifecycle, starting with no state
-	var state *terraform.State
-
-	// Go through each step and run it
-	var idRefreshCheck *terraform.ResourceState
-	idRefresh := c.IDRefreshName != ""
-	errored := false
-	for i, step := range c.Steps {
-		var err error
-		log.Printf("[DEBUG] Test: Executing step %d", i)
-
-		if step.SkipFunc != nil {
-			skip, err := step.SkipFunc()
-			if err != nil {
-				t.Fatal(err)
-			}
-			if skip {
-				log.Printf("[WARN] Skipping step %d", i)
-				continue
-			}
+	t.Fatal("resource.Test is not yet updated for the new provider API")
+	return
+	/*
+		// We only run acceptance tests if an env var is set because they're
+		// slow and generally require some outside configuration. You can opt out
+		// of this with OverrideEnvVar on individual TestCases.
+		if os.Getenv(TestEnvVar) == "" && !c.IsUnitTest {
+			t.Skip(fmt.Sprintf(
+				"Acceptance tests skipped unless env '%s' set",
+				TestEnvVar))
+			return
 		}
 
-		if step.Config == "" && !step.ImportState {
-			err = fmt.Errorf(
-				"unknown test mode for step. Please see TestStep docs\n\n%#v",
-				step)
-		} else {
-			if step.ImportState {
-				if step.Config == "" {
-					step.Config = testProviderConfig(c)
-				}
-
-				// Can optionally set step.Config in addition to
-				// step.ImportState, to provide config for the import.
-				state, err = testStepImportState(opts, state, step)
-			} else {
-				state, err = testStepConfig(opts, state, step)
-			}
-		}
-
-		// If we expected an error, but did not get one, fail
-		if err == nil && step.ExpectError != nil {
-			errored = true
-			t.Error(fmt.Sprintf(
-				"Step %d, no error received, but expected a match to:\n\n%s\n\n",
-				i, step.ExpectError))
-			break
-		}
-
-		// If there was an error, exit
+		logWriter, err := LogOutput(t)
 		if err != nil {
-			// Perhaps we expected an error? Check if it matches
-			if step.ExpectError != nil {
-				if !step.ExpectError.MatchString(err.Error()) {
-					errored = true
-					t.Error(fmt.Sprintf(
-						"Step %d, expected error:\n\n%s\n\nTo match:\n\n%s\n\n",
-						i, err, step.ExpectError))
-					break
-				}
-			} else {
-				errored = true
-				t.Error(fmt.Sprintf(
-					"Step %d error: %s", i, err))
-				break
-			}
+			t.Error(fmt.Errorf("error setting up logging: %s", err))
+		}
+		log.SetOutput(logWriter)
+
+		// We require verbose mode so that the user knows what is going on.
+		if !testTesting && !testing.Verbose() && !c.IsUnitTest {
+			t.Fatal("Acceptance tests must be run with the -v flag on tests")
+			return
 		}
 
-		// If we've never checked an id-only refresh and our state isn't
-		// empty, find the first resource and test it.
-		if idRefresh && idRefreshCheck == nil && !state.Empty() {
-			// Find the first non-nil resource in the state
-			for _, m := range state.Modules {
-				if len(m.Resources) > 0 {
-					if v, ok := m.Resources[c.IDRefreshName]; ok {
-						idRefreshCheck = v
+		// Run the PreCheck if we have it
+		if c.PreCheck != nil {
+			c.PreCheck()
+		}
+
+		providerResolver, err := testProviderResolver(c)
+		if err != nil {
+			t.Fatal(err)
+		}
+		opts := terraform.ContextOpts{ProviderResolver: providerResolver}
+
+		// A single state variable to track the lifecycle, starting with no state
+		var state *terraform.State
+
+		// Go through each step and run it
+		var idRefreshCheck *terraform.ResourceState
+		idRefresh := c.IDRefreshName != ""
+		errored := false
+		for i, step := range c.Steps {
+			var err error
+			log.Printf("[DEBUG] Test: Executing step %d", i)
+
+			if step.SkipFunc != nil {
+				skip, err := step.SkipFunc()
+				if err != nil {
+					t.Fatal(err)
+				}
+				if skip {
+					log.Printf("[WARN] Skipping step %d", i)
+					continue
+				}
+			}
+
+			if step.Config == "" && !step.ImportState {
+				err = fmt.Errorf(
+					"unknown test mode for step. Please see TestStep docs\n\n%#v",
+					step)
+			} else {
+				if step.ImportState {
+					if step.Config == "" {
+						step.Config = testProviderConfig(c)
 					}
 
-					break
+					// Can optionally set step.Config in addition to
+					// step.ImportState, to provide config for the import.
+					state, err = testStepImportState(opts, state, step)
+				} else {
+					state, err = testStepConfig(opts, state, step)
 				}
 			}
 
-			// If we have an instance to check for refreshes, do it
-			// immediately. We do it in the middle of another test
-			// because it shouldn't affect the overall state (refresh
-			// is read-only semantically) and we want to fail early if
-			// this fails. If refresh isn't read-only, then this will have
-			// caught a different bug.
-			if idRefreshCheck != nil {
-				log.Printf(
-					"[WARN] Test: Running ID-only refresh check on %s",
-					idRefreshCheck.Primary.ID)
-				if err := testIDOnlyRefresh(c, opts, step, idRefreshCheck); err != nil {
-					log.Printf("[ERROR] Test: ID-only test failed: %s", err)
+			// If we expected an error, but did not get one, fail
+			if err == nil && step.ExpectError != nil {
+				errored = true
+				t.Error(fmt.Sprintf(
+					"Step %d, no error received, but expected a match to:\n\n%s\n\n",
+					i, step.ExpectError))
+				break
+			}
+
+			// If there was an error, exit
+			if err != nil {
+				// Perhaps we expected an error? Check if it matches
+				if step.ExpectError != nil {
+					if !step.ExpectError.MatchString(err.Error()) {
+						errored = true
+						t.Error(fmt.Sprintf(
+							"Step %d, expected error:\n\n%s\n\nTo match:\n\n%s\n\n",
+							i, err, step.ExpectError))
+						break
+					}
+				} else {
+					errored = true
 					t.Error(fmt.Sprintf(
-						"[ERROR] Test: ID-only test failed: %s", err))
+						"Step %d error: %s", i, err))
 					break
 				}
 			}
-		}
-	}
 
-	// If we never checked an id-only refresh, it is a failure.
-	if idRefresh {
-		if !errored && len(c.Steps) > 0 && idRefreshCheck == nil {
-			t.Error("ID-only refresh check never ran.")
-		}
-	}
+			// If we've never checked an id-only refresh and our state isn't
+			// empty, find the first resource and test it.
+			if idRefresh && idRefreshCheck == nil && !state.Empty() {
+				// Find the first non-nil resource in the state
+				for _, m := range state.Modules {
+					if len(m.Resources) > 0 {
+						if v, ok := m.Resources[c.IDRefreshName]; ok {
+							idRefreshCheck = v
+						}
 
-	// If we have a state, then run the destroy
-	if state != nil {
-		lastStep := c.Steps[len(c.Steps)-1]
-		destroyStep := TestStep{
-			Config:                    lastStep.Config,
-			Check:                     c.CheckDestroy,
-			Destroy:                   true,
-			PreventDiskCleanup:        lastStep.PreventDiskCleanup,
-			PreventPostDestroyRefresh: c.PreventPostDestroyRefresh,
+						break
+					}
+				}
+
+				// If we have an instance to check for refreshes, do it
+				// immediately. We do it in the middle of another test
+				// because it shouldn't affect the overall state (refresh
+				// is read-only semantically) and we want to fail early if
+				// this fails. If refresh isn't read-only, then this will have
+				// caught a different bug.
+				if idRefreshCheck != nil {
+					log.Printf(
+						"[WARN] Test: Running ID-only refresh check on %s",
+						idRefreshCheck.Primary.ID)
+					if err := testIDOnlyRefresh(c, opts, step, idRefreshCheck); err != nil {
+						log.Printf("[ERROR] Test: ID-only test failed: %s", err)
+						t.Error(fmt.Sprintf(
+							"[ERROR] Test: ID-only test failed: %s", err))
+						break
+					}
+				}
+			}
 		}
 
-		log.Printf("[WARN] Test: Executing destroy step")
-		state, err := testStep(opts, state, destroyStep)
-		if err != nil {
-			t.Error(fmt.Sprintf(
-				"Error destroying resource! WARNING: Dangling resources\n"+
-					"may exist. The full state and error is shown below.\n\n"+
-					"Error: %s\n\nState: %s",
-				err,
-				state))
+		// If we never checked an id-only refresh, it is a failure.
+		if idRefresh {
+			if !errored && len(c.Steps) > 0 && idRefreshCheck == nil {
+				t.Error("ID-only refresh check never ran.")
+			}
 		}
-	} else {
-		log.Printf("[WARN] Skipping destroy test since there is no state.")
-	}
+
+		// If we have a state, then run the destroy
+		if state != nil {
+			lastStep := c.Steps[len(c.Steps)-1]
+			destroyStep := TestStep{
+				Config:                    lastStep.Config,
+				Check:                     c.CheckDestroy,
+				Destroy:                   true,
+				PreventDiskCleanup:        lastStep.PreventDiskCleanup,
+				PreventPostDestroyRefresh: c.PreventPostDestroyRefresh,
+			}
+
+			log.Printf("[WARN] Test: Executing destroy step")
+			state, err := testStep(opts, state, destroyStep)
+			if err != nil {
+				t.Error(fmt.Sprintf(
+					"Error destroying resource! WARNING: Dangling resources\n"+
+						"may exist. The full state and error is shown below.\n\n"+
+						"Error: %s\n\nState: %s",
+					err,
+					state))
+			}
+		} else {
+			log.Printf("[WARN] Skipping destroy test since there is no state.")
+		}
+	*/
 }
 
 // testProviderConfig takes the list of Providers in a TestCase and returns a

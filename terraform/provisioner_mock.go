@@ -1,9 +1,11 @@
 package terraform
 
 import (
+	"fmt"
 	"sync"
 
 	"github.com/hashicorp/terraform/provisioners"
+	"github.com/hashicorp/terraform/tfdiags"
 )
 
 var _ provisioners.Interface = (*MockProvisioner)(nil)
@@ -35,6 +37,12 @@ type MockProvisioner struct {
 	CloseCalled   bool
 	CloseResponse error
 	CloseFn       func() error
+
+	// Legacy callbacks: if these are set, we will shim incoming calls for
+	// new-style methods to these old-fashioned terraform.ResourceProvider
+	// mock callbacks, for the benefit of older tests that were written against
+	// the old mock API.
+	ApplyFn func(rs *InstanceState, c *ResourceConfig) error
 }
 
 func (p *MockProvisioner) GetSchema() provisioners.GetSchemaResponse {
@@ -61,6 +69,11 @@ func (p *MockProvisioner) ProvisionResource(r provisioners.ProvisionResourceRequ
 	p.Lock()
 	p.ProvisionResourceCalled = true
 	p.ProvisionResourceRequest = r
+	if p.ApplyFn != nil {
+		return provisioners.ProvisionResourceResponse{
+			Diagnostics: tfdiags.Diagnostics(nil).Append(fmt.Errorf("legacy ApplyFn handling in MockProvisioner not actually implemented yet")),
+		}
+	}
 	if p.ProvisionResourceFn != nil {
 		fn := p.ProvisionResourceFn
 		p.Unlock()

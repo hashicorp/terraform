@@ -13,10 +13,14 @@ import (
 	"strings"
 
 	plugin "github.com/hashicorp/go-plugin"
+	"github.com/kardianos/osext"
+
+	terraformProvider "github.com/hashicorp/terraform/builtin/providers/terraform"
 	tfplugin "github.com/hashicorp/terraform/plugin"
 	"github.com/hashicorp/terraform/plugin/discovery"
+	"github.com/hashicorp/terraform/providers"
+	"github.com/hashicorp/terraform/provisioners"
 	"github.com/hashicorp/terraform/terraform"
-	"github.com/kardianos/osext"
 )
 
 // multiVersionProviderResolver is an implementation of
@@ -31,10 +35,10 @@ type multiVersionProviderResolver struct {
 	// (will produce an error if one is set). This should be used only in
 	// exceptional circumstances since it forces the provider's release
 	// schedule to be tied to that of Terraform Core.
-	Internal map[string]terraform.ResourceProviderFactory
+	Internal map[string]providers.Factory
 }
 
-func choosePlugins(avail discovery.PluginMetaSet, internal map[string]terraform.ResourceProviderFactory, reqd discovery.PluginRequirements) map[string]discovery.PluginMeta {
+func choosePlugins(avail discovery.PluginMetaSet, internal map[string]providers.Factory, reqd discovery.PluginRequirements) map[string]discovery.PluginMeta {
 	candidates := avail.ConstrainVersions(reqd)
 	ret := map[string]discovery.PluginMeta{}
 	for name, metas := range candidates {
@@ -54,8 +58,8 @@ func choosePlugins(avail discovery.PluginMetaSet, internal map[string]terraform.
 
 func (r *multiVersionProviderResolver) ResolveProviders(
 	reqd discovery.PluginRequirements,
-) (map[string]terraform.ResourceProviderFactory, []error) {
-	factories := make(map[string]terraform.ResourceProviderFactory, len(reqd))
+) (map[string]providers.Factory, []error) {
+	factories := make(map[string]providers.Factory, len(reqd))
 	var errs []error
 
 	chosen := choosePlugins(r.Available, r.Internal, reqd)
@@ -270,20 +274,18 @@ func (m *Meta) providerPluginManuallyInstalledSet() discovery.PluginMetaSet {
 	return plugins
 }
 
-func (m *Meta) providerResolver() terraform.ResourceProviderResolver {
+func (m *Meta) providerResolver() providers.Resolver {
 	return &multiVersionProviderResolver{
 		Available: m.providerPluginSet(),
 		Internal:  m.internalProviders(),
 	}
 }
 
-func (m *Meta) internalProviders() map[string]terraform.ResourceProviderFactory {
-	return map[string]terraform.ResourceProviderFactory{
-		// FIXME: Re-enable this once the internal provider system is updated
-		// for the new provider interface.
-		//"terraform": func() (terraform.ResourceProvider, error) {
-		//	return terraformProvider.Provider(), nil
-		//},
+func (m *Meta) internalProviders() map[string]providers.Factory {
+	return map[string]providers.Factory{
+		"terraform": func() (providers.Interface, error) {
+			return terraformProvider.NewProvider(), nil
+		},
 	}
 }
 
@@ -309,7 +311,7 @@ func (m *Meta) missingPlugins(avail discovery.PluginMetaSet, reqd discovery.Plug
 	return missing
 }
 
-func (m *Meta) provisionerFactories() map[string]terraform.ResourceProvisionerFactory {
+func (m *Meta) provisionerFactories() map[string]terraform.ProvisionerFactory {
 	dirs := m.pluginDirs(true)
 	plugins := discovery.FindPlugins("provisioner", dirs)
 	plugins, _ = plugins.ValidateVersions()
@@ -320,7 +322,7 @@ func (m *Meta) provisionerFactories() map[string]terraform.ResourceProvisionerFa
 	// name here, even though the discovery interface forces us to pretend
 	// that might not be true.
 
-	factories := make(map[string]terraform.ResourceProvisionerFactory)
+	factories := make(map[string]terraform.ProvisionerFactory)
 
 	// Wire up the internal provisioners first. These might be overridden
 	// by discovered provisioners below.
@@ -357,17 +359,18 @@ func internalPluginClient(kind, name string) (*plugin.Client, error) {
 	cmdArgv := strings.Split(cmdLine, TFSPACE)
 
 	cfg := &plugin.ClientConfig{
-		Cmd:             exec.Command(cmdArgv[0], cmdArgv[1:]...),
-		HandshakeConfig: tfplugin.Handshake,
-		Managed:         true,
-		Plugins:         tfplugin.PluginMap,
+		Cmd:              exec.Command(cmdArgv[0], cmdArgv[1:]...),
+		HandshakeConfig:  tfplugin.Handshake,
+		Managed:          true,
+		VersionedPlugins: tfplugin.VersionedPlugins,
+		AllowedProtocols: []plugin.Protocol{plugin.ProtocolGRPC},
 	}
 
 	return plugin.NewClient(cfg), nil
 }
 
-func providerFactory(client *plugin.Client) terraform.ResourceProviderFactory {
-	return func() (terraform.ResourceProvider, error) {
+func providerFactory(client *plugin.Client) providers.Factory {
+	return func() (providers.Interface, error) {
 		// Request the RPC client so we can get the provider
 		// so we can build the actual RPC-implemented provider.
 		rpcClient, err := client.Client()
@@ -380,12 +383,12 @@ func providerFactory(client *plugin.Client) terraform.ResourceProviderFactory {
 			return nil, err
 		}
 
-		return raw.(terraform.ResourceProvider), nil
+		return raw.(providers.Interface), nil
 	}
 }
 
-func provisionerFactory(client *plugin.Client) terraform.ResourceProvisionerFactory {
-	return func() (terraform.ResourceProvisioner, error) {
+func provisionerFactory(client *plugin.Client) terraform.ProvisionerFactory {
+	return func() (provisioners.Interface, error) {
 		// Request the RPC client so we can get the provisioner
 		// so we can build the actual RPC-implemented provisioner.
 		rpcClient, err := client.Client()
@@ -398,6 +401,6 @@ func provisionerFactory(client *plugin.Client) terraform.ResourceProvisionerFact
 			return nil, err
 		}
 
-		return raw.(terraform.ResourceProvisioner), nil
+		return raw.(provisioners.Interface), nil
 	}
 }

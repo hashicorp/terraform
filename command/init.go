@@ -422,8 +422,7 @@ func (c *InitCommand) getProviders(path string, state *states.State, upgrade boo
 
 	if c.getPlugins {
 		if len(missing) > 0 {
-			c.Ui.Output(fmt.Sprintf("- Checking for available provider plugins on %s...",
-				discovery.GetReleaseHost()))
+			c.Ui.Output("- Checking for available provider plugins...")
 		}
 
 		for provider, reqd := range missing {

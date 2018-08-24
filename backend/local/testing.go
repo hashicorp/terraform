@@ -51,34 +51,38 @@ func TestLocal(t *testing.T) (*Local, func()) {
 // TestLocalProvider modifies the ContextOpts of the *Local parameter to
 // have a provider with the given name.
 func TestLocalProvider(t *testing.T, b *Local, name string, schema *terraform.ProviderSchema) *terraform.MockResourceProvider {
-	// Build a mock resource provider for in-memory operations
-	p := new(terraform.MockResourceProvider)
-	p.GetSchemaReturn = schema
-	p.DiffReturn = &terraform.InstanceDiff{}
-	p.RefreshFn = func(
-		info *terraform.InstanceInfo,
-		s *terraform.InstanceState) (*terraform.InstanceState, error) {
-		return s, nil
-	}
-	p.ResourcesReturn = []terraform.ResourceType{
-		terraform.ResourceType{
-			Name: "test_instance",
-		},
-	}
+	t.Fatalf("TestLocalProvider is not yet updated to use the new provider types")
+	return nil
+	/*
+		// Build a mock resource provider for in-memory operations
+		p := new(terraform.MockResourceProvider)
+		p.GetSchemaReturn = schema
+		p.DiffReturn = &terraform.InstanceDiff{}
+		p.RefreshFn = func(
+			info *terraform.InstanceInfo,
+			s *terraform.InstanceState) (*terraform.InstanceState, error) {
+			return s, nil
+		}
+		p.ResourcesReturn = []terraform.ResourceType{
+			terraform.ResourceType{
+				Name: "test_instance",
+			},
+		}
 
-	// Initialize the opts
-	if b.ContextOpts == nil {
-		b.ContextOpts = &terraform.ContextOpts{}
-	}
+		// Initialize the opts
+		if b.ContextOpts == nil {
+			b.ContextOpts = &terraform.ContextOpts{}
+		}
 
-	// Setup our provider
-	b.ContextOpts.ProviderResolver = terraform.ResourceProviderResolverFixed(
-		map[string]terraform.ResourceProviderFactory{
-			name: terraform.ResourceProviderFactoryFixed(p),
-		},
-	)
+		// Setup our provider
+		b.ContextOpts.ProviderResolver = providers.ResolverFixed(
+			map[string]providers.Factory{
+				name: providers.FactoryFixed(p),
+			},
+		)
 
-	return p
+		return p
+	*/
 }
 
 // TestNewLocalSingle is a factory for creating a TestLocalSingleState.
