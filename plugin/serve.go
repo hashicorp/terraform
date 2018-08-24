@@ -60,10 +60,10 @@ func Serve(opts *ServeOpts) {
 		}
 	}
 	if opts.GRPCProvisionerFunc == nil && opts.ProvisionerFunc != nil {
-		provider := grpcplugin.NewGRPCProvisionerServerShim(opts.ProvisionerFunc())
-		if provider != nil {
+		provisioner := grpcplugin.NewGRPCProvisionerServerShim(opts.ProvisionerFunc())
+		if provisioner != nil {
 			opts.GRPCProvisionerFunc = func() proto.ProvisionerServer {
-				return provider
+				return provisioner
 			}
 		}
 	}
@@ -77,7 +77,7 @@ func Serve(opts *ServeOpts) {
 
 // pluginMap returns the legacy map[string]plugin.Plugin to use for configuring
 // a plugin server or client.
-func pluginMap(opts *ServeOpts) map[string]plugin.Plugin {
+func legacyPluginMap(opts *ServeOpts) map[string]plugin.Plugin {
 	return map[string]plugin.Plugin{
 		"provider": &ResourceProviderPlugin{
 			ResourceProvider: opts.ProviderFunc,
@@ -93,18 +93,21 @@ func pluginSet(opts *ServeOpts) map[int]plugin.PluginSet {
 	// The oldest version is returned in when executed by a legacy go-plugin
 	// client.
 	plugins := map[int]plugin.PluginSet{
-		4: pluginMap(opts),
+		4: legacyPluginMap(opts),
 	}
 
 	// add the new protocol versions if they're configured
 	if opts.GRPCProviderFunc != nil || opts.GRPCProvisionerFunc != nil {
-		plugins[5] = plugin.PluginSet{
-			"provider": &GRPCProviderPlugin{
+		plugins[5] = plugin.PluginSet{}
+		if opts.GRPCProviderFunc != nil {
+			plugins[5]["provider"] = &GRPCProviderPlugin{
 				GRPCProvider: opts.GRPCProviderFunc,
-			},
-			"provisioner": &GRPCProvisionerPlugin{
+			}
+		}
+		if opts.GRPCProvisionerFunc != nil {
+			plugins[5]["provisioner"] = &GRPCProvisionerPlugin{
 				GRPCProvisioner: opts.GRPCProvisionerFunc,
-			},
+			}
 		}
 	}
 	return plugins
