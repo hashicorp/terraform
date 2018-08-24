@@ -77,6 +77,9 @@ func (b *Local) context(op *backend.Operation) (*terraform.Context, *configload.
 		tfCtx, configSnap, ctxDiags = b.contextDirect(op, opts)
 	}
 	diags = diags.Append(ctxDiags)
+	if diags.HasErrors() {
+		return nil, nil, nil, diags
+	}
 
 	// If we have an operation, then we automatically do the input/validate
 	// here since every option requires this.
