@@ -8,9 +8,6 @@ description: |-
 
 # terraform enterprise
 
--> **Deprecated** Please use the new enhanced [remote](/docs/backends/types/remote.html)
-backend for storing state and running remote operations in Terraform Enterprise.
-
 **Kind: Standard (with no locking)**
 
 Reads and writes state from a [Terraform Enterprise](/docs/enterprise/index.html)
