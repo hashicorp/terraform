@@ -2,6 +2,7 @@ package terraform
 
 import (
 	"fmt"
+	"log"
 
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/providers"
@@ -15,57 +16,56 @@ import (
 type EvalImportState struct {
 	Addr     addrs.ResourceInstance
 	Provider *providers.Interface
-	Id       string
-	Output   *[]*states.ImportedObject
+	ID       string
+	Output   *[]providers.ImportedResource
 }
 
 // TODO: test
 func (n *EvalImportState) Eval(ctx EvalContext) (interface{}, error) {
-	return nil, fmt.Errorf("EvalImportState not yet updated for new state/provider types")
-	/*
-		absAddr := n.Addr.Absolute(ctx.Path())
-		provider := *n.Provider
+	absAddr := n.Addr.Absolute(ctx.Path())
+	provider := *n.Provider
+	var diags tfdiags.Diagnostics
 
-		{
-			// Call pre-import hook
-			err := ctx.Hook(func(h Hook) (HookAction, error) {
-				return h.PreImportState(absAddr, n.Id)
-			})
-			if err != nil {
-				return nil, err
-			}
-		}
-
-		// Import!
-		state, err := provider.ImportState(n.Info, n.Id)
+	{
+		// Call pre-import hook
+		err := ctx.Hook(func(h Hook) (HookAction, error) {
+			return h.PreImportState(absAddr, n.ID)
+		})
 		if err != nil {
-			return nil, fmt.Errorf("import %s (id: %s): %s", absAddr.String(), n.Id, err)
+			return nil, err
 		}
+	}
 
-		for _, s := range state {
-			if s == nil {
-				log.Printf("[TRACE] EvalImportState: import %s %q produced a nil state", absAddr.String(), n.Id)
-				continue
-			}
-			log.Printf("[TRACE] EvalImportState: import %s %q produced state for %s with id %q", absAddr.String(), n.Id, s.Ephemeral.Type, s.ID)
+	resp := provider.ImportResourceState(providers.ImportResourceStateRequest{
+		TypeName: n.Addr.Resource.Type,
+		ID:       n.ID,
+	})
+	diags = diags.Append(resp.Diagnostics)
+	if diags.HasErrors() {
+		return nil, diags.Err()
+	}
+
+	imported := resp.ImportedResources
+
+	for _, obj := range imported {
+		log.Printf("[TRACE] EvalImportState: import %s %q produced instance object of type %s", absAddr.String(), n.ID, obj.TypeName)
+	}
+
+	if n.Output != nil {
+		*n.Output = imported
+	}
+
+	{
+		// Call post-import hook
+		err := ctx.Hook(func(h Hook) (HookAction, error) {
+			return h.PostImportState(absAddr, imported)
+		})
+		if err != nil {
+			return nil, err
 		}
+	}
 
-		if n.Output != nil {
-			*n.Output = state
-		}
-
-		{
-			// Call post-import hook
-			err := ctx.Hook(func(h Hook) (HookAction, error) {
-				return h.PostImportState(n.Info, state)
-			})
-			if err != nil {
-				return nil, err
-			}
-		}
-
-		return nil, nil
-	*/
+	return nil, nil
 }
 
 // EvalImportStateVerify verifies the state after ImportState and

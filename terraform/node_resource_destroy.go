@@ -265,6 +265,7 @@ func (n *NodeDestroyResourceInstance) EvalTree() EvalNode {
 					},
 					Else: &EvalApply{
 						Addr:     addr.Resource,
+						Config:   nil, // No configuration because we are destroying
 						State:    &state,
 						Change:   &changeApply,
 						Provider: &provider,

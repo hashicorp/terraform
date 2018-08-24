@@ -3,10 +3,8 @@ package terraform
 import (
 	"fmt"
 
-	"github.com/hashicorp/terraform/providers"
-	"github.com/hashicorp/terraform/states"
-
 	"github.com/hashicorp/terraform/addrs"
+	"github.com/hashicorp/terraform/providers"
 	"github.com/hashicorp/terraform/tfdiags"
 )
 
@@ -34,7 +32,7 @@ type graphNodeImportState struct {
 	ProviderAddr     addrs.AbsProviderConfig   // Provider address given by the user, or implied by the resource type
 	ResolvedProvider addrs.AbsProviderConfig   // provider node address after resolution
 
-	states []*states.ImportedObject
+	states []providers.ImportedResource
 }
 
 var (
@@ -85,7 +83,7 @@ func (n *graphNodeImportState) EvalTree() EvalNode {
 			&EvalImportState{
 				Addr:     n.Addr.Resource,
 				Provider: &provider,
-				Id:       n.ID,
+				ID:       n.ID,
 				Output:   &n.states,
 			},
 		},
@@ -112,7 +110,7 @@ func (n *graphNodeImportState) DynamicExpand(ctx EvalContext) (*Graph, error) {
 	addrs := make([]addrs.AbsResourceInstance, len(n.states))
 	for i, state := range n.states {
 		addr := n.Addr
-		if t := state.ResourceType; t != "" {
+		if t := state.TypeName; t != "" {
 			addr.Resource.Resource.Type = t
 		}
 
@@ -174,7 +172,7 @@ func (n *graphNodeImportState) DynamicExpand(ctx EvalContext) (*Graph, error) {
 // and adding a resource to the state once it is imported.
 type graphNodeImportStateSub struct {
 	TargetAddr       addrs.AbsResourceInstance
-	State            *states.ImportedObject
+	State            providers.ImportedResource
 	ResolvedProvider addrs.AbsProviderConfig
 }
 
@@ -194,7 +192,7 @@ func (n *graphNodeImportStateSub) Path() addrs.ModuleInstance {
 // GraphNodeEvalable impl.
 func (n *graphNodeImportStateSub) EvalTree() EvalNode {
 	// If the Ephemeral type isn't set, then it is an error
-	if n.State.ResourceType == "" {
+	if n.State.TypeName == "" {
 		err := fmt.Errorf("import of %s didn't set type", n.TargetAddr.String())
 		return &EvalReturnError{Error: &err}
 	}
@@ -211,10 +209,12 @@ func (n *graphNodeImportStateSub) EvalTree() EvalNode {
 				Schema: &providerSchema,
 			},
 			&EvalRefresh{
-				Addr:     n.TargetAddr.Resource,
-				Provider: &provider,
-				State:    &state,
-				Output:   &state,
+				Addr:           n.TargetAddr.Resource,
+				ProviderAddr:   n.ResolvedProvider,
+				Provider:       &provider,
+				ProviderSchema: &providerSchema,
+				State:          &state,
+				Output:         &state,
 			},
 			&EvalImportStateVerify{
 				Addr:  n.TargetAddr.Resource,

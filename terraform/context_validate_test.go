@@ -162,7 +162,7 @@ func TestContext2Validate_computedVar(t *testing.T) {
 		return nil, c.CheckSet([]string{"value"})
 	}
 
-	p.ConfigureFn = func(providers.ConfigRequest) error {
+	p.ConfigureFn = func(c *ResourceConfig) error {
 		return fmt.Errorf("Configure should not be called for provider")
 	}
 

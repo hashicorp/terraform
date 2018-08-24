@@ -178,26 +178,22 @@ func (u *Upgrader) analyze(ms ModuleSources) (*analysis, error) {
 			return nil, fmt.Errorf("failed to load provider %q: %s", name, err)
 		}
 
-		// The current GetSchema interface is non-ideal. We're going to make
-		// this much simpler in the new interface, but we'll need to shim
-		// it for now.
-		resourceTypes := provider.Resources()
-		dataSources := provider.DataSources()
-		var resourceTypeNames, dataSourceNames []string
-		for _, t := range resourceTypes {
-			resourceTypeNames = append(resourceTypeNames, t.Name)
-		}
-		for _, t := range dataSources {
-			dataSourceNames = append(dataSourceNames, t.Name)
-		}
-		schema, err := provider.GetSchema(&terraform.ProviderSchemaRequest{
-			DataSources:   dataSourceNames,
-			ResourceTypes: resourceTypeNames,
-		})
-		if err != nil {
-			return nil, fmt.Errorf("failed to get schema from provider %q: %s", name, err)
+		resp := provider.GetSchema()
+		if resp.Diagnostics.HasErrors() {
+			return nil, resp.Diagnostics.Err()
 		}
 
+		schema := &terraform.ProviderSchema{
+			Provider:      resp.Provider.Block,
+			ResourceTypes: map[string]*configschema.Block{},
+			DataSources:   map[string]*configschema.Block{},
+		}
+		for t, s := range resp.ResourceTypes {
+			schema.ResourceTypes[t] = s.Block
+		}
+		for t, s := range resp.DataSources {
+			schema.DataSources[t] = s.Block
+		}
 		ret.ProviderSchemas[name] = schema
 	}
 

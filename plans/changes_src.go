@@ -34,6 +34,14 @@ type ResourceInstanceChangeSrc struct {
 	// ChangeSrc is an embedded description of the not-yet-decoded change.
 	ChangeSrc
 
+	// RequiredReplace is a set of paths that caused the change action to be
+	// Replace rather than Update. Always nil if the change action is not
+	// Replace.
+	//
+	// This is retained only for UI-plan-rendering purposes and so it does not
+	// currently survive a round-trip through a saved plan file.
+	RequiredReplace []cty.Path
+
 	// Private allows a provider to stash any extra data that is opaque to
 	// Terraform that relates to this change. Terraform will save this
 	// byte-for-byte and return it to the provider in the apply call.
@@ -49,11 +57,12 @@ func (rcs *ResourceInstanceChangeSrc) Decode(ty cty.Type) (*ResourceInstanceChan
 		return nil, err
 	}
 	return &ResourceInstanceChange{
-		Addr:         rcs.Addr,
-		DeposedKey:   rcs.DeposedKey,
-		ProviderAddr: rcs.ProviderAddr,
-		Change:       *change,
-		Private:      rcs.Private,
+		Addr:            rcs.Addr,
+		DeposedKey:      rcs.DeposedKey,
+		ProviderAddr:    rcs.ProviderAddr,
+		Change:          *change,
+		RequiredReplace: rcs.RequiredReplace,
+		Private:         rcs.Private,
 	}, nil
 }
 

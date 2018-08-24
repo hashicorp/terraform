@@ -194,10 +194,12 @@ func (n *NodeRefreshableManagedResourceInstance) evalTreeManagedResource() EvalN
 			},
 
 			&EvalRefresh{
-				Addr:     addr.Resource,
-				Provider: &provider,
-				State:    &state,
-				Output:   &state,
+				Addr:           addr.Resource,
+				ProviderAddr:   n.ResolvedProvider,
+				Provider:       &provider,
+				ProviderSchema: &providerSchema,
+				State:          &state,
+				Output:         &state,
 			},
 
 			&EvalWriteState{
@@ -255,6 +257,7 @@ func (n *NodeRefreshableManagedResourceInstance) evalTreeManagedResourceNoState(
 				Addr:           addr.Resource,
 				Config:         n.Config,
 				Provider:       &provider,
+				ProviderAddr:   n.ResolvedProvider,
 				ProviderSchema: &providerSchema,
 				State:          &state,
 				OutputChange:   &change,

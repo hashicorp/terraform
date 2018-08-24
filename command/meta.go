@@ -24,6 +24,8 @@ import (
 	"github.com/hashicorp/terraform/configs/configload"
 	"github.com/hashicorp/terraform/helper/experiment"
 	"github.com/hashicorp/terraform/helper/wrappedstreams"
+	"github.com/hashicorp/terraform/providers"
+	"github.com/hashicorp/terraform/svchost/auth"
 	"github.com/hashicorp/terraform/svchost/disco"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/hashicorp/terraform/tfdiags"
@@ -168,8 +170,8 @@ type PluginOverrides struct {
 }
 
 type testingOverrides struct {
-	ProviderResolver terraform.ResourceProviderResolver
-	Provisioners     map[string]terraform.ResourceProvisionerFactory
+	ProviderResolver providers.Resolver
+	Provisioners     map[string]terraform.ProvisionerFactory
 }
 
 // initStatePaths is used to initialize the default values for

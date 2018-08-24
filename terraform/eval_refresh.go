@@ -7,15 +7,18 @@ import (
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/providers"
 	"github.com/hashicorp/terraform/states"
+	"github.com/hashicorp/terraform/tfdiags"
 )
 
 // EvalRefresh is an EvalNode implementation that does a refresh for
 // a resource.
 type EvalRefresh struct {
-	Addr     addrs.ResourceInstance
-	Provider *providers.Interface
-	State    **states.ResourceInstanceObject
-	Output   **states.ResourceInstanceObject
+	Addr           addrs.ResourceInstance
+	ProviderAddr   addrs.AbsProviderConfig
+	Provider       *providers.Interface
+	ProviderSchema **ProviderSchema
+	State          **states.ResourceInstanceObject
+	Output         **states.ResourceInstanceObject
 }
 
 // TODO: test
@@ -23,10 +26,18 @@ func (n *EvalRefresh) Eval(ctx EvalContext) (interface{}, error) {
 	state := *n.State
 	absAddr := n.Addr.Absolute(ctx.Path())
 
+	var diags tfdiags.Diagnostics
+
 	// If we have no state, we don't do any refreshing
 	if state == nil {
 		log.Printf("[DEBUG] refresh: %s: no state, so not refreshing", n.Addr.Absolute(ctx.Path()))
-		return nil, nil
+		return nil, diags.ErrWithWarnings()
+	}
+
+	schema := (*n.ProviderSchema).ResourceTypes[n.Addr.Resource.Type]
+	if schema == nil {
+		// Should be caught during validation, so we don't bother with a pretty error here
+		return nil, fmt.Errorf("provider does not support resource type %q", n.Addr.Resource.Type)
 	}
 
 	// Call pre-refresh hook
@@ -34,7 +45,7 @@ func (n *EvalRefresh) Eval(ctx EvalContext) (interface{}, error) {
 		return h.PreRefresh(absAddr, states.CurrentGen, state.Value)
 	})
 	if err != nil {
-		return nil, err
+		return nil, diags.ErrWithWarnings()
 	}
 
 	// Refresh!
@@ -46,8 +57,23 @@ func (n *EvalRefresh) Eval(ctx EvalContext) (interface{}, error) {
 
 	provider := *n.Provider
 	resp := provider.ReadResource(req)
-	if resp.Diagnostics.HasErrors() {
-		return nil, fmt.Errorf("%s: %s", n.Addr.Absolute(ctx.Path()), resp.Diagnostics.Err())
+	diags = diags.Append(resp.Diagnostics)
+	if diags.HasErrors() {
+		return nil, diags.Err()
+	}
+
+	for _, err := range schema.ImpliedType().TestConformance(resp.NewState.Type()) {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Provider produced invalid object",
+			fmt.Sprintf(
+				"Provider %q planned an invalid value for %s%s during refresh.\n\nThis is a bug in the provider, which should be reported in the provider's own issue tracker.",
+				n.ProviderAddr.ProviderConfig.Type, absAddr, tfdiags.FormatError(err),
+			),
+		))
+	}
+	if diags.HasErrors() {
+		return nil, diags.Err()
 	}
 
 	state.Value = resp.NewState
@@ -64,5 +90,5 @@ func (n *EvalRefresh) Eval(ctx EvalContext) (interface{}, error) {
 		*n.Output = state
 	}
 
-	return nil, nil
+	return nil, diags.ErrWithWarnings()
 }

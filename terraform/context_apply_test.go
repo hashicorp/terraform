@@ -2438,8 +2438,8 @@ func TestContext2Apply_provisionerInterpCount(t *testing.T) {
 	}
 
 	// Verify apply was invoked
-	if !pr.ApplyCalled {
-		t.Fatalf("provisioner was not applied")
+	if !pr.ProvisionResourceCalled {
+		t.Fatalf("provisioner was not called")
 	}
 }
 
@@ -4308,7 +4308,7 @@ func TestContext2Apply_provisionerModule(t *testing.T) {
 	}
 
 	// Verify apply was invoked
-	if !pr.ApplyCalled {
+	if !pr.ProvisionResourceCalled {
 		t.Fatalf("provisioner not invoked")
 	}
 }
@@ -4361,7 +4361,7 @@ func TestContext2Apply_Provisioner_compute(t *testing.T) {
 	}
 
 	// Verify apply was invoked
-	if !pr.ApplyCalled {
+	if !pr.ProvisionResourceCalled {
 		t.Fatalf("provisioner not invoked")
 	}
 }
@@ -4839,7 +4839,7 @@ aws_instance.foo:
   `)
 
 	// Verify apply was invoked
-	if !pr.ApplyCalled {
+	if !pr.ProvisionResourceCalled {
 		t.Fatalf("provisioner not invoked")
 	}
 }
@@ -4943,7 +4943,7 @@ func TestContext2Apply_provisionerDestroy(t *testing.T) {
 	checkStateString(t, state, `<no state>`)
 
 	// Verify apply was invoked
-	if !pr.ApplyCalled {
+	if !pr.ProvisionResourceCalled {
 		t.Fatalf("provisioner not invoked")
 	}
 }
@@ -5004,7 +5004,7 @@ aws_instance.foo:
 	`)
 
 	// Verify apply was invoked
-	if !pr.ApplyCalled {
+	if !pr.ProvisionResourceCalled {
 		t.Fatalf("provisioner not invoked")
 	}
 }
@@ -5074,7 +5074,7 @@ func TestContext2Apply_provisionerDestroyFailContinue(t *testing.T) {
 	checkStateString(t, state, `<no state>`)
 
 	// Verify apply was invoked
-	if !pr.ApplyCalled {
+	if !pr.ProvisionResourceCalled {
 		t.Fatalf("provisioner not invoked")
 	}
 
@@ -5153,7 +5153,7 @@ aws_instance.foo:
   `)
 
 	// Verify apply was invoked
-	if !pr.ApplyCalled {
+	if !pr.ProvisionResourceCalled {
 		t.Fatalf("provisioner not invoked")
 	}
 
@@ -5235,7 +5235,7 @@ aws_instance.foo:
 	`)
 
 	// Verify apply was invoked
-	if !pr.ApplyCalled {
+	if !pr.ProvisionResourceCalled {
 		t.Fatalf("provisioner not invoked")
 	}
 
@@ -5303,7 +5303,7 @@ module.child:
   <no state>`)
 
 	// Verify apply was invoked
-	if !pr.ApplyCalled {
+	if !pr.ProvisionResourceCalled {
 		t.Fatalf("provisioner not invoked")
 	}
 }
@@ -5377,7 +5377,7 @@ func TestContext2Apply_provisionerDestroyRef(t *testing.T) {
 	checkStateString(t, state, `<no state>`)
 
 	// Verify apply was invoked
-	if !pr.ApplyCalled {
+	if !pr.ProvisionResourceCalled {
 		t.Fatalf("provisioner not invoked")
 	}
 }
@@ -5483,7 +5483,7 @@ func TestContext2Apply_provisionerResourceRef(t *testing.T) {
 	}
 
 	// Verify apply was invoked
-	if !pr.ApplyCalled {
+	if !pr.ProvisionResourceCalled {
 		t.Fatalf("provisioner not invoked")
 	}
 }
@@ -5531,7 +5531,7 @@ func TestContext2Apply_provisionerSelfRef(t *testing.T) {
 	}
 
 	// Verify apply was invoked
-	if !pr.ApplyCalled {
+	if !pr.ProvisionResourceCalled {
 		t.Fatalf("provisioner not invoked")
 	}
 }
@@ -5586,7 +5586,7 @@ func TestContext2Apply_provisionerMultiSelfRef(t *testing.T) {
 	}
 
 	// Verify apply was invoked
-	if !pr.ApplyCalled {
+	if !pr.ProvisionResourceCalled {
 		t.Fatalf("provisioner not invoked")
 	}
 
@@ -5648,7 +5648,7 @@ func TestContext2Apply_provisionerMultiSelfRefSingle(t *testing.T) {
 	}
 
 	// Verify apply was invoked
-	if !pr.ApplyCalled {
+	if !pr.ProvisionResourceCalled {
 		t.Fatalf("provisioner not invoked")
 	}
 
@@ -5700,7 +5700,7 @@ func TestContext2Apply_provisionerExplicitSelfRef(t *testing.T) {
 		}
 
 		// Verify apply was invoked
-		if !pr.ApplyCalled {
+		if !pr.ProvisionResourceCalled {
 			t.Fatalf("provisioner not invoked")
 		}
 	}
@@ -5772,10 +5772,10 @@ func TestContext2Apply_Provisioner_Diff(t *testing.T) {
 	}
 
 	// Verify apply was invoked
-	if !pr.ApplyCalled {
+	if !pr.ProvisionResourceCalled {
 		t.Fatalf("provisioner not invoked")
 	}
-	pr.ApplyCalled = false
+	pr.ProvisionResourceCalled = false
 
 	// Change the state to force a diff
 	mod := state.RootModule()
@@ -5820,7 +5820,7 @@ func TestContext2Apply_Provisioner_Diff(t *testing.T) {
 	}
 
 	// Verify apply was NOT invoked
-	if pr.ApplyCalled {
+	if pr.ProvisionResourceCalled {
 		t.Fatalf("provisioner invoked")
 	}
 }
@@ -5972,7 +5972,7 @@ func TestContext2Apply_Provisioner_ConnInfo(t *testing.T) {
 	}
 
 	// Verify apply was invoked
-	if !pr.ApplyCalled {
+	if !pr.ProvisionResourceCalled {
 		t.Fatalf("provisioner not invoked")
 	}
 }
@@ -7687,7 +7687,7 @@ func TestContext2Apply_destroyProvisionerWithLocals(t *testing.T) {
 		t.Fatal(diags.Err())
 	}
 
-	if !pr.ApplyCalled {
+	if !pr.ProvisionResourceCalled {
 		t.Fatal("provisioner not called")
 	}
 }
@@ -7767,7 +7767,7 @@ func TestContext2Apply_destroyProvisionerWithMultipleLocals(t *testing.T) {
 		t.Fatal(diags.Err())
 	}
 
-	if !pr.ApplyCalled {
+	if !pr.ProvisionResourceCalled {
 		t.Fatal("provisioner not called")
 	}
 }
@@ -7845,7 +7845,7 @@ func TestContext2Apply_destroyProvisionerWithOutput(t *testing.T) {
 	if diags.HasErrors() {
 		t.Fatal(diags.Err())
 	}
-	if !pr.ApplyCalled {
+	if !pr.ProvisionResourceCalled {
 		t.Fatal("provisioner not called")
 	}
 
