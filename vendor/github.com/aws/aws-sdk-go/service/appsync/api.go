@@ -86,9 +86,6 @@ func (c *AppSync) CreateApiKeyRequest(input *CreateApiKeyInput) (req *request.Re
 //   * ErrCodeApiKeyLimitExceededException "ApiKeyLimitExceededException"
 //   The API key exceeded a limit. Try your request again.
 //
-//   * ErrCodeApiKeyValidityOutOfBoundsException "ApiKeyValidityOutOfBoundsException"
-//   The API key expiration must be set to a value between 1 and 365 days.
-//
 // See also, https://docs.aws.amazon.com/goto/WebAPI/appsync-2017-07-25/CreateApiKey
 func (c *AppSync) CreateApiKey(input *CreateApiKeyInput) (*CreateApiKeyOutput, error) {
 	req, out := c.CreateApiKeyRequest(input)
@@ -2043,102 +2040,6 @@ func (c *AppSync) StartSchemaCreationWithContext(ctx aws.Context, input *StartSc
 	return out, req.Send()
 }
 
-const opUpdateApiKey = "UpdateApiKey"
-
-// UpdateApiKeyRequest generates a "aws/request.Request" representing the
-// client's request for the UpdateApiKey operation. The "output" return
-// value will be populated with the request's response once the request complets
-// successfuly.
-//
-// Use "Send" method on the returned Request to send the API call to the service.
-// the "output" return value is not valid until after Send returns without error.
-//
-// See UpdateApiKey for more information on using the UpdateApiKey
-// API call, and error handling.
-//
-// This method is useful when you want to inject custom logic or configuration
-// into the SDK's request lifecycle. Such as custom headers, or retry logic.
-//
-//
-//    // Example sending a request using the UpdateApiKeyRequest method.
-//    req, resp := client.UpdateApiKeyRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
-//
-// See also, https://docs.aws.amazon.com/goto/WebAPI/appsync-2017-07-25/UpdateApiKey
-func (c *AppSync) UpdateApiKeyRequest(input *UpdateApiKeyInput) (req *request.Request, output *UpdateApiKeyOutput) {
-	op := &request.Operation{
-		Name:       opUpdateApiKey,
-		HTTPMethod: "POST",
-		HTTPPath:   "/v1/apis/{apiId}/apikeys/{id}",
-	}
-
-	if input == nil {
-		input = &UpdateApiKeyInput{}
-	}
-
-	output = &UpdateApiKeyOutput{}
-	req = c.newRequest(op, input, output)
-	return
-}
-
-// UpdateApiKey API operation for AWS AppSync.
-//
-// Updates an API key.
-//
-// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
-// with awserr.Error's Code and Message methods to get detailed information about
-// the error.
-//
-// See the AWS API reference guide for AWS AppSync's
-// API operation UpdateApiKey for usage and error information.
-//
-// Returned Error Codes:
-//   * ErrCodeBadRequestException "BadRequestException"
-//   The request is not well formed. For example, a value is invalid or a required
-//   field is missing. Check the field values, and try again.
-//
-//   * ErrCodeNotFoundException "NotFoundException"
-//   The resource specified in the request was not found. Check the resource and
-//   try again.
-//
-//   * ErrCodeUnauthorizedException "UnauthorizedException"
-//   You are not authorized to perform this operation.
-//
-//   * ErrCodeLimitExceededException "LimitExceededException"
-//   The request exceeded a limit. Try your request again.
-//
-//   * ErrCodeInternalFailureException "InternalFailureException"
-//   An internal AWS AppSync error occurred. Try your request again.
-//
-//   * ErrCodeApiKeyValidityOutOfBoundsException "ApiKeyValidityOutOfBoundsException"
-//   The API key expiration must be set to a value between 1 and 365 days.
-//
-// See also, https://docs.aws.amazon.com/goto/WebAPI/appsync-2017-07-25/UpdateApiKey
-func (c *AppSync) UpdateApiKey(input *UpdateApiKeyInput) (*UpdateApiKeyOutput, error) {
-	req, out := c.UpdateApiKeyRequest(input)
-	return out, req.Send()
-}
-
-// UpdateApiKeyWithContext is the same as UpdateApiKey with the addition of
-// the ability to pass a context and additional request options.
-//
-// See UpdateApiKey for details on how to use this API operation.
-//
-// The context must be non-nil and will be used for request cancellation. If
-// the context is nil a panic will occur. In the future the SDK may create
-// sub-contexts for http.Requests. See https://golang.org/pkg/context/
-// for more information on using Contexts.
-func (c *AppSync) UpdateApiKeyWithContext(ctx aws.Context, input *UpdateApiKeyInput, opts ...request.Option) (*UpdateApiKeyOutput, error) {
-	req, out := c.UpdateApiKeyRequest(input)
-	req.SetContext(ctx)
-	req.ApplyOptions(opts...)
-	return out, req.Send()
-}
-
 const opUpdateDataSource = "UpdateDataSource"
 
 // UpdateDataSourceRequest generates a "aws/request.Request" representing the
@@ -2518,8 +2419,7 @@ type ApiKey struct {
 	// A description of the purpose of the API key.
 	Description *string `locationName:"description" type:"string"`
 
-	// The time after which the API key expires. The date is represented as seconds
-	// since the epoch, rounded down to the nearest hour.
+	// The time when the API key expires.
 	Expires *int64 `locationName:"expires" type:"long"`
 
 	// The API key ID.
@@ -2564,11 +2464,6 @@ type CreateApiKeyInput struct {
 
 	// A description of the purpose of the API key.
 	Description *string `locationName:"description" type:"string"`
-
-	// The time after which the API key expires. The date is represented as seconds
-	// since the epoch, rounded down to the nearest hour. The default value for
-	// this parameter is 7 days from creation time.
-	Expires *int64 `locationName:"expires" type:"long"`
 }
 
 // String returns the string representation
@@ -2603,12 +2498,6 @@ func (s *CreateApiKeyInput) SetApiId(v string) *CreateApiKeyInput {
 // SetDescription sets the Description field's value.
 func (s *CreateApiKeyInput) SetDescription(v string) *CreateApiKeyInput {
 	s.Description = &v
-	return s
-}
-
-// SetExpires sets the Expires field's value.
-func (s *CreateApiKeyInput) SetExpires(v int64) *CreateApiKeyInput {
-	s.Expires = &v
 	return s
 }
 
@@ -2894,7 +2783,7 @@ type CreateResolverInput struct {
 
 	// The mapping template to be used for requests.
 	//
-	// A resolver uses a request mapping template to convert a GraphQL expression
+	// A resolver use a request mapping template to convert a GraphQL expression
 	// into a format that a data source can understand. Mapping templates are written
 	// in Apache Velocity Template Language (VTL).
 	//
@@ -3122,16 +3011,6 @@ type DataSource struct {
 	ServiceRoleArn *string `locationName:"serviceRoleArn" type:"string"`
 
 	// The type of the data source.
-	//
-	//    * AMAZON_DYNAMODB: The data source is an Amazon DynamoDB table.
-	//
-	//    * AMAZON_ELASTICSEARCH: The data source is an Amazon Elasticsearch Service
-	//    domain.
-	//
-	//    * AWS_LAMBDA: The data source is an AWS Lambda function.
-	//
-	//    * NONE: There is no data source. This type is used when the required information
-	//    can be computed on the fly without connecting to a back-end data source.
 	Type *string `locationName:"type" type:"string" enum:"DataSourceType"`
 }
 
@@ -4869,100 +4748,6 @@ func (s *Type) SetName(v string) *Type {
 	return s
 }
 
-type UpdateApiKeyInput struct {
-	_ struct{} `type:"structure"`
-
-	// The ID for the GraphQL API
-	//
-	// ApiId is a required field
-	ApiId *string `location:"uri" locationName:"apiId" type:"string" required:"true"`
-
-	// A description of the purpose of the API key.
-	Description *string `locationName:"description" type:"string"`
-
-	// The time after which the API key expires. The date is represented as seconds
-	// since the epoch.
-	Expires *int64 `locationName:"expires" type:"long"`
-
-	// The API key ID.
-	//
-	// Id is a required field
-	Id *string `location:"uri" locationName:"id" type:"string" required:"true"`
-}
-
-// String returns the string representation
-func (s UpdateApiKeyInput) String() string {
-	return awsutil.Prettify(s)
-}
-
-// GoString returns the string representation
-func (s UpdateApiKeyInput) GoString() string {
-	return s.String()
-}
-
-// Validate inspects the fields of the type to determine if they are valid.
-func (s *UpdateApiKeyInput) Validate() error {
-	invalidParams := request.ErrInvalidParams{Context: "UpdateApiKeyInput"}
-	if s.ApiId == nil {
-		invalidParams.Add(request.NewErrParamRequired("ApiId"))
-	}
-	if s.Id == nil {
-		invalidParams.Add(request.NewErrParamRequired("Id"))
-	}
-
-	if invalidParams.Len() > 0 {
-		return invalidParams
-	}
-	return nil
-}
-
-// SetApiId sets the ApiId field's value.
-func (s *UpdateApiKeyInput) SetApiId(v string) *UpdateApiKeyInput {
-	s.ApiId = &v
-	return s
-}
-
-// SetDescription sets the Description field's value.
-func (s *UpdateApiKeyInput) SetDescription(v string) *UpdateApiKeyInput {
-	s.Description = &v
-	return s
-}
-
-// SetExpires sets the Expires field's value.
-func (s *UpdateApiKeyInput) SetExpires(v int64) *UpdateApiKeyInput {
-	s.Expires = &v
-	return s
-}
-
-// SetId sets the Id field's value.
-func (s *UpdateApiKeyInput) SetId(v string) *UpdateApiKeyInput {
-	s.Id = &v
-	return s
-}
-
-type UpdateApiKeyOutput struct {
-	_ struct{} `type:"structure"`
-
-	// The API key.
-	ApiKey *ApiKey `locationName:"apiKey" type:"structure"`
-}
-
-// String returns the string representation
-func (s UpdateApiKeyOutput) String() string {
-	return awsutil.Prettify(s)
-}
-
-// GoString returns the string representation
-func (s UpdateApiKeyOutput) GoString() string {
-	return s.String()
-}
-
-// SetApiKey sets the ApiKey field's value.
-func (s *UpdateApiKeyOutput) SetApiKey(v *ApiKey) *UpdateApiKeyOutput {
-	s.ApiKey = v
-	return s
-}
-
 type UpdateDataSourceInput struct {
 	_ struct{} `type:"structure"`
 
@@ -5190,7 +4975,7 @@ func (s *UpdateGraphqlApiInput) SetUserPoolConfig(v *UserPoolConfig) *UpdateGrap
 type UpdateGraphqlApiOutput struct {
 	_ struct{} `type:"structure"`
 
-	// The updated GraphqlApi object.
+	// The udpated GraphqlApi object.
 	GraphqlApi *GraphqlApi `locationName:"graphqlApi" type:"structure"`
 }
 
@@ -5533,9 +5318,6 @@ const (
 
 	// DataSourceTypeAmazonElasticsearch is a DataSourceType enum value
 	DataSourceTypeAmazonElasticsearch = "AMAZON_ELASTICSEARCH"
-
-	// DataSourceTypeNone is a DataSourceType enum value
-	DataSourceTypeNone = "NONE"
 )
 
 const (
