@@ -1,4 +1,4 @@
-// Copyright 2015 CoreOS, Inc.
+// Copyright 2015 The etcd Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -19,9 +19,9 @@ Create a Config and exchange it for a Client:
 
 	import (
 		"net/http"
+		"context"
 
 		"github.com/coreos/etcd/client"
-		"golang.org/x/net/context"
 	)
 
 	cfg := client.Config{
@@ -33,6 +33,8 @@ Create a Config and exchange it for a Client:
 	if err != nil {
 		// handle error
 	}
+
+Clients are safe for concurrent use by multiple goroutines.
 
 Create a KeysAPI using the Client, then use it to interact with etcd:
 
@@ -57,7 +59,7 @@ Use a custom context to set timeouts on your operations:
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	// set a new key, ignoring it's previous state
+	// set a new key, ignoring its previous state
 	_, err := kAPI.Set(ctx, "/ping", "pong", nil)
 	if err != nil {
 		if err == context.DeadlineExceeded {
