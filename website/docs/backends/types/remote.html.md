@@ -15,8 +15,8 @@ The remote backend stores state and runs operations remotely. When running
 Enterprise, with log output streaming to the local terminal.
 
 To use this backend you need a Terraform Enterprise account on
-[app.terraform.io](https://app.terraform.io) or a private instance of Terraform
-Enterprise.
+[app.terraform.io](https://app.terraform.io). A future release will also allow 
+use of this backend on a private instance of Terraform Enterprise.
 
 ## Command Support
 
