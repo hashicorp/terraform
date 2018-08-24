@@ -103,10 +103,12 @@ func (n *graphNodeDeposedResource) EvalTree() EvalNode {
 					Output: &state,
 				},
 				&EvalRefresh{
-					Addr:     addr.Resource,
-					Provider: &provider,
-					State:    &state,
-					Output:   &state,
+					Addr:           addr.Resource,
+					ProviderAddr:   n.ResolvedProvider,
+					Provider:       &provider,
+					ProviderSchema: &providerSchema,
+					State:          &state,
+					Output:         &state,
 				},
 				&EvalWriteStateDeposed{
 					Addr:           addr.Resource,
@@ -150,6 +152,7 @@ func (n *graphNodeDeposedResource) EvalTree() EvalNode {
 				},
 				&EvalApply{
 					Addr:     addr.Resource,
+					Config:   nil, // No configuration because we are destroying
 					State:    &state,
 					Change:   &change,
 					Provider: &provider,

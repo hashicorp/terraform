@@ -10,13 +10,13 @@ import (
 	"time"
 	"unicode"
 
-	"github.com/hashicorp/terraform/plans"
-
 	"github.com/mitchellh/cli"
 	"github.com/mitchellh/colorstring"
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/addrs"
+	"github.com/hashicorp/terraform/plans"
+	"github.com/hashicorp/terraform/providers"
 	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -290,7 +290,7 @@ func (h *UiHook) PreImportState(addr addrs.AbsResourceInstance, importID string)
 	return terraform.HookActionContinue, nil
 }
 
-func (h *UiHook) PostImportState(addr addrs.AbsResourceInstance, imported []*states.ImportedObject) (terraform.HookAction, error) {
+func (h *UiHook) PostImportState(addr addrs.AbsResourceInstance, imported []providers.ImportedResource) (terraform.HookAction, error) {
 	h.once.Do(h.init)
 
 	h.ui.Output(h.Colorize.Color(fmt.Sprintf(
@@ -298,7 +298,7 @@ func (h *UiHook) PostImportState(addr addrs.AbsResourceInstance, imported []*sta
 	for _, s := range imported {
 		h.ui.Output(h.Colorize.Color(fmt.Sprintf(
 			"[reset][green]  Imported %s",
-			s.ResourceType,
+			s.TypeName,
 		)))
 	}
 

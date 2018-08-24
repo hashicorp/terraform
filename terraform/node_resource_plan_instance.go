@@ -139,6 +139,7 @@ func (n *NodePlannableResourceInstance) evalTreeManagedResource(addr addrs.AbsRe
 				Addr:           addr.Resource,
 				Config:         n.Config,
 				Provider:       &provider,
+				ProviderAddr:   n.ResolvedProvider,
 				ProviderSchema: &providerSchema,
 				State:          &state,
 				OutputChange:   &change,

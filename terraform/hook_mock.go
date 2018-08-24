@@ -7,6 +7,7 @@ import (
 
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/plans"
+	"github.com/hashicorp/terraform/providers"
 	"github.com/hashicorp/terraform/states"
 )
 
@@ -103,7 +104,7 @@ type MockHook struct {
 
 	PostImportStateCalled    bool
 	PostImportStateAddr      addrs.AbsResourceInstance
-	PostImportStateNewStates []*states.ImportedObject
+	PostImportStateNewStates []providers.ImportedResource
 	PostImportStateReturn    HookAction
 	PostImportStateError     error
 
@@ -253,7 +254,7 @@ func (h *MockHook) PreImportState(addr addrs.AbsResourceInstance, importID strin
 	return h.PreImportStateReturn, h.PreImportStateError
 }
 
-func (h *MockHook) PostImportState(addr addrs.AbsResourceInstance, imported []*states.ImportedObject) (HookAction, error) {
+func (h *MockHook) PostImportState(addr addrs.AbsResourceInstance, imported []providers.ImportedResource) (HookAction, error) {
 	h.Lock()
 	defer h.Unlock()
 

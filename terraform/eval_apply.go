@@ -5,95 +5,152 @@ import (
 	"log"
 
 	"github.com/hashicorp/go-multierror"
+	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/plans"
 	"github.com/hashicorp/terraform/providers"
 	"github.com/hashicorp/terraform/states"
+	"github.com/hashicorp/terraform/tfdiags"
 )
 
 // EvalApply is an EvalNode implementation that writes the diff to
 // the full diff.
 type EvalApply struct {
-	Addr      addrs.ResourceInstance
-	State     **states.ResourceInstanceObject
-	Change    **plans.ResourceInstanceChange
-	Provider  *providers.Interface
-	Output    **states.ResourceInstanceObject
-	CreateNew *bool
-	Error     *error
+	Addr           addrs.ResourceInstance
+	Config         *configs.Resource
+	State          **states.ResourceInstanceObject
+	Change         **plans.ResourceInstanceChange
+	ProviderAddr   addrs.AbsProviderConfig
+	Provider       *providers.Interface
+	ProviderSchema **ProviderSchema
+	Output         **states.ResourceInstanceObject
+	CreateNew      *bool
+	Error          *error
 }
 
 // TODO: test
 func (n *EvalApply) Eval(ctx EvalContext) (interface{}, error) {
-	return nil, fmt.Errorf("EvalApply is not yet updated for the new state and plan types")
-	/*
-		diff := *n.Diff
-		provider := *n.Provider
-		state := *n.State
+	var diags tfdiags.Diagnostics
 
-		// The provider API still expects our legacy InstanceInfo type, so we must shim it.
-		legacyInfo := NewInstanceInfo(n.Addr.Absolute(ctx.Path()))
+	change := *n.Change
+	provider := *n.Provider
+	state := *n.State
+	absAddr := n.Addr.Absolute(ctx.Path())
 
-		if state == nil {
-			state = &states.ResourceInstanceObject{}
-		}
+	if state == nil {
+		state = &states.ResourceInstanceObject{}
+	}
 
-		// Flag if we're creating a new instance
-		if n.CreateNew != nil {
-			*n.CreateNew = state.ID == "" && !diff.GetDestroy() || diff.RequiresNew()
-		}
+	schema := (*n.ProviderSchema).ResourceTypes[n.Addr.Resource.Type]
+	if schema == nil {
+		// Should be caught during validation, so we don't bother with a pretty error here
+		return nil, fmt.Errorf("provider does not support resource type %q", n.Addr.Resource.Type)
+	}
 
-		// With the completed diff, apply!
-		log.Printf("[DEBUG] apply %s: executing Apply", n.Addr)
-		state, err := provider.Apply(legacyInfo, state, diff)
-		if state == nil {
-			state = new(InstanceState)
-		}
-		state.init()
+	if n.CreateNew != nil {
+		*n.CreateNew = (change.Action == plans.Create || change.Action == plans.Replace)
+	}
 
-		// Force the "id" attribute to be our ID
-		if state.ID != "" {
-			state.Attributes["id"] = state.ID
-		}
+	configVal := cty.NullVal(cty.DynamicPseudoType) // TODO: Populate this when n.Config is non-nil; will need config and provider schema in here
 
-		// If the value is the unknown variable value, then it is an error.
-		// In this case we record the error and remove it from the state
-		for ak, av := range state.Attributes {
-			if av == config.UnknownVariableValue {
-				err = multierror.Append(err, fmt.Errorf(
-					"Attribute with unknown value: %s", ak))
-				delete(state.Attributes, ak)
+	log.Printf("[DEBUG] %s: applying the planned %s change", n.Addr.Absolute(ctx.Path()), change.Action)
+	resp := provider.ApplyResourceChange(providers.ApplyResourceChangeRequest{
+		TypeName:       n.Addr.Resource.Type,
+		PriorState:     change.Before,
+		Config:         configVal, // TODO
+		PlannedState:   change.After,
+		PlannedPrivate: change.Private, // TODO
+	})
+	applyDiags := resp.Diagnostics
+	if n.Config != nil {
+		applyDiags = applyDiags.InConfigBody(n.Config.Config)
+	}
+	diags = diags.Append(applyDiags)
+
+	// Even if there are errors in the returned diagnostics, the provider may
+	// have returned a _partial_ state for an object that already exists but
+	// failed to fully configure, and so the remaining code must always run
+	// to completion but must be defensive against the new value being
+	// incomplete.
+	newVal := resp.NewState
+
+	for _, err := range schema.ImpliedType().TestConformance(newVal.Type()) {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Provider produced invalid object",
+			fmt.Sprintf(
+				"Provider %q planned an invalid value for %s%s after apply, and so the result could not be saved.\n\nThis is a bug in the provider, which should be reported in the provider's own issue tracker.",
+				n.ProviderAddr.ProviderConfig.Type, absAddr, tfdiags.FormatError(err),
+			),
+		))
+	}
+	if diags.HasErrors() {
+		return nil, diags.Err()
+	}
+
+	// By this point there must not be any unknown values remaining in our
+	// object, because we've applied the change and we can't save unknowns
+	// in our persistent state. If any are present then we will indicate an
+	// error (which is always a bug in the provider) but we will also replace
+	// them with nulls so that we can successfully save the portions of the
+	// returned value that are known.
+	if !newVal.IsWhollyKnown() {
+		// To generate better error messages, we'll go for a walk through the
+		// value and make a separate diagnostic for each unknown value we
+		// find.
+		cty.Walk(newVal, func(path cty.Path, val cty.Value) (bool, error) {
+			if !val.IsKnown() {
+				pathStr := tfdiags.FormatCtyPath(path)
+				diags = diags.Append(tfdiags.Sourceless(
+					tfdiags.Error,
+					"Provider returned invalid result object after apply",
+					fmt.Sprintf(
+						"After the apply operation, the provider still indicated an unknown value for %s%s. All values must be known after apply, so this is always a bug in the provider and should be reported in the provider's own repository. Terraform will still save the other known object values in the state.",
+						n.Addr.Absolute(ctx.Path()), pathStr,
+					),
+				))
 			}
-		}
+			return true, nil
+		})
 
-		// If the provider produced an InstanceState with an empty id then
-		// that really means that there's no state at all.
-		// FIXME: Change the provider protocol so that the provider itself returns
-		// a null in this case, and stop treating the ID as special.
-		if state.ID == "" {
-			state = nil
-		}
+		// NOTE: This operation can potentially be lossy if there are multiple
+		// elements in a set that differ only by unknown values: after
+		// replacing with null these will be merged together into a single set
+		// element. Since we can only get here in the presence of a provider
+		// bug, we accept this because storing a result here is always a
+		// best-effort sort of thing.
+		newVal = cty.UnknownAsNull(newVal)
+	}
 
-		// Write the final state
-		if n.Output != nil {
-			*n.Output = state
+	var newState *states.ResourceInstanceObject
+	if !newVal.IsNull() { // null value indicates that the object is deleted, so we won't set a new state in that case
+		newState = &states.ResourceInstanceObject{
+			Status:       states.ObjectReady, // TODO: Consider marking as tainted if the provider returned errors?
+			Value:        newVal,
+			Private:      resp.Private,
+			Dependencies: nil, // not populated here; this will be mutated by a later eval step
 		}
+	}
 
-		// If there are no errors, then we append it to our output error
-		// if we have one, otherwise we just output it.
-		if err != nil {
-			if n.Error != nil {
-				helpfulErr := fmt.Errorf("%s: %s", n.Addr, err.Error())
-				*n.Error = multierror.Append(*n.Error, helpfulErr)
-			} else {
-				return nil, err
-			}
+	// Write the final state
+	if n.Output != nil {
+		*n.Output = newState
+	}
+
+	if diags.HasErrors() {
+		// If the caller provided an error pointer then they are expected to
+		// handle the error some other way and we treat our own result as
+		// success.
+		if n.Error != nil {
+			err := diags.Err()
+			n.Error = &err
+			return nil, nil
 		}
+	}
 
-		return nil, nil
-	*/
+	return nil, diags.ErrWithWarnings()
 }
 
 // EvalApplyPre is an EvalNode implementation that does the pre-Apply work
