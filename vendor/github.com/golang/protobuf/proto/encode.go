@@ -41,17 +41,20 @@ import (
 	"reflect"
 )
 
-// RequiredNotSetError is an error type returned by either Marshal or Unmarshal.
-// Marshal reports this when a required field is not initialized.
-// Unmarshal reports this when a required field is missing from the wire data.
+// RequiredNotSetError is the error returned if Marshal is called with
+// a protocol buffer struct whose required fields have not
+// all been initialized. It is also the error returned if Unmarshal is
+// called with an encoded protocol buffer that does not include all the
+// required fields.
+//
+// When printed, RequiredNotSetError reports the first unset required field in a
+// message. If the field cannot be precisely determined, it is reported as
+// "{Unknown}".
 type RequiredNotSetError struct {
 	field string
 }
 
 func (e *RequiredNotSetError) Error() string {
-	if e.field == "" {
-		return fmt.Sprintf("proto: required field not set")
-	}
 	return fmt.Sprintf("proto: required field %q not set", e.field)
 }
 

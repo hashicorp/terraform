@@ -139,7 +139,7 @@ type Properties struct {
 	Repeated bool
 	Packed   bool   // relevant for repeated primitives only
 	Enum     string // set for enum types only
-	proto3   bool   // whether this is known to be a proto3 field
+	proto3   bool   // whether this is known to be a proto3 field; set for []byte only
 	oneof    bool   // whether this is a oneof field
 
 	Default    string // default value
