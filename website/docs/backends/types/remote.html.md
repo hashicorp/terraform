@@ -18,6 +18,11 @@ To use this backend you need a Terraform Enterprise account on
 [app.terraform.io](https://app.terraform.io). A future release will also allow 
 use of this backend on a private instance of Terraform Enterprise.
 
+-> **Preview Release**: As of Terraform 0.11.8, the remote backend is a preview
+   release and we do not recommend using it with production workloads. Please
+   continue to use the existing [Terraform
+   Enterprise](terraform-enterprise.html) backend for production workspaces.
+
 ## Command Support
 
 Currently the remote backend supports the following Terraform commands:
@@ -96,19 +101,8 @@ terraform {
 
 ## Example Reference
 
-```hcl
-data "terraform_remote_state" "foo" {
-  backend = "remote"
-
-  config {
-    organization = "company"
-
-    workspaces {
-      name = "my-app-prod"
-    }
-  }
-}
-```
+(The remote backend does not support references via `terraform_remote_state`
+yet; an example will be included once support is available.)
 
 ## Configuration variables
 
