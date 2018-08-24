@@ -79,10 +79,6 @@ func TestContext2Input_moduleComputedOutputElement(t *testing.T) {
 		),
 	})
 
-	p.InputFn = func(i UIInput, c *ResourceConfig) (*ResourceConfig, error) {
-		return c, nil
-	}
-
 	if diags := ctx.Input(InputModeStd); diags.HasErrors() {
 		t.Fatalf("input errors: %s", diags.Err())
 	}
@@ -101,11 +97,6 @@ func TestContext2Input_badVarDefault(t *testing.T) {
 			},
 		),
 	})
-
-	p.InputFn = func(i UIInput, c *ResourceConfig) (*ResourceConfig, error) {
-		c.Config["foo"] = "bar"
-		return c, nil
-	}
 
 	if diags := ctx.Input(InputModeStd); diags.HasErrors() {
 		t.Fatalf("input errors: %s", diags.Err())

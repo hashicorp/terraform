@@ -5,6 +5,7 @@ import (
 
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/plans"
+	"github.com/hashicorp/terraform/providers"
 	"github.com/hashicorp/terraform/states"
 )
 
@@ -73,7 +74,7 @@ type Hook interface {
 	// PreImportState and PostImportState are called before and after
 	// (respectively) each state import operation for a given resource address.
 	PreImportState(addr addrs.AbsResourceInstance, importID string) (HookAction, error)
-	PostImportState(addr addrs.AbsResourceInstance, imported []*states.ImportedObject) (HookAction, error)
+	PostImportState(addr addrs.AbsResourceInstance, imported []providers.ImportedResource) (HookAction, error)
 
 	// PostStateUpdate is called each time the state is updated. It receives
 	// a deep copy of the state, which it may therefore access freely without
@@ -135,7 +136,7 @@ func (*NilHook) PreImportState(addr addrs.AbsResourceInstance, importID string) 
 	return HookActionContinue, nil
 }
 
-func (*NilHook) PostImportState(addr addrs.AbsResourceInstance, imported []*states.ImportedObject) (HookAction, error) {
+func (*NilHook) PostImportState(addr addrs.AbsResourceInstance, imported []providers.ImportedResource) (HookAction, error) {
 	return HookActionContinue, nil
 }
 

@@ -46,20 +46,7 @@ func TestBuiltinEvalContextProviderInput(t *testing.T) {
 func TestBuildingEvalContextInitProvider(t *testing.T) {
 	var lock sync.Mutex
 
-	testP := &MockProvider{
-		ResourcesReturn: []ResourceType{
-			{
-				Name:            "test_thing",
-				SchemaAvailable: true,
-			},
-		},
-		DataSourcesReturn: []DataSource{
-			{
-				Name:            "test_thing",
-				SchemaAvailable: true,
-			},
-		},
-	}
+	testP := &MockProvider{}
 
 	ctx := testBuiltinEvalContext(t)
 	ctx.ProviderLock = &lock
