@@ -1212,13 +1212,13 @@
 		},
 		{
 			"path": "github.com/coreos/etcd/Godeps/_workspace/src/github.com/ugorji/go/codec",
-			"revision": "",
+			"revision": "v3.3.9",
 			"version": "v3.3.9",
 			"versionExact": "v3.3.9"
 		},
 		{
 			"path": "github.com/coreos/etcd/Godeps/_workspace/src/golang.org/x/net/context",
-			"revision": "",
+			"revision": "v3.3.9",
 			"version": "v3.3.9",
 			"versionExact": "v3.3.9"
 		},
