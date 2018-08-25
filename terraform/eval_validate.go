@@ -396,7 +396,7 @@ func (n *EvalValidateResource) Eval(ctx EvalContext) (interface{}, error) {
 		}
 
 		resp := provider.ValidateResourceTypeConfig(req)
-		diags = diags.Append(resp.Diagnostics)
+		diags = diags.Append(resp.Diagnostics.InConfigBody(cfg.Config))
 
 		if n.ConfigVal != nil {
 			*n.ConfigVal = configVal
@@ -426,7 +426,7 @@ func (n *EvalValidateResource) Eval(ctx EvalContext) (interface{}, error) {
 		}
 
 		resp := provider.ValidateDataSourceConfig(req)
-		diags = diags.Append(resp.Diagnostics)
+		diags = diags.Append(resp.Diagnostics.InConfigBody(cfg.Config))
 	}
 
 	if n.IgnoreWarnings {
