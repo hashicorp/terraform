@@ -58,6 +58,7 @@ func (p *GRPCProvider) getSchema() providers.GetSchemaResponse {
 	p.mu.Lock()
 	// unlock inline in case GetSchema needs to be called
 	if p.schemas.Provider.Block != nil {
+		p.mu.Unlock()
 		return p.schemas
 	}
 	p.mu.Unlock()
