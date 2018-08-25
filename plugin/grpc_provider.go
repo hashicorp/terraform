@@ -3,6 +3,7 @@ package plugin
 import (
 	"context"
 	"errors"
+	"log"
 	"sync"
 
 	plugin "github.com/hashicorp/go-plugin"
@@ -97,6 +98,7 @@ func (p *GRPCProvider) getDatasourceSchema(name string) providers.Schema {
 }
 
 func (p *GRPCProvider) GetSchema() (resp providers.GetSchemaResponse) {
+	log.Printf("[TRACE] GRPCProvider: GetSchema")
 	p.mu.Lock()
 	defer p.mu.Unlock()
 
@@ -134,6 +136,8 @@ func (p *GRPCProvider) GetSchema() (resp providers.GetSchemaResponse) {
 }
 
 func (p *GRPCProvider) ValidateProviderConfig(r providers.ValidateProviderConfigRequest) (resp providers.ValidateProviderConfigResponse) {
+	log.Printf("[TRACE] GRPCProvider: ValidateProviderConfig")
+
 	schema := p.getSchema()
 	mp, err := msgpack.Marshal(r.Config, schema.Provider.Block.ImpliedType())
 	if err != nil {
@@ -155,6 +159,8 @@ func (p *GRPCProvider) ValidateProviderConfig(r providers.ValidateProviderConfig
 }
 
 func (p *GRPCProvider) ValidateResourceTypeConfig(r providers.ValidateResourceTypeConfigRequest) (resp providers.ValidateResourceTypeConfigResponse) {
+	log.Printf("[TRACE] GRPCProvider: ValidateResourceTypeConfig")
+
 	resourceSchema := p.getResourceSchema(r.TypeName)
 
 	mp, err := msgpack.Marshal(r.Config, resourceSchema.Block.ImpliedType())
@@ -179,6 +185,8 @@ func (p *GRPCProvider) ValidateResourceTypeConfig(r providers.ValidateResourceTy
 }
 
 func (p *GRPCProvider) ValidateDataSourceConfig(r providers.ValidateDataSourceConfigRequest) (resp providers.ValidateDataSourceConfigResponse) {
+	log.Printf("[TRACE] GRPCProvider: ValidateDataSourceConfig")
+
 	dataSchema := p.getDatasourceSchema(r.TypeName)
 
 	mp, err := msgpack.Marshal(r.Config, dataSchema.Block.ImpliedType())
@@ -202,6 +210,8 @@ func (p *GRPCProvider) ValidateDataSourceConfig(r providers.ValidateDataSourceCo
 }
 
 func (p *GRPCProvider) UpgradeResourceState(r providers.UpgradeResourceStateRequest) (resp providers.UpgradeResourceStateResponse) {
+	log.Printf("[TRACE] GRPCProvider: UpgradeResourceState")
+
 	resSchema := p.getResourceSchema(r.TypeName)
 
 	protoReq := &proto.UpgradeResourceState_Request{
@@ -232,6 +242,8 @@ func (p *GRPCProvider) UpgradeResourceState(r providers.UpgradeResourceStateRequ
 }
 
 func (p *GRPCProvider) Configure(r providers.ConfigureRequest) (resp providers.ConfigureResponse) {
+	log.Printf("[TRACE] GRPCProvider: Configure")
+
 	schema := p.getSchema()
 
 	var mp []byte
@@ -260,6 +272,8 @@ func (p *GRPCProvider) Configure(r providers.ConfigureRequest) (resp providers.C
 }
 
 func (p *GRPCProvider) Stop() error {
+	log.Printf("[TRACE] GRPCProvider: Stop")
+
 	resp, err := p.client.Stop(p.ctx, new(proto.Stop_Request))
 	if err != nil {
 		return err
@@ -272,6 +286,8 @@ func (p *GRPCProvider) Stop() error {
 }
 
 func (p *GRPCProvider) ReadResource(r providers.ReadResourceRequest) (resp providers.ReadResourceResponse) {
+	log.Printf("[TRACE] GRPCProvider: ReadResource")
+
 	resSchema := p.getResourceSchema(r.TypeName)
 
 	mp, err := msgpack.Marshal(r.PriorState, resSchema.Block.ImpliedType())
@@ -304,6 +320,8 @@ func (p *GRPCProvider) ReadResource(r providers.ReadResourceRequest) (resp provi
 }
 
 func (p *GRPCProvider) PlanResourceChange(r providers.PlanResourceChangeRequest) (resp providers.PlanResourceChangeResponse) {
+	log.Printf("[TRACE] GRPCProvider: PlanResourceChange")
+
 	resSchema := p.getResourceSchema(r.TypeName)
 
 	priorMP, err := msgpack.Marshal(r.PriorState, resSchema.Block.ImpliedType())
@@ -350,6 +368,8 @@ func (p *GRPCProvider) PlanResourceChange(r providers.PlanResourceChangeRequest)
 }
 
 func (p *GRPCProvider) ApplyResourceChange(r providers.ApplyResourceChangeRequest) (resp providers.ApplyResourceChangeResponse) {
+	log.Printf("[TRACE] GRPCProvider: ApplyResourceChange")
+
 	resSchema := p.getResourceSchema(r.TypeName)
 
 	priorMP, err := msgpack.Marshal(r.PriorState, resSchema.Block.ImpliedType())
@@ -390,6 +410,8 @@ func (p *GRPCProvider) ApplyResourceChange(r providers.ApplyResourceChangeReques
 }
 
 func (p *GRPCProvider) ImportResourceState(r providers.ImportResourceStateRequest) (resp providers.ImportResourceStateResponse) {
+	log.Printf("[TRACE] GRPCProvider: ImportResourceState")
+
 	resSchema := p.getResourceSchema(r.TypeName)
 
 	protoReq := &proto.ImportResourceState_Request{
@@ -422,6 +444,8 @@ func (p *GRPCProvider) ImportResourceState(r providers.ImportResourceStateReques
 }
 
 func (p *GRPCProvider) ReadDataSource(r providers.ReadDataSourceRequest) (resp providers.ReadDataSourceResponse) {
+	log.Printf("[TRACE] GRPCProvider: ReadDataSource")
+
 	dataSchema := p.getDatasourceSchema(r.TypeName)
 
 	config, err := msgpack.Marshal(r.Config, dataSchema.Block.ImpliedType())
@@ -457,5 +481,6 @@ func (p *GRPCProvider) ReadDataSource(r providers.ReadDataSourceRequest) (resp p
 // closing the grpc connection is final, and terraform will call it at the end of every phase.
 // FIXME: do we need this, and if so, how do we fix it?
 func (p *GRPCProvider) Close() error {
+	log.Printf("[TRACE] GRPCProvider: Close")
 	return nil
 }
