@@ -79,6 +79,7 @@ func Funcs() map[string]ast.Function {
 		"compact":      interpolationFuncCompact(),
 		"concat":       interpolationFuncConcat(),
 		"contains":     interpolationFuncContains(),
+		"scontains":    interpolationFuncStringContains(),
 		"dirname":      interpolationFuncDirname(),
 		"distinct":     interpolationFuncDistinct(),
 		"element":      interpolationFuncElement(),
@@ -521,6 +522,23 @@ func interpolationFuncPathExpand() ast.Function {
 		ReturnType: ast.TypeString,
 		Callback: func(args []interface{}) (interface{}, error) {
 			return homedir.Expand(args[0].(string))
+		},
+	}
+}
+
+// interpolationFuncCeil returns the the least integer value greater than or equal to the argument
+func interpolationFuncStringContains() ast.Function {
+	return ast.Function{
+		ArgTypes:   []ast.Type{ast.TypeString, ast.TypeString},
+		ReturnType: ast.TypeInt,
+		Callback: func(args []interface{}) (interface{}, error) {
+			s := args[0].(string)
+			ss := args[1].(string)
+			if strings.Contains(s, ss) {
+				return 1, nil
+			} else {
+				return 0, nil
+			}
 		},
 	}
 }
