@@ -732,41 +732,40 @@ func (n *EvalReadDiff) Eval(ctx EvalContext) (interface{}, error) {
 // EvalWriteDiff is an EvalNode implementation that saves a planned change
 // for an instance object into the set of global planned changes.
 type EvalWriteDiff struct {
-	Addr       addrs.ResourceInstance
-	DeposedKey states.DeposedKey
-	Change     **plans.ResourceInstanceChange
+	Addr           addrs.ResourceInstance
+	DeposedKey     states.DeposedKey
+	ProviderSchema **ProviderSchema
+	Change         **plans.ResourceInstanceChange
 }
 
 // TODO: test
 func (n *EvalWriteDiff) Eval(ctx EvalContext) (interface{}, error) {
-	return nil, fmt.Errorf("EvalWriteDiff not yet updated for new plan types")
-	/*
-		diff, lock := ctx.Diff()
+	providerSchema := *n.ProviderSchema
+	change := *n.Change
 
-		// The diff to write, if its empty it should write nil
-		var diffVal *InstanceDiff
-		if n.Diff != nil {
-			diffVal = *n.Diff
-		}
-		if diffVal.Empty() {
-			diffVal = nil
-		}
+	if change.Addr.String() != n.Addr.String() || change.DeposedKey != n.DeposedKey {
+		// Should never happen, and indicates a bug in the caller.
+		panic("inconsistent address and/or deposed key in EvalWriteDiff")
+	}
 
-		// Acquire the lock so that we can do this safely concurrently
-		lock.Lock()
-		defer lock.Unlock()
+	schema := providerSchema.ResourceTypes[n.Addr.Resource.Type]
+	if schema == nil {
+		// Should be caught during validation, so we don't bother with a pretty error here
+		return nil, fmt.Errorf("provider does not support resource type %q", n.Addr.Resource.Type)
+	}
 
-		// Write the diff
-		modDiff := diff.ModuleByPath(ctx.Path())
-		if modDiff == nil {
-			modDiff = diff.AddModule(ctx.Path())
-		}
-		if diffVal != nil {
-			modDiff.Resources[n.Name] = diffVal
-		} else {
-			delete(modDiff.Resources, n.Name)
-		}
+	csrc, err := change.Encode(schema.ImpliedType())
+	if err != nil {
+		return nil, fmt.Errorf("failed to encode planned changes for %s: %s", n.Addr, err)
+	}
 
-		return nil, nil
-	*/
+	changes := ctx.Changes()
+	changes.AppendResourceInstanceChange(csrc)
+	if n.DeposedKey == states.NotDeposed {
+		log.Printf("[TRACE] EvalWriteDiff: recorded %s change for %s", change.Action, n.Addr)
+	} else {
+		log.Printf("[TRACE] EvalWriteDiff: recorded %s change for %s deposed object %s", change.Action, n.Addr, n.DeposedKey)
+	}
+
+	return nil, nil
 }

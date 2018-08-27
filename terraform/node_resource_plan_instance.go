@@ -99,8 +99,9 @@ func (n *NodePlannableResourceInstance) evalTreeDataResource(addr addrs.AbsResou
 			},
 
 			&EvalWriteDiff{
-				Addr:   addr.Resource,
-				Change: &change,
+				Addr:           addr.Resource,
+				ProviderSchema: &providerSchema,
+				Change:         &change,
 			},
 		},
 	}
@@ -157,8 +158,9 @@ func (n *NodePlannableResourceInstance) evalTreeManagedResource(addr addrs.AbsRe
 				ProviderSchema: &providerSchema,
 			},
 			&EvalWriteDiff{
-				Addr:   addr.Resource,
-				Change: &change,
+				Addr:           addr.Resource,
+				ProviderSchema: &providerSchema,
+				Change:         &change,
 			},
 		},
 	}

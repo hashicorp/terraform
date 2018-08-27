@@ -718,6 +718,7 @@ func (c *Context) graphWalker(operation walkOperation) *ContextGraphWalker {
 	return &ContextGraphWalker{
 		Context:            c,
 		State:              c.state.SyncWrapper(),
+		Changes:            c.changes.SyncWrapper(),
 		Operation:          operation,
 		StopContext:        c.runContext,
 		RootVariableValues: c.variables,
