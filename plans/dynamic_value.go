@@ -83,3 +83,14 @@ func (v DynamicValue) Decode(ty cty.Type) (cty.Value, error) {
 func (v DynamicValue) ImpliedType() (cty.Type, error) {
 	return ctymsgpack.ImpliedType([]byte(v))
 }
+
+// Copy produces a copy of the receiver with a distinct backing array.
+func (v DynamicValue) Copy() DynamicValue {
+	if len(v) == 0 {
+		return nil
+	}
+
+	ret := make(DynamicValue, len(v))
+	copy(ret, v)
+	return ret
+}
