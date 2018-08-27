@@ -268,7 +268,7 @@ func decodeInterfaceValue(d *Decoder, v reflect.Value) error {
 }
 
 func (d *Decoder) interfaceValue(v reflect.Value) error {
-	vv, err := d.decodeInterface()
+	vv, err := d.decodeInterfaceCond()
 	if err != nil {
 		return err
 	}

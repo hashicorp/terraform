@@ -7,7 +7,6 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/cloudwatchlogs"
-	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -48,7 +47,7 @@ func resourceAwsCloudWatchLogStreamCreate(d *schema.ResourceData, meta interface
 		LogStreamName: aws.String(d.Get("name").(string)),
 	})
 	if err != nil {
-		return errwrap.Wrapf("Creating CloudWatch Log Stream failed: {{err}}", err)
+		return fmt.Errorf("Creating CloudWatch Log Stream failed: %s", err)
 	}
 
 	d.SetId(d.Get("name").(string))
@@ -86,7 +85,7 @@ func resourceAwsCloudWatchLogStreamDelete(d *schema.ResourceData, meta interface
 	}
 	_, err := conn.DeleteLogStream(params)
 	if err != nil {
-		return errwrap.Wrapf("Error deleting CloudWatch Log Stream: {{err}}", err)
+		return fmt.Errorf("Error deleting CloudWatch Log Stream: %s", err)
 	}
 
 	return nil

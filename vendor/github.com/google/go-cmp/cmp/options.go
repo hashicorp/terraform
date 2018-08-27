@@ -220,9 +220,6 @@ func (invalid) apply(s *state, _, _ reflect.Value) {
 // input and output types are the same), an implicit filter is added such that
 // a transformer is applicable only if that exact transformer is not already
 // in the tail of the Path since the last non-Transform step.
-// For situations where the implicit filter is still insufficient,
-// consider using cmpopts.AcyclicTransformer, which adds a filter
-// to prevent the transformer from being recursively applied upon itself.
 //
 // The name is a user provided label that is used as the Transform.Name in the
 // transformation PathStep. If empty, an arbitrary name is used.

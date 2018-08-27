@@ -8,9 +8,7 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/arn"
-	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/apigateway"
-	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/helper/structure"
@@ -23,6 +21,9 @@ func resourceAwsApiGatewayRestApi() *schema.Resource {
 		Read:   resourceAwsApiGatewayRestApiRead,
 		Update: resourceAwsApiGatewayRestApiUpdate,
 		Delete: resourceAwsApiGatewayRestApiDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"name": {
@@ -160,35 +161,11 @@ func resourceAwsApiGatewayRestApiCreate(d *schema.ResourceData, meta interface{}
 			Body:      []byte(body.(string)),
 		})
 		if err != nil {
-			return errwrap.Wrapf("Error creating API Gateway specification: {{err}}", err)
+			return fmt.Errorf("error creating API Gateway specification: %s", err)
 		}
-	}
-
-	if err = resourceAwsApiGatewayRestApiRefreshResources(d, meta); err != nil {
-		return err
 	}
 
 	return resourceAwsApiGatewayRestApiRead(d, meta)
-}
-
-func resourceAwsApiGatewayRestApiRefreshResources(d *schema.ResourceData, meta interface{}) error {
-	conn := meta.(*AWSClient).apigateway
-
-	resp, err := conn.GetResources(&apigateway.GetResourcesInput{
-		RestApiId: aws.String(d.Id()),
-	})
-	if err != nil {
-		return err
-	}
-
-	for _, item := range resp.Items {
-		if *item.Path == "/" {
-			d.Set("root_resource_id", item.Id)
-			break
-		}
-	}
-
-	return nil
 }
 
 func resourceAwsApiGatewayRestApiRead(d *schema.ResourceData, meta interface{}) error {
@@ -198,13 +175,29 @@ func resourceAwsApiGatewayRestApiRead(d *schema.ResourceData, meta interface{}) 
 	api, err := conn.GetRestApi(&apigateway.GetRestApiInput{
 		RestApiId: aws.String(d.Id()),
 	})
+	if isAWSErr(err, apigateway.ErrCodeNotFoundException, "") {
+		log.Printf("[WARN] API Gateway (%s) not found, removing from state", d.Id())
+		d.SetId("")
+		return nil
+	}
 	if err != nil {
-		if awsErr, ok := err.(awserr.Error); ok && awsErr.Code() == "NotFoundException" {
-			log.Printf("[WARN] API Gateway (%s) not found, removing from state", d.Id())
-			d.SetId("")
-			return nil
+		return fmt.Errorf("error reading API Gateway REST API (%s): %s", d.Id(), err)
+	}
+
+	getResourcesInput := &apigateway.GetResourcesInput{
+		RestApiId: aws.String(d.Id()),
+	}
+	err = conn.GetResourcesPages(getResourcesInput, func(page *apigateway.GetResourcesOutput, lastPage bool) bool {
+		for _, item := range page.Items {
+			if aws.StringValue(item.Path) == "/" {
+				d.Set("root_resource_id", item.Id)
+				return false
+			}
 		}
-		return err
+		return !lastPage
+	})
+	if err != nil {
+		return fmt.Errorf("error reading API Gateway REST API (%s) resources: %s", d.Id(), err)
 	}
 
 	d.Set("name", api.Name)
@@ -359,7 +352,7 @@ func resourceAwsApiGatewayRestApiUpdate(d *schema.ResourceData, meta interface{}
 				Body:      []byte(body.(string)),
 			})
 			if err != nil {
-				return errwrap.Wrapf("Error updating API Gateway specification: {{err}}", err)
+				return fmt.Errorf("error updating API Gateway specification: %s", err)
 			}
 		}
 	}
@@ -389,7 +382,7 @@ func resourceAwsApiGatewayRestApiDelete(d *schema.ResourceData, meta interface{}
 			return nil
 		}
 
-		if apigatewayErr, ok := err.(awserr.Error); ok && apigatewayErr.Code() == "NotFoundException" {
+		if isAWSErr(err, apigateway.ErrCodeNotFoundException, "") {
 			return nil
 		}
 

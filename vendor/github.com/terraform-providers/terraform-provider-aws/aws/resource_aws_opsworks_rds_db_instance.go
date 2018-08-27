@@ -135,7 +135,7 @@ func resourceAwsOpsworksRdsDbInstanceRead(d *schema.ResourceData, meta interface
 		StackId: aws.String(d.Get("stack_id").(string)),
 	}
 
-	log.Printf("[DEBUG] Reading OpsWorks registerd rds db instances for stack: %s", d.Get("stack_id"))
+	log.Printf("[DEBUG] Reading OpsWorks registered rds db instances for stack: %s", d.Get("stack_id"))
 
 	resp, err := client.DescribeRdsDbInstances(req)
 	if err != nil {

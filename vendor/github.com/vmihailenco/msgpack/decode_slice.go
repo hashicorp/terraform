@@ -11,6 +11,7 @@ const sliceElemsAllocLimit = 1e4
 
 var sliceStringPtrType = reflect.TypeOf((*[]string)(nil))
 
+// DecodeArrayLen decodes array length. Length is -1 when array is nil.
 func (d *Decoder) DecodeArrayLen() (int, error) {
 	c, err := d.readCode()
 	if err != nil {
@@ -166,7 +167,7 @@ func (d *Decoder) decodeSlice(c codes.Code) ([]interface{}, error) {
 
 	s := make([]interface{}, 0, min(n, sliceElemsAllocLimit))
 	for i := 0; i < n; i++ {
-		v, err := d.decodeInterface()
+		v, err := d.decodeInterfaceCond()
 		if err != nil {
 			return nil, err
 		}

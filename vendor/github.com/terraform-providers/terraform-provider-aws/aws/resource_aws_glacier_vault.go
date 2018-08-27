@@ -6,7 +6,6 @@ import (
 	"log"
 	"regexp"
 
-	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/terraform/helper/schema"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -167,7 +166,7 @@ func resourceAwsGlacierVaultRead(d *schema.ResourceData, meta interface{}) error
 	} else if pol != nil {
 		policy, err := structure.NormalizeJsonString(*pol.Policy.Policy)
 		if err != nil {
-			return errwrap.Wrapf("access policy contains an invalid JSON: {{err}}", err)
+			return fmt.Errorf("access policy contains an invalid JSON: %s", err)
 		}
 		d.Set("access_policy", policy)
 	} else {

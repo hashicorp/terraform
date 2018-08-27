@@ -23,24 +23,24 @@ func resourceAwsIamGroupPolicy() *schema.Resource {
 		Delete: resourceAwsIamGroupPolicyDelete,
 
 		Schema: map[string]*schema.Schema{
-			"policy": &schema.Schema{
+			"policy": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
-			"name": &schema.Schema{
+			"name": {
 				Type:          schema.TypeString,
 				Optional:      true,
 				Computed:      true,
 				ForceNew:      true,
 				ConflictsWith: []string{"name_prefix"},
 			},
-			"name_prefix": &schema.Schema{
+			"name_prefix": {
 				Type:          schema.TypeString,
 				Optional:      true,
 				ForceNew:      true,
 				ConflictsWith: []string{"name"},
 			},
-			"group": &schema.Schema{
+			"group": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,

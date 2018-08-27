@@ -100,7 +100,7 @@ func resourceAwsRedshiftSubnetGroupRead(d *schema.ResourceData, meta interface{}
 	d.Set("description", describeResp.ClusterSubnetGroups[0].Description)
 	d.Set("subnet_ids", subnetIdsToSlice(describeResp.ClusterSubnetGroups[0].Subnets))
 	if err := d.Set("tags", tagsToMapRedshift(describeResp.ClusterSubnetGroups[0].Tags)); err != nil {
-		return fmt.Errorf("[DEBUG] Error setting Redshift Subnet Group Tags: %#v", err)
+		return fmt.Errorf("Error setting Redshift Subnet Group Tags: %#v", err)
 	}
 
 	return nil

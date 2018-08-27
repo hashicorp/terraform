@@ -16,11 +16,12 @@ package client
 
 import (
 	"bytes"
-	"context"
 	"encoding/json"
 	"net/http"
 	"net/url"
 	"path"
+
+	"golang.org/x/net/context"
 )
 
 var (

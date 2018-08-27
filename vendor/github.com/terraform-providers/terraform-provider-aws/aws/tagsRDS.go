@@ -107,7 +107,7 @@ func saveTagsRDS(conn *rds.RDS, d *schema.ResourceData, arn string) error {
 	})
 
 	if err != nil {
-		return fmt.Errorf("[DEBUG] Error retreiving tags for ARN: %s", arn)
+		return fmt.Errorf("Error retreiving tags for ARN: %s", arn)
 	}
 
 	var dt []*rds.Tag

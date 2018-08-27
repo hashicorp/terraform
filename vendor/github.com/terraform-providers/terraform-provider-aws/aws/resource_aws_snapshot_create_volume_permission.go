@@ -18,12 +18,12 @@ func resourceAwsSnapshotCreateVolumePermission() *schema.Resource {
 		Delete: resourceAwsSnapshotCreateVolumePermissionDelete,
 
 		Schema: map[string]*schema.Schema{
-			"snapshot_id": &schema.Schema{
+			"snapshot_id": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
-			"account_id": &schema.Schema{
+			"account_id": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
@@ -51,7 +51,7 @@ func resourceAwsSnapshotCreateVolumePermissionCreate(d *schema.ResourceData, met
 		Attribute:  aws.String("createVolumePermission"),
 		CreateVolumePermission: &ec2.CreateVolumePermissionModifications{
 			Add: []*ec2.CreateVolumePermission{
-				&ec2.CreateVolumePermission{UserId: aws.String(account_id)},
+				{UserId: aws.String(account_id)},
 			},
 		},
 	})
@@ -94,7 +94,7 @@ func resourceAwsSnapshotCreateVolumePermissionDelete(d *schema.ResourceData, met
 		Attribute:  aws.String("createVolumePermission"),
 		CreateVolumePermission: &ec2.CreateVolumePermissionModifications{
 			Remove: []*ec2.CreateVolumePermission{
-				&ec2.CreateVolumePermission{UserId: aws.String(account_id)},
+				{UserId: aws.String(account_id)},
 			},
 		},
 	})

@@ -6,7 +6,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/terraform/helper/customdiff"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
@@ -34,19 +33,19 @@ func resourceAwsAutoscalingGroup() *schema.Resource {
 		},
 
 		Schema: map[string]*schema.Schema{
-			"name": &schema.Schema{
+			"name": {
 				Type:          schema.TypeString,
 				Optional:      true,
 				Computed:      true,
 				ForceNew:      true,
 				ConflictsWith: []string{"name_prefix"},
-				ValidateFunc:  validateMaxLength(255),
+				ValidateFunc:  validation.StringLenBetween(0, 255),
 			},
-			"name_prefix": &schema.Schema{
+			"name_prefix": {
 				Type:         schema.TypeString,
 				Optional:     true,
 				ForceNew:     true,
-				ValidateFunc: validateMaxLength(255 - resource.UniqueIDSuffixLength),
+				ValidateFunc: validation.StringLenBetween(0, 255-resource.UniqueIDSuffixLength),
 			},
 
 			"launch_configuration": {
@@ -269,7 +268,7 @@ func resourceAwsAutoscalingGroup() *schema.Resource {
 
 			"tag": autoscalingTagSchema(),
 
-			"tags": &schema.Schema{
+			"tags": {
 				Type:          schema.TypeList,
 				Optional:      true,
 				Elem:          &schema.Schema{Type: schema.TypeMap},
@@ -464,7 +463,22 @@ func resourceAwsAutoscalingGroupCreate(d *schema.ResourceData, meta interface{})
 	}
 
 	log.Printf("[DEBUG] AutoScaling Group create configuration: %#v", createOpts)
-	_, err := conn.CreateAutoScalingGroup(&createOpts)
+
+	// Retry for IAM eventual consistency
+	err := resource.Retry(1*time.Minute, func() *resource.RetryError {
+		_, err := conn.CreateAutoScalingGroup(&createOpts)
+
+		// ValidationError: You must use a valid fully-formed launch template. Value (tf-acc-test-6643732652421074386) for parameter iamInstanceProfile.name is invalid. Invalid IAM Instance Profile name
+		if isAWSErr(err, "ValidationError", "Invalid IAM Instance Profile") {
+			return resource.RetryableError(err)
+		}
+
+		if err != nil {
+			return resource.NonRetryableError(err)
+		}
+
+		return nil
+	})
 	if err != nil {
 		return fmt.Errorf("Error creating AutoScaling Group: %s", err)
 	}
@@ -737,7 +751,7 @@ func resourceAwsAutoscalingGroupUpdate(d *schema.ResourceData, meta interface{})
 				LoadBalancerNames:    remove,
 			})
 			if err != nil {
-				return fmt.Errorf("[WARN] Error updating Load Balancers for AutoScaling Group (%s), error: %s", d.Id(), err)
+				return fmt.Errorf("Error updating Load Balancers for AutoScaling Group (%s), error: %s", d.Id(), err)
 			}
 		}
 
@@ -747,7 +761,7 @@ func resourceAwsAutoscalingGroupUpdate(d *schema.ResourceData, meta interface{})
 				LoadBalancerNames:    add,
 			})
 			if err != nil {
-				return fmt.Errorf("[WARN] Error updating Load Balancers for AutoScaling Group (%s), error: %s", d.Id(), err)
+				return fmt.Errorf("Error updating Load Balancers for AutoScaling Group (%s), error: %s", d.Id(), err)
 			}
 		}
 	}
@@ -773,7 +787,7 @@ func resourceAwsAutoscalingGroupUpdate(d *schema.ResourceData, meta interface{})
 				TargetGroupARNs:      remove,
 			})
 			if err != nil {
-				return fmt.Errorf("[WARN] Error updating Load Balancers Target Groups for AutoScaling Group (%s), error: %s", d.Id(), err)
+				return fmt.Errorf("Error updating Load Balancers Target Groups for AutoScaling Group (%s), error: %s", d.Id(), err)
 			}
 		}
 
@@ -783,26 +797,26 @@ func resourceAwsAutoscalingGroupUpdate(d *schema.ResourceData, meta interface{})
 				TargetGroupARNs:      add,
 			})
 			if err != nil {
-				return fmt.Errorf("[WARN] Error updating Load Balancers Target Groups for AutoScaling Group (%s), error: %s", d.Id(), err)
+				return fmt.Errorf("Error updating Load Balancers Target Groups for AutoScaling Group (%s), error: %s", d.Id(), err)
 			}
 		}
 	}
 
 	if shouldWaitForCapacity {
 		if err := waitForASGCapacity(d, meta, capacitySatisfiedUpdate); err != nil {
-			return errwrap.Wrapf("Error waiting for AutoScaling Group Capacity: {{err}}", err)
+			return fmt.Errorf("Error waiting for AutoScaling Group Capacity: %s", err)
 		}
 	}
 
 	if d.HasChange("enabled_metrics") {
 		if err := updateASGMetricsCollection(d, conn); err != nil {
-			return errwrap.Wrapf("Error updating AutoScaling Group Metrics collection: {{err}}", err)
+			return fmt.Errorf("Error updating AutoScaling Group Metrics collection: %s", err)
 		}
 	}
 
 	if d.HasChange("suspended_processes") {
 		if err := updateASGSuspendedProcesses(d, conn); err != nil {
-			return errwrap.Wrapf("Error updating AutoScaling Group Suspended Processes: {{err}}", err)
+			return fmt.Errorf("Error updating AutoScaling Group Suspended Processes: %s", err)
 		}
 	}
 

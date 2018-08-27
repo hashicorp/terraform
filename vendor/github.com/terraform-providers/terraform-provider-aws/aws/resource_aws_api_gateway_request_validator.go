@@ -2,12 +2,13 @@ package aws
 
 import (
 	"fmt"
+	"log"
+	"strings"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/apigateway"
 	"github.com/hashicorp/terraform/helper/schema"
-	"log"
-	"strings"
 )
 
 func resourceAwsApiGatewayRequestValidator() *schema.Resource {
@@ -16,6 +17,20 @@ func resourceAwsApiGatewayRequestValidator() *schema.Resource {
 		Read:   resourceAwsApiGatewayRequestValidatorRead,
 		Update: resourceAwsApiGatewayRequestValidatorUpdate,
 		Delete: resourceAwsApiGatewayRequestValidatorDelete,
+		Importer: &schema.ResourceImporter{
+			State: func(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+				idParts := strings.Split(d.Id(), "/")
+				if len(idParts) != 2 || idParts[0] == "" || idParts[1] == "" {
+					return nil, fmt.Errorf("Unexpected format of ID (%q), expected REST-API-ID/REQUEST-VALIDATOR-ID", d.Id())
+				}
+				restApiID := idParts[0]
+				requestValidatorID := idParts[1]
+				d.Set("request_validator_id", requestValidatorID)
+				d.Set("rest_api_id", restApiID)
+				d.SetId(requestValidatorID)
+				return []*schema.ResourceData{d}, nil
+			},
+		},
 
 		Schema: map[string]*schema.Schema{
 			"rest_api_id": {

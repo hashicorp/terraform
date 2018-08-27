@@ -64,7 +64,7 @@ func (b *body) Content(schema *hcl.BodySchema) (*hcl.BodyContent, hcl.Diagnostic
 			diags = append(diags, &hcl.Diagnostic{
 				Severity: hcl.DiagError,
 				Summary:  "Extraneous JSON object property",
-				Detail:   fmt.Sprintf("No argument or block type is named %q.%s", k, suggestion),
+				Detail:   fmt.Sprintf("No attribute or block type is named %q.%s", k, suggestion),
 				Subject:  &attr.NameRange,
 				Context:  attr.Range().Ptr(),
 			})
@@ -114,8 +114,8 @@ func (b *body) PartialContent(schema *hcl.BodySchema) (*hcl.BodyContent, hcl.Bod
 			if existing, exists := content.Attributes[attrName]; exists {
 				diags = append(diags, &hcl.Diagnostic{
 					Severity: hcl.DiagError,
-					Summary:  "Duplicate argument",
-					Detail:   fmt.Sprintf("The argument %q was already set at %s.", attrName, existing.Range),
+					Summary:  "Duplicate attribute definition",
+					Detail:   fmt.Sprintf("The attribute %q was already defined at %s.", attrName, existing.Range),
 					Subject:  &jsonAttr.NameRange,
 					Context:  jsonAttr.Range().Ptr(),
 				})
@@ -149,8 +149,8 @@ func (b *body) PartialContent(schema *hcl.BodySchema) (*hcl.BodyContent, hcl.Bod
 		if _, defined := content.Attributes[attrS.Name]; !defined {
 			diags = append(diags, &hcl.Diagnostic{
 				Severity: hcl.DiagError,
-				Summary:  "Missing required argument",
-				Detail:   fmt.Sprintf("The argument %q is required, but no definition was found.", attrS.Name),
+				Summary:  "Missing required attribute",
+				Detail:   fmt.Sprintf("The attribute %q is required, but no definition was found.", attrS.Name),
 				Subject:  b.MissingItemRange().Ptr(),
 			})
 		}
@@ -175,7 +175,7 @@ func (b *body) JustAttributes() (hcl.Attributes, hcl.Diagnostics) {
 		diags = append(diags, &hcl.Diagnostic{
 			Severity: hcl.DiagError,
 			Summary:  "Incorrect JSON value type",
-			Detail:   "A JSON object is required here, setting the arguments for this block.",
+			Detail:   "A JSON object is required here, defining the attributes for this block.",
 			Subject:  b.val.StartRange().Ptr(),
 		})
 		return attrs, diags
@@ -197,7 +197,7 @@ func (b *body) JustAttributes() (hcl.Attributes, hcl.Diagnostics) {
 			diags = append(diags, &hcl.Diagnostic{
 				Severity: hcl.DiagError,
 				Summary:  "Duplicate attribute definition",
-				Detail:   fmt.Sprintf("The argument %q was already set at %s.", name, existing.Range),
+				Detail:   fmt.Sprintf("The attribute %q was already defined at %s.", name, existing.Range),
 				Subject:  &jsonAttr.NameRange,
 			})
 			continue
@@ -345,7 +345,7 @@ func (b *body) collectDeepAttrs(v node, labelName *string) ([]*objectAttr, hcl.D
 					diags = append(diags, &hcl.Diagnostic{
 						Severity: hcl.DiagError,
 						Summary:  "Incorrect JSON value type",
-						Detail:   "A JSON object is required here, to define arguments and child blocks.",
+						Detail:   "A JSON object is required here, to define attributes and child blocks.",
 						Subject:  ev.StartRange().Ptr(),
 					})
 				}
@@ -364,7 +364,7 @@ func (b *body) collectDeepAttrs(v node, labelName *string) ([]*objectAttr, hcl.D
 			diags = append(diags, &hcl.Diagnostic{
 				Severity: hcl.DiagError,
 				Summary:  "Incorrect JSON value type",
-				Detail:   "Either a JSON object or JSON array of objects is required here, to define arguments and child blocks.",
+				Detail:   "Either a JSON object or JSON array of objects is required here, to define attributes and child blocks.",
 				Subject:  v.StartRange().Ptr(),
 			})
 		}
@@ -432,8 +432,7 @@ func (e *expression) Value(ctx *hcl.EvalContext) (cty.Value, hcl.Diagnostics) {
 				Value:    jsonAttr.Name,
 				SrcRange: jsonAttr.NameRange,
 			}}).Value(ctx)
-			valExpr := &expression{src: jsonAttr.Value}
-			val, valDiags := valExpr.Value(ctx)
+			val, valDiags := (&expression{src: jsonAttr.Value}).Value(ctx)
 			diags = append(diags, nameDiags...)
 			diags = append(diags, valDiags...)
 
@@ -441,23 +440,19 @@ func (e *expression) Value(ctx *hcl.EvalContext) (cty.Value, hcl.Diagnostics) {
 			name, err = convert.Convert(name, cty.String)
 			if err != nil {
 				diags = append(diags, &hcl.Diagnostic{
-					Severity:    hcl.DiagError,
-					Summary:     "Invalid object key expression",
-					Detail:      fmt.Sprintf("Cannot use this expression as an object key: %s.", err),
-					Subject:     &jsonAttr.NameRange,
-					Expression:  valExpr,
-					EvalContext: ctx,
+					Severity: hcl.DiagError,
+					Summary:  "Invalid object key expression",
+					Detail:   fmt.Sprintf("Cannot use this expression as an object key: %s.", err),
+					Subject:  &jsonAttr.NameRange,
 				})
 				continue
 			}
 			if name.IsNull() {
 				diags = append(diags, &hcl.Diagnostic{
-					Severity:    hcl.DiagError,
-					Summary:     "Invalid object key expression",
-					Detail:      "Cannot use null value as an object key.",
-					Subject:     &jsonAttr.NameRange,
-					Expression:  valExpr,
-					EvalContext: ctx,
+					Severity: hcl.DiagError,
+					Summary:  "Invalid object key expression",
+					Detail:   "Cannot use null value as an object key.",
+					Subject:  &jsonAttr.NameRange,
 				})
 				continue
 			}
@@ -476,12 +471,10 @@ func (e *expression) Value(ctx *hcl.EvalContext) (cty.Value, hcl.Diagnostics) {
 			nameStr := name.AsString()
 			if _, defined := attrs[nameStr]; defined {
 				diags = append(diags, &hcl.Diagnostic{
-					Severity:    hcl.DiagError,
-					Summary:     "Duplicate object attribute",
-					Detail:      fmt.Sprintf("An attribute named %q was already defined at %s.", nameStr, attrRanges[nameStr]),
-					Subject:     &jsonAttr.NameRange,
-					Expression:  e,
-					EvalContext: ctx,
+					Severity: hcl.DiagError,
+					Summary:  "Duplicate object attribute",
+					Detail:   fmt.Sprintf("An attribute named %q was already defined at %s.", nameStr, attrRanges[nameStr]),
+					Subject:  &jsonAttr.NameRange,
 				})
 				continue
 			}

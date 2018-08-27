@@ -9,7 +9,6 @@ import (
 	"github.com/aws/aws-sdk-go/aws/arn"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/apigateway"
-	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -173,32 +172,44 @@ func resourceAwsApiGatewayDeploymentDelete(d *schema.ResourceData, meta interfac
 	conn := meta.(*AWSClient).apigateway
 	log.Printf("[DEBUG] Deleting API Gateway Deployment: %s", d.Id())
 
-	return resource.Retry(5*time.Minute, func() *resource.RetryError {
-		log.Printf("[DEBUG] schema is %#v", d)
+	// If the stage has been updated to point at a different deployment, then
+	// the stage should not be removed then this deployment is deleted.
+	shouldDeleteStage := false
+
+	stage, err := conn.GetStage(&apigateway.GetStageInput{
+		StageName: aws.String(d.Get("stage_name").(string)),
+		RestApiId: aws.String(d.Get("rest_api_id").(string)),
+	})
+
+	if err != nil && !isAWSErr(err, apigateway.ErrCodeNotFoundException, "") {
+		return fmt.Errorf("error getting referenced stage: %s", err)
+	}
+
+	if stage != nil && aws.StringValue(stage.DeploymentId) == d.Id() {
+		shouldDeleteStage = true
+	}
+
+	if shouldDeleteStage {
 		if _, err := conn.DeleteStage(&apigateway.DeleteStageInput{
 			StageName: aws.String(d.Get("stage_name").(string)),
 			RestApiId: aws.String(d.Get("rest_api_id").(string)),
 		}); err == nil {
 			return nil
 		}
+	}
 
-		_, err := conn.DeleteDeployment(&apigateway.DeleteDeploymentInput{
-			DeploymentId: aws.String(d.Id()),
-			RestApiId:    aws.String(d.Get("rest_api_id").(string)),
-		})
-		if err == nil {
-			return nil
-		}
-
-		apigatewayErr, ok := err.(awserr.Error)
-		if apigatewayErr.Code() == "NotFoundException" {
-			return nil
-		}
-
-		if !ok {
-			return resource.NonRetryableError(err)
-		}
-
-		return resource.NonRetryableError(err)
+	_, err = conn.DeleteDeployment(&apigateway.DeleteDeploymentInput{
+		DeploymentId: aws.String(d.Id()),
+		RestApiId:    aws.String(d.Get("rest_api_id").(string)),
 	})
+
+	if isAWSErr(err, apigateway.ErrCodeNotFoundException, "") {
+		return nil
+	}
+
+	if err != nil {
+		return fmt.Errorf("error deleting API Gateway Deployment (%s): %s", d.Id(), err)
+	}
+
+	return nil
 }

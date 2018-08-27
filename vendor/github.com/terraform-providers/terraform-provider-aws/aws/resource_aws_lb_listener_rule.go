@@ -7,14 +7,14 @@ import (
 	"regexp"
 	"sort"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/elbv2"
-	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/hashicorp/terraform/helper/validation"
 )
 
 func resourceAwsLbbListenerRule() *schema.Resource {
@@ -49,14 +49,232 @@ func resourceAwsLbbListenerRule() *schema.Resource {
 				Required: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"target_group_arn": {
+						"type": {
 							Type:     schema.TypeString,
 							Required: true,
+							ValidateFunc: validation.StringInSlice([]string{
+								elbv2.ActionTypeEnumAuthenticateCognito,
+								elbv2.ActionTypeEnumAuthenticateOidc,
+								elbv2.ActionTypeEnumFixedResponse,
+								elbv2.ActionTypeEnumForward,
+								elbv2.ActionTypeEnumRedirect,
+							}, true),
 						},
-						"type": {
-							Type:         schema.TypeString,
-							Required:     true,
-							ValidateFunc: validateLbListenerActionType(),
+						"order": {
+							Type:         schema.TypeInt,
+							Optional:     true,
+							ValidateFunc: validation.IntBetween(1, 50000),
+						},
+
+						"target_group_arn": {
+							Type:             schema.TypeString,
+							Optional:         true,
+							DiffSuppressFunc: suppressIfActionTypeNot("forward"),
+						},
+
+						"redirect": {
+							Type:             schema.TypeList,
+							Optional:         true,
+							DiffSuppressFunc: suppressIfActionTypeNot("redirect"),
+							MaxItems:         1,
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"host": {
+										Type:     schema.TypeString,
+										Optional: true,
+										Default:  "#{host}",
+									},
+
+									"path": {
+										Type:     schema.TypeString,
+										Optional: true,
+										Default:  "/#{path}",
+									},
+
+									"port": {
+										Type:     schema.TypeString,
+										Optional: true,
+										Default:  "#{port}",
+									},
+
+									"protocol": {
+										Type:     schema.TypeString,
+										Optional: true,
+										Default:  "#{protocol}",
+										ValidateFunc: validation.StringInSlice([]string{
+											"#{protocol}",
+											"HTTP",
+											"HTTPS",
+										}, false),
+									},
+
+									"query": {
+										Type:     schema.TypeString,
+										Optional: true,
+										Default:  "#{query}",
+									},
+
+									"status_code": {
+										Type:     schema.TypeString,
+										Required: true,
+										ValidateFunc: validation.StringInSlice([]string{
+											"HTTP_301",
+											"HTTP_302",
+										}, false),
+									},
+								},
+							},
+						},
+
+						"fixed_response": {
+							Type:             schema.TypeList,
+							Optional:         true,
+							DiffSuppressFunc: suppressIfActionTypeNot("fixed-response"),
+							MaxItems:         1,
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"content_type": {
+										Type:     schema.TypeString,
+										Required: true,
+										ValidateFunc: validation.StringInSlice([]string{
+											"text/plain",
+											"text/css",
+											"text/html",
+											"application/javascript",
+											"application/json",
+										}, false),
+									},
+
+									"message_body": {
+										Type:     schema.TypeString,
+										Optional: true,
+									},
+
+									"status_code": {
+										Type:         schema.TypeString,
+										Optional:     true,
+										Computed:     true,
+										ValidateFunc: validation.StringMatch(regexp.MustCompile(`^[245]\d\d$`), ""),
+									},
+								},
+							},
+						},
+
+						"authenticate_cognito": {
+							Type:             schema.TypeList,
+							Optional:         true,
+							DiffSuppressFunc: suppressIfDefaultActionTypeNot(elbv2.ActionTypeEnumAuthenticateCognito),
+							MaxItems:         1,
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"authentication_request_extra_params": {
+										Type:     schema.TypeMap,
+										Optional: true,
+									},
+									"on_unauthenticated_request": {
+										Type:     schema.TypeString,
+										Optional: true,
+										Computed: true,
+										ValidateFunc: validation.StringInSlice([]string{
+											elbv2.AuthenticateCognitoActionConditionalBehaviorEnumDeny,
+											elbv2.AuthenticateCognitoActionConditionalBehaviorEnumAllow,
+											elbv2.AuthenticateCognitoActionConditionalBehaviorEnumAuthenticate,
+										}, true),
+									},
+									"scope": {
+										Type:     schema.TypeString,
+										Optional: true,
+										Computed: true,
+									},
+									"session_cookie_name": {
+										Type:     schema.TypeString,
+										Optional: true,
+										Computed: true,
+									},
+									"session_timeout": {
+										Type:     schema.TypeInt,
+										Optional: true,
+										Computed: true,
+									},
+									"user_pool_arn": {
+										Type:     schema.TypeString,
+										Required: true,
+									},
+									"user_pool_client_id": {
+										Type:     schema.TypeString,
+										Required: true,
+									},
+									"user_pool_domain": {
+										Type:     schema.TypeString,
+										Required: true,
+									},
+								},
+							},
+						},
+
+						"authenticate_oidc": {
+							Type:             schema.TypeList,
+							Optional:         true,
+							DiffSuppressFunc: suppressIfDefaultActionTypeNot(elbv2.ActionTypeEnumAuthenticateOidc),
+							MaxItems:         1,
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"authentication_request_extra_params": {
+										Type:     schema.TypeMap,
+										Optional: true,
+									},
+									"authorization_endpoint": {
+										Type:     schema.TypeString,
+										Required: true,
+									},
+									"client_id": {
+										Type:     schema.TypeString,
+										Required: true,
+									},
+									"client_secret": {
+										Type:      schema.TypeString,
+										Required:  true,
+										Sensitive: true,
+									},
+									"issuer": {
+										Type:     schema.TypeString,
+										Required: true,
+									},
+									"on_unauthenticated_request": {
+										Type:     schema.TypeString,
+										Optional: true,
+										Computed: true,
+										ValidateFunc: validation.StringInSlice([]string{
+											elbv2.AuthenticateOidcActionConditionalBehaviorEnumDeny,
+											elbv2.AuthenticateOidcActionConditionalBehaviorEnumAllow,
+											elbv2.AuthenticateOidcActionConditionalBehaviorEnumAuthenticate,
+										}, true),
+									},
+									"scope": {
+										Type:     schema.TypeString,
+										Optional: true,
+										Computed: true,
+									},
+									"session_cookie_name": {
+										Type:     schema.TypeString,
+										Optional: true,
+										Computed: true,
+									},
+									"session_timeout": {
+										Type:     schema.TypeInt,
+										Optional: true,
+										Computed: true,
+									},
+									"token_endpoint": {
+										Type:     schema.TypeString,
+										Required: true,
+									},
+									"user_info_endpoint": {
+										Type:     schema.TypeString,
+										Required: true,
+									},
+								},
+							},
 						},
 					},
 				},
@@ -69,7 +287,7 @@ func resourceAwsLbbListenerRule() *schema.Resource {
 						"field": {
 							Type:         schema.TypeString,
 							Optional:     true,
-							ValidateFunc: validateMaxLength(64),
+							ValidateFunc: validation.StringLenBetween(0, 64),
 						},
 						"values": {
 							Type:     schema.TypeList,
@@ -81,6 +299,21 @@ func resourceAwsLbbListenerRule() *schema.Resource {
 				},
 			},
 		},
+	}
+}
+
+func suppressIfActionTypeNot(t string) schema.SchemaDiffSuppressFunc {
+	return func(k, old, new string, d *schema.ResourceData) bool {
+		take := 2
+		i := strings.IndexFunc(k, func(r rune) bool {
+			if r == '.' {
+				take -= 1
+				return take == 0
+			}
+			return false
+		})
+		at := k[:i+1] + "type"
+		return d.Get(at).(string) != t
 	}
 }
 
@@ -96,10 +329,128 @@ func resourceAwsLbListenerRuleCreate(d *schema.ResourceData, meta interface{}) e
 	params.Actions = make([]*elbv2.Action, len(actions))
 	for i, action := range actions {
 		actionMap := action.(map[string]interface{})
-		params.Actions[i] = &elbv2.Action{
-			TargetGroupArn: aws.String(actionMap["target_group_arn"].(string)),
-			Type:           aws.String(actionMap["type"].(string)),
+
+		action := &elbv2.Action{
+			Type: aws.String(actionMap["type"].(string)),
 		}
+
+		if order, ok := actionMap["order"]; ok && order != 0 {
+			action.Order = aws.Int64(int64(order.(int)))
+		}
+		if len(actions) != 1 && action.Order == nil {
+			return errors.New("when using more then one action, you need to specify 'order' for each action")
+		}
+
+		switch actionMap["type"].(string) {
+		case "forward":
+			action.TargetGroupArn = aws.String(actionMap["target_group_arn"].(string))
+
+		case "redirect":
+			redirectList := actionMap["redirect"].([]interface{})
+
+			if len(redirectList) == 1 {
+				redirectMap := redirectList[0].(map[string]interface{})
+
+				action.RedirectConfig = &elbv2.RedirectActionConfig{
+					Host:       aws.String(redirectMap["host"].(string)),
+					Path:       aws.String(redirectMap["path"].(string)),
+					Port:       aws.String(redirectMap["port"].(string)),
+					Protocol:   aws.String(redirectMap["protocol"].(string)),
+					Query:      aws.String(redirectMap["query"].(string)),
+					StatusCode: aws.String(redirectMap["status_code"].(string)),
+				}
+			} else {
+				return errors.New("for actions of type 'redirect', you must specify a 'redirect' block")
+			}
+
+		case "fixed-response":
+			fixedResponseList := actionMap["fixed_response"].([]interface{})
+
+			if len(fixedResponseList) == 1 {
+				fixedResponseMap := fixedResponseList[0].(map[string]interface{})
+
+				action.FixedResponseConfig = &elbv2.FixedResponseActionConfig{
+					ContentType: aws.String(fixedResponseMap["content_type"].(string)),
+					MessageBody: aws.String(fixedResponseMap["message_body"].(string)),
+					StatusCode:  aws.String(fixedResponseMap["status_code"].(string)),
+				}
+			} else {
+				return errors.New("for actions of type 'fixed-response', you must specify a 'fixed_response' block")
+			}
+
+		case "authenticate-cognito":
+			authenticateCognitoList := actionMap["authenticate_cognito"].([]interface{})
+
+			if len(authenticateCognitoList) == 1 {
+				authenticateCognitoMap := authenticateCognitoList[0].(map[string]interface{})
+
+				authenticationRequestExtraParams := make(map[string]*string)
+				for key, value := range authenticateCognitoMap["authentication_request_extra_params"].(map[string]interface{}) {
+					authenticationRequestExtraParams[key] = aws.String(value.(string))
+				}
+
+				action.AuthenticateCognitoConfig = &elbv2.AuthenticateCognitoActionConfig{
+					AuthenticationRequestExtraParams: authenticationRequestExtraParams,
+					UserPoolArn:                      aws.String(authenticateCognitoMap["user_pool_arn"].(string)),
+					UserPoolClientId:                 aws.String(authenticateCognitoMap["user_pool_client_id"].(string)),
+					UserPoolDomain:                   aws.String(authenticateCognitoMap["user_pool_domain"].(string)),
+				}
+
+				if onUnauthenticatedRequest, ok := authenticateCognitoMap["on_unauthenticated_request"]; ok && onUnauthenticatedRequest != "" {
+					action.AuthenticateCognitoConfig.OnUnauthenticatedRequest = aws.String(onUnauthenticatedRequest.(string))
+				}
+				if scope, ok := authenticateCognitoMap["scope"]; ok && scope != "" {
+					action.AuthenticateCognitoConfig.Scope = aws.String(scope.(string))
+				}
+				if sessionCookieName, ok := authenticateCognitoMap["session_cookie_name"]; ok && sessionCookieName != "" {
+					action.AuthenticateCognitoConfig.SessionCookieName = aws.String(sessionCookieName.(string))
+				}
+				if sessionTimeout, ok := authenticateCognitoMap["session_timeout"]; ok && sessionTimeout != 0 {
+					action.AuthenticateCognitoConfig.SessionTimeout = aws.Int64(int64(sessionTimeout.(int)))
+				}
+			} else {
+				return errors.New("for actions of type 'authenticate-cognito', you must specify a 'authenticate_cognito' block")
+			}
+
+		case "authenticate-oidc":
+			authenticateOidcList := actionMap["authenticate_oidc"].([]interface{})
+
+			if len(authenticateOidcList) == 1 {
+				authenticateOidcMap := authenticateOidcList[0].(map[string]interface{})
+
+				authenticationRequestExtraParams := make(map[string]*string)
+				for key, value := range authenticateOidcMap["authentication_request_extra_params"].(map[string]interface{}) {
+					authenticationRequestExtraParams[key] = aws.String(value.(string))
+				}
+
+				action.AuthenticateOidcConfig = &elbv2.AuthenticateOidcActionConfig{
+					AuthenticationRequestExtraParams: authenticationRequestExtraParams,
+					AuthorizationEndpoint:            aws.String(authenticateOidcMap["authorization_endpoint"].(string)),
+					ClientId:                         aws.String(authenticateOidcMap["client_id"].(string)),
+					ClientSecret:                     aws.String(authenticateOidcMap["client_secret"].(string)),
+					Issuer:                           aws.String(authenticateOidcMap["issuer"].(string)),
+					TokenEndpoint:                    aws.String(authenticateOidcMap["token_endpoint"].(string)),
+					UserInfoEndpoint:                 aws.String(authenticateOidcMap["user_info_endpoint"].(string)),
+				}
+
+				if onUnauthenticatedRequest, ok := authenticateOidcMap["on_unauthenticated_request"]; ok && onUnauthenticatedRequest != "" {
+					action.AuthenticateOidcConfig.OnUnauthenticatedRequest = aws.String(onUnauthenticatedRequest.(string))
+				}
+				if scope, ok := authenticateOidcMap["scope"]; ok && scope != "" {
+					action.AuthenticateOidcConfig.Scope = aws.String(scope.(string))
+				}
+				if sessionCookieName, ok := authenticateOidcMap["session_cookie_name"]; ok && sessionCookieName != "" {
+					action.AuthenticateOidcConfig.SessionCookieName = aws.String(sessionCookieName.(string))
+				}
+				if sessionTimeout, ok := authenticateOidcMap["session_timeout"]; ok && sessionTimeout != 0 {
+					action.AuthenticateOidcConfig.SessionTimeout = aws.Int64(int64(sessionTimeout.(int)))
+				}
+			} else {
+				return errors.New("for actions of type 'authenticate-oidc', you must specify a 'authenticate_oidc' block")
+			}
+		}
+
+		params.Actions[i] = action
 	}
 
 	conditions := d.Get("condition").(*schema.Set).List()
@@ -150,7 +501,7 @@ func resourceAwsLbListenerRuleCreate(d *schema.ResourceData, meta interface{}) e
 		return errors.New("Error creating LB Listener Rule: no rules returned in response")
 	}
 
-	d.SetId(*resp.Rules[0].RuleArn)
+	d.SetId(aws.StringValue(resp.Rules[0].RuleArn))
 
 	return resourceAwsLbListenerRuleRead(d, meta)
 }
@@ -162,12 +513,12 @@ func resourceAwsLbListenerRuleRead(d *schema.ResourceData, meta interface{}) err
 		RuleArns: []*string{aws.String(d.Id())},
 	})
 	if err != nil {
-		if isRuleNotFound(err) {
+		if isAWSErr(err, elbv2.ErrCodeRuleNotFoundException, "") {
 			log.Printf("[WARN] DescribeRules - removing %s from state", d.Id())
 			d.SetId("")
 			return nil
 		}
-		return errwrap.Wrapf(fmt.Sprintf("Error retrieving Rules for listener %s: {{err}}", d.Id()), err)
+		return fmt.Errorf("Error retrieving Rules for listener %q: %s", d.Id(), err)
 	}
 
 	if len(resp.Rules) != 1 {
@@ -179,24 +530,97 @@ func resourceAwsLbListenerRuleRead(d *schema.ResourceData, meta interface{}) err
 	d.Set("arn", rule.RuleArn)
 
 	// The listener arn isn't in the response but can be derived from the rule arn
-	d.Set("listener_arn", lbListenerARNFromRuleARN(*rule.RuleArn))
+	d.Set("listener_arn", lbListenerARNFromRuleARN(aws.StringValue(rule.RuleArn)))
 
 	// Rules are evaluated in priority order, from the lowest value to the highest value. The default rule has the lowest priority.
-	if *rule.Priority == "default" {
+	if aws.StringValue(rule.Priority) == "default" {
 		d.Set("priority", 99999)
 	} else {
-		if priority, err := strconv.Atoi(*rule.Priority); err != nil {
-			return fmt.Errorf("Cannot convert rule priority %q to int: {{err}}", err)
+		if priority, err := strconv.Atoi(aws.StringValue(rule.Priority)); err != nil {
+			return fmt.Errorf("Cannot convert rule priority %q to int: %s", aws.StringValue(rule.Priority), err)
 		} else {
 			d.Set("priority", priority)
 		}
 	}
 
-	actions := make([]interface{}, len(rule.Actions))
-	for i, action := range rule.Actions {
+	sortedActions := sortActionsBasedonTypeinTFFile("action", rule.Actions, d)
+	actions := make([]interface{}, len(sortedActions))
+	for i, action := range sortedActions {
 		actionMap := make(map[string]interface{})
-		actionMap["target_group_arn"] = *action.TargetGroupArn
-		actionMap["type"] = *action.Type
+		actionMap["type"] = aws.StringValue(action.Type)
+		actionMap["order"] = aws.Int64Value(action.Order)
+
+		switch actionMap["type"] {
+		case "forward":
+			actionMap["target_group_arn"] = aws.StringValue(action.TargetGroupArn)
+
+		case "redirect":
+			actionMap["redirect"] = []map[string]interface{}{
+				{
+					"host":        aws.StringValue(action.RedirectConfig.Host),
+					"path":        aws.StringValue(action.RedirectConfig.Path),
+					"port":        aws.StringValue(action.RedirectConfig.Port),
+					"protocol":    aws.StringValue(action.RedirectConfig.Protocol),
+					"query":       aws.StringValue(action.RedirectConfig.Query),
+					"status_code": aws.StringValue(action.RedirectConfig.StatusCode),
+				},
+			}
+
+		case "fixed-response":
+			actionMap["fixed_response"] = []map[string]interface{}{
+				{
+					"content_type": aws.StringValue(action.FixedResponseConfig.ContentType),
+					"message_body": aws.StringValue(action.FixedResponseConfig.MessageBody),
+					"status_code":  aws.StringValue(action.FixedResponseConfig.StatusCode),
+				},
+			}
+
+		case "authenticate-cognito":
+			authenticationRequestExtraParams := make(map[string]interface{})
+			for key, value := range action.AuthenticateCognitoConfig.AuthenticationRequestExtraParams {
+				authenticationRequestExtraParams[key] = aws.StringValue(value)
+			}
+
+			actionMap["authenticate_cognito"] = []map[string]interface{}{
+				{
+					"authentication_request_extra_params": authenticationRequestExtraParams,
+					"on_unauthenticated_request":          aws.StringValue(action.AuthenticateCognitoConfig.OnUnauthenticatedRequest),
+					"scope":                               aws.StringValue(action.AuthenticateCognitoConfig.Scope),
+					"session_cookie_name":                 aws.StringValue(action.AuthenticateCognitoConfig.SessionCookieName),
+					"session_timeout":                     aws.Int64Value(action.AuthenticateCognitoConfig.SessionTimeout),
+					"user_pool_arn":                       aws.StringValue(action.AuthenticateCognitoConfig.UserPoolArn),
+					"user_pool_client_id":                 aws.StringValue(action.AuthenticateCognitoConfig.UserPoolClientId),
+					"user_pool_domain":                    aws.StringValue(action.AuthenticateCognitoConfig.UserPoolDomain),
+				},
+			}
+
+		case "authenticate-oidc":
+			authenticationRequestExtraParams := make(map[string]interface{})
+			for key, value := range action.AuthenticateOidcConfig.AuthenticationRequestExtraParams {
+				authenticationRequestExtraParams[key] = aws.StringValue(value)
+			}
+
+			// The LB API currently provides no way to read the ClientSecret
+			// Instead we passthrough the configuration value into the state
+			clientSecret := d.Get("action." + strconv.Itoa(i) + ".authenticate_oidc.0.client_secret").(string)
+
+			actionMap["authenticate_oidc"] = []map[string]interface{}{
+				{
+					"authentication_request_extra_params": authenticationRequestExtraParams,
+					"authorization_endpoint":              aws.StringValue(action.AuthenticateOidcConfig.AuthorizationEndpoint),
+					"client_id":                           aws.StringValue(action.AuthenticateOidcConfig.ClientId),
+					"client_secret":                       clientSecret,
+					"issuer":                              aws.StringValue(action.AuthenticateOidcConfig.Issuer),
+					"on_unauthenticated_request":          aws.StringValue(action.AuthenticateOidcConfig.OnUnauthenticatedRequest),
+					"scope":                               aws.StringValue(action.AuthenticateOidcConfig.Scope),
+					"session_cookie_name":                 aws.StringValue(action.AuthenticateOidcConfig.SessionCookieName),
+					"session_timeout":                     aws.Int64Value(action.AuthenticateOidcConfig.SessionTimeout),
+					"token_endpoint":                      aws.StringValue(action.AuthenticateOidcConfig.TokenEndpoint),
+					"user_info_endpoint":                  aws.StringValue(action.AuthenticateOidcConfig.UserInfoEndpoint),
+				},
+			}
+		}
+
 		actions[i] = actionMap
 	}
 	d.Set("action", actions)
@@ -204,10 +628,10 @@ func resourceAwsLbListenerRuleRead(d *schema.ResourceData, meta interface{}) err
 	conditions := make([]interface{}, len(rule.Conditions))
 	for i, condition := range rule.Conditions {
 		conditionMap := make(map[string]interface{})
-		conditionMap["field"] = *condition.Field
+		conditionMap["field"] = aws.StringValue(condition.Field)
 		conditionValues := make([]string, len(condition.Values))
 		for k, value := range condition.Values {
-			conditionValues[k] = *value
+			conditionValues[k] = aws.StringValue(value)
 		}
 		conditionMap["values"] = conditionValues
 		conditions[i] = conditionMap
@@ -250,10 +674,122 @@ func resourceAwsLbListenerRuleUpdate(d *schema.ResourceData, meta interface{}) e
 		params.Actions = make([]*elbv2.Action, len(actions))
 		for i, action := range actions {
 			actionMap := action.(map[string]interface{})
-			params.Actions[i] = &elbv2.Action{
-				TargetGroupArn: aws.String(actionMap["target_group_arn"].(string)),
-				Type:           aws.String(actionMap["type"].(string)),
+
+			action := &elbv2.Action{
+				Type:  aws.String(actionMap["type"].(string)),
+				Order: aws.Int64(int64(actionMap["order"].(int))), // TODO, optional
 			}
+
+			switch actionMap["type"].(string) {
+			case "forward":
+				action.TargetGroupArn = aws.String(actionMap["target_group_arn"].(string))
+
+			case "redirect":
+				redirectList := actionMap["redirect"].([]interface{})
+
+				if len(redirectList) == 1 {
+					redirectMap := redirectList[0].(map[string]interface{})
+
+					action.RedirectConfig = &elbv2.RedirectActionConfig{
+						Host:       aws.String(redirectMap["host"].(string)),
+						Path:       aws.String(redirectMap["path"].(string)),
+						Port:       aws.String(redirectMap["port"].(string)),
+						Protocol:   aws.String(redirectMap["protocol"].(string)),
+						Query:      aws.String(redirectMap["query"].(string)),
+						StatusCode: aws.String(redirectMap["status_code"].(string)),
+					}
+				} else {
+					return errors.New("for actions of type 'redirect', you must specify a 'redirect' block")
+				}
+
+			case "fixed-response":
+				fixedResponseList := actionMap["fixed_response"].([]interface{})
+
+				if len(fixedResponseList) == 1 {
+					fixedResponseMap := fixedResponseList[0].(map[string]interface{})
+
+					action.FixedResponseConfig = &elbv2.FixedResponseActionConfig{
+						ContentType: aws.String(fixedResponseMap["content_type"].(string)),
+						MessageBody: aws.String(fixedResponseMap["message_body"].(string)),
+						StatusCode:  aws.String(fixedResponseMap["status_code"].(string)),
+					}
+				} else {
+					return errors.New("for actions of type 'fixed-response', you must specify a 'fixed_response' block")
+				}
+
+			case "authenticate-cognito":
+				authenticateCognitoList := actionMap["authenticate_cognito"].([]interface{})
+
+				if len(authenticateCognitoList) == 1 {
+					authenticateCognitoMap := authenticateCognitoList[0].(map[string]interface{})
+
+					authenticationRequestExtraParams := make(map[string]*string)
+					for key, value := range authenticateCognitoMap["authentication_request_extra_params"].(map[string]interface{}) {
+						authenticationRequestExtraParams[key] = aws.String(value.(string))
+					}
+
+					action.AuthenticateCognitoConfig = &elbv2.AuthenticateCognitoActionConfig{
+						AuthenticationRequestExtraParams: authenticationRequestExtraParams,
+						UserPoolArn:                      aws.String(authenticateCognitoMap["user_pool_arn"].(string)),
+						UserPoolClientId:                 aws.String(authenticateCognitoMap["user_pool_client_id"].(string)),
+						UserPoolDomain:                   aws.String(authenticateCognitoMap["user_pool_domain"].(string)),
+					}
+
+					if onUnauthenticatedRequest, ok := authenticateCognitoMap["on_unauthenticated_request"]; ok && onUnauthenticatedRequest != "" {
+						action.AuthenticateCognitoConfig.OnUnauthenticatedRequest = aws.String(onUnauthenticatedRequest.(string))
+					}
+					if scope, ok := authenticateCognitoMap["scope"]; ok && scope != "" {
+						action.AuthenticateCognitoConfig.Scope = aws.String(scope.(string))
+					}
+					if sessionCookieName, ok := authenticateCognitoMap["session_cookie_name"]; ok && sessionCookieName != "" {
+						action.AuthenticateCognitoConfig.SessionCookieName = aws.String(sessionCookieName.(string))
+					}
+					if sessionTimeout, ok := authenticateCognitoMap["session_timeout"]; ok && sessionTimeout != 0 {
+						action.AuthenticateCognitoConfig.SessionTimeout = aws.Int64(int64(sessionTimeout.(int)))
+					}
+				} else {
+					return errors.New("for actions of type 'authenticate-cognito', you must specify a 'authenticate_cognito' block")
+				}
+
+			case "authenticate-oidc":
+				authenticateOidcList := actionMap["authenticate_oidc"].([]interface{})
+
+				if len(authenticateOidcList) == 1 {
+					authenticateOidcMap := authenticateOidcList[0].(map[string]interface{})
+
+					authenticationRequestExtraParams := make(map[string]*string)
+					for key, value := range authenticateOidcMap["authentication_request_extra_params"].(map[string]interface{}) {
+						authenticationRequestExtraParams[key] = aws.String(value.(string))
+					}
+
+					action.AuthenticateOidcConfig = &elbv2.AuthenticateOidcActionConfig{
+						AuthenticationRequestExtraParams: authenticationRequestExtraParams,
+						AuthorizationEndpoint:            aws.String(authenticateOidcMap["authorization_endpoint"].(string)),
+						ClientId:                         aws.String(authenticateOidcMap["client_id"].(string)),
+						ClientSecret:                     aws.String(authenticateOidcMap["client_secret"].(string)),
+						Issuer:                           aws.String(authenticateOidcMap["issuer"].(string)),
+						TokenEndpoint:                    aws.String(authenticateOidcMap["token_endpoint"].(string)),
+						UserInfoEndpoint:                 aws.String(authenticateOidcMap["user_info_endpoint"].(string)),
+					}
+
+					if onUnauthenticatedRequest, ok := authenticateOidcMap["on_unauthenticated_request"]; ok && onUnauthenticatedRequest != "" {
+						action.AuthenticateOidcConfig.OnUnauthenticatedRequest = aws.String(onUnauthenticatedRequest.(string))
+					}
+					if scope, ok := authenticateOidcMap["scope"]; ok && scope != "" {
+						action.AuthenticateOidcConfig.Scope = aws.String(scope.(string))
+					}
+					if sessionCookieName, ok := authenticateOidcMap["session_cookie_name"]; ok && sessionCookieName != "" {
+						action.AuthenticateOidcConfig.SessionCookieName = aws.String(sessionCookieName.(string))
+					}
+					if sessionTimeout, ok := authenticateOidcMap["session_timeout"]; ok && sessionTimeout != 0 {
+						action.AuthenticateOidcConfig.SessionTimeout = aws.Int64(int64(sessionTimeout.(int)))
+					}
+				} else {
+					return errors.New("for actions of type 'authenticate-oidc', you must specify a 'authenticate_oidc' block")
+				}
+			}
+
+			params.Actions[i] = action
 		}
 		requestUpdate = true
 		d.SetPartial("action")
@@ -280,7 +816,7 @@ func resourceAwsLbListenerRuleUpdate(d *schema.ResourceData, meta interface{}) e
 	if requestUpdate {
 		resp, err := elbconn.ModifyRule(params)
 		if err != nil {
-			return errwrap.Wrapf("Error modifying LB Listener Rule: {{err}}", err)
+			return fmt.Errorf("Error modifying LB Listener Rule: %s", err)
 		}
 
 		if len(resp.Rules) == 0 {
@@ -299,8 +835,8 @@ func resourceAwsLbListenerRuleDelete(d *schema.ResourceData, meta interface{}) e
 	_, err := elbconn.DeleteRule(&elbv2.DeleteRuleInput{
 		RuleArn: aws.String(d.Id()),
 	})
-	if err != nil && !isRuleNotFound(err) {
-		return errwrap.Wrapf("Error deleting LB Listener Rule: {{err}}", err)
+	if err != nil && !isAWSErr(err, elbv2.ErrCodeRuleNotFoundException, "") {
+		return fmt.Errorf("Error deleting LB Listener Rule: %s", err)
 	}
 	return nil
 }
@@ -329,11 +865,6 @@ func lbListenerARNFromRuleARN(ruleArn string) string {
 	return ""
 }
 
-func isRuleNotFound(err error) bool {
-	elberr, ok := err.(awserr.Error)
-	return ok && elberr.Code() == "RuleNotFound"
-}
-
 func highestListenerRulePriority(conn *elbv2.ELBV2, arn string) (priority int64, err error) {
 	var priorities []int
 	var nextMarker *string
@@ -348,8 +879,8 @@ func highestListenerRulePriority(conn *elbv2.ELBV2, arn string) (priority int64,
 			return
 		}
 		for _, rule := range out.Rules {
-			if *rule.Priority != "default" {
-				p, _ := strconv.Atoi(*rule.Priority)
+			if aws.StringValue(rule.Priority) != "default" {
+				p, _ := strconv.Atoi(aws.StringValue(rule.Priority))
 				priorities = append(priorities, p)
 			}
 		}

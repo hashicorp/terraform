@@ -77,7 +77,7 @@ func resourceAwsDxHostedPublicVirtualInterface() *schema.Resource {
 				ForceNew:     true,
 				ValidateFunc: validateAwsAccountId,
 			},
-			"route_filter_prefixes": &schema.Schema{
+			"route_filter_prefixes": {
 				Type:     schema.TypeSet,
 				Required: true,
 				ForceNew: true,

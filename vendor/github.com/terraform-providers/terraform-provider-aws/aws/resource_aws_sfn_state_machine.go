@@ -8,9 +8,9 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/sfn"
-	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/hashicorp/terraform/helper/validation"
 )
 
 func resourceAwsSfnStateMachine() *schema.Resource {
@@ -27,7 +27,7 @@ func resourceAwsSfnStateMachine() *schema.Resource {
 			"definition": {
 				Type:         schema.TypeString,
 				Required:     true,
-				ValidateFunc: validateMaxLength(1024 * 1024), // 1048576
+				ValidateFunc: validation.StringLenBetween(0, 1024*1024), // 1048576
 			},
 
 			"name": {
@@ -87,7 +87,7 @@ func resourceAwsSfnStateMachineCreate(d *schema.ResourceData, meta interface{}) 
 	})
 
 	if err != nil {
-		return errwrap.Wrapf("Error creating Step Function State Machine: {{err}}", err)
+		return fmt.Errorf("Error creating Step Function State Machine: %s", err)
 	}
 
 	d.SetId(*activity.StateMachineArn)

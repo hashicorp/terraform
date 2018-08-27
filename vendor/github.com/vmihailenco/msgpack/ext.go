@@ -96,10 +96,10 @@ func (e *Encoder) encodeExtLen(l int) error {
 		return e.writeCode(codes.FixExt16)
 	}
 	if l < 256 {
-		return e.write1(codes.Ext8, uint64(l))
+		return e.write1(codes.Ext8, uint8(l))
 	}
 	if l < 65536 {
-		return e.write2(codes.Ext16, uint64(l))
+		return e.write2(codes.Ext16, uint16(l))
 	}
 	return e.write4(codes.Ext32, uint32(l))
 }

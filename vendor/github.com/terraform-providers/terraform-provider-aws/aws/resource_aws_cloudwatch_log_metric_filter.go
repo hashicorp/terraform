@@ -7,6 +7,7 @@ import (
 
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/hashicorp/terraform/helper/validation"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
@@ -31,7 +32,7 @@ func resourceAwsCloudWatchLogMetricFilter() *schema.Resource {
 			"pattern": {
 				Type:         schema.TypeString,
 				Required:     true,
-				ValidateFunc: validateMaxLength(1024),
+				ValidateFunc: validation.StringLenBetween(0, 1024),
 				StateFunc: func(v interface{}) string {
 					s, ok := v.(string)
 					if !ok {
@@ -67,7 +68,7 @@ func resourceAwsCloudWatchLogMetricFilter() *schema.Resource {
 						"value": {
 							Type:         schema.TypeString,
 							Required:     true,
-							ValidateFunc: validateMaxLength(100),
+							ValidateFunc: validation.StringLenBetween(0, 100),
 						},
 						"default_value": {
 							Type:     schema.TypeFloat,

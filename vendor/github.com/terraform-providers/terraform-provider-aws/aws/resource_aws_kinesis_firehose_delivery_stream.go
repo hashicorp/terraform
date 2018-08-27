@@ -228,11 +228,11 @@ func flattenFirehoseExtendedS3Configuration(description *firehose.ExtendedS3Dest
 		"cloudwatch_logging_options":           flattenCloudwatchLoggingOptions(description.CloudWatchLoggingOptions),
 		"compression_format":                   aws.StringValue(description.CompressionFormat),
 		"data_format_conversion_configuration": flattenFirehoseDataFormatConversionConfiguration(description.DataFormatConversionConfiguration),
-		"prefix":                   aws.StringValue(description.Prefix),
-		"processing_configuration": flattenProcessingConfiguration(description.ProcessingConfiguration, aws.StringValue(description.RoleARN)),
-		"role_arn":                 aws.StringValue(description.RoleARN),
-		"s3_backup_configuration":  flattenFirehoseS3Configuration(description.S3BackupDescription),
-		"s3_backup_mode":           aws.StringValue(description.S3BackupMode),
+		"prefix":                               aws.StringValue(description.Prefix),
+		"processing_configuration":             flattenProcessingConfiguration(description.ProcessingConfiguration, aws.StringValue(description.RoleARN)),
+		"role_arn":                             aws.StringValue(description.RoleARN),
+		"s3_backup_configuration":              flattenFirehoseS3Configuration(description.S3BackupDescription),
+		"s3_backup_mode":                       aws.StringValue(description.S3BackupMode),
 	}
 
 	if description.BufferingHints != nil {
@@ -1754,7 +1754,7 @@ func extractPrefixConfiguration(s3 map[string]interface{}) *string {
 func createRedshiftConfig(d *schema.ResourceData, s3Config *firehose.S3DestinationConfiguration) (*firehose.RedshiftDestinationConfiguration, error) {
 	redshiftRaw, ok := d.GetOk("redshift_configuration")
 	if !ok {
-		return nil, fmt.Errorf("[ERR] Error loading Redshift Configuration for Kinesis Firehose: redshift_configuration not found")
+		return nil, fmt.Errorf("Error loading Redshift Configuration for Kinesis Firehose: redshift_configuration not found")
 	}
 	rl := redshiftRaw.([]interface{})
 
@@ -1787,7 +1787,7 @@ func createRedshiftConfig(d *schema.ResourceData, s3Config *firehose.S3Destinati
 func updateRedshiftConfig(d *schema.ResourceData, s3Update *firehose.S3DestinationUpdate) (*firehose.RedshiftDestinationUpdate, error) {
 	redshiftRaw, ok := d.GetOk("redshift_configuration")
 	if !ok {
-		return nil, fmt.Errorf("[ERR] Error loading Redshift Configuration for Kinesis Firehose: redshift_configuration not found")
+		return nil, fmt.Errorf("Error loading Redshift Configuration for Kinesis Firehose: redshift_configuration not found")
 	}
 	rl := redshiftRaw.([]interface{})
 
@@ -1820,7 +1820,7 @@ func updateRedshiftConfig(d *schema.ResourceData, s3Update *firehose.S3Destinati
 func createElasticsearchConfig(d *schema.ResourceData, s3Config *firehose.S3DestinationConfiguration) (*firehose.ElasticsearchDestinationConfiguration, error) {
 	esConfig, ok := d.GetOk("elasticsearch_configuration")
 	if !ok {
-		return nil, fmt.Errorf("[ERR] Error loading Elasticsearch Configuration for Kinesis Firehose: elasticsearch_configuration not found")
+		return nil, fmt.Errorf("Error loading Elasticsearch Configuration for Kinesis Firehose: elasticsearch_configuration not found")
 	}
 	esList := esConfig.([]interface{})
 
@@ -1857,7 +1857,7 @@ func createElasticsearchConfig(d *schema.ResourceData, s3Config *firehose.S3Dest
 func updateElasticsearchConfig(d *schema.ResourceData, s3Update *firehose.S3DestinationUpdate) (*firehose.ElasticsearchDestinationUpdate, error) {
 	esConfig, ok := d.GetOk("elasticsearch_configuration")
 	if !ok {
-		return nil, fmt.Errorf("[ERR] Error loading Elasticsearch Configuration for Kinesis Firehose: elasticsearch_configuration not found")
+		return nil, fmt.Errorf("Error loading Elasticsearch Configuration for Kinesis Firehose: elasticsearch_configuration not found")
 	}
 	esList := esConfig.([]interface{})
 
@@ -1891,7 +1891,7 @@ func updateElasticsearchConfig(d *schema.ResourceData, s3Update *firehose.S3Dest
 func createSplunkConfig(d *schema.ResourceData, s3Config *firehose.S3DestinationConfiguration) (*firehose.SplunkDestinationConfiguration, error) {
 	splunkRaw, ok := d.GetOk("splunk_configuration")
 	if !ok {
-		return nil, fmt.Errorf("[ERR] Error loading Splunk Configuration for Kinesis Firehose: splunk_configuration not found")
+		return nil, fmt.Errorf("Error loading Splunk Configuration for Kinesis Firehose: splunk_configuration not found")
 	}
 	sl := splunkRaw.([]interface{})
 
@@ -1923,7 +1923,7 @@ func createSplunkConfig(d *schema.ResourceData, s3Config *firehose.S3Destination
 func updateSplunkConfig(d *schema.ResourceData, s3Update *firehose.S3DestinationUpdate) (*firehose.SplunkDestinationUpdate, error) {
 	splunkRaw, ok := d.GetOk("splunk_configuration")
 	if !ok {
-		return nil, fmt.Errorf("[ERR] Error loading Splunk Configuration for Kinesis Firehose: splunk_configuration not found")
+		return nil, fmt.Errorf("Error loading Splunk Configuration for Kinesis Firehose: splunk_configuration not found")
 	}
 	sl := splunkRaw.([]interface{})
 
@@ -2070,6 +2070,10 @@ func resourceAwsKinesisFirehoseDeliveryStreamCreate(d *schema.ResourceData, meta
 			if isAWSErr(err, firehose.ErrCodeInvalidArgumentException, "is not authorized to") {
 				return resource.RetryableError(err)
 			}
+			// InvalidArgumentException: Verify that the IAM role has access to the ElasticSearch domain.
+			if isAWSErr(err, firehose.ErrCodeInvalidArgumentException, "Verify that the IAM role has access") {
+				return resource.RetryableError(err)
+			}
 			// IAM roles can take ~10 seconds to propagate in AWS:
 			// http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/iam-roles-for-amazon-ec2.html#launch-instance-with-role-console
 			if isAWSErr(err, firehose.ErrCodeInvalidArgumentException, "Firehose is unable to assume role") {
@@ -2193,6 +2197,10 @@ func resourceAwsKinesisFirehoseDeliveryStreamUpdate(d *schema.ResourceData, meta
 
 			// Retry for IAM eventual consistency
 			if isAWSErr(err, firehose.ErrCodeInvalidArgumentException, "is not authorized to") {
+				return resource.RetryableError(err)
+			}
+			// InvalidArgumentException: Verify that the IAM role has access to the ElasticSearch domain.
+			if isAWSErr(err, firehose.ErrCodeInvalidArgumentException, "Verify that the IAM role has access") {
 				return resource.RetryableError(err)
 			}
 			// IAM roles can take ~10 seconds to propagate in AWS:

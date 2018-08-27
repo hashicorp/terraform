@@ -2,6 +2,7 @@ package aws
 
 import (
 	"fmt"
+	"log"
 	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -18,35 +19,35 @@ func resourceAwsLoadBalancerPolicy() *schema.Resource {
 		Delete: resourceAwsLoadBalancerPolicyDelete,
 
 		Schema: map[string]*schema.Schema{
-			"load_balancer_name": &schema.Schema{
+			"load_balancer_name": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
 
-			"policy_name": &schema.Schema{
+			"policy_name": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
 
-			"policy_type_name": &schema.Schema{
+			"policy_type_name": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
 
-			"policy_attribute": &schema.Schema{
+			"policy_attribute": {
 				Type:     schema.TypeSet,
 				Optional: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"name": &schema.Schema{
+						"name": {
 							Type:     schema.TypeString,
 							Optional: true,
 						},
 
-						"value": &schema.Schema{
+						"value": {
 							Type:     schema.TypeString,
 							Optional: true,
 						},
@@ -100,11 +101,20 @@ func resourceAwsLoadBalancerPolicyRead(d *schema.ResourceData, meta interface{})
 	}
 
 	getResp, err := elbconn.DescribeLoadBalancerPolicies(request)
+
+	if isAWSErr(err, "LoadBalancerNotFound", "") {
+		log.Printf("[WARN] Load Balancer Policy (%s) not found, removing from state", d.Id())
+		d.SetId("")
+		return nil
+	}
+
+	if isAWSErr(err, elb.ErrCodePolicyNotFoundException, "") {
+		log.Printf("[WARN] Load Balancer Policy (%s) not found, removing from state", d.Id())
+		d.SetId("")
+		return nil
+	}
+
 	if err != nil {
-		if ec2err, ok := err.(awserr.Error); ok && ec2err.Code() == "PolicyNotFound" {
-			d.SetId("")
-			return nil
-		}
 		return fmt.Errorf("Error retrieving policy: %s", err)
 	}
 
@@ -163,6 +173,9 @@ func resourceAwsLoadBalancerPolicyUpdate(d *schema.ResourceData, meta interface{
 	}
 
 	err = resourceAwsLoadBalancerPolicyCreate(d, meta)
+	if err != nil {
+		return err
+	}
 
 	for _, listenerAssignment := range reassignments.listenerPolicies {
 		if _, err := elbconn.SetLoadBalancerPoliciesOfListener(listenerAssignment); err != nil {

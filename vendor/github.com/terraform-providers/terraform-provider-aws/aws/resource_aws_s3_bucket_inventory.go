@@ -1,7 +1,6 @@
 package aws
 
 import (
-	"errors"
 	"fmt"
 	"log"
 	"strings"
@@ -34,7 +33,7 @@ func resourceAwsS3BucketInventory() *schema.Resource {
 				Type:         schema.TypeString,
 				Required:     true,
 				ForceNew:     true,
-				ValidateFunc: validateMaxLength(64),
+				ValidateFunc: validation.StringLenBetween(0, 64),
 			},
 			"enabled": {
 				Type:     schema.TypeBool,
@@ -95,7 +94,7 @@ func resourceAwsS3BucketInventory() *schema.Resource {
 										MaxItems: 1,
 										Elem: &schema.Resource{
 											Schema: map[string]*schema.Schema{
-												"sse_kms": &schema.Schema{
+												"sse_kms": {
 													Type:          schema.TypeList,
 													Optional:      true,
 													MaxItems:      1,
@@ -110,7 +109,7 @@ func resourceAwsS3BucketInventory() *schema.Resource {
 														},
 													},
 												},
-												"sse_s3": &schema.Schema{
+												"sse_s3": {
 													Type:          schema.TypeList,
 													Optional:      true,
 													MaxItems:      1,
@@ -221,8 +220,8 @@ func resourceAwsS3BucketInventoryPut(d *schema.ResourceData, meta interface{}) e
 	}
 
 	input := &s3.PutBucketInventoryConfigurationInput{
-		Bucket: aws.String(bucket),
-		Id:     aws.String(name),
+		Bucket:                 aws.String(bucket),
+		Id:                     aws.String(name),
 		InventoryConfiguration: inventoryConfiguration,
 	}
 
@@ -303,6 +302,9 @@ func resourceAwsS3BucketInventoryRead(d *schema.ResourceData, meta interface{}) 
 		}
 		return nil
 	})
+	if err != nil {
+		return fmt.Errorf("error getting S3 Bucket Inventory (%s): %s", d.Id(), err)
+	}
 
 	if output == nil || output.InventoryConfiguration == nil {
 		log.Printf("[WARN] %s S3 bucket inventory configuration not found, removing from state.", d.Id())
@@ -326,14 +328,6 @@ func resourceAwsS3BucketInventoryRead(d *schema.ResourceData, meta interface{}) 
 	}
 
 	if output.InventoryConfiguration.Destination != nil {
-		// Flag the existence of SSE-S3 encryption because it cannot be marshaled when updating a resource.
-		// Allowing import would risk disabling encryption inadvertently when applying updates.
-		if output.InventoryConfiguration.Destination.S3BucketDestination.Encryption != nil {
-			if output.InventoryConfiguration.Destination.S3BucketDestination.Encryption.SSES3 != nil {
-				return errors.New("sse_s3 encryption is unsupported")
-			}
-		}
-
 		destination := map[string]interface{}{
 			"bucket": flattenS3InventoryS3BucketDestination(output.InventoryConfiguration.Destination.S3BucketDestination),
 		}
