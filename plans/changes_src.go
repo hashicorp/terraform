@@ -66,6 +66,38 @@ func (rcs *ResourceInstanceChangeSrc) Decode(ty cty.Type) (*ResourceInstanceChan
 	}, nil
 }
 
+// DeepCopy creates a copy of the receiver where any pointers to nested mutable
+// values are also copied, thus ensuring that future mutations of the receiver
+// will not affect the copy.
+//
+// Some types used within a resource change are immutable by convention even
+// though the Go language allows them to be mutated, such as the types from
+// the addrs package. These are _not_ copied by this method, under the
+// assumption that callers will behave themselves.
+func (rcs *ResourceInstanceChangeSrc) DeepCopy() *ResourceInstanceChangeSrc {
+	if rcs == nil {
+		return nil
+	}
+	ret := *rcs
+
+	if len(ret.RequiredReplace) != 0 {
+		rr := make([]cty.Path, len(ret.RequiredReplace))
+		copy(rr, ret.RequiredReplace)
+		ret.RequiredReplace = rr
+	}
+
+	if len(ret.Private) != 0 {
+		private := make([]byte, len(ret.Private))
+		copy(private, ret.Private)
+		ret.Private = private
+	}
+
+	ret.ChangeSrc.Before = ret.ChangeSrc.Before.Copy()
+	ret.ChangeSrc.After = ret.ChangeSrc.After.Copy()
+
+	return &ret
+}
+
 // OutputChange describes a change to an output value.
 type OutputChangeSrc struct {
 	// ChangeSrc is an embedded description of the not-yet-decoded change.

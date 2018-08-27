@@ -55,6 +55,15 @@ func (c *Changes) ResourceInstanceDeposed(addr addrs.AbsResourceInstance, key st
 	return nil
 }
 
+// SyncWrapper returns a wrapper object around the receiver that can be used
+// to make certain changes to the receiver in a concurrency-safe way, as long
+// as all callers share the same wrapper object.
+func (c *Changes) SyncWrapper() *ChangesSync {
+	return &ChangesSync{
+		changes: c,
+	}
+}
+
 // ResourceInstanceChange describes a change to a particular resource instance
 // object.
 type ResourceInstanceChange struct {

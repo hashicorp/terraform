@@ -68,8 +68,9 @@ func (n *NodePlannableResourceInstanceOrphan) EvalTree() EvalNode {
 				Change: &change,
 			},
 			&EvalWriteDiff{
-				Addr:   addr.Resource,
-				Change: &change,
+				Addr:           addr.Resource,
+				ProviderSchema: &providerSchema,
+				Change:         &change,
 			},
 			&EvalWriteState{
 				Addr:           addr.Resource,
