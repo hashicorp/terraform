@@ -126,7 +126,9 @@ func (b *PlanGraphBuilder) Steps() []GraphTransformer {
 		&ReferenceTransformer{},
 
 		// Add the node to fix the state count boundaries
-		&CountBoundaryTransformer{},
+		&CountBoundaryTransformer{
+			Config: b.Config,
+		},
 
 		// Target
 		&TargetsTransformer{
