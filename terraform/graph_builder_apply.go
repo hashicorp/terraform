@@ -150,7 +150,9 @@ func (b *ApplyGraphBuilder) Steps() []GraphTransformer {
 		),
 
 		// Add the node to fix the state count boundaries
-		&CountBoundaryTransformer{},
+		&CountBoundaryTransformer{
+			Config: b.Config,
+		},
 
 		// Target
 		&TargetsTransformer{Targets: b.Targets},

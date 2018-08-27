@@ -3,6 +3,9 @@ package terraform
 import (
 	"fmt"
 	"log"
+
+	"github.com/hashicorp/terraform/addrs"
+	"github.com/hashicorp/terraform/configs"
 )
 
 // EvalCountFixZeroOneBoundaryGlobal is an EvalNode that fixes up the state
@@ -10,72 +13,64 @@ import (
 // a resource named "aws_instance.foo" to "aws_instance.foo.0" and vice-versa.
 //
 // This works on the global state.
-type EvalCountFixZeroOneBoundaryGlobal struct{}
+type EvalCountFixZeroOneBoundaryGlobal struct {
+	Config *configs.Config
+}
 
 // TODO: test
 func (n *EvalCountFixZeroOneBoundaryGlobal) Eval(ctx EvalContext) (interface{}, error) {
-	return nil, fmt.Errorf("EvalCountFixZeroOneBoundaryGlobal not yet updated for new state types")
-	/*
-		// Get the state and lock it since we'll potentially modify it
-		state, lock := ctx.State()
-		lock.Lock()
-		defer lock.Unlock()
+	// We'll temporarily lock the state to grab the modules, then work on each
+	// one separately while taking a lock again for each separate resource.
+	// This means that if another caller concurrently adds a module here while
+	// we're working then we won't update it, but that's no worse than the
+	// concurrent writer blocking for our entire fixup process and _then_
+	// adding a new module, and in practice the graph node associated with
+	// this eval depends on everything else in the graph anyway, so there
+	// should not be concurrent writers.
+	state := ctx.State().Lock()
+	moduleAddrs := make([]addrs.ModuleInstance, 0, len(state.Modules))
+	for _, m := range state.Modules {
+		moduleAddrs = append(moduleAddrs, m.Addr)
+	}
+	ctx.State().Unlock()
 
-		// Prune the state since we require a clean state to work
-		state.prune()
-
-		// Go through each modules since the boundaries are restricted to a
-		// module scope.
-		for _, m := range state.Modules {
-			if err := n.fixModule(m); err != nil {
-				return nil, err
-			}
+	for _, addr := range moduleAddrs {
+		cfg := n.Config.DescendentForInstance(addr)
+		if cfg == nil {
+			log.Printf("[WARN] Not fixing up EachModes for %s because it has no config", addr)
+			continue
 		}
-
-		return nil, nil
-	*/
-}
-
-func (n *EvalCountFixZeroOneBoundaryGlobal) fixModule(m *ModuleState) error {
-	// Counts keeps track of keys and their counts
-	counts := make(map[string]int)
-	for k, _ := range m.Resources {
-		// Parse the key
-		key, err := ParseResourceStateKey(k)
-		if err != nil {
-			return err
+		if err := n.fixModule(ctx, addr); err != nil {
+			return nil, err
 		}
-
-		// Set the index to -1 so that we can keep count
-		key.Index = -1
-
-		// Increment
-		counts[key.String()]++
 	}
 
-	// Go through the counts and do the fixup for each resource
-	for raw, count := range counts {
-		// Search and replace this resource
-		search := raw
-		replace := raw + ".0"
-		if count < 2 {
-			search, replace = replace, search
-		}
-		log.Printf("[TRACE] EvalCountFixZeroOneBoundaryGlobal: count %d, search %q, replace %q", count, search, replace)
+	return nil, nil
+}
 
-		// Look for the resource state. If we don't have one, then it is okay.
-		rs, ok := m.Resources[search]
-		if !ok {
+func (n *EvalCountFixZeroOneBoundaryGlobal) fixModule(ctx EvalContext, moduleAddr addrs.ModuleInstance) error {
+	ms := ctx.State().Module(moduleAddr)
+	cfg := n.Config.DescendentForInstance(moduleAddr)
+	if ms == nil {
+		// Theoretically possible for a concurrent writer to delete a module
+		// while we're running, but in practice the graph node that called us
+		// depends on everything else in the graph and so there can never
+		// be a concurrent writer.
+		return fmt.Errorf("[WARN] no state found for %s while trying to fix up EachModes", moduleAddr)
+	}
+	if cfg == nil {
+		return fmt.Errorf("[WARN] no config found for %s while trying to fix up EachModes", moduleAddr)
+	}
+
+	for _, r := range ms.Resources {
+		addr := r.Addr.Absolute(moduleAddr)
+		rCfg := cfg.Module.ResourceByAddr(r.Addr)
+		if rCfg == nil {
+			log.Printf("[WARN] Not fixing up EachModes for %s because it has no config", addr)
 			continue
 		}
-
-		// If the replacement key exists, we just keep both
-		if _, ok := m.Resources[replace]; ok {
-			continue
-		}
-
-		m.Resources[replace] = rs
-		delete(m.Resources, search)
+		hasCount := rCfg.Count != nil
+		fixResourceCountSetTransition(ctx, addr, hasCount)
 	}
 
 	return nil
