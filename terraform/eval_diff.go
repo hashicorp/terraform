@@ -97,9 +97,6 @@ func (n *EvalDiff) Eval(ctx EvalContext) (interface{}, error) {
 
 	var diags tfdiags.Diagnostics
 
-	absAddr := n.Addr.Absolute(ctx.Path())
-	priorVal := state.Value
-
 	// Evaluate the configuration
 	schema := providerSchema.ResourceTypes[n.Addr.Resource.Type]
 	if schema == nil {
@@ -111,6 +108,16 @@ func (n *EvalDiff) Eval(ctx EvalContext) (interface{}, error) {
 	diags = diags.Append(configDiags)
 	if configDiags.HasErrors() {
 		return nil, diags.Err()
+	}
+
+	absAddr := n.Addr.Absolute(ctx.Path())
+	var priorVal cty.Value
+	var priorPrivate []byte
+	if state != nil {
+		priorVal = state.Value
+		priorPrivate = state.Private
+	} else {
+		priorVal = cty.NullVal(schema.ImpliedType())
 	}
 
 	proposedNewVal := objchange.ProposedNewObject(schema, priorVal, configVal)
@@ -132,7 +139,7 @@ func (n *EvalDiff) Eval(ctx EvalContext) (interface{}, error) {
 		Config:           configVal,
 		PriorState:       priorVal,
 		ProposedNewState: proposedNewVal,
-		PriorPrivate:     state.Private,
+		PriorPrivate:     priorPrivate,
 	})
 	diags = diags.Append(resp.Diagnostics.InConfigBody(config.Config))
 	if diags.HasErrors() {
