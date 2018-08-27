@@ -129,10 +129,17 @@ func (n *NodeApplyableResourceInstance) evalTreeDataResource(addr addrs.AbsResou
 
 	return &EvalSequence{
 		Nodes: []EvalNode{
+			&EvalGetProvider{
+				Addr:   n.ResolvedProvider,
+				Output: &provider,
+				Schema: &providerSchema,
+			},
+
 			// Get the saved diff for apply
 			&EvalReadDiff{
-				Addr:   addr.Resource,
-				Change: &change,
+				Addr:           addr.Resource,
+				ProviderSchema: &providerSchema,
+				Change:         &change,
 			},
 
 			// Stop early if we don't actually have a diff
@@ -144,12 +151,6 @@ func (n *NodeApplyableResourceInstance) evalTreeDataResource(addr addrs.AbsResou
 					return true, nil
 				},
 				Then: EvalNoop{},
-			},
-
-			&EvalGetProvider{
-				Addr:   n.ResolvedProvider,
-				Output: &provider,
-				Schema: &providerSchema,
 			},
 
 			// Make a new diff, in case we've learned new values in the state
@@ -206,10 +207,17 @@ func (n *NodeApplyableResourceInstance) evalTreeManagedResource(addr addrs.AbsRe
 
 	return &EvalSequence{
 		Nodes: []EvalNode{
+			&EvalGetProvider{
+				Addr:   n.ResolvedProvider,
+				Output: &provider,
+				Schema: &providerSchema,
+			},
+
 			// Get the saved diff for apply
 			&EvalReadDiff{
-				Addr:   addr.Resource,
-				Change: &diffApply,
+				Addr:           addr.Resource,
+				ProviderSchema: &providerSchema,
+				Change:         &diffApply,
 			},
 
 			// We don't want to do any destroys
@@ -244,11 +252,6 @@ func (n *NodeApplyableResourceInstance) evalTreeManagedResource(addr addrs.AbsRe
 				},
 			},
 
-			&EvalGetProvider{
-				Addr:   n.ResolvedProvider,
-				Output: &provider,
-				Schema: &providerSchema,
-			},
 			&EvalReadState{
 				Addr:           addr.Resource,
 				Provider:       &provider,
@@ -273,16 +276,18 @@ func (n *NodeApplyableResourceInstance) evalTreeManagedResource(addr addrs.AbsRe
 
 			// Get the saved diff
 			&EvalReadDiff{
-				Addr:   addr.Resource,
-				Change: &diff,
+				Addr:           addr.Resource,
+				ProviderSchema: &providerSchema,
+				Change:         &diff,
 			},
 
 			// Compare the diffs
 			&EvalCheckPlannedChange{
-				Addr:         addr.Resource,
-				ProviderAddr: n.ResolvedProvider,
-				Planned:      &diff,
-				Actual:       &diffApply,
+				Addr:           addr.Resource,
+				ProviderAddr:   n.ResolvedProvider,
+				ProviderSchema: &providerSchema,
+				Planned:        &diff,
+				Actual:         &diffApply,
 			},
 
 			&EvalGetProvider{
@@ -305,14 +310,16 @@ func (n *NodeApplyableResourceInstance) evalTreeManagedResource(addr addrs.AbsRe
 				Change: &diffApply,
 			},
 			&EvalApply{
-				Addr:      addr.Resource,
-				Config:    n.Config,
-				State:     &state,
-				Change:    &diffApply,
-				Provider:  &provider,
-				Output:    &state,
-				Error:     &err,
-				CreateNew: &createNew,
+				Addr:           addr.Resource,
+				Config:         n.Config,
+				State:          &state,
+				Change:         &diffApply,
+				Provider:       &provider,
+				ProviderAddr:   n.ResolvedProvider,
+				ProviderSchema: &providerSchema,
+				Output:         &state,
+				Error:          &err,
+				CreateNew:      &createNew,
 			},
 			&EvalWriteState{
 				Addr:           addr.Resource,
