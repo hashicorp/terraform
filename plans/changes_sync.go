@@ -54,10 +54,10 @@ func (cs *ChangesSync) GetResourceInstanceChange(addr addrs.AbsResourceInstance,
 	defer cs.lock.Unlock()
 
 	if gen == states.CurrentGen {
-		return cs.changes.ResourceInstance(addr)
+		return cs.changes.ResourceInstance(addr).DeepCopy()
 	}
 	if dk, ok := gen.(states.DeposedKey); ok {
-		return cs.changes.ResourceInstanceDeposed(addr, dk)
+		return cs.changes.ResourceInstanceDeposed(addr, dk).DeepCopy()
 	}
 	panic(fmt.Sprintf("unsupported generation value %#v", gen))
 }
