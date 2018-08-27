@@ -95,9 +95,9 @@ func resourceAwsCloudFrontOriginAccessIdentityRead(d *schema.ResourceData, meta 
 func resourceAwsCloudFrontOriginAccessIdentityUpdate(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).cloudfrontconn
 	params := &cloudfront.UpdateCloudFrontOriginAccessIdentityInput{
-		Id: aws.String(d.Id()),
+		Id:                                   aws.String(d.Id()),
 		CloudFrontOriginAccessIdentityConfig: expandOriginAccessIdentityConfig(d),
-		IfMatch: aws.String(d.Get("etag").(string)),
+		IfMatch:                              aws.String(d.Get("etag").(string)),
 	}
 	_, err := conn.UpdateCloudFrontOriginAccessIdentity(params)
 	if err != nil {

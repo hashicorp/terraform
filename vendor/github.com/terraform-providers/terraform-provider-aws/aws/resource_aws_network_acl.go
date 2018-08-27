@@ -538,7 +538,7 @@ func resourceAwsNetworkAclDelete(d *schema.ResourceData, meta interface{}) error
 	})
 
 	if retryErr != nil {
-		return fmt.Errorf("[ERR] Error destroying Network ACL (%s): %s", d.Id(), retryErr)
+		return fmt.Errorf("Error destroying Network ACL (%s): %s", d.Id(), retryErr)
 	}
 	return nil
 }

@@ -109,7 +109,7 @@ func resourceAwsSsmMaintenanceWindowTargetRead(d *schema.ResourceData, meta inte
 			d.Set("resource_type", t.ResourceType)
 
 			if err := d.Set("targets", flattenAwsSsmTargets(t.Targets)); err != nil {
-				return fmt.Errorf("[DEBUG] Error setting targets error: %#v", err)
+				return fmt.Errorf("Error setting targets error: %#v", err)
 			}
 		}
 	}

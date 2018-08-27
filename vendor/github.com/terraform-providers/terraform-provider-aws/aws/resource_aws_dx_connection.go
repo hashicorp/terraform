@@ -88,11 +88,11 @@ func resourceAwsDxConnectionRead(d *schema.ResourceData, meta interface{}) error
 		return nil
 	}
 	if len(resp.Connections) != 1 {
-		return fmt.Errorf("[ERROR] Number of Direct Connect connections (%s) isn't one, got %d", d.Id(), len(resp.Connections))
+		return fmt.Errorf("Number of Direct Connect connections (%s) isn't one, got %d", d.Id(), len(resp.Connections))
 	}
 	connection := resp.Connections[0]
 	if d.Id() != aws.StringValue(connection.ConnectionId) {
-		return fmt.Errorf("[ERROR] Direct Connect connection (%s) not found", d.Id())
+		return fmt.Errorf("Direct Connect connection (%s) not found", d.Id())
 	}
 	if aws.StringValue(connection.ConnectionState) == directconnect.ConnectionStateDeleted {
 		log.Printf("[WARN] Direct Connect connection (%s) not found, removing from state", d.Id())

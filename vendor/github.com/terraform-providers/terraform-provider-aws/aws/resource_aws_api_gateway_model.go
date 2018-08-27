@@ -3,6 +3,7 @@ package aws
 import (
 	"fmt"
 	"log"
+	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -18,31 +19,58 @@ func resourceAwsApiGatewayModel() *schema.Resource {
 		Read:   resourceAwsApiGatewayModelRead,
 		Update: resourceAwsApiGatewayModelUpdate,
 		Delete: resourceAwsApiGatewayModelDelete,
+		Importer: &schema.ResourceImporter{
+			State: func(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+				idParts := strings.Split(d.Id(), "/")
+				if len(idParts) != 2 || idParts[0] == "" || idParts[1] == "" {
+					return nil, fmt.Errorf("Unexpected format of ID (%q), expected REST-API-ID/NAME", d.Id())
+				}
+				restApiID := idParts[0]
+				name := idParts[1]
+				d.Set("name", name)
+				d.Set("rest_api_id", restApiID)
+
+				conn := meta.(*AWSClient).apigateway
+
+				output, err := conn.GetModel(&apigateway.GetModelInput{
+					ModelName: aws.String(name),
+					RestApiId: aws.String(restApiID),
+				})
+
+				if err != nil {
+					return nil, err
+				}
+
+				d.SetId(aws.StringValue(output.Id))
+
+				return []*schema.ResourceData{d}, nil
+			},
+		},
 
 		Schema: map[string]*schema.Schema{
-			"rest_api_id": &schema.Schema{
+			"rest_api_id": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
 
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
 
-			"description": &schema.Schema{
+			"description": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
 
-			"schema": &schema.Schema{
+			"schema": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
 
-			"content_type": &schema.Schema{
+			"content_type": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
@@ -100,10 +128,10 @@ func resourceAwsApiGatewayModelRead(d *schema.ResourceData, meta interface{}) er
 		return err
 	}
 	log.Printf("[DEBUG] Received API Gateway Model: %s", out)
-	d.SetId(*out.Id)
+
+	d.Set("content_type", out.ContentType)
 	d.Set("description", out.Description)
 	d.Set("schema", out.Schema)
-	d.Set("content_type", out.ContentType)
 
 	return nil
 }

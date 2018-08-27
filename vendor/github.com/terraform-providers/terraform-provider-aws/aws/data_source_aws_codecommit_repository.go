@@ -7,6 +7,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/codecommit"
 	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/hashicorp/terraform/helper/validation"
 )
 
 func dataSourceAwsCodeCommitRepository() *schema.Resource {
@@ -18,7 +19,7 @@ func dataSourceAwsCodeCommitRepository() *schema.Resource {
 				Type:         schema.TypeString,
 				Required:     true,
 				ForceNew:     true,
-				ValidateFunc: validateMaxLength(100),
+				ValidateFunc: validation.StringLenBetween(0, 100),
 			},
 
 			"arn": {

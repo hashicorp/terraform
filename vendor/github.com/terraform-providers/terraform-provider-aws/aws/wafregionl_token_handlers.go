@@ -1,12 +1,12 @@
 package aws
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/waf"
 	"github.com/aws/aws-sdk-go/service/wafregional"
-	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/terraform/helper/resource"
 )
 
@@ -28,7 +28,7 @@ func (t *WafRegionalRetryer) RetryWithToken(f withRegionalTokenFunc) (interface{
 
 		tokenOut, err = t.Connection.GetChangeToken(&waf.GetChangeTokenInput{})
 		if err != nil {
-			return resource.NonRetryableError(errwrap.Wrapf("Failed to acquire change token: {{err}}", err))
+			return resource.NonRetryableError(fmt.Errorf("Failed to acquire change token: %s", err))
 		}
 
 		out, err = f(tokenOut.ChangeToken)

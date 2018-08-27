@@ -17,12 +17,12 @@ func resourceAwsDevicefarmProject() *schema.Resource {
 		Delete: resourceAwsDevicefarmProjectDelete,
 
 		Schema: map[string]*schema.Schema{
-			"arn": &schema.Schema{
+			"arn": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
 
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				Required: true,
 			},

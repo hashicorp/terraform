@@ -70,7 +70,7 @@ func dataSourceAwsKmsSecretRead(d *schema.ResourceData, meta interface{}) error 
 
 		// build the kms decrypt params
 		params := &kms.DecryptInput{
-			CiphertextBlob: []byte(payload),
+			CiphertextBlob: payload,
 		}
 		if context, exists := secret["context"]; exists {
 			params.EncryptionContext = make(map[string]*string)

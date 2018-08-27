@@ -19,6 +19,38 @@ func resourceAwsCodeDeployApp() *schema.Resource {
 		Read:   resourceAwsCodeDeployAppRead,
 		Update: resourceAwsCodeDeployUpdate,
 		Delete: resourceAwsCodeDeployAppDelete,
+		Importer: &schema.ResourceImporter{
+			State: func(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+				idParts := strings.Split(d.Id(), ":")
+
+				if len(idParts) == 2 {
+					return []*schema.ResourceData{d}, nil
+				}
+
+				applicationName := d.Id()
+				conn := meta.(*AWSClient).codedeployconn
+
+				input := &codedeploy.GetApplicationInput{
+					ApplicationName: aws.String(applicationName),
+				}
+
+				log.Printf("[DEBUG] Reading CodeDeploy Application: %s", input)
+				output, err := conn.GetApplication(input)
+
+				if err != nil {
+					return []*schema.ResourceData{}, err
+				}
+
+				if output == nil || output.Application == nil {
+					return []*schema.ResourceData{}, fmt.Errorf("error reading CodeDeploy Application (%s): empty response", applicationName)
+				}
+
+				d.SetId(fmt.Sprintf("%s:%s", aws.StringValue(output.Application.ApplicationId), applicationName))
+				d.Set("name", applicationName)
+
+				return []*schema.ResourceData{d}, nil
+			},
+		},
 
 		Schema: map[string]*schema.Schema{
 			"name": {

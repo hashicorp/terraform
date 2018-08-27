@@ -207,7 +207,7 @@ func dataSourceAwsRedshiftClusterRead(d *schema.ResourceData, meta interface{}) 
 		csg = append(csg, *g.ClusterSecurityGroupName)
 	}
 	if err := d.Set("cluster_security_groups", csg); err != nil {
-		return fmt.Errorf("[DEBUG] Error saving Cluster Security Group Names to state for Redshift Cluster (%s): %s", cluster, err)
+		return fmt.Errorf("Error saving Cluster Security Group Names to state for Redshift Cluster (%s): %s", cluster, err)
 	}
 
 	d.Set("cluster_subnet_group_name", rsc.ClusterSubnetGroupName)
@@ -238,7 +238,7 @@ func dataSourceAwsRedshiftClusterRead(d *schema.ResourceData, meta interface{}) 
 		iamRoles = append(iamRoles, *i.IamRoleArn)
 	}
 	if err := d.Set("iam_roles", iamRoles); err != nil {
-		return fmt.Errorf("[DEBUG] Error saving IAM Roles to state for Redshift Cluster (%s): %s", cluster, err)
+		return fmt.Errorf("Error saving IAM Roles to state for Redshift Cluster (%s): %s", cluster, err)
 	}
 
 	d.Set("kms_key_id", rsc.KmsKeyId)
@@ -256,7 +256,7 @@ func dataSourceAwsRedshiftClusterRead(d *schema.ResourceData, meta interface{}) 
 		vpcg = append(vpcg, *g.VpcSecurityGroupId)
 	}
 	if err := d.Set("vpc_security_group_ids", vpcg); err != nil {
-		return fmt.Errorf("[DEBUG] Error saving VPC Security Group IDs to state for Redshift Cluster (%s): %s", cluster, err)
+		return fmt.Errorf("Error saving VPC Security Group IDs to state for Redshift Cluster (%s): %s", cluster, err)
 	}
 
 	log.Printf("[INFO] Reading Redshift Cluster Logging Status: %s", cluster)

@@ -8,6 +8,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/waf"
 	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/hashicorp/terraform/helper/validation"
 )
 
 func resourceAwsWafRule() *schema.Resource {
@@ -18,32 +19,32 @@ func resourceAwsWafRule() *schema.Resource {
 		Delete: resourceAwsWafRuleDelete,
 
 		Schema: map[string]*schema.Schema{
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
-			"metric_name": &schema.Schema{
+			"metric_name": {
 				Type:         schema.TypeString,
 				Required:     true,
 				ForceNew:     true,
 				ValidateFunc: validateWafMetricName,
 			},
-			"predicates": &schema.Schema{
+			"predicates": {
 				Type:     schema.TypeSet,
 				Optional: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"negated": &schema.Schema{
+						"negated": {
 							Type:     schema.TypeBool,
 							Required: true,
 						},
-						"data_id": &schema.Schema{
+						"data_id": {
 							Type:         schema.TypeString,
 							Required:     true,
-							ValidateFunc: validateMaxLength(128),
+							ValidateFunc: validation.StringLenBetween(0, 128),
 						},
-						"type": &schema.Schema{
+						"type": {
 							Type:         schema.TypeString,
 							Required:     true,
 							ValidateFunc: validateWafPredicatesType(),

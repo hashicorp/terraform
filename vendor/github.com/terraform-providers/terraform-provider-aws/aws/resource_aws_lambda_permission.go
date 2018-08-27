@@ -135,7 +135,7 @@ func resourceAwsLambdaPermissionCreate(d *schema.ResourceData, meta interface{})
 				// IAM is eventually consistent :/
 				if awsErr.Code() == "ResourceConflictException" {
 					return resource.RetryableError(
-						fmt.Errorf("[WARN] Error adding new Lambda Permission for %s, retrying: %s",
+						fmt.Errorf("Error adding new Lambda Permission for %s, retrying: %s",
 							*input.FunctionName, err))
 				}
 			}
@@ -162,12 +162,12 @@ func resourceAwsLambdaPermissionCreate(d *schema.ResourceData, meta interface{})
 		if err != nil {
 			if strings.HasPrefix(err.Error(), "Error reading Lambda policy: ResourceNotFoundException") {
 				return resource.RetryableError(
-					fmt.Errorf("[WARN] Error reading newly created Lambda Permission for %s, retrying: %s",
+					fmt.Errorf("Error reading newly created Lambda Permission for %s, retrying: %s",
 						*input.FunctionName, err))
 			}
 			if strings.HasPrefix(err.Error(), "Failed to find statement \""+d.Id()) {
 				return resource.RetryableError(
-					fmt.Errorf("[WARN] Error reading newly created Lambda Permission statement for %s, retrying: %s",
+					fmt.Errorf("Error reading newly created Lambda Permission statement for %s, retrying: %s",
 						*input.FunctionName, err))
 			}
 
@@ -257,7 +257,7 @@ func resourceAwsLambdaPermissionRead(d *schema.ResourceData, meta interface{}) e
 	}
 
 	d.Set("action", statement.Action)
-	// Check if the pricipal is a cross-account IAM role
+	// Check if the principal is a cross-account IAM role
 	if _, ok := statement.Principal["AWS"]; ok {
 		d.Set("principal", statement.Principal["AWS"])
 	} else {

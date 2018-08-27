@@ -10,6 +10,7 @@ import (
 
 	"github.com/hashicorp/terraform/helper/customdiff"
 	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/hashicorp/terraform/helper/validation"
 )
 
 func resourceAwsConfigConfigurationAggregator() *schema.Resource {
@@ -43,7 +44,7 @@ func resourceAwsConfigConfigurationAggregator() *schema.Resource {
 				Type:         schema.TypeString,
 				Required:     true,
 				ForceNew:     true,
-				ValidateFunc: validateMaxLength(256),
+				ValidateFunc: validation.StringLenBetween(0, 256),
 			},
 			"account_aggregation_source": {
 				Type:          schema.TypeList,

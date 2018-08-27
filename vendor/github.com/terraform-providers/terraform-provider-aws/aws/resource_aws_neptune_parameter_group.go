@@ -207,7 +207,7 @@ func resourceAwsNeptuneParameterGroupUpdate(d *schema.ResourceData, meta interfa
 		log.Printf("[DEBUG] Parameters to add: %#v", toAdd)
 
 		for len(toRemove) > 0 {
-			paramsToModify := make([]*neptune.Parameter, 0)
+			var paramsToModify []*neptune.Parameter
 			if len(toRemove) <= maxParams {
 				paramsToModify, toRemove = toRemove[:], nil
 			} else {
@@ -235,7 +235,7 @@ func resourceAwsNeptuneParameterGroupUpdate(d *schema.ResourceData, meta interfa
 		}
 
 		for len(toAdd) > 0 {
-			paramsToModify := make([]*neptune.Parameter, 0)
+			var paramsToModify []*neptune.Parameter
 			if len(toAdd) <= maxParams {
 				paramsToModify, toAdd = toAdd[:], nil
 			} else {

@@ -1,4 +1,4 @@
-INI [![Build Status](https://travis-ci.org/go-ini/ini.svg?branch=master)](https://travis-ci.org/go-ini/ini)
+INI [![Build Status](https://travis-ci.org/go-ini/ini.svg?branch=master)](https://travis-ci.org/go-ini/ini) [![Sourcegraph](https://sourcegraph.com/github.com/go-ini/ini/-/badge.svg)](https://sourcegraph.com/github.com/go-ini/ini?badge)
 ===
 
 ![](https://avatars0.githubusercontent.com/u/10216035?v=3&s=200)
@@ -105,6 +105,12 @@ cfg, err := LoadSources(LoadOptions{AllowBooleanKeys: true}, "my.cnf"))
 ```
 
 The value of those keys are always `true`, and when you save to a file, it will keep in the same foramt as you read.
+
+To generate such keys in your program, you could use `NewBooleanKey`:
+
+```go
+key, err := sec.NewBooleanKey("skip-host-cache")
+```
 
 #### Comment
 

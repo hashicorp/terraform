@@ -39,7 +39,7 @@ func resourceAwsWafRegionalSizeConstraintSetCreate(d *schema.ResourceData, meta 
 		return conn.CreateSizeConstraintSet(params)
 	})
 	if err != nil {
-		return fmt.Errorf("[ERROR] Error creating WAF Regional SizeConstraintSet: %s", err)
+		return fmt.Errorf("Error creating WAF Regional SizeConstraintSet: %s", err)
 	}
 	resp := out.(*waf.CreateSizeConstraintSetOutput)
 
@@ -80,7 +80,7 @@ func resourceAwsWafRegionalSizeConstraintSetUpdate(d *schema.ResourceData, meta 
 		oldConstraints, newConstraints := o.(*schema.Set).List(), n.(*schema.Set).List()
 
 		if err := updateRegionalSizeConstraintSetResource(d.Id(), oldConstraints, newConstraints, client.wafregionalconn, client.region); err != nil {
-			return fmt.Errorf("[ERROR] Error updating WAF Regional SizeConstraintSet: %s", err)
+			return fmt.Errorf("Error updating WAF Regional SizeConstraintSet: %s", err)
 		}
 	}
 
@@ -96,7 +96,7 @@ func resourceAwsWafRegionalSizeConstraintSetDelete(d *schema.ResourceData, meta 
 	if len(oldConstraints) > 0 {
 		noConstraints := []interface{}{}
 		if err := updateRegionalSizeConstraintSetResource(d.Id(), oldConstraints, noConstraints, conn, region); err != nil {
-			return fmt.Errorf("[ERROR] Error deleting WAF Regional SizeConstraintSet: %s", err)
+			return fmt.Errorf("Error deleting WAF Regional SizeConstraintSet: %s", err)
 		}
 	}
 
@@ -109,7 +109,7 @@ func resourceAwsWafRegionalSizeConstraintSetDelete(d *schema.ResourceData, meta 
 		return conn.DeleteSizeConstraintSet(req)
 	})
 	if err != nil {
-		return fmt.Errorf("[ERROR] Error deleting WAF Regional SizeConstraintSet: %s", err)
+		return fmt.Errorf("Error deleting WAF Regional SizeConstraintSet: %s", err)
 	}
 
 	return nil
@@ -128,7 +128,7 @@ func updateRegionalSizeConstraintSetResource(id string, oldConstraints, newConst
 		return conn.UpdateSizeConstraintSet(req)
 	})
 	if err != nil {
-		return fmt.Errorf("[ERROR] Error updating WAF Regional SizeConstraintSet: %s", err)
+		return fmt.Errorf("Error updating WAF Regional SizeConstraintSet: %s", err)
 	}
 
 	return nil

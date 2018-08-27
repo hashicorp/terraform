@@ -415,7 +415,7 @@ func resourceAwsOpsworksSetApplicationEnvironmentVariable(d *schema.ResourceData
 		}
 		if config.Secure != nil {
 
-			if bool(*config.Secure) {
+			if aws.BoolValue(config.Secure) {
 				data["secure"] = &opsworksTrueString
 			} else {
 				data["secure"] = &opsworksFalseString

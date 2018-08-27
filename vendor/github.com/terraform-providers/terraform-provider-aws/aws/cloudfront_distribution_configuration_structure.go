@@ -144,10 +144,10 @@ func flattenDistributionConfig(d *schema.ResourceData, distributionConfig *cloud
 		}
 	}
 	if distributionConfig.CacheBehaviors != nil {
-		if _, ok := d.GetOk("ordered_cache_behavior"); ok {
-			err = d.Set("ordered_cache_behavior", flattenCacheBehaviors(distributionConfig.CacheBehaviors))
-		} else {
+		if _, ok := d.GetOk("cache_behavior"); ok {
 			err = d.Set("cache_behavior", flattenCacheBehaviorsDeprecated(distributionConfig.CacheBehaviors))
+		} else {
+			err = d.Set("ordered_cache_behavior", flattenCacheBehaviors(distributionConfig.CacheBehaviors))
 		}
 
 		if err != nil {
@@ -195,11 +195,10 @@ func expandDefaultCacheBehavior(m map[string]interface{}) *cloudfront.DefaultCac
 }
 
 func flattenDefaultCacheBehavior(dcb *cloudfront.DefaultCacheBehavior) *schema.Set {
-	m := make(map[string]interface{})
 	var cb cloudfront.CacheBehavior
 
 	simpleCopyStruct(dcb, &cb)
-	m = flattenCacheBehaviorDeprecated(&cb)
+	m := flattenCacheBehaviorDeprecated(&cb)
 	return schema.NewSet(defaultCacheBehaviorHash, []interface{}{m})
 }
 
@@ -526,6 +525,7 @@ func lambdaFunctionAssociationHash(v interface{}) int {
 	m := v.(map[string]interface{})
 	buf.WriteString(fmt.Sprintf("%s-", m["event_type"].(string)))
 	buf.WriteString(fmt.Sprintf("%s", m["lambda_arn"].(string)))
+	buf.WriteString(fmt.Sprintf("%t", m["include_body"].(bool)))
 	return hashcode.String(buf.String())
 }
 
@@ -554,6 +554,9 @@ func expandLambdaFunctionAssociation(lf map[string]interface{}) *cloudfront.Lamb
 	if v, ok := lf["lambda_arn"]; ok {
 		lfa.LambdaFunctionARN = aws.String(v.(string))
 	}
+	if v, ok := lf["include_body"]; ok {
+		lfa.IncludeBody = aws.Bool(v.(bool))
+	}
 	return &lfa
 }
 
@@ -570,6 +573,7 @@ func flattenLambdaFunctionAssociation(lfa *cloudfront.LambdaFunctionAssociation)
 	if lfa != nil {
 		m["event_type"] = *lfa.EventType
 		m["lambda_arn"] = *lfa.LambdaFunctionARN
+		m["include_body"] = *lfa.IncludeBody
 	}
 	return m
 }

@@ -6,7 +6,6 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/cloudformation"
-	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -116,7 +115,7 @@ func dataSourceAwsCloudFormationStackRead(d *schema.ResourceData, meta interface
 
 	template, err := normalizeCloudFormationTemplate(*tOut.TemplateBody)
 	if err != nil {
-		return errwrap.Wrapf("template body contains an invalid JSON or YAML: {{err}}", err)
+		return fmt.Errorf("template body contains an invalid JSON or YAML: %s", err)
 	}
 	d.Set("template_body", template)
 
