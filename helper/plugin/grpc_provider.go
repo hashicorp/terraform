@@ -5,6 +5,8 @@ import (
 	"errors"
 	"strconv"
 
+	"github.com/zclconf/go-cty/cty"
+	"github.com/zclconf/go-cty/cty/msgpack"
 	context "golang.org/x/net/context"
 
 	"github.com/hashicorp/terraform/config/hcl2shim"
@@ -13,8 +15,6 @@ import (
 	"github.com/hashicorp/terraform/plugin/convert"
 	"github.com/hashicorp/terraform/plugin/proto"
 	"github.com/hashicorp/terraform/terraform"
-	"github.com/zclconf/go-cty/cty"
-	"github.com/zclconf/go-cty/cty/msgpack"
 )
 
 // NewGRPCProviderServerShim wraps a terraform.ResourceProvider in a
@@ -486,7 +486,9 @@ func (s *GRPCProviderServer) ApplyResourceChange(_ context.Context, req *proto.A
 		resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
 		return resp, nil
 	}
-	resp.NewState.Msgpack = newStateMP
+	resp.NewState = &proto.DynamicValue{
+		Msgpack: newStateMP,
+	}
 
 	meta, err := json.Marshal(newInstanceState.Meta)
 	if err != nil {
