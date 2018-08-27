@@ -151,13 +151,15 @@ func (n *graphNodeDeposedResource) EvalTree() EvalNode {
 					Change: &change,
 				},
 				&EvalApply{
-					Addr:     addr.Resource,
-					Config:   nil, // No configuration because we are destroying
-					State:    &state,
-					Change:   &change,
-					Provider: &provider,
-					Output:   &state,
-					Error:    &err,
+					Addr:           addr.Resource,
+					Config:         nil, // No configuration because we are destroying
+					State:          &state,
+					Change:         &change,
+					Provider:       &provider,
+					ProviderAddr:   n.ResolvedProvider,
+					ProviderSchema: &providerSchema,
+					Output:         &state,
+					Error:          &err,
 				},
 				// Always write the resource back to the state deposed... if it
 				// was successfully destroyed it will be pruned. If it was not, it will

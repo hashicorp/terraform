@@ -176,10 +176,17 @@ func (n *NodeDestroyResourceInstance) EvalTree() EvalNode {
 		Ops: []walkOperation{walkApply, walkDestroy},
 		Node: &EvalSequence{
 			Nodes: []EvalNode{
+				&EvalGetProvider{
+					Addr:   n.ResolvedProvider,
+					Output: &provider,
+					Schema: &providerSchema,
+				},
+
 				// Get the saved diff for apply
 				&EvalReadDiff{
-					Addr:   addr.Resource,
-					Change: &changeApply,
+					Addr:           addr.Resource,
+					ProviderSchema: &providerSchema,
+					Change:         &changeApply,
 				},
 
 				// If we're not destroying, then compare diffs
@@ -196,11 +203,6 @@ func (n *NodeDestroyResourceInstance) EvalTree() EvalNode {
 					Then: EvalNoop{},
 				},
 
-				&EvalGetProvider{
-					Addr:   n.ResolvedProvider,
-					Output: &provider,
-					Schema: &providerSchema,
-				},
 				&EvalReadState{
 					Addr:           addr.Resource,
 					Output:         &state,
@@ -264,13 +266,15 @@ func (n *NodeDestroyResourceInstance) EvalTree() EvalNode {
 						Output:   &state,
 					},
 					Else: &EvalApply{
-						Addr:     addr.Resource,
-						Config:   nil, // No configuration because we are destroying
-						State:    &state,
-						Change:   &changeApply,
-						Provider: &provider,
-						Output:   &state,
-						Error:    &err,
+						Addr:           addr.Resource,
+						Config:         nil, // No configuration because we are destroying
+						State:          &state,
+						Change:         &changeApply,
+						Provider:       &provider,
+						ProviderAddr:   n.ResolvedProvider,
+						ProviderSchema: &providerSchema,
+						Output:         &state,
+						Error:          &err,
 					},
 				},
 				&EvalWriteState{
