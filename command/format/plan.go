@@ -3,6 +3,7 @@ package format
 import (
 	"bytes"
 	"fmt"
+	"log"
 	"sort"
 	"strings"
 
@@ -63,6 +64,7 @@ type PlanStats struct {
 
 // NewPlan produces a display-oriented Plan from a terraform.Plan.
 func NewPlan(changes *plans.Changes) *Plan {
+	log.Printf("[TRACE] NewPlan for %#v", changes)
 	ret := &Plan{}
 	if changes == nil {
 		// Nothing to do!
@@ -71,6 +73,7 @@ func NewPlan(changes *plans.Changes) *Plan {
 
 	for _, rc := range changes.Resources {
 		addr := rc.Addr
+		log.Printf("[TRACE] NewPlan found %s", addr)
 		dataSource := addr.Resource.Resource.Mode == addrs.DataResourceMode
 
 		// We create "delete" actions for data resources so we can clean
@@ -119,6 +122,8 @@ func NewPlan(changes *plans.Changes) *Plan {
 		// don't include any attributes here.
 		// FIXME: Implement the structural diff renderer to replace this
 		// codepath altogether.
+
+		ret.Resources = append(ret.Resources, did)
 	}
 
 	// Sort the instance diffs by their addresses for display.
