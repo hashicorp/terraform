@@ -703,30 +703,44 @@ func (n *EvalDiffDestroyModule) Eval(ctx EvalContext) (interface{}, error) {
 // EvalReadDiff is an EvalNode implementation that retrieves the planned
 // change for a particular resource instance object.
 type EvalReadDiff struct {
-	Addr       addrs.ResourceInstance
-	DeposedKey states.DeposedKey
-	Change     **plans.ResourceInstanceChange
+	Addr           addrs.ResourceInstance
+	DeposedKey     states.DeposedKey
+	ProviderSchema **ProviderSchema
+	Change         **plans.ResourceInstanceChange
 }
 
 func (n *EvalReadDiff) Eval(ctx EvalContext) (interface{}, error) {
-	return nil, fmt.Errorf("EvalReadDiff not yet updated for new plan types")
-	/*
-		diff, lock := ctx.Diff()
+	providerSchema := *n.ProviderSchema
+	changes := ctx.Changes()
+	addr := n.Addr.Absolute(ctx.Path())
 
-		// Acquire the lock so that we can do this safely concurrently
-		lock.Lock()
-		defer lock.Unlock()
+	schema := providerSchema.ResourceTypes[n.Addr.Resource.Type]
+	if schema == nil {
+		// Should be caught during validation, so we don't bother with a pretty error here
+		return nil, fmt.Errorf("provider does not support resource type %q", n.Addr.Resource.Type)
+	}
 
-		// Write the diff
-		modDiff := diff.ModuleByPath(ctx.Path())
-		if modDiff == nil {
-			return nil, nil
-		}
-
-		*n.Diff = modDiff.Resources[n.Name]
-
+	gen := states.CurrentGen
+	if n.DeposedKey != states.NotDeposed {
+		gen = n.DeposedKey
+	}
+	csrc := changes.GetResourceInstanceChange(addr, gen)
+	if csrc == nil {
+		log.Printf("[TRACE] EvalReadDiff: No planned change recorded for %s", addr)
 		return nil, nil
-	*/
+	}
+
+	change, err := csrc.Decode(schema.ImpliedType())
+	if err != nil {
+		return nil, fmt.Errorf("failed to decode planned changes for %s: %s", addr, err)
+	}
+	if n.Change != nil {
+		*n.Change = change
+	}
+
+	log.Printf("[TRACE] EvalReadDiff: Read %s change from plan for %s", change.Action, addr)
+
+	return nil, nil
 }
 
 // EvalWriteDiff is an EvalNode implementation that saves a planned change
@@ -742,6 +756,7 @@ type EvalWriteDiff struct {
 func (n *EvalWriteDiff) Eval(ctx EvalContext) (interface{}, error) {
 	providerSchema := *n.ProviderSchema
 	change := *n.Change
+	addr := n.Addr.Absolute(ctx.Path())
 
 	if change.Addr.String() != n.Addr.String() || change.DeposedKey != n.DeposedKey {
 		// Should never happen, and indicates a bug in the caller.
@@ -756,15 +771,15 @@ func (n *EvalWriteDiff) Eval(ctx EvalContext) (interface{}, error) {
 
 	csrc, err := change.Encode(schema.ImpliedType())
 	if err != nil {
-		return nil, fmt.Errorf("failed to encode planned changes for %s: %s", n.Addr, err)
+		return nil, fmt.Errorf("failed to encode planned changes for %s: %s", addr, err)
 	}
 
 	changes := ctx.Changes()
 	changes.AppendResourceInstanceChange(csrc)
 	if n.DeposedKey == states.NotDeposed {
-		log.Printf("[TRACE] EvalWriteDiff: recorded %s change for %s", change.Action, n.Addr)
+		log.Printf("[TRACE] EvalWriteDiff: recorded %s change for %s", change.Action, addr)
 	} else {
-		log.Printf("[TRACE] EvalWriteDiff: recorded %s change for %s deposed object %s", change.Action, n.Addr, n.DeposedKey)
+		log.Printf("[TRACE] EvalWriteDiff: recorded %s change for %s deposed object %s", change.Action, addr, n.DeposedKey)
 	}
 
 	return nil, nil
