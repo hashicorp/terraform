@@ -181,8 +181,9 @@ func (n *NodeApplyableResourceInstance) evalTreeDataResource(addr addrs.AbsResou
 			// Clear the diff now that we've applied it, so
 			// later nodes won't see a diff that's now a no-op.
 			&EvalWriteDiff{
-				Addr:   addr.Resource,
-				Change: nil,
+				Addr:           addr.Resource,
+				ProviderSchema: &providerSchema,
+				Change:         nil,
 			},
 
 			&EvalUpdateStateHook{},
@@ -347,8 +348,9 @@ func (n *NodeApplyableResourceInstance) evalTreeManagedResource(addr addrs.AbsRe
 			// don't see a diff that is already complete. There
 			// is no longer a diff!
 			&EvalWriteDiff{
-				Addr:   addr.Resource,
-				Change: nil,
+				Addr:           addr.Resource,
+				ProviderSchema: &providerSchema,
+				Change:         nil,
 			},
 
 			&EvalApplyPost{
