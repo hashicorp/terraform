@@ -35,7 +35,7 @@ func (n *NodeRefreshableDataResource) DynamicExpand(ctx EvalContext) (*Graph, er
 
 	// Next we need to potentially rename an instance address in the state
 	// if we're transitioning whether "count" is set at all.
-	fixResourceCountSetTransition(ctx, n.ResourceAddr().Resource, count != -1)
+	fixResourceCountSetTransition(ctx, n.ResourceAddr(), count != -1)
 
 	// Our graph transformers require access to the full state, so we'll
 	// temporarily lock it while we work on this.
