@@ -31,12 +31,14 @@ func unmarshal(dec *msgpack.Decoder, ty cty.Type, path cty.Path) (cty.Value, err
 	if msgpackCodes.IsExt(peek) {
 		// We just assume _all_ extensions are unknown values,
 		// since we don't have any other extensions.
+		dec.Skip() // skip what we've peeked
 		return cty.UnknownVal(ty), nil
 	}
 	if ty == cty.DynamicPseudoType {
 		return unmarshalDynamic(dec, path)
 	}
 	if peek == msgpackCodes.Nil {
+		dec.Skip() // skip what we've peeked
 		return cty.NullVal(ty), nil
 	}
 

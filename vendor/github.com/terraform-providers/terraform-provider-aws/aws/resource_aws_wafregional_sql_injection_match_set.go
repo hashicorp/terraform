@@ -122,7 +122,7 @@ func resourceAwsWafRegionalSqlInjectionMatchSetUpdate(d *schema.ResourceData, me
 
 		err := updateSqlInjectionMatchSetResourceWR(d.Id(), oldT, newT, conn, region)
 		if err != nil {
-			return fmt.Errorf("[ERROR] Error updating Regional WAF SQL Injection Match Set: %s", err)
+			return fmt.Errorf("Error updating Regional WAF SQL Injection Match Set: %s", err)
 		}
 	}
 
@@ -139,7 +139,7 @@ func resourceAwsWafRegionalSqlInjectionMatchSetDelete(d *schema.ResourceData, me
 		noTuples := []interface{}{}
 		err := updateSqlInjectionMatchSetResourceWR(d.Id(), oldTuples, noTuples, conn, region)
 		if err != nil {
-			return fmt.Errorf("[ERROR] Error deleting Regional WAF SQL Injection Match Set: %s", err)
+			return fmt.Errorf("Error deleting Regional WAF SQL Injection Match Set: %s", err)
 		}
 	}
 

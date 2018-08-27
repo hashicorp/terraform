@@ -18,12 +18,12 @@ func resourceAwsWafRegionalXssMatchSet() *schema.Resource {
 		Delete: resourceAwsWafRegionalXssMatchSetDelete,
 
 		Schema: map[string]*schema.Schema{
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
-			"xss_match_tuple": &schema.Schema{
+			"xss_match_tuple": {
 				Type:     schema.TypeSet,
 				Optional: true,
 				Elem: &schema.Resource{
@@ -45,7 +45,7 @@ func resourceAwsWafRegionalXssMatchSet() *schema.Resource {
 								},
 							},
 						},
-						"text_transformation": &schema.Schema{
+						"text_transformation": {
 							Type:     schema.TypeString,
 							Required: true,
 						},

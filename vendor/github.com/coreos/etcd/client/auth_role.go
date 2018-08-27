@@ -16,10 +16,11 @@ package client
 
 import (
 	"bytes"
-	"context"
 	"encoding/json"
 	"net/http"
 	"net/url"
+
+	"golang.org/x/net/context"
 )
 
 type Role struct {

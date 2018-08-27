@@ -74,14 +74,14 @@ func resourceAwsKmsGrant() *schema.Resource {
 							Type:     schema.TypeMap,
 							Optional: true,
 							ForceNew: true,
-							Elem:     schema.TypeString,
+							Elem:     &schema.Schema{Type: schema.TypeString},
 							// ConflictsWith encryption_context_subset handled in Create, see kmsGrantConstraintsIsValid
 						},
 						"encryption_context_subset": {
 							Type:     schema.TypeMap,
 							Optional: true,
 							ForceNew: true,
-							Elem:     schema.TypeString,
+							Elem:     &schema.Schema{Type: schema.TypeString},
 							// ConflictsWith encryption_context_equals handled in Create, see kmsGrantConstraintsIsValid
 						},
 					},
@@ -132,7 +132,7 @@ func resourceAwsKmsGrantCreate(d *schema.ResourceData, meta interface{}) error {
 	}
 	if v, ok := d.GetOk("constraints"); ok {
 		if !kmsGrantConstraintsIsValid(v.(*schema.Set)) {
-			return fmt.Errorf("[ERROR] A grant constraint can't have both encryption_context_equals and encryption_context_subset set")
+			return fmt.Errorf("A grant constraint can't have both encryption_context_equals and encryption_context_subset set")
 		}
 		input.Constraints = expandKmsGrantConstraints(v.(*schema.Set))
 	}
@@ -160,10 +160,10 @@ func resourceAwsKmsGrantCreate(d *schema.ResourceData, meta interface{}) error {
 				isAWSErr(err, kms.ErrCodeInternalException, "") ||
 				isAWSErr(err, kms.ErrCodeInvalidArnException, "") {
 				return resource.RetryableError(
-					fmt.Errorf("[WARN] Error adding new KMS Grant for key: %s, retrying %s",
+					fmt.Errorf("Error adding new KMS Grant for key: %s, retrying %s",
 						*input.KeyId, err))
 			}
-			log.Printf("[ERROR] An error occured creating new AWS KMS Grant: %s", err)
+			log.Printf("[ERROR] An error occurred creating new AWS KMS Grant: %s", err)
 			return resource.NonRetryableError(err)
 		}
 		return nil
@@ -355,7 +355,7 @@ func waitForKmsGrantToBeRevoked(conn *kms.KMS, keyId string, grantId string) err
 		if grant != nil {
 			// Force a retry if the grant still exists
 			return resource.RetryableError(
-				fmt.Errorf("[DEBUG] Grant still exists while expected to be revoked, retyring revocation check: %s", *grant.GrantId))
+				fmt.Errorf("Grant still exists while expected to be revoked, retyring revocation check: %s", *grant.GrantId))
 		}
 
 		return resource.NonRetryableError(err)

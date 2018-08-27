@@ -65,10 +65,7 @@ func ChildBlockTypes(spec Spec) map[string]Spec {
 	visit = func(s Spec) {
 		if bs, ok := s.(blockSpec); ok {
 			for _, blockS := range bs.blockHeaderSchemata() {
-				nested := bs.nestedSpec()
-				if nested != nil { // nil can be returned to dynamically opt out of this interface
-					ret[blockS.Type] = nested
-				}
+				ret[blockS.Type] = bs.nestedSpec()
 			}
 		}
 

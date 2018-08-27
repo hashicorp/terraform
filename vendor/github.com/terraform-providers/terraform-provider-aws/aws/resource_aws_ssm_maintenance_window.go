@@ -55,10 +55,10 @@ func resourceAwsSsmMaintenanceWindowCreate(d *schema.ResourceData, meta interfac
 	ssmconn := meta.(*AWSClient).ssmconn
 
 	params := &ssm.CreateMaintenanceWindowInput{
-		Name:     aws.String(d.Get("name").(string)),
-		Schedule: aws.String(d.Get("schedule").(string)),
-		Duration: aws.Int64(int64(d.Get("duration").(int))),
-		Cutoff:   aws.Int64(int64(d.Get("cutoff").(int))),
+		Name:                     aws.String(d.Get("name").(string)),
+		Schedule:                 aws.String(d.Get("schedule").(string)),
+		Duration:                 aws.Int64(int64(d.Get("duration").(int))),
+		Cutoff:                   aws.Int64(int64(d.Get("cutoff").(int))),
 		AllowUnassociatedTargets: aws.Bool(d.Get("allow_unassociated_targets").(bool)),
 	}
 
@@ -102,6 +102,11 @@ func resourceAwsSsmMaintenanceWindowUpdate(d *schema.ResourceData, meta interfac
 
 	_, err := ssmconn.UpdateMaintenanceWindow(params)
 	if err != nil {
+		if isAWSErr(err, ssm.ErrCodeDoesNotExistException, "") {
+			log.Printf("[WARN] Maintenance Window %s not found, removing from state", d.Id())
+			d.SetId("")
+			return nil
+		}
 		return err
 	}
 
@@ -117,6 +122,11 @@ func resourceAwsSsmMaintenanceWindowRead(d *schema.ResourceData, meta interface{
 
 	resp, err := ssmconn.GetMaintenanceWindow(params)
 	if err != nil {
+		if isAWSErr(err, ssm.ErrCodeDoesNotExistException, "") {
+			log.Printf("[WARN] Maintenance Window %s not found, removing from state", d.Id())
+			d.SetId("")
+			return nil
+		}
 		return err
 	}
 

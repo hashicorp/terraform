@@ -19,16 +19,16 @@ func resourceAwsEcrRepositoryPolicy() *schema.Resource {
 		Delete: resourceAwsEcrRepositoryPolicyDelete,
 
 		Schema: map[string]*schema.Schema{
-			"repository": &schema.Schema{
+			"repository": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
-			"policy": &schema.Schema{
+			"policy": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
-			"registry_id": &schema.Schema{
+			"registry_id": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},

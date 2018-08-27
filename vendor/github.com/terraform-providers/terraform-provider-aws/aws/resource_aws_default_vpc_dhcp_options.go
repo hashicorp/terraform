@@ -46,19 +46,19 @@ func resourceAwsDefaultVpcDhcpOptionsCreate(d *schema.ResourceData, meta interfa
 	}
 	req := &ec2.DescribeDhcpOptionsInput{
 		Filters: []*ec2.Filter{
-			&ec2.Filter{
+			{
 				Name:   aws.String("key"),
 				Values: aws.StringSlice([]string{"domain-name"}),
 			},
-			&ec2.Filter{
+			{
 				Name:   aws.String("value"),
 				Values: aws.StringSlice([]string{domainName}),
 			},
-			&ec2.Filter{
+			{
 				Name:   aws.String("key"),
 				Values: aws.StringSlice([]string{"domain-name-servers"}),
 			},
-			&ec2.Filter{
+			{
 				Name:   aws.String("value"),
 				Values: aws.StringSlice([]string{"AmazonProvidedDNS"}),
 			},

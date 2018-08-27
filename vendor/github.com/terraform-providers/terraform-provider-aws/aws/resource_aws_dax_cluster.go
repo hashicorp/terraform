@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/arn"
 	"github.com/aws/aws-sdk-go/service/dax"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
@@ -95,6 +94,27 @@ func resourceAwsDaxCluster() *schema.Resource {
 				Computed: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 				Set:      schema.HashString,
+			},
+			"server_side_encryption": {
+				Type:     schema.TypeList,
+				Optional: true,
+				MaxItems: 1,
+				DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
+					if old == "1" && new == "0" {
+						return true
+					}
+					return false
+				},
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"enabled": {
+							Type:     schema.TypeBool,
+							Optional: true,
+							Default:  false,
+							ForceNew: true,
+						},
+					},
+				},
 			},
 			"subnet_group_name": {
 				Type:     schema.TypeString,
@@ -187,6 +207,12 @@ func resourceAwsDaxClusterCreate(d *schema.ResourceData, meta interface{}) error
 	if len(preferred_azs) > 0 {
 		azs := expandStringList(preferred_azs)
 		req.AvailabilityZones = azs
+	}
+
+	if v, ok := d.GetOk("server_side_encryption"); ok && len(v.([]interface{})) > 0 {
+		options := v.([]interface{})
+		s := options[0].(map[string]interface{})
+		req.SSESpecification = expandDaxEncryptAtRestOptions(s)
 	}
 
 	// IAM roles take some time to propagate
@@ -288,39 +314,33 @@ func resourceAwsDaxClusterRead(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 
-	// list tags for resource
-	// set tags
-	arn, err := buildDaxArn(d.Id(), meta.(*AWSClient).partition, meta.(*AWSClient).accountid, meta.(*AWSClient).region)
-	if err != nil {
-		log.Printf("[DEBUG] Error building ARN for DAX Cluster, not setting Tags for cluster %s", *c.ClusterName)
-	} else {
-		resp, err := conn.ListTags(&dax.ListTagsInput{
-			ResourceName: aws.String(arn),
-		})
-
-		if err != nil {
-			log.Printf("[DEBUG] Error retrieving tags for ARN: %s", arn)
-		}
-
-		var dt []*dax.Tag
-		if len(resp.Tags) > 0 {
-			dt = resp.Tags
-		}
-		d.Set("tags", tagsToMapDax(dt))
+	if err := d.Set("server_side_encryption", flattenDaxEncryptAtRestOptions(c.SSEDescription)); err != nil {
+		return fmt.Errorf("error setting server_side_encryption: %s", err)
 	}
+
+	// list tags for resource
+	resp, err := conn.ListTags(&dax.ListTagsInput{
+		ResourceName: aws.String(aws.StringValue(c.ClusterArn)),
+	})
+
+	if err != nil {
+		log.Printf("[DEBUG] Error retrieving tags for ARN: %s", aws.StringValue(c.ClusterArn))
+	}
+
+	var dt []*dax.Tag
+	if len(resp.Tags) > 0 {
+		dt = resp.Tags
+	}
+	d.Set("tags", tagsToMapDax(dt))
 
 	return nil
 }
 
 func resourceAwsDaxClusterUpdate(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).daxconn
-	arn, err := buildDaxArn(d.Id(), meta.(*AWSClient).partition, meta.(*AWSClient).accountid, meta.(*AWSClient).region)
-	if err != nil {
-		log.Printf("[DEBUG] Error building ARN for DAX Cluster, not updating Tags for cluster %s", d.Id())
-	} else {
-		if err := setTagsDax(conn, d, arn); err != nil {
-			return err
-		}
+
+	if err := setTagsDax(conn, d, d.Get("arn").(string)); err != nil {
+		return err
 	}
 
 	req := &dax.UpdateClusterInput{
@@ -365,7 +385,7 @@ func resourceAwsDaxClusterUpdate(d *schema.ResourceData, meta interface{}) error
 		log.Printf("[DEBUG] Modifying DAX Cluster (%s), opts:\n%s", d.Id(), req)
 		_, err := conn.UpdateCluster(req)
 		if err != nil {
-			return fmt.Errorf("[WARN] Error updating DAX cluster (%s), error: %s", d.Id(), err)
+			return fmt.Errorf("Error updating DAX cluster (%s), error: %s", d.Id(), err)
 		}
 		awaitUpdate = true
 	}
@@ -381,7 +401,7 @@ func resourceAwsDaxClusterUpdate(d *schema.ResourceData, meta interface{}) error
 				NewReplicationFactor: aws.Int64(int64(nraw.(int))),
 			})
 			if err != nil {
-				return fmt.Errorf("[WARN] Error increasing nodes in DAX cluster %s, error: %s", d.Id(), err)
+				return fmt.Errorf("Error increasing nodes in DAX cluster %s, error: %s", d.Id(), err)
 			}
 			awaitUpdate = true
 		}
@@ -392,7 +412,7 @@ func resourceAwsDaxClusterUpdate(d *schema.ResourceData, meta interface{}) error
 				NewReplicationFactor: aws.Int64(int64(nraw.(int))),
 			})
 			if err != nil {
-				return fmt.Errorf("[WARN] Error increasing nodes in DAX cluster %s, error: %s", d.Id(), err)
+				return fmt.Errorf("Error increasing nodes in DAX cluster %s, error: %s", d.Id(), err)
 			}
 			awaitUpdate = true
 		}
@@ -504,7 +524,7 @@ func daxClusterStateRefreshFunc(conn *dax.DAX, clusterID, givenState string, pen
 		}
 
 		if len(resp.Clusters) == 0 {
-			return nil, "", fmt.Errorf("[WARN] Error: no DAX clusters found for id (%s)", clusterID)
+			return nil, "", fmt.Errorf("Error: no DAX clusters found for id (%s)", clusterID)
 		}
 
 		var c *dax.Cluster
@@ -516,7 +536,7 @@ func daxClusterStateRefreshFunc(conn *dax.DAX, clusterID, givenState string, pen
 		}
 
 		if c == nil {
-			return nil, "", fmt.Errorf("[WARN] Error: no matching DAX cluster for id (%s)", clusterID)
+			return nil, "", fmt.Errorf("Error: no matching DAX cluster for id (%s)", clusterID)
 		}
 
 		// DescribeCluster returns a response without status late on in the
@@ -564,23 +584,4 @@ func daxClusterStateRefreshFunc(conn *dax.DAX, clusterID, givenState string, pen
 		log.Printf("[DEBUG] current status: %v", *c.Status)
 		return c, *c.Status, nil
 	}
-}
-
-func buildDaxArn(identifier, partition, accountid, region string) (string, error) {
-	if partition == "" {
-		return "", fmt.Errorf("Unable to construct DAX ARN because of missing AWS partition")
-	}
-	if accountid == "" {
-		return "", fmt.Errorf("Unable to construct DAX ARN because of missing AWS Account ID")
-	}
-
-	arn := arn.ARN{
-		Partition: partition,
-		Service:   "dax",
-		Region:    region,
-		AccountID: accountid,
-		Resource:  fmt.Sprintf("cache/%s", identifier),
-	}
-
-	return arn.String(), nil
 }

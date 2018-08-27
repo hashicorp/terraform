@@ -73,7 +73,7 @@ func resourceAwsDxPublicVirtualInterface() *schema.Resource {
 				Computed: true,
 				ForceNew: true,
 			},
-			"route_filter_prefixes": &schema.Schema{
+			"route_filter_prefixes": {
 				Type:     schema.TypeSet,
 				Required: true,
 				ForceNew: true,

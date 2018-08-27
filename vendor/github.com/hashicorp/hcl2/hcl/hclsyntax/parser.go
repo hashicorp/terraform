@@ -55,7 +55,7 @@ Token:
 						Severity: hcl.DiagError,
 						Summary:  "Attribute redefined",
 						Detail: fmt.Sprintf(
-							"The argument %q was already set at %s. Each argument may be set only once.",
+							"The attribute %q was already defined at %s. Each attribute may be defined only once.",
 							titem.Name, existing.NameRange.String(),
 						),
 						Subject: &titem.NameRange,
@@ -80,15 +80,15 @@ Token:
 				if bad.Type == TokenOQuote {
 					diags = append(diags, &hcl.Diagnostic{
 						Severity: hcl.DiagError,
-						Summary:  "Invalid argument name",
-						Detail:   "Argument names must not be quoted.",
+						Summary:  "Invalid attribute name",
+						Detail:   "Attribute names must not be quoted.",
 						Subject:  &bad.Range,
 					})
 				} else {
 					diags = append(diags, &hcl.Diagnostic{
 						Severity: hcl.DiagError,
-						Summary:  "Argument or block definition required",
-						Detail:   "An argument or block definition is required here.",
+						Summary:  "Attribute or block definition required",
+						Detail:   "An attribute or block definition is required here.",
 						Subject:  &bad.Range,
 					})
 				}
@@ -120,8 +120,8 @@ func (p *parser) ParseBodyItem() (Node, hcl.Diagnostics) {
 		return nil, hcl.Diagnostics{
 			{
 				Severity: hcl.DiagError,
-				Summary:  "Argument or block definition required",
-				Detail:   "An argument or block definition is required here.",
+				Summary:  "Attribute or block definition required",
+				Detail:   "An attribute or block definition is required here.",
 				Subject:  &ident.Range,
 			},
 		}
@@ -139,8 +139,8 @@ func (p *parser) ParseBodyItem() (Node, hcl.Diagnostics) {
 		return nil, hcl.Diagnostics{
 			{
 				Severity: hcl.DiagError,
-				Summary:  "Argument or block definition required",
-				Detail:   "An argument or block definition is required here. To set an argument, use the equals sign \"=\" to introduce the argument value.",
+				Summary:  "Attribute or block definition required",
+				Detail:   "An attribute or block definition is required here. To define an attribute, use the equals sign \"=\" to introduce the attribute value.",
 				Subject:  &ident.Range,
 			},
 		}
@@ -171,8 +171,8 @@ func (p *parser) finishParsingBodyAttribute(ident Token) (Node, hcl.Diagnostics)
 			if !p.recovery {
 				diags = append(diags, &hcl.Diagnostic{
 					Severity: hcl.DiagError,
-					Summary:  "Missing newline after argument",
-					Detail:   "An argument definition must end with a newline.",
+					Summary:  "Missing newline after attribute definition",
+					Detail:   "An attribute definition must end with a newline.",
 					Subject:  &end.Range,
 					Context:  hcl.RangeBetween(ident.Range, end.Range).Ptr(),
 				})
@@ -244,7 +244,7 @@ Token:
 				diags = append(diags, &hcl.Diagnostic{
 					Severity: hcl.DiagError,
 					Summary:  "Invalid block definition",
-					Detail:   "The equals sign \"=\" indicates an argument definition, and must not be used when defining a block.",
+					Detail:   "The equals sign \"=\" indicates an attribute definition, and must not be used when defining a block.",
 					Subject:  &tok.Range,
 					Context:  hcl.RangeBetween(ident.Range, tok.Range).Ptr(),
 				})
@@ -1135,8 +1135,8 @@ func (p *parser) parseObjectCons() (Expression, hcl.Diagnostics) {
 				if next.Type == TokenNewline || next.Type == TokenComma {
 					diags = append(diags, &hcl.Diagnostic{
 						Severity: hcl.DiagError,
-						Summary:  "Missing attribute value",
-						Detail:   "Expected an attribute value, introduced by an equals sign (\"=\").",
+						Summary:  "Missing item value",
+						Detail:   "Expected an item value, introduced by an equals sign (\"=\").",
 						Subject:  &next.Range,
 						Context:  hcl.RangeBetween(open.Range, next.Range).Ptr(),
 					})
@@ -1144,7 +1144,7 @@ func (p *parser) parseObjectCons() (Expression, hcl.Diagnostics) {
 					diags = append(diags, &hcl.Diagnostic{
 						Severity: hcl.DiagError,
 						Summary:  "Missing key/value separator",
-						Detail:   "Expected an equals sign (\"=\") to mark the beginning of the attribute value.",
+						Detail:   "Expected an equals sign (\"=\") to mark the beginning of the item value.",
 						Subject:  &next.Range,
 						Context:  hcl.RangeBetween(open.Range, next.Range).Ptr(),
 					})
@@ -1182,8 +1182,8 @@ func (p *parser) parseObjectCons() (Expression, hcl.Diagnostics) {
 			if !p.recovery {
 				diags = append(diags, &hcl.Diagnostic{
 					Severity: hcl.DiagError,
-					Summary:  "Missing attribute separator",
-					Detail:   "Expected a newline or comma to mark the beginning of the next attribute.",
+					Summary:  "Missing item separator",
+					Detail:   "Expected a newline or comma to mark the beginning of the next item.",
 					Subject:  &next.Range,
 					Context:  hcl.RangeBetween(open.Range, next.Range).Ptr(),
 				})
@@ -1277,7 +1277,7 @@ func (p *parser) finishParsingForExpr(open Token) (Expression, hcl.Diagnostics) 
 			diags = append(diags, &hcl.Diagnostic{
 				Severity: hcl.DiagError,
 				Summary:  "Invalid 'for' expression",
-				Detail:   "For expression requires the 'in' keyword after its name declarations.",
+				Detail:   "For expression requires 'in' keyword after names.",
 				Subject:  p.Peek().Range.Ptr(),
 				Context:  hcl.RangeBetween(open.Range, p.Peek().Range).Ptr(),
 			})
@@ -1305,7 +1305,7 @@ func (p *parser) finishParsingForExpr(open Token) (Expression, hcl.Diagnostics) 
 			diags = append(diags, &hcl.Diagnostic{
 				Severity: hcl.DiagError,
 				Summary:  "Invalid 'for' expression",
-				Detail:   "For expression requires a colon after the collection expression.",
+				Detail:   "For expression requires colon after collection expression.",
 				Subject:  p.Peek().Range.Ptr(),
 				Context:  hcl.RangeBetween(open.Range, p.Peek().Range).Ptr(),
 			})
@@ -1459,7 +1459,7 @@ Token:
 		case TokenTemplateControl, TokenTemplateInterp:
 			which := "$"
 			if tok.Type == TokenTemplateControl {
-				which = "%"
+				which = "!"
 			}
 
 			diags = append(diags, &hcl.Diagnostic{

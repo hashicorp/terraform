@@ -96,8 +96,7 @@ func protocolStrings(protocolIntegers map[string]int) map[int]string {
 }
 
 func protocolIntegers() map[string]int {
-	var protocolIntegers = make(map[string]int)
-	protocolIntegers = map[string]int{
+	return map[string]int{
 		// defined at https://www.iana.org/assignments/protocol-numbers/protocol-numbers.xhtml
 		"all":             -1,
 		"hopopt":          0,
@@ -245,7 +244,6 @@ func protocolIntegers() map[string]int {
 		"253":             253,
 		"254":             254,
 	}
-	return protocolIntegers
 }
 
 // expectedPortPair stores a pair of ports we expect to see together.

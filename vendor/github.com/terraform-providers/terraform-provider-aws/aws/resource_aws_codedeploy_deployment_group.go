@@ -6,6 +6,7 @@ import (
 	"log"
 	"regexp"
 	"sort"
+	"strings"
 	"time"
 
 	"github.com/hashicorp/terraform/helper/hashcode"
@@ -24,29 +25,64 @@ func resourceAwsCodeDeployDeploymentGroup() *schema.Resource {
 		Read:   resourceAwsCodeDeployDeploymentGroupRead,
 		Update: resourceAwsCodeDeployDeploymentGroupUpdate,
 		Delete: resourceAwsCodeDeployDeploymentGroupDelete,
+		Importer: &schema.ResourceImporter{
+			State: func(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+				idParts := strings.Split(d.Id(), ":")
+
+				if len(idParts) != 2 {
+					return []*schema.ResourceData{}, fmt.Errorf("expected ID in format ApplicationName:DeploymentGroupName, received: %s", d.Id())
+				}
+
+				applicationName := idParts[0]
+				deploymentGroupName := idParts[1]
+				conn := meta.(*AWSClient).codedeployconn
+
+				input := &codedeploy.GetDeploymentGroupInput{
+					ApplicationName:     aws.String(applicationName),
+					DeploymentGroupName: aws.String(deploymentGroupName),
+				}
+
+				log.Printf("[DEBUG] Reading CodeDeploy Application: %s", input)
+				output, err := conn.GetDeploymentGroup(input)
+
+				if err != nil {
+					return []*schema.ResourceData{}, err
+				}
+
+				if output == nil || output.DeploymentGroupInfo == nil {
+					return []*schema.ResourceData{}, fmt.Errorf("error reading CodeDeploy Application (%s): empty response", d.Id())
+				}
+
+				d.SetId(aws.StringValue(output.DeploymentGroupInfo.DeploymentGroupId))
+				d.Set("app_name", applicationName)
+				d.Set("deployment_group_name", deploymentGroupName)
+
+				return []*schema.ResourceData{d}, nil
+			},
+		},
 
 		Schema: map[string]*schema.Schema{
-			"app_name": &schema.Schema{
+			"app_name": {
 				Type:         schema.TypeString,
 				Required:     true,
-				ValidateFunc: validateMaxLength(100),
+				ValidateFunc: validation.StringLenBetween(0, 100),
 			},
 
-			"deployment_group_name": &schema.Schema{
+			"deployment_group_name": {
 				Type:         schema.TypeString,
 				Required:     true,
 				ForceNew:     true,
-				ValidateFunc: validateMaxLength(100),
+				ValidateFunc: validation.StringLenBetween(0, 100),
 			},
 
-			"deployment_style": &schema.Schema{
+			"deployment_style": {
 				Type:     schema.TypeList,
 				Optional: true,
 				Computed: true,
 				MaxItems: 1,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"deployment_option": &schema.Schema{
+						"deployment_option": {
 							Type:     schema.TypeString,
 							Optional: true,
 							ValidateFunc: validation.StringInSlice([]string{
@@ -54,7 +90,7 @@ func resourceAwsCodeDeployDeploymentGroup() *schema.Resource {
 								codedeploy.DeploymentOptionWithoutTrafficControl,
 							}, false),
 						},
-						"deployment_type": &schema.Schema{
+						"deployment_type": {
 							Type:     schema.TypeString,
 							Optional: true,
 							ValidateFunc: validation.StringInSlice([]string{
@@ -66,20 +102,20 @@ func resourceAwsCodeDeployDeploymentGroup() *schema.Resource {
 				},
 			},
 
-			"blue_green_deployment_config": &schema.Schema{
+			"blue_green_deployment_config": {
 				Type:     schema.TypeList,
 				Optional: true,
 				Computed: true,
 				MaxItems: 1,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"deployment_ready_option": &schema.Schema{
+						"deployment_ready_option": {
 							Type:     schema.TypeList,
 							Optional: true,
 							MaxItems: 1,
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
-									"action_on_timeout": &schema.Schema{
+									"action_on_timeout": {
 										Type:     schema.TypeString,
 										Optional: true,
 										ValidateFunc: validation.StringInSlice([]string{
@@ -87,7 +123,7 @@ func resourceAwsCodeDeployDeploymentGroup() *schema.Resource {
 											codedeploy.DeploymentReadyActionStopDeployment,
 										}, false),
 									},
-									"wait_time_in_minutes": &schema.Schema{
+									"wait_time_in_minutes": {
 										Type:     schema.TypeInt,
 										Optional: true,
 									},
@@ -95,14 +131,14 @@ func resourceAwsCodeDeployDeploymentGroup() *schema.Resource {
 							},
 						},
 
-						"green_fleet_provisioning_option": &schema.Schema{
+						"green_fleet_provisioning_option": {
 							Type:     schema.TypeList,
 							Optional: true,
 							Computed: true,
 							MaxItems: 1,
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
-									"action": &schema.Schema{
+									"action": {
 										Type:     schema.TypeString,
 										Optional: true,
 										ValidateFunc: validation.StringInSlice([]string{
@@ -114,13 +150,13 @@ func resourceAwsCodeDeployDeploymentGroup() *schema.Resource {
 							},
 						},
 
-						"terminate_blue_instances_on_deployment_success": &schema.Schema{
+						"terminate_blue_instances_on_deployment_success": {
 							Type:     schema.TypeList,
 							Optional: true,
 							MaxItems: 1,
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
-									"action": &schema.Schema{
+									"action": {
 										Type:     schema.TypeString,
 										Optional: true,
 										ValidateFunc: validation.StringInSlice([]string{
@@ -128,7 +164,7 @@ func resourceAwsCodeDeployDeploymentGroup() *schema.Resource {
 											codedeploy.InstanceActionKeepAlive,
 										}, false),
 									},
-									"termination_wait_time_in_minutes": &schema.Schema{
+									"termination_wait_time_in_minutes": {
 										Type:     schema.TypeInt,
 										Optional: true,
 									},
@@ -139,18 +175,18 @@ func resourceAwsCodeDeployDeploymentGroup() *schema.Resource {
 				},
 			},
 
-			"service_role_arn": &schema.Schema{
+			"service_role_arn": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
 
-			"alarm_configuration": &schema.Schema{
+			"alarm_configuration": {
 				Type:     schema.TypeList,
 				Optional: true,
 				MaxItems: 1,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"alarms": &schema.Schema{
+						"alarms": {
 							Type:     schema.TypeSet,
 							MaxItems: 10,
 							Optional: true,
@@ -158,12 +194,12 @@ func resourceAwsCodeDeployDeploymentGroup() *schema.Resource {
 							Elem:     &schema.Schema{Type: schema.TypeString},
 						},
 
-						"enabled": &schema.Schema{
+						"enabled": {
 							Type:     schema.TypeBool,
 							Optional: true,
 						},
 
-						"ignore_poll_alarm_failure": &schema.Schema{
+						"ignore_poll_alarm_failure": {
 							Type:     schema.TypeBool,
 							Optional: true,
 							Default:  false,
@@ -172,20 +208,20 @@ func resourceAwsCodeDeployDeploymentGroup() *schema.Resource {
 				},
 			},
 
-			"load_balancer_info": &schema.Schema{
+			"load_balancer_info": {
 				Type:     schema.TypeList,
 				Optional: true,
 				Computed: true,
 				MaxItems: 1,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"elb_info": &schema.Schema{
+						"elb_info": {
 							Type:     schema.TypeSet,
 							Optional: true,
 							Set:      loadBalancerInfoHash,
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
-									"name": &schema.Schema{
+									"name": {
 										Type:     schema.TypeString,
 										Optional: true,
 									},
@@ -193,13 +229,13 @@ func resourceAwsCodeDeployDeploymentGroup() *schema.Resource {
 							},
 						},
 
-						"target_group_info": &schema.Schema{
+						"target_group_info": {
 							Type:     schema.TypeSet,
 							Optional: true,
 							Set:      loadBalancerInfoHash,
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
-									"name": &schema.Schema{
+									"name": {
 										Type:     schema.TypeString,
 										Optional: true,
 									},
@@ -210,18 +246,18 @@ func resourceAwsCodeDeployDeploymentGroup() *schema.Resource {
 				},
 			},
 
-			"auto_rollback_configuration": &schema.Schema{
+			"auto_rollback_configuration": {
 				Type:     schema.TypeList,
 				Optional: true,
 				MaxItems: 1,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"enabled": &schema.Schema{
+						"enabled": {
 							Type:     schema.TypeBool,
 							Optional: true,
 						},
 
-						"events": &schema.Schema{
+						"events": {
 							Type:     schema.TypeSet,
 							Optional: true,
 							Set:      schema.HashString,
@@ -231,42 +267,42 @@ func resourceAwsCodeDeployDeploymentGroup() *schema.Resource {
 				},
 			},
 
-			"autoscaling_groups": &schema.Schema{
+			"autoscaling_groups": {
 				Type:     schema.TypeSet,
 				Optional: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 				Set:      schema.HashString,
 			},
 
-			"deployment_config_name": &schema.Schema{
+			"deployment_config_name": {
 				Type:         schema.TypeString,
 				Optional:     true,
 				Default:      "CodeDeployDefault.OneAtATime",
-				ValidateFunc: validateMaxLength(100),
+				ValidateFunc: validation.StringLenBetween(0, 100),
 			},
 
-			"ec2_tag_set": &schema.Schema{
+			"ec2_tag_set": {
 				Type:     schema.TypeSet,
 				Optional: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"ec2_tag_filter": &schema.Schema{
+						"ec2_tag_filter": {
 							Type:     schema.TypeSet,
 							Optional: true,
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
-									"key": &schema.Schema{
+									"key": {
 										Type:     schema.TypeString,
 										Optional: true,
 									},
 
-									"type": &schema.Schema{
+									"type": {
 										Type:         schema.TypeString,
 										Optional:     true,
 										ValidateFunc: validateTagFilters,
 									},
 
-									"value": &schema.Schema{
+									"value": {
 										Type:     schema.TypeString,
 										Optional: true,
 									},
@@ -279,23 +315,23 @@ func resourceAwsCodeDeployDeploymentGroup() *schema.Resource {
 				Set: resourceAwsCodeDeployTagSetHash,
 			},
 
-			"ec2_tag_filter": &schema.Schema{
+			"ec2_tag_filter": {
 				Type:     schema.TypeSet,
 				Optional: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"key": &schema.Schema{
+						"key": {
 							Type:     schema.TypeString,
 							Optional: true,
 						},
 
-						"type": &schema.Schema{
+						"type": {
 							Type:         schema.TypeString,
 							Optional:     true,
 							ValidateFunc: validateTagFilters,
 						},
 
-						"value": &schema.Schema{
+						"value": {
 							Type:     schema.TypeString,
 							Optional: true,
 						},
@@ -304,23 +340,23 @@ func resourceAwsCodeDeployDeploymentGroup() *schema.Resource {
 				Set: resourceAwsCodeDeployTagFilterHash,
 			},
 
-			"on_premises_instance_tag_filter": &schema.Schema{
+			"on_premises_instance_tag_filter": {
 				Type:     schema.TypeSet,
 				Optional: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"key": &schema.Schema{
+						"key": {
 							Type:     schema.TypeString,
 							Optional: true,
 						},
 
-						"type": &schema.Schema{
+						"type": {
 							Type:         schema.TypeString,
 							Optional:     true,
 							ValidateFunc: validateTagFilters,
 						},
 
-						"value": &schema.Schema{
+						"value": {
 							Type:     schema.TypeString,
 							Optional: true,
 						},
@@ -329,12 +365,12 @@ func resourceAwsCodeDeployDeploymentGroup() *schema.Resource {
 				Set: resourceAwsCodeDeployTagFilterHash,
 			},
 
-			"trigger_configuration": &schema.Schema{
+			"trigger_configuration": {
 				Type:     schema.TypeSet,
 				Optional: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"trigger_events": &schema.Schema{
+						"trigger_events": {
 							Type:     schema.TypeSet,
 							Required: true,
 							Set:      schema.HashString,
@@ -355,12 +391,12 @@ func resourceAwsCodeDeployDeploymentGroup() *schema.Resource {
 							},
 						},
 
-						"trigger_name": &schema.Schema{
+						"trigger_name": {
 							Type:     schema.TypeString,
 							Required: true,
 						},
 
-						"trigger_target_arn": &schema.Schema{
+						"trigger_target_arn": {
 							Type:     schema.TypeString,
 							Required: true,
 						},
@@ -375,13 +411,15 @@ func resourceAwsCodeDeployDeploymentGroup() *schema.Resource {
 func resourceAwsCodeDeployDeploymentGroupCreate(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).codedeployconn
 
-	application := d.Get("app_name").(string)
-	deploymentGroup := d.Get("deployment_group_name").(string)
+	// required fields
+	applicationName := d.Get("app_name").(string)
+	deploymentGroupName := d.Get("deployment_group_name").(string)
+	serviceRoleArn := d.Get("service_role_arn").(string)
 
 	input := codedeploy.CreateDeploymentGroupInput{
-		ApplicationName:     aws.String(application),
-		DeploymentGroupName: aws.String(deploymentGroup),
-		ServiceRoleArn:      aws.String(d.Get("service_role_arn").(string)),
+		ApplicationName:     aws.String(applicationName),
+		DeploymentGroupName: aws.String(deploymentGroupName),
+		ServiceRoleArn:      aws.String(serviceRoleArn),
 	}
 
 	if attr, ok := d.GetOk("deployment_style"); ok {
@@ -430,36 +468,15 @@ func resourceAwsCodeDeployDeploymentGroupCreate(d *schema.ResourceData, meta int
 		input.BlueGreenDeploymentConfiguration = expandBlueGreenDeploymentConfig(attr.([]interface{}))
 	}
 
-	// Retry to handle IAM role eventual consistency.
+	log.Printf("[DEBUG] Creating CodeDeploy DeploymentGroup %s", applicationName)
+
 	var resp *codedeploy.CreateDeploymentGroupOutput
 	var err error
 	err = resource.Retry(5*time.Minute, func() *resource.RetryError {
 		resp, err = conn.CreateDeploymentGroup(&input)
-		if err != nil {
-			retry := false
-			codedeployErr, ok := err.(awserr.Error)
-			if !ok {
-				return resource.NonRetryableError(err)
-			}
-			if codedeployErr.Code() == "InvalidRoleException" {
-				retry = true
-			}
-			if codedeployErr.Code() == "InvalidTriggerConfigException" {
-				r := regexp.MustCompile("^Topic ARN .+ is not valid$")
-				if r.MatchString(codedeployErr.Message()) {
-					retry = true
-				}
-			}
-			if retry {
-				log.Printf("[DEBUG] Trying to create deployment group again: %q",
-					codedeployErr.Message())
-				return resource.RetryableError(err)
-			}
-
-			return resource.NonRetryableError(err)
-		}
-		return nil
+		return handleCreateError(err)
 	})
+
 	if err != nil {
 		return err
 	}
@@ -473,10 +490,12 @@ func resourceAwsCodeDeployDeploymentGroupRead(d *schema.ResourceData, meta inter
 	conn := meta.(*AWSClient).codedeployconn
 
 	log.Printf("[DEBUG] Reading CodeDeploy DeploymentGroup %s", d.Id())
+
 	resp, err := conn.GetDeploymentGroup(&codedeploy.GetDeploymentGroupInput{
 		ApplicationName:     aws.String(d.Get("app_name").(string)),
 		DeploymentGroupName: aws.String(d.Get("deployment_group_name").(string)),
 	})
+
 	if err != nil {
 		if ec2err, ok := err.(awserr.Error); ok && ec2err.Code() == "DeploymentGroupDoesNotExistException" {
 			log.Printf("[INFO] CodeDeployment DeploymentGroup %s not found", d.Get("deployment_group_name").(string))
@@ -488,10 +507,17 @@ func resourceAwsCodeDeployDeploymentGroupRead(d *schema.ResourceData, meta inter
 	}
 
 	d.Set("app_name", resp.DeploymentGroupInfo.ApplicationName)
-	d.Set("autoscaling_groups", resp.DeploymentGroupInfo.AutoScalingGroups)
 	d.Set("deployment_config_name", resp.DeploymentGroupInfo.DeploymentConfigName)
 	d.Set("deployment_group_name", resp.DeploymentGroupInfo.DeploymentGroupName)
 	d.Set("service_role_arn", resp.DeploymentGroupInfo.ServiceRoleArn)
+
+	autoScalingGroups := make([]string, len(resp.DeploymentGroupInfo.AutoScalingGroups))
+	for i, autoScalingGroup := range resp.DeploymentGroupInfo.AutoScalingGroups {
+		autoScalingGroups[i] = aws.StringValue(autoScalingGroup.Name)
+	}
+	if err := d.Set("autoscaling_groups", autoScalingGroups); err != nil {
+		return fmt.Errorf("error setting autoscaling_groups: %s", err)
+	}
 
 	if err := d.Set("deployment_style", flattenDeploymentStyle(resp.DeploymentGroupInfo.DeploymentStyle)); err != nil {
 		return err
@@ -535,20 +561,15 @@ func resourceAwsCodeDeployDeploymentGroupRead(d *schema.ResourceData, meta inter
 func resourceAwsCodeDeployDeploymentGroupUpdate(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).codedeployconn
 
+	// required fields
+	applicationName := d.Get("app_name").(string)
+	deploymentGroupName := d.Get("deployment_group_name").(string)
+	serviceRoleArn := d.Get("service_role_arn").(string)
+
 	input := codedeploy.UpdateDeploymentGroupInput{
-		ApplicationName:            aws.String(d.Get("app_name").(string)),
-		CurrentDeploymentGroupName: aws.String(d.Get("deployment_group_name").(string)),
-		ServiceRoleArn:             aws.String(d.Get("service_role_arn").(string)),
-	}
-
-	if d.HasChange("autoscaling_groups") {
-		_, n := d.GetChange("autoscaling_groups")
-		input.AutoScalingGroups = expandStringList(n.(*schema.Set).List())
-	}
-
-	if d.HasChange("deployment_config_name") {
-		_, n := d.GetChange("deployment_config_name")
-		input.DeploymentConfigName = aws.String(n.(string))
+		ApplicationName:            aws.String(applicationName),
+		CurrentDeploymentGroupName: aws.String(deploymentGroupName),
+		ServiceRoleArn:             aws.String(serviceRoleArn),
 	}
 
 	if d.HasChange("deployment_group_name") {
@@ -559,6 +580,17 @@ func resourceAwsCodeDeployDeploymentGroupUpdate(d *schema.ResourceData, meta int
 	if d.HasChange("deployment_style") {
 		_, n := d.GetChange("deployment_style")
 		input.DeploymentStyle = expandDeploymentStyle(n.([]interface{}))
+	}
+
+	if d.HasChange("deployment_config_name") {
+		_, n := d.GetChange("deployment_config_name")
+		input.DeploymentConfigName = aws.String(n.(string))
+	}
+
+	// include (original or new) autoscaling groups when blue_green_deployment_config changes
+	if d.HasChange("autoscaling_groups") || d.HasChange("blue_green_deployment_config") {
+		_, n := d.GetChange("autoscaling_groups")
+		input.AutoScalingGroups = expandStringList(n.(*schema.Set).List())
 	}
 
 	// TagFilters aren't like tags. They don't append. They simply replace.
@@ -607,33 +639,11 @@ func resourceAwsCodeDeployDeploymentGroupUpdate(d *schema.ResourceData, meta int
 	}
 
 	log.Printf("[DEBUG] Updating CodeDeploy DeploymentGroup %s", d.Id())
-	// Retry to handle IAM role eventual consistency.
-	err := resource.Retry(5*time.Minute, func() *resource.RetryError {
-		_, err := conn.UpdateDeploymentGroup(&input)
-		if err != nil {
-			retry := false
-			codedeployErr, ok := err.(awserr.Error)
-			if !ok {
-				return resource.NonRetryableError(err)
-			}
-			if codedeployErr.Code() == "InvalidRoleException" {
-				retry = true
-			}
-			if codedeployErr.Code() == "InvalidTriggerConfigException" {
-				r := regexp.MustCompile("^Topic ARN .+ is not valid$")
-				if r.MatchString(codedeployErr.Message()) {
-					retry = true
-				}
-			}
-			if retry {
-				log.Printf("[DEBUG] Retrying Code Deployment Group Update: %q",
-					codedeployErr.Message())
-				return resource.RetryableError(err)
-			}
 
-			return resource.NonRetryableError(err)
-		}
-		return nil
+	var err error
+	err = resource.Retry(5*time.Minute, func() *resource.RetryError {
+		_, err = conn.UpdateDeploymentGroup(&input)
+		return handleUpdateError(err)
 	})
 
 	if err != nil {
@@ -651,11 +661,50 @@ func resourceAwsCodeDeployDeploymentGroupDelete(d *schema.ResourceData, meta int
 		ApplicationName:     aws.String(d.Get("app_name").(string)),
 		DeploymentGroupName: aws.String(d.Get("deployment_group_name").(string)),
 	})
+
 	if err != nil {
 		return err
 	}
 
 	return nil
+}
+
+func handleCreateError(err error) *resource.RetryError {
+	return handleCodeDeployApiError(err, "create")
+}
+
+func handleUpdateError(err error) *resource.RetryError {
+	return handleCodeDeployApiError(err, "update")
+}
+
+func handleCodeDeployApiError(err error, operation string) *resource.RetryError {
+	if err == nil {
+		return nil
+	}
+
+	retry := false
+	codedeployErr, ok := err.(awserr.Error)
+	if !ok {
+		return resource.NonRetryableError(err)
+	}
+
+	if codedeployErr.Code() == "InvalidRoleException" {
+		retry = true
+	}
+
+	if codedeployErr.Code() == "InvalidTriggerConfigException" {
+		r := regexp.MustCompile("^Topic ARN .+ is not valid$")
+		if r.MatchString(codedeployErr.Message()) {
+			retry = true
+		}
+	}
+
+	if retry {
+		log.Printf("[DEBUG] Trying to %s DeploymentGroup again: %q", operation, codedeployErr.Message())
+		return resource.RetryableError(err)
+	}
+
+	return resource.NonRetryableError(err)
 }
 
 // buildOnPremTagFilters converts raw schema lists into a list of

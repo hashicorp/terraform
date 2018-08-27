@@ -5,7 +5,7 @@ for defining configuration languages for applications. The HCL information
 model is designed to support multiple concrete syntaxes for configuration,
 and this JSON-based format complements [the native syntax](../hclsyntax/spec.md)
 by being easy to machine-generate, whereas the native syntax is oriented
-towards human authoring and maintenance
+towards human authoring and maintenence.
 
 This syntax is defined in terms of JSON as defined in
 [RFC7159](https://tools.ietf.org/html/rfc7159). As such it inherits the JSON
@@ -280,9 +280,9 @@ When interpreted as an expression, a JSON array represents a value of a HCL
 tuple type.
 
 Each element of the JSON array represents an element of the HCL tuple type.
-The tuple type is constructed by enumerating the JSON array elements, creating
+The tuple type is constructed by enumerationg the JSON array elements, creating
 for each an element whose type is the result of recursively applying the
-expression mapping rules. Correspondence is preserved between the array element
+expression mapping rules. Correspondance is preserved between the array element
 indices and the tuple element indices.
 
 An instance of the constructed tuple type is then created, whose values are
@@ -325,7 +325,7 @@ HCL null value of the dynamic pseudo-type.
 
 ### Strings
 
-When interpreted as an expression, a JSON string may be interpreted in one of
+When intepreted as an expression, a JSON string may be interpreted in one of
 two ways depending on the evaluation mode.
 
 If evaluating in literal-only mode (as defined by the syntax-agnostic

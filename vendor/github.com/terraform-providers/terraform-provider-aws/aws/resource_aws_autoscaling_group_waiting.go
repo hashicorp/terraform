@@ -8,7 +8,6 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/autoscaling"
-	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 )
@@ -46,6 +45,9 @@ func waitForASGCapacity(
 			return nil
 		}
 		elbis, err := getELBInstanceStates(g, meta)
+		if err != nil {
+			return resource.NonRetryableError(err)
+		}
 		albis, err := getTargetGroupInstanceStates(g, meta)
 		if err != nil {
 			return resource.NonRetryableError(err)
@@ -121,8 +123,7 @@ func waitForASGCapacity(
 		recentStatus = fmt.Sprintf("(Failed to describe scaling activities: %s)", aErr)
 	}
 
-	msg := fmt.Sprintf("{{err}}. Most recent activity: %s", recentStatus)
-	return errwrap.Wrapf(msg, err)
+	return fmt.Errorf("%s. Most recent activity: %s", err, recentStatus)
 }
 
 type capacitySatisfiedFunc func(*schema.ResourceData, int, int) (bool, string)

@@ -27,11 +27,11 @@ func resourceAwsDbParameterGroup() *schema.Resource {
 		},
 
 		Schema: map[string]*schema.Schema{
-			"arn": &schema.Schema{
+			"arn": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"name": &schema.Schema{
+			"name": {
 				Type:          schema.TypeString,
 				Optional:      true,
 				Computed:      true,
@@ -39,7 +39,7 @@ func resourceAwsDbParameterGroup() *schema.Resource {
 				ConflictsWith: []string{"name_prefix"},
 				ValidateFunc:  validateDbParamGroupName,
 			},
-			"name_prefix": &schema.Schema{
+			"name_prefix": {
 				Type:          schema.TypeString,
 				Optional:      true,
 				Computed:      true,
@@ -47,32 +47,32 @@ func resourceAwsDbParameterGroup() *schema.Resource {
 				ConflictsWith: []string{"name"},
 				ValidateFunc:  validateDbParamGroupNamePrefix,
 			},
-			"family": &schema.Schema{
+			"family": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
-			"description": &schema.Schema{
+			"description": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
 				Default:  "Managed by Terraform",
 			},
-			"parameter": &schema.Schema{
+			"parameter": {
 				Type:     schema.TypeSet,
 				Optional: true,
 				ForceNew: false,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"name": &schema.Schema{
+						"name": {
 							Type:     schema.TypeString,
 							Required: true,
 						},
-						"value": &schema.Schema{
+						"value": {
 							Type:     schema.TypeString,
 							Required: true,
 						},
-						"apply_method": &schema.Schema{
+						"apply_method": {
 							Type:     schema.TypeString,
 							Optional: true,
 							Default:  "immediate",
@@ -276,7 +276,7 @@ func resourceAwsDbParameterGroupUpdate(d *schema.ResourceData, meta interface{})
 			// we've got them all.
 			maxParams := 20
 			for parameters != nil {
-				paramsToModify := make([]*rds.Parameter, 0)
+				var paramsToModify []*rds.Parameter
 				if len(parameters) <= maxParams {
 					paramsToModify, parameters = parameters[:], nil
 				} else {

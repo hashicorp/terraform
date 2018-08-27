@@ -47,7 +47,7 @@ func resourceAwsServiceCatalogPortfolio() *schema.Resource {
 				Type:         schema.TypeString,
 				Optional:     true,
 				Computed:     true,
-				ValidateFunc: validateMaxLength(2000),
+				ValidateFunc: validation.StringLenBetween(0, 2000),
 			},
 			"provider_name": {
 				Type:         schema.TypeString,
