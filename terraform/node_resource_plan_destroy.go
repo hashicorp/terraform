@@ -78,8 +78,9 @@ func (n *NodePlanDestroyableResourceInstance) EvalTree() EvalNode {
 				Change: &change,
 			},
 			&EvalWriteDiff{
-				Addr:   addr.Resource,
-				Change: &change,
+				Addr:           addr.Resource,
+				ProviderSchema: &providerSchema,
+				Change:         &change,
 			},
 		},
 	}
