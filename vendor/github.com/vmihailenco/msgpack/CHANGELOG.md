@@ -1,3 +1,9 @@
+## 3.4
+
+- Encode, Decode, Marshal, and Unmarshal are changed to accept single argument. EncodeMulti and DecodeMulti are added as replacement.
+- Added EncodeInt8/16/32/64 and EncodeUint8/16/32/64.
+- Encoder changed to preserve type of numbers instead of chosing most compact encoding. The old behavior can be achieved with Encoder.UseCompactEncoding.
+
 ## v3.3
 
 - `msgpack:",inline"` tag is restored to force inlining structs.
