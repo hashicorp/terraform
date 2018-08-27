@@ -398,7 +398,9 @@ func (s *GRPCProviderServer) PlanResourceChange(_ context.Context, req *proto.Pl
 		resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
 		return resp, nil
 	}
-	resp.PlannedState.Msgpack = plannedMP
+	resp.PlannedState = &proto.DynamicValue{
+		Msgpack: plannedMP,
+	}
 
 	// the Meta field gets encoded into PlannedPrivate
 	plannedPrivate, err := json.Marshal(diff.Meta)
