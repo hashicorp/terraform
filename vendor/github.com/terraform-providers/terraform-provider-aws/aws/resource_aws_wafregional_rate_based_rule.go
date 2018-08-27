@@ -42,7 +42,7 @@ func resourceAwsWafRegionalRateBasedRule() *schema.Resource {
 						"data_id": {
 							Type:         schema.TypeString,
 							Required:     true,
-							ValidateFunc: validateMaxLength(128),
+							ValidateFunc: validation.StringLenBetween(0, 128),
 						},
 						"type": {
 							Type:         schema.TypeString,
@@ -130,7 +130,7 @@ func resourceAwsWafRegionalRateBasedRuleUpdate(d *schema.ResourceData, meta inte
 	conn := meta.(*AWSClient).wafregionalconn
 	region := meta.(*AWSClient).region
 
-	if d.HasChange("predicate") {
+	if d.HasChange("predicate") || d.HasChange("rate_limit") {
 		o, n := d.GetChange("predicate")
 		oldP, newP := o.(*schema.Set).List(), n.(*schema.Set).List()
 		rateLimit := d.Get("rate_limit")

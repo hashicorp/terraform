@@ -6,13 +6,21 @@ import (
 	"fmt"
 )
 
+// GenerateRandomBytes is used to generate random bytes of given size.
+func GenerateRandomBytes(size int) ([]byte, error) {
+	buf := make([]byte, size)
+	if _, err := rand.Read(buf); err != nil {
+		return nil, fmt.Errorf("failed to read random bytes: %v", err)
+	}
+	return buf, nil
+}
+
 // GenerateUUID is used to generate a random UUID
 func GenerateUUID() (string, error) {
-	buf := make([]byte, 16)
-	if _, err := rand.Read(buf); err != nil {
-		return "", fmt.Errorf("failed to read random bytes: %v", err)
+	buf, err := GenerateRandomBytes(16)
+	if err != nil {
+		return "", err
 	}
-
 	return FormatUUID(buf)
 }
 

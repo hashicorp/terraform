@@ -7,7 +7,6 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/cognitoidentityprovider"
-	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/helper/validation"
 )
@@ -214,7 +213,7 @@ func resourceAwsCognitoUserPoolClientCreate(d *schema.ResourceData, meta interfa
 	resp, err := conn.CreateUserPoolClient(params)
 
 	if err != nil {
-		return errwrap.Wrapf("Error creating Cognito User Pool Client: {{err}}", err)
+		return fmt.Errorf("Error creating Cognito User Pool Client: %s", err)
 	}
 
 	d.SetId(*resp.UserPoolClient.ClientId)
@@ -270,55 +269,55 @@ func resourceAwsCognitoUserPoolClientUpdate(d *schema.ResourceData, meta interfa
 		UserPoolId: aws.String(d.Get("user_pool_id").(string)),
 	}
 
-	if d.HasChange("explicit_auth_flows") {
-		params.ExplicitAuthFlows = expandStringList(d.Get("explicit_auth_flows").(*schema.Set).List())
+	if v, ok := d.GetOk("explicit_auth_flows"); ok {
+		params.ExplicitAuthFlows = expandStringList(v.(*schema.Set).List())
 	}
 
-	if d.HasChange("read_attributes") {
-		params.ReadAttributes = expandStringList(d.Get("read_attributes").(*schema.Set).List())
+	if v, ok := d.GetOk("read_attributes"); ok {
+		params.ReadAttributes = expandStringList(v.(*schema.Set).List())
 	}
 
-	if d.HasChange("write_attributes") {
-		params.WriteAttributes = expandStringList(d.Get("write_attributes").(*schema.Set).List())
+	if v, ok := d.GetOk("write_attributes"); ok {
+		params.WriteAttributes = expandStringList(v.(*schema.Set).List())
 	}
 
-	if d.HasChange("refresh_token_validity") {
-		params.RefreshTokenValidity = aws.Int64(int64(d.Get("refresh_token_validity").(int)))
+	if v, ok := d.GetOk("refresh_token_validity"); ok {
+		params.RefreshTokenValidity = aws.Int64(int64(v.(int)))
 	}
 
-	if d.HasChange("allowed_oauth_flows") {
-		params.AllowedOAuthFlows = expandStringList(d.Get("allowed_oauth_flows").(*schema.Set).List())
+	if v, ok := d.GetOk("allowed_oauth_flows"); ok {
+		params.AllowedOAuthFlows = expandStringList(v.(*schema.Set).List())
 	}
 
-	if d.HasChange("allowed_oauth_flows_user_pool_client") {
-		params.AllowedOAuthFlowsUserPoolClient = aws.Bool(d.Get("allowed_oauth_flows_user_pool_client").(bool))
+	if v, ok := d.GetOk("allowed_oauth_flows_user_pool_client"); ok {
+		params.AllowedOAuthFlowsUserPoolClient = aws.Bool(v.(bool))
 	}
 
-	if d.HasChange("allowed_oauth_scopes") {
-		params.AllowedOAuthScopes = expandStringList(d.Get("allowed_oauth_scopes").(*schema.Set).List())
+	if v, ok := d.GetOk("allowed_oauth_scopes"); ok {
+		params.AllowedOAuthScopes = expandStringList(v.(*schema.Set).List())
 	}
 
-	if d.HasChange("callback_urls") {
-		params.CallbackURLs = expandStringList(d.Get("callback_urls").([]interface{}))
+	if v, ok := d.GetOk("callback_urls"); ok {
+		params.CallbackURLs = expandStringList(v.([]interface{}))
 	}
 
-	if d.HasChange("default_redirect_uri") {
-		params.DefaultRedirectURI = aws.String(d.Get("default_redirect_uri").(string))
+	if v, ok := d.GetOk("default_redirect_uri"); ok {
+		params.DefaultRedirectURI = aws.String(v.(string))
 	}
 
-	if d.HasChange("logout_urls") {
-		params.LogoutURLs = expandStringList(d.Get("logout_urls").([]interface{}))
+	if v, ok := d.GetOk("logout_urls"); ok {
+		params.LogoutURLs = expandStringList(v.([]interface{}))
 	}
 
-	if d.HasChange("supported_identity_providers") {
-		params.SupportedIdentityProviders = expandStringList(d.Get("supported_identity_providers").([]interface{}))
+	if v, ok := d.GetOk("supported_identity_providers"); ok {
+		params.SupportedIdentityProviders = expandStringList(v.([]interface{}))
 	}
 
 	log.Printf("[DEBUG] Updating Cognito User Pool Client: %s", params)
 
 	_, err := conn.UpdateUserPoolClient(params)
 	if err != nil {
-		return errwrap.Wrapf("Error updating Cognito User Pool Client: {{err}}", err)
+		return fmt.Errorf("Error updating Cognito User Pool Client: %s", err)
 	}
 
 	return resourceAwsCognitoUserPoolClientRead(d, meta)
@@ -337,7 +336,7 @@ func resourceAwsCognitoUserPoolClientDelete(d *schema.ResourceData, meta interfa
 	_, err := conn.DeleteUserPoolClient(params)
 
 	if err != nil {
-		return errwrap.Wrapf("Error deleting Cognito User Pool Client: {{err}}", err)
+		return fmt.Errorf("Error deleting Cognito User Pool Client: %s", err)
 	}
 
 	return nil
@@ -345,7 +344,7 @@ func resourceAwsCognitoUserPoolClientDelete(d *schema.ResourceData, meta interfa
 
 func resourceAwsCognitoUserPoolClientImport(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
 	if len(strings.Split(d.Id(), "/")) != 2 || len(d.Id()) < 3 {
-		return []*schema.ResourceData{}, fmt.Errorf("[ERR] Wrong format of resource: %s. Please follow 'user-pool-id/client-id'", d.Id())
+		return []*schema.ResourceData{}, fmt.Errorf("Wrong format of resource: %s. Please follow 'user-pool-id/client-id'", d.Id())
 	}
 	userPoolId := strings.Split(d.Id(), "/")[0]
 	clientId := strings.Split(d.Id(), "/")[1]

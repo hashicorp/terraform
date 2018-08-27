@@ -54,7 +54,9 @@ func resourceAwsEcsTaskDefinition() *schema.Resource {
 					return json
 				},
 				DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
-					equal, _ := ecsContainerDefinitionsAreEquivalent(old, new)
+					networkMode, ok := d.GetOk("network_mode")
+					isAWSVPC := ok && networkMode.(string) == ecs.NetworkModeAwsvpc
+					equal, _ := ecsContainerDefinitionsAreEquivalent(old, new, isAWSVPC)
 					return equal
 				},
 				ValidateFunc: validateAwsEcsTaskDefinitionContainerDefinitions,
@@ -107,6 +109,50 @@ func resourceAwsEcsTaskDefinition() *schema.Resource {
 							Type:     schema.TypeString,
 							Optional: true,
 							ForceNew: true,
+						},
+
+						"docker_volume_configuration": {
+							Type:     schema.TypeList,
+							Optional: true,
+							ForceNew: true,
+							MaxItems: 1,
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"scope": {
+										Type:     schema.TypeString,
+										Optional: true,
+										Computed: true,
+										ForceNew: true,
+										ValidateFunc: validation.StringInSlice([]string{
+											ecs.ScopeShared,
+											ecs.ScopeTask,
+										}, false),
+									},
+									"autoprovision": {
+										Type:     schema.TypeBool,
+										Optional: true,
+										ForceNew: true,
+										Default:  false,
+									},
+									"driver": {
+										Type:     schema.TypeString,
+										ForceNew: true,
+										Optional: true,
+									},
+									"driver_opts": {
+										Type:     schema.TypeMap,
+										Elem:     &schema.Schema{Type: schema.TypeString},
+										ForceNew: true,
+										Optional: true,
+									},
+									"labels": {
+										Type:     schema.TypeMap,
+										Elem:     &schema.Schema{Type: schema.TypeString},
+										ForceNew: true,
+										Optional: true,
+									},
+								},
+							},
 						},
 					},
 				},
@@ -244,9 +290,16 @@ func resourceAwsEcsTaskDefinitionRead(d *schema.ResourceData, meta interface{}) 
 	if err != nil {
 		return err
 	}
-	log.Printf("[DEBUG] Received task definition %s", out)
+	log.Printf("[DEBUG] Received task definition %s, status:%s\n %s", aws.StringValue(out.TaskDefinition.Family),
+		aws.StringValue(out.TaskDefinition.Status), out)
 
 	taskDefinition := out.TaskDefinition
+
+	if aws.StringValue(taskDefinition.Status) == "INACTIVE" {
+		log.Printf("[DEBUG] Removing ECS task definition %s because it's INACTIVE", aws.StringValue(out.TaskDefinition.Family))
+		d.SetId("")
+		return nil
+	}
 
 	d.SetId(*taskDefinition.Family)
 	d.Set("arn", taskDefinition.TaskDefinitionArn)
@@ -317,6 +370,5 @@ func resourceAwsEcsTaskDefinitionVolumeHash(v interface{}) int {
 	m := v.(map[string]interface{})
 	buf.WriteString(fmt.Sprintf("%s-", m["name"].(string)))
 	buf.WriteString(fmt.Sprintf("%s-", m["host_path"].(string)))
-
 	return hashcode.String(buf.String())
 }

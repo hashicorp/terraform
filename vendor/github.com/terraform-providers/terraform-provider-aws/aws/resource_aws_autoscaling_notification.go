@@ -18,20 +18,20 @@ func resourceAwsAutoscalingNotification() *schema.Resource {
 		Delete: resourceAwsAutoscalingNotificationDelete,
 
 		Schema: map[string]*schema.Schema{
-			"topic_arn": &schema.Schema{
+			"topic_arn": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
 
-			"group_names": &schema.Schema{
+			"group_names": {
 				Type:     schema.TypeSet,
 				Required: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 				Set:      schema.HashString,
 			},
 
-			"notifications": &schema.Schema{
+			"notifications": {
 				Type:     schema.TypeSet,
 				Required: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
@@ -95,13 +95,13 @@ func resourceAwsAutoscalingNotificationRead(d *schema.ResourceData, meta interfa
 
 	// Grab the keys here as the list of Groups
 	var gList []string
-	for k, _ := range gRaw {
+	for k := range gRaw {
 		gList = append(gList, k)
 	}
 
 	// Grab the keys here as the list of Types
 	var nList []string
-	for k, _ := range nRaw {
+	for k := range nRaw {
 		nList = append(nList, k)
 	}
 
@@ -166,7 +166,7 @@ func addNotificationConfigToGroupsWithTopic(conn *autoscaling.AutoScaling, group
 		_, err := conn.PutNotificationConfiguration(opts)
 		if err != nil {
 			if awsErr, ok := err.(awserr.Error); ok {
-				return fmt.Errorf("[WARN] Error creating Autoscaling Group Notification for Group %s, error: \"%s\", code: \"%s\"", *a, awsErr.Message(), awsErr.Code())
+				return fmt.Errorf("Error creating Autoscaling Group Notification for Group %s, error: \"%s\", code: \"%s\"", *a, awsErr.Message(), awsErr.Code())
 			}
 			return err
 		}
@@ -183,7 +183,7 @@ func removeNotificationConfigToGroupsWithTopic(conn *autoscaling.AutoScaling, gr
 
 		_, err := conn.DeleteNotificationConfiguration(opts)
 		if err != nil {
-			return fmt.Errorf("[WARN] Error deleting notification configuration for ASG \"%s\", Topic ARN \"%s\"", *r, topic)
+			return fmt.Errorf("Error deleting notification configuration for ASG \"%s\", Topic ARN \"%s\"", *r, topic)
 		}
 	}
 	return nil

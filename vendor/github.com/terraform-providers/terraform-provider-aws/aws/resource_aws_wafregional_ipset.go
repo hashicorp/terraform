@@ -20,25 +20,25 @@ func resourceAwsWafRegionalIPSet() *schema.Resource {
 		Delete: resourceAwsWafRegionalIPSetDelete,
 
 		Schema: map[string]*schema.Schema{
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
-			"arn": &schema.Schema{
+			"arn": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"ip_set_descriptor": &schema.Schema{
+			"ip_set_descriptor": {
 				Type:     schema.TypeSet,
 				Optional: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"type": &schema.Schema{
+						"type": {
 							Type:     schema.TypeString,
 							Required: true,
 						},
-						"value": &schema.Schema{
+						"value": {
 							Type:     schema.TypeString,
 							Required: true,
 						},
@@ -143,7 +143,7 @@ func resourceAwsWafRegionalIPSetDelete(d *schema.ResourceData, meta interface{})
 		err := updateIPSetResourceWR(d.Id(), oldD, noD, conn, region)
 
 		if err != nil {
-			return fmt.Errorf("Error Removing IPSetDescriptors: %s", err)
+			return fmt.Errorf("Error Deleting IPSetDescriptors: %s", err)
 		}
 	}
 
@@ -164,20 +164,21 @@ func resourceAwsWafRegionalIPSetDelete(d *schema.ResourceData, meta interface{})
 }
 
 func updateIPSetResourceWR(id string, oldD, newD []interface{}, conn *wafregional.WAFRegional, region string) error {
+	for _, ipSetUpdates := range diffWafIpSetDescriptors(oldD, newD) {
+		wr := newWafRegionalRetryer(conn, region)
+		_, err := wr.RetryWithToken(func(token *string) (interface{}, error) {
+			req := &waf.UpdateIPSetInput{
+				ChangeToken: token,
+				IPSetId:     aws.String(id),
+				Updates:     ipSetUpdates,
+			}
+			log.Printf("[INFO] Updating IPSet descriptor: %s", req)
 
-	wr := newWafRegionalRetryer(conn, region)
-	_, err := wr.RetryWithToken(func(token *string) (interface{}, error) {
-		req := &waf.UpdateIPSetInput{
-			ChangeToken: token,
-			IPSetId:     aws.String(id),
-			Updates:     diffWafIpSetDescriptors(oldD, newD),
+			return conn.UpdateIPSet(req)
+		})
+		if err != nil {
+			return fmt.Errorf("Error Updating WAF IPSet: %s", err)
 		}
-		log.Printf("[INFO] Updating IPSet descriptor: %s", req)
-
-		return conn.UpdateIPSet(req)
-	})
-	if err != nil {
-		return fmt.Errorf("Error Updating WAF IPSet: %s", err)
 	}
 
 	return nil

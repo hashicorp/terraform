@@ -132,7 +132,7 @@ func resourceAwsLightsailInstanceCreate(d *schema.ResourceData, meta interface{}
 	}
 
 	if len(resp.Operations) == 0 {
-		return fmt.Errorf("[ERR] No operations found for CreateInstance request")
+		return fmt.Errorf("No operations found for CreateInstance request")
 	}
 
 	op := resp.Operations[0]
@@ -149,7 +149,7 @@ func resourceAwsLightsailInstanceCreate(d *schema.ResourceData, meta interface{}
 
 	_, err = stateConf.WaitForState()
 	if err != nil {
-		// We don't return an error here because the Create call succeded
+		// We don't return an error here because the Create call succeeded
 		log.Printf("[ERR] Error waiting for instance (%s) to become ready: %s", d.Id(), err)
 	}
 
@@ -254,7 +254,7 @@ func resourceAwsLightsailOperationRefreshFunc(
 		}
 
 		if o.Operation == nil {
-			return nil, "Failed", fmt.Errorf("[ERR] Error retrieving Operation info for operation (%s)", *oid)
+			return nil, "Failed", fmt.Errorf("Error retrieving Operation info for operation (%s)", *oid)
 		}
 
 		log.Printf("[DEBUG] Lightsail Operation (%s) is currently %q", *oid, *o.Operation.Status)

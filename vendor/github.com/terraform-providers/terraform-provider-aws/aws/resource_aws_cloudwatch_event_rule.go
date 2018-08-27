@@ -9,10 +9,10 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	events "github.com/aws/aws-sdk-go/service/cloudwatchevents"
-	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/helper/structure"
+	"github.com/hashicorp/terraform/helper/validation"
 )
 
 func resourceAwsCloudWatchEventRule() *schema.Resource {
@@ -43,7 +43,7 @@ func resourceAwsCloudWatchEventRule() *schema.Resource {
 			"schedule_expression": {
 				Type:         schema.TypeString,
 				Optional:     true,
-				ValidateFunc: validateMaxLength(256),
+				ValidateFunc: validation.StringLenBetween(0, 256),
 			},
 			"event_pattern": {
 				Type:         schema.TypeString,
@@ -57,12 +57,12 @@ func resourceAwsCloudWatchEventRule() *schema.Resource {
 			"description": {
 				Type:         schema.TypeString,
 				Optional:     true,
-				ValidateFunc: validateMaxLength(512),
+				ValidateFunc: validation.StringLenBetween(0, 512),
 			},
 			"role_arn": {
 				Type:         schema.TypeString,
 				Optional:     true,
-				ValidateFunc: validateMaxLength(1600),
+				ValidateFunc: validation.StringLenBetween(0, 1600),
 			},
 			"is_enabled": {
 				Type:     schema.TypeBool,
@@ -91,7 +91,7 @@ func resourceAwsCloudWatchEventRuleCreate(d *schema.ResourceData, meta interface
 
 	input, err := buildPutRuleInputStruct(d, name)
 	if err != nil {
-		return errwrap.Wrapf("Creating CloudWatch Event Rule failed: {{err}}", err)
+		return fmt.Errorf("Creating CloudWatch Event Rule failed: %s", err)
 	}
 	log.Printf("[DEBUG] Creating CloudWatch Event Rule: %s", input)
 
@@ -113,7 +113,7 @@ func resourceAwsCloudWatchEventRuleCreate(d *schema.ResourceData, meta interface
 		return nil
 	})
 	if err != nil {
-		return errwrap.Wrapf("Creating CloudWatch Event Rule failed: {{err}}", err)
+		return fmt.Errorf("Creating CloudWatch Event Rule failed: %s", err)
 	}
 
 	d.Set("arn", out.RuleArn)
@@ -149,7 +149,7 @@ func resourceAwsCloudWatchEventRuleRead(d *schema.ResourceData, meta interface{}
 	if out.EventPattern != nil {
 		pattern, err := structure.NormalizeJsonString(*out.EventPattern)
 		if err != nil {
-			return errwrap.Wrapf("event pattern contains an invalid JSON: {{err}}", err)
+			return fmt.Errorf("event pattern contains an invalid JSON: %s", err)
 		}
 		d.Set("event_pattern", pattern)
 	}
@@ -183,7 +183,7 @@ func resourceAwsCloudWatchEventRuleUpdate(d *schema.ResourceData, meta interface
 
 	input, err := buildPutRuleInputStruct(d, d.Id())
 	if err != nil {
-		return errwrap.Wrapf("Updating CloudWatch Event Rule failed: {{err}}", err)
+		return fmt.Errorf("Updating CloudWatch Event Rule failed: %s", err)
 	}
 	log.Printf("[DEBUG] Updating CloudWatch Event Rule: %s", input)
 
@@ -203,7 +203,7 @@ func resourceAwsCloudWatchEventRuleUpdate(d *schema.ResourceData, meta interface
 		return nil
 	})
 	if err != nil {
-		return errwrap.Wrapf("Updating CloudWatch Event Rule failed: {{err}}", err)
+		return fmt.Errorf("Updating CloudWatch Event Rule failed: %s", err)
 	}
 
 	if d.HasChange("is_enabled") && !d.Get("is_enabled").(bool) {
@@ -245,7 +245,7 @@ func buildPutRuleInputStruct(d *schema.ResourceData, name string) (*events.PutRu
 	if v, ok := d.GetOk("event_pattern"); ok {
 		pattern, err := structure.NormalizeJsonString(v)
 		if err != nil {
-			return nil, errwrap.Wrapf("event pattern contains an invalid JSON: {{err}}", err)
+			return nil, fmt.Errorf("event pattern contains an invalid JSON: %s", err)
 		}
 		input.EventPattern = aws.String(pattern)
 	}

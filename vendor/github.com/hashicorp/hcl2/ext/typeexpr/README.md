@@ -55,8 +55,8 @@ in a type expression:
 For example:
 
 * `list(string)`
-* `object({name=string,age=number})`
-* `map(object({name=string,age=number}))`
+* `object({"name":string,"age":number})`
+* `map(object({"name":string,"age":number}))`
 
 Note that the object constructor syntax is not fully-general for all possible
 object types because it requires the attribute names to be valid identifiers.

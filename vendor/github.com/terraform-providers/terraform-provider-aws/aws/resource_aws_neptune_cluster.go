@@ -20,7 +20,9 @@ func resourceAwsNeptuneCluster() *schema.Resource {
 		Read:   resourceAwsNeptuneClusterRead,
 		Update: resourceAwsNeptuneClusterUpdate,
 		Delete: resourceAwsNeptuneClusterDelete,
-
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 		Timeouts: &schema.ResourceTimeout{
 			Create: schema.DefaultTimeout(120 * time.Minute),
 			Update: schema.DefaultTimeout(120 * time.Minute),
@@ -238,8 +240,11 @@ func resourceAwsNeptuneClusterCreate(d *schema.ResourceData, meta interface{}) e
 	tags := tagsFromMapNeptune(d.Get("tags").(map[string]interface{}))
 
 	// Check if any of the parameters that require a cluster modification after creation are set
-	var clusterUpdate bool
-	clusterUpdate = false
+	clusterUpdate := false
+	restoreDBClusterFromSnapshot := false
+	if _, ok := d.GetOk("snapshot_identifier"); ok {
+		restoreDBClusterFromSnapshot = true
+	}
 
 	if v, ok := d.GetOk("cluster_identifier"); ok {
 		d.Set("cluster_identifier", v.(string))
@@ -249,198 +254,110 @@ func resourceAwsNeptuneClusterCreate(d *schema.ResourceData, meta interface{}) e
 		} else {
 			d.Set("cluster_identifier", resource.PrefixedUniqueId("tf-"))
 		}
-
 	}
 
-	if _, ok := d.GetOk("snapshot_identifier"); ok {
-		opts := neptune.RestoreDBClusterFromSnapshotInput{
-			DBClusterIdentifier: aws.String(d.Get("cluster_identifier").(string)),
-			Engine:              aws.String(d.Get("engine").(string)),
-			SnapshotIdentifier:  aws.String(d.Get("snapshot_identifier").(string)),
-			Tags:                tags,
-			Port:                aws.Int64(int64(d.Get("port").(int))),
-		}
+	createDbClusterInput := &neptune.CreateDBClusterInput{
+		DBClusterIdentifier: aws.String(d.Get("cluster_identifier").(string)),
+		Engine:              aws.String(d.Get("engine").(string)),
+		Port:                aws.Int64(int64(d.Get("port").(int))),
+		StorageEncrypted:    aws.Bool(d.Get("storage_encrypted").(bool)),
+		Tags:                tags,
+	}
+	restoreDBClusterFromSnapshotInput := &neptune.RestoreDBClusterFromSnapshotInput{
+		DBClusterIdentifier: aws.String(d.Get("cluster_identifier").(string)),
+		Engine:              aws.String(d.Get("engine").(string)),
+		Port:                aws.Int64(int64(d.Get("port").(int))),
+		SnapshotIdentifier:  aws.String(d.Get("snapshot_identifier").(string)),
+		Tags:                tags,
+	}
 
-		if attr, ok := d.GetOk("engine_version"); ok {
-			opts.EngineVersion = aws.String(attr.(string))
-		}
+	if attr := d.Get("availability_zones").(*schema.Set); attr.Len() > 0 {
+		createDbClusterInput.AvailabilityZones = expandStringList(attr.List())
+		restoreDBClusterFromSnapshotInput.AvailabilityZones = expandStringList(attr.List())
+	}
 
-		if attr := d.Get("availability_zones").(*schema.Set); attr.Len() > 0 {
-			opts.AvailabilityZones = expandStringList(attr.List())
-		}
-
-		if attr, ok := d.GetOk("neptune_subnet_group_name"); ok {
-			opts.DBSubnetGroupName = aws.String(attr.(string))
-		}
-
-		if attr := d.Get("vpc_security_group_ids").(*schema.Set); attr.Len() > 0 {
-			clusterUpdate = true
-			opts.VpcSecurityGroupIds = expandStringList(attr.List())
-		}
-
-		if _, ok := d.GetOk("neptune_cluster_parameter_group_name"); ok {
+	if attr, ok := d.GetOk("backup_retention_period"); ok {
+		createDbClusterInput.BackupRetentionPeriod = aws.Int64(int64(attr.(int)))
+		if restoreDBClusterFromSnapshot {
 			clusterUpdate = true
 		}
+	}
 
-		if _, ok := d.GetOk("backup_retention_period"); ok {
+	if attr, ok := d.GetOk("engine_version"); ok {
+		createDbClusterInput.EngineVersion = aws.String(attr.(string))
+		restoreDBClusterFromSnapshotInput.EngineVersion = aws.String(attr.(string))
+	}
+
+	if attr, ok := d.GetOk("iam_database_authentication_enabled"); ok {
+		createDbClusterInput.EnableIAMDatabaseAuthentication = aws.Bool(attr.(bool))
+		restoreDBClusterFromSnapshotInput.EnableIAMDatabaseAuthentication = aws.Bool(attr.(bool))
+	}
+
+	if attr, ok := d.GetOk("kms_key_arn"); ok {
+		createDbClusterInput.KmsKeyId = aws.String(attr.(string))
+	}
+
+	if attr, ok := d.GetOk("neptune_cluster_parameter_group_name"); ok {
+		createDbClusterInput.DBClusterParameterGroupName = aws.String(attr.(string))
+		if restoreDBClusterFromSnapshot {
 			clusterUpdate = true
 		}
+	}
 
-		log.Printf("[DEBUG] Neptune Cluster restore from snapshot configuration: %s", opts)
-		err := resource.Retry(1*time.Minute, func() *resource.RetryError {
-			_, err := conn.RestoreDBClusterFromSnapshot(&opts)
-			if err != nil {
-				if isAWSErr(err, "InvalidParameterValue", "IAM role ARN value is invalid or does not include the required permissions") {
-					return resource.RetryableError(err)
-				}
-				return resource.NonRetryableError(err)
-			}
-			return nil
-		})
-		if err != nil {
-			return fmt.Errorf("Error creating Neptune Cluster: %s", err)
+	if attr, ok := d.GetOk("neptune_subnet_group_name"); ok {
+		createDbClusterInput.DBSubnetGroupName = aws.String(attr.(string))
+		restoreDBClusterFromSnapshotInput.DBSubnetGroupName = aws.String(attr.(string))
+	}
+
+	if attr, ok := d.GetOk("preferred_backup_window"); ok {
+		createDbClusterInput.PreferredBackupWindow = aws.String(attr.(string))
+	}
+
+	if attr, ok := d.GetOk("preferred_maintenance_window"); ok {
+		createDbClusterInput.PreferredMaintenanceWindow = aws.String(attr.(string))
+	}
+
+	if attr, ok := d.GetOk("replication_source_identifier"); ok {
+		createDbClusterInput.ReplicationSourceIdentifier = aws.String(attr.(string))
+	}
+
+	if attr := d.Get("vpc_security_group_ids").(*schema.Set); attr.Len() > 0 {
+		createDbClusterInput.VpcSecurityGroupIds = expandStringList(attr.List())
+		if restoreDBClusterFromSnapshot {
+			clusterUpdate = true
 		}
-	} else if _, ok := d.GetOk("replication_source_identifier"); ok {
-		createOpts := &neptune.CreateDBClusterInput{
-			DBClusterIdentifier:         aws.String(d.Get("cluster_identifier").(string)),
-			Engine:                      aws.String(d.Get("engine").(string)),
-			StorageEncrypted:            aws.Bool(d.Get("storage_encrypted").(bool)),
-			ReplicationSourceIdentifier: aws.String(d.Get("replication_source_identifier").(string)),
-			Tags: tags,
-			Port: aws.Int64(int64(d.Get("port").(int))),
-		}
+		restoreDBClusterFromSnapshotInput.VpcSecurityGroupIds = expandStringList(attr.List())
+	}
 
-		if attr, ok := d.GetOk("neptune_subnet_group_name"); ok {
-			createOpts.DBSubnetGroupName = aws.String(attr.(string))
-		}
-
-		if attr, ok := d.GetOk("neptune_cluster_parameter_group_name"); ok {
-			createOpts.DBClusterParameterGroupName = aws.String(attr.(string))
-		}
-
-		if attr, ok := d.GetOk("engine_version"); ok {
-			createOpts.EngineVersion = aws.String(attr.(string))
-		}
-
-		if attr := d.Get("vpc_security_group_ids").(*schema.Set); attr.Len() > 0 {
-			createOpts.VpcSecurityGroupIds = expandStringList(attr.List())
-		}
-
-		if attr := d.Get("availability_zones").(*schema.Set); attr.Len() > 0 {
-			createOpts.AvailabilityZones = expandStringList(attr.List())
-		}
-
-		if v, ok := d.GetOk("backup_retention_period"); ok {
-			createOpts.BackupRetentionPeriod = aws.Int64(int64(v.(int)))
-		}
-
-		if v, ok := d.GetOk("preferred_backup_window"); ok {
-			createOpts.PreferredBackupWindow = aws.String(v.(string))
-		}
-
-		if v, ok := d.GetOk("preferred_maintenance_window"); ok {
-			createOpts.PreferredMaintenanceWindow = aws.String(v.(string))
-		}
-
-		if attr, ok := d.GetOk("kms_key_arn"); ok {
-			createOpts.KmsKeyId = aws.String(attr.(string))
-		}
-
-		log.Printf("[DEBUG] Create Neptune Cluster as read replica: %s", createOpts)
-		var resp *neptune.CreateDBClusterOutput
-		err := resource.Retry(1*time.Minute, func() *resource.RetryError {
-			var err error
-			resp, err = conn.CreateDBCluster(createOpts)
-			if err != nil {
-				if isAWSErr(err, "InvalidParameterValue", "IAM role ARN value is invalid or does not include the required permissions") {
-					return resource.RetryableError(err)
-				}
-				return resource.NonRetryableError(err)
-			}
-			return nil
-		})
-		if err != nil {
-			return fmt.Errorf("error creating Neptune cluster: %s", err)
-		}
-
-		log.Printf("[DEBUG]: Neptune Cluster create response: %s", resp)
-
+	if restoreDBClusterFromSnapshot {
+		log.Printf("[DEBUG] Neptune Cluster restore from snapshot configuration: %s", restoreDBClusterFromSnapshotInput)
 	} else {
+		log.Printf("[DEBUG] Neptune Cluster create options: %s", createDbClusterInput)
+	}
 
-		createOpts := &neptune.CreateDBClusterInput{
-			DBClusterIdentifier: aws.String(d.Get("cluster_identifier").(string)),
-			Engine:              aws.String(d.Get("engine").(string)),
-			StorageEncrypted:    aws.Bool(d.Get("storage_encrypted").(bool)),
-			Tags:                tags,
-			Port:                aws.Int64(int64(d.Get("port").(int))),
+	err := resource.Retry(1*time.Minute, func() *resource.RetryError {
+		var err error
+		if restoreDBClusterFromSnapshot {
+			_, err = conn.RestoreDBClusterFromSnapshot(restoreDBClusterFromSnapshotInput)
+		} else {
+			_, err = conn.CreateDBCluster(createDbClusterInput)
 		}
-
-		if attr, ok := d.GetOk("neptune_subnet_group_name"); ok {
-			createOpts.DBSubnetGroupName = aws.String(attr.(string))
-		}
-
-		if attr, ok := d.GetOk("neptune_cluster_parameter_group_name"); ok {
-			createOpts.DBClusterParameterGroupName = aws.String(attr.(string))
-		}
-
-		if attr, ok := d.GetOk("engine_version"); ok {
-			createOpts.EngineVersion = aws.String(attr.(string))
-		}
-
-		if attr := d.Get("vpc_security_group_ids").(*schema.Set); attr.Len() > 0 {
-			createOpts.VpcSecurityGroupIds = expandStringList(attr.List())
-		}
-
-		if attr := d.Get("availability_zones").(*schema.Set); attr.Len() > 0 {
-			createOpts.AvailabilityZones = expandStringList(attr.List())
-		}
-
-		if v, ok := d.GetOk("backup_retention_period"); ok {
-			createOpts.BackupRetentionPeriod = aws.Int64(int64(v.(int)))
-		}
-
-		if v, ok := d.GetOk("preferred_backup_window"); ok {
-			createOpts.PreferredBackupWindow = aws.String(v.(string))
-		}
-
-		if v, ok := d.GetOk("preferred_maintenance_window"); ok {
-			createOpts.PreferredMaintenanceWindow = aws.String(v.(string))
-		}
-
-		if attr, ok := d.GetOk("kms_key_arn"); ok {
-			createOpts.KmsKeyId = aws.String(attr.(string))
-		}
-
-		if attr, ok := d.GetOk("iam_database_authentication_enabled"); ok {
-			createOpts.EnableIAMDatabaseAuthentication = aws.Bool(attr.(bool))
-		}
-
-		log.Printf("[DEBUG] Neptune Cluster create options: %s", createOpts)
-		var resp *neptune.CreateDBClusterOutput
-		err := resource.Retry(1*time.Minute, func() *resource.RetryError {
-			var err error
-			resp, err = conn.CreateDBCluster(createOpts)
-			if err != nil {
-				if isAWSErr(err, "InvalidParameterValue", "IAM role ARN value is invalid or does not include the required permissions") {
-					return resource.RetryableError(err)
-				}
-				return resource.NonRetryableError(err)
-			}
-			return nil
-		})
 		if err != nil {
-			return fmt.Errorf("error creating Neptune cluster: %s", err)
+			if isAWSErr(err, "InvalidParameterValue", "IAM role ARN value is invalid or does not include the required permissions") {
+				return resource.RetryableError(err)
+			}
+			return resource.NonRetryableError(err)
 		}
-
-		log.Printf("[DEBUG]: Neptune Cluster create response: %s", resp)
+		return nil
+	})
+	if err != nil {
+		return fmt.Errorf("error creating Neptune Cluster: %s", err)
 	}
 
 	d.SetId(d.Get("cluster_identifier").(string))
 
 	log.Printf("[INFO] Neptune Cluster ID: %s", d.Id())
-
-	log.Println(
-		"[INFO] Waiting for Neptune Cluster to be available")
+	log.Println("[INFO] Waiting for Neptune Cluster to be available")
 
 	stateConf := &resource.StateChangeConf{
 		Pending:    resourceAwsNeptuneClusterCreatePendingStates,
@@ -452,9 +369,9 @@ func resourceAwsNeptuneClusterCreate(d *schema.ResourceData, meta interface{}) e
 	}
 
 	// Wait, catching any errors
-	_, err := stateConf.WaitForState()
+	_, err = stateConf.WaitForState()
 	if err != nil {
-		return fmt.Errorf("[WARN] Error waiting for Neptune Cluster state to be \"available\": %s", err)
+		return fmt.Errorf("error waiting for Neptune Cluster state to be \"available\": %s", err)
 	}
 
 	if v, ok := d.GetOk("iam_roles"); ok {
@@ -511,26 +428,26 @@ func flattenAwsNeptuneClusterResource(d *schema.ResourceData, meta interface{}, 
 	conn := meta.(*AWSClient).neptuneconn
 
 	if err := d.Set("availability_zones", aws.StringValueSlice(dbc.AvailabilityZones)); err != nil {
-		return fmt.Errorf("[DEBUG] Error saving AvailabilityZones to state for Neptune Cluster (%s): %s", d.Id(), err)
+		return fmt.Errorf("Error saving AvailabilityZones to state for Neptune Cluster (%s): %s", d.Id(), err)
 	}
 
+	d.Set("backup_retention_period", dbc.BackupRetentionPeriod)
 	d.Set("cluster_identifier", dbc.DBClusterIdentifier)
 	d.Set("cluster_resource_id", dbc.DbClusterResourceId)
-	d.Set("neptune_subnet_group_name", dbc.DBSubnetGroup)
-	d.Set("neptune_cluster_parameter_group_name", dbc.DBClusterParameterGroup)
 	d.Set("endpoint", dbc.Endpoint)
-	d.Set("engine", dbc.Engine)
 	d.Set("engine_version", dbc.EngineVersion)
+	d.Set("engine", dbc.Engine)
+	d.Set("hosted_zone_id", dbc.HostedZoneId)
+	d.Set("iam_database_authentication_enabled", dbc.IAMDatabaseAuthenticationEnabled)
+	d.Set("kms_key_arn", dbc.KmsKeyId)
+	d.Set("neptune_cluster_parameter_group_name", dbc.DBClusterParameterGroup)
+	d.Set("neptune_subnet_group_name", dbc.DBSubnetGroup)
 	d.Set("port", dbc.Port)
-	d.Set("storage_encrypted", dbc.StorageEncrypted)
-	d.Set("backup_retention_period", dbc.BackupRetentionPeriod)
 	d.Set("preferred_backup_window", dbc.PreferredBackupWindow)
 	d.Set("preferred_maintenance_window", dbc.PreferredMaintenanceWindow)
-	d.Set("kms_key_arn", dbc.KmsKeyId)
 	d.Set("reader_endpoint", dbc.ReaderEndpoint)
 	d.Set("replication_source_identifier", dbc.ReplicationSourceIdentifier)
-	d.Set("iam_database_authentication_enabled", dbc.IAMDatabaseAuthenticationEnabled)
-	d.Set("hosted_zone_id", dbc.HostedZoneId)
+	d.Set("storage_encrypted", dbc.StorageEncrypted)
 
 	var sg []string
 	for _, g := range dbc.VpcSecurityGroups {
@@ -735,7 +652,7 @@ func resourceAwsNeptuneClusterDelete(d *schema.ResourceData, meta interface{}) e
 	// Wait, catching any errors
 	_, err = stateConf.WaitForState()
 	if err != nil {
-		return fmt.Errorf("[WARN] Error deleting Neptune Cluster (%s): %s", d.Id(), err)
+		return fmt.Errorf("Error deleting Neptune Cluster (%s): %s", d.Id(), err)
 	}
 
 	return nil

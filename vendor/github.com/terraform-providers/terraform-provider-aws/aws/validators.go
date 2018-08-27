@@ -32,6 +32,28 @@ func validateRFC3339TimeString(v interface{}, k string) (ws []string, errors []e
 	return
 }
 
+// validateTypeStringNullableBoolean provides custom error messaging for TypeString booleans
+// Some arguments require three values: true, false, and "" (unspecified).
+// This ValidateFunc returns a custom message since the message with
+// validation.StringInSlice([]string{"", "false", "true"}, false) is confusing:
+// to be one of [ false true], got 1
+func validateTypeStringNullableBoolean(v interface{}, k string) (ws []string, es []error) {
+	value, ok := v.(string)
+	if !ok {
+		es = append(es, fmt.Errorf("expected type of %s to be string", k))
+		return
+	}
+
+	for _, str := range []string{"", "0", "1", "false", "true"} {
+		if value == str {
+			return
+		}
+	}
+
+	es = append(es, fmt.Errorf("expected %s to be one of [\"\", false, true], got %s", k, value))
+	return
+}
+
 func validateRdsIdentifier(v interface{}, k string) (ws []string, errors []error) {
 	value := v.(string)
 	if !regexp.MustCompile(`^[0-9a-z-]+$`).MatchString(value) {
@@ -326,10 +348,6 @@ func validateCloudWatchLogResourcePolicyDocument(v interface{}, k string) (ws []
 		errors = append(errors, fmt.Errorf("%q contains an invalid JSON: %s", k, err))
 	}
 	return
-}
-
-func validateMaxLength(length int) schema.SchemaValidateFunc {
-	return validation.StringLenBetween(0, length)
 }
 
 func validateIntegerInRange(min, max int) schema.SchemaValidateFunc {
@@ -800,6 +818,7 @@ func validateAwsEmrEbsVolumeType() schema.SchemaValidateFunc {
 		"gp2",
 		"io1",
 		"standard",
+		"st1",
 	}, false)
 }
 
@@ -1624,6 +1643,19 @@ func validateIoTTopicRuleElasticSearchEndpoint(v interface{}, k string) (ws []st
 	return
 }
 
+func validateIoTTopicRuleFirehoseSeparator(v interface{}, s string) ([]string, []error) {
+	switch v.(string) {
+	case
+		",",
+		"\t",
+		"\n",
+		"\r\n":
+		return nil, nil
+	}
+
+	return nil, []error{fmt.Errorf("Separator must be one of ',' (comma), '\\t' (tab) '\\n' (newline) or '\\r\\n' (Windows newline)")}
+}
+
 func validateCognitoRoleMappingsAmbiguousRoleResolutionAgainstType(v map[string]interface{}) (errors []error) {
 	t := v["type"].(string)
 	isRequired := t == cognitoidentity.RoleMappingTypeToken || t == cognitoidentity.RoleMappingTypeRules
@@ -1685,7 +1717,15 @@ func validateCognitoUserPoolDomain(v interface{}, k string) (ws []string, errors
 }
 
 func validateDxConnectionBandWidth() schema.SchemaValidateFunc {
-	return validation.StringInSlice([]string{"1Gbps", "10Gbps"}, false)
+	return validation.StringInSlice([]string{
+		"1Gbps",
+		"10Gbps",
+		"50Mbps",
+		"100Mbps",
+		"200Mbps",
+		"300Mbps",
+		"400Mbps",
+		"500Mbps"}, false)
 }
 
 func validateKmsKey(v interface{}, k string) (ws []string, errors []error) {
@@ -1751,10 +1791,31 @@ func validateStringIn(validValues ...string) schema.SchemaValidateFunc {
 	}
 }
 
-func validateAmazonSideAsn(v interface{}, k string) (ws []string, errors []error) {
+func validateVpnGatewayAmazonSideAsn(v interface{}, k string) (ws []string, errors []error) {
 	value := v.(string)
 
 	// http://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_CreateVpnGateway.html
+	asn, err := strconv.ParseInt(value, 10, 64)
+	if err != nil {
+		errors = append(errors, fmt.Errorf("%q (%q) must be a 64-bit integer", k, v))
+		return
+	}
+
+	// https://github.com/terraform-providers/terraform-provider-aws/issues/5263
+	isLegacyAsn := func(a int64) bool {
+		return a == 7224 || a == 9059 || a == 10124 || a == 17493
+	}
+
+	if !isLegacyAsn(asn) && ((asn < 64512) || (asn > 65534 && asn < 4200000000) || (asn > 4294967294)) {
+		errors = append(errors, fmt.Errorf("%q (%q) must be 7224, 9059, 10124 or 17493 or in the range 64512 to 65534 or 4200000000 to 4294967294", k, v))
+	}
+	return
+}
+
+func validateDxGatewayAmazonSideAsn(v interface{}, k string) (ws []string, errors []error) {
+	value := v.(string)
+
+	// https://docs.aws.amazon.com/directconnect/latest/APIReference/API_CreateDirectConnectGateway.html
 	asn, err := strconv.ParseInt(value, 10, 64)
 	if err != nil {
 		errors = append(errors, fmt.Errorf("%q (%q) must be a 64-bit integer", k, v))
@@ -1919,6 +1980,60 @@ func validateNeptuneParamGroupNamePrefix(v interface{}, k string) (ws []string, 
 			"%q cannot contain two consecutive hyphens", k))
 	}
 	prefixMaxLength := 255 - resource.UniqueIDSuffixLength
+	if len(value) > prefixMaxLength {
+		errors = append(errors, fmt.Errorf(
+			"%q cannot be greater than %d characters", k, prefixMaxLength))
+	}
+	return
+}
+
+func validateNeptuneEventSubscriptionName(v interface{}, k string) (ws []string, errors []error) {
+	value := v.(string)
+	if !regexp.MustCompile(`^[0-9A-Za-z-]+$`).MatchString(value) {
+		errors = append(errors, fmt.Errorf(
+			"only alphanumeric characters and hyphens allowed in %q", k))
+	}
+	if len(value) > 255 {
+		errors = append(errors, fmt.Errorf(
+			"%q cannot be greater than 255 characters", k))
+	}
+	return
+}
+
+func validateNeptuneEventSubscriptionNamePrefix(v interface{}, k string) (ws []string, errors []error) {
+	value := v.(string)
+	if !regexp.MustCompile(`^[0-9A-Za-z-]+$`).MatchString(value) {
+		errors = append(errors, fmt.Errorf(
+			"only alphanumeric characters and hyphens allowed in %q", k))
+	}
+	prefixMaxLength := 255 - resource.UniqueIDSuffixLength
+	if len(value) > prefixMaxLength {
+		errors = append(errors, fmt.Errorf(
+			"%q cannot be greater than %d characters", k, prefixMaxLength))
+	}
+	return
+}
+
+func validateCloudFrontPublicKeyName(v interface{}, k string) (ws []string, errors []error) {
+	value := v.(string)
+	if !regexp.MustCompile(`^[0-9A-Za-z_-]+$`).MatchString(value) {
+		errors = append(errors, fmt.Errorf(
+			"only alphanumeric characters, underscores and hyphens allowed in %q", k))
+	}
+	if len(value) > 128 {
+		errors = append(errors, fmt.Errorf(
+			"%q cannot be greater than 128 characters", k))
+	}
+	return
+}
+
+func validateCloudFrontPublicKeyNamePrefix(v interface{}, k string) (ws []string, errors []error) {
+	value := v.(string)
+	if !regexp.MustCompile(`^[0-9A-Za-z_-]+$`).MatchString(value) {
+		errors = append(errors, fmt.Errorf(
+			"only alphanumeric characters, underscores and hyphens allowed in %q", k))
+	}
+	prefixMaxLength := 128 - resource.UniqueIDSuffixLength
 	if len(value) > prefixMaxLength {
 		errors = append(errors, fmt.Errorf(
 			"%q cannot be greater than %d characters", k, prefixMaxLength))

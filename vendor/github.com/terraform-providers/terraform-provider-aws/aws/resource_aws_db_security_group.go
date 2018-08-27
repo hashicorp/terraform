@@ -7,8 +7,6 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/arn"
-	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/rds"
 
 	"github.com/hashicorp/go-multierror"
@@ -28,47 +26,47 @@ func resourceAwsDbSecurityGroup() *schema.Resource {
 		},
 
 		Schema: map[string]*schema.Schema{
-			"arn": &schema.Schema{
+			"arn": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
 
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
 
-			"description": &schema.Schema{
+			"description": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
 				Default:  "Managed by Terraform",
 			},
 
-			"ingress": &schema.Schema{
+			"ingress": {
 				Type:     schema.TypeSet,
 				Required: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"cidr": &schema.Schema{
+						"cidr": {
 							Type:     schema.TypeString,
 							Optional: true,
 						},
 
-						"security_group_name": &schema.Schema{
-							Type:     schema.TypeString,
-							Optional: true,
-							Computed: true,
-						},
-
-						"security_group_id": &schema.Schema{
+						"security_group_name": {
 							Type:     schema.TypeString,
 							Optional: true,
 							Computed: true,
 						},
 
-						"security_group_owner_id": &schema.Schema{
+						"security_group_id": {
+							Type:     schema.TypeString,
+							Optional: true,
+							Computed: true,
+						},
+
+						"security_group_owner_id": {
 							Type:     schema.TypeString,
 							Optional: true,
 							Computed: true,
@@ -93,7 +91,7 @@ func resourceAwsDbSecurityGroupCreate(d *schema.ResourceData, meta interface{}) 
 	opts := rds.CreateDBSecurityGroupInput{
 		DBSecurityGroupName:        aws.String(d.Get("name").(string)),
 		DBSecurityGroupDescription: aws.String(d.Get("description").(string)),
-		Tags: tags,
+		Tags:                       tags,
 	}
 
 	log.Printf("[DEBUG] DB Security Group create configuration: %#v", opts)
@@ -148,8 +146,8 @@ func resourceAwsDbSecurityGroupRead(d *schema.ResourceData, meta interface{}) er
 		return err
 	}
 
-	d.Set("name", *sg.DBSecurityGroupName)
-	d.Set("description", *sg.DBSecurityGroupDescription)
+	d.Set("name", sg.DBSecurityGroupName)
+	d.Set("description", sg.DBSecurityGroupDescription)
 
 	// Create an empty schema.Set to hold all ingress rules
 	rules := &schema.Set{
@@ -179,13 +177,7 @@ func resourceAwsDbSecurityGroupRead(d *schema.ResourceData, meta interface{}) er
 
 	conn := meta.(*AWSClient).rdsconn
 
-	arn := arn.ARN{
-		Partition: meta.(*AWSClient).partition,
-		Service:   "rds",
-		Region:    meta.(*AWSClient).region,
-		AccountID: meta.(*AWSClient).accountid,
-		Resource:  fmt.Sprintf("secgrp:%s", d.Id()),
-	}.String()
+	arn := aws.StringValue(sg.DBSecurityGroupArn)
 	d.Set("arn", arn)
 	resp, err := conn.ListTagsForResource(&rds.ListTagsForResourceInput{
 		ResourceName: aws.String(arn),
@@ -209,14 +201,7 @@ func resourceAwsDbSecurityGroupUpdate(d *schema.ResourceData, meta interface{}) 
 
 	d.Partial(true)
 
-	arn := arn.ARN{
-		Partition: meta.(*AWSClient).partition,
-		Service:   "rds",
-		Region:    meta.(*AWSClient).region,
-		AccountID: meta.(*AWSClient).accountid,
-		Resource:  fmt.Sprintf("secgrp:%s", d.Id()),
-	}.String()
-	if err := setTagsRDS(conn, d, arn); err != nil {
+	if err := setTagsRDS(conn, d, d.Get("arn").(string)); err != nil {
 		return err
 	} else {
 		d.SetPartial("tags")
@@ -273,8 +258,7 @@ func resourceAwsDbSecurityGroupDelete(d *schema.ResourceData, meta interface{}) 
 	_, err := conn.DeleteDBSecurityGroup(&opts)
 
 	if err != nil {
-		newerr, ok := err.(awserr.Error)
-		if ok && newerr.Code() == "InvalidDBSecurityGroup.NotFound" {
+		if isAWSErr(err, "InvalidDBSecurityGroup.NotFound", "") {
 			return nil
 		}
 		return err

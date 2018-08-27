@@ -94,16 +94,6 @@ func RangeOver(a, b Range) Range {
 	}
 }
 
-// ContainsPos returns true if and only if the given position is contained within
-// the receiving range.
-//
-// In the unlikely case that the line/column information disagree with the byte
-// offset information in the given position or receiving range, the byte
-// offsets are given priority.
-func (r Range) ContainsPos(pos Pos) bool {
-	return r.ContainsOffset(pos.Byte)
-}
-
 // ContainsOffset returns true if and only if the given byte offset is within
 // the receiving Range.
 func (r Range) ContainsOffset(offset int) bool {

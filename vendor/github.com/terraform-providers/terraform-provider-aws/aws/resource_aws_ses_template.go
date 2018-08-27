@@ -31,7 +31,7 @@ func resourceAwsSesTemplate() *schema.Resource {
 			"html": {
 				Type:         schema.TypeString,
 				Optional:     true,
-				ValidateFunc: validateMaxLength(512000),
+				ValidateFunc: validation.StringLenBetween(0, 512000),
 			},
 			"subject": {
 				Type:     schema.TypeString,
@@ -40,7 +40,7 @@ func resourceAwsSesTemplate() *schema.Resource {
 			"text": {
 				Type:         schema.TypeString,
 				Optional:     true,
-				ValidateFunc: validateMaxLength(512000),
+				ValidateFunc: validation.StringLenBetween(0, 512000),
 			},
 		},
 	}

@@ -24,40 +24,40 @@ func resourceAwsVpcDhcpOptions() *schema.Resource {
 		},
 
 		Schema: map[string]*schema.Schema{
-			"domain_name": &schema.Schema{
+			"domain_name": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
 			},
 
-			"domain_name_servers": &schema.Schema{
+			"domain_name_servers": {
 				Type:     schema.TypeList,
 				Optional: true,
 				ForceNew: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 			},
 
-			"ntp_servers": &schema.Schema{
+			"ntp_servers": {
 				Type:     schema.TypeList,
 				Optional: true,
 				ForceNew: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 			},
 
-			"netbios_node_type": &schema.Schema{
+			"netbios_node_type": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
 			},
 
-			"netbios_name_servers": &schema.Schema{
+			"netbios_name_servers": {
 				Type:     schema.TypeList,
 				Optional: true,
 				ForceNew: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 			},
 
-			"tags": &schema.Schema{
+			"tags": {
 				Type:     schema.TypeMap,
 				Optional: true,
 			},
@@ -236,7 +236,7 @@ func resourceAwsVpcDhcpOptionsDelete(d *schema.ResourceData, meta interface{}) e
 func findVPCsByDHCPOptionsID(conn *ec2.EC2, id string) ([]*ec2.Vpc, error) {
 	req := &ec2.DescribeVpcsInput{
 		Filters: []*ec2.Filter{
-			&ec2.Filter{
+			{
 				Name: aws.String("dhcp-options-id"),
 				Values: []*string{
 					aws.String(id),

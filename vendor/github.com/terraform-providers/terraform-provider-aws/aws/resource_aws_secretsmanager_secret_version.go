@@ -5,6 +5,8 @@ import (
 	"log"
 	"strings"
 
+	"encoding/base64"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/secretsmanager"
 	"github.com/hashicorp/terraform/helper/schema"
@@ -21,16 +23,28 @@ func resourceAwsSecretsManagerSecretVersion() *schema.Resource {
 		},
 
 		Schema: map[string]*schema.Schema{
+			"arn": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
 			"secret_id": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
 			"secret_string": {
-				Type:      schema.TypeString,
-				Required:  true,
-				ForceNew:  true,
-				Sensitive: true,
+				Type:          schema.TypeString,
+				Optional:      true,
+				ForceNew:      true,
+				Sensitive:     true,
+				ConflictsWith: []string{"secret_binary"},
+			},
+			"secret_binary": {
+				Type:          schema.TypeString,
+				Optional:      true,
+				ForceNew:      true,
+				Sensitive:     true,
+				ConflictsWith: []string{"secret_string"},
 			},
 			"version_id": {
 				Type:     schema.TypeString,
@@ -51,8 +65,26 @@ func resourceAwsSecretsManagerSecretVersionCreate(d *schema.ResourceData, meta i
 	secretID := d.Get("secret_id").(string)
 
 	input := &secretsmanager.PutSecretValueInput{
-		SecretId:     aws.String(secretID),
-		SecretString: aws.String(d.Get("secret_string").(string)),
+		SecretId: aws.String(secretID),
+	}
+
+	if v, ok := d.GetOk("secret_string"); ok {
+		input.SecretString = aws.String(v.(string))
+	}
+
+	if v, ok := d.GetOk("secret_binary"); ok {
+		vs := []byte(v.(string))
+
+		if !isBase64Encoded(vs) {
+			return fmt.Errorf("expected base64 in secret_binary")
+		}
+
+		var err error
+		input.SecretBinary, err = base64.StdEncoding.DecodeString(v.(string))
+
+		if err != nil {
+			return fmt.Errorf("error decoding secret binary value: %s", err)
+		}
 	}
 
 	if v, ok := d.GetOk("version_stages"); ok {
@@ -101,7 +133,9 @@ func resourceAwsSecretsManagerSecretVersionRead(d *schema.ResourceData, meta int
 
 	d.Set("secret_id", secretID)
 	d.Set("secret_string", output.SecretString)
+	d.Set("secret_binary", base64Encode(output.SecretBinary))
 	d.Set("version_id", output.VersionId)
+	d.Set("arn", output.ARN)
 
 	if err := d.Set("version_stages", flattenStringList(output.VersionStages)); err != nil {
 		return fmt.Errorf("error setting version_stages: %s", err)

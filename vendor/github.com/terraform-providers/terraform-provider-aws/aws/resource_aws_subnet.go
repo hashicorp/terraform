@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/arn"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/hashicorp/terraform/helper/resource"
@@ -20,6 +21,11 @@ func resourceAwsSubnet() *schema.Resource {
 		Delete: resourceAwsSubnetDelete,
 		Importer: &schema.ResourceImporter{
 			State: schema.ImportStatePassthrough,
+		},
+
+		Timeouts: &schema.ResourceTimeout{
+			Create: schema.DefaultTimeout(10 * time.Minute),
+			Delete: schema.DefaultTimeout(10 * time.Minute),
 		},
 
 		SchemaVersion: 1,
@@ -64,6 +70,11 @@ func resourceAwsSubnet() *schema.Resource {
 			},
 
 			"ipv6_cidr_block_association_id": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+
+			"arn": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
@@ -154,6 +165,16 @@ func resourceAwsSubnetRead(d *schema.ResourceData, meta interface{}) error {
 			d.Set("ipv6_cidr_block", "")
 		}
 	}
+
+	arn := arn.ARN{
+		Partition: meta.(*AWSClient).partition,
+		Region:    meta.(*AWSClient).region,
+		Service:   "ec2",
+		AccountID: meta.(*AWSClient).accountid,
+		Resource:  fmt.Sprintf("subnet/%s", d.Id()),
+	}
+	d.Set("arn", arn.String())
+
 	d.Set("tags", tagsToMap(subnet.Tags))
 
 	return nil
@@ -287,6 +308,11 @@ func resourceAwsSubnetDelete(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).ec2conn
 
 	log.Printf("[INFO] Deleting subnet: %s", d.Id())
+
+	if err := deleteLingeringLambdaENIs(conn, d, "subnet-id"); err != nil {
+		return fmt.Errorf("Failed to delete Lambda ENIs: %s", err)
+	}
+
 	req := &ec2.DeleteSubnetInput{
 		SubnetId: aws.String(d.Id()),
 	}

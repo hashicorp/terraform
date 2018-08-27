@@ -27,6 +27,8 @@ type SchedulerHints struct {
 	TargetCell string `json:"target_cell,omitempty"`
 	// BuildNearHostIP specifies a subnet of compute nodes to host the instance.
 	BuildNearHostIP string
+	// AdditionalProperies are arbitrary key/values that are not validated by nova.
+	AdditionalProperties map[string]interface{}
 }
 
 // CreateOptsBuilder builds the scheduler hints into a serializable format.
@@ -114,6 +116,12 @@ func (opts SchedulerHints) ToServerSchedulerHintsCreateMap() (map[string]interfa
 		ipParts := strings.Split(opts.BuildNearHostIP, "/")
 		sh["build_near_host_ip"] = ipParts[0]
 		sh["cidr"] = "/" + ipParts[1]
+	}
+
+	if opts.AdditionalProperties != nil {
+		for k, v := range opts.AdditionalProperties {
+			sh[k] = v
+		}
 	}
 
 	return sh, nil

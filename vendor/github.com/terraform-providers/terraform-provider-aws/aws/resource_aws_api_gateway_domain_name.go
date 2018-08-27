@@ -19,6 +19,9 @@ func resourceAwsApiGatewayDomainName() *schema.Resource {
 		Read:   resourceAwsApiGatewayDomainNameRead,
 		Update: resourceAwsApiGatewayDomainNameUpdate,
 		Delete: resourceAwsApiGatewayDomainNameDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: map[string]*schema.Schema{
 

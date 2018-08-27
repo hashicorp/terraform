@@ -5,7 +5,7 @@ import (
 	"github.com/gophercloud/gophercloud/pagination"
 )
 
-// KeyPair is an SSH key known to the OpenStack cluster that is available to be injected into
+// KeyPair is an SSH key known to the OpenStack Cloud that is available to be injected into
 // servers.
 type KeyPair struct {
 	// Name is used to refer to this keypair from other services within this region.

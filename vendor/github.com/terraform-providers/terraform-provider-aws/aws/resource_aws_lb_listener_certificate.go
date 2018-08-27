@@ -6,10 +6,9 @@ import (
 	"log"
 	"time"
 
-	"github.com/hashicorp/terraform/helper/resource"
-
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/elbv2"
+	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -40,7 +39,7 @@ func resourceAwsLbListenerCertificateCreate(d *schema.ResourceData, meta interfa
 	params := &elbv2.AddListenerCertificatesInput{
 		ListenerArn: aws.String(d.Get("listener_arn").(string)),
 		Certificates: []*elbv2.Certificate{
-			&elbv2.Certificate{
+			{
 				CertificateArn: aws.String(d.Get("certificate_arn").(string)),
 			},
 		},
@@ -106,7 +105,7 @@ func resourceAwsLbListenerCertificateDelete(d *schema.ResourceData, meta interfa
 	params := &elbv2.RemoveListenerCertificatesInput{
 		ListenerArn: aws.String(d.Get("listener_arn").(string)),
 		Certificates: []*elbv2.Certificate{
-			&elbv2.Certificate{
+			{
 				CertificateArn: aws.String(d.Get("certificate_arn").(string)),
 			},
 		},
@@ -141,11 +140,11 @@ func findAwsLbListenerCertificate(certificateArn, listenerArn string, skipDefaul
 	}
 
 	for _, cert := range resp.Certificates {
-		if skipDefault && *cert.IsDefault {
+		if skipDefault && aws.BoolValue(cert.IsDefault) {
 			continue
 		}
 
-		if *cert.CertificateArn == certificateArn {
+		if aws.StringValue(cert.CertificateArn) == certificateArn {
 			return cert, nil
 		}
 	}

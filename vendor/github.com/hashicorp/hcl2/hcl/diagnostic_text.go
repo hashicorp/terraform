@@ -2,14 +2,11 @@ package hcl
 
 import (
 	"bufio"
-	"bytes"
 	"errors"
 	"fmt"
 	"io"
-	"sort"
 
 	wordwrap "github.com/mitchellh/go-wordwrap"
-	"github.com/zclconf/go-cty/cty"
 )
 
 type diagnosticTextWriter struct {
@@ -136,62 +133,6 @@ func (w *diagnosticTextWriter) WriteDiagnostic(diag *Diagnostic) error {
 
 			w.wr.Write([]byte{'\n'})
 		}
-
-		if diag.Expression != nil && diag.EvalContext != nil {
-			// We will attempt to render the values for any variables
-			// referenced in the given expression as additional context, for
-			// situations where the same expression is evaluated multiple
-			// times in different scopes.
-			expr := diag.Expression
-			ctx := diag.EvalContext
-
-			vars := expr.Variables()
-			stmts := make([]string, 0, len(vars))
-			seen := make(map[string]struct{}, len(vars))
-			for _, traversal := range vars {
-				val, diags := traversal.TraverseAbs(ctx)
-				if diags.HasErrors() {
-					// Skip anything that generates errors, since we probably
-					// already have the same error in our diagnostics set
-					// already.
-					continue
-				}
-
-				traversalStr := w.traversalStr(traversal)
-				if _, exists := seen[traversalStr]; exists {
-					continue // don't show duplicates when the same variable is referenced multiple times
-				}
-				switch {
-				case !val.IsKnown():
-					// Can't say anything about this yet, then.
-					continue
-				case val.IsNull():
-					stmts = append(stmts, fmt.Sprintf("%s set to null", traversalStr))
-				default:
-					stmts = append(stmts, fmt.Sprintf("%s as %s", traversalStr, w.valueStr(val)))
-				}
-				seen[traversalStr] = struct{}{}
-			}
-
-			sort.Strings(stmts) // FIXME: Should maybe use a traversal-aware sort that can sort numeric indexes properly?
-			last := len(stmts) - 1
-
-			for i, stmt := range stmts {
-				switch i {
-				case 0:
-					w.wr.Write([]byte{'w', 'i', 't', 'h', ' '})
-				default:
-					w.wr.Write([]byte{' ', ' ', ' ', ' ', ' '})
-				}
-				w.wr.Write([]byte(stmt))
-				switch i {
-				case last:
-					w.wr.Write([]byte{'.', '\n', '\n'})
-				default:
-					w.wr.Write([]byte{',', '\n'})
-				}
-			}
-		}
 	}
 
 	if diag.Detail != "" {
@@ -213,90 +154,6 @@ func (w *diagnosticTextWriter) WriteDiagnostics(diags Diagnostics) error {
 		}
 	}
 	return nil
-}
-
-func (w *diagnosticTextWriter) traversalStr(traversal Traversal) string {
-	// This is a specialized subset of traversal rendering tailored to
-	// producing helpful contextual messages in diagnostics. It is not
-	// comprehensive nor intended to be used for other purposes.
-
-	var buf bytes.Buffer
-	for _, step := range traversal {
-		switch tStep := step.(type) {
-		case TraverseRoot:
-			buf.WriteString(tStep.Name)
-		case TraverseAttr:
-			buf.WriteByte('.')
-			buf.WriteString(tStep.Name)
-		case TraverseIndex:
-			buf.WriteByte('[')
-			if keyTy := tStep.Key.Type(); keyTy.IsPrimitiveType() {
-				buf.WriteString(w.valueStr(tStep.Key))
-			} else {
-				// We'll just use a placeholder for more complex values,
-				// since otherwise our result could grow ridiculously long.
-				buf.WriteString("...")
-			}
-			buf.WriteByte(']')
-		}
-	}
-	return buf.String()
-}
-
-func (w *diagnosticTextWriter) valueStr(val cty.Value) string {
-	// This is a specialized subset of value rendering tailored to producing
-	// helpful but concise messages in diagnostics. It is not comprehensive
-	// nor intended to be used for other purposes.
-
-	ty := val.Type()
-	switch {
-	case val.IsNull():
-		return "null"
-	case !val.IsKnown():
-		// Should never happen here because we should filter before we get
-		// in here, but we'll do something reasonable rather than panic.
-		return "(not yet known)"
-	case ty == cty.Bool:
-		if val.True() {
-			return "true"
-		}
-		return "false"
-	case ty == cty.Number:
-		bf := val.AsBigFloat()
-		return bf.Text('g', 10)
-	case ty == cty.String:
-		// Go string syntax is not exactly the same as HCL native string syntax,
-		// but we'll accept the minor edge-cases where this is different here
-		// for now, just to get something reasonable here.
-		return fmt.Sprintf("%q", val.AsString())
-	case ty.IsCollectionType() || ty.IsTupleType():
-		l := val.LengthInt()
-		switch l {
-		case 0:
-			return "empty " + ty.FriendlyName()
-		case 1:
-			return ty.FriendlyName() + " with 1 element"
-		default:
-			return fmt.Sprintf("%s with %d elements", ty.FriendlyName(), l)
-		}
-	case ty.IsObjectType():
-		atys := ty.AttributeTypes()
-		l := len(atys)
-		switch l {
-		case 0:
-			return "object with no attributes"
-		case 1:
-			var name string
-			for k := range atys {
-				name = k
-			}
-			return fmt.Sprintf("object with 1 attribute %q", name)
-		default:
-			return fmt.Sprintf("object with %d attributes", l)
-		}
-	default:
-		return ty.FriendlyName()
-	}
 }
 
 func contextString(file *File, offset int) string {

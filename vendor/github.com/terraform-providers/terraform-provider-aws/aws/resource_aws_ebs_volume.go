@@ -10,7 +10,6 @@ import (
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/ec2"
 
-	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 )
@@ -141,7 +140,7 @@ func resourceAwsEbsVolumeCreate(d *schema.ResourceData, meta interface{}) error 
 
 	if _, ok := d.GetOk("tags"); ok {
 		if err := setTags(conn, d); err != nil {
-			return errwrap.Wrapf("Error setting tags for EBS Volume: {{err}}", err)
+			return fmt.Errorf("Error setting tags for EBS Volume: %s", err)
 		}
 	}
 
@@ -152,7 +151,7 @@ func resourceAWSEbsVolumeUpdate(d *schema.ResourceData, meta interface{}) error 
 	conn := meta.(*AWSClient).ec2conn
 	if _, ok := d.GetOk("tags"); ok {
 		if err := setTags(conn, d); err != nil {
-			return errwrap.Wrapf("Error updating tags for EBS Volume: {{err}}", err)
+			return fmt.Errorf("Error updating tags for EBS Volume: %s", err)
 		}
 	}
 

@@ -20,40 +20,40 @@ func resourceAwsFlowLog() *schema.Resource {
 		},
 
 		Schema: map[string]*schema.Schema{
-			"iam_role_arn": &schema.Schema{
+			"iam_role_arn": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
 
-			"log_group_name": &schema.Schema{
+			"log_group_name": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
 
-			"vpc_id": &schema.Schema{
+			"vpc_id": {
 				Type:          schema.TypeString,
 				Optional:      true,
 				ForceNew:      true,
 				ConflictsWith: []string{"subnet_id", "eni_id"},
 			},
 
-			"subnet_id": &schema.Schema{
+			"subnet_id": {
 				Type:          schema.TypeString,
 				Optional:      true,
 				ForceNew:      true,
 				ConflictsWith: []string{"eni_id", "vpc_id"},
 			},
 
-			"eni_id": &schema.Schema{
+			"eni_id": {
 				Type:          schema.TypeString,
 				Optional:      true,
 				ForceNew:      true,
 				ConflictsWith: []string{"subnet_id", "vpc_id"},
 			},
 
-			"traffic_type": &schema.Schema{
+			"traffic_type": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
@@ -162,7 +162,7 @@ func resourceAwsLogFlowDelete(d *schema.ResourceData, meta interface{}) error {
 	})
 
 	if err != nil {
-		return fmt.Errorf("[WARN] Error deleting Flow Log with ID (%s), error: %s", d.Id(), err)
+		return fmt.Errorf("Error deleting Flow Log with ID (%s), error: %s", d.Id(), err)
 	}
 
 	return nil

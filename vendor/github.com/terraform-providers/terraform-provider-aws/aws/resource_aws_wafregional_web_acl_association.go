@@ -19,12 +19,12 @@ func resourceAwsWafRegionalWebAclAssociation() *schema.Resource {
 		Delete: resourceAwsWafRegionalWebAclAssociationDelete,
 
 		Schema: map[string]*schema.Schema{
-			"web_acl_id": &schema.Schema{
+			"web_acl_id": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
-			"resource_arn": &schema.Schema{
+			"resource_arn": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
