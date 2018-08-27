@@ -123,6 +123,13 @@ func (s *Filesystem) WriteState(state *states.State) error {
 	// writing to a temp file on the same filesystem, and renaming the file over
 	// the original.
 
+	if s.readFile == nil {
+		err := s.RefreshState()
+		if err != nil {
+			return err
+		}
+	}
+
 	defer s.mutex()()
 
 	// We'll try to write our backup first, so we can be sure we've created
@@ -150,6 +157,9 @@ func (s *Filesystem) WriteState(state *states.State) error {
 	defer s.stateFileOut.Sync()
 
 	s.file = s.file.DeepCopy()
+	if s.file == nil {
+		s.file = NewStateFile()
+	}
 	s.file.State = state.DeepCopy()
 
 	if _, err := s.stateFileOut.Seek(0, os.SEEK_SET); err != nil {
@@ -164,7 +174,7 @@ func (s *Filesystem) WriteState(state *states.State) error {
 		return nil
 	}
 
-	if !statefile.StatesMarshalEqual(s.file.State, s.readFile.State) {
+	if s.readFile == nil || !statefile.StatesMarshalEqual(s.file.State, s.readFile.State) {
 		s.file.Serial++
 	}
 
