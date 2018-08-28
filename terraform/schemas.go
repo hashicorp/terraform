@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/configs/configschema"
 	"github.com/hashicorp/terraform/providers"
@@ -240,6 +241,22 @@ type ProviderSchema struct {
 	Provider      *configschema.Block
 	ResourceTypes map[string]*configschema.Block
 	DataSources   map[string]*configschema.Block
+}
+
+// SchemaForResourceAddr attempts to find a schema for the mode and type from
+// the given resource address. Returns nil if no such schema is available.
+func (ps *ProviderSchema) SchemaForResourceAddr(addr addrs.Resource) *configschema.Block {
+	var m map[string]*configschema.Block
+	switch addr.Mode {
+	case addrs.ManagedResourceMode:
+		m = ps.ResourceTypes
+	case addrs.DataResourceMode:
+		m = ps.DataSources
+	default:
+		// Shouldn't happen, because the above cases are comprehensive.
+		return nil
+	}
+	return m[addr.Type]
 }
 
 // ProviderSchemaRequest is used to describe to a ResourceProvider which
