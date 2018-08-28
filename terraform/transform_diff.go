@@ -34,6 +34,8 @@ func (t *DiffTransformer) Transform(g *Graph) error {
 		// other actions.
 		var update, delete bool
 		switch rc.Action {
+		case plans.NoOp:
+			continue
 		case plans.Delete:
 			delete = true
 		case plans.Replace:

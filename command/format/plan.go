@@ -91,6 +91,8 @@ func NewPlan(changes *plans.Changes) *Plan {
 		}
 
 		switch rc.Action {
+		case plans.NoOp:
+			continue
 		case plans.Create:
 			if dataSource {
 				// Use "refresh" as the action for display, but core
