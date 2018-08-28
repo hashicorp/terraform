@@ -145,13 +145,13 @@ func (n *NodeRefreshableDataResourceInstance) EvalTree() EvalNode {
 			},
 
 			&EvalReadDataDiff{
-				Addr:           addr.Resource,
-				Config:         n.Config,
-				ProviderAddr:   n.ResolvedProvider,
-				ProviderSchema: &providerSchema,
-				Output:         &change,
-				OutputValue:    &configVal,
-				OutputState:    &state,
+				Addr:              addr.Resource,
+				Config:            n.Config,
+				ProviderAddr:      n.ResolvedProvider,
+				ProviderSchema:    &providerSchema,
+				Output:            &change,
+				OutputConfigValue: &configVal,
+				OutputState:       &state,
 			},
 
 			// The rest of this pass can proceed only if there are no
