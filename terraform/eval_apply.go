@@ -195,7 +195,12 @@ func (n *EvalApplyPost) Eval(ctx EvalContext) (interface{}, error) {
 
 	if resourceHasUserVisibleApply(n.Addr) {
 		absAddr := n.Addr.Absolute(ctx.Path())
-		newState := state.Value
+		var newState cty.Value
+		if state != nil {
+			newState = state.Value
+		} else {
+			newState = cty.NullVal(cty.DynamicPseudoType)
+		}
 		var err error
 		if n.Error != nil {
 			err = *n.Error
