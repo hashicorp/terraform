@@ -754,9 +754,21 @@ type EvalWriteDiff struct {
 
 // TODO: test
 func (n *EvalWriteDiff) Eval(ctx EvalContext) (interface{}, error) {
+	changes := ctx.Changes()
+	addr := n.Addr.Absolute(ctx.Path())
+	if n.Change == nil || *n.Change == nil {
+		// Caller sets nil to indicate that we need to remove a change from
+		// the set of changes.
+		gen := states.CurrentGen
+		if n.DeposedKey != states.NotDeposed {
+			gen = n.DeposedKey
+		}
+		changes.RemoveResourceInstanceChange(addr, gen)
+		return nil, nil
+	}
+
 	providerSchema := *n.ProviderSchema
 	change := *n.Change
-	addr := n.Addr.Absolute(ctx.Path())
 
 	if change.Addr.String() != n.Addr.String() || change.DeposedKey != n.DeposedKey {
 		// Should never happen, and indicates a bug in the caller.
@@ -774,7 +786,6 @@ func (n *EvalWriteDiff) Eval(ctx EvalContext) (interface{}, error) {
 		return nil, fmt.Errorf("failed to encode planned changes for %s: %s", addr, err)
 	}
 
-	changes := ctx.Changes()
 	changes.AppendResourceInstanceChange(csrc)
 	if n.DeposedKey == states.NotDeposed {
 		log.Printf("[TRACE] EvalWriteDiff: recorded %s change for %s", change.Action, addr)
