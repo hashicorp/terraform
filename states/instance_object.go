@@ -68,7 +68,18 @@ const (
 // so the caller must not mutate the receiver any further once once this
 // method is called.
 func (o *ResourceInstanceObject) Encode(ty cty.Type, schemaVersion uint64) (*ResourceInstanceObjectSrc, error) {
-	src, err := ctyjson.Marshal(o.Value, ty)
+	// Our state serialization can't represent unknown values, so we convert
+	// them to nulls here. This is lossy, but nobody should be writing unknown
+	// values here and expecting to get them out again later.
+	//
+	// We get unknown values here while we're building out a "planned state"
+	// during the plan phase, but the value stored in the plan takes precedence
+	// for expression evaluation. The apply step should never produce unknown
+	// values, but if it does it's the responsibility of the caller to detect
+	// and raise an error about that.
+	val := cty.UnknownAsNull(o.Value)
+
+	src, err := ctyjson.Marshal(val, ty)
 	if err != nil {
 		return nil, err
 	}
