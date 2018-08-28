@@ -22,14 +22,14 @@ const DefaultStateName = "default"
 // This must be returned rather than a custom error so that the Terraform
 // CLI can detect it and handle it appropriately.
 var (
+	// ErrDefaultStateNotSupported is returned when an operation does not support
+	// using the default state, but requires a named state to be selected.
+	ErrDefaultStateNotSupported = errors.New("default state not supported\n" +
+		"You can create a new workspace with the \"workspace new\" command.")
+
 	// ErrNamedStatesNotSupported is returned when a named state operation
 	// isn't supported.
 	ErrNamedStatesNotSupported = errors.New("named states not supported")
-
-	// ErrDefaultStateNotSupported is returned when an operation does not support
-	// using the default state, but requires a named state to be selected.
-	ErrDefaultStateNotSupported = errors.New("default state not supported\n\n" +
-		"You can create a new workspace wth the \"workspace new\" command")
 
 	// ErrOperationNotSupported is returned when an unsupported operation
 	// is detected by the configured backend.
