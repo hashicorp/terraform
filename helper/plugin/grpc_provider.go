@@ -331,6 +331,20 @@ func (s *GRPCProviderServer) ReadResource(_ context.Context, req *proto.ReadReso
 		return resp, nil
 	}
 
+	if newInstanceState == nil || newInstanceState.ID == "" {
+		// The old provider API used an empty id to signal that the remote
+		// object appears to have been deleted, but our new protocol expects
+		// to see a null value (in the cty sense) in that case.
+		newConfigMP, err := msgpack.Marshal(cty.NullVal(block.ImpliedType()), block.ImpliedType())
+		if err != nil {
+			resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
+		}
+		resp.NewState = &proto.DynamicValue{
+			Msgpack: newConfigMP,
+		}
+		return resp, nil
+	}
+
 	// helper/schema should always copy the ID over, but do it again just to be safe
 	newInstanceState.Attributes["id"] = newInstanceState.ID
 
