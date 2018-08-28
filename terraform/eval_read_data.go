@@ -22,9 +22,10 @@ type EvalReadDataDiff struct {
 	ProviderAddr   addrs.AbsProviderConfig
 	ProviderSchema **ProviderSchema
 
-	Output      **plans.ResourceInstanceChange
-	OutputValue *cty.Value
-	OutputState **states.ResourceInstanceObject
+	Output            **plans.ResourceInstanceChange
+	OutputValue       *cty.Value
+	OutputConfigValue *cty.Value
+	OutputState       **states.ResourceInstanceObject
 
 	// Set Previous when re-evaluating diff during apply, to ensure that
 	// the "Destroy" flag is preserved.
@@ -114,9 +115,11 @@ func (n *EvalReadDataDiff) Eval(ctx EvalContext) (interface{}, error) {
 	if n.Output != nil {
 		*n.Output = change
 	}
-
 	if n.OutputValue != nil {
 		*n.OutputValue = change.After
+	}
+	if n.OutputConfigValue != nil {
+		*n.OutputConfigValue = configVal
 	}
 
 	if n.OutputState != nil {
