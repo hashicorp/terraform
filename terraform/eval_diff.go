@@ -716,7 +716,7 @@ func (n *EvalReadDiff) Eval(ctx EvalContext) (interface{}, error) {
 	changes := ctx.Changes()
 	addr := n.Addr.Absolute(ctx.Path())
 
-	schema := providerSchema.ResourceTypes[n.Addr.Resource.Type]
+	schema := providerSchema.SchemaForResourceAddr(n.Addr.ContainingResource())
 	if schema == nil {
 		// Should be caught during validation, so we don't bother with a pretty error here
 		return nil, fmt.Errorf("provider does not support resource type %q", n.Addr.Resource.Type)
@@ -777,7 +777,7 @@ func (n *EvalWriteDiff) Eval(ctx EvalContext) (interface{}, error) {
 		panic("inconsistent address and/or deposed key in EvalWriteDiff")
 	}
 
-	schema := providerSchema.ResourceTypes[n.Addr.Resource.Type]
+	schema := providerSchema.SchemaForResourceAddr(n.Addr.ContainingResource())
 	if schema == nil {
 		// Should be caught during validation, so we don't bother with a pretty error here
 		return nil, fmt.Errorf("provider does not support resource type %q", n.Addr.Resource.Type)
