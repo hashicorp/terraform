@@ -147,7 +147,7 @@ func (n *NodeRefreshableDataResourceInstance) EvalTree() EvalNode {
 			&EvalReadDataDiff{
 				Addr:           addr.Resource,
 				Config:         n.Config,
-				Provider:       &provider,
+				ProviderAddr:   n.ResolvedProvider,
 				ProviderSchema: &providerSchema,
 				Output:         &change,
 				OutputValue:    &configVal,
