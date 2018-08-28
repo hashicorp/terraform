@@ -68,6 +68,7 @@ func (w *ContextGraphWalker) EnterPath(path addrs.ModuleInstance) EvalContext {
 		Config:             w.Context.config,
 		Operation:          w.Operation,
 		State:              w.State,
+		Changes:            w.Changes,
 		Schemas:            w.Context.schemas,
 		VariableValues:     w.variableValues,
 		VariableValuesLock: &w.variableValuesLock,

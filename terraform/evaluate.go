@@ -16,6 +16,7 @@ import (
 	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/configs/configschema"
 	"github.com/hashicorp/terraform/lang"
+	"github.com/hashicorp/terraform/plans"
 	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/tfdiags"
 )
@@ -54,6 +55,10 @@ type Evaluator struct {
 	// State is the current state, embedded in a wrapper that ensures that
 	// it can be safely accessed and modified concurrently.
 	State *states.SyncState
+
+	// Changes is the set of proposed changes, embedded in a wrapper that
+	// ensures they can be safely accessed and modified concurrently.
+	Changes *plans.ChangesSync
 }
 
 // Scope creates an evaluation scope for the given module path and optional
@@ -541,6 +546,23 @@ func (d *evaluationStateData) getResourceInstanceSingle(addr addrs.ResourceInsta
 		return cty.UnknownVal(ty), diags
 	}
 
+	// If there's a pending change for this instance in our plan, we'll prefer
+	// that. This is important because the state can't represent unknown values
+	// and so its data is inaccurate when changes are pending.
+	if change := d.Evaluator.Changes.GetResourceInstanceChange(addr.Absolute(d.ModulePath), states.CurrentGen); change != nil {
+		val, err := change.After.Decode(ty)
+		if err != nil {
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Invalid resource instance data in plan",
+				Detail:   fmt.Sprintf("Instance %s data could not be decoded from the plan: %s.", addr.Absolute(d.ModulePath), err),
+				Subject:  &config.DeclRange,
+			})
+			return cty.UnknownVal(ty), diags
+		}
+		return val, diags
+	}
+
 	ios, err := is.Current.Decode(ty)
 	if err != nil {
 		// This shouldn't happen, since by the time we get here
@@ -554,7 +576,7 @@ func (d *evaluationStateData) getResourceInstanceSingle(addr addrs.ResourceInsta
 		return cty.UnknownVal(ty), diags
 	}
 
-	return ios.Value, nil
+	return ios.Value, diags
 }
 
 func (d *evaluationStateData) getResourceInstancesAll(addr addrs.Resource, rng tfdiags.SourceRange, config *configs.Resource, rs *states.Resource, providerAddr addrs.AbsProviderConfig) (cty.Value, tfdiags.Diagnostics) {
@@ -593,6 +615,25 @@ func (d *evaluationStateData) getResourceInstancesAll(addr addrs.Resource, rng t
 			key := addrs.IntKey(i)
 			is, exists := rs.Instances[key]
 			if exists {
+				instAddr := addr.Instance(key).Absolute(d.ModulePath)
+
+				// Prefer pending value in plan if present. See getResourceInstanceSingle
+				// comment for the rationale.
+				if change := d.Evaluator.Changes.GetResourceInstanceChange(instAddr, states.CurrentGen); change != nil {
+					val, err := change.After.Decode(ty)
+					if err != nil {
+						diags = diags.Append(&hcl.Diagnostic{
+							Severity: hcl.DiagError,
+							Summary:  "Invalid resource instance data in plan",
+							Detail:   fmt.Sprintf("Instance %s data could not be decoded from the plan: %s.", instAddr, err),
+							Subject:  &config.DeclRange,
+						})
+						continue
+					}
+					vals[i] = val
+					continue
+				}
+
 				ios, err := is.Current.Decode(ty)
 				if err != nil {
 					// This shouldn't happen, since by the time we get here
@@ -600,7 +641,7 @@ func (d *evaluationStateData) getResourceInstancesAll(addr addrs.Resource, rng t
 					diags = diags.Append(&hcl.Diagnostic{
 						Severity: hcl.DiagError,
 						Summary:  "Invalid resource instance data in state",
-						Detail:   fmt.Sprintf("Instance %s data could not be decoded from the state: %s.", addr.Instance(key).Absolute(d.ModulePath), err),
+						Detail:   fmt.Sprintf("Instance %s data could not be decoded from the state: %s.", instAddr, err),
 						Subject:  &config.DeclRange,
 					})
 					continue
@@ -626,6 +667,25 @@ func (d *evaluationStateData) getResourceInstancesAll(addr addrs.Resource, rng t
 		vals := make(map[string]cty.Value, len(rs.Instances))
 		for k, is := range rs.Instances {
 			if sk, ok := k.(addrs.StringKey); ok {
+				instAddr := addr.Instance(k).Absolute(d.ModulePath)
+
+				// Prefer pending value in plan if present. See getResourceInstanceSingle
+				// comment for the rationale.
+				if change := d.Evaluator.Changes.GetResourceInstanceChange(instAddr, states.CurrentGen); change != nil {
+					val, err := change.After.Decode(ty)
+					if err != nil {
+						diags = diags.Append(&hcl.Diagnostic{
+							Severity: hcl.DiagError,
+							Summary:  "Invalid resource instance data in plan",
+							Detail:   fmt.Sprintf("Instance %s data could not be decoded from the plan: %s.", instAddr, err),
+							Subject:  &config.DeclRange,
+						})
+						continue
+					}
+					vals[string(sk)] = val
+					continue
+				}
+
 				ios, err := is.Current.Decode(ty)
 				if err != nil {
 					// This shouldn't happen, since by the time we get here
@@ -633,7 +693,7 @@ func (d *evaluationStateData) getResourceInstancesAll(addr addrs.Resource, rng t
 					diags = diags.Append(&hcl.Diagnostic{
 						Severity: hcl.DiagError,
 						Summary:  "Invalid resource instance data in state",
-						Detail:   fmt.Sprintf("Instance %s data could not be decoded from the state: %s.", addr.Instance(k).Absolute(d.ModulePath), err),
+						Detail:   fmt.Sprintf("Instance %s data could not be decoded from the state: %s.", instAddr, err),
 						Subject:  &config.DeclRange,
 					})
 					continue
