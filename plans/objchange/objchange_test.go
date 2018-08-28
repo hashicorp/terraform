@@ -59,7 +59,7 @@ func TestProposedNewObject(t *testing.T) {
 			}),
 			cty.ObjectVal(map[string]cty.Value{
 				"foo": cty.StringVal("hello"),
-				"bar": cty.NullVal(cty.String),
+				"bar": cty.UnknownVal(cty.String),
 				"baz": cty.ObjectVal(map[string]cty.Value{
 					"boz": cty.StringVal("world"),
 				}),
@@ -432,7 +432,7 @@ func TestProposedNewObject(t *testing.T) {
 					}),
 					cty.ObjectVal(map[string]cty.Value{
 						"bar": cty.StringVal("bosh"),
-						"baz": cty.NullVal(cty.String),
+						"baz": cty.UnknownVal(cty.String),
 					}),
 				}),
 			}),

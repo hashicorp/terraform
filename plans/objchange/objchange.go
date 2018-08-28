@@ -26,9 +26,10 @@ import (
 // block where _all_ attributes are computed.
 func ProposedNewObject(schema *configschema.Block, prior, config cty.Value) cty.Value {
 	if prior.IsNull() {
-		// This is the easy case... no prior value to merge, so we can just
-		// return the config as-is.
-		return config
+		// In this case, we will treat the prior value as unknown so that
+		// any computed attributes not overridden in config will show as
+		// unknown values, rather than null values.
+		prior = cty.UnknownVal(schema.ImpliedType())
 	}
 	if config.IsNull() || !config.IsKnown() {
 		// This is a weird situation, but we'll allow it anyway to free
