@@ -483,7 +483,7 @@ func (d *evaluationStateData) GetResourceInstance(addr addrs.ResourceInstance, r
 			return cty.DynamicVal, diags
 		}
 	case states.EachList:
-		multi = key != addrs.NoKey
+		multi = key == addrs.NoKey
 		if _, ok := addr.Key.(addrs.IntKey); !multi && !ok {
 			diags = diags.Append(&hcl.Diagnostic{
 				Severity: hcl.DiagError,
@@ -494,7 +494,7 @@ func (d *evaluationStateData) GetResourceInstance(addr addrs.ResourceInstance, r
 			return cty.DynamicVal, diags
 		}
 	case states.EachMap:
-		multi = key != addrs.NoKey
+		multi = key == addrs.NoKey
 		if _, ok := addr.Key.(addrs.IntKey); !multi && !ok {
 			diags = diags.Append(&hcl.Diagnostic{
 				Severity: hcl.DiagError,
