@@ -214,9 +214,11 @@ func (n *EvalDiff) Eval(ctx EvalContext) (interface{}, error) {
 				// the same type, but we'll allow it for robustness.
 				reqRep = append(reqRep, path)
 			}
-			eqV := plannedChangedVal.Equals(priorChangedVal)
-			if !eqV.IsKnown() || eqV.False() {
-				reqRep = append(reqRep, path)
+			if priorChangedVal != cty.NilVal {
+				eqV := plannedChangedVal.Equals(priorChangedVal)
+				if !eqV.IsKnown() || eqV.False() {
+					reqRep = append(reqRep, path)
+				}
 			}
 		}
 		if diags.HasErrors() {
