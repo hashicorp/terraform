@@ -61,3 +61,29 @@ func (cs *ChangesSync) GetResourceInstanceChange(addr addrs.AbsResourceInstance,
 	}
 	panic(fmt.Sprintf("unsupported generation value %#v", gen))
 }
+
+// RemoveResourceInstanceChange searches the set of resource instance changes
+// for one matching the given address and generation, and removes it from the
+// set if it exists.
+func (cs *ChangesSync) RemoveResourceInstanceChange(addr addrs.AbsResourceInstance, gen states.Generation) {
+	if cs == nil {
+		panic("RemoveResourceInstanceChange on nil ChangesSync")
+	}
+	cs.lock.Lock()
+	defer cs.lock.Unlock()
+
+	dk := states.NotDeposed
+	if realDK, ok := gen.(states.DeposedKey); ok {
+		dk = realDK
+	}
+
+	addrStr := addr.String()
+	for i, r := range cs.changes.Resources {
+		if r.Addr.String() != addrStr || r.DeposedKey != dk {
+			continue
+		}
+		copy(cs.changes.Resources[i:], cs.changes.Resources[i+1:])
+		cs.changes.Resources = cs.changes.Resources[:len(cs.changes.Resources)-1]
+		return
+	}
+}
