@@ -386,6 +386,15 @@ func (s *GRPCProviderServer) PlanResourceChange(_ context.Context, req *proto.Pl
 		return resp, nil
 	}
 
+	if diff == nil {
+		// schema.Provider.Diff returns nil if it ends up making a diff with
+		// no changes, but our new interface wants us to return an actual
+		// change description that _shows_ there are no changes, so we need
+		// to synthesize one here.
+		resp.PlannedState = req.PriorState
+		return resp, nil
+	}
+
 	// now we need to apply the diff to the prior state, so get the planned state
 	plannedStateVal, err := schema.ApplyDiff(priorStateVal, diff, block)
 	if err != nil {
