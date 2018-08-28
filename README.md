@@ -44,7 +44,7 @@ For local development of Terraform core, first make sure Go is properly installe
 Next, using [Git](https://git-scm.com/), clone this repository into `$GOPATH/src/github.com/hashicorp/terraform`.
 
 You'll need to run `make tools` to install some required tools, then `make`.  This will compile the code and then run the tests. If this exits with exit status 0, then everything is working!
-You only need torun `make tools` once (or when the tools change).
+You only need to run `make tools` once (or when the tools change).
 
 ```sh
 $ cd "$GOPATH/src/github.com/hashicorp/terraform"
@@ -61,7 +61,7 @@ $ bin/terraform
 ...
 ```
 
-If you're developing a specific package, you can run tests for just that package by specifying the `TEST` variable. For example below, only`terraform` package tests will be run.
+If you're developing a specific package, you can run tests for just that package by specifying the `TEST` variable. For example below, only `terraform` package tests will be run.
 
 ```sh
 $ make test TEST=./terraform
