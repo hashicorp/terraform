@@ -6,6 +6,8 @@ import (
 	"log"
 	"sync"
 
+	"github.com/zclconf/go-cty/cty"
+
 	plugin "github.com/hashicorp/go-plugin"
 	"github.com/hashicorp/terraform/plugin/convert"
 	"github.com/hashicorp/terraform/plugin/proto"
@@ -398,13 +400,16 @@ func (p *GRPCProvider) ApplyResourceChange(r providers.ApplyResourceChangeReques
 
 	resp.Private = protoResp.Private
 
-	state, err := msgpack.Unmarshal(protoResp.NewState.Msgpack, resSchema.Block.ImpliedType())
-	if err != nil {
-		resp.Diagnostics = resp.Diagnostics.Append(err)
-		return resp
+	if protoResp.NewState != nil {
+		state, err := msgpack.Unmarshal(protoResp.NewState.Msgpack, resSchema.Block.ImpliedType())
+		if err != nil {
+			resp.Diagnostics = resp.Diagnostics.Append(err)
+			return resp
+		}
+		resp.NewState = state
+	} else {
+		resp.NewState = cty.NullVal(resSchema.Block.ImpliedType())
 	}
-
-	resp.NewState = state
 
 	return resp
 }
