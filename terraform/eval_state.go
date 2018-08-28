@@ -198,7 +198,7 @@ func (n *EvalWriteState) Eval(ctx EvalContext) (interface{}, error) {
 
 	// TODO: Update this to use providers.Schema and populate the real
 	// schema version in the second argument to Encode below.
-	schema := (*n.ProviderSchema).ResourceTypes[absAddr.Resource.Resource.Type]
+	schema := (*n.ProviderSchema).SchemaForResourceAddr(n.Addr.ContainingResource())
 	if schema == nil {
 		// It shouldn't be possible to get this far in any real scenario
 		// without a schema, but we might end up here in contrived tests that
@@ -263,7 +263,7 @@ func (n *EvalWriteStateDeposed) Eval(ctx EvalContext) (interface{}, error) {
 
 	// TODO: Update this to use providers.Schema and populate the real
 	// schema version in the second argument to Encode below.
-	schema := (*n.ProviderSchema).ResourceTypes[absAddr.Resource.Resource.Type]
+	schema := (*n.ProviderSchema).SchemaForResourceAddr(n.Addr.ContainingResource())
 	if schema == nil {
 		// It shouldn't be possible to get this far in any real scenario
 		// without a schema, but we might end up here in contrived tests that

@@ -3,14 +3,15 @@ package terraform
 import (
 	"fmt"
 
-	"github.com/hashicorp/terraform/providers"
-	"github.com/hashicorp/terraform/states"
-
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/plans"
+	"github.com/hashicorp/terraform/plans/objchange"
+	"github.com/hashicorp/terraform/providers"
+	"github.com/hashicorp/terraform/states"
+	"github.com/hashicorp/terraform/tfdiags"
 )
 
 // EvalReadDataDiff is an EvalNode implementation that executes a data
@@ -18,7 +19,7 @@ import (
 type EvalReadDataDiff struct {
 	Addr           addrs.ResourceInstance
 	Config         *configs.Resource
-	Provider       *providers.Interface
+	ProviderAddr   addrs.AbsProviderConfig
 	ProviderSchema **ProviderSchema
 
 	Output      **plans.ResourceInstanceChange
@@ -31,104 +32,102 @@ type EvalReadDataDiff struct {
 }
 
 func (n *EvalReadDataDiff) Eval(ctx EvalContext) (interface{}, error) {
-	return nil, fmt.Errorf("EvalReadDataDiff not yet updated for new state/plan/provider types")
-	/*
-		absAddr := n.Addr.Absolute(ctx.Path())
+	absAddr := n.Addr.Absolute(ctx.Path())
 
-		if n.ProviderSchema == nil || *n.ProviderSchema == nil {
-			return nil, fmt.Errorf("provider schema not available for %s", n.Addr)
+	if n.ProviderSchema == nil || *n.ProviderSchema == nil {
+		return nil, fmt.Errorf("provider schema not available for %s", n.Addr)
+	}
+
+	var diags tfdiags.Diagnostics
+	var change *plans.ResourceInstanceChange
+	var configVal cty.Value
+
+	if n.Previous != nil && *n.Previous != nil && (*n.Previous).Action == plans.Delete {
+		// If we're re-diffing for a diff that was already planning to
+		// destroy, then we'll just continue with that plan.
+
+		nullVal := cty.NullVal(cty.DynamicPseudoType)
+		err := ctx.Hook(func(h Hook) (HookAction, error) {
+			return h.PreDiff(absAddr, states.CurrentGen, nullVal, nullVal)
+		})
+		if err != nil {
+			return nil, err
 		}
 
-		var diags tfdiags.Diagnostics
+		change = &plans.ResourceInstanceChange{
+			Addr:         absAddr,
+			ProviderAddr: n.ProviderAddr,
+			Change: plans.Change{
+				Action: plans.Delete,
+				Before: nullVal,
+				After:  nullVal,
+			},
+		}
+	} else {
+		config := *n.Config
+		providerSchema := *n.ProviderSchema
+		schema := providerSchema.DataSources[n.Addr.Resource.Type]
+		if schema == nil {
+			// Should be caught during validation, so we don't bother with a pretty error here
+			return nil, fmt.Errorf("provider does not support data source %q", n.Addr.Resource.Type)
+		}
 
-		// The provider API still expects our legacy InstanceInfo type.
-		legacyInfo := NewInstanceInfo(n.Addr.Absolute(ctx.Path()))
+		objTy := schema.ImpliedType()
+		priorVal := cty.NullVal(objTy) // for data resources, prior is always null because we start fresh every time
+
+		keyData := EvalDataForInstanceKey(n.Addr.Key)
+
+		var configDiags tfdiags.Diagnostics
+		configVal, _, configDiags = ctx.EvaluateBlock(config.Config, schema, nil, keyData)
+		diags = diags.Append(configDiags)
+		if configDiags.HasErrors() {
+			return nil, diags.Err()
+		}
+
+		proposedNewVal := objchange.ProposedNewObject(schema, priorVal, configVal)
 
 		err := ctx.Hook(func(h Hook) (HookAction, error) {
-			return h.PreDiff(absAddr, cty.NullVal(cty.DynamicPseudoType), cty.NullVal(cty.DynamicPseudoType))
+			return h.PreDiff(absAddr, states.CurrentGen, priorVal, proposedNewVal)
 		})
 		if err != nil {
 			return nil, err
 		}
 
-		var diff *InstanceDiff
-		var configVal cty.Value
-
-		if n.Previous != nil && *n.Previous != nil && (*n.Previous).GetDestroy() {
-			// If we're re-diffing for a diff that was already planning to
-			// destroy, then we'll just continue with that plan.
-			diff = &InstanceDiff{Destroy: true}
-		} else {
-			provider := *n.Provider
-			config := *n.Config
-			providerSchema := *n.ProviderSchema
-			schema := providerSchema.DataSources[n.Addr.Resource.Type]
-			if schema == nil {
-				// Should be caught during validation, so we don't bother with a pretty error here
-				return nil, fmt.Errorf("provider does not support data source %q", n.Addr.Resource.Type)
-			}
-
-			keyData := EvalDataForInstanceKey(n.Addr.Key)
-
-			var configDiags tfdiags.Diagnostics
-			configVal, _, configDiags = ctx.EvaluateBlock(config.Config, schema, nil, keyData)
-			diags = diags.Append(configDiags)
-			if configDiags.HasErrors() {
-				return nil, diags.Err()
-			}
-
-			// The provider API still expects our legacy ResourceConfig type.
-			legacyRC := NewResourceConfigShimmed(configVal, schema)
-
-			var err error
-			diff, err = provider.ReadDataDiff(legacyInfo, legacyRC)
-			if err != nil {
-				diags = diags.Append(err)
-				return nil, diags.Err()
-			}
-			if diff == nil {
-				diff = new(InstanceDiff)
-			}
-
-			// if id isn't explicitly set then it's always computed, because we're
-			// always "creating a new resource".
-			diff.init()
-			if _, ok := diff.Attributes["id"]; !ok {
-				diff.SetAttribute("id", &ResourceAttrDiff{
-					Old:         "",
-					NewComputed: true,
-					RequiresNew: true,
-					Type:        DiffAttrOutput,
-				})
-			}
+		change = &plans.ResourceInstanceChange{
+			Addr:         absAddr,
+			ProviderAddr: n.ProviderAddr,
+			Change: plans.Change{
+				Action: plans.Read,
+				Before: priorVal,
+				After:  proposedNewVal,
+			},
 		}
+	}
 
-		err = ctx.Hook(func(h Hook) (HookAction, error) {
-			return h.PostDiff(legacyInfo, diff)
-		})
-		if err != nil {
-			return nil, err
+	err := ctx.Hook(func(h Hook) (HookAction, error) {
+		return h.PostDiff(absAddr, states.CurrentGen, change.Action, change.Before, change.After)
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	if n.Output != nil {
+		*n.Output = change
+	}
+
+	if n.OutputValue != nil {
+		*n.OutputValue = change.After
+	}
+
+	if n.OutputState != nil {
+		state := &states.ResourceInstanceObject{
+			Value:  change.After,
+			Status: states.ObjectReady,
 		}
+		*n.OutputState = state
+	}
 
-		*n.Output = diff
-
-		if n.OutputValue != nil {
-			*n.OutputValue = configVal
-		}
-
-		if n.OutputState != nil {
-			state := &InstanceState{}
-			*n.OutputState = state
-
-			// Apply the diff to the returned state, so the state includes
-			// any attribute values that are not computed.
-			if !diff.Empty() && n.OutputState != nil {
-				*n.OutputState = state.MergeDiff(diff)
-			}
-		}
-
-		return nil, diags.ErrWithWarnings()
-	*/
+	return nil, diags.ErrWithWarnings()
 }
 
 // EvalReadDataApply is an EvalNode implementation that executes a data
