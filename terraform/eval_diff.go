@@ -182,9 +182,8 @@ func (n *EvalDiff) Eval(ctx EvalContext) (interface{}, error) {
 	// actually changed -- particularly after we may have undone some of the
 	// changes in processIgnoreChanges -- so now we'll filter that list to
 	// include only where changes are detected.
-	var reqRep []cty.Path
+	reqRep := cty.NewPathSet()
 	if len(resp.RequiresReplace) > 0 {
-		reqRep = make([]cty.Path, 0, len(resp.RequiresReplace))
 		for _, path := range resp.RequiresReplace {
 			if priorVal.IsNull() {
 				// If prior is null then we don't expect any RequiresReplace at all,
@@ -212,12 +211,12 @@ func (n *EvalDiff) Eval(ctx EvalContext) (interface{}, error) {
 			if err != nil {
 				// Should never happen since prior and changed should be of
 				// the same type, but we'll allow it for robustness.
-				reqRep = append(reqRep, path)
+				reqRep.Add(path)
 			}
 			if priorChangedVal != cty.NilVal {
 				eqV := plannedChangedVal.Equals(priorChangedVal)
 				if !eqV.IsKnown() || eqV.False() {
-					reqRep = append(reqRep, path)
+					reqRep.Add(path)
 				}
 			}
 		}
@@ -235,7 +234,7 @@ func (n *EvalDiff) Eval(ctx EvalContext) (interface{}, error) {
 		action = plans.Create
 	case eq:
 		action = plans.NoOp
-	case len(reqRep) > 0:
+	case !reqRep.Empty():
 		// If there are any "requires replace" paths left _after our filtering
 		// above_ then this is a replace action.
 		action = plans.Replace
