@@ -907,20 +907,28 @@ func (m *Meta) backend_C_r_s(
 		return nil, fmt.Errorf(errBackendLocalRead, err)
 	}
 
-	env := m.Workspace()
-
-	localState, err := localB.State(env)
+	workspaces, err := localB.States()
 	if err != nil {
 		return nil, fmt.Errorf(errBackendLocalRead, err)
 	}
-	if err := localState.RefreshState(); err != nil {
-		return nil, fmt.Errorf(errBackendLocalRead, err)
+
+	var localStates []state.State
+	for _, workspace := range workspaces {
+		localState, err := localB.State(workspace)
+		if err != nil {
+			return nil, fmt.Errorf(errBackendLocalRead, err)
+		}
+		if err := localState.RefreshState(); err != nil {
+			return nil, fmt.Errorf(errBackendLocalRead, err)
+		}
+
+		// We only care about non-empty states.
+		if localS := localState.State(); !localS.Empty() {
+			localStates = append(localStates, localState)
+		}
 	}
 
-	// If the local state is not empty, we need to potentially do a
-	// state migration to the new backend (with user permission), unless the
-	// destination is also "local"
-	if localS := localState.State(); !localS.Empty() {
+	if len(localStates) > 0 {
 		// Perform the migration
 		err = m.backendMigrateState(&backendMigrateOpts{
 			OneType: "local",
@@ -946,12 +954,14 @@ func (m *Meta) backend_C_r_s(
 		}
 
 		if erase {
-			// We always delete the local state, unless that was our new state too.
-			if err := localState.WriteState(nil); err != nil {
-				return nil, fmt.Errorf(errBackendMigrateLocalDelete, err)
-			}
-			if err := localState.PersistState(); err != nil {
-				return nil, fmt.Errorf(errBackendMigrateLocalDelete, err)
+			for _, localState := range localStates {
+				// We always delete the local state, unless that was our new state too.
+				if err := localState.WriteState(nil); err != nil {
+					return nil, fmt.Errorf(errBackendMigrateLocalDelete, err)
+				}
+				if err := localState.PersistState(); err != nil {
+					return nil, fmt.Errorf(errBackendMigrateLocalDelete, err)
+				}
 			}
 		}
 	}
