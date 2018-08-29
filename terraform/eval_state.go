@@ -50,7 +50,7 @@ func (n *EvalReadState) Eval(ctx EvalContext) (interface{}, error) {
 		}
 	*/
 
-	schema := (*n.ProviderSchema).ResourceTypes[absAddr.Resource.Resource.Type]
+	schema := (*n.ProviderSchema).SchemaForResourceAddr(n.Addr.ContainingResource())
 	obj, err := src.Decode(schema.ImpliedType())
 	if err != nil {
 		return nil, err
@@ -103,7 +103,7 @@ func (n *EvalReadStateDeposed) Eval(ctx EvalContext) (interface{}, error) {
 		}
 	*/
 
-	schema := (*n.ProviderSchema).ResourceTypes[absAddr.Resource.Resource.Type]
+	schema := (*n.ProviderSchema).SchemaForResourceAddr(n.Addr.ContainingResource())
 	obj, err := src.Decode(schema.ImpliedType())
 	if err != nil {
 		return nil, err
