@@ -166,10 +166,13 @@ func (n *NodeApplyableResourceInstance) evalTreeDataResource(addr addrs.AbsResou
 			},
 
 			&EvalReadDataApply{
-				Addr:     addr.Resource,
-				Change:   &change,
-				Provider: &provider,
-				Output:   &state,
+				Addr:           addr.Resource,
+				Config:         n.Config,
+				Change:         &change,
+				Provider:       &provider,
+				ProviderAddr:   n.ResolvedProvider,
+				ProviderSchema: &providerSchema,
+				Output:         &state,
 			},
 
 			&EvalWriteState{

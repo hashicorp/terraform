@@ -260,10 +260,13 @@ func (n *NodeDestroyResourceInstance) EvalTree() EvalNode {
 					},
 
 					Then: &EvalReadDataApply{
-						Addr:     addr.Resource,
-						Change:   &changeApply,
-						Provider: &provider,
-						Output:   &state,
+						Addr:           addr.Resource,
+						Config:         n.Config,
+						Change:         &changeApply,
+						Provider:       &provider,
+						ProviderAddr:   n.ResolvedProvider,
+						ProviderSchema: &providerSchema,
+						Output:         &state,
 					},
 					Else: &EvalApply{
 						Addr:           addr.Resource,
