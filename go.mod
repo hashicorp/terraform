@@ -130,7 +130,7 @@ require (
 	github.com/xanzy/ssh-agent v0.1.0
 	github.com/xiang90/probing v0.0.0-20160813154853-07dd2e8dfe18 // indirect
 	github.com/xlab/treeprint v0.0.0-20161029104018-1d6e34225557
-	github.com/zclconf/go-cty v0.0.0-20180827182259-5a135111c744
+	github.com/zclconf/go-cty v0.0.0-20180829180805-c2393a5d54f2
 	golang.org/x/crypto v0.0.0-20180816225734-aabede6cba87
 	golang.org/x/net v0.0.0-20180826012351-8a410e7b638d
 	golang.org/x/oauth2 v0.0.0-20170928010508-bb50c06baba3
