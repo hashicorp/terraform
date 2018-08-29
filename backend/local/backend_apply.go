@@ -10,7 +10,6 @@ import (
 	"github.com/hashicorp/errwrap"
 
 	"github.com/hashicorp/terraform/backend"
-	"github.com/hashicorp/terraform/command/format"
 	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/states/statefile"
 	"github.com/hashicorp/terraform/states/statemgr"
@@ -84,8 +83,7 @@ func (b *Local) opApply(
 			return
 		}
 
-		dispPlan := format.NewPlan(plan.Changes)
-		trivialPlan := dispPlan.Empty()
+		trivialPlan := plan.Changes.Empty()
 		hasUI := op.UIOut != nil && op.UIIn != nil
 		mustConfirm := hasUI && ((op.Destroy && (!op.DestroyForce && !op.AutoApprove)) || (!op.Destroy && !op.AutoApprove && !trivialPlan))
 		if mustConfirm {
@@ -110,7 +108,7 @@ func (b *Local) opApply(
 
 			if !trivialPlan {
 				// Display the plan of what we are going to apply/destroy.
-				b.renderPlan(dispPlan)
+				b.renderPlan(plan, tfCtx.Schemas())
 				b.CLI.Output("")
 			}
 

@@ -225,6 +225,10 @@ func NewContext(opts *ContextOpts) (*Context, tfdiags.Diagnostics) {
 	}, nil
 }
 
+func (c *Context) Schemas() *Schemas {
+	return c.schemas
+}
+
 type ContextGraphOpts struct {
 	// If true, validates the graph structure (checks for cycles).
 	Validate bool
