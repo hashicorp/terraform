@@ -136,60 +136,88 @@ func (n *EvalReadDataDiff) Eval(ctx EvalContext) (interface{}, error) {
 // EvalReadDataApply is an EvalNode implementation that executes a data
 // resource's ReadDataApply method to read data from the data source.
 type EvalReadDataApply struct {
-	Addr     addrs.ResourceInstance
-	Provider *providers.Interface
-	Output   **states.ResourceInstanceObject
-	Change   **plans.ResourceInstanceChange
+	Addr           addrs.ResourceInstance
+	Provider       *providers.Interface
+	ProviderAddr   addrs.AbsProviderConfig
+	ProviderSchema **ProviderSchema
+	Output         **states.ResourceInstanceObject
+	Config         *configs.Resource
+	Change         **plans.ResourceInstanceChange
 }
 
 func (n *EvalReadDataApply) Eval(ctx EvalContext) (interface{}, error) {
-	return nil, fmt.Errorf("EvalReadDataApply not yet updated for new state/plan/provider types")
-	/*
-		provider := *n.Provider
-		change := *n.Change
-		absAddr := n.Addr.Absolute(ctx.Path())
+	provider := *n.Provider
+	change := *n.Change
+	providerSchema := *n.ProviderSchema
+	absAddr := n.Addr.Absolute(ctx.Path())
 
-		// The provider and hook APIs still expect our legacy InstanceInfo type.
-		legacyInfo := NewInstanceInfo(n.Addr.Absolute(ctx.Path()))
+	var diags tfdiags.Diagnostics
 
-		// If the diff is for *destroying* this resource then we'll
-		// just drop its state and move on, since data resources don't
-		// support an actual "destroy" action.
-		if diff != nil && diff.GetDestroy() {
-			if n.Output != nil {
-				*n.Output = nil
-			}
-			return nil, nil
-		}
-
-		// For the purpose of external hooks we present a data apply as a
-		// "Refresh" rather than an "Apply" because creating a data source
-		// is presented to users/callers as a "read" operation.
-		err := ctx.Hook(func(h Hook) (HookAction, error) {
-			// We don't have a state yet, so we'll just give the hook an
-			// empty one to work with.
-			return h.PreRefresh(absAddr, cty.NullVal(cty.DynamicPseudoType))
-		})
-		if err != nil {
-			return nil, err
-		}
-
-		state, err := provider.ReadDataApply(legacyInfo, diff)
-		if err != nil {
-			return nil, fmt.Errorf("%s: %s", n.Addr.Absolute(ctx.Path()).String(), err)
-		}
-
-		err = ctx.Hook(func(h Hook) (HookAction, error) {
-			return h.PostRefresh(absAddr, state)
-		})
-		if err != nil {
-			return nil, err
-		}
-
+	// If the diff is for *destroying* this resource then we'll
+	// just drop its state and move on, since data resources don't
+	// support an actual "destroy" action.
+	if change != nil && change.Action == plans.Delete {
 		if n.Output != nil {
-			*n.Output = state
+			*n.Output = nil
 		}
-
 		return nil, nil
-	*/
+	}
+
+	// For the purpose of external hooks we present a data apply as a
+	// "Refresh" rather than an "Apply" because creating a data source
+	// is presented to users/callers as a "read" operation.
+	err := ctx.Hook(func(h Hook) (HookAction, error) {
+		// We don't have a state yet, so we'll just give the hook an
+		// empty one to work with.
+		return h.PreRefresh(absAddr, states.CurrentGen, cty.NullVal(cty.DynamicPseudoType))
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	resp := provider.ReadDataSource(providers.ReadDataSourceRequest{
+		TypeName: n.Addr.Resource.Type,
+		Config:   change.After,
+	})
+	diags = diags.Append(resp.Diagnostics.InConfigBody(n.Config.Config))
+	if diags.HasErrors() {
+		return nil, diags.Err()
+	}
+
+	schema := providerSchema.DataSources[n.Addr.Resource.Type]
+	if schema == nil {
+		// Should be caught during validation, so we don't bother with a pretty error here
+		return nil, fmt.Errorf("provider does not support data source %q", n.Addr.Resource.Type)
+	}
+
+	newVal := resp.State
+	for _, err := range newVal.Type().TestConformance(schema.ImpliedType()) {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Provider produced invalid object",
+			fmt.Sprintf(
+				"Provider %q planned an invalid value for %s. The result could not be saved.\n\nThis is a bug in the provider, which should be reported in the provider's own issue tracker.",
+				n.ProviderAddr.ProviderConfig.Type, tfdiags.FormatErrorPrefixed(err, absAddr.String()),
+			),
+		))
+	}
+	if diags.HasErrors() {
+		return nil, diags.Err()
+	}
+
+	err = ctx.Hook(func(h Hook) (HookAction, error) {
+		return h.PostRefresh(absAddr, states.CurrentGen, change.Before, newVal)
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	if n.Output != nil {
+		*n.Output = &states.ResourceInstanceObject{
+			Value:  newVal,
+			Status: states.ObjectReady,
+		}
+	}
+
+	return nil, diags.ErrWithWarnings()
 }
