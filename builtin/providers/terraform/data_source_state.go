@@ -71,6 +71,11 @@ func dataSourceRemoteStateRead(d *cty.Value) (cty.Value, tfdiags.Diagnostics) {
 	b := f()
 
 	config := d.GetAttr("config")
+	if config.IsNull() {
+		// We'll treat this as an empty configuration and see if the backend's
+		// schema and validation code will accept it.
+		config = cty.EmptyObjectVal
+	}
 	newState["config"] = config
 
 	schema := b.ConfigSchema()
