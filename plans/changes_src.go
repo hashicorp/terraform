@@ -40,7 +40,7 @@ type ResourceInstanceChangeSrc struct {
 	//
 	// This is retained only for UI-plan-rendering purposes and so it does not
 	// currently survive a round-trip through a saved plan file.
-	RequiredReplace []cty.Path
+	RequiredReplace cty.PathSet
 
 	// Private allows a provider to stash any extra data that is opaque to
 	// Terraform that relates to this change. Terraform will save this
@@ -80,11 +80,7 @@ func (rcs *ResourceInstanceChangeSrc) DeepCopy() *ResourceInstanceChangeSrc {
 	}
 	ret := *rcs
 
-	if len(ret.RequiredReplace) != 0 {
-		rr := make([]cty.Path, len(ret.RequiredReplace))
-		copy(rr, ret.RequiredReplace)
-		ret.RequiredReplace = rr
-	}
+	ret.RequiredReplace = cty.NewPathSet(ret.RequiredReplace.List()...)
 
 	if len(ret.Private) != 0 {
 		private := make([]byte, len(ret.Private))
