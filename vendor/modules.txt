@@ -447,7 +447,7 @@ github.com/vmihailenco/msgpack/codes
 github.com/xanzy/ssh-agent
 # github.com/xlab/treeprint v0.0.0-20161029104018-1d6e34225557
 github.com/xlab/treeprint
-# github.com/zclconf/go-cty v0.0.0-20180827182259-5a135111c744
+# github.com/zclconf/go-cty v0.0.0-20180829180805-c2393a5d54f2
 github.com/zclconf/go-cty/cty
 github.com/zclconf/go-cty/cty/gocty
 github.com/zclconf/go-cty/cty/convert
