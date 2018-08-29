@@ -62,9 +62,17 @@ func New() backend.Backend {
 			},
 
 			"objectName": {
+				Type:       schema.TypeString,
+				Optional:   true,
+				Default:    "terraform.tfstate",
+				Deprecated: "please use the object_name attribute",
+			},
+
+			"object_name": {
 				Type:     schema.TypeString,
 				Optional: true,
-				Default:  "terraform.tfstate",
+				// Set this default once the objectName attribute is removed!
+				// Default:  "terraform.tfstate",
 			},
 		},
 	}
@@ -116,7 +124,12 @@ func (b *Backend) configure(ctx context.Context) error {
 	}
 
 	b.path = data.Get("path").(string)
-	b.objectName = data.Get("objectName").(string)
+	b.objectName = data.Get("object_name").(string)
+
+	// If object_name is not set, try the deprecated objectName.
+	if b.objectName == "" {
+		b.objectName = data.Get("objectName").(string)
+	}
 
 	var validationError *multierror.Error
 
