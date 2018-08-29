@@ -76,13 +76,13 @@ func (n *EvalApply) Eval(ctx EvalContext) (interface{}, error) {
 	// incomplete.
 	newVal := resp.NewState
 
-	for _, err := range schema.ImpliedType().TestConformance(newVal.Type()) {
+	for _, err := range newVal.Type().TestConformance(schema.ImpliedType()) {
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
 			"Provider produced invalid object",
 			fmt.Sprintf(
-				"Provider %q planned an invalid value for %s%s after apply, and so the result could not be saved.\n\nThis is a bug in the provider, which should be reported in the provider's own issue tracker.",
-				n.ProviderAddr.ProviderConfig.Type, absAddr, tfdiags.FormatError(err),
+				"Provider %q planned an invalid value after apply for %s. The result could not be saved.\n\nThis is a bug in the provider, which should be reported in the provider's own issue tracker.",
+				n.ProviderAddr.ProviderConfig.Type, tfdiags.FormatErrorPrefixed(err, absAddr.String()),
 			),
 		))
 	}
