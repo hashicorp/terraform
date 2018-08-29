@@ -153,13 +153,13 @@ func (n *EvalDiff) Eval(ctx EvalContext) (interface{}, error) {
 	// here, since that allows the provider to do special logic like a
 	// DiffSuppressFunc, but we still require that the provider produces
 	// a value whose type conforms to the schema.
-	for _, err := range schema.ImpliedType().TestConformance(plannedNewVal.Type()) {
+	for _, err := range plannedNewVal.Type().TestConformance(schema.ImpliedType()) {
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
 			"Provider produced invalid plan",
 			fmt.Sprintf(
-				"Provider %q planned an invalid value for %s%s.\n\nThis is a bug in the provider, which should be reported in the provider's own issue tracker.",
-				n.ProviderAddr.ProviderConfig.Type, absAddr, tfdiags.FormatError(err),
+				"Provider %q planned an invalid value for %s.\n\nThis is a bug in the provider, which should be reported in the provider's own issue tracker.",
+				n.ProviderAddr.ProviderConfig.Type, tfdiags.FormatErrorPrefixed(err, absAddr.String()),
 			),
 		))
 	}
