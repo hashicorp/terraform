@@ -5,6 +5,7 @@ import (
 	"log"
 	"time"
 
+	multierror "github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/terraform/backend"
 	backendInit "github.com/hashicorp/terraform/backend/init"
 	"github.com/hashicorp/terraform/config"
@@ -32,9 +33,368 @@ func dataSourceRemoteState() *schema.Resource {
 				},
 			},
 
+			// This field now contains all possible attributes that are supported
+			// by any of the existing backends. When merging this into 0.12 this
+			// should be reverted and instead the new 'cty.DynamicPseudoType' type
+			// should be used to make this work with any future backends as well.
 			"config": {
-				Type:     schema.TypeMap,
+				Type:     schema.TypeSet,
 				Optional: true,
+				MaxItems: 1,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"path": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+						"hostname": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+						"organization": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+						"token": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+						"workspaces": &schema.Schema{
+							Type:     schema.TypeList,
+							Optional: true,
+							MaxItems: 1,
+							Elem:     &schema.Schema{Type: schema.TypeMap},
+						},
+						"username": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+						"password": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+						"url": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+						"repo": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+						"subpath": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+						"storage_account_name": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+						"container_name": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+						"key": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+						"access_key": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+						"environment": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+						"resource_group_name": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+						"arm_subscription_id": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+						"arm_client_id": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+						"arm_client_secret": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+						"arm_tenant_id": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+						"access_token": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+						"address": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+						"scheme": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+						"datacenter": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+						"http_auth": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+						"gzip": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+						"lock": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+						"ca_file": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+						"cert_file": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+						"key_file": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+						"endpoints": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+						"prefix": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+						"cacert_path": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+						"cert_path": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+						"key_path": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+						"bucket": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+						"credentials": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+						"project": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+						"region": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+						"encryption_key": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+						"update_method": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+						"lock_address": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+						"lock_method": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+						"unlock_address": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+						"unlock_method": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+						"skip_cert_verification": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+						"account": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+						"user": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+						"key_material": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+						"key_id": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+						"insecure_skip_tls_verify": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+						"object_name": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+						"endpoint": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+						"encrypt": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+						"acl": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+						"secret_key": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+						"kms_key_id": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+						"lock_table": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+						"dynamodb_table": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+						"profile": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+						"shared_credentials_file": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+						"role_arn": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+						"assume_role_policy": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+						"external_id": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+						"session_name": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+						"workspace_key_prefix": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+						"skip_credentials_validation": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+						"skip_get_ec2_platforms": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+						"skip_region_validation": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+						"skip_requesting_account_id": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+						"skip_metadata_api_check": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+						"auth_url": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+						"container": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+						"user_name": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+						"user_id": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+						"region_name": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+						"tenant_id": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+						"tenant_name": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+						"domain_id": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+						"domain_name": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+						"insecure": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+						"cacert_file": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+						"cert": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+						"archive_container": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+						"archive_path": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+						"expire_after": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+						"name": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+					},
+				},
 			},
 
 			"defaults": {
@@ -66,8 +426,28 @@ func dataSourceRemoteState() *schema.Resource {
 func dataSourceRemoteStateRead(d *schema.ResourceData, meta interface{}) error {
 	backendType := d.Get("backend").(string)
 
-	// Get the configuration in a type we want.
-	rawConfig, err := config.NewRawConfig(d.Get("config").(map[string]interface{}))
+	// Get the configuration in a type we want. This is a bit of a hack but makes
+	// things work for the 'remote' backend as well. This can simply be deleted or
+	// reverted when merging this 0.12.
+	raw := make(map[string]interface{})
+	if cfg, ok := d.GetOk("config"); ok {
+		if raw, ok = cfg.(*schema.Set).List()[0].(map[string]interface{}); ok {
+			for k, v := range raw {
+				switch v := v.(type) {
+				case string:
+					if v == "" {
+						delete(raw, k)
+					}
+				case []interface{}:
+					if len(v) == 0 {
+						delete(raw, k)
+					}
+				}
+			}
+		}
+	}
+
+	rawConfig, err := config.NewRawConfig(raw)
 	if err != nil {
 		return fmt.Errorf("error initializing backend: %s", err)
 	}
@@ -85,6 +465,14 @@ func dataSourceRemoteStateRead(d *schema.ResourceData, meta interface{}) error {
 		return fmt.Errorf("Unknown backend type: %s", backendType)
 	}
 	b := f()
+
+	warns, errs := b.Validate(terraform.NewResourceConfig(rawConfig))
+	for _, warning := range warns {
+		log.Printf("[DEBUG] Warning validating backend config: %s", warning)
+	}
+	if len(errs) > 0 {
+		return fmt.Errorf("error validating backend config: %s", multierror.Append(nil, errs...))
+	}
 
 	// Configure the backend
 	if err := b.Configure(terraform.NewResourceConfig(rawConfig)); err != nil {
