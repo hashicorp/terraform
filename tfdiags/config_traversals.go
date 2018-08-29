@@ -54,3 +54,15 @@ func FormatError(err error) string {
 
 	return fmt.Sprintf("%s: %s", FormatCtyPath(perr.Path), perr.Error())
 }
+
+// FormatErrorPrefixed is like FormatError except that it presents any path
+// information after the given prefix string, which is assumed to contain
+// an HCL syntax representation of the value that errors are relative to.
+func FormatErrorPrefixed(err error, prefix string) string {
+	perr, ok := err.(cty.PathError)
+	if !ok || len(perr.Path) == 0 {
+		return fmt.Sprintf("%s: %s", prefix, err.Error())
+	}
+
+	return fmt.Sprintf("%s%s: %s", prefix, FormatCtyPath(perr.Path), perr.Error())
+}
