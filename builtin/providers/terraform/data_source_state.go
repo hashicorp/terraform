@@ -112,6 +112,8 @@ func dataSourceRemoteStateRead(d *cty.Value) (cty.Value, tfdiags.Diagnostics) {
 		if ws != backend.DefaultStateName {
 			name = ws
 		}
+	} else {
+		newState["workspace"] = cty.NullVal(cty.String)
 	}
 
 	state, err := b.StateMgr(name)
@@ -139,6 +141,8 @@ func dataSourceRemoteStateRead(d *cty.Value) (cty.Value, tfdiags.Diagnostics) {
 			k, v := it.Element()
 			outputs[k.AsString()] = v
 		}
+	} else {
+		newState["defaults"] = cty.NullVal(cty.DynamicPseudoType)
 	}
 
 	remoteState := state.State()
