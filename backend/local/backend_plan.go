@@ -135,13 +135,14 @@ func (b *Local) opPlan(
 
 	// Perform some output tasks if we have a CLI to output to.
 	if b.CLI != nil {
-		dispPlan := format.NewPlan(plan.Changes)
-		if dispPlan.Empty() {
+		schemas := tfCtx.Schemas()
+
+		if plan.Changes.Empty() {
 			b.CLI.Output("\n" + b.Colorize().Color(strings.TrimSpace(planNoChanges)))
 			return
 		}
 
-		b.renderPlan(dispPlan)
+		b.renderPlan(plan, schemas)
 
 		// If we've accumulated any warnings along the way then we'll show them
 		// here just before we show the summary and next steps. If we encountered
@@ -169,24 +170,31 @@ func (b *Local) opPlan(
 	}
 }
 
-func (b *Local) renderPlan(dispPlan *format.Plan) {
+func (b *Local) renderPlan(plan *plans.Plan, schemas *terraform.Schemas) {
+
+	counts := map[plans.Action]int{}
+	for _, change := range plan.Changes.Resources {
+		counts[change.Action]++
+	}
+	for _, change := range plan.Changes.RootOutputs {
+		counts[change.Action]++
+	}
 
 	headerBuf := &bytes.Buffer{}
 	fmt.Fprintf(headerBuf, "\n%s\n", strings.TrimSpace(planHeaderIntro))
-	counts := dispPlan.ActionCounts()
-	if counts[terraform.DiffCreate] > 0 {
+	if counts[plans.Create] > 0 {
 		fmt.Fprintf(headerBuf, "%s create\n", format.DiffActionSymbol(terraform.DiffCreate))
 	}
-	if counts[terraform.DiffUpdate] > 0 {
+	if counts[plans.Update] > 0 {
 		fmt.Fprintf(headerBuf, "%s update in-place\n", format.DiffActionSymbol(terraform.DiffUpdate))
 	}
-	if counts[terraform.DiffDestroy] > 0 {
+	if counts[plans.Delete] > 0 {
 		fmt.Fprintf(headerBuf, "%s destroy\n", format.DiffActionSymbol(terraform.DiffDestroy))
 	}
-	if counts[terraform.DiffDestroyCreate] > 0 {
+	if counts[plans.Replace] > 0 {
 		fmt.Fprintf(headerBuf, "%s destroy and then create replacement\n", format.DiffActionSymbol(terraform.DiffDestroyCreate))
 	}
-	if counts[terraform.DiffRefresh] > 0 {
+	if counts[plans.Read] > 0 {
 		fmt.Fprintf(headerBuf, "%s read (data resources)\n", format.DiffActionSymbol(terraform.DiffRefresh))
 	}
 
@@ -194,13 +202,46 @@ func (b *Local) renderPlan(dispPlan *format.Plan) {
 
 	b.CLI.Output("Terraform will perform the following actions:\n")
 
-	b.CLI.Output(dispPlan.Format(b.Colorize()))
+	for _, rcs := range plan.Changes.Resources {
+		if rcs.Action == plans.NoOp {
+			continue
+		}
+		providerSchema := schemas.ProviderSchema(rcs.ProviderAddr.ProviderConfig.Type)
+		if providerSchema == nil {
+			// Should never happen
+			b.CLI.Output(fmt.Sprintf("(schema missing for %s)\n", rcs.ProviderAddr))
+			continue
+		}
+		rSchema := providerSchema.SchemaForResourceAddr(rcs.Addr.Resource.Resource)
+		if rSchema == nil {
+			// Should never happen
+			b.CLI.Output(fmt.Sprintf("(schema missing for %s)\n", rcs.Addr))
+			continue
+		}
+		b.CLI.Output(format.ResourceChange(
+			rcs,
+			rSchema,
+			b.CLIColor,
+		))
+	}
 
-	stats := dispPlan.Stats()
+	// stats is similar to counts above, but:
+	// - it considers only resource changes
+	// - it simplifies "replace" into both a create and a delete
+	stats := map[plans.Action]int{}
+	for _, change := range plan.Changes.Resources {
+		switch change.Action {
+		case plans.Replace:
+			counts[plans.Create]++
+			counts[plans.Delete]++
+		default:
+			counts[change.Action]++
+		}
+	}
 	b.CLI.Output(b.Colorize().Color(fmt.Sprintf(
 		"[reset][bold]Plan:[reset] "+
 			"%d to add, %d to change, %d to destroy.",
-		stats.ToAdd, stats.ToChange, stats.ToDestroy,
+		stats[plans.Create], stats[plans.Update], stats[plans.Delete],
 	)))
 }
 
