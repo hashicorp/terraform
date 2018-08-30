@@ -1,5 +1,16 @@
 ## 0.11.9 (Unreleased)
 
+IMPROVEMENTS:
+
+* backend/manta: Deprecate the `objectName` attribute in favor of the new `object_name` attribute [GH-18759]
+* backend/migrations: Migrate existing non-empty default states when the backend only supports named states [GH-18760]
+* provider/terraform: `terraform_remote_state` now accepts complex backend configurations [GH-18759]
+
+BUG FIXES:
+
+* backend/migrations: Check all workspaces for existing non-empty states [GH-18757]
+* provider/terraform: Always call the backend validation method to prevent a possible panic [GH-18759]
+
 ## 0.11.8 (August 15, 2018)
 
 NEW FEATURES:
