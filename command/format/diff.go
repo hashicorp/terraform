@@ -9,6 +9,7 @@ import (
 
 	"github.com/mitchellh/colorstring"
 	"github.com/zclconf/go-cty/cty"
+	ctyjson "github.com/zclconf/go-cty/cty/json"
 
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs/configschema"
@@ -422,6 +423,24 @@ func (p *blockBodyDiffPrinter) writeValue(val cty.Value, action plans.Action, in
 	case ty.IsPrimitiveType():
 		switch ty {
 		case cty.String:
+			{
+				// Special behavior for JSON strings
+				src := []byte(val.AsString())
+				ty, err := ctyjson.ImpliedType(src)
+				if err == nil {
+					jv, err := ctyjson.Unmarshal(src, ty)
+					if err == nil {
+						p.buf.WriteString("jsonencode(")
+						p.buf.WriteByte('\n')
+						p.buf.WriteString(strings.Repeat(" ", indent+4))
+						p.writeValue(jv, action, indent+4)
+						p.buf.WriteByte('\n')
+						p.buf.WriteString(strings.Repeat(" ", indent))
+						p.buf.WriteByte(')')
+						break // don't *also* do the normal behavior below
+					}
+				}
+			}
 			fmt.Fprintf(p.buf, "%q", val.AsString())
 		case cty.Bool:
 			if val.True() {
@@ -516,12 +535,42 @@ func (p *blockBodyDiffPrinter) writeValueDiff(old, new cty.Value, indent int, pa
 	if old.IsKnown() && new.IsKnown() && !old.IsNull() && !new.IsNull() {
 		switch {
 		// TODO: list diffs using longest-common-subsequence matching algorithm
+		// TODO: object diffs that behave a bit like the map diffs, including if the two object types don't exactly match
 		// TODO: multi-line string diffs showing lines added/removed using longest-common-subsequence
 
 		case ty == cty.String:
-			// We only have special behavior for multi-line strings here
+			// We have special behavior for both multi-line strings in general
+			// and for strings that can parse as JSON. For the JSON handling
+			// to apply, both old and new must be valid JSON.
+			// For single-line strings that don't parse as JSON we just fall
+			// out of this switch block and do the default old -> new rendering.
 			oldS := old.AsString()
 			newS := new.AsString()
+
+			{
+				// Special behavior for JSON strings
+				oldBytes := []byte(oldS)
+				newBytes := []byte(newS)
+				oldType, oldErr := ctyjson.ImpliedType(oldBytes)
+				newType, newErr := ctyjson.ImpliedType(newBytes)
+				if oldErr == nil && newErr == nil {
+					oldJV, oldErr := ctyjson.Unmarshal(oldBytes, oldType)
+					newJV, newErr := ctyjson.Unmarshal(newBytes, newType)
+					if oldErr == nil && newErr == nil {
+						if !oldJV.RawEquals(newJV) { // two JSON values may differ only in insignificant whitespace
+							p.buf.WriteString("jsonencode(")
+							p.buf.WriteByte('\n')
+							p.buf.WriteString(strings.Repeat(" ", indent+4))
+							p.writeValueDiff(oldJV, newJV, indent+4, path)
+							p.buf.WriteByte('\n')
+							p.buf.WriteString(strings.Repeat(" ", indent))
+							p.buf.WriteByte(')')
+							return
+						}
+					}
+				}
+			}
+
 			if strings.Index(oldS, "\n") < 0 && strings.Index(newS, "\n") < 0 {
 				break
 			}
