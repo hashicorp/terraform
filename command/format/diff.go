@@ -453,12 +453,20 @@ func (p *blockBodyDiffPrinter) writeValue(val cty.Value, action plans.Action, in
 	case ty.IsMapType():
 		p.buf.WriteString("{\n")
 
-		it := val.ElementIterator()
-		for it.Next() {
+		keyLen := 0
+		for it := val.ElementIterator(); it.Next(); {
+			key, _ := it.Element()
+			if keyStr := key.AsString(); len(keyStr) > keyLen {
+				keyLen = len(keyStr)
+			}
+		}
+
+		for it := val.ElementIterator(); it.Next(); {
 			key, val := it.Element()
 			p.buf.WriteString(strings.Repeat(" ", indent+2))
 			p.writeActionSymbol(action)
 			p.writeValue(key, action, indent+4)
+			p.buf.WriteString(strings.Repeat(" ", keyLen-len(key.AsString())))
 			p.buf.WriteString(" = ")
 			p.writeValue(val, action, indent+4)
 			p.buf.WriteString("\n")
@@ -508,7 +516,6 @@ func (p *blockBodyDiffPrinter) writeValueDiff(old, new cty.Value, indent int, pa
 	if old.IsKnown() && new.IsKnown() && !old.IsNull() && !new.IsNull() {
 		switch {
 		// TODO: list diffs using longest-common-subsequence matching algorithm
-		// TODO: map diffs showing changes on a per-key basis
 		// TODO: multi-line string diffs showing lines added/removed using longest-common-subsequence
 
 		case ty == cty.String:
@@ -637,6 +644,81 @@ func (p *blockBodyDiffPrinter) writeValueDiff(old, new cty.Value, indent int, pa
 
 			p.buf.WriteString(strings.Repeat(" ", indent))
 			p.buf.WriteString("]")
+			return
+
+		case ty.IsMapType():
+			p.buf.WriteString("{")
+			if p.pathForcesNewResource(path) {
+				p.buf.WriteString(p.color.Color(forcesNewResourceCaption))
+			}
+			p.buf.WriteString("\n")
+
+			var allKeys []string
+			keyLen := 0
+			for it := old.ElementIterator(); it.Next(); {
+				k, _ := it.Element()
+				keyStr := k.AsString()
+				allKeys = append(allKeys, keyStr)
+				if len(keyStr) > keyLen {
+					keyLen = len(keyStr)
+				}
+			}
+			for it := new.ElementIterator(); it.Next(); {
+				k, _ := it.Element()
+				keyStr := k.AsString()
+				allKeys = append(allKeys, keyStr)
+				if len(keyStr) > keyLen {
+					keyLen = len(keyStr)
+				}
+			}
+
+			sort.Strings(allKeys)
+
+			lastK := ""
+			for i, k := range allKeys {
+				if i > 0 && lastK == k {
+					continue // skip duplicates (list is sorted)
+				}
+				lastK = k
+
+				p.buf.WriteString(strings.Repeat(" ", indent+2))
+				kV := cty.StringVal(k)
+				var action plans.Action
+				if old.HasIndex(kV).False() {
+					action = plans.Create
+				} else if new.HasIndex(kV).False() {
+					action = plans.Delete
+				} else if eqV := old.Index(kV).Equals(new.Index(kV)); eqV.IsKnown() && eqV.True() {
+					action = plans.NoOp
+				} else {
+					action = plans.Update
+				}
+
+				path := append(path, cty.IndexStep{Key: kV})
+
+				p.writeActionSymbol(action)
+				p.writeValue(kV, action, indent+4)
+				p.buf.WriteString(strings.Repeat(" ", keyLen-len(k)))
+				p.buf.WriteString(" = ")
+				switch action {
+				case plans.Create, plans.NoOp:
+					v := new.Index(kV)
+					p.writeValue(v, action, 0)
+				case plans.Delete:
+					oldV := old.Index(kV)
+					newV := cty.NullVal(oldV.Type())
+					p.writeValueDiff(oldV, newV, 0, path)
+				default:
+					oldV := old.Index(kV)
+					newV := new.Index(kV)
+					p.writeValueDiff(oldV, newV, 0, path)
+				}
+
+				p.buf.WriteString(",\n")
+			}
+
+			p.buf.WriteString(strings.Repeat(" ", indent))
+			p.buf.WriteString("}")
 			return
 		}
 	}
