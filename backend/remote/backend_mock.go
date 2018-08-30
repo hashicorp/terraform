@@ -9,21 +9,45 @@ import (
 	"io"
 	"io/ioutil"
 	"math/rand"
+	"os"
+	"path/filepath"
 
 	tfe "github.com/hashicorp/go-tfe"
 )
 
-type mockConfigurationVersions struct {
-	configVersions map[string]*tfe.ConfigurationVersion
-	uploadURLs     map[string]*tfe.ConfigurationVersion
-	workspaces     map[string]*tfe.ConfigurationVersion
+type mockClient struct {
+	ConfigurationVersions *mockConfigurationVersions
+	Organizations         *mockOrganizations
+	Plans                 *mockPlans
+	Runs                  *mockRuns
+	StateVersions         *mockStateVersions
+	Workspaces            *mockWorkspaces
 }
 
-func newMockConfigurationVersions() *mockConfigurationVersions {
+func newMockClient() *mockClient {
+	c := &mockClient{}
+	c.ConfigurationVersions = newMockConfigurationVersions(c)
+	c.Organizations = newMockOrganizations(c)
+	c.Plans = newMockPlans(c)
+	c.Runs = newMockRuns(c)
+	c.StateVersions = newMockStateVersions(c)
+	c.Workspaces = newMockWorkspaces(c)
+	return c
+}
+
+type mockConfigurationVersions struct {
+	client         *mockClient
+	configVersions map[string]*tfe.ConfigurationVersion
+	uploadPaths    map[string]string
+	uploadURLs     map[string]*tfe.ConfigurationVersion
+}
+
+func newMockConfigurationVersions(client *mockClient) *mockConfigurationVersions {
 	return &mockConfigurationVersions{
+		client:         client,
 		configVersions: make(map[string]*tfe.ConfigurationVersion),
+		uploadPaths:    make(map[string]string),
 		uploadURLs:     make(map[string]*tfe.ConfigurationVersion),
-		workspaces:     make(map[string]*tfe.ConfigurationVersion),
 	}
 }
 
@@ -47,7 +71,6 @@ func (m *mockConfigurationVersions) Create(ctx context.Context, workspaceID stri
 
 	m.configVersions[cv.ID] = cv
 	m.uploadURLs[url] = cv
-	m.workspaces[workspaceID] = cv
 
 	return cv, nil
 }
@@ -65,16 +88,19 @@ func (m *mockConfigurationVersions) Upload(ctx context.Context, url, path string
 	if !ok {
 		return errors.New("404 not found")
 	}
+	m.uploadPaths[cv.ID] = path
 	cv.Status = tfe.ConfigurationUploaded
 	return nil
 }
 
 type mockOrganizations struct {
+	client        *mockClient
 	organizations map[string]*tfe.Organization
 }
 
-func newMockOrganizations() *mockOrganizations {
+func newMockOrganizations(client *mockClient) *mockOrganizations {
 	return &mockOrganizations{
+		client:        client,
 		organizations: make(map[string]*tfe.Organization),
 	}
 }
@@ -117,32 +143,53 @@ func (m *mockOrganizations) Delete(ctx context.Context, name string) error {
 }
 
 type mockPlans struct {
-	logs  map[string]string
-	plans map[string]*tfe.Plan
+	client *mockClient
+	logs   map[string]string
+	plans  map[string]*tfe.Plan
 }
 
-func newMockPlans() *mockPlans {
+func newMockPlans(client *mockClient) *mockPlans {
 	return &mockPlans{
-		logs:  make(map[string]string),
-		plans: make(map[string]*tfe.Plan),
+		client: client,
+		logs:   make(map[string]string),
+		plans:  make(map[string]*tfe.Plan),
 	}
+}
+
+// create is a helper function to create a mock plan that uses the configured
+// working directory to find the logfile. This enables us to test if we are
+// using the
+func (m *mockPlans) create(cvID, workspaceID string) (*tfe.Plan, error) {
+	id := generateID("plan-")
+	url := fmt.Sprintf("https://app.terraform.io/_archivist/%s", id)
+
+	p := &tfe.Plan{
+		ID:         id,
+		LogReadURL: url,
+		Status:     tfe.PlanPending,
+	}
+
+	w, ok := m.client.Workspaces.workspaceIDs[workspaceID]
+	if !ok {
+		return nil, tfe.ErrResourceNotFound
+	}
+
+	m.logs[url] = filepath.Join(
+		m.client.ConfigurationVersions.uploadPaths[cvID],
+		w.WorkingDirectory,
+		"output.log",
+	)
+	m.plans[p.ID] = p
+
+	return p, nil
 }
 
 func (m *mockPlans) Read(ctx context.Context, planID string) (*tfe.Plan, error) {
 	p, ok := m.plans[planID]
 	if !ok {
-		url := fmt.Sprintf("https://app.terraform.io/_archivist/%s", planID)
-
-		p = &tfe.Plan{
-			ID:         planID,
-			LogReadURL: url,
-			Status:     tfe.PlanFinished,
-		}
-
-		m.logs[url] = "plan/output.log"
-		m.plans[p.ID] = p
+		return nil, tfe.ErrResourceNotFound
 	}
-
+	p.Status = tfe.PlanFinished
 	return p, nil
 }
 
@@ -157,7 +204,11 @@ func (m *mockPlans) Logs(ctx context.Context, planID string) (io.Reader, error) 
 		return nil, tfe.ErrResourceNotFound
 	}
 
-	logs, err := ioutil.ReadFile("./test-fixtures/" + logfile)
+	if _, err := os.Stat(logfile); os.IsNotExist(err) {
+		return bytes.NewBufferString("logfile does not exist"), nil
+	}
+
+	logs, err := ioutil.ReadFile(logfile)
 	if err != nil {
 		return nil, err
 	}
@@ -166,34 +217,39 @@ func (m *mockPlans) Logs(ctx context.Context, planID string) (io.Reader, error) 
 }
 
 type mockRuns struct {
+	client     *mockClient
 	runs       map[string]*tfe.Run
 	workspaces map[string][]*tfe.Run
 }
 
-func newMockRuns() *mockRuns {
+func newMockRuns(client *mockClient) *mockRuns {
 	return &mockRuns{
+		client:     client,
 		runs:       make(map[string]*tfe.Run),
 		workspaces: make(map[string][]*tfe.Run),
 	}
 }
 
 func (m *mockRuns) List(ctx context.Context, workspaceID string, options tfe.RunListOptions) ([]*tfe.Run, error) {
+	w, ok := m.client.Workspaces.workspaceIDs[workspaceID]
+	if !ok {
+		return nil, tfe.ErrResourceNotFound
+	}
 	var rs []*tfe.Run
-	for _, r := range m.workspaces[workspaceID] {
+	for _, r := range m.workspaces[w.ID] {
 		rs = append(rs, r)
 	}
 	return rs, nil
 }
 
 func (m *mockRuns) Create(ctx context.Context, options tfe.RunCreateOptions) (*tfe.Run, error) {
-	id := generateID("run-")
-	p := &tfe.Plan{
-		ID:     generateID("plan-"),
-		Status: tfe.PlanPending,
+	p, err := m.client.Plans.create(options.ConfigurationVersion.ID, options.Workspace.ID)
+	if err != nil {
+		return nil, err
 	}
 
 	r := &tfe.Run{
-		ID:     id,
+		ID:     generateID("run-"),
 		Plan:   p,
 		Status: tfe.RunPending,
 	}
@@ -225,13 +281,15 @@ func (m *mockRuns) Discard(ctx context.Context, runID string, options tfe.RunDis
 }
 
 type mockStateVersions struct {
+	client        *mockClient
 	states        map[string][]byte
 	stateVersions map[string]*tfe.StateVersion
 	workspaces    map[string][]string
 }
 
-func newMockStateVersions() *mockStateVersions {
+func newMockStateVersions(client *mockClient) *mockStateVersions {
 	return &mockStateVersions{
+		client:        client,
 		states:        make(map[string][]byte),
 		stateVersions: make(map[string]*tfe.StateVersion),
 		workspaces:    make(map[string][]string),
@@ -277,14 +335,21 @@ func (m *mockStateVersions) Read(ctx context.Context, svID string) (*tfe.StateVe
 }
 
 func (m *mockStateVersions) Current(ctx context.Context, workspaceID string) (*tfe.StateVersion, error) {
-	svs, ok := m.workspaces[workspaceID]
+	w, ok := m.client.Workspaces.workspaceIDs[workspaceID]
+	if !ok {
+		return nil, tfe.ErrResourceNotFound
+	}
+
+	svs, ok := m.workspaces[w.ID]
 	if !ok || len(svs) == 0 {
 		return nil, tfe.ErrResourceNotFound
 	}
+
 	sv, ok := m.stateVersions[svs[len(svs)-1]]
 	if !ok {
 		return nil, tfe.ErrResourceNotFound
 	}
+
 	return sv, nil
 }
 
@@ -297,12 +362,14 @@ func (m *mockStateVersions) Download(ctx context.Context, url string) ([]byte, e
 }
 
 type mockWorkspaces struct {
+	client         *mockClient
 	workspaceIDs   map[string]*tfe.Workspace
 	workspaceNames map[string]*tfe.Workspace
 }
 
-func newMockWorkspaces() *mockWorkspaces {
+func newMockWorkspaces(client *mockClient) *mockWorkspaces {
 	return &mockWorkspaces{
+		client:         client,
 		workspaceIDs:   make(map[string]*tfe.Workspace),
 		workspaceNames: make(map[string]*tfe.Workspace),
 	}
@@ -317,9 +384,8 @@ func (m *mockWorkspaces) List(ctx context.Context, organization string, options 
 }
 
 func (m *mockWorkspaces) Create(ctx context.Context, organization string, options tfe.WorkspaceCreateOptions) (*tfe.Workspace, error) {
-	id := generateID("ws-")
 	w := &tfe.Workspace{
-		ID:   id,
+		ID:   generateID("ws-"),
 		Name: *options.Name,
 	}
 	m.workspaceIDs[w.ID] = w
@@ -340,8 +406,16 @@ func (m *mockWorkspaces) Update(ctx context.Context, organization, workspace str
 	if !ok {
 		return nil, tfe.ErrResourceNotFound
 	}
-	w.Name = *options.Name
-	w.TerraformVersion = *options.TerraformVersion
+
+	if options.Name != nil {
+		w.Name = *options.Name
+	}
+	if options.TerraformVersion != nil {
+		w.TerraformVersion = *options.TerraformVersion
+	}
+	if options.WorkingDirectory != nil {
+		w.WorkingDirectory = *options.WorkingDirectory
+	}
 
 	delete(m.workspaceNames, workspace)
 	m.workspaceNames[w.Name] = w

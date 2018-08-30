@@ -69,14 +69,17 @@ func testBackend(t *testing.T, c map[string]interface{}) *Remote {
 	// Configure the backend so the client is created.
 	backend.TestBackendConfig(t, b, c)
 
-	// Once the client exists, mock the services we use..
+	// Get a new mock client.
+	mc := newMockClient()
+
+	// Replace the services we use with our mock services.
 	b.CLI = cli.NewMockUi()
-	b.client.ConfigurationVersions = newMockConfigurationVersions()
-	b.client.Organizations = newMockOrganizations()
-	b.client.Plans = newMockPlans()
-	b.client.Runs = newMockRuns()
-	b.client.StateVersions = newMockStateVersions()
-	b.client.Workspaces = newMockWorkspaces()
+	b.client.ConfigurationVersions = mc.ConfigurationVersions
+	b.client.Organizations = mc.Organizations
+	b.client.Plans = mc.Plans
+	b.client.Runs = mc.Runs
+	b.client.StateVersions = mc.StateVersions
+	b.client.Workspaces = mc.Workspaces
 
 	ctx := context.Background()
 
