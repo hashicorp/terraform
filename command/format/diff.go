@@ -534,9 +534,7 @@ func (p *blockBodyDiffPrinter) writeValueDiff(old, new cty.Value, indent int, pa
 	// values are known and non-null.
 	if old.IsKnown() && new.IsKnown() && !old.IsNull() && !new.IsNull() {
 		switch {
-		// TODO: list diffs using longest-common-subsequence matching algorithm
 		// TODO: object diffs that behave a bit like the map diffs, including if the two object types don't exactly match
-		// TODO: multi-line string diffs showing lines added/removed using longest-common-subsequence
 
 		case ty == cty.String:
 			// We have special behavior for both multi-line strings in general
@@ -705,6 +703,25 @@ func (p *blockBodyDiffPrinter) writeValueDiff(old, new cty.Value, indent int, pa
 
 				p.writeActionSymbol(action)
 				p.writeValue(val, action, indent+4)
+				p.buf.WriteString(",\n")
+			}
+
+			p.buf.WriteString(strings.Repeat(" ", indent))
+			p.buf.WriteString("]")
+			return
+
+		case ty.IsListType() || ty.IsTupleType():
+			p.buf.WriteString("[")
+			if p.pathForcesNewResource(path) {
+				p.buf.WriteString(p.color.Color(forcesNewResourceCaption))
+			}
+			p.buf.WriteString("\n")
+
+			elemDiffs := ctySequenceDiff(old.AsValueSlice(), new.AsValueSlice())
+			for _, elemDiff := range elemDiffs {
+				p.buf.WriteString(strings.Repeat(" ", indent+2))
+				p.writeActionSymbol(elemDiff.Action)
+				p.writeValue(elemDiff.Value, elemDiff.Action, indent+4)
 				p.buf.WriteString(",\n")
 			}
 
