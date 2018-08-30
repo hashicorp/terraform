@@ -5,6 +5,7 @@ import (
 	"strings"
 	"testing"
 
+	tfe "github.com/hashicorp/go-tfe"
 	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/config/module"
 	"github.com/hashicorp/terraform/terraform"
@@ -177,5 +178,41 @@ func TestRemote_planDestroyNoConfig(t *testing.T) {
 	<-run.Done()
 	if run.Err != nil {
 		t.Fatalf("unexpected plan error: %v", run.Err)
+	}
+}
+
+func TestRemote_planWithWorkingDirectory(t *testing.T) {
+	b := testBackendDefault(t)
+
+	options := tfe.WorkspaceUpdateOptions{
+		WorkingDirectory: tfe.String("terraform"),
+	}
+
+	// Configure the workspace to use a custom working direcrtory.
+	_, err := b.client.Workspaces.Update(context.Background(), b.organization, b.workspace, options)
+	if err != nil {
+		t.Fatalf("error configuring working directory: %v", err)
+	}
+
+	mod, modCleanup := module.TestTree(t, "./test-fixtures/plan-with-working-directory/terraform")
+	defer modCleanup()
+
+	op := testOperationPlan()
+	op.Module = mod
+	op.Workspace = backend.DefaultStateName
+
+	run, err := b.Operation(context.Background(), op)
+	if err != nil {
+		t.Fatalf("error starting operation: %v", err)
+	}
+
+	<-run.Done()
+	if run.Err != nil {
+		t.Fatalf("error running operation: %v", run.Err)
+	}
+
+	output := b.CLI.(*cli.MockUi).OutputWriter.String()
+	if !strings.Contains(output, "1 to add, 0 to change, 0 to destroy") {
+		t.Fatalf("missing plan summery in output: %s", output)
 	}
 }
