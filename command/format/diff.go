@@ -561,13 +561,29 @@ func (p *blockBodyDiffPrinter) writeValueDiff(old, new cty.Value, indent int, pa
 						if !oldJV.RawEquals(newJV) { // two JSON values may differ only in insignificant whitespace
 							p.buf.WriteString("jsonencode(")
 							p.buf.WriteByte('\n')
-							p.buf.WriteString(strings.Repeat(" ", indent+4))
+							p.buf.WriteString(strings.Repeat(" ", indent+2))
+							p.writeActionSymbol(plans.Update)
 							p.writeValueDiff(oldJV, newJV, indent+4, path)
 							p.buf.WriteByte('\n')
 							p.buf.WriteString(strings.Repeat(" ", indent))
 							p.buf.WriteByte(')')
-							return
+						} else {
+							// if they differ only in insigificant whitespace
+							// then we'll note that but still expand out the
+							// effective value.
+							if p.pathForcesNewResource(path) {
+								p.buf.WriteString(p.color.Color("jsonencode( [red]# whitespace changes force replacement[reset]"))
+							} else {
+								p.buf.WriteString(p.color.Color("jsonencode( [dim]# whitespace changes[reset]"))
+							}
+							p.buf.WriteByte('\n')
+							p.buf.WriteString(strings.Repeat(" ", indent+4))
+							p.writeValue(oldJV, plans.NoOp, indent+4)
+							p.buf.WriteByte('\n')
+							p.buf.WriteString(strings.Repeat(" ", indent))
+							p.buf.WriteByte(')')
 						}
+						return
 					}
 				}
 			}
