@@ -424,10 +424,10 @@ func (p *blockBodyDiffPrinter) writeValue(val cty.Value, action plans.Action, in
 		switch ty {
 		case cty.String:
 			{
-				// Special behavior for JSON strings
+				// Special behavior for JSON strings containing array or object
 				src := []byte(val.AsString())
 				ty, err := ctyjson.ImpliedType(src)
-				if err == nil {
+				if err == nil && !ty.IsPrimitiveType() {
 					jv, err := ctyjson.Unmarshal(src, ty)
 					if err == nil {
 						p.buf.WriteString("jsonencode(")
@@ -548,12 +548,13 @@ func (p *blockBodyDiffPrinter) writeValueDiff(old, new cty.Value, indent int, pa
 			newS := new.AsString()
 
 			{
-				// Special behavior for JSON strings
+				// Special behavior for JSON strings containing object or
+				// list values.
 				oldBytes := []byte(oldS)
 				newBytes := []byte(newS)
 				oldType, oldErr := ctyjson.ImpliedType(oldBytes)
 				newType, newErr := ctyjson.ImpliedType(newBytes)
-				if oldErr == nil && newErr == nil {
+				if oldErr == nil && newErr == nil && !(oldType.IsPrimitiveType() && newType.IsPrimitiveType()) {
 					oldJV, oldErr := ctyjson.Unmarshal(oldBytes, oldType)
 					newJV, newErr := ctyjson.Unmarshal(newBytes, newType)
 					if oldErr == nil && newErr == nil {
