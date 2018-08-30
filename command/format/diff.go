@@ -14,6 +14,7 @@ import (
 	"github.com/hashicorp/terraform/configs/configschema"
 	"github.com/hashicorp/terraform/plans"
 	"github.com/hashicorp/terraform/plans/objchange"
+	"github.com/hashicorp/terraform/states"
 )
 
 // ResourceChange returns a string representation of a change to a particular
@@ -41,7 +42,27 @@ func ResourceChange(
 		}
 	}
 
-	buf.WriteString(color.Color("[reset]"))
+	dispAddr := addr.String()
+	if change.DeposedKey != states.NotDeposed {
+		dispAddr = fmt.Sprintf("%s (deposed object %s)", dispAddr, change.DeposedKey)
+	}
+
+	switch change.Action {
+	case plans.Create:
+		buf.WriteString(color.Color(fmt.Sprintf("[bold]  # %s[reset] will be created", dispAddr)))
+	case plans.Read:
+		buf.WriteString(color.Color(fmt.Sprintf("[bold]  # %s[reset] will be read during apply\n  # (config refers to values not yet known)", dispAddr)))
+	case plans.Update:
+		buf.WriteString(color.Color(fmt.Sprintf("[bold]  # %s[reset] will be updated in-place", dispAddr)))
+	case plans.Replace:
+		buf.WriteString(color.Color(fmt.Sprintf("[bold]  # %s[reset] must be [bold][red]replaced", dispAddr)))
+	case plans.Delete:
+		buf.WriteString(color.Color(fmt.Sprintf("[bold]  # %s[reset] will be [bold][red]destroyed", dispAddr)))
+	default:
+		// should never happen, since the above is exhaustive
+		buf.WriteString(fmt.Sprintf("%s has an action the plan renderer doesn't support (this is a bug)", dispAddr))
+	}
+	buf.WriteString(color.Color("[reset]\n"))
 
 	switch change.Action {
 	case plans.Create:
@@ -55,39 +76,28 @@ func ResourceChange(
 	case plans.Delete:
 		buf.WriteString(color.Color("[red]  -[reset] "))
 	default:
-		// should never happen, since the above is exhaustive
 		buf.WriteString(color.Color("??? "))
 	}
 
 	switch addr.Resource.Resource.Mode {
 	case addrs.ManagedResourceMode:
-		buf.WriteString(color.Color(fmt.Sprintf(
-			"resource [bold]%q[reset] [bold]%q[reset]",
+		buf.WriteString(fmt.Sprintf(
+			"resource %q %q",
 			addr.Resource.Resource.Type,
 			addr.Resource.Resource.Name,
-		)))
-		if addr.Resource.Key != addrs.NoKey {
-			buf.WriteString(fmt.Sprintf(" %s", addr.Resource.Key))
-		}
+		))
 	case addrs.DataResourceMode:
-		buf.WriteString(color.Color(fmt.Sprintf(
-			"data [bold]%q[reset] [bold]%q[reset] ",
+		buf.WriteString(fmt.Sprintf(
+			"data %q %q ",
 			addr.Resource.Resource.Type,
 			addr.Resource.Resource.Name,
-		)))
-		if addr.Resource.Key != addrs.NoKey {
-			buf.WriteString(fmt.Sprintf(" %s", addr.Resource.Key))
-		}
+		))
 	default:
 		// should never happen, since the above is exhaustive
 		buf.WriteString(addr.String())
 	}
 
-	buf.WriteString(" {")
-	if change.Action == plans.Replace {
-		buf.WriteString(color.Color(" [bold][red]# new resource required[reset]"))
-	}
-	buf.WriteString("\n")
+	buf.WriteString(" {\n")
 
 	p := blockBodyDiffPrinter{
 		buf:             &buf,
@@ -128,7 +138,7 @@ type blockBodyDiffPrinter struct {
 	requiredReplace cty.PathSet
 }
 
-const forcesNewResourceCaption = " [red]# (forces new resource)[reset]"
+const forcesNewResourceCaption = " [red]# forces replacement[reset]"
 
 func (p *blockBodyDiffPrinter) writeBlockBodyDiff(schema *configschema.Block, old, new cty.Value, indent int, path cty.Path) {
 	path = ctyEnsurePathCapacity(path, 1)
