@@ -1098,7 +1098,6 @@ func TestMetaBackend_configuredChangeCopy_singleState(t *testing.T) {
 
 	// Ask input
 	defer testInputMap(t, map[string]string{
-		"backend-migrate-to-new":        "yes",
 		"backend-migrate-copy-to-empty": "yes",
 	})()
 
@@ -1154,7 +1153,6 @@ func TestMetaBackend_configuredChangeCopy_multiToSingleDefault(t *testing.T) {
 
 	// Ask input
 	defer testInputMap(t, map[string]string{
-		"backend-migrate-to-new":        "yes",
 		"backend-migrate-copy-to-empty": "yes",
 	})()
 
@@ -1209,7 +1207,6 @@ func TestMetaBackend_configuredChangeCopy_multiToSingle(t *testing.T) {
 
 	// Ask input
 	defer testInputMap(t, map[string]string{
-		"backend-migrate-to-new":               "yes",
 		"backend-migrate-multistate-to-single": "yes",
 		"backend-migrate-copy-to-empty":        "yes",
 	})()
@@ -1276,7 +1273,6 @@ func TestMetaBackend_configuredChangeCopy_multiToSingleCurrentEnv(t *testing.T) 
 
 	// Ask input
 	defer testInputMap(t, map[string]string{
-		"backend-migrate-to-new":               "yes",
 		"backend-migrate-multistate-to-single": "yes",
 		"backend-migrate-copy-to-empty":        "yes",
 	})()
@@ -1339,7 +1335,6 @@ func TestMetaBackend_configuredChangeCopy_multiToMulti(t *testing.T) {
 
 	// Ask input
 	defer testInputMap(t, map[string]string{
-		"backend-migrate-to-new":                   "yes",
 		"backend-migrate-multistate-to-multistate": "yes",
 	})()
 
@@ -1438,17 +1433,63 @@ func TestMetaBackend_configuredChangeCopy_multiToNoDefaultWithDefault(t *testing
 
 	// Ask input
 	defer testInputMap(t, map[string]string{
-		"backend-migrate-to-new":                   "yes",
 		"backend-migrate-multistate-to-multistate": "yes",
+		"new-state-name":                           "env1",
 	})()
 
 	// Setup the meta
 	m := testMetaBackend(t, nil)
 
 	// Get the backend
-	_, err := m.Backend(&BackendOpts{Init: true})
-	if err == nil || !strings.Contains(err.Error(), "default state not supported") {
-		t.Fatalf("expected error to contain %q\ngot: %s", "default state not supported", err)
+	b, err := m.Backend(&BackendOpts{Init: true})
+	if err != nil {
+		t.Fatalf("bad: %s", err)
+	}
+
+	// Check resulting states
+	states, err := b.States()
+	if err != nil {
+		t.Fatalf("bad: %s", err)
+	}
+
+	sort.Strings(states)
+	expected := []string{"env1", "env2"}
+	if !reflect.DeepEqual(states, expected) {
+		t.Fatalf("bad: %#v", states)
+	}
+
+	{
+		// Check the renamed default state
+		s, err := b.State("env1")
+		if err != nil {
+			t.Fatalf("bad: %s", err)
+		}
+		if err := s.RefreshState(); err != nil {
+			t.Fatalf("bad: %s", err)
+		}
+		state := s.State()
+		if state == nil {
+			t.Fatal("state should not be nil")
+		}
+		if state.Lineage != "backend-change-env1" {
+			t.Fatalf("bad: %#v", state)
+		}
+	}
+
+	{
+		// Verify existing workspaces exist
+		envPath := filepath.Join(backendLocal.DefaultWorkspaceDir, "env2", backendLocal.DefaultStateFilename)
+		if _, err := os.Stat(envPath); err != nil {
+			t.Fatal("env should exist")
+		}
+	}
+
+	{
+		// Verify new workspaces exist
+		envPath := filepath.Join("envdir-new", "env2", backendLocal.DefaultStateFilename)
+		if _, err := os.Stat(envPath); err != nil {
+			t.Fatal("env should exist")
+		}
 	}
 }
 
@@ -1468,8 +1509,8 @@ func TestMetaBackend_configuredChangeCopy_multiToNoDefaultWithoutDefault(t *test
 
 	// Ask input
 	defer testInputMap(t, map[string]string{
-		"backend-migrate-to-new":                   "yes",
 		"backend-migrate-multistate-to-multistate": "yes",
+		"select-workspace":                         "1",
 	})()
 
 	// Setup the meta
