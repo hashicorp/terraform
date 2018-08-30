@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"sort"
 	"strings"
 
 	"github.com/hashicorp/terraform/backend"
@@ -202,7 +203,21 @@ func (b *Local) renderPlan(plan *plans.Plan, schemas *terraform.Schemas) {
 
 	b.CLI.Output("Terraform will perform the following actions:\n")
 
-	for _, rcs := range plan.Changes.Resources {
+	// Note: we're modifying the backing slice of this plan object in-place
+	// here. The ordering of resource changes in a plan is not significant,
+	// but we can only do this safely here because we can assume that nobody
+	// is concurrently modifying our changes while we're trying to print it.
+	rChanges := plan.Changes.Resources
+	sort.Slice(rChanges, func(i, j int) bool {
+		iA := rChanges[i].Addr
+		jA := rChanges[j].Addr
+		if iA.String() == jA.String() {
+			return rChanges[i].DeposedKey < rChanges[j].DeposedKey
+		}
+		return iA.Less(jA)
+	})
+
+	for _, rcs := range rChanges {
 		if rcs.Action == plans.NoOp {
 			continue
 		}
@@ -229,13 +244,13 @@ func (b *Local) renderPlan(plan *plans.Plan, schemas *terraform.Schemas) {
 	// - it considers only resource changes
 	// - it simplifies "replace" into both a create and a delete
 	stats := map[plans.Action]int{}
-	for _, change := range plan.Changes.Resources {
+	for _, change := range rChanges {
 		switch change.Action {
 		case plans.Replace:
-			counts[plans.Create]++
-			counts[plans.Delete]++
+			stats[plans.Create]++
+			stats[plans.Delete]++
 		default:
-			counts[change.Action]++
+			stats[change.Action]++
 		}
 	}
 	b.CLI.Output(b.Colorize().Color(fmt.Sprintf(
