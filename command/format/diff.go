@@ -703,15 +703,15 @@ func (p *blockBodyDiffPrinter) writeValueDiff(old, new cty.Value, indent int, pa
 				switch action {
 				case plans.Create, plans.NoOp:
 					v := new.Index(kV)
-					p.writeValue(v, action, 0)
+					p.writeValue(v, action, indent+4)
 				case plans.Delete:
 					oldV := old.Index(kV)
 					newV := cty.NullVal(oldV.Type())
-					p.writeValueDiff(oldV, newV, 0, path)
+					p.writeValueDiff(oldV, newV, indent+4, path)
 				default:
 					oldV := old.Index(kV)
 					newV := new.Index(kV)
-					p.writeValueDiff(oldV, newV, 0, path)
+					p.writeValueDiff(oldV, newV, indent+4, path)
 				}
 
 				p.buf.WriteString(",\n")
