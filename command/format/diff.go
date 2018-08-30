@@ -763,7 +763,7 @@ func (p *blockBodyDiffPrinter) writeValueDiff(old, new cty.Value, indent int, pa
 					p.writeValueDiff(oldV, newV, indent+4, path)
 				}
 
-				p.buf.WriteString(",\n")
+				p.buf.WriteByte('\n')
 			}
 
 			p.buf.WriteString(strings.Repeat(" ", indent))
