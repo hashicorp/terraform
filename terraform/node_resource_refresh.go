@@ -2,6 +2,7 @@ package terraform
 
 import (
 	"fmt"
+	"log"
 
 	"github.com/hashicorp/terraform/plans"
 	"github.com/hashicorp/terraform/providers"
@@ -133,8 +134,10 @@ func (n *NodeRefreshableManagedResourceInstance) EvalTree() EvalNode {
 	switch addr.Resource.Resource.Mode {
 	case addrs.ManagedResourceMode:
 		if n.ResourceState == nil {
+			log.Printf("[TRACE] NodeRefreshableManagedResourceInstance: %s has no existing state to refresh", addr)
 			return n.evalTreeManagedResourceNoState()
 		}
+		log.Printf("[TRACE] NodeRefreshableManagedResourceInstance: %s will be refreshed", addr)
 		return n.evalTreeManagedResource()
 
 	case addrs.DataResourceMode:
@@ -232,10 +235,6 @@ func (n *NodeRefreshableManagedResourceInstance) evalTreeManagedResourceNoState(
 	var providerSchema *ProviderSchema
 	var change *plans.ResourceInstanceChange
 	var state *states.ResourceInstanceObject
-
-	// Determine the dependencies for the state.
-	// TODO: Update StateReferences to return []addrs.Referenceable
-	//state.Dependencies = n.StateReferences()
 
 	return &EvalSequence{
 		Nodes: []EvalNode{
