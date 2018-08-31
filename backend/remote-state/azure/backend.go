@@ -3,6 +3,7 @@ package azure
 import (
 	"context"
 	"fmt"
+	"net/http"
 
 	armStorage "github.com/Azure/azure-sdk-for-go/arm/storage"
 	"github.com/Azure/azure-sdk-for-go/storage"
@@ -192,6 +193,11 @@ func getAccessKey(config BackendConfig, env azure.Environment) (string, error) {
 
 	accountsClient := armStorage.NewAccountsClientWithBaseURI(env.ResourceManagerEndpoint, config.SubscriptionID)
 	accountsClient.Authorizer = autorest.NewBearerAuthorizer(spt)
+	accountsClient.Sender = autorest.DecorateSender(&http.Client{
+		Transport: &http.Transport{
+			Proxy: http.ProxyFromEnvironment,
+		},
+	})
 
 	keys, err := accountsClient.ListKeys(config.ResourceGroupName, config.StorageAccountName)
 	if err != nil {
