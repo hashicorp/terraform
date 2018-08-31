@@ -269,16 +269,15 @@ func dottedInstanceAddr(tr addrs.ResourceInstance) string {
 
 // StateReferences returns the dependencies to put into the state for
 // this resource.
-func (n *NodeAbstractResource) StateReferences() []string {
+func (n *NodeAbstractResource) StateReferences() []addrs.Referenceable {
 	selfAddrs := n.ReferenceableAddrs()
 
 	depsRaw := n.References()
-	deps := make([]string, 0, len(depsRaw))
+	deps := make([]addrs.Referenceable, 0, len(depsRaw))
 	for _, d := range depsRaw {
 		switch tr := d.Subject.(type) {
 		case addrs.ResourceInstance:
-			key := dottedInstanceAddr(tr)
-			deps = append(deps, key)
+			deps = append(deps, tr)
 		case addrs.Resource:
 			depStr := tr.String()
 			selfRef := false
@@ -289,16 +288,16 @@ func (n *NodeAbstractResource) StateReferences() []string {
 				}
 			}
 			if !selfRef { // Don't create self-references
-				deps = append(deps, tr.String())
+				deps = append(deps, tr)
 			}
 		case addrs.ModuleCallInstance:
-			deps = append(deps, tr.String())
+			deps = append(deps, tr)
 		case addrs.ModuleCallOutput:
 			// For state dependencies, we simplify outputs to just refer
 			// to the module as a whole. It's not really clear why we do this,
 			// but this logic is preserved from before the 0.12 rewrite of
 			// this function.
-			deps = append(deps, tr.Call.String())
+			deps = append(deps, tr)
 		default:
 			// No other reference types are recorded in the state.
 		}
