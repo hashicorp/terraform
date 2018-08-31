@@ -2,6 +2,7 @@ package terraform
 
 import (
 	"fmt"
+	"log"
 
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/providers"
@@ -35,9 +36,12 @@ func (n *EvalReadState) Eval(ctx EvalContext) (interface{}, error) {
 	}
 
 	absAddr := n.Addr.Absolute(ctx.Path())
+	log.Printf("[TRACE] EvalReadState: reading state for %s", absAddr)
+
 	src := ctx.State().ResourceInstanceObject(absAddr, states.CurrentGen)
 	if src == nil {
 		// Presumably we only have deposed objects, then.
+		log.Printf("[TRACE] EvalReadState: no state present for %s", absAddr)
 		return nil, nil
 	}
 
@@ -88,9 +92,12 @@ func (n *EvalReadStateDeposed) Eval(ctx EvalContext) (interface{}, error) {
 		return nil, fmt.Errorf("EvalReadStateDeposed used with no instance key; this is a bug in Terraform and should be reported")
 	}
 	absAddr := n.Addr.Absolute(ctx.Path())
+	log.Printf("[TRACE] EvalReadStateDeposed: reading state for %s deposed object %s", absAddr, n.Key)
+
 	src := ctx.State().ResourceInstanceObject(absAddr, key)
 	if src == nil {
 		// Presumably we only have deposed objects, then.
+		log.Printf("[TRACE] EvalReadStateDeposed: no state present for %s deposed object %s", absAddr, n.Key)
 		return nil, nil
 	}
 
@@ -189,12 +196,15 @@ func (n *EvalWriteState) Eval(ctx EvalContext) (interface{}, error) {
 	if obj == nil {
 		// No need to encode anything: we'll just write it directly.
 		state.SetResourceInstanceCurrent(absAddr, nil, n.ProviderAddr)
+		log.Printf("[TRACE] EvalWriteState: removing state object for %s", absAddr)
 		return nil, nil
 	}
 	if n.ProviderSchema == nil || *n.ProviderSchema == nil {
 		// Should never happen, unless our state object is nil
 		panic("EvalWriteState used with pointer to nil ProviderSchema object")
 	}
+
+	log.Printf("[TRACE] EvalWriteState: writing state object for %s", absAddr)
 
 	// TODO: Update this to use providers.Schema and populate the real
 	// schema version in the second argument to Encode below.
@@ -253,7 +263,8 @@ func (n *EvalWriteStateDeposed) Eval(ctx EvalContext) (interface{}, error) {
 	obj := *n.State
 	if obj == nil {
 		// No need to encode anything: we'll just write it directly.
-		state.SetResourceInstanceCurrent(absAddr, nil, n.ProviderAddr)
+		state.SetResourceInstanceDeposed(absAddr, key, nil, n.ProviderAddr)
+		log.Printf("[TRACE] EvalWriteStateDeposed: removing state object for %s deposed %s", absAddr, key)
 		return nil, nil
 	}
 	if n.ProviderSchema == nil || *n.ProviderSchema == nil {
@@ -275,6 +286,7 @@ func (n *EvalWriteStateDeposed) Eval(ctx EvalContext) (interface{}, error) {
 		return nil, fmt.Errorf("failed to encode %s in state: %s", absAddr, err)
 	}
 
+	log.Printf("[TRACE] EvalWriteStateDeposed: writing state object for %s deposed %s", absAddr, key)
 	state.SetResourceInstanceDeposed(absAddr, key, src, n.ProviderAddr)
 	return nil, nil
 }
