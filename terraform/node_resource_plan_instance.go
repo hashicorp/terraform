@@ -51,7 +51,7 @@ func (n *NodePlannableResourceInstance) EvalTree() EvalNode {
 	}
 }
 
-func (n *NodePlannableResourceInstance) evalTreeDataResource(addr addrs.AbsResourceInstance, stateId string, stateDeps []string) EvalNode {
+func (n *NodePlannableResourceInstance) evalTreeDataResource(addr addrs.AbsResourceInstance, stateId string, stateDeps []addrs.Referenceable) EvalNode {
 	config := n.Config
 	var provider providers.Interface
 	var providerSchema *ProviderSchema
@@ -107,7 +107,7 @@ func (n *NodePlannableResourceInstance) evalTreeDataResource(addr addrs.AbsResou
 	}
 }
 
-func (n *NodePlannableResourceInstance) evalTreeManagedResource(addr addrs.AbsResourceInstance, stateId string, stateDeps []string) EvalNode {
+func (n *NodePlannableResourceInstance) evalTreeManagedResource(addr addrs.AbsResourceInstance, stateId string, stateDeps []addrs.Referenceable) EvalNode {
 	config := n.Config
 	var provider providers.Interface
 	var providerSchema *ProviderSchema

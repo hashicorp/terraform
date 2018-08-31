@@ -100,14 +100,6 @@ func (n *NodeApplyableResourceInstance) EvalTree() EvalNode {
 
 	// Determine the dependencies for the state.
 	stateDeps := n.StateReferences()
-	// filter out self-references
-	filtered := []string{}
-	for _, d := range stateDeps {
-		if d != dottedInstanceAddr(addr.Resource) {
-			filtered = append(filtered, d)
-		}
-	}
-	stateDeps = filtered
 
 	// Eval info is different depending on what kind of resource this is
 	switch n.Config.Mode {
@@ -120,7 +112,7 @@ func (n *NodeApplyableResourceInstance) EvalTree() EvalNode {
 	}
 }
 
-func (n *NodeApplyableResourceInstance) evalTreeDataResource(addr addrs.AbsResourceInstance, stateId string, stateDeps []string) EvalNode {
+func (n *NodeApplyableResourceInstance) evalTreeDataResource(addr addrs.AbsResourceInstance, stateId string, stateDeps []addrs.Referenceable) EvalNode {
 	var provider providers.Interface
 	var providerSchema *ProviderSchema
 	var change *plans.ResourceInstanceChange
@@ -195,7 +187,7 @@ func (n *NodeApplyableResourceInstance) evalTreeDataResource(addr addrs.AbsResou
 	}
 }
 
-func (n *NodeApplyableResourceInstance) evalTreeManagedResource(addr addrs.AbsResourceInstance, stateId string, stateDeps []string) EvalNode {
+func (n *NodeApplyableResourceInstance) evalTreeManagedResource(addr addrs.AbsResourceInstance, stateId string, stateDeps []addrs.Referenceable) EvalNode {
 	// Declare a bunch of variables that are used for state during
 	// evaluation. Most of this are written to by-address below.
 	var provider providers.Interface
