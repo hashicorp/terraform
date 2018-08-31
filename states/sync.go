@@ -336,6 +336,59 @@ func (s *SyncState) ForgetResourceInstanceDeposed(addr addrs.AbsResourceInstance
 	ms.ForgetResourceInstanceDeposed(addr.Resource, key)
 }
 
+// RemovePlannedResourceInstanceObjects removes from the state any resource
+// instance objects that have the status ObjectPlanned, indiciating that they
+// are just transient placeholders created during planning.
+//
+// Note that this does not restore any "ready" or "tainted" object that might
+// have been present before the planned object was written. The only real use
+// for this method is in preparing the state created during a refresh walk,
+// where we run the planning step for certain instances just to create enough
+// information to allow correct expression evaluation within provider and
+// data resource blocks. Discarding planned instances in that case is okay
+// because the refresh phase only creates planned objects to stand in for
+// objects that don't exist yet, and thus the planned object must have been
+// absent before by definition.
+func (s *SyncState) RemovePlannedResourceInstanceObjects() {
+	// TODO: Merge together the refresh and plan phases into a single walk,
+	// so we can remove the need to create this "partial plan" during refresh
+	// that we then need to clean up before proceeding.
+
+	s.lock.Lock()
+	defer s.lock.Unlock()
+
+	for _, ms := range s.state.Modules {
+		moduleAddr := ms.Addr
+
+		for _, rs := range ms.Resources {
+			resAddr := rs.Addr
+
+			for ik, is := range rs.Instances {
+				instAddr := resAddr.Instance(ik)
+
+				if is.Current != nil && is.Current.Status == ObjectPlanned {
+					// Setting the current instance to nil removes it from the
+					// state altogether if there are not also deposed instances.
+					ms.SetResourceInstanceCurrent(instAddr, nil, rs.ProviderConfig)
+				}
+
+				for dk, obj := range is.Deposed {
+					// Deposed objects should never be "planned", but we'll
+					// do this anyway for the sake of completeness.
+					if obj.Status == ObjectPlanned {
+						ms.ForgetResourceInstanceDeposed(instAddr, dk)
+					}
+				}
+			}
+		}
+
+		// We may have deleted some objects, which means that we may have
+		// left a module empty, and so we must prune to preserve the invariant
+		// that only the root module is allowed to be empty.
+		s.maybePruneModule(moduleAddr)
+	}
+}
+
 // Lock acquires an explicit lock on the state, allowing direct read and write
 // access to the returned state object. The caller must call Unlock once
 // access is no longer needed, and then immediately discard the state pointer

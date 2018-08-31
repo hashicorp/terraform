@@ -51,6 +51,18 @@ const (
 	// update, or delete operation. Since it cannot be moved into the
 	// ObjectRead state, a tainted object must be replaced.
 	ObjectTainted ObjectStatus = 'T'
+
+	// ObjectPlanned is a special object status used only for the transient
+	// placeholder objects we place into state during the refresh and plan
+	// walks to stand in for objects that will be created during apply.
+	//
+	// Any object of this status must have a corresponding change recorded
+	// in the current plan, whose value must then be used in preference to
+	// the value stored in state when evaluating expressions. A planned
+	// object stored in state will be incomplete if any of its attributes are
+	// not yet known, and the plan must be consulted in order to "see" those
+	// unknown values, because the state is not able to represent them.
+	ObjectPlanned ObjectStatus = 'P'
 )
 
 // Encode marshals the value within the receiver to produce a
