@@ -400,7 +400,7 @@ Options:
   -vcs=true            If true (default), push will upload only files
                        committed to your VCS, if detected.
 
-  -no-color           If specified, output won't contain any color.
+  -no-color            If specified, output won't contain any color.
 
 `
 	return strings.TrimSpace(helpText)
