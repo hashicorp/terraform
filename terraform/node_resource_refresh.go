@@ -270,6 +270,20 @@ func (n *NodeRefreshableManagedResourceInstance) evalTreeManagedResourceNoState(
 				ProviderSchema: &providerSchema,
 				State:          &state,
 			},
+
+			// We must also save the planned change, so that expressions in
+			// other nodes, such as provider configurations and data resources,
+			// can work with the planned new value.
+			//
+			// This depends on the fact that Context.Refresh creates a
+			// temporary new empty changeset for the duration of its graph
+			// walk, and so this recorded change will be discarded immediately
+			// after the refresh walk completes.
+			&EvalWriteDiff{
+				Addr:           addr.Resource,
+				Change:         &change,
+				ProviderSchema: &providerSchema,
+			},
 		},
 	}
 }
