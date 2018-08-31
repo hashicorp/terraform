@@ -322,7 +322,13 @@ func (n *EvalDiff) Eval(ctx EvalContext) (interface{}, error) {
 	// Update the state if we care
 	if n.OutputState != nil {
 		*n.OutputState = &states.ResourceInstanceObject{
-			Status: states.ObjectReady,
+			// We use the special "planned" status here to note that this
+			// object's value is not yet complete. Objects with this status
+			// cannot be used during expression evaluation, so the caller
+			// must _also_ record the returned change in the active plan,
+			// which the expression evaluator will use in preference to this
+			// incomplete value recorded in the state.
+			Status: states.ObjectPlanned,
 			Value:  plannedNewVal,
 		}
 	}

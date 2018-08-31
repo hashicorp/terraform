@@ -544,6 +544,15 @@ func (c *Context) Refresh() (*states.State, tfdiags.Diagnostics) {
 	// Copy our own state
 	c.state = c.state.DeepCopy()
 
+	// Refresh builds a partial changeset as part of its work because it must
+	// create placeholder stubs for any resource instances that'll be created
+	// in subsequent plan so that provider configurations and data resources
+	// can interpolate from them. This plan is always thrown away after
+	// the operation completes, restoring any existing changeset.
+	oldChanges := c.changes
+	defer func() { c.changes = oldChanges }()
+	c.changes = plans.NewChanges()
+
 	// Build the graph.
 	graph, diags := c.Graph(GraphTypeRefresh, nil)
 	if diags.HasErrors() {
@@ -556,6 +565,17 @@ func (c *Context) Refresh() (*states.State, tfdiags.Diagnostics) {
 	if walkDiags.HasErrors() {
 		return nil, diags
 	}
+
+	// During our walk we will have created planned object placeholders in
+	// state for resource instances that are in configuration but not yet
+	// created. These were created only to allow expression evaluation to
+	// work properly in provider and data blocks during the walk and must
+	// now be discarded, since a subsequent plan walk is responsible for
+	// creating these "for real".
+	// TODO: Consolidate refresh and plan into a single walk, so that the
+	// refresh walk doesn't need to emulate various aspects of the plan
+	// walk in order to properly evaluate provider and data blocks.
+	c.state.SyncWrapper().RemovePlannedResourceInstanceObjects()
 
 	return c.state, diags
 }

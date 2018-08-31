@@ -563,6 +563,19 @@ func (d *evaluationStateData) getResourceInstanceSingle(addr addrs.ResourceInsta
 		return val, diags
 	}
 
+	if is.Current.Status == states.ObjectPlanned {
+		// If the object is in planned status then we should not
+		// get here, since we should've found a pending value
+		// in the plan above instead.
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Missing pending object in plan",
+			Detail:   fmt.Sprintf("Instance %s is marked as having a change pending but that change is not recorded in the plan. This is a bug in Terraform; please report it.", addr),
+			Subject:  &config.DeclRange,
+		})
+		return cty.UnknownVal(ty), diags
+	}
+
 	ios, err := is.Current.Decode(ty)
 	if err != nil {
 		// This shouldn't happen, since by the time we get here
@@ -631,6 +644,19 @@ func (d *evaluationStateData) getResourceInstancesAll(addr addrs.Resource, rng t
 						continue
 					}
 					vals[i] = val
+					continue
+				}
+
+				if is.Current.Status == states.ObjectPlanned {
+					// If the object is in planned status then we should not
+					// get here, since we should've found a pending value
+					// in the plan above instead.
+					diags = diags.Append(&hcl.Diagnostic{
+						Severity: hcl.DiagError,
+						Summary:  "Missing pending object in plan",
+						Detail:   fmt.Sprintf("Instance %s is marked as having a change pending but that change is not recorded in the plan. This is a bug in Terraform; please report it.", instAddr),
+						Subject:  &config.DeclRange,
+					})
 					continue
 				}
 
