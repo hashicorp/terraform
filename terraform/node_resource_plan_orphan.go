@@ -57,10 +57,11 @@ func (n *NodePlannableResourceInstanceOrphan) EvalTree() EvalNode {
 				Output: &state,
 			},
 			&EvalDiffDestroy{
-				Addr:        addr.Resource,
-				State:       &state,
-				Output:      &change,
-				OutputState: &state, // Will point to a nil state after this complete, signalling destroyed
+				Addr:         addr.Resource,
+				State:        &state,
+				ProviderAddr: n.ResolvedProvider,
+				Output:       &change,
+				OutputState:  &state, // Will point to a nil state after this complete, signalling destroyed
 			},
 			&EvalCheckPreventDestroy{
 				Addr:   addr.Resource,
