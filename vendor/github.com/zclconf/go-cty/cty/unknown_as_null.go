@@ -8,12 +8,12 @@ package cty
 // represent unknowns, such as JSON, as long as the caller does not need to
 // retain the unknown value information.
 func UnknownAsNull(val Value) Value {
-	if !val.IsKnown() {
-		return NullVal(val.Type())
-	}
-
 	ty := val.Type()
 	switch {
+	case val.IsNull():
+		return val
+	case !val.IsKnown():
+		return NullVal(ty)
 	case ty.IsListType() || ty.IsTupleType() || ty.IsSetType():
 		length := val.LengthInt()
 		if length == 0 {
