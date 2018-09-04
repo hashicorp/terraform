@@ -55,12 +55,20 @@ func ApplyDiff(state cty.Value, d *terraform.InstanceDiff, schemaBlock *configsc
 	if d.Destroy || d.DestroyDeposed || d.DestroyTainted {
 		// to mark a destroy, we remove all attributes
 		attrs = map[string]string{}
+	} else if attrs["id"] == "" || d.RequiresNew() {
+		// Since "id" is always computed, make sure it always has a value. Set
+		// it as unknown to generate the correct cty.Value
+		attrs["id"] = config.UnknownVariableValue
 	}
 
 	for attr, diff := range d.Attributes {
 		old, exists := attrs[attr]
 
-		if old != diff.Old && exists {
+		if exists &&
+			old != diff.Old &&
+			// if new or old is unknown, then there's no mismatch
+			old != config.UnknownVariableValue &&
+			diff.Old != config.UnknownVariableValue {
 			return state, fmt.Errorf("mismatched diff: %q != %q", old, diff.Old)
 		}
 
