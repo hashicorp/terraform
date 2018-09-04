@@ -64,6 +64,11 @@ const (
 func (h *UiHook) PreApply(addr addrs.AbsResourceInstance, gen states.Generation, action plans.Action, priorState, plannedNewState cty.Value) (terraform.HookAction, error) {
 	h.once.Do(h.init)
 
+	dispAddr := addr.String()
+	if gen != states.CurrentGen {
+		dispAddr = fmt.Sprintf("%s (%s)", dispAddr, gen)
+	}
+
 	var operation string
 	var op uiResourceOp
 	switch action {
@@ -73,9 +78,14 @@ func (h *UiHook) PreApply(addr addrs.AbsResourceInstance, gen states.Generation,
 	case plans.Create:
 		operation = "Creating..."
 		op = uiResourceCreate
-	default:
+	case plans.Update:
 		operation = "Modifying..."
 		op = uiResourceModify
+	default:
+		// We don't expect any other actions in here, so anything else is a
+		// bug in the caller but we'll ignore it in order to be robust.
+		h.ui.Output(fmt.Sprintf("(Unknown action %s for %s)", action, dispAddr))
+		return terraform.HookActionContinue, nil
 	}
 
 	attrBuf := new(bytes.Buffer)
@@ -135,7 +145,7 @@ func (h *UiHook) PreApply(addr addrs.AbsResourceInstance, gen states.Generation,
 
 	h.ui.Output(h.Colorize.Color(fmt.Sprintf(
 		"[reset][bold]%s: %s%s[reset]%s",
-		addr,
+		dispAddr,
 		operation,
 		stateIdSuffix,
 		attrString,
