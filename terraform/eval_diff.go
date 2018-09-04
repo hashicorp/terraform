@@ -50,8 +50,23 @@ func (n *EvalCheckPlannedChange) Eval(ctx EvalContext) (interface{}, error) {
 		return nil, fmt.Errorf("provider does not support resource type %q", n.Addr.Resource.Type)
 	}
 
-	absAddr := n.Addr.Absolute(ctx.Path())
 	var diags tfdiags.Diagnostics
+	absAddr := n.Addr.Absolute(ctx.Path())
+
+	log.Printf("[TRACE] EvalCheckPlannedChange: Verifying that actual change (action %s) matches planned change (action %s)", actualChange.Action, plannedChange.Action)
+
+	if plannedChange.Action != actualChange.Action {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Provider produced inconsistent final plan",
+			fmt.Sprintf(
+				"When expanding the plan for %s to include new values learned so far during apply, provider %q changed the planned action from %s to %s.\n\nThis is a bug in the provider, which should be reported in the provider's own issue tracker.",
+				absAddr, n.ProviderAddr.ProviderConfig.Type,
+				plannedChange.Action, actualChange.Action,
+			),
+		))
+	}
+
 	errs := objchange.AssertObjectCompatible(schema, plannedChange.After, actualChange.After)
 	for _, err := range errs {
 		diags = diags.Append(tfdiags.Sourceless(
