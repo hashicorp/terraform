@@ -32,10 +32,9 @@ func testApplyDiff(t *testing.T,
 	resource *Resource,
 	state, expected *terraform.InstanceState,
 	diff *terraform.InstanceDiff) {
-	t.Helper()
 
 	testSchema := providers.Schema{
-		Version: resource.SchemaVersion,
+		Version: uint64(resource.SchemaVersion),
 		Block:   resourceSchemaToBlock(resource.Schema),
 	}
 
@@ -49,6 +48,27 @@ func testApplyDiff(t *testing.T,
 		t.Fatal(err)
 	}
 
+	// verify that "id" is correct
+	id := newState.AsValueMap()["id"]
+
+	switch {
+	case diff.Destroy || diff.DestroyDeposed || diff.DestroyTainted:
+		// there should be no id
+		if !id.IsNull() {
+			t.Fatalf("destroyed instance should have no id: %#v", id)
+		}
+	default:
+		// the "id" field always exists and is computed, so it must have a
+		// valid value or be unknown.
+		if id.IsNull() {
+			t.Fatal("new instance state cannot have a null id")
+		}
+
+		if id.IsKnown() && id.AsString() == "" {
+			t.Fatal("new instance id cannot be an empty string")
+		}
+	}
+
 	// Resource.Meta will be hanlded separately, so it's OK that we lose the
 	// timeout values here.
 	expectedState, err := StateValueFromInstanceState(expected, testSchema.Block.ImpliedType())
@@ -59,6 +79,46 @@ func testApplyDiff(t *testing.T,
 	if !cmp.Equal(expectedState, newState, equateEmpty, typeComparer, valueComparer) {
 		t.Fatalf(cmp.Diff(expectedState, newState, equateEmpty, typeComparer, valueComparer))
 	}
+}
+
+func TestShimResourcePlan_destroyCreate(t *testing.T) {
+	r := &Resource{
+		SchemaVersion: 2,
+		Schema: map[string]*Schema{
+			"foo": &Schema{
+				Type:     TypeInt,
+				Optional: true,
+				ForceNew: true,
+			},
+		},
+	}
+
+	d := &terraform.InstanceDiff{
+		Attributes: map[string]*terraform.ResourceAttrDiff{
+			"foo": &terraform.ResourceAttrDiff{
+				RequiresNew: true,
+				Old:         "3",
+				New:         "42",
+			},
+		},
+	}
+
+	state := &terraform.InstanceState{
+		Attributes: map[string]string{"foo": "3"},
+	}
+
+	expected := &terraform.InstanceState{
+		ID: config.UnknownVariableValue,
+		Attributes: map[string]string{
+			"id":  config.UnknownVariableValue,
+			"foo": "42",
+		},
+		Meta: map[string]interface{}{
+			"schema_version": "2",
+		},
+	}
+
+	testApplyDiff(t, r, state, expected, d)
 }
 
 func TestShimResourceApply_create(t *testing.T) {
@@ -279,7 +339,7 @@ func TestShimResourceDiff_Timeout_diff(t *testing.T) {
 	}
 
 	testSchema := providers.Schema{
-		Version: r.SchemaVersion,
+		Version: uint64(r.SchemaVersion),
 		Block:   resourceSchemaToBlock(r.Schema),
 	}
 
@@ -351,6 +411,7 @@ func TestShimResourceApply_destroyCreate(t *testing.T) {
 			"foo": &Schema{
 				Type:     TypeInt,
 				Optional: true,
+				ForceNew: true,
 			},
 
 			"tags": &Schema{
@@ -381,6 +442,9 @@ func TestShimResourceApply_destroyCreate(t *testing.T) {
 
 	d := &terraform.InstanceDiff{
 		Attributes: map[string]*terraform.ResourceAttrDiff{
+			"id": &terraform.ResourceAttrDiff{
+				New: "foo",
+			},
 			"foo": &terraform.ResourceAttrDiff{
 				Old:         "7",
 				New:         "42",
@@ -424,6 +488,7 @@ func TestShimResourceApply_destroyCreate(t *testing.T) {
 	createdState := &terraform.InstanceState{
 		ID: "foo",
 		Attributes: map[string]string{
+			"id":        "foo",
 			"foo":       "7",
 			"tags.%":    "1",
 			"tags.Name": "foo",
