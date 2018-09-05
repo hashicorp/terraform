@@ -12,7 +12,7 @@ func simpleTestSchemas() *Schemas {
 			"test": provider.GetSchemaReturn,
 		},
 		provisioners: map[string]*configschema.Block{
-			"test": provisioner.GetConfigSchemaReturnSchema,
+			"test": provisioner.GetSchemaResponse.Provisioner,
 		},
 	}
 }

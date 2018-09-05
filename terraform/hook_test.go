@@ -7,6 +7,7 @@ import (
 
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/plans"
+	"github.com/hashicorp/terraform/providers"
 	"github.com/hashicorp/terraform/states"
 )
 
@@ -90,7 +91,7 @@ func (h *testHook) PreImportState(addr addrs.AbsResourceInstance, importID strin
 	return HookActionContinue, nil
 }
 
-func (h *testHook) PostImportState(addr addrs.AbsResourceInstance, imported []*states.ImportedObject) (HookAction, error) {
+func (h *testHook) PostImportState(addr addrs.AbsResourceInstance, imported []providers.ImportedResource) (HookAction, error) {
 	h.Calls = append(h.Calls, &testHookCall{"PostImportState", addr.String()})
 	return HookActionContinue, nil
 }

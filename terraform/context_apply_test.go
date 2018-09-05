@@ -24,6 +24,7 @@ import (
 	"github.com/hashicorp/terraform/configs/configschema"
 	"github.com/hashicorp/terraform/plans"
 	"github.com/hashicorp/terraform/providers"
+	"github.com/hashicorp/terraform/provisioners"
 	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/tfdiags"
 )
@@ -1485,7 +1486,11 @@ func TestContext2Apply_dataBasic(t *testing.T) {
 	p := testProvider("null")
 	p.ApplyFn = testApplyFn
 	p.DiffFn = testDiffFn
-	p.ReadDataApplyReturn = &InstanceState{ID: "yo"}
+	p.ReadDataSourceResponse = providers.ReadDataSourceResponse{
+		State: cty.ObjectVal(map[string]cty.Value{
+			"id": cty.StringVal("yo"),
+		}),
+	}
 
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
@@ -4274,9 +4279,11 @@ func TestContext2Apply_provisionerModule(t *testing.T) {
 	p.DiffFn = testDiffFn
 
 	pr := testProvisioner()
-	pr.GetConfigSchemaReturnSchema = &configschema.Block{
-		Attributes: map[string]*configschema.Attribute{
-			"foo": {Type: cty.String, Optional: true},
+	pr.GetSchemaResponse = provisioners.GetSchemaResponse{
+		Provisioner: &configschema.Block{
+			Attributes: map[string]*configschema.Attribute{
+				"foo": {Type: cty.String, Optional: true},
+			},
 		},
 	}
 
@@ -5907,9 +5914,11 @@ func TestContext2Apply_Provisioner_ConnInfo(t *testing.T) {
 	}
 	p.DiffFn = testDiffFn
 
-	pr.GetConfigSchemaReturnSchema = &configschema.Block{
-		Attributes: map[string]*configschema.Attribute{
-			"foo": {Type: cty.String, Optional: true},
+	pr.GetSchemaResponse = provisioners.GetSchemaResponse{
+		Provisioner: &configschema.Block{
+			Attributes: map[string]*configschema.Attribute{
+				"foo": {Type: cty.String, Optional: true},
+			},
 		},
 	}
 
@@ -7635,15 +7644,17 @@ func TestContext2Apply_destroyProvisionerWithLocals(t *testing.T) {
 		}
 		return nil
 	}
-	pr.GetConfigSchemaReturnSchema = &configschema.Block{
-		Attributes: map[string]*configschema.Attribute{
-			"command": {
-				Type:     cty.String,
-				Required: true,
-			},
-			"when": {
-				Type:     cty.String,
-				Optional: true,
+	pr.GetSchemaResponse = provisioners.GetSchemaResponse{
+		Provisioner: &configschema.Block{
+			Attributes: map[string]*configschema.Attribute{
+				"command": {
+					Type:     cty.String,
+					Required: true,
+				},
+				"when": {
+					Type:     cty.String,
+					Optional: true,
+				},
 			},
 		},
 	}
@@ -7701,15 +7712,17 @@ func TestContext2Apply_destroyProvisionerWithMultipleLocals(t *testing.T) {
 	p.DiffFn = testDiffFn
 
 	pr := testProvisioner()
-	pr.GetConfigSchemaReturnSchema = &configschema.Block{
-		Attributes: map[string]*configschema.Attribute{
-			"command": {
-				Type:     cty.String,
-				Required: true,
-			},
-			"when": {
-				Type:     cty.String,
-				Optional: true,
+	pr.GetSchemaResponse = provisioners.GetSchemaResponse{
+		Provisioner: &configschema.Block{
+			Attributes: map[string]*configschema.Attribute{
+				"command": {
+					Type:     cty.String,
+					Required: true,
+				},
+				"when": {
+					Type:     cty.String,
+					Optional: true,
+				},
 			},
 		},
 	}
@@ -8572,9 +8585,6 @@ func TestContext2Apply_singleDestroy(t *testing.T) {
 // GH-7824
 func TestContext2Apply_issue7824(t *testing.T) {
 	p := testProvider("template")
-	p.ResourcesReturn = append(p.ResourcesReturn, ResourceType{
-		Name: "template_file",
-	})
 	p.ApplyFn = testApplyFn
 	p.DiffFn = testDiffFn
 	p.GetSchemaReturn = &ProviderSchema{
@@ -8632,12 +8642,18 @@ func TestContext2Apply_issue5254(t *testing.T) {
 	// Create a provider. We use "template" here just to match the repro
 	// we got from the issue itself.
 	p := testProvider("template")
-	p.ResourcesReturn = append(p.ResourcesReturn, ResourceType{
-		Name: "template_file",
-	})
-
 	p.ApplyFn = testApplyFn
 	p.DiffFn = testDiffFn
+	p.GetSchemaReturn = &ProviderSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"template_file": {
+				Attributes: map[string]*configschema.Attribute{
+					"template":                {Type: cty.String, Optional: true},
+					"__template_requires_new": {Type: cty.Bool, Optional: true},
+				},
+			},
+		},
+	}
 
 	m, snap := testModuleWithSnapshot(t, "issue-5254/step-0")
 
@@ -9106,18 +9122,12 @@ func TestContext2Apply_dataDependsOn(t *testing.T) {
 	}
 
 	p.DiffFn = testDiffFn
-	p.ReadDataDiffFn = testDataDiffFn
-
-	p.ReadDataApplyFn = func(*InstanceInfo, *InstanceDiff) (*InstanceState, error) {
-		// Read the artifact created by our dependency being applied.
-		// Without any "depends_on", this would be skipped as it's assumed the
-		// initial diff during refresh was all that's needed.
-		return &InstanceState{
-			ID: "read",
-			Attributes: map[string]string{
-				"foo": provisionerOutput,
-			},
-		}, nil
+	p.ReadDataSourceFn = func (req providers.ReadDataSourceRequest) providers.ReadDataSourceResponse{
+		return providers.ReadDataSourceResponse{
+			State: cty.ObjectVal(map[string]cty.Value{
+				"foo": cty.StringVal(provisionerOutput),
+			}),
+		}
 	}
 
 	_, diags := ctx.Refresh()
