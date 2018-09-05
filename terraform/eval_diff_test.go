@@ -1,17 +1,12 @@
 package terraform
 
 import (
-	"fmt"
 	"testing"
-
-	"github.com/hashicorp/hcl2/hcl/hclsyntax"
-
-	"github.com/hashicorp/hcl2/hcl"
-	"github.com/hashicorp/terraform/configs"
 )
 
 func TestProcessIgnoreChanges(t *testing.T) {
-	var evalDiff *EvalDiff
+	t.Fatalf("TestProcessIgnoreChanges not yet updated for new processIgnoreChanges signature")
+	/*var evalDiff *EvalDiff
 	var instanceDiff *InstanceDiff
 
 	var testDiffs = func(t *testing.T, ignoreChanges []string, newAttribute string) (*EvalDiff, *InstanceDiff) {
@@ -108,5 +103,5 @@ func TestProcessIgnoreChanges(t *testing.T) {
 				}
 			}
 		})
-	}
+	}*/
 }
