@@ -722,6 +722,43 @@ func (n *EvalDiffDestroyModule) Eval(ctx EvalContext) (interface{}, error) {
 	*/
 }
 
+// EvalReduceDiff is an EvalNode implementation that takes a planned resource
+// instance change as might be produced by EvalDiff or EvalDiffDestroy and
+// "simplifies" it to a single atomic action to be performed by a specific
+// graph node.
+//
+// Callers must specify whether they are a destroy node or a regular apply
+// node.  If the result is NoOp then the given change requires no action for
+// the specific graph node calling this and so evaluation of the that graph
+// node should exit early and take no action.
+//
+// The object written to OutChange may either be identical to InChange or
+// a new change object derived from InChange. Because of the former case, the
+// caller must not mutate the object returned in OutChange.
+type EvalReduceDiff struct {
+	Addr      addrs.ResourceInstance
+	InChange  **plans.ResourceInstanceChange
+	Destroy   bool
+	OutChange **plans.ResourceInstanceChange
+}
+
+// TODO: test
+func (n *EvalReduceDiff) Eval(ctx EvalContext) (interface{}, error) {
+	in := *n.InChange
+	out := in.Simplify(n.Destroy)
+	if n.OutChange != nil {
+		*n.OutChange = out
+	}
+	if out.Action != in.Action {
+		if n.Destroy {
+			log.Printf("[TRACE] EvalReduceDiff: %s change simplified from %s to %s for destroy node", n.Addr, in.Action, out.Action)
+		} else {
+			log.Printf("[TRACE] EvalReduceDiff: %s change simplified from %s to %s for apply node", n.Addr, in.Action, out.Action)
+		}
+	}
+	return nil, nil
+}
+
 // EvalReadDiff is an EvalNode implementation that retrieves the planned
 // change for a particular resource instance object.
 type EvalReadDiff struct {
