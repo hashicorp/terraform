@@ -121,6 +121,86 @@ func (rc *ResourceInstanceChange) Encode(ty cty.Type) (*ResourceInstanceChangeSr
 	}, err
 }
 
+// Simplify will, where possible, produce a change with a simpler action than
+// the receiever given a flag indicating whether the caller is dealing with
+// a normal apply or a destroy. This flag deals with the fact that Terraform
+// Core uses a specialized graph node type for destroying; only that
+// specialized node should set "destroying" to true.
+//
+// The following table shows the simplification behavior:
+//
+//     Action    Destroying?   New Action
+//     --------+-------------+-----------
+//     Create    true          NoOp
+//     Delete    false         NoOp
+//     Replace   true          Delete
+//     Replace   false         Create
+//
+// For any combination not in the above table, the Simplify just returns the
+// receiver as-is.
+func (rc *ResourceInstanceChange) Simplify(destroying bool) *ResourceInstanceChange {
+	if destroying {
+		switch rc.Action {
+		case Delete:
+			// We'll fall out and just return rc verbatim, then.
+		case Replace:
+			return &ResourceInstanceChange{
+				Addr:         rc.Addr,
+				DeposedKey:   rc.DeposedKey,
+				Private:      rc.Private,
+				ProviderAddr: rc.ProviderAddr,
+				Change: Change{
+					Action: Delete,
+					Before: rc.Before,
+					After:  cty.NullVal(rc.Before.Type()),
+				},
+			}
+		default:
+			return &ResourceInstanceChange{
+				Addr:         rc.Addr,
+				DeposedKey:   rc.DeposedKey,
+				Private:      rc.Private,
+				ProviderAddr: rc.ProviderAddr,
+				Change: Change{
+					Action: NoOp,
+					Before: rc.Before,
+					After:  rc.Before,
+				},
+			}
+		}
+	} else {
+		switch rc.Action {
+		case Delete:
+			return &ResourceInstanceChange{
+				Addr:         rc.Addr,
+				DeposedKey:   rc.DeposedKey,
+				Private:      rc.Private,
+				ProviderAddr: rc.ProviderAddr,
+				Change: Change{
+					Action: NoOp,
+					Before: rc.Before,
+					After:  rc.Before,
+				},
+			}
+		case Replace:
+			return &ResourceInstanceChange{
+				Addr:         rc.Addr,
+				DeposedKey:   rc.DeposedKey,
+				Private:      rc.Private,
+				ProviderAddr: rc.ProviderAddr,
+				Change: Change{
+					Action: Create,
+					Before: cty.NullVal(rc.After.Type()),
+					After:  rc.After,
+				},
+			}
+		}
+	}
+
+	// If we fall out here then our change is already simple enough.
+	return rc
+}
+
 // OutputChange describes a change to an output value.
 type OutputChange struct {
 	// Change is an embedded description of the change.
