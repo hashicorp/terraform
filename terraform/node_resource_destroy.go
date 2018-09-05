@@ -189,16 +189,21 @@ func (n *NodeDestroyResourceInstance) EvalTree() EvalNode {
 					Change:         &changeApply,
 				},
 
-				// If we're not destroying, then compare diffs
+				&EvalReduceDiff{
+					Addr:      addr.Resource,
+					InChange:  &changeApply,
+					Destroy:   true,
+					OutChange: &changeApply,
+				},
+
+				// EvalReduceDiff may have simplified our planned change
+				// into a NoOp if it does not require destroying.
 				&EvalIf{
 					If: func(ctx EvalContext) (bool, error) {
-						if changeApply != nil {
-							if changeApply.Action == plans.Delete || changeApply.Action == plans.Replace {
-								return true, nil
-							}
+						if changeApply == nil || changeApply.Action == plans.NoOp {
+							return true, EvalEarlyExitError{}
 						}
-
-						return true, EvalEarlyExitError{}
+						return true, nil
 					},
 					Then: EvalNoop{},
 				},

@@ -298,6 +298,26 @@ func (n *NodeApplyableResourceInstance) evalTreeManagedResource(addr addrs.AbsRe
 				Output: &state,
 			},
 
+			&EvalReduceDiff{
+				Addr:      addr.Resource,
+				InChange:  &diffApply,
+				Destroy:   false,
+				OutChange: &diffApply,
+			},
+
+			// EvalReduceDiff may have simplified our planned change
+			// into a NoOp if it only requires destroying, since destroying
+			// is handled by NodeDestroyResourceInstance.
+			&EvalIf{
+				If: func(ctx EvalContext) (bool, error) {
+					if diffApply == nil || diffApply.Action == plans.NoOp {
+						return true, EvalEarlyExitError{}
+					}
+					return true, nil
+				},
+				Then: EvalNoop{},
+			},
+
 			// Call pre-apply hook
 			&EvalApplyPre{
 				Addr:   addr.Resource,
