@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/hashicorp/terraform/addrs"
+	"github.com/hashicorp/terraform/configs/configschema"
 	"github.com/hashicorp/terraform/providers"
 )
 
@@ -14,22 +15,20 @@ func TestPlanGraphBuilder_impl(t *testing.T) {
 
 func TestPlanGraphBuilder(t *testing.T) {
 	awsProvider := &MockProvider{
-		GetSchemaResponse: provider.GetSchemaResponse{
-			Provider: providers.Schema{
-				Block: simpleTestSchema(),
-			},
-			ResourceTypes: map[string]providers.Schema{
-				"aws_security_group": {Block: simpleTestSchema()},
-				"aws_instance":       {Block: simpleTestSchema()},
-				"aws_load_balancer":  {Block: simpleTestSchema()},
+		GetSchemaReturn: &ProviderSchema{
+			Provider: simpleTestSchema(),
+			ResourceTypes: map[string]*configschema.Block{
+				"aws_security_group": simpleTestSchema(),
+				"aws_instance":       simpleTestSchema(),
+				"aws_load_balancer":  simpleTestSchema(),
 			},
 		},
 	}
 	openstackProvider := &MockProvider{
-		GetSchemaResponse: providers.GetSchemaResponse{
-			Provider: providers.Schema{Block: simpleTestSchema()},
-			ResourceTypes: map[string]providers.Schema{
-				"openstack_floating_ip": {Block: simpleTestSchema()},
+		GetSchemaReturn: &ProviderSchema{
+			Provider: simpleTestSchema(),
+			ResourceTypes: map[string]*configschema.Block{
+				"openstack_floating_ip": simpleTestSchema(),
 			},
 		},
 	}

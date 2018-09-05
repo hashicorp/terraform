@@ -84,9 +84,11 @@ func TestContext2Refresh_dataComputedModuleVar(t *testing.T) {
 		),
 	})
 
-	p.RefreshFn = nil
-	p.RefreshReturn = &InstanceState{
-		ID: "foo",
+	p.ReadResourceFn = nil
+	p.ReadResourceResponse = providers.ReadResourceResponse{
+		NewState: cty.ObjectVal(map[string]cty.Value{
+			"id": cty.StringVal("foo"),
+		}),
 	}
 
 	p.GetSchemaReturn = &ProviderSchema{
@@ -193,9 +195,11 @@ func TestContext2Refresh_targeted(t *testing.T) {
 	})
 
 	refreshedResources := make([]string, 0, 2)
-	p.RefreshFn = func(i *InstanceInfo, is *InstanceState) (*InstanceState, error) {
-		refreshedResources = append(refreshedResources, i.Id)
-		return is, nil
+	p.ReadResourceFn = func(req providers.ReadResourceRequest) providers.ReadResourceResponse {
+		refreshedResources = append(refreshedResources, req.PriorState.GetAttr("id").AsString())
+		return providers.ReadResourceResponse{
+			NewState: req.PriorState,
+		}
 	}
 
 	_, diags := ctx.Refresh()
@@ -276,9 +280,11 @@ func TestContext2Refresh_targetedCount(t *testing.T) {
 	})
 
 	refreshedResources := make([]string, 0, 2)
-	p.RefreshFn = func(i *InstanceInfo, is *InstanceState) (*InstanceState, error) {
-		refreshedResources = append(refreshedResources, i.Id)
-		return is, nil
+	p.ReadResourceFn = func(req providers.ReadResourceRequest) providers.ReadResourceResponse {
+		refreshedResources = append(refreshedResources, req.PriorState.GetAttr("id").AsString())
+		return providers.ReadResourceResponse{
+			NewState: req.PriorState,
+		}
 	}
 
 	_, diags := ctx.Refresh()
@@ -367,9 +373,11 @@ func TestContext2Refresh_targetedCountIndex(t *testing.T) {
 	})
 
 	refreshedResources := make([]string, 0, 2)
-	p.RefreshFn = func(i *InstanceInfo, is *InstanceState) (*InstanceState, error) {
-		refreshedResources = append(refreshedResources, i.Id)
-		return is, nil
+	p.ReadResourceFn = func(req providers.ReadResourceRequest) providers.ReadResourceResponse {
+		refreshedResources = append(refreshedResources, req.PriorState.GetAttr("id").AsString())
+		return providers.ReadResourceResponse{
+			NewState: req.PriorState,
+		}
 	}
 
 	_, diags := ctx.Refresh()
@@ -447,8 +455,8 @@ func TestContext2Refresh_delete(t *testing.T) {
 		}),
 	})
 
-	p.RefreshFn = nil
-	p.RefreshReturn = nil
+	p.ReadResourceFn = nil
+	p.ReadResourceResponse = providers.ReadResourceResponse{}
 
 	s, diags := ctx.Refresh()
 	if diags.HasErrors() {
@@ -474,16 +482,18 @@ func TestContext2Refresh_ignoreUncreated(t *testing.T) {
 		State: nil,
 	})
 
-	p.RefreshFn = nil
-	p.RefreshReturn = &InstanceState{
-		ID: "foo",
+	p.ReadResourceFn = nil
+	p.ReadResourceResponse = providers.ReadResourceResponse{
+		NewState: cty.ObjectVal(map[string]cty.Value{
+			"id": cty.StringVal("foo"),
+		}),
 	}
 
 	_, diags := ctx.Refresh()
 	if diags.HasErrors() {
 		t.Fatalf("refresh errors: %s", diags.Err())
 	}
-	if p.RefreshCalled {
+	if p.ReadResourceCalled {
 		t.Fatal("refresh should not be called")
 	}
 }
@@ -569,13 +579,22 @@ func TestContext2Refresh_modules(t *testing.T) {
 		State: state,
 	})
 
-	p.RefreshFn = func(info *InstanceInfo, s *InstanceState) (*InstanceState, error) {
-		if s.ID != "baz" {
-			return s, nil
+	p.ReadResourceFn = func(req providers.ReadResourceRequest) providers.ReadResourceResponse {
+		if !req.PriorState.GetAttr("id").RawEquals(cty.StringVal("baz")) {
+			return providers.ReadResourceResponse{
+				NewState: req.PriorState,
+			}
 		}
 
-		s.ID = "new"
-		return s, nil
+		new, _ := cty.Transform(req.PriorState, func(path cty.Path, v cty.Value) (cty.Value, error) {
+			if len(path) == 1 && path[0].(cty.GetAttrStep).Name == "id" {
+				return cty.StringVal("new"), nil
+			}
+			return v, nil
+		})
+		return providers.ReadResourceResponse{
+			NewState: new,
+		}
 	}
 
 	s, diags := ctx.Refresh()
@@ -657,9 +676,11 @@ func TestContext2Refresh_noState(t *testing.T) {
 		),
 	})
 
-	p.RefreshFn = nil
-	p.RefreshReturn = &InstanceState{
-		ID: "foo",
+	p.ReadResourceFn = nil
+	p.ReadResourceResponse = providers.ReadResourceResponse{
+		NewState: cty.ObjectVal(map[string]cty.Value{
+			"id": cty.StringVal("foo"),
+		}),
 	}
 
 	if _, diags := ctx.Refresh(); diags.HasErrors() {
@@ -719,8 +740,10 @@ func TestContext2Refresh_output(t *testing.T) {
 		}),
 	})
 
-	p.RefreshFn = func(info *InstanceInfo, s *InstanceState) (*InstanceState, error) {
-		return s, nil
+	p.ReadResourceFn = func(req providers.ReadResourceRequest) providers.ReadResourceResponse {
+		return providers.ReadResourceResponse{
+			NewState: req.PriorState,
+		}
 	}
 
 	s, diags := ctx.Refresh()
@@ -763,8 +786,8 @@ func TestContext2Refresh_outputPartial(t *testing.T) {
 		}),
 	})
 
-	p.RefreshFn = nil
-	p.RefreshReturn = nil
+	p.ReadResourceFn = nil
+	p.ReadResourceResponse = providers.ReadResourceResponse{}
 
 	p.GetSchemaReturn = &ProviderSchema{
 		Provider: &configschema.Block{},
@@ -1016,8 +1039,11 @@ func TestContext2Refresh_dataStateRefData(t *testing.T) {
 		State: state,
 	})
 
-	p.ReadDataDiffFn = testDataDiffFn
-	p.ReadDataApplyFn = testDataApplyFn
+	p.ReadDataSourceFn = func(req providers.ReadDataSourceRequest) providers.ReadDataSourceResponse {
+		return providers.ReadDataSourceResponse{
+			State: req.Config,
+		}
+	}
 
 	s, diags := ctx.Refresh()
 	if diags.HasErrors() {
@@ -1060,18 +1086,19 @@ func TestContext2Refresh_tainted(t *testing.T) {
 		State: state,
 	})
 
-	p.RefreshFn = nil
-	p.RefreshReturn = &InstanceState{
-		ID:      "foo",
-		Tainted: true,
+	p.ReadResourceFn = nil
+	p.ReadResourceResponse = providers.ReadResourceResponse{
+		NewState: cty.ObjectVal(map[string]cty.Value{
+			"id": cty.StringVal("foo"),
+		}),
 	}
 
 	s, diags := ctx.Refresh()
 	if diags.HasErrors() {
 		t.Fatalf("refresh errors: %s", diags.Err())
 	}
-	if !p.RefreshCalled {
-		t.Fatal("refresh should be called")
+	if !p.ReadResourceCalled {
+		t.Fatal("ReadResource was not called; should have been")
 	}
 
 	actual := strings.TrimSpace(s.String())
@@ -1205,14 +1232,14 @@ func TestContext2Refresh_orphanModule(t *testing.T) {
 	// Create a custom refresh function to track the order they were visited
 	var order []string
 	var orderLock sync.Mutex
-	p.RefreshFn = func(
-		info *InstanceInfo,
-		is *InstanceState) (*InstanceState, error) {
+	p.ReadResourceFn = func(req providers.ReadResourceRequest) providers.ReadResourceResponse {
 		orderLock.Lock()
 		defer orderLock.Unlock()
 
-		order = append(order, is.ID)
-		return is, nil
+		order = append(order, req.PriorState.GetAttr("id").AsString())
+		return providers.ReadResourceResponse{
+			NewState: req.PriorState,
+		}
 	}
 	p.GetSchemaReturn = &ProviderSchema{
 		Provider: &configschema.Block{},
@@ -1360,7 +1387,7 @@ func TestContext2Refresh_noDiffHookOnScaleOut(t *testing.T) {
 	h := new(MockHook)
 	p := testProvider("aws")
 	m := testModule(t, "refresh-resource-scale-inout")
-	p.RefreshFn = nil
+	p.ReadResourceFn = nil
 	p.GetSchemaReturn = &ProviderSchema{
 		Provider: &configschema.Block{},
 		ResourceTypes: map[string]*configschema.Block{

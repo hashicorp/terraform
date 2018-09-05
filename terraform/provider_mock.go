@@ -1,9 +1,11 @@
 package terraform
 
 import (
+	"encoding/json"
 	"fmt"
 	"sync"
 
+	"github.com/hashicorp/terraform/config/hcl2shim"
 	"github.com/hashicorp/terraform/tfdiags"
 
 	"github.com/hashicorp/terraform/providers"
@@ -73,6 +75,9 @@ type MockProvider struct {
 	ImportResourceStateResponse providers.ImportResourceStateResponse
 	ImportResourceStateRequest  providers.ImportResourceStateRequest
 	ImportResourceStateFn       func(providers.ImportResourceStateRequest) providers.ImportResourceStateResponse
+	// Legacy return type for existing tests, which will be shimmed into an
+	// ImportResourceStateResponse if set
+	ImportStateReturn []*InstanceState
 
 	ReadDataSourceCalled   bool
 	ReadDataSourceResponse providers.ReadDataSourceResponse
@@ -258,6 +263,29 @@ func (p *MockProvider) ApplyResourceChange(r providers.ApplyResourceChangeReques
 func (p *MockProvider) ImportResourceState(r providers.ImportResourceStateRequest) providers.ImportResourceStateResponse {
 	p.Lock()
 	defer p.Unlock()
+
+	if p.ImportStateReturn != nil {
+		for _, is := range p.ImportStateReturn {
+			is.Attributes["id"] = is.ID
+			schema := p.GetSchemaReturn.ResourceTypes[r.TypeName]
+			private, err := json.Marshal(is.Meta)
+			if err != nil {
+				panic(err)
+			}
+
+			state, err := hcl2shim.HCL2ValueFromFlatmap(is.Attributes, schema.ImpliedType())
+			if err != nil {
+				panic(err)
+			}
+			p.ImportResourceStateResponse.ImportedResources = append(
+				p.ImportResourceStateResponse.ImportedResources,
+				providers.ImportedResource{
+					TypeName: r.TypeName,
+					State:    state,
+					Private:  private,
+				})
+		}
+	}
 
 	p.ImportResourceStateCalled = true
 	p.ImportResourceStateRequest = r

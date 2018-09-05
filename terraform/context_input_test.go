@@ -1,7 +1,6 @@
 package terraform
 
 import (
-	"errors"
 	"reflect"
 	"strings"
 	"sync"
@@ -254,8 +253,8 @@ func TestContext2Input_providerOnce(t *testing.T) {
 		),
 	})
 
-	count := 0
-	p.InputFn = func(i UIInput, c *ResourceConfig) (*ResourceConfig, error) {
+	//count := 0
+	/*p.InputFn = func(i UIInput, c *ResourceConfig) (*ResourceConfig, error) {
 		count++
 		_, set := c.Config["from_input"]
 
@@ -271,7 +270,7 @@ func TestContext2Input_providerOnce(t *testing.T) {
 		}
 
 		return c, nil
-	}
+	}*/
 
 	if diags := ctx.Input(InputModeStd); diags.HasErrors() {
 		t.Fatalf("input errors: %s", diags.Err())
@@ -444,10 +443,10 @@ func TestContext2Input_providerVars(t *testing.T) {
 	}
 
 	var actual interface{}
-	p.InputFn = func(i UIInput, c *ResourceConfig) (*ResourceConfig, error) {
+	/*p.InputFn = func(i UIInput, c *ResourceConfig) (*ResourceConfig, error) {
 		c.Config["bar"] = "baz"
 		return c, nil
-	}
+	}*/
 	p.ConfigureFn = func(c *ResourceConfig) error {
 		actual, _ = c.Get("foo")
 		return nil
@@ -486,12 +485,12 @@ func TestContext2Input_providerVarsModuleInherit(t *testing.T) {
 		UIInput: input,
 	})
 
-	p.InputFn = func(i UIInput, c *ResourceConfig) (*ResourceConfig, error) {
+	/*p.InputFn = func(i UIInput, c *ResourceConfig) (*ResourceConfig, error) {
 		if errs := c.CheckSet([]string{"access_key"}); len(errs) > 0 {
 			return c, errs[0]
 		}
 		return c, nil
-	}
+	}*/
 	p.ConfigureFn = func(c *ResourceConfig) error {
 		return nil
 	}
@@ -528,10 +527,10 @@ func TestContext2Input_varOnly(t *testing.T) {
 	}
 
 	var actual interface{}
-	p.InputFn = func(i UIInput, c *ResourceConfig) (*ResourceConfig, error) {
+	/*p.InputFn = func(i UIInput, c *ResourceConfig) (*ResourceConfig, error) {
 		c.Raw["foo"] = "bar"
 		return c, nil
-	}
+	}*/
 	p.ConfigureFn = func(c *ResourceConfig) error {
 		actual = c.Raw["foo"]
 		return nil
@@ -814,9 +813,9 @@ func TestContext2Input_submoduleTriggersInvalidCount(t *testing.T) {
 		UIInput: input,
 	})
 
-	p.InputFn = func(i UIInput, c *ResourceConfig) (*ResourceConfig, error) {
+	/*p.InputFn = func(i UIInput, c *ResourceConfig) (*ResourceConfig, error) {
 		return c, nil
-	}
+	}*/
 	p.ConfigureFn = func(c *ResourceConfig) error {
 		return nil
 	}
@@ -842,7 +841,11 @@ func TestContext2Input_dataSourceRequiresRefresh(t *testing.T) {
 			},
 		},
 	}
-	p.ReadDataDiffFn = testDataDiffFn
+	p.ReadDataSourceFn = func(req providers.ReadDataSourceRequest) providers.ReadDataSourceResponse {
+		return providers.ReadDataSourceResponse{
+			State: req.Config,
+		}
+	}
 
 	state := states.BuildState(func(s *states.SyncState) {
 		s.SetResourceInstanceCurrent(

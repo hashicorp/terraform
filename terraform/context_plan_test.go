@@ -17,6 +17,7 @@ import (
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs/configschema"
 	"github.com/hashicorp/terraform/providers"
+	"github.com/hashicorp/terraform/tfdiags"
 )
 
 func TestContext2Plan_basic(t *testing.T) {
@@ -1457,18 +1458,17 @@ func TestContext2Plan_dataSourceTypeMismatch(t *testing.T) {
 			},
 		},
 	}
-	p.ValidateResourceFn = func(t string, c *ResourceConfig) (ws []string, es []error) {
-		// Emulate the type checking behavior of helper/schema based validation
-		if t == "aws_instance" {
-			ami, _ := c.Get("ami")
-			switch a := ami.(type) {
-			case string:
-				// ok
-			default:
-				es = append(es, fmt.Errorf("Expected ami to be string, got %T", a))
+	p.ValidateResourceTypeConfigFn = func (req providers.ValidateResourceTypeConfigRequest) providers.ValidateResourceTypeConfigResponse {
+		var diags tfdiags.Diagnostics
+		if req.TypeName == "aws_instance" {
+			amiVal := req.Config.GetAttr("ami")
+			if amiVal.Type() != cty.String {
+				diags = diags.Append(fmt.Errorf("Expected ami to be cty.String, got %#v", amiVal))
 			}
 		}
-		return
+		return providers.ValidateResourceTypeConfigResponse{
+			Diagnostics: diags,
+		}
 	}
 	p.DiffFn = func(
 		info *InstanceInfo,
@@ -3891,8 +3891,10 @@ func TestContext2Plan_resourceNestedCount(t *testing.T) {
 	m := testModule(t, "nested-resource-count-plan")
 	p := testProvider("aws")
 	p.DiffFn = testDiffFn
-	p.RefreshFn = func(i *InstanceInfo, is *InstanceState) (*InstanceState, error) {
-		return is, nil
+	p.ReadResourceFn = func(req providers.ReadResourceRequest) providers.ReadResourceResponse {
+		return providers.ReadResourceResponse{
+			NewState: req.PriorState,
+		}
 	}
 	s := mustShimLegacyState(&State{
 		Modules: []*ModuleState{
@@ -4041,18 +4043,17 @@ func TestContext2Plan_computedAttrRefTypeMismatch(t *testing.T) {
 	m := testModule(t, "plan-computed-attr-ref-type-mismatch")
 	p := testProvider("aws")
 	p.DiffFn = testDiffFn
-	p.ValidateResourceFn = func(t string, c *ResourceConfig) (ws []string, es []error) {
-		// Emulate the type checking behavior of helper/schema based validation
-		if t == "aws_instance" {
-			ami, _ := c.Get("ami")
-			switch a := ami.(type) {
-			case string:
-				// ok
-			default:
-				es = append(es, fmt.Errorf("Expected ami to be string, got %T", a))
+	p.ValidateResourceTypeConfigFn = func (req providers.ValidateResourceTypeConfigRequest) providers.ValidateResourceTypeConfigResponse {
+		var diags tfdiags.Diagnostics
+		if req.TypeName == "aws_instance" {
+			amiVal := req.Config.GetAttr("ami")
+			if amiVal.Type() != cty.String {
+				diags = diags.Append(fmt.Errorf("Expected ami to be cty.String, got %#v", amiVal))
 			}
 		}
-		return
+		return providers.ValidateResourceTypeConfigResponse{
+			Diagnostics: diags,
+		}
 	}
 	p.DiffFn = func(
 		info *InstanceInfo,
