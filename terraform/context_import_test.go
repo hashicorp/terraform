@@ -431,11 +431,12 @@ func TestContextImport_refresh(t *testing.T) {
 		},
 	}
 
-	p.RefreshFn = func(info *InstanceInfo, s *InstanceState) (*InstanceState, error) {
-		return &InstanceState{
-			ID:         "foo",
-			Attributes: map[string]string{"foo": "bar"},
-		}, nil
+	p.ReadResourceFn = nil
+	p.ReadResourceResponse = providers.ReadResourceResponse{
+		NewState: cty.ObjectVal(map[string]cty.Value{
+			"id":  cty.StringVal("foo"),
+			"foo": cty.StringVal("bar"),
+		}),
 	}
 
 	state, diags := ctx.Import(&ImportOpts{
@@ -479,8 +480,10 @@ func TestContextImport_refreshNil(t *testing.T) {
 		},
 	}
 
-	p.RefreshFn = func(info *InstanceInfo, s *InstanceState) (*InstanceState, error) {
-		return nil, nil
+	p.ReadResourceFn = func(req providers.ReadResourceRequest) providers.ReadResourceResponse {
+		return providers.ReadResourceResponse{
+			NewState: cty.NullVal(cty.DynamicPseudoType),
+		}
 	}
 
 	state, diags := ctx.Import(&ImportOpts{

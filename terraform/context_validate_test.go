@@ -1,17 +1,19 @@
 package terraform
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 	"testing"
-
-	"github.com/hashicorp/terraform/providers"
-	"github.com/hashicorp/terraform/states"
 
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs/configschema"
+	"github.com/hashicorp/terraform/providers"
+	"github.com/hashicorp/terraform/provisioners"
+	"github.com/hashicorp/terraform/states"
+	"github.com/hashicorp/terraform/tfdiags"
 )
 
 func TestContext2Validate_badCount(t *testing.T) {
@@ -367,7 +369,9 @@ func TestContext2Validate_moduleBadResource(t *testing.T) {
 		),
 	})
 
-	p.ValidateResourceReturnErrors = []error{fmt.Errorf("bad")}
+	p.ValidateResourceTypeConfigResponse = providers.ValidateResourceTypeConfigResponse{
+		Diagnostics: tfdiags.Diagnostics{}.Append(fmt.Errorf("bad")),
+	}
 
 	diags := c.Validate()
 	if !diags.HasErrors() {
@@ -580,9 +584,14 @@ func TestContext2Validate_orphans(t *testing.T) {
 		State: state,
 	})
 
-	p.ValidateResourceFn = func(
-		t string, c *ResourceConfig) ([]string, []error) {
-		return nil, c.CheckSet([]string{"foo"})
+	p.ValidateResourceTypeConfigFn = func(req providers.ValidateResourceTypeConfigRequest) providers.ValidateResourceTypeConfigResponse {
+		var diags tfdiags.Diagnostics
+		if req.Config.GetAttr("foo").IsNull() {
+			diags.Append(errors.New("foo is not set"))
+		}
+		return providers.ValidateResourceTypeConfigResponse{
+			Diagnostics: diags,
+		}
 	}
 
 	diags := c.Validate()
@@ -616,7 +625,9 @@ func TestContext2Validate_providerConfig_bad(t *testing.T) {
 		),
 	})
 
-	p.ValidateReturnErrors = []error{fmt.Errorf("bad")}
+	p.ValidateProviderConfigResponse = providers.ValidateProviderConfigResponse{
+		Diagnostics: tfdiags.Diagnostics{}.Append(fmt.Errorf("bad")),
+	}
 
 	diags := c.Validate()
 	if len(diags) != 1 {
@@ -652,7 +663,9 @@ func TestContext2Validate_providerConfig_badEmpty(t *testing.T) {
 		),
 	})
 
-	p.ValidateReturnErrors = []error{fmt.Errorf("bad")}
+	p.ValidateProviderConfigResponse = providers.ValidateProviderConfigResponse{
+		Diagnostics: tfdiags.Diagnostics{}.Append(fmt.Errorf("bad")),
+	}
 
 	diags := c.Validate()
 	if !diags.HasErrors() {
@@ -718,7 +731,9 @@ func TestContext2Validate_provisionerConfig_bad(t *testing.T) {
 		},
 	})
 
-	pr.ValidateReturnErrors = []error{fmt.Errorf("bad")}
+	p.ValidateProviderConfigResponse = providers.ValidateProviderConfigResponse{
+		Diagnostics: tfdiags.Diagnostics{}.Append(fmt.Errorf("bad")),
+	}
 
 	diags := c.Validate()
 	if !diags.HasErrors() {
@@ -745,11 +760,14 @@ func TestContext2Validate_provisionerConfig_good(t *testing.T) {
 	}
 
 	pr := simpleMockProvisioner()
-	pr.ValidateFn = func(c *ResourceConfig) ([]string, []error) {
-		if c == nil {
-			t.Fatalf("missing resource config for provisioner")
+	pr.ValidateProvisionerConfigFn = func(req provisioners.ValidateProvisionerConfigRequest) provisioners.ValidateProvisionerConfigResponse {
+		var diags tfdiags.Diagnostics
+		if req.Config.GetAttr("test_string").IsNull() {
+			diags.Append(errors.New("test_string is not set"))
 		}
-		return nil, c.CheckSet([]string{"test_string"})
+		return provisioners.ValidateProvisionerConfigResponse{
+			Diagnostics: diags,
+		}
 	}
 
 	c := testContext2(t, &ContextOpts{
@@ -820,7 +838,9 @@ func TestContext2Validate_resourceConfig_bad(t *testing.T) {
 		),
 	})
 
-	p.ValidateResourceReturnErrors = []error{fmt.Errorf("bad")}
+	p.ValidateResourceTypeConfigResponse = providers.ValidateResourceTypeConfigResponse{
+		Diagnostics: tfdiags.Diagnostics{}.Append(fmt.Errorf("bad")),
+	}
 
 	diags := c.Validate()
 	if !diags.HasErrors() {
@@ -896,9 +916,14 @@ func TestContext2Validate_tainted(t *testing.T) {
 		State: state,
 	})
 
-	p.ValidateResourceFn = func(
-		t string, c *ResourceConfig) ([]string, []error) {
-		return nil, c.CheckSet([]string{"foo"})
+	p.ValidateResourceTypeConfigFn = func(req providers.ValidateResourceTypeConfigRequest) providers.ValidateResourceTypeConfigResponse {
+		var diags tfdiags.Diagnostics
+		if req.Config.GetAttr("foo").IsNull() {
+			diags.Append(errors.New("foo is not set"))
+		}
+		return providers.ValidateResourceTypeConfigResponse{
+			Diagnostics: diags,
+		}
 	}
 
 	diags := c.Validate()
@@ -986,14 +1011,14 @@ func TestContext2Validate_varRefFilled(t *testing.T) {
 		},
 	})
 
-	var value interface{}
-	p.ValidateResourceFn = func(t string, c *ResourceConfig) ([]string, []error) {
-		value, _ = c.Get("foo")
-		return nil, nil
+	var value cty.Value
+	p.ValidateResourceTypeConfigFn = func(req providers.ValidateResourceTypeConfigRequest) providers.ValidateResourceTypeConfigResponse {
+		value = req.Config.GetAttr("foo")
+		return providers.ValidateResourceTypeConfigResponse{}
 	}
 
 	c.Validate()
-	if value != "bar" {
+	if !value.RawEquals(cty.StringVal("bar")) {
 		t.Fatalf("bad: %#v", value)
 	}
 }
