@@ -8,15 +8,14 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/hashicorp/terraform/addrs"
-
-	"github.com/hashicorp/terraform/configs/configschema"
-	"github.com/hashicorp/terraform/config/hcl2shim"
-
-	"github.com/hashicorp/terraform/config"
 	"github.com/mitchellh/copystructure"
 	"github.com/mitchellh/reflectwalk"
 	"github.com/zclconf/go-cty/cty"
+
+	"github.com/hashicorp/terraform/addrs"
+	"github.com/hashicorp/terraform/config"
+	"github.com/hashicorp/terraform/config/hcl2shim"
+	"github.com/hashicorp/terraform/configs/configschema"
 )
 
 // ResourceProvisionerConfig is used to pair a provisioner
@@ -247,15 +246,19 @@ func NewResourceConfigShimmed(val cty.Value, schema *configschema.Block) *Resour
 	ret := &ResourceConfig{}
 
 	legacyVal := hcl2shim.ConfigValueFromHCL2(val)
-	ret.Config = legacyVal.(map[string]interface{}) // guaranteed compatible because we require an object type
-	ret.Raw = ret.Config
+	if legacyVal != nil {
+		ret.Config = legacyVal.(map[string]interface{}) // guaranteed compatible because we require an object type
 
-	// Now we need to walk through our structure and find any unknown values,
-	// producing the separate list ComputedKeys to represent these. We use the
-	// schema here so that we can preserve the expected invariant
-	// that an attribute is always either wholly known or wholly unknown, while
-	// a child block can be partially unknown.
-	ret.ComputedKeys = newResourceConfigShimmedComputedKeys(val, schema, "")
+		// Now we need to walk through our structure and find any unknown values,
+		// producing the separate list ComputedKeys to represent these. We use the
+		// schema here so that we can preserve the expected invariant
+		// that an attribute is always either wholly known or wholly unknown, while
+		// a child block can be partially unknown.
+		ret.ComputedKeys = newResourceConfigShimmedComputedKeys(val, schema, "")
+	} else {
+		ret.Config = make(map[string]interface{})
+	}
+	ret.Raw = ret.Config
 
 	return ret
 }
