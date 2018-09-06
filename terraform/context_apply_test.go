@@ -102,8 +102,9 @@ func TestContext2Apply_unstable(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	randomVal := rd.After.GetAttr("random").AsString()
-	t.Logf("plan-time value is %q", randomVal)
+	if rd.After.GetAttr("random").IsKnown() {
+		t.Fatalf("Attribute 'random' has known value %#v; should be unknown in plan", rd.After.GetAttr("random"))
+	}
 
 	state, diags := ctx.Apply()
 	if diags.HasErrors() {
@@ -118,12 +119,12 @@ func TestContext2Apply_unstable(t *testing.T) {
 	}
 
 	rs, err := rss.Current.Decode(schema.ImpliedType())
-	if got, want := rs.Value.GetAttr("random").AsString(), randomVal; got != want {
-		// FIXME: We actually currently have a bug where we re-interpolate
-		// the config during apply and end up with a random result, so this
-		// check fails. This check _should not_ fail, so we should fix this
-		// up in a later release.
-		//t.Errorf("wrong random value %q; want %q", got, want)
+	got := rs.Value.GetAttr("random")
+	if !got.IsKnown() {
+		t.Fatalf("random is still unknown after apply")
+	}
+	if got, want := len(got.AsString()), 1; got != want {
+		t.Fatalf("random string has wrong length %d; want %d", got, want)
 	}
 }
 
