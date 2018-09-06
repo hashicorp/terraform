@@ -5,10 +5,11 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/hashicorp/terraform/config/hcl2shim"
-	"github.com/hashicorp/terraform/tfdiags"
+	"github.com/zclconf/go-cty/cty"
 
+	"github.com/hashicorp/terraform/config/hcl2shim"
 	"github.com/hashicorp/terraform/providers"
+	"github.com/hashicorp/terraform/tfdiags"
 )
 
 var _ providers.Interface = (*MockProvider)(nil)
@@ -231,9 +232,46 @@ func (p *MockProvider) PlanResourceChange(r providers.PlanResourceChangeRequest)
 	p.PlanResourceChangeRequest = r
 
 	if p.DiffFn != nil {
-		return providers.PlanResourceChangeResponse{
-			Diagnostics: tfdiags.Diagnostics(nil).Append(fmt.Errorf("legacy DiffFn handling in MockProvider not actually implemented yet")),
+		ps := p.GetSchema()
+		if ps.ResourceTypes == nil || ps.ResourceTypes[r.TypeName].Block == nil {
+			return providers.PlanResourceChangeResponse{
+				Diagnostics: tfdiags.Diagnostics(nil).Append(fmt.Printf("mock provider has no schema for resource type %s", r.TypeName)),
+			}
 		}
+		schema := ps.ResourceTypes[r.TypeName].Block
+		info := &InstanceInfo{
+			Type: r.TypeName,
+		}
+		priorState := NewInstanceStateShimmedFromValue(r.PriorState, 0)
+		cfg := NewResourceConfigShimmed(r.Config, schema)
+		legacyDiff, err := p.DiffFn(info, priorState, cfg)
+
+		var res providers.PlanResourceChangeResponse
+		res.PlannedState = cty.NullVal(schema.ImpliedType()) // mimic how an absent value would arrive over the GRPC channel
+		if err != nil {
+			res.Diagnostics = res.Diagnostics.Append(err)
+		}
+		if legacyDiff != nil {
+			newVal, err := legacyDiff.ApplyToValue(r.PriorState, schema)
+			if err != nil {
+				res.Diagnostics = res.Diagnostics.Append(err)
+			}
+			res.PlannedState = newVal
+
+			var requiresNew []string
+			for attr, d := range legacyDiff.Attributes {
+				if d.RequiresNew {
+					requiresNew = append(requiresNew, attr)
+				}
+			}
+			requiresReplace, err := hcl2shim.RequiresReplace(requiresNew, schema.ImpliedType())
+			if err != nil {
+				res.Diagnostics = res.Diagnostics.Append(err)
+			}
+			res.RequiresReplace = requiresReplace
+		}
+		return res
+
 	}
 	if p.PlanResourceChangeFn != nil {
 		return p.PlanResourceChangeFn(r)
