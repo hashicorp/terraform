@@ -8,6 +8,7 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -64,15 +65,32 @@ func (b *Remote) opPlan(stopCtx, cancelCtx context.Context, op *backend.Operatio
 
 	var configDir string
 	if op.Module != nil && op.Module.Config().Dir != "" {
-		configDir = op.Module.Config().Dir
+		// Make sure to take the working directory into account by removing
+		// the working directory from the current path. This will result in
+		// a path that points to the expected root of the workspace.
+		configDir = filepath.Clean(strings.TrimSuffix(
+			filepath.Clean(op.Module.Config().Dir),
+			filepath.Clean(w.WorkingDirectory),
+		))
 	} else {
+		// We did a check earlier to make sure we either have a config dir,
+		// or the plan is run with -destroy. So this else clause will only
+		// be executed when we are destroying and doesn't need the config.
 		configDir, err = ioutil.TempDir("", "tf")
 		if err != nil {
 			runningOp.Err = fmt.Errorf(strings.TrimSpace(fmt.Sprintf(
-				generalErr, "error creating temp directory", err)))
+				generalErr, "error creating temporary directory", err)))
 			return
 		}
 		defer os.RemoveAll(configDir)
+
+		// Make sure the configured working directory exists.
+		err = os.MkdirAll(filepath.Join(configDir, w.WorkingDirectory), 0700)
+		if err != nil {
+			runningOp.Err = fmt.Errorf(strings.TrimSpace(fmt.Sprintf(
+				generalErr, "error creating temporary working directory", err)))
+			return
+		}
 	}
 
 	err = b.client.ConfigurationVersions.Upload(stopCtx, cv.UploadURL, configDir)
