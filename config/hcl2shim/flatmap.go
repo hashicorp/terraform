@@ -37,7 +37,7 @@ func FlatmapValueFromHCL2(v cty.Value) map[string]string {
 func flatmapValueFromHCL2Value(m map[string]string, key string, val cty.Value) {
 	ty := val.Type()
 	switch {
-	case ty.IsPrimitiveType():
+	case ty.IsPrimitiveType() || ty == cty.DynamicPseudoType:
 		flatmapValueFromHCL2Primitive(m, key, val)
 	case ty.IsObjectType() || ty.IsMapType():
 		flatmapValueFromHCL2Map(m, key+".", val)
