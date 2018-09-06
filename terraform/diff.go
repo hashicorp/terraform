@@ -11,6 +11,10 @@ import (
 	"sync"
 
 	"github.com/hashicorp/terraform/addrs"
+	"github.com/hashicorp/terraform/config"
+	"github.com/hashicorp/terraform/config/hcl2shim"
+	"github.com/hashicorp/terraform/configs/configschema"
+	"github.com/zclconf/go-cty/cty"
 
 	"github.com/mitchellh/copystructure"
 )
@@ -403,6 +407,66 @@ type InstanceDiff struct {
 
 func (d *InstanceDiff) Lock()   { d.mu.Lock() }
 func (d *InstanceDiff) Unlock() { d.mu.Unlock() }
+
+// ApplyToValue merges the receiver into the given base value, returning a
+// new value that incorporates the planned changes. The given value must
+// conform to the given schema, or this method will panic.
+//
+// This method is intended for shimming old subsystems that still use this
+// legacy diff type to work with the new-style types.
+func (d *InstanceDiff) ApplyToValue(base cty.Value, schema *configschema.Block) (cty.Value, error) {
+	// No diff means the state is unchanged.
+	if d.Empty() {
+		return base, nil
+	}
+
+	// Create an InstanceState attributes from our existing state.
+	// We can use this to more easily apply the diff changes.
+	attrs := hcl2shim.FlatmapValueFromHCL2(base)
+	if attrs == nil {
+		attrs = map[string]string{}
+	}
+
+	if d.Destroy || d.DestroyDeposed || d.DestroyTainted {
+		// to mark a destroy, we remove all attributes
+		attrs = map[string]string{}
+	} else if attrs["id"] == "" || d.RequiresNew() {
+		// Since "id" is always computed, make sure it always has a value. Set
+		// it as unknown to generate the correct cty.Value
+		attrs["id"] = config.UnknownVariableValue
+	}
+
+	for attr, diff := range d.Attributes {
+		old, exists := attrs[attr]
+
+		if exists &&
+			old != diff.Old &&
+			// if new or old is unknown, then there's no mismatch
+			old != config.UnknownVariableValue &&
+			diff.Old != config.UnknownVariableValue {
+			return base, fmt.Errorf("mismatched diff: %q != %q", old, diff.Old)
+		}
+
+		if diff.NewComputed {
+			attrs[attr] = config.UnknownVariableValue
+			continue
+		}
+
+		if diff.NewRemoved {
+			delete(attrs, attr)
+			continue
+		}
+
+		attrs[attr] = diff.New
+	}
+
+	val, err := hcl2shim.HCL2ValueFromFlatmap(attrs, schema.ImpliedType())
+	if err != nil {
+		return val, err
+	}
+
+	return schema.CoerceValue(val)
+}
 
 // ResourceAttrDiff is the diff of a single attribute of a resource.
 type ResourceAttrDiff struct {
