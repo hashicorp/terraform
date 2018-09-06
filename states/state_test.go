@@ -115,3 +115,18 @@ func TestState(t *testing.T) {
 		t.Error(problem)
 	}
 }
+
+func TestEmptyState(t *testing.T) {
+	// An empty state should decode into a null value
+	var src ResourceInstanceObjectSrc
+	ty := cty.Object(map[string]cty.Type{"id": cty.String})
+
+	obj, err := src.Decode(ty)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if !obj.Value.IsNull() {
+		t.Fatalf("object value should be null, got %#v\n", obj.Value)
+	}
+}
