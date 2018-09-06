@@ -164,6 +164,13 @@ func (n *EvalDiff) Eval(ctx EvalContext) (interface{}, error) {
 	plannedNewVal := resp.PlannedState
 	plannedPrivate := resp.PlannedPrivate
 
+	if plannedNewVal == cty.NilVal {
+		// Should never happen. Since real-world providers return via RPC a nil
+		// is always a bug in the client-side stub. This is more likely caused
+		// by an incompletely-configured mock provider in tests, though.
+		panic(fmt.Sprintf("PlanResourceChange of %s produced nil value", absAddr.String()))
+	}
+
 	// We allow the planned new value to disagree with configuration _values_
 	// here, since that allows the provider to do special logic like a
 	// DiffSuppressFunc, but we still require that the provider produces
