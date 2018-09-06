@@ -2,9 +2,7 @@ package schema
 
 import (
 	"encoding/json"
-	"fmt"
 
-	"github.com/hashicorp/terraform/config"
 	"github.com/hashicorp/terraform/config/hcl2shim"
 	"github.com/hashicorp/terraform/configs/configschema"
 	"github.com/hashicorp/terraform/terraform"
@@ -40,57 +38,7 @@ func diffFromValues(prior, planned cty.Value, res *Resource, cust CustomizeDiffF
 // the legacy provider Diff method to the state required for the new
 // PlanResourceChange method.
 func ApplyDiff(state cty.Value, d *terraform.InstanceDiff, schemaBlock *configschema.Block) (cty.Value, error) {
-	// No diff means the state is unchanged.
-	if d.Empty() {
-		return state, nil
-	}
-
-	// Create an InstanceState attributes from our existing state.
-	// We can use this to more easily apply the diff changes.
-	attrs := hcl2shim.FlatmapValueFromHCL2(state)
-	if attrs == nil {
-		attrs = map[string]string{}
-	}
-
-	if d.Destroy || d.DestroyDeposed || d.DestroyTainted {
-		// to mark a destroy, we remove all attributes
-		attrs = map[string]string{}
-	} else if attrs["id"] == "" || d.RequiresNew() {
-		// Since "id" is always computed, make sure it always has a value. Set
-		// it as unknown to generate the correct cty.Value
-		attrs["id"] = config.UnknownVariableValue
-	}
-
-	for attr, diff := range d.Attributes {
-		old, exists := attrs[attr]
-
-		if exists &&
-			old != diff.Old &&
-			// if new or old is unknown, then there's no mismatch
-			old != config.UnknownVariableValue &&
-			diff.Old != config.UnknownVariableValue {
-			return state, fmt.Errorf("mismatched diff: %q != %q", old, diff.Old)
-		}
-
-		if diff.NewComputed {
-			attrs[attr] = config.UnknownVariableValue
-			continue
-		}
-
-		if diff.NewRemoved {
-			delete(attrs, attr)
-			continue
-		}
-
-		attrs[attr] = diff.New
-	}
-
-	val, err := hcl2shim.HCL2ValueFromFlatmap(attrs, schemaBlock.ImpliedType())
-	if err != nil {
-		return val, err
-	}
-
-	return schemaBlock.CoerceValue(val)
+	return d.ApplyToValue(state, schemaBlock)
 }
 
 // StateValueToJSONMap converts a cty.Value to generic JSON map via the cty JSON
@@ -155,12 +103,5 @@ func StateValueFromInstanceState(is *terraform.InstanceState, ty cty.Type) (cty.
 // the provider, because the legacy providers used the private Meta data in the
 // InstanceState to store the schema version.
 func InstanceStateFromStateValue(state cty.Value, schemaVersion int) *terraform.InstanceState {
-	attrs := hcl2shim.FlatmapValueFromHCL2(state)
-	return &terraform.InstanceState{
-		ID:         attrs["id"],
-		Attributes: attrs,
-		Meta: map[string]interface{}{
-			"schema_version": schemaVersion,
-		},
-	}
+	return terraform.NewInstanceStateShimmedFromValue(state, schemaVersion)
 }
