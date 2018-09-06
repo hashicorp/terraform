@@ -76,6 +76,13 @@ func (n *EvalApply) Eval(ctx EvalContext) (interface{}, error) {
 	// incomplete.
 	newVal := resp.NewState
 
+	// newVal should never be cty.NilVal in a real case, but it can happen
+	// sometimes in sloppy mocks in tests where error diagnostics are returned
+	// and the mock implementation doesn't populate the value at all.
+	if newVal == cty.NilVal {
+		newVal = cty.NullVal(schema.ImpliedType())
+	}
+
 	for _, err := range newVal.Type().TestConformance(schema.ImpliedType()) {
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
