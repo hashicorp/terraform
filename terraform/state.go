@@ -17,22 +17,23 @@ import (
 	"sync"
 
 	"github.com/hashicorp/errwrap"
-	"github.com/hashicorp/terraform/plans"
-
 	"github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/go-uuid"
 	"github.com/hashicorp/go-version"
 	"github.com/hashicorp/hcl2/hcl"
 	"github.com/hashicorp/hcl2/hcl/hclsyntax"
-	"github.com/hashicorp/terraform/addrs"
-	"github.com/hashicorp/terraform/config"
-	"github.com/hashicorp/terraform/configs"
-	"github.com/hashicorp/terraform/configs/configschema"
-	"github.com/hashicorp/terraform/tfdiags"
-	tfversion "github.com/hashicorp/terraform/version"
 	"github.com/mitchellh/copystructure"
 	"github.com/zclconf/go-cty/cty"
 	ctyjson "github.com/zclconf/go-cty/cty/json"
+
+	"github.com/hashicorp/terraform/addrs"
+	"github.com/hashicorp/terraform/config"
+	"github.com/hashicorp/terraform/config/hcl2shim"
+	"github.com/hashicorp/terraform/configs"
+	"github.com/hashicorp/terraform/configs/configschema"
+	"github.com/hashicorp/terraform/plans"
+	"github.com/hashicorp/terraform/tfdiags"
+	tfversion "github.com/hashicorp/terraform/version"
 )
 
 const (
@@ -1656,6 +1657,22 @@ func (s *InstanceState) init() {
 		s.Meta = make(map[string]interface{})
 	}
 	s.Ephemeral.init()
+}
+
+// NewInstanceStateShimmedFromValue is a shim method to lower a new-style
+// object value representing the attributes of an instance object into the
+// legacy InstanceState representation.
+//
+// This is for shimming to old components only and should not be used in new code.
+func NewInstanceStateShimmedFromValue(state cty.Value, schemaVersion int) *InstanceState {
+	attrs := hcl2shim.FlatmapValueFromHCL2(state)
+	return &InstanceState{
+		ID:         attrs["id"],
+		Attributes: attrs,
+		Meta: map[string]interface{}{
+			"schema_version": schemaVersion,
+		},
+	}
 }
 
 // Copy all the Fields from another InstanceState
