@@ -789,6 +789,11 @@ func TestContext2Refresh_outputPartial(t *testing.T) {
 	p.ReadResourceFn = nil
 	p.ReadResourceResponse = providers.ReadResourceResponse{}
 
+	// Refresh creates a partial plan for any instances that don't have
+	// remote objects yet, to get stub values for interpolation. Therefore
+	// we need to make DiffFn available to let that complete.
+	p.DiffFn = testDiffFn
+
 	p.GetSchemaReturn = &ProviderSchema{
 		Provider: &configschema.Block{},
 		ResourceTypes: map[string]*configschema.Block{
@@ -1394,6 +1399,11 @@ func TestContext2Refresh_noDiffHookOnScaleOut(t *testing.T) {
 			"aws_instance": {},
 		},
 	}
+
+	// Refresh creates a partial plan for any instances that don't have
+	// remote objects yet, to get stub values for interpolation. Therefore
+	// we need to make DiffFn available to let that complete.
+	p.DiffFn = testDiffFn
 
 	state := mustShimLegacyState(&State{
 		Modules: []*ModuleState{
