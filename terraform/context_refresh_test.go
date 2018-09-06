@@ -8,68 +8,84 @@ import (
 	"sync"
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/addrs"
+	"github.com/hashicorp/terraform/config/hcl2shim"
 	"github.com/hashicorp/terraform/configs/configschema"
 	"github.com/hashicorp/terraform/providers"
 )
 
 func TestContext2Refresh(t *testing.T) {
-	t.Fatalf("not yet updated for new provider interface")
-	/*
-		p := testProvider("aws")
-		m := testModule(t, "refresh-basic")
-		ctx := testContext2(t, &ContextOpts{
-			Config: m,
-			ProviderResolver: providers.ResolverFixed(
-				map[string]providers.Factory{
-					"aws": testProviderFuncFixed(p),
-				},
-			),
-			State: mustShimLegacyState(&State{
-				Modules: []*ModuleState{
-					&ModuleState{
-						Path: rootModulePath,
-						Resources: map[string]*ResourceState{
-							"aws_instance.web": &ResourceState{
-								Type: "aws_instance",
-								Primary: &InstanceState{
-									ID: "foo",
-								},
+	p := testProvider("aws")
+	m := testModule(t, "refresh-basic")
+
+	startingState := mustShimLegacyState(&State{
+		Modules: []*ModuleState{
+			&ModuleState{
+				Path: rootModulePath,
+				Resources: map[string]*ResourceState{
+					"aws_instance.web": &ResourceState{
+						Type: "aws_instance",
+						Primary: &InstanceState{
+							ID: "foo",
+							Attributes: map[string]string{
+								"id":  "foo",
+								"foo": "bar",
 							},
 						},
 					},
 				},
-			}),
-		})
+			},
+		},
+	})
 
-		p.RefreshFn = nil
-		p.RefreshReturn = &InstanceState{
-			ID: "foo",
-		}
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		ProviderResolver: providers.ResolverFixed(
+			map[string]providers.Factory{
+				"aws": testProviderFuncFixed(p),
+			},
+		),
+		State: startingState,
+	})
 
-		s, err := ctx.Refresh()
-		mod := s.RootModule()
-		if err != nil {
-			t.Fatalf("err: %s", err)
-		}
-		if !p.RefreshCalled {
-			t.Fatal("refresh should be called")
-		}
-		if p.RefreshState.ID != "foo" {
-			t.Fatalf("bad: %#v", p.RefreshState)
-		}
-		if !reflect.DeepEqual(mod.Resources["aws_instance.web"].Primary, p.RefreshReturn) {
-			t.Fatalf("bad: %#v %#v", mod.Resources["aws_instance.web"], p.RefreshReturn)
-		}
+	schema := p.GetSchemaReturn.ResourceTypes["aws_instance"]
+	ty := schema.ImpliedType()
+	readState, err := hcl2shim.HCL2ValueFromFlatmap(map[string]string{"id": "foo", "foo": "baz"}, ty)
+	if err != nil {
+		t.Fatal(err)
+	}
 
-		for _, r := range mod.Resources {
-			if r.Type == "" {
-				t.Fatalf("no type: %#v", r)
-			}
-		}
-	*/
+	p.ReadResourceFn = nil
+	p.ReadResourceResponse = providers.ReadResourceResponse{
+		NewState: readState,
+	}
+
+	s, diags := ctx.Refresh()
+	if diags.HasErrors() {
+		t.Fatal(diags.Err())
+	}
+
+	if !p.ReadResourceCalled {
+		t.Fatal("ReadResource should be called")
+	}
+
+	mod := s.RootModule()
+	fromState, err := mod.Resources["aws_instance.web"].Instances[addrs.NoKey].Current.Decode(ty)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	newState, err := schema.CoerceValue(fromState.Value)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if !cmp.Equal(readState, newState, valueComparer) {
+		t.Fatal(cmp.Diff(readState, newState, valueComparer, equateEmpty))
+	}
 }
 
 func TestContext2Refresh_dataComputedModuleVar(t *testing.T) {
@@ -126,8 +142,7 @@ func TestContext2Refresh_dataComputedModuleVar(t *testing.T) {
 
 	checkStateString(t, s, `
 <no state>
-module.child:
-  <no state>`)
+`)
 }
 
 func TestContext2Refresh_targeted(t *testing.T) {
@@ -207,7 +222,7 @@ func TestContext2Refresh_targeted(t *testing.T) {
 		t.Fatalf("refresh errors: %s", diags.Err())
 	}
 
-	expected := []string{"aws_vpc.metoo", "aws_instance.me"}
+	expected := []string{"vpc-abc123", "i-abc123"}
 	if !reflect.DeepEqual(refreshedResources, expected) {
 		t.Fatalf("expected: %#v, got: %#v", expected, refreshedResources)
 	}
@@ -294,10 +309,10 @@ func TestContext2Refresh_targetedCount(t *testing.T) {
 
 	// Target didn't specify index, so we should get all our instances
 	expected := []string{
-		"aws_vpc.metoo",
-		"aws_instance.me.0",
-		"aws_instance.me.1",
-		"aws_instance.me.2",
+		"vpc-abc123",
+		"i-abc123",
+		"i-cde567",
+		"i-cde789",
 	}
 	sort.Strings(expected)
 	sort.Strings(refreshedResources)
@@ -385,7 +400,7 @@ func TestContext2Refresh_targetedCountIndex(t *testing.T) {
 		t.Fatalf("refresh errors: %s", diags.Err())
 	}
 
-	expected := []string{"aws_vpc.metoo", "aws_instance.me.0"}
+	expected := []string{"vpc-abc123", "i-abc123"}
 	if !reflect.DeepEqual(refreshedResources, expected) {
 		t.Fatalf("wrong result\ngot:  %#v\nwant: %#v", refreshedResources, expected)
 	}
@@ -456,7 +471,9 @@ func TestContext2Refresh_delete(t *testing.T) {
 	})
 
 	p.ReadResourceFn = nil
-	p.ReadResourceResponse = providers.ReadResourceResponse{}
+	p.ReadResourceResponse = providers.ReadResourceResponse{
+		NewState: cty.NullVal(p.GetSchemaReturn.ResourceTypes["aws_instance"].ImpliedType()),
+	}
 
 	s, diags := ctx.Refresh()
 	if diags.HasErrors() {

@@ -12,6 +12,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
+
 	"github.com/hashicorp/go-version"
 	"github.com/hashicorp/hil"
 	"github.com/zclconf/go-cty/cty"
@@ -29,6 +32,12 @@ import (
 	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/states/statefile"
 	tfversion "github.com/hashicorp/terraform/version"
+)
+
+var (
+	equateEmpty   = cmpopts.EquateEmpty()
+	typeComparer  = cmp.Comparer(cty.Type.Equals)
+	valueComparer = cmp.Comparer(cty.Value.RawEquals)
 )
 
 func TestNewContextRequiredVersion(t *testing.T) {
