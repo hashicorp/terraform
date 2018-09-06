@@ -536,11 +536,15 @@ func childAddrOf(child, parent string) bool {
 
 // checkKey checks the key to make sure it exists and is computed.
 func (d *ResourceDiff) checkKey(key, caller string) error {
-	s, ok := d.schema[key]
-	if !ok {
+	keyParts := strings.Split(key, ".")
+	var schema *Schema
+	schemaL := addrToSchema(keyParts, d.schema)
+	if len(schemaL) > 0 {
+		schema = schemaL[len(schemaL)-1]
+	} else {
 		return fmt.Errorf("%s: invalid key: %s", caller, key)
 	}
-	if !s.Computed {
+	if !schema.Computed {
 		return fmt.Errorf("%s only operates on computed keys - %s is not one", caller, key)
 	}
 	return nil
