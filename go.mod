@@ -115,7 +115,7 @@ require (
 	github.com/onsi/gomega v1.4.1 // indirect
 	github.com/packer-community/winrmcp v0.0.0-20180102160824-81144009af58
 	github.com/pascaldekloe/goe v0.0.0-20180627143212-57f6aae5913c // indirect
-	github.com/pkg/errors v0.0.0-20170505043639-c605e284fe17 // indirect
+	github.com/pkg/errors v0.8.0 // indirect
 	github.com/posener/complete v0.0.0-20171219111128-6bee943216c8
 	github.com/prometheus/client_golang v0.8.0 // indirect
 	github.com/prometheus/client_model v0.0.0-20180712105110-5c3871d89910 // indirect
@@ -140,9 +140,9 @@ require (
 	github.com/xanzy/ssh-agent v0.1.0
 	github.com/xiang90/probing v0.0.0-20160813154853-07dd2e8dfe18 // indirect
 	github.com/xlab/treeprint v0.0.0-20161029104018-1d6e34225557
-	github.com/zclconf/go-cty v0.0.0-20180831220647-752f6a689f5e
+	github.com/zclconf/go-cty v0.0.0-20180907002636-07dee8a1cfd4
 	golang.org/x/crypto v0.0.0-20180816225734-aabede6cba87
-	golang.org/x/net v0.0.0-20180826012351-8a410e7b638d
+	golang.org/x/net v0.0.0-20180906233101-161cd47e91fd
 	golang.org/x/oauth2 v0.0.0-20170928010508-bb50c06baba3
 	golang.org/x/time v0.0.0-20180412165947-fbb02b2291d2 // indirect
 	google.golang.org/api v0.0.0-20171005000305-7a7376eff6a5
