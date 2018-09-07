@@ -123,7 +123,7 @@ func TestContext2Apply_unstable(t *testing.T) {
 	if !got.IsKnown() {
 		t.Fatalf("random is still unknown after apply")
 	}
-	if got, want := len(got.AsString()), 1; got != want {
+	if got, want := len(got.AsString()), 36; got != want {
 		t.Fatalf("random string has wrong length %d; want %d", got, want)
 	}
 }
