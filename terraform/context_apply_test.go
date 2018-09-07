@@ -9225,7 +9225,7 @@ func TestContext2Apply_multiRef(t *testing.T) {
 	}
 
 	deps := state.Modules[""].Resources["aws_instance.other"].Instances[addrs.NoKey].Current.Dependencies
-	if len(deps) > 1 || deps[0].String() != "aws_instance.create" {
+	if len(deps) != 1 || deps[0].String() != "aws_instance.create" {
 		t.Fatalf("expected 1 depends_on entry for aws_instance.create, got %q", deps)
 	}
 }
