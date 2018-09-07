@@ -3,12 +3,11 @@ package schema
 import (
 	"encoding/json"
 
-	"github.com/hashicorp/terraform/config/hcl2shim"
+	"github.com/zclconf/go-cty/cty"
+	ctyjson "github.com/zclconf/go-cty/cty/json"
+
 	"github.com/hashicorp/terraform/configs/configschema"
 	"github.com/hashicorp/terraform/terraform"
-	"github.com/zclconf/go-cty/cty"
-
-	ctyjson "github.com/zclconf/go-cty/cty/json"
 )
 
 // DiffFromValues takes the current state and desired state as cty.Values and
@@ -79,23 +78,7 @@ func JSONMapToStateValue(m map[string]interface{}, block *configschema.Block) (c
 // cty.Value as described by the provided cty.Type, and maintains the resource
 // ID as the "id" attribute.
 func StateValueFromInstanceState(is *terraform.InstanceState, ty cty.Type) (cty.Value, error) {
-	if is == nil {
-		// if the state is nil, we need to construct a complete cty.Value with
-		// null attributes, rather than a single cty.NullVal(ty)
-		is = &terraform.InstanceState{}
-	}
-
-	// make sure ID is included in the attributes. The InstanceState.ID value
-	// takes precedent.
-	if is.Attributes == nil {
-		is.Attributes = map[string]string{}
-	}
-
-	if is.ID != "" {
-		is.Attributes["id"] = is.ID
-	}
-
-	return hcl2shim.HCL2ValueFromFlatmap(is.Attributes, ty)
+	return is.AttrsAsObjectValue(ty)
 }
 
 // InstanceStateFromStateValue converts a cty.Value to a
