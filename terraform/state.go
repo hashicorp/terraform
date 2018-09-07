@@ -1675,6 +1675,35 @@ func NewInstanceStateShimmedFromValue(state cty.Value, schemaVersion int) *Insta
 	}
 }
 
+// AttrsAsObjectValue shims from the legacy InstanceState representation to
+// a new-style cty object value representation of the state attributes, using
+// the given type for guidance.
+//
+// The given type must be the implied type of the schema of the resource type
+// of the object whose state is being converted, or the result is undefined.
+//
+// This is for shimming from old components only and should not be used in
+// new code.
+func (s *InstanceState) AttrsAsObjectValue(ty cty.Type) (cty.Value, error) {
+	if s == nil {
+		// if the state is nil, we need to construct a complete cty.Value with
+		// null attributes, rather than a single cty.NullVal(ty)
+		s = &InstanceState{}
+	}
+
+	if s.Attributes == nil {
+		s.Attributes = map[string]string{}
+	}
+
+	// make sure ID is included in the attributes. The InstanceState.ID value
+	// takes precedence.
+	if s.ID != "" {
+		s.Attributes["id"] = s.ID
+	}
+
+	return hcl2shim.HCL2ValueFromFlatmap(s.Attributes, ty)
+}
+
 // Copy all the Fields from another InstanceState
 func (s *InstanceState) Set(from *InstanceState) {
 	s.Lock()
