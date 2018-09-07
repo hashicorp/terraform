@@ -102,6 +102,13 @@ type MockProvider struct {
 func (p *MockProvider) GetSchema() providers.GetSchemaResponse {
 	p.Lock()
 	defer p.Unlock()
+	return p.getSchema()
+}
+
+func (p *MockProvider) getSchema() providers.GetSchemaResponse {
+	// This version of getSchema doesn't do any locking, so it's suitable to
+	// call from other methods of this mock as long as they are already
+	// holding the lock.
 
 	p.GetSchemaCalled = true
 	ret := providers.GetSchemaResponse{
@@ -191,9 +198,16 @@ func (p *MockProvider) Configure(r providers.ConfigureRequest) providers.Configu
 	p.ConfigureRequest = r
 
 	if p.ConfigureFn != nil {
-		return providers.ConfigureResponse{
-			Diagnostics: tfdiags.Diagnostics(nil).Append(fmt.Errorf("legacy ConfigureFn handling in MockProvider not actually implemented yet")),
+		resp := p.getSchema()
+		schema := resp.Provider.Block
+		rc := NewResourceConfigShimmed(r.Config, schema)
+		ret := providers.ConfigureResponse{}
+
+		err := p.ConfigureFn(rc)
+		if err != nil {
+			ret.Diagnostics = ret.Diagnostics.Append(err)
 		}
+		return ret
 	}
 	if p.ConfigureNewFn != nil {
 		return p.ConfigureNewFn(r)
@@ -233,7 +247,7 @@ func (p *MockProvider) PlanResourceChange(r providers.PlanResourceChangeRequest)
 	p.PlanResourceChangeRequest = r
 
 	if p.DiffFn != nil {
-		ps := p.GetSchema()
+		ps := p.getSchema()
 		if ps.ResourceTypes == nil || ps.ResourceTypes[r.TypeName].Block == nil {
 			return providers.PlanResourceChangeResponse{
 				Diagnostics: tfdiags.Diagnostics(nil).Append(fmt.Printf("mock provider has no schema for resource type %s", r.TypeName)),
@@ -294,7 +308,7 @@ func (p *MockProvider) ApplyResourceChange(r providers.ApplyResourceChangeReques
 		// a diff here well enough that _most_ of our legacy ApplyFns in old
 		// tests still see the behavior they are expecting. New tests should
 		// not use this, and should instead use ApplyResourceChangeFn directly.
-		providerSchema := p.GetSchema()
+		providerSchema := p.getSchema()
 		schema, ok := providerSchema.ResourceTypes[r.TypeName]
 		if !ok {
 			return providers.ApplyResourceChangeResponse{
