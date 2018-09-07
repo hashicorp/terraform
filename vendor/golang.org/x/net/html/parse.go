@@ -2209,6 +2209,15 @@ func (p *parser) parse() error {
 }
 
 // Parse returns the parse tree for the HTML from the given Reader.
+//
+// It implements the HTML5 parsing algorithm
+// (https://html.spec.whatwg.org/multipage/syntax.html#tree-construction),
+// which is very complicated. The resultant tree can contain implicitly created
+// nodes that have no explicit <tag> listed in r's data, and nodes' parents can
+// differ from the nesting implied by a naive processing of start and end
+// <tag>s. Conversely, explicit <tag>s in r's data can be silently dropped,
+// with no corresponding node in the resulting tree.
+//
 // The input is assumed to be UTF-8 encoded.
 func Parse(r io.Reader) (*Node, error) {
 	p := &parser{
@@ -2230,6 +2239,8 @@ func Parse(r io.Reader) (*Node, error) {
 // ParseFragment parses a fragment of HTML and returns the nodes that were
 // found. If the fragment is the InnerHTML for an existing element, pass that
 // element in context.
+//
+// It has the same intricacies as Parse.
 func ParseFragment(r io.Reader, context *Node) ([]*Node, error) {
 	contextTag := ""
 	if context != nil {
