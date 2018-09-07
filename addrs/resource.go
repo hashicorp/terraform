@@ -28,6 +28,10 @@ func (r Resource) String() string {
 	}
 }
 
+func (r Resource) Equal(other Resource) bool {
+	return r.String() == other.String()
+}
+
 // Instance produces the address for a specific instance of the receiver
 // that is idenfied by the given key.
 func (r Resource) Instance(key InstanceKey) ResourceInstance {
@@ -84,6 +88,10 @@ func (r ResourceInstance) String() string {
 		return r.Resource.String()
 	}
 	return r.Resource.String() + r.Key.String()
+}
+
+func (r ResourceInstance) Equal(other ResourceInstance) bool {
+	return r.String() == other.String()
 }
 
 // Absolute returns an AbsResourceInstance from the receiver and the given module
@@ -149,6 +157,10 @@ func (r AbsResource) String() string {
 	return fmt.Sprintf("%s.%s", r.Module.String(), r.Resource.String())
 }
 
+func (r AbsResource) Equal(other AbsResource) bool {
+	return r.String() == other.String()
+}
+
 // AbsResourceInstance is an absolute address for a resource instance under a
 // given module path.
 type AbsResourceInstance struct {
@@ -202,6 +214,10 @@ func (r AbsResourceInstance) String() string {
 		return r.Resource.String()
 	}
 	return fmt.Sprintf("%s.%s", r.Module.String(), r.Resource.String())
+}
+
+func (r AbsResourceInstance) Equal(other AbsResourceInstance) bool {
+	return r.String() == other.String()
 }
 
 // Less returns true if the receiver should sort before the given other value
