@@ -28,8 +28,16 @@ func (s *State) String() string {
 		return "<nil>"
 	}
 
+	// sort the modules by name for consistent output
+	modules := make([]string, 0, len(s.Modules))
+	for m := range s.Modules {
+		modules = append(modules, m)
+	}
+	sort.Strings(modules)
+
 	var buf bytes.Buffer
-	for _, m := range s.Modules {
+	for _, name := range modules {
+		m := s.Modules[name]
 		mStr := m.testString()
 
 		// If we're the root module, we just write the output directly.
@@ -51,6 +59,7 @@ func (s *State) String() string {
 				buf.WriteString(step.InstanceKey.String())
 				buf.WriteByte(']')
 			}
+			buf.WriteString(":")
 		}
 		buf.WriteByte('\n')
 
