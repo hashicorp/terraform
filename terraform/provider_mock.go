@@ -151,8 +151,16 @@ func (p *MockProvider) ValidateResourceTypeConfig(r providers.ValidateResourceTy
 	p.ValidateResourceTypeConfigRequest = r
 
 	if p.ValidateFn != nil {
-		return providers.ValidateResourceTypeConfigResponse{
-			Diagnostics: tfdiags.Diagnostics(nil).Append(fmt.Errorf("legacy ValidateFn handling in MockProvider not actually implemented yet")),
+		resp := p.getSchema()
+		schema := resp.Provider.Block
+		rc := NewResourceConfigShimmed(r.Config, schema)
+		warns, errs := p.ValidateFn(rc)
+		ret := providers.ValidateResourceTypeConfigResponse{}
+		for _, warn := range warns {
+			ret.Diagnostics = ret.Diagnostics.Append(tfdiags.SimpleWarning(warn))
+		}
+		for _, err := range errs {
+			ret.Diagnostics = ret.Diagnostics.Append(err)
 		}
 	}
 	if p.ValidateResourceTypeConfigFn != nil {
