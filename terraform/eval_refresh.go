@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/zclconf/go-cty/cty"
+
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/providers"
 	"github.com/hashicorp/terraform/states"
@@ -60,6 +62,13 @@ func (n *EvalRefresh) Eval(ctx EvalContext) (interface{}, error) {
 	diags = diags.Append(resp.Diagnostics)
 	if diags.HasErrors() {
 		return nil, diags.Err()
+	}
+
+	if resp.NewState == cty.NilVal {
+		// This ought not to happen in real cases since it's not possible to
+		// send NilVal over the plugin RPC channel, but it can come up in
+		// tests due to sloppy mocking.
+		panic("new state is cty.NilVal")
 	}
 
 	for _, err := range schema.ImpliedType().TestConformance(resp.NewState.Type()) {
