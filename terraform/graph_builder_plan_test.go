@@ -100,7 +100,7 @@ aws_security_group.firewall
   provider.aws
 local.instance_id
   aws_instance.web
-meta.count-boundary (count boundary fixup)
+meta.count-boundary (EachMode fixup)
   aws_instance.web
   aws_load_balancer.weblb
   aws_security_group.firewall
@@ -126,7 +126,7 @@ provider.openstack (close)
   openstack_floating_ip.random
   provider.openstack
 root
-  meta.count-boundary (count boundary fixup)
+  meta.count-boundary (EachMode fixup)
   provider.aws (close)
   provider.openstack (close)
 var.foo
