@@ -836,7 +836,7 @@ func (n *EvalWriteDiff) Eval(ctx EvalContext) (interface{}, error) {
 	providerSchema := *n.ProviderSchema
 	change := *n.Change
 
-	if change.Addr.String() != n.Addr.String() || change.DeposedKey != n.DeposedKey {
+	if change.Addr.String() != addr.String() || change.DeposedKey != n.DeposedKey {
 		// Should never happen, and indicates a bug in the caller.
 		panic("inconsistent address and/or deposed key in EvalWriteDiff")
 	}
