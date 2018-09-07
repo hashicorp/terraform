@@ -420,7 +420,7 @@ func TestApplyGraphBuilder_targetModule(t *testing.T) {
 }
 
 const testApplyGraphBuilderStr = `
-meta.count-boundary (count boundary fixup)
+meta.count-boundary (EachMode fixup)
   module.child.provisioner.test
   module.child.test_object.create
   module.child.test_object.other
@@ -444,7 +444,7 @@ provider.test (close)
 provisioner.test (close)
   module.child.test_object.create
 root
-  meta.count-boundary (count boundary fixup)
+  meta.count-boundary (EachMode fixup)
   provider.test (close)
   provisioner.test (close)
 test_object.create
@@ -455,7 +455,7 @@ test_object.other
 `
 
 const testApplyGraphBuilderDoubleCBDStr = `
-meta.count-boundary (count boundary fixup)
+meta.count-boundary (EachMode fixup)
   provider.test
   test_object.A
   test_object.A (destroy)
@@ -469,7 +469,7 @@ provider.test (close)
   test_object.B
   test_object.B (destroy)
 root
-  meta.count-boundary (count boundary fixup)
+  meta.count-boundary (EachMode fixup)
   provider.test (close)
 test_object.A
   provider.test
@@ -487,7 +487,7 @@ test_object.B (destroy)
 `
 
 const testApplyGraphBuilderDestroyCountStr = `
-meta.count-boundary (count boundary fixup)
+meta.count-boundary (EachMode fixup)
   provider.test
   test_object.A[1] (destroy)
   test_object.B
@@ -497,7 +497,7 @@ provider.test (close)
   test_object.A[1] (destroy)
   test_object.B
 root
-  meta.count-boundary (count boundary fixup)
+  meta.count-boundary (EachMode fixup)
   provider.test (close)
 test_object.A[1] (destroy)
   provider.test
