@@ -55,10 +55,12 @@ func (n *EvalReadState) Eval(ctx EvalContext) (interface{}, error) {
 	*/
 
 	schema := (*n.ProviderSchema).SchemaForResourceAddr(n.Addr.ContainingResource())
+
 	obj, err := src.Decode(schema.ImpliedType())
 	if err != nil {
 		return nil, err
 	}
+
 	if n.Output != nil {
 		*n.Output = obj
 	}
@@ -193,7 +195,7 @@ func (n *EvalWriteState) Eval(ctx EvalContext) (interface{}, error) {
 	state := ctx.State()
 
 	obj := *n.State
-	if obj == nil {
+	if obj == nil || obj.Value.IsNull() {
 		// No need to encode anything: we'll just write it directly.
 		state.SetResourceInstanceCurrent(absAddr, nil, n.ProviderAddr)
 		log.Printf("[TRACE] EvalWriteState: removing state object for %s", absAddr)
