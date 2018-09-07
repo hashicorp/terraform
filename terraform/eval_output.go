@@ -63,6 +63,10 @@ func (n *EvalWriteOutput) Eval(ctx EvalContext) (interface{}, error) {
 		return nil, diags.Err()
 	}
 
-	state.SetOutputValue(addr, val, n.Sensitive)
+	if val.IsKnown() && !val.IsNull() {
+		state.SetOutputValue(addr, val, n.Sensitive)
+	} else {
+		state.RemoveOutputValue(addr)
+	}
 	return nil, nil
 }

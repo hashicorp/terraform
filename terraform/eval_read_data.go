@@ -136,13 +136,14 @@ func (n *EvalReadDataDiff) Eval(ctx EvalContext) (interface{}, error) {
 // EvalReadDataApply is an EvalNode implementation that executes a data
 // resource's ReadDataApply method to read data from the data source.
 type EvalReadDataApply struct {
-	Addr           addrs.ResourceInstance
-	Provider       *providers.Interface
-	ProviderAddr   addrs.AbsProviderConfig
-	ProviderSchema **ProviderSchema
-	Output         **states.ResourceInstanceObject
-	Config         *configs.Resource
-	Change         **plans.ResourceInstanceChange
+	Addr            addrs.ResourceInstance
+	Provider        *providers.Interface
+	ProviderAddr    addrs.AbsProviderConfig
+	ProviderSchema  **ProviderSchema
+	Output          **states.ResourceInstanceObject
+	Config          *configs.Resource
+	Change          **plans.ResourceInstanceChange
+	StateReferences []addrs.Referenceable
 }
 
 func (n *EvalReadDataApply) Eval(ctx EvalContext) (interface{}, error) {
@@ -214,8 +215,9 @@ func (n *EvalReadDataApply) Eval(ctx EvalContext) (interface{}, error) {
 
 	if n.Output != nil {
 		*n.Output = &states.ResourceInstanceObject{
-			Value:  newVal,
-			Status: states.ObjectReady,
+			Value:        newVal,
+			Status:       states.ObjectReady,
+			Dependencies: n.StateReferences,
 		}
 	}
 
