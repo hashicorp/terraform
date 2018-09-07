@@ -76,7 +76,7 @@ func (n *EvalRefresh) Eval(ctx EvalContext) (interface{}, error) {
 			tfdiags.Error,
 			"Provider produced invalid object",
 			fmt.Sprintf(
-				"Provider %q planned an invalid value for %s%s during refresh.\n\nThis is a bug in the provider, which should be reported in the provider's own issue tracker.",
+				"Provider %q planned an invalid value for %s: %s during refresh.\n\nThis is a bug in the provider, which should be reported in the provider's own issue tracker.",
 				n.ProviderAddr.ProviderConfig.Type, absAddr, tfdiags.FormatError(err),
 			),
 		))
