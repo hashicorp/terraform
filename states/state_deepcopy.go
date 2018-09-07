@@ -133,7 +133,7 @@ func (obj *ResourceInstanceObjectSrc) DeepCopy() *ResourceInstanceObjectSrc {
 
 	var attrsFlat map[string]string
 	if obj.AttrsFlat != nil {
-		attrsFlat := make(map[string]string, len(obj.AttrsFlat))
+		attrsFlat = make(map[string]string, len(obj.AttrsFlat))
 		for k, v := range obj.AttrsFlat {
 			attrsFlat[k] = v
 		}
