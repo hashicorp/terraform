@@ -7,6 +7,7 @@ import (
 
 	"github.com/zclconf/go-cty/cty"
 
+	"github.com/hashicorp/terraform/config"
 	"github.com/hashicorp/terraform/config/hcl2shim"
 	"github.com/hashicorp/terraform/providers"
 	"github.com/hashicorp/terraform/tfdiags"
@@ -286,10 +287,80 @@ func (p *MockProvider) ApplyResourceChange(r providers.ApplyResourceChangeReques
 	p.ApplyResourceChangeRequest = r
 	p.Unlock()
 
-	if p.DiffFn != nil {
-		return providers.ApplyResourceChangeResponse{
-			Diagnostics: tfdiags.Diagnostics(nil).Append(fmt.Errorf("legacy ApplyFn handling in MockProvider not actually implemented yet")),
+	if p.ApplyFn != nil {
+		// ApplyFn is a special callback fashioned after our old provider
+		// interface, which expected to be given an actual diff rather than
+		// separate old/new values to apply. Therefore we need to approximate
+		// a diff here well enough that _most_ of our legacy ApplyFns in old
+		// tests still see the behavior they are expecting. New tests should
+		// not use this, and should instead use ApplyResourceChangeFn directly.
+		providerSchema := p.GetSchema()
+		schema, ok := providerSchema.ResourceTypes[r.TypeName]
+		if !ok {
+			return providers.ApplyResourceChangeResponse{
+				Diagnostics: tfdiags.Diagnostics(nil).Append(fmt.Errorf("no mocked schema available for resource type %s", r.TypeName)),
+			}
 		}
+
+		info := &InstanceInfo{
+			Type: r.TypeName,
+		}
+
+		priorVal := r.PriorState
+		plannedVal := r.PlannedState
+		priorMap := hcl2shim.FlatmapValueFromHCL2(priorVal)
+		plannedMap := hcl2shim.FlatmapValueFromHCL2(plannedVal)
+		s := NewInstanceStateShimmedFromValue(priorVal, 0)
+		d := &InstanceDiff{
+			Attributes: make(map[string]*ResourceAttrDiff),
+		}
+		if plannedMap == nil { // destroying, then
+			d.Destroy = true
+			// Destroy diffs don't have any attribute diffs
+		} else {
+			if priorMap == nil { // creating, then
+				// We'll just make an empty prior map to make things easier below.
+				priorMap = make(map[string]string)
+			}
+
+			for k, new := range plannedMap {
+				old := priorMap[k]
+				newComputed := false
+				if new == config.UnknownVariableValue {
+					new = ""
+					newComputed = true
+				}
+				d.Attributes[k] = &ResourceAttrDiff{
+					Old:         old,
+					New:         new,
+					NewComputed: newComputed,
+					Type:        DiffAttrInput, // not generally used in tests, so just hard-coded
+				}
+			}
+			// Also need any attributes that were removed in "planned"
+			for k, old := range priorMap {
+				if _, ok := plannedMap[k]; ok {
+					continue
+				}
+				d.Attributes[k] = &ResourceAttrDiff{
+					Old:        old,
+					NewRemoved: true,
+					Type:       DiffAttrInput,
+				}
+			}
+		}
+		newState, err := p.ApplyFn(info, s, d)
+		resp := providers.ApplyResourceChangeResponse{}
+		if err != nil {
+			resp.Diagnostics = resp.Diagnostics.Append(err)
+		}
+		newVal, err := newState.AttrsAsObjectValue(schema.Block.ImpliedType())
+		if err != nil {
+			resp.Diagnostics = resp.Diagnostics.Append(err)
+		}
+		resp.NewState = newVal
+
+		return resp
 	}
 	if p.ApplyResourceChangeFn != nil {
 		return p.ApplyResourceChangeFn(r)
