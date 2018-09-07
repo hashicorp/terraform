@@ -109,6 +109,22 @@ func (s PathSet) SymmetricDifference(other PathSet) PathSet {
 	}
 }
 
+// Equal returns true if and only if both the receiver and the given other
+// set contain exactly the same paths.
+func (s PathSet) Equal(other PathSet) bool {
+	if s.set.Length() != other.set.Length() {
+		return false
+	}
+	// Now we know the lengths are the same we only need to test in one
+	// direction whether everything in one is in the other.
+	for it := s.set.Iterator(); it.Next(); {
+		if !other.set.Has(it.Value()) {
+			return false
+		}
+	}
+	return true
+}
+
 var crc64Table = crc64.MakeTable(crc64.ISO)
 
 var indexStepPlaceholder = []byte("#")
