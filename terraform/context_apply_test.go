@@ -3535,10 +3535,13 @@ func TestContext2Apply_multiVarComprehensive(t *testing.T) {
 	p := testProvider("test")
 
 	configs := map[string]*ResourceConfig{}
+	var configsLock sync.Mutex
 
 	p.ApplyFn = testApplyFn
 
 	p.DiffFn = func(info *InstanceInfo, s *InstanceState, c *ResourceConfig) (*InstanceDiff, error) {
+		configsLock.Lock()
+		defer configsLock.Unlock()
 		configs[info.HumanId()] = c
 
 		// Return a minimal diff to make sure this resource gets included in
@@ -3599,6 +3602,13 @@ func TestContext2Apply_multiVarComprehensive(t *testing.T) {
 	}
 
 	checkConfig := func(name string, want map[string]interface{}) {
+		configsLock.Lock()
+		defer configsLock.Unlock()
+
+		if _, ok := configs[name]; !ok {
+			t.Errorf("no config recorded for %s; expected a configuration", name)
+			return
+		}
 		got := configs[name].Config
 		t.Run("config for "+name, func(t *testing.T) {
 			for _, problem := range deep.Equal(got, want) {
