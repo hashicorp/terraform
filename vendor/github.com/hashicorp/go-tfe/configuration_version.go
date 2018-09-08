@@ -21,7 +21,7 @@ var _ ConfigurationVersions = (*configurationVersions)(nil)
 // https://www.terraform.io/docs/enterprise/api/configuration-versions.html
 type ConfigurationVersions interface {
 	// List returns all configuration versions of a workspace.
-	List(ctx context.Context, workspaceID string, options ConfigurationVersionListOptions) ([]*ConfigurationVersion, error)
+	List(ctx context.Context, workspaceID string, options ConfigurationVersionListOptions) (*ConfigurationVersionList, error)
 
 	// Create is used to create a new configuration version. The created
 	// configuration version will be usable once data is uploaded to it.
@@ -63,6 +63,12 @@ const (
 	ConfigurationSourceTerraform ConfigurationSource = "terraform"
 )
 
+// ConfigurationVersionList represents a list of configuration versions.
+type ConfigurationVersionList struct {
+	*Pagination
+	Items []*ConfigurationVersion
+}
+
 // ConfigurationVersion is a representation of an uploaded or ingressed
 // Terraform configuration in TFE. A workspace must have at least one
 // configuration version before any runs may be queued on it.
@@ -93,7 +99,7 @@ type ConfigurationVersionListOptions struct {
 }
 
 // List returns all configuration versions of a workspace.
-func (s *configurationVersions) List(ctx context.Context, workspaceID string, options ConfigurationVersionListOptions) ([]*ConfigurationVersion, error) {
+func (s *configurationVersions) List(ctx context.Context, workspaceID string, options ConfigurationVersionListOptions) (*ConfigurationVersionList, error) {
 	if !validStringID(&workspaceID) {
 		return nil, errors.New("Invalid value for workspace ID")
 	}
@@ -104,13 +110,13 @@ func (s *configurationVersions) List(ctx context.Context, workspaceID string, op
 		return nil, err
 	}
 
-	var cvs []*ConfigurationVersion
-	err = s.client.do(ctx, req, &cvs)
+	cvl := &ConfigurationVersionList{}
+	err = s.client.do(ctx, req, cvl)
 	if err != nil {
 		return nil, err
 	}
 
-	return cvs, nil
+	return cvl, nil
 }
 
 // ConfigurationVersionCreateOptions represents the options for creating a

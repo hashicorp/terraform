@@ -170,10 +170,19 @@ func (r *LogReader) read(l []byte) (int, error) {
 		return 0, err
 	}
 
+	// Read the retrieved chunk.
+	written, err := resp.Body.Read(l)
+	if err != nil && err != io.EOF {
+		// Ignore io.EOF errors returned when reading from the response
+		// body as this indicates the end of the chunk and not the end
+		// of the logfile.
+		return written, err
+	}
+
 	// Check if we need to continue the loop and wait 500 miliseconds
 	// before checking if there is a new chunk available or that the
 	// plan is finished and we are done reading all chunks.
-	if resp.ContentLength == 0 {
+	if written == 0 {
 		if r.reads%2 == 0 {
 			r.plan, err = r.client.Plans.Read(r.ctx, r.plan.ID)
 			if err != nil {
@@ -190,17 +199,8 @@ func (r *LogReader) read(l []byte) (int, error) {
 		}
 	}
 
-	// Read the retrieved chunk.
-	written, err := resp.Body.Read(l)
-	if err == io.EOF {
-		// Ignore io.EOF errors returned when reading from the response
-		// body as this indicates the end of the chunk and not the end
-		// of the logfile.
-		err = nil
-	}
-
 	// Update the offset for the next read.
 	r.offset += int64(written)
 
-	return written, err
+	return written, nil
 }
