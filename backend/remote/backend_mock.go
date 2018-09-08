@@ -51,12 +51,21 @@ func newMockConfigurationVersions(client *mockClient) *mockConfigurationVersions
 	}
 }
 
-func (m *mockConfigurationVersions) List(ctx context.Context, workspaceID string, options tfe.ConfigurationVersionListOptions) ([]*tfe.ConfigurationVersion, error) {
-	var cvs []*tfe.ConfigurationVersion
+func (m *mockConfigurationVersions) List(ctx context.Context, workspaceID string, options tfe.ConfigurationVersionListOptions) (*tfe.ConfigurationVersionList, error) {
+	cvl := &tfe.ConfigurationVersionList{}
 	for _, cv := range m.configVersions {
-		cvs = append(cvs, cv)
+		cvl.Items = append(cvl.Items, cv)
 	}
-	return cvs, nil
+
+	cvl.Pagination = &tfe.Pagination{
+		CurrentPage:  1,
+		NextPage:     1,
+		PreviousPage: 1,
+		TotalPages:   1,
+		TotalCount:   len(cvl.Items),
+	}
+
+	return cvl, nil
 }
 
 func (m *mockConfigurationVersions) Create(ctx context.Context, workspaceID string, options tfe.ConfigurationVersionCreateOptions) (*tfe.ConfigurationVersion, error) {
@@ -105,12 +114,21 @@ func newMockOrganizations(client *mockClient) *mockOrganizations {
 	}
 }
 
-func (m *mockOrganizations) List(ctx context.Context, options tfe.OrganizationListOptions) ([]*tfe.Organization, error) {
-	var orgs []*tfe.Organization
+func (m *mockOrganizations) List(ctx context.Context, options tfe.OrganizationListOptions) (*tfe.OrganizationList, error) {
+	orgl := &tfe.OrganizationList{}
 	for _, org := range m.organizations {
-		orgs = append(orgs, org)
+		orgl.Items = append(orgl.Items, org)
 	}
-	return orgs, nil
+
+	orgl.Pagination = &tfe.Pagination{
+		CurrentPage:  1,
+		NextPage:     1,
+		PreviousPage: 1,
+		TotalPages:   1,
+		TotalCount:   len(orgl.Items),
+	}
+
+	return orgl, nil
 }
 
 func (m *mockOrganizations) Create(ctx context.Context, options tfe.OrganizationCreateOptions) (*tfe.Organization, error) {
@@ -230,16 +248,26 @@ func newMockRuns(client *mockClient) *mockRuns {
 	}
 }
 
-func (m *mockRuns) List(ctx context.Context, workspaceID string, options tfe.RunListOptions) ([]*tfe.Run, error) {
+func (m *mockRuns) List(ctx context.Context, workspaceID string, options tfe.RunListOptions) (*tfe.RunList, error) {
 	w, ok := m.client.Workspaces.workspaceIDs[workspaceID]
 	if !ok {
 		return nil, tfe.ErrResourceNotFound
 	}
-	var rs []*tfe.Run
+
+	rl := &tfe.RunList{}
 	for _, r := range m.workspaces[w.ID] {
-		rs = append(rs, r)
+		rl.Items = append(rl.Items, r)
 	}
-	return rs, nil
+
+	rl.Pagination = &tfe.Pagination{
+		CurrentPage:  1,
+		NextPage:     1,
+		PreviousPage: 1,
+		TotalPages:   1,
+		TotalCount:   len(rl.Items),
+	}
+
+	return rl, nil
 }
 
 func (m *mockRuns) Create(ctx context.Context, options tfe.RunCreateOptions) (*tfe.Run, error) {
@@ -296,12 +324,21 @@ func newMockStateVersions(client *mockClient) *mockStateVersions {
 	}
 }
 
-func (m *mockStateVersions) List(ctx context.Context, options tfe.StateVersionListOptions) ([]*tfe.StateVersion, error) {
-	var svs []*tfe.StateVersion
+func (m *mockStateVersions) List(ctx context.Context, options tfe.StateVersionListOptions) (*tfe.StateVersionList, error) {
+	svl := &tfe.StateVersionList{}
 	for _, sv := range m.stateVersions {
-		svs = append(svs, sv)
+		svl.Items = append(svl.Items, sv)
 	}
-	return svs, nil
+
+	svl.Pagination = &tfe.Pagination{
+		CurrentPage:  1,
+		NextPage:     1,
+		PreviousPage: 1,
+		TotalPages:   1,
+		TotalCount:   len(svl.Items),
+	}
+
+	return svl, nil
 }
 
 func (m *mockStateVersions) Create(ctx context.Context, workspaceID string, options tfe.StateVersionCreateOptions) (*tfe.StateVersion, error) {
@@ -375,12 +412,21 @@ func newMockWorkspaces(client *mockClient) *mockWorkspaces {
 	}
 }
 
-func (m *mockWorkspaces) List(ctx context.Context, organization string, options tfe.WorkspaceListOptions) ([]*tfe.Workspace, error) {
-	var ws []*tfe.Workspace
+func (m *mockWorkspaces) List(ctx context.Context, organization string, options tfe.WorkspaceListOptions) (*tfe.WorkspaceList, error) {
+	wl := &tfe.WorkspaceList{}
 	for _, w := range m.workspaceIDs {
-		ws = append(ws, w)
+		wl.Items = append(wl.Items, w)
 	}
-	return ws, nil
+
+	wl.Pagination = &tfe.Pagination{
+		CurrentPage:  1,
+		NextPage:     1,
+		PreviousPage: 1,
+		TotalPages:   1,
+		TotalCount:   len(wl.Items),
+	}
+
+	return wl, nil
 }
 
 func (m *mockWorkspaces) Create(ctx context.Context, organization string, options tfe.WorkspaceCreateOptions) (*tfe.Workspace, error) {
