@@ -343,7 +343,12 @@ func (m *mockStateVersions) List(ctx context.Context, options tfe.StateVersionLi
 
 func (m *mockStateVersions) Create(ctx context.Context, workspaceID string, options tfe.StateVersionCreateOptions) (*tfe.StateVersion, error) {
 	id := generateID("sv-")
+	runID := os.Getenv("TFE_RUN_ID")
 	url := fmt.Sprintf("https://app.terraform.io/_archivist/%s", id)
+
+	if runID != "" && (options.Run == nil || runID != options.Run.ID) {
+		return nil, fmt.Errorf("option.Run.ID does not contain the ID exported by TFE_RUN_ID")
+	}
 
 	sv := &tfe.StateVersion{
 		ID:          id,
