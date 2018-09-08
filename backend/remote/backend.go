@@ -251,9 +251,10 @@ func (b *Remote) State(workspace string) (state.State, error) {
 	}
 
 	// Configure the remote workspace name.
-	if workspace == backend.DefaultStateName {
+	switch {
+	case workspace == backend.DefaultStateName:
 		workspace = b.workspace
-	} else if b.prefix != "" && !strings.HasPrefix(workspace, b.prefix) {
+	case b.prefix != "" && !strings.HasPrefix(workspace, b.prefix):
 		workspace = b.prefix + workspace
 	}
 
@@ -293,9 +294,10 @@ func (b *Remote) DeleteState(workspace string) error {
 	}
 
 	// Configure the remote workspace name.
-	if workspace == backend.DefaultStateName {
+	switch {
+	case workspace == backend.DefaultStateName:
 		workspace = b.workspace
-	} else if b.prefix != "" && !strings.HasPrefix(workspace, b.prefix) {
+	case b.prefix != "" && !strings.HasPrefix(workspace, b.prefix):
 		workspace = b.prefix + workspace
 	}
 
@@ -336,20 +338,39 @@ func (b *Remote) states() ([]string, error) {
 	}
 
 	options := tfe.WorkspaceListOptions{}
-	wl, err := b.client.Workspaces.List(context.Background(), b.organization, options)
-	if err != nil {
-		return nil, err
+	switch {
+	case b.workspace != "":
+		options.Search = tfe.String(b.workspace)
+	case b.prefix != "":
+		options.Search = tfe.String(b.prefix)
 	}
 
+	// Create a slice to contain all the names.
 	var names []string
-	for _, w := range wl.Items {
-		if b.workspace != "" && w.Name == b.workspace {
-			names = append(names, backend.DefaultStateName)
-			continue
+
+	for {
+		wl, err := b.client.Workspaces.List(context.Background(), b.organization, options)
+		if err != nil {
+			return nil, err
 		}
-		if b.prefix != "" && strings.HasPrefix(w.Name, b.prefix) {
-			names = append(names, strings.TrimPrefix(w.Name, b.prefix))
+
+		for _, w := range wl.Items {
+			if b.workspace != "" && w.Name == b.workspace {
+				names = append(names, backend.DefaultStateName)
+				continue
+			}
+			if b.prefix != "" && strings.HasPrefix(w.Name, b.prefix) {
+				names = append(names, strings.TrimPrefix(w.Name, b.prefix))
+			}
 		}
+
+		// Exit the loop when we've seen all pages.
+		if wl.CurrentPage == wl.TotalPages {
+			break
+		}
+
+		// Update the page number to get the next page.
+		options.PageNumber = wl.NextPage
 	}
 
 	// Sort the result so we have consistent output.
@@ -361,9 +382,10 @@ func (b *Remote) states() ([]string, error) {
 // Operation implements backend.Enhanced
 func (b *Remote) Operation(ctx context.Context, op *backend.Operation) (*backend.RunningOperation, error) {
 	// Configure the remote workspace name.
-	if op.Workspace == backend.DefaultStateName {
+	switch {
+	case op.Workspace == backend.DefaultStateName:
 		op.Workspace = b.workspace
-	} else if b.prefix != "" && !strings.HasPrefix(op.Workspace, b.prefix) {
+	case b.prefix != "" && !strings.HasPrefix(op.Workspace, b.prefix):
 		op.Workspace = b.prefix + op.Workspace
 	}
 
