@@ -15,6 +15,7 @@ import (
 type remoteClient struct {
 	client       *tfe.Client
 	organization string
+	runID        string
 	workspace    string
 }
 
@@ -70,7 +71,7 @@ func (r *remoteClient) Put(state []byte) error {
 		return fmt.Errorf("Error retrieving workspace: %v", err)
 	}
 
-	//  the state into a buffer.
+	// Read the raw state into a Terraform state.
 	tfState, err := terraform.ReadState(bytes.NewReader(state))
 	if err != nil {
 		return fmt.Errorf("Error reading state: %s", err)
@@ -81,6 +82,12 @@ func (r *remoteClient) Put(state []byte) error {
 		Serial:  tfe.Int64(tfState.Serial),
 		MD5:     tfe.String(fmt.Sprintf("%x", md5.Sum(state))),
 		State:   tfe.String(base64.StdEncoding.EncodeToString(state)),
+	}
+
+	// If we have a run ID, make sure to add it to the options
+	// so the state will be properly associated with the run.
+	if r.runID != "" {
+		options.Run = &tfe.Run{ID: r.runID}
 	}
 
 	// Create the new state.
