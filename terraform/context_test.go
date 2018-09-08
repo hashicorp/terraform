@@ -527,6 +527,10 @@ func testProviderSchema(name string) *ProviderSchema {
 						Type:     cty.String,
 						Optional: true,
 					},
+					"type": {
+						Type:     cty.String,
+						Computed: true,
+					},
 				},
 			},
 			name + "_eip": {
