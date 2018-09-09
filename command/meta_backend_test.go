@@ -1434,7 +1434,7 @@ func TestMetaBackend_configuredChangeCopy_multiToNoDefaultWithDefault(t *testing
 	// Ask input
 	defer testInputMap(t, map[string]string{
 		"backend-migrate-multistate-to-multistate": "yes",
-		"new-state-name":                           "env1",
+		"new-state-name": "env1",
 	})()
 
 	// Setup the meta
