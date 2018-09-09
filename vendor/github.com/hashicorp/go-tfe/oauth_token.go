@@ -18,12 +18,18 @@ var _ OAuthTokens = (*oAuthTokens)(nil)
 // https://www.terraform.io/docs/enterprise/api/oauth-tokens.html
 type OAuthTokens interface {
 	// List all the OAuth Tokens for a given organization.
-	List(ctx context.Context, organization string) ([]*OAuthToken, error)
+	List(ctx context.Context, organization string, options OAuthTokenListOptions) (*OAuthTokenList, error)
 }
 
 // oAuthTokens implements OAuthTokens.
 type oAuthTokens struct {
 	client *Client
+}
+
+// OAuthTokenList represents a list of OAuth tokens.
+type OAuthTokenList struct {
+	*Pagination
+	Items []*OAuthToken
 }
 
 // OAuthToken represents a VCS configuration including the associated
@@ -39,23 +45,29 @@ type OAuthToken struct {
 	OAuthClient *OAuthClient `jsonapi:"relation,oauth-client"`
 }
 
-// List all the OAuth Tokens for a given organization.
-func (s *oAuthTokens) List(ctx context.Context, organization string) ([]*OAuthToken, error) {
+// OAuthTokenListOptions represents the options for listing
+// OAuth tokens.
+type OAuthTokenListOptions struct {
+	ListOptions
+}
+
+// List all the OAuth tokens for a given organization.
+func (s *oAuthTokens) List(ctx context.Context, organization string, options OAuthTokenListOptions) (*OAuthTokenList, error) {
 	if !validStringID(&organization) {
 		return nil, errors.New("Invalid value for organization")
 	}
 
 	u := fmt.Sprintf("organizations/%s/oauth-tokens", url.QueryEscape(organization))
-	req, err := s.client.newRequest("GET", u, nil)
+	req, err := s.client.newRequest("GET", u, &options)
 	if err != nil {
 		return nil, err
 	}
 
-	var ots []*OAuthToken
-	err = s.client.do(ctx, req, &ots)
+	otl := &OAuthTokenList{}
+	err = s.client.do(ctx, req, otl)
 	if err != nil {
 		return nil, err
 	}
 
-	return ots, nil
+	return otl, nil
 }

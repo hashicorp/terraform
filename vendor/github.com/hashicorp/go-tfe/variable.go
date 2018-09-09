@@ -16,7 +16,7 @@ var _ Variables = (*variables)(nil)
 // TFE API docs: https://www.terraform.io/docs/enterprise/api/variables.html
 type Variables interface {
 	// List all the variables associated with the given workspace.
-	List(ctx context.Context, options VariableListOptions) ([]*Variable, error)
+	List(ctx context.Context, options VariableListOptions) (*VariableList, error)
 
 	// Create is used to create a new variable.
 	Create(ctx context.Context, options VariableCreateOptions) (*Variable, error)
@@ -41,6 +41,12 @@ const (
 	CategoryEnv       CategoryType = "env"
 	CategoryTerraform CategoryType = "terraform"
 )
+
+// VariableList represents a list of variables.
+type VariableList struct {
+	*Pagination
+	Items []*Variable
+}
 
 // Variable represents a Terraform Enterprise variable.
 type Variable struct {
@@ -73,7 +79,7 @@ func (o VariableListOptions) valid() error {
 }
 
 // List all the variables associated with the given workspace.
-func (s *variables) List(ctx context.Context, options VariableListOptions) ([]*Variable, error) {
+func (s *variables) List(ctx context.Context, options VariableListOptions) (*VariableList, error) {
 	if err := options.valid(); err != nil {
 		return nil, err
 	}
@@ -83,13 +89,13 @@ func (s *variables) List(ctx context.Context, options VariableListOptions) ([]*V
 		return nil, err
 	}
 
-	var vs []*Variable
-	err = s.client.do(ctx, req, &vs)
+	vl := &VariableList{}
+	err = s.client.do(ctx, req, vl)
 	if err != nil {
 		return nil, err
 	}
 
-	return vs, nil
+	return vl, nil
 }
 
 // VariableCreateOptions represents the options for creating a new variable.
@@ -165,9 +171,6 @@ type VariableUpdateOptions struct {
 
 	// The value of the variable.
 	Value *string `jsonapi:"attr,value,omitempty"`
-
-	// Whether this is a Terraform or environment variable.
-	Category *CategoryType `jsonapi:"attr,category,omitempty"`
 
 	// Whether to evaluate the value of the variable as a string of HCL code.
 	HCL *bool `jsonapi:"attr,hcl,omitempty"`

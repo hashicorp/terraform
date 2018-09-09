@@ -18,7 +18,7 @@ var _ Organizations = (*organizations)(nil)
 // https://www.terraform.io/docs/enterprise/api/organizations.html
 type Organizations interface {
 	// List all the organizations visible to the current user.
-	List(ctx context.Context, options OrganizationListOptions) ([]*Organization, error)
+	List(ctx context.Context, options OrganizationListOptions) (*OrganizationList, error)
 
 	// Create a new organization with the given options.
 	Create(ctx context.Context, options OrganizationCreateOptions) (*Organization, error)
@@ -58,6 +58,12 @@ const (
 	EnterprisePlanTrial    EnterprisePlanType = "trial"
 )
 
+// OrganizationList represents a list of organizations.
+type OrganizationList struct {
+	*Pagination
+	Items []*Organization
+}
+
 // Organization represents a Terraform Enterprise organization.
 type Organization struct {
 	Name                   string                   `jsonapi:"primary,organizations"`
@@ -93,19 +99,19 @@ type OrganizationListOptions struct {
 }
 
 // List all the organizations visible to the current user.
-func (s *organizations) List(ctx context.Context, options OrganizationListOptions) ([]*Organization, error) {
+func (s *organizations) List(ctx context.Context, options OrganizationListOptions) (*OrganizationList, error) {
 	req, err := s.client.newRequest("GET", "organizations", &options)
 	if err != nil {
 		return nil, err
 	}
 
-	var orgs []*Organization
-	err = s.client.do(ctx, req, &orgs)
+	orgl := &OrganizationList{}
+	err = s.client.do(ctx, req, orgl)
 	if err != nil {
 		return nil, err
 	}
 
-	return orgs, nil
+	return orgl, nil
 }
 
 // OrganizationCreateOptions represents the options for creating an organization.

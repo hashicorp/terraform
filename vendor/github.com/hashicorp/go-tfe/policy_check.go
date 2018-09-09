@@ -18,7 +18,7 @@ var _ PolicyChecks = (*policyChecks)(nil)
 // https://www.terraform.io/docs/enterprise/api/policy-checks.html
 type PolicyChecks interface {
 	// List all policy checks of the given run.
-	List(ctx context.Context, runID string, options PolicyCheckListOptions) ([]*PolicyCheck, error)
+	List(ctx context.Context, runID string, options PolicyCheckListOptions) (*PolicyCheckList, error)
 
 	// Override a soft-mandatory or warning policy.
 	Override(ctx context.Context, policyCheckID string) (*PolicyCheck, error)
@@ -51,6 +51,12 @@ const (
 	PolicyQueued     PolicyStatus = "queued"
 	PolicySoftFailed PolicyStatus = "soft_failed"
 )
+
+// PolicyCheckList represents a list of policy checks.
+type PolicyCheckList struct {
+	*Pagination
+	Items []*PolicyCheck
+}
 
 // PolicyCheck represents a Terraform Enterprise policy check..
 type PolicyCheck struct {
@@ -101,7 +107,7 @@ type PolicyCheckListOptions struct {
 }
 
 // List all policy checks of the given run.
-func (s *policyChecks) List(ctx context.Context, runID string, options PolicyCheckListOptions) ([]*PolicyCheck, error) {
+func (s *policyChecks) List(ctx context.Context, runID string, options PolicyCheckListOptions) (*PolicyCheckList, error) {
 	if !validStringID(&runID) {
 		return nil, errors.New("Invalid value for run ID")
 	}
@@ -112,13 +118,13 @@ func (s *policyChecks) List(ctx context.Context, runID string, options PolicyChe
 		return nil, err
 	}
 
-	var pcs []*PolicyCheck
-	err = s.client.do(ctx, req, &pcs)
+	pcl := &PolicyCheckList{}
+	err = s.client.do(ctx, req, pcl)
 	if err != nil {
 		return nil, err
 	}
 
-	return pcs, nil
+	return pcl, nil
 }
 
 // Override a soft-mandatory or warning policy.
