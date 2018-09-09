@@ -63,7 +63,7 @@ run.
 This special mode of operation supports two use-cases:
 
 * Given a version control source, it can serve as a shorthand for checking out
-  a configuration from version control and then initializing the work directory
+  a configuration from version control and then initializing the working directory
   for it.
 
 * If the source refers to an _example_ configuration, it can be copied into
