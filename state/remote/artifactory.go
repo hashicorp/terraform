@@ -38,13 +38,19 @@ func artifactoryFactory(conf map[string]string) (Client, error) {
 	}
 	repo, ok := conf["repo"]
 	if !ok {
-		return nil, fmt.Errorf(
-			"missing 'repo' configuration")
+		repo = os.Getenv("ARTIFACTORY_REPO")
+		if repo == "" {
+			return nil, fmt.Errorf(
+				"missing 'repo' configuration or ARTIFACTORY_REPO environment variable")
+		}
 	}
 	subpath, ok := conf["subpath"]
 	if !ok {
-		return nil, fmt.Errorf(
-			"missing 'subpath' configuration")
+		subpath = os.Getenv("ARTIFACTORY_SUBPATH")
+		if subpath == "" {
+			return nil, fmt.Errorf(
+				"missing 'subpath' configuration or ARTIFACTORY_SUBPATH environment variable")
+		}
 	}
 
 	clientConf := &artifactory.ClientConfig{
