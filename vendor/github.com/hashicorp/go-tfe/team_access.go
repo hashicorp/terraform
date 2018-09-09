@@ -17,7 +17,7 @@ var _ TeamAccesses = (*teamAccesses)(nil)
 // https://www.terraform.io/docs/enterprise/api/team-access.html
 type TeamAccesses interface {
 	// List all the team accesses for a given workspace.
-	List(ctx context.Context, options TeamAccessListOptions) ([]*TeamAccess, error)
+	List(ctx context.Context, options TeamAccessListOptions) (*TeamAccessList, error)
 
 	// Add team access for a workspace.
 	Add(ctx context.Context, options TeamAccessAddOptions) (*TeamAccess, error)
@@ -34,20 +34,26 @@ type teamAccesses struct {
 	client *Client
 }
 
-// TeamAccessType represents a team access type.
-type TeamAccessType string
+// AccessType represents a team access type.
+type AccessType string
 
 // List all available team access types.
 const (
-	TeamAccessAdmin TeamAccessType = "admin"
-	TeamAccessRead  TeamAccessType = "read"
-	TeamAccessWrite TeamAccessType = "write"
+	AccessAdmin AccessType = "admin"
+	AccessRead  AccessType = "read"
+	AccessWrite AccessType = "write"
 )
+
+// TeamAccessList represents a list of team accesses.
+type TeamAccessList struct {
+	*Pagination
+	Items []*TeamAccess
+}
 
 // TeamAccess represents the workspace access for a team.
 type TeamAccess struct {
-	ID     string         `jsonapi:"primary,team-workspaces"`
-	Access TeamAccessType `jsonapi:"attr,access"`
+	ID     string     `jsonapi:"primary,team-workspaces"`
+	Access AccessType `jsonapi:"attr,access"`
 
 	// Relations
 	Team      *Team      `jsonapi:"relation,team"`
@@ -71,7 +77,7 @@ func (o TeamAccessListOptions) valid() error {
 }
 
 // List all the team accesses for a given workspace.
-func (s *teamAccesses) List(ctx context.Context, options TeamAccessListOptions) ([]*TeamAccess, error) {
+func (s *teamAccesses) List(ctx context.Context, options TeamAccessListOptions) (*TeamAccessList, error) {
 	if err := options.valid(); err != nil {
 		return nil, err
 	}
@@ -81,13 +87,13 @@ func (s *teamAccesses) List(ctx context.Context, options TeamAccessListOptions) 
 		return nil, err
 	}
 
-	var tas []*TeamAccess
-	err = s.client.do(ctx, req, &tas)
+	tal := &TeamAccessList{}
+	err = s.client.do(ctx, req, tal)
 	if err != nil {
 		return nil, err
 	}
 
-	return tas, nil
+	return tal, nil
 }
 
 // TeamAccessAddOptions represents the options for adding team access.
@@ -96,7 +102,7 @@ type TeamAccessAddOptions struct {
 	ID string `jsonapi:"primary,team-workspaces"`
 
 	// The type of access to grant.
-	Access *TeamAccessType `jsonapi:"attr,access"`
+	Access *AccessType `jsonapi:"attr,access"`
 
 	// The team to add to the workspace
 	Team *Team `jsonapi:"relation,team"`

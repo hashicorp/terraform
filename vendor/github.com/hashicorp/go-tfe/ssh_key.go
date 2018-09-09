@@ -17,7 +17,7 @@ var _ SSHKeys = (*sshKeys)(nil)
 // https://www.terraform.io/docs/enterprise/api/ssh-keys.html
 type SSHKeys interface {
 	// List all the SSH keys for a given organization
-	List(ctx context.Context, organization string, options SSHKeyListOptions) ([]*SSHKey, error)
+	List(ctx context.Context, organization string, options SSHKeyListOptions) (*SSHKeyList, error)
 
 	// Create an SSH key and associate it with an organization.
 	Create(ctx context.Context, organization string, options SSHKeyCreateOptions) (*SSHKey, error)
@@ -37,6 +37,12 @@ type sshKeys struct {
 	client *Client
 }
 
+// SSHKeyList represents a list of SSH keys.
+type SSHKeyList struct {
+	*Pagination
+	Items []*SSHKey
+}
+
 // SSHKey represents a SSH key.
 type SSHKey struct {
 	ID   string `jsonapi:"primary,ssh-keys"`
@@ -49,7 +55,7 @@ type SSHKeyListOptions struct {
 }
 
 // List all the SSH keys for a given organization
-func (s *sshKeys) List(ctx context.Context, organization string, options SSHKeyListOptions) ([]*SSHKey, error) {
+func (s *sshKeys) List(ctx context.Context, organization string, options SSHKeyListOptions) (*SSHKeyList, error) {
 	if !validStringID(&organization) {
 		return nil, errors.New("Invalid value for organization")
 	}
@@ -60,13 +66,13 @@ func (s *sshKeys) List(ctx context.Context, organization string, options SSHKeyL
 		return nil, err
 	}
 
-	var ks []*SSHKey
-	err = s.client.do(ctx, req, &ks)
+	kl := &SSHKeyList{}
+	err = s.client.do(ctx, req, kl)
 	if err != nil {
 		return nil, err
 	}
 
-	return ks, nil
+	return kl, nil
 }
 
 // SSHKeyCreateOptions represents the options for creating an SSH key.

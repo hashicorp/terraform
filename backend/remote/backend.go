@@ -336,13 +336,13 @@ func (b *Remote) states() ([]string, error) {
 	}
 
 	options := tfe.WorkspaceListOptions{}
-	ws, err := b.client.Workspaces.List(context.Background(), b.organization, options)
+	wl, err := b.client.Workspaces.List(context.Background(), b.organization, options)
 	if err != nil {
 		return nil, err
 	}
 
 	var names []string
-	for _, w := range ws {
+	for _, w := range wl.Items {
 		if b.workspace != "" && w.Name == b.workspace {
 			names = append(names, backend.DefaultStateName)
 			continue

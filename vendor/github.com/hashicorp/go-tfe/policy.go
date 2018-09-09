@@ -1,6 +1,7 @@
 package tfe
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -17,7 +18,7 @@ var _ Policies = (*policies)(nil)
 // TFE API docs: https://www.terraform.io/docs/enterprise/api/policies.html
 type Policies interface {
 	// List all the policies for a given organization
-	List(ctx context.Context, organization string, options PolicyListOptions) ([]*Policy, error)
+	List(ctx context.Context, organization string, options PolicyListOptions) (*PolicyList, error)
 
 	// Create a policy and associate it with an organization.
 	Create(ctx context.Context, organization string, options PolicyCreateOptions) (*Policy, error)
@@ -25,14 +26,17 @@ type Policies interface {
 	// Read a policy by its ID.
 	Read(ctx context.Context, policyID string) (*Policy, error)
 
-	// Upload the policy content of the policy.
-	Upload(ctx context.Context, policyID string, content []byte) error
-
 	// Update an existing policy.
 	Update(ctx context.Context, policyID string, options PolicyUpdateOptions) (*Policy, error)
 
 	// Delete a policy by its ID.
 	Delete(ctx context.Context, policyID string) error
+
+	// Upload the policy content of the policy.
+	Upload(ctx context.Context, policyID string, content []byte) error
+
+	// Upload the policy content of the policy.
+	Download(ctx context.Context, policyID string) ([]byte, error)
 }
 
 // policies implements Policies.
@@ -49,6 +53,12 @@ const (
 	EnforcementHard     EnforcementLevel = "hard-mandatory"
 	EnforcementSoft     EnforcementLevel = "soft-mandatory"
 )
+
+// PolicyList represents a list of policies..
+type PolicyList struct {
+	*Pagination
+	Items []*Policy
+}
 
 // Policy represents a Terraform Enterprise policy.
 type Policy struct {
@@ -70,7 +80,7 @@ type PolicyListOptions struct {
 }
 
 // List all the policies for a given organization
-func (s *policies) List(ctx context.Context, organization string, options PolicyListOptions) ([]*Policy, error) {
+func (s *policies) List(ctx context.Context, organization string, options PolicyListOptions) (*PolicyList, error) {
 	if !validStringID(&organization) {
 		return nil, errors.New("Invalid value for organization")
 	}
@@ -81,13 +91,13 @@ func (s *policies) List(ctx context.Context, organization string, options Policy
 		return nil, err
 	}
 
-	var ps []*Policy
-	err = s.client.do(ctx, req, &ps)
+	pl := &PolicyList{}
+	err = s.client.do(ctx, req, pl)
 	if err != nil {
 		return nil, err
 	}
 
-	return ps, nil
+	return pl, nil
 }
 
 // PolicyCreateOptions represents the options for creating a new policy.
@@ -177,21 +187,6 @@ func (s *policies) Read(ctx context.Context, policyID string) (*Policy, error) {
 	return p, err
 }
 
-// Upload the policy content of the policy.
-func (s *policies) Upload(ctx context.Context, policyID string, content []byte) error {
-	if !validStringID(&policyID) {
-		return errors.New("Invalid value for policy ID")
-	}
-
-	u := fmt.Sprintf("policies/%s/upload", url.QueryEscape(policyID))
-	req, err := s.client.newRequest("PUT", u, content)
-	if err != nil {
-		return err
-	}
-
-	return s.client.do(ctx, req, nil)
-}
-
 // PolicyUpdateOptions represents the options for updating a policy.
 type PolicyUpdateOptions struct {
 	// For internal use only!
@@ -248,4 +243,40 @@ func (s *policies) Delete(ctx context.Context, policyID string) error {
 	}
 
 	return s.client.do(ctx, req, nil)
+}
+
+// Upload the policy content of the policy.
+func (s *policies) Upload(ctx context.Context, policyID string, content []byte) error {
+	if !validStringID(&policyID) {
+		return errors.New("Invalid value for policy ID")
+	}
+
+	u := fmt.Sprintf("policies/%s/upload", url.QueryEscape(policyID))
+	req, err := s.client.newRequest("PUT", u, content)
+	if err != nil {
+		return err
+	}
+
+	return s.client.do(ctx, req, nil)
+}
+
+// Download the policy content of the policy.
+func (s *policies) Download(ctx context.Context, policyID string) ([]byte, error) {
+	if !validStringID(&policyID) {
+		return nil, errors.New("Invalid value for policy ID")
+	}
+
+	u := fmt.Sprintf("policies/%s/download", url.QueryEscape(policyID))
+	req, err := s.client.newRequest("GET", u, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	var buf bytes.Buffer
+	err = s.client.do(ctx, req, &buf)
+	if err != nil {
+		return nil, err
+	}
+
+	return buf.Bytes(), nil
 }
