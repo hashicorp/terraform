@@ -87,3 +87,58 @@ func (cs *ChangesSync) RemoveResourceInstanceChange(addr addrs.AbsResourceInstan
 		return
 	}
 }
+
+// AppendOutputChange records the given output value change in the set of
+// planned value changes.
+//
+// The caller must ensure that there are no concurrent writes to the given
+// change while this method is running, but it is safe to resume mutating
+// it after this method returns without affecting the saved change.
+func (cs *ChangesSync) AppendOutputChange(changeSrc *OutputChangeSrc) {
+	if cs == nil {
+		panic("AppendOutputChange on nil ChangesSync")
+	}
+	cs.lock.Lock()
+	defer cs.lock.Unlock()
+
+	s := changeSrc.DeepCopy()
+	cs.changes.Outputs = append(cs.changes.Outputs, s)
+}
+
+// GetOutputChange searches the set of output value changes for one matching
+// the given address, returning it if it exists.
+//
+// If no such change exists, nil is returned.
+//
+// The returned object is a deep copy of the change recorded in the plan, so
+// callers may mutate it although it's generally better (less confusing) to
+// treat planned changes as immutable after they've been initially constructed.
+func (cs *ChangesSync) GetOutputChange(addr addrs.AbsOutputValue) *OutputChangeSrc {
+	if cs == nil {
+		panic("GetOutputChange on nil ChangesSync")
+	}
+	cs.lock.Lock()
+	defer cs.lock.Unlock()
+
+	return cs.changes.OutputValue(addr)
+}
+
+// RemoveOutputChange searches the set of output value changes for one matching
+// the given address, and removes it from the set if it exists.
+func (cs *ChangesSync) RemoveOutputChange(addr addrs.AbsOutputValue) {
+	if cs == nil {
+		panic("RemoveOutputChange on nil ChangesSync")
+	}
+	cs.lock.Lock()
+	defer cs.lock.Unlock()
+
+	addrStr := addr.String()
+	for i, r := range cs.changes.Resources {
+		if r.Addr.String() != addrStr {
+			continue
+		}
+		copy(cs.changes.Outputs[i:], cs.changes.Outputs[i+1:])
+		cs.changes.Outputs = cs.changes.Outputs[:len(cs.changes.Outputs)-1]
+		return
+	}
+}
