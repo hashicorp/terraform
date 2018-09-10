@@ -11,6 +11,7 @@ import (
 	"sync"
 	"testing"
 
+	"github.com/davecgh/go-spew/spew"
 	"github.com/zclconf/go-cty/cty"
 	"github.com/zclconf/go-cty/cty/convert"
 
@@ -49,6 +50,13 @@ func TestMain(m *testing.M) {
 
 	// Always DeepCopy the Diff on every Plan during a test
 	contextTestDeepCopyOnPlan = true
+
+	// We have fmt.Stringer implementations on lots of objects that hide
+	// details that we very often want to see in tests, so we just disable
+	// spew's use of String methods globally on the assumption that spew
+	// usage implies an intent to see the raw values and ignore any
+	// abstractions.
+	spew.Config.DisableMethods = true
 
 	os.Exit(m.Run())
 }
