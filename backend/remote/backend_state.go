@@ -8,12 +8,14 @@ import (
 	"fmt"
 
 	tfe "github.com/hashicorp/go-tfe"
+	"github.com/hashicorp/terraform/state"
 	"github.com/hashicorp/terraform/state/remote"
 	"github.com/hashicorp/terraform/terraform"
 )
 
 type remoteClient struct {
 	client       *tfe.Client
+	lockInfo     *state.LockInfo
 	organization string
 	runID        string
 	workspace    string
@@ -104,6 +106,75 @@ func (r *remoteClient) Delete() error {
 	err := r.client.Workspaces.Delete(context.Background(), r.organization, r.workspace)
 	if err != nil && err != tfe.ErrResourceNotFound {
 		return fmt.Errorf("Error deleting workspace %s: %v", r.workspace, err)
+	}
+
+	return nil
+}
+
+// Lock the remote state.
+func (r *remoteClient) Lock(info *state.LockInfo) (string, error) {
+	ctx := context.Background()
+
+	lockErr := &state.LockError{Info: r.lockInfo}
+
+	// Retrieve the workspace to lock.
+	w, err := r.client.Workspaces.Read(ctx, r.organization, r.workspace)
+	if err != nil {
+		lockErr.Err = err
+		return "", lockErr
+	}
+
+	// Check if the workspace is already locked.
+	if w.Locked {
+		lockErr.Err = fmt.Errorf(
+			"remote state already\nlocked (lock ID: \"%s/%s\")", r.organization, r.workspace)
+		return "", lockErr
+	}
+
+	// Lock the workspace.
+	w, err = r.client.Workspaces.Lock(ctx, w.ID, tfe.WorkspaceLockOptions{
+		Reason: tfe.String("Locked by Terraform"),
+	})
+	if err != nil {
+		lockErr.Err = err
+		return "", lockErr
+	}
+
+	r.lockInfo = info
+
+	return r.lockInfo.ID, nil
+}
+
+// Unlock the remote state.
+func (r *remoteClient) Unlock(id string) error {
+	ctx := context.Background()
+
+	lockErr := &state.LockError{Info: r.lockInfo}
+
+	// Verify the expected lock ID.
+	if r.lockInfo != nil && r.lockInfo.ID != id {
+		lockErr.Err = fmt.Errorf("lock ID does not match existing lock")
+		return lockErr
+	}
+
+	// Verify the optional force-unlock lock ID.
+	if r.lockInfo == nil && r.organization+"/"+r.workspace != id {
+		lockErr.Err = fmt.Errorf("lock ID does not match existing lock")
+		return lockErr
+	}
+
+	// Retrieve the workspace to lock.
+	w, err := r.client.Workspaces.Read(ctx, r.organization, r.workspace)
+	if err != nil {
+		lockErr.Err = err
+		return lockErr
+	}
+
+	// Unlock the workspace.
+	w, err = r.client.Workspaces.Unlock(ctx, w.ID)
+	if err != nil {
+		lockErr.Err = err
+		return lockErr
 	}
 
 	return nil

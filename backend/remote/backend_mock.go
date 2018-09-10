@@ -504,11 +504,21 @@ func (m *mockWorkspaces) Delete(ctx context.Context, organization, workspace str
 }
 
 func (m *mockWorkspaces) Lock(ctx context.Context, workspaceID string, options tfe.WorkspaceLockOptions) (*tfe.Workspace, error) {
-	panic("not implemented")
+	w, ok := m.workspaceIDs[workspaceID]
+	if !ok {
+		return nil, tfe.ErrResourceNotFound
+	}
+	w.Locked = true
+	return w, nil
 }
 
 func (m *mockWorkspaces) Unlock(ctx context.Context, workspaceID string) (*tfe.Workspace, error) {
-	panic("not implemented")
+	w, ok := m.workspaceIDs[workspaceID]
+	if !ok {
+		return nil, tfe.ErrResourceNotFound
+	}
+	w.Locked = false
+	return w, nil
 }
 
 func (m *mockWorkspaces) AssignSSHKey(ctx context.Context, workspaceID string, options tfe.WorkspaceAssignSSHKeyOptions) (*tfe.Workspace, error) {
