@@ -182,7 +182,7 @@ func TestContext2Apply_resourceCountOneList(t *testing.T) {
 	assertNoDiagnostics(t, diags)
 
 	got := strings.TrimSpace(state.String())
-	want := strings.TrimSpace(`null_resource.foo:
+	want := strings.TrimSpace(`null_resource.foo.0:
   ID = foo
   provider = provider.null
 
