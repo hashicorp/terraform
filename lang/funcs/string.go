@@ -72,7 +72,10 @@ var SortFunc = function.New(&function.Spec{
 
 		list := make([]string, 0, listVal.LengthInt())
 		for it := listVal.ElementIterator(); it.Next(); {
-			_, v := it.Element()
+			iv, v := it.Element()
+			if v.IsNull() {
+				return cty.UnknownVal(retType), fmt.Errorf("given list element %s is null; a null string cannot be sorted", iv.AsBigFloat().String())
+			}
 			list = append(list, v.AsString())
 		}
 
