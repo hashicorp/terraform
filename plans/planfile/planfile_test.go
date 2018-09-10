@@ -43,8 +43,8 @@ func TestRoundtrip(t *testing.T) {
 	// file is tested more fully in tfplan_test.go .
 	planIn := &plans.Plan{
 		Changes: &plans.Changes{
-			Resources:   []*plans.ResourceInstanceChangeSrc{},
-			RootOutputs: map[string]*plans.OutputChangeSrc{},
+			Resources: []*plans.ResourceInstanceChangeSrc{},
+			Outputs:   []*plans.OutputChangeSrc{},
 		},
 		ProviderSHA256s: map[string][]byte{},
 		VariableValues: map[string]plans.DynamicValue{

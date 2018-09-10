@@ -12,19 +12,27 @@ import (
 // A Changes object can be rendered into a visual diff (by the caller, using
 // code in another package) for display to the user.
 type Changes struct {
-	Resources   []*ResourceInstanceChangeSrc
-	RootOutputs map[string]*OutputChangeSrc
+	// Resources tracks planned changes to resource instance objects.
+	Resources []*ResourceInstanceChangeSrc
+
+	// Outputs tracks planned changes output values.
+	//
+	// Note that although an in-memory plan contains planned changes for
+	// outputs throughout the configuration, a plan serialized
+	// to disk retains only the root outputs because they are
+	// externally-visible, while other outputs are implementation details and
+	// can be easily re-calculated during the apply phase. Therefore only root
+	// module outputs will survive a round-trip through a plan file.
+	Outputs []*OutputChangeSrc
 }
 
 // NewChanges returns a valid Changes object that describes no changes.
 func NewChanges() *Changes {
-	return &Changes{
-		RootOutputs: make(map[string]*OutputChangeSrc),
-	}
+	return &Changes{}
 }
 
 func (c *Changes) Empty() bool {
-	return (len(c.Resources) + len(c.RootOutputs)) == 0
+	return (len(c.Resources) + len(c.Outputs)) == 0
 }
 
 // ResourceInstance returns the planned change for the current object of the
@@ -49,6 +57,19 @@ func (c *Changes) ResourceInstanceDeposed(addr addrs.AbsResourceInstance, key st
 	for _, rc := range c.Resources {
 		if rc.Addr.String() == addrStr && rc.DeposedKey == key {
 			return rc
+		}
+	}
+
+	return nil
+}
+
+// OutputValue returns the planned change for the output value with the
+//  given address, if any. Returns nil if no change is planned.
+func (c *Changes) OutputValue(addr addrs.AbsOutputValue) *OutputChangeSrc {
+	addrStr := addr.String()
+	for _, oc := range c.Outputs {
+		if oc.Addr.String() == addrStr {
+			return oc
 		}
 	}
 
@@ -203,6 +224,10 @@ func (rc *ResourceInstanceChange) Simplify(destroying bool) *ResourceInstanceCha
 
 // OutputChange describes a change to an output value.
 type OutputChange struct {
+	// Addr is the absolute address of the output value that the change
+	// will apply to.
+	Addr addrs.AbsOutputValue
+
 	// Change is an embedded description of the change.
 	//
 	// For output value changes, the type constraint for the DynamicValue
