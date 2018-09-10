@@ -251,6 +251,9 @@ func (p *MockProvider) ReadResource(r providers.ReadResourceRequest) providers.R
 }
 
 func (p *MockProvider) PlanResourceChange(r providers.PlanResourceChangeRequest) providers.PlanResourceChangeResponse {
+	p.Lock()
+	defer p.Unlock()
+
 	p.PlanResourceChangeCalled = true
 	p.PlanResourceChangeRequest = r
 
