@@ -52,8 +52,8 @@ func readTfplan(r io.Reader) (*plans.Plan, error) {
 	plan := &plans.Plan{
 		VariableValues: map[string]plans.DynamicValue{},
 		Changes: &plans.Changes{
-			RootOutputs: map[string]*plans.OutputChangeSrc{},
-			Resources:   []*plans.ResourceInstanceChangeSrc{},
+			Outputs:   []*plans.OutputChangeSrc{},
+			Resources: []*plans.ResourceInstanceChangeSrc{},
 		},
 
 		ProviderSHA256s: map[string][]byte{},
@@ -66,10 +66,14 @@ func readTfplan(r io.Reader) (*plans.Plan, error) {
 			return nil, fmt.Errorf("invalid plan for output %q: %s", name, err)
 		}
 
-		plan.Changes.RootOutputs[name] = &plans.OutputChangeSrc{
+		plan.Changes.Outputs = append(plan.Changes.Outputs, &plans.OutputChangeSrc{
+			// All output values saved in the plan file are root module outputs,
+			// since we don't retain others. (They can be easily recomputed
+			// during apply).
+			Addr:      addrs.OutputValue{Name: name}.Absolute(addrs.RootModuleInstance),
 			ChangeSrc: *change,
 			Sensitive: rawOC.Sensitive,
-		}
+		})
 	}
 
 	for _, rawRC := range rawPlan.ResourceChanges {
@@ -288,7 +292,16 @@ func writeTfplan(plan *plans.Plan, w io.Writer) error {
 		ResourceChanges: []*planproto.ResourceInstanceChange{},
 	}
 
-	for name, oc := range plan.Changes.RootOutputs {
+	for _, oc := range plan.Changes.Outputs {
+		// When serializing a plan we only retain the root outputs, since
+		// changes to these are externally-visible side effects (e.g. via
+		// terraform_remote_state).
+		if !oc.Addr.Module.IsRoot() {
+			continue
+		}
+
+		name := oc.Addr.OutputValue.Name
+
 		// Writing outputs as cty.DynamicPseudoType forces the stored values
 		// to also contain dynamic type information, so we can recover the
 		// original type when we read the values back in readTFPlan.
