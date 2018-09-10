@@ -21,15 +21,17 @@ func TestTFPlanRoundTrip(t *testing.T) {
 			"foo": mustNewDynamicValueStr("foo value"),
 		},
 		Changes: &plans.Changes{
-			RootOutputs: map[string]*plans.OutputChangeSrc{
-				"bar": {
+			Outputs: []*plans.OutputChangeSrc{
+				{
+					Addr: addrs.OutputValue{Name: "bar"}.Absolute(addrs.RootModuleInstance),
 					ChangeSrc: plans.ChangeSrc{
 						Action: plans.Create,
 						After:  mustNewDynamicValueStr("bar value"),
 					},
 					Sensitive: false,
 				},
-				"baz": {
+				{
+					Addr: addrs.OutputValue{Name: "baz"}.Absolute(addrs.RootModuleInstance),
 					ChangeSrc: plans.ChangeSrc{
 						Action: plans.NoOp,
 						Before: mustNewDynamicValueStr("baz value"),
@@ -37,7 +39,8 @@ func TestTFPlanRoundTrip(t *testing.T) {
 					},
 					Sensitive: false,
 				},
-				"secret": {
+				{
+					Addr: addrs.OutputValue{Name: "secret"}.Absolute(addrs.RootModuleInstance),
 					ChangeSrc: plans.ChangeSrc{
 						Action: plans.Update,
 						Before: mustNewDynamicValueStr("old secret value"),
