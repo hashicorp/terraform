@@ -94,8 +94,12 @@ func (rcs *ResourceInstanceChangeSrc) DeepCopy() *ResourceInstanceChangeSrc {
 	return &ret
 }
 
-// OutputChange describes a change to an output value.
+// OutputChangeSrc describes a change to an output value.
 type OutputChangeSrc struct {
+	// Addr is the absolute address of the output value that the change
+	// will apply to.
+	Addr addrs.AbsOutputValue
+
 	// ChangeSrc is an embedded description of the not-yet-decoded change.
 	//
 	// For output value changes, the type constraint for the DynamicValue
@@ -117,9 +121,30 @@ func (ocs *OutputChangeSrc) Decode() (*OutputChange, error) {
 		return nil, err
 	}
 	return &OutputChange{
+		Addr:      ocs.Addr,
 		Change:    *change,
 		Sensitive: ocs.Sensitive,
 	}, nil
+}
+
+// DeepCopy creates a copy of the receiver where any pointers to nested mutable
+// values are also copied, thus ensuring that future mutations of the receiver
+// will not affect the copy.
+//
+// Some types used within a resource change are immutable by convention even
+// though the Go language allows them to be mutated, such as the types from
+// the addrs package. These are _not_ copied by this method, under the
+// assumption that callers will behave themselves.
+func (ocs *OutputChangeSrc) DeepCopy() *OutputChangeSrc {
+	if ocs == nil {
+		return nil
+	}
+	ret := *ocs
+
+	ret.ChangeSrc.Before = ret.ChangeSrc.Before.Copy()
+	ret.ChangeSrc.After = ret.ChangeSrc.After.Copy()
+
+	return &ret
 }
 
 // ChangeSrc is a not-yet-decoded Change.
