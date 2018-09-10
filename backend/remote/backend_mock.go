@@ -413,17 +413,38 @@ func newMockWorkspaces(client *mockClient) *mockWorkspaces {
 }
 
 func (m *mockWorkspaces) List(ctx context.Context, organization string, options tfe.WorkspaceListOptions) (*tfe.WorkspaceList, error) {
+	dummyWorkspaces := 10
 	wl := &tfe.WorkspaceList{}
+
+	// We return dummy workspaces for the first page to test pagination.
+	if options.PageNumber <= 1 {
+		for i := 0; i < dummyWorkspaces; i++ {
+			wl.Items = append(wl.Items, &tfe.Workspace{
+				ID:   generateID("ws-"),
+				Name: fmt.Sprintf("dummy-workspace-%d", i),
+			})
+		}
+
+		wl.Pagination = &tfe.Pagination{
+			CurrentPage: 1,
+			NextPage:    2,
+			TotalPages:  2,
+			TotalCount:  len(wl.Items) + len(m.workspaceIDs),
+		}
+
+		return wl, nil
+	}
+
+	// The second page will return any actual results.
 	for _, w := range m.workspaceIDs {
 		wl.Items = append(wl.Items, w)
 	}
 
 	wl.Pagination = &tfe.Pagination{
-		CurrentPage:  1,
-		NextPage:     1,
+		CurrentPage:  2,
 		PreviousPage: 1,
-		TotalPages:   1,
-		TotalCount:   len(wl.Items),
+		TotalPages:   2,
+		TotalCount:   len(wl.Items) + dummyWorkspaces,
 	}
 
 	return wl, nil
