@@ -415,10 +415,10 @@ func (d *InstanceDiff) Unlock() { d.mu.Unlock() }
 // This method is intended for shimming old subsystems that still use this
 // legacy diff type to work with the new-style types.
 func (d *InstanceDiff) ApplyToValue(base cty.Value, schema *configschema.Block) (cty.Value, error) {
-	// No diff means the state is unchanged.
-	if d.Empty() {
-		return base, nil
-	}
+	// We always build a new value here, even if the given diff is "empty",
+	// because we might be planning to create a new instance that happens
+	// to have no attributes set, and so we want to produce an empty object
+	// rather than just echoing back the null old value.
 
 	// Create an InstanceState attributes from our existing state.
 	// We can use this to more easily apply the diff changes.
