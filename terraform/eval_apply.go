@@ -53,15 +53,24 @@ func (n *EvalApply) Eval(ctx EvalContext) (interface{}, error) {
 		*n.CreateNew = (change.Action == plans.Create || change.Action == plans.Replace)
 	}
 
-	configVal := cty.NullVal(cty.DynamicPseudoType) // TODO: Populate this when n.Config is non-nil; will need config and provider schema in here
+	configVal := cty.NullVal(cty.DynamicPseudoType)
+	if n.Config != nil {
+		var configDiags tfdiags.Diagnostics
+		keyData := EvalDataForInstanceKey(n.Addr.Key)
+		configVal, _, configDiags = ctx.EvaluateBlock(n.Config.Config, schema, nil, keyData)
+		diags = diags.Append(configDiags)
+		if configDiags.HasErrors() {
+			return nil, diags.Err()
+		}
+	}
 
 	log.Printf("[DEBUG] %s: applying the planned %s change", n.Addr.Absolute(ctx.Path()), change.Action)
 	resp := provider.ApplyResourceChange(providers.ApplyResourceChangeRequest{
 		TypeName:       n.Addr.Resource.Type,
 		PriorState:     change.Before,
-		Config:         configVal, // TODO
+		Config:         configVal,
 		PlannedState:   change.After,
-		PlannedPrivate: change.Private, // TODO
+		PlannedPrivate: change.Private,
 	})
 	applyDiags := resp.Diagnostics
 	if n.Config != nil {
