@@ -179,20 +179,18 @@ func TestContext2Apply_resourceCountOneList(t *testing.T) {
 	}
 
 	state, diags := ctx.Apply()
-	if diags.HasErrors() {
-		t.Fatalf("diags: %s", diags.Err())
-	}
+	assertNoDiagnostics(t, diags)
 
-	actual := strings.TrimSpace(state.String())
-	expected := strings.TrimSpace(`null_resource.foo:
+	got := strings.TrimSpace(state.String())
+	want := strings.TrimSpace(`null_resource.foo:
   ID = foo
   provider = provider.null
 
 Outputs:
 
 test = [foo]`)
-	if actual != expected {
-		t.Fatalf("expected: \n%s\n\ngot: \n%s\n", expected, actual)
+	if got != want {
+		t.Fatalf("got:\n%s\n\nwant:\n%s\n", got, want)
 	}
 }
 func TestContext2Apply_resourceCountZeroList(t *testing.T) {
