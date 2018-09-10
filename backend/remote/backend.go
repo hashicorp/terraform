@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"net/url"
+	"os"
 	"sort"
 	"strings"
 	"sync"
@@ -279,6 +280,9 @@ func (b *Remote) State(workspace string) (state.State, error) {
 		client:       b.client,
 		organization: b.organization,
 		workspace:    workspace,
+
+		// This is optionally set during Terraform Enterprise runs.
+		runID: os.Getenv("TFE_RUN_ID"),
 	}
 
 	return &remote.State{Client: client}, nil
