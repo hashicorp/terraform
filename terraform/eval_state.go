@@ -210,7 +210,11 @@ func (n *EvalWriteState) Eval(ctx EvalContext) (interface{}, error) {
 		panic("EvalWriteState used with pointer to nil ProviderSchema object")
 	}
 
-	log.Printf("[TRACE] EvalWriteState: writing state object for %s", absAddr)
+	if obj != nil {
+		log.Printf("[TRACE] EvalWriteState: writing current state object for %s", absAddr)
+	} else {
+		log.Printf("[TRACE] EvalWriteState: removing current state object for %s", absAddr)
+	}
 
 	// TODO: Update this to use providers.Schema and populate the real
 	// schema version in the second argument to Encode below.
