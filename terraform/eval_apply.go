@@ -140,6 +140,31 @@ func (n *EvalApply) Eval(ctx EvalContext) (interface{}, error) {
 		newVal = cty.UnknownAsNull(newVal)
 	}
 
+	// If a provider returns a null or non-null object at the wrong time then
+	// we still want to save that but it often causes some confusing behaviors
+	// where it seems like Terraform is failing to take any action at all,
+	// so we'll generate some errors to draw attention to it.
+	if change.Action == plans.Delete && !newVal.IsNull() {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Provider returned invalid result object after apply",
+			fmt.Sprintf(
+				"After applying a %s plan, the provider returned a non-null object for %s. Destroying should always produce a null value, so this is always a bug in the provider and should be reported in the provider's own repository. Terraform will still save this errant object in the state for debugging and recovery.",
+				change.Action, n.Addr.Absolute(ctx.Path()),
+			),
+		))
+	}
+	if change.Action != plans.Delete && newVal.IsNull() {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Provider returned invalid result object after apply",
+			fmt.Sprintf(
+				"After applying a %s plan, the provider returned a null object for %s. Only destroying should always produce a null value, so this is always a bug in the provider and should be reported in the provider's own repository.",
+				change.Action, n.Addr.Absolute(ctx.Path()),
+			),
+		))
+	}
+
 	var newState *states.ResourceInstanceObject
 	if !newVal.IsNull() { // null value indicates that the object is deleted, so we won't set a new state in that case
 		newState = &states.ResourceInstanceObject{
