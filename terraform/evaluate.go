@@ -354,6 +354,22 @@ func (d *evaluationStateData) GetModuleInstanceOutput(addr addrs.ModuleCallOutpu
 		return cty.DynamicVal, diags
 	}
 
+	// If a pending change is present in our current changeset then its value
+	// takes priority over what's in state. (It will usually be the same but
+	// will differ if the new value is unknown during planning.)
+	if changeSrc := d.Evaluator.Changes.GetOutputChange(absAddr); changeSrc != nil {
+		change, err := changeSrc.Decode()
+		if err != nil {
+			// This should happen only if someone has tampered with a plan
+			// file, so we won't bother with a pretty error for it.
+			diags = diags.Append(fmt.Errorf("planned change for %s could not be decoded: %s", absAddr, err))
+			return cty.DynamicVal, diags
+		}
+		// We care only about the "after" value, which is the value this output
+		// will take on after the plan is applied.
+		return change.After, diags
+	}
+
 	os := d.Evaluator.State.OutputValue(absAddr)
 	if os == nil {
 		// Not evaluated yet?
