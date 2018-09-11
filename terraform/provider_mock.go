@@ -379,9 +379,18 @@ func (p *MockProvider) ApplyResourceChange(r providers.ApplyResourceChangeReques
 		if err != nil {
 			resp.Diagnostics = resp.Diagnostics.Append(err)
 		}
-		newVal, err := newState.AttrsAsObjectValue(schema.Block.ImpliedType())
-		if err != nil {
-			resp.Diagnostics = resp.Diagnostics.Append(err)
+		var newVal cty.Value
+		if newState != nil {
+			var err error
+			newVal, err = newState.AttrsAsObjectValue(schema.Block.ImpliedType())
+			if err != nil {
+				resp.Diagnostics = resp.Diagnostics.Append(err)
+			}
+		} else {
+			// If apply returned a nil new state then that's the old way to
+			// indicate that the object was destroyed. Our new interface calls
+			// for that to be signalled as a null value.
+			newVal = cty.NullVal(schema.Block.ImpliedType())
 		}
 		resp.NewState = newVal
 
