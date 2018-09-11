@@ -216,13 +216,13 @@ func TestContext2Apply_resourceCountZeroList(t *testing.T) {
 		t.Fatalf("diags: %s", diags.Err())
 	}
 
-	actual := strings.TrimSpace(state.String())
-	expected := strings.TrimSpace(`<no state>
+	got := strings.TrimSpace(state.String())
+	want := strings.TrimSpace(`<no state>
 Outputs:
 
 test = []`)
-	if actual != expected {
-		t.Fatalf("expected: \n%s\n\ngot: \n%s\n", expected, actual)
+	if got != want {
+		t.Fatalf("wrong state\n\ngot:\n%s\n\nwant:\n%s\n", got, want)
 	}
 }
 
