@@ -68,16 +68,33 @@ func (b *ApplyGraphBuilder) Steps() []GraphTransformer {
 		}
 	}
 
-	concreteResource := func(a *NodeAbstractResourceInstance) dag.Vertex {
+	concreteResource := func(a *NodeAbstractResource) dag.Vertex {
+		return &NodeApplyableResource{
+			NodeAbstractResource: a,
+		}
+	}
+
+	concreteResourceInstance := func(a *NodeAbstractResourceInstance) dag.Vertex {
 		return &NodeApplyableResourceInstance{
 			NodeAbstractResourceInstance: a,
 		}
 	}
 
 	steps := []GraphTransformer{
-		// Creates all the nodes represented in the diff.
-		&DiffTransformer{
+		// Creates all the resources represented in the config. During apply,
+		// we use this just to ensure that the whole-resource metadata is
+		// updated to reflect things such as whether the count argument is
+		// set in config, or which provider configuration manages each resource.
+		&ConfigTransformer{
 			Concrete: concreteResource,
+			Config:   b.Config,
+		},
+
+		// Creates all the resource instances represented in the diff, along
+		// with dependency edges against the whole-resource nodes added by
+		// ConfigTransformer above.
+		&DiffTransformer{
+			Concrete: concreteResourceInstance,
 			Changes:  b.Changes,
 		},
 

@@ -4,6 +4,10 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/hashicorp/terraform/tfdiags"
+
+	"github.com/hashicorp/terraform/configs"
+
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/providers"
 	"github.com/hashicorp/terraform/states"
@@ -342,6 +346,48 @@ func (n *EvalUndeposeState) Eval(ctx EvalContext) (interface{}, error) {
 	state := ctx.State()
 
 	state.ForgetResourceInstanceDeposed(absAddr, *n.Key)
+
+	return nil, nil
+}
+
+// EvalWriteResourceState is an EvalNode implementation that ensures that
+// a suitable resource-level state record is present in the state, if that's
+// required for the "each mode" of that resource.
+//
+// This is important primarily for the situation where count = 0, since this
+// eval is the only change we get to set the resource "each mode" to list
+// in that case, allowing expression evaluation to see it as a zero-element
+// list rather than as not set at all.
+type EvalWriteResourceState struct {
+	Addr         addrs.Resource
+	Config       *configs.Resource
+	ProviderAddr addrs.AbsProviderConfig
+}
+
+// TODO: test
+func (n *EvalWriteResourceState) Eval(ctx EvalContext) (interface{}, error) {
+	var diags tfdiags.Diagnostics
+	absAddr := n.Addr.Absolute(ctx.Path())
+	state := ctx.State()
+
+	count, countDiags := evaluateResourceCountExpression(n.Config.Count, ctx)
+	diags = diags.Append(countDiags)
+	if countDiags.HasErrors() {
+		return nil, diags.Err()
+	}
+
+	// Currently we ony support NoEach and EachList, because for_each support
+	// is not fully wired up across Terraform. Once for_each support is added,
+	// we'll need to handle that here too, setting states.EachMap if the
+	// assigned expression is a map.
+	eachMode := states.NoEach
+	if count >= 0 { // -1 signals "count not set"
+		eachMode = states.EachList
+	}
+
+	// This method takes care of all of the business logic of updating this
+	// while ensuring that any existing instances are preserved, etc.
+	state.SetResourceMeta(absAddr, eachMode, n.ProviderAddr)
 
 	return nil, nil
 }
