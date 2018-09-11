@@ -111,6 +111,10 @@ func (c *remoteClient) Delete() error {
 func (c *remoteClient) createLockFile(infoJson []byte) (int64, error) {
 	w := c.lockFile().If(storage.Conditions{DoesNotExist: true}).NewWriter(c.storageContext)
 	err := func() error {
+		// Add metadata signalling to other clients that heartbeats will be
+		// performed on this lock file.
+		w.ObjectAttrs.Metadata = map[string]string{metadataHeaderHeartbeatEnabled: "true"}
+
 		if _, err := w.Write(infoJson); err != nil {
 			return err
 		}
@@ -119,14 +123,6 @@ func (c *remoteClient) createLockFile(infoJson []byte) (int64, error) {
 
 	if err != nil {
 		return 0, c.lockError(fmt.Errorf("writing %q failed: %v", c.lockFileURL(), err))
-	}
-
-	// Add metadata signalling to other clients that heartbeats will be
-	// performed on this lock file.
-	uattrs := storage.ObjectAttrsToUpdate{Metadata: make(map[string]string)}
-	uattrs.Metadata[metadataHeaderHeartbeatEnabled] = "true"
-	if _, err := c.lockFile().Update(c.storageContext, uattrs); err != nil {
-		return 0, c.lockError(err)
 	}
 
 	return w.Attrs().Generation, nil
