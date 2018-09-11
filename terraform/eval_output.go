@@ -1,12 +1,14 @@
 package terraform
 
 import (
+	"fmt"
 	"log"
 
 	"github.com/hashicorp/hcl2/hcl"
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/addrs"
+	"github.com/hashicorp/terraform/plans"
 )
 
 // EvalDeleteOutput is an EvalNode implementation that deletes an output
@@ -38,6 +40,8 @@ type EvalWriteOutput struct {
 
 // TODO: test
 func (n *EvalWriteOutput) Eval(ctx EvalContext) (interface{}, error) {
+	addr := n.Addr.Absolute(ctx.Path())
+
 	// This has to run before we have a state lock, since evaluation also
 	// reads the state
 	val, diags := ctx.EvaluateExpr(n.Expr, cty.DynamicPseudoType, nil)
@@ -48,7 +52,7 @@ func (n *EvalWriteOutput) Eval(ctx EvalContext) (interface{}, error) {
 		return nil, nil
 	}
 
-	addr := n.Addr.Absolute(ctx.Path())
+	changes := ctx.Changes() // may be nil, if we're not working on a changeset
 
 	// handling the interpolation error
 	if diags.HasErrors() {
@@ -68,5 +72,48 @@ func (n *EvalWriteOutput) Eval(ctx EvalContext) (interface{}, error) {
 	} else {
 		state.RemoveOutputValue(addr)
 	}
+
+	if changes != nil {
+		// For the moment we are not properly tracking changes to output
+		// values, and just marking them always as "Create" or "Destroy"
+		// actions. A future release will rework the output lifecycle so we
+		// can track their changes properly, in a similar way to how we work
+		// with resource instances.
+
+		var change *plans.OutputChange
+		if !val.IsNull() {
+			change = &plans.OutputChange{
+				Addr:      addr,
+				Sensitive: n.Sensitive,
+				Change: plans.Change{
+					Action: plans.Create,
+					Before: cty.NullVal(cty.DynamicPseudoType),
+					After:  val,
+				},
+			}
+		} else {
+			change = &plans.OutputChange{
+				Addr:      addr,
+				Sensitive: n.Sensitive,
+				Change: plans.Change{
+					// This is just a weird placeholder delete action since
+					// we don't have an actual prior value to indicate.
+					// FIXME: Generate real planned changes for output values
+					// that include the old values.
+					Action: plans.Delete,
+					Before: cty.NullVal(cty.DynamicPseudoType),
+					After:  cty.NullVal(cty.DynamicPseudoType),
+				},
+			}
+		}
+
+		cs, err := change.Encode()
+		if err != nil {
+			// Should never happen, since we just constructed this right above
+			panic(fmt.Sprintf("planned change for %s could not be encoded: %s", addr, err))
+		}
+		changes.AppendOutputChange(cs)
+	}
+
 	return nil, nil
 }
