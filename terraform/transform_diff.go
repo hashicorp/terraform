@@ -25,6 +25,28 @@ func (t *DiffTransformer) Transform(g *Graph) error {
 	// Go through all the modules in the diff.
 	log.Printf("[TRACE] DiffTransformer starting")
 
+	// DiffTransformer creates resource _instance_ nodes. If there are any
+	// whole-resource nodes already in the graph, we must ensure that they
+	// get evaluated before any of the corresponding instances by creating
+	// dependency edges, so we'll do some prep work here to ensure we'll only
+	// create connections to nodes that existed before we started here.
+	resourceNodes := map[string][]GraphNodeResource{}
+	for _, node := range g.Vertices() {
+		rn, ok := node.(GraphNodeResource)
+		if !ok {
+			continue
+		}
+		// We ignore any instances that _also_ implement
+		// GraphNodeResourceInstance, since in the unlikely event that they
+		// do exist we'd probably end up creating cycles by connecting them.
+		if _, ok := node.(GraphNodeResourceInstance); ok {
+			continue
+		}
+
+		addr := rn.ResourceAddr().String()
+		resourceNodes[addr] = append(resourceNodes[addr], rn)
+	}
+
 	for _, rc := range t.Changes.Resources {
 		addr := rc.Addr
 		dk := rc.DeposedKey
@@ -62,6 +84,10 @@ func (t *DiffTransformer) Transform(g *Graph) error {
 
 			log.Printf("[TRACE] DiffTransformer: %s will be represented by %s", addr, dag.VertexName(node))
 			g.Add(node)
+			rsrcAddr := addr.ContainingResource().String()
+			for _, rsrcNode := range resourceNodes[rsrcAddr] {
+				g.Connect(dag.BasicEdge(node, rsrcNode))
+			}
 		}
 
 		if delete {
@@ -77,6 +103,14 @@ func (t *DiffTransformer) Transform(g *Graph) error {
 				log.Printf("[TRACE] DiffTransformer: %s deposed object %s will be represented for destruction by %s", addr, dk, dag.VertexName(node))
 			}
 			g.Add(node)
+			rsrcAddr := addr.ContainingResource().String()
+			for _, rsrcNode := range resourceNodes[rsrcAddr] {
+				// We connect this edge "forwards" (even though destroy dependencies
+				// are often inverted) because evaluating the resource node
+				// after the destroy node could cause an unnecessary husk of
+				// a resource state to be re-added.
+				g.Connect(dag.BasicEdge(node, rsrcNode))
+			}
 		}
 
 	}
