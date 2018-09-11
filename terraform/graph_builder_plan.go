@@ -79,20 +79,18 @@ func (b *PlanGraphBuilder) Steps() []GraphTransformer {
 		// Add the local values
 		&LocalTransformer{Config: b.Config},
 
-		// Add the outputs
-		&OutputTransformer{Config: b.Config},
+		// Add nodes for configured outputs and orphan outputs
+		&OutputTransformer{
+			Config:  b.Config,
+			State:   b.State,
+			NewNode: NewOutputPlanNode,
+		},
 
 		// Add orphan resources
 		&OrphanResourceTransformer{
 			Concrete: b.ConcreteResourceOrphan,
 			State:    b.State,
 			Config:   b.Config,
-		},
-
-		// Create orphan output nodes
-		&OrphanOutputTransformer{
-			Config: b.Config,
-			State:  b.State,
 		},
 
 		// Attach the configuration to any resources

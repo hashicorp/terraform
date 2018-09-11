@@ -116,7 +116,11 @@ func (b *ApplyGraphBuilder) Steps() []GraphTransformer {
 		&LocalTransformer{Config: b.Config},
 
 		// Add the outputs
-		&OutputTransformer{Config: b.Config},
+		&OutputTransformer{
+			Config:  b.Config,
+			State:   b.State,
+			NewNode: NewOutputApplyNode,
+		},
 
 		// Add module variables
 		&ModuleVariableTransformer{Config: b.Config},

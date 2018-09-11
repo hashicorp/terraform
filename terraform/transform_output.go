@@ -1,27 +1,37 @@
 package terraform
 
 import (
-	"log"
-
+	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/dag"
+	"github.com/hashicorp/terraform/states"
 )
 
-// OutputTransformer is a GraphTransformer that adds all the outputs
-// in the configuration to the graph.
+// OutputTransformer is a GraphTransformer that adds nodes for all outputs
+// that exist in the configuration or the state, allowing us to evaluate new
+// values for them or remove them altogether.
 //
-// This is done for the apply graph builder even if dependent nodes
-// aren't changing since there is no downside: the state will be available
-// even if the dependent items aren't changing.
+// The caller must provide a factory functions for constructing both evaluate
+// nodes and destroy nodes, allowing different concrete node types to be used
+// during different graph walks. For destroy nodes, the given configuration
+// is nil.
 type OutputTransformer struct {
 	Config *configs.Config
+	State  *states.State
+
+	NewNode func(addr addrs.AbsOutputValue, config *configs.Output) dag.Vertex
 }
 
 func (t *OutputTransformer) Transform(g *Graph) error {
-	return t.transform(g, t.Config)
+	err := t.transformConfig(g, t.Config)
+	if err != nil {
+		return err
+	}
+
+	return t.transformOrphans(g)
 }
 
-func (t *OutputTransformer) transform(g *Graph, c *configs.Config) error {
+func (t *OutputTransformer) transformConfig(g *Graph, c *configs.Config) error {
 	// If we have no config then there can be no outputs.
 	if c == nil {
 		return nil
@@ -31,7 +41,7 @@ func (t *OutputTransformer) transform(g *Graph, c *configs.Config) error {
 	// we can reference module outputs and they must show up in the
 	// reference map.
 	for _, cc := range c.Children {
-		if err := t.transform(g, cc); err != nil {
+		if err := t.transformConfig(g, cc); err != nil {
 			return err
 		}
 	}
@@ -46,50 +56,30 @@ func (t *OutputTransformer) transform(g *Graph, c *configs.Config) error {
 
 	for _, o := range c.Module.Outputs {
 		addr := path.OutputValue(o.Name)
-		node := &NodeApplyableOutput{
-			Addr:   addr,
-			Config: o,
-		}
+		node := t.NewNode(addr, o)
 		g.Add(node)
 	}
 
 	return nil
 }
 
-// DestroyOutputTransformer is a GraphTransformer that adds nodes to delete
-// outputs during destroy. We need to do this to ensure that no stale outputs
-// are ever left in the state.
-type DestroyOutputTransformer struct {
-}
+func (t *OutputTransformer) transformOrphans(g *Graph) error {
+	// "orphans" here are any outputs present in the state that are not
+	// present in the configuration, which we'll therefore need to remove from
+	// the state after apply.
 
-func (t *DestroyOutputTransformer) Transform(g *Graph) error {
-	for _, v := range g.Vertices() {
-		output, ok := v.(*NodeApplyableOutput)
-		if !ok {
-			continue
-		}
-
-		// create the destroy node for this output
-		node := &NodeDestroyableOutput{
-			Addr:   output.Addr,
-			Config: output.Config,
-		}
-
-		log.Printf("[TRACE] creating %s", node.Name())
-		g.Add(node)
-
-		deps, err := g.Descendents(v)
-		if err != nil {
-			return err
-		}
-
-		// the destroy node must depend on the eval node
-		deps.Add(v)
-
-		for _, d := range deps.List() {
-			log.Printf("[TRACE] %s depends on %s", node.Name(), dag.VertexName(d))
-			g.Connect(dag.BasicEdge(node, d))
+	for _, ms := range t.State.Modules {
+		cfg := t.Config.DescendentForInstance(ms.Addr)
+		for name := range ms.OutputValues {
+			addr := addrs.OutputValue{Name: name}.Absolute(ms.Addr)
+			n := t.NewNode(addr, nil)
+			if cfg == nil {
+				g.Add(n)
+			} else if _, exists := cfg.Module.Outputs[name]; !exists {
+				g.Add(n)
+			}
 		}
 	}
+
 	return nil
 }

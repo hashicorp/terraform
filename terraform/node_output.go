@@ -3,14 +3,157 @@ package terraform
 import (
 	"fmt"
 
+	"github.com/hashicorp/terraform/plans"
+
+	"github.com/hashicorp/terraform/states"
+
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/dag"
 	"github.com/hashicorp/terraform/lang"
 )
 
+// NodePlannableOutput represents an output that is "plannable":
+// we want to check if the output value has changed and record that change
+// in the plan if so.
+//
+// If the node has no attached configuration, the planned change will be to
+// remove the output altogether.
+type NodePlannableOutput struct {
+	Addr   addrs.AbsOutputValue
+	Config *configs.Output // Config is the output in the config
+}
+
+var (
+	_ GraphNodeSubPath          = (*NodePlannableOutput)(nil)
+	_ RemovableIfNotTargeted    = (*NodePlannableOutput)(nil)
+	_ GraphNodeTargetDownstream = (*NodePlannableOutput)(nil)
+	_ GraphNodeReferenceable    = (*NodePlannableOutput)(nil)
+	_ GraphNodeReferencer       = (*NodePlannableOutput)(nil)
+	_ GraphNodeReferenceOutside = (*NodePlannableOutput)(nil)
+	_ GraphNodeEvalable         = (*NodePlannableOutput)(nil)
+	_ dag.GraphNodeDotter       = (*NodePlannableOutput)(nil)
+)
+
+// NewOutputPlanNode constructs a new graph node that will make a plan for
+// an output with the given address and configuration.
+//
+// The configuration may be nil, in which case the node will plan to remove
+// the output from the state altogether.
+func NewOutputPlanNode(addr addrs.AbsOutputValue, cfg *configs.Output) dag.Vertex {
+	return &NodePlannableOutput{
+		Addr:   addr,
+		Config: cfg,
+	}
+}
+
+func (n *NodePlannableOutput) Name() string {
+	return n.Addr.String()
+}
+
+// GraphNodeSubPath
+func (n *NodePlannableOutput) Path() addrs.ModuleInstance {
+	return n.Addr.Module
+}
+
+// RemovableIfNotTargeted
+func (n *NodePlannableOutput) RemoveIfNotTargeted() bool {
+	// We need to add this so that this node will be removed if
+	// it isn't targeted or a dependency of a target.
+	return true
+}
+
+// GraphNodeTargetDownstream
+func (n *NodePlannableOutput) TargetDownstream(targetedDeps, untargetedDeps *dag.Set) bool {
+	// If any of the direct dependencies of an output are targeted then
+	// the output must always be targeted as well, so its value will always
+	// be up-to-date at the completion of an apply walk.
+	return true
+}
+
+// GraphNodeReferenceOutside implementation
+func (n *NodePlannableOutput) ReferenceOutside() (selfPath, referencePath addrs.ModuleInstance) {
+	return referenceOutsideForOutput(n.Addr)
+}
+
+// GraphNodeReferenceable
+func (n *NodePlannableOutput) ReferenceableAddrs() []addrs.Referenceable {
+	return referenceableAddrsForOutput(n.Addr)
+}
+
+// GraphNodeReferencer
+func (n *NodePlannableOutput) References() []*addrs.Reference {
+	return appendResourceDestroyReferences(referencesForOutput(n.Config))
+}
+
+// GraphNodeEvalable
+func (n *NodePlannableOutput) EvalTree() EvalNode {
+	var state *states.OutputValue
+	var change *plans.OutputChange
+
+	return &EvalSequence{
+		Nodes: []EvalNode{
+			&EvalReadOutputState{
+				Addr:   n.Addr.OutputValue,
+				Output: &state,
+			},
+			&EvalIf{
+				If: func(EvalContext) (bool, error) {
+					if state == nil && n.Config == nil {
+						// Nothing to do, then. (Shouldn't have created a graph node at all.)
+						return false, EvalEarlyExitError{}
+					}
+					return n.Config != nil, nil
+				},
+				Then: &EvalPlanOutputChange{
+					Addr:       n.Addr.OutputValue,
+					Config:     n.Config,
+					PriorState: &state,
+					Output:     &change,
+				},
+				Else: &EvalPlanOutputDestroy{
+					Addr:       n.Addr.OutputValue,
+					PriorState: &state,
+					Output:     &change,
+				},
+			},
+			&EvalWriteOutputChange{
+				Change: &change,
+			},
+		},
+	}
+}
+
+// dag.GraphNodeDotter impl.
+func (n *NodePlannableOutput) DotNode(name string, opts *dag.DotOpts) *dag.DotNode {
+	return &dag.DotNode{
+		Name: name,
+		Attrs: map[string]string{
+			"label": n.Name(),
+			"shape": "note",
+		},
+	}
+}
+
+// NewOutputApplyNode constructs a new graph node that will update the state
+// for an output with the given address and configuration.
+//
+// The configuration may be nil, in which case the node will remove the output
+// from the state altogether.
+func NewOutputApplyNode(addr addrs.AbsOutputValue, cfg *configs.Output) dag.Vertex {
+	if cfg == nil {
+		return &NodeDestroyableOutput{
+			Addr: addr,
+		}
+	}
+	return &NodeApplyableOutput{
+		Addr:   addr,
+		Config: cfg,
+	}
+}
+
 // NodeApplyableOutput represents an output that is "applyable":
-// it is ready to be applied.
+// it needs its state value updated to reflect its configuration.
 type NodeApplyableOutput struct {
 	Addr   addrs.AbsOutputValue
 	Config *configs.Output // Config is the output in the config
@@ -113,15 +256,18 @@ func (n *NodeApplyableOutput) References() []*addrs.Reference {
 
 // GraphNodeEvalable
 func (n *NodeApplyableOutput) EvalTree() EvalNode {
+	var state *states.OutputValue
+
 	return &EvalSequence{
 		Nodes: []EvalNode{
-			&EvalOpFilter{
-				Ops: []walkOperation{walkRefresh, walkPlan, walkApply, walkValidate, walkDestroy, walkPlanDestroy},
-				Node: &EvalWriteOutput{
-					Addr:      n.Addr.OutputValue,
-					Sensitive: n.Config.Sensitive,
-					Expr:      n.Config.Expr,
-				},
+			&EvalOutput{
+				Addr:   n.Addr.OutputValue,
+				Config: n.Config,
+				Output: &state,
+			},
+			&EvalWriteOutputState{
+				Addr:  n.Addr.OutputValue,
+				State: &state,
 			},
 		},
 	}
@@ -138,11 +284,10 @@ func (n *NodeApplyableOutput) DotNode(name string, opts *dag.DotOpts) *dag.DotNo
 	}
 }
 
-// NodeDestroyableOutput represents an output that is "destroybale":
-// its application will remove the output from the state.
+// NodeDestroyableOutput represents an output that is "destroyable":
+// evaluating it will remove the output from the state altogether.
 type NodeDestroyableOutput struct {
-	Addr   addrs.AbsOutputValue
-	Config *configs.Output // Config is the output in the config
+	Addr addrs.AbsOutputValue
 }
 
 var (
@@ -178,7 +323,7 @@ func (n *NodeDestroyableOutput) TargetDownstream(targetedDeps, untargetedDeps *d
 
 // GraphNodeReferencer
 func (n *NodeDestroyableOutput) References() []*addrs.Reference {
-	return referencesForOutput(n.Config)
+	return nil
 }
 
 // GraphNodeEvalable

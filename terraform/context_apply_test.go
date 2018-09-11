@@ -216,6 +216,7 @@ func TestContext2Apply_resourceCountZeroList(t *testing.T) {
 		t.Fatalf("diags: %s", diags.Err())
 	}
 
+	t.Logf(spew.Sdump(state))
 	actual := strings.TrimSpace(state.String())
 	expected := strings.TrimSpace(`<no state>
 Outputs:
