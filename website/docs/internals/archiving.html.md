@@ -12,7 +12,7 @@ This page is purposefully not linked from anywhere on terraform.io: it is intend
 
 # Archiving Providers
 
-As contributors' circumstances change, development on a community-maintained Terraform provider can slow. When this happens, HashiCorp may use Github's "archiving" feature on the provider's repository, to clearly signal the provider's status to users.
+As contributors' circumstances change, development on a community-maintained Terraform provider can slow. When this happens, HashiCorp may use GitHub's "archiving" feature on the provider's repository, to clearly signal the provider's status to users.
 
 What does archiving mean?
 
