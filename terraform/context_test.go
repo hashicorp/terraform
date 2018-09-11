@@ -972,6 +972,7 @@ func assertNoErrors(t *testing.T, diags tfdiags.Diagnostics) {
 // assertNoDiagnostics and assertNoErrors for more specific helpers that can
 // also fail the test.
 func logDiagnostics(t *testing.T, diags tfdiags.Diagnostics) {
+	t.Helper()
 	for _, diag := range diags {
 		desc := diag.Description()
 		rng := diag.Source()
