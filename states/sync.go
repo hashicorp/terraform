@@ -1,6 +1,7 @@
 package states
 
 import (
+	"log"
 	"sync"
 
 	"github.com/zclconf/go-cty/cty"
@@ -267,6 +268,7 @@ func (s *SyncState) SetResourceInstanceCurrent(addr addrs.AbsResourceInstance, o
 
 	ms := s.state.EnsureModule(addr.Module)
 	ms.SetResourceInstanceCurrent(addr.Resource, obj.DeepCopy(), provider)
+	s.maybePruneModule(addr.Module)
 }
 
 // SetResourceInstanceDeposed saves the given instance object as a deposed
@@ -298,6 +300,7 @@ func (s *SyncState) SetResourceInstanceDeposed(addr addrs.AbsResourceInstance, k
 
 	ms := s.state.EnsureModule(addr.Module)
 	ms.SetResourceInstanceDeposed(addr.Resource, key, obj.DeepCopy(), provider)
+	s.maybePruneModule(addr.Module)
 }
 
 // DeposeResourceInstanceObject moves the current instance object for the
@@ -334,6 +337,7 @@ func (s *SyncState) ForgetResourceInstanceDeposed(addr addrs.AbsResourceInstance
 		return
 	}
 	ms.ForgetResourceInstanceDeposed(addr.Resource, key)
+	s.maybePruneModule(addr.Module)
 }
 
 // RemovePlannedResourceInstanceObjects removes from the state any resource
@@ -428,6 +432,7 @@ func (s *SyncState) maybePruneModule(addr addrs.ModuleInstance) {
 	}
 
 	if ms.empty() {
+		log.Printf("[TRACE] states.SyncState: pruning %s because it is empty", addr)
 		s.state.RemoveModule(addr)
 	}
 }
