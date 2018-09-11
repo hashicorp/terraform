@@ -161,7 +161,8 @@ func (n *EvalApply) Eval(ctx EvalContext) (interface{}, error) {
 		// success.
 		if n.Error != nil {
 			err := diags.Err()
-			n.Error = &err
+			*n.Error = err
+			log.Printf("[DEBUG] %s: apply errored, but we're indicating that via the Error pointer rather than returning it: %s", n.Addr.Absolute(ctx.Path()), err)
 			return nil, nil
 		}
 	}
