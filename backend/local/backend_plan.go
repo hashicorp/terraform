@@ -177,9 +177,6 @@ func (b *Local) renderPlan(plan *plans.Plan, schemas *terraform.Schemas) {
 	for _, change := range plan.Changes.Resources {
 		counts[change.Action]++
 	}
-	for _, change := range plan.Changes.RootOutputs {
-		counts[change.Action]++
-	}
 
 	headerBuf := &bytes.Buffer{}
 	fmt.Fprintf(headerBuf, "\n%s\n", strings.TrimSpace(planHeaderIntro))
