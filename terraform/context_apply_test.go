@@ -217,8 +217,7 @@ func TestContext2Apply_resourceCountZeroList(t *testing.T) {
 	}
 
 	got := strings.TrimSpace(state.String())
-	want := strings.TrimSpace(`<no state>
-Outputs:
+	want := strings.TrimSpace(`Outputs:
 
 test = []`)
 	if got != want {
