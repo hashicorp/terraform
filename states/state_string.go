@@ -59,9 +59,8 @@ func (s *State) String() string {
 				buf.WriteString(step.InstanceKey.String())
 				buf.WriteByte(']')
 			}
-			buf.WriteString(":")
 		}
-		buf.WriteByte('\n')
+		buf.WriteString(":\n")
 
 		s := bufio.NewScanner(strings.NewReader(mStr))
 		for s.Scan() {
