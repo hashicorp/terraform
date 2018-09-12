@@ -4,12 +4,16 @@ variable "num" {
 resource "test_thing" "source" {
   count = var.num
 
+  key = "source.${count.index}"
+
   # The diffFunc in the test exports "name" here too, which we can use
   # to test values that are known during plan.
 }
 
 resource "test_thing" "multi_count_var" {
   count = var.num
+
+  key = "multi_count_var.${count.index}"
 
   # Can pluck a single item out of a multi-var
   source_id   = test_thing.source.*.id[count.index]
@@ -20,11 +24,15 @@ resource "test_thing" "multi_count_derived" {
   # Can use the source to get the count
   count = length(test_thing.source)
 
+  key = "multi_count_derived.${count.index}"
+
   source_id   = test_thing.source.*.id[count.index]
   source_name = test_thing.source.*.name[count.index]
 }
 
 resource "test_thing" "whole_splat" {
+  key = "whole_splat"
+
   # Can "splat" the ids directly into an attribute of type list.
   source_ids   = test_thing.source.*.id
   source_names = test_thing.source.*.name

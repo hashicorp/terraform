@@ -3538,7 +3538,8 @@ func TestContext2Apply_multiVarComprehensive(t *testing.T) {
 	p.DiffFn = func(info *InstanceInfo, s *InstanceState, c *ResourceConfig) (*InstanceDiff, error) {
 		configsLock.Lock()
 		defer configsLock.Unlock()
-		configs[info.HumanId()] = c
+		key := c.Config["key"].(string)
+		configs[key] = c
 
 		// Return a minimal diff to make sure this resource gets included in
 		// the apply graph and thus the final state, but otherwise we're just
@@ -3549,7 +3550,7 @@ func TestContext2Apply_multiVarComprehensive(t *testing.T) {
 					NewComputed: true,
 				},
 				"name": &ResourceAttrDiff{
-					New: info.HumanId(),
+					New: key,
 				},
 			},
 		}, nil
@@ -3559,6 +3560,8 @@ func TestContext2Apply_multiVarComprehensive(t *testing.T) {
 		ResourceTypes: map[string]*configschema.Block{
 			"test_thing": {
 				Attributes: map[string]*configschema.Attribute{
+					"key":   {Type: cty.String, Required: true},
+
 					"source_id":              {Type: cty.String, Optional: true},
 					"source_name":            {Type: cty.String, Optional: true},
 					"first_source_id":        {Type: cty.String, Optional: true},
@@ -3594,67 +3597,59 @@ func TestContext2Apply_multiVarComprehensive(t *testing.T) {
 	})
 
 	if _, diags := ctx.Plan(); diags.HasErrors() {
-		t.Fatalf("error during plan: %s", diags.Err())
+		logDiagnostics(t, diags)
+		t.Fatalf("errors during plan")
 	}
 
-	checkConfig := func(name string, want map[string]interface{}) {
+	checkConfig := func(key string, want map[string]interface{}) {
 		configsLock.Lock()
 		defer configsLock.Unlock()
 
-		if _, ok := configs[name]; !ok {
-			t.Errorf("no config recorded for %s; expected a configuration", name)
+		if _, ok := configs[key]; !ok {
+			t.Errorf("no config recorded for %s; expected a configuration", key)
 			return
 		}
-		got := configs[name].Config
-		t.Run("config for "+name, func(t *testing.T) {
+		got := configs[key].Config
+		t.Run("config for "+key, func(t *testing.T) {
+			want["key"] = key // to avoid doing this for every example
 			for _, problem := range deep.Equal(got, want) {
 				t.Errorf(problem)
 			}
 		})
 	}
 
-	checkConfig("test_thing.multi_count_var.0", map[string]interface{}{
-		"id":          unknownValue(),
-		"name":        unknownValue(),
+	checkConfig("multi_count_var.0", map[string]interface{}{
 		"source_id":   unknownValue(),
-		"source_name": "test_thing.source.0",
+		"source_name": "source.0",
 	})
-	checkConfig("test_thing.multi_count_var.2", map[string]interface{}{
-		"id":          unknownValue(),
-		"name":        unknownValue(),
+	checkConfig("multi_count_var.2", map[string]interface{}{
 		"source_id":   unknownValue(),
-		"source_name": "test_thing.source.2",
+		"source_name": "source.2",
 	})
-	checkConfig("test_thing.multi_count_derived.0", map[string]interface{}{
-		"id":          unknownValue(),
-		"name":        unknownValue(),
+	checkConfig("multi_count_derived.0", map[string]interface{}{
 		"source_id":   unknownValue(),
-		"source_name": "test_thing.source.0",
+		"source_name": "source.0",
 	})
-	checkConfig("test_thing.multi_count_derived.2", map[string]interface{}{
-		"id":          unknownValue(),
-		"name":        unknownValue(),
+	checkConfig("multi_count_derived.2", map[string]interface{}{
 		"source_id":   unknownValue(),
-		"source_name": "test_thing.source.2",
+		"source_name": "source.2",
 	})
-	checkConfig("test_thing.whole_splat", map[string]interface{}{
-		"id":   unknownValue(),
-		"name": unknownValue(),
+	checkConfig("whole_splat", map[string]interface{}{
 		"source_ids": []interface{}{
 			unknownValue(),
 			unknownValue(),
 			unknownValue(),
 		},
 		"source_names": []interface{}{
-			"test_thing.source.0",
-			"test_thing.source.1",
-			"test_thing.source.2",
+			"source.0",
+			"source.1",
+			"source.2",
 		},
 		"source_ids_from_func": unknownValue(),
 		"source_names_from_func": []interface{}{
-			"test_thing.source.0",
-			"test_thing.source.1",
-			"test_thing.source.2",
+			"source.0",
+			"source.1",
+			"source.2",
 		},
 
 		"source_ids_wrapped": []interface{}{
@@ -3666,27 +3661,25 @@ func TestContext2Apply_multiVarComprehensive(t *testing.T) {
 		},
 		"source_names_wrapped": []interface{}{
 			[]interface{}{
-				"test_thing.source.0",
-				"test_thing.source.1",
-				"test_thing.source.2",
+				"source.0",
+				"source.1",
+				"source.2",
 			},
 		},
 
 		"first_source_id":   unknownValue(),
-		"first_source_name": "test_thing.source.0",
+		"first_source_name": "source.0",
 	})
-	checkConfig("module.child.test_thing.whole_splat", map[string]interface{}{
-		"id":   unknownValue(),
-		"name": unknownValue(),
+	checkConfig("child.whole_splat", map[string]interface{}{
 		"source_ids": []interface{}{
 			unknownValue(),
 			unknownValue(),
 			unknownValue(),
 		},
 		"source_names": []interface{}{
-			"test_thing.source.0",
-			"test_thing.source.1",
-			"test_thing.source.2",
+			"source.0",
+			"source.1",
+			"source.2",
 		},
 
 		"source_ids_wrapped": []interface{}{
@@ -3698,9 +3691,9 @@ func TestContext2Apply_multiVarComprehensive(t *testing.T) {
 		},
 		"source_names_wrapped": []interface{}{
 			[]interface{}{
-				"test_thing.source.0",
-				"test_thing.source.1",
-				"test_thing.source.2",
+				"source.0",
+				"source.1",
+				"source.2",
 			},
 		},
 	})
@@ -3714,9 +3707,9 @@ func TestContext2Apply_multiVarComprehensive(t *testing.T) {
 		want := map[string]interface{}{
 			"source_ids": []interface{}{"foo", "foo", "foo"},
 			"source_names": []interface{}{
-				"test_thing.source.0",
-				"test_thing.source.1",
-				"test_thing.source.2",
+				"source.0",
+				"source.1",
+				"source.2",
 			},
 		}
 		got := map[string]interface{}{}
