@@ -12,7 +12,6 @@ import (
 
 	"github.com/hashicorp/hil"
 	"github.com/hashicorp/hil/ast"
-	"github.com/mitchellh/go-homedir"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -2451,6 +2450,48 @@ func TestInterpolateFuncTimeAdd(t *testing.T) {
 			},
 			{ // Invalid format duration (day is not supported by ParseDuration)
 				`${timeadd("2017-11-22T00:00:00Z", "1d")}`,
+				nil,
+				true,
+			},
+		},
+	})
+}
+
+func TestInterpolateFuncDateAdd(t *testing.T) {
+	testFunction(t, testFunctionConfig{
+		Cases: []testFunctionCase{
+			{ //add a year
+				`${dateadd("2017-11-22T00:00:00Z", "1","0","0")}`,
+				"2018-11-22T00:00:01Z",
+				false,
+			},
+			{ //add a month
+				`${dateadd("2017-11-22T00:00:00Z", "0","1","0")}`,
+				"2018-12-22T00:00:01Z",
+				false,
+			},
+			{ //add a day
+				`${dateadd("2017-11-22T00:00:00Z", "0","0","1")}`,
+				"2018-11-23T00:00:01Z",
+				false,
+			},
+			{ //support subtraction
+				`${dateadd("2017-11-22T00:00:00Z", "0","0","-1")}`,
+				"2018-11-21T00:00:01Z",
+				false,
+			},
+			{ // Invalid format timestamp
+				`${dateadd("2017-11-22", "0","0","0")}`,
+				nil,
+				true,
+			},
+			{ // Missing arguments
+				`${dateadd("2017-11-22T00:00:00Z", "1")}`,
+				nil,
+				true,
+			},
+			{ // Missing arguments
+				`${dateadd("2017-11-22T00:00:00Z", "1","1")}`,
 				nil,
 				true,
 			},

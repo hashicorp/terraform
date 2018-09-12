@@ -79,6 +79,7 @@ func Funcs() map[string]ast.Function {
 		"compact":      interpolationFuncCompact(),
 		"concat":       interpolationFuncConcat(),
 		"contains":     interpolationFuncContains(),
+		"dateadd":      interpolationFuncDateAdd(),
 		"dirname":      interpolationFuncDirname(),
 		"distinct":     interpolationFuncDistinct(),
 		"element":      interpolationFuncElement(),
@@ -1528,6 +1529,30 @@ func interpolationFuncTimeAdd() ast.Function {
 			}
 
 			return ts.Add(duration).Format(time.RFC3339), nil
+		},
+	}
+}
+
+func interpolationFuncDateAdd() ast.Function {
+	return ast.Function{
+		ArgTypes: []ast.Type{
+			ast.TypeString, // input timestamp string in RFC3339 format
+			ast.TypeInt, // input int for years
+			ast.TypeInt, // input int for months
+			ast.TypeInt, // input int for days
+		},
+		ReturnType: ast.TypeString,
+		Callback: func(args []interface{}) (interface{}, error) {
+
+			ts, err := time.Parse(time.RFC3339, args[0].(string))
+			if err != nil {
+				return nil, err
+			}
+			years := args[1].(int)
+			months := args[2].(int)
+			days := args[3].(int)
+
+			return ts.AddDate(years, months, days).Format(time.RFC3339), nil
 		},
 	}
 }
