@@ -238,7 +238,8 @@ func TestContext2Apply_resourceDependsOnModule(t *testing.T) {
 		info *InstanceInfo,
 		is *InstanceState,
 		id *InstanceDiff) (*InstanceState, error) {
-		if info.HumanId() == "module.child.aws_instance.child" {
+
+		if id.Attributes["ami"].New == "child" {
 
 			// make the child slower than the parent
 			time.Sleep(50 * time.Millisecond)
