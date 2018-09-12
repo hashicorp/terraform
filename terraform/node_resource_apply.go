@@ -2,6 +2,10 @@ package terraform
 
 import (
 	"log"
+
+	"github.com/hashicorp/terraform/addrs"
+	"github.com/hashicorp/terraform/dag"
+	"github.com/hashicorp/terraform/lang"
 )
 
 // NodeApplyableResource represents a resource that is "applyable":
@@ -21,10 +25,30 @@ var (
 	_ GraphNodeEvalable             = (*NodeApplyableResource)(nil)
 	_ GraphNodeProviderConsumer     = (*NodeApplyableResource)(nil)
 	_ GraphNodeAttachResourceConfig = (*NodeApplyableResource)(nil)
+	_ GraphNodeReferencer           = (*NodeApplyableResource)(nil)
 )
 
 func (n *NodeApplyableResource) Name() string {
 	return n.NodeAbstractResource.Name() + " (prepare state)"
+}
+
+func (n *NodeApplyableResource) References() []*addrs.Reference {
+	if n.Config == nil {
+		log.Printf("[WARN] NodeApplyableResource %q: no configuration, so can't determine References", dag.VertexName(n))
+		return nil
+	}
+
+	var result []*addrs.Reference
+
+	// Since this node type only updates resource-level metadata, we only
+	// need to worry about the parts of the configuration that affect
+	// our "each mode": the count and for_each meta-arguments.
+	refs, _ := lang.ReferencesInExpr(n.Config.Count)
+	result = append(result, refs...)
+	refs, _ = lang.ReferencesInExpr(n.Config.ForEach)
+	result = append(result, refs...)
+
+	return result
 }
 
 // GraphNodeEvalable
