@@ -85,18 +85,19 @@ func (n *EvalRefresh) Eval(ctx EvalContext) (interface{}, error) {
 		return nil, diags.Err()
 	}
 
-	state.Value = resp.NewState
+	newState := state.DeepCopy()
+	newState.Value = resp.NewState
 
 	// Call post-refresh hook
 	err = ctx.Hook(func(h Hook) (HookAction, error) {
-		return h.PostRefresh(absAddr, states.CurrentGen, priorVal, state.Value)
+		return h.PostRefresh(absAddr, states.CurrentGen, priorVal, newState.Value)
 	})
 	if err != nil {
 		return nil, err
 	}
 
 	if n.Output != nil {
-		*n.Output = state
+		*n.Output = newState
 	}
 
 	return nil, diags.ErrWithWarnings()
