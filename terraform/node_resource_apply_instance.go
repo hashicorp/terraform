@@ -332,6 +332,7 @@ func (n *NodeApplyableResourceInstance) evalTreeManagedResource(addr addrs.AbsRe
 			&EvalApply{
 				Addr:           addr.Resource,
 				Config:         n.Config,
+				Dependencies:   n.StateReferences(),
 				State:          &state,
 				Change:         &diffApply,
 				Provider:       &provider,
