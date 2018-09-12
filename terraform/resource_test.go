@@ -12,41 +12,6 @@ import (
 	"github.com/mitchellh/reflectwalk"
 )
 
-func TestInstanceInfo(t *testing.T) {
-	cases := []struct {
-		Info   *InstanceInfo
-		Result string
-	}{
-		{
-			&InstanceInfo{
-				Id: "foo",
-			},
-			"foo",
-		},
-		{
-			&InstanceInfo{
-				Id:         "foo",
-				ModulePath: rootModulePath,
-			},
-			"foo",
-		},
-		{
-			&InstanceInfo{
-				Id:         "foo",
-				ModulePath: []string{"root", "consul"},
-			},
-			"module.consul.foo",
-		},
-	}
-
-	for i, tc := range cases {
-		actual := tc.Info.HumanId()
-		if actual != tc.Result {
-			t.Fatalf("%d: %s", i, actual)
-		}
-	}
-}
-
 func TestInstanceInfoResourceAddress(t *testing.T) {
 	tests := []struct {
 		Input *InstanceInfo
