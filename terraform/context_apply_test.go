@@ -407,7 +407,8 @@ func TestContext2Apply_resourceDependsOnModuleDestroy(t *testing.T) {
 			info *InstanceInfo,
 			is *InstanceState,
 			id *InstanceDiff) (*InstanceState, error) {
-			if info.HumanId() == "aws_instance.a" {
+
+			if id.Attributes["ami"].New == "parent" {
 				checked = true
 
 				// Sleep to allow parallel execution
@@ -469,7 +470,8 @@ func TestContext2Apply_resourceDependsOnModuleGrandchild(t *testing.T) {
 			info *InstanceInfo,
 			is *InstanceState,
 			id *InstanceDiff) (*InstanceState, error) {
-			if info.HumanId() == "module.child.module.grandchild.aws_instance.c" {
+
+			if id.Attributes["ami"].New == "grandchild" {
 				checked = true
 
 				// Sleep to allow parallel execution
@@ -521,11 +523,8 @@ func TestContext2Apply_resourceDependsOnModuleInModule(t *testing.T) {
 		// called a child.
 		var called int32
 		var checked bool
-		p.ApplyFn = func(
-			info *InstanceInfo,
-			is *InstanceState,
-			id *InstanceDiff) (*InstanceState, error) {
-			if info.HumanId() == "module.child.module.grandchild.aws_instance.c" {
+		p.ApplyFn = func(info *InstanceInfo, is *InstanceState, id *InstanceDiff) (*InstanceState, error) {
+			if id.Attributes["ami"].New == "child" {
 				checked = true
 
 				// Sleep to allow parallel execution
@@ -3259,7 +3258,7 @@ func TestContext2Apply_multiProviderDestroy(t *testing.T) {
 			lock.Lock()
 			defer lock.Unlock()
 
-			if info.HumanId() == "aws_instance.bar" {
+			if info.Type == "aws_instance" {
 				checked = true
 
 				// Sleep to allow parallel execution
@@ -3386,7 +3385,7 @@ func TestContext2Apply_multiProviderDestroyChild(t *testing.T) {
 			lock.Lock()
 			defer lock.Unlock()
 
-			if info.HumanId() == "module.child.aws_instance.bar" {
+			if info.Type == "aws_instance" {
 				checked = true
 
 				// Sleep to allow parallel execution
@@ -3859,7 +3858,7 @@ func TestContext2Apply_multiVarCountDec(t *testing.T) {
 			lock.Lock()
 			defer lock.Unlock()
 
-			if info.HumanId() == "aws_instance.bar" {
+			if id.Attributes["ami"].New == "special" {
 				checked = true
 
 				// Sleep to allow parallel execution

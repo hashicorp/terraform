@@ -1,2 +1,4 @@
-resource "aws_instance" "c" {}
+resource "aws_instance" "c" {
+  ami = "grandchild"
+}
 
