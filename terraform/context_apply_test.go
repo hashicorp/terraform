@@ -3559,7 +3559,7 @@ func TestContext2Apply_multiVarComprehensive(t *testing.T) {
 		ResourceTypes: map[string]*configschema.Block{
 			"test_thing": {
 				Attributes: map[string]*configschema.Attribute{
-					"key":   {Type: cty.String, Required: true},
+					"key": {Type: cty.String, Required: true},
 
 					"source_id":              {Type: cty.String, Optional: true},
 					"source_name":            {Type: cty.String, Optional: true},
@@ -9121,7 +9121,7 @@ func TestContext2Apply_dataDependsOn(t *testing.T) {
 	}
 
 	p.DiffFn = testDiffFn
-	p.ReadDataSourceFn = func (req providers.ReadDataSourceRequest) providers.ReadDataSourceResponse{
+	p.ReadDataSourceFn = func(req providers.ReadDataSourceRequest) providers.ReadDataSourceResponse {
 		return providers.ReadDataSourceResponse{
 			State: cty.ObjectVal(map[string]cty.Value{
 				"foo": cty.StringVal(provisionerOutput),
