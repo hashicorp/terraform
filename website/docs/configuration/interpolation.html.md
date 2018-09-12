@@ -229,6 +229,9 @@ The supported built-in functions are:
   * `contains(list, element)` - Returns *true* if a list contains the given element
      and returns *false* otherwise. Examples: `contains(var.list_of_strings, "an_element")`
 
+  * `dateadd(time, years, months, days)` - Returns a UTC timestamp string corresponding to adding given `years`, `months`, and `days` to `time` in RFC 3339 format.      
+    For example, `dateadd("2017-03-14T00:00:00Z", "1","0","0")` produces a value `"2018-03-14T00:10:00Z"`. 
+
   * `dirname(path)` - Returns all but the last element of path, typically the path's directory.
 
   * `distinct(list)` - Removes duplicate items from a list. Keeps the first
