@@ -6221,7 +6221,7 @@ func TestContext2Apply_destroyNestedModule(t *testing.T) {
 
 	// Test that things were destroyed
 	actual := strings.TrimSpace(state.String())
-	if actual != "" {
+	if actual != "<no state>" {
 		t.Fatalf("expected no state, got: %s", actual)
 	}
 }
