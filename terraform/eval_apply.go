@@ -20,6 +20,7 @@ import (
 type EvalApply struct {
 	Addr           addrs.ResourceInstance
 	Config         *configs.Resource
+	Dependencies   []addrs.Referenceable
 	State          **states.ResourceInstanceObject
 	Change         **plans.ResourceInstanceChange
 	ProviderAddr   addrs.AbsProviderConfig
@@ -171,7 +172,7 @@ func (n *EvalApply) Eval(ctx EvalContext) (interface{}, error) {
 			Status:       states.ObjectReady, // TODO: Consider marking as tainted if the provider returned errors?
 			Value:        newVal,
 			Private:      resp.Private,
-			Dependencies: nil, // not populated here; this will be mutated by a later eval step
+			Dependencies: n.Dependencies, // Should be populated by the caller from the StateDependencies method on the resource instance node
 		}
 	}
 
