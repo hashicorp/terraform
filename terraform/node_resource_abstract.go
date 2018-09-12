@@ -3,6 +3,7 @@ package terraform
 import (
 	"fmt"
 	"log"
+	"sort"
 
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs"
@@ -272,9 +273,20 @@ func dottedInstanceAddr(tr addrs.ResourceInstance) string {
 func (n *NodeAbstractResource) StateReferences() []addrs.Referenceable {
 	selfAddrs := n.ReferenceableAddrs()
 
+	// Since we don't include the source location references in our
+	// results from this method, we'll also filter out duplicates:
+	// there's no point in listing the same object twice without
+	// that additional context.
+	seen := map[string]struct{}{}
+
 	depsRaw := n.References()
 	deps := make([]addrs.Referenceable, 0, len(depsRaw))
 	for _, d := range depsRaw {
+		k := d.Subject.String()
+		if _, exists := seen[k]; exists {
+			continue
+		}
+		seen[k] = struct{}{}
 		switch tr := d.Subject.(type) {
 		case addrs.ResourceInstance:
 			deps = append(deps, tr)
@@ -302,6 +314,14 @@ func (n *NodeAbstractResource) StateReferences() []addrs.Referenceable {
 			// No other reference types are recorded in the state.
 		}
 	}
+
+	// We'll also sort them, since that'll avoid creating changes in the
+	// serialized state that make no semantic difference.
+	sort.Slice(deps, func(i, j int) bool {
+		// Simple string-based sort because we just care about consistency,
+		// not user-friendliness.
+		return deps[i].String() < deps[j].String()
+	})
 
 	return deps
 }
