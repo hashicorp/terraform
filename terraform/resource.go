@@ -153,15 +153,6 @@ func NewInstanceInfo(addr addrs.AbsResourceInstance) *InstanceInfo {
 	}
 }
 
-// HumanId is a unique Id that is human-friendly and useful for UI elements.
-func (i *InstanceInfo) HumanId() string {
-	p := normalizeModulePath(i.ModulePath)
-	if p.IsRoot() {
-		return i.Id
-	}
-	return fmt.Sprintf("%s.%s", p.String(), i.Id)
-}
-
 // ResourceAddress returns the address of the resource that the receiver is describing.
 func (i *InstanceInfo) ResourceAddress() *ResourceAddress {
 	// GROSS: for tainted and deposed instances, their status gets appended
@@ -200,15 +191,6 @@ func (i *InstanceInfo) ResourceAddress() *ResourceAddress {
 		addr.InstanceType = instanceType
 	}
 	return addr
-}
-
-func (i *InstanceInfo) uniqueId() string {
-	prefix := i.HumanId()
-	if v := i.uniqueExtra; v != "" {
-		prefix += " " + v
-	}
-
-	return prefix
 }
 
 // ResourceConfig is a legacy type that was formerly used to represent
