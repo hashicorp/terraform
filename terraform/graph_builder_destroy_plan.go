@@ -33,10 +33,6 @@ type DestroyPlanGraphBuilder struct {
 
 	// Validate will do structural validation of the graph.
 	Validate bool
-
-	// ConcreteProvider, if set, gets an opportunity to specialize an
-	// abstract provider node.
-	ConcreteProvider ConcreteProviderNodeFunc
 }
 
 // See GraphBuilder
@@ -56,6 +52,12 @@ func (b *DestroyPlanGraphBuilder) Steps() []GraphTransformer {
 		}
 	}
 
+	concreteProvider := func(a *NodeAbstractProvider) dag.Vertex {
+		return &NodeApplyableProvider{
+			NodeAbstractProvider: a,
+		}
+	}
+
 	steps := []GraphTransformer{
 		// Creates nodes for the resource instances tracked in the state.
 		&StateTransformer{
@@ -66,7 +68,7 @@ func (b *DestroyPlanGraphBuilder) Steps() []GraphTransformer {
 		// Attach the configuration to any resources
 		&AttachResourceConfigTransformer{Config: b.Config},
 
-		TransformProviders(b.Components.ResourceProviders(), b.ConcreteProvider, b.Config),
+		TransformProviders(b.Components.ResourceProviders(), concreteProvider, b.Config),
 
 		// Destruction ordering. We require this only so that
 		// targeting below will prune the correct things.
