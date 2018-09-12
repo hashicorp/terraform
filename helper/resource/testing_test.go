@@ -376,6 +376,15 @@ func TestTest_noEnv(t *testing.T) {
 	}
 }
 
+func TestTest_withParallelCase(t *testing.T) {
+	mt := new(mockT)
+	Test(mt, TestCase{IsParallel: true})
+
+	if !mt.Paralleled {
+		t.Fatal("parallel not called")
+	}
+}
+
 func TestTest_preCheck(t *testing.T) {
 	called := false
 
@@ -698,6 +707,7 @@ type mockT struct {
 	FatalArgs   []interface{}
 	SkipCalled  bool
 	SkipArgs    []interface{}
+	Paralleled  bool
 
 	f bool
 }
@@ -722,6 +732,11 @@ func (t *mockT) Skip(args ...interface{}) {
 
 func (t *mockT) Name() string {
 	return "MockedName"
+}
+
+func (t *mockT) Parallel() {
+	t.Paralleled = true
+	return
 }
 
 func (t *mockT) failed() bool {

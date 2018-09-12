@@ -198,6 +198,12 @@ type ImportStateIdFunc func(*terraform.State) (string, error)
 // When the destroy plan is executed, the config from the last TestStep
 // is used to plan it.
 type TestCase struct {
+	// IsParallel allows a test to run in parallel in Go tesing framework.
+	// Make sure the test case is independent without any shared resource.
+	// For subtests, if IsParallel is enabled while defining it, all the subtests
+	// within the same group will be run in paralllel.
+	IsParallel bool
+
 	// IsUnitTest allows a test to run regardless of the TF_ACC
 	// environment variable. This should be used with care - only for
 	// fast tests on local resources (e.g. remote state with a local
@@ -429,6 +435,10 @@ func LogOutput(t TestT) (logOutput io.Writer, err error) {
 // long, we require the verbose flag so users are able to see progress
 // output.
 func Test(t TestT, c TestCase) {
+	if c.IsParallel {
+		t.Parallel()
+	}
+
 	// We only run acceptance tests if an env var is set because they're
 	// slow and generally require some outside configuration. You can opt out
 	// of this with OverrideEnvVar on individual TestCases.
@@ -1128,6 +1138,7 @@ type TestT interface {
 	Fatal(args ...interface{})
 	Skip(args ...interface{})
 	Name() string
+	Parallel()
 }
 
 // This is set to true by unit tests to alter some behavior
