@@ -8281,7 +8281,7 @@ func TestContext2Apply_unknownAttribute(t *testing.T) {
 
 	state, diags := ctx.Apply()
 	if !diags.HasErrors() {
-		t.Fatal("should error with UnknownVariableValue")
+		t.Error("should error, because attribute 'unknown' is still unknown after apply")
 	}
 
 	actual := strings.TrimSpace(state.String())
