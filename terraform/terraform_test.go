@@ -793,6 +793,8 @@ const testTerraformApplyResourceDependsOnModuleStr = `
 aws_instance.a:
   ID = foo
   provider = provider.aws
+  ami = parent
+  type = aws_instance
 
   Dependencies:
     module.child
@@ -801,6 +803,8 @@ module.child:
   aws_instance.child:
     ID = foo
     provider = provider.aws
+    ami = child
+    type = aws_instance
 `
 
 const testTerraformApplyResourceDependsOnModuleDeepStr = `
