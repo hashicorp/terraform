@@ -121,9 +121,9 @@ func (is *ResourceInstance) DeepCopy() *ResourceInstance {
 // DeepCopy returns a new resource instance object that contains equivalent data
 // to the receiver but shares no backing memory in common.
 //
-// As with all methods on ResourceInstanceObject, this method is not safe to use
-// concurrently with writing to any portion of the recieving data structure. It
-// is the caller's responsibility to ensure mutual exclusion for the duration
+// As with all methods on ResourceInstanceObjectSrc, this method is not safe to
+// use concurrently with writing to any portion of the recieving data structure.
+// It is the caller's responsibility to ensure mutual exclusion for the duration
 // of the operation, but may then freely modify the receiver and the returned
 // copy independently once this method returns.
 func (obj *ResourceInstanceObjectSrc) DeepCopy() *ResourceInstanceObjectSrc {
@@ -145,6 +145,12 @@ func (obj *ResourceInstanceObjectSrc) DeepCopy() *ResourceInstanceObjectSrc {
 		copy(attrsJSON, obj.AttrsJSON)
 	}
 
+	var private []byte
+	if obj.Private != nil {
+		private := make([]byte, len(obj.Private))
+		copy(private, obj.Private)
+	}
+
 	// Some addrs.Referencable implementations are technically mutable, but
 	// we treat them as immutable by convention and so we don't deep-copy here.
 	dependencies := make([]addrs.Referenceable, len(obj.Dependencies))
@@ -153,10 +159,42 @@ func (obj *ResourceInstanceObjectSrc) DeepCopy() *ResourceInstanceObjectSrc {
 	return &ResourceInstanceObjectSrc{
 		Status:        obj.Status,
 		SchemaVersion: obj.SchemaVersion,
-		Private:       obj.Private,
+		Private:       private,
 		AttrsFlat:     attrsFlat,
 		AttrsJSON:     attrsJSON,
 		Dependencies:  dependencies,
+	}
+}
+
+// DeepCopy returns a new resource instance object that contains equivalent data
+// to the receiver but shares no backing memory in common.
+//
+// As with all methods on ResourceInstanceObject, this method is not safe to use
+// concurrently with writing to any portion of the recieving data structure. It
+// is the caller's responsibility to ensure mutual exclusion for the duration
+// of the operation, but may then freely modify the receiver and the returned
+// copy independently once this method returns.
+func (obj *ResourceInstanceObject) DeepCopy() *ResourceInstanceObject {
+	if obj == nil {
+		return nil
+	}
+
+	var private []byte
+	if obj.Private != nil {
+		private := make([]byte, len(obj.Private))
+		copy(private, obj.Private)
+	}
+
+	// Some addrs.Referencable implementations are technically mutable, but
+	// we treat them as immutable by convention and so we don't deep-copy here.
+	dependencies := make([]addrs.Referenceable, len(obj.Dependencies))
+	copy(dependencies, obj.Dependencies)
+
+	return &ResourceInstanceObject{
+		Value:        obj.Value,
+		Status:       obj.Status,
+		Private:      private,
+		Dependencies: dependencies,
 	}
 }
 
