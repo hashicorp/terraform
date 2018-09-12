@@ -1537,9 +1537,9 @@ func interpolationFuncDateAdd() ast.Function {
 	return ast.Function{
 		ArgTypes: []ast.Type{
 			ast.TypeString, // input timestamp string in RFC3339 format
-			ast.TypeInt, // input int for years
-			ast.TypeInt, // input int for months
-			ast.TypeInt, // input int for days
+			ast.TypeInt,    // input int for years
+			ast.TypeInt,    // input int for months
+			ast.TypeInt,    // input int for days
 		},
 		ReturnType: ast.TypeString,
 		Callback: func(args []interface{}) (interface{}, error) {
