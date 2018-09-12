@@ -295,7 +295,7 @@ func TestContext2Apply_resourceDependsOnModuleStateOnly(t *testing.T) {
 					"aws_instance.a": &ResourceState{
 						Type: "aws_instance",
 						Primary: &InstanceState{
-							ID: "bar",
+							ID: "parent",
 						},
 						Dependencies: []string{"module.child"},
 						Provider:     "provider.aws",
@@ -308,7 +308,7 @@ func TestContext2Apply_resourceDependsOnModuleStateOnly(t *testing.T) {
 					"aws_instance.child": &ResourceState{
 						Type: "aws_instance",
 						Primary: &InstanceState{
-							ID: "bar",
+							ID: "child",
 						},
 						Provider: "provider.aws",
 					},
@@ -326,8 +326,8 @@ func TestContext2Apply_resourceDependsOnModuleStateOnly(t *testing.T) {
 			info *InstanceInfo,
 			is *InstanceState,
 			id *InstanceDiff) (*InstanceState, error) {
-			if info.HumanId() == "aws_instance.a" {
 
+			if is.ID == "parent" {
 				// make the dep slower than the parent
 				time.Sleep(50 * time.Millisecond)
 
@@ -358,9 +358,7 @@ func TestContext2Apply_resourceDependsOnModuleStateOnly(t *testing.T) {
 		}
 
 		state, diags := ctx.Apply()
-		if diags.HasErrors() {
-			t.Fatalf("diags: %s", diags.Err())
-		}
+		assertNoErrors(t, diags)
 
 		if !reflect.DeepEqual(order, []string{"child", "parent"}) {
 			t.Fatal("resources applied out of order")
