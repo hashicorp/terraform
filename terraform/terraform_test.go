@@ -831,6 +831,8 @@ module.child:
   aws_instance.b:
     ID = foo
     provider = provider.aws
+    ami = child
+    type = aws_instance
 
     Dependencies:
       module.grandchild
@@ -838,6 +840,8 @@ module.child.grandchild:
   aws_instance.c:
     ID = foo
     provider = provider.aws
+    ami = grandchild
+    type = aws_instance
 `
 
 const testTerraformApplyTaintStr = `

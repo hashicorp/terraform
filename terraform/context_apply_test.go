@@ -524,7 +524,7 @@ func TestContext2Apply_resourceDependsOnModuleInModule(t *testing.T) {
 		var called int32
 		var checked bool
 		p.ApplyFn = func(info *InstanceInfo, is *InstanceState, id *InstanceDiff) (*InstanceState, error) {
-			if id.Attributes["ami"].New == "child" {
+			if id.Attributes["ami"].New == "grandchild" {
 				checked = true
 
 				// Sleep to allow parallel execution
@@ -532,7 +532,7 @@ func TestContext2Apply_resourceDependsOnModuleInModule(t *testing.T) {
 
 				// Verify that called is 0 (dep not called)
 				if atomic.LoadInt32(&called) != 0 {
-					return nil, fmt.Errorf("nothing else should not be called")
+					return nil, fmt.Errorf("something else was applied before grandchild; grandchild should be first")
 				}
 			}
 
