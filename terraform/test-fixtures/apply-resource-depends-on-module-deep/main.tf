@@ -1,7 +1,9 @@
 module "child" {
-    source = "./child"
+  source = "./child"
 }
 
 resource "aws_instance" "a" {
-    depends_on = ["module.child"]
+  ami = "parent"
+
+  depends_on = ["module.child"]
 }
