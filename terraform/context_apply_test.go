@@ -7057,7 +7057,7 @@ func TestContext2Apply_idAttr(t *testing.T) {
 		return &InstanceDiff{
 			Attributes: map[string]*ResourceAttrDiff{
 				"num": &ResourceAttrDiff{
-					New: "bar",
+					New: "42",
 				},
 			},
 		}, nil
