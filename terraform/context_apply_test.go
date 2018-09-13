@@ -408,7 +408,7 @@ func TestContext2Apply_resourceDependsOnModuleDestroy(t *testing.T) {
 			is *InstanceState,
 			id *InstanceDiff) (*InstanceState, error) {
 
-			if id.Attributes["ami"].New == "parent" {
+			if id.Attributes["ami"] != nil && id.Attributes["ami"].New == "parent" {
 				checked = true
 
 				// Sleep to allow parallel execution
