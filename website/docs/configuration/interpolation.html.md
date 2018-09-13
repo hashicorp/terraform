@@ -353,6 +353,11 @@ The supported built-in functions are:
     Example:
     * `${pow(3,2)}` = 9
     * `${pow(4,0)}` = 1
+  
+  * `product(list1, list2, ...)` - Returns the cartesian product of the lists.
+
+    Example:
+    * `${product(list("dev", "qas", "prd"), list("resource1", "resource2", "resource3", "resource4"))}` returns `list(list("dev", "resource1"), list("qas", "resource1"), list("prd", "resource1"), list("dev", "resource2"), list("qas", "resource2"), list("prd", "resource2"), list("dev", "resource3"), list("qas", "resource3"), list("prd", "resource3"), list("dev", "resource4"), list("qas", "resource4"), list("prd", "resource4"))`
 
   * `replace(string, search, replace)` - Does a search and replace on the
       given string. All instances of `search` are replaced with the value
