@@ -2960,3 +2960,55 @@ H7CurtMwALQ/n/6LUKFmjRZjqbKX9SO2QSaC3grd6sY9Tu+bZjLe
 		},
 	})
 }
+
+func TestInterpolateFuncProduct(t *testing.T) {
+	testFunction(t, testFunctionConfig{
+		Cases: []testFunctionCase{
+			{
+				`${product(list("dev", "qas", "prd"), list("applicationA", "applicationB", "applicationC"))}`,
+				[]interface{}{
+					[]interface{}{"dev", "applicationA"},
+					[]interface{}{"dev", "applicationB"},
+					[]interface{}{"dev", "applicationC"},
+					[]interface{}{"qas", "applicationA"},
+					[]interface{}{"qas", "applicationB"},
+					[]interface{}{"qas", "applicationC"},
+					[]interface{}{"prd", "applicationA"},
+					[]interface{}{"prd", "applicationB"},
+					[]interface{}{"prd", "applicationC"}},
+				false,
+			},
+			{
+				`${product(list("A", "B"), list("C", "D"), list("E", "F"))}`,
+				[]interface{}{
+					[]interface{}{"A", "C", "E"},
+					[]interface{}{"A", "C", "F"},
+					[]interface{}{"A", "D", "E"},
+					[]interface{}{"A", "D", "F"},
+					[]interface{}{"B", "C", "E"},
+					[]interface{}{"B", "C", "F"},
+					[]interface{}{"B", "D", "E"},
+					[]interface{}{"B", "D", "F"},
+				},
+				false,
+			},
+			{
+				`${product(list(), list(), list())}`,
+				nil,
+				true,
+			},
+			{
+				`${product(list("foo"),list("bar"))}`,
+				[]interface{}{
+					[]interface{}{"foo", "bar"},
+				},
+				false,
+			},
+			{
+				`${product(list("foo"))}`,
+				nil,
+				true,
+			},
+		},
+	})
+}
