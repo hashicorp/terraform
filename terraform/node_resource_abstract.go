@@ -282,12 +282,21 @@ func (n *NodeAbstractResource) StateReferences() []addrs.Referenceable {
 	depsRaw := n.References()
 	deps := make([]addrs.Referenceable, 0, len(depsRaw))
 	for _, d := range depsRaw {
-		k := d.Subject.String()
+		subj := d.Subject
+		if mco, isOutput := subj.(addrs.ModuleCallOutput); isOutput {
+			// For state dependencies, we simplify outputs to just refer
+			// to the module as a whole. It's not really clear why we do this,
+			// but this logic is preserved from before the 0.12 rewrite of
+			// this function.
+			subj = mco.Call
+		}
+
+		k := subj.String()
 		if _, exists := seen[k]; exists {
 			continue
 		}
 		seen[k] = struct{}{}
-		switch tr := d.Subject.(type) {
+		switch tr := subj.(type) {
 		case addrs.ResourceInstance:
 			deps = append(deps, tr)
 		case addrs.Resource:
@@ -303,12 +312,6 @@ func (n *NodeAbstractResource) StateReferences() []addrs.Referenceable {
 				deps = append(deps, tr)
 			}
 		case addrs.ModuleCallInstance:
-			deps = append(deps, tr)
-		case addrs.ModuleCallOutput:
-			// For state dependencies, we simplify outputs to just refer
-			// to the module as a whole. It's not really clear why we do this,
-			// but this logic is preserved from before the 0.12 rewrite of
-			// this function.
 			deps = append(deps, tr)
 		default:
 			// No other reference types are recorded in the state.
