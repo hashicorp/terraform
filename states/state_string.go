@@ -231,6 +231,8 @@ func (m *Module) testString() string {
 				mapBuf.WriteString("}")
 
 				buf.WriteString(fmt.Sprintf("%s = %s\n", k, mapBuf.String()))
+			default:
+				buf.WriteString(fmt.Sprintf("%s = %#v\n", k, lv))
 			}
 		}
 	}
