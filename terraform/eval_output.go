@@ -68,7 +68,11 @@ func (n *EvalWriteOutput) Eval(ctx EvalContext) (interface{}, error) {
 	}
 
 	if val.IsKnown() && !val.IsNull() {
-		state.SetOutputValue(addr, val, n.Sensitive)
+		// The state itself doesn't represent unknown values, so we null them
+		// out here and then we'll save the real unknown value in the planned
+		// changeset below, if we have one on this graph walk.
+		stateVal := cty.UnknownAsNull(val)
+		state.SetOutputValue(addr, stateVal, n.Sensitive)
 	} else {
 		state.RemoveOutputValue(addr)
 	}
