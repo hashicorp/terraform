@@ -9775,7 +9775,7 @@ func TestContext2Apply_scaleInMultivarRef(t *testing.T) {
 						Primary: &InstanceState{
 							ID: "foo",
 							Attributes: map[string]string{
-								"val": "foo",
+								"value": "foo",
 							},
 						},
 						Provider: "provider.aws",
@@ -9798,13 +9798,9 @@ func TestContext2Apply_scaleInMultivarRef(t *testing.T) {
 	})
 
 	_, diags := ctx.Plan()
-	if diags.HasErrors() {
-		t.Fatalf("plan failed: %s", diags.Err())
-	}
+	assertNoErrors(t, diags)
 
 	// Applying the plan should now succeed
 	_, diags = ctx.Apply()
-	if diags.HasErrors() {
-		t.Fatalf("apply failed: %s", diags.Err())
-	}
+	assertNoErrors(t, diags)
 }
