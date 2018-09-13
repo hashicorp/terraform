@@ -5007,6 +5007,7 @@ func TestContext2Apply_provisionerDestroyFail(t *testing.T) {
 	checkStateString(t, state, `
 aws_instance.foo:
   ID = bar
+  provider = provider.aws
 	`)
 
 	// Verify apply was invoked
@@ -5156,6 +5157,7 @@ func TestContext2Apply_provisionerDestroyFailContinueFail(t *testing.T) {
 	checkStateString(t, state, `
 aws_instance.foo:
   ID = bar
+  provider = provider.aws
   `)
 
 	// Verify apply was invoked
