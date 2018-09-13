@@ -9,5 +9,5 @@ locals {
 }
 
 resource "aws_instance" "two" {
-  val = local.one_id
+  value = local.one_id
 }
