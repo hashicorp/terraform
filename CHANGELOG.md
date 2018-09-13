@@ -4,6 +4,7 @@ IMPROVEMENTS:
 
 * backend/manta: Deprecate the `objectName` attribute in favor of the new `object_name` attribute [GH-18759]
 * backend/migrations: Migrate existing non-empty default states when the backend only supports named states [GH-18760]
+* helper/resource: Add `ParallelTest()` function to allow opt-in acceptance testing concurrency with `t.Parallel()` [GH-18688]
 * provider/terraform: `terraform_remote_state` now accepts complex backend configurations [GH-18759]
 
 BUG FIXES:
