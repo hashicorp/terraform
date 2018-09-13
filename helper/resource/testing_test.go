@@ -45,6 +45,15 @@ func (p *resetProvider) TestReset() error {
 	return p.TestResetError
 }
 
+func TestParallelTest(t *testing.T) {
+	mt := new(mockT)
+	ParallelTest(mt, TestCase{})
+
+	if !mt.ParallelCalled {
+		t.Fatal("Parallel() not called")
+	}
+}
+
 func TestTest(t *testing.T) {
 	mp := &resetProvider{
 		MockResourceProvider: testProvider(),
@@ -111,6 +120,9 @@ func TestTest(t *testing.T) {
 
 	if mt.failed() {
 		t.Fatalf("test failed: %s", mt.failMessage())
+	}
+	if mt.ParallelCalled {
+		t.Fatal("Parallel() called")
 	}
 	if !checkStep {
 		t.Fatal("didn't call check for step")
@@ -692,12 +704,13 @@ func TestComposeTestCheckFunc(t *testing.T) {
 
 // mockT implements TestT for testing
 type mockT struct {
-	ErrorCalled bool
-	ErrorArgs   []interface{}
-	FatalCalled bool
-	FatalArgs   []interface{}
-	SkipCalled  bool
-	SkipArgs    []interface{}
+	ErrorCalled    bool
+	ErrorArgs      []interface{}
+	FatalCalled    bool
+	FatalArgs      []interface{}
+	ParallelCalled bool
+	SkipCalled     bool
+	SkipArgs       []interface{}
 
 	f bool
 }
@@ -712,6 +725,10 @@ func (t *mockT) Fatal(args ...interface{}) {
 	t.FatalCalled = true
 	t.FatalArgs = args
 	t.f = true
+}
+
+func (t *mockT) Parallel() {
+	t.ParallelCalled = true
 }
 
 func (t *mockT) Skip(args ...interface{}) {
