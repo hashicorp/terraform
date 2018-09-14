@@ -469,12 +469,18 @@ func (n *EvalApplyProvisioners) apply(ctx EvalContext, provs []*configs.Provisio
 			return h.PostProvisionInstanceStep(absAddr, prov.Type, applyDiags.Err())
 		})
 
-		if diags.HasErrors() {
-			switch prov.OnFailure {
-			case configs.ProvisionerOnFailureContinue:
+		switch prov.OnFailure {
+		case configs.ProvisionerOnFailureContinue:
+			if applyDiags.HasErrors() {
 				log.Printf("[WARN] Errors while provisioning %s with %q, but continuing as requested in configuration", n.Addr, prov.Type)
-			default:
+			} else {
+				// Maybe there are warnings that we still want to see
 				diags = diags.Append(applyDiags)
+			}
+		default:
+			diags = diags.Append(applyDiags)
+			if applyDiags.HasErrors() {
+				log.Printf("[WARN] Errors while provisioning %s with %q, so aborting", n.Addr, prov.Type)
 				return diags.Err()
 			}
 		}

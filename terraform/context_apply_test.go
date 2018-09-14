@@ -5151,7 +5151,7 @@ func TestContext2Apply_provisionerDestroyFailContinueFail(t *testing.T) {
 
 	state, diags := ctx.Apply()
 	if diags == nil {
-		t.Fatal("should error")
+		t.Fatal("apply succeeded; wanted error from second provisioner")
 	}
 
 	checkStateString(t, state, `
