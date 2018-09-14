@@ -13,7 +13,6 @@ func TestProviderAddrs(t *testing.T) {
 	plan := &Plan{
 		VariableValues: map[string]DynamicValue{},
 		Changes: &Changes{
-			RootOutputs: map[string]*OutputChangeSrc{},
 			Resources: []*ResourceInstanceChangeSrc{
 				{
 					Addr: addrs.Resource{
