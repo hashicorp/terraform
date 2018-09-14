@@ -726,7 +726,7 @@ aws_instance.foo.1:
   type = aws_instance
 
   Dependencies:
-    aws_instance.foo.0
+    aws_instance.foo[0]
 aws_instance.foo.2:
   ID = foo
   provider = provider.aws
@@ -734,7 +734,7 @@ aws_instance.foo.2:
   type = aws_instance
 
   Dependencies:
-    aws_instance.foo.0
+    aws_instance.foo[0]
 `
 
 const testTerraformApplyProvisionerDiffStr = `
