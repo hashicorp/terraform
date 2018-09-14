@@ -342,6 +342,13 @@ func (n *NodeApplyableResourceInstance) evalTreeManagedResource(addr addrs.AbsRe
 				Error:          &err,
 				CreateNew:      &createNew,
 			},
+			&EvalMaybeTainted{
+				Addr:        addr.Resource,
+				State:       &state,
+				Change:      &diffApply,
+				Error:       &err,
+				StateOutput: &state,
+			},
 			&EvalWriteState{
 				Addr:           addr.Resource,
 				ProviderAddr:   n.ResolvedProvider,
@@ -350,11 +357,18 @@ func (n *NodeApplyableResourceInstance) evalTreeManagedResource(addr addrs.AbsRe
 			},
 			&EvalApplyProvisioners{
 				Addr:           addr.Resource,
-				State:          &state,
+				State:          &state, // EvalApplyProvisioners will skip if already tainted
 				ResourceConfig: n.Config,
 				CreateNew:      &createNew,
 				Error:          &err,
 				When:           configs.ProvisionerWhenCreate,
+			},
+			&EvalMaybeTainted{
+				Addr:        addr.Resource,
+				State:       &state,
+				Change:      &diffApply,
+				Error:       &err,
+				StateOutput: &state,
 			},
 			&EvalWriteState{
 				Addr:           addr.Resource,
