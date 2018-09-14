@@ -39,6 +39,7 @@ var (
 	equateEmpty   = cmpopts.EquateEmpty()
 	typeComparer  = cmp.Comparer(cty.Type.Equals)
 	valueComparer = cmp.Comparer(cty.Value.RawEquals)
+	valueTrans    = cmp.Transformer("hcl2shim", hcl2shim.ConfigValueFromHCL2)
 )
 
 func TestNewContextRequiredVersion(t *testing.T) {
@@ -253,6 +254,7 @@ func testDiffFn(
 			}
 
 			diff.Attributes[v.(string)] = attrDiff
+			continue
 		}
 
 		// If this key is not computed, then look it up in the
@@ -514,7 +516,7 @@ func testProviderSchema(name string) *ProviderSchema {
 					"compute": {
 						Type:     cty.String,
 						Optional: true,
-						Computed: true,
+						Computed: false,
 					},
 					"compute_value": {
 						Type:     cty.String,
