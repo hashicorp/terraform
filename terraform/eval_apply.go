@@ -171,7 +171,7 @@ func (n *EvalApply) Eval(ctx EvalContext) (interface{}, error) {
 	var newState *states.ResourceInstanceObject
 	if !newVal.IsNull() { // null value indicates that the object is deleted, so we won't set a new state in that case
 		newState = &states.ResourceInstanceObject{
-			Status:       states.ObjectReady, // TODO: Consider marking as tainted if the provider returned errors?
+			Status:       states.ObjectReady,
 			Value:        newVal,
 			Private:      resp.Private,
 			Dependencies: n.Dependencies, // Should be populated by the caller from the StateDependencies method on the resource instance node
@@ -228,10 +228,10 @@ func (n *EvalApplyPre) Eval(ctx EvalContext) (interface{}, error) {
 
 // EvalApplyPost is an EvalNode implementation that does the post-Apply work
 type EvalApplyPost struct {
-	Addr  addrs.ResourceInstance
-	Gen   states.Generation
-	State **states.ResourceInstanceObject
-	Error *error
+	Addr   addrs.ResourceInstance
+	Gen    states.Generation
+	State  **states.ResourceInstanceObject
+	Error  *error
 }
 
 // TODO: test
@@ -260,6 +260,57 @@ func (n *EvalApplyPost) Eval(ctx EvalContext) (interface{}, error) {
 	}
 
 	return nil, *n.Error
+}
+
+// EvalMaybeTainted is an EvalNode that takes the planned change, new value,
+// and possible error from an apply operation and produces a new instance
+// object marked as tainted if it appears that a create operation has failed.
+//
+// This EvalNode never returns an error, to ensure that a subsequent EvalNode
+// can still record the possibly-tainted object in the state.
+type EvalMaybeTainted struct {
+	Addr   addrs.ResourceInstance
+	Gen    states.Generation
+	Change **plans.ResourceInstanceChange
+	State  **states.ResourceInstanceObject
+	Error  *error
+
+	// If StateOutput is not nil, its referent will be assigned either the same
+	// pointer as State or a new object with its status set as Tainted,
+	// depending on whether an error is given and if this was a create action.
+	StateOutput **states.ResourceInstanceObject
+}
+
+// TODO: test
+func (n *EvalMaybeTainted) Eval(ctx EvalContext) (interface{}, error) {
+	state := *n.State
+	change := *n.Change
+	err := *n.Error
+
+	if state != nil && state.Status == states.ObjectTainted {
+		log.Printf("[TRACE] EvalMaybeTainted: %s was already tainted, so nothing to do", n.Addr.Absolute(ctx.Path()))
+		return nil, nil
+	}
+
+	if n.StateOutput != nil {
+		if err != nil && change.Action == plans.Create {
+			// If there are errors during a _create_ then the object is
+			// in an undefined state, and so we'll mark it as tainted so
+			// we can try again on the next run.
+			//
+			// We don't do this for other change actions because errors
+			// during updates will often not change the remote object at all.
+			// If there _were_ changes prior to the error, it's the provider's
+			// responsibility to record the effect of those changes in the
+			// object value it returned.
+			log.Printf("[TRACE] EvalMaybeTainted: %s encountered an error during creation, so it is now marked as tainted", n.Addr.Absolute(ctx.Path()))
+			*n.StateOutput = state.AsTainted()
+		} else {
+			*n.StateOutput = state
+		}
+	}
+
+	return nil, nil
 }
 
 // resourceHasUserVisibleApply returns true if the given resource is one where
@@ -300,9 +351,15 @@ func (n *EvalApplyProvisioners) Eval(ctx EvalContext) (interface{}, error) {
 		log.Printf("[TRACE] EvalApplyProvisioners: %s has no state, so skipping provisioners", n.Addr)
 		return nil, nil
 	}
-
 	if n.CreateNew != nil && !*n.CreateNew {
 		// If we're not creating a new resource, then don't run provisioners
+		log.Printf("[TRACE] EvalApplyProvisioners: %s is not freshly-created, so no provisioning is required", n.Addr)
+		return nil, nil
+	}
+	if state.Status == states.ObjectTainted {
+		// No point in provisioning an object that is already tainted, since
+		// it's going to get recreated on the next apply anyway.
+		log.Printf("[TRACE] EvalApplyProvisioners: %s is tainted, so skipping provisioning", n.Addr)
 		return nil, nil
 	}
 
@@ -312,14 +369,7 @@ func (n *EvalApplyProvisioners) Eval(ctx EvalContext) (interface{}, error) {
 		return nil, nil
 	}
 
-	// taint tells us whether to enable tainting.
-	taint := n.When == configs.ProvisionerWhenCreate
-
 	if n.Error != nil && *n.Error != nil {
-		if taint {
-			state.Status = states.ObjectTainted
-		}
-
 		// We're already tainted, so just return out
 		return nil, nil
 	}
@@ -338,12 +388,13 @@ func (n *EvalApplyProvisioners) Eval(ctx EvalContext) (interface{}, error) {
 	// if we have one, otherwise we just output it.
 	err := n.apply(ctx, provs)
 	if err != nil {
-		if taint {
-			state.Status = states.ObjectTainted
-		}
-
 		*n.Error = multierror.Append(*n.Error, err)
-		return nil, err
+		if n.Error == nil {
+			return nil, err
+		} else {
+			log.Printf("[TRACE] EvalApplyProvisioners: %s provisioning failed, but we will continue anyway at the caller's request", absAddr)
+			return nil, nil
+		}
 	}
 
 	{
