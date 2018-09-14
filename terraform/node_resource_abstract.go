@@ -270,7 +270,7 @@ func dottedInstanceAddr(tr addrs.ResourceInstance) string {
 
 // StateReferences returns the dependencies to put into the state for
 // this resource.
-func (n *NodeAbstractResource) StateReferences() []addrs.Referenceable {
+func (n *NodeAbstractResourceInstance) StateReferences() []addrs.Referenceable {
 	selfAddrs := n.ReferenceableAddrs()
 
 	// Since we don't include the source location references in our
@@ -278,6 +278,18 @@ func (n *NodeAbstractResource) StateReferences() []addrs.Referenceable {
 	// there's no point in listing the same object twice without
 	// that additional context.
 	seen := map[string]struct{}{}
+
+	// Pretend that we've already "seen" all of our own addresses so that we
+	// won't record self-references in the state. This can arise if, for
+	// example, a provisioner for a resource refers to the resource itself,
+	// which is valid (since provisioners always run after apply) but should
+	// not create an explicit dependency edge.
+	for _, selfAddr := range selfAddrs {
+		seen[selfAddr.String()] = struct{}{}
+		if riAddr, ok := selfAddr.(addrs.ResourceInstance); ok {
+			seen[riAddr.ContainingResource().String()] = struct{}{}
+		}
+	}
 
 	depsRaw := n.References()
 	deps := make([]addrs.Referenceable, 0, len(depsRaw))
@@ -300,17 +312,7 @@ func (n *NodeAbstractResource) StateReferences() []addrs.Referenceable {
 		case addrs.ResourceInstance:
 			deps = append(deps, tr)
 		case addrs.Resource:
-			depStr := tr.String()
-			selfRef := false
-			for _, selfAddr := range selfAddrs {
-				if selfAddr.String() == depStr {
-					selfRef = true
-					break
-				}
-			}
-			if !selfRef { // Don't create self-references
-				deps = append(deps, tr)
-			}
+			deps = append(deps, tr)
 		case addrs.ModuleCallInstance:
 			deps = append(deps, tr)
 		default:
