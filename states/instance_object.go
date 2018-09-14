@@ -104,3 +104,17 @@ func (o *ResourceInstanceObject) Encode(ty cty.Type, schemaVersion uint64) (*Res
 		Dependencies:  o.Dependencies,
 	}, nil
 }
+
+// AsTainted returns a deep copy of the receiver with the status updated to
+// ObjectTainted.
+func (o *ResourceInstanceObject) AsTainted() *ResourceInstanceObject {
+	if o == nil {
+		// A nil object can't be tainted, but we'll allow this anyway to
+		// avoid a crash, since we presumably intend to eventually record
+		// the object has having been deleted anyway.
+		return nil
+	}
+	ret := o.DeepCopy()
+	ret.Status = ObjectTainted
+	return ret
+}
