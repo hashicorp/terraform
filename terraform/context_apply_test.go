@@ -4378,10 +4378,7 @@ func TestContext2Apply_provisionerCreateFail(t *testing.T) {
 	pr := testProvisioner()
 	p.DiffFn = testDiffFn
 
-	p.ApplyFn = func(
-		info *InstanceInfo,
-		is *InstanceState,
-		id *InstanceDiff) (*InstanceState, error) {
+	p.ApplyFn = func(info *InstanceInfo, is *InstanceState, id *InstanceDiff) (*InstanceState, error) {
 		is.ID = "foo"
 		return is, fmt.Errorf("error")
 	}
@@ -4407,10 +4404,10 @@ func TestContext2Apply_provisionerCreateFail(t *testing.T) {
 		t.Fatal("should error")
 	}
 
-	actual := strings.TrimSpace(state.String())
-	expected := strings.TrimSpace(testTerraformApplyProvisionerFailCreateStr)
-	if actual != expected {
-		t.Fatalf("wrong result\n\ngot:\n%s\n\nwant:\n%s", actual, expected)
+	got := strings.TrimSpace(state.String())
+	want := strings.TrimSpace(testTerraformApplyProvisionerFailCreateStr)
+	if got != want {
+		t.Fatalf("wrong result\n\ngot:\n%s\n\nwant:\n%s", got, want)
 	}
 }
 
