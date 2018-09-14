@@ -32,7 +32,12 @@ func NewChanges() *Changes {
 }
 
 func (c *Changes) Empty() bool {
-	return (len(c.Resources) + len(c.Outputs)) == 0
+	for _, res := range c.Resources {
+		if res.Action != NoOp {
+			return false
+		}
+	}
+	return true
 }
 
 // ResourceInstance returns the planned change for the current object of the
