@@ -2278,6 +2278,7 @@ func TestContext2Apply_countTainted(t *testing.T) {
 	m := testModule(t, "apply-count-tainted")
 	p := testProvider("aws")
 	p.DiffFn = testDiffFn
+	p.ApplyFn = testApplyFn
 	s := mustShimLegacyState(&State{
 		Modules: []*ModuleState{
 			&ModuleState{
@@ -2317,10 +2318,10 @@ func TestContext2Apply_countTainted(t *testing.T) {
 		t.Fatalf("diags: %s", diags.Err())
 	}
 
-	actual := strings.TrimSpace(state.String())
-	expected := strings.TrimSpace(testTerraformApplyCountTaintedStr)
-	if actual != expected {
-		t.Fatalf("wrong result\n\ngot:\n%s\n\nwant:\n%s", actual, expected)
+	got := strings.TrimSpace(state.String())
+	want := strings.TrimSpace(testTerraformApplyCountTaintedStr)
+	if got != want {
+		t.Fatalf("wrong result\n\ngot:\n%s\n\nwant:\n%s", got, want)
 	}
 }
 
