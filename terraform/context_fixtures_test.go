@@ -70,6 +70,8 @@ func contextFixtureApplyVarsEnv(t *testing.T) *contextTestFixture {
 			"string": {Type: cty.String, Optional: true},
 			"list":   {Type: cty.List(cty.String), Optional: true},
 			"map":    {Type: cty.Map(cty.String), Optional: true},
+			"id":     {Type: cty.String, Computed: true},
+			"type":   {Type: cty.String, Computed: true},
 		},
 	})
 	p.ApplyFn = testApplyFn
