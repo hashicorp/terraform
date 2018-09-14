@@ -85,6 +85,8 @@ enable_reporting false
 type provisionFn func(terraform.UIOutput, communicator.Communicator) error
 
 type provisioner struct {
+	sync.Mutex
+
 	Attributes            map[string]interface{}
 	Channel               string
 	ClientOptions         []string
@@ -577,6 +579,15 @@ func (p *provisioner) configureVaultsFunc(gemCmd string, knifeCmd string, confDi
 			p.UserName,
 			path.Join(confDir, p.UserName+".pem"),
 		)
+
+		// Prevent concurrent vault modifications.
+		// chef-vault chooses it's shared secret on the client side, creating a race condition
+		// between saving the item data and the item keys.
+		//
+		// Concurrent vault updates create a race condition saving item keys, and may produce
+		// false positives for some nodes.
+		p.Mutex.Lock()
+		defer p.Mutex.Unlock()
 
 		// if client gets recreated, remove (old) client (with old keys) from vaults/items
 		// otherwise, the (new) client (with new keys) will not be able to decrypt the vault
