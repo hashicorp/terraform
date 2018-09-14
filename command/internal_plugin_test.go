@@ -24,7 +24,7 @@ func TestInternalPlugin_InternalProviders(t *testing.T) {
 }
 
 func TestInternalPlugin_InternalProvisioners(t *testing.T) {
-	for _, name := range []string{"chef", "file", "local-exec", "remote-exec", "salt-masterless"} {
+	for _, name := range []string{"chef", "chef-solo", "file", "local-exec", "remote-exec", "salt-masterless"} {
 		if _, ok := InternalProvisioners[name]; !ok {
 			t.Errorf("Expected to find %s in InternalProvisioners", name)
 		}
