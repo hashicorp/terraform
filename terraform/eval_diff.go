@@ -127,10 +127,21 @@ func (n *EvalDiff) Eval(ctx EvalContext) (interface{}, error) {
 
 	absAddr := n.Addr.Absolute(ctx.Path())
 	var priorVal cty.Value
+	var priorValTainted cty.Value
 	var priorPrivate []byte
 	if state != nil {
-		priorVal = state.Value
-		priorPrivate = state.Private
+		if state.Status != states.ObjectTainted {
+			priorVal = state.Value
+			priorPrivate = state.Private
+		} else {
+			// If the prior state is tainted then we'll proceed below like
+			// we're creating an entirely new object, but then turn it into
+			// a synthetic "Replace" change at the end, creating the same
+			// result as if the provider had marked at least one argument
+			// change as "requires replacement".
+			priorValTainted = state.Value
+			priorVal = cty.NullVal(schema.ImpliedType())
+		}
 	} else {
 		priorVal = cty.NullVal(schema.ImpliedType())
 	}
@@ -310,6 +321,14 @@ func (n *EvalDiff) Eval(ctx EvalContext) (interface{}, error) {
 		if diags.HasErrors() {
 			return nil, diags.Err()
 		}
+	}
+
+	// If our prior value was tainted then we actually want this to appear
+	// as a replace change, even though so far we've been treating it as a
+	// create.
+	if action == plans.Create && priorValTainted != cty.NilVal {
+		action = plans.Replace
+		priorVal = priorValTainted
 	}
 
 	// Call post-refresh hook
