@@ -5087,7 +5087,7 @@ func TestContext2Apply_provisionerDestroyFailContinue(t *testing.T) {
 
 	expected := []string{"one", "two"}
 	if !reflect.DeepEqual(calls, expected) {
-		t.Fatalf("bad: %#v", calls)
+		t.Fatalf("wrong commands\ngot:  %#v\nwant: %#v", calls, expected)
 	}
 }
 
