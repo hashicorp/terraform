@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -355,6 +356,19 @@ func testFlatAttrDiffs(k string, i interface{}) map[string]*ResourceAttrDiff {
 			New: v,
 		}
 		diffs[k] = attrDiff
+	}
+
+	// The legacy flatmap-based diff producing done by helper/schema would
+	// additionally insert a k+".%" key here recording the length of the map,
+	// which is for some reason not also done by flatmap.Flatten. To make our
+	// mock shims helper/schema-compatible, we'll just fake that up here.
+	switch t := i.(type) {
+	case map[string]interface{}:
+		attrDiff := &ResourceAttrDiff{
+			Old: "",
+			New: strconv.Itoa(len(t)),
+		}
+		diffs[k+".%"] = attrDiff
 	}
 
 	return diffs
