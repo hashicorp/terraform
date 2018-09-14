@@ -5,12 +5,14 @@ import (
 	"log"
 
 	"github.com/hashicorp/go-multierror"
+	"github.com/hashicorp/hcl2/hcl"
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/plans"
 	"github.com/hashicorp/terraform/providers"
+	"github.com/hashicorp/terraform/provisioners"
 	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/tfdiags"
 )
@@ -380,126 +382,108 @@ func (n *EvalApplyProvisioners) filterProvisioners() []*configs.Provisioner {
 }
 
 func (n *EvalApplyProvisioners) apply(ctx EvalContext, provs []*configs.Provisioner) error {
-	return fmt.Errorf("EvalApplyProvisioners.apply not yet updated for new types")
-	/*
-		instanceAddr := n.Addr
-		absAddr := instanceAddr.Absolute(ctx.Path())
-		state := *n.State
+	var diags tfdiags.Diagnostics
+	instanceAddr := n.Addr
+	absAddr := instanceAddr.Absolute(ctx.Path())
 
-		// The hook API still uses the legacy InstanceInfo type, so we need to shim it.
-		legacyInfo := NewInstanceInfo(n.Addr.Absolute(ctx.Path()))
+	// If there's a connection block defined directly inside the resource block
+	// then it'll serve as a base connection configuration for all of the
+	// provisioners.
+	var baseConn hcl.Body
+	if n.ResourceConfig.Managed != nil && n.ResourceConfig.Managed.Connection != nil {
+		baseConn = n.ResourceConfig.Managed.Connection.Config
+	}
 
-		// Store the original connection info, restore later
-		origConnInfo := state.Ephemeral.ConnInfo
-		defer func() {
-			state.Ephemeral.ConnInfo = origConnInfo
-		}()
+	for _, prov := range provs {
+		log.Printf("[TRACE] EvalApplyProvisioners: provisioning %s with %q", absAddr, prov.Type)
 
-		var diags tfdiags.Diagnostics
+		// Get the provisioner
+		provisioner := ctx.Provisioner(prov.Type)
+		schema := ctx.ProvisionerSchema(prov.Type)
 
-		for _, prov := range provs {
-			// Get the provisioner
-			provisioner := ctx.Provisioner(prov.Type)
-			schema := ctx.ProvisionerSchema(prov.Type)
+		keyData := EvalDataForInstanceKey(instanceAddr.Key)
 
-			keyData := EvalDataForInstanceKey(instanceAddr.Key)
+		// Evaluate the main provisioner configuration.
+		config, _, configDiags := ctx.EvaluateBlock(prov.Config, schema, instanceAddr, keyData)
+		diags = diags.Append(configDiags)
 
-			// Evaluate the main provisioner configuration.
-			config, _, configDiags := ctx.EvaluateBlock(prov.Config, schema, instanceAddr, keyData)
-			diags = diags.Append(configDiags)
+		// If the provisioner block contains a connection block of its own then
+		// it can override the base connection configuration, if any.
+		var localConn hcl.Body
+		if prov.Connection != nil {
+			localConn = prov.Connection.Config
+		}
 
-			// A provisioner may not have a connection block
-			if prov.Connection != nil {
-				connInfo, _, connInfoDiags := ctx.EvaluateBlock(prov.Connection.Config, connectionBlockSupersetSchema, instanceAddr, keyData)
-				diags = diags.Append(connInfoDiags)
+		var connBody hcl.Body
+		switch {
+		case baseConn != nil && localConn != nil:
+			// Our standard merging logic applies here, similar to what we do
+			// with _override.tf configuration files: arguments from the
+			// base connection block will be masked by any arguments of the
+			// same name in the local connection block.
+			connBody = configs.MergeBodies(baseConn, localConn)
+		case baseConn != nil:
+			connBody = baseConn
+		case localConn != nil:
+			connBody = localConn
+		default: // both are nil, by elimination
+			connBody = hcl.EmptyBody()
+		}
 
-				if configDiags.HasErrors() || connInfoDiags.HasErrors() {
-					continue
-				}
+		connInfo, _, connInfoDiags := ctx.EvaluateBlock(connBody, connectionBlockSupersetSchema, instanceAddr, keyData)
+		diags = diags.Append(connInfoDiags)
+		if diags.HasErrors() {
+			// "on failure continue" setting only applies to failures of the
+			// provisioner itself, not to invalid configuration.
+			return diags.Err()
+		}
 
-				// Merge the connection information, and also lower everything to strings
-				// for compatibility with the communicator API.
-				overlay := make(map[string]string)
-				if origConnInfo != nil {
-					for k, v := range origConnInfo {
-						overlay[k] = v
-					}
-				}
-				for it := connInfo.ElementIterator(); it.Next(); {
-					kv, vv := it.Element()
-					var k, v string
-
-					// there are no unset or null values in a connection block, and
-					// everything needs to map to a string.
-					if vv.IsNull() {
-						continue
-					}
-
-					err := gocty.FromCtyValue(kv, &k)
-					if err != nil {
-						// Should never happen, because connectionBlockSupersetSchema requires all primitives
-						panic(err)
-					}
-					err = gocty.FromCtyValue(vv, &v)
-					if err != nil {
-						// Should never happen, because connectionBlockSupersetSchema requires all primitives
-						panic(err)
-					}
-
-					overlay[k] = v
-				}
-
-				state.Ephemeral.ConnInfo = overlay
-			}
-
-			{
-				// Call pre hook
-				err := ctx.Hook(func(h Hook) (HookAction, error) {
-					return h.PreProvisionInstanceStep(absAddr, prov.Type)
-				})
-				if err != nil {
-					return err
-				}
-			}
-
-			// The output function
-			outputFn := func(msg string) {
-				ctx.Hook(func(h Hook) (HookAction, error) {
-					h.ProvisionOutput(absAddr, prov.Type, msg)
-					return HookActionContinue, nil
-				})
-			}
-
-			// The provisioner API still uses our legacy ResourceConfig type, so
-			// we need to shim it.
-			legacyRC := NewResourceConfigShimmed(config, schema)
-
-			// Invoke the Provisioner
-			output := CallbackUIOutput{OutputFn: outputFn}
-			applyErr := provisioner.Apply(&output, state, legacyRC)
-
-			// Call post hook
-			hookErr := ctx.Hook(func(h Hook) (HookAction, error) {
-				return h.PostProvisionInstanceStep(absAddr, prov.Type, applyErr)
+		{
+			// Call pre hook
+			err := ctx.Hook(func(h Hook) (HookAction, error) {
+				return h.PreProvisionInstanceStep(absAddr, prov.Type)
 			})
-
-			// Handle the error before we deal with the hook
-			if applyErr != nil {
-				// Determine failure behavior
-				switch prov.OnFailure {
-				case configs.ProvisionerOnFailureContinue:
-					log.Printf("[INFO] apply %s [%s]: error during provision, but continuing as requested in configuration", n.Addr, prov.Type)
-				case configs.ProvisionerOnFailureFail:
-					return applyErr
-				}
-			}
-
-			// Deal with the hook
-			if hookErr != nil {
-				return hookErr
+			if err != nil {
+				return err
 			}
 		}
 
-		return diags.ErrWithWarnings()
-	*/
+		// The output function
+		outputFn := func(msg string) {
+			ctx.Hook(func(h Hook) (HookAction, error) {
+				h.ProvisionOutput(absAddr, prov.Type, msg)
+				return HookActionContinue, nil
+			})
+		}
+
+		output := CallbackUIOutput{OutputFn: outputFn}
+		resp := provisioner.ProvisionResource(provisioners.ProvisionResourceRequest{
+			Config:     config,
+			Connection: connInfo,
+			UIOutput:   &output,
+		})
+		applyDiags := resp.Diagnostics.InConfigBody(prov.Config)
+
+		// Call post hook
+		hookErr := ctx.Hook(func(h Hook) (HookAction, error) {
+			return h.PostProvisionInstanceStep(absAddr, prov.Type, applyDiags.Err())
+		})
+
+		if diags.HasErrors() {
+			switch prov.OnFailure {
+			case configs.ProvisionerOnFailureContinue:
+				log.Printf("[WARN] Errors while provisioning %s with %q, but continuing as requested in configuration", n.Addr, prov.Type)
+			default:
+				diags = diags.Append(applyDiags)
+				return diags.Err()
+			}
+		}
+
+		// Deal with the hook
+		if hookErr != nil {
+			return hookErr
+		}
+	}
+
+	return diags.ErrWithWarnings()
 }
