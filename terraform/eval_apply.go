@@ -95,19 +95,30 @@ func (n *EvalApply) Eval(ctx EvalContext) (interface{}, error) {
 		newVal = cty.NullVal(schema.ImpliedType())
 	}
 
+	var conformDiags tfdiags.Diagnostics
 	for _, err := range newVal.Type().TestConformance(schema.ImpliedType()) {
-		diags = diags.Append(tfdiags.Sourceless(
+		conformDiags = conformDiags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
 			"Provider produced invalid object",
 			fmt.Sprintf(
-				"Provider %q planned an invalid value after apply for %s. The result could not be saved.\n\nThis is a bug in the provider, which should be reported in the provider's own issue tracker.",
+				"Provider %q planned an invalid value after apply for %s. The result cannot not be saved in the Terraform state.\n\nThis is a bug in the provider, which should be reported in the provider's own issue tracker.",
 				n.ProviderAddr.ProviderConfig.Type, tfdiags.FormatErrorPrefixed(err, absAddr.String()),
 			),
 		))
 	}
-	if diags.HasErrors() {
+	diags = diags.Append(conformDiags)
+	if conformDiags.HasErrors() {
+		// Bail early in this particular case, because an object that doesn't
+		// conform to the schema can't be saved in the state anyway -- the
+		// serializer will reject it.
 		return nil, diags.Err()
 	}
+
+	// After this point we have a type-conforming result object and so we
+	// must always run to completion to ensure it can be saved. If n.Error
+	// is set then we must not return a non-nil error, in order to allow
+	// evaluation to continue to a later point where our state object will
+	// be saved.
 
 	// By this point there must not be any unknown values remaining in our
 	// object, because we've applied the change and we can't save unknowns
