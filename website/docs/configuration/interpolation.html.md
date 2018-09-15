@@ -289,9 +289,11 @@ The supported built-in functions are:
       * `join(",", aws_instance.foo.*.id)`
       * `join(",", var.ami_list)`
 
-  * `jsonencode(value)` - Returns a JSON-encoded representation of the given
+  * `jsonencode(value, [escape HTML])` - Returns a JSON-encoded representation of the given
       value, which can contain arbitrarily-nested lists and maps. Note that if
-      the value is a string then its value will be placed in quotes.
+      the value is a string then its value will be placed in quotes. By default the HTML
+      characters `<`, `>` and `&` are escaped to the corresponding UTF-16 code, set the second
+      parameter to `false` to disable this.
 
   * `keys(map)` - Returns a lexically sorted list of the map keys.
 
