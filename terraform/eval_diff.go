@@ -331,6 +331,21 @@ func (n *EvalDiff) Eval(ctx EvalContext) (interface{}, error) {
 		priorVal = priorValTainted
 	}
 
+	// As a special case, if we have a previous diff (presumably from the plan
+	// phases, whereas we're now in the apply phase) and it was for a replace,
+	// we've already deleted the original object from state by the time we
+	// get here and so we would've ended up with a _create_ action this time,
+	// which we now need to paper over to get a result consistent with what
+	// we originally intended.
+	if n.PreviousDiff != nil {
+		prevChange := *n.PreviousDiff
+		if prevChange.Action == plans.Replace && action == plans.Create {
+			log.Printf("[TRACE] EvalDiff: %s treating Create change as Replace change to match with earlier plan", absAddr)
+			action = plans.Replace
+			priorVal = prevChange.Before
+		}
+	}
+
 	// Call post-refresh hook
 	if !n.Stub {
 		err := ctx.Hook(func(h Hook) (HookAction, error) {

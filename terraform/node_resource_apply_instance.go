@@ -260,6 +260,13 @@ func (n *NodeApplyableResourceInstance) evalTreeManagedResource(addr addrs.AbsRe
 				Output: &state,
 			},
 
+			// Get the saved diff
+			&EvalReadDiff{
+				Addr:           addr.Resource,
+				ProviderSchema: &providerSchema,
+				Change:         &diff,
+			},
+
 			// Make a new diff, in case we've learned new values in the state
 			// during apply which we can now incorporate.
 			&EvalDiff{
@@ -269,16 +276,10 @@ func (n *NodeApplyableResourceInstance) evalTreeManagedResource(addr addrs.AbsRe
 				ProviderAddr:   n.ResolvedProvider,
 				ProviderSchema: &providerSchema,
 				State:          &state,
+				PreviousDiff:   &diff,
 				OutputChange:   &diffApply,
 				OutputValue:    &configVal,
 				OutputState:    &state,
-			},
-
-			// Get the saved diff
-			&EvalReadDiff{
-				Addr:           addr.Resource,
-				ProviderSchema: &providerSchema,
-				Change:         &diff,
 			},
 
 			// Compare the diffs
@@ -389,10 +390,21 @@ func (n *NodeApplyableResourceInstance) evalTreeManagedResource(addr addrs.AbsRe
 			// We clear the diff out here so that future nodes
 			// don't see a diff that is already complete. There
 			// is no longer a diff!
-			&EvalWriteDiff{
-				Addr:           addr.Resource,
-				ProviderSchema: &providerSchema,
-				Change:         nil,
+			&EvalIf{
+				If: func(ctx EvalContext) (bool, error) {
+					if diff.Action != plans.Replace {
+						return true, nil
+					}
+					if !n.createBeforeDestroy() {
+						return true, nil
+					}
+					return false, nil
+				},
+				Then: &EvalWriteDiff{
+					Addr:           addr.Resource,
+					ProviderSchema: &providerSchema,
+					Change:         nil,
+				},
 			},
 
 			&EvalApplyPost{
