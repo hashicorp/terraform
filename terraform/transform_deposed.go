@@ -98,9 +98,10 @@ func (n *graphNodeDeposedResource) EvalTree() EvalNode {
 					Schema: &providerSchema,
 				},
 				&EvalReadStateDeposed{
-					Addr:   addr.Resource,
-					Key:    n.DeposedKey,
-					Output: &state,
+					Addr:           addr.Resource,
+					ProviderSchema: &providerSchema,
+					Key:            n.DeposedKey,
+					Output:         &state,
 				},
 				&EvalRefresh{
 					Addr:           addr.Resource,
@@ -131,6 +132,7 @@ func (n *graphNodeDeposedResource) EvalTree() EvalNode {
 				&EvalGetProvider{
 					Addr:   n.ResolvedProvider,
 					Output: &provider,
+					Schema: &providerSchema,
 				},
 				&EvalReadStateDeposed{
 					Addr:           addr.Resource,
