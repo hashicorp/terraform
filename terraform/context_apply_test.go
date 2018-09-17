@@ -408,7 +408,7 @@ func TestContext2Apply_resourceDependsOnModuleDestroy(t *testing.T) {
 			is *InstanceState,
 			id *InstanceDiff) (*InstanceState, error) {
 
-			if id.Attributes["ami"] != nil && id.Attributes["ami"].New == "parent" {
+			if is.Attributes["ami"] == "parent" {
 				checked = true
 
 				// Sleep to allow parallel execution
@@ -448,11 +448,7 @@ func TestContext2Apply_resourceDependsOnModuleDestroy(t *testing.T) {
 			t.Fatal("should check")
 		}
 
-		checkStateString(t, state, `
-<no state>
-module.child:
-  <no state>
-		`)
+		checkStateString(t, state, `<no state>`)
 	}
 }
 
