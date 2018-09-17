@@ -849,8 +849,9 @@ func TestContext2Apply_createBeforeDestroy(t *testing.T) {
 	}
 
 	mod := state.RootModule()
-	if len(mod.Resources) != 1 {
-		t.Fatalf("bad: %s", state)
+	if got, want := len(mod.Resources), 1; got != want {
+		t.Logf("state:\n%s", state)
+		t.Fatalf("wrong number of resources %d; want %d", got, want)
 	}
 
 	actual := strings.TrimSpace(state.String())
