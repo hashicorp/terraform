@@ -215,6 +215,12 @@ func hcl2ValueFromFlatmapObject(m map[string]string, prefix string, atys map[str
 func hcl2ValueFromFlatmapTuple(m map[string]string, prefix string, etys []cty.Type) (cty.Value, error) {
 	var vals []cty.Value
 
+	// if the container is unknown, there is no count string
+	listName := strings.TrimRight(prefix, ".")
+	if m[listName] == UnknownVariableValue {
+		return cty.UnknownVal(cty.Tuple(etys)), nil
+	}
+
 	countStr, exists := m[prefix+"#"]
 	if !exists {
 		return cty.NullVal(cty.Tuple(etys)), nil
@@ -246,6 +252,12 @@ func hcl2ValueFromFlatmapTuple(m map[string]string, prefix string, etys []cty.Ty
 func hcl2ValueFromFlatmapMap(m map[string]string, prefix string, ty cty.Type) (cty.Value, error) {
 	vals := make(map[string]cty.Value)
 	ety := ty.ElementType()
+
+	// if the container is unknown, there is no count string
+	listName := strings.TrimRight(prefix, ".")
+	if m[listName] == UnknownVariableValue {
+		return cty.UnknownVal(ty), nil
+	}
 
 	// We actually don't really care about the "count" of a map for our
 	// purposes here, but we do need to check if it _exists_ in order to
@@ -288,6 +300,12 @@ func hcl2ValueFromFlatmapMap(m map[string]string, prefix string, ty cty.Type) (c
 func hcl2ValueFromFlatmapList(m map[string]string, prefix string, ty cty.Type) (cty.Value, error) {
 	var vals []cty.Value
 
+	// if the container is unknown, there is no count string
+	listName := strings.TrimRight(prefix, ".")
+	if m[listName] == UnknownVariableValue {
+		return cty.UnknownVal(ty), nil
+	}
+
 	countStr, exists := m[prefix+"#"]
 	if !exists {
 		return cty.NullVal(ty), nil
@@ -322,6 +340,12 @@ func hcl2ValueFromFlatmapList(m map[string]string, prefix string, ty cty.Type) (
 func hcl2ValueFromFlatmapSet(m map[string]string, prefix string, ty cty.Type) (cty.Value, error) {
 	var vals []cty.Value
 	ety := ty.ElementType()
+
+	// if the container is unknown, there is no count string
+	listName := strings.TrimRight(prefix, ".")
+	if m[listName] == UnknownVariableValue {
+		return cty.UnknownVal(ty), nil
+	}
 
 	// We actually don't really care about the "count" of a set for our
 	// purposes here, but we do need to check if it _exists_ in order to
