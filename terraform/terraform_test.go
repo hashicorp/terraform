@@ -750,7 +750,7 @@ const testTerraformApplyDestroyStr = `
 `
 
 const testTerraformApplyErrorStr = `
-aws_instance.bar:
+aws_instance.bar: (tainted)
   ID = bar
   provider = provider.aws
 
