@@ -1017,7 +1017,6 @@ aws_instance.bar:
   bar = override
   baz = override
   foo = us-east-1
-  type = aws_instance
 aws_instance.foo:
   ID = foo
   provider = provider.aws
@@ -1029,7 +1028,6 @@ aws_instance.foo:
   map.Foo = Bar
   map.Hello = World
   num = 2
-  type = aws_instance
 `
 
 const testTerraformApplyVarsEnvStr = `
