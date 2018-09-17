@@ -11,6 +11,7 @@ import (
 	"math/rand"
 	"os"
 	"path/filepath"
+	"strings"
 
 	tfe "github.com/hashicorp/go-tfe"
 )
@@ -421,7 +422,29 @@ func (m *mockWorkspaces) List(ctx context.Context, organization string, options 
 	dummyWorkspaces := 10
 	wl := &tfe.WorkspaceList{}
 
-	// We return dummy workspaces for the first page to test pagination.
+	// Get the prefix from the search options.
+	prefix := ""
+	if options.Search != nil {
+		prefix = *options.Search
+	}
+
+	// Get all the workspaces that match the prefix.
+	var ws []*tfe.Workspace
+	for _, w := range m.workspaceIDs {
+		if strings.HasPrefix(w.Name, prefix) {
+			ws = append(ws, w)
+		}
+	}
+
+	// Return an empty result if we have no matches.
+	if len(ws) == 0 {
+		wl.Pagination = &tfe.Pagination{
+			CurrentPage: 1,
+		}
+		return wl, nil
+	}
+
+	// Return dummy workspaces for the first page to test pagination.
 	if options.PageNumber <= 1 {
 		for i := 0; i < dummyWorkspaces; i++ {
 			wl.Items = append(wl.Items, &tfe.Workspace{
@@ -434,17 +457,14 @@ func (m *mockWorkspaces) List(ctx context.Context, organization string, options 
 			CurrentPage: 1,
 			NextPage:    2,
 			TotalPages:  2,
-			TotalCount:  len(wl.Items) + len(m.workspaceIDs),
+			TotalCount:  len(wl.Items) + len(ws),
 		}
 
 		return wl, nil
 	}
 
-	// The second page will return any actual results.
-	for _, w := range m.workspaceIDs {
-		wl.Items = append(wl.Items, w)
-	}
-
+	// Return the actual workspaces that matched as the second page.
+	wl.Items = ws
 	wl.Pagination = &tfe.Pagination{
 		CurrentPage:  2,
 		PreviousPage: 1,
