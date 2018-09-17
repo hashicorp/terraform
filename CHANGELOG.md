@@ -6,11 +6,16 @@ IMPROVEMENTS:
 * backend/migrations: Migrate existing non-empty default states when the backend only supports named states [GH-18760]
 * helper/resource: Add `ParallelTest()` function to allow opt-in acceptance testing concurrency with `t.Parallel()` [GH-18688]
 * provider/terraform: `terraform_remote_state` now accepts complex backend configurations [GH-18759]
+* backend/remote: Implement the state.Locker interface to support state locking [GH-18826]
 
 BUG FIXES:
 
 * backend/migrations: Check all workspaces for existing non-empty states [GH-18757]
 * provider/terraform: Always call the backend validation method to prevent a possible panic [GH-18759]
+* backend/remote: Take working directories (optional on workspaces) into account [GH-18773]
+* backend/remote: Use pagination when retrieving states (workspaces) [GH-18817] 
+* backend/remote: Add the run ID to associate state when being used in TFE [GH-18818]
+
 
 ## 0.11.8 (August 15, 2018)
 
