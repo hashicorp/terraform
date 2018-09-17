@@ -1003,7 +1003,7 @@ foo_num = bar
 `
 
 const testTerraformApplyUnknownAttrStr = `
-aws_instance.foo:
+aws_instance.foo: (tainted)
   ID = foo
   provider = provider.aws
   num = 2
