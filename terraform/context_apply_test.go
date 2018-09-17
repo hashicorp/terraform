@@ -1228,13 +1228,15 @@ func TestContext2Apply_destroyComputed(t *testing.T) {
 	})
 
 	if p, diags := ctx.Plan(); diags.HasErrors() {
-		t.Fatalf("plan errors: %s", diags.Err())
+		logDiagnostics(t, diags)
+		t.Fatal("plan failed")
 	} else {
 		t.Logf("plan:\n\n%s", legacyDiffComparisonString(p.Changes))
 	}
 
 	if _, diags := ctx.Apply(); diags.HasErrors() {
-		t.Fatalf("apply errors: %s", diags.Err())
+		logDiagnostics(t, diags)
+		t.Fatal("apply failed")
 	}
 }
 
