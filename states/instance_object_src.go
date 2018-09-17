@@ -69,17 +69,20 @@ type ResourceInstanceObjectSrc struct {
 func (os *ResourceInstanceObjectSrc) Decode(ty cty.Type) (*ResourceInstanceObject, error) {
 	var val cty.Value
 	var err error
-	if os.AttrsFlat != nil {
+	switch {
+	case os.AttrsFlat != nil:
 		// Legacy mode. We'll do our best to unpick this from the flatmap.
 		val, err = hcl2shim.HCL2ValueFromFlatmap(os.AttrsFlat, ty)
 		if err != nil {
 			return nil, err
 		}
-	} else {
+	case os.AttrsJSON != nil:
 		val, err = ctyjson.Unmarshal(os.AttrsJSON, ty)
 		if err != nil {
 			return nil, err
 		}
+	default:
+		val = cty.NullVal(ty)
 	}
 
 	return &ResourceInstanceObject{
