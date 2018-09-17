@@ -121,7 +121,7 @@ func TestResourceProvider_linuxInstallChefClient(t *testing.T) {
 			Commands: map[string]bool{
 				"curl -LO https://omnitruck.chef.io/install.sh": true,
 				"bash ./install.sh -v \"11.18.6\" -c stable":    true,
-				"rm -f install.sh":                              true,
+				"rm -f install.sh": true,
 			},
 		},
 
@@ -140,7 +140,7 @@ func TestResourceProvider_linuxInstallChefClient(t *testing.T) {
 			Commands: map[string]bool{
 				"curl -LO https://omnitruck.chef.io/install.sh": true,
 				"bash ./install.sh -v \"11.18.6\" -c current":   true,
-				"rm -f install.sh":                              true,
+				"rm -f install.sh": true,
 			},
 		},
 	}
