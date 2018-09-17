@@ -8263,10 +8263,10 @@ func TestContext2Apply_vars(t *testing.T) {
 		t.Fatalf("err: %s", diags.Err())
 	}
 
-	actual := strings.TrimSpace(state.String())
-	expected := strings.TrimSpace(testTerraformApplyVarsStr)
-	if actual != expected {
-		t.Errorf("wrong result\n\ngot:\n%s\n\nwant:\n%s", actual, expected)
+	got := strings.TrimSpace(state.String())
+	want := strings.TrimSpace(testTerraformApplyVarsStr)
+	if got != want {
+		t.Errorf("wrong result\n\ngot:\n%s\n\nwant:\n%s", got, want)
 	}
 }
 
