@@ -18,6 +18,7 @@ import (
 	backendConsul "github.com/hashicorp/terraform/backend/remote-state/consul"
 	backendEtcdv3 "github.com/hashicorp/terraform/backend/remote-state/etcdv3"
 	backendGCS "github.com/hashicorp/terraform/backend/remote-state/gcs"
+	backendHttp "github.com/hashicorp/terraform/backend/remote-state/http"
 	backendInmem "github.com/hashicorp/terraform/backend/remote-state/inmem"
 	backendManta "github.com/hashicorp/terraform/backend/remote-state/manta"
 	backendS3 "github.com/hashicorp/terraform/backend/remote-state/s3"
@@ -60,6 +61,7 @@ func Init(services *disco.Disco) {
 		"consul":  func() backend.Backend { return backendConsul.New() },
 		"etcdv3":  func() backend.Backend { return backendEtcdv3.New() },
 		"gcs":     func() backend.Backend { return backendGCS.New() },
+		"http":    func() backend.Backend { return backendHttp.New() },
 		"inmem":   func() backend.Backend { return backendInmem.New() },
 		"manta":   func() backend.Backend { return backendManta.New() },
 		"s3":      func() backend.Backend { return backendS3.New() },
