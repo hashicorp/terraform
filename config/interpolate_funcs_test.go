@@ -1502,6 +1502,16 @@ func TestInterpolateFuncJSONEncode(t *testing.T) {
 				`{"foo":["bar"]}`,
 				false,
 			},
+			{
+				`${jsonencode("< & >")}`,
+				`"\u003c \u0026 \u003e"`,
+				false,
+			},
+			{
+				`${jsonencode(">", false)}`,
+				`">"`,
+				false,
+			},
 		},
 	})
 }

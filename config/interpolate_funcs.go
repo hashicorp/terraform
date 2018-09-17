@@ -856,9 +856,18 @@ func interpolationFuncJoin() ast.Function {
 // a string, list, or map as its JSON representation.
 func interpolationFuncJSONEncode() ast.Function {
 	return ast.Function{
-		ArgTypes:   []ast.Type{ast.TypeAny},
-		ReturnType: ast.TypeString,
+		ArgTypes:     []ast.Type{ast.TypeAny},
+		Variadic:     true,
+		VariadicType: ast.TypeBool,
+		ReturnType:   ast.TypeString,
 		Callback: func(args []interface{}) (interface{}, error) {
+			escapeHTML := true
+			if len(args) > 1 {
+				escapeHTML = args[1].(bool)
+			}
+			if len(args) > 2 {
+				return "", fmt.Errorf("jsonencode() takes no more than two arguments")
+			}
 			var toEncode interface{}
 
 			switch typedArg := args[0].(type) {
@@ -909,6 +918,15 @@ func interpolationFuncJSONEncode() ast.Function {
 			if err != nil {
 				return "", fmt.Errorf("failed to encode JSON data '%s'", toEncode)
 			}
+
+			if !escapeHTML {
+				jEncStr, err := strconv.Unquote(strings.Replace(strconv.Quote(string(jEnc)), `\\u`, `\u`, -1))
+				if err != nil {
+					return "", fmt.Errorf("failed to encode JSON data '%s'", toEncode)
+				}
+				return jEncStr, nil
+			}
+
 			return string(jEnc), nil
 		},
 	}
