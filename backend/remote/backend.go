@@ -369,7 +369,7 @@ func (b *Remote) states() ([]string, error) {
 		}
 
 		// Exit the loop when we've seen all pages.
-		if wl.CurrentPage == wl.TotalPages {
+		if wl.CurrentPage >= wl.TotalPages {
 			break
 		}
 
