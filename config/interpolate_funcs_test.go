@@ -1546,6 +1546,39 @@ func TestInterpolateFuncReplace(t *testing.T) {
 	})
 }
 
+func TestInterpolateFuncReverse(t *testing.T) {
+	testFunction(t, testFunctionConfig{
+		Vars: map[string]ast.Variable{
+			"var.inputlist": {
+				Type: ast.TypeList,
+				Value: []ast.Variable{
+					{Type: ast.TypeString, Value: "a"},
+					{Type: ast.TypeString, Value: "b"},
+					{Type: ast.TypeString, Value: "1"},
+					{Type: ast.TypeString, Value: "d"},
+				},
+			},
+			"var.emptylist": {
+				Type: ast.TypeList,
+				// Intentionally 0-lengthed list
+				Value: []ast.Variable{},
+			},
+		},
+		Cases: []testFunctionCase{
+			{
+				`${reverse(var.inputlist)}`,
+				[]interface{}{"d", "1", "b", "a"},
+				false,
+			},
+			{
+				`${reverse(var.emptylist)}`,
+				[]interface{}{},
+				false,
+			},
+		},
+	})
+}
+
 func TestInterpolateFuncLength(t *testing.T) {
 	testFunction(t, testFunctionConfig{
 		Cases: []testFunctionCase{
