@@ -1088,33 +1088,6 @@ STATE:
 <no state>
 `
 
-const testTerraformPlanCountStr = `
-DIFF:
-
-CREATE: aws_instance.bar
-  foo:  "" => "foo,foo,foo,foo,foo"
-  type: "" => "aws_instance"
-CREATE: aws_instance.foo.0
-  foo:  "" => "foo"
-  type: "" => "aws_instance"
-CREATE: aws_instance.foo.1
-  foo:  "" => "foo"
-  type: "" => "aws_instance"
-CREATE: aws_instance.foo.2
-  foo:  "" => "foo"
-  type: "" => "aws_instance"
-CREATE: aws_instance.foo.3
-  foo:  "" => "foo"
-  type: "" => "aws_instance"
-CREATE: aws_instance.foo.4
-  foo:  "" => "foo"
-  type: "" => "aws_instance"
-
-STATE:
-
-<no state>
-`
-
 const testTerraformPlanCountIndexZeroStr = `
 DIFF:
 
@@ -1125,140 +1098,6 @@ CREATE: aws_instance.foo
 STATE:
 
 <no state>
-`
-
-const testTerraformPlanCountOneIndexStr = `
-DIFF:
-
-CREATE: aws_instance.bar
-  foo:  "" => "foo"
-  type: "" => "aws_instance"
-CREATE: aws_instance.foo.0
-  foo:  "" => "foo"
-  type: "" => "aws_instance"
-
-STATE:
-
-<no state>
-`
-
-const testTerraformPlanCountDecreaseStr = `
-DIFF:
-
-CREATE: aws_instance.bar
-  foo:  "" => "bar"
-  type: "" => "aws_instance"
-DESTROY: aws_instance.foo.1
-DESTROY: aws_instance.foo.2
-
-STATE:
-
-aws_instance.foo.0:
-  ID = bar
-  foo = foo
-  type = aws_instance
-aws_instance.foo.1:
-  ID = bar
-aws_instance.foo.2:
-  ID = bar
-`
-
-const testTerraformPlanCountIncreaseStr = `
-DIFF:
-
-CREATE: aws_instance.bar
-  foo:  "" => "bar"
-  type: "" => "aws_instance"
-CREATE: aws_instance.foo.1
-  foo:  "" => "foo"
-  type: "" => "aws_instance"
-CREATE: aws_instance.foo.2
-  foo:  "" => "foo"
-  type: "" => "aws_instance"
-
-STATE:
-
-aws_instance.foo:
-  ID = bar
-  foo = foo
-  type = aws_instance
-`
-
-const testTerraformPlanCountIncreaseFromOneStr = `
-DIFF:
-
-CREATE: aws_instance.bar
-  foo:  "" => "bar"
-  type: "" => "aws_instance"
-CREATE: aws_instance.foo.1
-  foo:  "" => "foo"
-  type: "" => "aws_instance"
-CREATE: aws_instance.foo.2
-  foo:  "" => "foo"
-  type: "" => "aws_instance"
-
-STATE:
-
-aws_instance.foo.0:
-  ID = bar
-  foo = foo
-  type = aws_instance
-`
-
-const testTerraformPlanCountIncreaseFromOneCorruptedStr = `
-DIFF:
-
-CREATE: aws_instance.bar
-  foo:  "" => "bar"
-  type: "" => "aws_instance"
-DESTROY: aws_instance.foo
-CREATE: aws_instance.foo.1
-  foo:  "" => "foo"
-  type: "" => "aws_instance"
-CREATE: aws_instance.foo.2
-  foo:  "" => "foo"
-  type: "" => "aws_instance"
-
-STATE:
-
-aws_instance.foo:
-  ID = bar
-  foo = foo
-  type = aws_instance
-aws_instance.foo.0:
-  ID = bar
-  foo = foo
-  type = aws_instance
-`
-
-const testTerraformPlanDestroyStr = `
-DIFF:
-
-DESTROY: aws_instance.one
-DESTROY: aws_instance.two
-
-STATE:
-
-aws_instance.one:
-  ID = bar
-aws_instance.two:
-  ID = baz
-`
-
-const testTerraformPlanDiffVarStr = `
-DIFF:
-
-CREATE: aws_instance.bar
-  num:  "" => "3"
-  type: "" => "aws_instance"
-UPDATE: aws_instance.foo
-  num: "2" => "3"
-
-STATE:
-
-aws_instance.foo:
-  ID = bar
-  num = 2
 `
 
 const testTerraformPlanEmptyStr = `
@@ -1317,59 +1156,6 @@ STATE:
 <no state>
 `
 
-const testTerraformPlanModuleDestroyStr = `
-DIFF:
-
-DESTROY: aws_instance.foo
-
-module.child:
-  DESTROY: aws_instance.foo
-
-STATE:
-
-aws_instance.foo:
-  ID = bar
-
-module.child:
-  aws_instance.foo:
-    ID = bar
-`
-
-const testTerraformPlanModuleDestroyCycleStr = `
-DIFF:
-
-module.a_module:
-  DESTROY: aws_instance.a
-module.b_module:
-  DESTROY: aws_instance.b
-
-STATE:
-
-module.a_module:
-  aws_instance.a:
-    ID = a
-module.b_module:
-  aws_instance.b:
-    ID = b
-`
-
-const testTerraformPlanModuleDestroyMultivarStr = `
-DIFF:
-
-module.child:
-  DESTROY: aws_instance.foo.0
-  DESTROY: aws_instance.foo.1
-
-STATE:
-
-<no state>
-module.child:
-  aws_instance.foo.0:
-    ID = bar0
-  aws_instance.foo.1:
-    ID = bar1
-`
-
 const testTerraformPlanModuleInputStr = `
 DIFF:
 
@@ -1419,67 +1205,6 @@ STATE:
 <no state>
 `
 
-const testTerraformPlanOrphanStr = `
-DIFF:
-
-DESTROY: aws_instance.baz
-CREATE: aws_instance.foo
-  num:  "" => "2"
-  type: "" => "aws_instance"
-
-STATE:
-
-aws_instance.baz:
-  ID = bar
-`
-
-const testTerraformPlanStateStr = `
-DIFF:
-
-CREATE: aws_instance.bar
-  foo:  "" => "2"
-  type: "" => "aws_instance"
-UPDATE: aws_instance.foo
-  num:  "" => "2"
-  type: "" => "aws_instance"
-
-STATE:
-
-aws_instance.foo:
-  ID = bar
-`
-
-const testTerraformPlanTaintStr = `
-DIFF:
-
-DESTROY/CREATE: aws_instance.bar
-  foo:  "" => "2"
-  type: "" => "aws_instance"
-
-STATE:
-
-aws_instance.bar: (tainted)
-  ID = baz
-aws_instance.foo:
-  ID = bar
-  num = 2
-`
-
-const testTerraformPlanTaintIgnoreChangesStr = `
-DIFF:
-
-DESTROY/CREATE: aws_instance.foo
-  type: "" => "aws_instance"
-  vars: "foo" => "foo"
-
-STATE:
-
-aws_instance.foo: (tainted)
-  ID = foo
-  type = aws_instance
-  vars = foo
-`
-
 const testTerraformPlanMultipleTaintStr = `
 DIFF:
 
@@ -1513,33 +1238,6 @@ STATE:
 <no state>
 `
 
-const testTerraformPlanPathVarStr = `
-DIFF:
-
-CREATE: aws_instance.foo
-  cwd:    "" => "%s/barpath"
-  module: "" => "%s/foopath"
-  root:   "" => "%s/barpath"
-  type:   "" => "aws_instance"
-
-STATE:
-
-<no state>
-`
-
-const testTerraformPlanIgnoreChangesStr = `
-DIFF:
-
-UPDATE: aws_instance.foo
-  type: "" => "aws_instance"
-
-STATE:
-
-aws_instance.foo:
-  ID = bar
-  ami = ami-abcd1234
-`
-
 const testTFPlanDiffIgnoreChangesWithFlatmaps = `
 UPDATE: aws_instance.foo
   lst.#:   "1" => "2"
@@ -1549,19 +1247,6 @@ UPDATE: aws_instance.foo
   set.0.a: "1" => "1"
   set.0.b: "" => "2"
   type:    "" => "aws_instance"
-`
-
-const testTerraformPlanIgnoreChangesWildcardStr = `
-DIFF:
-
-
-
-STATE:
-
-aws_instance.foo:
-  ID = bar
-  ami = ami-abcd1234
-  instance_type = t2.micro
 `
 
 const testTerraformPlanComputedValueInMap = `
