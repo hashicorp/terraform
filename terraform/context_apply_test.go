@@ -5303,9 +5303,7 @@ func TestContext2Apply_provisionerDestroyModule(t *testing.T) {
 		t.Fatalf("diags: %s", diags.Err())
 	}
 
-	checkStateString(t, state, `
-module.child:
-  <no state>`)
+	checkStateString(t, state, `<no state>`)
 
 	// Verify apply was invoked
 	if !pr.ProvisionResourceCalled {
