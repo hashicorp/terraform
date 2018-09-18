@@ -5841,7 +5841,7 @@ func TestContext2Apply_outputDiffVars(t *testing.T) {
 			&ModuleState{
 				Path: rootModulePath,
 				Resources: map[string]*ResourceState{
-					"aws_instance.baz": &ResourceState{
+					"aws_instance.baz": &ResourceState{ // This one is not in config, so should be destroyed
 						Type: "aws_instance",
 						Primary: &InstanceState{
 							ID: "bar",
@@ -5862,10 +5862,8 @@ func TestContext2Apply_outputDiffVars(t *testing.T) {
 	})
 
 	p.ApplyFn = func(info *InstanceInfo, s *InstanceState, d *InstanceDiff) (*InstanceState, error) {
-		for k, ad := range d.Attributes {
-			if ad.NewComputed {
-				return nil, fmt.Errorf("%s: computed", k)
-			}
+		if d.Destroy {
+			return nil, nil
 		}
 
 		result := s.MergeDiff(d)
@@ -5888,10 +5886,12 @@ func TestContext2Apply_outputDiffVars(t *testing.T) {
 	}
 
 	if _, diags := ctx.Plan(); diags.HasErrors() {
-		t.Fatalf("plan errors: %s", diags.Err())
+		logDiagnostics(t, diags)
+		t.Fatal("plan failed")
 	}
 	if _, diags := ctx.Apply(); diags.HasErrors() {
-		t.Fatalf("apply errors: %s", diags.Err())
+		logDiagnostics(t, diags)
+		t.Fatal("apply failed")
 	}
 }
 
