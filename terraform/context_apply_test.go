@@ -2077,6 +2077,7 @@ func TestContext2Apply_countDecrease(t *testing.T) {
 	m := testModule(t, "apply-count-dec")
 	p := testProvider("aws")
 	p.DiffFn = testDiffFn
+	p.ApplyFn = testApplyFn
 	s := mustShimLegacyState(&State{
 		Modules: []*ModuleState{
 			&ModuleState{
@@ -2127,13 +2128,12 @@ func TestContext2Apply_countDecrease(t *testing.T) {
 	})
 
 	if _, diags := ctx.Plan(); diags.HasErrors() {
-		t.Fatalf("plan errors: %s", diags.Err())
+		logDiagnostics(t, diags)
+		t.Fatal("plan failed")
 	}
 
 	state, diags := ctx.Apply()
-	if diags.HasErrors() {
-		t.Fatalf("diags: %s", diags.Err())
-	}
+	assertNoErrors(t, diags)
 
 	actual := strings.TrimSpace(state.String())
 	expected := strings.TrimSpace(testTerraformApplyCountDecStr)
