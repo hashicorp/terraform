@@ -325,6 +325,9 @@ func testDiffFn(
 			Old: "",
 			New: info.Type,
 		}
+		if s != nil && s.Attributes != nil {
+			diff.Attributes["type"].Old = s.Attributes["type"]
+		}
 	}
 
 	return diff, nil
