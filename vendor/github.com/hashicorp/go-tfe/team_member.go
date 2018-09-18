@@ -16,6 +16,9 @@ var _ TeamMembers = (*teamMembers)(nil)
 // TFE API docs:
 // https://www.terraform.io/docs/enterprise/api/team-members.html
 type TeamMembers interface {
+	// List all members of a team.
+	List(ctx context.Context, teamID string) ([]*User, error)
+
 	// Add multiple users to a team.
 	Add(ctx context.Context, teamID string, options TeamMemberAddOptions) error
 
@@ -30,6 +33,33 @@ type teamMembers struct {
 
 type teamMember struct {
 	Username string `jsonapi:"primary,users"`
+}
+
+// List all members of a team.
+func (s *teamMembers) List(ctx context.Context, teamID string) ([]*User, error) {
+	if !validStringID(&teamID) {
+		return nil, errors.New("Invalid value for team ID")
+	}
+
+	options := struct {
+		Include string `url:"include"`
+	}{
+		Include: "users",
+	}
+
+	u := fmt.Sprintf("teams/%s", url.QueryEscape(teamID))
+	req, err := s.client.newRequest("GET", u, options)
+	if err != nil {
+		return nil, err
+	}
+
+	t := &Team{}
+	err = s.client.do(ctx, req, t)
+	if err != nil {
+		return nil, err
+	}
+
+	return t.Users, nil
 }
 
 // TeamMemberAddOptions represents the options for adding team members.

@@ -3,7 +3,7 @@ layout: "commands-state"
 page_title: "Command: state mv"
 sidebar_current: "docs-state-sub-mv"
 description: |-
-  The `terraform state rm` command removes items from the Terraform state.
+  The `terraform state mv` command moves items in the Terraform state.
 ---
 
 # Command: state mv

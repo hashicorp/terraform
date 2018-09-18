@@ -16,6 +16,18 @@ func TestRemote(t *testing.T) {
 	var _ backend.CLI = New(nil)
 }
 
+func TestRemote_backendDefault(t *testing.T) {
+	b := testBackendDefault(t)
+	backend.TestBackendStates(t, b)
+	backend.TestBackendStateLocks(t, b, b)
+	backend.TestBackendStateForceUnlock(t, b, b)
+}
+
+func TestRemote_backendNoDefault(t *testing.T) {
+	b := testBackendNoDefault(t)
+	backend.TestBackendStates(t, b)
+}
+
 func TestRemote_config(t *testing.T) {
 	cases := map[string]struct {
 		config map[string]interface{}
@@ -123,18 +135,6 @@ func TestRemote_nonexistingOrganization(t *testing.T) {
 	if _, err := b.States(); err == nil || !strings.Contains(err.Error(), msg) {
 		t.Fatalf("expected %q error, got: %v", msg, err)
 	}
-}
-
-func TestRemote_backendDefault(t *testing.T) {
-	b := testBackendDefault(t)
-	backend.TestBackendStates(t, b)
-	backend.TestBackendStateLocks(t, b, b)
-	backend.TestBackendStateForceUnlock(t, b, b)
-}
-
-func TestRemote_backendNoDefault(t *testing.T) {
-	b := testBackendNoDefault(t)
-	backend.TestBackendStates(t, b)
 }
 
 func TestRemote_addAndRemoveStatesDefault(t *testing.T) {

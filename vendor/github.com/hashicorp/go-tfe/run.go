@@ -17,7 +17,7 @@ var _ Runs = (*runs)(nil)
 // TFE API docs: https://www.terraform.io/docs/enterprise/api/run.html
 type Runs interface {
 	// List all the runs of the given workspace.
-	List(ctx context.Context, workspaceID string, options RunListOptions) ([]*Run, error)
+	List(ctx context.Context, workspaceID string, options RunListOptions) (*RunList, error)
 
 	// Create a new run with the given options.
 	Create(ctx context.Context, options RunCreateOptions) (*Run, error)
@@ -69,6 +69,12 @@ const (
 	RunSourceUI                   RunSource = "tfe-ui"
 )
 
+// RunList represents a list of runs.
+type RunList struct {
+	*Pagination
+	Items []*Run
+}
+
 // Run represents a Terraform Enterprise run.
 type Run struct {
 	ID               string               `jsonapi:"primary,runs"`
@@ -117,7 +123,7 @@ type RunListOptions struct {
 }
 
 // List all the runs of the given workspace.
-func (s *runs) List(ctx context.Context, workspaceID string, options RunListOptions) ([]*Run, error) {
+func (s *runs) List(ctx context.Context, workspaceID string, options RunListOptions) (*RunList, error) {
 	if !validStringID(&workspaceID) {
 		return nil, errors.New("Invalid value for workspace ID")
 	}
@@ -128,13 +134,13 @@ func (s *runs) List(ctx context.Context, workspaceID string, options RunListOpti
 		return nil, err
 	}
 
-	var rs []*Run
-	err = s.client.do(ctx, req, &rs)
+	rl := &RunList{}
+	err = s.client.do(ctx, req, rl)
 	if err != nil {
 		return nil, err
 	}
 
-	return rs, nil
+	return rl, nil
 }
 
 // RunCreateOptions represents the options for creating a new run.

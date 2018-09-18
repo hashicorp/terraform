@@ -418,6 +418,17 @@ func LogOutput(t TestT) (logOutput io.Writer, err error) {
 	return
 }
 
+// ParallelTest performs an acceptance test on a resource, allowing concurrency
+// with other ParallelTest.
+//
+// Tests will fail if they do not properly handle conditions to allow multiple
+// tests to occur against the same resource or service (e.g. random naming).
+// All other requirements of the Test function also apply to this function.
+func ParallelTest(t TestT, c TestCase) {
+	t.Parallel()
+	Test(t, c)
+}
+
 // Test performs an acceptance test on a resource.
 //
 // Tests are not run unless an environmental variable "TF_ACC" is
@@ -1128,6 +1139,7 @@ type TestT interface {
 	Fatal(args ...interface{})
 	Skip(args ...interface{})
 	Name() string
+	Parallel()
 }
 
 // This is set to true by unit tests to alter some behavior

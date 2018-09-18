@@ -110,18 +110,18 @@ please fill out this [community providers form](https://docs.google.com/forms/d/
     </tr>
     <tr>
     <td><a href="https://github.com/yamamoto-febc/terraform-provider-rke">RKE</a></td>
-    <td><a href="https://github.com/ewilde/terraform-provider-runscope">Runscope</a></td>
     <td><a href="https://github.com/sacloud/terraform-provider-sakuracloud">SakuraCloud</a></td>
+    <td><a href="https://github.com/GSLabDev/terraform-provider-scvmm">SCVMM</a></td>
     </tr>
     <tr>
-    <td><a href="https://github.com/GSLabDev/terraform-provider-scvmm">SCVMM</a></td>
     <td><a href="https://github.com/jianyuan/terraform-provider-sentry">Sentry</a></td>
     <td><a href="https://github.com/SewanDevs/terraform-provider-sewan">Sewan</a></td>
+    <td><a href="https://github.com/Yelp/terraform-provider-signalform">SignalFx</a></td>
     </tr>
     <tr>
-    <td><a href="https://github.com/Yelp/terraform-provider-signalform">SignalFx</a></td>
     <td><a href="https://github.com/ShopRunner/terraform-provider-snowflake">Snowflake</a></td>
     <td><a href="https://github.com/Ashald/terraform-provider-stateful">Stateful</a></td>
+    <td><a href="https://github.com/franckverrot/terraform-provider-stripe">Stripe</a></td>
     </tr>
     <tr>
     <td><a href="https://github.com/bocodigitalmedia/terraform-provider-transloadit">Transloadit</a></td>

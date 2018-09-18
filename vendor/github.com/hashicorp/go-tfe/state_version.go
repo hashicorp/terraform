@@ -19,7 +19,7 @@ var _ StateVersions = (*stateVersions)(nil)
 // https://www.terraform.io/docs/enterprise/api/state-versions.html
 type StateVersions interface {
 	// List all the state versions for a given workspace.
-	List(ctx context.Context, options StateVersionListOptions) ([]*StateVersion, error)
+	List(ctx context.Context, options StateVersionListOptions) (*StateVersionList, error)
 
 	// Create a new state version for the given workspace.
 	Create(ctx context.Context, workspaceID string, options StateVersionCreateOptions) (*StateVersion, error)
@@ -37,6 +37,12 @@ type StateVersions interface {
 // stateVersions implements StateVersions.
 type stateVersions struct {
 	client *Client
+}
+
+// StateVersionList represents a list of state versions.
+type StateVersionList struct {
+	*Pagination
+	Items []*StateVersion
 }
 
 // StateVersion represents a Terraform Enterprise state version.
@@ -70,7 +76,7 @@ func (o StateVersionListOptions) valid() error {
 }
 
 // List all the state versions for a given workspace.
-func (s *stateVersions) List(ctx context.Context, options StateVersionListOptions) ([]*StateVersion, error) {
+func (s *stateVersions) List(ctx context.Context, options StateVersionListOptions) (*StateVersionList, error) {
 	if err := options.valid(); err != nil {
 		return nil, err
 	}
@@ -80,13 +86,13 @@ func (s *stateVersions) List(ctx context.Context, options StateVersionListOption
 		return nil, err
 	}
 
-	var svs []*StateVersion
-	err = s.client.do(ctx, req, &svs)
+	svl := &StateVersionList{}
+	err = s.client.do(ctx, req, svl)
 	if err != nil {
 		return nil, err
 	}
 
-	return svs, nil
+	return svl, nil
 }
 
 // StateVersionCreateOptions represents the options for creating a state version.
@@ -105,6 +111,9 @@ type StateVersionCreateOptions struct {
 
 	// The base64 encoded state.
 	State *string `jsonapi:"attr,state"`
+
+	// Specifies the run to associate the state with.
+	Run *Run `jsonapi:"relation,run,omitempty"`
 }
 
 func (o StateVersionCreateOptions) valid() error {
