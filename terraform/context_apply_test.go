@@ -1283,10 +1283,10 @@ func testContext2Apply_destroyDependsOn(t *testing.T) {
 	var actual []string
 	var actualLock sync.Mutex
 	p.ApplyFn = func(
-		info *InstanceInfo, _ *InstanceState, _ *InstanceDiff) (*InstanceState, error) {
+		_ *InstanceInfo, is *InstanceState, _ *InstanceDiff) (*InstanceState, error) {
 		actualLock.Lock()
 		defer actualLock.Unlock()
-		actual = append(actual, info.Id)
+		actual = append(actual, is.ID)
 		return nil, nil
 	}
 
@@ -1310,9 +1310,9 @@ func testContext2Apply_destroyDependsOn(t *testing.T) {
 		t.Fatalf("apply errors: %s", diags.Err())
 	}
 
-	expected := []string{"aws_instance.foo", "aws_instance.bar"}
+	expected := []string{"foo", "bar"}
 	if !reflect.DeepEqual(actual, expected) {
-		t.Fatalf("bad: %#v", actual)
+		t.Fatalf("wrong order\ngot:  %#v\nwant: %#v", actual, expected)
 	}
 }
 
@@ -1363,10 +1363,10 @@ func testContext2Apply_destroyDependsOnStateOnly(t *testing.T) {
 	var actual []string
 	var actualLock sync.Mutex
 	p.ApplyFn = func(
-		info *InstanceInfo, _ *InstanceState, _ *InstanceDiff) (*InstanceState, error) {
+		_ *InstanceInfo, is *InstanceState, _ *InstanceDiff) (*InstanceState, error) {
 		actualLock.Lock()
 		defer actualLock.Unlock()
-		actual = append(actual, info.Id)
+		actual = append(actual, is.ID)
 		return nil, nil
 	}
 
@@ -1390,9 +1390,9 @@ func testContext2Apply_destroyDependsOnStateOnly(t *testing.T) {
 		t.Fatalf("apply errors: %s", diags.Err())
 	}
 
-	expected := []string{"aws_instance.bar", "aws_instance.foo"}
+	expected := []string{"bar", "foo"}
 	if !reflect.DeepEqual(actual, expected) {
-		t.Fatalf("bad: %#v", actual)
+		t.Fatalf("wrong order\ngot:  %#v\nwant: %#v", actual, expected)
 	}
 }
 
@@ -1443,10 +1443,10 @@ func testContext2Apply_destroyDependsOnStateOnlyModule(t *testing.T) {
 	var actual []string
 	var actualLock sync.Mutex
 	p.ApplyFn = func(
-		info *InstanceInfo, _ *InstanceState, _ *InstanceDiff) (*InstanceState, error) {
+		_ *InstanceInfo, is *InstanceState, _ *InstanceDiff) (*InstanceState, error) {
 		actualLock.Lock()
 		defer actualLock.Unlock()
-		actual = append(actual, info.Id)
+		actual = append(actual, is.ID)
 		return nil, nil
 	}
 
@@ -1470,9 +1470,9 @@ func testContext2Apply_destroyDependsOnStateOnlyModule(t *testing.T) {
 		t.Fatalf("apply errors: %s", diags.Err())
 	}
 
-	expected := []string{"aws_instance.bar", "aws_instance.foo"}
+	expected := []string{"bar", "foo"}
 	if !reflect.DeepEqual(actual, expected) {
-		t.Fatalf("bad: %#v", actual)
+		t.Fatalf("wrong order\ngot:  %#v\nwant: %#v", actual, expected)
 	}
 }
 
