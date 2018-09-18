@@ -296,8 +296,12 @@ func testDiffFn(
 		if k == "id" {
 			continue
 		}
+		old := ""
+		if s != nil {
+			old = s.Attributes[k]
+		}
 		diff.Attributes[k] = &ResourceAttrDiff{
-			Old:         "",
+			Old:         old,
 			NewComputed: true,
 		}
 	}
