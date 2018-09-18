@@ -830,6 +830,11 @@ func legacyDiffComparisonString(changes *plans.Changes) string {
 	resourceKeys := map[string][]string{}
 	var moduleKeys []string
 	for _, rc := range changes.Resources {
+		if rc.Action == plans.NoOp {
+			// We won't mention no-op changes here at all, since the old plan
+			// model we are emulating here didn't have such a concept.
+			continue
+		}
 		moduleKey := rc.Addr.Module.String()
 		if _, exists := byModule[moduleKey]; !exists {
 			moduleKeys = append(moduleKeys, moduleKey)

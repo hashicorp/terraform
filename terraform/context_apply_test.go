@@ -2255,8 +2255,9 @@ func TestContext2Apply_countDecreaseToOneCorrupted(t *testing.T) {
 	if p, diags := ctx.Plan(); diags.HasErrors() {
 		t.Fatalf("diags: %s", diags.Err())
 	} else {
-		planStr := legacyPlanComparisonString(ctx.State(), p.Changes)
-		if got, want := planStr, testTerraformApplyCountDecToOneCorruptedPlanStr; got != want {
+		got := strings.TrimSpace(legacyPlanComparisonString(ctx.State(), p.Changes))
+		want := strings.TrimSpace(testTerraformApplyCountDecToOneCorruptedPlanStr)
+		if got != want {
 			t.Fatalf("wrong plan result\ngot:\n%s\nwant:\n%s", got, want)
 		}
 	}
@@ -2269,7 +2270,7 @@ func TestContext2Apply_countDecreaseToOneCorrupted(t *testing.T) {
 	actual := strings.TrimSpace(state.String())
 	expected := strings.TrimSpace(testTerraformApplyCountDecToOneCorruptedStr)
 	if actual != expected {
-		t.Fatalf("wrong result\n\ngot:\n%s\n\nwant:\n%s", actual, expected)
+		t.Fatalf("wrong final state\n\ngot:\n%s\n\nwant:\n%s", actual, expected)
 	}
 }
 
