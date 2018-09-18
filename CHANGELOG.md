@@ -15,7 +15,7 @@ BUG FIXES:
 * backend/remote: Take working directories (optional on workspaces) into account [GH-18773]
 * backend/remote: Use pagination when retrieving states (workspaces) [GH-18817] 
 * backend/remote: Add the run ID to associate state when being used in TFE [GH-18818]
-
+* core: Make sure the state is locked before it is used when `(un)tainting` [GH-18894]
 
 ## 0.11.8 (August 15, 2018)
 
