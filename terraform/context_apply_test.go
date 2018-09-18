@@ -3858,7 +3858,7 @@ func TestContext2Apply_multiVarCountDec(t *testing.T) {
 			lock.Lock()
 			defer lock.Unlock()
 
-			if id.Attributes["ami"].New == "special" {
+			if id != nil && id.Attributes != nil && id.Attributes["ami"] != nil && id.Attributes["ami"].New == "special" {
 				checked = true
 
 				// Sleep to allow parallel execution
