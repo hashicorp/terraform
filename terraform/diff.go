@@ -444,7 +444,7 @@ func (d *InstanceDiff) ApplyToValue(base cty.Value, schema *configschema.Block) 
 			// if new or old is unknown, then there's no mismatch
 			old != config.UnknownVariableValue &&
 			diff.Old != config.UnknownVariableValue {
-			return base, fmt.Errorf("mismatched diff: %q != %q", old, diff.Old)
+			return base, fmt.Errorf("diff apply conflict for %s: diff expects %q, but prior value has %q", attr, diff.Old, old)
 		}
 
 		if diff.NewComputed {

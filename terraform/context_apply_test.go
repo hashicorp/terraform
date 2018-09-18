@@ -5762,12 +5762,14 @@ func TestContext2Apply_Provisioner_Diff(t *testing.T) {
 	})
 
 	if _, diags := ctx.Plan(); diags.HasErrors() {
-		t.Fatalf("plan errors: %s", diags.Err())
+		logDiagnostics(t, diags)
+		t.Fatal("plan failed")
 	}
 
 	state, diags := ctx.Apply()
 	if diags.HasErrors() {
-		t.Fatalf("diags: %s", diags.Err())
+		logDiagnostics(t, diags)
+		t.Fatal("apply failed")
 	}
 
 	actual := strings.TrimSpace(state.String())
@@ -5778,7 +5780,7 @@ func TestContext2Apply_Provisioner_Diff(t *testing.T) {
 
 	// Verify apply was invoked
 	if !pr.ProvisionResourceCalled {
-		t.Fatalf("provisioner not invoked")
+		t.Fatalf("provisioner was not called on first apply")
 	}
 	pr.ProvisionResourceCalled = false
 
@@ -5811,12 +5813,14 @@ func TestContext2Apply_Provisioner_Diff(t *testing.T) {
 	})
 
 	if _, diags := ctx.Plan(); diags.HasErrors() {
-		t.Fatalf("plan errors: %s", diags.Err())
+		logDiagnostics(t, diags)
+		t.Fatal("plan failed")
 	}
 
 	state2, diags := ctx.Apply()
 	if diags.HasErrors() {
-		t.Fatalf("diags: %s", diags.Err())
+		logDiagnostics(t, diags)
+		t.Fatal("apply failed")
 	}
 
 	actual = strings.TrimSpace(state2.String())
@@ -5826,7 +5830,7 @@ func TestContext2Apply_Provisioner_Diff(t *testing.T) {
 
 	// Verify apply was NOT invoked
 	if pr.ProvisionResourceCalled {
-		t.Fatalf("provisioner invoked")
+		t.Fatalf("provisioner was called on second apply; should not have been")
 	}
 }
 
