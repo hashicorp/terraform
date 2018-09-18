@@ -466,6 +466,7 @@ aws_instance.foo:
 const testTerraformApplyCountDecToOneCorruptedStr = `
 aws_instance.foo:
   ID = bar
+  provider = provider.aws
   foo = foo
   type = aws_instance
 `
@@ -473,16 +474,20 @@ aws_instance.foo:
 const testTerraformApplyCountDecToOneCorruptedPlanStr = `
 DIFF:
 
-DESTROY: aws_instance.foo.0
+DESTROY: aws_instance.foo[0]
+
+
 
 STATE:
 
 aws_instance.foo:
   ID = bar
+  provider = provider.aws
   foo = foo
   type = aws_instance
 aws_instance.foo.0:
   ID = baz
+  provider = provider.aws
   type = aws_instance
 `
 
