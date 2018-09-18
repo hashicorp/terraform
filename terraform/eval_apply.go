@@ -364,7 +364,7 @@ func (n *EvalApplyProvisioners) Eval(ctx EvalContext) (interface{}, error) {
 		log.Printf("[TRACE] EvalApplyProvisioners: %s has no state, so skipping provisioners", n.Addr)
 		return nil, nil
 	}
-	if n.CreateNew != nil && !*n.CreateNew {
+	if n.When == configs.ProvisionerWhenCreate && n.CreateNew != nil && !*n.CreateNew {
 		// If we're not creating a new resource, then don't run provisioners
 		log.Printf("[TRACE] EvalApplyProvisioners: %s is not freshly-created, so no provisioning is required", n.Addr)
 		return nil, nil
