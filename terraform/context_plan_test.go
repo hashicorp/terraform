@@ -62,21 +62,21 @@ func TestContext2Plan_basic(t *testing.T) {
 	schema := p.GetSchemaReturn.ResourceTypes["aws_instance"]
 	ty := schema.ImpliedType()
 	for _, r := range plan.Changes.Resources {
-		val, err := r.Decode(ty)
+		ric, err := r.Decode(ty)
 		if err != nil {
 			t.Fatal(err)
 		}
 
-		switch i := val.Addr.String(); i {
+		switch i := ric.Addr.String(); i {
 		case "aws_instance.bar":
-			foo := val.After.GetAttr("foo").AsString()
+			foo := ric.After.GetAttr("foo").AsString()
 			if foo != "2" {
-				t.Fatalf("incorrect plan for 'bar': %#v", val.After)
+				t.Fatalf("incorrect plan for 'bar': %#v", ric.After)
 			}
 		case "aws_instance.foo":
-			num, _ := val.After.GetAttr("num").AsBigFloat().Int64()
+			num, _ := ric.After.GetAttr("num").AsBigFloat().Int64()
 			if num != 2 {
-				t.Fatalf("incorrect plan for 'foo': %#v", val.After)
+				t.Fatalf("incorrect plan for 'foo': %#v", ric.After)
 			}
 		default:
 			t.Fatal("unknown instance:", i)
@@ -150,7 +150,7 @@ func TestContext2Plan_createBefore_deposed(t *testing.T) {
 		t.Fatal("primary resource should not be deposed")
 	}
 
-	val, err := res.Decode(ty)
+	ric, err := res.Decode(ty)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -161,7 +161,7 @@ func TestContext2Plan_createBefore_deposed(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	checkVals(t, expected, val.After)
+	checkVals(t, expected, ric.After)
 }
 
 func TestContext2Plan_createBefore_maintainRoot(t *testing.T) {
@@ -281,7 +281,7 @@ func TestContext2Plan_escapedVar(t *testing.T) {
 	schema := p.GetSchemaReturn.ResourceTypes["aws_instance"]
 	ty := schema.ImpliedType()
 
-	val, err := res.Decode(ty)
+	ric, err := res.Decode(ty)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -292,7 +292,7 @@ func TestContext2Plan_escapedVar(t *testing.T) {
 		"type": cty.StringVal("aws_instance")},
 	)
 
-	checkVals(t, expected, val.After)
+	checkVals(t, expected, ric.After)
 }
 
 func TestContext2Plan_minimal(t *testing.T) {
@@ -377,13 +377,13 @@ func TestContext2Plan_modules(t *testing.T) {
 		if res.Action != plans.Create {
 			t.Fatalf("expected resource creation, got %s", res.Action)
 		}
-		val, err := res.Decode(ty)
+		ric, err := res.Decode(ty)
 		if err != nil {
 			t.Fatal(err)
 		}
 
 		var expected cty.Value
-		switch i := val.Addr.String(); i {
+		switch i := ric.Addr.String(); i {
 		case "aws_instance.bar":
 			expected = expectFoo
 		case "aws_instance.foo":
@@ -394,7 +394,7 @@ func TestContext2Plan_modules(t *testing.T) {
 			t.Fatal("unknown instance:", i)
 		}
 
-		checkVals(t, expected, val.After)
+		checkVals(t, expected, ric.After)
 	}
 }
 
@@ -440,13 +440,13 @@ func TestContext2Plan_moduleCycle(t *testing.T) {
 		if res.Action != plans.Create {
 			t.Fatalf("expected resource creation, got %s", res.Action)
 		}
-		val, err := res.Decode(ty)
+		ric, err := res.Decode(ty)
 		if err != nil {
 			t.Fatal(err)
 		}
 
 		var expected cty.Value
-		switch i := val.Addr.String(); i {
+		switch i := ric.Addr.String(); i {
 		case "aws_instance.b":
 			expected = objectVal(t, schema, map[string]cty.Value{
 				"id": cty.UnknownVal(cty.String),
@@ -461,7 +461,7 @@ func TestContext2Plan_moduleCycle(t *testing.T) {
 			t.Fatal("unknown instance:", i)
 		}
 
-		checkVals(t, expected, val.After)
+		checkVals(t, expected, ric.After)
 	}
 }
 
@@ -492,7 +492,7 @@ func TestContext2Plan_moduleDeadlock(t *testing.T) {
 			if res.Action != plans.Create {
 				t.Fatalf("expected resource creation, got %s", res.Action)
 			}
-			val, err := res.Decode(ty)
+			ric, err := res.Decode(ty)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -500,7 +500,7 @@ func TestContext2Plan_moduleDeadlock(t *testing.T) {
 			expected := objectVal(t, schema, map[string]cty.Value{
 				"id": cty.UnknownVal(cty.String),
 			})
-			switch i := val.Addr.String(); i {
+			switch i := ric.Addr.String(); i {
 			case "module.child.aws_instance.foo[0]":
 			case "module.child.aws_instance.foo[1]":
 			case "module.child.aws_instance.foo[2]":
@@ -508,7 +508,7 @@ func TestContext2Plan_moduleDeadlock(t *testing.T) {
 				t.Fatal("unknown instance:", i)
 			}
 
-			checkVals(t, expected, val.After)
+			checkVals(t, expected, ric.After)
 		}
 	})
 }
@@ -542,14 +542,14 @@ func TestContext2Plan_moduleInput(t *testing.T) {
 		if res.Action != plans.Create {
 			t.Fatalf("expected resource creation, got %s", res.Action)
 		}
-		val, err := res.Decode(ty)
+		ric, err := res.Decode(ty)
 		if err != nil {
 			t.Fatal(err)
 		}
 
 		var expected cty.Value
 
-		switch i := val.Addr.String(); i {
+		switch i := ric.Addr.String(); i {
 		case "aws_instance.bar":
 			expected = objectVal(t, schema, map[string]cty.Value{
 				"id":   cty.UnknownVal(cty.String),
@@ -566,7 +566,7 @@ func TestContext2Plan_moduleInput(t *testing.T) {
 			t.Fatal("unknown instance:", i)
 		}
 
-		checkVals(t, expected, val.After)
+		checkVals(t, expected, ric.After)
 	}
 }
 
@@ -599,24 +599,24 @@ func TestContext2Plan_moduleInputComputed(t *testing.T) {
 		if res.Action != plans.Create {
 			t.Fatalf("expected resource creation, got %s", res.Action)
 		}
-		val, err := res.Decode(ty)
+		ric, err := res.Decode(ty)
 		if err != nil {
 			t.Fatal(err)
 		}
 
-		switch i := val.Addr.String(); i {
+		switch i := ric.Addr.String(); i {
 		case "aws_instance.bar":
 			checkVals(t, objectVal(t, schema, map[string]cty.Value{
 				"id":   cty.UnknownVal(cty.String),
 				"foo":  cty.UnknownVal(cty.String),
 				"type": cty.StringVal("aws_instance"),
-			}), val.After)
+			}), ric.After)
 		case "module.child.aws_instance.foo":
 			checkVals(t, objectVal(t, schema, map[string]cty.Value{
 				"id":   cty.UnknownVal(cty.String),
 				"foo":  cty.UnknownVal(cty.String),
 				"type": cty.StringVal("aws_instance"),
-			}), val.After)
+			}), ric.After)
 		default:
 			t.Fatal("unknown instance:", i)
 		}
@@ -658,24 +658,24 @@ func TestContext2Plan_moduleInputFromVar(t *testing.T) {
 		if res.Action != plans.Create {
 			t.Fatalf("expected resource creation, got %s", res.Action)
 		}
-		val, err := res.Decode(ty)
+		ric, err := res.Decode(ty)
 		if err != nil {
 			t.Fatal(err)
 		}
 
-		switch i := val.Addr.String(); i {
+		switch i := ric.Addr.String(); i {
 		case "aws_instance.bar":
 			checkVals(t, objectVal(t, schema, map[string]cty.Value{
 				"id":   cty.UnknownVal(cty.String),
 				"foo":  cty.StringVal("2"),
 				"type": cty.StringVal("aws_instance"),
-			}), val.After)
+			}), ric.After)
 		case "module.child.aws_instance.foo":
 			checkVals(t, objectVal(t, schema, map[string]cty.Value{
 				"id":   cty.UnknownVal(cty.String),
 				"foo":  cty.StringVal("52"),
 				"type": cty.StringVal("aws_instance"),
-			}), val.After)
+			}), ric.After)
 		default:
 			t.Fatal("unknown instance:", i)
 		}
@@ -724,35 +724,35 @@ func TestContext2Plan_moduleMultiVar(t *testing.T) {
 			t.Fatalf("expected resource creation, got %s", res.Action)
 		}
 
-		val, err := res.Decode(ty)
+		ric, err := res.Decode(ty)
 		if err != nil {
 			t.Fatal(err)
 		}
 
-		switch i := val.Addr.String(); i {
+		switch i := ric.Addr.String(); i {
 		case "aws_instance.parent[0]":
 			checkVals(t, objectVal(t, schema, map[string]cty.Value{
 				"id": cty.UnknownVal(cty.String),
-			}), val.After)
+			}), ric.After)
 		case "aws_instance.parent[1]":
 			checkVals(t, objectVal(t, schema, map[string]cty.Value{
 				"id": cty.UnknownVal(cty.String),
-			}), val.After)
+			}), ric.After)
 		case "module.child.aws_instance.bar[0]":
 			checkVals(t, objectVal(t, schema, map[string]cty.Value{
 				"id":  cty.UnknownVal(cty.String),
 				"baz": cty.StringVal("baz"),
-			}), val.After)
+			}), ric.After)
 		case "module.child.aws_instance.bar[1]":
 			checkVals(t, objectVal(t, schema, map[string]cty.Value{
 				"id":  cty.UnknownVal(cty.String),
 				"baz": cty.StringVal("baz"),
-			}), val.After)
+			}), ric.After)
 		case "module.child.aws_instance.foo":
 			checkVals(t, objectVal(t, schema, map[string]cty.Value{
 				"id":  cty.UnknownVal(cty.String),
 				"foo": cty.StringVal("baz,baz"),
-			}), val.After)
+			}), ric.After)
 		default:
 			t.Fatal("unknown instance:", i)
 		}
@@ -802,12 +802,12 @@ func TestContext2Plan_moduleOrphans(t *testing.T) {
 
 	for _, res := range plan.Changes.Resources {
 
-		val, err := res.Decode(ty)
+		ric, err := res.Decode(ty)
 		if err != nil {
 			t.Fatal(err)
 		}
 
-		switch i := val.Addr.String(); i {
+		switch i := ric.Addr.String(); i {
 		case "aws_instance.foo":
 			if res.Action != plans.Create {
 				t.Fatalf("expected resource creation, got %s", res.Action)
@@ -816,7 +816,7 @@ func TestContext2Plan_moduleOrphans(t *testing.T) {
 				"id":   cty.UnknownVal(cty.String),
 				"num":  cty.NumberIntVal(2),
 				"type": cty.StringVal("aws_instance"),
-			}), val.After)
+			}), ric.After)
 		case "module.child.aws_instance.foo":
 			if res.Action != plans.Delete {
 				t.Fatalf("expected resource delete, got %s", res.Action)
@@ -909,12 +909,12 @@ func TestContext2Plan_moduleOrphansWithProvisioner(t *testing.T) {
 
 	for _, res := range plan.Changes.Resources {
 
-		val, err := res.Decode(ty)
+		ric, err := res.Decode(ty)
 		if err != nil {
 			t.Fatal(err)
 		}
 
-		switch i := val.Addr.String(); i {
+		switch i := ric.Addr.String(); i {
 		case "module.parent.module.childone.aws_instance.foo":
 			if res.Action != plans.Delete {
 				t.Fatalf("expected resource Delete, got %s", res.Action)
@@ -925,10 +925,10 @@ func TestContext2Plan_moduleOrphansWithProvisioner(t *testing.T) {
 			}
 		case "aws_instance.top":
 			if res.Action != plans.NoOp {
-				t.Fatal("expected no change, got", res.Action)
+				t.Fatal("expected no changes, got", res.Action)
 			}
 		default:
-			t.Fatalf("unknown instance: %s\nafter: %#v", i, hcl2shim.ConfigValueFromHCL2(val.After))
+			t.Fatalf("unknown instance: %s\nafter: %#v", i, hcl2shim.ConfigValueFromHCL2(ric.After))
 		}
 	}
 
@@ -1192,16 +1192,16 @@ func TestContext2Plan_moduleProviderVar(t *testing.T) {
 		if res.Action != plans.Create {
 			t.Fatalf("expected resource creation, got %s", res.Action)
 		}
-		val, err := res.Decode(ty)
+		ric, err := res.Decode(ty)
 		if err != nil {
 			t.Fatal(err)
 		}
 
-		switch i := val.Addr.String(); i {
+		switch i := ric.Addr.String(); i {
 		case "module.child.aws_instance.test":
 			checkVals(t, objectVal(t, schema, map[string]cty.Value{
 				"value": cty.StringVal("hello"),
-			}), val.After)
+			}), ric.After)
 		default:
 			t.Fatal("unknown instance:", i)
 		}
@@ -1237,14 +1237,14 @@ func TestContext2Plan_moduleVar(t *testing.T) {
 		if res.Action != plans.Create {
 			t.Fatalf("expected resource creation, got %s", res.Action)
 		}
-		val, err := res.Decode(ty)
+		ric, err := res.Decode(ty)
 		if err != nil {
 			t.Fatal(err)
 		}
 
 		var expected cty.Value
 
-		switch i := val.Addr.String(); i {
+		switch i := ric.Addr.String(); i {
 		case "aws_instance.bar":
 			expected = objectVal(t, schema, map[string]cty.Value{
 				"id":   cty.UnknownVal(cty.String),
@@ -1261,7 +1261,7 @@ func TestContext2Plan_moduleVar(t *testing.T) {
 			t.Fatal("unknown instance:", i)
 		}
 
-		checkVals(t, expected, val.After)
+		checkVals(t, expected, ric.After)
 	}
 }
 
@@ -1350,24 +1350,24 @@ func TestContext2Plan_moduleVarComputed(t *testing.T) {
 		if res.Action != plans.Create {
 			t.Fatalf("expected resource creation, got %s", res.Action)
 		}
-		val, err := res.Decode(ty)
+		ric, err := res.Decode(ty)
 		if err != nil {
 			t.Fatal(err)
 		}
 
-		switch i := val.Addr.String(); i {
+		switch i := ric.Addr.String(); i {
 		case "aws_instance.bar":
 			checkVals(t, objectVal(t, schema, map[string]cty.Value{
 				"id":   cty.UnknownVal(cty.String),
 				"foo":  cty.UnknownVal(cty.String),
 				"type": cty.StringVal("aws_instance"),
-			}), val.After)
+			}), ric.After)
 		case "module.child.aws_instance.foo":
 			checkVals(t, objectVal(t, schema, map[string]cty.Value{
 				"id":   cty.UnknownVal(cty.String),
 				"foo":  cty.UnknownVal(cty.String),
 				"type": cty.StringVal("aws_instance"),
-			}), val.After)
+			}), ric.After)
 		default:
 			t.Fatal("unknown instance:", i)
 		}
@@ -1427,14 +1427,14 @@ func TestContext2Plan_nil(t *testing.T) {
 		if res.Action != plans.Update {
 			t.Fatalf("expected resource creation, got %s", res.Action)
 		}
-		val, err := res.Decode(ty)
+		ric, err := res.Decode(ty)
 		if err != nil {
 			t.Fatal(err)
 		}
 
-		switch i := val.Addr.String(); i {
+		switch i := ric.Addr.String(); i {
 		case "aws_instance.foo":
-			checkVals(t, cty.NullVal(schema.ImpliedType()), val.After)
+			checkVals(t, cty.NullVal(schema.ImpliedType()), ric.After)
 		default:
 			t.Fatal("unknown instance:", i)
 		}
@@ -1761,25 +1761,25 @@ func TestContext2Plan_computed(t *testing.T) {
 		if res.Action != plans.Create {
 			t.Fatalf("expected resource creation, got %s", res.Action)
 		}
-		val, err := res.Decode(ty)
+		ric, err := res.Decode(ty)
 		if err != nil {
 			t.Fatal(err)
 		}
 
-		switch i := val.Addr.String(); i {
+		switch i := ric.Addr.String(); i {
 		case "aws_instance.bar":
 			checkVals(t, objectVal(t, schema, map[string]cty.Value{
 				"id":   cty.UnknownVal(cty.String),
 				"foo":  cty.UnknownVal(cty.String),
 				"type": cty.StringVal("aws_instance"),
-			}), val.After)
+			}), ric.After)
 		case "aws_instance.foo":
 			checkVals(t, objectVal(t, schema, map[string]cty.Value{
 				"id":   cty.UnknownVal(cty.String),
 				"foo":  cty.UnknownVal(cty.String),
 				"num":  cty.NumberIntVal(2),
 				"type": cty.StringVal("aws_instance"),
-			}), val.After)
+			}), ric.After)
 		default:
 			t.Fatal("unknown instance:", i)
 		}
@@ -2067,21 +2067,21 @@ func TestContext2Plan_computedList(t *testing.T) {
 		if res.Action != plans.Create {
 			t.Fatalf("expected resource creation, got %s", res.Action)
 		}
-		val, err := res.Decode(ty)
+		ric, err := res.Decode(ty)
 		if err != nil {
 			t.Fatal(err)
 		}
 
-		switch i := val.Addr.String(); i {
+		switch i := ric.Addr.String(); i {
 		case "aws_instance.bar":
 			checkVals(t, objectVal(t, schema, map[string]cty.Value{
 				"foo": cty.UnknownVal(cty.String),
-			}), val.After)
+			}), ric.After)
 		case "aws_instance.foo":
 			checkVals(t, objectVal(t, schema, map[string]cty.Value{
 				"list": cty.UnknownVal(cty.List(cty.String)),
 				"num":  cty.NumberIntVal(2),
-			}), val.After)
+			}), ric.After)
 		default:
 			t.Fatal("unknown instance:", i)
 		}
@@ -2131,24 +2131,24 @@ func TestContext2Plan_computedMultiIndex(t *testing.T) {
 		if res.Action != plans.Create {
 			t.Fatalf("expected resource creation, got %s", res.Action)
 		}
-		val, err := res.Decode(ty)
+		ric, err := res.Decode(ty)
 		if err != nil {
 			t.Fatal(err)
 		}
 
-		switch i := val.Addr.String(); i {
+		switch i := ric.Addr.String(); i {
 		case "aws_instance.foo[0]":
 			checkVals(t, objectVal(t, schema, map[string]cty.Value{
 				"ip": cty.UnknownVal(cty.List(cty.String)),
-			}), val.After)
+			}), ric.After)
 		case "aws_instance.foo[1]":
 			checkVals(t, objectVal(t, schema, map[string]cty.Value{
 				"ip": cty.UnknownVal(cty.List(cty.String)),
-			}), val.After)
+			}), ric.After)
 		case "aws_instance.bar[0]":
 			checkVals(t, objectVal(t, schema, map[string]cty.Value{
 				"foo": cty.UnknownVal(cty.List(cty.String)),
-			}), val.After)
+			}), ric.After)
 		default:
 			t.Fatal("unknown instance:", i)
 		}
@@ -2173,14 +2173,62 @@ func TestContext2Plan_count(t *testing.T) {
 		t.Fatalf("unexpected errors: %s", diags.Err())
 	}
 
-	if len(plan.Changes.Resources) < 6 {
-		t.Fatalf("bad: %#v", plan.Changes.Resources)
+	schema := p.GetSchemaReturn.ResourceTypes["aws_instance"]
+	ty := schema.ImpliedType()
+
+	if len(plan.Changes.Resources) != 6 {
+		t.Fatal("expected 6 changes, got", len(plan.Changes.Resources))
 	}
 
-	actual := strings.TrimSpace(legacyPlanComparisonString(ctx.State(), plan.Changes))
-	expected := strings.TrimSpace(testTerraformPlanCountStr)
-	if actual != expected {
-		t.Fatalf("wrong result\n\ngot:\n%s\n\nwant:\n%s", actual, expected)
+	for _, res := range plan.Changes.Resources {
+		if res.Action != plans.Create {
+			t.Fatalf("expected resource creation, got %s", res.Action)
+		}
+		ric, err := res.Decode(ty)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		switch i := ric.Addr.String(); i {
+		case "aws_instance.bar":
+			checkVals(t, objectVal(t, schema, map[string]cty.Value{
+				"id":   cty.UnknownVal(cty.String),
+				"foo":  cty.StringVal("foo,foo,foo,foo,foo"),
+				"type": cty.StringVal("aws_instance"),
+			}), ric.After)
+		case "aws_instance.foo[0]":
+			checkVals(t, objectVal(t, schema, map[string]cty.Value{
+				"id":   cty.UnknownVal(cty.String),
+				"foo":  cty.StringVal("foo"),
+				"type": cty.StringVal("aws_instance"),
+			}), ric.After)
+		case "aws_instance.foo[1]":
+			checkVals(t, objectVal(t, schema, map[string]cty.Value{
+				"id":   cty.UnknownVal(cty.String),
+				"foo":  cty.StringVal("foo"),
+				"type": cty.StringVal("aws_instance"),
+			}), ric.After)
+		case "aws_instance.foo[2]":
+			checkVals(t, objectVal(t, schema, map[string]cty.Value{
+				"id":   cty.UnknownVal(cty.String),
+				"foo":  cty.StringVal("foo"),
+				"type": cty.StringVal("aws_instance"),
+			}), ric.After)
+		case "aws_instance.foo[3]":
+			checkVals(t, objectVal(t, schema, map[string]cty.Value{
+				"id":   cty.UnknownVal(cty.String),
+				"foo":  cty.StringVal("foo"),
+				"type": cty.StringVal("aws_instance"),
+			}), ric.After)
+		case "aws_instance.foo[4]":
+			checkVals(t, objectVal(t, schema, map[string]cty.Value{
+				"id":   cty.UnknownVal(cty.String),
+				"foo":  cty.StringVal("foo"),
+				"type": cty.StringVal("aws_instance"),
+			}), ric.After)
+		default:
+			t.Fatal("unknown instance:", i)
+		}
 	}
 }
 
@@ -2254,24 +2302,24 @@ func TestContext2Plan_countModuleStatic(t *testing.T) {
 		if res.Action != plans.Create {
 			t.Fatalf("expected resource creation, got %s", res.Action)
 		}
-		val, err := res.Decode(ty)
+		ric, err := res.Decode(ty)
 		if err != nil {
 			t.Fatal(err)
 		}
 
-		switch i := val.Addr.String(); i {
+		switch i := ric.Addr.String(); i {
 		case "module.child.aws_instance.foo[0]":
 			checkVals(t, objectVal(t, schema, map[string]cty.Value{
 				"id": cty.UnknownVal(cty.String),
-			}), val.After)
+			}), ric.After)
 		case "module.child.aws_instance.foo[1]":
 			checkVals(t, objectVal(t, schema, map[string]cty.Value{
 				"id": cty.UnknownVal(cty.String),
-			}), val.After)
+			}), ric.After)
 		case "module.child.aws_instance.foo[2]":
 			checkVals(t, objectVal(t, schema, map[string]cty.Value{
 				"id": cty.UnknownVal(cty.String),
-			}), val.After)
+			}), ric.After)
 		default:
 			t.Fatal("unknown instance:", i)
 		}
@@ -2307,24 +2355,24 @@ func TestContext2Plan_countModuleStaticGrandchild(t *testing.T) {
 		if res.Action != plans.Create {
 			t.Fatalf("expected resource creation, got %s", res.Action)
 		}
-		val, err := res.Decode(ty)
+		ric, err := res.Decode(ty)
 		if err != nil {
 			t.Fatal(err)
 		}
 
-		switch i := val.Addr.String(); i {
+		switch i := ric.Addr.String(); i {
 		case "module.child.module.child.aws_instance.foo[0]":
 			checkVals(t, objectVal(t, schema, map[string]cty.Value{
 				"id": cty.UnknownVal(cty.String),
-			}), val.After)
+			}), ric.After)
 		case "module.child.module.child.aws_instance.foo[1]":
 			checkVals(t, objectVal(t, schema, map[string]cty.Value{
 				"id": cty.UnknownVal(cty.String),
-			}), val.After)
+			}), ric.After)
 		case "module.child.module.child.aws_instance.foo[2]":
 			checkVals(t, objectVal(t, schema, map[string]cty.Value{
 				"id": cty.UnknownVal(cty.String),
-			}), val.After)
+			}), ric.After)
 		default:
 			t.Fatal("unknown instance:", i)
 		}
@@ -2360,24 +2408,24 @@ func TestContext2Plan_countIndex(t *testing.T) {
 		if res.Action != plans.Create {
 			t.Fatalf("expected resource creation, got %s", res.Action)
 		}
-		val, err := res.Decode(ty)
+		ric, err := res.Decode(ty)
 		if err != nil {
 			t.Fatal(err)
 		}
 
-		switch i := val.Addr.String(); i {
+		switch i := ric.Addr.String(); i {
 		case "aws_instance.foo[0]":
 			checkVals(t, objectVal(t, schema, map[string]cty.Value{
 				"id":   cty.UnknownVal(cty.String),
 				"foo":  cty.StringVal("0"),
 				"type": cty.StringVal("aws_instance"),
-			}), val.After)
+			}), ric.After)
 		case "aws_instance.foo[1]":
 			checkVals(t, objectVal(t, schema, map[string]cty.Value{
 				"id":   cty.UnknownVal(cty.String),
 				"foo":  cty.StringVal("1"),
 				"type": cty.StringVal("aws_instance"),
-			}), val.After)
+			}), ric.After)
 		default:
 			t.Fatal("unknown instance:", i)
 		}
@@ -2418,36 +2466,36 @@ func TestContext2Plan_countVar(t *testing.T) {
 		if res.Action != plans.Create {
 			t.Fatalf("expected resource creation, got %s", res.Action)
 		}
-		val, err := res.Decode(ty)
+		ric, err := res.Decode(ty)
 		if err != nil {
 			t.Fatal(err)
 		}
 
-		switch i := val.Addr.String(); i {
+		switch i := ric.Addr.String(); i {
 		case "aws_instance.bar":
 			checkVals(t, objectVal(t, schema, map[string]cty.Value{
 				"id":   cty.UnknownVal(cty.String),
 				"foo":  cty.StringVal("foo,foo,foo"),
 				"type": cty.StringVal("aws_instance"),
-			}), val.After)
+			}), ric.After)
 		case "aws_instance.foo[0]":
 			checkVals(t, objectVal(t, schema, map[string]cty.Value{
 				"id":   cty.UnknownVal(cty.String),
 				"foo":  cty.StringVal("foo"),
 				"type": cty.StringVal("aws_instance"),
-			}), val.After)
+			}), ric.After)
 		case "aws_instance.foo[1]":
 			checkVals(t, objectVal(t, schema, map[string]cty.Value{
 				"id":   cty.UnknownVal(cty.String),
 				"foo":  cty.StringVal("foo"),
 				"type": cty.StringVal("aws_instance"),
-			}), val.After)
+			}), ric.After)
 		case "aws_instance.foo[2]":
 			checkVals(t, objectVal(t, schema, map[string]cty.Value{
 				"id":   cty.UnknownVal(cty.String),
 				"foo":  cty.StringVal("foo"),
 				"type": cty.StringVal("aws_instance"),
-			}), val.After)
+			}), ric.After)
 		default:
 			t.Fatal("unknown instance:", i)
 		}
@@ -2466,7 +2514,13 @@ func TestContext2Plan_countZero(t *testing.T) {
 			},
 		},
 	}
-	p.DiffFn = testDiffFn
+
+	// This schema contains a DynamicPseudoType, and therefore can't go through any shim functions
+	p.PlanResourceChangeFn = func(req providers.PlanResourceChangeRequest) (resp providers.PlanResourceChangeResponse) {
+		resp.PlannedState = req.ProposedNewState
+		resp.PlannedPrivate = req.PriorPrivate
+		return resp
+	}
 
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
@@ -2488,38 +2542,23 @@ func TestContext2Plan_countZero(t *testing.T) {
 		t.Fatal("expected 1 changes, got", len(plan.Changes.Resources))
 	}
 
-	for _, res := range plan.Changes.Resources {
-		if res.Action != plans.Create {
-			t.Fatalf("expected resource creation, got %s", res.Action)
-		}
-		val, err := res.Decode(ty)
-		if err != nil {
-			t.Fatal(err)
-		}
+	res := plan.Changes.Resources[0]
 
-		switch i := val.Addr.String(); i {
-		case "aws_instance.bar":
-			checkVals(t, objectVal(t, schema, map[string]cty.Value{
-				"id":   cty.UnknownVal(cty.String),
-				"foo":  cty.StringVal(""),
-				"type": cty.StringVal("aws_instance"),
-			}), val.After)
-		default:
-			t.Fatal("unknown instance:", i)
-		}
+	if res.Action != plans.Create {
+		t.Fatalf("expected resource creation, got %s", res.Action)
+	}
+	ric, err := res.Decode(ty)
+	if err != nil {
+		t.Fatal(err)
 	}
 
-	// const testTerraformPlanCountZeroStr = `
-	// DIFF:
+	expected := objectVal(t, schema, map[string]cty.Value{
+		"foo": cty.ListValEmpty(cty.String),
+	})
 
-	// CREATE: aws_instance.bar
-	//   foo:  "" => ""
-	//   type: "" => "aws_instance"
-
-	// STATE:
-
-	// <no state>
-	// `
+	if !cmp.Equal(expected, ric.After, valueComparer) {
+		t.Fatal(cmp.Diff(expected, ric.After, valueComparer))
+	}
 }
 
 func TestContext2Plan_countOneIndex(t *testing.T) {
@@ -2540,10 +2579,38 @@ func TestContext2Plan_countOneIndex(t *testing.T) {
 		t.Fatalf("unexpected errors: %s", diags.Err())
 	}
 
-	actual := strings.TrimSpace(legacyPlanComparisonString(ctx.State(), plan.Changes))
-	expected := strings.TrimSpace(testTerraformPlanCountOneIndexStr)
-	if actual != expected {
-		t.Fatalf("wrong result\n\ngot:\n%s\n\nwant:\n%s", actual, expected)
+	schema := p.GetSchemaReturn.ResourceTypes["aws_instance"]
+	ty := schema.ImpliedType()
+
+	if len(plan.Changes.Resources) != 2 {
+		t.Fatal("expected 2 changes, got", len(plan.Changes.Resources))
+	}
+
+	for _, res := range plan.Changes.Resources {
+		if res.Action != plans.Create {
+			t.Fatalf("expected resource creation, got %s", res.Action)
+		}
+		ric, err := res.Decode(ty)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		switch i := ric.Addr.String(); i {
+		case "aws_instance.bar":
+			checkVals(t, objectVal(t, schema, map[string]cty.Value{
+				"id":   cty.UnknownVal(cty.String),
+				"foo":  cty.StringVal("foo"),
+				"type": cty.StringVal("aws_instance"),
+			}), ric.After)
+		case "aws_instance.foo[0]":
+			checkVals(t, objectVal(t, schema, map[string]cty.Value{
+				"id":   cty.UnknownVal(cty.String),
+				"foo":  cty.StringVal("foo"),
+				"type": cty.StringVal("aws_instance"),
+			}), ric.After)
+		default:
+			t.Fatal("unknown instance:", i)
+		}
 	}
 }
 
@@ -2596,11 +2663,61 @@ func TestContext2Plan_countDecreaseToOne(t *testing.T) {
 	if diags.HasErrors() {
 		t.Fatalf("unexpected errors: %s", diags.Err())
 	}
+	schema := p.GetSchemaReturn.ResourceTypes["aws_instance"]
+	ty := schema.ImpliedType()
 
-	actual := strings.TrimSpace(legacyPlanComparisonString(ctx.State(), plan.Changes))
-	expected := strings.TrimSpace(testTerraformPlanCountDecreaseStr)
-	if actual != expected {
-		t.Fatalf("wrong result\n\ngot:\n%s\n\nwant:\n%s", actual, expected)
+	if len(plan.Changes.Resources) != 4 {
+		t.Fatal("expected 4 changes, got", len(plan.Changes.Resources))
+	}
+
+	for _, res := range plan.Changes.Resources {
+
+		ric, err := res.Decode(ty)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		switch i := ric.Addr.String(); i {
+		case "aws_instance.bar":
+			if res.Action != plans.Create {
+				t.Fatalf("expected resource create, got %s", res.Action)
+			}
+			checkVals(t, objectVal(t, schema, map[string]cty.Value{
+				"id":   cty.UnknownVal(cty.String),
+				"foo":  cty.StringVal("bar"),
+				"type": cty.StringVal("aws_instance"),
+			}), ric.After)
+		case "aws_instance.foo":
+			if res.Action != plans.NoOp {
+				t.Fatalf("resource %s should be unchanged", i)
+			}
+		case "aws_instance.foo[1]":
+			if res.Action != plans.Delete {
+				t.Fatalf("expected resource delete, got %s", res.Action)
+			}
+		case "aws_instance.foo[2]":
+			if res.Action != plans.Delete {
+				t.Fatalf("expected resource delete, got %s", res.Action)
+			}
+		default:
+			t.Fatal("unknown instance:", i)
+		}
+	}
+
+	expectedState := `aws_instance.foo.0:
+  ID = bar
+  provider = provider.aws
+  foo = foo
+  type = aws_instance
+aws_instance.foo.1:
+  ID = bar
+  provider = provider.aws
+aws_instance.foo.2:
+  ID = bar
+  provider = provider.aws`
+
+	if ctx.State().String() != expectedState {
+		t.Fatalf("epected state:\n%q\n\ngot state:\n%q\n", expectedState, ctx.State().String())
 	}
 }
 
@@ -2641,11 +2758,55 @@ func TestContext2Plan_countIncreaseFromNotSet(t *testing.T) {
 	if diags.HasErrors() {
 		t.Fatalf("unexpected errors: %s", diags.Err())
 	}
+	schema := p.GetSchemaReturn.ResourceTypes["aws_instance"]
+	ty := schema.ImpliedType()
 
-	actual := strings.TrimSpace(legacyPlanComparisonString(ctx.State(), plan.Changes))
-	expected := strings.TrimSpace(testTerraformPlanCountIncreaseStr)
-	if actual != expected {
-		t.Fatalf("wrong result\n\ngot:\n%s\n\nwant:\n%s", actual, expected)
+	if len(plan.Changes.Resources) != 4 {
+		t.Fatal("expected 4 changes, got", len(plan.Changes.Resources))
+	}
+
+	for _, res := range plan.Changes.Resources {
+
+		ric, err := res.Decode(ty)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		switch i := ric.Addr.String(); i {
+		case "aws_instance.bar":
+			if res.Action != plans.Create {
+				t.Fatalf("expected resource create, got %s", res.Action)
+			}
+			checkVals(t, objectVal(t, schema, map[string]cty.Value{
+				"id":   cty.UnknownVal(cty.String),
+				"foo":  cty.StringVal("bar"),
+				"type": cty.StringVal("aws_instance"),
+			}), ric.After)
+		case "aws_instance.foo[0]":
+			if res.Action != plans.NoOp {
+				t.Fatalf("resource %s should be unchanged", i)
+			}
+		case "aws_instance.foo[1]":
+			if res.Action != plans.Create {
+				t.Fatalf("expected resource create, got %s", res.Action)
+			}
+			checkVals(t, objectVal(t, schema, map[string]cty.Value{
+				"id":   cty.UnknownVal(cty.String),
+				"foo":  cty.StringVal("foo"),
+				"type": cty.StringVal("aws_instance"),
+			}), ric.After)
+		case "aws_instance.foo[2]":
+			if res.Action != plans.Create {
+				t.Fatalf("expected resource create, got %s", res.Action)
+			}
+			checkVals(t, objectVal(t, schema, map[string]cty.Value{
+				"id":   cty.UnknownVal(cty.String),
+				"foo":  cty.StringVal("foo"),
+				"type": cty.StringVal("aws_instance"),
+			}), ric.After)
+		default:
+			t.Fatal("unknown instance:", i)
+		}
 	}
 }
 
@@ -2686,11 +2847,55 @@ func TestContext2Plan_countIncreaseFromOne(t *testing.T) {
 	if diags.HasErrors() {
 		t.Fatalf("unexpected errors: %s", diags.Err())
 	}
+	schema := p.GetSchemaReturn.ResourceTypes["aws_instance"]
+	ty := schema.ImpliedType()
 
-	actual := strings.TrimSpace(legacyPlanComparisonString(ctx.State(), plan.Changes))
-	expected := strings.TrimSpace(testTerraformPlanCountIncreaseFromOneStr)
-	if actual != expected {
-		t.Fatalf("wrong result\n\ngot:\n%s\n\nwant:\n%s", actual, expected)
+	if len(plan.Changes.Resources) != 4 {
+		t.Fatal("expected 4 changes, got", len(plan.Changes.Resources))
+	}
+
+	for _, res := range plan.Changes.Resources {
+
+		ric, err := res.Decode(ty)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		switch i := ric.Addr.String(); i {
+		case "aws_instance.bar":
+			if res.Action != plans.Create {
+				t.Fatalf("expected resource create, got %s", res.Action)
+			}
+			checkVals(t, objectVal(t, schema, map[string]cty.Value{
+				"id":   cty.UnknownVal(cty.String),
+				"foo":  cty.StringVal("bar"),
+				"type": cty.StringVal("aws_instance"),
+			}), ric.After)
+		case "aws_instance.foo[0]":
+			if res.Action != plans.NoOp {
+				t.Fatalf("resource %s should be unchanged", i)
+			}
+		case "aws_instance.foo[1]":
+			if res.Action != plans.Create {
+				t.Fatalf("expected resource create, got %s", res.Action)
+			}
+			checkVals(t, objectVal(t, schema, map[string]cty.Value{
+				"id":   cty.UnknownVal(cty.String),
+				"foo":  cty.StringVal("foo"),
+				"type": cty.StringVal("aws_instance"),
+			}), ric.After)
+		case "aws_instance.foo[2]":
+			if res.Action != plans.Create {
+				t.Fatalf("expected resource create, got %s", res.Action)
+			}
+			checkVals(t, objectVal(t, schema, map[string]cty.Value{
+				"id":   cty.UnknownVal(cty.String),
+				"foo":  cty.StringVal("foo"),
+				"type": cty.StringVal("aws_instance"),
+			}), ric.After)
+		default:
+			t.Fatal("unknown instance:", i)
+		}
 	}
 }
 
@@ -2746,11 +2951,59 @@ func TestContext2Plan_countIncreaseFromOneCorrupted(t *testing.T) {
 	if diags.HasErrors() {
 		t.Fatalf("unexpected errors: %s", diags.Err())
 	}
+	schema := p.GetSchemaReturn.ResourceTypes["aws_instance"]
+	ty := schema.ImpliedType()
 
-	actual := strings.TrimSpace(legacyPlanComparisonString(ctx.State(), plan.Changes))
-	expected := strings.TrimSpace(testTerraformPlanCountIncreaseFromOneCorruptedStr)
-	if actual != expected {
-		t.Fatalf("wrong result\n\ngot:\n%s\n\nwant:\n%s", actual, expected)
+	if len(plan.Changes.Resources) != 5 {
+		t.Fatal("expected 5 changes, got", len(plan.Changes.Resources))
+	}
+
+	for _, res := range plan.Changes.Resources {
+
+		ric, err := res.Decode(ty)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		switch i := ric.Addr.String(); i {
+		case "aws_instance.bar":
+			if res.Action != plans.Create {
+				t.Fatalf("expected resource create, got %s", res.Action)
+			}
+			checkVals(t, objectVal(t, schema, map[string]cty.Value{
+				"id":   cty.UnknownVal(cty.String),
+				"foo":  cty.StringVal("bar"),
+				"type": cty.StringVal("aws_instance"),
+			}), ric.After)
+		case "aws_instance.foo":
+			if res.Action != plans.Delete {
+				t.Fatalf("resource %s should be removed", i)
+			}
+		case "aws_instance.foo[0]":
+			if res.Action != plans.NoOp {
+				t.Fatalf("resource %s should be unchanged", i)
+			}
+		case "aws_instance.foo[1]":
+			if res.Action != plans.Create {
+				t.Fatalf("expected resource create, got %s", res.Action)
+			}
+			checkVals(t, objectVal(t, schema, map[string]cty.Value{
+				"id":   cty.UnknownVal(cty.String),
+				"foo":  cty.StringVal("foo"),
+				"type": cty.StringVal("aws_instance"),
+			}), ric.After)
+		case "aws_instance.foo[2]":
+			if res.Action != plans.Create {
+				t.Fatalf("expected resource create, got %s", res.Action)
+			}
+			checkVals(t, objectVal(t, schema, map[string]cty.Value{
+				"id":   cty.UnknownVal(cty.String),
+				"foo":  cty.StringVal("foo"),
+				"type": cty.StringVal("aws_instance"),
+			}), ric.After)
+		default:
+			t.Fatal("unknown instance:", i)
+		}
 	}
 }
 
@@ -2837,34 +3090,41 @@ func TestContext2Plan_countIncreaseWithSplatReference(t *testing.T) {
 		t.Fatalf("unexpected errors: %s", diags.Err())
 	}
 
-	actual := strings.TrimSpace(legacyPlanComparisonString(ctx.State(), plan.Changes))
-	expected := strings.TrimSpace(`
-DIFF:
+	schema := p.GetSchemaReturn.ResourceTypes["aws_instance"]
+	ty := schema.ImpliedType()
 
-CREATE: aws_instance.bar.2
-  foo_name: "" => "foo 2"
-  type:     "" => "aws_instance"
-CREATE: aws_instance.foo.2
-  name: "" => "foo 2"
-  type: "" => "aws_instance"
+	if len(plan.Changes.Resources) != 6 {
+		t.Fatal("expected 6 changes, got", len(plan.Changes.Resources))
+	}
 
-STATE:
+	for _, res := range plan.Changes.Resources {
+		ric, err := res.Decode(ty)
+		if err != nil {
+			t.Fatal(err)
+		}
 
-aws_instance.bar.0:
-  ID = bar
-  foo_name = foo 0
-aws_instance.bar.1:
-  ID = bar
-  foo_name = foo 1
-aws_instance.foo.0:
-  ID = bar
-  name = foo 0
-aws_instance.foo.1:
-  ID = bar
-  name = foo 1
-`)
-	if actual != expected {
-		t.Fatalf("wrong result\n\ngot:\n%s\n\nwant:\n%s", actual, expected)
+		switch i := ric.Addr.String(); i {
+		case "aws_instance.bar[0]", "aws_instance.bar[1]", "aws_instance.foo[0]", "aws_instance.foo[1]":
+			if res.Action != plans.NoOp {
+				t.Fatalf("resource %s should be unchanged", i)
+			}
+		case "aws_instance.bar[2]":
+			if res.Action != plans.Create {
+				t.Fatalf("expected resource create, got %s", res.Action)
+			}
+			checkVals(t, objectVal(t, schema, map[string]cty.Value{
+				"foo_name": cty.StringVal("foo 2"),
+			}), ric.After)
+		case "aws_instance.foo[2]":
+			if res.Action != plans.Create {
+				t.Fatalf("expected resource create, got %s", res.Action)
+			}
+			checkVals(t, objectVal(t, schema, map[string]cty.Value{
+				"name": cty.StringVal("foo 2"),
+			}), ric.After)
+		default:
+			t.Fatal("unknown instance:", i)
+		}
 	}
 }
 
@@ -2909,14 +3169,28 @@ func TestContext2Plan_destroy(t *testing.T) {
 		t.Fatalf("unexpected errors: %s", diags.Err())
 	}
 
+	schema := p.GetSchemaReturn.ResourceTypes["aws_instance"]
+	ty := schema.ImpliedType()
+
 	if len(plan.Changes.Resources) != 2 {
-		t.Fatalf("bad: %#v", plan.Changes.Resources)
+		t.Fatal("expected 2 changes, got", len(plan.Changes.Resources))
 	}
 
-	actual := strings.TrimSpace(legacyPlanComparisonString(ctx.State(), plan.Changes))
-	expected := strings.TrimSpace(testTerraformPlanDestroyStr)
-	if actual != expected {
-		t.Fatalf("wrong result\n\ngot:\n%s\n\nwant:\n%s", actual, expected)
+	for _, res := range plan.Changes.Resources {
+		ric, err := res.Decode(ty)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		switch i := ric.Addr.String(); i {
+		case "aws_instance.one", "aws_instance.two":
+			if res.Action != plans.Delete {
+				t.Fatalf("resource %s should be removed", i)
+			}
+
+		default:
+			t.Fatal("unknown instance:", i)
+		}
 	}
 }
 
@@ -2965,11 +3239,28 @@ func TestContext2Plan_moduleDestroy(t *testing.T) {
 	if diags.HasErrors() {
 		t.Fatalf("unexpected errors: %s", diags.Err())
 	}
+	schema := p.GetSchemaReturn.ResourceTypes["aws_instance"]
+	ty := schema.ImpliedType()
 
-	actual := strings.TrimSpace(legacyPlanComparisonString(ctx.State(), plan.Changes))
-	expected := strings.TrimSpace(testTerraformPlanModuleDestroyStr)
-	if actual != expected {
-		t.Fatalf("bad:\n%s\n\nexpected:\n\n%s", actual, expected)
+	if len(plan.Changes.Resources) != 2 {
+		t.Fatal("expected 2 changes, got", len(plan.Changes.Resources))
+	}
+
+	for _, res := range plan.Changes.Resources {
+		ric, err := res.Decode(ty)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		switch i := ric.Addr.String(); i {
+		case "aws_instance.foo", "module.child.aws_instance.foo":
+			if res.Action != plans.Delete {
+				t.Fatalf("resource %s should be removed", i)
+			}
+
+		default:
+			t.Fatal("unknown instance:", i)
+		}
 	}
 }
 
@@ -3020,10 +3311,28 @@ func TestContext2Plan_moduleDestroyCycle(t *testing.T) {
 		t.Fatalf("unexpected errors: %s", diags.Err())
 	}
 
-	actual := strings.TrimSpace(legacyPlanComparisonString(ctx.State(), plan.Changes))
-	expected := strings.TrimSpace(testTerraformPlanModuleDestroyCycleStr)
-	if actual != expected {
-		t.Fatalf("bad:\n%s\n\nexpected:\n\n%s", actual, expected)
+	schema := p.GetSchemaReturn.ResourceTypes["aws_instance"]
+	ty := schema.ImpliedType()
+
+	if len(plan.Changes.Resources) != 2 {
+		t.Fatal("expected 2 changes, got", len(plan.Changes.Resources))
+	}
+
+	for _, res := range plan.Changes.Resources {
+		ric, err := res.Decode(ty)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		switch i := ric.Addr.String(); i {
+		case "module.a_module.aws_instance.a", "module.b_module.aws_instance.b":
+			if res.Action != plans.Delete {
+				t.Fatalf("resource %s should be removed", i)
+			}
+
+		default:
+			t.Fatal("unknown instance:", i)
+		}
 	}
 }
 
@@ -3072,10 +3381,28 @@ func TestContext2Plan_moduleDestroyMultivar(t *testing.T) {
 		t.Fatalf("unexpected errors: %s", diags.Err())
 	}
 
-	actual := strings.TrimSpace(legacyPlanComparisonString(ctx.State(), plan.Changes))
-	expected := strings.TrimSpace(testTerraformPlanModuleDestroyMultivarStr)
-	if actual != expected {
-		t.Fatalf("bad:\n%s\n\nexpected:\n\n%s", actual, expected)
+	schema := p.GetSchemaReturn.ResourceTypes["aws_instance"]
+	ty := schema.ImpliedType()
+
+	if len(plan.Changes.Resources) != 2 {
+		t.Fatal("expected 2 changes, got", len(plan.Changes.Resources))
+	}
+
+	for _, res := range plan.Changes.Resources {
+		ric, err := res.Decode(ty)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		switch i := ric.Addr.String(); i {
+		case "module.child.aws_instance.foo[0]", "module.child.aws_instance.foo[1]":
+			if res.Action != plans.Delete {
+				t.Fatalf("resource %s should be removed", i)
+			}
+
+		default:
+			t.Fatal("unknown instance:", i)
+		}
 	}
 }
 
@@ -3114,20 +3441,32 @@ func TestContext2Plan_pathVar(t *testing.T) {
 		t.Fatalf("err: %s", diags.Err())
 	}
 
-	actual := strings.TrimSpace(legacyPlanComparisonString(ctx.State(), plan.Changes))
-	expected := strings.TrimSpace(testTerraformPlanPathVarStr)
+	schema := p.GetSchemaReturn.ResourceTypes["aws_instance"]
+	ty := schema.ImpliedType()
 
-	// Warning: this ordering REALLY matters for this test. The
-	// order is: cwd, module, root.
-	expected = fmt.Sprintf(
-		expected,
-		cwd,
-		m.Module.SourceDir,
-		m.Module.SourceDir,
-	)
+	if len(plan.Changes.Resources) != 1 {
+		t.Fatal("expected 1 changes, got", len(plan.Changes.Resources))
+	}
 
-	if actual != expected {
-		t.Fatalf("bad:\n%s\n\nexpected:\n\n%s", actual, expected)
+	for _, res := range plan.Changes.Resources {
+		ric, err := res.Decode(ty)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		switch i := ric.Addr.String(); i {
+		case "aws_instance.foo":
+			if res.Action != plans.Create {
+				t.Fatalf("resource %s should be created", i)
+			}
+			checkVals(t, objectVal(t, schema, map[string]cty.Value{
+				"cwd":    cty.StringVal(cwd + "/barpath"),
+				"module": cty.StringVal(m.Module.SourceDir + "/foopath"),
+				"root":   cty.StringVal(m.Module.SourceDir + "/barpath"),
+			}), ric.After)
+		default:
+			t.Fatal("unknown instance:", i)
+		}
 	}
 }
 
@@ -3185,10 +3524,44 @@ func TestContext2Plan_diffVar(t *testing.T) {
 		t.Fatalf("unexpected errors: %s", diags.Err())
 	}
 
-	actual := strings.TrimSpace(legacyPlanComparisonString(ctx.State(), plan.Changes))
-	expected := strings.TrimSpace(testTerraformPlanDiffVarStr)
-	if actual != expected {
-		t.Fatalf("actual:\n%s\n\nexpected:\n%s", actual, expected)
+	schema := p.GetSchemaReturn.ResourceTypes["aws_instance"]
+	ty := schema.ImpliedType()
+
+	if len(plan.Changes.Resources) != 2 {
+		t.Fatal("expected 2 changes, got", len(plan.Changes.Resources))
+	}
+
+	for _, res := range plan.Changes.Resources {
+		ric, err := res.Decode(ty)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		switch i := ric.Addr.String(); i {
+		case "aws_instance.bar":
+			if res.Action != plans.Create {
+				t.Fatalf("resource %s should be created", i)
+			}
+			checkVals(t, objectVal(t, schema, map[string]cty.Value{
+				"id":   cty.UnknownVal(cty.String),
+				"num":  cty.NumberIntVal(3),
+				"type": cty.StringVal("aws_instance"),
+			}), ric.After)
+		case "aws_instance.foo":
+			if res.Action != plans.Update {
+				t.Fatalf("resource %s should be updated", i)
+			}
+			checkVals(t, objectVal(t, schema, map[string]cty.Value{
+				"id":  cty.StringVal("bar"),
+				"num": cty.NumberIntVal(2),
+			}), ric.Before)
+			checkVals(t, objectVal(t, schema, map[string]cty.Value{
+				"id":  cty.StringVal("bar"),
+				"num": cty.NumberIntVal(3),
+			}), ric.After)
+		default:
+			t.Fatal("unknown instance:", i)
+		}
 	}
 }
 
@@ -3280,10 +3653,36 @@ func TestContext2Plan_orphan(t *testing.T) {
 		t.Fatalf("unexpected errors: %s", diags.Err())
 	}
 
-	actual := strings.TrimSpace(legacyPlanComparisonString(ctx.State(), plan.Changes))
-	expected := strings.TrimSpace(testTerraformPlanOrphanStr)
-	if actual != expected {
-		t.Fatalf("wrong result\n\ngot:\n%s\n\nwant:\n%s", actual, expected)
+	schema := p.GetSchemaReturn.ResourceTypes["aws_instance"]
+	ty := schema.ImpliedType()
+
+	if len(plan.Changes.Resources) != 2 {
+		t.Fatal("expected 2 changes, got", len(plan.Changes.Resources))
+	}
+
+	for _, res := range plan.Changes.Resources {
+		ric, err := res.Decode(ty)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		switch i := ric.Addr.String(); i {
+		case "aws_instance.baz":
+			if res.Action != plans.Delete {
+				t.Fatalf("resource %s should be removed", i)
+			}
+		case "aws_instance.foo":
+			if res.Action != plans.Create {
+				t.Fatalf("resource %s should be created", i)
+			}
+			checkVals(t, objectVal(t, schema, map[string]cty.Value{
+				"id":   cty.UnknownVal(cty.String),
+				"num":  cty.NumberIntVal(2),
+				"type": cty.StringVal("aws_instance"),
+			}), ric.After)
+		default:
+			t.Fatal("unknown instance:", i)
+		}
 	}
 }
 
@@ -3345,11 +3744,46 @@ func TestContext2Plan_state(t *testing.T) {
 	if len(plan.Changes.Resources) < 2 {
 		t.Fatalf("bad: %#v", plan.Changes.Resources)
 	}
+	schema := p.GetSchemaReturn.ResourceTypes["aws_instance"]
+	ty := schema.ImpliedType()
 
-	actual := strings.TrimSpace(legacyPlanComparisonString(ctx.State(), plan.Changes))
-	expected := strings.TrimSpace(testTerraformPlanStateStr)
-	if actual != expected {
-		t.Fatalf("bad:\n%s\n\nexpected:\n\n%s", actual, expected)
+	if len(plan.Changes.Resources) != 2 {
+		t.Fatal("expected 2 changes, got", len(plan.Changes.Resources))
+	}
+
+	for _, res := range plan.Changes.Resources {
+		ric, err := res.Decode(ty)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		switch i := ric.Addr.String(); i {
+		case "aws_instance.bar":
+			if res.Action != plans.Create {
+				t.Fatalf("resource %s should be created", i)
+			}
+			checkVals(t, objectVal(t, schema, map[string]cty.Value{
+				"id":   cty.UnknownVal(cty.String),
+				"foo":  cty.StringVal("2"),
+				"type": cty.StringVal("aws_instance"),
+			}), ric.After)
+		case "aws_instance.foo":
+			if res.Action != plans.Update {
+				t.Fatalf("resource %s should be updated", i)
+			}
+			checkVals(t, objectVal(t, schema, map[string]cty.Value{
+				"id":   cty.StringVal("bar"),
+				"num":  cty.NullVal(cty.Number),
+				"type": cty.NullVal(cty.String),
+			}), ric.Before)
+			checkVals(t, objectVal(t, schema, map[string]cty.Value{
+				"id":   cty.StringVal("bar"),
+				"num":  cty.NumberIntVal(2),
+				"type": cty.StringVal("aws_instance"),
+			}), ric.After)
+		default:
+			t.Fatal("unknown instance:", i)
+		}
 	}
 }
 
@@ -3395,10 +3829,36 @@ func TestContext2Plan_taint(t *testing.T) {
 		t.Fatalf("unexpected errors: %s", diags.Err())
 	}
 
-	actual := strings.TrimSpace(legacyPlanComparisonString(ctx.State(), plan.Changes))
-	expected := strings.TrimSpace(testTerraformPlanTaintStr)
-	if actual != expected {
-		t.Fatalf("wrong result\n\ngot:\n%s\n\nwant:\n%s", actual, expected)
+	schema := p.GetSchemaReturn.ResourceTypes["aws_instance"]
+	ty := schema.ImpliedType()
+
+	if len(plan.Changes.Resources) != 2 {
+		t.Fatal("expected 2 changes, got", len(plan.Changes.Resources))
+	}
+
+	for _, res := range plan.Changes.Resources {
+		ric, err := res.Decode(ty)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		switch i := ric.Addr.String(); i {
+		case "aws_instance.bar":
+			if res.Action != plans.Replace {
+				t.Fatalf("resource %s should be replaced", i)
+			}
+			checkVals(t, objectVal(t, schema, map[string]cty.Value{
+				"id":   cty.UnknownVal(cty.String),
+				"foo":  cty.StringVal("2"),
+				"type": cty.StringVal("aws_instance"),
+			}), ric.After)
+		case "aws_instance.foo":
+			if res.Action != plans.NoOp {
+				t.Fatalf("resource %s should not be changed", i)
+			}
+		default:
+			t.Fatal("unknown instance:", i)
+		}
 	}
 }
 
@@ -3409,7 +3869,9 @@ func TestContext2Plan_taintIgnoreChanges(t *testing.T) {
 		ResourceTypes: map[string]*configschema.Block{
 			"aws_instance": {
 				Attributes: map[string]*configschema.Attribute{
+					"id":   {Type: cty.String, Computed: true},
 					"vars": {Type: cty.String, Optional: true},
+					"type": {Type: cty.String, Computed: true},
 				},
 			},
 		},
@@ -3452,10 +3914,37 @@ func TestContext2Plan_taintIgnoreChanges(t *testing.T) {
 		t.Fatalf("unexpected errors: %s", diags.Err())
 	}
 
-	actual := strings.TrimSpace(legacyPlanComparisonString(ctx.State(), plan.Changes))
-	expected := strings.TrimSpace(testTerraformPlanTaintIgnoreChangesStr)
-	if actual != expected {
-		t.Fatalf("wrong result\n\ngot:\n%s\n\nwant:\n%s", actual, expected)
+	schema := p.GetSchemaReturn.ResourceTypes["aws_instance"]
+	ty := schema.ImpliedType()
+
+	if len(plan.Changes.Resources) != 1 {
+		t.Fatal("expected 1 changes, got", len(plan.Changes.Resources))
+	}
+
+	for _, res := range plan.Changes.Resources {
+		ric, err := res.Decode(ty)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		switch i := ric.Addr.String(); i {
+		case "aws_instance.foo":
+			if res.Action != plans.Replace {
+				t.Fatalf("resource %s should be replaced", i)
+			}
+			checkVals(t, objectVal(t, schema, map[string]cty.Value{
+				"id":   cty.StringVal("foo"),
+				"vars": cty.StringVal("foo"),
+				"type": cty.StringVal("aws_instance"),
+			}), ric.Before)
+			checkVals(t, objectVal(t, schema, map[string]cty.Value{
+				"id":   cty.UnknownVal(cty.String),
+				"vars": cty.StringVal("foo"),
+				"type": cty.StringVal("aws_instance"),
+			}), ric.After)
+		default:
+			t.Fatal("unknown instance:", i)
+		}
 	}
 }
 
@@ -3488,40 +3977,54 @@ func TestContext2Plan_taintDestroyInterpolatedCountRace(t *testing.T) {
 			},
 		},
 	})
-	ctx := testContext2(t, &ContextOpts{
-		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[string]providers.Factory{
-				"aws": testProviderFuncFixed(p),
-			},
-		),
-		State: s,
-	})
 
 	for i := 0; i < 100; i++ {
+		ctx := testContext2(t, &ContextOpts{
+			Config: m,
+			ProviderResolver: providers.ResolverFixed(
+				map[string]providers.Factory{
+					"aws": testProviderFuncFixed(p),
+				},
+			),
+			State: s,
+		})
+
 		plan, diags := ctx.Plan()
 		if diags.HasErrors() {
 			t.Fatalf("unexpected errors: %s", diags.Err())
 		}
 
-		actual := strings.TrimSpace(legacyPlanComparisonString(ctx.State(), plan.Changes))
-		expected := strings.TrimSpace(`
-DIFF:
+		schema := p.GetSchemaReturn.ResourceTypes["aws_instance"]
+		ty := schema.ImpliedType()
 
-DESTROY/CREATE: aws_instance.foo.0
-  type: "" => "aws_instance"
+		if len(plan.Changes.Resources) != 3 {
+			t.Fatal("expected 3 changes, got", len(plan.Changes.Resources))
+		}
 
-STATE:
+		for _, res := range plan.Changes.Resources {
+			ric, err := res.Decode(ty)
+			if err != nil {
+				t.Fatal(err)
+			}
 
-aws_instance.foo.0: (tainted)
-  ID = bar
-aws_instance.foo.1:
-  ID = bar
-aws_instance.foo.2:
-  ID = bar
-		`)
-		if actual != expected {
-			t.Fatalf("[%d] bad:\n%s\nexpected:\n%s\n", i, actual, expected)
+			switch i := ric.Addr.String(); i {
+			case "aws_instance.foo[0]":
+				if res.Action != plans.Replace {
+					t.Fatalf("resource %s should be replaced", i)
+				}
+				checkVals(t, objectVal(t, schema, map[string]cty.Value{
+					"id": cty.StringVal("bar"),
+				}), ric.Before)
+				checkVals(t, objectVal(t, schema, map[string]cty.Value{
+					"id": cty.UnknownVal(cty.String),
+				}), ric.After)
+			case "aws_instance.foo[1]", "aws_instance.foo[2]":
+				if res.Action != plans.NoOp {
+					t.Fatalf("resource %s should not be changed", i)
+				}
+			default:
+				t.Fatal("unknown instance:", i)
+			}
 		}
 	}
 }
@@ -3548,21 +4051,32 @@ func TestContext2Plan_targeted(t *testing.T) {
 	if diags.HasErrors() {
 		t.Fatalf("unexpected errors: %s", diags.Err())
 	}
+	schema := p.GetSchemaReturn.ResourceTypes["aws_instance"]
+	ty := schema.ImpliedType()
 
-	actual := strings.TrimSpace(legacyPlanComparisonString(ctx.State(), plan.Changes))
-	expected := strings.TrimSpace(`
-DIFF:
+	if len(plan.Changes.Resources) != 1 {
+		t.Fatal("expected 1 changes, got", len(plan.Changes.Resources))
+	}
 
-CREATE: aws_instance.foo
-  num:  "" => "2"
-  type: "" => "aws_instance"
+	for _, res := range plan.Changes.Resources {
+		ric, err := res.Decode(ty)
+		if err != nil {
+			t.Fatal(err)
+		}
 
-STATE:
-
-<no state>
-	`)
-	if actual != expected {
-		t.Fatalf("expected:\n%s\n\ngot:\n%s", expected, actual)
+		switch i := ric.Addr.String(); i {
+		case "aws_instance.foo":
+			if res.Action != plans.Create {
+				t.Fatalf("resource %s should be created", i)
+			}
+			checkVals(t, objectVal(t, schema, map[string]cty.Value{
+				"id":   cty.UnknownVal(cty.String),
+				"num":  cty.NumberIntVal(2),
+				"type": cty.StringVal("aws_instance"),
+			}), ric.After)
+		default:
+			t.Fatal("unknown instance:", i)
+		}
 	}
 }
 
@@ -3588,26 +4102,37 @@ func TestContext2Plan_targetedCrossModule(t *testing.T) {
 	if diags.HasErrors() {
 		t.Fatalf("unexpected errors: %s", diags.Err())
 	}
+	schema := p.GetSchemaReturn.ResourceTypes["aws_instance"]
+	ty := schema.ImpliedType()
 
-	actual := strings.TrimSpace(legacyPlanComparisonString(ctx.State(), plan.Changes))
-	expected := strings.TrimSpace(`
-DIFF:
+	if len(plan.Changes.Resources) != 2 {
+		t.Fatal("expected 2 changes, got", len(plan.Changes.Resources))
+	}
 
-module.A:
-  CREATE: aws_instance.foo
-    foo:  "" => "bar"
-    type: "" => "aws_instance"
-module.B:
-  CREATE: aws_instance.bar
-    foo:  "" => "<computed>"
-    type: "" => "aws_instance"
-
-STATE:
-
-<no state>
-	`)
-	if actual != expected {
-		t.Fatalf("expected:\n%s\n\ngot:\n%s", expected, actual)
+	for _, res := range plan.Changes.Resources {
+		ric, err := res.Decode(ty)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if res.Action != plans.Create {
+			t.Fatalf("resource %s should be created", ric.Addr)
+		}
+		switch i := ric.Addr.String(); i {
+		case "module.A.aws_instance.foo":
+			checkVals(t, objectVal(t, schema, map[string]cty.Value{
+				"id":   cty.UnknownVal(cty.String),
+				"foo":  cty.StringVal("bar"),
+				"type": cty.StringVal("aws_instance"),
+			}), ric.After)
+		case "module.B.aws_instance.bar":
+			checkVals(t, objectVal(t, schema, map[string]cty.Value{
+				"id":   cty.UnknownVal(cty.String),
+				"foo":  cty.UnknownVal(cty.String),
+				"type": cty.StringVal("aws_instance"),
+			}), ric.After)
+		default:
+			t.Fatal("unknown instance:", i)
+		}
 	}
 }
 
@@ -3645,19 +4170,21 @@ func TestContext2Plan_targetedModuleWithProvider(t *testing.T) {
 		t.Fatalf("unexpected errors: %s", diags.Err())
 	}
 
-	actual := strings.TrimSpace(legacyPlanComparisonString(ctx.State(), plan.Changes))
-	expected := strings.TrimSpace(`
-DIFF:
+	schema := p.GetSchemaReturn.ResourceTypes["null_resource"]
+	ty := schema.ImpliedType()
 
-module.child2:
-  CREATE: null_resource.foo
+	if len(plan.Changes.Resources) != 1 {
+		t.Fatal("expected 1 changes, got", len(plan.Changes.Resources))
+	}
 
-STATE:
+	res := plan.Changes.Resources[0]
+	ric, err := res.Decode(ty)
+	if err != nil {
+		t.Fatal(err)
+	}
 
-<no state>
-	`)
-	if actual != expected {
-		t.Fatalf("expected:\n%s\n\ngot:\n%s", expected, actual)
+	if ric.Addr.String() != "module.child2.null_resource.foo" {
+		t.Fatalf("unexpcetd resource: %s", ric.Addr)
 	}
 }
 
@@ -3706,20 +4233,27 @@ func TestContext2Plan_targetedOrphan(t *testing.T) {
 		t.Fatalf("unexpected errors: %s", diags.Err())
 	}
 
-	actual := strings.TrimSpace(legacyPlanComparisonString(ctx.State(), plan.Changes))
-	expected := strings.TrimSpace(`DIFF:
+	schema := p.GetSchemaReturn.ResourceTypes["aws_instance"]
+	ty := schema.ImpliedType()
 
-DESTROY: aws_instance.orphan
+	if len(plan.Changes.Resources) != 1 {
+		t.Fatal("expected 1 changes, got", len(plan.Changes.Resources))
+	}
 
-STATE:
+	for _, res := range plan.Changes.Resources {
+		ric, err := res.Decode(ty)
+		if err != nil {
+			t.Fatal(err)
+		}
 
-aws_instance.nottargeted:
-  ID = i-abc123
-aws_instance.orphan:
-  ID = i-789xyz
-`)
-	if actual != expected {
-		t.Fatalf("expected:\n%s\n\ngot:\n%s", expected, actual)
+		switch i := ric.Addr.String(); i {
+		case "aws_instance.orphan":
+			if res.Action != plans.Delete {
+				t.Fatalf("resource %s should be destroyed", ric.Addr)
+			}
+		default:
+			t.Fatal("unknown instance:", i)
+		}
 	}
 }
 
@@ -3745,12 +4279,14 @@ func TestContext2Plan_targetedModuleOrphan(t *testing.T) {
 							Primary: &InstanceState{
 								ID: "i-789xyz",
 							},
+							Provider: "provider.aws",
 						},
 						"aws_instance.nottargeted": &ResourceState{
 							Type: "aws_instance",
 							Primary: &InstanceState{
 								ID: "i-abc123",
 							},
+							Provider: "provider.aws",
 						},
 					},
 				},
@@ -3769,22 +4305,24 @@ func TestContext2Plan_targetedModuleOrphan(t *testing.T) {
 		t.Fatalf("unexpected errors: %s", diags.Err())
 	}
 
-	actual := strings.TrimSpace(legacyPlanComparisonString(ctx.State(), plan.Changes))
-	expected := strings.TrimSpace(`DIFF:
+	schema := p.GetSchemaReturn.ResourceTypes["aws_instance"]
+	ty := schema.ImpliedType()
 
-module.child:
-  DESTROY: aws_instance.orphan
+	if len(plan.Changes.Resources) != 1 {
+		t.Fatal("expected 1 changes, got", len(plan.Changes.Resources))
+	}
 
-STATE:
+	res := plan.Changes.Resources[0]
+	ric, err := res.Decode(ty)
+	if err != nil {
+		t.Fatal(err)
+	}
 
-module.child:
-  aws_instance.nottargeted:
-    ID = i-abc123
-  aws_instance.orphan:
-    ID = i-789xyz
-`)
-	if actual != expected {
-		t.Fatalf("expected:\n%s\n\ngot:\n%s", expected, actual)
+	if ric.Addr.String() != "module.child.aws_instance.orphan" {
+		t.Fatalf("unexpected resource :%s", ric.Addr)
+	}
+	if res.Action != plans.Delete {
+		t.Fatalf("resource %s should be deleted", ric.Addr)
 	}
 }
 
@@ -3812,23 +4350,35 @@ func TestContext2Plan_targetedModuleUntargetedVariable(t *testing.T) {
 		t.Fatalf("unexpected errors: %s", diags.Err())
 	}
 
-	actual := strings.TrimSpace(legacyPlanComparisonString(ctx.State(), plan.Changes))
-	expected := strings.TrimSpace(`
-DIFF:
+	schema := p.GetSchemaReturn.ResourceTypes["aws_instance"]
+	ty := schema.ImpliedType()
 
-CREATE: aws_instance.blue
+	if len(plan.Changes.Resources) != 2 {
+		t.Fatal("expected 2 changes, got", len(plan.Changes.Resources))
+	}
 
-module.blue_mod:
-  CREATE: aws_instance.mod
-    type:  "" => "aws_instance"
-    value: "" => "<computed>"
-
-STATE:
-
-<no state>
-`)
-	if actual != expected {
-		t.Fatalf("expected:\n%s\n\ngot:\n%s", expected, actual)
+	for _, res := range plan.Changes.Resources {
+		ric, err := res.Decode(ty)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if res.Action != plans.Create {
+			t.Fatalf("resource %s should be created", ric.Addr)
+		}
+		switch i := ric.Addr.String(); i {
+		case "aws_instance.blue":
+			checkVals(t, objectVal(t, schema, map[string]cty.Value{
+				"id": cty.UnknownVal(cty.String),
+			}), ric.After)
+		case "module.blue_mod.aws_instance.mod":
+			checkVals(t, objectVal(t, schema, map[string]cty.Value{
+				"id":    cty.UnknownVal(cty.String),
+				"value": cty.UnknownVal(cty.String),
+				"type":  cty.StringVal("aws_instance"),
+			}), ric.After)
+		default:
+			t.Fatal("unknown instance:", i)
+		}
 	}
 }
 
@@ -3903,44 +4453,17 @@ func TestContext2Plan_targetedOverTen(t *testing.T) {
 		t.Fatalf("unexpected errors: %s", diags.Err())
 	}
 
-	actual := strings.TrimSpace(legacyPlanComparisonString(ctx.State(), plan.Changes))
-	sort.Strings(expectedState)
-	expected := strings.TrimSpace(`
-DIFF:
+	schema := p.GetSchemaReturn.ResourceTypes["aws_instance"]
+	ty := schema.ImpliedType()
 
-
-
-STATE:
-
-aws_instance.foo.0:
-  ID = i-abc0
-aws_instance.foo.1:
-  ID = i-abc1
-aws_instance.foo.2:
-  ID = i-abc2
-aws_instance.foo.3:
-  ID = i-abc3
-aws_instance.foo.4:
-  ID = i-abc4
-aws_instance.foo.5:
-  ID = i-abc5
-aws_instance.foo.6:
-  ID = i-abc6
-aws_instance.foo.7:
-  ID = i-abc7
-aws_instance.foo.8:
-  ID = i-abc8
-aws_instance.foo.9:
-  ID = i-abc9
-aws_instance.foo.10:
-  ID = i-abc10
-aws_instance.foo.11:
-  ID = i-abc11
-aws_instance.foo.12:
-  ID = i-abc12
-	`)
-	if actual != expected {
-		t.Fatalf("expected:\n%s\n\ngot:\n%s", expected, actual)
+	for _, res := range plan.Changes.Resources {
+		ric, err := res.Decode(ty)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if res.Action != plans.NoOp {
+			t.Fatalf("unexpected action %s for %s", res.Action, ric.Addr)
+		}
 	}
 }
 
@@ -4001,15 +4524,7 @@ func TestContext2Plan_varListErr(t *testing.T) {
 func TestContext2Plan_ignoreChanges(t *testing.T) {
 	m := testModule(t, "plan-ignore-changes")
 	p := testProvider("aws")
-	p.GetSchemaReturn = &ProviderSchema{
-		ResourceTypes: map[string]*configschema.Block{
-			"aws_instance": {
-				Attributes: map[string]*configschema.Attribute{
-					"ami": {Type: cty.String, Optional: true},
-				},
-			},
-		},
-	}
+
 	p.DiffFn = testDiffFn
 
 	s := mustShimLegacyState(&State{
@@ -4049,30 +4564,36 @@ func TestContext2Plan_ignoreChanges(t *testing.T) {
 		t.Fatalf("unexpected errors: %s", diags.Err())
 	}
 
-	if len(plan.Changes.Resources) < 1 {
-		t.Fatalf("bad: %#v", plan.Changes.Resources)
+	schema := p.GetSchemaReturn.ResourceTypes["aws_instance"]
+	ty := schema.ImpliedType()
+
+	if len(plan.Changes.Resources) != 1 {
+		t.Fatal("expected 1 changes, got", len(plan.Changes.Resources))
 	}
 
-	actual := strings.TrimSpace(legacyPlanComparisonString(ctx.State(), plan.Changes))
-	expected := strings.TrimSpace(testTerraformPlanIgnoreChangesStr)
-	if actual != expected {
-		t.Fatalf("bad:\n%s\n\nexpected\n\n%s", actual, expected)
+	res := plan.Changes.Resources[0]
+	ric, err := res.Decode(ty)
+	if err != nil {
+		t.Fatal(err)
 	}
+	if res.Action != plans.Update {
+		t.Fatalf("resource %s should be updated, got %s", ric.Addr, res.Action)
+	}
+
+	if ric.Addr.String() != "aws_instance.foo" {
+		t.Fatalf("unexpected resource: %s", ric.Addr)
+	}
+
+	checkVals(t, objectVal(t, schema, map[string]cty.Value{
+		"id":   cty.StringVal("bar"),
+		"ami":  cty.StringVal("ami-abcd1234"),
+		"type": cty.StringVal("aws_instance"),
+	}), ric.After)
 }
 
 func TestContext2Plan_ignoreChangesWildcard(t *testing.T) {
 	m := testModule(t, "plan-ignore-changes-wildcard")
 	p := testProvider("aws")
-	p.GetSchemaReturn = &ProviderSchema{
-		ResourceTypes: map[string]*configschema.Block{
-			"aws_instance": {
-				Attributes: map[string]*configschema.Attribute{
-					"ami":           {Type: cty.String, Optional: true},
-					"instance_type": {Type: cty.String, Optional: true},
-				},
-			},
-		},
-	}
 	p.DiffFn = testDiffFn
 
 	s := mustShimLegacyState(&State{
@@ -4121,12 +4642,6 @@ func TestContext2Plan_ignoreChangesWildcard(t *testing.T) {
 
 	if len(plan.Changes.Resources) > 0 {
 		t.Fatalf("unexpected resource diffs in root module: %s", spew.Sdump(plan.Changes.Resources))
-	}
-
-	actual := strings.TrimSpace(legacyPlanComparisonString(ctx.State(), plan.Changes))
-	expected := strings.TrimSpace(testTerraformPlanIgnoreChangesWildcardStr)
-	if actual != expected {
-		t.Fatalf("bad:\n%s\n\nexpected\n\n%s", actual, expected)
 	}
 }
 
