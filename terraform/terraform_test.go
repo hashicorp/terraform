@@ -438,12 +438,19 @@ aws_instance.foo:
 `
 
 const testTerraformApplyCountDecStr = `
+aws_instance.bar:
+  ID = foo
+  provider = provider.aws
+  foo = bar
+  type = aws_instance
 aws_instance.foo.0:
   ID = bar
+  provider = provider.aws
   foo = foo
   type = aws_instance
 aws_instance.foo.1:
   ID = bar
+  provider = provider.aws
   foo = foo
   type = aws_instance
 `
