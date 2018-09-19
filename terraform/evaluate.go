@@ -562,34 +562,34 @@ func (d *evaluationStateData) getResourceInstanceSingle(addr addrs.ResourceInsta
 		return cty.UnknownVal(ty), diags
 	}
 
-	// If there's a pending change for this instance in our plan, we'll prefer
-	// that. This is important because the state can't represent unknown values
-	// and so its data is inaccurate when changes are pending.
-	if change := d.Evaluator.Changes.GetResourceInstanceChange(addr.Absolute(d.ModulePath), states.CurrentGen); change != nil {
-		val, err := change.After.Decode(ty)
-		if err != nil {
+	if is.Current.Status == states.ObjectPlanned {
+		// If there's a pending change for this instance in our plan, we'll prefer
+		// that. This is important because the state can't represent unknown values
+		// and so its data is inaccurate when changes are pending.
+		if change := d.Evaluator.Changes.GetResourceInstanceChange(addr.Absolute(d.ModulePath), states.CurrentGen); change != nil {
+			val, err := change.After.Decode(ty)
+			if err != nil {
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Invalid resource instance data in plan",
+					Detail:   fmt.Sprintf("Instance %s data could not be decoded from the plan: %s.", addr.Absolute(d.ModulePath), err),
+					Subject:  &config.DeclRange,
+				})
+				return cty.UnknownVal(ty), diags
+			}
+			return val, diags
+		} else {
+			// If the object is in planned status then we should not
+			// get here, since we should've found a pending value
+			// in the plan above instead.
 			diags = diags.Append(&hcl.Diagnostic{
 				Severity: hcl.DiagError,
-				Summary:  "Invalid resource instance data in plan",
-				Detail:   fmt.Sprintf("Instance %s data could not be decoded from the plan: %s.", addr.Absolute(d.ModulePath), err),
+				Summary:  "Missing pending object in plan",
+				Detail:   fmt.Sprintf("Instance %s is marked as having a change pending but that change is not recorded in the plan. This is a bug in Terraform; please report it.", addr),
 				Subject:  &config.DeclRange,
 			})
 			return cty.UnknownVal(ty), diags
 		}
-		return val, diags
-	}
-
-	if is.Current.Status == states.ObjectPlanned {
-		// If the object is in planned status then we should not
-		// get here, since we should've found a pending value
-		// in the plan above instead.
-		diags = diags.Append(&hcl.Diagnostic{
-			Severity: hcl.DiagError,
-			Summary:  "Missing pending object in plan",
-			Detail:   fmt.Sprintf("Instance %s is marked as having a change pending but that change is not recorded in the plan. This is a bug in Terraform; please report it.", addr),
-			Subject:  &config.DeclRange,
-		})
-		return cty.UnknownVal(ty), diags
 	}
 
 	ios, err := is.Current.Decode(ty)
@@ -648,32 +648,32 @@ func (d *evaluationStateData) getResourceInstancesAll(addr addrs.Resource, rng t
 
 				// Prefer pending value in plan if present. See getResourceInstanceSingle
 				// comment for the rationale.
-				if change := d.Evaluator.Changes.GetResourceInstanceChange(instAddr, states.CurrentGen); change != nil {
-					val, err := change.After.Decode(ty)
-					if err != nil {
+				if is.Current.Status == states.ObjectPlanned {
+					if change := d.Evaluator.Changes.GetResourceInstanceChange(instAddr, states.CurrentGen); change != nil {
+						val, err := change.After.Decode(ty)
+						if err != nil {
+							diags = diags.Append(&hcl.Diagnostic{
+								Severity: hcl.DiagError,
+								Summary:  "Invalid resource instance data in plan",
+								Detail:   fmt.Sprintf("Instance %s data could not be decoded from the plan: %s.", instAddr, err),
+								Subject:  &config.DeclRange,
+							})
+							continue
+						}
+						vals[i] = val
+						continue
+					} else {
+						// If the object is in planned status then we should not
+						// get here, since we should've found a pending value
+						// in the plan above instead.
 						diags = diags.Append(&hcl.Diagnostic{
 							Severity: hcl.DiagError,
-							Summary:  "Invalid resource instance data in plan",
-							Detail:   fmt.Sprintf("Instance %s data could not be decoded from the plan: %s.", instAddr, err),
+							Summary:  "Missing pending object in plan",
+							Detail:   fmt.Sprintf("Instance %s is marked as having a change pending but that change is not recorded in the plan. This is a bug in Terraform; please report it.", instAddr),
 							Subject:  &config.DeclRange,
 						})
 						continue
 					}
-					vals[i] = val
-					continue
-				}
-
-				if is.Current.Status == states.ObjectPlanned {
-					// If the object is in planned status then we should not
-					// get here, since we should've found a pending value
-					// in the plan above instead.
-					diags = diags.Append(&hcl.Diagnostic{
-						Severity: hcl.DiagError,
-						Summary:  "Missing pending object in plan",
-						Detail:   fmt.Sprintf("Instance %s is marked as having a change pending but that change is not recorded in the plan. This is a bug in Terraform; please report it.", instAddr),
-						Subject:  &config.DeclRange,
-					})
-					continue
 				}
 
 				ios, err := is.Current.Decode(ty)
@@ -713,19 +713,34 @@ func (d *evaluationStateData) getResourceInstancesAll(addr addrs.Resource, rng t
 
 				// Prefer pending value in plan if present. See getResourceInstanceSingle
 				// comment for the rationale.
-				if change := d.Evaluator.Changes.GetResourceInstanceChange(instAddr, states.CurrentGen); change != nil {
-					val, err := change.After.Decode(ty)
-					if err != nil {
+				// Prefer pending value in plan if present. See getResourceInstanceSingle
+				// comment for the rationale.
+				if is.Current.Status == states.ObjectPlanned {
+					if change := d.Evaluator.Changes.GetResourceInstanceChange(instAddr, states.CurrentGen); change != nil {
+						val, err := change.After.Decode(ty)
+						if err != nil {
+							diags = diags.Append(&hcl.Diagnostic{
+								Severity: hcl.DiagError,
+								Summary:  "Invalid resource instance data in plan",
+								Detail:   fmt.Sprintf("Instance %s data could not be decoded from the plan: %s.", instAddr, err),
+								Subject:  &config.DeclRange,
+							})
+							continue
+						}
+						vals[string(sk)] = val
+						continue
+					} else {
+						// If the object is in planned status then we should not
+						// get here, since we should've found a pending value
+						// in the plan above instead.
 						diags = diags.Append(&hcl.Diagnostic{
 							Severity: hcl.DiagError,
-							Summary:  "Invalid resource instance data in plan",
-							Detail:   fmt.Sprintf("Instance %s data could not be decoded from the plan: %s.", instAddr, err),
+							Summary:  "Missing pending object in plan",
+							Detail:   fmt.Sprintf("Instance %s is marked as having a change pending but that change is not recorded in the plan. This is a bug in Terraform; please report it.", instAddr),
 							Subject:  &config.DeclRange,
 						})
 						continue
 					}
-					vals[string(sk)] = val
-					continue
 				}
 
 				ios, err := is.Current.Decode(ty)
