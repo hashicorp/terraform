@@ -322,6 +322,7 @@ func (n *EvalDeposeState) Eval(ctx EvalContext) (interface{}, error) {
 	state := ctx.State()
 
 	key := state.DeposeResourceInstanceObject(absAddr)
+	log.Printf("[TRACE] EvalDeposeState: prior object for %s now deposed with key %s", absAddr, key)
 
 	if n.OutputKey != nil {
 		*n.OutputKey = key
@@ -350,6 +351,7 @@ func (n *EvalUndeposeState) Eval(ctx EvalContext) (interface{}, error) {
 	state := ctx.State()
 
 	state.ForgetResourceInstanceDeposed(absAddr, *n.Key)
+	log.Printf("[TRACE] EvalDeposeState: %s deposed object %s is forgotten", absAddr, *n.Key)
 
 	return nil, nil
 }
