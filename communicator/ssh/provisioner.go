@@ -40,16 +40,17 @@ const (
 // only keys we look at. If a PrivateKey is given, that is used instead
 // of a password.
 type connectionInfo struct {
-	User       string
-	Password   string
-	PrivateKey string `mapstructure:"private_key"`
-	Host       string
-	HostKey    string `mapstructure:"host_key"`
-	Port       int
-	Agent      bool
-	Timeout    string
-	ScriptPath string        `mapstructure:"script_path"`
-	TimeoutVal time.Duration `mapstructure:"-"`
+	User        string
+	Password    string
+	PrivateKey  string `mapstructure:"private_key"`
+	Certificate string `mapstructure:"certificate"`
+	Host        string
+	HostKey     string `mapstructure:"host_key"`
+	Port        int
+	Agent       bool
+	Timeout     string
+	ScriptPath  string        `mapstructure:"script_path"`
+	TimeoutVal  time.Duration `mapstructure:"-"`
 
 	BastionUser       string `mapstructure:"bastion_user"`
 	BastionPassword   string `mapstructure:"bastion_password"`
@@ -150,12 +151,13 @@ func prepareSSHConfig(connInfo *connectionInfo) (*sshConfig, error) {
 	host := fmt.Sprintf("%s:%d", connInfo.Host, connInfo.Port)
 
 	sshConf, err := buildSSHClientConfig(sshClientConfigOpts{
-		user:       connInfo.User,
-		host:       host,
-		privateKey: connInfo.PrivateKey,
-		password:   connInfo.Password,
-		hostKey:    connInfo.HostKey,
-		sshAgent:   sshAgent,
+		user:        connInfo.User,
+		host:        host,
+		privateKey:  connInfo.PrivateKey,
+		password:    connInfo.Password,
+		hostKey:     connInfo.HostKey,
+		certificate: connInfo.Certificate,
+		sshAgent:    sshAgent,
 	})
 	if err != nil {
 		return nil, err
@@ -191,12 +193,13 @@ func prepareSSHConfig(connInfo *connectionInfo) (*sshConfig, error) {
 }
 
 type sshClientConfigOpts struct {
-	privateKey string
-	password   string
-	sshAgent   *sshAgent
-	user       string
-	host       string
-	hostKey    string
+	privateKey  string
+	password    string
+	sshAgent    *sshAgent
+	certificate string
+	user        string
+	host        string
+	hostKey     string
 }
 
 func buildSSHClientConfig(opts sshClientConfigOpts) (*ssh.ClientConfig, error) {
@@ -234,11 +237,25 @@ func buildSSHClientConfig(opts sshClientConfigOpts) (*ssh.ClientConfig, error) {
 	}
 
 	if opts.privateKey != "" {
-		pubKeyAuth, err := readPrivateKey(opts.privateKey)
-		if err != nil {
-			return nil, err
+		if opts.certificate != "" {
+			log.Println(fmt.Sprintf("using client certificate for authentication"))
+			fmt.Printf("using client certificate for authentication")
+
+			certSigner, err := signCertWithPrivateKey(opts.privateKey, opts.certificate)
+			if err != nil {
+				return nil, err
+			}
+			conf.Auth = append(conf.Auth, certSigner)
+		} else {
+			log.Println(fmt.Sprintf("using private key for authentication"))
+			fmt.Printf("using private key for authentication")
+
+			pubKeyAuth, err := readPrivateKey(opts.privateKey)
+			if err != nil {
+				return nil, err
+			}
+			conf.Auth = append(conf.Auth, pubKeyAuth)
 		}
-		conf.Auth = append(conf.Auth, pubKeyAuth)
 	}
 
 	if opts.password != "" {
@@ -252,6 +269,31 @@ func buildSSHClientConfig(opts sshClientConfigOpts) (*ssh.ClientConfig, error) {
 	}
 
 	return conf, nil
+}
+
+// Create a Cert Signer and return ssh.AuthMethod
+func signCertWithPrivateKey(pk string, certificate string) (ssh.AuthMethod, error) {
+	rawPk, err := ssh.ParseRawPrivateKey([]byte(pk))
+	if err != nil {
+		return nil, fmt.Errorf("Failed to parse private key %q: %s", pk, err)
+	}
+
+	pcert, _, _, _, err := ssh.ParseAuthorizedKey([]byte(certificate))
+	if err != nil {
+		return nil, fmt.Errorf("Failed to parse certificate %q: %s", certificate, err)
+	}
+
+	usigner, err := ssh.NewSignerFromKey(rawPk)
+	if err != nil {
+		return nil, fmt.Errorf("Failed to create signer from raw private key %q: %s", rawPk, err)
+	}
+
+	ucertSigner, err := ssh.NewCertSigner(pcert.(*ssh.Certificate), usigner)
+	if err != nil {
+		return nil, fmt.Errorf("Failed to create cert signer %q: %s", usigner, err)
+	}
+
+	return ssh.PublicKeys(ucertSigner), nil
 }
 
 func readPrivateKey(pk string) (ssh.AuthMethod, error) {

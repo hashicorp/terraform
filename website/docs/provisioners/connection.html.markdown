@@ -77,6 +77,10 @@ provisioner "file" {
   [the `file` function](/docs/configuration/functions/file.html). This takes
   preference over the password if provided.
 
+* `certificate` - The contents of an signed CA Certificate. These can
+  be loaded from a file on disk using the [`file()` interpolation
+  function](/docs/configuration/interpolation.html#file_path_). Note: Must provide `private_key` when using this.
+
 * `agent` - Set to `false` to disable using `ssh-agent` to authenticate. On Windows the
   only supported SSH authentication agent is
   [Pageant](http://the.earth.li/~sgtatham/putty/0.66/htmldoc/Chapter9.html#pageant).
