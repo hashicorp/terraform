@@ -132,7 +132,11 @@ down to see all providers.
     <td><a href="/docs/providers/rancher/index.html">Rancher</a></td>
     </tr>
     <tr>
+<<<<<<< HEAD
     <td><a href="/docs/providers/random/index.html">Random</a></td>
+=======
+    <td><a href="/docs/providers/rightscale/index.html">Rightscale</a></td>
+>>>>>>> 7244abd97... add rightscale provider links
     <td><a href="/docs/providers/rundeck/index.html">Rundeck</a></td>
     <td><a href="/docs/providers/runscope/index.html">Runscope</a></td>
     </tr>
