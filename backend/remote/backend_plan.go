@@ -3,8 +3,8 @@ package remote
 import (
 	"bufio"
 	"context"
+	"errors"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"log"
 	"os"
@@ -16,51 +16,45 @@ import (
 	"github.com/hashicorp/terraform/backend"
 )
 
-func (b *Remote) opPlan(stopCtx, cancelCtx context.Context, op *backend.Operation, runningOp *backend.RunningOperation) {
+func (b *Remote) opPlan(stopCtx, cancelCtx context.Context, op *backend.Operation) error {
 	log.Printf("[INFO] backend/remote: starting Plan operation")
 
 	if op.Plan != nil {
-		runningOp.Err = fmt.Errorf(strings.TrimSpace(planErrPlanNotSupported))
-		return
+		return fmt.Errorf(strings.TrimSpace(planErrPlanNotSupported))
 	}
 
 	if op.PlanOutPath != "" {
-		runningOp.Err = fmt.Errorf(strings.TrimSpace(planErrOutPathNotSupported))
-		return
+		return fmt.Errorf(strings.TrimSpace(planErrOutPathNotSupported))
 	}
 
 	if op.Targets != nil {
-		runningOp.Err = fmt.Errorf(strings.TrimSpace(planErrTargetsNotSupported))
-		return
+		return fmt.Errorf(strings.TrimSpace(planErrTargetsNotSupported))
 	}
 
 	if (op.Module == nil || op.Module.Config().Dir == "") && !op.Destroy {
-		runningOp.Err = fmt.Errorf(strings.TrimSpace(planErrNoConfig))
-		return
+		return fmt.Errorf(strings.TrimSpace(planErrNoConfig))
 	}
 
 	// Retrieve the workspace used to run this operation in.
 	w, err := b.client.Workspaces.Read(stopCtx, b.organization, op.Workspace)
 	if err != nil {
-		if err != context.Canceled {
-			runningOp.Err = fmt.Errorf(strings.TrimSpace(fmt.Sprintf(
-				generalErr, "error retrieving workspace", err)))
-		}
-		return
+		return generalError("error retrieving workspace", err)
 	}
 
+	_, err = b.plan(stopCtx, cancelCtx, op, w)
+
+	return err
+}
+
+func (b *Remote) plan(stopCtx, cancelCtx context.Context, op *backend.Operation, w *tfe.Workspace) (*tfe.Run, error) {
 	configOptions := tfe.ConfigurationVersionCreateOptions{
 		AutoQueueRuns: tfe.Bool(false),
-		Speculative:   tfe.Bool(true),
+		Speculative:   tfe.Bool(op.Type == backend.OperationTypePlan),
 	}
 
 	cv, err := b.client.ConfigurationVersions.Create(stopCtx, w.ID, configOptions)
 	if err != nil {
-		if err != context.Canceled {
-			runningOp.Err = fmt.Errorf(strings.TrimSpace(fmt.Sprintf(
-				generalErr, "error creating configuration version", err)))
-		}
-		return
+		return nil, generalError("error creating configuration version", err)
 	}
 
 	var configDir string
@@ -78,45 +72,34 @@ func (b *Remote) opPlan(stopCtx, cancelCtx context.Context, op *backend.Operatio
 		// be executed when we are destroying and doesn't need the config.
 		configDir, err = ioutil.TempDir("", "tf")
 		if err != nil {
-			runningOp.Err = fmt.Errorf(strings.TrimSpace(fmt.Sprintf(
-				generalErr, "error creating temporary directory", err)))
-			return
+			return nil, generalError("error creating temporary directory", err)
 		}
 		defer os.RemoveAll(configDir)
 
 		// Make sure the configured working directory exists.
 		err = os.MkdirAll(filepath.Join(configDir, w.WorkingDirectory), 0700)
 		if err != nil {
-			runningOp.Err = fmt.Errorf(strings.TrimSpace(fmt.Sprintf(
-				generalErr, "error creating temporary working directory", err)))
-			return
+			return nil, generalError(
+				"error creating temporary working directory", err)
 		}
 	}
 
 	err = b.client.ConfigurationVersions.Upload(stopCtx, cv.UploadURL, configDir)
 	if err != nil {
-		if err != context.Canceled {
-			runningOp.Err = fmt.Errorf(strings.TrimSpace(fmt.Sprintf(
-				generalErr, "error uploading configuration files", err)))
-		}
-		return
+		return nil, generalError("error uploading configuration files", err)
 	}
 
 	uploaded := false
 	for i := 0; i < 60 && !uploaded; i++ {
 		select {
 		case <-stopCtx.Done():
-			return
+			return nil, context.Canceled
 		case <-cancelCtx.Done():
-			return
+			return nil, context.Canceled
 		case <-time.After(500 * time.Millisecond):
 			cv, err = b.client.ConfigurationVersions.Read(stopCtx, cv.ID)
 			if err != nil {
-				if err != context.Canceled {
-					runningOp.Err = fmt.Errorf(strings.TrimSpace(fmt.Sprintf(
-						generalErr, "error retrieving configuration version", err)))
-				}
-				return
+				return nil, generalError("error retrieving configuration version", err)
 			}
 
 			if cv.Status == tfe.ConfigurationUploaded {
@@ -126,9 +109,8 @@ func (b *Remote) opPlan(stopCtx, cancelCtx context.Context, op *backend.Operatio
 	}
 
 	if !uploaded {
-		runningOp.Err = fmt.Errorf(strings.TrimSpace(fmt.Sprintf(
-			generalErr, "error uploading configuration files", "operation timed out")))
-		return
+		return nil, generalError(
+			"error uploading configuration files", errors.New("operation timed out"))
 	}
 
 	runOptions := tfe.RunCreateOptions{
@@ -140,20 +122,12 @@ func (b *Remote) opPlan(stopCtx, cancelCtx context.Context, op *backend.Operatio
 
 	r, err := b.client.Runs.Create(stopCtx, runOptions)
 	if err != nil {
-		if err != context.Canceled {
-			runningOp.Err = fmt.Errorf(strings.TrimSpace(fmt.Sprintf(
-				generalErr, "error creating run", err)))
-		}
-		return
+		return nil, generalError("error creating run", err)
 	}
 
 	r, err = b.client.Runs.Read(stopCtx, r.ID)
 	if err != nil {
-		if err != context.Canceled {
-			runningOp.Err = fmt.Errorf(strings.TrimSpace(fmt.Sprintf(
-				generalErr, "error retrieving run", err)))
-		}
-		return
+		return nil, generalError("error retrieving run", err)
 	}
 
 	if b.CLI != nil {
@@ -163,11 +137,7 @@ func (b *Remote) opPlan(stopCtx, cancelCtx context.Context, op *backend.Operatio
 
 	logs, err := b.client.Plans.Logs(stopCtx, r.Plan.ID)
 	if err != nil {
-		if err != context.Canceled {
-			runningOp.Err = fmt.Errorf(strings.TrimSpace(fmt.Sprintf(
-				generalErr, "error retrieving logs", err)))
-		}
-		return
+		return nil, generalError("error retrieving logs", err)
 	}
 	scanner := bufio.NewScanner(logs)
 
@@ -177,11 +147,10 @@ func (b *Remote) opPlan(stopCtx, cancelCtx context.Context, op *backend.Operatio
 		}
 	}
 	if err := scanner.Err(); err != nil {
-		if err != context.Canceled && err != io.EOF {
-			runningOp.Err = fmt.Errorf("Error reading logs: %v", err)
-		}
-		return
+		return nil, generalError("error reading logs", err)
 	}
+
+	return r, nil
 }
 
 const planErrPlanNotSupported = `
@@ -217,7 +186,7 @@ a Terraform configuration file in the path being executed and try again.
 const planDefaultHeader = `
 [reset][yellow]Running plan in the remote backend. Output will stream here. Pressing Ctrl-C
 will stop streaming the logs, but will not stop the plan running remotely.
-To view this plan in a browser, visit:
+To view this run in a browser, visit:
 https://%s/app/%s/%s/runs/%s[reset]
 
 Waiting for the plan to start...
