@@ -180,6 +180,11 @@ func testApplyFn(
 	if d != nil {
 		result = result.MergeDiff(d)
 	}
+
+	// The id attribute always matches ID for the sake of this mock
+	// implementation, since it's following the pre-0.12 assumptions where
+	// these two were treated as synonyms.
+	result.Attributes["id"] = result.ID
 	return result, nil
 }
 
