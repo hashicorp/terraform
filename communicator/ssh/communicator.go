@@ -125,11 +125,13 @@ func (c *Communicator) Connect(o terraform.UIOutput) (err error) {
 				"  User: %s\n"+
 				"  Password: %t\n"+
 				"  Private key: %t\n"+
+				"  Certificate: %t\n"+
 				"  SSH Agent: %t\n"+
 				"  Checking Host Key: %t",
 			c.connInfo.Host, c.connInfo.User,
 			c.connInfo.Password != "",
 			c.connInfo.PrivateKey != "",
+			c.connInfo.Certificate != "",
 			c.connInfo.Agent,
 			c.connInfo.HostKey != "",
 		))
