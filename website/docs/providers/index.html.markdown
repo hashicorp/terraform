@@ -112,54 +112,59 @@ down to see all providers.
     <td><a href="/docs/providers/opsgenie/index.html">OpsGenie</a></td>
     </tr>
     <tr>
+    <td><a href="/docs/providers/oci/index.html">Oracle Cloud Infrastructure</a></td>
+    <td><a href="/docs/providers/oraclepaas/index.html">Oracle Cloud Platform</a></td>
     <td><a href="/docs/providers/opc/index.html">Oracle Public Cloud</a></td>
-    <td><a href="/docs/providers/oraclepaas/index.html">Oracle Cloud Platform </a></td>
-    <td><a href="/docs/providers/ovh/index.html">OVH</a></td>
     </tr>
     <tr>
+    <td><a href="/docs/providers/ovh/index.html">OVH</a></td>
     <td><a href="/docs/providers/packet/index.html">Packet</a></td>
     <td><a href="/docs/providers/pagerduty/index.html">PagerDuty</a></td>
-    <td><a href="/docs/providers/panos/index.html">Palo Alto Networks</a></td>
     </tr>
     <tr>
+    <td><a href="/docs/providers/panos/index.html">Palo Alto Networks</a></td>
     <td><a href="/docs/providers/postgresql/index.html">PostgreSQL</a></td>
     <td><a href="/docs/providers/powerdns/index.html">PowerDNS</a></td>
-    <td><a href="/docs/providers/profitbricks/index.html">ProfitBricks</a></td>
     </tr>
     <tr>
+    <td><a href="/docs/providers/profitbricks/index.html">ProfitBricks</a></td>
     <td><a href="/docs/providers/rabbitmq/index.html">RabbitMQ</a></td>
     <td><a href="/docs/providers/rancher/index.html">Rancher</a></td>
+    </tr>
+    <tr>
     <td><a href="/docs/providers/random/index.html">Random</a></td>
-    </tr>
-    <tr>
-    <td><a href="/docs/providers/rightscale/index.html">RightScale</a></td>
+    <td><a href="/docs/providers/rightscale/index.html">Rightscale</a></td>
     <td><a href="/docs/providers/rundeck/index.html">Rundeck</a></td>
-    <td><a href="/docs/providers/runscope/index.html">Runscope</a></td>
     </tr>
     <tr>
+    <td><a href="/docs/providers/runscope/index.html">RunScope</a></td>
     <td><a href="/docs/providers/scaleway/index.html">Scaleway</a></td>
     <td><a href="/docs/providers/softlayer/index.html">SoftLayer</a></td>
-    <td><a href="/docs/providers/statuscake/index.html">StatusCake</a></td>
     </tr>
     <tr>
+    <td><a href="/docs/providers/statuscake/index.html">StatusCake</a></td>
     <td><a href="/docs/providers/spotinst/index.html">Spotinst</a></td>
     <td><a href="/docs/providers/telefonicaopencloud/index.html">TelefonicaOpenCloud</a></td>
-    <td><a href="/docs/providers/template/index.html">Template</a></td>
     </tr>
     <tr>
+    <td><a href="/docs/providers/template/index.html">Template</a></td>
     <td><a href="/docs/providers/terraform/index.html">Terraform</a></td>
     <td><a href="/docs/providers/tfe/index.html">Terraform Enterprise</a></td>
-    <td><a href="/docs/providers/tls/index.html">TLS</a></td>
     </tr>
     <tr>
+    <td><a href="/docs/providers/tls/index.html">TLS</a></td>
     <td><a href="/docs/providers/triton/index.html">Triton</a></td>
     <td><a href="/docs/providers/ultradns/index.html">UltraDNS</a></td>
-    <td><a href="/docs/providers/vault/index.html">Vault</a></td>
     </tr>
     <tr>
+    <td><a href="/docs/providers/vault/index.html">Vault</a></td>
     <td><a href="/docs/providers/vcd/index.html">VMware vCloud Director</a></td>
     <td><a href="/docs/providers/nsxt/index.html">VMware NSX-T</a></td>
+    </tr>
+    <tr>
     <td><a href="/docs/providers/vsphere/index.html">VMware vSphere</a></td>
+    <td><a></a></td>
+    <td><a></a></td>
     </tr>
 </table>
 
