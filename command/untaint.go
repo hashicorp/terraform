@@ -65,10 +65,6 @@ func (c *UntaintCommand) Run(args []string) int {
 		c.Ui.Error(fmt.Sprintf("Failed to load state: %s", err))
 		return 1
 	}
-	if err := st.RefreshState(); err != nil {
-		c.Ui.Error(fmt.Sprintf("Failed to load state: %s", err))
-		return 1
-	}
 
 	if c.stateLock {
 		stateLocker := clistate.NewLocker(context.Background(), c.stateLockTimeout, c.Ui, c.Colorize())
@@ -77,6 +73,11 @@ func (c *UntaintCommand) Run(args []string) int {
 			return 1
 		}
 		defer stateLocker.Unlock(nil)
+	}
+
+	if err := st.RefreshState(); err != nil {
+		c.Ui.Error(fmt.Sprintf("Failed to load state: %s", err))
+		return 1
 	}
 
 	// Get the actual state structure
