@@ -33,6 +33,8 @@ and are tested by HashiCorp.
 
 [Rancher](/docs/providers/rancher/index.html)
 
+[Rightscale](/docs/providers/rightscale/index.html)
+
 [Rundeck](/docs/providers/rundeck/index.html)
 
 [Spotinst](/docs/providers/spotinst/index.html)
