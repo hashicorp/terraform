@@ -133,7 +133,7 @@ down to see all providers.
     </tr>
     <tr>
     <td><a href="/docs/providers/random/index.html">Random</a></td>
-    <td><a href="/docs/providers/rightscale/index.html">Rightscale</a></td>
+    <td><a href="/docs/providers/rightscale/index.html">RightScale</a></td>
     <td><a href="/docs/providers/rundeck/index.html">Rundeck</a></td>
     </tr>
     <tr>
