@@ -241,8 +241,8 @@ No configuration files found!
 
 Apply requires configuration to be present. Applying without a configuration
 would mark everything for destruction, which is normally not what is desired.
-If you would like to destroy everything, please run 'terraform destroy' instead
-which does not require any configuration files.
+If you would like to destroy everything, please run 'terraform destroy' which
+does not require any configuration files.
 `
 
 const stateWriteBackedUpError = `Failed to persist state to backend.
@@ -285,7 +285,7 @@ This is a serious bug in Terraform and should be reported.
 
 const earlyStateWriteErrorFmt = `Error saving current state: %s
 
-Terraform encountered an error attempting to save the state before canceling
+Terraform encountered an error attempting to save the state before cancelling
 the current operation. Once the operation is complete another attempt will be
 made to save the final state.
 `

@@ -394,15 +394,17 @@ func (b *Remote) Operation(ctx context.Context, op *backend.Operation) (*backend
 	}
 
 	// Determine the function to call for our operation
-	var f func(context.Context, context.Context, *backend.Operation, *backend.RunningOperation)
+	var f func(context.Context, context.Context, *backend.Operation) error
 	switch op.Type {
 	case backend.OperationTypePlan:
 		f = b.opPlan
+	case backend.OperationTypeApply:
+		f = b.opApply
 	default:
 		return nil, fmt.Errorf(
-			"\n\nThe \"remote\" backend currently only supports the \"plan\" operation.\n"+
-				"Please use the remote backend web UI for all other operations:\n"+
-				"https://%s/app/%s/%s", b.hostname, b.organization, op.Workspace)
+			"\n\nThe \"remote\" backend does not support the %q operation.\n"+
+				"Please use the remote backend web UI for running this operation:\n"+
+				"https://%s/app/%s/%s", op.Type, b.hostname, b.organization, op.Workspace)
 		// return nil, backend.ErrOperationNotSupported
 	}
 
@@ -432,7 +434,11 @@ func (b *Remote) Operation(ctx context.Context, op *backend.Operation) (*backend
 		defer cancel()
 
 		defer b.opLock.Unlock()
-		f(stopCtx, cancelCtx, op, runningOp)
+
+		err := f(stopCtx, cancelCtx, op)
+		if err != nil && err != context.Canceled {
+			runningOp.Err = err
+		}
 	}()
 
 	// Return
@@ -451,6 +457,13 @@ func (b *Remote) Colorize() *colorstring.Colorize {
 		Colors:  colorstring.DefaultColors,
 		Disable: true,
 	}
+}
+
+func generalError(msg string, err error) error {
+	if err != context.Canceled {
+		err = fmt.Errorf(strings.TrimSpace(fmt.Sprintf(generalErr, msg, err)))
+	}
+	return err
 }
 
 const generalErr = `
