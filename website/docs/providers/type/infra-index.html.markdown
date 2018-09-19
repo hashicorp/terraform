@@ -33,7 +33,7 @@ and are tested by HashiCorp.
 
 [Rancher](/docs/providers/rancher/index.html)
 
-[Rightscale](/docs/providers/rightscale/index.html)
+[RightScale](/docs/providers/rightscale/index.html)
 
 [Rundeck](/docs/providers/rundeck/index.html)
 
