@@ -573,8 +573,6 @@ module.child:
 
 const testTerraformApplyModuleDestroyOrderStr = `
 <no state>
-module.child:
-  <no state>
 `
 
 const testTerraformApplyMultiProviderStr = `
