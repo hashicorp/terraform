@@ -173,12 +173,12 @@ func (ms *Module) ForgetResourceInstanceDeposed(addr addrs.ResourceInstance, key
 
 // deposeResourceInstanceObject is the real implementation of
 // SyncState.DeposeResourceInstanceObject.
-func (ms *Module) deposeResourceInstanceObject(addr addrs.ResourceInstance) DeposedKey {
+func (ms *Module) deposeResourceInstanceObject(addr addrs.ResourceInstance, forceKey DeposedKey) DeposedKey {
 	is := ms.ResourceInstance(addr)
 	if is == nil {
 		return NotDeposed
 	}
-	return is.deposeCurrentObject()
+	return is.deposeCurrentObject(forceKey)
 }
 
 // SetOutputValue writes an output value into the state, overwriting any

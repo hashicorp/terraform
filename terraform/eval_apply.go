@@ -224,6 +224,10 @@ func (n *EvalApplyPre) Eval(ctx EvalContext) (interface{}, error) {
 	change := *n.Change
 	absAddr := n.Addr.Absolute(ctx.Path())
 
+	if change == nil {
+		panic(fmt.Sprintf("EvalApplyPre for %s called with nil Change", absAddr))
+	}
+
 	if resourceHasUserVisibleApply(n.Addr) {
 		priorState := change.Before
 		plannedNewState := change.After

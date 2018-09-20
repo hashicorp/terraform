@@ -310,6 +310,12 @@ func (n *EvalWriteStateDeposed) Eval(ctx EvalContext) (interface{}, error) {
 type EvalDeposeState struct {
 	Addr addrs.ResourceInstance
 
+	// ForceKey, if a value other than states.NotDeposed, will be used as the
+	// key for the newly-created deposed object that results from this action.
+	// If set to states.NotDeposed (the zero value), a new unique key will be
+	// allocated.
+	ForceKey states.DeposedKey
+
 	// OutputKey, if non-nil, will be written with the deposed object key that
 	// was generated for the object. This can then be passed to
 	// EvalUndeposeState.Key so it knows which deposed instance to forget.
@@ -321,7 +327,13 @@ func (n *EvalDeposeState) Eval(ctx EvalContext) (interface{}, error) {
 	absAddr := n.Addr.Absolute(ctx.Path())
 	state := ctx.State()
 
-	key := state.DeposeResourceInstanceObject(absAddr)
+	var key states.DeposedKey
+	if n.ForceKey == states.NotDeposed {
+		key = state.DeposeResourceInstanceObject(absAddr)
+	} else {
+		key = n.ForceKey
+		state.DeposeResourceInstanceObjectForceKey(absAddr, key)
+	}
 	log.Printf("[TRACE] EvalDeposeState: prior object for %s now deposed with key %s", absAddr, key)
 
 	if n.OutputKey != nil {
