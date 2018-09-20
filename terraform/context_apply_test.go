@@ -8375,32 +8375,35 @@ func TestContext2Apply_createBefore_depends(t *testing.T) {
 	})
 
 	if p, diags := ctx.Plan(); diags.HasErrors() {
-		t.Fatalf("diags: %s", diags.Err())
+		logDiagnostics(t, diags)
+		t.Fatal("plan failed")
 	} else {
-		t.Logf("plan: %s", legacyDiffComparisonString(p.Changes))
+		t.Logf("plan:\n%s", legacyDiffComparisonString(p.Changes))
 	}
 
 	h.Active = true
 	state, diags := ctx.Apply()
 	if diags.HasErrors() {
-		t.Fatalf("diags: %s", diags.Err())
+		logDiagnostics(t, diags)
+		t.Fatal("apply failed")
 	}
 
 	mod := state.RootModule()
 	if len(mod.Resources) < 2 {
-		t.Fatalf("bad: %#v", mod.Resources)
+		t.Logf("state after apply:\n%s", state.String())
+		t.Fatalf("only %d resources in root module; want at least 2", len(mod.Resources))
 	}
 
-	actual := strings.TrimSpace(state.String())
-	expected := strings.TrimSpace(testTerraformApplyDependsCreateBeforeStr)
-	if actual != expected {
-		t.Fatalf("bad: \n%s\n\n%s", actual, expected)
+	got := strings.TrimSpace(state.String())
+	want := strings.TrimSpace(testTerraformApplyDependsCreateBeforeStr)
+	if got != want {
+		t.Fatalf("wrong final state\ngot:\n%s\n\nwant:\n%s", got, want)
 	}
 
 	// Test that things were managed _in the right order_
 	order := h.States
 	diffs := h.Diffs
-	if order[0].GetAttr("id").AsString() != "" || diffs[0].Action == plans.Delete {
+	if !order[0].IsNull() || diffs[0].Action == plans.Delete {
 		t.Fatalf("should create new instance first: %#v", order)
 	}
 

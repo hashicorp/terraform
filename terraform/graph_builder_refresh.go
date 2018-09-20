@@ -78,6 +78,14 @@ func (b *RefreshGraphBuilder) Steps() []GraphTransformer {
 		}
 	}
 
+	concreteResourceInstanceDeposed := func(a *NodeAbstractResourceInstance, key states.DeposedKey) dag.Vertex {
+		// The "Plan" node type also handles refreshing behavior.
+		return &NodePlanDeposedResourceInstanceObject{
+			NodeAbstractResourceInstance: a,
+			DeposedKey: key,
+		}
+	}
+
 	concreteDataResource := func(a *NodeAbstractResource) dag.Vertex {
 		return &NodeRefreshableDataResource{
 			NodeAbstractResource: a,
@@ -119,6 +127,15 @@ func (b *RefreshGraphBuilder) Steps() []GraphTransformer {
 			Concrete: concreteManagedResourceInstance,
 			State:    b.State,
 			Config:   b.Config,
+		},
+
+		// We also need nodes for any deposed instance objects present in the
+		// state, so we can check if they still exist. (This intentionally
+		// skips creating nodes for _current_ objects, since ConfigTransformer
+		// created nodes that will do that during DynamicExpand.)
+		&StateTransformer{
+			ConcreteDeposed: concreteResourceInstanceDeposed,
+			State:           b.State,
 		},
 
 		// Attach the state
