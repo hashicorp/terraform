@@ -145,23 +145,63 @@ func TestContext2Plan_createBefore_deposed(t *testing.T) {
 	schema := p.GetSchemaReturn.ResourceTypes["aws_instance"]
 	ty := schema.ImpliedType()
 
-	res := plan.Changes.Resources[0]
-	if res.DeposedKey != states.NotDeposed {
-		t.Fatal("primary resource should not be deposed")
+	type InstanceGen struct {
+		Addr string
+		DeposedKey states.DeposedKey
+	}
+	want := map[InstanceGen]bool{
+		{
+			Addr: "aws_instance.foo",
+		}: true,
+		{
+			Addr: "aws_instance.foo",
+			DeposedKey: states.DeposedKey("00000001"),
+		}: true,
+	}
+	got := make(map[InstanceGen]bool)
+	changes := make(map[InstanceGen]*plans.ResourceInstanceChangeSrc)
+
+	for _, change := range plan.Changes.Resources {
+		k := InstanceGen{
+			Addr:       change.Addr.String(),
+			DeposedKey: change.DeposedKey,
+		}
+		got[k] = true
+		changes[k] = change
+	}
+	if !reflect.DeepEqual(got, want) {
+		t.Fatalf("wrong resource instance object changes in plan\ngot: %s\nwant: %s", spew.Sdump(got), spew.Sdump(want))
 	}
 
-	ric, err := res.Decode(ty)
-	if err != nil {
-		t.Fatal(err)
+	{
+		ric, err := changes[InstanceGen{Addr:"aws_instance.foo"}].Decode(ty)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		if got, want := ric.Action, plans.NoOp; got != want {
+			t.Errorf("current object change action is %s; want %s", got, want)
+		}
+
+		// the existing instance should only have an unchanged id
+		expected, err := schema.CoerceValue(cty.ObjectVal(map[string]cty.Value{"id": cty.StringVal("baz")}))
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		checkVals(t, expected, ric.After)
 	}
 
-	// the existing instance should only have an unchanged id
-	expected, err := schema.CoerceValue(cty.ObjectVal(map[string]cty.Value{"id": cty.StringVal("baz")}))
-	if err != nil {
-		t.Fatal(err)
-	}
+	{
+		ric, err := changes[InstanceGen{Addr:"aws_instance.foo", DeposedKey: states.DeposedKey("00000001")}].Decode(ty)
+		if err != nil {
+			t.Fatal(err)
+		}
 
-	checkVals(t, expected, ric.After)
+		if got, want := ric.Action, plans.Delete; got != want {
+			t.Errorf("deposed object change action is %s; want %s", got, want)
+		}
+	}
 }
 
 func TestContext2Plan_createBefore_maintainRoot(t *testing.T) {
