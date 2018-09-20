@@ -4761,6 +4761,11 @@ aws_instance.web: (2 deposed)
 	}
 
 	createdInstanceId = "qux"
+	ctx = testContext2(t, &ContextOpts{
+		Config:           m,
+		ProviderResolver: providers.ResolverFixed(ps),
+		State:            state,
+	})
 	if _, diags := ctx.Plan(); diags.HasErrors() {
 		t.Fatalf("plan errors: %s", diags.Err())
 	}
@@ -4784,6 +4789,11 @@ aws_instance.web: (1 deposed)
 	}
 
 	createdInstanceId = "quux"
+	ctx = testContext2(t, &ContextOpts{
+		Config:           m,
+		ProviderResolver: providers.ResolverFixed(ps),
+		State:            state,
+	})
 	if _, diags := ctx.Plan(); diags.HasErrors() {
 		t.Fatalf("plan errors: %s", diags.Err())
 	}
