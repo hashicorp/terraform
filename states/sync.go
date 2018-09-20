@@ -323,7 +323,28 @@ func (s *SyncState) DeposeResourceInstanceObject(addr addrs.AbsResourceInstance)
 		return NotDeposed
 	}
 
-	return ms.deposeResourceInstanceObject(addr.Resource)
+	return ms.deposeResourceInstanceObject(addr.Resource, NotDeposed)
+}
+
+// DeposeResourceInstanceObjectForceKey is like DeposeResourceInstanceObject
+// but uses a pre-allocated key. It's the caller's responsibility to ensure
+// that there aren't any races to use a particular key; this method will panic
+// if the given key is already in use.
+func (s *SyncState) DeposeResourceInstanceObjectForceKey(addr addrs.AbsResourceInstance, forcedKey DeposedKey) {
+	s.lock.Lock()
+	defer s.lock.Unlock()
+
+	if forcedKey == NotDeposed {
+		// Usage error: should use DeposeResourceInstanceObject in this case
+		panic("DeposeResourceInstanceObjectForceKey called without forced key")
+	}
+
+	ms := s.state.Module(addr.Module)
+	if ms == nil {
+		return // Nothing to do, since there can't be any current object either.
+	}
+
+	ms.deposeResourceInstanceObject(addr.Resource, forcedKey)
 }
 
 // ForgetResourceInstanceDeposed removes the record of the deposed object with

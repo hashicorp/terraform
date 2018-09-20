@@ -104,12 +104,19 @@ func (i *ResourceInstance) HasObjects() bool {
 // SyncState.DeposeResourceInstanceObject. The exported method uses a lock
 // to ensure that we can safely allocate an unused deposed key without
 // collision.
-func (i *ResourceInstance) deposeCurrentObject() DeposedKey {
+func (i *ResourceInstance) deposeCurrentObject(forceKey DeposedKey) DeposedKey {
 	if !i.HasCurrent() {
 		return NotDeposed
 	}
 
-	key := i.findUnusedDeposedKey()
+	key := forceKey
+	if key == NotDeposed {
+		key = i.findUnusedDeposedKey()
+	} else {
+		if _, exists := i.Deposed[key]; exists {
+			panic(fmt.Sprintf("forced key %s is already in use", forceKey))
+		}
+	}
 	i.Deposed[key] = i.Current
 	i.Current = nil
 	return key
@@ -132,6 +139,17 @@ func (i *ResourceInstance) GetGeneration(gen Generation) *ResourceInstanceObject
 	// Should never fall out here, since the above covers all possible
 	// Generation values.
 	panic(fmt.Sprintf("get invalid Generation %#v", gen))
+}
+
+// FindUnusedDeposedKey generates a unique DeposedKey that is guaranteed not to
+// already be in use for this instance at the time of the call.
+//
+// Note that the validity of this result may change if new deposed keys are
+// allocated before it is used. To avoid this risk, instead use the
+// DeposeResourceInstanceObject method on the SyncState wrapper type, which
+// allocates a key and uses it atomically.
+func (i *ResourceInstance) FindUnusedDeposedKey() DeposedKey {
+	return i.findUnusedDeposedKey()
 }
 
 // findUnusedDeposedKey generates a unique DeposedKey that is guaranteed not to
