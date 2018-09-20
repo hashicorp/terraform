@@ -610,6 +610,31 @@ func TestHCL2ValueFromFlatmap(t *testing.T) {
 				})),
 			})),
 		},
+		{
+			Flatmap: map[string]string{
+				"foo.#":   "2",
+				"foo.0.%": "2",
+				"foo.0.a": "a",
+				"foo.0.b": "b",
+				"foo.1.%": "1",
+				"foo.1.a": "a",
+			},
+			Type: cty.Object(map[string]cty.Type{
+				"foo": cty.List(cty.Map(cty.String)),
+			}),
+
+			Want: cty.ObjectVal(map[string]cty.Value{
+				"foo": cty.ListVal([]cty.Value{
+					cty.MapVal(map[string]cty.Value{
+						"a": cty.StringVal("a"),
+						"b": cty.StringVal("b"),
+					}),
+					cty.MapVal(map[string]cty.Value{
+						"a": cty.StringVal("a"),
+					}),
+				}),
+			}),
+		},
 	}
 
 	for _, test := range tests {
