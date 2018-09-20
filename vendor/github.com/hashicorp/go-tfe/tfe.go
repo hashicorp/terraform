@@ -58,7 +58,7 @@ func DefaultConfig() *Config {
 		Address:    os.Getenv("TFE_ADDRESS"),
 		BasePath:   DefaultBasePath,
 		Token:      os.Getenv("TFE_TOKEN"),
-		HTTPClient: cleanhttp.DefaultClient(),
+		HTTPClient: cleanhttp.DefaultPooledClient(),
 	}
 
 	// Set the default address if none is given.
@@ -77,6 +77,7 @@ type Client struct {
 	http      *http.Client
 	userAgent string
 
+	Applies               Applies
 	ConfigurationVersions ConfigurationVersions
 	OAuthClients          OAuthClients
 	OAuthTokens           OAuthTokens
@@ -142,6 +143,7 @@ func NewClient(cfg *Config) (*Client, error) {
 	}
 
 	// Create the services.
+	client.Applies = &applies{client: client}
 	client.ConfigurationVersions = &configurationVersions{client: client}
 	client.OAuthClients = &oAuthClients{client: client}
 	client.OAuthTokens = &oAuthTokens{client: client}
