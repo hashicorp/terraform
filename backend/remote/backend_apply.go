@@ -13,93 +13,155 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 )
 
-func (b *Remote) opApply(stopCtx, cancelCtx context.Context, op *backend.Operation) error {
+func (b *Remote) opApply(stopCtx, cancelCtx context.Context, op *backend.Operation) (*tfe.Run, error) {
 	log.Printf("[INFO] backend/remote: starting Apply operation")
 
 	// Retrieve the workspace used to run this operation in.
 	w, err := b.client.Workspaces.Read(stopCtx, b.organization, op.Workspace)
 	if err != nil {
-		return generalError("error retrieving workspace", err)
+		return nil, generalError("error retrieving workspace", err)
 	}
 
 	if w.VCSRepo != nil {
-		return fmt.Errorf(strings.TrimSpace(applyErrVCSNotSupported))
+		return nil, fmt.Errorf(strings.TrimSpace(applyErrVCSNotSupported))
 	}
 
 	if op.Plan != nil {
-		return fmt.Errorf(strings.TrimSpace(applyErrPlanNotSupported))
+		return nil, fmt.Errorf(strings.TrimSpace(applyErrPlanNotSupported))
 	}
 
 	if op.Targets != nil {
-		return fmt.Errorf(strings.TrimSpace(applyErrTargetsNotSupported))
+		return nil, fmt.Errorf(strings.TrimSpace(applyErrTargetsNotSupported))
 	}
 
 	if (op.Module == nil || op.Module.Config().Dir == "") && !op.Destroy {
-		return fmt.Errorf(strings.TrimSpace(planErrNoConfig))
+		return nil, fmt.Errorf(strings.TrimSpace(applyErrNoConfig))
 	}
 
+	// Run the plan phase.
 	r, err := b.plan(stopCtx, cancelCtx, op, w)
 	if err != nil {
-		return err
+		return r, err
 	}
 
+	// Retrieve the run to get its current status.
+	r, err = b.client.Runs.Read(stopCtx, r.ID)
+	if err != nil {
+		return r, generalError("error retrieving run", err)
+	}
+
+	// Return if there are no changes or the run errored. We return
+	// without an error, even if the run errored, as the error is
+	// already displayed by the output of the remote run.
+	if !r.HasChanges || r.Status == tfe.RunErrored {
+		return r, nil
+	}
+
+	// Check any configured sentinel policies.
 	if len(r.PolicyChecks) > 0 {
 		err = b.checkPolicy(stopCtx, cancelCtx, op, r)
 		if err != nil {
-			return err
+			return r, err
 		}
 	}
 
+	// Retrieve the run to get its current status.
+	r, err = b.client.Runs.Read(stopCtx, r.ID)
+	if err != nil {
+		return r, generalError("error retrieving run", err)
+	}
+
+	// Return if the run cannot be confirmed.
+	if !r.Actions.IsConfirmable {
+		return r, nil
+	}
+
+	if !r.Permissions.CanApply {
+		// Make sure we discard the run if possible.
+		if r.Actions.IsDiscardable {
+			err = b.client.Runs.Discard(stopCtx, r.ID, tfe.RunDiscardOptions{})
+			if err != nil {
+				if op.Destroy {
+					return r, generalError("error disarding destroy", err)
+				}
+				return r, generalError("error disarding apply", err)
+			}
+		}
+		return r, fmt.Errorf(strings.TrimSpace(
+			fmt.Sprint(applyErrNoApplyRights, b.hostname, b.organization, op.Workspace)))
+	}
+
 	hasUI := op.UIOut != nil && op.UIIn != nil
-	mustConfirm := hasUI && (op.Destroy && (!op.DestroyForce && !op.AutoApprove))
+	mustConfirm := hasUI &&
+		(op.Destroy && (!op.DestroyForce && !op.AutoApprove)) || (!op.Destroy && !op.AutoApprove)
 	if mustConfirm {
 		opts := &terraform.InputOpts{Id: "approve"}
 
 		if op.Destroy {
-			opts.Query = "Do you really want to destroy all resources in workspace \"" + op.Workspace + "\"?"
+			opts.Query = "\nDo you really want to destroy all resources in workspace \"" + op.Workspace + "\"?"
 			opts.Description = "Terraform will destroy all your managed infrastructure, as shown above.\n" +
 				"There is no undo. Only 'yes' will be accepted to confirm."
 		} else {
-			opts.Query = "Do you want to perform these actions in workspace \"" + op.Workspace + "\"?"
+			opts.Query = "\nDo you want to perform these actions in workspace \"" + op.Workspace + "\"?"
 			opts.Description = "Terraform will perform the actions described above.\n" +
 				"Only 'yes' will be accepted to approve."
 		}
 
-		if err = b.confirm(stopCtx, op, opts, r); err != nil {
-			return err
+		if err = b.confirm(stopCtx, op, opts, r, "yes"); err != nil {
+			return r, err
+		}
+	} else {
+		if b.CLI != nil {
+			// Insert a blank line to separate the ouputs.
+			b.CLI.Output("")
 		}
 	}
 
 	err = b.client.Runs.Apply(stopCtx, r.ID, tfe.RunApplyOptions{})
 	if err != nil {
-		return generalError("error approving the apply command", err)
+		return r, generalError("error approving the apply command", err)
 	}
 
 	logs, err := b.client.Applies.Logs(stopCtx, r.Apply.ID)
 	if err != nil {
-		return generalError("error retrieving logs", err)
+		return r, generalError("error retrieving logs", err)
 	}
 	scanner := bufio.NewScanner(logs)
 
+	skip := 0
 	for scanner.Scan() {
+		// Skip the first 3 lines to prevent duplicate output.
+		if skip < 3 {
+			skip++
+			continue
+		}
 		if b.CLI != nil {
 			b.CLI.Output(b.Colorize().Color(scanner.Text()))
 		}
 	}
 	if err := scanner.Err(); err != nil {
-		return generalError("error reading logs", err)
+		return r, generalError("error reading logs", err)
 	}
 
-	return nil
+	return r, nil
 }
 
 func (b *Remote) checkPolicy(stopCtx, cancelCtx context.Context, op *backend.Operation, r *tfe.Run) error {
+	if b.CLI != nil {
+		b.CLI.Output("\n------------------------------------------------------------------------\n")
+	}
 	for _, pc := range r.PolicyChecks {
 		logs, err := b.client.PolicyChecks.Logs(stopCtx, pc.ID)
 		if err != nil {
 			return generalError("error retrieving policy check logs", err)
 		}
 		scanner := bufio.NewScanner(logs)
+
+		// Retrieve the policy check to get its current status.
+		pc, err := b.client.PolicyChecks.Read(stopCtx, pc.ID)
+		if err != nil {
+			return generalError("error retrieving policy check", err)
+		}
 
 		var msgPrefix string
 		switch pc.Scope {
@@ -112,7 +174,7 @@ func (b *Remote) checkPolicy(stopCtx, cancelCtx context.Context, op *backend.Ope
 		}
 
 		if b.CLI != nil {
-			b.CLI.Output(b.Colorize().Color("\n" + msgPrefix + ":\n"))
+			b.CLI.Output(b.Colorize().Color(msgPrefix + ":\n"))
 		}
 
 		for scanner.Scan() {
@@ -124,13 +186,11 @@ func (b *Remote) checkPolicy(stopCtx, cancelCtx context.Context, op *backend.Ope
 			return generalError("error reading logs", err)
 		}
 
-		pc, err := b.client.PolicyChecks.Read(stopCtx, pc.ID)
-		if err != nil {
-			return generalError("error retrieving policy check", err)
-		}
-
 		switch pc.Status {
 		case tfe.PolicyPasses:
+			if b.CLI != nil {
+				b.CLI.Output("\n------------------------------------------------------------------------")
+			}
 			continue
 		case tfe.PolicyErrored:
 			return fmt.Errorf(msgPrefix + " errored.")
@@ -147,39 +207,55 @@ func (b *Remote) checkPolicy(stopCtx, cancelCtx context.Context, op *backend.Ope
 
 		opts := &terraform.InputOpts{
 			Id:          "override",
-			Query:       "Do you want to override the failed policy check?",
-			Description: "Only 'yes' will be accepted to override.",
+			Query:       "\nDo you want to override the soft failed policy check?",
+			Description: "Only 'override' will be accepted to override.",
 		}
 
-		if err = b.confirm(stopCtx, op, opts, r); err != nil {
+		if err = b.confirm(stopCtx, op, opts, r, "override"); err != nil {
 			return err
+		}
+
+		if b.CLI != nil {
+			b.CLI.Output("------------------------------------------------------------------------")
+		}
+
+		if _, err = b.client.PolicyChecks.Override(stopCtx, pc.ID); err != nil {
+			return generalError("error overriding policy check", err)
 		}
 	}
 
 	return nil
 }
 
-func (b *Remote) confirm(stopCtx context.Context, op *backend.Operation, opts *terraform.InputOpts, r *tfe.Run) error {
+func (b *Remote) confirm(stopCtx context.Context, op *backend.Operation, opts *terraform.InputOpts, r *tfe.Run, keyword string) error {
 	v, err := op.UIIn.Input(opts)
 	if err != nil {
 		return fmt.Errorf("Error asking %s: %v", opts.Id, err)
 	}
-	if v != "yes" {
-		// Make sure we discard the run.
-		err = b.client.Runs.Discard(stopCtx, r.ID, tfe.RunDiscardOptions{})
+	if v != keyword {
+		// Retrieve the run again to get its current status.
+		r, err = b.client.Runs.Read(stopCtx, r.ID)
 		if err != nil {
-			if op.Destroy {
-				return generalError("error disarding destroy", err)
+			return generalError("error retrieving run", err)
+		}
+
+		// Make sure we discard the run if possible.
+		if r.Actions.IsDiscardable {
+			err = b.client.Runs.Discard(stopCtx, r.ID, tfe.RunDiscardOptions{})
+			if err != nil {
+				if op.Destroy {
+					return generalError("error disarding destroy", err)
+				}
+				return generalError("error disarding apply", err)
 			}
-			return generalError("error disarding apply", err)
 		}
 
 		// Even if the run was disarding successfully, we still
 		// return an error as the apply command was cancelled.
 		if op.Destroy {
-			return errors.New("Destroy cancelled.")
+			return errors.New("Destroy discarded.")
 		}
-		return errors.New("Apply cancelled.")
+		return errors.New("Apply discarded.")
 	}
 
 	return nil
@@ -214,8 +290,19 @@ If you would like to destroy everything, please run 'terraform destroy' which
 does not require any configuration files.
 `
 
+const applyErrNoApplyRights = `
+Insufficient rights to approve the pending changes!
+
+[reset][yellow]There are pending changes, but the used credentials have insufficient rights
+to approve them. The run will be discarded to prevent it from blocking the
+queue waiting for external approval. To trigger a run that can be approved by
+someone else, please use the 'Queue Plan' button in the web UI:
+https://%s/app/%s/%s/runs[reset]
+`
+
 const applyDefaultHeader = `
 [reset][yellow]Running apply in the remote backend. Output will stream here. Pressing Ctrl-C
+will cancel the remote apply if its still pending. If the apply started it
 will stop streaming the logs, but will not stop the apply running remotely.
 To view this run in a browser, visit:
 https://%s/app/%s/%s/runs/%s[reset]

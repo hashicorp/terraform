@@ -10,40 +10,39 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"syscall"
 	"time"
 
 	tfe "github.com/hashicorp/go-tfe"
 	"github.com/hashicorp/terraform/backend"
 )
 
-func (b *Remote) opPlan(stopCtx, cancelCtx context.Context, op *backend.Operation) error {
+func (b *Remote) opPlan(stopCtx, cancelCtx context.Context, op *backend.Operation) (*tfe.Run, error) {
 	log.Printf("[INFO] backend/remote: starting Plan operation")
 
 	if op.Plan != nil {
-		return fmt.Errorf(strings.TrimSpace(planErrPlanNotSupported))
+		return nil, fmt.Errorf(strings.TrimSpace(planErrPlanNotSupported))
 	}
 
 	if op.PlanOutPath != "" {
-		return fmt.Errorf(strings.TrimSpace(planErrOutPathNotSupported))
+		return nil, fmt.Errorf(strings.TrimSpace(planErrOutPathNotSupported))
 	}
 
 	if op.Targets != nil {
-		return fmt.Errorf(strings.TrimSpace(planErrTargetsNotSupported))
+		return nil, fmt.Errorf(strings.TrimSpace(planErrTargetsNotSupported))
 	}
 
 	if (op.Module == nil || op.Module.Config().Dir == "") && !op.Destroy {
-		return fmt.Errorf(strings.TrimSpace(planErrNoConfig))
+		return nil, fmt.Errorf(strings.TrimSpace(planErrNoConfig))
 	}
 
 	// Retrieve the workspace used to run this operation in.
 	w, err := b.client.Workspaces.Read(stopCtx, b.organization, op.Workspace)
 	if err != nil {
-		return generalError("error retrieving workspace", err)
+		return nil, generalError("error retrieving workspace", err)
 	}
 
-	_, err = b.plan(stopCtx, cancelCtx, op, w)
-
-	return err
+	return b.plan(stopCtx, cancelCtx, op, w)
 }
 
 func (b *Remote) plan(stopCtx, cancelCtx context.Context, op *backend.Operation, w *tfe.Workspace) (*tfe.Run, error) {
@@ -122,22 +121,52 @@ func (b *Remote) plan(stopCtx, cancelCtx context.Context, op *backend.Operation,
 
 	r, err := b.client.Runs.Create(stopCtx, runOptions)
 	if err != nil {
-		return nil, generalError("error creating run", err)
+		return r, generalError("error creating run", err)
+	}
+
+	// When the lock timeout is set,
+	if op.StateLockTimeout > 0 {
+		go func() {
+			select {
+			case <-stopCtx.Done():
+				return
+			case <-cancelCtx.Done():
+				return
+			case <-time.After(op.StateLockTimeout):
+				// Retrieve the run to get its current status.
+				r, err := b.client.Runs.Read(cancelCtx, r.ID)
+				if err != nil {
+					log.Printf("[ERROR] error reading run: %v", err)
+					return
+				}
+
+				if r.Status == tfe.RunPending {
+					if b.CLI != nil {
+						b.CLI.Output(b.Colorize().Color(strings.TrimSpace(lockTimeoutErr)))
+					}
+					syscall.Kill(syscall.Getpid(), syscall.SIGINT)
+				}
+			}
+		}()
 	}
 
 	r, err = b.client.Runs.Read(stopCtx, r.ID)
 	if err != nil {
-		return nil, generalError("error retrieving run", err)
+		return r, generalError("error retrieving run", err)
 	}
 
 	if b.CLI != nil {
+		header := planDefaultHeader
+		if op.Type == backend.OperationTypeApply {
+			header = applyDefaultHeader
+		}
 		b.CLI.Output(b.Colorize().Color(strings.TrimSpace(fmt.Sprintf(
-			planDefaultHeader, b.hostname, b.organization, op.Workspace, r.ID)) + "\n"))
+			header, b.hostname, b.organization, op.Workspace, r.ID)) + "\n"))
 	}
 
 	logs, err := b.client.Plans.Logs(stopCtx, r.Plan.ID)
 	if err != nil {
-		return nil, generalError("error retrieving logs", err)
+		return r, generalError("error retrieving logs", err)
 	}
 	scanner := bufio.NewScanner(logs)
 
@@ -147,7 +176,7 @@ func (b *Remote) plan(stopCtx, cancelCtx context.Context, op *backend.Operation,
 		}
 	}
 	if err := scanner.Err(); err != nil {
-		return nil, generalError("error reading logs", err)
+		return r, generalError("error reading logs", err)
 	}
 
 	return r, nil
@@ -190,4 +219,10 @@ To view this run in a browser, visit:
 https://%s/app/%s/%s/runs/%s[reset]
 
 Waiting for the plan to start...
+`
+
+// The newline in this error is to make it look good in the CLI!
+const lockTimeoutErr = `
+[reset][red]Lock timeout exceeded, sending interrupt to cancel the remote operation.
+[reset]
 `

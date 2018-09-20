@@ -394,7 +394,7 @@ func (b *Remote) Operation(ctx context.Context, op *backend.Operation) (*backend
 	}
 
 	// Determine the function to call for our operation
-	var f func(context.Context, context.Context, *backend.Operation) error
+	var f func(context.Context, context.Context, *backend.Operation) (*tfe.Run, error)
 	switch op.Type {
 	case backend.OperationTypePlan:
 		f = b.opPlan
@@ -427,7 +427,7 @@ func (b *Remote) Operation(ctx context.Context, op *backend.Operation) (*backend
 	cancelCtx, cancel := context.WithCancel(context.Background())
 	runningOp.Cancel = cancel
 
-	// Do it
+	// Do it.
 	go func() {
 		defer done()
 		defer stop()
@@ -435,14 +435,36 @@ func (b *Remote) Operation(ctx context.Context, op *backend.Operation) (*backend
 
 		defer b.opLock.Unlock()
 
-		err := f(stopCtx, cancelCtx, op)
+		r, err := f(stopCtx, cancelCtx, op)
 		if err != nil && err != context.Canceled {
 			runningOp.Err = err
 		}
+
+		if r != nil && err == context.Canceled {
+			runningOp.Err = b.cancel(cancelCtx, r)
+		}
 	}()
 
-	// Return
+	// Return the running operation.
 	return runningOp, nil
+}
+
+func (b *Remote) cancel(cancelCtx context.Context, r *tfe.Run) error {
+	// Retrieve the run to get its current status.
+	r, err := b.client.Runs.Read(cancelCtx, r.ID)
+	if err != nil {
+		return generalError("error cancelling run", err)
+	}
+
+	// Make sure we cancel the run if possible.
+	if r.Status == tfe.RunPending && r.Actions.IsCancelable {
+		err = b.client.Runs.Cancel(cancelCtx, r.ID, tfe.RunCancelOptions{})
+		if err != nil {
+			return generalError("error cancelling run", err)
+		}
+	}
+
+	return nil
 }
 
 // Colorize returns the Colorize structure that can be used for colorizing
@@ -460,11 +482,26 @@ func (b *Remote) Colorize() *colorstring.Colorize {
 }
 
 func generalError(msg string, err error) error {
-	if err != context.Canceled {
-		err = fmt.Errorf(strings.TrimSpace(fmt.Sprintf(generalErr, msg, err)))
+	if urlErr, ok := err.(*url.Error); ok {
+		err = urlErr.Err
 	}
-	return err
+	switch err {
+	case context.Canceled:
+		return err
+	case tfe.ErrResourceNotFound:
+		return fmt.Errorf(strings.TrimSpace(fmt.Sprintf(notFoundErr, msg, err)))
+	default:
+		return fmt.Errorf(strings.TrimSpace(fmt.Sprintf(generalErr, msg, err)))
+	}
 }
+
+const notFoundErr = `
+%s: %v
+
+The configured "remote" backend returns '404 Not Found' errors for resources
+that do not exist, as well as for resources that a user doesn't have access
+to. When the resource does exists, please check the rights for the used token.
+`
 
 const generalErr = `
 %s: %v
