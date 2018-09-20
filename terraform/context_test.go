@@ -902,26 +902,28 @@ func legacyDiffComparisonString(changes *plans.Changes) string {
 			attrNames := map[string]bool{}
 			var oldAttrs map[string]string
 			var newAttrs map[string]string
-			if before := rc.Current.Before; before != nil {
-				ty, err := before.ImpliedType()
-				if err == nil {
-					val, err := before.Decode(ty)
+			if rc.Current != nil {
+				if before := rc.Current.Before; before != nil {
+					ty, err := before.ImpliedType()
 					if err == nil {
-						oldAttrs = hcl2shim.FlatmapValueFromHCL2(val)
-						for k := range oldAttrs {
-							attrNames[k] = true
+						val, err := before.Decode(ty)
+						if err == nil {
+							oldAttrs = hcl2shim.FlatmapValueFromHCL2(val)
+							for k := range oldAttrs {
+								attrNames[k] = true
+							}
 						}
 					}
 				}
-			}
-			if after := rc.Current.After; after != nil {
-				ty, err := after.ImpliedType()
-				if err == nil {
-					val, err := after.Decode(ty)
+				if after := rc.Current.After; after != nil {
+					ty, err := after.ImpliedType()
 					if err == nil {
-						newAttrs = hcl2shim.FlatmapValueFromHCL2(val)
-						for k := range newAttrs {
-							attrNames[k] = true
+						val, err := after.Decode(ty)
+						if err == nil {
+							newAttrs = hcl2shim.FlatmapValueFromHCL2(val)
+							for k := range newAttrs {
+								attrNames[k] = true
+							}
 						}
 					}
 				}
