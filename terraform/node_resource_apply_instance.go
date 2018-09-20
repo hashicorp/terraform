@@ -23,6 +23,7 @@ type NodeApplyableResourceInstance struct {
 	*NodeAbstractResourceInstance
 
 	destroyNode GraphNodeDestroyerCBD
+	graphNodeDeposer // implementation of GraphNodeDeposer
 }
 
 var (
@@ -30,6 +31,7 @@ var (
 	_ GraphNodeResourceInstance = (*NodeApplyableResourceInstance)(nil)
 	_ GraphNodeCreator          = (*NodeApplyableResourceInstance)(nil)
 	_ GraphNodeReferencer       = (*NodeApplyableResourceInstance)(nil)
+	_ GraphNodeDeposer          = (*NodeApplyableResourceInstance)(nil)
 	_ GraphNodeEvalable         = (*NodeApplyableResourceInstance)(nil)
 )
 
@@ -248,6 +250,7 @@ func (n *NodeApplyableResourceInstance) evalTreeManagedResource(addr addrs.AbsRe
 				},
 				Then: &EvalDeposeState{
 					Addr:      addr.Resource,
+					ForceKey:  n.PreallocatedDeposedKey,
 					OutputKey: &deposedKey,
 				},
 			},
