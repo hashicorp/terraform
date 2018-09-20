@@ -1,6 +1,8 @@
 package terraform
 
 import (
+	"log"
+
 	"github.com/hashicorp/terraform/dag"
 	"github.com/hashicorp/terraform/tfdiags"
 )
@@ -19,6 +21,25 @@ var (
 	_ GraphNodeResource             = (*NodePlannableResource)(nil)
 	_ GraphNodeAttachResourceConfig = (*NodePlannableResource)(nil)
 )
+
+// GraphNodeEvalable
+func (n *NodePlannableResource) EvalTree() EvalNode {
+	addr := n.ResourceAddr()
+	config := n.Config
+
+	if config == nil {
+		// Nothing to do, then.
+		log.Printf("[TRACE] NodeApplyableResource: no configuration present for %s", addr)
+		return &EvalNoop{}
+	}
+
+	// this ensures we can reference the resource even if the count is 0
+	return &EvalWriteResourceState{
+		Addr:         addr.Resource,
+		Config:       config,
+		ProviderAddr: n.ResolvedProvider,
+	}
+}
 
 // GraphNodeDynamicExpandable
 func (n *NodePlannableResource) DynamicExpand(ctx EvalContext) (*Graph, error) {
