@@ -1238,55 +1238,6 @@ STATE:
 <no state>
 `
 
-const testTFPlanDiffIgnoreChangesWithFlatmaps = `
-UPDATE: aws_instance.foo
-  lst.#:   "1" => "2"
-  lst.0:   "j" => "j"
-  lst.1:   "" => "k"
-  set.#:   "1" => "1"
-  set.0.a: "1" => "1"
-  set.0.b: "" => "2"
-  type:    "" => "aws_instance"
-`
-
-const testTerraformPlanComputedValueInMap = `
-DIFF:
-
-CREATE: aws_computed_source.intermediates
-  computed_read_only: "" => "<computed>"
-
-module.test_mod:
-  CREATE: aws_instance.inner2
-    looked_up: "" => "<computed>"
-    type:      "" => "aws_instance"
-
-STATE:
-
-<no state>
-`
-
-const testTerraformPlanModuleVariableFromSplat = `
-DIFF:
-
-module.mod1:
-  CREATE: aws_instance.test.0
-    thing: "" => "doesnt"
-    type:  "" => "aws_instance"
-  CREATE: aws_instance.test.1
-    thing: "" => "doesnt"
-    type:  "" => "aws_instance"
-module.mod2:
-  CREATE: aws_instance.test.0
-    thing: "" => "doesnt"
-    type:  "" => "aws_instance"
-  CREATE: aws_instance.test.1
-    thing: "" => "doesnt"
-    type:  "" => "aws_instance"
-
-STATE:
-
-<no state>`
-
 const testTerraformInputHCL = `
 hcl_instance.hcltest:
   ID = foo

@@ -2518,6 +2518,7 @@ func TestContext2Plan_countZero(t *testing.T) {
 	// This schema contains a DynamicPseudoType, and therefore can't go through any shim functions
 	p.PlanResourceChangeFn = func(req providers.PlanResourceChangeRequest) (resp providers.PlanResourceChangeResponse) {
 		resp.PlannedState = req.ProposedNewState
+		fmt.Printf("PlANNED: %#v\n", req.ProposedNewState)
 		resp.PlannedPrivate = req.PriorPrivate
 		return resp
 	}
@@ -2552,12 +2553,12 @@ func TestContext2Plan_countZero(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	expected := objectVal(t, schema, map[string]cty.Value{
-		"foo": cty.ListValEmpty(cty.String),
-	})
+	expected := cty.TupleVal(nil)
 
-	if !cmp.Equal(expected, ric.After, valueComparer) {
-		t.Fatal(cmp.Diff(expected, ric.After, valueComparer))
+	foo := ric.After.GetAttr("foo")
+
+	if !cmp.Equal(expected, foo, valueComparer) {
+		t.Fatal(cmp.Diff(expected, foo, valueComparer))
 	}
 }
 
@@ -4606,8 +4607,8 @@ func TestContext2Plan_ignoreChangesWildcard(t *testing.T) {
 						Primary: &InstanceState{
 							ID: "bar",
 							Attributes: map[string]string{
-								"ami":           "ami-abcd1234",
-								"instance_type": "t2.micro",
+								"ami":      "ami-abcd1234",
+								"instance": "t2.micro",
 							},
 						},
 					},
@@ -4640,8 +4641,10 @@ func TestContext2Plan_ignoreChangesWildcard(t *testing.T) {
 		t.Fatalf("unexpected errors: %s", diags.Err())
 	}
 
-	if len(plan.Changes.Resources) > 0 {
-		t.Fatalf("unexpected resource diffs in root module: %s", spew.Sdump(plan.Changes.Resources))
+	for _, res := range plan.Changes.Resources {
+		if res.Action != plans.NoOp {
+			t.Fatalf("unexpected resource diffs in root module: %s", spew.Sdump(plan.Changes.Resources))
+		}
 	}
 }
 
@@ -4743,18 +4746,34 @@ func TestContext2Plan_computedValueInMap(t *testing.T) {
 		t.Fatalf("unexpected errors: %s", diags.Err())
 	}
 
-	// (not sure why this is repeated here; I updated some earlier code that
-	// called ctx.Plan twice here, so retaining that in case it's somehow
-	// important.)
-	plan, diags = ctx.Plan()
-	if diags.HasErrors() {
-		t.Fatalf("unexpected errors: %s", diags.Err())
+	if len(plan.Changes.Resources) != 2 {
+		t.Fatal("expected 2 changes, got", len(plan.Changes.Resources))
 	}
 
-	actual := strings.TrimSpace(legacyPlanComparisonString(ctx.State(), plan.Changes))
-	expected := strings.TrimSpace(testTerraformPlanComputedValueInMap)
-	if actual != expected {
-		t.Fatalf("bad:\n%s\n\nexpected\n\n%s", actual, expected)
+	for _, res := range plan.Changes.Resources {
+		schema := p.GetSchemaReturn.ResourceTypes[res.Addr.Resource.Resource.Type]
+
+		ric, err := res.Decode(schema.ImpliedType())
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		if res.Action != plans.Create {
+			t.Fatalf("resource %s should be created", ric.Addr)
+		}
+
+		switch i := ric.Addr.String(); i {
+		case "aws_computed_source.intermediates":
+			checkVals(t, objectVal(t, schema, map[string]cty.Value{
+				"computed_read_only": cty.UnknownVal(cty.String),
+			}), ric.After)
+		case "module.test_mod.aws_instance.inner2":
+			checkVals(t, objectVal(t, schema, map[string]cty.Value{
+				"looked_up": cty.UnknownVal(cty.String),
+			}), ric.After)
+		default:
+			t.Fatal("unknown instance:", i)
+		}
 	}
 }
 
@@ -4786,18 +4805,33 @@ func TestContext2Plan_moduleVariableFromSplat(t *testing.T) {
 		t.Fatalf("unexpected errors: %s", diags.Err())
 	}
 
-	// (not sure why this is repeated here; I updated some earlier code that
-	// called ctx.Plan twice here, so retaining that in case it's somehow
-	// important.)
-	plan, diags = ctx.Plan()
-	if diags.HasErrors() {
-		t.Fatalf("unexpected errors: %s", diags.Err())
+	if len(plan.Changes.Resources) != 4 {
+		t.Fatal("expected 4 changes, got", len(plan.Changes.Resources))
 	}
 
-	actual := strings.TrimSpace(legacyPlanComparisonString(ctx.State(), plan.Changes))
-	expected := strings.TrimSpace(testTerraformPlanModuleVariableFromSplat)
-	if actual != expected {
-		t.Fatalf("bad:\n%s\n\nexpected\n\n%s", actual, expected)
+	for _, res := range plan.Changes.Resources {
+		schema := p.GetSchemaReturn.ResourceTypes[res.Addr.Resource.Resource.Type]
+
+		ric, err := res.Decode(schema.ImpliedType())
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		if res.Action != plans.Create {
+			t.Fatalf("resource %s should be created", ric.Addr)
+		}
+
+		switch i := ric.Addr.String(); i {
+		case "module.mod1.aws_instance.test[0]",
+			"module.mod1.aws_instance.test[1]",
+			"module.mod2.aws_instance.test[0]",
+			"module.mod2.aws_instance.test[1]":
+			checkVals(t, objectVal(t, schema, map[string]cty.Value{
+				"thing": cty.StringVal("doesnt"),
+			}), ric.After)
+		default:
+			t.Fatal("unknown instance:", i)
+		}
 	}
 }
 
@@ -4809,8 +4843,8 @@ func TestContext2Plan_createBeforeDestroy_depends_datasource(t *testing.T) {
 		ResourceTypes: map[string]*configschema.Block{
 			"aws_instance": {
 				Attributes: map[string]*configschema.Attribute{
-					"num":     {Type: cty.String, Optional: true},
-					"compute": {Type: cty.String, Optional: true, Computed: true},
+					"num":      {Type: cty.String, Optional: true},
+					"computed": {Type: cty.String, Optional: true, Computed: true},
 				},
 			},
 		},
@@ -4838,28 +4872,57 @@ func TestContext2Plan_createBeforeDestroy_depends_datasource(t *testing.T) {
 		t.Fatalf("unexpected errors: %s", diags.Err())
 	}
 
-	for i := 0; i < 2; i++ {
-		{
-			addr := addrs.Resource{
-				Mode: addrs.ManagedResourceMode,
-				Type: "test_instance",
-				Name: "foo",
-			}.Instance(addrs.IntKey(i)).Absolute(addrs.RootModuleInstance)
-
-			if rcs := plan.Changes.ResourceInstance(addr); rcs == nil {
-				t.Fatalf("missing changes for %s", addr)
-			}
+	for _, res := range plan.Changes.Resources {
+		var schema *configschema.Block
+		switch res.Addr.Resource.Resource.Mode {
+		case addrs.DataResourceMode:
+			schema = p.GetSchemaReturn.DataSources[res.Addr.Resource.Resource.Type]
+		case addrs.ManagedResourceMode:
+			schema = p.GetSchemaReturn.ResourceTypes[res.Addr.Resource.Resource.Type]
 		}
-		{
-			addr := addrs.Resource{
-				Mode: addrs.DataResourceMode,
-				Type: "aws_vpc",
-				Name: "bar",
-			}.Instance(addrs.IntKey(i)).Absolute(addrs.RootModuleInstance)
 
-			if rcs := plan.Changes.ResourceInstance(addr); rcs == nil {
-				t.Fatalf("missing changes for %s", addr)
+		ric, err := res.Decode(schema.ImpliedType())
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		switch i := ric.Addr.String(); i {
+		case "aws_instance.foo[0]":
+			fmt.Printf("AFTER %#v\n", ric.After)
+			if res.Action != plans.Create {
+				t.Fatalf("resource %s should be created, got %s", ric.Addr, ric.Action)
 			}
+			checkVals(t, objectVal(t, schema, map[string]cty.Value{
+				"num":      cty.StringVal("2"),
+				"computed": cty.UnknownVal(cty.String),
+			}), ric.After)
+		case "aws_instance.foo[1]":
+			fmt.Printf("AFTER %#v\n", ric.After)
+			if res.Action != plans.Create {
+				t.Fatalf("resource %s should be created, got %s", ric.Addr, ric.Action)
+			}
+			checkVals(t, objectVal(t, schema, map[string]cty.Value{
+				"num":      cty.StringVal("2"),
+				"computed": cty.UnknownVal(cty.String),
+			}), ric.After)
+		case "data.aws_vpc.bar[0]":
+			if res.Action != plans.Read {
+				t.Fatalf("resource %s should be read, got %s", ric.Addr, ric.Action)
+			}
+			checkVals(t, objectVal(t, schema, map[string]cty.Value{
+				"id":  cty.UnknownVal(cty.String),
+				"foo": cty.StringVal("0"),
+			}), ric.After)
+		case "data.aws_vpc.bar[1]":
+			if res.Action != plans.Read {
+				t.Fatalf("resource %s should be read, got %s", ric.Addr, ric.Action)
+			}
+			checkVals(t, objectVal(t, schema, map[string]cty.Value{
+				"id":  cty.UnknownVal(cty.String),
+				"foo": cty.StringVal("1"),
+			}), ric.After)
+		default:
+			t.Fatal("unknown instance:", i)
 		}
 	}
 }
@@ -4905,8 +4968,8 @@ func TestContext2Plan_listOrder(t *testing.T) {
 		Name: "b",
 	}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance))
 
-	if !cmp.Equal(rDiffA, rDiffB) {
-		t.Fatal("aws_instance.a and aws_instance.b diffs should match:\n", legacyDiffComparisonString(plan.Changes))
+	if !cmp.Equal(rDiffA.After, rDiffB.After, valueComparer) {
+		t.Fatal(cmp.Diff(rDiffA.After, rDiffB.After, valueComparer))
 	}
 }
 
@@ -4948,6 +5011,7 @@ func TestContext2Plan_ignoreChangesWithFlatmaps(t *testing.T) {
 								"user_data":   "x",
 								"require_new": "",
 								"set.#":       "1",
+								"set.0.%":     "1",
 								"set.0.a":     "1",
 								"lst.#":       "1",
 								"lst.0":       "j",
@@ -4958,6 +5022,7 @@ func TestContext2Plan_ignoreChangesWithFlatmaps(t *testing.T) {
 			},
 		},
 	})
+
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
 		ProviderResolver: providers.ResolverFixed(
@@ -4973,11 +5038,38 @@ func TestContext2Plan_ignoreChangesWithFlatmaps(t *testing.T) {
 		t.Fatalf("unexpected errors: %s", diags.Err())
 	}
 
-	actual := strings.TrimSpace(legacyDiffComparisonString(plan.Changes))
-	expected := strings.TrimSpace(testTFPlanDiffIgnoreChangesWithFlatmaps)
-	if actual != expected {
-		t.Fatalf("bad:\n%s\n\nexpected\n\n%s", actual, expected)
+	if len(plan.Changes.Resources) != 1 {
+		t.Fatal("expected 1 changes, got", len(plan.Changes.Resources))
 	}
+
+	res := plan.Changes.Resources[0]
+	schema := p.GetSchemaReturn.ResourceTypes[res.Addr.Resource.Resource.Type]
+
+	ric, err := res.Decode(schema.ImpliedType())
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if res.Action != plans.Update {
+		t.Fatalf("resource %s should be updated, got %s", ric.Addr, ric.Action)
+	}
+
+	if ric.Addr.String() != "aws_instance.foo" {
+		t.Fatalf("unknown resource: %s", ric.Addr)
+	}
+
+	checkVals(t, objectVal(t, schema, map[string]cty.Value{
+		"lst": cty.ListVal([]cty.Value{
+			cty.StringVal("j"),
+			cty.StringVal("k"),
+		}),
+		"require_new": cty.StringVal(""),
+		"user_data":   cty.StringVal("x"),
+		"set": cty.ListVal([]cty.Value{cty.MapVal(map[string]cty.Value{
+			"a": cty.StringVal("1"),
+			"b": cty.StringVal("2"),
+		})}),
+	}), ric.After)
 }
 
 // TestContext2Plan_resourceNestedCount ensures resource sets that depend on
@@ -5092,47 +5184,10 @@ func TestContext2Plan_resourceNestedCount(t *testing.T) {
 		t.Fatalf("plan errors: %s", diags.Err())
 	}
 
-	actual := strings.TrimSpace(legacyPlanComparisonString(ctx.State(), plan.Changes))
-	expected := strings.TrimSpace(`
-DIFF:
-
-
-
-STATE:
-
-aws_instance.bar.0:
-  ID = bar0
-  provider = provider.aws
-
-  Dependencies:
-    aws_instance.foo.*
-aws_instance.bar.1:
-  ID = bar1
-  provider = provider.aws
-
-  Dependencies:
-    aws_instance.foo.*
-aws_instance.baz.0:
-  ID = baz0
-  provider = provider.aws
-
-  Dependencies:
-    aws_instance.bar.*
-aws_instance.baz.1:
-  ID = baz1
-  provider = provider.aws
-
-  Dependencies:
-    aws_instance.bar.*
-aws_instance.foo.0:
-  ID = foo0
-  provider = provider.aws
-aws_instance.foo.1:
-  ID = foo1
-  provider = provider.aws
-`)
-	if actual != expected {
-		t.Fatalf("bad:\n%s\n\nexpected\n\n%s", actual, expected)
+	for _, res := range plan.Changes.Resources {
+		if res.Action != plans.NoOp {
+			t.Fatalf("resource %s should now change, plan returned %s", res.Addr, res.Action)
+		}
 	}
 }
 
@@ -5317,7 +5372,11 @@ func TestContext2Plan_selfRefMultiAll(t *testing.T) {
 	}
 
 	gotErrStr := diags.Err().Error()
-	wantErrStr := "Self-referential block"
+
+	// The graph is checked for cycles before we can walk it, so we don't
+	// encounter the self-reference check.
+	//wantErrStr := "Self-referential block"
+	wantErrStr := "Cycle"
 	if !strings.Contains(gotErrStr, wantErrStr) {
 		t.Fatalf("missing expected error\ngot: %s\n\nwant: error containing %q", gotErrStr, wantErrStr)
 	}
