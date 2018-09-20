@@ -1028,6 +1028,111 @@ func TestClear(t *testing.T) {
 				},
 			},
 		},
+		resourceDiffTestCase{
+			Name: "basic sub-block diff",
+			Schema: map[string]*Schema{
+				"foo": &Schema{
+					Type:     TypeList,
+					Optional: true,
+					Computed: true,
+					Elem: &Resource{
+						Schema: map[string]*Schema{
+							"bar": &Schema{
+								Type:     TypeString,
+								Optional: true,
+								Computed: true,
+							},
+							"baz": &Schema{
+								Type:     TypeString,
+								Optional: true,
+								Computed: true,
+							},
+						},
+					},
+				},
+			},
+			State: &terraform.InstanceState{
+				Attributes: map[string]string{
+					"foo.0.bar": "bar1",
+					"foo.0.baz": "baz1",
+				},
+			},
+			Config: testConfig(t, map[string]interface{}{
+				"foo": []map[string]interface{}{
+					map[string]interface{}{
+						"bar": "bar2",
+						"baz": "baz1",
+					},
+				},
+			}),
+			Diff: &terraform.InstanceDiff{
+				Attributes: map[string]*terraform.ResourceAttrDiff{
+					"foo.0.bar": &terraform.ResourceAttrDiff{
+						Old: "bar1",
+						New: "bar2",
+					},
+				},
+			},
+			Key:      "foo.0.bar",
+			Expected: &terraform.InstanceDiff{Attributes: map[string]*terraform.ResourceAttrDiff{}},
+		},
+		resourceDiffTestCase{
+			Name: "sub-block diff only partial clear",
+			Schema: map[string]*Schema{
+				"foo": &Schema{
+					Type:     TypeList,
+					Optional: true,
+					Computed: true,
+					Elem: &Resource{
+						Schema: map[string]*Schema{
+							"bar": &Schema{
+								Type:     TypeString,
+								Optional: true,
+								Computed: true,
+							},
+							"baz": &Schema{
+								Type:     TypeString,
+								Optional: true,
+								Computed: true,
+							},
+						},
+					},
+				},
+			},
+			State: &terraform.InstanceState{
+				Attributes: map[string]string{
+					"foo.0.bar": "bar1",
+					"foo.0.baz": "baz1",
+				},
+			},
+			Config: testConfig(t, map[string]interface{}{
+				"foo": []map[string]interface{}{
+					map[string]interface{}{
+						"bar": "bar2",
+						"baz": "baz2",
+					},
+				},
+			}),
+			Diff: &terraform.InstanceDiff{
+				Attributes: map[string]*terraform.ResourceAttrDiff{
+					"foo.0.bar": &terraform.ResourceAttrDiff{
+						Old: "bar1",
+						New: "bar2",
+					},
+					"foo.0.baz": &terraform.ResourceAttrDiff{
+						Old: "baz1",
+						New: "baz2",
+					},
+				},
+			},
+			Key: "foo.0.bar",
+			Expected: &terraform.InstanceDiff{Attributes: map[string]*terraform.ResourceAttrDiff{
+				"foo.0.baz": &terraform.ResourceAttrDiff{
+					Old: "baz1",
+					New: "baz2",
+				},
+			}},
+		},
 	}
 	for _, tc := range cases {
 		t.Run(tc.Name, func(t *testing.T) {
