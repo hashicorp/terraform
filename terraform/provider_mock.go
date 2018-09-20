@@ -128,6 +128,7 @@ func (p *MockProvider) getSchema() providers.GetSchemaResponse {
 			Block: s,
 		}
 	}
+
 	return ret
 }
 
@@ -247,7 +248,15 @@ func (p *MockProvider) ReadResource(r providers.ReadResourceRequest) providers.R
 		return p.ReadResourceFn(r)
 	}
 
-	return p.ReadResourceResponse
+	// make sure the NewState fits the schema
+	newState, err := p.GetSchemaReturn.ResourceTypes[r.TypeName].CoerceValue(p.ReadResourceResponse.NewState)
+	if err != nil {
+		panic(err)
+	}
+	resp := p.ReadResourceResponse
+	resp.NewState = newState
+
+	return resp
 }
 
 func (p *MockProvider) PlanResourceChange(r providers.PlanResourceChangeRequest) providers.PlanResourceChangeResponse {
@@ -413,7 +422,19 @@ func (p *MockProvider) ImportResourceState(r providers.ImportResourceStateReques
 				is.Attributes = make(map[string]string)
 			}
 			is.Attributes["id"] = is.ID
-			schema := p.GetSchemaReturn.ResourceTypes[r.TypeName]
+
+			typeName := is.Ephemeral.Type
+			// Use the requested type if the resource has no type of it's own.
+			// We still return the empty type, which will error, but this prevents a panic.
+			if typeName == "" {
+				typeName = r.TypeName
+			}
+
+			schema := p.GetSchemaReturn.ResourceTypes[typeName]
+			if schema == nil {
+				panic("no schema found for " + typeName)
+			}
+
 			private, err := json.Marshal(is.Meta)
 			if err != nil {
 				panic(err)
@@ -423,10 +444,16 @@ func (p *MockProvider) ImportResourceState(r providers.ImportResourceStateReques
 			if err != nil {
 				panic(err)
 			}
+
+			state, err = schema.CoerceValue(state)
+			if err != nil {
+				panic(err)
+			}
+
 			p.ImportResourceStateResponse.ImportedResources = append(
 				p.ImportResourceStateResponse.ImportedResources,
 				providers.ImportedResource{
-					TypeName: r.TypeName,
+					TypeName: is.Ephemeral.Type,
 					State:    state,
 					Private:  private,
 				})
