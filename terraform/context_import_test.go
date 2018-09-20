@@ -145,7 +145,10 @@ func TestContextImport_collision(t *testing.T) {
 	}
 
 	actual := strings.TrimSpace(state.String())
-	expected := strings.TrimSpace(testImportCollisionStr)
+	expected := `aws_instance.foo:
+  ID = bar
+  provider = provider.aws`
+
 	if actual != expected {
 		t.Fatalf("bad: \n%s", actual)
 	}
@@ -154,6 +157,13 @@ func TestContextImport_collision(t *testing.T) {
 func TestContextImport_missingType(t *testing.T) {
 	p := testProvider("aws")
 	m := testModule(t, "import-provider")
+
+	p.ImportStateReturn = []*InstanceState{
+		&InstanceState{
+			ID: "foo",
+		},
+	}
+
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
 		ProviderResolver: providers.ResolverFixed(
@@ -162,12 +172,6 @@ func TestContextImport_missingType(t *testing.T) {
 			},
 		),
 	})
-
-	p.ImportStateReturn = []*InstanceState{
-		&InstanceState{
-			ID: "foo",
-		},
-	}
 
 	state, diags := ctx.Import(&ImportOpts{
 		Targets: []*ImportTarget{
@@ -193,17 +197,6 @@ func TestContextImport_missingType(t *testing.T) {
 
 func TestContextImport_moduleProvider(t *testing.T) {
 	p := testProvider("aws")
-
-	p.GetSchemaReturn = &ProviderSchema{
-		Provider: &configschema.Block{
-			Attributes: map[string]*configschema.Attribute{
-				"foo": {Type: cty.String, Optional: true},
-			},
-		},
-		ResourceTypes: map[string]*configschema.Block{
-			"aws_instance": {},
-		},
-	}
 
 	p.ImportStateReturn = []*InstanceState{
 		&InstanceState{
@@ -256,7 +249,7 @@ func TestContextImport_moduleProvider(t *testing.T) {
 	actual := strings.TrimSpace(state.String())
 	expected := strings.TrimSpace(testImportStr)
 	if actual != expected {
-		t.Fatalf("bad: \n%s", actual)
+		t.Fatalf("expected:\n%s\n\ngot:\n%s", expected, actual)
 	}
 }
 
@@ -432,6 +425,7 @@ func TestContextImport_refresh(t *testing.T) {
 	}
 
 	p.ReadResourceFn = nil
+
 	p.ReadResourceResponse = providers.ReadResourceResponse{
 		NewState: cty.ObjectVal(map[string]cty.Value{
 			"id":  cty.StringVal("foo"),
@@ -644,7 +638,7 @@ func TestContextImport_moduleDiff(t *testing.T) {
 	actual := strings.TrimSpace(state.String())
 	expected := strings.TrimSpace(testImportModuleDiffStr)
 	if actual != expected {
-		t.Fatalf("bad: \n%s", actual)
+		t.Fatalf("\nexpected: %q\ngot:      %q\n", expected, actual)
 	}
 }
 
@@ -702,21 +696,33 @@ func TestContextImport_moduleExisting(t *testing.T) {
 	actual := strings.TrimSpace(state.String())
 	expected := strings.TrimSpace(testImportModuleExistingStr)
 	if actual != expected {
-		t.Fatalf("bad: \n%s", actual)
+		t.Fatalf("\nexpected: %q\ngot:      %q\n", expected, actual)
 	}
 }
 
 func TestContextImport_multiState(t *testing.T) {
 	p := testProvider("aws")
 	m := testModule(t, "import-provider")
-	ctx := testContext2(t, &ContextOpts{
-		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[string]providers.Factory{
-				"aws": testProviderFuncFixed(p),
+
+	p.GetSchemaReturn = &ProviderSchema{
+		Provider: &configschema.Block{
+			Attributes: map[string]*configschema.Attribute{
+				"foo": {Type: cty.String, Optional: true},
 			},
-		),
-	})
+		},
+		ResourceTypes: map[string]*configschema.Block{
+			"aws_instance": {
+				Attributes: map[string]*configschema.Attribute{
+					"id": {Type: cty.String, Computed: true},
+				},
+			},
+			"aws_instance_thing": {
+				Attributes: map[string]*configschema.Attribute{
+					"id": {Type: cty.String, Computed: true},
+				},
+			},
+		},
+	}
 
 	p.ImportStateReturn = []*InstanceState{
 		&InstanceState{
@@ -728,6 +734,15 @@ func TestContextImport_multiState(t *testing.T) {
 			Ephemeral: EphemeralState{Type: "aws_instance_thing"},
 		},
 	}
+
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		ProviderResolver: providers.ResolverFixed(
+			map[string]providers.Factory{
+				"aws": testProviderFuncFixed(p),
+			},
+		),
+	})
 
 	state, diags := ctx.Import(&ImportOpts{
 		Targets: []*ImportTarget{
@@ -754,14 +769,26 @@ func TestContextImport_multiState(t *testing.T) {
 func TestContextImport_multiStateSame(t *testing.T) {
 	p := testProvider("aws")
 	m := testModule(t, "import-provider")
-	ctx := testContext2(t, &ContextOpts{
-		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[string]providers.Factory{
-				"aws": testProviderFuncFixed(p),
+
+	p.GetSchemaReturn = &ProviderSchema{
+		Provider: &configschema.Block{
+			Attributes: map[string]*configschema.Attribute{
+				"foo": {Type: cty.String, Optional: true},
 			},
-		),
-	})
+		},
+		ResourceTypes: map[string]*configschema.Block{
+			"aws_instance": {
+				Attributes: map[string]*configschema.Attribute{
+					"id": {Type: cty.String, Computed: true},
+				},
+			},
+			"aws_instance_thing": {
+				Attributes: map[string]*configschema.Attribute{
+					"id": {Type: cty.String, Computed: true},
+				},
+			},
+		},
+	}
 
 	p.ImportStateReturn = []*InstanceState{
 		&InstanceState{
@@ -777,6 +804,15 @@ func TestContextImport_multiStateSame(t *testing.T) {
 			Ephemeral: EphemeralState{Type: "aws_instance_thing"},
 		},
 	}
+
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		ProviderResolver: providers.ResolverFixed(
+			map[string]providers.Factory{
+				"aws": testProviderFuncFixed(p),
+			},
+		),
+	})
 
 	state, diags := ctx.Import(&ImportOpts{
 		Targets: []*ImportTarget{
@@ -889,11 +925,6 @@ aws_instance.foo.0:
   provider = provider.aws
 `
 
-const testImportCollisionStr = `
-aws_instance.foo:
-  ID = bar
-`
-
 const testImportModuleStr = `
 <no state>
 module.foo:
@@ -911,9 +942,11 @@ module.a.b:
 `
 
 const testImportModuleDiffStr = `
+<no state>
 module.bar:
   aws_instance.bar:
     ID = bar
+    provider = provider.aws
 module.foo:
   aws_instance.foo:
     ID = foo
@@ -921,9 +954,11 @@ module.foo:
 `
 
 const testImportModuleExistingStr = `
+<no state>
 module.foo:
   aws_instance.bar:
     ID = bar
+    provider = provider.aws
   aws_instance.foo:
     ID = foo
     provider = provider.aws
