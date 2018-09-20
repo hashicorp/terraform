@@ -37,6 +37,9 @@ var (
 )
 
 func (n *NodeDestroyResourceInstance) Name() string {
+	if n.DeposedKey != states.NotDeposed {
+		return fmt.Sprintf("%s (destroy deposed %s)", n.ResourceInstanceAddr(), n.DeposedKey)
+	}
 	return n.ResourceInstanceAddr().String() + " (destroy)"
 }
 
@@ -113,44 +116,6 @@ func (n *NodeDestroyResourceInstance) References() []*addrs.Reference {
 	}
 
 	return nil
-}
-
-// GraphNodeDynamicExpandable
-func (n *NodeDestroyResourceInstance) DynamicExpand(ctx EvalContext) (*Graph, error) {
-	if n.DeposedKey != states.NotDeposed {
-		return nil, fmt.Errorf("NodeDestroyResourceInstance not yet updated to deal with explicit DeposedKey")
-	}
-
-	// Our graph transformers require direct access to read the entire state
-	// structure, so we'll lock the whole state for the duration of this work.
-	state := ctx.State().Lock()
-	defer ctx.State().Unlock()
-
-	// Start creating the steps
-	steps := make([]GraphTransformer, 0, 5)
-
-	// We want deposed resources in the state to be destroyed
-	steps = append(steps, &DeposedTransformer{
-		State:            state,
-		InstanceAddr:     n.ResourceInstanceAddr(),
-		ResolvedProvider: n.ResolvedProvider,
-	})
-
-	// Target
-	steps = append(steps, &TargetsTransformer{
-		Targets: n.Targets,
-	})
-
-	// Always end with the root being added
-	steps = append(steps, &RootTransformer{})
-
-	// Build the graph
-	b := &BasicGraphBuilder{
-		Steps: steps,
-		Name:  "NodeResourceDestroy",
-	}
-	g, diags := b.Build(ctx.Path())
-	return g, diags.ErrWithWarnings()
 }
 
 // GraphNodeEvalable

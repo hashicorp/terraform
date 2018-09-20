@@ -1,12 +1,13 @@
 package terraform
 
 import (
+	"fmt"
 	"strings"
 	"testing"
 
-	"github.com/hashicorp/terraform/plans"
-
 	"github.com/hashicorp/terraform/addrs"
+	"github.com/hashicorp/terraform/plans"
+	"github.com/hashicorp/terraform/states"
 )
 
 func TestApplyGraphBuilder_impl(t *testing.T) {
@@ -105,20 +106,42 @@ func TestApplyGraphBuilder_depCbd(t *testing.T) {
 		t.Fatalf("wrong path %q", g.Path.String())
 	}
 
+	// We're going to go hunting for our deposed instance node here, so we
+	// can find out its key to use in the assertions below.
+	var dk states.DeposedKey
+	for _, v := range g.Vertices() {
+		tv, ok := v.(*NodeDestroyDeposedResourceInstanceObject)
+		if !ok {
+			continue
+		}
+		if dk != states.NotDeposed {
+			t.Fatalf("more than one deposed instance node in the graph; want only one")
+		}
+		dk = tv.DeposedKey
+	}
+	if dk == states.NotDeposed {
+		t.Fatalf("no deposed instance node in the graph; want one")
+	}
+
+	destroyName := fmt.Sprintf("test_object.A (deposed %s)", dk)
+
 	// Create A, Modify B, Destroy A
 
 	testGraphHappensBefore(
 		t, g,
 		"test_object.A",
-		"test_object.A (destroy)")
+		destroyName,
+	)
 	testGraphHappensBefore(
 		t, g,
 		"test_object.A",
-		"test_object.B")
+		"test_object.B",
+	)
 	testGraphHappensBefore(
 		t, g,
 		"test_object.B",
-		"test_object.A (destroy)")
+		destroyName,
+	)
 }
 
 // This tests the ordering of two resources that are both CBD that

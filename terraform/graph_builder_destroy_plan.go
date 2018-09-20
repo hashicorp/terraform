@@ -51,6 +51,12 @@ func (b *DestroyPlanGraphBuilder) Steps() []GraphTransformer {
 			NodeAbstractResourceInstance: a,
 		}
 	}
+	concreteResourceInstanceDeposed := func(a *NodeAbstractResourceInstance, key states.DeposedKey) dag.Vertex {
+		return &NodePlanDeposedResourceInstanceObject{
+			NodeAbstractResourceInstance: a,
+			DeposedKey: key,
+		}
+	}
 
 	concreteProvider := func(a *NodeAbstractProvider) dag.Vertex {
 		return &NodeApplyableProvider{
@@ -61,8 +67,9 @@ func (b *DestroyPlanGraphBuilder) Steps() []GraphTransformer {
 	steps := []GraphTransformer{
 		// Creates nodes for the resource instances tracked in the state.
 		&StateTransformer{
-			Concrete: concreteResourceInstance,
-			State:    b.State,
+			ConcreteCurrent: concreteResourceInstance,
+			ConcreteDeposed: concreteResourceInstanceDeposed,
+			State:           b.State,
 		},
 
 		// Attach the configuration to any resources

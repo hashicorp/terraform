@@ -69,6 +69,13 @@ func (b *PlanGraphBuilder) Build(path addrs.ModuleInstance) (*Graph, tfdiags.Dia
 func (b *PlanGraphBuilder) Steps() []GraphTransformer {
 	b.once.Do(b.init)
 
+	concreteResourceInstanceDeposed := func(a *NodeAbstractResourceInstance, key states.DeposedKey) dag.Vertex {
+		return &NodePlanDeposedResourceInstanceObject{
+			NodeAbstractResourceInstance: a,
+			DeposedKey: key,
+		}
+	}
+
 	steps := []GraphTransformer{
 		// Creates all the resources represented in the config
 		&ConfigTransformer{
@@ -87,6 +94,15 @@ func (b *PlanGraphBuilder) Steps() []GraphTransformer {
 			Concrete: b.ConcreteResourceOrphan,
 			State:    b.State,
 			Config:   b.Config,
+		},
+
+		// We also need nodes for any deposed instance objects present in the
+		// state, so we can plan to destroy them. (This intentionally
+		// skips creating nodes for _current_ objects, since ConfigTransformer
+		// created nodes that will do that during DynamicExpand.)
+		&StateTransformer{
+			ConcreteDeposed: concreteResourceInstanceDeposed,
+			State:           b.State,
 		},
 
 		// Create orphan output nodes

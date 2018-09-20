@@ -95,6 +95,8 @@ func (b *ApplyGraphBuilder) Steps() []GraphTransformer {
 		// ConfigTransformer above.
 		&DiffTransformer{
 			Concrete: concreteResourceInstance,
+			Config:   b.Config,
+			State:    b.State,
 			Changes:  b.Changes,
 		},
 

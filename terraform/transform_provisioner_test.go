@@ -93,8 +93,8 @@ func TestMissingProvisionerTransformer_module(t *testing.T) {
 		})
 
 		tf := &StateTransformer{
-			Concrete: concreteResource,
-			State:    state,
+			ConcreteCurrent: concreteResource,
+			State:           state,
 		}
 		if err := tf.Transform(&g); err != nil {
 			t.Fatalf("err: %s", err)

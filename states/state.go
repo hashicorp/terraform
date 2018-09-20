@@ -61,6 +61,9 @@ func (s *State) Empty() bool {
 // Module returns the state for the module with the given address, or nil if
 // the requested module is not tracked in the state.
 func (s *State) Module(addr addrs.ModuleInstance) *Module {
+	if s == nil {
+		panic("State.Module on nil *State")
+	}
 	return s.Modules[addr.String()]
 }
 
@@ -127,6 +130,9 @@ func (s *State) Resource(addr addrs.AbsResource) *Resource {
 // ResourceInstance returns the state for the resource instance with the given
 // address, or nil if no such resource is tracked in the state.
 func (s *State) ResourceInstance(addr addrs.AbsResourceInstance) *ResourceInstance {
+	if s == nil {
+		panic("State.ResourceInstance on nil *State")
+	}
 	ms := s.Module(addr.Module)
 	if ms == nil {
 		return nil
