@@ -384,7 +384,7 @@ func (n *NodeApplyableResourceInstance) evalTreeManagedResource(addr addrs.AbsRe
 				If: func(ctx EvalContext) (bool, error) {
 					return createBeforeDestroyEnabled && err != nil, nil
 				},
-				Then: &EvalUndeposeState{
+				Then: &EvalMaybeRestoreDeposedObject{
 					Addr: addr.Resource,
 					Key:  &deposedKey,
 				},
