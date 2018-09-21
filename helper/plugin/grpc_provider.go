@@ -128,7 +128,7 @@ func (s *GRPCProviderServer) ValidateDataSourceConfig(_ context.Context, req *pr
 
 	config := terraform.NewResourceConfigShimmed(configVal, block)
 
-	warns, errs := s.provider.ValidateResource(req.TypeName, config)
+	warns, errs := s.provider.ValidateDataSource(req.TypeName, config)
 	resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, convert.WarnsAndErrsToProto(warns, errs))
 
 	return resp, nil
