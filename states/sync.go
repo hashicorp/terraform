@@ -361,6 +361,30 @@ func (s *SyncState) ForgetResourceInstanceDeposed(addr addrs.AbsResourceInstance
 	s.maybePruneModule(addr.Module)
 }
 
+// MaybeRestoreResourceInstanceDeposed will restore the deposed object with the
+// given key on the specified resource as the current object for that instance
+// if and only if that would not cause us to forget an existing current
+// object for that instance.
+//
+// Returns true if the object was restored to current, or false if no change
+// was made at all.
+func (s *SyncState) MaybeRestoreResourceInstanceDeposed(addr addrs.AbsResourceInstance, key DeposedKey) bool {
+	s.lock.Lock()
+	defer s.lock.Unlock()
+
+	if key == NotDeposed {
+		panic("MaybeRestoreResourceInstanceDeposed called without DeposedKey")
+	}
+
+	ms := s.state.Module(addr.Module)
+	if ms == nil {
+		// Nothing to do, since the specified deposed object cannot exist.
+		return false
+	}
+
+	return ms.maybeRestoreResourceInstanceDeposed(addr.Resource, key)
+}
+
 // RemovePlannedResourceInstanceObjects removes from the state any resource
 // instance objects that have the status ObjectPlanned, indiciating that they
 // are just transient placeholders created during planning.
