@@ -181,6 +181,28 @@ func (ms *Module) deposeResourceInstanceObject(addr addrs.ResourceInstance, forc
 	return is.deposeCurrentObject(forceKey)
 }
 
+// maybeRestoreResourceInstanceDeposed is the real implementation of
+// SyncState.MaybeRestoreResourceInstanceDeposed.
+func (ms *Module) maybeRestoreResourceInstanceDeposed(addr addrs.ResourceInstance, key DeposedKey) bool {
+	rs := ms.Resource(addr.Resource)
+	if rs == nil {
+		return false
+	}
+	is := rs.Instance(addr.Key)
+	if is == nil {
+		return false
+	}
+	if is.Current != nil {
+		return false
+	}
+	if len(is.Deposed) == 0 {
+		return false
+	}
+	is.Current = is.Deposed[key]
+	delete(is.Deposed, key)
+	return true
+}
+
 // SetOutputValue writes an output value into the state, overwriting any
 // existing value of the same name.
 func (ms *Module) SetOutputValue(name string, value cty.Value, sensitive bool) *OutputValue {
