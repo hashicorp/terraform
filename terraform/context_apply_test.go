@@ -5396,7 +5396,7 @@ func TestContext2Apply_provisionerDestroyRef(t *testing.T) {
 
 // Test that a destroy provisioner referencing an invalid key errors.
 func TestContext2Apply_provisionerDestroyRefInvalid(t *testing.T) {
-	m := testModule(t, "apply-provisioner-destroy-ref")
+	m := testModule(t, "apply-provisioner-destroy-ref-invalid")
 	p := testProvider("aws")
 	pr := testProvisioner()
 	p.ApplyFn = testApplyFn
