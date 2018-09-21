@@ -17,8 +17,16 @@ var _ OAuthTokens = (*oAuthTokens)(nil)
 // TFE API docs:
 // https://www.terraform.io/docs/enterprise/api/oauth-tokens.html
 type OAuthTokens interface {
-	// List all the OAuth Tokens for a given organization.
+	// List all the OAuth tokens for a given organization.
 	List(ctx context.Context, organization string, options OAuthTokenListOptions) (*OAuthTokenList, error)
+	// Read a OAuth token by its ID.
+	Read(ctx context.Context, oAuthTokenID string) (*OAuthToken, error)
+
+	// Update an existing OAuth token.
+	Update(ctx context.Context, oAuthTokenID string, options OAuthTokenUpdateOptions) (*OAuthToken, error)
+
+	// Delete a OAuth token by its ID.
+	Delete(ctx context.Context, oAuthTokenID string) error
 }
 
 // oAuthTokens implements OAuthTokens.
@@ -70,4 +78,73 @@ func (s *oAuthTokens) List(ctx context.Context, organization string, options OAu
 	}
 
 	return otl, nil
+}
+
+// Read an OAuth token by its ID.
+func (s *oAuthTokens) Read(ctx context.Context, oAuthTokenID string) (*OAuthToken, error) {
+	if !validStringID(&oAuthTokenID) {
+		return nil, errors.New("Invalid value for OAuth token ID")
+	}
+
+	u := fmt.Sprintf("oauth-tokens/%s", url.QueryEscape(oAuthTokenID))
+	req, err := s.client.newRequest("GET", u, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	ot := &OAuthToken{}
+	err = s.client.do(ctx, req, ot)
+	if err != nil {
+		return nil, err
+	}
+
+	return ot, err
+}
+
+// OAuthTokenUpdateOptions represents the options for updating an OAuth token.
+type OAuthTokenUpdateOptions struct {
+	// For internal use only!
+	ID string `jsonapi:"primary,oauth-tokens"`
+
+	// A private SSH key to be used for git clone operations.
+	PrivateSSHKey *string `jsonapi:"attr,ssh-key"`
+}
+
+// Update an existing OAuth token.
+func (s *oAuthTokens) Update(ctx context.Context, oAuthTokenID string, options OAuthTokenUpdateOptions) (*OAuthToken, error) {
+	if !validStringID(&oAuthTokenID) {
+		return nil, errors.New("Invalid value for OAuth token ID")
+	}
+
+	// Make sure we don't send a user provided ID.
+	options.ID = ""
+
+	u := fmt.Sprintf("oauth-tokens/%s", url.QueryEscape(oAuthTokenID))
+	req, err := s.client.newRequest("PATCH", u, &options)
+	if err != nil {
+		return nil, err
+	}
+
+	ot := &OAuthToken{}
+	err = s.client.do(ctx, req, ot)
+	if err != nil {
+		return nil, err
+	}
+
+	return ot, err
+}
+
+// Delete an OAuth token by its ID.
+func (s *oAuthTokens) Delete(ctx context.Context, oAuthTokenID string) error {
+	if !validStringID(&oAuthTokenID) {
+		return errors.New("Invalid value for OAuth token ID")
+	}
+
+	u := fmt.Sprintf("oauth-tokens/%s", url.QueryEscape(oAuthTokenID))
+	req, err := s.client.newRequest("DELETE", u, nil)
+	if err != nil {
+		return err
+	}
+
+	return s.client.do(ctx, req, nil)
 }

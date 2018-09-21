@@ -21,6 +21,9 @@ type Variables interface {
 	// Create is used to create a new variable.
 	Create(ctx context.Context, options VariableCreateOptions) (*Variable, error)
 
+	// Read a variable by its ID.
+	Read(ctx context.Context, variableID string) (*Variable, error)
+
 	// Update values of an existing variable.
 	Update(ctx context.Context, variableID string, options VariableUpdateOptions) (*Variable, error)
 
@@ -159,6 +162,27 @@ func (s *variables) Create(ctx context.Context, options VariableCreateOptions) (
 	}
 
 	return v, nil
+}
+
+// Read a variable by its ID.
+func (s *variables) Read(ctx context.Context, variableID string) (*Variable, error) {
+	if !validStringID(&variableID) {
+		return nil, errors.New("Invalid value for variable ID")
+	}
+
+	u := fmt.Sprintf("vars/%s", url.QueryEscape(variableID))
+	req, err := s.client.newRequest("GET", u, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	v := &Variable{}
+	err = s.client.do(ctx, req, v)
+	if err != nil {
+		return nil, err
+	}
+
+	return v, err
 }
 
 // VariableUpdateOptions represents the options for updating a variable.
