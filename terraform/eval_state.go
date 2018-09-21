@@ -343,13 +343,24 @@ func (n *EvalDeposeState) Eval(ctx EvalContext) (interface{}, error) {
 	return nil, nil
 }
 
-// EvalUndeposeState is an EvalNode implementation that forgets a particular
-// deposed object from the state, causing Terraform to no longer track it.
+// EvalMaybeRestoreDeposedObject is an EvalNode implementation that will
+// restore a particular deposed object of the specified resource instance
+// to be the "current" object if and only if the instance doesn't currently
+// have a current object.
 //
-// Users of this must ensure that the upstream object that the object was
-// tracking has been deleted in the remote system before this node is
-// evaluated.
-type EvalUndeposeState struct {
+// This is intended for use when the create leg of a create before destroy
+// fails with no partial new object: if we didn't take any action, the user
+// would be left in the unfortunate situation of having no current object
+// and the previously-workign object now deposed. This EvalNode causes a
+// better outcome by restoring things to how they were before the replace
+// operation began.
+//
+// The create operation may have produced a partial result even though it
+// failed and it's important that we don't "forget" that state, so in that
+// situation the prior object remains deposed and the partial new object
+// remains the current object, allowing the situation to hopefully be
+// improved in a subsequent run.
+type EvalMaybeRestoreDeposedObject struct {
 	Addr addrs.ResourceInstance
 
 	// Key is a pointer to the deposed object key that should be forgotten
@@ -358,12 +369,17 @@ type EvalUndeposeState struct {
 }
 
 // TODO: test
-func (n *EvalUndeposeState) Eval(ctx EvalContext) (interface{}, error) {
+func (n *EvalMaybeRestoreDeposedObject) Eval(ctx EvalContext) (interface{}, error) {
 	absAddr := n.Addr.Absolute(ctx.Path())
+	dk := *n.Key
 	state := ctx.State()
 
-	state.ForgetResourceInstanceDeposed(absAddr, *n.Key)
-	log.Printf("[TRACE] EvalDeposeState: %s deposed object %s is forgotten", absAddr, *n.Key)
+	restored := state.MaybeRestoreResourceInstanceDeposed(absAddr, dk)
+	if restored {
+		log.Printf("[TRACE] EvalMaybeRestoreDeposedObject: %s deposed object %s was restored as the current object", absAddr, dk)
+	} else {
+		log.Printf("[TRACE] EvalMaybeRestoreDeposedObject: %s deposed object %s remains deposed", absAddr, dk)
+	}
 
 	return nil, nil
 }

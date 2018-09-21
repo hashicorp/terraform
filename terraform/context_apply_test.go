@@ -4600,7 +4600,7 @@ func TestContext2Apply_error_createBeforeDestroy(t *testing.T) {
 	actual := strings.TrimSpace(state.String())
 	expected := strings.TrimSpace(testTerraformApplyErrorCreateBeforeDestroyStr)
 	if actual != expected {
-		t.Fatalf("bad: \n%s\n\nExpected:\n\n%s", actual, expected)
+		t.Fatalf("wrong final state\ngot:\n%s\n\nwant:\n%s", actual, expected)
 	}
 }
 
