@@ -179,7 +179,7 @@ The supported built-in functions are:
     **This is not equivalent** of `base64encode(sha512(string))`
     since `sha512()` returns hexadecimal representation.
 
-  * `bcrypt(password, cost)` - Returns the Blowfish encrypted hash of the string 
+  * `bcrypt(password, cost)` - Returns the Blowfish encrypted hash of the string
     at the given cost. A default `cost` of 10 will be used if not provided.
 
   * `ceil(float)` - Returns the least integer value greater than or equal
@@ -378,6 +378,10 @@ The supported built-in functions are:
     SHA-512 hash of the given string.
     Example: `"${sha512("${aws_vpc.default.tags.customer}-s3-bucket")}"`
 
+  * `shquote(string)` - Returns a single-quoted string suitable for safe use
+    with Posix shells.
+    Example: `"${shquote("/tmp/space in file name")}"`
+
   * `signum(integer)` - Returns `-1` for negative numbers, `0` for `0` and `1` for positive numbers.
       This function is useful when you need to set a value for the first resource and
       a different value for the rest of the resources.
@@ -407,8 +411,8 @@ The supported built-in functions are:
    [`ignore_changes`](/docs/configuration/resources.html#ignore-changes) lifecycle attribute.
 
   * `timeadd(time, duration)` - Returns a UTC timestamp string corresponding to adding a given `duration` to `time` in RFC 3339 format.      
-    For example, `timeadd("2017-11-22T00:00:00Z", "10m")` produces a value `"2017-11-22T00:10:00Z"`. 
-    
+    For example, `timeadd("2017-11-22T00:00:00Z", "10m")` produces a value `"2017-11-22T00:10:00Z"`.
+
   * `title(string)` - Returns a copy of the string with the first characters of all the words capitalized.
 
   * `transpose(map)` - Swaps the keys and list values in a map of lists of strings. For example, transpose(map("a", list("1", "2"), "b", list("2", "3")) produces a value equivalent to map("1", list("a"), "2", list("a", "b"), "3", list("b")).

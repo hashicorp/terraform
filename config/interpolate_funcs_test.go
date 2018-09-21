@@ -2273,6 +2273,18 @@ func TestInterpolateFuncSha512(t *testing.T) {
 	})
 }
 
+func TestInterpolateFuncShQuote(t *testing.T) {
+	testFunction(t, testFunctionConfig{
+		Cases: []testFunctionCase{
+			{
+				`${shquote("good 'morning")}`,
+				`'good '\''morning'`,
+				false,
+			},
+		},
+	})
+}
+
 func TestInterpolateFuncTitle(t *testing.T) {
 	testFunction(t, testFunctionConfig{
 		Cases: []testFunctionCase{

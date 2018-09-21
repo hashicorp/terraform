@@ -110,6 +110,7 @@ func Funcs() map[string]ast.Function {
 		"sha1":         interpolationFuncSha1(),
 		"sha256":       interpolationFuncSha256(),
 		"sha512":       interpolationFuncSha512(),
+		"shquote":      interpolationFuncShQuote(),
 		"signum":       interpolationFuncSignum(),
 		"slice":        interpolationFuncSlice(),
 		"sort":         interpolationFuncSort(),
@@ -1409,6 +1410,34 @@ func interpolationFuncSha512() ast.Function {
 			h.Write([]byte(s))
 			hash := hex.EncodeToString(h.Sum(nil))
 			return hash, nil
+		},
+	}
+}
+
+// Quotes string for direct use as shell parameters. The whole string
+// is enclosed within single-quotes, control characters are left as is.
+func interpolationFuncShQuote() ast.Function {
+	return ast.Function{
+		ArgTypes:   []ast.Type{ast.TypeString},
+		ReturnType: ast.TypeString,
+		Callback: func(args []interface{}) (interface{}, error) {
+			s := args[0].(string)
+			var db strings.Builder
+			sr := strings.NewReader(s)
+			db.WriteRune('\'')
+			for {
+				r, _, err := sr.ReadRune()
+				if err != nil {
+					break
+				}
+				if r == '\'' {
+					db.WriteString("'\\''")
+				} else {
+					db.WriteRune(r)
+				}
+			}
+			db.WriteRune('\'')
+			return db.String(), nil
 		},
 	}
 }
