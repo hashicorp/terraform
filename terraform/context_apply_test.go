@@ -3436,8 +3436,6 @@ func TestContext2Apply_multiProviderDestroyChild(t *testing.T) {
 
 	checkStateString(t, state, `
 <no state>
-module.child:
-  <no state>
 `)
 }
 
