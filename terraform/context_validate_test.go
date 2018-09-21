@@ -407,64 +407,6 @@ func TestContext2Validate_moduleDepsShouldNotCycle(t *testing.T) {
 	}
 }
 
-func TestContext2Validate_moduleProviderInheritOrphan(t *testing.T) {
-	m := testModule(t, "validate-module-pc-inherit-orphan")
-	p := testProvider("aws")
-	p.GetSchemaReturn = &ProviderSchema{
-		Provider: &configschema.Block{
-			Attributes: map[string]*configschema.Attribute{
-				"set": {Type: cty.String, Optional: true},
-			},
-		},
-		ResourceTypes: map[string]*configschema.Block{
-			"aws_instance": {
-				Attributes: map[string]*configschema.Attribute{},
-			},
-		},
-	}
-
-	c := testContext2(t, &ContextOpts{
-		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[string]providers.Factory{
-				"aws": testProviderFuncFixed(p),
-			},
-		),
-		State: mustShimLegacyState(&State{
-			Modules: []*ModuleState{
-				&ModuleState{
-					Path: []string{"root", "child"},
-					Resources: map[string]*ResourceState{
-						"aws_instance.bar": &ResourceState{
-							Type: "aws_instance",
-							Primary: &InstanceState{
-								ID: "bar",
-							},
-						},
-					},
-				},
-			},
-		}),
-	})
-
-	p.ValidateFn = func(c *ResourceConfig) ([]string, []error) {
-		v, ok := c.Get("set")
-		if !ok {
-			return nil, []error{fmt.Errorf("not set")}
-		}
-		if v != "bar" {
-			return nil, []error{fmt.Errorf("bad: %#v", v)}
-		}
-
-		return nil, nil
-	}
-
-	diags := c.Validate()
-	if diags.HasErrors() {
-		t.Fatalf("unexpected error: %s", diags.Err())
-	}
-}
-
 func TestContext2Validate_moduleProviderVar(t *testing.T) {
 	m := testModule(t, "validate-module-pc-vars")
 	p := testProvider("aws")

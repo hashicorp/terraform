@@ -5,9 +5,6 @@ resource "template_instance" "example" {
 
 output "base_config" {
   value = {
-    base_template = "${template_instance.example.value}"
-
-    # without this we fail with no entries
-    extra = "value"
+    base_template = template_instance.example.value
   }
 }
