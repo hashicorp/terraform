@@ -2,7 +2,10 @@ module "mod" {
   source = "./mod"
 }
 
+output "out" {
+  value = module.mod.base_config["base_template"]
+}
+
 resource "template_instance" "root_template" {
-  compute_value = "ext: ${module.mod.base_config["base_template"]}"
-  compute  = "value"
+  foo = module.mod.base_config["base_template"]
 }
