@@ -2,10 +2,10 @@
 
 ## Install
 ```console
-% terraform -install-autocomplete
+% terraform --install-autocomplete
 ```
 
 ## Uninstall
 ```console
-% terraform -uninstall-autocomplete
+% terraform --uninstall-autocomplete
 ```
