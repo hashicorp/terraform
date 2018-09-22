@@ -92,6 +92,12 @@ type EvalDiff struct {
 	State          **states.ResourceInstanceObject
 	PreviousDiff   **plans.ResourceInstanceChange
 
+	// CreateBeforeDestroy is set if either the resource's own config sets
+	// create_before_destroy explicitly or if dependencies have forced the
+	// resource to be handled as create_before_destroy in order to avoid
+	// a dependency cycle.
+	CreateBeforeDestroy bool
+
 	OutputChange **plans.ResourceInstanceChange
 	OutputValue  *cty.Value
 	OutputState  **states.ResourceInstanceObject
@@ -270,14 +276,18 @@ func (n *EvalDiff) Eval(ctx EvalContext) (interface{}, error) {
 	case !reqRep.Empty():
 		// If there are any "requires replace" paths left _after our filtering
 		// above_ then this is a replace action.
-		action = plans.Replace
+		if n.CreateBeforeDestroy {
+			action = plans.CreateThenDelete
+		} else {
+			action = plans.DeleteThenCreate
+		}
 	default:
 		action = plans.Update
 		// "Delete" is never chosen here, because deletion plans are always
 		// created more directly elsewhere, such as in "orphan" handling.
 	}
 
-	if action == plans.Replace {
+	if action.IsReplace() {
 		// In this strange situation we want to produce a change object that
 		// shows our real prior object but has a _new_ object that is built
 		// from a null prior object, since we're going to delete the one
@@ -327,7 +337,11 @@ func (n *EvalDiff) Eval(ctx EvalContext) (interface{}, error) {
 	// as a replace change, even though so far we've been treating it as a
 	// create.
 	if action == plans.Create && priorValTainted != cty.NilVal {
-		action = plans.Replace
+		if n.CreateBeforeDestroy {
+			action = plans.CreateThenDelete
+		} else {
+			action = plans.DeleteThenCreate
+		}
 		priorVal = priorValTainted
 	}
 
@@ -339,9 +353,9 @@ func (n *EvalDiff) Eval(ctx EvalContext) (interface{}, error) {
 	// we originally intended.
 	if n.PreviousDiff != nil {
 		prevChange := *n.PreviousDiff
-		if prevChange.Action == plans.Replace && action == plans.Create {
-			log.Printf("[TRACE] EvalDiff: %s treating Create change as Replace change to match with earlier plan", absAddr)
-			action = plans.Replace
+		if prevChange.Action.IsReplace() && action == plans.Create {
+			log.Printf("[TRACE] EvalDiff: %s treating Create change as %s change to match with earlier plan", absAddr, prevChange.Action)
+			action = prevChange.Action
 			priorVal = prevChange.Before
 		}
 	}

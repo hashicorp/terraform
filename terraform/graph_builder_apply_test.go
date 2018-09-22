@@ -76,7 +76,7 @@ func TestApplyGraphBuilder_depCbd(t *testing.T) {
 			{
 				Addr: mustResourceInstanceAddr("test_object.A"),
 				ChangeSrc: plans.ChangeSrc{
-					Action: plans.Replace,
+					Action: plans.CreateThenDelete,
 				},
 			},
 			{
@@ -152,13 +152,13 @@ func TestApplyGraphBuilder_doubleCBD(t *testing.T) {
 			{
 				Addr: mustResourceInstanceAddr("test_object.A"),
 				ChangeSrc: plans.ChangeSrc{
-					Action: plans.Replace,
+					Action: plans.CreateThenDelete,
 				},
 			},
 			{
 				Addr: mustResourceInstanceAddr("test_object.B"),
 				ChangeSrc: plans.ChangeSrc{
-					Action: plans.Replace,
+					Action: plans.CreateThenDelete,
 				},
 			},
 		},

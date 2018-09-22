@@ -55,7 +55,7 @@ func ResourceChange(
 		buf.WriteString(color.Color(fmt.Sprintf("[bold]  # %s[reset] will be read during apply\n  # (config refers to values not yet known)", dispAddr)))
 	case plans.Update:
 		buf.WriteString(color.Color(fmt.Sprintf("[bold]  # %s[reset] will be updated in-place", dispAddr)))
-	case plans.Replace:
+	case plans.CreateThenDelete, plans.DeleteThenCreate:
 		buf.WriteString(color.Color(fmt.Sprintf("[bold]  # %s[reset] must be [bold][red]replaced", dispAddr)))
 	case plans.Delete:
 		buf.WriteString(color.Color(fmt.Sprintf("[bold]  # %s[reset] will be [bold][red]destroyed", dispAddr)))
@@ -72,8 +72,10 @@ func ResourceChange(
 		buf.WriteString(color.Color("[cyan] <=[reset] "))
 	case plans.Update:
 		buf.WriteString(color.Color("[yellow]  ~[reset] "))
-	case plans.Replace:
+	case plans.DeleteThenCreate:
 		buf.WriteString(color.Color("[red]-[reset]/[green]+[reset] "))
+	case plans.CreateThenDelete:
+		buf.WriteString(color.Color("[green]+[reset]/[red]-[reset] "))
 	case plans.Delete:
 		buf.WriteString(color.Color("[red]  -[reset] "))
 	default:
@@ -837,7 +839,7 @@ func (p *blockBodyDiffPrinter) writeActionSymbol(action plans.Action) {
 }
 
 func (p *blockBodyDiffPrinter) pathForcesNewResource(path cty.Path) bool {
-	if p.action != plans.Replace {
+	if p.action.IsReplace() {
 		// "requiredReplace" only applies when the instance is being replaced
 		return false
 	}

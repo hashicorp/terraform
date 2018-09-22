@@ -980,6 +980,9 @@ aws_instance.bar:
   require_new = yes
   type = aws_instance
   value = foo
+
+  Dependencies:
+    aws_instance.foo
 aws_instance.foo:
   ID = foo
   provider = provider.aws

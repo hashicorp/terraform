@@ -65,7 +65,7 @@ func (h *CountHook) PostApply(addr addrs.AbsResourceInstance, gen states.Generat
 
 			if err == nil {
 				switch action {
-				case plans.Replace:
+				case plans.CreateThenDelete, plans.DeleteThenCreate:
 					h.Added++
 					h.Removed++
 				case plans.Create:
@@ -92,7 +92,7 @@ func (h *CountHook) PostDiff(addr addrs.AbsResourceInstance, gen states.Generati
 	}
 
 	switch action {
-	case plans.Replace:
+	case plans.CreateThenDelete, plans.DeleteThenCreate:
 		h.ToRemoveAndAdd += 1
 	case plans.Create:
 		h.ToAdd += 1
