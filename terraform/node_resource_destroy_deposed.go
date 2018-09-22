@@ -15,6 +15,10 @@ import (
 // an associated deposed object key.
 type ConcreteResourceInstanceDeposedNodeFunc func(*NodeAbstractResourceInstance, states.DeposedKey) dag.Vertex
 
+type GraphNodeDeposedResourceInstanceObject interface {
+	DeposedInstanceObjectKey() states.DeposedKey
+}
+
 // NodePlanDeposedResourceInstanceObject represents deposed resource
 // instance objects during plan. These are distinct from the primary object
 // for each resource instance since the only valid operation to do with them
@@ -28,17 +32,22 @@ type NodePlanDeposedResourceInstanceObject struct {
 }
 
 var (
-	_ GraphNodeResource            = (*NodePlanDeposedResourceInstanceObject)(nil)
-	_ GraphNodeResourceInstance    = (*NodePlanDeposedResourceInstanceObject)(nil)
-	_ GraphNodeReferenceable       = (*NodePlanDeposedResourceInstanceObject)(nil)
-	_ GraphNodeReferencer          = (*NodePlanDeposedResourceInstanceObject)(nil)
-	_ GraphNodeEvalable            = (*NodePlanDeposedResourceInstanceObject)(nil)
-	_ GraphNodeProviderConsumer    = (*NodePlanDeposedResourceInstanceObject)(nil)
-	_ GraphNodeProvisionerConsumer = (*NodePlanDeposedResourceInstanceObject)(nil)
+	_ GraphNodeDeposedResourceInstanceObject = (*NodePlanDeposedResourceInstanceObject)(nil)
+	_ GraphNodeResource                      = (*NodePlanDeposedResourceInstanceObject)(nil)
+	_ GraphNodeResourceInstance              = (*NodePlanDeposedResourceInstanceObject)(nil)
+	_ GraphNodeReferenceable                 = (*NodePlanDeposedResourceInstanceObject)(nil)
+	_ GraphNodeReferencer                    = (*NodePlanDeposedResourceInstanceObject)(nil)
+	_ GraphNodeEvalable                      = (*NodePlanDeposedResourceInstanceObject)(nil)
+	_ GraphNodeProviderConsumer              = (*NodePlanDeposedResourceInstanceObject)(nil)
+	_ GraphNodeProvisionerConsumer           = (*NodePlanDeposedResourceInstanceObject)(nil)
 )
 
 func (n *NodePlanDeposedResourceInstanceObject) Name() string {
 	return fmt.Sprintf("%s (deposed %s)", n.Addr.String(), n.DeposedKey)
+}
+
+func (n *NodePlanDeposedResourceInstanceObject) DeposedInstanceObjectKey() states.DeposedKey {
+	return n.DeposedKey
 }
 
 // GraphNodeReferenceable implementation, overriding the one from NodeAbstractResourceInstance
@@ -155,19 +164,24 @@ type NodeDestroyDeposedResourceInstanceObject struct {
 }
 
 var (
-	_ GraphNodeResource            = (*NodeDestroyDeposedResourceInstanceObject)(nil)
-	_ GraphNodeResourceInstance    = (*NodeDestroyDeposedResourceInstanceObject)(nil)
-	_ GraphNodeDestroyer           = (*NodeDestroyDeposedResourceInstanceObject)(nil)
-	_ GraphNodeDestroyerCBD        = (*NodeDestroyDeposedResourceInstanceObject)(nil)
-	_ GraphNodeReferenceable       = (*NodeDestroyDeposedResourceInstanceObject)(nil)
-	_ GraphNodeReferencer          = (*NodeDestroyDeposedResourceInstanceObject)(nil)
-	_ GraphNodeEvalable            = (*NodeDestroyDeposedResourceInstanceObject)(nil)
-	_ GraphNodeProviderConsumer    = (*NodeDestroyDeposedResourceInstanceObject)(nil)
-	_ GraphNodeProvisionerConsumer = (*NodeDestroyDeposedResourceInstanceObject)(nil)
+	_ GraphNodeDeposedResourceInstanceObject = (*NodeDestroyDeposedResourceInstanceObject)(nil)
+	_ GraphNodeResource                      = (*NodeDestroyDeposedResourceInstanceObject)(nil)
+	_ GraphNodeResourceInstance              = (*NodeDestroyDeposedResourceInstanceObject)(nil)
+	_ GraphNodeDestroyer                     = (*NodeDestroyDeposedResourceInstanceObject)(nil)
+	_ GraphNodeDestroyerCBD                  = (*NodeDestroyDeposedResourceInstanceObject)(nil)
+	_ GraphNodeReferenceable                 = (*NodeDestroyDeposedResourceInstanceObject)(nil)
+	_ GraphNodeReferencer                    = (*NodeDestroyDeposedResourceInstanceObject)(nil)
+	_ GraphNodeEvalable                      = (*NodeDestroyDeposedResourceInstanceObject)(nil)
+	_ GraphNodeProviderConsumer              = (*NodeDestroyDeposedResourceInstanceObject)(nil)
+	_ GraphNodeProvisionerConsumer           = (*NodeDestroyDeposedResourceInstanceObject)(nil)
 )
 
 func (n *NodeDestroyDeposedResourceInstanceObject) Name() string {
 	return fmt.Sprintf("%s (destroy deposed %s)", n.Addr.String(), n.DeposedKey)
+}
+
+func (n *NodeDestroyDeposedResourceInstanceObject) DeposedInstanceObjectKey() states.DeposedKey {
+	return n.DeposedKey
 }
 
 // GraphNodeReferenceable implementation, overriding the one from NodeAbstractResourceInstance

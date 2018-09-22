@@ -29,7 +29,7 @@ func (n *EvalCheckPreventDestroy) Eval(ctx EvalContext) (interface{}, error) {
 	change := *n.Change
 	preventDestroy := n.Config.Managed.PreventDestroy
 
-	if (change.Action == plans.Delete || change.Action == plans.Replace) && preventDestroy {
+	if (change.Action == plans.Delete || change.Action.IsReplace()) && preventDestroy {
 		var diags tfdiags.Diagnostics
 		diags = diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagError,
