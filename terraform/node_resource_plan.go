@@ -11,10 +11,16 @@ import (
 // it is ready to be planned in order to create a diff.
 type NodePlannableResource struct {
 	*NodeAbstractResource
+
+	// ForceCreateBeforeDestroy might be set via our GraphNodeDestroyerCBD
+	// during graph construction, if dependencies require us to force this
+	// on regardless of what the configuration says.
+	ForceCreateBeforeDestroy *bool
 }
 
 var (
 	_ GraphNodeSubPath              = (*NodePlannableResource)(nil)
+	_ GraphNodeDestroyerCBD         = (*NodePlannableResource)(nil)
 	_ GraphNodeDynamicExpandable    = (*NodePlannableResource)(nil)
 	_ GraphNodeReferenceable        = (*NodePlannableResource)(nil)
 	_ GraphNodeReferencer           = (*NodePlannableResource)(nil)
@@ -39,6 +45,26 @@ func (n *NodePlannableResource) EvalTree() EvalNode {
 		Config:       config,
 		ProviderAddr: n.ResolvedProvider,
 	}
+}
+
+// GraphNodeDestroyerCBD
+func (n *NodePlannableResource) CreateBeforeDestroy() bool {
+	if n.ForceCreateBeforeDestroy != nil {
+		return *n.ForceCreateBeforeDestroy
+	}
+
+	// If we have no config, we just assume no
+	if n.Config == nil || n.Config.Managed == nil {
+		return false
+	}
+
+	return n.Config.Managed.CreateBeforeDestroy
+}
+
+// GraphNodeDestroyerCBD
+func (n *NodePlannableResource) ModifyCreateBeforeDestroy(v bool) error {
+	n.ForceCreateBeforeDestroy = &v
+	return nil
 }
 
 // GraphNodeDynamicExpandable
@@ -70,6 +96,11 @@ func (n *NodePlannableResource) DynamicExpand(ctx EvalContext) (*Graph, error) {
 
 		return &NodePlannableResourceInstance{
 			NodeAbstractResourceInstance: a,
+
+			// By the time we're walking, we've figured out whether we need
+			// to force on CreateBeforeDestroy due to dependencies on other
+			// nodes that have it.
+			ForceCreateBeforeDestroy: n.CreateBeforeDestroy(),
 		}
 	}
 

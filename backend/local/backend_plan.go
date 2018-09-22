@@ -189,8 +189,14 @@ func (b *Local) renderPlan(plan *plans.Plan, schemas *terraform.Schemas) {
 	if counts[plans.Delete] > 0 {
 		fmt.Fprintf(headerBuf, "%s destroy\n", format.DiffActionSymbol(terraform.DiffDestroy))
 	}
-	if counts[plans.Replace] > 0 {
+	if counts[plans.DeleteThenCreate] > 0 {
 		fmt.Fprintf(headerBuf, "%s destroy and then create replacement\n", format.DiffActionSymbol(terraform.DiffDestroyCreate))
+	}
+	if counts[plans.CreateThenDelete] > 0 {
+		// FIXME: This shows the wrong symbol, because our old diff action
+		// type can't represent CreateThenDelete. We should switch
+		// format.DiffActionSymbol over to using plans.Action instead.
+		fmt.Fprintf(headerBuf, "%s create replacement and then destroy prior\n", format.DiffActionSymbol(terraform.DiffDestroyCreate))
 	}
 	if counts[plans.Read] > 0 {
 		fmt.Fprintf(headerBuf, "%s read (data resources)\n", format.DiffActionSymbol(terraform.DiffRefresh))
@@ -243,7 +249,7 @@ func (b *Local) renderPlan(plan *plans.Plan, schemas *terraform.Schemas) {
 	stats := map[plans.Action]int{}
 	for _, change := range rChanges {
 		switch change.Action {
-		case plans.Replace:
+		case plans.CreateThenDelete, plans.DeleteThenCreate:
 			stats[plans.Create]++
 			stats[plans.Delete]++
 		default:

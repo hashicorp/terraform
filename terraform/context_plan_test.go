@@ -3885,7 +3885,7 @@ func TestContext2Plan_taint(t *testing.T) {
 
 		switch i := ric.Addr.String(); i {
 		case "aws_instance.bar":
-			if res.Action != plans.Replace {
+			if res.Action != plans.DeleteThenCreate {
 				t.Fatalf("resource %s should be replaced", i)
 			}
 			checkVals(t, objectVal(t, schema, map[string]cty.Value{
@@ -3970,7 +3970,7 @@ func TestContext2Plan_taintIgnoreChanges(t *testing.T) {
 
 		switch i := ric.Addr.String(); i {
 		case "aws_instance.foo":
-			if res.Action != plans.Replace {
+			if res.Action != plans.DeleteThenCreate {
 				t.Fatalf("resource %s should be replaced", i)
 			}
 			checkVals(t, objectVal(t, schema, map[string]cty.Value{
@@ -4050,7 +4050,7 @@ func TestContext2Plan_taintDestroyInterpolatedCountRace(t *testing.T) {
 
 			switch i := ric.Addr.String(); i {
 			case "aws_instance.foo[0]":
-				if res.Action != plans.Replace {
+				if res.Action != plans.DeleteThenCreate {
 					t.Fatalf("resource %s should be replaced", i)
 				}
 				checkVals(t, objectVal(t, schema, map[string]cty.Value{

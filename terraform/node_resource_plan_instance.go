@@ -16,6 +16,7 @@ import (
 // count index, for example.
 type NodePlannableResourceInstance struct {
 	*NodeAbstractResourceInstance
+	ForceCreateBeforeDestroy bool
 }
 
 var (
@@ -137,14 +138,15 @@ func (n *NodePlannableResourceInstance) evalTreeManagedResource(addr addrs.AbsRe
 			},
 
 			&EvalDiff{
-				Addr:           addr.Resource,
-				Config:         n.Config,
-				Provider:       &provider,
-				ProviderAddr:   n.ResolvedProvider,
-				ProviderSchema: &providerSchema,
-				State:          &state,
-				OutputChange:   &change,
-				OutputState:    &state,
+				Addr:                addr.Resource,
+				Config:              n.Config,
+				CreateBeforeDestroy: n.ForceCreateBeforeDestroy,
+				Provider:            &provider,
+				ProviderAddr:        n.ResolvedProvider,
+				ProviderSchema:      &providerSchema,
+				State:               &state,
+				OutputChange:        &change,
+				OutputState:         &state,
 			},
 			&EvalCheckPreventDestroy{
 				Addr:   addr.Resource,

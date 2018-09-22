@@ -157,6 +157,10 @@ func (b *PlanGraphBuilder) Steps() []GraphTransformer {
 			IgnoreIndices: true,
 		},
 
+		// Detect when create_before_destroy must be forced on for a particular
+		// node due to dependency edges, to avoid graph cycles during apply.
+		&ForcedCBDTransformer{},
+
 		// Close opened plugin connections
 		&CloseProviderTransformer{},
 		&CloseProvisionerTransformer{},
