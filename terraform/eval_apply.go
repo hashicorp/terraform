@@ -53,7 +53,7 @@ func (n *EvalApply) Eval(ctx EvalContext) (interface{}, error) {
 	}
 
 	if n.CreateNew != nil {
-		*n.CreateNew = (change.Action == plans.Create || change.Action == plans.Replace)
+		*n.CreateNew = (change.Action == plans.Create || change.Action.IsReplace())
 	}
 
 	configVal := cty.NullVal(cty.DynamicPseudoType)
