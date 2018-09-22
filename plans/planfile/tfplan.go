@@ -230,13 +230,17 @@ func changeFromTfplan(rawChange *planproto.Change) (*plans.ChangeSrc, error) {
 		ret.Action = plans.Update
 		beforeIdx = 0
 		afterIdx = 1
-	case planproto.Action_REPLACE:
-		ret.Action = plans.Replace
-		beforeIdx = 0
-		afterIdx = 1
 	case planproto.Action_DELETE:
 		ret.Action = plans.Delete
 		beforeIdx = 0
+	case planproto.Action_CREATE_THEN_DELETE:
+		ret.Action = plans.CreateThenDelete
+		beforeIdx = 0
+		afterIdx = 1
+	case planproto.Action_DELETE_THEN_CREATE:
+		ret.Action = plans.DeleteThenCreate
+		beforeIdx = 0
+		afterIdx = 1
 	default:
 		return nil, fmt.Errorf("invalid change action %s", rawChange.Action)
 	}
@@ -425,12 +429,15 @@ func changeToTfplan(change *plans.ChangeSrc) (*planproto.Change, error) {
 	case plans.Update:
 		ret.Action = planproto.Action_UPDATE
 		ret.Values = []*planproto.DynamicValue{before, after}
-	case plans.Replace:
-		ret.Action = planproto.Action_REPLACE
-		ret.Values = []*planproto.DynamicValue{before, after}
 	case plans.Delete:
 		ret.Action = planproto.Action_DELETE
 		ret.Values = []*planproto.DynamicValue{before}
+	case plans.DeleteThenCreate:
+		ret.Action = planproto.Action_DELETE_THEN_CREATE
+		ret.Values = []*planproto.DynamicValue{before, after}
+	case plans.CreateThenDelete:
+		ret.Action = planproto.Action_CREATE_THEN_DELETE
+		ret.Values = []*planproto.DynamicValue{before, after}
 	default:
 		return nil, fmt.Errorf("invalid change action %s", change.Action)
 	}
