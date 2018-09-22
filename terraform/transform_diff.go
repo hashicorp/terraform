@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/dag"
 	"github.com/hashicorp/terraform/plans"
 	"github.com/hashicorp/terraform/states"
@@ -15,7 +14,6 @@ import (
 // each of the resource changes described in the given Changes object.
 type DiffTransformer struct {
 	Concrete ConcreteResourceInstanceNodeFunc
-	Config   *configs.Config
 	State    *states.State
 	Changes  *plans.Changes
 }
@@ -30,7 +28,6 @@ func (t *DiffTransformer) Transform(g *Graph) error {
 	log.Printf("[TRACE] DiffTransformer starting")
 
 	var diags tfdiags.Diagnostics
-	config := t.Config
 	state := t.State
 	changes := t.Changes
 
@@ -59,14 +56,8 @@ func (t *DiffTransformer) Transform(g *Graph) error {
 	for _, rc := range changes.Resources {
 		addr := rc.Addr
 		dk := rc.DeposedKey
-		var rCfg *configs.Resource
 
 		log.Printf("[TRACE] DiffTransformer: found %s change for %s %s", rc.Action, addr, dk)
-
-		modCfg := config.DescendentForInstance(addr.Module)
-		if modCfg != nil {
-			rCfg = modCfg.Module.ResourceByAddr(addr.Resource.Resource)
-		}
 
 		// Depending on the action we'll need some different combinations of
 		// nodes, because destroying uses a special node type separate from
@@ -77,9 +68,10 @@ func (t *DiffTransformer) Transform(g *Graph) error {
 			continue
 		case plans.Delete:
 			delete = true
-		case plans.Replace:
+		case plans.DeleteThenCreate, plans.CreateThenDelete:
 			update = true
 			delete = true
+			createBeforeDestroy = (rc.Action == plans.CreateThenDelete)
 		default:
 			update = true
 		}
@@ -91,10 +83,6 @@ func (t *DiffTransformer) Transform(g *Graph) error {
 				fmt.Sprintf("The plan contains a non-delete change for %s deposed object %s. The only valid action for a deposed object is to destroy it, so this is a bug in Terraform.", addr, dk),
 			))
 			continue
-		}
-
-		if rCfg != nil && rCfg.Managed != nil && rCfg.Managed.CreateBeforeDestroy {
-			createBeforeDestroy = true
 		}
 
 		// If we're going to do a create_before_destroy Replace operation then
@@ -173,6 +161,7 @@ func (t *DiffTransformer) Transform(g *Graph) error {
 					NodeAbstractResourceInstance: abstract,
 					DeposedKey:                   dk,
 				}
+				node.(*NodeDestroyResourceInstance).ModifyCreateBeforeDestroy(createBeforeDestroy)
 			} else {
 				node = &NodeDestroyDeposedResourceInstanceObject{
 					NodeAbstractResourceInstance: abstract,

@@ -876,8 +876,10 @@ func legacyDiffComparisonString(changes *plans.Changes) string {
 			crud := "UPDATE"
 			if rc.Current != nil {
 				switch rc.Current.Action {
-				case plans.Replace:
+				case plans.DeleteThenCreate:
 					crud = "DESTROY/CREATE"
+				case plans.CreateThenDelete:
+					crud = "CREATE/DESTROY"
 				case plans.Delete:
 					crud = "DESTROY"
 				case plans.Create:

@@ -241,7 +241,7 @@ func (n *NodeApplyableResourceInstance) evalTreeManagedResource(addr addrs.AbsRe
 				If: func(ctx EvalContext) (bool, error) {
 					destroy := false
 					if diffApply != nil {
-						destroy = (diffApply.Action == plans.Delete || diffApply.Action == plans.Replace)
+						destroy = (diffApply.Action == plans.Delete || diffApply.Action.IsReplace())
 					}
 					if destroy && n.createBeforeDestroy() {
 						createBeforeDestroyEnabled = true
@@ -395,7 +395,7 @@ func (n *NodeApplyableResourceInstance) evalTreeManagedResource(addr addrs.AbsRe
 			// is no longer a diff!
 			&EvalIf{
 				If: func(ctx EvalContext) (bool, error) {
-					if diff.Action != plans.Replace {
+					if !diff.Action.IsReplace() {
 						return true, nil
 					}
 					if !n.createBeforeDestroy() {

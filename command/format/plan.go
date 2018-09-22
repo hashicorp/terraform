@@ -107,7 +107,7 @@ func NewPlan(changes *plans.Changes) *Plan {
 			did.Action = terraform.DiffRefresh
 		case plans.Delete:
 			did.Action = terraform.DiffDestroy
-		case plans.Replace:
+		case plans.DeleteThenCreate, plans.CreateThenDelete:
 			did.Action = terraform.DiffDestroyCreate
 		case plans.Update:
 			did.Action = terraform.DiffUpdate
