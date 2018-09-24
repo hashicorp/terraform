@@ -345,11 +345,11 @@ func IoctlSetInt(fd int, req uint, value int) error {
 	return ioctl(fd, req, uintptr(value))
 }
 
-func ioctlSetWinsize(fd int, req uint, value *Winsize) error {
+func IoctlSetWinsize(fd int, req uint, value *Winsize) error {
 	return ioctl(fd, req, uintptr(unsafe.Pointer(value)))
 }
 
-func ioctlSetTermios(fd int, req uint, value *Termios) error {
+func IoctlSetTermios(fd int, req uint, value *Termios) error {
 	return ioctl(fd, req, uintptr(unsafe.Pointer(value)))
 }
 
@@ -419,10 +419,8 @@ func Flock(fd int, how int) (err error) {
 //sysnb	Getsid(pid int) (sid int, err error)
 //sysnb	Kill(pid int, sig syscall.Signal) (err error)
 //sys	Klogctl(typ int, buf []byte) (n int, err error) = syslog
-//sys	Mkdir(dirfd int, path string, mode uint32) (err error)
 //sys	Mkdirat(dirfd int, path string, mode uint32) (err error)
 //sys	Mkfifo(path string, mode uint32) (err error)
-//sys	Mknod(path string, mode uint32, dev int) (err error)
 //sys	Mknodat(dirfd int, path string, mode uint32, dev int) (err error)
 //sys	Nanosleep(time *Timespec, leftover *Timespec) (err error)
 //sys   Open(path string, mode int, perm uint32) (fd int, err error) = open64
