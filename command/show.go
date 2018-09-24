@@ -6,8 +6,10 @@ import (
 	"os"
 	"strings"
 
+	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/plans/planfile"
 	"github.com/hashicorp/terraform/states/statefile"
+	"github.com/hashicorp/terraform/tfdiags"
 
 	"github.com/hashicorp/terraform/command/format"
 	"github.com/hashicorp/terraform/plans"
@@ -43,6 +45,52 @@ func (c *ShowCommand) Run(args []string) int {
 		return 1
 	}
 
+	configPath, err := ModulePath(cmdFlags.Args())
+	if err != nil {
+		c.Ui.Error(err.Error())
+		return 1
+	}
+
+	var diags tfdiags.Diagnostics
+
+	// Load the backend
+	b, backendDiags := c.Backend(nil)
+	diags = diags.Append(backendDiags)
+	if backendDiags.HasErrors() {
+		c.showDiagnostics(diags)
+		return 1
+	}
+
+	// We require a local backend
+	local, ok := b.(backend.Local)
+	if !ok {
+		c.showDiagnostics(diags) // in case of any warnings in here
+		c.Ui.Error(ErrUnsupportedLocalOp)
+		return 1
+	}
+
+	// Build the operation
+	opReq := c.Operation(b)
+	opReq.ConfigDir = configPath
+	opReq.ConfigLoader, err = c.initConfigLoader()
+	if err != nil {
+		diags = diags.Append(err)
+		c.showDiagnostics(diags)
+		return 1
+	}
+
+	// Get the context
+	ctx, _, ctxDiags := local.Context(opReq)
+	diags = diags.Append(ctxDiags)
+	if ctxDiags.HasErrors() {
+		c.showDiagnostics(diags)
+		return 1
+	}
+
+	schemas := ctx.Schemas()
+
+	env := c.Workspace()
+
 	var planErr, stateErr error
 	var path string
 	var plan *plans.Plan
@@ -72,15 +120,6 @@ func (c *ShowCommand) Run(args []string) int {
 			}
 		}
 	} else {
-		// Load the backend
-		b, backendDiags := c.Backend(nil)
-		if backendDiags.HasErrors() {
-			c.showDiagnostics(backendDiags)
-			return 1
-		}
-
-		env := c.Workspace()
-
 		// Get the state
 		stateStore, err := b.StateMgr(env)
 		if err != nil {
@@ -118,8 +157,9 @@ func (c *ShowCommand) Run(args []string) int {
 	}
 
 	c.Ui.Output(format.State(&format.StateOpts{
-		State:       state,
-		Color:       c.Colorize(),
+		State:   state,
+		Color:   c.Colorize(),
+		Schemas: schemas,
 	}))
 	return 0
 }
