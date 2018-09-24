@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/davecgh/go-spew/spew"
+	"github.com/google/go-cmp/cmp"
 	"github.com/go-test/deep"
 	"github.com/zclconf/go-cty/cty"
 
@@ -1017,13 +1018,13 @@ func TestContext2Apply_createBeforeDestroy_hook(t *testing.T) {
 		},
 	})
 
-	var actual []string
+	var actual []cty.Value
 	var actualLock sync.Mutex
 	h.PostApplyFn = func(addr addrs.AbsResourceInstance, gen states.Generation, sv cty.Value, e error) (HookAction, error) {
 		actualLock.Lock()
 
 		defer actualLock.Unlock()
-		actual = append(actual, state.String())
+		actual = append(actual, sv)
 		return HookActionContinue, nil
 	}
 
@@ -1048,13 +1049,18 @@ func TestContext2Apply_createBeforeDestroy_hook(t *testing.T) {
 		t.Fatalf("apply errors: %s", diags.Err())
 	}
 
-	expected := []string{
-		"ID = foo\nrequire_new = xyz\ntype = aws_instance\nTainted = false\n",
-		"<not created>",
+	expected := []cty.Value{
+		cty.ObjectVal(map[string]cty.Value{
+			"id":          cty.StringVal("foo"),
+			"require_new": cty.StringVal("xyz"),
+			"type":        cty.StringVal("aws_instance"),
+		}),
+		cty.NullVal(cty.DynamicPseudoType),
 	}
 
-	if !reflect.DeepEqual(actual, expected) {
-		t.Fatalf("bad: %#v", actual)
+	cmpOpt := cmp.Transformer("ctyshim", hcl2shim.ConfigValueFromHCL2)
+	if !cmp.Equal(actual, expected, cmpOpt) {
+		t.Fatalf("wrong state snapshot sequence\n%s", cmp.Diff(expected, actual, cmpOpt))
 	}
 }
 
