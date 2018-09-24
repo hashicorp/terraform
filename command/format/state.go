@@ -7,18 +7,20 @@ import (
 	"strings"
 
 	"github.com/hashicorp/terraform/addrs"
+	"github.com/hashicorp/terraform/configs/configschema"
 	"github.com/hashicorp/terraform/plans"
-
-	"github.com/mitchellh/colorstring"
-
 	"github.com/hashicorp/terraform/states"
-	// "github.com/hashicorp/terraform/terraform"
+	"github.com/hashicorp/terraform/terraform"
+	"github.com/mitchellh/colorstring"
 )
 
 // StateOpts are the options for formatting a state.
 type StateOpts struct {
 	// State is the state to format. This is required.
 	State *states.State
+
+	// Schemas are used to decode attributes. This is required.
+	Schemas *terraform.Schemas
 
 	// Color is the colorizer. This is optional.
 	Color *colorstring.Colorize
@@ -28,6 +30,10 @@ type StateOpts struct {
 func State(opts *StateOpts) string {
 	if opts.Color == nil {
 		panic("colorize not given")
+	}
+
+	if opts.Schemas == nil {
+		panic("schemas not given")
 	}
 
 	s := opts.State
@@ -45,7 +51,7 @@ func State(opts *StateOpts) string {
 
 	// Format all the modules
 	for _, m := range s.Modules {
-		formatStateModule(&buf, m, opts)
+		formatStateModule(p, m, opts.Schemas)
 	}
 
 	// Write the outputs for the root module
@@ -53,7 +59,7 @@ func State(opts *StateOpts) string {
 
 	if m.OutputValues != nil {
 		if len(m.OutputValues) > 0 {
-			buf.WriteString("\nOutputs:\n\n")
+			p.buf.WriteString("\nOutputs:\n\n")
 		}
 
 		// Sort the outputs
@@ -66,17 +72,17 @@ func State(opts *StateOpts) string {
 		// Output each output k/v pair
 		for _, k := range ks {
 			v := m.OutputValues[k]
-			buf.WriteString(fmt.Sprintf("%s = ", k))
+			p.buf.WriteString(fmt.Sprintf("%s = ", k))
 			p.writeValue(v.Value, plans.NoOp, 0)
 		}
 	}
 
-	return opts.Color.Color(strings.TrimSpace(buf.String()))
+	return opts.Color.Color(strings.TrimSpace(p.buf.String()))
 
 }
 
 func formatStateModule(
-	buf *bytes.Buffer, m *states.Module, opts *StateOpts) {
+	p blockBodyDiffPrinter, m *states.Module, schemas *terraform.Schemas) {
 
 	var moduleName string
 	if !m.Addr.IsRoot() {
@@ -92,75 +98,64 @@ func formatStateModule(
 	sort.Strings(names)
 
 	// Go through each resource and begin building up the output.
-	for _, k := range names {
-		name := k
-		if moduleName != "" {
-			name = moduleName + "." + name
+	for _, key := range names {
+		taintStr := ""
+		instances := m.Resources[key].Instances
+		for k, v := range instances {
+			name := key
+			if moduleName != "" {
+				name = moduleName + "." + name
+			}
+
+			addr := m.Resources[key].Addr
+			if v.Current.Status == 'T' {
+				taintStr = "(tainted)"
+			}
+			p.buf.WriteString(fmt.Sprintf("# %s: %s\n", addr.Instance(k), taintStr))
+			taintStr = ""
+
+			var schema *configschema.Block
+			provider := m.Resources[key].ProviderConfig.ProviderConfig.StringCompact()
+
+			switch addr.Mode {
+			case addrs.ManagedResourceMode:
+				p.buf.WriteString(fmt.Sprintf(
+					"resource %q %q {\n",
+					addr.Type,
+					addr.Name,
+				))
+				schema = schemas.Providers[provider].ResourceTypes[addr.Type]
+			case addrs.DataResourceMode:
+				p.buf.WriteString(fmt.Sprintf(
+					"data %q %q {\n",
+					addr.Type,
+					addr.Name,
+				))
+				schema = schemas.Providers[provider].DataSources[addr.Type]
+			default:
+				// should never happen, since the above is exhaustive
+				p.buf.WriteString(addr.String())
+			}
+
+			val, err := v.Current.Decode(schema.ImpliedType())
+
+			if err != nil {
+				fmt.Println(err.Error())
+				break
+			}
+			for name := range schema.Attributes {
+				attr := ctyGetAttrMaybeNull(val.Value, name)
+				if !attr.IsNull() {
+					p.buf.WriteString(fmt.Sprintf("    %s = ", name))
+					attr := ctyGetAttrMaybeNull(val.Value, name)
+					p.writeValue(attr, plans.NoOp, 4)
+					p.buf.WriteString("\n")
+				}
+			}
+			p.buf.WriteString("}\n\n")
 		}
-
-		addr := m.Resources[k].Addr
-		switch addr.Mode {
-		case addrs.ManagedResourceMode:
-			buf.WriteString(fmt.Sprintf(
-				"resource %q %q",
-				addr.Type,
-				addr.Name,
-			))
-		case addrs.DataResourceMode:
-			buf.WriteString(fmt.Sprintf(
-				"data %q %q ",
-				addr.Type,
-				addr.Name,
-			))
-		default:
-			// should never happen, since the above is exhaustive
-			buf.WriteString(addr.String())
-		}
-
-		buf.WriteString(" { attrs go here! }\n")
-
 	}
-
-	// 	rs := m.Resources[k]
-	// 	is := rs.Instance
-	// 	var id string
-	// 	if is != nil {
-	// 		id = is
-	// 	}
-	// 	if id == "" {
-	// 		id = "<not created>"
-	// 	}
-
-	// 	taintStr := ""
-	// 	// if rs.Primary != nil && rs.Primary.Tainted {
-	// 	// 	taintStr = " (tainted)"
-	// 	// }
-
-	// 	buf.WriteString(fmt.Sprintf("%s:%s\n", name, taintStr))
-	// 	buf.WriteString(fmt.Sprintf("  id = %s\n", id))
-
-	// 	if is != nil {
-	// 		// Sort the attributes
-	// 		attrKeys := make([]string, 0, len(is.Attributes))
-	// 		for ak, _ := range is.Attributes {
-	// 			// Skip the id attribute since we just show the id directly
-	// 			if ak == "id" {
-	// 				continue
-	// 			}
-
-	// 			attrKeys = append(attrKeys, ak)
-	// 		}
-	// 		sort.Strings(attrKeys)
-
-	// 		// Output each attribute
-	// 		for _, ak := range attrKeys {
-	// 			av := is.Attributes[ak]
-	// 			buf.WriteString(fmt.Sprintf("  %s = %s\n", ak, av))
-	// 		}
-	// 	}
-	// }
-
-	buf.WriteString("[reset]\n")
+	p.buf.WriteString("[reset]\n")
 }
 
 func formatNestedList(indent string, outputList []interface{}) string {
