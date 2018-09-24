@@ -21,7 +21,6 @@ type ShowCommand struct {
 }
 
 func (c *ShowCommand) Run(args []string) int {
-	var moduleDepth int
 
 	args, err := c.Meta.process(args, false)
 	if err != nil {
@@ -29,7 +28,7 @@ func (c *ShowCommand) Run(args []string) int {
 	}
 
 	cmdFlags := flag.NewFlagSet("show", flag.ContinueOnError)
-	c.addModuleDepthFlag(cmdFlags, &moduleDepth)
+
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
 	if err := cmdFlags.Parse(args); err != nil {
 		return 1
@@ -121,7 +120,6 @@ func (c *ShowCommand) Run(args []string) int {
 	c.Ui.Output(format.State(&format.StateOpts{
 		State:       state,
 		Color:       c.Colorize(),
-		ModuleDepth: moduleDepth,
 	}))
 	return 0
 }

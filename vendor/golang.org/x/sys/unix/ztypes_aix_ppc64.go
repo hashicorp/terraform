@@ -275,22 +275,9 @@ type Termios struct {
 	Cc    [16]uint8
 }
 
-type Termio struct {
-	Iflag uint16
-	Oflag uint16
-	Cflag uint16
-	Lflag uint16
-	Line  uint8
-	Cc    [8]uint8
-	_     [1]byte
-}
+type Termio struct{}
 
-type Winsize struct {
-	Row    uint16
-	Col    uint16
-	Xpixel uint16
-	Ypixel uint16
-}
+type Winsize struct{}
 
 type PollFd struct {
 	Fd      int32
@@ -321,34 +308,6 @@ type Flock_t struct {
 	Len    int64
 }
 
-type Fsid_t struct {
-	Val [2]uint32
-}
-type Fsid64_t struct {
-	Val [2]uint64
-}
-
-type Statfs_t struct {
-	Version   int32
-	Type      int32
-	Bsize     uint64
-	Blocks    uint64
-	Bfree     uint64
-	Bavail    uint64
-	Files     uint64
-	Ffree     uint64
-	Fsid      Fsid64_t
-	Vfstype   int32
-	_         [4]byte
-	Fsize     uint64
-	Vfsnumber int32
-	Vfsoff    int32
-	Vfslen    int32
-	Vfsvers   int32
-	Fname     [32]uint8
-	Fpack     [32]uint8
-	Name_max  int32
-	_         [4]byte
-}
+type Statfs_t struct{}
 
 const RNDGETENTCNT = 0x80045200

@@ -470,10 +470,6 @@ func (p *parser) resetInsertionMode() {
 		case a.Table:
 			p.im = inTableIM
 		case a.Template:
-			// TODO: remove this divergence from the HTML5 spec.
-			if n.Namespace != "" {
-				continue
-			}
 			p.im = p.templateStack.top()
 		case a.Head:
 			// TODO: remove this divergence from the HTML5 spec.
@@ -988,14 +984,6 @@ func inBodyIM(p *parser) bool {
 			p.acknowledgeSelfClosingTag()
 			p.popUntil(buttonScope, a.P)
 			p.parseImpliedToken(StartTagToken, a.Form, a.Form.String())
-			if p.form == nil {
-				// NOTE: The 'isindex' element has been removed,
-				// and the 'template' element has not been designed to be
-				// collaborative with the index element.
-				//
-				// Ignore the token.
-				return true
-			}
 			if action != "" {
 				p.form.Attr = []Attribute{{Key: "action", Val: action}}
 			}
