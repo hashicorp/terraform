@@ -1493,6 +1493,7 @@ func TestContext2Apply_dataBasic(t *testing.T) {
 	p.ReadDataSourceResponse = providers.ReadDataSourceResponse{
 		State: cty.ObjectVal(map[string]cty.Value{
 			"id": cty.StringVal("yo"),
+			"foo": cty.NullVal(cty.String),
 		}),
 	}
 
@@ -1512,9 +1513,7 @@ func TestContext2Apply_dataBasic(t *testing.T) {
 	}
 
 	state, diags := ctx.Apply()
-	if diags.HasErrors() {
-		t.Fatalf("diags: %s", diags.Err())
-	}
+	assertNoErrors(t, diags)
 
 	actual := strings.TrimSpace(state.String())
 	expected := strings.TrimSpace(testTerraformApplyDataBasicStr)
