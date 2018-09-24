@@ -5,6 +5,8 @@ cloud.google.com/go/internal
 cloud.google.com/go/internal/optional
 cloud.google.com/go/internal/version
 cloud.google.com/go/compute/metadata
+# contrib.go.opencensus.io/exporter/stackdriver v0.6.0
+contrib.go.opencensus.io/exporter/stackdriver/propagation
 # github.com/Azure/azure-sdk-for-go v10.3.0-beta+incompatible
 github.com/Azure/azure-sdk-for-go/arm/storage
 github.com/Azure/azure-sdk-for-go/storage
@@ -447,7 +449,7 @@ github.com/vmihailenco/msgpack/codes
 github.com/xanzy/ssh-agent
 # github.com/xlab/treeprint v0.0.0-20161029104018-1d6e34225557
 github.com/xlab/treeprint
-# github.com/zclconf/go-cty v0.0.0-20180925180032-d9b87d891d0b
+# github.com/zclconf/go-cty v0.0.0-20180907002636-07dee8a1cfd4
 github.com/zclconf/go-cty/cty
 github.com/zclconf/go-cty/cty/gocty
 github.com/zclconf/go-cty/cty/convert
@@ -456,7 +458,21 @@ github.com/zclconf/go-cty/cty/function
 github.com/zclconf/go-cty/cty/function/stdlib
 github.com/zclconf/go-cty/cty/msgpack
 github.com/zclconf/go-cty/cty/set
-# golang.org/x/crypto v0.0.0-20180910181607-0e37d006457b
+# go.opencensus.io v0.17.0
+go.opencensus.io/plugin/ochttp
+go.opencensus.io/trace
+go.opencensus.io/trace/propagation
+go.opencensus.io/plugin/ochttp/propagation/b3
+go.opencensus.io/stats
+go.opencensus.io/stats/view
+go.opencensus.io/tag
+go.opencensus.io/internal
+go.opencensus.io/trace/internal
+go.opencensus.io/trace/tracestate
+go.opencensus.io/stats/internal
+go.opencensus.io/internal/tagencoding
+go.opencensus.io
+# golang.org/x/crypto v0.0.0-20180816225734-aabede6cba87
 golang.org/x/crypto/ssh
 golang.org/x/crypto/ssh/agent
 golang.org/x/crypto/ssh/knownhosts
@@ -476,7 +492,7 @@ golang.org/x/crypto/internal/subtle
 golang.org/x/crypto/md4
 golang.org/x/crypto/cast5
 golang.org/x/crypto/openpgp/elgamal
-# golang.org/x/net v0.0.0-20180925072008-f04abc6bdfa7
+# golang.org/x/net v0.0.0-20180906233101-161cd47e91fd
 golang.org/x/net/context
 golang.org/x/net/idna
 golang.org/x/net/http2
@@ -488,13 +504,13 @@ golang.org/x/net/http2/hpack
 golang.org/x/net/internal/timeseries
 golang.org/x/net/html
 golang.org/x/net/html/atom
-# golang.org/x/oauth2 v0.0.0-20170928010508-bb50c06baba3
+# golang.org/x/oauth2 v0.0.0-20180821212333-d2e6202438be
 golang.org/x/oauth2/jwt
 golang.org/x/oauth2
 golang.org/x/oauth2/internal
 golang.org/x/oauth2/jws
 golang.org/x/oauth2/google
-# golang.org/x/sys v0.0.0-20180925112736-b09afc3d579e
+# golang.org/x/sys v0.0.0-20180909124046-d0be0721c37e
 golang.org/x/sys/unix
 # golang.org/x/text v0.3.0
 golang.org/x/text/unicode/norm
@@ -515,7 +531,7 @@ golang.org/x/text/encoding/unicode
 golang.org/x/text/internal/tag
 golang.org/x/text/internal/utf8internal
 golang.org/x/text/runes
-# google.golang.org/api v0.0.0-20171005000305-7a7376eff6a5
+# google.golang.org/api v0.0.0-20180921000521-920bb1beccf7
 google.golang.org/api/iterator
 google.golang.org/api/option
 google.golang.org/api/googleapi
@@ -525,23 +541,23 @@ google.golang.org/api/internal
 google.golang.org/api/googleapi/internal/uritemplates
 google.golang.org/api/gensupport
 google.golang.org/api/googleapi/transport
-# google.golang.org/appengine v1.2.0
+# google.golang.org/appengine v1.1.0
 google.golang.org/appengine/urlfetch
+google.golang.org/appengine
 google.golang.org/appengine/datastore
 google.golang.org/appengine/internal
 google.golang.org/appengine/internal/urlfetch
-google.golang.org/appengine
+google.golang.org/appengine/internal/app_identity
+google.golang.org/appengine/internal/modules
 google.golang.org/appengine/internal/datastore
 google.golang.org/appengine/internal/base
 google.golang.org/appengine/internal/log
 google.golang.org/appengine/internal/remote_api
-google.golang.org/appengine/internal/app_identity
-google.golang.org/appengine/internal/modules
-# google.golang.org/genproto v0.0.0-20171002232614-f676e0f3ac63
+# google.golang.org/genproto v0.0.0-20180831171423-11092d34479b
 google.golang.org/genproto/googleapis/iam/v1
 google.golang.org/genproto/googleapis/api/annotations
 google.golang.org/genproto/googleapis/rpc/status
-# google.golang.org/grpc v0.0.0-20170809211603-7657092a1303
+# google.golang.org/grpc v1.14.0
 google.golang.org/grpc
 google.golang.org/grpc/metadata
 google.golang.org/grpc/credentials
@@ -549,15 +565,26 @@ google.golang.org/grpc/health
 google.golang.org/grpc/health/grpc_health_v1
 google.golang.org/grpc/codes
 google.golang.org/grpc/grpclog
+google.golang.org/grpc/balancer
+google.golang.org/grpc/balancer/roundrobin
 google.golang.org/grpc/connectivity
-google.golang.org/grpc/grpclb/grpc_lb_v1
+google.golang.org/grpc/encoding
+google.golang.org/grpc/encoding/proto
 google.golang.org/grpc/internal
+google.golang.org/grpc/internal/backoff
+google.golang.org/grpc/internal/channelz
+google.golang.org/grpc/internal/envconfig
+google.golang.org/grpc/internal/grpcrand
+google.golang.org/grpc/internal/transport
 google.golang.org/grpc/keepalive
 google.golang.org/grpc/naming
 google.golang.org/grpc/peer
+google.golang.org/grpc/resolver
+google.golang.org/grpc/resolver/dns
+google.golang.org/grpc/resolver/passthrough
 google.golang.org/grpc/stats
 google.golang.org/grpc/status
 google.golang.org/grpc/tap
-google.golang.org/grpc/transport
+google.golang.org/grpc/balancer/base
 # gopkg.in/yaml.v2 v2.2.1
 gopkg.in/yaml.v2
