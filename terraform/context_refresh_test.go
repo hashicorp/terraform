@@ -777,6 +777,31 @@ func TestContext2Refresh_output(t *testing.T) {
 func TestContext2Refresh_outputPartial(t *testing.T) {
 	p := testProvider("aws")
 	m := testModule(t, "refresh-output-partial")
+
+	// Refresh creates a partial plan for any instances that don't have
+	// remote objects yet, to get stub values for interpolation. Therefore
+	// we need to make DiffFn available to let that complete.
+	p.DiffFn = testDiffFn
+
+	p.GetSchemaReturn = &ProviderSchema{
+		Provider: &configschema.Block{},
+		ResourceTypes: map[string]*configschema.Block{
+			"aws_instance": {
+				Attributes: map[string]*configschema.Attribute{
+					"foo": {
+						Type:     cty.String,
+						Computed: true,
+					},
+				},
+			},
+		},
+	}
+
+	p.ReadResourceFn = nil
+	p.ReadResourceResponse = providers.ReadResourceResponse{
+		NewState: cty.NullVal(p.GetSchemaReturn.ResourceTypes["aws_instance"].ImpliedType()),
+	}
+
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
 		ProviderResolver: providers.ResolverFixed(
@@ -801,30 +826,6 @@ func TestContext2Refresh_outputPartial(t *testing.T) {
 			},
 		}),
 	})
-
-	p.ReadResourceFn = nil
-	p.ReadResourceResponse = providers.ReadResourceResponse{
-		NewState: cty.NullVal(p.GetSchemaReturn.ResourceTypes["aws_instance"].ImpliedType()),
-	}
-
-	// Refresh creates a partial plan for any instances that don't have
-	// remote objects yet, to get stub values for interpolation. Therefore
-	// we need to make DiffFn available to let that complete.
-	p.DiffFn = testDiffFn
-
-	p.GetSchemaReturn = &ProviderSchema{
-		Provider: &configschema.Block{},
-		ResourceTypes: map[string]*configschema.Block{
-			"aws_instance": {
-				Attributes: map[string]*configschema.Attribute{
-					"foo": {
-						Type:     cty.String,
-						Computed: true,
-					},
-				},
-			},
-		},
-	}
 
 	s, diags := ctx.Refresh()
 	if diags.HasErrors() {
