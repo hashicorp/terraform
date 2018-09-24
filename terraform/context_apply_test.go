@@ -1688,6 +1688,26 @@ func TestContext2Apply_destroyCrossProviders(t *testing.T) {
 	p_aws := testProvider("aws")
 	p_aws.ApplyFn = testApplyFn
 	p_aws.DiffFn = testDiffFn
+	p_aws.GetSchemaReturn = &ProviderSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"aws_instance": {
+				Attributes: map[string]*configschema.Attribute{
+					"id": {
+						Type:     cty.String,
+						Computed: true,
+					},
+				},
+			},
+			"aws_vpc": {
+				Attributes: map[string]*configschema.Attribute{
+					"value": {
+						Type:     cty.String,
+						Optional: true,
+					},
+				},
+			},
+		},
+	}
 
 	providers := map[string]providers.Factory{
 		"aws": testProviderFuncFixed(p_aws),
@@ -1702,11 +1722,13 @@ func TestContext2Apply_destroyCrossProviders(t *testing.T) {
 		ctx := getContextForApply_destroyCrossProviders(t, m, providers)
 
 		if _, diags := ctx.Plan(); diags.HasErrors() {
-			t.Fatalf("diags: %s", diags.Err())
+			logDiagnostics(t, diags)
+			t.Fatal("plan failed")
 		}
 
 		if _, diags := ctx.Apply(); diags.HasErrors() {
-			t.Fatalf("diags: %s", diags.Err())
+			logDiagnostics(t, diags)
+			t.Fatal("apply failed")
 		}
 	}
 }
