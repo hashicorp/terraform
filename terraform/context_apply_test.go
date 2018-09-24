@@ -1906,11 +1906,6 @@ func TestContext2Apply_cancel(t *testing.T) {
 		t.Fatalf("unexpected errors: %s", applyDiags.Err())
 	}
 
-	mod := state.RootModule()
-	if len(mod.Resources) != 1 {
-		t.Fatalf("bad: %s", state.String())
-	}
-
 	actual := strings.TrimSpace(state.String())
 	expected := strings.TrimSpace(testTerraformApplyCancelStr)
 	if actual != expected {
