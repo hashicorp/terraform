@@ -45,11 +45,10 @@ func TestApplyGraphBuilder(t *testing.T) {
 	}
 
 	b := &ApplyGraphBuilder{
-		Config:        testModule(t, "graph-builder-apply-basic"),
-		Changes:       changes,
-		Components:    simpleMockComponentFactory(),
-		Schemas:       simpleTestSchemas(),
-		DisableReduce: true,
+		Config:     testModule(t, "graph-builder-apply-basic"),
+		Changes:    changes,
+		Components: simpleMockComponentFactory(),
+		Schemas:    simpleTestSchemas(),
 	}
 
 	g, err := b.Build(addrs.RootModuleInstance)
@@ -62,6 +61,7 @@ func TestApplyGraphBuilder(t *testing.T) {
 	}
 
 	actual := strings.TrimSpace(g.String())
+
 	expected := strings.TrimSpace(testApplyGraphBuilderStr)
 	if actual != expected {
 		t.Fatalf("wrong result\n\ngot:\n%s\n\nwant:\n%s", actual, expected)
@@ -89,18 +89,16 @@ func TestApplyGraphBuilder_depCbd(t *testing.T) {
 	}
 
 	b := &ApplyGraphBuilder{
-		Config:        testModule(t, "graph-builder-apply-dep-cbd"),
-		Changes:       changes,
-		Components:    simpleMockComponentFactory(),
-		Schemas:       simpleTestSchemas(),
-		DisableReduce: true,
+		Config:     testModule(t, "graph-builder-apply-dep-cbd"),
+		Changes:    changes,
+		Components: simpleMockComponentFactory(),
+		Schemas:    simpleTestSchemas(),
 	}
 
 	g, err := b.Build(addrs.RootModuleInstance)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
-	t.Logf("Graph: %s", g.String())
 
 	if g.Path.String() != addrs.RootModuleInstance.String() {
 		t.Fatalf("wrong path %q", g.Path.String())
@@ -123,10 +121,9 @@ func TestApplyGraphBuilder_depCbd(t *testing.T) {
 		t.Fatalf("no deposed instance node in the graph; want one")
 	}
 
-	destroyName := fmt.Sprintf("test_object.A (deposed %s)", dk)
+	destroyName := fmt.Sprintf("test_object.A (destroy deposed %s)", dk)
 
 	// Create A, Modify B, Destroy A
-
 	testGraphHappensBefore(
 		t, g,
 		"test_object.A",
@@ -444,25 +441,22 @@ func TestApplyGraphBuilder_targetModule(t *testing.T) {
 
 const testApplyGraphBuilderStr = `
 meta.count-boundary (EachMode fixup)
-  module.child.provisioner.test
-  module.child.test_object.create
   module.child.test_object.other
-  provider.test
-  test_object.create
   test_object.other
 module.child.provisioner.test
 module.child.test_object.create
+  module.child.test_object.create (prepare state)
+module.child.test_object.create (prepare state)
   module.child.provisioner.test
   provider.test
 module.child.test_object.other
   module.child.test_object.create
+  module.child.test_object.other (prepare state)
+module.child.test_object.other (prepare state)
   provider.test
 provider.test
 provider.test (close)
-  module.child.test_object.create
   module.child.test_object.other
-  provider.test
-  test_object.create
   test_object.other
 provisioner.test (close)
   module.child.test_object.create
@@ -471,10 +465,14 @@ root
   provider.test (close)
   provisioner.test (close)
 test_object.create
+  test_object.create (prepare state)
+test_object.create (prepare state)
   provider.test
 test_object.other
-  provider.test
   test_object.create
+  test_object.other (prepare state)
+test_object.other (prepare state)
+  provider.test
 `
 
 const testApplyGraphBuilderDoubleCBDStr = `
