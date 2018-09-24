@@ -31,13 +31,12 @@ import (
 	"net"
 	"strings"
 
+	"github.com/golang/protobuf/proto"
 	"golang.org/x/net/context"
 )
 
-var (
-	// alpnProtoStr are the specified application level protocols for gRPC.
-	alpnProtoStr = []string{"h2"}
-)
+// alpnProtoStr are the specified application level protocols for gRPC.
+var alpnProtoStr = []string{"h2"}
 
 // PerRPCCredentials defines the common interface for the credentials which need to
 // attach security information to every RPC (e.g., oauth2).
@@ -45,8 +44,9 @@ type PerRPCCredentials interface {
 	// GetRequestMetadata gets the current request metadata, refreshing
 	// tokens if required. This should be called by the transport layer on
 	// each request, and the data should be populated in headers or other
-	// context. uri is the URI of the entry point for the request. When
-	// supported by the underlying implementation, ctx can be used for
+	// context. If a status code is returned, it will be used as the status
+	// for the RPC. uri is the URI of the entry point for the request.
+	// When supported by the underlying implementation, ctx can be used for
 	// timeout and cancellation.
 	// TODO(zhaoq): Define the set of the qualified keys instead of leaving
 	// it as an arbitrary string.
@@ -74,11 +74,9 @@ type AuthInfo interface {
 	AuthType() string
 }
 
-var (
-	// ErrConnDispatched indicates that rawConn has been dispatched out of gRPC
-	// and the caller should not close rawConn.
-	ErrConnDispatched = errors.New("credentials: rawConn is dispatched out of gRPC")
-)
+// ErrConnDispatched indicates that rawConn has been dispatched out of gRPC
+// and the caller should not close rawConn.
+var ErrConnDispatched = errors.New("credentials: rawConn is dispatched out of gRPC")
 
 // TransportCredentials defines the common interface for all the live gRPC wire
 // protocols and supported transport security protocols (e.g., TLS, SSL).
@@ -91,10 +89,14 @@ type TransportCredentials interface {
 	// (io.EOF, context.DeadlineExceeded or err.Temporary() == true).
 	// If the returned error is a wrapper error, implementations should make sure that
 	// the error implements Temporary() to have the correct retry behaviors.
+	//
+	// If the returned net.Conn is closed, it MUST close the net.Conn provided.
 	ClientHandshake(context.Context, string, net.Conn) (net.Conn, AuthInfo, error)
 	// ServerHandshake does the authentication handshake for servers. It returns
 	// the authenticated connection and the corresponding auth information about
 	// the connection.
+	//
+	// If the returned net.Conn is closed, it MUST close the net.Conn provided.
 	ServerHandshake(net.Conn) (net.Conn, AuthInfo, error)
 	// Info provides the ProtocolInfo of this TransportCredentials.
 	Info() ProtocolInfo
@@ -117,6 +119,18 @@ func (t TLSInfo) AuthType() string {
 	return "tls"
 }
 
+// GetChannelzSecurityValue returns security info requested by channelz.
+func (t TLSInfo) GetChannelzSecurityValue() ChannelzSecurityValue {
+	v := &TLSChannelzSecurityValue{
+		StandardName: cipherSuiteLookup[t.State.CipherSuite],
+	}
+	// Currently there's no way to get LocalCertificate info from tls package.
+	if len(t.State.PeerCertificates) > 0 {
+		v.RemoteCertificate = t.State.PeerCertificates[0].Raw
+	}
+	return v
+}
+
 // tlsCreds is the credentials required for authenticating a connection using TLS.
 type tlsCreds struct {
 	// TLS configuration
@@ -131,15 +145,15 @@ func (c tlsCreds) Info() ProtocolInfo {
 	}
 }
 
-func (c *tlsCreds) ClientHandshake(ctx context.Context, addr string, rawConn net.Conn) (_ net.Conn, _ AuthInfo, err error) {
+func (c *tlsCreds) ClientHandshake(ctx context.Context, authority string, rawConn net.Conn) (_ net.Conn, _ AuthInfo, err error) {
 	// use local cfg to avoid clobbering ServerName if using multiple endpoints
 	cfg := cloneTLSConfig(c.config)
 	if cfg.ServerName == "" {
-		colonPos := strings.LastIndex(addr, ":")
+		colonPos := strings.LastIndex(authority, ":")
 		if colonPos == -1 {
-			colonPos = len(addr)
+			colonPos = len(authority)
 		}
-		cfg.ServerName = addr[:colonPos]
+		cfg.ServerName = authority[:colonPos]
 	}
 	conn := tls.Client(rawConn, cfg)
 	errChannel := make(chan error, 1)
@@ -154,7 +168,7 @@ func (c *tlsCreds) ClientHandshake(ctx context.Context, addr string, rawConn net
 	case <-ctx.Done():
 		return nil, nil, ctx.Err()
 	}
-	return conn, TLSInfo{conn.ConnectionState()}, nil
+	return tlsConn{Conn: conn, rawConn: rawConn}, TLSInfo{conn.ConnectionState()}, nil
 }
 
 func (c *tlsCreds) ServerHandshake(rawConn net.Conn) (net.Conn, AuthInfo, error) {
@@ -162,7 +176,7 @@ func (c *tlsCreds) ServerHandshake(rawConn net.Conn) (net.Conn, AuthInfo, error)
 	if err := conn.Handshake(); err != nil {
 		return nil, nil, err
 	}
-	return conn, TLSInfo{conn.ConnectionState()}, nil
+	return tlsConn{Conn: conn, rawConn: rawConn}, TLSInfo{conn.ConnectionState()}, nil
 }
 
 func (c *tlsCreds) Clone() TransportCredentials {
@@ -216,4 +230,64 @@ func NewServerTLSFromFile(certFile, keyFile string) (TransportCredentials, error
 		return nil, err
 	}
 	return NewTLS(&tls.Config{Certificates: []tls.Certificate{cert}}), nil
+}
+
+// ChannelzSecurityInfo defines the interface that security protocols should implement
+// in order to provide security info to channelz.
+type ChannelzSecurityInfo interface {
+	GetSecurityValue() ChannelzSecurityValue
+}
+
+// ChannelzSecurityValue defines the interface that GetSecurityValue() return value
+// should satisfy. This interface should only be satisfied by *TLSChannelzSecurityValue
+// and *OtherChannelzSecurityValue.
+type ChannelzSecurityValue interface {
+	isChannelzSecurityValue()
+}
+
+// TLSChannelzSecurityValue defines the struct that TLS protocol should return
+// from GetSecurityValue(), containing security info like cipher and certificate used.
+type TLSChannelzSecurityValue struct {
+	StandardName      string
+	LocalCertificate  []byte
+	RemoteCertificate []byte
+}
+
+func (*TLSChannelzSecurityValue) isChannelzSecurityValue() {}
+
+// OtherChannelzSecurityValue defines the struct that non-TLS protocol should return
+// from GetSecurityValue(), which contains protocol specific security info. Note
+// the Value field will be sent to users of channelz requesting channel info, and
+// thus sensitive info should better be avoided.
+type OtherChannelzSecurityValue struct {
+	Name  string
+	Value proto.Message
+}
+
+func (*OtherChannelzSecurityValue) isChannelzSecurityValue() {}
+
+type tlsConn struct {
+	*tls.Conn
+	rawConn net.Conn
+}
+
+var cipherSuiteLookup = map[uint16]string{
+	tls.TLS_RSA_WITH_RC4_128_SHA:                "TLS_RSA_WITH_RC4_128_SHA",
+	tls.TLS_RSA_WITH_3DES_EDE_CBC_SHA:           "TLS_RSA_WITH_3DES_EDE_CBC_SHA",
+	tls.TLS_RSA_WITH_AES_128_CBC_SHA:            "TLS_RSA_WITH_AES_128_CBC_SHA",
+	tls.TLS_RSA_WITH_AES_256_CBC_SHA:            "TLS_RSA_WITH_AES_256_CBC_SHA",
+	tls.TLS_RSA_WITH_AES_128_GCM_SHA256:         "TLS_RSA_WITH_AES_128_GCM_SHA256",
+	tls.TLS_RSA_WITH_AES_256_GCM_SHA384:         "TLS_RSA_WITH_AES_256_GCM_SHA384",
+	tls.TLS_ECDHE_ECDSA_WITH_RC4_128_SHA:        "TLS_ECDHE_ECDSA_WITH_RC4_128_SHA",
+	tls.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA:    "TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA",
+	tls.TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA:    "TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA",
+	tls.TLS_ECDHE_RSA_WITH_RC4_128_SHA:          "TLS_ECDHE_RSA_WITH_RC4_128_SHA",
+	tls.TLS_ECDHE_RSA_WITH_3DES_EDE_CBC_SHA:     "TLS_ECDHE_RSA_WITH_3DES_EDE_CBC_SHA",
+	tls.TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA:      "TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA",
+	tls.TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA:      "TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA",
+	tls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256:   "TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256",
+	tls.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256: "TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256",
+	tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384:   "TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384",
+	tls.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384: "TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384",
+	tls.TLS_FALLBACK_SCSV:                       "TLS_FALLBACK_SCSV",
 }

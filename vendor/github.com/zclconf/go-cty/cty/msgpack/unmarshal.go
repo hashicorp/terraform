@@ -138,10 +138,7 @@ func unmarshalList(dec *msgpack.Decoder, ety cty.Type, path cty.Path) (cty.Value
 		return cty.DynamicVal, path.NewErrorf("a list is required")
 	}
 
-	switch {
-	case length < 0:
-		return cty.NullVal(cty.List(ety)), nil
-	case length == 0:
+	if length == 0 {
 		return cty.ListValEmpty(ety), nil
 	}
 
@@ -169,10 +166,7 @@ func unmarshalSet(dec *msgpack.Decoder, ety cty.Type, path cty.Path) (cty.Value,
 		return cty.DynamicVal, path.NewErrorf("a set is required")
 	}
 
-	switch {
-	case length < 0:
-		return cty.NullVal(cty.Set(ety)), nil
-	case length == 0:
+	if length == 0 {
 		return cty.SetValEmpty(ety), nil
 	}
 
@@ -200,10 +194,7 @@ func unmarshalMap(dec *msgpack.Decoder, ety cty.Type, path cty.Path) (cty.Value,
 		return cty.DynamicVal, path.NewErrorf("a map is required")
 	}
 
-	switch {
-	case length < 0:
-		return cty.NullVal(cty.Map(ety)), nil
-	case length == 0:
+	if length == 0 {
 		return cty.MapValEmpty(ety), nil
 	}
 
@@ -236,12 +227,7 @@ func unmarshalTuple(dec *msgpack.Decoder, etys []cty.Type, path cty.Path) (cty.V
 		return cty.DynamicVal, path.NewErrorf("a tuple is required")
 	}
 
-	switch {
-	case length < 0:
-		return cty.NullVal(cty.Tuple(etys)), nil
-	case length == 0:
-		return cty.TupleVal(nil), nil
-	case length != len(etys):
+	if length != len(etys) {
 		return cty.DynamicVal, path.NewErrorf("a tuple of length %d is required", len(etys))
 	}
 
@@ -270,12 +256,7 @@ func unmarshalObject(dec *msgpack.Decoder, atys map[string]cty.Type, path cty.Pa
 		return cty.DynamicVal, path.NewErrorf("an object is required")
 	}
 
-	switch {
-	case length < 0:
-		return cty.NullVal(cty.Object(atys)), nil
-	case length == 0:
-		return cty.ObjectVal(nil), nil
-	case length != len(atys):
+	if length != len(atys) {
 		return cty.DynamicVal, path.NewErrorf("an object with %d attributes is required", len(atys))
 	}
 
@@ -312,10 +293,7 @@ func unmarshalDynamic(dec *msgpack.Decoder, path cty.Path) (cty.Value, error) {
 		return cty.DynamicVal, path.NewError(err)
 	}
 
-	switch {
-	case length == -1:
-		return cty.NullVal(cty.DynamicPseudoType), nil
-	case length != 2:
+	if length != 2 {
 		return cty.DynamicVal, path.NewErrorf(
 			"dynamic value array must have exactly two elements",
 		)
