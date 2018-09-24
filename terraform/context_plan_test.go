@@ -146,7 +146,7 @@ func TestContext2Plan_createBefore_deposed(t *testing.T) {
 	ty := schema.ImpliedType()
 
 	type InstanceGen struct {
-		Addr string
+		Addr       string
 		DeposedKey states.DeposedKey
 	}
 	want := map[InstanceGen]bool{
@@ -154,7 +154,7 @@ func TestContext2Plan_createBefore_deposed(t *testing.T) {
 			Addr: "aws_instance.foo",
 		}: true,
 		{
-			Addr: "aws_instance.foo",
+			Addr:       "aws_instance.foo",
 			DeposedKey: states.DeposedKey("00000001"),
 		}: true,
 	}
@@ -174,7 +174,7 @@ func TestContext2Plan_createBefore_deposed(t *testing.T) {
 	}
 
 	{
-		ric, err := changes[InstanceGen{Addr:"aws_instance.foo"}].Decode(ty)
+		ric, err := changes[InstanceGen{Addr: "aws_instance.foo"}].Decode(ty)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -193,7 +193,7 @@ func TestContext2Plan_createBefore_deposed(t *testing.T) {
 	}
 
 	{
-		ric, err := changes[InstanceGen{Addr:"aws_instance.foo", DeposedKey: states.DeposedKey("00000001")}].Decode(ty)
+		ric, err := changes[InstanceGen{Addr: "aws_instance.foo", DeposedKey: states.DeposedKey("00000001")}].Decode(ty)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -2558,7 +2558,6 @@ func TestContext2Plan_countZero(t *testing.T) {
 	// This schema contains a DynamicPseudoType, and therefore can't go through any shim functions
 	p.PlanResourceChangeFn = func(req providers.PlanResourceChangeRequest) (resp providers.PlanResourceChangeResponse) {
 		resp.PlannedState = req.ProposedNewState
-		fmt.Printf("PlANNED: %#v\n", req.ProposedNewState)
 		resp.PlannedPrivate = req.PriorPrivate
 		return resp
 	}
@@ -4928,7 +4927,6 @@ func TestContext2Plan_createBeforeDestroy_depends_datasource(t *testing.T) {
 
 		switch i := ric.Addr.String(); i {
 		case "aws_instance.foo[0]":
-			fmt.Printf("AFTER %#v\n", ric.After)
 			if res.Action != plans.Create {
 				t.Fatalf("resource %s should be created, got %s", ric.Addr, ric.Action)
 			}
@@ -4937,7 +4935,6 @@ func TestContext2Plan_createBeforeDestroy_depends_datasource(t *testing.T) {
 				"computed": cty.UnknownVal(cty.String),
 			}), ric.After)
 		case "aws_instance.foo[1]":
-			fmt.Printf("AFTER %#v\n", ric.After)
 			if res.Action != plans.Create {
 				t.Fatalf("resource %s should be created, got %s", ric.Addr, ric.Action)
 			}
@@ -5417,6 +5414,82 @@ func TestContext2Plan_selfRefMultiAll(t *testing.T) {
 	// encounter the self-reference check.
 	//wantErrStr := "Self-referential block"
 	wantErrStr := "Cycle"
+	if !strings.Contains(gotErrStr, wantErrStr) {
+		t.Fatalf("missing expected error\ngot: %s\n\nwant: error containing %q", gotErrStr, wantErrStr)
+	}
+}
+
+func TestContext2Plan_invalidOutput(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+data "aws_data_source" "name" {}
+
+output "out" {
+  value = "${data.aws_data_source.name.missing}"
+}`,
+	})
+
+	p := testProvider("aws")
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		ProviderResolver: providers.ResolverFixed(
+			map[string]providers.Factory{
+				"aws": testProviderFuncFixed(p),
+			},
+		),
+	})
+
+	_, diags := ctx.Plan()
+	if !diags.HasErrors() {
+		// Should get this error:
+		// Unsupported attribute: This object does not have an attribute named "missing"
+		t.Fatal("succeeded; want errors")
+	}
+
+	gotErrStr := diags.Err().Error()
+	wantErrStr := "Unsupported attribute"
+	if !strings.Contains(gotErrStr, wantErrStr) {
+		t.Fatalf("missing expected error\ngot: %s\n\nwant: error containing %q", gotErrStr, wantErrStr)
+	}
+}
+
+func TestContext2Plan_invalidModuleOutput(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"child/main.tf": `
+data "aws_data_source" "name" {}
+
+output "out" {
+  value = "${data.aws_data_source.name.missing}"
+}`,
+		"main.tf": `
+module "child" {
+  source = "./child"
+}
+
+resource "aws_instance" "foo" {
+  foo = "${module.child.out}"
+}`,
+	})
+
+	p := testProvider("aws")
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		ProviderResolver: providers.ResolverFixed(
+			map[string]providers.Factory{
+				"aws": testProviderFuncFixed(p),
+			},
+		),
+	})
+
+	_, diags := ctx.Plan()
+	if !diags.HasErrors() {
+		// Should get this error:
+		// Unsupported attribute: This object does not have an attribute named "missing"
+		t.Fatal("succeeded; want errors")
+	}
+
+	gotErrStr := diags.Err().Error()
+	wantErrStr := "Unsupported attribute"
 	if !strings.Contains(gotErrStr, wantErrStr) {
 		t.Fatalf("missing expected error\ngot: %s\n\nwant: error containing %q", gotErrStr, wantErrStr)
 	}
