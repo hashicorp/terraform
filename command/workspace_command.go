@@ -74,7 +74,10 @@ const (
 	envDoesNotExist = `
 Workspace %q doesn't exist.
 
-You can create this workspace with the "new" subcommand.`
+If you want to create this workspace you can either use the "new"
+subcommand or use the '-create' flag which will create the workspace
+if it does not exist.
+`
 
 	envChanged = `[reset][green]Switched to workspace %q.`
 
