@@ -603,6 +603,7 @@ func (c *Context) Stop() {
 
 	// Grab the condition var before we exit
 	if cond := c.runCond; cond != nil {
+		log.Printf("[INFO] terraform: waiting for graceful stop to complete")
 		cond.Wait()
 	}
 
@@ -779,6 +780,7 @@ func (c *Context) watchStop(walker *ContextGraphWalker) (chan struct{}, <-chan s
 		}
 
 		// If we're here, we're stopped, trigger the call.
+		log.Printf("[TRACE] Context: requesting providers and provisioners to gracefully stop")
 
 		{
 			// Copy the providers so that a misbehaved blocking Stop doesn't
