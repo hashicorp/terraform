@@ -21,7 +21,10 @@ func (c *WorkspaceSelectCommand) Run(args []string) int {
 
 	envCommandShowWarning(c.Ui, c.LegacyName)
 
+	var createWorkspace bool
+
 	cmdFlags := c.Meta.flagSet("workspace select")
+	cmdFlags.BoolVar(&createWorkspace, "create", false, "create workspace")
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
 	if err := cmdFlags.Parse(args); err != nil {
 		return 1
