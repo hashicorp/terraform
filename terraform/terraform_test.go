@@ -474,6 +474,8 @@ const testTerraformApplyCountDecToOneCorruptedPlanStr = `
 DIFF:
 
 DESTROY: aws_instance.foo[0]
+  id:   "baz" => ""
+  type: "aws_instance" => ""
 
 
 
