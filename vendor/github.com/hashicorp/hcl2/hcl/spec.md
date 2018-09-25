@@ -29,7 +29,7 @@ which are discussed in detail in a later section.
 A _block_ is a nested structure that has a _type name_, zero or more string
 _labels_ (e.g. identifiers), and a nested body.
 
-Together the structural elements create a heirarchical data structure, with
+Together the structural elements create a hierarchical data structure, with
 attributes intended to represent the direct properties of a particular object
 in the calling application, and blocks intended to represent child objects
 of a particular object.
@@ -269,7 +269,7 @@ are two structural type _kinds_:
   has a type. Attribute names are always strings. (_Object_ attributes are a
   distinct idea from _body_ attributes, though calling applications
   may choose to blur the distinction by use of common naming schemes.)
-* _Tuple tupes_ are constructed of a sequence of elements, each of which
+* _Tuple types_ are constructed of a sequence of elements, each of which
   has a type.
 
 Values of structural types are compared for equality in terms of their
@@ -301,10 +301,10 @@ the same element type.
 
 ### Null values
 
-Each type has a null value. The null value of a type represents the absense
+Each type has a null value. The null value of a type represents the absence
 of a value, but with type information retained to allow for type checking.
 
-Null values are used primarily to represent the conditional absense of a
+Null values are used primarily to represent the conditional absence of a
 body attribute. In a syntax with a conditional operator, one of the result
 values of that conditional may be null to indicate that the attribute should be
 considered not present in that case.
@@ -458,7 +458,7 @@ If semantic checking succeeds without error, the call is _executed_:
   definition is used to determine the call's _result value_.
 
 The result of a function call expression is either an error, if one of the
-erroenous conditions above applies, or the _result value_.
+erroneous conditions above applies, or the _result value_.
 
 ## Type Conversions and Unification
 
@@ -505,7 +505,7 @@ Bidirectional conversions are available between the string and number types,
 and between the string and boolean types.
 
 The bool value true corresponds to the string containing the characters "true",
-while the bool value false corresponds to teh string containing the characters
+while the bool value false corresponds to the string containing the characters
 "false". Conversion from bool to string is safe, while the converse is
 unsafe. The strings "1" and "0" are alternative string representations
 of true and false respectively. It is an error to convert a string other than
@@ -671,7 +671,7 @@ The language-agnosticism of this specification assumes that certain behaviors
 are implemented separately for each syntax:
 
 * Matching of a body schema with the physical elements of a body in the
-  source language, to determine correspondance between physical constructs
+  source language, to determine correspondence between physical constructs
   and schema elements.
 
 * Implementing the _dynamic attributes_ body processing mode by either

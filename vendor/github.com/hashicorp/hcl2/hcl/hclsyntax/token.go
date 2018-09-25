@@ -229,7 +229,7 @@ func checkInvalidTokens(tokens Tokens) hcl.Diagnostics {
 				diags = append(diags, &hcl.Diagnostic{
 					Severity: hcl.DiagError,
 					Summary:  "Invalid character",
-					Detail:   "The \";\" character is not valid. Use newlines to separate attributes and blocks, and commas to separate items in collection values.",
+					Detail:   "The \";\" character is not valid. Use newlines to separate arguments and blocks, and commas to separate items in collection values.",
 					Subject:  &tok.Range,
 				})
 
