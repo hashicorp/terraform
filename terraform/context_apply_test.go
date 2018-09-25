@@ -2075,6 +2075,42 @@ func TestContext2Apply_compute(t *testing.T) {
 	p := testProvider("aws")
 	p.ApplyFn = testApplyFn
 	p.DiffFn = testDiffFn
+	p.GetSchemaReturn = &ProviderSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"aws_instance": {
+				Attributes: map[string]*configschema.Attribute{
+					"num": {
+						Type:     cty.Number,
+						Optional: true,
+					},
+					"compute": {
+						Type:     cty.String,
+						Optional: true,
+					},
+					"compute_value": {
+						Type:     cty.String,
+						Optional: true,
+					},
+					"foo": {
+						Type:     cty.String,
+						Optional: true,
+					},
+					"id": {
+						Type:     cty.String,
+						Computed: true,
+					},
+					"type": {
+						Type:     cty.String,
+						Computed: true,
+					},
+					"value": { // Populated from compute_value because compute = "value" in the config fixture
+						Type:     cty.String,
+						Computed: true,
+					},
+				},
+			},
+		},
+	}
 
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
