@@ -2001,7 +2001,19 @@ func TestContext2Apply_cancelProvisioner(t *testing.T) {
 	p := testProvider("aws")
 	p.ApplyFn = testApplyFn
 	p.DiffFn = testDiffFn
+
 	pr := testProvisioner()
+	pr.GetSchemaResponse = provisioners.GetSchemaResponse{
+		Provisioner: &configschema.Block{
+			Attributes: map[string]*configschema.Attribute{
+				"foo": {
+					Type:     cty.String,
+					Optional: true,
+				},
+			},
+		},
+	}
+
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
 		ProviderResolver: providers.ResolverFixed(
@@ -2043,9 +2055,7 @@ func TestContext2Apply_cancelProvisioner(t *testing.T) {
 
 	// Wait for completion
 	state := <-stateCh
-	if applyDiags.HasErrors() {
-		t.Fatalf("unexpected errors: %s", applyDiags.Err())
-	}
+	assertNoErrors(t, applyDiags)
 
 	checkStateString(t, state, `
 aws_instance.foo: (tainted)
