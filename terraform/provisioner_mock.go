@@ -119,8 +119,10 @@ func (p *MockProvisioner) ProvisionResource(r provisioners.ProvisionResourceRequ
 }
 
 func (p *MockProvisioner) Stop() error {
-	p.Lock()
-	defer p.Unlock()
+	// We intentionally don't lock in this one because the whole point of this
+	// method is to be called concurrently with another operation that can
+	// be cancelled. The provisioner itself is responsible for handling
+	// any concurrency concerns in this case.
 
 	p.StopCalled = true
 	if p.StopFn != nil {
