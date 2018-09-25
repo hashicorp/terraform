@@ -178,11 +178,47 @@ func TestApplyGraphBuilder_doubleCBD(t *testing.T) {
 		t.Fatalf("wrong path %q", g.Path.String())
 	}
 
-	actual := strings.TrimSpace(g.String())
-	expected := strings.TrimSpace(testApplyGraphBuilderDoubleCBDStr)
-	if actual != expected {
-		t.Fatalf("wrong result\n\ngot:\n%s\n\nwant:\n%s", actual, expected)
+	// We're going to go hunting for our deposed instance node here, so we
+	// can find out its key to use in the assertions below.
+	var destroyA, destroyB string
+	for _, v := range g.Vertices() {
+		tv, ok := v.(*NodeDestroyDeposedResourceInstanceObject)
+		if !ok {
+			continue
+		}
+
+		switch tv.Addr.Resource.Name {
+		case "A":
+			destroyA = fmt.Sprintf("test_object.A (destroy deposed %s)", tv.DeposedKey)
+		case "B":
+			destroyB = fmt.Sprintf("test_object.B (destroy deposed %s)", tv.DeposedKey)
+		default:
+			t.Fatalf("unknown instance: %s", tv.Addr)
+		}
 	}
+
+	// Create A, Modify B, Destroy A
+	testGraphHappensBefore(
+		t, g,
+		"test_object.A",
+		destroyA,
+	)
+	testGraphHappensBefore(
+		t, g,
+		"test_object.A",
+		"test_object.B",
+	)
+	testGraphHappensBefore(
+		t, g,
+		"test_object.B",
+		destroyB,
+	)
+
+	// actual := strings.TrimSpace(g.String())
+	// expected := strings.TrimSpace(testApplyGraphBuilderDoubleCBDStr)
+	// if actual != expected {
+	// 	t.Fatalf("wrong result\n\ngot:\n%s\n\nwant:\n%s", actual, expected)
+	// }
 }
 
 // This tests the ordering of two resources being destroyed that depend
@@ -278,11 +314,10 @@ func TestApplyGraphBuilder_destroyCount(t *testing.T) {
 	}
 
 	b := &ApplyGraphBuilder{
-		Config:        testModule(t, "graph-builder-apply-count"),
-		Changes:       changes,
-		Components:    simpleMockComponentFactory(),
-		Schemas:       simpleTestSchemas(),
-		DisableReduce: true,
+		Config:     testModule(t, "graph-builder-apply-count"),
+		Changes:    changes,
+		Components: simpleMockComponentFactory(),
+		Schemas:    simpleTestSchemas(),
 	}
 
 	g, err := b.Build(addrs.RootModuleInstance)
@@ -475,54 +510,22 @@ test_object.other (prepare state)
   provider.test
 `
 
-const testApplyGraphBuilderDoubleCBDStr = `
-meta.count-boundary (EachMode fixup)
-  provider.test
-  test_object.A
-  test_object.A (destroy)
-  test_object.B
-  test_object.B (destroy)
-provider.test
-provider.test (close)
-  provider.test
-  test_object.A
-  test_object.A (destroy)
-  test_object.B
-  test_object.B (destroy)
-root
-  meta.count-boundary (EachMode fixup)
-  provider.test (close)
-test_object.A
-  provider.test
-test_object.A (destroy)
-  provider.test
-  test_object.A
-  test_object.B
-  test_object.B (destroy)
-test_object.B
-  provider.test
-  test_object.A
-test_object.B (destroy)
-  provider.test
-  test_object.B
-`
-
 const testApplyGraphBuilderDestroyCountStr = `
 meta.count-boundary (EachMode fixup)
-  provider.test
-  test_object.A[1] (destroy)
   test_object.B
 provider.test
 provider.test (close)
-  provider.test
-  test_object.A[1] (destroy)
   test_object.B
 root
   meta.count-boundary (EachMode fixup)
   provider.test (close)
+test_object.A (prepare state)
+  provider.test
 test_object.A[1] (destroy)
-  provider.test
+  test_object.A (prepare state)
 test_object.B
-  provider.test
   test_object.A[1] (destroy)
+  test_object.B (prepare state)
+test_object.B (prepare state)
+  provider.test
 `
