@@ -1,4 +1,6 @@
-package date
+// +build windows
+
+package adal
 
 // Copyright 2017 Microsoft Corporation
 //
@@ -15,11 +17,9 @@ package date
 //  limitations under the License.
 
 import (
+	"os"
 	"strings"
-	"time"
 )
 
-// ParseTime to parse Time string to specified format.
-func ParseTime(format string, t string) (d time.Time, err error) {
-	return time.Parse(format, strings.ToUpper(t))
-}
+// msiPath is the path to the MSI Extension settings file (to discover the endpoint)
+var msiPath = strings.Join([]string{os.Getenv("SystemDrive"), "WindowsAzure/Config/ManagedIdentity-Settings"}, "/")
