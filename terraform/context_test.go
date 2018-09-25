@@ -945,6 +945,7 @@ func legacyDiffComparisonString(changes *plans.Changes) string {
 					keyLen = len(n)
 				}
 			}
+			sort.Strings(attrNamesOrder)
 
 			for _, attrK := range attrNamesOrder {
 				v := newAttrs[attrK]
