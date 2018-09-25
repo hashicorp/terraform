@@ -15,8 +15,8 @@ import (
 // Schemas is a container for various kinds of schema that Terraform needs
 // during processing.
 type Schemas struct {
-	providers    map[string]*ProviderSchema
-	provisioners map[string]*configschema.Block
+	Providers    map[string]*ProviderSchema
+	Provisioners map[string]*configschema.Block
 }
 
 // ProviderSchema returns the entire ProviderSchema object that was produced
@@ -25,10 +25,10 @@ type Schemas struct {
 // It's usually better to go use the more precise methods offered by type
 // Schemas to handle this detail automatically.
 func (ss *Schemas) ProviderSchema(typeName string) *ProviderSchema {
-	if ss.providers == nil {
+	if ss.Providers == nil {
 		return nil
 	}
-	return ss.providers[typeName]
+	return ss.Providers[typeName]
 }
 
 // ProviderConfig returns the schema for the provider configuration of the
@@ -80,7 +80,7 @@ func (ss *Schemas) DataSourceConfig(providerType string, dataSource string) *con
 // ProvisionerConfig returns the schema for the configuration of a given
 // provisioner, or nil of no such schema is available.
 func (ss *Schemas) ProvisionerConfig(name string) *configschema.Block {
-	return ss.provisioners[name]
+	return ss.Provisioners[name]
 }
 
 // LoadSchemas searches the given configuration, state  and plan (any of which
@@ -95,14 +95,14 @@ func (ss *Schemas) ProvisionerConfig(name string) *configschema.Block {
 // still valid but may be incomplete.
 func LoadSchemas(config *configs.Config, state *states.State, components contextComponentFactory) (*Schemas, error) {
 	schemas := &Schemas{
-		providers:    map[string]*ProviderSchema{},
-		provisioners: map[string]*configschema.Block{},
+		Providers:    map[string]*ProviderSchema{},
+		Provisioners: map[string]*configschema.Block{},
 	}
 	var diags tfdiags.Diagnostics
 
-	newDiags := loadProviderSchemas(schemas.providers, config, state, components)
+	newDiags := loadProviderSchemas(schemas.Providers, config, state, components)
 	diags = diags.Append(newDiags)
-	newDiags = loadProvisionerSchemas(schemas.provisioners, config, components)
+	newDiags = loadProvisionerSchemas(schemas.Provisioners, config, components)
 	diags = diags.Append(newDiags)
 
 	return schemas, diags.Err()
