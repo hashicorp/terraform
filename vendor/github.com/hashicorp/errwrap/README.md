@@ -48,7 +48,7 @@ func main() {
 	// We can use the Contains helpers to check if an error contains
 	// another error. It is safe to do this with a nil error, or with
 	// an error that doesn't even use the errwrap package.
-	if errwrap.Contains(err, ErrNotExist) {
+	if errwrap.Contains(err, "does not exist") {
 		// Do something
 	}
 	if errwrap.ContainsType(err, new(os.PathError)) {

@@ -26,8 +26,8 @@ func (b mockBody) Content(schema *hcl.BodySchema) (*hcl.BodyContent, hcl.Diagnos
 	for _, attr := range remain.C.Attributes {
 		diags = append(diags, &hcl.Diagnostic{
 			Severity: hcl.DiagError,
-			Summary:  "Extraneous attribute in mock body",
-			Detail:   fmt.Sprintf("Mock body has extraneous attribute %q.", attr.Name),
+			Summary:  "Extraneous argument in mock body",
+			Detail:   fmt.Sprintf("Mock body has extraneous argument %q.", attr.Name),
 			Subject:  &attr.NameRange,
 		})
 	}
@@ -63,8 +63,8 @@ func (b mockBody) PartialContent(schema *hcl.BodySchema) (*hcl.BodyContent, hcl.
 				if attrS.Required {
 					diags = append(diags, &hcl.Diagnostic{
 						Severity: hcl.DiagError,
-						Summary:  "Missing required attribute",
-						Detail:   fmt.Sprintf("Mock body doesn't have attribute %q", name),
+						Summary:  "Missing required argument",
+						Detail:   fmt.Sprintf("Mock body doesn't have argument %q", name),
 						Subject:  b.C.MissingItemRange.Ptr(),
 					})
 				}
