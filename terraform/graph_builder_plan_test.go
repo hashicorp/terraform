@@ -43,7 +43,7 @@ func TestPlanGraphBuilder(t *testing.T) {
 		Config:     testModule(t, "graph-builder-plan-basic"),
 		Components: components,
 		Schemas: &Schemas{
-			providers: map[string]*ProviderSchema{
+			Providers: map[string]*ProviderSchema{
 				"aws":       awsProvider.GetSchemaReturn,
 				"openstack": openstackProvider.GetSchemaReturn,
 			},
