@@ -118,9 +118,14 @@ func (c *WorkspaceSelectCommand) AutocompleteFlags() complete.Flags {
 
 func (c *WorkspaceSelectCommand) Help() string {
 	helpText := `
-Usage: terraform workspace select NAME [DIR]
+Usage: terraform workspace select [OPTIONS] NAME [DIR]
 
   Select a different Terraform workspace.
+
+
+Options:
+
+    -create         Create the workspace if it does not exist
 `
 	return strings.TrimSpace(helpText)
 }
