@@ -42,6 +42,10 @@ func TestCBDEdgeTransformer(t *testing.T) {
 	}
 }
 
+// FIXME: see if there is a worthwhile test to create from this.
+// CBD is marked on created nodes during the plan phase now, and the
+// CBDEdgeTransformer only takes care of the final edge reversal.
+/*
 func TestCBDEdgeTransformer_depNonCBD(t *testing.T) {
 	g := Graph{Path: addrs.RootModuleInstance}
 	g.Add(&graphNodeCreatorTest{AddrString: "test_object.A"})
@@ -77,6 +81,7 @@ func TestCBDEdgeTransformer_depNonCBD(t *testing.T) {
 		t.Fatalf("wrong result\n\ngot:\n%s\n\nwant:\n%s", actual, expected)
 	}
 }
+*/
 
 func TestCBDEdgeTransformer_depNonCBDCount(t *testing.T) {
 	g := Graph{Path: addrs.RootModuleInstance}
