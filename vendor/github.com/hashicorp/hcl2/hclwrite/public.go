@@ -10,8 +10,8 @@ import (
 // added t it.
 func NewFile() *File {
 	body := &Body{
-		inTree:      newInTree(),
-		indentLevel: 0,
+		inTree: newInTree(),
+		items:  newNodeSet(),
 	}
 	file := &File{
 		inTree: newInTree(),

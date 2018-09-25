@@ -19,8 +19,12 @@ func (f *File) Body() *Body {
 }
 
 // WriteTo writes the tokens underlying the receiving file to the given writer.
+//
+// The tokens first have a simple formatting pass applied that adjusts only
+// the spaces between them.
 func (f *File) WriteTo(wr io.Writer) (int, error) {
 	tokens := f.inTree.children.BuildTokens(nil)
+	format(tokens)
 	return tokens.WriteTo(wr)
 }
 

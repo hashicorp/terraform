@@ -14,15 +14,14 @@ func (val Value) GoString() string {
 		return "cty.NilVal"
 	}
 
-	if val.ty == DynamicPseudoType {
-		return "cty.DynamicVal"
-	}
-
-	if !val.IsKnown() {
-		return fmt.Sprintf("cty.UnknownVal(%#v)", val.ty)
-	}
 	if val.IsNull() {
 		return fmt.Sprintf("cty.NullVal(%#v)", val.ty)
+	}
+	if val == DynamicVal { // is unknown, so must be before the IsKnown check below
+		return "cty.DynamicVal"
+	}
+	if !val.IsKnown() {
+		return fmt.Sprintf("cty.UnknownVal(%#v)", val.ty)
 	}
 
 	// By the time we reach here we've dealt with all of the exceptions around

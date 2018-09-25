@@ -10,10 +10,6 @@ type Body struct {
 	inTree
 
 	items nodeSet
-
-	// indentLevel is the number of spaces that should appear at the start
-	// of lines added within this body.
-	indentLevel int
 }
 
 func (b *Body) appendItem(c nodeContent) *node {

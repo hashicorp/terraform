@@ -185,9 +185,7 @@ func parseBody(nativeBody *hclsyntax.Body, from inputTokens) (inputTokens, *node
 
 	body := &Body{
 		inTree: newInTree(),
-
-		indentLevel: 0, // TODO: deal with this
-		items:       newNodeSet(),
+		items:  newNodeSet(),
 	}
 
 	remain := within
