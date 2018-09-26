@@ -8959,14 +8959,11 @@ func TestContext2Apply_ignoreChangesWithDep(t *testing.T) {
 		State: s,
 	})
 
-	if _, diags := ctx.Plan(); diags.HasErrors() {
-		t.Fatalf("plan errors: %s", diags.Err())
-	}
+	_, diags := ctx.Plan()
+	assertNoErrors(t, diags)
 
 	state, diags := ctx.Apply()
-	if diags.HasErrors() {
-		t.Fatalf("diags: %s", diags.Err())
-	}
+	assertNoErrors(t, diags)
 
 	actual := strings.TrimSpace(state.String())
 	expected := strings.TrimSpace(s.String())
