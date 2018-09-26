@@ -1,4 +1,4 @@
-// Copyright 2017 Google LLC
+// Copyright 2017 Google Inc. All Rights Reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -153,9 +153,6 @@ func (w withGRPCConnectionPool) Apply(o *internal.DialSettings) {
 
 // WithAPIKey returns a ClientOption that specifies an API key to be used
 // as the basis for authentication.
-//
-// API Keys can only be used for JSON-over-HTTP APIs, including those under
-// the import path google.golang.org/api/....
 func WithAPIKey(apiKey string) ClientOption {
 	return withAPIKey(apiKey)
 }
@@ -163,16 +160,3 @@ func WithAPIKey(apiKey string) ClientOption {
 type withAPIKey string
 
 func (w withAPIKey) Apply(o *internal.DialSettings) { o.APIKey = string(w) }
-
-// WithoutAuthentication returns a ClientOption that specifies that no
-// authentication should be used. It is suitable only for testing and for
-// accessing public resources, like public Google Cloud Storage buckets.
-// It is an error to provide both WithoutAuthentication and any of WithAPIKey,
-// WithTokenSource, WithCredentialsFile or WithServiceAccountFile.
-func WithoutAuthentication() ClientOption {
-	return withoutAuthentication{}
-}
-
-type withoutAuthentication struct{}
-
-func (w withoutAuthentication) Apply(o *internal.DialSettings) { o.NoAuth = true }
