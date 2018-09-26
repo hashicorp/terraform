@@ -280,6 +280,14 @@ type RawSockaddrVM struct {
 	Zero      [4]uint8
 }
 
+type RawSockaddrXDP struct {
+	Family         uint16
+	Flags          uint16
+	Ifindex        uint32
+	Queue_id       uint32
+	Shared_umem_fd uint32
+}
+
 type RawSockaddr struct {
 	Family uint16
 	Data   [14]int8
@@ -416,6 +424,7 @@ const (
 	SizeofSockaddrCAN       = 0x10
 	SizeofSockaddrALG       = 0x58
 	SizeofSockaddrVM        = 0x10
+	SizeofSockaddrXDP       = 0x10
 	SizeofLinger            = 0x8
 	SizeofIovec             = 0x10
 	SizeofIPMreq            = 0x8
@@ -521,6 +530,13 @@ const (
 	RTA_PREF             = 0x14
 	RTA_ENCAP_TYPE       = 0x15
 	RTA_ENCAP            = 0x16
+	RTA_EXPIRES          = 0x17
+	RTA_PAD              = 0x18
+	RTA_UID              = 0x19
+	RTA_TTL_PROPAGATE    = 0x1a
+	RTA_IP_PROTO         = 0x1b
+	RTA_SPORT            = 0x1c
+	RTA_DPORT            = 0x1d
 	RTN_UNSPEC           = 0x0
 	RTN_UNICAST          = 0x1
 	RTN_LOCAL            = 0x2
@@ -1917,3 +1933,35 @@ const (
 	NETNSA_PID  = 0x2
 	NETNSA_FD   = 0x3
 )
+
+type XDPRingOffset struct {
+	Producer uint64
+	Consumer uint64
+	Desc     uint64
+}
+
+type XDPMmapOffsets struct {
+	Rx XDPRingOffset
+	Tx XDPRingOffset
+	Fr XDPRingOffset
+	Cr XDPRingOffset
+}
+
+type XDPUmemReg struct {
+	Addr     uint64
+	Len      uint64
+	Size     uint32
+	Headroom uint32
+}
+
+type XDPStatistics struct {
+	Rx_dropped       uint64
+	Rx_invalid_descs uint64
+	Tx_invalid_descs uint64
+}
+
+type XDPDesc struct {
+	Addr    uint64
+	Len     uint32
+	Options uint32
+}
