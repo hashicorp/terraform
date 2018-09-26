@@ -415,6 +415,12 @@ func (n *EvalDiff) Eval(ctx EvalContext) (interface{}, error) {
 }
 
 func (n *EvalDiff) processIgnoreChanges(schema *configschema.Block, prior, proposed cty.Value) (cty.Value, tfdiags.Diagnostics) {
+	// ignore_changes only applies when an object already exists, since we
+	// can't ignore changes to a thing we've not created yet.
+	if prior.IsNull() {
+		return proposed, nil
+	}
+
 	ignoreChanges := n.Config.Managed.IgnoreChanges
 	ignoreAll := n.Config.Managed.IgnoreAllChanges
 
