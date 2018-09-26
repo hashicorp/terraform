@@ -4274,9 +4274,8 @@ func TestContext2Apply_outputOrphanModule(t *testing.T) {
 		t.Fatalf("diags: %s", diags.Err())
 	}
 
-	actual = strings.TrimSpace(state.String())
-	if actual != "" {
-		t.Fatalf("expected no state, got:\n%s", actual)
+	if !state.Empty() {
+		t.Fatalf("wrong final state %s\nwant empty state", spew.Sdump(state))
 	}
 }
 
