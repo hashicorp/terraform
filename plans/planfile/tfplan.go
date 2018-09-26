@@ -172,6 +172,7 @@ func resourceChangeFromTfplan(rawChange *planproto.ResourceInstanceChange) (*pla
 
 	var instKey addrs.InstanceKey
 	switch rawTk := rawChange.InstanceKey.(type) {
+	case nil:
 	case *planproto.ResourceInstanceChange_Int:
 		instKey = addrs.IntKey(rawTk.Int)
 	case *planproto.ResourceInstanceChange_Str:
@@ -382,6 +383,8 @@ func resourceChangeToTfplan(change *plans.ResourceInstanceChangeSrc) (*planproto
 	ret.Name = relAddr.Resource.Name
 
 	switch tk := relAddr.Key.(type) {
+	case nil:
+		// Nothing to do, then.
 	case addrs.IntKey:
 		ret.InstanceKey = &planproto.ResourceInstanceChange_Int{
 			Int: int64(tk),
