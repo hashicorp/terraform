@@ -59,7 +59,7 @@ func State(opts *StateOpts) string {
 
 	if m.OutputValues != nil {
 		if len(m.OutputValues) > 0 {
-			p.buf.WriteString("\nOutputs:\n\n")
+			p.buf.WriteString("Outputs:\n\n")
 		}
 
 		// Sort the outputs

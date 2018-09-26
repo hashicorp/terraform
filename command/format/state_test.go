@@ -61,7 +61,7 @@ func TestState(t *testing.T) {
 				Color:   disabledColorize,
 				Schemas: testSchemas(),
 			},
-			"test_resource.baz",
+			TestOutput,
 		},
 	}
 
@@ -69,7 +69,7 @@ func TestState(t *testing.T) {
 		got := State(tt.State)
 		if got != tt.Want {
 			t.Errorf(
-				"wrong result\ninput: %v\ngot: %s\nwant: %s",
+				"wrong result\ninput: %v\ngot: \n%s\nwant: \n%s",
 				tt.State.State, got, tt.Want,
 			)
 		}
@@ -122,3 +122,13 @@ func testSchemas() *terraform.Schemas {
 		},
 	}
 }
+
+const TestOutput = `# test_resource.baz[0]: 
+resource "test_resource" "baz" {
+    woozles = "confuzles"
+}
+
+
+Outputs:
+
+bar = "bar value"`
