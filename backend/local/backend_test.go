@@ -182,7 +182,7 @@ var errTestDelegateState = errors.New("State called")
 var errTestDelegateStates = errors.New("States called")
 var errTestDelegateDeleteState = errors.New("Delete called")
 
-func (b *testDelegateBackend) State(name string) (statemgr.Full, error) {
+func (b *testDelegateBackend) StateMgr(name string) (statemgr.Full, error) {
 	if b.stateErr {
 		return nil, errTestDelegateState
 	}
@@ -190,14 +190,14 @@ func (b *testDelegateBackend) State(name string) (statemgr.Full, error) {
 	return s, nil
 }
 
-func (b *testDelegateBackend) States() ([]string, error) {
+func (b *testDelegateBackend) Workspaces() ([]string, error) {
 	if b.statesErr {
 		return nil, errTestDelegateStates
 	}
 	return []string{"default"}, nil
 }
 
-func (b *testDelegateBackend) DeleteState(name string) error {
+func (b *testDelegateBackend) DeleteWorkspace(name string) error {
 	if b.deleteErr {
 		return errTestDelegateDeleteState
 	}
