@@ -123,6 +123,9 @@ func (n *EvalDiff) Eval(ctx EvalContext) (interface{}, error) {
 	if providerSchema == nil {
 		return nil, fmt.Errorf("provider schema is unavailable for %s", n.Addr)
 	}
+	if n.ProviderAddr.ProviderConfig.Type == "" {
+		panic(fmt.Sprintf("EvalDiff for %s does not have ProviderAddr set", n.Addr.Absolute(ctx.Path())))
+	}
 
 	var diags tfdiags.Diagnostics
 
@@ -706,6 +709,14 @@ type EvalDiffDestroy struct {
 func (n *EvalDiffDestroy) Eval(ctx EvalContext) (interface{}, error) {
 	absAddr := n.Addr.Absolute(ctx.Path())
 	state := *n.State
+
+	if n.ProviderAddr.ProviderConfig.Type == "" {
+		if n.DeposedKey == "" {
+			panic(fmt.Sprintf("EvalDiffDestroy for %s does not have ProviderAddr set", absAddr))
+		} else {
+			panic(fmt.Sprintf("EvalDiffDestroy for %s (deposed %s) does not have ProviderAddr set", absAddr, n.DeposedKey))
+		}
+	}
 
 	// If there is no state or our attributes object is null then we're already
 	// destroyed.

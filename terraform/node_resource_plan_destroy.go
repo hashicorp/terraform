@@ -68,9 +68,10 @@ func (n *NodePlanDestroyableResourceInstance) EvalTree() EvalNode {
 				Output: &state,
 			},
 			&EvalDiffDestroy{
-				Addr:   addr.Resource,
-				State:  &state,
-				Output: &change,
+				Addr:         addr.Resource,
+				ProviderAddr: n.ResolvedProvider,
+				State:        &state,
+				Output:       &change,
 			},
 			&EvalCheckPreventDestroy{
 				Addr:   addr.Resource,
