@@ -241,7 +241,6 @@ func (b *Local) DeleteWorkspace(name string) error {
 
 func (b *Local) StateMgr(name string) (statemgr.Full, error) {
 	statePath, stateOutPath, backupPath := b.StatePaths(name)
-
 	// If we have a backend handling state, delegate to that.
 	if b.Backend != nil {
 		return b.Backend.StateMgr(name)
@@ -464,7 +463,6 @@ func (b *Local) StatePaths(name string) (stateIn, stateOut, backupOut string) {
 	statePath := b.StatePath
 	stateOutPath := b.StateOutPath
 	backupPath := b.StateBackupPath
-
 	if name == "" {
 		name = backend.DefaultStateName
 	}
@@ -487,7 +485,6 @@ func (b *Local) StatePaths(name string) (stateIn, stateOut, backupOut string) {
 	case "":
 		backupPath = stateOutPath + DefaultBackupExtension
 	}
-
 	return statePath, stateOutPath, backupPath
 }
 
