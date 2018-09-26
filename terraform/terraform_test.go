@@ -626,6 +626,7 @@ foo = bar
 `
 
 const testTerraformApplyOutputOrphanModuleStr = `
+<no state>
 module.child:
   <no state>
   Outputs:
