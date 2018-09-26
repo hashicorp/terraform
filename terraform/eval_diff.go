@@ -775,33 +775,6 @@ func (n *EvalDiffDestroy) Eval(ctx EvalContext) (interface{}, error) {
 	return nil, nil
 }
 
-// EvalDiffDestroyModule is an EvalNode implementation that writes the diff to
-// the full diff.
-type EvalDiffDestroyModule struct {
-	Path addrs.ModuleInstance
-}
-
-// TODO: test
-func (n *EvalDiffDestroyModule) Eval(ctx EvalContext) (interface{}, error) {
-	return nil, fmt.Errorf("EvalDiffDestroyModule not yet updated for new plan types")
-	/*
-		diff, lock := ctx.Diff()
-
-		// Acquire the lock so that we can do this safely concurrently
-		lock.Lock()
-		defer lock.Unlock()
-
-		// Write the diff
-		modDiff := diff.ModuleByPath(n.Path)
-		if modDiff == nil {
-			modDiff = diff.AddModule(n.Path)
-		}
-		modDiff.Destroy = true
-
-		return nil, nil
-	*/
-}
-
 // EvalReduceDiff is an EvalNode implementation that takes a planned resource
 // instance change as might be produced by EvalDiff or EvalDiffDestroy and
 // "simplifies" it to a single atomic action to be performed by a specific
