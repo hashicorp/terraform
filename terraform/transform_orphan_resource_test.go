@@ -10,7 +10,7 @@ import (
 	"github.com/hashicorp/terraform/states"
 )
 
-func TestOrphanResourceTransformer(t *testing.T) {
+func TestOrphanResourceInstanceTransformer(t *testing.T) {
 	mod := testModule(t, "transform-orphan-basic")
 
 	state := states.BuildState(func(s *states.SyncState) {
@@ -59,7 +59,7 @@ func TestOrphanResourceTransformer(t *testing.T) {
 	}
 
 	{
-		tf := &OrphanResourceTransformer{
+		tf := &OrphanResourceInstanceTransformer{
 			Concrete: testOrphanResourceConcreteFunc,
 			State:    state,
 			Config:   mod,
@@ -76,7 +76,7 @@ func TestOrphanResourceTransformer(t *testing.T) {
 	}
 }
 
-func TestOrphanResourceTransformer_countGood(t *testing.T) {
+func TestOrphanResourceInstanceTransformer_countGood(t *testing.T) {
 	mod := testModule(t, "transform-orphan-count")
 
 	state := states.BuildState(func(s *states.SyncState) {
@@ -123,7 +123,7 @@ func TestOrphanResourceTransformer_countGood(t *testing.T) {
 	}
 
 	{
-		tf := &OrphanResourceTransformer{
+		tf := &OrphanResourceInstanceTransformer{
 			Concrete: testOrphanResourceConcreteFunc,
 			State:    state,
 			Config:   mod,
@@ -140,7 +140,7 @@ func TestOrphanResourceTransformer_countGood(t *testing.T) {
 	}
 }
 
-func TestOrphanResourceTransformer_countBad(t *testing.T) {
+func TestOrphanResourceInstanceTransformer_countBad(t *testing.T) {
 	mod := testModule(t, "transform-orphan-count-empty")
 	state := states.BuildState(func(s *states.SyncState) {
 		s.SetResourceInstanceCurrent(
@@ -186,7 +186,7 @@ func TestOrphanResourceTransformer_countBad(t *testing.T) {
 	}
 
 	{
-		tf := &OrphanResourceTransformer{
+		tf := &OrphanResourceInstanceTransformer{
 			Concrete: testOrphanResourceConcreteFunc,
 			State:    state,
 			Config:   mod,
@@ -203,7 +203,7 @@ func TestOrphanResourceTransformer_countBad(t *testing.T) {
 	}
 }
 
-func TestOrphanResourceTransformer_modules(t *testing.T) {
+func TestOrphanResourceInstanceTransformer_modules(t *testing.T) {
 	mod := testModule(t, "transform-orphan-modules")
 	state := states.BuildState(func(s *states.SyncState) {
 		s.SetResourceInstanceCurrent(
@@ -249,7 +249,7 @@ func TestOrphanResourceTransformer_modules(t *testing.T) {
 	}
 
 	{
-		tf := &OrphanResourceTransformer{
+		tf := &OrphanResourceInstanceTransformer{
 			Concrete: testOrphanResourceConcreteFunc,
 			State:    state,
 			Config:   mod,
