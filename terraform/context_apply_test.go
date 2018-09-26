@@ -6282,9 +6282,8 @@ func TestContext2Apply_destroyDeeplyNestedModule(t *testing.T) {
 	}
 
 	// Test that things were destroyed
-	actual := strings.TrimSpace(state.String())
-	if actual != "" {
-		t.Fatalf("epected no state, got: %s", actual)
+	if !state.Empty() {
+		t.Fatalf("wrong final state %s\nwant empty state", spew.Sdump(state))
 	}
 }
 
