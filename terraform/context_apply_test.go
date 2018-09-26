@@ -1,6 +1,7 @@
 package terraform
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -4762,6 +4763,16 @@ func TestContext2Apply_multiDepose_createBeforeDestroy(t *testing.T) {
 	m := testModule(t, "apply-multi-depose-create-before-destroy")
 	p := testProvider("aws")
 	p.DiffFn = testDiffFn
+	p.GetSchemaReturn = &ProviderSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"aws_instance": {
+				Attributes: map[string]*configschema.Attribute{
+					"require_new": {Type: cty.String, Optional: true},
+					"id":          {Type: cty.String, Computed: true},
+				},
+			},
+		},
+	}
 	ps := map[string]providers.Factory{"aws": testProviderFuncFixed(p)}
 	state := mustShimLegacyState(&State{
 		Modules: []*ModuleState{
@@ -4835,13 +4846,37 @@ aws_instance.web: (1 deposed)
 		t.Fatal("should have error")
 	}
 
-	checkStateString(t, state, `
-aws_instance.web: (2 deposed)
-  ID = baz
-  provider = provider.aws
-  Deposed ID 1 = foo
-  Deposed ID 2 = bar
-	`)
+	// For this one we can't rely on checkStateString because its result is
+	// not deterministic when multiple deposed objects are present. Instead,
+	// we will probe the state object directly.
+	{
+		is := state.RootModule().Resources["aws_instance.web"].Instances[addrs.NoKey]
+		t.Logf("aws_instance.web is %s", spew.Sdump(is))
+		if is.Current == nil {
+			t.Fatalf("no current object for aws_instance web; should have one")
+		}
+		if !bytes.Contains(is.Current.AttrsJSON, []byte("baz")) {
+			t.Fatalf("incorrect current object attrs %s; want id=baz", is.Current.AttrsJSON)
+		}
+		if got, want := len(is.Deposed), 2; got != want {
+			t.Fatalf("wrong number of deposed instances %d; want %d", got, want)
+		}
+		var foos, bars int
+		for _, obj := range is.Deposed {
+			if bytes.Contains(obj.AttrsJSON, []byte("foo")) {
+				foos++
+			}
+			if bytes.Contains(obj.AttrsJSON, []byte("bar")) {
+				bars++
+			}
+		}
+		if got, want := foos, 1; got != want {
+			t.Fatalf("wrong number of deposed instances with id=foo %d; want %d", got, want)
+		}
+		if got, want := bars, 1; got != want {
+			t.Fatalf("wrong number of deposed instances with id=bar %d; want %d", got, want)
+		}
+	}
 
 	// Destroy partially fixed!
 	destroyFunc = func(is *InstanceState) (*InstanceState, error) {
