@@ -9002,15 +9002,14 @@ func TestContext2Apply_ignoreChangesWildcard(t *testing.T) {
 	})
 
 	if p, diags := ctx.Plan(); diags.HasErrors() {
-		t.Fatalf("diags: %s", diags.Err())
+		logDiagnostics(t, diags)
+		t.Fatal("plan failed")
 	} else {
 		t.Logf(legacyDiffComparisonString(p.Changes))
 	}
 
 	state, diags := ctx.Apply()
-	if diags.HasErrors() {
-		t.Fatalf("diags: %s", diags.Err())
-	}
+	assertNoErrors(t, diags)
 
 	mod := state.RootModule()
 	if len(mod.Resources) != 1 {
