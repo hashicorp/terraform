@@ -6,10 +6,12 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/mitchellh/colorstring"
-
+	"github.com/hashicorp/terraform/addrs"
+	"github.com/hashicorp/terraform/configs/configschema"
+	"github.com/hashicorp/terraform/plans"
 	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/terraform"
+	"github.com/mitchellh/colorstring"
 )
 
 // StateOpts are the options for formatting a state.
@@ -17,12 +19,11 @@ type StateOpts struct {
 	// State is the state to format. This is required.
 	State *states.State
 
+	// Schemas are used to decode attributes. This is required.
+	Schemas *terraform.Schemas
+
 	// Color is the colorizer. This is optional.
 	Color *colorstring.Colorize
-
-	// ModuleDepth is the depth of the modules to expand. By default this
-	// is zero which will not expand modules at all.
-	ModuleDepth int
 }
 
 // State takes a state and returns a string
@@ -31,130 +32,130 @@ func State(opts *StateOpts) string {
 		panic("colorize not given")
 	}
 
+	if opts.Schemas == nil {
+		panic("schemas not given")
+	}
+
 	s := opts.State
 	if len(s.Modules) == 0 {
 		return "The state file is empty. No resources are represented."
 	}
 
-	// FIXME: State formatter not yet updated for new state types
-	return "FIXME: State formatter not yet updated for new state types"
-
-	/*var buf bytes.Buffer
+	var buf bytes.Buffer
 	buf.WriteString("[reset]")
+	p := blockBodyDiffPrinter{
+		buf:    &buf,
+		color:  opts.Color,
+		action: plans.NoOp,
+	}
 
 	// Format all the modules
 	for _, m := range s.Modules {
-		if len(m.Path)-1 <= opts.ModuleDepth || opts.ModuleDepth == -1 {
-			formatStateModuleExpand(&buf, m, opts)
-		} else {
-			formatStateModuleSingle(&buf, m, opts)
-		}
+		formatStateModule(p, m, opts.Schemas)
 	}
 
 	// Write the outputs for the root module
 	m := s.RootModule()
-	if len(m.Outputs) > 0 {
-		buf.WriteString("\nOutputs:\n\n")
+
+	if m.OutputValues != nil {
+		if len(m.OutputValues) > 0 {
+			p.buf.WriteString("Outputs:\n\n")
+		}
 
 		// Sort the outputs
-		ks := make([]string, 0, len(m.Outputs))
-		for k, _ := range m.Outputs {
+		ks := make([]string, 0, len(m.OutputValues))
+		for k := range m.OutputValues {
 			ks = append(ks, k)
 		}
 		sort.Strings(ks)
 
 		// Output each output k/v pair
 		for _, k := range ks {
-			v := m.Outputs[k]
-			switch output := v.Value.(type) {
-			case string:
-				buf.WriteString(fmt.Sprintf("%s = %s", k, output))
-				buf.WriteString("\n")
-			case []interface{}:
-				buf.WriteString(formatListOutput("", k, output))
-				buf.WriteString("\n")
-			case map[string]interface{}:
-				buf.WriteString(formatMapOutput("", k, output))
-				buf.WriteString("\n")
-			}
+			v := m.OutputValues[k]
+			p.buf.WriteString(fmt.Sprintf("%s = ", k))
+			p.writeValue(v.Value, plans.NoOp, 0)
 		}
 	}
 
-	return opts.Color.Color(strings.TrimSpace(buf.String()))
-	*/
+	return opts.Color.Color(strings.TrimSpace(p.buf.String()))
+
 }
 
-func formatStateModuleExpand(
-	buf *bytes.Buffer, m *terraform.ModuleState, opts *StateOpts) {
+func formatStateModule(
+	p blockBodyDiffPrinter, m *states.Module, schemas *terraform.Schemas) {
+
 	var moduleName string
-	if !m.IsRoot() {
-		moduleName = fmt.Sprintf("module.%s", strings.Join(m.Path[1:], "."))
+	if !m.Addr.IsRoot() {
+		moduleName = fmt.Sprintf("module.%s", m.Addr.String())
 	}
 
 	// First get the names of all the resources so we can show them
 	// in alphabetical order.
 	names := make([]string, 0, len(m.Resources))
-	for name, _ := range m.Resources {
+	for name := range m.Resources {
 		names = append(names, name)
 	}
 	sort.Strings(names)
 
 	// Go through each resource and begin building up the output.
-	for _, k := range names {
-		name := k
-		if moduleName != "" {
-			name = moduleName + "." + name
-		}
-
-		rs := m.Resources[k]
-		is := rs.Primary
-		var id string
-		if is != nil {
-			id = is.ID
-		}
-		if id == "" {
-			id = "<not created>"
-		}
-
+	for _, key := range names {
 		taintStr := ""
-		if rs.Primary != nil && rs.Primary.Tainted {
-			taintStr = " (tainted)"
-		}
+		instances := m.Resources[key].Instances
+		for k, v := range instances {
+			name := key
+			if moduleName != "" {
+				name = moduleName + "." + name
+			}
 
-		buf.WriteString(fmt.Sprintf("%s:%s\n", name, taintStr))
-		buf.WriteString(fmt.Sprintf("  id = %s\n", id))
+			addr := m.Resources[key].Addr
+			if v.Current.Status == 'T' {
+				taintStr = "(tainted)"
+			}
+			p.buf.WriteString(fmt.Sprintf("# %s: %s\n", addr.Instance(k), taintStr))
+			taintStr = ""
 
-		if is != nil {
-			// Sort the attributes
-			attrKeys := make([]string, 0, len(is.Attributes))
-			for ak, _ := range is.Attributes {
-				// Skip the id attribute since we just show the id directly
-				if ak == "id" {
-					continue
+			var schema *configschema.Block
+			provider := m.Resources[key].ProviderConfig.ProviderConfig.StringCompact()
+
+			switch addr.Mode {
+			case addrs.ManagedResourceMode:
+				p.buf.WriteString(fmt.Sprintf(
+					"resource %q %q {\n",
+					addr.Type,
+					addr.Name,
+				))
+				schema = schemas.Providers[provider].ResourceTypes[addr.Type]
+			case addrs.DataResourceMode:
+				p.buf.WriteString(fmt.Sprintf(
+					"data %q %q {\n",
+					addr.Type,
+					addr.Name,
+				))
+				schema = schemas.Providers[provider].DataSources[addr.Type]
+			default:
+				// should never happen, since the above is exhaustive
+				p.buf.WriteString(addr.String())
+			}
+
+			val, err := v.Current.Decode(schema.ImpliedType())
+
+			if err != nil {
+				fmt.Println(err.Error())
+				break
+			}
+			for name := range schema.Attributes {
+				attr := ctyGetAttrMaybeNull(val.Value, name)
+				if !attr.IsNull() {
+					p.buf.WriteString(fmt.Sprintf("    %s = ", name))
+					attr := ctyGetAttrMaybeNull(val.Value, name)
+					p.writeValue(attr, plans.NoOp, 4)
+					p.buf.WriteString("\n")
 				}
-
-				attrKeys = append(attrKeys, ak)
 			}
-			sort.Strings(attrKeys)
-
-			// Output each attribute
-			for _, ak := range attrKeys {
-				av := is.Attributes[ak]
-				buf.WriteString(fmt.Sprintf("  %s = %s\n", ak, av))
-			}
+			p.buf.WriteString("}\n\n")
 		}
 	}
-
-	buf.WriteString("[reset]\n")
-}
-
-func formatStateModuleSingle(
-	buf *bytes.Buffer, m *terraform.ModuleState, opts *StateOpts) {
-	// Header with the module name
-	buf.WriteString(fmt.Sprintf("module.%s\n", strings.Join(m.Path[1:], ".")))
-
-	// Now just write how many resources are in here.
-	buf.WriteString(fmt.Sprintf("  %d resource(s)\n", len(m.Resources)))
+	p.buf.WriteString("[reset]\n")
 }
 
 func formatNestedList(indent string, outputList []interface{}) string {
