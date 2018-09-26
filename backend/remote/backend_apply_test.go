@@ -91,7 +91,7 @@ func TestRemote_applyWithVCS(t *testing.T) {
 	<-run.Done()
 
 	if run.Err == nil {
-		t.Fatalf("expected a apply error, got: %v", run.Err)
+		t.Fatalf("expected an apply error, got: %v", run.Err)
 	}
 	if !strings.Contains(run.Err.Error(), "not allowed for workspaces with a VCS") {
 		t.Fatalf("expected a VCS error, got: %v", run.Err)
@@ -116,7 +116,7 @@ func TestRemote_applyWithPlan(t *testing.T) {
 	<-run.Done()
 
 	if run.Err == nil {
-		t.Fatalf("expected a apply error, got: %v", run.Err)
+		t.Fatalf("expected an apply error, got: %v", run.Err)
 	}
 	if !strings.Contains(run.Err.Error(), "saved plan is currently not supported") {
 		t.Fatalf("expected a saved plan error, got: %v", run.Err)
@@ -141,7 +141,7 @@ func TestRemote_applyWithTarget(t *testing.T) {
 	<-run.Done()
 
 	if run.Err == nil {
-		t.Fatalf("expected a apply error, got: %v", run.Err)
+		t.Fatalf("expected an apply error, got: %v", run.Err)
 	}
 	if !strings.Contains(run.Err.Error(), "targeting is currently not supported") {
 		t.Fatalf("expected a targeting error, got: %v", run.Err)
@@ -162,7 +162,7 @@ func TestRemote_applyNoConfig(t *testing.T) {
 	<-run.Done()
 
 	if run.Err == nil {
-		t.Fatalf("expected a apply error, got: %v", run.Err)
+		t.Fatalf("expected an apply error, got: %v", run.Err)
 	}
 	if !strings.Contains(run.Err.Error(), "configuration files found") {
 		t.Fatalf("expected configuration files error, got: %v", run.Err)
@@ -218,10 +218,10 @@ func TestRemote_applyNoApprove(t *testing.T) {
 
 	<-run.Done()
 	if run.Err == nil {
-		t.Fatalf("expected a apply error, got: %v", run.Err)
+		t.Fatalf("expected an apply error, got: %v", run.Err)
 	}
 	if !strings.Contains(run.Err.Error(), "Apply discarded") {
-		t.Fatalf("expected a apply discarded error, got: %v", run.Err)
+		t.Fatalf("expected an apply discarded error, got: %v", run.Err)
 	}
 	if len(input.answers) > 0 {
 		t.Fatalf("expected no unused answers, got: %v", input.answers)
@@ -404,5 +404,177 @@ func TestRemote_applyDestroyNoConfig(t *testing.T) {
 
 	if len(input.answers) > 0 {
 		t.Fatalf("expected no unused answers, got: %v", input.answers)
+	}
+}
+
+func TestRemote_applyPolicyPass(t *testing.T) {
+	b := testBackendDefault(t)
+
+	mod, modCleanup := module.TestTree(t, "./test-fixtures/apply-policy-passed")
+	defer modCleanup()
+
+	input := testInput(t, map[string]string{
+		"approve": "yes",
+	})
+
+	op := testOperationApply()
+	op.Module = mod
+	op.UIIn = input
+	op.UIOut = b.CLI
+	op.Workspace = backend.DefaultStateName
+
+	run, err := b.Operation(context.Background(), op)
+	if err != nil {
+		t.Fatalf("error starting operation: %v", err)
+	}
+
+	<-run.Done()
+	if run.Err != nil {
+		t.Fatalf("error running operation: %v", run.Err)
+	}
+
+	if len(input.answers) > 0 {
+		t.Fatalf("expected no unused answers, got: %v", input.answers)
+	}
+
+	output := b.CLI.(*cli.MockUi).OutputWriter.String()
+	if !strings.Contains(output, "1 to add, 0 to change, 0 to destroy") {
+		t.Fatalf("missing plan summery in output: %s", output)
+	}
+	if !strings.Contains(output, "Sentinel Result: true") {
+		t.Fatalf("missing Sentinel result in output: %s", output)
+	}
+	if !strings.Contains(output, "1 added, 0 changed, 0 destroyed") {
+		t.Fatalf("missing apply summery in output: %s", output)
+	}
+}
+
+func TestRemote_applyPolicyHardFail(t *testing.T) {
+	b := testBackendDefault(t)
+
+	mod, modCleanup := module.TestTree(t, "./test-fixtures/apply-policy-hard-failed")
+	defer modCleanup()
+
+	input := testInput(t, map[string]string{
+		"approve": "yes",
+	})
+
+	op := testOperationApply()
+	op.Module = mod
+	op.UIIn = input
+	op.UIOut = b.CLI
+	op.Workspace = backend.DefaultStateName
+
+	run, err := b.Operation(context.Background(), op)
+	if err != nil {
+		t.Fatalf("error starting operation: %v", err)
+	}
+
+	<-run.Done()
+	if run.Err == nil {
+		t.Fatalf("expected an apply error, got: %v", run.Err)
+	}
+	if !strings.Contains(run.Err.Error(), "hard failed") {
+		t.Fatalf("expected a policy check error, got: %v", run.Err)
+	}
+	if len(input.answers) != 1 {
+		t.Fatalf("expected an unused answers, got: %v", input.answers)
+	}
+
+	output := b.CLI.(*cli.MockUi).OutputWriter.String()
+	if !strings.Contains(output, "1 to add, 0 to change, 0 to destroy") {
+		t.Fatalf("missing plan summery in output: %s", output)
+	}
+	if !strings.Contains(output, "Sentinel Result: false") {
+		t.Fatalf("missing Sentinel result in output: %s", output)
+	}
+	if strings.Contains(output, "1 added, 0 changed, 0 destroyed") {
+		t.Fatalf("unexpected apply summery in output: %s", output)
+	}
+}
+
+func TestRemote_applyPolicySoftFail(t *testing.T) {
+	b := testBackendDefault(t)
+
+	mod, modCleanup := module.TestTree(t, "./test-fixtures/apply-policy-soft-failed")
+	defer modCleanup()
+
+	input := testInput(t, map[string]string{
+		"override": "override",
+		"approve":  "yes",
+	})
+
+	op := testOperationApply()
+	op.Module = mod
+	op.UIIn = input
+	op.UIOut = b.CLI
+	op.Workspace = backend.DefaultStateName
+
+	run, err := b.Operation(context.Background(), op)
+	if err != nil {
+		t.Fatalf("error starting operation: %v", err)
+	}
+
+	<-run.Done()
+	if run.Err != nil {
+		t.Fatalf("error running operation: %v", run.Err)
+	}
+
+	if len(input.answers) > 0 {
+		t.Fatalf("expected no unused answers, got: %v", input.answers)
+	}
+
+	output := b.CLI.(*cli.MockUi).OutputWriter.String()
+	if !strings.Contains(output, "1 to add, 0 to change, 0 to destroy") {
+		t.Fatalf("missing plan summery in output: %s", output)
+	}
+	if !strings.Contains(output, "Sentinel Result: false") {
+		t.Fatalf("missing Sentinel result in output: %s", output)
+	}
+	if !strings.Contains(output, "1 added, 0 changed, 0 destroyed") {
+		t.Fatalf("missing apply summery in output: %s", output)
+	}
+}
+
+func TestRemote_applyPolicySoftFailAutoApprove(t *testing.T) {
+	b := testBackendDefault(t)
+
+	mod, modCleanup := module.TestTree(t, "./test-fixtures/apply-policy-soft-failed")
+	defer modCleanup()
+
+	input := testInput(t, map[string]string{
+		"override": "override",
+	})
+
+	op := testOperationApply()
+	op.AutoApprove = true
+	op.Module = mod
+	op.UIIn = input
+	op.UIOut = b.CLI
+	op.Workspace = backend.DefaultStateName
+
+	run, err := b.Operation(context.Background(), op)
+	if err != nil {
+		t.Fatalf("error starting operation: %v", err)
+	}
+
+	<-run.Done()
+	if run.Err != nil {
+		t.Fatalf("error running operation: %v", run.Err)
+	}
+
+	if len(input.answers) > 0 {
+		t.Fatalf("expected no unused answers, got: %v", input.answers)
+	}
+
+	output := b.CLI.(*cli.MockUi).OutputWriter.String()
+	if !strings.Contains(output, "1 to add, 0 to change, 0 to destroy") {
+		t.Fatalf("missing plan summery in output: %s", output)
+	}
+	if !strings.Contains(output, "Sentinel Result: false") {
+		t.Fatalf("missing Sentinel result in output: %s", output)
+	}
+	if !strings.Contains(output, "1 added, 0 changed, 0 destroyed") {
+		t.Fatalf("missing apply summery in output: %s", output)
 	}
 }

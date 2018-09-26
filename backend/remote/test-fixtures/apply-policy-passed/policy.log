@@ -1,7 +1,3 @@
-------------------------------------------------------------------------
-
-Organization policy check:
-
 Sentinel Result: true
 
 This result means that Sentinel policies returned true and the protected
