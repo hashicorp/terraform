@@ -9181,24 +9181,20 @@ func TestContext2Apply_dataDependsOn(t *testing.T) {
 	p.ReadDataSourceFn = func(req providers.ReadDataSourceRequest) providers.ReadDataSourceResponse {
 		return providers.ReadDataSourceResponse{
 			State: cty.ObjectVal(map[string]cty.Value{
+				"id":  cty.StringVal("boop"),
 				"foo": cty.StringVal(provisionerOutput),
 			}),
 		}
 	}
 
 	_, diags := ctx.Refresh()
-	if diags.HasErrors() {
-		t.Fatalf("diags: %s", diags.Err())
-	}
+	assertNoErrors(t, diags)
 
-	if _, diags := ctx.Plan(); diags.HasErrors() {
-		t.Fatalf("plan errors: %s", diags.Err())
-	}
+	_, diags = ctx.Plan()
+	assertNoErrors(t, diags)
 
 	state, diags := ctx.Apply()
-	if diags.HasErrors() {
-		t.Fatalf("diags: %s", diags.Err())
-	}
+	assertNoErrors(t, diags)
 
 	root := state.Module(addrs.RootModuleInstance)
 	var attrs map[string]interface{}
