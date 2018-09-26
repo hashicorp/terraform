@@ -492,10 +492,6 @@ aws_instance.foo.0:
   type = aws_instance
 `
 
-const testTerraformApplyCountTaintedStr = `
-<no state>
-`
-
 const testTerraformApplyCountVariableStr = `
 aws_instance.foo.0:
   ID = foo
