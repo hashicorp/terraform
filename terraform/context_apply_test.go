@@ -7725,6 +7725,10 @@ func TestContext2Apply_destroyProvisionerWithMultipleLocals(t *testing.T) {
 	pr.GetSchemaResponse = provisioners.GetSchemaResponse{
 		Provisioner: &configschema.Block{
 			Attributes: map[string]*configschema.Attribute{
+				"id": {
+					Type:     cty.String,
+					Required: true,
+				},
 				"command": {
 					Type:     cty.String,
 					Required: true,
@@ -7742,8 +7746,12 @@ func TestContext2Apply_destroyProvisionerWithMultipleLocals(t *testing.T) {
 		if !ok {
 			return errors.New("no command in provisioner")
 		}
+		id, ok := rc.Get("id")
+		if !ok {
+			return errors.New("no id in provisioner")
+		}
 
-		switch is.ID {
+		switch id {
 		case "1234":
 			if cmd != "local" {
 				return fmt.Errorf("provisioner %q got:%q", is.ID, cmd)
