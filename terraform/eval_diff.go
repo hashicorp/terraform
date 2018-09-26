@@ -56,15 +56,23 @@ func (n *EvalCheckPlannedChange) Eval(ctx EvalContext) (interface{}, error) {
 	log.Printf("[TRACE] EvalCheckPlannedChange: Verifying that actual change (action %s) matches planned change (action %s)", actualChange.Action, plannedChange.Action)
 
 	if plannedChange.Action != actualChange.Action {
-		diags = diags.Append(tfdiags.Sourceless(
-			tfdiags.Error,
-			"Provider produced inconsistent final plan",
-			fmt.Sprintf(
-				"When expanding the plan for %s to include new values learned so far during apply, provider %q changed the planned action from %s to %s.\n\nThis is a bug in the provider, which should be reported in the provider's own issue tracker.",
-				absAddr, n.ProviderAddr.ProviderConfig.Type,
-				plannedChange.Action, actualChange.Action,
-			),
-		))
+		switch {
+		case plannedChange.Action == plans.Update && actualChange.Action == plans.NoOp:
+			// It's okay for an update to become a NoOp once we've filled in
+			// all of the unknown values, since the final values might actually
+			// match what was there before after all.
+			log.Printf("[DEBUG] After incorporating new values learned so far during apply, %s change has become NoOp", absAddr)
+		default:
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Provider produced inconsistent final plan",
+				fmt.Sprintf(
+					"When expanding the plan for %s to include new values learned so far during apply, provider %q changed the planned action from %s to %s.\n\nThis is a bug in the provider, which should be reported in the provider's own issue tracker.",
+					absAddr, n.ProviderAddr.ProviderConfig.Type,
+					plannedChange.Action, actualChange.Action,
+				),
+			))
+		}
 	}
 
 	errs := objchange.AssertObjectCompatible(schema, plannedChange.After, actualChange.After)
