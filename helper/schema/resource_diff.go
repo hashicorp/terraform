@@ -231,7 +231,7 @@ func (d *ResourceDiff) UpdatedKeys() []string {
 // Note that this does not wipe an override. This function is only allowed on
 // computed keys.
 func (d *ResourceDiff) Clear(key string) error {
-	if err := d.checkKey(key, "Clear"); err != nil {
+	if err := d.checkKey(key, "Clear", true); err != nil {
 		return err
 	}
 
@@ -287,7 +287,7 @@ func (d *ResourceDiff) diffChange(key string) (interface{}, interface{}, bool, b
 //
 // This function is only allowed on computed attributes.
 func (d *ResourceDiff) SetNew(key string, value interface{}) error {
-	if err := d.checkKey(key, "SetNew"); err != nil {
+	if err := d.checkKey(key, "SetNew", false); err != nil {
 		return err
 	}
 
@@ -299,7 +299,7 @@ func (d *ResourceDiff) SetNew(key string, value interface{}) error {
 //
 // This function is only allowed on computed attributes.
 func (d *ResourceDiff) SetNewComputed(key string) error {
-	if err := d.checkKey(key, "SetNewComputed"); err != nil {
+	if err := d.checkKey(key, "SetNewComputed", false); err != nil {
 		return err
 	}
 
@@ -535,13 +535,21 @@ func childAddrOf(child, parent string) bool {
 }
 
 // checkKey checks the key to make sure it exists and is computed.
-func (d *ResourceDiff) checkKey(key, caller string) error {
-	keyParts := strings.Split(key, ".")
+func (d *ResourceDiff) checkKey(key, caller string, nested bool) error {
 	var schema *Schema
-	schemaL := addrToSchema(keyParts, d.schema)
-	if len(schemaL) > 0 {
-		schema = schemaL[len(schemaL)-1]
+	if nested {
+		keyParts := strings.Split(key, ".")
+		schemaL := addrToSchema(keyParts, d.schema)
+		if len(schemaL) > 0 {
+			schema = schemaL[len(schemaL)-1]
+		}
 	} else {
+		s, ok := d.schema[key]
+		if ok {
+			schema = s
+		}
+	}
+	if schema == nil {
 		return fmt.Errorf("%s: invalid key: %s", caller, key)
 	}
 	if !schema.Computed {
