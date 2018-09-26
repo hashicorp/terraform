@@ -82,6 +82,7 @@ func testBackend(t *testing.T, c map[string]interface{}) *Remote {
 	b.client.ConfigurationVersions = mc.ConfigurationVersions
 	b.client.Organizations = mc.Organizations
 	b.client.Plans = mc.Plans
+	b.client.PolicyChecks = mc.PolicyChecks
 	b.client.Runs = mc.Runs
 	b.client.StateVersions = mc.StateVersions
 	b.client.Workspaces = mc.Workspaces

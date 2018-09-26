@@ -144,7 +144,12 @@ func (b *Remote) plan(stopCtx, cancelCtx context.Context, op *backend.Operation,
 					if b.CLI != nil {
 						b.CLI.Output(b.Colorize().Color(strings.TrimSpace(lockTimeoutErr)))
 					}
-					syscall.Kill(syscall.Getpid(), syscall.SIGINT)
+					p, err := os.FindProcess(os.Getpid())
+					if err != nil {
+						log.Printf("[ERROR] error searching process ID: %v", err)
+						return
+					}
+					p.Signal(syscall.SIGINT)
 				}
 			}
 		}()

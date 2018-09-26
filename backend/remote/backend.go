@@ -461,6 +461,9 @@ func (b *Remote) cancel(cancelCtx context.Context, r *tfe.Run) error {
 		if err != nil {
 			return generalError("error cancelling run", err)
 		}
+		if b.CLI != nil {
+			b.CLI.Output(b.Colorize().Color(strings.TrimSpace(cancelPendingOperation)))
+		}
 	}
 
 	return nil
@@ -509,6 +512,10 @@ The "remote" backend encountered an unexpected error while communicating
 with remote backend. In some cases this could be caused by a network
 connection problem, in which case you could retry the command. If the issue
 persists please open a support ticket to get help resolving the problem.
+`
+
+const cancelPendingOperation = `[reset][red]
+Pending remote operation cancelled.[reset]
 `
 
 var schemaDescriptions = map[string]string{
