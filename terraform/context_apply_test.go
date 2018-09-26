@@ -2380,19 +2380,43 @@ func TestContext2Apply_countTainted(t *testing.T) {
 		State: s,
 	})
 
-	if _, diags := ctx.Plan(); diags.HasErrors() {
-		t.Fatalf("plan errors: %s", diags.Err())
+	{
+		plan, diags := ctx.Plan()
+		assertNoErrors(t, diags)
+		got := strings.TrimSpace(legacyDiffComparisonString(plan.Changes))
+		want := strings.TrimSpace(`
+DESTROY/CREATE: aws_instance.foo[0]
+  foo:  "foo" => "foo"
+  id:   "bar" => "<computed>"
+  type: "aws_instance" => "aws_instance"
+CREATE: aws_instance.foo[1]
+  foo:  "" => "foo"
+  id:   "" => "<computed>"
+  type: "" => "aws_instance"
+`)
+		if got != want {
+			t.Fatalf("wrong plan\n\ngot:\n%s\n\nwant:\n%s", got, want)
+		}
 	}
 
 	state, diags := ctx.Apply()
-	if diags.HasErrors() {
-		t.Fatalf("diags: %s", diags.Err())
-	}
+	assertNoErrors(t, diags)
 
 	got := strings.TrimSpace(state.String())
-	want := strings.TrimSpace(testTerraformApplyCountTaintedStr)
+	want := strings.TrimSpace(`
+aws_instance.foo.0:
+  ID = foo
+  provider = provider.aws
+  foo = foo
+  type = aws_instance
+aws_instance.foo.1:
+  ID = foo
+  provider = provider.aws
+  foo = foo
+  type = aws_instance
+`)
 	if got != want {
-		t.Fatalf("wrong result\n\ngot:\n%s\n\nwant:\n%s", got, want)
+		t.Fatalf("wrong final state\n\ngot:\n%s\n\nwant:\n%s", got, want)
 	}
 }
 
