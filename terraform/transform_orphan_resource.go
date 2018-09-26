@@ -6,13 +6,15 @@ import (
 	"github.com/hashicorp/terraform/states"
 )
 
-// OrphanResourceTransformer is a GraphTransformer that adds resource
-// orphans to the graph. A resource orphan is a resource that is
-// represented in the state but not in the configuration.
-//
-// This only adds orphans that have no representation at all in the
+// OrphanResourceInstanceTransformer is a GraphTransformer that adds orphaned
+// resource instances to the graph. An "orphan" is an instance that is present
+// in the state but belongs to a resource that is no longer present in the
 // configuration.
-type OrphanResourceTransformer struct {
+//
+// This is not the transformer that deals with "count orphans" (instances that
+// are no longer covered by a resource's "count" or "for_each" setting); that's
+// handled instead by OrphanResourceCountTransformer.
+type OrphanResourceInstanceTransformer struct {
 	Concrete ConcreteResourceInstanceNodeFunc
 
 	// State is the global state. We require the global state to
@@ -24,7 +26,7 @@ type OrphanResourceTransformer struct {
 	Config *configs.Config
 }
 
-func (t *OrphanResourceTransformer) Transform(g *Graph) error {
+func (t *OrphanResourceInstanceTransformer) Transform(g *Graph) error {
 	if t.State == nil {
 		// If the entire state is nil, there can't be any orphans
 		return nil
@@ -32,7 +34,7 @@ func (t *OrphanResourceTransformer) Transform(g *Graph) error {
 	if t.Config == nil {
 		// Should never happen: we can't be doing any Terraform operations
 		// without at least an empty configuration.
-		panic("OrpahResourceTransformer used without setting Config")
+		panic("OrphanResourceInstanceTransformer used without setting Config")
 	}
 
 	// Go through the modules and for each module transform in order
@@ -46,7 +48,7 @@ func (t *OrphanResourceTransformer) Transform(g *Graph) error {
 	return nil
 }
 
-func (t *OrphanResourceTransformer) transform(g *Graph, ms *states.Module) error {
+func (t *OrphanResourceInstanceTransformer) transform(g *Graph, ms *states.Module) error {
 	if ms == nil {
 		return nil
 	}
