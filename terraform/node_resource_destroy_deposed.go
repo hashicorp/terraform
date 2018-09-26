@@ -131,10 +131,11 @@ func (n *NodePlanDeposedResourceInstanceObject) EvalTree() EvalNode {
 					ProviderSchema: &providerSchema,
 				},
 				&EvalDiffDestroy{
-					Addr:       addr.Resource,
-					DeposedKey: n.DeposedKey,
-					State:      &state,
-					Output:     &change,
+					Addr:         addr.Resource,
+					ProviderAddr: n.ResolvedProvider,
+					DeposedKey:   n.DeposedKey,
+					State:        &state,
+					Output:       &change,
 				},
 				&EvalWriteDiff{
 					Addr:           addr.Resource,
@@ -244,9 +245,10 @@ func (n *NodeDestroyDeposedResourceInstanceObject) EvalTree() EvalNode {
 				ProviderSchema: &providerSchema,
 			},
 			&EvalDiffDestroy{
-				Addr:   addr.Resource,
-				State:  &state,
-				Output: &change,
+				Addr:         addr.Resource,
+				ProviderAddr: n.ResolvedProvider,
+				State:        &state,
+				Output:       &change,
 			},
 			// Call pre-apply hook
 			&EvalApplyPre{
