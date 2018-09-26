@@ -718,6 +718,20 @@ func contextOptsForPlanViaFile(configSnap *configload.Snapshot, state *states.St
 		State: state,
 	}
 
+	// To make life a little easier for test authors, we'll populate a simple
+	// backend configuration if they didn't set one, since the backend is
+	// usually dealt with in a calling package and so tests in this package
+	// don't really care about it.
+	if plan.Backend.Config == nil {
+		cfg, err := plans.NewDynamicValue(cty.EmptyObjectVal, cty.EmptyObject)
+		if err != nil {
+			panic(fmt.Sprintf("NewDynamicValue failed: %s", err)) // shouldn't happen because we control the inputs
+		}
+		plan.Backend.Type = "local"
+		plan.Backend.Config = cfg
+		plan.Backend.Workspace = "default"
+	}
+
 	filename := filepath.Join(dir, "tfplan")
 	err = planfile.Create(filename, configSnap, stateFile, plan)
 	if err != nil {
