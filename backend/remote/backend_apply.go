@@ -91,9 +91,9 @@ func (b *Remote) opApply(stopCtx, cancelCtx context.Context, op *backend.Operati
 			fmt.Sprint(applyErrNoApplyRights, b.hostname, b.organization, op.Workspace)))
 	}
 
-	hasUI := op.UIOut != nil && op.UIIn != nil
+	hasUI := op.UIIn != nil && op.UIOut != nil
 	mustConfirm := hasUI &&
-		(op.Destroy && (!op.DestroyForce && !op.AutoApprove)) || (!op.Destroy && !op.AutoApprove)
+		((op.Destroy && (!op.DestroyForce && !op.AutoApprove)) || (!op.Destroy && !op.AutoApprove))
 	if mustConfirm {
 		opts := &terraform.InputOpts{Id: "approve"}
 

@@ -1,0 +1,12 @@
+------------------------------------------------------------------------
+
+Do you want to perform these actions in workspace "my-workspace-name"?
+  Terraform will perform the actions described above.
+  Only 'yes' will be accepted to approve.
+
+  Enter a value: yes
+
+null_resource.hello: Creating...
+null_resource.hello: Creation complete after 0s (ID: 8657651096157629581)
+
+Apply complete! Resources: 1 added, 0 changed, 0 destroyed.

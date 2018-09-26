@@ -405,7 +405,6 @@ func (b *Remote) Operation(ctx context.Context, op *backend.Operation) (*backend
 			"\n\nThe \"remote\" backend does not support the %q operation.\n"+
 				"Please use the remote backend web UI for running this operation:\n"+
 				"https://%s/app/%s/%s", op.Type, b.hostname, b.organization, op.Workspace)
-		// return nil, backend.ErrOperationNotSupported
 	}
 
 	// Lock

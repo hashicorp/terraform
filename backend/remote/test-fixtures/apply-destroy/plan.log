@@ -1,10 +1,3 @@
-Running plan in the remote backend. Output will stream here. Pressing Ctrl-C
-will stop streaming the logs, but will not stop the plan running remotely.
-To view this plan in a browser, visit:
-https://atlas.local/app/demo1/my-app-web/runs/run-cPK6EnfTpqwy6ucU
-
-Waiting for the plan to start...
-
 Terraform v0.11.7
 
 Configuring remote state backend...
@@ -13,17 +6,17 @@ Refreshing Terraform state in-memory prior to plan...
 The refreshed state will be used to calculate this plan, but will not be
 persisted to local or remote state storage.
 
+null_resource.hello: Refreshing state... (ID: 8657651096157629581)
 
 ------------------------------------------------------------------------
 
 An execution plan has been generated and is shown below.
 Resource actions are indicated with the following symbols:
-  + create
+  - destroy
 
 Terraform will perform the following actions:
 
-  + null_resource.foo
-      id: <computed>
+  - null_resource.hello
 
 
-Plan: 1 to add, 0 to change, 0 to destroy.
+Plan: 0 to add, 0 to change, 1 to destroy.

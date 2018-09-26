@@ -1,0 +1,12 @@
+------------------------------------------------------------------------
+
+Do you really want to destroy all resources in workspace "my-app-dev"?
+  Terraform will destroy all your managed infrastructure, as shown above.
+  There is no undo. Only 'yes' will be accepted to confirm.
+
+  Enter a value: yes
+
+null_resource.hello: Destroying... (ID: 8657651096157629581)
+null_resource.hello: Destruction complete after 0s
+
+Apply complete! Resources: 0 added, 0 changed, 1 destroyed.
