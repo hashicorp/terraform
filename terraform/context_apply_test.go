@@ -8827,6 +8827,7 @@ aws_instance.iambeingadded:
   provider = provider.aws
 aws_instance.ifailedprovisioners: (tainted)
   ID = ifailedprovisioners
+  provider = provider.aws
 		`)
 	if actual != expected {
 		t.Fatalf("expected state: \n%s\ngot: \n%s", expected, actual)
