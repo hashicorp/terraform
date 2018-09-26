@@ -22,6 +22,11 @@ package unix
 #include <utime.h>
 #include <sys/utsname.h>
 #include <sys/poll.h>
+#include <sys/resource.h>
+#include <sys/stat.h>
+#include <sys/statfs.h>
+#include <sys/termio.h>
+#include <sys/ioctl.h>
 
 #include <termios.h>
 
@@ -33,7 +38,6 @@ package unix
 
 #include <dirent.h>
 #include <fcntl.h>
-#include <gcrypt.h>
 
 enum {
 	sizeofPtr = sizeof(void*),
@@ -223,6 +227,9 @@ const (
 type Flock_t C.struct_flock64
 
 // Statfs
+
+type Fsid_t C.struct_fsid_t
+type Fsid64_t C.struct_fsid64_t
 
 type Statfs_t C.struct_statfs
 

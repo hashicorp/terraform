@@ -124,10 +124,7 @@ func (js jwtSource) Token() (*oauth2.Token, error) {
 		return nil, fmt.Errorf("oauth2: cannot fetch token: %v", err)
 	}
 	if c := resp.StatusCode; c < 200 || c > 299 {
-		return nil, &oauth2.RetrieveError{
-			Response: resp,
-			Body:     body,
-		}
+		return nil, fmt.Errorf("oauth2: cannot fetch token: %v\nResponse: %s", resp.Status, body)
 	}
 	// tokenRes is the JSON response body.
 	var tokenRes struct {
