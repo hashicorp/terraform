@@ -8658,7 +8658,8 @@ func TestContext2Apply_issue7824(t *testing.T) {
 	}
 }
 
-// GH-5254
+// This deals with the situation where a splat expression is used referring
+// to another resource whose count is non-constant.
 func TestContext2Apply_issue5254(t *testing.T) {
 	// Create a provider. We use "template" here just to match the repro
 	// we got from the issue itself.
@@ -8671,16 +8672,16 @@ func TestContext2Apply_issue5254(t *testing.T) {
 				Attributes: map[string]*configschema.Attribute{
 					"template":                {Type: cty.String, Optional: true},
 					"__template_requires_new": {Type: cty.Bool, Optional: true},
+					"id":                      {Type: cty.String, Computed: true},
+					"type":                    {Type: cty.String, Computed: true},
 				},
 			},
 		},
 	}
 
-	m, snap := testModuleWithSnapshot(t, "issue-5254/step-0")
-
 	// Apply cleanly step 0
 	ctx := testContext2(t, &ContextOpts{
-		Config: m,
+		Config: testModule(t, "issue-5254/step-0"),
 		ProviderResolver: providers.ResolverFixed(
 			map[string]providers.Factory{
 				"template": testProviderFuncFixed(p),
@@ -8698,9 +8699,11 @@ func TestContext2Apply_issue5254(t *testing.T) {
 		t.Fatalf("err: %s", diags.Err())
 	}
 
+	m, snap := testModuleWithSnapshot(t, "issue-5254/step-1")
+
 	// Application success. Now make the modification and store a plan
 	ctx = testContext2(t, &ContextOpts{
-		Config: testModule(t, "issue-5254/step-1"),
+		Config: m,
 		State:  state,
 		ProviderResolver: providers.ResolverFixed(
 			map[string]providers.Factory{
@@ -8744,15 +8747,15 @@ template_file.child:
   type = template_file
 
   Dependencies:
-    template_file.parent.*
-template_file.parent:
+    template_file.parent
+template_file.parent.0:
   ID = foo
   provider = provider.template
   template = Hi
   type = template_file
-		`)
+`)
 	if actual != expected {
-		t.Fatalf("expected state: \n%s\ngot: \n%s", expected, actual)
+		t.Fatalf("wrong final state\ngot:\n%s\n\nwant:\n%s", actual, expected)
 	}
 }
 
