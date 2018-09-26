@@ -233,7 +233,10 @@ func (fs snapshotFS) Open(name string) (afero.File, error) {
 	fn := filepath.Base(name)
 	directDir := filepath.Clean(name)
 
-	var modSnap *SnapshotModule
+	// First we'll check to see if this is an exact path for a module directory.
+	// We need to do this first (rather than as part of the next loop below)
+	// because a module in a child directory of another module can otherwise
+	// appear to be a file in that parent directory.
 	for _, candidate := range fs.snap.Modules {
 		modDir := filepath.Clean(candidate.Dir)
 		if modDir == directDir {
@@ -247,7 +250,14 @@ func (fs snapshotFS) Open(name string) (afero.File, error) {
 				filenames: filenames,
 			}, nil
 		}
+	}
 
+	// If we get here then the given path isn't a module directory exactly, so
+	// we'll treat it as a file path and try to find a module directory it
+	// could be located in.
+	var modSnap *SnapshotModule
+	for _, candidate := range fs.snap.Modules {
+		modDir := filepath.Clean(candidate.Dir)
 		if modDir == dir {
 			modSnap = candidate
 			break
