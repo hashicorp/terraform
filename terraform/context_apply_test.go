@@ -6577,7 +6577,6 @@ func TestContext2Apply_destroyWithModuleVariableAndCount(t *testing.T) {
 	expected := strings.TrimSpace(`
 <no state>
 module.child:
-  <no state>
 		`)
 	if actual != expected {
 		t.Fatalf("expected: \n%s\n\nbad: \n%s", expected, actual)
@@ -6645,7 +6644,6 @@ func TestContext2Apply_destroyTargetWithModuleVariableAndCount(t *testing.T) {
 	expected := strings.TrimSpace(`
 <no state>
 module.child:
-  <no state>
 		`)
 	if actual != expected {
 		t.Fatalf("expected: \n%s\n\nbad: \n%s", expected, actual)
@@ -6728,10 +6726,7 @@ func TestContext2Apply_destroyWithModuleVariableAndCountNested(t *testing.T) {
 	actual := strings.TrimSpace(state.String())
 	expected := strings.TrimSpace(`
 <no state>
-module.child:
-  <no state>
 module.child.child2:
-  <no state>
 		`)
 	if actual != expected {
 		t.Fatalf("expected: \n%s\n\nbad: \n%s", expected, actual)
