@@ -425,3 +425,31 @@ func (n *EvalWriteResourceState) Eval(ctx EvalContext) (interface{}, error) {
 
 	return nil, nil
 }
+
+// EvalForgetResourceState is an EvalNode implementation that prunes out an
+// empty resource-level state for a given resource address, or produces an
+// error if it isn't empty after all.
+//
+// This should be the last action taken for a resource that has been removed
+// from the configuration altogether, to clean up the leftover husk of the
+// resource in the state after other EvalNodes have destroyed and removed
+// all of the instances and instance objects beneath it.
+type EvalForgetResourceState struct {
+	Addr addrs.Resource
+}
+
+func (n *EvalForgetResourceState) Eval(ctx EvalContext) (interface{}, error) {
+	absAddr := n.Addr.Absolute(ctx.Path())
+	state := ctx.State()
+
+	pruned := state.RemoveResourceIfEmpty(absAddr)
+	if !pruned {
+		// If this produces an error, it indicates a bug elsewhere in Terraform
+		// -- probably missing graph nodes, graph edges, or
+		// incorrectly-implemented evaluation steps.
+		return nil, fmt.Errorf("orphan resource %s still has a non-empty state after apply; this is a bug in Terraform", absAddr)
+	}
+	log.Printf("[TRACE] EvalForgetResourceState: Pruned husk of %s from state", absAddr)
+
+	return nil, nil
+}
