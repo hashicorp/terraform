@@ -2867,6 +2867,7 @@ func TestContext2Apply_moduleOrphanProvider(t *testing.T) {
 						Primary: &InstanceState{
 							ID: "bar",
 						},
+						Provider: "provider.aws",
 					},
 				},
 			},
