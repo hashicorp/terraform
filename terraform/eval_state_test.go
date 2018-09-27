@@ -272,6 +272,6 @@ func TestEvalWriteStateDeposed(t *testing.T) {
 aws_instance.foo: (1 deposed)
   ID = <not created>
   provider = provider.aws
-  Deposed ID deadbeef = i-abc123
+  Deposed ID 1 = i-abc123
 	`)
 }
