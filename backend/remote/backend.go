@@ -394,16 +394,17 @@ func (b *Remote) Operation(ctx context.Context, op *backend.Operation) (*backend
 	}
 
 	// Determine the function to call for our operation
-	var f func(context.Context, context.Context, *backend.Operation, *backend.RunningOperation)
+	var f func(context.Context, context.Context, *backend.Operation) (*tfe.Run, error)
 	switch op.Type {
 	case backend.OperationTypePlan:
 		f = b.opPlan
+	case backend.OperationTypeApply:
+		f = b.opApply
 	default:
 		return nil, fmt.Errorf(
-			"\n\nThe \"remote\" backend currently only supports the \"plan\" operation.\n"+
-				"Please use the remote backend web UI for all other operations:\n"+
-				"https://%s/app/%s/%s", b.hostname, b.organization, op.Workspace)
-		// return nil, backend.ErrOperationNotSupported
+			"\n\nThe \"remote\" backend does not support the %q operation.\n"+
+				"Please use the remote backend web UI for running this operation:\n"+
+				"https://%s/app/%s/%s", op.Type, b.hostname, b.organization, op.Workspace)
 	}
 
 	// Lock
@@ -425,18 +426,47 @@ func (b *Remote) Operation(ctx context.Context, op *backend.Operation) (*backend
 	cancelCtx, cancel := context.WithCancel(context.Background())
 	runningOp.Cancel = cancel
 
-	// Do it
+	// Do it.
 	go func() {
 		defer done()
 		defer stop()
 		defer cancel()
 
 		defer b.opLock.Unlock()
-		f(stopCtx, cancelCtx, op, runningOp)
+
+		r, err := f(stopCtx, cancelCtx, op)
+		if err != nil && err != context.Canceled {
+			runningOp.Err = err
+		}
+
+		if r != nil && err == context.Canceled {
+			runningOp.Err = b.cancel(cancelCtx, r)
+		}
 	}()
 
-	// Return
+	// Return the running operation.
 	return runningOp, nil
+}
+
+func (b *Remote) cancel(cancelCtx context.Context, r *tfe.Run) error {
+	// Retrieve the run to get its current status.
+	r, err := b.client.Runs.Read(cancelCtx, r.ID)
+	if err != nil {
+		return generalError("error cancelling run", err)
+	}
+
+	// Make sure we cancel the run if possible.
+	if r.Status == tfe.RunPending && r.Actions.IsCancelable {
+		err = b.client.Runs.Cancel(cancelCtx, r.ID, tfe.RunCancelOptions{})
+		if err != nil {
+			return generalError("error cancelling run", err)
+		}
+		if b.CLI != nil {
+			b.CLI.Output(b.Colorize().Color(strings.TrimSpace(cancelPendingOperation)))
+		}
+	}
+
+	return nil
 }
 
 // Colorize returns the Colorize structure that can be used for colorizing
@@ -453,6 +483,28 @@ func (b *Remote) Colorize() *colorstring.Colorize {
 	}
 }
 
+func generalError(msg string, err error) error {
+	if urlErr, ok := err.(*url.Error); ok {
+		err = urlErr.Err
+	}
+	switch err {
+	case context.Canceled:
+		return err
+	case tfe.ErrResourceNotFound:
+		return fmt.Errorf(strings.TrimSpace(fmt.Sprintf(notFoundErr, msg, err)))
+	default:
+		return fmt.Errorf(strings.TrimSpace(fmt.Sprintf(generalErr, msg, err)))
+	}
+}
+
+const notFoundErr = `
+%s: %v
+
+The configured "remote" backend returns '404 Not Found' errors for resources
+that do not exist, as well as for resources that a user doesn't have access
+to. When the resource does exists, please check the rights for the used token.
+`
+
 const generalErr = `
 %s: %v
 
@@ -460,6 +512,10 @@ The "remote" backend encountered an unexpected error while communicating
 with remote backend. In some cases this could be caused by a network
 connection problem, in which case you could retry the command. If the issue
 persists please open a support ticket to get help resolving the problem.
+`
+
+const cancelPendingOperation = `[reset][red]
+Pending remote operation cancelled.[reset]
 `
 
 var schemaDescriptions = map[string]string{

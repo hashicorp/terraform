@@ -1,0 +1,17 @@
+Terraform v0.11.7
+
+Configuring remote state backend...
+Initializing Terraform configuration...
+Refreshing Terraform state in-memory prior to plan...
+The refreshed state will be used to calculate this plan, but will not be
+persisted to local or remote state storage.
+
+null_resource.hello: Refreshing state... (ID: 8657651096157629581)
+
+------------------------------------------------------------------------
+
+No changes. Infrastructure is up-to-date.
+
+This means that Terraform did not detect any differences between your
+configuration and real physical resources that exist. As a result, no
+actions need to be performed.

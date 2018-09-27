@@ -12,14 +12,18 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	tfe "github.com/hashicorp/go-tfe"
+	"github.com/hashicorp/terraform/terraform"
 )
 
 type mockClient struct {
+	Applies               *mockApplies
 	ConfigurationVersions *mockConfigurationVersions
 	Organizations         *mockOrganizations
 	Plans                 *mockPlans
+	PolicyChecks          *mockPolicyChecks
 	Runs                  *mockRuns
 	StateVersions         *mockStateVersions
 	Workspaces            *mockWorkspaces
@@ -27,13 +31,114 @@ type mockClient struct {
 
 func newMockClient() *mockClient {
 	c := &mockClient{}
+	c.Applies = newMockApplies(c)
 	c.ConfigurationVersions = newMockConfigurationVersions(c)
 	c.Organizations = newMockOrganizations(c)
 	c.Plans = newMockPlans(c)
+	c.PolicyChecks = newMockPolicyChecks(c)
 	c.Runs = newMockRuns(c)
 	c.StateVersions = newMockStateVersions(c)
 	c.Workspaces = newMockWorkspaces(c)
 	return c
+}
+
+type mockApplies struct {
+	client  *mockClient
+	applies map[string]*tfe.Apply
+	logs    map[string]string
+}
+
+func newMockApplies(client *mockClient) *mockApplies {
+	return &mockApplies{
+		client:  client,
+		applies: make(map[string]*tfe.Apply),
+		logs:    make(map[string]string),
+	}
+}
+
+// create is a helper function to create a mock apply that uses the configured
+// working directory to find the logfile.
+func (m *mockApplies) create(cvID, workspaceID string) (*tfe.Apply, error) {
+	c, ok := m.client.ConfigurationVersions.configVersions[cvID]
+	if !ok {
+		return nil, tfe.ErrResourceNotFound
+	}
+	if c.Speculative {
+		// Speculative means its plan-only so we don't create a Apply.
+		return nil, nil
+	}
+
+	id := generateID("apply-")
+	url := fmt.Sprintf("https://app.terraform.io/_archivist/%s", id)
+
+	a := &tfe.Apply{
+		ID:         id,
+		LogReadURL: url,
+		Status:     tfe.ApplyPending,
+	}
+
+	w, ok := m.client.Workspaces.workspaceIDs[workspaceID]
+	if !ok {
+		return nil, tfe.ErrResourceNotFound
+	}
+
+	m.logs[url] = filepath.Join(
+		m.client.ConfigurationVersions.uploadPaths[cvID],
+		w.WorkingDirectory,
+		"apply.log",
+	)
+	m.applies[a.ID] = a
+
+	return a, nil
+}
+
+func (m *mockApplies) Read(ctx context.Context, applyID string) (*tfe.Apply, error) {
+	a, ok := m.applies[applyID]
+	if !ok {
+		return nil, tfe.ErrResourceNotFound
+	}
+	// Together with the mockLogReader this allows testing queued runs.
+	if a.Status == tfe.ApplyRunning {
+		a.Status = tfe.ApplyFinished
+	}
+	return a, nil
+}
+
+func (m *mockApplies) Logs(ctx context.Context, applyID string) (io.Reader, error) {
+	a, err := m.Read(ctx, applyID)
+	if err != nil {
+		return nil, err
+	}
+
+	logfile, ok := m.logs[a.LogReadURL]
+	if !ok {
+		return nil, tfe.ErrResourceNotFound
+	}
+
+	if _, err := os.Stat(logfile); os.IsNotExist(err) {
+		return bytes.NewBufferString("logfile does not exist"), nil
+	}
+
+	logs, err := ioutil.ReadFile(logfile)
+	if err != nil {
+		return nil, err
+	}
+
+	done := func() (bool, error) {
+		a, err := m.Read(ctx, applyID)
+		if err != nil {
+			return false, err
+		}
+		if a.Status != tfe.ApplyFinished {
+			return false, nil
+		}
+		return true, nil
+	}
+
+	return &mockLogReader{
+		done: done,
+		logs: bytes.NewBuffer(logs),
+	}, nil
 }
 
 type mockConfigurationVersions struct {
@@ -103,6 +208,20 @@ func (m *mockConfigurationVersions) Upload(ctx context.Context, url, path string
 	return nil
 }
 
+// mockInput is a mock implementation of terraform.UIInput.
+type mockInput struct {
+	answers map[string]string
+}
+
+func (m *mockInput) Input(opts *terraform.InputOpts) (string, error) {
+	v, ok := m.answers[opts.Id]
+	if !ok {
+		return "", fmt.Errorf("unexpected input request in test: %s", opts.Id)
+	}
+	delete(m.answers, opts.Id)
+	return v, nil
+}
+
 type mockOrganizations struct {
 	client        *mockClient
 	organizations map[string]*tfe.Organization
@@ -130,6 +249,32 @@ func (m *mockOrganizations) List(ctx context.Context, options tfe.OrganizationLi
 	}
 
 	return orgl, nil
+}
+
+// mockLogReader is a mock logreader that enables testing queued runs.
+type mockLogReader struct {
+	done func() (bool, error)
+	logs *bytes.Buffer
+}
+
+func (m *mockLogReader) Read(l []byte) (int, error) {
+	for {
+		if written, err := m.read(l); err != io.ErrNoProgress {
+			return written, err
+		}
+		time.Sleep(500 * time.Millisecond)
+	}
+}
+
+func (m *mockLogReader) read(l []byte) (int, error) {
+	done, err := m.done()
+	if err != nil {
+		return 0, err
+	}
+	if !done {
+		return 0, io.ErrNoProgress
+	}
+	return m.logs.Read(l)
 }
 
 func (m *mockOrganizations) Create(ctx context.Context, options tfe.OrganizationCreateOptions) (*tfe.Organization, error) {
@@ -176,8 +321,7 @@ func newMockPlans(client *mockClient) *mockPlans {
 }
 
 // create is a helper function to create a mock plan that uses the configured
-// working directory to find the logfile. This enables us to test if we are
-// using the
+// working directory to find the logfile.
 func (m *mockPlans) create(cvID, workspaceID string) (*tfe.Plan, error) {
 	id := generateID("plan-")
 	url := fmt.Sprintf("https://app.terraform.io/_archivist/%s", id)
@@ -196,7 +340,7 @@ func (m *mockPlans) create(cvID, workspaceID string) (*tfe.Plan, error) {
 	m.logs[url] = filepath.Join(
 		m.client.ConfigurationVersions.uploadPaths[cvID],
 		w.WorkingDirectory,
-		"output.log",
+		"plan.log",
 	)
 	m.plans[p.ID] = p
 
@@ -208,7 +352,10 @@ func (m *mockPlans) Read(ctx context.Context, planID string) (*tfe.Plan, error) 
 	if !ok {
 		return nil, tfe.ErrResourceNotFound
 	}
-	p.Status = tfe.PlanFinished
+	// Together with the mockLogReader this allows testing queued runs.
+	if p.Status == tfe.PlanRunning {
+		p.Status = tfe.PlanFinished
+	}
 	return p, nil
 }
 
@@ -230,6 +377,147 @@ func (m *mockPlans) Logs(ctx context.Context, planID string) (io.Reader, error) 
 	logs, err := ioutil.ReadFile(logfile)
 	if err != nil {
 		return nil, err
+	}
+
+	done := func() (bool, error) {
+		p, err := m.Read(ctx, planID)
+		if err != nil {
+			return false, err
+		}
+		if p.Status != tfe.PlanFinished {
+			return false, nil
+		}
+		return true, nil
+	}
+
+	return &mockLogReader{
+		done: done,
+		logs: bytes.NewBuffer(logs),
+	}, nil
+}
+
+type mockPolicyChecks struct {
+	client *mockClient
+	checks map[string]*tfe.PolicyCheck
+	logs   map[string]string
+}
+
+func newMockPolicyChecks(client *mockClient) *mockPolicyChecks {
+	return &mockPolicyChecks{
+		client: client,
+		checks: make(map[string]*tfe.PolicyCheck),
+		logs:   make(map[string]string),
+	}
+}
+
+// create is a helper function to create a mock policy check that uses the
+// configured working directory to find the logfile.
+func (m *mockPolicyChecks) create(cvID, workspaceID string) (*tfe.PolicyCheck, error) {
+	id := generateID("pc-")
+
+	pc := &tfe.PolicyCheck{
+		ID:          id,
+		Actions:     &tfe.PolicyActions{},
+		Permissions: &tfe.PolicyPermissions{},
+		Scope:       tfe.PolicyScopeOrganization,
+		Status:      tfe.PolicyPending,
+	}
+
+	w, ok := m.client.Workspaces.workspaceIDs[workspaceID]
+	if !ok {
+		return nil, tfe.ErrResourceNotFound
+	}
+
+	logfile := filepath.Join(
+		m.client.ConfigurationVersions.uploadPaths[cvID],
+		w.WorkingDirectory,
+		"policy.log",
+	)
+
+	if _, err := os.Stat(logfile); os.IsNotExist(err) {
+		return nil, nil
+	}
+
+	m.logs[pc.ID] = logfile
+	m.checks[pc.ID] = pc
+
+	return pc, nil
+}
+
+func (m *mockPolicyChecks) List(ctx context.Context, runID string, options tfe.PolicyCheckListOptions) (*tfe.PolicyCheckList, error) {
+	_, ok := m.client.Runs.runs[runID]
+	if !ok {
+		return nil, tfe.ErrResourceNotFound
+	}
+
+	pcl := &tfe.PolicyCheckList{}
+	for _, pc := range m.checks {
+		pcl.Items = append(pcl.Items, pc)
+	}
+
+	pcl.Pagination = &tfe.Pagination{
+		CurrentPage:  1,
+		NextPage:     1,
+		PreviousPage: 1,
+		TotalPages:   1,
+		TotalCount:   len(pcl.Items),
+	}
+
+	return pcl, nil
+}
+
+func (m *mockPolicyChecks) Read(ctx context.Context, policyCheckID string) (*tfe.PolicyCheck, error) {
+	pc, ok := m.checks[policyCheckID]
+	if !ok {
+		return nil, tfe.ErrResourceNotFound
+	}
+	return pc, nil
+}
+
+func (m *mockPolicyChecks) Override(ctx context.Context, policyCheckID string) (*tfe.PolicyCheck, error) {
+	pc, ok := m.checks[policyCheckID]
+	if !ok {
+		return nil, tfe.ErrResourceNotFound
+	}
+	pc.Status = tfe.PolicyOverridden
+	return pc, nil
+}
+
+func (m *mockPolicyChecks) Logs(ctx context.Context, policyCheckID string) (io.Reader, error) {
+	pc, ok := m.checks[policyCheckID]
+	if !ok {
+		return nil, tfe.ErrResourceNotFound
+	}
+
+	logfile, ok := m.logs[pc.ID]
+	if !ok {
+		return nil, tfe.ErrResourceNotFound
+	}
+
+	if _, err := os.Stat(logfile); os.IsNotExist(err) {
+		return bytes.NewBufferString("logfile does not exist"), nil
+	}
+
+	logs, err := ioutil.ReadFile(logfile)
+	if err != nil {
+		return nil, err
+	}
+
+	switch {
+	case bytes.Contains(logs, []byte("Sentinel Result: true")):
+		pc.Status = tfe.PolicyPasses
+	case bytes.Contains(logs, []byte("Sentinel Result: false")):
+		switch {
+		case bytes.Contains(logs, []byte("hard-mandatory")):
+			pc.Status = tfe.PolicyHardFailed
+		case bytes.Contains(logs, []byte("soft-mandatory")):
+			pc.Actions.IsOverridable = true
+			pc.Permissions.CanOverride = true
+			pc.Status = tfe.PolicySoftFailed
+		}
+	default:
+		// As this is an unexpected state, we say the policy errored.
+		pc.Status = tfe.PolicyErrored
 	}
 
 	return bytes.NewBuffer(logs), nil
@@ -272,15 +560,44 @@ func (m *mockRuns) List(ctx context.Context, workspaceID string, options tfe.Run
 }
 
 func (m *mockRuns) Create(ctx context.Context, options tfe.RunCreateOptions) (*tfe.Run, error) {
+	a, err := m.client.Applies.create(options.ConfigurationVersion.ID, options.Workspace.ID)
+	if err != nil {
+		return nil, err
+	}
+
 	p, err := m.client.Plans.create(options.ConfigurationVersion.ID, options.Workspace.ID)
 	if err != nil {
 		return nil, err
 	}
 
+	pc, err := m.client.PolicyChecks.create(options.ConfigurationVersion.ID, options.Workspace.ID)
+	if err != nil {
+		return nil, err
+	}
+
 	r := &tfe.Run{
-		ID:     generateID("run-"),
-		Plan:   p,
-		Status: tfe.RunPending,
+		ID:          generateID("run-"),
+		Actions:     &tfe.RunActions{},
+		Apply:       a,
+		HasChanges:  true,
+		Permissions: &tfe.RunPermissions{},
+		Plan:        p,
+		Status:      tfe.RunPending,
+	}
+
+	if pc != nil {
+		r.PolicyChecks = []*tfe.PolicyCheck{pc}
+	}
+
+	if options.IsDestroy != nil {
+		r.IsDestroy = *options.IsDestroy
+	}
+
+	logs, _ := ioutil.ReadFile(m.client.Plans.logs[p.LogReadURL])
+	if r.IsDestroy || !bytes.Contains(logs, []byte("No changes. Infrastructure is up-to-date.")) {
+		r.Actions.IsConfirmable = true
+		r.HasChanges = true
+		r.Permissions.CanApply = true
 	}
 
 	m.runs[r.ID] = r
@@ -294,11 +611,35 @@ func (m *mockRuns) Read(ctx context.Context, runID string) (*tfe.Run, error) {
 	if !ok {
 		return nil, tfe.ErrResourceNotFound
 	}
+
+	pending := false
+	for _, r := range m.runs {
+		if r.ID != runID && r.Status == tfe.RunPending {
+			pending = true
+			break
+		}
+	}
+
+	if !pending {
+		// Only update the status if there are no other pending runs.
+		r.Status = tfe.RunPlanning
+		r.Plan.Status = tfe.PlanRunning
+	}
+
 	return r, nil
 }
 
 func (m *mockRuns) Apply(ctx context.Context, runID string, options tfe.RunApplyOptions) error {
-	panic("not implemented")
+	r, ok := m.runs[runID]
+	if !ok {
+		return tfe.ErrResourceNotFound
+	}
+	if r.Status != tfe.RunPending {
+		// Only update the status if the run is not pending anymore.
+		r.Status = tfe.RunApplying
+		r.Apply.Status = tfe.ApplyRunning
+	}
+	return nil
 }
 
 func (m *mockRuns) Cancel(ctx context.Context, runID string, options tfe.RunCancelOptions) error {
@@ -479,6 +820,9 @@ func (m *mockWorkspaces) Create(ctx context.Context, organization string, option
 	w := &tfe.Workspace{
 		ID:   generateID("ws-"),
 		Name: *options.Name,
+	}
+	if options.VCSRepo != nil {
+		w.VCSRepo = &tfe.VCSRepo{}
 	}
 	m.workspaceIDs[w.ID] = w
 	m.workspaceNames[w.Name] = w

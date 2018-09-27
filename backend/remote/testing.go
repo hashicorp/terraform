@@ -28,6 +28,10 @@ var (
 	})
 )
 
+func testInput(t *testing.T, answers map[string]string) *mockInput {
+	return &mockInput{answers: answers}
+}
+
 func testBackendDefault(t *testing.T) *Remote {
 	c := map[string]interface{}{
 		"organization": "hashicorp",
@@ -74,9 +78,11 @@ func testBackend(t *testing.T, c map[string]interface{}) *Remote {
 
 	// Replace the services we use with our mock services.
 	b.CLI = cli.NewMockUi()
+	b.client.Applies = mc.Applies
 	b.client.ConfigurationVersions = mc.ConfigurationVersions
 	b.client.Organizations = mc.Organizations
 	b.client.Plans = mc.Plans
+	b.client.PolicyChecks = mc.PolicyChecks
 	b.client.Runs = mc.Runs
 	b.client.StateVersions = mc.StateVersions
 	b.client.Workspaces = mc.Workspaces
