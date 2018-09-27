@@ -166,7 +166,7 @@ type Operation struct {
 // RunningOperation is the result of starting an operation.
 type RunningOperation struct {
 	// For implementers of a backend, this context should not wrap the
-	// passed in context. Otherwise, canceling the parent context will
+	// passed in context. Otherwise, cancelling the parent context will
 	// immediately mark this context as "done" but those aren't the semantics
 	// we want: we want this context to be done only when the operation itself
 	// is fully done.

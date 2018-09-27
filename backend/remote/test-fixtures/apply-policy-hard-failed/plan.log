@@ -1,10 +1,3 @@
-Running plan in the remote backend. Output will stream here. Pressing Ctrl-C
-will stop streaming the logs, but will not stop the plan running remotely.
-To view this plan in a browser, visit:
-https://atlas.local/app/demo1/my-app-web/runs/run-cPK6EnfTpqwy6ucU
-
-Waiting for the plan to start...
-
 Terraform v0.11.7
 
 Configuring remote state backend...
@@ -12,7 +5,6 @@ Initializing Terraform configuration...
 Refreshing Terraform state in-memory prior to plan...
 The refreshed state will be used to calculate this plan, but will not be
 persisted to local or remote state storage.
-
 
 ------------------------------------------------------------------------
 
