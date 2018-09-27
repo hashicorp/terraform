@@ -8,7 +8,6 @@ import (
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 
-	"github.com/gophercloud/gophercloud"
 	"github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/lbaas_v2/monitors"
 )
 
@@ -21,6 +20,7 @@ func resourceMonitorV2() *schema.Resource {
 
 		Timeouts: &schema.ResourceTimeout{
 			Create: schema.DefaultTimeout(10 * time.Minute),
+			Update: schema.DefaultTimeout(10 * time.Minute),
 			Delete: schema.DefaultTimeout(10 * time.Minute),
 		},
 
@@ -55,43 +55,44 @@ func resourceMonitorV2() *schema.Resource {
 				Required: true,
 				ForceNew: true,
 			},
+
 			"delay": &schema.Schema{
 				Type:     schema.TypeInt,
 				Required: true,
 			},
+
 			"timeout": &schema.Schema{
 				Type:     schema.TypeInt,
 				Required: true,
 			},
+
 			"max_retries": &schema.Schema{
 				Type:     schema.TypeInt,
 				Required: true,
 			},
+
 			"url_path": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 			},
+
 			"http_method": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 			},
+
 			"expected_codes": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 			},
+
 			"admin_state_up": &schema.Schema{
 				Type:     schema.TypeBool,
 				Default:  true,
 				Optional: true,
-			},
-
-			"id": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
-				Computed: true,
 			},
 		},
 	}
@@ -99,7 +100,7 @@ func resourceMonitorV2() *schema.Resource {
 
 func resourceMonitorV2Create(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
-	networkingClient, err := config.networkingV2Client(GetRegion(d, config))
+	lbClient, err := chooseLBV2Client(d, config)
 	if err != nil {
 		return fmt.Errorf("Error creating OpenStack networking client: %s", err)
 	}
@@ -119,25 +120,29 @@ func resourceMonitorV2Create(d *schema.ResourceData, meta interface{}) error {
 		AdminStateUp:  &adminStateUp,
 	}
 
-	log.Printf("[DEBUG] Create Options: %#v", createOpts)
-	monitor, err := monitors.Create(networkingClient, createOpts).Extract()
+	timeout := d.Timeout(schema.TimeoutCreate)
+	poolID := createOpts.PoolID
+	err = waitForLBV2viaPool(lbClient, poolID, "ACTIVE", timeout)
 	if err != nil {
-		return fmt.Errorf("Error creating OpenStack LBaaSV2 monitor: %s", err)
-	}
-	log.Printf("[INFO] monitor ID: %s", monitor.ID)
-
-	log.Printf("[DEBUG] Waiting for Openstack LBaaSV2 monitor (%s) to become available.", monitor.ID)
-
-	stateConf := &resource.StateChangeConf{
-		Pending:    []string{"PENDING_CREATE"},
-		Target:     []string{"ACTIVE"},
-		Refresh:    waitForMonitorActive(networkingClient, monitor.ID),
-		Timeout:    d.Timeout(schema.TimeoutCreate),
-		Delay:      5 * time.Second,
-		MinTimeout: 3 * time.Second,
+		return err
 	}
 
-	_, err = stateConf.WaitForState()
+	log.Printf("[DEBUG] Create Options: %#v", createOpts)
+	log.Printf("[DEBUG] Attempting to create monitor")
+	var monitor *monitors.Monitor
+	err = resource.Retry(timeout, func() *resource.RetryError {
+		monitor, err = monitors.Create(lbClient, createOpts).Extract()
+		if err != nil {
+			return checkForRetryableError(err)
+		}
+		return nil
+	})
+
+	if err != nil {
+		return fmt.Errorf("Unable to create monitor: %s", err)
+	}
+
+	err = waitForLBV2viaPool(lbClient, poolID, "ACTIVE", timeout)
 	if err != nil {
 		return err
 	}
@@ -149,19 +154,18 @@ func resourceMonitorV2Create(d *schema.ResourceData, meta interface{}) error {
 
 func resourceMonitorV2Read(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
-	networkingClient, err := config.networkingV2Client(GetRegion(d, config))
+	lbClient, err := chooseLBV2Client(d, config)
 	if err != nil {
 		return fmt.Errorf("Error creating OpenStack networking client: %s", err)
 	}
 
-	monitor, err := monitors.Get(networkingClient, d.Id()).Extract()
+	monitor, err := monitors.Get(lbClient, d.Id()).Extract()
 	if err != nil {
-		return CheckDeleted(d, err, "LBV2 Monitor")
+		return CheckDeleted(d, err, "monitor")
 	}
 
-	log.Printf("[DEBUG] Retrieved OpenStack LBaaSV2 Monitor %s: %+v", d.Id(), monitor)
+	log.Printf("[DEBUG] Retrieved monitor %s: %#v", d.Id(), monitor)
 
-	d.Set("id", monitor.ID)
 	d.Set("tenant_id", monitor.TenantID)
 	d.Set("type", monitor.Type)
 	d.Set("delay", monitor.Delay)
@@ -179,7 +183,7 @@ func resourceMonitorV2Read(d *schema.ResourceData, meta interface{}) error {
 
 func resourceMonitorV2Update(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
-	networkingClient, err := config.networkingV2Client(GetRegion(d, config))
+	lbClient, err := chooseLBV2Client(d, config)
 	if err != nil {
 		return fmt.Errorf("Error creating OpenStack networking client: %s", err)
 	}
@@ -211,11 +215,30 @@ func resourceMonitorV2Update(d *schema.ResourceData, meta interface{}) error {
 		updateOpts.HTTPMethod = d.Get("http_method").(string)
 	}
 
-	log.Printf("[DEBUG] Updating OpenStack LBaaSV2 Monitor %s with options: %+v", d.Id(), updateOpts)
-
-	_, err = monitors.Update(networkingClient, d.Id(), updateOpts).Extract()
+	log.Printf("[DEBUG] Updating monitor %s with options: %#v", d.Id(), updateOpts)
+	timeout := d.Timeout(schema.TimeoutUpdate)
+	poolID := d.Get("pool_id").(string)
+	err = waitForLBV2viaPool(lbClient, poolID, "ACTIVE", timeout)
 	if err != nil {
-		return fmt.Errorf("Error updating OpenStack LBaaSV2 Monitor: %s", err)
+		return err
+	}
+
+	err = resource.Retry(timeout, func() *resource.RetryError {
+		_, err = monitors.Update(lbClient, d.Id(), updateOpts).Extract()
+		if err != nil {
+			return checkForRetryableError(err)
+		}
+		return nil
+	})
+
+	if err != nil {
+		return fmt.Errorf("Unable to update monitor %s: %s", d.Id(), err)
+	}
+
+	// Wait for LB to become active before continuing
+	err = waitForLBV2viaPool(lbClient, poolID, "ACTIVE", timeout)
+	if err != nil {
+		return err
 	}
 
 	return resourceMonitorV2Read(d, meta)
@@ -223,73 +246,35 @@ func resourceMonitorV2Update(d *schema.ResourceData, meta interface{}) error {
 
 func resourceMonitorV2Delete(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
-	networkingClient, err := config.networkingV2Client(GetRegion(d, config))
+	lbClient, err := chooseLBV2Client(d, config)
 	if err != nil {
 		return fmt.Errorf("Error creating OpenStack networking client: %s", err)
 	}
 
-	stateConf := &resource.StateChangeConf{
-		Pending:    []string{"ACTIVE", "PENDING_DELETE"},
-		Target:     []string{"DELETED"},
-		Refresh:    waitForMonitorDelete(networkingClient, d.Id()),
-		Timeout:    d.Timeout(schema.TimeoutDelete),
-		Delay:      5 * time.Second,
-		MinTimeout: 3 * time.Second,
-	}
-
-	_, err = stateConf.WaitForState()
+	log.Printf("[DEBUG] Deleting monitor %s", d.Id())
+	timeout := d.Timeout(schema.TimeoutUpdate)
+	poolID := d.Get("pool_id").(string)
+	err = waitForLBV2viaPool(lbClient, poolID, "ACTIVE", timeout)
 	if err != nil {
-		return fmt.Errorf("Error deleting OpenStack LBaaSV2 Monitor: %s", err)
+		return err
 	}
 
-	d.SetId("")
+	err = resource.Retry(timeout, func() *resource.RetryError {
+		err = monitors.Delete(lbClient, d.Id()).ExtractErr()
+		if err != nil {
+			return checkForRetryableError(err)
+		}
+		return nil
+	})
+
+	if err != nil {
+		return fmt.Errorf("Unable to delete monitor %s: %s", d.Id(), err)
+	}
+
+	err = waitForLBV2viaPool(lbClient, poolID, "ACTIVE", timeout)
+	if err != nil {
+		return err
+	}
+
 	return nil
-}
-
-func waitForMonitorActive(networkingClient *gophercloud.ServiceClient, monitorID string) resource.StateRefreshFunc {
-	return func() (interface{}, string, error) {
-		monitor, err := monitors.Get(networkingClient, monitorID).Extract()
-		if err != nil {
-			return nil, "", err
-		}
-
-		log.Printf("[DEBUG] OpenStack LBaaSV2 Monitor: %+v", monitor)
-		return monitor, "ACTIVE", nil
-	}
-}
-
-func waitForMonitorDelete(networkingClient *gophercloud.ServiceClient, monitorID string) resource.StateRefreshFunc {
-	return func() (interface{}, string, error) {
-		log.Printf("[DEBUG] Attempting to delete OpenStack LBaaSV2 Monitor %s", monitorID)
-
-		monitor, err := monitors.Get(networkingClient, monitorID).Extract()
-		if err != nil {
-			if _, ok := err.(gophercloud.ErrDefault404); ok {
-				log.Printf("[DEBUG] Successfully deleted OpenStack LBaaSV2 Monitor %s", monitorID)
-				return monitor, "DELETED", nil
-			}
-			return monitor, "ACTIVE", err
-		}
-
-		log.Printf("[DEBUG] Openstack LBaaSV2 Monitor: %+v", monitor)
-		err = monitors.Delete(networkingClient, monitorID).ExtractErr()
-		if err != nil {
-			if _, ok := err.(gophercloud.ErrDefault404); ok {
-				log.Printf("[DEBUG] Successfully deleted OpenStack LBaaSV2 Monitor %s", monitorID)
-				return monitor, "DELETED", nil
-			}
-
-			if errCode, ok := err.(gophercloud.ErrUnexpectedResponseCode); ok {
-				if errCode.Actual == 409 {
-					log.Printf("[DEBUG] OpenStack LBaaSV2 Monitor (%s) is still in use.", monitorID)
-					return monitor, "ACTIVE", nil
-				}
-			}
-
-			return monitor, "ACTIVE", err
-		}
-
-		log.Printf("[DEBUG] OpenStack LBaaSV2 Monitor %s still active.", monitorID)
-		return monitor, "ACTIVE", nil
-	}
 }

@@ -5,7 +5,7 @@ import (
 	"github.com/gophercloud/gophercloud/pagination"
 )
 
-// A Network represents a nova-network that an instance communicates on
+// A Network represents a network that a server communicates on.
 type Network struct {
 	// CIDR is the IPv4 subnet.
 	CIDR string `json:"cidr"`
@@ -17,8 +17,7 @@ type Network struct {
 	Name string `json:"label"`
 }
 
-// NetworkPage stores a single, only page of Networks
-// results from a List call.
+// NetworkPage stores a single page of all Networks results from a List call.
 type NetworkPage struct {
 	pagination.SinglePageBase
 }
@@ -29,7 +28,7 @@ func (page NetworkPage) IsEmpty() (bool, error) {
 	return len(va) == 0, err
 }
 
-// ExtractNetworks interprets a page of results as a slice of Networks
+// ExtractNetworks interprets a page of results as a slice of Network.
 func ExtractNetworks(r pagination.Page) ([]Network, error) {
 	var s struct {
 		Networks []Network `json:"networks"`
@@ -42,8 +41,8 @@ type NetworkResult struct {
 	gophercloud.Result
 }
 
-// Extract is a method that attempts to interpret any Network resource
-// response as a Network struct.
+// Extract is a method that attempts to interpret any Network resource response
+// as a Network struct.
 func (r NetworkResult) Extract() (*Network, error) {
 	var s struct {
 		Network *Network `json:"network"`
@@ -52,8 +51,8 @@ func (r NetworkResult) Extract() (*Network, error) {
 	return s.Network, err
 }
 
-// GetResult is the response from a Get operation. Call its Extract method to interpret it
-// as a Network.
+// GetResult is the response from a Get operation. Call its Extract method to
+// interpret it as a Network.
 type GetResult struct {
 	NetworkResult
 }

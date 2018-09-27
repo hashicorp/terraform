@@ -18,6 +18,9 @@ func resourceNetworkingRouterV2() *schema.Resource {
 		Read:   resourceNetworkingRouterV2Read,
 		Update: resourceNetworkingRouterV2Update,
 		Delete: resourceNetworkingRouterV2Delete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Timeouts: &schema.ResourceTimeout{
 			Create: schema.DefaultTimeout(10 * time.Minute),
@@ -26,10 +29,10 @@ func resourceNetworkingRouterV2() *schema.Resource {
 
 		Schema: map[string]*schema.Schema{
 			"region": &schema.Schema{
-				Type:        schema.TypeString,
-				Required:    true,
-				ForceNew:    true,
-				DefaultFunc: schema.EnvDefaultFunc("OS_REGION_NAME", ""),
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+				Computed: true,
 			},
 			"name": &schema.Schema{
 				Type:     schema.TypeString,
@@ -49,9 +52,43 @@ func resourceNetworkingRouterV2() *schema.Resource {
 				Computed: true,
 			},
 			"external_gateway": &schema.Schema{
-				Type:     schema.TypeString,
+				Type:          schema.TypeString,
+				Optional:      true,
+				ForceNew:      false,
+				Computed:      true,
+				Deprecated:    "use external_network_id instead",
+				ConflictsWith: []string{"external_network_id"},
+			},
+			"external_network_id": &schema.Schema{
+				Type:          schema.TypeString,
+				Optional:      true,
+				ForceNew:      false,
+				Computed:      true,
+				ConflictsWith: []string{"external_gateway"},
+			},
+			"enable_snat": &schema.Schema{
+				Type:     schema.TypeBool,
 				Optional: true,
 				ForceNew: false,
+				Computed: true,
+			},
+			"external_fixed_ip": &schema.Schema{
+				Type:     schema.TypeList,
+				Optional: true,
+				ForceNew: false,
+				Computed: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"subnet_id": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+						"ip_address": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+					},
+				},
 			},
 			"tenant_id": &schema.Schema{
 				Type:     schema.TypeString,
@@ -63,6 +100,28 @@ func resourceNetworkingRouterV2() *schema.Resource {
 				Type:     schema.TypeMap,
 				Optional: true,
 				ForceNew: true,
+			},
+			"availability_zone_hints": &schema.Schema{
+				Type:     schema.TypeList,
+				Computed: true,
+				ForceNew: true,
+				Optional: true,
+				Elem:     &schema.Schema{Type: schema.TypeString},
+			},
+			"vendor_options": &schema.Schema{
+				Type:     schema.TypeSet,
+				Optional: true,
+				MinItems: 1,
+				MaxItems: 1,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"set_router_gateway_after_create": &schema.Schema{
+							Type:     schema.TypeBool,
+							Default:  false,
+							Optional: true,
+						},
+					},
+				},
 			},
 		},
 	}
@@ -77,8 +136,9 @@ func resourceNetworkingRouterV2Create(d *schema.ResourceData, meta interface{}) 
 
 	createOpts := RouterCreateOpts{
 		routers.CreateOpts{
-			Name:     d.Get("name").(string),
-			TenantID: d.Get("tenant_id").(string),
+			Name:                  d.Get("name").(string),
+			TenantID:              d.Get("tenant_id").(string),
+			AvailabilityZoneHints: resourceNetworkingAvailabilityZoneHintsV2(d),
 		},
 		MapValueSpecs(d),
 	}
@@ -88,16 +148,53 @@ func resourceNetworkingRouterV2Create(d *schema.ResourceData, meta interface{}) 
 		createOpts.AdminStateUp = &asu
 	}
 
-	if dRaw, ok := d.GetOk("distributed"); ok {
+	if dRaw, ok := d.GetOkExists("distributed"); ok {
 		d := dRaw.(bool)
 		createOpts.Distributed = &d
 	}
 
-	externalGateway := d.Get("external_gateway").(string)
-	if externalGateway != "" {
-		gatewayInfo := routers.GatewayInfo{
-			NetworkID: externalGateway,
+	// Get Vendor_options
+	vendorOptionsRaw := d.Get("vendor_options").(*schema.Set)
+	var vendorUpdateGateway bool
+	if vendorOptionsRaw.Len() > 0 {
+		vendorOptions := expandVendorOptions(vendorOptionsRaw.List())
+		vendorUpdateGateway = vendorOptions["set_router_gateway_after_create"].(bool)
+	}
+
+	// Gateway settings
+	var externalNetworkID string
+	var gatewayInfo routers.GatewayInfo
+	if v := d.Get("external_gateway").(string); v != "" {
+		externalNetworkID = v
+		gatewayInfo.NetworkID = externalNetworkID
+	}
+
+	if v := d.Get("external_network_id").(string); v != "" {
+		externalNetworkID = v
+		gatewayInfo.NetworkID = externalNetworkID
+	}
+
+	if esRaw, ok := d.GetOkExists("enable_snat"); ok {
+		if externalNetworkID == "" {
+			return fmt.Errorf("setting enable_snat requires external_network_id to be set")
 		}
+		es := esRaw.(bool)
+		gatewayInfo.EnableSNAT = &es
+	}
+
+	externalFixedIPs := resourceRouterExternalFixedIPsV2(d)
+	if len(externalFixedIPs) > 0 {
+		if externalNetworkID == "" {
+			return fmt.Errorf("setting an external_fixed_ip requires external_network_id to be set")
+		}
+		gatewayInfo.ExternalFixedIPs = externalFixedIPs
+	}
+
+	// vendorUpdateGateway is a flag for certain vendor-specific virtual routers
+	// which do not allow gateway settings to be set during router creation.
+	// If this flag was not enabled, then we can safely set the gateway
+	// information during create.
+	if !vendorUpdateGateway && externalNetworkID != "" {
 		createOpts.GatewayInfo = &gatewayInfo
 	}
 
@@ -121,6 +218,21 @@ func resourceNetworkingRouterV2Create(d *schema.ResourceData, meta interface{}) 
 	_, err = stateConf.WaitForState()
 
 	d.SetId(n.ID)
+
+	// If the vendorUpdateGateway flag was specified and if an external network
+	// was specified, then set the gateway information after router creation.
+	if vendorUpdateGateway && externalNetworkID != "" {
+		log.Printf("[DEBUG] Adding External Network %s to router ID %s", externalNetworkID, d.Id())
+
+		var updateOpts routers.UpdateOpts
+		updateOpts.GatewayInfo = &gatewayInfo
+
+		log.Printf("[DEBUG] Assigning external gateway to Router %s with options: %+v", d.Id(), updateOpts)
+		_, err = routers.Update(networkingClient, d.Id(), updateOpts).Extract()
+		if err != nil {
+			return fmt.Errorf("Error updating OpenStack Neutron Router: %s", err)
+		}
+	}
 
 	return resourceNetworkingRouterV2Read(d, meta)
 }
@@ -148,8 +260,28 @@ func resourceNetworkingRouterV2Read(d *schema.ResourceData, meta interface{}) er
 	d.Set("admin_state_up", n.AdminStateUp)
 	d.Set("distributed", n.Distributed)
 	d.Set("tenant_id", n.TenantID)
-	d.Set("external_gateway", n.GatewayInfo.NetworkID)
 	d.Set("region", GetRegion(d, config))
+
+	if err := d.Set("availability_zone_hints", n.AvailabilityZoneHints); err != nil {
+		log.Printf("[DEBUG] unable to set availability_zone_hints: %s", err)
+	}
+
+	// Gateway settings
+	d.Set("external_gateway", n.GatewayInfo.NetworkID)
+	d.Set("external_network_id", n.GatewayInfo.NetworkID)
+	d.Set("enable_snat", n.GatewayInfo.EnableSNAT)
+
+	var externalFixedIPs []map[string]string
+	for _, v := range n.GatewayInfo.ExternalFixedIPs {
+		externalFixedIPs = append(externalFixedIPs, map[string]string{
+			"subnet_id":  v.SubnetID,
+			"ip_address": v.IPAddress,
+		})
+	}
+
+	if err = d.Set("external_fixed_ip", externalFixedIPs); err != nil {
+		log.Printf("[DEBUG] unable to set external_fixed_ip: %s", err)
+	}
 
 	return nil
 }
@@ -173,14 +305,56 @@ func resourceNetworkingRouterV2Update(d *schema.ResourceData, meta interface{}) 
 		asu := d.Get("admin_state_up").(bool)
 		updateOpts.AdminStateUp = &asu
 	}
+
+	// Gateway settings
+	var updateGatewaySettings bool
+	var externalNetworkID string
+	gatewayInfo := routers.GatewayInfo{}
+
+	if v := d.Get("external_gateway").(string); v != "" {
+		externalNetworkID = v
+	}
+
+	if v := d.Get("external_network_id").(string); v != "" {
+		externalNetworkID = v
+	}
+
+	if externalNetworkID != "" {
+		gatewayInfo.NetworkID = externalNetworkID
+	}
+
 	if d.HasChange("external_gateway") {
-		externalGateway := d.Get("external_gateway").(string)
-		if externalGateway != "" {
-			gatewayInfo := routers.GatewayInfo{
-				NetworkID: externalGateway,
-			}
-			updateOpts.GatewayInfo = &gatewayInfo
+		updateGatewaySettings = true
+	}
+
+	if d.HasChange("external_network_id") {
+		updateGatewaySettings = true
+	}
+
+	if d.HasChange("enable_snat") {
+		updateGatewaySettings = true
+		if externalNetworkID == "" {
+			return fmt.Errorf("setting enable_snat requires external_network_id to be set")
 		}
+
+		enableSNAT := d.Get("enable_snat").(bool)
+		gatewayInfo.EnableSNAT = &enableSNAT
+	}
+
+	if d.HasChange("external_fixed_ip") {
+		updateGatewaySettings = true
+
+		externalFixedIPs := resourceRouterExternalFixedIPsV2(d)
+		gatewayInfo.ExternalFixedIPs = externalFixedIPs
+		if len(externalFixedIPs) > 0 {
+			if externalNetworkID == "" {
+				return fmt.Errorf("setting an external_fixed_ip requires external_network_id to be set")
+			}
+		}
+	}
+
+	if updateGatewaySettings {
+		updateOpts.GatewayInfo = &gatewayInfo
 	}
 
 	log.Printf("[DEBUG] Updating Router %s with options: %+v", d.Id(), updateOpts)
@@ -255,4 +429,33 @@ func waitForRouterDelete(networkingClient *gophercloud.ServiceClient, routerId s
 		log.Printf("[DEBUG] OpenStack Router %s still active.\n", routerId)
 		return r, "ACTIVE", nil
 	}
+}
+
+func resourceRouterExternalFixedIPsV2(d *schema.ResourceData) []routers.ExternalFixedIP {
+	var externalFixedIPs []routers.ExternalFixedIP
+	eFIPs := d.Get("external_fixed_ip").([]interface{})
+
+	for _, eFIP := range eFIPs {
+		v := eFIP.(map[string]interface{})
+		fip := routers.ExternalFixedIP{
+			SubnetID:  v["subnet_id"].(string),
+			IPAddress: v["ip_address"].(string),
+		}
+		externalFixedIPs = append(externalFixedIPs, fip)
+	}
+
+	return externalFixedIPs
+}
+
+func expandVendorOptions(vendOptsRaw []interface{}) map[string]interface{} {
+	vendorOptions := make(map[string]interface{})
+
+	for _, option := range vendOptsRaw {
+		for optKey, optValue := range option.(map[string]interface{}) {
+			vendorOptions[optKey] = optValue
+		}
+
+	}
+
+	return vendorOptions
 }

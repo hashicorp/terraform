@@ -59,19 +59,19 @@ type Rule struct {
 	// numeric ID. For the sake of consistency, we always cast it to a string.
 	ID string `json:"-"`
 
-	// The lower bound of the port range which this security group should open up
+	// The lower bound of the port range which this security group should open up.
 	FromPort int `json:"from_port"`
 
-	// The upper bound of the port range which this security group should open up
+	// The upper bound of the port range which this security group should open up.
 	ToPort int `json:"to_port"`
 
-	// The IP protocol (e.g. TCP) which the security group accepts
+	// The IP protocol (e.g. TCP) which the security group accepts.
 	IPProtocol string `json:"ip_protocol"`
 
-	// The CIDR IP range whose traffic can be received
+	// The CIDR IP range whose traffic can be received.
 	IPRange IPRange `json:"ip_range"`
 
-	// The security group ID to which this rule belongs
+	// The security group ID to which this rule belongs.
 	ParentGroupID string `json:"parent_group_id"`
 
 	// Not documented.
@@ -126,13 +126,15 @@ type SecurityGroupPage struct {
 	pagination.SinglePageBase
 }
 
-// IsEmpty determines whether or not a page of Security Groups contains any results.
+// IsEmpty determines whether or not a page of Security Groups contains any
+// results.
 func (page SecurityGroupPage) IsEmpty() (bool, error) {
 	users, err := ExtractSecurityGroups(page)
 	return len(users) == 0, err
 }
 
-// ExtractSecurityGroups returns a slice of SecurityGroups contained in a single page of results.
+// ExtractSecurityGroups returns a slice of SecurityGroups contained in a
+// single page of results.
 func ExtractSecurityGroups(r pagination.Page) ([]SecurityGroup, error) {
 	var s struct {
 		SecurityGroups []SecurityGroup `json:"security_groups"`
@@ -145,17 +147,20 @@ type commonResult struct {
 	gophercloud.Result
 }
 
-// CreateResult represents the result of a create operation.
+// CreateResult represents the result of a create operation. Call its Extract
+// method to interpret the result as a SecurityGroup.
 type CreateResult struct {
 	commonResult
 }
 
-// GetResult represents the result of a get operation.
+// GetResult represents the result of a get operation. Call its Extract
+// method to interpret the result as a SecurityGroup.
 type GetResult struct {
 	commonResult
 }
 
-// UpdateResult represents the result of an update operation.
+// UpdateResult represents the result of an update operation. Call its Extract
+// method to interpret the result as a SecurityGroup.
 type UpdateResult struct {
 	commonResult
 }
@@ -170,6 +175,7 @@ func (r commonResult) Extract() (*SecurityGroup, error) {
 }
 
 // CreateRuleResult represents the result when adding rules to a security group.
+// Call its Extract method to interpret the result as a Rule.
 type CreateRuleResult struct {
 	gophercloud.Result
 }
@@ -181,4 +187,28 @@ func (r CreateRuleResult) Extract() (*Rule, error) {
 	}
 	err := r.ExtractInto(&s)
 	return s.Rule, err
+}
+
+// DeleteResult is the response from delete operation. Call its ExtractErr
+// method to determine if the request succeeded or failed.
+type DeleteResult struct {
+	gophercloud.ErrResult
+}
+
+// DeleteRuleResult is the response from a DeleteRule operation. Call its
+// ExtractErr method to determine if the request succeeded or failed.
+type DeleteRuleResult struct {
+	gophercloud.ErrResult
+}
+
+// AddServerResult is the response from an AddServer operation. Call its
+// ExtractErr method to determine if the request succeeded or failed.
+type AddServerResult struct {
+	gophercloud.ErrResult
+}
+
+// RemoveServerResult is the response from a RemoveServer operation. Call its
+// ExtractErr method to determine if the request succeeded or failed.
+type RemoveServerResult struct {
+	gophercloud.ErrResult
 }

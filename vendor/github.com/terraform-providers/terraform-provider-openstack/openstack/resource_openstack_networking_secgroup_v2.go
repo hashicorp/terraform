@@ -82,6 +82,10 @@ func resourceNetworkingSecGroupV2Create(d *schema.ResourceData, meta interface{}
 	// Delete the default security group rules if it has been requested.
 	deleteDefaultRules := d.Get("delete_default_rules").(bool)
 	if deleteDefaultRules {
+		security_group, err := groups.Get(networkingClient, security_group.ID).Extract()
+		if err != nil {
+			return err
+		}
 		for _, rule := range security_group.Rules {
 			if err := rules.Delete(networkingClient, rule.ID).ExtractErr(); err != nil {
 				return fmt.Errorf(
@@ -137,7 +141,7 @@ func resourceNetworkingSecGroupV2Update(d *schema.ResourceData, meta interface{}
 
 	if d.HasChange("description") {
 		update = true
-		updateOpts.Name = d.Get("description").(string)
+		updateOpts.Description = d.Get("description").(string)
 	}
 
 	if update {

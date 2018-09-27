@@ -6,21 +6,21 @@ import (
 )
 
 type (
-	// Protocol represents a valid rule protocol
+	// Protocol represents a valid rule protocol.
 	Protocol string
 )
 
 const (
-	// ProtocolAny is to allow any protocol
+	// ProtocolAny is to allow any protocol.
 	ProtocolAny Protocol = "any"
 
-	// ProtocolICMP is to allow the ICMP protocol
+	// ProtocolICMP is to allow the ICMP protocol.
 	ProtocolICMP Protocol = "icmp"
 
-	// ProtocolTCP is to allow the TCP protocol
+	// ProtocolTCP is to allow the TCP protocol.
 	ProtocolTCP Protocol = "tcp"
 
-	// ProtocolUDP is to allow the UDP protocol
+	// ProtocolUDP is to allow the UDP protocol.
 	ProtocolUDP Protocol = "udp"
 )
 
@@ -33,10 +33,11 @@ type ListOptsBuilder interface {
 // ListOpts allows the filtering and sorting of paginated collections through
 // the API. Filtering is achieved by passing in struct field values that map to
 // the Firewall rule attributes you want to see returned. SortKey allows you to
-// sort by a particular firewall rule attribute. SortDir sets the direction, and is
-// either `asc' or `desc'. Marker and Limit are used for pagination.
+// sort by a particular firewall rule attribute. SortDir sets the direction, and
+// is either `asc' or `desc'. Marker and Limit are used for pagination.
 type ListOpts struct {
 	TenantID             string `q:"tenant_id"`
+	ProjectID            string `q:"project_id"`
 	Name                 string `q:"name"`
 	Description          string `q:"description"`
 	Protocol             string `q:"protocol"`
@@ -67,8 +68,8 @@ func (opts ListOpts) ToRuleListQuery() (string, error) {
 // firewall rules. It accepts a ListOpts struct, which allows you to filter
 // and sort the returned collection for greater efficiency.
 //
-// Default policy settings return only those firewall rules that are owned by the
-// tenant who submits the request, unless an admin user submits the request.
+// Default policy settings return only those firewall rules that are owned by
+// the tenant who submits the request, unless an admin user submits the request.
 func List(c *gophercloud.ServiceClient, opts ListOptsBuilder) pagination.Pager {
 	url := rootURL(c)
 
@@ -85,10 +86,8 @@ func List(c *gophercloud.ServiceClient, opts ListOptsBuilder) pagination.Pager {
 	})
 }
 
-// CreateOptsBuilder is the interface options structs have to satisfy in order
-// to be used in the main Create operation in this package. Since many
-// extensions decorate or modify the common logic, it is useful for them to
-// satisfy a basic interface in order for them to be used.
+// CreateOptsBuilder allows extensions to add additional parameters to the
+// Create request.
 type CreateOptsBuilder interface {
 	ToRuleCreateMap() (map[string]interface{}, error)
 }
@@ -98,6 +97,7 @@ type CreateOpts struct {
 	Protocol             Protocol              `json:"protocol" required:"true"`
 	Action               string                `json:"action" required:"true"`
 	TenantID             string                `json:"tenant_id,omitempty"`
+	ProjectID            string                `json:"project_id,omitempty"`
 	Name                 string                `json:"name,omitempty"`
 	Description          string                `json:"description,omitempty"`
 	IPVersion            gophercloud.IPVersion `json:"ip_version,omitempty"`
@@ -123,7 +123,8 @@ func (opts CreateOpts) ToRuleCreateMap() (map[string]interface{}, error) {
 	return b, nil
 }
 
-// Create accepts a CreateOpts struct and uses the values to create a new firewall rule
+// Create accepts a CreateOpts struct and uses the values to create a new
+// firewall rule.
 func Create(c *gophercloud.ServiceClient, opts CreateOptsBuilder) (r CreateResult) {
 	b, err := opts.ToRuleCreateMap()
 	if err != nil {
@@ -140,15 +141,15 @@ func Get(c *gophercloud.ServiceClient, id string) (r GetResult) {
 	return
 }
 
-// UpdateOptsBuilder is the interface options structs have to satisfy in order
-// to be used in the main Update operation in this package. Since many
-// extensions decorate or modify the common logic, it is useful for them to
-// satisfy a basic interface in order for them to be used.
+// UpdateOptsBuilder allows extensions to add additional parameters to the
+// Update request.
 type UpdateOptsBuilder interface {
 	ToRuleUpdateMap() (map[string]interface{}, error)
 }
 
 // UpdateOpts contains the values used when updating a firewall rule.
+// These fields are all pointers so that unset fields will not cause the
+// existing Rule attribute to be removed.
 type UpdateOpts struct {
 	Protocol             *string                `json:"protocol,omitempty"`
 	Action               *string                `json:"action,omitempty"`
@@ -181,7 +182,8 @@ func Update(c *gophercloud.ServiceClient, id string, opts UpdateOptsBuilder) (r 
 	return
 }
 
-// Delete will permanently delete a particular firewall rule based on its unique ID.
+// Delete will permanently delete a particular firewall rule based on its
+// unique ID.
 func Delete(c *gophercloud.ServiceClient, id string) (r DeleteResult) {
 	_, r.Err = c.Delete(resourceURL(c, id), nil)
 	return
