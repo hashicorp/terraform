@@ -2918,6 +2918,7 @@ func TestContext2Apply_moduleOrphanGrandchildProvider(t *testing.T) {
 						Primary: &InstanceState{
 							ID: "bar",
 						},
+						Provider: "provider.aws",
 					},
 				},
 			},
@@ -8321,20 +8322,16 @@ func TestContext2Apply_targetedModuleUnrelatedOutputs(t *testing.T) {
 		t.Fatalf("diags: %s", diags.Err())
 	}
 
-	// module.child1's instance_id output should be retained from state
-	// module.child2's instance_id is updated because its dependency is updated
-	// child2_id is updated because if its transitive dependency via module.child2
+	// - module.child1's instance_id output is dropped because we don't preserve
+	//   non-root module outputs between runs (they can be recalculated from config)
+	// - module.child2's instance_id is updated because its dependency is updated
+	// - child2_id is updated because if its transitive dependency via module.child2
 	checkStateString(t, state, `
 <no state>
 Outputs:
 
 child2_id = foo
 
-module.child1:
-  <no state>
-  Outputs:
-
-  instance_id = foo-bar-baz
 module.child2:
   aws_instance.foo:
     ID = foo
