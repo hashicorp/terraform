@@ -702,7 +702,7 @@ func (t *ProviderConfigTransformer) attachProviderConfigs(g *Graph) error {
 		// Go through the provider configs to find the matching config
 		for _, p := range mc.Module.ProviderConfigs {
 			if p.Name == addr.ProviderConfig.Type && p.Alias == addr.ProviderConfig.Alias {
-				log.Printf("[TRACE] ProviderConfigTransformer: attaching to %s: %#v", addr.String(), p)
+				log.Printf("[TRACE] ProviderConfigTransformer: attaching to %q provider configuration from %s", dag.VertexName(v), p.DeclRange)
 				apn.AttachProvider(p)
 				break
 			}
