@@ -2809,7 +2809,7 @@ func TestContext2Apply_moduleOrphanInheritAlias(t *testing.T) {
 						Primary: &InstanceState{
 							ID: "bar",
 						},
-						Provider: "aws.eu",
+						Provider: "provider.aws.eu",
 					},
 				},
 			},
@@ -2839,7 +2839,7 @@ func TestContext2Apply_moduleOrphanInheritAlias(t *testing.T) {
 		t.Fatal("must call configure")
 	}
 
-	checkStateString(t, state, "")
+	checkStateString(t, state, "<no state>")
 }
 
 func TestContext2Apply_moduleOrphanProvider(t *testing.T) {
