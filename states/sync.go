@@ -186,7 +186,8 @@ func (s *SyncState) SetResourceMeta(addr addrs.AbsResource, eachMode EachMode, p
 // RemoveResource removes the entire state for the given resource, taking with
 // it any instances associated with the resource. This should generally be
 // called only for resource objects whose instances have all been destroyed,
-// but that is not enforced by this method.
+// but that is not enforced by this method. (Use RemoveResourceIfEmpty instead
+// to safely check first.)
 func (s *SyncState) RemoveResource(addr addrs.AbsResource) {
 	s.lock.Lock()
 	defer s.lock.Unlock()
@@ -194,6 +195,35 @@ func (s *SyncState) RemoveResource(addr addrs.AbsResource) {
 	ms := s.state.EnsureModule(addr.Module)
 	ms.RemoveResource(addr.Resource)
 	s.maybePruneModule(addr.Module)
+}
+
+// RemoveResourceIfEmpty is similar to RemoveResource but first checks to
+// make sure there are no instances or objects left in the resource.
+//
+// Returns true if the resource was removed, or false if remaining child
+// objects prevented its removal. Returns true also if the resource was
+// already absent, and thus no action needed to be taken.
+func (s *SyncState) RemoveResourceIfEmpty(addr addrs.AbsResource) bool {
+	s.lock.Lock()
+	defer s.lock.Unlock()
+
+	ms := s.state.Module(addr.Module)
+	if ms == nil {
+		return true // nothing to do
+	}
+	rs := ms.Resource(addr.Resource)
+	if rs == nil {
+		return true // nothing to do
+	}
+	if len(rs.Instances) != 0 {
+		// We don't check here for the possibility of instances that exist
+		// but don't have any objects because it's the responsibility of the
+		// instance-mutation methods to prune those away automatically.
+		return false
+	}
+	ms.RemoveResource(addr.Resource)
+	s.maybePruneModule(addr.Module)
+	return true
 }
 
 // MaybeFixUpResourceInstanceAddressForCount deals with the situation where a
