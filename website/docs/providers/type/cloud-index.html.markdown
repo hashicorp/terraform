@@ -55,6 +55,8 @@ vendor in close collaboration with HashiCorp, and are tested by HashiCorp.
 
 [TelefonicaOpenCloud](/docs/providers/telefonicaopencloud/index.html)
 
+[TencentCloud](/docs/providers/tencentcloud/index.html)
+
 [Triton](/docs/providers/triton/index.html)
 
 [1&1](/docs/providers/oneandone/index.html)
