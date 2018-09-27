@@ -1,6 +1,8 @@
 package terraform
 
 import (
+	"log"
+
 	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/dag"
 	"github.com/hashicorp/terraform/states"
@@ -84,9 +86,94 @@ func (t *OrphanResourceInstanceTransformer) transform(g *Graph, ms *states.Modul
 			if f := t.Concrete; f != nil {
 				node = f(abstract)
 			}
+			log.Printf("[TRACE] OrphanResourceInstanceTransformer: adding single-instance orphan node for %s", addr)
 			g.Add(node)
 		}
 	}
 
 	return nil
+}
+
+// OrphanResourceTransformer is a GraphTransformer that adds orphaned
+// resources to the graph. An "orphan" is a resource that is present in
+// the state but no longer present in the config.
+//
+// This is separate to OrphanResourceInstanceTransformer in that it deals with
+// whole resources, rather than individual instances of resources. Orphan
+// resource nodes are only used during apply to clean up leftover empty
+// resource state skeletons, after all of the instances inside have been
+// removed.
+//
+// This transformer will also create edges in the graph to any pre-existing
+// node that creates or destroys the entire orphaned resource or any of its
+// instances, to ensure that the "orphan-ness" of a resource is always dealt
+// with after all other aspects of it.
+type OrphanResourceTransformer struct {
+	Concrete ConcreteResourceNodeFunc
+
+	// State is the global state.
+	State *states.State
+
+	// Config is the root node in the configuration tree.
+	Config *configs.Config
+}
+
+func (t *OrphanResourceTransformer) Transform(g *Graph) error {
+	if t.State == nil {
+		// If the entire state is nil, there can't be any orphans
+		return nil
+	}
+	if t.Config == nil {
+		// Should never happen: we can't be doing any Terraform operations
+		// without at least an empty configuration.
+		panic("OrphanResourceTransformer used without setting Config")
+	}
+
+	// We'll first collect up the existing nodes for each resource so we can
+	// create dependency edges for any new nodes we create.
+	deps := map[string][]dag.Vertex{}
+	for _, v := range g.Vertices() {
+		switch tv := v.(type) {
+		case GraphNodeResourceInstance:
+			k := tv.ResourceInstanceAddr().ContainingResource().String()
+			deps[k] = append(deps[k], v)
+		case GraphNodeResource:
+			k := tv.ResourceAddr().String()
+			deps[k] = append(deps[k], v)
+		case GraphNodeDestroyer:
+			k := tv.DestroyAddr().ContainingResource().String()
+			deps[k] = append(deps[k], v)
+		}
+	}
+
+	for _, ms := range t.State.Modules {
+		moduleAddr := ms.Addr
+
+		mc := t.Config.DescendentForInstance(moduleAddr) // might be nil if whole module has been removed
+
+		for _, rs := range ms.Resources {
+			if mc != nil {
+				if r := mc.Module.ResourceByAddr(rs.Addr); r != nil {
+					// It's in the config, so nothing to do for this one.
+					continue
+				}
+			}
+
+			addr := rs.Addr.Absolute(moduleAddr)
+			abstract := NewNodeAbstractResource(addr)
+			var node dag.Vertex = abstract
+			if f := t.Concrete; f != nil {
+				node = f(abstract)
+			}
+			log.Printf("[TRACE] OrphanResourceTransformer: adding whole-resource orphan node for %s", addr)
+			g.Add(node)
+			for _, dn := range deps[addr.String()] {
+				log.Printf("[TRACE] OrphanResourceTransformer: node %q depends on %q", dag.VertexName(node), dag.VertexName(dn))
+				g.Connect(dag.BasicEdge(node, dn))
+			}
+		}
+	}
+
+	return nil
+
 }
