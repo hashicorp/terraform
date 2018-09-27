@@ -6494,11 +6494,7 @@ func TestContext2Apply_destroyModuleWithAttrsReferencingResource(t *testing.T) {
 
 	//Test that things were destroyed
 	actual := strings.TrimSpace(state.String())
-	expected := strings.TrimSpace(`
-<no state>
-module.child:
-  <no state>
-		`)
+	expected := strings.TrimSpace(`<no state>`)
 	if actual != expected {
 		t.Fatalf("expected:\n\n%s\n\nactual:\n\n%s", expected, actual)
 	}
