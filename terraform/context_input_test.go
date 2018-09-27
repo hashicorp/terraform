@@ -6,14 +6,12 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/hashicorp/terraform/addrs"
-	"github.com/hashicorp/terraform/providers"
-
-	"github.com/hashicorp/terraform/states"
-
 	"github.com/zclconf/go-cty/cty"
 
+	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs/configschema"
+	"github.com/hashicorp/terraform/providers"
+	"github.com/hashicorp/terraform/states"
 )
 
 func TestContext2Input(t *testing.T) {
@@ -357,10 +355,9 @@ func TestContext2Input_providerOnly(t *testing.T) {
 		ResourceTypes: map[string]*configschema.Block{
 			"aws_instance": {
 				Attributes: map[string]*configschema.Attribute{
-					"foo": {
-						Type:     cty.String,
-						Required: true,
-					},
+					"foo":  {Type: cty.String, Required: true},
+					"id":   {Type: cty.String, Computed: true},
+					"type": {Type: cty.String, Computed: true},
 				},
 			},
 		},
@@ -753,8 +750,10 @@ func TestContext2Input_hcl(t *testing.T) {
 		ResourceTypes: map[string]*configschema.Block{
 			"hcl_instance": {
 				Attributes: map[string]*configschema.Attribute{
-					"foo": {Type: cty.List(cty.String), Optional: true},
-					"bar": {Type: cty.Map(cty.String), Optional: true},
+					"foo":  {Type: cty.List(cty.String), Optional: true},
+					"bar":  {Type: cty.Map(cty.String), Optional: true},
+					"id":   {Type: cty.String, Computed: true},
+					"type": {Type: cty.String, Computed: true},
 				},
 			},
 		},
