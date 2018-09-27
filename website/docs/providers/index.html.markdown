@@ -149,7 +149,7 @@ down to see all providers.
     <tr>
     <td><a href="/docs/providers/telefonicaopencloud/index.html">TelefonicaOpenCloud</a></td>
     <td><a href="/docs/providers/template/index.html">Template</a></td>
-    <td><a href="/docs/providers/tencentcloud/index.html"><TencentCloud</a></td>
+    <td><a href="/docs/providers/tencentcloud/index.html">TencentCloud</a></td>
     </tr>
     <tr>
     <td><a href="/docs/providers/terraform/index.html">Terraform</a></td>
