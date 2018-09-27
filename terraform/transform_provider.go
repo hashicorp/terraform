@@ -4,11 +4,11 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/hcl2/hcl"
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/dag"
+	"github.com/hashicorp/terraform/tfdiags"
 )
 
 func TransformProviders(providers []string, concrete ConcreteProviderNodeFunc, config *configs.Config) GraphTransformer {
@@ -84,7 +84,7 @@ func (t *ProviderTransformer) Transform(g *Graph) error {
 	// the graph, and then create graph edges from provider to provider user
 	// so that the providers will get initialized first.
 
-	var err error
+	var diags tfdiags.Diagnostics
 
 	// To start, we'll collect the _requested_ provider addresses for each
 	// node, which we'll then resolve (handling provider inheritence, etc) in
@@ -131,8 +131,8 @@ func (t *ProviderTransformer) Transform(g *Graph) error {
 
 			_, ok := v.(GraphNodeSubPath)
 			if !ok && target == nil {
-				// No target and no path to traverse up grom
-				err = multierror.Append(err, fmt.Errorf("%s: provider %s couldn't be found", dag.VertexName(v), p))
+				// No target and no path to traverse up from
+				diags = diags.Append(fmt.Errorf("%s: provider %s couldn't be found", dag.VertexName(v), p))
 				continue
 			}
 
@@ -171,9 +171,13 @@ func (t *ProviderTransformer) Transform(g *Graph) error {
 			}
 
 			if target == nil {
-				err = multierror.Append(err, fmt.Errorf(
-					"%s: configuration for %s is not present; a provider configuration block is required for all operations",
-					dag.VertexName(v), p,
+				diags = diags.Append(tfdiags.Sourceless(
+					tfdiags.Error,
+					"Provider configuration not present",
+					fmt.Sprintf(
+						"To work with %s its original provider configuration at %s is required, but it has been removed. This occurs when a provider configuration is removed while objects created by that provider still exist in the state. Re-add the provider configuration to destroy %s, after which you can remove the provider configuration again.",
+						dag.VertexName(v), p, dag.VertexName(v),
+					),
 				))
 				break
 			}
@@ -193,7 +197,7 @@ func (t *ProviderTransformer) Transform(g *Graph) error {
 		}
 	}
 
-	return err
+	return diags.Err()
 }
 
 // CloseProviderTransformer is a GraphTransformer that adds nodes to the
