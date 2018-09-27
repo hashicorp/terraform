@@ -12,7 +12,8 @@ import (
 	"github.com/hashicorp/terraform/states"
 )
 
-// NodeDestroyResource represents a resource that is to be destroyed.
+// NodeDestroyResourceInstance represents a resource instance that is to be
+// destroyed.
 type NodeDestroyResourceInstance struct {
 	*NodeAbstractResourceInstance
 
@@ -264,5 +265,57 @@ func (n *NodeDestroyResourceInstance) EvalTree() EvalNode {
 				&EvalUpdateStateHook{},
 			},
 		},
+	}
+}
+
+// NodeDestroyResourceInstance represents a resource that is to be destroyed.
+//
+// Destroying a resource is a state-only operation: it is the individual
+// instances being destroyed that affects remote objects. During graph
+// construction, NodeDestroyResource should always depend on any other node
+// related to the given resource, since it's just a final cleanup to avoid
+// leaving skeleton resource objects in state after their instances have
+// all been destroyed.
+type NodeDestroyResource struct {
+	*NodeAbstractResource
+}
+
+var (
+	_ GraphNodeResource      = (*NodeDestroyResource)(nil)
+	_ GraphNodeReferenceable = (*NodeDestroyResource)(nil)
+	_ GraphNodeReferencer    = (*NodeDestroyResource)(nil)
+	_ GraphNodeEvalable      = (*NodeDestroyResource)(nil)
+)
+
+func (n *NodeDestroyResource) Name() string {
+	return n.ResourceAddr().String() + " (clean up state)"
+}
+
+// GraphNodeReferenceable, overriding NodeAbstractResource
+func (n *NodeDestroyResource) ReferenceableAddrs() []addrs.Referenceable {
+	// NodeDestroyResource doesn't participate in references: the graph
+	// builder that created it should ensure directly that it already depends
+	// on every other node related to its resource, without relying on
+	// references.
+	return nil
+}
+
+// GraphNodeReferencer, overriding NodeAbstractResource
+func (n *NodeDestroyResource) References() []*addrs.Reference {
+	// NodeDestroyResource doesn't participate in references: the graph
+	// builder that created it should ensure directly that it already depends
+	// on every other node related to its resource, without relying on
+	// references.
+	return nil
+}
+
+// GraphNodeEvalable
+func (n *NodeDestroyResource) EvalTree() EvalNode {
+	// This EvalNode will produce an error if the resource isn't already
+	// empty by the time it is called, since it should just be pruning the
+	// leftover husk of a resource in state after all of the child instances
+	// and their objects were destroyed.
+	return &EvalForgetResourceState{
+		Addr: n.ResourceAddr().Resource,
 	}
 }

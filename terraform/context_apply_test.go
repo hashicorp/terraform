@@ -2694,6 +2694,89 @@ module.child:
 	`)
 }
 
+func TestContext2Apply_orphanResource(t *testing.T) {
+	// This is a two-step test:
+	// 1. Apply a configuration with resources that have count set.
+	//    This should place the empty resource object in the state to record
+	//    that each exists, and record any instances.
+	// 2. Apply an empty configuration against the same state, which should
+	//    then clean up both the instances and the containing resource objects.
+	p := testProvider("test")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+	p.GetSchemaReturn = &ProviderSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"test_thing": {},
+		},
+	}
+
+	// Step 1: create the resources and instances
+	m := testModule(t, "apply-orphan-resource")
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		ProviderResolver: providers.ResolverFixed(
+			map[string]providers.Factory{
+				"test": testProviderFuncFixed(p),
+			},
+		),
+	})
+	_, diags := ctx.Plan()
+	assertNoErrors(t, diags)
+	state, diags := ctx.Apply()
+	assertNoErrors(t, diags)
+
+	// At this point both resources should be recorded in the state, along
+	// with the single instance associated with test_thing.one.
+	want := states.BuildState(func (s *states.SyncState) {
+		providerAddr := addrs.ProviderConfig{
+			Type: "test",
+		}.Absolute(addrs.RootModuleInstance)
+		zeroAddr := addrs.Resource{
+			Mode: addrs.ManagedResourceMode,
+			Type: "test_thing",
+			Name: "zero",
+		}.Absolute(addrs.RootModuleInstance)
+		oneAddr := addrs.Resource{
+			Mode: addrs.ManagedResourceMode,
+			Type: "test_thing",
+			Name: "one",
+		}.Absolute(addrs.RootModuleInstance)
+		s.SetResourceMeta(zeroAddr, states.EachList, providerAddr)
+		s.SetResourceMeta(oneAddr, states.EachList, providerAddr)
+		s.SetResourceInstanceCurrent(oneAddr.Instance(addrs.IntKey(0)), &states.ResourceInstanceObjectSrc{
+			Status: states.ObjectReady,
+			AttrsJSON: []byte(`{}`),
+		}, providerAddr)
+	})
+	if !cmp.Equal(state, want) {
+		t.Fatalf("wrong state after step 1\n%s", cmp.Diff(want, state))
+	}
+
+	// Step 2: update with an empty config, to destroy everything
+	m = testModule(t, "empty")
+	ctx = testContext2(t, &ContextOpts{
+		Config: m,
+		State:  state,
+		ProviderResolver: providers.ResolverFixed(
+			map[string]providers.Factory{
+				"test": testProviderFuncFixed(p),
+			},
+		),
+	})
+	_, diags = ctx.Plan()
+	assertNoErrors(t, diags)
+	state, diags = ctx.Apply()
+	assertNoErrors(t, diags)
+
+	// The state should now be _totally_ empty, with just an empty root module
+	// (since that always exists) and no resources at all.
+	want = states.NewState()
+	if !cmp.Equal(state, want) {
+		t.Fatalf("wrong state after step 2\ngot: %swant: %s", spew.Sdump(state), spew.Sdump(want))
+	}
+
+}
+
 func TestContext2Apply_moduleOrphanInheritAlias(t *testing.T) {
 	m := testModule(t, "apply-module-provider-inherit-alias-orphan")
 	p := testProvider("aws")
@@ -9137,17 +9220,8 @@ func TestContext2Apply_destroyNestedModuleWithAttrsReferencingResource(t *testin
 		}
 	}
 
-	//Test that things were destroyed
-	actual := strings.TrimSpace(state.String())
-	expected := strings.TrimSpace(`
-<no state>
-module.middle:
-  <no state>
-module.middle.bottom:
-  <no state>
-		`)
-	if actual != expected {
-		t.Fatalf("expected: \n%s\n\nbad: \n%s", expected, actual)
+	if !state.Empty() {
+		t.Fatalf("state after apply: %s\nwant empty state", spew.Sdump(state))
 	}
 }
 

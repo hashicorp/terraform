@@ -153,7 +153,6 @@ func (n *NodePlanDeposedResourceInstanceObject) EvalTree() EvalNode {
 	return seq
 }
 
-
 // NodeDestroyDeposedResourceInstanceObject represents deposed resource
 // instance objects during apply. Nodes of this type are inserted by
 // DiffTransformer when the planned changeset contains "delete" changes for
