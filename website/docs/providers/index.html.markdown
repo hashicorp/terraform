@@ -149,22 +149,22 @@ down to see all providers.
     <tr>
     <td><a href="/docs/providers/telefonicaopencloud/index.html">TelefonicaOpenCloud</a></td>
     <td><a href="/docs/providers/template/index.html">Template</a></td>
-    <td><a href="/docs/providers/terraform/index.html">Terraform</a></td>
+    <td><a href="/docs/providers/tencentcloud/index.html"><TencentCloud</a></td>
     </tr>
     <tr>
+    <td><a href="/docs/providers/terraform/index.html">Terraform</a></td>
     <td><a href="/docs/providers/tfe/index.html">Terraform Enterprise</a></td>
     <td><a href="/docs/providers/tls/index.html">TLS</a></td>
-    <td><a href="/docs/providers/triton/index.html">Triton</a></td>
     </tr>
     <tr>
+    <td><a href="/docs/providers/triton/index.html">Triton</a></td>
     <td><a href="/docs/providers/ultradns/index.html">UltraDNS</a></td>
     <td><a href="/docs/providers/vault/index.html">Vault</a></td>
-    <td><a href="/docs/providers/vcd/index.html">VMware vCloud Director</a></td>
     </tr>
     <tr>
+    <td><a href="/docs/providers/vcd/index.html">VMware vCloud Director</a></td>
     <td><a href="/docs/providers/nsxt/index.html">VMware NSX-T</a></td>
     <td><a href="/docs/providers/vsphere/index.html">VMware vSphere</a></td>
-    <td><a></a></td>
     </tr>
 </table>
 
