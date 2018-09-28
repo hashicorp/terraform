@@ -42,7 +42,7 @@ func TestRefreshGraphBuilder_configOrphans(t *testing.T) {
 					},
 					"data.test_object.foo.0": &ResourceState{
 						Type: "test_object",
-						Deposed: []*InstanceState{
+						Deposed: []*InstanceState{ // NOTE: Real-world data resources don't get deposed
 							&InstanceState{
 								ID: "foo",
 							},
@@ -50,7 +50,7 @@ func TestRefreshGraphBuilder_configOrphans(t *testing.T) {
 					},
 					"data.test_object.foo.1": &ResourceState{
 						Type: "test_object",
-						Deposed: []*InstanceState{
+						Deposed: []*InstanceState{ // NOTE: Real-world data resources don't get deposed
 							&InstanceState{
 								ID: "bar",
 							},
@@ -58,7 +58,7 @@ func TestRefreshGraphBuilder_configOrphans(t *testing.T) {
 					},
 					"data.test_object.foo.2": &ResourceState{
 						Type: "test_object",
-						Deposed: []*InstanceState{
+						Deposed: []*InstanceState{ // NOTE: Real-world data resources don't get deposed
 							&InstanceState{
 								ID: "baz",
 							},
@@ -84,17 +84,35 @@ func TestRefreshGraphBuilder_configOrphans(t *testing.T) {
 	expected := strings.TrimSpace(`
 data.test_object.foo[0] - *terraform.NodeRefreshableManagedResourceInstance
   provider.test - *terraform.NodeApplyableProvider
+data.test_object.foo[0] (deposed 00000001) - *terraform.NodePlanDeposedResourceInstanceObject
+  provider.test - *terraform.NodeApplyableProvider
 data.test_object.foo[1] - *terraform.NodeRefreshableManagedResourceInstance
   provider.test - *terraform.NodeApplyableProvider
+data.test_object.foo[1] (deposed 00000001) - *terraform.NodePlanDeposedResourceInstanceObject
+  provider.test - *terraform.NodeApplyableProvider
 data.test_object.foo[2] - *terraform.NodeRefreshableManagedResourceInstance
+  provider.test - *terraform.NodeApplyableProvider
+data.test_object.foo[2] (deposed 00000001) - *terraform.NodePlanDeposedResourceInstanceObject
   provider.test - *terraform.NodeApplyableProvider
 provider.test - *terraform.NodeApplyableProvider
 provider.test (close) - *terraform.graphNodeCloseProvider
   data.test_object.foo[0] - *terraform.NodeRefreshableManagedResourceInstance
+  data.test_object.foo[0] (deposed 00000001) - *terraform.NodePlanDeposedResourceInstanceObject
   data.test_object.foo[1] - *terraform.NodeRefreshableManagedResourceInstance
+  data.test_object.foo[1] (deposed 00000001) - *terraform.NodePlanDeposedResourceInstanceObject
   data.test_object.foo[2] - *terraform.NodeRefreshableManagedResourceInstance
+  data.test_object.foo[2] (deposed 00000001) - *terraform.NodePlanDeposedResourceInstanceObject
   test_object.foo - *terraform.NodeRefreshableManagedResource
+  test_object.foo[0] (deposed 00000001) - *terraform.NodePlanDeposedResourceInstanceObject
+  test_object.foo[1] (deposed 00000001) - *terraform.NodePlanDeposedResourceInstanceObject
+  test_object.foo[2] (deposed 00000001) - *terraform.NodePlanDeposedResourceInstanceObject
 test_object.foo - *terraform.NodeRefreshableManagedResource
+  provider.test - *terraform.NodeApplyableProvider
+test_object.foo[0] (deposed 00000001) - *terraform.NodePlanDeposedResourceInstanceObject
+  provider.test - *terraform.NodeApplyableProvider
+test_object.foo[1] (deposed 00000001) - *terraform.NodePlanDeposedResourceInstanceObject
+  provider.test - *terraform.NodeApplyableProvider
+test_object.foo[2] (deposed 00000001) - *terraform.NodePlanDeposedResourceInstanceObject
   provider.test - *terraform.NodeApplyableProvider
 `)
 	if expected != actual {
