@@ -38,7 +38,7 @@ func contextFixtureApplyVars(t *testing.T) *contextTestFixture {
 	c := testModule(t, "apply-vars")
 	p := mockProviderWithResourceTypeSchema("aws_instance", &configschema.Block{
 		Attributes: map[string]*configschema.Attribute{
-			"id":  {Type: cty.String, Computed: true},
+			"id":   {Type: cty.String, Computed: true},
 			"foo":  {Type: cty.String, Optional: true},
 			"bar":  {Type: cty.String, Optional: true},
 			"baz":  {Type: cty.String, Optional: true},
