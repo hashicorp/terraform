@@ -9,8 +9,8 @@ import (
 	"testing"
 
 	"github.com/hashicorp/terraform/backend"
-	"github.com/hashicorp/terraform/configs/configschema"
 	"github.com/hashicorp/terraform/configs/configload"
+	"github.com/hashicorp/terraform/configs/configschema"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/mitchellh/cli"
 	"github.com/zclconf/go-cty/cty"
@@ -34,8 +34,8 @@ func TestLocal_planBasic(t *testing.T) {
 		t.Fatalf("plan operation failed")
 	}
 
-	if !p.DiffCalled {
-		t.Fatal("diff should be called")
+	if !p.PlanResourceChangeCalled {
+		t.Fatal("PlanResourceChange should be called")
 	}
 }
 
@@ -144,8 +144,8 @@ func TestLocal_planRefreshFalse(t *testing.T) {
 		t.Fatalf("plan operation failed")
 	}
 
-	if p.RefreshCalled {
-		t.Fatal("refresh should not be called")
+	if p.ReadResourceCalled {
+		t.Fatal("ReadResource should not be called")
 	}
 
 	if !run.PlanEmpty {
@@ -178,8 +178,8 @@ func TestLocal_planDestroy(t *testing.T) {
 		t.Fatalf("plan operation failed")
 	}
 
-	if !p.RefreshCalled {
-		t.Fatal("refresh should be called")
+	if !p.ReadResourceCalled {
+		t.Fatal("ReadResource should be called")
 	}
 
 	if run.PlanEmpty {
