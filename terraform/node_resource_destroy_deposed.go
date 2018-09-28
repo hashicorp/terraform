@@ -43,7 +43,7 @@ var (
 )
 
 func (n *NodePlanDeposedResourceInstanceObject) Name() string {
-	return fmt.Sprintf("%s (deposed %s)", n.Addr.String(), n.DeposedKey)
+	return fmt.Sprintf("%s (deposed %s)", n.ResourceInstanceAddr().String(), n.DeposedKey)
 }
 
 func (n *NodePlanDeposedResourceInstanceObject) DeposedInstanceObjectKey() states.DeposedKey {
