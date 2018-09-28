@@ -12,7 +12,6 @@ import (
 
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs"
-	"github.com/hashicorp/terraform/configs/configschema"
 	"github.com/hashicorp/terraform/plans"
 	"github.com/hashicorp/terraform/plans/objchange"
 	"github.com/hashicorp/terraform/providers"
@@ -219,7 +218,7 @@ func (n *EvalDiff) Eval(ctx EvalContext) (interface{}, error) {
 
 	{
 		var moreDiags tfdiags.Diagnostics
-		plannedNewVal, moreDiags = n.processIgnoreChanges(schema, priorVal, plannedNewVal)
+		plannedNewVal, moreDiags = n.processIgnoreChanges(priorVal, plannedNewVal)
 		diags = diags.Append(moreDiags)
 		if moreDiags.HasErrors() {
 			return nil, diags.Err()
@@ -417,7 +416,7 @@ func (n *EvalDiff) Eval(ctx EvalContext) (interface{}, error) {
 	return nil, nil
 }
 
-func (n *EvalDiff) processIgnoreChanges(schema *configschema.Block, prior, proposed cty.Value) (cty.Value, tfdiags.Diagnostics) {
+func (n *EvalDiff) processIgnoreChanges(prior, proposed cty.Value) (cty.Value, tfdiags.Diagnostics) {
 	// ignore_changes only applies when an object already exists, since we
 	// can't ignore changes to a thing we've not created yet.
 	if prior.IsNull() {
@@ -439,6 +438,10 @@ func (n *EvalDiff) processIgnoreChanges(schema *configschema.Block, prior, propo
 		return proposed, nil
 	}
 
+	return processIgnoreChangesIndividual(prior, proposed, ignoreChanges)
+}
+
+func processIgnoreChangesIndividual(prior, proposed cty.Value, ignoreChanges []hcl.Traversal) (cty.Value, tfdiags.Diagnostics) {
 	// When we walk below we will be using cty.Path values for comparison, so
 	// we'll convert our traversals here so we can compare more easily.
 	ignoreChangesPath := make([]cty.Path, len(ignoreChanges))
