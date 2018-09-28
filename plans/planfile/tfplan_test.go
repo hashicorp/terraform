@@ -60,7 +60,7 @@ func TestTFPlanRoundTrip(t *testing.T) {
 						Type: "test",
 					}.Absolute(addrs.RootModuleInstance),
 					ChangeSrc: plans.ChangeSrc{
-						Action: plans.Replace,
+						Action: plans.DeleteThenCreate,
 						Before: mustNewDynamicValue(cty.ObjectVal(map[string]cty.Value{
 							"id": cty.StringVal("foo-bar-baz"),
 						}), objTy),
