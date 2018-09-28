@@ -114,7 +114,12 @@ func (b *Local) opPlan(
 
 	// Save the plan to disk
 	if path := op.PlanOutPath; path != "" {
-		plan.Backend = *op.PlanOutBackend
+		if op.PlanOutBackend != nil {
+			plan.Backend = *op.PlanOutBackend
+		} else {
+			op.PlanOutBackend = &plans.Backend{}
+			plan.Backend = *op.PlanOutBackend
+		}
 
 		// We may have updated the state in the refresh step above, but we
 		// will freeze that updated state in the plan file for now and
