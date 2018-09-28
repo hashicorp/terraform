@@ -3,5 +3,6 @@ module "child" {
 }
 
 resource "aws_instance" "b" {
-    blah = "${module.child.a_output}"
+  id   = "b"
+  blah = "${module.child.a_output}"
 }
