@@ -176,6 +176,12 @@ func assertValueCompatible(planned, actual cty.Value, path cty.Path) []error {
 		return errs
 	}
 
+	if !planned.IsKnown() {
+		// We didn't know what were going to end up with during plan, so
+		// anything goes during apply.
+		return errs
+	}
+
 	if actual.IsNull() {
 		if planned.IsNull() {
 			return nil
@@ -188,11 +194,6 @@ func assertValueCompatible(planned, actual cty.Value, path cty.Path) []error {
 
 	ty := planned.Type()
 	switch {
-
-	case ty == cty.DynamicPseudoType || !planned.IsKnown():
-		// We didn't know what were going to end up with during plan, so
-		// anything goes during apply.
-		return errs
 
 	case !actual.IsKnown():
 		errs = append(errs, path.NewErrorf("was known, but now unknown"))
