@@ -22,7 +22,7 @@ import (
 type NodeApplyableResourceInstance struct {
 	*NodeAbstractResourceInstance
 
-	destroyNode GraphNodeDestroyerCBD
+	destroyNode      GraphNodeDestroyerCBD
 	graphNodeDeposer // implementation of GraphNodeDeposer
 }
 
