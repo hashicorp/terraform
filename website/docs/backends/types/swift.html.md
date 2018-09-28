@@ -45,8 +45,9 @@ data "terraform_remote_state" "foo" {
 
 The following configuration options are supported:
 
- * `auth_url` - (Required) The Identity authentication URL. If omitted, the
-   `OS_AUTH_URL` environment variable is used.
+ * `auth_url` - (Optional) The Identity authentication URL. If omitted, the
+   `OS_AUTH_URL` environment variable is used. One of `auth_url` or `cloud`
+   is required.
 
  * `container` - (Required) The name of the container to create for storing
    the Terraform state file.
@@ -77,14 +78,31 @@ The following configuration options are supported:
    (Identity v3) to login with. If omitted, the `OS_TENANT_NAME` or
    `OS_PROJECT_NAME` environment variable are used.
 
+ * `user_domain_id` - (Optional) The ID of the domain where the user resides
+   (Identity v3). If omitted, the `OS_USER_DOMAIN_ID` environment variable is
+   used.
+
+ * `user_domain_name` - (Optional) The name of the domain where the user resides
+   (Identity v3). If omitted, the `OS_USER_DOMAIN_NAME` environment variable is
+   used.
+
+ * `project_domain_id` - (Optional) The ID of the domain where the project
+   resides (Identity v3). If omitted, the `OS_PROJECT_DOMAIN_ID` environment
+   variable is used.
+
+ * `project_domain_name` - (Optional) The name of the domain where the project
+   resides (Identity v3). If omitted, the `OS_PROJECT_DOMAIN_NAME` environment
+   variable is used.
+
  * `domain_id` - (Optional) The ID of the Domain to scope to (Identity v3). If
-   omitted, the following environment variables are checked (in this order):
-   `OS_USER_DOMAIN_ID`, `OS_PROJECT_DOMAIN_ID`, `OS_DOMAIN_ID`.
+   omitted, the `OS_DOMAIN_ID` environment variable is used.
 
  * `domain_name` - (Optional) The Name of the Domain to scope to (Identity v3).
-   If omitted, the following environment variables are checked (in this order):
-   `OS_USER_DOMAIN_NAME`, `OS_PROJECT_DOMAIN_NAME`, `OS_DOMAIN_NAME`,
-   `DEFAULT_DOMAIN`.
+   If omitted, the `OS_DOMAIN_NAME` environment variable is used.
+
+ * `default_domain` - (Optional) The name of the Domain ID to scope to if no
+   other domain is specified. Defaults to `default` (Identity v3).
+   If omitted, the `DEFAULT_DOMAIN` environment variable is used.
 
  * `insecure` - (Optional) Trust self-signed SSL certificates. If omitted, the
    `OS_INSECURE` environment variable is used.
@@ -92,11 +110,15 @@ The following configuration options are supported:
  * `cacert_file` - (Optional) Specify a custom CA certificate when communicating
    over SSL. If omitted, the `OS_CACERT` environment variable is used.
 
- * `cert` - (Optional) Specify client certificate file for SSL client authentication. 
+ * `cert` - (Optional) Specify client certificate file for SSL client authentication.
    If omitted the `OS_CERT` environment variable is used.
 
- * `key` - (Optional) Specify client private key file for SSL client authentication. 
+ * `key` - (Optional) Specify client private key file for SSL client authentication.
    If omitted the `OS_KEY` environment variable is used.
+
+ * `cloud` - (Optional) An entry in a `clouds.yaml` file to use. If omitted, the
+   `OS_CLOUD` environment variable is used. One of `auth_url` or `cloud` is
+   required.
 
  * `archive_container` - (Optional) The container to create to store archived copies
    of the Terraform state file. If specified, Swift [object versioning](https://docs.openstack.org/developer/swift/overview_object_versioning.html) is enabled on the container created at `container`.

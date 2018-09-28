@@ -240,13 +240,13 @@ func init() {
 
 		"project_domain_name": "The name of the domain where the project resides (Identity v3).",
 
-		"project_domain_id": "The ID of the domain where the proejct resides (Identity v3).",
+		"project_domain_id": "The ID of the domain where the project resides (Identity v3).",
 
 		"domain_id": "The ID of the Domain to scope to (Identity v3).",
 
 		"domain_name": "The name of the Domain to scope to (Identity v3).",
 
-		"default_domain": "The name of the Domain ID to scope to if no other domain is specified. Defaults to `default` (Identity v3).",
+		"default_domain": "The name of the Domain to scope to if no other domain is specified. Defaults to `default` (Identity v3).",
 
 		"region_name": "The name of the Region to use.",
 
