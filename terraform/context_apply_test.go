@@ -16,8 +16,8 @@ import (
 	"time"
 
 	"github.com/davecgh/go-spew/spew"
-	"github.com/google/go-cmp/cmp"
 	"github.com/go-test/deep"
+	"github.com/google/go-cmp/cmp"
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/addrs"
@@ -1493,7 +1493,7 @@ func TestContext2Apply_dataBasic(t *testing.T) {
 	p.DiffFn = testDiffFn
 	p.ReadDataSourceResponse = providers.ReadDataSourceResponse{
 		State: cty.ObjectVal(map[string]cty.Value{
-			"id": cty.StringVal("yo"),
+			"id":  cty.StringVal("yo"),
 			"foo": cty.NullVal(cty.String),
 		}),
 	}
@@ -2727,7 +2727,7 @@ func TestContext2Apply_orphanResource(t *testing.T) {
 
 	// At this point both resources should be recorded in the state, along
 	// with the single instance associated with test_thing.one.
-	want := states.BuildState(func (s *states.SyncState) {
+	want := states.BuildState(func(s *states.SyncState) {
 		providerAddr := addrs.ProviderConfig{
 			Type: "test",
 		}.Absolute(addrs.RootModuleInstance)
@@ -2744,7 +2744,7 @@ func TestContext2Apply_orphanResource(t *testing.T) {
 		s.SetResourceMeta(zeroAddr, states.EachList, providerAddr)
 		s.SetResourceMeta(oneAddr, states.EachList, providerAddr)
 		s.SetResourceInstanceCurrent(oneAddr.Instance(addrs.IntKey(0)), &states.ResourceInstanceObjectSrc{
-			Status: states.ObjectReady,
+			Status:    states.ObjectReady,
 			AttrsJSON: []byte(`{}`),
 		}, providerAddr)
 	})

@@ -82,7 +82,7 @@ func (b *RefreshGraphBuilder) Steps() []GraphTransformer {
 		// The "Plan" node type also handles refreshing behavior.
 		return &NodePlanDeposedResourceInstanceObject{
 			NodeAbstractResourceInstance: a,
-			DeposedKey: key,
+			DeposedKey:                   key,
 		}
 	}
 
