@@ -2,106 +2,117 @@ package terraform
 
 import (
 	"testing"
+
+	"github.com/zclconf/go-cty/cty"
+	"github.com/hashicorp/hcl2/hcl"
+	"github.com/hashicorp/hcl2/hcl/hclsyntax"
 )
 
-func TestProcessIgnoreChanges(t *testing.T) {
-	t.Fatalf("TestProcessIgnoreChanges not yet updated for new processIgnoreChanges signature")
-	/*var evalDiff *EvalDiff
-	var instanceDiff *InstanceDiff
-
-	var testDiffs = func(t *testing.T, ignoreChanges []string, newAttribute string) (*EvalDiff, *InstanceDiff) {
-		ignoreChangesTravs := make([]hcl.Traversal, len(ignoreChanges))
-		for i, s := range ignoreChanges {
-			traversal, travDiags := hclsyntax.ParseTraversalAbs([]byte(s), "", hcl.Pos{Line: 1, Column: 1})
-			if travDiags.HasErrors() {
-				t.Fatal(travDiags.Error())
-			}
-			ignoreChangesTravs[i] = traversal
-		}
-
-		return &EvalDiff{
-				Config: &configs.Resource{
-					Managed: &configs.ManagedResource{
-						IgnoreChanges: ignoreChangesTravs,
-					},
-				},
-			},
-			&InstanceDiff{
-				Destroy: true,
-				Attributes: map[string]*ResourceAttrDiff{
-					"resource.%": {
-						Old: "3",
-						New: "3",
-					},
-					"resource.changed": {
-						RequiresNew: true,
-						Type:        DiffAttrInput,
-						Old:         "old",
-						New:         "new",
-					},
-					"resource.maybe": {
-						Old: "",
-						New: newAttribute,
-					},
-					"resource.same": {
-						Old: "same",
-						New: "same",
-					},
-				},
-			}
+func TestProcessIgnoreChangesIndividual(t *testing.T) {
+	tests := map[string]struct {
+		Old, New cty.Value
+		Ignore   []string
+		Want     cty.Value
+	}{
+		"string": {
+			cty.ObjectVal(map[string]cty.Value{
+				"a": cty.StringVal("a value"),
+				"b": cty.StringVal("b value"),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"a": cty.StringVal("new a value"),
+				"b": cty.StringVal("new b value"),
+			}),
+			[]string{"a"},
+			cty.ObjectVal(map[string]cty.Value{
+				"a": cty.StringVal("a value"),
+				"b": cty.StringVal("new b value"),
+			}),
+		},
+		"changed type": {
+			cty.ObjectVal(map[string]cty.Value{
+				"a": cty.StringVal("a value"),
+				"b": cty.StringVal("b value"),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"a": cty.NumberIntVal(1),
+				"b": cty.StringVal("new b value"),
+			}),
+			[]string{"a"},
+			cty.ObjectVal(map[string]cty.Value{
+				"a": cty.StringVal("a value"),
+				"b": cty.StringVal("new b value"),
+			}),
+		},
+		"list": {
+			cty.ObjectVal(map[string]cty.Value{
+				"a": cty.ListVal([]cty.Value{
+					cty.StringVal("a0 value"),
+					cty.StringVal("a1 value"),
+				}),
+				"b": cty.StringVal("b value"),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"a": cty.ListVal([]cty.Value{
+					cty.StringVal("new a0 value"),
+					cty.StringVal("new a1 value"),
+				}),
+				"b": cty.StringVal("new b value"),
+			}),
+			[]string{"a"},
+			cty.ObjectVal(map[string]cty.Value{
+				"a": cty.ListVal([]cty.Value{
+					cty.StringVal("a0 value"),
+					cty.StringVal("a1 value"),
+				}),
+				"b": cty.StringVal("new b value"),
+			}),
+		},
+		"object attribute": {
+			cty.ObjectVal(map[string]cty.Value{
+				"a": cty.ObjectVal(map[string]cty.Value{
+					"foo": cty.StringVal("a.foo value"),
+					"bar": cty.StringVal("a.bar value"),
+				}),
+				"b": cty.StringVal("b value"),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"a": cty.ObjectVal(map[string]cty.Value{
+					"foo": cty.StringVal("new a.foo value"),
+					"bar": cty.StringVal("new a.bar value"),
+				}),
+				"b": cty.StringVal("new b value"),
+			}),
+			[]string{"a.bar"},
+			cty.ObjectVal(map[string]cty.Value{
+				"a": cty.ObjectVal(map[string]cty.Value{
+					"foo": cty.StringVal("new a.foo value"),
+					"bar": cty.StringVal("a.bar value"),
+				}),
+				"b": cty.StringVal("new b value"),
+			}),
+		},
 	}
 
-	for i, tc := range []struct {
-		ignore    []string
-		newAttr   string
-		attrDiffs int
-	}{
-		// attr diffs should be all (4), or nothing
-		{
-			ignore:    []string{"resource.changed"},
-			attrDiffs: 0,
-		},
-		{
-			ignore:    []string{"resource.changed"},
-			newAttr:   "new",
-			attrDiffs: 4,
-		},
-		{
-			attrDiffs: 4,
-		},
-		{
-			ignore:    []string{"resource.maybe"},
-			newAttr:   "new",
-			attrDiffs: 4,
-		},
-		{
-			newAttr:   "new",
-			attrDiffs: 4,
-		},
-		{
-			ignore:    []string{"resource"},
-			newAttr:   "new",
-			attrDiffs: 0,
-		},
-		{
-			// extra ignored values shouldn't affect the diff
-			ignore:    []string{"resource.missing", "resource.maybe"},
-			newAttr:   "new",
-			attrDiffs: 4,
-		},
-	} {
-		t.Run(fmt.Sprintf("%d", i), func(t *testing.T) {
-			evalDiff, instanceDiff = testDiffs(t, tc.ignore, tc.newAttr)
-			err := evalDiff.processIgnoreChanges(instanceDiff)
-			if err != nil {
-				t.Fatalf("err: %s", err)
-			}
-			if len(instanceDiff.Attributes) != tc.attrDiffs {
-				t.Errorf("expected %d diffs, found %d", tc.attrDiffs, len(instanceDiff.Attributes))
-				for k, attr := range instanceDiff.Attributes {
-					fmt.Printf("  %s:%#v\n", k, attr)
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			ignore := make([]hcl.Traversal, len(test.Ignore))
+			for i, ignoreStr := range test.Ignore {
+				trav, diags := hclsyntax.ParseTraversalAbs([]byte(ignoreStr), "", hcl.Pos{Line: 1, Column: 1})
+				if diags.HasErrors() {
+					t.Fatalf("failed to parse %q: %s", ignoreStr, diags.Error())
 				}
+				ignore[i] = trav
+			}
+
+			ret, diags := processIgnoreChangesIndividual(test.Old, test.New, ignore)
+			if diags.HasErrors() {
+				t.Fatal(diags.Err())
+			}
+
+			if got, want := ret, test.Want; !want.RawEquals(got) {
+				t.Errorf("wrong result\ngot:  %#v\nwant: %#v", got, want)
 			}
 		})
-	}*/
+	}
 }
