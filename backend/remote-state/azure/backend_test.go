@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"testing"
+	"time"
 
 	"github.com/Azure/azure-sdk-for-go/services/resources/mgmt/2017-05-10/resources"
 	armStorage "github.com/Azure/azure-sdk-for-go/services/storage/mgmt/2017-06-01/storage"
@@ -55,7 +56,7 @@ func TestBackend(t *testing.T) {
 	testACC(t)
 
 	keyName := "testState"
-	res := setupResources(t, keyName)
+	res := setupResources(t, context.Background(), keyName)
 	defer destroyResources(t, res.resourceGroupName)
 
 	b := backend.TestBackendConfig(t, New(), map[string]interface{}{
@@ -72,7 +73,7 @@ func TestBackendLocked(t *testing.T) {
 	testACC(t)
 
 	keyName := "testState"
-	res := setupResources(t, keyName)
+	res := setupResources(t, context.Background(), keyName)
 	defer destroyResources(t, res.resourceGroupName)
 
 	b1 := backend.TestBackendConfig(t, New(), map[string]interface{}{
@@ -101,7 +102,7 @@ type testResources struct {
 	accessKey          string
 }
 
-func setupResources(t *testing.T, keyName string) testResources {
+func setupResources(t *testing.T, ctx context.Context, keyName string) testResources {
 	clients := getTestClient(t)
 
 	ri := acctest.RandInt()
@@ -119,13 +120,15 @@ func setupResources(t *testing.T, keyName string) testResources {
 	}
 
 	t.Logf("creating resource group %s", res.resourceGroupName)
-	_, err := clients.groupsClient.CreateOrUpdate(context.Background(), res.resourceGroupName, resources.Group{Location: &location})
+	resourceGroup, err := clients.groupsClient.CreateOrUpdate(ctx, res.resourceGroupName, resources.Group{Location: &location})
 	if err != nil {
 		t.Fatalf("failed to create test resource group: %s", err)
+	} else {
+		t.Logf("Created resource group: %s", *resourceGroup.Name)
 	}
 
 	t.Logf("creating storage account %s", res.storageAccountName)
-	_, createError := clients.storageAccountsClient.Create(context.Background(), res.resourceGroupName, res.storageAccountName, armStorage.AccountCreateParameters{
+	storageAccountFuture, err := clients.storageAccountsClient.Create(ctx, res.resourceGroupName, res.storageAccountName, armStorage.AccountCreateParameters{
 		Sku: &armStorage.Sku{
 			Name: armStorage.StandardLRS,
 			Tier: armStorage.Standard,
@@ -133,13 +136,23 @@ func setupResources(t *testing.T, keyName string) testResources {
 		Location: &location,
 	})
 
-	if createError != nil {
+	if err != nil {
+		destroyResources(t, res.resourceGroupName)
+		t.Fatalf("failed to submit storage account creation: %s", err)
+	}
+
+	oneMinWaitCtx, cancelSAWait := context.WithTimeout(ctx, 1*time.Minute)
+	defer cancelSAWait()
+	err = storageAccountFuture.WaitForCompletionRef(oneMinWaitCtx, clients.storageAccountsClient.BaseClient.Client)
+	if err != nil {
 		destroyResources(t, res.resourceGroupName)
 		t.Fatalf("failed to create test storage account: %s", err)
+	} else {
+		t.Logf("Created storage account %s", res.storageAccountName)
 	}
 
 	t.Log("fetching access key for storage account")
-	resp, err := clients.storageAccountsClient.ListKeys(context.Background(), res.resourceGroupName, res.storageAccountName)
+	resp, err := clients.storageAccountsClient.ListKeys(ctx, res.resourceGroupName, res.storageAccountName)
 	if err != nil {
 		destroyResources(t, res.resourceGroupName)
 		t.Fatalf("failed to list storage account keys %s:", err)
@@ -175,7 +188,12 @@ func destroyResources(t *testing.T, resourceGroupName string) {
 	t.Log("destroying created resources")
 
 	// destroying is simple as deleting the resource group will destroy everything else
-	_, err := clients.groupsClient.Delete(context.Background(), resourceGroupName)
+	future, err := clients.groupsClient.Delete(context.Background(), resourceGroupName)
+	if err != nil {
+		t.Logf(warning, err)
+		return
+	}
+	err = future.WaitForCompletion(context.Background(), clients.groupsClient.BaseClient.Client)
 	if err != nil {
 		t.Logf(warning, err)
 		return

@@ -1,6 +1,7 @@
 package azure
 
 import (
+	"context"
 	"testing"
 
 	"github.com/Azure/azure-sdk-for-go/storage"
@@ -18,7 +19,7 @@ func TestRemoteClient(t *testing.T) {
 	testACC(t)
 
 	keyName := "testState"
-	res := setupResources(t, keyName)
+	res := setupResources(t, context.Background(), keyName)
 	defer destroyResources(t, res.resourceGroupName)
 
 	b := backend.TestBackendConfig(t, New(), map[string]interface{}{
@@ -40,7 +41,7 @@ func TestRemoteClientLocks(t *testing.T) {
 	testACC(t)
 
 	keyName := "testState"
-	res := setupResources(t, keyName)
+	res := setupResources(t, context.Background(), keyName)
 	defer destroyResources(t, res.resourceGroupName)
 
 	b1 := backend.TestBackendConfig(t, New(), map[string]interface{}{
@@ -76,7 +77,7 @@ func TestPutMaintainsMetaData(t *testing.T) {
 	keyName := "testState"
 	headerName := "acceptancetest"
 	expectedValue := "f3b56bad-33ad-4b93-a600-7a66e9cbd1eb"
-	res := setupResources(t, keyName)
+	res := setupResources(t, context.Background(), keyName)
 	defer destroyResources(t, res.resourceGroupName)
 
 	config := getBackendConfig(t, res)
