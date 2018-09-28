@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	armStorage "github.com/Azure/azure-sdk-for-go/arm/storage"
+	armStorage "github.com/Azure/azure-sdk-for-go/services/storage/mgmt/2017-06-01/storage"
 	"github.com/Azure/azure-sdk-for-go/storage"
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/adal"
@@ -13,7 +13,7 @@ import (
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
-// New creates a new backend for S3 remote state.
+// New creates a new backend for Azure Blob Storage remote state.
 func New() backend.Backend {
 	s := &schema.Backend{
 		Schema: map[string]*schema.Schema{
@@ -193,7 +193,7 @@ func getAccessKey(config BackendConfig, env azure.Environment) (string, error) {
 	accountsClient := armStorage.NewAccountsClientWithBaseURI(env.ResourceManagerEndpoint, config.SubscriptionID)
 	accountsClient.Authorizer = autorest.NewBearerAuthorizer(spt)
 
-	keys, err := accountsClient.ListKeys(config.ResourceGroupName, config.StorageAccountName)
+	keys, err := accountsClient.ListKeys(context.Background(), config.ResourceGroupName, config.StorageAccountName)
 	if err != nil {
 		return "", fmt.Errorf("Error retrieving keys for storage account %q: %s", config.StorageAccountName, err)
 	}
