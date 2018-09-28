@@ -10,7 +10,7 @@ import (
 	"testing"
 
 	testprovider "github.com/hashicorp/terraform/builtin/providers/test"
-	"github.com/hashicorp/terraform/terraform"
+	"github.com/hashicorp/terraform/providers"
 )
 
 func TestUpgradeValid(t *testing.T) {
@@ -32,7 +32,7 @@ func TestUpgradeValid(t *testing.T) {
 			inputDir := filepath.Join(fixtureDir, entry.Name(), "input")
 			wantDir := filepath.Join(fixtureDir, entry.Name(), "want")
 			u := &Upgrader{
-				Providers: terraform.ResourceProviderResolverFixed(testProviders),
+				Providers: providers.ResolverFixed(testProviders),
 			}
 
 			inputSrc, err := LoadModule(inputDir)
@@ -90,7 +90,7 @@ func TestUpgradeRenameJSON(t *testing.T) {
 	}
 
 	u := &Upgrader{
-		Providers: terraform.ResourceProviderResolverFixed(testProviders),
+		Providers: providers.ResolverFixed(testProviders),
 	}
 	gotSrc, diags := u.Upgrade(inputSrc)
 	if diags.HasErrors() {
@@ -176,8 +176,8 @@ func diffSourceFilesFallback(got, want []byte) []byte {
 	return buf.Bytes()
 }
 
-var testProviders = map[string]terraform.ResourceProviderFactory{
-	"test": terraform.ResourceProviderFactory(func() (terraform.ResourceProvider, error) {
+var testProviders = map[string]providers.Factory{
+	"test": providers.Factory(func() (providers.Interface, error) {
 		return testprovider.Provider(), nil
 	}),
 }
