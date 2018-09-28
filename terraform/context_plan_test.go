@@ -4892,7 +4892,7 @@ func TestContext2Plan_createBeforeDestroy_depends_datasource(t *testing.T) {
 			},
 		},
 	}
-	p.PlanResourceChangeFn = func (req providers.PlanResourceChangeRequest) providers.PlanResourceChangeResponse {
+	p.PlanResourceChangeFn = func(req providers.PlanResourceChangeRequest) providers.PlanResourceChangeResponse {
 		return providers.PlanResourceChangeResponse{
 			PlannedState: req.ProposedNewState,
 		}
@@ -4926,7 +4926,7 @@ func TestContext2Plan_createBeforeDestroy_depends_datasource(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		t.Run(ric.Addr.String(), func (t *testing.T) {
+		t.Run(ric.Addr.String(), func(t *testing.T) {
 			switch i := ric.Addr.String(); i {
 			case "aws_instance.foo[0]":
 				if res.Action != plans.Create {
