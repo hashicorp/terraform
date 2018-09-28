@@ -1,3 +1,18 @@
+<!-- archived-provider -->
+This Terraform provider is archived, per our [provider archiving process](https://terraform.io/docs/internals/archiving.html). What does this mean?
+
+1. The code repository and all commit history will still be available.
+1. Existing released binaries will remain available on the releases site.
+1. Documentation will remain on the Terraform website.
+1. Issues and pull requests are not being monitored.
+1. New releases will not be published.
+
+If anyone from the community or an interested third party is willing to maintain it, they can either be granted access here or fork the repository for their own uses. If you are interested in maintaining this provider, please reach out to the [Terraform Provider Development Program](https://www.terraform.io/guides/terraform-provider-development-program.html) at *terraform-provider-dev@hashicorp.com*.
+
+---
+
+<!-- /archived-provider -->
+
 Terraform Provider
 ==================
 
