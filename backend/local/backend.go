@@ -330,8 +330,8 @@ func (b *Local) Operation(ctx context.Context, op *backend.Operation) (*backend.
 			err := op.StateLocker.Unlock(nil)
 			if err != nil {
 				b.ShowDiagnostics(err)
+				runningOp.Result = backend.OperationFailure
 			}
-			runningOp.Result = backend.OperationFailure
 		}()
 
 		defer b.opLock.Unlock()

@@ -10,8 +10,8 @@ import (
 	"testing"
 
 	"github.com/hashicorp/terraform/backend"
+	"github.com/hashicorp/terraform/states/statefile"
 	"github.com/hashicorp/terraform/states/statemgr"
-	"github.com/hashicorp/terraform/terraform"
 )
 
 func TestLocal_impl(t *testing.T) {
@@ -35,13 +35,13 @@ func checkState(t *testing.T, path, expected string) {
 		t.Fatalf("err: %s", err)
 	}
 
-	state, err := terraform.ReadState(f)
+	state, err := statefile.Read(f)
 	f.Close()
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
-	actual := strings.TrimSpace(state.String())
+	actual := state.State.String()
 	expected = strings.TrimSpace(expected)
 	if actual != expected {
 		t.Fatalf("state does not match! actual:\n%s\n\nexpected:\n%s", actual, expected)

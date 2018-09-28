@@ -16,6 +16,7 @@ import (
 	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/configs/configload"
 	"github.com/hashicorp/terraform/configs/configschema"
+	"github.com/hashicorp/terraform/providers"
 	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/states/statemgr"
 	"github.com/hashicorp/terraform/terraform"
@@ -26,7 +27,10 @@ func TestLocal_applyBasic(t *testing.T) {
 	defer cleanup()
 	p := TestLocalProvider(t, b, "test", applyFixtureSchema())
 
-	p.ApplyReturn = &terraform.InstanceState{ID: "yes"}
+	p.ApplyResourceChangeResponse = providers.ApplyResourceChangeResponse{NewState: cty.ObjectVal(map[string]cty.Value{
+		"id":  cty.StringVal("yes"),
+		"ami": cty.StringVal("bar"),
+	})}
 
 	op, configCleanup := testOperationApply(t, "./test-fixtures/apply")
 	defer configCleanup()
@@ -40,15 +44,15 @@ func TestLocal_applyBasic(t *testing.T) {
 		t.Fatal("operation failed")
 	}
 
-	if p.RefreshCalled {
-		t.Fatal("refresh should not be called")
+	if p.ReadResourceCalled {
+		t.Fatal("ReadResource should not be called")
 	}
 
-	if !p.DiffCalled {
+	if !p.PlanResourceChangeCalled {
 		t.Fatal("diff should be called")
 	}
 
-	if !p.ApplyCalled {
+	if !p.ApplyResourceChangeCalled {
 		t.Fatal("apply should be called")
 	}
 
@@ -56,7 +60,8 @@ func TestLocal_applyBasic(t *testing.T) {
 test_instance.foo:
   ID = yes
   provider = provider.test
-	`)
+  ami = bar
+`)
 }
 
 func TestLocal_applyEmptyDir(t *testing.T) {
@@ -64,8 +69,7 @@ func TestLocal_applyEmptyDir(t *testing.T) {
 	defer cleanup()
 
 	p := TestLocalProvider(t, b, "test", &terraform.ProviderSchema{})
-
-	p.ApplyReturn = &terraform.InstanceState{ID: "yes"}
+	p.ApplyResourceChangeResponse = providers.ApplyResourceChangeResponse{NewState: cty.ObjectVal(map[string]cty.Value{"id": cty.StringVal("yes")})}
 
 	op, configCleanup := testOperationApply(t, "./test-fixtures/empty")
 	defer configCleanup()
@@ -79,7 +83,7 @@ func TestLocal_applyEmptyDir(t *testing.T) {
 		t.Fatal("operation succeeded; want error")
 	}
 
-	if p.ApplyCalled {
+	if p.ApplyResourceChangeCalled {
 		t.Fatal("apply should not be called")
 	}
 
@@ -93,7 +97,7 @@ func TestLocal_applyEmptyDirDestroy(t *testing.T) {
 	defer cleanup()
 	p := TestLocalProvider(t, b, "test", &terraform.ProviderSchema{})
 
-	p.ApplyReturn = nil
+	p.ApplyResourceChangeResponse = providers.ApplyResourceChangeResponse{}
 
 	op, configCleanup := testOperationApply(t, "./test-fixtures/empty")
 	defer configCleanup()
@@ -108,7 +112,7 @@ func TestLocal_applyEmptyDirDestroy(t *testing.T) {
 		t.Fatalf("apply operation failed")
 	}
 
-	if p.ApplyCalled {
+	if p.ApplyResourceChangeCalled {
 		t.Fatal("apply should not be called")
 	}
 
@@ -199,7 +203,7 @@ func TestLocal_applyBackendFail(t *testing.T) {
 	b.CLI = new(cli.MockUi)
 	p := TestLocalProvider(t, b, "test", applyFixtureSchema())
 
-	p.ApplyReturn = &terraform.InstanceState{ID: "yes"}
+	p.ApplyResourceChangeResponse = providers.ApplyResourceChangeResponse{NewState: cty.ObjectVal(map[string]cty.Value{"id": cty.StringVal("yes")})}
 
 	run, err := b.Operation(context.Background(), op)
 	if err != nil {
@@ -283,6 +287,7 @@ func applyFixtureSchema() *terraform.ProviderSchema {
 			"test_instance": {
 				Attributes: map[string]*configschema.Attribute{
 					"ami": {Type: cty.String, Optional: true},
+					"id":  {Type: cty.String, Computed: true},
 				},
 			},
 		},
