@@ -3,9 +3,9 @@ package terraform
 import (
 	"testing"
 
-	"github.com/zclconf/go-cty/cty"
 	"github.com/hashicorp/hcl2/hcl"
 	"github.com/hashicorp/hcl2/hcl/hclsyntax"
+	"github.com/zclconf/go-cty/cty"
 )
 
 func TestProcessIgnoreChangesIndividual(t *testing.T) {
