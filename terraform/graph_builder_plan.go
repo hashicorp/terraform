@@ -72,7 +72,7 @@ func (b *PlanGraphBuilder) Steps() []GraphTransformer {
 	concreteResourceInstanceDeposed := func(a *NodeAbstractResourceInstance, key states.DeposedKey) dag.Vertex {
 		return &NodePlanDeposedResourceInstanceObject{
 			NodeAbstractResourceInstance: a,
-			DeposedKey: key,
+			DeposedKey:                   key,
 		}
 	}
 
