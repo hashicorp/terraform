@@ -22,7 +22,7 @@ func New() backend.Backend {
 		Schema: map[string]*schema.Schema{
 			"auth_url": &schema.Schema{
 				Type:        schema.TypeString,
-				Required:    true,
+				Optional:    true,
 				DefaultFunc: schema.EnvDefaultFunc("OS_AUTH_URL", nil),
 				Description: descriptions["auth_url"],
 			},
@@ -313,6 +313,7 @@ func (b *Backend) configure(ctx context.Context) error {
 		UserDomainName:    data.Get("user_domain_name").(string),
 		Username:          data.Get("user_name").(string),
 		UserID:            data.Get("user_id").(string),
+		Region:            data.Get("region_name").(string),
 	}
 
 	v, ok := data.GetOkExists("insecure")
@@ -369,7 +370,7 @@ func (b *Backend) configure(ctx context.Context) error {
 	}
 
 	objClient, err := openstack.NewObjectStorageV1(config.OsClient, gophercloud.EndpointOpts{
-		Region: data.Get("region_name").(string),
+		Region: config.Region,
 	})
 	if err != nil {
 		return err
