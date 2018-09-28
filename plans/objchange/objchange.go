@@ -96,7 +96,7 @@ func ProposedNewObject(schema *configschema.Block, prior, config cty.Value) cty.
 				newVals := make([]cty.Value, 0, l)
 				for it := configV.ElementIterator(); it.Next(); {
 					idx, configEV := it.Element()
-					if !priorV.HasIndex(idx).True() {
+					if priorV.IsKnown() && !priorV.HasIndex(idx).True() {
 						// If there is no corresponding prior element then
 						// we just take the config value as-is.
 						newVals = append(newVals, configEV)
@@ -159,7 +159,7 @@ func ProposedNewObject(schema *configschema.Block, prior, config cty.Value) cty.
 					for it := configV.ElementIterator(); it.Next(); {
 						idx, configEV := it.Element()
 						k := idx.AsString()
-						if !priorV.HasIndex(idx).True() {
+						if priorV.IsKnown() && !priorV.HasIndex(idx).True() {
 							// If there is no corresponding prior element then
 							// we just take the config value as-is.
 							newVals[k] = configEV
