@@ -4874,7 +4874,6 @@ func TestContext2Plan_moduleVariableFromSplat(t *testing.T) {
 func TestContext2Plan_createBeforeDestroy_depends_datasource(t *testing.T) {
 	m := testModule(t, "plan-cbd-depends-datasource")
 	p := testProvider("aws")
-	p.DiffFn = testDiffFn
 	p.GetSchemaReturn = &ProviderSchema{
 		ResourceTypes: map[string]*configschema.Block{
 			"aws_instance": {
@@ -4892,6 +4891,11 @@ func TestContext2Plan_createBeforeDestroy_depends_datasource(t *testing.T) {
 				},
 			},
 		},
+	}
+	p.PlanResourceChangeFn = func (req providers.PlanResourceChangeRequest) providers.PlanResourceChangeResponse {
+		return providers.PlanResourceChangeResponse{
+			PlannedState: req.ProposedNewState,
+		}
 	}
 
 	ctx := testContext2(t, &ContextOpts{
@@ -4922,42 +4926,44 @@ func TestContext2Plan_createBeforeDestroy_depends_datasource(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		switch i := ric.Addr.String(); i {
-		case "aws_instance.foo[0]":
-			if res.Action != plans.Create {
-				t.Fatalf("resource %s should be created, got %s", ric.Addr, ric.Action)
+		t.Run(ric.Addr.String(), func (t *testing.T) {
+			switch i := ric.Addr.String(); i {
+			case "aws_instance.foo[0]":
+				if res.Action != plans.Create {
+					t.Fatalf("resource %s should be created, got %s", ric.Addr, ric.Action)
+				}
+				checkVals(t, objectVal(t, schema, map[string]cty.Value{
+					"num":      cty.StringVal("2"),
+					"computed": cty.UnknownVal(cty.String),
+				}), ric.After)
+			case "aws_instance.foo[1]":
+				if res.Action != plans.Create {
+					t.Fatalf("resource %s should be created, got %s", ric.Addr, ric.Action)
+				}
+				checkVals(t, objectVal(t, schema, map[string]cty.Value{
+					"num":      cty.StringVal("2"),
+					"computed": cty.UnknownVal(cty.String),
+				}), ric.After)
+			case "data.aws_vpc.bar[0]":
+				if res.Action != plans.Read {
+					t.Fatalf("resource %s should be read, got %s", ric.Addr, ric.Action)
+				}
+				checkVals(t, objectVal(t, schema, map[string]cty.Value{
+					"id":  cty.UnknownVal(cty.String),
+					"foo": cty.StringVal("0"),
+				}), ric.After)
+			case "data.aws_vpc.bar[1]":
+				if res.Action != plans.Read {
+					t.Fatalf("resource %s should be read, got %s", ric.Addr, ric.Action)
+				}
+				checkVals(t, objectVal(t, schema, map[string]cty.Value{
+					"id":  cty.UnknownVal(cty.String),
+					"foo": cty.StringVal("1"),
+				}), ric.After)
+			default:
+				t.Fatal("unknown instance:", i)
 			}
-			checkVals(t, objectVal(t, schema, map[string]cty.Value{
-				"num":      cty.StringVal("2"),
-				"computed": cty.UnknownVal(cty.String),
-			}), ric.After)
-		case "aws_instance.foo[1]":
-			if res.Action != plans.Create {
-				t.Fatalf("resource %s should be created, got %s", ric.Addr, ric.Action)
-			}
-			checkVals(t, objectVal(t, schema, map[string]cty.Value{
-				"num":      cty.StringVal("2"),
-				"computed": cty.UnknownVal(cty.String),
-			}), ric.After)
-		case "data.aws_vpc.bar[0]":
-			if res.Action != plans.Read {
-				t.Fatalf("resource %s should be read, got %s", ric.Addr, ric.Action)
-			}
-			checkVals(t, objectVal(t, schema, map[string]cty.Value{
-				"id":  cty.UnknownVal(cty.String),
-				"foo": cty.StringVal("0"),
-			}), ric.After)
-		case "data.aws_vpc.bar[1]":
-			if res.Action != plans.Read {
-				t.Fatalf("resource %s should be read, got %s", ric.Addr, ric.Action)
-			}
-			checkVals(t, objectVal(t, schema, map[string]cty.Value{
-				"id":  cty.UnknownVal(cty.String),
-				"foo": cty.StringVal("1"),
-			}), ric.After)
-		default:
-			t.Fatal("unknown instance:", i)
-		}
+		})
 	}
 }
 

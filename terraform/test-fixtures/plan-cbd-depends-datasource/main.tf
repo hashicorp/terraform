@@ -1,6 +1,6 @@
 resource "aws_instance" "foo" {
-  count   = 2
-  num     = "2"
+  count    = 2
+  num      = "2"
   computed = data.aws_vpc.bar[count.index].id
 
   lifecycle {
