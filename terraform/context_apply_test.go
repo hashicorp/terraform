@@ -2583,11 +2583,30 @@ func TestContext2Apply_moduleDestroyOrder(t *testing.T) {
 		info *InstanceInfo,
 		is *InstanceState,
 		id *InstanceDiff) (*InstanceState, error) {
+
+		if is.ID == "b" {
+			// Pause briefly to make any race conditions more visible, since
+			// missing edges here can cause undeterministic ordering.
+			time.Sleep(100 * time.Millisecond)
+		}
+
 		orderLock.Lock()
 		defer orderLock.Unlock()
 
 		order = append(order, is.ID)
 		return nil, nil
+	}
+
+	p.GetSchemaReturn = &ProviderSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"aws_instance": {
+				Attributes: map[string]*configschema.Attribute{
+					"id":    {Type: cty.String, Required: true},
+					"blah":  {Type: cty.String, Optional: true},
+					"value": {Type: cty.String, Optional: true},
+				},
+			},
+		},
 	}
 
 	state := mustShimLegacyState(&State{
