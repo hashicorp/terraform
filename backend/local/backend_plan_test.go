@@ -189,6 +189,8 @@ func TestLocal_planDestroy(t *testing.T) {
 	}
 
 	plan := testReadPlan(t, planPath)
+	// This statement can be removed when the test is fixed and replaced with the
+	// commented-out test below.
 	if plan == nil {
 		t.Fatalf("plan is nil")
 	}
@@ -223,6 +225,8 @@ func TestLocal_planOutPathNoChange(t *testing.T) {
 	}
 
 	plan := testReadPlan(t, planPath)
+	// This statement can be removed when the test is fixed and replaced with the
+	// commented-out test below.
 	if plan == nil {
 		t.Fatalf("plan is nil")
 	}
