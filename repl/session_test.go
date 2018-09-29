@@ -4,44 +4,44 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/hashicorp/terraform/config/module"
+	"github.com/hashicorp/terraform/addrs"
+	"github.com/hashicorp/terraform/configs"
+	"github.com/hashicorp/terraform/providers"
+	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/terraform"
 )
 
 func TestSession_basicState(t *testing.T) {
-	state := &terraform.State{
-		Modules: []*terraform.ModuleState{
-			&terraform.ModuleState{
-				Path: []string{"root"},
-				Resources: map[string]*terraform.ResourceState{
-					"test_instance.foo": &terraform.ResourceState{
-						Type: "test_instance",
-						Primary: &terraform.InstanceState{
-							ID: "bar",
-							Attributes: map[string]string{
-								"id": "bar",
-							},
-						},
-					},
-				},
+	state := states.BuildState(func (s *states.SyncState) {
+		s.SetResourceInstanceCurrent(
+			addrs.Resource{
+				Mode: addrs.ManagedResourceMode,
+				Type: "test_instance",
+				Name: "foo",
+			}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+			&states.ResourceInstanceObjectSrc{
+				Status: states.ObjectReady,
+				AttrsJSON: []byte(`{"id":"bar"}`),
 			},
-
-			&terraform.ModuleState{
-				Path: []string{"root", "module"},
-				Resources: map[string]*terraform.ResourceState{
-					"test_instance.foo": &terraform.ResourceState{
-						Type: "test_instance",
-						Primary: &terraform.InstanceState{
-							ID: "bar",
-							Attributes: map[string]string{
-								"id": "bar",
-							},
-						},
-					},
-				},
+			addrs.ProviderConfig{
+				Type: "aws",
+			}.Absolute(addrs.RootModuleInstance),
+		)
+		s.SetResourceInstanceCurrent(
+			addrs.Resource{
+				Mode: addrs.ManagedResourceMode,
+				Type: "test_instance",
+				Name: "foo",
+			}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance.Child("module", addrs.NoKey)),
+			&states.ResourceInstanceObjectSrc{
+				Status: states.ObjectReady,
+				AttrsJSON: []byte(`{"id":"bar"}`),
 			},
-		},
-	}
+			addrs.ProviderConfig{
+				Type: "aws",
+			}.Absolute(addrs.RootModuleInstance),
+		)
+	})
 
 	t.Run("basic", func(t *testing.T) {
 		testSession(t, testSessionTest{
@@ -112,9 +112,8 @@ func TestSession_stateless(t *testing.T) {
 		testSession(t, testSessionTest{
 			Inputs: []testSessionInput{
 				{
-					Input:         "exit",
-					Error:         true,
-					ErrorContains: ErrSessionExit.Error(),
+					Input: "exit",
+					Exit:  true,
 				},
 			},
 		})
@@ -159,7 +158,7 @@ func TestSession_stateless(t *testing.T) {
 				{
 					Input:         "test_instance.bar.id",
 					Error:         true,
-					ErrorContains: "'test_instance.bar' not found",
+					ErrorContains: `resource "test_instance" "bar" has not been declared`,
 				},
 			},
 		})
@@ -167,34 +166,49 @@ func TestSession_stateless(t *testing.T) {
 }
 
 func testSession(t *testing.T, test testSessionTest) {
+	p := &terraform.MockProvider{}
+	p.GetSchemaReturn = &terraform.ProviderSchema{}
+
 	// Build the TF context
-	ctx, err := terraform.NewContext(&terraform.ContextOpts{
+	ctx, diags := terraform.NewContext(&terraform.ContextOpts{
 		State:  test.State,
-		Module: module.NewEmptyTree(),
+		ProviderResolver: providers.ResolverFixed(map[string]providers.Factory{
+			"aws": providers.FactoryFixed(p),
+		}),
+		Config: configs.NewEmptyConfig(),
 	})
-	if err != nil {
-		t.Fatalf("err: %s", err)
+	if diags.HasErrors() {
+		t.Fatalf("failed to create context: %s", diags.Err())
+	}
+
+	scope, diags := ctx.Eval(addrs.RootModuleInstance)
+	if diags.HasErrors() {
+		t.Fatalf("failed to create scope: %s", diags.Err())
 	}
 
 	// Build the session
 	s := &Session{
-		Interpolater: ctx.Interpolater(),
+		Scope: scope,
 	}
 
 	// Test the inputs. We purposely don't use subtests here because
-	// the inputs don't recognize subtests, but a sequence of stateful
+	// the inputs don't represent subtests, but a sequence of stateful
 	// operations.
 	for _, input := range test.Inputs {
-		result, err := s.Handle(input.Input)
-		if (err != nil) != input.Error {
-			t.Fatalf("%q: err: %s", input.Input, err)
+		result, exit, diags := s.Handle(input.Input)
+		if exit != input.Exit {
+			t.Fatalf("incorrect 'exit' result %t; want %t", exit, input.Exit)
 		}
-		if err != nil {
+		if (diags.HasErrors()) != input.Error {
+			t.Fatalf("%q: unexpected errors: %s", input.Input, diags.Err())
+		}
+		if diags.HasErrors() {
 			if input.ErrorContains != "" {
-				if !strings.Contains(err.Error(), input.ErrorContains) {
+				if !strings.Contains(diags.Err().Error(), input.ErrorContains) {
 					t.Fatalf(
-						"%q: err should contain: %q\n\n%s",
-						input.Input, input.ErrorContains, err)
+						"%q: diagnostics should contain: %q\n\n%s",
+						input.Input, input.ErrorContains, diags.Err(),
+					)
 				}
 			}
 
@@ -216,8 +230,8 @@ func testSession(t *testing.T, test testSessionTest) {
 }
 
 type testSessionTest struct {
-	State  *terraform.State // State to use
-	Module string           // Module name in test-fixtures to load
+	State  *states.State // State to use
+	Module string        // Module name in test-fixtures to load
 
 	// Inputs are the list of test inputs that are run in order.
 	// Each input can test the output of each step.
@@ -230,5 +244,6 @@ type testSessionInput struct {
 	Output         string // Exact output string to check
 	OutputContains string
 	Error          bool // Error is true if error is expected
+	Exit           bool // Exit is true if exiting is expected
 	ErrorContains  string
 }
