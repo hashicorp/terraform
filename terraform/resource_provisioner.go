@@ -67,4 +67,4 @@ type ResourceProvisionerFactory func() (ResourceProvisioner, error)
 
 // ProvisionerFactory is a function type that creates a new instance
 // of a provisioners.Interface.
-type ProvisionerFactory func() (provisioners.Interface, error)
+type ProvisionerFactory = provisioners.Factory
