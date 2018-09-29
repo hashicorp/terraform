@@ -329,9 +329,17 @@ func (d *evaluationStateData) GetModuleInstanceOutput(addr addrs.ModuleCallOutpu
 	// name is declared at all.
 	moduleConfig := d.Evaluator.Config.DescendentForInstance(moduleAddr)
 	if moduleConfig == nil {
-		// should never happen, since we can't be evaluating in a module
-		// that wasn't mentioned in configuration.
-		panic(fmt.Sprintf("output value read from %s, which has no configuration", moduleAddr))
+		// this doesn't happen in normal circumstances due to our validation
+		// pass, but it can turn up in some unusual situations, like in the
+		// "terraform console" repl where arbitrary expressions can be
+		// evaluated.
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  `Reference to undeclared module`,
+			Detail:   fmt.Sprintf(`The configuration contains no %s.`, moduleAddr),
+			Subject:  rng.ToHCL().Ptr(),
+		})
+		return cty.DynamicVal, diags
 	}
 
 	config := moduleConfig.Module.Outputs[addr.Name]
@@ -348,7 +356,7 @@ func (d *evaluationStateData) GetModuleInstanceOutput(addr addrs.ModuleCallOutpu
 		diags = diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagError,
 			Summary:  `Reference to undeclared output value`,
-			Detail:   fmt.Sprintf(`An output value with the name %q has not been declared in %s.%s`, addr.Name, moduleAddr, suggestion),
+			Detail:   fmt.Sprintf(`An output value with the name %q has not been declared in %s.%s`, addr.Name, moduleDisplayAddr(moduleAddr), suggestion),
 			Subject:  rng.ToHCL().Ptr(),
 		})
 		return cty.DynamicVal, diags
@@ -448,7 +456,7 @@ func (d *evaluationStateData) GetResourceInstance(addr addrs.ResourceInstance, r
 		diags = diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagError,
 			Summary:  `Reference to undeclared resource`,
-			Detail:   fmt.Sprintf(`A resource %q %q has not been declared in %s`, addr.Resource.Type, addr.Resource.Name, moduleAddr),
+			Detail:   fmt.Sprintf(`A resource %q %q has not been declared in %s`, addr.Resource.Type, addr.Resource.Name, moduleDisplayAddr(moduleAddr)),
 			Subject:  rng.ToHCL().Ptr(),
 		})
 		return cty.DynamicVal, diags
@@ -871,4 +879,18 @@ func nameSuggestion(given string, suggestions []string) string {
 		}
 	}
 	return ""
+}
+
+// moduleDisplayAddr returns a string describing the given module instance
+// address that is appropriate for returning to users in situations where the
+// root module is possible. Specifically, it returns "the root module" if the
+// root module instance is given, or a string representation of the module
+// address otherwise.
+func moduleDisplayAddr(addr addrs.ModuleInstance) string {
+	switch {
+	case addr.IsRoot():
+		return "the root module"
+	default:
+		return addr.String()
+	}
 }
