@@ -22,6 +22,7 @@ import (
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs/configschema"
 	"github.com/hashicorp/terraform/plans"
+	"github.com/hashicorp/terraform/providers"
 	"github.com/hashicorp/terraform/state"
 	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/states/statemgr"
@@ -399,9 +400,13 @@ func TestApply_input(t *testing.T) {
 		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
 	}
 
-	if !p.InputCalled {
-		t.Fatal("input should be called")
-	}
+	expected := strings.TrimSpace(`
+<no state>
+Outputs:
+
+result = foo
+	`)
+	testStateOutput(t, statePath, expected)
 }
 
 // When only a partial set of the variables are set, Terraform
@@ -515,10 +520,6 @@ func TestApply_plan(t *testing.T) {
 	}
 	if code := c.Run(args); code != 0 {
 		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
-	}
-
-	if p.InputCalled {
-		t.Fatalf("input should not be called for plans")
 	}
 
 	if _, err := os.Stat(statePath); err != nil {
@@ -638,10 +639,6 @@ func TestApply_plan_remoteState(t *testing.T) {
 		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
 	}
 
-	if p.InputCalled {
-		t.Fatalf("input should not be called for plans")
-	}
-
 	// State file should be not be installed
 	if _, err := os.Stat(filepath.Join(tmp, DefaultStateFilename)); err == nil {
 		data, _ := ioutil.ReadFile(DefaultStateFilename)
@@ -744,7 +741,7 @@ func TestApply_planNoModuleFiles(t *testing.T) {
 		planFile,
 	}
 	apply.Run(args)
-	if p.ValidateCalled {
+	if p.ValidateProviderConfigCalled {
 		t.Fatal("Validate should not be called with a plan")
 	}
 }
@@ -784,8 +781,8 @@ func TestApply_refresh(t *testing.T) {
 		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
 	}
 
-	if !p.RefreshCalled {
-		t.Fatal("should call refresh")
+	if !p.ReadResourceCalled {
+		t.Fatal("should call ReadResource")
 	}
 
 	if _, err := os.Stat(statePath); err != nil {
@@ -911,12 +908,10 @@ func TestApply_state(t *testing.T) {
 	statePath := testStateFile(t, originalState)
 
 	p := testProvider()
-	p.DiffReturn = &terraform.InstanceDiff{
-		Attributes: map[string]*terraform.ResourceAttrDiff{
-			"ami": &terraform.ResourceAttrDiff{
-				New: "bar",
-			},
-		},
+	p.PlanResourceChangeResponse = providers.PlanResourceChangeResponse{
+		PlannedState: cty.ObjectVal(map[string]cty.Value{
+			"ami": cty.StringVal("bar"),
+		}),
 	}
 
 	ui := new(cli.MockUi)
@@ -938,16 +933,20 @@ func TestApply_state(t *testing.T) {
 	}
 
 	// Verify that the provider was called with the existing state
-	actual := strings.TrimSpace(p.DiffState.String())
-	expected := strings.TrimSpace(testApplyStateDiffStr)
-	if actual != expected {
-		t.Fatalf("bad:\n\n%s", actual)
+	actual := p.PlanResourceChangeRequest.PriorState
+	expected := cty.ObjectVal(map[string]cty.Value{
+		"id": cty.StringVal("bar"),
+	})
+	if !expected.RawEquals(actual) {
+		t.Fatalf("wrong prior state during plan\ngot: %#v\nwant: %#v", actual, expected)
 	}
 
-	actual = strings.TrimSpace(p.ApplyState.String())
-	expected = strings.TrimSpace(testApplyStateStr)
+	actual = p.ApplyResourceChangeRequest.PriorState
+	expected = cty.ObjectVal(map[string]cty.Value{
+		"id": cty.StringVal("bar"),
+	})
 	if actual != expected {
-		t.Fatalf("bad:\n\n%s", actual)
+		t.Fatalf("wrong prior state during apply\ngot: %#v\nwant: %#v", actual, expected)
 	}
 
 	// Verify a new state exists
@@ -1227,12 +1226,10 @@ func TestApply_backup(t *testing.T) {
 	backupPath := testTempFile(t)
 
 	p := testProvider()
-	p.DiffReturn = &terraform.InstanceDiff{
-		Attributes: map[string]*terraform.ResourceAttrDiff{
-			"ami": &terraform.ResourceAttrDiff{
-				New: "bar",
-			},
-		},
+	p.PlanResourceChangeResponse = providers.PlanResourceChangeResponse{
+		PlannedState: cty.ObjectVal(map[string]cty.Value{
+			"ami": cty.StringVal("bar"),
+		}),
 	}
 
 	ui := new(cli.MockUi)
@@ -1278,12 +1275,10 @@ func TestApply_disableBackup(t *testing.T) {
 	statePath := testStateFile(t, originalState)
 
 	p := testProvider()
-	p.DiffReturn = &terraform.InstanceDiff{
-		Attributes: map[string]*terraform.ResourceAttrDiff{
-			"ami": &terraform.ResourceAttrDiff{
-				New: "bar",
-			},
-		},
+	p.PlanResourceChangeResponse = providers.PlanResourceChangeResponse{
+		PlannedState: cty.ObjectVal(map[string]cty.Value{
+			"ami": cty.StringVal("bar"),
+		}),
 	}
 
 	ui := new(cli.MockUi)
@@ -1306,16 +1301,20 @@ func TestApply_disableBackup(t *testing.T) {
 	}
 
 	// Verify that the provider was called with the existing state
-	actual := strings.TrimSpace(p.DiffState.String())
-	expected := strings.TrimSpace(testApplyDisableBackupStr)
+	actual := p.PlanResourceChangeRequest.PriorState
+	expected := cty.ObjectVal(map[string]cty.Value{
+		"id": cty.StringVal("bar"),
+	})
 	if actual != expected {
-		t.Fatalf("bad:\n\n%s", actual)
+		t.Fatalf("wrong prior state during plan\ngot:  %#v\nwant: %#v", actual, expected)
 	}
 
-	actual = strings.TrimSpace(p.ApplyState.String())
-	expected = strings.TrimSpace(testApplyDisableBackupStateStr)
+	actual = p.ApplyResourceChangeRequest.PriorState
+	expected = cty.ObjectVal(map[string]cty.Value{
+		"id": cty.StringVal("bar"),
+	})
 	if actual != expected {
-		t.Fatalf("bad:\n\n%s", actual)
+		t.Fatalf("wrong prior state during apply\ngot:  %#v\nwant: %#v", actual, expected)
 	}
 
 	// Verify a new state exists
