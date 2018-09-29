@@ -28,6 +28,8 @@ import (
 	"github.com/hashicorp/terraform/helper/logging"
 	"github.com/hashicorp/terraform/plans"
 	"github.com/hashicorp/terraform/plans/planfile"
+	"github.com/hashicorp/terraform/providers"
+	"github.com/hashicorp/terraform/provisioners"
 	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/states/statefile"
 	"github.com/hashicorp/terraform/states/statemgr"
@@ -94,31 +96,25 @@ func testFixturePath(name string) string {
 	return filepath.Join(fixtureDir, name)
 }
 
-func metaOverridesForProvider(p terraform.ResourceProvider) *testingOverrides {
+func metaOverridesForProvider(p providers.Interface) *testingOverrides {
 	return &testingOverrides{
-		ProviderResolver: terraform.ResourceProviderResolverFixed(
-			map[string]terraform.ResourceProviderFactory{
-				"test": func() (terraform.ResourceProvider, error) {
-					return p, nil
-				},
+		ProviderResolver: providers.ResolverFixed(
+			map[string]providers.Factory{
+				"test": providers.FactoryFixed(p),
 			},
 		),
 	}
 }
 
-func metaOverridesForProviderAndProvisioner(p terraform.ResourceProvider, pr terraform.ResourceProvisioner) *testingOverrides {
+func metaOverridesForProviderAndProvisioner(p providers.Interface, pr provisioners.Interface) *testingOverrides {
 	return &testingOverrides{
-		ProviderResolver: terraform.ResourceProviderResolverFixed(
-			map[string]terraform.ResourceProviderFactory{
-				"test": func() (terraform.ResourceProvider, error) {
-					return p, nil
-				},
+		ProviderResolver: providers.ResolverFixed(
+			map[string]providers.Factory{
+				"test": providers.FactoryFixed(p),
 			},
 		),
-		Provisioners: map[string]terraform.ResourceProvisionerFactory{
-			"shell": func() (terraform.ResourceProvisioner, error) {
-				return pr, nil
-			},
+		Provisioners: map[string]provisioners.Factory{
+			"shell": provisioners.FactoryFixed(pr),
 		},
 	}
 }
@@ -421,20 +417,16 @@ func testStateOutput(t *testing.T, path string, expected string) {
 	}
 }
 
-func testProvider() *terraform.MockResourceProvider {
-	p := new(terraform.MockResourceProvider)
-	p.DiffReturn = &terraform.InstanceDiff{}
-	p.RefreshFn = func(
-		info *terraform.InstanceInfo,
-		s *terraform.InstanceState) (*terraform.InstanceState, error) {
-		return s, nil
+func testProvider() *terraform.MockProvider {
+	p := new(terraform.MockProvider)
+	p.PlanResourceChangeResponse = providers.PlanResourceChangeResponse{
+		PlannedState: cty.EmptyObjectVal,
 	}
-	p.ResourcesReturn = []terraform.ResourceType{
-		terraform.ResourceType{
-			Name: "test_instance",
-		},
+	p.ReadResourceFn = func(req providers.ReadResourceRequest) providers.ReadResourceResponse {
+		return providers.ReadResourceResponse{
+			NewState: req.PriorState,
+		}
 	}
-
 	return p
 }
 
