@@ -287,6 +287,13 @@ func valueFromTfplan(rawV *planproto.DynamicValue) (plans.DynamicValue, error) {
 // writeTfplan serializes the given plan into the protobuf-based format used
 // for the "tfplan" portion of a plan file.
 func writeTfplan(plan *plans.Plan, w io.Writer) error {
+	if plan == nil {
+		return fmt.Errorf("cannot write plan file for nil plan")
+	}
+	if plan.Changes == nil {
+		return fmt.Errorf("cannot write plan file with nil changeset")
+	}
+
 	rawPlan := &planproto.Plan{
 		Version:          tfplanFormatVersion,
 		TerraformVersion: version.String(),

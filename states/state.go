@@ -47,6 +47,9 @@ func BuildState(cb func(*SyncState)) *State {
 // in the receiver. In other words, if this state could be safely replaced
 // with the return value of NewState and be functionally equivalent.
 func (s *State) Empty() bool {
+	if s == nil {
+		return true
+	}
 	for _, ms := range s.Modules {
 		if len(ms.Resources) != 0 {
 			return false
@@ -86,6 +89,9 @@ func (s *State) RemoveModule(addr addrs.ModuleInstance) {
 
 // RootModule is a convenient alias for Module(addrs.RootModuleInstance).
 func (s *State) RootModule() *Module {
+	if s == nil {
+		panic("RootModule called on nil State")
+	}
 	return s.Modules[addrs.RootModuleInstance.String()]
 }
 

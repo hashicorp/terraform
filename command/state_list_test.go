@@ -14,7 +14,7 @@ func TestStateList(t *testing.T) {
 	statePath := testStateFile(t, state)
 
 	p := testProvider()
-	ui := new(cli.MockUi)
+	ui := cli.NewMockUi()
 	c := &StateListCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
@@ -42,7 +42,7 @@ func TestStateListWithID(t *testing.T) {
 	statePath := testStateFile(t, state)
 
 	p := testProvider()
-	ui := new(cli.MockUi)
+	ui := cli.NewMockUi()
 	c := &StateListCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
@@ -71,7 +71,7 @@ func TestStateListWithNonExistentID(t *testing.T) {
 	statePath := testStateFile(t, state)
 
 	p := testProvider()
-	ui := new(cli.MockUi)
+	ui := cli.NewMockUi()
 	c := &StateListCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
@@ -104,7 +104,7 @@ func TestStateList_backendState(t *testing.T) {
 	defer testChdir(t, td)()
 
 	p := testProvider()
-	ui := new(cli.MockUi)
+	ui := cli.NewMockUi()
 	c := &StateListCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
@@ -130,7 +130,7 @@ func TestStateList_noState(t *testing.T) {
 	defer testFixCwd(t, tmp, cwd)
 
 	p := testProvider()
-	ui := new(cli.MockUi)
+	ui := cli.NewMockUi()
 	c := &StateListCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),

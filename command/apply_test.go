@@ -108,6 +108,7 @@ func TestApply_lockedState(t *testing.T) {
 
 // test apply with locked state, waiting for unlock
 func TestApply_lockedStateWait(t *testing.T) {
+	t.Fatalf("FIXME: this test seems to be making the test program prematurely exit")
 	statePath := testTempFile(t)
 
 	unlock, err := testLockState("./testdata", statePath)

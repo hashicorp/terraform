@@ -6,7 +6,7 @@ import (
 	"sort"
 	"testing"
 
-	"github.com/hashicorp/terraform/state"
+	"github.com/hashicorp/terraform/states/statemgr"
 )
 
 // testStateBackups returns the list of backups in order of creation
@@ -33,7 +33,7 @@ func TestStateDefaultBackupExtension(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	backupPath := s.(*state.BackupState).Path
+	backupPath := s.(*statemgr.Filesystem).BackupPath()
 	match := regexp.MustCompile(`terraform\.tfstate\.\d+\.backup$`).MatchString
 	if !match(backupPath) {
 		t.Fatal("Bad backup path:", backupPath)
