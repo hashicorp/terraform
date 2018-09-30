@@ -102,6 +102,7 @@ type MockProvider struct {
 func (p *MockProvider) GetSchema() providers.GetSchemaResponse {
 	p.Lock()
 	defer p.Unlock()
+	p.GetSchemaCalled = true
 	return p.getSchema()
 }
 
@@ -110,22 +111,22 @@ func (p *MockProvider) getSchema() providers.GetSchemaResponse {
 	// call from other methods of this mock as long as they are already
 	// holding the lock.
 
-	p.GetSchemaCalled = true
 	ret := providers.GetSchemaResponse{
-		Provider: providers.Schema{
-			Block: p.GetSchemaReturn.Provider,
-		},
+		Provider: providers.Schema{},
 		DataSources:   map[string]providers.Schema{},
 		ResourceTypes: map[string]providers.Schema{},
 	}
-	for n, s := range p.GetSchemaReturn.DataSources {
-		ret.DataSources[n] = providers.Schema{
-			Block: s,
+	if p.GetSchemaReturn != nil {
+		ret.Provider.Block = p.GetSchemaReturn.Provider
+		for n, s := range p.GetSchemaReturn.DataSources {
+			ret.DataSources[n] = providers.Schema{
+				Block: s,
+			}
 		}
-	}
-	for n, s := range p.GetSchemaReturn.ResourceTypes {
-		ret.ResourceTypes[n] = providers.Schema{
-			Block: s,
+		for n, s := range p.GetSchemaReturn.ResourceTypes {
+			ret.ResourceTypes[n] = providers.Schema{
+				Block: s,
+			}
 		}
 	}
 
