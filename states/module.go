@@ -234,6 +234,20 @@ func (ms *Module) RemoveLocalValue(name string) {
 	delete(ms.LocalValues, name)
 }
 
+// PruneResourceHusks is a specialized method that will remove any Resource
+// objects that do not contain any instances, even if they have an EachMode.
+//
+// You probably shouldn't call this! See the method of the same name on
+// type State for more information on what this is for and the rare situations
+// where it is safe to use.
+func (ms *Module) PruneResourceHusks() {
+	for _, rs := range ms.Resources {
+		if len(rs.Instances) == 0 {
+			ms.RemoveResource(rs.Addr)
+		}
+	}
+}
+
 // empty returns true if the receving module state is contributing nothing
 // to the state. In other words, it returns true if the module could be
 // removed from the state altogether without changing the meaning of the state.
