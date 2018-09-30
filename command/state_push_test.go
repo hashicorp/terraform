@@ -194,6 +194,7 @@ func TestStatePush_serialOlder(t *testing.T) {
 }
 
 func TestStatePush_forceRemoteState(t *testing.T) {
+	t.Fatalf("FIXME: This test seems to be getting hanged or into an infinite loop")
 	td := tempDir(t)
 	copy.CopyDir(testFixturePath("inmem-backend"), td)
 	defer os.RemoveAll(td)
