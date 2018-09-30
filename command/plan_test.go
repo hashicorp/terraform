@@ -11,11 +11,14 @@ import (
 	"testing"
 	"time"
 
+	"github.com/mitchellh/cli"
+	"github.com/zclconf/go-cty/cty"
+
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/helper/copy"
+	"github.com/hashicorp/terraform/providers"
 	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/terraform"
-	"github.com/mitchellh/cli"
 )
 
 func TestPlan(t *testing.T) {
@@ -101,8 +104,8 @@ func TestPlan_plan(t *testing.T) {
 		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
 	}
 
-	if p.RefreshCalled {
-		t.Fatal("refresh should not be called")
+	if p.ReadResourceCalled {
+		t.Fatal("ReadResource should not have been called")
 	}
 }
 
@@ -143,8 +146,8 @@ func TestPlan_destroy(t *testing.T) {
 		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
 	}
 
-	if !p.RefreshCalled {
-		t.Fatal("refresh should be called")
+	if !p.ReadResourceCalled {
+		t.Fatal("ReadResource should have been called")
 	}
 
 	plan := testReadPlan(t, outPath)
@@ -178,15 +181,15 @@ func TestPlan_noState(t *testing.T) {
 	}
 
 	// Verify that refresh was called
-	if p.RefreshCalled {
-		t.Fatal("refresh should not be called")
+	if p.ReadResourceCalled {
+		t.Fatal("ReadResource should not be called")
 	}
 
 	// Verify that the provider was called with the existing state
-	actual := strings.TrimSpace(p.DiffState.String())
-	expected := strings.TrimSpace(testPlanNoStateStr)
-	if actual != expected {
-		t.Fatalf("bad:\n\n%s", actual)
+	actual := p.PlanResourceChangeRequest.PriorState
+	expected := cty.NullVal(cty.EmptyObject)
+	if !expected.RawEquals(actual) {
+		t.Fatalf("wrong prior state\ngot:  %#v\nwant: %#v", actual, expected)
 	}
 }
 
@@ -206,8 +209,8 @@ func TestPlan_outPath(t *testing.T) {
 		},
 	}
 
-	p.DiffReturn = &terraform.InstanceDiff{
-		Destroy: true,
+	p.PlanResourceChangeResponse = providers.PlanResourceChangeResponse{
+		PlannedState: cty.NullVal(cty.EmptyObject),
 	}
 
 	args := []string{
@@ -334,7 +337,7 @@ func TestPlan_outBackend(t *testing.T) {
 	}
 }
 
-func TestPlan_refresh(t *testing.T) {
+func TestPlan_refreshFalse(t *testing.T) {
 	tmp, cwd := testCwd(t)
 	defer testFixCwd(t, tmp, cwd)
 
@@ -355,8 +358,8 @@ func TestPlan_refresh(t *testing.T) {
 		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
 	}
 
-	if p.RefreshCalled {
-		t.Fatal("refresh should not be called")
+	if p.ReadResourceCalled {
+		t.Fatal("ReadResource should not have been called")
 	}
 }
 
@@ -382,10 +385,12 @@ func TestPlan_state(t *testing.T) {
 	}
 
 	// Verify that the provider was called with the existing state
-	actual := strings.TrimSpace(p.DiffState.String())
-	expected := strings.TrimSpace(testPlanStateStr)
-	if actual != expected {
-		t.Fatalf("bad:\n\n%s", actual)
+	actual := p.PlanResourceChangeRequest.PriorState
+	expected := cty.ObjectVal(map[string]cty.Value{
+		"id": cty.StringVal("bar"),
+	})
+	if !expected.RawEquals(actual) {
+		t.Fatalf("wrong prior state\ngot:  %#v\nwant: %#v", actual, expected)
 	}
 }
 
@@ -421,10 +426,12 @@ func TestPlan_stateDefault(t *testing.T) {
 	}
 
 	// Verify that the provider was called with the existing state
-	actual := strings.TrimSpace(p.DiffState.String())
-	expected := strings.TrimSpace(testPlanStateDefaultStr)
-	if actual != expected {
-		t.Fatalf("bad:\n\n%s", actual)
+	actual := p.PlanResourceChangeRequest.PriorState
+	expected := cty.ObjectVal(map[string]cty.Value{
+		"id": cty.StringVal("bar"),
+	})
+	if !expected.RawEquals(actual) {
+		t.Fatalf("wrong prior state\ngot:  %#v\nwant: %#v", actual, expected)
 	}
 }
 
