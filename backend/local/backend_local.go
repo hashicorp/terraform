@@ -163,6 +163,7 @@ func (b *Local) contextFromPlanFile(pf *planfile.Reader, opts terraform.ContextO
 			errSummary,
 			fmt.Sprintf("Failed to read plan from plan file: %s.", err),
 		))
+		return nil, snap, diags
 	}
 
 	variables := terraform.InputValues{}
