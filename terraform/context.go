@@ -451,6 +451,25 @@ func (c *Context) Apply() (*states.State, tfdiags.Diagnostics) {
 	diags = diags.Append(walker.NonFatalDiagnostics)
 	diags = diags.Append(walkDiags)
 
+	if c.destroy && !diags.HasErrors() {
+		// If we know we were trying to destroy objects anyway, and we
+		// completed without any errors, then we'll also prune out any
+		// leftover empty resource husks (left after all of the instances
+		// of a resource with "count" or "for_each" are destroyed) to
+		// help ensure we end up with an _actually_ empty state, assuming
+		// we weren't destroying with -target here.
+		//
+		// (This doesn't actually take into account -target, but that should
+		// be okay because it doesn't throw away anything we can't recompute
+		// on a subsequent "terraform plan" run, if the resources are still
+		// present in the configuration. However, this _will_ cause "count = 0"
+		// resources to read as unknown during the next refresh walk, which
+		// may cause some additional churn if used in a data resource or
+		// provider block, until we remove refreshing as a separate walk and
+		// just do it as part of the plan walk.)
+		c.state.PruneResourceHusks()
+	}
+
 	return c.state, diags
 }
 

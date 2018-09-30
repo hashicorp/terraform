@@ -78,7 +78,7 @@ func (s *State) Module(addr addrs.ModuleInstance) *Module {
 // elements is removed.
 func (s *State) RemoveModule(addr addrs.ModuleInstance) {
 	if addr.IsRoot() {
-		panic("attempted to remote root module")
+		panic("attempted to remove root module")
 	}
 
 	delete(s.Modules, addr.String())
@@ -192,6 +192,27 @@ func (s *State) ProviderAddrs() []addrs.AbsProviderConfig {
 	}
 
 	return ret
+}
+
+// PruneResourceHusks is a specialized method that will remove any Resource
+// objects that do not contain any instances, even if they have an EachMode.
+//
+// This should generally be used only after a "terraform destroy" operation,
+// to finalize the cleanup of the state. It is not correct to use this after
+// other operations because if a resource has "count = 0" or "for_each" over
+// an empty collection then we want to retain it in the state so that references
+// to it, particularly in "strange" contexts like "terraform console", can be
+// properly resolved.
+//
+// This method MUST NOT be called concurrently with other readers and writers
+// of the receiving state.
+func (s *State) PruneResourceHusks() {
+	for _, m := range s.Modules {
+		m.PruneResourceHusks()
+		if len(m.Resources) == 0 && !m.Addr.IsRoot() {
+			s.RemoveModule(m.Addr)
+		}
+	}
 }
 
 // SyncWrapper returns a SyncState object wrapping the receiver.
