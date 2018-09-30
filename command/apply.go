@@ -137,6 +137,18 @@ func (c *ApplyCommand) Run(args []string) int {
 				"Failed to read plan from plan file",
 				fmt.Sprintf("Cannot read the plan from the given plan file: %s.", err),
 			))
+			c.showDiagnostics(diags)
+			return 1
+		}
+		if plan.Backend.Config == nil {
+			// Should never happen; always indicates a bug in the creation of the plan file
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Failed to read plan from plan file",
+				fmt.Sprintf("The given plan file does not have a valid backend configuration. This is a bug in the Terraform command that generated this plan file."),
+			))
+			c.showDiagnostics(diags)
+			return 1
 		}
 		be, beDiags = c.BackendForPlan(plan.Backend)
 	}

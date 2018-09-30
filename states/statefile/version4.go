@@ -298,6 +298,9 @@ func writeStateV4(file *File, w io.Writer) tfdiags.Diagnostics {
 	// read/prepare V4 functions above would stick around.
 
 	var diags tfdiags.Diagnostics
+	if file == nil || file.State == nil {
+		panic("attempt to write nil state to file")
+	}
 
 	var terraformVersion string
 	if file.TerraformVersion != nil {

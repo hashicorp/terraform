@@ -17,6 +17,11 @@ func StatesMarshalEqual(a, b *states.State) bool {
 	var aBuf bytes.Buffer
 	var bBuf bytes.Buffer
 
+	// nil states are not valid states, and so they can never martial equal.
+	if a == nil || b == nil {
+		return false
+	}
+
 	// We write here some temporary files that have no header information
 	// populated, thus ensuring that we're only comparing the state itself
 	// and not any metadata.

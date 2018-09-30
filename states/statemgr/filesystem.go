@@ -101,6 +101,12 @@ func (s *Filesystem) SetBackupPath(path string) {
 	s.writtenBackup = false
 }
 
+// BackupPath returns the manager's backup path if backup files are enabled,
+// or an empty string otherwise.
+func (s *Filesystem) BackupPath() string {
+	return s.backupPath
+}
+
 // State is an implementation of Reader.
 func (s *Filesystem) State() *states.State {
 	defer s.mutex()()
