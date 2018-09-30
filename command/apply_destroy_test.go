@@ -5,11 +5,13 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/davecgh/go-spew/spew"
 	"github.com/mitchellh/cli"
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs/configschema"
+	"github.com/hashicorp/terraform/providers"
 	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/states/statefile"
 	"github.com/hashicorp/terraform/terraform"
@@ -219,10 +221,16 @@ func TestApply_destroyTargeted(t *testing.T) {
 			},
 			"test_load_balancer": {
 				Attributes: map[string]*configschema.Attribute{
+					"id":        {Type: cty.String, Computed: true},
 					"instances": {Type: cty.List(cty.String), Optional: true},
 				},
 			},
 		},
+	}
+	p.PlanResourceChangeFn = func (req providers.PlanResourceChangeRequest) providers.PlanResourceChangeResponse {
+		return providers.PlanResourceChangeResponse{
+			PlannedState: req.ProposedNewState,
+		}
 	}
 
 	ui := new(cli.MockUi)
@@ -256,18 +264,17 @@ func TestApply_destroyTargeted(t *testing.T) {
 	}
 	defer f.Close()
 
-	state, err := terraform.ReadState(f)
+	stateFile, err := statefile.Read(f)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
-	if state == nil {
+	if stateFile == nil || stateFile.State == nil {
 		t.Fatal("state should not be nil")
 	}
 
-	actualStr := strings.TrimSpace(state.String())
-	expectedStr := strings.TrimSpace(testApplyDestroyStr)
-	if actualStr != expectedStr {
-		t.Fatalf("bad:\n\n%s\n\nexpected:\n\n%s", actualStr, expectedStr)
+	spew.Config.DisableMethods = true
+	if !stateFile.State.Empty() {
+		t.Fatalf("unexpected final state\ngot: %s\nwant: empty state", spew.Sdump(stateFile.State))
 	}
 
 	// Should have a backup file
@@ -276,14 +283,14 @@ func TestApply_destroyTargeted(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	backupState, err := terraform.ReadState(f)
+	backupStateFile, err := statefile.Read(f)
 	f.Close()
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
-	actualStr = strings.TrimSpace(backupState.String())
-	expectedStr = strings.TrimSpace(originalState.String())
+	actualStr := strings.TrimSpace(backupStateFile.State.String())
+	expectedStr := strings.TrimSpace(originalState.String())
 	if actualStr != expectedStr {
 		t.Fatalf("bad:\n\nactual:\n%s\n\nexpected:\nb%s", actualStr, expectedStr)
 	}
