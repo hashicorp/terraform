@@ -11,8 +11,10 @@ import (
 	"testing"
 
 	"github.com/mitchellh/cli"
+	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/helper/copy"
+	"github.com/hashicorp/terraform/providers"
 	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -30,8 +32,12 @@ func TestRefresh(t *testing.T) {
 		},
 	}
 
-	p.RefreshFn = nil
-	p.RefreshReturn = &terraform.InstanceState{ID: "yes"}
+	p.ReadResourceFn = nil
+	p.ReadResourceResponse = providers.ReadResourceResponse{
+		NewState: cty.ObjectVal(map[string]cty.Value{
+			"id": cty.StringVal("yes"),
+		}),
+	}
 
 	args := []string{
 		"-state", statePath,
@@ -41,8 +47,8 @@ func TestRefresh(t *testing.T) {
 		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
 	}
 
-	if !p.RefreshCalled {
-		t.Fatal("refresh should be called")
+	if !p.ReadResourceCalled {
+		t.Fatal("ReadResource should have been called")
 	}
 
 	f, err := os.Open(statePath)
@@ -79,8 +85,12 @@ func TestRefresh_empty(t *testing.T) {
 		},
 	}
 
-	p.RefreshFn = nil
-	p.RefreshReturn = &terraform.InstanceState{ID: "yes"}
+	p.ReadResourceFn = nil
+	p.ReadResourceResponse = providers.ReadResourceResponse{
+		NewState: cty.ObjectVal(map[string]cty.Value{
+			"id": cty.StringVal("yes"),
+		}),
+	}
 
 	args := []string{
 		td,
@@ -89,8 +99,8 @@ func TestRefresh_empty(t *testing.T) {
 		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
 	}
 
-	if p.RefreshCalled {
-		t.Fatal("refresh should not be called")
+	if p.ReadResourceCalled {
+		t.Fatal("ReadResource should not have been called")
 	}
 }
 
@@ -113,8 +123,12 @@ func TestRefresh_lockedState(t *testing.T) {
 		},
 	}
 
-	p.RefreshFn = nil
-	p.RefreshReturn = &terraform.InstanceState{ID: "yes"}
+	p.ReadResourceFn = nil
+	p.ReadResourceResponse = providers.ReadResourceResponse{
+		NewState: cty.ObjectVal(map[string]cty.Value{
+			"id": cty.StringVal("yes"),
+		}),
+	}
 
 	args := []string{
 		"-state", statePath,
@@ -153,8 +167,12 @@ func TestRefresh_cwd(t *testing.T) {
 		},
 	}
 
-	p.RefreshFn = nil
-	p.RefreshReturn = &terraform.InstanceState{ID: "yes"}
+	p.ReadResourceFn = nil
+	p.ReadResourceResponse = providers.ReadResourceResponse{
+		NewState: cty.ObjectVal(map[string]cty.Value{
+			"id": cty.StringVal("yes"),
+		}),
+	}
 
 	args := []string{
 		"-state", statePath,
@@ -163,8 +181,8 @@ func TestRefresh_cwd(t *testing.T) {
 		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
 	}
 
-	if !p.RefreshCalled {
-		t.Fatal("refresh should be called")
+	if !p.ReadResourceCalled {
+		t.Fatal("ReadResource should have been called")
 	}
 
 	f, err := os.Open(statePath)
@@ -369,8 +387,8 @@ func TestRefresh_var(t *testing.T) {
 	if !p.ConfigureCalled {
 		t.Fatal("configure should be called")
 	}
-	if p.ConfigureConfig.Config["value"].(string) != "bar" {
-		t.Fatalf("bad: %#v", p.ConfigureConfig.Config)
+	if got, want := p.ConfigureRequest.Config.GetAttr("value"), cty.StringVal("bar"); !want.RawEquals(got) {
+		t.Fatalf("wrong provider configuration\ngot:  %#v\nwant: %#v", got, want)
 	}
 }
 
@@ -404,8 +422,8 @@ func TestRefresh_varFile(t *testing.T) {
 	if !p.ConfigureCalled {
 		t.Fatal("configure should be called")
 	}
-	if p.ConfigureConfig.Config["value"].(string) != "bar" {
-		t.Fatalf("bad: %#v", p.ConfigureConfig.Config)
+	if got, want := p.ConfigureRequest.Config.GetAttr("value"), cty.StringVal("bar"); !want.RawEquals(got) {
+		t.Fatalf("wrong provider configuration\ngot:  %#v\nwant: %#v", got, want)
 	}
 }
 
@@ -448,8 +466,8 @@ func TestRefresh_varFileDefault(t *testing.T) {
 	if !p.ConfigureCalled {
 		t.Fatal("configure should be called")
 	}
-	if p.ConfigureConfig.Config["value"].(string) != "bar" {
-		t.Fatalf("bad: %#v", p.ConfigureConfig.Config)
+	if got, want := p.ConfigureRequest.Config.GetAttr("value"), cty.StringVal("bar"); !want.RawEquals(got) {
+		t.Fatalf("wrong provider configuration\ngot:  %#v\nwant: %#v", got, want)
 	}
 }
 
