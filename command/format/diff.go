@@ -392,7 +392,7 @@ func (p *blockBodyDiffPrinter) writeNestedBlockDiff(name string, label *string, 
 	p.writeActionSymbol(action)
 
 	if label != nil {
-		fmt.Fprintf(p.buf, "%s %q {", name, label)
+		fmt.Fprintf(p.buf, "%s %q {", name, *label)
 	} else {
 		fmt.Fprintf(p.buf, "%s {", name)
 	}
