@@ -11,6 +11,7 @@ import (
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs/configschema"
 	"github.com/hashicorp/terraform/states"
+	"github.com/hashicorp/terraform/states/statefile"
 	"github.com/hashicorp/terraform/terraform"
 )
 
@@ -32,7 +33,16 @@ func TestApply_destroy(t *testing.T) {
 	statePath := testStateFile(t, originalState)
 
 	p := testProvider()
-	p.GetSchemaReturn = applyFixtureSchema()
+	p.GetSchemaReturn = &terraform.ProviderSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"test_instance": {
+				Attributes: map[string]*configschema.Attribute{
+					"id":  {Type: cty.String, Computed: true},
+					"ami": {Type: cty.String, Optional: true},
+				},
+			},
+		},
+	}
 
 	ui := new(cli.MockUi)
 	c := &ApplyCommand{
@@ -65,15 +75,15 @@ func TestApply_destroy(t *testing.T) {
 	}
 	defer f.Close()
 
-	state, err := terraform.ReadState(f)
+	stateFile, err := statefile.Read(f)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
-	if state == nil {
+	if stateFile.State == nil {
 		t.Fatal("state should not be nil")
 	}
 
-	actualStr := strings.TrimSpace(state.String())
+	actualStr := strings.TrimSpace(stateFile.State.String())
 	expectedStr := strings.TrimSpace(testApplyDestroyStr)
 	if actualStr != expectedStr {
 		t.Fatalf("bad:\n\n%s\n\n%s", actualStr, expectedStr)
@@ -85,13 +95,13 @@ func TestApply_destroy(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	backupState, err := terraform.ReadState(f)
+	backupStateFile, err := statefile.Read(f)
 	f.Close()
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
-	actualStr = strings.TrimSpace(backupState.String())
+	actualStr = strings.TrimSpace(backupStateFile.State.String())
 	expectedStr = strings.TrimSpace(originalState.String())
 	if actualStr != expectedStr {
 		t.Fatalf("bad:\n\n%s\n\n%s", actualStr, expectedStr)
