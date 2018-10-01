@@ -9,8 +9,8 @@ import (
 	"path/filepath"
 	"testing"
 
-	testprovider "github.com/hashicorp/terraform/builtin/providers/test"
 	"github.com/hashicorp/terraform/providers"
+	"github.com/hashicorp/terraform/terraform"
 )
 
 func TestUpgradeValid(t *testing.T) {
@@ -178,6 +178,7 @@ func diffSourceFilesFallback(got, want []byte) []byte {
 
 var testProviders = map[string]providers.Factory{
 	"test": providers.Factory(func() (providers.Interface, error) {
-		return testprovider.Provider(), nil
+		p := &terraform.MockProvider{}
+		return p, nil
 	}),
 }
