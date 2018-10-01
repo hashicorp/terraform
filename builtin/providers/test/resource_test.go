@@ -6,6 +6,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -464,7 +465,7 @@ output "value_from_map_from_list" {
 				`),
 				ExpectError: nil,
 				Check: func(s *terraform.State) error {
-					root := s.ModuleByPath(terraform.RootModulePath)
+					root := s.ModuleByPath(addrs.RootModuleInstance)
 					mapOut := root.Outputs["map_from_list"].Value
 					expectedMapOut := map[string]interface{}{
 						"a": "1",
