@@ -164,3 +164,14 @@ func (s *State) Unlock(id string) error {
 func (s *State) DisableLocks() {
 	s.disableLocks = true
 }
+
+// StateSnapshotMeta returns the metadata from the most recently persisted
+// or refreshed persistent state snapshot.
+//
+// This is an implementation of statemgr.PersistentMeta.
+func (s *State) StateSnapshotMeta() statemgr.SnapshotMeta {
+	return statemgr.SnapshotMeta{
+		Lineage: s.lineage,
+		Serial:  s.serial,
+	}
+}

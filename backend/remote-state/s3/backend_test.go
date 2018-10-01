@@ -13,7 +13,7 @@ import (
 	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/config/hcl2shim"
 	"github.com/hashicorp/terraform/state/remote"
-	"github.com/hashicorp/terraform/terraform"
+	"github.com/hashicorp/terraform/states"
 )
 
 // verify that we are doing ACC tests or the S3 tests specifically
@@ -145,8 +145,8 @@ func TestBackendExtraPaths(t *testing.T) {
 	defer deleteS3Bucket(t, b.s3Client, bucketName)
 
 	// put multiple states in old env paths.
-	s1 := terraform.NewState()
-	s2 := terraform.NewState()
+	s1 := states.NewState()
+	s2 := states.NewState()
 
 	// RemoteClient to Put things in various paths
 	client := &RemoteClient{
@@ -172,13 +172,15 @@ func TestBackendExtraPaths(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	s2Lineage := stateMgr.StateSnapshotMeta().Lineage
+
 	if err := checkStateList(b, []string{"default", "s1", "s2"}); err != nil {
 		t.Fatal(err)
 	}
 
 	// put a state in an env directory name
 	client.path = b.workspaceKeyPrefix + "/error"
-	stateMgr.WriteState(terraform.NewState())
+	stateMgr.WriteState(states.NewState())
 	if err := stateMgr.PersistState(); err != nil {
 		t.Fatal(err)
 	}
@@ -188,7 +190,7 @@ func TestBackendExtraPaths(t *testing.T) {
 
 	// add state with the wrong key for an existing env
 	client.path = b.workspaceKeyPrefix + "/s2/notTestState"
-	stateMgr.WriteState(terraform.NewState())
+	stateMgr.WriteState(states.NewState())
 	if err := stateMgr.PersistState(); err != nil {
 		t.Fatal(err)
 	}
@@ -197,7 +199,7 @@ func TestBackendExtraPaths(t *testing.T) {
 	}
 
 	// remove the state with extra subkey
-	if err := b.DeleteState("s2"); err != nil {
+	if err := b.DeleteWorkspace("s2"); err != nil {
 		t.Fatal(err)
 	}
 
@@ -206,7 +208,7 @@ func TestBackendExtraPaths(t *testing.T) {
 	}
 
 	// fetch that state again, which should produce a new lineage
-	s2Mgr, err := b.State("s2")
+	s2Mgr, err := b.StateMgr("s2")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -214,20 +216,21 @@ func TestBackendExtraPaths(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if s2Mgr.State().Lineage == s2.Lineage {
+	if stateMgr.StateSnapshotMeta().Lineage == s2Lineage {
 		t.Fatal("state s2 was not deleted")
 	}
 	s2 = s2Mgr.State()
+	s2Lineage = stateMgr.StateSnapshotMeta().Lineage
 
 	// add a state with a key that matches an existing environment dir name
 	client.path = b.workspaceKeyPrefix + "/s2/"
-	stateMgr.WriteState(terraform.NewState())
+	stateMgr.WriteState(states.NewState())
 	if err := stateMgr.PersistState(); err != nil {
 		t.Fatal(err)
 	}
 
 	// make sure s2 is OK
-	s2Mgr, err = b.State("s2")
+	s2Mgr, err = b.StateMgr("s2")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -235,7 +238,7 @@ func TestBackendExtraPaths(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if s2Mgr.State().Lineage != s2.Lineage {
+	if stateMgr.StateSnapshotMeta().Lineage != s2Lineage {
 		t.Fatal("we got the wrong state for s2")
 	}
 
@@ -260,7 +263,7 @@ func TestBackendPrefixInWorkspace(t *testing.T) {
 	defer deleteS3Bucket(t, b.s3Client, bucketName)
 
 	// get a state that contains the prefix as a substring
-	sMgr, err := b.State("env-1")
+	sMgr, err := b.StateMgr("env-1")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -342,7 +345,7 @@ func testGetWorkspaceForKey(b *Backend, key string, expected string) error {
 }
 
 func checkStateList(b backend.Backend, expected []string) error {
-	states, err := b.States()
+	states, err := b.Workspaces()
 	if err != nil {
 		return err
 	}
