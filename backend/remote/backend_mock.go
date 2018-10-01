@@ -595,6 +595,7 @@ func (m *mockRuns) Create(ctx context.Context, options tfe.RunCreateOptions) (*t
 
 	logs, _ := ioutil.ReadFile(m.client.Plans.logs[p.LogReadURL])
 	if r.IsDestroy || !bytes.Contains(logs, []byte("No changes. Infrastructure is up-to-date.")) {
+		r.Actions.IsCancelable = true
 		r.Actions.IsConfirmable = true
 		r.HasChanges = true
 		r.Permissions.CanApply = true
