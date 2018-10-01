@@ -441,8 +441,8 @@ func TestRemote_applyPolicyPass(t *testing.T) {
 	if !strings.Contains(output, "1 to add, 0 to change, 0 to destroy") {
 		t.Fatalf("missing plan summery in output: %s", output)
 	}
-	if !strings.Contains(output, "Sentinel Result: true") {
-		t.Fatalf("missing Sentinel result in output: %s", output)
+	if !strings.Contains(output, "policy check: passed") {
+		t.Fatalf("missing polic check result in output: %s", output)
 	}
 	if !strings.Contains(output, "1 added, 0 changed, 0 destroyed") {
 		t.Fatalf("missing apply summery in output: %s", output)
@@ -486,7 +486,7 @@ func TestRemote_applyPolicyHardFail(t *testing.T) {
 		t.Fatalf("missing plan summery in output: %s", output)
 	}
 	if !strings.Contains(output, "Sentinel Result: false") {
-		t.Fatalf("missing Sentinel result in output: %s", output)
+		t.Fatalf("missing policy check result in output: %s", output)
 	}
 	if strings.Contains(output, "1 added, 0 changed, 0 destroyed") {
 		t.Fatalf("unexpected apply summery in output: %s", output)
@@ -529,7 +529,7 @@ func TestRemote_applyPolicySoftFail(t *testing.T) {
 		t.Fatalf("missing plan summery in output: %s", output)
 	}
 	if !strings.Contains(output, "Sentinel Result: false") {
-		t.Fatalf("missing Sentinel result in output: %s", output)
+		t.Fatalf("missing policy check result in output: %s", output)
 	}
 	if !strings.Contains(output, "1 added, 0 changed, 0 destroyed") {
 		t.Fatalf("missing apply summery in output: %s", output)
@@ -572,7 +572,7 @@ func TestRemote_applyPolicySoftFailAutoApprove(t *testing.T) {
 		t.Fatalf("missing plan summery in output: %s", output)
 	}
 	if !strings.Contains(output, "Sentinel Result: false") {
-		t.Fatalf("missing Sentinel result in output: %s", output)
+		t.Fatalf("missing policy check result in output: %s", output)
 	}
 	if !strings.Contains(output, "1 added, 0 changed, 0 destroyed") {
 		t.Fatalf("missing apply summery in output: %s", output)
