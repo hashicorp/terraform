@@ -11,9 +11,13 @@ import (
 	"github.com/gophercloud/gophercloud/openstack/objectstorage/v1/containers"
 	"github.com/gophercloud/gophercloud/openstack/objectstorage/v1/objects"
 	"github.com/gophercloud/gophercloud/pagination"
+	"github.com/zclconf/go-cty/cty"
+
+	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/state/remote"
-	"github.com/hashicorp/terraform/terraform"
+	"github.com/hashicorp/terraform/states"
+	"github.com/hashicorp/terraform/states/statefile"
 )
 
 // verify that we are doing ACC tests or the Swift tests specifically
@@ -85,9 +89,7 @@ func TestBackendPath(t *testing.T) {
 	t.Logf("[DEBUG] Testing Backend")
 
 	// Generate some state
-	state1 := terraform.NewState()
-	// state1Lineage := state1.Lineage
-	t.Logf("state1 lineage = %s, serial = %d", state1.Lineage, state1.Serial)
+	state1 := states.NewState()
 
 	// RemoteClient to test with
 	client := &RemoteClient{
@@ -108,16 +110,8 @@ func TestBackendPath(t *testing.T) {
 	}
 
 	// Add some state
-	state1.AddModuleState(&terraform.ModuleState{
-		Path: []string{"root"},
-		Outputs: map[string]*terraform.OutputState{
-			"bar": &terraform.OutputState{
-				Type:      "string",
-				Sensitive: false,
-				Value:     "baz",
-			},
-		},
-	})
+	mod := state1.EnsureModule(addrs.RootModuleInstance)
+	mod.SetOutputValue("bar", cty.StringVal("baz"), false)
 	stateMgr.WriteState(state1)
 	if err := stateMgr.PersistState(); err != nil {
 		t.Fatal(err)
@@ -140,9 +134,7 @@ func TestBackendArchive(t *testing.T) {
 	defer deleteSwiftContainer(t, b.client, archiveContainer)
 
 	// Generate some state
-	state1 := terraform.NewState()
-	// state1Lineage := state1.Lineage
-	t.Logf("state1 lineage = %s, serial = %d", state1.Lineage, state1.Serial)
+	state1 := states.NewState()
 
 	// RemoteClient to test with
 	client := &RemoteClient{
@@ -163,16 +155,8 @@ func TestBackendArchive(t *testing.T) {
 	}
 
 	// Add some state
-	state1.AddModuleState(&terraform.ModuleState{
-		Path: []string{"root"},
-		Outputs: map[string]*terraform.OutputState{
-			"bar": &terraform.OutputState{
-				Type:      "string",
-				Sensitive: false,
-				Value:     "baz",
-			},
-		},
-	})
+	mod := state1.EnsureModule(addrs.RootModuleInstance)
+	mod.SetOutputValue("bar", cty.StringVal("baz"), false)
 	stateMgr.WriteState(state1)
 	if err := stateMgr.PersistState(); err != nil {
 		t.Fatal(err)
@@ -187,13 +171,13 @@ func TestBackendArchive(t *testing.T) {
 	// Download archive state to validate
 	archiveData := downloadSwiftObject(t, b.client, archiveContainer, archiveObjects[0])
 	t.Logf("Archive data downloaded... Looks like: %+v", archiveData)
-	archiveState, err := terraform.ReadState(archiveData)
+	archiveStateFile, err := statefile.Read(archiveData)
 	if err != nil {
 		t.Fatalf("Error Reading State: %s", err)
 	}
 
-	t.Logf("Archive state lineage = %s, serial = %d, lineage match = %t", archiveState.Lineage, archiveState.Serial, stateMgr.State().SameLineage(archiveState))
-	if !stateMgr.State().SameLineage(archiveState) {
+	t.Logf("Archive state lineage = %s, serial = %d", archiveStateFile.Lineage, archiveStateFile.Serial)
+	if stateMgr.StateSnapshotMeta().Lineage != archiveStateFile.Lineage {
 		t.Fatal("Got a different lineage")
 	}
 

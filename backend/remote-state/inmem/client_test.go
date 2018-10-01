@@ -17,7 +17,7 @@ func TestRemoteClient(t *testing.T) {
 	defer Reset()
 	b := backend.TestBackendConfig(t, New(), hcl.EmptyBody())
 
-	s, err := b.State(backend.DefaultStateName)
+	s, err := b.StateMgr(backend.DefaultStateName)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -27,7 +27,7 @@ func TestRemoteClient(t *testing.T) {
 
 func TestInmemLocks(t *testing.T) {
 	defer Reset()
-	s, err := backend.TestBackendConfig(t, New(), hcl.EmptyBody()).State(backend.DefaultStateName)
+	s, err := backend.TestBackendConfig(t, New(), hcl.EmptyBody()).StateMgr(backend.DefaultStateName)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -28,7 +28,7 @@ func TestRemoteClient(t *testing.T) {
 	}))
 
 	// Grab the client
-	state, err := b.State(backend.DefaultStateName)
+	state, err := b.StateMgr(backend.DefaultStateName)
 	if err != nil {
 		t.Fatalf("Error: %s.", err)
 	}
@@ -47,7 +47,7 @@ func TestEtcdv3_stateLock(t *testing.T) {
 	s1, err := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
 		"endpoints": etcdv3Endpoints,
 		"prefix":    prefix,
-	})).State(backend.DefaultStateName)
+	})).StateMgr(backend.DefaultStateName)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -55,7 +55,7 @@ func TestEtcdv3_stateLock(t *testing.T) {
 	s2, err := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
 		"endpoints": etcdv3Endpoints,
 		"prefix":    prefix,
-	})).State(backend.DefaultStateName)
+	})).StateMgr(backend.DefaultStateName)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -76,7 +76,7 @@ func TestEtcdv3_destroyLock(t *testing.T) {
 	}))
 
 	// Grab the client
-	s, err := b.State(backend.DefaultStateName)
+	s, err := b.StateMgr(backend.DefaultStateName)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
