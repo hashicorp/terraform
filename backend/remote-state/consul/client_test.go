@@ -26,7 +26,7 @@ func TestRemoteClient(t *testing.T) {
 	}))
 
 	// Grab the client
-	state, err := b.State(backend.DefaultStateName)
+	state, err := b.StateMgr(backend.DefaultStateName)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -46,7 +46,7 @@ func TestRemoteClient_gzipUpgrade(t *testing.T) {
 	}))
 
 	// Grab the client
-	state, err := b.State(backend.DefaultStateName)
+	state, err := b.StateMgr(backend.DefaultStateName)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -62,7 +62,7 @@ func TestRemoteClient_gzipUpgrade(t *testing.T) {
 	}))
 
 	// Grab the client
-	state, err = b.State(backend.DefaultStateName)
+	state, err = b.StateMgr(backend.DefaultStateName)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -78,7 +78,7 @@ func TestConsul_stateLock(t *testing.T) {
 	sA, err := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
 		"address": srv.HTTPAddr,
 		"path":    path,
-	})).State(backend.DefaultStateName)
+	})).StateMgr(backend.DefaultStateName)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -86,7 +86,7 @@ func TestConsul_stateLock(t *testing.T) {
 	sB, err := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
 		"address": srv.HTTPAddr,
 		"path":    path,
-	})).State(backend.DefaultStateName)
+	})).StateMgr(backend.DefaultStateName)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -102,7 +102,7 @@ func TestConsul_destroyLock(t *testing.T) {
 	}))
 
 	// Grab the client
-	s, err := b.State(backend.DefaultStateName)
+	s, err := b.StateMgr(backend.DefaultStateName)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -138,7 +138,7 @@ func TestConsul_lostLock(t *testing.T) {
 	sA, err := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
 		"address": srv.HTTPAddr,
 		"path":    path,
-	})).State(backend.DefaultStateName)
+	})).StateMgr(backend.DefaultStateName)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -146,7 +146,7 @@ func TestConsul_lostLock(t *testing.T) {
 	sB, err := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
 		"address": srv.HTTPAddr,
 		"path":    path + "-not-used",
-	})).State(backend.DefaultStateName)
+	})).StateMgr(backend.DefaultStateName)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -195,7 +195,7 @@ func TestConsul_lostLockConnection(t *testing.T) {
 		"path":    path,
 	}))
 
-	s, err := b.State(backend.DefaultStateName)
+	s, err := b.StateMgr(backend.DefaultStateName)
 	if err != nil {
 		t.Fatal(err)
 	}

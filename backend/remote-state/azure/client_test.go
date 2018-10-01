@@ -28,7 +28,7 @@ func TestRemoteClient(t *testing.T) {
 		"access_key":           res.accessKey,
 	})).(*Backend)
 
-	state, err := b.State(backend.DefaultStateName)
+	state, err := b.StateMgr(backend.DefaultStateName)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -57,12 +57,12 @@ func TestRemoteClientLocks(t *testing.T) {
 		"access_key":           res.accessKey,
 	})).(*Backend)
 
-	s1, err := b1.State(backend.DefaultStateName)
+	s1, err := b1.StateMgr(backend.DefaultStateName)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	s2, err := b2.State(backend.DefaultStateName)
+	s2, err := b2.StateMgr(backend.DefaultStateName)
 	if err != nil {
 		t.Fatal(err)
 	}
