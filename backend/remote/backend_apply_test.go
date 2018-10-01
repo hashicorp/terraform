@@ -297,6 +297,7 @@ func TestRemote_applyLockTimeout(t *testing.T) {
 	defer modCleanup()
 
 	input := testInput(t, map[string]string{
+		"cancel":  "yes",
 		"approve": "yes",
 	})
 
@@ -322,8 +323,8 @@ func TestRemote_applyLockTimeout(t *testing.T) {
 		t.Fatalf("expected lock timeout after 5 seconds, waited 10 seconds")
 	}
 
-	if len(input.answers) != 1 {
-		t.Fatalf("expected an unused answer, got: %v", input.answers)
+	if len(input.answers) != 2 {
+		t.Fatalf("expected unused answers, got: %v", input.answers)
 	}
 
 	output := b.CLI.(*cli.MockUi).OutputWriter.String()

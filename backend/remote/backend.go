@@ -440,7 +440,7 @@ func (b *Remote) Operation(ctx context.Context, op *backend.Operation) (*backend
 		}
 
 		if r != nil && err == context.Canceled {
-			runningOp.Err = b.cancel(cancelCtx, r)
+			runningOp.Err = b.cancel(cancelCtx, op, r.ID)
 		}
 	}()
 
@@ -448,21 +448,45 @@ func (b *Remote) Operation(ctx context.Context, op *backend.Operation) (*backend
 	return runningOp, nil
 }
 
-func (b *Remote) cancel(cancelCtx context.Context, r *tfe.Run) error {
+func (b *Remote) cancel(cancelCtx context.Context, op *backend.Operation, runID string) error {
 	// Retrieve the run to get its current status.
-	r, err := b.client.Runs.Read(cancelCtx, r.ID)
+	r, err := b.client.Runs.Read(cancelCtx, runID)
 	if err != nil {
 		return generalError("error cancelling run", err)
 	}
 
-	// Make sure we cancel the run if possible.
 	if r.Status == tfe.RunPending && r.Actions.IsCancelable {
+		// Only ask if the remote operation should be canceled
+		// if the auto approve flag is not set.
+		if !op.AutoApprove {
+			v, err := op.UIIn.Input(&terraform.InputOpts{
+				Id:          "cancel",
+				Query:       "\nDo you want to cancel the pending remote operation?",
+				Description: "Only 'yes' will be accepted to cancel.",
+			})
+			if err != nil {
+				return generalError("error asking to cancel", err)
+			}
+			if v != "yes" {
+				if b.CLI != nil {
+					b.CLI.Output(b.Colorize().Color(strings.TrimSpace(operationNotCanceled)))
+				}
+				return nil
+			}
+		} else {
+			if b.CLI != nil {
+				// Insert a blank line to separate the ouputs.
+				b.CLI.Output("")
+			}
+		}
+
+		// Try to cancel the remote operation.
 		err = b.client.Runs.Cancel(cancelCtx, r.ID, tfe.RunCancelOptions{})
 		if err != nil {
 			return generalError("error cancelling run", err)
 		}
 		if b.CLI != nil {
-			b.CLI.Output(b.Colorize().Color(strings.TrimSpace(cancelPendingOperation)))
+			b.CLI.Output(b.Colorize().Color(strings.TrimSpace(operationCanceled)))
 		}
 	}
 
@@ -470,7 +494,7 @@ func (b *Remote) cancel(cancelCtx context.Context, r *tfe.Run) error {
 }
 
 // Colorize returns the Colorize structure that can be used for colorizing
-// output. This is gauranteed to always return a non-nil value and so is useful
+// output. This is guaranteed to always return a non-nil value and so useful
 // as a helper to wrap any potentially colored strings.
 func (b *Remote) Colorize() *colorstring.Colorize {
 	if b.CLIColor != nil {
@@ -497,6 +521,15 @@ func generalError(msg string, err error) error {
 	}
 }
 
+const generalErr = `
+%s: %v
+
+The configured "remote" backend encountered an unexpected error. Sometimes
+this is caused by network connection problems, in which case you could retry
+the command. If the issue persists please open a support ticket to get help
+resolving the problem.
+`
+
 const notFoundErr = `
 %s: %v
 
@@ -505,17 +538,12 @@ that do not exist, as well as for resources that a user doesn't have access
 to. When the resource does exists, please check the rights for the used token.
 `
 
-const generalErr = `
-%s: %v
-
-The "remote" backend encountered an unexpected error while communicating
-with remote backend. In some cases this could be caused by a network
-connection problem, in which case you could retry the command. If the issue
-persists please open a support ticket to get help resolving the problem.
+const operationCanceled = `
+[reset][red]The remote operation was successfully cancelled.[reset]
 `
 
-const cancelPendingOperation = `[reset][red]
-Pending remote operation cancelled.[reset]
+const operationNotCanceled = `
+[reset][red]The remote operation was not cancelled.[reset]
 `
 
 var schemaDescriptions = map[string]string{
