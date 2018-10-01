@@ -27,7 +27,7 @@ tested by HashiCorp.
 
 [Azure Stack](/docs/providers/azurestack/index.html)
 
-[Google Cloud](/docs/providers/google/index.html)
+[Google Cloud Platform](/docs/providers/google/index.html)
 
 [Oracle Cloud Infrastructure](/docs/providers/oci/index.html)
 
