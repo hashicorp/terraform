@@ -22,7 +22,7 @@ func TestRemoteClient(t *testing.T) {
 		"container": container,
 	})).(*Backend)
 
-	state, err := b.State(backend.DefaultStateName)
+	state, err := b.StateMgr(backend.DefaultStateName)
 	if err != nil {
 		t.Fatal(err)
 	}

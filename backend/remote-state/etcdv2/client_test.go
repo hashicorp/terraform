@@ -36,7 +36,7 @@ func TestEtcdClient(t *testing.T) {
 	}
 
 	b := backend.TestBackendConfig(t, New(), configs.SynthBody("synth", config))
-	state, err := b.State(backend.DefaultStateName)
+	state, err := b.StateMgr(backend.DefaultStateName)
 	if err != nil {
 		t.Fatalf("Error for valid config: %s", err)
 	}

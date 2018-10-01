@@ -11,7 +11,7 @@ import (
 	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/state"
 	"github.com/hashicorp/terraform/state/remote"
-	"github.com/hashicorp/terraform/terraform"
+	"github.com/hashicorp/terraform/states/statefile"
 )
 
 func TestRemoteClient_impl(t *testing.T) {
@@ -33,7 +33,7 @@ func TestRemoteClient(t *testing.T) {
 	createS3Bucket(t, b.s3Client, bucketName)
 	defer deleteS3Bucket(t, b.s3Client, bucketName)
 
-	state, err := b.State(backend.DefaultStateName)
+	state, err := b.StateMgr(backend.DefaultStateName)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -65,12 +65,12 @@ func TestRemoteClientLocks(t *testing.T) {
 	createDynamoDBTable(t, b1.dynClient, bucketName)
 	defer deleteDynamoDBTable(t, b1.dynClient, bucketName)
 
-	s1, err := b1.State(backend.DefaultStateName)
+	s1, err := b1.StateMgr(backend.DefaultStateName)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	s2, err := b2.State(backend.DefaultStateName)
+	s2, err := b2.StateMgr(backend.DefaultStateName)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -104,7 +104,7 @@ func TestForceUnlock(t *testing.T) {
 	defer deleteDynamoDBTable(t, b1.dynClient, bucketName)
 
 	// first test with default
-	s1, err := b1.State(backend.DefaultStateName)
+	s1, err := b1.StateMgr(backend.DefaultStateName)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -119,7 +119,7 @@ func TestForceUnlock(t *testing.T) {
 	}
 
 	// s1 is now locked, get the same state through s2 and unlock it
-	s2, err := b2.State(backend.DefaultStateName)
+	s2, err := b2.StateMgr(backend.DefaultStateName)
 	if err != nil {
 		t.Fatal("failed to get default state to force unlock:", err)
 	}
@@ -130,7 +130,7 @@ func TestForceUnlock(t *testing.T) {
 
 	// now try the same thing with a named state
 	// first test with default
-	s1, err = b1.State("test")
+	s1, err = b1.StateMgr("test")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -145,7 +145,7 @@ func TestForceUnlock(t *testing.T) {
 	}
 
 	// s1 is now locked, get the same state through s2 and unlock it
-	s2, err = b2.State("test")
+	s2, err = b2.StateMgr("test")
 	if err != nil {
 		t.Fatal("failed to get named state to force unlock:", err)
 	}
@@ -172,7 +172,7 @@ func TestRemoteClient_clientMD5(t *testing.T) {
 	createDynamoDBTable(t, b.dynClient, bucketName)
 	defer deleteDynamoDBTable(t, b.dynClient, bucketName)
 
-	s, err := b.State(backend.DefaultStateName)
+	s, err := b.StateMgr(backend.DefaultStateName)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -220,7 +220,7 @@ func TestRemoteClient_stateChecksum(t *testing.T) {
 	createDynamoDBTable(t, b1.dynClient, bucketName)
 	defer deleteDynamoDBTable(t, b1.dynClient, bucketName)
 
-	s1, err := b1.State(backend.DefaultStateName)
+	s1, err := b1.StateMgr(backend.DefaultStateName)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -228,13 +228,14 @@ func TestRemoteClient_stateChecksum(t *testing.T) {
 
 	// create a old and new state version to persist
 	s := state.TestStateInitial()
+	sf := &statefile.File{State: s}
 	var oldState bytes.Buffer
-	if err := terraform.WriteState(s, &oldState); err != nil {
+	if err := statefile.Write(sf, &oldState); err != nil {
 		t.Fatal(err)
 	}
-	s.Serial++
+	sf.Serial++
 	var newState bytes.Buffer
-	if err := terraform.WriteState(s, &newState); err != nil {
+	if err := statefile.Write(sf, &newState); err != nil {
 		t.Fatal(err)
 	}
 
@@ -244,7 +245,7 @@ func TestRemoteClient_stateChecksum(t *testing.T) {
 		"bucket": bucketName,
 		"key":    keyName,
 	})).(*Backend)
-	s2, err := b2.State(backend.DefaultStateName)
+	s2, err := b2.StateMgr(backend.DefaultStateName)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -28,7 +28,7 @@ func TestRemoteClient(t *testing.T) {
 	createMantaFolder(t, b.storageClient, directory)
 	defer deleteMantaFolder(t, b.storageClient, directory)
 
-	state, err := b.State(backend.DefaultStateName)
+	state, err := b.StateMgr(backend.DefaultStateName)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -54,12 +54,12 @@ func TestRemoteClientLocks(t *testing.T) {
 	createMantaFolder(t, b1.storageClient, directory)
 	defer deleteMantaFolder(t, b1.storageClient, directory)
 
-	s1, err := b1.State(backend.DefaultStateName)
+	s1, err := b1.StateMgr(backend.DefaultStateName)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	s2, err := b2.State(backend.DefaultStateName)
+	s2, err := b2.StateMgr(backend.DefaultStateName)
 	if err != nil {
 		t.Fatal(err)
 	}

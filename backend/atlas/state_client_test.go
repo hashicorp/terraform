@@ -30,7 +30,7 @@ func testStateClient(t *testing.T, c map[string]string) remote.Client {
 	synthBody := configs.SynthBody("<test>", vals)
 
 	b := backend.TestBackendConfig(t, &Backend{}, synthBody)
-	raw, err := b.State(backend.DefaultStateName)
+	raw, err := b.StateMgr(backend.DefaultStateName)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
