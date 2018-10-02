@@ -619,7 +619,9 @@ func (s *GRPCProviderServer) ReadDataSource(_ context.Context, req *proto.ReadDa
 		resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
 		return resp, nil
 	}
-	resp.State.Msgpack = newStateMP
+	resp.State = &proto.DynamicValue{
+		Msgpack: newStateMP,
+	}
 	return resp, nil
 }
 
