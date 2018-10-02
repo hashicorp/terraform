@@ -3,6 +3,7 @@ package terraform
 import (
 	"testing"
 
+	"github.com/apparentlymart/go-dump/dump"
 	"github.com/zclconf/go-cty/cty"
 )
 
@@ -13,12 +14,12 @@ func TestResource(t *testing.T) {
 }
 
 func TestState_basic(t *testing.T) {
-	var tests = []struct {
+	var tests = map[string]struct {
 		Config cty.Value
 		Want   cty.Value
 		Err    bool
 	}{
-		{ // basic test
+		"basic": {
 			cty.ObjectVal(map[string]cty.Value{
 				"backend": cty.StringVal("local"),
 				"config": cty.ObjectVal(map[string]cty.Value{
@@ -33,10 +34,12 @@ func TestState_basic(t *testing.T) {
 				"outputs": cty.ObjectVal(map[string]cty.Value{
 					"foo": cty.StringVal("bar"),
 				}),
+				"workspace": cty.NullVal(cty.String),
+				"defaults":  cty.NullVal(cty.DynamicPseudoType),
 			}),
 			false,
 		},
-		{ // complex outputs
+		"complex outputs": {
 			cty.ObjectVal(map[string]cty.Value{
 				"backend": cty.StringVal("local"),
 				"config": cty.ObjectVal(map[string]cty.Value{
@@ -49,26 +52,28 @@ func TestState_basic(t *testing.T) {
 					"path": cty.StringVal("./test-fixtures/complex_outputs.tfstate"),
 				}),
 				"outputs": cty.ObjectVal(map[string]cty.Value{
-					"computed_map": cty.ObjectVal(map[string]cty.Value{
+					"computed_map": cty.MapVal(map[string]cty.Value{
 						"key1": cty.StringVal("value1"),
 					}),
-					"computed_set": cty.TupleVal([]cty.Value{
+					"computed_set": cty.ListVal([]cty.Value{
 						cty.StringVal("setval1"),
 						cty.StringVal("setval2"),
 					}),
-					"map": cty.ObjectVal(map[string]cty.Value{
+					"map": cty.MapVal(map[string]cty.Value{
 						"key":  cty.StringVal("test"),
 						"test": cty.StringVal("test"),
 					}),
-					"set": cty.TupleVal([]cty.Value{
+					"set": cty.ListVal([]cty.Value{
 						cty.StringVal("test1"),
 						cty.StringVal("test2"),
 					}),
 				}),
+				"workspace": cty.NullVal(cty.String),
+				"defaults":  cty.NullVal(cty.DynamicPseudoType),
 			}),
 			false,
 		},
-		{ // null outputs
+		"null outputs": {
 			cty.ObjectVal(map[string]cty.Value{
 				"backend": cty.StringVal("local"),
 				"config": cty.ObjectVal(map[string]cty.Value{
@@ -84,10 +89,12 @@ func TestState_basic(t *testing.T) {
 					"map":  cty.NullVal(cty.DynamicPseudoType),
 					"list": cty.NullVal(cty.DynamicPseudoType),
 				}),
+				"workspace": cty.NullVal(cty.String),
+				"defaults":  cty.NullVal(cty.DynamicPseudoType),
 			}),
 			false,
 		},
-		{ // defaults
+		"defaults": {
 			cty.ObjectVal(map[string]cty.Value{
 				"backend": cty.StringVal("local"),
 				"config": cty.ObjectVal(map[string]cty.Value{
@@ -108,28 +115,49 @@ func TestState_basic(t *testing.T) {
 				"outputs": cty.ObjectVal(map[string]cty.Value{
 					"foo": cty.StringVal("bar"),
 				}),
+				"workspace": cty.NullVal(cty.String),
 			}),
 			false,
 		},
+		"missing": {
+			cty.ObjectVal(map[string]cty.Value{
+				"backend": cty.StringVal("local"),
+				"config": cty.ObjectVal(map[string]cty.Value{
+					"path": cty.StringVal("./test-fixtures/missing.tfstate"), // intentionally not present on disk
+				}),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"backend": cty.StringVal("local"),
+				"config": cty.ObjectVal(map[string]cty.Value{
+					"path": cty.StringVal("./test-fixtures/missing.tfstate"),
+				}),
+				"defaults":  cty.NullVal(cty.DynamicPseudoType),
+				"outputs":   cty.EmptyObjectVal,
+				"workspace": cty.NullVal(cty.String),
+			}),
+			true,
+		},
 	}
-	for _, test := range tests {
-		schema := dataSourceRemoteStateGetSchema().Block
-		config, err := schema.CoerceValue(test.Config)
-		if err != nil {
-			t.Fatalf("unexpected error: %s", err)
-		}
-		got, diags := dataSourceRemoteStateRead(&config)
-
-		if test.Err {
-			if !diags.HasErrors() {
-				t.Fatal("succeeded; want error")
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			schema := dataSourceRemoteStateGetSchema().Block
+			config, err := schema.CoerceValue(test.Config)
+			if err != nil {
+				t.Fatalf("unexpected error: %s", err)
 			}
-		} else if diags.HasErrors() {
-			t.Fatalf("unexpected error: %s", err)
-		}
+			got, diags := dataSourceRemoteStateRead(&config)
 
-		if !got.RawEquals(test.Want) {
-			t.Errorf("wrong result\ngot:  %#v\nwant: %#v", got, test.Want)
-		}
+			if test.Err {
+				if !diags.HasErrors() {
+					t.Fatal("succeeded; want error")
+				}
+			} else if diags.HasErrors() {
+				t.Fatalf("unexpected errors: %s", diags.Err())
+			}
+
+			if !got.RawEquals(test.Want) {
+				t.Errorf("wrong result\nconfig: %sgot: %swant: %s", dump.Value(config), dump.Value(got), dump.Value(test.Want))
+			}
+		})
 	}
 }
