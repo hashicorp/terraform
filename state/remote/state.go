@@ -55,7 +55,13 @@ func (s *State) WriteState(state *states.State) error {
 func (s *State) RefreshState() error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	return s.refreshState()
+}
 
+// refreshState is the main implementation of RefreshState, but split out so
+// that we can make internal calls to it from methods that are already holding
+// the s.mu lock.
+func (s *State) refreshState() error {
 	payload, err := s.Client.Get()
 	if err != nil {
 		return err
@@ -95,7 +101,7 @@ func (s *State) PersistState() error {
 		// We might be writing a new state altogether, but before we do that
 		// we'll check to make sure there isn't already a snapshot present
 		// that we ought to be updating.
-		err := s.RefreshState()
+		err := s.refreshState()
 		if err != nil {
 			return fmt.Errorf("failed checking for existing remote state: %s", err)
 		}
