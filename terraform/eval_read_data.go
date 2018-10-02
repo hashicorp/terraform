@@ -32,6 +32,13 @@ type EvalReadData struct {
 	// in this planned change.
 	Planned **plans.ResourceInstanceChange
 
+	// ForcePlanRead, if true, overrides the usual behavior of immediately
+	// reading from the data source where possible, instead forcing us to
+	// _always_ generate a plan. This is used during the plan walk, since we
+	// mustn't actually apply anything there. (The resulting state doesn't
+	// get persisted)
+	ForcePlanRead bool
+
 	// The result from this EvalNode has a few different possibilities
 	// depending on the input:
 	// - If Planned is nil then we assume we're aiming to _produce_ the plan,
@@ -101,7 +108,7 @@ func (n *EvalReadData) Eval(ctx EvalContext) (interface{}, error) {
 	// If our configuration contains any unknown values then we must defer the
 	// read to the apply phase by producing a "Read" change for this resource,
 	// and a placeholder value for it in the state.
-	if !configVal.IsWhollyKnown() {
+	if n.ForcePlanRead || !configVal.IsWhollyKnown() {
 		// If the configuration is still unknown when we're applying a planned
 		// change then that indicates a bug in Terraform, since we should have
 		// everything resolved by now.
