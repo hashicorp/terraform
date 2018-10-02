@@ -9,6 +9,10 @@ work with a particular configuration, but sometimes Terraform is deployed in
 a network that, for one reason or another, cannot access the official
 plugin repository for automatic download.
 
+In some cases, this can be solved by installing provider plugins into the
+[user plugins directory](https://www.terraform.io/docs/configuration/providers.html#third-party-plugins).
+However, this doesn't always meet the needs of automated deployments.
+
 `terraform-bundle` provides an alternative, by allowing the auto-download
 process to be run out-of-band on a separate machine that _does_ have access
 to the repository. The result is a zip file that can be extracted onto the
@@ -54,7 +58,7 @@ providers {
   # the bundle archive.
   google = ["~> 1.0", "~> 2.0"]
 
-  # Include a custom plugin to the bundle. Will search for the plugin in the 
+  # Include a custom plugin to the bundle. Will search for the plugin in the
   # plugins directory, and package it with the bundle archive. Plugin must have
   # a name of the form: terraform-provider-*, and must be build with the operating
   # system and architecture that terraform enterprise is running, e.g. linux and amd64
@@ -107,11 +111,12 @@ distinguished from official release archives and from each other when multiple
 bundles contain the same core Terraform version.
 
 To include custom plugins in the bundle file, create a local directory "./plugins"
-and put all the plugins you want to include there. Optionally, you can use the 
+and put all the plugins you want to include there. Optionally, you can use the
 `-plugin-dir` flag to specify a location where to find the plugins. To be recognized
-as a valid plugin, the file must have a name of the form: "terraform-provider-*-v*". In 
-addition, ensure that the plugin is build using the same operating system and 
-architecture used for terraform enterprise. Typically this will be linux and amd64.
+as a valid plugin, the file must have a name of the form
+`terraform-provider-<NAME>-v<VERSION>`. In
+addition, ensure that the plugin is built using the same operating system and
+architecture used for Terraform Enterprise. Typically this will be `linux` and `amd64`.
 
 ## Provider Resolution Behavior
 
@@ -123,7 +128,12 @@ Therefore if automatic installation is not desired, it is important to ensure
 that version constraints within Terraform configurations do not exclude all
 of the versions available from the bundle. If a suitable version cannot be
 found in the bundle, Terraform _will_ attempt to satisfy that dependency by
-automatic installation from the official repository.
+automatic installation from the official repository. If you want
+`terraform init` to explicitly fail instead of contacting the repository, pass
+the `-get-plugins=false` option.
+
+For full details about provider resolution, see
+[How Terraform Works: Plugin Discovery](https://www.terraform.io/docs/extend/how-terraform-works.html#discovery).
 
 The downloaded provider archives are verified using the same signature check
 that is used for auto-installed plugins, using Hashicorp's release key. At
@@ -133,21 +143,22 @@ that may change in a future version of this tool.
 ## Installing a Bundle in On-premises Terraform Enterprise
 
 If using a private install of Terraform Enterprise in an "air-gapped"
-environment, this tool can produce a custom _tool package_ for Terraform, which
+environment, this tool can produce a custom Terraform version package, which
 includes a set of provider plugins along with core Terraform.
 
 To create a suitable bundle, use the `-os` and `-arch` options as described
 above to produce a bundle targeting `linux_amd64`. You can then place this
 archive on an HTTP server reachable by the Terraform Enterprise hosts and
 install it as per
-[Managing Tool Versions](https://github.com/hashicorp/terraform-enterprise-modules/blob/master/docs/managing-tool-versions.md).
+[Administration: Managing Terraform Versions](https://www.terraform.io/docs/enterprise/private/admin/resources.html#managing-terraform-versions).
 
-After choosing the "Add Tool Version" button, be sure to set the Tool to
-"terraform" and then enter as the Version the generated bundle version from
-the bundle filename, which will be of the form `N.N.N-bundleYYYYMMDDHH`.
-Enter the URL at which the generated bundle archive can be found, and the
-SHA256 hash of the file which can be determined by running the tool
-`sha256sum` with the given file.
+After clicking the "Add Terraform Version" button:
+
+1. In the "Version" field, enter the generated bundle version from the bundle
+   filename, which will be of the form `N.N.N-bundleYYYYMMDDHH`.
+2. In the "URL" field, enter the URL where the generated bundle archive can be found.
+3. In the "SHA256 Checksum" field, enter the SHA256 hash of the file, which can
+   be found by running `sha256sum <FILE>` or `shasum -a256 <FILE>`.
 
 The new bundle version can then be selected as the Terraform version for
 any workspace. When selected, configurations that require only plugins
