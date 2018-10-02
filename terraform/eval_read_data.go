@@ -21,6 +21,7 @@ import (
 type EvalReadData struct {
 	Addr           addrs.ResourceInstance
 	Config         *configs.Resource
+	Dependencies   []addrs.Referenceable
 	Provider       *providers.Interface
 	ProviderAddr   addrs.AbsProviderConfig
 	ProviderSchema **ProviderSchema
@@ -155,8 +156,9 @@ func (n *EvalReadData) Eval(ctx EvalContext) (interface{}, error) {
 		}
 		if n.OutputState != nil {
 			state := &states.ResourceInstanceObject{
-				Value:  change.After,
-				Status: states.ObjectPlanned, // because the partial value in the plan must be used for now
+				Value:        change.After,
+				Status:       states.ObjectPlanned, // because the partial value in the plan must be used for now
+				Dependencies: n.Dependencies,
 			}
 			*n.OutputState = state
 		}
@@ -239,8 +241,9 @@ func (n *EvalReadData) Eval(ctx EvalContext) (interface{}, error) {
 		},
 	}
 	state := &states.ResourceInstanceObject{
-		Value:  change.After,
-		Status: states.ObjectReady, // because we completed the read from the provider
+		Value:        change.After,
+		Status:       states.ObjectReady, // because we completed the read from the provider
+		Dependencies: n.Dependencies,
 	}
 
 	err = ctx.Hook(func(h Hook) (HookAction, error) {
