@@ -25,7 +25,6 @@ type GRPCProviderPlugin struct {
 
 func (p *GRPCProviderPlugin) GRPCClient(ctx context.Context, broker *plugin.GRPCBroker, c *grpc.ClientConn) (interface{}, error) {
 	return &GRPCProvider{
-		conn:   c,
 		client: proto.NewProviderClient(c),
 		ctx:    ctx,
 	}, nil
@@ -41,7 +40,11 @@ func (p *GRPCProviderPlugin) GRPCServer(broker *plugin.GRPCBroker, s *grpc.Serve
 // terraform provioders types and the grpc proto types, directly converting
 // between the two.
 type GRPCProvider struct {
-	conn   *grpc.ClientConn
+	// PluginClient provides a reference to the plugin.Client which controls the plugin process.
+	// This allows the GRPCProvider a way to shutdown the plugin process.
+	PluginClient *plugin.Client
+
+	// Proto client use to make the grpc service calls.
 	client proto.ProviderClient
 
 	// this context is created by the plugin package, and is canceled when the
@@ -495,8 +498,13 @@ func (p *GRPCProvider) ReadDataSource(r providers.ReadDataSourceRequest) (resp p
 }
 
 // closing the grpc connection is final, and terraform will call it at the end of every phase.
-// FIXME: do we need this, and if so, how do we fix it?
 func (p *GRPCProvider) Close() error {
-	log.Printf("[TRACE] GRPCProvider: Close")
+	// check this since it's not automatically inserted during plugin creation
+	if p.PluginClient == nil {
+		log.Println("[DEBUG] provider has no plugin.Client")
+		return nil
+	}
+
+	p.PluginClient.Kill()
 	return nil
 }
