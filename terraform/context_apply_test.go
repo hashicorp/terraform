@@ -9276,8 +9276,16 @@ func TestContext2Apply_dataDependsOn(t *testing.T) {
 	assertNoErrors(t, diags)
 
 	root := state.Module(addrs.RootModuleInstance)
+	is := root.ResourceInstance(addrs.Resource{
+		Mode: addrs.DataResourceMode,
+		Type: "null_data_source",
+		Name: "read",
+	}.Instance(addrs.NoKey))
+	if is == nil {
+		t.Fatal("data resource instance is not present in state; should be")
+	}
 	var attrs map[string]interface{}
-	err := json.Unmarshal(root.Resources["data.null_data_source.read"].Instances[addrs.NoKey].Current.AttrsJSON, &attrs)
+	err := json.Unmarshal(is.Current.AttrsJSON, &attrs)
 	if err != nil {
 		t.Fatal(err)
 	}
