@@ -98,6 +98,7 @@ func (n *NodePlannableResourceInstance) evalTreeDataResource(addr addrs.AbsResou
 			&EvalReadData{
 				Addr:           addr.Resource,
 				Config:         n.Config,
+				Dependencies:   n.StateReferences(),
 				Provider:       &provider,
 				ProviderAddr:   n.ResolvedProvider,
 				ProviderSchema: &providerSchema,
