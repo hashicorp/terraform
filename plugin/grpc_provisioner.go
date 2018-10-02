@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"io"
+	"log"
 	"sync"
 
 	plugin "github.com/hashicorp/go-plugin"
@@ -24,7 +25,6 @@ type GRPCProvisionerPlugin struct {
 
 func (p *GRPCProvisionerPlugin) GRPCClient(ctx context.Context, broker *plugin.GRPCBroker, c *grpc.ClientConn) (interface{}, error) {
 	return &GRPCProvisioner{
-		conn:   c,
 		client: proto.NewProvisionerClient(c),
 		ctx:    ctx,
 	}, nil
@@ -37,7 +37,10 @@ func (p *GRPCProvisionerPlugin) GRPCServer(broker *plugin.GRPCBroker, s *grpc.Se
 
 // provisioners.Interface grpc implementation
 type GRPCProvisioner struct {
-	conn   *grpc.ClientConn
+	// PluginClient provides a reference to the plugin.Client which controls the plugin process.
+	// This allows the GRPCProvider a way to shutdown the plugin process.
+	PluginClient *plugin.Client
+
 	client proto.ProvisionerClient
 	ctx    context.Context
 
@@ -163,5 +166,12 @@ func (p *GRPCProvisioner) Stop() error {
 }
 
 func (p *GRPCProvisioner) Close() error {
+	// check this since it's not automatically inserted during plugin creation
+	if p.PluginClient == nil {
+		log.Println("[DEBUG] provider has no plugin.Client")
+		return nil
+	}
+
+	p.PluginClient.Kill()
 	return nil
 }
