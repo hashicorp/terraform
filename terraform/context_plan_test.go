@@ -2095,9 +2095,14 @@ func TestContext2Plan_dataResourceBecomesComputed(t *testing.T) {
 		}),
 	})
 
+	_, diags := ctx.Refresh()
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors during refresh: %s", diags.Err())
+	}
+
 	plan, diags := ctx.Plan()
 	if diags.HasErrors() {
-		t.Fatalf("unexpected errors: %s", diags.Err())
+		t.Fatalf("unexpected errors during plan: %s", diags.Err())
 	}
 
 	rcs := plan.Changes.ResourceInstance(addrs.Resource{
@@ -2106,6 +2111,7 @@ func TestContext2Plan_dataResourceBecomesComputed(t *testing.T) {
 		Name: "foo",
 	}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance))
 	if rcs == nil {
+		t.Logf("full changeset: %s", spew.Sdump(plan.Changes))
 		t.Fatalf("missing diff for data.aws_data_resource.foo")
 	}
 
