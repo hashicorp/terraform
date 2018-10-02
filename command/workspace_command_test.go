@@ -215,7 +215,6 @@ func TestWorkspace_createInvalid(t *testing.T) {
 }
 
 func TestWorkspace_createWithState(t *testing.T) {
-	t.Fatalf("FIXME: This test seems to be getting hung or into an infinite loop")
 	td := tempDir(t)
 	copy.CopyDir(testFixturePath("inmem-backend"), td)
 	defer os.RemoveAll(td)
