@@ -66,6 +66,14 @@ Provider initialization is one of the actions of `terraform init`. Running
 this command will download and initialize any providers that are not already
 initialized.
 
+Providers downloaded by `terraform init` are only installed for the current
+working directory; other working directories can have their own installed
+provider versions.
+
+Note that `terraform init` cannot automatically download providers that are not
+distributed by HashiCorp. See [Third-party Plugins](#third-party-plugins) below
+for installation instructions.
+
 For more information, see
 [the `terraform init` command](/docs/commands/init.html).
 
@@ -207,24 +215,67 @@ may also be used, but currently may cause errors when running `terraform destroy
 
 ## Third-party Plugins
 
-At present Terraform can automatically install only the providers distributed
-by HashiCorp. Third-party providers can be manually installed by placing
-their plugin executables in one of the following locations depending on the
-host operating system:
+Anyone can develop and distribute their own Terraform providers. (See
+[Writing Custom Providers](/docs/extend/writing-custom-providers.html) for more
+about provider development.) These third-party providers must be manually
+installed, since `terraform init` cannot automatically download them.
 
-* On Windows, in the sub-path `terraform.d/plugins` beneath your user's
-  "Application Data" directory.
-* On all other systems, in the sub-path `.terraform.d/plugins` in your
-  user's home directory.
+Install third-party providers by placing their plugin executables in the user
+plugins directory. The user plugins directory is in one of the following
+locations, depending on the host operating system:
 
-`terraform init` will search this directory for additional plugins during
-plugin initialization.
+Operating system  | User plugins directory
+------------------|-----------------------
+Windows           | `terraform.d\plugins` in your user's "Application Data" directory
+All other systems | `.terraform.d/plugins` in your user's home directory
 
-The naming scheme for provider plugins is `terraform-provider-NAME_vX.Y.Z`,
+Once a plugin is installed, `terraform init` can initialize it normally.
+
+Providers distributed by HashiCorp can also go in the user plugins directory. If
+a manually installed version meets the configuration's version constraints,
+Terraform will use it instead of downloading that provider. This is useful in
+airgapped environments and when testing pre-release provider builds.
+
+### Plugin Names and Versions
+
+The naming scheme for provider plugins is `terraform-provider-<NAME>_vX.Y.Z`,
 and Terraform uses the name to understand the name and version of a particular
-provider binary. Third-party plugins will often be distributed with an
-appropriate filename already set in the distribution archive so that it can
-be extracted directly into the plugin directory described above.
+provider binary.
+
+If multiple versions of a plugin are installed, Terraform will use the newest
+version that meets the configuration's version constraints.
+
+Third-party plugins are often distributed with an appropriate filename already
+set in the distribution archive, so that they can be extracted directly into the
+user plugins directory.
+
+### OS and Architecture Directories
+
+Terraform plugins are compiled for a specific operating system and architecture,
+and any plugins in the root of the user plugins directory must be compiled for
+the current system.
+
+If you use the same plugins directory on multiple systems, you can install
+plugins into subdirectories with a naming scheme of `<OS>_<ARCH>` (for example,
+`darwin_amd64`). Terraform uses plugins from the root of the plugins directory
+and from the subdirectory that corresponds to the current system, ignoring
+other subdirectories.
+
+Terraform's OS and architecture strings are the standard ones used by the Go
+language. The following are the most common:
+
+* `darwin_amd64`
+* `freebsd_386`
+* `freebsd_amd64`
+* `freebsd_arm`
+* `linux_386`
+* `linux_amd64`
+* `linux_arm`
+* `openbsd_386`
+* `openbsd_amd64`
+* `solaris_amd64`
+* `windows_386`
+* `windows_amd64`
 
 ## Provider Plugin Cache
 
