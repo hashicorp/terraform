@@ -144,29 +144,13 @@ func (n *NodeRefreshableDataResourceInstance) EvalTree() EvalNode {
 				ProviderSchema: &providerSchema,
 			},
 
-			&EvalReadDataDiff{
-				Addr:              addr.Resource,
-				Config:            n.Config,
-				ProviderAddr:      n.ResolvedProvider,
-				ProviderSchema:    &providerSchema,
-				Output:            &change,
-				OutputConfigValue: &configVal,
-				OutputState:       &state,
-			},
-
-			// The rest of this pass can proceed only if there are no
-			// computed values in our config.
-			// (If there are, we'll deal with this during the plan and
-			// apply phases.)
 			&EvalIf{
 				If: func(ctx EvalContext) (bool, error) {
-					if !configVal.IsWhollyKnown() {
-						return true, EvalEarlyExitError{}
-					}
-
 					// If the config explicitly has a depends_on for this
 					// data source, assume the intention is to prevent
-					// refreshing ahead of that dependency.
+					// refreshing ahead of that dependency, and therefore
+					// we need to deal with this resource during the apply
+					// phase..
 					if len(n.Config.DependsOn) > 0 {
 						return true, EvalEarlyExitError{}
 					}
@@ -176,25 +160,60 @@ func (n *NodeRefreshableDataResourceInstance) EvalTree() EvalNode {
 				Then: EvalNoop{},
 			},
 
-			&EvalReadDataApply{
-				Addr:            addr.Resource,
-				Config:          n.Config,
-				Change:          &change,
-				Provider:        &provider,
-				ProviderAddr:    n.ResolvedProvider,
-				ProviderSchema:  &providerSchema,
-				Output:          &state,
-				StateReferences: n.StateReferences(),
+			// EvalReadData will _attempt_ to read the data source, but may
+			// generate an incomplete planned object if the configuration
+			// includes values that won't be known until apply.
+			&EvalReadData{
+				Addr:              addr.Resource,
+				Config:            n.Config,
+				Provider:          &provider,
+				ProviderAddr:      n.ResolvedProvider,
+				ProviderSchema:    &providerSchema,
+				OutputChange:      &change,
+				OutputConfigValue: &configVal,
+				OutputState:       &state,
 			},
 
-			&EvalWriteState{
-				Addr:           addr.Resource,
-				ProviderAddr:   n.ResolvedProvider,
-				State:          &state,
-				ProviderSchema: &providerSchema,
+			&EvalIf{
+				If: func(ctx EvalContext) (bool, error) {
+					return (*state).Status != states.ObjectPlanned, nil
+				},
+				Then: &EvalSequence{
+					Nodes: []EvalNode{
+						&EvalWriteState{
+							Addr:           addr.Resource,
+							ProviderAddr:   n.ResolvedProvider,
+							State:          &state,
+							ProviderSchema: &providerSchema,
+						},
+						&EvalUpdateStateHook{},
+					},
+				},
+				Else: &EvalSequence{
+					// We can't deal with this yet, so we'll repeat this step
+					// during the plan walk to produce a planned change to read
+					// this during the apply walk. However, we do still need to
+					// save the generated change and partial state so that
+					// results from it can be included in other data resources
+					// or provider configurations during the refresh walk.
+					// (The planned object we save in the state here will be
+					// pruned out at the end of the refresh walk, returning
+					// it back to being unset again for subsequent walks.)
+					Nodes: []EvalNode{
+						&EvalWriteDiff{
+							Addr:           addr.Resource,
+							Change:         &change,
+							ProviderSchema: &providerSchema,
+						},
+						&EvalWriteState{
+							Addr:           addr.Resource,
+							ProviderAddr:   n.ResolvedProvider,
+							State:          &state,
+							ProviderSchema: &providerSchema,
+						},
+					},
+				},
 			},
-
-			&EvalUpdateStateHook{},
 		},
 	}
 }
