@@ -1907,6 +1907,13 @@ func TestContext2Plan_computedInFunction(t *testing.T) {
 		},
 	}
 	p.DiffFn = testDiffFn
+	p.ReadDataSourceResponse = providers.ReadDataSourceResponse{
+		State: cty.ObjectVal(map[string]cty.Value{
+			"computed": cty.ListVal([]cty.Value{
+				cty.StringVal("foo"),
+			}),
+		}),
+	}
 
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
@@ -1917,34 +1924,26 @@ func TestContext2Plan_computedInFunction(t *testing.T) {
 		),
 	})
 
-	defer ctx.acquireRun("validate")()
+	diags := ctx.Validate()
+	assertNoErrors(t, diags)
 
-	pgb := &PlanGraphBuilder{
-		Config:     ctx.config,
-		State:      ctx.state,
-		Components: ctx.components,
-		Schemas:    ctx.schemas,
-		Targets:    ctx.targets,
-	}
-	graph, _ := pgb.Build(addrs.RootModuleInstance)
+	state, diags := ctx.Refresh() // data resource is read in this step
+	assertNoErrors(t, diags)
 
-	// walk
-	walker := &ContextGraphWalker{
-		Context:            ctx,
-		State:              ctx.state.SyncWrapper(),
-		Changes:            ctx.changes.SyncWrapper(),
-		Operation:          walkPlan,
-		StopContext:        ctx.runContext,
-		RootVariableValues: ctx.variables,
+	if !p.ReadDataSourceCalled {
+		t.Fatalf("ReadDataSource was not called on provider during refresh; should've been called")
 	}
-	watchStop, watchWait := ctx.watchStop(walker)
-	diags := graph.Walk(walker)
-	close(watchStop)
-	<-watchWait
+	p.ReadDataSourceCalled = false // reset for next call
 
-	if diags.HasErrors() {
-		t.Fatalf("unexpected errors: %s", diags.Err())
+	t.Logf("state after refresh:\n%s", state)
+
+	_, diags = ctx.Plan() // should do nothing with data resource in this step, since it was already read
+	assertNoErrors(t, diags)
+
+	if p.ReadDataSourceCalled {
+		t.Fatalf("ReadDataSource was called on provider during plan; should not have been called")
 	}
+
 }
 
 func TestContext2Plan_computedDataCountResource(t *testing.T) {
