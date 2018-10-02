@@ -1887,6 +1887,66 @@ func TestContext2Plan_computedDataResource(t *testing.T) {
 	)
 }
 
+func TestContext2Plan_computedInFunction(t *testing.T) {
+	m := testModule(t, "plan-computed-in-function")
+	p := testProvider("aws")
+	p.GetSchemaReturn = &ProviderSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"aws_instance": {
+				Attributes: map[string]*configschema.Attribute{
+					"attr": {Type: cty.Number, Optional: true},
+				},
+			},
+		},
+		DataSources: map[string]*configschema.Block{
+			"aws_data_source": {
+				Attributes: map[string]*configschema.Attribute{
+					"computed": {Type: cty.List(cty.String), Computed: true},
+				},
+			},
+		},
+	}
+	p.DiffFn = testDiffFn
+
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		ProviderResolver: providers.ResolverFixed(
+			map[string]providers.Factory{
+				"aws": testProviderFuncFixed(p),
+			},
+		),
+	})
+
+	defer ctx.acquireRun("validate")()
+
+	pgb := &PlanGraphBuilder{
+		Config:     ctx.config,
+		State:      ctx.state,
+		Components: ctx.components,
+		Schemas:    ctx.schemas,
+		Targets:    ctx.targets,
+	}
+	graph, _ := pgb.Build(addrs.RootModuleInstance)
+
+	// walk
+	walker := &ContextGraphWalker{
+		Context:            ctx,
+		State:              ctx.state.SyncWrapper(),
+		Changes:            ctx.changes.SyncWrapper(),
+		Operation:          walkPlan,
+		StopContext:        ctx.runContext,
+		RootVariableValues: ctx.variables,
+	}
+	watchStop, watchWait := ctx.watchStop(walker)
+	diags := graph.Walk(walker)
+	close(watchStop)
+	<-watchWait
+
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors: %s", diags.Err())
+	}
+}
+
 func TestContext2Plan_computedDataCountResource(t *testing.T) {
 	m := testModule(t, "plan-computed-data-count")
 	p := testProvider("aws")
