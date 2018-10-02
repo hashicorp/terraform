@@ -27,6 +27,13 @@ func TestBackendConfig(t *testing.T, b Backend, c hcl.Body) Backend {
 
 	var diags tfdiags.Diagnostics
 
+	// To make things easier for test authors, we'll allow a nil body here
+	// (even though that's not normally valid) and just treat it as an empty
+	// body.
+	if c == nil {
+		c = hcl.EmptyBody()
+	}
+
 	schema := b.ConfigSchema()
 	spec := schema.DecoderSpec()
 	obj, decDiags := hcldec.Decode(c, spec, nil)
