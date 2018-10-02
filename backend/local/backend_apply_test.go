@@ -181,11 +181,14 @@ test_instance.foo:
 }
 
 func TestLocal_applyBackendFail(t *testing.T) {
-	op, configCleanup := testOperationApply(t, "./test-fixtures/apply")
-	defer configCleanup()
-
 	b, cleanup := TestLocal(t)
 	defer cleanup()
+
+	p := TestLocalProvider(t, b, "test", applyFixtureSchema())
+	p.ApplyResourceChangeResponse = providers.ApplyResourceChangeResponse{NewState: cty.ObjectVal(map[string]cty.Value{
+		"id":  cty.StringVal("yes"),
+		"ami": cty.StringVal("bar"),
+	})}
 
 	wd, err := os.Getwd()
 	if err != nil {
@@ -197,11 +200,11 @@ func TestLocal_applyBackendFail(t *testing.T) {
 	}
 	defer os.Chdir(wd)
 
+	op, configCleanup := testOperationApply(t, wd+"/test-fixtures/apply")
+	defer configCleanup()
+
 	b.Backend = &backendWithFailingState{}
 	b.CLI = new(cli.MockUi)
-	p := TestLocalProvider(t, b, "test", applyFixtureSchema())
-
-	p.ApplyResourceChangeResponse = providers.ApplyResourceChangeResponse{NewState: cty.ObjectVal(map[string]cty.Value{"id": cty.StringVal("yes")})}
 
 	run, err := b.Operation(context.Background(), op)
 	if err != nil {
@@ -223,6 +226,7 @@ func TestLocal_applyBackendFail(t *testing.T) {
 test_instance.foo:
   ID = yes
   provider = provider.test
+  ami = bar
 	`)
 }
 
