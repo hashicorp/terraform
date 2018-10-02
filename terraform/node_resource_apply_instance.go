@@ -123,7 +123,6 @@ func (n *NodeApplyableResourceInstance) evalTreeDataResource(addr addrs.AbsResou
 	var providerSchema *ProviderSchema
 	var change *plans.ResourceInstanceChange
 	var state *states.ResourceInstanceObject
-	var configVal cty.Value
 
 	return &EvalSequence{
 		Nodes: []EvalNode{
@@ -151,27 +150,17 @@ func (n *NodeApplyableResourceInstance) evalTreeDataResource(addr addrs.AbsResou
 				Then: EvalNoop{},
 			},
 
-			// Make a new diff, in case we've learned new values in the state
-			// during apply which we can now incorporate.
-			&EvalReadDataDiff{
+			// In this particular call to EvalReadData we include our planned
+			// change, which signals that we expect this read to complete fully
+			// with no unknown values; it'll produce an error if not.
+			&EvalReadData{
 				Addr:           addr.Resource,
 				Config:         n.Config,
+				Planned:        &change, // setting this indicates that the result must be complete
+				Provider:       &provider,
 				ProviderAddr:   n.ResolvedProvider,
 				ProviderSchema: &providerSchema,
-				Output:         &change,
-				OutputValue:    &configVal,
 				OutputState:    &state,
-			},
-
-			&EvalReadDataApply{
-				Addr:            addr.Resource,
-				Config:          n.Config,
-				Change:          &change,
-				Provider:        &provider,
-				ProviderAddr:    n.ResolvedProvider,
-				ProviderSchema:  &providerSchema,
-				Output:          &state,
-				StateReferences: n.StateReferences(),
 			},
 
 			&EvalWriteState{
