@@ -3,5 +3,5 @@ resource "test_instance" "foo" {
 }
 
 resource "test_instance" "bar" {
-    error = "true"
+    ami = "error"
 }
