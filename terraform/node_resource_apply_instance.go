@@ -156,6 +156,7 @@ func (n *NodeApplyableResourceInstance) evalTreeDataResource(addr addrs.AbsResou
 			&EvalReadData{
 				Addr:           addr.Resource,
 				Config:         n.Config,
+				Dependencies:   n.StateReferences(),
 				Planned:        &change, // setting this indicates that the result must be complete
 				Provider:       &provider,
 				ProviderAddr:   n.ResolvedProvider,
