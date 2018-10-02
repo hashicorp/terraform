@@ -59,7 +59,6 @@ func TestBackendConfig(t *testing.T) {
 }
 
 func TestBackend(t *testing.T) {
-	t.Fatalf("FIXME: this test seems to be hanging or getting into an infinite loop")
 	defer Reset()
 	b := backend.TestBackendConfig(t, New(), hcl.EmptyBody()).(*Backend)
 	backend.TestBackendStates(t, b)
@@ -75,7 +74,6 @@ func TestBackendLocked(t *testing.T) {
 
 // use the this backen to test the remote.State implementation
 func TestRemoteState(t *testing.T) {
-	t.Fatalf("FIXME: this test seems to be hanging or getting into an infinite loop")
 	defer Reset()
 	b := backend.TestBackendConfig(t, New(), hcl.EmptyBody())
 
