@@ -32,6 +32,13 @@ type File struct {
 }
 
 func New(state *states.State, lineage string, serial uint64) *File {
+	// To make life easier on callers, we'll accept a nil state here and just
+	// allocate an empty one, which is required for this file to be successfully
+	// written out.
+	if state == nil {
+		state = states.NewState()
+	}
+
 	return &File{
 		TerraformVersion: tfversion.SemVer,
 		State:            state,
