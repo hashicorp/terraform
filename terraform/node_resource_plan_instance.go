@@ -76,18 +76,32 @@ func (n *NodePlannableResourceInstance) evalTreeDataResource(addr addrs.AbsResou
 				Output: &state,
 			},
 
+			// If we already have a non-planned state then we already dealt
+			// with this during the refresh walk and so we have nothing to do
+			// here.
+			&EvalIf{
+				If: func(ctx EvalContext) (bool, error) {
+					if state != nil && state.Status != states.ObjectPlanned {
+						return true, EvalEarlyExitError{}
+					}
+					return true, nil
+				},
+				Then: EvalNoop{},
+			},
+
 			&EvalValidateSelfRef{
 				Addr:           addr.Resource,
 				Config:         config.Config,
 				ProviderSchema: &providerSchema,
 			},
 
-			&EvalReadDataDiff{
+			&EvalReadData{
 				Addr:           addr.Resource,
 				Config:         n.Config,
+				Provider:       &provider,
 				ProviderAddr:   n.ResolvedProvider,
 				ProviderSchema: &providerSchema,
-				Output:         &change,
+				OutputChange:   &change,
 				OutputValue:    &configVal,
 				OutputState:    &state,
 			},
