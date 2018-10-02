@@ -146,6 +146,16 @@ func dataSourceRemoteStateRead(d *cty.Value) (cty.Value, tfdiags.Diagnostics) {
 	}
 
 	remoteState := state.State()
+	if remoteState == nil {
+		diags = diags.Append(tfdiags.AttributeValue(
+			tfdiags.Error,
+			"Unable to find remote state",
+			"No stored state was found for the given workspace in the given backend.",
+			cty.Path(nil).GetAttr("workspace"),
+		))
+		newState["outputs"] = cty.EmptyObjectVal
+		return cty.ObjectVal(newState), diags
+	}
 	mod := remoteState.RootModule()
 	if mod != nil { // should always have a root module in any valid state
 		for k, os := range mod.OutputValues {
