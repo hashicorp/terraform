@@ -93,7 +93,7 @@ func protocolVersion(opts *ServeConfig) (int, Protocol, PluginSet) {
 	protoVersion := int(opts.ProtocolVersion)
 	pluginSet := opts.Plugins
 	protoType := ProtocolNetRPC
-	// check if the client sent a list of acceptable versions
+	// Check if the client sent a list of acceptable versions
 	var clientVersions []int
 	if vs := os.Getenv("PLUGIN_PROTOCOL_VERSIONS"); vs != "" {
 		for _, s := range strings.Split(vs, ",") {
@@ -106,7 +106,7 @@ func protocolVersion(opts *ServeConfig) (int, Protocol, PluginSet) {
 		}
 	}
 
-	// we want to iterate in reverse order, to ensure we match the newest
+	// We want to iterate in reverse order, to ensure we match the newest
 	// compatible plugin version.
 	sort.Sort(sort.Reverse(sort.IntSlice(clientVersions)))
 
@@ -119,7 +119,7 @@ func protocolVersion(opts *ServeConfig) (int, Protocol, PluginSet) {
 		opts.VersionedPlugins[protoVersion] = pluginSet
 	}
 
-	// sort the version to make sure we match the latest first
+	// Sort the version to make sure we match the latest first
 	var versions []int
 	for v := range opts.VersionedPlugins {
 		versions = append(versions, v)
@@ -127,23 +127,26 @@ func protocolVersion(opts *ServeConfig) (int, Protocol, PluginSet) {
 
 	sort.Sort(sort.Reverse(sort.IntSlice(versions)))
 
-	// see if we have multiple versions of Plugins to choose from
+	// See if we have multiple versions of Plugins to choose from
 	for _, version := range versions {
-		// record each version, since we guarantee that this returns valid
+		// Record each version, since we guarantee that this returns valid
 		// values even if they are not a protocol match.
 		protoVersion = version
 		pluginSet = opts.VersionedPlugins[version]
 
-		// all plugins in a set must use the same transport, so check the first
-		// for the protocol type
-		for _, p := range pluginSet {
-			switch p.(type) {
-			case GRPCPlugin:
-				protoType = ProtocolGRPC
-			default:
-				protoType = ProtocolNetRPC
+		// If we have a configured gRPC server we should select a protocol
+		if opts.GRPCServer != nil {
+			// All plugins in a set must use the same transport, so check the first
+			// for the protocol type
+			for _, p := range pluginSet {
+				switch p.(type) {
+				case GRPCPlugin:
+					protoType = ProtocolGRPC
+				default:
+					protoType = ProtocolNetRPC
+				}
+				break
 			}
-			break
 		}
 
 		for _, clientVersion := range clientVersions {
