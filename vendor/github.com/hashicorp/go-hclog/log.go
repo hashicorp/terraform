@@ -5,6 +5,7 @@ import (
 	"log"
 	"os"
 	"strings"
+	"sync"
 )
 
 var (
@@ -12,7 +13,7 @@ var (
 	DefaultLevel  = Info
 )
 
-type Level int
+type Level int32
 
 const (
 	// This is a special level used to indicate that no level has been
@@ -35,6 +36,18 @@ const (
 	// For information about unrecoverable events.
 	Error Level = 5
 )
+
+// When processing a value of this type, the logger automatically treats the first
+// argument as a Printf formatting string and passes the rest as the values to be
+// formatted. For example: L.Info(Fmt{"%d beans/day", beans}). This is a simple
+// convience type for when formatting is required.
+type Format []interface{}
+
+// Fmt returns a Format type. This is a convience function for creating a Format
+// type.
+func Fmt(str string, args ...interface{}) Format {
+	return append(Format{str}, args...)
+}
 
 // LevelFromString returns a Level type for the named log level, or "NoLevel" if
 // the level string is invalid. This facilitates setting the log level via
@@ -108,6 +121,10 @@ type Logger interface {
 	// the current name as well.
 	ResetNamed(name string) Logger
 
+	// Updates the level. This should affect all sub-loggers as well. If an
+	// implementation cannot update the level on the fly, it should no-op.
+	SetLevel(level Level)
+
 	// Return a value that conforms to the stdlib log.Logger interface
 	StandardLogger(opts *StandardLoggerOptions) *log.Logger
 }
@@ -127,12 +144,18 @@ type LoggerOptions struct {
 	// The threshold for the logger. Anything less severe is supressed
 	Level Level
 
-	// Where to write the logs to. Defaults to os.Stdout if nil
+	// Where to write the logs to. Defaults to os.Stderr if nil
 	Output io.Writer
+
+	// An optional mutex pointer in case Output is shared
+	Mutex *sync.Mutex
 
 	// Control if the output should be in JSON.
 	JSONFormat bool
 
-	// Intclude file and line information in each log line
+	// Include file and line information in each log line
 	IncludeLocation bool
+
+	// The time format to use instead of the default
+	TimeFormat string
 }

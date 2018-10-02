@@ -293,11 +293,11 @@ github.com/hashicorp/go-cleanhttp
 # github.com/hashicorp/go-getter v0.0.0-20180327010114-90bb99a48d86
 github.com/hashicorp/go-getter
 github.com/hashicorp/go-getter/helper/url
-# github.com/hashicorp/go-hclog v0.0.0-20170716174523-b4e5765d1e5f
+# github.com/hashicorp/go-hclog v0.0.0-20181001195459-61d530d6c27f
 github.com/hashicorp/go-hclog
 # github.com/hashicorp/go-multierror v1.0.0
 github.com/hashicorp/go-multierror
-# github.com/hashicorp/go-plugin v0.0.0-20180814222501-a4620f9913d1
+# github.com/hashicorp/go-plugin v0.0.0-20181002195811-1faddcf740b6
 github.com/hashicorp/go-plugin
 # github.com/hashicorp/go-retryablehttp v0.0.0-20160930035102-6e85be8fee1d
 github.com/hashicorp/go-retryablehttp
