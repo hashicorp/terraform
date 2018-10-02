@@ -120,23 +120,24 @@ During init, Terraform searches the configuration for both direct and indirect
 references to providers and attempts to load the required plugins.
 
 For [providers distributed by HashiCorp](/docs/providers/index.html),
-init will automatically download and install plugins if necessary. Other plugins
-can be manually installed in the user plugins directory, which is located at
+init will automatically download and install plugins if necessary. Plugins
+can also be manually installed in the user plugins directory, located at
 `~/.terraform.d/plugins` on most operating systems and
 `<APPLICATION DATA>\plugins` on Windows.
 
 For more information about configuring and installing providers, see
 [Configuration: Providers](/docs/configuration/providers.html).
 
-On subsequent runs, init will keep any previously installed plugins and only
-install new providers that were added to the configuration since the last init.
-Use `-upgrade` to also update installed plugins.
+On subsequent runs, init only installs providers without acceptable versions
+installed. (This includes newly added providers, and providers whose installed
+versions can't meet the current version constraints.) Use `-upgrade` if you want
+to update _all_ providers to the newest acceptable version.
 
 You can modify `terraform init`'s plugin behavior with the following options:
 
-- `-upgrade` — If a previously installed plugin has a newer version available
-  that complies with the configuration's version constraints, download the new
-  version instead of keeping the installed version.
+- `-upgrade` — Update all previously installed plugins to the newest version
+  that complies with the configuration's version constraints. This option does
+  not apply to manually installed plugins.
 - `-get-plugins=false` — Skips plugin installation. Terraform will use plugins
   installed in the user plugins directory, and any plugins already installed
   for the current working directory. If the installed plugins aren't sufficient
