@@ -33,7 +33,7 @@ type basicComponentFactory struct {
 
 func (c *basicComponentFactory) ResourceProviders() []string {
 	result := make([]string, len(c.providers))
-	for k, _ := range c.providers {
+	for k := range c.providers {
 		result = append(result, k)
 	}
 
@@ -42,7 +42,7 @@ func (c *basicComponentFactory) ResourceProviders() []string {
 
 func (c *basicComponentFactory) ResourceProvisioners() []string {
 	result := make([]string, len(c.provisioners))
-	for k, _ := range c.provisioners {
+	for k := range c.provisioners {
 		result = append(result, k)
 	}
 

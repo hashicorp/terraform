@@ -84,8 +84,7 @@ func (r *multiVersionProviderResolver) ResolveProviders(
 				continue
 			}
 
-			client := tfplugin.Client(newest)
-			factories[name] = providerFactory(client)
+			factories[name] = providerFactory(newest)
 		} else {
 			msg := fmt.Sprintf("provider.%s: no suitable version installed", name)
 
@@ -332,7 +331,7 @@ func (m *Meta) provisionerFactories() map[string]terraform.ProvisionerFactory {
 			log.Printf("[WARN] failed to build command line for internal plugin %q: %s", name, err)
 			continue
 		}
-		factories[name] = provisionerFactory(client)
+		factories[name] = internalProvisionerFactory(client)
 	}
 
 	byName := plugins.ByName()
@@ -341,8 +340,8 @@ func (m *Meta) provisionerFactories() map[string]terraform.ProvisionerFactory {
 		// by name, we're guaranteed that the metas in our set all have
 		// valid versions and that there's at least one meta.
 		newest := metas.Newest()
-		client := tfplugin.Client(newest)
-		factories[name] = provisionerFactory(client)
+
+		factories[name] = provisionerFactory(newest)
 	}
 
 	return factories
@@ -369,8 +368,9 @@ func internalPluginClient(kind, name string) (*plugin.Client, error) {
 	return plugin.NewClient(cfg), nil
 }
 
-func providerFactory(client *plugin.Client) providers.Factory {
+func providerFactory(meta discovery.PluginMeta) providers.Factory {
 	return func() (providers.Interface, error) {
+		client := tfplugin.Client(meta)
 		// Request the RPC client so we can get the provider
 		// so we can build the actual RPC-implemented provider.
 		rpcClient, err := client.Client()
@@ -383,24 +383,41 @@ func providerFactory(client *plugin.Client) providers.Factory {
 			return nil, err
 		}
 
-		return raw.(providers.Interface), nil
+		// store the client so that the plugin can kill the child process
+		p := raw.(*tfplugin.GRPCProvider)
+		p.PluginClient = client
+		return p, nil
 	}
 }
 
-func provisionerFactory(client *plugin.Client) terraform.ProvisionerFactory {
+func provisionerFactory(meta discovery.PluginMeta) terraform.ProvisionerFactory {
 	return func() (provisioners.Interface, error) {
-		// Request the RPC client so we can get the provisioner
-		// so we can build the actual RPC-implemented provisioner.
-		rpcClient, err := client.Client()
-		if err != nil {
-			return nil, err
-		}
-
-		raw, err := rpcClient.Dispense(tfplugin.ProvisionerPluginName)
-		if err != nil {
-			return nil, err
-		}
-
-		return raw.(provisioners.Interface), nil
+		client := tfplugin.Client(meta)
+		return newProvisionerClient(client)
 	}
+}
+
+func internalProvisionerFactory(client *plugin.Client) terraform.ProvisionerFactory {
+	return func() (provisioners.Interface, error) {
+		return newProvisionerClient(client)
+	}
+}
+
+func newProvisionerClient(client *plugin.Client) (provisioners.Interface, error) {
+	// Request the RPC client so we can get the provisioner
+	// so we can build the actual RPC-implemented provisioner.
+	rpcClient, err := client.Client()
+	if err != nil {
+		return nil, err
+	}
+
+	raw, err := rpcClient.Dispense(tfplugin.ProvisionerPluginName)
+	if err != nil {
+		return nil, err
+	}
+
+	// store the client so that the plugin can kill the child process
+	p := raw.(*tfplugin.GRPCProvisioner)
+	p.PluginClient = client
+	return p, nil
 }
