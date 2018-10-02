@@ -122,7 +122,17 @@ func TestLocal_applyEmptyDirDestroy(t *testing.T) {
 func TestLocal_applyError(t *testing.T) {
 	b, cleanup := TestLocal(t)
 	defer cleanup()
-	p := TestLocalProvider(t, b, "test", applyFixtureSchema())
+	p := TestLocalProvider(t, b, "test", nil)
+	p.GetSchemaReturn = &terraform.ProviderSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"test_instance": {
+				Attributes: map[string]*configschema.Attribute{
+					"ami": {Type: cty.String, Optional: true},
+					"id":  {Type: cty.String, Computed: true},
+				},
+			},
+		},
+	}
 
 	var lock sync.Mutex
 	errored := false
