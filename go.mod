@@ -59,11 +59,11 @@ require (
 	github.com/hashicorp/go-checkpoint v0.0.0-20171009173528-1545e56e46de
 	github.com/hashicorp/go-cleanhttp v0.0.0-20171130225243-06c9ea3a335b
 	github.com/hashicorp/go-getter v0.0.0-20180327010114-90bb99a48d86
-	github.com/hashicorp/go-hclog v0.0.0-20170716174523-b4e5765d1e5f
+	github.com/hashicorp/go-hclog v0.0.0-20181001195459-61d530d6c27f
 	github.com/hashicorp/go-immutable-radix v0.0.0-20180129170900-7f3cd4390caa // indirect
 	github.com/hashicorp/go-msgpack v0.0.0-20150518234257-fa3f63826f7c // indirect
 	github.com/hashicorp/go-multierror v1.0.0
-	github.com/hashicorp/go-plugin v0.0.0-20180814222501-a4620f9913d1
+	github.com/hashicorp/go-plugin v0.0.0-20181002195811-1faddcf740b6
 	github.com/hashicorp/go-retryablehttp v0.0.0-20160930035102-6e85be8fee1d
 	github.com/hashicorp/go-rootcerts v0.0.0-20160503143440-6bb64b370b90
 	github.com/hashicorp/go-safetemp v0.0.0-20180326211150-b1a1dbde6fdc // indirect
