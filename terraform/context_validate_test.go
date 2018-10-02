@@ -174,6 +174,42 @@ func TestContext2Validate_computedVar(t *testing.T) {
 	}
 }
 
+func TestContext2Validate_computedInFunction(t *testing.T) {
+	p := testProvider("aws")
+	p.GetSchemaReturn = &ProviderSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"aws_instance": {
+				Attributes: map[string]*configschema.Attribute{
+					"attr": {Type: cty.Number, Optional: true},
+				},
+			},
+		},
+		DataSources: map[string]*configschema.Block{
+			"aws_data_source": {
+				Attributes: map[string]*configschema.Attribute{
+					"optional_attr": {Type: cty.String, Optional: true},
+					"computed":      {Type: cty.String, Computed: true},
+				},
+			},
+		},
+	}
+
+	m := testModule(t, "validate-computed-in-function")
+	c := testContext2(t, &ContextOpts{
+		Config: m,
+		ProviderResolver: providers.ResolverFixed(
+			map[string]providers.Factory{
+				"aws": testProviderFuncFixed(p),
+			},
+		),
+	})
+
+	diags := c.Validate()
+	if diags.HasErrors() {
+		t.Fatalf("unexpected error: %s", diags.Err())
+	}
+}
+
 // Test that validate allows through computed counts. We do this and allow
 // them to fail during "plan" since we can't know if the computed values
 // can be realized during a plan.
