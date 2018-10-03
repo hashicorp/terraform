@@ -14,10 +14,6 @@ The remote backend stores state and runs operations remotely. When running
 `terraform plan` with this backend, the actual execution occurs in Terraform
 Enterprise, with log output streaming to the local terminal.
 
-To use this backend you need a Terraform Enterprise account on
-[app.terraform.io](https://app.terraform.io). A future release will also allow 
-use of this backend on a private instance of Terraform Enterprise.
-
 -> **Preview Release**: As of Terraform 0.11.8, the remote backend is a preview
    release and we do not recommend using it with production workloads. Please
    continue to use the existing [Terraform
