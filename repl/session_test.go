@@ -1,18 +1,37 @@
 package repl
 
 import (
+	"flag"
+	"io/ioutil"
+	"log"
+	"os"
 	"strings"
 	"testing"
 
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs"
+	"github.com/hashicorp/terraform/helper/logging"
 	"github.com/hashicorp/terraform/providers"
 	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/terraform"
 )
 
+func TestMain(m *testing.M) {
+	flag.Parse()
+
+	if testing.Verbose() {
+		// if we're verbose, use the logging requested by TF_LOG
+		logging.SetOutput()
+	} else {
+		// otherwise silence all logs
+		log.SetOutput(ioutil.Discard)
+	}
+
+	os.Exit(m.Run())
+}
+
 func TestSession_basicState(t *testing.T) {
-	state := states.BuildState(func (s *states.SyncState) {
+	state := states.BuildState(func(s *states.SyncState) {
 		s.SetResourceInstanceCurrent(
 			addrs.Resource{
 				Mode: addrs.ManagedResourceMode,
@@ -20,7 +39,7 @@ func TestSession_basicState(t *testing.T) {
 				Name: "foo",
 			}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
 			&states.ResourceInstanceObjectSrc{
-				Status: states.ObjectReady,
+				Status:    states.ObjectReady,
 				AttrsJSON: []byte(`{"id":"bar"}`),
 			},
 			addrs.ProviderConfig{
@@ -34,7 +53,7 @@ func TestSession_basicState(t *testing.T) {
 				Name: "foo",
 			}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance.Child("module", addrs.NoKey)),
 			&states.ResourceInstanceObjectSrc{
-				Status: states.ObjectReady,
+				Status:    states.ObjectReady,
 				AttrsJSON: []byte(`{"id":"bar"}`),
 			},
 			addrs.ProviderConfig{
@@ -171,7 +190,7 @@ func testSession(t *testing.T, test testSessionTest) {
 
 	// Build the TF context
 	ctx, diags := terraform.NewContext(&terraform.ContextOpts{
-		State:  test.State,
+		State: test.State,
 		ProviderResolver: providers.ResolverFixed(map[string]providers.Factory{
 			"aws": providers.FactoryFixed(p),
 		}),
