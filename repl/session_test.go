@@ -8,8 +8,11 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/zclconf/go-cty/cty"
+
 	"github.com/hashicorp/terraform/addrs"
-	"github.com/hashicorp/terraform/configs"
+	"github.com/hashicorp/terraform/configs/configload"
+	"github.com/hashicorp/terraform/configs/configschema"
 	"github.com/hashicorp/terraform/helper/logging"
 	"github.com/hashicorp/terraform/providers"
 	"github.com/hashicorp/terraform/states"
@@ -43,7 +46,7 @@ func TestSession_basicState(t *testing.T) {
 				AttrsJSON: []byte(`{"id":"bar"}`),
 			},
 			addrs.ProviderConfig{
-				Type: "aws",
+				Type: "test",
 			}.Absolute(addrs.RootModuleInstance),
 		)
 		s.SetResourceInstanceCurrent(
@@ -57,7 +60,7 @@ func TestSession_basicState(t *testing.T) {
 				AttrsJSON: []byte(`{"id":"bar"}`),
 			},
 			addrs.ProviderConfig{
-				Type: "aws",
+				Type: "test",
 			}.Absolute(addrs.RootModuleInstance),
 		)
 	})
@@ -74,18 +77,6 @@ func TestSession_basicState(t *testing.T) {
 		})
 	})
 
-	t.Run("resource count", func(t *testing.T) {
-		testSession(t, testSessionTest{
-			State: state,
-			Inputs: []testSessionInput{
-				{
-					Input:  "test_instance.foo.count",
-					Output: "1",
-				},
-			},
-		})
-	})
-
 	t.Run("missing resource", func(t *testing.T) {
 		testSession(t, testSessionTest{
 			State: state,
@@ -93,7 +84,7 @@ func TestSession_basicState(t *testing.T) {
 				{
 					Input:         "test_instance.bar.id",
 					Error:         true,
-					ErrorContains: "'test_instance.bar' not found",
+					ErrorContains: `A resource "test_instance" "bar" has not been declared`,
 				},
 			},
 		})
@@ -106,7 +97,7 @@ func TestSession_basicState(t *testing.T) {
 				{
 					Input:         "module.child.foo",
 					Error:         true,
-					ErrorContains: "Couldn't find module \"child\"",
+					ErrorContains: `The configuration contains no module.child`,
 				},
 			},
 		})
@@ -119,7 +110,7 @@ func TestSession_basicState(t *testing.T) {
 				{
 					Input:         "module.module.foo",
 					Error:         true,
-					ErrorContains: "Couldn't find output \"foo\"",
+					ErrorContains: `An output value with the name "foo" has not been declared in module.module`,
 				},
 			},
 		})
@@ -186,15 +177,36 @@ func TestSession_stateless(t *testing.T) {
 
 func testSession(t *testing.T, test testSessionTest) {
 	p := &terraform.MockProvider{}
-	p.GetSchemaReturn = &terraform.ProviderSchema{}
+	p.GetSchemaReturn = &terraform.ProviderSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"test_instance": {
+				Attributes: map[string]*configschema.Attribute{
+					"id": {Type: cty.String, Computed: true},
+				},
+			},
+		},
+	}
+
+	loader, cleanup := configload.NewLoaderForTests(t)
+	defer cleanup()
+
+	configDiags := loader.InstallModules("testdata/config-fixture", false, nil)
+	if configDiags.HasErrors() {
+		t.Fatalf("unexpected problems initializing test config: %s", configDiags.Error())
+	}
+
+	config, configDiags := loader.LoadConfig("testdata/config-fixture")
+	if configDiags.HasErrors() {
+		t.Fatalf("unexpected problems loading config: %s", configDiags.Error())
+	}
 
 	// Build the TF context
 	ctx, diags := terraform.NewContext(&terraform.ContextOpts{
 		State: test.State,
 		ProviderResolver: providers.ResolverFixed(map[string]providers.Factory{
-			"aws": providers.FactoryFixed(p),
+			"test": providers.FactoryFixed(p),
 		}),
-		Config: configs.NewEmptyConfig(),
+		Config: config,
 	})
 	if diags.HasErrors() {
 		t.Fatalf("failed to create context: %s", diags.Err())
