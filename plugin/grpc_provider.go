@@ -234,10 +234,13 @@ func (p *GRPCProvider) UpgradeResourceState(r providers.UpgradeResourceStateRequ
 		return resp
 	}
 
-	state, err := msgpack.Unmarshal(protoResp.UpgradedState.Msgpack, resSchema.Block.ImpliedType())
-	if err != nil {
-		resp.Diagnostics = resp.Diagnostics.Append(err)
-		return resp
+	state := cty.NullVal(resSchema.Block.ImpliedType())
+	if protoResp.UpgradedState != nil {
+		state, err = msgpack.Unmarshal(protoResp.UpgradedState.Msgpack, resSchema.Block.ImpliedType())
+		if err != nil {
+			resp.Diagnostics = resp.Diagnostics.Append(err)
+			return resp
+		}
 	}
 
 	resp.UpgradedState = state
@@ -314,13 +317,16 @@ func (p *GRPCProvider) ReadResource(r providers.ReadResourceRequest) (resp provi
 
 	resp.Diagnostics = resp.Diagnostics.Append(convert.ProtoToDiagnostics(protoResp.Diagnostics))
 
-	state, err := msgpack.Unmarshal(protoResp.NewState.Msgpack, resSchema.Block.ImpliedType())
-	if err != nil {
-		resp.Diagnostics = resp.Diagnostics.Append(err)
-		return resp
+	state := cty.NullVal(resSchema.Block.ImpliedType())
+	if protoResp.NewState != nil {
+		state, err = msgpack.Unmarshal(protoResp.NewState.Msgpack, resSchema.Block.ImpliedType())
+		if err != nil {
+			resp.Diagnostics = resp.Diagnostics.Append(err)
+			return resp
+		}
 	}
-
 	resp.NewState = state
+
 	return resp
 }
 
@@ -355,12 +361,14 @@ func (p *GRPCProvider) PlanResourceChange(r providers.PlanResourceChangeRequest)
 
 	resp.Diagnostics = resp.Diagnostics.Append(convert.ProtoToDiagnostics(protoResp.Diagnostics))
 
-	state, err := msgpack.Unmarshal(protoResp.PlannedState.Msgpack, resSchema.Block.ImpliedType())
-	if err != nil {
-		resp.Diagnostics = resp.Diagnostics.Append(err)
-		return resp
+	state := cty.NullVal(resSchema.Block.ImpliedType())
+	if protoResp.PlannedState != nil {
+		state, err = msgpack.Unmarshal(protoResp.PlannedState.Msgpack, resSchema.Block.ImpliedType())
+		if err != nil {
+			resp.Diagnostics = resp.Diagnostics.Append(err)
+			return resp
+		}
 	}
-
 	resp.PlannedState = state
 
 	for _, p := range protoResp.RequiresReplace {
@@ -403,16 +411,15 @@ func (p *GRPCProvider) ApplyResourceChange(r providers.ApplyResourceChangeReques
 
 	resp.Private = protoResp.Private
 
+	state := cty.NullVal(resSchema.Block.ImpliedType())
 	if protoResp.NewState != nil {
-		state, err := msgpack.Unmarshal(protoResp.NewState.Msgpack, resSchema.Block.ImpliedType())
+		state, err = msgpack.Unmarshal(protoResp.NewState.Msgpack, resSchema.Block.ImpliedType())
 		if err != nil {
 			resp.Diagnostics = resp.Diagnostics.Append(err)
 			return resp
 		}
-		resp.NewState = state
-	} else {
-		resp.NewState = cty.NullVal(resSchema.Block.ImpliedType())
 	}
+	resp.NewState = state
 
 	return resp
 }
@@ -438,12 +445,15 @@ func (p *GRPCProvider) ImportResourceState(r providers.ImportResourceStateReques
 			TypeName: imported.TypeName,
 			Private:  imported.Private,
 		}
-		state, err := msgpack.Unmarshal(imported.State.Msgpack, resSchema.Block.ImpliedType())
-		if err != nil {
-			resp.Diagnostics = resp.Diagnostics.Append(err)
-			return resp
-		}
 
+		state := cty.NullVal(resSchema.Block.ImpliedType())
+		if imported.State != nil {
+			state, err = msgpack.Unmarshal(imported.State.Msgpack, resSchema.Block.ImpliedType())
+			if err != nil {
+				resp.Diagnostics = resp.Diagnostics.Append(err)
+				return resp
+			}
+		}
 		resource.State = state
 		resp.ImportedResources = append(resp.ImportedResources, resource)
 	}
@@ -474,16 +484,17 @@ func (p *GRPCProvider) ReadDataSource(r providers.ReadDataSourceRequest) (resp p
 		resp.Diagnostics = resp.Diagnostics.Append(err)
 		return resp
 	}
-
-	state, err := msgpack.Unmarshal(protoResp.State.Msgpack, dataSchema.Block.ImpliedType())
-	if err != nil {
-		resp.Diagnostics = resp.Diagnostics.Append(err)
-		return resp
+	state := cty.NullVal(dataSchema.Block.ImpliedType())
+	if protoResp.State != nil {
+		state, err = msgpack.Unmarshal(protoResp.State.Msgpack, dataSchema.Block.ImpliedType())
+		if err != nil {
+			resp.Diagnostics = resp.Diagnostics.Append(err)
+			return resp
+		}
 	}
-
 	resp.State = state
-	return resp
 
+	return resp
 }
 
 // closing the grpc connection is final, and terraform will call it at the end of every phase.
