@@ -442,7 +442,7 @@ func TestRemote_applyPolicyPass(t *testing.T) {
 	if !strings.Contains(output, "1 to add, 0 to change, 0 to destroy") {
 		t.Fatalf("missing plan summery in output: %s", output)
 	}
-	if !strings.Contains(output, "policy check: passed") {
+	if !strings.Contains(output, "Sentinel Result: true") {
 		t.Fatalf("missing polic check result in output: %s", output)
 	}
 	if !strings.Contains(output, "1 added, 0 changed, 0 destroyed") {
