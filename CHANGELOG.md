@@ -7,6 +7,10 @@ IMPROVEMENTS:
 * helper/resource: Add `ParallelTest()` function to allow opt-in acceptance testing concurrency with `t.Parallel()` [GH-18688]
 * provider/terraform: `terraform_remote_state` now accepts complex backend configurations [GH-18759]
 * backend/remote: Implement the state.Locker interface to support state locking [GH-18826]
+* backend/remote: Add initial support for the apply command [GH-18950]
+* backend/remote: Ask to cancel pending remote operations when Ctrl-C is pressed [GH-18979]
+* backend/remote: Only show the full policy output when the check failed [GH-18980]
+* backend/remote: Add support for the `-no-color` command line flag [GH-19002]
 
 BUG FIXES:
 
