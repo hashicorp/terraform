@@ -9,7 +9,6 @@ IMPROVEMENTS:
 * backend/remote: Implement the state.Locker interface to support state locking [GH-18826]
 * backend/remote: Add initial support for the apply command [GH-18950]
 * backend/remote: Ask to cancel pending remote operations when Ctrl-C is pressed [GH-18979]
-* backend/remote: Only show the full policy output when the check failed [GH-18980]
 * backend/remote: Add support for the `-no-color` command line flag [GH-19002]
 
 BUG FIXES:
@@ -17,7 +16,7 @@ BUG FIXES:
 * backend/migrations: Check all workspaces for existing non-empty states [GH-18757]
 * provider/terraform: Always call the backend validation method to prevent a possible panic [GH-18759]
 * backend/remote: Take working directories (optional on workspaces) into account [GH-18773]
-* backend/remote: Use pagination when retrieving states (workspaces) [GH-18817] 
+* backend/remote: Use pagination when retrieving states (workspaces) [GH-18817]
 * backend/remote: Add the run ID to associate state when being used in TFE [GH-18818]
 * core: Make sure the state is locked before it is used when `(un)tainting` [GH-18894]
 
@@ -25,7 +24,7 @@ BUG FIXES:
 
 NEW FEATURES:
 
-* **New `remote` backend**: Inital release of the `remote` backend for use with Terraform Enterprise and Private Terraform Enterprise [[#18596](https://github.com/hashicorp/terraform/issues/18596)] 
+* **New `remote` backend**: Inital release of the `remote` backend for use with Terraform Enterprise and Private Terraform Enterprise [[#18596](https://github.com/hashicorp/terraform/issues/18596)]
 
 IMPROVEMENTS:
 
@@ -142,7 +141,7 @@ BACKWARDS INCOMPATIBILITIES / NOTES:
 NEW FEATURES:
 
 * **[Habitat](https://www.habitat.sh/) Provisioner** allowing automatic installation of the Habitat agent ([#16280](https://github.com/hashicorp/terraform/issues/16280))
- 
+
 IMPROVEMENTS:
 
 * core: removed duplicate prompts and clarified working when migration backend configurations ([#16939](https://github.com/hashicorp/terraform/issues/16939))
