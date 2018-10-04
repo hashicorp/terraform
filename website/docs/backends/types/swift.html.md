@@ -10,9 +10,9 @@ description: |-
 
 **Kind: Standard (with no locking)**
 
-Stores the state as an artifact in [Swift](http://docs.openstack.org/developer/swift/).
+Stores the state as an artifact in [Swift](http://docs.openstack.org/developer/swift/latest/).
 
-~> Warning! It is highly recommended that you enable [Object Versioning](https://docs.openstack.org/developer/swift/overview_object_versioning.html) by setting the [`expire_after`](https://www.terraform.io/docs/backends/types/swift.html#archive_container) configuration. This allows for state recovery in the case of accidental deletions and human error.
+~> Warning! It is highly recommended that you enable [Object Versioning](https://docs.openstack.org/developer/swift/latest/overview_object_versioning.html) by setting the [`expire_after`](https://www.terraform.io/docs/backends/types/swift.html#archive_container) configuration. This allows for state recovery in the case of accidental deletions and human error.
 
 ## Example Configuration
 
@@ -99,11 +99,11 @@ The following configuration options are supported:
    If omitted the `OS_KEY` environment variable is used.
 
  * `archive_container` - (Optional) The container to create to store archived copies
-   of the Terraform state file. If specified, Swift [object versioning](https://docs.openstack.org/developer/swift/overview_object_versioning.html) is enabled on the container created at `container`.
+   of the Terraform state file. If specified, Swift [object versioning](https://docs.openstack.org/developer/swift/latest/overview_object_versioning.html) is enabled on the container created at `container`.
 
  * `archive_path` - (Optional) DEPRECATED: Use `archive_container` instead.
    The path to store archived copied of `terraform.tfstate`. If specified,
-   Swift [object versioning](https://docs.openstack.org/developer/swift/overview_object_versioning.html) is enabled on the container created at `path`.
+   Swift [object versioning](https://docs.openstack.org/developer/swift/latest/overview_object_versioning.html) is enabled on the container created at `path`.
 
  * `expire_after` - (Optional) How long should the `terraform.tfstate` created at `container`
    be retained for? Supported durations: `m` - Minutes, `h` - Hours, `d` - Days.
