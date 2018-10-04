@@ -140,10 +140,15 @@ func (b *Remote) plan(stopCtx, cancelCtx context.Context, op *backend.Operation,
 					return
 				}
 
-				if r.Status == tfe.RunPending {
+				if r.Status == tfe.RunPending && r.Actions.IsCancelable {
 					if b.CLI != nil {
 						b.CLI.Output(b.Colorize().Color(strings.TrimSpace(lockTimeoutErr)))
 					}
+
+					// We abuse the auto aprove flag to indicate that we do not
+					// want to ask if the remote operation should be canceled.
+					op.AutoApprove = true
+
 					p, err := os.FindProcess(os.Getpid())
 					if err != nil {
 						log.Printf("[ERROR] error searching process ID: %v", err)
