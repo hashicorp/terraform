@@ -53,8 +53,6 @@ loads all of them.
 
 ```hcl
 provider "aws" {
-  access_key = "ACCESS_KEY_HERE"
-  secret_key = "SECRET_KEY_HERE"
   region     = "us-east-1"
 }
 
@@ -70,11 +68,6 @@ with access to a default VPC. For EC2 Classic users, please use `t1.micro` for
 `us-east-1` then you will need to choose an AMI in that region
 as AMI IDs are region specific.
 
-Replace the `ACCESS_KEY_HERE` and `SECRET_KEY_HERE` with your
-AWS access key and secret key, available from
-[this page](https://console.aws.amazon.com/iam/home?#security_credential).
-We're hardcoding them for now, but will extract these into
-variables later in the getting started guide.
 
 ~> **Note**: If you simply leave out AWS credentials, Terraform will
 automatically search for saved API credentials (for example,
