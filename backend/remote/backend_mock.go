@@ -853,6 +853,10 @@ func (m *mockWorkspaces) Create(ctx context.Context, organization string, option
 	w := &tfe.Workspace{
 		ID:   generateID("ws-"),
 		Name: *options.Name,
+		Permissions: &tfe.WorkspacePermissions{
+			CanQueueRun: true,
+			CanUpdate:   true,
+		},
 	}
 	if options.VCSRepo != nil {
 		w.VCSRepo = &tfe.VCSRepo{}

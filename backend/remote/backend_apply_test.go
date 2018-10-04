@@ -61,10 +61,47 @@ func TestRemote_applyBasic(t *testing.T) {
 	}
 }
 
+func TestRemote_applyWithoutPermissions(t *testing.T) {
+	b := testBackendNoDefault(t)
+
+	// Create a named workspace without permissions.
+	w, err := b.client.Workspaces.Create(
+		context.Background(),
+		b.organization,
+		tfe.WorkspaceCreateOptions{
+			Name: tfe.String(b.prefix + "prod"),
+		},
+	)
+	if err != nil {
+		t.Fatalf("error creating named workspace: %v", err)
+	}
+	w.Permissions.CanUpdate = false
+
+	mod, modCleanup := module.TestTree(t, "./test-fixtures/apply")
+	defer modCleanup()
+
+	op := testOperationApply()
+	op.Module = mod
+	op.Workspace = "prod"
+
+	run, err := b.Operation(context.Background(), op)
+	if err != nil {
+		t.Fatalf("error starting operation: %v", err)
+	}
+	<-run.Done()
+
+	if run.Err == nil {
+		t.Fatalf("expected an apply error, got: %v", run.Err)
+	}
+	if !strings.Contains(run.Err.Error(), "insufficient rights to apply changes") {
+		t.Fatalf("expected a permissions error, got: %v", run.Err)
+	}
+}
+
 func TestRemote_applyWithVCS(t *testing.T) {
 	b := testBackendNoDefault(t)
 
-	// Create the named workspace with a VCS.
+	// Create a named workspace with a VCS.
 	_, err := b.client.Workspaces.Create(
 		context.Background(),
 		b.organization,
