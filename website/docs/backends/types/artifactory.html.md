@@ -33,6 +33,19 @@ terraform {
 }
 ```
 
+Alternately, you can use token based authentication:
+
+```hcl
+terraform {
+  backend "artifactory" {
+    token    = "bigbangtheory"
+    url      = "https://custom.artifactoryonline.com/artifactory"
+    repo     = "foo"
+    subpath  = "teraraform-bar"
+  }
+}
+```
+
 ## Example Referencing
 
 ```hcl
@@ -54,6 +67,7 @@ The following configuration options / environment variables are supported:
 
  * `username` / `ARTIFACTORY_USERNAME` (Required) - The username
  * `password` / `ARTIFACTORY_PASSWORD` (Required) - The password
+ * `token` / `ARTIFACTORY_TOKEN` (Required if not using a username/password) - The artifactory api token
  * `url` / `ARTIFACTORY_URL` (Required) - The URL. Note that this is the base url to artifactory not the full repo and subpath.
  * `repo` (Required) - The repository name
  * `subpath` (Required) - Path within the repository
