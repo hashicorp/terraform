@@ -12,14 +12,14 @@ description: |-
 
 Stores the state as an artifact in [Swift](http://docs.openstack.org/developer/swift/).
 
-~> Warning! It is highly recommended that you enable [Object Versioning](https://docs.openstack.org/developer/swift/overview_object_versioning.html) by setting the [`expire_after`](https://www.terraform.io/docs/backends/types/swift.html#archive_path) configuration. This allows for state recovery in the case of accidental deletions and human error.
+~> Warning! It is highly recommended that you enable [Object Versioning](https://docs.openstack.org/developer/swift/overview_object_versioning.html) by setting the [`expire_after`](https://www.terraform.io/docs/backends/types/swift.html#archive_container) configuration. This allows for state recovery in the case of accidental deletions and human error.
 
 ## Example Configuration
 
 ```hcl
 terraform {
   backend "swift" {
-    path = "terraform-state"
+    container = "terraform-state"
   }
 }
 ```
@@ -36,7 +36,7 @@ For the access credentials we recommend using a
 data "terraform_remote_state" "foo" {
   backend = "swift"
   config = {
-    path = "terraform_state"
+    container = "terraform_state"
   }
 }
 ```
@@ -105,5 +105,5 @@ The following configuration options are supported:
    The path to store archived copied of `terraform.tfstate`. If specified,
    Swift [object versioning](https://docs.openstack.org/developer/swift/overview_object_versioning.html) is enabled on the container created at `path`.
 
- * `expire_after` - (Optional) How long should the `terraform.tfstate` created at `path`
+ * `expire_after` - (Optional) How long should the `terraform.tfstate` created at `container`
    be retained for? Supported durations: `m` - Minutes, `h` - Hours, `d` - Days.
