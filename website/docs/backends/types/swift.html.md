@@ -106,4 +106,4 @@ The following configuration options are supported:
    Swift [object versioning](https://docs.openstack.org/developer/swift/latest/overview_object_versioning.html) is enabled on the container created at `path`.
 
  * `expire_after` - (Optional) How long should the `terraform.tfstate` created at `container`
-   be retained for? Supported durations: `m` - Minutes, `h` - Hours, `d` - Days.
+   be retained for? If specified, Swift [expiring object support](https://docs.openstack.org/developer/swift/latest/overview_expiring_objects.html) is enabled on the state. Supported durations: `m` - Minutes, `h` - Hours, `d` - Days.
