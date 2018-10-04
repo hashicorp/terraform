@@ -112,7 +112,7 @@ please fill out this [community providers form](https://docs.google.com/forms/d/
     <td><a href="https://github.com/yamamoto-febc/terraform-provider-rke">RKE</a></td>
     </tr>
     <tr>
-    <td><a href="https://github.com/babbel/terraform-provider-rollbar">Rolebar</a></td>
+    <td><a href="https://github.com/babbel/terraform-provider-rollbar">Rollbar</a></td>
     <td><a href="https://github.com/sacloud/terraform-provider-sakuracloud">SakuraCloud</a></td>
     <td><a href="https://github.com/GSLabDev/terraform-provider-scvmm">SCVMM</a></td>
     </tr>
