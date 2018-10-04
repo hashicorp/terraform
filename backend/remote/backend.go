@@ -496,16 +496,16 @@ func (b *Remote) cancel(cancelCtx context.Context, op *backend.Operation, runID 
 // Colorize returns the Colorize structure that can be used for colorizing
 // output. This is guaranteed to always return a non-nil value and so useful
 // as a helper to wrap any potentially colored strings.
-func (b *Remote) Colorize() *colorstring.Colorize {
-	if b.CLIColor != nil {
-		return b.CLIColor
-	}
+// func (b *Remote) Colorize() *colorstring.Colorize {
+// 	if b.CLIColor != nil {
+// 		return b.CLIColor
+// 	}
 
-	return &colorstring.Colorize{
-		Colors:  colorstring.DefaultColors,
-		Disable: true,
-	}
-}
+// 	return &colorstring.Colorize{
+// 		Colors:  colorstring.DefaultColors,
+// 		Disable: true,
+// 	}
+// }
 
 func generalError(msg string, err error) error {
 	if urlErr, ok := err.(*url.Error); ok {
