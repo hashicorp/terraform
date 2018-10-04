@@ -277,6 +277,10 @@ func changeFromTfplan(rawChange *planproto.Change) (*plans.ChangeSrc, error) {
 }
 
 func valueFromTfplan(rawV *planproto.DynamicValue) (plans.DynamicValue, error) {
+	if rawV.Msgpack == nil {
+		return plans.DynamicValue(nil), nil
+	}
+
 	if len(rawV.Msgpack) == 0 { // len(0) because that's the default value for a "bytes" in protobuf
 		return nil, fmt.Errorf("dynamic value does not have msgpack serialization")
 	}

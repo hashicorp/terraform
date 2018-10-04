@@ -131,10 +131,11 @@ func TestLocal_planNoConfig(t *testing.T) {
 func TestLocal_planRefreshFalse(t *testing.T) {
 	b, cleanup := TestLocal(t)
 	defer cleanup()
-	p := TestLocalProvider(t, b, "test", &terraform.ProviderSchema{})
+
+	p := TestLocalProvider(t, b, "test", planFixtureSchema())
 	terraform.TestStateFile(t, b.StatePath, testPlanState())
 
-	op, configCleanup := testOperationPlan(t, "./test-fixtures/empty")
+	op, configCleanup := testOperationPlan(t, "./test-fixtures/plan")
 	defer configCleanup()
 
 	run, err := b.Operation(context.Background(), op)
@@ -158,6 +159,7 @@ func TestLocal_planRefreshFalse(t *testing.T) {
 func TestLocal_planDestroy(t *testing.T) {
 	b, cleanup := TestLocal(t)
 	defer cleanup()
+
 	p := TestLocalProvider(t, b, "test", planFixtureSchema())
 	terraform.TestStateFile(t, b.StatePath, testPlanState())
 
@@ -167,7 +169,7 @@ func TestLocal_planDestroy(t *testing.T) {
 
 	op, configCleanup := testOperationPlan(t, "./test-fixtures/plan")
 	defer configCleanup()
-	op.Destroy = false
+	op.Destroy = true
 	op.PlanRefresh = true
 	op.PlanOutPath = planPath
 
@@ -189,16 +191,11 @@ func TestLocal_planDestroy(t *testing.T) {
 	}
 
 	plan := testReadPlan(t, planPath)
-	// This statement can be removed when the test is fixed and replaced with the
-	// commented-out test below.
-	if plan == nil {
-		t.Fatalf("plan is nil")
+	for _, r := range plan.Changes.Resources {
+		if r.Action.String() != "Delete" {
+			t.Fatalf("bad: %#v", r.Action.String())
+		}
 	}
-	// for _, r := range plan.Changes.Resources {
-	// 	if !r.Destroy {
-	// 		t.Fatalf("bad: %#v", r)
-	// 	}
-	// }
 }
 
 func TestLocal_planOutPathNoChange(t *testing.T) {
@@ -340,6 +337,9 @@ func testReadPlan(t *testing.T, path string) *plans.Plan {
 	defer p.Close()
 
 	plan, err := p.ReadPlan()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
 
 	return plan
 }
