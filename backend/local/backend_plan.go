@@ -171,7 +171,6 @@ func (b *Local) opPlan(
 					path, path,
 				))
 			}
-
 		}
 	}
 }
