@@ -471,6 +471,38 @@ func (m *mockPolicyChecks) Read(ctx context.Context, policyCheckID string) (*tfe
 	if !ok {
 		return nil, tfe.ErrResourceNotFound
 	}
+
+	logfile, ok := m.logs[pc.ID]
+	if !ok {
+		return nil, tfe.ErrResourceNotFound
+	}
+
+	if _, err := os.Stat(logfile); os.IsNotExist(err) {
+		return nil, fmt.Errorf("logfile does not exist")
+	}
+
+	logs, err := ioutil.ReadFile(logfile)
+	if err != nil {
+		return nil, err
+	}
+
+	switch {
+	case bytes.Contains(logs, []byte("Sentinel Result: true")):
+		pc.Status = tfe.PolicyPasses
+	case bytes.Contains(logs, []byte("Sentinel Result: false")):
+		switch {
+		case bytes.Contains(logs, []byte("hard-mandatory")):
+			pc.Status = tfe.PolicyHardFailed
+		case bytes.Contains(logs, []byte("soft-mandatory")):
+			pc.Actions.IsOverridable = true
+			pc.Permissions.CanOverride = true
+			pc.Status = tfe.PolicySoftFailed
+		}
+	default:
+		// As this is an unexpected state, we say the policy errored.
+		pc.Status = tfe.PolicyErrored
+	}
+
 	return pc, nil
 }
 
@@ -495,29 +527,12 @@ func (m *mockPolicyChecks) Logs(ctx context.Context, policyCheckID string) (io.R
 	}
 
 	if _, err := os.Stat(logfile); os.IsNotExist(err) {
-		return bytes.NewBufferString("logfile does not exist"), nil
+		return nil, fmt.Errorf("logfile does not exist")
 	}
 
 	logs, err := ioutil.ReadFile(logfile)
 	if err != nil {
 		return nil, err
-	}
-
-	switch {
-	case bytes.Contains(logs, []byte("Sentinel Result: true")):
-		pc.Status = tfe.PolicyPasses
-	case bytes.Contains(logs, []byte("Sentinel Result: false")):
-		switch {
-		case bytes.Contains(logs, []byte("hard-mandatory")):
-			pc.Status = tfe.PolicyHardFailed
-		case bytes.Contains(logs, []byte("soft-mandatory")):
-			pc.Actions.IsOverridable = true
-			pc.Permissions.CanOverride = true
-			pc.Status = tfe.PolicySoftFailed
-		}
-	default:
-		// As this is an unexpected state, we say the policy errored.
-		pc.Status = tfe.PolicyErrored
 	}
 
 	return bytes.NewBuffer(logs), nil
