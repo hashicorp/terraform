@@ -61,18 +61,15 @@ func TestLocalProvider(t *testing.T, b *Local, name string, schema *terraform.Pr
 			PlannedPrivate: req.PriorPrivate,
 		}
 	}
-	// p.DiffReturn = &terraform.InstanceDiff{}
-
-	// p.RefreshFn = func(
-	// 	info *terraform.InstanceInfo,
-	// 	s *terraform.InstanceState) (*terraform.InstanceState, error) {
-	// 	return s, nil
-	// }
-	// p.ResourcesReturn = []terraform.ResourceType{
-	// 	terraform.ResourceType{
-	// 		Name: "test_instance",
-	// 	},
-	// }
+	p.DiffFn = func(
+		info *terraform.InstanceInfo,
+		s *terraform.InstanceState,
+		r *terraform.ResourceConfig) (*terraform.InstanceDiff, error) {
+		return nil, nil
+	}
+	p.ReadResourceFn = func(req providers.ReadResourceRequest) providers.ReadResourceResponse {
+		return providers.ReadResourceResponse{NewState: req.PriorState}
+	}
 
 	// Initialize the opts
 	if b.ContextOpts == nil {
