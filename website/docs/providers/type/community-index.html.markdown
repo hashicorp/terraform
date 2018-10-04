@@ -15,8 +15,6 @@ HashiCorp, and are listed here in order to help users find them easily.
 If you have built a provider and would like to add it to this community list,
 please fill out this [community providers form](https://docs.google.com/forms/d/e/1FAIpQLSeenG02tGEmz7pntIqMKlp5kY53f8AV5u88wJ_H1pJc2CmvKA/viewform?usp=sf_link#responses).
 
----
-
 <table class="table">
 
     <td><a href="https://github.com/GSLabDev/terraform-provider-ad">Active Directory</a></td>
@@ -114,29 +112,34 @@ please fill out this [community providers form](https://docs.google.com/forms/d/
     <td><a href="https://github.com/yamamoto-febc/terraform-provider-rke">RKE</a></td>
     </tr>
     <tr>
+    <td><a href="https://github.com/babbel/terraform-provider-rollbar">Rollbar</a></td>
     <td><a href="https://github.com/sacloud/terraform-provider-sakuracloud">SakuraCloud</a></td>
     <td><a href="https://github.com/GSLabDev/terraform-provider-scvmm">SCVMM</a></td>
-    <td><a href="https://github.com/jianyuan/terraform-provider-sentry">Sentry</a></td>
     </tr>
     <tr>
+    <td><a href="https://github.com/jianyuan/terraform-provider-sentry">Sentry</a></td>
     <td><a href="https://github.com/SewanDevs/terraform-provider-sewan">Sewan</a></td>
     <td><a href="https://github.com/Yelp/terraform-provider-signalform">SignalFx</a></td>
-    <td><a href="https://github.com/ShopRunner/terraform-provider-snowflake">Snowflake</a></td>
     </tr>
     <tr>
+    <td><a href="https://github.com/ShopRunner/terraform-provider-snowflake">Snowflake</a></td>
     <td><a href="https://github.com/Ashald/terraform-provider-stateful">Stateful</a></td>
     <td><a href="https://github.com/franckverrot/terraform-provider-stripe">Stripe</a></td>
-    <td><a href="https://github.com/bocodigitalmedia/terraform-provider-transloadit">Transloadit</a></td>
     </tr>
     <tr>
+    <td><a href="https://github.com/bocodigitalmedia/terraform-provider-transloadit">Transloadit</a></td>
     <td><a href="https://github.com/mvisonneau/terraform-provider-updown">Updown.io</a></td>
     <td><a href="https://github.com/SpamapS/terraform-provider-uptimerobot">Uptimerobot</a></td>
-    <td><a href="https://github.com/GSLabDev/terraform-provider-vra">vRealize Automation</a></td>
     </tr>
     <tr>
+    <td><a href="https://github.com/GSLabDev/terraform-provider-vra">vRealize Automation</a></td>
     <td><a href="https://github.com/PortOfPortland/terraform-provider-windns">Win DNS</a></td>
     <td><a href="https://github.com/Ashald/terraform-provider-yaml">YAML</a></td>
+    </tr>
+    <tr>
+    <td><a href="https://github.com/Venafi/terraform-provider-venafi">Venafi</a></td>
     <td><a href="https://github.com/cormacrelf/terraform-provider-zerotier">ZeroTier</a></td>
+    <td><a></a></td>
     </tr>
 
 </table>
