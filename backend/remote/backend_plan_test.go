@@ -48,6 +48,43 @@ func TestRemote_planBasic(t *testing.T) {
 	}
 }
 
+func TestRemote_planWithoutPermissions(t *testing.T) {
+	b := testBackendNoDefault(t)
+
+	// Create a named workspace without permissions.
+	w, err := b.client.Workspaces.Create(
+		context.Background(),
+		b.organization,
+		tfe.WorkspaceCreateOptions{
+			Name: tfe.String(b.prefix + "prod"),
+		},
+	)
+	if err != nil {
+		t.Fatalf("error creating named workspace: %v", err)
+	}
+	w.Permissions.CanQueueRun = false
+
+	mod, modCleanup := module.TestTree(t, "./test-fixtures/plan")
+	defer modCleanup()
+
+	op := testOperationPlan()
+	op.Module = mod
+	op.Workspace = "prod"
+
+	run, err := b.Operation(context.Background(), op)
+	if err != nil {
+		t.Fatalf("error starting operation: %v", err)
+	}
+	<-run.Done()
+
+	if run.Err == nil {
+		t.Fatalf("expected a plan error, got: %v", run.Err)
+	}
+	if !strings.Contains(run.Err.Error(), "insufficient rights to generate a plan") {
+		t.Fatalf("expected a permissions error, got: %v", run.Err)
+	}
+}
+
 func TestRemote_planWithPlan(t *testing.T) {
 	b := testBackendDefault(t)
 

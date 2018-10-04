@@ -22,6 +22,11 @@ func (b *Remote) opApply(stopCtx, cancelCtx context.Context, op *backend.Operati
 		return nil, generalError("error retrieving workspace", err)
 	}
 
+	if !w.Permissions.CanUpdate {
+		return nil, fmt.Errorf(strings.TrimSpace(
+			fmt.Sprintf(applyErrNoUpdateRights, b.hostname, b.organization, op.Workspace)))
+	}
+
 	if w.VCSRepo != nil {
 		return nil, fmt.Errorf(strings.TrimSpace(applyErrVCSNotSupported))
 	}
@@ -76,6 +81,9 @@ func (b *Remote) opApply(stopCtx, cancelCtx context.Context, op *backend.Operati
 		return r, nil
 	}
 
+	// Since we already checked the permissions before creating the run
+	// this should never happen. But it doesn't hurt to keep this in as
+	// a safeguard for any unexpected situations.
 	if !r.Permissions.CanApply {
 		// Make sure we discard the run if possible.
 		if r.Actions.IsDiscardable {
@@ -261,10 +269,20 @@ func (b *Remote) confirm(stopCtx context.Context, op *backend.Operation, opts *t
 	return nil
 }
 
-const applyErrVCSNotSupported = `
-Apply not allowed for workspaces with a VCS connection!
+const applyErrNoUpdateRights = `
+Insufficient rights to apply changes!
 
-A workspace that is connected to a VCS requires the VCS based workflow
+[reset][yellow]The provided credentials have insufficient rights to apply changes. In order
+to apply changes at least write permissions on the workspace are required. To
+queue a run that can be approved by someone else, please use the 'Queue Plan'
+button in the web UI:
+https://%s/app/%s/%s/runs[reset]
+`
+
+const applyErrVCSNotSupported = `
+Apply not allowed for workspaces with a VCS connection.
+
+A workspace that is connected to a VCS requires the VCS-driven workflow
 to ensure that the VCS remains the single source of truth.
 `
 
@@ -293,10 +311,10 @@ does not require any configuration files.
 const applyErrNoApplyRights = `
 Insufficient rights to approve the pending changes!
 
-[reset][yellow]There are pending changes, but the used credentials have insufficient rights
-to approve them. The run will be discarded to prevent it from blocking the
-queue waiting for external approval. To trigger a run that can be approved by
-someone else, please use the 'Queue Plan' button in the web UI:
+[reset][yellow]There are pending changes, but the provided credentials have insufficient rights
+to approve them. The run will be discarded to prevent it from blocking the queue
+waiting for external approval. To queue a run that can be approved by someone
+else, please use the 'Queue Plan' button in the web UI:
 https://%s/app/%s/%s/runs[reset]
 `
 
