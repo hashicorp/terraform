@@ -1,2 +1,12 @@
-# This line is here only for the mock!
 Sentinel Result: true
+
+This result means that Sentinel policies returned true and the protected
+behavior is allowed by Sentinel policies.
+
+1 policies evaluated.
+
+## Policy 1: Passthrough.sentinel (soft-mandatory)
+
+Result: true
+
+TRUE - Passthrough.sentinel:1:1 - Rule "main"

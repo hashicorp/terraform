@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"log"
 	"strings"
-	"time"
 
 	tfe "github.com/hashicorp/go-tfe"
 	"github.com/hashicorp/terraform/backend"
@@ -147,30 +146,21 @@ func (b *Remote) opApply(stopCtx, cancelCtx context.Context, op *backend.Operati
 	return r, nil
 }
 
-func (b *Remote) checkPolicy(stopCtx, cancelCtx context.Context, op *backend.Operation, r *tfe.Run) (err error) {
+func (b *Remote) checkPolicy(stopCtx, cancelCtx context.Context, op *backend.Operation, r *tfe.Run) error {
 	if b.CLI != nil {
 		b.CLI.Output("\n------------------------------------------------------------------------\n")
 	}
 	for _, pc := range r.PolicyChecks {
-		// Loop until the context is canceled or the policy check is finished.
-		for {
-			pc, err = b.client.PolicyChecks.Read(stopCtx, pc.ID)
-			if err != nil {
-				return generalError("error retrieving policy check", err)
-			}
+		logs, err := b.client.PolicyChecks.Logs(stopCtx, pc.ID)
+		if err != nil {
+			return generalError("error retrieving policy check logs", err)
+		}
+		scanner := bufio.NewScanner(logs)
 
-			switch pc.Status {
-			case tfe.PolicyPending, tfe.PolicyQueued:
-				select {
-				case <-stopCtx.Done():
-					return generalError("error retrieving policy check", stopCtx.Err())
-				case <-time.After(500 * time.Millisecond):
-					continue
-				}
-			}
-
-			// Break if the policy check is finished.
-			break
+		// Retrieve the policy check to get its current status.
+		pc, err := b.client.PolicyChecks.Read(stopCtx, pc.ID)
+		if err != nil {
+			return generalError("error retrieving policy check", err)
 		}
 
 		var msgPrefix string
@@ -183,24 +173,9 @@ func (b *Remote) checkPolicy(stopCtx, cancelCtx context.Context, op *backend.Ope
 			msgPrefix = fmt.Sprintf("Unknown policy check (%s)", pc.Scope)
 		}
 
-		// Don't show the full policy output if the policy passed.
-		if pc.Status == tfe.PolicyPasses {
-			if b.CLI != nil {
-				b.CLI.Output(b.Colorize().Color(msgPrefix + ": passed\n"))
-				b.CLI.Output("------------------------------------------------------------------------")
-			}
-			continue
-		}
-
 		if b.CLI != nil {
 			b.CLI.Output(b.Colorize().Color(msgPrefix + ":\n"))
 		}
-
-		logs, err := b.client.PolicyChecks.Logs(stopCtx, pc.ID)
-		if err != nil {
-			return generalError("error retrieving policy check logs", err)
-		}
-		scanner := bufio.NewScanner(logs)
 
 		for scanner.Scan() {
 			if b.CLI != nil {
@@ -212,6 +187,11 @@ func (b *Remote) checkPolicy(stopCtx, cancelCtx context.Context, op *backend.Ope
 		}
 
 		switch pc.Status {
+		case tfe.PolicyPasses:
+			if b.CLI != nil {
+				b.CLI.Output("\n------------------------------------------------------------------------")
+			}
+			continue
 		case tfe.PolicyErrored:
 			return fmt.Errorf(msgPrefix + " errored.")
 		case tfe.PolicyHardFailed:
