@@ -19,11 +19,12 @@ Stores the state as an artifact in [Swift](http://docs.openstack.org/developer/s
 ```hcl
 terraform {
   backend "swift" {
-    container = "terraform-state"
+    container         = "terraform-state"
+    archive_container = "terraform-state-archive"
   }
 }
 ```
-This will create a container called `terraform-state` and an object within that container called `tfstate.tf`.
+This will create a container called `terraform-state` and an object within that container called `tfstate.tf`. It will enable versioning using the `terraform-state-archive` container to contain the older version.
 
 -> Note: Currently, the object name is statically defined as 'tfstate.tf'. Therefore Swift [pseudo-folders](https://docs.openstack.org/user-guide/cli-swift-pseudo-hierarchical-folders-directories.html) are not currently supported.
 
@@ -36,7 +37,8 @@ For the access credentials we recommend using a
 data "terraform_remote_state" "foo" {
   backend = "swift"
   config = {
-    container = "terraform_state"
+    container         = "terraform_state"
+    archive_container = "terraform_state-archive"
   }
 }
 ```
