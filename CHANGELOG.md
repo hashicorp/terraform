@@ -10,6 +10,8 @@ IMPROVEMENTS:
 * backend/remote: Add initial support for the apply command [GH-18950]
 * backend/remote: Ask to cancel pending remote operations when Ctrl-C is pressed [GH-18979]
 * backend/remote: Add support for the `-no-color` command line flag [GH-19002]
+* backend/remote: Prevent running plan or apply without permissions [GH-19012]
+* backend/remote: Add checks for all flags we currently don’t support [GH-19013]
 
 BUG FIXES:
 
