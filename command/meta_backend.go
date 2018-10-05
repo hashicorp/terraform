@@ -167,9 +167,11 @@ func (m *Meta) IsLocalBackend(b backend.Backend) bool {
 func (m *Meta) Operation() *backend.Operation {
 	return &backend.Operation{
 		PlanOutBackend:   m.backendState,
+		Parallelism:      m.parallelism,
 		Targets:          m.targets,
 		UIIn:             m.UIInput(),
 		UIOut:            m.Ui,
+		Variables:        m.variables,
 		Workspace:        m.Workspace(),
 		LockState:        m.stateLock,
 		StateLockTimeout: m.stateLockTimeout,

@@ -18,7 +18,9 @@ import (
 
 func testOperationApply() *backend.Operation {
 	return &backend.Operation{
-		Type: backend.OperationTypeApply,
+		Parallelism: defaultParallelism,
+		PlanRefresh: true,
+		Type:        backend.OperationTypeApply,
 	}
 }
 
@@ -135,6 +137,31 @@ func TestRemote_applyWithVCS(t *testing.T) {
 	}
 }
 
+func TestRemote_applyWithParallelism(t *testing.T) {
+	b := testBackendDefault(t)
+
+	mod, modCleanup := module.TestTree(t, "./test-fixtures/apply")
+	defer modCleanup()
+
+	op := testOperationApply()
+	op.Module = mod
+	op.Parallelism = 3
+	op.Workspace = backend.DefaultStateName
+
+	run, err := b.Operation(context.Background(), op)
+	if err != nil {
+		t.Fatalf("error starting operation: %v", err)
+	}
+	<-run.Done()
+
+	if run.Err == nil {
+		t.Fatalf("expected an apply error, got: %v", run.Err)
+	}
+	if !strings.Contains(run.Err.Error(), "parallelism values are currently not supported") {
+		t.Fatalf("expected a parallelism error, got: %v", run.Err)
+	}
+}
+
 func TestRemote_applyWithPlan(t *testing.T) {
 	b := testBackendDefault(t)
 
@@ -160,6 +187,31 @@ func TestRemote_applyWithPlan(t *testing.T) {
 	}
 }
 
+func TestRemote_applyWithoutRefresh(t *testing.T) {
+	b := testBackendDefault(t)
+
+	mod, modCleanup := module.TestTree(t, "./test-fixtures/apply")
+	defer modCleanup()
+
+	op := testOperationApply()
+	op.Module = mod
+	op.PlanRefresh = false
+	op.Workspace = backend.DefaultStateName
+
+	run, err := b.Operation(context.Background(), op)
+	if err != nil {
+		t.Fatalf("error starting operation: %v", err)
+	}
+	<-run.Done()
+
+	if run.Err == nil {
+		t.Fatalf("expected an apply error, got: %v", run.Err)
+	}
+	if !strings.Contains(run.Err.Error(), "refresh is currently not supported") {
+		t.Fatalf("expected a refresh error, got: %v", run.Err)
+	}
+}
+
 func TestRemote_applyWithTarget(t *testing.T) {
 	b := testBackendDefault(t)
 
@@ -182,6 +234,31 @@ func TestRemote_applyWithTarget(t *testing.T) {
 	}
 	if !strings.Contains(run.Err.Error(), "targeting is currently not supported") {
 		t.Fatalf("expected a targeting error, got: %v", run.Err)
+	}
+}
+
+func TestRemote_applyWithVariables(t *testing.T) {
+	b := testBackendDefault(t)
+
+	mod, modCleanup := module.TestTree(t, "./test-fixtures/apply")
+	defer modCleanup()
+
+	op := testOperationApply()
+	op.Module = mod
+	op.Variables = map[string]interface{}{"foo": "bar"}
+	op.Workspace = backend.DefaultStateName
+
+	run, err := b.Operation(context.Background(), op)
+	if err != nil {
+		t.Fatalf("error starting operation: %v", err)
+	}
+	<-run.Done()
+
+	if run.Err == nil {
+		t.Fatalf("expected an apply error, got: %v", run.Err)
+	}
+	if !strings.Contains(run.Err.Error(), "variables are currently not supported") {
+		t.Fatalf("expected a variables error, got: %v", run.Err)
 	}
 }
 

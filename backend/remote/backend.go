@@ -24,8 +24,10 @@ import (
 )
 
 const (
-	defaultHostname = "app.terraform.io"
-	serviceID       = "tfe.v2"
+	defaultHostname    = "app.terraform.io"
+	defaultModuleDepth = -1
+	defaultParallelism = 10
+	serviceID          = "tfe.v2"
 )
 
 // Remote is an implementation of EnhancedBackend that performs all
