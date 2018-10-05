@@ -416,7 +416,8 @@ func (b *Remote) Operation(ctx context.Context, op *backend.Operation) (*backend
 	// the runninCtx is only used to block until the operation returns.
 	runningCtx, done := context.WithCancel(context.Background())
 	runningOp := &backend.RunningOperation{
-		Context: runningCtx,
+		Context:   runningCtx,
+		PlanEmpty: true,
 	}
 
 	// stopCtx wraps the context passed in, and is used to signal a graceful Stop.
@@ -436,13 +437,30 @@ func (b *Remote) Operation(ctx context.Context, op *backend.Operation) (*backend
 
 		defer b.opLock.Unlock()
 
-		r, err := f(stopCtx, cancelCtx, op)
-		if err != nil && err != context.Canceled {
-			runningOp.Err = err
+		r, opErr := f(stopCtx, cancelCtx, op)
+		if opErr != nil && opErr != context.Canceled {
+			runningOp.Err = opErr
+			return
 		}
 
-		if r != nil && err == context.Canceled {
-			runningOp.Err = b.cancel(cancelCtx, op, r.ID)
+		if r != nil {
+			// Retrieve the run to get its current status.
+			r, err := b.client.Runs.Read(cancelCtx, r.ID)
+			if err != nil {
+				runningOp.Err = generalError("error retrieving run", err)
+				return
+			}
+
+			// Record if there are any changes.
+			runningOp.PlanEmpty = !r.HasChanges
+
+			if opErr == context.Canceled {
+				runningOp.Err = b.cancel(cancelCtx, op, r)
+			}
+
+			if runningOp.Err == nil && r.Status == tfe.RunErrored {
+				runningOp.ExitCode = 1
+			}
 		}
 	}()
 
@@ -450,13 +468,7 @@ func (b *Remote) Operation(ctx context.Context, op *backend.Operation) (*backend
 	return runningOp, nil
 }
 
-func (b *Remote) cancel(cancelCtx context.Context, op *backend.Operation, runID string) error {
-	// Retrieve the run to get its current status.
-	r, err := b.client.Runs.Read(cancelCtx, runID)
-	if err != nil {
-		return generalError("error cancelling run", err)
-	}
-
+func (b *Remote) cancel(cancelCtx context.Context, op *backend.Operation, r *tfe.Run) error {
 	if r.Status == tfe.RunPending && r.Actions.IsCancelable {
 		// Only ask if the remote operation should be canceled
 		// if the auto approve flag is not set.
@@ -483,7 +495,7 @@ func (b *Remote) cancel(cancelCtx context.Context, op *backend.Operation, runID 
 		}
 
 		// Try to cancel the remote operation.
-		err = b.client.Runs.Cancel(cancelCtx, r.ID, tfe.RunCancelOptions{})
+		err := b.client.Runs.Cancel(cancelCtx, r.ID, tfe.RunCancelOptions{})
 		if err != nil {
 			return generalError("error cancelling run", err)
 		}
