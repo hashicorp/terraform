@@ -30,6 +30,14 @@ func (b *Remote) opPlan(stopCtx, cancelCtx context.Context, op *backend.Operatio
 		return nil, fmt.Errorf(strings.TrimSpace(fmt.Sprintf(planErrNoQueueRunRights)))
 	}
 
+	if op.ModuleDepth != defaultModuleDepth {
+		return nil, fmt.Errorf(strings.TrimSpace(planErrModuleDepthNotSupported))
+	}
+
+	if op.Parallelism != defaultParallelism {
+		return nil, fmt.Errorf(strings.TrimSpace(planErrParallelismNotSupported))
+	}
+
 	if op.Plan != nil {
 		return nil, fmt.Errorf(strings.TrimSpace(planErrPlanNotSupported))
 	}
@@ -38,8 +46,17 @@ func (b *Remote) opPlan(stopCtx, cancelCtx context.Context, op *backend.Operatio
 		return nil, fmt.Errorf(strings.TrimSpace(planErrOutPathNotSupported))
 	}
 
+	if !op.PlanRefresh {
+		return nil, fmt.Errorf(strings.TrimSpace(planErrNoRefreshNotSupported))
+	}
+
 	if op.Targets != nil {
 		return nil, fmt.Errorf(strings.TrimSpace(planErrTargetsNotSupported))
+	}
+
+	if op.Variables != nil {
+		return nil, fmt.Errorf(strings.TrimSpace(
+			fmt.Sprintf(planErrVariablesNotSupported, b.hostname, b.organization, op.Workspace)))
 	}
 
 	if (op.Module == nil || op.Module.Config().Dir == "") && !op.Destroy {
@@ -203,11 +220,25 @@ Insufficient rights to generate a plan!
 to generate plans, at least plan permissions on the workspace are required.[reset]
 `
 
+const planErrModuleDepthNotSupported = `
+Custom module depths are currently not supported!
+
+The "remote" backend does not support setting a custom module
+depth at this time.
+`
+
+const planErrParallelismNotSupported = `
+Custom parallelism values are currently not supported!
+
+The "remote" backend does not support setting a custom parallelism
+value at this time.
+`
+
 const planErrPlanNotSupported = `
 Displaying a saved plan is currently not supported!
 
-The "remote" backend currently requires configuration to be present
-and does not accept an existing saved plan as an argument at this time.
+The "remote" backend currently requires configuration to be present and
+does not accept an existing saved plan as an argument at this time.
 `
 
 const planErrOutPathNotSupported = `
@@ -217,10 +248,30 @@ The "remote" backend does not support saving the generated execution
 plan locally at this time.
 `
 
+const planErrNoRefreshNotSupported = `
+Planning without refresh is currently not supported!
+
+Currently the "remote" backend will always do an in-memory refresh of
+the Terraform state prior to generating the plan.
+`
+
 const planErrTargetsNotSupported = `
 Resource targeting is currently not supported!
 
 The "remote" backend does not support resource targeting at this time.
+`
+
+const planErrVariablesNotSupported = `
+Run variables are currently not supported!
+
+The "remote" backend does not support setting run variables at this time.
+Currently the only to way to pass variables to the remote backend is by
+creating a '*.auto.tfvars' variables file. This file will automatically
+be loaded by the "remote" backend when the workspace is configured to use
+Terraform v0.10.0 or later.
+
+Additionally you can also set variables on the workspace in the web UI:
+https://%s/app/%s/%s/variables
 `
 
 const planErrNoConfig = `
