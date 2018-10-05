@@ -1,19 +1,15 @@
 package openstack
 
 import (
-	"bytes"
 	"fmt"
 	"log"
 	"time"
 
-	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 
 	"github.com/gophercloud/gophercloud"
-	"github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/lbaas/members"
 	"github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/lbaas/pools"
-	"github.com/gophercloud/gophercloud/pagination"
 )
 
 func resourceLBPoolV1() *schema.Resource {
@@ -72,40 +68,10 @@ func resourceLBPoolV1() *schema.Resource {
 				Computed: true,
 			},
 			"member": &schema.Schema{
-				Type:       schema.TypeSet,
-				Deprecated: "Use openstack_lb_member_v1 instead. This attribute will be removed in a future version.",
-				Optional:   true,
-				Elem: &schema.Resource{
-					Schema: map[string]*schema.Schema{
-						"region": &schema.Schema{
-							Type:        schema.TypeString,
-							Required:    true,
-							ForceNew:    true,
-							DefaultFunc: schema.EnvDefaultFunc("OS_REGION_NAME", ""),
-						},
-						"tenant_id": &schema.Schema{
-							Type:     schema.TypeString,
-							Optional: true,
-							ForceNew: true,
-						},
-						"address": &schema.Schema{
-							Type:     schema.TypeString,
-							Required: true,
-							ForceNew: true,
-						},
-						"port": &schema.Schema{
-							Type:     schema.TypeInt,
-							Required: true,
-							ForceNew: true,
-						},
-						"admin_state_up": &schema.Schema{
-							Type:     schema.TypeBool,
-							Required: true,
-							ForceNew: false,
-						},
-					},
-				},
-				Set: resourceLBMemberV1Hash,
+				Type:     schema.TypeSet,
+				Elem:     &schema.Schema{Type: schema.TypeString},
+				Optional: true,
+				Removed:  "Use openstack_lb_member_v1 instead.",
 			},
 			"monitor_ids": &schema.Schema{
 				Type:     schema.TypeSet,
@@ -176,15 +142,6 @@ func resourceLBPoolV1Create(d *schema.ResourceData, meta interface{}) error {
 		}
 	}
 
-	if memberOpts := resourcePoolMembersV1(d); memberOpts != nil {
-		for _, memberOpt := range memberOpts {
-			_, err := members.Create(networkingClient, memberOpt).Extract()
-			if err != nil {
-				return fmt.Errorf("Error creating OpenStack LB member: %s", err)
-			}
-		}
-	}
-
 	return resourceLBPoolV1Read(d, meta)
 }
 
@@ -209,7 +166,6 @@ func resourceLBPoolV1Read(d *schema.ResourceData, meta interface{}) error {
 	d.Set("lb_provider", p.Provider)
 	d.Set("tenant_id", p.TenantID)
 	d.Set("monitor_ids", p.MonitorIDs)
-	d.Set("member_ids", p.MemberIDs)
 	d.Set("region", GetRegion(d, config))
 
 	return nil
@@ -266,49 +222,6 @@ func resourceLBPoolV1Update(d *schema.ResourceData, meta interface{}) error {
 		}
 	}
 
-	if d.HasChange("member") {
-		oldMembersRaw, newMembersRaw := d.GetChange("member")
-		oldMembersSet, newMembersSet := oldMembersRaw.(*schema.Set), newMembersRaw.(*schema.Set)
-		membersToAdd := newMembersSet.Difference(oldMembersSet)
-		membersToRemove := oldMembersSet.Difference(newMembersSet)
-
-		log.Printf("[DEBUG] Members to add: %v", membersToAdd)
-
-		log.Printf("[DEBUG] Members to remove: %v", membersToRemove)
-
-		for _, m := range membersToRemove.List() {
-			oldMember := resourcePoolMemberV1(d, m)
-			listOpts := members.ListOpts{
-				PoolID:       d.Id(),
-				Address:      oldMember.Address,
-				ProtocolPort: oldMember.ProtocolPort,
-			}
-			err = members.List(networkingClient, listOpts).EachPage(func(page pagination.Page) (bool, error) {
-				extractedMembers, err := members.ExtractMembers(page)
-				if err != nil {
-					return false, err
-				}
-				for _, member := range extractedMembers {
-					err := members.Delete(networkingClient, member.ID).ExtractErr()
-					if err != nil {
-						return false, fmt.Errorf("Error deleting member (%s) from OpenStack LB pool (%s): %s", member.ID, d.Id(), err)
-					}
-					log.Printf("[DEBUG] Deleted member (%s) from pool (%s)", member.ID, d.Id())
-				}
-				return true, nil
-			})
-		}
-
-		for _, m := range membersToAdd.List() {
-			createOpts := resourcePoolMemberV1(d, m)
-			newMember, err := members.Create(networkingClient, createOpts).Extract()
-			if err != nil {
-				return fmt.Errorf("Error creating LB member: %s", err)
-			}
-			log.Printf("[DEBUG] Created member (%s) in OpenStack LB pool (%s)", newMember.ID, d.Id())
-		}
-	}
-
 	return resourceLBPoolV1Read(d, meta)
 }
 
@@ -357,42 +270,6 @@ func resourcePoolMonitorIDsV1(d *schema.ResourceData) []string {
 		mIDs[i] = raw.(string)
 	}
 	return mIDs
-}
-
-func resourcePoolMembersV1(d *schema.ResourceData) []members.CreateOpts {
-	memberOptsRaw := d.Get("member").(*schema.Set)
-	memberOpts := make([]members.CreateOpts, memberOptsRaw.Len())
-	for i, raw := range memberOptsRaw.List() {
-		rawMap := raw.(map[string]interface{})
-		memberOpts[i] = members.CreateOpts{
-			TenantID:     rawMap["tenant_id"].(string),
-			Address:      rawMap["address"].(string),
-			ProtocolPort: rawMap["port"].(int),
-			PoolID:       d.Id(),
-		}
-	}
-	return memberOpts
-}
-
-func resourcePoolMemberV1(d *schema.ResourceData, raw interface{}) members.CreateOpts {
-	rawMap := raw.(map[string]interface{})
-	return members.CreateOpts{
-		TenantID:     rawMap["tenant_id"].(string),
-		Address:      rawMap["address"].(string),
-		ProtocolPort: rawMap["port"].(int),
-		PoolID:       d.Id(),
-	}
-}
-
-func resourceLBMemberV1Hash(v interface{}) int {
-	var buf bytes.Buffer
-	m := v.(map[string]interface{})
-	buf.WriteString(fmt.Sprintf("%s-", m["region"].(string)))
-	buf.WriteString(fmt.Sprintf("%s-", m["tenant_id"].(string)))
-	buf.WriteString(fmt.Sprintf("%s-", m["address"].(string)))
-	buf.WriteString(fmt.Sprintf("%d-", m["port"].(int)))
-
-	return hashcode.String(buf.String())
 }
 
 func resourceLBPoolV1DetermineProtocol(v string) pools.LBProtocol {

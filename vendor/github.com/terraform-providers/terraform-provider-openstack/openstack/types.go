@@ -20,6 +20,12 @@ import (
 	"github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/fwaas/rules"
 	"github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/layer3/floatingips"
 	"github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/layer3/routers"
+	"github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/subnetpools"
+	"github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/vpnaas/endpointgroups"
+	"github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/vpnaas/ikepolicies"
+	"github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/vpnaas/ipsecpolicies"
+	"github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/vpnaas/services"
+	"github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/vpnaas/siteconnections"
 	"github.com/gophercloud/gophercloud/openstack/networking/v2/networks"
 	"github.com/gophercloud/gophercloud/openstack/networking/v2/ports"
 	"github.com/gophercloud/gophercloud/openstack/networking/v2/subnets"
@@ -87,8 +93,6 @@ func (lrt *LogRoundTripper) logRequest(original io.ReadCloser, contentType strin
 	if strings.HasPrefix(contentType, "application/json") {
 		debugInfo := lrt.formatJSON(bs.Bytes())
 		log.Printf("[DEBUG] OpenStack Request Body: %s", debugInfo)
-	} else {
-		log.Printf("[DEBUG] OpenStack Request Body: %s", bs.String())
 	}
 
 	return ioutil.NopCloser(strings.NewReader(bs.String())), nil
@@ -161,19 +165,14 @@ type Firewall struct {
 
 // FirewallCreateOpts represents the attributes used when creating a new firewall.
 type FirewallCreateOpts struct {
-	firewalls.CreateOptsBuilder
+	firewalls.CreateOpts
 	ValueSpecs map[string]string `json:"value_specs,omitempty"`
 }
 
 // ToFirewallCreateMap casts a CreateOptsExt struct to a map.
 // It overrides firewalls.ToFirewallCreateMap to add the ValueSpecs field.
 func (opts FirewallCreateOpts) ToFirewallCreateMap() (map[string]interface{}, error) {
-	body, err := opts.CreateOptsBuilder.ToFirewallCreateMap()
-	if err != nil {
-		return nil, err
-	}
-
-	return AddValueSpecs(body), nil
+	return BuildRequest(opts, "firewall")
 }
 
 //FirewallUpdateOpts
@@ -224,6 +223,18 @@ func (opts NetworkCreateOpts) ToNetworkCreateMap() (map[string]interface{}, erro
 // PolicyCreateOpts represents the attributes used when creating a new firewall policy.
 type PolicyCreateOpts struct {
 	policies.CreateOpts
+	ValueSpecs map[string]string `json:"value_specs,omitempty"`
+}
+
+// IKEPolicyCreateOpts represents the attributes used when creating a new IKE policy.
+type IKEPolicyCreateOpts struct {
+	ikepolicies.CreateOpts
+	ValueSpecs map[string]string `json:"value_specs,omitempty"`
+}
+
+// IKEPolicyLifetimeCreateOpts represents the attributes used when creating a new lifetime for an IKE policy.
+type IKEPolicyLifetimeCreateOpts struct {
+	ikepolicies.LifetimeCreateOpts
 	ValueSpecs map[string]string `json:"value_specs,omitempty"`
 }
 
@@ -355,4 +366,34 @@ func (opts ZoneCreateOpts) ToZoneCreateMap() (map[string]interface{}, error) {
 	}
 
 	return nil, fmt.Errorf("Expected map but got %T", b[""])
+}
+
+// SubnetPoolCreateOpts represents the attributes used when creating a new subnet pool.
+type SubnetPoolCreateOpts struct {
+	subnetpools.CreateOpts
+	ValueSpecs map[string]string `json:"value_specs,omitempty"`
+}
+
+// IPSecPolicyCreateOpts represents the attributes used when creating a new IPSec policy.
+type IPSecPolicyCreateOpts struct {
+	ipsecpolicies.CreateOpts
+	ValueSpecs map[string]string `json:"value_specs,omitempty"`
+}
+
+// ServiceCreateOpts represents the attributes used when creating a new VPN service.
+type ServiceCreateOpts struct {
+	services.CreateOpts
+	ValueSpecs map[string]string `json:"value_specs,omitempty"`
+}
+
+// EndpointGroupCreateOpts represents the attributes used when creating a new endpoint group.
+type EndpointGroupCreateOpts struct {
+	endpointgroups.CreateOpts
+	ValueSpecs map[string]string `json:"value_specs,omitempty"`
+}
+
+// SiteConnectionCreateOpts represents the attributes used when creating a new IPSec site connection.
+type SiteConnectionCreateOpts struct {
+	siteconnections.CreateOpts
+	ValueSpecs map[string]string `json:"value_specs,omitempty"`
 }

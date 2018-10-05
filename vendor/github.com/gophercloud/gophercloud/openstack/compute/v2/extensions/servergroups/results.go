@@ -5,7 +5,7 @@ import (
 	"github.com/gophercloud/gophercloud/pagination"
 )
 
-// A ServerGroup creates a policy for instance placement in the cloud
+// A ServerGroup creates a policy for instance placement in the cloud.
 type ServerGroup struct {
 	// ID is the unique ID of the Server Group.
 	ID string `json:"id"`
@@ -14,17 +14,26 @@ type ServerGroup struct {
 	Name string `json:"name"`
 
 	// Polices are the group policies.
+	//
+	// Normally a single policy is applied:
+	//
+	// "affinity" will place all servers within the server group on the
+	// same compute node.
+	//
+	// "anti-affinity" will place servers within the server group on different
+	// compute nodes.
 	Policies []string `json:"policies"`
 
 	// Members are the members of the server group.
 	Members []string `json:"members"`
 
-	// Metadata includes a list of all user-specified key-value pairs attached to the Server Group.
+	// Metadata includes a list of all user-specified key-value pairs attached
+	// to the Server Group.
 	Metadata map[string]interface{}
 }
 
-// ServerGroupPage stores a single, only page of ServerGroups
-// results from a List call.
+// ServerGroupPage stores a single page of all ServerGroups results from a
+// List call.
 type ServerGroupPage struct {
 	pagination.SinglePageBase
 }
@@ -59,20 +68,20 @@ func (r ServerGroupResult) Extract() (*ServerGroup, error) {
 	return s.ServerGroup, err
 }
 
-// CreateResult is the response from a Create operation. Call its Extract method to interpret it
-// as a ServerGroup.
+// CreateResult is the response from a Create operation. Call its Extract method
+// to interpret it as a ServerGroup.
 type CreateResult struct {
 	ServerGroupResult
 }
 
-// GetResult is the response from a Get operation. Call its Extract method to interpret it
-// as a ServerGroup.
+// GetResult is the response from a Get operation. Call its Extract method to
+// interpret it as a ServerGroup.
 type GetResult struct {
 	ServerGroupResult
 }
 
-// DeleteResult is the response from a Delete operation. Call its Extract method to determine if
-// the call succeeded or failed.
+// DeleteResult is the response from a Delete operation. Call its ExtractErr
+// method to determine if the call succeeded or failed.
 type DeleteResult struct {
 	gophercloud.ErrResult
 }

@@ -31,9 +31,8 @@ func TestBackend_impl(t *testing.T) {
 }
 
 func testAccPreCheck(t *testing.T) {
-	v := os.Getenv("OS_AUTH_URL")
-	if v == "" {
-		t.Fatal("OS_AUTH_URL must be set for acceptance tests")
+	if os.Getenv("OS_AUTH_URL") == "" && os.Getenv("OS_CLOUD") == "" {
+		t.Fatal("OS_AUTH_URL or OS_CLOUD must be set for acceptance tests")
 	}
 }
 

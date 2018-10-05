@@ -13,7 +13,7 @@ type commonResult struct {
 	gophercloud.Result
 }
 
-// Extract interprets a GetResult, CreateResult or UpdateResult as a concrete Zone.
+// Extract interprets a GetResult, CreateResult or UpdateResult as a Zone.
 // An error is returned if the original call or the extraction failed.
 func (r commonResult) Extract() (*Zone, error) {
 	var s *Zone
@@ -21,22 +21,26 @@ func (r commonResult) Extract() (*Zone, error) {
 	return s, err
 }
 
-// CreateResult is the deferred result of a Create call.
+// CreateResult is the result of a Create request. Call its Extract method
+// to interpret the result as a Zone.
 type CreateResult struct {
 	commonResult
 }
 
-// GetResult is the deferred result of a Get call.
+// GetResult is the result of a Get request. Call its Extract method
+// to interpret the result as a Zone.
 type GetResult struct {
 	commonResult
 }
 
-// UpdateResult is the deferred result of an Update call.
+// UpdateResult is the result of an Update request. Call its Extract method
+// to interpret the result as a Zone.
 type UpdateResult struct {
 	commonResult
 }
 
-// DeleteResult is the deferred result of an Delete call.
+// DeleteResult is the result of a Delete request. Call its ExtractErr method
+// to determine if the request succeeded or failed.
 type DeleteResult struct {
 	commonResult
 }
@@ -52,7 +56,7 @@ func (r ZonePage) IsEmpty() (bool, error) {
 	return len(s) == 0, err
 }
 
-// ExtractZones extracts a slice of Services from a Collection acquired from List.
+// ExtractZones extracts a slice of Zones from a List result.
 func ExtractZones(r pagination.Page) ([]Zone, error) {
 	var s struct {
 		Zones []Zone `json:"zones"`
@@ -63,7 +67,8 @@ func ExtractZones(r pagination.Page) ([]Zone, error) {
 
 // Zone represents a DNS zone.
 type Zone struct {
-	// ID uniquely identifies this zone amongst all other zones, including those not accessible to the current tenant.
+	// ID uniquely identifies this zone amongst all other zones, including those
+	// not accessible to the current tenant.
 	ID string `json:"id"`
 
 	// PoolID is the ID for the pool hosting this zone.
@@ -113,10 +118,12 @@ type Zone struct {
 	// UpdatedAt is the date when the last change was made to the zone.
 	UpdatedAt time.Time `json:"-"`
 
-	// TransferredAt is the last time an update was retrieved from the master servers.
+	// TransferredAt is the last time an update was retrieved from the
+	// master servers.
 	TransferredAt time.Time `json:"-"`
 
-	// Links includes HTTP references to the itself, useful for passing along to other APIs that might want a server reference.
+	// Links includes HTTP references to the itself, useful for passing along
+	// to other APIs that might want a server reference.
 	Links map[string]interface{} `json:"links"`
 }
 

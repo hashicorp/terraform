@@ -5,7 +5,7 @@ import (
 	"github.com/gophercloud/gophercloud/pagination"
 )
 
-// Rule represents a firewall rule
+// Rule represents a firewall rule.
 type Rule struct {
 	ID                   string `json:"id"`
 	Name                 string `json:"name,omitempty"`
@@ -22,6 +22,7 @@ type Rule struct {
 	PolicyID             string `json:"firewall_policy_id"`
 	Position             int    `json:"position"`
 	TenantID             string `json:"tenant_id"`
+	ProjectID            string `json:"project_id"`
 }
 
 // RulePage is the page returned by a pager when traversing over a
@@ -50,8 +51,8 @@ func (r RulePage) IsEmpty() (bool, error) {
 	return len(is) == 0, err
 }
 
-// ExtractRules accepts a Page struct, specifically a RouterPage struct,
-// and extracts the elements into a slice of Router structs. In other words,
+// ExtractRules accepts a Page struct, specifically a RulePage struct,
+// and extracts the elements into a slice of Rule structs. In other words,
 // a generic collection is mapped into a relevant slice.
 func ExtractRules(r pagination.Page) ([]Rule, error) {
 	var s struct {
@@ -74,22 +75,26 @@ func (r commonResult) Extract() (*Rule, error) {
 	return s.Rule, err
 }
 
-// GetResult represents the result of a get operation.
+// GetResult represents the result of a get operation. Call its Extract method
+// to interpret it as a Rule.
 type GetResult struct {
 	commonResult
 }
 
-// UpdateResult represents the result of an update operation.
+// UpdateResult represents the result of an update operation. Call its Extract
+// method to interpret it as a Rule.
 type UpdateResult struct {
 	commonResult
 }
 
-// DeleteResult represents the result of a delete operation.
+// DeleteResult represents the result of a delete operation. Call its ExtractErr
+// method to determine if the request succeeded or failed.
 type DeleteResult struct {
 	gophercloud.ErrResult
 }
 
-// CreateResult represents the result of a create operation.
+// CreateResult represents the result of a create operation. Call its Extract
+// method to interpret it as a Rule.
 type CreateResult struct {
 	commonResult
 }

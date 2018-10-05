@@ -6,7 +6,6 @@ import (
 	"sort"
 
 	"github.com/gophercloud/gophercloud/openstack/imageservice/v2/images"
-	"github.com/gophercloud/gophercloud/pagination"
 
 	"github.com/hashicorp/terraform/helper/schema"
 )
@@ -30,6 +29,12 @@ func dataSourceImagesImageV2() *schema.Resource {
 			},
 
 			"visibility": {
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+			},
+
+			"member_status": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
@@ -78,6 +83,12 @@ func dataSourceImagesImageV2() *schema.Resource {
 				Type:     schema.TypeBool,
 				Optional: true,
 				Default:  false,
+				ForceNew: true,
+			},
+
+			"properties": {
+				Type:     schema.TypeMap,
+				Optional: true,
 				ForceNew: true,
 			},
 
@@ -149,49 +160,80 @@ func dataSourceImagesImageV2Read(d *schema.ResourceData, meta interface{}) error
 	}
 
 	visibility := resourceImagesImageV2VisibilityFromString(d.Get("visibility").(string))
+	member_status := resourceImagesImageV2MemberStatusFromString(d.Get("member_status").(string))
 
-	listOpts := images.ListOpts{
-		Name:       d.Get("name").(string),
-		Visibility: visibility,
-		Owner:      d.Get("owner").(string),
-		Status:     images.ImageStatusActive,
-		SizeMin:    int64(d.Get("size_min").(int)),
-		SizeMax:    int64(d.Get("size_max").(int)),
-		SortKey:    d.Get("sort_key").(string),
-		SortDir:    d.Get("sort_direction").(string),
-		Tag:        d.Get("tag").(string),
+	var tags []string
+	tag := d.Get("tag").(string)
+	if tag != "" {
+		tags = append(tags, tag)
 	}
 
-	var allImages []images.Image
-	pager := images.List(imageClient, listOpts)
-	err = pager.EachPage(func(page pagination.Page) (bool, error) {
-		images, err := images.ExtractImages(page)
-		if err != nil {
-			return false, err
-		}
+	listOpts := images.ListOpts{
+		Name:         d.Get("name").(string),
+		Visibility:   visibility,
+		Owner:        d.Get("owner").(string),
+		Status:       images.ImageStatusActive,
+		SizeMin:      int64(d.Get("size_min").(int)),
+		SizeMax:      int64(d.Get("size_max").(int)),
+		SortKey:      d.Get("sort_key").(string),
+		SortDir:      d.Get("sort_direction").(string),
+		Tags:         tags,
+		MemberStatus: member_status,
+	}
 
-		for _, i := range images {
-			allImages = append(allImages, i)
-		}
+	log.Printf("[DEBUG] List Options: %#v", listOpts)
 
-		return true, nil
-	})
+	var image images.Image
+	allPages, err := images.List(imageClient, listOpts).AllPages()
+	if err != nil {
+		return fmt.Errorf("Unable to query images: %s", err)
+	}
 
+	allImages, err := images.ExtractImages(allPages)
 	if err != nil {
 		return fmt.Errorf("Unable to retrieve images: %s", err)
 	}
 
-	var image images.Image
+	properties := d.Get("properties").(map[string]interface{})
+	imageProperties := resourceImagesImageV2ExpandProperties(properties)
+	if len(allImages) > 1 && len(imageProperties) > 0 {
+		var filteredImages []images.Image
+		for _, image := range allImages {
+			if len(image.Properties) > 0 {
+				match := true
+				for searchKey, searchValue := range imageProperties {
+					imageValue, ok := image.Properties[searchKey]
+					if !ok {
+						match = false
+						break
+					}
+
+					if searchValue != imageValue {
+						match = false
+						break
+					}
+				}
+
+				if match {
+					filteredImages = append(filteredImages, image)
+				}
+			}
+		}
+		allImages = filteredImages
+	}
+
 	if len(allImages) < 1 {
-		return fmt.Errorf("Your query returned no results. Please change your search criteria and try again.")
+		return fmt.Errorf("Your query returned no results. " +
+			"Please change your search criteria and try again.")
 	}
 
 	if len(allImages) > 1 {
 		recent := d.Get("most_recent").(bool)
-		log.Printf("[DEBUG] openstack_images_image: multiple results found and `most_recent` is set to: %t", recent)
+		log.Printf("[DEBUG] Multiple results found and `most_recent` is set to: %t", recent)
 		if recent {
 			image = mostRecentImage(allImages)
 		} else {
+			log.Printf("[DEBUG] Multiple results found: %#v", allImages)
 			return fmt.Errorf("Your query returned more than one result. Please try a more " +
 				"specific search criteria, or set `most_recent` attribute to true.")
 		}
@@ -199,7 +241,7 @@ func dataSourceImagesImageV2Read(d *schema.ResourceData, meta interface{}) error
 		image = allImages[0]
 	}
 
-	log.Printf("[DEBUG] openstack_images_image: Single Image found: %s", image.ID)
+	log.Printf("[DEBUG] Single Image found: %s", image.ID)
 	return dataSourceImagesImageV2Attributes(d, &image)
 }
 
@@ -233,8 +275,8 @@ type imageSort []images.Image
 func (a imageSort) Len() int      { return len(a) }
 func (a imageSort) Swap(i, j int) { a[i], a[j] = a[j], a[i] }
 func (a imageSort) Less(i, j int) bool {
-	itime := a[i].UpdatedAt
-	jtime := a[j].UpdatedAt
+	itime := a[i].CreatedAt
+	jtime := a[j].CreatedAt
 	return itime.Unix() < jtime.Unix()
 }
 

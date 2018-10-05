@@ -14,7 +14,8 @@ type UpdateResult struct {
 	gophercloud.HeaderResult
 }
 
-// UpdateHeader represents the headers returned in the response from an Update request.
+// UpdateHeader represents the headers returned in the response from an Update
+// request.
 type UpdateHeader struct {
 	ContentLength int64     `json:"-"`
 	ContentType   string    `json:"Content-Type"`
@@ -51,8 +52,8 @@ func (r *UpdateHeader) UnmarshalJSON(b []byte) error {
 	return err
 }
 
-// Extract will return a struct of headers returned from a call to Get. To obtain
-// a map of headers, call the ExtractHeader method on the GetResult.
+// Extract will return a struct of headers returned from a call to Get. To
+// obtain a map of headers, call the Extract method on the GetResult.
 func (r UpdateResult) Extract() (*UpdateHeader, error) {
 	var s *UpdateHeader
 	err := r.ExtractInto(&s)
@@ -62,6 +63,7 @@ func (r UpdateResult) Extract() (*UpdateHeader, error) {
 // GetHeader represents the headers returned in the response from a Get request.
 type GetHeader struct {
 	BytesUsed      int64     `json:"-"`
+	QuotaBytes     *int64    `json:"-"`
 	ContainerCount int64     `json:"-"`
 	ContentLength  int64     `json:"-"`
 	ObjectCount    int64     `json:"-"`
@@ -77,6 +79,7 @@ func (r *GetHeader) UnmarshalJSON(b []byte) error {
 	var s struct {
 		tmp
 		BytesUsed      string `json:"X-Account-Bytes-Used"`
+		QuotaBytes     string `json:"X-Account-Meta-Quota-Bytes"`
 		ContentLength  string `json:"Content-Length"`
 		ContainerCount string `json:"X-Account-Container-Count"`
 		ObjectCount    string `json:"X-Account-Object-Count"`
@@ -97,6 +100,17 @@ func (r *GetHeader) UnmarshalJSON(b []byte) error {
 		if err != nil {
 			return err
 		}
+	}
+
+	switch s.QuotaBytes {
+	case "":
+		r.QuotaBytes = nil
+	default:
+		v, err := strconv.ParseInt(s.QuotaBytes, 10, 64)
+		if err != nil {
+			return err
+		}
+		r.QuotaBytes = &v
 	}
 
 	switch s.ContentLength {
@@ -141,15 +155,14 @@ type GetResult struct {
 	gophercloud.HeaderResult
 }
 
-// Extract will return a struct of headers returned from a call to Get. To obtain
-// a map of headers, call the ExtractHeader method on the GetResult.
+// Extract will return a struct of headers returned from a call to Get.
 func (r GetResult) Extract() (*GetHeader, error) {
 	var s *GetHeader
 	err := r.ExtractInto(&s)
 	return s, err
 }
 
-// ExtractMetadata is a function that takes a GetResult (of type *htts.Response)
+// ExtractMetadata is a function that takes a GetResult (of type *http.Response)
 // and returns the custom metatdata associated with the account.
 func (r GetResult) ExtractMetadata() (map[string]string, error) {
 	if r.Err != nil {
