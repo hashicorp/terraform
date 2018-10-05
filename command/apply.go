@@ -177,7 +177,7 @@ func (c *ApplyCommand) Run(args []string) int {
 		}
 	}
 
-	return 0
+	return op.ExitCode
 }
 
 func (c *ApplyCommand) Help() string {

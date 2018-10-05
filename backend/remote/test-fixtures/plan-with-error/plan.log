@@ -1,0 +1,10 @@
+Terraform v0.11.7
+
+Configuring remote state backend...
+Initializing Terraform configuration...
+
+Error: null_resource.foo: 1 error(s) occurred:
+
+* null_resource.foo: 1:3: unknown function called: guid in:
+
+${guid()}
