@@ -20,6 +20,16 @@ import (
 func (b *Remote) opPlan(stopCtx, cancelCtx context.Context, op *backend.Operation) (*tfe.Run, error) {
 	log.Printf("[INFO] backend/remote: starting Plan operation")
 
+	// Retrieve the workspace used to run this operation in.
+	w, err := b.client.Workspaces.Read(stopCtx, b.organization, op.Workspace)
+	if err != nil {
+		return nil, generalError("error retrieving workspace", err)
+	}
+
+	if !w.Permissions.CanQueueRun {
+		return nil, fmt.Errorf(strings.TrimSpace(fmt.Sprintf(planErrNoQueueRunRights)))
+	}
+
 	if op.Plan != nil {
 		return nil, fmt.Errorf(strings.TrimSpace(planErrPlanNotSupported))
 	}
@@ -34,12 +44,6 @@ func (b *Remote) opPlan(stopCtx, cancelCtx context.Context, op *backend.Operatio
 
 	if (op.Module == nil || op.Module.Config().Dir == "") && !op.Destroy {
 		return nil, fmt.Errorf(strings.TrimSpace(planErrNoConfig))
-	}
-
-	// Retrieve the workspace used to run this operation in.
-	w, err := b.client.Workspaces.Read(stopCtx, b.organization, op.Workspace)
-	if err != nil {
-		return nil, generalError("error retrieving workspace", err)
 	}
 
 	return b.plan(stopCtx, cancelCtx, op, w)
@@ -191,6 +195,13 @@ func (b *Remote) plan(stopCtx, cancelCtx context.Context, op *backend.Operation,
 
 	return r, nil
 }
+
+const planErrNoQueueRunRights = `
+Insufficient rights to generate a plan!
+
+[reset][yellow]The provided credentials have insufficient rights to generate a plan. In order
+to generate plans, at least plan permissions on the workspace are required.[reset]
+`
 
 const planErrPlanNotSupported = `
 Displaying a saved plan is currently not supported!
