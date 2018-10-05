@@ -100,9 +100,10 @@ func (c *PlanCommand) Run(args []string) int {
 	opReq := c.Operation()
 	opReq.Destroy = destroy
 	opReq.Module = mod
+	opReq.ModuleDepth = moduleDepth
 	opReq.Plan = plan
-	opReq.PlanRefresh = refresh
 	opReq.PlanOutPath = outPath
+	opReq.PlanRefresh = refresh
 	opReq.Type = backend.OperationTypePlan
 
 	// Perform the operation

@@ -31,12 +31,25 @@ func (b *Remote) opApply(stopCtx, cancelCtx context.Context, op *backend.Operati
 		return nil, fmt.Errorf(strings.TrimSpace(applyErrVCSNotSupported))
 	}
 
+	if op.Parallelism != defaultParallelism {
+		return nil, fmt.Errorf(strings.TrimSpace(applyErrParallelismNotSupported))
+	}
+
 	if op.Plan != nil {
 		return nil, fmt.Errorf(strings.TrimSpace(applyErrPlanNotSupported))
 	}
 
+	if !op.PlanRefresh {
+		return nil, fmt.Errorf(strings.TrimSpace(applyErrNoRefreshNotSupported))
+	}
+
 	if op.Targets != nil {
 		return nil, fmt.Errorf(strings.TrimSpace(applyErrTargetsNotSupported))
+	}
+
+	if op.Variables != nil {
+		return nil, fmt.Errorf(strings.TrimSpace(
+			fmt.Sprintf(applyErrVariablesNotSupported, b.hostname, b.organization, op.Workspace)))
 	}
 
 	if (op.Module == nil || op.Module.Config().Dir == "") && !op.Destroy {
@@ -96,7 +109,7 @@ func (b *Remote) opApply(stopCtx, cancelCtx context.Context, op *backend.Operati
 			}
 		}
 		return r, fmt.Errorf(strings.TrimSpace(
-			fmt.Sprint(applyErrNoApplyRights, b.hostname, b.organization, op.Workspace)))
+			fmt.Sprintf(applyErrNoApplyRights, b.hostname, b.organization, op.Workspace)))
 	}
 
 	hasUI := op.UIIn != nil && op.UIOut != nil
@@ -286,17 +299,44 @@ A workspace that is connected to a VCS requires the VCS-driven workflow
 to ensure that the VCS remains the single source of truth.
 `
 
+const applyErrParallelismNotSupported = `
+Custom parallelism values are currently not supported!
+
+The "remote" backend does not support setting a custom parallelism
+value at this time.
+`
+
 const applyErrPlanNotSupported = `
 Applying a saved plan is currently not supported!
 
-The "remote" backend currently requires configuration to be present
-and does not accept an existing saved plan as an argument at this time.
+The "remote" backend currently requires configuration to be present and
+does not accept an existing saved plan as an argument at this time.
+`
+
+const applyErrNoRefreshNotSupported = `
+Applying without refresh is currently not supported!
+
+Currently the "remote" backend will always do an in-memory refresh of
+the Terraform state prior to generating the plan.
 `
 
 const applyErrTargetsNotSupported = `
 Resource targeting is currently not supported!
 
 The "remote" backend does not support resource targeting at this time.
+`
+
+const applyErrVariablesNotSupported = `
+Run variables are currently not supported!
+
+The "remote" backend does not support setting run variables at this time.
+Currently the only to way to pass variables to the remote backend is by
+creating a '*.auto.tfvars' variables file. This file will automatically
+be loaded by the "remote" backend when the workspace is configured to use
+Terraform v0.10.0 or later.
+
+Additionally you can also set variables on the workspace in the web UI:
+https://%s/app/%s/%s/variables
 `
 
 const applyErrNoConfig = `

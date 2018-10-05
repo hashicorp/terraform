@@ -137,11 +137,13 @@ type Operation struct {
 
 	// The options below are more self-explanatory and affect the runtime
 	// behavior of the operation.
+	AutoApprove  bool
 	Destroy      bool
+	DestroyForce bool
+	ModuleDepth  int
+	Parallelism  int
 	Targets      []string
 	Variables    map[string]interface{}
-	AutoApprove  bool
-	DestroyForce bool
 
 	// Input/output/control options.
 	UIIn  terraform.UIInput
