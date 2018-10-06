@@ -502,7 +502,14 @@ func (s *GRPCProviderServer) ApplyResourceChange(_ context.Context, req *proto.A
 		return resp, nil
 	}
 
+	if diff == nil {
+		diff = &terraform.InstanceDiff{
+			Attributes: make(map[string]*terraform.ResourceAttrDiff),
+			Meta:       make(map[string]interface{}),
+		}
+	}
 	diff.Meta = private
+
 	newInstanceState, err := s.provider.Apply(info, priorState, diff)
 	if err != nil {
 		resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
