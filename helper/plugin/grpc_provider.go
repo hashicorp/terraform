@@ -146,7 +146,7 @@ func (s *GRPCProviderServer) UpgradeResourceState(_ context.Context, req *proto.
 	var err error
 
 	// if there's a JSON state, we need to decode it.
-	if req.RawState.Json != nil {
+	if len(req.RawState.Json) > 0 {
 		err = json.Unmarshal(req.RawState.Json, &jsonMap)
 		if err != nil {
 			resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
@@ -390,6 +390,14 @@ func (s *GRPCProviderServer) PlanResourceChange(_ context.Context, req *proto.Pl
 	}
 
 	priorState := schema.InstanceStateFromStateValue(priorStateVal, res.SchemaVersion)
+	priorPrivate := make(map[string]interface{})
+	if len(req.PriorPrivate) > 0 {
+		if err := json.Unmarshal(req.PriorPrivate, &priorPrivate); err != nil {
+			resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
+			return resp, nil
+		}
+	}
+	priorState.Meta = priorPrivate
 
 	// turn the propsed state into a legacy configuration
 	config := terraform.NewResourceConfigShimmed(proposedNewStateVal, block)
@@ -403,9 +411,9 @@ func (s *GRPCProviderServer) PlanResourceChange(_ context.Context, req *proto.Pl
 	if diff == nil {
 		// schema.Provider.Diff returns nil if it ends up making a diff with
 		// no changes, but our new interface wants us to return an actual
-		// change description that _shows_ there are no changes, so we need
-		// to synthesize one here.
-		resp.PlannedState = req.PriorState
+		// change description that _shows_ there are no changes, so we return
+		// the proposed change that produces no diff.
+		resp.PlannedState = req.ProposedNewState
 		return resp, nil
 	}
 
@@ -480,10 +488,12 @@ func (s *GRPCProviderServer) ApplyResourceChange(_ context.Context, req *proto.A
 
 	priorState := schema.InstanceStateFromStateValue(priorStateVal, res.SchemaVersion)
 
-	var private map[string]interface{}
-	if err := json.Unmarshal(req.PlannedPrivate, &private); err != nil {
-		resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
-		return resp, nil
+	private := make(map[string]interface{})
+	if len(req.PlannedPrivate) > 0 {
+		if err := json.Unmarshal(req.PlannedPrivate, &private); err != nil {
+			resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
+			return resp, nil
+		}
 	}
 
 	diff, err := schema.DiffFromValues(priorStateVal, plannedStateVal, res)
@@ -492,6 +502,7 @@ func (s *GRPCProviderServer) ApplyResourceChange(_ context.Context, req *proto.A
 		return resp, nil
 	}
 
+	diff.Meta = private
 	newInstanceState, err := s.provider.Apply(info, priorState, diff)
 	if err != nil {
 		resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
