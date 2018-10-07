@@ -210,7 +210,7 @@ func (v *LocalMode) writeKnownHosts(knownHosts []string) (string, error) {
 		trimmedKnownHosts = append(trimmedKnownHosts, strings.TrimSpace(entry))
 	}
 	knownHostsFileContents := strings.Join(trimmedKnownHosts, "\n")
-	file, err := ioutil.TempFile(os.TempDir(), uuid.Must(uuid.NewV4()).String())
+	file, err := ioutil.TempFile(os.TempDir(), uuid.NewV4().String())
 	defer file.Close()
 	if err != nil {
 		return "", err

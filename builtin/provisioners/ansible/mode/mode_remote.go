@@ -401,7 +401,7 @@ func (v *RemoteMode) uploadVaultPasswordOrIDFile(destination string, source stri
 		return "", err
 	}
 
-	u1 := uuid.Must(uuid.NewV4())
+	u1 := uuid.NewV4()
 	targetPath := filepath.Join(destination, fmt.Sprintf(".vault-file-%s", u1))
 
 	v.o.Output(fmt.Sprintf("Uploading ansible vault password file / ID to '%s'...", targetPath))
@@ -430,7 +430,7 @@ func (v *RemoteMode) writeInventory(destination string, play *types.Play) (strin
 		if err != nil {
 			return "", err
 		}
-		u1 := uuid.Must(uuid.NewV4())
+		u1 := uuid.NewV4()
 		targetPath := filepath.Join(destination, fmt.Sprintf(".inventory-%s", u1))
 		v.o.Output(fmt.Sprintf("Uploading provided inventory file '%s' to '%s'...", play.InventoryFile(), targetPath))
 
@@ -463,7 +463,7 @@ func (v *RemoteMode) writeInventory(destination string, play *types.Play) (strin
 		return "", fmt.Errorf("Error executing 'hosts' template: %s", err)
 	}
 
-	u1 := uuid.Must(uuid.NewV4())
+	u1 := uuid.NewV4()
 	targetPath := filepath.Join(destination, fmt.Sprintf(".inventory-%s", u1))
 
 	v.o.Output(fmt.Sprintf("Writing temporary ansible inventory to '%s'...", targetPath))
