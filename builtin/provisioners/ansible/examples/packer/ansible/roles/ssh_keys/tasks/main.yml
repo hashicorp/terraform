@@ -1,0 +1,5 @@
+- name: authorize SSH public key
+  authorized_key:
+    user: "{{ whoami.stdout }}"
+    state: present
+    key: "{{ lookup('file', lookup('env','HOME') + '/.ssh/terraform-provisioner-ansible.pub' ) }}"

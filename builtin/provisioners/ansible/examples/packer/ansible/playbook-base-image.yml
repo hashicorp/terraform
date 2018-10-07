@@ -1,0 +1,15 @@
+---
+# Base image components
+
+- hosts: all
+  become: no
+  tasks:
+  - name: get the username running the deploy
+    command: whoami
+    register: whoami
+
+- hosts: all
+  become: yes
+  roles:
+    - ssh_keys
+    - updated

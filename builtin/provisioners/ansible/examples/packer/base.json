@@ -1,0 +1,19 @@
+{
+  "builders": [
+    {
+      "type": "amazon-ebs",
+      "ami_name": "terraform-provisioner-ansible-base",
+      "force_deregister": true,
+      "instance_type": "m3.medium",
+      "region": "eu-central-1",
+      "source_ami": "ami-337be65c",
+      "ssh_username": "centos"
+    }
+  ],
+  "provisioners": [
+    {
+      "type": "ansible",
+      "playbook_file": "ansible/playbook-base-image.yml"
+    }
+  ]
+}
