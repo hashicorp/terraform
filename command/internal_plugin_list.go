@@ -4,6 +4,7 @@
 package command
 
 import (
+	ansibleprovisioner "github.com/hashicorp/terraform/builtin/provisioners/ansible"
 	chefprovisioner "github.com/hashicorp/terraform/builtin/provisioners/chef"
 	fileprovisioner "github.com/hashicorp/terraform/builtin/provisioners/file"
 	habitatprovisioner "github.com/hashicorp/terraform/builtin/provisioners/habitat"
@@ -17,6 +18,7 @@ import (
 var InternalProviders = map[string]plugin.ProviderFunc{}
 
 var InternalProvisioners = map[string]plugin.ProvisionerFunc{
+	"ansible":         ansibleprovisioner.Provisioner,
 	"chef":            chefprovisioner.Provisioner,
 	"file":            fileprovisioner.Provisioner,
 	"habitat":         habitatprovisioner.Provisioner,

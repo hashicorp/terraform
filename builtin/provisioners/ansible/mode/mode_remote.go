@@ -14,8 +14,8 @@ import (
 	"text/template"
 	"time"
 
+	"github.com/hashicorp/terraform/builtin/provisioners/ansible/types"
 	linereader "github.com/mitchellh/go-linereader"
-	"github.com/radekg/terraform-provisioner-ansible/types"
 
 	"github.com/hashicorp/terraform/communicator"
 	"github.com/hashicorp/terraform/communicator/remote"

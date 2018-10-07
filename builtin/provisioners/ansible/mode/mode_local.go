@@ -9,7 +9,7 @@ import (
 	"text/template"
 	"time"
 
-	"github.com/radekg/terraform-provisioner-ansible/types"
+	"github.com/hashicorp/terraform/builtin/provisioners/ansible/types"
 	uuid "github.com/satori/go.uuid"
 
 	localExec "github.com/hashicorp/terraform/builtin/provisioners/local-exec"
