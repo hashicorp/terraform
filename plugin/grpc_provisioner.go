@@ -64,6 +64,7 @@ func (p *GRPCProvisioner) GetSchema() (resp provisioners.GetSchemaResponse) {
 		resp.Diagnostics = resp.Diagnostics.Append(err)
 		return resp
 	}
+	resp.Diagnostics = resp.Diagnostics.Append(convert.ProtoToDiagnostics(protoResp.Diagnostics))
 
 	if protoResp.Provisioner == nil {
 		resp.Diagnostics = resp.Diagnostics.Append(errors.New("missing provisioner schema"))
