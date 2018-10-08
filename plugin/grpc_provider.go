@@ -120,6 +120,8 @@ func (p *GRPCProvider) GetSchema() (resp providers.GetSchemaResponse) {
 		return resp
 	}
 
+	resp.Diagnostics = resp.Diagnostics.Append(convert.ProtoToDiagnostics(protoResp.Diagnostics))
+
 	if protoResp.Provider == nil {
 		resp.Diagnostics = resp.Diagnostics.Append(errors.New("missing provider schema"))
 		return resp
@@ -159,6 +161,7 @@ func (p *GRPCProvider) ValidateProviderConfig(r providers.ValidateProviderConfig
 		resp.Diagnostics = resp.Diagnostics.Append(err)
 		return resp
 	}
+
 	resp.Diagnostics = resp.Diagnostics.Append(convert.ProtoToDiagnostics(protoResp.Diagnostics))
 	return resp
 }
@@ -233,6 +236,7 @@ func (p *GRPCProvider) UpgradeResourceState(r providers.UpgradeResourceStateRequ
 		resp.Diagnostics = resp.Diagnostics.Append(err)
 		return resp
 	}
+	resp.Diagnostics = resp.Diagnostics.Append(convert.ProtoToDiagnostics(protoResp.Diagnostics))
 
 	state := cty.NullVal(resSchema.Block.ImpliedType())
 	if protoResp.UpgradedState != nil {
@@ -244,8 +248,6 @@ func (p *GRPCProvider) UpgradeResourceState(r providers.UpgradeResourceStateRequ
 	}
 
 	resp.UpgradedState = state
-
-	resp.Diagnostics = resp.Diagnostics.Append(convert.ProtoToDiagnostics(protoResp.Diagnostics))
 	return resp
 }
 
@@ -314,7 +316,6 @@ func (p *GRPCProvider) ReadResource(r providers.ReadResourceRequest) (resp provi
 		resp.Diagnostics = resp.Diagnostics.Append(err)
 		return resp
 	}
-
 	resp.Diagnostics = resp.Diagnostics.Append(convert.ProtoToDiagnostics(protoResp.Diagnostics))
 
 	state := cty.NullVal(resSchema.Block.ImpliedType())
@@ -358,7 +359,6 @@ func (p *GRPCProvider) PlanResourceChange(r providers.PlanResourceChangeRequest)
 		resp.Diagnostics = resp.Diagnostics.Append(err)
 		return resp
 	}
-
 	resp.Diagnostics = resp.Diagnostics.Append(convert.ProtoToDiagnostics(protoResp.Diagnostics))
 
 	state := cty.NullVal(resSchema.Block.ImpliedType())
@@ -408,6 +408,7 @@ func (p *GRPCProvider) ApplyResourceChange(r providers.ApplyResourceChangeReques
 		resp.Diagnostics = resp.Diagnostics.Append(err)
 		return resp
 	}
+	resp.Diagnostics = resp.Diagnostics.Append(convert.ProtoToDiagnostics(protoResp.Diagnostics))
 
 	resp.Private = protoResp.Private
 
@@ -439,6 +440,7 @@ func (p *GRPCProvider) ImportResourceState(r providers.ImportResourceStateReques
 		resp.Diagnostics = resp.Diagnostics.Append(err)
 		return resp
 	}
+	resp.Diagnostics = resp.Diagnostics.Append(convert.ProtoToDiagnostics(protoResp.Diagnostics))
 
 	for _, imported := range protoResp.ImportedResources {
 		resource := providers.ImportedResource{
@@ -484,6 +486,8 @@ func (p *GRPCProvider) ReadDataSource(r providers.ReadDataSourceRequest) (resp p
 		resp.Diagnostics = resp.Diagnostics.Append(err)
 		return resp
 	}
+	resp.Diagnostics = resp.Diagnostics.Append(convert.ProtoToDiagnostics(protoResp.Diagnostics))
+
 	state := cty.NullVal(dataSchema.Block.ImpliedType())
 	if protoResp.State != nil {
 		state, err = msgpack.Unmarshal(protoResp.State.Msgpack, dataSchema.Block.ImpliedType())

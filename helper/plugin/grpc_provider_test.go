@@ -1,6 +1,7 @@
 package plugin
 
 import (
+	"context"
 	"fmt"
 	"testing"
 
@@ -291,5 +292,136 @@ func TestUpgradeState_flatmapState(t *testing.T) {
 				t.Fatal(cmp.Diff(expected, val, valueComparer, equateEmpty))
 			}
 		})
+	}
+}
+
+func TestPlanResourceChange(t *testing.T) {
+	r := &schema.Resource{
+		SchemaVersion: 4,
+		Schema: map[string]*schema.Schema{
+			"foo": {
+				Type:     schema.TypeInt,
+				Optional: true,
+			},
+		},
+	}
+
+	server := &GRPCProviderServer{
+		provider: &schema.Provider{
+			ResourcesMap: map[string]*schema.Resource{
+				"test": r,
+			},
+		},
+	}
+
+	schema := r.CoreConfigSchema()
+	priorState, err := msgpack.Marshal(cty.NullVal(schema.ImpliedType()), schema.ImpliedType())
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// A propsed state with only the ID unknown will produce a nil diff, and
+	// should return the propsed state value.
+	proposedVal, err := schema.CoerceValue(cty.ObjectVal(map[string]cty.Value{
+		"id": cty.UnknownVal(cty.String),
+	}))
+	if err != nil {
+		t.Fatal(err)
+	}
+	proposedState, err := msgpack.Marshal(proposedVal, schema.ImpliedType())
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	testReq := &proto.PlanResourceChange_Request{
+		TypeName: "test",
+		PriorState: &proto.DynamicValue{
+			Msgpack: priorState,
+		},
+		ProposedNewState: &proto.DynamicValue{
+			Msgpack: proposedState,
+		},
+	}
+
+	resp, err := server.PlanResourceChange(context.Background(), testReq)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	plannedStateVal, err := msgpack.Unmarshal(resp.PlannedState.Msgpack, schema.ImpliedType())
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if !cmp.Equal(proposedVal, plannedStateVal, valueComparer) {
+		t.Fatal(cmp.Diff(proposedVal, plannedStateVal, valueComparer))
+	}
+}
+
+func TestApplyResourceChange(t *testing.T) {
+	r := &schema.Resource{
+		SchemaVersion: 4,
+		Schema: map[string]*schema.Schema{
+			"foo": {
+				Type:     schema.TypeInt,
+				Optional: true,
+			},
+		},
+		Create: func(rd *schema.ResourceData, _ interface{}) error {
+			rd.SetId("bar")
+			return nil
+		},
+	}
+
+	server := &GRPCProviderServer{
+		provider: &schema.Provider{
+			ResourcesMap: map[string]*schema.Resource{
+				"test": r,
+			},
+		},
+	}
+
+	schema := r.CoreConfigSchema()
+	priorState, err := msgpack.Marshal(cty.NullVal(schema.ImpliedType()), schema.ImpliedType())
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// A propsed state with only the ID unknown will produce a nil diff, and
+	// should return the propsed state value.
+	plannedVal, err := schema.CoerceValue(cty.ObjectVal(map[string]cty.Value{
+		"id": cty.UnknownVal(cty.String),
+	}))
+	if err != nil {
+		t.Fatal(err)
+	}
+	plannedState, err := msgpack.Marshal(plannedVal, schema.ImpliedType())
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	testReq := &proto.ApplyResourceChange_Request{
+		TypeName: "test",
+		PriorState: &proto.DynamicValue{
+			Msgpack: priorState,
+		},
+		PlannedState: &proto.DynamicValue{
+			Msgpack: plannedState,
+		},
+	}
+
+	resp, err := server.ApplyResourceChange(context.Background(), testReq)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	newStateVal, err := msgpack.Unmarshal(resp.NewState.Msgpack, schema.ImpliedType())
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	id := newStateVal.GetAttr("id").AsString()
+	if id != "bar" {
+		t.Fatalf("incorrect final state: %#v\n", newStateVal)
 	}
 }
