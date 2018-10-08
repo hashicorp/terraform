@@ -8,6 +8,7 @@ import (
 
 	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/providers"
+	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/states/statemgr"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/hashicorp/terraform/tfdiags"
@@ -60,12 +61,6 @@ func TestLocalProvider(t *testing.T, b *Local, name string, schema *terraform.Pr
 			PlannedState:   req.ProposedNewState,
 			PlannedPrivate: req.PriorPrivate,
 		}
-	}
-	p.DiffFn = func(
-		info *terraform.InstanceInfo,
-		s *terraform.InstanceState,
-		r *terraform.ResourceConfig) (*terraform.InstanceDiff, error) {
-		return nil, nil
 	}
 	p.ReadResourceFn = func(req providers.ReadResourceRequest) providers.ReadResourceResponse {
 		return providers.ReadResourceResponse{NewState: req.PriorState}
@@ -170,4 +165,9 @@ func testTempDir(t *testing.T) string {
 	}
 
 	return d
+}
+
+func testStateFile(t *testing.T, path string, s *states.State) {
+	stateFile := statemgr.NewFilesystem(path)
+	stateFile.WriteState(s)
 }
