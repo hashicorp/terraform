@@ -326,12 +326,7 @@ func (m *Meta) provisionerFactories() map[string]terraform.ProvisionerFactory {
 	// Wire up the internal provisioners first. These might be overridden
 	// by discovered provisioners below.
 	for name := range InternalProvisioners {
-		client, err := internalPluginClient("provisioner", name)
-		if err != nil {
-			log.Printf("[WARN] failed to build command line for internal plugin %q: %s", name, err)
-			continue
-		}
-		factories[name] = internalProvisionerFactory(client)
+		factories[name] = internalProvisionerFactory(discovery.PluginMeta{Name: name})
 	}
 
 	byName := plugins.ByName()
@@ -397,8 +392,12 @@ func provisionerFactory(meta discovery.PluginMeta) terraform.ProvisionerFactory 
 	}
 }
 
-func internalProvisionerFactory(client *plugin.Client) terraform.ProvisionerFactory {
+func internalProvisionerFactory(meta discovery.PluginMeta) terraform.ProvisionerFactory {
 	return func() (provisioners.Interface, error) {
+		client, err := internalPluginClient("provisioner", meta.Name)
+		if err != nil {
+			return nil, fmt.Errorf("[WARN] failed to build command line for internal plugin %q: %s", meta.Name, err)
+		}
 		return newProvisionerClient(client)
 	}
 }
