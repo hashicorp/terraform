@@ -124,6 +124,7 @@ func (s *GRPCProvisionerServer) ProvisionResource(req *proto.ProvisionResource_R
 		Ephemeral: terraform.EphemeralState{
 			ConnInfo: conn,
 		},
+		Meta: make(map[string]interface{}),
 	}
 
 	err = s.provisioner.Apply(uiOutput{srv}, instanceState, resourceConfig)
