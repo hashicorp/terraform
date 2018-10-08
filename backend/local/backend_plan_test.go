@@ -8,11 +8,13 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/configs/configload"
 	"github.com/hashicorp/terraform/configs/configschema"
 	"github.com/hashicorp/terraform/plans"
 	"github.com/hashicorp/terraform/plans/planfile"
+	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/mitchellh/cli"
 	"github.com/zclconf/go-cty/cty"
@@ -131,10 +133,11 @@ func TestLocal_planNoConfig(t *testing.T) {
 func TestLocal_planRefreshFalse(t *testing.T) {
 	b, cleanup := TestLocal(t)
 	defer cleanup()
-	p := TestLocalProvider(t, b, "test", &terraform.ProviderSchema{})
-	terraform.TestStateFile(t, b.StatePath, testPlanState())
 
-	op, configCleanup := testOperationPlan(t, "./test-fixtures/empty")
+	p := TestLocalProvider(t, b, "test", planFixtureSchema())
+	testStateFile(t, b.StatePath, testPlanState())
+
+	op, configCleanup := testOperationPlan(t, "./test-fixtures/plan")
 	defer configCleanup()
 
 	run, err := b.Operation(context.Background(), op)
@@ -158,8 +161,9 @@ func TestLocal_planRefreshFalse(t *testing.T) {
 func TestLocal_planDestroy(t *testing.T) {
 	b, cleanup := TestLocal(t)
 	defer cleanup()
+
 	p := TestLocalProvider(t, b, "test", planFixtureSchema())
-	terraform.TestStateFile(t, b.StatePath, testPlanState())
+	testStateFile(t, b.StatePath, testPlanState())
 
 	outDir := testTempDir(t)
 	defer os.RemoveAll(outDir)
@@ -167,7 +171,7 @@ func TestLocal_planDestroy(t *testing.T) {
 
 	op, configCleanup := testOperationPlan(t, "./test-fixtures/plan")
 	defer configCleanup()
-	op.Destroy = false
+	op.Destroy = true
 	op.PlanRefresh = true
 	op.PlanOutPath = planPath
 
@@ -189,23 +193,18 @@ func TestLocal_planDestroy(t *testing.T) {
 	}
 
 	plan := testReadPlan(t, planPath)
-	// This statement can be removed when the test is fixed and replaced with the
-	// commented-out test below.
-	if plan == nil {
-		t.Fatalf("plan is nil")
+	for _, r := range plan.Changes.Resources {
+		if r.Action.String() != "Delete" {
+			t.Fatalf("bad: %#v", r.Action.String())
+		}
 	}
-	// for _, r := range plan.Changes.Resources {
-	// 	if !r.Destroy {
-	// 		t.Fatalf("bad: %#v", r)
-	// 	}
-	// }
 }
 
 func TestLocal_planOutPathNoChange(t *testing.T) {
 	b, cleanup := TestLocal(t)
 	defer cleanup()
 	TestLocalProvider(t, b, "test", planFixtureSchema())
-	terraform.TestStateFile(t, b.StatePath, testPlanState())
+	testStateFile(t, b.StatePath, testPlanState())
 
 	outDir := testTempDir(t)
 	defer os.RemoveAll(outDir)
@@ -225,14 +224,10 @@ func TestLocal_planOutPathNoChange(t *testing.T) {
 	}
 
 	plan := testReadPlan(t, planPath)
-	// This statement can be removed when the test is fixed and replaced with the
-	// commented-out test below.
-	if plan == nil {
-		t.Fatalf("plan is nil")
+
+	if !plan.Changes.Empty() {
+		t.Fatalf("expected empty plan to be written")
 	}
-	// if !plan.Changes.Empty() {
-	// 	t.Fatalf("expected empty plan to be written")
-	// }
 }
 
 // TestLocal_planScaleOutNoDupeCount tests a Refresh/Plan sequence when a
@@ -245,29 +240,7 @@ func TestLocal_planScaleOutNoDupeCount(t *testing.T) {
 	b, cleanup := TestLocal(t)
 	defer cleanup()
 	TestLocalProvider(t, b, "test", planFixtureSchema())
-	state := &terraform.State{
-		Version: 2,
-		Modules: []*terraform.ModuleState{
-			&terraform.ModuleState{
-				Path: []string{"root"},
-				Resources: map[string]*terraform.ResourceState{
-					"test_instance.foo.0": &terraform.ResourceState{
-						Type: "test_instance",
-						Primary: &terraform.InstanceState{
-							ID: "bar",
-						},
-					},
-					"test_instance.foo.1": &terraform.ResourceState{
-						Type: "test_instance",
-						Primary: &terraform.InstanceState{
-							ID: "bar",
-						},
-					},
-				},
-			},
-		},
-	}
-	terraform.TestStateFile(t, b.StatePath, state)
+	testStateFile(t, b.StatePath, testPlanState())
 
 	actual := new(CountHook)
 	b.ContextOpts.Hooks = append(b.ContextOpts.Hooks, actual)
@@ -312,24 +285,32 @@ func testOperationPlan(t *testing.T, configDir string) (*backend.Operation, func
 	}, configCleanup
 }
 
-// testPlanState is just a common state that we use for testing refresh.
-func testPlanState() *terraform.State {
-	return &terraform.State{
-		Version: 2,
-		Modules: []*terraform.ModuleState{
-			&terraform.ModuleState{
-				Path: []string{"root"},
-				Resources: map[string]*terraform.ResourceState{
-					"test_instance.foo": &terraform.ResourceState{
-						Type: "test_instance",
-						Primary: &terraform.InstanceState{
-							ID: "bar",
-						},
-					},
-				},
-			},
+// testPlanState is just a common state that we use for testing plan.
+func testPlanState() *states.State {
+	state := states.NewState()
+	rootModule := state.RootModule()
+	rootModule.SetResourceInstanceCurrent(
+		addrs.Resource{
+			Mode: addrs.ManagedResourceMode,
+			Type: "test_instance",
+			Name: "foo",
+		}.Instance(addrs.IntKey(0)),
+		&states.ResourceInstanceObjectSrc{
+			Status:        states.ObjectReady,
+			SchemaVersion: 1,
+			AttrsJSON: []byte(`{
+				"ami": "bar",
+				"network_interface": [{
+					"device_index": 0,
+					"description": "Main network interface"
+				}]
+			}`),
 		},
-	}
+		addrs.ProviderConfig{
+			Type: "test",
+		}.Absolute(addrs.RootModuleInstance),
+	)
+	return state
 }
 
 func testReadPlan(t *testing.T, path string) *plans.Plan {
@@ -340,6 +321,9 @@ func testReadPlan(t *testing.T, path string) *plans.Plan {
 	defer p.Close()
 
 	plan, err := p.ReadPlan()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
 
 	return plan
 }

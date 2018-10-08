@@ -3,7 +3,6 @@ package local
 import (
 	"context"
 	"errors"
-	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -20,6 +19,7 @@ import (
 	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/states/statemgr"
 	"github.com/hashicorp/terraform/terraform"
+	"github.com/hashicorp/terraform/tfdiags"
 )
 
 func TestLocal_applyBasic(t *testing.T) {
@@ -123,44 +123,41 @@ func TestLocal_applyError(t *testing.T) {
 	b, cleanup := TestLocal(t)
 	defer cleanup()
 	p := TestLocalProvider(t, b, "test", nil)
-
-	var lock sync.Mutex
-	errored := false
 	p.GetSchemaReturn = &terraform.ProviderSchema{
 		ResourceTypes: map[string]*configschema.Block{
 			"test_instance": {
 				Attributes: map[string]*configschema.Attribute{
-					"ami":   {Type: cty.String, Optional: true},
-					"error": {Type: cty.String, Optional: true},
+					"ami": {Type: cty.String, Optional: true},
+					"id":  {Type: cty.String, Computed: true},
 				},
 			},
 		},
 	}
-	p.ApplyFn = func(
-		info *terraform.InstanceInfo,
-		s *terraform.InstanceState,
-		d *terraform.InstanceDiff) (*terraform.InstanceState, error) {
+
+	var lock sync.Mutex
+	errored := false
+	p.ApplyResourceChangeFn = func(
+		r providers.ApplyResourceChangeRequest) providers.ApplyResourceChangeResponse {
+
 		lock.Lock()
 		defer lock.Unlock()
+		var diags tfdiags.Diagnostics
 
-		if !errored && info.Id == "test_instance.bar" {
+		ami := r.Config.GetAttr("ami").AsString()
+		if !errored && ami == "error" {
 			errored = true
-			return nil, fmt.Errorf("error")
+			diags = diags.Append(errors.New("error"))
+			return providers.ApplyResourceChangeResponse{
+				Diagnostics: diags,
+			}
 		}
-
-		return &terraform.InstanceState{ID: "foo"}, nil
-	}
-	p.DiffFn = func(
-		*terraform.InstanceInfo,
-		*terraform.InstanceState,
-		*terraform.ResourceConfig) (*terraform.InstanceDiff, error) {
-		return &terraform.InstanceDiff{
-			Attributes: map[string]*terraform.ResourceAttrDiff{
-				"ami": &terraform.ResourceAttrDiff{
-					New: "bar",
-				},
-			},
-		}, nil
+		return providers.ApplyResourceChangeResponse{
+			Diagnostics: diags,
+			NewState: cty.ObjectVal(map[string]cty.Value{
+				"id":  cty.StringVal("foo"),
+				"ami": cty.StringVal("bar"),
+			}),
+		}
 	}
 
 	op, configCleanup := testOperationApply(t, "./test-fixtures/apply-error")
@@ -179,15 +176,19 @@ func TestLocal_applyError(t *testing.T) {
 test_instance.foo:
   ID = foo
   provider = provider.test
+  ami = bar
 	`)
 }
 
 func TestLocal_applyBackendFail(t *testing.T) {
-	op, configCleanup := testOperationApply(t, "./test-fixtures/apply")
-	defer configCleanup()
-
 	b, cleanup := TestLocal(t)
 	defer cleanup()
+
+	p := TestLocalProvider(t, b, "test", applyFixtureSchema())
+	p.ApplyResourceChangeResponse = providers.ApplyResourceChangeResponse{NewState: cty.ObjectVal(map[string]cty.Value{
+		"id":  cty.StringVal("yes"),
+		"ami": cty.StringVal("bar"),
+	})}
 
 	wd, err := os.Getwd()
 	if err != nil {
@@ -199,11 +200,11 @@ func TestLocal_applyBackendFail(t *testing.T) {
 	}
 	defer os.Chdir(wd)
 
+	op, configCleanup := testOperationApply(t, wd+"/test-fixtures/apply")
+	defer configCleanup()
+
 	b.Backend = &backendWithFailingState{}
 	b.CLI = new(cli.MockUi)
-	p := TestLocalProvider(t, b, "test", applyFixtureSchema())
-
-	p.ApplyResourceChangeResponse = providers.ApplyResourceChangeResponse{NewState: cty.ObjectVal(map[string]cty.Value{"id": cty.StringVal("yes")})}
 
 	run, err := b.Operation(context.Background(), op)
 	if err != nil {
@@ -225,6 +226,7 @@ func TestLocal_applyBackendFail(t *testing.T) {
 test_instance.foo:
   ID = yes
   provider = provider.test
+  ami = bar
 	`)
 }
 
