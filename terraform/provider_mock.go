@@ -112,7 +112,7 @@ func (p *MockProvider) getSchema() providers.GetSchemaResponse {
 	// holding the lock.
 
 	ret := providers.GetSchemaResponse{
-		Provider: providers.Schema{},
+		Provider:      providers.Schema{},
 		DataSources:   map[string]providers.Schema{},
 		ResourceTypes: map[string]providers.Schema{},
 	}
@@ -285,7 +285,7 @@ func (p *MockProvider) PlanResourceChange(r providers.PlanResourceChangeRequest)
 		legacyDiff, err := p.DiffFn(info, priorState, cfg)
 
 		var res providers.PlanResourceChangeResponse
-		res.PlannedState = cty.NullVal(schema.ImpliedType()) // mimic how an absent value would arrive over the GRPC channel
+		res.PlannedState = r.ProposedNewState
 		if err != nil {
 			res.Diagnostics = res.Diagnostics.Append(err)
 		}
@@ -309,7 +309,6 @@ func (p *MockProvider) PlanResourceChange(r providers.PlanResourceChangeRequest)
 			res.RequiresReplace = requiresReplace
 		}
 		return res
-
 	}
 	if p.PlanResourceChangeFn != nil {
 		return p.PlanResourceChangeFn(r)
