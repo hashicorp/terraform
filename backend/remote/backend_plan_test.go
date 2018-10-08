@@ -78,8 +78,8 @@ func TestRemote_planWithoutPermissions(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error starting operation: %v", err)
 	}
-	<-run.Done()
 
+	<-run.Done()
 	if run.Err == nil {
 		t.Fatalf("expected a plan error, got: %v", run.Err)
 	}
@@ -103,8 +103,8 @@ func TestRemote_planWithModuleDepth(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error starting operation: %v", err)
 	}
-	<-run.Done()
 
+	<-run.Done()
 	if run.Err == nil {
 		t.Fatalf("expected a plan error, got: %v", run.Err)
 	}
@@ -128,8 +128,8 @@ func TestRemote_planWithParallelism(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error starting operation: %v", err)
 	}
-	<-run.Done()
 
+	<-run.Done()
 	if run.Err == nil {
 		t.Fatalf("expected a plan error, got: %v", run.Err)
 	}
@@ -153,8 +153,8 @@ func TestRemote_planWithPlan(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error starting operation: %v", err)
 	}
-	<-run.Done()
 
+	<-run.Done()
 	if run.Err == nil {
 		t.Fatalf("expected a plan error, got: %v", run.Err)
 	}
@@ -178,8 +178,8 @@ func TestRemote_planWithPath(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error starting operation: %v", err)
 	}
-	<-run.Done()
 
+	<-run.Done()
 	if run.Err == nil {
 		t.Fatalf("expected a plan error, got: %v", run.Err)
 	}
@@ -203,8 +203,8 @@ func TestRemote_planWithoutRefresh(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error starting operation: %v", err)
 	}
-	<-run.Done()
 
+	<-run.Done()
 	if run.Err == nil {
 		t.Fatalf("expected a plan error, got: %v", run.Err)
 	}
@@ -228,8 +228,8 @@ func TestRemote_planWithTarget(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error starting operation: %v", err)
 	}
-	<-run.Done()
 
+	<-run.Done()
 	if run.Err == nil {
 		t.Fatalf("expected a plan error, got: %v", run.Err)
 	}
@@ -253,8 +253,8 @@ func TestRemote_planWithVariables(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error starting operation: %v", err)
 	}
-	<-run.Done()
 
+	<-run.Done()
 	if run.Err == nil {
 		t.Fatalf("expected an plan error, got: %v", run.Err)
 	}
@@ -274,8 +274,8 @@ func TestRemote_planNoConfig(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error starting operation: %v", err)
 	}
-	<-run.Done()
 
+	<-run.Done()
 	if run.Err == nil {
 		t.Fatalf("expected a plan error, got: %v", run.Err)
 	}

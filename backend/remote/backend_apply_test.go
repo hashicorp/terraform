@@ -63,6 +63,61 @@ func TestRemote_applyBasic(t *testing.T) {
 	}
 }
 
+func TestRemote_applyWithAutoApply(t *testing.T) {
+	b := testBackendNoDefault(t)
+
+	// Create a named workspace that auto applies.
+	_, err := b.client.Workspaces.Create(
+		context.Background(),
+		b.organization,
+		tfe.WorkspaceCreateOptions{
+			AutoApply: tfe.Bool(true),
+			Name:      tfe.String(b.prefix + "prod"),
+		},
+	)
+	if err != nil {
+		t.Fatalf("error creating named workspace: %v", err)
+	}
+
+	mod, modCleanup := module.TestTree(t, "./test-fixtures/apply")
+	defer modCleanup()
+
+	input := testInput(t, map[string]string{
+		"approve": "yes",
+	})
+
+	op := testOperationApply()
+	op.Module = mod
+	op.UIIn = input
+	op.UIOut = b.CLI
+	op.Workspace = "prod"
+
+	run, err := b.Operation(context.Background(), op)
+	if err != nil {
+		t.Fatalf("error starting operation: %v", err)
+	}
+
+	<-run.Done()
+	if run.Err != nil {
+		t.Fatalf("error running operation: %v", run.Err)
+	}
+	if run.PlanEmpty {
+		t.Fatalf("expected a non-empty plan")
+	}
+
+	if len(input.answers) != 1 {
+		t.Fatalf("expected an unused answer, got: %v", input.answers)
+	}
+
+	output := b.CLI.(*cli.MockUi).OutputWriter.String()
+	if !strings.Contains(output, "1 to add, 0 to change, 0 to destroy") {
+		t.Fatalf("missing plan summery in output: %s", output)
+	}
+	if !strings.Contains(output, "1 added, 0 changed, 0 destroyed") {
+		t.Fatalf("missing apply summery in output: %s", output)
+	}
+}
+
 func TestRemote_applyWithoutPermissions(t *testing.T) {
 	b := testBackendNoDefault(t)
 
@@ -90,8 +145,8 @@ func TestRemote_applyWithoutPermissions(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error starting operation: %v", err)
 	}
-	<-run.Done()
 
+	<-run.Done()
 	if run.Err == nil {
 		t.Fatalf("expected an apply error, got: %v", run.Err)
 	}
@@ -127,8 +182,8 @@ func TestRemote_applyWithVCS(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error starting operation: %v", err)
 	}
-	<-run.Done()
 
+	<-run.Done()
 	if run.Err == nil {
 		t.Fatalf("expected an apply error, got: %v", run.Err)
 	}
@@ -152,8 +207,8 @@ func TestRemote_applyWithParallelism(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error starting operation: %v", err)
 	}
-	<-run.Done()
 
+	<-run.Done()
 	if run.Err == nil {
 		t.Fatalf("expected an apply error, got: %v", run.Err)
 	}
@@ -177,8 +232,8 @@ func TestRemote_applyWithPlan(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error starting operation: %v", err)
 	}
-	<-run.Done()
 
+	<-run.Done()
 	if run.Err == nil {
 		t.Fatalf("expected an apply error, got: %v", run.Err)
 	}
@@ -202,8 +257,8 @@ func TestRemote_applyWithoutRefresh(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error starting operation: %v", err)
 	}
-	<-run.Done()
 
+	<-run.Done()
 	if run.Err == nil {
 		t.Fatalf("expected an apply error, got: %v", run.Err)
 	}
@@ -227,8 +282,8 @@ func TestRemote_applyWithTarget(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error starting operation: %v", err)
 	}
-	<-run.Done()
 
+	<-run.Done()
 	if run.Err == nil {
 		t.Fatalf("expected an apply error, got: %v", run.Err)
 	}
@@ -252,8 +307,8 @@ func TestRemote_applyWithVariables(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error starting operation: %v", err)
 	}
-	<-run.Done()
 
+	<-run.Done()
 	if run.Err == nil {
 		t.Fatalf("expected an apply error, got: %v", run.Err)
 	}
@@ -273,8 +328,8 @@ func TestRemote_applyNoConfig(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error starting operation: %v", err)
 	}
-	<-run.Done()
 
+	<-run.Done()
 	if run.Err == nil {
 		t.Fatalf("expected an apply error, got: %v", run.Err)
 	}
@@ -637,6 +692,65 @@ func TestRemote_applyPolicySoftFail(t *testing.T) {
 
 	if len(input.answers) > 0 {
 		t.Fatalf("expected no unused answers, got: %v", input.answers)
+	}
+
+	output := b.CLI.(*cli.MockUi).OutputWriter.String()
+	if !strings.Contains(output, "1 to add, 0 to change, 0 to destroy") {
+		t.Fatalf("missing plan summery in output: %s", output)
+	}
+	if !strings.Contains(output, "Sentinel Result: false") {
+		t.Fatalf("missing policy check result in output: %s", output)
+	}
+	if !strings.Contains(output, "1 added, 0 changed, 0 destroyed") {
+		t.Fatalf("missing apply summery in output: %s", output)
+	}
+}
+
+func TestRemote_applyPolicySoftFailAutoApply(t *testing.T) {
+	b := testBackendDefault(t)
+
+	// Create a named workspace that auto applies.
+	_, err := b.client.Workspaces.Create(
+		context.Background(),
+		b.organization,
+		tfe.WorkspaceCreateOptions{
+			AutoApply: tfe.Bool(true),
+			Name:      tfe.String(b.prefix + "prod"),
+		},
+	)
+	if err != nil {
+		t.Fatalf("error creating named workspace: %v", err)
+	}
+
+	mod, modCleanup := module.TestTree(t, "./test-fixtures/apply-policy-soft-failed")
+	defer modCleanup()
+
+	input := testInput(t, map[string]string{
+		"override": "override",
+		"approve":  "yes",
+	})
+
+	op := testOperationApply()
+	op.Module = mod
+	op.UIIn = input
+	op.UIOut = b.CLI
+	op.Workspace = "prod"
+
+	run, err := b.Operation(context.Background(), op)
+	if err != nil {
+		t.Fatalf("error starting operation: %v", err)
+	}
+
+	<-run.Done()
+	if run.Err != nil {
+		t.Fatalf("error running operation: %v", run.Err)
+	}
+	if run.PlanEmpty {
+		t.Fatalf("expected a non-empty plan")
+	}
+
+	if len(input.answers) != 1 {
+		t.Fatalf("expected an unused answer, got: %v", input.answers)
 	}
 
 	output := b.CLI.(*cli.MockUi).OutputWriter.String()
