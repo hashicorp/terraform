@@ -82,6 +82,10 @@ func (m *mockApplies) create(cvID, workspaceID string) (*tfe.Apply, error) {
 		return nil, tfe.ErrResourceNotFound
 	}
 
+	if w.AutoApply {
+		a.Status = tfe.ApplyRunning
+	}
+
 	m.logs[url] = filepath.Join(
 		m.client.ConfigurationVersions.uploadPaths[cvID],
 		w.WorkingDirectory,
@@ -857,6 +861,9 @@ func (m *mockWorkspaces) Create(ctx context.Context, organization string, option
 			CanQueueRun: true,
 			CanUpdate:   true,
 		},
+	}
+	if options.AutoApply != nil {
+		w.AutoApply = *options.AutoApply
 	}
 	if options.VCSRepo != nil {
 		w.VCSRepo = &tfe.VCSRepo{}

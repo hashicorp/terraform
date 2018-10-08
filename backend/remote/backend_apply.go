@@ -90,14 +90,14 @@ func (b *Remote) opApply(stopCtx, cancelCtx context.Context, op *backend.Operati
 	}
 
 	// Return if the run cannot be confirmed.
-	if !r.Actions.IsConfirmable {
+	if !w.AutoApply && !r.Actions.IsConfirmable {
 		return r, nil
 	}
 
 	// Since we already checked the permissions before creating the run
 	// this should never happen. But it doesn't hurt to keep this in as
 	// a safeguard for any unexpected situations.
-	if !r.Permissions.CanApply {
+	if !w.AutoApply && !r.Permissions.CanApply {
 		// Make sure we discard the run if possible.
 		if r.Actions.IsDiscardable {
 			err = b.client.Runs.Discard(stopCtx, r.ID, tfe.RunDiscardOptions{})
@@ -112,35 +112,40 @@ func (b *Remote) opApply(stopCtx, cancelCtx context.Context, op *backend.Operati
 			fmt.Sprintf(applyErrNoApplyRights, b.hostname, b.organization, op.Workspace)))
 	}
 
-	hasUI := op.UIIn != nil && op.UIOut != nil
-	mustConfirm := hasUI &&
+	mustConfirm := (op.UIIn != nil && op.UIOut != nil) &&
 		((op.Destroy && (!op.DestroyForce && !op.AutoApprove)) || (!op.Destroy && !op.AutoApprove))
-	if mustConfirm {
-		opts := &terraform.InputOpts{Id: "approve"}
 
-		if op.Destroy {
-			opts.Query = "\nDo you really want to destroy all resources in workspace \"" + op.Workspace + "\"?"
-			opts.Description = "Terraform will destroy all your managed infrastructure, as shown above.\n" +
-				"There is no undo. Only 'yes' will be accepted to confirm."
-		} else {
-			opts.Query = "\nDo you want to perform these actions in workspace \"" + op.Workspace + "\"?"
-			opts.Description = "Terraform will perform the actions described above.\n" +
-				"Only 'yes' will be accepted to approve."
+	if !w.AutoApply {
+		if mustConfirm {
+			opts := &terraform.InputOpts{Id: "approve"}
+
+			if op.Destroy {
+				opts.Query = "\nDo you really want to destroy all resources in workspace \"" + op.Workspace + "\"?"
+				opts.Description = "Terraform will destroy all your managed infrastructure, as shown above.\n" +
+					"There is no undo. Only 'yes' will be accepted to confirm."
+			} else {
+				opts.Query = "\nDo you want to perform these actions in workspace \"" + op.Workspace + "\"?"
+				opts.Description = "Terraform will perform the actions described above.\n" +
+					"Only 'yes' will be accepted to approve."
+			}
+
+			if err = b.confirm(stopCtx, op, opts, r, "yes"); err != nil {
+				return r, err
+			}
 		}
 
-		if err = b.confirm(stopCtx, op, opts, r, "yes"); err != nil {
-			return r, err
-		}
-	} else {
-		if b.CLI != nil {
-			// Insert a blank line to separate the ouputs.
-			b.CLI.Output("")
+		err = b.client.Runs.Apply(stopCtx, r.ID, tfe.RunApplyOptions{})
+		if err != nil {
+			return r, generalError("error approving the apply command", err)
 		}
 	}
 
-	err = b.client.Runs.Apply(stopCtx, r.ID, tfe.RunApplyOptions{})
-	if err != nil {
-		return r, generalError("error approving the apply command", err)
+	// If we don't need to ask for confirmation, insert a blank
+	// line to separate the ouputs.
+	if w.AutoApply || !mustConfirm {
+		if b.CLI != nil {
+			b.CLI.Output("")
+		}
 	}
 
 	logs, err := b.client.Applies.Logs(stopCtx, r.Apply.ID)
