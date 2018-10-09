@@ -45,12 +45,6 @@ func (c *ShowCommand) Run(args []string) int {
 		return 1
 	}
 
-	configPath, err := ModulePath(cmdFlags.Args())
-	if err != nil {
-		c.Ui.Error(err.Error())
-		return 1
-	}
-
 	var diags tfdiags.Diagnostics
 
 	// Load the backend
@@ -69,9 +63,16 @@ func (c *ShowCommand) Run(args []string) int {
 		return 1
 	}
 
+	// the show command expects the config dir to always be the cwd
+	cwd, err := os.Getwd()
+	if err != nil {
+		c.Ui.Error(fmt.Sprintf("Error getting cwd: %s", err))
+		return 1
+	}
+
 	// Build the operation
 	opReq := c.Operation(b)
-	opReq.ConfigDir = configPath
+	opReq.ConfigDir = cwd
 	opReq.ConfigLoader, err = c.initConfigLoader()
 	if err != nil {
 		diags = diags.Append(err)
