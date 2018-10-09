@@ -195,9 +195,24 @@ func (b *Local) contextFromPlanFile(pf *planfile.Reader, opts terraform.ContextO
 	opts.Variables = variables
 	opts.Changes = plan.Changes
 
-	// TODO: targets
-	// TODO: check that the states match
-	// TODO: impose provider SHA256 constraints
+	// There are some remaining things to reinstate here after refactoring.
+	// These are just warnings for now so we can work on other tasks without
+	// forgetting to deal with these.
+	diags = diags.Append(tfdiags.Sourceless(
+		tfdiags.Error,
+		"Targets not yet implemented when reading from plan file",
+		"TODO: Need to deal with any -target arguments recorded in the plan file.",
+	))
+	diags = diags.Append(tfdiags.Sourceless(
+		tfdiags.Error,
+		"Plan state lineage checking not yet implemented",
+		"TODO: Need to check that the state recorded in the plan matches the current state, and fail if not.",
+	))
+	diags = diags.Append(tfdiags.Sourceless(
+		tfdiags.Error,
+		"Provider SHA256 checks not yet implemented",
+		"TODO: Need to register our saved provider SHA256 hashes with the provider resolver to ensure we get the same binaries that created this plan.",
+	))
 
 	tfCtx, ctxDiags := terraform.NewContext(&opts)
 	diags = diags.Append(ctxDiags)
