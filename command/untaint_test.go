@@ -135,12 +135,14 @@ func TestUntaint_backup(t *testing.T) {
 	testStateOutput(t, path+".backup", strings.TrimSpace(`
 test_instance.foo: (tainted)
   ID = bar
+  provider = provider.test
 	`))
 
 	// State is untainted
 	testStateOutput(t, path, strings.TrimSpace(`
 test_instance.foo:
   ID = bar
+  provider = provider.test
 	`))
 }
 
@@ -190,6 +192,7 @@ func TestUntaint_backupDisable(t *testing.T) {
 	testStateOutput(t, path, strings.TrimSpace(`
 test_instance.foo:
   ID = bar
+  provider = provider.test
 	`))
 }
 
@@ -251,6 +254,7 @@ func TestUntaint_defaultState(t *testing.T) {
 	testStateOutput(t, path, strings.TrimSpace(`
 test_instance.foo:
   ID = bar
+  provider = provider.test
 	`))
 }
 
@@ -363,10 +367,12 @@ func TestUntaint_stateOut(t *testing.T) {
 	testStateOutput(t, path, strings.TrimSpace(`
 test_instance.foo: (tainted)
   ID = bar
+  provider = provider.test
 	`))
 	testStateOutput(t, "foo", strings.TrimSpace(`
 test_instance.foo:
   ID = bar
+  provider = provider.test
 	`))
 }
 
