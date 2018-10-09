@@ -23,6 +23,8 @@ and are tested by HashiCorp.
 
 [Docker](/docs/providers/docker/index.html)
 
+[Helm](/docs/providers/helm/index.html)
+
 [Kubernetes](/docs/providers/kubernetes/index.html)
 
 [Mailgun](/docs/providers/mailgun/index.html)
