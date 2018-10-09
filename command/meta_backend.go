@@ -64,6 +64,10 @@ type BackendOpts struct {
 // and is unsafe to create multiple backends used at once. This function
 // can be called multiple times with each backend being "live" (usable)
 // one at a time.
+//
+// A side-effect of this method is the population of m.backendState, recording
+// the final resolved backend configuration after dealing with overrides from
+// the "terraform init" command line, etc.
 func (m *Meta) Backend(opts *BackendOpts) (backend.Enhanced, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
@@ -122,6 +126,29 @@ func (m *Meta) Backend(opts *BackendOpts) (backend.Enhanced, tfdiags.Diagnostics
 	if err := local.CLIInit(cliOpts); err != nil {
 		// Local backend isn't allowed to fail. It would be a bug.
 		panic(err)
+	}
+
+	// If we got here from backendFromConfig returning nil then m.backendState
+	// won't be set, since that codepath considers that to be no backend at all,
+	// but our caller considers that to be the local backend with no config
+	// and so we'll synthesize a backend state so other code doesn't need to
+	// care about this special case.
+	//
+	// FIXME: We should refactor this so that we more directly and explicitly
+	// treat the local backend as the default, including in the UI shown to
+	// the user, since the local backend should only be used when learning or
+	// in exceptional cases and so it's better to help the user learn that
+	// by introducing it as a concept.
+	if m.backendState == nil {
+		// NOTE: This synthetic object is intentionally _not_ retained in the
+		// on-disk record of the backend configuration, which was already dealt
+		// with inside backendFromConfig, because we still need that codepath
+		// to be able to recognize the lack of a config as distinct from
+		// explicitly setting local until we do some more refactoring here.
+		m.backendState = &terraform.BackendState{
+			Type:      "local",
+			ConfigRaw: json.RawMessage("{}"),
+		}
 	}
 
 	return local, nil
@@ -322,6 +349,23 @@ func (m *Meta) backendFromConfig(opts *BackendOpts) (backend.Backend, tfdiags.Di
 	if diags.HasErrors() {
 		return nil, diags
 	}
+
+	// ------------------------------------------------------------------------
+	// For historical reasons, current backend configuration for a working
+	// directory is kept in a *state-like* file, using the legacy state
+	// structures in the Terraform package. It is not actually a Terraform
+	// state, and so only the "backend" portion of it is actually used.
+	//
+	// The remainder of this code often confusingly refers to this as a "state",
+	// so it's unfortunately important to remember that this is not actually
+	// what we _usually_ think of as "state", and is instead a local working
+	// directory "backend configuration state" that is never persisted anywhere.
+	//
+	// Since the "real" state has since moved on to be represented by
+	// states.State, we can recognize the special meaning of state that applies
+	// to this function and its callees by their continued use of the
+	// otherwise-obsolete terraform.State.
+	// ------------------------------------------------------------------------
 
 	// Get the path to where we store a local cache of backend configuration
 	// if we're using a remote backend. This may not yet exist which means
