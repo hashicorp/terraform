@@ -148,7 +148,7 @@ func (c *PlanCommand) Run(args []string) int {
 			diags = diags.Append(tfdiags.Sourceless(
 				tfdiags.Error,
 				"Invalid backend initialization",
-				fmt.Sprintf("The backend configuration for this working directory is not valid: %s.\n\nIf you have recently upgraded Terraform, you may need to re-run \"terraform init\" to re-initialize this working directory."),
+				fmt.Sprintf("The backend configuration for this working directory is not valid: %s.\n\nIf you have recently upgraded Terraform, you may need to re-run \"terraform init\" to re-initialize this working directory.", err),
 			))
 			c.showDiagnostics(diags)
 			return 1
