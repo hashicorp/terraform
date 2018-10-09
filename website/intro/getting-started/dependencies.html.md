@@ -152,7 +152,7 @@ that case, we can use `depends_on` to explicitly declare the dependency:
 
 ```hcl
 # New resource for the S3 bucket our application will use.
-resource "aws_s3_bucket" "example" {
+resource "aws_s3_bucket" "example2" {
   # NOTE: S3 bucket names must be unique across _all_ AWS accounts, so
   # this name must be changed before applying this example to avoid naming
   # conflicts.
@@ -167,7 +167,7 @@ resource "aws_instance" "example" {
 
   # Tells Terraform that this EC2 instance must be created only after the
   # S3 bucket has been created.
-  depends_on = ["aws_s3_bucket.example"]
+  depends_on = ["aws_s3_bucket.example2"]
 }
 ```
 
