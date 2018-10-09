@@ -193,8 +193,8 @@ func (b *Local) contextFromPlanFile(pf *planfile.Reader, opts terraform.ContextO
 		}
 	}
 	opts.Variables = variables
+	opts.Changes = plan.Changes
 
-	// TODO: populate the changes (formerly diff)
 	// TODO: targets
 	// TODO: check that the states match
 	// TODO: impose provider SHA256 constraints
