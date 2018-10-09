@@ -114,12 +114,14 @@ func (b *Local) opPlan(
 
 	// Save the plan to disk
 	if path := op.PlanOutPath; path != "" {
-		if op.PlanOutBackend != nil {
-			plan.Backend = *op.PlanOutBackend
-		} else {
-			op.PlanOutBackend = &plans.Backend{}
-			plan.Backend = *op.PlanOutBackend
+		if op.PlanOutBackend == nil {
+			// This is always a bug in the operation caller; it's not valid
+			// to set PlanOutPath without also setting PlanOutBackend.
+			diags = diags.Append(fmt.Errorf("PlanOutPath set without also setting PlanOutBackend (this is a bug in Terraform)"))
+			b.ReportResult(runningOp, diags)
+			return
 		}
+		plan.Backend = *op.PlanOutBackend
 
 		// We may have updated the state in the refresh step above, but we
 		// will freeze that updated state in the plan file for now and

@@ -174,6 +174,18 @@ func TestLocal_planDestroy(t *testing.T) {
 	op.Destroy = true
 	op.PlanRefresh = true
 	op.PlanOutPath = planPath
+	cfg := cty.ObjectVal(map[string]cty.Value{
+		"path": cty.StringVal(b.StatePath),
+	})
+	cfgRaw, err := plans.NewDynamicValue(cfg, cfg.Type())
+	if err != nil {
+		t.Fatal(err)
+	}
+	op.PlanOutBackend = &plans.Backend{
+		// Just a placeholder so that we can generate a valid plan file.
+		Type: "local",
+		Config: cfgRaw,
+	}
 
 	run, err := b.Operation(context.Background(), op)
 	if err != nil {
@@ -213,6 +225,18 @@ func TestLocal_planOutPathNoChange(t *testing.T) {
 	op, configCleanup := testOperationPlan(t, "./test-fixtures/plan")
 	defer configCleanup()
 	op.PlanOutPath = planPath
+	cfg := cty.ObjectVal(map[string]cty.Value{
+		"path": cty.StringVal(b.StatePath),
+	})
+	cfgRaw, err := plans.NewDynamicValue(cfg, cfg.Type())
+	if err != nil {
+		t.Fatal(err)
+	}
+	op.PlanOutBackend = &plans.Backend{
+		// Just a placeholder so that we can generate a valid plan file.
+		Type: "local",
+		Config: cfgRaw,
+	}
 
 	run, err := b.Operation(context.Background(), op)
 	if err != nil {
@@ -314,6 +338,8 @@ func testPlanState() *states.State {
 }
 
 func testReadPlan(t *testing.T, path string) *plans.Plan {
+	t.Helper()
+
 	p, err := planfile.Open(path)
 	if err != nil {
 		t.Fatalf("err: %s", err)
