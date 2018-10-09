@@ -413,20 +413,21 @@ func TestUntaint_module(t *testing.T) {
 	}
 
 	args := []string{
-		"-module=child",
 		"-state", statePath,
-		"test_instance.blah",
+		"module.child.test_instance.blah",
 	}
 	if code := c.Run(args); code != 0 {
-		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+		t.Fatalf("command exited with status code %d; want 0\n\n%s", code, ui.ErrorWriter.String())
 	}
 
 	testStateOutput(t, statePath, strings.TrimSpace(`
 test_instance.foo: (tainted)
   ID = bar
+  provider = provider.test
 
 module.child:
   test_instance.blah:
     ID = bar
+    provider = provider.test
 	`))
 }
