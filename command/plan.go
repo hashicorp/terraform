@@ -6,6 +6,7 @@ import (
 
 	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/configs"
+	"github.com/hashicorp/terraform/plans"
 	"github.com/hashicorp/terraform/tfdiags"
 )
 
@@ -106,6 +107,61 @@ func (c *PlanCommand) Run(args []string) int {
 	if err != nil {
 		c.showDiagnostics(err)
 		return 1
+	}
+
+	// c.Backend above has a non-obvious side-effect of also populating
+	// c.backendState, which is the state-shaped formulation of the effective
+	// backend configuration after evaluation of the backend configuration.
+	// We will in turn adapt that to a plans.Backend to include in a plan file
+	// if opReq.PlanOutPath was set to a non-empty value above.
+	//
+	// FIXME: It's ugly to be doing this inline here, but it's also not really
+	// clear where would be better to do it. In future we should find a better
+	// home for this logic, and ideally also stop depending on the side-effect
+	// of c.Backend setting c.backendState.
+	{
+		// This is not actually a state in the usual sense, but rather a
+		// representation of part of the current working directory's
+		// "configuration state".
+		backendPseudoState := c.backendState
+		if backendPseudoState == nil {
+			// Should never happen if c.Backend is behaving properly.
+			diags = diags.Append(fmt.Errorf("Backend initialization didn't produce resolved configuration (This is a bug in Terraform)"))
+			c.showDiagnostics(diags)
+			return 1
+		}
+		var backendForPlan plans.Backend
+		backendForPlan.Type = backendPseudoState.Type
+		backendForPlan.Workspace = c.Workspace()
+
+		// Configuration is a little more awkward to handle here because it's
+		// stored in state as raw JSON but we need it as a plans.DynamicValue
+		// to save it in the state. To do that conversion we need to know the
+		// configuration schema of the backend.
+		configSchema := b.ConfigSchema()
+		config, err := backendPseudoState.Config(configSchema)
+		if err != nil {
+			// This means that the stored settings don't conform to the current
+			// schema, which could either be because we're reading something
+			// created by an older version that is no longer compatible, or
+			// because the user manually tampered with the stored config.
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Invalid backend initialization",
+				fmt.Sprintf("The backend configuration for this working directory is not valid: %s.\n\nIf you have recently upgraded Terraform, you may need to re-run \"terraform init\" to re-initialize this working directory."),
+			))
+			c.showDiagnostics(diags)
+			return 1
+		}
+		configForPlan, err := plans.NewDynamicValue(config, configSchema.ImpliedType())
+		if err != nil {
+			// This should never happen, since we've just decoded this value
+			// using the same schema.
+			diags = diags.Append(fmt.Errorf("Failed to encode backend configuration to store in plan: %s", err))
+			c.showDiagnostics(diags)
+			return 1
+		}
+		backendForPlan.Config = configForPlan
 	}
 
 	// Perform the operation
