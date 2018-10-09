@@ -12,6 +12,8 @@ IMPROVEMENTS:
 * backend/remote: Add support for the `-no-color` command line flag [GH-19002]
 * backend/remote: Prevent running plan or apply without permissions [GH-19012]
 * backend/remote: Add checks for all flags we currently don’t support [GH-19013]
+* backend/remote: Allow enhanced backends to pass custom exit codes [GH-19014]
+* backend/remote: Properly handle workspaces that auto apply changes [GH-19022]
 
 BUG FIXES:
 
