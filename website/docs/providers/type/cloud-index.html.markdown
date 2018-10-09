@@ -39,6 +39,8 @@ vendor in close collaboration with HashiCorp, and are tested by HashiCorp.
 
 [HuaweiCloud](/docs/providers/huaweicloud/index.html)
 
+[Nutanix](/docs/providers/nutanix/index.html)
+
 [OpenStack](/docs/providers/openstack/index.html)
 
 [OpenTelekomCloud](/docs/providers/opentelekomcloud/index.html)
