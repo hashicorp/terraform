@@ -609,9 +609,9 @@ func (m *mockRuns) Create(ctx context.Context, options tfe.RunCreateOptions) (*t
 
 	r := &tfe.Run{
 		ID:          generateID("run-"),
-		Actions:     &tfe.RunActions{},
+		Actions:     &tfe.RunActions{IsCancelable: true},
 		Apply:       a,
-		HasChanges:  true,
+		HasChanges:  false,
 		Permissions: &tfe.RunPermissions{},
 		Plan:        p,
 		Status:      tfe.RunPending,
@@ -623,14 +623,6 @@ func (m *mockRuns) Create(ctx context.Context, options tfe.RunCreateOptions) (*t
 
 	if options.IsDestroy != nil {
 		r.IsDestroy = *options.IsDestroy
-	}
-
-	logs, _ := ioutil.ReadFile(m.client.Plans.logs[p.LogReadURL])
-	if r.IsDestroy || !bytes.Contains(logs, []byte("No changes. Infrastructure is up-to-date.")) {
-		r.Actions.IsCancelable = true
-		r.Actions.IsConfirmable = true
-		r.HasChanges = true
-		r.Permissions.CanApply = true
 	}
 
 	m.runs[r.ID] = r
@@ -653,10 +645,26 @@ func (m *mockRuns) Read(ctx context.Context, runID string) (*tfe.Run, error) {
 		}
 	}
 
-	if !pending {
+	if !pending && r.Status == tfe.RunPending {
 		// Only update the status if there are no other pending runs.
 		r.Status = tfe.RunPlanning
 		r.Plan.Status = tfe.PlanRunning
+	}
+
+	logs, _ := ioutil.ReadFile(m.client.Plans.logs[r.Plan.LogReadURL])
+	if r.Plan.Status == tfe.PlanFinished {
+		if r.IsDestroy || bytes.Contains(logs, []byte("1 to add, 0 to change, 0 to destroy")) {
+			r.Actions.IsCancelable = false
+			r.Actions.IsConfirmable = true
+			r.HasChanges = true
+			r.Permissions.CanApply = true
+		}
+
+		if bytes.Contains(logs, []byte("null_resource.foo: 1 error")) {
+			r.Actions.IsCancelable = false
+			r.HasChanges = false
+			r.Status = tfe.RunErrored
+		}
 	}
 
 	return r, nil

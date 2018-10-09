@@ -188,6 +188,10 @@ type RunningOperation struct {
 	// the operation has completed.
 	Err error
 
+	// ExitCode can be used to set a custom exit code. This enables enhanced
+	// backends to set specific exit codes that miror any remote exit codes.
+	ExitCode int
+
 	// PlanEmpty is populated after a Plan operation completes without error
 	// to note whether a plan is empty or has changes.
 	PlanEmpty bool

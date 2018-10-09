@@ -121,7 +121,7 @@ func (c *PlanCommand) Run(args []string) int {
 		return 2
 	}
 
-	return 0
+	return op.ExitCode
 }
 
 func (c *PlanCommand) Help() string {

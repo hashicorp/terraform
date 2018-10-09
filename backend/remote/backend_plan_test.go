@@ -44,6 +44,9 @@ func TestRemote_planBasic(t *testing.T) {
 	if run.Err != nil {
 		t.Fatalf("error running operation: %v", run.Err)
 	}
+	if run.PlanEmpty {
+		t.Fatal("expected a non-empty plan")
+	}
 
 	output := b.CLI.(*cli.MockUi).OutputWriter.String()
 	if !strings.Contains(output, "1 to add, 0 to change, 0 to destroy") {
@@ -158,6 +161,9 @@ func TestRemote_planWithPlan(t *testing.T) {
 	if run.Err == nil {
 		t.Fatalf("expected a plan error, got: %v", run.Err)
 	}
+	if !run.PlanEmpty {
+		t.Fatalf("expected plan to be empty")
+	}
 	if !strings.Contains(run.Err.Error(), "saved plan is currently not supported") {
 		t.Fatalf("expected a saved plan error, got: %v", run.Err)
 	}
@@ -182,6 +188,9 @@ func TestRemote_planWithPath(t *testing.T) {
 
 	if run.Err == nil {
 		t.Fatalf("expected a plan error, got: %v", run.Err)
+	}
+	if !run.PlanEmpty {
+		t.Fatalf("expected plan to be empty")
 	}
 	if !strings.Contains(run.Err.Error(), "generated plan is currently not supported") {
 		t.Fatalf("expected a generated plan error, got: %v", run.Err)
@@ -233,6 +242,9 @@ func TestRemote_planWithTarget(t *testing.T) {
 	if run.Err == nil {
 		t.Fatalf("expected a plan error, got: %v", run.Err)
 	}
+	if !run.PlanEmpty {
+		t.Fatalf("expected plan to be empty")
+	}
 	if !strings.Contains(run.Err.Error(), "targeting is currently not supported") {
 		t.Fatalf("expected a targeting error, got: %v", run.Err)
 	}
@@ -278,6 +290,9 @@ func TestRemote_planNoConfig(t *testing.T) {
 
 	if run.Err == nil {
 		t.Fatalf("expected a plan error, got: %v", run.Err)
+	}
+	if !run.PlanEmpty {
+		t.Fatalf("expected plan to be empty")
 	}
 	if !strings.Contains(run.Err.Error(), "configuration files found") {
 		t.Fatalf("expected configuration files error, got: %v", run.Err)
@@ -372,6 +387,9 @@ func TestRemote_planDestroy(t *testing.T) {
 	if run.Err != nil {
 		t.Fatalf("unexpected plan error: %v", run.Err)
 	}
+	if run.PlanEmpty {
+		t.Fatalf("expected a non-empty plan")
+	}
 }
 
 func TestRemote_planDestroyNoConfig(t *testing.T) {
@@ -390,6 +408,9 @@ func TestRemote_planDestroyNoConfig(t *testing.T) {
 	<-run.Done()
 	if run.Err != nil {
 		t.Fatalf("unexpected plan error: %v", run.Err)
+	}
+	if run.PlanEmpty {
+		t.Fatalf("expected a non-empty plan")
 	}
 }
 
@@ -422,9 +443,41 @@ func TestRemote_planWithWorkingDirectory(t *testing.T) {
 	if run.Err != nil {
 		t.Fatalf("error running operation: %v", run.Err)
 	}
+	if run.PlanEmpty {
+		t.Fatalf("expected a non-empty plan")
+	}
 
 	output := b.CLI.(*cli.MockUi).OutputWriter.String()
 	if !strings.Contains(output, "1 to add, 0 to change, 0 to destroy") {
 		t.Fatalf("missing plan summery in output: %s", output)
+	}
+}
+
+func TestRemote_planWithRemoteError(t *testing.T) {
+	b := testBackendDefault(t)
+
+	mod, modCleanup := module.TestTree(t, "./test-fixtures/plan-with-error")
+	defer modCleanup()
+
+	op := testOperationPlan()
+	op.Module = mod
+	op.Workspace = backend.DefaultStateName
+
+	run, err := b.Operation(context.Background(), op)
+	if err != nil {
+		t.Fatalf("error starting operation: %v", err)
+	}
+
+	<-run.Done()
+	if run.Err != nil {
+		t.Fatalf("error running operation: %v", run.Err)
+	}
+	if run.ExitCode != 1 {
+		t.Fatalf("expected exit code 1, got %d", run.ExitCode)
+	}
+
+	output := b.CLI.(*cli.MockUi).OutputWriter.String()
+	if !strings.Contains(output, "null_resource.foo: 1 error") {
+		t.Fatalf("missing plan error in output: %s", output)
 	}
 }
