@@ -351,6 +351,13 @@ func writeTfplan(plan *plans.Plan, w io.Writer) error {
 		rawPlan.Variables[name] = valueToTfplan(val)
 	}
 
+	if plan.Backend.Type == "" || plan.Backend.Config == nil {
+		// This suggests a bug in the code that created the plan, since it
+		// ought to always have a backend populated, even if it's the default
+		// "local" backend with a local state file.
+		return fmt.Errorf("plan does not have a backend configuration")
+	}
+
 	rawPlan.Backend = &planproto.Backend{
 		Type:      plan.Backend.Type,
 		Config:    valueToTfplan(plan.Backend.Config),

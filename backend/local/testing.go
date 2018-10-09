@@ -34,6 +34,10 @@ func TestLocal(t *testing.T) (*Local, func()) {
 			var diags tfdiags.Diagnostics
 			diags = diags.Append(vals...)
 			for _, diag := range diags {
+				// NOTE: Since the caller here is not directly the TestLocal
+				// function, t.Helper doesn't apply and so the log source
+				// isn't correctly shown in the test log output. This seems
+				// unavoidable as long as this is happening so indirectly.
 				t.Log(diag.Description().Summary)
 				if local.CLI != nil {
 					local.CLI.Error(diag.Description().Summary)
