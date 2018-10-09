@@ -408,7 +408,15 @@ func (b *Local) ReportResult(op *backend.RunningOperation, diags tfdiags.Diagnos
 	} else {
 		op.Result = backend.OperationSuccess
 	}
-	b.ShowDiagnostics(diags)
+	if b.ShowDiagnostics != nil {
+		b.ShowDiagnostics(diags)
+	} else {
+		// Shouldn't generally happen, but if it does then we'll at least
+		// make some noise in the logs to help us spot it.
+		if len(diags) != 0 {
+			log.Printf("[ERROR] Local backend needs to report diagnostics but ShowDiagnostics callback is not set: %s", diags.ErrWithWarnings())
+		}
+	}
 }
 
 // Colorize returns the Colorize structure that can be used for colorizing
