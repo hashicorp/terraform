@@ -159,6 +159,19 @@ func (m *Meta) BackendForPlan(settings plans.Backend) (backend.Enhanced, tfdiags
 	configureDiags := b.Configure(configVal)
 	diags = diags.Append(configureDiags)
 
+	// If the backend supports CLI initialization, do it.
+	if cli, ok := b.(backend.CLI); ok {
+		cliOpts := m.backendCLIOpts()
+		if err := cli.CLIInit(cliOpts); err != nil {
+			diags = diags.Append(fmt.Errorf(
+				"Error initializing backend %T: %s\n\n"+
+					"This is a bug; please report it to the backend developer",
+				b, err,
+			))
+			return nil, diags
+		}
+	}
+
 	// If the result of loading the backend is an enhanced backend,
 	// then return that as-is. This works even if b == nil (it will be !ok).
 	if enhanced, ok := b.(backend.Enhanced); ok {
