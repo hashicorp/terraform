@@ -183,7 +183,7 @@ func TestLocal_planDestroy(t *testing.T) {
 	}
 	op.PlanOutBackend = &plans.Backend{
 		// Just a placeholder so that we can generate a valid plan file.
-		Type: "local",
+		Type:   "local",
 		Config: cfgRaw,
 	}
 
@@ -234,7 +234,7 @@ func TestLocal_planOutPathNoChange(t *testing.T) {
 	}
 	op.PlanOutBackend = &plans.Backend{
 		// Just a placeholder so that we can generate a valid plan file.
-		Type: "local",
+		Type:   "local",
 		Config: cfgRaw,
 	}
 
