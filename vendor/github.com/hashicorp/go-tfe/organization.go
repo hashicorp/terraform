@@ -31,6 +31,12 @@ type Organizations interface {
 
 	// Delete an organization by its name.
 	Delete(ctx context.Context, organization string) error
+
+	// Capacity shows the current run capacity of an organization.
+	Capacity(ctx context.Context, organization string) (*Capacity, error)
+
+	// RunQueue shows the current run queue of an organization.
+	RunQueue(ctx context.Context, organization string, options RunQueueOptions) (*RunQueue, error)
 }
 
 // organizations implements Organizations.
@@ -78,6 +84,19 @@ type Organization struct {
 	SessionTimeout         int                      `jsonapi:"attr,session-timeout"`
 	TrialExpiresAt         time.Time                `jsonapi:"attr,trial-expires-at,iso8601"`
 	TwoFactorConformant    bool                     `jsonapi:"attr,two-factor-conformant"`
+}
+
+// Capacity represents the current run capacity of an organization.
+type Capacity struct {
+	Organization string `jsonapi:"primary,organization-capacity"`
+	Pending      int    `jsonapi:"attr,pending"`
+	Running      int    `jsonapi:"attr,running"`
+}
+
+// RunQueue represents the current run queue of an organization.
+type RunQueue struct {
+	*Pagination
+	Items []*Run
 }
 
 // OrganizationPermissions represents the organization permissions.
@@ -241,4 +260,51 @@ func (s *organizations) Delete(ctx context.Context, organization string) error {
 	}
 
 	return s.client.do(ctx, req, nil)
+}
+
+// Capacity shows the currently used capacity of an organization.
+func (s *organizations) Capacity(ctx context.Context, organization string) (*Capacity, error) {
+	if !validStringID(&organization) {
+		return nil, errors.New("Invalid value for organization")
+	}
+
+	u := fmt.Sprintf("organizations/%s/capacity", url.QueryEscape(organization))
+	req, err := s.client.newRequest("GET", u, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	c := &Capacity{}
+	err = s.client.do(ctx, req, c)
+	if err != nil {
+		return nil, err
+	}
+
+	return c, nil
+}
+
+// RunQueueOptions represents the options for showing the queue.
+type RunQueueOptions struct {
+	ListOptions
+}
+
+// RunQueue shows the current run queue of an organization.
+func (s *organizations) RunQueue(ctx context.Context, organization string, options RunQueueOptions) (*RunQueue, error) {
+	if !validStringID(&organization) {
+		return nil, errors.New("Invalid value for organization")
+	}
+
+	u := fmt.Sprintf("organizations/%s/runs/queue", url.QueryEscape(organization))
+	req, err := s.client.newRequest("GET", u, &options)
+	if err != nil {
+		return nil, err
+	}
+
+	rq := &RunQueue{}
+	err = s.client.do(ctx, req, rq)
+	if err != nil {
+		return nil, err
+	}
+
+	return rq, nil
 }
