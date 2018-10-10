@@ -472,6 +472,8 @@ output "rendered" {
 
 Then the rendered value would be `goodnight moon!`.
 
+Note that the double dollar signs (`$$`) are needed in inline templates. Otherwise Terraform will return an error.
+
 You may use any of the built-in functions in your template. For more
 details on template usage, please see the
 [template_file documentation](/docs/providers/template/d/file.html).
@@ -482,10 +484,6 @@ Here is an example that combines the capabilities of templates with the interpol
 from `count` to give us a parameterized template, unique to each resource instance:
 
 ```hcl
-variable "count" {
-  default = 2
-}
-
 variable "hostnames" {
   default = {
     "0" = "example1.org"
