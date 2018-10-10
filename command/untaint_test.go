@@ -46,6 +46,7 @@ func TestUntaint(t *testing.T) {
 	expected := strings.TrimSpace(`
 test_instance.foo:
   ID = bar
+  provider = provider.test
 	`)
 	testStateOutput(t, statePath, expected)
 }
