@@ -146,9 +146,9 @@ func formatStateModule(
 			for name := range schema.Attributes {
 				attr := ctyGetAttrMaybeNull(val.Value, name)
 				if !attr.IsNull() {
-					p.buf.WriteString(fmt.Sprintf("  %s = ", name))
+					p.buf.WriteString(fmt.Sprintf("    %s = ", name))
 					attr := ctyGetAttrMaybeNull(val.Value, name)
-					p.writeValue(attr, plans.NoOp, 2)
+					p.writeValue(attr, plans.NoOp, 4)
 					p.buf.WriteString("\n")
 				}
 			}
