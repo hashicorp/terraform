@@ -148,19 +148,23 @@ func (b *Remote) opApply(stopCtx, cancelCtx context.Context, op *backend.Operati
 		}
 	}
 
+	r, err = b.waitForRun(stopCtx, cancelCtx, op, "apply", r, w)
+	if err != nil {
+		return r, err
+	}
+
+	if b.CLI != nil {
+		// Insert a blank line to separate the ouputs.
+		b.CLI.Output("")
+	}
+
 	logs, err := b.client.Applies.Logs(stopCtx, r.Apply.ID)
 	if err != nil {
 		return r, generalError("error retrieving logs", err)
 	}
 	scanner := bufio.NewScanner(logs)
 
-	skip := 0
 	for scanner.Scan() {
-		// Skip the first 3 lines to prevent duplicate output.
-		if skip < 3 {
-			skip++
-			continue
-		}
 		if b.CLI != nil {
 			b.CLI.Output(b.Colorize().Color(scanner.Text()))
 		}
@@ -369,6 +373,4 @@ will cancel the remote apply if its still pending. If the apply started it
 will stop streaming the logs, but will not stop the apply running remotely.
 To view this run in a browser, visit:
 https://%s/app/%s/%s/runs/%s[reset]
-
-Waiting for the apply to start...
 `
