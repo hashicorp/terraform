@@ -14,6 +14,7 @@ IMPROVEMENTS:
 * backend/remote: Add checks for all flags we currently don’t support [GH-19013]
 * backend/remote: Allow enhanced backends to pass custom exit codes [GH-19014]
 * backend/remote: Properly handle workspaces that auto apply changes [GH-19022]
+* backend/remote: Don’t ask questions when `-auto-approve` is set [GH-19035]
 
 BUG FIXES:
 
