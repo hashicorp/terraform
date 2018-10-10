@@ -594,7 +594,7 @@ func TestImport_dataResource(t *testing.T) {
 	}
 
 	msg := ui.ErrorWriter.String()
-	if want := `resource address must refer to a managed resource`; !strings.Contains(msg, want) {
+	if want := `A managed resource address is required`; !strings.Contains(msg, want) {
 		t.Errorf("incorrect message\nwant substring: %s\ngot:\n%s", want, msg)
 	}
 }
@@ -624,7 +624,7 @@ func TestImport_invalidResourceAddr(t *testing.T) {
 	}
 
 	msg := ui.ErrorWriter.String()
-	if want := `invalid resource address "bananas"`; !strings.Contains(msg, want) {
+	if want := `Error: Invalid address`; !strings.Contains(msg, want) {
 		t.Errorf("incorrect message\nwant substring: %s\ngot:\n%s", want, msg)
 	}
 }
@@ -654,7 +654,7 @@ func TestImport_targetIsModule(t *testing.T) {
 	}
 
 	msg := ui.ErrorWriter.String()
-	if want := `resource address must include a full resource spec`; !strings.Contains(msg, want) {
+	if want := `Error: Invalid address`; !strings.Contains(msg, want) {
 		t.Errorf("incorrect message\nwant substring: %s\ngot:\n%s", want, msg)
 	}
 }
