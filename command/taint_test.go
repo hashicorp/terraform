@@ -379,9 +379,8 @@ func TestTaint_module(t *testing.T) {
 	}
 
 	args := []string{
-		"-module=child",
 		"-state", statePath,
-		"test_instance.blah",
+		"module.child.test_instance.blah",
 	}
 	if code := c.Run(args); code != 0 {
 		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
@@ -393,18 +392,22 @@ func TestTaint_module(t *testing.T) {
 const testTaintStr = `
 test_instance.foo: (tainted)
   ID = bar
+  provider = provider.test
 `
 
 const testTaintDefaultStr = `
 test_instance.foo:
   ID = bar
+  provider = provider.test
 `
 
 const testTaintModuleStr = `
 test_instance.foo:
   ID = bar
+  provider = provider.test
 
 module.child:
   test_instance.blah: (tainted)
     ID = blah
+    provider = provider.test
 `
