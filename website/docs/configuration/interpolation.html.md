@@ -444,7 +444,7 @@ A template data source looks like:
 
 ```hcl
 data "template_file" "example" {
-  template = "${hello} ${world}!"
+  template = "$${hello} $${world}!"
   vars {
     hello = "goodnight"
     world = "moon"
@@ -457,6 +457,8 @@ output "rendered" {
 ```
 
 Then the rendered value would be `goodnight moon!`.
+
+Note that the double dollar signs (`$$`) are needed in inline templates. Otherwise Terraform will return an error.
 
 You may use any of the built-in functions in your template. For more
 details on template usage, please see the
