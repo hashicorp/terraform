@@ -62,9 +62,11 @@ func (c *ImportCommand) Run(args []string) int {
 	var diags tfdiags.Diagnostics
 
 	// Parse the provided resource address.
-	traversal, travDiags := hclsyntax.ParseTraversalAbs([]byte(args[0]), "<import-address>", hcl.Pos{Line: 1, Column: 1})
+	traversalSrc := []byte(args[0])
+	traversal, travDiags := hclsyntax.ParseTraversalAbs(traversalSrc, "<import-address>", hcl.Pos{Line: 1, Column: 1})
 	diags = diags.Append(travDiags)
 	if travDiags.HasErrors() {
+		c.registerSynthConfigSource("<import-address>", traversalSrc) // so we can include a source snippet
 		c.showDiagnostics(diags)
 		c.Ui.Info(importCommandInvalidAddressReference)
 		return 1
@@ -72,6 +74,7 @@ func (c *ImportCommand) Run(args []string) int {
 	addr, addrDiags := addrs.ParseAbsResourceInstance(traversal)
 	diags = diags.Append(addrDiags)
 	if addrDiags.HasErrors() {
+		c.registerSynthConfigSource("<import-address>", traversalSrc) // so we can include a source snippet
 		c.showDiagnostics(diags)
 		c.Ui.Info(importCommandInvalidAddressReference)
 		return 1

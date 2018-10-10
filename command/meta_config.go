@@ -309,6 +309,25 @@ func (m *Meta) modulesDir() string {
 	return filepath.Join(m.DataDir(), "modules")
 }
 
+// registerSynthConfigSource allows commands to add synthetic additional source
+// buffers to the config loader's cache of sources (as returned by
+// configSources), which is useful when a command is directly parsing something
+// from the command line that may produce diagnostics, so that diagnostic
+// snippets can still be produced.
+//
+// If this is called before a configLoader has been initialized then it will
+// try to initialize the loader but ignore any initialization failure, turning
+// the call into a no-op. (We presume that a caller will later call a different
+// function that also initializes the config loader as a side effect, at which
+// point those errors can be returned.)
+func (m *Meta) registerSynthConfigSource(filename string, src []byte) {
+	loader, err := m.initConfigLoader()
+	if err != nil || loader == nil {
+		return // treated as no-op, since this is best-effort
+	}
+	loader.Parser().ForceFileSource(filename, src)
+}
+
 // initConfigLoader initializes the shared configuration loader if it isn't
 // already initialized.
 //
