@@ -310,6 +310,36 @@ func (m *mockOrganizations) Delete(ctx context.Context, name string) error {
 	return nil
 }
 
+func (m *mockOrganizations) Capacity(ctx context.Context, name string) (*tfe.Capacity, error) {
+	var pending, running int
+	for _, r := range m.client.Runs.runs {
+		if r.Status == tfe.RunPending {
+			pending++
+			continue
+		}
+		running++
+	}
+	return &tfe.Capacity{Pending: pending, Running: running}, nil
+}
+
+func (m *mockOrganizations) RunQueue(ctx context.Context, name string, options tfe.RunQueueOptions) (*tfe.RunQueue, error) {
+	rq := &tfe.RunQueue{}
+
+	for _, r := range m.client.Runs.runs {
+		rq.Items = append(rq.Items, r)
+	}
+
+	rq.Pagination = &tfe.Pagination{
+		CurrentPage:  1,
+		NextPage:     1,
+		PreviousPage: 1,
+		TotalPages:   1,
+		TotalCount:   len(rq.Items),
+	}
+
+	return rq, nil
+}
+
 type mockPlans struct {
 	client *mockClient
 	logs   map[string]string
@@ -629,6 +659,14 @@ func (m *mockRuns) Create(ctx context.Context, options tfe.RunCreateOptions) (*t
 		r.IsDestroy = *options.IsDestroy
 	}
 
+	w, ok := m.client.Workspaces.workspaceIDs[options.Workspace.ID]
+	if !ok {
+		return nil, tfe.ErrResourceNotFound
+	}
+	if w.CurrentRun == nil {
+		w.CurrentRun = r
+	}
+
 	m.runs[r.ID] = r
 	m.workspaces[options.Workspace.ID] = append(m.workspaces[options.Workspace.ID], r)
 
@@ -688,6 +726,10 @@ func (m *mockRuns) Apply(ctx context.Context, runID string, options tfe.RunApply
 }
 
 func (m *mockRuns) Cancel(ctx context.Context, runID string, options tfe.RunCancelOptions) error {
+	panic("not implemented")
+}
+
+func (m *mockRuns) ForceCancel(ctx context.Context, runID string, options tfe.RunForceCancelOptions) error {
 	panic("not implemented")
 }
 
