@@ -2,9 +2,10 @@
 
 IMPROVEMENTS:
 
+* provisioner/chef: Use user:group chown syntax [GH-18533]
+* helper/resource: Add `ParallelTest()` to allow opt-in acceptance testing concurrency with `t.Parallel()` [GH-18688]
 * backend/manta: Deprecate the `objectName` attribute in favor of the new `object_name` attribute [GH-18759]
 * backend/migrations: Migrate existing non-empty default states when the backend only supports named states [GH-18760]
-* helper/resource: Add `ParallelTest()` function to allow opt-in acceptance testing concurrency with `t.Parallel()` [GH-18688]
 * provider/terraform: `terraform_remote_state` now accepts complex backend configurations [GH-18759]
 * backend/remote: Implement the state.Locker interface to support state locking [GH-18826]
 * backend/remote: Add initial support for the apply command [GH-18950]
