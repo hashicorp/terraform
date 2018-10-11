@@ -165,6 +165,9 @@ func (b *Remote) opApply(stopCtx, cancelCtx context.Context, op *backend.Operati
 	scanner := bufio.NewScanner(logs)
 
 	for scanner.Scan() {
+		if scanner.Text() == "\x02" || scanner.Text() == "\x03" {
+			continue
+		}
 		if b.CLI != nil {
 			b.CLI.Output(b.Colorize().Color(scanner.Text()))
 		}
