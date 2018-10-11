@@ -16,6 +16,7 @@ IMPROVEMENTS:
 * backend/remote: Allow enhanced backends to pass custom exit codes [GH-19014]
 * backend/remote: Properly handle workspaces that auto apply changes [GH-19022]
 * backend/remote: Don’t ask questions when `-auto-approve` is set [GH-19035]
+* backend/remote: Print status updates while waiting for the run to start [GH-19047]
 
 BUG FIXES:
 
