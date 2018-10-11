@@ -31,6 +31,9 @@ type Runs interface {
 	// Cancel a run by its ID.
 	Cancel(ctx context.Context, runID string, options RunCancelOptions) error
 
+	// Force-cancel a run by its ID.
+	ForceCancel(ctx context.Context, runID string, options RunForceCancelOptions) error
+
 	// Discard a run by its ID.
 	Discard(ctx context.Context, runID string, options RunDiscardOptions) error
 }
@@ -77,16 +80,18 @@ type RunList struct {
 
 // Run represents a Terraform Enterprise run.
 type Run struct {
-	ID               string               `jsonapi:"primary,runs"`
-	Actions          *RunActions          `jsonapi:"attr,actions"`
-	CreatedAt        time.Time            `jsonapi:"attr,created-at,iso8601"`
-	HasChanges       bool                 `jsonapi:"attr,has-changes"`
-	IsDestroy        bool                 `jsonapi:"attr,is-destroy"`
-	Message          string               `jsonapi:"attr,message"`
-	Permissions      *RunPermissions      `jsonapi:"attr,permissions"`
-	Source           RunSource            `jsonapi:"attr,source"`
-	Status           RunStatus            `jsonapi:"attr,status"`
-	StatusTimestamps *RunStatusTimestamps `jsonapi:"attr,status-timestamps"`
+	ID                     string               `jsonapi:"primary,runs"`
+	Actions                *RunActions          `jsonapi:"attr,actions"`
+	CreatedAt              time.Time            `jsonapi:"attr,created-at,iso8601"`
+	ForceCancelAvailableAt time.Time            `jsonapi:"attr,force-cancel-available-at,iso8601"`
+	HasChanges             bool                 `jsonapi:"attr,has-changes"`
+	IsDestroy              bool                 `jsonapi:"attr,is-destroy"`
+	Message                string               `jsonapi:"attr,message"`
+	Permissions            *RunPermissions      `jsonapi:"attr,permissions"`
+	PositionInQueue        int                  `jsonapi:"attr,position-in-queue"`
+	Source                 RunSource            `jsonapi:"attr,source"`
+	Status                 RunStatus            `jsonapi:"attr,status"`
+	StatusTimestamps       *RunStatusTimestamps `jsonapi:"attr,status-timestamps"`
 
 	// Relations
 	Apply                *Apply                `jsonapi:"relation,apply"`
@@ -98,9 +103,10 @@ type Run struct {
 
 // RunActions represents the run actions.
 type RunActions struct {
-	IsCancelable  bool `json:"is-cancelable"`
-	IsConfirmable bool `json:"is-confirmable"`
-	IsDiscardable bool `json:"is-discardable"`
+	IsCancelable      bool `json:"is-cancelable"`
+	IsConfirmable     bool `json:"is-confirmable"`
+	IsDiscardable     bool `json:"is-discardable"`
+	IsForceCancelable bool `json:"is-force-cancelable"`
 }
 
 // RunPermissions represents the run permissions.
@@ -108,6 +114,7 @@ type RunPermissions struct {
 	CanApply        bool `json:"can-apply"`
 	CanCancel       bool `json:"can-cancel"`
 	CanDiscard      bool `json:"can-discard"`
+	CanForceCancel  bool `json:"can-force-cancel"`
 	CanForceExecute bool `json:"can-force-execute"`
 }
 
@@ -251,6 +258,27 @@ func (s *runs) Cancel(ctx context.Context, runID string, options RunCancelOption
 	}
 
 	u := fmt.Sprintf("runs/%s/actions/cancel", url.QueryEscape(runID))
+	req, err := s.client.newRequest("POST", u, &options)
+	if err != nil {
+		return err
+	}
+
+	return s.client.do(ctx, req, nil)
+}
+
+// RunCancelOptions represents the options for force-canceling a run.
+type RunForceCancelOptions struct {
+	// An optional comment explaining the reason for the force-cancel.
+	Comment *string `json:"comment,omitempty"`
+}
+
+// ForceCancel is used to forcefully cancel a run by its ID.
+func (s *runs) ForceCancel(ctx context.Context, runID string, options RunForceCancelOptions) error {
+	if !validStringID(&runID) {
+		return errors.New("Invalid value for run ID")
+	}
+
+	u := fmt.Sprintf("runs/%s/actions/force-cancel", url.QueryEscape(runID))
 	req, err := s.client.newRequest("POST", u, &options)
 	if err != nil {
 		return err
