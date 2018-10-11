@@ -123,6 +123,7 @@ type Context struct {
 // If the returned diagnostics contains errors then the resulting context is
 // invalid and must not be used.
 func NewContext(opts *ContextOpts) (*Context, tfdiags.Diagnostics) {
+	log.Printf("[TRACE] terraform.NewContext: starting")
 	diags := CheckCoreVersionRequirements(opts.Config)
 	// If version constraints are not met then we'll bail early since otherwise
 	// we're likely to just see a bunch of other errors related to
@@ -175,6 +176,7 @@ func NewContext(opts *ContextOpts) (*Context, tfdiags.Diagnostics) {
 		if opts.ProviderSHA256s != nil && !opts.SkipProviderVerify {
 			reqd.LockExecutables(opts.ProviderSHA256s)
 		}
+		log.Printf("[TRACE] terraform.NewContext: resolving provider version selections")
 		providerFactories, err = resourceProviderFactories(opts.ProviderResolver, reqd)
 		if err != nil {
 			diags = diags.Append(err)
@@ -189,6 +191,7 @@ func NewContext(opts *ContextOpts) (*Context, tfdiags.Diagnostics) {
 		provisioners: opts.Provisioners,
 	}
 
+	log.Printf("[TRACE] terraform.NewContext: loading provider schemas")
 	schemas, err := LoadSchemas(opts.Config, opts.State, components)
 	if err != nil {
 		diags = diags.Append(err)
@@ -204,6 +207,8 @@ func NewContext(opts *ContextOpts) (*Context, tfdiags.Diagnostics) {
 	if config == nil {
 		config = configs.NewEmptyConfig()
 	}
+
+	log.Printf("[TRACE] terraform.NewContext: complete")
 
 	return &Context{
 		components: components,
