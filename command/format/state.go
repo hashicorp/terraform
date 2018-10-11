@@ -116,9 +116,22 @@ func formatStateModule(
 
 			var schema *configschema.Block
 			provider := m.Resources[key].ProviderConfig.ProviderConfig.StringCompact()
+			if _, exists := schemas.Providers[provider]; !exists {
+				// This should never happen in normal use because we should've
+				// loaded all of the schemas and checked things prior to this
+				// point. We can't return errors here, but since this is UI code
+				// we will try to do _something_ reasonable.
+				p.buf.WriteString(fmt.Sprintf("# missing schema for provider %q\n\n", provider))
+				continue
+			}
 
 			switch addr.Mode {
 			case addrs.ManagedResourceMode:
+				if _, exists := schemas.Providers[provider].ResourceTypes[addr.Type]; !exists {
+					p.buf.WriteString(fmt.Sprintf("# missing schema for provider %q resource type %s\n\n", provider, addr.Type))
+					continue
+				}
+
 				p.buf.WriteString(fmt.Sprintf(
 					"resource %q %q {\n",
 					addr.Type,
@@ -126,6 +139,11 @@ func formatStateModule(
 				))
 				schema = schemas.Providers[provider].ResourceTypes[addr.Type]
 			case addrs.DataResourceMode:
+				if _, exists := schemas.Providers[provider].ResourceTypes[addr.Type]; !exists {
+					p.buf.WriteString(fmt.Sprintf("# missing schema for provider %q data source %s\n\n", provider, addr.Type))
+					continue
+				}
+
 				p.buf.WriteString(fmt.Sprintf(
 					"data %q %q {\n",
 					addr.Type,
