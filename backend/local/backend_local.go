@@ -1,6 +1,7 @@
 package local
 
 import (
+	"log"
 	"context"
 	"fmt"
 
@@ -35,15 +36,18 @@ func (b *Local) context(op *backend.Operation) (*terraform.Context, *configload.
 	var diags tfdiags.Diagnostics
 
 	// Get the latest state.
+	log.Printf("[TRACE] backend/local: requesting state manager for workspace %q", op.Workspace)
 	s, err := b.StateMgr(op.Workspace)
 	if err != nil {
 		diags = diags.Append(errwrap.Wrapf("Error loading state: {{err}}", err))
 		return nil, nil, nil, diags
 	}
+	log.Printf("[TRACE] backend/local: requesting state lock for workspace %q", op.Workspace)
 	if err := op.StateLocker.Lock(s, op.Type.String()); err != nil {
 		diags = diags.Append(errwrap.Wrapf("Error locking state: {{err}}", err))
 		return nil, nil, nil, diags
 	}
+	log.Printf("[TRACE] backend/local: reading remote state for workspace %q", op.Workspace)
 	if err := s.RefreshState(); err != nil {
 		diags = diags.Append(errwrap.Wrapf("Error loading state: {{err}}", err))
 		return nil, nil, nil, diags
@@ -63,6 +67,7 @@ func (b *Local) context(op *backend.Operation) (*terraform.Context, *configload.
 	// Load the latest state. If we enter contextFromPlanFile below then the
 	// state snapshot in the plan file must match this, or else it'll return
 	// error diagnostics.
+	log.Printf("[TRACE] backend/local: retrieving the local state snapshot for workspace %q", op.Workspace)
 	opts.State = s.State()
 
 	var tfCtx *terraform.Context
@@ -77,17 +82,20 @@ func (b *Local) context(op *backend.Operation) (*terraform.Context, *configload.
 			m := sm.StateSnapshotMeta()
 			stateMeta = &m
 		}
+		log.Printf("[TRACE] backend/local: building context from plan file")
 		tfCtx, configSnap, ctxDiags = b.contextFromPlanFile(op.PlanFile, opts, stateMeta)
 		// Write sources into the cache of the main loader so that they are
 		// available if we need to generate diagnostic message snippets.
 		op.ConfigLoader.ImportSourcesFromSnapshot(configSnap)
 	} else {
+		log.Printf("[TRACE] backend/local: building context for current working directory")
 		tfCtx, configSnap, ctxDiags = b.contextDirect(op, opts)
 	}
 	diags = diags.Append(ctxDiags)
 	if diags.HasErrors() {
 		return nil, nil, nil, diags
 	}
+	log.Printf("[TRACE] backend/local: finished building terraform.Context")
 
 	// If we have an operation, then we automatically do the input/validate
 	// here since every option requires this.
@@ -98,6 +106,7 @@ func (b *Local) context(op *backend.Operation) (*terraform.Context, *configload.
 			mode |= terraform.InputModeVar
 			mode |= terraform.InputModeVarUnset
 
+			log.Printf("[TRACE] backend/local: requesting interactive input, if necessary")
 			inputDiags := tfCtx.Input(mode)
 			diags = diags.Append(inputDiags)
 			if inputDiags.HasErrors() {
@@ -107,6 +116,7 @@ func (b *Local) context(op *backend.Operation) (*terraform.Context, *configload.
 
 		// If validation is enabled, validate
 		if b.OpValidation {
+			log.Printf("[TRACE] backend/local: running validation operation")
 			validateDiags := tfCtx.Validate()
 			diags = diags.Append(validateDiags)
 		}

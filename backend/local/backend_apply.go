@@ -143,6 +143,7 @@ func (b *Local) opApply(
 	doneCh := make(chan struct{})
 	go func() {
 		defer close(doneCh)
+		log.Printf("[INFO] backend/local: apply calling Apply")
 		_, applyDiags = tfCtx.Apply()
 		// we always want the state, even if apply failed
 		applyState = tfCtx.State()
