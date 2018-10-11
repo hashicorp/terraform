@@ -80,7 +80,8 @@ func (v *LocalMode) Run(plays []*types.Play, ansibleSSHSettings *types.AnsibleSS
 
 	pemFile := ""
 	if v.connInfo.PrivateKey != "" {
-		pemFile, err := v.writePem()
+		var err error
+		pemFile, err = v.writePem()
 		if err != nil {
 			return err
 		}
