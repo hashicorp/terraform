@@ -69,7 +69,15 @@ func (b *Local) context(op *backend.Operation) (*terraform.Context, *configload.
 	var ctxDiags tfdiags.Diagnostics
 	var configSnap *configload.Snapshot
 	if op.PlanFile != nil {
-		tfCtx, configSnap, ctxDiags = b.contextFromPlanFile(op.PlanFile, opts)
+		var stateMeta *statemgr.SnapshotMeta
+		// If the statemgr implements our optional PersistentMeta interface then we'll
+		// additionally verify that the state snapshot in the plan file has
+		// consistent metadata, as an additional safety check.
+		if sm, ok := s.(statemgr.PersistentMeta); ok {
+			m := sm.StateSnapshotMeta()
+			stateMeta = &m
+		}
+		tfCtx, configSnap, ctxDiags = b.contextFromPlanFile(op.PlanFile, opts, stateMeta)
 		// Write sources into the cache of the main loader so that they are
 		// available if we need to generate diagnostic message snippets.
 		op.ConfigLoader.ImportSourcesFromSnapshot(configSnap)
@@ -132,7 +140,7 @@ func (b *Local) contextDirect(op *backend.Operation, opts terraform.ContextOpts)
 	return tfCtx, configSnap, diags
 }
 
-func (b *Local) contextFromPlanFile(pf *planfile.Reader, opts terraform.ContextOpts) (*terraform.Context, *configload.Snapshot, tfdiags.Diagnostics) {
+func (b *Local) contextFromPlanFile(pf *planfile.Reader, opts terraform.ContextOpts, currentStateMeta *statemgr.SnapshotMeta) (*terraform.Context, *configload.Snapshot, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
 	const errSummary = "Invalid plan file"
@@ -147,6 +155,7 @@ func (b *Local) contextFromPlanFile(pf *planfile.Reader, opts terraform.ContextO
 			errSummary,
 			fmt.Sprintf("Failed to read configuration snapshot from plan file: %s.", err),
 		))
+		return nil, snap, diags
 	}
 	loader := configload.NewLoaderFromSnapshot(snap)
 	config, configDiags := loader.LoadConfig(snap.Modules[""].Dir)
@@ -155,6 +164,38 @@ func (b *Local) contextFromPlanFile(pf *planfile.Reader, opts terraform.ContextO
 		return nil, snap, diags
 	}
 	opts.Config = config
+
+	// A plan file also contains a snapshot of the prior state the changes
+	// are intended to apply to.
+	priorStateFile, err := pf.ReadStateFile()
+	if err != nil {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			errSummary,
+			fmt.Sprintf("Failed to read prior state snapshot from plan file: %s.", err),
+		))
+		return nil, snap, diags
+	}
+	if currentStateMeta != nil {
+		// If the caller sets this, we require that the stored prior state
+		// has the same metadata, which is an extra safety check that nothing
+		// has changed since the plan was created. (All of the "real-world"
+		// state manager implementstions support this, but simpler test backends
+		// may not.)
+		lineageOk := currentStateMeta.Lineage == "" || priorStateFile.Lineage == currentStateMeta.Lineage
+		if priorStateFile.Serial != currentStateMeta.Serial || !lineageOk {
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Saved plan is stale",
+				"The given plan file can no longer be applied because the state was changed by another operation after the plan was created.",
+			))
+		}
+	}
+	// The caller already wrote the "current state" here, but we're overriding
+	// it here with the prior state. These two should actually be identical in
+	// normal use, particularly if we validated the state meta above, but
+	// we do this here anyway to ensure consistent behavior.
+	opts.State = priorStateFile.State
 
 	plan, err := pf.ReadPlan()
 	if err != nil {
@@ -194,25 +235,8 @@ func (b *Local) contextFromPlanFile(pf *planfile.Reader, opts terraform.ContextO
 	}
 	opts.Variables = variables
 	opts.Changes = plan.Changes
-
-	// There are some remaining things to reinstate here after refactoring.
-	// These are just warnings for now so we can work on other tasks without
-	// forgetting to deal with these.
-	diags = diags.Append(tfdiags.Sourceless(
-		tfdiags.Error,
-		"Targets not yet implemented when reading from plan file",
-		"TODO: Need to deal with any -target arguments recorded in the plan file.",
-	))
-	diags = diags.Append(tfdiags.Sourceless(
-		tfdiags.Error,
-		"Plan state lineage checking not yet implemented",
-		"TODO: Need to check that the state recorded in the plan matches the current state, and fail if not.",
-	))
-	diags = diags.Append(tfdiags.Sourceless(
-		tfdiags.Error,
-		"Provider SHA256 checks not yet implemented",
-		"TODO: Need to register our saved provider SHA256 hashes with the provider resolver to ensure we get the same binaries that created this plan.",
-	))
+	opts.Targets = plan.TargetAddrs
+	opts.ProviderSHA256s = plan.ProviderSHA256s
 
 	tfCtx, ctxDiags := terraform.NewContext(&opts)
 	diags = diags.Append(ctxDiags)
