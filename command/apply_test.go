@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"net"
 	"net/http"
 	"net/url"
@@ -32,18 +31,7 @@ import (
 func TestApply(t *testing.T) {
 	statePath := testTempFile(t)
 
-	p := testProvider()
-	p.GetSchemaReturn = applyFixtureSchema()
-	p.PlanResourceChangeFn = func (req providers.PlanResourceChangeRequest) providers.PlanResourceChangeResponse {
-		return providers.PlanResourceChangeResponse{
-			PlannedState: req.ProposedNewState,
-		}
-	}
-	p.ApplyResourceChangeFn = func (req providers.ApplyResourceChangeRequest) providers.ApplyResourceChangeResponse {
-		return providers.ApplyResourceChangeResponse{
-			NewState: req.PlannedState,
-		}
-	}
+	p := applyFixtureProvider()
 
 	ui := new(cli.MockUi)
 	c := &ApplyCommand{
@@ -82,7 +70,7 @@ func TestApply_lockedState(t *testing.T) {
 	}
 	defer unlock()
 
-	p := testProvider()
+	p := applyFixtureProvider()
 	ui := new(cli.MockUi)
 	c := &ApplyCommand{
 		Meta: Meta{
@@ -108,7 +96,6 @@ func TestApply_lockedState(t *testing.T) {
 
 // test apply with locked state, waiting for unlock
 func TestApply_lockedStateWait(t *testing.T) {
-	t.Fatalf("FIXME: this test seems to be making the test program prematurely exit")
 	statePath := testTempFile(t)
 
 	unlock, err := testLockState("./testdata", statePath)
@@ -122,7 +109,7 @@ func TestApply_lockedStateWait(t *testing.T) {
 		unlock()
 	}()
 
-	p := testProvider()
+	p := applyFixtureProvider()
 	ui := new(cli.MockUi)
 	c := &ApplyCommand{
 		Meta: Meta{
@@ -140,7 +127,7 @@ func TestApply_lockedStateWait(t *testing.T) {
 		testFixturePath("apply"),
 	}
 	if code := c.Run(args); code != 0 {
-		log.Fatalf("lock should have succeed in less than 3s: %s", ui.ErrorWriter)
+		t.Fatalf("lock should have succeeded in less than 3s: %s", ui.ErrorWriter)
 	}
 }
 
@@ -173,12 +160,11 @@ func (t *hwm) Max() int {
 }
 
 func TestApply_parallelism(t *testing.T) {
-	provider := testProvider()
 	statePath := testTempFile(t)
 
 	par := 4
 
-	// This blocks all the appy functions. We close it when we exit so
+	// This blocks all the apply functions. We close it when we exit so
 	// they end quickly after this test finishes.
 	block := make(chan struct{})
 	// signal how many goroutines have started
@@ -186,24 +172,46 @@ func TestApply_parallelism(t *testing.T) {
 
 	runCount := &hwm{}
 
-	provider.ApplyFn = func(
-		i *terraform.InstanceInfo,
-		s *terraform.InstanceState,
-		d *terraform.InstanceDiff) (*terraform.InstanceState, error) {
-		// Increment so we're counting parallelism
-		started <- 1
-		runCount.Inc()
-		defer runCount.Dec()
-		// Block here to stage up our max number of parallel instances
-		<-block
+	// Since our mock provider has its own mutex preventing concurrent calls
+	// to ApplyResourceChange, we need to use a number of separate providers
+	// here. They will all have the same mock implementation function assigned
+	// but crucially they will each have their own mutex.
+	providerFactories := map[string]providers.Factory{}
+	for i := 0; i < 10; i++ {
+		name := fmt.Sprintf("test%d", i)
+		provider := &terraform.MockProvider{}
+		provider.GetSchemaReturn = &terraform.ProviderSchema{
+			ResourceTypes: map[string]*configschema.Block{
+				name+"_instance": {},
+			},
+		}
+		provider.PlanResourceChangeFn = func (req providers.PlanResourceChangeRequest) providers.PlanResourceChangeResponse {
+			return providers.PlanResourceChangeResponse{
+				PlannedState: req.ProposedNewState,
+			}
+		}
+		provider.ApplyResourceChangeFn = func (req providers.ApplyResourceChangeRequest) providers.ApplyResourceChangeResponse {
+			// Increment so we're counting parallelism
+			started <- 1
+			runCount.Inc()
+			defer runCount.Dec()
+			// Block here to stage up our max number of parallel instances
+			<-block
 
-		return nil, nil
+			return providers.ApplyResourceChangeResponse{
+				NewState: cty.EmptyObjectVal,
+			}
+		}
+		providerFactories[name] = providers.FactoryFixed(provider)
+	}
+	testingOverrides := &testingOverrides{
+		ProviderResolver: providers.ResolverFixed(providerFactories),
 	}
 
 	ui := new(cli.MockUi)
 	c := &ApplyCommand{
 		Meta: Meta{
-			testingOverrides: metaOverridesForProvider(provider),
+			testingOverrides: testingOverrides,
 			Ui:               ui,
 		},
 	}
@@ -286,7 +294,7 @@ func TestApply_defaultState(t *testing.T) {
 	}
 	defer os.Chdir(cwd)
 
-	p := testProvider()
+	p := applyFixtureProvider()
 	ui := new(cli.MockUi)
 	c := &ApplyCommand{
 		Meta: Meta{
@@ -774,7 +782,7 @@ func TestApply_refresh(t *testing.T) {
 	})
 	statePath := testStateFile(t, originalState)
 
-	p := testProvider()
+	p := applyFixtureProvider()
 	ui := new(cli.MockUi)
 	c := &ApplyCommand{
 		Meta: Meta{
@@ -918,7 +926,7 @@ func TestApply_state(t *testing.T) {
 	})
 	statePath := testStateFile(t, originalState)
 
-	p := testProvider()
+	p := applyFixtureProvider()
 	p.PlanResourceChangeResponse = providers.PlanResourceChangeResponse{
 		PlannedState: cty.ObjectVal(map[string]cty.Value{
 			"ami": cty.StringVal("bar"),
@@ -980,7 +988,7 @@ func TestApply_state(t *testing.T) {
 }
 
 func TestApply_stateNoExist(t *testing.T) {
-	p := testProvider()
+	p := applyFixtureProvider()
 	ui := new(cli.MockUi)
 	c := &ApplyCommand{
 		Meta: Meta{
@@ -1236,7 +1244,7 @@ func TestApply_backup(t *testing.T) {
 	statePath := testStateFile(t, originalState)
 	backupPath := testTempFile(t)
 
-	p := testProvider()
+	p := applyFixtureProvider()
 	p.PlanResourceChangeResponse = providers.PlanResourceChangeResponse{
 		PlannedState: cty.ObjectVal(map[string]cty.Value{
 			"ami": cty.StringVal("bar"),
@@ -1285,7 +1293,7 @@ func TestApply_disableBackup(t *testing.T) {
 	originalState := testState()
 	statePath := testStateFile(t, originalState)
 
-	p := testProvider()
+	p := applyFixtureProvider()
 	p.PlanResourceChangeResponse = providers.PlanResourceChangeResponse{
 		PlannedState: cty.ObjectVal(map[string]cty.Value{
 			"ami": cty.StringVal("bar"),
@@ -1476,6 +1484,27 @@ func applyFixtureSchema() *terraform.ProviderSchema {
 			},
 		},
 	}
+}
+
+// applyFixtureProvider returns a mock provider that is configured for basic
+// operation with the configuration in test-fixtures/apply. This mock has
+// GetSchemaReturn, PlanResourceChangeFn, and ApplyResourceChangeFn populated,
+// with the plan/apply steps just passing through the data determined by
+// Terraform Core.
+func applyFixtureProvider() *terraform.MockProvider {
+	p := testProvider()
+	p.GetSchemaReturn = applyFixtureSchema()
+	p.PlanResourceChangeFn = func (req providers.PlanResourceChangeRequest) providers.PlanResourceChangeResponse {
+		return providers.PlanResourceChangeResponse{
+			PlannedState: req.ProposedNewState,
+		}
+	}
+	p.ApplyResourceChangeFn = func (req providers.ApplyResourceChangeRequest) providers.ApplyResourceChangeResponse {
+		return providers.ApplyResourceChangeResponse{
+			NewState: req.PlannedState,
+		}
+	}
+	return p
 }
 
 const applyVarFile = `
