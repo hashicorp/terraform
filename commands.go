@@ -47,6 +47,10 @@ func initCommands(config *Config, services *disco.Disco) {
 	}
 
 	dataDir := os.Getenv("TF_DATA_DIR")
+	// If the environment variable is not set, check the config file
+	if dataDir == "" {
+		dataDir = config.DataDir
+	}
 
 	meta := command.Meta{
 		Color:            true,

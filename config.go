@@ -32,6 +32,10 @@ type Config struct {
 	// avoid repeatedly re-downloading over the Internet.
 	PluginCacheDir string `hcl:"plugin_cache_dir"`
 
+	// If set, changes the location where Terraform keeps its
+	// per-working-directory data, such as the current remote backend configuration.
+	DataDir string `hcl:"data_dir"`
+
 	Hosts map[string]*ConfigHost `hcl:"host"`
 
 	Credentials        map[string]map[string]interface{}   `hcl:"credentials"`

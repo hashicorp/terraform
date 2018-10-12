@@ -315,3 +315,18 @@ func TestConfig_Merge_disableCheckpointSignature(t *testing.T) {
 		t.Fatalf("bad: %#v", actual)
 	}
 }
+
+func TestConfig_DataDir(t *testing.T) {
+	c, err := loadConfigFile(filepath.Join(fixtureDir, "data-dir"))
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	expected := &Config{
+		DataDir: "/etc/terraform/test/.terraform",
+	}
+
+	if !reflect.DeepEqual(c, expected) {
+		t.Fatalf("bad: %#v", c)
+	}
+}
