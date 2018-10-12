@@ -154,7 +154,26 @@ func testModuleWithSnapshot(t *testing.T, name string) (*configs.Config, *config
 // testPlan returns a non-nil noop plan.
 func testPlan(t *testing.T) *plans.Plan {
 	t.Helper()
+
+	// This is what an empty configuration block would look like after being
+	// decoded with the schema of the "local" backend.
+	backendConfig := cty.ObjectVal(map[string]cty.Value{
+		"path":          cty.NullVal(cty.String),
+		"workspace_dir": cty.NullVal(cty.String),
+	})
+	backendConfigRaw, err := plans.NewDynamicValue(backendConfig, backendConfig.Type())
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	return &plans.Plan{
+		Backend: plans.Backend{
+			// This is just a placeholder so that the plan file can be written
+			// out. Caller may wish to override it to something more "real"
+			// where the plan will actually be subsequently applied.
+			Type:   "local",
+			Config: backendConfigRaw,
+		},
 		Changes: plans.NewChanges(),
 	}
 }
