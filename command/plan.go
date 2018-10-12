@@ -108,6 +108,15 @@ func (c *PlanCommand) Run(args []string) int {
 		c.showDiagnostics(err)
 		return 1
 	}
+	{
+		var moreDiags tfdiags.Diagnostics
+		opReq.Variables, moreDiags = c.collectVariableValues()
+		diags = diags.Append(moreDiags)
+		if moreDiags.HasErrors() {
+			c.showDiagnostics(diags)
+			return 1
+		}
+	}
 
 	// c.Backend above has a non-obvious side-effect of also populating
 	// c.backendState, which is the state-shaped formulation of the effective
