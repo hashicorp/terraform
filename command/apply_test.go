@@ -9,12 +9,12 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
-	"reflect"
 	"strings"
 	"sync"
 	"testing"
 	"time"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/mitchellh/cli"
 	"github.com/zclconf/go-cty/cty"
 
@@ -475,14 +475,14 @@ func TestApply_noArgs(t *testing.T) {
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
-	if err := os.Chdir(testFixturePath("plan")); err != nil {
+	if err := os.Chdir(testFixturePath("apply")); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 	defer os.Chdir(cwd)
 
 	statePath := testTempFile(t)
 
-	p := testProvider()
+	p := applyFixtureProvider()
 	ui := new(cli.MockUi)
 	c := &ApplyCommand{
 		Meta: Meta{
@@ -774,7 +774,7 @@ func TestApply_refresh(t *testing.T) {
 				Name: "foo",
 			}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
 			&states.ResourceInstanceObjectSrc{
-				AttrsJSON: []byte(`{"id":"bar"}`),
+				AttrsJSON: []byte(`{"ami":"bar"}`),
 				Status:    states.ObjectReady,
 			},
 			addrs.ProviderConfig{Type: "test"}.Absolute(addrs.RootModuleInstance),
@@ -884,6 +884,16 @@ func TestApply_shutdown(t *testing.T) {
 		}, nil
 	}
 
+	p.GetSchemaReturn = &terraform.ProviderSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"test_instance": {
+				Attributes: map[string]*configschema.Attribute{
+					"ami": {Type: cty.String, Optional: true},
+				},
+			},
+		},
+	}
+
 	args := []string{
 		"-state", statePath,
 		"-auto-approve",
@@ -918,7 +928,7 @@ func TestApply_state(t *testing.T) {
 				Name: "foo",
 			}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
 			&states.ResourceInstanceObjectSrc{
-				AttrsJSON: []byte(`{"id":"bar"}`),
+				AttrsJSON: []byte(`{"ami":"bar"}`),
 				Status:    states.ObjectReady,
 			},
 			addrs.ProviderConfig{Type: "test"}.Absolute(addrs.RootModuleInstance),
@@ -929,6 +939,11 @@ func TestApply_state(t *testing.T) {
 	p := applyFixtureProvider()
 	p.PlanResourceChangeResponse = providers.PlanResourceChangeResponse{
 		PlannedState: cty.ObjectVal(map[string]cty.Value{
+			"ami": cty.StringVal("bar"),
+		}),
+	}
+	p.ApplyResourceChangeResponse = providers.ApplyResourceChangeResponse{
+		NewState: cty.ObjectVal(map[string]cty.Value{
 			"ami": cty.StringVal("bar"),
 		}),
 	}
@@ -954,7 +969,8 @@ func TestApply_state(t *testing.T) {
 	// Verify that the provider was called with the existing state
 	actual := p.PlanResourceChangeRequest.PriorState
 	expected := cty.ObjectVal(map[string]cty.Value{
-		"id": cty.StringVal("bar"),
+		"id":  cty.NullVal(cty.String),
+		"ami": cty.StringVal("bar"),
 	})
 	if !expected.RawEquals(actual) {
 		t.Fatalf("wrong prior state during plan\ngot: %#v\nwant: %#v", actual, expected)
@@ -962,7 +978,8 @@ func TestApply_state(t *testing.T) {
 
 	actual = p.ApplyResourceChangeRequest.PriorState
 	expected = cty.ObjectVal(map[string]cty.Value{
-		"id": cty.StringVal("bar"),
+		"id":  cty.NullVal(cty.String),
+		"ami": cty.StringVal("bar"),
 	})
 	if actual != expected {
 		t.Fatalf("wrong prior state during apply\ngot: %#v\nwant: %#v", actual, expected)
@@ -1049,6 +1066,21 @@ func TestApply_vars(t *testing.T) {
 		},
 	}
 
+	p.GetSchemaReturn = &terraform.ProviderSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"test_instance": {
+				Attributes: map[string]*configschema.Attribute{
+					"value": {Type: cty.String, Optional: true},
+				},
+			},
+		},
+	}
+	p.ApplyResourceChangeFn = func (req providers.ApplyResourceChangeRequest) providers.ApplyResourceChangeResponse {
+		return providers.ApplyResourceChangeResponse{
+			NewState: req.PlannedState,
+		}
+	}
+
 	actual := ""
 	p.DiffFn = func(
 		info *terraform.InstanceInfo,
@@ -1091,6 +1123,21 @@ func TestApply_varFile(t *testing.T) {
 			testingOverrides: metaOverridesForProvider(p),
 			Ui:               ui,
 		},
+	}
+
+	p.GetSchemaReturn = &terraform.ProviderSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"test_instance": {
+				Attributes: map[string]*configschema.Attribute{
+					"value": {Type: cty.String, Optional: true},
+				},
+			},
+		},
+	}
+	p.ApplyResourceChangeFn = func (req providers.ApplyResourceChangeRequest) providers.ApplyResourceChangeResponse {
+		return providers.ApplyResourceChangeResponse{
+			NewState: req.PlannedState,
+		}
 	}
 
 	actual := ""
@@ -1147,6 +1194,21 @@ func TestApply_varFileDefault(t *testing.T) {
 		},
 	}
 
+	p.GetSchemaReturn = &terraform.ProviderSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"test_instance": {
+				Attributes: map[string]*configschema.Attribute{
+					"value": {Type: cty.String, Optional: true},
+				},
+			},
+		},
+	}
+	p.ApplyResourceChangeFn = func (req providers.ApplyResourceChangeRequest) providers.ApplyResourceChangeResponse {
+		return providers.ApplyResourceChangeResponse{
+			NewState: req.PlannedState,
+		}
+	}
+
 	actual := ""
 	p.DiffFn = func(
 		info *terraform.InstanceInfo,
@@ -1200,6 +1262,21 @@ func TestApply_varFileDefaultJSON(t *testing.T) {
 		},
 	}
 
+	p.GetSchemaReturn = &terraform.ProviderSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"test_instance": {
+				Attributes: map[string]*configschema.Attribute{
+					"value": {Type: cty.String, Optional: true},
+				},
+			},
+		},
+	}
+	p.ApplyResourceChangeFn = func (req providers.ApplyResourceChangeRequest) providers.ApplyResourceChangeResponse {
+		return providers.ApplyResourceChangeResponse{
+			NewState: req.PlannedState,
+		}
+	}
+
 	actual := ""
 	p.DiffFn = func(
 		info *terraform.InstanceInfo,
@@ -1235,7 +1312,7 @@ func TestApply_backup(t *testing.T) {
 				Name: "foo",
 			}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
 			&states.ResourceInstanceObjectSrc{
-				AttrsJSON: []byte(`{"id":"bar"}`),
+				AttrsJSON: []byte("{\n            \"id\": \"bar\"\n          }"),
 				Status:    states.ObjectReady,
 			},
 			addrs.ProviderConfig{Type: "test"}.Absolute(addrs.RootModuleInstance),
@@ -1284,8 +1361,13 @@ func TestApply_backup(t *testing.T) {
 
 	actual := backupState.RootModule().Resources["test_instance.foo"]
 	expected := originalState.RootModule().Resources["test_instance.foo"]
-	if !reflect.DeepEqual(actual, expected) {
-		t.Fatalf("bad: %#v %#v", actual, expected)
+	if !cmp.Equal(actual, expected) {
+		t.Fatalf(
+			"wrong aws_instance.foo state\n%s",
+			cmp.Diff(expected, actual, cmp.Transformer("bytesAsString", func (b []byte) string {
+				return string(b)
+			})),
+		)
 	}
 }
 
@@ -1322,17 +1404,19 @@ func TestApply_disableBackup(t *testing.T) {
 	// Verify that the provider was called with the existing state
 	actual := p.PlanResourceChangeRequest.PriorState
 	expected := cty.ObjectVal(map[string]cty.Value{
-		"id": cty.StringVal("bar"),
+		"id":  cty.StringVal("bar"),
+		"ami": cty.NullVal(cty.String),
 	})
-	if actual != expected {
+	if !expected.RawEquals(actual) {
 		t.Fatalf("wrong prior state during plan\ngot:  %#v\nwant: %#v", actual, expected)
 	}
 
 	actual = p.ApplyResourceChangeRequest.PriorState
 	expected = cty.ObjectVal(map[string]cty.Value{
 		"id": cty.StringVal("bar"),
+		"ami": cty.NullVal(cty.String),
 	})
-	if actual != expected {
+	if !expected.RawEquals(actual) {
 		t.Fatalf("wrong prior state during apply\ngot:  %#v\nwant: %#v", actual, expected)
 	}
 
@@ -1479,6 +1563,7 @@ func applyFixtureSchema() *terraform.ProviderSchema {
 		ResourceTypes: map[string]*configschema.Block{
 			"test_instance": {
 				Attributes: map[string]*configschema.Attribute{
+					"id": {Type: cty.String, Optional: true, Computed: true},
 					"ami": {Type: cty.String, Optional: true},
 				},
 			},
@@ -1501,7 +1586,7 @@ func applyFixtureProvider() *terraform.MockProvider {
 	}
 	p.ApplyResourceChangeFn = func (req providers.ApplyResourceChangeRequest) providers.ApplyResourceChangeResponse {
 		return providers.ApplyResourceChangeResponse{
-			NewState: req.PlannedState,
+			NewState: cty.UnknownAsNull(req.PlannedState),
 		}
 	}
 	return p
