@@ -12,39 +12,29 @@ import (
 const ARTIF_TFSTATE_NAME = "terraform.tfstate"
 
 func artifactoryFactory(conf map[string]string) (Client, error) {
-	userName, ok := conf["username"]
-	if !ok {
-		userName = os.Getenv("ARTIFACTORY_USERNAME")
-		if userName == "" {
-			return nil, fmt.Errorf(
-				"missing 'username' configuration or ARTIFACTORY_USERNAME environment variable")
-		}
+	userName, err := getArtifactoryVar("username", conf)
+	if err != nil {
+		return nil, err
 	}
-	password, ok := conf["password"]
-	if !ok {
-		password = os.Getenv("ARTIFACTORY_PASSWORD")
-		if password == "" {
-			return nil, fmt.Errorf(
-				"missing 'password' configuration or ARTIFACTORY_PASSWORD environment variable")
-		}
+
+	password, err := getArtifactoryVar("password", conf)
+	if err != nil {
+		return nil, err
 	}
-	url, ok := conf["url"]
-	if !ok {
-		url = os.Getenv("ARTIFACTORY_URL")
-		if url == "" {
-			return nil, fmt.Errorf(
-				"missing 'url' configuration or ARTIFACTORY_URL environment variable")
-		}
+
+	url, err := getArtifactoryVar("url", conf)
+	if err != nil {
+		return nil, err
 	}
-	repo, ok := conf["repo"]
-	if !ok {
-		return nil, fmt.Errorf(
-			"missing 'repo' configuration")
+
+	repo, err := getArtifactoryVar("repo", conf)
+	if err != nil {
+		return nil, err
 	}
-	subpath, ok := conf["subpath"]
-	if !ok {
-		return nil, fmt.Errorf(
-			"missing 'subpath' configuration")
+
+	subpath, err := getArtifactoryVar("subpath", conf)
+	if err != nil {
+		return nil, err
 	}
 
 	clientConf := &artifactory.ClientConfig{
@@ -63,6 +53,24 @@ func artifactoryFactory(conf map[string]string) (Client, error) {
 		subpath:      subpath,
 	}, nil
 
+}
+
+func getArtifactoryVar(vr string, conf map[string]string) (string, error) {
+	envvr := fmt.Sprintf("ARTIFACTORY_%v", strings.ToUpper(vr))
+
+	val, ok := conf[vr]
+	if !ok {
+		val = os.Getenv(envvr)
+		if val == "" {
+			return val, fmt.Errorf(
+				"missing '%v' configuration or %v environment variable",
+				vr,
+				envvr,
+			)
+		}
+	}
+
+	return val, nil
 }
 
 type ArtifactoryClient struct {
