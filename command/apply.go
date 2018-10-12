@@ -179,6 +179,15 @@ func (c *ApplyCommand) Run(args []string) int {
 		c.showDiagnostics(err)
 		return 1
 	}
+	{
+		var moreDiags tfdiags.Diagnostics
+		opReq.Variables, moreDiags = c.collectVariableValues()
+		diags = diags.Append(moreDiags)
+		if moreDiags.HasErrors() {
+			c.showDiagnostics(diags)
+			return 1
+		}
+	}
 
 	op, err := c.RunOperation(be, opReq)
 	if err != nil {

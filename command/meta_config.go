@@ -210,27 +210,6 @@ func (m *Meta) initDirFromModule(targetDir string, addr string, hooks configload
 	return diags
 }
 
-// loadVarsFile reads a file from the given path and interprets it as a
-// "vars file", returning the contained values as a map.
-//
-// The file is read using the parser associated with the receiver's
-// configuration loader, which means that the file's contents will be added
-// to the source cache that is used for config snippets in diagnostic messages.
-func (m *Meta) loadVarsFile(filename string) (map[string]cty.Value, tfdiags.Diagnostics) {
-	var diags tfdiags.Diagnostics
-
-	loader, err := m.initConfigLoader()
-	if err != nil {
-		diags = diags.Append(err)
-		return nil, diags
-	}
-
-	parser := loader.Parser()
-	ret, hclDiags := parser.LoadValuesFile(filename)
-	diags = diags.Append(hclDiags)
-	return ret, diags
-}
-
 // inputForSchema uses interactive prompts to try to populate any
 // not-yet-populated required attributes in the given object value to
 // comply with the given schema.
