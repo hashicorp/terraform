@@ -49,11 +49,11 @@ func main() {
 
 	old, err := readGraph(os.Args[1])
 	if err != nil {
-		log.Fatal("failed to read %s: %s", os.Args[1], err)
+		log.Fatalf("failed to read %s: %s", os.Args[1], err)
 	}
 	new, err := readGraph(os.Args[2])
 	if err != nil {
-		log.Fatal("failed to read %s: %s", os.Args[1], err)
+		log.Fatalf("failed to read %s: %s", os.Args[1], err)
 	}
 
 	var nodes []string
@@ -84,7 +84,7 @@ func main() {
 	})
 
 	fmt.Println("digraph G {")
-	fmt.Println("  rankdir = \"BT\";\n")
+	fmt.Print("  rankdir = \"BT\";\n\n")
 	for _, n := range nodes {
 		var attrs string
 		_, inOld := old.nodes[n]
