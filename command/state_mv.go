@@ -80,6 +80,7 @@ func (c *StateMvCommand) Run(args []string) int {
 	}
 
 	c.Ui.Error("state mv command not yet updated for new state types")
+	return 1
 	/*
 		// Filter what we're moving
 		filter := &terraform.StateFilter{State: stateFromReal}
