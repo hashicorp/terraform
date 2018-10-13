@@ -46,85 +46,6 @@ func TestOutput(t *testing.T) {
 	}
 }
 
-func TestModuleOutput(t *testing.T) {
-	originalState := states.BuildState(func(s *states.SyncState) {
-		s.SetOutputValue(
-			addrs.OutputValue{Name: "foo"}.Absolute(addrs.RootModuleInstance),
-			cty.StringVal("bar"),
-			false,
-		)
-		s.SetOutputValue(
-			addrs.OutputValue{Name: "blah"}.Absolute(addrs.Module{"my_module"}.UnkeyedInstanceShim()),
-			cty.StringVal("tastatur"),
-			false,
-		)
-	})
-
-	statePath := testStateFile(t, originalState)
-
-	ui := new(cli.MockUi)
-	c := &OutputCommand{
-		Meta: Meta{
-			testingOverrides: metaOverridesForProvider(testProvider()),
-			Ui:               ui,
-		},
-	}
-
-	args := []string{
-		"-state", statePath,
-		"-module", "my_module",
-		"blah",
-	}
-
-	if code := c.Run(args); code != 0 {
-		t.Fatalf("bad: \n%s", ui.ErrorWriter.String())
-	}
-
-	actual := strings.TrimSpace(ui.OutputWriter.String())
-	if actual != "tastatur" {
-		t.Fatalf("bad: %#v", actual)
-	}
-}
-
-func TestModuleOutputs(t *testing.T) {
-	originalState := states.BuildState(func(s *states.SyncState) {
-		s.SetOutputValue(
-			addrs.OutputValue{Name: "foo"}.Absolute(addrs.RootModuleInstance),
-			cty.StringVal("bar"),
-			false,
-		)
-		s.SetOutputValue(
-			addrs.OutputValue{Name: "blah"}.Absolute(addrs.Module{"my_module"}.UnkeyedInstanceShim()),
-			cty.StringVal("tastatur"),
-			false,
-		)
-	})
-
-	statePath := testStateFile(t, originalState)
-
-	ui := new(cli.MockUi)
-	c := &OutputCommand{
-		Meta: Meta{
-			testingOverrides: metaOverridesForProvider(testProvider()),
-			Ui:               ui,
-		},
-	}
-
-	args := []string{
-		"-state", statePath,
-		"-module", "my_module",
-	}
-
-	if code := c.Run(args); code != 0 {
-		t.Fatalf("bad: \n%s", ui.ErrorWriter.String())
-	}
-
-	actual := strings.TrimSpace(ui.OutputWriter.String())
-	if actual != "blah = tastatur" {
-		t.Fatalf("bad: %#v", actual)
-	}
-}
-
 func TestOutput_nestedListAndMap(t *testing.T) {
 	originalState := states.BuildState(func(s *states.SyncState) {
 		s.SetOutputValue(
@@ -159,9 +80,9 @@ func TestOutput_nestedListAndMap(t *testing.T) {
 	}
 
 	actual := strings.TrimSpace(ui.OutputWriter.String())
-	expected := "foo = [\n    {\n        key = value,\n        key2 = value2\n    },\n    {\n        key = value\n    }\n]"
+	expected := "foo = [\n  {\n    \"key\" = \"value\"\n    \"key2\" = \"value2\"\n  },\n  {\n    \"key\" = \"value\"\n  },\n]"
 	if actual != expected {
-		t.Fatalf("bad:\n%#v\n%#v", expected, actual)
+		t.Fatalf("wrong output\ngot:  %#v\nwant: %#v", actual, expected)
 	}
 }
 
@@ -193,9 +114,9 @@ func TestOutput_json(t *testing.T) {
 	}
 
 	actual := strings.TrimSpace(ui.OutputWriter.String())
-	expected := "{\n    \"foo\": {\n        \"sensitive\": false,\n        \"type\": \"string\",\n        \"value\": \"bar\"\n    }\n}"
+	expected := "{\n  \"foo\": {\n    \"sensitive\": false,\n    \"type\": \"string\",\n    \"value\": \"bar\"\n  }\n}"
 	if actual != expected {
-		t.Fatalf("bad:\n%#v\n%#v", expected, actual)
+		t.Fatalf("wrong output\ngot:  %#v\nwant: %#v", actual, expected)
 	}
 }
 
@@ -339,7 +260,7 @@ func TestOutput_blank(t *testing.T) {
 	expectedOutput := "foo = bar\nname = john-doe\n"
 	output := ui.OutputWriter.String()
 	if output != expectedOutput {
-		t.Fatalf("Expected output: %#v\ngiven: %#v", expectedOutput, output)
+		t.Fatalf("wrong output\ngot:  %#v\nwant: %#v", output, expectedOutput)
 	}
 }
 
