@@ -41,11 +41,7 @@ func TestUiHookPreApply_periodicTimer(t *testing.T) {
 		Name: "available",
 	}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance)
 
-	priorState := cty.NullVal(cty.Object(map[string]cty.Type{
-		"id":    cty.String,
-		"names": cty.List(cty.String),
-	}))
-	plannedNewState := cty.ObjectVal(map[string]cty.Value{
+	priorState := cty.ObjectVal(map[string]cty.Value{
 		"id": cty.StringVal("2017-03-05 10:56:59.298784526 +0000 UTC"),
 		"names": cty.ListVal([]cty.Value{
 			cty.StringVal("us-east-1a"),
@@ -54,6 +50,10 @@ func TestUiHookPreApply_periodicTimer(t *testing.T) {
 			cty.StringVal("us-east-1d"),
 		}),
 	})
+	plannedNewState := cty.NullVal(cty.Object(map[string]cty.Type{
+		"id":    cty.String,
+		"names": cty.List(cty.String),
+	}))
 
 	action, err := h.PreApply(addr, states.CurrentGen, plans.Delete, priorState, plannedNewState)
 	if err != nil {
@@ -70,10 +70,10 @@ func TestUiHookPreApply_periodicTimer(t *testing.T) {
 	close(uiState.DoneCh)
 	<-uiState.done
 
-	expectedOutput := `data.aws_availability_zones.available: Destroying... (ID: 2017-03-05 10:56:59.298784526 +0000 UTC)
-data.aws_availability_zones.available: Still destroying... (ID: 2017-03-05 10:56:59.298784526 +0000 UTC, 1s elapsed)
-data.aws_availability_zones.available: Still destroying... (ID: 2017-03-05 10:56:59.298784526 +0000 UTC, 2s elapsed)
-data.aws_availability_zones.available: Still destroying... (ID: 2017-03-05 10:56:59.298784526 +0000 UTC, 3s elapsed)
+	expectedOutput := `data.aws_availability_zones.available: Destroying... [id=2017-03-05 10:56:59.298784526 +0000 UTC]
+data.aws_availability_zones.available: Still destroying... [id=2017-03-05 10:56:59.298784526 +0000 UTC, 1s elapsed]
+data.aws_availability_zones.available: Still destroying... [id=2017-03-05 10:56:59.298784526 +0000 UTC, 2s elapsed]
+data.aws_availability_zones.available: Still destroying... [id=2017-03-05 10:56:59.298784526 +0000 UTC, 3s elapsed]
 `
 	output := ui.OutputWriter.String()
 	if output != expectedOutput {
@@ -111,11 +111,7 @@ func TestUiHookPreApply_destroy(t *testing.T) {
 		Name: "available",
 	}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance)
 
-	priorState := cty.NullVal(cty.Object(map[string]cty.Type{
-		"id":    cty.String,
-		"names": cty.List(cty.String),
-	}))
-	plannedNewState := cty.ObjectVal(map[string]cty.Value{
+	priorState := cty.ObjectVal(map[string]cty.Value{
 		"id": cty.StringVal("2017-03-05 10:56:59.298784526 +0000 UTC"),
 		"names": cty.ListVal([]cty.Value{
 			cty.StringVal("us-east-1a"),
@@ -124,6 +120,10 @@ func TestUiHookPreApply_destroy(t *testing.T) {
 			cty.StringVal("us-east-1d"),
 		}),
 	})
+	plannedNewState := cty.NullVal(cty.Object(map[string]cty.Type{
+		"id":    cty.String,
+		"names": cty.List(cty.String),
+	}))
 
 	action, err := h.PreApply(addr, states.CurrentGen, plans.Delete, priorState, plannedNewState)
 	if err != nil {
@@ -138,7 +138,7 @@ func TestUiHookPreApply_destroy(t *testing.T) {
 	close(uiState.DoneCh)
 	<-uiState.done
 
-	expectedOutput := "data.aws_availability_zones.available: Destroying... (ID: 2017-03-05 10:56:59.298784526 +0000 UTC)\n"
+	expectedOutput := "data.aws_availability_zones.available: Destroying... [id=2017-03-05 10:56:59.298784526 +0000 UTC]\n"
 	output := ui.OutputWriter.String()
 	if output != expectedOutput {
 		t.Fatalf("Output didn't match.\nExpected: %q\nGiven: %q", expectedOutput, output)
