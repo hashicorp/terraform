@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/mitchellh/cli"
+	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/plans"
@@ -126,6 +127,17 @@ func TestGraph_plan(t *testing.T) {
 		},
 		ProviderAddr: addrs.ProviderConfig{Type: "test"}.Absolute(addrs.RootModuleInstance),
 	})
+	emptyConfig, err := plans.NewDynamicValue(cty.EmptyObjectVal, cty.EmptyObject)
+	if err != nil {
+		t.Fatal(err)
+	}
+	plan.Backend = plans.Backend{
+		// Doesn't actually matter since we aren't going to activate the backend
+		// for this command anyway, but we need something here for the plan
+		// file writer to succeed.
+		Type:   "placeholder",
+		Config: emptyConfig,
+	}
 	_, configSnap := testModuleWithSnapshot(t, "graph")
 
 	planPath := testPlanFile(t, configSnap, states.NewState(), plan)
