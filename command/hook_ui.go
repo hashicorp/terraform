@@ -15,6 +15,7 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/addrs"
+	"github.com/hashicorp/terraform/command/format"
 	"github.com/hashicorp/terraform/plans"
 	"github.com/hashicorp/terraform/providers"
 	"github.com/hashicorp/terraform/states"
@@ -41,10 +42,10 @@ var _ terraform.Hook = (*UiHook)(nil)
 
 // uiResourceState tracks the state of a single resource
 type uiResourceState struct {
-	Name       string
-	ResourceId string
-	Op         uiResourceOp
-	Start      time.Time
+	DispAddr       string
+	IDKey, IDValue string
+	Op             uiResourceOp
+	Start          time.Time
 
 	DoneCh chan struct{} // To be used for cancellation
 
@@ -71,6 +72,7 @@ func (h *UiHook) PreApply(addr addrs.AbsResourceInstance, gen states.Generation,
 
 	var operation string
 	var op uiResourceOp
+	idKey, idValue := format.ObjectValueIDOrName(priorState)
 	switch action {
 	case plans.Delete:
 		operation = "Destroying..."
@@ -101,11 +103,6 @@ func (h *UiHook) PreApply(addr addrs.AbsResourceInstance, gen states.Generation,
 	dAttrs := map[string]terraform.ResourceAttrDiff{}
 	keys := make([]string, 0, len(dAttrs))
 	for key, _ := range dAttrs {
-		// Skip the ID since we do that specially
-		if key == "id" {
-			continue
-		}
-
 		keys = append(keys, key)
 		if len(key) > keyLen {
 			keyLen = len(key)
@@ -141,7 +138,15 @@ func (h *UiHook) PreApply(addr addrs.AbsResourceInstance, gen states.Generation,
 		attrString = "\n  " + attrString
 	}
 
-	var stateId, stateIdSuffix string
+	var stateIdSuffix string
+	if idKey != "" && idValue != "" {
+		stateIdSuffix = fmt.Sprintf(" [%s=%s]", idKey, idValue)
+	} else {
+		// Make sure they are both empty so we can deal with this more
+		// easily in the other hook methods.
+		idKey = ""
+		idValue = ""
+	}
 
 	h.ui.Output(h.Colorize.Color(fmt.Sprintf(
 		"[reset][bold]%s: %s%s[reset]%s",
@@ -151,10 +156,11 @@ func (h *UiHook) PreApply(addr addrs.AbsResourceInstance, gen states.Generation,
 		attrString,
 	)))
 
-	id := addr.String()
+	key := addr.String()
 	uiState := uiResourceState{
-		Name:       id,
-		ResourceId: stateId,
+		DispAddr:   key,
+		IDKey:      idKey,
+		IDValue:    idValue,
 		Op:         op,
 		Start:      time.Now().Round(time.Second),
 		DoneCh:     make(chan struct{}),
@@ -162,7 +168,7 @@ func (h *UiHook) PreApply(addr addrs.AbsResourceInstance, gen states.Generation,
 	}
 
 	h.l.Lock()
-	h.resources[id] = uiState
+	h.resources[key] = uiState
 	h.l.Unlock()
 
 	// Start goroutine that shows progress
@@ -195,13 +201,13 @@ func (h *UiHook) stillApplying(state uiResourceState) {
 		}
 
 		idSuffix := ""
-		if v := state.ResourceId; v != "" {
-			idSuffix = fmt.Sprintf("ID: %s, ", truncateId(v, maxIdLen))
+		if state.IDKey != "" {
+			idSuffix = fmt.Sprintf("%s=%s, ", state.IDKey, truncateId(state.IDValue, maxIdLen))
 		}
 
 		h.ui.Output(h.Colorize.Color(fmt.Sprintf(
-			"[reset][bold]%s: %s (%s%s elapsed)[reset]",
-			state.Name,
+			"[reset][bold]%s: %s [%s%s elapsed][reset]",
+			state.DispAddr,
 			msg,
 			idSuffix,
 			time.Now().Round(time.Second).Sub(state.Start),
@@ -223,6 +229,9 @@ func (h *UiHook) PostApply(addr addrs.AbsResourceInstance, gen states.Generation
 	h.l.Unlock()
 
 	var stateIdSuffix string
+	if k, v := format.ObjectValueID(newState); k != "" && v != "" {
+		stateIdSuffix = fmt.Sprintf(" [%s=%s]", k, v)
+	}
 
 	var msg string
 	switch state.Op {
@@ -283,6 +292,9 @@ func (h *UiHook) PreRefresh(addr addrs.AbsResourceInstance, gen states.Generatio
 	h.once.Do(h.init)
 
 	var stateIdSuffix string
+	if k, v := format.ObjectValueID(priorState); k != "" && v != "" {
+		stateIdSuffix = fmt.Sprintf(" [%s=%s]", k, v)
+	}
 
 	h.ui.Output(h.Colorize.Color(fmt.Sprintf(
 		"[reset][bold]%s: Refreshing state...%s",
