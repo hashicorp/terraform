@@ -192,13 +192,14 @@ func (b *Local) contextFromPlanFile(pf *planfile.Reader, opts terraform.ContextO
 		// has changed since the plan was created. (All of the "real-world"
 		// state manager implementstions support this, but simpler test backends
 		// may not.)
-		lineageOk := currentStateMeta.Lineage == "" || priorStateFile.Lineage == currentStateMeta.Lineage
-		if priorStateFile.Serial != currentStateMeta.Serial || !lineageOk {
-			diags = diags.Append(tfdiags.Sourceless(
-				tfdiags.Error,
-				"Saved plan is stale",
-				"The given plan file can no longer be applied because the state was changed by another operation after the plan was created.",
-			))
+		if currentStateMeta.Lineage != "" && priorStateFile.Lineage != "" {
+			if priorStateFile.Serial != currentStateMeta.Serial || priorStateFile.Lineage != currentStateMeta.Lineage {
+				diags = diags.Append(tfdiags.Sourceless(
+					tfdiags.Error,
+					"Saved plan is stale",
+					"The given plan file can no longer be applied because the state was changed by another operation after the plan was created.",
+				))
+			}
 		}
 	}
 	// The caller already wrote the "current state" here, but we're overriding
