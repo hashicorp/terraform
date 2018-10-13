@@ -12,6 +12,7 @@ import (
 	"github.com/hashicorp/hcl2/hcl"
 	"github.com/spf13/afero"
 
+	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs"
 )
 
@@ -75,6 +76,18 @@ type Snapshot struct {
 	// names on all supported operating systems) to the snapshot information
 	// about each module.
 	Modules map[string]*SnapshotModule
+}
+
+// NewEmptySnapshot constructs and returns a snapshot containing only an empty
+// root module. This is not useful for anything except placeholders in tests.
+func NewEmptySnapshot() *Snapshot {
+	return &Snapshot{
+		Modules: map[string]*SnapshotModule{
+			manifestKey(addrs.RootModule): &SnapshotModule{
+				Files: map[string][]byte{},
+			},
+		},
+	}
 }
 
 // SnapshotModule represents a single module within a Snapshot.

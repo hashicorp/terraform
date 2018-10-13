@@ -331,7 +331,7 @@ func TestApply_error(t *testing.T) {
 	statePath := testTempFile(t)
 
 	p := testProvider()
-	ui := new(cli.MockUi)
+	ui := cli.NewMockUi()
 	c := &ApplyCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
@@ -367,14 +367,29 @@ func TestApply_error(t *testing.T) {
 			},
 		}, nil
 	}
+	p.GetSchemaReturn = &terraform.ProviderSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"test_instance": {
+				Attributes: map[string]*configschema.Attribute{
+					"id":    {Type: cty.String, Optional: true, Computed: true},
+					"ami":   {Type: cty.String, Optional: true},
+					"error": {Type: cty.Bool, Optional: true},
+				},
+			},
+		},
+	}
 
 	args := []string{
 		"-state", statePath,
 		"-auto-approve",
 		testFixturePath("apply-error"),
 	}
+	if ui.ErrorWriter != nil {
+		t.Logf("stdout:\n%s", ui.OutputWriter.String())
+		t.Logf("stderr:\n%s", ui.ErrorWriter.String())
+	}
 	if code := c.Run(args); code != 1 {
-		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+		t.Fatalf("wrong exit code %d; want 1", code)
 	}
 
 	if _, err := os.Stat(statePath); err != nil {
@@ -521,10 +536,10 @@ func TestApply_plan(t *testing.T) {
 	defaultInputReader = new(bytes.Buffer)
 	defaultInputWriter = new(bytes.Buffer)
 
-	planPath := testPlanFileNoop(t)
+	planPath := applyFixturePlanFile(t)
 	statePath := testTempFile(t)
 
-	p := testProvider()
+	p := applyFixtureProvider()
 	ui := new(cli.MockUi)
 	c := &ApplyCommand{
 		Meta: Meta{
@@ -552,11 +567,11 @@ func TestApply_plan(t *testing.T) {
 }
 
 func TestApply_plan_backup(t *testing.T) {
-	planPath := testPlanFileNoop(t)
+	planPath := applyFixturePlanFile(t)
 	statePath := testTempFile(t)
 	backupPath := testTempFile(t)
 
-	p := testProvider()
+	p := applyFixtureProvider()
 	ui := new(cli.MockUi)
 	c := &ApplyCommand{
 		Meta: Meta{
@@ -584,10 +599,10 @@ func TestApply_plan_backup(t *testing.T) {
 }
 
 func TestApply_plan_noBackup(t *testing.T) {
-	planPath := testPlanFileNoop(t)
+	planPath := applyFixturePlanFile(t)
 	statePath := testTempFile(t)
 
-	p := testProvider()
+	p := applyFixtureProvider()
 	ui := new(cli.MockUi)
 	c := &ApplyCommand{
 		Meta: Meta{
@@ -640,7 +655,28 @@ func TestApply_plan_remoteState(t *testing.T) {
 	testStateFileRemote(t, backendState)
 
 	_, snap := testModuleWithSnapshot(t, "apply")
-	planPath := testPlanFile(t, snap, state, &plans.Plan{})
+	backendConfig := cty.ObjectVal(map[string]cty.Value{
+		"address":                cty.StringVal(srv.URL),
+		"update_method":          cty.NullVal(cty.String),
+		"lock_address":           cty.NullVal(cty.String),
+		"unlock_address":         cty.NullVal(cty.String),
+		"lock_method":            cty.NullVal(cty.String),
+		"unlock_method":          cty.NullVal(cty.String),
+		"username":               cty.NullVal(cty.String),
+		"password":               cty.NullVal(cty.String),
+		"skip_cert_verification": cty.NullVal(cty.Bool),
+	})
+	backendConfigRaw, err := plans.NewDynamicValue(backendConfig, backendConfig.Type())
+	if err != nil {
+		t.Fatal(err)
+	}
+	planPath := testPlanFile(t, snap, state, &plans.Plan{
+		Backend: plans.Backend{
+			Type:   "http",
+			Config: backendConfigRaw,
+		},
+		Changes: plans.NewChanges(),
+	})
 
 	p := testProvider()
 	ui := new(cli.MockUi)
@@ -677,7 +713,7 @@ func TestApply_planWithVarFile(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	planPath := testPlanFileNoop(t)
+	planPath := applyFixturePlanFile(t)
 	statePath := testTempFile(t)
 
 	cwd, err := os.Getwd()
@@ -689,7 +725,7 @@ func TestApply_planWithVarFile(t *testing.T) {
 	}
 	defer os.Chdir(cwd)
 
-	p := testProvider()
+	p := applyFixtureProvider()
 	ui := new(cli.MockUi)
 	c := &ApplyCommand{
 		Meta: Meta{
@@ -717,10 +753,10 @@ func TestApply_planWithVarFile(t *testing.T) {
 }
 
 func TestApply_planVars(t *testing.T) {
-	planPath := testPlanFileNoop(t)
+	planPath := applyFixturePlanFile(t)
 	statePath := testTempFile(t)
 
-	p := testProvider()
+	p := applyFixtureProvider()
 	ui := new(cli.MockUi)
 	c := &ApplyCommand{
 		Meta: Meta{
@@ -747,8 +783,8 @@ func TestApply_planNoModuleFiles(t *testing.T) {
 
 	defer testChdir(t, td)()
 
-	p := testProvider()
-	planFile := testPlanFileNoop(t)
+	p := applyFixtureProvider()
+	planPath := applyFixturePlanFile(t)
 
 	apply := &ApplyCommand{
 		Meta: Meta{
@@ -757,7 +793,7 @@ func TestApply_planNoModuleFiles(t *testing.T) {
 		},
 	}
 	args := []string{
-		planFile,
+		planPath,
 	}
 	apply.Run(args)
 	if p.ValidateProviderConfigCalled {
@@ -1590,6 +1626,45 @@ func applyFixtureProvider() *terraform.MockProvider {
 		}
 	}
 	return p
+}
+
+// applyFixturePlanFile creates a plan file at a temporary location containing
+// a single change to create the test_instance.foo that is included in the
+// "apply" test fixture, returning the location of that plan file.
+func applyFixturePlanFile(t *testing.T) string {
+	_, snap := testModuleWithSnapshot(t, "apply")
+	plannedVal := cty.ObjectVal(map[string]cty.Value{
+		"id":  cty.UnknownVal(cty.String),
+		"ami": cty.StringVal("bar"),
+	})
+	priorValRaw, err := plans.NewDynamicValue(cty.NullVal(plannedVal.Type()), plannedVal.Type())
+	if err != nil {
+		t.Fatal(err)
+	}
+	plannedValRaw, err := plans.NewDynamicValue(plannedVal, plannedVal.Type())
+	if err != nil {
+		t.Fatal(err)
+	}
+	plan := testPlan(t)
+	plan.Changes.SyncWrapper().AppendResourceInstanceChange(&plans.ResourceInstanceChangeSrc{
+		Addr: addrs.Resource{
+			Mode: addrs.ManagedResourceMode,
+			Type: "test_instance",
+			Name: "foo",
+		}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+		ProviderAddr: addrs.ProviderConfig{Type: "test"}.Absolute(addrs.RootModuleInstance),
+		ChangeSrc: plans.ChangeSrc{
+			Action: plans.Create,
+			Before: priorValRaw,
+			After:  plannedValRaw,
+		},
+	})
+	return testPlanFile(
+		t,
+		snap,
+		states.NewState(),
+		plan,
+	)
 }
 
 const applyVarFile = `
