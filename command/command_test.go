@@ -182,7 +182,7 @@ func testPlanFile(t *testing.T, configSnap *configload.Snapshot, state *states.S
 	t.Helper()
 
 	stateFile := &statefile.File{
-		Lineage:          "command.testPlanFile",
+		Lineage:          "",
 		State:            state,
 		TerraformVersion: version.SemVer,
 	}
