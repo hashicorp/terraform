@@ -5,15 +5,40 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/hashicorp/terraform/helper/copy"
 	"github.com/mitchellh/cli"
+	"github.com/zclconf/go-cty/cty"
+
+	"github.com/hashicorp/terraform/configs/configschema"
+	"github.com/hashicorp/terraform/terraform"
+	"github.com/hashicorp/terraform/helper/copy"
 )
 
 func setupTest(fixturepath string, args ...string) (*cli.MockUi, int) {
 	ui := new(cli.MockUi)
+	p := testProvider()
+	p.GetSchemaReturn = &terraform.ProviderSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"test_instance": {
+				Attributes: map[string]*configschema.Attribute{
+					"ami": {Type: cty.String, Optional: true},
+				},
+				BlockTypes: map[string]*configschema.NestedBlock{
+					"network_interface": {
+						Nesting: configschema.NestingList,
+						Block: configschema.Block{
+							Attributes: map[string]*configschema.Attribute{
+								"device_index": {Type: cty.String, Optional: true},
+								"description":  {Type: cty.String, Optional: true},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
 	c := &ValidateCommand{
 		Meta: Meta{
-			testingOverrides: metaOverridesForProvider(testProvider()),
+			testingOverrides: metaOverridesForProvider(p),
 			Ui:               ui,
 		},
 	}
