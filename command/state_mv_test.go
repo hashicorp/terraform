@@ -720,10 +720,12 @@ func TestStateMv_fromBackendToLocal(t *testing.T) {
 const testStateMvOutputOriginal = `
 test_instance.baz:
   ID = foo
+  provider = provider.test
   bar = value
   foo = value
 test_instance.foo:
   ID = bar
+  provider = provider.test
   bar = value
   foo = value
 `
@@ -731,10 +733,12 @@ test_instance.foo:
 const testStateMvOutput = `
 test_instance.bar:
   ID = bar
+  provider = provider.test
   bar = value
   foo = value
 test_instance.baz:
   ID = foo
+  provider = provider.test
   bar = value
   foo = value
 `
@@ -742,10 +746,12 @@ test_instance.baz:
 const testStateMvCount_stateOut = `
 test_instance.bar.0:
   ID = foo
+  provider = provider.test
   bar = value
   foo = value
 test_instance.bar.1:
   ID = bar
+  provider = provider.test
   bar = value
   foo = value
 `
@@ -753,6 +759,7 @@ test_instance.bar.1:
 const testStateMvCount_stateOutSrc = `
 test_instance.bar:
   ID = bar
+  provider = provider.test
   bar = value
   foo = value
 `
@@ -760,14 +767,17 @@ test_instance.bar:
 const testStateMvCount_stateOutOriginal = `
 test_instance.bar:
   ID = bar
+  provider = provider.test
   bar = value
   foo = value
 test_instance.foo.0:
   ID = foo
+  provider = provider.test
   bar = value
   foo = value
 test_instance.foo.1:
   ID = bar
+  provider = provider.test
   bar = value
   foo = value
 `
@@ -775,46 +785,57 @@ test_instance.foo.1:
 const testStateMvLargeCount_stateOut = `
 test_instance.bar.0:
   ID = foo0
+  provider = provider.test
   bar = value
   foo = value
 test_instance.bar.1:
   ID = foo1
+  provider = provider.test
   bar = value
   foo = value
 test_instance.bar.2:
   ID = foo2
+  provider = provider.test
   bar = value
   foo = value
 test_instance.bar.3:
   ID = foo3
+  provider = provider.test
   bar = value
   foo = value
 test_instance.bar.4:
   ID = foo4
+  provider = provider.test
   bar = value
   foo = value
 test_instance.bar.5:
   ID = foo5
+  provider = provider.test
   bar = value
   foo = value
 test_instance.bar.6:
   ID = foo6
+  provider = provider.test
   bar = value
   foo = value
 test_instance.bar.7:
   ID = foo7
+  provider = provider.test
   bar = value
   foo = value
 test_instance.bar.8:
   ID = foo8
+  provider = provider.test
   bar = value
   foo = value
 test_instance.bar.9:
   ID = foo9
+  provider = provider.test
   bar = value
   foo = value
 test_instance.bar.10:
   ID = foo10
+  provider = provider.test
   bar = value
   foo = value
 `
@@ -822,6 +843,7 @@ test_instance.bar.10:
 const testStateMvLargeCount_stateOutSrc = `
 test_instance.bar:
   ID = bar
+  provider = provider.test
   bar = value
   foo = value
 `
@@ -829,50 +851,62 @@ test_instance.bar:
 const testStateMvLargeCount_stateOutOriginal = `
 test_instance.bar:
   ID = bar
+  provider = provider.test
   bar = value
   foo = value
 test_instance.foo.0:
   ID = foo0
+  provider = provider.test
   bar = value
   foo = value
 test_instance.foo.1:
   ID = foo1
+  provider = provider.test
   bar = value
   foo = value
 test_instance.foo.2:
   ID = foo2
+  provider = provider.test
   bar = value
   foo = value
 test_instance.foo.3:
   ID = foo3
+  provider = provider.test
   bar = value
   foo = value
 test_instance.foo.4:
   ID = foo4
+  provider = provider.test
   bar = value
   foo = value
 test_instance.foo.5:
   ID = foo5
+  provider = provider.test
   bar = value
   foo = value
 test_instance.foo.6:
   ID = foo6
+  provider = provider.test
   bar = value
   foo = value
 test_instance.foo.7:
   ID = foo7
+  provider = provider.test
   bar = value
   foo = value
 test_instance.foo.8:
   ID = foo8
+  provider = provider.test
   bar = value
   foo = value
 test_instance.foo.9:
   ID = foo9
+  provider = provider.test
   bar = value
   foo = value
 test_instance.foo.10:
   ID = foo10
+  provider = provider.test
   bar = value
   foo = value
 `
@@ -884,11 +918,13 @@ module.bar:
 module.bar.child1:
   test_instance.foo:
     ID = bar
+    provider = provider.test
     bar = value
     foo = value
 module.bar.child2:
   test_instance.foo:
     ID = bar
+    provider = provider.test
     bar = value
     foo = value
 `
@@ -904,11 +940,13 @@ module.foo:
 module.foo.child1:
   test_instance.foo:
     ID = bar
+    provider = provider.test
     bar = value
     foo = value
 module.foo.child2:
   test_instance.foo:
     ID = bar
+    provider = provider.test
     bar = value
     foo = value
 `
@@ -916,6 +954,7 @@ module.foo.child2:
 const testStateMvOutput_stateOut = `
 test_instance.bar:
   ID = bar
+  provider = provider.test
   bar = value
   foo = value
 `
@@ -927,6 +966,7 @@ const testStateMvOutput_stateOutSrc = `
 const testStateMvOutput_stateOutOriginal = `
 test_instance.foo:
   ID = bar
+  provider = provider.test
   bar = value
   foo = value
 `
@@ -938,6 +978,7 @@ const testStateMvExisting_stateSrc = `
 const testStateMvExisting_stateDst = `
 test_instance.bar:
   ID = bar
+  provider = provider.test
   bar = value
   foo = value
 test_instance.qux:
@@ -947,6 +988,7 @@ test_instance.qux:
 const testStateMvExisting_stateSrcOriginal = `
 test_instance.foo:
   ID = bar
+  provider = provider.test
   bar = value
   foo = value
 `
@@ -954,11 +996,13 @@ test_instance.foo:
 const testStateMvExisting_stateDstOriginal = `
 test_instance.qux:
   ID = bar
+  provider = provider.test
 `
 
 const testStateMvOriginal_backend = `
 test_instance.baz:
   ID = foo
+  provider = provider.test
   bar = value
   foo = value
 `
