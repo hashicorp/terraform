@@ -2,15 +2,17 @@ package command
 
 import (
 	"bytes"
+	"encoding/json"
 	"flag"
 	"fmt"
 	"sort"
 	"strings"
 
-	"github.com/zclconf/go-cty/cty"
 	ctyjson "github.com/zclconf/go-cty/cty/json"
 
 	"github.com/hashicorp/terraform/addrs"
+	"github.com/hashicorp/terraform/config/hcl2shim"
+	"github.com/hashicorp/terraform/repl"
 	"github.com/hashicorp/terraform/tfdiags"
 )
 
@@ -75,9 +77,19 @@ func (c *OutputCommand) Run(args []string) int {
 		return 1
 	}
 
-	moduleAddr, addrDiags := addrs.ParseModuleInstanceStr(module)
-	diags = diags.Append(addrDiags)
-	if addrDiags.HasErrors() {
+	moduleAddr := addrs.RootModuleInstance
+	if module != "" {
+		// This option was supported prior to 0.12.0, but no longer supported
+		// because we only persist the root module outputs in state.
+		// (We could perhaps re-introduce this by doing an eval walk here to
+		// repopulate them, similar to how "terraform console" does it, but
+		// that requires more thought since it would imply this command
+		// supporting remote operations, which is a big change.)
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Unsupported option",
+			"The -module option is no longer supported since Terraform 0.12, because now only root outputs are persisted in the state.",
+		))
 		c.showDiagnostics(diags)
 		return 1
 	}
@@ -90,11 +102,6 @@ func (c *OutputCommand) Run(args []string) int {
 			module))
 		return 1
 	}
-
-	// TODO: We need to do an eval walk here to make sure all of the output
-	// values recorded in the state are up-to-date.
-	c.Ui.Error("output command not yet updated to do eval walk")
-	return 1
 
 	if !jsonOutput && (state.Empty() || len(mod.OutputValues) == 0) {
 		c.Ui.Error(
@@ -109,16 +116,45 @@ func (c *OutputCommand) Run(args []string) int {
 
 	if name == "" {
 		if jsonOutput {
-			vals := make(map[string]cty.Value, len(mod.OutputValues))
-			for n, os := range mod.OutputValues {
-				vals[n] = os.Value
+			// Due to a historical accident, the switch from state version 2 to
+			// 3 caused our JSON output here to be the full metadata about the
+			// outputs rather than just the output values themselves as we'd
+			// show in the single value case. We must now maintain that behavior
+			// for compatibility, so this is an emulation of the JSON
+			// serialization of outputs used in state format version 3.
+			type OutputMeta struct {
+				Sensitive bool            `json:"sensitive"`
+				Type      json.RawMessage `json:"type"`
+				Value     json.RawMessage `json:"value"`
 			}
-			valsObj := cty.ObjectVal(vals)
-			jsonOutputs, err := ctyjson.Marshal(valsObj, valsObj.Type())
-			if err != nil {
-				return 1
+			outputs := map[string]OutputMeta{}
+
+			for n, os := range mod.OutputValues {
+				jsonVal, err := ctyjson.Marshal(os.Value, os.Value.Type())
+				if err != nil {
+					diags = diags.Append(err)
+					c.showDiagnostics(diags)
+					return 1
+				}
+				jsonType, err := ctyjson.MarshalType(os.Value.Type())
+				if err != nil {
+					diags = diags.Append(err)
+					c.showDiagnostics(diags)
+					return 1
+				}
+				outputs[n] = OutputMeta{
+					Sensitive: os.Sensitive,
+					Type:      json.RawMessage(jsonType),
+					Value:     json.RawMessage(jsonVal),
+				}
 			}
 
+			jsonOutputs, err := json.MarshalIndent(outputs, "", "  ")
+			if err != nil {
+				diags = diags.Append(err)
+				c.showDiagnostics(diags)
+				return 1
+			}
 			c.Ui.Output(string(jsonOutputs))
 			return 0
 		} else {
@@ -146,8 +182,17 @@ func (c *OutputCommand) Run(args []string) int {
 
 		c.Ui.Output(string(jsonOutput))
 	} else {
-		c.Ui.Error("TODO: update output command to use the same value renderer as the console")
-		return 1
+		// Our formatter still wants an old-style raw interface{} value, so
+		// for now we'll just shim it.
+		// FIXME: Port the formatter to work with cty.Value directly.
+		legacyVal := hcl2shim.ConfigValueFromHCL2(v)
+		result, err := repl.FormatResult(legacyVal)
+		if err != nil {
+			diags = diags.Append(err)
+			c.showDiagnostics(diags)
+			return 1
+		}
+		c.Ui.Output(result)
 	}
 
 	return 0
@@ -281,9 +326,6 @@ Options:
                    "terraform.tfstate".
 
   -no-color        If specified, output won't contain any color.
-
-  -module=name     If specified, returns the outputs for a
-                   specific module
 
   -json            If specified, machine readable output will be
                    printed in JSON format
