@@ -8,11 +8,11 @@ description: |-
 
 # pg
 
-**Kind: Standard with locking**
+**Kind: Standard (with locking)**
 
-Stores the state in a [Postgres database](https://www.postgresql.org) using two tables, `states` and `locks`.
+Stores the state in a [Postgres database](https://www.postgresql.org) version 9.5 or newer.
 
-Supports Postgres version 10 and newer.
+This backend supports [state locking](/docs/state/locking.html).
 
 ## Example Configuration
 
@@ -24,18 +24,13 @@ terraform {
 }
 ```
 
-This assumes we have a database created called `terraform_backend`. The
-Terraform state is stored in a self-managed schema, by default 
-`terraform_remote_backend`.
+Before initializing the backend with `terraform init`, the database must already exist.
 
-Note that for the access credentials we recommend using a
-[partial configuration](/docs/backends/config.html).
+We recommend using a [partial configuration](/docs/backends/config.html#partial-configuration) for the `conn_str` variable, because it typically contains access credentials that should not be committed to source control.
 
-## Using the pg remote state
+## Example Referencing
 
-To make use of the pg remote state we can use the
-[`terraform_remote_state` data
-source](/docs/providers/terraform/d/remote_state.html).
+To make use of the pg remote state we can use the [`terraform_remote_state` data source](/docs/providers/terraform/d/remote_state.html).
 
 ```hcl
 data "terraform_remote_state" "network" {
@@ -46,24 +41,28 @@ data "terraform_remote_state" "network" {
 }
 ```
 
-The `terraform_remote_state` data source will return all of the root module 
-outputs defined in the referenced remote state (but not any outputs from 
-nested modules unless they are explicitly output again in the root). An 
-example output might look like:
-
-```
-data.terraform_remote_state.network:
-  id = 2018-10-11 01:57:59.780010914 +0000 UTC
-  backend = pg
-  config.% = 1
-  config.conn_str = postgres://localhost/terraform_backend
-```
-
-## Configuration variables
+## Configuration Variables
 
 The following configuration options or environment variables are supported:
 
  * `conn_str` - (Required) Postgres connection string; a `postgres://` URL
  * `lock` - Use locks to synchronize state access, default `true`
- * `schema_name` - Name of the automatically managed Postgres schema to store locks & state.
+ * `schema_name` - Name of the automatically-managed Postgres schema to store locks & state, default `terraform_remote_backend`.
  
+## Technical Design
+
+Postgres version 9.5 or newer is required to support the "ON CONFLICT" upsert syntax and *jsonb* data type.
+
+This backend creates two tables, **states** and **locks**, in the automatically-managed Postgres schema configured by the `schema_name` variable.
+
+Both tables are keyed by the [workspace](/docs/state/workspaces.html) name. If workspaces are not in use, the name `default` is used.
+
+The **states** table contains:
+
+ * the workspace `name` key as *text* with a unique index
+ * the Terraform state `data` JSON as *text*.
+
+The **locks** table contains:
+
+ * the workspace `name` key as *text* with a unique index
+ * the lock's `info` JSON as *jsonb*.
