@@ -70,7 +70,7 @@ func (b *Backend) State(name string) (state.State, error) {
 	// is a normal create operation, and take the lock at that point.
 	//
 	// If we need to force-unlock, but for some reason the state no longer
-	// exists, the user will have to use aws tools to manually fix the
+	// exists, the user will have to use the `psql` tool to manually fix the
 	// situation.
 	existing, err := b.States()
 	if err != nil {
