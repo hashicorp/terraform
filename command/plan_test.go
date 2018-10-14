@@ -11,12 +11,14 @@ import (
 	"testing"
 	"time"
 
+	"github.com/davecgh/go-spew/spew"
 	"github.com/mitchellh/cli"
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs/configschema"
 	"github.com/hashicorp/terraform/helper/copy"
+	"github.com/hashicorp/terraform/plans"
 	"github.com/hashicorp/terraform/providers"
 	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/terraform"
@@ -101,8 +103,8 @@ func TestPlan_plan(t *testing.T) {
 	}
 
 	args := []string{planPath}
-	if code := c.Run(args); code != 0 {
-		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+	if code := c.Run(args); code != 1 {
+		t.Fatalf("wrong exit status %d; want 1\nstderr: %s", code, ui.ErrorWriter.String())
 	}
 
 	if p.ReadResourceCalled {
@@ -152,11 +154,9 @@ func TestPlan_destroy(t *testing.T) {
 	}
 
 	plan := testReadPlan(t, outPath)
-	for _, m := range plan.Diff.Modules {
-		for _, r := range m.Resources {
-			if !r.Destroy {
-				t.Fatalf("bad: %#v", r)
-			}
+	for _, rc := range plan.Changes.Resources {
+		if got, want := rc.Action, plans.Delete; got != want {
+			t.Fatalf("wrong action %s for %s; want %s\nplanned change: %s", got, rc.Addr, want, spew.Sdump(rc))
 		}
 	}
 }
@@ -222,15 +222,7 @@ func TestPlan_outPath(t *testing.T) {
 		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
 	}
 
-	f, err := os.Open(outPath)
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	defer f.Close()
-
-	if _, err := terraform.ReadPlan(f); err != nil {
-		t.Fatalf("err: %s", err)
-	}
+	testReadPlan(t, outPath) // will call t.Fatal itself if the file cannot be read
 }
 
 func TestPlan_outPathNoChange(t *testing.T) {
@@ -242,7 +234,10 @@ func TestPlan_outPathNoChange(t *testing.T) {
 				Name: "foo",
 			}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
 			&states.ResourceInstanceObjectSrc{
-				AttrsJSON: []byte(`{"id":"bar"}`),
+				// Aside from "id" (which is computed) the values here must
+				// exactly match the values in the "plan" test fixture in order
+				// to produce the empty plan we need for this test.
+				AttrsJSON: []byte(`{"id":"bar","ami":"bar","network_interface":[{"description":"Main network interface","device_index":"0"}]}`),
 				Status:    states.ObjectReady,
 			},
 			addrs.ProviderConfig{Type: "test"}.Absolute(addrs.RootModuleInstance),
@@ -272,8 +267,8 @@ func TestPlan_outPathNoChange(t *testing.T) {
 	}
 
 	plan := testReadPlan(t, outPath)
-	if !plan.Diff.Empty() {
-		t.Fatalf("Expected empty plan to be written to plan file, got: %s", plan)
+	if !plan.Changes.Empty() {
+		t.Fatalf("Expected empty plan to be written to plan file, got: %s", spew.Sdump(plan))
 	}
 }
 
@@ -310,7 +305,7 @@ func TestPlan_outBackend(t *testing.T) {
 
 	outPath := "foo"
 	p := testProvider()
-	ui := new(cli.MockUi)
+	ui := cli.NewMockUi()
 	c := &PlanCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
@@ -322,19 +317,20 @@ func TestPlan_outBackend(t *testing.T) {
 		"-out", outPath,
 	}
 	if code := c.Run(args); code != 0 {
+		t.Logf("stdout: %s", ui.OutputWriter.String())
 		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
 	}
 
 	plan := testReadPlan(t, outPath)
-	if !plan.Diff.Empty() {
-		t.Fatalf("Expected empty plan to be written to plan file, got: %s", plan)
+	if !plan.Changes.Empty() {
+		t.Fatalf("Expected empty plan to be written to plan file, got: %s", spew.Sdump(plan))
 	}
 
-	if plan.Backend.Empty() {
+	if plan.Backend.Type == "" || plan.Backend.Config == nil {
 		t.Fatal("should have backend info")
 	}
 	if !reflect.DeepEqual(plan.Backend, dataState.Backend) {
-		t.Fatalf("bad: %#v", plan.Backend)
+		t.Fatalf("wrong backend config in plan\ngot:  %swant: %s", spew.Sdump(plan.Backend), spew.Sdump(dataState.Backend))
 	}
 }
 
@@ -489,8 +485,8 @@ func TestPlan_validate(t *testing.T) {
 	}
 
 	actual := ui.ErrorWriter.String()
-	if !strings.Contains(actual, "cannot be computed") {
-		t.Fatalf("bad: %s", actual)
+	if want := "Error: Invalid count argument"; !strings.Contains(actual, want) {
+		t.Fatalf("unexpected error output\ngot:\n%s\n\nshould contain: %s", actual, want)
 	}
 }
 
@@ -732,7 +728,7 @@ func TestPlan_shutdown(t *testing.T) {
 		})
 
 		// Because of the internal lock in the MockProvider, we can't
-		// coordiante directly with the calling of Stop, and making the
+		// coordinate directly with the calling of Stop, and making the
 		// MockProvider concurrent is disruptive to a lot of existing tests.
 		// Wait here a moment to help make sure the main goroutine gets to the
 		// Stop call before we exit, or the plan may finish before it can be
@@ -747,11 +743,28 @@ func TestPlan_shutdown(t *testing.T) {
 			},
 		}, nil
 	}
+	p.GetSchemaReturn = &terraform.ProviderSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"test_instance": {
+				Attributes: map[string]*configschema.Attribute{
+					"ami": {Type: cty.String, Optional: true},
+				},
+			},
+		},
+	}
 
-	if code := c.Run([]string{testFixturePath("apply-shutdown")}); code != 1 {
+	code := c.Run([]string{
+		// Unfortunately it seems like this test can inadvertently pick up
+		// leftover state from other tests without this. Ideally we should
+		// find which test is leaving a terraform.tfstate behind and stop it
+		// doing that, but this will stop this test flapping for now.
+		"-state=nonexistent.tfstate",
+		testFixturePath("apply-shutdown"),
+	})
+	if code != 1 {
 		// FIXME: we should be able to avoid the error during evaluation
 		// the early exit isn't caught before the interpolation is evaluated
-		t.Fatal(ui.OutputWriter.String())
+		t.Fatalf("wrong exit code %d; want 1\noutput:\n%s", code, ui.OutputWriter.String())
 	}
 
 	select {

@@ -355,7 +355,7 @@ func (b *Local) opWait(
 	select {
 	case <-stopCtx.Done():
 		if b.CLI != nil {
-			b.CLI.Output("stopping operation...")
+			b.CLI.Output("Stopping operation...")
 		}
 
 		// try to force a PersistState just in case the process is terminated
@@ -370,14 +370,16 @@ func (b *Local) opWait(
 		}
 
 		// Stop execution
+		log.Println("[TRACE] backend/local: waiting for the running operation to stop")
 		go tfCtx.Stop()
 
 		select {
 		case <-cancelCtx.Done():
-			log.Println("[WARN] running operation canceled")
+			log.Println("[WARN] running operation was forcefully canceled")
 			// if the operation was canceled, we need to return immediately
 			canceled = true
 		case <-doneCh:
+			log.Println("[TRACE] backend/local: graceful stop has completed")
 		}
 	case <-cancelCtx.Done():
 		// this should not be called without first attempting to stop the
