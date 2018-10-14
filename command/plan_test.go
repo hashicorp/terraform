@@ -384,11 +384,11 @@ func TestPlan_state(t *testing.T) {
 	// Verify that the provider was called with the existing state
 	actual := p.PlanResourceChangeRequest.PriorState
 	expected := cty.ObjectVal(map[string]cty.Value{
-		"id":                cty.StringVal("bar"),
-		"ami":               cty.NullVal(cty.String),
+		"id":  cty.StringVal("bar"),
+		"ami": cty.NullVal(cty.String),
 		"network_interface": cty.NullVal(cty.List(cty.Object(map[string]cty.Type{
-			"device_index":  cty.String,
-			"description":   cty.String,
+			"device_index": cty.String,
+			"description":  cty.String,
 		}))),
 	})
 	if !expected.RawEquals(actual) {
@@ -430,11 +430,11 @@ func TestPlan_stateDefault(t *testing.T) {
 	// Verify that the provider was called with the existing state
 	actual := p.PlanResourceChangeRequest.PriorState
 	expected := cty.ObjectVal(map[string]cty.Value{
-		"id": cty.StringVal("bar"),
-		"ami":               cty.NullVal(cty.String),
+		"id":  cty.StringVal("bar"),
+		"ami": cty.NullVal(cty.String),
 		"network_interface": cty.NullVal(cty.List(cty.Object(map[string]cty.Type{
-			"device_index":  cty.String,
-			"description":   cty.String,
+			"device_index": cty.String,
+			"description":  cty.String,
 		}))),
 	})
 	if !expected.RawEquals(actual) {
@@ -461,7 +461,7 @@ func TestPlan_validate(t *testing.T) {
 		ResourceTypes: map[string]*configschema.Block{
 			"test_instance": {
 				Attributes: map[string]*configschema.Attribute{
-					"id":  {Type: cty.String, Optional: true, Computed: true},
+					"id": {Type: cty.String, Optional: true, Computed: true},
 				},
 			},
 		},
