@@ -12,7 +12,6 @@ import (
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/config/hcl2shim"
-	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/repl"
 	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/tfdiags"
@@ -201,18 +200,9 @@ func (c *ApplyCommand) Run(args []string) int {
 	}
 
 	if !c.Destroy {
-		// TODO: Print outputs, once this is updated to use new config types.
-		/*
-			// Get the right module that we used. If we ran a plan, then use
-			// that module.
-			if plan != nil {
-				mod = plan.Module
-			}
-
-			if outputs := outputsAsString(op.State, terraform.RootModulePath, mod.Config().Outputs, true); outputs != "" {
-				c.Ui.Output(c.Colorize().Color(outputs))
-			}
-		*/
+		if outputs := outputsAsString(op.State, addrs.RootModuleInstance, true); outputs != "" {
+			c.Ui.Output(c.Colorize().Color(outputs))
+		}
 	}
 
 	return op.Result.ExitStatus()
@@ -342,7 +332,7 @@ Options:
 	return strings.TrimSpace(helpText)
 }
 
-func outputsAsString(state *states.State, modPath addrs.ModuleInstance, schema map[string]*configs.Output, includeHeader bool) string {
+func outputsAsString(state *states.State, modPath addrs.ModuleInstance, includeHeader bool) string {
 	if state == nil {
 		return ""
 	}
@@ -371,13 +361,11 @@ func outputsAsString(state *states.State, modPath addrs.ModuleInstance, schema m
 		sort.Strings(ks)
 
 		for _, k := range ks {
-			schema, ok := schema[k]
-			if ok && schema.Sensitive {
+			v := outputs[k]
+			if v.Sensitive {
 				outputBuf.WriteString(fmt.Sprintf("%s = <sensitive>\n", k))
 				continue
 			}
-
-			v := outputs[k]
 
 			// Our formatter still wants an old-style raw interface{} value, so
 			// for now we'll just shim it.
