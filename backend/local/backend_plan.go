@@ -101,8 +101,13 @@ func (b *Local) opPlan(
 	}()
 
 	if b.opWait(doneCh, stopCtx, cancelCtx, tfCtx, opState) {
+		// If we get in here then the operation was cancelled, which is always
+		// considered to be a failure.
+		log.Printf("[INFO] backend/local: plan operation was force-cancelled by interrupt")
+		runningOp.Result = backend.OperationFailure
 		return
 	}
+	log.Printf("[INFO] backend/local: plan operation completed")
 
 	diags = diags.Append(planDiags)
 	if planDiags.HasErrors() {

@@ -215,18 +215,18 @@ func testPlanFileNoop(t *testing.T) string {
 	return testPlanFile(t, snap, state, plan)
 }
 
-func testReadPlan(t *testing.T, path string) *terraform.Plan {
+func testReadPlan(t *testing.T, path string) *plans.Plan {
 	t.Helper()
 
-	f, err := os.Open(path)
+	f, err := planfile.Open(path)
 	if err != nil {
-		t.Fatalf("err: %s", err)
+		t.Fatalf("error opening plan file %q: %s", path, err)
 	}
 	defer f.Close()
 
-	p, err := terraform.ReadPlan(f)
+	p, err := f.ReadPlan()
 	if err != nil {
-		t.Fatalf("err: %s", err)
+		t.Fatalf("error reading plan from plan file %q: %s", path, err)
 	}
 
 	return p
