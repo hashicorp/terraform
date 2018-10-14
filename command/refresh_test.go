@@ -13,9 +13,11 @@ import (
 	"github.com/mitchellh/cli"
 	"github.com/zclconf/go-cty/cty"
 
+	"github.com/hashicorp/terraform/configs/configschema"
 	"github.com/hashicorp/terraform/helper/copy"
 	"github.com/hashicorp/terraform/providers"
 	"github.com/hashicorp/terraform/states"
+	"github.com/hashicorp/terraform/states/statefile"
 	"github.com/hashicorp/terraform/terraform"
 )
 
@@ -32,6 +34,7 @@ func TestRefresh(t *testing.T) {
 		},
 	}
 
+	p.GetSchemaReturn = refreshFixtureSchema()
 	p.ReadResourceFn = nil
 	p.ReadResourceResponse = providers.ReadResourceResponse{
 		NewState: cty.ObjectVal(map[string]cty.Value{
@@ -56,13 +59,13 @@ func TestRefresh(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	newState, err := terraform.ReadState(f)
+	newStateFile, err := statefile.Read(f)
 	f.Close()
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
-	actual := strings.TrimSpace(newState.String())
+	actual := strings.TrimSpace(newStateFile.State.String())
 	expected := strings.TrimSpace(testRefreshStr)
 	if actual != expected {
 		t.Fatalf("bad:\n\n%s", actual)
@@ -123,6 +126,7 @@ func TestRefresh_lockedState(t *testing.T) {
 		},
 	}
 
+	p.GetSchemaReturn = refreshFixtureSchema()
 	p.ReadResourceFn = nil
 	p.ReadResourceResponse = providers.ReadResourceResponse{
 		NewState: cty.ObjectVal(map[string]cty.Value{
@@ -167,6 +171,7 @@ func TestRefresh_cwd(t *testing.T) {
 		},
 	}
 
+	p.GetSchemaReturn = refreshFixtureSchema()
 	p.ReadResourceFn = nil
 	p.ReadResourceResponse = providers.ReadResourceResponse{
 		NewState: cty.ObjectVal(map[string]cty.Value{
@@ -190,13 +195,13 @@ func TestRefresh_cwd(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	newState, err := terraform.ReadState(f)
+	newStateFile, err := statefile.Read(f)
 	f.Close()
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
-	actual := strings.TrimSpace(newState.String())
+	actual := strings.TrimSpace(newStateFile.State.String())
 	expected := strings.TrimSpace(testRefreshCwdStr)
 	if actual != expected {
 		t.Fatalf("bad:\n\n%s", actual)
@@ -241,6 +246,7 @@ func TestRefresh_defaultState(t *testing.T) {
 			},
 		}
 
+		p.GetSchemaReturn = refreshFixtureSchema()
 		p.RefreshFn = nil
 		p.RefreshReturn = newInstanceState("yes")
 
@@ -299,6 +305,7 @@ func TestRefresh_outPath(t *testing.T) {
 			},
 		}
 
+		p.GetSchemaReturn = refreshFixtureSchema()
 		p.RefreshFn = nil
 		p.RefreshReturn = newInstanceState("yes")
 
@@ -374,6 +381,7 @@ func TestRefresh_var(t *testing.T) {
 			Ui:               ui,
 		},
 	}
+	p.GetSchemaReturn = refreshVarFixtureSchema()
 
 	args := []string{
 		"-var", "foo=bar",
@@ -404,6 +412,7 @@ func TestRefresh_varFile(t *testing.T) {
 			Ui:               ui,
 		},
 	}
+	p.GetSchemaReturn = refreshVarFixtureSchema()
 
 	varFilePath := testTempFile(t)
 	if err := ioutil.WriteFile(varFilePath, []byte(refreshVarFile), 0644); err != nil {
@@ -439,6 +448,7 @@ func TestRefresh_varFileDefault(t *testing.T) {
 			Ui:               ui,
 		},
 	}
+	p.GetSchemaReturn = refreshVarFixtureSchema()
 
 	varFileDir := testTempDir(t)
 	varFilePath := filepath.Join(varFileDir, "terraform.tfvars")
@@ -489,6 +499,16 @@ func TestRefresh_varsUnset(t *testing.T) {
 			Ui:               ui,
 		},
 	}
+	p.GetSchemaReturn = &terraform.ProviderSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"test_instance": {
+				Attributes: map[string]*configschema.Attribute{
+					"id":  {Type: cty.String, Optional: true, Computed: true},
+					"ami": {Type: cty.String, Optional: true},
+				},
+			},
+		},
+	}
 
 	args := []string{
 		"-state", statePath,
@@ -532,6 +552,7 @@ func TestRefresh_backup(t *testing.T) {
 			},
 		}
 
+		p.GetSchemaReturn = refreshFixtureSchema()
 		p.RefreshFn = nil
 		p.RefreshReturn = newInstanceState("yes")
 
@@ -620,6 +641,7 @@ func TestRefresh_disableBackup(t *testing.T) {
 			},
 		}
 
+		p.GetSchemaReturn = refreshFixtureSchema()
 		p.RefreshFn = nil
 		p.RefreshReturn = newInstanceState("yes")
 
@@ -689,6 +711,16 @@ func TestRefresh_displaysOutputs(t *testing.T) {
 			Ui:               ui,
 		},
 	}
+	p.GetSchemaReturn = &terraform.ProviderSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"test_instance": {
+				Attributes: map[string]*configschema.Attribute{
+					"id":  {Type: cty.String, Optional: true, Computed: true},
+					"ami": {Type: cty.String, Optional: true},
+				},
+			},
+		},
+	}
 
 	args := []string{
 		"-state", statePath,
@@ -721,6 +753,42 @@ func newInstanceState(id string) *states.ResourceInstanceObjectSrc {
 	return &states.ResourceInstanceObjectSrc{
 		AttrsJSON: attrsJSON,
 		Status:    states.ObjectReady,
+	}
+}
+
+// refreshFixtureSchema returns a schema suitable for processing the
+// configuration in test-fixtures/refresh . This schema should be
+// assigned to a mock provider named "test".
+func refreshFixtureSchema() *terraform.ProviderSchema {
+	return &terraform.ProviderSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"test_instance": {
+				Attributes: map[string]*configschema.Attribute{
+					"id":  {Type: cty.String, Optional: true, Computed: true},
+					"ami": {Type: cty.String, Optional: true},
+				},
+			},
+		},
+	}
+}
+
+// refreshVarFixtureSchema returns a schema suitable for processing the
+// configuration in test-fixtures/refresh-var . This schema should be
+// assigned to a mock provider named "test".
+func refreshVarFixtureSchema() *terraform.ProviderSchema {
+	return &terraform.ProviderSchema{
+		Provider: &configschema.Block{
+			Attributes: map[string]*configschema.Attribute{
+				"value": {Type: cty.String, Optional: true},
+			},
+		},
+		ResourceTypes: map[string]*configschema.Block{
+			"test_instance": {
+				Attributes: map[string]*configschema.Attribute{
+					"id": {Type: cty.String, Optional: true, Computed: true},
+				},
+			},
+		},
 	}
 }
 

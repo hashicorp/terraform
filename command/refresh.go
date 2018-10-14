@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/tfdiags"
 )
@@ -97,12 +98,9 @@ func (c *RefreshCommand) Run(args []string) int {
 		return op.Result.ExitStatus()
 	}
 
-	// TODO: Print outputs, once this is updated to use new config types.
-	/*
-		if outputs := outputsAsString(op.State, terraform.RootModulePath, nil, true); outputs != "" {
-			c.Ui.Output(c.Colorize().Color(outputs))
-		}
-	*/
+	if outputs := outputsAsString(op.State, addrs.RootModuleInstance, true); outputs != "" {
+		c.Ui.Output(c.Colorize().Color(outputs))
+	}
 
 	return op.Result.ExitStatus()
 }
