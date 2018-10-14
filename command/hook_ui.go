@@ -158,13 +158,13 @@ func (h *UiHook) PreApply(addr addrs.AbsResourceInstance, gen states.Generation,
 
 	key := addr.String()
 	uiState := uiResourceState{
-		DispAddr:   key,
-		IDKey:      idKey,
-		IDValue:    idValue,
-		Op:         op,
-		Start:      time.Now().Round(time.Second),
-		DoneCh:     make(chan struct{}),
-		done:       make(chan struct{}),
+		DispAddr: key,
+		IDKey:    idKey,
+		IDValue:  idValue,
+		Op:       op,
+		Start:    time.Now().Round(time.Second),
+		DoneCh:   make(chan struct{}),
+		done:     make(chan struct{}),
 	}
 
 	h.l.Lock()
