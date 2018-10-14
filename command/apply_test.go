@@ -182,15 +182,15 @@ func TestApply_parallelism(t *testing.T) {
 		provider := &terraform.MockProvider{}
 		provider.GetSchemaReturn = &terraform.ProviderSchema{
 			ResourceTypes: map[string]*configschema.Block{
-				name+"_instance": {},
+				name + "_instance": {},
 			},
 		}
-		provider.PlanResourceChangeFn = func (req providers.PlanResourceChangeRequest) providers.PlanResourceChangeResponse {
+		provider.PlanResourceChangeFn = func(req providers.PlanResourceChangeRequest) providers.PlanResourceChangeResponse {
 			return providers.PlanResourceChangeResponse{
 				PlannedState: req.ProposedNewState,
 			}
 		}
-		provider.ApplyResourceChangeFn = func (req providers.ApplyResourceChangeRequest) providers.ApplyResourceChangeResponse {
+		provider.ApplyResourceChangeFn = func(req providers.ApplyResourceChangeRequest) providers.ApplyResourceChangeResponse {
 			// Increment so we're counting parallelism
 			started <- 1
 			runCount.Inc()
@@ -1111,7 +1111,7 @@ func TestApply_vars(t *testing.T) {
 			},
 		},
 	}
-	p.ApplyResourceChangeFn = func (req providers.ApplyResourceChangeRequest) providers.ApplyResourceChangeResponse {
+	p.ApplyResourceChangeFn = func(req providers.ApplyResourceChangeRequest) providers.ApplyResourceChangeResponse {
 		return providers.ApplyResourceChangeResponse{
 			NewState: req.PlannedState,
 		}
@@ -1170,7 +1170,7 @@ func TestApply_varFile(t *testing.T) {
 			},
 		},
 	}
-	p.ApplyResourceChangeFn = func (req providers.ApplyResourceChangeRequest) providers.ApplyResourceChangeResponse {
+	p.ApplyResourceChangeFn = func(req providers.ApplyResourceChangeRequest) providers.ApplyResourceChangeResponse {
 		return providers.ApplyResourceChangeResponse{
 			NewState: req.PlannedState,
 		}
@@ -1239,7 +1239,7 @@ func TestApply_varFileDefault(t *testing.T) {
 			},
 		},
 	}
-	p.ApplyResourceChangeFn = func (req providers.ApplyResourceChangeRequest) providers.ApplyResourceChangeResponse {
+	p.ApplyResourceChangeFn = func(req providers.ApplyResourceChangeRequest) providers.ApplyResourceChangeResponse {
 		return providers.ApplyResourceChangeResponse{
 			NewState: req.PlannedState,
 		}
@@ -1307,7 +1307,7 @@ func TestApply_varFileDefaultJSON(t *testing.T) {
 			},
 		},
 	}
-	p.ApplyResourceChangeFn = func (req providers.ApplyResourceChangeRequest) providers.ApplyResourceChangeResponse {
+	p.ApplyResourceChangeFn = func(req providers.ApplyResourceChangeRequest) providers.ApplyResourceChangeResponse {
 		return providers.ApplyResourceChangeResponse{
 			NewState: req.PlannedState,
 		}
@@ -1400,7 +1400,7 @@ func TestApply_backup(t *testing.T) {
 	if !cmp.Equal(actual, expected) {
 		t.Fatalf(
 			"wrong aws_instance.foo state\n%s",
-			cmp.Diff(expected, actual, cmp.Transformer("bytesAsString", func (b []byte) string {
+			cmp.Diff(expected, actual, cmp.Transformer("bytesAsString", func(b []byte) string {
 				return string(b)
 			})),
 		)
@@ -1449,7 +1449,7 @@ func TestApply_disableBackup(t *testing.T) {
 
 	actual = p.ApplyResourceChangeRequest.PriorState
 	expected = cty.ObjectVal(map[string]cty.Value{
-		"id": cty.StringVal("bar"),
+		"id":  cty.StringVal("bar"),
 		"ami": cty.NullVal(cty.String),
 	})
 	if !expected.RawEquals(actual) {
@@ -1599,7 +1599,7 @@ func applyFixtureSchema() *terraform.ProviderSchema {
 		ResourceTypes: map[string]*configschema.Block{
 			"test_instance": {
 				Attributes: map[string]*configschema.Attribute{
-					"id": {Type: cty.String, Optional: true, Computed: true},
+					"id":  {Type: cty.String, Optional: true, Computed: true},
 					"ami": {Type: cty.String, Optional: true},
 				},
 			},
@@ -1615,12 +1615,12 @@ func applyFixtureSchema() *terraform.ProviderSchema {
 func applyFixtureProvider() *terraform.MockProvider {
 	p := testProvider()
 	p.GetSchemaReturn = applyFixtureSchema()
-	p.PlanResourceChangeFn = func (req providers.PlanResourceChangeRequest) providers.PlanResourceChangeResponse {
+	p.PlanResourceChangeFn = func(req providers.PlanResourceChangeRequest) providers.PlanResourceChangeResponse {
 		return providers.PlanResourceChangeResponse{
 			PlannedState: req.ProposedNewState,
 		}
 	}
-	p.ApplyResourceChangeFn = func (req providers.ApplyResourceChangeRequest) providers.ApplyResourceChangeResponse {
+	p.ApplyResourceChangeFn = func(req providers.ApplyResourceChangeRequest) providers.ApplyResourceChangeResponse {
 		return providers.ApplyResourceChangeResponse{
 			NewState: cty.UnknownAsNull(req.PlannedState),
 		}

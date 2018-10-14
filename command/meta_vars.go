@@ -114,7 +114,6 @@ func (m *Meta) collectVariableValues() (map[string]backend.UnparsedVariableValue
 	return ret, diags
 }
 
-
 func (m *Meta) addVarsFromFile(filename string, sourceType terraform.ValueSourceType, to map[string]backend.UnparsedVariableValue) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 
@@ -213,7 +212,7 @@ func (v unparsedVariableValueString) ParseVariableValue(mode configs.VariablePar
 	diags = diags.Append(hclDiags)
 
 	return &terraform.InputValue{
-		Value:       val,
-		SourceType:  v.sourceType,
+		Value:      val,
+		SourceType: v.sourceType,
 	}, diags
 }
