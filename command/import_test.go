@@ -11,6 +11,7 @@ import (
 	"github.com/mitchellh/cli"
 	"github.com/zclconf/go-cty/cty"
 
+	"github.com/hashicorp/terraform/configs/configschema"
 	"github.com/hashicorp/terraform/helper/copy"
 	"github.com/hashicorp/terraform/plugin"
 	"github.com/hashicorp/terraform/plugin/discovery"
@@ -41,6 +42,15 @@ func TestImport(t *testing.T) {
 				State: cty.ObjectVal(map[string]cty.Value{
 					"id": cty.StringVal("yay"),
 				}),
+			},
+		},
+	}
+	p.GetSchemaReturn = &terraform.ProviderSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"test_instance": {
+				Attributes: map[string]*configschema.Attribute{
+					"id":  {Type: cty.String, Optional: true, Computed: true},
+				},
 			},
 		},
 	}
@@ -83,6 +93,20 @@ func TestImport_providerConfig(t *testing.T) {
 				State: cty.ObjectVal(map[string]cty.Value{
 					"id": cty.StringVal("yay"),
 				}),
+			},
+		},
+	}
+	p.GetSchemaReturn = &terraform.ProviderSchema{
+		Provider: &configschema.Block{
+			Attributes: map[string]*configschema.Attribute{
+				"foo":  {Type: cty.String, Optional: true},
+			},
+		},
+		ResourceTypes: map[string]*configschema.Block{
+			"test_instance": {
+				Attributes: map[string]*configschema.Attribute{
+					"id":  {Type: cty.String, Optional: true, Computed: true},
+				},
 			},
 		},
 	}
@@ -178,16 +202,31 @@ func TestImport_remoteState(t *testing.T) {
 			},
 		},
 	}
+	p.GetSchemaReturn = &terraform.ProviderSchema{
+		Provider: &configschema.Block{
+			Attributes: map[string]*configschema.Attribute{
+				"foo":  {Type: cty.String, Optional: true},
+			},
+		},
+		ResourceTypes: map[string]*configschema.Block{
+			"test_instance": {
+				Attributes: map[string]*configschema.Attribute{
+					"id":  {Type: cty.String, Optional: true, Computed: true},
+				},
+			},
+		},
+	}
 
 	configured := false
-	p.ConfigureFn = func(c *terraform.ResourceConfig) error {
+	p.ConfigureNewFn = func(req providers.ConfigureRequest) providers.ConfigureResponse {
+		var diags tfdiags.Diagnostics
 		configured = true
-
-		if v, ok := c.Get("foo"); !ok || v.(string) != "bar" {
-			return fmt.Errorf("bad value: %#v", v)
+		if got, want := req.Config.GetAttr("foo"), cty.StringVal("bar"); !want.RawEquals(got) {
+			diags = diags.Append(fmt.Errorf("wrong \"foo\" value %#v; want %#v", got, want))
 		}
-
-		return nil
+		return providers.ConfigureResponse{
+			Diagnostics: diags,
+		}
 	}
 
 	args := []string{
@@ -242,16 +281,31 @@ func TestImport_providerConfigWithVar(t *testing.T) {
 			},
 		},
 	}
+	p.GetSchemaReturn = &terraform.ProviderSchema{
+		Provider: &configschema.Block{
+			Attributes: map[string]*configschema.Attribute{
+				"foo":  {Type: cty.String, Optional: true},
+			},
+		},
+		ResourceTypes: map[string]*configschema.Block{
+			"test_instance": {
+				Attributes: map[string]*configschema.Attribute{
+					"id":  {Type: cty.String, Optional: true, Computed: true},
+				},
+			},
+		},
+	}
 
 	configured := false
-	p.ConfigureFn = func(c *terraform.ResourceConfig) error {
+	p.ConfigureNewFn = func(req providers.ConfigureRequest) providers.ConfigureResponse {
+		var diags tfdiags.Diagnostics
 		configured = true
-
-		if v, ok := c.Get("foo"); !ok || v.(string) != "bar" {
-			return fmt.Errorf("bad value: %#v", v)
+		if got, want := req.Config.GetAttr("foo"), cty.StringVal("bar"); !want.RawEquals(got) {
+			diags = diags.Append(fmt.Errorf("wrong \"foo\" value %#v; want %#v", got, want))
 		}
-
-		return nil
+		return providers.ConfigureResponse{
+			Diagnostics: diags,
+		}
 	}
 
 	args := []string{
@@ -301,16 +355,31 @@ func TestImport_providerConfigWithVarDefault(t *testing.T) {
 			},
 		},
 	}
+	p.GetSchemaReturn = &terraform.ProviderSchema{
+		Provider: &configschema.Block{
+			Attributes: map[string]*configschema.Attribute{
+				"foo":  {Type: cty.String, Optional: true},
+			},
+		},
+		ResourceTypes: map[string]*configschema.Block{
+			"test_instance": {
+				Attributes: map[string]*configschema.Attribute{
+					"id":  {Type: cty.String, Optional: true, Computed: true},
+				},
+			},
+		},
+	}
 
 	configured := false
-	p.ConfigureFn = func(c *terraform.ResourceConfig) error {
+	p.ConfigureNewFn = func(req providers.ConfigureRequest) providers.ConfigureResponse {
+		var diags tfdiags.Diagnostics
 		configured = true
-
-		if v, ok := c.Get("foo"); !ok || v.(string) != "bar" {
-			return fmt.Errorf("bad value: %#v", v)
+		if got, want := req.Config.GetAttr("foo"), cty.StringVal("bar"); !want.RawEquals(got) {
+			diags = diags.Append(fmt.Errorf("wrong \"foo\" value %#v; want %#v", got, want))
 		}
-
-		return nil
+		return providers.ConfigureResponse{
+			Diagnostics: diags,
+		}
 	}
 
 	args := []string{
@@ -359,16 +428,31 @@ func TestImport_providerConfigWithVarFile(t *testing.T) {
 			},
 		},
 	}
+	p.GetSchemaReturn = &terraform.ProviderSchema{
+		Provider: &configschema.Block{
+			Attributes: map[string]*configschema.Attribute{
+				"foo":  {Type: cty.String, Optional: true},
+			},
+		},
+		ResourceTypes: map[string]*configschema.Block{
+			"test_instance": {
+				Attributes: map[string]*configschema.Attribute{
+					"id":  {Type: cty.String, Optional: true, Computed: true},
+				},
+			},
+		},
+	}
 
 	configured := false
-	p.ConfigureFn = func(c *terraform.ResourceConfig) error {
+	p.ConfigureNewFn = func(req providers.ConfigureRequest) providers.ConfigureResponse {
+		var diags tfdiags.Diagnostics
 		configured = true
-
-		if v, ok := c.Get("foo"); !ok || v.(string) != "bar" {
-			return fmt.Errorf("bad value: %#v", v)
+		if got, want := req.Config.GetAttr("foo"), cty.StringVal("bar"); !want.RawEquals(got) {
+			diags = diags.Append(fmt.Errorf("wrong \"foo\" value %#v; want %#v", got, want))
 		}
-
-		return nil
+		return providers.ConfigureResponse{
+			Diagnostics: diags,
+		}
 	}
 
 	args := []string{
@@ -418,6 +502,20 @@ func TestImport_customProvider(t *testing.T) {
 			},
 		},
 	}
+	p.GetSchemaReturn = &terraform.ProviderSchema{
+		Provider: &configschema.Block{
+			Attributes: map[string]*configschema.Attribute{
+				"foo":  {Type: cty.String, Optional: true},
+			},
+		},
+		ResourceTypes: map[string]*configschema.Block{
+			"test_instance": {
+				Attributes: map[string]*configschema.Attribute{
+					"id":  {Type: cty.String, Optional: true, Computed: true},
+				},
+			},
+		},
+	}
 
 	args := []string{
 		"-provider", "test.alias",
@@ -458,6 +556,15 @@ func TestImport_allowMissingResourceConfig(t *testing.T) {
 				State: cty.ObjectVal(map[string]cty.Value{
 					"id": cty.StringVal("yay"),
 				}),
+			},
+		},
+	}
+	p.GetSchemaReturn = &terraform.ProviderSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"test_instance": {
+				Attributes: map[string]*configschema.Attribute{
+					"id":  {Type: cty.String, Optional: true, Computed: true},
+				},
 			},
 		},
 	}
