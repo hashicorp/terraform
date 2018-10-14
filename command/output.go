@@ -158,7 +158,7 @@ func (c *OutputCommand) Run(args []string) int {
 			c.Ui.Output(string(jsonOutputs))
 			return 0
 		} else {
-			c.Ui.Output(outputsAsString(state, moduleAddr, nil, false))
+			c.Ui.Output(outputsAsString(state, moduleAddr, false))
 			return 0
 		}
 	}
