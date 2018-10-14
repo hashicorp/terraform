@@ -227,7 +227,7 @@ func TestApply_destroyTargeted(t *testing.T) {
 			},
 		},
 	}
-	p.PlanResourceChangeFn = func (req providers.PlanResourceChangeRequest) providers.PlanResourceChangeResponse {
+	p.PlanResourceChangeFn = func(req providers.PlanResourceChangeRequest) providers.PlanResourceChangeResponse {
 		return providers.PlanResourceChangeResponse{
 			PlannedState: req.ProposedNewState,
 		}

@@ -38,7 +38,7 @@ func TestImport(t *testing.T) {
 		ImportedResources: []providers.ImportedResource{
 			{
 				TypeName: "test_instance",
-				State:    cty.ObjectVal(map[string]cty.Value{
+				State: cty.ObjectVal(map[string]cty.Value{
 					"id": cty.StringVal("yay"),
 				}),
 			},
@@ -80,7 +80,7 @@ func TestImport_providerConfig(t *testing.T) {
 		ImportedResources: []providers.ImportedResource{
 			{
 				TypeName: "test_instance",
-				State:    cty.ObjectVal(map[string]cty.Value{
+				State: cty.ObjectVal(map[string]cty.Value{
 					"id": cty.StringVal("yay"),
 				}),
 			},
@@ -172,7 +172,7 @@ func TestImport_remoteState(t *testing.T) {
 		ImportedResources: []providers.ImportedResource{
 			{
 				TypeName: "test_instance",
-				State:    cty.ObjectVal(map[string]cty.Value{
+				State: cty.ObjectVal(map[string]cty.Value{
 					"id": cty.StringVal("yay"),
 				}),
 			},
@@ -236,7 +236,7 @@ func TestImport_providerConfigWithVar(t *testing.T) {
 		ImportedResources: []providers.ImportedResource{
 			{
 				TypeName: "test_instance",
-				State:    cty.ObjectVal(map[string]cty.Value{
+				State: cty.ObjectVal(map[string]cty.Value{
 					"id": cty.StringVal("yay"),
 				}),
 			},
@@ -295,7 +295,7 @@ func TestImport_providerConfigWithVarDefault(t *testing.T) {
 		ImportedResources: []providers.ImportedResource{
 			{
 				TypeName: "test_instance",
-				State:    cty.ObjectVal(map[string]cty.Value{
+				State: cty.ObjectVal(map[string]cty.Value{
 					"id": cty.StringVal("yay"),
 				}),
 			},
@@ -353,7 +353,7 @@ func TestImport_providerConfigWithVarFile(t *testing.T) {
 		ImportedResources: []providers.ImportedResource{
 			{
 				TypeName: "test_instance",
-				State:    cty.ObjectVal(map[string]cty.Value{
+				State: cty.ObjectVal(map[string]cty.Value{
 					"id": cty.StringVal("yay"),
 				}),
 			},
@@ -412,7 +412,7 @@ func TestImport_customProvider(t *testing.T) {
 		ImportedResources: []providers.ImportedResource{
 			{
 				TypeName: "test_instance",
-				State:    cty.ObjectVal(map[string]cty.Value{
+				State: cty.ObjectVal(map[string]cty.Value{
 					"id": cty.StringVal("yay"),
 				}),
 			},
@@ -455,7 +455,7 @@ func TestImport_allowMissingResourceConfig(t *testing.T) {
 		ImportedResources: []providers.ImportedResource{
 			{
 				TypeName: "test_instance",
-				State:    cty.ObjectVal(map[string]cty.Value{
+				State: cty.ObjectVal(map[string]cty.Value{
 					"id": cty.StringVal("yay"),
 				}),
 			},
