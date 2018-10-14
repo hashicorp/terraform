@@ -66,7 +66,7 @@ func TestProviders_noConfigs(t *testing.T) {
 	}
 
 	output := ui.ErrorWriter.String()
-	expectedErrMsg := "No configuration files found"
+	expectedErrMsg := "No configuration files"
 	if !strings.Contains(output, expectedErrMsg) {
 		t.Errorf("Expected error message: %s\nGiven output: %s", expectedErrMsg, output)
 	}

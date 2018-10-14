@@ -2,8 +2,10 @@ package command
 
 import (
 	"fmt"
+	"path/filepath"
 	"sort"
 
+	"github.com/hashicorp/terraform/config"
 	"github.com/hashicorp/terraform/moduledeps"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/hashicorp/terraform/tfdiags"
@@ -40,6 +42,30 @@ func (c *ProvidersCommand) Run(args []string) int {
 	}
 
 	var diags tfdiags.Diagnostics
+
+	empty, err := config.IsEmptyDir(configPath)
+	if err != nil {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Error validating configuration directory",
+			fmt.Sprintf("Terraform encountered an unexpected error while verifying that the given configuration directory is valid: %s.", err),
+		))
+		c.showDiagnostics(diags)
+		return 1
+	}
+	if empty {
+		absPath, err := filepath.Abs(configPath)
+		if err != nil {
+			absPath = configPath
+		}
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"No configuration files",
+			fmt.Sprintf("The directory %s contains no Terraform configuration files.", absPath),
+		))
+		c.showDiagnostics(diags)
+		return 1
+	}
 
 	config, configDiags := c.loadConfig(configPath)
 	diags = diags.Append(configDiags)
