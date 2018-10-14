@@ -8,5 +8,5 @@ output "notsensitive" {
 
 output "sensitive" {
   sensitive = true
-  value = "${var.input}"
+  value     = "${var.input}"
 }

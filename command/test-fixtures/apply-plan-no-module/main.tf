@@ -3,5 +3,5 @@ resource "test_instance" "tmpl" {
 }
 
 output "template" {
-	value = "${test_instance.tmpl.foo}"
+  value = "${test_instance.tmpl.foo}"
 }

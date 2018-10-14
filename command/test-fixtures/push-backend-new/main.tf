@@ -2,4 +2,6 @@ terraform {
   backend "inmem" {}
 }
 
-atlas { name = "hello" }
+atlas {
+  name = "hello"
+}

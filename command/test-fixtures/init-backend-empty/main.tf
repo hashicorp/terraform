@@ -1,4 +1,3 @@
 terraform {
-    backend "local" {
-    }
+  backend "local" {}
 }

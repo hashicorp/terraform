@@ -6,7 +6,7 @@ variable "baz" {
   type = "map"
 
   default = {
-    "A"    = "a"
+    "A" = "a"
   }
 }
 

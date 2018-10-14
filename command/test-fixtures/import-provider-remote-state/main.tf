@@ -1,12 +1,11 @@
 terraform {
-	backend "local" {
-		path = "imported.tfstate"
-	}
+  backend "local" {
+    path = "imported.tfstate"
+  }
 }
 
 provider "test" {
-    foo = "bar"
+  foo = "bar"
 }
 
-resource "test_instance" "foo" {
-}
+resource "test_instance" "foo" {}

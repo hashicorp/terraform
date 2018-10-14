@@ -4,5 +4,5 @@ variable "bar" {}
 resource "test_instance" "foo" {}
 
 atlas {
-    name = "foo"
+  name = "foo"
 }

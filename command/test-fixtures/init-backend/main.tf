@@ -1,5 +1,5 @@
 terraform {
-    backend "local" {
-        path = "foo"
-    }
+  backend "local" {
+    path = "foo"
+  }
 }

@@ -1,8 +1,7 @@
 variable "foo" {}
 
 provider "test" {
-    foo = "${var.foo}"
+  foo = "${var.foo}"
 }
 
-resource "test_instance" "foo" {
-}
+resource "test_instance" "foo" {}

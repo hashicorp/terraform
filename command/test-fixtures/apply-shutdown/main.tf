@@ -1,7 +1,7 @@
 resource "test_instance" "foo" {
-    ami = "bar"
+  ami = "bar"
 }
 
 resource "test_instance" "bar" {
-    ami = "${test_instance.foo.ami}"
+  ami = "${test_instance.foo.ami}"
 }

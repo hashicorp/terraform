@@ -1,5 +1,4 @@
-module "super#module" {
-}
+module "super#module" {}
 
 module "super" {
   source = "${var.modulename}"

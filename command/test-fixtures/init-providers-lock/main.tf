@@ -1,3 +1,3 @@
 provider "test" {
-	version = "1.2.3"
+  version = "1.2.3"
 }

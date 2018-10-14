@@ -1,4 +1,3 @@
-
 variable "name" {
   default = "world"
 }

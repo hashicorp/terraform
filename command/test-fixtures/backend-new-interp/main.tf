@@ -1,7 +1,9 @@
-variable "foo" { default = "bar" }
+variable "foo" {
+  default = "bar"
+}
 
 terraform {
-    backend "local" {
-        path = "${var.foo}"
-    }
+  backend "local" {
+    path = "${var.foo}"
+  }
 }

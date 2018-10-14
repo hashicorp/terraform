@@ -1,10 +1,6 @@
-provider "foo" {
+provider "foo" {}
 
-}
-
-resource "bar_instance" "test" {
-
-}
+resource "bar_instance" "test" {}
 
 provider "baz" {
   version = "1.2.0"

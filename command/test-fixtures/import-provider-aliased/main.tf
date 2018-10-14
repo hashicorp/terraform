@@ -1,8 +1,7 @@
 provider "test" {
-    foo = "bar"
+  foo = "bar"
 
-    alias = "alias"
+  alias = "alias"
 }
 
-resource "test_instance" "foo" {
-}
+resource "test_instance" "foo" {}
