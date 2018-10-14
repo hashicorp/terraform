@@ -15,6 +15,7 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/addrs"
+	"github.com/hashicorp/terraform/configs/configschema"
 	"github.com/hashicorp/terraform/helper/copy"
 	"github.com/hashicorp/terraform/providers"
 	"github.com/hashicorp/terraform/states"
@@ -31,7 +32,7 @@ func TestPlan(t *testing.T) {
 	}
 	defer os.Chdir(cwd)
 
-	p := testProvider()
+	p := planFixtureProvider()
 	ui := new(cli.MockUi)
 	c := &PlanCommand{
 		Meta: Meta{
@@ -64,7 +65,7 @@ func TestPlan_lockedState(t *testing.T) {
 	}
 	defer os.Chdir(cwd)
 
-	p := testProvider()
+	p := planFixtureProvider()
 	ui := new(cli.MockUi)
 	c := &PlanCommand{
 		Meta: Meta{
@@ -127,7 +128,7 @@ func TestPlan_destroy(t *testing.T) {
 	outPath := testTempFile(t)
 	statePath := testStateFile(t, originalState)
 
-	p := testProvider()
+	p := planFixtureProvider()
 	ui := new(cli.MockUi)
 	c := &PlanCommand{
 		Meta: Meta{
@@ -164,7 +165,7 @@ func TestPlan_noState(t *testing.T) {
 	tmp, cwd := testCwd(t)
 	defer testFixCwd(t, tmp, cwd)
 
-	p := testProvider()
+	p := planFixtureProvider()
 	ui := new(cli.MockUi)
 	c := &PlanCommand{
 		Meta: Meta{
@@ -187,7 +188,7 @@ func TestPlan_noState(t *testing.T) {
 
 	// Verify that the provider was called with the existing state
 	actual := p.PlanResourceChangeRequest.PriorState
-	expected := cty.NullVal(cty.EmptyObject)
+	expected := cty.NullVal(p.GetSchemaReturn.ResourceTypes["test_instance"].ImpliedType())
 	if !expected.RawEquals(actual) {
 		t.Fatalf("wrong prior state\ngot:  %#v\nwant: %#v", actual, expected)
 	}
@@ -200,7 +201,7 @@ func TestPlan_outPath(t *testing.T) {
 	td := testTempDir(t)
 	outPath := filepath.Join(td, "test.plan")
 
-	p := testProvider()
+	p := planFixtureProvider()
 	ui := new(cli.MockUi)
 	c := &PlanCommand{
 		Meta: Meta{
@@ -252,7 +253,7 @@ func TestPlan_outPathNoChange(t *testing.T) {
 	td := testTempDir(t)
 	outPath := filepath.Join(td, "test.plan")
 
-	p := testProvider()
+	p := planFixtureProvider()
 	ui := new(cli.MockUi)
 	c := &PlanCommand{
 		Meta: Meta{
@@ -341,7 +342,7 @@ func TestPlan_refreshFalse(t *testing.T) {
 	tmp, cwd := testCwd(t)
 	defer testFixCwd(t, tmp, cwd)
 
-	p := testProvider()
+	p := planFixtureProvider()
 	ui := new(cli.MockUi)
 	c := &PlanCommand{
 		Meta: Meta{
@@ -367,7 +368,7 @@ func TestPlan_state(t *testing.T) {
 	originalState := testState()
 	statePath := testStateFile(t, originalState)
 
-	p := testProvider()
+	p := planFixtureProvider()
 	ui := new(cli.MockUi)
 	c := &PlanCommand{
 		Meta: Meta{
@@ -387,7 +388,12 @@ func TestPlan_state(t *testing.T) {
 	// Verify that the provider was called with the existing state
 	actual := p.PlanResourceChangeRequest.PriorState
 	expected := cty.ObjectVal(map[string]cty.Value{
-		"id": cty.StringVal("bar"),
+		"id":                cty.StringVal("bar"),
+		"ami":               cty.NullVal(cty.String),
+		"network_interface": cty.NullVal(cty.List(cty.Object(map[string]cty.Type{
+			"device_index":  cty.String,
+			"description":   cty.String,
+		}))),
 	})
 	if !expected.RawEquals(actual) {
 		t.Fatalf("wrong prior state\ngot:  %#v\nwant: %#v", actual, expected)
@@ -408,7 +414,7 @@ func TestPlan_stateDefault(t *testing.T) {
 	}
 	defer os.Chdir(cwd)
 
-	p := testProvider()
+	p := planFixtureProvider()
 	ui := new(cli.MockUi)
 	c := &PlanCommand{
 		Meta: Meta{
@@ -429,6 +435,11 @@ func TestPlan_stateDefault(t *testing.T) {
 	actual := p.PlanResourceChangeRequest.PriorState
 	expected := cty.ObjectVal(map[string]cty.Value{
 		"id": cty.StringVal("bar"),
+		"ami":               cty.NullVal(cty.String),
+		"network_interface": cty.NullVal(cty.List(cty.Object(map[string]cty.Type{
+			"device_index":  cty.String,
+			"description":   cty.String,
+		}))),
 	})
 	if !expected.RawEquals(actual) {
 		t.Fatalf("wrong prior state\ngot:  %#v\nwant: %#v", actual, expected)
@@ -450,6 +461,20 @@ func TestPlan_validate(t *testing.T) {
 	defer os.Chdir(cwd)
 
 	p := testProvider()
+	p.GetSchemaReturn = &terraform.ProviderSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"test_instance": {
+				Attributes: map[string]*configschema.Attribute{
+					"id":  {Type: cty.String, Optional: true, Computed: true},
+				},
+			},
+		},
+	}
+	p.PlanResourceChangeFn = func(req providers.PlanResourceChangeRequest) providers.PlanResourceChangeResponse {
+		return providers.PlanResourceChangeResponse{
+			PlannedState: req.ProposedNewState,
+		}
+	}
 	ui := new(cli.MockUi)
 	c := &PlanCommand{
 		Meta: Meta{
@@ -473,7 +498,7 @@ func TestPlan_vars(t *testing.T) {
 	tmp, cwd := testCwd(t)
 	defer testFixCwd(t, tmp, cwd)
 
-	p := testProvider()
+	p := planVarsFixtureProvider()
 	ui := new(cli.MockUi)
 	c := &PlanCommand{
 		Meta: Meta{
@@ -517,7 +542,7 @@ func TestPlan_varsUnset(t *testing.T) {
 
 	defaultInputReader = bytes.NewBufferString("bar\n")
 
-	p := testProvider()
+	p := planVarsFixtureProvider()
 	ui := new(cli.MockUi)
 	c := &PlanCommand{
 		Meta: Meta{
@@ -543,7 +568,7 @@ func TestPlan_varFile(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	p := testProvider()
+	p := planVarsFixtureProvider()
 	ui := new(cli.MockUi)
 	c := &PlanCommand{
 		Meta: Meta{
@@ -593,7 +618,7 @@ func TestPlan_varFileDefault(t *testing.T) {
 	}
 	defer os.Chdir(cwd)
 
-	p := testProvider()
+	p := planVarsFixtureProvider()
 	ui := new(cli.MockUi)
 	c := &PlanCommand{
 		Meta: Meta{
@@ -636,7 +661,7 @@ func TestPlan_detailedExitcode(t *testing.T) {
 	}
 	defer os.Chdir(cwd)
 
-	p := testProvider()
+	p := planFixtureProvider()
 	ui := new(cli.MockUi)
 	c := &PlanCommand{
 		Meta: Meta{
@@ -734,6 +759,79 @@ func TestPlan_shutdown(t *testing.T) {
 	default:
 		t.Fatal("command not cancelled")
 	}
+}
+
+// planFixtureSchema returns a schema suitable for processing the
+// configuration in test-fixtures/plan . This schema should be
+// assigned to a mock provider named "test".
+func planFixtureSchema() *terraform.ProviderSchema {
+	return &terraform.ProviderSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"test_instance": {
+				Attributes: map[string]*configschema.Attribute{
+					"id":  {Type: cty.String, Optional: true, Computed: true},
+					"ami": {Type: cty.String, Optional: true},
+				},
+				BlockTypes: map[string]*configschema.NestedBlock{
+					"network_interface": {
+						Nesting: configschema.NestingList,
+						Block: configschema.Block{
+							Attributes: map[string]*configschema.Attribute{
+								"device_index": {Type: cty.String, Optional: true},
+								"description":  {Type: cty.String, Optional: true},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+}
+
+// planFixtureProvider returns a mock provider that is configured for basic
+// operation with the configuration in test-fixtures/plan. This mock has
+// GetSchemaReturn and PlanResourceChangeFn populated, with the plan
+// step just passing through the new object proposed by Terraform Core.
+func planFixtureProvider() *terraform.MockProvider {
+	p := testProvider()
+	p.GetSchemaReturn = planFixtureSchema()
+	p.PlanResourceChangeFn = func(req providers.PlanResourceChangeRequest) providers.PlanResourceChangeResponse {
+		return providers.PlanResourceChangeResponse{
+			PlannedState: req.ProposedNewState,
+		}
+	}
+	return p
+}
+
+// planVarsFixtureSchema returns a schema suitable for processing the
+// configuration in test-fixtures/plan-vars . This schema should be
+// assigned to a mock provider named "test".
+func planVarsFixtureSchema() *terraform.ProviderSchema {
+	return &terraform.ProviderSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"test_instance": {
+				Attributes: map[string]*configschema.Attribute{
+					"id":    {Type: cty.String, Optional: true, Computed: true},
+					"value": {Type: cty.String, Optional: true},
+				},
+			},
+		},
+	}
+}
+
+// planVarsFixtureProvider returns a mock provider that is configured for basic
+// operation with the configuration in test-fixtures/plan-vars. This mock has
+// GetSchemaReturn and PlanResourceChangeFn populated, with the plan
+// step just passing through the new object proposed by Terraform Core.
+func planVarsFixtureProvider() *terraform.MockProvider {
+	p := testProvider()
+	p.GetSchemaReturn = planVarsFixtureSchema()
+	p.PlanResourceChangeFn = func(req providers.PlanResourceChangeRequest) providers.PlanResourceChangeResponse {
+		return providers.PlanResourceChangeResponse{
+			PlannedState: req.ProposedNewState,
+		}
+	}
+	return p
 }
 
 const planVarFile = `
