@@ -30,6 +30,7 @@ Multiple workspaces are currently supported by the following backends:
  * [GCS](/docs/backends/types/gcs.html)
  * [Local](/docs/backends/types/local.html)
  * [Manta](/docs/backends/types/manta.html)
+ * [Postgres](/docs/backends/types/pg.html)
  * [S3](/docs/backends/types/s3.html)
 
 In the 0.9 line of Terraform releases, this concept was known as "environment".
