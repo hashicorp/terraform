@@ -812,3 +812,15 @@ func testLockState(sourceDir, path string) (func(), error) {
 	}
 	return deferFunc, nil
 }
+
+// normalizeJSON removes all insignificant whitespace from the given JSON buffer
+// and returns it as a string for easier comparison.
+func normalizeJSON(t *testing.T, src []byte) string {
+	t.Helper()
+	var buf bytes.Buffer
+	err := json.Compact(&buf, src)
+	if err != nil {
+		t.Fatalf("error normalizing JSON: %s", err)
+	}
+	return buf.String()
+}
