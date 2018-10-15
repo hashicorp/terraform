@@ -49,7 +49,7 @@ func TestImport(t *testing.T) {
 		ResourceTypes: map[string]*configschema.Block{
 			"test_instance": {
 				Attributes: map[string]*configschema.Attribute{
-					"id":  {Type: cty.String, Optional: true, Computed: true},
+					"id": {Type: cty.String, Optional: true, Computed: true},
 				},
 			},
 		},
@@ -99,13 +99,13 @@ func TestImport_providerConfig(t *testing.T) {
 	p.GetSchemaReturn = &terraform.ProviderSchema{
 		Provider: &configschema.Block{
 			Attributes: map[string]*configschema.Attribute{
-				"foo":  {Type: cty.String, Optional: true},
+				"foo": {Type: cty.String, Optional: true},
 			},
 		},
 		ResourceTypes: map[string]*configschema.Block{
 			"test_instance": {
 				Attributes: map[string]*configschema.Attribute{
-					"id":  {Type: cty.String, Optional: true, Computed: true},
+					"id": {Type: cty.String, Optional: true, Computed: true},
 				},
 			},
 		},
@@ -205,13 +205,13 @@ func TestImport_remoteState(t *testing.T) {
 	p.GetSchemaReturn = &terraform.ProviderSchema{
 		Provider: &configschema.Block{
 			Attributes: map[string]*configschema.Attribute{
-				"foo":  {Type: cty.String, Optional: true},
+				"foo": {Type: cty.String, Optional: true},
 			},
 		},
 		ResourceTypes: map[string]*configschema.Block{
 			"test_instance": {
 				Attributes: map[string]*configschema.Attribute{
-					"id":  {Type: cty.String, Optional: true, Computed: true},
+					"id": {Type: cty.String, Optional: true, Computed: true},
 				},
 			},
 		},
@@ -284,13 +284,13 @@ func TestImport_providerConfigWithVar(t *testing.T) {
 	p.GetSchemaReturn = &terraform.ProviderSchema{
 		Provider: &configschema.Block{
 			Attributes: map[string]*configschema.Attribute{
-				"foo":  {Type: cty.String, Optional: true},
+				"foo": {Type: cty.String, Optional: true},
 			},
 		},
 		ResourceTypes: map[string]*configschema.Block{
 			"test_instance": {
 				Attributes: map[string]*configschema.Attribute{
-					"id":  {Type: cty.String, Optional: true, Computed: true},
+					"id": {Type: cty.String, Optional: true, Computed: true},
 				},
 			},
 		},
@@ -358,13 +358,13 @@ func TestImport_providerConfigWithVarDefault(t *testing.T) {
 	p.GetSchemaReturn = &terraform.ProviderSchema{
 		Provider: &configschema.Block{
 			Attributes: map[string]*configschema.Attribute{
-				"foo":  {Type: cty.String, Optional: true},
+				"foo": {Type: cty.String, Optional: true},
 			},
 		},
 		ResourceTypes: map[string]*configschema.Block{
 			"test_instance": {
 				Attributes: map[string]*configschema.Attribute{
-					"id":  {Type: cty.String, Optional: true, Computed: true},
+					"id": {Type: cty.String, Optional: true, Computed: true},
 				},
 			},
 		},
@@ -431,13 +431,13 @@ func TestImport_providerConfigWithVarFile(t *testing.T) {
 	p.GetSchemaReturn = &terraform.ProviderSchema{
 		Provider: &configschema.Block{
 			Attributes: map[string]*configschema.Attribute{
-				"foo":  {Type: cty.String, Optional: true},
+				"foo": {Type: cty.String, Optional: true},
 			},
 		},
 		ResourceTypes: map[string]*configschema.Block{
 			"test_instance": {
 				Attributes: map[string]*configschema.Attribute{
-					"id":  {Type: cty.String, Optional: true, Computed: true},
+					"id": {Type: cty.String, Optional: true, Computed: true},
 				},
 			},
 		},
@@ -505,13 +505,13 @@ func TestImport_customProvider(t *testing.T) {
 	p.GetSchemaReturn = &terraform.ProviderSchema{
 		Provider: &configschema.Block{
 			Attributes: map[string]*configschema.Attribute{
-				"foo":  {Type: cty.String, Optional: true},
+				"foo": {Type: cty.String, Optional: true},
 			},
 		},
 		ResourceTypes: map[string]*configschema.Block{
 			"test_instance": {
 				Attributes: map[string]*configschema.Attribute{
-					"id":  {Type: cty.String, Optional: true, Computed: true},
+					"id": {Type: cty.String, Optional: true, Computed: true},
 				},
 			},
 		},
@@ -563,7 +563,7 @@ func TestImport_allowMissingResourceConfig(t *testing.T) {
 		ResourceTypes: map[string]*configschema.Block{
 			"test_instance": {
 				Attributes: map[string]*configschema.Attribute{
-					"id":  {Type: cty.String, Optional: true, Computed: true},
+					"id": {Type: cty.String, Optional: true, Computed: true},
 				},
 			},
 		},
