@@ -51,8 +51,7 @@ provisioner "file" {
 
 **The following arguments are supported by all connection types:**
 
-* `type` - The connection type that should be used. Valid types are `ssh` and `winrm`
-  Defaults to `ssh`.
+* `type` - The connection type that should be used. Valid types are `ssh` and `winrm`. Defaults to `ssh`.
 
 * `user` - The user that we should use for the connection. Defaults to `root` when
   using type `ssh` and defaults to `Administrator` when using type `winrm`.
