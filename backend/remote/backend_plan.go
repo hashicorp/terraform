@@ -210,6 +210,27 @@ func (b *Remote) plan(stopCtx, cancelCtx context.Context, op *backend.Operation,
 		return r, generalError("error reading logs", err)
 	}
 
+	// Retrieve the run to get its current status.
+	r, err = b.client.Runs.Read(stopCtx, r.ID)
+	if err != nil {
+		return r, generalError("error retrieving run", err)
+	}
+
+	// Return if there are no changes or the run errored. We return
+	// without an error, even if the run errored, as the error is
+	// already displayed by the output of the remote run.
+	if !r.HasChanges || r.Status == tfe.RunErrored {
+		return r, nil
+	}
+
+	// Check any configured sentinel policies.
+	if len(r.PolicyChecks) > 0 {
+		err = b.checkPolicy(stopCtx, cancelCtx, op, r)
+		if err != nil {
+			return r, err
+		}
+	}
+
 	return r, nil
 }
 
