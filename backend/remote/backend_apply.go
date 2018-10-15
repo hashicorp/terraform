@@ -23,8 +23,7 @@ func (b *Remote) opApply(stopCtx, cancelCtx context.Context, op *backend.Operati
 	}
 
 	if !w.Permissions.CanUpdate {
-		return nil, fmt.Errorf(strings.TrimSpace(
-			fmt.Sprintf(applyErrNoUpdateRights, b.hostname, b.organization, op.Workspace)))
+		return nil, fmt.Errorf(strings.TrimSpace(applyErrNoUpdateRights))
 	}
 
 	if w.VCSRepo != nil {
@@ -153,19 +152,17 @@ func (b *Remote) opApply(stopCtx, cancelCtx context.Context, op *backend.Operati
 		return r, err
 	}
 
-	if b.CLI != nil {
-		// Insert a blank line to separate the ouputs.
-		b.CLI.Output("")
-	}
-
 	logs, err := b.client.Applies.Logs(stopCtx, r.Apply.ID)
 	if err != nil {
 		return r, generalError("error retrieving logs", err)
 	}
 	scanner := bufio.NewScanner(logs)
 
+	skip := 0
 	for scanner.Scan() {
-		if scanner.Text() == "\x02" || scanner.Text() == "\x03" {
+		// Skip the first 3 lines to prevent duplicate output.
+		if skip < 3 {
+			skip++
 			continue
 		}
 		if b.CLI != nil {
@@ -298,10 +295,7 @@ const applyErrNoUpdateRights = `
 Insufficient rights to apply changes!
 
 [reset][yellow]The provided credentials have insufficient rights to apply changes. In order
-to apply changes at least write permissions on the workspace are required. To
-queue a run that can be approved by someone else, please use the 'Queue Plan'
-button in the web UI:
-https://%s/app/%s/%s/runs[reset]
+to apply changes at least write permissions on the workspace are required.[reset]
 `
 
 const applyErrVCSNotSupported = `
