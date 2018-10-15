@@ -324,13 +324,13 @@ github.com/hashicorp/hcl/json/token
 github.com/hashicorp/hcl2/hcl
 github.com/hashicorp/hcl2/hcl/hclsyntax
 github.com/hashicorp/hcl2/hcldec
+github.com/hashicorp/hcl2/hcl/json
 github.com/hashicorp/hcl2/hclwrite
 github.com/hashicorp/hcl2/hcled
 github.com/hashicorp/hcl2/hclparse
 github.com/hashicorp/hcl2/gohcl
 github.com/hashicorp/hcl2/ext/typeexpr
 github.com/hashicorp/hcl2/ext/dynblock
-github.com/hashicorp/hcl2/hcl/json
 github.com/hashicorp/hcl2/hcltest
 # github.com/hashicorp/hil v0.0.0-20170627220502-fa9f258a9250
 github.com/hashicorp/hil
@@ -529,7 +529,7 @@ golang.org/x/text/encoding/unicode
 golang.org/x/text/internal/tag
 golang.org/x/text/internal/utf8internal
 golang.org/x/text/runes
-# google.golang.org/api v0.0.0-20181016191922-cc9bd73d51b4
+# google.golang.org/api v0.0.0-20181015145326-625cd1887957
 google.golang.org/api/iterator
 google.golang.org/api/option
 google.golang.org/api/googleapi
