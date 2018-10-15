@@ -6,8 +6,8 @@ import (
 	"github.com/hashicorp/terraform/tfdiags"
 	"github.com/zclconf/go-cty/cty"
 
-	"github.com/hashicorp/terraform/configs/configschema"
 	"github.com/hashicorp/terraform/config/hcl2shim"
+	"github.com/hashicorp/terraform/configs/configschema"
 	"github.com/hashicorp/terraform/terraform"
 )
 
@@ -77,7 +77,7 @@ func (b *Backend) Configure(obj cty.Value) tfdiags.Diagnostics {
 
 	// Get a ResourceData for this configuration. To do this, we actually
 	// generate an intermediary "diff" although that is never exposed.
-	diff, err := sm.Diff(nil, shimRC, nil, nil)
+	diff, err := sm.Diff(nil, shimRC, nil, nil, true)
 	if err != nil {
 		diags = diags.Append(err)
 		return diags
