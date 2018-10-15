@@ -90,6 +90,24 @@ func TestElement(t *testing.T) {
 			cty.NumberIntVal(2),
 			cty.StringVal("hello"),
 		},
+		{
+			cty.TupleVal([]cty.Value{
+				cty.StringVal("hello"),
+				cty.StringVal("bonjour"),
+			}),
+			cty.UnknownVal(cty.Number),
+			cty.DynamicVal,
+		},
+		{
+			cty.UnknownVal(cty.Tuple([]cty.Type{cty.String, cty.Bool})),
+			cty.NumberIntVal(1),
+			cty.UnknownVal(cty.Bool),
+		},
+		{
+			cty.UnknownVal(cty.Tuple([]cty.Type{cty.String, cty.String})),
+			cty.UnknownVal(cty.Number),
+			cty.DynamicVal,
+		},
 	}
 
 	for _, test := range tests {
