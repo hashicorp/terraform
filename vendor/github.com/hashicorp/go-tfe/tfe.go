@@ -48,6 +48,9 @@ type Config struct {
 	// API token used to access the Terraform Enterprise API.
 	Token string
 
+	// Headers that will be added to every request.
+	Headers http.Header
+
 	// A custom HTTP client to use.
 	HTTPClient *http.Client
 }
@@ -58,6 +61,7 @@ func DefaultConfig() *Config {
 		Address:    os.Getenv("TFE_ADDRESS"),
 		BasePath:   DefaultBasePath,
 		Token:      os.Getenv("TFE_TOKEN"),
+		Headers:    make(http.Header),
 		HTTPClient: cleanhttp.DefaultPooledClient(),
 	}
 
@@ -66,16 +70,19 @@ func DefaultConfig() *Config {
 		config.Address = DefaultAddress
 	}
 
+	// Set the default user agent.
+	config.Headers.Set("User-Agent", userAgent)
+
 	return config
 }
 
 // Client is the Terraform Enterprise API client. It provides the basic
 // connectivity and configuration for accessing the TFE API.
 type Client struct {
-	baseURL   *url.URL
-	token     string
-	http      *http.Client
-	userAgent string
+	baseURL *url.URL
+	token   string
+	headers http.Header
+	http    *http.Client
 
 	Applies               Applies
 	ConfigurationVersions ConfigurationVersions
@@ -113,6 +120,9 @@ func NewClient(cfg *Config) (*Client, error) {
 		if cfg.Token != "" {
 			config.Token = cfg.Token
 		}
+		for k, v := range cfg.Headers {
+			config.Headers[k] = v
+		}
 		if cfg.HTTPClient != nil {
 			config.HTTPClient = cfg.HTTPClient
 		}
@@ -136,10 +146,10 @@ func NewClient(cfg *Config) (*Client, error) {
 
 	// Create the client.
 	client := &Client{
-		baseURL:   baseURL,
-		token:     config.Token,
-		http:      config.HTTPClient,
-		userAgent: userAgent,
+		baseURL: baseURL,
+		token:   config.Token,
+		headers: config.Headers,
+		http:    config.HTTPClient,
 	}
 
 	// Create the services.
@@ -208,6 +218,11 @@ func (c *Client) newRequest(method, path string, v interface{}) (*http.Request, 
 		Host:       u.Host,
 	}
 
+	// Set default headers.
+	for k, v := range c.headers {
+		req.Header[k] = v
+	}
+
 	switch method {
 	case "GET":
 		req.Header.Set("Accept", "application/vnd.api+json")
@@ -249,9 +264,8 @@ func (c *Client) newRequest(method, path string, v interface{}) (*http.Request, 
 		}
 	}
 
-	// Set required headers.
+	// Set the authorization header.
 	req.Header.Set("Authorization", "Bearer "+c.token)
-	req.Header.Set("User-Agent", c.userAgent)
 
 	return req, nil
 }
