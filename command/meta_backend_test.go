@@ -1302,9 +1302,17 @@ func TestMetaBackend_planLocal(t *testing.T) {
 	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
+	backendConfigBlock := cty.ObjectVal(map[string]cty.Value{
+		"path":          cty.NullVal(cty.String),
+		"workspace_dir": cty.NullVal(cty.String),
+	})
+	backendConfigRaw, err := plans.NewDynamicValue(backendConfigBlock, backendConfigBlock.Type())
+	if err != nil {
+		t.Fatal(err)
+	}
 	backendConfig := plans.Backend{
 		Type:      "local",
-		Config:    plans.DynamicValue("{}"),
+		Config:    backendConfigRaw,
 		Workspace: "default",
 	}
 
@@ -1387,9 +1395,17 @@ func TestMetaBackend_planLocalStatePath(t *testing.T) {
 	original := testState()
 	mark := markStateForMatching(original, "hello")
 
+	backendConfigBlock := cty.ObjectVal(map[string]cty.Value{
+		"path":          cty.NullVal(cty.String),
+		"workspace_dir": cty.NullVal(cty.String),
+	})
+	backendConfigRaw, err := plans.NewDynamicValue(backendConfigBlock, backendConfigBlock.Type())
+	if err != nil {
+		t.Fatal(err)
+	}
 	backendConfig := plans.Backend{
 		Type:      "local",
-		Config:    plans.DynamicValue("{}"),
+		Config:    backendConfigRaw,
 		Workspace: "default",
 	}
 
@@ -1397,7 +1413,7 @@ func TestMetaBackend_planLocalStatePath(t *testing.T) {
 	statePath := "foo.tfstate"
 
 	// put a initial state there that needs to be backed up
-	err := (statemgr.NewFilesystem(statePath)).WriteState(original)
+	err = (statemgr.NewFilesystem(statePath)).WriteState(original)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1480,9 +1496,17 @@ func TestMetaBackend_planLocalMatch(t *testing.T) {
 	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
+	backendConfigBlock := cty.ObjectVal(map[string]cty.Value{
+		"path":          cty.NullVal(cty.String),
+		"workspace_dir": cty.NullVal(cty.String),
+	})
+	backendConfigRaw, err := plans.NewDynamicValue(backendConfigBlock, backendConfigBlock.Type())
+	if err != nil {
+		t.Fatal(err)
+	}
 	backendConfig := plans.Backend{
 		Type:      "local",
-		Config:    plans.DynamicValue("{}"),
+		Config:    backendConfigRaw,
 		Workspace: "default",
 	}
 

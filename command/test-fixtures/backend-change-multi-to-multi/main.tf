@@ -1,5 +1,5 @@
 terraform {
     backend "local" {
-        environment_dir = "envdir-new"
+        workspace_dir = "envdir-new"
     }
 }
