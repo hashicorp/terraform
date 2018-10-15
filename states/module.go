@@ -146,6 +146,23 @@ func (ms *Module) SetResourceInstanceDeposed(addr addrs.ResourceInstance, key De
 	}
 }
 
+// ForgetResourceInstanceAll removes the record of all objects associated with
+// the specified resource instance, if present. If not present, this is a no-op.
+func (ms *Module) ForgetResourceInstanceAll(addr addrs.ResourceInstance) {
+	rs := ms.Resource(addr.Resource)
+	if rs == nil {
+		return
+	}
+	delete(rs.Instances, addr.Key)
+
+	if rs.EachMode == NoEach && len(rs.Instances) == 0 {
+		// Also clean up if we only expect to have one instance anyway
+		// and there are none. We leave the resource behind if an each mode
+		// is active because an empty list or map of instances is a valid state.
+		delete(ms.Resources, addr.Resource.String())
+	}
+}
+
 // ForgetResourceInstanceDeposed removes the record of the deposed object with
 // the given address and key, if present. If not present, this is a no-op.
 func (ms *Module) ForgetResourceInstanceDeposed(addr addrs.ResourceInstance, key DeposedKey) {
