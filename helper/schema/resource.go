@@ -287,7 +287,35 @@ func (r *Resource) Diff(
 		return nil, fmt.Errorf("[ERR] Error decoding timeout: %s", err)
 	}
 
-	instanceDiff, err := schemaMap(r.Schema).Diff(s, c, r.CustomizeDiff, meta)
+	instanceDiff, err := schemaMap(r.Schema).Diff(s, c, r.CustomizeDiff, meta, true)
+	if err != nil {
+		return instanceDiff, err
+	}
+
+	if instanceDiff != nil {
+		if err := t.DiffEncode(instanceDiff); err != nil {
+			log.Printf("[ERR] Error encoding timeout to instance diff: %s", err)
+		}
+	} else {
+		log.Printf("[DEBUG] Instance Diff is nil in Diff()")
+	}
+
+	return instanceDiff, err
+}
+
+func (r *Resource) simpleDiff(
+	s *terraform.InstanceState,
+	c *terraform.ResourceConfig,
+	meta interface{}) (*terraform.InstanceDiff, error) {
+
+	t := &ResourceTimeout{}
+	err := t.ConfigDecode(r, c)
+
+	if err != nil {
+		return nil, fmt.Errorf("[ERR] Error decoding timeout: %s", err)
+	}
+
+	instanceDiff, err := schemaMap(r.Schema).Diff(s, c, r.CustomizeDiff, meta, false)
 	if err != nil {
 		return instanceDiff, err
 	}

@@ -2024,11 +2024,11 @@ func TestShimSchemaMap_Diff(t *testing.T) {
 						RequiresNew: true,
 					},
 
-					"address": &terraform.ResourceAttrDiff{
-						Old:         "foo",
-						New:         "",
-						NewComputed: true,
-					},
+					// "address": &terraform.ResourceAttrDiff{
+					// 	Old:         "foo",
+					// 	New:         "",
+					// 	NewComputed: true,
+					// },
 				},
 			},
 
@@ -2075,11 +2075,11 @@ func TestShimSchemaMap_Diff(t *testing.T) {
 						RequiresNew: true,
 					},
 
-					"ports.#": &terraform.ResourceAttrDiff{
-						Old:         "1",
-						New:         "",
-						NewComputed: true,
-					},
+					// "ports.#": &terraform.ResourceAttrDiff{
+					// 	Old:         "1",
+					// 	New:         "",
+					// 	NewComputed: true,
+					// },
 				},
 			},
 
@@ -2849,10 +2849,6 @@ func TestShimSchemaMap_Diff(t *testing.T) {
 
 			Diff: &terraform.InstanceDiff{
 				Attributes: map[string]*terraform.ResourceAttrDiff{
-					"instances.#": &terraform.ResourceAttrDiff{
-						Old: "2",
-						New: "2",
-					},
 					"instances.2": &terraform.ResourceAttrDiff{
 						Old:         "22",
 						New:         "",
@@ -2973,10 +2969,6 @@ func TestShimSchemaMap_Diff(t *testing.T) {
 
 			Diff: &terraform.InstanceDiff{
 				Attributes: map[string]*terraform.ResourceAttrDiff{
-					"ports.#": &terraform.ResourceAttrDiff{
-						Old: "3",
-						New: "3",
-					},
 					"ports.1": &terraform.ResourceAttrDiff{
 						Old: "1",
 						New: "1",
@@ -3103,8 +3095,6 @@ func TestShimSchemaMap_Diff(t *testing.T) {
 			Diff: &terraform.InstanceDiff{
 				Attributes: map[string]*terraform.ResourceAttrDiff{
 					"ports.#": &terraform.ResourceAttrDiff{
-						Old:         "3",
-						New:         "",
 						NewComputed: true,
 						RequiresNew: true,
 					},
@@ -3357,10 +3347,6 @@ func TestShimSchemaMap_Diff(t *testing.T) {
 
 			Diff: &terraform.InstanceDiff{
 				Attributes: map[string]*terraform.ResourceAttrDiff{
-					"ports.#": &terraform.ResourceAttrDiff{
-						Old: "3",
-						New: "3",
-					},
 					"ports.1": &terraform.ResourceAttrDiff{
 						Old: "1",
 						New: "1",
@@ -3576,7 +3562,7 @@ func TestShimSchemaMap_Diff(t *testing.T) {
 			}
 
 			{
-				d, err := InternalMap(tc.Schema).Diff(tc.State, terraform.NewResourceConfig(c), tc.CustomizeDiff, nil)
+				d, err := InternalMap(tc.Schema).Diff(tc.State, terraform.NewResourceConfig(c), tc.CustomizeDiff, nil, false)
 				if err != nil != tc.Err {
 					t.Fatalf("err: %s", err)
 				}
