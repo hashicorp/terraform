@@ -2023,12 +2023,6 @@ func TestShimSchemaMap_Diff(t *testing.T) {
 						New:         "foo",
 						RequiresNew: true,
 					},
-
-					// "address": &terraform.ResourceAttrDiff{
-					// 	Old:         "foo",
-					// 	New:         "",
-					// 	NewComputed: true,
-					// },
 				},
 			},
 
@@ -2074,12 +2068,6 @@ func TestShimSchemaMap_Diff(t *testing.T) {
 						New:         "foo",
 						RequiresNew: true,
 					},
-
-					// "ports.#": &terraform.ResourceAttrDiff{
-					// 	Old:         "1",
-					// 	New:         "",
-					// 	NewComputed: true,
-					// },
 				},
 			},
 

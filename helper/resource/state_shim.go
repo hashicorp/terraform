@@ -25,6 +25,11 @@ func mustShimNewState(newState *states.State, schemas *terraform.Schemas) *terra
 func shimNewState(newState *states.State, schemas *terraform.Schemas) (*terraform.State, error) {
 	state := terraform.NewState()
 
+	// in the odd case of a nil state, let the helper packages handle it
+	if newState == nil {
+		return nil, nil
+	}
+
 	for _, newMod := range newState.Modules {
 		mod := state.AddModule(newMod.Addr)
 
