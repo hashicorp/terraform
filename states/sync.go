@@ -377,6 +377,20 @@ func (s *SyncState) DeposeResourceInstanceObjectForceKey(addr addrs.AbsResourceI
 	ms.deposeResourceInstanceObject(addr.Resource, forcedKey)
 }
 
+// ForgetResourceInstanceAll removes the record of all objects associated with
+// the specified resource instance, if present. If not present, this is a no-op.
+func (s *SyncState) ForgetResourceInstanceAll(addr addrs.AbsResourceInstance) {
+	s.lock.Lock()
+	defer s.lock.Unlock()
+
+	ms := s.state.Module(addr.Module)
+	if ms == nil {
+		return
+	}
+	ms.ForgetResourceInstanceAll(addr.Resource)
+	s.maybePruneModule(addr.Module)
+}
+
 // ForgetResourceInstanceDeposed removes the record of the deposed object with
 // the given address and key, if present. If not present, this is a no-op.
 func (s *SyncState) ForgetResourceInstanceDeposed(addr addrs.AbsResourceInstance, key DeposedKey) {
