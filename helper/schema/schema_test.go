@@ -3246,7 +3246,7 @@ func TestSchemaMap_Diff(t *testing.T) {
 				}
 			}
 
-			d, err := schemaMap(tc.Schema).Diff(tc.State, terraform.NewResourceConfig(c), tc.CustomizeDiff, nil)
+			d, err := schemaMap(tc.Schema).Diff(tc.State, terraform.NewResourceConfig(c), tc.CustomizeDiff, nil, true)
 			if err != nil != tc.Err {
 				t.Fatalf("err: %s", err)
 			}
@@ -4096,7 +4096,7 @@ func TestSchemaMap_DiffSuppress(t *testing.T) {
 				}
 			}
 
-			d, err := schemaMap(tc.Schema).Diff(tc.State, terraform.NewResourceConfig(c), nil, nil)
+			d, err := schemaMap(tc.Schema).Diff(tc.State, terraform.NewResourceConfig(c), nil, nil, true)
 			if err != nil != tc.Err {
 				t.Fatalf("#%q err: %s", tn, err)
 			}
