@@ -251,7 +251,7 @@ func (p *Provider) Configure(c *terraform.ResourceConfig) error {
 
 	// Get a ResourceData for this configuration. To do this, we actually
 	// generate an intermediary "diff" although that is never exposed.
-	diff, err := sm.Diff(nil, c, nil, p.meta)
+	diff, err := sm.Diff(nil, c, nil, p.meta, true)
 	if err != nil {
 		return err
 	}
@@ -296,6 +296,20 @@ func (p *Provider) Diff(
 	return r.Diff(s, c, p.meta)
 }
 
+// SimpleDiff is used by the new protocol wrappers to get a diff that doesn't
+// attempt to calculate ignore_changes.
+func (p *Provider) SimpleDiff(
+	info *terraform.InstanceInfo,
+	s *terraform.InstanceState,
+	c *terraform.ResourceConfig) (*terraform.InstanceDiff, error) {
+	r, ok := p.ResourcesMap[info.Type]
+	if !ok {
+		return nil, fmt.Errorf("unknown resource type: %s", info.Type)
+	}
+
+	return r.simpleDiff(s, c, p.meta)
+}
+
 // Refresh implementation of terraform.ResourceProvider interface.
 func (p *Provider) Refresh(
 	info *terraform.InstanceInfo,
@@ -311,7 +325,7 @@ func (p *Provider) Refresh(
 // Resources implementation of terraform.ResourceProvider interface.
 func (p *Provider) Resources() []terraform.ResourceType {
 	keys := make([]string, 0, len(p.ResourcesMap))
-	for k, _ := range p.ResourcesMap {
+	for k := range p.ResourcesMap {
 		keys = append(keys, k)
 	}
 	sort.Strings(keys)

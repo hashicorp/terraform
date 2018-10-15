@@ -410,7 +410,8 @@ func (m schemaMap) Diff(
 	s *terraform.InstanceState,
 	c *terraform.ResourceConfig,
 	customizeDiff CustomizeDiffFunc,
-	meta interface{}) (*terraform.InstanceDiff, error) {
+	meta interface{},
+	handleRequiresNew bool) (*terraform.InstanceDiff, error) {
 	result := new(terraform.InstanceDiff)
 	result.Attributes = make(map[string]*terraform.ResourceAttrDiff)
 
@@ -456,82 +457,85 @@ func (m schemaMap) Diff(
 		}
 	}
 
-	// If the diff requires a new resource, then we recompute the diff
-	// so we have the complete new resource diff, and preserve the
-	// RequiresNew fields where necessary so the user knows exactly what
-	// caused that.
-	if result.RequiresNew() {
-		// Create the new diff
-		result2 := new(terraform.InstanceDiff)
-		result2.Attributes = make(map[string]*terraform.ResourceAttrDiff)
+	if handleRequiresNew {
+		// If the diff requires a new resource, then we recompute the diff
+		// so we have the complete new resource diff, and preserve the
+		// RequiresNew fields where necessary so the user knows exactly what
+		// caused that.
+		if result.RequiresNew() {
+			// Create the new diff
+			result2 := new(terraform.InstanceDiff)
+			result2.Attributes = make(map[string]*terraform.ResourceAttrDiff)
 
-		// Preserve the DestroyTainted flag
-		result2.DestroyTainted = result.DestroyTainted
+			// Preserve the DestroyTainted flag
+			result2.DestroyTainted = result.DestroyTainted
 
-		// Reset the data to not contain state. We have to call init()
-		// again in order to reset the FieldReaders.
-		d.state = nil
-		d.init()
+			// Reset the data to not contain state. We have to call init()
+			// again in order to reset the FieldReaders.
+			d.state = nil
+			d.init()
 
-		// Perform the diff again
-		for k, schema := range m {
-			err := m.diff(k, schema, result2, d, false)
-			if err != nil {
-				return nil, err
-			}
-		}
-
-		// Re-run customization
-		if !result2.DestroyTainted && customizeDiff != nil {
-			mc := m.DeepCopy()
-			rd := newResourceDiff(mc, c, d.state, result2)
-			if err := customizeDiff(rd, meta); err != nil {
-				return nil, err
-			}
-			for _, k := range rd.UpdatedKeys() {
-				err := m.diff(k, mc[k], result2, rd, false)
+			// Perform the diff again
+			for k, schema := range m {
+				err := m.diff(k, schema, result2, d, false)
 				if err != nil {
 					return nil, err
 				}
 			}
+
+			// Re-run customization
+			if !result2.DestroyTainted && customizeDiff != nil {
+				mc := m.DeepCopy()
+				rd := newResourceDiff(mc, c, d.state, result2)
+				if err := customizeDiff(rd, meta); err != nil {
+					return nil, err
+				}
+				for _, k := range rd.UpdatedKeys() {
+					err := m.diff(k, mc[k], result2, rd, false)
+					if err != nil {
+						return nil, err
+					}
+				}
+			}
+
+			// Force all the fields to not force a new since we know what we
+			// want to force new.
+			for k, attr := range result2.Attributes {
+				if attr == nil {
+					continue
+				}
+
+				if attr.RequiresNew {
+					attr.RequiresNew = false
+				}
+
+				if s != nil {
+					attr.Old = s.Attributes[k]
+				}
+			}
+
+			// Now copy in all the requires new diffs...
+			for k, attr := range result.Attributes {
+				if attr == nil {
+					continue
+				}
+
+				newAttr, ok := result2.Attributes[k]
+				if !ok {
+					newAttr = attr
+				}
+
+				if attr.RequiresNew {
+					newAttr.RequiresNew = true
+				}
+
+				result2.Attributes[k] = newAttr
+			}
+
+			// And set the diff!
+			result = result2
 		}
 
-		// Force all the fields to not force a new since we know what we
-		// want to force new.
-		for k, attr := range result2.Attributes {
-			if attr == nil {
-				continue
-			}
-
-			if attr.RequiresNew {
-				attr.RequiresNew = false
-			}
-
-			if s != nil {
-				attr.Old = s.Attributes[k]
-			}
-		}
-
-		// Now copy in all the requires new diffs...
-		for k, attr := range result.Attributes {
-			if attr == nil {
-				continue
-			}
-
-			newAttr, ok := result2.Attributes[k]
-			if !ok {
-				newAttr = attr
-			}
-
-			if attr.RequiresNew {
-				newAttr.RequiresNew = true
-			}
-
-			result2.Attributes[k] = newAttr
-		}
-
-		// And set the diff!
-		result = result2
 	}
 
 	// Go through and detect all of the ComputedWhens now that we've
