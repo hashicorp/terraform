@@ -29,6 +29,12 @@ var ElementFunc = function.New(&function.Spec{
 		case listTy.IsListType():
 			return listTy.ElementType(), nil
 		case listTy.IsTupleType():
+			if !args[1].IsKnown() {
+				// If the index isn't known yet then we can't predict the
+				// result type since each tuple element can have its own type.
+				return cty.DynamicPseudoType, nil
+			}
+
 			etys := listTy.TupleElementTypes()
 			var index int
 			err := gocty.FromCtyValue(args[1], &index)
