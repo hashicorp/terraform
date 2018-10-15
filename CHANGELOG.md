@@ -1,31 +1,31 @@
-## 0.11.9 (Unreleased)
+## 0.11.9-beta1 (October 15, 2018)
 
 IMPROVEMENTS:
 
-* provisioner/chef: Use user:group chown syntax [GH-18533]
-* helper/resource: Add `ParallelTest()` to allow opt-in acceptance testing concurrency with `t.Parallel()` [GH-18688]
-* backend/manta: Deprecate the `objectName` attribute in favor of the new `object_name` attribute [GH-18759]
-* backend/migrations: Migrate existing non-empty default states when the backend only supports named states [GH-18760]
-* provider/terraform: `terraform_remote_state` now accepts complex backend configurations [GH-18759]
-* backend/remote: Implement the state.Locker interface to support state locking [GH-18826]
-* backend/remote: Add initial support for the apply command [GH-18950]
-* backend/remote: Ask to cancel pending remote operations when Ctrl-C is pressed [GH-18979]
-* backend/remote: Add support for the `-no-color` command line flag [GH-19002]
-* backend/remote: Prevent running plan or apply without permissions [GH-19012]
-* backend/remote: Add checks for all flags we currently don’t support [GH-19013]
-* backend/remote: Allow enhanced backends to pass custom exit codes [GH-19014]
-* backend/remote: Properly handle workspaces that auto apply changes [GH-19022]
-* backend/remote: Don’t ask questions when `-auto-approve` is set [GH-19035]
-* backend/remote: Print status updates while waiting for the run to start [GH-19047]
+* provisioner/chef: Use user:group chown syntax ([#18533](https://github.com/hashicorp/terraform/issues/18533))
+* helper/resource: Add `ParallelTest()` to allow opt-in acceptance testing concurrency with `t.Parallel()` ([#18688](https://github.com/hashicorp/terraform/issues/18688))
+* backend/manta: Deprecate the `objectName` attribute in favor of the new `object_name` attribute ([#18759](https://github.com/hashicorp/terraform/issues/18759))
+* backend/migrations: Migrate existing non-empty default states when the backend only supports named states ([#18760](https://github.com/hashicorp/terraform/issues/18760))
+* provider/terraform: `terraform_remote_state` now accepts complex backend configurations ([#18759](https://github.com/hashicorp/terraform/issues/18759))
+* backend/remote: Implement the state.Locker interface to support state locking ([#18826](https://github.com/hashicorp/terraform/issues/18826))
+* backend/remote: Add initial support for the apply command ([#18950](https://github.com/hashicorp/terraform/issues/18950))
+* backend/remote: Ask to cancel pending remote operations when Ctrl-C is pressed ([#18979](https://github.com/hashicorp/terraform/issues/18979))
+* backend/remote: Add support for the `-no-color` command line flag ([#19002](https://github.com/hashicorp/terraform/issues/19002))
+* backend/remote: Prevent running plan or apply without permissions ([#19012](https://github.com/hashicorp/terraform/issues/19012))
+* backend/remote: Add checks for all flags we currently don’t support ([#19013](https://github.com/hashicorp/terraform/issues/19013))
+* backend/remote: Allow enhanced backends to pass custom exit codes ([#19014](https://github.com/hashicorp/terraform/issues/19014))
+* backend/remote: Properly handle workspaces that auto apply changes ([#19022](https://github.com/hashicorp/terraform/issues/19022))
+* backend/remote: Don’t ask questions when `-auto-approve` is set ([#19035](https://github.com/hashicorp/terraform/issues/19035))
+* backend/remote: Print status updates while waiting for the run to start ([#19047](https://github.com/hashicorp/terraform/issues/19047))
 
 BUG FIXES:
 
-* backend/migrations: Check all workspaces for existing non-empty states [GH-18757]
-* provider/terraform: Always call the backend validation method to prevent a possible panic [GH-18759]
-* backend/remote: Take working directories (optional on workspaces) into account [GH-18773]
-* backend/remote: Use pagination when retrieving states (workspaces) [GH-18817]
-* backend/remote: Add the run ID to associate state when being used in TFE [GH-18818]
-* core: Make sure the state is locked before it is used when `(un)tainting` [GH-18894]
+* backend/migrations: Check all workspaces for existing non-empty states ([#18757](https://github.com/hashicorp/terraform/issues/18757))
+* provider/terraform: Always call the backend validation method to prevent a possible panic ([#18759](https://github.com/hashicorp/terraform/issues/18759))
+* backend/remote: Take working directories (optional on workspaces) into account ([#18773](https://github.com/hashicorp/terraform/issues/18773))
+* backend/remote: Use pagination when retrieving states (workspaces) ([#18817](https://github.com/hashicorp/terraform/issues/18817))
+* backend/remote: Add the run ID to associate state when being used in TFE ([#18818](https://github.com/hashicorp/terraform/issues/18818))
+* core: Make sure the state is locked before it is used when `(un)tainting` ([#18894](https://github.com/hashicorp/terraform/issues/18894))
 
 ## 0.11.8 (August 15, 2018)
 
