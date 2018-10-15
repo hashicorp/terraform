@@ -147,6 +147,12 @@ var CoalesceListFunc = function.New(&function.Spec{
 
 		vals := make([]cty.Value, 0, len(args))
 		for _, arg := range args {
+			if !arg.IsKnown() {
+				// If we run into an unknown list at some point, we can't
+				// predict the final result yet. (If there's a known, non-empty
+				// arg before this then we won't get here.)
+				return cty.UnknownVal(retType), nil
+			}
 
 			// We already know this will succeed because of the checks in our Type func above
 			arg, _ = convert.Convert(arg, retType)

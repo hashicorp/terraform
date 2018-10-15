@@ -355,6 +355,36 @@ func TestCoalesceList(t *testing.T) {
 			cty.NilVal,
 			true,
 		},
+		{ // unknown list
+			[]cty.Value{
+				cty.ListVal([]cty.Value{
+					cty.StringVal("third"), cty.StringVal("fourth"),
+				}),
+				cty.UnknownVal(cty.List(cty.String)),
+			},
+			cty.ListVal([]cty.Value{
+				cty.StringVal("third"), cty.StringVal("fourth"),
+			}),
+			false,
+		},
+		{ // unknown list
+			[]cty.Value{
+				cty.ListValEmpty(cty.String),
+				cty.UnknownVal(cty.List(cty.String)),
+			},
+			cty.UnknownVal(cty.List(cty.String)),
+			false,
+		},
+		{ // unknown list
+			[]cty.Value{
+				cty.UnknownVal(cty.List(cty.String)),
+				cty.ListVal([]cty.Value{
+					cty.StringVal("third"), cty.StringVal("fourth"),
+				}),
+			},
+			cty.UnknownVal(cty.List(cty.String)),
+			false,
+		},
 	}
 
 	for _, test := range tests {
