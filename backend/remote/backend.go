@@ -4,11 +4,14 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"math"
+	"net/http"
 	"net/url"
 	"os"
 	"sort"
 	"strings"
 	"sync"
+	"time"
 
 	tfe "github.com/hashicorp/go-tfe"
 	"github.com/hashicorp/terraform/backend"
@@ -171,7 +174,11 @@ func (b *Remote) configure(ctx context.Context) error {
 		Address:  service.String(),
 		BasePath: service.Path,
 		Token:    token,
+		Headers:  make(http.Header),
 	}
+
+	// Set the version header to the current version.
+	cfg.Headers.Set(version.Header, version.Version)
 
 	// Create the remote backend API client.
 	b.client, err = tfe.NewClient(cfg)
@@ -466,6 +473,182 @@ func (b *Remote) Operation(ctx context.Context, op *backend.Operation) (*backend
 
 	// Return the running operation.
 	return runningOp, nil
+}
+
+// backoff will perform exponential backoff based on the iteration and
+// limited by the provided min and max (in milliseconds) durations.
+func backoff(min, max float64, iter int) time.Duration {
+	backoff := math.Pow(2, float64(iter)/5) * min
+	if backoff > max {
+		backoff = max
+	}
+	return time.Duration(backoff) * time.Millisecond
+}
+
+func (b *Remote) waitForRun(stopCtx, cancelCtx context.Context, op *backend.Operation, opType string, r *tfe.Run, w *tfe.Workspace) (*tfe.Run, error) {
+	started := time.Now()
+	updated := started
+	for i := 0; ; i++ {
+		select {
+		case <-stopCtx.Done():
+			return r, stopCtx.Err()
+		case <-cancelCtx.Done():
+			return r, cancelCtx.Err()
+		case <-time.After(backoff(1000, 3000, i)):
+			// Timer up, show status
+		}
+
+		// Retrieve the run to get its current status.
+		r, err := b.client.Runs.Read(stopCtx, r.ID)
+		if err != nil {
+			return r, generalError("error retrieving run", err)
+		}
+
+		// Return if the run is no longer pending.
+		if r.Status != tfe.RunPending && r.Status != tfe.RunConfirmed {
+			if i == 0 && opType == "plan" && b.CLI != nil {
+				b.CLI.Output(b.Colorize().Color(fmt.Sprintf("Waiting for the %s to start...\n", opType)))
+			}
+			if i > 0 && b.CLI != nil {
+				// Insert a blank line to separate the ouputs.
+				b.CLI.Output("")
+			}
+			return r, nil
+		}
+
+		// Check if 30 seconds have passed since the last update.
+		current := time.Now()
+		if b.CLI != nil && (i == 0 || current.Sub(updated).Seconds() > 30) {
+			updated = current
+			position := 0
+			elapsed := ""
+
+			// Calculate and set the elapsed time.
+			if i > 0 {
+				elapsed = fmt.Sprintf(
+					" (%s elapsed)", current.Sub(started).Truncate(30*time.Second))
+			}
+
+			// Retrieve the workspace used to run this operation in.
+			w, err = b.client.Workspaces.Read(stopCtx, b.organization, w.Name)
+			if err != nil {
+				return nil, generalError("error retrieving workspace", err)
+			}
+
+			// If the workspace is locked the run will not be queued and we can
+			// update the status without making any expensive calls.
+			if w.Locked && w.CurrentRun != nil {
+				cr, err := b.client.Runs.Read(stopCtx, w.CurrentRun.ID)
+				if err != nil {
+					return r, generalError("error retrieving current run", err)
+				}
+				if cr.Status == tfe.RunPending {
+					b.CLI.Output(b.Colorize().Color(
+						"Waiting for the manually locked workspace to be unlocked..." + elapsed))
+					continue
+				}
+			}
+
+			// Skip checking the workspace queue when we are the current run.
+			if w.CurrentRun == nil || w.CurrentRun.ID != r.ID {
+				found := false
+				options := tfe.RunListOptions{}
+			runlist:
+				for {
+					rl, err := b.client.Runs.List(stopCtx, w.ID, options)
+					if err != nil {
+						return r, generalError("error retrieving run list", err)
+					}
+
+					// Loop through all runs to calculate the workspace queue position.
+					for _, item := range rl.Items {
+						if !found {
+							if r.ID == item.ID {
+								found = true
+							}
+							continue
+						}
+
+						// If the run is in a final state, ignore it and continue.
+						switch item.Status {
+						case tfe.RunApplied, tfe.RunCanceled, tfe.RunDiscarded, tfe.RunErrored:
+							continue
+						case tfe.RunPlanned:
+							if op.Type == backend.OperationTypePlan {
+								continue
+							}
+						}
+
+						// Increase the workspace queue position.
+						position++
+
+						// Stop searching when we reached the current run.
+						if w.CurrentRun != nil && w.CurrentRun.ID == item.ID {
+							break runlist
+						}
+					}
+
+					// Exit the loop when we've seen all pages.
+					if rl.CurrentPage >= rl.TotalPages {
+						break
+					}
+
+					// Update the page number to get the next page.
+					options.PageNumber = rl.NextPage
+				}
+
+				if position > 0 {
+					b.CLI.Output(b.Colorize().Color(fmt.Sprintf(
+						"Waiting for %d run(s) to finish before being queued...%s",
+						position,
+						elapsed,
+					)))
+					continue
+				}
+			}
+
+			options := tfe.RunQueueOptions{}
+		search:
+			for {
+				rq, err := b.client.Organizations.RunQueue(stopCtx, b.organization, options)
+				if err != nil {
+					return r, generalError("error retrieving queue", err)
+				}
+
+				// Search through all queued items to find our run.
+				for _, item := range rq.Items {
+					if r.ID == item.ID {
+						position = item.PositionInQueue
+						break search
+					}
+				}
+
+				// Exit the loop when we've seen all pages.
+				if rq.CurrentPage >= rq.TotalPages {
+					break
+				}
+
+				// Update the page number to get the next page.
+				options.PageNumber = rq.NextPage
+			}
+
+			if position > 0 {
+				c, err := b.client.Organizations.Capacity(stopCtx, b.organization)
+				if err != nil {
+					return r, generalError("error retrieving capacity", err)
+				}
+				b.CLI.Output(b.Colorize().Color(fmt.Sprintf(
+					"Waiting for %d queued run(s) to finish before starting...%s",
+					position-c.Running,
+					elapsed,
+				)))
+				continue
+			}
+
+			b.CLI.Output(b.Colorize().Color(fmt.Sprintf(
+				"Waiting for the %s to start...%s", opType, elapsed)))
+		}
+	}
 }
 
 func (b *Remote) cancel(cancelCtx context.Context, op *backend.Operation, r *tfe.Run) error {

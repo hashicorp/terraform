@@ -1804,10 +1804,10 @@
 			"revisionTime": "2018-07-12T07:51:27Z"
 		},
 		{
-			"checksumSHA1": "bZzpA/TNWpYzVGIFEWLpOz7AXCU=",
+			"checksumSHA1": "WLjiFy8H9n3V2yn4nxMMhm0J8jo=",
 			"path": "github.com/hashicorp/go-tfe",
-			"revision": "937a37d8d40df424b1e47fe05de0548727154efc",
-			"revisionTime": "2018-10-11T20:03:11Z"
+			"revision": "faae81b2a4b7a955bd8566f4df8f317b7d1ddcd6",
+			"revisionTime": "2018-10-15T17:21:27Z"
 		},
 		{
 			"checksumSHA1": "85XUnluYJL7F55ptcwdmN8eSOsk=",
