@@ -402,7 +402,7 @@ func (s *GRPCProviderServer) PlanResourceChange(_ context.Context, req *proto.Pl
 	// turn the propsed state into a legacy configuration
 	config := terraform.NewResourceConfigShimmed(proposedNewStateVal, block)
 
-	diff, err := s.provider.Diff(info, priorState, config)
+	diff, err := s.provider.SimpleDiff(info, priorState, config)
 	if err != nil {
 		resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
 		return resp, nil
@@ -448,6 +448,15 @@ func (s *GRPCProviderServer) PlanResourceChange(_ context.Context, req *proto.Pl
 		if d.RequiresNew {
 			requiresNew = append(requiresNew, attr)
 		}
+	}
+
+	// If anything requires a new resource already, or the "id" field indicates
+	// that we will be creating a new resource, then we need to add that to
+	// RequiresReplace so that core can tell if the instance is being replaced
+	// even if changes are being suppressed via "ignore_changes".
+	id := plannedStateVal.GetAttr("id")
+	if len(requiresNew) > 0 || id.IsNull() || !id.IsKnown() {
+		requiresNew = append(requiresNew, "id")
 	}
 
 	requiresReplace, err := hcl2shim.RequiresReplace(requiresNew, block.ImpliedType())
