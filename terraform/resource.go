@@ -227,9 +227,9 @@ func NewResourceConfigShimmed(val cty.Value, schema *configschema.Block) *Resour
 	}
 	ret := &ResourceConfig{}
 
-	legacyVal := hcl2shim.ConfigValueFromHCL2(val)
+	legacyVal := hcl2shim.ConfigValueFromHCL2Block(val, schema)
 	if legacyVal != nil {
-		ret.Config = legacyVal.(map[string]interface{}) // guaranteed compatible because we require an object type
+		ret.Config = legacyVal
 
 		// Now we need to walk through our structure and find any unknown values,
 		// producing the separate list ComputedKeys to represent these. We use the
