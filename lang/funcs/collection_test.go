@@ -1123,6 +1123,10 @@ func TestLookup(t *testing.T) {
 		"foo": cty.StringVal("bar"),
 		"baz": cty.UnknownVal(cty.String),
 	})
+	mapWithObjects := cty.ObjectVal(map[string]cty.Value{
+		"foo": cty.StringVal("bar"),
+		"baz": cty.NumberIntVal(42),
+	})
 
 	tests := []struct {
 		Values []cty.Value
@@ -1132,6 +1136,14 @@ func TestLookup(t *testing.T) {
 		{
 			[]cty.Value{
 				simpleMap,
+				cty.StringVal("foo"),
+			},
+			cty.StringVal("bar"),
+			false,
+		},
+		{
+			[]cty.Value{
+				mapWithObjects,
 				cty.StringVal("foo"),
 			},
 			cty.StringVal("bar"),

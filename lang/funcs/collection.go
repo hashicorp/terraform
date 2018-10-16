@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"sort"
 
+	"github.com/hashicorp/hcl2/hcl"
 	"github.com/zclconf/go-cty/cty"
 	"github.com/zclconf/go-cty/cty/convert"
 	"github.com/zclconf/go-cty/cty/function"
@@ -478,7 +479,7 @@ var LookupFunc = function.New(&function.Spec{
 	Params: []function.Parameter{
 		{
 			Name: "inputMap",
-			Type: cty.Map(cty.DynamicPseudoType),
+			Type: cty.DynamicPseudoType,
 		},
 		{
 			Name: "key",
@@ -496,8 +497,13 @@ var LookupFunc = function.New(&function.Spec{
 		if len(args) < 1 || len(args) > 3 {
 			return cty.NilType, fmt.Errorf("lookup() takes two or three arguments, got %d", len(args))
 		}
-
-		return args[0].Type().ElementType(), nil
+		ty := args[0].Type()
+		switch {
+		case ty.IsObjectType():
+			return cty.DynamicPseudoType, nil
+		default:
+			return args[0].Type().ElementType(), nil
+		}
 	},
 	Impl: func(args []cty.Value, retType cty.Type) (ret cty.Value, err error) {
 		var defaultVal cty.Value
@@ -513,6 +519,16 @@ var LookupFunc = function.New(&function.Spec{
 
 		if !mapVar.IsWhollyKnown() {
 			return cty.UnknownVal(retType), nil
+		}
+
+		if retType == cty.DynamicPseudoType {
+			// we're dealing with object-typed values
+			traversal := hcl.TraverseAttr{Name: args[1].AsString()}
+			ret, diags := traversal.TraversalStep(args[0])
+			if diags.HasErrors() {
+				return cty.UnknownVal(retType), diags
+			}
+			return ret, nil
 		}
 
 		if mapVar.HasIndex(cty.StringVal(lookupKey)) == cty.True {
