@@ -22,6 +22,7 @@ IMPROVEMENTS:
 
 BUG FIXES:
 
+* backend/azurerm: Update endpoint for Azure Government (SDK Update) ([#18877](https://github.com/hashicorp/terraform/issues/18877))
 * backend/migrations: Check all workspaces for existing non-empty states ([#18757](https://github.com/hashicorp/terraform/issues/18757))
 * provider/terraform: Always call the backend validation method to prevent a possible panic ([#18759](https://github.com/hashicorp/terraform/issues/18759))
 * backend/remote: Take working directories (optional on workspaces) into account ([#18773](https://github.com/hashicorp/terraform/issues/18773))
