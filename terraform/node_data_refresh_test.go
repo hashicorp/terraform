@@ -11,7 +11,7 @@ import (
 func TestNodeRefreshableDataResourceDynamicExpand_scaleOut(t *testing.T) {
 	m := testModule(t, "refresh-data-scale-inout")
 
-	state := mustShimLegacyState(&State{
+	state := MustShimLegacyState(&State{
 		Modules: []*ModuleState{
 			&ModuleState{
 				Path: rootModulePath,
@@ -78,7 +78,7 @@ root - terraform.graphNodeRoot
 func TestNodeRefreshableDataResourceDynamicExpand_scaleIn(t *testing.T) {
 	m := testModule(t, "refresh-data-scale-inout")
 
-	state := mustShimLegacyState(&State{
+	state := MustShimLegacyState(&State{
 		Modules: []*ModuleState{
 			&ModuleState{
 				Path: rootModulePath,

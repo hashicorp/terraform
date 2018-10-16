@@ -8,7 +8,7 @@ import (
 )
 
 func TestOrphanResourceCountTransformer(t *testing.T) {
-	state := mustShimLegacyState(&State{
+	state := MustShimLegacyState(&State{
 		Modules: []*ModuleState{
 			&ModuleState{
 				Path: []string{"root"},
@@ -62,7 +62,7 @@ func TestOrphanResourceCountTransformer(t *testing.T) {
 }
 
 func TestOrphanResourceCountTransformer_zero(t *testing.T) {
-	state := mustShimLegacyState(&State{
+	state := MustShimLegacyState(&State{
 		Modules: []*ModuleState{
 			&ModuleState{
 				Path: []string{"root"},
@@ -116,7 +116,7 @@ func TestOrphanResourceCountTransformer_zero(t *testing.T) {
 }
 
 func TestOrphanResourceCountTransformer_oneNoIndex(t *testing.T) {
-	state := mustShimLegacyState(&State{
+	state := MustShimLegacyState(&State{
 		Modules: []*ModuleState{
 			&ModuleState{
 				Path: []string{"root"},
@@ -170,7 +170,7 @@ func TestOrphanResourceCountTransformer_oneNoIndex(t *testing.T) {
 }
 
 func TestOrphanResourceCountTransformer_oneIndex(t *testing.T) {
-	state := mustShimLegacyState(&State{
+	state := MustShimLegacyState(&State{
 		Modules: []*ModuleState{
 			&ModuleState{
 				Path: []string{"root"},
@@ -224,7 +224,7 @@ func TestOrphanResourceCountTransformer_oneIndex(t *testing.T) {
 }
 
 func TestOrphanResourceCountTransformer_zeroAndNone(t *testing.T) {
-	state := mustShimLegacyState(&State{
+	state := MustShimLegacyState(&State{
 		Modules: []*ModuleState{
 			&ModuleState{
 				Path: []string{"root"},
@@ -278,7 +278,7 @@ func TestOrphanResourceCountTransformer_zeroAndNone(t *testing.T) {
 }
 
 func TestOrphanResourceCountTransformer_zeroAndNoneCount(t *testing.T) {
-	state := mustShimLegacyState(&State{
+	state := MustShimLegacyState(&State{
 		Modules: []*ModuleState{
 			&ModuleState{
 				Path: []string{"root"},
