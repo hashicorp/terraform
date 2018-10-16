@@ -9,6 +9,8 @@ import (
 )
 
 func TestTest_importState(t *testing.T) {
+	t.Fatal("test requires new provider implementation")
+
 	mp := testProvider()
 	mp.ImportStateReturn = []*terraform.InstanceState{
 		&terraform.InstanceState{
@@ -59,6 +61,8 @@ func TestTest_importState(t *testing.T) {
 }
 
 func TestTest_importStateFail(t *testing.T) {
+	t.Fatal("test requires new provider implementation")
+
 	mp := testProvider()
 	mp.ImportStateReturn = []*terraform.InstanceState{
 		&terraform.InstanceState{
@@ -109,6 +113,8 @@ func TestTest_importStateFail(t *testing.T) {
 }
 
 func TestTest_importStateDetectId(t *testing.T) {
+	t.Fatal("test requires new provider implementation")
+
 	mp := testProvider()
 	mp.DiffReturn = nil
 	mp.ApplyFn = func(
@@ -183,6 +189,8 @@ func TestTest_importStateDetectId(t *testing.T) {
 }
 
 func TestTest_importStateIdPrefix(t *testing.T) {
+	t.Fatal("test requires new provider implementation")
+
 	mp := testProvider()
 	mp.DiffReturn = nil
 	mp.ApplyFn = func(
@@ -258,6 +266,8 @@ func TestTest_importStateIdPrefix(t *testing.T) {
 }
 
 func TestTest_importStateVerify(t *testing.T) {
+	t.Fatal("test requires new provider implementation")
+
 	mp := testProvider()
 	mp.DiffReturn = nil
 	mp.ApplyFn = func(
@@ -328,6 +338,8 @@ func TestTest_importStateVerify(t *testing.T) {
 }
 
 func TestTest_importStateVerifyFail(t *testing.T) {
+	t.Fatal("test requires new provider implementation")
+
 	mp := testProvider()
 	mp.DiffReturn = nil
 	mp.ApplyFn = func(
@@ -391,6 +403,8 @@ func TestTest_importStateVerifyFail(t *testing.T) {
 }
 
 func TestTest_importStateIdFunc(t *testing.T) {
+	t.Fatal("test requires new provider implementation")
+
 	mp := testProvider()
 	mp.ImportStateFn = func(
 		info *terraform.InstanceInfo, id string) ([]*terraform.InstanceState, error) {
@@ -449,6 +463,8 @@ func TestTest_importStateIdFunc(t *testing.T) {
 }
 
 func TestTest_importStateIdFuncFail(t *testing.T) {
+	t.Fatal("test requires new provider implementation")
+
 	mp := testProvider()
 	mp.ImportStateFn = func(
 		info *terraform.InstanceInfo, id string) ([]*terraform.InstanceState, error) {
