@@ -16,7 +16,6 @@ func TestState_impl(t *testing.T) {
 }
 
 func TestStateRace(t *testing.T) {
-	t.Fatal("FIXME: this test is either hanging or getting into an infinite loop")
 	s := &State{
 		Client: nilClient{},
 	}
