@@ -62,6 +62,11 @@ func (m *Meta) collectVariableValues() (map[string]backend.UnparsedVariableValue
 		moreDiags := m.addVarsFromFile(DefaultVarsFilename, terraform.ValueFromFile, ret)
 		diags = diags.Append(moreDiags)
 	}
+	const defaultVarsFilenameJSON = DefaultVarsFilename + ".json"
+	if _, err := os.Stat(defaultVarsFilenameJSON); err == nil {
+		moreDiags := m.addVarsFromFile(defaultVarsFilenameJSON, terraform.ValueFromFile, ret)
+		diags = diags.Append(moreDiags)
+	}
 	if infos, err := ioutil.ReadDir("."); err == nil {
 		// "infos" is already sorted by name, so we just need to filter it here.
 		for _, info := range infos {
