@@ -453,6 +453,120 @@ func TestRemote_planWithWorkingDirectory(t *testing.T) {
 	}
 }
 
+func TestRemote_planPolicyPass(t *testing.T) {
+	b := testBackendDefault(t)
+
+	mod, modCleanup := module.TestTree(t, "./test-fixtures/plan-policy-passed")
+	defer modCleanup()
+
+	input := testInput(t, map[string]string{})
+
+	op := testOperationPlan()
+	op.Module = mod
+	op.UIIn = input
+	op.UIOut = b.CLI
+	op.Workspace = backend.DefaultStateName
+
+	run, err := b.Operation(context.Background(), op)
+	if err != nil {
+		t.Fatalf("error starting operation: %v", err)
+	}
+
+	<-run.Done()
+	if run.Err != nil {
+		t.Fatalf("error running operation: %v", run.Err)
+	}
+	if run.PlanEmpty {
+		t.Fatalf("expected a non-empty plan")
+	}
+
+	output := b.CLI.(*cli.MockUi).OutputWriter.String()
+	if !strings.Contains(output, "1 to add, 0 to change, 0 to destroy") {
+		t.Fatalf("missing plan summery in output: %s", output)
+	}
+	if !strings.Contains(output, "Sentinel Result: true") {
+		t.Fatalf("missing polic check result in output: %s", output)
+	}
+}
+
+func TestRemote_planPolicyHardFail(t *testing.T) {
+	b := testBackendDefault(t)
+
+	mod, modCleanup := module.TestTree(t, "./test-fixtures/plan-policy-hard-failed")
+	defer modCleanup()
+
+	input := testInput(t, map[string]string{})
+
+	op := testOperationPlan()
+	op.Module = mod
+	op.UIIn = input
+	op.UIOut = b.CLI
+	op.Workspace = backend.DefaultStateName
+
+	run, err := b.Operation(context.Background(), op)
+	if err != nil {
+		t.Fatalf("error starting operation: %v", err)
+	}
+
+	<-run.Done()
+	if run.Err == nil {
+		t.Fatalf("expected a plan error, got: %v", run.Err)
+	}
+	if !run.PlanEmpty {
+		t.Fatalf("expected plan to be empty")
+	}
+	if !strings.Contains(run.Err.Error(), "hard failed") {
+		t.Fatalf("expected a policy check error, got: %v", run.Err)
+	}
+
+	output := b.CLI.(*cli.MockUi).OutputWriter.String()
+	if !strings.Contains(output, "1 to add, 0 to change, 0 to destroy") {
+		t.Fatalf("missing plan summery in output: %s", output)
+	}
+	if !strings.Contains(output, "Sentinel Result: false") {
+		t.Fatalf("missing policy check result in output: %s", output)
+	}
+}
+
+func TestRemote_planPolicySoftFail(t *testing.T) {
+	b := testBackendDefault(t)
+
+	mod, modCleanup := module.TestTree(t, "./test-fixtures/plan-policy-soft-failed")
+	defer modCleanup()
+
+	input := testInput(t, map[string]string{})
+
+	op := testOperationPlan()
+	op.Module = mod
+	op.UIIn = input
+	op.UIOut = b.CLI
+	op.Workspace = backend.DefaultStateName
+
+	run, err := b.Operation(context.Background(), op)
+	if err != nil {
+		t.Fatalf("error starting operation: %v", err)
+	}
+
+	<-run.Done()
+	if run.Err == nil {
+		t.Fatalf("expected a plan error, got: %v", run.Err)
+	}
+	if !run.PlanEmpty {
+		t.Fatalf("expected plan to be empty")
+	}
+	if !strings.Contains(run.Err.Error(), "soft failed") {
+		t.Fatalf("expected a policy check error, got: %v", run.Err)
+	}
+
+	output := b.CLI.(*cli.MockUi).OutputWriter.String()
+	if !strings.Contains(output, "1 to add, 0 to change, 0 to destroy") {
+		t.Fatalf("missing plan summery in output: %s", output)
+	}
+	if !strings.Contains(output, "Sentinel Result: false") {
+		t.Fatalf("missing policy check result in output: %s", output)
+	}
+}
+
 func TestRemote_planWithRemoteError(t *testing.T) {
 	b := testBackendDefault(t)
 
