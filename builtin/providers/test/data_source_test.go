@@ -30,7 +30,7 @@ resource "test_resource" "foo" {
     key = "value"
   }
 
-  list = ["${data.test_data_source.test.*.output}"]
+  list = "${data.test_data_source.test.*.output}"
 }
 				`),
 				Check: func(s *terraform.State) error {
