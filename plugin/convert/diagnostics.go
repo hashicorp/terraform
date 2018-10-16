@@ -69,7 +69,7 @@ func ProtoToDiagnostics(ds []*proto.Diagnostic) tfdiags.Diagnostics {
 			path := AttributePathToPath(d.Attribute)
 			newDiag = tfdiags.AttributeValue(severity, d.Summary, d.Detail, path)
 		} else {
-			newDiag = tfdiags.Sourceless(severity, d.Summary, d.Detail)
+			newDiag = tfdiags.WholeContainingBody(severity, d.Summary, d.Detail)
 		}
 
 		diags = diags.Append(newDiag)
