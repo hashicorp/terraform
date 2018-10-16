@@ -384,6 +384,13 @@ func newRawFlags(flagName string) rawFlags {
 	}
 }
 
+func (f rawFlags) Empty() bool {
+	if f.items == nil {
+		return true
+	}
+	return len(*f.items) == 0
+}
+
 func (f rawFlags) AllItems() []rawFlag {
 	return *f.items
 }
