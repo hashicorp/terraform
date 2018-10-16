@@ -20,6 +20,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/hashicorp/terraform/config"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/mitchellh/copystructure"
 	"github.com/mitchellh/mapstructure"
@@ -1289,6 +1290,13 @@ func (m schemaMap) validateList(
 	raw interface{},
 	schema *Schema,
 	c *terraform.ResourceConfig) ([]string, []error) {
+	// first check if the list is wholly unknown
+	if s, ok := raw.(string); ok {
+		if s == config.UnknownVariableValue {
+			return nil, nil
+		}
+	}
+
 	// We use reflection to verify the slice because you can't
 	// case to []interface{} unless the slice is exactly that type.
 	rawV := reflect.ValueOf(raw)
@@ -1360,6 +1368,13 @@ func (m schemaMap) validateMap(
 	raw interface{},
 	schema *Schema,
 	c *terraform.ResourceConfig) ([]string, []error) {
+	// first check if the list is wholly unknown
+	if s, ok := raw.(string); ok {
+		if s == config.UnknownVariableValue {
+			return nil, nil
+		}
+	}
+
 	// We use reflection to verify the slice because you can't
 	// case to []interface{} unless the slice is exactly that type.
 	rawV := reflect.ValueOf(raw)
