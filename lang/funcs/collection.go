@@ -513,11 +513,11 @@ var LookupFunc = function.New(&function.Spec{
 				// return the default type
 				return args[2].Type(), nil
 			}
-			return cty.DynamicPseudoType, fmt.Errorf("the given object has no attribute %q", key)
+			return cty.DynamicPseudoType, function.NewArgErrorf(0, "the given object has no attribute %q", key)
 		case ty.IsMapType():
 			return ty.ElementType(), nil
 		default:
-			return cty.NilType, fmt.Errorf("lookup() requires a map as the first argument")
+			return cty.NilType, function.NewArgErrorf(0, "lookup() requires a map as the first argument")
 		}
 	},
 	Impl: func(args []cty.Value, retType cty.Type) (ret cty.Value, err error) {
@@ -878,11 +878,7 @@ var ValuesFunc = function.New(&function.Spec{
 			for _, v := range ty.AttributeTypes() {
 				tys = append(tys, v)
 			}
-			retType, _ := convert.UnifyUnsafe(tys)
-			if retType == cty.NilType {
-				return cty.NilType, fmt.Errorf("all arguments must have the same type")
-			}
-			return cty.List(retType), nil
+			return cty.Tuple(tys), nil
 		}
 		return cty.NilType, fmt.Errorf("values() requires a map as the first argument")
 	},
@@ -918,10 +914,12 @@ var ValuesFunc = function.New(&function.Spec{
 			}
 		}
 
+		if retType.IsTupleType() {
+			return cty.TupleVal(values), nil
+		}
 		if len(values) == 0 {
 			return cty.ListValEmpty(retType.ElementType()), nil
 		}
-
 		return cty.ListVal(values), nil
 	},
 })

@@ -1983,7 +1983,7 @@ func TestValues(t *testing.T) {
 				"hello":  cty.StringVal("world"),
 				"what's": cty.StringVal("up"),
 			}),
-			cty.ListVal([]cty.Value{
+			cty.TupleVal([]cty.Value{
 				cty.StringVal("world"),
 				cty.StringVal("up"),
 			}),
