@@ -1,5 +1,9 @@
 ## 0.11.9 (Unreleased)
 
+IMPROVEMENTS:
+
+* backend/remote: Also show policy check output when running a plan [GH-19088]
+
 ## 0.11.9-beta1 (October 15, 2018)
 
 IMPROVEMENTS:
