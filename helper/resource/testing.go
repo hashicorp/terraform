@@ -14,6 +14,10 @@ import (
 	"syscall"
 	"testing"
 
+	"github.com/hashicorp/terraform/configs/configschema"
+
+	"github.com/hashicorp/terraform/providers"
+
 	"github.com/davecgh/go-spew/spew"
 	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/go-multierror"
@@ -444,176 +448,209 @@ func ParallelTest(t TestT, c TestCase) {
 // long, we require the verbose flag so users are able to see progress
 // output.
 func Test(t TestT, c TestCase) {
-	t.Fatal("resource.Test is not yet updated for the new provider API")
-	return
-	/*
-		// We only run acceptance tests if an env var is set because they're
-		// slow and generally require some outside configuration. You can opt out
-		// of this with OverrideEnvVar on individual TestCases.
-		if os.Getenv(TestEnvVar) == "" && !c.IsUnitTest {
-			t.Skip(fmt.Sprintf(
-				"Acceptance tests skipped unless env '%s' set",
-				TestEnvVar))
-			return
-		}
+	// We only run acceptance tests if an env var is set because they're
+	// slow and generally require some outside configuration. You can opt out
+	// of this with OverrideEnvVar on individual TestCases.
+	if os.Getenv(TestEnvVar) == "" && !c.IsUnitTest {
+		t.Skip(fmt.Sprintf(
+			"Acceptance tests skipped unless env '%s' set",
+			TestEnvVar))
+		return
+	}
 
-		logWriter, err := LogOutput(t)
-		if err != nil {
-			t.Error(fmt.Errorf("error setting up logging: %s", err))
-		}
-		log.SetOutput(logWriter)
+	logWriter, err := LogOutput(t)
+	if err != nil {
+		t.Error(fmt.Errorf("error setting up logging: %s", err))
+	}
+	log.SetOutput(logWriter)
 
-		// We require verbose mode so that the user knows what is going on.
-		if !testTesting && !testing.Verbose() && !c.IsUnitTest {
-			t.Fatal("Acceptance tests must be run with the -v flag on tests")
-			return
-		}
+	// We require verbose mode so that the user knows what is going on.
+	if !testTesting && !testing.Verbose() && !c.IsUnitTest {
+		t.Fatal("Acceptance tests must be run with the -v flag on tests")
+		return
+	}
 
-		// Run the PreCheck if we have it
-		if c.PreCheck != nil {
-			c.PreCheck()
-		}
+	// Run the PreCheck if we have it
+	if c.PreCheck != nil {
+		c.PreCheck()
+	}
 
-		providerResolver, err := testProviderResolver(c)
+	providerResolver, err := testProviderResolver(c)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// collect the provider schemas
+	schemas := &terraform.Schemas{
+		Providers: make(map[string]*terraform.ProviderSchema),
+	}
+	factories, err := testProviderFactories(c)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for providerName, f := range factories {
+		p, err := f()
 		if err != nil {
 			t.Fatal(err)
 		}
-		opts := terraform.ContextOpts{ProviderResolver: providerResolver}
 
-		// A single state variable to track the lifecycle, starting with no state
-		var state *terraform.State
+		resp := p.GetSchema()
+		if resp.Diagnostics.HasErrors() {
+			t.Fatal(fmt.Sprintf("error fetching schema for %q: %v", providerName, resp.Diagnostics.Err()))
+		}
 
-		// Go through each step and run it
-		var idRefreshCheck *terraform.ResourceState
-		idRefresh := c.IDRefreshName != ""
-		errored := false
-		for i, step := range c.Steps {
-			var err error
-			log.Printf("[DEBUG] Test: Executing step %d", i)
+		providerSchema := &terraform.ProviderSchema{
+			Provider:      resp.Provider.Block,
+			ResourceTypes: make(map[string]*configschema.Block),
+			DataSources:   make(map[string]*configschema.Block),
+		}
 
-			if step.SkipFunc != nil {
-				skip, err := step.SkipFunc()
-				if err != nil {
-					t.Fatal(err)
-				}
-				if skip {
-					log.Printf("[WARN] Skipping step %d", i)
-					continue
-				}
-			}
+		for r, s := range resp.ResourceTypes {
+			providerSchema.ResourceTypes[r] = s.Block
+		}
 
-			if step.Config == "" && !step.ImportState {
-				err = fmt.Errorf(
-					"unknown test mode for step. Please see TestStep docs\n\n%#v",
-					step)
-			} else {
-				if step.ImportState {
-					if step.Config == "" {
-						step.Config = testProviderConfig(c)
-					}
+		for d, s := range resp.DataSources {
+			providerSchema.DataSources[d] = s.Block
+		}
 
-					// Can optionally set step.Config in addition to
-					// step.ImportState, to provide config for the import.
-					state, err = testStepImportState(opts, state, step)
-				} else {
-					state, err = testStepConfig(opts, state, step)
-				}
-			}
+		schemas.Providers[providerName] = providerSchema
+	}
 
-			// If we expected an error, but did not get one, fail
-			if err == nil && step.ExpectError != nil {
-				errored = true
-				t.Error(fmt.Sprintf(
-					"Step %d, no error received, but expected a match to:\n\n%s\n\n",
-					i, step.ExpectError))
-				break
-			}
+	opts := terraform.ContextOpts{ProviderResolver: providerResolver}
 
-			// If there was an error, exit
+	// A single state variable to track the lifecycle, starting with no state
+	var state *terraform.State
+
+	// Go through each step and run it
+	var idRefreshCheck *terraform.ResourceState
+	idRefresh := c.IDRefreshName != ""
+	errored := false
+	for i, step := range c.Steps {
+		var err error
+		log.Printf("[DEBUG] Test: Executing step %d", i)
+
+		if step.SkipFunc != nil {
+			skip, err := step.SkipFunc()
 			if err != nil {
-				// Perhaps we expected an error? Check if it matches
-				if step.ExpectError != nil {
-					if !step.ExpectError.MatchString(err.Error()) {
-						errored = true
-						t.Error(fmt.Sprintf(
-							"Step %d, expected error:\n\n%s\n\nTo match:\n\n%s\n\n",
-							i, err, step.ExpectError))
-						break
-					}
-				} else {
+				t.Fatal(err)
+			}
+			if skip {
+				log.Printf("[WARN] Skipping step %d", i)
+				continue
+			}
+		}
+
+		if step.Config == "" && !step.ImportState {
+			err = fmt.Errorf(
+				"unknown test mode for step. Please see TestStep docs\n\n%#v",
+				step)
+		} else {
+			if step.ImportState {
+				if step.Config == "" {
+					step.Config = testProviderConfig(c)
+				}
+
+				// Can optionally set step.Config in addition to
+				// step.ImportState, to provide config for the import.
+				state, err = testStepImportState(opts, state, step, schemas)
+			} else {
+				state, err = testStepConfig(opts, state, step, schemas)
+			}
+		}
+
+		// If we expected an error, but did not get one, fail
+		if err == nil && step.ExpectError != nil {
+			errored = true
+			t.Error(fmt.Sprintf(
+				"Step %d, no error received, but expected a match to:\n\n%s\n\n",
+				i, step.ExpectError))
+			break
+		}
+
+		// If there was an error, exit
+		if err != nil {
+			// Perhaps we expected an error? Check if it matches
+			if step.ExpectError != nil {
+				if !step.ExpectError.MatchString(err.Error()) {
 					errored = true
 					t.Error(fmt.Sprintf(
-						"Step %d error: %s", i, err))
+						"Step %d, expected error:\n\n%s\n\nTo match:\n\n%s\n\n",
+						i, err, step.ExpectError))
+					break
+				}
+			} else {
+				errored = true
+				t.Error(fmt.Sprintf(
+					"Step %d error: %s", i, err))
+				break
+			}
+		}
+
+		// If we've never checked an id-only refresh and our state isn't
+		// empty, find the first resource and test it.
+		if idRefresh && idRefreshCheck == nil && !state.Empty() {
+			// Find the first non-nil resource in the state
+			for _, m := range state.Modules {
+				if len(m.Resources) > 0 {
+					if v, ok := m.Resources[c.IDRefreshName]; ok {
+						idRefreshCheck = v
+					}
+
 					break
 				}
 			}
 
-			// If we've never checked an id-only refresh and our state isn't
-			// empty, find the first resource and test it.
-			if idRefresh && idRefreshCheck == nil && !state.Empty() {
-				// Find the first non-nil resource in the state
-				for _, m := range state.Modules {
-					if len(m.Resources) > 0 {
-						if v, ok := m.Resources[c.IDRefreshName]; ok {
-							idRefreshCheck = v
-						}
-
-						break
-					}
-				}
-
-				// If we have an instance to check for refreshes, do it
-				// immediately. We do it in the middle of another test
-				// because it shouldn't affect the overall state (refresh
-				// is read-only semantically) and we want to fail early if
-				// this fails. If refresh isn't read-only, then this will have
-				// caught a different bug.
-				if idRefreshCheck != nil {
-					log.Printf(
-						"[WARN] Test: Running ID-only refresh check on %s",
-						idRefreshCheck.Primary.ID)
-					if err := testIDOnlyRefresh(c, opts, step, idRefreshCheck); err != nil {
-						log.Printf("[ERROR] Test: ID-only test failed: %s", err)
-						t.Error(fmt.Sprintf(
-							"[ERROR] Test: ID-only test failed: %s", err))
-						break
-					}
+			// If we have an instance to check for refreshes, do it
+			// immediately. We do it in the middle of another test
+			// because it shouldn't affect the overall state (refresh
+			// is read-only semantically) and we want to fail early if
+			// this fails. If refresh isn't read-only, then this will have
+			// caught a different bug.
+			if idRefreshCheck != nil {
+				log.Printf(
+					"[WARN] Test: Running ID-only refresh check on %s",
+					idRefreshCheck.Primary.ID)
+				if err := testIDOnlyRefresh(c, opts, step, idRefreshCheck); err != nil {
+					log.Printf("[ERROR] Test: ID-only test failed: %s", err)
+					t.Error(fmt.Sprintf(
+						"[ERROR] Test: ID-only test failed: %s", err))
+					break
 				}
 			}
 		}
+	}
 
-		// If we never checked an id-only refresh, it is a failure.
-		if idRefresh {
-			if !errored && len(c.Steps) > 0 && idRefreshCheck == nil {
-				t.Error("ID-only refresh check never ran.")
-			}
+	// If we never checked an id-only refresh, it is a failure.
+	if idRefresh {
+		if !errored && len(c.Steps) > 0 && idRefreshCheck == nil {
+			t.Error("ID-only refresh check never ran.")
+		}
+	}
+
+	// If we have a state, then run the destroy
+	if state != nil {
+		lastStep := c.Steps[len(c.Steps)-1]
+		destroyStep := TestStep{
+			Config:                    lastStep.Config,
+			Check:                     c.CheckDestroy,
+			Destroy:                   true,
+			PreventDiskCleanup:        lastStep.PreventDiskCleanup,
+			PreventPostDestroyRefresh: c.PreventPostDestroyRefresh,
 		}
 
-		// If we have a state, then run the destroy
-		if state != nil {
-			lastStep := c.Steps[len(c.Steps)-1]
-			destroyStep := TestStep{
-				Config:                    lastStep.Config,
-				Check:                     c.CheckDestroy,
-				Destroy:                   true,
-				PreventDiskCleanup:        lastStep.PreventDiskCleanup,
-				PreventPostDestroyRefresh: c.PreventPostDestroyRefresh,
-			}
-
-			log.Printf("[WARN] Test: Executing destroy step")
-			state, err := testStep(opts, state, destroyStep)
-			if err != nil {
-				t.Error(fmt.Sprintf(
-					"Error destroying resource! WARNING: Dangling resources\n"+
-						"may exist. The full state and error is shown below.\n\n"+
-						"Error: %s\n\nState: %s",
-					err,
-					state))
-			}
-		} else {
-			log.Printf("[WARN] Skipping destroy test since there is no state.")
+		log.Printf("[WARN] Test: Executing destroy step")
+		state, err := testStep(opts, state, destroyStep, schemas)
+		if err != nil {
+			t.Error(fmt.Sprintf(
+				"Error destroying resource! WARNING: Dangling resources\n"+
+					"may exist. The full state and error is shown below.\n\n"+
+					"Error: %s\n\nState: %s",
+				err,
+				state))
 		}
-	*/
+	} else {
+		log.Printf("[WARN] Skipping destroy test since there is no state.")
+	}
 }
 
 // testProviderConfig takes the list of Providers in a TestCase and returns a
@@ -633,7 +670,7 @@ func testProviderConfig(c TestCase) string {
 // test, while only calling the factory function once.
 // Any errors are stored so that they can be returned by the factory in
 // terraform to match non-test behavior.
-func testProviderResolver(c TestCase) (terraform.ResourceProviderResolver, error) {
+func testProviderResolver(c TestCase) (providers.Resolver, error) {
 	ctxProviders := c.ProviderFactories
 	if ctxProviders == nil {
 		ctxProviders = make(map[string]terraform.ResourceProviderFactory)
@@ -644,6 +681,10 @@ func testProviderResolver(c TestCase) (terraform.ResourceProviderResolver, error
 		ctxProviders[k] = terraform.ResourceProviderFactoryFixed(p)
 	}
 
+	// wrap the old provider factories in the test grpc server so they can be
+	// called from terraform.
+	newProviders := make(map[string]providers.Factory)
+
 	// reset the providers if needed
 	for k, pf := range ctxProviders {
 		// we can ignore any errors here, if we don't have a provider to reset
@@ -652,15 +693,48 @@ func testProviderResolver(c TestCase) (terraform.ResourceProviderResolver, error
 		if err != nil {
 			return nil, err
 		}
+
+		// FIXME: verify if this is still needed with the new plugins being
+		// closed after every walk.
 		if p, ok := p.(TestProvider); ok {
 			err := p.TestReset()
 			if err != nil {
 				return nil, fmt.Errorf("[ERROR] failed to reset provider %q: %s", k, err)
 			}
 		}
+
+		// The provider is wrapped in a GRPCTestProvider so that it can be
+		// passed back to terraform core as a providers.Interface, rather
+		// than the legacy ResourceProvider.
+		newProviders[k] = providers.FactoryFixed(GRPCTestProvider(p))
 	}
 
-	return terraform.ResourceProviderResolverFixed(ctxProviders), nil
+	return providers.ResolverFixed(newProviders), nil
+}
+
+// testProviderFactores returns a fixed and reset factories for creating a resolver
+func testProviderFactories(c TestCase) (map[string]providers.Factory, error) {
+	factories := c.ProviderFactories
+	if factories == nil {
+		factories = make(map[string]terraform.ResourceProviderFactory)
+	}
+
+	// add any fixed providers
+	for k, p := range c.Providers {
+		factories[k] = terraform.ResourceProviderFactoryFixed(p)
+	}
+
+	// now that the provider are all loaded in factories, fix each of them into
+	// a providers.Factory
+	newFactories := make(map[string]providers.Factory)
+	for k, pf := range factories {
+		p, err := pf()
+		if err != nil {
+			return nil, err
+		}
+		newFactories[k] = providers.FactoryFixed(GRPCTestProvider(p))
+	}
+	return newFactories, nil
 }
 
 // UnitTest is a helper to force the acceptance testing harness to run in the
