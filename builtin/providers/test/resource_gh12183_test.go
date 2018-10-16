@@ -26,6 +26,9 @@ resource "test_resource_gh12183" "a" {
 
 resource "test_resource_gh12183" "b" {
 	key = "${lookup(test_resource_gh12183.a.config[0], "name")}"
+	config {
+		name = "required"
+	}
 }
 				`),
 				Check: func(s *terraform.State) error {
