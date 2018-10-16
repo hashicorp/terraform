@@ -56,6 +56,8 @@ func (c *ApplyCommand) Run(args []string) int {
 		return 1
 	}
 
+	var diags tfdiags.Diagnostics
+
 	// Get the args. The "maybeInit" flag tracks whether we may need to
 	// initialize the configuration from a remote path. This is true as long
 	// as we have an argument.
@@ -112,9 +114,17 @@ func (c *ApplyCommand) Run(args []string) int {
 	if planFile != nil {
 		// Reset the config path for backend loading
 		configPath = ""
-	}
 
-	var diags tfdiags.Diagnostics
+		if !c.variableArgs.Empty() {
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Can't set variables when applying a saved plan",
+				"The -var and -var-file options cannot be used when applying a saved plan file, because a saved plan includes the variable values that were set when it was created.",
+			))
+			c.showDiagnostics(diags)
+			return 1
+		}
+	}
 
 	// Load the backend
 	var be backend.Enhanced
