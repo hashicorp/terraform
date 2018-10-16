@@ -537,7 +537,7 @@ func TestContext2Validate_orphans(t *testing.T) {
 	}
 
 	m := testModule(t, "validate-good")
-	state := mustShimLegacyState(&State{
+	state := MustShimLegacyState(&State{
 		Modules: []*ModuleState{
 			&ModuleState{
 				Path: rootModulePath,
@@ -868,7 +868,7 @@ func TestContext2Validate_tainted(t *testing.T) {
 	}
 
 	m := testModule(t, "validate-good")
-	state := mustShimLegacyState(&State{
+	state := MustShimLegacyState(&State{
 		Modules: []*ModuleState{
 			&ModuleState{
 				Path: rootModulePath,
@@ -937,7 +937,7 @@ func TestContext2Validate_targetedDestroy(t *testing.T) {
 		Provisioners: map[string]ProvisionerFactory{
 			"shell": testProvisionerFuncFixed(pr),
 		},
-		State: mustShimLegacyState(&State{
+		State: MustShimLegacyState(&State{
 			Modules: []*ModuleState{
 				&ModuleState{
 					Path: rootModulePath,

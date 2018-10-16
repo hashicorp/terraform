@@ -402,7 +402,7 @@ func (s *GRPCProviderServer) PlanResourceChange(_ context.Context, req *proto.Pl
 	// turn the propsed state into a legacy configuration
 	config := terraform.NewResourceConfigShimmed(proposedNewStateVal, block)
 
-	diff, err := s.provider.Diff(info, priorState, config)
+	diff, err := s.provider.SimpleDiff(info, priorState, config)
 	if err != nil {
 		resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
 		return resp, nil
@@ -448,6 +448,15 @@ func (s *GRPCProviderServer) PlanResourceChange(_ context.Context, req *proto.Pl
 		if d.RequiresNew {
 			requiresNew = append(requiresNew, attr)
 		}
+	}
+
+	// If anything requires a new resource already, or the "id" field indicates
+	// that we will be creating a new resource, then we need to add that to
+	// RequiresReplace so that core can tell if the instance is being replaced
+	// even if changes are being suppressed via "ignore_changes".
+	id := plannedStateVal.GetAttr("id")
+	if len(requiresNew) > 0 || id.IsNull() || !id.IsKnown() {
+		requiresNew = append(requiresNew, "id")
 	}
 
 	requiresReplace, err := hcl2shim.RequiresReplace(requiresNew, block.ImpliedType())
@@ -496,10 +505,23 @@ func (s *GRPCProviderServer) ApplyResourceChange(_ context.Context, req *proto.A
 		}
 	}
 
-	diff, err := schema.DiffFromValues(priorStateVal, plannedStateVal, res)
-	if err != nil {
-		resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
-		return resp, nil
+	var diff *terraform.InstanceDiff
+	destroy := false
+
+	// a null state means we are destroying the instance
+	if plannedStateVal.IsNull() {
+		destroy = true
+		diff = &terraform.InstanceDiff{
+			Attributes: make(map[string]*terraform.ResourceAttrDiff),
+			Meta:       make(map[string]interface{}),
+			Destroy:    true,
+		}
+	} else {
+		diff, err = schema.DiffFromValues(priorStateVal, plannedStateVal, res)
+		if err != nil {
+			resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
+			return resp, nil
+		}
 	}
 
 	if diff == nil {
@@ -516,10 +538,16 @@ func (s *GRPCProviderServer) ApplyResourceChange(_ context.Context, req *proto.A
 		return resp, nil
 	}
 
-	newStateVal, err := schema.StateValueFromInstanceState(newInstanceState, block.ImpliedType())
-	if err != nil {
-		resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
-		return resp, nil
+	newStateVal := cty.NullVal(block.ImpliedType())
+
+	// We keep the null val if we destroyed the resource, otherwise build the
+	// entire object, even if the new state was nil.
+	if !destroy {
+		newStateVal, err = schema.StateValueFromInstanceState(newInstanceState, block.ImpliedType())
+		if err != nil {
+			resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
+			return resp, nil
+		}
 	}
 
 	newStateMP, err := msgpack.Marshal(newStateVal, block.ImpliedType())
@@ -531,12 +559,14 @@ func (s *GRPCProviderServer) ApplyResourceChange(_ context.Context, req *proto.A
 		Msgpack: newStateMP,
 	}
 
-	meta, err := json.Marshal(newInstanceState.Meta)
-	if err != nil {
-		resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
-		return resp, nil
+	if newInstanceState != nil {
+		meta, err := json.Marshal(newInstanceState.Meta)
+		if err != nil {
+			resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
+			return resp, nil
+		}
+		resp.Private = meta
 	}
-	resp.Private = meta
 
 	return resp, nil
 }

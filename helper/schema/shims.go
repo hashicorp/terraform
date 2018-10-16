@@ -29,15 +29,20 @@ func diffFromValues(prior, planned cty.Value, res *Resource, cust CustomizeDiffF
 
 	cfg := terraform.NewResourceConfigShimmed(planned, configSchema)
 
-	return schemaMap(res.Schema).Diff(instanceState, cfg, cust, nil)
+	diff, err := schemaMap(res.Schema).Diff(instanceState, cfg, cust, nil, false)
+	if err != nil {
+		return nil, err
+	}
+
+	return diff, err
 }
 
 // ApplyDiff takes a cty.Value state and applies a terraform.InstanceDiff to
 // get a new cty.Value state. This is used to convert the diff returned from
 // the legacy provider Diff method to the state required for the new
 // PlanResourceChange method.
-func ApplyDiff(state cty.Value, d *terraform.InstanceDiff, schemaBlock *configschema.Block) (cty.Value, error) {
-	return d.ApplyToValue(state, schemaBlock)
+func ApplyDiff(base cty.Value, d *terraform.InstanceDiff, schema *configschema.Block) (cty.Value, error) {
+	return d.ApplyToValue(base, schema)
 }
 
 // StateValueToJSONMap converts a cty.Value to generic JSON map via the cty JSON

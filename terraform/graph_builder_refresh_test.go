@@ -11,7 +11,7 @@ func TestRefreshGraphBuilder_configOrphans(t *testing.T) {
 
 	m := testModule(t, "refresh-config-orphan")
 
-	state := mustShimLegacyState(&State{
+	state := MustShimLegacyState(&State{
 		Modules: []*ModuleState{
 			&ModuleState{
 				Path: rootModulePath,
