@@ -274,3 +274,46 @@ func (d *attributeDiagnostic) Source() Source {
 		Subject: d.subject,
 	}
 }
+
+// WholeContainingBody returns a diagnostic about the body that is an implied
+// current configuration context. This should be returned only from
+// functions whose interface specifies a clear configuration context that this
+// will be resolved in.
+//
+// The returned attribute will not have source location information until
+// context is applied to the containing diagnostics using diags.InConfigBody.
+// After context is applied, the source location is currently the missing item
+// range of the body. In future, this may change to some other suitable
+// part of the containing body.
+func WholeContainingBody(severity Severity, summary, detail string) Diagnostic {
+	return &wholeBodyDiagnostic{
+		diagnosticBase: diagnosticBase{
+			severity: severity,
+			summary:  summary,
+			detail:   detail,
+		},
+	}
+}
+
+type wholeBodyDiagnostic struct {
+	diagnosticBase
+	subject  *SourceRange // populated only after ElaborateFromConfigBody
+}
+
+func (d *wholeBodyDiagnostic) ElaborateFromConfigBody(body hcl.Body) Diagnostic {
+	if d.subject != nil {
+		// Don't modify an already-elaborated diagnostic.
+		return d
+	}
+
+	ret := *d
+	rng := SourceRangeFromHCL(body.MissingItemRange())
+	ret.subject = &rng
+	return &ret
+}
+
+func (d *wholeBodyDiagnostic) Source() Source {
+	return Source{
+		Subject: d.subject,
+	}
+}
