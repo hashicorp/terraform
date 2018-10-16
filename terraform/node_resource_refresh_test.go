@@ -13,7 +13,7 @@ import (
 func TestNodeRefreshableManagedResourceDynamicExpand_scaleOut(t *testing.T) {
 	m := testModule(t, "refresh-resource-scale-inout")
 
-	state := mustShimLegacyState(&State{
+	state := MustShimLegacyState(&State{
 		Modules: []*ModuleState{
 			&ModuleState{
 				Path: rootModulePath,
@@ -78,7 +78,7 @@ root - terraform.graphNodeRoot
 func TestNodeRefreshableManagedResourceDynamicExpand_scaleIn(t *testing.T) {
 	m := testModule(t, "refresh-resource-scale-inout")
 
-	state := mustShimLegacyState(&State{
+	state := MustShimLegacyState(&State{
 		Modules: []*ModuleState{
 			&ModuleState{
 				Path: rootModulePath,

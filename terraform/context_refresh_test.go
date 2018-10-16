@@ -21,7 +21,7 @@ func TestContext2Refresh(t *testing.T) {
 	p := testProvider("aws")
 	m := testModule(t, "refresh-basic")
 
-	startingState := mustShimLegacyState(&State{
+	startingState := MustShimLegacyState(&State{
 		Modules: []*ModuleState{
 			&ModuleState{
 				Path: rootModulePath,
@@ -189,7 +189,7 @@ func TestContext2Refresh_targeted(t *testing.T) {
 				"aws": testProviderFuncFixed(p),
 			},
 		),
-		State: mustShimLegacyState(&State{
+		State: MustShimLegacyState(&State{
 			Modules: []*ModuleState{
 				&ModuleState{
 					Path: rootModulePath,
@@ -272,7 +272,7 @@ func TestContext2Refresh_targetedCount(t *testing.T) {
 				"aws": testProviderFuncFixed(p),
 			},
 		),
-		State: mustShimLegacyState(&State{
+		State: MustShimLegacyState(&State{
 			Modules: []*ModuleState{
 				&ModuleState{
 					Path: rootModulePath,
@@ -365,7 +365,7 @@ func TestContext2Refresh_targetedCountIndex(t *testing.T) {
 				"aws": testProviderFuncFixed(p),
 			},
 		),
-		State: mustShimLegacyState(&State{
+		State: MustShimLegacyState(&State{
 			Modules: []*ModuleState{
 				&ModuleState{
 					Path: rootModulePath,
@@ -453,7 +453,7 @@ func TestContext2Refresh_delete(t *testing.T) {
 				"aws": testProviderFuncFixed(p),
 			},
 		),
-		State: mustShimLegacyState(&State{
+		State: MustShimLegacyState(&State{
 			Modules: []*ModuleState{
 				&ModuleState{
 					Path: rootModulePath,
@@ -527,7 +527,7 @@ func TestContext2Refresh_hook(t *testing.T) {
 				"aws": testProviderFuncFixed(p),
 			},
 		),
-		State: mustShimLegacyState(&State{
+		State: MustShimLegacyState(&State{
 			Modules: []*ModuleState{
 				&ModuleState{
 					Path: rootModulePath,
@@ -558,7 +558,7 @@ func TestContext2Refresh_hook(t *testing.T) {
 func TestContext2Refresh_modules(t *testing.T) {
 	p := testProvider("aws")
 	m := testModule(t, "refresh-modules")
-	state := mustShimLegacyState(&State{
+	state := MustShimLegacyState(&State{
 		Modules: []*ModuleState{
 			&ModuleState{
 				Path: rootModulePath,
@@ -733,7 +733,7 @@ func TestContext2Refresh_output(t *testing.T) {
 				"aws": testProviderFuncFixed(p),
 			},
 		),
-		State: mustShimLegacyState(&State{
+		State: MustShimLegacyState(&State{
 			Modules: []*ModuleState{
 				&ModuleState{
 					Path: rootModulePath,
@@ -809,7 +809,7 @@ func TestContext2Refresh_outputPartial(t *testing.T) {
 				"aws": testProviderFuncFixed(p),
 			},
 		),
-		State: mustShimLegacyState(&State{
+		State: MustShimLegacyState(&State{
 			Modules: []*ModuleState{
 				&ModuleState{
 					Path: rootModulePath,
@@ -842,7 +842,7 @@ func TestContext2Refresh_outputPartial(t *testing.T) {
 func TestContext2Refresh_stateBasic(t *testing.T) {
 	p := testProvider("aws")
 	m := testModule(t, "refresh-basic")
-	state := mustShimLegacyState(&State{
+	state := MustShimLegacyState(&State{
 		Modules: []*ModuleState{
 			&ModuleState{
 				Path: rootModulePath,
@@ -904,7 +904,7 @@ func TestContext2Refresh_stateBasic(t *testing.T) {
 
 func TestContext2Refresh_dataOrphan(t *testing.T) {
 	p := testProvider("null")
-	state := mustShimLegacyState(&State{
+	state := MustShimLegacyState(&State{
 		Modules: []*ModuleState{
 			&ModuleState{
 				Path: rootModulePath,
@@ -940,7 +940,7 @@ func TestContext2Refresh_dataOrphan(t *testing.T) {
 func TestContext2Refresh_dataState(t *testing.T) {
 	m := testModule(t, "refresh-data-resource-basic")
 
-	state := mustShimLegacyState(&State{
+	state := MustShimLegacyState(&State{
 		Modules: []*ModuleState{
 			&ModuleState{
 				Path: rootModulePath,
@@ -1065,7 +1065,7 @@ func TestContext2Refresh_dataStateRefData(t *testing.T) {
 	}
 
 	m := testModule(t, "refresh-data-ref-data")
-	state := mustShimLegacyState(&State{
+	state := MustShimLegacyState(&State{
 		Modules: []*ModuleState{
 			&ModuleState{
 				Path: rootModulePath,
@@ -1111,7 +1111,7 @@ func TestContext2Refresh_dataStateRefData(t *testing.T) {
 func TestContext2Refresh_tainted(t *testing.T) {
 	p := testProvider("aws")
 	m := testModule(t, "refresh-basic")
-	state := mustShimLegacyState(&State{
+	state := MustShimLegacyState(&State{
 		Modules: []*ModuleState{
 			&ModuleState{
 				Path: rootModulePath,
@@ -1176,7 +1176,7 @@ func TestContext2Refresh_unknownProvider(t *testing.T) {
 		ProviderResolver: providers.ResolverFixed(
 			map[string]providers.Factory{},
 		),
-		State: mustShimLegacyState(&State{
+		State: MustShimLegacyState(&State{
 			Modules: []*ModuleState{
 				&ModuleState{
 					Path: rootModulePath,
@@ -1231,7 +1231,7 @@ func TestContext2Refresh_vars(t *testing.T) {
 				"aws": testProviderFuncFixed(p),
 			},
 		),
-		State: mustShimLegacyState(&State{
+		State: MustShimLegacyState(&State{
 
 			Modules: []*ModuleState{
 				&ModuleState{
@@ -1311,7 +1311,7 @@ func TestContext2Refresh_orphanModule(t *testing.T) {
 		}
 	}
 
-	state := mustShimLegacyState(&State{
+	state := MustShimLegacyState(&State{
 		Modules: []*ModuleState{
 			&ModuleState{
 				Path: rootModulePath,
@@ -1461,7 +1461,7 @@ func TestContext2Refresh_noDiffHookOnScaleOut(t *testing.T) {
 	// we need to make DiffFn available to let that complete.
 	p.DiffFn = testDiffFn
 
-	state := mustShimLegacyState(&State{
+	state := MustShimLegacyState(&State{
 		Modules: []*ModuleState{
 			&ModuleState{
 				Path: rootModulePath,
@@ -1522,7 +1522,7 @@ func TestContext2Refresh_updateProviderInState(t *testing.T) {
 	p.DiffFn = testDiffFn
 	p.ApplyFn = testApplyFn
 
-	s := mustShimLegacyState(&State{
+	s := MustShimLegacyState(&State{
 		Modules: []*ModuleState{
 			&ModuleState{
 				Path: rootModulePath,
