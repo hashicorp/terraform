@@ -254,6 +254,8 @@ func TestProviderInstallerGet(t *testing.T) {
 		SkipVerify:            true,
 		Ui:                    cli.NewMockUi(),
 		registry:              registry.NewClient(Disco(server), nil),
+		OS:                    "mockos",
+		Arch:                  "mockarch",
 	}
 
 	{
@@ -452,8 +454,8 @@ var versionList = response.TerraformProvider{
 			Protocols: []string{"4"},
 			Platforms: []*response.TerraformProviderPlatform{
 				{
-					OS:   "darwin",
-					Arch: "amd64",
+					OS:   "mockos",
+					Arch: "mockarch",
 				},
 			},
 		},
