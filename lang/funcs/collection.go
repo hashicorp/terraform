@@ -508,9 +508,11 @@ var LookupFunc = function.New(&function.Spec{
 				// return the default type
 				return args[2].Type(), nil
 			}
-			return cty.DynamicPseudoType, nil
-		default:
+			return cty.DynamicPseudoType, fmt.Errorf("the given object has no attribute %q", key)
+		case ty.IsMapType():
 			return ty.ElementType(), nil
+		default:
+			return cty.NilType, fmt.Errorf("lookup() requires a map as the first argument")
 		}
 	},
 	Impl: func(args []cty.Value, retType cty.Type) (ret cty.Value, err error) {
