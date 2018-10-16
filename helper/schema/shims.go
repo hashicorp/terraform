@@ -29,7 +29,12 @@ func diffFromValues(prior, planned cty.Value, res *Resource, cust CustomizeDiffF
 
 	cfg := terraform.NewResourceConfigShimmed(planned, configSchema)
 
-	return schemaMap(res.Schema).Diff(instanceState, cfg, cust, nil)
+	diff, err := schemaMap(res.Schema).Diff(instanceState, cfg, cust, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return diff, err
 }
 
 // ApplyDiff takes a cty.Value state and applies a terraform.InstanceDiff to

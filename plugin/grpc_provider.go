@@ -3,6 +3,7 @@ package plugin
 import (
 	"context"
 	"errors"
+	"io"
 	"log"
 	"sync"
 
@@ -43,6 +44,10 @@ type GRPCProvider struct {
 	// PluginClient provides a reference to the plugin.Client which controls the plugin process.
 	// This allows the GRPCProvider a way to shutdown the plugin process.
 	PluginClient *plugin.Client
+
+	// TestListener contains a net.Conn to close when the GRPCProvider is being
+	// used in an end to end test of a provider.
+	TestListener io.Closer
 
 	// Proto client use to make the grpc service calls.
 	client proto.ProviderClient
