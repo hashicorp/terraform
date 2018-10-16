@@ -290,7 +290,7 @@ func TestContext2Apply_resourceDependsOnModuleStateOnly(t *testing.T) {
 	p := testProvider("aws")
 	p.DiffFn = testDiffFn
 
-	state := mustShimLegacyState(&State{
+	state := MustShimLegacyState(&State{
 		Modules: []*ModuleState{
 			&ModuleState{
 				Path: rootModulePath,
@@ -811,7 +811,7 @@ func TestContext2Apply_createBeforeDestroy(t *testing.T) {
 	p := testProvider("aws")
 	p.ApplyFn = testApplyFn
 	p.DiffFn = testDiffFn
-	state := mustShimLegacyState(&State{
+	state := MustShimLegacyState(&State{
 		Modules: []*ModuleState{
 			&ModuleState{
 				Path: rootModulePath,
@@ -868,7 +868,7 @@ func TestContext2Apply_createBeforeDestroyUpdate(t *testing.T) {
 	p := testProvider("aws")
 	p.ApplyFn = testApplyFn
 	p.DiffFn = testDiffFn
-	state := mustShimLegacyState(&State{
+	state := MustShimLegacyState(&State{
 		Modules: []*ModuleState{
 			&ModuleState{
 				Path: rootModulePath,
@@ -926,7 +926,7 @@ func TestContext2Apply_createBeforeDestroy_dependsNonCBD(t *testing.T) {
 	p := testProvider("aws")
 	p.ApplyFn = testApplyFn
 	p.DiffFn = testDiffFn
-	state := mustShimLegacyState(&State{
+	state := MustShimLegacyState(&State{
 		Modules: []*ModuleState{
 			&ModuleState{
 				Path: rootModulePath,
@@ -999,7 +999,7 @@ func TestContext2Apply_createBeforeDestroy_hook(t *testing.T) {
 	p := testProvider("aws")
 	p.ApplyFn = testApplyFn
 	p.DiffFn = testDiffFn
-	state := mustShimLegacyState(&State{
+	state := MustShimLegacyState(&State{
 		Modules: []*ModuleState{
 			&ModuleState{
 				Path: rootModulePath,
@@ -1072,7 +1072,7 @@ func TestContext2Apply_createBeforeDestroy_deposedCount(t *testing.T) {
 	p.ApplyFn = testApplyFn
 	p.DiffFn = testDiffFn
 
-	state := mustShimLegacyState(&State{
+	state := MustShimLegacyState(&State{
 		Modules: []*ModuleState{
 			&ModuleState{
 				Path: rootModulePath,
@@ -1151,7 +1151,7 @@ func TestContext2Apply_createBeforeDestroy_deposedOnly(t *testing.T) {
 	p.ApplyFn = testApplyFn
 	p.DiffFn = testDiffFn
 
-	state := mustShimLegacyState(&State{
+	state := MustShimLegacyState(&State{
 		Modules: []*ModuleState{
 			&ModuleState{
 				Path: rootModulePath,
@@ -1207,7 +1207,7 @@ func TestContext2Apply_destroyComputed(t *testing.T) {
 	p := testProvider("aws")
 	p.ApplyFn = testApplyFn
 	p.DiffFn = testDiffFn
-	state := mustShimLegacyState(&State{
+	state := MustShimLegacyState(&State{
 		Modules: []*ModuleState{
 			&ModuleState{
 				Path: rootModulePath,
@@ -1264,7 +1264,7 @@ func testContext2Apply_destroyDependsOn(t *testing.T) {
 	p := testProvider("aws")
 	p.ApplyFn = testApplyFn
 	p.DiffFn = testDiffFn
-	state := mustShimLegacyState(&State{
+	state := MustShimLegacyState(&State{
 		Modules: []*ModuleState{
 			&ModuleState{
 				Path: rootModulePath,
@@ -1341,7 +1341,7 @@ func testContext2Apply_destroyDependsOnStateOnly(t *testing.T) {
 	p := testProvider("aws")
 	p.ApplyFn = testApplyFn
 	p.DiffFn = testDiffFn
-	state := mustShimLegacyState(&State{
+	state := MustShimLegacyState(&State{
 		Modules: []*ModuleState{
 			&ModuleState{
 				Path: rootModulePath,
@@ -1421,7 +1421,7 @@ func testContext2Apply_destroyDependsOnStateOnlyModule(t *testing.T) {
 	p := testProvider("aws")
 	p.ApplyFn = testApplyFn
 	p.DiffFn = testDiffFn
-	state := mustShimLegacyState(&State{
+	state := MustShimLegacyState(&State{
 		Modules: []*ModuleState{
 			&ModuleState{
 				Path: []string{"root", "child"},
@@ -1528,7 +1528,7 @@ func TestContext2Apply_destroyData(t *testing.T) {
 	p := testProvider("null")
 	p.ApplyFn = testApplyFn
 	p.DiffFn = testDiffFn
-	state := mustShimLegacyState(&State{
+	state := MustShimLegacyState(&State{
 		Modules: []*ModuleState{
 			&ModuleState{
 				Path: rootModulePath,
@@ -1598,7 +1598,7 @@ func TestContext2Apply_destroySkipsCBD(t *testing.T) {
 	p := testProvider("aws")
 	p.ApplyFn = testApplyFn
 	p.DiffFn = testDiffFn
-	state := mustShimLegacyState(&State{
+	state := MustShimLegacyState(&State{
 		Modules: []*ModuleState{
 			&ModuleState{
 				Path: rootModulePath,
@@ -1646,7 +1646,7 @@ func TestContext2Apply_destroyModuleVarProviderConfig(t *testing.T) {
 	p := testProvider("aws")
 	p.ApplyFn = testApplyFn
 	p.DiffFn = testDiffFn
-	state := mustShimLegacyState(&State{
+	state := MustShimLegacyState(&State{
 		Modules: []*ModuleState{
 			&ModuleState{
 				Path: []string{"root", "child"},
@@ -1735,7 +1735,7 @@ func TestContext2Apply_destroyCrossProviders(t *testing.T) {
 }
 
 func getContextForApply_destroyCrossProviders(t *testing.T, m *configs.Config, providerFactories map[string]providers.Factory) *Context {
-	state := mustShimLegacyState(&State{
+	state := MustShimLegacyState(&State{
 		Modules: []*ModuleState{
 			&ModuleState{
 				Path: rootModulePath,
@@ -2150,7 +2150,7 @@ func TestContext2Apply_countDecrease(t *testing.T) {
 	p := testProvider("aws")
 	p.DiffFn = testDiffFn
 	p.ApplyFn = testApplyFn
-	s := mustShimLegacyState(&State{
+	s := MustShimLegacyState(&State{
 		Modules: []*ModuleState{
 			&ModuleState{
 				Path: rootModulePath,
@@ -2219,7 +2219,7 @@ func TestContext2Apply_countDecreaseToOneX(t *testing.T) {
 	p := testProvider("aws")
 	p.ApplyFn = testApplyFn
 	p.DiffFn = testDiffFn
-	s := mustShimLegacyState(&State{
+	s := MustShimLegacyState(&State{
 		Modules: []*ModuleState{
 			&ModuleState{
 				Path: rootModulePath,
@@ -2286,7 +2286,7 @@ func TestContext2Apply_countDecreaseToOneCorrupted(t *testing.T) {
 	p := testProvider("aws")
 	p.ApplyFn = testApplyFn
 	p.DiffFn = testDiffFn
-	s := mustShimLegacyState(&State{
+	s := MustShimLegacyState(&State{
 		Modules: []*ModuleState{
 			&ModuleState{
 				Path: rootModulePath,
@@ -2351,7 +2351,7 @@ func TestContext2Apply_countTainted(t *testing.T) {
 	p := testProvider("aws")
 	p.DiffFn = testDiffFn
 	p.ApplyFn = testApplyFn
-	s := mustShimLegacyState(&State{
+	s := MustShimLegacyState(&State{
 		Modules: []*ModuleState{
 			&ModuleState{
 				Path: rootModulePath,
@@ -2609,7 +2609,7 @@ func TestContext2Apply_moduleDestroyOrder(t *testing.T) {
 		},
 	}
 
-	state := mustShimLegacyState(&State{
+	state := MustShimLegacyState(&State{
 		Modules: []*ModuleState{
 			&ModuleState{
 				Path: rootModulePath,
@@ -2818,7 +2818,7 @@ func TestContext2Apply_moduleOrphanInheritAlias(t *testing.T) {
 	}
 
 	// Create a state with an orphan module
-	state := mustShimLegacyState(&State{
+	state := MustShimLegacyState(&State{
 		Modules: []*ModuleState{
 			&ModuleState{
 				Path: []string{"root", "child"},
@@ -2876,7 +2876,7 @@ func TestContext2Apply_moduleOrphanProvider(t *testing.T) {
 	}
 
 	// Create a state with an orphan module
-	state := mustShimLegacyState(&State{
+	state := MustShimLegacyState(&State{
 		Modules: []*ModuleState{
 			&ModuleState{
 				Path: []string{"root", "child"},
@@ -2927,7 +2927,7 @@ func TestContext2Apply_moduleOrphanGrandchildProvider(t *testing.T) {
 	}
 
 	// Create a state with an orphan module that is nested (grandchild)
-	state := mustShimLegacyState(&State{
+	state := MustShimLegacyState(&State{
 		Modules: []*ModuleState{
 			&ModuleState{
 				Path: []string{"root", "parent", "child"},
@@ -3129,7 +3129,7 @@ func TestContext2Apply_moduleProviderCloseNested(t *testing.T) {
 				"aws": testProviderFuncFixed(p),
 			},
 		),
-		State: mustShimLegacyState(&State{
+		State: MustShimLegacyState(&State{
 			Modules: []*ModuleState{
 				&ModuleState{
 					Path: []string{"root", "child", "subchild"},
@@ -3167,7 +3167,7 @@ func TestContext2Apply_moduleVarRefExisting(t *testing.T) {
 	p.ApplyFn = testApplyFn
 	p.DiffFn = testDiffFn
 
-	state := mustShimLegacyState(&State{
+	state := MustShimLegacyState(&State{
 		Modules: []*ModuleState{
 			&ModuleState{
 				Path: rootModulePath,
@@ -4263,7 +4263,7 @@ func TestContext2Apply_outputOrphan(t *testing.T) {
 	p.ApplyFn = testApplyFn
 	p.DiffFn = testDiffFn
 
-	state := mustShimLegacyState(&State{
+	state := MustShimLegacyState(&State{
 		Modules: []*ModuleState{
 			&ModuleState{
 				Path: rootModulePath,
@@ -4315,7 +4315,7 @@ func TestContext2Apply_outputOrphanModule(t *testing.T) {
 	p.ApplyFn = testApplyFn
 	p.DiffFn = testDiffFn
 
-	state := mustShimLegacyState(&State{
+	state := MustShimLegacyState(&State{
 		Modules: []*ModuleState{
 			&ModuleState{
 				Path: []string{"root", "child"},
@@ -4705,7 +4705,7 @@ func TestContext2Apply_provisionerFail_createBeforeDestroy(t *testing.T) {
 		return fmt.Errorf("EXPLOSION")
 	}
 
-	state := mustShimLegacyState(&State{
+	state := MustShimLegacyState(&State{
 		Modules: []*ModuleState{
 			&ModuleState{
 				Path: rootModulePath,
@@ -4755,7 +4755,7 @@ func TestContext2Apply_provisionerFail_createBeforeDestroy(t *testing.T) {
 func TestContext2Apply_error_createBeforeDestroy(t *testing.T) {
 	m := testModule(t, "apply-error-create-before")
 	p := testProvider("aws")
-	state := mustShimLegacyState(&State{
+	state := MustShimLegacyState(&State{
 		Modules: []*ModuleState{
 			&ModuleState{
 				Path: rootModulePath,
@@ -4806,7 +4806,7 @@ func TestContext2Apply_error_createBeforeDestroy(t *testing.T) {
 func TestContext2Apply_errorDestroy_createBeforeDestroy(t *testing.T) {
 	m := testModule(t, "apply-error-create-before")
 	p := testProvider("aws")
-	state := mustShimLegacyState(&State{
+	state := MustShimLegacyState(&State{
 		Modules: []*ModuleState{
 			&ModuleState{
 				Path: rootModulePath,
@@ -4878,7 +4878,7 @@ func TestContext2Apply_multiDepose_createBeforeDestroy(t *testing.T) {
 		},
 	}
 	ps := map[string]providers.Factory{"aws": testProviderFuncFixed(p)}
-	state := mustShimLegacyState(&State{
+	state := MustShimLegacyState(&State{
 		Modules: []*ModuleState{
 			&ModuleState{
 				Path: rootModulePath,
@@ -5146,7 +5146,7 @@ func TestContext2Apply_provisionerDestroy(t *testing.T) {
 		return nil
 	}
 
-	state := mustShimLegacyState(&State{
+	state := MustShimLegacyState(&State{
 		Modules: []*ModuleState{
 			&ModuleState{
 				Path: rootModulePath,
@@ -5204,7 +5204,7 @@ func TestContext2Apply_provisionerDestroyFail(t *testing.T) {
 		return fmt.Errorf("provisioner error")
 	}
 
-	state := mustShimLegacyState(&State{
+	state := MustShimLegacyState(&State{
 		Modules: []*ModuleState{
 			&ModuleState{
 				Path: rootModulePath,
@@ -5278,7 +5278,7 @@ func TestContext2Apply_provisionerDestroyFailContinue(t *testing.T) {
 		return fmt.Errorf("provisioner error")
 	}
 
-	state := mustShimLegacyState(&State{
+	state := MustShimLegacyState(&State{
 		Modules: []*ModuleState{
 			&ModuleState{
 				Path: rootModulePath,
@@ -5354,7 +5354,7 @@ func TestContext2Apply_provisionerDestroyFailContinueFail(t *testing.T) {
 		return fmt.Errorf("provisioner error")
 	}
 
-	state := mustShimLegacyState(&State{
+	state := MustShimLegacyState(&State{
 		Modules: []*ModuleState{
 			&ModuleState{
 				Path: rootModulePath,
@@ -5434,7 +5434,7 @@ func TestContext2Apply_provisionerDestroyTainted(t *testing.T) {
 		return nil
 	}
 
-	state := mustShimLegacyState(&State{
+	state := MustShimLegacyState(&State{
 		Modules: []*ModuleState{
 			&ModuleState{
 				Path: rootModulePath,
@@ -5506,7 +5506,7 @@ func TestContext2Apply_provisionerDestroyModule(t *testing.T) {
 		return nil
 	}
 
-	state := mustShimLegacyState(&State{
+	state := MustShimLegacyState(&State{
 		Modules: []*ModuleState{
 			&ModuleState{
 				Path: []string{"root", "child"},
@@ -5568,7 +5568,7 @@ func TestContext2Apply_provisionerDestroyRef(t *testing.T) {
 		return nil
 	}
 
-	state := mustShimLegacyState(&State{
+	state := MustShimLegacyState(&State{
 		Modules: []*ModuleState{
 			&ModuleState{
 				Path: rootModulePath,
@@ -5638,7 +5638,7 @@ func TestContext2Apply_provisionerDestroyRefInvalid(t *testing.T) {
 		return nil
 	}
 
-	state := mustShimLegacyState(&State{
+	state := MustShimLegacyState(&State{
 		Modules: []*ModuleState{
 			&ModuleState{
 				Path: rootModulePath,
@@ -6077,7 +6077,7 @@ func TestContext2Apply_Provisioner_Diff(t *testing.T) {
 func TestContext2Apply_outputDiffVars(t *testing.T) {
 	m := testModule(t, "apply-good")
 	p := testProvider("aws")
-	s := mustShimLegacyState(&State{
+	s := MustShimLegacyState(&State{
 		Modules: []*ModuleState{
 			&ModuleState{
 				Path: rootModulePath,
@@ -6333,7 +6333,7 @@ func TestContext2Apply_destroyNestedModule(t *testing.T) {
 	p.ApplyFn = testApplyFn
 	p.DiffFn = testDiffFn
 
-	s := mustShimLegacyState(&State{
+	s := MustShimLegacyState(&State{
 		Modules: []*ModuleState{
 			&ModuleState{
 				Path: []string{"root", "child", "subchild"},
@@ -6383,7 +6383,7 @@ func TestContext2Apply_destroyDeeplyNestedModule(t *testing.T) {
 	p.ApplyFn = testApplyFn
 	p.DiffFn = testDiffFn
 
-	s := mustShimLegacyState(&State{
+	s := MustShimLegacyState(&State{
 		Modules: []*ModuleState{
 			&ModuleState{
 				Path: []string{"root", "child", "subchild", "subsubchild"},
@@ -6825,7 +6825,7 @@ func TestContext2Apply_destroyOutputs(t *testing.T) {
 func TestContext2Apply_destroyOrphan(t *testing.T) {
 	m := testModule(t, "apply-error")
 	p := testProvider("aws")
-	s := mustShimLegacyState(&State{
+	s := MustShimLegacyState(&State{
 		Modules: []*ModuleState{
 			&ModuleState{
 				Path: rootModulePath,
@@ -6897,7 +6897,7 @@ func TestContext2Apply_destroyTaintedProvisioner(t *testing.T) {
 		return nil
 	}
 
-	s := mustShimLegacyState(&State{
+	s := MustShimLegacyState(&State{
 		Modules: []*ModuleState{
 			&ModuleState{
 				Path: rootModulePath,
@@ -7012,7 +7012,7 @@ func TestContext2Apply_errorPartial(t *testing.T) {
 
 	m := testModule(t, "apply-error")
 	p := testProvider("aws")
-	s := mustShimLegacyState(&State{
+	s := MustShimLegacyState(&State{
 		Modules: []*ModuleState{
 			&ModuleState{
 				Path: rootModulePath,
@@ -7123,7 +7123,7 @@ func TestContext2Apply_hookOrphan(t *testing.T) {
 	p.ApplyFn = testApplyFn
 	p.DiffFn = testDiffFn
 
-	state := mustShimLegacyState(&State{
+	state := MustShimLegacyState(&State{
 		Modules: []*ModuleState{
 			&ModuleState{
 				Path: rootModulePath,
@@ -7417,7 +7417,7 @@ func TestContext2Apply_taintX(t *testing.T) {
 		return testApplyFn(info, s, d)
 	}
 	p.DiffFn = testDiffFn
-	s := mustShimLegacyState(&State{
+	s := MustShimLegacyState(&State{
 		Modules: []*ModuleState{
 			&ModuleState{
 				Path: rootModulePath,
@@ -7474,7 +7474,7 @@ func TestContext2Apply_taintDep(t *testing.T) {
 	p := testProvider("aws")
 	p.ApplyFn = testApplyFn
 	p.DiffFn = testDiffFn
-	s := mustShimLegacyState(&State{
+	s := MustShimLegacyState(&State{
 		Modules: []*ModuleState{
 			&ModuleState{
 				Path: rootModulePath,
@@ -7538,7 +7538,7 @@ func TestContext2Apply_taintDepRequiresNew(t *testing.T) {
 	p := testProvider("aws")
 	p.ApplyFn = testApplyFn
 	p.DiffFn = testDiffFn
-	s := mustShimLegacyState(&State{
+	s := MustShimLegacyState(&State{
 		Modules: []*ModuleState{
 			&ModuleState{
 				Path: rootModulePath,
@@ -7727,7 +7727,7 @@ func TestContext2Apply_targetedDestroy(t *testing.T) {
 				"aws": testProviderFuncFixed(p),
 			},
 		),
-		State: mustShimLegacyState(&State{
+		State: MustShimLegacyState(&State{
 			Modules: []*ModuleState{
 				&ModuleState{
 					Path: rootModulePath,
@@ -7806,7 +7806,7 @@ func TestContext2Apply_destroyProvisionerWithLocals(t *testing.T) {
 		Provisioners: map[string]ProvisionerFactory{
 			"shell": testProvisionerFuncFixed(pr),
 		},
-		State: mustShimLegacyState(&State{
+		State: MustShimLegacyState(&State{
 			Modules: []*ModuleState{
 				&ModuleState{
 					Path: []string{"root"},
@@ -7903,7 +7903,7 @@ func TestContext2Apply_destroyProvisionerWithMultipleLocals(t *testing.T) {
 		Provisioners: map[string]ProvisionerFactory{
 			"shell": testProvisionerFuncFixed(pr),
 		},
-		State: mustShimLegacyState(&State{
+		State: MustShimLegacyState(&State{
 			Modules: []*ModuleState{
 				&ModuleState{
 					Path: []string{"root"},
@@ -7954,7 +7954,7 @@ func TestContext2Apply_destroyProvisionerWithOutput(t *testing.T) {
 		Provisioners: map[string]ProvisionerFactory{
 			"shell": testProvisionerFuncFixed(pr),
 		},
-		State: mustShimLegacyState(&State{
+		State: MustShimLegacyState(&State{
 			Modules: []*ModuleState{
 				&ModuleState{
 					Path: []string{"root"},
@@ -8027,7 +8027,7 @@ func TestContext2Apply_targetedDestroyCountDeps(t *testing.T) {
 				"aws": testProviderFuncFixed(p),
 			},
 		),
-		State: mustShimLegacyState(&State{
+		State: MustShimLegacyState(&State{
 			Modules: []*ModuleState{
 				&ModuleState{
 					Path: rootModulePath,
@@ -8071,7 +8071,7 @@ func TestContext2Apply_targetedDestroyModule(t *testing.T) {
 				"aws": testProviderFuncFixed(p),
 			},
 		),
-		State: mustShimLegacyState(&State{
+		State: MustShimLegacyState(&State{
 			Modules: []*ModuleState{
 				&ModuleState{
 					Path: rootModulePath,
@@ -8133,7 +8133,7 @@ func TestContext2Apply_targetedDestroyCountIndex(t *testing.T) {
 				"aws": testProviderFuncFixed(p),
 			},
 		),
-		State: mustShimLegacyState(&State{
+		State: MustShimLegacyState(&State{
 			Modules: []*ModuleState{
 				&ModuleState{
 					Path: rootModulePath,
@@ -8303,7 +8303,7 @@ func TestContext2Apply_targetedModuleUnrelatedOutputs(t *testing.T) {
 		Targets: []addrs.Targetable{
 			addrs.RootModuleInstance.Child("child2", addrs.NoKey),
 		},
-		State: mustShimLegacyState(&State{
+		State: MustShimLegacyState(&State{
 			Modules: []*ModuleState{
 				{
 					Path:      []string{"root"},
@@ -8558,7 +8558,7 @@ func TestContext2Apply_createBefore_depends(t *testing.T) {
 	p := testProvider("aws")
 	p.ApplyFn = testApplyFn
 	p.DiffFn = testDiffFn
-	state := mustShimLegacyState(&State{
+	state := MustShimLegacyState(&State{
 		Modules: []*ModuleState{
 			&ModuleState{
 				Path: rootModulePath,
@@ -8673,7 +8673,7 @@ func TestContext2Apply_singleDestroy(t *testing.T) {
 		return testApplyFn(info, s, d)
 	}
 	p.DiffFn = testDiffFn
-	state := mustShimLegacyState(&State{
+	state := MustShimLegacyState(&State{
 		Modules: []*ModuleState{
 			&ModuleState{
 				Path: rootModulePath,
@@ -8899,7 +8899,7 @@ func TestContext2Apply_targetedWithTaintedInState(t *testing.T) {
 				addrs.ManagedResourceMode, "aws_instance", "iambeingadded",
 			),
 		},
-		State: mustShimLegacyState(&State{
+		State: MustShimLegacyState(&State{
 			Modules: []*ModuleState{
 				&ModuleState{
 					Path: rootModulePath,
@@ -9035,7 +9035,7 @@ func TestContext2Apply_ignoreChangesWithDep(t *testing.T) {
 			return nil, nil
 		}
 	}
-	s := mustShimLegacyState(&State{
+	s := MustShimLegacyState(&State{
 		Modules: []*ModuleState{
 			&ModuleState{
 				Path: rootModulePath,
@@ -9450,7 +9450,7 @@ func TestContext2Apply_destroyWithLocals(t *testing.T) {
 		d, err := testDiffFn(info, s, c)
 		return d, err
 	}
-	s := mustShimLegacyState(&State{
+	s := MustShimLegacyState(&State{
 		Modules: []*ModuleState{
 			&ModuleState{
 				Path: rootModulePath,
@@ -9571,7 +9571,7 @@ func TestContext2Apply_destroyWithProviders(t *testing.T) {
 	p.ApplyFn = testApplyFn
 	p.DiffFn = testDiffFn
 
-	s := mustShimLegacyState(&State{
+	s := MustShimLegacyState(&State{
 		Modules: []*ModuleState{
 			&ModuleState{
 				Path: rootModulePath,
@@ -9646,7 +9646,7 @@ func TestContext2Apply_providersFromState(t *testing.T) {
 	}{
 		{
 			name: "add implicit provider",
-			state: mustShimLegacyState(&State{
+			state: MustShimLegacyState(&State{
 				Modules: []*ModuleState{
 					&ModuleState{
 						Path: []string{"root"},
@@ -9669,7 +9669,7 @@ func TestContext2Apply_providersFromState(t *testing.T) {
 		// an aliased provider must be in the config to remove a resource
 		{
 			name: "add aliased provider",
-			state: mustShimLegacyState(&State{
+			state: MustShimLegacyState(&State{
 				Modules: []*ModuleState{
 					&ModuleState{
 						Path: []string{"root"},
@@ -9692,7 +9692,7 @@ func TestContext2Apply_providersFromState(t *testing.T) {
 		// allowed even without an alias
 		{
 			name: "add unaliased module provider",
-			state: mustShimLegacyState(&State{
+			state: MustShimLegacyState(&State{
 				Modules: []*ModuleState{
 					&ModuleState{
 						Path: []string{"root", "child"},
@@ -9759,7 +9759,7 @@ func TestContext2Apply_plannedInterpolatedCount(t *testing.T) {
 		},
 	)
 
-	s := mustShimLegacyState(&State{
+	s := MustShimLegacyState(&State{
 		Modules: []*ModuleState{
 			&ModuleState{
 				Path: rootModulePath,
@@ -9821,7 +9821,7 @@ func TestContext2Apply_plannedDestroyInterpolatedCount(t *testing.T) {
 		},
 	)
 
-	s := mustShimLegacyState(&State{
+	s := MustShimLegacyState(&State{
 		Modules: []*ModuleState{
 			&ModuleState{
 				Path: rootModulePath,
@@ -9898,7 +9898,7 @@ func TestContext2Apply_scaleInMultivarRef(t *testing.T) {
 		},
 	)
 
-	s := mustShimLegacyState(&State{
+	s := MustShimLegacyState(&State{
 		Modules: []*ModuleState{
 			&ModuleState{
 				Path: rootModulePath,

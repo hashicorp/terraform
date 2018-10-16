@@ -780,40 +780,6 @@ func contextOptsForPlanViaFile(configSnap *configload.Snapshot, state *states.St
 	}, nil
 }
 
-// shimLegacyState is a helper that takes the legacy state type and
-// converts it to the new state type.
-//
-// This is implemented as a state file upgrade, so it will not preserve
-// parts of the state structure that are not included in a serialized state,
-// such as the resolved results of any local values, outputs in non-root
-// modules, etc.
-func shimLegacyState(legacy *State) (*states.State, error) {
-	if legacy == nil {
-		return nil, nil
-	}
-	var buf bytes.Buffer
-	err := WriteState(legacy, &buf)
-	if err != nil {
-		return nil, err
-	}
-	f, err := statefile.Read(&buf)
-	if err != nil {
-		return nil, err
-	}
-	return f.State, err
-}
-
-// mustShimLegacyState is a wrapper around ShimLegacyState that panics if
-// the conversion does not succeed. This is primarily intended for tests where
-// the given legacy state is an object constructed within the test.
-func mustShimLegacyState(legacy *State) *states.State {
-	ret, err := shimLegacyState(legacy)
-	if err != nil {
-		panic(err)
-	}
-	return ret
-}
-
 // legacyPlanComparisonString produces a string representation of the changes
 // from a plan and a given state togther, as was formerly produced by the
 // String method of terraform.Plan.

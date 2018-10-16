@@ -152,7 +152,7 @@ func TestEvalReadState(t *testing.T) {
 	for k, c := range cases {
 		t.Run(k, func(t *testing.T) {
 			ctx := new(MockEvalContext)
-			state := mustShimLegacyState(&State{
+			state := MustShimLegacyState(&State{
 				Modules: []*ModuleState{
 					&ModuleState{
 						Path:      rootModulePath,
