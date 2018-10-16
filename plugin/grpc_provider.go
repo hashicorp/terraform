@@ -508,7 +508,17 @@ func (p *GRPCProvider) ReadDataSource(r providers.ReadDataSourceRequest) (resp p
 
 // closing the grpc connection is final, and terraform will call it at the end of every phase.
 func (p *GRPCProvider) Close() error {
-	// check this since it's not automatically inserted during plugin creation
+	log.Printf("[TRACE] GRPCProvider: PlanResourceChange")
+
+	// close the remote listener if we're running within a test
+	if p.TestListener != nil {
+		p.TestListener.Close()
+	}
+
+	// Check this since it's not automatically inserted during plugin creation.
+	// It's currently only inserted by the command package, because that is
+	// where the factory is built and is the only point with access to the
+	// plugin.Client.
 	if p.PluginClient == nil {
 		log.Println("[DEBUG] provider has no plugin.Client")
 		return nil
