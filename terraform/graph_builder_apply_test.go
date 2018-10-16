@@ -241,7 +241,7 @@ func TestApplyGraphBuilder_destroyStateOnly(t *testing.T) {
 		},
 	}
 
-	state := mustShimLegacyState(&State{
+	state := MustShimLegacyState(&State{
 		Modules: []*ModuleState{
 			&ModuleState{
 				Path: []string{"root", "child"},
