@@ -411,12 +411,17 @@ var KeysFunc = function.New(&function.Spec{
 	Params: []function.Parameter{
 		{
 			Name: "inputMap",
-			Type: cty.Map(cty.DynamicPseudoType),
+			Type: cty.DynamicPseudoType,
 		},
 	},
 	Type: function.StaticReturnType(cty.List(cty.String)),
 	Impl: func(args []cty.Value, retType cty.Type) (ret cty.Value, err error) {
 		var keys []cty.Value
+		ty := args[0].Type()
+
+		if !ty.IsObjectType() && !ty.IsMapType() {
+			return cty.NilVal, fmt.Errorf("keys() requires a map")
+		}
 
 		for it := args[0].ElementIterator(); it.Next(); {
 			k, _ := it.Element()
@@ -478,7 +483,7 @@ var LookupFunc = function.New(&function.Spec{
 	Params: []function.Parameter{
 		{
 			Name: "inputMap",
-			Type: cty.Map(cty.DynamicPseudoType),
+			Type: cty.DynamicPseudoType,
 		},
 		{
 			Name: "key",
@@ -497,7 +502,23 @@ var LookupFunc = function.New(&function.Spec{
 			return cty.NilType, fmt.Errorf("lookup() takes two or three arguments, got %d", len(args))
 		}
 
-		return args[0].Type().ElementType(), nil
+		ty := args[0].Type()
+		key := args[1].AsString()
+		switch {
+		case ty.IsObjectType():
+			if ty.HasAttribute(key) {
+				return args[0].GetAttr(key).Type(), nil
+			} else if len(args) == 3 {
+				// if the key isn't found but a default is provided,
+				// return the default type
+				return args[2].Type(), nil
+			}
+			return cty.DynamicPseudoType, function.NewArgErrorf(0, "the given object has no attribute %q", key)
+		case ty.IsMapType():
+			return ty.ElementType(), nil
+		default:
+			return cty.NilType, function.NewArgErrorf(0, "lookup() requires a map as the first argument")
+		}
 	},
 	Impl: func(args []cty.Value, retType cty.Type) (ret cty.Value, err error) {
 		var defaultVal cty.Value
@@ -515,7 +536,11 @@ var LookupFunc = function.New(&function.Spec{
 			return cty.UnknownVal(retType), nil
 		}
 
-		if mapVar.HasIndex(cty.StringVal(lookupKey)) == cty.True {
+		if mapVar.Type().IsObjectType() {
+			if mapVar.Type().HasAttribute(lookupKey) {
+				return mapVar.GetAttr(lookupKey), nil
+			}
+		} else if mapVar.HasIndex(cty.StringVal(lookupKey)) == cty.True {
 			v := mapVar.Index(cty.StringVal(lookupKey))
 			if ty := v.Type(); !ty.Equals(cty.NilType) {
 				switch {
@@ -841,11 +866,21 @@ var ValuesFunc = function.New(&function.Spec{
 	Params: []function.Parameter{
 		{
 			Name: "values",
-			Type: cty.Map(cty.DynamicPseudoType),
+			Type: cty.DynamicPseudoType,
 		},
 	},
 	Type: func(args []cty.Value) (ret cty.Type, err error) {
-		return cty.List(args[0].Type().ElementType()), nil
+		ty := args[0].Type()
+		if ty.IsMapType() {
+			return cty.List(ty.ElementType()), nil
+		} else if ty.IsObjectType() {
+			var tys []cty.Type
+			for _, v := range ty.AttributeTypes() {
+				tys = append(tys, v)
+			}
+			return cty.Tuple(tys), nil
+		}
+		return cty.NilType, fmt.Errorf("values() requires a map as the first argument")
 	},
 	Impl: func(args []cty.Value, retType cty.Type) (ret cty.Value, err error) {
 		mapVar := args[0]
@@ -866,15 +901,25 @@ var ValuesFunc = function.New(&function.Spec{
 		var values []cty.Value
 
 		for it := keys.ElementIterator(); it.Next(); {
-			_, k := it.Element()
-			value := mapVar.Index(cty.StringVal(k.AsString()))
-			values = append(values, value)
+			_, key := it.Element()
+			k := key.AsString()
+			if mapVar.Type().IsObjectType() {
+				if mapVar.Type().HasAttribute(k) {
+					value := mapVar.GetAttr(k)
+					values = append(values, value)
+				}
+			} else {
+				value := mapVar.Index(cty.StringVal(k))
+				values = append(values, value)
+			}
 		}
 
+		if retType.IsTupleType() {
+			return cty.TupleVal(values), nil
+		}
 		if len(values) == 0 {
 			return cty.ListValEmpty(retType.ElementType()), nil
 		}
-
 		return cty.ListVal(values), nil
 	},
 })

@@ -997,6 +997,17 @@ func TestKeys(t *testing.T) {
 			}),
 			false,
 		},
+		{ // same as above, but an object type
+			cty.ObjectVal(map[string]cty.Value{
+				"hello":   cty.NumberIntVal(1),
+				"goodbye": cty.StringVal("adieu"),
+			}),
+			cty.ListVal([]cty.Value{
+				cty.StringVal("goodbye"),
+				cty.StringVal("hello"),
+			}),
+			false,
+		},
 		{ // Not a map
 			cty.StringVal("foo"),
 			cty.NilVal,
@@ -1123,6 +1134,10 @@ func TestLookup(t *testing.T) {
 		"foo": cty.StringVal("bar"),
 		"baz": cty.UnknownVal(cty.String),
 	})
+	mapWithObjects := cty.ObjectVal(map[string]cty.Value{
+		"foo": cty.StringVal("bar"),
+		"baz": cty.NumberIntVal(42),
+	})
 
 	tests := []struct {
 		Values []cty.Value
@@ -1132,6 +1147,14 @@ func TestLookup(t *testing.T) {
 		{
 			[]cty.Value{
 				simpleMap,
+				cty.StringVal("foo"),
+			},
+			cty.StringVal("bar"),
+			false,
+		},
+		{
+			[]cty.Value{
+				mapWithObjects,
 				cty.StringVal("foo"),
 			},
 			cty.StringVal("bar"),
@@ -1153,6 +1176,14 @@ func TestLookup(t *testing.T) {
 			cty.NilVal,
 			true,
 		},
+		{ // Invalid key
+			[]cty.Value{
+				mapWithObjects,
+				cty.StringVal("bar"),
+			},
+			cty.NilVal,
+			true,
+		},
 		{ // Supplied default with valid key
 			[]cty.Value{
 				simpleMap,
@@ -1169,6 +1200,15 @@ func TestLookup(t *testing.T) {
 				cty.NumberIntVal(-1),
 			},
 			cty.StringVal("bar"),
+			false,
+		},
+		{ // Supplied default with valid key
+			[]cty.Value{
+				mapWithObjects,
+				cty.StringVal("foobar"),
+				cty.StringVal(""),
+			},
+			cty.StringVal(""),
 			false,
 		},
 		{ // Supplied default with invalid key
@@ -1933,6 +1973,17 @@ func TestValues(t *testing.T) {
 				"what's": cty.StringVal("up"),
 			}),
 			cty.ListVal([]cty.Value{
+				cty.StringVal("world"),
+				cty.StringVal("up"),
+			}),
+			false,
+		},
+		{
+			cty.ObjectVal(map[string]cty.Value{
+				"hello":  cty.StringVal("world"),
+				"what's": cty.StringVal("up"),
+			}),
+			cty.TupleVal([]cty.Value{
 				cty.StringVal("world"),
 				cty.StringVal("up"),
 			}),
