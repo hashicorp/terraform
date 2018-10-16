@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"sort"
 
-	"github.com/hashicorp/hcl2/hcl"
 	"github.com/zclconf/go-cty/cty"
 	"github.com/zclconf/go-cty/cty/convert"
 	"github.com/zclconf/go-cty/cty/function"
@@ -497,12 +496,21 @@ var LookupFunc = function.New(&function.Spec{
 		if len(args) < 1 || len(args) > 3 {
 			return cty.NilType, fmt.Errorf("lookup() takes two or three arguments, got %d", len(args))
 		}
+
 		ty := args[0].Type()
+		key := args[1].AsString()
 		switch {
 		case ty.IsObjectType():
+			if ty.HasAttribute(key) {
+				return args[0].GetAttr(key).Type(), nil
+			} else if len(args) == 3 {
+				// if the key isn't found but a default is provided,
+				// return the default type
+				return args[2].Type(), nil
+			}
 			return cty.DynamicPseudoType, nil
 		default:
-			return args[0].Type().ElementType(), nil
+			return ty.ElementType(), nil
 		}
 	},
 	Impl: func(args []cty.Value, retType cty.Type) (ret cty.Value, err error) {
@@ -521,17 +529,11 @@ var LookupFunc = function.New(&function.Spec{
 			return cty.UnknownVal(retType), nil
 		}
 
-		if retType == cty.DynamicPseudoType {
-			// we're dealing with object-typed values
-			traversal := hcl.TraverseAttr{Name: args[1].AsString()}
-			ret, diags := traversal.TraversalStep(args[0])
-			if diags.HasErrors() {
-				return cty.UnknownVal(retType), diags
+		if mapVar.Type().IsObjectType() {
+			if mapVar.Type().HasAttribute(lookupKey) {
+				return mapVar.GetAttr(lookupKey), nil
 			}
-			return ret, nil
-		}
-
-		if mapVar.HasIndex(cty.StringVal(lookupKey)) == cty.True {
+		} else if mapVar.HasIndex(cty.StringVal(lookupKey)) == cty.True {
 			v := mapVar.Index(cty.StringVal(lookupKey))
 			if ty := v.Type(); !ty.Equals(cty.NilType) {
 				switch {
