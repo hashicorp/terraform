@@ -1165,6 +1165,14 @@ func TestLookup(t *testing.T) {
 			cty.NilVal,
 			true,
 		},
+		{ // Invalid key
+			[]cty.Value{
+				mapWithObjects,
+				cty.StringVal("bar"),
+			},
+			cty.NilVal,
+			true,
+		},
 		{ // Supplied default with valid key
 			[]cty.Value{
 				simpleMap,
@@ -1181,6 +1189,15 @@ func TestLookup(t *testing.T) {
 				cty.NumberIntVal(-1),
 			},
 			cty.StringVal("bar"),
+			false,
+		},
+		{ // Supplied default with valid key
+			[]cty.Value{
+				mapWithObjects,
+				cty.StringVal("foobar"),
+				cty.StringVal(""),
+			},
+			cty.StringVal(""),
 			false,
 		},
 		{ // Supplied default with invalid key
