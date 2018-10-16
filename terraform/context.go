@@ -489,6 +489,7 @@ func (c *Context) Apply() (*states.State, tfdiags.Diagnostics) {
 // by the plan, so Apply can be called after.
 func (c *Context) Plan() (*plans.Plan, tfdiags.Diagnostics) {
 	defer c.acquireRun("plan")()
+	c.changes = plans.NewChanges()
 
 	var diags tfdiags.Diagnostics
 
