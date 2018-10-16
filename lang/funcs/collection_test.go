@@ -997,6 +997,17 @@ func TestKeys(t *testing.T) {
 			}),
 			false,
 		},
+		{ // same as above, but an object type
+			cty.ObjectVal(map[string]cty.Value{
+				"hello":   cty.NumberIntVal(1),
+				"goodbye": cty.StringVal("adieu"),
+			}),
+			cty.ListVal([]cty.Value{
+				cty.StringVal("goodbye"),
+				cty.StringVal("hello"),
+			}),
+			false,
+		},
 		{ // Not a map
 			cty.StringVal("foo"),
 			cty.NilVal,
@@ -1958,6 +1969,17 @@ func TestValues(t *testing.T) {
 	}{
 		{
 			cty.MapVal(map[string]cty.Value{
+				"hello":  cty.StringVal("world"),
+				"what's": cty.StringVal("up"),
+			}),
+			cty.ListVal([]cty.Value{
+				cty.StringVal("world"),
+				cty.StringVal("up"),
+			}),
+			false,
+		},
+		{
+			cty.ObjectVal(map[string]cty.Value{
 				"hello":  cty.StringVal("world"),
 				"what's": cty.StringVal("up"),
 			}),
