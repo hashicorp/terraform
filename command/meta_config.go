@@ -320,7 +320,6 @@ func (m *Meta) initConfigLoader() (*configload.Loader, error) {
 		loader, err := configload.NewLoader(&configload.Config{
 			ModulesDir: m.modulesDir(),
 			Services:   m.Services,
-			Creds:      m.Credentials,
 		})
 		if err != nil {
 			return nil, err

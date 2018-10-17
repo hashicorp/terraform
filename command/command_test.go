@@ -22,6 +22,7 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/addrs"
+	backendinit "github.com/hashicorp/terraform/backend/init"
 	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/configs/configload"
 	"github.com/hashicorp/terraform/configs/configschema"
@@ -45,9 +46,6 @@ var testingDir string
 
 func init() {
 	test = true
-
-	// Initialize the backends
-	backendInit.Init(nil)
 
 	// Expand the fixture dir on init because we change the working
 	// directory in some tests.
@@ -74,6 +72,9 @@ func TestMain(m *testing.M) {
 		// otherwise silence all logs
 		log.SetOutput(ioutil.Discard)
 	}
+
+	// Make sure backend init is initialized, since our tests tend to assume it.
+	backendinit.Init(nil)
 
 	os.Exit(m.Run())
 }

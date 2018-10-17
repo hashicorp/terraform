@@ -155,7 +155,7 @@ func TestState_basic(t *testing.T) {
 				t.Fatalf("unexpected errors: %s", diags.Err())
 			}
 
-			if !got.RawEquals(test.Want) {
+			if !test.Want.RawEquals(got) {
 				t.Errorf("wrong result\nconfig: %sgot: %swant: %s", dump.Value(config), dump.Value(got), dump.Value(test.Want))
 			}
 		})

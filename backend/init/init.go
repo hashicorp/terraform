@@ -6,6 +6,7 @@ import (
 	"sync"
 
 	"github.com/hashicorp/terraform/backend"
+	"github.com/hashicorp/terraform/svchost/disco"
 	"github.com/hashicorp/terraform/tfdiags"
 
 	backendatlas "github.com/hashicorp/terraform/backend/atlas"
@@ -39,7 +40,7 @@ import (
 var backends map[string]func() backend.Backend
 var backendsLock sync.Mutex
 
-func init() {
+func Init(services *disco.Disco) {
 	// Our hardcoded backends. We don't need to acquire a lock here
 	// since init() code is serial and can't spawn goroutines.
 	backends = map[string]func() backend.Backend{

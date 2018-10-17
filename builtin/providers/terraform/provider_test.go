@@ -3,6 +3,7 @@ package terraform
 import (
 	"testing"
 
+	backendinit "github.com/hashicorp/terraform/backend/init"
 	"github.com/hashicorp/terraform/providers"
 )
 
@@ -14,6 +15,7 @@ func init() {
 	testAccProviders = map[string]*Provider{
 		"terraform": testAccProvider,
 	}
+	backendinit.Init(nil)
 }
 
 func TestProvider_impl(t *testing.T) {

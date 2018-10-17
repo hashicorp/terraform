@@ -52,6 +52,10 @@ type Meta struct {
 	// "terraform-native' services running at a specific user-facing hostname.
 	Services *disco.Disco
 
+	// Credentials provides access to credentials for "terraform-native"
+	// services, which are accessed by a service hostname.
+	Credentials auth.CredentialsSource
+
 	// RunningInAutomation indicates that commands are being run by an
 	// automated system rather than directly at a command prompt.
 	//

@@ -122,7 +122,7 @@ func (m *Meta) Backend(opts *BackendOpts) (backend.Enhanced, tfdiags.Diagnostics
 	}
 
 	// Build the local backend
-	local := backendLocal.NewWithBackend(b)
+	local := &backendlocal.Local{Backend: b}
 	if err := local.CLIInit(cliOpts); err != nil {
 		// Local backend isn't allowed to fail. It would be a bug.
 		panic(err)
@@ -238,7 +238,7 @@ func (m *Meta) backendCLIOpts() *backend.CLIOpts {
 // for some checks that require a remote backend.
 func (m *Meta) IsLocalBackend(b backend.Backend) bool {
 	// Is it a local backend?
-	bLocal, ok := b.(*backendLocal.Local)
+	bLocal, ok := b.(*backendlocal.Local)
 
 	// If it is, does it not have an alternate state backend?
 	if ok {
@@ -610,7 +610,10 @@ func (m *Meta) backend_C_r_s(c *configs.Backend, cHash int, sMgr *state.LocalSta
 		return nil, diags
 	}
 
-	if len(localStates) > 0 {
+	// If the local state is not empty, we need to potentially do a
+	// state migration to the new backend (with user permission), unless the
+	// destination is also "local"
+	if localS := localState.State(); !localS.Empty() {
 		// Perform the migration
 		err = m.backendMigrateState(&backendMigrateOpts{
 			OneType: "local",
@@ -628,8 +631,8 @@ func (m *Meta) backend_C_r_s(c *configs.Backend, cHash int, sMgr *state.LocalSta
 		// can get us here too. Don't delete our state if the old and new paths
 		// are the same.
 		erase := true
-		if newLocalB, ok := b.(*backendLocal.Local); ok {
-			if localB, ok := localB.(*backendLocal.Local); ok {
+		if newLocalB, ok := b.(*backendlocal.Local); ok {
+			if localB, ok := localB.(*backendlocal.Local); ok {
 				if newLocalB.StatePath == localB.StatePath {
 					erase = false
 				}
@@ -794,7 +797,7 @@ func (m *Meta) backend_C_r_S_unchanged(c *configs.Backend, cHash int, sMgr *stat
 	}
 
 	// Get the backend
-	f := backendInit.Backend(s.Backend.Type)
+	f := backendinit.Backend(s.Backend.Type)
 	if f == nil {
 		diags = diags.Append(fmt.Errorf(strings.TrimSpace(errBackendSavedUnknown), s.Backend.Type))
 		return nil, diags
@@ -858,7 +861,7 @@ func (m *Meta) backendInitFromConfig(c *configs.Backend) (backend.Backend, cty.V
 	var diags tfdiags.Diagnostics
 
 	// Get the backend
-	f := backendInit.Backend(c.Type)
+	f := backendinit.Backend(c.Type)
 	if f == nil {
 		diags = diags.Append(fmt.Errorf(strings.TrimSpace(errBackendNewUnknown), c.Type))
 		return nil, cty.NilVal, diags
@@ -898,7 +901,7 @@ func (m *Meta) backendInitFromSaved(s *terraform.BackendState) (backend.Backend,
 	var diags tfdiags.Diagnostics
 
 	// Get the backend
-	f := backendInit.Backend(s.Type)
+	f := backendinit.Backend(s.Type)
 	if f == nil {
 		diags = diags.Append(fmt.Errorf(strings.TrimSpace(errBackendSavedUnknown), s.Type))
 		return nil, diags
