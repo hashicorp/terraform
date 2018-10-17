@@ -1,9 +1,9 @@
 package resource
 
 import (
-	"errors"
 	"bufio"
 	"bytes"
+	"errors"
 	"fmt"
 	"log"
 	"sort"
