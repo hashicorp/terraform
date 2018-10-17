@@ -31,7 +31,7 @@ if [ "${TF_DEV}x" != "x" ]; then
     XC_ARCH=$(go env GOARCH)
 fi
 
-if ! which gox > /dev/null; then
+if ! command -v gox > /dev/null; then
     echo "==> Installing gox..."
     go get -u github.com/mitchellh/gox
 fi
