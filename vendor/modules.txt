@@ -452,7 +452,7 @@ github.com/vmihailenco/msgpack/codes
 github.com/xanzy/ssh-agent
 # github.com/xlab/treeprint v0.0.0-20161029104018-1d6e34225557
 github.com/xlab/treeprint
-# github.com/zclconf/go-cty v0.0.0-20180925180032-d9b87d891d0b
+# github.com/zclconf/go-cty v0.0.0-20181017232614-01c5aba823a6
 github.com/zclconf/go-cty/cty
 github.com/zclconf/go-cty/cty/gocty
 github.com/zclconf/go-cty/cty/convert
@@ -495,7 +495,7 @@ golang.org/x/crypto/internal/subtle
 golang.org/x/crypto/md4
 golang.org/x/crypto/cast5
 golang.org/x/crypto/openpgp/elgamal
-# golang.org/x/net v0.0.0-20180925072008-f04abc6bdfa7
+# golang.org/x/net v0.0.0-20181017193950-04a2e542c03f
 golang.org/x/net/context
 golang.org/x/net/idna
 golang.org/x/net/http2

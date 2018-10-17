@@ -84,6 +84,7 @@ require (
 	github.com/jtolds/gls v4.2.1+incompatible // indirect
 	github.com/kardianos/osext v0.0.0-20160811001526-c2c54e542fb7
 	github.com/keybase/go-crypto v0.0.0-20161004153544-93f5b35093ba // indirect
+	github.com/kr/pty v1.1.3 // indirect
 	github.com/lusis/go-artifactory v0.0.0-20160115162124-7e4ce345df82
 	github.com/masterzen/azure-sdk-for-go v0.0.0-20161014135628-ee4f0065d00c // indirect
 	github.com/masterzen/simplexml v0.0.0-20160608183007-4572e39b1ab9 // indirect
@@ -129,13 +130,13 @@ require (
 	github.com/xanzy/ssh-agent v0.1.0
 	github.com/xiang90/probing v0.0.0-20160813154853-07dd2e8dfe18 // indirect
 	github.com/xlab/treeprint v0.0.0-20161029104018-1d6e34225557
-	github.com/zclconf/go-cty v0.0.0-20180925180032-d9b87d891d0b
+	github.com/zclconf/go-cty v0.0.0-20181017232614-01c5aba823a6
 	go.opencensus.io v0.17.0 // indirect
 	go.uber.org/atomic v1.3.2 // indirect
 	go.uber.org/multierr v1.1.0 // indirect
 	go.uber.org/zap v1.9.1 // indirect
 	golang.org/x/crypto v0.0.0-20180910181607-0e37d006457b
-	golang.org/x/net v0.0.0-20180925072008-f04abc6bdfa7
+	golang.org/x/net v0.0.0-20181017193950-04a2e542c03f
 	golang.org/x/oauth2 v0.0.0-20181003184128-c57b0facaced
 	golang.org/x/sys v0.0.0-20180925112736-b09afc3d579e // indirect
 	golang.org/x/time v0.0.0-20180412165947-fbb02b2291d2 // indirect

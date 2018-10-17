@@ -757,7 +757,7 @@ func (val Value) HasElement(elem Value) Value {
 	if val.IsNull() {
 		panic("can't call HasElement on a nil value")
 	}
-	if ty.ElementType() != elem.Type() {
+	if !ty.ElementType().Equals(elem.Type()) {
 		return False
 	}
 
