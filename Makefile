@@ -1,6 +1,6 @@
 VERSION?="0.3.32"
 TEST?=./...
-GOFMT_FILES?=$$(find . -name '*.go' | grep -v vendor)
+GOFMT_FILES?=$$(find . -not -path "./vendor/*" -type f -name '*.go')
 WEBSITE_REPO=github.com/hashicorp/terraform-website
 
 default: test
