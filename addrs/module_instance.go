@@ -264,6 +264,12 @@ func (m ModuleInstance) String() string {
 	return buf.String()
 }
 
+// Equal returns true if the receiver and the given other value
+// contains the exact same parts.
+func (m ModuleInstance) Equal(o ModuleInstance) bool {
+	return m.String() == o.String()
+}
+
 // Less returns true if the receiver should sort before the given other value
 // in a sorted list of addresses.
 func (m ModuleInstance) Less(o ModuleInstance) bool {
@@ -297,6 +303,27 @@ func (m ModuleInstance) Ancestors() []ModuleInstance {
 		ret = append(ret, m[:i])
 	}
 	return ret
+}
+
+// IsAncestor returns true if the receiver is an ancestor of the given
+// other value.
+func (m ModuleInstance) IsAncestor(o ModuleInstance) bool {
+	// Longer or equal sized paths means the receiver cannot
+	// be an ancestor of the given module insatnce.
+	if len(m) >= len(o) {
+		return false
+	}
+
+	for i, ms := range m {
+		if ms.Name != o[i].Name {
+			return false
+		}
+		if ms.InstanceKey != NoKey && ms.InstanceKey != o[i].InstanceKey {
+			return false
+		}
+	}
+
+	return true
 }
 
 // Call returns the module call address that corresponds to the given module
