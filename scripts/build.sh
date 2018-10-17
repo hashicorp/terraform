@@ -61,7 +61,7 @@ gox \
 GOPATH=${GOPATH:-$(go env GOPATH)}
 case $(uname) in
     CYGWIN*)
-        GOPATH="$(cygpath $GOPATH)"
+        GOPATH="$(cygpath "$GOPATH")"
         ;;
 esac
 OLDIFS=$IFS
@@ -69,17 +69,17 @@ IFS=: MAIN_GOPATH=($GOPATH)
 IFS=$OLDIFS
 
 # Create GOPATH/bin if it's doesn't exists
-if [ ! -d $MAIN_GOPATH/bin ]; then
+if [ ! -d "$MAIN_GOPATH/bin" ]; then
     echo "==> Creating GOPATH/bin directory..."
-    mkdir -p $MAIN_GOPATH/bin
+    mkdir -p "$MAIN_GOPATH/bin"
 fi
 
 # Copy our OS/Arch to the bin/ directory
 DEV_PLATFORM="./pkg/$(go env GOOS)_$(go env GOARCH)"
 if [[ -d "${DEV_PLATFORM}" ]]; then
-    for F in $(find ${DEV_PLATFORM} -mindepth 1 -maxdepth 1 -type f); do
-        cp ${F} bin/
-        cp ${F} ${MAIN_GOPATH}/bin/
+    for F in $(find "${DEV_PLATFORM}" -mindepth 1 -maxdepth 1 -type f); do
+        cp "${F}" bin/
+        cp "${F}" "${MAIN_GOPATH}/bin/"
     done
 fi
 
@@ -87,11 +87,11 @@ if [ "${TF_DEV}x" = "x" ]; then
     # Zip and copy to the dist dir
     echo "==> Packaging..."
     for PLATFORM in $(find ./pkg -mindepth 1 -maxdepth 1 -type d); do
-        OSARCH=$(basename ${PLATFORM})
+        OSARCH=$(basename "${PLATFORM}")
         echo "--> ${OSARCH}"
 
-        pushd $PLATFORM >/dev/null 2>&1
-        zip ../${OSARCH}.zip ./*
+        pushd "$PLATFORM" >/dev/null 2>&1
+        zip "../${OSARCH}.zip" ./*
         popd >/dev/null 2>&1
     done
 fi
