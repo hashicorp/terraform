@@ -12,7 +12,9 @@ import (
 
 const (
 	locksTableName  = "locks"
+	locksIndexName  = "locks_by_name"
 	statesTableName = "states"
+	statesIndexName = "states_by_name"
 )
 
 // New creates a new backend for Postgres remote state.
@@ -89,8 +91,8 @@ func (b *Backend) configure(ctx context.Context) error {
 	if _, err := db.Query(fmt.Sprintf(query, b.schemaName, locksTableName)); err != nil {
 		return err
 	}
-	query = `CREATE UNIQUE INDEX ON %s.%s (name)`
-	if _, err := db.Query(fmt.Sprintf(query, b.schemaName, locksTableName)); err != nil {
+	query = `CREATE UNIQUE INDEX IF NOT EXISTS %s ON %s.%s (name)`
+	if _, err := db.Query(fmt.Sprintf(query, locksIndexName, b.schemaName, locksTableName)); err != nil {
 		return err
 	}
 	query = `CREATE TABLE IF NOT EXISTS %s.%s (
@@ -100,8 +102,8 @@ func (b *Backend) configure(ctx context.Context) error {
 	if _, err := db.Query(fmt.Sprintf(query, b.schemaName, statesTableName)); err != nil {
 		return err
 	}
-	query = `CREATE UNIQUE INDEX ON %s.%s (name)`
-	if _, err := db.Query(fmt.Sprintf(query, b.schemaName, statesTableName)); err != nil {
+	query = `CREATE UNIQUE INDEX IF NOT EXISTS %s ON %s.%s (name)`
+	if _, err := db.Query(fmt.Sprintf(query, statesIndexName, b.schemaName, statesTableName)); err != nil {
 		return err
 	}
 
