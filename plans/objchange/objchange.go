@@ -186,7 +186,10 @@ func ProposedNewObject(schema *configschema.Block, prior, config cty.Value) cty.
 			// this means that any config change produces an entirely new
 			// nested object, and we only propagate prior computed values
 			// if the non-computed attribute values are identical.
-			cmpVals := setElementCompareValues(&blockType.Block, priorV, false)
+			var cmpVals [][2]cty.Value
+			if priorV.IsKnown() && !priorV.IsNull() {
+				cmpVals = setElementCompareValues(&blockType.Block, priorV, false)
+			}
 			if l := configV.LengthInt(); l > 0 {
 				used := make([]bool, len(cmpVals)) // track used elements in case multiple have the same compare value
 				newVals := make([]cty.Value, 0, l)
