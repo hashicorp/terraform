@@ -118,6 +118,7 @@ func (rep *Reporter) sendAPICallMetric(r *request.Request) {
 		Timestamp:     (*metricTime)(&now),
 		Type:          aws.String("ApiCall"),
 		AttemptCount:  aws.Int(r.RetryCount + 1),
+		Region:        r.Config.Region,
 		Latency:       aws.Int(int(time.Now().Sub(r.Time) / time.Millisecond)),
 		XAmzRequestID: aws.String(r.RequestID),
 	}

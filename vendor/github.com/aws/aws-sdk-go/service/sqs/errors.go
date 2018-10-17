@@ -25,7 +25,7 @@ const (
 	// ErrCodeInvalidAttributeName for service response error code
 	// "InvalidAttributeName".
 	//
-	// The attribute referred to doesn't exist.
+	// The specified attribute doesn't exist.
 	ErrCodeInvalidAttributeName = "InvalidAttributeName"
 
 	// ErrCodeInvalidBatchEntryId for service response error code
@@ -37,7 +37,7 @@ const (
 	// ErrCodeInvalidIdFormat for service response error code
 	// "InvalidIdFormat".
 	//
-	// The receipt handle isn't valid for the current version.
+	// The specified receipt handle isn't valid for the current version.
 	ErrCodeInvalidIdFormat = "InvalidIdFormat"
 
 	// ErrCodeInvalidMessageContents for service response error code
@@ -49,16 +49,16 @@ const (
 	// ErrCodeMessageNotInflight for service response error code
 	// "AWS.SimpleQueueService.MessageNotInflight".
 	//
-	// The message referred to isn't in flight.
+	// The specified message isn't in flight.
 	ErrCodeMessageNotInflight = "AWS.SimpleQueueService.MessageNotInflight"
 
 	// ErrCodeOverLimit for service response error code
 	// "OverLimit".
 	//
-	// The action that you requested would violate a limit. For example, ReceiveMessage
-	// returns this error if the maximum number of inflight messages is reached.
-	// AddPermission returns this error if the maximum number of permissions for
-	// the queue is reached.
+	// The specified action violates a limit. For example, ReceiveMessage returns
+	// this error if the maximum number of inflight messages is reached and AddPermission
+	// returns this error if the maximum number of permissions for the queue is
+	// reached.
 	ErrCodeOverLimit = "OverLimit"
 
 	// ErrCodePurgeQueueInProgress for service response error code
@@ -73,19 +73,19 @@ const (
 	// "AWS.SimpleQueueService.QueueDeletedRecently".
 	//
 	// You must wait 60 seconds after deleting a queue before you can create another
-	// one with the same name.
+	// queue with the same name.
 	ErrCodeQueueDeletedRecently = "AWS.SimpleQueueService.QueueDeletedRecently"
 
 	// ErrCodeQueueDoesNotExist for service response error code
 	// "AWS.SimpleQueueService.NonExistentQueue".
 	//
-	// The queue referred to doesn't exist.
+	// The specified queue doesn't exist.
 	ErrCodeQueueDoesNotExist = "AWS.SimpleQueueService.NonExistentQueue"
 
 	// ErrCodeQueueNameExists for service response error code
 	// "QueueAlreadyExists".
 	//
-	// A queue already exists with this name. Amazon SQS returns this error only
+	// A queue with this name already exists. Amazon SQS returns this error only
 	// if the request includes attributes whose values differ from those of the
 	// existing queue.
 	ErrCodeQueueNameExists = "QueueAlreadyExists"
@@ -93,7 +93,7 @@ const (
 	// ErrCodeReceiptHandleIsInvalid for service response error code
 	// "ReceiptHandleIsInvalid".
 	//
-	// The receipt handle provided isn't valid.
+	// The specified receipt handle isn't valid.
 	ErrCodeReceiptHandleIsInvalid = "ReceiptHandleIsInvalid"
 
 	// ErrCodeTooManyEntriesInBatchRequest for service response error code

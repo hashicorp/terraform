@@ -37,6 +37,8 @@ const opAllocateConnectionOnInterconnect = "AllocateConnectionOnInterconnect"
 //    }
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/directconnect-2012-10-25/AllocateConnectionOnInterconnect
+//
+// Deprecated: AllocateConnectionOnInterconnect has been deprecated
 func (c *DirectConnect) AllocateConnectionOnInterconnectRequest(input *AllocateConnectionOnInterconnectInput) (req *request.Request, output *Connection) {
 	if c.Client.Config.Logger != nil {
 		c.Client.Config.Logger.Log("This operation, AllocateConnectionOnInterconnect, has been deprecated")
@@ -84,6 +86,8 @@ func (c *DirectConnect) AllocateConnectionOnInterconnectRequest(input *AllocateC
 //   additional details about the cause.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/directconnect-2012-10-25/AllocateConnectionOnInterconnect
+//
+// Deprecated: AllocateConnectionOnInterconnect has been deprecated
 func (c *DirectConnect) AllocateConnectionOnInterconnect(input *AllocateConnectionOnInterconnectInput) (*Connection, error) {
 	req, out := c.AllocateConnectionOnInterconnectRequest(input)
 	return out, req.Send()
@@ -98,6 +102,8 @@ func (c *DirectConnect) AllocateConnectionOnInterconnect(input *AllocateConnecti
 // the context is nil a panic will occur. In the future the SDK may create
 // sub-contexts for http.Requests. See https://golang.org/pkg/context/
 // for more information on using Contexts.
+//
+// Deprecated: AllocateConnectionOnInterconnectWithContext has been deprecated
 func (c *DirectConnect) AllocateConnectionOnInterconnectWithContext(ctx aws.Context, input *AllocateConnectionOnInterconnectInput, opts ...request.Option) (*Connection, error) {
 	req, out := c.AllocateConnectionOnInterconnectRequest(input)
 	req.SetContext(ctx)
@@ -2324,6 +2330,8 @@ const opDescribeConnectionLoa = "DescribeConnectionLoa"
 //    }
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/directconnect-2012-10-25/DescribeConnectionLoa
+//
+// Deprecated: DescribeConnectionLoa has been deprecated
 func (c *DirectConnect) DescribeConnectionLoaRequest(input *DescribeConnectionLoaInput) (req *request.Request, output *DescribeConnectionLoaOutput) {
 	if c.Client.Config.Logger != nil {
 		c.Client.Config.Logger.Log("This operation, DescribeConnectionLoa, has been deprecated")
@@ -2372,6 +2380,8 @@ func (c *DirectConnect) DescribeConnectionLoaRequest(input *DescribeConnectionLo
 //   additional details about the cause.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/directconnect-2012-10-25/DescribeConnectionLoa
+//
+// Deprecated: DescribeConnectionLoa has been deprecated
 func (c *DirectConnect) DescribeConnectionLoa(input *DescribeConnectionLoaInput) (*DescribeConnectionLoaOutput, error) {
 	req, out := c.DescribeConnectionLoaRequest(input)
 	return out, req.Send()
@@ -2386,6 +2396,8 @@ func (c *DirectConnect) DescribeConnectionLoa(input *DescribeConnectionLoaInput)
 // the context is nil a panic will occur. In the future the SDK may create
 // sub-contexts for http.Requests. See https://golang.org/pkg/context/
 // for more information on using Contexts.
+//
+// Deprecated: DescribeConnectionLoaWithContext has been deprecated
 func (c *DirectConnect) DescribeConnectionLoaWithContext(ctx aws.Context, input *DescribeConnectionLoaInput, opts ...request.Option) (*DescribeConnectionLoaOutput, error) {
 	req, out := c.DescribeConnectionLoaRequest(input)
 	req.SetContext(ctx)
@@ -2505,6 +2517,8 @@ const opDescribeConnectionsOnInterconnect = "DescribeConnectionsOnInterconnect"
 //    }
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/directconnect-2012-10-25/DescribeConnectionsOnInterconnect
+//
+// Deprecated: DescribeConnectionsOnInterconnect has been deprecated
 func (c *DirectConnect) DescribeConnectionsOnInterconnectRequest(input *DescribeConnectionsOnInterconnectInput) (req *request.Request, output *Connections) {
 	if c.Client.Config.Logger != nil {
 		c.Client.Config.Logger.Log("This operation, DescribeConnectionsOnInterconnect, has been deprecated")
@@ -2549,6 +2563,8 @@ func (c *DirectConnect) DescribeConnectionsOnInterconnectRequest(input *Describe
 //   additional details about the cause.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/directconnect-2012-10-25/DescribeConnectionsOnInterconnect
+//
+// Deprecated: DescribeConnectionsOnInterconnect has been deprecated
 func (c *DirectConnect) DescribeConnectionsOnInterconnect(input *DescribeConnectionsOnInterconnectInput) (*Connections, error) {
 	req, out := c.DescribeConnectionsOnInterconnectRequest(input)
 	return out, req.Send()
@@ -2563,6 +2579,8 @@ func (c *DirectConnect) DescribeConnectionsOnInterconnect(input *DescribeConnect
 // the context is nil a panic will occur. In the future the SDK may create
 // sub-contexts for http.Requests. See https://golang.org/pkg/context/
 // for more information on using Contexts.
+//
+// Deprecated: DescribeConnectionsOnInterconnectWithContext has been deprecated
 func (c *DirectConnect) DescribeConnectionsOnInterconnectWithContext(ctx aws.Context, input *DescribeConnectionsOnInterconnectInput, opts ...request.Option) (*Connections, error) {
 	req, out := c.DescribeConnectionsOnInterconnectRequest(input)
 	req.SetContext(ctx)
@@ -2951,6 +2969,8 @@ const opDescribeInterconnectLoa = "DescribeInterconnectLoa"
 //    }
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/directconnect-2012-10-25/DescribeInterconnectLoa
+//
+// Deprecated: DescribeInterconnectLoa has been deprecated
 func (c *DirectConnect) DescribeInterconnectLoaRequest(input *DescribeInterconnectLoaInput) (req *request.Request, output *DescribeInterconnectLoaOutput) {
 	if c.Client.Config.Logger != nil {
 		c.Client.Config.Logger.Log("This operation, DescribeInterconnectLoa, has been deprecated")
@@ -2999,6 +3019,8 @@ func (c *DirectConnect) DescribeInterconnectLoaRequest(input *DescribeInterconne
 //   additional details about the cause.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/directconnect-2012-10-25/DescribeInterconnectLoa
+//
+// Deprecated: DescribeInterconnectLoa has been deprecated
 func (c *DirectConnect) DescribeInterconnectLoa(input *DescribeInterconnectLoaInput) (*DescribeInterconnectLoaOutput, error) {
 	req, out := c.DescribeInterconnectLoaRequest(input)
 	return out, req.Send()
@@ -3013,6 +3035,8 @@ func (c *DirectConnect) DescribeInterconnectLoa(input *DescribeInterconnectLoaIn
 // the context is nil a panic will occur. In the future the SDK may create
 // sub-contexts for http.Requests. See https://golang.org/pkg/context/
 // for more information on using Contexts.
+//
+// Deprecated: DescribeInterconnectLoaWithContext has been deprecated
 func (c *DirectConnect) DescribeInterconnectLoaWithContext(ctx aws.Context, input *DescribeInterconnectLoaInput, opts ...request.Option) (*DescribeInterconnectLoaOutput, error) {
 	req, out := c.DescribeInterconnectLoaRequest(input)
 	req.SetContext(ctx)
@@ -4605,6 +4629,9 @@ type BGPPeer struct {
 	// Example: asdf34example
 	AuthKey *string `locationName:"authKey" type:"string"`
 
+	// The Direct Connection endpoint which the BGP peer terminates on.
+	AwsDeviceV2 *string `locationName:"awsDeviceV2" type:"string"`
+
 	// The state of the BGP peer.
 	//
 	//    * Verifying: The BGP peering addresses or ASN require validation before
@@ -4624,6 +4651,9 @@ type BGPPeer struct {
 	// The Up/Down state of the BGP peer.
 	//
 	//    * Up: The BGP peer is established.
+	//
+	// A state of up does not indicate the state of the routing function. Ensure
+	//    that you are receiving routes over the BGP session.
 	//
 	//    * Down: The BGP peer is down.
 	BgpStatus *string `locationName:"bgpStatus" type:"string" enum:"BGPStatus"`
@@ -4665,6 +4695,12 @@ func (s *BGPPeer) SetAsn(v int64) *BGPPeer {
 // SetAuthKey sets the AuthKey field's value.
 func (s *BGPPeer) SetAuthKey(v string) *BGPPeer {
 	s.AuthKey = &v
+	return s
+}
+
+// SetAwsDeviceV2 sets the AwsDeviceV2 field's value.
+func (s *BGPPeer) SetAwsDeviceV2(v string) *BGPPeer {
+	s.AwsDeviceV2 = &v
 	return s
 }
 
@@ -4997,8 +5033,13 @@ func (s *ConfirmPublicVirtualInterfaceOutput) SetVirtualInterfaceState(v string)
 type Connection struct {
 	_ struct{} `type:"structure"`
 
+	// Deprecated in favor of awsDeviceV2.
+	//
 	// The Direct Connection endpoint which the physical connection terminates on.
-	AwsDevice *string `locationName:"awsDevice" type:"string"`
+	AwsDevice *string `locationName:"awsDevice" deprecated:"true" type:"string"`
+
+	// The Direct Connection endpoint which the physical connection terminates on.
+	AwsDeviceV2 *string `locationName:"awsDeviceV2" type:"string"`
 
 	// Bandwidth of the connection.
 	//
@@ -5093,6 +5134,12 @@ func (s Connection) GoString() string {
 // SetAwsDevice sets the AwsDevice field's value.
 func (s *Connection) SetAwsDevice(v string) *Connection {
 	s.AwsDevice = &v
+	return s
+}
+
+// SetAwsDeviceV2 sets the AwsDeviceV2 field's value.
+func (s *Connection) SetAwsDeviceV2(v string) *Connection {
+	s.AwsDeviceV2 = &v
 	return s
 }
 
@@ -7633,8 +7680,13 @@ func (s *GatewayAttachment) SetVirtualInterfaceRegion(v string) *GatewayAttachme
 type Interconnect struct {
 	_ struct{} `type:"structure"`
 
+	// Deprecated in favor of awsDeviceV2.
+	//
 	// The Direct Connection endpoint which the physical connection terminates on.
-	AwsDevice *string `locationName:"awsDevice" type:"string"`
+	AwsDevice *string `locationName:"awsDevice" deprecated:"true" type:"string"`
+
+	// The Direct Connection endpoint which the physical connection terminates on.
+	AwsDeviceV2 *string `locationName:"awsDeviceV2" type:"string"`
 
 	// Bandwidth of the connection.
 	//
@@ -7710,6 +7762,12 @@ func (s *Interconnect) SetAwsDevice(v string) *Interconnect {
 	return s
 }
 
+// SetAwsDeviceV2 sets the AwsDeviceV2 field's value.
+func (s *Interconnect) SetAwsDeviceV2(v string) *Interconnect {
+	s.AwsDeviceV2 = &v
+	return s
+}
+
 // SetBandwidth sets the Bandwidth field's value.
 func (s *Interconnect) SetBandwidth(v string) *Interconnect {
 	s.Bandwidth = &v
@@ -7771,8 +7829,13 @@ type Lag struct {
 	// This is intended for use by AWS Direct Connect partners only.
 	AllowsHostedConnections *bool `locationName:"allowsHostedConnections" type:"boolean"`
 
+	// Deprecated in favor of awsDeviceV2.
+	//
 	// The AWS Direct Connection endpoint that hosts the LAG.
-	AwsDevice *string `locationName:"awsDevice" type:"string"`
+	AwsDevice *string `locationName:"awsDevice" deprecated:"true" type:"string"`
+
+	// The AWS Direct Connection endpoint that hosts the LAG.
+	AwsDeviceV2 *string `locationName:"awsDeviceV2" type:"string"`
 
 	// A list of connections bundled by this LAG.
 	Connections []*Connection `locationName:"connections" type:"list"`
@@ -7855,6 +7918,12 @@ func (s *Lag) SetAllowsHostedConnections(v bool) *Lag {
 // SetAwsDevice sets the AwsDevice field's value.
 func (s *Lag) SetAwsDevice(v string) *Lag {
 	s.AwsDevice = &v
+	return s
+}
+
+// SetAwsDeviceV2 sets the AwsDeviceV2 field's value.
+func (s *Lag) SetAwsDeviceV2(v string) *Lag {
+	s.AwsDeviceV2 = &v
 	return s
 }
 
@@ -7968,6 +8037,13 @@ type Location struct {
 	// The name of the AWS Direct Connect location. The name includes the colocation
 	// partner name and the physical site of the lit building.
 	LocationName *string `locationName:"locationName" type:"string"`
+
+	// The AWS region where the AWS Direct connect location is located.
+	//
+	// Example: us-east-1
+	//
+	// Default: None
+	Region *string `locationName:"region" type:"string"`
 }
 
 // String returns the string representation
@@ -7989,6 +8065,12 @@ func (s *Location) SetLocationCode(v string) *Location {
 // SetLocationName sets the LocationName field's value.
 func (s *Location) SetLocationName(v string) *Location {
 	s.LocationName = &v
+	return s
+}
+
+// SetRegion sets the Region field's value.
+func (s *Location) SetRegion(v string) *Location {
+	s.Region = &v
 	return s
 }
 
@@ -8997,6 +9079,9 @@ type VirtualInterface struct {
 	// Example: asdf34example
 	AuthKey *string `locationName:"authKey" type:"string"`
 
+	// The Direct Connection endpoint which the virtual interface terminates on.
+	AwsDeviceV2 *string `locationName:"awsDeviceV2" type:"string"`
+
 	// A list of the BGP peers configured on this virtual interface.
 	BgpPeers []*BGPPeer `locationName:"bgpPeers" type:"list"`
 
@@ -9030,6 +9115,13 @@ type VirtualInterface struct {
 
 	// The AWS account that will own the new virtual interface.
 	OwnerAccount *string `locationName:"ownerAccount" type:"string"`
+
+	// The AWS region where the virtual interface is located.
+	//
+	// Example: us-east-1
+	//
+	// Default: None
+	Region *string `locationName:"region" type:"string"`
 
 	// A list of routes to be advertised to the AWS network in this region (public
 	// virtual interface).
@@ -9135,6 +9227,12 @@ func (s *VirtualInterface) SetAuthKey(v string) *VirtualInterface {
 	return s
 }
 
+// SetAwsDeviceV2 sets the AwsDeviceV2 field's value.
+func (s *VirtualInterface) SetAwsDeviceV2(v string) *VirtualInterface {
+	s.AwsDeviceV2 = &v
+	return s
+}
+
 // SetBgpPeers sets the BgpPeers field's value.
 func (s *VirtualInterface) SetBgpPeers(v []*BGPPeer) *VirtualInterface {
 	s.BgpPeers = v
@@ -9174,6 +9272,12 @@ func (s *VirtualInterface) SetLocation(v string) *VirtualInterface {
 // SetOwnerAccount sets the OwnerAccount field's value.
 func (s *VirtualInterface) SetOwnerAccount(v string) *VirtualInterface {
 	s.OwnerAccount = &v
+	return s
+}
+
+// SetRegion sets the Region field's value.
+func (s *VirtualInterface) SetRegion(v string) *VirtualInterface {
+	s.Region = &v
 	return s
 }
 
@@ -9266,6 +9370,9 @@ const (
 // The Up/Down state of the BGP peer.
 //
 //    * Up: The BGP peer is established.
+//
+// A state of up does not indicate the state of the routing function. Ensure
+//    that you are receiving routes over the BGP session.
 //
 //    * Down: The BGP peer is down.
 const (

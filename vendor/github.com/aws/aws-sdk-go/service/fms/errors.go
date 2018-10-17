@@ -25,6 +25,12 @@ const (
 	// you submitted was already set as the AWS Firewall Manager administrator.
 	ErrCodeInvalidOperationException = "InvalidOperationException"
 
+	// ErrCodeInvalidTypeException for service response error code
+	// "InvalidTypeException".
+	//
+	// The value of the Type parameter is invalid.
+	ErrCodeInvalidTypeException = "InvalidTypeException"
+
 	// ErrCodeLimitExceededException for service response error code
 	// "LimitExceededException".
 	//

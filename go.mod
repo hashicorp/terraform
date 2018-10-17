@@ -17,7 +17,7 @@ require (
 	github.com/armon/circbuf v0.0.0-20150827004946-bbbad097214e
 	github.com/armon/go-metrics v0.0.0-20180917152333-f0300d1749da // indirect
 	github.com/armon/go-radix v0.0.0-20160115234725-4239b77079c7 // indirect
-	github.com/aws/aws-sdk-go v1.14.31
+	github.com/aws/aws-sdk-go v1.15.48
 	github.com/beevik/etree v0.0.0-20171015221209-af219c0c7ea1 // indirect
 	github.com/bgentry/go-netrc v0.0.0-20140422174119-9fd32a8b3d3d // indirect
 	github.com/bgentry/speakeasy v0.0.0-20161015143505-675b82c74c0e // indirect
@@ -26,8 +26,8 @@ require (
 	github.com/chzyer/logex v1.1.10 // indirect
 	github.com/chzyer/readline v0.0.0-20161106042343-c914be64f07d
 	github.com/chzyer/test v0.0.0-20180213035817-a1ea475d72b1 // indirect
-	github.com/cockroachdb/cmux v0.0.0-20170110192607-30d10be49292 // indirect
-	github.com/coreos/etcd v3.2.7+incompatible
+	github.com/coreos/bbolt v1.3.0 // indirect
+	github.com/coreos/etcd v3.3.10+incompatible
 	github.com/coreos/go-semver v0.2.0 // indirect
 	github.com/coreos/go-systemd v0.0.0-20181012123002-c6f51f82210d // indirect
 	github.com/coreos/pkg v0.0.0-20180928190104-399ea9e2e55f // indirect
@@ -48,6 +48,8 @@ require (
 	github.com/googleapis/gax-go v0.0.0-20161107002406-da06d194a00e // indirect
 	github.com/gophercloud/gophercloud v0.0.0-20170524130959-3027adb1ce72
 	github.com/gopherjs/gopherjs v0.0.0-20181004151105-1babbf986f6f // indirect
+	github.com/gorilla/websocket v1.4.0 // indirect
+	github.com/grpc-ecosystem/go-grpc-middleware v1.0.0 // indirect
 	github.com/grpc-ecosystem/go-grpc-prometheus v1.2.0 // indirect
 	github.com/grpc-ecosystem/grpc-gateway v1.5.1 // indirect
 	github.com/hashicorp/consul v0.0.0-20171026175957-610f3c86a089
@@ -111,13 +113,16 @@ require (
 	github.com/satori/go.uuid v0.0.0-20160927100844-b061729afc07 // indirect
 	github.com/satori/uuid v0.0.0-20160927100844-b061729afc07 // indirect
 	github.com/sean-/seed v0.0.0-20170313163322-e2103e2c3529 // indirect
+	github.com/sirupsen/logrus v1.1.1 // indirect
 	github.com/smartystreets/assertions v0.0.0-20180927180507-b2de0cb4f26d // indirect
 	github.com/smartystreets/goconvey v0.0.0-20180222194500-ef6db91d284a // indirect
+	github.com/soheilhy/cmux v0.1.4 // indirect
 	github.com/spf13/afero v1.0.2
 	github.com/terraform-providers/terraform-provider-aws v1.40.0
 	github.com/terraform-providers/terraform-provider-openstack v0.0.0-20170616075611-4080a521c6ea
 	github.com/terraform-providers/terraform-provider-template v1.0.0 // indirect
 	github.com/terraform-providers/terraform-provider-tls v1.2.0 // indirect
+	github.com/tmc/grpc-websocket-proxy v0.0.0-20171017195756-830351dc03c6 // indirect
 	github.com/ugorji/go v0.0.0-20180813092308-00b869d2f4a5 // indirect
 	github.com/ulikunitz/xz v0.5.4 // indirect
 	github.com/vmihailenco/msgpack v4.0.0+incompatible // indirect
@@ -126,6 +131,9 @@ require (
 	github.com/xlab/treeprint v0.0.0-20161029104018-1d6e34225557
 	github.com/zclconf/go-cty v0.0.0-20180925180032-d9b87d891d0b
 	go.opencensus.io v0.17.0 // indirect
+	go.uber.org/atomic v1.3.2 // indirect
+	go.uber.org/multierr v1.1.0 // indirect
+	go.uber.org/zap v1.9.1 // indirect
 	golang.org/x/crypto v0.0.0-20180910181607-0e37d006457b
 	golang.org/x/net v0.0.0-20180925072008-f04abc6bdfa7
 	golang.org/x/oauth2 v0.0.0-20181003184128-c57b0facaced
