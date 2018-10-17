@@ -240,7 +240,7 @@ func TestProviderInstallerGet(t *testing.T) {
 		PluginProtocolVersion: 5,
 		SkipVerify:            true,
 		Ui:                    cli.NewMockUi(),
-		registry:              registry.NewClient(Disco(server), nil, nil),
+		registry:              registry.NewClient(Disco(server), nil),
 	}
 	_, err = i.Get("test", AllVersions)
 
@@ -253,7 +253,7 @@ func TestProviderInstallerGet(t *testing.T) {
 		PluginProtocolVersion: 4,
 		SkipVerify:            true,
 		Ui:                    cli.NewMockUi(),
-		registry:              registry.NewClient(Disco(server), nil, nil),
+		registry:              registry.NewClient(Disco(server), nil),
 		OS:                    "mockos",
 		Arch:                  "mockarch",
 	}
@@ -331,7 +331,7 @@ func TestProviderInstallerPurgeUnused(t *testing.T) {
 		PluginProtocolVersion: 3,
 		SkipVerify:            true,
 		Ui:                    cli.NewMockUi(),
-		registry:              registry.NewClient(Disco(server), nil, nil),
+		registry:              registry.NewClient(Disco(server), nil),
 	}
 	purged, err := i.PurgeUnused(map[string]PluginMeta{
 		"test": PluginMeta{
@@ -421,7 +421,7 @@ func TestProviderChecksum(t *testing.T) {
 // newProviderInstaller returns a minimally-initialized ProviderInstaller
 func newProviderInstaller(s *httptest.Server) ProviderInstaller {
 	return ProviderInstaller{
-		registry: registry.NewClient(Disco(s), nil, nil),
+		registry: registry.NewClient(Disco(s), nil),
 		OS:       runtime.GOOS,
 		Arch:     runtime.GOARCH,
 	}
@@ -435,7 +435,7 @@ func Disco(s *httptest.Server) *disco.Disco {
 		"modules.v1":   fmt.Sprintf("%s/v1/modules", s.URL),
 		"providers.v1": fmt.Sprintf("%s/v1/providers", s.URL),
 	}
-	d := disco.NewDisco()
+	d := disco.New()
 
 	d.ForceHostServices(svchost.Hostname("registry.terraform.io"), services)
 	d.ForceHostServices(svchost.Hostname("localhost"), services)

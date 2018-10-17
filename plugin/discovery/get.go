@@ -113,7 +113,7 @@ func (i *ProviderInstaller) Get(provider string, req Constraints) (PluginMeta, e
 		i.Arch = runtime.GOARCH
 	}
 	if i.registry == nil {
-		i.registry = registry.NewClient(i.Services, nil, nil)
+		i.registry = registry.NewClient(i.Services, nil)
 	}
 
 	// get a full listing of versions for the requested provider

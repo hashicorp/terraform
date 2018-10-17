@@ -139,7 +139,7 @@ func TestAccRegistryDiscover(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	s := NewStorage("/tmp", nil, nil)
+	s := NewStorage("/tmp", nil)
 	loc, err := s.registry.ModuleLocation(module, "")
 	if err != nil {
 		t.Fatal(err)

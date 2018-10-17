@@ -238,9 +238,6 @@ func TestBackendStates(t *testing.T, b Backend) {
 
 		sort.Strings(states)
 		expected := []string{"bar", "default"}
-		if noDefault {
-			expected = []string{"bar"}
-		}
 		if !reflect.DeepEqual(states, expected) {
 			t.Fatalf("bad: %#v", states)
 		}

@@ -181,10 +181,9 @@ type Operation struct {
 	// behavior of the operation.
 	AutoApprove  bool
 	Destroy      bool
+	DestroyForce bool
 	Targets      []addrs.Targetable
 	Variables    map[string]UnparsedVariableValue
-	AutoApprove  bool
-	DestroyForce bool
 
 	// Input/output/control options.
 	UIIn  terraform.UIInput
