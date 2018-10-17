@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	backendLocal "github.com/hashicorp/terraform/backend/local"
+	backendlocal "github.com/hashicorp/terraform/backend/local"
 	"github.com/hashicorp/terraform/state"
 	"github.com/hashicorp/terraform/states/statemgr"
 	"github.com/hashicorp/terraform/terraform"

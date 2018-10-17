@@ -156,8 +156,7 @@ func (c *InitCommand) Run(args []string) int {
 	if empty, err := config.IsEmptyDir(path); err != nil {
 		diags = diags.Append(fmt.Errorf("Error checking configuration: %s", err))
 		return 1
-	}
-	if empty {
+	} else if empty {
 		c.Ui.Output(c.Colorize().Color(strings.TrimSpace(outputInitEmpty)))
 		return 0
 	}
@@ -276,12 +275,14 @@ func (c *InitCommand) Run(args []string) int {
 	if back != nil {
 		sMgr, err := back.StateMgr(c.Workspace())
 		if err != nil {
-			c.Ui.Error(fmt.Sprintf("Error loading state: %s", err))
+			c.Ui.Error(fmt.Sprintf(
+				"Error loading state: %s", err))
 			return 1
 		}
 
 		if err := sMgr.RefreshState(); err != nil {
-			c.Ui.Error(fmt.Sprintf("Error refreshing state: %s", err))
+			c.Ui.Error(fmt.Sprintf(
+				"Error refreshing state: %s", err))
 			return 1
 		}
 
