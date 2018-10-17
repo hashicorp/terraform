@@ -1,3 +1,5 @@
+#!/usr/bin/env bash
+
 touch ~/.gitcookies
 chmod 0600 ~/.gitcookies
 
