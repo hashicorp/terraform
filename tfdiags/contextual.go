@@ -297,7 +297,7 @@ func WholeContainingBody(severity Severity, summary, detail string) Diagnostic {
 
 type wholeBodyDiagnostic struct {
 	diagnosticBase
-	subject  *SourceRange // populated only after ElaborateFromConfigBody
+	subject *SourceRange // populated only after ElaborateFromConfigBody
 }
 
 func (d *wholeBodyDiagnostic) ElaborateFromConfigBody(body hcl.Body) Diagnostic {
