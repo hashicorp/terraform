@@ -1264,12 +1264,6 @@ func (p *parser) inBodyEndTagFormatting(tagAtom a.Atom) {
 		switch commonAncestor.DataAtom {
 		case a.Table, a.Tbody, a.Tfoot, a.Thead, a.Tr:
 			p.fosterParent(lastNode)
-		case a.Template:
-			// TODO: remove namespace checking
-			if commonAncestor.Namespace == "html" {
-				commonAncestor = commonAncestor.LastChild
-			}
-			fallthrough
 		default:
 			commonAncestor.AppendChild(lastNode)
 		}
