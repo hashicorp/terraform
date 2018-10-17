@@ -5,13 +5,13 @@ import (
 	"net"
 	"time"
 
-	"google.golang.org/grpc/test/bufconn"
 	"github.com/hashicorp/terraform/helper/plugin"
 	tfplugin "github.com/hashicorp/terraform/plugin"
 	"github.com/hashicorp/terraform/plugin/proto"
 	"github.com/hashicorp/terraform/providers"
 	"github.com/hashicorp/terraform/terraform"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/test/bufconn"
 )
 
 // GRPCTestProvider takes a legacy ResourceProvider, wraps it in the new GRPC

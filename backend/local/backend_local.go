@@ -1,9 +1,9 @@
 package local
 
 import (
-	"log"
 	"context"
 	"fmt"
+	"log"
 
 	"github.com/hashicorp/errwrap"
 
