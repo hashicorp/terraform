@@ -9,7 +9,7 @@
 // Management Service Developer Guide (http://docs.aws.amazon.com/kms/latest/developerguide/).
 //
 // AWS provides SDKs that consist of libraries and sample code for various programming
-// languages and platforms (Java, Ruby, .Net, iOS, Android, etc.). The SDKs
+// languages and platforms (Java, Ruby, .Net, macOS, Android, etc.). The SDKs
 // provide a convenient way to create programmatic access to AWS KMS and other
 // AWS services. For example, the SDKs take care of tasks such as signing requests
 // (see below), managing errors, and retrying requests automatically. For more
@@ -30,7 +30,7 @@
 // Requests must be signed by using an access key ID and a secret access key.
 // We strongly recommend that you do not use your AWS account (root) access
 // key ID and secret key for everyday work with AWS KMS. Instead, use the access
-// key ID and secret access key for an IAM user, or you can use the AWS Security
+// key ID and secret access key for an IAM user. You can also use the AWS Security
 // Token Service to generate temporary security credentials that you can use
 // to sign requests.
 //
@@ -61,11 +61,11 @@
 //    - This set of topics walks you through the process of signing a request
 //    using an access key ID and a secret access key.
 //
-// Commonly Used APIs
+// Commonly Used API Operations
 //
-// Of the APIs discussed in this guide, the following will prove the most useful
-// for most applications. You will likely perform actions other than these,
-// such as creating keys and assigning policies, by using the console.
+// Of the API operations discussed in this guide, the following will prove the
+// most useful for most applications. You will likely perform operations other
+// than these, such as creating keys and assigning policies, by using the console.
 //
 //    * Encrypt
 //

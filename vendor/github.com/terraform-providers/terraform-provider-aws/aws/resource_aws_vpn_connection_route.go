@@ -23,13 +23,13 @@ func resourceAwsVpnConnectionRoute() *schema.Resource {
 		Delete: resourceAwsVpnConnectionRouteDelete,
 
 		Schema: map[string]*schema.Schema{
-			"destination_cidr_block": &schema.Schema{
+			"destination_cidr_block": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
 
-			"vpn_connection_id": &schema.Schema{
+			"vpn_connection_id": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
@@ -138,11 +138,11 @@ func resourceAwsVpnConnectionRouteDelete(d *schema.ResourceData, meta interface{
 func findConnectionRoute(conn *ec2.EC2, cidrBlock, vpnConnectionId string) (*ec2.VpnStaticRoute, error) {
 	resp, err := conn.DescribeVpnConnections(&ec2.DescribeVpnConnectionsInput{
 		Filters: []*ec2.Filter{
-			&ec2.Filter{
+			{
 				Name:   aws.String("route.destination-cidr-block"),
 				Values: []*string{aws.String(cidrBlock)},
 			},
-			&ec2.Filter{
+			{
 				Name:   aws.String("vpn-connection-id"),
 				Values: []*string{aws.String(vpnConnectionId)},
 			},

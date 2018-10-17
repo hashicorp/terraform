@@ -7551,6 +7551,8 @@ type CreateDBInstanceInput struct {
 	PromotionTier *int64 `type:"integer"`
 
 	// This parameter is not supported.
+	//
+	// Deprecated: PubliclyAccessible has been deprecated
 	PubliclyAccessible *bool `deprecated:"true" type:"boolean"`
 
 	// Specifies whether the DB instance is encrypted.
@@ -9396,6 +9398,8 @@ type DBInstance struct {
 	PromotionTier *int64 `type:"integer"`
 
 	// This parameter is not supported.
+	//
+	// Deprecated: PubliclyAccessible has been deprecated
 	PubliclyAccessible *bool `deprecated:"true" type:"boolean"`
 
 	// Contains one or more identifiers of DB clusters that are Read Replicas of
@@ -14089,6 +14093,8 @@ type ModifyDBInstanceInput struct {
 	PromotionTier *int64 `type:"integer"`
 
 	// This parameter is not supported.
+	//
+	// Deprecated: PubliclyAccessible has been deprecated
 	PubliclyAccessible *bool `deprecated:"true" type:"boolean"`
 
 	// Specifies the storage type to be associated with the DB instance.

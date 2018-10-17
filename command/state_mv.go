@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/mitchellh/cli"
 )
@@ -74,59 +75,63 @@ func (c *StateMvCommand) Run(args []string) int {
 
 		stateToReal = stateTo.State()
 		if stateToReal == nil {
-			stateToReal = terraform.NewState()
+			stateToReal = states.NewState()
 		}
 	}
 
-	// Filter what we're moving
-	filter := &terraform.StateFilter{State: stateFromReal}
-	results, err := filter.Filter(args[0])
-	if err != nil {
-		c.Ui.Error(fmt.Sprintf(errStateMv, err))
-		return cli.RunResultHelp
-	}
-	if len(results) == 0 {
-		c.Ui.Output(fmt.Sprintf("Item to move doesn't exist: %s", args[0]))
-		return 1
-	}
+	c.Ui.Error("state mv command not yet updated for new state types")
+	return 1
+	/*
+		// Filter what we're moving
+		filter := &terraform.StateFilter{State: stateFromReal}
+		results, err := filter.Filter(args[0])
+		if err != nil {
+			c.Ui.Error(fmt.Sprintf(errStateMv, err))
+			return cli.RunResultHelp
+		}
+		if len(results) == 0 {
+			c.Ui.Output(fmt.Sprintf("Item to move doesn't exist: %s", args[0]))
+			return 1
+		}
 
-	// Get the item to add to the state
-	add := c.addableResult(results)
+		// Get the item to add to the state
+		add := c.addableResult(results)
 
-	// Do the actual move
-	if err := stateFromReal.Remove(args[0]); err != nil {
-		c.Ui.Error(fmt.Sprintf(errStateMv, err))
-		return 1
-	}
+		// Do the actual move
+		if err := stateFromReal.Remove(args[0]); err != nil {
+			c.Ui.Error(fmt.Sprintf(errStateMv, err))
+			return 1
+		}
 
-	if err := stateToReal.Add(args[0], args[1], add); err != nil {
-		c.Ui.Error(fmt.Sprintf(errStateMv, err))
-		return 1
-	}
+		if err := stateToReal.Add(args[0], args[1], add); err != nil {
+			c.Ui.Error(fmt.Sprintf(errStateMv, err))
+			return 1
+		}
 
-	// Write the new state
-	if err := stateTo.WriteState(stateToReal); err != nil {
-		c.Ui.Error(fmt.Sprintf(errStateMvPersist, err))
-		return 1
-	}
-
-	if err := stateTo.PersistState(); err != nil {
-		c.Ui.Error(fmt.Sprintf(errStateMvPersist, err))
-		return 1
-	}
-
-	// Write the old state if it is different
-	if stateTo != stateFrom {
-		if err := stateFrom.WriteState(stateFromReal); err != nil {
+		// Write the new state
+		if err := stateTo.WriteState(stateToReal); err != nil {
 			c.Ui.Error(fmt.Sprintf(errStateMvPersist, err))
 			return 1
 		}
 
-		if err := stateFrom.PersistState(); err != nil {
+		if err := stateTo.PersistState(); err != nil {
 			c.Ui.Error(fmt.Sprintf(errStateMvPersist, err))
 			return 1
 		}
-	}
+
+		// Write the old state if it is different
+		if stateTo != stateFrom {
+			if err := stateFrom.WriteState(stateFromReal); err != nil {
+				c.Ui.Error(fmt.Sprintf(errStateMvPersist, err))
+				return 1
+			}
+
+			if err := stateFrom.PersistState(); err != nil {
+				c.Ui.Error(fmt.Sprintf(errStateMvPersist, err))
+				return 1
+			}
+		}
+	*/
 
 	c.Ui.Output(fmt.Sprintf(
 		"Moved %s to %s", args[0], args[1]))

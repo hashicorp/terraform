@@ -7,6 +7,11 @@ import (
 	"strings"
 
 	"github.com/davecgh/go-spew/spew"
+	"github.com/hashicorp/hcl2/hcl"
+	"github.com/hashicorp/hcl2/hcl/hclsyntax"
+
+	"github.com/hashicorp/terraform/addrs"
+	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/terraform"
 )
 
@@ -14,7 +19,8 @@ import (
 func testStepImportState(
 	opts terraform.ContextOpts,
 	state *terraform.State,
-	step TestStep) (*terraform.State, error) {
+	step TestStep,
+	schemas *terraform.Schemas) (*terraform.State, error) {
 	// Determine the ID to import
 	var importId string
 	switch {
@@ -41,34 +47,51 @@ func testStepImportState(
 
 	// Setup the context. We initialize with an empty state. We use the
 	// full config for provider configurations.
-	mod, err := testModule(opts, step)
+	cfg, err := testConfig(opts, step)
 	if err != nil {
 		return state, err
 	}
 
-	opts.Module = mod
-	opts.State = terraform.NewState()
-	ctx, err := terraform.NewContext(&opts)
-	if err != nil {
-		return state, err
+	opts.Config = cfg
+
+	// import tests start with empty state
+	opts.State = states.NewState()
+
+	ctx, stepDiags := terraform.NewContext(&opts)
+	if stepDiags.HasErrors() {
+		return state, stepDiags.Err()
 	}
 
-	// Do the import!
-	newState, err := ctx.Import(&terraform.ImportOpts{
+	// The test step provides the resource address as a string, so we need
+	// to parse it to get an addrs.AbsResourceAddress to pass in to the
+	// import method.
+	traversal, hclDiags := hclsyntax.ParseTraversalAbs([]byte(step.ResourceName), "", hcl.Pos{})
+	if hclDiags.HasErrors() {
+		return nil, hclDiags
+	}
+	importAddr, stepDiags := addrs.ParseAbsResourceInstance(traversal)
+	if stepDiags.HasErrors() {
+		return nil, stepDiags.Err()
+	}
+
+	// Do the import
+	importedState, stepDiags := ctx.Import(&terraform.ImportOpts{
 		// Set the module so that any provider config is loaded
-		Module: mod,
+		Config: cfg,
 
 		Targets: []*terraform.ImportTarget{
 			&terraform.ImportTarget{
-				Addr: step.ResourceName,
+				Addr: importAddr,
 				ID:   importId,
 			},
 		},
 	})
-	if err != nil {
-		log.Printf("[ERROR] Test: ImportState failure: %s", err)
-		return state, err
+	if stepDiags.HasErrors() {
+		log.Printf("[ERROR] Test: ImportState failure: %s", stepDiags.Err())
+		return state, stepDiags.Err()
 	}
+
+	newState := mustShimNewState(importedState, schemas)
 
 	// Go through the new state and verify
 	if step.ImportStateCheck != nil {
@@ -78,9 +101,11 @@ func testStepImportState(
 				states = append(states, r.Primary)
 			}
 		}
-		if err := step.ImportStateCheck(states); err != nil {
+		// TODO: update for new state types
+		return nil, fmt.Errorf("ImportStateCheck call in testStepImportState not yet updated for new state types")
+		/*if err := step.ImportStateCheck(states); err != nil {
 			return state, err
-		}
+		}*/
 	}
 
 	// Verify that all the states match

@@ -18,11 +18,11 @@ func TestRemoteClient(t *testing.T) {
 
 	container := fmt.Sprintf("terraform-state-swift-test-%x", time.Now().Unix())
 
-	b := backend.TestBackendConfig(t, New(), map[string]interface{}{
+	b := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
 		"container": container,
-	}).(*Backend)
+	})).(*Backend)
 
-	state, err := b.State(backend.DefaultStateName)
+	state, err := b.StateMgr(backend.DefaultStateName)
 	if err != nil {
 		t.Fatal(err)
 	}

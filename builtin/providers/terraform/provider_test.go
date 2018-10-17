@@ -3,32 +3,23 @@ package terraform
 import (
 	"testing"
 
-	backendInit "github.com/hashicorp/terraform/backend/init"
-	"github.com/hashicorp/terraform/helper/schema"
-	"github.com/hashicorp/terraform/terraform"
+	backendinit "github.com/hashicorp/terraform/backend/init"
+	"github.com/hashicorp/terraform/providers"
 )
 
-var testAccProviders map[string]terraform.ResourceProvider
-var testAccProvider *schema.Provider
+var testAccProviders map[string]*Provider
+var testAccProvider *Provider
 
 func init() {
-	// Initialize the backends
-	backendInit.Init(nil)
-
-	testAccProvider = Provider().(*schema.Provider)
-	testAccProviders = map[string]terraform.ResourceProvider{
+	testAccProvider = NewProvider()
+	testAccProviders = map[string]*Provider{
 		"terraform": testAccProvider,
 	}
-}
-
-func TestProvider(t *testing.T) {
-	if err := Provider().(*schema.Provider).InternalValidate(); err != nil {
-		t.Fatalf("err: %s", err)
-	}
+	backendinit.Init(nil)
 }
 
 func TestProvider_impl(t *testing.T) {
-	var _ terraform.ResourceProvider = Provider()
+	var _ providers.Interface = NewProvider()
 }
 
 func testAccPreCheck(t *testing.T) {

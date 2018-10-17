@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"strings"
 	"testing"
+
+	"github.com/hashicorp/terraform/tfdiags"
 )
 
 func TestGraphDot_empty(t *testing.T) {
@@ -322,7 +324,7 @@ func TestGraphJSON_debugVisits(t *testing.T) {
 	g.Connect(BasicEdge(4, 2))
 	g.Connect(BasicEdge(3, 4))
 
-	err := (&AcyclicGraph{g}).Walk(func(v Vertex) error {
+	err := (&AcyclicGraph{g}).Walk(func(v Vertex) tfdiags.Diagnostics {
 		g.DebugVisitInfo(v, "basic walk")
 		return nil
 	})

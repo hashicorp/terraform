@@ -1,9 +1,10 @@
 package terraform
 
 import (
-	"reflect"
 	"strings"
 	"testing"
+
+	"github.com/hashicorp/terraform/addrs"
 
 	"github.com/hashicorp/terraform/dag"
 )
@@ -19,13 +20,13 @@ func TestBasicGraphBuilder(t *testing.T) {
 		},
 	}
 
-	g, err := b.Build(RootModulePath)
+	g, err := b.Build(addrs.RootModuleInstance)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
-	if !reflect.DeepEqual(g.Path, RootModulePath) {
-		t.Fatalf("bad: %#v", g.Path)
+	if g.Path.String() != addrs.RootModuleInstance.String() {
+		t.Fatalf("wrong module path %q", g.Path)
 	}
 
 	actual := strings.TrimSpace(g.String())
@@ -44,7 +45,7 @@ func TestBasicGraphBuilder_validate(t *testing.T) {
 		Validate: true,
 	}
 
-	_, err := b.Build(RootModulePath)
+	_, err := b.Build(addrs.RootModuleInstance)
 	if err == nil {
 		t.Fatal("should error")
 	}
@@ -59,7 +60,7 @@ func TestBasicGraphBuilder_validateOff(t *testing.T) {
 		Validate: false,
 	}
 
-	_, err := b.Build(RootModulePath)
+	_, err := b.Build(addrs.RootModuleInstance)
 	if err != nil {
 		t.Fatalf("expected no error, got: %s", err)
 	}

@@ -7,11 +7,11 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/iam"
 
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/hashicorp/terraform/helper/validation"
 )
 
 func resourceAwsIamUser() *schema.Resource {
@@ -25,7 +25,7 @@ func resourceAwsIamUser() *schema.Resource {
 		},
 
 		Schema: map[string]*schema.Schema{
-			"arn": &schema.Schema{
+			"arn": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
@@ -37,21 +37,26 @@ func resourceAwsIamUser() *schema.Resource {
 				and inefficient. Still, there are other reasons one might want
 				the UniqueID, so we can make it available.
 			*/
-			"unique_id": &schema.Schema{
+			"unique_id": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"name": &schema.Schema{
+			"name": {
 				Type:         schema.TypeString,
 				Required:     true,
 				ValidateFunc: validateAwsIamUserName,
 			},
-			"path": &schema.Schema{
+			"path": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Default:  "/",
 			},
-			"force_destroy": &schema.Schema{
+			"permissions_boundary": {
+				Type:         schema.TypeString,
+				Optional:     true,
+				ValidateFunc: validation.StringLenBetween(0, 2048),
+			},
+			"force_destroy": {
 				Type:        schema.TypeBool,
 				Optional:    true,
 				Default:     false,
@@ -71,13 +76,19 @@ func resourceAwsIamUserCreate(d *schema.ResourceData, meta interface{}) error {
 		UserName: aws.String(name),
 	}
 
+	if v, ok := d.GetOk("permissions_boundary"); ok && v.(string) != "" {
+		request.PermissionsBoundary = aws.String(v.(string))
+	}
+
 	log.Println("[DEBUG] Create IAM User request:", request)
 	createResp, err := iamconn.CreateUser(request)
 	if err != nil {
 		return fmt.Errorf("Error creating IAM User %s: %s", name, err)
 	}
-	d.SetId(*createResp.User.UserName)
-	return resourceAwsIamUserReadResult(d, createResp.User)
+
+	d.SetId(aws.StringValue(createResp.User.UserName))
+
+	return resourceAwsIamUserRead(d, meta)
 }
 
 func resourceAwsIamUserRead(d *schema.ResourceData, meta interface{}) error {
@@ -87,37 +98,37 @@ func resourceAwsIamUserRead(d *schema.ResourceData, meta interface{}) error {
 		UserName: aws.String(d.Id()),
 	}
 
-	getResp, err := iamconn.GetUser(request)
+	output, err := iamconn.GetUser(request)
 	if err != nil {
-		if iamerr, ok := err.(awserr.Error); ok && iamerr.Code() == "NoSuchEntity" { // XXX test me
-			log.Printf("[WARN] No IAM user by name (%s) found", d.Id())
+		if isAWSErr(err, iam.ErrCodeNoSuchEntityException, "") {
+			log.Printf("[WARN] No IAM user by name (%s) found, removing from state", d.Id())
 			d.SetId("")
 			return nil
 		}
 		return fmt.Errorf("Error reading IAM User %s: %s", d.Id(), err)
 	}
-	return resourceAwsIamUserReadResult(d, getResp.User)
-}
 
-func resourceAwsIamUserReadResult(d *schema.ResourceData, user *iam.User) error {
-	if err := d.Set("name", user.UserName); err != nil {
-		return err
+	if output == nil || output.User == nil {
+		log.Printf("[WARN] No IAM user by name (%s) found, removing from state", d.Id())
+		d.SetId("")
+		return nil
 	}
-	if err := d.Set("arn", user.Arn); err != nil {
-		return err
+
+	d.Set("arn", output.User.Arn)
+	d.Set("name", output.User.UserName)
+	d.Set("path", output.User.Path)
+	if output.User.PermissionsBoundary != nil {
+		d.Set("permissions_boundary", output.User.PermissionsBoundary.PermissionsBoundaryArn)
 	}
-	if err := d.Set("path", user.Path); err != nil {
-		return err
-	}
-	if err := d.Set("unique_id", user.UserId); err != nil {
-		return err
-	}
+	d.Set("unique_id", output.User.UserId)
+
 	return nil
 }
 
 func resourceAwsIamUserUpdate(d *schema.ResourceData, meta interface{}) error {
+	iamconn := meta.(*AWSClient).iamconn
+
 	if d.HasChange("name") || d.HasChange("path") {
-		iamconn := meta.(*AWSClient).iamconn
 		on, nn := d.GetChange("name")
 		_, np := d.GetChange("path")
 
@@ -130,7 +141,7 @@ func resourceAwsIamUserUpdate(d *schema.ResourceData, meta interface{}) error {
 		log.Println("[DEBUG] Update IAM User request:", request)
 		_, err := iamconn.UpdateUser(request)
 		if err != nil {
-			if iamerr, ok := err.(awserr.Error); ok && iamerr.Code() == "NoSuchEntity" {
+			if isAWSErr(err, iam.ErrCodeNoSuchEntityException, "") {
 				log.Printf("[WARN] No IAM user by name (%s) found", d.Id())
 				d.SetId("")
 				return nil
@@ -139,9 +150,31 @@ func resourceAwsIamUserUpdate(d *schema.ResourceData, meta interface{}) error {
 		}
 
 		d.SetId(nn.(string))
-		return resourceAwsIamUserRead(d, meta)
 	}
-	return nil
+
+	if d.HasChange("permissions_boundary") {
+		permissionsBoundary := d.Get("permissions_boundary").(string)
+		if permissionsBoundary != "" {
+			input := &iam.PutUserPermissionsBoundaryInput{
+				PermissionsBoundary: aws.String(permissionsBoundary),
+				UserName:            aws.String(d.Id()),
+			}
+			_, err := iamconn.PutUserPermissionsBoundary(input)
+			if err != nil {
+				return fmt.Errorf("error updating IAM User permissions boundary: %s", err)
+			}
+		} else {
+			input := &iam.DeleteUserPermissionsBoundaryInput{
+				UserName: aws.String(d.Id()),
+			}
+			_, err := iamconn.DeleteUserPermissionsBoundary(input)
+			if err != nil {
+				return fmt.Errorf("error deleting IAM User permissions boundary: %s", err)
+			}
+		}
+	}
+
+	return resourceAwsIamUserRead(d, meta)
 }
 
 func resourceAwsIamUserDelete(d *schema.ResourceData, meta interface{}) error {
@@ -242,14 +275,19 @@ func resourceAwsIamUserDelete(d *schema.ResourceData, meta interface{}) error {
 		}
 	}
 
-	request := &iam.DeleteUserInput{
+	deleteUserInput := &iam.DeleteUserInput{
 		UserName: aws.String(d.Id()),
 	}
 
-	log.Println("[DEBUG] Delete IAM User request:", request)
-	if _, err := iamconn.DeleteUser(request); err != nil {
+	log.Println("[DEBUG] Delete IAM User request:", deleteUserInput)
+	_, err = iamconn.DeleteUser(deleteUserInput)
+	if err != nil {
+		if isAWSErr(err, iam.ErrCodeNoSuchEntityException, "") {
+			return nil
+		}
 		return fmt.Errorf("Error deleting IAM User %s: %s", d.Id(), err)
 	}
+
 	return nil
 }
 

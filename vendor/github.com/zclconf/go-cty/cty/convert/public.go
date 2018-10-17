@@ -1,7 +1,7 @@
 package convert
 
 import (
-	"fmt"
+	"errors"
 
 	"github.com/zclconf/go-cty/cty"
 )
@@ -46,7 +46,7 @@ func Convert(in cty.Value, want cty.Type) (cty.Value, error) {
 
 	conv := GetConversionUnsafe(in.Type(), want)
 	if conv == nil {
-		return cty.NilVal, fmt.Errorf("incorrect type; %s required", want.FriendlyName())
+		return cty.NilVal, errors.New(MismatchMessage(in.Type(), want))
 	}
 	return conv(in)
 }

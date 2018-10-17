@@ -12,19 +12,21 @@ import (
 	"log"
 	"os"
 	"path/filepath"
-	"sort"
 	"strconv"
 	"strings"
 	"time"
 
+	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/backend/local"
 	"github.com/hashicorp/terraform/command/format"
-	"github.com/hashicorp/terraform/config"
 	"github.com/hashicorp/terraform/config/module"
+	"github.com/hashicorp/terraform/configs/configload"
 	"github.com/hashicorp/terraform/helper/experiment"
-	"github.com/hashicorp/terraform/helper/variables"
 	"github.com/hashicorp/terraform/helper/wrappedstreams"
+	"github.com/hashicorp/terraform/providers"
+	"github.com/hashicorp/terraform/provisioners"
+	"github.com/hashicorp/terraform/svchost/auth"
 	"github.com/hashicorp/terraform/svchost/disco"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/hashicorp/terraform/tfdiags"
@@ -49,6 +51,10 @@ type Meta struct {
 	// Services provides access to remote endpoint information for
 	// "terraform-native' services running at a specific user-facing hostname.
 	Services *disco.Disco
+
+	// Credentials provides access to credentials for "terraform-native"
+	// services, which are accessed by a service hostname.
+	Credentials auth.CredentialsSource
 
 	// RunningInAutomation indicates that commands are being run by an
 	// automated system rather than directly at a command prompt.
@@ -98,17 +104,20 @@ type Meta struct {
 	// Private: do not set these
 	//----------------------------------------------------------
 
+	// configLoader is a shared configuration loader that is used by
+	// LoadConfig and other commands that access configuration files.
+	// It is initialized on first use.
+	configLoader *configload.Loader
+
 	// backendState is the currently active backend state
 	backendState *terraform.BackendState
 
 	// Variables for the context (private)
-	autoKey       string
-	autoVariables map[string]interface{}
-	input         bool
-	variables     map[string]interface{}
+	variableArgs rawFlags
+	input        bool
 
 	// Targets for this context (private)
-	targets []string
+	targets []addrs.Targetable
 
 	// Internal fields
 	color bool
@@ -166,8 +175,8 @@ type PluginOverrides struct {
 }
 
 type testingOverrides struct {
-	ProviderResolver terraform.ResourceProviderResolver
-	Provisioners     map[string]terraform.ResourceProvisionerFactory
+	ProviderResolver providers.Resolver
+	Provisioners     map[string]provisioners.Factory
 }
 
 // initStatePaths is used to initialize the default values for
@@ -255,6 +264,15 @@ func (m *Meta) StdinPiped() bool {
 	return fi.Mode()&os.ModeNamedPipe != 0
 }
 
+// RunOperation executes the given operation on the given backend, blocking
+// until that operation completes or is inteerrupted, and then returns
+// the RunningOperation object representing the completed or
+// aborted operation that is, despite the name, no longer running.
+//
+// An error is returned if the operation either fails to start or is cancelled.
+// If the operation runs to completion then no error is returned even if the
+// operation itself is unsuccessful. Use the "Result" field of the
+// returned operation object to recognize operation-level failure.
 func (m *Meta) RunOperation(b backend.Enhanced, opReq *backend.Operation) (*backend.RunningOperation, error) {
 	op, err := b.Operation(context.Background(), opReq)
 	if err != nil {
@@ -296,10 +314,6 @@ func (m *Meta) RunOperation(b backend.Enhanced, opReq *backend.Operation) (*back
 		// operation completed normally
 	}
 
-	if op.Err != nil {
-		return op, op.Err
-	}
-
 	return op, nil
 }
 
@@ -311,25 +325,12 @@ const (
 // context with the settings from this Meta.
 func (m *Meta) contextOpts() *terraform.ContextOpts {
 	var opts terraform.ContextOpts
-	opts.Hooks = []terraform.Hook{m.uiHook(), &terraform.DebugHook{}}
+	opts.Hooks = []terraform.Hook{m.uiHook()}
 	opts.Hooks = append(opts.Hooks, m.ExtraHooks...)
-
-	vs := make(map[string]interface{})
-	for k, v := range opts.Variables {
-		vs[k] = v
-	}
-	for k, v := range m.autoVariables {
-		vs[k] = v
-	}
-	for k, v := range m.variables {
-		vs[k] = v
-	}
-	opts.Variables = vs
 
 	opts.Targets = m.targets
 	opts.UIInput = m.UIInput()
 	opts.Parallelism = m.parallelism
-	opts.Shadow = m.shadow
 
 	// If testingOverrides are set, we'll skip the plugin discovery process
 	// and just work with what we've been given, thus allowing the tests
@@ -358,13 +359,15 @@ func (m *Meta) contextOpts() *terraform.ContextOpts {
 func (m *Meta) flagSet(n string) *flag.FlagSet {
 	f := flag.NewFlagSet(n, flag.ContinueOnError)
 	f.BoolVar(&m.input, "input", true, "input")
-	f.Var((*variables.Flag)(&m.variables), "var", "variables")
-	f.Var((*variables.FlagFile)(&m.variables), "var-file", "variable file")
-	f.Var((*FlagStringSlice)(&m.targets), "target", "resource to target")
+	f.Var((*FlagTargetSlice)(&m.targets), "target", "resource to target")
 
-	if m.autoKey != "" {
-		f.Var((*variables.FlagFile)(&m.autoVariables), m.autoKey, "variable file")
+	if m.variableArgs.items == nil {
+		m.variableArgs = newRawFlags("-var")
 	}
+	varValues := m.variableArgs.Alias("-var")
+	varFiles := m.variableArgs.Alias("-var-file")
+	f.Var(varValues, "var", "variables")
+	f.Var(varFiles, "var-file", "variable file")
 
 	// Advanced (don't need documentation, or unlikely to be set)
 	f.BoolVar(&m.shadow, "shadow", true, "shadow graph")
@@ -445,51 +448,6 @@ func (m *Meta) process(args []string, vars bool) ([]string, error) {
 		},
 	}
 
-	// If we support vars and the default var file exists, add it to
-	// the args...
-	m.autoKey = ""
-	if vars {
-		var preArgs []string
-
-		if _, err := os.Stat(DefaultVarsFilename); err == nil {
-			m.autoKey = "var-file-default"
-			preArgs = append(preArgs, "-"+m.autoKey, DefaultVarsFilename)
-		}
-
-		if _, err := os.Stat(DefaultVarsFilename + ".json"); err == nil {
-			m.autoKey = "var-file-default"
-			preArgs = append(preArgs, "-"+m.autoKey, DefaultVarsFilename+".json")
-		}
-
-		wd, err := os.Getwd()
-		if err != nil {
-			return nil, err
-		}
-
-		fis, err := ioutil.ReadDir(wd)
-		if err != nil {
-			return nil, err
-		}
-
-		// make sure we add the files in order
-		sort.Slice(fis, func(i, j int) bool {
-			return fis[i].Name() < fis[j].Name()
-		})
-
-		for _, fi := range fis {
-			name := fi.Name()
-			// Ignore directories, non-var-files, and ignored files
-			if fi.IsDir() || !isAutoVarFile(name) || config.IsIgnoredFile(name) {
-				continue
-			}
-
-			m.autoKey = "var-file-default"
-			preArgs = append(preArgs, "-"+m.autoKey, name)
-		}
-
-		args = append(preArgs, args...)
-	}
-
 	return args, nil
 }
 
@@ -536,13 +494,14 @@ func (m *Meta) confirm(opts *terraform.InputOpts) (bool, error) {
 func (m *Meta) showDiagnostics(vals ...interface{}) {
 	var diags tfdiags.Diagnostics
 	diags = diags.Append(vals...)
+	diags.Sort()
 
 	for _, diag := range diags {
 		// TODO: Actually measure the terminal width and pass it here.
 		// For now, we don't have easy access to the writer that
 		// ui.Error (etc) are writing to and thus can't interrogate
 		// to see if it's a terminal and what size it is.
-		msg := format.Diagnostic(diag, m.Colorize(), 78)
+		msg := format.Diagnostic(diag, m.configSources(), m.Colorize(), 78)
 		switch diag.Severity() {
 		case tfdiags.Error:
 			m.Ui.Error(msg)

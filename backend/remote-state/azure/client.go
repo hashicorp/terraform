@@ -2,18 +2,19 @@ package azure
 
 import (
 	"bytes"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io"
 	"log"
 
-	"encoding/base64"
 	"github.com/Azure/azure-sdk-for-go/storage"
 	multierror "github.com/hashicorp/go-multierror"
 	uuid "github.com/hashicorp/go-uuid"
+
 	"github.com/hashicorp/terraform/state"
 	"github.com/hashicorp/terraform/state/remote"
-	"github.com/hashicorp/terraform/terraform"
+	"github.com/hashicorp/terraform/states"
 )
 
 const (
@@ -162,7 +163,7 @@ func (c *RemoteClient) Lock(info *state.LockInfo) (string, error) {
 		log.Print("[DEBUG] Could not lock as state blob did not exist, creating with empty state")
 
 		if v := stateMgr.State(); v == nil {
-			if err := stateMgr.WriteState(terraform.NewState()); err != nil {
+			if err := stateMgr.WriteState(states.NewState()); err != nil {
 				return "", fmt.Errorf("Failed to write empty state for locking: %s", err)
 			}
 			if err := stateMgr.PersistState(); err != nil {

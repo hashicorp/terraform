@@ -1,3 +1,13 @@
+## 0.12.0 (Unreleased)
+
+INCOMPATIBILITIES AND NOTES:
+
+* `terraform validate` now has a smaller scope than before, focusing only on configuration syntax and value type checking. This makes it safe to run e.g. on save in a text editor.
+
+IMPROVEMENTS:
+
+* `terraform validate` now accepts an argument `-json` which produces machine-readable output. Please refer to the documentation for this command for details on the format and some caveats that consumers must consider when using this interface. [GH-17539]
+
 ## 0.11.9 (Unreleased)
 
 IMPROVEMENTS:

@@ -6,7 +6,6 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/efs"
-	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -61,7 +60,7 @@ func dataSourceAwsEfsMountTargetRead(d *schema.ResourceData, meta interface{}) e
 	log.Printf("[DEBUG] Reading EFS Mount Target: %s", describeEfsOpts)
 	resp, err := efsconn.DescribeMountTargets(describeEfsOpts)
 	if err != nil {
-		return errwrap.Wrapf("Error retrieving EFS Mount Target: {{err}}", err)
+		return fmt.Errorf("Error retrieving EFS Mount Target: %s", err)
 	}
 	if len(resp.MountTargets) != 1 {
 		return fmt.Errorf("Search returned %d results, please revise so only one is returned", len(resp.MountTargets))
@@ -89,7 +88,7 @@ func dataSourceAwsEfsMountTargetRead(d *schema.ResourceData, meta interface{}) e
 	}
 
 	if err := d.Set("dns_name", resourceAwsEfsMountTargetDnsName(*mt.FileSystemId, meta.(*AWSClient).region)); err != nil {
-		return fmt.Errorf("[DEBUG] Error setting dns_name error: %#v", err)
+		return fmt.Errorf("Error setting dns_name error: %#v", err)
 	}
 
 	return nil

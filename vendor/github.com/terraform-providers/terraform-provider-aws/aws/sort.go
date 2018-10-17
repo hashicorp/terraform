@@ -25,9 +25,14 @@ func (a imageSort) Less(i, j int) bool {
 }
 
 // Sort images by creation date, in descending order.
-func sortImages(images []*ec2.Image) []*ec2.Image {
+func sortImages(images []*ec2.Image, sortAscending bool) []*ec2.Image {
 	sortedImages := images
-	sort.Sort(sort.Reverse(imageSort(sortedImages)))
+	if sortAscending {
+		sort.Sort(imageSort(sortedImages))
+
+	} else {
+		sort.Sort(sort.Reverse(imageSort(sortedImages)))
+	}
 	return sortedImages
 }
 

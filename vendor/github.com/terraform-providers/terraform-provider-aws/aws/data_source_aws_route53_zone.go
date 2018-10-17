@@ -51,7 +51,7 @@ func dataSourceAwsRoute53Zone() *schema.Resource {
 				Optional: true,
 				Computed: true,
 			},
-			"name_servers": &schema.Schema{
+			"name_servers": {
 				Type:     schema.TypeList,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 				Computed: true,

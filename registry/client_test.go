@@ -1,6 +1,7 @@
 package registry
 
 import (
+	"fmt"
 	"os"
 	"strings"
 	"testing"
@@ -27,7 +28,7 @@ func TestLookupModuleVersions(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		resp, err := client.Versions(modsrc)
+		resp, err := client.ModuleVersions(modsrc)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -67,7 +68,7 @@ func TestInvalidRegistry(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if _, err := client.Versions(modsrc); err == nil {
+	if _, err := client.ModuleVersions(modsrc); err == nil {
 		t.Fatal("expected error")
 	}
 }
@@ -84,26 +85,26 @@ func TestRegistryAuth(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	_, err = client.Versions(mod)
-	if err != nil {
-		t.Fatal(err)
+	// both should fail without auth
+	_, err = client.ModuleVersions(mod)
+	if err == nil {
+		t.Fatal("expected error")
 	}
-	_, err = client.Location(mod, "1.0.0")
-	if err != nil {
-		t.Fatal(err)
+	_, err = client.ModuleLocation(mod, "1.0.0")
+	if err == nil {
+		t.Fatal("expected error")
 	}
 
 	// Also test without a credentials source
 	client.services.SetCredentialsSource(nil)
 
-	// both should fail without auth
-	_, err = client.Versions(mod)
-	if err == nil {
-		t.Fatal("expected error")
+	_, err = client.ModuleVersions(mod)
+	if err != nil {
+		t.Fatal(err)
 	}
-	_, err = client.Location(mod, "1.0.0")
-	if err == nil {
-		t.Fatal("expected error")
+	_, err = client.ModuleLocation(mod, "1.0.0")
+	if err != nil {
+		t.Fatal(err)
 	}
 }
 
@@ -119,7 +120,7 @@ func TestLookupModuleLocationRelative(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	got, err := client.Location(mod, "0.2.0")
+	got, err := client.ModuleLocation(mod, "0.2.0")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -147,7 +148,7 @@ func TestAccLookupModuleVersions(t *testing.T) {
 		}
 
 		s := NewClient(regDisco, nil)
-		resp, err := s.Versions(modsrc)
+		resp, err := s.ModuleVersions(modsrc)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -189,7 +190,7 @@ func TestLookupLookupModuleError(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	_, err = client.Location(mod, "0.2.0")
+	_, err = client.ModuleLocation(mod, "0.2.0")
 	if err == nil {
 		t.Fatal("expected error")
 	}
@@ -198,4 +199,91 @@ func TestLookupLookupModuleError(t *testing.T) {
 	if !strings.Contains(err.Error(), `"bad/local/path"`) {
 		t.Fatal("error should not include the hostname. got:", err)
 	}
+}
+
+func TestLookupProviderVersions(t *testing.T) {
+	server := test.Registry()
+	defer server.Close()
+
+	client := NewClient(test.Disco(server), nil)
+
+	tests := []struct {
+		name string
+	}{
+		{"foo"},
+		{"bar"},
+	}
+	for _, tt := range tests {
+		provider := regsrc.NewTerraformProvider(tt.name, "", "")
+		resp, err := client.TerraformProviderVersions(provider)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		name := fmt.Sprintf("terraform-providers/%s", tt.name)
+		if resp.ID != name {
+			t.Fatalf("expected provider name %q, got %q", name, resp.ID)
+		}
+
+		if len(resp.Versions) != 2 {
+			t.Fatal("expected 2 versions, got", len(resp.Versions))
+		}
+
+		for _, v := range resp.Versions {
+			_, err := version.NewVersion(v.Version)
+			if err != nil {
+				t.Fatalf("invalid version %q: %s", v, err)
+			}
+		}
+	}
+}
+
+func TestLookupProviderLocation(t *testing.T) {
+	server := test.Registry()
+	defer server.Close()
+
+	client := NewClient(test.Disco(server), nil)
+
+	tests := []struct {
+		Name    string
+		Version string
+		Err     bool
+	}{
+		{
+			"foo",
+			"0.2.3",
+			false,
+		},
+		{
+			"bar",
+			"0.1.1",
+			false,
+		},
+		{
+			"baz",
+			"0.0.0",
+			true,
+		},
+	}
+	for _, tt := range tests {
+		// FIXME: the tests are set up to succeed - os/arch is not being validated at this time
+		p := regsrc.NewTerraformProvider(tt.Name, "linux", "amd64")
+
+		locationMetadata, err := client.TerraformProviderLocation(p, tt.Version)
+		if tt.Err {
+			if err == nil {
+				t.Fatal("succeeded; want error")
+			}
+			return
+		} else if err != nil {
+			t.Fatalf("unexpected error: %s", err)
+		}
+
+		downloadURL := fmt.Sprintf("https://releases.hashicorp.com/terraform-provider-%s/%s/terraform-provider-%s.zip", tt.Name, tt.Version, tt.Name)
+
+		if locationMetadata.DownloadURL != downloadURL {
+			t.Fatalf("incorrect download URL: expected %q, got %q", downloadURL, locationMetadata.DownloadURL)
+		}
+	}
+
 }

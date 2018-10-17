@@ -41,7 +41,18 @@ func (p *Parser) LoadConfigDir(path string) (*Module, hcl.Diagnostics) {
 	mod, modDiags := NewModule(primary, override)
 	diags = append(diags, modDiags...)
 
+	mod.SourceDir = path
+
 	return mod, diags
+}
+
+// ConfigDirFiles returns lists of the primary and override files configuration
+// files in the given directory.
+//
+// If the given directory does not exist or cannot be read, error diagnostics
+// are returned. If errors are returned, the resulting lists may be incomplete.
+func (p Parser) ConfigDirFiles(dir string) (primary, override []string, diags hcl.Diagnostics) {
+	return p.dirFiles(dir)
 }
 
 // IsConfigDir determines whether the given path refers to a directory that

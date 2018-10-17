@@ -11,7 +11,6 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/elbv2"
-	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
@@ -264,7 +263,7 @@ func resourceAwsLbCreate(d *schema.ResourceData, meta interface{}) error {
 
 	resp, err := elbconn.CreateLoadBalancer(elbOpts)
 	if err != nil {
-		return errwrap.Wrapf("Error creating Application Load Balancer: {{err}}", err)
+		return fmt.Errorf("Error creating Application Load Balancer: %s", err)
 	}
 
 	if len(resp.LoadBalancers) != 1 {
@@ -272,7 +271,7 @@ func resourceAwsLbCreate(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	lb := resp.LoadBalancers[0]
-	d.SetId(*lb.LoadBalancerArn)
+	d.SetId(aws.StringValue(lb.LoadBalancerArn))
 	log.Printf("[INFO] LB ID: %s", d.Id())
 
 	stateConf := &resource.StateChangeConf{
@@ -287,13 +286,13 @@ func resourceAwsLbCreate(d *schema.ResourceData, meta interface{}) error {
 			}
 
 			if len(describeResp.LoadBalancers) != 1 {
-				return nil, "", fmt.Errorf("No load balancers returned for %s", *lb.LoadBalancerArn)
+				return nil, "", fmt.Errorf("No load balancers returned for %s", aws.StringValue(lb.LoadBalancerArn))
 			}
 			dLb := describeResp.LoadBalancers[0]
 
-			log.Printf("[INFO] LB state: %s", *dLb.State.Code)
+			log.Printf("[INFO] LB state: %s", aws.StringValue(dLb.State.Code))
 
-			return describeResp, *dLb.State.Code, nil
+			return describeResp, aws.StringValue(dLb.State.Code), nil
 		},
 		Timeout:    d.Timeout(schema.TimeoutCreate),
 		MinTimeout: 10 * time.Second,
@@ -324,7 +323,7 @@ func resourceAwsLbRead(d *schema.ResourceData, meta interface{}) error {
 			return nil
 		}
 
-		return errwrap.Wrapf("Error retrieving ALB: {{err}}", err)
+		return fmt.Errorf("Error retrieving ALB: %s", err)
 	}
 	if len(describeResp.LoadBalancers) != 1 {
 		return fmt.Errorf("Unable to find ALB: %#v", describeResp.LoadBalancers)
@@ -338,7 +337,7 @@ func resourceAwsLbUpdate(d *schema.ResourceData, meta interface{}) error {
 
 	if !d.IsNewResource() {
 		if err := setElbV2Tags(elbconn, d); err != nil {
-			return errwrap.Wrapf("Error Modifying Tags on ALB: {{err}}", err)
+			return fmt.Errorf("Error Modifying Tags on ALB: %s", err)
 		}
 	}
 
@@ -474,9 +473,9 @@ func resourceAwsLbUpdate(d *schema.ResourceData, meta interface{}) error {
 			}
 			dLb := describeResp.LoadBalancers[0]
 
-			log.Printf("[INFO] LB state: %s", *dLb.State.Code)
+			log.Printf("[INFO] LB state: %s", aws.StringValue(dLb.State.Code))
 
-			return describeResp, *dLb.State.Code, nil
+			return describeResp, aws.StringValue(dLb.State.Code), nil
 		},
 		Timeout:    d.Timeout(schema.TimeoutUpdate),
 		MinTimeout: 10 * time.Second,
@@ -623,7 +622,7 @@ func getLbNameFromArn(arn string) (string, error) {
 func flattenSubnetsFromAvailabilityZones(availabilityZones []*elbv2.AvailabilityZone) []string {
 	var result []string
 	for _, az := range availabilityZones {
-		result = append(result, *az.SubnetId)
+		result = append(result, aws.StringValue(az.SubnetId))
 	}
 	return result
 }
@@ -633,10 +632,10 @@ func flattenSubnetMappingsFromAvailabilityZones(availabilityZones []*elbv2.Avail
 	for _, availabilityZone := range availabilityZones {
 		for _, loadBalancerAddress := range availabilityZone.LoadBalancerAddresses {
 			m := make(map[string]interface{}, 0)
-			m["subnet_id"] = *availabilityZone.SubnetId
+			m["subnet_id"] = aws.StringValue(availabilityZone.SubnetId)
 
 			if loadBalancerAddress.AllocationId != nil {
-				m["allocation_id"] = *loadBalancerAddress.AllocationId
+				m["allocation_id"] = aws.StringValue(loadBalancerAddress.AllocationId)
 			}
 
 			l = append(l, m)
@@ -666,7 +665,7 @@ func flattenAwsLbResource(d *schema.ResourceData, meta interface{}, lb *elbv2.Lo
 	d.Set("arn", lb.LoadBalancerArn)
 	d.Set("arn_suffix", lbSuffixFromARN(lb.LoadBalancerArn))
 	d.Set("name", lb.LoadBalancerName)
-	d.Set("internal", (lb.Scheme != nil && *lb.Scheme == "internal"))
+	d.Set("internal", (lb.Scheme != nil && aws.StringValue(lb.Scheme) == "internal"))
 	d.Set("security_groups", flattenStringList(lb.SecurityGroups))
 	d.Set("vpc_id", lb.VpcId)
 	d.Set("zone_id", lb.CanonicalHostedZoneId)
@@ -686,7 +685,7 @@ func flattenAwsLbResource(d *schema.ResourceData, meta interface{}, lb *elbv2.Lo
 		ResourceArns: []*string{lb.LoadBalancerArn},
 	})
 	if err != nil {
-		return errwrap.Wrapf("Error retrieving LB Tags: {{err}}", err)
+		return fmt.Errorf("Error retrieving LB Tags: %s", err)
 	}
 
 	var et []*elbv2.Tag
@@ -702,12 +701,12 @@ func flattenAwsLbResource(d *schema.ResourceData, meta interface{}, lb *elbv2.Lo
 		LoadBalancerArn: aws.String(d.Id()),
 	})
 	if err != nil {
-		return errwrap.Wrapf("Error retrieving LB Attributes: {{err}}", err)
+		return fmt.Errorf("Error retrieving LB Attributes: %s", err)
 	}
 
 	accessLogMap := map[string]interface{}{}
 	for _, attr := range attributesResp.Attributes {
-		switch *attr.Key {
+		switch aws.StringValue(attr.Key) {
 		case "access_logs.s3.enabled":
 			accessLogMap["enabled"] = aws.StringValue(attr.Value) == "true"
 		case "access_logs.s3.bucket":
@@ -715,22 +714,22 @@ func flattenAwsLbResource(d *schema.ResourceData, meta interface{}, lb *elbv2.Lo
 		case "access_logs.s3.prefix":
 			accessLogMap["prefix"] = aws.StringValue(attr.Value)
 		case "idle_timeout.timeout_seconds":
-			timeout, err := strconv.Atoi(*attr.Value)
+			timeout, err := strconv.Atoi(aws.StringValue(attr.Value))
 			if err != nil {
-				return errwrap.Wrapf("Error parsing ALB timeout: {{err}}", err)
+				return fmt.Errorf("Error parsing ALB timeout: %s", err)
 			}
 			log.Printf("[DEBUG] Setting ALB Timeout Seconds: %d", timeout)
 			d.Set("idle_timeout", timeout)
 		case "deletion_protection.enabled":
-			protectionEnabled := (*attr.Value) == "true"
+			protectionEnabled := aws.StringValue(attr.Value) == "true"
 			log.Printf("[DEBUG] Setting LB Deletion Protection Enabled: %t", protectionEnabled)
 			d.Set("enable_deletion_protection", protectionEnabled)
 		case "routing.http2.enabled":
-			http2Enabled := (*attr.Value) == "true"
+			http2Enabled := aws.StringValue(attr.Value) == "true"
 			log.Printf("[DEBUG] Setting ALB HTTP/2 Enabled: %t", http2Enabled)
 			d.Set("enable_http2", http2Enabled)
 		case "load_balancing.cross_zone.enabled":
-			crossZoneLbEnabled := (*attr.Value) == "true"
+			crossZoneLbEnabled := aws.StringValue(attr.Value) == "true"
 			log.Printf("[DEBUG] Setting NLB Cross Zone Load Balancing Enabled: %t", crossZoneLbEnabled)
 			d.Set("enable_cross_zone_load_balancing", crossZoneLbEnabled)
 		}

@@ -153,6 +153,24 @@ func resourceAwsLambdaFunction() *schema.Resource {
 						},
 					},
 				},
+
+				// Suppress diffs if the VPC configuration is provided, but empty
+				// which is a valid Lambda function configuration. e.g.
+				//   vpc_config {
+				//     security_group_ids = []
+				//     subnet_ids         = []
+				//   }
+				DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
+					if d.Id() == "" || old == "1" || new == "0" {
+						return false
+					}
+
+					if d.HasChange("vpc_config.0.security_group_ids") || d.HasChange("vpc_config.0.subnet_ids") {
+						return false
+					}
+
+					return true
+				},
 			},
 			"arn": {
 				Type:     schema.TypeString,
@@ -305,30 +323,12 @@ func resourceAwsLambdaFunctionCreate(d *schema.ResourceData, meta interface{}) e
 		}
 	}
 
-	if v, ok := d.GetOk("vpc_config"); ok {
+	if v, ok := d.GetOk("vpc_config"); ok && len(v.([]interface{})) > 0 {
+		config := v.([]interface{})[0].(map[string]interface{})
 
-		configs := v.([]interface{})
-		config, ok := configs[0].(map[string]interface{})
-
-		if !ok {
-			return errors.New("vpc_config is <nil>")
-		}
-
-		if config != nil {
-			var subnetIds []*string
-			for _, id := range config["subnet_ids"].(*schema.Set).List() {
-				subnetIds = append(subnetIds, aws.String(id.(string)))
-			}
-
-			var securityGroupIds []*string
-			for _, id := range config["security_group_ids"].(*schema.Set).List() {
-				securityGroupIds = append(securityGroupIds, aws.String(id.(string)))
-			}
-
-			params.VpcConfig = &lambda.VpcConfig{
-				SubnetIds:        subnetIds,
-				SecurityGroupIds: securityGroupIds,
-			}
+		params.VpcConfig = &lambda.VpcConfig{
+			SecurityGroupIds: expandStringSet(config["security_group_ids"].(*schema.Set)),
+			SubnetIds:        expandStringSet(config["subnet_ids"].(*schema.Set)),
 		}
 	}
 
@@ -379,6 +379,10 @@ func resourceAwsLambdaFunctionCreate(d *schema.ResourceData, meta interface{}) e
 				return resource.RetryableError(err)
 			}
 			if isAWSErr(err, "InvalidParameterValueException", "Your request has been throttled by EC2") {
+				log.Printf("[DEBUG] Received %s, retrying CreateFunction", err)
+				return resource.RetryableError(err)
+			}
+			if isAWSErr(err, "InvalidParameterValueException", "Lambda was unable to configure access to your environment variables because the KMS key is invalid for CreateGrant") {
 				log.Printf("[DEBUG] Received %s, retrying CreateFunction", err)
 				return resource.RetryableError(err)
 			}
@@ -501,7 +505,7 @@ func resourceAwsLambdaFunctionRead(d *schema.ResourceData, meta interface{}) err
 	config := flattenLambdaVpcConfigResponse(function.VpcConfig)
 	log.Printf("[INFO] Setting Lambda %s VPC config %#v from API", d.Id(), config)
 	if err := d.Set("vpc_config", config); err != nil {
-		return fmt.Errorf("[ERR] Error setting vpc_config for Lambda Function (%s): %s", d.Id(), err)
+		return fmt.Errorf("Error setting vpc_config for Lambda Function (%s): %s", d.Id(), err)
 	}
 
 	environment := flattenLambdaEnvironment(function.Environment)
@@ -680,29 +684,16 @@ func resourceAwsLambdaFunctionUpdate(d *schema.ResourceData, meta interface{}) e
 		}
 	}
 	if d.HasChange("vpc_config") {
-		vpcConfigRaw := d.Get("vpc_config").([]interface{})
-		vpcConfig, ok := vpcConfigRaw[0].(map[string]interface{})
-		if !ok {
-			return errors.New("vpc_config is <nil>")
+		configReq.VpcConfig = &lambda.VpcConfig{
+			SecurityGroupIds: []*string{},
+			SubnetIds:        []*string{},
 		}
-
-		if vpcConfig != nil {
-			var subnetIds []*string
-			for _, id := range vpcConfig["subnet_ids"].(*schema.Set).List() {
-				subnetIds = append(subnetIds, aws.String(id.(string)))
-			}
-
-			var securityGroupIds []*string
-			for _, id := range vpcConfig["security_group_ids"].(*schema.Set).List() {
-				securityGroupIds = append(securityGroupIds, aws.String(id.(string)))
-			}
-
-			configReq.VpcConfig = &lambda.VpcConfig{
-				SubnetIds:        subnetIds,
-				SecurityGroupIds: securityGroupIds,
-			}
-			configUpdate = true
+		if v, ok := d.GetOk("vpc_config"); ok && len(v.([]interface{})) > 0 {
+			vpcConfig := v.([]interface{})[0].(map[string]interface{})
+			configReq.VpcConfig.SecurityGroupIds = expandStringSet(vpcConfig["security_group_ids"].(*schema.Set))
+			configReq.VpcConfig.SubnetIds = expandStringSet(vpcConfig["subnet_ids"].(*schema.Set))
 		}
+		configUpdate = true
 	}
 
 	if d.HasChange("runtime") {
@@ -754,6 +745,11 @@ func resourceAwsLambdaFunctionUpdate(d *schema.ResourceData, meta interface{}) e
 					log.Printf("[DEBUG] Received %s, retrying UpdateFunctionConfiguration", err)
 					return resource.RetryableError(err)
 				}
+				if isAWSErr(err, "InvalidParameterValueException", "Lambda was unable to configure access to your environment variables because the KMS key is invalid for CreateGrant") {
+					log.Printf("[DEBUG] Received %s, retrying CreateFunction", err)
+					return resource.RetryableError(err)
+				}
+
 				return resource.NonRetryableError(err)
 			}
 			return nil

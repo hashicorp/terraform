@@ -792,7 +792,7 @@ func (c *StorageGateway) CreateNFSFileShareRequest(input *CreateNFSFileShareInpu
 // Creates a Network File System (NFS) file share on an existing file gateway.
 // In Storage Gateway, a file share is a file system mount point backed by Amazon
 // S3 cloud storage. Storage Gateway exposes file shares using a NFS interface.
-// This operation is only supported in the file gateway type.
+// This operation is only supported for file gateways.
 //
 // File gateway requires AWS Security Token Service (AWS STS) to be activated
 // to enable you create a file share. Make sure AWS STS is activated in the
@@ -888,16 +888,16 @@ func (c *StorageGateway) CreateSMBFileShareRequest(input *CreateSMBFileShareInpu
 // Creates a Server Message Block (SMB) file share on an existing file gateway.
 // In Storage Gateway, a file share is a file system mount point backed by Amazon
 // S3 cloud storage. Storage Gateway expose file shares using a SMB interface.
-// This operation is only supported in the file gateway type.
+// This operation is only supported for file gateways.
 //
-// File gateway requires AWS Security Token Service (AWS STS) to be activated
-// to enable you create a file share. Make sure AWS STS is activated in the
-// region you are creating your file gateway in. If AWS STS is not activated
-// in the region, activate it. For information about how to activate AWS STS,
-// see Activating and Deactivating AWS STS in an AWS Region in the AWS Identity
-// and Access Management User Guide.
+// File gateways require AWS Security Token Service (AWS STS) to be activated
+// to enable you to create a file share. Make sure that AWS STS is activated
+// in the AWS Region you are creating your file gateway in. If AWS STS is not
+// activated in this AWS Region, activate it. For information about how to activate
+// AWS STS, see Activating and Deactivating AWS STS in an AWS Region (http://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_temp_enable-regions.html)
+// in the AWS Identity and Access Management User Guide.
 //
-// File gateway does not support creating hard or symbolic links on a file share.
+// File gateways don't support creating hard or symbolic links on a file share.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -1645,7 +1645,7 @@ func (c *StorageGateway) DeleteFileShareRequest(input *DeleteFileShareInput) (re
 // DeleteFileShare API operation for AWS Storage Gateway.
 //
 // Deletes a file share from a file gateway. This operation is only supported
-// in the file gateway type.
+// for file gateways.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -2715,8 +2715,7 @@ func (c *StorageGateway) DescribeNFSFileSharesRequest(input *DescribeNFSFileShar
 // DescribeNFSFileShares API operation for AWS Storage Gateway.
 //
 // Gets a description for one or more Network File System (NFS) file shares
-// from a file gateway. This operation is only supported in the file gateway
-// type.
+// from a file gateway. This operation is only supported for file gateways.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -2801,8 +2800,7 @@ func (c *StorageGateway) DescribeSMBFileSharesRequest(input *DescribeSMBFileShar
 // DescribeSMBFileShares API operation for AWS Storage Gateway.
 //
 // Gets a description for one or more Server Message Block (SMB) file shares
-// from a file gateway. This operation is only supported in the file gateway
-// type.
+// from a file gateway. This operation is only supported for file gateways.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -2887,7 +2885,7 @@ func (c *StorageGateway) DescribeSMBSettingsRequest(input *DescribeSMBSettingsIn
 // DescribeSMBSettings API operation for AWS Storage Gateway.
 //
 // Gets a description of a Server Message Block (SMB) file share settings from
-// a file gateway. This operation is only supported in the file gateway type.
+// a file gateway. This operation is only supported for file gateways.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -3993,7 +3991,7 @@ func (c *StorageGateway) JoinDomainRequest(input *JoinDomainInput) (req *request
 // JoinDomain API operation for AWS Storage Gateway.
 //
 // Adds a file gateway to an Active Directory domain. This operation is only
-// supported in the file gateway type that supports the SMB file protocol.
+// supported for file gateways that support the SMB file protocol.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -4079,7 +4077,7 @@ func (c *StorageGateway) ListFileSharesRequest(input *ListFileSharesInput) (req 
 //
 // Gets a list of the file shares for a specific file gateway, or the list of
 // file shares that belong to the calling user account. This operation is only
-// supported in the file gateway type.
+// supported for file gateways.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -4923,7 +4921,7 @@ func (c *StorageGateway) NotifyWhenUploadedRequest(input *NotifyWhenUploadedInpu
 // is done, Storage Gateway sends you notification through an Amazon CloudWatch
 // Event. You can configure CloudWatch Events to send the notification through
 // event targets such as Amazon SNS or AWS Lambda function. This operation is
-// only supported in the file gateway type.
+// only supported for file gateways.
 //
 // For more information, see Getting File Upload Notification in the Storage
 // Gateway User Guide (https://docs.aws.amazon.com/storagegateway/latest/userguide/monitoring-file-gateway.html#get-upload-notification).
@@ -5013,7 +5011,9 @@ func (c *StorageGateway) RefreshCacheRequest(input *RefreshCacheInput) (req *req
 // Refreshes the cache for the specified file share. This operation finds objects
 // in the Amazon S3 bucket that were added, removed or replaced since the gateway
 // last listed the bucket's contents and cached the results. This operation
-// is only supported in the file gateway type.
+// is only supported in the file gateway type. You can subscribe to be notified
+// through an Amazon CloudWatch event when your RefreshCache operation completes.
+// For more information, see Getting Notified About File Operations (https://docs.aws.amazon.com/storagegateway/latest/userguide/monitoring-file-gateway.html#get-notification).
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -5550,8 +5550,8 @@ func (c *StorageGateway) SetSMBGuestPasswordRequest(input *SetSMBGuestPasswordIn
 
 // SetSMBGuestPassword API operation for AWS Storage Gateway.
 //
-// Sets the password for the guest user “smbguest”. "smbguest" is the user when
-// the Authentication method for the file share is “GuestAccess”.
+// Sets the password for the guest user smbguest. The smbguest user is the user
+// when the authentication method for the file share is set to GuestAccess.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -6393,20 +6393,19 @@ func (c *StorageGateway) UpdateSMBFileShareRequest(input *UpdateSMBFileShareInpu
 
 // UpdateSMBFileShare API operation for AWS Storage Gateway.
 //
-// Updates a Server Message Block (SMB) file share. This operation is only supported
-// in the file gateway type.
+// Updates a Server Message Block (SMB) file share.
 //
 // To leave a file share field unchanged, set the corresponding input field
-// to null. This operation is only supported in the file gateway type.
+// to null. This operation is only supported for file gateways.
 //
-// File gateway requires AWS Security Token Service (AWS STS) to be activated
-// to enable you create a file share. Make sure AWS STS is activated in the
-// region you are creating your file gateway in. If AWS STS is not activated
-// in the region, activate it. For information about how to activate AWS STS,
-// see Activating and Deactivating AWS STS in an AWS Region in the AWS Identity
-// and Access Management User Guide.
+// File gateways require AWS Security Token Service (AWS STS) to be activated
+// to enable you to create a file share. Make sure that AWS STS is activated
+// in the AWS Region you are creating your file gateway in. If AWS STS is not
+// activated in this AWS Region, activate it. For information about how to activate
+// AWS STS, see Activating and Deactivating AWS STS in an AWS Region (http://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_temp_enable-regions.html)
+// in the AWS Identity and Access Management User Guide.
 //
-// File gateway does not support creating hard or symbolic links on a file share.
+// File gateways don't support creating hard or symbolic links on a file share.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -6688,7 +6687,7 @@ type ActivateGatewayInput struct {
 
 	// A value that defines the type of gateway to activate. The type specified
 	// is critical to all later functions of the gateway and cannot be changed after
-	// activation. The default value is STORED.
+	// activation. The default value is CACHED.
 	//
 	// Valid Values: "STORED", "CACHED", "VTL", "FILE_S3"
 	GatewayType *string `min:"2" type:"string"`
@@ -7178,8 +7177,8 @@ type CachediSCSIVolume struct {
 	// don’t have this time stamp.
 	CreatedDate *time.Time `type:"timestamp"`
 
-	// The Amazon Resource Name (ARN) of the KMS key used for Amazon S3 server side
-	// encryption. This value can only be set when KMSEncrypted is true. Optional.
+	// The Amazon Resource Name (ARN) of the AWS KMS key used for Amazon S3 server
+	// side encryption. This value can only be set when KMSEncrypted is true. Optional.
 	KMSKey *string `min:"20" type:"string"`
 
 	// If the cached volume was created from a snapshot, this field contains the
@@ -7541,8 +7540,8 @@ type CreateCachediSCSIVolumeInput struct {
 	// false to use a key managed by Amazon S3. Optional.
 	KMSEncrypted *bool `type:"boolean"`
 
-	// The Amazon Resource Name (ARN) of the KMS key used for Amazon S3 server side
-	// encryption. This value can only be set when KMSEncrypted is true. Optional.
+	// The Amazon Resource Name (ARN) of the AWS KMS key used for Amazon S3 server
+	// side encryption. This value can only be set when KMSEncrypted is true. Optional.
 	KMSKey *string `min:"20" type:"string"`
 
 	// The network interface of the gateway on which to expose the iSCSI target.
@@ -7732,8 +7731,8 @@ type CreateNFSFileShareInput struct {
 	// ClientToken is a required field
 	ClientToken *string `min:"5" type:"string" required:"true"`
 
-	// The default storage class for objects put into an Amazon S3 bucket by file
-	// gateway. Possible values are S3_STANDARD, S3_STANDARD_IA or S3_ONEZONE_IA.
+	// The default storage class for objects put into an Amazon S3 bucket by the
+	// file gateway. Possible values are S3_STANDARD, S3_STANDARD_IA, or S3_ONEZONE_IA.
 	// If this field is not populated, the default value S3_STANDARD is used. Optional.
 	DefaultStorageClass *string `min:"5" type:"string"`
 
@@ -7743,17 +7742,17 @@ type CreateNFSFileShareInput struct {
 	// GatewayARN is a required field
 	GatewayARN *string `min:"50" type:"string" required:"true"`
 
-	// Enables guessing of the MIME type for uploaded objects based on file extensions.
-	// Set this value to true to enable MIME type guessing, and otherwise to false.
-	// The default value is true.
+	// A value that enables guessing of the MIME type for uploaded objects based
+	// on file extensions. Set this value to true to enable MIME type guessing,
+	// and otherwise to false. The default value is true.
 	GuessMIMETypeEnabled *bool `type:"boolean"`
 
 	// True to use Amazon S3 server side encryption with your own AWS KMS key, or
 	// false to use a key managed by Amazon S3. Optional.
 	KMSEncrypted *bool `type:"boolean"`
 
-	// The Amazon Resource Name (ARN) KMS key used for Amazon S3 server side encryption.
-	// This value can only be set when KMSEncrypted is true. Optional.
+	// The Amazon Resource Name (ARN) AWS KMS key used for Amazon S3 server side
+	// encryption. This value can only be set when KMSEncrypted is true. Optional.
 	KMSKey *string `min:"20" type:"string"`
 
 	// The ARN of the backed storage used for storing file data.
@@ -7764,17 +7763,16 @@ type CreateNFSFileShareInput struct {
 	// File share default values. Optional.
 	NFSFileShareDefaults *NFSFileShareDefaults `type:"structure"`
 
-	// Sets the access control list permission for objects in the Amazon S3 bucket
-	// that a file gateway puts objects into. The default value is "private".
+	// A value that sets the access control list permission for objects in the S3
+	// bucket that a file gateway puts objects into. The default value is "private".
 	ObjectACL *string `type:"string" enum:"ObjectACL"`
 
-	// Sets the write status of a file share. This value is true if the write status
-	// is read-only, and otherwise false.
+	// A value that sets the write status of a file share. This value is true if
+	// the write status is read-only, and otherwise false.
 	ReadOnly *bool `type:"boolean"`
 
-	// Sets who pays the cost of the request and the data download from the Amazon
-	// S3 bucket. Set this value to true if you want the requester to pay instead
-	// of the bucket owner, and otherwise to false.
+	// A value that sets the access control list permission for objects in the Amazon
+	// S3 bucket that a file gateway puts objects into. The default value is private.
 	RequesterPays *bool `type:"boolean"`
 
 	// The ARN of the AWS Identity and Access Management (IAM) role that a file
@@ -7785,11 +7783,11 @@ type CreateNFSFileShareInput struct {
 
 	// Maps a user to anonymous user. Valid options are the following:
 	//
-	//    * "RootSquash" - Only root is mapped to anonymous user.
+	//    * RootSquash - Only root is mapped to anonymous user.
 	//
-	//    * "NoSquash" - No one is mapped to anonymous user.
+	//    * NoSquash - No one is mapped to anonymous user
 	//
-	//    * "AllSquash" - Everyone is mapped to anonymous user.
+	//    * AllSquash - Everyone is mapped to anonymous user.
 	Squash *string `min:"5" type:"string"`
 }
 
@@ -7968,7 +7966,7 @@ type CreateSMBFileShareInput struct {
 
 	// The authentication method that users use to access the file share.
 	//
-	// Valid values: "ActiveDirectory" or "GuestAccess". The default is "ActiveDirectory".
+	// Valid values are ActiveDirectory or GuestAccess. The default is ActiveDirectory.
 	Authentication *string `min:"5" type:"string"`
 
 	// A unique string value that you supply that is used by file gateway to ensure
@@ -7977,8 +7975,8 @@ type CreateSMBFileShareInput struct {
 	// ClientToken is a required field
 	ClientToken *string `min:"5" type:"string" required:"true"`
 
-	// The default storage class for objects put into an Amazon S3 bucket by file
-	// gateway. Possible values are S3_STANDARD, S3_STANDARD_IA or S3_ONEZONE_IA.
+	// The default storage class for objects put into an Amazon S3 bucket by the
+	// file gateway. Possible values are S3_STANDARD, S3_STANDARD_IA, or S3_ONEZONE_IA.
 	// If this field is not populated, the default value S3_STANDARD is used. Optional.
 	DefaultStorageClass *string `min:"5" type:"string"`
 
@@ -7988,21 +7986,22 @@ type CreateSMBFileShareInput struct {
 	// GatewayARN is a required field
 	GatewayARN *string `min:"50" type:"string" required:"true"`
 
-	// Enables guessing of the MIME type for uploaded objects based on file extensions.
-	// Set this value to true to enable MIME type guessing, and otherwise to false.
-	// The default value is true.
+	// A value that enables guessing of the MIME type for uploaded objects based
+	// on file extensions. Set this value to true to enable MIME type guessing,
+	// and otherwise to false. The default value is true.
 	GuessMIMETypeEnabled *bool `type:"boolean"`
 
-	// A list of users in the Active Directory that are not allowed to access the
-	// file share. Can only be set if Authentication is set to "ActiveDirectory".
+	// A list of users or groups in the Active Directory that are not allowed to
+	// access the file share. A group must be prefixed with the @ character. For
+	// example @group1. Can only be set if Authentication is set to ActiveDirectory.
 	InvalidUserList []*string `type:"list"`
 
 	// True to use Amazon S3 server side encryption with your own AWS KMS key, or
 	// false to use a key managed by Amazon S3. Optional.
 	KMSEncrypted *bool `type:"boolean"`
 
-	// The Amazon Resource Name (ARN) KMS key used for Amazon S3 server side encryption.
-	// This value can only be set when KMSEncrypted is true. Optional.
+	// The Amazon Resource Name (ARN) of the AWS KMS key used for Amazon S3 server
+	// side encryption. This value can only be set when KMSEncrypted is true. Optional.
 	KMSKey *string `min:"20" type:"string"`
 
 	// The ARN of the backed storage used for storing file data.
@@ -8010,17 +8009,16 @@ type CreateSMBFileShareInput struct {
 	// LocationARN is a required field
 	LocationARN *string `min:"16" type:"string" required:"true"`
 
-	// Sets the access control list permission for objects in the Amazon S3 bucket
-	// that a file gateway puts objects into. The default value is "private".
+	// A value that sets the access control list permission for objects in the S3
+	// bucket that a file gateway puts objects into. The default value is "private".
 	ObjectACL *string `type:"string" enum:"ObjectACL"`
 
-	// Sets the write status of a file share. This value is true if the write status
-	// is read-only, and otherwise false.
+	// A value that sets the write status of a file share. This value is true if
+	// the write status is read-only, and otherwise false.
 	ReadOnly *bool `type:"boolean"`
 
-	// Sets who pays the cost of the request and the data download from the Amazon
-	// S3 bucket. Set this value to true if you want the requester to pay instead
-	// of the bucket owner, and otherwise to false.
+	// A value that sets the access control list permission for objects in the Amazon
+	// S3 bucket that a file gateway puts objects into. The default value is private.
 	RequesterPays *bool `type:"boolean"`
 
 	// The ARN of the AWS Identity and Access Management (IAM) role that a file
@@ -8029,8 +8027,9 @@ type CreateSMBFileShareInput struct {
 	// Role is a required field
 	Role *string `min:"20" type:"string" required:"true"`
 
-	// A list of users in the Active Directory that are allowed to access the file
-	// share. Can only be set if Authentication is set to "ActiveDirectory".
+	// A list of users or groups in the Active Directory that are allowed to access
+	// the file share. A group must be prefixed with the @ character. For example
+	// @group1. Can only be set if Authentication is set to ActiveDirectory.
 	ValidUserList []*string `type:"list"`
 }
 
@@ -8415,6 +8414,14 @@ type CreateStorediSCSIVolumeInput struct {
 	// GatewayARN is a required field
 	GatewayARN *string `min:"50" type:"string" required:"true"`
 
+	// True to use Amazon S3 server side encryption with your own AWS KMS key, or
+	// false to use a key managed by Amazon S3. Optional.
+	KMSEncrypted *bool `type:"boolean"`
+
+	// The Amazon Resource Name (ARN) of the KMS key used for Amazon S3 server side
+	// encryption. This value can only be set when KMSEncrypted is true. Optional.
+	KMSKey *string `min:"20" type:"string"`
+
 	// The network interface of the gateway on which to expose the iSCSI target.
 	// Only IPv4 addresses are accepted. Use DescribeGatewayInformation to get a
 	// list of the network interfaces available on a gateway.
@@ -8473,6 +8480,9 @@ func (s *CreateStorediSCSIVolumeInput) Validate() error {
 	if s.GatewayARN != nil && len(*s.GatewayARN) < 50 {
 		invalidParams.Add(request.NewErrParamMinLen("GatewayARN", 50))
 	}
+	if s.KMSKey != nil && len(*s.KMSKey) < 20 {
+		invalidParams.Add(request.NewErrParamMinLen("KMSKey", 20))
+	}
 	if s.NetworkInterfaceId == nil {
 		invalidParams.Add(request.NewErrParamRequired("NetworkInterfaceId"))
 	}
@@ -8501,6 +8511,18 @@ func (s *CreateStorediSCSIVolumeInput) SetDiskId(v string) *CreateStorediSCSIVol
 // SetGatewayARN sets the GatewayARN field's value.
 func (s *CreateStorediSCSIVolumeInput) SetGatewayARN(v string) *CreateStorediSCSIVolumeInput {
 	s.GatewayARN = &v
+	return s
+}
+
+// SetKMSEncrypted sets the KMSEncrypted field's value.
+func (s *CreateStorediSCSIVolumeInput) SetKMSEncrypted(v bool) *CreateStorediSCSIVolumeInput {
+	s.KMSEncrypted = &v
+	return s
+}
+
+// SetKMSKey sets the KMSKey field's value.
+func (s *CreateStorediSCSIVolumeInput) SetKMSKey(v string) *CreateStorediSCSIVolumeInput {
+	s.KMSKey = &v
 	return s
 }
 
@@ -8586,8 +8608,8 @@ type CreateTapeWithBarcodeInput struct {
 	// false to use a key managed by Amazon S3. Optional.
 	KMSEncrypted *bool `type:"boolean"`
 
-	// The Amazon Resource Name (ARN) of the KMS Key used for Amazon S3 server side
-	// encryption. This value can only be set when KMSEncrypted is true. Optional.
+	// The Amazon Resource Name (ARN) of the AWS KMS Key used for Amazon S3 server
+	// side encryption. This value can only be set when KMSEncrypted is true. Optional.
 	KMSKey *string `min:"20" type:"string"`
 
 	// The barcode that you want to assign to the tape.
@@ -8722,8 +8744,8 @@ type CreateTapesInput struct {
 	// false to use a key managed by Amazon S3. Optional.
 	KMSEncrypted *bool `type:"boolean"`
 
-	// The Amazon Resource Name (ARN) of the KMS key used for Amazon S3 server side
-	// encryption. This value can only be set when KMSEncrypted is true. Optional.
+	// The Amazon Resource Name (ARN) of the AWS KMS key used for Amazon S3 server
+	// side encryption. This value can only be set when KMSEncrypted is true. Optional.
 	KMSKey *string `min:"20" type:"string"`
 
 	// The number of virtual tapes that you want to create.
@@ -10543,7 +10565,7 @@ type DescribeTapeArchivesOutput struct {
 	Marker *string `min:"1" type:"string"`
 
 	// An array of virtual tape objects in the virtual tape shelf (VTS). The description
-	// includes of the Amazon Resource Name(ARN) of the virtual tapes. The information
+	// includes of the Amazon Resource Name (ARN) of the virtual tapes. The information
 	// returned includes the Amazon Resource Names (ARNs) of the tapes, size of
 	// the tapes, status of the tapes, progress of the description and tape barcode.
 	TapeArchives []*TapeArchive `type:"list"`
@@ -11143,7 +11165,7 @@ type DeviceiSCSIAttributes struct {
 	// The port used to communicate with iSCSI VTL device targets.
 	NetworkInterfacePort *int64 `type:"integer"`
 
-	// Specifies the unique Amazon Resource Name(ARN) that encodes the iSCSI qualified
+	// Specifies the unique Amazon Resource Name (ARN) that encodes the iSCSI qualified
 	// name(iqn) of a tape drive or media changer target.
 	TargetARN *string `min:"50" type:"string"`
 }
@@ -11229,7 +11251,7 @@ func (s *DisableGatewayInput) SetGatewayARN(v string) *DisableGatewayInput {
 type DisableGatewayOutput struct {
 	_ struct{} `type:"structure"`
 
-	// The unique Amazon Resource Name of the disabled gateway.
+	// The unique Amazon Resource Name (ARN) of the disabled gateway.
 	GatewayARN *string `min:"50" type:"string"`
 }
 
@@ -11490,8 +11512,8 @@ type JoinDomainInput struct {
 	// DomainName is a required field
 	DomainName *string `type:"string" required:"true"`
 
-	// The unique Amazon Resource Name of the file gateway you want to add to the
-	// Active Directory domain.
+	// The unique Amazon Resource Name (ARN) of the file gateway you want to add
+	// to the Active Directory domain.
 	//
 	// GatewayARN is a required field
 	GatewayARN *string `min:"50" type:"string" required:"true"`
@@ -11572,7 +11594,7 @@ func (s *JoinDomainInput) SetUserName(v string) *JoinDomainInput {
 type JoinDomainOutput struct {
 	_ struct{} `type:"structure"`
 
-	// The unique Amazon Resource Name of the gateway that joined the domain.
+	// The unique Amazon Resource Name (ARN) of the gateway that joined the domain.
 	GatewayARN *string `min:"50" type:"string"`
 }
 
@@ -12339,8 +12361,8 @@ func (s *ListVolumesOutput) SetVolumeInfos(v []*VolumeInfo) *ListVolumesOutput {
 // folders stored as Amazon S3 objects in S3 buckets don't, by default, have
 // Unix file permissions assigned to them. Upon discovery in an S3 bucket by
 // Storage Gateway, the S3 objects that represent files and folders are assigned
-// these default Unix permissions. This operation is only supported in the file
-// gateway type.
+// these default Unix permissions. This operation is only supported for file
+// gateways.
 type NFSFileShareDefaults struct {
 	_ struct{} `type:"structure"`
 
@@ -12422,8 +12444,8 @@ type NFSFileShareInfo struct {
 	// must contain either valid IP addresses or valid CIDR blocks.
 	ClientList []*string `min:"1" type:"list"`
 
-	// The default storage class for objects put into an Amazon S3 bucket by file
-	// gateway. Possible values are S3_STANDARD, S3_STANDARD_IA or S3_ONEZONE_IA.
+	// The default storage class for objects put into an Amazon S3 bucket by the
+	// file gateway. Possible values are S3_STANDARD, S3_STANDARD_IA, or S3_ONEZONE_IA.
 	// If this field is not populated, the default value S3_STANDARD is used. Optional.
 	DefaultStorageClass *string `min:"5" type:"string"`
 
@@ -12441,17 +12463,17 @@ type NFSFileShareInfo struct {
 	// to return a list of gateways for your account and region.
 	GatewayARN *string `min:"50" type:"string"`
 
-	// Enables guessing of the MIME type for uploaded objects based on file extensions.
-	// Set this value to true to enable MIME type guessing, and otherwise to false.
-	// The default value is true.
+	// A value that enables guessing of the MIME type for uploaded objects based
+	// on file extensions. Set this value to true to enable MIME type guessing,
+	// and otherwise to false. The default value is true.
 	GuessMIMETypeEnabled *bool `type:"boolean"`
 
-	// True to use Amazon S3 server side encryption with your own KMS key, or false
-	// to use a key managed by Amazon S3. Optional.
+	// True to use Amazon S3 server side encryption with your own AWS KMS key, or
+	// false to use a key managed by Amazon S3. Optional.
 	KMSEncrypted *bool `type:"boolean"`
 
-	// The Amazon Resource Name (ARN) of the KMS key used for Amazon S3 server side
-	// encryption. This value can only be set when KMSEncrypted is true. Optional.
+	// The Amazon Resource Name (ARN) of the AWS KMS key used for Amazon S3 server
+	// side encryption. This value can only be set when KMSEncrypted is true. Optional.
 	KMSKey *string `min:"20" type:"string"`
 
 	// The ARN of the backend storage used for storing file data.
@@ -12461,24 +12483,23 @@ type NFSFileShareInfo struct {
 	// folders stored as Amazon S3 objects in S3 buckets don't, by default, have
 	// Unix file permissions assigned to them. Upon discovery in an S3 bucket by
 	// Storage Gateway, the S3 objects that represent files and folders are assigned
-	// these default Unix permissions. This operation is only supported in the file
-	// gateway type.
+	// these default Unix permissions. This operation is only supported for file
+	// gateways.
 	NFSFileShareDefaults *NFSFileShareDefaults `type:"structure"`
 
-	// Sets the access control list permission for objects in the S3 bucket that
-	// a file gateway puts objects into. The default value is "private".
+	// A value that sets the access control list permission for objects in the S3
+	// bucket that a file gateway puts objects into. The default value is "private".
 	ObjectACL *string `type:"string" enum:"ObjectACL"`
 
 	// The file share path used by the NFS client to identify the mount point.
 	Path *string `type:"string"`
 
-	// Sets the write status of a file share. This value is true if the write status
-	// is read-only, and otherwise false.
+	// A value that sets the write status of a file share. This value is true if
+	// the write status is read-only, and otherwise false.
 	ReadOnly *bool `type:"boolean"`
 
-	// Sets who pays the cost of the request and the data download from the Amazon
-	// S3 bucket. Set this value to true if you want the requester to pay instead
-	// of the bucket owner, and otherwise to false.
+	// A value that sets the access control list permission for objects in the Amazon
+	// S3 bucket that a file gateway puts objects into. The default value is private.
 	RequesterPays *bool `type:"boolean"`
 
 	// The ARN of the IAM role that file gateway assumes when it accesses the underlying
@@ -12487,11 +12508,11 @@ type NFSFileShareInfo struct {
 
 	// The user mapped to anonymous user. Valid options are the following:
 	//
-	//    * "RootSquash" - Only root is mapped to anonymous user.
+	//    * RootSquash - Only root is mapped to anonymous user.
 	//
-	//    * "NoSquash" - No one is mapped to anonymous user
+	//    * NoSquash - No one is mapped to anonymous user
 	//
-	//    * "AllSquash" - Everyone is mapped to anonymous user.
+	//    * AllSquash - Everyone is mapped to anonymous user.
 	Squash *string `min:"5" type:"string"`
 }
 
@@ -12733,6 +12754,21 @@ type RefreshCacheInput struct {
 	//
 	// FileShareARN is a required field
 	FileShareARN *string `min:"50" type:"string" required:"true"`
+
+	// A comma-separated list of the paths of folders to refresh in the cache. The
+	// default is ["/"]. The default refreshes objects and folders at the root of
+	// the Amazon S3 bucket. If Recursive is set to "true", the entire S3 bucket
+	// that the file share has access to is refreshed.
+	FolderList []*string `min:"1" type:"list"`
+
+	// A value that specifies whether to recursively refresh folders in the cache.
+	// The refresh includes folders that were in the cache the last time the gateway
+	// listed the folder's contents. If this value set to "true", each folder that
+	// is listed in FolderList is recursively updated. Otherwise, subfolders listed
+	// in FolderList are not refreshed. Only objects that are in folders listed
+	// directly under FolderList are found and used for the update. The default
+	// is "true".
+	Recursive *bool `type:"boolean"`
 }
 
 // String returns the string representation
@@ -12754,6 +12790,9 @@ func (s *RefreshCacheInput) Validate() error {
 	if s.FileShareARN != nil && len(*s.FileShareARN) < 50 {
 		invalidParams.Add(request.NewErrParamMinLen("FileShareARN", 50))
 	}
+	if s.FolderList != nil && len(s.FolderList) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("FolderList", 1))
+	}
 
 	if invalidParams.Len() > 0 {
 		return invalidParams
@@ -12767,11 +12806,28 @@ func (s *RefreshCacheInput) SetFileShareARN(v string) *RefreshCacheInput {
 	return s
 }
 
+// SetFolderList sets the FolderList field's value.
+func (s *RefreshCacheInput) SetFolderList(v []*string) *RefreshCacheInput {
+	s.FolderList = v
+	return s
+}
+
+// SetRecursive sets the Recursive field's value.
+func (s *RefreshCacheInput) SetRecursive(v bool) *RefreshCacheInput {
+	s.Recursive = &v
+	return s
+}
+
+// RefreshCacheOutput
 type RefreshCacheOutput struct {
 	_ struct{} `type:"structure"`
 
 	// The Amazon Resource Name (ARN) of the file share.
 	FileShareARN *string `min:"50" type:"string"`
+
+	// The randomly generated ID of the notification that was sent. This ID is in
+	// UUID format.
+	NotificationId *string `min:"1" type:"string"`
 }
 
 // String returns the string representation
@@ -12787,6 +12843,12 @@ func (s RefreshCacheOutput) GoString() string {
 // SetFileShareARN sets the FileShareARN field's value.
 func (s *RefreshCacheOutput) SetFileShareARN(v string) *RefreshCacheOutput {
 	s.FileShareARN = &v
+	return s
+}
+
+// SetNotificationId sets the NotificationId field's value.
+func (s *RefreshCacheOutput) SetNotificationId(v string) *RefreshCacheOutput {
+	s.NotificationId = &v
 	return s
 }
 
@@ -13116,16 +13178,17 @@ func (s *RetrieveTapeRecoveryPointOutput) SetTapeARN(v string) *RetrieveTapeReco
 
 // The Windows file permissions and ownership information assigned, by default,
 // to native S3 objects when file gateway discovers them in S3 buckets. This
-// operation is only supported in file gateways.
+// operation is only supported for file gateways.
 type SMBFileShareInfo struct {
 	_ struct{} `type:"structure"`
 
-	// The authentication method of the file share. Valid values: "ActiveDirectory"
-	// or "GuestAccess". The default is "ActiveDirectory".
+	// The authentication method of the file share.
+	//
+	// Valid values are ActiveDirectory or GuestAccess. The default is ActiveDirectory.
 	Authentication *string `min:"5" type:"string"`
 
-	// The default storage class for objects put into an Amazon S3 bucket by file
-	// gateway. Possible values are S3_STANDARD, S3_STANDARD_IA or S3_ONEZONE_IA.
+	// The default storage class for objects put into an Amazon S3 bucket by the
+	// file gateway. Possible values are S3_STANDARD, S3_STANDARD_IA, or S3_ONEZONE_IA.
 	// If this field is not populated, the default value S3_STANDARD is used. Optional.
 	DefaultStorageClass *string `min:"5" type:"string"`
 
@@ -13143,48 +13206,49 @@ type SMBFileShareInfo struct {
 	// to return a list of gateways for your account and region.
 	GatewayARN *string `min:"50" type:"string"`
 
-	// Enables guessing of the MIME type for uploaded objects based on file extensions.
-	// Set this value to true to enable MIME type guessing, and otherwise to false.
-	// The default value is true.
+	// A value that enables guessing of the MIME type for uploaded objects based
+	// on file extensions. Set this value to true to enable MIME type guessing,
+	// and otherwise to false. The default value is true.
 	GuessMIMETypeEnabled *bool `type:"boolean"`
 
-	// A list of users in the Active Directory that are not allowed to access the
-	// file share. Can only be set if Authentication is set to "ActiveDirectory".
+	// A list of users or groups in the Active Directory that are not allowed to
+	// access the file share. A group must be prefixed with the @ character. For
+	// example @group1. Can only be set if Authentication is set to ActiveDirectory.
 	InvalidUserList []*string `type:"list"`
 
-	// True to use Amazon S3 server side encryption with your own KMS key, or false
-	// to use a key managed by Amazon S3. Optional.
+	// True to use Amazon S3 server-side encryption with your own AWS KMS key, or
+	// false to use a key managed by Amazon S3. Optional.
 	KMSEncrypted *bool `type:"boolean"`
 
-	// The Amazon Resource Name (ARN) of the KMS key used for Amazon S3 server side
-	// encryption. This value can only be set when KMSEncrypted is true. Optional.
+	// The Amazon Resource Name (ARN) of the AWS KMS key used for Amazon S3 server
+	// side encryption. This value can only be set when KMSEncrypted is true. Optional.
 	KMSKey *string `min:"20" type:"string"`
 
 	// The ARN of the backend storage used for storing file data.
 	LocationARN *string `min:"16" type:"string"`
 
-	// Sets the access control list permission for objects in the S3 bucket that
-	// a file gateway puts objects into. The default value is "private".
+	// A value that sets the access control list permission for objects in the S3
+	// bucket that a file gateway puts objects into. The default value is "private".
 	ObjectACL *string `type:"string" enum:"ObjectACL"`
 
 	// The file share path used by the SMB client to identify the mount point.
 	Path *string `type:"string"`
 
-	// Sets the write status of a file share. This value is true if the write status
-	// is read-only, and otherwise false.
+	// A value that sets the write status of a file share. This value is true if
+	// the write status is read-only, and otherwise false.
 	ReadOnly *bool `type:"boolean"`
 
-	// Sets who pays the cost of the request and the data download from the Amazon
-	// S3 bucket. Set this value to true if you want the requester to pay instead
-	// of the bucket owner, and otherwise to false.
+	// A value that sets the access control list permission for objects in the Amazon
+	// S3 bucket that a file gateway puts objects into. The default value is private.
 	RequesterPays *bool `type:"boolean"`
 
 	// The ARN of the IAM role that file gateway assumes when it accesses the underlying
 	// storage.
 	Role *string `min:"20" type:"string"`
 
-	// A list of users in the Active Directory that are allowed to access the file
-	// share. Can only be set if Authentication is set to "ActiveDirectory".
+	// A list of users or groups in the Active Directory that are allowed to access
+	// the file share. A group must be prefixed with the @ character. For example
+	// @group1. Can only be set if Authentication is set to ActiveDirectory.
 	ValidUserList []*string `type:"list"`
 }
 
@@ -13394,7 +13458,7 @@ type SetSMBGuestPasswordInput struct {
 	// GatewayARN is a required field
 	GatewayARN *string `min:"50" type:"string" required:"true"`
 
-	// The password you want to set for your SMB Server.
+	// The password that you want to set for your SMB Server.
 	//
 	// Password is a required field
 	Password *string `min:"6" type:"string" required:"true"`
@@ -13612,6 +13676,10 @@ type StorediSCSIVolume struct {
 	// don’t have this time stamp.
 	CreatedDate *time.Time `type:"timestamp"`
 
+	// The Amazon Resource Name (ARN) of the AWS KMS key used for Amazon S3 server
+	// side encryption. This value can only be set when KMSEncrypted is true. Optional.
+	KMSKey *string `min:"20" type:"string"`
+
 	// Indicates if when the stored volume was created, existing data on the underlying
 	// local disk was preserved.
 	//
@@ -13670,6 +13738,12 @@ func (s StorediSCSIVolume) GoString() string {
 // SetCreatedDate sets the CreatedDate field's value.
 func (s *StorediSCSIVolume) SetCreatedDate(v time.Time) *StorediSCSIVolume {
 	s.CreatedDate = &v
+	return s
+}
+
+// SetKMSKey sets the KMSKey field's value.
+func (s *StorediSCSIVolume) SetKMSKey(v string) *StorediSCSIVolume {
+	s.KMSKey = &v
 	return s
 }
 
@@ -13794,8 +13868,8 @@ func (s *Tag) SetValue(v string) *Tag {
 type Tape struct {
 	_ struct{} `type:"structure"`
 
-	// The Amazon Resource Name (ARN) of the KMS key used for Amazon S3 server side
-	// encryption. This value can only be set when KMSEncrypted is true. Optional.
+	// The Amazon Resource Name (ARN) of the AWS KMS key used for Amazon S3 server
+	// side encryption. This value can only be set when KMSEncrypted is true. Optional.
 	KMSKey *string `min:"20" type:"string"`
 
 	// For archiving virtual tapes, indicates how much data remains to be uploaded
@@ -13903,8 +13977,8 @@ type TapeArchive struct {
 	// format.
 	CompletionTime *time.Time `type:"timestamp"`
 
-	// The Amazon Resource Name (ARN) of the KMS key used for Amazon S3 server side
-	// encryption. This value can only be set when KMSEncrypted is true. Optional.
+	// The Amazon Resource Name (ARN) of the AWS KMS key used for Amazon S3 server
+	// side encryption. This value can only be set when KMSEncrypted is true. Optional.
 	KMSKey *string `min:"20" type:"string"`
 
 	// The Amazon Resource Name (ARN) of the tape gateway that the virtual tape
@@ -14646,8 +14720,8 @@ type UpdateNFSFileShareInput struct {
 	// must contain either valid IP addresses or valid CIDR blocks.
 	ClientList []*string `min:"1" type:"list"`
 
-	// The default storage class for objects put into an Amazon S3 bucket by a file
-	// gateway. Possible values are S3_STANDARD, S3_STANDARD_IA or S3_ONEZONE_IA.
+	// The default storage class for objects put into an Amazon S3 bucket by the
+	// file gateway. Possible values are S3_STANDARD, S3_STANDARD_IA, or S3_ONEZONE_IA.
 	// If this field is not populated, the default value S3_STANDARD is used. Optional.
 	DefaultStorageClass *string `min:"5" type:"string"`
 
@@ -14656,42 +14730,41 @@ type UpdateNFSFileShareInput struct {
 	// FileShareARN is a required field
 	FileShareARN *string `min:"50" type:"string" required:"true"`
 
-	// Enables guessing of the MIME type for uploaded objects based on file extensions.
-	// Set this value to true to enable MIME type guessing, and otherwise to false.
-	// The default value is true.
+	// A value that enables guessing of the MIME type for uploaded objects based
+	// on file extensions. Set this value to true to enable MIME type guessing,
+	// and otherwise to false. The default value is true.
 	GuessMIMETypeEnabled *bool `type:"boolean"`
 
 	// True to use Amazon S3 server side encryption with your own AWS KMS key, or
 	// false to use a key managed by Amazon S3. Optional.
 	KMSEncrypted *bool `type:"boolean"`
 
-	// The Amazon Resource Name (ARN) of the KMS key used for Amazon S3 server side
-	// encryption. This value can only be set when KMSEncrypted is true. Optional.
+	// The Amazon Resource Name (ARN) of the AWS KMS key used for Amazon S3 server
+	// side encryption. This value can only be set when KMSEncrypted is true. Optional.
 	KMSKey *string `min:"20" type:"string"`
 
 	// The default values for the file share. Optional.
 	NFSFileShareDefaults *NFSFileShareDefaults `type:"structure"`
 
-	// Sets the access control list permission for objects in the S3 bucket that
-	// a file gateway puts objects into. The default value is "private".
+	// A value that sets the access control list permission for objects in the S3
+	// bucket that a file gateway puts objects into. The default value is "private".
 	ObjectACL *string `type:"string" enum:"ObjectACL"`
 
-	// Sets the write status of a file share. This value is true if the write status
-	// is read-only, and otherwise false.
+	// A value that sets the write status of a file share. This value is true if
+	// the write status is read-only, and otherwise false.
 	ReadOnly *bool `type:"boolean"`
 
-	// Sets who pays the cost of the request and the data download from the Amazon
-	// S3 bucket. Set this value to true if you want the requester to pay instead
-	// of the bucket owner, and otherwise to false.
+	// A value that sets the access control list permission for objects in the Amazon
+	// S3 bucket that a file gateway puts objects into. The default value is private.
 	RequesterPays *bool `type:"boolean"`
 
 	// The user mapped to anonymous user. Valid options are the following:
 	//
-	//    * "RootSquash" - Only root is mapped to anonymous user.
+	//    * RootSquash - Only root is mapped to anonymous user.
 	//
-	//    * "NoSquash" - No one is mapped to anonymous user
+	//    * NoSquash - No one is mapped to anonymous user
 	//
-	//    * "AllSquash" - Everyone is mapped to anonymous user.
+	//    * AllSquash - Everyone is mapped to anonymous user.
 	Squash *string `min:"5" type:"string"`
 }
 
@@ -14832,48 +14905,49 @@ func (s *UpdateNFSFileShareOutput) SetFileShareARN(v string) *UpdateNFSFileShare
 type UpdateSMBFileShareInput struct {
 	_ struct{} `type:"structure"`
 
-	// The default storage class for objects put into an Amazon S3 bucket by file
-	// gateway. Possible values are S3_STANDARD, S3_STANDARD_IA or S3_ONEZONE_IA.
+	// The default storage class for objects put into an Amazon S3 bucket by the
+	// file gateway. Possible values are S3_STANDARD, S3_STANDARD_IA, or S3_ONEZONE_IA.
 	// If this field is not populated, the default value S3_STANDARD is used. Optional.
 	DefaultStorageClass *string `min:"5" type:"string"`
 
-	// The Amazon Resource Name (ARN) of the SMB file share you want to update.
+	// The Amazon Resource Name (ARN) of the SMB file share that you want to update.
 	//
 	// FileShareARN is a required field
 	FileShareARN *string `min:"50" type:"string" required:"true"`
 
-	// Enables guessing of the MIME type for uploaded objects based on file extensions.
-	// Set this value to true to enable MIME type guessing, and otherwise to false.
-	// The default value is true.
+	// A value that enables guessing of the MIME type for uploaded objects based
+	// on file extensions. Set this value to true to enable MIME type guessing,
+	// and otherwise to false. The default value is true.
 	GuessMIMETypeEnabled *bool `type:"boolean"`
 
-	// A list of users in the Active Directory that are not allowed to access the
-	// file share. Can only be set if Authentication is set to "ActiveDirectory".
+	// A list of users or groups in the Active Directory that are not allowed to
+	// access the file share. A group must be prefixed with the @ character. For
+	// example @group1. Can only be set if Authentication is set to ActiveDirectory.
 	InvalidUserList []*string `type:"list"`
 
 	// True to use Amazon S3 server side encryption with your own AWS KMS key, or
 	// false to use a key managed by Amazon S3. Optional.
 	KMSEncrypted *bool `type:"boolean"`
 
-	// The Amazon Resource Name (ARN) KMS key used for Amazon S3 server side encryption.
-	// This value can only be set when KMSEncrypted is true. Optional.
+	// The Amazon Resource Name (ARN) of the AWS KMS key used for Amazon S3 server
+	// side encryption. This value can only be set when KMSEncrypted is true. Optional.
 	KMSKey *string `min:"20" type:"string"`
 
-	// Sets the access control list permission for objects in the Amazon S3 bucket
-	// that a file gateway puts objects into. The default value is "private".
+	// A value that sets the access control list permission for objects in the S3
+	// bucket that a file gateway puts objects into. The default value is "private".
 	ObjectACL *string `type:"string" enum:"ObjectACL"`
 
-	// Sets the write status of a file share. This value is true if the write status
-	// is read-only, and otherwise false.
+	// A value that sets the write status of a file share. This value is true if
+	// the write status is read-only, and otherwise false.
 	ReadOnly *bool `type:"boolean"`
 
-	// Sets who pays the cost of the request and the data download from the Amazon
-	// S3 bucket. Set this value to true if you want the requester to pay instead
-	// of the bucket owner, and otherwise to false.
+	// A value that sets the access control list permission for objects in the Amazon
+	// S3 bucket that a file gateway puts objects into. The default value is private.
 	RequesterPays *bool `type:"boolean"`
 
-	// A list of users in the Active Directory that are allowed to access the file
-	// share. Can only be set if Authentication is set to "ActiveDirectory".
+	// A list of users or groups in the Active Directory that are allowed to access
+	// the file share. A group must be prefixed with the @ character. For example
+	// @group1. Can only be set if Authentication is set to ActiveDirectory.
 	ValidUserList []*string `type:"list"`
 }
 
@@ -15641,8 +15715,8 @@ const (
 	FileShareTypeSmb = "SMB"
 )
 
-// Sets the access control list permission for objects in the S3 bucket that
-// a file gateway puts objects into. The default value is "private".
+// A value that sets the access control list permission for objects in the S3
+// bucket that a file gateway puts objects into. The default value is "private".
 const (
 	// ObjectACLPrivate is a ObjectACL enum value
 	ObjectACLPrivate = "private"

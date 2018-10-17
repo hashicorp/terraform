@@ -6,10 +6,11 @@ import (
 	"strings"
 
 	"github.com/Azure/azure-sdk-for-go/storage"
+
 	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/state"
 	"github.com/hashicorp/terraform/state/remote"
-	"github.com/hashicorp/terraform/terraform"
+	"github.com/hashicorp/terraform/states"
 )
 
 const (
@@ -18,7 +19,7 @@ const (
 	keyEnvPrefix = "env:"
 )
 
-func (b *Backend) States() ([]string, error) {
+func (b *Backend) Workspaces() ([]string, error) {
 	prefix := b.keyName + keyEnvPrefix
 	params := storage.ListBlobsParameters{
 		Prefix: prefix,
@@ -52,7 +53,7 @@ func (b *Backend) States() ([]string, error) {
 	return result, nil
 }
 
-func (b *Backend) DeleteState(name string) error {
+func (b *Backend) DeleteWorkspace(name string) error {
 	if name == backend.DefaultStateName || name == "" {
 		return fmt.Errorf("can't delete default state")
 	}
@@ -64,7 +65,7 @@ func (b *Backend) DeleteState(name string) error {
 	return blobReference.Delete(options)
 }
 
-func (b *Backend) State(name string) (state.State, error) {
+func (b *Backend) StateMgr(name string) (state.State, error) {
 	client := &RemoteClient{
 		blobClient:    b.blobClient,
 		containerName: b.containerName,
@@ -100,7 +101,7 @@ func (b *Backend) State(name string) (state.State, error) {
 
 		// If we have no state, we have to create an empty state
 		if v := stateMgr.State(); v == nil {
-			if err := stateMgr.WriteState(terraform.NewState()); err != nil {
+			if err := stateMgr.WriteState(states.NewState()); err != nil {
 				err = lockUnlock(err)
 				return nil, err
 			}

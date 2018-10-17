@@ -86,7 +86,7 @@ func resourceAwsGuardDutyThreatintelsetCreate(d *schema.ResourceData, meta inter
 
 	_, err = stateConf.WaitForState()
 	if err != nil {
-		return fmt.Errorf("[WARN] Error waiting for GuardDuty ThreatIntelSet status to be \"%s\" or \"%s\": %s",
+		return fmt.Errorf("Error waiting for GuardDuty ThreatIntelSet status to be \"%s\" or \"%s\": %s",
 			guardduty.ThreatIntelSetStatusActive, guardduty.ThreatIntelSetStatusInactive, err)
 	}
 
@@ -187,7 +187,7 @@ func resourceAwsGuardDutyThreatintelsetDelete(d *schema.ResourceData, meta inter
 
 	_, err = stateConf.WaitForState()
 	if err != nil {
-		return fmt.Errorf("[WARN] Error waiting for GuardDuty ThreatIntelSet status to be \"%s\": %s", guardduty.ThreatIntelSetStatusDeleted, err)
+		return fmt.Errorf("Error waiting for GuardDuty ThreatIntelSet status to be \"%s\": %s", guardduty.ThreatIntelSetStatusDeleted, err)
 	}
 
 	return nil

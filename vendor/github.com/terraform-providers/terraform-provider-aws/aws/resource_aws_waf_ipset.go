@@ -11,6 +11,9 @@ import (
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
+// WAF requires UpdateIPSet operations be split into batches of 1000 Updates
+const wafUpdateIPSetUpdatesLimit = 1000
+
 func resourceAwsWafIPSet() *schema.Resource {
 	return &schema.Resource{
 		Create: resourceAwsWafIPSetCreate,
@@ -22,25 +25,25 @@ func resourceAwsWafIPSet() *schema.Resource {
 		},
 
 		Schema: map[string]*schema.Schema{
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
-			"arn": &schema.Schema{
+			"arn": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"ip_set_descriptors": &schema.Schema{
+			"ip_set_descriptors": {
 				Type:     schema.TypeSet,
 				Optional: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"type": &schema.Schema{
+						"type": {
 							Type:     schema.TypeString,
 							Required: true,
 						},
-						"value": &schema.Schema{
+						"value": {
 							Type:     schema.TypeString,
 							Required: true,
 						},
@@ -138,7 +141,7 @@ func resourceAwsWafIPSetDelete(d *schema.ResourceData, meta interface{}) error {
 		noDescriptors := []interface{}{}
 		err := updateWafIpSetDescriptors(d.Id(), oldDescriptors, noDescriptors, conn)
 		if err != nil {
-			return fmt.Errorf("Error updating IPSetDescriptors: %s", err)
+			return fmt.Errorf("Error Deleting IPSetDescriptors: %s", err)
 		}
 	}
 
@@ -159,25 +162,28 @@ func resourceAwsWafIPSetDelete(d *schema.ResourceData, meta interface{}) error {
 }
 
 func updateWafIpSetDescriptors(id string, oldD, newD []interface{}, conn *waf.WAF) error {
-	wr := newWafRetryer(conn, "global")
-	_, err := wr.RetryWithToken(func(token *string) (interface{}, error) {
-		req := &waf.UpdateIPSetInput{
-			ChangeToken: token,
-			IPSetId:     aws.String(id),
-			Updates:     diffWafIpSetDescriptors(oldD, newD),
+	for _, ipSetUpdates := range diffWafIpSetDescriptors(oldD, newD) {
+		wr := newWafRetryer(conn, "global")
+		_, err := wr.RetryWithToken(func(token *string) (interface{}, error) {
+			req := &waf.UpdateIPSetInput{
+				ChangeToken: token,
+				IPSetId:     aws.String(id),
+				Updates:     ipSetUpdates,
+			}
+			log.Printf("[INFO] Updating IPSet descriptors: %s", req)
+			return conn.UpdateIPSet(req)
+		})
+		if err != nil {
+			return fmt.Errorf("Error Updating WAF IPSet: %s", err)
 		}
-		log.Printf("[INFO] Updating IPSet descriptors: %s", req)
-		return conn.UpdateIPSet(req)
-	})
-	if err != nil {
-		return fmt.Errorf("Error Updating WAF IPSet: %s", err)
 	}
 
 	return nil
 }
 
-func diffWafIpSetDescriptors(oldD, newD []interface{}) []*waf.IPSetUpdate {
-	updates := make([]*waf.IPSetUpdate, 0)
+func diffWafIpSetDescriptors(oldD, newD []interface{}) [][]*waf.IPSetUpdate {
+	updates := make([]*waf.IPSetUpdate, 0, wafUpdateIPSetUpdatesLimit)
+	updatesBatches := make([][]*waf.IPSetUpdate, 0)
 
 	for _, od := range oldD {
 		descriptor := od.(map[string]interface{})
@@ -185,6 +191,11 @@ func diffWafIpSetDescriptors(oldD, newD []interface{}) []*waf.IPSetUpdate {
 		if idx, contains := sliceContainsMap(newD, descriptor); contains {
 			newD = append(newD[:idx], newD[idx+1:]...)
 			continue
+		}
+
+		if len(updates) == wafUpdateIPSetUpdatesLimit {
+			updatesBatches = append(updatesBatches, updates)
+			updates = make([]*waf.IPSetUpdate, 0, wafUpdateIPSetUpdatesLimit)
 		}
 
 		updates = append(updates, &waf.IPSetUpdate{
@@ -199,6 +210,11 @@ func diffWafIpSetDescriptors(oldD, newD []interface{}) []*waf.IPSetUpdate {
 	for _, nd := range newD {
 		descriptor := nd.(map[string]interface{})
 
+		if len(updates) == wafUpdateIPSetUpdatesLimit {
+			updatesBatches = append(updatesBatches, updates)
+			updates = make([]*waf.IPSetUpdate, 0, wafUpdateIPSetUpdatesLimit)
+		}
+
 		updates = append(updates, &waf.IPSetUpdate{
 			Action: aws.String(waf.ChangeActionInsert),
 			IPSetDescriptor: &waf.IPSetDescriptor{
@@ -207,5 +223,6 @@ func diffWafIpSetDescriptors(oldD, newD []interface{}) []*waf.IPSetUpdate {
 			},
 		})
 	}
-	return updates
+	updatesBatches = append(updatesBatches, updates)
+	return updatesBatches
 }

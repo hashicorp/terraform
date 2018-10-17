@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/hashicorp/terraform/terraform"
 	"github.com/mitchellh/cli"
 )
 
@@ -23,22 +22,22 @@ func (c *StateListCommand) Run(args []string) int {
 
 	cmdFlags := c.Meta.flagSet("state list")
 	cmdFlags.StringVar(&c.Meta.statePath, "state", DefaultStateFilename, "path")
-	lookupId := cmdFlags.String("id", "", "Restrict output to paths with a resource having the specified ID.")
+	//lookupId := cmdFlags.String("id", "", "Restrict output to paths with a resource having the specified ID.")
 	if err := cmdFlags.Parse(args); err != nil {
 		return cli.RunResultHelp
 	}
 	args = cmdFlags.Args()
 
 	// Load the backend
-	b, err := c.Backend(nil)
-	if err != nil {
-		c.Ui.Error(fmt.Sprintf("Failed to load backend: %s", err))
+	b, backendDiags := c.Backend(nil)
+	if backendDiags.HasErrors() {
+		c.showDiagnostics(backendDiags)
 		return 1
 	}
 
 	env := c.Workspace()
 	// Get the state
-	state, err := b.State(env)
+	state, err := b.StateMgr(env)
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf("Failed to load state: %s", err))
 		return 1
@@ -55,7 +54,11 @@ func (c *StateListCommand) Run(args []string) int {
 		return 1
 	}
 
-	filter := &terraform.StateFilter{State: stateReal}
+	// FIXME: update this for the new state types
+	c.Ui.Error("state list command not yet updated for new state types")
+	return 1
+
+	/*filter := &terraform.StateFilter{State: stateReal}
 	results, err := filter.Filter(args...)
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf(errStateFilter, err))
@@ -68,7 +71,7 @@ func (c *StateListCommand) Run(args []string) int {
 				c.Ui.Output(result.Address)
 			}
 		}
-	}
+	}*/
 
 	return 0
 }

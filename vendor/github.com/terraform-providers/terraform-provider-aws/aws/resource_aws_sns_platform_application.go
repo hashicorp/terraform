@@ -138,7 +138,7 @@ func resourceAwsSnsPlatformApplicationUpdate(d *schema.ResourceData, meta interf
 
 	attributes := make(map[string]*string)
 
-	for k, _ := range resourceAwsSnsPlatformApplication().Schema {
+	for k := range resourceAwsSnsPlatformApplication().Schema {
 		if attrKey, ok := snsPlatformApplicationAttributeMap[k]; ok {
 			if d.HasChange(k) {
 				log.Printf("[DEBUG] Updating %s", attrKey)

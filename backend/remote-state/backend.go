@@ -6,11 +6,13 @@ package remotestate
 import (
 	"context"
 
+	"github.com/zclconf/go-cty/cty"
+
 	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/helper/schema"
-	"github.com/hashicorp/terraform/state"
 	"github.com/hashicorp/terraform/state/remote"
-	"github.com/hashicorp/terraform/terraform"
+	"github.com/hashicorp/terraform/states/statemgr"
+	"github.com/hashicorp/terraform/tfdiags"
 )
 
 // Backend implements backend.Backend for remote state backends.
@@ -30,7 +32,8 @@ type Backend struct {
 	client remote.Client
 }
 
-func (b *Backend) Configure(rc *terraform.ResourceConfig) error {
+func (b *Backend) Configure(obj cty.Value) tfdiags.Diagnostics {
+
 	// Set our configureFunc manually
 	b.Backend.ConfigureFunc = func(ctx context.Context) error {
 		c, err := b.ConfigureFunc(ctx)
@@ -43,19 +46,18 @@ func (b *Backend) Configure(rc *terraform.ResourceConfig) error {
 		return nil
 	}
 
-	// Run the normal configuration
-	return b.Backend.Configure(rc)
+	return b.Backend.Configure(obj)
 }
 
-func (b *Backend) States() ([]string, error) {
+func (b *Backend) Workspaces() ([]string, error) {
 	return nil, backend.ErrNamedStatesNotSupported
 }
 
-func (b *Backend) DeleteState(name string) error {
+func (b *Backend) DeleteWorkspace(name string) error {
 	return backend.ErrNamedStatesNotSupported
 }
 
-func (b *Backend) State(name string) (state.State, error) {
+func (b *Backend) StateMgr(name string) (statemgr.Full, error) {
 	// This shouldn't happen
 	if b.client == nil {
 		panic("nil remote client")

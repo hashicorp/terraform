@@ -13,9 +13,9 @@ func TestStatePull(t *testing.T) {
 
 	// Create some legacy remote state
 	legacyState := testState()
-	_, srv := testRemoteState(t, legacyState, 200)
+	backendState, srv := testRemoteState(t, legacyState, 200)
 	defer srv.Close()
-	testStateFileRemote(t, legacyState)
+	testStateFileRemote(t, backendState)
 
 	p := testProvider()
 	ui := new(cli.MockUi)

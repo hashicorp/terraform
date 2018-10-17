@@ -44,7 +44,7 @@ func (t typeTuple) Equals(other Type) bool {
 	return false
 }
 
-func (t typeTuple) FriendlyName() string {
+func (t typeTuple) FriendlyName(mode friendlyTypeNameMode) string {
 	// There isn't really a friendly way to write a tuple type due to its
 	// complexity, so we'll just do something English-ish. Callers will
 	// probably want to make some extra effort to avoid ever printing out

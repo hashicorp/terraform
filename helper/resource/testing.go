@@ -14,12 +14,20 @@ import (
 	"syscall"
 	"testing"
 
+	"github.com/hashicorp/terraform/configs/configschema"
+
+	"github.com/hashicorp/terraform/providers"
+
 	"github.com/davecgh/go-spew/spew"
 	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/logutils"
-	"github.com/hashicorp/terraform/config/module"
+
+	"github.com/hashicorp/terraform/addrs"
+	"github.com/hashicorp/terraform/configs"
+	"github.com/hashicorp/terraform/configs/configload"
 	"github.com/hashicorp/terraform/helper/logging"
+	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/terraform"
 )
 
@@ -471,6 +479,43 @@ func Test(t TestT, c TestCase) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// collect the provider schemas
+	schemas := &terraform.Schemas{
+		Providers: make(map[string]*terraform.ProviderSchema),
+	}
+	factories, err := testProviderFactories(c)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for providerName, f := range factories {
+		p, err := f()
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		resp := p.GetSchema()
+		if resp.Diagnostics.HasErrors() {
+			t.Fatal(fmt.Sprintf("error fetching schema for %q: %v", providerName, resp.Diagnostics.Err()))
+		}
+
+		providerSchema := &terraform.ProviderSchema{
+			Provider:      resp.Provider.Block,
+			ResourceTypes: make(map[string]*configschema.Block),
+			DataSources:   make(map[string]*configschema.Block),
+		}
+
+		for r, s := range resp.ResourceTypes {
+			providerSchema.ResourceTypes[r] = s.Block
+		}
+
+		for d, s := range resp.DataSources {
+			providerSchema.DataSources[d] = s.Block
+		}
+
+		schemas.Providers[providerName] = providerSchema
+	}
+
 	opts := terraform.ContextOpts{ProviderResolver: providerResolver}
 
 	// A single state variable to track the lifecycle, starting with no state
@@ -507,9 +552,9 @@ func Test(t TestT, c TestCase) {
 
 				// Can optionally set step.Config in addition to
 				// step.ImportState, to provide config for the import.
-				state, err = testStepImportState(opts, state, step)
+				state, err = testStepImportState(opts, state, step, schemas)
 			} else {
-				state, err = testStepConfig(opts, state, step)
+				state, err = testStepConfig(opts, state, step, schemas)
 			}
 		}
 
@@ -594,7 +639,7 @@ func Test(t TestT, c TestCase) {
 		}
 
 		log.Printf("[WARN] Test: Executing destroy step")
-		state, err := testStep(opts, state, destroyStep)
+		state, err := testStep(opts, state, destroyStep, schemas)
 		if err != nil {
 			t.Error(fmt.Sprintf(
 				"Error destroying resource! WARNING: Dangling resources\n"+
@@ -625,7 +670,7 @@ func testProviderConfig(c TestCase) string {
 // test, while only calling the factory function once.
 // Any errors are stored so that they can be returned by the factory in
 // terraform to match non-test behavior.
-func testProviderResolver(c TestCase) (terraform.ResourceProviderResolver, error) {
+func testProviderResolver(c TestCase) (providers.Resolver, error) {
 	ctxProviders := c.ProviderFactories
 	if ctxProviders == nil {
 		ctxProviders = make(map[string]terraform.ResourceProviderFactory)
@@ -636,6 +681,10 @@ func testProviderResolver(c TestCase) (terraform.ResourceProviderResolver, error
 		ctxProviders[k] = terraform.ResourceProviderFactoryFixed(p)
 	}
 
+	// wrap the old provider factories in the test grpc server so they can be
+	// called from terraform.
+	newProviders := make(map[string]providers.Factory)
+
 	// reset the providers if needed
 	for k, pf := range ctxProviders {
 		// we can ignore any errors here, if we don't have a provider to reset
@@ -644,15 +693,48 @@ func testProviderResolver(c TestCase) (terraform.ResourceProviderResolver, error
 		if err != nil {
 			return nil, err
 		}
+
+		// FIXME: verify if this is still needed with the new plugins being
+		// closed after every walk.
 		if p, ok := p.(TestProvider); ok {
 			err := p.TestReset()
 			if err != nil {
 				return nil, fmt.Errorf("[ERROR] failed to reset provider %q: %s", k, err)
 			}
 		}
+
+		// The provider is wrapped in a GRPCTestProvider so that it can be
+		// passed back to terraform core as a providers.Interface, rather
+		// than the legacy ResourceProvider.
+		newProviders[k] = providers.FactoryFixed(GRPCTestProvider(p))
 	}
 
-	return terraform.ResourceProviderResolverFixed(ctxProviders), nil
+	return providers.ResolverFixed(newProviders), nil
+}
+
+// testProviderFactores returns a fixed and reset factories for creating a resolver
+func testProviderFactories(c TestCase) (map[string]providers.Factory, error) {
+	factories := c.ProviderFactories
+	if factories == nil {
+		factories = make(map[string]terraform.ResourceProviderFactory)
+	}
+
+	// add any fixed providers
+	for k, p := range c.Providers {
+		factories[k] = terraform.ResourceProviderFactoryFixed(p)
+	}
+
+	// now that the provider are all loaded in factories, fix each of them into
+	// a providers.Factory
+	newFactories := make(map[string]providers.Factory)
+	for k, pf := range factories {
+		p, err := pf()
+		if err != nil {
+			return nil, err
+		}
+		newFactories[k] = providers.FactoryFixed(GRPCTestProvider(p))
+	}
+	return newFactories, nil
 }
 
 // UnitTest is a helper to force the acceptance testing harness to run in the
@@ -670,33 +752,40 @@ func testIDOnlyRefresh(c TestCase, opts terraform.ContextOpts, step TestStep, r 
 		return nil
 	}
 
-	name := fmt.Sprintf("%s.foo", r.Type)
+	addr := addrs.Resource{
+		Mode: addrs.ManagedResourceMode,
+		Type: r.Type,
+		Name: "foo",
+	}.Instance(addrs.NoKey)
+	absAddr := addr.Absolute(addrs.RootModuleInstance)
 
 	// Build the state. The state is just the resource with an ID. There
 	// are no attributes. We only set what is needed to perform a refresh.
-	state := terraform.NewState()
-	state.RootModule().Resources[name] = &terraform.ResourceState{
-		Type: r.Type,
-		Primary: &terraform.InstanceState{
-			ID: r.Primary.ID,
+	state := states.NewState()
+	state.RootModule().SetResourceInstanceCurrent(
+		addr,
+		&states.ResourceInstanceObjectSrc{
+			AttrsFlat: r.Primary.Attributes,
+			Status:    states.ObjectReady,
 		},
-	}
+		addrs.ProviderConfig{Type: "placeholder"}.Absolute(addrs.RootModuleInstance),
+	)
 
 	// Create the config module. We use the full config because Refresh
 	// doesn't have access to it and we may need things like provider
 	// configurations. The initial implementation of id-only checks used
 	// an empty config module, but that caused the aforementioned problems.
-	mod, err := testModule(opts, step)
+	cfg, err := testConfig(opts, step)
 	if err != nil {
 		return err
 	}
 
 	// Initialize the context
-	opts.Module = mod
+	opts.Config = cfg
 	opts.State = state
-	ctx, err := terraform.NewContext(&opts)
-	if err != nil {
-		return err
+	ctx, ctxDiags := terraform.NewContext(&opts)
+	if ctxDiags.HasErrors() {
+		return ctxDiags.Err()
 	}
 	if diags := ctx.Validate(); len(diags) > 0 {
 		if diags.HasErrors() {
@@ -707,20 +796,20 @@ func testIDOnlyRefresh(c TestCase, opts terraform.ContextOpts, step TestStep, r 
 	}
 
 	// Refresh!
-	state, err = ctx.Refresh()
-	if err != nil {
-		return fmt.Errorf("Error refreshing: %s", err)
+	state, refreshDiags := ctx.Refresh()
+	if refreshDiags.HasErrors() {
+		return refreshDiags.Err()
 	}
 
 	// Verify attribute equivalence.
-	actualR := state.RootModule().Resources[name]
+	actualR := state.ResourceInstance(absAddr)
 	if actualR == nil {
 		return fmt.Errorf("Resource gone!")
 	}
-	if actualR.Primary == nil {
+	if actualR.Current == nil {
 		return fmt.Errorf("Resource has no primary instance")
 	}
-	actual := actualR.Primary.Attributes
+	actual := actualR.Current.AttrsFlat
 	expected := r.Primary.Attributes
 	// Remove fields we're ignoring
 	for _, v := range c.IDRefreshIgnore {
@@ -756,15 +845,14 @@ func testIDOnlyRefresh(c TestCase, opts terraform.ContextOpts, step TestStep, r 
 	return nil
 }
 
-func testModule(opts terraform.ContextOpts, step TestStep) (*module.Tree, error) {
+func testConfig(opts terraform.ContextOpts, step TestStep) (*configs.Config, error) {
 	if step.PreConfig != nil {
 		step.PreConfig()
 	}
 
 	cfgPath, err := ioutil.TempDir("", "tf-test")
 	if err != nil {
-		return nil, fmt.Errorf(
-			"Error creating temporary directory for config: %s", err)
+		return nil, fmt.Errorf("Error creating temporary directory for config: %s", err)
 	}
 
 	if step.PreventDiskCleanup {
@@ -773,38 +861,37 @@ func testModule(opts terraform.ContextOpts, step TestStep) (*module.Tree, error)
 		defer os.RemoveAll(cfgPath)
 	}
 
-	// Write the configuration
-	cfgF, err := os.Create(filepath.Join(cfgPath, "main.tf"))
+	// Write the main configuration file
+	err = ioutil.WriteFile(filepath.Join(cfgPath, "main.tf"), []byte(step.Config), os.ModePerm)
 	if err != nil {
-		return nil, fmt.Errorf(
-			"Error creating temporary file for config: %s", err)
+		return nil, fmt.Errorf("Error creating temporary file for config: %s", err)
 	}
 
-	_, err = io.Copy(cfgF, strings.NewReader(step.Config))
-	cfgF.Close()
+	// Create directory for our child modules, if any.
+	modulesDir := filepath.Join(cfgPath, ".modules")
+	err = os.Mkdir(modulesDir, os.ModePerm)
 	if err != nil {
-		return nil, fmt.Errorf(
-			"Error creating temporary file for config: %s", err)
+		return nil, fmt.Errorf("Error creating child modules directory: %s", err)
 	}
 
-	// Parse the configuration
-	mod, err := module.NewTreeModule("", cfgPath)
+	loader, err := configload.NewLoader(&configload.Config{
+		ModulesDir: modulesDir,
+	})
 	if err != nil {
-		return nil, fmt.Errorf(
-			"Error loading configuration: %s", err)
+		return nil, fmt.Errorf("failed to create config loader: %s", err)
 	}
 
-	// Load the modules
-	modStorage := &module.Storage{
-		StorageDir: filepath.Join(cfgPath, ".tfmodules"),
-		Mode:       module.GetModeGet,
-	}
-	err = mod.Load(modStorage)
-	if err != nil {
-		return nil, fmt.Errorf("Error downloading modules: %s", err)
+	installDiags := loader.InstallModules(cfgPath, true, configload.InstallHooksImpl{})
+	if installDiags.HasErrors() {
+		return nil, installDiags
 	}
 
-	return mod, nil
+	config, configDiags := loader.LoadConfig(cfgPath)
+	if configDiags.HasErrors() {
+		return nil, configDiags
+	}
+
+	return config, nil
 }
 
 func testResource(c TestStep, state *terraform.State) (*terraform.ResourceState, error) {
@@ -881,8 +968,9 @@ func TestCheckResourceAttrSet(name, key string) TestCheckFunc {
 // TestCheckModuleResourceAttrSet - as per TestCheckResourceAttrSet but with
 // support for non-root modules
 func TestCheckModuleResourceAttrSet(mp []string, name string, key string) TestCheckFunc {
+	mpt := addrs.Module(mp).UnkeyedInstanceShim()
 	return func(s *terraform.State) error {
-		is, err := modulePathPrimaryInstanceState(s, mp, name)
+		is, err := modulePathPrimaryInstanceState(s, mpt, name)
 		if err != nil {
 			return err
 		}
@@ -915,8 +1003,9 @@ func TestCheckResourceAttr(name, key, value string) TestCheckFunc {
 // TestCheckModuleResourceAttr - as per TestCheckResourceAttr but with
 // support for non-root modules
 func TestCheckModuleResourceAttr(mp []string, name string, key string, value string) TestCheckFunc {
+	mpt := addrs.Module(mp).UnkeyedInstanceShim()
 	return func(s *terraform.State) error {
-		is, err := modulePathPrimaryInstanceState(s, mp, name)
+		is, err := modulePathPrimaryInstanceState(s, mpt, name)
 		if err != nil {
 			return err
 		}
@@ -957,8 +1046,9 @@ func TestCheckNoResourceAttr(name, key string) TestCheckFunc {
 // TestCheckModuleNoResourceAttr - as per TestCheckNoResourceAttr but with
 // support for non-root modules
 func TestCheckModuleNoResourceAttr(mp []string, name string, key string) TestCheckFunc {
+	mpt := addrs.Module(mp).UnkeyedInstanceShim()
 	return func(s *terraform.State) error {
-		is, err := modulePathPrimaryInstanceState(s, mp, name)
+		is, err := modulePathPrimaryInstanceState(s, mpt, name)
 		if err != nil {
 			return err
 		}
@@ -991,8 +1081,9 @@ func TestMatchResourceAttr(name, key string, r *regexp.Regexp) TestCheckFunc {
 // TestModuleMatchResourceAttr - as per TestMatchResourceAttr but with
 // support for non-root modules
 func TestModuleMatchResourceAttr(mp []string, name string, key string, r *regexp.Regexp) TestCheckFunc {
+	mpt := addrs.Module(mp).UnkeyedInstanceShim()
 	return func(s *terraform.State) error {
-		is, err := modulePathPrimaryInstanceState(s, mp, name)
+		is, err := modulePathPrimaryInstanceState(s, mpt, name)
 		if err != nil {
 			return err
 		}
@@ -1052,13 +1143,15 @@ func TestCheckResourceAttrPair(nameFirst, keyFirst, nameSecond, keySecond string
 // TestCheckModuleResourceAttrPair - as per TestCheckResourceAttrPair but with
 // support for non-root modules
 func TestCheckModuleResourceAttrPair(mpFirst []string, nameFirst string, keyFirst string, mpSecond []string, nameSecond string, keySecond string) TestCheckFunc {
+	mptFirst := addrs.Module(mpFirst).UnkeyedInstanceShim()
+	mptSecond := addrs.Module(mpSecond).UnkeyedInstanceShim()
 	return func(s *terraform.State) error {
-		isFirst, err := modulePathPrimaryInstanceState(s, mpFirst, nameFirst)
+		isFirst, err := modulePathPrimaryInstanceState(s, mptFirst, nameFirst)
 		if err != nil {
 			return err
 		}
 
-		isSecond, err := modulePathPrimaryInstanceState(s, mpSecond, nameSecond)
+		isSecond, err := modulePathPrimaryInstanceState(s, mptSecond, nameSecond)
 		if err != nil {
 			return err
 		}
@@ -1163,7 +1256,7 @@ func modulePrimaryInstanceState(s *terraform.State, ms *terraform.ModuleState, n
 
 // modulePathPrimaryInstanceState returns the primary instance state for the
 // given resource name in a given module path.
-func modulePathPrimaryInstanceState(s *terraform.State, mp []string, name string) (*terraform.InstanceState, error) {
+func modulePathPrimaryInstanceState(s *terraform.State, mp addrs.ModuleInstance, name string) (*terraform.InstanceState, error) {
 	ms := s.ModuleByPath(mp)
 	if ms == nil {
 		return nil, fmt.Errorf("No module found at: %s", mp)

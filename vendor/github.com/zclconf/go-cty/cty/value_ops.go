@@ -14,15 +14,14 @@ func (val Value) GoString() string {
 		return "cty.NilVal"
 	}
 
-	if val.ty == DynamicPseudoType {
-		return "cty.DynamicVal"
-	}
-
-	if !val.IsKnown() {
-		return fmt.Sprintf("cty.UnknownVal(%#v)", val.ty)
-	}
 	if val.IsNull() {
 		return fmt.Sprintf("cty.NullVal(%#v)", val.ty)
+	}
+	if val == DynamicVal { // is unknown, so must be before the IsKnown check below
+		return "cty.DynamicVal"
+	}
+	if !val.IsKnown() {
+		return fmt.Sprintf("cty.UnknownVal(%#v)", val.ty)
 	}
 
 	// By the time we reach here we've dealt with all of the exceptions around
@@ -799,6 +798,10 @@ func (val Value) LengthInt() int {
 	if val.Type().IsTupleType() {
 		// For tuples, we can return the length even if the value is not known.
 		return val.Type().Length()
+	}
+	if val.Type().IsObjectType() {
+		// For objects, the length is the number of attributes associated with the type.
+		return len(val.Type().AttributeTypes())
 	}
 	if !val.IsKnown() {
 		panic("value is not known")

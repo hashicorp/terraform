@@ -90,7 +90,7 @@ func resourceAwsAcmCertificateCheckValidationRecords(validationRecordFqdns []int
 			CertificateArn: cert.CertificateArn,
 		}
 		err := resource.Retry(1*time.Minute, func() *resource.RetryError {
-			log.Printf("[DEBUG] Certificate domain validation options empty for %q, retrying", cert.CertificateArn)
+			log.Printf("[DEBUG] Certificate domain validation options empty for %q, retrying", *cert.CertificateArn)
 			output, err := conn.DescribeCertificate(input)
 			if err != nil {
 				return resource.NonRetryableError(err)

@@ -24,7 +24,7 @@ func (t primitiveType) Equals(other Type) bool {
 	return false
 }
 
-func (t primitiveType) FriendlyName() string {
+func (t primitiveType) FriendlyName(mode friendlyTypeNameMode) string {
 	switch t.Kind {
 	case primitiveTypeBool:
 		return "bool"

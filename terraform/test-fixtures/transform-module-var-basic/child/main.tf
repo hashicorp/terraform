@@ -1,3 +1,5 @@
 variable "value" {}
 
-output "result" { value = "${var.value}" }
+output "result" {
+  value = "${var.value}"
+}

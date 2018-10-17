@@ -6,23 +6,6 @@ import (
 	"github.com/hashicorp/terraform/dag"
 )
 
-func TestGraphWalk_panicWrap(t *testing.T) {
-	var g Graph
-
-	// Add our crasher
-	v := &testGraphSubPath{
-		PathFn: func() []string {
-			panic("yo")
-		},
-	}
-	g.Add(v)
-
-	err := g.Walk(GraphWalkerPanicwrap(new(NullGraphWalker)))
-	if err == nil {
-		t.Fatal("should error")
-	}
-}
-
 // testGraphContains is an assertion helper that tests that a node is
 // contained in the graph.
 func testGraphContains(t *testing.T, g *Graph, name string) {
@@ -52,6 +35,7 @@ func testGraphNotContains(t *testing.T, g *Graph, name string) {
 // testGraphHappensBefore is an assertion helper that tests that node
 // A (dag.VertexName value) happens before node B.
 func testGraphHappensBefore(t *testing.T, g *Graph, A, B string) {
+	t.Helper()
 	// Find the B vertex
 	var vertexB dag.Vertex
 	for _, v := range g.Vertices() {

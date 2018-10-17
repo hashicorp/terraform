@@ -7,7 +7,9 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/hashicorp/terraform/configs/configschema"
 	"github.com/hashicorp/terraform/plugin/discovery"
+	"github.com/hashicorp/terraform/providers"
 	"github.com/hashicorp/terraform/terraform"
 )
 
@@ -20,16 +22,16 @@ func TestMultiVersionProviderResolver(t *testing.T) {
 	})
 
 	resolver := &multiVersionProviderResolver{
-		Internal: map[string]terraform.ResourceProviderFactory{
-			"internal": func() (terraform.ResourceProvider, error) {
-				return &terraform.MockResourceProvider{
-					ResourcesReturn: []terraform.ResourceType{
-						{
-							Name: "internal_foo",
+		Internal: map[string]providers.Factory{
+			"internal": providers.FactoryFixed(
+				&terraform.MockProvider{
+					GetSchemaReturn: &terraform.ProviderSchema{
+						ResourceTypes: map[string]*configschema.Block{
+							"internal_foo": {},
 						},
 					},
-				}, nil
-			},
+				},
+			),
 		},
 		Available: available,
 	}
@@ -122,13 +124,8 @@ func TestInternalProviders(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	dataSources := tfProvider.DataSources()
-	found := false
-	for _, ds := range dataSources {
-		if ds.Name == "terraform_remote_state" {
-			found = true
-		}
-	}
+	schema := tfProvider.GetSchema()
+	_, found := schema.DataSources["terraform_remote_state"]
 	if !found {
 		t.Errorf("didn't find terraform_remote_state in internal \"terraform\" provider")
 	}

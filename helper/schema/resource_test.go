@@ -1,14 +1,20 @@
 package schema
 
 import (
+	"encoding/json"
 	"fmt"
 	"reflect"
 	"strconv"
 	"testing"
 	"time"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/hashicorp/terraform/config"
+	"github.com/hashicorp/terraform/config/hcl2shim"
 	"github.com/hashicorp/terraform/terraform"
+
+	"github.com/zclconf/go-cty/cty"
+	ctyjson "github.com/zclconf/go-cty/cty/json"
 )
 
 func TestResourceApply_create(t *testing.T) {
@@ -1366,5 +1372,325 @@ func TestResourceData_timeouts(t *testing.T) {
 
 	if !reflect.DeepEqual(timeouts, data.timeouts) {
 		t.Fatalf("incorrect ResourceData timeouts: %#v\n", *data.timeouts)
+	}
+}
+
+func TestResource_UpgradeState(t *testing.T) {
+	// While this really only calls itself and therefore doesn't test any of
+	// the Resource code directly, it still serves as an example of registering
+	// a StateUpgrader.
+	r := &Resource{
+		SchemaVersion: 2,
+		Schema: map[string]*Schema{
+			"newfoo": &Schema{
+				Type:     TypeInt,
+				Optional: true,
+			},
+		},
+	}
+
+	r.StateUpgraders = []StateUpgrader{
+		{
+			Version: 1,
+			Type: cty.Object(map[string]cty.Type{
+				"id":     cty.String,
+				"oldfoo": cty.Number,
+			}),
+			Upgrade: func(m map[string]interface{}, meta interface{}) (map[string]interface{}, error) {
+
+				oldfoo, ok := m["oldfoo"].(float64)
+				if !ok {
+					t.Fatalf("expected 1.2, got %#v", m["oldfoo"])
+				}
+				m["newfoo"] = int(oldfoo * 10)
+				delete(m, "oldfoo")
+
+				return m, nil
+			},
+		},
+	}
+
+	oldStateAttrs := map[string]string{
+		"id":     "bar",
+		"oldfoo": "1.2",
+	}
+
+	// convert the legacy flatmap state to the json equivalent
+	ty := r.StateUpgraders[0].Type
+	val, err := hcl2shim.HCL2ValueFromFlatmap(oldStateAttrs, ty)
+	if err != nil {
+		t.Fatal(err)
+	}
+	js, err := ctyjson.Marshal(val, ty)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// unmarshal the state using the json default types
+	var m map[string]interface{}
+	if err := json.Unmarshal(js, &m); err != nil {
+		t.Fatal(err)
+	}
+
+	actual, err := r.StateUpgraders[0].Upgrade(m, nil)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	expected := map[string]interface{}{
+		"id":     "bar",
+		"newfoo": 12,
+	}
+
+	if !reflect.DeepEqual(expected, actual) {
+		t.Fatalf("expected: %#v\ngot: %#v\n", expected, actual)
+	}
+}
+
+func TestResource_ValidateUpgradeState(t *testing.T) {
+	r := &Resource{
+		SchemaVersion: 3,
+		Schema: map[string]*Schema{
+			"newfoo": &Schema{
+				Type:     TypeInt,
+				Optional: true,
+			},
+		},
+	}
+
+	if err := r.InternalValidate(nil, true); err != nil {
+		t.Fatal(err)
+	}
+
+	r.StateUpgraders = append(r.StateUpgraders, StateUpgrader{
+		Version: 2,
+		Type: cty.Object(map[string]cty.Type{
+			"id": cty.String,
+		}),
+		Upgrade: func(m map[string]interface{}, _ interface{}) (map[string]interface{}, error) {
+			return m, nil
+		},
+	})
+	if err := r.InternalValidate(nil, true); err != nil {
+		t.Fatal(err)
+	}
+
+	// check for missing type
+	r.StateUpgraders[0].Type = cty.Type{}
+	if err := r.InternalValidate(nil, true); err == nil {
+		t.Fatal("StateUpgrader must have type")
+	}
+	r.StateUpgraders[0].Type = cty.Object(map[string]cty.Type{
+		"id": cty.String,
+	})
+
+	// check for missing Upgrade func
+	r.StateUpgraders[0].Upgrade = nil
+	if err := r.InternalValidate(nil, true); err == nil {
+		t.Fatal("StateUpgrader must have an Upgrade func")
+	}
+	r.StateUpgraders[0].Upgrade = func(m map[string]interface{}, _ interface{}) (map[string]interface{}, error) {
+		return m, nil
+	}
+
+	// check for skipped version
+	r.StateUpgraders[0].Version = 0
+	r.StateUpgraders = append(r.StateUpgraders, StateUpgrader{
+		Version: 2,
+		Type: cty.Object(map[string]cty.Type{
+			"id": cty.String,
+		}),
+		Upgrade: func(m map[string]interface{}, _ interface{}) (map[string]interface{}, error) {
+			return m, nil
+		},
+	})
+	if err := r.InternalValidate(nil, true); err == nil {
+		t.Fatal("StateUpgraders cannot skip versions")
+	}
+
+	// add the missing version, but fail because it's still out of order
+	r.StateUpgraders = append(r.StateUpgraders, StateUpgrader{
+		Version: 1,
+		Type: cty.Object(map[string]cty.Type{
+			"id": cty.String,
+		}),
+		Upgrade: func(m map[string]interface{}, _ interface{}) (map[string]interface{}, error) {
+			return m, nil
+		},
+	})
+	if err := r.InternalValidate(nil, true); err == nil {
+		t.Fatal("upgraders must be defined in order")
+	}
+
+	r.StateUpgraders[1], r.StateUpgraders[2] = r.StateUpgraders[2], r.StateUpgraders[1]
+	if err := r.InternalValidate(nil, true); err != nil {
+		t.Fatal(err)
+	}
+
+	// can't add an upgrader for a schema >= the current version
+	r.StateUpgraders = append(r.StateUpgraders, StateUpgrader{
+		Version: 3,
+		Type: cty.Object(map[string]cty.Type{
+			"id": cty.String,
+		}),
+		Upgrade: func(m map[string]interface{}, _ interface{}) (map[string]interface{}, error) {
+			return m, nil
+		},
+	})
+	if err := r.InternalValidate(nil, true); err == nil {
+		t.Fatal("StateUpgraders cannot have a version >= current SchemaVersion")
+	}
+}
+
+// The legacy provider will need to be able to handle both types of schema
+// transformations, which has been retrofitted into the Refresh method.
+func TestResource_migrateAndUpgrade(t *testing.T) {
+	r := &Resource{
+		SchemaVersion: 4,
+		Schema: map[string]*Schema{
+			"four": {
+				Type:     TypeInt,
+				Required: true,
+			},
+		},
+		// this MigrateState will take the state to version 2
+		MigrateState: func(v int, is *terraform.InstanceState, _ interface{}) (*terraform.InstanceState, error) {
+			switch v {
+			case 0:
+				_, ok := is.Attributes["zero"]
+				if !ok {
+					return nil, fmt.Errorf("zero not found in %#v", is.Attributes)
+				}
+				is.Attributes["one"] = "1"
+				delete(is.Attributes, "zero")
+				fallthrough
+			case 1:
+				_, ok := is.Attributes["one"]
+				if !ok {
+					return nil, fmt.Errorf("one not found in %#v", is.Attributes)
+				}
+				is.Attributes["two"] = "2"
+				delete(is.Attributes, "one")
+			default:
+				return nil, fmt.Errorf("invalid schema version %d", v)
+			}
+			return is, nil
+		},
+	}
+
+	r.Read = func(d *ResourceData, m interface{}) error {
+		return d.Set("four", 4)
+	}
+
+	r.StateUpgraders = []StateUpgrader{
+		{
+			Version: 2,
+			Type: cty.Object(map[string]cty.Type{
+				"id":  cty.String,
+				"two": cty.Number,
+			}),
+			Upgrade: func(m map[string]interface{}, meta interface{}) (map[string]interface{}, error) {
+				_, ok := m["two"].(float64)
+				if !ok {
+					return nil, fmt.Errorf("two not found in %#v", m)
+				}
+				m["three"] = float64(3)
+				delete(m, "two")
+				return m, nil
+			},
+		},
+		{
+			Version: 3,
+			Type: cty.Object(map[string]cty.Type{
+				"id":    cty.String,
+				"three": cty.Number,
+			}),
+			Upgrade: func(m map[string]interface{}, meta interface{}) (map[string]interface{}, error) {
+				_, ok := m["three"].(float64)
+				if !ok {
+					return nil, fmt.Errorf("three not found in %#v", m)
+				}
+				m["four"] = float64(4)
+				delete(m, "three")
+				return m, nil
+			},
+		},
+	}
+
+	testStates := []*terraform.InstanceState{
+		{
+			ID: "bar",
+			Attributes: map[string]string{
+				"id":   "bar",
+				"zero": "0",
+			},
+			Meta: map[string]interface{}{
+				"schema_version": "0",
+			},
+		},
+		{
+			ID: "bar",
+			Attributes: map[string]string{
+				"id":  "bar",
+				"one": "1",
+			},
+			Meta: map[string]interface{}{
+				"schema_version": "1",
+			},
+		},
+		{
+			ID: "bar",
+			Attributes: map[string]string{
+				"id":  "bar",
+				"two": "2",
+			},
+			Meta: map[string]interface{}{
+				"schema_version": "2",
+			},
+		},
+		{
+			ID: "bar",
+			Attributes: map[string]string{
+				"id":    "bar",
+				"three": "3",
+			},
+			Meta: map[string]interface{}{
+				"schema_version": "3",
+			},
+		},
+		{
+			ID: "bar",
+			Attributes: map[string]string{
+				"id":   "bar",
+				"four": "4",
+			},
+			Meta: map[string]interface{}{
+				"schema_version": "4",
+			},
+		},
+	}
+
+	for i, s := range testStates {
+		t.Run(fmt.Sprintf("%d", i), func(t *testing.T) {
+			newState, err := r.Refresh(s, nil)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			expected := &terraform.InstanceState{
+				ID: "bar",
+				Attributes: map[string]string{
+					"id":   "bar",
+					"four": "4",
+				},
+				Meta: map[string]interface{}{
+					"schema_version": "4",
+				},
+			}
+
+			if !cmp.Equal(expected, newState, equateEmpty) {
+				t.Fatal(cmp.Diff(expected, newState, equateEmpty))
+			}
+		})
 	}
 }

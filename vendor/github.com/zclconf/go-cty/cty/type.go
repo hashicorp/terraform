@@ -19,7 +19,7 @@ type typeImpl interface {
 
 	// FriendlyName returns a human-friendly *English* name for the given
 	// type.
-	FriendlyName() string
+	FriendlyName(mode friendlyTypeNameMode) string
 
 	// GoString implements the GoStringer interface from package fmt.
 	GoString() string
@@ -41,7 +41,25 @@ func (t Type) Equals(other Type) bool {
 
 // FriendlyName returns a human-friendly *English* name for the given type.
 func (t Type) FriendlyName() string {
-	return t.typeImpl.FriendlyName()
+	return t.typeImpl.FriendlyName(friendlyTypeName)
+}
+
+// FriendlyNameForConstraint is similar to FriendlyName except that the
+// result is specialized for describing type _constraints_ rather than types
+// themselves. This is more appropriate when reporting that a particular value
+// does not conform to an expected type constraint.
+//
+// In particular, this function uses the term "any type" to refer to
+// cty.DynamicPseudoType, rather than "dynamic" as returned by FriendlyName.
+func (t Type) FriendlyNameForConstraint() string {
+	return t.typeImpl.FriendlyName(friendlyTypeConstraintName)
+}
+
+// friendlyNameMode is an internal combination of the various FriendlyName*
+// variants that just directly takes a mode, for easy passthrough for
+// recursive name construction.
+func (t Type) friendlyNameMode(mode friendlyTypeNameMode) string {
+	return t.typeImpl.FriendlyName(mode)
 }
 
 // GoString returns a string approximating how the receiver type would be
@@ -93,3 +111,10 @@ func (t Type) HasDynamicTypes() bool {
 		panic("HasDynamicTypes does not support the given type")
 	}
 }
+
+type friendlyTypeNameMode rune
+
+const (
+	friendlyTypeName           friendlyTypeNameMode = 'N'
+	friendlyTypeConstraintName friendlyTypeNameMode = 'C'
+)

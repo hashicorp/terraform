@@ -411,7 +411,7 @@ func resourceAwsVpcUpdate(d *schema.ResourceData, meta interface{}) error {
 
 		if toAssign {
 			modifyOpts := &ec2.AssociateVpcCidrBlockInput{
-				VpcId: &vpcid,
+				VpcId:                       &vpcid,
 				AmazonProvidedIpv6CidrBlock: aws.Bool(toAssign),
 			}
 			log.Printf("[INFO] Enabling assign_generated_ipv6_cidr_block vpc attribute for %s: %#v",

@@ -76,7 +76,9 @@ $ make plugin-dev PLUGIN=provider-test
 
 ### Dependencies
 
-Terraform stores its dependencies under `vendor/`, which [Go 1.6+ will automatically recognize and load](https://golang.org/cmd/go/#hdr-Vendor_Directories). We use [`govendor`](https://github.com/kardianos/govendor) to manage the vendored dependencies.
+Terraform uses Go Modules for dependency management, but for the moment is
+continuing to use Go 1.6-style vendoring for compatibility with tools that
+have not yet been updated for full Go Modules support.
 
 If you're developing Terraform, there are a few tasks you might need to perform.
 
@@ -88,17 +90,11 @@ To add a dependency:
 
 Assuming your work is on a branch called `my-feature-branch`, the steps look like this:
 
-1. Add the new package to your GOPATH:
+1. Add an `import` statement to a suitable package in the Terraform code.
 
-    ```bash
-    go get github.com/hashicorp/my-project
-    ```
-
-2.  Add the new package to your `vendor/` directory:
-
-    ```bash
-    govendor add github.com/hashicorp/my-project/package
-    ```
+2. Run `go mod vendor` to download the latest version of the module containing
+   the imported package into the `vendor/` directory, and update the `go.mod`
+   and `go.sum` files.
 
 3. Review the changes in git and commit them.
 
@@ -106,13 +102,11 @@ Assuming your work is on a branch called `my-feature-branch`, the steps look lik
 
 To update a dependency:
 
-1. Fetch the dependency:
+1. Run `go get -u module-path@version-number`, such as `go get -u github.com/hashicorp/hcl@2.0.0`
 
-    ```bash
-    govendor fetch github.com/hashicorp/my-project
-    ```
+2. Run `go mod vendor` to update the vendored copy in the `vendor/` directory.
 
-2. Review the changes in git and commit them.
+3. Review the changes in git and commit them.
 
 ### Acceptance Tests
 
