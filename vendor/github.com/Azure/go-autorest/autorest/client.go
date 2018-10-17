@@ -1,19 +1,5 @@
 package autorest
 
-// Copyright 2017 Microsoft Corporation
-//
-//  Licensed under the Apache License, Version 2.0 (the "License");
-//  you may not use this file except in compliance with the License.
-//  You may obtain a copy of the License at
-//
-//      http://www.apache.org/licenses/LICENSE-2.0
-//
-//  Unless required by applicable law or agreed to in writing, software
-//  distributed under the License is distributed on an "AS IS" BASIS,
-//  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-//  See the License for the specific language governing permissions and
-//  limitations under the License.
-
 import (
 	"bytes"
 	"fmt"
@@ -35,9 +21,6 @@ const (
 
 	// DefaultRetryAttempts is number of attempts for retry status codes (5xx).
 	DefaultRetryAttempts = 3
-
-	// DefaultRetryDuration is the duration to wait between retries.
-	DefaultRetryDuration = 30 * time.Second
 )
 
 var (
@@ -50,8 +33,7 @@ var (
 		Version(),
 	)
 
-	// StatusCodesForRetry are a defined group of status code for which the client will retry
-	StatusCodesForRetry = []int{
+	statusCodesForRetry = []int{
 		http.StatusRequestTimeout,      // 408
 		http.StatusTooManyRequests,     // 429
 		http.StatusInternalServerError, // 500
@@ -166,9 +148,6 @@ type Client struct {
 	UserAgent string
 
 	Jar http.CookieJar
-
-	// Set to true to skip attempted registration of resource providers (false by default).
-	SkipResourceProviderRegistration bool
 }
 
 // NewClientWithUserAgent returns an instance of a Client with the UserAgent set to the passed
@@ -178,10 +157,9 @@ func NewClientWithUserAgent(ua string) Client {
 		PollingDelay:    DefaultPollingDelay,
 		PollingDuration: DefaultPollingDuration,
 		RetryAttempts:   DefaultRetryAttempts,
-		RetryDuration:   DefaultRetryDuration,
+		RetryDuration:   30 * time.Second,
 		UserAgent:       defaultUserAgent,
 	}
-	c.Sender = c.sender()
 	c.AddToUserAgent(ua)
 	return c
 }
@@ -207,17 +185,12 @@ func (c Client) Do(r *http.Request) (*http.Response, error) {
 		c.WithInspection(),
 		c.WithAuthorization())
 	if err != nil {
-		var resp *http.Response
-		if detErr, ok := err.(DetailedError); ok {
-			// if the authorization failed (e.g. invalid credentials) there will
-			// be a response associated with the error, be sure to return it.
-			resp = detErr.Response
-		}
-		return resp, NewErrorWithError(err, "autorest/Client", "Do", nil, "Preparing request failed")
+		return nil, NewErrorWithError(err, "autorest/Client", "Do", nil, "Preparing request failed")
 	}
-
-	resp, err := SendWithSender(c.sender(), r)
-	Respond(resp, c.ByInspecting())
+	resp, err := SendWithSender(c.sender(), r,
+		DoRetryForStatusCodes(c.RetryAttempts, c.RetryDuration, statusCodesForRetry...))
+	Respond(resp,
+		c.ByInspecting())
 	return resp, err
 }
 

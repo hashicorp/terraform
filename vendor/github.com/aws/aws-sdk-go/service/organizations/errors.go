@@ -7,7 +7,7 @@ const (
 	// ErrCodeAWSOrganizationsNotInUseException for service response error code
 	// "AWSOrganizationsNotInUseException".
 	//
-	// Your account is not a member of an organization. To make this request, you
+	// Your account isn't a member of an organization. To make this request, you
 	// must use the credentials of an account that belongs to an organization.
 	ErrCodeAWSOrganizationsNotInUseException = "AWSOrganizationsNotInUseException"
 
@@ -24,18 +24,27 @@ const (
 	// ErrCodeAccessDeniedForDependencyException for service response error code
 	// "AccessDeniedForDependencyException".
 	//
-	// The operation you attempted requires you to have the iam:CreateServiceLinkedRole
-	// so that Organizations can create the required service-linked role. You do
-	// not have that permission.
+	// The operation that you attempted requires you to have the iam:CreateServiceLinkedRole
+	// so that AWS Organizations can create the required service-linked role. You
+	// don't have that permission.
 	ErrCodeAccessDeniedForDependencyException = "AccessDeniedForDependencyException"
 
 	// ErrCodeAccountNotFoundException for service response error code
 	// "AccountNotFoundException".
 	//
 	// We can't find an AWS account with the AccountId that you specified, or the
-	// account whose credentials you used to make this request is not a member of
+	// account whose credentials you used to make this request isn't a member of
 	// an organization.
 	ErrCodeAccountNotFoundException = "AccountNotFoundException"
+
+	// ErrCodeAccountOwnerNotVerifiedException for service response error code
+	// "AccountOwnerNotVerifiedException".
+	//
+	// You can't invite an existing account to your organization until you verify
+	// that you own the email address associated with the master account. For more
+	// information, see Email Address Verification (http://docs.aws.amazon.com/organizations/latest/userguide/orgs_manage_create.html#about-email-verification)
+	// in the AWS Organizations User Guide.
+	ErrCodeAccountOwnerNotVerifiedException = "AccountOwnerNotVerifiedException"
 
 	// ErrCodeAlreadyInOrganizationException for service response error code
 	// "AlreadyInOrganizationException".
@@ -62,40 +71,42 @@ const (
 	// "ConstraintViolationException".
 	//
 	// Performing this operation violates a minimum or maximum value limit. For
-	// example, attempting to removing the last SCP from an OU or root, inviting
-	// or creating too many accounts to the organization, or attaching too many
-	// policies to an account, OU, or root. This exception includes a reason that
-	// contains additional information about the violated limit:
+	// example, attempting to removing the last service control policy (SCP) from
+	// an OU or root, inviting or creating too many accounts to the organization,
+	// or attaching too many policies to an account, OU, or root. This exception
+	// includes a reason that contains additional information about the violated
+	// limit.
 	//
 	// Some of the reasons in the following list might not be applicable to this
 	// specific API or operation:
 	//
-	// ACCOUNT_NUMBER_LIMIT_EXCEEDED: You attempted to exceed the limit on the number
-	// of accounts in an organization. If you need more accounts, contact AWS Support
-	// to request an increase in your limit.
+	//    * ACCOUNT_NUMBER_LIMIT_EXCEEDED: You attempted to exceed the limit on
+	//    the number of accounts in an organization. If you need more accounts,
+	//    contactAWS Support (https://console.aws.amazon.com/support/home#/) to
+	//    request an increase in your limit.
 	//
-	// Or, The number of invitations that you tried to send would cause you to exceed
-	// the limit of accounts in your organization. Send fewer invitations, or contact
-	// AWS Support to request an increase in the number of accounts.
+	// Or the number of invitations that you tried to send would cause you to exceed
+	//    the limit of accounts in your organization. Send fewer invitations or
+	//    contact AWS Support to request an increase in the number of accounts.
 	//
-	// Note: deleted and closed accounts still count toward your limit.
+	// Deleted and closed accounts still count toward your limit.
 	//
 	// If you get receive this exception when running a command immediately after
-	// creating the organization, wait one hour and try again. If after an hour
-	// it continues to fail with this error, contact AWS Customer Support (https://console.aws.amazon.com/support/home#/).
+	//    creating the organization, wait one hour and try again. If after an hour
+	//    it continues to fail with this error, contact AWS Support (https://console.aws.amazon.com/support/home#/).
 	//
 	//    * HANDSHAKE_RATE_LIMIT_EXCEEDED: You attempted to exceed the number of
-	//    handshakes you can send in one day.
+	//    handshakes that you can send in one day.
 	//
-	//    * OU_NUMBER_LIMIT_EXCEEDED: You attempted to exceed the number of organizational
-	//    units you can have in an organization.
+	//    * OU_NUMBER_LIMIT_EXCEEDED: You attempted to exceed the number of OUs
+	//    that you can have in an organization.
 	//
-	//    * OU_DEPTH_LIMIT_EXCEEDED: You attempted to create an organizational unit
-	//    tree that is too many levels deep.
+	//    * OU_DEPTH_LIMIT_EXCEEDED: You attempted to create an OU tree that is
+	//    too many levels deep.
 	//
 	//    * ORGANIZATION_NOT_IN_ALL_FEATURES_MODE: You attempted to perform an operation
 	//    that requires the organization to be configured to support all features.
-	//    An organization that supports consolidated billing features only cannot
+	//    An organization that supports only consolidated billing features can't
 	//    perform this operation.
 	//
 	//    * POLICY_NUMBER_LIMIT_EXCEEDED. You attempted to exceed the number of
@@ -110,23 +121,24 @@ const (
 	//    minimum number of policies of a certain type required.
 	//
 	//    * ACCOUNT_CANNOT_LEAVE_WITHOUT_EULA: You attempted to remove an account
-	//    from the organization that does not yet have enough information to exist
-	//    as a stand-alone account. This account requires you to first agree to
-	//    the AWS Customer Agreement. Follow the steps at To leave an organization
-	//    when all required account information has not yet been provided (http://docs.aws.amazon.com/organizations/latest/userguide/orgs_manage_accounts_remove.html#leave-without-all-info)
+	//    from the organization that doesn't yet have enough information to exist
+	//    as a standalone account. This account requires you to first agree to the
+	//    AWS Customer Agreement. Follow the steps at To leave an organization when
+	//    all required account information has not yet been provided (http://docs.aws.amazon.com/organizations/latest/userguide/orgs_manage_accounts_remove.html#leave-without-all-info)
 	//    in the AWS Organizations User Guide.
 	//
 	//    * ACCOUNT_CANNOT_LEAVE_WITHOUT_PHONE_VERIFICATION: You attempted to remove
-	//    an account from the organization that does not yet have enough information
-	//    to exist as a stand-alone account. This account requires you to first
-	//    complete phone verification. Follow the steps at To leave an organization
-	//    when all required account information has not yet been provided (http://docs.aws.amazon.com/organizations/latest/userguide/orgs_manage_accounts_remove.html#leave-without-all-info)
+	//    an account from the organization that doesn't yet have enough information
+	//    to exist as a standalone account. This account requires you to first complete
+	//    phone verification. Follow the steps at To leave an organization when
+	//    all required account information has not yet been provided (http://docs.aws.amazon.com/organizations/latest/userguide/orgs_manage_accounts_remove.html#leave-without-all-info)
 	//    in the AWS Organizations User Guide.
 	//
 	//    * MASTER_ACCOUNT_PAYMENT_INSTRUMENT_REQUIRED: To create an organization
-	//    with this account, you first must associate a payment instrument, such
-	//    as a credit card, with the account. Follow the steps at To leave an organization
-	//    when all required account information has not yet been provided (http://docs.aws.amazon.com/organizations/latest/userguide/orgs_manage_accounts_remove.html#leave-without-all-info)
+	//    with this master account, you first must associate a payment instrument,
+	//    such as a credit card, with the account. Follow the steps at To leave
+	//    an organization when all required account information has not yet been
+	//    provided (http://docs.aws.amazon.com/organizations/latest/userguide/orgs_manage_accounts_remove.html#leave-without-all-info)
 	//    in the AWS Organizations User Guide.
 	//
 	//    * MEMBER_ACCOUNT_PAYMENT_INSTRUMENT_REQUIRED: To complete this operation
@@ -184,7 +196,7 @@ const (
 	// ErrCodeDuplicateOrganizationalUnitException for service response error code
 	// "DuplicateOrganizationalUnitException".
 	//
-	// An organizational unit (OU) with the same name already exists.
+	// An OU with the same name already exists.
 	ErrCodeDuplicateOrganizationalUnitException = "DuplicateOrganizationalUnitException"
 
 	// ErrCodeDuplicatePolicyAttachmentException for service response error code
@@ -202,10 +214,10 @@ const (
 	// ErrCodeFinalizingOrganizationException for service response error code
 	// "FinalizingOrganizationException".
 	//
-	// AWS Organizations could not perform the operation because your organization
-	// has not finished initializing. This can take up to an hour. Try again later.
-	// If after one hour you continue to receive this error, contact  AWS Customer
-	// Support (https://console.aws.amazon.com/support/home#/).
+	// AWS Organizations couldn't perform the operation because your organization
+	// hasn't finished initializing. This can take up to an hour. Try again later.
+	// If after one hour you continue to receive this error, contact AWS Support
+	// (https://console.aws.amazon.com/support/home#/).
 	ErrCodeFinalizingOrganizationException = "FinalizingOrganizationException"
 
 	// ErrCodeHandshakeAlreadyInStateException for service response error code
@@ -225,15 +237,15 @@ const (
 	// specific API or operation:
 	//
 	//    * ACCOUNT_NUMBER_LIMIT_EXCEEDED: You attempted to exceed the limit on
-	//    the number of accounts in an organization. Note: deleted and closed accounts
-	//    still count toward your limit.
+	//    the number of accounts in an organization. Note that deleted and closed
+	//    accounts still count toward your limit.
 	//
 	// If you get this exception immediately after creating the organization, wait
 	//    one hour and try again. If after an hour it continues to fail with this
-	//    error, contact AWS Customer Support (https://console.aws.amazon.com/support/home#/).
+	//    error, contact AWS Support (https://console.aws.amazon.com/support/home#/).
 	//
 	//    * HANDSHAKE_RATE_LIMIT_EXCEEDED: You attempted to exceed the number of
-	//    handshakes you can send in one day.
+	//    handshakes that you can send in one day.
 	//
 	//    * ALREADY_IN_AN_ORGANIZATION: The handshake request is invalid because
 	//    the invited account is already a member of an organization.
@@ -241,13 +253,13 @@ const (
 	//    * ORGANIZATION_ALREADY_HAS_ALL_FEATURES: The handshake request is invalid
 	//    because the organization has already enabled all features.
 	//
-	//    * INVITE_DISABLED_DURING_ENABLE_ALL_FEATURES: You cannot issue new invitations
-	//    to join an organization while it is in the process of enabling all features.
+	//    * INVITE_DISABLED_DURING_ENABLE_ALL_FEATURES: You can't issue new invitations
+	//    to join an organization while it's in the process of enabling all features.
 	//    You can resume inviting accounts after you finalize the process when all
 	//    accounts have agreed to the change.
 	//
-	//    * PAYMENT_INSTRUMENT_REQUIRED: You cannot complete the operation with
-	//    an account that does not have a payment instrument, such as a credit card,
+	//    * PAYMENT_INSTRUMENT_REQUIRED: You can't complete the operation with an
+	//    account that doesn't have a payment instrument, such as a credit card,
 	//    associated with it.
 	//
 	//    * ORGANIZATION_FROM_DIFFERENT_SELLER_OF_RECORD: The request failed because
@@ -270,7 +282,7 @@ const (
 	// "InvalidHandshakeTransitionException".
 	//
 	// You can't perform the operation on the handshake in its current state. For
-	// example, you can't cancel a handshake that was already accepted, or accept
+	// example, you can't cancel a handshake that was already accepted or accept
 	// a handshake that was already declined.
 	ErrCodeInvalidHandshakeTransitionException = "InvalidHandshakeTransitionException"
 
@@ -285,11 +297,11 @@ const (
 	// specific API or operation:
 	//
 	//    * IMMUTABLE_POLICY: You specified a policy that is managed by AWS and
-	//    cannot be modified.
+	//    can't be modified.
 	//
 	//    * INPUT_REQUIRED: You must include a value for all required parameters.
 	//
-	//    * INVALID_ENUM: You specified a value that is not valid for that parameter.
+	//    * INVALID_ENUM: You specified a value that isn't valid for that parameter.
 	//
 	//    * INVALID_FULL_NAME_TARGET: You specified a full name that contains invalid
 	//    characters.
@@ -309,11 +321,11 @@ const (
 	//    * INVALID_PATTERN_TARGET_ID: You specified a policy target ID that doesn't
 	//    match the required pattern.
 	//
-	//    * INVALID_ROLE_NAME: You provided a role name that is not valid. A role
-	//    name can’t begin with the reserved prefix 'AWSServiceRoleFor'.
+	//    * INVALID_ROLE_NAME: You provided a role name that isn't valid. A role
+	//    name can't begin with the reserved prefix AWSServiceRoleFor.
 	//
-	//    * INVALID_SYNTAX_ORGANIZATION_ARN: You specified an invalid ARN for the
-	//    organization.
+	//    * INVALID_SYNTAX_ORGANIZATION_ARN: You specified an invalid Amazon Resource
+	//    Name (ARN) for the organization.
 	//
 	//    * INVALID_SYNTAX_POLICY_ID: You specified an invalid policy ID.
 	//
@@ -339,7 +351,7 @@ const (
 	// ErrCodeMalformedPolicyDocumentException for service response error code
 	// "MalformedPolicyDocumentException".
 	//
-	// The provided policy document does not meet the requirements of the specified
+	// The provided policy document doesn't meet the requirements of the specified
 	// policy type. For example, the syntax might be incorrect. For details about
 	// service control policy syntax, see Service Control Policy Syntax (http://docs.aws.amazon.com/organizations/latest/userguide/orgs_reference_scp-syntax.html)
 	// in the AWS Organizations User Guide.
@@ -357,37 +369,33 @@ const (
 	// "OrganizationNotEmptyException".
 	//
 	// The organization isn't empty. To delete an organization, you must first remove
-	// all accounts except the master account, delete all organizational units (OUs),
-	// and delete all policies.
+	// all accounts except the master account, delete all OUs, and delete all policies.
 	ErrCodeOrganizationNotEmptyException = "OrganizationNotEmptyException"
 
 	// ErrCodeOrganizationalUnitNotEmptyException for service response error code
 	// "OrganizationalUnitNotEmptyException".
 	//
-	// The specified organizational unit (OU) is not empty. Move all accounts to
-	// another root or to other OUs, remove all child OUs, and then try the operation
-	// again.
+	// The specified OU is not empty. Move all accounts to another root or to other
+	// OUs, remove all child OUs, and try the operation again.
 	ErrCodeOrganizationalUnitNotEmptyException = "OrganizationalUnitNotEmptyException"
 
 	// ErrCodeOrganizationalUnitNotFoundException for service response error code
 	// "OrganizationalUnitNotFoundException".
 	//
-	// We can't find an organizational unit (OU) with the OrganizationalUnitId that
-	// you specified.
+	// We can't find an OU with the OrganizationalUnitId that you specified.
 	ErrCodeOrganizationalUnitNotFoundException = "OrganizationalUnitNotFoundException"
 
 	// ErrCodeParentNotFoundException for service response error code
 	// "ParentNotFoundException".
 	//
-	// We can't find a root or organizational unit (OU) with the ParentId that you
-	// specified.
+	// We can't find a root or OU with the ParentId that you specified.
 	ErrCodeParentNotFoundException = "ParentNotFoundException"
 
 	// ErrCodePolicyInUseException for service response error code
 	// "PolicyInUseException".
 	//
 	// The policy is attached to one or more entities. You must detach it from all
-	// roots, organizational units (OUs), and accounts before performing this operation.
+	// roots, OUs, and accounts before performing this operation.
 	ErrCodePolicyInUseException = "PolicyInUseException"
 
 	// ErrCodePolicyNotAttachedException for service response error code
@@ -412,16 +420,16 @@ const (
 	// "PolicyTypeNotAvailableForOrganizationException".
 	//
 	// You can't use the specified policy type with the feature set currently enabled
-	// for this organization. For example, you can enable service control policies
-	// (SCPs) only after you enable all features in the organization. For more information,
-	// see Enabling and Disabling a Policy Type on a Root (http://docs.aws.amazon.com/organizations/latest/userguide/orgs_manage_policies.html#enable_policies_on_root)
+	// for this organization. For example, you can enable SCPs only after you enable
+	// all features in the organization. For more information, see Enabling and
+	// Disabling a Policy Type on a Root (http://docs.aws.amazon.com/organizations/latest/userguide/orgs_manage_policies.html#enable_policies_on_root)
 	// in the AWS Organizations User Guide.
 	ErrCodePolicyTypeNotAvailableForOrganizationException = "PolicyTypeNotAvailableForOrganizationException"
 
 	// ErrCodePolicyTypeNotEnabledException for service response error code
 	// "PolicyTypeNotEnabledException".
 	//
-	// The specified policy type is not currently enabled in this root. You cannot
+	// The specified policy type isn't currently enabled in this root. You can't
 	// attach policies of the specified type to entities in a root until you enable
 	// that type in the root. For more information, see Enabling All Features in
 	// Your Organization (http://docs.aws.amazon.com/organizations/latest/userguide/orgs_manage_org_support-all-features.html)

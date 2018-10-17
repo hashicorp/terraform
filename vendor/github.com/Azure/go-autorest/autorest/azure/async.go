@@ -1,23 +1,7 @@
 package azure
 
-// Copyright 2017 Microsoft Corporation
-//
-//  Licensed under the Apache License, Version 2.0 (the "License");
-//  you may not use this file except in compliance with the License.
-//  You may obtain a copy of the License at
-//
-//      http://www.apache.org/licenses/LICENSE-2.0
-//
-//  Unless required by applicable law or agreed to in writing, software
-//  distributed under the License is distributed on an "AS IS" BASIS,
-//  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-//  See the License for the specific language governing permissions and
-//  limitations under the License.
-
 import (
 	"bytes"
-	"context"
-	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -39,152 +23,6 @@ const (
 	operationSucceeded  string = "Succeeded"
 )
 
-var pollingCodes = [...]int{http.StatusNoContent, http.StatusAccepted, http.StatusCreated, http.StatusOK}
-
-// Future provides a mechanism to access the status and results of an asynchronous request.
-// Since futures are stateful they should be passed by value to avoid race conditions.
-type Future struct {
-	req  *http.Request
-	resp *http.Response
-	ps   pollingState
-}
-
-// NewFuture returns a new Future object initialized with the specified request.
-func NewFuture(req *http.Request) Future {
-	return Future{req: req}
-}
-
-// Response returns the last HTTP response or nil if there isn't one.
-func (f Future) Response() *http.Response {
-	return f.resp
-}
-
-// Status returns the last status message of the operation.
-func (f Future) Status() string {
-	if f.ps.State == "" {
-		return "Unknown"
-	}
-	return f.ps.State
-}
-
-// PollingMethod returns the method used to monitor the status of the asynchronous operation.
-func (f Future) PollingMethod() PollingMethodType {
-	return f.ps.PollingMethod
-}
-
-// Done queries the service to see if the operation has completed.
-func (f *Future) Done(sender autorest.Sender) (bool, error) {
-	// exit early if this future has terminated
-	if f.ps.hasTerminated() {
-		return true, f.errorInfo()
-	}
-
-	resp, err := sender.Do(f.req)
-	f.resp = resp
-	if err != nil || !autorest.ResponseHasStatusCode(resp, pollingCodes[:]...) {
-		return false, err
-	}
-
-	err = updatePollingState(resp, &f.ps)
-	if err != nil {
-		return false, err
-	}
-
-	if f.ps.hasTerminated() {
-		return true, f.errorInfo()
-	}
-
-	f.req, err = newPollingRequest(f.ps)
-	return false, err
-}
-
-// GetPollingDelay returns a duration the application should wait before checking
-// the status of the asynchronous request and true; this value is returned from
-// the service via the Retry-After response header.  If the header wasn't returned
-// then the function returns the zero-value time.Duration and false.
-func (f Future) GetPollingDelay() (time.Duration, bool) {
-	if f.resp == nil {
-		return 0, false
-	}
-
-	retry := f.resp.Header.Get(autorest.HeaderRetryAfter)
-	if retry == "" {
-		return 0, false
-	}
-
-	d, err := time.ParseDuration(retry + "s")
-	if err != nil {
-		panic(err)
-	}
-
-	return d, true
-}
-
-// WaitForCompletion will return when one of the following conditions is met: the long
-// running operation has completed, the provided context is cancelled, or the client's
-// polling duration has been exceeded.  It will retry failed polling attempts based on
-// the retry value defined in the client up to the maximum retry attempts.
-func (f Future) WaitForCompletion(ctx context.Context, client autorest.Client) error {
-	ctx, cancel := context.WithTimeout(ctx, client.PollingDuration)
-	defer cancel()
-
-	done, err := f.Done(client)
-	for attempts := 0; !done; done, err = f.Done(client) {
-		if attempts >= client.RetryAttempts {
-			return autorest.NewErrorWithError(err, "azure", "WaitForCompletion", f.resp, "the number of retries has been exceeded")
-		}
-		// we want delayAttempt to be zero in the non-error case so
-		// that DelayForBackoff doesn't perform exponential back-off
-		var delayAttempt int
-		var delay time.Duration
-		if err == nil {
-			// check for Retry-After delay, if not present use the client's polling delay
-			var ok bool
-			delay, ok = f.GetPollingDelay()
-			if !ok {
-				delay = client.PollingDelay
-			}
-		} else {
-			// there was an error polling for status so perform exponential
-			// back-off based on the number of attempts using the client's retry
-			// duration.  update attempts after delayAttempt to avoid off-by-one.
-			delayAttempt = attempts
-			delay = client.RetryDuration
-			attempts++
-		}
-		// wait until the delay elapses or the context is cancelled
-		delayElapsed := autorest.DelayForBackoff(delay, delayAttempt, ctx.Done())
-		if !delayElapsed {
-			return autorest.NewErrorWithError(ctx.Err(), "azure", "WaitForCompletion", f.resp, "context has been cancelled")
-		}
-	}
-	return err
-}
-
-// if the operation failed the polling state will contain
-// error information and implements the error interface
-func (f *Future) errorInfo() error {
-	if !f.ps.hasSucceeded() {
-		return f.ps
-	}
-	return nil
-}
-
-// MarshalJSON implements the json.Marshaler interface.
-func (f Future) MarshalJSON() ([]byte, error) {
-	return json.Marshal(&f.ps)
-}
-
-// UnmarshalJSON implements the json.Unmarshaler interface.
-func (f *Future) UnmarshalJSON(data []byte) error {
-	err := json.Unmarshal(data, &f.ps)
-	if err != nil {
-		return err
-	}
-	f.req, err = newPollingRequest(f.ps)
-	return err
-}
-
 // DoPollForAsynchronous returns a SendDecorator that polls if the http.Response is for an Azure
 // long-running operation. It will delay between requests for the duration specified in the
 // RetryAfter header or, if the header is absent, the passed delay. Polling may be canceled by
@@ -196,7 +34,8 @@ func DoPollForAsynchronous(delay time.Duration) autorest.SendDecorator {
 			if err != nil {
 				return resp, err
 			}
-			if !autorest.ResponseHasStatusCode(resp, pollingCodes[:]...) {
+			pollingCodes := []int{http.StatusAccepted, http.StatusCreated, http.StatusOK}
+			if !autorest.ResponseHasStatusCode(resp, pollingCodes...) {
 				return resp, nil
 			}
 
@@ -213,11 +52,10 @@ func DoPollForAsynchronous(delay time.Duration) autorest.SendDecorator {
 					break
 				}
 
-				r, err = newPollingRequest(ps)
+				r, err = newPollingRequest(resp, ps)
 				if err != nil {
 					return resp, err
 				}
-				r.Cancel = resp.Request.Cancel
 
 				delay = autorest.GetRetryAfter(resp, delay)
 				resp, err = autorest.SendWithSender(s, r,
@@ -234,15 +72,20 @@ func getAsyncOperation(resp *http.Response) string {
 }
 
 func hasSucceeded(state string) bool {
-	return strings.EqualFold(state, operationSucceeded)
+	return state == operationSucceeded
 }
 
 func hasTerminated(state string) bool {
-	return strings.EqualFold(state, operationCanceled) || strings.EqualFold(state, operationFailed) || strings.EqualFold(state, operationSucceeded)
+	switch state {
+	case operationCanceled, operationFailed, operationSucceeded:
+		return true
+	default:
+		return false
+	}
 }
 
 func hasFailed(state string) bool {
-	return strings.EqualFold(state, operationFailed)
+	return state == operationFailed
 }
 
 type provisioningTracker interface {
@@ -303,42 +146,36 @@ func (ps provisioningStatus) hasProvisioningError() bool {
 	return ps.ProvisioningError != ServiceError{}
 }
 
-// PollingMethodType defines a type used for enumerating polling mechanisms.
-type PollingMethodType string
+type pollingResponseFormat string
 
 const (
-	// PollingAsyncOperation indicates the polling method uses the Azure-AsyncOperation header.
-	PollingAsyncOperation PollingMethodType = "AsyncOperation"
-
-	// PollingLocation indicates the polling method uses the Location header.
-	PollingLocation PollingMethodType = "Location"
-
-	// PollingUnknown indicates an unknown polling method and is the default value.
-	PollingUnknown PollingMethodType = ""
+	usesOperationResponse  pollingResponseFormat = "OperationResponse"
+	usesProvisioningStatus pollingResponseFormat = "ProvisioningStatus"
+	formatIsUnknown        pollingResponseFormat = ""
 )
 
 type pollingState struct {
-	PollingMethod PollingMethodType `json:"pollingMethod"`
-	URI           string            `json:"uri"`
-	State         string            `json:"state"`
-	Code          string            `json:"code"`
-	Message       string            `json:"message"`
+	responseFormat pollingResponseFormat
+	uri            string
+	state          string
+	code           string
+	message        string
 }
 
 func (ps pollingState) hasSucceeded() bool {
-	return hasSucceeded(ps.State)
+	return hasSucceeded(ps.state)
 }
 
 func (ps pollingState) hasTerminated() bool {
-	return hasTerminated(ps.State)
+	return hasTerminated(ps.state)
 }
 
 func (ps pollingState) hasFailed() bool {
-	return hasFailed(ps.State)
+	return hasFailed(ps.state)
 }
 
 func (ps pollingState) Error() string {
-	return fmt.Sprintf("Long running operation terminated with status '%s': Code=%q Message=%q", ps.State, ps.Code, ps.Message)
+	return fmt.Sprintf("Long running operation terminated with status '%s': Code=%q Message=%q", ps.state, ps.code, ps.message)
 }
 
 //	updatePollingState maps the operation status -- retrieved from either a provisioningState
@@ -353,7 +190,7 @@ func updatePollingState(resp *http.Response, ps *pollingState) error {
 	// -- The first response will always be a provisioningStatus response; only the polling requests,
 	//    depending on the header returned, may be something otherwise.
 	var pt provisioningTracker
-	if ps.PollingMethod == PollingAsyncOperation {
+	if ps.responseFormat == usesOperationResponse {
 		pt = &operationResource{}
 	} else {
 		pt = &provisioningStatus{}
@@ -361,30 +198,30 @@ func updatePollingState(resp *http.Response, ps *pollingState) error {
 
 	// If this is the first request (that is, the polling response shape is unknown), determine how
 	// to poll and what to expect
-	if ps.PollingMethod == PollingUnknown {
+	if ps.responseFormat == formatIsUnknown {
 		req := resp.Request
 		if req == nil {
 			return autorest.NewError("azure", "updatePollingState", "Azure Polling Error - Original HTTP request is missing")
 		}
 
 		// Prefer the Azure-AsyncOperation header
-		ps.URI = getAsyncOperation(resp)
-		if ps.URI != "" {
-			ps.PollingMethod = PollingAsyncOperation
+		ps.uri = getAsyncOperation(resp)
+		if ps.uri != "" {
+			ps.responseFormat = usesOperationResponse
 		} else {
-			ps.PollingMethod = PollingLocation
+			ps.responseFormat = usesProvisioningStatus
 		}
 
 		// Else, use the Location header
-		if ps.URI == "" {
-			ps.URI = autorest.GetLocation(resp)
+		if ps.uri == "" {
+			ps.uri = autorest.GetLocation(resp)
 		}
 
 		// Lastly, requests against an existing resource, use the last request URI
-		if ps.URI == "" {
+		if ps.uri == "" {
 			m := strings.ToUpper(req.Method)
 			if m == http.MethodPatch || m == http.MethodPut || m == http.MethodGet {
-				ps.URI = req.URL.String()
+				ps.uri = req.URL.String()
 			}
 		}
 	}
@@ -405,23 +242,23 @@ func updatePollingState(resp *http.Response, ps *pollingState) error {
 	// -- Unknown states are per-service inprogress states
 	// -- Otherwise, infer state from HTTP status code
 	if pt.hasTerminated() {
-		ps.State = pt.state()
+		ps.state = pt.state()
 	} else if pt.state() != "" {
-		ps.State = operationInProgress
+		ps.state = operationInProgress
 	} else {
 		switch resp.StatusCode {
 		case http.StatusAccepted:
-			ps.State = operationInProgress
+			ps.state = operationInProgress
 
 		case http.StatusNoContent, http.StatusCreated, http.StatusOK:
-			ps.State = operationSucceeded
+			ps.state = operationSucceeded
 
 		default:
-			ps.State = operationFailed
+			ps.state = operationFailed
 		}
 	}
 
-	if strings.EqualFold(ps.State, operationInProgress) && ps.URI == "" {
+	if ps.state == operationInProgress && ps.uri == "" {
 		return autorest.NewError("azure", "updatePollingState", "Azure Polling Error - Unable to obtain polling URI for %s %s", resp.Request.Method, resp.Request.URL)
 	}
 
@@ -430,49 +267,36 @@ func updatePollingState(resp *http.Response, ps *pollingState) error {
 	// -- Response
 	// -- Otherwise, Unknown
 	if ps.hasFailed() {
-		if ps.PollingMethod == PollingAsyncOperation {
+		if ps.responseFormat == usesOperationResponse {
 			or := pt.(*operationResource)
-			ps.Code = or.OperationError.Code
-			ps.Message = or.OperationError.Message
+			ps.code = or.OperationError.Code
+			ps.message = or.OperationError.Message
 		} else {
 			p := pt.(*provisioningStatus)
 			if p.hasProvisioningError() {
-				ps.Code = p.ProvisioningError.Code
-				ps.Message = p.ProvisioningError.Message
+				ps.code = p.ProvisioningError.Code
+				ps.message = p.ProvisioningError.Message
 			} else {
-				ps.Code = "Unknown"
-				ps.Message = "None"
+				ps.code = "Unknown"
+				ps.message = "None"
 			}
 		}
 	}
 	return nil
 }
 
-func newPollingRequest(ps pollingState) (*http.Request, error) {
-	reqPoll, err := autorest.Prepare(&http.Request{},
+func newPollingRequest(resp *http.Response, ps pollingState) (*http.Request, error) {
+	req := resp.Request
+	if req == nil {
+		return nil, autorest.NewError("azure", "newPollingRequest", "Azure Polling Error - Original HTTP request is missing")
+	}
+
+	reqPoll, err := autorest.Prepare(&http.Request{Cancel: req.Cancel},
 		autorest.AsGet(),
-		autorest.WithBaseURL(ps.URI))
+		autorest.WithBaseURL(ps.uri))
 	if err != nil {
-		return nil, autorest.NewErrorWithError(err, "azure", "newPollingRequest", nil, "Failure creating poll request to %s", ps.URI)
+		return nil, autorest.NewErrorWithError(err, "azure", "newPollingRequest", nil, "Failure creating poll request to %s", ps.uri)
 	}
 
 	return reqPoll, nil
-}
-
-// AsyncOpIncompleteError is the type that's returned from a future that has not completed.
-type AsyncOpIncompleteError struct {
-	// FutureType is the name of the type composed of a azure.Future.
-	FutureType string
-}
-
-// Error returns an error message including the originating type name of the error.
-func (e AsyncOpIncompleteError) Error() string {
-	return fmt.Sprintf("%s: asynchronous operation has not completed", e.FutureType)
-}
-
-// NewAsyncOpIncompleteError creates a new AsyncOpIncompleteError with the specified parameters.
-func NewAsyncOpIncompleteError(futureType string) AsyncOpIncompleteError {
-	return AsyncOpIncompleteError{
-		FutureType: futureType,
-	}
 }

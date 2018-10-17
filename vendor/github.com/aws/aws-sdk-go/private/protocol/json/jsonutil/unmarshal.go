@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"reflect"
 	"time"
 
@@ -17,16 +16,10 @@ import (
 func UnmarshalJSON(v interface{}, stream io.Reader) error {
 	var out interface{}
 
-	b, err := ioutil.ReadAll(stream)
-	if err != nil {
-		return err
-	}
-
-	if len(b) == 0 {
+	err := json.NewDecoder(stream).Decode(&out)
+	if err == io.EOF {
 		return nil
-	}
-
-	if err := json.Unmarshal(b, &out); err != nil {
+	} else if err != nil {
 		return err
 	}
 

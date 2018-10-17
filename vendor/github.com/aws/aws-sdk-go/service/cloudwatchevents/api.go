@@ -61,11 +61,10 @@ func (c *CloudWatchEvents) DeleteRuleRequest(input *DeleteRuleInput) (req *reque
 //
 // Deletes the specified rule.
 //
-// You must remove all targets from a rule using RemoveTargets before you can
-// delete the rule.
+// Before you can delete the rule, you must remove all targets, using RemoveTargets.
 //
 // When you delete a rule, incoming events might continue to match to the deleted
-// rule. Please allow a short period of time for changes to take effect.
+// rule. Allow a short period of time for changes to take effect.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -233,6 +232,9 @@ func (c *CloudWatchEvents) DescribeRuleRequest(input *DescribeRuleInput) (req *r
 //
 // Describes the specified rule.
 //
+// DescribeRule does not list the targets of a rule. To see the targets associated
+// with a rule, use ListTargetsByRule.
+//
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
 // the error.
@@ -319,7 +321,7 @@ func (c *CloudWatchEvents) DisableRuleRequest(input *DisableRuleInput) (req *req
 // won't self-trigger if it has a schedule expression.
 //
 // When you disable a rule, incoming events might continue to match to the disabled
-// rule. Please allow a short period of time for changes to take effect.
+// rule. Allow a short period of time for changes to take effect.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -409,8 +411,8 @@ func (c *CloudWatchEvents) EnableRuleRequest(input *EnableRuleInput) (req *reque
 // Enables the specified rule. If the rule does not exist, the operation fails.
 //
 // When you enable a rule, incoming events might not immediately start matching
-// to a newly enabled rule. Please allow a short period of time for changes
-// to take effect.
+// to a newly enabled rule. Allow a short period of time for changes to take
+// effect.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -577,6 +579,9 @@ func (c *CloudWatchEvents) ListRulesRequest(input *ListRulesInput) (req *request
 //
 // Lists your Amazon CloudWatch Events rules. You can either list all the rules
 // or you can provide a prefix to match to the rule names.
+//
+// ListRules does not list the targets of a rule. To see the targets associated
+// with a rule, use ListTargetsByRule.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -830,7 +835,7 @@ func (c *CloudWatchEvents) PutPermissionRequest(input *PutPermissionInput) (req 
 // To enable multiple AWS accounts to put events to your default event bus,
 // run PutPermission once for each of these accounts.
 //
-// The permission policy on the default event bus cannot exceed 10KB in size.
+// The permission policy on the default event bus cannot exceed 10 KB in size.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -921,14 +926,14 @@ func (c *CloudWatchEvents) PutRuleRequest(input *PutRuleInput) (req *request.Req
 // Creates or updates the specified rule. Rules are enabled by default, or based
 // on value of the state. You can disable a rule using DisableRule.
 //
-// If you are updating an existing rule, the rule is completely replaced with
-// what you specify in this PutRule command. If you omit arguments in PutRule,
-// the old values for those arguments are not kept. Instead, they are replaced
-// with null values.
+// If you are updating an existing rule, the rule is replaced with what you
+// specify in this PutRule command. If you omit arguments in PutRule, the old
+// values for those arguments are not kept. Instead, they are replaced with
+// null values.
 //
 // When you create or update a rule, incoming events might not immediately start
-// matching to new or updated rules. Please allow a short period of time for
-// changes to take effect.
+// matching to new or updated rules. Allow a short period of time for changes
+// to take effect.
 //
 // A rule must contain at least an EventPattern or ScheduleExpression. Rules
 // with EventPatterns are triggered when a matching event is observed. Rules
@@ -1036,11 +1041,15 @@ func (c *CloudWatchEvents) PutTargetsRequest(input *PutTargetsInput) (req *reque
 //
 //    * EC2 instances
 //
+//    * SSM Run Command
+//
+//    * SSM Automation
+//
 //    * AWS Lambda functions
 //
-//    * Streams in Amazon Kinesis Streams
+//    * Data streams in Amazon Kinesis Data Streams
 //
-//    * Delivery streams in Amazon Kinesis Firehose
+//    * Data delivery streams in Amazon Kinesis Data Firehose
 //
 //    * Amazon ECS tasks
 //
@@ -1048,7 +1057,9 @@ func (c *CloudWatchEvents) PutTargetsRequest(input *PutTargetsInput) (req *reque
 //
 //    * AWS Batch jobs
 //
-//    * Pipelines in Amazon Code Pipeline
+//    * AWS CodeBuild projects
+//
+//    * Pipelines in AWS CodePipeline
 //
 //    * Amazon Inspector assessment templates
 //
@@ -1058,40 +1069,40 @@ func (c *CloudWatchEvents) PutTargetsRequest(input *PutTargetsInput) (req *reque
 //
 //    * The default event bus of another AWS account
 //
-// Note that creating rules with built-in targets is supported only in the AWS
-// Management Console.
+// Creating rules with built-in targets is supported only in the AWS Management
+// Console. The built-in targets are EC2 CreateSnapshot API call, EC2 RebootInstances
+// API call, EC2 StopInstances API call, and EC2 TerminateInstances API call.
 //
 // For some target types, PutTargets provides target-specific parameters. If
-// the target is an Amazon Kinesis stream, you can optionally specify which
-// shard the event goes to by using the KinesisParameters argument. To invoke
-// a command on multiple EC2 instances with one rule, you can use the RunCommandParameters
+// the target is a Kinesis data stream, you can optionally specify which shard
+// the event goes to by using the KinesisParameters argument. To invoke a command
+// on multiple EC2 instances with one rule, you can use the RunCommandParameters
 // field.
 //
 // To be able to make API calls against the resources that you own, Amazon CloudWatch
 // Events needs the appropriate permissions. For AWS Lambda and Amazon SNS resources,
-// CloudWatch Events relies on resource-based policies. For EC2 instances, Amazon
-// Kinesis streams, and AWS Step Functions state machines, CloudWatch Events
-// relies on IAM roles that you specify in the RoleARN argument in PutTargets.
-// For more information, see Authentication and Access Control (http://docs.aws.amazon.com/AmazonCloudWatch/latest/events/auth-and-access-control-cwe.html)
+// CloudWatch Events relies on resource-based policies. For EC2 instances, Kinesis
+// data streams, and AWS Step Functions state machines, CloudWatch Events relies
+// on IAM roles that you specify in the RoleARN argument in PutTargets. For
+// more information, see Authentication and Access Control (http://docs.aws.amazon.com/AmazonCloudWatch/latest/events/auth-and-access-control-cwe.html)
 // in the Amazon CloudWatch Events User Guide.
 //
 // If another AWS account is in the same region and has granted you permission
-// (using PutPermission), you can send events to that account by setting that
-// account's event bus as a target of the rules in your account. To send the
-// matched events to the other account, specify that account's event bus as
-// the Arn when you run PutTargets. If your account sends events to another
-// account, your account is charged for each sent event. Each event sent to
-// antoher account is charged as a custom event. The account receiving the event
-// is not charged. For more information on pricing, see Amazon CloudWatch Pricing
-// (https://aws.amazon.com/cloudwatch/pricing/).
+// (using PutPermission), you can send events to that account. Set that account's
+// event bus as a target of the rules in your account. To send the matched events
+// to the other account, specify that account's event bus as the Arn value when
+// you run PutTargets. If your account sends events to another account, your
+// account is charged for each sent event. Each event sent to another account
+// is charged as a custom event. The account receiving the event is not charged.
+// For more information, see Amazon CloudWatch Pricing (https://aws.amazon.com/cloudwatch/pricing/).
 //
 // For more information about enabling cross-account events, see PutPermission.
 //
-// Input, InputPath and InputTransformer are mutually exclusive and optional
+// Input, InputPath, and InputTransformer are mutually exclusive and optional
 // parameters of a target. When a rule is triggered due to a matched event:
 //
 //    * If none of the following arguments are specified for a target, then
-//    the entire event is passed to the target in JSON form (unless the target
+//    the entire event is passed to the target in JSON format (unless the target
 //    is Amazon EC2 Run Command or Amazon ECS task, in which case nothing from
 //    the event is passed to the target).
 //
@@ -1110,8 +1121,8 @@ func (c *CloudWatchEvents) PutTargetsRequest(input *PutTargetsInput) (req *reque
 // not bracket notation.
 //
 // When you add targets to a rule and the associated rule triggers soon after,
-// new or updated targets might not be immediately invoked. Please allow a short
-// period of time for changes to take effect.
+// new or updated targets might not be immediately invoked. Allow a short period
+// of time for changes to take effect.
 //
 // This action can partially fail if too many requests are made at the same
 // time. If that happens, FailedEntryCount is non-zero in the response and each
@@ -1298,8 +1309,8 @@ func (c *CloudWatchEvents) RemoveTargetsRequest(input *RemoveTargetsInput) (req 
 // those targets are no longer be invoked.
 //
 // When you remove a target, when the associated rule triggers, removed targets
-// might continue to be invoked. Please allow a short period of time for changes
-// to take effect.
+// might continue to be invoked. Allow a short period of time for changes to
+// take effect.
 //
 // This action can partially fail if too many requests are made at the same
 // time. If that happens, FailedEntryCount is non-zero in the response and each
@@ -1432,6 +1443,71 @@ func (c *CloudWatchEvents) TestEventPatternWithContext(ctx aws.Context, input *T
 	return out, req.Send()
 }
 
+// This structure specifies the VPC subnets and security groups for the task,
+// and whether a public IP address is to be used. This structure is relevant
+// only for ECS tasks that use the awsvpc network mode.
+type AwsVpcConfiguration struct {
+	_ struct{} `type:"structure"`
+
+	// Specifies whether the task's elastic network interface receives a public
+	// IP address. You can specify ENABLED only when LaunchType in EcsParameters
+	// is set to FARGATE.
+	AssignPublicIp *string `type:"string" enum:"AssignPublicIp"`
+
+	// Specifies the security groups associated with the task. These security groups
+	// must all be in the same VPC. You can specify as many as five security groups.
+	// If you do not specify a security group, the default security group for the
+	// VPC is used.
+	SecurityGroups []*string `type:"list"`
+
+	// Specifies the subnets associated with the task. These subnets must all be
+	// in the same VPC. You can specify as many as 16 subnets.
+	//
+	// Subnets is a required field
+	Subnets []*string `type:"list" required:"true"`
+}
+
+// String returns the string representation
+func (s AwsVpcConfiguration) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s AwsVpcConfiguration) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *AwsVpcConfiguration) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "AwsVpcConfiguration"}
+	if s.Subnets == nil {
+		invalidParams.Add(request.NewErrParamRequired("Subnets"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetAssignPublicIp sets the AssignPublicIp field's value.
+func (s *AwsVpcConfiguration) SetAssignPublicIp(v string) *AwsVpcConfiguration {
+	s.AssignPublicIp = &v
+	return s
+}
+
+// SetSecurityGroups sets the SecurityGroups field's value.
+func (s *AwsVpcConfiguration) SetSecurityGroups(v []*string) *AwsVpcConfiguration {
+	s.SecurityGroups = v
+	return s
+}
+
+// SetSubnets sets the Subnets field's value.
+func (s *AwsVpcConfiguration) SetSubnets(v []*string) *AwsVpcConfiguration {
+	s.Subnets = v
+	return s
+}
+
 // The array properties for the submitted job, such as the size of the array.
 // The array size can be between 2 and 10,000. If you specify array properties
 // for a job, it becomes an array job. This parameter is used only if the target
@@ -1484,7 +1560,7 @@ type BatchParameters struct {
 
 	// The retry strategy to use for failed jobs, if the target is an AWS Batch
 	// job. The retry strategy is the number of times to retry the failed job execution.
-	// Valid values are 1 to 10. When you specify a retry strategy here, it overrides
+	// Valid values are 1–10. When you specify a retry strategy here, it overrides
 	// the retry strategy defined in the job definition.
 	RetryStrategy *BatchRetryStrategy `type:"structure"`
 }
@@ -1546,7 +1622,7 @@ type BatchRetryStrategy struct {
 	_ struct{} `type:"structure"`
 
 	// The number of times to attempt to retry, if the job fails. Valid values are
-	// 1 to 10.
+	// 1–10.
 	Attempts *int64 `type:"integer"`
 }
 
@@ -1851,16 +1927,43 @@ func (s DisableRuleOutput) GoString() string {
 	return s.String()
 }
 
-// The custom parameters to be used when the target is an Amazon ECS cluster.
+// The custom parameters to be used when the target is an Amazon ECS task.
 type EcsParameters struct {
 	_ struct{} `type:"structure"`
 
-	// The number of tasks to create based on the TaskDefinition. The default is
-	// one.
+	// Specifies an ECS task group for the task. The maximum length is 255 characters.
+	Group *string `type:"string"`
+
+	// Specifies the launch type on which your task is running. The launch type
+	// that you specify here must match one of the launch type (compatibilities)
+	// of the target task. The FARGATE value is supported only in the Regions where
+	// AWS Fargate with Amazon ECS is supported. For more information, see AWS Fargate
+	// on Amazon ECS (http://docs.aws.amazon.com/AmazonECS/latest/developerguide/AWS-Fargate.html)
+	// in the Amazon Elastic Container Service Developer Guide.
+	LaunchType *string `type:"string" enum:"LaunchType"`
+
+	// Use this structure if the ECS task uses the awsvpc network mode. This structure
+	// specifies the VPC subnets and security groups associated with the task, and
+	// whether a public IP address is to be used. This structure is required if
+	// LaunchType is FARGATE because the awsvpc mode is required for Fargate tasks.
+	//
+	// If you specify NetworkConfiguration when the target ECS task does not use
+	// the awsvpc network mode, the task fails.
+	NetworkConfiguration *NetworkConfiguration `type:"structure"`
+
+	// Specifies the platform version for the task. Specify only the numeric portion
+	// of the platform version, such as 1.1.0.
+	//
+	// This structure is used only if LaunchType is FARGATE. For more information
+	// about valid platform versions, see AWS Fargate Platform Versions (http://docs.aws.amazon.com/AmazonECS/latest/developerguide/platform_versions.html)
+	// in the Amazon Elastic Container Service Developer Guide.
+	PlatformVersion *string `type:"string"`
+
+	// The number of tasks to create based on TaskDefinition. The default is 1.
 	TaskCount *int64 `min:"1" type:"integer"`
 
 	// The ARN of the task definition to use if the event target is an Amazon ECS
-	// cluster.
+	// task.
 	//
 	// TaskDefinitionArn is a required field
 	TaskDefinitionArn *string `min:"1" type:"string" required:"true"`
@@ -1888,11 +1991,40 @@ func (s *EcsParameters) Validate() error {
 	if s.TaskDefinitionArn != nil && len(*s.TaskDefinitionArn) < 1 {
 		invalidParams.Add(request.NewErrParamMinLen("TaskDefinitionArn", 1))
 	}
+	if s.NetworkConfiguration != nil {
+		if err := s.NetworkConfiguration.Validate(); err != nil {
+			invalidParams.AddNested("NetworkConfiguration", err.(request.ErrInvalidParams))
+		}
+	}
 
 	if invalidParams.Len() > 0 {
 		return invalidParams
 	}
 	return nil
+}
+
+// SetGroup sets the Group field's value.
+func (s *EcsParameters) SetGroup(v string) *EcsParameters {
+	s.Group = &v
+	return s
+}
+
+// SetLaunchType sets the LaunchType field's value.
+func (s *EcsParameters) SetLaunchType(v string) *EcsParameters {
+	s.LaunchType = &v
+	return s
+}
+
+// SetNetworkConfiguration sets the NetworkConfiguration field's value.
+func (s *EcsParameters) SetNetworkConfiguration(v *NetworkConfiguration) *EcsParameters {
+	s.NetworkConfiguration = v
+	return s
+}
+
+// SetPlatformVersion sets the PlatformVersion field's value.
+func (s *EcsParameters) SetPlatformVersion(v string) *EcsParameters {
+	s.PlatformVersion = &v
+	return s
 }
 
 // SetTaskCount sets the TaskCount field's value.
@@ -1967,13 +2099,53 @@ func (s EnableRuleOutput) GoString() string {
 type InputTransformer struct {
 	_ struct{} `type:"structure"`
 
-	// Map of JSON paths to be extracted from the event. These are key-value pairs,
-	// where each value is a JSON path. You must use JSON dot notation, not bracket
-	// notation.
+	// Map of JSON paths to be extracted from the event. You can then insert these
+	// in the template in InputTemplate to produce the output you want to be sent
+	// to the target.
+	//
+	// InputPathsMap is an array key-value pairs, where each value is a valid JSON
+	// path. You can have as many as 10 key-value pairs. You must use JSON dot notation,
+	// not bracket notation.
+	//
+	// The keys cannot start with "AWS."
 	InputPathsMap map[string]*string `type:"map"`
 
-	// Input template where you can use the values of the keys from InputPathsMap
-	// to customize the data sent to the target.
+	// Input template where you specify placeholders that will be filled with the
+	// values of the keys from InputPathsMap to customize the data sent to the target.
+	// Enclose each InputPathsMaps value in brackets: <value> The InputTemplate
+	// must be valid JSON.
+	//
+	// If InputTemplate is a JSON object (surrounded by curly braces), the following
+	// restrictions apply:
+	//
+	//    * The placeholder cannot be used as an object key.
+	//
+	//    * Object values cannot include quote marks.
+	//
+	// The following example shows the syntax for using InputPathsMap and InputTemplate.
+	//
+	// "InputTransformer":
+	//
+	// {
+	//
+	// "InputPathsMap": {"instance": "$.detail.instance","status": "$.detail.status"},
+	//
+	// "InputTemplate": "<instance> is in state <status>"
+	//
+	// }
+	//
+	// To have the InputTemplate include quote marks within a JSON string, escape
+	// each quote marks with a slash, as in the following example:
+	//
+	// "InputTransformer":
+	//
+	// {
+	//
+	// "InputPathsMap": {"instance": "$.detail.instance","status": "$.detail.status"},
+	//
+	// "InputTemplate": "<instance> is in state \"<status>\""
+	//
+	// }
 	//
 	// InputTemplate is a required field
 	InputTemplate *string `min:"1" type:"string" required:"true"`
@@ -2018,9 +2190,9 @@ func (s *InputTransformer) SetInputTemplate(v string) *InputTransformer {
 }
 
 // This object enables you to specify a JSON path to extract from the event
-// and use as the partition key for the Amazon Kinesis stream, so that you can
-// control the shard to which the event goes. If you do not include this parameter,
-// the default is to use the eventId as the partition key.
+// and use as the partition key for the Amazon Kinesis data stream, so that
+// you can control the shard to which the event goes. If you do not include
+// this parameter, the default is to use the eventId as the partition key.
 type KinesisParameters struct {
 	_ struct{} `type:"structure"`
 
@@ -2350,6 +2522,47 @@ func (s *ListTargetsByRuleOutput) SetTargets(v []*Target) *ListTargetsByRuleOutp
 	return s
 }
 
+// This structure specifies the network configuration for an ECS task.
+type NetworkConfiguration struct {
+	_ struct{} `type:"structure"`
+
+	// Use this structure to specify the VPC subnets and security groups for the
+	// task, and whether a public IP address is to be used. This structure is relevant
+	// only for ECS tasks that use the awsvpc network mode.
+	AwsvpcConfiguration *AwsVpcConfiguration `locationName:"awsvpcConfiguration" type:"structure"`
+}
+
+// String returns the string representation
+func (s NetworkConfiguration) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s NetworkConfiguration) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *NetworkConfiguration) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "NetworkConfiguration"}
+	if s.AwsvpcConfiguration != nil {
+		if err := s.AwsvpcConfiguration.Validate(); err != nil {
+			invalidParams.AddNested("AwsvpcConfiguration", err.(request.ErrInvalidParams))
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetAwsvpcConfiguration sets the AwsvpcConfiguration field's value.
+func (s *NetworkConfiguration) SetAwsvpcConfiguration(v *AwsVpcConfiguration) *NetworkConfiguration {
+	s.AwsvpcConfiguration = v
+	return s
+}
+
 type PutEventsInput struct {
 	_ struct{} `type:"structure"`
 
@@ -2442,11 +2655,11 @@ type PutEventsRequestEntry struct {
 	// primarily concerns. Any number, including zero, may be present.
 	Resources []*string `type:"list"`
 
-	// The source of the event.
+	// The source of the event. This field is required.
 	Source *string `type:"string"`
 
-	// The timestamp of the event, per RFC3339 (https://www.rfc-editor.org/rfc/rfc3339.txt).
-	// If no timestamp is provided, the timestamp of the PutEvents call is used.
+	// The time stamp of the event, per RFC3339 (https://www.rfc-editor.org/rfc/rfc3339.txt).
+	// If no time stamp is provided, the time stamp of the PutEvents call is used.
 	Time *time.Time `type:"timestamp"`
 }
 
@@ -3300,10 +3513,8 @@ func (s *SqsParameters) SetMessageGroupId(v string) *SqsParameters {
 	return s
 }
 
-// Targets are the resources to be invoked when a rule is triggered. Target
-// types include EC2 instances, AWS Lambda functions, Amazon Kinesis streams,
-// Amazon ECS tasks, AWS Step Functions state machines, Run Command, and built-in
-// targets.
+// Targets are the resources to be invoked when a rule is triggered. For a complete
+// list of services and resources that can be set as a target, see PutTargets.
 type Target struct {
 	_ struct{} `type:"structure"`
 
@@ -3312,10 +3523,9 @@ type Target struct {
 	// Arn is a required field
 	Arn *string `min:"1" type:"string" required:"true"`
 
-	// Contains the job definition, job name, and other parameters if the event
-	// target is an AWS Batch job. For more information about AWS Batch, see Jobs
-	// (http://docs.aws.amazon.com/batch/latest/userguide/jobs.html) in the AWS
-	// Batch User Guide.
+	// If the event target is an AWS Batch job, this contains the job definition,
+	// job name, and other parameters. For more information, see Jobs (http://docs.aws.amazon.com/batch/latest/userguide/jobs.html)
+	// in the AWS Batch User Guide.
 	BatchParameters *BatchParameters `type:"structure"`
 
 	// Contains the Amazon ECS task definition and task count to be used, if the
@@ -3344,9 +3554,9 @@ type Target struct {
 	// then use that data to send customized input to the target.
 	InputTransformer *InputTransformer `type:"structure"`
 
-	// The custom parameter you can use to control shard assignment, when the target
-	// is an Amazon Kinesis stream. If you do not include this parameter, the default
-	// is to use the eventId as the partition key.
+	// The custom parameter you can use to control the shard assignment, when the
+	// target is a Kinesis data stream. If you do not include this parameter, the
+	// default is to use the eventId as the partition key.
 	KinesisParameters *KinesisParameters `type:"structure"`
 
 	// The Amazon Resource Name (ARN) of the IAM role to be used for this target
@@ -3358,6 +3568,9 @@ type Target struct {
 	RunCommandParameters *RunCommandParameters `type:"structure"`
 
 	// Contains the message group ID to use when the target is a FIFO queue.
+	//
+	// If you specify an SQS FIFO queue as a target, the queue must have content-based
+	// deduplication enabled.
 	SqsParameters *SqsParameters `type:"structure"`
 }
 
@@ -3562,6 +3775,22 @@ func (s *TestEventPatternOutput) SetResult(v bool) *TestEventPatternOutput {
 	s.Result = &v
 	return s
 }
+
+const (
+	// AssignPublicIpEnabled is a AssignPublicIp enum value
+	AssignPublicIpEnabled = "ENABLED"
+
+	// AssignPublicIpDisabled is a AssignPublicIp enum value
+	AssignPublicIpDisabled = "DISABLED"
+)
+
+const (
+	// LaunchTypeEc2 is a LaunchType enum value
+	LaunchTypeEc2 = "EC2"
+
+	// LaunchTypeFargate is a LaunchType enum value
+	LaunchTypeFargate = "FARGATE"
+)
 
 const (
 	// RuleStateEnabled is a RuleState enum value

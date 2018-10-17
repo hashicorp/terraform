@@ -725,6 +725,8 @@ const opDescribeJobFlows = "DescribeJobFlows"
 //    }
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/elasticmapreduce-2009-03-31/DescribeJobFlows
+//
+// Deprecated: DescribeJobFlows has been deprecated
 func (c *EMR) DescribeJobFlowsRequest(input *DescribeJobFlowsInput) (req *request.Request, output *DescribeJobFlowsOutput) {
 	if c.Client.Config.Logger != nil {
 		c.Client.Config.Logger.Log("This operation, DescribeJobFlows, has been deprecated")
@@ -780,6 +782,8 @@ func (c *EMR) DescribeJobFlowsRequest(input *DescribeJobFlowsInput) (req *reques
 //   request was not completed.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/elasticmapreduce-2009-03-31/DescribeJobFlows
+//
+// Deprecated: DescribeJobFlows has been deprecated
 func (c *EMR) DescribeJobFlows(input *DescribeJobFlowsInput) (*DescribeJobFlowsOutput, error) {
 	req, out := c.DescribeJobFlowsRequest(input)
 	return out, req.Send()
@@ -794,6 +798,8 @@ func (c *EMR) DescribeJobFlows(input *DescribeJobFlowsInput) (*DescribeJobFlowsO
 // the context is nil a panic will occur. In the future the SDK may create
 // sub-contexts for http.Requests. See https://golang.org/pkg/context/
 // for more information on using Contexts.
+//
+// Deprecated: DescribeJobFlowsWithContext has been deprecated
 func (c *EMR) DescribeJobFlowsWithContext(ctx aws.Context, input *DescribeJobFlowsInput, opts ...request.Option) (*DescribeJobFlowsOutput, error) {
 	req, out := c.DescribeJobFlowsRequest(input)
 	req.SetContext(ctx)

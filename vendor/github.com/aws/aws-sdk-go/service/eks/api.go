@@ -104,11 +104,11 @@ func (c *EKS) CreateClusterRequest(input *CreateClusterInput) (req *request.Requ
 //   These errors are usually caused by a server-side issue.
 //
 //   * ErrCodeServiceUnavailableException "ServiceUnavailableException"
-//   The service is unavailable, back off and retry the operation.
+//   The service is unavailable. Back off and retry the operation.
 //
 //   * ErrCodeUnsupportedAvailabilityZoneException "UnsupportedAvailabilityZoneException"
 //   At least one of your specified cluster subnets is in an Availability Zone
-//   that does not support Amazon EKS. The exception output will specify the supported
+//   that does not support Amazon EKS. The exception output specifies the supported
 //   Availability Zones for your account, from which you can choose subnets for
 //   your cluster.
 //
@@ -200,7 +200,7 @@ func (c *EKS) DeleteClusterRequest(input *DeleteClusterInput) (req *request.Requ
 //
 //   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
 //   The specified resource could not be found. You can view your available clusters
-//   with ListClusters. Amazon EKS clusters are region-specific.
+//   with ListClusters. Amazon EKS clusters are Region-specific.
 //
 //   * ErrCodeClientException "ClientException"
 //   These errors are usually caused by a client action, such as using an action
@@ -211,7 +211,7 @@ func (c *EKS) DeleteClusterRequest(input *DeleteClusterInput) (req *request.Requ
 //   These errors are usually caused by a server-side issue.
 //
 //   * ErrCodeServiceUnavailableException "ServiceUnavailableException"
-//   The service is unavailable, back off and retry the operation.
+//   The service is unavailable. Back off and retry the operation.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/eks-2017-11-01/DeleteCluster
 func (c *EKS) DeleteCluster(input *DeleteClusterInput) (*DeleteClusterOutput, error) {
@@ -299,7 +299,7 @@ func (c *EKS) DescribeClusterRequest(input *DescribeClusterInput) (req *request.
 // Returned Error Codes:
 //   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
 //   The specified resource could not be found. You can view your available clusters
-//   with ListClusters. Amazon EKS clusters are region-specific.
+//   with ListClusters. Amazon EKS clusters are Region-specific.
 //
 //   * ErrCodeClientException "ClientException"
 //   These errors are usually caused by a client action, such as using an action
@@ -310,7 +310,7 @@ func (c *EKS) DescribeClusterRequest(input *DescribeClusterInput) (req *request.
 //   These errors are usually caused by a server-side issue.
 //
 //   * ErrCodeServiceUnavailableException "ServiceUnavailableException"
-//   The service is unavailable, back off and retry the operation.
+//   The service is unavailable. Back off and retry the operation.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/eks-2017-11-01/DescribeCluster
 func (c *EKS) DescribeCluster(input *DescribeClusterInput) (*DescribeClusterOutput, error) {
@@ -378,7 +378,7 @@ func (c *EKS) ListClustersRequest(input *ListClustersInput) (req *request.Reques
 
 // ListClusters API operation for Amazon Elastic Container Service for Kubernetes.
 //
-// Lists the Amazon EKS clusters in your AWS account in the specified region.
+// Lists the Amazon EKS clusters in your AWS account in the specified Region.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -401,7 +401,7 @@ func (c *EKS) ListClustersRequest(input *ListClustersInput) (req *request.Reques
 //   These errors are usually caused by a server-side issue.
 //
 //   * ErrCodeServiceUnavailableException "ServiceUnavailableException"
-//   The service is unavailable, back off and retry the operation.
+//   The service is unavailable. Back off and retry the operation.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/eks-2017-11-01/ListClusters
 func (c *EKS) ListClusters(input *ListClustersInput) (*ListClustersOutput, error) {
@@ -474,6 +474,11 @@ type Cluster struct {
 	// The name of the cluster.
 	Name *string `locationName:"name" type:"string"`
 
+	// The platform version of your Amazon EKS cluster. For more information, see
+	// Platform Versions (eks/latest/userguide/platform-versions.html) in the Amazon
+	// EKS User Guide.
+	PlatformVersion *string `locationName:"platformVersion" type:"string"`
+
 	// The VPC subnets and security groups used by the cluster control plane. Amazon
 	// EKS VPC resources have specific requirements to work properly with Kubernetes.
 	// For more information, see Cluster VPC Considerations (http://docs.aws.amazon.com/eks/latest/userguide/network_reqs.html)
@@ -539,6 +544,12 @@ func (s *Cluster) SetName(v string) *Cluster {
 	return s
 }
 
+// SetPlatformVersion sets the PlatformVersion field's value.
+func (s *Cluster) SetPlatformVersion(v string) *Cluster {
+	s.PlatformVersion = &v
+	return s
+}
+
 // SetResourcesVpcConfig sets the ResourcesVpcConfig field's value.
 func (s *Cluster) SetResourcesVpcConfig(v *VpcConfigResponse) *Cluster {
 	s.ResourcesVpcConfig = v
@@ -579,7 +590,9 @@ type CreateClusterInput struct {
 	// EKS VPC resources have specific requirements to work properly with Kubernetes.
 	// For more information, see Cluster VPC Considerations (http://docs.aws.amazon.com/eks/latest/userguide/network_reqs.html)
 	// and Cluster Security Group Considerations (http://docs.aws.amazon.com/eks/latest/userguide/sec-group-reqs.html)
-	// in the Amazon EKS User Guide.
+	// in the Amazon EKS User Guide. You must specify at least two subnets. You
+	// may specify up to 5 security groups, but we recommend that you use a dedicated
+	// security group for your cluster control plane.
 	//
 	// ResourcesVpcConfig is a required field
 	ResourcesVpcConfig *VpcConfigRequest `locationName:"resourcesVpcConfig" type:"structure" required:"true"`
@@ -587,7 +600,7 @@ type CreateClusterInput struct {
 	// The Amazon Resource Name (ARN) of the IAM role that provides permissions
 	// for Amazon EKS to make calls to other AWS API operations on your behalf.
 	// For more information, see Amazon EKS Service IAM Role (http://docs.aws.amazon.com/eks/latest/userguide/service_IAM_role.html)
-	// in the Amazon EKS User Guide
+	// in the Amazon EKS User Guide.
 	//
 	// RoleArn is a required field
 	RoleArn *string `locationName:"roleArn" type:"string" required:"true"`
@@ -869,7 +882,7 @@ func (s *ListClustersInput) SetNextToken(v string) *ListClustersInput {
 type ListClustersOutput struct {
 	_ struct{} `type:"structure"`
 
-	// A list of all of the clusters for your account in the specified region.
+	// A list of all of the clusters for your account in the specified Region.
 	Clusters []*string `locationName:"clusters" type:"list"`
 
 	// The nextToken value to include in a future ListClusters request. When the

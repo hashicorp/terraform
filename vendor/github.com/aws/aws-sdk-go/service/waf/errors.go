@@ -41,9 +41,6 @@ const (
 	//    * You tried to add a Rule to a WebACL, but the Rule already exists in
 	//    the specified WebACL.
 	//
-	//    * You tried to add an IP address to an IPSet, but the IP address already
-	//    exists in the specified IPSet.
-	//
 	//    * You tried to add a ByteMatchTuple to a ByteMatchSet, but the ByteMatchTuple
 	//    already exists in the specified WebACL.
 	ErrCodeInvalidOperationException = "WAFInvalidOperationException"
@@ -93,8 +90,9 @@ const (
 	//
 	//    * Effect must specify Allow.
 	//
-	//    * The Action in the policy must be waf:UpdateWebACL or waf-regional:UpdateWebACL.
-	//    Any extra or wildcard actions in the policy will be rejected.
+	//    * The Action in the policy must be waf:UpdateWebACL, waf-regional:UpdateWebACL,
+	//    waf:GetRuleGroup and waf-regional:GetRuleGroup . Any extra or wildcard
+	//    actions in the policy will be rejected.
 	//
 	//    * The policy cannot include a Resource parameter.
 	//

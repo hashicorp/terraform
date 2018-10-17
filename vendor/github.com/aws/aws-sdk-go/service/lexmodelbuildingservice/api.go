@@ -10771,6 +10771,9 @@ const (
 	// StatusReady is a Status enum value
 	StatusReady = "READY"
 
+	// StatusReadyBasicTesting is a Status enum value
+	StatusReadyBasicTesting = "READY_BASIC_TESTING"
+
 	// StatusFailed is a Status enum value
 	StatusFailed = "FAILED"
 

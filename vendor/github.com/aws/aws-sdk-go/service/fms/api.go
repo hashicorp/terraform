@@ -60,13 +60,13 @@ func (c *FMS) AssociateAdminAccountRequest(input *AssociateAdminAccountInput) (r
 // AssociateAdminAccount API operation for Firewall Management Service.
 //
 // Sets the AWS Firewall Manager administrator account. AWS Firewall Manager
-// must be associated with a master account in AWS Organizations or associated
+// must be associated with the master account your AWS organization or associated
 // with a member account that has the appropriate permissions. If the account
 // ID that you submit is not an AWS Organizations master account, AWS Firewall
 // Manager will set the appropriate permissions for the given member account.
 //
 // The account that you associate with AWS Firewall Manager is called the AWS
-// Firewall manager administrator account.
+// Firewall Manager administrator account.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -717,6 +717,9 @@ func (c *FMS) GetPolicyRequest(input *GetPolicyInput) (req *request.Request, out
 //   The operation failed because of a system problem, even though the request
 //   was valid. Retry your request.
 //
+//   * ErrCodeInvalidTypeException "InvalidTypeException"
+//   The value of the Type parameter is invalid.
+//
 // See also, https://docs.aws.amazon.com/goto/WebAPI/fms-2018-01-01/GetPolicy
 func (c *FMS) GetPolicy(input *GetPolicyInput) (*GetPolicyOutput, error) {
 	req, out := c.GetPolicyRequest(input)
@@ -819,6 +822,93 @@ func (c *FMS) ListComplianceStatus(input *ListComplianceStatusInput) (*ListCompl
 // for more information on using Contexts.
 func (c *FMS) ListComplianceStatusWithContext(ctx aws.Context, input *ListComplianceStatusInput, opts ...request.Option) (*ListComplianceStatusOutput, error) {
 	req, out := c.ListComplianceStatusRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+const opListMemberAccounts = "ListMemberAccounts"
+
+// ListMemberAccountsRequest generates a "aws/request.Request" representing the
+// client's request for the ListMemberAccounts operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfuly.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See ListMemberAccounts for more information on using the ListMemberAccounts
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the ListMemberAccountsRequest method.
+//    req, resp := client.ListMemberAccountsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/fms-2018-01-01/ListMemberAccounts
+func (c *FMS) ListMemberAccountsRequest(input *ListMemberAccountsInput) (req *request.Request, output *ListMemberAccountsOutput) {
+	op := &request.Operation{
+		Name:       opListMemberAccounts,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &ListMemberAccountsInput{}
+	}
+
+	output = &ListMemberAccountsOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// ListMemberAccounts API operation for Firewall Management Service.
+//
+// Returns a MemberAccounts object that lists the member accounts in the administrator's
+// AWS organization.
+//
+// The ListMemberAccounts must be submitted by the account that is set as the
+// AWS Firewall Manager administrator.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Firewall Management Service's
+// API operation ListMemberAccounts for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
+//   The specified resource was not found.
+//
+//   * ErrCodeInternalErrorException "InternalErrorException"
+//   The operation failed because of a system problem, even though the request
+//   was valid. Retry your request.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/fms-2018-01-01/ListMemberAccounts
+func (c *FMS) ListMemberAccounts(input *ListMemberAccountsInput) (*ListMemberAccountsOutput, error) {
+	req, out := c.ListMemberAccountsRequest(input)
+	return out, req.Send()
+}
+
+// ListMemberAccountsWithContext is the same as ListMemberAccounts with the addition of
+// the ability to pass a context and additional request options.
+//
+// See ListMemberAccounts for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *FMS) ListMemberAccountsWithContext(ctx aws.Context, input *ListMemberAccountsInput, opts ...request.Option) (*ListMemberAccountsOutput, error) {
+	req, out := c.ListMemberAccountsRequest(input)
 	req.SetContext(ctx)
 	req.ApplyOptions(opts...)
 	return out, req.Send()
@@ -1074,9 +1164,18 @@ func (c *FMS) PutPolicyRequest(input *PutPolicyInput) (req *request.Request, out
 //   * ErrCodeInvalidInputException "InvalidInputException"
 //   The parameters of the request were invalid.
 //
+//   * ErrCodeLimitExceededException "LimitExceededException"
+//   The operation exceeds a resource limit, for example, the maximum number of
+//   policy objects that you can create for an AWS account. For more information,
+//   see Firewall Manager Limits (http://docs.aws.amazon.com/waf/latest/developerguide/fms-limits.html)
+//   in the AWS WAF Developer Guide.
+//
 //   * ErrCodeInternalErrorException "InternalErrorException"
 //   The operation failed because of a system problem, even though the request
 //   was valid. Retry your request.
+//
+//   * ErrCodeInvalidTypeException "InvalidTypeException"
+//   The value of the Type parameter is invalid.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/fms-2018-01-01/PutPolicy
 func (c *FMS) PutPolicy(input *PutPolicyInput) (*PutPolicyOutput, error) {
@@ -1379,6 +1478,9 @@ type GetAdminAccountOutput struct {
 
 	// The AWS account that is set as the AWS Firewall Manager administrator.
 	AdminAccount *string `min:"1" type:"string"`
+
+	// The status of the AWS account that you set as the AWS Firewall Manager administrator.
+	RoleStatus *string `type:"string" enum:"AccountRoleStatus"`
 }
 
 // String returns the string representation
@@ -1394,6 +1496,12 @@ func (s GetAdminAccountOutput) GoString() string {
 // SetAdminAccount sets the AdminAccount field's value.
 func (s *GetAdminAccountOutput) SetAdminAccount(v string) *GetAdminAccountOutput {
 	s.AdminAccount = &v
+	return s
+}
+
+// SetRoleStatus sets the RoleStatus field's value.
+func (s *GetAdminAccountOutput) SetRoleStatus(v string) *GetAdminAccountOutput {
+	s.RoleStatus = &v
 	return s
 }
 
@@ -1710,6 +1818,98 @@ func (s *ListComplianceStatusOutput) SetPolicyComplianceStatusList(v []*PolicyCo
 	return s
 }
 
+type ListMemberAccountsInput struct {
+	_ struct{} `type:"structure"`
+
+	// Specifies the number of member account IDs that you want AWS Firewall Manager
+	// to return for this request. If you have more IDs than the number that you
+	// specify for MaxResults, the response includes a NextToken value that you
+	// can use to get another batch of member account IDs. The maximum value for
+	// MaxResults is 100.
+	MaxResults *int64 `min:"1" type:"integer"`
+
+	// If you specify a value for MaxResults and you have more account IDs than
+	// the number that you specify for MaxResults, AWS Firewall Manager returns
+	// a NextToken value in the response that allows you to list another group of
+	// IDs. For the second and subsequent ListMemberAccountsRequest requests, specify
+	// the value of NextToken from the previous response to get information about
+	// another batch of member account IDs.
+	NextToken *string `min:"1" type:"string"`
+}
+
+// String returns the string representation
+func (s ListMemberAccountsInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ListMemberAccountsInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ListMemberAccountsInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ListMemberAccountsInput"}
+	if s.MaxResults != nil && *s.MaxResults < 1 {
+		invalidParams.Add(request.NewErrParamMinValue("MaxResults", 1))
+	}
+	if s.NextToken != nil && len(*s.NextToken) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("NextToken", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetMaxResults sets the MaxResults field's value.
+func (s *ListMemberAccountsInput) SetMaxResults(v int64) *ListMemberAccountsInput {
+	s.MaxResults = &v
+	return s
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *ListMemberAccountsInput) SetNextToken(v string) *ListMemberAccountsInput {
+	s.NextToken = &v
+	return s
+}
+
+type ListMemberAccountsOutput struct {
+	_ struct{} `type:"structure"`
+
+	// An array of account IDs.
+	MemberAccounts []*string `type:"list"`
+
+	// If you have more member account IDs than the number that you specified for
+	// MaxResults in the request, the response includes a NextToken value. To list
+	// more IDs, submit another ListMemberAccounts request, and specify the NextToken
+	// value from the response in the NextToken value in the next request.
+	NextToken *string `min:"1" type:"string"`
+}
+
+// String returns the string representation
+func (s ListMemberAccountsOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ListMemberAccountsOutput) GoString() string {
+	return s.String()
+}
+
+// SetMemberAccounts sets the MemberAccounts field's value.
+func (s *ListMemberAccountsOutput) SetMemberAccounts(v []*string) *ListMemberAccountsOutput {
+	s.MemberAccounts = v
+	return s
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *ListMemberAccountsOutput) SetNextToken(v string) *ListMemberAccountsOutput {
+	s.NextToken = &v
+	return s
+}
+
 type ListPoliciesInput struct {
 	_ struct{} `type:"structure"`
 
@@ -1806,6 +2006,15 @@ func (s *ListPoliciesOutput) SetPolicyList(v []*PolicySummary) *ListPoliciesOutp
 type Policy struct {
 	_ struct{} `type:"structure"`
 
+	// Specifies the AWS account IDs to exclude from the policy. The IncludeMap
+	// values are evaluated first, with all of the appropriate account IDs added
+	// to the policy. Then the accounts listed in ExcludeMap are removed, resulting
+	// in the final list of accounts to add to the policy.
+	//
+	// The key to the map is ACCOUNT. For example, a valid ExcludeMap would be {“ACCOUNT”
+	// : [“accountID1”, “accountID2”]}.
+	ExcludeMap map[string][]*string `type:"map"`
+
 	// If set to True, resources with the tags that are specified in the ResourceTag
 	// array are not protected by the policy. If set to False, and the ResourceTag
 	// array is not null, only resources with the specified tags are associated
@@ -1813,6 +2022,15 @@ type Policy struct {
 	//
 	// ExcludeResourceTags is a required field
 	ExcludeResourceTags *bool `type:"boolean" required:"true"`
+
+	// Specifies the AWS account IDs to include in the policy. If IncludeMap is
+	// null, all accounts in the AWS Organization are included in the policy. If
+	// IncludeMap is not null, only values listed in IncludeMap will be included
+	// in the policy.
+	//
+	// The key to the map is ACCOUNT. For example, a valid IncludeMap would be {“ACCOUNT”
+	// : [“accountID1”, “accountID2”]}.
+	IncludeMap map[string][]*string `type:"map"`
 
 	// The ID of the AWS Firewall Manager policy.
 	PolicyId *string `min:"36" type:"string"`
@@ -1912,9 +2130,21 @@ func (s *Policy) Validate() error {
 	return nil
 }
 
+// SetExcludeMap sets the ExcludeMap field's value.
+func (s *Policy) SetExcludeMap(v map[string][]*string) *Policy {
+	s.ExcludeMap = v
+	return s
+}
+
 // SetExcludeResourceTags sets the ExcludeResourceTags field's value.
 func (s *Policy) SetExcludeResourceTags(v bool) *Policy {
 	s.ExcludeResourceTags = &v
+	return s
+}
+
+// SetIncludeMap sets the IncludeMap field's value.
+func (s *Policy) SetIncludeMap(v map[string][]*string) *Policy {
+	s.IncludeMap = v
 	return s
 }
 
@@ -1974,6 +2204,12 @@ type PolicyComplianceDetail struct {
 	// out-of-date.
 	ExpiredAt *time.Time `type:"timestamp"`
 
+	// Details about problems with dependent services, such as AWS WAF or AWS Config,
+	// that are causing a resource to be non-compliant. The details include the
+	// name of the dependent service and the error message recieved indicating the
+	// problem with the service.
+	IssueInfoMap map[string]*string `type:"map"`
+
 	// The AWS account ID.
 	MemberAccount *string `min:"1" type:"string"`
 
@@ -2006,6 +2242,12 @@ func (s *PolicyComplianceDetail) SetEvaluationLimitExceeded(v bool) *PolicyCompl
 // SetExpiredAt sets the ExpiredAt field's value.
 func (s *PolicyComplianceDetail) SetExpiredAt(v time.Time) *PolicyComplianceDetail {
 	s.ExpiredAt = &v
+	return s
+}
+
+// SetIssueInfoMap sets the IssueInfoMap field's value.
+func (s *PolicyComplianceDetail) SetIssueInfoMap(v map[string]*string) *PolicyComplianceDetail {
+	s.IssueInfoMap = v
 	return s
 }
 
@@ -2042,6 +2284,12 @@ type PolicyComplianceStatus struct {
 	// An array of EvaluationResult objects.
 	EvaluationResults []*EvaluationResult `type:"list"`
 
+	// Details about problems with dependent services, such as AWS WAF or AWS Config,
+	// that are causing a resource to be non-compliant. The details include the
+	// name of the dependent service and the error message recieved indicating the
+	// problem with the service.
+	IssueInfoMap map[string]*string `type:"map"`
+
 	// Time stamp of the last update to the EvaluationResult objects.
 	LastUpdated *time.Time `type:"timestamp"`
 
@@ -2071,6 +2319,12 @@ func (s PolicyComplianceStatus) GoString() string {
 // SetEvaluationResults sets the EvaluationResults field's value.
 func (s *PolicyComplianceStatus) SetEvaluationResults(v []*EvaluationResult) *PolicyComplianceStatus {
 	s.EvaluationResults = v
+	return s
+}
+
+// SetIssueInfoMap sets the IssueInfoMap field's value.
+func (s *PolicyComplianceStatus) SetIssueInfoMap(v map[string]*string) *PolicyComplianceStatus {
+	s.IssueInfoMap = v
 	return s
 }
 
@@ -2440,6 +2694,36 @@ func (s *SecurityServicePolicyData) SetType(v string) *SecurityServicePolicyData
 	s.Type = &v
 	return s
 }
+
+const (
+	// AccountRoleStatusReady is a AccountRoleStatus enum value
+	AccountRoleStatusReady = "READY"
+
+	// AccountRoleStatusCreating is a AccountRoleStatus enum value
+	AccountRoleStatusCreating = "CREATING"
+
+	// AccountRoleStatusPendingDeletion is a AccountRoleStatus enum value
+	AccountRoleStatusPendingDeletion = "PENDING_DELETION"
+
+	// AccountRoleStatusDeleting is a AccountRoleStatus enum value
+	AccountRoleStatusDeleting = "DELETING"
+
+	// AccountRoleStatusDeleted is a AccountRoleStatus enum value
+	AccountRoleStatusDeleted = "DELETED"
+)
+
+const (
+	// CustomerPolicyScopeIdTypeAccount is a CustomerPolicyScopeIdType enum value
+	CustomerPolicyScopeIdTypeAccount = "ACCOUNT"
+)
+
+const (
+	// DependentServiceNameAwsconfig is a DependentServiceName enum value
+	DependentServiceNameAwsconfig = "AWSCONFIG"
+
+	// DependentServiceNameAwswaf is a DependentServiceName enum value
+	DependentServiceNameAwswaf = "AWSWAF"
+)
 
 const (
 	// PolicyComplianceStatusTypeCompliant is a PolicyComplianceStatusType enum value

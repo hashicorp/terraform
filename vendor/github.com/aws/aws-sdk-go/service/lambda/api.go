@@ -1601,6 +1601,8 @@ const opInvokeAsync = "InvokeAsync"
 //    }
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/lambda-2015-03-31/InvokeAsync
+//
+// Deprecated: InvokeAsync has been deprecated
 func (c *Lambda) InvokeAsyncRequest(input *InvokeAsyncInput) (req *request.Request, output *InvokeAsyncOutput) {
 	if c.Client.Config.Logger != nil {
 		c.Client.Config.Logger.Log("This operation, InvokeAsync, has been deprecated")
@@ -1652,6 +1654,8 @@ func (c *Lambda) InvokeAsyncRequest(input *InvokeAsyncInput) (req *request.Reque
 //   The runtime or runtime version specified is not supported.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/lambda-2015-03-31/InvokeAsync
+//
+// Deprecated: InvokeAsync has been deprecated
 func (c *Lambda) InvokeAsync(input *InvokeAsyncInput) (*InvokeAsyncOutput, error) {
 	req, out := c.InvokeAsyncRequest(input)
 	return out, req.Send()
@@ -1666,6 +1670,8 @@ func (c *Lambda) InvokeAsync(input *InvokeAsyncInput) (*InvokeAsyncOutput, error
 // the context is nil a panic will occur. In the future the SDK may create
 // sub-contexts for http.Requests. See https://golang.org/pkg/context/
 // for more information on using Contexts.
+//
+// Deprecated: InvokeAsyncWithContext has been deprecated
 func (c *Lambda) InvokeAsyncWithContext(ctx aws.Context, input *InvokeAsyncInput, opts ...request.Option) (*InvokeAsyncOutput, error) {
 	req, out := c.InvokeAsyncRequest(input)
 	req.SetContext(ctx)
@@ -5267,6 +5273,7 @@ func (s *GetPolicyOutput) SetRevisionId(v string) *GetPolicyOutput {
 	return s
 }
 
+// Deprecated: InvokeAsyncInput has been deprecated
 type InvokeAsyncInput struct {
 	_ struct{} `deprecated:"true" type:"structure" payload:"InvokeArgs"`
 
@@ -5325,6 +5332,8 @@ func (s *InvokeAsyncInput) SetInvokeArgs(v io.ReadSeeker) *InvokeAsyncInput {
 }
 
 // Upon success, it returns empty response. Otherwise, throws an exception.
+//
+// Deprecated: InvokeAsyncOutput has been deprecated
 type InvokeAsyncOutput struct {
 	_ struct{} `deprecated:"true" type:"structure"`
 

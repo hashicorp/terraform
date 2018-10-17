@@ -39,7 +39,7 @@ const opCreateFileSystem = "CreateFileSystem"
 //    }
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/elasticfilesystem-2015-02-01/CreateFileSystem
-func (c *EFS) CreateFileSystemRequest(input *CreateFileSystemInput) (req *request.Request, output *UpdateFileSystemOutput) {
+func (c *EFS) CreateFileSystemRequest(input *CreateFileSystemInput) (req *request.Request, output *FileSystemDescription) {
 	op := &request.Operation{
 		Name:       opCreateFileSystem,
 		HTTPMethod: "POST",
@@ -50,7 +50,7 @@ func (c *EFS) CreateFileSystemRequest(input *CreateFileSystemInput) (req *reques
 		input = &CreateFileSystemInput{}
 	}
 
-	output = &UpdateFileSystemOutput{}
+	output = &FileSystemDescription{}
 	req = c.newRequest(op, input, output)
 	return
 }
@@ -139,7 +139,7 @@ func (c *EFS) CreateFileSystemRequest(input *CreateFileSystemInput) (req *reques
 //   be changed because the throughput limit of 1024 MiB/s has been reached.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/elasticfilesystem-2015-02-01/CreateFileSystem
-func (c *EFS) CreateFileSystem(input *CreateFileSystemInput) (*UpdateFileSystemOutput, error) {
+func (c *EFS) CreateFileSystem(input *CreateFileSystemInput) (*FileSystemDescription, error) {
 	req, out := c.CreateFileSystemRequest(input)
 	return out, req.Send()
 }
@@ -153,7 +153,7 @@ func (c *EFS) CreateFileSystem(input *CreateFileSystemInput) (*UpdateFileSystemO
 // the context is nil a panic will occur. In the future the SDK may create
 // sub-contexts for http.Requests. See https://golang.org/pkg/context/
 // for more information on using Contexts.
-func (c *EFS) CreateFileSystemWithContext(ctx aws.Context, input *CreateFileSystemInput, opts ...request.Option) (*UpdateFileSystemOutput, error) {
+func (c *EFS) CreateFileSystemWithContext(ctx aws.Context, input *CreateFileSystemInput, opts ...request.Option) (*FileSystemDescription, error) {
 	req, out := c.CreateFileSystemRequest(input)
 	req.SetContext(ctx)
 	req.ApplyOptions(opts...)
@@ -1931,7 +1931,7 @@ type DescribeFileSystemsOutput struct {
 	_ struct{} `type:"structure"`
 
 	// Array of file system descriptions.
-	FileSystems []*UpdateFileSystemOutput `type:"list"`
+	FileSystems []*FileSystemDescription `type:"list"`
 
 	// Present if provided by caller in the request (String).
 	Marker *string `type:"string"`
@@ -1952,7 +1952,7 @@ func (s DescribeFileSystemsOutput) GoString() string {
 }
 
 // SetFileSystems sets the FileSystems field's value.
-func (s *DescribeFileSystemsOutput) SetFileSystems(v []*UpdateFileSystemOutput) *DescribeFileSystemsOutput {
+func (s *DescribeFileSystemsOutput) SetFileSystems(v []*FileSystemDescription) *DescribeFileSystemsOutput {
 	s.FileSystems = v
 	return s
 }
@@ -2250,6 +2250,175 @@ func (s *DescribeTagsOutput) SetNextMarker(v string) *DescribeTagsOutput {
 // SetTags sets the Tags field's value.
 func (s *DescribeTagsOutput) SetTags(v []*Tag) *DescribeTagsOutput {
 	s.Tags = v
+	return s
+}
+
+// Description of the file system.
+type FileSystemDescription struct {
+	_ struct{} `type:"structure"`
+
+	// Time that the file system was created, in seconds (since 1970-01-01T00:00:00Z).
+	//
+	// CreationTime is a required field
+	CreationTime *time.Time `type:"timestamp" required:"true"`
+
+	// Opaque string specified in the request.
+	//
+	// CreationToken is a required field
+	CreationToken *string `min:"1" type:"string" required:"true"`
+
+	// A Boolean value that, if true, indicates that the file system is encrypted.
+	Encrypted *bool `type:"boolean"`
+
+	// ID of the file system, assigned by Amazon EFS.
+	//
+	// FileSystemId is a required field
+	FileSystemId *string `type:"string" required:"true"`
+
+	// The ID of an AWS Key Management Service (AWS KMS) customer master key (CMK)
+	// that was used to protect the encrypted file system.
+	KmsKeyId *string `min:"1" type:"string"`
+
+	// Lifecycle phase of the file system.
+	//
+	// LifeCycleState is a required field
+	LifeCycleState *string `type:"string" required:"true" enum:"LifeCycleState"`
+
+	// You can add tags to a file system, including a Name tag. For more information,
+	// see CreateTags. If the file system has a Name tag, Amazon EFS returns the
+	// value in this field.
+	Name *string `type:"string"`
+
+	// Current number of mount targets that the file system has. For more information,
+	// see CreateMountTarget.
+	//
+	// NumberOfMountTargets is a required field
+	NumberOfMountTargets *int64 `type:"integer" required:"true"`
+
+	// AWS account that created the file system. If the file system was created
+	// by an IAM user, the parent account to which the user belongs is the owner.
+	//
+	// OwnerId is a required field
+	OwnerId *string `type:"string" required:"true"`
+
+	// The PerformanceMode of the file system.
+	//
+	// PerformanceMode is a required field
+	PerformanceMode *string `type:"string" required:"true" enum:"PerformanceMode"`
+
+	// The throughput, measured in MiB/s, that you want to provision for a file
+	// system. The limit on throughput is 1024 MiB/s. You can get these limits increased
+	// by contacting AWS Support. For more information, see Amazon EFS Limits That
+	// You Can Increase (http://docs.aws.amazon.com/efs/latest/ug/limits.html#soft-limits)
+	// in the Amazon EFS User Guide.
+	ProvisionedThroughputInMibps *float64 `type:"double"`
+
+	// Latest known metered size (in bytes) of data stored in the file system, in
+	// its Value field, and the time at which that size was determined in its Timestamp
+	// field. The Timestamp value is the integer number of seconds since 1970-01-01T00:00:00Z.
+	// The SizeInBytes value doesn't represent the size of a consistent snapshot
+	// of the file system, but it is eventually consistent when there are no writes
+	// to the file system. That is, SizeInBytes represents actual size only if the
+	// file system is not modified for a period longer than a couple of hours. Otherwise,
+	// the value is not the exact size that the file system was at any point in
+	// time.
+	//
+	// SizeInBytes is a required field
+	SizeInBytes *FileSystemSize `type:"structure" required:"true"`
+
+	// The throughput mode for a file system. There are two throughput modes to
+	// choose from for your file system: bursting and provisioned. You can decrease
+	// your file system's throughput in Provisioned Throughput mode or change between
+	// the throughput modes as long as it’s been more than 24 hours since the last
+	// decrease or throughput mode change.
+	ThroughputMode *string `type:"string" enum:"ThroughputMode"`
+}
+
+// String returns the string representation
+func (s FileSystemDescription) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s FileSystemDescription) GoString() string {
+	return s.String()
+}
+
+// SetCreationTime sets the CreationTime field's value.
+func (s *FileSystemDescription) SetCreationTime(v time.Time) *FileSystemDescription {
+	s.CreationTime = &v
+	return s
+}
+
+// SetCreationToken sets the CreationToken field's value.
+func (s *FileSystemDescription) SetCreationToken(v string) *FileSystemDescription {
+	s.CreationToken = &v
+	return s
+}
+
+// SetEncrypted sets the Encrypted field's value.
+func (s *FileSystemDescription) SetEncrypted(v bool) *FileSystemDescription {
+	s.Encrypted = &v
+	return s
+}
+
+// SetFileSystemId sets the FileSystemId field's value.
+func (s *FileSystemDescription) SetFileSystemId(v string) *FileSystemDescription {
+	s.FileSystemId = &v
+	return s
+}
+
+// SetKmsKeyId sets the KmsKeyId field's value.
+func (s *FileSystemDescription) SetKmsKeyId(v string) *FileSystemDescription {
+	s.KmsKeyId = &v
+	return s
+}
+
+// SetLifeCycleState sets the LifeCycleState field's value.
+func (s *FileSystemDescription) SetLifeCycleState(v string) *FileSystemDescription {
+	s.LifeCycleState = &v
+	return s
+}
+
+// SetName sets the Name field's value.
+func (s *FileSystemDescription) SetName(v string) *FileSystemDescription {
+	s.Name = &v
+	return s
+}
+
+// SetNumberOfMountTargets sets the NumberOfMountTargets field's value.
+func (s *FileSystemDescription) SetNumberOfMountTargets(v int64) *FileSystemDescription {
+	s.NumberOfMountTargets = &v
+	return s
+}
+
+// SetOwnerId sets the OwnerId field's value.
+func (s *FileSystemDescription) SetOwnerId(v string) *FileSystemDescription {
+	s.OwnerId = &v
+	return s
+}
+
+// SetPerformanceMode sets the PerformanceMode field's value.
+func (s *FileSystemDescription) SetPerformanceMode(v string) *FileSystemDescription {
+	s.PerformanceMode = &v
+	return s
+}
+
+// SetProvisionedThroughputInMibps sets the ProvisionedThroughputInMibps field's value.
+func (s *FileSystemDescription) SetProvisionedThroughputInMibps(v float64) *FileSystemDescription {
+	s.ProvisionedThroughputInMibps = &v
+	return s
+}
+
+// SetSizeInBytes sets the SizeInBytes field's value.
+func (s *FileSystemDescription) SetSizeInBytes(v *FileSystemSize) *FileSystemDescription {
+	s.SizeInBytes = v
+	return s
+}
+
+// SetThroughputMode sets the ThroughputMode field's value.
+func (s *FileSystemDescription) SetThroughputMode(v string) *FileSystemDescription {
+	s.ThroughputMode = &v
 	return s
 }
 
