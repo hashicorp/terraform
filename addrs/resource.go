@@ -28,8 +28,8 @@ func (r Resource) String() string {
 	}
 }
 
-func (r Resource) Equal(other Resource) bool {
-	return r.String() == other.String()
+func (r Resource) Equal(o Resource) bool {
+	return r.String() == o.String()
 }
 
 // Instance produces the address for a specific instance of the receiver
@@ -90,8 +90,8 @@ func (r ResourceInstance) String() string {
 	return r.Resource.String() + r.Key.String()
 }
 
-func (r ResourceInstance) Equal(other ResourceInstance) bool {
-	return r.String() == other.String()
+func (r ResourceInstance) Equal(o ResourceInstance) bool {
+	return r.String() == o.String()
 }
 
 // Absolute returns an AbsResourceInstance from the receiver and the given module
@@ -157,8 +157,8 @@ func (r AbsResource) String() string {
 	return fmt.Sprintf("%s.%s", r.Module.String(), r.Resource.String())
 }
 
-func (r AbsResource) Equal(other AbsResource) bool {
-	return r.String() == other.String()
+func (r AbsResource) Equal(o AbsResource) bool {
+	return r.String() == o.String()
 }
 
 // AbsResourceInstance is an absolute address for a resource instance under a
@@ -216,8 +216,8 @@ func (r AbsResourceInstance) String() string {
 	return fmt.Sprintf("%s.%s", r.Module.String(), r.Resource.String())
 }
 
-func (r AbsResourceInstance) Equal(other AbsResourceInstance) bool {
-	return r.String() == other.String()
+func (r AbsResourceInstance) Equal(o AbsResourceInstance) bool {
+	return r.String() == o.String()
 }
 
 // Less returns true if the receiver should sort before the given other value
