@@ -1,12 +1,11 @@
 package local
 
 import (
-	"log"
 	"context"
 	"fmt"
+	"log"
 
 	"github.com/hashicorp/errwrap"
-
 	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/command/clistate"
 	"github.com/hashicorp/terraform/configs/configload"
