@@ -240,6 +240,12 @@ func (s *Filesystem) RefreshState() error {
 	}
 
 	f, err := statefile.Read(reader)
+
+	// nothing to backup if there's no initial state
+	if f == nil {
+		s.writtenBackup = true
+	}
+
 	// if there's no state we just assign the nil return value
 	if err != nil && err != statefile.ErrNoState {
 		return err
