@@ -585,8 +585,9 @@ func TestApply_plan_backup(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
 	args := []string{
-		"-state-out", statePath,
+		"-state", statePath,
 		"-backup", backupPath,
 		planPath,
 	}
@@ -964,7 +965,7 @@ func TestApply_state(t *testing.T) {
 				Name: "foo",
 			}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
 			&states.ResourceInstanceObjectSrc{
-				AttrsJSON: []byte(`{"ami":"bar"}`),
+				AttrsJSON: []byte(`{"ami":"foo"}`),
 				Status:    states.ObjectReady,
 			},
 			addrs.ProviderConfig{Type: "test"}.Absolute(addrs.RootModuleInstance),
@@ -1006,7 +1007,7 @@ func TestApply_state(t *testing.T) {
 	actual := p.PlanResourceChangeRequest.PriorState
 	expected := cty.ObjectVal(map[string]cty.Value{
 		"id":  cty.NullVal(cty.String),
-		"ami": cty.StringVal("bar"),
+		"ami": cty.StringVal("foo"),
 	})
 	if !expected.RawEquals(actual) {
 		t.Fatalf("wrong prior state during plan\ngot: %#v\nwant: %#v", actual, expected)
@@ -1015,9 +1016,9 @@ func TestApply_state(t *testing.T) {
 	actual = p.ApplyResourceChangeRequest.PriorState
 	expected = cty.ObjectVal(map[string]cty.Value{
 		"id":  cty.NullVal(cty.String),
-		"ami": cty.StringVal("bar"),
+		"ami": cty.StringVal("foo"),
 	})
-	if actual != expected {
+	if !expected.RawEquals(actual) {
 		t.Fatalf("wrong prior state during apply\ngot: %#v\nwant: %#v", actual, expected)
 	}
 
