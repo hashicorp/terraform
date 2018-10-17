@@ -13,6 +13,34 @@ type testCase struct {
 	expectedErr *regexp.Regexp
 }
 
+func TestValidationAll(t *testing.T) {
+	runTestCases(t, []testCase{
+		{
+			val: "valid",
+			f: All(
+				StringLenBetween(5, 42),
+				StringMatch(regexp.MustCompile(`[a-zA-Z0-9]+`), "value must be alphanumeric"),
+			),
+		},
+		{
+			val: "foo",
+			f: All(
+				StringLenBetween(5, 42),
+				StringMatch(regexp.MustCompile(`[a-zA-Z0-9]+`), "value must be alphanumeric"),
+			),
+			expectedErr: regexp.MustCompile("expected length of [\\w]+ to be in the range \\(5 - 42\\), got foo"),
+		},
+		{
+			val: "!!!!!",
+			f: All(
+				StringLenBetween(5, 42),
+				StringMatch(regexp.MustCompile(`[a-zA-Z0-9]+`), "value must be alphanumeric"),
+			),
+			expectedErr: regexp.MustCompile("value must be alphanumeric"),
+		},
+	})
+}
+
 func TestValidationIntBetween(t *testing.T) {
 	runTestCases(t, []testCase{
 		{
@@ -78,6 +106,25 @@ func TestValidationIntAtMost(t *testing.T) {
 			val:         "1",
 			f:           IntAtMost(0),
 			expectedErr: regexp.MustCompile("expected type of [\\w]+ to be int"),
+		},
+	})
+}
+
+func TestValidationIntInSlice(t *testing.T) {
+	runTestCases(t, []testCase{
+		{
+			val: 42,
+			f:   IntInSlice([]int{1, 42}),
+		},
+		{
+			val:         42,
+			f:           IntInSlice([]int{10, 20}),
+			expectedErr: regexp.MustCompile("expected [\\w]+ to be one of \\[10 20\\], got 42"),
+		},
+		{
+			val:         "InvalidValue",
+			f:           IntInSlice([]int{10, 20}),
+			expectedErr: regexp.MustCompile("expected type of [\\w]+ to be an integer"),
 		},
 	})
 }
