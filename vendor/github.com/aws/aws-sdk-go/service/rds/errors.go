@@ -27,6 +27,10 @@ const (
 	// The DB security group authorization quota has been reached.
 	ErrCodeAuthorizationQuotaExceededFault = "AuthorizationQuotaExceeded"
 
+	// ErrCodeBackupPolicyNotFoundFault for service response error code
+	// "BackupPolicyNotFoundFault".
+	ErrCodeBackupPolicyNotFoundFault = "BackupPolicyNotFoundFault"
+
 	// ErrCodeCertificateNotFoundFault for service response error code
 	// "CertificateNotFound".
 	//
@@ -258,6 +262,13 @@ const (
 	// Availability Zones that have more storage available.
 	ErrCodeInsufficientStorageClusterCapacityFault = "InsufficientStorageClusterCapacity"
 
+	// ErrCodeInvalidDBClusterCapacityFault for service response error code
+	// "InvalidDBClusterCapacityFault".
+	//
+	// Capacity isn't a valid Aurora Serverless DB cluster capacity. Valid capacity
+	// values are 2, 4, 8, 16, 32, 64, 128, and 256.
+	ErrCodeInvalidDBClusterCapacityFault = "InvalidDBClusterCapacityFault"
+
 	// ErrCodeInvalidDBClusterSnapshotStateFault for service response error code
 	// "InvalidDBClusterSnapshotStateFault".
 	//
@@ -273,7 +284,7 @@ const (
 	// ErrCodeInvalidDBInstanceStateFault for service response error code
 	// "InvalidDBInstanceState".
 	//
-	// The specified DB instance isn't in the available state.
+	// The DB instance isn't in a valid state.
 	ErrCodeInvalidDBInstanceStateFault = "InvalidDBInstanceState"
 
 	// ErrCodeInvalidDBParameterGroupStateFault for service response error code

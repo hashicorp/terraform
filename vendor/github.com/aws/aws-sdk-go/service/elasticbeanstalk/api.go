@@ -586,6 +586,9 @@ func (c *ElasticBeanstalk) CreateConfigurationTemplateRequest(input *CreateConfi
 // application and are used to deploy different versions of the application
 // with the same configuration settings.
 //
+// Templates aren't associated with any environment. The EnvironmentName response
+// element is always null.
+//
 // Related Topics
 //
 //    * DescribeConfigurationOptions
@@ -4553,10 +4556,14 @@ func (s *Builder) SetARN(v string) *Builder {
 type CPUUtilization struct {
 	_ struct{} `type:"structure"`
 
+	// Available on Linux environments only.
+	//
 	// Percentage of time that the CPU has spent in the I/O Wait state over the
 	// last 10 seconds.
 	IOWait *float64 `type:"double"`
 
+	// Available on Linux environments only.
+	//
 	// Percentage of time that the CPU has spent in the IRQ state over the last
 	// 10 seconds.
 	IRQ *float64 `type:"double"`
@@ -4565,14 +4572,26 @@ type CPUUtilization struct {
 	// 10 seconds.
 	Idle *float64 `type:"double"`
 
+	// Available on Linux environments only.
+	//
 	// Percentage of time that the CPU has spent in the Nice state over the last
 	// 10 seconds.
 	Nice *float64 `type:"double"`
 
+	// Available on Windows environments only.
+	//
+	// Percentage of time that the CPU has spent in the Privileged state over the
+	// last 10 seconds.
+	Privileged *float64 `type:"double"`
+
+	// Available on Linux environments only.
+	//
 	// Percentage of time that the CPU has spent in the SoftIRQ state over the last
 	// 10 seconds.
 	SoftIRQ *float64 `type:"double"`
 
+	// Available on Linux environments only.
+	//
 	// Percentage of time that the CPU has spent in the System state over the last
 	// 10 seconds.
 	System *float64 `type:"double"`
@@ -4613,6 +4632,12 @@ func (s *CPUUtilization) SetIdle(v float64) *CPUUtilization {
 // SetNice sets the Nice field's value.
 func (s *CPUUtilization) SetNice(v float64) *CPUUtilization {
 	s.Nice = &v
+	return s
+}
+
+// SetPrivileged sets the Privileged field's value.
+func (s *CPUUtilization) SetPrivileged(v float64) *CPUUtilization {
+	s.Privileged = &v
 	return s
 }
 
@@ -7548,6 +7573,10 @@ type DescribeInstancesHealthOutput struct {
 	_ struct{} `type:"structure"`
 
 	// Detailed health information about each instance.
+	//
+	// The output differs slightly between Linux and Windows environments. There
+	// is a difference in the members that are supported under the <CPUUtilization>
+	// type.
 	InstanceHealthList []*SingleInstanceHealth `type:"list"`
 
 	// Pagination token for the next page of results, if available.

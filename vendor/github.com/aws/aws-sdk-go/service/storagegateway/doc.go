@@ -29,8 +29,8 @@
 //    of requests and responses.
 //
 //    * AWS Storage Gateway Regions and Endpoints: (http://docs.aws.amazon.com/general/latest/gr/rande.html#sg_region)
-//    Provides a list of each region and endpoints available for use with AWS
-//    Storage Gateway.
+//    Provides a list of each AWS region and endpoints available for use with
+//    AWS Storage Gateway.
 //
 // AWS Storage Gateway resource IDs are in uppercase. When you use these resource
 // IDs with the Amazon EC2 API, EC2 expects resource IDs in lowercase. You must

@@ -553,6 +553,9 @@ func (c *Redshift) CreateClusterRequest(input *CreateClusterInput) (req *request
 //   The request cannot be completed because a dependent service is throttling
 //   requests made by Amazon Redshift on your behalf. Wait and retry the request.
 //
+//   * ErrCodeInvalidClusterTrackFault "InvalidClusterTrack"
+//   The provided cluster track name is not valid.
+//
 // See also, https://docs.aws.amazon.com/goto/WebAPI/redshift-2012-12-01/CreateCluster
 func (c *Redshift) CreateCluster(input *CreateClusterInput) (*CreateClusterOutput, error) {
 	req, out := c.CreateClusterRequest(input)
@@ -3264,6 +3267,88 @@ func (c *Redshift) DescribeClusterSubnetGroupsPagesWithContext(ctx aws.Context, 
 	return p.Err()
 }
 
+const opDescribeClusterTracks = "DescribeClusterTracks"
+
+// DescribeClusterTracksRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeClusterTracks operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfuly.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See DescribeClusterTracks for more information on using the DescribeClusterTracks
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the DescribeClusterTracksRequest method.
+//    req, resp := client.DescribeClusterTracksRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/redshift-2012-12-01/DescribeClusterTracks
+func (c *Redshift) DescribeClusterTracksRequest(input *DescribeClusterTracksInput) (req *request.Request, output *DescribeClusterTracksOutput) {
+	op := &request.Operation{
+		Name:       opDescribeClusterTracks,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &DescribeClusterTracksInput{}
+	}
+
+	output = &DescribeClusterTracksOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// DescribeClusterTracks API operation for Amazon Redshift.
+//
+// Returns a list of all the available maintenance tracks.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Redshift's
+// API operation DescribeClusterTracks for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeInvalidClusterTrackFault "InvalidClusterTrack"
+//   The provided cluster track name is not valid.
+//
+//   * ErrCodeUnauthorizedOperation "UnauthorizedOperation"
+//   Your account is not authorized to perform the requested operation.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/redshift-2012-12-01/DescribeClusterTracks
+func (c *Redshift) DescribeClusterTracks(input *DescribeClusterTracksInput) (*DescribeClusterTracksOutput, error) {
+	req, out := c.DescribeClusterTracksRequest(input)
+	return out, req.Send()
+}
+
+// DescribeClusterTracksWithContext is the same as DescribeClusterTracks with the addition of
+// the ability to pass a context and additional request options.
+//
+// See DescribeClusterTracks for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *Redshift) DescribeClusterTracksWithContext(ctx aws.Context, input *DescribeClusterTracksInput, opts ...request.Option) (*DescribeClusterTracksOutput, error) {
+	req, out := c.DescribeClusterTracksRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
 const opDescribeClusterVersions = "DescribeClusterVersions"
 
 // DescribeClusterVersionsRequest generates a "aws/request.Request" representing the
@@ -5744,8 +5829,8 @@ func (c *Redshift) GetReservedNodeExchangeOfferingsRequest(input *GetReservedNod
 
 // GetReservedNodeExchangeOfferings API operation for Amazon Redshift.
 //
-// Returns an array of ReservedNodeOfferings which is filtered by payment type,
-// term, and instance type.
+// Returns an array of DC2 ReservedNodeOfferings that matches the payment type,
+// term, and usage price of the given DC1 reserved node.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -5916,6 +6001,9 @@ func (c *Redshift) ModifyClusterRequest(input *ModifyClusterInput) (req *request
 //   * ErrCodeTableLimitExceededFault "TableLimitExceeded"
 //   The number of tables in the cluster exceeds the limit for the requested new
 //   cluster node type.
+//
+//   * ErrCodeInvalidClusterTrackFault "InvalidClusterTrack"
+//   The provided cluster track name is not valid.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/redshift-2012-12-01/ModifyCluster
 func (c *Redshift) ModifyCluster(input *ModifyClusterInput) (*ModifyClusterOutput, error) {
@@ -6773,6 +6861,129 @@ func (c *Redshift) ResetClusterParameterGroupWithContext(ctx aws.Context, input 
 	return out, req.Send()
 }
 
+const opResizeCluster = "ResizeCluster"
+
+// ResizeClusterRequest generates a "aws/request.Request" representing the
+// client's request for the ResizeCluster operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfuly.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See ResizeCluster for more information on using the ResizeCluster
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the ResizeClusterRequest method.
+//    req, resp := client.ResizeClusterRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/redshift-2012-12-01/ResizeCluster
+func (c *Redshift) ResizeClusterRequest(input *ResizeClusterInput) (req *request.Request, output *ResizeClusterOutput) {
+	op := &request.Operation{
+		Name:       opResizeCluster,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &ResizeClusterInput{}
+	}
+
+	output = &ResizeClusterOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// ResizeCluster API operation for Amazon Redshift.
+//
+// Changes the size of the cluster. You can change the cluster's type, or change
+// the number or type of nodes. The default behavior is to use the elastic resize
+// method. With an elastic resize your cluster is avaialble for read and write
+// operations more quickly than with the classic resize method.
+//
+// Elastic resize operations have the following restrictions:
+//
+//    * You can only resize clusters of the following types:
+//
+// dc2.large
+//
+// dc2.8xlarge
+//
+// ds2.xlarge
+//
+// ds2.8xlarge
+//
+//    * The type of nodes you add must match the node type for the cluster.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Redshift's
+// API operation ResizeCluster for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeInvalidClusterStateFault "InvalidClusterState"
+//   The specified cluster is not in the available state.
+//
+//   * ErrCodeClusterNotFoundFault "ClusterNotFound"
+//   The ClusterIdentifier parameter does not refer to an existing cluster.
+//
+//   * ErrCodeNumberOfNodesQuotaExceededFault "NumberOfNodesQuotaExceeded"
+//   The operation would exceed the number of nodes allotted to the account. For
+//   information about increasing your quota, go to Limits in Amazon Redshift
+//   (http://docs.aws.amazon.com/redshift/latest/mgmt/amazon-redshift-limits.html)
+//   in the Amazon Redshift Cluster Management Guide.
+//
+//   * ErrCodeNumberOfNodesPerClusterLimitExceededFault "NumberOfNodesPerClusterLimitExceeded"
+//   The operation would exceed the number of nodes allowed for a cluster.
+//
+//   * ErrCodeInsufficientClusterCapacityFault "InsufficientClusterCapacity"
+//   The number of nodes specified exceeds the allotted capacity of the cluster.
+//
+//   * ErrCodeUnsupportedOptionFault "UnsupportedOptionFault"
+//   A request option was specified that is not supported.
+//
+//   * ErrCodeUnsupportedOperationFault "UnsupportedOperation"
+//   The requested operation isn't supported.
+//
+//   * ErrCodeUnauthorizedOperation "UnauthorizedOperation"
+//   Your account is not authorized to perform the requested operation.
+//
+//   * ErrCodeLimitExceededFault "LimitExceededFault"
+//   The encryption key has exceeded its grant limit in AWS KMS.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/redshift-2012-12-01/ResizeCluster
+func (c *Redshift) ResizeCluster(input *ResizeClusterInput) (*ResizeClusterOutput, error) {
+	req, out := c.ResizeClusterRequest(input)
+	return out, req.Send()
+}
+
+// ResizeClusterWithContext is the same as ResizeCluster with the addition of
+// the ability to pass a context and additional request options.
+//
+// See ResizeCluster for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *Redshift) ResizeClusterWithContext(ctx aws.Context, input *ResizeClusterInput, opts ...request.Option) (*ResizeClusterOutput, error) {
+	req, out := c.ResizeClusterRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
 const opRestoreFromClusterSnapshot = "RestoreFromClusterSnapshot"
 
 // RestoreFromClusterSnapshotRequest generates a "aws/request.Request" representing the
@@ -6915,6 +7126,9 @@ func (c *Redshift) RestoreFromClusterSnapshotRequest(input *RestoreFromClusterSn
 //   * ErrCodeDependentServiceRequestThrottlingFault "DependentServiceRequestThrottlingFault"
 //   The request cannot be completed because a dependent service is throttling
 //   requests made by Amazon Redshift on your behalf. Wait and retry the request.
+//
+//   * ErrCodeInvalidClusterTrackFault "InvalidClusterTrack"
+//   The provided cluster track name is not valid.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/redshift-2012-12-01/RestoreFromClusterSnapshot
 func (c *Redshift) RestoreFromClusterSnapshot(input *RestoreFromClusterSnapshotInput) (*RestoreFromClusterSnapshotOutput, error) {
@@ -7323,12 +7537,14 @@ func (c *Redshift) RotateEncryptionKeyWithContext(ctx aws.Context, input *Rotate
 type AcceptReservedNodeExchangeInput struct {
 	_ struct{} `type:"structure"`
 
-	// A string representing the identifier of the Reserved Node to be exchanged.
+	// A string representing the node identifier of the DC1 Reserved Node to be
+	// exchanged.
 	//
 	// ReservedNodeId is a required field
 	ReservedNodeId *string `type:"string" required:"true"`
 
-	// The unique identifier of the Reserved Node offering to be used for the exchange.
+	// The unique identifier of the DC2 Reserved Node offering to be used for the
+	// exchange. You can obtain the value for the parameter by calling GetReservedNodeExchangeOfferings
 	//
 	// TargetReservedNodeOfferingId is a required field
 	TargetReservedNodeOfferingId *string `type:"string" required:"true"`
@@ -7739,6 +7955,10 @@ type Cluster struct {
 	// The status of the elastic IP (EIP) address.
 	ElasticIpStatus *ElasticIpStatus `type:"structure"`
 
+	// Indicates the number of nodes the cluster can be resized to with the elastic
+	// resize method.
+	ElasticResizeNumberOfNodeOptions *string `type:"string"`
+
 	// A Boolean value that, if true, indicates that data in the cluster is encrypted
 	// at rest.
 	Encrypted *bool `type:"boolean"`
@@ -7771,6 +7991,9 @@ type Cluster struct {
 	// The AWS Key Management Service (AWS KMS) key ID of the encryption key used
 	// to encrypt data in the cluster.
 	KmsKeyId *string `type:"string"`
+
+	// The name of the maintenance track for the cluster.
+	MaintenanceTrackName *string `type:"string"`
 
 	// The master user name for the cluster. This name is used to connect to the
 	// database that is specified in the DBName parameter.
@@ -7922,6 +8145,12 @@ func (s *Cluster) SetElasticIpStatus(v *ElasticIpStatus) *Cluster {
 	return s
 }
 
+// SetElasticResizeNumberOfNodeOptions sets the ElasticResizeNumberOfNodeOptions field's value.
+func (s *Cluster) SetElasticResizeNumberOfNodeOptions(v string) *Cluster {
+	s.ElasticResizeNumberOfNodeOptions = &v
+	return s
+}
+
 // SetEncrypted sets the Encrypted field's value.
 func (s *Cluster) SetEncrypted(v bool) *Cluster {
 	s.Encrypted = &v
@@ -7955,6 +8184,12 @@ func (s *Cluster) SetIamRoles(v []*ClusterIamRole) *Cluster {
 // SetKmsKeyId sets the KmsKeyId field's value.
 func (s *Cluster) SetKmsKeyId(v string) *Cluster {
 	s.KmsKeyId = &v
+	return s
+}
+
+// SetMaintenanceTrackName sets the MaintenanceTrackName field's value.
+func (s *Cluster) SetMaintenanceTrackName(v string) *Cluster {
+	s.MaintenanceTrackName = &v
 	return s
 }
 
@@ -8896,6 +9131,11 @@ type CreateClusterInput struct {
 	// want to use to encrypt data in the cluster.
 	KmsKeyId *string `type:"string"`
 
+	// An optional parameter for the name of the maintenance track for the cluster.
+	// If you don't provide a maintenance track name, the cluster is assigned to
+	// the current track.
+	MaintenanceTrackName *string `type:"string"`
+
 	// The password associated with the master user account for the cluster that
 	// is being created.
 	//
@@ -9133,6 +9373,12 @@ func (s *CreateClusterInput) SetIamRoles(v []*string) *CreateClusterInput {
 // SetKmsKeyId sets the KmsKeyId field's value.
 func (s *CreateClusterInput) SetKmsKeyId(v string) *CreateClusterInput {
 	s.KmsKeyId = &v
+	return s
+}
+
+// SetMaintenanceTrackName sets the MaintenanceTrackName field's value.
+func (s *CreateClusterInput) SetMaintenanceTrackName(v string) *CreateClusterInput {
+	s.MaintenanceTrackName = &v
 	return s
 }
 
@@ -11621,6 +11867,86 @@ func (s *DescribeClusterSubnetGroupsOutput) SetMarker(v string) *DescribeCluster
 	return s
 }
 
+type DescribeClusterTracksInput struct {
+	_ struct{} `type:"structure"`
+
+	// The name of the maintenance track.
+	MaintenanceTrackName *string `type:"string"`
+
+	// An optional parameter that specifies the starting point to return a set of
+	// response records. When the results of a DescribeClusterTracks request exceed
+	// the value specified in MaxRecords, Amazon Redshift returns a value in the
+	// Marker field of the response. You can retrieve the next set of response records
+	// by providing the returned marker value in the Marker parameter and retrying
+	// the request.
+	Marker *string `type:"string"`
+
+	// An integer value for the maximum number of maintenance tracks to return.
+	MaxRecords *int64 `type:"integer"`
+}
+
+// String returns the string representation
+func (s DescribeClusterTracksInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DescribeClusterTracksInput) GoString() string {
+	return s.String()
+}
+
+// SetMaintenanceTrackName sets the MaintenanceTrackName field's value.
+func (s *DescribeClusterTracksInput) SetMaintenanceTrackName(v string) *DescribeClusterTracksInput {
+	s.MaintenanceTrackName = &v
+	return s
+}
+
+// SetMarker sets the Marker field's value.
+func (s *DescribeClusterTracksInput) SetMarker(v string) *DescribeClusterTracksInput {
+	s.Marker = &v
+	return s
+}
+
+// SetMaxRecords sets the MaxRecords field's value.
+func (s *DescribeClusterTracksInput) SetMaxRecords(v int64) *DescribeClusterTracksInput {
+	s.MaxRecords = &v
+	return s
+}
+
+type DescribeClusterTracksOutput struct {
+	_ struct{} `type:"structure"`
+
+	// A list of maintenance tracks output by the DescribeClusterTracks operation.
+	MaintenanceTracks []*MaintenanceTrack `locationNameList:"MaintenanceTrack" type:"list"`
+
+	// The starting point to return a set of response tracklist records. You can
+	// retrieve the next set of response records by providing the returned marker
+	// value in the Marker parameter and retrying the request.
+	Marker *string `type:"string"`
+}
+
+// String returns the string representation
+func (s DescribeClusterTracksOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DescribeClusterTracksOutput) GoString() string {
+	return s.String()
+}
+
+// SetMaintenanceTracks sets the MaintenanceTracks field's value.
+func (s *DescribeClusterTracksOutput) SetMaintenanceTracks(v []*MaintenanceTrack) *DescribeClusterTracksOutput {
+	s.MaintenanceTracks = v
+	return s
+}
+
+// SetMarker sets the Marker field's value.
+func (s *DescribeClusterTracksOutput) SetMarker(v string) *DescribeClusterTracksOutput {
+	s.Marker = &v
+	return s
+}
+
 type DescribeClusterVersionsInput struct {
 	_ struct{} `type:"structure"`
 
@@ -12914,12 +13240,19 @@ type DescribeResizeOutput struct {
 	// Valid Values: List of table names
 	ImportTablesNotStarted []*string `type:"list"`
 
+	// An optional string to provide additional details about the resize action.
+	Message *string `type:"string"`
+
 	// While the resize operation is in progress, this value shows the current amount
 	// of data, in megabytes, that has been processed so far. When the resize operation
 	// is complete, this value shows the total amount of data, in megabytes, on
 	// the cluster, which may be more or less than TotalResizeDataInMegaBytes (the
 	// estimated total amount of data before resize).
 	ProgressInMegaBytes *int64 `type:"long"`
+
+	// An enum with possible values of ClassicResize and ElasticResize. These values
+	// describe the type of resize operation being performed.
+	ResizeType *string `type:"string"`
 
 	// The status of the resize operation.
 	//
@@ -12930,6 +13263,12 @@ type DescribeResizeOutput struct {
 	//
 	// Valid Values: multi-node | single-node
 	TargetClusterType *string `type:"string"`
+
+	// The type of encryption for the cluster after the resize is complete.
+	//
+	// Possible values are KMS and None. In the China region possible values are:
+	// Legacy and None.
+	TargetEncryptionType *string `type:"string"`
 
 	// The node type that the cluster will have after the resize operation is complete.
 	TargetNodeType *string `type:"string"`
@@ -12989,9 +13328,21 @@ func (s *DescribeResizeOutput) SetImportTablesNotStarted(v []*string) *DescribeR
 	return s
 }
 
+// SetMessage sets the Message field's value.
+func (s *DescribeResizeOutput) SetMessage(v string) *DescribeResizeOutput {
+	s.Message = &v
+	return s
+}
+
 // SetProgressInMegaBytes sets the ProgressInMegaBytes field's value.
 func (s *DescribeResizeOutput) SetProgressInMegaBytes(v int64) *DescribeResizeOutput {
 	s.ProgressInMegaBytes = &v
+	return s
+}
+
+// SetResizeType sets the ResizeType field's value.
+func (s *DescribeResizeOutput) SetResizeType(v string) *DescribeResizeOutput {
+	s.ResizeType = &v
 	return s
 }
 
@@ -13004,6 +13355,12 @@ func (s *DescribeResizeOutput) SetStatus(v string) *DescribeResizeOutput {
 // SetTargetClusterType sets the TargetClusterType field's value.
 func (s *DescribeResizeOutput) SetTargetClusterType(v string) *DescribeResizeOutput {
 	s.TargetClusterType = &v
+	return s
+}
+
+// SetTargetEncryptionType sets the TargetEncryptionType field's value.
+func (s *DescribeResizeOutput) SetTargetEncryptionType(v string) *DescribeResizeOutput {
+	s.TargetEncryptionType = &v
 	return s
 }
 
@@ -14316,7 +14673,8 @@ type GetReservedNodeExchangeOfferingsInput struct {
 	// An integer setting the maximum number of ReservedNodeOfferings to retrieve.
 	MaxRecords *int64 `type:"integer"`
 
-	// A string representing the node identifier for the Reserved Node to be exchanged.
+	// A string representing the node identifier for the DC1 Reserved Node to be
+	// exchanged.
 	//
 	// ReservedNodeId is a required field
 	ReservedNodeId *string `type:"string" required:"true"`
@@ -14666,6 +15024,52 @@ func (s *LoggingStatus) SetS3KeyPrefix(v string) *LoggingStatus {
 	return s
 }
 
+// Defines a maintenance track that determines which Amazon Redshift version
+// to apply during a maintenance window. If the value for MaintenanceTrack is
+// current, the cluster is updated to the most recently certified maintenance
+// release. If the value is trailing, the cluster is updated to the previously
+// certified maintenance release.
+type MaintenanceTrack struct {
+	_ struct{} `type:"structure"`
+
+	// The version number for the cluster release.
+	DatabaseVersion *string `type:"string"`
+
+	// The name of the maintenance track. Possible values are current and trailing.
+	MaintenanceTrackName *string `type:"string"`
+
+	// An array of UpdateTarget objects to update with the maintenance track.
+	UpdateTargets []*UpdateTarget `locationNameList:"UpdateTarget" type:"list"`
+}
+
+// String returns the string representation
+func (s MaintenanceTrack) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s MaintenanceTrack) GoString() string {
+	return s.String()
+}
+
+// SetDatabaseVersion sets the DatabaseVersion field's value.
+func (s *MaintenanceTrack) SetDatabaseVersion(v string) *MaintenanceTrack {
+	s.DatabaseVersion = &v
+	return s
+}
+
+// SetMaintenanceTrackName sets the MaintenanceTrackName field's value.
+func (s *MaintenanceTrack) SetMaintenanceTrackName(v string) *MaintenanceTrack {
+	s.MaintenanceTrackName = &v
+	return s
+}
+
+// SetUpdateTargets sets the UpdateTargets field's value.
+func (s *MaintenanceTrack) SetUpdateTargets(v []*UpdateTarget) *MaintenanceTrack {
+	s.UpdateTargets = v
+	return s
+}
+
 type ModifyClusterDbRevisionInput struct {
 	_ struct{} `type:"structure"`
 
@@ -14912,6 +15316,13 @@ type ModifyClusterInput struct {
 	// in the Amazon Redshift Cluster Management Guide.
 	ElasticIp *string `type:"string"`
 
+	// Indicates whether the cluster is encrypted. If the cluster is encrypted and
+	// you provide a value for the KmsKeyId parameter, we will encrypt the cluster
+	// with the provided KmsKeyId. If you don't provide a KmsKeyId, we will encrypt
+	// with the default key. In the China region we will use legacy encryption if
+	// you specify that the cluster is encrypted.
+	Encrypted *bool `type:"boolean"`
+
 	// An option that specifies whether to create the cluster with enhanced VPC
 	// routing enabled. To create a cluster that uses enhanced VPC routing, the
 	// cluster must be in a VPC. For more information, see Enhanced VPC Routing
@@ -14930,6 +15341,17 @@ type ModifyClusterInput struct {
 	// Specifies the name of the HSM configuration that contains the information
 	// the Amazon Redshift cluster can use to retrieve and store keys in an HSM.
 	HsmConfigurationIdentifier *string `type:"string"`
+
+	// The AWS Key Management Service (KMS) key ID of the encryption key that you
+	// want to use to encrypt data in the cluster.
+	KmsKeyId *string `type:"string"`
+
+	// The name for the maintenance track that you want to assign for the cluster.
+	// This name change is asynchronous. The new track name stays in the PendingModifiedValues
+	// for the cluster until the next maintenance window. When the maintenance track
+	// changes, the cluster is switched to the latest cluster release available
+	// for the maintenance track. At this point, the maintenance track name is applied.
+	MaintenanceTrackName *string `type:"string"`
 
 	// The new password for the cluster master user. This change is asynchronously
 	// applied as soon as possible. Between the time of the request and the completion
@@ -15100,6 +15522,12 @@ func (s *ModifyClusterInput) SetElasticIp(v string) *ModifyClusterInput {
 	return s
 }
 
+// SetEncrypted sets the Encrypted field's value.
+func (s *ModifyClusterInput) SetEncrypted(v bool) *ModifyClusterInput {
+	s.Encrypted = &v
+	return s
+}
+
 // SetEnhancedVpcRouting sets the EnhancedVpcRouting field's value.
 func (s *ModifyClusterInput) SetEnhancedVpcRouting(v bool) *ModifyClusterInput {
 	s.EnhancedVpcRouting = &v
@@ -15115,6 +15543,18 @@ func (s *ModifyClusterInput) SetHsmClientCertificateIdentifier(v string) *Modify
 // SetHsmConfigurationIdentifier sets the HsmConfigurationIdentifier field's value.
 func (s *ModifyClusterInput) SetHsmConfigurationIdentifier(v string) *ModifyClusterInput {
 	s.HsmConfigurationIdentifier = &v
+	return s
+}
+
+// SetKmsKeyId sets the KmsKeyId field's value.
+func (s *ModifyClusterInput) SetKmsKeyId(v string) *ModifyClusterInput {
+	s.KmsKeyId = &v
+	return s
+}
+
+// SetMaintenanceTrackName sets the MaintenanceTrackName field's value.
+func (s *ModifyClusterInput) SetMaintenanceTrackName(v string) *ModifyClusterInput {
+	s.MaintenanceTrackName = &v
 	return s
 }
 
@@ -15722,6 +16162,10 @@ type PendingModifiedValues struct {
 	// The pending or in-progress change of the service version.
 	ClusterVersion *string `type:"string"`
 
+	// The encryption type for a cluster. Possible values are: KMS and None. For
+	// the China region the possible values are None, and Legacy.
+	EncryptionType *string `type:"string"`
+
 	// An option that specifies whether to create the cluster with enhanced VPC
 	// routing enabled. To create a cluster that uses enhanced VPC routing, the
 	// cluster must be in a VPC. For more information, see Enhanced VPC Routing
@@ -15732,6 +16176,10 @@ type PendingModifiedValues struct {
 	//
 	// Default: false
 	EnhancedVpcRouting *bool `type:"boolean"`
+
+	// The name of the maintenance track that the cluster will change to during
+	// the next maintenance window.
+	MaintenanceTrackName *string `type:"string"`
 
 	// The pending or in-progress change of the master user password for the cluster.
 	MasterUserPassword *string `type:"string"`
@@ -15781,9 +16229,21 @@ func (s *PendingModifiedValues) SetClusterVersion(v string) *PendingModifiedValu
 	return s
 }
 
+// SetEncryptionType sets the EncryptionType field's value.
+func (s *PendingModifiedValues) SetEncryptionType(v string) *PendingModifiedValues {
+	s.EncryptionType = &v
+	return s
+}
+
 // SetEnhancedVpcRouting sets the EnhancedVpcRouting field's value.
 func (s *PendingModifiedValues) SetEnhancedVpcRouting(v bool) *PendingModifiedValues {
 	s.EnhancedVpcRouting = &v
+	return s
+}
+
+// SetMaintenanceTrackName sets the MaintenanceTrackName field's value.
+func (s *PendingModifiedValues) SetMaintenanceTrackName(v string) *PendingModifiedValues {
+	s.MaintenanceTrackName = &v
 	return s
 }
 
@@ -16290,6 +16750,110 @@ func (s *ResetClusterParameterGroupInput) SetResetAllParameters(v bool) *ResetCl
 	return s
 }
 
+type ResizeClusterInput struct {
+	_ struct{} `type:"structure"`
+
+	// A boolean value indicating whether the resize operation is using the classic
+	// resize process. If you don't provide this parameter or set the value to false
+	// the resize type is elastic.
+	Classic *bool `type:"boolean"`
+
+	// The unique identifier for the cluster to resize.
+	//
+	// ClusterIdentifier is a required field
+	ClusterIdentifier *string `type:"string" required:"true"`
+
+	// The new cluster type for the specified cluster.
+	ClusterType *string `type:"string"`
+
+	// The new node type for the nodes you are adding.
+	NodeType *string `type:"string"`
+
+	// The new number of nodes for the cluster.
+	//
+	// NumberOfNodes is a required field
+	NumberOfNodes *int64 `type:"integer" required:"true"`
+}
+
+// String returns the string representation
+func (s ResizeClusterInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ResizeClusterInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ResizeClusterInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ResizeClusterInput"}
+	if s.ClusterIdentifier == nil {
+		invalidParams.Add(request.NewErrParamRequired("ClusterIdentifier"))
+	}
+	if s.NumberOfNodes == nil {
+		invalidParams.Add(request.NewErrParamRequired("NumberOfNodes"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetClassic sets the Classic field's value.
+func (s *ResizeClusterInput) SetClassic(v bool) *ResizeClusterInput {
+	s.Classic = &v
+	return s
+}
+
+// SetClusterIdentifier sets the ClusterIdentifier field's value.
+func (s *ResizeClusterInput) SetClusterIdentifier(v string) *ResizeClusterInput {
+	s.ClusterIdentifier = &v
+	return s
+}
+
+// SetClusterType sets the ClusterType field's value.
+func (s *ResizeClusterInput) SetClusterType(v string) *ResizeClusterInput {
+	s.ClusterType = &v
+	return s
+}
+
+// SetNodeType sets the NodeType field's value.
+func (s *ResizeClusterInput) SetNodeType(v string) *ResizeClusterInput {
+	s.NodeType = &v
+	return s
+}
+
+// SetNumberOfNodes sets the NumberOfNodes field's value.
+func (s *ResizeClusterInput) SetNumberOfNodes(v int64) *ResizeClusterInput {
+	s.NumberOfNodes = &v
+	return s
+}
+
+type ResizeClusterOutput struct {
+	_ struct{} `type:"structure"`
+
+	// Describes a cluster.
+	Cluster *Cluster `type:"structure"`
+}
+
+// String returns the string representation
+func (s ResizeClusterOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ResizeClusterOutput) GoString() string {
+	return s.String()
+}
+
+// SetCluster sets the Cluster field's value.
+func (s *ResizeClusterOutput) SetCluster(v *Cluster) *ResizeClusterOutput {
+	s.Cluster = v
+	return s
+}
+
 type RestoreFromClusterSnapshotInput struct {
 	_ struct{} `type:"structure"`
 
@@ -16397,6 +16961,15 @@ type RestoreFromClusterSnapshotInput struct {
 	// want to use to encrypt data in the cluster that you restore from a shared
 	// snapshot.
 	KmsKeyId *string `type:"string"`
+
+	// The name of the maintenance track for the restored cluster. When you take
+	// a snapshot, the snapshot inherits the MaintenanceTrack value from the cluster.
+	// The snapshot might be on a different track than the cluster that was the
+	// source for the snapshot. For example, suppose that you take a snapshot of
+	// a cluster that is on the current track and then change the cluster to be
+	// on the trailing track. In this case, the snapshot and the source cluster
+	// are on different tracks.
+	MaintenanceTrackName *string `type:"string"`
 
 	// The node type that the restored cluster will be provisioned with.
 	//
@@ -16571,6 +17144,12 @@ func (s *RestoreFromClusterSnapshotInput) SetIamRoles(v []*string) *RestoreFromC
 // SetKmsKeyId sets the KmsKeyId field's value.
 func (s *RestoreFromClusterSnapshotInput) SetKmsKeyId(v string) *RestoreFromClusterSnapshotInput {
 	s.KmsKeyId = &v
+	return s
+}
+
+// SetMaintenanceTrackName sets the MaintenanceTrackName field's value.
+func (s *RestoreFromClusterSnapshotInput) SetMaintenanceTrackName(v string) *RestoreFromClusterSnapshotInput {
+	s.MaintenanceTrackName = &v
 	return s
 }
 
@@ -17222,6 +17801,9 @@ type Snapshot struct {
 	// used to encrypt data in the cluster from which the snapshot was taken.
 	KmsKeyId *string `type:"string"`
 
+	// The name of the maintenance track for the snapshot.
+	MaintenanceTrackName *string `type:"string"`
+
 	// The master user name for the cluster.
 	MasterUsername *string `type:"string"`
 
@@ -17377,6 +17959,12 @@ func (s *Snapshot) SetEstimatedSecondsToCompletion(v int64) *Snapshot {
 // SetKmsKeyId sets the KmsKeyId field's value.
 func (s *Snapshot) SetKmsKeyId(v string) *Snapshot {
 	s.KmsKeyId = &v
+	return s
+}
+
+// SetMaintenanceTrackName sets the MaintenanceTrackName field's value.
+func (s *Snapshot) SetMaintenanceTrackName(v string) *Snapshot {
+	s.MaintenanceTrackName = &v
 	return s
 }
 
@@ -17820,6 +18408,39 @@ func (s *TaggedResource) SetResourceType(v string) *TaggedResource {
 // SetTag sets the Tag field's value.
 func (s *TaggedResource) SetTag(v *Tag) *TaggedResource {
 	s.Tag = v
+	return s
+}
+
+// A maintenance track that you can switch the current track to.
+type UpdateTarget struct {
+	_ struct{} `type:"structure"`
+
+	// The cluster version for the new maintenance track.
+	DatabaseVersion *string `type:"string"`
+
+	// The name of the new maintenance track.
+	MaintenanceTrackName *string `type:"string"`
+}
+
+// String returns the string representation
+func (s UpdateTarget) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s UpdateTarget) GoString() string {
+	return s.String()
+}
+
+// SetDatabaseVersion sets the DatabaseVersion field's value.
+func (s *UpdateTarget) SetDatabaseVersion(v string) *UpdateTarget {
+	s.DatabaseVersion = &v
+	return s
+}
+
+// SetMaintenanceTrackName sets the MaintenanceTrackName field's value.
+func (s *UpdateTarget) SetMaintenanceTrackName(v string) *UpdateTarget {
+	s.MaintenanceTrackName = &v
 	return s
 }
 

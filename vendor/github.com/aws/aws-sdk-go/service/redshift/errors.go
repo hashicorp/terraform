@@ -294,6 +294,12 @@ const (
 	// The state of the subnet is invalid.
 	ErrCodeInvalidClusterSubnetStateFault = "InvalidClusterSubnetStateFault"
 
+	// ErrCodeInvalidClusterTrackFault for service response error code
+	// "InvalidClusterTrack".
+	//
+	// The provided cluster track name is not valid.
+	ErrCodeInvalidClusterTrackFault = "InvalidClusterTrack"
+
 	// ErrCodeInvalidElasticIpFault for service response error code
 	// "InvalidElasticIpFault".
 	//
