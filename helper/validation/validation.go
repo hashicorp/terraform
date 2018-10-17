@@ -13,6 +13,21 @@ import (
 	"github.com/hashicorp/terraform/helper/structure"
 )
 
+// All returns a SchemaValidateFunc which tests if the provided value
+// passes all provided SchemaValidateFunc
+func All(validators ...schema.SchemaValidateFunc) schema.SchemaValidateFunc {
+	return func(i interface{}, k string) ([]string, []error) {
+		var allErrors []error
+		var allWarnings []string
+		for _, validator := range validators {
+			validatorWarnings, validatorErrors := validator(i, k)
+			allWarnings = append(allWarnings, validatorWarnings...)
+			allErrors = append(allErrors, validatorErrors...)
+		}
+		return allWarnings, allErrors
+	}
+}
+
 // IntBetween returns a SchemaValidateFunc which tests if the provided value
 // is of type int and is between min and max (inclusive)
 func IntBetween(min, max int) schema.SchemaValidateFunc {
@@ -66,6 +81,27 @@ func IntAtMost(max int) schema.SchemaValidateFunc {
 			return
 		}
 
+		return
+	}
+}
+
+// IntInSlice returns a SchemaValidateFunc which tests if the provided value
+// is of type int and matches the value of an element in the valid slice
+func IntInSlice(valid []int) schema.SchemaValidateFunc {
+	return func(i interface{}, k string) (s []string, es []error) {
+		v, ok := i.(int)
+		if !ok {
+			es = append(es, fmt.Errorf("expected type of %s to be an integer", k))
+			return
+		}
+
+		for _, validInt := range valid {
+			if v == validInt {
+				return
+			}
+		}
+
+		es = append(es, fmt.Errorf("expected %s to be one of %v, got %d", k, valid, v))
 		return
 	}
 }
