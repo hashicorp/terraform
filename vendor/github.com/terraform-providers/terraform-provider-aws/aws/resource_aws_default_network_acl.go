@@ -261,7 +261,7 @@ func revokeAllNetworkACLEntries(netaclId string, meta interface{}) error {
 	}
 
 	if resp == nil {
-		return fmt.Errorf("[ERR] Error looking up Default Network ACL Entries: No results")
+		return fmt.Errorf("Error looking up Default Network ACL Entries: No results")
 	}
 
 	networkAcl := resp.NetworkAcls[0]

@@ -1,7 +1,7 @@
-resource "aws_instance" "a" {
-    value = "${module.child.output}"
+resource "test_object" "a" {
+  test_string = "${module.child.output}"
 }
 
 module "child" {
-    source = "./child"
+  source = "./child"
 }

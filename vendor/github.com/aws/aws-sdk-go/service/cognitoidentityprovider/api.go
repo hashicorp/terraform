@@ -4164,6 +4164,10 @@ func (c *CognitoIdentityProvider) CreateUserPoolDomainRequest(input *CreateUserP
 //   This exception is thrown when the Amazon Cognito service cannot find the
 //   requested resource.
 //
+//   * ErrCodeLimitExceededException "LimitExceededException"
+//   This exception is thrown when a user exceeds the limit for a requested AWS
+//   resource.
+//
 //   * ErrCodeInternalErrorException "InternalErrorException"
 //   This exception is thrown when Amazon Cognito encounters an internal error.
 //
@@ -5500,7 +5504,7 @@ func (c *CognitoIdentityProvider) DescribeUserPoolClientRequest(input *DescribeU
 // DescribeUserPoolClient API operation for Amazon Cognito Identity Provider.
 //
 // Client method for returning the configuration information and metadata of
-// the specified user pool client.
+// the specified user pool app client.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -9688,7 +9692,9 @@ func (c *CognitoIdentityProvider) UpdateUserPoolRequest(input *UpdateUserPoolInp
 
 // UpdateUserPool API operation for Amazon Cognito Identity Provider.
 //
-// Updates the specified user pool with the specified attributes.
+// Updates the specified user pool with the specified attributes. If you don't
+// provide a value for an attribute, it will be set to the default value. You
+// can get a list of the current user pool settings with .
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -9806,8 +9812,10 @@ func (c *CognitoIdentityProvider) UpdateUserPoolClientRequest(input *UpdateUserP
 
 // UpdateUserPoolClient API operation for Amazon Cognito Identity Provider.
 //
-// Allows the developer to update the specified user pool client and password
-// policy.
+// Updates the specified user pool app client with the specified attributes.
+// If you don't provide a value for an attribute, it will be set to the default
+// value. You can get a list of the current user pool app client settings with
+// .
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -14867,11 +14875,14 @@ type CreateUserPoolClientInput struct {
 	//
 	//    * Be registered with the authorization server.
 	//
-	//    * Not use HTTP without TLS (i.e. use HTTPS instead of HTTP).
-	//
 	//    * Not include a fragment component.
 	//
 	// See OAuth 2.0 - Redirection Endpoint (https://tools.ietf.org/html/rfc6749#section-3.1.2).
+	//
+	// Amazon Cognito requires HTTPS over HTTP except for http://localhost for testing
+	// purposes only.
+	//
+	// App callback URLs such as myapp://example are also supported.
 	CallbackURLs []*string `type:"list"`
 
 	// The client name for the user pool client you would like to create.
@@ -14887,11 +14898,14 @@ type CreateUserPoolClientInput struct {
 	//
 	//    * Be registered with the authorization server.
 	//
-	//    * Not use HTTP without TLS (i.e. use HTTPS instead of HTTP).
-	//
 	//    * Not include a fragment component.
 	//
 	// See OAuth 2.0 - Redirection Endpoint (https://tools.ietf.org/html/rfc6749#section-3.1.2).
+	//
+	// Amazon Cognito requires HTTPS over HTTP except for http://localhost for testing
+	// purposes only.
+	//
+	// App callback URLs such as myapp://example are also supported.
 	DefaultRedirectURI *string `min:"1" type:"string"`
 
 	// The explicit authentication flows.
@@ -15081,6 +15095,17 @@ func (s *CreateUserPoolClientOutput) SetUserPoolClient(v *UserPoolClientType) *C
 type CreateUserPoolDomainInput struct {
 	_ struct{} `type:"structure"`
 
+	// The configuration for a custom domain that hosts the sign-up and sign-in
+	// webpages for your application.
+	//
+	// Provide this parameter only if you want to use own custom domain for your
+	// user pool. Otherwise, you can exclude this parameter and use the Amazon Cognito
+	// hosted domain instead.
+	//
+	// For more information about the hosted domain and custom domains, see Configuring
+	// a User Pool Domain (http://docs.aws.amazon.com/cognito/latest/developerguide/cognito-user-pools-assign-domain.html).
+	CustomDomainConfig *CustomDomainConfigType `type:"structure"`
+
 	// The domain string.
 	//
 	// Domain is a required field
@@ -15117,11 +15142,22 @@ func (s *CreateUserPoolDomainInput) Validate() error {
 	if s.UserPoolId != nil && len(*s.UserPoolId) < 1 {
 		invalidParams.Add(request.NewErrParamMinLen("UserPoolId", 1))
 	}
+	if s.CustomDomainConfig != nil {
+		if err := s.CustomDomainConfig.Validate(); err != nil {
+			invalidParams.AddNested("CustomDomainConfig", err.(request.ErrInvalidParams))
+		}
+	}
 
 	if invalidParams.Len() > 0 {
 		return invalidParams
 	}
 	return nil
+}
+
+// SetCustomDomainConfig sets the CustomDomainConfig field's value.
+func (s *CreateUserPoolDomainInput) SetCustomDomainConfig(v *CustomDomainConfigType) *CreateUserPoolDomainInput {
+	s.CustomDomainConfig = v
+	return s
 }
 
 // SetDomain sets the Domain field's value.
@@ -15138,6 +15174,10 @@ func (s *CreateUserPoolDomainInput) SetUserPoolId(v string) *CreateUserPoolDomai
 
 type CreateUserPoolDomainOutput struct {
 	_ struct{} `type:"structure"`
+
+	// The Amazon CloudFront endpoint that you use as the target of the alias that
+	// you set up with your Domain Name Service (DNS) provider.
+	CloudFrontDomain *string `min:"1" type:"string"`
 }
 
 // String returns the string representation
@@ -15148,6 +15188,12 @@ func (s CreateUserPoolDomainOutput) String() string {
 // GoString returns the string representation
 func (s CreateUserPoolDomainOutput) GoString() string {
 	return s.String()
+}
+
+// SetCloudFrontDomain sets the CloudFrontDomain field's value.
+func (s *CreateUserPoolDomainOutput) SetCloudFrontDomain(v string) *CreateUserPoolDomainOutput {
+	s.CloudFrontDomain = &v
+	return s
 }
 
 // Represents the request to create a user pool.
@@ -15451,6 +15497,50 @@ func (s CreateUserPoolOutput) GoString() string {
 // SetUserPool sets the UserPool field's value.
 func (s *CreateUserPoolOutput) SetUserPool(v *UserPoolType) *CreateUserPoolOutput {
 	s.UserPool = v
+	return s
+}
+
+// The configuration for a custom domain that hosts the sign-up and sign-in
+// webpages for your application.
+type CustomDomainConfigType struct {
+	_ struct{} `type:"structure"`
+
+	// The Amazon Resource Name (ARN) of an AWS Certificate Manager SSL certificate.
+	// You use this certificate for the subdomain of your custom domain.
+	//
+	// CertificateArn is a required field
+	CertificateArn *string `min:"20" type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s CustomDomainConfigType) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s CustomDomainConfigType) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *CustomDomainConfigType) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "CustomDomainConfigType"}
+	if s.CertificateArn == nil {
+		invalidParams.Add(request.NewErrParamRequired("CertificateArn"))
+	}
+	if s.CertificateArn != nil && len(*s.CertificateArn) < 20 {
+		invalidParams.Add(request.NewErrParamMinLen("CertificateArn", 20))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetCertificateArn sets the CertificateArn field's value.
+func (s *CustomDomainConfigType) SetCertificateArn(v string) *CustomDomainConfigType {
+	s.CertificateArn = &v
 	return s
 }
 
@@ -16672,7 +16762,11 @@ type DomainDescriptionType struct {
 	AWSAccountId *string `type:"string"`
 
 	// The ARN of the CloudFront distribution.
-	CloudFrontDistribution *string `min:"20" type:"string"`
+	CloudFrontDistribution *string `type:"string"`
+
+	// The configuration for a custom domain that hosts the sign-up and sign-in
+	// webpages for your application.
+	CustomDomainConfig *CustomDomainConfigType `type:"structure"`
 
 	// The domain string.
 	Domain *string `min:"1" type:"string"`
@@ -16709,6 +16803,12 @@ func (s *DomainDescriptionType) SetAWSAccountId(v string) *DomainDescriptionType
 // SetCloudFrontDistribution sets the CloudFrontDistribution field's value.
 func (s *DomainDescriptionType) SetCloudFrontDistribution(v string) *DomainDescriptionType {
 	s.CloudFrontDistribution = &v
+	return s
+}
+
+// SetCustomDomainConfig sets the CustomDomainConfig field's value.
+func (s *DomainDescriptionType) SetCustomDomainConfig(v *CustomDomainConfigType) *DomainDescriptionType {
+	s.CustomDomainConfig = v
 	return s
 }
 
@@ -19320,9 +19420,9 @@ type ListUsersInput struct {
 	//
 	//    * preferred_username
 	//
-	//    * cognito:user_status (called Enabled in the Console) (case-sensitive)
+	//    * cognito:user_status (called Status in the Console) (case-insensitive)
 	//
-	//    * status (case-insensitive)
+	//    * status (called Enabled in the Console) (case-sensitive)
 	//
 	//    * sub
 	//
@@ -22384,11 +22484,14 @@ type UpdateUserPoolClientInput struct {
 	//
 	//    * Be registered with the authorization server.
 	//
-	//    * Not use HTTP without TLS (i.e. use HTTPS instead of HTTP).
-	//
 	//    * Not include a fragment component.
 	//
 	// See OAuth 2.0 - Redirection Endpoint (https://tools.ietf.org/html/rfc6749#section-3.1.2).
+	//
+	// Amazon Cognito requires HTTPS over HTTP except for http://localhost for testing
+	// purposes only.
+	//
+	// App callback URLs such as myapp://example are also supported.
 	CallbackURLs []*string `type:"list"`
 
 	// The ID of the client associated with the user pool.
@@ -22407,11 +22510,14 @@ type UpdateUserPoolClientInput struct {
 	//
 	//    * Be registered with the authorization server.
 	//
-	//    * Not use HTTP without TLS (i.e. use HTTPS instead of HTTP).
-	//
 	//    * Not include a fragment component.
 	//
 	// See OAuth 2.0 - Redirection Endpoint (https://tools.ietf.org/html/rfc6749#section-3.1.2).
+	//
+	// Amazon Cognito requires HTTPS over HTTP except for http://localhost for testing
+	// purposes only.
+	//
+	// App callback URLs such as myapp://example are also supported.
 	DefaultRedirectURI *string `min:"1" type:"string"`
 
 	// Explicit authentication flows.
@@ -23148,11 +23254,14 @@ type UserPoolClientType struct {
 	//
 	//    * Be registered with the authorization server.
 	//
-	//    * Not use HTTP without TLS (i.e. use HTTPS instead of HTTP).
-	//
 	//    * Not include a fragment component.
 	//
 	// See OAuth 2.0 - Redirection Endpoint (https://tools.ietf.org/html/rfc6749#section-3.1.2).
+	//
+	// Amazon Cognito requires HTTPS over HTTP except for http://localhost for testing
+	// purposes only.
+	//
+	// App callback URLs such as myapp://example are also supported.
 	CallbackURLs []*string `type:"list"`
 
 	// The ID of the client associated with the user pool.
@@ -23175,11 +23284,14 @@ type UserPoolClientType struct {
 	//
 	//    * Be registered with the authorization server.
 	//
-	//    * Not use HTTP without TLS (i.e. use HTTPS instead of HTTP).
-	//
 	//    * Not include a fragment component.
 	//
 	// See OAuth 2.0 - Redirection Endpoint (https://tools.ietf.org/html/rfc6749#section-3.1.2).
+	//
+	// Amazon Cognito requires HTTPS over HTTP except for http://localhost for testing
+	// purposes only.
+	//
+	// App callback URLs such as myapp://example are also supported.
 	DefaultRedirectURI *string `min:"1" type:"string"`
 
 	// The explicit authentication flows.
@@ -23454,6 +23566,8 @@ type UserPoolType struct {
 	// The date the user pool was created.
 	CreationDate *time.Time `type:"timestamp"`
 
+	CustomDomain *string `min:"1" type:"string"`
+
 	// The device configuration.
 	DeviceConfiguration *DeviceConfigurationType `type:"structure"`
 
@@ -23571,6 +23685,12 @@ func (s *UserPoolType) SetAutoVerifiedAttributes(v []*string) *UserPoolType {
 // SetCreationDate sets the CreationDate field's value.
 func (s *UserPoolType) SetCreationDate(v time.Time) *UserPoolType {
 	s.CreationDate = &v
+	return s
+}
+
+// SetCustomDomain sets the CustomDomain field's value.
+func (s *UserPoolType) SetCustomDomain(v string) *UserPoolType {
+	s.CustomDomain = &v
 	return s
 }
 

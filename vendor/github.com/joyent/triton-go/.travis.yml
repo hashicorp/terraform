@@ -1,0 +1,19 @@
+dist: trusty
+sudo: false
+language: go
+go:
+- 1.9.1
+
+install:
+- go get github.com/golang/dep/cmd/dep
+
+script:
+- make default
+
+branches:
+  only:
+  - master
+matrix:
+  fast_finish: true
+  allow_failures:
+  - go: tip

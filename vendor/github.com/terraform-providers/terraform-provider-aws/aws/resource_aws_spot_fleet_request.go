@@ -285,6 +285,12 @@ func resourceAwsSpotFleetRequest() *schema.Resource {
 				Default:  "lowestPrice",
 				ForceNew: true,
 			},
+			"instance_pools_to_use_count": {
+				Type:     schema.TypeInt,
+				Optional: true,
+				Default:  1,
+				ForceNew: true,
+			},
 			"excess_capacity_termination_policy": {
 				Type:     schema.TypeString,
 				Optional: true,
@@ -610,7 +616,7 @@ func resourceAwsSpotFleetRequestCreate(d *schema.ResourceData, meta interface{})
 		TerminateInstancesWithExpiration: aws.Bool(d.Get("terminate_instances_with_expiration").(bool)),
 		ReplaceUnhealthyInstances:        aws.Bool(d.Get("replace_unhealthy_instances").(bool)),
 		InstanceInterruptionBehavior:     aws.String(d.Get("instance_interruption_behaviour").(string)),
-		Type: aws.String(d.Get("fleet_type").(string)),
+		Type:                             aws.String(d.Get("fleet_type").(string)),
 	}
 
 	if v, ok := d.GetOk("excess_capacity_termination_policy"); ok {
@@ -621,6 +627,10 @@ func resourceAwsSpotFleetRequestCreate(d *schema.ResourceData, meta interface{})
 		spotFleetConfig.AllocationStrategy = aws.String(v.(string))
 	} else {
 		spotFleetConfig.AllocationStrategy = aws.String("lowestPrice")
+	}
+
+	if v, ok := d.GetOk("instance_pools_to_use_count"); ok && v.(int) != 1 {
+		spotFleetConfig.InstancePoolsToUseCount = aws.Int64(int64(v.(int)))
 	}
 
 	if v, ok := d.GetOk("spot_price"); ok && v.(string) != "" {
@@ -696,7 +706,7 @@ func resourceAwsSpotFleetRequestCreate(d *schema.ResourceData, meta interface{})
 				// IAM is eventually consistent :/
 				if awsErr.Code() == "InvalidSpotFleetRequestConfig" {
 					return resource.RetryableError(
-						fmt.Errorf("[WARN] Error creating Spot fleet request, retrying: %s", err))
+						fmt.Errorf("Error creating Spot fleet request, retrying: %s", err))
 				}
 			}
 			return resource.NonRetryableError(err)
@@ -877,6 +887,10 @@ func resourceAwsSpotFleetRequestRead(d *schema.ResourceData, meta interface{}) e
 
 	if config.AllocationStrategy != nil {
 		d.Set("allocation_strategy", aws.StringValue(config.AllocationStrategy))
+	}
+
+	if config.InstancePoolsToUseCount != nil {
+		d.Set("instance_pools_to_use_count", aws.Int64Value(config.InstancePoolsToUseCount))
 	}
 
 	if config.ClientToken != nil {

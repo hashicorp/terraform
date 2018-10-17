@@ -35,7 +35,7 @@ const (
 	// "ResourceNotFoundException".
 	//
 	// The specified resource could not be found. You can view your available clusters
-	// with ListClusters. Amazon EKS clusters are region-specific.
+	// with ListClusters. Amazon EKS clusters are Region-specific.
 	ErrCodeResourceNotFoundException = "ResourceNotFoundException"
 
 	// ErrCodeServerException for service response error code
@@ -47,14 +47,14 @@ const (
 	// ErrCodeServiceUnavailableException for service response error code
 	// "ServiceUnavailableException".
 	//
-	// The service is unavailable, back off and retry the operation.
+	// The service is unavailable. Back off and retry the operation.
 	ErrCodeServiceUnavailableException = "ServiceUnavailableException"
 
 	// ErrCodeUnsupportedAvailabilityZoneException for service response error code
 	// "UnsupportedAvailabilityZoneException".
 	//
 	// At least one of your specified cluster subnets is in an Availability Zone
-	// that does not support Amazon EKS. The exception output will specify the supported
+	// that does not support Amazon EKS. The exception output specifies the supported
 	// Availability Zones for your account, from which you can choose subnets for
 	// your cluster.
 	ErrCodeUnsupportedAvailabilityZoneException = "UnsupportedAvailabilityZoneException"

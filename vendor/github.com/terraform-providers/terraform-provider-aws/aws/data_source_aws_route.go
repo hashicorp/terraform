@@ -98,7 +98,7 @@ func dataSourceAwsRouteRead(d *schema.ResourceData, meta interface{}) error {
 	}
 	route := results[0]
 
-	d.SetId(routeIDHash(d, route)) // using function from "resource_aws_route.go"
+	d.SetId(resourceAwsRouteID(d, route)) // using function from "resource_aws_route.go"
 	d.Set("destination_cidr_block", route.DestinationCidrBlock)
 	d.Set("destination_ipv6_cidr_block", route.DestinationIpv6CidrBlock)
 	d.Set("egress_only_gateway_id", route.EgressOnlyInternetGatewayId)

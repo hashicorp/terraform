@@ -9,63 +9,100 @@ import (
 	"errors"
 	"time"
 
+	"github.com/zclconf/go-cty/cty"
+
+	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/command/clistate"
-	"github.com/hashicorp/terraform/config/module"
-	"github.com/hashicorp/terraform/state"
+	"github.com/hashicorp/terraform/configs"
+	"github.com/hashicorp/terraform/configs/configload"
+	"github.com/hashicorp/terraform/configs/configschema"
+	"github.com/hashicorp/terraform/plans"
+	"github.com/hashicorp/terraform/plans/planfile"
+	"github.com/hashicorp/terraform/states"
+	"github.com/hashicorp/terraform/states/statemgr"
 	"github.com/hashicorp/terraform/terraform"
+	"github.com/hashicorp/terraform/tfdiags"
 )
 
 // DefaultStateName is the name of the default, initial state that every
 // backend must have. This state cannot be deleted.
 const DefaultStateName = "default"
 
-// This must be returned rather than a custom error so that the Terraform
-// CLI can detect it and handle it appropriately.
-var (
-	// ErrDefaultStateNotSupported is returned when an operation does not support
-	// using the default state, but requires a named state to be selected.
-	ErrDefaultStateNotSupported = errors.New("default state not supported\n" +
-		"You can create a new workspace with the \"workspace new\" command.")
+// ErrWorkspacesNotSupported is an error returned when a caller attempts
+// to perform an operation on a workspace other than "default" for a
+// backend that doesn't support multiple workspaces.
+//
+// The caller can detect this to do special fallback behavior or produce
+// a specific, helpful error message.
+var ErrWorkspacesNotSupported = errors.New("workspaces not supported")
 
-	// ErrNamedStatesNotSupported is returned when a named state operation
-	// isn't supported.
-	ErrNamedStatesNotSupported = errors.New("named states not supported")
-
-	// ErrOperationNotSupported is returned when an unsupported operation
-	// is detected by the configured backend.
-	ErrOperationNotSupported = errors.New("operation not supported")
-)
-
-// InitFn is used to initialize a new backend.
-type InitFn func() Backend
+// ErrNamedStatesNotSupported is an older name for ErrWorkspacesNotSupported.
+//
+// Deprecated: Use ErrWorkspacesNotSupported instead.
+var ErrNamedStatesNotSupported = ErrWorkspacesNotSupported
 
 // Backend is the minimal interface that must be implemented to enable Terraform.
 type Backend interface {
-	// Ask for input and configure the backend. Similar to
-	// terraform.ResourceProvider.
-	Input(terraform.UIInput, *terraform.ResourceConfig) (*terraform.ResourceConfig, error)
-	Validate(*terraform.ResourceConfig) ([]string, []error)
-	Configure(*terraform.ResourceConfig) error
-
-	// State returns the current state for this environment. This state may
-	// not be loaded locally: the proper APIs should be called on state.State
-	// to load the state. If the state.State is a state.Locker, it's up to the
-	// caller to call Lock and Unlock as needed.
+	// ConfigSchema returns a description of the expected configuration
+	// structure for the receiving backend.
 	//
-	// If the named state doesn't exist it will be created. The "default" state
-	// is always assumed to exist.
-	State(name string) (state.State, error)
+	// This method does not have any side-effects for the backend and can
+	// be safely used before configuring.
+	ConfigSchema() *configschema.Block
 
-	// DeleteState removes the named state if it exists. It is an error
-	// to delete the default state.
+	// ValidateConfig checks the validity of the values in the given
+	// configuration, assuming that its structure has already been validated
+	// per the schema returned by ConfigSchema.
 	//
-	// DeleteState does not prevent deleting a state that is in use. It is the
-	// responsibility of the caller to hold a Lock on the state when calling
-	// this method.
-	DeleteState(name string) error
+	// This method does not have any side-effects for the backend and can
+	// be safely used before configuring. It also does not consult any
+	// external data such as environment variables, disk files, etc. Validation
+	// that requires such external data should be deferred until the
+	// Configure call.
+	//
+	// If error diagnostics are returned then the configuration is not valid
+	// and must not subsequently be passed to the Configure method.
+	//
+	// This method may return configuration-contextual diagnostics such
+	// as tfdiags.AttributeValue, and so the caller should provide the
+	// necessary context via the diags.InConfigBody method before returning
+	// diagnostics to the user.
+	ValidateConfig(cty.Value) tfdiags.Diagnostics
 
-	// States returns a list of configured named states.
-	States() ([]string, error)
+	// Configure uses the provided configuration to set configuration fields
+	// within the backend.
+	//
+	// The given configuration is assumed to have already been validated
+	// against the schema returned by ConfigSchema and passed validation
+	// via ValidateConfig.
+	//
+	// This method may be called only once per backend instance, and must be
+	// called before all other methods except where otherwise stated.
+	//
+	// If error diagnostics are returned, the internal state of the instance
+	// is undefined and no other methods may be called.
+	Configure(cty.Value) tfdiags.Diagnostics
+
+	// StateMgr returns the state manager for the given workspace name.
+	//
+	// If the returned state manager also implements statemgr.Locker then
+	// it's the caller's responsibility to call Lock and Unlock as appropriate.
+	//
+	// If the named workspace doesn't exist, or if it has no state, it will
+	// be created either immediately on this call or the first time
+	// PersistState is called, depending on the state manager implementation.
+	StateMgr(workspace string) (statemgr.Full, error)
+
+	// DeleteWorkspace removes the workspace with the given name if it exists.
+	//
+	// DeleteWorkspace cannot prevent deleting a state that is in use. It is
+	// the responsibility of the caller to hold a Lock for the state manager
+	// belonging to this workspace before calling this method.
+	DeleteWorkspace(name string) error
+
+	// States returns a list of the names of all of the workspaces that exist
+	// in this backend.
+	Workspaces() ([]string, error)
 }
 
 // Enhanced implements additional behavior on top of a normal backend.
@@ -96,7 +133,7 @@ type Enhanced interface {
 type Local interface {
 	// Context returns a runnable terraform Context. The operation parameter
 	// doesn't need a Type set but it needs other options set such as Module.
-	Context(*Operation) (*terraform.Context, state.State, error)
+	Context(*Operation) (*terraform.Context, statemgr.Full, tfdiags.Diagnostics)
 }
 
 // An operation represents an operation for Terraform to execute.
@@ -126,24 +163,27 @@ type Operation struct {
 	PlanId         string
 	PlanRefresh    bool   // PlanRefresh will do a refresh before a plan
 	PlanOutPath    string // PlanOutPath is the path to save the plan
-	PlanOutBackend *terraform.BackendState
+	PlanOutBackend *plans.Backend
 
-	// Module settings specify the root module to use for operations.
-	Module *module.Tree
+	// ConfigDir is the path to the directory containing the configuration's
+	// root module.
+	ConfigDir string
+
+	// ConfigLoader is a configuration loader that can be used to load
+	// configuration from ConfigDir.
+	ConfigLoader *configload.Loader
 
 	// Plan is a plan that was passed as an argument. This is valid for
 	// plan and apply arguments but may not work for all backends.
-	Plan *terraform.Plan
+	PlanFile *planfile.Reader
 
 	// The options below are more self-explanatory and affect the runtime
 	// behavior of the operation.
-	AutoApprove  bool
 	Destroy      bool
+	Targets      []addrs.Targetable
+	Variables    map[string]UnparsedVariableValue
+	AutoApprove  bool
 	DestroyForce bool
-	ModuleDepth  int
-	Parallelism  int
-	Targets      []string
-	Variables    map[string]interface{}
 
 	// Input/output/control options.
 	UIIn  terraform.UIInput
@@ -165,6 +205,22 @@ type Operation struct {
 	Workspace string
 }
 
+// HasConfig returns true if and only if the operation has a ConfigDir value
+// that refers to a directory containing at least one Terraform configuration
+// file.
+func (o *Operation) HasConfig() bool {
+	return o.ConfigLoader.IsConfigDir(o.ConfigDir)
+}
+
+// Config loads the configuration that the operation applies to, using the
+// ConfigDir and ConfigLoader fields within the receiving operation.
+func (o *Operation) Config() (*configs.Config, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+	config, hclDiags := o.ConfigLoader.LoadConfig(o.ConfigDir)
+	diags = diags.Append(hclDiags)
+	return config, diags
+}
+
 // RunningOperation is the result of starting an operation.
 type RunningOperation struct {
 	// For implementers of a backend, this context should not wrap the
@@ -184,9 +240,9 @@ type RunningOperation struct {
 	// to avoid running operations during process exit.
 	Cancel context.CancelFunc
 
-	// Err is the error of the operation. This is populated after
-	// the operation has completed.
-	Err error
+	// Result is the exit status of the operation, populated only after the
+	// operation has completed.
+	Result OperationResult
 
 	// ExitCode can be used to set a custom exit code. This enables enhanced
 	// backends to set specific exit codes that miror any remote exit codes.
@@ -199,5 +255,22 @@ type RunningOperation struct {
 	// State is the final state after the operation completed. Persisting
 	// this state is managed by the backend. This should only be read
 	// after the operation completes to avoid read/write races.
-	State *terraform.State
+	State *states.State
+}
+
+// OperationResult describes the result status of an operation.
+type OperationResult int
+
+const (
+	// OperationSuccess indicates that the operation completed as expected.
+	OperationSuccess OperationResult = 0
+
+	// OperationFailure indicates that the operation encountered some sort
+	// of error, and thus may have been only partially performed or not
+	// performed at all.
+	OperationFailure OperationResult = 1
+)
+
+func (r OperationResult) ExitStatus() int {
+	return int(r)
 }

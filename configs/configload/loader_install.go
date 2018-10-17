@@ -53,13 +53,14 @@ func (l *Loader) InstallModules(rootDir string, upgrade bool, hooks InstallHooks
 		return diags
 	}
 
-	instDiags := l.installDescendentModules(rootMod, rootDir, upgrade, hooks)
+	getter := reusingGetter{}
+	instDiags := l.installDescendentModules(rootMod, rootDir, upgrade, hooks, getter)
 	diags = append(diags, instDiags...)
 
 	return diags
 }
 
-func (l *Loader) installDescendentModules(rootMod *configs.Module, rootDir string, upgrade bool, hooks InstallHooks) hcl.Diagnostics {
+func (l *Loader) installDescendentModules(rootMod *configs.Module, rootDir string, upgrade bool, hooks InstallHooks, getter reusingGetter) hcl.Diagnostics {
 	var diags hcl.Diagnostics
 
 	if hooks == nil {
@@ -173,14 +174,14 @@ func (l *Loader) installDescendentModules(rootMod *configs.Module, rootDir strin
 				}
 				log.Printf("[TRACE] %s is a registry module at %s", key, addr)
 
-				mod, v, mDiags := l.installRegistryModule(req, key, instPath, addr, hooks)
+				mod, v, mDiags := l.installRegistryModule(req, key, instPath, addr, hooks, getter)
 				diags = append(diags, mDiags...)
 				return mod, v, diags
 
 			default:
 				log.Printf("[TRACE] %s address %q will be handled by go-getter", key, req.SourceAddr)
 
-				mod, mDiags := l.installGoGetterModule(req, key, instPath, hooks)
+				mod, mDiags := l.installGoGetterModule(req, key, instPath, hooks, getter)
 				diags = append(diags, mDiags...)
 				return mod, nil, diags
 			}
@@ -262,7 +263,7 @@ func (l *Loader) installLocalModule(req *configs.ModuleRequest, key string, hook
 	return mod, diags
 }
 
-func (l *Loader) installRegistryModule(req *configs.ModuleRequest, key string, instPath string, addr *regsrc.Module, hooks InstallHooks) (*configs.Module, *version.Version, hcl.Diagnostics) {
+func (l *Loader) installRegistryModule(req *configs.ModuleRequest, key string, instPath string, addr *regsrc.Module, hooks InstallHooks, getter reusingGetter) (*configs.Module, *version.Version, hcl.Diagnostics) {
 	var diags hcl.Diagnostics
 
 	hostname, err := addr.SvcHost()
@@ -292,7 +293,7 @@ func (l *Loader) installRegistryModule(req *configs.ModuleRequest, key string, i
 	reg := l.modules.Registry
 
 	log.Printf("[DEBUG] %s listing available versions of %s at %s", key, addr, hostname)
-	resp, err := reg.Versions(addr)
+	resp, err := reg.ModuleVersions(addr)
 	if err != nil {
 		if registry.IsModuleNotFound(err) {
 			diags = append(diags, &hcl.Diagnostic{
@@ -392,7 +393,7 @@ func (l *Loader) installRegistryModule(req *configs.ModuleRequest, key string, i
 	// If we manage to get down here then we've found a suitable version to
 	// install, so we need to ask the registry where we should download it from.
 	// The response to this is a go-getter-style address string.
-	dlAddr, err := reg.Location(addr, latestMatch.String())
+	dlAddr, err := reg.ModuleLocation(addr, latestMatch.String())
 	if err != nil {
 		log.Printf("[ERROR] %s from %s %s: %s", key, addr, latestMatch, err)
 		diags = append(diags, &hcl.Diagnostic{
@@ -406,7 +407,7 @@ func (l *Loader) installRegistryModule(req *configs.ModuleRequest, key string, i
 
 	log.Printf("[TRACE] %s %s %s is available at %q", key, addr, latestMatch, dlAddr)
 
-	modDir, err := getWithGoGetter(instPath, dlAddr)
+	modDir, err := getter.getWithGoGetter(instPath, dlAddr)
 	if err != nil {
 		// Errors returned by go-getter have very inconsistent quality as
 		// end-user error messages, but for now we're accepting that because
@@ -463,14 +464,14 @@ func (l *Loader) installRegistryModule(req *configs.ModuleRequest, key string, i
 	return mod, latestMatch, diags
 }
 
-func (l *Loader) installGoGetterModule(req *configs.ModuleRequest, key string, instPath string, hooks InstallHooks) (*configs.Module, hcl.Diagnostics) {
+func (l *Loader) installGoGetterModule(req *configs.ModuleRequest, key string, instPath string, hooks InstallHooks, getter reusingGetter) (*configs.Module, hcl.Diagnostics) {
 	var diags hcl.Diagnostics
 
 	// Report up to the caller that we're about to start downloading.
 	packageAddr, _ := splitAddrSubdir(req.SourceAddr)
 	hooks.Download(key, packageAddr, nil)
 
-	modDir, err := getWithGoGetter(instPath, req.SourceAddr)
+	modDir, err := getter.getWithGoGetter(instPath, req.SourceAddr)
 	if err != nil {
 		// Errors returned by go-getter have very inconsistent quality as
 		// end-user error messages, but for now we're accepting that because

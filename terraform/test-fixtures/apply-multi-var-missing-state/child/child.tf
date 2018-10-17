@@ -11,5 +11,5 @@ resource "test_thing" "a" {
 # over all of the resource in the state. This should succeed even though the
 # module state will be nil when evaluating the variable.
 resource "test_thing" "b" {
-  a_ids = "${join(" ", null_resource.a.*.id)}"
+  a_ids = "${join(" ", test_thing.a.*.id)}"
 }

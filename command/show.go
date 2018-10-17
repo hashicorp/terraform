@@ -6,8 +6,14 @@ import (
 	"os"
 	"strings"
 
+	"github.com/hashicorp/terraform/backend"
+	"github.com/hashicorp/terraform/plans/planfile"
+	"github.com/hashicorp/terraform/states/statefile"
+	"github.com/hashicorp/terraform/tfdiags"
+
 	"github.com/hashicorp/terraform/command/format"
-	"github.com/hashicorp/terraform/terraform"
+	"github.com/hashicorp/terraform/plans"
+	"github.com/hashicorp/terraform/states"
 )
 
 // ShowCommand is a Command implementation that reads and outputs the
@@ -17,7 +23,6 @@ type ShowCommand struct {
 }
 
 func (c *ShowCommand) Run(args []string) int {
-	var moduleDepth int
 
 	args, err := c.Meta.process(args, false)
 	if err != nil {
@@ -25,7 +30,7 @@ func (c *ShowCommand) Run(args []string) int {
 	}
 
 	cmdFlags := flag.NewFlagSet("show", flag.ContinueOnError)
-	c.addModuleDepthFlag(cmdFlags, &moduleDepth)
+
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
 	if err := cmdFlags.Parse(args); err != nil {
 		return 1
@@ -40,47 +45,84 @@ func (c *ShowCommand) Run(args []string) int {
 		return 1
 	}
 
+	var diags tfdiags.Diagnostics
+
+	// Load the backend
+	b, backendDiags := c.Backend(nil)
+	diags = diags.Append(backendDiags)
+	if backendDiags.HasErrors() {
+		c.showDiagnostics(diags)
+		return 1
+	}
+
+	// We require a local backend
+	local, ok := b.(backend.Local)
+	if !ok {
+		c.showDiagnostics(diags) // in case of any warnings in here
+		c.Ui.Error(ErrUnsupportedLocalOp)
+		return 1
+	}
+
+	// the show command expects the config dir to always be the cwd
+	cwd, err := os.Getwd()
+	if err != nil {
+		c.Ui.Error(fmt.Sprintf("Error getting cwd: %s", err))
+		return 1
+	}
+
+	// Build the operation
+	opReq := c.Operation(b)
+	opReq.ConfigDir = cwd
+	opReq.ConfigLoader, err = c.initConfigLoader()
+	if err != nil {
+		diags = diags.Append(err)
+		c.showDiagnostics(diags)
+		return 1
+	}
+
+	// Get the context
+	ctx, _, ctxDiags := local.Context(opReq)
+	diags = diags.Append(ctxDiags)
+	if ctxDiags.HasErrors() {
+		c.showDiagnostics(diags)
+		return 1
+	}
+
+	schemas := ctx.Schemas()
+
+	env := c.Workspace()
+
 	var planErr, stateErr error
 	var path string
-	var plan *terraform.Plan
-	var state *terraform.State
+	var plan *plans.Plan
+	var state *states.State
 	if len(args) > 0 {
 		path = args[0]
-		f, err := os.Open(path)
+		pr, err := planfile.Open(path)
 		if err != nil {
-			c.Ui.Error(fmt.Sprintf("Error loading file: %s", err))
-			return 1
-		}
-		defer f.Close()
-
-		plan, err = terraform.ReadPlan(f)
-		if err != nil {
-			if _, err := f.Seek(0, 0); err != nil {
-				c.Ui.Error(fmt.Sprintf("Error reading file: %s", err))
+			f, err := os.Open(path)
+			if err != nil {
+				c.Ui.Error(fmt.Sprintf("Error loading file: %s", err))
 				return 1
 			}
+			defer f.Close()
 
-			plan = nil
-			planErr = err
-		}
-		if plan == nil {
-			state, err = terraform.ReadState(f)
+			var stateFile *statefile.File
+			stateFile, err = statefile.Read(f)
 			if err != nil {
 				stateErr = err
+			} else {
+				state = stateFile.State
+			}
+		} else {
+			plan, err = pr.ReadPlan()
+			if err != nil {
+				planErr = err
 			}
 		}
 	} else {
-		// Load the backend
-		b, err := c.Backend(nil)
-		if err != nil {
-			c.Ui.Error(fmt.Sprintf("Failed to load backend: %s", err))
-			return 1
-		}
-
-		env := c.Workspace()
-
 		// Get the state
-		stateStore, err := b.State(env)
+		stateStore, err := b.StateMgr(env)
 		if err != nil {
 			c.Ui.Error(fmt.Sprintf("Failed to load state: %s", err))
 			return 1
@@ -110,15 +152,15 @@ func (c *ShowCommand) Run(args []string) int {
 	}
 
 	if plan != nil {
-		dispPlan := format.NewPlan(plan)
+		dispPlan := format.NewPlan(plan.Changes)
 		c.Ui.Output(dispPlan.Format(c.Colorize()))
 		return 0
 	}
 
 	c.Ui.Output(format.State(&format.StateOpts{
-		State:       state,
-		Color:       c.Colorize(),
-		ModuleDepth: moduleDepth,
+		State:   state,
+		Color:   c.Colorize(),
+		Schemas: schemas,
 	}))
 	return 0
 }

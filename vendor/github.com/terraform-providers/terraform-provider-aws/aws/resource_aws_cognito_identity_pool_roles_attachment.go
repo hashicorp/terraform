@@ -168,11 +168,11 @@ func resourceAwsCognitoIdentityPoolRolesAttachmentRead(d *schema.ResourceData, m
 	}
 
 	if err := d.Set("roles", flattenCognitoIdentityPoolRoles(ip.Roles)); err != nil {
-		return fmt.Errorf("[DEBUG] Error setting roles error: %#v", err)
+		return fmt.Errorf("Error setting roles error: %#v", err)
 	}
 
 	if err := d.Set("role_mapping", flattenCognitoIdentityPoolRoleMappingsAttachment(ip.RoleMappings)); err != nil {
-		return fmt.Errorf("[DEBUG] Error setting role mappings error: %#v", err)
+		return fmt.Errorf("Error setting role mappings error: %#v", err)
 	}
 
 	return nil

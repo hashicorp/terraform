@@ -3,69 +3,60 @@ package terraform
 import (
 	"fmt"
 
-	"github.com/hashicorp/go-version"
-	"github.com/hashicorp/terraform/config"
-	"github.com/hashicorp/terraform/config/module"
+	"github.com/hashicorp/hcl2/hcl"
+	"github.com/hashicorp/terraform/tfdiags"
+
+	"github.com/hashicorp/terraform/configs"
 
 	tfversion "github.com/hashicorp/terraform/version"
 )
 
-// CheckRequiredVersion verifies that any version requirements specified by
-// the configuration are met.
+// CheckCoreVersionRequirements visits each of the modules in the given
+// configuration tree and verifies that any given Core version constraints
+// match with the version of Terraform Core that is being used.
 //
-// This checks the root module as well as any additional version requirements
-// from child modules.
-//
-// This is tested in context_test.go.
-func CheckRequiredVersion(m *module.Tree) error {
-	// Check any children
-	for _, c := range m.Children() {
-		if err := CheckRequiredVersion(c); err != nil {
-			return err
-		}
-	}
-
-	var tf *config.Terraform
-	if c := m.Config(); c != nil {
-		tf = c.Terraform
-	}
-
-	// If there is no Terraform config or the required version isn't set,
-	// we move on.
-	if tf == nil || tf.RequiredVersion == "" {
+// The returned diagnostics will contain errors if any constraints do not match.
+// The returned diagnostics might also return warnings, which should be
+// displayed to the user.
+func CheckCoreVersionRequirements(config *configs.Config) tfdiags.Diagnostics {
+	if config == nil {
 		return nil
 	}
 
-	// Path for errors
-	module := "root"
-	if path := normalizeModulePath(m.Path()); len(path) > 1 {
-		module = modulePrefixStr(path)
+	var diags tfdiags.Diagnostics
+	module := config.Module
+
+	for _, constraint := range module.CoreVersionConstraints {
+		if !constraint.Required.Check(tfversion.SemVer) {
+			switch {
+			case len(config.Path) == 0:
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Unsupported Terraform Core version",
+					Detail: fmt.Sprintf(
+						"This configuration does not support Terraform version %s. To proceed, either choose another supported Terraform version or update this version constraint. Version constraints are normally set for good reason, so updating the constraint may lead to other errors or unexpected behavior.",
+						tfversion.String(),
+					),
+					Subject: &constraint.DeclRange,
+				})
+			default:
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Unsupported Terraform Core version",
+					Detail: fmt.Sprintf(
+						"Module %s (from %s) does not support Terraform version %s. To proceed, either choose another supported Terraform version or update this version constraint. Version constraints are normally set for good reason, so updating the constraint may lead to other errors or unexpected behavior.",
+						config.Path, config.SourceAddr, tfversion.String(),
+					),
+					Subject: &constraint.DeclRange,
+				})
+			}
+		}
 	}
 
-	// Check this version requirement of this module
-	cs, err := version.NewConstraint(tf.RequiredVersion)
-	if err != nil {
-		return fmt.Errorf(
-			"%s: terraform.required_version %q syntax error: %s",
-			module,
-			tf.RequiredVersion, err)
+	for _, c := range config.Children {
+		childDiags := CheckCoreVersionRequirements(c)
+		diags = diags.Append(childDiags)
 	}
 
-	if !cs.Check(tfversion.SemVer) {
-		return fmt.Errorf(
-			"The currently running version of Terraform doesn't meet the\n"+
-				"version requirements explicitly specified by the configuration.\n"+
-				"Please use the required version or update the configuration.\n"+
-				"Note that version requirements are usually set for a reason, so\n"+
-				"we recommend verifying with whoever set the version requirements\n"+
-				"prior to making any manual changes.\n\n"+
-				"  Module: %s\n"+
-				"  Required version: %s\n"+
-				"  Current version: %s",
-			module,
-			tf.RequiredVersion,
-			tfversion.SemVer)
-	}
-
-	return nil
+	return diags
 }

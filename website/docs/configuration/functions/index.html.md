@@ -1,0 +1,30 @@
+---
+layout: "functions"
+page_title: "index function"
+sidebar_current: "docs-funcs-collection-index"
+description: |-
+  The index function finds the element index for a given value in a list.
+---
+
+# `index` Function
+
+`index` finds the element index for a given value in a list.
+
+```hcl
+index(list, value)
+```
+
+The returned index is zero-based. This function produces an error if the given
+value is not present in the list.
+
+## Examples
+
+```
+> index(["a", "b", "c"], "b")
+1
+```
+
+## Related Functions
+
+* [`element`](./element.html) retrieves a particular element from a list given
+  its index.

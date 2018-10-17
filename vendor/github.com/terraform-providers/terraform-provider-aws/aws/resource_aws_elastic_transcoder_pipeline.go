@@ -210,7 +210,7 @@ func resourceAwsElasticTranscoderPipelineCreate(d *schema.ResourceData, meta int
 
 	if (req.OutputBucket == nil && (req.ContentConfig == nil || req.ContentConfig.Bucket == nil)) ||
 		(req.OutputBucket != nil && req.ContentConfig != nil && req.ContentConfig.Bucket != nil) {
-		return fmt.Errorf("[ERROR] you must specify only one of output_bucket or content_config.bucket")
+		return fmt.Errorf("you must specify only one of output_bucket or content_config.bucket")
 	}
 
 	log.Printf("[DEBUG] Elastic Transcoder Pipeline create opts: %s", req)

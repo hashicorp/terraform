@@ -7,338 +7,246 @@ description: |-
   This page covers configuration syntax for variables.
 ---
 
-# Input Variable Configuration
+# Input Variables
 
-Input variables serve as parameters for a Terraform module.
+Input variables serve as parameters for a Terraform module, allowing aspects
+of the a module to be customized without altering the module's own source code,
+and allowing modules to be shared between different configurations.
 
-When used in the root module of a configuration, variables can be set from CLI
-arguments and environment variables. For [_child_ modules](/docs/configuration/modules.html),
-they allow values to pass from parent to child.
+When you declare variables in the root module of your configuration, you can
+set their values using CLI arguments and environment variables.
+When you declare them in [_child_ modules](/docs/configuration/modules.html),
+you can use the to pass values from parent to child.
 
 Input variable usage is introduced in the Getting Started guide section
 [_Input Variables_](/intro/getting-started/variables.html).
 
-This page assumes you're familiar with the
-[configuration syntax](/docs/configuration/syntax.html)
-already.
+## Declaring an Input Variable
 
-## Example
-
-Input variables can be defined as follows:
+Each input variable accepted by a module must be declared using a `variable`
+block:
 
 ```hcl
-variable "key" {
-  type = "string"
+variable "image_id" {
+  type = string
 }
 
-variable "images" {
-  type = "map"
-
-  default = {
-    us-east-1 = "image-1234"
-    us-west-2 = "image-4567"
-  }
-}
-
-variable "zones" {
-  default = ["us-east-1a", "us-east-1b"]
+variable "availability_zone_names" {
+  type    = list(string)
+  default = ["us-west-1a"]
 }
 ```
 
-## Description
+For brevity, input variables are often referred to as just "variables" for
+short, where it is clear from context what sort of variable is being discussed.
 
-The `variable` block configures a single input variable for a Terraform module.
-Each block declares a single variable.
-
-The name given in the block header is used to assign a value to the variable
-via the CLI and to reference the variable elsewhere in the configuration.
-
-Within the block body (between `{ }`) is configuration for the variable,
-which accepts the following arguments:
-
-- `type` (Optional) - If set this defines the type of the variable. Valid values
-  are `string`, `list`, and `map`. If this field is omitted, the variable type
-  will be inferred based on `default`. If no `default` is provided, the type
-  is assumed to be `string`.
-
-- `default` (Optional) - This sets a default value for the variable. If no
-  default is provided, Terraform will raise an error if a value is not provided
-  by the caller. The default value can be of any of the supported data types,
-  as described below. If `type` is also set, the given value must be
-  of the specified type.
-
-- `description` (Optional) - A human-friendly description for the variable. This
-  is primarily for documentation for users using your Terraform configuration.
-  When a module is published in [Terraform Registry](https://registry.terraform.io/),
-  the given description is shown as part of the documentation.
+The label after the `variable` keyword is a name for the variable, which must
+be unique between all variables in the same module. This name is used to
+assign a value to the variable from outside and to reference the variable's
+value from within the module.
 
 The name of a variable can be any valid identifier. However, due to the
 interpretation of [module configuration blocks](/docs/configuration/modules.html),
-the names `source`, `version` and `providers` are reserved for Terraform's own
-use and are thus not recommended for any module intended to be used as a
-child module.
+the names `source`, `version`, `providers`, `count`, `for_each`, and `lifecycle`
+are reserved for Terraform's own use and may not be declared as variable names.
 
-The default value of an input variable must be a _literal_ value, containing
-no interpolation expressions. To assign a name to an expression so that it
-may be re-used within a module, use [Local Values](/docs/configuration/locals.html)
-instead.
+The variable declaration may optionally include a `type` argument, which
+describes what value types are accepted for the variable, as described
+in the following section.
 
-### Strings
+The variable declaration may also include a `default` argument. If present,
+the variable is considered to be _optional_ and the default value will be used
+if no overridden value is set when calling the module. The `default` argument
+requires a literal value and cannot reference other objects in the
+configuration.
 
-String values are simple and represent a basic key to value
-mapping where the key is the variable name. An example is:
+## Using Input Variable Values
+
+Within the module that declared a variable, its value can be accessed from
+within [expressions](/docs/configuration/expressions.html) using an expression
+like `var.image_id`, where the name after the period corresponds to the label
+given in the declaration block:
 
 ```hcl
-variable "key" {
-  type    = "string"
-  default = "value"
+resource "aws_instance" "example" {
+  instance_type = "t2.micro"
+  ami           = var.image_id
 }
 ```
 
-A multi-line string value can be provided using heredoc syntax.
+The value assigned to a variable can be accessed only from expressions within
+the module where it was declared.
+
+## Type Constraints
+
+The `type` argument in a `variable` block allows you to restrict the type of
+value that will be accepted as the value for a variable. If no type constraint
+is set then a value of any type is accepted.
+
+While type constraints are optional, we recommend specifying them because it
+serves as helpful additional documentation for users of the module and it
+allows Terraform to return a helpful error message if the wrong type is used.
+
+Type constraints are created from a mixture of type keywords and type
+construction functions. The supported type keywords are:
+
+* `string`
+* `number`
+* `bool`
+
+The type construction functions allow you to specify complex types such as
+collections:
+
+* `list(<type>)`
+* `set(<type>)`
+* `map(<type>)`
+* `object({attr_name = <type>, ... })`
+* `tuple([<type>, ...])`
+
+The keyword `any` may be used to indicate that any type is acceptable. For
+more information on the meaning and behavior of these different types,
+see [the _Expressions_ section](/docs/configuration/expressions.html).
+
+If both the `type` and `default` arguments are specified, the given default
+valuable must be convertible to the specified type.
+
+## Input Variable Documentation
+
+Because the input variables of a module are part of the user interface of
+the module, you may specify a short description of the purpose of each
+variable using the optional `description` argument:
 
 ```hcl
-variable "long_key" {
-  type = "string"
-  default = <<EOF
-This is a long key.
-Running over several lines.
-EOF
+variable "image_id" {
+  type        = string
+  description = "The id of the machine image (AMI) to use for the server."
 }
 ```
 
-Terraform performs automatic conversion from string values to numeric and
-boolean values based on context, so in practice string variables may be used
-to set arguments of any primitive type. For boolean values in particular
-there are some caveats, described under [_Booleans_](#booleans) below.
+The description for a variable should be a concise description of the purpose
+of the variable and what kind of value is expected. This description string
+may be included in documentation about the module, and so it should be written
+from the perspective of the user of the module rather than its maintainer. For
+commentary for module maintainers, use comments.
 
-### Maps
+## Assigning Values to Root Module Variables
 
-A map value is a lookup table from string keys to string values. This is
-useful for selecting a value based on some other provided value.
+When variables are declared in the root module of your configuration, they
+can be set in a number of ways:
 
-A common use of maps is to create a table of machine images per region,
-as follows:
+* Individual assignments made on the command line.
+* Variable definitions files, either specified on the command line or
+  automatically loaded.
+* Environment variables.
+
+The following sections describe these options in more detail. This section does
+not apply to _child_ modules, where values for input variables are instead
+assigned in the configuration of their parent module, as described in
+[_Modules_](/docs/configuration/modules.html).
+
+### Variables on the Command Line
+
+To specify individual modules on the command line, use the `-var` argument
+that is accepted by the `terraform plan` and `terraform apply` commands:
+
+```
+terraform apply -var="image_id=ami-abc123"
+```
+
+### Variable Definitions Files
+
+To set lots of variables, it is more convenient to specify their values in
+a _variable definitions file_, with a filename ending in either `.tfvars`
+or `.tfvars.json`, and then specify that filename on the command line:
+
+```
+terraform apply -var-file="testing.tfvars"
+```
+
+A variable definitions file uses the same basic syntax as Terraform language
+files, but consists only of variable name assignments:
 
 ```hcl
-variable "images" {
-  type    = "map"
-  default = {
-    "us-east-1" = "image-1234"
-    "us-west-2" = "image-4567"
-  }
-}
-```
-
-### Lists
-
-A list value is an ordered sequence of strings indexed by integers starting
-with zero. For example:
-
-```hcl
-variable "users" {
-  type    = "list"
-  default = ["admin", "ubuntu"]
-}
-```
-
-### Booleans
-
-Although Terraform can automatically convert between boolean and string
-values, there are some subtle implications of these conversions that should
-be completely understood when using boolean values with input variables.
-
-It is recommended for now to specify boolean values for variables as the
-strings `"true"` and `"false"`, to avoid some caveats in the conversion
-process. A future version of Terraform will properly support boolean values
-and so relying on the current behavior could result in
-backwards-incompatibilities at that time.
-
-For a configuration such as the following:
-
-```hcl
-variable "active" {
-  default = false
-}
-```
-
-The false is converted to a string `"0"` when running Terraform.
-
-Then, depending on where you specify overrides, the behavior can differ:
-
-- Variables with boolean values in a `tfvars` file will likewise be converted to
-  "0" and "1" values.
-
-- Variables specified via the `-var` command line flag will be literal strings
-  "true" and "false", so care should be taken to explicitly use "0" or "1".
-
-- Variables specified with the `TF_VAR_` environment variables will be literal
-  string values, just like `-var`.
-
-A future version of Terraform will fully support first-class boolean
-types which will make the behavior of booleans consistent as you would
-expect. This may break some of the above behavior.
-
-When passing boolean-like variables as parameters to resource configurations
-that expect boolean values, they are converted consistently:
-
-- "1" and "true" become `true`
-- "0" and "false" become `false`
-
-The behavior of conversion in _this_ direction (string to boolean) will _not_
-change in future Terraform versions. Therefore, using these string values
-rather than literal booleans is recommended when using input variables.
-
-## Environment Variables
-
-Environment variables can be used to set the value of an input variable in
-the root module. The name of the environment variable must be
-`TF_VAR_` followed by the variable name, and the value is the value of the
-variable.
-
-For example, given the configuration below:
-
-```hcl
-variable "image" {}
-```
-
-The variable can be set via an environment variable:
-
-```shell
-$ TF_VAR_image=foo terraform apply
-```
-
-Maps and lists can be specified using environment variables as well using
-[HCL](/docs/configuration/syntax.html#HCL) syntax in the value.
-
-For a list variable like so:
-
-```hcl
-variable "somelist" {
-  type = "list"
-}
-```
-
-The variable could be set like so:
-
-```shell
-$ TF_VAR_somelist='["ami-abc123", "ami-bcd234"]' terraform plan
-```
-
-Similarly, for a map declared like:
-
-```hcl
-variable "somemap" {
-  type = "map"
-}
-```
-
-The value can be set like this:
-
-```shell
-$ TF_VAR_somemap='{foo = "bar", baz = "qux"}' terraform plan
-```
-
-## Variable Files
-
-Values for the input variables of a root module can be gathered in
-_variable definition files_ and passed together using the `-var-file=FILE`
-option.
-
-For all files which match `terraform.tfvars` or `*.auto.tfvars` present in the
-current directory, Terraform automatically loads them to populate variables. If
-the file is located somewhere else, you can pass the path to the file using the
-`-var-file` flag. It is recommended to name such files with names ending in
-`.tfvars`.
-
-Variables files use HCL or JSON syntax to define variable values. Strings, lists
-or maps may be set in the same manner as the default value in a `variable` block
-in Terraform configuration. For example:
-
-```hcl
-foo = "bar"
-xyz = "abc"
-
-somelist = [
-  "one",
-  "two",
+image_id = "ami-abc123"
+availability_zone_names = [
+  "us-east-1a",
+  "us-west-1c",
 ]
-
-somemap = {
-  foo = "bar"
-  bax = "qux"
-}
 ```
 
-The `-var-file` flag can be used multiple times per command invocation:
+Terraform also automatically loads a number of variable definitions files
+automatically if they are present:
 
-```shell
-$ terraform apply -var-file=foo.tfvars -var-file=bar.tfvars
-```
+* Files named exactly `terraform.tfvars` or `terraform.tfvars.json`.
+* Any files with names ending in either `.auto.tfvars` or `.auto.tfvars.json`.
 
--> **Note**: Variable files are evaluated in the order in which they are
-specified on the command line. If a particular variable is defined in more than
-one variable file, the last value specified is effective.
+Files whose names end with `.json` are parsed instead as JSON objects, with
+the root object properties corresponding to variable names:
 
-### Variable Merging
-
-When multiple values are provided for the same input variable, map values are
-merged while all other values are overriden by the last definition.
-
-For example, if you define a variable twice on the command line:
-
-```shell
-$ terraform apply -var foo=bar -var foo=baz
-```
-
-Then the value of `foo` will be `baz`, since it was the last definition seen.
-
-However, for maps, the values are merged:
-
-```shell
-$ terraform apply -var 'foo={quux="bar"}' -var 'foo={bar="baz"}'
-```
-
-The resulting value of `foo` will be:
-
-```shell
+```json
 {
-  quux = "bar"
-  bar = "baz"
+  "image_id": "ami-abc123",
+  "availability_zone_names": ["us-west-1a", "us-west-1c"]
 }
 ```
 
-There is no way currently to unset map values in Terraform. Whenever a map
-is modified either via variable input or being passed into a module, the
-values are always merged.
+### Environment Variables
 
-### Variable Precedence
+As a fallback for the other ways of defining variables, Terraform searches
+the environment of its own process for environment variables named `TF_VAR_`
+followed by the name of a declared variable.
 
-Both these files have the variable `baz` defined:
+This can be useful when running Terraform in automation, or when running a
+sequence of Terraform commands in succession with the same variables.
+For example, at a `bash` prompt on a Unix system:
 
-_foo.tfvars_
-
-```hcl
-baz = "foo"
+```
+$ export TF_VAR_image_id=ami-abc123
+$ terraform plan
+...
 ```
 
-_bar.tfvars_
+On operating systems where environment variable names are case-sensitive,
+Terraform matches the variable name exactly as given in configuration, and
+so the required environment variable name will usually have a mix of upper
+and lower case letters as in the above example.
 
-```hcl
-baz = "bar"
+### Complex-typed Values
+
+When variable values are provided in a variable definitions file, the usual
+syntax can be used to assign complex-typed values, like lists and maps.
+
+Some special rules apply to the `-var` command line option and to environment
+variables: to allow string values to be set conveniently, by default values
+assigned in these ways are interpreted as literal strings, and thus do not
+need to be themselves quoted:
+
+```
+$ export TF_VAR_image_id=ami-abc123
 ```
 
-When they are passed in the following order:
+However, if a variable in the root module is declared as being of a complex
+type (list, set, map, object, or tuple), Terraform will instead attempt to
+parse it using the same syntax used within variable definitions files,
+which requires cafeful attention to the string escaping rules in your
+shell:
 
-```shell
-$ terraform apply -var-file=foo.tfvars -var-file=bar.tfvars
+```
+$ export TF_VAR_availability_zone_names='["us-west-1b","us-west-1d"]'
 ```
 
-The result will be that `baz` will contain the value `bar` because `bar.tfvars`
-has the last definition loaded.
+For readability, and to avoid the need to worry about shell escaping, we
+recommend always setting complex variable values via varable definitions files.
 
-Definition files passed using the `-var-file` flag will always be evaluated after
-those in the working directory.
+### Variable Definition Precedence
 
-Values passed within definition files or with `-var` will take precedence over
-`TF_VAR_` environment variables, as environment variables are considered defaults.
+The above mechanisms for defining variable values can be used together in
+any combination. If the same variable is assigned multiple values, the
+processing order is as follows, with the later items in this list taking
+precedence over the earlier:
+
+* Environment Variables
+* The `terraform.tfvars` file, if present.
+* The `terraform.tfvars.json` file, if present.
+* Any `-var` and `-var-file` arguments on the command line, in the order they
+  are provided.

@@ -3,7 +3,9 @@ package terraform
 import (
 	"log"
 
+	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/dag"
+	"github.com/hashicorp/terraform/states"
 )
 
 // OrphanResourceCountTransformer is a GraphTransformer that adds orphans
@@ -14,95 +16,106 @@ import (
 // This transform assumes that if an element in the state is within the count
 // bounds given, that it is not an orphan.
 type OrphanResourceCountTransformer struct {
-	Concrete ConcreteResourceNodeFunc
+	Concrete ConcreteResourceInstanceNodeFunc
 
-	Count int              // Actual count of the resource
-	Addr  *ResourceAddress // Addr of the resource to look for orphans
-	State *State           // Full global state
+	Count int               // Actual count of the resource, or -1 if count is not set at all
+	Addr  addrs.AbsResource // Addr of the resource to look for orphans
+	State *states.State     // Full global state
 }
 
 func (t *OrphanResourceCountTransformer) Transform(g *Graph) error {
-	log.Printf("[TRACE] OrphanResourceCount: Starting...")
-
-	// Grab the module in the state just for this resource address
-	ms := t.State.ModuleByPath(normalizeModulePath(t.Addr.Path))
-	if ms == nil {
-		// If no state, there can't be orphans
-		return nil
+	rs := t.State.Resource(t.Addr)
+	if rs == nil {
+		return nil // Resource doesn't exist in state, so nothing to do!
 	}
 
-	orphanIndex := -1
-	if t.Count == 1 {
-		orphanIndex = 0
+	haveKeys := make(map[addrs.InstanceKey]struct{})
+	for key := range rs.Instances {
+		haveKeys[key] = struct{}{}
 	}
 
-	// Go through the orphans and add them all to the state
-	for key, _ := range ms.Resources {
-		// Build the address
-		addr, err := parseResourceAddressInternal(key)
-		if err != nil {
-			return err
-		}
-		addr.Path = ms.Path[1:]
+	if t.Count < 0 {
+		return t.transformNoCount(haveKeys, g)
+	}
+	if t.Count == 0 {
+		return t.transformZeroCount(haveKeys, g)
+	}
+	return t.transformCount(haveKeys, g)
+}
 
-		// Copy the address for comparison. If we aren't looking at
-		// the same resource, then just ignore it.
-		addrCopy := addr.Copy()
-		addrCopy.Index = -1
-		if !addrCopy.Equals(t.Addr) {
+func (t *OrphanResourceCountTransformer) transformCount(haveKeys map[addrs.InstanceKey]struct{}, g *Graph) error {
+	// Due to the logic in Transform, we only get in here if our count is
+	// at least one.
+
+	_, have0Key := haveKeys[addrs.IntKey(0)]
+
+	for key := range haveKeys {
+		if key == addrs.NoKey && !have0Key {
+			// If we have no 0-key then we will accept a no-key instance
+			// as an alias for it.
 			continue
 		}
 
-		log.Printf("[TRACE] OrphanResourceCount: Checking: %s", addr)
-
-		idx := addr.Index
-
-		// If we have zero and the index here is 0 or 1, then we
-		// change the index to a high number so that we treat it as
-		// an orphan.
-		if t.Count <= 0 && idx <= 0 {
-			idx = t.Count + 1
-		}
-
-		// If we have a count greater than 0 and we're at the zero index,
-		// we do a special case check to see if our state also has a
-		// -1 index value. If so, this is an orphan because our rules are
-		// that if both a -1 and 0 are in the state, the 0 is destroyed.
-		if t.Count > 0 && idx == orphanIndex {
-			// This is a piece of cleverness (beware), but its simple:
-			// if orphanIndex is 0, then check -1, else check 0.
-			checkIndex := (orphanIndex + 1) * -1
-
-			key := &ResourceStateKey{
-				Name:  addr.Name,
-				Type:  addr.Type,
-				Mode:  addr.Mode,
-				Index: checkIndex,
-			}
-
-			if _, ok := ms.Resources[key.String()]; ok {
-				// We have a -1 index, too. Make an arbitrarily high
-				// index so that we always mark this as an orphan.
-				log.Printf(
-					"[WARN] OrphanResourceCount: %q both -1 and 0 index found, orphaning %d",
-					addr, orphanIndex)
-				idx = t.Count + 1
-			}
-		}
-
-		// If the index is within the count bounds, it is not an orphan
-		if idx < t.Count {
+		i, isInt := key.(addrs.IntKey)
+		if isInt && int(i) < t.Count {
 			continue
 		}
 
-		// Build the abstract node and the concrete one
-		abstract := &NodeAbstractResource{Addr: addr}
+		abstract := NewNodeAbstractResourceInstance(t.Addr.Instance(key))
 		var node dag.Vertex = abstract
 		if f := t.Concrete; f != nil {
 			node = f(abstract)
 		}
+		log.Printf("[TRACE] OrphanResourceCount(non-zero): adding %s as %T", t.Addr, node)
+		g.Add(node)
+	}
 
-		// Add it to the graph
+	return nil
+}
+
+func (t *OrphanResourceCountTransformer) transformZeroCount(haveKeys map[addrs.InstanceKey]struct{}, g *Graph) error {
+	// This case is easy: we need to orphan any keys we have at all.
+
+	for key := range haveKeys {
+		abstract := NewNodeAbstractResourceInstance(t.Addr.Instance(key))
+		var node dag.Vertex = abstract
+		if f := t.Concrete; f != nil {
+			node = f(abstract)
+		}
+		log.Printf("[TRACE] OrphanResourceCount(zero): adding %s as %T", t.Addr, node)
+		g.Add(node)
+	}
+
+	return nil
+}
+
+func (t *OrphanResourceCountTransformer) transformNoCount(haveKeys map[addrs.InstanceKey]struct{}, g *Graph) error {
+	// Negative count indicates that count is not set at all, in which
+	// case we expect to have a single instance with no key set at all.
+	// However, we'll also accept an instance with key 0 set as an alias
+	// for it, in case the user has just deleted the "count" argument and
+	// so wants to keep the first instance in the set.
+
+	_, haveNoKey := haveKeys[addrs.NoKey]
+	_, have0Key := haveKeys[addrs.IntKey(0)]
+	keepKey := addrs.NoKey
+	if have0Key && !haveNoKey {
+		// If we don't have a no-key instance then we can use the 0-key instance
+		// instead.
+		keepKey = addrs.IntKey(0)
+	}
+
+	for key := range haveKeys {
+		if key == keepKey {
+			continue
+		}
+
+		abstract := NewNodeAbstractResourceInstance(t.Addr.Instance(key))
+		var node dag.Vertex = abstract
+		if f := t.Concrete; f != nil {
+			node = f(abstract)
+		}
+		log.Printf("[TRACE] OrphanResourceCount(no-count): adding %s as %T", t.Addr, node)
 		g.Add(node)
 	}
 

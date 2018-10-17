@@ -17,9 +17,9 @@ func TestResourceProvisioner_impl(t *testing.T) {
 func TestResourceProvisioner_stop(t *testing.T) {
 	// Create a mock provider
 	p := new(terraform.MockResourceProvisioner)
-	client, _ := plugin.TestPluginRPCConn(t, pluginMap(&ServeOpts{
+	client, _ := plugin.TestPluginRPCConn(t, legacyPluginMap(&ServeOpts{
 		ProvisionerFunc: testProvisionerFixed(p),
-	}))
+	}), nil)
 	defer client.Close()
 
 	// Request the provider
@@ -44,9 +44,9 @@ func TestResourceProvisioner_stopErrors(t *testing.T) {
 	p.StopReturnError = errors.New("foo")
 
 	// Create a mock provider
-	client, _ := plugin.TestPluginRPCConn(t, pluginMap(&ServeOpts{
+	client, _ := plugin.TestPluginRPCConn(t, legacyPluginMap(&ServeOpts{
 		ProvisionerFunc: testProvisionerFixed(p),
-	}))
+	}), nil)
 	defer client.Close()
 
 	// Request the provider
@@ -72,9 +72,9 @@ func TestResourceProvisioner_stopErrors(t *testing.T) {
 func TestResourceProvisioner_apply(t *testing.T) {
 	// Create a mock provider
 	p := new(terraform.MockResourceProvisioner)
-	client, _ := plugin.TestPluginRPCConn(t, pluginMap(&ServeOpts{
+	client, _ := plugin.TestPluginRPCConn(t, legacyPluginMap(&ServeOpts{
 		ProvisionerFunc: testProvisionerFixed(p),
-	}))
+	}), nil)
 	defer client.Close()
 
 	// Request the provider
@@ -103,9 +103,9 @@ func TestResourceProvisioner_apply(t *testing.T) {
 func TestResourceProvisioner_validate(t *testing.T) {
 	// Create a mock provider
 	p := new(terraform.MockResourceProvisioner)
-	client, _ := plugin.TestPluginRPCConn(t, pluginMap(&ServeOpts{
+	client, _ := plugin.TestPluginRPCConn(t, legacyPluginMap(&ServeOpts{
 		ProvisionerFunc: testProvisionerFixed(p),
-	}))
+	}), nil)
 	defer client.Close()
 
 	// Request the provider
@@ -137,9 +137,9 @@ func TestResourceProvisioner_validate(t *testing.T) {
 func TestResourceProvisioner_validate_errors(t *testing.T) {
 	// Create a mock provider
 	p := new(terraform.MockResourceProvisioner)
-	client, _ := plugin.TestPluginRPCConn(t, pluginMap(&ServeOpts{
+	client, _ := plugin.TestPluginRPCConn(t, legacyPluginMap(&ServeOpts{
 		ProvisionerFunc: testProvisionerFixed(p),
-	}))
+	}), nil)
 	defer client.Close()
 
 	// Request the provider
@@ -177,9 +177,9 @@ func TestResourceProvisioner_validate_errors(t *testing.T) {
 func TestResourceProvisioner_validate_warns(t *testing.T) {
 	// Create a mock provider
 	p := new(terraform.MockResourceProvisioner)
-	client, _ := plugin.TestPluginRPCConn(t, pluginMap(&ServeOpts{
+	client, _ := plugin.TestPluginRPCConn(t, legacyPluginMap(&ServeOpts{
 		ProvisionerFunc: testProvisionerFixed(p),
-	}))
+	}), nil)
 	defer client.Close()
 
 	// Request the provider
@@ -215,9 +215,9 @@ func TestResourceProvisioner_validate_warns(t *testing.T) {
 func TestResourceProvisioner_close(t *testing.T) {
 	// Create a mock provider
 	p := new(terraform.MockResourceProvisioner)
-	client, _ := plugin.TestPluginRPCConn(t, pluginMap(&ServeOpts{
+	client, _ := plugin.TestPluginRPCConn(t, legacyPluginMap(&ServeOpts{
 		ProvisionerFunc: testProvisionerFixed(p),
-	}))
+	}), nil)
 	defer client.Close()
 
 	// Request the provider

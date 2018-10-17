@@ -239,8 +239,15 @@ func spaceAfterToken(subject, before, after *Token) bool {
 		// No space right before a comma in an argument list
 		return false
 
+	case subject.Type == hclsyntax.TokenComma:
+		// Always a space after a comma
+		return true
+
 	case subject.Type == hclsyntax.TokenQuotedLit || subject.Type == hclsyntax.TokenStringLit || subject.Type == hclsyntax.TokenOQuote || subject.Type == hclsyntax.TokenOHeredoc || after.Type == hclsyntax.TokenQuotedLit || after.Type == hclsyntax.TokenStringLit || after.Type == hclsyntax.TokenCQuote || after.Type == hclsyntax.TokenCHeredoc:
 		// No extra spaces within templates
+		return false
+
+	case after.Type == hclsyntax.TokenOBrack && (subject.Type == hclsyntax.TokenIdent || subject.Type == hclsyntax.TokenNumberLit || tokenBracketChange(subject) < 0):
 		return false
 
 	case subject.Type == hclsyntax.TokenMinus:
@@ -293,8 +300,6 @@ func spaceAfterToken(subject, before, after *Token) bool {
 
 func linesForFormat(tokens Tokens) []formatLine {
 	if len(tokens) == 0 {
-		// should never happen, since we should always have EOF, but let's
-		// not crash anyway.
 		return make([]formatLine, 0)
 	}
 
@@ -325,6 +330,16 @@ func linesForFormat(tokens Tokens) []formatLine {
 			lines[li].lead = tokens[lineStart : i+1]
 			lineStart = i + 1
 			li++
+		}
+	}
+
+	// If a set of tokens doesn't end in TokenEOF (e.g. because it's a
+	// fragment of tokens from the middle of a file) then we might fall
+	// out here with a line still pending.
+	if lineStart < len(tokens) {
+		lines[li].lead = tokens[lineStart:]
+		if lines[li].lead[len(lines[li].lead)-1].Type == hclsyntax.TokenEOF {
+			lines[li].lead = lines[li].lead[:len(lines[li].lead)-1]
 		}
 	}
 

@@ -13,13 +13,13 @@ import (
 
 func wafSizeConstraintSetSchema() map[string]*schema.Schema {
 	return map[string]*schema.Schema{
-		"name": &schema.Schema{
+		"name": {
 			Type:     schema.TypeString,
 			Required: true,
 			ForceNew: true,
 		},
 
-		"size_constraints": &schema.Schema{
+		"size_constraints": {
 			Type:     schema.TypeSet,
 			Optional: true,
 			Elem: &schema.Resource{
@@ -41,15 +41,15 @@ func wafSizeConstraintSetSchema() map[string]*schema.Schema {
 							},
 						},
 					},
-					"comparison_operator": &schema.Schema{
+					"comparison_operator": {
 						Type:     schema.TypeString,
 						Required: true,
 					},
-					"size": &schema.Schema{
+					"size": {
 						Type:     schema.TypeInt,
 						Required: true,
 					},
-					"text_transformation": &schema.Schema{
+					"text_transformation": {
 						Type:     schema.TypeString,
 						Required: true,
 					},

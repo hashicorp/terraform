@@ -73,7 +73,7 @@ func resourceAwsBatchJobQueueCreate(d *schema.ResourceData, meta interface{}) er
 
 	_, err = stateConf.WaitForState()
 	if err != nil {
-		return fmt.Errorf("[WARN] Error waiting for JobQueue state to be \"VALID\": %s", err)
+		return fmt.Errorf("Error waiting for JobQueue state to be \"VALID\": %s", err)
 	}
 
 	arn := *out.JobQueueArn
@@ -91,7 +91,9 @@ func resourceAwsBatchJobQueueRead(d *schema.ResourceData, meta interface{}) erro
 		return err
 	}
 	if jq == nil {
-		return fmt.Errorf("[WARN] Error reading JobQueue: \"%s\"", err)
+		log.Printf("[WARN] Batch Job Queue (%s) not found, removing from state", d.Id())
+		d.SetId("")
+		return nil
 	}
 	d.Set("arn", jq.JobQueueArn)
 	d.Set("compute_environments", jq.ComputeEnvironmentOrder)

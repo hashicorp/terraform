@@ -56,7 +56,7 @@ func (c *APIGateway) CreateApiKeyRequest(input *CreateApiKeyInput) (req *request
 //
 // Create an ApiKey resource.
 //
-// AWS CLI (http://docs.aws.amazon.com/cli/latest/reference/apigateway/create-api-key.html)
+// AWS CLI ([[AwsDocsUrlPrefix]]/cli/latest/reference/apigateway/create-api-key.html)
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -152,7 +152,7 @@ func (c *APIGateway) CreateAuthorizerRequest(input *CreateAuthorizerInput) (req 
 //
 // Adds a new Authorizer resource to an existing RestApi resource.
 //
-// AWS CLI (http://docs.aws.amazon.com/cli/latest/reference/apigateway/create-authorizer.html)
+// AWS CLI ([[AwsDocsUrlPrefix]]/cli/latest/reference/apigateway/create-authorizer.html)
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -1526,7 +1526,7 @@ func (c *APIGateway) DeleteAuthorizerRequest(input *DeleteAuthorizerInput) (req 
 //
 // Deletes an existing Authorizer resource.
 //
-// AWS CLI (http://docs.aws.amazon.com/cli/latest/reference/apigateway/delete-authorizer.html)
+// AWS CLI ([[AwsDocsUrlPrefix]]/cli/latest/reference/apigateway/delete-authorizer.html)
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -3912,7 +3912,7 @@ func (c *APIGateway) GetAuthorizerRequest(input *GetAuthorizerInput) (req *reque
 //
 // Describe an existing Authorizer resource.
 //
-// AWS CLI (http://docs.aws.amazon.com/cli/latest/reference/apigateway/get-authorizer.html)
+// AWS CLI ([[AwsDocsUrlPrefix]]/cli/latest/reference/apigateway/get-authorizer.html)
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -3997,7 +3997,7 @@ func (c *APIGateway) GetAuthorizersRequest(input *GetAuthorizersInput) (req *req
 //
 // Describe an existing Authorizers resource.
 //
-// AWS CLI (http://docs.aws.amazon.com/cli/latest/reference/apigateway/get-authorizers.html)
+// AWS CLI ([[AwsDocsUrlPrefix]]/cli/latest/reference/apigateway/get-authorizers.html)
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -9120,7 +9120,7 @@ func (c *APIGateway) TestInvokeAuthorizerRequest(input *TestInvokeAuthorizerInpu
 // Simulate the execution of an Authorizer in your RestApi with headers, parameters,
 // and an incoming request body.
 //
-// Enable custom authorizers (http://docs.aws.amazon.com/apigateway/latest/developerguide/use-custom-authorizer.html)
+// Enable custom authorizers ([[AwsDocsUrlPrefix]]/apigateway/latest/developerguide/use-custom-authorizer.html)
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -9568,7 +9568,7 @@ func (c *APIGateway) UpdateAuthorizerRequest(input *UpdateAuthorizerInput) (req 
 //
 // Updates an existing Authorizer resource.
 //
-// AWS CLI (http://docs.aws.amazon.com/cli/latest/reference/apigateway/update-authorizer.html)
+// AWS CLI ([[AwsDocsUrlPrefix]]/cli/latest/reference/apigateway/update-authorizer.html)
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -11338,7 +11338,7 @@ type AccessLogSettings struct {
 	DestinationArn *string `locationName:"destinationArn" type:"string"`
 
 	// A single line format of the access logs of data, as specified by selected
-	// $context variables (http://docs.aws.amazon.com/apigateway/latest/developerguide/api-gateway-mapping-template-reference.html#context-variable-reference).
+	// $context variables ([[AwsDocsUrlPrefix]]/apigateway/latest/developerguide/api-gateway-mapping-template-reference.html#context-variable-reference).
 	// The format must include at least $context.requestId.
 	Format *string `locationName:"format" type:"string"`
 }
@@ -11377,7 +11377,7 @@ func (s *AccessLogSettings) SetFormat(v string) *AccessLogSettings {
 // NotFoundException
 // TooManyRequestsException
 // For detailed error code information, including the corresponding HTTP Status
-// Codes, see API Gateway Error Codes (http://docs.aws.amazon.com/apigateway/api-reference/handling-errors/#api-error-codes)
+// Codes, see API Gateway Error Codes ([[AwsDocsUrlPrefix]]/apigateway/api-reference/handling-errors/#api-error-codes)
 //
 // Example: Get the information about an account.
 //
@@ -11391,16 +11391,16 @@ func (s *AccessLogSettings) SetFormat(v string) *AccessLogSettings {
 // The successful response returns a 200 OK status code and a payload similar
 // to the following:
 //
-// { "_links": { "curies": { "href": "http://docs.aws.amazon.com/apigateway/latest/developerguide/account-apigateway-{rel}.html",
+// { "_links": { "curies": { "href": "[[AwsDocsUrlPrefix]]/apigateway/latest/developerguide/account-apigateway-{rel}.html",
 // "name": "account", "templated": true }, "self": { "href": "/account" }, "account:update":
 // { "href": "/account" } }, "cloudwatchRoleArn": "arn:aws:iam::123456789012:role/apigAwsProxyRole",
 // "throttleSettings": { "rateLimit": 500, "burstLimit": 1000 } }
 // In addition to making the REST API call directly, you can use the AWS CLI
 // and an AWS SDK to access this resource.
 //
-// API Gateway Limits (http://docs.aws.amazon.com/apigateway/latest/developerguide/api-gateway-limits.html)Developer
-// Guide (http://docs.aws.amazon.com/apigateway/latest/developerguide/welcome.html),
-// AWS CLI (http://docs.aws.amazon.com/cli/latest/reference/apigateway/get-account.html)
+// API Gateway Limits ([[AwsDocsUrlPrefix]]/apigateway/latest/developerguide/api-gateway-limits.html)Developer
+// Guide ([[AwsDocsUrlPrefix]]/apigateway/latest/developerguide/welcome.html),
+// AWS CLI ([[AwsDocsUrlPrefix]]/cli/latest/reference/apigateway/get-account.html)
 type Account struct {
 	_ struct{} `type:"structure"`
 
@@ -11457,7 +11457,7 @@ func (s *Account) SetThrottleSettings(v *ThrottleSettings) *Account {
 // which indicates that the callers with the API key can make requests to that
 // stage.
 //
-// Use API Keys (http://docs.aws.amazon.com/apigateway/latest/developerguide/how-to-api-keys.html)
+// Use API Keys ([[AwsDocsUrlPrefix]]/apigateway/latest/developerguide/how-to-api-keys.html)
 type ApiKey struct {
 	_ struct{} `type:"structure"`
 
@@ -11600,7 +11600,7 @@ func (s *ApiStage) SetThrottle(v map[string]*ThrottleSettings) *ApiStage {
 // Represents an authorization layer for methods. If enabled on a method, API
 // Gateway will activate the authorizer when a client calls the method.
 //
-// Enable custom authorization (http://docs.aws.amazon.com/apigateway/latest/developerguide/use-custom-authorizer.html)
+// Enable custom authorization ([[AwsDocsUrlPrefix]]/apigateway/latest/developerguide/use-custom-authorizer.html)
 type Authorizer struct {
 	_ struct{} `type:"structure"`
 
@@ -11750,7 +11750,7 @@ func (s *Authorizer) SetType(v string) *Authorizer {
 //
 // A custom domain name plus a BasePathMapping specification identifies a deployed
 // RestApi in a given stage of the owner Account.
-// Use Custom Domain Names (http://docs.aws.amazon.com/apigateway/latest/developerguide/how-to-custom-domains.html)
+// Use Custom Domain Names ([[AwsDocsUrlPrefix]]/apigateway/latest/developerguide/how-to-custom-domains.html)
 type BasePathMapping struct {
 	_ struct{} `type:"structure"`
 
@@ -11853,7 +11853,7 @@ func (s *CanarySettings) SetUseStageCache(v bool) *CanarySettings {
 // Client certificates are used to authenticate an API by the backend server.
 // To authenticate an API client (or user), use IAM roles and policies, a custom
 // Authorizer or an Amazon Cognito user pool.
-// Use Client-Side Certificate (http://docs.aws.amazon.com/apigateway/latest/developerguide/getting-started-client-side-ssl-authentication.html)
+// Use Client-Side Certificate ([[AwsDocsUrlPrefix]]/apigateway/latest/developerguide/getting-started-client-side-ssl-authentication.html)
 type ClientCertificate struct {
 	_ struct{} `type:"structure"`
 
@@ -12269,6 +12269,9 @@ type CreateDeploymentInput struct {
 	// The name of the Stage resource for the Deployment resource to create.
 	StageName *string `locationName:"stageName" type:"string"`
 
+	// Specifies whether active tracing with X-ray is enabled for the Stage.
+	TracingEnabled *bool `locationName:"tracingEnabled" type:"boolean"`
+
 	// A map that defines the stage variables for the Stage resource that is associated
 	// with the new deployment. Variable names can have alphanumeric and underscore
 	// characters, and the values must match [A-Za-z0-9-._~:/?#&=,]+.
@@ -12337,6 +12340,12 @@ func (s *CreateDeploymentInput) SetStageDescription(v string) *CreateDeploymentI
 // SetStageName sets the StageName field's value.
 func (s *CreateDeploymentInput) SetStageName(v string) *CreateDeploymentInput {
 	s.StageName = &v
+	return s
+}
+
+// SetTracingEnabled sets the TracingEnabled field's value.
+func (s *CreateDeploymentInput) SetTracingEnabled(v bool) *CreateDeploymentInput {
+	s.TracingEnabled = &v
 	return s
 }
 
@@ -12641,7 +12650,7 @@ type CreateModelInput struct {
 	RestApiId *string `location:"uri" locationName:"restapi_id" type:"string" required:"true"`
 
 	// The schema for the model. For application/json models, this should be JSON
-	// schema draft 4 (https://tools.ietf.org/html/draft-zyp-json-schema-04) model.
+	// schema draft 4 ([[JsonSchemaUrl]]) model.
 	Schema *string `locationName:"schema" type:"string"`
 }
 
@@ -13000,6 +13009,9 @@ type CreateStageInput struct {
 	// tag value can be up to 256 characters.
 	Tags map[string]*string `locationName:"tags" type:"map"`
 
+	// Specifies whether active tracing with X-ray is enabled for the Stage.
+	TracingEnabled *bool `locationName:"tracingEnabled" type:"boolean"`
+
 	// A map that defines the stage variables for the new Stage resource. Variable
 	// names can have alphanumeric and underscore characters, and the values must
 	// match [A-Za-z0-9-._~:/?#&=,]+.
@@ -13086,6 +13098,12 @@ func (s *CreateStageInput) SetStageName(v string) *CreateStageInput {
 // SetTags sets the Tags field's value.
 func (s *CreateStageInput) SetTags(v map[string]*string) *CreateStageInput {
 	s.Tags = v
+	return s
+}
+
+// SetTracingEnabled sets the TracingEnabled field's value.
+func (s *CreateStageInput) SetTracingEnabled(v bool) *CreateStageInput {
+	s.TracingEnabled = &v
 	return s
 }
 
@@ -14747,8 +14765,8 @@ func (s DeleteVpcLinkOutput) GoString() string {
 // To view, update, or delete a deployment, call GET, PATCH, or DELETE on the
 // specified deployment resource (/restapis/{restapi_id}/deployments/{deployment_id}).
 //
-// RestApi, Deployments, Stage, AWS CLI (http://docs.aws.amazon.com/cli/latest/reference/apigateway/get-deployment.html),
-// AWS SDKs (https://aws.amazon.com/tools/)
+// RestApi, Deployments, Stage, AWS CLI ([[AwsDocsUrlPrefix]]/cli/latest/reference/apigateway/get-deployment.html),
+// AWS SDKs ([[AwsAmazonUrlPrefix]]/tools/)
 type Deployment struct {
 	_ struct{} `type:"structure"`
 
@@ -14860,7 +14878,7 @@ func (s *DeploymentCanarySettings) SetUseStageCache(v bool) *DeploymentCanarySet
 // documentation fields will be injected into the associated API entity definition
 // in the exported Swagger definition file.
 //
-// Documenting an API (http://docs.aws.amazon.com/apigateway/latest/developerguide/api-gateway-documenting-api.html),
+// Documenting an API ([[AwsDocsUrlPrefix]]/apigateway/latest/developerguide/api-gateway-documenting-api.html),
 // DocumentationParts
 type DocumentationPart struct {
 	_ struct{} `type:"structure"`
@@ -15018,7 +15036,7 @@ func (s *DocumentationPartLocation) SetType(v string) *DocumentationPartLocation
 // with an API stage and exporting the versioned documentation to an external
 // (e.g., Swagger) file.
 //
-// Documenting an API (http://docs.aws.amazon.com/apigateway/latest/developerguide/api-gateway-documenting-api.html),
+// Documenting an API ([[AwsDocsUrlPrefix]]/apigateway/latest/developerguide/api-gateway-documenting-api.html),
 // DocumentationPart, DocumentationVersions
 type DocumentationVersion struct {
 	_ struct{} `type:"structure"`
@@ -15072,7 +15090,7 @@ func (s *DocumentationVersion) SetVersion(v string) *DocumentationVersion {
 // where myApi is the base path mapping (BasePathMapping) of your API under
 // the custom domain name.
 //
-// Set a Custom Host Name for an API (http://docs.aws.amazon.com/apigateway/latest/developerguide/how-to-custom-domains.html)
+// Set a Custom Host Name for an API ([[AwsDocsUrlPrefix]]/apigateway/latest/developerguide/how-to-custom-domains.html)
 type DomainName struct {
 	_ struct{} `type:"structure"`
 
@@ -15093,13 +15111,13 @@ type DomainName struct {
 	// custom domain name for an edge-optimized endpoint. You set up this association
 	// when adding a DNS record pointing the custom domain name to this distribution
 	// name. For more information about CloudFront distributions, see the Amazon
-	// CloudFront documentation (http://aws.amazon.com/documentation/cloudfront/).
+	// CloudFront documentation ([[AwsAmazonUrlPrefix]]/documentation/cloudfront/).
 	DistributionDomainName *string `locationName:"distributionDomainName" type:"string"`
 
 	// The region-agnostic Amazon Route 53 Hosted Zone ID of the edge-optimized
 	// endpoint. The valid value is Z2FDTNDATAQYW2 for all the regions. For more
-	// information, see Set up a Regional Custom Domain Name (https://docs.aws.amazon.com/apigateway/latest/developerguide/apigateway-regional-api-custom-domain-create.html)
-	// and AWS Regions and Endpoints for API Gateway (http://docs.aws.amazon.com/general/latest/gr/rande.html#apigateway_region).
+	// information, see Set up a Regional Custom Domain Name ([[AwsDocsUrlPrefix]]/apigateway/latest/developerguide/apigateway-regional-api-custom-domain-create.html)
+	// and AWS Regions and Endpoints for API Gateway ([[AwsDocsUrlPrefix]]/general/latest/gr/rande.html#apigateway_region).
 	DistributionHostedZoneId *string `locationName:"distributionHostedZoneId" type:"string"`
 
 	// The custom domain name as an API host name, for example, my-api.example.com.
@@ -15124,8 +15142,8 @@ type DomainName struct {
 	RegionalDomainName *string `locationName:"regionalDomainName" type:"string"`
 
 	// The region-specific Amazon Route 53 Hosted Zone ID of the regional endpoint.
-	// For more information, see Set up a Regional Custom Domain Name (https://docs.aws.amazon.com/apigateway/latest/developerguide/apigateway-regional-api-custom-domain-create.html)
-	// and AWS Regions and Endpoints for API Gateway (http://docs.aws.amazon.com/general/latest/gr/rande.html#apigateway_region).
+	// For more information, see Set up a Regional Custom Domain Name ([[AwsDocsUrlPrefix]]/apigateway/latest/developerguide/apigateway-regional-api-custom-domain-create.html)
+	// and AWS Regions and Endpoints for API Gateway ([[AwsDocsUrlPrefix]]/general/latest/gr/rande.html#apigateway_region).
 	RegionalHostedZoneId *string `locationName:"regionalHostedZoneId" type:"string"`
 }
 
@@ -15520,7 +15538,7 @@ func (s *GetApiKeysInput) SetPosition(v string) *GetApiKeysInput {
 
 // Represents a collection of API keys as represented by an ApiKeys resource.
 //
-// Use API Keys (http://docs.aws.amazon.com/apigateway/latest/developerguide/how-to-api-keys.html)
+// Use API Keys ([[AwsDocsUrlPrefix]]/apigateway/latest/developerguide/how-to-api-keys.html)
 type GetApiKeysOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -15675,7 +15693,7 @@ func (s *GetAuthorizersInput) SetRestApiId(v string) *GetAuthorizersInput {
 
 // Represents a collection of Authorizer resources.
 //
-// Enable custom authorization (http://docs.aws.amazon.com/apigateway/latest/developerguide/use-custom-authorizer.html)
+// Enable custom authorization ([[AwsDocsUrlPrefix]]/apigateway/latest/developerguide/use-custom-authorizer.html)
 type GetAuthorizersOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -15823,7 +15841,7 @@ func (s *GetBasePathMappingsInput) SetPosition(v string) *GetBasePathMappingsInp
 
 // Represents a collection of BasePathMapping resources.
 //
-// Use Custom Domain Names (http://docs.aws.amazon.com/apigateway/latest/developerguide/how-to-custom-domains.html)
+// Use Custom Domain Names ([[AwsDocsUrlPrefix]]/apigateway/latest/developerguide/how-to-custom-domains.html)
 type GetBasePathMappingsOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -15930,7 +15948,7 @@ func (s *GetClientCertificatesInput) SetPosition(v string) *GetClientCertificate
 
 // Represents a collection of ClientCertificate resources.
 //
-// Use Client-Side Certificate (http://docs.aws.amazon.com/apigateway/latest/developerguide/getting-started-client-side-ssl-authentication.html)
+// Use Client-Side Certificate ([[AwsDocsUrlPrefix]]/apigateway/latest/developerguide/getting-started-client-side-ssl-authentication.html)
 type GetClientCertificatesOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -16097,9 +16115,9 @@ func (s *GetDeploymentsInput) SetRestApiId(v string) *GetDeploymentsInput {
 // resource. To view, update, or delete an existing deployment, make a GET,
 // PATCH, or DELETE request, respectively, on a specified Deployment resource.
 //
-// Deploying an API (http://docs.aws.amazon.com/apigateway/latest/developerguide/how-to-deploy-api.html),
-// AWS CLI (http://docs.aws.amazon.com/cli/latest/reference/apigateway/get-deployment.html),
-// AWS SDKs (https://aws.amazon.com/tools/)
+// Deploying an API ([[AwsDocsUrlPrefix]]/apigateway/latest/developerguide/how-to-deploy-api.html),
+// AWS CLI ([[AwsDocsUrlPrefix]]/cli/latest/reference/apigateway/get-deployment.html),
+// AWS SDKs ([[AwsAmazonUrlPrefix]]/tools/)
 type GetDeploymentsOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -16283,7 +16301,7 @@ func (s *GetDocumentationPartsInput) SetType(v string) *GetDocumentationPartsInp
 
 // The collection of documentation parts of an API.
 //
-// Documenting an API (http://docs.aws.amazon.com/apigateway/latest/developerguide/api-gateway-documenting-api.html), DocumentationPart
+// Documenting an API ([[AwsDocsUrlPrefix]]/apigateway/latest/developerguide/api-gateway-documenting-api.html), DocumentationPart
 type GetDocumentationPartsOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -16431,7 +16449,7 @@ func (s *GetDocumentationVersionsInput) SetRestApiId(v string) *GetDocumentation
 // Use the DocumentationVersions to manage documentation snapshots associated
 // with various API stages.
 //
-// Documenting an API (http://docs.aws.amazon.com/apigateway/latest/developerguide/api-gateway-documenting-api.html),
+// Documenting an API ([[AwsDocsUrlPrefix]]/apigateway/latest/developerguide/api-gateway-documenting-api.html),
 // DocumentationPart, DocumentationVersion
 type GetDocumentationVersionsOutput struct {
 	_ struct{} `type:"structure"`
@@ -16539,7 +16557,7 @@ func (s *GetDomainNamesInput) SetPosition(v string) *GetDomainNamesInput {
 
 // Represents a collection of DomainName resources.
 //
-// Use Client-Side Certificate (http://docs.aws.amazon.com/apigateway/latest/developerguide/how-to-custom-domains.html)
+// Use Client-Side Certificate ([[AwsDocsUrlPrefix]]/apigateway/latest/developerguide/how-to-custom-domains.html)
 type GetDomainNamesOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -16848,7 +16866,7 @@ func (s *GetGatewayResponsesInput) SetRestApiId(v string) *GetGatewayResponsesIn
 // this collection.
 //
 // For more information about valid gateway response types, see Gateway Response
-// Types Supported by API Gateway (http://docs.aws.amazon.com/apigateway/latest/developerguide/supported-gateway-response-types.html)Example:
+// Types Supported by API Gateway ([[AwsDocsUrlPrefix]]/apigateway/latest/developerguide/supported-gateway-response-types.html)Example:
 // Get the collection of gateway responses of an API
 //
 // Request
@@ -17002,7 +17020,7 @@ func (s *GetGatewayResponsesInput) SetRestApiId(v string) *GetGatewayResponsesIn
 // { "application/json": "{\"message\":$context.error.messageString}" }, "responseType":
 // "AUTHORIZER_FAILURE", "statusCode": "500" } ] } }
 //
-// Customize Gateway Responses (http://docs.aws.amazon.com/apigateway/latest/developerguide/customize-gateway-responses.html)
+// Customize Gateway Responses ([[AwsDocsUrlPrefix]]/apigateway/latest/developerguide/customize-gateway-responses.html)
 type GetGatewayResponsesOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -17449,12 +17467,12 @@ func (s *GetModelTemplateInput) SetRestApiId(v string) *GetModelTemplateInput {
 
 // Represents a mapping template used to transform a payload.
 //
-// Mapping Templates (http://docs.aws.amazon.com/apigateway/latest/developerguide/models-mappings.html#models-mappings-mappings)
+// Mapping Templates ([[AwsDocsUrlPrefix]]/apigateway/latest/developerguide/models-mappings.html#models-mappings-mappings)
 type GetModelTemplateOutput struct {
 	_ struct{} `type:"structure"`
 
-	// The Apache Velocity Template Language (VTL) (http://velocity.apache.org/engine/devel/vtl-reference-guide.html)
-	// template content used for the template resource.
+	// The Apache Velocity Template Language (VTL) ([[ApacheVtlUrl]]) template content
+	// used for the template resource.
 	Value *string `locationName:"value" type:"string"`
 }
 
@@ -17534,7 +17552,7 @@ func (s *GetModelsInput) SetRestApiId(v string) *GetModelsInput {
 
 // Represents a collection of Model resources.
 //
-// Method, MethodResponse, Models and Mappings (http://docs.aws.amazon.com/apigateway/latest/developerguide/models-mappings.html)
+// Method, MethodResponse, Models and Mappings ([[AwsDocsUrlPrefix]]/apigateway/latest/developerguide/models-mappings.html)
 type GetModelsOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -17680,10 +17698,10 @@ func (s *GetRequestValidatorsInput) SetRestApiId(v string) *GetRequestValidators
 // A collection of RequestValidator resources of a given RestApi.
 //
 // In Swagger, the RequestValidators of an API is defined by the x-amazon-apigateway-request-validators
-// (http://docs.aws.amazon.com/apigateway/latest/developerguide/api-gateway-swagger-extensions.html#api-gateway-swagger-extensions-request-validators.html)
+// ([[AwsDocsUrlPrefix]]/apigateway/latest/developerguide/api-gateway-swagger-extensions.html#api-gateway-swagger-extensions-request-validators.html)
 // extension.
 //
-// Enable Basic Request Validation in API Gateway (http://docs.aws.amazon.com/apigateway/latest/developerguide/api-gateway-method-request-validation.html)
+// Enable Basic Request Validation in API Gateway ([[AwsDocsUrlPrefix]]/apigateway/latest/developerguide/api-gateway-method-request-validation.html)
 type GetRequestValidatorsOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -17856,7 +17874,7 @@ func (s *GetResourcesInput) SetRestApiId(v string) *GetResourcesInput {
 
 // Represents a collection of Resource resources.
 //
-// Create an API (http://docs.aws.amazon.com/apigateway/latest/developerguide/how-to-create-api.html)
+// Create an API ([[AwsDocsUrlPrefix]]/apigateway/latest/developerguide/how-to-create-api.html)
 type GetResourcesOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -17964,7 +17982,7 @@ func (s *GetRestApisInput) SetPosition(v string) *GetRestApisInput {
 // Contains references to your APIs and links that guide you in how to interact
 // with your collection. A collection offers a paginated view of your APIs.
 //
-// Create an API (http://docs.aws.amazon.com/apigateway/latest/developerguide/how-to-create-api.html)
+// Create an API ([[AwsDocsUrlPrefix]]/apigateway/latest/developerguide/how-to-create-api.html)
 type GetRestApisOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -18327,7 +18345,7 @@ func (s *GetStagesInput) SetRestApiId(v string) *GetStagesInput {
 
 // A list of Stage resources that are associated with the ApiKey resource.
 //
-// Deploying API in Stages (http://docs.aws.amazon.com/apigateway/latest/developerguide/stages.html)
+// Deploying API in Stages ([[AwsDocsUrlPrefix]]/apigateway/latest/developerguide/stages.html)
 type GetStagesOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -18697,7 +18715,7 @@ func (s *GetUsagePlanKeysInput) SetUsagePlanId(v string) *GetUsagePlanKeysInput 
 // Represents the collection of usage plan keys added to usage plans for the
 // associated API keys and, possibly, other types of keys.
 //
-// Create and Use Usage Plans (http://docs.aws.amazon.com/apigateway/latest/developerguide/api-gateway-api-usage-plans.html)
+// Create and Use Usage Plans ([[AwsDocsUrlPrefix]]/apigateway/latest/developerguide/api-gateway-api-usage-plans.html)
 type GetUsagePlanKeysOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -18774,7 +18792,7 @@ func (s *GetUsagePlansInput) SetPosition(v string) *GetUsagePlansInput {
 
 // Represents a collection of usage plans for an AWS account.
 //
-// Create and Use Usage Plans (http://docs.aws.amazon.com/apigateway/latest/developerguide/api-gateway-api-usage-plans.html)
+// Create and Use Usage Plans ([[AwsDocsUrlPrefix]]/apigateway/latest/developerguide/api-gateway-api-usage-plans.html)
 type GetUsagePlansOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -18882,8 +18900,8 @@ func (s *GetVpcLinksInput) SetPosition(v string) *GetVpcLinksInput {
 
 // The collection of VPC links under the caller's account in a region.
 //
-// Getting Started with Private Integrations (http://docs.aws.amazon.com/apigateway/latest/developerguide/getting-started-with-private-integration.html),
-// Set up Private Integrations (http://docs.aws.amazon.com/apigateway/latest/developerguide/set-up-private-integration.html)
+// Getting Started with Private Integrations ([[AwsDocsUrlPrefix]]/apigateway/latest/developerguide/getting-started-with-private-integration.html),
+// Set up Private Integrations ([[AwsDocsUrlPrefix]]/apigateway/latest/developerguide/set-up-private-integration.html)
 type GetVpcLinksOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -18921,7 +18939,7 @@ type ImportApiKeysInput struct {
 	_ struct{} `type:"structure" payload:"Body"`
 
 	// The payload of the POST request to import API keys. For the payload format,
-	// see API Key File Format (http://docs.aws.amazon.com/apigateway/latest/developerguide/api-key-file-format.html).
+	// see API Key File Format ([[AwsDocsUrlPrefix]]/apigateway/latest/developerguide/api-key-file-format.html).
 	//
 	// Body is a required field
 	Body []byte `locationName:"body" type:"blob" required:"true"`
@@ -19094,8 +19112,8 @@ func (s *ImportDocumentationPartsInput) SetRestApiId(v string) *ImportDocumentat
 //
 // This is used to return the result when documentation parts in an external
 // (e.g., Swagger) file are imported into API Gateway
-// Documenting an API (http://docs.aws.amazon.com/apigateway/latest/developerguide/api-gateway-documenting-api.html),
-// documentationpart:import (http://docs.aws.amazon.com/apigateway/api-reference/link-relation/documentationpart-import/),
+// Documenting an API ([[AwsDocsUrlPrefix]]/apigateway/latest/developerguide/api-gateway-documenting-api.html),
+// documentationpart:import ([[AwsDocsUrlPrefix]]/apigateway/api-reference/link-relation/documentationpart-import/),
 // DocumentationPart
 type ImportDocumentationPartsOutput struct {
 	_ struct{} `type:"structure"`
@@ -19215,7 +19233,7 @@ func (s *ImportRestApiInput) SetParameters(v map[string]*string) *ImportRestApiI
 //
 // In the API Gateway console, the built-in Lambda integration is an AWS integration.
 //
-// Creating an API (http://docs.aws.amazon.com/apigateway/latest/developerguide/how-to-create-api.html)
+// Creating an API ([[AwsDocsUrlPrefix]]/apigateway/latest/developerguide/how-to-create-api.html)
 type Integration struct {
 	_ struct{} `type:"structure"`
 
@@ -19225,7 +19243,7 @@ type Integration struct {
 	// Specifies the integration's cache namespace.
 	CacheNamespace *string `locationName:"cacheNamespace" type:"string"`
 
-	// The (id (http://docs.aws.amazon.com/apigateway/api-reference/resource/vpc-link/#id))
+	// The (id ([[AwsDocsUrlPrefix]]/apigateway/api-reference/resource/vpc-link/#id))
 	// of the VpcLink used for the integration when connectionType=VPC_LINK and
 	// undefined, otherwise.
 	ConnectionId *string `locationName:"connectionId" type:"string"`
@@ -19274,7 +19292,7 @@ type Integration struct {
 	//
 	// The successful response returns 200 OKstatus and a payload as follows:
 	//
-	// { "_links": { "curies": { "href": "http://docs.aws.amazon.com/apigateway/latest/developerguide/restapi-integration-response-{rel}.html",
+	// { "_links": { "curies": { "href": "[[AwsDocsUrlPrefix]]/apigateway/latest/developerguide/restapi-integration-response-{rel}.html",
 	// "name": "integrationresponse", "templated": true }, "self": { "href": "/restapis/fugvjdxtri/resources/3kzxbg5sa2/methods/GET/integration/responses/200",
 	// "title": "200" }, "integrationresponse:delete": { "href": "/restapis/fugvjdxtri/resources/3kzxbg5sa2/methods/GET/integration/responses/200"
 	// }, "integrationresponse:update": { "href": "/restapis/fugvjdxtri/resources/3kzxbg5sa2/methods/GET/integration/responses/200"
@@ -19367,7 +19385,7 @@ type Integration struct {
 	//    Alternatively, path can be used for an AWS service path-based API. The
 	//    ensuing service_api refers to the path to an AWS service resource, including
 	//    the region of the integrated AWS service, if applicable. For example,
-	//    for integration with the S3 API of GetObject (http://docs.aws.amazon.com/AmazonS3/latest/API/RESTObjectGET.html),
+	//    for integration with the S3 API of GetObject ([[AwsDocsUrlPrefix]]/AmazonS3/latest/API/RESTObjectGET.html),
 	//    the uri can be either arn:aws:apigateway:us-west-2:s3:action/GetObject&Bucket={bucket}&Key={key}
 	//    or arn:aws:apigateway:us-west-2:s3:path/{bucket}/{key}
 	Uri *string `locationName:"uri" type:"string"`
@@ -19471,7 +19489,7 @@ func (s *Integration) SetUri(v string) *Integration {
 // MethodResponse, and parameters and templates can be used to transform the
 // back-end response.
 //
-// Creating an API (http://docs.aws.amazon.com/apigateway/latest/developerguide/how-to-create-api.html)
+// Creating an API ([[AwsDocsUrlPrefix]]/apigateway/latest/developerguide/how-to-create-api.html)
 type IntegrationResponse struct {
 	_ struct{} `type:"structure"`
 
@@ -19587,10 +19605,10 @@ func (s *IntegrationResponse) SetStatusCode(v string) *IntegrationResponse {
 // The successful response returns a 200 OK status code and a payload similar
 // to the following:
 //
-//    { "_links": { "curies": [ { "href": "http://docs.aws.amazon.com/apigateway/latest/developerguide/restapi-integration-{rel}.html",
-//    "name": "integration", "templated": true }, { "href": "http://docs.aws.amazon.com/apigateway/latest/developerguide/restapi-integration-response-{rel}.html",
-//    "name": "integrationresponse", "templated": true }, { "href": "http://docs.aws.amazon.com/apigateway/latest/developerguide/restapi-method-{rel}.html",
-//    "name": "method", "templated": true }, { "href": "http://docs.aws.amazon.com/apigateway/latest/developerguide/restapi-method-response-{rel}.html",
+//    { "_links": { "curies": [ { "href": "[[AwsDocsUrlPrefix]]/apigateway/latest/developerguide/restapi-integration-{rel}.html",
+//    "name": "integration", "templated": true }, { "href": "[[AwsDocsUrlPrefix]]/apigateway/latest/developerguide/restapi-integration-response-{rel}.html",
+//    "name": "integrationresponse", "templated": true }, { "href": "[[AwsDocsUrlPrefix]]/apigateway/latest/developerguide/restapi-method-{rel}.html",
+//    "name": "method", "templated": true }, { "href": "[[AwsDocsUrlPrefix]]/apigateway/latest/developerguide/restapi-method-response-{rel}.html",
 //    "name": "methodresponse", "templated": true } ], "self": { "href": "/restapis/fugvjdxtri/resources/3kzxbg5sa2/methods/GET",
 //    "name": "GET", "title": "GET" }, "integration:put": { "href": "/restapis/fugvjdxtri/resources/3kzxbg5sa2/methods/GET/integration"
 //    }, "method:delete": { "href": "/restapis/fugvjdxtri/resources/3kzxbg5sa2/methods/GET"
@@ -19627,10 +19645,10 @@ func (s *IntegrationResponse) SetStatusCode(v string) *IntegrationResponse {
 // In the example above, the response template for the 200 OK response maps
 // the JSON output from the ListStreams action in the back end to an XML output.
 // The mapping template is URL-encoded as %3CkinesisStreams%3E%23foreach(%24stream%20in%20%24input.path(%27%24.StreamNames%27))%3Cstream%3E%3Cname%3E%24stream%3C%2Fname%3E%3C%2Fstream%3E%23end%3C%2FkinesisStreams%3E
-// and the output is decoded using the $util.urlDecode() (http://docs.aws.amazon.com/apigateway/latest/developerguide/api-gateway-mapping-template-reference.html#util-templat-reference)
+// and the output is decoded using the $util.urlDecode() ([[AwsDocsUrlPrefix]]/apigateway/latest/developerguide/api-gateway-mapping-template-reference.html#util-templat-reference)
 // helper function.
 //
-// MethodResponse, Integration, IntegrationResponse, Resource, Set up an API's method (http://docs.aws.amazon.com/apigateway/latest/developerguide/how-to-method-settings.html)
+// MethodResponse, Integration, IntegrationResponse, Resource, Set up an API's method ([[AwsDocsUrlPrefix]]/apigateway/latest/developerguide/how-to-method-settings.html)
 type Method struct {
 	_ struct{} `type:"structure"`
 
@@ -19676,8 +19694,8 @@ type Method struct {
 	//
 	// The successful response returns a 200 OKstatus code and a payload similar to the following:
 	//
-	// { "_links": { "curies": [ { "href": "http://docs.aws.amazon.com/apigateway/latest/developerguide/restapi-integration-{rel}.html",
-	// "name": "integration", "templated": true }, { "href": "http://docs.aws.amazon.com/apigateway/latest/developerguide/restapi-integration-response-{rel}.html",
+	// { "_links": { "curies": [ { "href": "[[AwsDocsUrlPrefix]]/apigateway/latest/developerguide/restapi-integration-{rel}.html",
+	// "name": "integration", "templated": true }, { "href": "[[AwsDocsUrlPrefix]]/apigateway/latest/developerguide/restapi-integration-response-{rel}.html",
 	// "name": "integrationresponse", "templated": true } ], "self": { "href": "/restapis/uojnr9hd57/resources/0cjtch/methods/GET/integration"
 	// }, "integration:delete": { "href": "/restapis/uojnr9hd57/resources/0cjtch/methods/GET/integration"
 	// }, "integration:responses": { "href": "/restapis/uojnr9hd57/resources/0cjtch/methods/GET/integration/responses/200",
@@ -19722,7 +19740,7 @@ type Method struct {
 	// The successful response returns a 200 OK status code and a payload similar
 	// to the following:
 	//
-	//    { "_links": { "curies": { "href": "http://docs.aws.amazon.com/apigateway/latest/developerguide/restapi-method-response-{rel}.html",
+	//    { "_links": { "curies": { "href": "[[AwsDocsUrlPrefix]]/apigateway/latest/developerguide/restapi-method-response-{rel}.html",
 	//    "name": "methodresponse", "templated": true }, "self": { "href": "/restapis/uojnr9hd57/resources/0cjtch/methods/GET/responses/200",
 	//    "title": "200" }, "methodresponse:delete": { "href": "/restapis/uojnr9hd57/resources/0cjtch/methods/GET/responses/200"
 	//    }, "methodresponse:update": { "href": "/restapis/uojnr9hd57/resources/0cjtch/methods/GET/responses/200"
@@ -19734,7 +19752,7 @@ type Method struct {
 
 	// A human-friendly operation identifier for the method. For example, you can
 	// assign the operationName of ListPets for the GET /pets method in PetStore
-	// (http://petstore-demo-endpoint.execute-api.com/petstore/pets) example.
+	// ([[PetstoreDemoUrl]]) example.
 	OperationName *string `locationName:"operationName" type:"string"`
 
 	// A key-value map specifying data schemas, represented by Model resources,
@@ -19850,7 +19868,7 @@ func (s *Method) SetRequestValidatorId(v string) *Method {
 //
 // The successful response returns 200 OK status and a payload as follows:
 //
-//    { "_links": { "curies": { "href": "http://docs.aws.amazon.com/apigateway/latest/developerguide/restapi-method-response-{rel}.html",
+//    { "_links": { "curies": { "href": "[[AwsDocsUrlPrefix]]/apigateway/latest/developerguide/restapi-method-response-{rel}.html",
 //    "name": "methodresponse", "templated": true }, "self": { "href": "/restapis/fugvjdxtri/resources/3kzxbg5sa2/methods/GET/responses/200",
 //    "title": "200" }, "methodresponse:delete": { "href": "/restapis/fugvjdxtri/resources/3kzxbg5sa2/methods/GET/responses/200"
 //    }, "methodresponse:update": { "href": "/restapis/fugvjdxtri/resources/3kzxbg5sa2/methods/GET/responses/200"
@@ -19932,12 +19950,12 @@ type MethodSetting struct {
 	// the value is a Boolean.
 	CachingEnabled *bool `locationName:"cachingEnabled" type:"boolean"`
 
-	// Specifies whether data trace logging is enabled for this method, which effects
+	// Specifies whether data trace logging is enabled for this method, which affects
 	// the log entries pushed to Amazon CloudWatch Logs. The PATCH path for this
 	// setting is /{method_setting_key}/logging/dataTrace, and the value is a Boolean.
 	DataTraceEnabled *bool `locationName:"dataTraceEnabled" type:"boolean"`
 
-	// Specifies the logging level for this method, which effects the log entries
+	// Specifies the logging level for this method, which affects the log entries
 	// pushed to Amazon CloudWatch Logs. The PATCH path for this setting is /{method_setting_key}/logging/loglevel,
 	// and the available levels are OFF, ERROR, and INFO.
 	LoggingLevel *string `locationName:"loggingLevel" type:"string"`
@@ -20082,7 +20100,7 @@ func (s *MethodSnapshot) SetAuthorizationType(v string) *MethodSnapshot {
 // A model is used for generating an API's SDK, validating the input request
 // body, and creating a skeletal mapping template.
 //
-// Method, MethodResponse, Models and Mappings (http://docs.aws.amazon.com/apigateway/latest/developerguide/models-mappings.html)
+// Method, MethodResponse, Models and Mappings ([[AwsDocsUrlPrefix]]/apigateway/latest/developerguide/models-mappings.html)
 type Model struct {
 	_ struct{} `type:"structure"`
 
@@ -20099,11 +20117,11 @@ type Model struct {
 	Name *string `locationName:"name" type:"string"`
 
 	// The schema for the model. For application/json models, this should be JSON
-	// schema draft 4 (https://tools.ietf.org/html/draft-zyp-json-schema-04) model.
-	// Do not include "\*/" characters in the description of any properties because
-	// such "\*/" characters may be interpreted as the closing marker for comments
-	// in some languages, such as Java or JavaScript, causing the installation of
-	// your API's SDK generated by API Gateway to fail.
+	// schema draft 4 ([[JsonSchemaUrl]]) model. Do not include "\*/" characters
+	// in the description of any properties because such "\*/" characters may be
+	// interpreted as the closing marker for comments in some languages, such as
+	// Java or JavaScript, causing the installation of your API's SDK generated
+	// by API Gateway to fail.
 	Schema *string `locationName:"schema" type:"string"`
 }
 
@@ -20167,7 +20185,7 @@ type PatchOperation struct {
 	// an error message.
 	Op *string `locationName:"op" type:"string" enum:"Op"`
 
-	// The op operation's target, as identified by a JSON Pointer (https://tools.ietf.org/html/draft-ietf-appsawg-json-pointer-08)
+	// The op operation's target, as identified by a JSON Pointer ([[JsonPointerRefUrl]])
 	// value that references a location within the targeted resource. For example,
 	// if the target resource has an updateable property of {"name":"value"}, the
 	// path for this property is /name. If the name property value is a JSON object
@@ -20180,7 +20198,7 @@ type PatchOperation struct {
 	// The new target value of the update operation. It is applicable for the add
 	// or replace operation. When using AWS CLI to update a property of a JSON value,
 	// enclose the JSON object with a pair of single quotes in a Linux shell, e.g.,
-	// '{"a": ...}'. In a Windows shell, see Using JSON for Parameters (http://docs.aws.amazon.com/cli/latest/userguide/cli-using-param.html#cli-using-param-json).
+	// '{"a": ...}'. In a Windows shell, see Using JSON for Parameters ([[AwsDocsUrlPrefix]]/cli/latest/userguide/cli-using-param.html#cli-using-param-json).
 	Value *string `locationName:"value" type:"string"`
 }
 
@@ -20331,7 +20349,7 @@ type PutIntegrationInput struct {
 	// Specifies a put integration input's cache namespace.
 	CacheNamespace *string `locationName:"cacheNamespace" type:"string"`
 
-	// The (id (http://docs.aws.amazon.com/apigateway/api-reference/resource/vpc-link/#id))
+	// The (id ([[AwsDocsUrlPrefix]]/apigateway/api-reference/resource/vpc-link/#id))
 	// of the VpcLink used for the integration when connectionType=VPC_LINK and
 	// undefined, otherwise.
 	ConnectionId *string `locationName:"connectionId" type:"string"`
@@ -20436,7 +20454,7 @@ type PutIntegrationInput struct {
 	//    Alternatively, path can be used for an AWS service path-based API. The
 	//    ensuing service_api refers to the path to an AWS service resource, including
 	//    the region of the integrated AWS service, if applicable. For example,
-	//    for integration with the S3 API of GetObject (http://docs.aws.amazon.com/AmazonS3/latest/API/RESTObjectGET.html),
+	//    for integration with the S3 API of GetObject ([[AwsDocsUrlPrefix]]/AmazonS3/latest/API/RESTObjectGET.html),
 	//    the uri can be either arn:aws:apigateway:us-west-2:s3:action/GetObject&Bucket={bucket}&Key={key}
 	//    or arn:aws:apigateway:us-west-2:s3:path/{bucket}/{key}
 	Uri *string `locationName:"uri" type:"string"`
@@ -20743,7 +20761,7 @@ type PutMethodInput struct {
 
 	// A human-friendly operation identifier for the method. For example, you can
 	// assign the operationName of ListPets for the GET /pets method in PetStore
-	// (http://petstore-demo-endpoint.execute-api.com/petstore/pets) example.
+	// ([[PetstoreDemoUrl]]) example.
 	OperationName *string `locationName:"operationName" type:"string"`
 
 	// Specifies the Model resources used for the request's content type. Request
@@ -21118,7 +21136,7 @@ func (s *QuotaSettings) SetPeriod(v string) *QuotaSettings {
 
 // Represents an API resource.
 //
-// Create an API (http://docs.aws.amazon.com/apigateway/latest/developerguide/how-to-create-api.html)
+// Create an API ([[AwsDocsUrlPrefix]]/apigateway/latest/developerguide/how-to-create-api.html)
 type Resource struct {
 	_ struct{} `type:"structure"`
 
@@ -21151,10 +21169,10 @@ type Resource struct {
 	// SignedHeaders=content-type;host;x-amz-date, Signature={sig4_hash}
 	// Response
 	//
-	// { "_links": { "curies": [ { "href": "http://docs.aws.amazon.com/apigateway/latest/developerguide/restapi-integration-{rel}.html",
-	// "name": "integration", "templated": true }, { "href": "http://docs.aws.amazon.com/apigateway/latest/developerguide/restapi-integration-response-{rel}.html",
-	// "name": "integrationresponse", "templated": true }, { "href": "http://docs.aws.amazon.com/apigateway/latest/developerguide/restapi-method-{rel}.html",
-	// "name": "method", "templated": true }, { "href": "http://docs.aws.amazon.com/apigateway/latest/developerguide/restapi-method-response-{rel}.html",
+	// { "_links": { "curies": [ { "href": "[[AwsDocsUrlPrefix]]/apigateway/latest/developerguide/restapi-integration-{rel}.html",
+	// "name": "integration", "templated": true }, { "href": "[[AwsDocsUrlPrefix]]/apigateway/latest/developerguide/restapi-integration-response-{rel}.html",
+	// "name": "integrationresponse", "templated": true }, { "href": "[[AwsDocsUrlPrefix]]/apigateway/latest/developerguide/restapi-method-{rel}.html",
+	// "name": "method", "templated": true }, { "href": "[[AwsDocsUrlPrefix]]/apigateway/latest/developerguide/restapi-method-response-{rel}.html",
 	// "name": "methodresponse", "templated": true } ], "self": { "href": "/restapis/fugvjdxtri/resources/3kzxbg5sa2/methods/GET",
 	// "name": "GET", "title": "GET" }, "integration:put": { "href": "/restapis/fugvjdxtri/resources/3kzxbg5sa2/methods/GET/integration"
 	// }, "method:delete": { "href": "/restapis/fugvjdxtri/resources/3kzxbg5sa2/methods/GET"
@@ -21236,7 +21254,7 @@ func (s *Resource) SetResourceMethods(v map[string]*Method) *Resource {
 
 // Represents a REST API.
 //
-// Create an API (http://docs.aws.amazon.com/apigateway/latest/developerguide/how-to-create-api.html)
+// Create an API ([[AwsDocsUrlPrefix]]/apigateway/latest/developerguide/how-to-create-api.html)
 type RestApi struct {
 	_ struct{} `type:"structure"`
 
@@ -21478,7 +21496,7 @@ func (s *SdkType) SetId(v string) *SdkType {
 // Represents a unique identifier for a version of a deployed RestApi that is
 // callable by users.
 //
-// Deploy an API (http://docs.aws.amazon.com/apigateway/latest/developerguide/how-to-deploy-api.html)
+// Deploy an API ([[AwsDocsUrlPrefix]]/apigateway/latest/developerguide/how-to-deploy-api.html)
 type Stage struct {
 	_ struct{} `type:"structure"`
 
@@ -21527,6 +21545,9 @@ type Stage struct {
 
 	// The collection of tags. Each tag element is associated with a given resource.
 	Tags map[string]*string `locationName:"tags" type:"map"`
+
+	// Specifies whether active tracing with X-ray is enabled for the Stage.
+	TracingEnabled *bool `locationName:"tracingEnabled" type:"boolean"`
 
 	// A map that defines the stage variables for a Stage resource. Variable names
 	// can have alphanumeric and underscore characters, and the values must match
@@ -21625,6 +21646,12 @@ func (s *Stage) SetStageName(v string) *Stage {
 // SetTags sets the Tags field's value.
 func (s *Stage) SetTags(v map[string]*string) *Stage {
 	s.Tags = v
+	return s
+}
+
+// SetTracingEnabled sets the TracingEnabled field's value.
+func (s *Stage) SetTracingEnabled(v bool) *Stage {
+	s.TracingEnabled = &v
 	return s
 }
 
@@ -21757,6 +21784,11 @@ type TestInvokeAuthorizerInput struct {
 	// should be specified.
 	Headers map[string]*string `locationName:"headers" type:"map"`
 
+	// [Optional] The headers as a map from string to list of values to simulate
+	// an incoming invocation request. This is where the incoming authorization
+	// token, or identity source, may be specified.
+	MultiValueHeaders map[string][]*string `locationName:"multiValueHeaders" type:"map"`
+
 	// [Optional] The URI path, including query string, of the simulated invocation
 	// request. Use this to specify path parameters and query string parameters.
 	PathWithQueryString *string `locationName:"pathWithQueryString" type:"string"`
@@ -21821,6 +21853,12 @@ func (s *TestInvokeAuthorizerInput) SetHeaders(v map[string]*string) *TestInvoke
 	return s
 }
 
+// SetMultiValueHeaders sets the MultiValueHeaders field's value.
+func (s *TestInvokeAuthorizerInput) SetMultiValueHeaders(v map[string][]*string) *TestInvokeAuthorizerInput {
+	s.MultiValueHeaders = v
+	return s
+}
+
 // SetPathWithQueryString sets the PathWithQueryString field's value.
 func (s *TestInvokeAuthorizerInput) SetPathWithQueryString(v string) *TestInvokeAuthorizerInput {
 	s.PathWithQueryString = &v
@@ -21845,9 +21883,8 @@ type TestInvokeAuthorizerOutput struct {
 
 	Authorization map[string][]*string `locationName:"authorization" type:"map"`
 
-	// The open identity claims (http://openid.net/specs/openid-connect-core-1_0.html#StandardClaims),
-	// with any supported custom attributes, returned from the Cognito Your User
-	// Pool configured for the API.
+	// The open identity claims ([[OpenIdClaimsUrl]]), with any supported custom
+	// attributes, returned from the Cognito Your User Pool configured for the API.
 	Claims map[string]*string `locationName:"claims" type:"map"`
 
 	// The HTTP status code that the client would have received. Value is 0 if the
@@ -21939,6 +21976,10 @@ type TestInvokeMethodInput struct {
 	// HttpMethod is a required field
 	HttpMethod *string `location:"uri" locationName:"http_method" type:"string" required:"true"`
 
+	// The headers as a map from string to list of values to simulate an incoming
+	// invocation request.
+	MultiValueHeaders map[string][]*string `locationName:"multiValueHeaders" type:"map"`
+
 	// The URI path, including query string, of the simulated invocation request.
 	// Use this to specify path parameters and query string parameters.
 	PathWithQueryString *string `locationName:"pathWithQueryString" type:"string"`
@@ -22011,6 +22052,12 @@ func (s *TestInvokeMethodInput) SetHttpMethod(v string) *TestInvokeMethodInput {
 	return s
 }
 
+// SetMultiValueHeaders sets the MultiValueHeaders field's value.
+func (s *TestInvokeMethodInput) SetMultiValueHeaders(v map[string][]*string) *TestInvokeMethodInput {
+	s.MultiValueHeaders = v
+	return s
+}
+
 // SetPathWithQueryString sets the PathWithQueryString field's value.
 func (s *TestInvokeMethodInput) SetPathWithQueryString(v string) *TestInvokeMethodInput {
 	s.PathWithQueryString = &v
@@ -22037,7 +22084,7 @@ func (s *TestInvokeMethodInput) SetStageVariables(v map[string]*string) *TestInv
 
 // Represents the response of the test invoke request in the HTTP method.
 //
-// Test API using the API Gateway console (http://docs.aws.amazon.com/apigateway/latest/developerguide/how-to-test-method.html#how-to-test-method-console)
+// Test API using the API Gateway console ([[AwsDocsUrlPrefix]]/apigateway/latest/developerguide/how-to-test-method.html#how-to-test-method-console)
 type TestInvokeMethodOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -22052,6 +22099,9 @@ type TestInvokeMethodOutput struct {
 
 	// The API Gateway execution log for the test invoke request.
 	Log *string `locationName:"log" type:"string"`
+
+	// The headers of the HTTP response as a map from string to list of values.
+	MultiValueHeaders map[string][]*string `locationName:"multiValueHeaders" type:"map"`
 
 	// The HTTP status code.
 	Status *int64 `locationName:"status" type:"integer"`
@@ -22088,6 +22138,12 @@ func (s *TestInvokeMethodOutput) SetLatency(v int64) *TestInvokeMethodOutput {
 // SetLog sets the Log field's value.
 func (s *TestInvokeMethodOutput) SetLog(v string) *TestInvokeMethodOutput {
 	s.Log = &v
+	return s
+}
+
+// SetMultiValueHeaders sets the MultiValueHeaders field's value.
+func (s *TestInvokeMethodOutput) SetMultiValueHeaders(v map[string][]*string) *TestInvokeMethodOutput {
+	s.MultiValueHeaders = v
 	return s
 }
 
@@ -22775,7 +22831,7 @@ func (s *UpdateGatewayResponseInput) SetRestApiId(v string) *UpdateGatewayRespon
 // response parameters and mapping templates.
 //
 // For more information about valid gateway response types, see Gateway Response
-// Types Supported by API Gateway (http://docs.aws.amazon.com/apigateway/latest/developerguide/supported-gateway-response-types.html)Example:
+// Types Supported by API Gateway ([[AwsDocsUrlPrefix]]/apigateway/latest/developerguide/supported-gateway-response-types.html)Example:
 // Get a Gateway Response of a given response type
 //
 // Request
@@ -22811,7 +22867,7 @@ func (s *UpdateGatewayResponseInput) SetRestApiId(v string) *UpdateGatewayRespon
 // \"statusCode\": \"'404'\"\n}" }, "responseType": "MISSING_AUTHENTICATION_TOKEN",
 // "statusCode": "404" }
 //
-// Customize Gateway Responses (http://docs.aws.amazon.com/apigateway/latest/developerguide/customize-gateway-responses.html)
+// Customize Gateway Responses ([[AwsDocsUrlPrefix]]/apigateway/latest/developerguide/customize-gateway-responses.html)
 type UpdateGatewayResponseOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -23360,12 +23416,12 @@ func (s *UpdateRequestValidatorInput) SetRestApiId(v string) *UpdateRequestValid
 // A set of validation rules for incoming Method requests.
 //
 // In Swagger, a RequestValidator of an API is defined by the x-amazon-apigateway-request-validators.requestValidator
-// (http://docs.aws.amazon.com/apigateway/latest/developerguide/api-gateway-swagger-extensions.html#api-gateway-swagger-extensions-request-validators.requestValidator.html)
+// ([[AwsDocsUrlPrefix]]/apigateway/latest/developerguide/api-gateway-swagger-extensions.html#api-gateway-swagger-extensions-request-validators.requestValidator.html)
 // object. It the referenced using the x-amazon-apigateway-request-validator
-// (http://docs.aws.amazon.com/apigateway/latest/developerguide/api-gateway-swagger-extensions.html#api-gateway-swagger-extensions-request-validator)
+// ([[AwsDocsUrlPrefix]]/apigateway/latest/developerguide/api-gateway-swagger-extensions.html#api-gateway-swagger-extensions-request-validator)
 // property.
 //
-// Enable Basic Request Validation in API Gateway (http://docs.aws.amazon.com/apigateway/latest/developerguide/api-gateway-method-request-validation.html)
+// Enable Basic Request Validation in API Gateway ([[AwsDocsUrlPrefix]]/apigateway/latest/developerguide/api-gateway-method-request-validation.html)
 type UpdateRequestValidatorOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -23841,7 +23897,7 @@ func (s *UpdateVpcLinkOutput) SetTargetArns(v []*string) *UpdateVpcLinkOutput {
 
 // Represents the usage data of a usage plan.
 //
-// Create and Use Usage Plans (http://docs.aws.amazon.com/apigateway/latest/developerguide/api-gateway-api-usage-plans.html), Manage Usage in a Usage Plan (http://docs.aws.amazon.com/apigateway/latest/developerguide/api-gateway-create-usage-plans-with-console.html#api-gateway-usage-plan-manage-usage)
+// Create and Use Usage Plans ([[AwsDocsUrlPrefix]]/apigateway/latest/developerguide/api-gateway-api-usage-plans.html), Manage Usage in a Usage Plan ([[AwsDocsUrlPrefix]]/apigateway/latest/developerguide/api-gateway-create-usage-plans-with-console.html#api-gateway-usage-plan-manage-usage)
 type Usage struct {
 	_ struct{} `type:"structure"`
 
@@ -23911,7 +23967,7 @@ func (s *Usage) SetUsagePlanId(v string) *Usage {
 // name of the specified API. You add plan customers by adding API keys to the
 // plan.
 //
-// Create and Use Usage Plans (http://docs.aws.amazon.com/apigateway/latest/developerguide/api-gateway-api-usage-plans.html)
+// Create and Use Usage Plans ([[AwsDocsUrlPrefix]]/apigateway/latest/developerguide/api-gateway-api-usage-plans.html)
 type UsagePlan struct {
 	_ struct{} `type:"structure"`
 
@@ -23995,7 +24051,7 @@ func (s *UsagePlan) SetThrottle(v *ThrottleSettings) *UsagePlan {
 // To associate an API stage with a selected API key in a usage plan, you must
 // create a UsagePlanKey resource to represent the selected ApiKey.
 //
-// " Create and Use Usage Plans (http://docs.aws.amazon.com/apigateway/latest/developerguide/api-gateway-api-usage-plans.html)
+// " Create and Use Usage Plans ([[AwsDocsUrlPrefix]]/apigateway/latest/developerguide/api-gateway-api-usage-plans.html)
 type UsagePlanKey struct {
 	_ struct{} `type:"structure"`
 

@@ -106,7 +106,7 @@ func resourceAwsSsmParameterRead(d *schema.ResourceData, meta interface{}) error
 
 	describeParamsInput := &ssm.DescribeParametersInput{
 		ParameterFilters: []*ssm.ParameterStringFilter{
-			&ssm.ParameterStringFilter{
+			{
 				Key:    aws.String("Name"),
 				Option: aws.String("Equals"),
 				Values: []*string{aws.String(d.Get("name").(string))},

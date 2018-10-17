@@ -7,5 +7,5 @@ resource "aws_instance" "test" {
 }
 
 resource "aws_instance" "dependent" {
-  count = "${aws_instance.test.count}"
+  count = "${length(aws_instance.test)}"
 }

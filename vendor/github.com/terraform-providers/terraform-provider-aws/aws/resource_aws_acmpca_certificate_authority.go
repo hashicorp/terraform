@@ -284,7 +284,7 @@ func resourceAwsAcmpcaCertificateAuthorityCreate(d *schema.ResourceData, meta in
 	if v, ok := d.GetOk("tags"); ok {
 		input := &acmpca.TagCertificateAuthorityInput{
 			CertificateAuthorityArn: aws.String(d.Id()),
-			Tags: tagsFromMapACMPCA(v.(map[string]interface{})),
+			Tags:                    tagsFromMapACMPCA(v.(map[string]interface{})),
 		}
 
 		log.Printf("[DEBUG] Tagging ACMPCA Certificate Authority: %s", input)
@@ -458,7 +458,7 @@ func resourceAwsAcmpcaCertificateAuthorityUpdate(d *schema.ResourceData, meta in
 			log.Printf("[DEBUG] Removing ACMPCA Certificate Authority %q tags: %#v", d.Id(), remove)
 			_, err := conn.UntagCertificateAuthority(&acmpca.UntagCertificateAuthorityInput{
 				CertificateAuthorityArn: aws.String(d.Id()),
-				Tags: remove,
+				Tags:                    remove,
 			})
 			if err != nil {
 				return fmt.Errorf("error updating ACMPCA Certificate Authority %q tags: %s", d.Id(), err)
@@ -468,7 +468,7 @@ func resourceAwsAcmpcaCertificateAuthorityUpdate(d *schema.ResourceData, meta in
 			log.Printf("[DEBUG] Creating ACMPCA Certificate Authority %q tags: %#v", d.Id(), create)
 			_, err := conn.TagCertificateAuthority(&acmpca.TagCertificateAuthorityInput{
 				CertificateAuthorityArn: aws.String(d.Id()),
-				Tags: create,
+				Tags:                    create,
 			})
 			if err != nil {
 				return fmt.Errorf("error updating ACMPCA Certificate Authority %q tags: %s", d.Id(), err)

@@ -189,7 +189,7 @@ func resourceAwsCustomerGatewayRead(d *schema.ResourceData, meta interface{}) er
 	}
 
 	if len(resp.CustomerGateways) != 1 {
-		return fmt.Errorf("[ERROR] Error finding CustomerGateway: %s", d.Id())
+		return fmt.Errorf("Error finding CustomerGateway: %s", d.Id())
 	}
 
 	if *resp.CustomerGateways[0].State == "deleted" {
@@ -261,16 +261,16 @@ func resourceAwsCustomerGatewayDelete(d *schema.ResourceData, meta interface{}) 
 		}
 
 		if len(resp.CustomerGateways) != 1 {
-			return resource.RetryableError(fmt.Errorf("[ERROR] Error finding CustomerGateway for delete: %s", d.Id()))
+			return resource.RetryableError(fmt.Errorf("Error finding CustomerGateway for delete: %s", d.Id()))
 		}
 
 		switch *resp.CustomerGateways[0].State {
 		case "pending", "available", "deleting":
-			return resource.RetryableError(fmt.Errorf("[DEBUG] Gateway (%s) in state (%s), retrying", d.Id(), *resp.CustomerGateways[0].State))
+			return resource.RetryableError(fmt.Errorf("Gateway (%s) in state (%s), retrying", d.Id(), *resp.CustomerGateways[0].State))
 		case "deleted":
 			return nil
 		default:
-			return resource.RetryableError(fmt.Errorf("[DEBUG] Unrecognized state (%s) for Customer Gateway delete on (%s)", *resp.CustomerGateways[0].State, d.Id()))
+			return resource.RetryableError(fmt.Errorf("Unrecognized state (%s) for Customer Gateway delete on (%s)", *resp.CustomerGateways[0].State, d.Id()))
 		}
 	})
 

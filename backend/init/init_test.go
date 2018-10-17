@@ -16,53 +16,31 @@ func TestInit_backend(t *testing.T) {
 		Name string
 		Type string
 	}{
-		{
-			"local",
-			"*local.Local",
-		}, {
-			"remote",
-			"*remote.Remote",
-		}, {
-			"atlas",
-			"*atlas.Backend",
-		}, {
-			"azurerm",
-			"*azure.Backend",
-		}, {
-			"consul",
-			"*consul.Backend",
-		}, {
-			"etcdv3",
-			"*etcd.Backend",
-		}, {
-			"gcs",
-			"*gcs.Backend",
-		}, {
-			"inmem",
-			"*inmem.Backend",
-		}, {
-			"manta",
-			"*manta.Backend",
-		}, {
-			"s3",
-			"*s3.Backend",
-		}, {
-			"swift",
-			"*swift.Backend",
-		}, {
-			"azure",
-			"init.deprecatedBackendShim",
-		},
+		{"local", "*local.Local"},
+		{"atlas", "*atlas.Backend"},
+		{"azurerm", "*azure.Backend"},
+		{"consul", "*consul.Backend"},
+		{"etcdv3", "*etcd.Backend"},
+		{"gcs", "*gcs.Backend"},
+		{"inmem", "*inmem.Backend"},
+		{"manta", "*manta.Backend"},
+		{"s3", "*s3.Backend"},
+		{"swift", "*swift.Backend"},
+		{"azure", "init.deprecatedBackendShim"},
 	}
 
 	// Make sure we get the requested backend
 	for _, b := range backends {
-		f := Backend(b.Name)
-		bType := reflect.TypeOf(f()).String()
-
-		if bType != b.Type {
-			t.Fatalf("expected backend %q to be %q, got: %q", b.Name, b.Type, bType)
-		}
+		t.Run(b.Name, func(t *testing.T) {
+			f := Backend(b.Name)
+			if f == nil {
+				t.Fatalf("backend %q is not present; should be", b.Name)
+			}
+			bType := reflect.TypeOf(f()).String()
+			if bType != b.Type {
+				t.Fatalf("expected backend %q to be %q, got: %q", b.Name, b.Type, bType)
+			}
+		})
 	}
 }
 
@@ -74,13 +52,7 @@ func TestInit_forceLocalBackend(t *testing.T) {
 		Name string
 		Type string
 	}{
-		{
-			"local",
-			"nil",
-		}, {
-			"remote",
-			"*remote.Remote",
-		},
+		{"local", "nil"},
 	}
 
 	// Set the TF_FORCE_LOCAL_BACKEND flag so all enhanced backends will
@@ -88,6 +60,7 @@ func TestInit_forceLocalBackend(t *testing.T) {
 	if err := os.Setenv("TF_FORCE_LOCAL_BACKEND", "1"); err != nil {
 		t.Fatalf("error setting environment variable TF_FORCE_LOCAL_BACKEND: %v", err)
 	}
+	defer os.Unsetenv("TF_FORCE_LOCAL_BACKEND")
 
 	// Make sure we always get the local backend.
 	for _, b := range enhancedBackends {

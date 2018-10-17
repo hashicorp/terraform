@@ -345,13 +345,13 @@ func (lt *opsworksLayerType) Create(d *schema.ResourceData, client *opsworks.Ops
 		EnableAutoHealing:           aws.Bool(d.Get("auto_healing").(bool)),
 		InstallUpdatesOnBoot:        aws.Bool(d.Get("install_updates_on_boot").(bool)),
 		LifecycleEventConfiguration: lt.LifecycleEventConfiguration(d),
-		Name:                     aws.String(d.Get("name").(string)),
-		Packages:                 expandStringSet(d.Get("system_packages").(*schema.Set)),
-		Type:                     aws.String(lt.TypeName),
-		StackId:                  aws.String(d.Get("stack_id").(string)),
-		UseEbsOptimizedInstances: aws.Bool(d.Get("use_ebs_optimized_instances").(bool)),
-		Attributes:               lt.AttributeMap(d),
-		VolumeConfigurations:     lt.VolumeConfigurations(d),
+		Name:                        aws.String(d.Get("name").(string)),
+		Packages:                    expandStringSet(d.Get("system_packages").(*schema.Set)),
+		Type:                        aws.String(lt.TypeName),
+		StackId:                     aws.String(d.Get("stack_id").(string)),
+		UseEbsOptimizedInstances:    aws.Bool(d.Get("use_ebs_optimized_instances").(bool)),
+		Attributes:                  lt.AttributeMap(d),
+		VolumeConfigurations:        lt.VolumeConfigurations(d),
 	}
 
 	if lt.CustomShortName {
@@ -399,11 +399,11 @@ func (lt *opsworksLayerType) Update(d *schema.ResourceData, client *opsworks.Ops
 		EnableAutoHealing:           aws.Bool(d.Get("auto_healing").(bool)),
 		InstallUpdatesOnBoot:        aws.Bool(d.Get("install_updates_on_boot").(bool)),
 		LifecycleEventConfiguration: lt.LifecycleEventConfiguration(d),
-		Name:                     aws.String(d.Get("name").(string)),
-		Packages:                 expandStringSet(d.Get("system_packages").(*schema.Set)),
-		UseEbsOptimizedInstances: aws.Bool(d.Get("use_ebs_optimized_instances").(bool)),
-		Attributes:               lt.AttributeMap(d),
-		VolumeConfigurations:     lt.VolumeConfigurations(d),
+		Name:                        aws.String(d.Get("name").(string)),
+		Packages:                    expandStringSet(d.Get("system_packages").(*schema.Set)),
+		UseEbsOptimizedInstances:    aws.Bool(d.Get("use_ebs_optimized_instances").(bool)),
+		Attributes:                  lt.AttributeMap(d),
+		VolumeConfigurations:        lt.VolumeConfigurations(d),
 	}
 
 	if lt.CustomShortName {

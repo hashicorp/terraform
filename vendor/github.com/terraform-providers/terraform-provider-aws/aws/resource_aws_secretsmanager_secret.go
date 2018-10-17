@@ -10,7 +10,6 @@ import (
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/helper/structure"
-	"github.com/hashicorp/terraform/helper/validation"
 )
 
 func resourceAwsSecretsManagerSecret() *schema.Resource {
@@ -48,10 +47,20 @@ func resourceAwsSecretsManagerSecret() *schema.Resource {
 				DiffSuppressFunc: suppressEquivalentAwsPolicyDiffs,
 			},
 			"recovery_window_in_days": {
-				Type:         schema.TypeInt,
-				Optional:     true,
-				Default:      30,
-				ValidateFunc: validation.IntBetween(7, 30),
+				Type:     schema.TypeInt,
+				Optional: true,
+				Default:  30,
+				ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
+					value := v.(int)
+					if value == 0 {
+						return
+					}
+					if value >= 7 && value <= 30 {
+						return
+					}
+					errors = append(errors, fmt.Errorf("%q must be 0 or between 7 and 30", k))
+					return
+				},
 			},
 			"rotation_enabled": {
 				Type:     schema.TypeBool,
@@ -92,7 +101,21 @@ func resourceAwsSecretsManagerSecretCreate(d *schema.ResourceData, meta interfac
 	}
 
 	log.Printf("[DEBUG] Creating Secrets Manager Secret: %s", input)
-	output, err := conn.CreateSecret(input)
+
+	// Retry for secret recreation after deletion
+	var output *secretsmanager.CreateSecretOutput
+	err := resource.Retry(2*time.Minute, func() *resource.RetryError {
+		var err error
+		output, err = conn.CreateSecret(input)
+		// InvalidRequestException: You can’t perform this operation on the secret because it was deleted.
+		if isAWSErr(err, secretsmanager.ErrCodeInvalidRequestException, "You can’t perform this operation on the secret because it was deleted") {
+			return resource.RetryableError(err)
+		}
+		if err != nil {
+			return resource.NonRetryableError(err)
+		}
+		return nil
+	})
 	if err != nil {
 		return fmt.Errorf("error creating Secrets Manager Secret: %s", err)
 	}
@@ -336,8 +359,14 @@ func resourceAwsSecretsManagerSecretDelete(d *schema.ResourceData, meta interfac
 	conn := meta.(*AWSClient).secretsmanagerconn
 
 	input := &secretsmanager.DeleteSecretInput{
-		RecoveryWindowInDays: aws.Int64(int64(d.Get("recovery_window_in_days").(int))),
-		SecretId:             aws.String(d.Id()),
+		SecretId: aws.String(d.Id()),
+	}
+
+	recoveryWindowInDays := d.Get("recovery_window_in_days").(int)
+	if recoveryWindowInDays == 0 {
+		input.ForceDeleteWithoutRecovery = aws.Bool(true)
+	} else {
+		input.RecoveryWindowInDays = aws.Int64(int64(recoveryWindowInDays))
 	}
 
 	log.Printf("[DEBUG] Deleting Secrets Manager Secret: %s", input)

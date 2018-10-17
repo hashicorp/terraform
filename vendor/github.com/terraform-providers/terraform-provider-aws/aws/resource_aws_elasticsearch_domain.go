@@ -11,7 +11,6 @@ import (
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	elasticsearch "github.com/aws/aws-sdk-go/service/elasticsearchservice"
 	"github.com/aws/aws-sdk-go/service/iam"
-	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/helper/structure"
@@ -118,6 +117,21 @@ func resourceAwsElasticSearchDomain() *schema.Resource {
 					},
 				},
 			},
+			"node_to_node_encryption": {
+				Type:     schema.TypeList,
+				Optional: true,
+				Computed: true,
+				MaxItems: 1,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"enabled": {
+							Type:     schema.TypeBool,
+							Required: true,
+							ForceNew: true,
+						},
+					},
+				},
+			},
 			"cluster_config": {
 				Type:     schema.TypeList,
 				Optional: true,
@@ -125,8 +139,9 @@ func resourceAwsElasticSearchDomain() *schema.Resource {
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"dedicated_master_count": {
-							Type:     schema.TypeInt,
-							Optional: true,
+							Type:             schema.TypeInt,
+							Optional:         true,
+							DiffSuppressFunc: isDedicatedMasterDisabled,
 						},
 						"dedicated_master_enabled": {
 							Type:     schema.TypeBool,
@@ -134,8 +149,9 @@ func resourceAwsElasticSearchDomain() *schema.Resource {
 							Default:  false,
 						},
 						"dedicated_master_type": {
-							Type:     schema.TypeString,
-							Optional: true,
+							Type:             schema.TypeString,
+							Optional:         true,
+							DiffSuppressFunc: isDedicatedMasterDisabled,
 						},
 						"instance_count": {
 							Type:     schema.TypeInt,
@@ -157,6 +173,12 @@ func resourceAwsElasticSearchDomain() *schema.Resource {
 			"snapshot_options": {
 				Type:     schema.TypeList,
 				Optional: true,
+				DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
+					if old == "1" && new == "0" {
+						return true
+					}
+					return false
+				},
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"automated_snapshot_start_hour": {
@@ -209,6 +231,7 @@ func resourceAwsElasticSearchDomain() *schema.Resource {
 							ValidateFunc: validation.StringInSlice([]string{
 								elasticsearch.LogTypeIndexSlowLogs,
 								elasticsearch.LogTypeSearchSlowLogs,
+								elasticsearch.LogTypeEsApplicationLogs,
 							}, false),
 						},
 						"cloudwatch_log_group_arn": {
@@ -228,6 +251,34 @@ func resourceAwsElasticSearchDomain() *schema.Resource {
 				Optional: true,
 				Default:  "1.5",
 				ForceNew: true,
+			},
+			"cognito_options": {
+				Type:             schema.TypeList,
+				Optional:         true,
+				ForceNew:         false,
+				MaxItems:         1,
+				DiffSuppressFunc: esCognitoOptionsDiffSuppress,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"enabled": {
+							Type:     schema.TypeBool,
+							Optional: true,
+							Default:  false,
+						},
+						"user_pool_id": {
+							Type:     schema.TypeString,
+							Required: true,
+						},
+						"identity_pool_id": {
+							Type:     schema.TypeString,
+							Required: true,
+						},
+						"role_arn": {
+							Type:     schema.TypeString,
+							Required: true,
+						},
+					},
+				},
 			},
 
 			"tags": tagsSchema(),
@@ -282,7 +333,7 @@ func resourceAwsElasticSearchDomainCreate(d *schema.ResourceData, meta interface
 		DomainName: aws.String(d.Get("domain_name").(string)),
 	})
 	if err == nil {
-		return fmt.Errorf("ElasticSearch domain %q already exists", *resp.DomainStatus.DomainName)
+		return fmt.Errorf("ElasticSearch domain %s already exists", aws.StringValue(resp.DomainStatus.DomainName))
 	}
 
 	input := elasticsearch.CreateElasticsearchDomainInput{
@@ -337,6 +388,13 @@ func resourceAwsElasticSearchDomainCreate(d *schema.ResourceData, meta interface
 		}
 	}
 
+	if v, ok := d.GetOk("node_to_node_encryption"); ok {
+		options := v.([]interface{})
+
+		s := options[0].(map[string]interface{})
+		input.NodeToNodeEncryptionOptions = expandESNodeToNodeEncryptionOptions(s)
+	}
+
 	if v, ok := d.GetOk("snapshot_options"); ok {
 		options := v.([]interface{})
 
@@ -384,6 +442,10 @@ func resourceAwsElasticSearchDomainCreate(d *schema.ResourceData, meta interface
 		}
 	}
 
+	if v, ok := d.GetOk("cognito_options"); ok {
+		input.CognitoOptions = expandESCognitoOptions(v.([]interface{}))
+	}
+
 	log.Printf("[DEBUG] Creating ElasticSearch domain: %s", input)
 
 	// IAM Roles can take some time to propagate if set in AccessPolicies and created in the same terraform
@@ -393,13 +455,19 @@ func resourceAwsElasticSearchDomainCreate(d *schema.ResourceData, meta interface
 		out, err = conn.CreateElasticsearchDomain(&input)
 		if err != nil {
 			if isAWSErr(err, "InvalidTypeException", "Error setting policy") {
-				log.Printf("[DEBUG] Retrying creation of ElasticSearch domain %s", *input.DomainName)
+				log.Printf("[DEBUG] Retrying creation of ElasticSearch domain %s", aws.StringValue(input.DomainName))
 				return resource.RetryableError(err)
 			}
 			if isAWSErr(err, "ValidationException", "enable a service-linked role to give Amazon ES permissions") {
 				return resource.RetryableError(err)
 			}
 			if isAWSErr(err, "ValidationException", "Domain is still being deleted") {
+				return resource.RetryableError(err)
+			}
+			if isAWSErr(err, "ValidationException", "Amazon Elasticsearch must be allowed to use the passed role") {
+				return resource.RetryableError(err)
+			}
+			if isAWSErr(err, "ValidationException", "The passed role has not propagated yet") {
 				return resource.RetryableError(err)
 			}
 
@@ -412,7 +480,7 @@ func resourceAwsElasticSearchDomainCreate(d *schema.ResourceData, meta interface
 		return err
 	}
 
-	d.SetId(*out.DomainStatus.ARN)
+	d.SetId(aws.StringValue(out.DomainStatus.ARN))
 
 	// Whilst the domain is being created, we can initialise the tags.
 	// This should mean that if the creation fails (eg because your token expired
@@ -420,7 +488,7 @@ func resourceAwsElasticSearchDomainCreate(d *schema.ResourceData, meta interface
 	// the resources.
 	tags := tagsFromMapElasticsearchService(d.Get("tags").(map[string]interface{}))
 
-	if err := setTagsElasticsearchService(conn, d, *out.DomainStatus.ARN); err != nil {
+	if err := setTagsElasticsearchService(conn, d, aws.StringValue(out.DomainStatus.ARN)); err != nil {
 		return err
 	}
 
@@ -476,10 +544,10 @@ func resourceAwsElasticSearchDomainRead(d *schema.ResourceData, meta interface{}
 
 	ds := out.DomainStatus
 
-	if ds.AccessPolicies != nil && *ds.AccessPolicies != "" {
-		policies, err := structure.NormalizeJsonString(*ds.AccessPolicies)
+	if ds.AccessPolicies != nil && aws.StringValue(ds.AccessPolicies) != "" {
+		policies, err := structure.NormalizeJsonString(aws.StringValue(ds.AccessPolicies))
 		if err != nil {
-			return errwrap.Wrapf("access policies contain an invalid JSON: {{err}}", err)
+			return fmt.Errorf("access policies contain an invalid JSON: %s", err)
 		}
 		d.Set("access_policies", policies)
 	}
@@ -487,7 +555,7 @@ func resourceAwsElasticSearchDomainRead(d *schema.ResourceData, meta interface{}
 	if err != nil {
 		return err
 	}
-	d.SetId(*ds.ARN)
+	d.SetId(aws.StringValue(ds.ARN))
 	d.Set("domain_id", ds.DomainId)
 	d.Set("domain_name", ds.DomainName)
 	d.Set("elasticsearch_version", ds.ElasticsearchVersion)
@@ -504,11 +572,19 @@ func resourceAwsElasticSearchDomainRead(d *schema.ResourceData, meta interface{}
 	if err != nil {
 		return err
 	}
-	if ds.SnapshotOptions != nil {
-		d.Set("snapshot_options", map[string]interface{}{
-			"automated_snapshot_start_hour": *ds.SnapshotOptions.AutomatedSnapshotStartHour,
-		})
+	err = d.Set("cognito_options", flattenESCognitoOptions(ds.CognitoOptions))
+	if err != nil {
+		return err
 	}
+	err = d.Set("node_to_node_encryption", flattenESNodeToNodeEncryptionOptions(ds.NodeToNodeEncryptionOptions))
+	if err != nil {
+		return err
+	}
+
+	if err := d.Set("snapshot_options", flattenESSnapshotOptions(ds.SnapshotOptions)); err != nil {
+		return fmt.Errorf("error setting snapshot_options: %s", err)
+	}
+
 	if ds.VPCOptions != nil {
 		err = d.Set("vpc_options", flattenESVPCDerivedInfo(ds.VPCOptions))
 		if err != nil {
@@ -525,7 +601,7 @@ func resourceAwsElasticSearchDomainRead(d *schema.ResourceData, meta interface{}
 		}
 	} else {
 		if ds.Endpoint != nil {
-			d.Set("endpoint", *ds.Endpoint)
+			d.Set("endpoint", aws.StringValue(ds.Endpoint))
 			d.Set("kibana_endpoint", getKibanaEndpoint(d))
 		}
 		if ds.Endpoints != nil {
@@ -539,9 +615,9 @@ func resourceAwsElasticSearchDomainRead(d *schema.ResourceData, meta interface{}
 			mm := map[string]interface{}{}
 			mm["log_type"] = k
 			if val.CloudWatchLogsLogGroupArn != nil {
-				mm["cloudwatch_log_group_arn"] = *val.CloudWatchLogsLogGroupArn
+				mm["cloudwatch_log_group_arn"] = aws.StringValue(val.CloudWatchLogsLogGroupArn)
 			}
-			mm["enabled"] = *val.Enabled
+			mm["enabled"] = aws.BoolValue(val.Enabled)
 			m = append(m, mm)
 		}
 		d.Set("log_publishing_options", m)
@@ -632,6 +708,11 @@ func resourceAwsElasticSearchDomainUpdate(d *schema.ResourceData, meta interface
 		options := d.Get("vpc_options").([]interface{})
 		s := options[0].(map[string]interface{})
 		input.VPCOptions = expandESVPCOptions(s)
+	}
+
+	if d.HasChange("cognito_options") {
+		options := d.Get("cognito_options").([]interface{})
+		input.CognitoOptions = expandESCognitoOptions(options)
 	}
 
 	if d.HasChange("log_publishing_options") {
@@ -729,4 +810,42 @@ func suppressEquivalentKmsKeyIds(k, old, new string, d *schema.ResourceData) boo
 
 func getKibanaEndpoint(d *schema.ResourceData) string {
 	return d.Get("endpoint").(string) + "/_plugin/kibana/"
+}
+
+func esCognitoOptionsDiffSuppress(k, old, new string, d *schema.ResourceData) bool {
+	if old == "1" && new == "0" {
+		return true
+	}
+	return false
+}
+
+func isDedicatedMasterDisabled(k, old, new string, d *schema.ResourceData) bool {
+	v, ok := d.GetOk("cluster_config")
+	if ok {
+		clusterConfig := v.([]interface{})[0].(map[string]interface{})
+		return !clusterConfig["dedicated_master_enabled"].(bool)
+	}
+	return false
+}
+
+func expandESNodeToNodeEncryptionOptions(s map[string]interface{}) *elasticsearch.NodeToNodeEncryptionOptions {
+	options := elasticsearch.NodeToNodeEncryptionOptions{}
+
+	if v, ok := s["enabled"]; ok {
+		options.Enabled = aws.Bool(v.(bool))
+	}
+	return &options
+}
+
+func flattenESNodeToNodeEncryptionOptions(o *elasticsearch.NodeToNodeEncryptionOptions) []map[string]interface{} {
+	if o == nil {
+		return []map[string]interface{}{}
+	}
+
+	m := map[string]interface{}{}
+	if o.Enabled != nil {
+		m["enabled"] = aws.BoolValue(o.Enabled)
+	}
+
+	return []map[string]interface{}{m}
 }

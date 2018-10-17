@@ -77,7 +77,7 @@ func dataSourceAwsSecurityGroupsRead(d *schema.ResourceData, meta interface{}) e
 		return fmt.Errorf("Your query returned no results. Please change your search criteria and try again.")
 	}
 
-	log.Printf("[DEBUG] Found %d securuity groups via given filter: %s", len(ids), req)
+	log.Printf("[DEBUG] Found %d security groups via given filter: %s", len(ids), req)
 
 	d.SetId(resource.UniqueId())
 	err := d.Set("ids", ids)

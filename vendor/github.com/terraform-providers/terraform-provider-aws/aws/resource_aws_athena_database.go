@@ -126,7 +126,7 @@ func executeAndExpectNoRowsWhenCreate(qeid string, d *schema.ResourceData, conn 
 		return err
 	}
 	if len(rs.Rows) != 0 {
-		return fmt.Errorf("[ERROR] Athena create database, unexpected query result: %s", flattenAthenaResultSet(rs))
+		return fmt.Errorf("Athena create database, unexpected query result: %s", flattenAthenaResultSet(rs))
 	}
 	return nil
 }
@@ -143,7 +143,7 @@ func executeAndExpectMatchingRow(qeid string, dbName string, conn *athena.Athena
 			}
 		}
 	}
-	return fmt.Errorf("[ERROR] Athena not found database: %s, query result: %s", dbName, flattenAthenaResultSet(rs))
+	return fmt.Errorf("Athena not found database: %s, query result: %s", dbName, flattenAthenaResultSet(rs))
 }
 
 func executeAndExpectNoRowsWhenDrop(qeid string, d *schema.ResourceData, conn *athena.Athena) error {
@@ -152,7 +152,7 @@ func executeAndExpectNoRowsWhenDrop(qeid string, d *schema.ResourceData, conn *a
 		return err
 	}
 	if len(rs.Rows) != 0 {
-		return fmt.Errorf("[ERROR] Athena drop database, unexpected query result: %s", flattenAthenaResultSet(rs))
+		return fmt.Errorf("Athena drop database, unexpected query result: %s", flattenAthenaResultSet(rs))
 	}
 	return nil
 }

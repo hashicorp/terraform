@@ -2,50 +2,86 @@ package terraform
 
 import (
 	"fmt"
+	"log"
 
-	"github.com/hashicorp/terraform/config"
+	"github.com/hashicorp/hcl2/hcl"
+
+	"github.com/hashicorp/terraform/addrs"
+	"github.com/hashicorp/terraform/configs"
+	"github.com/hashicorp/terraform/providers"
+	"github.com/hashicorp/terraform/tfdiags"
 )
 
-// EvalBuildProviderConfig outputs a *ResourceConfig that is properly
-// merged with parents and inputs on top of what is configured in the file.
-type EvalBuildProviderConfig struct {
-	Provider string
-	Config   **ResourceConfig
-	Output   **ResourceConfig
-}
-
-func (n *EvalBuildProviderConfig) Eval(ctx EvalContext) (interface{}, error) {
-	cfg := *n.Config
-
-	// If we have an Input configuration set, then merge that in
-	if input := ctx.ProviderInput(n.Provider); input != nil {
-		// "input" is a map of the subset of config values that were known
-		// during the input walk, set by EvalInputProvider. Note that
-		// in particular it does *not* include attributes that had
-		// computed values at input time; those appear *only* in
-		// "cfg" here.
-		rc, err := config.NewRawConfig(input)
-		if err != nil {
-			return nil, err
-		}
-
-		merged := rc.Merge(cfg.raw)
-		cfg = NewResourceConfig(merged)
+func buildProviderConfig(ctx EvalContext, addr addrs.ProviderConfig, config *configs.Provider) hcl.Body {
+	var configBody hcl.Body
+	if config != nil {
+		configBody = config.Config
 	}
 
-	*n.Output = cfg
-	return nil, nil
+	var inputBody hcl.Body
+	inputConfig := ctx.ProviderInput(addr)
+	if len(inputConfig) > 0 {
+		inputBody = configs.SynthBody("<input-prompt>", inputConfig)
+	}
+
+	switch {
+	case configBody != nil && inputBody != nil:
+		log.Printf("[TRACE] buildProviderConfig for %s: merging explicit config and input", addr)
+		// Note that the inputBody is the _base_ here, because configs.MergeBodies
+		// expects the base have all of the required fields, while these are
+		// forced to be optional for the override. The input process should
+		// guarantee that we have a value for each of the required arguments and
+		// that in practice the sets of attributes in each body will be
+		// disjoint.
+		return configs.MergeBodies(inputBody, configBody)
+	case configBody != nil:
+		log.Printf("[TRACE] buildProviderConfig for %s: using explicit config only", addr)
+		return configBody
+	case inputBody != nil:
+		log.Printf("[TRACE] buildProviderConfig for %s: using input only", addr)
+		return inputBody
+	default:
+		log.Printf("[TRACE] buildProviderConfig for %s: no configuration at all", addr)
+		return hcl.EmptyBody()
+	}
 }
 
 // EvalConfigProvider is an EvalNode implementation that configures
 // a provider that is already initialized and retrieved.
 type EvalConfigProvider struct {
-	Provider string
-	Config   **ResourceConfig
+	Addr     addrs.ProviderConfig
+	Provider *providers.Interface
+	Config   *configs.Provider
 }
 
 func (n *EvalConfigProvider) Eval(ctx EvalContext) (interface{}, error) {
-	return nil, ctx.ConfigureProvider(n.Provider, *n.Config)
+	if n.Provider == nil {
+		return nil, fmt.Errorf("EvalConfigProvider Provider is nil")
+	}
+
+	var diags tfdiags.Diagnostics
+	provider := *n.Provider
+	config := n.Config
+
+	configBody := buildProviderConfig(ctx, n.Addr, config)
+
+	resp := provider.GetSchema()
+	diags = diags.Append(resp.Diagnostics)
+	if diags.HasErrors() {
+		return nil, diags.NonFatalErr()
+	}
+
+	configSchema := resp.Provider.Block
+	configVal, configBody, evalDiags := ctx.EvaluateBlock(configBody, configSchema, nil, EvalDataForNoInstanceKey)
+	diags = diags.Append(evalDiags)
+	if evalDiags.HasErrors() {
+		return nil, diags.NonFatalErr()
+	}
+
+	configDiags := ctx.ConfigureProvider(n.Addr, configVal)
+	configDiags = configDiags.InConfigBody(configBody)
+
+	return nil, configDiags.ErrWithWarnings()
 }
 
 // EvalInitProvider is an EvalNode implementation that initializes a provider
@@ -53,85 +89,59 @@ func (n *EvalConfigProvider) Eval(ctx EvalContext) (interface{}, error) {
 // EvalGetProvider node.
 type EvalInitProvider struct {
 	TypeName string
-	Name     string
+	Addr     addrs.ProviderConfig
 }
 
 func (n *EvalInitProvider) Eval(ctx EvalContext) (interface{}, error) {
-	return ctx.InitProvider(n.TypeName, n.Name)
+	return ctx.InitProvider(n.TypeName, n.Addr)
 }
 
 // EvalCloseProvider is an EvalNode implementation that closes provider
 // connections that aren't needed anymore.
 type EvalCloseProvider struct {
-	Name string
+	Addr addrs.ProviderConfig
 }
 
 func (n *EvalCloseProvider) Eval(ctx EvalContext) (interface{}, error) {
-	ctx.CloseProvider(n.Name)
+	ctx.CloseProvider(n.Addr)
 	return nil, nil
 }
 
 // EvalGetProvider is an EvalNode implementation that retrieves an already
 // initialized provider instance for the given name.
+//
+// Unlike most eval nodes, this takes an _absolute_ provider configuration,
+// because providers can be passed into and inherited between modules.
+// Resource nodes must therefore know the absolute path of the provider they
+// will use, which is usually accomplished by implementing
+// interface GraphNodeProviderConsumer.
 type EvalGetProvider struct {
-	Name   string
-	Output *ResourceProvider
+	Addr   addrs.AbsProviderConfig
+	Output *providers.Interface
+
+	// If non-nil, Schema will be updated after eval to refer to the
+	// schema of the provider.
+	Schema **ProviderSchema
 }
 
 func (n *EvalGetProvider) Eval(ctx EvalContext) (interface{}, error) {
-	result := ctx.Provider(n.Name)
+	if n.Addr.ProviderConfig.Type == "" {
+		// Should never happen
+		panic("EvalGetProvider used with uninitialized provider configuration address")
+	}
+
+	result := ctx.Provider(n.Addr)
 	if result == nil {
-		return nil, fmt.Errorf("provider %s not initialized", n.Name)
+		return nil, fmt.Errorf("provider %s not initialized", n.Addr)
 	}
 
 	if n.Output != nil {
 		*n.Output = result
 	}
 
-	return nil, nil
-}
-
-// EvalInputProvider is an EvalNode implementation that asks for input
-// for the given provider configurations.
-type EvalInputProvider struct {
-	Name     string
-	Provider *ResourceProvider
-	Config   **ResourceConfig
-}
-
-func (n *EvalInputProvider) Eval(ctx EvalContext) (interface{}, error) {
-	rc := *n.Config
-	orig := rc.DeepCopy()
-
-	// Wrap the input into a namespace
-	input := &PrefixUIInput{
-		IdPrefix:    fmt.Sprintf("provider.%s", n.Name),
-		QueryPrefix: fmt.Sprintf("provider.%s.", n.Name),
-		UIInput:     ctx.Input(),
+	if n.Schema != nil {
+		*n.Schema = ctx.ProviderSchema(n.Addr)
 	}
-
-	// Go through each provider and capture the input necessary
-	// to satisfy it.
-	config, err := (*n.Provider).Input(input, rc)
-	if err != nil {
-		return nil, fmt.Errorf(
-			"Error configuring %s: %s", n.Name, err)
-	}
-
-	// We only store values that have changed through Input.
-	// The goal is to cache cache input responses, not to provide a complete
-	// config for other providers.
-	confMap := make(map[string]interface{})
-	if config != nil && len(config.Config) > 0 {
-		// any values that weren't in the original ResourcConfig will be cached
-		for k, v := range config.Config {
-			if _, ok := orig.Config[k]; !ok {
-				confMap[k] = v
-			}
-		}
-	}
-
-	ctx.SetProviderInput(n.Name, confMap)
 
 	return nil, nil
 }

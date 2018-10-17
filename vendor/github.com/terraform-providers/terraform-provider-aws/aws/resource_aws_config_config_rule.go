@@ -31,7 +31,7 @@ func resourceAwsConfigConfigRule() *schema.Resource {
 			"name": {
 				Type:         schema.TypeString,
 				Required:     true,
-				ValidateFunc: validateMaxLength(64),
+				ValidateFunc: validation.StringLenBetween(0, 64),
 			},
 			"rule_id": {
 				Type:     schema.TypeString,
@@ -44,7 +44,7 @@ func resourceAwsConfigConfigRule() *schema.Resource {
 			"description": {
 				Type:         schema.TypeString,
 				Optional:     true,
-				ValidateFunc: validateMaxLength(256),
+				ValidateFunc: validation.StringLenBetween(0, 256),
 			},
 			"input_parameters": {
 				Type:         schema.TypeString,
@@ -65,7 +65,7 @@ func resourceAwsConfigConfigRule() *schema.Resource {
 						"compliance_resource_id": {
 							Type:         schema.TypeString,
 							Optional:     true,
-							ValidateFunc: validateMaxLength(256),
+							ValidateFunc: validation.StringLenBetween(0, 256),
 						},
 						"compliance_resource_types": {
 							Type:     schema.TypeSet,
@@ -73,19 +73,19 @@ func resourceAwsConfigConfigRule() *schema.Resource {
 							MaxItems: 100,
 							Elem: &schema.Schema{
 								Type:         schema.TypeString,
-								ValidateFunc: validateMaxLength(256),
+								ValidateFunc: validation.StringLenBetween(0, 256),
 							},
 							Set: schema.HashString,
 						},
 						"tag_key": {
 							Type:         schema.TypeString,
 							Optional:     true,
-							ValidateFunc: validateMaxLength(128),
+							ValidateFunc: validation.StringLenBetween(0, 128),
 						},
 						"tag_value": {
 							Type:         schema.TypeString,
 							Optional:     true,
-							ValidateFunc: validateMaxLength(256),
+							ValidateFunc: validation.StringLenBetween(0, 256),
 						},
 					},
 				},
@@ -131,7 +131,7 @@ func resourceAwsConfigConfigRule() *schema.Resource {
 						"source_identifier": {
 							Type:         schema.TypeString,
 							Required:     true,
-							ValidateFunc: validateMaxLength(256),
+							ValidateFunc: validation.StringLenBetween(0, 256),
 						},
 					},
 				},
@@ -146,12 +146,8 @@ func resourceAwsConfigConfigRulePut(d *schema.ResourceData, meta interface{}) er
 	name := d.Get("name").(string)
 	ruleInput := configservice.ConfigRule{
 		ConfigRuleName: aws.String(name),
+		Scope:          expandConfigRuleScope(d.Get("scope").([]interface{})),
 		Source:         expandConfigRuleSource(d.Get("source").([]interface{})),
-	}
-
-	scopes := d.Get("scope").([]interface{})
-	if len(scopes) > 0 {
-		ruleInput.Scope = expandConfigRuleScope(scopes[0].(map[string]interface{}))
 	}
 
 	if v, ok := d.GetOk("description"); ok {

@@ -1,5 +1,14 @@
 package terraform
 
+import (
+	"github.com/zclconf/go-cty/cty"
+
+	"github.com/hashicorp/terraform/addrs"
+	"github.com/hashicorp/terraform/plans"
+	"github.com/hashicorp/terraform/providers"
+	"github.com/hashicorp/terraform/states"
+)
+
 // HookAction is an enum of actions that can be taken as a result of a hook
 // callback. This allows you to modify the behavior of Terraform at runtime.
 type HookAction byte
@@ -21,42 +30,56 @@ const (
 // NilHook into your struct, which implements all of the interface but does
 // nothing. Then, override only the functions you want to implement.
 type Hook interface {
-	// PreApply and PostApply are called before and after a single
-	// resource is applied. The error argument in PostApply is the
+	// PreApply and PostApply are called before and after an action for a
+	// single instance is applied. The error argument in PostApply is the
 	// error, if any, that was returned from the provider Apply call itself.
-	PreApply(*InstanceInfo, *InstanceState, *InstanceDiff) (HookAction, error)
-	PostApply(*InstanceInfo, *InstanceState, error) (HookAction, error)
+	PreApply(addr addrs.AbsResourceInstance, gen states.Generation, action plans.Action, priorState, plannedNewState cty.Value) (HookAction, error)
+	PostApply(addr addrs.AbsResourceInstance, gen states.Generation, newState cty.Value, err error) (HookAction, error)
 
-	// PreDiff and PostDiff are called before and after a single resource
-	// resource is diffed.
-	PreDiff(*InstanceInfo, *InstanceState) (HookAction, error)
-	PostDiff(*InstanceInfo, *InstanceDiff) (HookAction, error)
+	// PreDiff and PostDiff are called before and after a provider is given
+	// the opportunity to customize the proposed new state to produce the
+	// planned new state.
+	PreDiff(addr addrs.AbsResourceInstance, gen states.Generation, priorState, proposedNewState cty.Value) (HookAction, error)
+	PostDiff(addr addrs.AbsResourceInstance, gen states.Generation, action plans.Action, priorState, plannedNewState cty.Value) (HookAction, error)
 
-	// Provisioning hooks
+	// The provisioning hooks signal both the overall start end end of
+	// provisioning for a particular instance and of each of the individual
+	// configured provisioners for each instance. The sequence of these
+	// for a given instance might look something like this:
 	//
-	// All should be self-explanatory. ProvisionOutput is called with
-	// output sent back by the provisioners. This will be called multiple
-	// times as output comes in, but each call should represent a line of
-	// output. The ProvisionOutput method cannot control whether the
-	// hook continues running.
-	PreProvisionResource(*InstanceInfo, *InstanceState) (HookAction, error)
-	PostProvisionResource(*InstanceInfo, *InstanceState) (HookAction, error)
-	PreProvision(*InstanceInfo, string) (HookAction, error)
-	PostProvision(*InstanceInfo, string, error) (HookAction, error)
-	ProvisionOutput(*InstanceInfo, string, string)
+	//          PreProvisionInstance(aws_instance.foo[1], ...)
+	//      PreProvisionInstanceStep(aws_instance.foo[1], "file")
+	//     PostProvisionInstanceStep(aws_instance.foo[1], "file", nil)
+	//      PreProvisionInstanceStep(aws_instance.foo[1], "remote-exec")
+	//               ProvisionOutput(aws_instance.foo[1], "remote-exec", "Installing foo...")
+	//               ProvisionOutput(aws_instance.foo[1], "remote-exec", "Configuring bar...")
+	//     PostProvisionInstanceStep(aws_instance.foo[1], "remote-exec", nil)
+	//         PostProvisionInstance(aws_instance.foo[1], ...)
+	//
+	// ProvisionOutput is called with output sent back by the provisioners.
+	// This will be called multiple times as output comes in, with each call
+	// representing one line of output. It cannot control whether the
+	// provisioner continues running.
+	PreProvisionInstance(addr addrs.AbsResourceInstance, state cty.Value) (HookAction, error)
+	PostProvisionInstance(addr addrs.AbsResourceInstance, state cty.Value) (HookAction, error)
+	PreProvisionInstanceStep(addr addrs.AbsResourceInstance, typeName string) (HookAction, error)
+	PostProvisionInstanceStep(addr addrs.AbsResourceInstance, typeName string, err error) (HookAction, error)
+	ProvisionOutput(addr addrs.AbsResourceInstance, typeName string, line string)
 
 	// PreRefresh and PostRefresh are called before and after a single
 	// resource state is refreshed, respectively.
-	PreRefresh(*InstanceInfo, *InstanceState) (HookAction, error)
-	PostRefresh(*InstanceInfo, *InstanceState) (HookAction, error)
-
-	// PostStateUpdate is called after the state is updated.
-	PostStateUpdate(*State) (HookAction, error)
+	PreRefresh(addr addrs.AbsResourceInstance, gen states.Generation, priorState cty.Value) (HookAction, error)
+	PostRefresh(addr addrs.AbsResourceInstance, gen states.Generation, priorState cty.Value, newState cty.Value) (HookAction, error)
 
 	// PreImportState and PostImportState are called before and after
-	// a single resource's state is being improted.
-	PreImportState(*InstanceInfo, string) (HookAction, error)
-	PostImportState(*InstanceInfo, []*InstanceState) (HookAction, error)
+	// (respectively) each state import operation for a given resource address.
+	PreImportState(addr addrs.AbsResourceInstance, importID string) (HookAction, error)
+	PostImportState(addr addrs.AbsResourceInstance, imported []providers.ImportedResource) (HookAction, error)
+
+	// PostStateUpdate is called each time the state is updated. It receives
+	// a deep copy of the state, which it may therefore access freely without
+	// any need for locks to protect from concurrent writes from the caller.
+	PostStateUpdate(new *states.State) (HookAction, error)
 }
 
 // NilHook is a Hook implementation that does nothing. It exists only to
@@ -64,59 +87,60 @@ type Hook interface {
 // and only implement the functions you are interested in.
 type NilHook struct{}
 
-func (*NilHook) PreApply(*InstanceInfo, *InstanceState, *InstanceDiff) (HookAction, error) {
+var _ Hook = (*NilHook)(nil)
+
+func (*NilHook) PreApply(addr addrs.AbsResourceInstance, gen states.Generation, action plans.Action, priorState, plannedNewState cty.Value) (HookAction, error) {
 	return HookActionContinue, nil
 }
 
-func (*NilHook) PostApply(*InstanceInfo, *InstanceState, error) (HookAction, error) {
+func (*NilHook) PostApply(addr addrs.AbsResourceInstance, gen states.Generation, newState cty.Value, err error) (HookAction, error) {
 	return HookActionContinue, nil
 }
 
-func (*NilHook) PreDiff(*InstanceInfo, *InstanceState) (HookAction, error) {
+func (*NilHook) PreDiff(addr addrs.AbsResourceInstance, gen states.Generation, priorState, proposedNewState cty.Value) (HookAction, error) {
 	return HookActionContinue, nil
 }
 
-func (*NilHook) PostDiff(*InstanceInfo, *InstanceDiff) (HookAction, error) {
+func (*NilHook) PostDiff(addr addrs.AbsResourceInstance, gen states.Generation, action plans.Action, priorState, plannedNewState cty.Value) (HookAction, error) {
 	return HookActionContinue, nil
 }
 
-func (*NilHook) PreProvisionResource(*InstanceInfo, *InstanceState) (HookAction, error) {
+func (*NilHook) PreProvisionInstance(addr addrs.AbsResourceInstance, state cty.Value) (HookAction, error) {
 	return HookActionContinue, nil
 }
 
-func (*NilHook) PostProvisionResource(*InstanceInfo, *InstanceState) (HookAction, error) {
+func (*NilHook) PostProvisionInstance(addr addrs.AbsResourceInstance, state cty.Value) (HookAction, error) {
 	return HookActionContinue, nil
 }
 
-func (*NilHook) PreProvision(*InstanceInfo, string) (HookAction, error) {
+func (*NilHook) PreProvisionInstanceStep(addr addrs.AbsResourceInstance, typeName string) (HookAction, error) {
 	return HookActionContinue, nil
 }
 
-func (*NilHook) PostProvision(*InstanceInfo, string, error) (HookAction, error) {
+func (*NilHook) PostProvisionInstanceStep(addr addrs.AbsResourceInstance, typeName string, err error) (HookAction, error) {
 	return HookActionContinue, nil
 }
 
-func (*NilHook) ProvisionOutput(
-	*InstanceInfo, string, string) {
+func (*NilHook) ProvisionOutput(addr addrs.AbsResourceInstance, typeName string, line string) {
 }
 
-func (*NilHook) PreRefresh(*InstanceInfo, *InstanceState) (HookAction, error) {
+func (*NilHook) PreRefresh(addr addrs.AbsResourceInstance, gen states.Generation, priorState cty.Value) (HookAction, error) {
 	return HookActionContinue, nil
 }
 
-func (*NilHook) PostRefresh(*InstanceInfo, *InstanceState) (HookAction, error) {
+func (*NilHook) PostRefresh(addr addrs.AbsResourceInstance, gen states.Generation, priorState cty.Value, newState cty.Value) (HookAction, error) {
 	return HookActionContinue, nil
 }
 
-func (*NilHook) PreImportState(*InstanceInfo, string) (HookAction, error) {
+func (*NilHook) PreImportState(addr addrs.AbsResourceInstance, importID string) (HookAction, error) {
 	return HookActionContinue, nil
 }
 
-func (*NilHook) PostImportState(*InstanceInfo, []*InstanceState) (HookAction, error) {
+func (*NilHook) PostImportState(addr addrs.AbsResourceInstance, imported []providers.ImportedResource) (HookAction, error) {
 	return HookActionContinue, nil
 }
 
-func (*NilHook) PostStateUpdate(*State) (HookAction, error) {
+func (*NilHook) PostStateUpdate(new *states.State) (HookAction, error) {
 	return HookActionContinue, nil
 }
 

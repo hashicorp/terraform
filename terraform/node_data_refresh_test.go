@@ -1,21 +1,17 @@
 package terraform
 
 import (
-	"sync"
 	"testing"
+
+	"github.com/zclconf/go-cty/cty"
+
+	"github.com/hashicorp/terraform/addrs"
 )
 
 func TestNodeRefreshableDataResourceDynamicExpand_scaleOut(t *testing.T) {
-	var stateLock sync.RWMutex
-
-	addr, err := ParseResourceAddress("data.aws_instance.foo")
-	if err != nil {
-		t.Fatalf("bad: %s", err)
-	}
-
 	m := testModule(t, "refresh-data-scale-inout")
 
-	state := &State{
+	state := MustShimLegacyState(&State{
 		Modules: []*ModuleState{
 			&ModuleState{
 				Path: rootModulePath,
@@ -39,21 +35,27 @@ func TestNodeRefreshableDataResourceDynamicExpand_scaleOut(t *testing.T) {
 				},
 			},
 		},
-	}
+	})
 
 	n := &NodeRefreshableDataResource{
-		NodeAbstractCountResource: &NodeAbstractCountResource{
-			NodeAbstractResource: &NodeAbstractResource{
-				Addr:   addr,
-				Config: m.Config().Resources[0],
-			},
+		NodeAbstractResource: &NodeAbstractResource{
+			Addr: addrs.RootModuleInstance.Resource(
+				addrs.DataResourceMode,
+				"aws_instance",
+				"foo",
+			),
+			Config: m.Module.DataResources["data.aws_instance.foo"],
 		},
 	}
 
 	g, err := n.DynamicExpand(&MockEvalContext{
-		PathPath:   []string{"root"},
-		StateState: state,
-		StateLock:  &stateLock,
+		PathPath:   addrs.RootModuleInstance,
+		StateState: state.SyncWrapper(),
+
+		// DynamicExpand will call EvaluateExpr to evaluate the "count"
+		// expression, which is just a literal number 3 in the fixture config
+		// and so we'll just hard-code this here too.
+		EvaluateExprResult: cty.NumberIntVal(3),
 	})
 	if err != nil {
 		t.Fatalf("error on DynamicExpand: %s", err)
@@ -74,16 +76,9 @@ root - terraform.graphNodeRoot
 }
 
 func TestNodeRefreshableDataResourceDynamicExpand_scaleIn(t *testing.T) {
-	var stateLock sync.RWMutex
-
-	addr, err := ParseResourceAddress("data.aws_instance.foo")
-	if err != nil {
-		t.Fatalf("bad: %s", err)
-	}
-
 	m := testModule(t, "refresh-data-scale-inout")
 
-	state := &State{
+	state := MustShimLegacyState(&State{
 		Modules: []*ModuleState{
 			&ModuleState{
 				Path: rootModulePath,
@@ -123,21 +118,27 @@ func TestNodeRefreshableDataResourceDynamicExpand_scaleIn(t *testing.T) {
 				},
 			},
 		},
-	}
+	})
 
 	n := &NodeRefreshableDataResource{
-		NodeAbstractCountResource: &NodeAbstractCountResource{
-			NodeAbstractResource: &NodeAbstractResource{
-				Addr:   addr,
-				Config: m.Config().Resources[0],
-			},
+		NodeAbstractResource: &NodeAbstractResource{
+			Addr: addrs.RootModuleInstance.Resource(
+				addrs.DataResourceMode,
+				"aws_instance",
+				"foo",
+			),
+			Config: m.Module.DataResources["data.aws_instance.foo"],
 		},
 	}
 
 	g, err := n.DynamicExpand(&MockEvalContext{
-		PathPath:   []string{"root"},
-		StateState: state,
-		StateLock:  &stateLock,
+		PathPath:   addrs.RootModuleInstance,
+		StateState: state.SyncWrapper(),
+
+		// DynamicExpand will call EvaluateExpr to evaluate the "count"
+		// expression, which is just a literal number 3 in the fixture config
+		// and so we'll just hard-code this here too.
+		EvaluateExprResult: cty.NumberIntVal(3),
 	})
 	if err != nil {
 		t.Fatalf("error on DynamicExpand: %s", err)

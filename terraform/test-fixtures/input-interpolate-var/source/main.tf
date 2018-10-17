@@ -1,1 +1,3 @@
-output "list" { value = "foo,bar,baz" }
+output "length" {
+  value = 3
+}

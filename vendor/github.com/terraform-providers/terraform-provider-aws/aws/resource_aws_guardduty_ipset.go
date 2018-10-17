@@ -86,7 +86,7 @@ func resourceAwsGuardDutyIpsetCreate(d *schema.ResourceData, meta interface{}) e
 
 	_, err = stateConf.WaitForState()
 	if err != nil {
-		return fmt.Errorf("[WARN] Error waiting for GuardDuty IpSet status to be \"%s\" or \"%s\": %s", guardduty.IpSetStatusActive, guardduty.IpSetStatusInactive, err)
+		return fmt.Errorf("Error waiting for GuardDuty IpSet status to be \"%s\" or \"%s\": %s", guardduty.IpSetStatusActive, guardduty.IpSetStatusInactive, err)
 	}
 
 	d.SetId(fmt.Sprintf("%s:%s", detectorID, *resp.IpSetId))
@@ -186,7 +186,7 @@ func resourceAwsGuardDutyIpsetDelete(d *schema.ResourceData, meta interface{}) e
 
 	_, err = stateConf.WaitForState()
 	if err != nil {
-		return fmt.Errorf("[WARN] Error waiting for GuardDuty IpSet status to be \"%s\": %s", guardduty.IpSetStatusDeleted, err)
+		return fmt.Errorf("Error waiting for GuardDuty IpSet status to be \"%s\": %s", guardduty.IpSetStatusDeleted, err)
 	}
 
 	return nil

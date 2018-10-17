@@ -198,10 +198,10 @@ func fetchAllEMRInstanceGroups(conn *emr.EMR, clusterId string) ([]*emr.Instance
 		log.Printf("[DEBUG] EMR Cluster Instance Marker: %s", *marker)
 		respGrps, errGrps := conn.ListInstanceGroups(req)
 		if errGrps != nil {
-			return nil, fmt.Errorf("[ERR] Error reading EMR cluster (%s): %s", clusterId, errGrps)
+			return nil, fmt.Errorf("Error reading EMR cluster (%s): %s", clusterId, errGrps)
 		}
 		if respGrps == nil {
-			return nil, fmt.Errorf("[ERR] Error reading EMR Instance Group for cluster (%s)", clusterId)
+			return nil, fmt.Errorf("Error reading EMR Instance Group for cluster (%s)", clusterId)
 		}
 
 		if respGrps.InstanceGroups != nil {
@@ -215,7 +215,7 @@ func fetchAllEMRInstanceGroups(conn *emr.EMR, clusterId string) ([]*emr.Instance
 	}
 
 	if len(groups) == 0 {
-		return nil, fmt.Errorf("[WARN] No instance groups found for EMR Cluster (%s)", clusterId)
+		return nil, fmt.Errorf("No instance groups found for EMR Cluster (%s)", clusterId)
 	}
 
 	return groups, nil

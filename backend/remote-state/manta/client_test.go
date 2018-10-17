@@ -20,15 +20,15 @@ func TestRemoteClient(t *testing.T) {
 	directory := fmt.Sprintf("terraform-remote-manta-test-%x", time.Now().Unix())
 	keyName := "testState"
 
-	b := backend.TestBackendConfig(t, New(), map[string]interface{}{
-		"path":        directory,
-		"object_name": keyName,
-	}).(*Backend)
+	b := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
+		"path":       directory,
+		"objectName": keyName,
+	})).(*Backend)
 
 	createMantaFolder(t, b.storageClient, directory)
 	defer deleteMantaFolder(t, b.storageClient, directory)
 
-	state, err := b.State(backend.DefaultStateName)
+	state, err := b.StateMgr(backend.DefaultStateName)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -41,25 +41,25 @@ func TestRemoteClientLocks(t *testing.T) {
 	directory := fmt.Sprintf("terraform-remote-manta-test-%x", time.Now().Unix())
 	keyName := "testState"
 
-	b1 := backend.TestBackendConfig(t, New(), map[string]interface{}{
-		"path":        directory,
-		"object_name": keyName,
-	}).(*Backend)
+	b1 := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
+		"path":       directory,
+		"objectName": keyName,
+	})).(*Backend)
 
-	b2 := backend.TestBackendConfig(t, New(), map[string]interface{}{
-		"path":        directory,
-		"object_name": keyName,
-	}).(*Backend)
+	b2 := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
+		"path":       directory,
+		"objectName": keyName,
+	})).(*Backend)
 
 	createMantaFolder(t, b1.storageClient, directory)
 	defer deleteMantaFolder(t, b1.storageClient, directory)
 
-	s1, err := b1.State(backend.DefaultStateName)
+	s1, err := b1.StateMgr(backend.DefaultStateName)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	s2, err := b2.State(backend.DefaultStateName)
+	s2, err := b2.StateMgr(backend.DefaultStateName)
 	if err != nil {
 		t.Fatal(err)
 	}

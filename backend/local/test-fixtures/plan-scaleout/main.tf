@@ -1,5 +1,5 @@
 resource "test_instance" "foo" {
-  count = 3
+  count = 2
   ami   = "bar"
 
   # This is here because at some point it caused a test failure

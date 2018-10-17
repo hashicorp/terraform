@@ -8,7 +8,6 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/arn"
 	"github.com/aws/aws-sdk-go/service/ssm"
-	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -56,7 +55,7 @@ func dataAwsSsmParameterRead(d *schema.ResourceData, meta interface{}) error {
 	resp, err := ssmconn.GetParameter(paramInput)
 
 	if err != nil {
-		return errwrap.Wrapf("[ERROR] Error describing SSM parameter: {{err}}", err)
+		return fmt.Errorf("Error describing SSM parameter: %s", err)
 	}
 
 	param := resp.Parameter

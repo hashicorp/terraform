@@ -1,14 +1,14 @@
 resource "aws_instance" "foo" {
-    foo = "bar"
+  foo = "bar"
 
-    provisioner "shell" {
-        foo  = "one"
-        when = "destroy"
-        on_failure = "continue"
-    }
+  provisioner "shell" {
+    command    = "one"
+    when       = "destroy"
+    on_failure = "continue"
+  }
 
-    provisioner "shell" {
-        foo  = "two"
-        when = "destroy"
-    }
+  provisioner "shell" {
+    command = "two"
+    when    = "destroy"
+  }
 }

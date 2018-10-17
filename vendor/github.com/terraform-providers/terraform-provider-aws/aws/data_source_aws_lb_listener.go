@@ -89,7 +89,7 @@ func dataSourceAwsLbListenerRead(d *schema.ResourceData, meta interface{}) error
 		return err
 	}
 	if len(resp.Listeners) == 0 {
-		return fmt.Errorf("[DEBUG] no listener exists for load balancer: %s", lbArn)
+		return fmt.Errorf("no listener exists for load balancer: %s", lbArn)
 	}
 	for _, listener := range resp.Listeners {
 		if *listener.Port == int64(port.(int)) {

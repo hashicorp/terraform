@@ -18,9 +18,13 @@ func Append(err error, errs ...error) *Error {
 		for _, e := range errs {
 			switch e := e.(type) {
 			case *Error:
-				err.Errors = append(err.Errors, e.Errors...)
+				if e != nil {
+					err.Errors = append(err.Errors, e.Errors...)
+				}
 			default:
-				err.Errors = append(err.Errors, e)
+				if e != nil {
+					err.Errors = append(err.Errors, e)
+				}
 			}
 		}
 

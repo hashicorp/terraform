@@ -67,7 +67,7 @@ func dataSourceAwsAvailabilityZonesRead(d *schema.ResourceData, meta interface{}
 	sort.Strings(raw)
 
 	if err := d.Set("names", raw); err != nil {
-		return fmt.Errorf("[WARN] Error setting Availability Zones: %s", err)
+		return fmt.Errorf("Error setting Availability Zones: %s", err)
 	}
 
 	return nil

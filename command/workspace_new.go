@@ -7,7 +7,8 @@ import (
 	"strings"
 
 	"github.com/hashicorp/terraform/command/clistate"
-	"github.com/hashicorp/terraform/terraform"
+	"github.com/hashicorp/terraform/states/statefile"
+	"github.com/hashicorp/terraform/tfdiags"
 	"github.com/mitchellh/cli"
 	"github.com/posener/complete"
 )
@@ -59,22 +60,26 @@ func (c *WorkspaceNewCommand) Run(args []string) int {
 		return 1
 	}
 
-	conf, err := c.Config(configPath)
-	if err != nil {
-		c.Ui.Error(fmt.Sprintf("Failed to load root config module: %s", err))
-	}
+	var diags tfdiags.Diagnostics
 
-	// Load the backend
-	b, err := c.Backend(&BackendOpts{
-		Config: conf,
-	})
-
-	if err != nil {
-		c.Ui.Error(fmt.Sprintf("Failed to load backend: %s", err))
+	backendConfig, backendDiags := c.loadBackendConfig(configPath)
+	diags = diags.Append(backendDiags)
+	if diags.HasErrors() {
+		c.showDiagnostics(diags)
 		return 1
 	}
 
-	states, err := b.States()
+	// Load the backend
+	b, backendDiags := c.Backend(&BackendOpts{
+		Config: backendConfig,
+	})
+	diags = diags.Append(backendDiags)
+	if backendDiags.HasErrors() {
+		c.showDiagnostics(diags)
+		return 1
+	}
+
+	states, err := b.Workspaces()
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf("Failed to get configured named states: %s", err))
 		return 1
@@ -86,7 +91,7 @@ func (c *WorkspaceNewCommand) Run(args []string) int {
 		}
 	}
 
-	_, err = b.State(newEnv)
+	_, err = b.StateMgr(newEnv)
 	if err != nil {
 		c.Ui.Error(err.Error())
 		return 1
@@ -107,7 +112,7 @@ func (c *WorkspaceNewCommand) Run(args []string) int {
 	}
 
 	// load the new Backend state
-	sMgr, err := b.State(newEnv)
+	sMgr, err := b.StateMgr(newEnv)
 	if err != nil {
 		c.Ui.Error(err.Error())
 		return 1
@@ -123,20 +128,20 @@ func (c *WorkspaceNewCommand) Run(args []string) int {
 	}
 
 	// read the existing state file
-	stateFile, err := os.Open(statePath)
+	f, err := os.Open(statePath)
 	if err != nil {
 		c.Ui.Error(err.Error())
 		return 1
 	}
 
-	s, err := terraform.ReadState(stateFile)
+	stateFile, err := statefile.Read(f)
 	if err != nil {
 		c.Ui.Error(err.Error())
 		return 1
 	}
 
 	// save the existing state in the new Backend.
-	err = sMgr.WriteState(s)
+	err = sMgr.WriteState(stateFile.State)
 	if err != nil {
 		c.Ui.Error(err.Error())
 		return 1

@@ -8,6 +8,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/secretsmanager"
 	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/hashicorp/terraform/helper/structure"
 )
 
 func dataSourceAwsSecretsManagerSecret() *schema.Resource {
@@ -32,6 +33,10 @@ func dataSourceAwsSecretsManagerSecret() *schema.Resource {
 			"name": {
 				Type:     schema.TypeString,
 				Optional: true,
+				Computed: true,
+			},
+			"policy": {
+				Type:     schema.TypeString,
 				Computed: true,
 			},
 			"rotation_enabled": {
@@ -103,6 +108,24 @@ func dataSourceAwsSecretsManagerSecretRead(d *schema.ResourceData, meta interfac
 	d.Set("name", output.Name)
 	d.Set("rotation_enabled", output.RotationEnabled)
 	d.Set("rotation_lambda_arn", output.RotationLambdaARN)
+	d.Set("policy", "")
+
+	pIn := &secretsmanager.GetResourcePolicyInput{
+		SecretId: aws.String(d.Id()),
+	}
+	log.Printf("[DEBUG] Reading Secrets Manager Secret policy: %s", pIn)
+	pOut, err := conn.GetResourcePolicy(pIn)
+	if err != nil {
+		return fmt.Errorf("error reading Secrets Manager Secret policy: %s", err)
+	}
+
+	if pOut != nil && pOut.ResourcePolicy != nil {
+		policy, err := structure.NormalizeJsonString(aws.StringValue(pOut.ResourcePolicy))
+		if err != nil {
+			return fmt.Errorf("policy contains an invalid JSON: %s", err)
+		}
+		d.Set("policy", policy)
+	}
 
 	if err := d.Set("rotation_rules", flattenSecretsManagerRotationRules(output.RotationRules)); err != nil {
 		return fmt.Errorf("error setting rotation_rules: %s", err)
