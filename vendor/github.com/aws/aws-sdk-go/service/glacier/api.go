@@ -2207,7 +2207,7 @@ func (c *Glacier) ListJobsRequest(input *ListJobsInput) (req *request.Request, o
 // List Jobs request.
 //
 // You can set a maximum limit for the number of jobs returned in the response
-// by specifying the limit parameter in the request. The default limit is 1000.
+// by specifying the limit parameter in the request. The default limit is 50.
 // The number of jobs returned might be fewer than the limit, but the number
 // of returned jobs never exceeds the limit.
 //
@@ -2368,7 +2368,7 @@ func (c *Glacier) ListMultipartUploadsRequest(input *ListMultipartUploadsInput) 
 // order.
 //
 // The List Multipart Uploads operation supports pagination. By default, this
-// operation returns up to 1,000 multipart uploads in the response. You should
+// operation returns up to 50 multipart uploads in the response. You should
 // always check the response for a marker at which to continue the list; if
 // there are no more items the marker is null. To return a list of multipart
 // uploads that begins at a specific upload, set the marker request parameter
@@ -2539,7 +2539,7 @@ func (c *Glacier) ListPartsRequest(input *ListPartsInput) (req *request.Request,
 // List Parts response is sorted by part range.
 //
 // The List Parts operation supports pagination. By default, this operation
-// returns up to 1,000 uploaded parts in the response. You should always check
+// returns up to 50 uploaded parts in the response. You should always check
 // the response for a marker at which to continue the list; if there are no
 // more items the marker is null. To return a list of parts that begins at a
 // specific part, set the marker request parameter to the value you obtained
@@ -2871,7 +2871,7 @@ func (c *Glacier) ListVaultsRequest(input *ListVaultsInput) (req *request.Reques
 // This operation lists all vaults owned by the calling user's account. The
 // list returned in the response is ASCII-sorted by vault name.
 //
-// By default, this operation returns up to 1,000 items. If there are more vaults
+// By default, this operation returns up to 10 items. If there are more vaults
 // to list, the response marker field contains the vault Amazon Resource Name
 // (ARN) at which to continue the list with a new List Vaults request; otherwise,
 // the marker field is null. To return a list of vaults that begins at a specific
@@ -6569,9 +6569,9 @@ type ListJobsInput struct {
 	// The state of the jobs to return. You can specify true or false.
 	Completed *string `location:"querystring" locationName:"completed" type:"string"`
 
-	// The maximum number of jobs to be returned. The default limit is 1000. The
-	// number of jobs returned might be fewer than the specified limit, but the
-	// number of returned jobs never exceeds the limit.
+	// The maximum number of jobs to be returned. The default limit is 50. The number
+	// of jobs returned might be fewer than the specified limit, but the number
+	// of returned jobs never exceeds the limit.
 	Limit *string `location:"querystring" locationName:"limit" type:"string"`
 
 	// An opaque string used for pagination. This value specifies the job at which
@@ -6703,7 +6703,7 @@ type ListMultipartUploadsInput struct {
 	AccountId *string `location:"uri" locationName:"accountId" type:"string" required:"true"`
 
 	// Specifies the maximum number of uploads returned in the response body. If
-	// this value is not specified, the List Uploads operation returns up to 1,000
+	// this value is not specified, the List Uploads operation returns up to 50
 	// uploads.
 	Limit *string `location:"querystring" locationName:"limit" type:"string"`
 
@@ -6818,7 +6818,7 @@ type ListPartsInput struct {
 	// AccountId is a required field
 	AccountId *string `location:"uri" locationName:"accountId" type:"string" required:"true"`
 
-	// The maximum number of parts to be returned. The default limit is 1000. The
+	// The maximum number of parts to be returned. The default limit is 50. The
 	// number of parts returned might be fewer than the specified limit, but the
 	// number of returned parts never exceeds the limit.
 	Limit *string `location:"querystring" locationName:"limit" type:"string"`
@@ -7145,7 +7145,7 @@ type ListVaultsInput struct {
 	// AccountId is a required field
 	AccountId *string `location:"uri" locationName:"accountId" type:"string" required:"true"`
 
-	// The maximum number of vaults to be returned. The default limit is 1000. The
+	// The maximum number of vaults to be returned. The default limit is 10. The
 	// number of vaults returned might be fewer than the specified limit, but the
 	// number of returned vaults never exceeds the limit.
 	Limit *string `location:"querystring" locationName:"limit" type:"string"`

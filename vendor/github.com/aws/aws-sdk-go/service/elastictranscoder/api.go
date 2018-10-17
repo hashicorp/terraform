@@ -1471,6 +1471,8 @@ const opTestRole = "TestRole"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
+//
+// Deprecated: TestRole has been deprecated
 func (c *ElasticTranscoder) TestRoleRequest(input *TestRoleInput) (req *request.Request, output *TestRoleOutput) {
 	if c.Client.Config.Logger != nil {
 		c.Client.Config.Logger.Log("This operation, TestRole, has been deprecated")
@@ -1525,6 +1527,8 @@ func (c *ElasticTranscoder) TestRoleRequest(input *TestRoleInput) (req *request.
 //   Elastic Transcoder encountered an unexpected exception while trying to fulfill
 //   the request.
 //
+//
+// Deprecated: TestRole has been deprecated
 func (c *ElasticTranscoder) TestRole(input *TestRoleInput) (*TestRoleOutput, error) {
 	req, out := c.TestRoleRequest(input)
 	return out, req.Send()
@@ -1539,6 +1543,8 @@ func (c *ElasticTranscoder) TestRole(input *TestRoleInput) (*TestRoleOutput, err
 // the context is nil a panic will occur. In the future the SDK may create
 // sub-contexts for http.Requests. See https://golang.org/pkg/context/
 // for more information on using Contexts.
+//
+// Deprecated: TestRoleWithContext has been deprecated
 func (c *ElasticTranscoder) TestRoleWithContext(ctx aws.Context, input *TestRoleInput, opts ...request.Option) (*TestRoleOutput, error) {
 	req, out := c.TestRoleRequest(input)
 	req.SetContext(ctx)
@@ -2539,6 +2545,8 @@ type Captions struct {
 
 	// Source files for the input sidecar captions used during the transcoding process.
 	// To omit all sidecar captions, leave CaptionSources blank.
+	//
+	// Deprecated: CaptionSources has been deprecated
 	CaptionSources []*CaptionSource `deprecated:"true" type:"list"`
 
 	// A policy that determines how Elastic Transcoder handles the existence of
@@ -2560,6 +2568,8 @@ type Captions struct {
 	//    you specify in CaptionSources.
 	//
 	// MergePolicy cannot be null.
+	//
+	// Deprecated: MergePolicy has been deprecated
 	MergePolicy *string `deprecated:"true" type:"string"`
 }
 
@@ -2613,6 +2623,8 @@ func (s *Captions) SetMergePolicy(v string) *Captions {
 
 // Settings for one clip in a composition. All jobs in a playlist must have
 // the same clip settings.
+//
+// Deprecated: Clip has been deprecated
 type Clip struct {
 	_ struct{} `deprecated:"true" type:"structure"`
 
@@ -2858,6 +2870,8 @@ type CreateJobOutput struct {
 	// of the file. The Composition object contains settings for the clips that
 	// make up an output file. For the current release, you can only specify settings
 	// for a single clip per output file. The Composition object cannot be null.
+	//
+	// Deprecated: Composition has been deprecated
 	Composition []*Clip `deprecated:"true" type:"list"`
 
 	// You can specify encryption settings for any output files that you want to
@@ -3211,11 +3225,11 @@ type CreatePipelineInput struct {
 	// The AWS Key Management Service (AWS KMS) key that you want to use with this
 	// pipeline.
 	//
-	// If you use either S3 or S3-AWS-KMS as your Encryption:Mode, you don't need
+	// If you use either s3 or s3-aws-kms as your Encryption:Mode, you don't need
 	// to provide a key with your job because a default key, known as an AWS-KMS
 	// key, is created for you automatically. You need to provide an AWS-KMS key
 	// only if you want to use a non-default AWS-KMS key, or if you are using an
-	// Encryption:Mode of AES-PKCS7, AES-CTR, or AES-GCM.
+	// Encryption:Mode of aes-cbc-pkcs7, aes-ctr, or aes-gcm.
 	AwsKmsKeyArn *string `type:"string"`
 
 	// The optional ContentConfig object specifies information about the Amazon
@@ -3311,7 +3325,7 @@ type CreatePipelineInput struct {
 	//    SNS returned when you created the topic. For more information, see Create
 	//    a Topic in the Amazon Simple Notification Service Developer Guide.
 	//
-	//    * Completed: The topic ARN for the Amazon SNS topic that you want to notify
+	//    * Complete: The topic ARN for the Amazon SNS topic that you want to notify
 	//    when Elastic Transcoder has finished processing a job in this pipeline.
 	//    This is the ARN that Amazon SNS returned when you created the topic.
 	//
@@ -3893,20 +3907,20 @@ type Encryption struct {
 	// to use when decrypting your input files or encrypting your output files.
 	// Elastic Transcoder supports the following options:
 	//
-	//    * S3: Amazon S3 creates and manages the keys used for encrypting your
+	//    * s3: Amazon S3 creates and manages the keys used for encrypting your
 	//    files.
 	//
-	//    * S3-AWS-KMS: Amazon S3 calls the Amazon Key Management Service, which
+	//    * s3-aws-kms: Amazon S3 calls the Amazon Key Management Service, which
 	//    creates and manages the keys that are used for encrypting your files.
-	//    If you specify S3-AWS-KMS and you don't want to use the default key, you
+	//    If you specify s3-aws-kms and you don't want to use the default key, you
 	//    must add the AWS-KMS key that you want to use to your pipeline.
 	//
-	//    * AES-CBC-PKCS7: A padded cipher-block mode of operation originally used
+	//    * aes-cbc-pkcs7: A padded cipher-block mode of operation originally used
 	//    for HLS files.
 	//
-	//    * AES-CTR: AES Counter Mode.
+	//    * aes-ctr: AES Counter Mode.
 	//
-	//    * AES-GCM: AES Galois Counter Mode, a mode of operation that is an authenticated
+	//    * aes-gcm: AES Galois Counter Mode, a mode of operation that is an authenticated
 	//    encryption format, meaning that a file, key, or initialization vector
 	//    that has been tampered with fails the decryption process.
 	//
@@ -4631,6 +4645,8 @@ type JobOutput struct {
 	// of the file. The Composition object contains settings for the clips that
 	// make up an output file. For the current release, you can only specify settings
 	// for a single clip per output file. The Composition object cannot be null.
+	//
+	// Deprecated: Composition has been deprecated
 	Composition []*Clip `deprecated:"true" type:"list"`
 
 	// Duration of the output file, in seconds.
@@ -5471,11 +5487,11 @@ type Pipeline struct {
 	// The AWS Key Management Service (AWS KMS) key that you want to use with this
 	// pipeline.
 	//
-	// If you use either S3 or S3-AWS-KMS as your Encryption:Mode, you don't need
+	// If you use either s3 or s3-aws-kms as your Encryption:Mode, you don't need
 	// to provide a key with your job because a default key, known as an AWS-KMS
 	// key, is created for you automatically. You need to provide an AWS-KMS key
 	// only if you want to use a non-default AWS-KMS key, or if you are using an
-	// Encryption:Mode of AES-PKCS7, AES-CTR, or AES-GCM.
+	// Encryption:Mode of aes-cbc-pkcs7, aes-ctr, or aes-gcm.
 	AwsKmsKeyArn *string `type:"string"`
 
 	// Information about the Amazon S3 bucket in which you want Elastic Transcoder
@@ -5547,7 +5563,7 @@ type Pipeline struct {
 	//    SNS) topic that you want to notify when Elastic Transcoder has started
 	//    to process the job.
 	//
-	//    * Completed (optional): The Amazon SNS topic that you want to notify when
+	//    * Complete (optional): The Amazon SNS topic that you want to notify when
 	//    Elastic Transcoder has finished processing the job.
 	//
 	//    * Warning (optional): The Amazon SNS topic that you want to notify when
@@ -5793,7 +5809,7 @@ func (s *PipelineOutputConfig) SetStorageClass(v string) *PipelineOutputConfig {
 // The PlayReady DRM settings, if any, that you want Elastic Transcoder to apply
 // to the output files associated with this playlist.
 //
-// PlayReady DRM encrypts your media files using AES-CTR encryption.
+// PlayReady DRM encrypts your media files using aes-ctr encryption.
 //
 // If you use DRM for an HLSv3 playlist, your outputs must have a master playlist.
 type PlayReadyDrm struct {
@@ -6589,6 +6605,8 @@ func (s *ReadPresetOutput) SetPreset(v *Preset) *ReadPresetOutput {
 }
 
 // The TestRoleRequest structure.
+//
+// Deprecated: TestRoleInput has been deprecated
 type TestRoleInput struct {
 	_ struct{} `deprecated:"true" type:"structure"`
 
@@ -6674,6 +6692,8 @@ func (s *TestRoleInput) SetTopics(v []*string) *TestRoleInput {
 }
 
 // The TestRoleResponse structure.
+//
+// Deprecated: TestRoleOutput has been deprecated
 type TestRoleOutput struct {
 	_ struct{} `deprecated:"true" type:"structure"`
 
@@ -6942,11 +6962,11 @@ type UpdatePipelineInput struct {
 	// The AWS Key Management Service (AWS KMS) key that you want to use with this
 	// pipeline.
 	//
-	// If you use either S3 or S3-AWS-KMS as your Encryption:Mode, you don't need
+	// If you use either s3 or s3-aws-kms as your Encryption:Mode, you don't need
 	// to provide a key with your job because a default key, known as an AWS-KMS
 	// key, is created for you automatically. You need to provide an AWS-KMS key
 	// only if you want to use a non-default AWS-KMS key, or if you are using an
-	// Encryption:Mode of AES-PKCS7, AES-CTR, or AES-GCM.
+	// Encryption:Mode of aes-cbc-pkcs7, aes-ctr, or aes-gcm.
 	AwsKmsKeyArn *string `type:"string"`
 
 	// The optional ContentConfig object specifies information about the Amazon
@@ -7042,7 +7062,7 @@ type UpdatePipelineInput struct {
 	//    started to process jobs that are added to this pipeline. This is the ARN
 	//    that Amazon SNS returned when you created the topic.
 	//
-	//    * Completed: The topic ARN for the Amazon SNS topic that you want to notify
+	//    * Complete: The topic ARN for the Amazon SNS topic that you want to notify
 	//    when Elastic Transcoder has finished processing a job. This is the ARN
 	//    that Amazon SNS returned when you created the topic.
 	//
@@ -7225,7 +7245,7 @@ type UpdatePipelineNotificationsInput struct {
 	//    started to process jobs that are added to this pipeline. This is the ARN
 	//    that Amazon SNS returned when you created the topic.
 	//
-	//    * Completed: The topic ARN for the Amazon SNS topic that you want to notify
+	//    * Complete: The topic ARN for the Amazon SNS topic that you want to notify
 	//    when Elastic Transcoder has finished processing a job. This is the ARN
 	//    that Amazon SNS returned when you created the topic.
 	//

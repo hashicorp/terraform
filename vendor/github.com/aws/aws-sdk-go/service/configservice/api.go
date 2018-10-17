@@ -3355,8 +3355,12 @@ func (c *ConfigService) PutConfigurationAggregatorRequest(input *PutConfiguratio
 //   are valid and try again.
 //
 //   * ErrCodeLimitExceededException "LimitExceededException"
-//   This exception is thrown if an evaluation is in progress or if you call the
-//   StartConfigRulesEvaluation API more than once per minute.
+//   For StartConfigRulesEvaluation API, this exception is thrown if an evaluation
+//   is in progress or if you call the StartConfigRulesEvaluation API more than
+//   once per minute.
+//
+//   For PutConfigurationAggregator API, this exception is thrown if the number
+//   of accounts and aggregators exceeds the limit.
 //
 //   * ErrCodeInvalidRoleException "InvalidRoleException"
 //   You have provided a null or empty role ARN.
@@ -3875,8 +3879,12 @@ func (c *ConfigService) StartConfigRulesEvaluationRequest(input *StartConfigRule
 //   rule names are correct and try again.
 //
 //   * ErrCodeLimitExceededException "LimitExceededException"
-//   This exception is thrown if an evaluation is in progress or if you call the
-//   StartConfigRulesEvaluation API more than once per minute.
+//   For StartConfigRulesEvaluation API, this exception is thrown if an evaluation
+//   is in progress or if you call the StartConfigRulesEvaluation API more than
+//   once per minute.
+//
+//   For PutConfigurationAggregator API, this exception is thrown if the number
+//   of accounts and aggregators exceeds the limit.
 //
 //   * ErrCodeResourceInUseException "ResourceInUseException"
 //   The rule is currently being deleted or the rule is deleting your evaluation
@@ -5045,6 +5053,12 @@ type ConfigRule struct {
 	// available.
 	ConfigRuleState *string `type:"string" enum:"ConfigRuleState"`
 
+	// Service principal name of the service that created the rule.
+	//
+	// The field is populated only if the service linked rule is created by a service.
+	// The field is empty if you create your own rule.
+	CreatedBy *string `min:"1" type:"string"`
+
 	// The description that you provide for the AWS Config rule.
 	Description *string `type:"string"`
 
@@ -5095,6 +5109,9 @@ func (s *ConfigRule) Validate() error {
 	if s.ConfigRuleName != nil && len(*s.ConfigRuleName) < 1 {
 		invalidParams.Add(request.NewErrParamMinLen("ConfigRuleName", 1))
 	}
+	if s.CreatedBy != nil && len(*s.CreatedBy) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("CreatedBy", 1))
+	}
 	if s.InputParameters != nil && len(*s.InputParameters) < 1 {
 		invalidParams.Add(request.NewErrParamMinLen("InputParameters", 1))
 	}
@@ -5139,6 +5156,12 @@ func (s *ConfigRule) SetConfigRuleName(v string) *ConfigRule {
 // SetConfigRuleState sets the ConfigRuleState field's value.
 func (s *ConfigRule) SetConfigRuleState(v string) *ConfigRule {
 	s.ConfigRuleState = &v
+	return s
+}
+
+// SetCreatedBy sets the CreatedBy field's value.
+func (s *ConfigRule) SetCreatedBy(v string) *ConfigRule {
+	s.CreatedBy = &v
 	return s
 }
 

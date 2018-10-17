@@ -3880,10 +3880,14 @@ type AcceptInvitationInput struct {
 	DetectorId *string `location:"uri" locationName:"detectorId" type:"string" required:"true"`
 
 	// This value is used to validate the master account to the member account.
-	InvitationId *string `locationName:"invitationId" type:"string"`
+	//
+	// InvitationId is a required field
+	InvitationId *string `locationName:"invitationId" type:"string" required:"true"`
 
 	// The account ID of the master GuardDuty account whose invitation you're accepting.
-	MasterId *string `locationName:"masterId" type:"string"`
+	//
+	// MasterId is a required field
+	MasterId *string `locationName:"masterId" type:"string" required:"true"`
 }
 
 // String returns the string representation
@@ -3901,6 +3905,12 @@ func (s *AcceptInvitationInput) Validate() error {
 	invalidParams := request.ErrInvalidParams{Context: "AcceptInvitationInput"}
 	if s.DetectorId == nil {
 		invalidParams.Add(request.NewErrParamRequired("DetectorId"))
+	}
+	if s.InvitationId == nil {
+		invalidParams.Add(request.NewErrParamRequired("InvitationId"))
+	}
+	if s.MasterId == nil {
+		invalidParams.Add(request.NewErrParamRequired("MasterId"))
 	}
 
 	if invalidParams.Len() > 0 {
@@ -4114,7 +4124,9 @@ type ArchiveFindingsInput struct {
 	DetectorId *string `location:"uri" locationName:"detectorId" type:"string" required:"true"`
 
 	// IDs of the findings that you want to archive.
-	FindingIds []*string `locationName:"findingIds" type:"list"`
+	//
+	// FindingIds is a required field
+	FindingIds []*string `locationName:"findingIds" type:"list" required:"true"`
 }
 
 // String returns the string representation
@@ -4132,6 +4144,9 @@ func (s *ArchiveFindingsInput) Validate() error {
 	invalidParams := request.ErrInvalidParams{Context: "ArchiveFindingsInput"}
 	if s.DetectorId == nil {
 		invalidParams.Add(request.NewErrParamRequired("DetectorId"))
+	}
+	if s.FindingIds == nil {
+		invalidParams.Add(request.NewErrParamRequired("FindingIds"))
 	}
 
 	if invalidParams.Len() > 0 {
@@ -4363,8 +4378,16 @@ func (s *Country) SetCountryName(v string) *Country {
 type CreateDetectorInput struct {
 	_ struct{} `type:"structure"`
 
+	// The idempotency token for the create request.
+	ClientToken *string `locationName:"clientToken" type:"string" idempotencyToken:"true"`
+
 	// A boolean value that specifies whether the detector is to be enabled.
-	Enable *bool `locationName:"enable" type:"boolean"`
+	//
+	// Enable is a required field
+	Enable *bool `locationName:"enable" type:"boolean" required:"true"`
+
+	// A enum value that specifies how frequently customer got Finding updates published.
+	FindingPublishingFrequency *string `locationName:"findingPublishingFrequency" type:"string" enum:"FindingPublishingFrequency"`
 }
 
 // String returns the string representation
@@ -4377,9 +4400,34 @@ func (s CreateDetectorInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *CreateDetectorInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "CreateDetectorInput"}
+	if s.Enable == nil {
+		invalidParams.Add(request.NewErrParamRequired("Enable"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetClientToken sets the ClientToken field's value.
+func (s *CreateDetectorInput) SetClientToken(v string) *CreateDetectorInput {
+	s.ClientToken = &v
+	return s
+}
+
 // SetEnable sets the Enable field's value.
 func (s *CreateDetectorInput) SetEnable(v bool) *CreateDetectorInput {
 	s.Enable = &v
+	return s
+}
+
+// SetFindingPublishingFrequency sets the FindingPublishingFrequency field's value.
+func (s *CreateDetectorInput) SetFindingPublishingFrequency(v string) *CreateDetectorInput {
+	s.FindingPublishingFrequency = &v
 	return s
 }
 
@@ -4425,10 +4473,14 @@ type CreateFilterInput struct {
 	DetectorId *string `location:"uri" locationName:"detectorId" type:"string" required:"true"`
 
 	// Represents the criteria to be used in the filter for querying findings.
-	FindingCriteria *FindingCriteria `locationName:"findingCriteria" type:"structure"`
+	//
+	// FindingCriteria is a required field
+	FindingCriteria *FindingCriteria `locationName:"findingCriteria" type:"structure" required:"true"`
 
 	// The name of the filter.
-	Name *string `locationName:"name" type:"string"`
+	//
+	// Name is a required field
+	Name *string `locationName:"name" type:"string" required:"true"`
 
 	// Specifies the position of the filter in the list of current filters. Also
 	// specifies the order in which this filter is applied to the findings.
@@ -4450,6 +4502,12 @@ func (s *CreateFilterInput) Validate() error {
 	invalidParams := request.ErrInvalidParams{Context: "CreateFilterInput"}
 	if s.DetectorId == nil {
 		invalidParams.Add(request.NewErrParamRequired("DetectorId"))
+	}
+	if s.FindingCriteria == nil {
+		invalidParams.Add(request.NewErrParamRequired("FindingCriteria"))
+	}
+	if s.Name == nil {
+		invalidParams.Add(request.NewErrParamRequired("Name"))
 	}
 
 	if invalidParams.Len() > 0 {
@@ -4530,21 +4588,32 @@ type CreateIPSetInput struct {
 
 	// A boolean value that indicates whether GuardDuty is to start using the uploaded
 	// IPSet.
-	Activate *bool `locationName:"activate" type:"boolean"`
+	//
+	// Activate is a required field
+	Activate *bool `locationName:"activate" type:"boolean" required:"true"`
+
+	// The idempotency token for the create request.
+	ClientToken *string `locationName:"clientToken" type:"string" idempotencyToken:"true"`
 
 	// DetectorId is a required field
 	DetectorId *string `location:"uri" locationName:"detectorId" type:"string" required:"true"`
 
 	// The format of the file that contains the IPSet.
-	Format *string `locationName:"format" type:"string" enum:"IpSetFormat"`
+	//
+	// Format is a required field
+	Format *string `locationName:"format" type:"string" required:"true" enum:"IpSetFormat"`
 
 	// The URI of the file that contains the IPSet. For example (https://s3.us-west-2.amazonaws.com/my-bucket/my-object-key)
-	Location *string `locationName:"location" type:"string"`
+	//
+	// Location is a required field
+	Location *string `locationName:"location" type:"string" required:"true"`
 
 	// The user friendly name to identify the IPSet. This name is displayed in all
 	// findings that are triggered by activity that involves IP addresses included
 	// in this IPSet.
-	Name *string `locationName:"name" type:"string"`
+	//
+	// Name is a required field
+	Name *string `locationName:"name" type:"string" required:"true"`
 }
 
 // String returns the string representation
@@ -4560,8 +4629,20 @@ func (s CreateIPSetInput) GoString() string {
 // Validate inspects the fields of the type to determine if they are valid.
 func (s *CreateIPSetInput) Validate() error {
 	invalidParams := request.ErrInvalidParams{Context: "CreateIPSetInput"}
+	if s.Activate == nil {
+		invalidParams.Add(request.NewErrParamRequired("Activate"))
+	}
 	if s.DetectorId == nil {
 		invalidParams.Add(request.NewErrParamRequired("DetectorId"))
+	}
+	if s.Format == nil {
+		invalidParams.Add(request.NewErrParamRequired("Format"))
+	}
+	if s.Location == nil {
+		invalidParams.Add(request.NewErrParamRequired("Location"))
+	}
+	if s.Name == nil {
+		invalidParams.Add(request.NewErrParamRequired("Name"))
 	}
 
 	if invalidParams.Len() > 0 {
@@ -4573,6 +4654,12 @@ func (s *CreateIPSetInput) Validate() error {
 // SetActivate sets the Activate field's value.
 func (s *CreateIPSetInput) SetActivate(v bool) *CreateIPSetInput {
 	s.Activate = &v
+	return s
+}
+
+// SetClientToken sets the ClientToken field's value.
+func (s *CreateIPSetInput) SetClientToken(v string) *CreateIPSetInput {
+	s.ClientToken = &v
 	return s
 }
 
@@ -4630,7 +4717,9 @@ type CreateMembersInput struct {
 
 	// A list of account ID and email address pairs of the accounts that you want
 	// to associate with the master GuardDuty account.
-	AccountDetails []*AccountDetail `locationName:"accountDetails" type:"list"`
+	//
+	// AccountDetails is a required field
+	AccountDetails []*AccountDetail `locationName:"accountDetails" type:"list" required:"true"`
 
 	// DetectorId is a required field
 	DetectorId *string `location:"uri" locationName:"detectorId" type:"string" required:"true"`
@@ -4649,6 +4738,9 @@ func (s CreateMembersInput) GoString() string {
 // Validate inspects the fields of the type to determine if they are valid.
 func (s *CreateMembersInput) Validate() error {
 	invalidParams := request.ErrInvalidParams{Context: "CreateMembersInput"}
+	if s.AccountDetails == nil {
+		invalidParams.Add(request.NewErrParamRequired("AccountDetails"))
+	}
 	if s.DetectorId == nil {
 		invalidParams.Add(request.NewErrParamRequired("DetectorId"))
 	}
@@ -4772,20 +4864,31 @@ type CreateThreatIntelSetInput struct {
 
 	// A boolean value that indicates whether GuardDuty is to start using the uploaded
 	// ThreatIntelSet.
-	Activate *bool `locationName:"activate" type:"boolean"`
+	//
+	// Activate is a required field
+	Activate *bool `locationName:"activate" type:"boolean" required:"true"`
+
+	// The idempotency token for the create request.
+	ClientToken *string `locationName:"clientToken" type:"string" idempotencyToken:"true"`
 
 	// DetectorId is a required field
 	DetectorId *string `location:"uri" locationName:"detectorId" type:"string" required:"true"`
 
 	// The format of the file that contains the ThreatIntelSet.
-	Format *string `locationName:"format" type:"string" enum:"ThreatIntelSetFormat"`
+	//
+	// Format is a required field
+	Format *string `locationName:"format" type:"string" required:"true" enum:"ThreatIntelSetFormat"`
 
 	// The URI of the file that contains the ThreatIntelSet. For example (https://s3.us-west-2.amazonaws.com/my-bucket/my-object-key).
-	Location *string `locationName:"location" type:"string"`
+	//
+	// Location is a required field
+	Location *string `locationName:"location" type:"string" required:"true"`
 
 	// A user-friendly ThreatIntelSet name that is displayed in all finding generated
 	// by activity that involves IP addresses included in this ThreatIntelSet.
-	Name *string `locationName:"name" type:"string"`
+	//
+	// Name is a required field
+	Name *string `locationName:"name" type:"string" required:"true"`
 }
 
 // String returns the string representation
@@ -4801,8 +4904,20 @@ func (s CreateThreatIntelSetInput) GoString() string {
 // Validate inspects the fields of the type to determine if they are valid.
 func (s *CreateThreatIntelSetInput) Validate() error {
 	invalidParams := request.ErrInvalidParams{Context: "CreateThreatIntelSetInput"}
+	if s.Activate == nil {
+		invalidParams.Add(request.NewErrParamRequired("Activate"))
+	}
 	if s.DetectorId == nil {
 		invalidParams.Add(request.NewErrParamRequired("DetectorId"))
+	}
+	if s.Format == nil {
+		invalidParams.Add(request.NewErrParamRequired("Format"))
+	}
+	if s.Location == nil {
+		invalidParams.Add(request.NewErrParamRequired("Location"))
+	}
+	if s.Name == nil {
+		invalidParams.Add(request.NewErrParamRequired("Name"))
 	}
 
 	if invalidParams.Len() > 0 {
@@ -4814,6 +4929,12 @@ func (s *CreateThreatIntelSetInput) Validate() error {
 // SetActivate sets the Activate field's value.
 func (s *CreateThreatIntelSetInput) SetActivate(v bool) *CreateThreatIntelSetInput {
 	s.Activate = &v
+	return s
+}
+
+// SetClientToken sets the ClientToken field's value.
+func (s *CreateThreatIntelSetInput) SetClientToken(v string) *CreateThreatIntelSetInput {
+	s.ClientToken = &v
 	return s
 }
 
@@ -4871,7 +4992,9 @@ type DeclineInvitationsInput struct {
 
 	// A list of account IDs of the AWS accounts that sent invitations to the current
 	// member account that you want to decline invitations from.
-	AccountIds []*string `locationName:"accountIds" type:"list"`
+	//
+	// AccountIds is a required field
+	AccountIds []*string `locationName:"accountIds" type:"list" required:"true"`
 }
 
 // String returns the string representation
@@ -4882,6 +5005,19 @@ func (s DeclineInvitationsInput) String() string {
 // GoString returns the string representation
 func (s DeclineInvitationsInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DeclineInvitationsInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DeclineInvitationsInput"}
+	if s.AccountIds == nil {
+		invalidParams.Add(request.NewErrParamRequired("AccountIds"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // SetAccountIds sets the AccountIds field's value.
@@ -5095,7 +5231,9 @@ type DeleteInvitationsInput struct {
 
 	// A list of account IDs of the AWS accounts that sent invitations to the current
 	// member account that you want to delete invitations from.
-	AccountIds []*string `locationName:"accountIds" type:"list"`
+	//
+	// AccountIds is a required field
+	AccountIds []*string `locationName:"accountIds" type:"list" required:"true"`
 }
 
 // String returns the string representation
@@ -5106,6 +5244,19 @@ func (s DeleteInvitationsInput) String() string {
 // GoString returns the string representation
 func (s DeleteInvitationsInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DeleteInvitationsInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DeleteInvitationsInput"}
+	if s.AccountIds == nil {
+		invalidParams.Add(request.NewErrParamRequired("AccountIds"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // SetAccountIds sets the AccountIds field's value.
@@ -5144,7 +5295,9 @@ type DeleteMembersInput struct {
 	_ struct{} `type:"structure"`
 
 	// A list of account IDs of the GuardDuty member accounts that you want to delete.
-	AccountIds []*string `locationName:"accountIds" type:"list"`
+	//
+	// AccountIds is a required field
+	AccountIds []*string `locationName:"accountIds" type:"list" required:"true"`
 
 	// DetectorId is a required field
 	DetectorId *string `location:"uri" locationName:"detectorId" type:"string" required:"true"`
@@ -5163,6 +5316,9 @@ func (s DeleteMembersInput) GoString() string {
 // Validate inspects the fields of the type to determine if they are valid.
 func (s *DeleteMembersInput) Validate() error {
 	invalidParams := request.ErrInvalidParams{Context: "DeleteMembersInput"}
+	if s.AccountIds == nil {
+		invalidParams.Add(request.NewErrParamRequired("AccountIds"))
+	}
 	if s.DetectorId == nil {
 		invalidParams.Add(request.NewErrParamRequired("DetectorId"))
 	}
@@ -5328,7 +5484,9 @@ type DisassociateMembersInput struct {
 
 	// A list of account IDs of the GuardDuty member accounts that you want to disassociate
 	// from master.
-	AccountIds []*string `locationName:"accountIds" type:"list"`
+	//
+	// AccountIds is a required field
+	AccountIds []*string `locationName:"accountIds" type:"list" required:"true"`
 
 	// DetectorId is a required field
 	DetectorId *string `location:"uri" locationName:"detectorId" type:"string" required:"true"`
@@ -5347,6 +5505,9 @@ func (s DisassociateMembersInput) GoString() string {
 // Validate inspects the fields of the type to determine if they are valid.
 func (s *DisassociateMembersInput) Validate() error {
 	invalidParams := request.ErrInvalidParams{Context: "DisassociateMembersInput"}
+	if s.AccountIds == nil {
+		invalidParams.Add(request.NewErrParamRequired("AccountIds"))
+	}
 	if s.DetectorId == nil {
 		invalidParams.Add(request.NewErrParamRequired("DetectorId"))
 	}
@@ -5731,6 +5892,9 @@ type GetDetectorOutput struct {
 	// The first time a resource was created. The format will be ISO-8601.
 	CreatedAt *string `locationName:"createdAt" type:"string"`
 
+	// A enum value that specifies how frequently customer got Finding updates published.
+	FindingPublishingFrequency *string `locationName:"findingPublishingFrequency" type:"string" enum:"FindingPublishingFrequency"`
+
 	// Customer serviceRole name or ARN for accessing customer resources
 	ServiceRole *string `locationName:"serviceRole" type:"string"`
 
@@ -5754,6 +5918,12 @@ func (s GetDetectorOutput) GoString() string {
 // SetCreatedAt sets the CreatedAt field's value.
 func (s *GetDetectorOutput) SetCreatedAt(v string) *GetDetectorOutput {
 	s.CreatedAt = &v
+	return s
+}
+
+// SetFindingPublishingFrequency sets the FindingPublishingFrequency field's value.
+func (s *GetDetectorOutput) SetFindingPublishingFrequency(v string) *GetDetectorOutput {
+	s.FindingPublishingFrequency = &v
 	return s
 }
 
@@ -5893,7 +6063,9 @@ type GetFindingsInput struct {
 	DetectorId *string `location:"uri" locationName:"detectorId" type:"string" required:"true"`
 
 	// IDs of the findings that you want to retrieve.
-	FindingIds []*string `locationName:"findingIds" type:"list"`
+	//
+	// FindingIds is a required field
+	FindingIds []*string `locationName:"findingIds" type:"list" required:"true"`
 
 	// Represents the criteria used for sorting findings.
 	SortCriteria *SortCriteria `locationName:"sortCriteria" type:"structure"`
@@ -5914,6 +6086,9 @@ func (s *GetFindingsInput) Validate() error {
 	invalidParams := request.ErrInvalidParams{Context: "GetFindingsInput"}
 	if s.DetectorId == nil {
 		invalidParams.Add(request.NewErrParamRequired("DetectorId"))
+	}
+	if s.FindingIds == nil {
+		invalidParams.Add(request.NewErrParamRequired("FindingIds"))
 	}
 
 	if invalidParams.Len() > 0 {
@@ -5975,7 +6150,9 @@ type GetFindingsStatisticsInput struct {
 	FindingCriteria *FindingCriteria `locationName:"findingCriteria" type:"structure"`
 
 	// Types of finding statistics to retrieve.
-	FindingStatisticTypes []*string `locationName:"findingStatisticTypes" type:"list"`
+	//
+	// FindingStatisticTypes is a required field
+	FindingStatisticTypes []*string `locationName:"findingStatisticTypes" type:"list" required:"true"`
 }
 
 // String returns the string representation
@@ -5993,6 +6170,9 @@ func (s *GetFindingsStatisticsInput) Validate() error {
 	invalidParams := request.ErrInvalidParams{Context: "GetFindingsStatisticsInput"}
 	if s.DetectorId == nil {
 		invalidParams.Add(request.NewErrParamRequired("DetectorId"))
+	}
+	if s.FindingStatisticTypes == nil {
+		invalidParams.Add(request.NewErrParamRequired("FindingStatisticTypes"))
 	}
 
 	if invalidParams.Len() > 0 {
@@ -6247,7 +6427,9 @@ type GetMembersInput struct {
 	_ struct{} `type:"structure"`
 
 	// A list of account IDs of the GuardDuty member accounts that you want to describe.
-	AccountIds []*string `locationName:"accountIds" type:"list"`
+	//
+	// AccountIds is a required field
+	AccountIds []*string `locationName:"accountIds" type:"list" required:"true"`
 
 	// DetectorId is a required field
 	DetectorId *string `location:"uri" locationName:"detectorId" type:"string" required:"true"`
@@ -6266,6 +6448,9 @@ func (s GetMembersInput) GoString() string {
 // Validate inspects the fields of the type to determine if they are valid.
 func (s *GetMembersInput) Validate() error {
 	invalidParams := request.ErrInvalidParams{Context: "GetMembersInput"}
+	if s.AccountIds == nil {
+		invalidParams.Add(request.NewErrParamRequired("AccountIds"))
+	}
 	if s.DetectorId == nil {
 		invalidParams.Add(request.NewErrParamRequired("DetectorId"))
 	}
@@ -6636,7 +6821,9 @@ type InviteMembersInput struct {
 
 	// A list of account IDs of the accounts that you want to invite to GuardDuty
 	// as members.
-	AccountIds []*string `locationName:"accountIds" type:"list"`
+	//
+	// AccountIds is a required field
+	AccountIds []*string `locationName:"accountIds" type:"list" required:"true"`
 
 	// DetectorId is a required field
 	DetectorId *string `location:"uri" locationName:"detectorId" type:"string" required:"true"`
@@ -6663,6 +6850,9 @@ func (s InviteMembersInput) GoString() string {
 // Validate inspects the fields of the type to determine if they are valid.
 func (s *InviteMembersInput) Validate() error {
 	invalidParams := request.ErrInvalidParams{Context: "InviteMembersInput"}
+	if s.AccountIds == nil {
+		invalidParams.Add(request.NewErrParamRequired("AccountIds"))
+	}
 	if s.DetectorId == nil {
 		invalidParams.Add(request.NewErrParamRequired("DetectorId"))
 	}
@@ -8218,7 +8408,9 @@ type StartMonitoringMembersInput struct {
 
 	// A list of account IDs of the GuardDuty member accounts whose findings you
 	// want the master account to monitor.
-	AccountIds []*string `locationName:"accountIds" type:"list"`
+	//
+	// AccountIds is a required field
+	AccountIds []*string `locationName:"accountIds" type:"list" required:"true"`
 
 	// DetectorId is a required field
 	DetectorId *string `location:"uri" locationName:"detectorId" type:"string" required:"true"`
@@ -8237,6 +8429,9 @@ func (s StartMonitoringMembersInput) GoString() string {
 // Validate inspects the fields of the type to determine if they are valid.
 func (s *StartMonitoringMembersInput) Validate() error {
 	invalidParams := request.ErrInvalidParams{Context: "StartMonitoringMembersInput"}
+	if s.AccountIds == nil {
+		invalidParams.Add(request.NewErrParamRequired("AccountIds"))
+	}
 	if s.DetectorId == nil {
 		invalidParams.Add(request.NewErrParamRequired("DetectorId"))
 	}
@@ -8290,7 +8485,9 @@ type StopMonitoringMembersInput struct {
 
 	// A list of account IDs of the GuardDuty member accounts whose findings you
 	// want the master account to stop monitoring.
-	AccountIds []*string `locationName:"accountIds" type:"list"`
+	//
+	// AccountIds is a required field
+	AccountIds []*string `locationName:"accountIds" type:"list" required:"true"`
 
 	// DetectorId is a required field
 	DetectorId *string `location:"uri" locationName:"detectorId" type:"string" required:"true"`
@@ -8309,6 +8506,9 @@ func (s StopMonitoringMembersInput) GoString() string {
 // Validate inspects the fields of the type to determine if they are valid.
 func (s *StopMonitoringMembersInput) Validate() error {
 	invalidParams := request.ErrInvalidParams{Context: "StopMonitoringMembersInput"}
+	if s.AccountIds == nil {
+		invalidParams.Add(request.NewErrParamRequired("AccountIds"))
+	}
 	if s.DetectorId == nil {
 		invalidParams.Add(request.NewErrParamRequired("DetectorId"))
 	}
@@ -8397,7 +8597,9 @@ type UnarchiveFindingsInput struct {
 	DetectorId *string `location:"uri" locationName:"detectorId" type:"string" required:"true"`
 
 	// IDs of the findings that you want to unarchive.
-	FindingIds []*string `locationName:"findingIds" type:"list"`
+	//
+	// FindingIds is a required field
+	FindingIds []*string `locationName:"findingIds" type:"list" required:"true"`
 }
 
 // String returns the string representation
@@ -8415,6 +8617,9 @@ func (s *UnarchiveFindingsInput) Validate() error {
 	invalidParams := request.ErrInvalidParams{Context: "UnarchiveFindingsInput"}
 	if s.DetectorId == nil {
 		invalidParams.Add(request.NewErrParamRequired("DetectorId"))
+	}
+	if s.FindingIds == nil {
+		invalidParams.Add(request.NewErrParamRequired("FindingIds"))
 	}
 
 	if invalidParams.Len() > 0 {
@@ -8497,6 +8702,9 @@ type UpdateDetectorInput struct {
 	// Updated boolean value for the detector that specifies whether the detector
 	// is enabled.
 	Enable *bool `locationName:"enable" type:"boolean"`
+
+	// A enum value that specifies how frequently customer got Finding updates published.
+	FindingPublishingFrequency *string `locationName:"findingPublishingFrequency" type:"string" enum:"FindingPublishingFrequency"`
 }
 
 // String returns the string representation
@@ -8531,6 +8739,12 @@ func (s *UpdateDetectorInput) SetDetectorId(v string) *UpdateDetectorInput {
 // SetEnable sets the Enable field's value.
 func (s *UpdateDetectorInput) SetEnable(v bool) *UpdateDetectorInput {
 	s.Enable = &v
+	return s
+}
+
+// SetFindingPublishingFrequency sets the FindingPublishingFrequency field's value.
+func (s *UpdateDetectorInput) SetFindingPublishingFrequency(v string) *UpdateDetectorInput {
+	s.FindingPublishingFrequency = &v
 	return s
 }
 
@@ -8670,10 +8884,14 @@ type UpdateFindingsFeedbackInput struct {
 	DetectorId *string `location:"uri" locationName:"detectorId" type:"string" required:"true"`
 
 	// Valid values: USEFUL | NOT_USEFUL
-	Feedback *string `locationName:"feedback" type:"string" enum:"Feedback"`
+	//
+	// Feedback is a required field
+	Feedback *string `locationName:"feedback" type:"string" required:"true" enum:"Feedback"`
 
 	// IDs of the findings that you want to mark as useful or not useful.
-	FindingIds []*string `locationName:"findingIds" type:"list"`
+	//
+	// FindingIds is a required field
+	FindingIds []*string `locationName:"findingIds" type:"list" required:"true"`
 }
 
 // String returns the string representation
@@ -8691,6 +8909,12 @@ func (s *UpdateFindingsFeedbackInput) Validate() error {
 	invalidParams := request.ErrInvalidParams{Context: "UpdateFindingsFeedbackInput"}
 	if s.DetectorId == nil {
 		invalidParams.Add(request.NewErrParamRequired("DetectorId"))
+	}
+	if s.Feedback == nil {
+		invalidParams.Add(request.NewErrParamRequired("Feedback"))
+	}
+	if s.FindingIds == nil {
+		invalidParams.Add(request.NewErrParamRequired("FindingIds"))
 	}
 
 	if invalidParams.Len() > 0 {
@@ -8944,6 +9168,18 @@ const (
 
 	// FilterActionArchive is a FilterAction enum value
 	FilterActionArchive = "ARCHIVE"
+)
+
+// A enum value that specifies how frequently customer got Finding updates published.
+const (
+	// FindingPublishingFrequencyFifteenMinutes is a FindingPublishingFrequency enum value
+	FindingPublishingFrequencyFifteenMinutes = "FIFTEEN_MINUTES"
+
+	// FindingPublishingFrequencyOneHour is a FindingPublishingFrequency enum value
+	FindingPublishingFrequencyOneHour = "ONE_HOUR"
+
+	// FindingPublishingFrequencySixHours is a FindingPublishingFrequency enum value
+	FindingPublishingFrequencySixHours = "SIX_HOURS"
 )
 
 // The types of finding statistics.

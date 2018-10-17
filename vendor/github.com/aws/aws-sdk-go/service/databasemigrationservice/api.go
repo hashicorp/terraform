@@ -10025,12 +10025,16 @@ type ReplicationInstance struct {
 	ReplicationInstanceIdentifier *string `type:"string"`
 
 	// The private IP address of the replication instance.
+	//
+	// Deprecated: ReplicationInstancePrivateIpAddress has been deprecated
 	ReplicationInstancePrivateIpAddress *string `deprecated:"true" type:"string"`
 
 	// The private IP address of the replication instance.
 	ReplicationInstancePrivateIpAddresses []*string `type:"list"`
 
 	// The public IP address of the replication instance.
+	//
+	// Deprecated: ReplicationInstancePublicIpAddress has been deprecated
 	ReplicationInstancePublicIpAddress *string `deprecated:"true" type:"string"`
 
 	// The public IP address of the replication instance.

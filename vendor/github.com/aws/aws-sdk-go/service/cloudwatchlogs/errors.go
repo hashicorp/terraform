@@ -57,4 +57,10 @@ const (
 	//
 	// The service cannot complete the request.
 	ErrCodeServiceUnavailableException = "ServiceUnavailableException"
+
+	// ErrCodeUnrecognizedClientException for service response error code
+	// "UnrecognizedClientException".
+	//
+	// The most likely cause is an invalid AWS access key ID or secret key.
+	ErrCodeUnrecognizedClientException = "UnrecognizedClientException"
 )
