@@ -16,7 +16,7 @@ if [[ ! -f CHANGELOG.md ]]; then
   exit 1
 fi
 
-if [[ `uname` == "Darwin" ]]; then
+if [[ $(uname) == "Darwin" ]]; then
   echo "Using BSD sed"
   SED="sed -i.bak -E -e"
 else
