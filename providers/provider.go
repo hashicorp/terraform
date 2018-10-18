@@ -14,9 +14,9 @@ type Interface interface {
 	// GetSchema returns the complete schema for the provider.
 	GetSchema() GetSchemaResponse
 
-	// ValidateProviderConfig allows the provider to validate the configuration
-	// values.
-	ValidateProviderConfig(ValidateProviderConfigRequest) ValidateProviderConfigResponse
+	// PrepareProviderConfig allows the provider to validate the configuration
+	// values, and set or override any values with defaults.
+	PrepareProviderConfig(PrepareProviderConfigRequest) PrepareProviderConfigResponse
 
 	// ValidateResourceTypeConfig allows the provider to validate the resource
 	// configuration values.
@@ -90,12 +90,14 @@ type Schema struct {
 	Block   *configschema.Block
 }
 
-type ValidateProviderConfigRequest struct {
-	// Config is the complete configuration value for the provider.
+type PrepareProviderConfigRequest struct {
+	// Config is the raw configuration value for the provider.
 	Config cty.Value
 }
 
-type ValidateProviderConfigResponse struct {
+type PrepareProviderConfigResponse struct {
+	// PreparedConfig is the configuration as prepared by the provider.
+	PreparedConfig cty.Value
 	// Diagnostics contains any warnings or errors from the method call.
 	Diagnostics tfdiags.Diagnostics
 }

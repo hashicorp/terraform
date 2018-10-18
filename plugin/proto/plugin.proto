@@ -98,7 +98,7 @@ message Schema {
 service Provider {
     //////// Information about what a provider supports/expects
     rpc GetSchema(GetProviderSchema.Request) returns (GetProviderSchema.Response);
-    rpc ValidateProviderConfig(ValidateProviderConfig.Request) returns (ValidateProviderConfig.Response);
+    rpc PrepareProviderConfig(PrepareProviderConfig.Request) returns (PrepareProviderConfig.Response);
     rpc ValidateResourceTypeConfig(ValidateResourceTypeConfig.Request) returns (ValidateResourceTypeConfig.Response);
     rpc ValidateDataSourceConfig(ValidateDataSourceConfig.Request) returns (ValidateDataSourceConfig.Response);
     rpc UpgradeResourceState(UpgradeResourceState.Request) returns (UpgradeResourceState.Response);
@@ -129,12 +129,13 @@ message GetProviderSchema {
     }
 }
 
-message ValidateProviderConfig {
+message PrepareProviderConfig {
     message Request {
         DynamicValue config = 1;
     }
     message Response {
-        repeated Diagnostic diagnostics = 1;
+        DynamicValue prepared_config = 1;
+        repeated Diagnostic diagnostics = 2;
     }
 }
 

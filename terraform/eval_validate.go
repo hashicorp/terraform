@@ -98,11 +98,11 @@ func (n *EvalValidateProvider) Eval(ctx EvalContext) (interface{}, error) {
 		return nil, diags.NonFatalErr()
 	}
 
-	req := providers.ValidateProviderConfigRequest{
+	req := providers.PrepareProviderConfigRequest{
 		Config: configVal,
 	}
 
-	validateResp := provider.ValidateProviderConfig(req)
+	validateResp := provider.PrepareProviderConfig(req)
 	diags = diags.Append(validateResp.Diagnostics)
 
 	return nil, diags.NonFatalErr()
