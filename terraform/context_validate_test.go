@@ -603,7 +603,7 @@ func TestContext2Validate_providerConfig_bad(t *testing.T) {
 		),
 	})
 
-	p.ValidateProviderConfigResponse = providers.ValidateProviderConfigResponse{
+	p.PrepareProviderConfigResponse = providers.PrepareProviderConfigResponse{
 		Diagnostics: tfdiags.Diagnostics{}.Append(fmt.Errorf("bad")),
 	}
 
@@ -641,7 +641,7 @@ func TestContext2Validate_providerConfig_badEmpty(t *testing.T) {
 		),
 	})
 
-	p.ValidateProviderConfigResponse = providers.ValidateProviderConfigResponse{
+	p.PrepareProviderConfigResponse = providers.PrepareProviderConfigResponse{
 		Diagnostics: tfdiags.Diagnostics{}.Append(fmt.Errorf("bad")),
 	}
 
@@ -709,7 +709,7 @@ func TestContext2Validate_provisionerConfig_bad(t *testing.T) {
 		},
 	})
 
-	p.ValidateProviderConfigResponse = providers.ValidateProviderConfigResponse{
+	p.PrepareProviderConfigResponse = providers.PrepareProviderConfigResponse{
 		Diagnostics: tfdiags.Diagnostics{}.Append(fmt.Errorf("bad")),
 	}
 
