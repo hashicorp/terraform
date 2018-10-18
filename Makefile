@@ -9,6 +9,7 @@ tools:
 	go get -u github.com/kardianos/govendor
 	go get -u golang.org/x/tools/cmd/stringer
 	go get -u golang.org/x/tools/cmd/cover
+	go get -u github.com/golang/mock/mockgen
 
 # bin generates the releaseable binaries for Terraform
 bin: fmtcheck generate
@@ -70,13 +71,24 @@ cover:
 	rm coverage.out
 
 # generate runs `go generate` to build the dynamically generated
-# source files.
+# source files, except the protobuf stubs which are built instead with
+# "make protobuf".
 generate:
 	@which stringer > /dev/null; if [ $$? -ne 0 ]; then \
 	  go get -u golang.org/x/tools/cmd/stringer; \
 	fi
 	go generate ./...
 	@go fmt command/internal_plugin_list.go > /dev/null
+
+# We separate the protobuf generation because most development tasks on
+# Terraform do not involve changing protobuf files and protoc is not a
+# go-gettable dependency and so getting it installed can be inconvenient.
+#
+# If you are working on changes to protobuf interfaces you may either use
+# this target or run the individual scripts below directly.
+protobuf:
+	bash plugin/proto/generate.sh
+	bash plans/internal/planproto/generate.sh
 
 fmt:
 	gofmt -w $(GOFMT_FILES)
@@ -136,4 +148,4 @@ endif
 # under parallel conditions.
 .NOTPARALLEL:
 
-.PHONY: bin cover default dev e2etest fmt fmtcheck generate plugin-dev quickdev test-compile test testacc testrace tools vendor-status website website-test
+.PHONY: bin cover default dev e2etest fmt fmtcheck generate protobuf plugin-dev quickdev test-compile test testacc testrace tools vendor-status website website-test
