@@ -5,16 +5,19 @@ package states
 import "strconv"
 
 const (
-	_ObjectStatus_name_0 = "ObjectReady"
-	_ObjectStatus_name_1 = "ObjectTainted"
+	_ObjectStatus_name_0 = "ObjectPlanned"
+	_ObjectStatus_name_1 = "ObjectReady"
+	_ObjectStatus_name_2 = "ObjectTainted"
 )
 
 func (i ObjectStatus) String() string {
 	switch {
-	case i == 82:
+	case i == 80:
 		return _ObjectStatus_name_0
-	case i == 84:
+	case i == 82:
 		return _ObjectStatus_name_1
+	case i == 84:
+		return _ObjectStatus_name_2
 	default:
 		return "ObjectStatus(" + strconv.FormatInt(int64(i), 10) + ")"
 	}

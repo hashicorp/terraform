@@ -215,7 +215,7 @@ github.com/go-test/deep
 github.com/gogo/protobuf/gogoproto
 github.com/gogo/protobuf/proto
 github.com/gogo/protobuf/protoc-gen-gogo/descriptor
-# github.com/golang/mock v0.0.0-20180503014854-22bbf0ddf081
+# github.com/golang/mock v1.1.1
 github.com/golang/mock/gomock
 # github.com/golang/protobuf v1.2.0
 github.com/golang/protobuf/proto
