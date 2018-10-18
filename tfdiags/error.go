@@ -21,3 +21,8 @@ func (e nativeError) Source() Source {
 	// No source information available for a native error
 	return Source{}
 }
+
+func (e nativeError) FromExpr() *FromExpr {
+	// Native errors are not expression-related
+	return nil
+}
