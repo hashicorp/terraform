@@ -319,6 +319,84 @@ func TestCoerceValue(t *testing.T) {
 			cty.DynamicVal,
 			`attribute "foo" is required`,
 		},
+		"unknown nested list": {
+			&Block{
+				Attributes: map[string]*Attribute{
+					"attr": {
+						Type:     cty.String,
+						Required: true,
+					},
+				},
+				BlockTypes: map[string]*NestedBlock{
+					"foo": {
+						Block:    Block{},
+						Nesting:  NestingList,
+						MinItems: 1,
+					},
+				},
+			},
+			cty.ObjectVal(map[string]cty.Value{
+				"attr": cty.StringVal("test"),
+				"foo":  cty.UnknownVal(cty.EmptyObject),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"attr": cty.StringVal("test"),
+				"foo":  cty.UnknownVal(cty.List(cty.EmptyObject)),
+			}),
+			"",
+		},
+		"unknown nested set": {
+			&Block{
+				Attributes: map[string]*Attribute{
+					"attr": {
+						Type:     cty.String,
+						Required: true,
+					},
+				},
+				BlockTypes: map[string]*NestedBlock{
+					"foo": {
+						Block:    Block{},
+						Nesting:  NestingSet,
+						MinItems: 1,
+					},
+				},
+			},
+			cty.ObjectVal(map[string]cty.Value{
+				"attr": cty.StringVal("test"),
+				"foo":  cty.UnknownVal(cty.EmptyObject),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"attr": cty.StringVal("test"),
+				"foo":  cty.UnknownVal(cty.Set(cty.EmptyObject)),
+			}),
+			"",
+		},
+		"unknown nested map": {
+			&Block{
+				Attributes: map[string]*Attribute{
+					"attr": {
+						Type:     cty.String,
+						Required: true,
+					},
+				},
+				BlockTypes: map[string]*NestedBlock{
+					"foo": {
+						Block:    Block{},
+						Nesting:  NestingMap,
+						MinItems: 1,
+					},
+				},
+			},
+			cty.ObjectVal(map[string]cty.Value{
+				"attr": cty.StringVal("test"),
+				"foo":  cty.UnknownVal(cty.Map(cty.String)),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"attr": cty.StringVal("test"),
+				"foo":  cty.UnknownVal(cty.Map(cty.EmptyObject)),
+			}),
+			"",
+		},
 		"extraneous attribute": {
 			&Block{},
 			cty.ObjectVal(map[string]cty.Value{
