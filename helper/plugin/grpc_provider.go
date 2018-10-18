@@ -77,8 +77,8 @@ func (s *GRPCProviderServer) getDatasourceSchemaBlock(name string) *configschema
 	return dat.CoreConfigSchema()
 }
 
-func (s *GRPCProviderServer) ValidateProviderConfig(_ context.Context, req *proto.ValidateProviderConfig_Request) (*proto.ValidateProviderConfig_Response, error) {
-	resp := &proto.ValidateProviderConfig_Response{}
+func (s *GRPCProviderServer) PrepareProviderConfig(_ context.Context, req *proto.PrepareProviderConfig_Request) (*proto.PrepareProviderConfig_Response, error) {
+	resp := &proto.PrepareProviderConfig_Response{}
 
 	block := s.getProviderSchemaBlock()
 
@@ -92,6 +92,9 @@ func (s *GRPCProviderServer) ValidateProviderConfig(_ context.Context, req *prot
 
 	warns, errs := s.provider.Validate(config)
 	resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, convert.WarnsAndErrsToProto(warns, errs))
+
+	// TODO: set defaults
+	resp.PreparedConfig = req.Config
 
 	return resp, nil
 }
