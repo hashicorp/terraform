@@ -6,6 +6,7 @@ import (
 	"strconv"
 
 	"github.com/zclconf/go-cty/cty"
+	ctyconvert "github.com/zclconf/go-cty/cty/convert"
 	"github.com/zclconf/go-cty/cty/msgpack"
 	context "golang.org/x/net/context"
 
@@ -88,13 +89,67 @@ func (s *GRPCProviderServer) PrepareProviderConfig(_ context.Context, req *proto
 		return resp, nil
 	}
 
+	// lookup any required, top-level attributes that are Null, and see if we
+	// have a Default value available.
+	configVal, _ = cty.Transform(configVal, func(path cty.Path, val cty.Value) (cty.Value, error) {
+		// we're only looking for top-level attributes
+		if len(path) != 1 {
+			return val, nil
+		}
+
+		// nothing to do if we already have a value
+		if !val.IsNull() {
+			return val, nil
+		}
+
+		// get the Schema definition for this attribute
+		getAttr, ok := path[0].(cty.GetAttrStep)
+		// these should all exist, but just ignore anything strange
+		if !ok {
+			return val, nil
+		}
+
+		attrSchema := s.provider.Schema[getAttr.Name]
+		// continue to ignore anything that doesn't match
+		if attrSchema == nil {
+			return val, nil
+		}
+
+		// find a default value if it exists
+		def, err := attrSchema.DefaultValue()
+		if err != nil {
+			return val, err
+		}
+
+		// no default
+		if def == nil {
+			return val, err
+		}
+
+		// create a cty.Value and make sure it's the correct type
+		tmpVal := hcl2shim.HCL2ValueFromConfigValue(def)
+		val, err = ctyconvert.Convert(tmpVal, val.Type())
+		return val, err
+	})
+
+	configVal, err = block.CoerceValue(configVal)
+	if err != nil {
+		resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
+		return resp, nil
+	}
+
 	config := terraform.NewResourceConfigShimmed(configVal, block)
 
 	warns, errs := s.provider.Validate(config)
 	resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, convert.WarnsAndErrsToProto(warns, errs))
 
-	// TODO: set defaults
-	resp.PreparedConfig = req.Config
+	preparedConfigMP, err := msgpack.Marshal(configVal, block.ImpliedType())
+	if err != nil {
+		resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
+		return resp, nil
+	}
+
+	resp.PreparedConfig = &proto.DynamicValue{Msgpack: preparedConfigMP}
 
 	return resp, nil
 }
