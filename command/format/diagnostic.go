@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
+	"sort"
 	"strings"
 
 	"github.com/hashicorp/hcl2/hcl"
@@ -12,6 +13,7 @@ import (
 	"github.com/hashicorp/terraform/tfdiags"
 	"github.com/mitchellh/colorstring"
 	wordwrap "github.com/mitchellh/go-wordwrap"
+	"github.com/zclconf/go-cty/cty"
 )
 
 // Diagnostic formats a single diagnostic message.
@@ -82,7 +84,7 @@ func Diagnostic(diag tfdiags.Diagnostic, sources map[string][]byte, color *color
 			// loaded through the main loader. We may load things in other
 			// ways in weird cases, so we'll tolerate it at the expense of
 			// a not-so-helpful error message.
-			fmt.Fprintf(&buf, "  on %s line %d:\n  (source code not available)\n\n", highlightRange.Filename, highlightRange.Start.Line)
+			fmt.Fprintf(&buf, "  on %s line %d:\n  (source code not available)\n", highlightRange.Filename, highlightRange.Start.Line)
 		} else {
 			contextStr := sourceCodeContextStr(src, highlightRange)
 			if contextStr != "" {
@@ -111,8 +113,59 @@ func Diagnostic(diag tfdiags.Diagnostic, sources map[string][]byte, color *color
 				}
 			}
 
-			buf.WriteByte('\n')
 		}
+
+		if fromExpr := diag.FromExpr(); fromExpr != nil {
+			// We may also be able to generate information about the dynamic
+			// values of relevant variables at the point of evaluation, then.
+			// This is particularly useful for expressions that get evaluated
+			// multiple times with different values, such as blocks using
+			// "count" and "for_each", or within "for" expressions.
+			expr := fromExpr.Expression
+			ctx := fromExpr.EvalContext
+			vars := expr.Variables()
+			stmts := make([]string, 0, len(vars))
+			seen := make(map[string]struct{}, len(vars))
+		Traversals:
+			for _, traversal := range vars {
+				for len(traversal) > 1 {
+					val, diags := traversal.TraverseAbs(ctx)
+					if diags.HasErrors() {
+						// Skip anything that generates errors, since we probably
+						// already have the same error in our diagnostics set
+						// already.
+						traversal = traversal[:len(traversal)-1]
+						continue
+					}
+
+					traversalStr := traversalStr(traversal)
+					if _, exists := seen[traversalStr]; exists {
+						continue Traversals // don't show duplicates when the same variable is referenced multiple times
+					}
+					switch {
+					case !val.IsKnown():
+						// Can't say anything about this yet, then.
+						continue Traversals
+					case val.IsNull():
+						stmts = append(stmts, fmt.Sprintf(color.Color("[bold]%s[reset] is null"), traversalStr))
+					default:
+						stmts = append(stmts, fmt.Sprintf(color.Color("[bold]%s[reset] is %s"), traversalStr, compactValueStr(val)))
+					}
+					seen[traversalStr] = struct{}{}
+				}
+			}
+
+			sort.Strings(stmts) // FIXME: Should maybe use a traversal-aware sort that can sort numeric indexes properly?
+
+			if len(stmts) > 0 {
+				fmt.Fprint(&buf, color.Color("    [dark_gray]|----------------[reset]\n"))
+			}
+			for _, stmt := range stmts {
+				fmt.Fprintf(&buf, color.Color("    [dark_gray]|[reset] %s\n"), stmt)
+			}
+		}
+
+		buf.WriteByte('\n')
 	}
 
 	if desc.Detail != "" {
@@ -154,4 +207,97 @@ func sourceCodeContextStr(src []byte, rng hcl.Range) string {
 	}
 
 	return hcled.ContextString(file, offset)
+}
+
+// traversalStr produces a representation of an HCL traversal that is compact,
+// resembles HCL native syntax, and is suitable for display in the UI.
+func traversalStr(traversal hcl.Traversal) string {
+	// This is a specialized subset of traversal rendering tailored to
+	// producing helpful contextual messages in diagnostics. It is not
+	// comprehensive nor intended to be used for other purposes.
+
+	var buf bytes.Buffer
+	for _, step := range traversal {
+		switch tStep := step.(type) {
+		case hcl.TraverseRoot:
+			buf.WriteString(tStep.Name)
+		case hcl.TraverseAttr:
+			buf.WriteByte('.')
+			buf.WriteString(tStep.Name)
+		case hcl.TraverseIndex:
+			buf.WriteByte('[')
+			if keyTy := tStep.Key.Type(); keyTy.IsPrimitiveType() {
+				buf.WriteString(compactValueStr(tStep.Key))
+			} else {
+				// We'll just use a placeholder for more complex values,
+				// since otherwise our result could grow ridiculously long.
+				buf.WriteString("...")
+			}
+			buf.WriteByte(']')
+		}
+	}
+	return buf.String()
+}
+
+// compactValueStr produces a compact, single-line summary of a given value
+// that is suitable for display in the UI.
+//
+// For primitives it returns a full representation, while for more complex
+// types it instead summarizes the type, size, etc to produce something
+// that is hopefully still somewhat useful but not as verbose as a rendering
+// of the entire data structure.
+func compactValueStr(val cty.Value) string {
+	// This is a specialized subset of value rendering tailored to producing
+	// helpful but concise messages in diagnostics. It is not comprehensive
+	// nor intended to be used for other purposes.
+
+	ty := val.Type()
+	switch {
+	case val.IsNull():
+		return "null"
+	case !val.IsKnown():
+		// Should never happen here because we should filter before we get
+		// in here, but we'll do something reasonable rather than panic.
+		return "(not yet known)"
+	case ty == cty.Bool:
+		if val.True() {
+			return "true"
+		}
+		return "false"
+	case ty == cty.Number:
+		bf := val.AsBigFloat()
+		return bf.Text('g', 10)
+	case ty == cty.String:
+		// Go string syntax is not exactly the same as HCL native string syntax,
+		// but we'll accept the minor edge-cases where this is different here
+		// for now, just to get something reasonable here.
+		return fmt.Sprintf("%q", val.AsString())
+	case ty.IsCollectionType() || ty.IsTupleType():
+		l := val.LengthInt()
+		switch l {
+		case 0:
+			return "empty " + ty.FriendlyName()
+		case 1:
+			return ty.FriendlyName() + " with 1 element"
+		default:
+			return fmt.Sprintf("%s with %d elements", ty.FriendlyName(), l)
+		}
+	case ty.IsObjectType():
+		atys := ty.AttributeTypes()
+		l := len(atys)
+		switch l {
+		case 0:
+			return "object with no attributes"
+		case 1:
+			var name string
+			for k := range atys {
+				name = k
+			}
+			return fmt.Sprintf("object with 1 attribute %q", name)
+		default:
+			return fmt.Sprintf("object with %d attributes", l)
+		}
+	default:
+		return ty.FriendlyName()
+	}
 }
