@@ -5,9 +5,9 @@
 package mock_proto
 
 import (
+	context "context"
 	gomock "github.com/golang/mock/gomock"
 	proto "github.com/hashicorp/terraform/plugin/proto"
-	context "golang.org/x/net/context"
 	grpc "google.golang.org/grpc"
 	metadata "google.golang.org/grpc/metadata"
 	reflect "reflect"
