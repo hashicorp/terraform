@@ -3,6 +3,7 @@ package plugin
 import (
 	"context"
 	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -423,5 +424,157 @@ func TestApplyResourceChange(t *testing.T) {
 	id := newStateVal.GetAttr("id").AsString()
 	if id != "bar" {
 		t.Fatalf("incorrect final state: %#v\n", newStateVal)
+	}
+}
+
+func TestPrepareProviderConfig(t *testing.T) {
+	for _, tc := range []struct {
+		Name         string
+		Schema       map[string]*schema.Schema
+		ConfigVal    cty.Value
+		ExpectError  string
+		ExpectConfig cty.Value
+	}{
+		{
+			Name: "test prepare",
+			Schema: map[string]*schema.Schema{
+				"foo": &schema.Schema{
+					Type:     schema.TypeString,
+					Optional: true,
+				},
+			},
+			ConfigVal: cty.ObjectVal(map[string]cty.Value{
+				"foo": cty.StringVal("bar"),
+			}),
+			ExpectConfig: cty.ObjectVal(map[string]cty.Value{
+				"foo": cty.StringVal("bar"),
+			}),
+		},
+		{
+			Name: "test default",
+			Schema: map[string]*schema.Schema{
+				"foo": &schema.Schema{
+					Type:     schema.TypeString,
+					Optional: true,
+					Default:  "default",
+				},
+			},
+			ConfigVal: cty.ObjectVal(map[string]cty.Value{
+				"foo": cty.NullVal(cty.String),
+			}),
+			ExpectConfig: cty.ObjectVal(map[string]cty.Value{
+				"foo": cty.StringVal("default"),
+			}),
+		},
+		{
+			Name: "test defaultfunc",
+			Schema: map[string]*schema.Schema{
+				"foo": &schema.Schema{
+					Type:     schema.TypeString,
+					Optional: true,
+					DefaultFunc: func() (interface{}, error) {
+						return "defaultfunc", nil
+					},
+				},
+			},
+			ConfigVal: cty.ObjectVal(map[string]cty.Value{
+				"foo": cty.NullVal(cty.String),
+			}),
+			ExpectConfig: cty.ObjectVal(map[string]cty.Value{
+				"foo": cty.StringVal("defaultfunc"),
+			}),
+		},
+		{
+			Name: "test default required",
+			Schema: map[string]*schema.Schema{
+				"foo": &schema.Schema{
+					Type:     schema.TypeString,
+					Required: true,
+					DefaultFunc: func() (interface{}, error) {
+						return "defaultfunc", nil
+					},
+				},
+			},
+			ConfigVal: cty.ObjectVal(map[string]cty.Value{
+				"foo": cty.NullVal(cty.String),
+			}),
+			ExpectConfig: cty.ObjectVal(map[string]cty.Value{
+				"foo": cty.StringVal("defaultfunc"),
+			}),
+		},
+		{
+			Name: "test incorrect type",
+			Schema: map[string]*schema.Schema{
+				"foo": &schema.Schema{
+					Type:     schema.TypeString,
+					Required: true,
+				},
+			},
+			ConfigVal: cty.ObjectVal(map[string]cty.Value{
+				"foo": cty.NumberIntVal(3),
+			}),
+			ExpectConfig: cty.ObjectVal(map[string]cty.Value{
+				"foo": cty.StringVal("3"),
+			}),
+		},
+		{
+			Name: "test incorrect default type",
+			Schema: map[string]*schema.Schema{
+				"foo": &schema.Schema{
+					Type:     schema.TypeString,
+					Required: true,
+					Default:  true,
+				},
+			},
+			ConfigVal: cty.ObjectVal(map[string]cty.Value{
+				"foo": cty.NullVal(cty.String),
+			}),
+			ExpectConfig: cty.ObjectVal(map[string]cty.Value{
+				"foo": cty.StringVal("true"),
+			}),
+		},
+	} {
+		t.Run(tc.Name, func(t *testing.T) {
+			server := &GRPCProviderServer{
+				provider: &schema.Provider{
+					Schema: tc.Schema,
+				},
+			}
+
+			block := schema.InternalMap(tc.Schema).CoreConfigSchema()
+
+			rawConfig, err := msgpack.Marshal(tc.ConfigVal, block.ImpliedType())
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			testReq := &proto.PrepareProviderConfig_Request{
+				Config: &proto.DynamicValue{
+					Msgpack: rawConfig,
+				},
+			}
+
+			resp, err := server.PrepareProviderConfig(nil, testReq)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if tc.ExpectError == "" && len(resp.Diagnostics) > 0 {
+				for _, d := range resp.Diagnostics {
+					if !strings.Contains(d.Summary, tc.ExpectError) {
+						t.Fatalf("Unexpected error: %s/%s", d.Summary, d.Detail)
+					}
+				}
+			}
+
+			val, err := msgpack.Unmarshal(resp.PreparedConfig.Msgpack, block.ImpliedType())
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if tc.ExpectConfig.GoString() != val.GoString() {
+				t.Fatalf("\nexpected: %#v\ngot: %#v", tc.ExpectConfig, val)
+			}
+		})
 	}
 }
