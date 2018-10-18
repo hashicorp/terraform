@@ -5,9 +5,9 @@
 package mock_proto
 
 import (
+	context "context"
 	gomock "github.com/golang/mock/gomock"
 	proto "github.com/hashicorp/terraform/plugin/proto"
-	context "golang.org/x/net/context"
 	grpc "google.golang.org/grpc"
 	metadata "google.golang.org/grpc/metadata"
 	reflect "reflect"
@@ -126,6 +126,24 @@ func (mr *MockProviderClientMockRecorder) PlanResourceChange(arg0, arg1 interfac
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PlanResourceChange", reflect.TypeOf((*MockProviderClient)(nil).PlanResourceChange), varargs...)
 }
 
+// PrepareProviderConfig mocks base method
+func (m *MockProviderClient) PrepareProviderConfig(arg0 context.Context, arg1 *proto.PrepareProviderConfig_Request, arg2 ...grpc.CallOption) (*proto.PrepareProviderConfig_Response, error) {
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "PrepareProviderConfig", varargs...)
+	ret0, _ := ret[0].(*proto.PrepareProviderConfig_Response)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// PrepareProviderConfig indicates an expected call of PrepareProviderConfig
+func (mr *MockProviderClientMockRecorder) PrepareProviderConfig(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
+	varargs := append([]interface{}{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PrepareProviderConfig", reflect.TypeOf((*MockProviderClient)(nil).PrepareProviderConfig), varargs...)
+}
+
 // ReadDataSource mocks base method
 func (m *MockProviderClient) ReadDataSource(arg0 context.Context, arg1 *proto.ReadDataSource_Request, arg2 ...grpc.CallOption) (*proto.ReadDataSource_Response, error) {
 	varargs := []interface{}{arg0, arg1}
@@ -214,24 +232,6 @@ func (m *MockProviderClient) ValidateDataSourceConfig(arg0 context.Context, arg1
 func (mr *MockProviderClientMockRecorder) ValidateDataSourceConfig(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
 	varargs := append([]interface{}{arg0, arg1}, arg2...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ValidateDataSourceConfig", reflect.TypeOf((*MockProviderClient)(nil).ValidateDataSourceConfig), varargs...)
-}
-
-// ValidateProviderConfig mocks base method
-func (m *MockProviderClient) ValidateProviderConfig(arg0 context.Context, arg1 *proto.ValidateProviderConfig_Request, arg2 ...grpc.CallOption) (*proto.ValidateProviderConfig_Response, error) {
-	varargs := []interface{}{arg0, arg1}
-	for _, a := range arg2 {
-		varargs = append(varargs, a)
-	}
-	ret := m.ctrl.Call(m, "ValidateProviderConfig", varargs...)
-	ret0, _ := ret[0].(*proto.ValidateProviderConfig_Response)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// ValidateProviderConfig indicates an expected call of ValidateProviderConfig
-func (mr *MockProviderClientMockRecorder) ValidateProviderConfig(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
-	varargs := append([]interface{}{arg0, arg1}, arg2...)
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ValidateProviderConfig", reflect.TypeOf((*MockProviderClient)(nil).ValidateProviderConfig), varargs...)
 }
 
 // ValidateResourceTypeConfig mocks base method
