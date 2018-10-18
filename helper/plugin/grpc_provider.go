@@ -115,6 +115,11 @@ func (s *GRPCProviderServer) PrepareProviderConfig(_ context.Context, req *proto
 			return val, nil
 		}
 
+		// this is deprecated, so don't set it
+		if attrSchema.Deprecated != "" || attrSchema.Removed != "" {
+			return val, nil
+		}
+
 		// find a default value if it exists
 		def, err := attrSchema.DefaultValue()
 		if err != nil {
@@ -129,6 +134,7 @@ func (s *GRPCProviderServer) PrepareProviderConfig(_ context.Context, req *proto
 		// create a cty.Value and make sure it's the correct type
 		tmpVal := hcl2shim.HCL2ValueFromConfigValue(def)
 		val, err = ctyconvert.Convert(tmpVal, val.Type())
+
 		return val, err
 	})
 
