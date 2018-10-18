@@ -98,10 +98,10 @@ func (b *Block) coerceValue(in cty.Value, path cty.Path) (cty.Value, error) {
 
 				switch {
 				case coll.IsNull():
-					attrs[typeName] = cty.NullVal(cty.List(b.ImpliedType()))
+					attrs[typeName] = cty.NullVal(cty.List(blockS.ImpliedType()))
 					continue
 				case !coll.IsKnown():
-					attrs[typeName] = cty.UnknownVal(cty.List(b.ImpliedType()))
+					attrs[typeName] = cty.UnknownVal(cty.List(blockS.ImpliedType()))
 					continue
 				}
 
@@ -116,7 +116,7 @@ func (b *Block) coerceValue(in cty.Value, path cty.Path) (cty.Value, error) {
 					return cty.UnknownVal(b.ImpliedType()), path.NewErrorf("too many items for attribute %q; must have at least %d", typeName, blockS.MinItems)
 				}
 				if l == 0 {
-					attrs[typeName] = cty.ListValEmpty(b.ImpliedType())
+					attrs[typeName] = cty.ListValEmpty(blockS.ImpliedType())
 					continue
 				}
 				elems := make([]cty.Value, 0, l)
@@ -146,10 +146,10 @@ func (b *Block) coerceValue(in cty.Value, path cty.Path) (cty.Value, error) {
 
 				switch {
 				case coll.IsNull():
-					attrs[typeName] = cty.NullVal(cty.Set(b.ImpliedType()))
+					attrs[typeName] = cty.NullVal(cty.Set(blockS.ImpliedType()))
 					continue
 				case !coll.IsKnown():
-					attrs[typeName] = cty.UnknownVal(cty.Set(b.ImpliedType()))
+					attrs[typeName] = cty.UnknownVal(cty.Set(blockS.ImpliedType()))
 					continue
 				}
 
@@ -164,7 +164,7 @@ func (b *Block) coerceValue(in cty.Value, path cty.Path) (cty.Value, error) {
 					return cty.UnknownVal(b.ImpliedType()), path.NewErrorf("too many items for attribute %q; must have at least %d", typeName, blockS.MinItems)
 				}
 				if l == 0 {
-					attrs[typeName] = cty.SetValEmpty(b.ImpliedType())
+					attrs[typeName] = cty.SetValEmpty(blockS.ImpliedType())
 					continue
 				}
 				elems := make([]cty.Value, 0, l)
@@ -194,10 +194,10 @@ func (b *Block) coerceValue(in cty.Value, path cty.Path) (cty.Value, error) {
 
 				switch {
 				case coll.IsNull():
-					attrs[typeName] = cty.NullVal(cty.Map(b.ImpliedType()))
+					attrs[typeName] = cty.NullVal(cty.Map(blockS.ImpliedType()))
 					continue
 				case !coll.IsKnown():
-					attrs[typeName] = cty.UnknownVal(cty.Map(b.ImpliedType()))
+					attrs[typeName] = cty.UnknownVal(cty.Map(blockS.ImpliedType()))
 					continue
 				}
 
@@ -206,7 +206,7 @@ func (b *Block) coerceValue(in cty.Value, path cty.Path) (cty.Value, error) {
 				}
 				l := coll.LengthInt()
 				if l == 0 {
-					attrs[typeName] = cty.MapValEmpty(b.ImpliedType())
+					attrs[typeName] = cty.MapValEmpty(blockS.ImpliedType())
 					continue
 				}
 				elems := make(map[string]cty.Value)
