@@ -4,9 +4,6 @@ import (
 	"fmt"
 
 	uuid "github.com/hashicorp/go-uuid"
-
-	"github.com/hashicorp/terraform/states/statefile"
-	"github.com/hashicorp/terraform/version"
 )
 
 // NewLineage generates a new lineage identifier string. A lineage identifier
@@ -20,13 +17,4 @@ func NewLineage() string {
 		panic(fmt.Errorf("Failed to generate lineage: %v", err))
 	}
 	return lineage
-}
-
-// NewStateFile creates a new statefile.File object, with a newly-minted
-// lineage identifier and serial 0, and returns a pointer to it.
-func NewStateFile() *statefile.File {
-	return &statefile.File{
-		Lineage:          NewLineage(),
-		TerraformVersion: version.SemVer,
-	}
 }
