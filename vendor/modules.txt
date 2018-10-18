@@ -448,7 +448,7 @@ github.com/ulikunitz/xz/internal/hash
 # github.com/vmihailenco/msgpack v4.0.0+incompatible
 github.com/vmihailenco/msgpack
 github.com/vmihailenco/msgpack/codes
-# github.com/xanzy/ssh-agent v0.1.0
+# github.com/xanzy/ssh-agent v0.2.0
 github.com/xanzy/ssh-agent
 # github.com/xlab/treeprint v0.0.0-20161029104018-1d6e34225557
 github.com/xlab/treeprint
