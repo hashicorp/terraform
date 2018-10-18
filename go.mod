@@ -126,7 +126,7 @@ require (
 	github.com/ugorji/go v0.0.0-20180813092308-00b869d2f4a5 // indirect
 	github.com/ulikunitz/xz v0.5.4 // indirect
 	github.com/vmihailenco/msgpack v4.0.0+incompatible // indirect
-	github.com/xanzy/ssh-agent v0.1.0
+	github.com/xanzy/ssh-agent v0.2.0
 	github.com/xiang90/probing v0.0.0-20160813154853-07dd2e8dfe18 // indirect
 	github.com/xlab/treeprint v0.0.0-20161029104018-1d6e34225557
 	github.com/zclconf/go-cty v0.0.0-20181017232614-01c5aba823a6
