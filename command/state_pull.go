@@ -1,9 +1,12 @@
 package command
 
 import (
+	"bytes"
 	"fmt"
 	"strings"
 
+	"github.com/hashicorp/terraform/states/statefile"
+	"github.com/hashicorp/terraform/states/statemgr"
 	"github.com/mitchellh/cli"
 )
 
@@ -34,37 +37,34 @@ func (c *StatePullCommand) Run(args []string) int {
 
 	// Get the state
 	env := c.Workspace()
-	state, err := b.StateMgr(env)
+	stateMgr, err := b.StateMgr(env)
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf("Failed to load state: %s", err))
 		return 1
 	}
-	if err := state.RefreshState(); err != nil {
+	if err := stateMgr.RefreshState(); err != nil {
 		c.Ui.Error(fmt.Sprintf("Failed to load state: %s", err))
 		return 1
 	}
 
-	s := state.State()
-	if s == nil {
+	state := stateMgr.State()
+	if state == nil {
 		// Output on "error" so it shows up on stderr
 		c.Ui.Error("Empty state (no state)")
-
 		return 0
 	}
 
-	c.Ui.Error("state pull not yet updated for new state types")
-	return 1
+	// Get the state file.
+	stateFile := statemgr.StateFile(stateMgr, state)
 
-	/*
-		var buf bytes.Buffer
-		if err := terraform.WriteState(s, &buf); err != nil {
-			c.Ui.Error(fmt.Sprintf("Failed to load state: %s", err))
-			return 1
-		}
+	var buf bytes.Buffer
+	err = statefile.Write(stateFile, &buf)
+	if err != nil {
+		c.Ui.Error(fmt.Sprintf("Failed to load state: %s", err))
+		return 1
+	}
 
-		c.Ui.Output(buf.String())
-	*/
-
+	c.Ui.Output(buf.String())
 	return 0
 }
 
