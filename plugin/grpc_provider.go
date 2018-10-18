@@ -147,25 +147,37 @@ func (p *GRPCProvider) GetSchema() (resp providers.GetSchemaResponse) {
 	return resp
 }
 
-func (p *GRPCProvider) ValidateProviderConfig(r providers.ValidateProviderConfigRequest) (resp providers.ValidateProviderConfigResponse) {
-	log.Printf("[TRACE] GRPCProvider: ValidateProviderConfig")
+func (p *GRPCProvider) PrepareProviderConfig(r providers.PrepareProviderConfigRequest) (resp providers.PrepareProviderConfigResponse) {
+	log.Printf("[TRACE] GRPCProvider: PrepareProviderConfig")
 
 	schema := p.getSchema()
-	mp, err := msgpack.Marshal(r.Config, schema.Provider.Block.ImpliedType())
+	ty := schema.Provider.Block.ImpliedType()
+
+	mp, err := msgpack.Marshal(r.Config, ty)
 	if err != nil {
 		resp.Diagnostics = resp.Diagnostics.Append(err)
 		return resp
 	}
 
-	protoReq := &proto.ValidateProviderConfig_Request{
+	protoReq := &proto.PrepareProviderConfig_Request{
 		Config: &proto.DynamicValue{Msgpack: mp},
 	}
 
-	protoResp, err := p.client.ValidateProviderConfig(p.ctx, protoReq)
+	protoResp, err := p.client.PrepareProviderConfig(p.ctx, protoReq)
 	if err != nil {
 		resp.Diagnostics = resp.Diagnostics.Append(err)
 		return resp
 	}
+
+	config := cty.NullVal(ty)
+	if protoResp.PreparedConfig != nil {
+		config, err = msgpack.Unmarshal(protoResp.PreparedConfig.Msgpack, ty)
+		if err != nil {
+			resp.Diagnostics = resp.Diagnostics.Append(err)
+			return resp
+		}
+	}
+	resp.PreparedConfig = config
 
 	resp.Diagnostics = resp.Diagnostics.Append(convert.ProtoToDiagnostics(protoResp.Diagnostics))
 	return resp

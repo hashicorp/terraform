@@ -91,19 +91,19 @@ func TestGRPCProvider_GetSchema(t *testing.T) {
 	checkDiags(t, resp.Diagnostics)
 }
 
-func TestGRPCProvider_ValidateProviderConfig(t *testing.T) {
+func TestGRPCProvider_PrepareProviderConfig(t *testing.T) {
 	client := mockProviderClient(t)
 	p := &GRPCProvider{
 		client: client,
 	}
 
-	client.EXPECT().ValidateProviderConfig(
+	client.EXPECT().PrepareProviderConfig(
 		gomock.Any(),
 		gomock.Any(),
-	).Return(&proto.ValidateProviderConfig_Response{}, nil)
+	).Return(&proto.PrepareProviderConfig_Response{}, nil)
 
 	cfg := hcl2shim.HCL2ValueFromConfigValue(map[string]interface{}{"attr": "value"})
-	resp := p.ValidateProviderConfig(providers.ValidateProviderConfigRequest{Config: cfg})
+	resp := p.PrepareProviderConfig(providers.PrepareProviderConfigRequest{Config: cfg})
 	checkDiags(t, resp.Diagnostics)
 }
 
