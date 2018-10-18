@@ -38,6 +38,8 @@ The overall theme for the v0.12 release is configuration language fixes and impr
 
 * **`jsondecode` and `csvdecode` interpolation functions:** Due to the richer type system in the new configuration language implementation, we can now offer functions for decoding serialization formats. `jsondecode` is the opposite of `jsonencode`, while `csvdecode` provides a way to load in lists of maps from a compact tabular representation.
 
+* **New Function:** `fileexists` [GH-19086]
+
 IMPROVEMENTS:
 
 * `terraform validate` now accepts an argument `-json` which produces machine-readable output. Please refer to the documentation for this command for details on the format and some caveats that consumers must consider when using this interface. [GH-17539]
