@@ -7,6 +7,7 @@ import (
 
 	backendlocal "github.com/hashicorp/terraform/backend/local"
 	"github.com/hashicorp/terraform/state"
+	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/states/statemgr"
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -79,8 +80,8 @@ func (c *StateMeta) State() (state.State, error) {
 }
 
 // filterInstance filters a single instance out of filter results.
-func (c *StateMeta) filterInstance(rs []*terraform.StateFilterResult) (*terraform.StateFilterResult, error) {
-	var result *terraform.StateFilterResult
+func (c *StateMeta) filterInstance(rs []*states.FilterResult) (*states.FilterResult, error) {
+	var result *states.FilterResult
 	for _, r := range rs {
 		if _, ok := r.Value.(*terraform.InstanceState); !ok {
 			continue
