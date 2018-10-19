@@ -276,6 +276,10 @@ func newResourceConfigShimmedComputedKeys(obj cty.Value, schema *configschema.Bl
 		}
 
 		blockVal := obj.GetAttr(typeName)
+		if !blockVal.IsKnown() {
+			continue
+		}
+
 		switch blockS.Nesting {
 		case configschema.NestingSingle:
 			keys := newResourceConfigShimmedComputedKeys(blockVal, &blockS.Block, fmt.Sprintf("%s%s.", prefix, typeName))

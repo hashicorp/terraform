@@ -58,6 +58,11 @@ var ElementFunc = function.New(&function.Spec{
 			// can't happen because we checked this in the Type function above
 			return cty.DynamicVal, fmt.Errorf("invalid index: %s", err)
 		}
+
+		if !args[0].IsKnown() {
+			return cty.UnknownVal(retType), nil
+		}
+
 		l := args[0].LengthInt()
 		if l == 0 {
 			return cty.DynamicVal, fmt.Errorf("cannot use element function with an empty list")
@@ -249,6 +254,10 @@ var IndexFunc = function.New(&function.Spec{
 	Impl: func(args []cty.Value, retType cty.Type) (ret cty.Value, err error) {
 		if !(args[0].Type().IsListType() || args[0].Type().IsTupleType()) {
 			return cty.NilVal, fmt.Errorf("argument must be a list or tuple")
+		}
+
+		if !args[0].IsKnown() {
+			return cty.UnknownVal(cty.Number), nil
 		}
 
 		if args[0].LengthInt() == 0 { // Easy path
@@ -666,6 +675,9 @@ var MatchkeysFunc = function.New(&function.Spec{
 		return args[0].Type(), nil
 	},
 	Impl: func(args []cty.Value, retType cty.Type) (ret cty.Value, err error) {
+		if !args[0].IsKnown() {
+			return cty.UnknownVal(cty.List(retType.ElementType())), nil
+		}
 
 		if args[0].LengthInt() != args[1].LengthInt() {
 			return cty.ListValEmpty(retType.ElementType()), fmt.Errorf("length of keys and values should be equal")
@@ -885,12 +897,12 @@ var ValuesFunc = function.New(&function.Spec{
 	Impl: func(args []cty.Value, retType cty.Type) (ret cty.Value, err error) {
 		mapVar := args[0]
 
-		if mapVar.LengthInt() == 0 {
-			return cty.ListValEmpty(retType.ElementType()), nil
-		}
-
 		if !mapVar.IsWhollyKnown() {
 			return cty.UnknownVal(retType), nil
+		}
+
+		if mapVar.LengthInt() == 0 {
+			return cty.ListValEmpty(retType.ElementType()), nil
 		}
 
 		keys, err := Keys(mapVar)
@@ -941,7 +953,7 @@ var ZipmapFunc = function.New(&function.Spec{
 		keys := args[0]
 		values := args[1]
 
-		if keys.LengthInt() == 0 {
+		if !keys.IsKnown() || !values.IsKnown() || keys.LengthInt() == 0 {
 			return cty.Map(cty.DynamicPseudoType), nil
 		}
 
@@ -955,7 +967,7 @@ var ZipmapFunc = function.New(&function.Spec{
 		keys := args[0]
 		values := args[1]
 
-		if keys.LengthInt() == 0 {
+		if !keys.IsKnown() || !values.IsKnown() || keys.LengthInt() == 0 {
 			return cty.MapValEmpty(cty.DynamicPseudoType), nil
 		}
 
