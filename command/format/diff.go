@@ -856,6 +856,10 @@ func ctyGetAttrMaybeNull(val cty.Value, name string) cty.Value {
 }
 
 func ctyCollectionValues(val cty.Value) []cty.Value {
+	if !val.IsKnown() {
+		return nil
+	}
+
 	ret := make([]cty.Value, 0, val.LengthInt())
 	for it := val.ElementIterator(); it.Next(); {
 		_, value := it.Element()

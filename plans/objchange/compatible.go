@@ -64,7 +64,7 @@ func assertObjectCompatible(schema *configschema.Block, planned, actual cty.Valu
 				return errs
 			}
 		case configschema.NestingList, configschema.NestingMap, configschema.NestingSet:
-			if plannedV.LengthInt() == 1 {
+			if plannedV.IsKnown() && plannedV.LengthInt() == 1 {
 				elemVs := plannedV.AsValueSlice()
 				if allLeafValuesUnknown(elemVs[0]) {
 					return errs
@@ -84,6 +84,10 @@ func assertObjectCompatible(schema *configschema.Block, planned, actual cty.Valu
 			// whether there are dynamically-typed attributes inside. However,
 			// both support a similar-enough API that we can treat them the
 			// same for our purposes here.
+			if !plannedV.IsKnown() {
+				continue
+			}
+
 			plannedL := plannedV.LengthInt()
 			actualL := actualV.LengthInt()
 			if plannedL != actualL {
@@ -125,6 +129,9 @@ func assertObjectCompatible(schema *configschema.Block, planned, actual cty.Valu
 					}
 				}
 			} else {
+				if !plannedV.IsKnown() {
+					continue
+				}
 				plannedL := plannedV.LengthInt()
 				actualL := actualV.LengthInt()
 				if plannedL != actualL {
@@ -146,6 +153,9 @@ func assertObjectCompatible(schema *configschema.Block, planned, actual cty.Valu
 			// content is also their key, and so we have no way to correlate
 			// them. Because of this, we simply verify that we still have the
 			// same number of elements.
+			if !plannedV.IsKnown() {
+				continue
+			}
 			plannedL := plannedV.LengthInt()
 			actualL := actualV.LengthInt()
 			if plannedL < actualL {
@@ -241,10 +251,12 @@ func assertValueCompatible(planned, actual cty.Value, path cty.Path) []error {
 		// so we can't correlate them properly. However, we will at least check
 		// to ensure that the number of elements is consistent, along with
 		// the general type-match checks we ran earlier in this function.
-		plannedL := planned.LengthInt()
-		actualL := actual.LengthInt()
-		if plannedL < actualL {
-			errs = append(errs, path.NewErrorf("length changed from %d to %d", plannedL, actualL))
+		if planned.IsKnown() {
+			plannedL := planned.LengthInt()
+			actualL := actual.LengthInt()
+			if plannedL < actualL {
+				errs = append(errs, path.NewErrorf("length changed from %d to %d", plannedL, actualL))
+			}
 		}
 	}
 
