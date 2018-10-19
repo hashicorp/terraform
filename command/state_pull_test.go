@@ -1,21 +1,26 @@
 package command
 
 import (
-	"strings"
+	"bytes"
+	"io/ioutil"
+	"os"
 	"testing"
 
+	"github.com/hashicorp/terraform/helper/copy"
 	"github.com/mitchellh/cli"
 )
 
 func TestStatePull(t *testing.T) {
-	tmp, cwd := testCwd(t)
-	defer testFixCwd(t, tmp, cwd)
+	// Create a temporary working directory that is empty
+	td := tempDir(t)
+	copy.CopyDir(testFixturePath("state-pull-backend"), td)
+	defer os.RemoveAll(td)
+	defer testChdir(t, td)()
 
-	// Create some legacy remote state
-	legacyState := testState()
-	backendState, srv := testRemoteState(t, legacyState, 200)
-	defer srv.Close()
-	testStateFileRemote(t, backendState)
+	expected, err := ioutil.ReadFile("local-state.tfstate")
+	if err != nil {
+		t.Fatalf("error reading state: %v", err)
+	}
 
 	p := testProvider()
 	ui := new(cli.MockUi)
@@ -31,9 +36,8 @@ func TestStatePull(t *testing.T) {
 		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
 	}
 
-	expected := "test_instance.foo"
-	actual := ui.OutputWriter.String()
-	if !strings.Contains(actual, expected) {
+	actual := ui.OutputWriter.Bytes()
+	if bytes.Equal(actual, expected) {
 		t.Fatalf("expected:\n%s\n\nto include: %q", actual, expected)
 	}
 }

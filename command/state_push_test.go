@@ -95,7 +95,7 @@ func TestStatePush_replaceMatchStdin(t *testing.T) {
 		},
 	}
 
-	args := []string{"-"}
+	args := []string{"-force", "-"}
 	if code := c.Run(args); code != 0 {
 		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
 	}
@@ -155,7 +155,7 @@ func TestStatePush_serialNewer(t *testing.T) {
 
 	args := []string{"replace.tfstate"}
 	if code := c.Run(args); code != 1 {
-		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+		t.Fatalf("bad: %d", code)
 	}
 
 	actual := testStateRead(t, "local-state.tfstate")
