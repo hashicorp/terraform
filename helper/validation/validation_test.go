@@ -41,6 +41,41 @@ func TestValidationAll(t *testing.T) {
 	})
 }
 
+func TestValidationAny(t *testing.T) {
+	runTestCases(t, []testCase{
+		{
+			val: 43,
+			f: Any(
+				IntAtLeast(42),
+				IntAtMost(5),
+			),
+		},
+		{
+			val: 4,
+			f: Any(
+				IntAtLeast(42),
+				IntAtMost(5),
+			),
+		},
+		{
+			val: 7,
+			f: Any(
+				IntAtLeast(42),
+				IntAtMost(5),
+			),
+			expectedErr: regexp.MustCompile("expected [\\w]+ to be at least \\(42\\), got 7"),
+		},
+		{
+			val: 7,
+			f: Any(
+				IntAtLeast(42),
+				IntAtMost(5),
+			),
+			expectedErr: regexp.MustCompile("expected [\\w]+ to be at most \\(5\\), got 7"),
+		},
+	})
+}
+
 func TestValidationIntBetween(t *testing.T) {
 	runTestCases(t, []testCase{
 		{
