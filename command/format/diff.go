@@ -856,7 +856,7 @@ func ctyGetAttrMaybeNull(val cty.Value, name string) cty.Value {
 }
 
 func ctyCollectionValues(val cty.Value) []cty.Value {
-	if !val.IsKnown() {
+	if !val.IsKnown() || val.IsNull() {
 		return nil
 	}
 
