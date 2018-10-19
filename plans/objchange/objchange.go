@@ -92,8 +92,12 @@ func ProposedNewObject(schema *configschema.Block, prior, config cty.Value) cty.
 
 		case configschema.NestingList:
 			// Nested blocks are correlated by index.
-			if l := configV.LengthInt(); l > 0 {
-				newVals := make([]cty.Value, 0, l)
+			configVLen := 0
+			if configV.IsKnown() && !configV.IsNull() {
+				configVLen = configV.LengthInt()
+			}
+			if configVLen > 0 {
+				newVals := make([]cty.Value, 0, configVLen)
 				for it := configV.ElementIterator(); it.Next(); {
 					idx, configEV := it.Element()
 					if priorV.IsKnown() && (priorV.IsNull() || !priorV.HasIndex(idx).True()) {
@@ -130,8 +134,12 @@ func ProposedNewObject(schema *configschema.Block, prior, config cty.Value) cty.
 			// dynamically-typed attributes.
 			if configV.Type().IsObjectType() {
 				// Nested blocks are correlated by key.
-				if l := configV.LengthInt(); l > 0 {
-					newVals := make(map[string]cty.Value, l)
+				configVLen := 0
+				if configV.IsKnown() && !configV.IsNull() {
+					configVLen = configV.LengthInt()
+				}
+				if configVLen > 0 {
+					newVals := make(map[string]cty.Value, configVLen)
 					atys := configV.Type().AttributeTypes()
 					for name := range atys {
 						configEV := configV.GetAttr(name)
@@ -154,8 +162,12 @@ func ProposedNewObject(schema *configschema.Block, prior, config cty.Value) cty.
 					newV = cty.EmptyObjectVal
 				}
 			} else {
-				if l := configV.LengthInt(); l > 0 {
-					newVals := make(map[string]cty.Value, l)
+				configVLen := 0
+				if configV.IsKnown() && !configV.IsNull() {
+					configVLen = configV.LengthInt()
+				}
+				if configVLen > 0 {
+					newVals := make(map[string]cty.Value, configVLen)
 					for it := configV.ElementIterator(); it.Next(); {
 						idx, configEV := it.Element()
 						k := idx.AsString()
@@ -190,9 +202,13 @@ func ProposedNewObject(schema *configschema.Block, prior, config cty.Value) cty.
 			if priorV.IsKnown() && !priorV.IsNull() {
 				cmpVals = setElementCompareValues(&blockType.Block, priorV, false)
 			}
-			if l := configV.LengthInt(); l > 0 {
+			configVLen := 0
+			if configV.IsKnown() && !configV.IsNull() {
+				configVLen = configV.LengthInt()
+			}
+			if configVLen > 0 {
 				used := make([]bool, len(cmpVals)) // track used elements in case multiple have the same compare value
-				newVals := make([]cty.Value, 0, l)
+				newVals := make([]cty.Value, 0, configVLen)
 				for it := configV.ElementIterator(); it.Next(); {
 					_, configEV := it.Element()
 					var priorEV cty.Value
