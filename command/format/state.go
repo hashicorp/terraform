@@ -41,10 +41,9 @@ func State(opts *StateOpts) string {
 		return "The state file is empty. No resources are represented."
 	}
 
-	var buf bytes.Buffer
-	buf.WriteString("[reset]")
+	buf := bytes.NewBufferString("[reset]")
 	p := blockBodyDiffPrinter{
-		buf:    &buf,
+		buf:    buf,
 		color:  opts.Color,
 		action: plans.NoOp,
 	}
@@ -81,14 +80,7 @@ func State(opts *StateOpts) string {
 
 }
 
-func formatStateModule(
-	p blockBodyDiffPrinter, m *states.Module, schemas *terraform.Schemas) {
-
-	var moduleName string
-	if !m.Addr.IsRoot() {
-		moduleName = fmt.Sprintf("module.%s", m.Addr.String())
-	}
-
+func formatStateModule(p blockBodyDiffPrinter, m *states.Module, schemas *terraform.Schemas) {
 	// First get the names of all the resources so we can show them
 	// in alphabetical order.
 	names := make([]string, 0, len(m.Resources))
@@ -99,20 +91,14 @@ func formatStateModule(
 
 	// Go through each resource and begin building up the output.
 	for _, key := range names {
-		taintStr := ""
-		instances := m.Resources[key].Instances
-		for k, v := range instances {
-			name := key
-			if moduleName != "" {
-				name = moduleName + "." + name
-			}
-
+		for k, v := range m.Resources[key].Instances {
 			addr := m.Resources[key].Addr
+
+			taintStr := ""
 			if v.Current.Status == 'T' {
 				taintStr = "(tainted)"
 			}
-			p.buf.WriteString(fmt.Sprintf("# %s: %s\n", addr.Instance(k), taintStr))
-			taintStr = ""
+			p.buf.WriteString(fmt.Sprintf("# %s: %s\n", addr.Absolute(m.Addr).Instance(k), taintStr))
 
 			var schema *configschema.Block
 			provider := m.Resources[key].ProviderConfig.ProviderConfig.StringCompact()
@@ -128,7 +114,8 @@ func formatStateModule(
 			switch addr.Mode {
 			case addrs.ManagedResourceMode:
 				if _, exists := schemas.Providers[provider].ResourceTypes[addr.Type]; !exists {
-					p.buf.WriteString(fmt.Sprintf("# missing schema for provider %q resource type %s\n\n", provider, addr.Type))
+					p.buf.WriteString(fmt.Sprintf(
+						"# missing schema for provider %q resource type %s\n\n", provider, addr.Type))
 					continue
 				}
 
@@ -140,7 +127,8 @@ func formatStateModule(
 				schema = schemas.Providers[provider].ResourceTypes[addr.Type]
 			case addrs.DataResourceMode:
 				if _, exists := schemas.Providers[provider].ResourceTypes[addr.Type]; !exists {
-					p.buf.WriteString(fmt.Sprintf("# missing schema for provider %q data source %s\n\n", provider, addr.Type))
+					p.buf.WriteString(fmt.Sprintf(
+						"# missing schema for provider %q data source %s\n\n", provider, addr.Type))
 					continue
 				}
 
@@ -156,12 +144,20 @@ func formatStateModule(
 			}
 
 			val, err := v.Current.Decode(schema.ImpliedType())
-
 			if err != nil {
 				fmt.Println(err.Error())
 				break
 			}
+
+			// First get the names of all the attributes so we can show them
+			// in alphabetical order.
+			names := make([]string, 0, len(schema.Attributes))
 			for name := range schema.Attributes {
+				names = append(names, name)
+			}
+			sort.Strings(names)
+
+			for _, name := range names {
 				attr := ctyGetAttrMaybeNull(val.Value, name)
 				if !attr.IsNull() {
 					p.buf.WriteString(fmt.Sprintf("    %s = ", name))
