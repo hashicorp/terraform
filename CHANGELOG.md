@@ -1,8 +1,8 @@
-## 0.11.9 (Unreleased)
+## 0.11.9 (October 19, 2018)
 
 IMPROVEMENTS:
 
-* backend/remote: Also show policy check output when running a plan [GH-19088]
+* backend/remote: Also show policy check output when running a plan ([#19088](https://github.com/hashicorp/terraform/issues/19088))
 
 ## 0.11.9-beta1 (October 15, 2018)
 
@@ -38,7 +38,7 @@ BUG FIXES:
 
 NEW FEATURES:
 
-* **New `remote` backend**: Inital release of the `remote` backend for use with Terraform Enterprise and Private Terraform Enterprise [[#18596](https://github.com/hashicorp/terraform/issues/18596)]
+* **New `remote` backend**: Inital release of the `remote` backend for use with Terraform Enterprise and Private Terraform Enterprise ([#18596](https://github.com/hashicorp/terraform/issues/18596))
 
 IMPROVEMENTS:
 
