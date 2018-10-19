@@ -320,6 +320,11 @@ func (r *Resource) simpleDiff(
 		return instanceDiff, err
 	}
 
+	if instanceDiff == nil {
+		log.Printf("[DEBUG] Instance Diff is nil in SimpleDiff()")
+		return nil, err
+	}
+
 	// Make sure the old value is set in each of the instance diffs.
 	// This was done by the RequiresNew logic in the full legacy Diff.
 	for k, attr := range instanceDiff.Attributes {
@@ -331,14 +336,9 @@ func (r *Resource) simpleDiff(
 		}
 	}
 
-	if instanceDiff != nil {
-		if err := t.DiffEncode(instanceDiff); err != nil {
-			log.Printf("[ERR] Error encoding timeout to instance diff: %s", err)
-		}
-	} else {
-		log.Printf("[DEBUG] Instance Diff is nil in Diff()")
+	if err := t.DiffEncode(instanceDiff); err != nil {
+		log.Printf("[ERR] Error encoding timeout to instance diff: %s", err)
 	}
-
 	return instanceDiff, err
 }
 
