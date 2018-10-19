@@ -320,6 +320,17 @@ func (r *Resource) simpleDiff(
 		return instanceDiff, err
 	}
 
+	// Make sure the old value is set in each of the instance diffs.
+	// This was done by the RequiresNew logic in the full legacy Diff.
+	for k, attr := range instanceDiff.Attributes {
+		if attr == nil {
+			continue
+		}
+		if s != nil {
+			attr.Old = s.Attributes[k]
+		}
+	}
+
 	if instanceDiff != nil {
 		if err := t.DiffEncode(instanceDiff); err != nil {
 			log.Printf("[ERR] Error encoding timeout to instance diff: %s", err)
