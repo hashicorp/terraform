@@ -28,6 +28,24 @@ func All(validators ...schema.SchemaValidateFunc) schema.SchemaValidateFunc {
 	}
 }
 
+// Any returns a SchemaValidateFunc which tests if the provided value
+// passes any of the provided SchemaValidateFunc
+func Any(validators ...schema.SchemaValidateFunc) schema.SchemaValidateFunc {
+	return func(i interface{}, k string) ([]string, []error) {
+		var allErrors []error
+		var allWarnings []string
+		for _, validator := range validators {
+			validatorWarnings, validatorErrors := validator(i, k)
+			if len(validatorWarnings) == 0 && len(validatorErrors) == 0 {
+				return []string{}, []error{}
+			}
+			allWarnings = append(allWarnings, validatorWarnings...)
+			allErrors = append(allErrors, validatorErrors...)
+		}
+		return allWarnings, allErrors
+	}
+}
+
 // IntBetween returns a SchemaValidateFunc which tests if the provided value
 // is of type int and is between min and max (inclusive)
 func IntBetween(min, max int) schema.SchemaValidateFunc {
