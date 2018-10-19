@@ -189,9 +189,8 @@ func TestLocal_refreshValidate(t *testing.T) {
 	}
 	<-run.Done()
 
-	// what are we validating?
-	if !p.ValidateProviderConfigCalled {
-		t.Fatal("validate should be called")
+	if !p.PrepareProviderConfigCalled {
+		t.Fatal("Prepare provider config should be called")
 	}
 
 	checkState(t, b.StateOutPath, `
