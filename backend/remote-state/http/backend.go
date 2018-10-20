@@ -164,6 +164,10 @@ func (b *Backend) configure(ctx context.Context) error {
 		}
 		tlsConfig.Certificates = []tls.Certificate{certificate}
 		tlsConfig.RootCAs, _ = x509.SystemCertPool()
+		if tlsConfig.RootCAs == nil {
+			//Work around windows issue
+			tlsConfig.RootCAs = x509.NewCertPool()
+		}
 		tlsConfig.BuildNameToCertificate()
 		client.Transport.(*http.Transport).TLSClientConfig = tlsConfig
 
