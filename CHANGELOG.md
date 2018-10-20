@@ -1,4 +1,4 @@
-## 0.12.0-alpha1 (Unreleased)
+## 0.12.0-alpha1 (October 19, 2018)
 
 The goal of this release is to give users an early preview of the new language features, and to collect feedback primarily about bugs and usability issues related to the language itself, while the Terraform team addresses the remaining problems. There will be at least one beta and at least one release candidate before final, which should give a more complete impression of how the final v0.12.0 release will behave.
 
