@@ -64,27 +64,7 @@ Since v0.12.0-alpha1 is an experimental build, this list is certainly incomplete
 
 * Some secondary Terraform CLI subcommands are not yet updated for this release and will return errors or produce partial results. Please focus most testing and experimentation with this release on the core workflow commands `terraform init`, `terraform validate`, `terraform plan`,  `terraform apply`, and `terraform destroy`.
 
-* In v0.9.6 we removed the strange requirement to wrap an expression returning a list in another layer of list which had been inherited from earlier versions of Terraform that lacked first-class list support, and deprecated that usage. This was most commonly seen with "splat" expressions, like this:
-
-  ```hcl
-    vpc_security_group_ids = ["${aws_security_group.example.*.id}"]
-  ```
-
-  The backward compatibility shim for this form has been intentionally removed in v0.12 so that the Terraform language can properly support lists of lists, but as of alpha1 the error message produced in this case is an unhelpful prompt that "a list of string is required". Before v0.12.0 final we hope to introduce a better error message for this situation that will suggest removing the redundant list brackets. This older usage will also be fixed automatically by the planned automatic configuration upgrade tool.
-
-* If a `variable` declaration block has a type constraint that is a list, set or map of an object type and the caller uses an incompatible object type in the calling `module` block then the error message is sometimes imprecise and confusing, stating that an object is required when it instead means to say that the object does not have the correct attributes.
-
-* Although Terraform will try to infer a type constraint for a variable that only has `default` set and leaves `type` unset, it currently fails to infer types for some deeply-nested structures. Only flat lists and maps of strings were explicitly supported in prior releases, but some implementation details allowed deeper structures to work as defaults in some cases. If Terraform cannot automatically infer the expected type from the default then it will produce an error; in many cases this can be worked around by explicitly specifying an exact `type` argument using [the new type constraint syntax](https://github.com/hashicorp/terraform/blob/master/website/docs/configuration/variables.html.md#type-constraints).
-
-* In prior versions most of the built-in functions that accepted maps and lists as arguments would require either that the elements all be strings or that the elements all have the same type. Although our new type system allows for more flexibility, not all of the function implementations have been updated so far, and so some functions may still return errors when given collections with inconsistent element types. We intend to update more of these before v0.12.0 final, though some may remain until later releases in the v0.12 line.
-
-* The special `timeouts` block accepted by some resource types to customize how long the provider will wait for operations to complete is not supported in this alpha release.
-
-* The `terraform_remote_state` data source built in to this release has been updated for the new state file format but has not yet been extensively tested. It may not yet return correct results in all cases, and may have other problems such as errors or crashes. The new implementation of this data source will be finalized in a later prerelease version.
-
-* The `template` provider plugin bundled in the release archive is still using the old interpolation language to evaluate template strings in `template_file`, so it does not yet support the new conditional and iteration syntaxes.
-
-* The experimental `remote` backend that was introduced in Terraform v0.11.8 is not included in this release. Since alpha1 is an experimental early release, we do not recommend using it with any "real" infrastructure, and as such we recommend using the default `local` backend only.
+In addition to the high-level known issues above, please refer also to [the GitHub issues for this alpha release](https://github.com/hashicorp/terraform/issues?utf8=%E2%9C%93&q=is%3Aissue+label%3Av0.12-alpha1+). This list will be updated with new reports throughout the alpha1 period, including workarounds where possible to allow for continued testing. (Issues shown in that list as closed indicate that the problem has been fixed for a future release; it is probably still present in the alpha1 release.)
 
 ## 0.11.9 (Unreleased)
 
