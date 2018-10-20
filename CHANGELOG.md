@@ -1,4 +1,7 @@
-## 0.12.0-alpha1 (Unreleased)
+## 0.12.0-beta1 (Unreleased)
+
+
+## 0.12.0-alpha1 (October 19, 2018)
 
 The goal of this release is to give users an early preview of the new language features, and to collect feedback primarily about bugs and usability issues related to the language itself, while the Terraform team addresses the remaining problems. There will be at least one beta and at least one release candidate before final, which should give a more complete impression of how the final v0.12.0 release will behave.
 
@@ -66,7 +69,7 @@ Since v0.12.0-alpha1 is an experimental build, this list is certainly incomplete
 
 In addition to the high-level known issues above, please refer also to [the GitHub issues for this alpha release](https://github.com/hashicorp/terraform/issues?utf8=%E2%9C%93&q=is%3Aissue+label%3Av0.12-alpha1+). This list will be updated with new reports throughout the alpha1 period, including workarounds where possible to allow for continued testing. (Issues shown in that list as closed indicate that the problem has been fixed for a future release; it is probably still present in the alpha1 release.)
 
-## 0.11.9 (Unreleased)
+## 0.11.9 (October 19, 2018)
 
 IMPROVEMENTS:
 
