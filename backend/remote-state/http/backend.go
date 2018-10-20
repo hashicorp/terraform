@@ -3,12 +3,14 @@ package http
 import (
 	"context"
 	"crypto/tls"
+	"crypto/x509"
 	"fmt"
 	"net/http"
 	"net/url"
 
 	cleanhttp "github.com/hashicorp/go-cleanhttp"
 	"github.com/hashicorp/terraform/backend"
+	"github.com/hashicorp/terraform/helper/pathorcontents"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/state"
 	"github.com/hashicorp/terraform/state/remote"
@@ -59,6 +61,16 @@ func New() backend.Backend {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Description: "The password for HTTP basic authentication",
+			},
+			"client_cert": &schema.Schema{
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "The client certificate to validate using TLS certificates.",
+			},
+			"client_key": &schema.Schema{
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "The client key to validate using TLS certificates.",
 			},
 			"skip_cert_verification": &schema.Schema{
 				Type:        schema.TypeBool,
@@ -121,14 +133,40 @@ func (b *Backend) configure(ctx context.Context) error {
 	}
 
 	unlockMethod := data.Get("unlock_method").(string)
-
-	client := cleanhttp.DefaultPooledClient()
-
-	if data.Get("skip_cert_verification").(bool) {
-		// ignores TLS verification
-		client.Transport.(*http.Transport).TLSClientConfig = &tls.Config{
-			InsecureSkipVerify: true,
+	clientCertificate, hasCert := data.GetOkExists("client_cert")
+	clientKey, hasKey := data.GetOkExists("client_key")
+	if hasKey != hasCert {
+		missing := "client_key"
+		if hasKey {
+			missing = "client_cert"
 		}
+		return fmt.Errorf("If either cert or key are present, both are required. Missing %s", missing)
+	}
+	client := cleanhttp.DefaultPooledClient()
+	tlsConfig := &tls.Config{}
+	if data.Get("skip_cert_verification").(bool) {
+		tlsConfig.InsecureSkipVerify = true
+		client.Transport.(*http.Transport).TLSClientConfig = tlsConfig
+	}
+	var certificate tls.Certificate
+	if hasKey {
+		clientKey, _, err = pathorcontents.Read(clientKey.(string))
+		if err != nil {
+			return fmt.Errorf("error reading certificate key %+v", err)
+		}
+		clientCertificate, _, err = pathorcontents.Read(clientCertificate.(string))
+		if err != nil {
+			return fmt.Errorf("error reading certificate %+v", err)
+		}
+		certificate, err = tls.X509KeyPair([]byte("asd"), []byte("asdasd"))
+		if err != nil {
+			return fmt.Errorf("Can't load certificate: %+v", err)
+		}
+		tlsConfig.Certificates = []tls.Certificate{certificate}
+		tlsConfig.RootCAs, _ = x509.SystemCertPool()
+		tlsConfig.BuildNameToCertificate()
+		client.Transport.(*http.Transport).TLSClientConfig = tlsConfig
+
 	}
 
 	b.client = &httpClient{
