@@ -91,7 +91,7 @@ func (f *Filter) filterSingle(addr addrs.Targetable) []*FilterResult {
 			if (addr == nil && !m.Addr.IsRoot()) ||
 				(!filter.IsRoot() && (filter.Equal(m.Addr) || filter.IsAncestor(m.Addr))) {
 				results = append(results, &FilterResult{
-					Address: m.Addr.String(),
+					Address: m.Addr,
 					Value:   m,
 				})
 			}
@@ -104,7 +104,7 @@ func (f *Filter) filterSingle(addr addrs.Targetable) []*FilterResult {
 		for _, rs := range m.Resources {
 			if f.relevant(addr, rs.Addr.Absolute(m.Addr), addrs.NoKey) {
 				results = append(results, &FilterResult{
-					Address: rs.Addr.Absolute(m.Addr).String(),
+					Address: rs.Addr.Absolute(m.Addr),
 					Value:   rs,
 				})
 			}
@@ -112,7 +112,7 @@ func (f *Filter) filterSingle(addr addrs.Targetable) []*FilterResult {
 			for key, is := range rs.Instances {
 				if f.relevant(addr, rs.Addr.Absolute(m.Addr), key) {
 					results = append(results, &FilterResult{
-						Address: rs.Addr.Absolute(m.Addr).Instance(key).String(),
+						Address: rs.Addr.Absolute(m.Addr).Instance(key),
 						Value:   is,
 					})
 				}
@@ -144,7 +144,7 @@ func (f *Filter) relevant(filter addrs.Targetable, rs addrs.AbsResource, key add
 // match multiple things within a state (curently modules and resources).
 type FilterResult struct {
 	// Address is the address that can be used to reference this exact result.
-	Address string
+	Address addrs.Targetable
 
 	// Value is the actual value. This must be type switched on. It can be
 	// any either a `Module` or `ResourceInstance`.
@@ -179,8 +179,8 @@ func (s FilterResultSlice) Less(i, j int) bool {
 	a, b := s[i], s[j]
 
 	// If the addresses are different it is just lexographic sorting
-	if a.Address != b.Address {
-		return a.Address < b.Address
+	if a.Address.String() != b.Address.String() {
+		return a.Address.String() < b.Address.String()
 	}
 
 	// Addresses are the same, which means it matters on the type

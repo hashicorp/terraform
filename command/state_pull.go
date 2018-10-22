@@ -39,11 +39,11 @@ func (c *StatePullCommand) Run(args []string) int {
 	env := c.Workspace()
 	stateMgr, err := b.StateMgr(env)
 	if err != nil {
-		c.Ui.Error(fmt.Sprintf("Failed to load state: %s", err))
+		c.Ui.Error(fmt.Sprintf(errStateLoadingState, err))
 		return 1
 	}
 	if err := stateMgr.RefreshState(); err != nil {
-		c.Ui.Error(fmt.Sprintf("Failed to load state: %s", err))
+		c.Ui.Error(fmt.Sprintf("Failed to refresh state: %s", err))
 		return 1
 	}
 
@@ -60,7 +60,7 @@ func (c *StatePullCommand) Run(args []string) int {
 	var buf bytes.Buffer
 	err = statefile.Write(stateFile, &buf)
 	if err != nil {
-		c.Ui.Error(fmt.Sprintf("Failed to load state: %s", err))
+		c.Ui.Error(fmt.Sprintf("Failed to write state: %s", err))
 		return 1
 	}
 

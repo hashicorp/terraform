@@ -78,7 +78,7 @@ func (c *StatePushCommand) Run(args []string) int {
 		return 1
 	}
 	if err := stateMgr.RefreshState(); err != nil {
-		c.Ui.Error(fmt.Sprintf("Failed to load destination state: %s", err))
+		c.Ui.Error(fmt.Sprintf("Failed to refresh destination state: %s", err))
 		return 1
 	}
 	dstState := stateMgr.State()
@@ -103,7 +103,7 @@ func (c *StatePushCommand) Run(args []string) int {
 		return 1
 	}
 	if err := stateMgr.PersistState(); err != nil {
-		c.Ui.Error(fmt.Sprintf("Failed to write state: %s", err))
+		c.Ui.Error(fmt.Sprintf("Failed to persist state: %s", err))
 		return 1
 	}
 
