@@ -1,5 +1,8 @@
 ## 0.12.0-beta1 (Unreleased)
 
+BUG FIXES:
+
+* lang: Fix crash in `lookup` function [GH-19161]
 
 ## 0.12.0-alpha1 (October 19, 2018)
 
