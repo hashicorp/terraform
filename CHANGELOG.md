@@ -1,8 +1,8 @@
-## 0.11.10 (Unreleased)
+## 0.11.10 (October 23, 2018)
 
 BUG FIXES:
 
-* backend/local: do not use backend operation variables [GH-19175]
+* backend/local: Do not use backend operation variables ([#19175](https://github.com/hashicorp/terraform/issues/19175))
 
 ## 0.11.9 (October 19, 2018)
 
