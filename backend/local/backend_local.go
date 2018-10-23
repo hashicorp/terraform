@@ -55,8 +55,8 @@ func (b *Local) context(op *backend.Operation) (*terraform.Context, state.State,
 	opts.Module = op.Module
 	opts.Targets = op.Targets
 	opts.UIInput = op.UIIn
-	if op.Variables != nil {
-		opts.Variables = op.Variables
+	for k, v := range op.Variables {
+		opts.Variables[k] = v
 	}
 
 	// Load our state
