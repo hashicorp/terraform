@@ -516,7 +516,7 @@ var LookupFunc = function.New(&function.Spec{
 		switch {
 		case ty.IsObjectType():
 			if !args[1].IsKnown() {
-				return args[2].Type(), nil
+				return cty.DynamicPseudoType, nil
 			}
 
 			key := args[1].AsString()
