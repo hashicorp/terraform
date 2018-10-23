@@ -143,7 +143,11 @@ type Operation struct {
 	ModuleDepth  int
 	Parallelism  int
 	Targets      []string
-	Variables    map[string]interface{}
+
+	// Variables should only contain any variables passed as command
+	// arguments and not any variables read from the terraform.tfvars
+	// or *.auto.tfvars files.
+	Variables map[string]interface{}
 
 	// Input/output/control options.
 	UIIn  terraform.UIInput

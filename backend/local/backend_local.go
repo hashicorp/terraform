@@ -55,9 +55,6 @@ func (b *Local) context(op *backend.Operation) (*terraform.Context, state.State,
 	opts.Module = op.Module
 	opts.Targets = op.Targets
 	opts.UIInput = op.UIIn
-	for k, v := range op.Variables {
-		opts.Variables[k] = v
-	}
 
 	// Load our state
 	// By the time we get here, the backend creation code in "command" took
