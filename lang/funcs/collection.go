@@ -512,9 +512,14 @@ var LookupFunc = function.New(&function.Spec{
 		}
 
 		ty := args[0].Type()
-		key := args[1].AsString()
+
 		switch {
 		case ty.IsObjectType():
+			if !args[1].IsKnown() {
+				return cty.DynamicPseudoType, nil
+			}
+
+			key := args[1].AsString()
 			if ty.HasAttribute(key) {
 				return args[0].GetAttr(key).Type(), nil
 			} else if len(args) == 3 {

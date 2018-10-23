@@ -1255,6 +1255,25 @@ func TestLookup(t *testing.T) {
 			cty.UnknownVal(cty.String),
 			false,
 		},
+		{
+			[]cty.Value{
+				simpleMap,
+				cty.UnknownVal(cty.String),
+			},
+			cty.UnknownVal(cty.String),
+			false,
+		},
+		{
+			[]cty.Value{
+				cty.ObjectVal(map[string]cty.Value{
+					"foo": cty.StringVal("a"),
+					"bar": cty.StringVal("b"),
+				}),
+				cty.UnknownVal(cty.String),
+			},
+			cty.UnknownVal(cty.String),
+			false,
+		},
 	}
 
 	for _, test := range tests {
