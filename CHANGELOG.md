@@ -1,5 +1,9 @@
 ## 0.11.10 (Unreleased)
 
+BUG FIXES:
+
+* backend/local: do not use backend operation variables [GH-19175]
+
 ## 0.11.9 (October 19, 2018)
 
 IMPROVEMENTS:
