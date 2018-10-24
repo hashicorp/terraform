@@ -4,9 +4,8 @@ import (
 	"log"
 	"sync"
 
-	"github.com/zclconf/go-cty/cty"
-
 	"github.com/hashicorp/terraform/addrs"
+	"github.com/zclconf/go-cty/cty"
 )
 
 // SyncState is a wrapper around State that provides concurrency-safe access to
@@ -47,6 +46,17 @@ func (s *SyncState) Module(addr addrs.ModuleInstance) *Module {
 	ret := s.state.Module(addr).DeepCopy()
 	s.lock.RUnlock()
 	return ret
+}
+
+// RemoveModule removes the entire state for the given module, taking with
+// it any resources associated with the module. This should generally be
+// called only for modules whose resources have all been destroyed, but
+// that is not enforced by this method.
+func (s *SyncState) RemoveModule(addr addrs.ModuleInstance) {
+	s.lock.Lock()
+	defer s.lock.Unlock()
+
+	s.state.RemoveModule(addr)
 }
 
 // OutputValue returns a snapshot of the state of the output value with the
