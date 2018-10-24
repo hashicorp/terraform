@@ -285,14 +285,14 @@ request indicate while the plan is in progress.
 Once the plan is complete, the status update indicates whether there were any
 changes in the speculative plan, right from the pull request view.
 
-<!-- TODO: [ Screenshot of PR with preview details ] -->
+![Screenshot of Pull Request with resource changes in the status update](guides/core-workflow/pull-request.png)
 
 For certain types of changes, this information is all that's needed for a team
 member to be able to approve the pull request. When a teammate needs to do a
 full review of the plan, clicking the link to Terraform Enterprise brings up a
 view that allows them to quickly analyze the full plan details.
 
-<!-- TODO: [ Screenshot of speculative plan details page ] -->
+![Screenshot of Pull Request run in Terraform Enterprise](guides/core-workflow/pr-plan.png)
 
 This page allows the reviewer to quickly determine if the plan is matching the
 config author's intent and evaluate the risk of the change.
