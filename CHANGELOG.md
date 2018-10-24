@@ -1,5 +1,9 @@
 ## 0.12.0-beta1 (Unreleased)
 
+IMPROVEMENTS:
+
+* command/state: Update and enable the `state rm` command [GH-19178]
+
 BUG FIXES:
 
 * lang: Fix crash in `lookup` function [GH-19161]
