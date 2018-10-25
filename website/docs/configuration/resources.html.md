@@ -325,7 +325,7 @@ meta-arguments are supported:
 
   This is an opt-in behavior because many remote object types have unique
   name requirements or other constraints that must be accommodated for
-  both an new and an old object to exist concurrently. Some resource types
+  both a new and an old object to exist concurrently. Some resource types
   offer special options to append a random suffix onto each object name to
   avoid collisions, for example. Terraform Core cannot automatically activate
   such features, so you must understand the constrants for each resource
