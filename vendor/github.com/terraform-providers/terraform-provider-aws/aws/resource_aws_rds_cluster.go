@@ -466,8 +466,8 @@ func resourceAwsRDSClusterCreate(d *schema.ResourceData, meta interface{}) error
 			opts.VpcSecurityGroupIds = expandStringList(attr.List())
 		}
 
-		if _, ok := d.GetOk("db_cluster_parameter_group_name"); ok {
-			clusterUpdate = true
+		if attr, ok := d.GetOk("db_cluster_parameter_group_name"); ok {
+			opts.DBClusterParameterGroupName = aws.String(attr.(string))
 		}
 
 		if _, ok := d.GetOk("backup_retention_period"); ok {
@@ -490,7 +490,7 @@ func resourceAwsRDSClusterCreate(d *schema.ResourceData, meta interface{}) error
 		}
 
 		if clusterUpdate {
-			log.Printf("[INFO] RDS Cluster is restoring from snapshot with default db_cluster_parameter_group_name, backup_retention_period and vpc_security_group_ids" +
+			log.Printf("[INFO] RDS Cluster is restoring from snapshot with default backup_retention_period and vpc_security_group_ids" +
 				"but custom values should be set, will now update after snapshot is restored!")
 
 			d.SetId(identifier)

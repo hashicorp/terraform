@@ -71,7 +71,7 @@ func resourceAwsSnsTopicSubscription() *schema.Resource {
 			"delivery_policy": {
 				Type:             schema.TypeString,
 				Optional:         true,
-				ValidateFunc:     validateJsonString,
+				ValidateFunc:     validation.ValidateJsonString,
 				DiffSuppressFunc: suppressEquivalentSnsTopicSubscriptionDeliveryPolicy,
 			},
 			"raw_message_delivery": {
@@ -86,7 +86,7 @@ func resourceAwsSnsTopicSubscription() *schema.Resource {
 			"filter_policy": {
 				Type:             schema.TypeString,
 				Optional:         true,
-				ValidateFunc:     validateJsonString,
+				ValidateFunc:     validation.ValidateJsonString,
 				DiffSuppressFunc: suppressEquivalentJsonDiffs,
 				StateFunc: func(v interface{}) string {
 					json, _ := structure.NormalizeJsonString(v)

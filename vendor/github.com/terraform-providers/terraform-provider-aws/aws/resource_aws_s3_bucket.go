@@ -72,7 +72,7 @@ func resourceAwsS3Bucket() *schema.Resource {
 			"policy": {
 				Type:             schema.TypeString,
 				Optional:         true,
-				ValidateFunc:     validateJsonString,
+				ValidateFunc:     validation.ValidateJsonString,
 				DiffSuppressFunc: suppressEquivalentAwsPolicyDiffs,
 			},
 
@@ -137,7 +137,7 @@ func resourceAwsS3Bucket() *schema.Resource {
 						"routing_rules": {
 							Type:         schema.TypeString,
 							Optional:     true,
-							ValidateFunc: validateJsonString,
+							ValidateFunc: validation.ValidateJsonString,
 							StateFunc: func(v interface{}) string {
 								json, _ := structure.NormalizeJsonString(v)
 								return json

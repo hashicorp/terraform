@@ -9,6 +9,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/ssm"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/hashicorp/terraform/helper/validation"
 )
 
 func resourceAwsSsmActivation() *schema.Resource {
@@ -36,7 +37,7 @@ func resourceAwsSsmActivation() *schema.Resource {
 				Type:         schema.TypeString,
 				Optional:     true,
 				ForceNew:     true,
-				ValidateFunc: validateRFC3339TimeString,
+				ValidateFunc: validation.ValidateRFC3339TimeString,
 			},
 			"iam_role": {
 				Type:     schema.TypeString,

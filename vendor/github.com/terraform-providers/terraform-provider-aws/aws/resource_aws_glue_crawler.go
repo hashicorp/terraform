@@ -151,7 +151,7 @@ func resourceAwsGlueCrawler() *schema.Resource {
 					json, _ := structure.NormalizeJsonString(v)
 					return json
 				},
-				ValidateFunc: validateJsonString,
+				ValidateFunc: validation.ValidateJsonString,
 			},
 		},
 	}

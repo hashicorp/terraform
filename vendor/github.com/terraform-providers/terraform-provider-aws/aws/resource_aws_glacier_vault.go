@@ -12,6 +12,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/glacier"
 	"github.com/hashicorp/terraform/helper/structure"
+	"github.com/hashicorp/terraform/helper/validation"
 )
 
 func resourceAwsGlacierVault() *schema.Resource {
@@ -57,7 +58,7 @@ func resourceAwsGlacierVault() *schema.Resource {
 			"access_policy": {
 				Type:         schema.TypeString,
 				Optional:     true,
-				ValidateFunc: validateJsonString,
+				ValidateFunc: validation.ValidateJsonString,
 				StateFunc: func(v interface{}) string {
 					json, _ := structure.NormalizeJsonString(v)
 					return json

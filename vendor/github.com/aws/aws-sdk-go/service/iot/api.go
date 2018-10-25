@@ -18,7 +18,7 @@ const opAcceptCertificateTransfer = "AcceptCertificateTransfer"
 // AcceptCertificateTransferRequest generates a "aws/request.Request" representing the
 // client's request for the AcceptCertificateTransfer operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -119,7 +119,7 @@ const opAddThingToThingGroup = "AddThingToThingGroup"
 // AddThingToThingGroupRequest generates a "aws/request.Request" representing the
 // client's request for the AddThingToThingGroup operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -204,7 +204,7 @@ const opAssociateTargetsWithJob = "AssociateTargetsWithJob"
 // AssociateTargetsWithJobRequest generates a "aws/request.Request" representing the
 // client's request for the AssociateTargetsWithJob operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -300,7 +300,7 @@ const opAttachPolicy = "AttachPolicy"
 // AttachPolicyRequest generates a "aws/request.Request" representing the
 // client's request for the AttachPolicy operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -396,7 +396,7 @@ const opAttachPrincipalPolicy = "AttachPrincipalPolicy"
 // AttachPrincipalPolicyRequest generates a "aws/request.Request" representing the
 // client's request for the AttachPrincipalPolicy operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -504,7 +504,7 @@ const opAttachSecurityProfile = "AttachSecurityProfile"
 // AttachSecurityProfileRequest generates a "aws/request.Request" representing the
 // client's request for the AttachSecurityProfile operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -598,7 +598,7 @@ const opAttachThingPrincipal = "AttachThingPrincipal"
 // AttachThingPrincipalRequest generates a "aws/request.Request" representing the
 // client's request for the AttachThingPrincipal operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -689,7 +689,7 @@ const opCancelAuditTask = "CancelAuditTask"
 // CancelAuditTaskRequest generates a "aws/request.Request" representing the
 // client's request for the CancelAuditTask operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -776,7 +776,7 @@ const opCancelCertificateTransfer = "CancelCertificateTransfer"
 // CancelCertificateTransferRequest generates a "aws/request.Request" representing the
 // client's request for the CancelCertificateTransfer operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -882,7 +882,7 @@ const opCancelJob = "CancelJob"
 // CancelJobRequest generates a "aws/request.Request" representing the
 // client's request for the CancelJob operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -967,7 +967,7 @@ const opCancelJobExecution = "CancelJobExecution"
 // CancelJobExecutionRequest generates a "aws/request.Request" representing the
 // client's request for the CancelJobExecution operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1063,7 +1063,7 @@ const opClearDefaultAuthorizer = "ClearDefaultAuthorizer"
 // ClearDefaultAuthorizerRequest generates a "aws/request.Request" representing the
 // client's request for the ClearDefaultAuthorizer operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1154,7 +1154,7 @@ const opCreateAuthorizer = "CreateAuthorizer"
 // CreateAuthorizerRequest generates a "aws/request.Request" representing the
 // client's request for the CreateAuthorizer operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1248,7 +1248,7 @@ const opCreateCertificateFromCsr = "CreateCertificateFromCsr"
 // CreateCertificateFromCsrRequest generates a "aws/request.Request" representing the
 // client's request for the CreateCertificateFromCsr operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1377,7 +1377,7 @@ const opCreateJob = "CreateJob"
 // CreateJobRequest generates a "aws/request.Request" representing the
 // client's request for the CreateJob operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1468,7 +1468,7 @@ const opCreateKeysAndCertificate = "CreateKeysAndCertificate"
 // CreateKeysAndCertificateRequest generates a "aws/request.Request" representing the
 // client's request for the CreateKeysAndCertificate operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1560,7 +1560,7 @@ const opCreateOTAUpdate = "CreateOTAUpdate"
 // CreateOTAUpdateRequest generates a "aws/request.Request" representing the
 // client's request for the CreateOTAUpdate operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1657,7 +1657,7 @@ const opCreatePolicy = "CreatePolicy"
 // CreatePolicyRequest generates a "aws/request.Request" representing the
 // client's request for the CreatePolicy operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1755,7 +1755,7 @@ const opCreatePolicyVersion = "CreatePolicyVersion"
 // CreatePolicyVersionRequest generates a "aws/request.Request" representing the
 // client's request for the CreatePolicyVersion operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1859,7 +1859,7 @@ const opCreateRoleAlias = "CreateRoleAlias"
 // CreateRoleAliasRequest generates a "aws/request.Request" representing the
 // client's request for the CreateRoleAlias operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1953,7 +1953,7 @@ const opCreateScheduledAudit = "CreateScheduledAudit"
 // CreateScheduledAuditRequest generates a "aws/request.Request" representing the
 // client's request for the CreateScheduledAudit operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -2038,7 +2038,7 @@ const opCreateSecurityProfile = "CreateSecurityProfile"
 // CreateSecurityProfileRequest generates a "aws/request.Request" representing the
 // client's request for the CreateSecurityProfile operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -2123,7 +2123,7 @@ const opCreateStream = "CreateStream"
 // CreateStreamRequest generates a "aws/request.Request" representing the
 // client's request for the CreateStream operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -2226,7 +2226,7 @@ const opCreateThing = "CreateThing"
 // CreateThingRequest generates a "aws/request.Request" representing the
 // client's request for the CreateThing operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -2323,7 +2323,7 @@ const opCreateThingGroup = "CreateThingGroup"
 // CreateThingGroupRequest generates a "aws/request.Request" representing the
 // client's request for the CreateThingGroup operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -2411,7 +2411,7 @@ const opCreateThingType = "CreateThingType"
 // CreateThingTypeRequest generates a "aws/request.Request" representing the
 // client's request for the CreateThingType operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -2502,7 +2502,7 @@ const opCreateTopicRule = "CreateTopicRule"
 // CreateTopicRuleRequest generates a "aws/request.Request" representing the
 // client's request for the CreateTopicRule operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -2594,7 +2594,7 @@ const opDeleteAccountAuditConfiguration = "DeleteAccountAuditConfiguration"
 // DeleteAccountAuditConfigurationRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteAccountAuditConfiguration operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -2681,7 +2681,7 @@ const opDeleteAuthorizer = "DeleteAuthorizer"
 // DeleteAuthorizerRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteAuthorizer operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -2775,7 +2775,7 @@ const opDeleteCACertificate = "DeleteCACertificate"
 // DeleteCACertificateRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteCACertificate operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -2869,7 +2869,7 @@ const opDeleteCertificate = "DeleteCertificate"
 // DeleteCertificateRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteCertificate operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -2973,7 +2973,7 @@ const opDeleteJob = "DeleteJob"
 // DeleteJobRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteJob operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -3077,7 +3077,7 @@ const opDeleteJobExecution = "DeleteJobExecution"
 // DeleteJobExecutionRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteJobExecution operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -3169,7 +3169,7 @@ const opDeleteOTAUpdate = "DeleteOTAUpdate"
 // DeleteOTAUpdateRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteOTAUpdate operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -3264,7 +3264,7 @@ const opDeletePolicy = "DeletePolicy"
 // DeletePolicyRequest generates a "aws/request.Request" representing the
 // client's request for the DeletePolicy operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -3370,7 +3370,7 @@ const opDeletePolicyVersion = "DeletePolicyVersion"
 // DeletePolicyVersionRequest generates a "aws/request.Request" representing the
 // client's request for the DeletePolicyVersion operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -3469,7 +3469,7 @@ const opDeleteRegistrationCode = "DeleteRegistrationCode"
 // DeleteRegistrationCodeRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteRegistrationCode operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -3557,7 +3557,7 @@ const opDeleteRoleAlias = "DeleteRoleAlias"
 // DeleteRoleAliasRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteRoleAlias operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -3651,7 +3651,7 @@ const opDeleteScheduledAudit = "DeleteScheduledAudit"
 // DeleteScheduledAuditRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteScheduledAudit operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -3736,7 +3736,7 @@ const opDeleteSecurityProfile = "DeleteSecurityProfile"
 // DeleteSecurityProfileRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteSecurityProfile operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -3822,7 +3822,7 @@ const opDeleteStream = "DeleteStream"
 // DeleteStreamRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteStream operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -3916,7 +3916,7 @@ const opDeleteThing = "DeleteThing"
 // DeleteThingRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteThing operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -4011,7 +4011,7 @@ const opDeleteThingGroup = "DeleteThingGroup"
 // DeleteThingGroupRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteThingGroup operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -4097,7 +4097,7 @@ const opDeleteThingType = "DeleteThingType"
 // DeleteThingTypeRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteThingType operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -4192,7 +4192,7 @@ const opDeleteTopicRule = "DeleteTopicRule"
 // DeleteTopicRuleRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteTopicRule operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -4279,7 +4279,7 @@ const opDeleteV2LoggingLevel = "DeleteV2LoggingLevel"
 // DeleteV2LoggingLevelRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteV2LoggingLevel operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -4363,7 +4363,7 @@ const opDeprecateThingType = "DeprecateThingType"
 // DeprecateThingTypeRequest generates a "aws/request.Request" representing the
 // client's request for the DeprecateThingType operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -4455,7 +4455,7 @@ const opDescribeAccountAuditConfiguration = "DescribeAccountAuditConfiguration"
 // DescribeAccountAuditConfigurationRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeAccountAuditConfiguration operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -4536,7 +4536,7 @@ const opDescribeAuditTask = "DescribeAuditTask"
 // DescribeAuditTaskRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeAuditTask operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -4621,7 +4621,7 @@ const opDescribeAuthorizer = "DescribeAuthorizer"
 // DescribeAuthorizerRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeAuthorizer operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -4712,7 +4712,7 @@ const opDescribeCACertificate = "DescribeCACertificate"
 // DescribeCACertificateRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeCACertificate operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -4803,7 +4803,7 @@ const opDescribeCertificate = "DescribeCertificate"
 // DescribeCertificateRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeCertificate operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -4894,7 +4894,7 @@ const opDescribeDefaultAuthorizer = "DescribeDefaultAuthorizer"
 // DescribeDefaultAuthorizerRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeDefaultAuthorizer operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -4985,7 +4985,7 @@ const opDescribeEndpoint = "DescribeEndpoint"
 // DescribeEndpointRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeEndpoint operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -5070,7 +5070,7 @@ const opDescribeEventConfigurations = "DescribeEventConfigurations"
 // DescribeEventConfigurationsRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeEventConfigurations operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -5149,7 +5149,7 @@ const opDescribeIndex = "DescribeIndex"
 // DescribeIndexRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeIndex operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -5240,7 +5240,7 @@ const opDescribeJob = "DescribeJob"
 // DescribeJobRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeJob operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -5325,7 +5325,7 @@ const opDescribeJobExecution = "DescribeJobExecution"
 // DescribeJobExecutionRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeJobExecution operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -5410,7 +5410,7 @@ const opDescribeRoleAlias = "DescribeRoleAlias"
 // DescribeRoleAliasRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeRoleAlias operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -5501,7 +5501,7 @@ const opDescribeScheduledAudit = "DescribeScheduledAudit"
 // DescribeScheduledAuditRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeScheduledAudit operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -5586,7 +5586,7 @@ const opDescribeSecurityProfile = "DescribeSecurityProfile"
 // DescribeSecurityProfileRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeSecurityProfile operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -5671,7 +5671,7 @@ const opDescribeStream = "DescribeStream"
 // DescribeStreamRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeStream operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -5762,7 +5762,7 @@ const opDescribeThing = "DescribeThing"
 // DescribeThingRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeThing operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -5853,7 +5853,7 @@ const opDescribeThingGroup = "DescribeThingGroup"
 // DescribeThingGroupRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeThingGroup operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -5938,7 +5938,7 @@ const opDescribeThingRegistrationTask = "DescribeThingRegistrationTask"
 // DescribeThingRegistrationTaskRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeThingRegistrationTask operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -6026,7 +6026,7 @@ const opDescribeThingType = "DescribeThingType"
 // DescribeThingTypeRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeThingType operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -6117,7 +6117,7 @@ const opDetachPolicy = "DetachPolicy"
 // DetachPolicyRequest generates a "aws/request.Request" representing the
 // client's request for the DetachPolicy operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -6210,7 +6210,7 @@ const opDetachPrincipalPolicy = "DetachPrincipalPolicy"
 // DetachPrincipalPolicyRequest generates a "aws/request.Request" representing the
 // client's request for the DetachPrincipalPolicy operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -6314,7 +6314,7 @@ const opDetachSecurityProfile = "DetachSecurityProfile"
 // DetachSecurityProfileRequest generates a "aws/request.Request" representing the
 // client's request for the DetachSecurityProfile operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -6400,7 +6400,7 @@ const opDetachThingPrincipal = "DetachThingPrincipal"
 // DetachThingPrincipalRequest generates a "aws/request.Request" representing the
 // client's request for the DetachThingPrincipal operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -6491,7 +6491,7 @@ const opDisableTopicRule = "DisableTopicRule"
 // DisableTopicRuleRequest generates a "aws/request.Request" representing the
 // client's request for the DisableTopicRule operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -6578,7 +6578,7 @@ const opEnableTopicRule = "EnableTopicRule"
 // EnableTopicRuleRequest generates a "aws/request.Request" representing the
 // client's request for the EnableTopicRule operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -6665,7 +6665,7 @@ const opGetEffectivePolicies = "GetEffectivePolicies"
 // GetEffectivePoliciesRequest generates a "aws/request.Request" representing the
 // client's request for the GetEffectivePolicies operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -6760,7 +6760,7 @@ const opGetIndexingConfiguration = "GetIndexingConfiguration"
 // GetIndexingConfigurationRequest generates a "aws/request.Request" representing the
 // client's request for the GetIndexingConfiguration operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -6848,7 +6848,7 @@ const opGetJobDocument = "GetJobDocument"
 // GetJobDocumentRequest generates a "aws/request.Request" representing the
 // client's request for the GetJobDocument operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -6933,7 +6933,7 @@ const opGetLoggingOptions = "GetLoggingOptions"
 // GetLoggingOptionsRequest generates a "aws/request.Request" representing the
 // client's request for the GetLoggingOptions operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -7017,7 +7017,7 @@ const opGetOTAUpdate = "GetOTAUpdate"
 // GetOTAUpdateRequest generates a "aws/request.Request" representing the
 // client's request for the GetOTAUpdate operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -7108,7 +7108,7 @@ const opGetPolicy = "GetPolicy"
 // GetPolicyRequest generates a "aws/request.Request" representing the
 // client's request for the GetPolicy operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -7200,7 +7200,7 @@ const opGetPolicyVersion = "GetPolicyVersion"
 // GetPolicyVersionRequest generates a "aws/request.Request" representing the
 // client's request for the GetPolicyVersion operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -7291,7 +7291,7 @@ const opGetRegistrationCode = "GetRegistrationCode"
 // GetRegistrationCodeRequest generates a "aws/request.Request" representing the
 // client's request for the GetRegistrationCode operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -7379,7 +7379,7 @@ const opGetTopicRule = "GetTopicRule"
 // GetTopicRuleRequest generates a "aws/request.Request" representing the
 // client's request for the GetTopicRule operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -7464,7 +7464,7 @@ const opGetV2LoggingOptions = "GetV2LoggingOptions"
 // GetV2LoggingOptionsRequest generates a "aws/request.Request" representing the
 // client's request for the GetV2LoggingOptions operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -7546,7 +7546,7 @@ const opListActiveViolations = "ListActiveViolations"
 // ListActiveViolationsRequest generates a "aws/request.Request" representing the
 // client's request for the ListActiveViolations operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -7631,7 +7631,7 @@ const opListAttachedPolicies = "ListAttachedPolicies"
 // ListAttachedPoliciesRequest generates a "aws/request.Request" representing the
 // client's request for the ListAttachedPolicies operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -7725,7 +7725,7 @@ const opListAuditFindings = "ListAuditFindings"
 // ListAuditFindingsRequest generates a "aws/request.Request" representing the
 // client's request for the ListAuditFindings operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -7809,7 +7809,7 @@ const opListAuditTasks = "ListAuditTasks"
 // ListAuditTasksRequest generates a "aws/request.Request" representing the
 // client's request for the ListAuditTasks operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -7892,7 +7892,7 @@ const opListAuthorizers = "ListAuthorizers"
 // ListAuthorizersRequest generates a "aws/request.Request" representing the
 // client's request for the ListAuthorizers operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -7980,7 +7980,7 @@ const opListCACertificates = "ListCACertificates"
 // ListCACertificatesRequest generates a "aws/request.Request" representing the
 // client's request for the ListCACertificates operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -8071,7 +8071,7 @@ const opListCertificates = "ListCertificates"
 // ListCertificatesRequest generates a "aws/request.Request" representing the
 // client's request for the ListCertificates operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -8162,7 +8162,7 @@ const opListCertificatesByCA = "ListCertificatesByCA"
 // ListCertificatesByCARequest generates a "aws/request.Request" representing the
 // client's request for the ListCertificatesByCA operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -8250,7 +8250,7 @@ const opListIndices = "ListIndices"
 // ListIndicesRequest generates a "aws/request.Request" representing the
 // client's request for the ListIndices operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -8338,7 +8338,7 @@ const opListJobExecutionsForJob = "ListJobExecutionsForJob"
 // ListJobExecutionsForJobRequest generates a "aws/request.Request" representing the
 // client's request for the ListJobExecutionsForJob operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -8423,7 +8423,7 @@ const opListJobExecutionsForThing = "ListJobExecutionsForThing"
 // ListJobExecutionsForThingRequest generates a "aws/request.Request" representing the
 // client's request for the ListJobExecutionsForThing operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -8508,7 +8508,7 @@ const opListJobs = "ListJobs"
 // ListJobsRequest generates a "aws/request.Request" representing the
 // client's request for the ListJobs operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -8593,7 +8593,7 @@ const opListOTAUpdates = "ListOTAUpdates"
 // ListOTAUpdatesRequest generates a "aws/request.Request" representing the
 // client's request for the ListOTAUpdates operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -8681,7 +8681,7 @@ const opListOutgoingCertificates = "ListOutgoingCertificates"
 // ListOutgoingCertificatesRequest generates a "aws/request.Request" representing the
 // client's request for the ListOutgoingCertificates operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -8769,7 +8769,7 @@ const opListPolicies = "ListPolicies"
 // ListPoliciesRequest generates a "aws/request.Request" representing the
 // client's request for the ListPolicies operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -8857,7 +8857,7 @@ const opListPolicyPrincipals = "ListPolicyPrincipals"
 // ListPolicyPrincipalsRequest generates a "aws/request.Request" representing the
 // client's request for the ListPolicyPrincipals operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -8959,7 +8959,7 @@ const opListPolicyVersions = "ListPolicyVersions"
 // ListPolicyVersionsRequest generates a "aws/request.Request" representing the
 // client's request for the ListPolicyVersions operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -9050,7 +9050,7 @@ const opListPrincipalPolicies = "ListPrincipalPolicies"
 // ListPrincipalPoliciesRequest generates a "aws/request.Request" representing the
 // client's request for the ListPrincipalPolicies operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -9153,7 +9153,7 @@ const opListPrincipalThings = "ListPrincipalThings"
 // ListPrincipalThingsRequest generates a "aws/request.Request" representing the
 // client's request for the ListPrincipalThings operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -9244,7 +9244,7 @@ const opListRoleAliases = "ListRoleAliases"
 // ListRoleAliasesRequest generates a "aws/request.Request" representing the
 // client's request for the ListRoleAliases operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -9332,7 +9332,7 @@ const opListScheduledAudits = "ListScheduledAudits"
 // ListScheduledAuditsRequest generates a "aws/request.Request" representing the
 // client's request for the ListScheduledAudits operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -9414,7 +9414,7 @@ const opListSecurityProfiles = "ListSecurityProfiles"
 // ListSecurityProfilesRequest generates a "aws/request.Request" representing the
 // client's request for the ListSecurityProfiles operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -9498,7 +9498,7 @@ const opListSecurityProfilesForTarget = "ListSecurityProfilesForTarget"
 // ListSecurityProfilesForTargetRequest generates a "aws/request.Request" representing the
 // client's request for the ListSecurityProfilesForTarget operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -9583,7 +9583,7 @@ const opListStreams = "ListStreams"
 // ListStreamsRequest generates a "aws/request.Request" representing the
 // client's request for the ListStreams operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -9671,7 +9671,7 @@ const opListTargetsForPolicy = "ListTargetsForPolicy"
 // ListTargetsForPolicyRequest generates a "aws/request.Request" representing the
 // client's request for the ListTargetsForPolicy operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -9765,7 +9765,7 @@ const opListTargetsForSecurityProfile = "ListTargetsForSecurityProfile"
 // ListTargetsForSecurityProfileRequest generates a "aws/request.Request" representing the
 // client's request for the ListTargetsForSecurityProfile operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -9851,7 +9851,7 @@ const opListThingGroups = "ListThingGroups"
 // ListThingGroupsRequest generates a "aws/request.Request" representing the
 // client's request for the ListThingGroups operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -9933,7 +9933,7 @@ const opListThingGroupsForThing = "ListThingGroupsForThing"
 // ListThingGroupsForThingRequest generates a "aws/request.Request" representing the
 // client's request for the ListThingGroupsForThing operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -10015,7 +10015,7 @@ const opListThingPrincipals = "ListThingPrincipals"
 // ListThingPrincipalsRequest generates a "aws/request.Request" representing the
 // client's request for the ListThingPrincipals operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -10106,7 +10106,7 @@ const opListThingRegistrationTaskReports = "ListThingRegistrationTaskReports"
 // ListThingRegistrationTaskReportsRequest generates a "aws/request.Request" representing the
 // client's request for the ListThingRegistrationTaskReports operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -10191,7 +10191,7 @@ const opListThingRegistrationTasks = "ListThingRegistrationTasks"
 // ListThingRegistrationTasksRequest generates a "aws/request.Request" representing the
 // client's request for the ListThingRegistrationTasks operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -10276,7 +10276,7 @@ const opListThingTypes = "ListThingTypes"
 // ListThingTypesRequest generates a "aws/request.Request" representing the
 // client's request for the ListThingTypes operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -10364,7 +10364,7 @@ const opListThings = "ListThings"
 // ListThingsRequest generates a "aws/request.Request" representing the
 // client's request for the ListThings operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -10455,7 +10455,7 @@ const opListThingsInThingGroup = "ListThingsInThingGroup"
 // ListThingsInThingGroupRequest generates a "aws/request.Request" representing the
 // client's request for the ListThingsInThingGroup operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -10537,7 +10537,7 @@ const opListTopicRules = "ListTopicRules"
 // ListTopicRulesRequest generates a "aws/request.Request" representing the
 // client's request for the ListTopicRules operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -10619,7 +10619,7 @@ const opListV2LoggingLevels = "ListV2LoggingLevels"
 // ListV2LoggingLevelsRequest generates a "aws/request.Request" representing the
 // client's request for the ListV2LoggingLevels operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -10704,7 +10704,7 @@ const opListViolationEvents = "ListViolationEvents"
 // ListViolationEventsRequest generates a "aws/request.Request" representing the
 // client's request for the ListViolationEvents operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -10788,7 +10788,7 @@ const opRegisterCACertificate = "RegisterCACertificate"
 // RegisterCACertificateRequest generates a "aws/request.Request" representing the
 // client's request for the RegisterCACertificate operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -10894,7 +10894,7 @@ const opRegisterCertificate = "RegisterCertificate"
 // RegisterCertificateRequest generates a "aws/request.Request" representing the
 // client's request for the RegisterCertificate operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -10998,7 +10998,7 @@ const opRegisterThing = "RegisterThing"
 // RegisterThingRequest generates a "aws/request.Request" representing the
 // client's request for the RegisterThing operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -11093,7 +11093,7 @@ const opRejectCertificateTransfer = "RejectCertificateTransfer"
 // RejectCertificateTransferRequest generates a "aws/request.Request" representing the
 // client's request for the RejectCertificateTransfer operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -11198,7 +11198,7 @@ const opRemoveThingFromThingGroup = "RemoveThingFromThingGroup"
 // RemoveThingFromThingGroupRequest generates a "aws/request.Request" representing the
 // client's request for the RemoveThingFromThingGroup operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -11283,7 +11283,7 @@ const opReplaceTopicRule = "ReplaceTopicRule"
 // ReplaceTopicRuleRequest generates a "aws/request.Request" representing the
 // client's request for the ReplaceTopicRule operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -11375,7 +11375,7 @@ const opSearchIndex = "SearchIndex"
 // SearchIndexRequest generates a "aws/request.Request" representing the
 // client's request for the SearchIndex operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -11472,7 +11472,7 @@ const opSetDefaultAuthorizer = "SetDefaultAuthorizer"
 // SetDefaultAuthorizerRequest generates a "aws/request.Request" representing the
 // client's request for the SetDefaultAuthorizer operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -11567,7 +11567,7 @@ const opSetDefaultPolicyVersion = "SetDefaultPolicyVersion"
 // SetDefaultPolicyVersionRequest generates a "aws/request.Request" representing the
 // client's request for the SetDefaultPolicyVersion operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -11663,7 +11663,7 @@ const opSetLoggingOptions = "SetLoggingOptions"
 // SetLoggingOptionsRequest generates a "aws/request.Request" representing the
 // client's request for the SetLoggingOptions operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -11749,7 +11749,7 @@ const opSetV2LoggingLevel = "SetV2LoggingLevel"
 // SetV2LoggingLevelRequest generates a "aws/request.Request" representing the
 // client's request for the SetV2LoggingLevel operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -11836,7 +11836,7 @@ const opSetV2LoggingOptions = "SetV2LoggingOptions"
 // SetV2LoggingOptionsRequest generates a "aws/request.Request" representing the
 // client's request for the SetV2LoggingOptions operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -11920,7 +11920,7 @@ const opStartOnDemandAuditTask = "StartOnDemandAuditTask"
 // StartOnDemandAuditTaskRequest generates a "aws/request.Request" representing the
 // client's request for the StartOnDemandAuditTask operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -12005,7 +12005,7 @@ const opStartThingRegistrationTask = "StartThingRegistrationTask"
 // StartThingRegistrationTaskRequest generates a "aws/request.Request" representing the
 // client's request for the StartThingRegistrationTask operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -12090,7 +12090,7 @@ const opStopThingRegistrationTask = "StopThingRegistrationTask"
 // StopThingRegistrationTaskRequest generates a "aws/request.Request" representing the
 // client's request for the StopThingRegistrationTask operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -12178,7 +12178,7 @@ const opTestAuthorization = "TestAuthorization"
 // TestAuthorizationRequest generates a "aws/request.Request" representing the
 // client's request for the TestAuthorization operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -12274,7 +12274,7 @@ const opTestInvokeAuthorizer = "TestInvokeAuthorizer"
 // TestInvokeAuthorizerRequest generates a "aws/request.Request" representing the
 // client's request for the TestInvokeAuthorizer operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -12370,7 +12370,7 @@ const opTransferCertificate = "TransferCertificate"
 // TransferCertificateRequest generates a "aws/request.Request" representing the
 // client's request for the TransferCertificate operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -12479,7 +12479,7 @@ const opUpdateAccountAuditConfiguration = "UpdateAccountAuditConfiguration"
 // UpdateAccountAuditConfigurationRequest generates a "aws/request.Request" representing the
 // client's request for the UpdateAccountAuditConfiguration operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -12563,7 +12563,7 @@ const opUpdateAuthorizer = "UpdateAuthorizer"
 // UpdateAuthorizerRequest generates a "aws/request.Request" representing the
 // client's request for the UpdateAuthorizer operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -12657,7 +12657,7 @@ const opUpdateCACertificate = "UpdateCACertificate"
 // UpdateCACertificateRequest generates a "aws/request.Request" representing the
 // client's request for the UpdateCACertificate operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -12750,7 +12750,7 @@ const opUpdateCertificate = "UpdateCertificate"
 // UpdateCertificateRequest generates a "aws/request.Request" representing the
 // client's request for the UpdateCertificate operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -12852,7 +12852,7 @@ const opUpdateEventConfigurations = "UpdateEventConfigurations"
 // UpdateEventConfigurationsRequest generates a "aws/request.Request" representing the
 // client's request for the UpdateEventConfigurations operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -12934,7 +12934,7 @@ const opUpdateIndexingConfiguration = "UpdateIndexingConfiguration"
 // UpdateIndexingConfigurationRequest generates a "aws/request.Request" representing the
 // client's request for the UpdateIndexingConfiguration operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -13022,7 +13022,7 @@ const opUpdateRoleAlias = "UpdateRoleAlias"
 // UpdateRoleAliasRequest generates a "aws/request.Request" representing the
 // client's request for the UpdateRoleAlias operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -13113,7 +13113,7 @@ const opUpdateScheduledAudit = "UpdateScheduledAudit"
 // UpdateScheduledAuditRequest generates a "aws/request.Request" representing the
 // client's request for the UpdateScheduledAudit operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -13199,7 +13199,7 @@ const opUpdateSecurityProfile = "UpdateSecurityProfile"
 // UpdateSecurityProfileRequest generates a "aws/request.Request" representing the
 // client's request for the UpdateSecurityProfile operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -13288,7 +13288,7 @@ const opUpdateStream = "UpdateStream"
 // UpdateStreamRequest generates a "aws/request.Request" representing the
 // client's request for the UpdateStream operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -13379,7 +13379,7 @@ const opUpdateThing = "UpdateThing"
 // UpdateThingRequest generates a "aws/request.Request" representing the
 // client's request for the UpdateThing operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -13474,7 +13474,7 @@ const opUpdateThingGroup = "UpdateThingGroup"
 // UpdateThingGroupRequest generates a "aws/request.Request" representing the
 // client's request for the UpdateThingGroup operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -13563,7 +13563,7 @@ const opUpdateThingGroupsForThing = "UpdateThingGroupsForThing"
 // UpdateThingGroupsForThingRequest generates a "aws/request.Request" representing the
 // client's request for the UpdateThingGroupsForThing operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -13648,7 +13648,7 @@ const opValidateSecurityProfileBehaviors = "ValidateSecurityProfileBehaviors"
 // ValidateSecurityProfileBehaviorsRequest generates a "aws/request.Request" representing the
 // client's request for the ValidateSecurityProfileBehaviors operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -16675,6 +16675,12 @@ type CreateJobInput struct {
 	//
 	// Targets is a required field
 	Targets []*string `locationName:"targets" min:"1" type:"list" required:"true"`
+
+	// Specifies the amount of time each device has to finish its execution of the
+	// job. The timer is started when the job execution status is set to IN_PROGRESS.
+	// If the job execution status is not set to another terminal state before the
+	// time expires, it will be automatically set to TIMED_OUT.
+	TimeoutConfig *TimeoutConfig `locationName:"timeoutConfig" type:"structure"`
 }
 
 // String returns the string representation
@@ -16767,6 +16773,12 @@ func (s *CreateJobInput) SetTargetSelection(v string) *CreateJobInput {
 // SetTargets sets the Targets field's value.
 func (s *CreateJobInput) SetTargets(v []*string) *CreateJobInput {
 	s.Targets = v
+	return s
+}
+
+// SetTimeoutConfig sets the TimeoutConfig field's value.
+func (s *CreateJobInput) SetTimeoutConfig(v *TimeoutConfig) *CreateJobInput {
+	s.TimeoutConfig = v
 	return s
 }
 
@@ -19937,7 +19949,16 @@ func (s *DescribeDefaultAuthorizerOutput) SetAuthorizerDescription(v *Authorizer
 type DescribeEndpointInput struct {
 	_ struct{} `type:"structure"`
 
-	// The endpoint type (such as iot:Data, iot:CredentialProvider and iot:Jobs).
+	// The endpoint type. Valid endpoint types include:
+	//
+	//    * iot:Data - Returns a VeriSign signed data endpoint.
+	//
+	//    * iot:Data-ATS - Returns an ATS signed data endpoint.
+	//
+	//    * iot:CredentialProvider - Returns an AWS IoT credentials provider API
+	//    endpoint.
+	//
+	//    * iot:Jobs - Returns an AWS IoT device management Jobs API endpoint.
 	EndpointType *string `location:"querystring" locationName:"endpointType" type:"string"`
 }
 
@@ -22988,7 +23009,8 @@ type Job struct {
 	// Configuration for pre-signed S3 URLs.
 	PresignedUrlConfig *PresignedUrlConfig `locationName:"presignedUrlConfig" type:"structure"`
 
-	// The status of the job, one of IN_PROGRESS, CANCELED, or COMPLETED.
+	// The status of the job, one of IN_PROGRESS, CANCELED, DELETION_IN_PROGRESS
+	// or COMPLETED.
 	Status *string `locationName:"status" type:"string" enum:"JobStatus"`
 
 	// Specifies whether the job will continue to run (CONTINUOUS), or will be complete
@@ -23001,6 +23023,12 @@ type Job struct {
 
 	// A list of IoT things and thing groups to which the job should be sent.
 	Targets []*string `locationName:"targets" min:"1" type:"list"`
+
+	// Specifies the amount of time each device has to finish its execution of the
+	// job. A timer is started when the job execution status is set to IN_PROGRESS.
+	// If the job execution status is not set to another terminal state before the
+	// timer expires, it will be automatically set to TIMED_OUT.
+	TimeoutConfig *TimeoutConfig `locationName:"timeoutConfig" type:"structure"`
 }
 
 // String returns the string representation
@@ -23097,10 +23125,20 @@ func (s *Job) SetTargets(v []*string) *Job {
 	return s
 }
 
+// SetTimeoutConfig sets the TimeoutConfig field's value.
+func (s *Job) SetTimeoutConfig(v *TimeoutConfig) *Job {
+	s.TimeoutConfig = v
+	return s
+}
+
 // The job execution object represents the execution of a job on a particular
 // device.
 type JobExecution struct {
 	_ struct{} `type:"structure"`
+
+	// The estimated number of seconds that remain before the job execution status
+	// will be changed to TIMED_OUT.
+	ApproximateSecondsBeforeTimedOut *int64 `locationName:"approximateSecondsBeforeTimedOut" type:"long"`
 
 	// A string (consisting of the digits "0" through "9") which identifies this
 	// particular job execution on this particular device. It can be used in commands
@@ -23124,8 +23162,8 @@ type JobExecution struct {
 	// The time, in milliseconds since the epoch, when the job execution started.
 	StartedAt *time.Time `locationName:"startedAt" type:"timestamp"`
 
-	// The status of the job execution (IN_PROGRESS, QUEUED, FAILED, SUCCESS, CANCELED,
-	// or REJECTED).
+	// The status of the job execution (IN_PROGRESS, QUEUED, FAILED, SUCCEEDED,
+	// TIMED_OUT, CANCELED, or REJECTED).
 	Status *string `locationName:"status" type:"string" enum:"JobExecutionStatus"`
 
 	// A collection of name/value pairs that describe the status of the job execution.
@@ -23147,6 +23185,12 @@ func (s JobExecution) String() string {
 // GoString returns the string representation
 func (s JobExecution) GoString() string {
 	return s.String()
+}
+
+// SetApproximateSecondsBeforeTimedOut sets the ApproximateSecondsBeforeTimedOut field's value.
+func (s *JobExecution) SetApproximateSecondsBeforeTimedOut(v int64) *JobExecution {
+	s.ApproximateSecondsBeforeTimedOut = &v
+	return s
 }
 
 // SetExecutionNumber sets the ExecutionNumber field's value.
@@ -23427,6 +23471,9 @@ type JobProcessDetails struct {
 	// The number of things which successfully completed the job.
 	NumberOfSucceededThings *int64 `locationName:"numberOfSucceededThings" type:"integer"`
 
+	// The number of things whose job execution status is TIMED_OUT.
+	NumberOfTimedOutThings *int64 `locationName:"numberOfTimedOutThings" type:"integer"`
+
 	// The target devices to which the job execution is being rolled out. This value
 	// will be null after the job execution has finished rolling out to all the
 	// target devices.
@@ -23482,6 +23529,12 @@ func (s *JobProcessDetails) SetNumberOfRemovedThings(v int64) *JobProcessDetails
 // SetNumberOfSucceededThings sets the NumberOfSucceededThings field's value.
 func (s *JobProcessDetails) SetNumberOfSucceededThings(v int64) *JobProcessDetails {
 	s.NumberOfSucceededThings = &v
+	return s
+}
+
+// SetNumberOfTimedOutThings sets the NumberOfTimedOutThings field's value.
+func (s *JobProcessDetails) SetNumberOfTimedOutThings(v int64) *JobProcessDetails {
+	s.NumberOfTimedOutThings = &v
 	return s
 }
 
@@ -31357,6 +31410,41 @@ func (s *ThingTypeProperties) SetThingTypeDescription(v string) *ThingTypeProper
 	return s
 }
 
+// Specifies the amount of time each device has to finish its execution of the
+// job. A timer is started when the job execution status is set to IN_PROGRESS.
+// If the job execution status is not set to another terminal state before the
+// timer expires, it will be automatically set to TIMED_OUT.
+type TimeoutConfig struct {
+	_ struct{} `type:"structure"`
+
+	// Specifies the amount of time, in minutes, this device has to finish execution
+	// of this job. A timer is started, or restarted, whenever this job's execution
+	// status is specified as IN_PROGRESS with this field populated. If the job
+	// execution status is not set to a terminal state before the timer expires,
+	// or before another job execution status update is sent with this field populated,
+	// the status will be automatically set to TIMED_OUT. Note that setting/resetting
+	// this timer has no effect on the job execution timeout timer which may have
+	// been specified when the job was created (CreateJobExecution using the field
+	// timeoutConfig).
+	InProgressTimeoutInMinutes *int64 `locationName:"inProgressTimeoutInMinutes" type:"long"`
+}
+
+// String returns the string representation
+func (s TimeoutConfig) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s TimeoutConfig) GoString() string {
+	return s.String()
+}
+
+// SetInProgressTimeoutInMinutes sets the InProgressTimeoutInMinutes field's value.
+func (s *TimeoutConfig) SetInProgressTimeoutInMinutes(v int64) *TimeoutConfig {
+	s.InProgressTimeoutInMinutes = &v
+	return s
+}
+
 // Describes a rule.
 type TopicRule struct {
 	_ struct{} `type:"structure"`
@@ -33513,6 +33601,9 @@ const (
 
 	// JobExecutionStatusFailed is a JobExecutionStatus enum value
 	JobExecutionStatusFailed = "FAILED"
+
+	// JobExecutionStatusTimedOut is a JobExecutionStatus enum value
+	JobExecutionStatusTimedOut = "TIMED_OUT"
 
 	// JobExecutionStatusRejected is a JobExecutionStatus enum value
 	JobExecutionStatusRejected = "REJECTED"

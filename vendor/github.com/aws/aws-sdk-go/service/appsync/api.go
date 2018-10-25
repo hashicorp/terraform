@@ -13,7 +13,7 @@ const opCreateApiKey = "CreateApiKey"
 // CreateApiKeyRequest generates a "aws/request.Request" representing the
 // client's request for the CreateApiKey operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -117,7 +117,7 @@ const opCreateDataSource = "CreateDataSource"
 // CreateDataSourceRequest generates a "aws/request.Request" representing the
 // client's request for the CreateDataSource operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -211,7 +211,7 @@ const opCreateGraphqlApi = "CreateGraphqlApi"
 // CreateGraphqlApiRequest generates a "aws/request.Request" representing the
 // client's request for the CreateGraphqlApi operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -307,7 +307,7 @@ const opCreateResolver = "CreateResolver"
 // CreateResolverRequest generates a "aws/request.Request" representing the
 // client's request for the CreateResolver operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -400,7 +400,7 @@ const opCreateType = "CreateType"
 // CreateTypeRequest generates a "aws/request.Request" representing the
 // client's request for the CreateType operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -494,7 +494,7 @@ const opDeleteApiKey = "DeleteApiKey"
 // DeleteApiKeyRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteApiKey operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -584,7 +584,7 @@ const opDeleteDataSource = "DeleteDataSource"
 // DeleteDataSourceRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteDataSource operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -678,7 +678,7 @@ const opDeleteGraphqlApi = "DeleteGraphqlApi"
 // DeleteGraphqlApiRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteGraphqlApi operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -772,7 +772,7 @@ const opDeleteResolver = "DeleteResolver"
 // DeleteResolverRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteResolver operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -862,7 +862,7 @@ const opDeleteType = "DeleteType"
 // DeleteTypeRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteType operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -956,7 +956,7 @@ const opGetDataSource = "GetDataSource"
 // GetDataSourceRequest generates a "aws/request.Request" representing the
 // client's request for the GetDataSource operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1050,7 +1050,7 @@ const opGetGraphqlApi = "GetGraphqlApi"
 // GetGraphqlApiRequest generates a "aws/request.Request" representing the
 // client's request for the GetGraphqlApi operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1140,7 +1140,7 @@ const opGetIntrospectionSchema = "GetIntrospectionSchema"
 // GetIntrospectionSchemaRequest generates a "aws/request.Request" representing the
 // client's request for the GetIntrospectionSchema operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1229,7 +1229,7 @@ const opGetResolver = "GetResolver"
 // GetResolverRequest generates a "aws/request.Request" representing the
 // client's request for the GetResolver operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1316,7 +1316,7 @@ const opGetSchemaCreationStatus = "GetSchemaCreationStatus"
 // GetSchemaCreationStatusRequest generates a "aws/request.Request" representing the
 // client's request for the GetSchemaCreationStatus operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1406,7 +1406,7 @@ const opGetType = "GetType"
 // GetTypeRequest generates a "aws/request.Request" representing the
 // client's request for the GetType operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1500,7 +1500,7 @@ const opListApiKeys = "ListApiKeys"
 // ListApiKeysRequest generates a "aws/request.Request" representing the
 // client's request for the ListApiKeys operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1595,7 +1595,7 @@ const opListDataSources = "ListDataSources"
 // ListDataSourcesRequest generates a "aws/request.Request" representing the
 // client's request for the ListDataSources operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1685,7 +1685,7 @@ const opListGraphqlApis = "ListGraphqlApis"
 // ListGraphqlApisRequest generates a "aws/request.Request" representing the
 // client's request for the ListGraphqlApis operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1771,7 +1771,7 @@ const opListResolvers = "ListResolvers"
 // ListResolversRequest generates a "aws/request.Request" representing the
 // client's request for the ListResolvers operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1861,7 +1861,7 @@ const opListTypes = "ListTypes"
 // ListTypesRequest generates a "aws/request.Request" representing the
 // client's request for the ListTypes operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1955,7 +1955,7 @@ const opStartSchemaCreation = "StartSchemaCreation"
 // StartSchemaCreationRequest generates a "aws/request.Request" representing the
 // client's request for the StartSchemaCreation operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -2051,7 +2051,7 @@ const opUpdateApiKey = "UpdateApiKey"
 // UpdateApiKeyRequest generates a "aws/request.Request" representing the
 // client's request for the UpdateApiKey operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -2148,7 +2148,7 @@ const opUpdateDataSource = "UpdateDataSource"
 // UpdateDataSourceRequest generates a "aws/request.Request" representing the
 // client's request for the UpdateDataSource operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -2242,7 +2242,7 @@ const opUpdateGraphqlApi = "UpdateGraphqlApi"
 // UpdateGraphqlApiRequest generates a "aws/request.Request" representing the
 // client's request for the UpdateGraphqlApi operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -2336,7 +2336,7 @@ const opUpdateResolver = "UpdateResolver"
 // UpdateResolverRequest generates a "aws/request.Request" representing the
 // client's request for the UpdateResolver operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -2426,7 +2426,7 @@ const opUpdateType = "UpdateType"
 // UpdateTypeRequest generates a "aws/request.Request" representing the
 // client's request for the UpdateType operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.

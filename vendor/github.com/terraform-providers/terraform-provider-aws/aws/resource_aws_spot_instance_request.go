@@ -94,14 +94,14 @@ func resourceAwsSpotInstanceRequest() *schema.Resource {
 				Type:         schema.TypeString,
 				Optional:     true,
 				ForceNew:     true,
-				ValidateFunc: validateRFC3339TimeString,
+				ValidateFunc: validation.ValidateRFC3339TimeString,
 				Computed:     true,
 			}
 			s["valid_until"] = &schema.Schema{
 				Type:         schema.TypeString,
 				Optional:     true,
 				ForceNew:     true,
-				ValidateFunc: validateRFC3339TimeString,
+				ValidateFunc: validation.ValidateRFC3339TimeString,
 				Computed:     true,
 			}
 			return s

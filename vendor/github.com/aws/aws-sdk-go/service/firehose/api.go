@@ -16,7 +16,7 @@ const opCreateDeliveryStream = "CreateDeliveryStream"
 // CreateDeliveryStreamRequest generates a "aws/request.Request" representing the
 // client's request for the CreateDeliveryStream operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -154,7 +154,7 @@ const opDeleteDeliveryStream = "DeleteDeliveryStream"
 // DeleteDeliveryStreamRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteDeliveryStream operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -247,7 +247,7 @@ const opDescribeDeliveryStream = "DescribeDeliveryStream"
 // DescribeDeliveryStreamRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeDeliveryStream operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -329,7 +329,7 @@ const opListDeliveryStreams = "ListDeliveryStreams"
 // ListDeliveryStreamsRequest generates a "aws/request.Request" representing the
 // client's request for the ListDeliveryStreams operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -411,7 +411,7 @@ const opListTagsForDeliveryStream = "ListTagsForDeliveryStream"
 // ListTagsForDeliveryStreamRequest generates a "aws/request.Request" representing the
 // client's request for the ListTagsForDeliveryStream operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -497,7 +497,7 @@ const opPutRecord = "PutRecord"
 // PutRecordRequest generates a "aws/request.Request" representing the
 // client's request for the PutRecord operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -618,7 +618,7 @@ const opPutRecordBatch = "PutRecordBatch"
 // PutRecordBatchRequest generates a "aws/request.Request" representing the
 // client's request for the PutRecordBatch operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -763,7 +763,7 @@ const opTagDeliveryStream = "TagDeliveryStream"
 // TagDeliveryStreamRequest generates a "aws/request.Request" representing the
 // client's request for the TagDeliveryStream operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -862,7 +862,7 @@ const opUntagDeliveryStream = "UntagDeliveryStream"
 // UntagDeliveryStreamRequest generates a "aws/request.Request" representing the
 // client's request for the UntagDeliveryStream operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -955,7 +955,7 @@ const opUpdateDestination = "UpdateDestination"
 // UpdateDestinationRequest generates a "aws/request.Request" representing the
 // client's request for the UpdateDestination operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
