@@ -5,10 +5,9 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/mitchellh/cli"
-
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/states"
+	"github.com/mitchellh/cli"
 )
 
 // StateRmCommand is a Command implementation that shows a single resource.
@@ -22,18 +21,19 @@ func (c *StateRmCommand) Run(args []string) int {
 		return 1
 	}
 
+	var dryRun bool
 	cmdFlags := c.Meta.flagSet("state show")
+	cmdFlags.BoolVar(&dryRun, "dry-run", false, "dry run")
 	cmdFlags.StringVar(&c.backupPath, "backup", "-", "backup")
 	cmdFlags.StringVar(&c.statePath, "state", "", "path")
-	dryRun := cmdFlags.Bool("dry-run", false, "dry run")
 	if err := cmdFlags.Parse(args); err != nil {
 		return cli.RunResultHelp
 	}
 	args = cmdFlags.Args()
 
 	if len(args) < 1 {
-		c.Ui.Error("At least one resource address is required.")
-		return 1
+		c.Ui.Error("At least one address is required.\n")
+		return cli.RunResultHelp
 	}
 
 	// Get the state
@@ -53,18 +53,16 @@ func (c *StateRmCommand) Run(args []string) int {
 		return 1
 	}
 
+	// Filter what we are removing.
 	results, err := c.filter(state, args)
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf(errStateFilter, err))
 		return cli.RunResultHelp
 	}
 
-	// If we have no results, just exit early, we're not going to do anything.
-	// While what happens below is fairly fast, this is an important early
-	// exit since the prune below might modify the state more and we don't
-	// want to modify the state if we don't have to.
+	// If we have no results, exit early as we're not going to do anything.
 	if len(results) == 0 {
-		if *dryRun {
+		if dryRun {
 			c.Ui.Output("Would have removed nothing.")
 		} else {
 			c.Ui.Output("No matching resources found.")
@@ -73,7 +71,7 @@ func (c *StateRmCommand) Run(args []string) int {
 	}
 
 	prefix := "Remove resource "
-	if *dryRun {
+	if dryRun {
 		prefix = "Would remove resource "
 	}
 
@@ -92,7 +90,7 @@ func (c *StateRmCommand) Run(args []string) int {
 			if len(output) > 0 {
 				c.Ui.Output(strings.Join(sort.StringSlice(output), "\n"))
 			}
-			if !*dryRun {
+			if !dryRun {
 				ss.RemoveModule(addr)
 			}
 
@@ -105,28 +103,26 @@ func (c *StateRmCommand) Run(args []string) int {
 			if len(output) > 0 {
 				c.Ui.Output(strings.Join(sort.StringSlice(output), "\n"))
 			}
-			if !*dryRun {
+			if !dryRun {
 				ss.RemoveResource(addr)
 			}
 
 		case addrs.AbsResourceInstance:
 			isCount++
 			c.Ui.Output(prefix + addr.String())
-			if !*dryRun {
+			if !dryRun {
 				ss.ForgetResourceInstanceAll(addr)
+				ss.RemoveResourceIfEmpty(addr.ContainingResource())
 			}
 		}
 	}
 
-	if *dryRun {
+	if dryRun {
 		if isCount == 0 {
 			c.Ui.Output("Would have removed nothing.")
 		}
 		return 0 // This is as far as we go in dry-run mode
 	}
-
-	// Prune the state before writing and persisting it.
-	state.PruneResourceHusks()
 
 	if err := stateMgr.WriteState(state); err != nil {
 		c.Ui.Error(fmt.Sprintf(errStateRmPersist, err))

@@ -399,7 +399,7 @@ func testStateSmall() *State {
 	root := addrs.RootModuleInstance
 	boot, _ := addrs.ParseModuleInstanceStr("module.boot")
 
-	state := BuildState(func(s *SyncState) {
+	return BuildState(func(s *SyncState) {
 		s.SetResourceInstanceCurrent(
 			addrs.Resource{
 				Mode: addrs.ManagedResourceMode,
@@ -457,9 +457,6 @@ func testStateSmall() *State {
 			}.Absolute(boot),
 		)
 	})
-	// fmt.Printf("mods: %#v\n", state.Modules)
-	// fmt.Printf("boot: %#+v\n", state.Modules["module.boot"])
-	return state
 }
 
 // testStateSmallTestInstance returns a test State structure.
