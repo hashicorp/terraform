@@ -63,6 +63,7 @@ func resourceAwsLbbListenerRule() *schema.Resource {
 						"order": {
 							Type:         schema.TypeInt,
 							Optional:     true,
+							Computed:     true,
 							ValidateFunc: validation.IntBetween(1, 50000),
 						},
 
@@ -331,14 +332,12 @@ func resourceAwsLbListenerRuleCreate(d *schema.ResourceData, meta interface{}) e
 		actionMap := action.(map[string]interface{})
 
 		action := &elbv2.Action{
-			Type: aws.String(actionMap["type"].(string)),
+			Order: aws.Int64(int64(i + 1)),
+			Type:  aws.String(actionMap["type"].(string)),
 		}
 
-		if order, ok := actionMap["order"]; ok && order != 0 {
+		if order, ok := actionMap["order"]; ok && order.(int) != 0 {
 			action.Order = aws.Int64(int64(order.(int)))
-		}
-		if len(actions) != 1 && action.Order == nil {
-			return errors.New("when using more then one action, you need to specify 'order' for each action")
 		}
 
 		switch actionMap["type"].(string) {
@@ -509,9 +508,24 @@ func resourceAwsLbListenerRuleCreate(d *schema.ResourceData, meta interface{}) e
 func resourceAwsLbListenerRuleRead(d *schema.ResourceData, meta interface{}) error {
 	elbconn := meta.(*AWSClient).elbv2conn
 
-	resp, err := elbconn.DescribeRules(&elbv2.DescribeRulesInput{
+	var resp *elbv2.DescribeRulesOutput
+	var req = &elbv2.DescribeRulesInput{
 		RuleArns: []*string{aws.String(d.Id())},
+	}
+
+	err := resource.Retry(1*time.Minute, func() *resource.RetryError {
+		var err error
+		resp, err = elbconn.DescribeRules(req)
+		if err != nil {
+			if d.IsNewResource() && isAWSErr(err, elbv2.ErrCodeRuleNotFoundException, "") {
+				return resource.RetryableError(err)
+			} else {
+				return resource.NonRetryableError(err)
+			}
+		}
+		return nil
 	})
+
 	if err != nil {
 		if isAWSErr(err, elbv2.ErrCodeRuleNotFoundException, "") {
 			log.Printf("[WARN] DescribeRules - removing %s from state", d.Id())
@@ -676,8 +690,12 @@ func resourceAwsLbListenerRuleUpdate(d *schema.ResourceData, meta interface{}) e
 			actionMap := action.(map[string]interface{})
 
 			action := &elbv2.Action{
+				Order: aws.Int64(int64(i + 1)),
 				Type:  aws.String(actionMap["type"].(string)),
-				Order: aws.Int64(int64(actionMap["order"].(int))), // TODO, optional
+			}
+
+			if order, ok := actionMap["order"]; ok && order.(int) != 0 {
+				action.Order = aws.Int64(int64(order.(int)))
 			}
 
 			switch actionMap["type"].(string) {

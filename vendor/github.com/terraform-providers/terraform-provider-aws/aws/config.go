@@ -27,6 +27,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/cloud9"
 	"github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/aws/aws-sdk-go/service/cloudfront"
+	"github.com/aws/aws-sdk-go/service/cloudhsmv2"
 	"github.com/aws/aws-sdk-go/service/cloudtrail"
 	"github.com/aws/aws-sdk-go/service/cloudwatch"
 	"github.com/aws/aws-sdk-go/service/cloudwatchevents"
@@ -160,6 +161,7 @@ type AWSClient struct {
 	cfconn                *cloudformation.CloudFormation
 	cloud9conn            *cloud9.Cloud9
 	cloudfrontconn        *cloudfront.CloudFront
+	cloudhsmv2conn        *cloudhsmv2.CloudHSMV2
 	cloudtrailconn        *cloudtrail.CloudTrail
 	cloudwatchconn        *cloudwatch.CloudWatch
 	cloudwatchlogsconn    *cloudwatchlogs.CloudWatchLogs
@@ -499,6 +501,7 @@ func (c *Config) Client() (interface{}, error) {
 	client.cloud9conn = cloud9.New(sess)
 	client.cfconn = cloudformation.New(awsCfSess)
 	client.cloudfrontconn = cloudfront.New(sess)
+	client.cloudhsmv2conn = cloudhsmv2.New(sess)
 	client.cloudtrailconn = cloudtrail.New(sess)
 	client.cloudwatchconn = cloudwatch.New(awsCwSess)
 	client.cloudwatcheventsconn = cloudwatchevents.New(awsCweSess)

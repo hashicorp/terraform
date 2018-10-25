@@ -40,7 +40,7 @@ func resourceAwsEMRSecurityConfiguration() *schema.Resource {
 				Type:         schema.TypeString,
 				Required:     true,
 				ForceNew:     true,
-				ValidateFunc: validateJsonString,
+				ValidateFunc: validation.ValidateJsonString,
 			},
 
 			"creation_date": {

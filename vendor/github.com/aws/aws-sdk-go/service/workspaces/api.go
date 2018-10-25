@@ -16,7 +16,7 @@ const opAssociateIpGroups = "AssociateIpGroups"
 // AssociateIpGroupsRequest generates a "aws/request.Request" representing the
 // client's request for the AssociateIpGroups operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -110,7 +110,7 @@ const opAuthorizeIpRules = "AuthorizeIpRules"
 // AuthorizeIpRulesRequest generates a "aws/request.Request" representing the
 // client's request for the AuthorizeIpRules operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -204,7 +204,7 @@ const opCreateIpGroup = "CreateIpGroup"
 // CreateIpGroupRequest generates a "aws/request.Request" representing the
 // client's request for the CreateIpGroup operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -307,7 +307,7 @@ const opCreateTags = "CreateTags"
 // CreateTagsRequest generates a "aws/request.Request" representing the
 // client's request for the CreateTags operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -392,7 +392,7 @@ const opCreateWorkspaces = "CreateWorkspaces"
 // CreateWorkspacesRequest generates a "aws/request.Request" representing the
 // client's request for the CreateWorkspaces operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -476,7 +476,7 @@ const opDeleteIpGroup = "DeleteIpGroup"
 // DeleteIpGroupRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteIpGroup operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -566,7 +566,7 @@ const opDeleteTags = "DeleteTags"
 // DeleteTagsRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteTags operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -648,7 +648,7 @@ const opDescribeIpGroups = "DescribeIpGroups"
 // DescribeIpGroupsRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeIpGroups operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -730,7 +730,7 @@ const opDescribeTags = "DescribeTags"
 // DescribeTagsRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeTags operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -809,7 +809,7 @@ const opDescribeWorkspaceBundles = "DescribeWorkspaceBundles"
 // DescribeWorkspaceBundlesRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeWorkspaceBundles operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -946,7 +946,7 @@ const opDescribeWorkspaceDirectories = "DescribeWorkspaceDirectories"
 // DescribeWorkspaceDirectoriesRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeWorkspaceDirectories operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1082,7 +1082,7 @@ const opDescribeWorkspaces = "DescribeWorkspaces"
 // DescribeWorkspacesRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeWorkspaces operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1223,7 +1223,7 @@ const opDescribeWorkspacesConnectionStatus = "DescribeWorkspacesConnectionStatus
 // DescribeWorkspacesConnectionStatusRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeWorkspacesConnectionStatus operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1302,7 +1302,7 @@ const opDisassociateIpGroups = "DisassociateIpGroups"
 // DisassociateIpGroupsRequest generates a "aws/request.Request" representing the
 // client's request for the DisassociateIpGroups operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1390,7 +1390,7 @@ const opModifyWorkspaceProperties = "ModifyWorkspaceProperties"
 // ModifyWorkspacePropertiesRequest generates a "aws/request.Request" representing the
 // client's request for the ModifyWorkspaceProperties operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1489,7 +1489,7 @@ const opModifyWorkspaceState = "ModifyWorkspaceState"
 // ModifyWorkspaceStateRequest generates a "aws/request.Request" representing the
 // client's request for the ModifyWorkspaceState operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1579,7 +1579,7 @@ const opRebootWorkspaces = "RebootWorkspaces"
 // RebootWorkspacesRequest generates a "aws/request.Request" representing the
 // client's request for the RebootWorkspaces operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1657,7 +1657,7 @@ const opRebuildWorkspaces = "RebuildWorkspaces"
 // RebuildWorkspacesRequest generates a "aws/request.Request" representing the
 // client's request for the RebuildWorkspaces operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1739,7 +1739,7 @@ const opRevokeIpRules = "RevokeIpRules"
 // RevokeIpRulesRequest generates a "aws/request.Request" representing the
 // client's request for the RevokeIpRules operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1827,7 +1827,7 @@ const opStartWorkspaces = "StartWorkspaces"
 // StartWorkspacesRequest generates a "aws/request.Request" representing the
 // client's request for the StartWorkspaces operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1904,7 +1904,7 @@ const opStopWorkspaces = "StopWorkspaces"
 // StopWorkspacesRequest generates a "aws/request.Request" representing the
 // client's request for the StopWorkspaces operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1981,7 +1981,7 @@ const opTerminateWorkspaces = "TerminateWorkspaces"
 // TerminateWorkspacesRequest generates a "aws/request.Request" representing the
 // client's request for the TerminateWorkspaces operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -2064,7 +2064,7 @@ const opUpdateRulesOfIpGroup = "UpdateRulesOfIpGroup"
 // UpdateRulesOfIpGroupRequest generates a "aws/request.Request" representing the
 // client's request for the UpdateRulesOfIpGroup operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.

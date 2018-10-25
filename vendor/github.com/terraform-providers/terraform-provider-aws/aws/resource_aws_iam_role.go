@@ -100,7 +100,7 @@ func resourceAwsIamRole() *schema.Resource {
 				Type:             schema.TypeString,
 				Required:         true,
 				DiffSuppressFunc: suppressEquivalentAwsPolicyDiffs,
-				ValidateFunc:     validateJsonString,
+				ValidateFunc:     validation.ValidateJsonString,
 			},
 
 			"force_detach_policies": {

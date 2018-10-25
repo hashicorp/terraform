@@ -54,7 +54,7 @@ github.com/apparentlymart/go-textseg/textseg
 github.com/armon/circbuf
 # github.com/armon/go-radix v0.0.0-20160115234725-4239b77079c7
 github.com/armon/go-radix
-# github.com/aws/aws-sdk-go v1.15.48
+# github.com/aws/aws-sdk-go v1.15.55
 github.com/aws/aws-sdk-go/aws
 github.com/aws/aws-sdk-go/aws/awserr
 github.com/aws/aws-sdk-go/service/dynamodb
@@ -93,6 +93,7 @@ github.com/aws/aws-sdk-go/service/budgets
 github.com/aws/aws-sdk-go/service/cloud9
 github.com/aws/aws-sdk-go/service/cloudformation
 github.com/aws/aws-sdk-go/service/cloudfront
+github.com/aws/aws-sdk-go/service/cloudhsmv2
 github.com/aws/aws-sdk-go/service/cloudtrail
 github.com/aws/aws-sdk-go/service/cloudwatch
 github.com/aws/aws-sdk-go/service/cloudwatchevents
@@ -434,7 +435,7 @@ github.com/satori/uuid
 # github.com/spf13/afero v1.0.2
 github.com/spf13/afero
 github.com/spf13/afero/mem
-# github.com/terraform-providers/terraform-provider-aws v1.40.0
+# github.com/terraform-providers/terraform-provider-aws v1.41.0
 github.com/terraform-providers/terraform-provider-aws/aws
 # github.com/terraform-providers/terraform-provider-openstack v0.0.0-20170616075611-4080a521c6ea
 github.com/terraform-providers/terraform-provider-openstack/openstack

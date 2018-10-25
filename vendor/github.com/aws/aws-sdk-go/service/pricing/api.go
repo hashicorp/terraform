@@ -15,7 +15,7 @@ const opDescribeServices = "DescribeServices"
 // DescribeServicesRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeServices operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -168,7 +168,7 @@ const opGetAttributeValues = "GetAttributeValues"
 // GetAttributeValuesRequest generates a "aws/request.Request" representing the
 // client's request for the GetAttributeValues operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -319,7 +319,7 @@ const opGetProducts = "GetProducts"
 // GetProductsRequest generates a "aws/request.Request" representing the
 // client's request for the GetProducts operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
