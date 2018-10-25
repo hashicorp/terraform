@@ -14,7 +14,6 @@ import (
 	"github.com/aws/aws-sdk-go/service/cognitoidentity"
 	"github.com/aws/aws-sdk-go/service/cognitoidentityprovider"
 	"github.com/aws/aws-sdk-go/service/configservice"
-	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/waf"
 	"github.com/hashicorp/terraform/helper/resource"
@@ -22,15 +21,6 @@ import (
 	"github.com/hashicorp/terraform/helper/structure"
 	"github.com/hashicorp/terraform/helper/validation"
 )
-
-// When released, replace all usage with upstream validation function:
-// https://github.com/hashicorp/terraform/pull/17484
-func validateRFC3339TimeString(v interface{}, k string) (ws []string, errors []error) {
-	if _, err := time.Parse(time.RFC3339, v.(string)); err != nil {
-		errors = append(errors, fmt.Errorf("%q: %s", k, err))
-	}
-	return
-}
 
 // validateTypeStringNullableBoolean provides custom error messaging for TypeString booleans
 // Some arguments require three values: true, false, and "" (unspecified).
@@ -350,21 +340,6 @@ func validateCloudWatchLogResourcePolicyDocument(v interface{}, k string) (ws []
 	return
 }
 
-func validateIntegerInRange(min, max int) schema.SchemaValidateFunc {
-	return func(v interface{}, k string) (ws []string, errors []error) {
-		value := v.(int)
-		if value < min {
-			errors = append(errors, fmt.Errorf(
-				"%q cannot be lower than %d: %d", k, min, value))
-		}
-		if value > max {
-			errors = append(errors, fmt.Errorf(
-				"%q cannot be higher than %d: %d", k, max, value))
-		}
-		return
-	}
-}
-
 func validateCloudWatchEventTargetId(v interface{}, k string) (ws []string, errors []error) {
 	value := v.(string)
 	if len(value) > 64 {
@@ -643,13 +618,6 @@ func validateDbEventSubscriptionName(v interface{}, k string) (ws []string, erro
 	return
 }
 
-func validateJsonString(v interface{}, k string) (ws []string, errors []error) {
-	if _, err := structure.NormalizeJsonString(v); err != nil {
-		errors = append(errors, fmt.Errorf("%q contains an invalid JSON: %s", k, err))
-	}
-	return
-}
-
 func validateIAMPolicyJson(v interface{}, k string) (ws []string, errors []error) {
 	// IAM Policy documents need to be valid JSON, and pass legacy parsing
 	value := v.(string)
@@ -794,8 +762,11 @@ func validateAwsDynamoDbGlobalTableName(v interface{}, k string) (ws []string, e
 func validateAwsEcsPlacementStrategy(stratType, stratField string) error {
 	switch stratType {
 	case "random":
-		// random does not need the field attribute set, could error, but it isn't read at the API level
-		return nil
+		// random requires the field attribute to be unset.
+		if stratField != "" {
+			return fmt.Errorf("Random type requires the field attribute to be unset. Got: %s",
+				stratField)
+		}
 	case "spread":
 		//  For the spread placement strategy, valid values are instanceId
 		// (or host, which has the same effect), or any platform or custom attribute
@@ -1770,25 +1741,6 @@ func validateDynamoDbStreamSpec(d *schema.ResourceDiff) error {
 		return errors.New("stream_view_type is required when stream_enabled = true")
 	}
 	return nil
-}
-
-func validateVpcEndpointType(v interface{}, k string) (ws []string, errors []error) {
-	return validateStringIn(ec2.VpcEndpointTypeGateway, ec2.VpcEndpointTypeInterface)(v, k)
-}
-
-func validateStringIn(validValues ...string) schema.SchemaValidateFunc {
-	return func(v interface{}, k string) (ws []string, errors []error) {
-		value := v.(string)
-		for _, s := range validValues {
-			if value == s {
-				return
-			}
-		}
-		errors = append(errors, fmt.Errorf(
-			"%q contains an invalid value %q. Valid values are %q.",
-			k, value, validValues))
-		return
-	}
 }
 
 func validateVpnGatewayAmazonSideAsn(v interface{}, k string) (ws []string, errors []error) {

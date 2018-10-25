@@ -18,7 +18,7 @@ const opAssociateAdminAccount = "AssociateAdminAccount"
 // AssociateAdminAccountRequest generates a "aws/request.Request" representing the
 // client's request for the AssociateAdminAccount operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -118,7 +118,7 @@ const opDeleteNotificationChannel = "DeleteNotificationChannel"
 // DeleteNotificationChannelRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteNotificationChannel operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -210,7 +210,7 @@ const opDeletePolicy = "DeletePolicy"
 // DeletePolicyRequest generates a "aws/request.Request" representing the
 // client's request for the DeletePolicy operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -300,7 +300,7 @@ const opDisassociateAdminAccount = "DisassociateAdminAccount"
 // DisassociateAdminAccountRequest generates a "aws/request.Request" representing the
 // client's request for the DisassociateAdminAccount operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -392,7 +392,7 @@ const opGetAdminAccount = "GetAdminAccount"
 // GetAdminAccountRequest generates a "aws/request.Request" representing the
 // client's request for the GetAdminAccount operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -481,7 +481,7 @@ const opGetComplianceDetail = "GetComplianceDetail"
 // GetComplianceDetailRequest generates a "aws/request.Request" representing the
 // client's request for the GetComplianceDetail operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -567,7 +567,7 @@ const opGetNotificationChannel = "GetNotificationChannel"
 // GetNotificationChannelRequest generates a "aws/request.Request" representing the
 // client's request for the GetNotificationChannel operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -656,7 +656,7 @@ const opGetPolicy = "GetPolicy"
 // GetPolicyRequest generates a "aws/request.Request" representing the
 // client's request for the GetPolicy operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -747,7 +747,7 @@ const opListComplianceStatus = "ListComplianceStatus"
 // ListComplianceStatusRequest generates a "aws/request.Request" representing the
 // client's request for the ListComplianceStatus operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -832,7 +832,7 @@ const opListMemberAccounts = "ListMemberAccounts"
 // ListMemberAccountsRequest generates a "aws/request.Request" representing the
 // client's request for the ListMemberAccounts operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -919,7 +919,7 @@ const opListPolicies = "ListPolicies"
 // ListPoliciesRequest generates a "aws/request.Request" representing the
 // client's request for the ListPolicies operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1013,7 +1013,7 @@ const opPutNotificationChannel = "PutNotificationChannel"
 // PutNotificationChannelRequest generates a "aws/request.Request" representing the
 // client's request for the PutNotificationChannel operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1104,7 +1104,7 @@ const opPutPolicy = "PutPolicy"
 // PutPolicyRequest generates a "aws/request.Request" representing the
 // client's request for the PutPolicy operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.

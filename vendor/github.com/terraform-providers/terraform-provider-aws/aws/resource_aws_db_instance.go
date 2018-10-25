@@ -858,9 +858,7 @@ func resourceAwsDbInstanceCreate(d *schema.ResourceData, meta interface{}) error
 		}
 
 		if attr, ok := d.GetOk("parameter_group_name"); ok {
-			modifyDbInstanceInput.DBParameterGroupName = aws.String(attr.(string))
-			requiresModifyDbInstance = true
-			requiresRebootDbInstance = true
+			opts.DBParameterGroupName = aws.String(attr.(string))
 		}
 
 		if attr, ok := d.GetOk("password"); ok {
