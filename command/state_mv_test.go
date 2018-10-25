@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/mitchellh/cli"
@@ -72,6 +73,48 @@ func TestStateMv(t *testing.T) {
 		t.Fatalf("bad: %#v", backups)
 	}
 	testStateOutput(t, backups[0], testStateMvOutputOriginal)
+}
+
+func TestStateMv_differentResourceTypes(t *testing.T) {
+	state := states.BuildState(func(s *states.SyncState) {
+		s.SetResourceInstanceCurrent(
+			addrs.Resource{
+				Mode: addrs.ManagedResourceMode,
+				Type: "test_instance",
+				Name: "foo",
+			}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+			&states.ResourceInstanceObjectSrc{
+				AttrsJSON: []byte(`{"id":"bar","foo":"value","bar":"value"}`),
+				Status:    states.ObjectReady,
+			},
+			addrs.ProviderConfig{Type: "test"}.Absolute(addrs.RootModuleInstance),
+		)
+	})
+	statePath := testStateFile(t, state)
+
+	p := testProvider()
+	ui := new(cli.MockUi)
+	c := &StateMvCommand{
+		StateMeta{
+			Meta: Meta{
+				testingOverrides: metaOverridesForProvider(p),
+				Ui:               ui,
+			},
+		},
+	}
+
+	args := []string{
+		"-state", statePath,
+		"test_instance.foo",
+		"test_network.bar",
+	}
+	if code := c.Run(args); code == 0 {
+		t.Fatalf("expected error output, got:\n%s", ui.OutputWriter.String())
+	}
+
+	if !strings.Contains(ui.ErrorWriter.String(), "resource types do not match") {
+		t.Fatalf("expected initialization error, got:\n%s", ui.ErrorWriter.String())
+	}
 }
 
 // don't modify backend state is we supply a -state flag
@@ -152,10 +195,6 @@ func TestStateMv_explicitWithBackend(t *testing.T) {
 }
 
 func TestStateMv_backupExplicit(t *testing.T) {
-	td := tempDir(t)
-	defer os.RemoveAll(td)
-	backupPath := filepath.Join(td, "backup")
-
 	state := states.BuildState(func(s *states.SyncState) {
 		s.SetResourceInstanceCurrent(
 			addrs.Resource{
@@ -183,6 +222,7 @@ func TestStateMv_backupExplicit(t *testing.T) {
 		)
 	})
 	statePath := testStateFile(t, state)
+	backupPath := statePath + ".backup.test"
 
 	p := testProvider()
 	ui := new(cli.MockUi)
@@ -913,8 +953,6 @@ test_instance.foo.10:
 
 const testStateMvNestedModule_stateOut = `
 <no state>
-module.bar:
-  <no state>
 module.bar.child1:
   test_instance.foo:
     ID = bar
@@ -935,8 +973,6 @@ const testStateMvNestedModule_stateOutSrc = `
 
 const testStateMvNestedModule_stateOutOriginal = `
 <no state>
-module.foo:
-  <no state>
 module.foo.child1:
   test_instance.foo:
     ID = bar
@@ -983,6 +1019,7 @@ test_instance.bar:
   foo = value
 test_instance.qux:
   ID = bar
+  provider = provider.test
 `
 
 const testStateMvExisting_stateSrcOriginal = `

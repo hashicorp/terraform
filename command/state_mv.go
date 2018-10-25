@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/states"
 	"github.com/mitchellh/cli"
 )
@@ -22,7 +23,9 @@ func (c *StateMvCommand) Run(args []string) int {
 	// We create two metas to track the two states
 	var backupPathOut, statePathOut string
 
+	var dryRun bool
 	cmdFlags := c.Meta.flagSet("state mv")
+	cmdFlags.BoolVar(&dryRun, "dry-run", false, "dry run")
 	cmdFlags.StringVar(&c.backupPath, "backup", "-", "backup")
 	cmdFlags.StringVar(&c.statePath, "state", "", "path")
 	cmdFlags.StringVar(&backupPathOut, "backup-out", "-", "backup")
@@ -37,127 +40,228 @@ func (c *StateMvCommand) Run(args []string) int {
 	}
 
 	// Read the from state
-	stateFrom, err := c.State()
+	stateFromMgr, err := c.State()
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf(errStateLoadingState, err))
 		return 1
 	}
-
-	if err := stateFrom.RefreshState(); err != nil {
-		c.Ui.Error(fmt.Sprintf("Failed to load state: %s", err))
+	if err := stateFromMgr.RefreshState(); err != nil {
+		c.Ui.Error(fmt.Sprintf("Failed to refresh state: %s", err))
 		return 1
 	}
 
-	stateFromReal := stateFrom.State()
-	if stateFromReal == nil {
+	stateFrom := stateFromMgr.State()
+	if stateFrom == nil {
 		c.Ui.Error(fmt.Sprintf(errStateNotFound))
 		return 1
 	}
 
 	// Read the destination state
+	stateToMgr := stateFromMgr
 	stateTo := stateFrom
-	stateToReal := stateFromReal
 
 	if statePathOut != "" {
 		c.statePath = statePathOut
 		c.backupPath = backupPathOut
-		stateTo, err = c.State()
+
+		stateToMgr, err = c.State()
 		if err != nil {
 			c.Ui.Error(fmt.Sprintf(errStateLoadingState, err))
 			return 1
 		}
-
-		if err := stateTo.RefreshState(); err != nil {
-			c.Ui.Error(fmt.Sprintf("Failed to load state: %s", err))
+		if err := stateToMgr.RefreshState(); err != nil {
+			c.Ui.Error(fmt.Sprintf("Failed to refresh state: %s", err))
 			return 1
 		}
 
-		stateToReal = stateTo.State()
-		if stateToReal == nil {
-			stateToReal = states.NewState()
+		stateTo = stateToMgr.State()
+		if stateTo == nil {
+			stateTo = states.NewState()
 		}
 	}
 
-	c.Ui.Error("state mv command not yet updated for new state types")
-	return 1
-	/*
-		// Filter what we're moving
-		filter := &terraform.StateFilter{State: stateFromReal}
-		results, err := filter.Filter(args[0])
-		if err != nil {
-			c.Ui.Error(fmt.Sprintf(errStateMv, err))
-			return cli.RunResultHelp
-		}
-		if len(results) == 0 {
-			c.Ui.Output(fmt.Sprintf("Item to move doesn't exist: %s", args[0]))
-			return 1
-		}
+	// Filter what we are moving.
+	results, err := c.filter(stateFrom, []string{args[0]})
+	if err != nil {
+		c.Ui.Error(fmt.Sprintf(errStateFilter, err))
+		return cli.RunResultHelp
+	}
 
-		// Get the item to add to the state
-		add := c.addableResult(results)
-
-		// Do the actual move
-		if err := stateFromReal.Remove(args[0]); err != nil {
-			c.Ui.Error(fmt.Sprintf(errStateMv, err))
-			return 1
+	// If we have no results, exit early as we're not going to do anything.
+	if len(results) == 0 {
+		if dryRun {
+			c.Ui.Output("Would have moved nothing.")
+		} else {
+			c.Ui.Output("No matching objects found.")
 		}
+		return 0
+	}
 
-		if err := stateToReal.Add(args[0], args[1], add); err != nil {
-			c.Ui.Error(fmt.Sprintf(errStateMv, err))
-			return 1
-		}
+	prefix := "Move"
+	if dryRun {
+		prefix = "Would move"
+	}
 
-		// Write the new state
-		if err := stateTo.WriteState(stateToReal); err != nil {
-			c.Ui.Error(fmt.Sprintf(errStateMvPersist, err))
-			return 1
-		}
-
-		if err := stateTo.PersistState(); err != nil {
-			c.Ui.Error(fmt.Sprintf(errStateMvPersist, err))
-			return 1
-		}
-
-		// Write the old state if it is different
-		if stateTo != stateFrom {
-			if err := stateFrom.WriteState(stateFromReal); err != nil {
-				c.Ui.Error(fmt.Sprintf(errStateMvPersist, err))
+	var moved int
+	ssFrom := stateFrom.SyncWrapper()
+	for _, result := range c.moveableResult(results) {
+		switch addrFrom := result.Address.(type) {
+		case addrs.ModuleInstance:
+			search, err := addrs.ParseModuleInstanceStr(args[0])
+			if err != nil {
+				c.Ui.Error(fmt.Sprintf(errStateMv, err))
+				return 1
+			}
+			addrTo, err := addrs.ParseModuleInstanceStr(args[1])
+			if err != nil {
+				c.Ui.Error(fmt.Sprintf(errStateMv, err))
 				return 1
 			}
 
-			if err := stateFrom.PersistState(); err != nil {
-				c.Ui.Error(fmt.Sprintf(errStateMvPersist, err))
+			if len(search) < len(addrFrom) {
+				addrTo = append(addrTo, addrFrom[len(search):]...)
+			}
+
+			if stateTo.Module(addrTo) != nil {
+				c.Ui.Error(fmt.Sprintf(errStateMv, "destination module already exists"))
 				return 1
 			}
-		}
-	*/
 
-	c.Ui.Output(fmt.Sprintf(
-		"Moved %s to %s", args[0], args[1]))
+			moved++
+			c.Ui.Output(fmt.Sprintf("%s %q to %q", prefix, addrFrom.String(), addrTo.String()))
+			if !dryRun {
+				ssFrom.RemoveModule(addrFrom)
+
+				// Update the address before adding it to the state.
+				m := result.Value.(*states.Module)
+				m.Addr = addrTo
+				stateTo.Modules[addrTo.String()] = m
+			}
+
+		case addrs.AbsResource:
+			addrTo, err := addrs.ParseAbsResourceStr(args[1])
+			if err != nil {
+				c.Ui.Error(fmt.Sprintf(errStateMv, err))
+				return 1
+			}
+
+			if addrFrom.Resource.Type != addrTo.Resource.Type {
+				c.Ui.Error(fmt.Sprintf(
+					errStateMv, "resource types do not match"))
+				return 1
+			}
+			if stateTo.Module(addrTo.Module) == nil {
+				c.Ui.Error(fmt.Sprintf(
+					errStateMv, "destination module does not exist"))
+				return 1
+			}
+			if stateTo.Resource(addrTo) != nil {
+				c.Ui.Error(fmt.Sprintf(
+					errStateMv, "destination resource already exists"))
+				return 1
+			}
+
+			moved++
+			c.Ui.Output(fmt.Sprintf("%s %q to %q", prefix, addrFrom.String(), addrTo.String()))
+			if !dryRun {
+				ssFrom.RemoveResource(addrFrom)
+
+				// Update the address before adding it to the state.
+				rs := result.Value.(*states.Resource)
+				rs.Addr = addrTo.Resource
+				stateTo.Module(addrTo.Module).Resources[addrTo.Resource.String()] = rs
+			}
+
+		case addrs.AbsResourceInstance:
+			addrTo, err := addrs.ParseAbsResourceInstanceStr(args[1])
+			if err != nil {
+				c.Ui.Error(fmt.Sprintf(errStateMv, err))
+				return 1
+			}
+
+			if stateTo.Module(addrTo.Module) == nil {
+				c.Ui.Error(fmt.Sprintf(
+					errStateMv, "destination module does not exist"))
+				return 1
+			}
+			if stateTo.Resource(addrTo.ContainingResource()) == nil {
+				c.Ui.Error(fmt.Sprintf(
+					errStateMv, "destination resource does not exist"))
+				return 1
+			}
+			if stateTo.ResourceInstance(addrTo) != nil {
+				c.Ui.Error(fmt.Sprintf(
+					errStateMv, "destination resource instance already exists"))
+				return 1
+			}
+
+			moved++
+			c.Ui.Output(fmt.Sprintf("%s %q to %q", prefix, addrFrom.String(), args[1]))
+			if !dryRun {
+				ssFrom.ForgetResourceInstanceAll(addrFrom)
+				ssFrom.RemoveResourceIfEmpty(addrFrom.ContainingResource())
+
+				rs := stateTo.Resource(addrTo.ContainingResource())
+				rs.Instances[addrTo.Resource.Key] = result.Value.(*states.ResourceInstance)
+			}
+		}
+	}
+
+	if dryRun {
+		if moved == 0 {
+			c.Ui.Output("Would have moved nothing.")
+		}
+		return 0 // This is as far as we go in dry-run mode
+	}
+
+	// Write the new state
+	if err := stateToMgr.WriteState(stateTo); err != nil {
+		c.Ui.Error(fmt.Sprintf(errStateRmPersist, err))
+		return 1
+	}
+	if err := stateToMgr.PersistState(); err != nil {
+		c.Ui.Error(fmt.Sprintf(errStateRmPersist, err))
+		return 1
+	}
+
+	// Write the old state if it is different
+	if stateTo != stateFrom {
+		if err := stateFromMgr.WriteState(stateFrom); err != nil {
+			c.Ui.Error(fmt.Sprintf(errStateRmPersist, err))
+			return 1
+		}
+		if err := stateFromMgr.PersistState(); err != nil {
+			c.Ui.Error(fmt.Sprintf(errStateRmPersist, err))
+			return 1
+		}
+	}
+
+	if moved == 0 {
+		c.Ui.Output("No matching objects found.")
+	} else {
+		c.Ui.Output(fmt.Sprintf("Successfully moved %d object(s).", moved))
+	}
 	return 0
 }
 
-// addableResult takes the result from a filter operation and returns what to
-// call State.Add with. The reason we do this is because in the module case
+// moveableResult takes the result from a filter operation and returns what
+// object(s) to move. The reason we do this is because in the module case
 // we must add the list of all modules returned versus just the root module.
-func (c *StateMvCommand) addableResult(results []*states.FilterResult) interface{} {
-	switch v := results[0].Value.(type) {
-	case *states.Module:
-		// If a state module then we should add the full list of modules
-		result := []*states.Module{v}
-		if len(results) > 1 {
+func (c *StateMvCommand) moveableResult(results []*states.FilterResult) []*states.FilterResult {
+	result := results[:1]
+
+	if len(results) > 1 {
+		// If a state module then we should add the full list of modules.
+		if _, ok := result[0].Address.(addrs.ModuleInstance); ok {
 			for _, r := range results[1:] {
-				if ms, ok := r.Value.(*states.Module); ok {
-					result = append(result, ms)
+				if _, ok := r.Address.(addrs.ModuleInstance); ok {
+					result = append(result, r)
 				}
 			}
 		}
-		return result
-
-	default:
-		// By default just add the first result
-		return v
 	}
+
+	return result
 }
 
 func (c *StateMvCommand) Help() string {
@@ -181,6 +285,9 @@ Usage: terraform state mv [options] SOURCE DESTINATION
  for each state file.
 
 Options:
+
+  -dry-run            If set, prints out what would've been moved but doesn't
+                      actually move anything.
 
   -backup=PATH        Path where Terraform should write the backup for the original
                       state. This can't be disabled. If not set, Terraform
@@ -209,7 +316,7 @@ func (c *StateMvCommand) Synopsis() string {
 	return "Move an item in the state"
 }
 
-const errStateMv = `Error moving state: %[1]s
+const errStateMv = `Error moving state: %s
 
 Please ensure your addresses and state paths are valid. No
 state was persisted. Your existing states are untouched.`
