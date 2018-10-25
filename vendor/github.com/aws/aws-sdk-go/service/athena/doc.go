@@ -12,8 +12,13 @@
 // For more information, see What is Amazon Athena (http://docs.aws.amazon.com/athena/latest/ug/what-is.html)
 // in the Amazon Athena User Guide.
 //
+// If you connect to Athena using the JDBC driver, use version 1.1.0 of the
+// driver or later with the Amazon Athena API. Earlier version drivers do not
+// support the API. For more information and to download the driver, see Accessing
+// Amazon Athena with JDBC (https://docs.aws.amazon.com/athena/latest/ug/connect-with-jdbc.html).
+//
 // For code samples using the AWS SDK for Java, see Examples and Code Samples
-// (http://docs.aws.amazon.com/athena/latest/ug/code-samples.html) in the Amazon
+// (https://docs.aws.amazon.com/athena/latest/ug/code-samples.html) in the Amazon
 // Athena User Guide.
 //
 // See https://docs.aws.amazon.com/goto/WebAPI/athena-2017-05-18 for more information on this service.

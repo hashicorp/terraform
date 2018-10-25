@@ -688,7 +688,9 @@ func readDynamoDbTableTags(arn string, conn *dynamodb.DynamoDB) (map[string]stri
 	output, err := conn.ListTagsOfResource(&dynamodb.ListTagsOfResourceInput{
 		ResourceArn: aws.String(arn),
 	})
-	if err != nil {
+
+	// Do not fail if interfacing with dynamodb-local
+	if err != nil && !isAWSErr(err, "UnknownOperationException", "Tagging is not currently supported in DynamoDB Local.") {
 		return nil, fmt.Errorf("Error reading tags from dynamodb resource: %s", err)
 	}
 

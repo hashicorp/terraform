@@ -24,6 +24,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/ec2metadata"
 	"github.com/aws/aws-sdk-go/aws/endpoints"
 	"github.com/aws/aws-sdk-go/aws/request"
+	"github.com/aws/aws-sdk-go/internal/shareddefaults"
 )
 
 // A Defaults provides a collection of default values for SDK clients.
@@ -114,7 +115,6 @@ func CredProviders(cfg *aws.Config, handlers request.Handlers) []credentials.Pro
 const (
 	httpProviderAuthorizationEnvVar = "AWS_CONTAINER_AUTHORIZATION_TOKEN"
 	httpProviderEnvVar              = "AWS_CONTAINER_CREDENTIALS_FULL_URI"
-	ecsCredsProviderEnvVar          = "AWS_CONTAINER_CREDENTIALS_RELATIVE_URI"
 )
 
 // RemoteCredProvider returns a credentials provider for the default remote
@@ -124,8 +124,8 @@ func RemoteCredProvider(cfg aws.Config, handlers request.Handlers) credentials.P
 		return localHTTPCredProvider(cfg, handlers, u)
 	}
 
-	if uri := os.Getenv(ecsCredsProviderEnvVar); len(uri) > 0 {
-		u := fmt.Sprintf("http://169.254.170.2%s", uri)
+	if uri := os.Getenv(shareddefaults.ECSCredsProviderEnvVar); len(uri) > 0 {
+		u := fmt.Sprintf("%s%s", shareddefaults.ECSContainerCredentialsURI, uri)
 		return httpCredProvider(cfg, handlers, u)
 	}
 

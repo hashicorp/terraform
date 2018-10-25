@@ -15,7 +15,7 @@ const opCreateContainer = "CreateContainer"
 // CreateContainerRequest generates a "aws/request.Request" representing the
 // client's request for the CreateContainer operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -101,7 +101,7 @@ const opDeleteContainer = "DeleteContainer"
 // DeleteContainerRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteContainer operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -188,7 +188,7 @@ const opDeleteContainerPolicy = "DeleteContainerPolicy"
 // DeleteContainerPolicyRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteContainerPolicy operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -276,7 +276,7 @@ const opDeleteCorsPolicy = "DeleteCorsPolicy"
 // DeleteCorsPolicyRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteCorsPolicy operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -369,7 +369,7 @@ const opDescribeContainer = "DescribeContainer"
 // DescribeContainerRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeContainer operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -456,7 +456,7 @@ const opGetContainerPolicy = "GetContainerPolicy"
 // GetContainerPolicyRequest generates a "aws/request.Request" representing the
 // client's request for the GetContainerPolicy operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -546,7 +546,7 @@ const opGetCorsPolicy = "GetCorsPolicy"
 // GetCorsPolicyRequest generates a "aws/request.Request" representing the
 // client's request for the GetCorsPolicy operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -639,7 +639,7 @@ const opListContainers = "ListContainers"
 // ListContainersRequest generates a "aws/request.Request" representing the
 // client's request for the ListContainers operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -727,7 +727,7 @@ const opPutContainerPolicy = "PutContainerPolicy"
 // PutContainerPolicyRequest generates a "aws/request.Request" representing the
 // client's request for the PutContainerPolicy operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -819,7 +819,7 @@ const opPutCorsPolicy = "PutCorsPolicy"
 // PutCorsPolicyRequest generates a "aws/request.Request" representing the
 // client's request for the PutCorsPolicy operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.

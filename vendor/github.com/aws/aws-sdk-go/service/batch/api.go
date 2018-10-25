@@ -15,7 +15,7 @@ const opCancelJob = "CancelJob"
 // CancelJobRequest generates a "aws/request.Request" representing the
 // client's request for the CancelJob operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -103,7 +103,7 @@ const opCreateComputeEnvironment = "CreateComputeEnvironment"
 // CreateComputeEnvironmentRequest generates a "aws/request.Request" representing the
 // client's request for the CreateComputeEnvironment operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -208,7 +208,7 @@ const opCreateJobQueue = "CreateJobQueue"
 // CreateJobQueueRequest generates a "aws/request.Request" representing the
 // client's request for the CreateJobQueue operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -300,7 +300,7 @@ const opDeleteComputeEnvironment = "DeleteComputeEnvironment"
 // DeleteComputeEnvironmentRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteComputeEnvironment operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -388,7 +388,7 @@ const opDeleteJobQueue = "DeleteJobQueue"
 // DeleteJobQueueRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteJobQueue operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -477,7 +477,7 @@ const opDeregisterJobDefinition = "DeregisterJobDefinition"
 // DeregisterJobDefinitionRequest generates a "aws/request.Request" representing the
 // client's request for the DeregisterJobDefinition operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -561,7 +561,7 @@ const opDescribeComputeEnvironments = "DescribeComputeEnvironments"
 // DescribeComputeEnvironmentsRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeComputeEnvironments operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -649,7 +649,7 @@ const opDescribeJobDefinitions = "DescribeJobDefinitions"
 // DescribeJobDefinitionsRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeJobDefinitions operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -734,7 +734,7 @@ const opDescribeJobQueues = "DescribeJobQueues"
 // DescribeJobQueuesRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeJobQueues operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -818,7 +818,7 @@ const opDescribeJobs = "DescribeJobs"
 // DescribeJobsRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeJobs operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -902,7 +902,7 @@ const opListJobs = "ListJobs"
 // ListJobsRequest generates a "aws/request.Request" representing the
 // client's request for the ListJobs operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -988,7 +988,7 @@ const opRegisterJobDefinition = "RegisterJobDefinition"
 // RegisterJobDefinitionRequest generates a "aws/request.Request" representing the
 // client's request for the RegisterJobDefinition operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1072,7 +1072,7 @@ const opSubmitJob = "SubmitJob"
 // SubmitJobRequest generates a "aws/request.Request" representing the
 // client's request for the SubmitJob operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1157,7 +1157,7 @@ const opTerminateJob = "TerminateJob"
 // TerminateJobRequest generates a "aws/request.Request" representing the
 // client's request for the TerminateJob operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1243,7 +1243,7 @@ const opUpdateComputeEnvironment = "UpdateComputeEnvironment"
 // UpdateComputeEnvironmentRequest generates a "aws/request.Request" representing the
 // client's request for the UpdateComputeEnvironment operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1327,7 +1327,7 @@ const opUpdateJobQueue = "UpdateJobQueue"
 // UpdateJobQueueRequest generates a "aws/request.Request" representing the
 // client's request for the UpdateJobQueue operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.

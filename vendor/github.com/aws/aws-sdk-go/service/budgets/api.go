@@ -16,7 +16,7 @@ const opCreateBudget = "CreateBudget"
 // CreateBudgetRequest generates a "aws/request.Request" representing the
 // client's request for the CreateBudget operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -103,7 +103,7 @@ const opCreateNotification = "CreateNotification"
 // CreateNotificationRequest generates a "aws/request.Request" representing the
 // client's request for the CreateNotification operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -194,7 +194,7 @@ const opCreateSubscriber = "CreateSubscriber"
 // CreateSubscriberRequest generates a "aws/request.Request" representing the
 // client's request for the CreateSubscriber operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -285,7 +285,7 @@ const opDeleteBudget = "DeleteBudget"
 // DeleteBudgetRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteBudget operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -372,7 +372,7 @@ const opDeleteNotification = "DeleteNotification"
 // DeleteNotificationRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteNotification operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -459,7 +459,7 @@ const opDeleteSubscriber = "DeleteSubscriber"
 // DeleteSubscriberRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteSubscriber operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -545,7 +545,7 @@ const opDescribeBudget = "DescribeBudget"
 // DescribeBudgetRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeBudget operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -629,7 +629,7 @@ const opDescribeBudgets = "DescribeBudgets"
 // DescribeBudgetsRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeBudgets operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -719,7 +719,7 @@ const opDescribeNotificationsForBudget = "DescribeNotificationsForBudget"
 // DescribeNotificationsForBudgetRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeNotificationsForBudget operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -809,7 +809,7 @@ const opDescribeSubscribersForNotification = "DescribeSubscribersForNotification
 // DescribeSubscribersForNotificationRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeSubscribersForNotification operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -899,7 +899,7 @@ const opUpdateBudget = "UpdateBudget"
 // UpdateBudgetRequest generates a "aws/request.Request" representing the
 // client's request for the UpdateBudget operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -985,7 +985,7 @@ const opUpdateNotification = "UpdateNotification"
 // UpdateNotificationRequest generates a "aws/request.Request" representing the
 // client's request for the UpdateNotification operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1072,7 +1072,7 @@ const opUpdateSubscriber = "UpdateSubscriber"
 // UpdateSubscriberRequest generates a "aws/request.Request" representing the
 // client's request for the UpdateSubscriber operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.

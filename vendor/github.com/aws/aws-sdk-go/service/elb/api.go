@@ -16,7 +16,7 @@ const opAddTags = "AddTags"
 // AddTagsRequest generates a "aws/request.Request" representing the
 // client's request for the AddTags operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -109,7 +109,7 @@ const opApplySecurityGroupsToLoadBalancer = "ApplySecurityGroupsToLoadBalancer"
 // ApplySecurityGroupsToLoadBalancerRequest generates a "aws/request.Request" representing the
 // client's request for the ApplySecurityGroupsToLoadBalancer operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -199,7 +199,7 @@ const opAttachLoadBalancerToSubnets = "AttachLoadBalancerToSubnets"
 // AttachLoadBalancerToSubnetsRequest generates a "aws/request.Request" representing the
 // client's request for the AttachLoadBalancerToSubnets operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -293,7 +293,7 @@ const opConfigureHealthCheck = "ConfigureHealthCheck"
 // ConfigureHealthCheckRequest generates a "aws/request.Request" representing the
 // client's request for the ConfigureHealthCheck operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -377,7 +377,7 @@ const opCreateAppCookieStickinessPolicy = "CreateAppCookieStickinessPolicy"
 // CreateAppCookieStickinessPolicyRequest generates a "aws/request.Request" representing the
 // client's request for the CreateAppCookieStickinessPolicy operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -479,7 +479,7 @@ const opCreateLBCookieStickinessPolicy = "CreateLBCookieStickinessPolicy"
 // CreateLBCookieStickinessPolicyRequest generates a "aws/request.Request" representing the
 // client's request for the CreateLBCookieStickinessPolicy operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -583,7 +583,7 @@ const opCreateLoadBalancer = "CreateLoadBalancer"
 // CreateLoadBalancerRequest generates a "aws/request.Request" representing the
 // client's request for the CreateLoadBalancer operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -712,7 +712,7 @@ const opCreateLoadBalancerListeners = "CreateLoadBalancerListeners"
 // CreateLoadBalancerListenersRequest generates a "aws/request.Request" representing the
 // client's request for the CreateLoadBalancerListeners operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -813,7 +813,7 @@ const opCreateLoadBalancerPolicy = "CreateLoadBalancerPolicy"
 // CreateLoadBalancerPolicyRequest generates a "aws/request.Request" representing the
 // client's request for the CreateLoadBalancerPolicy operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -908,7 +908,7 @@ const opDeleteLoadBalancer = "DeleteLoadBalancer"
 // DeleteLoadBalancerRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteLoadBalancer operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -991,7 +991,7 @@ const opDeleteLoadBalancerListeners = "DeleteLoadBalancerListeners"
 // DeleteLoadBalancerListenersRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteLoadBalancerListeners operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1070,7 +1070,7 @@ const opDeleteLoadBalancerPolicy = "DeleteLoadBalancerPolicy"
 // DeleteLoadBalancerPolicyRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteLoadBalancerPolicy operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1153,7 +1153,7 @@ const opDeregisterInstancesFromLoadBalancer = "DeregisterInstancesFromLoadBalanc
 // DeregisterInstancesFromLoadBalancerRequest generates a "aws/request.Request" representing the
 // client's request for the DeregisterInstancesFromLoadBalancer operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1243,7 +1243,7 @@ const opDescribeAccountLimits = "DescribeAccountLimits"
 // DescribeAccountLimitsRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeAccountLimits operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1321,7 +1321,7 @@ const opDescribeInstanceHealth = "DescribeInstanceHealth"
 // DescribeInstanceHealthRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeInstanceHealth operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1408,7 +1408,7 @@ const opDescribeLoadBalancerAttributes = "DescribeLoadBalancerAttributes"
 // DescribeLoadBalancerAttributesRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeLoadBalancerAttributes operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1490,7 +1490,7 @@ const opDescribeLoadBalancerPolicies = "DescribeLoadBalancerPolicies"
 // DescribeLoadBalancerPoliciesRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeLoadBalancerPolicies operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1579,7 +1579,7 @@ const opDescribeLoadBalancerPolicyTypes = "DescribeLoadBalancerPolicyTypes"
 // DescribeLoadBalancerPolicyTypesRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeLoadBalancerPolicyTypes operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1669,7 +1669,7 @@ const opDescribeLoadBalancers = "DescribeLoadBalancers"
 // DescribeLoadBalancersRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeLoadBalancers operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1809,7 +1809,7 @@ const opDescribeTags = "DescribeTags"
 // DescribeTagsRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeTags operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1888,7 +1888,7 @@ const opDetachLoadBalancerFromSubnets = "DetachLoadBalancerFromSubnets"
 // DetachLoadBalancerFromSubnetsRequest generates a "aws/request.Request" representing the
 // client's request for the DetachLoadBalancerFromSubnets operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1975,7 +1975,7 @@ const opDisableAvailabilityZonesForLoadBalancer = "DisableAvailabilityZonesForLo
 // DisableAvailabilityZonesForLoadBalancerRequest generates a "aws/request.Request" representing the
 // client's request for the DisableAvailabilityZonesForLoadBalancer operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -2069,7 +2069,7 @@ const opEnableAvailabilityZonesForLoadBalancer = "EnableAvailabilityZonesForLoad
 // EnableAvailabilityZonesForLoadBalancerRequest generates a "aws/request.Request" representing the
 // client's request for the EnableAvailabilityZonesForLoadBalancer operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -2156,7 +2156,7 @@ const opModifyLoadBalancerAttributes = "ModifyLoadBalancerAttributes"
 // ModifyLoadBalancerAttributesRequest generates a "aws/request.Request" representing the
 // client's request for the ModifyLoadBalancerAttributes operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -2256,7 +2256,7 @@ const opRegisterInstancesWithLoadBalancer = "RegisterInstancesWithLoadBalancer"
 // RegisterInstancesWithLoadBalancerRequest generates a "aws/request.Request" representing the
 // client's request for the RegisterInstancesWithLoadBalancer operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -2360,7 +2360,7 @@ const opRemoveTags = "RemoveTags"
 // RemoveTagsRequest generates a "aws/request.Request" representing the
 // client's request for the RemoveTags operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -2439,7 +2439,7 @@ const opSetLoadBalancerListenerSSLCertificate = "SetLoadBalancerListenerSSLCerti
 // SetLoadBalancerListenerSSLCertificateRequest generates a "aws/request.Request" representing the
 // client's request for the SetLoadBalancerListenerSSLCertificate operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -2539,7 +2539,7 @@ const opSetLoadBalancerPoliciesForBackendServer = "SetLoadBalancerPoliciesForBac
 // SetLoadBalancerPoliciesForBackendServerRequest generates a "aws/request.Request" representing the
 // client's request for the SetLoadBalancerPoliciesForBackendServer operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -2639,7 +2639,7 @@ const opSetLoadBalancerPoliciesOfListener = "SetLoadBalancerPoliciesOfListener"
 // SetLoadBalancerPoliciesOfListenerRequest generates a "aws/request.Request" representing the
 // client's request for the SetLoadBalancerPoliciesOfListener operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
