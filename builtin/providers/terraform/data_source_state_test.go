@@ -1,225 +1,163 @@
 package terraform
 
 import (
-	"fmt"
 	"testing"
 
-	backendInit "github.com/hashicorp/terraform/backend/init"
-	"github.com/hashicorp/terraform/helper/resource"
-	"github.com/hashicorp/terraform/terraform"
+	"github.com/apparentlymart/go-dump/dump"
+	"github.com/zclconf/go-cty/cty"
 )
 
+func TestResource(t *testing.T) {
+	if err := dataSourceRemoteStateGetSchema().Block.InternalValidate(); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+}
+
 func TestState_basic(t *testing.T) {
-	resource.UnitTest(t, resource.TestCase{
-		PreCheck:  func() { testAccPreCheck(t) },
-		Providers: testAccProviders,
-		Steps: []resource.TestStep{
-			{
-				Config: testAccState_basic,
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheckStateValue(
-						"data.terraform_remote_state.foo", "foo", "bar"),
-				),
-			},
+	var tests = map[string]struct {
+		Config cty.Value
+		Want   cty.Value
+		Err    bool
+	}{
+		"basic": {
+			cty.ObjectVal(map[string]cty.Value{
+				"backend": cty.StringVal("local"),
+				"config": cty.ObjectVal(map[string]cty.Value{
+					"path": cty.StringVal("./test-fixtures/basic.tfstate"),
+				}),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"backend": cty.StringVal("local"),
+				"config": cty.ObjectVal(map[string]cty.Value{
+					"path": cty.StringVal("./test-fixtures/basic.tfstate"),
+				}),
+				"outputs": cty.ObjectVal(map[string]cty.Value{
+					"foo": cty.StringVal("bar"),
+				}),
+				"workspace": cty.NullVal(cty.String),
+				"defaults":  cty.NullVal(cty.DynamicPseudoType),
+			}),
+			false,
 		},
-	})
-}
-
-func TestState_backends(t *testing.T) {
-	backendInit.Set("_ds_test", backendInit.Backend("local"))
-	defer backendInit.Set("_ds_test", nil)
-
-	resource.UnitTest(t, resource.TestCase{
-		PreCheck:  func() { testAccPreCheck(t) },
-		Providers: testAccProviders,
-		Steps: []resource.TestStep{
-			{
-				Config: testAccState_backend,
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheckStateValue(
-						"data.terraform_remote_state.foo", "foo", "bar"),
-				),
-			},
+		"complex outputs": {
+			cty.ObjectVal(map[string]cty.Value{
+				"backend": cty.StringVal("local"),
+				"config": cty.ObjectVal(map[string]cty.Value{
+					"path": cty.StringVal("./test-fixtures/complex_outputs.tfstate"),
+				}),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"backend": cty.StringVal("local"),
+				"config": cty.ObjectVal(map[string]cty.Value{
+					"path": cty.StringVal("./test-fixtures/complex_outputs.tfstate"),
+				}),
+				"outputs": cty.ObjectVal(map[string]cty.Value{
+					"computed_map": cty.MapVal(map[string]cty.Value{
+						"key1": cty.StringVal("value1"),
+					}),
+					"computed_set": cty.ListVal([]cty.Value{
+						cty.StringVal("setval1"),
+						cty.StringVal("setval2"),
+					}),
+					"map": cty.MapVal(map[string]cty.Value{
+						"key":  cty.StringVal("test"),
+						"test": cty.StringVal("test"),
+					}),
+					"set": cty.ListVal([]cty.Value{
+						cty.StringVal("test1"),
+						cty.StringVal("test2"),
+					}),
+				}),
+				"workspace": cty.NullVal(cty.String),
+				"defaults":  cty.NullVal(cty.DynamicPseudoType),
+			}),
+			false,
 		},
-	})
-}
-
-func TestState_complexOutputs(t *testing.T) {
-	resource.UnitTest(t, resource.TestCase{
-		PreCheck:  func() { testAccPreCheck(t) },
-		Providers: testAccProviders,
-		Steps: []resource.TestStep{
-			{
-				Config: testAccState_complexOutputs,
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheckStateValue("terraform_remote_state.foo", "backend", "local"),
-					// This (adding the hash) should be reverted when merged into 0.12.
-					// testAccCheckStateValue("terraform_remote_state.foo", "config.path", "./test-fixtures/complex_outputs.tfstate"),
-					testAccCheckStateValue("terraform_remote_state.foo", "config.1590222752.path", "./test-fixtures/complex_outputs.tfstate"),
-					testAccCheckStateValue("terraform_remote_state.foo", "computed_set.#", "2"),
-					testAccCheckStateValue("terraform_remote_state.foo", `map.%`, "2"),
-					testAccCheckStateValue("terraform_remote_state.foo", `map.key`, "test"),
-				),
-			},
+		"null outputs": {
+			cty.ObjectVal(map[string]cty.Value{
+				"backend": cty.StringVal("local"),
+				"config": cty.ObjectVal(map[string]cty.Value{
+					"path": cty.StringVal("./test-fixtures/null_outputs.tfstate"),
+				}),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"backend": cty.StringVal("local"),
+				"config": cty.ObjectVal(map[string]cty.Value{
+					"path": cty.StringVal("./test-fixtures/null_outputs.tfstate"),
+				}),
+				"outputs": cty.ObjectVal(map[string]cty.Value{
+					"map":  cty.NullVal(cty.DynamicPseudoType),
+					"list": cty.NullVal(cty.DynamicPseudoType),
+				}),
+				"workspace": cty.NullVal(cty.String),
+				"defaults":  cty.NullVal(cty.DynamicPseudoType),
+			}),
+			false,
 		},
-	})
-}
-
-// outputs should never have a null value, but don't crash if we ever encounter
-// them.
-func TestState_nullOutputs(t *testing.T) {
-	resource.UnitTest(t, resource.TestCase{
-		PreCheck:  func() { testAccPreCheck(t) },
-		Providers: testAccProviders,
-		Steps: []resource.TestStep{
-			{
-				Config: testAccState_nullOutputs,
-			},
+		"defaults": {
+			cty.ObjectVal(map[string]cty.Value{
+				"backend": cty.StringVal("local"),
+				"config": cty.ObjectVal(map[string]cty.Value{
+					"path": cty.StringVal("./test-fixtures/empty.tfstate"),
+				}),
+				"defaults": cty.ObjectVal(map[string]cty.Value{
+					"foo": cty.StringVal("bar"),
+				}),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"backend": cty.StringVal("local"),
+				"config": cty.ObjectVal(map[string]cty.Value{
+					"path": cty.StringVal("./test-fixtures/empty.tfstate"),
+				}),
+				"defaults": cty.ObjectVal(map[string]cty.Value{
+					"foo": cty.StringVal("bar"),
+				}),
+				"outputs": cty.ObjectVal(map[string]cty.Value{
+					"foo": cty.StringVal("bar"),
+				}),
+				"workspace": cty.NullVal(cty.String),
+			}),
+			false,
 		},
-	})
-}
-
-func TestEmptyState_defaults(t *testing.T) {
-	resource.UnitTest(t, resource.TestCase{
-		PreCheck:  func() { testAccPreCheck(t) },
-		Providers: testAccProviders,
-		Steps: []resource.TestStep{
-			{
-				Config: testAccEmptyState_defaults,
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheckStateValue(
-						"data.terraform_remote_state.foo", "foo", "bar"),
-				),
-			},
+		"missing": {
+			cty.ObjectVal(map[string]cty.Value{
+				"backend": cty.StringVal("local"),
+				"config": cty.ObjectVal(map[string]cty.Value{
+					"path": cty.StringVal("./test-fixtures/missing.tfstate"), // intentionally not present on disk
+				}),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"backend": cty.StringVal("local"),
+				"config": cty.ObjectVal(map[string]cty.Value{
+					"path": cty.StringVal("./test-fixtures/missing.tfstate"),
+				}),
+				"defaults":  cty.NullVal(cty.DynamicPseudoType),
+				"outputs":   cty.EmptyObjectVal,
+				"workspace": cty.NullVal(cty.String),
+			}),
+			true,
 		},
-	})
-}
+	}
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			schema := dataSourceRemoteStateGetSchema().Block
+			config, err := schema.CoerceValue(test.Config)
+			if err != nil {
+				t.Fatalf("unexpected error: %s", err)
+			}
+			got, diags := dataSourceRemoteStateRead(&config)
 
-func TestState_defaults(t *testing.T) {
-	resource.UnitTest(t, resource.TestCase{
-		PreCheck:  func() { testAccPreCheck(t) },
-		Providers: testAccProviders,
-		Steps: []resource.TestStep{
-			{
-				Config: testAccEmptyState_defaults,
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheckStateValue(
-						"data.terraform_remote_state.foo", "foo", "bar"),
-				),
-			},
-		},
-	})
-}
+			if test.Err {
+				if !diags.HasErrors() {
+					t.Fatal("succeeded; want error")
+				}
+			} else if diags.HasErrors() {
+				t.Fatalf("unexpected errors: %s", diags.Err())
+			}
 
-func testAccCheckStateValue(id, name, value string) resource.TestCheckFunc {
-	return func(s *terraform.State) error {
-		rs, ok := s.RootModule().Resources[id]
-		if !ok {
-			return fmt.Errorf("Not found: %s", id)
-		}
-		if rs.Primary.ID == "" {
-			return fmt.Errorf("No ID is set")
-		}
-
-		v := rs.Primary.Attributes[name]
-		if v != value {
-			return fmt.Errorf(
-				"Value for %s is %s, not %s", name, v, value)
-		}
-
-		return nil
+			if !test.Want.RawEquals(got) {
+				t.Errorf("wrong result\nconfig: %sgot: %swant: %s", dump.Value(config), dump.Value(got), dump.Value(test.Want))
+			}
+		})
 	}
 }
-
-// make sure that the deprecated environment field isn't overridden by the
-// default value for workspace.
-func TestState_deprecatedEnvironment(t *testing.T) {
-	resource.UnitTest(t, resource.TestCase{
-		PreCheck:  func() { testAccPreCheck(t) },
-		Providers: testAccProviders,
-		Steps: []resource.TestStep{
-			{
-				Config: testAccState_deprecatedEnvironment,
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheckStateValue(
-						// if the workspace default value overrides the
-						// environment, this will get the foo value from the
-						// default state.
-						"data.terraform_remote_state.foo", "foo", ""),
-				),
-			},
-		},
-	})
-}
-
-const testAccState_basic = `
-data "terraform_remote_state" "foo" {
-	backend = "local"
-
-	config {
-		path = "./test-fixtures/basic.tfstate"
-	}
-}`
-
-const testAccState_backend = `
-data "terraform_remote_state" "foo" {
-	backend = "_ds_test"
-
-	config {
-		path = "./test-fixtures/basic.tfstate"
-	}
-}`
-
-const testAccState_complexOutputs = `
-resource "terraform_remote_state" "foo" {
-	backend = "local"
-
-	config {
-		path = "./test-fixtures/complex_outputs.tfstate"
-	}
-}`
-
-const testAccState_nullOutputs = `
-resource "terraform_remote_state" "foo" {
-	backend = "local"
-
-	config {
-		path = "./test-fixtures/null_outputs.tfstate"
-	}
-}`
-
-const testAccEmptyState_defaults = `
-data "terraform_remote_state" "foo" {
-	backend = "local"
-
-	config {
-		path = "./test-fixtures/empty.tfstate"
-	}
-
-	defaults {
-		foo = "bar"
-	}
-}`
-
-const testAccState_defaults = `
-data "terraform_remote_state" "foo" {
-	backend = "local"
-
-	config {
-		path = "./test-fixtures/basic.tfstate"
-	}
-
-	defaults {
-		foo = "not bar"
-	}
-}`
-
-const testAccState_deprecatedEnvironment = `
-data "terraform_remote_state" "foo" {
-	backend = "local"
-	environment = "deprecated"
-
-	config {
-		path = "./test-fixtures/basic.tfstate"
-	}
-}`

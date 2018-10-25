@@ -3,6 +3,7 @@ package aws
 import (
 	"fmt"
 	"log"
+	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -18,25 +19,39 @@ func resourceAwsApiGatewayResource() *schema.Resource {
 		Read:   resourceAwsApiGatewayResourceRead,
 		Update: resourceAwsApiGatewayResourceUpdate,
 		Delete: resourceAwsApiGatewayResourceDelete,
+		Importer: &schema.ResourceImporter{
+			State: func(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+				idParts := strings.Split(d.Id(), "/")
+				if len(idParts) != 2 || idParts[0] == "" || idParts[1] == "" {
+					return nil, fmt.Errorf("Unexpected format of ID (%q), expected REST-API-ID/RESOURCE-ID", d.Id())
+				}
+				restApiID := idParts[0]
+				resourceID := idParts[1]
+				d.Set("request_validator_id", resourceID)
+				d.Set("rest_api_id", restApiID)
+				d.SetId(resourceID)
+				return []*schema.ResourceData{d}, nil
+			},
+		},
 
 		Schema: map[string]*schema.Schema{
-			"rest_api_id": &schema.Schema{
+			"rest_api_id": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
 
-			"parent_id": &schema.Schema{
+			"parent_id": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
 
-			"path_part": &schema.Schema{
+			"path_part": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
 
-			"path": &schema.Schema{
+			"path": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},

@@ -30,12 +30,16 @@ func TestParserLoadConfigDirSuccess(t *testing.T) {
 			parser := NewParser(nil)
 			path := filepath.Join("test-fixtures/valid-modules", name)
 
-			_, diags := parser.LoadConfigDir(path)
+			mod, diags := parser.LoadConfigDir(path)
 			if len(diags) != 0 {
 				t.Errorf("unexpected diagnostics")
 				for _, diag := range diags {
 					t.Logf("- %s", diag)
 				}
+			}
+
+			if mod.SourceDir != path {
+				t.Errorf("wrong SourceDir value %q; want %s", mod.SourceDir, path)
 			}
 		})
 	}

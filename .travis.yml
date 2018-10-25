@@ -27,7 +27,7 @@ install:
 # packages that live there.
 # See: https://github.com/golang/go/issues/12933
 - bash scripts/gogetcookie.sh
-- go get github.com/kardianos/govendor
+- make tools
 
 before_script:
 - git config --global url.https://github.com/.insteadOf ssh://git@github.com/

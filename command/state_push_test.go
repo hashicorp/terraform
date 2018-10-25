@@ -8,7 +8,7 @@ import (
 	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/backend/remote-state/inmem"
 	"github.com/hashicorp/terraform/helper/copy"
-	"github.com/hashicorp/terraform/terraform"
+	"github.com/hashicorp/terraform/states"
 	"github.com/mitchellh/cli"
 )
 
@@ -81,7 +81,7 @@ func TestStatePush_replaceMatchStdin(t *testing.T) {
 
 	// Setup the replacement to come from stdin
 	var buf bytes.Buffer
-	if err := terraform.WriteState(expected, &buf); err != nil {
+	if err := writeStateForTesting(expected, &buf); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 	defer testStdinPipe(t, &buf)()
@@ -95,7 +95,7 @@ func TestStatePush_replaceMatchStdin(t *testing.T) {
 		},
 	}
 
-	args := []string{"-"}
+	args := []string{"-force", "-"}
 	if code := c.Run(args); code != 0 {
 		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
 	}
@@ -155,7 +155,7 @@ func TestStatePush_serialNewer(t *testing.T) {
 
 	args := []string{"replace.tfstate"}
 	if code := c.Run(args); code != 1 {
-		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+		t.Fatalf("bad: %d", code)
 	}
 
 	actual := testStateRead(t, "local-state.tfstate")
@@ -200,7 +200,7 @@ func TestStatePush_forceRemoteState(t *testing.T) {
 	defer testChdir(t, td)()
 	defer inmem.Reset()
 
-	s := terraform.NewState()
+	s := states.NewState()
 	statePath := testStateFile(t, s)
 
 	// init the backend
@@ -223,11 +223,11 @@ func TestStatePush_forceRemoteState(t *testing.T) {
 
 	// put a dummy state in place, so we have something to force
 	b := backend.TestBackendConfig(t, inmem.New(), nil)
-	sMgr, err := b.State("test")
+	sMgr, err := b.StateMgr("test")
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := sMgr.WriteState(terraform.NewState()); err != nil {
+	if err := sMgr.WriteState(states.NewState()); err != nil {
 		t.Fatal(err)
 	}
 	if err := sMgr.PersistState(); err != nil {

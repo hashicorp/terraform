@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/iam"
 
 	"github.com/hashicorp/terraform/helper/resource"
@@ -85,6 +84,12 @@ func resourceAwsIamRole() *schema.Resource {
 				ForceNew: true,
 			},
 
+			"permissions_boundary": {
+				Type:         schema.TypeString,
+				Optional:     true,
+				ValidateFunc: validation.StringLenBetween(0, 2048),
+			},
+
 			"description": {
 				Type:         schema.TypeString,
 				Optional:     true,
@@ -151,6 +156,10 @@ func resourceAwsIamRoleCreate(d *schema.ResourceData, meta interface{}) error {
 		request.MaxSessionDuration = aws.Int64(int64(v.(int)))
 	}
 
+	if v, ok := d.GetOk("permissions_boundary"); ok {
+		request.PermissionsBoundary = aws.String(v.(string))
+	}
+
 	var createResp *iam.CreateRoleOutput
 	err := resource.Retry(30*time.Second, func() *resource.RetryError {
 		var err error
@@ -178,40 +187,34 @@ func resourceAwsIamRoleRead(d *schema.ResourceData, meta interface{}) error {
 
 	getResp, err := iamconn.GetRole(request)
 	if err != nil {
-		if iamerr, ok := err.(awserr.Error); ok && iamerr.Code() == "NoSuchEntity" { // XXX test me
+		if isAWSErr(err, iam.ErrCodeNoSuchEntityException, "") {
+			log.Printf("[WARN] IAM Role %q not found, removing from state", d.Id())
 			d.SetId("")
 			return nil
 		}
 		return fmt.Errorf("Error reading IAM Role %s: %s", d.Id(), err)
 	}
 
+	if getResp == nil || getResp.Role == nil {
+		log.Printf("[WARN] IAM Role %q not found, removing from state", d.Id())
+		d.SetId("")
+		return nil
+	}
+
 	role := getResp.Role
 
-	if err := d.Set("name", role.RoleName); err != nil {
-		return err
-	}
-	if err := d.Set("max_session_duration", role.MaxSessionDuration); err != nil {
-		return err
-	}
-	if err := d.Set("arn", role.Arn); err != nil {
-		return err
-	}
-	if err := d.Set("path", role.Path); err != nil {
-		return err
-	}
-	if err := d.Set("unique_id", role.RoleId); err != nil {
-		return err
-	}
+	d.Set("arn", role.Arn)
 	if err := d.Set("create_date", role.CreateDate.Format(time.RFC3339)); err != nil {
 		return err
 	}
-
-	if role.Description != nil {
-		// the description isn't present in the response to CreateRole.
-		if err := d.Set("description", role.Description); err != nil {
-			return err
-		}
+	d.Set("description", role.Description)
+	d.Set("max_session_duration", role.MaxSessionDuration)
+	d.Set("name", role.RoleName)
+	d.Set("path", role.Path)
+	if role.PermissionsBoundary != nil {
+		d.Set("permissions_boundary", role.PermissionsBoundary.PermissionsBoundaryArn)
 	}
+	d.Set("unique_id", role.RoleId)
 
 	assumRolePolicy, err := url.QueryUnescape(*role.AssumeRolePolicyDocument)
 	if err != nil {
@@ -233,7 +236,7 @@ func resourceAwsIamRoleUpdate(d *schema.ResourceData, meta interface{}) error {
 		}
 		_, err := iamconn.UpdateAssumeRolePolicy(assumeRolePolicyInput)
 		if err != nil {
-			if iamerr, ok := err.(awserr.Error); ok && iamerr.Code() == "NoSuchEntity" {
+			if isAWSErr(err, iam.ErrCodeNoSuchEntityException, "") {
 				d.SetId("")
 				return nil
 			}
@@ -248,7 +251,7 @@ func resourceAwsIamRoleUpdate(d *schema.ResourceData, meta interface{}) error {
 		}
 		_, err := iamconn.UpdateRoleDescription(roleDescriptionInput)
 		if err != nil {
-			if iamerr, ok := err.(awserr.Error); ok && iamerr.Code() == "NoSuchEntity" {
+			if isAWSErr(err, iam.ErrCodeNoSuchEntityException, "") {
 				d.SetId("")
 				return nil
 			}
@@ -271,7 +274,29 @@ func resourceAwsIamRoleUpdate(d *schema.ResourceData, meta interface{}) error {
 		}
 	}
 
-	return nil
+	if d.HasChange("permissions_boundary") {
+		permissionsBoundary := d.Get("permissions_boundary").(string)
+		if permissionsBoundary != "" {
+			input := &iam.PutRolePermissionsBoundaryInput{
+				PermissionsBoundary: aws.String(permissionsBoundary),
+				RoleName:            aws.String(d.Id()),
+			}
+			_, err := iamconn.PutRolePermissionsBoundary(input)
+			if err != nil {
+				return fmt.Errorf("error updating IAM Role permissions boundary: %s", err)
+			}
+		} else {
+			input := &iam.DeleteRolePermissionsBoundaryInput{
+				RoleName: aws.String(d.Id()),
+			}
+			_, err := iamconn.DeleteRolePermissionsBoundary(input)
+			if err != nil {
+				return fmt.Errorf("error deleting IAM Role permissions boundary: %s", err)
+			}
+		}
+	}
+
+	return resourceAwsIamRoleRead(d, meta)
 }
 
 func resourceAwsIamRoleDelete(d *schema.ResourceData, meta interface{}) error {
@@ -358,16 +383,15 @@ func resourceAwsIamRoleDelete(d *schema.ResourceData, meta interface{}) error {
 		}
 	}
 
-	request := &iam.DeleteRoleInput{
+	deleteRoleInput := &iam.DeleteRoleInput{
 		RoleName: aws.String(d.Id()),
 	}
 
 	// IAM is eventually consistent and deletion of attached policies may take time
 	return resource.Retry(30*time.Second, func() *resource.RetryError {
-		_, err := iamconn.DeleteRole(request)
+		_, err := iamconn.DeleteRole(deleteRoleInput)
 		if err != nil {
-			awsErr, ok := err.(awserr.Error)
-			if ok && awsErr.Code() == "DeleteConflict" {
+			if isAWSErr(err, iam.ErrCodeDeleteConflictException, "") {
 				return resource.RetryableError(err)
 			}
 

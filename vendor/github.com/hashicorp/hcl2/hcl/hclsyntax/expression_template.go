@@ -37,8 +37,10 @@ func (e *TemplateExpr) Value(ctx *hcl.EvalContext) (cty.Value, hcl.Diagnostics) 
 				Detail: fmt.Sprintf(
 					"The expression result is null. Cannot include a null value in a string template.",
 				),
-				Subject: part.Range().Ptr(),
-				Context: &e.SrcRange,
+				Subject:     part.Range().Ptr(),
+				Context:     &e.SrcRange,
+				Expression:  part,
+				EvalContext: ctx,
 			})
 			continue
 		}
@@ -61,8 +63,10 @@ func (e *TemplateExpr) Value(ctx *hcl.EvalContext) (cty.Value, hcl.Diagnostics) 
 					"Cannot include the given value in a string template: %s.",
 					err.Error(),
 				),
-				Subject: part.Range().Ptr(),
-				Context: &e.SrcRange,
+				Subject:     part.Range().Ptr(),
+				Context:     &e.SrcRange,
+				Expression:  part,
+				EvalContext: ctx,
 			})
 			continue
 		}
@@ -127,7 +131,9 @@ func (e *TemplateJoinExpr) Value(ctx *hcl.EvalContext) (cty.Value, hcl.Diagnosti
 				Detail: fmt.Sprintf(
 					"An iteration result is null. Cannot include a null value in a string template.",
 				),
-				Subject: e.Range().Ptr(),
+				Subject:     e.Range().Ptr(),
+				Expression:  e,
+				EvalContext: ctx,
 			})
 			continue
 		}
@@ -143,7 +149,9 @@ func (e *TemplateJoinExpr) Value(ctx *hcl.EvalContext) (cty.Value, hcl.Diagnosti
 					"Cannot include one of the interpolation results into the string template: %s.",
 					err.Error(),
 				),
-				Subject: e.Range().Ptr(),
+				Subject:     e.Range().Ptr(),
+				Expression:  e,
+				EvalContext: ctx,
 			})
 			continue
 		}

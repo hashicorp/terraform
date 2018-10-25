@@ -39,6 +39,10 @@ vendor in close collaboration with HashiCorp, and are tested by HashiCorp.
 
 [HuaweiCloud](/docs/providers/huaweicloud/index.html)
 
+[Linode](/docs/providers/linode/index.html)
+
+[Nutanix](/docs/providers/nutanix/index.html)
+
 [OpenStack](/docs/providers/openstack/index.html)
 
 [OpenTelekomCloud](/docs/providers/opentelekomcloud/index.html)
@@ -54,6 +58,8 @@ vendor in close collaboration with HashiCorp, and are tested by HashiCorp.
 [SoftLayer](/docs/providers/softlayer/index.html)
 
 [TelefonicaOpenCloud](/docs/providers/telefonicaopencloud/index.html)
+
+[TencentCloud](/docs/providers/tencentcloud/index.html)
 
 [Triton](/docs/providers/triton/index.html)
 

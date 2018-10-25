@@ -533,10 +533,10 @@ func resourceAwsOpsworksInstanceRead(d *schema.ResourceData, meta interface{}) e
 	}
 	layerIds, err = sortListBasedonTFFile(layerIds, d, "layer_ids")
 	if err != nil {
-		return fmt.Errorf("[DEBUG] Error sorting layer_ids attribute: %#v", err)
+		return fmt.Errorf("Error sorting layer_ids attribute: %#v", err)
 	}
 	if err := d.Set("layer_ids", layerIds); err != nil {
-		return fmt.Errorf("[DEBUG] Error setting layer_ids attribute: %#v, error: %#v", layerIds, err)
+		return fmt.Errorf("Error setting layer_ids attribute: %#v, error: %#v", layerIds, err)
 	}
 	d.Set("os", instance.Os)
 	d.Set("platform", instance.Platform)

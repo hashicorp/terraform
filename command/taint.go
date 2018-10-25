@@ -3,11 +3,13 @@ package command
 import (
 	"context"
 	"fmt"
-	"log"
 	"strings"
 
+	"github.com/hashicorp/terraform/states"
+
+	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/command/clistate"
-	"github.com/hashicorp/terraform/terraform"
+	"github.com/hashicorp/terraform/tfdiags"
 )
 
 // TaintCommand is a cli.Command implementation that manually taints
@@ -37,6 +39,8 @@ func (c *TaintCommand) Run(args []string) int {
 		return 1
 	}
 
+	var diags tfdiags.Diagnostics
+
 	// Require the one argument for the resource to taint
 	args = cmdFlags.Args()
 	if len(args) != 1 {
@@ -45,34 +49,34 @@ func (c *TaintCommand) Run(args []string) int {
 		return 1
 	}
 
-	name := args[0]
-	if module == "" {
-		module = "root"
-	} else {
-		module = "root." + module
-	}
-
-	rsk, err := terraform.ParseResourceStateKey(name)
-	if err != nil {
-		c.Ui.Error(fmt.Sprintf("Failed to parse resource name: %s", err))
+	if module != "" {
+		c.Ui.Error("The -module option is no longer used. Instead, include the module path in the main resource address, like \"module.foo.module.bar.null_resource.baz\".")
 		return 1
 	}
 
-	if !rsk.Mode.Taintable() {
-		c.Ui.Error(fmt.Sprintf("Resource '%s' cannot be tainted", name))
+	addr, addrDiags := addrs.ParseAbsResourceInstanceStr(args[0])
+	diags = diags.Append(addrDiags)
+	if addrDiags.HasErrors() {
+		c.showDiagnostics(diags)
+		return 1
+	}
+
+	if addr.Resource.Resource.Mode != addrs.ManagedResourceMode {
+		c.Ui.Error(fmt.Sprintf("Resource instance %s cannot be tainted", addr))
 		return 1
 	}
 
 	// Load the backend
-	b, err := c.Backend(nil)
-	if err != nil {
-		c.Ui.Error(fmt.Sprintf("Failed to load backend: %s", err))
+	b, backendDiags := c.Backend(nil)
+	diags = diags.Append(backendDiags)
+	if backendDiags.HasErrors() {
+		c.showDiagnostics(diags)
 		return 1
 	}
 
 	// Get the state
 	env := c.Workspace()
-	st, err := b.State(env)
+	st, err := b.StateMgr(env)
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf("Failed to load state: %s", err))
 		return 1
@@ -96,61 +100,60 @@ func (c *TaintCommand) Run(args []string) int {
 	s := st.State()
 	if s.Empty() {
 		if allowMissing {
-			return c.allowMissingExit(name, module)
+			return c.allowMissingExit(addr)
 		}
 
-		c.Ui.Error(fmt.Sprintf(
-			"The state is empty. The most common reason for this is that\n" +
-				"an invalid state file path was given or Terraform has never\n " +
-				"been run for this infrastructure. Infrastructure must exist\n" +
-				"for it to be tainted."))
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"No such resource instance",
+			"The state currently contains no resource instances whatsoever. This may occur if the configuration has never been applied or if it has recently been destroyed.",
+		))
+		c.showDiagnostics(diags)
 		return 1
 	}
 
-	// Get the proper module we want to taint
-	modPath := strings.Split(module, ".")
-	mod := s.ModuleByPath(modPath)
-	if mod == nil {
+	state := s.SyncWrapper()
+
+	// Get the resource and instance we're going to taint
+	rs := state.Resource(addr.ContainingResource())
+	is := state.ResourceInstance(addr)
+	if is == nil {
 		if allowMissing {
-			return c.allowMissingExit(name, module)
+			return c.allowMissingExit(addr)
 		}
 
-		c.Ui.Error(fmt.Sprintf(
-			"The module %s could not be found. There is nothing to taint.",
-			module))
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"No such resource instance",
+			fmt.Sprintf("There is no resource instance in the state with the address %s. If the resource configuration has just been added, you must run \"terraform apply\" once to create the corresponding instance(s) before they can be tainted.", addr),
+		))
+		c.showDiagnostics(diags)
 		return 1
 	}
 
-	// If there are no resources in this module, it is an error
-	if len(mod.Resources) == 0 {
-		if allowMissing {
-			return c.allowMissingExit(name, module)
+	obj := is.Current
+	if obj == nil {
+		if len(is.Deposed) != 0 {
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"No such resource instance",
+				fmt.Sprintf("Resource instance %s is currently part-way through a create_before_destroy replacement action. Run \"terraform apply\" to complete its replacement before tainting it.", addr),
+			))
+		} else {
+			// Don't know why we're here, but we'll produce a generic error message anyway.
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"No such resource instance",
+				fmt.Sprintf("Resource instance %s does not currently have a remote object associated with it, so it cannot be tainted.", addr),
+			))
 		}
-
-		c.Ui.Error(fmt.Sprintf(
-			"The module %s has no resources. There is nothing to taint.",
-			module))
+		c.showDiagnostics(diags)
 		return 1
 	}
 
-	// Get the resource we're looking for
-	rs, ok := mod.Resources[name]
-	if !ok {
-		if allowMissing {
-			return c.allowMissingExit(name, module)
-		}
+	obj.Status = states.ObjectTainted
+	state.SetResourceInstanceCurrent(addr, obj, rs.ProviderConfig)
 
-		c.Ui.Error(fmt.Sprintf(
-			"The resource %s couldn't be found in the module %s.",
-			name,
-			module))
-		return 1
-	}
-
-	// Taint the resource
-	rs.Taint()
-
-	log.Printf("[INFO] Writing state output to: %s", c.Meta.StateOutPath())
 	if err := st.WriteState(s); err != nil {
 		c.Ui.Error(fmt.Sprintf("Error writing state file: %s", err))
 		return 1
@@ -160,24 +163,28 @@ func (c *TaintCommand) Run(args []string) int {
 		return 1
 	}
 
-	c.Ui.Output(fmt.Sprintf(
-		"The resource %s in the module %s has been marked as tainted!",
-		name, module))
+	c.Ui.Output(fmt.Sprintf("Resource instance %s has been marked as tainted.", addr))
 	return 0
 }
 
 func (c *TaintCommand) Help() string {
 	helpText := `
-Usage: terraform taint [options] name
+Usage: terraform taint [options] <address>
 
   Manually mark a resource as tainted, forcing a destroy and recreate
   on the next plan/apply.
 
   This will not modify your infrastructure. This command changes your
   state to mark a resource as tainted so that during the next plan or
-  apply, that resource will be destroyed and recreated. This command on
-  its own will not modify infrastructure. This command can be undone by
-  reverting the state backup file that is created.
+  apply that resource will be destroyed and recreated. This command on
+  its own will not modify infrastructure. This command can be undone
+  using the "terraform untaint" command with the same address.
+
+  The address is in the usual resource address syntax, as shown in
+  the output from other commands, such as:
+    aws_instance.foo
+    aws_instance.bar[1]
+    module.foo.module.bar.aws_instance.baz
 
 Options:
 
@@ -191,10 +198,6 @@ Options:
   -lock=true          Lock the state file when locking is supported.
 
   -lock-timeout=0s    Duration to retry a state lock.
-
-  -module=path        The module path where the resource lives. By
-                      default this will be root. Child modules can be specified
-                      by names. Ex. "consul" or "consul.vpc" (nested modules).
 
   -no-color           If specified, output won't contain any color.
 
@@ -212,10 +215,11 @@ func (c *TaintCommand) Synopsis() string {
 	return "Manually mark a resource for recreation"
 }
 
-func (c *TaintCommand) allowMissingExit(name, module string) int {
-	c.Ui.Output(fmt.Sprintf(
-		"The resource %s in the module %s was not found, but\n"+
-			"-allow-missing is set, so we're exiting successfully.",
-		name, module))
+func (c *TaintCommand) allowMissingExit(name addrs.AbsResourceInstance) int {
+	c.showDiagnostics(tfdiags.Sourceless(
+		tfdiags.Warning,
+		"No such resource instance",
+		"Resource instance %s was not found, but this is not an error because -allow-missing was set.",
+	))
 	return 0
 }

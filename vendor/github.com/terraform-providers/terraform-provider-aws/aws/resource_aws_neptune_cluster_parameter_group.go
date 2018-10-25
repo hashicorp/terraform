@@ -154,7 +154,7 @@ func resourceAwsNeptuneClusterParameterGroupRead(d *schema.ResourceData, meta in
 	// Only include user customized parameters as there's hundreds of system/default ones
 	describeParametersOpts := neptune.DescribeDBClusterParametersInput{
 		DBClusterParameterGroupName: aws.String(d.Id()),
-		Source: aws.String("user"),
+		Source:                      aws.String("user"),
 	}
 
 	describeParametersResp, err := conn.DescribeDBClusterParameters(&describeParametersOpts)
@@ -206,7 +206,7 @@ func resourceAwsNeptuneClusterParameterGroupUpdate(d *schema.ResourceData, meta 
 			// We can only modify 20 parameters at a time, so walk them until
 			// we've got them all.
 			for parameters != nil {
-				paramsToModify := make([]*neptune.Parameter, 0)
+				var paramsToModify []*neptune.Parameter
 				if len(parameters) <= neptuneClusterParameterGroupMaxParamsBulkEdit {
 					paramsToModify, parameters = parameters[:], nil
 				} else {

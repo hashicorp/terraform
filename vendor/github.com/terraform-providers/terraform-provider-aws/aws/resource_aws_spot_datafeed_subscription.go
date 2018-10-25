@@ -1,12 +1,12 @@
 package aws
 
 import (
+	"fmt"
 	"log"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/ec2"
-	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -20,12 +20,12 @@ func resourceAwsSpotDataFeedSubscription() *schema.Resource {
 		},
 
 		Schema: map[string]*schema.Schema{
-			"bucket": &schema.Schema{
+			"bucket": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
-			"prefix": &schema.Schema{
+			"prefix": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
@@ -48,7 +48,7 @@ func resourceAwsSpotDataFeedSubscriptionCreate(d *schema.ResourceData, meta inte
 	log.Printf("[INFO] Creating Spot Datafeed Subscription")
 	_, err := conn.CreateSpotDatafeedSubscription(params)
 	if err != nil {
-		return errwrap.Wrapf("Error Creating Spot Datafeed Subscription: {{err}}", err)
+		return fmt.Errorf("Error Creating Spot Datafeed Subscription: %s", err)
 	}
 
 	d.SetId("spot-datafeed-subscription")
@@ -66,7 +66,7 @@ func resourceAwsSpotDataFeedSubscriptionRead(d *schema.ResourceData, meta interf
 			d.SetId("")
 			return nil
 		}
-		return errwrap.Wrapf("Error Describing Spot Datafeed Subscription: {{err}}", err)
+		return fmt.Errorf("Error Describing Spot Datafeed Subscription: %s", err)
 	}
 
 	if resp == nil {
@@ -87,7 +87,7 @@ func resourceAwsSpotDataFeedSubscriptionDelete(d *schema.ResourceData, meta inte
 	log.Printf("[INFO] Deleting Spot Datafeed Subscription")
 	_, err := conn.DeleteSpotDatafeedSubscription(&ec2.DeleteSpotDatafeedSubscriptionInput{})
 	if err != nil {
-		return errwrap.Wrapf("Error deleting Spot Datafeed Subscription: {{err}}", err)
+		return fmt.Errorf("Error deleting Spot Datafeed Subscription: %s", err)
 	}
 	return nil
 }

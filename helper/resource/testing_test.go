@@ -55,6 +55,8 @@ func TestParallelTest(t *testing.T) {
 }
 
 func TestTest(t *testing.T) {
+	t.Fatal("test requires new provider implementation")
+
 	mp := &resetProvider{
 		MockResourceProvider: testProvider(),
 	}
@@ -136,6 +138,8 @@ func TestTest(t *testing.T) {
 }
 
 func TestTest_plan_only(t *testing.T) {
+	t.Fatal("test requires new provider implementation")
+
 	mp := testProvider()
 	mp.ApplyReturn = &terraform.InstanceState{
 		ID: "foo",
@@ -188,6 +192,8 @@ STATE:
 }
 
 func TestTest_idRefresh(t *testing.T) {
+	t.Fatal("test requires new provider implementation")
+
 	// Refresh count should be 3:
 	//   1.) initial Ref/Plan/Apply
 	//   2.) post Ref/Plan/Apply for plan-check
@@ -240,6 +246,8 @@ func TestTest_idRefresh(t *testing.T) {
 }
 
 func TestTest_idRefreshCustomName(t *testing.T) {
+	t.Fatal("test requires new provider implementation")
+
 	// Refresh count should be 3:
 	//   1.) initial Ref/Plan/Apply
 	//   2.) post Ref/Plan/Apply for plan-check
@@ -292,6 +300,8 @@ func TestTest_idRefreshCustomName(t *testing.T) {
 }
 
 func TestTest_idRefreshFail(t *testing.T) {
+	t.Fatal("test requires new provider implementation")
+
 	// Refresh count should be 3:
 	//   1.) initial Ref/Plan/Apply
 	//   2.) post Ref/Plan/Apply for plan-check
@@ -354,6 +364,8 @@ func TestTest_idRefreshFail(t *testing.T) {
 }
 
 func TestTest_empty(t *testing.T) {
+	t.Fatal("test requires new provider implementation")
+
 	destroyCalled := false
 	checkDestroyFn := func(*terraform.State) error {
 		destroyCalled = true
@@ -374,6 +386,8 @@ func TestTest_empty(t *testing.T) {
 }
 
 func TestTest_noEnv(t *testing.T) {
+	t.Fatal("test requires new provider implementation")
+
 	// Unset the variable
 	if err := os.Setenv(TestEnvVar, ""); err != nil {
 		t.Fatalf("err: %s", err)
@@ -389,6 +403,8 @@ func TestTest_noEnv(t *testing.T) {
 }
 
 func TestTest_preCheck(t *testing.T) {
+	t.Fatal("test requires new provider implementation")
+
 	called := false
 
 	mt := new(mockT)
@@ -402,6 +418,8 @@ func TestTest_preCheck(t *testing.T) {
 }
 
 func TestTest_skipFunc(t *testing.T) {
+	t.Fatal("test requires new provider implementation")
+
 	preCheckCalled := false
 	skipped := false
 
@@ -442,6 +460,8 @@ func TestTest_skipFunc(t *testing.T) {
 }
 
 func TestTest_stepError(t *testing.T) {
+	t.Fatal("test requires new provider implementation")
+
 	mp := testProvider()
 	mp.ApplyReturn = &terraform.InstanceState{
 		ID: "foo",
@@ -510,6 +530,8 @@ func TestTest_factoryError(t *testing.T) {
 }
 
 func TestTest_resetError(t *testing.T) {
+	t.Fatal("test requires new provider implementation")
+
 	mp := &resetProvider{
 		MockResourceProvider: testProvider(),
 		TestResetError:       fmt.Errorf("provider reset error"),
@@ -533,6 +555,8 @@ func TestTest_resetError(t *testing.T) {
 }
 
 func TestTest_expectError(t *testing.T) {
+	t.Fatal("test requires new provider implementation")
+
 	cases := []struct {
 		name     string
 		planErr  bool
@@ -929,6 +953,8 @@ func mockSweeperFunc(s string) error {
 }
 
 func TestTest_Taint(t *testing.T) {
+	t.Fatal("test requires new provider implementation")
+
 	mp := testProvider()
 	mp.DiffFn = func(
 		_ *terraform.InstanceInfo,

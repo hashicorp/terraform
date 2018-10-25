@@ -10,6 +10,12 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/hashicorp/terraform/addrs"
+	"github.com/hashicorp/terraform/config"
+	"github.com/hashicorp/terraform/config/hcl2shim"
+	"github.com/hashicorp/terraform/configs/configschema"
+	"github.com/zclconf/go-cty/cty"
+
 	"github.com/mitchellh/copystructure"
 )
 
@@ -69,8 +75,24 @@ func (d *Diff) Prune() {
 //
 // This should be the preferred method to add module diffs since it
 // allows us to optimize lookups later as well as control sorting.
-func (d *Diff) AddModule(path []string) *ModuleDiff {
-	m := &ModuleDiff{Path: path}
+func (d *Diff) AddModule(path addrs.ModuleInstance) *ModuleDiff {
+	// Lower the new-style address into a legacy-style address.
+	// This requires that none of the steps have instance keys, which is
+	// true for all addresses at the time of implementing this because
+	// "count" and "for_each" are not yet implemented for modules.
+	legacyPath := make([]string, len(path))
+	for i, step := range path {
+		if step.InstanceKey != addrs.NoKey {
+			// FIXME: Once the rest of Terraform is ready to use count and
+			// for_each, remove all of this and just write the addrs.ModuleInstance
+			// value itself into the ModuleState.
+			panic("diff cannot represent modules with count or for_each keys")
+		}
+
+		legacyPath[i] = step.Name
+	}
+
+	m := &ModuleDiff{Path: legacyPath}
 	m.init()
 	d.Modules = append(d.Modules, m)
 	return m
@@ -79,7 +101,7 @@ func (d *Diff) AddModule(path []string) *ModuleDiff {
 // ModuleByPath is used to lookup the module diff for the given path.
 // This should be the preferred lookup mechanism as it allows for future
 // lookup optimizations.
-func (d *Diff) ModuleByPath(path []string) *ModuleDiff {
+func (d *Diff) ModuleByPath(path addrs.ModuleInstance) *ModuleDiff {
 	if d == nil {
 		return nil
 	}
@@ -87,7 +109,8 @@ func (d *Diff) ModuleByPath(path []string) *ModuleDiff {
 		if mod.Path == nil {
 			panic("missing module path")
 		}
-		if reflect.DeepEqual(mod.Path, path) {
+		modPath := normalizeModulePath(mod.Path)
+		if modPath.String() == path.String() {
 			return mod
 		}
 	}
@@ -96,7 +119,7 @@ func (d *Diff) ModuleByPath(path []string) *ModuleDiff {
 
 // RootModule returns the ModuleState for the root module
 func (d *Diff) RootModule() *ModuleDiff {
-	root := d.ModuleByPath(rootModulePath)
+	root := d.ModuleByPath(addrs.RootModuleInstance)
 	if root == nil {
 		panic("missing root module")
 	}
@@ -166,7 +189,8 @@ func (d *Diff) String() string {
 	keys := make([]string, 0, len(d.Modules))
 	lookup := make(map[string]*ModuleDiff)
 	for _, m := range d.Modules {
-		key := fmt.Sprintf("module.%s", strings.Join(m.Path[1:], "."))
+		addr := normalizeModulePath(m.Path)
+		key := addr.String()
 		keys = append(keys, key)
 		lookup[key] = m
 	}
@@ -383,6 +407,66 @@ type InstanceDiff struct {
 
 func (d *InstanceDiff) Lock()   { d.mu.Lock() }
 func (d *InstanceDiff) Unlock() { d.mu.Unlock() }
+
+// ApplyToValue merges the receiver into the given base value, returning a
+// new value that incorporates the planned changes. The given value must
+// conform to the given schema, or this method will panic.
+//
+// This method is intended for shimming old subsystems that still use this
+// legacy diff type to work with the new-style types.
+func (d *InstanceDiff) ApplyToValue(base cty.Value, schema *configschema.Block) (cty.Value, error) {
+	// We always build a new value here, even if the given diff is "empty",
+	// because we might be planning to create a new instance that happens
+	// to have no attributes set, and so we want to produce an empty object
+	// rather than just echoing back the null old value.
+
+	// Create an InstanceState attributes from our existing state.
+	// We can use this to more easily apply the diff changes.
+	attrs := hcl2shim.FlatmapValueFromHCL2(base)
+	if attrs == nil {
+		attrs = map[string]string{}
+	}
+
+	if d.Destroy || d.DestroyDeposed || d.DestroyTainted {
+		// to mark a destroy, we remove all attributes
+		attrs = map[string]string{}
+	} else if attrs["id"] == "" || d.RequiresNew() {
+		// Since "id" is always computed, make sure it always has a value. Set
+		// it as unknown to generate the correct cty.Value
+		attrs["id"] = config.UnknownVariableValue
+	}
+
+	for attr, diff := range d.Attributes {
+		old, exists := attrs[attr]
+
+		if exists &&
+			old != diff.Old &&
+			// if new or old is unknown, then there's no mismatch
+			old != config.UnknownVariableValue &&
+			diff.Old != config.UnknownVariableValue {
+			return base, fmt.Errorf("diff apply conflict for %s: diff expects %q, but prior value has %q", attr, diff.Old, old)
+		}
+
+		if diff.NewComputed {
+			attrs[attr] = config.UnknownVariableValue
+			continue
+		}
+
+		if diff.NewRemoved {
+			delete(attrs, attr)
+			continue
+		}
+
+		attrs[attr] = diff.New
+	}
+
+	val, err := hcl2shim.HCL2ValueFromFlatmap(attrs, schema.ImpliedType())
+	if err != nil {
+		return val, err
+	}
+
+	return schema.CoerceValue(val)
+}
 
 // ResourceAttrDiff is the diff of a single attribute of a resource.
 type ResourceAttrDiff struct {

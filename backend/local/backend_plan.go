@@ -5,14 +5,16 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"os"
+	"sort"
 	"strings"
 
-	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/command/format"
-	"github.com/hashicorp/terraform/config/module"
+	"github.com/hashicorp/terraform/plans"
+	"github.com/hashicorp/terraform/plans/planfile"
+	"github.com/hashicorp/terraform/states/statemgr"
 	"github.com/hashicorp/terraform/terraform"
+	"github.com/hashicorp/terraform/tfdiags"
 )
 
 func (b *Local) opPlan(
@@ -20,27 +22,31 @@ func (b *Local) opPlan(
 	cancelCtx context.Context,
 	op *backend.Operation,
 	runningOp *backend.RunningOperation) {
+
 	log.Printf("[INFO] backend/local: starting Plan operation")
 
-	if b.CLI != nil && op.Plan != nil {
-		b.CLI.Output(b.Colorize().Color(
-			"[reset][bold][yellow]" +
-				"The plan command received a saved plan file as input. This command\n" +
-				"will output the saved plan. This will not modify the already-existing\n" +
-				"plan. If you wish to generate a new plan, please pass in a configuration\n" +
-				"directory as an argument.\n\n"))
-	}
+	var diags tfdiags.Diagnostics
+	var err error
 
-	// A local plan requires either a plan or a module
-	if op.Plan == nil && op.Module == nil && !op.Destroy {
-		runningOp.Err = fmt.Errorf(strings.TrimSpace(planErrNoConfig))
+	if b.CLI != nil && op.PlanFile != nil {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Can't re-plan a saved plan",
+			"The plan command was given a saved plan file as its input. This command generates a new plan, and so it requires a configuration directory as its argument.",
+		))
+		b.ReportResult(runningOp, diags)
 		return
 	}
 
-	// If we have a nil module at this point, then set it to an empty tree
-	// to avoid any potential crashes.
-	if op.Module == nil {
-		op.Module = module.NewEmptyTree()
+	// Local planning requires a config, unless we're planning to destroy.
+	if !op.Destroy && !op.HasConfig() {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"No configuration files",
+			"Plan requires configuration to be present. Planning without a configuration would mark everything for destruction, which is normally not what is desired. If you would like to destroy everything, run plan with the -destroy option. Otherwise, create a Terraform configuration file (.tf file) and try again.",
+		))
+		b.ReportResult(runningOp, diags)
+		return
 	}
 
 	// Setup our count hook that keeps track of resource changes
@@ -53,9 +59,10 @@ func (b *Local) opPlan(
 	b.ContextOpts.Hooks = append(b.ContextOpts.Hooks, countHook)
 
 	// Get our context
-	tfCtx, opState, err := b.context(op)
-	if err != nil {
-		runningOp.Err = err
+	tfCtx, configSnap, opState, ctxDiags := b.context(op)
+	diags = diags.Append(ctxDiags)
+	if ctxDiags.HasErrors() {
+		b.ReportResult(runningOp, diags)
 		return
 	}
 
@@ -63,6 +70,7 @@ func (b *Local) opPlan(
 	runningOp.State = tfCtx.State()
 
 	// If we're refreshing before plan, perform that
+	baseState := runningOp.State
 	if op.PlanRefresh {
 		log.Printf("[INFO] backend/local: plan calling Refresh")
 
@@ -70,69 +78,89 @@ func (b *Local) opPlan(
 			b.CLI.Output(b.Colorize().Color(strings.TrimSpace(planRefreshing) + "\n"))
 		}
 
-		_, err := tfCtx.Refresh()
+		refreshedState, err := tfCtx.Refresh()
 		if err != nil {
-			runningOp.Err = errwrap.Wrapf("Error refreshing state: {{err}}", err)
+			diags = diags.Append(err)
+			b.ReportResult(runningOp, diags)
 			return
 		}
+		baseState = refreshedState // plan will be relative to our refreshed state
 		if b.CLI != nil {
 			b.CLI.Output("\n------------------------------------------------------------------------")
 		}
 	}
 
 	// Perform the plan in a goroutine so we can be interrupted
-	var plan *terraform.Plan
-	var planErr error
+	var plan *plans.Plan
+	var planDiags tfdiags.Diagnostics
 	doneCh := make(chan struct{})
 	go func() {
 		defer close(doneCh)
 		log.Printf("[INFO] backend/local: plan calling Plan")
-		plan, planErr = tfCtx.Plan()
+		plan, planDiags = tfCtx.Plan()
 	}()
 
 	if b.opWait(doneCh, stopCtx, cancelCtx, tfCtx, opState) {
+		// If we get in here then the operation was cancelled, which is always
+		// considered to be a failure.
+		log.Printf("[INFO] backend/local: plan operation was force-cancelled by interrupt")
+		runningOp.Result = backend.OperationFailure
 		return
 	}
+	log.Printf("[INFO] backend/local: plan operation completed")
 
-	if planErr != nil {
-		runningOp.Err = errwrap.Wrapf("Error running plan: {{err}}", planErr)
+	diags = diags.Append(planDiags)
+	if planDiags.HasErrors() {
+		b.ReportResult(runningOp, diags)
 		return
 	}
 	// Record state
-	runningOp.PlanEmpty = plan.Diff.Empty()
+	runningOp.PlanEmpty = plan.Changes.Empty()
 
 	// Save the plan to disk
 	if path := op.PlanOutPath; path != "" {
-		// Write the backend if we have one
-		plan.Backend = op.PlanOutBackend
-
-		// This works around a bug (#12871) which is no longer possible to
-		// trigger but will exist for already corrupted upgrades.
-		if plan.Backend != nil && plan.State != nil {
-			plan.State.Remote = nil
+		if op.PlanOutBackend == nil {
+			// This is always a bug in the operation caller; it's not valid
+			// to set PlanOutPath without also setting PlanOutBackend.
+			diags = diags.Append(fmt.Errorf("PlanOutPath set without also setting PlanOutBackend (this is a bug in Terraform)"))
+			b.ReportResult(runningOp, diags)
+			return
 		}
+		plan.Backend = *op.PlanOutBackend
+
+		// We may have updated the state in the refresh step above, but we
+		// will freeze that updated state in the plan file for now and
+		// only write it if this plan is subsequently applied.
+		plannedStateFile := statemgr.PlannedStateUpdate(opState, baseState)
 
 		log.Printf("[INFO] backend/local: writing plan output to: %s", path)
-		f, err := os.Create(path)
-		if err == nil {
-			err = terraform.WritePlan(plan, f)
-		}
-		f.Close()
+		err = planfile.Create(path, configSnap, plannedStateFile, plan)
 		if err != nil {
-			runningOp.Err = fmt.Errorf("Error writing plan file: %s", err)
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Failed to write plan file",
+				fmt.Sprintf("The plan file could not be written: %s.", err),
+			))
+			b.ReportResult(runningOp, diags)
 			return
 		}
 	}
 
 	// Perform some output tasks if we have a CLI to output to.
 	if b.CLI != nil {
-		dispPlan := format.NewPlan(plan)
-		if dispPlan.Empty() {
+		schemas := tfCtx.Schemas()
+
+		if plan.Changes.Empty() {
 			b.CLI.Output("\n" + b.Colorize().Color(strings.TrimSpace(planNoChanges)))
 			return
 		}
 
-		b.renderPlan(dispPlan)
+		b.renderPlan(plan, schemas)
+
+		// If we've accumulated any warnings along the way then we'll show them
+		// here just before we show the summary and next steps. If we encountered
+		// errors then we would've returned early at some other point above.
+		b.ShowDiagnostics(diags)
 
 		// Give the user some next-steps, unless we're running in an automation
 		// tool which is presumed to provide its own UI for further actions.
@@ -150,29 +178,38 @@ func (b *Local) opPlan(
 					path, path,
 				))
 			}
-
 		}
 	}
 }
 
-func (b *Local) renderPlan(dispPlan *format.Plan) {
+func (b *Local) renderPlan(plan *plans.Plan, schemas *terraform.Schemas) {
+
+	counts := map[plans.Action]int{}
+	for _, change := range plan.Changes.Resources {
+		counts[change.Action]++
+	}
 
 	headerBuf := &bytes.Buffer{}
 	fmt.Fprintf(headerBuf, "\n%s\n", strings.TrimSpace(planHeaderIntro))
-	counts := dispPlan.ActionCounts()
-	if counts[terraform.DiffCreate] > 0 {
+	if counts[plans.Create] > 0 {
 		fmt.Fprintf(headerBuf, "%s create\n", format.DiffActionSymbol(terraform.DiffCreate))
 	}
-	if counts[terraform.DiffUpdate] > 0 {
+	if counts[plans.Update] > 0 {
 		fmt.Fprintf(headerBuf, "%s update in-place\n", format.DiffActionSymbol(terraform.DiffUpdate))
 	}
-	if counts[terraform.DiffDestroy] > 0 {
+	if counts[plans.Delete] > 0 {
 		fmt.Fprintf(headerBuf, "%s destroy\n", format.DiffActionSymbol(terraform.DiffDestroy))
 	}
-	if counts[terraform.DiffDestroyCreate] > 0 {
+	if counts[plans.DeleteThenCreate] > 0 {
 		fmt.Fprintf(headerBuf, "%s destroy and then create replacement\n", format.DiffActionSymbol(terraform.DiffDestroyCreate))
 	}
-	if counts[terraform.DiffRefresh] > 0 {
+	if counts[plans.CreateThenDelete] > 0 {
+		// FIXME: This shows the wrong symbol, because our old diff action
+		// type can't represent CreateThenDelete. We should switch
+		// format.DiffActionSymbol over to using plans.Action instead.
+		fmt.Fprintf(headerBuf, "%s create replacement and then destroy prior\n", format.DiffActionSymbol(terraform.DiffDestroyCreate))
+	}
+	if counts[plans.Read] > 0 {
 		fmt.Fprintf(headerBuf, "%s read (data resources)\n", format.DiffActionSymbol(terraform.DiffRefresh))
 	}
 
@@ -180,13 +217,60 @@ func (b *Local) renderPlan(dispPlan *format.Plan) {
 
 	b.CLI.Output("Terraform will perform the following actions:\n")
 
-	b.CLI.Output(dispPlan.Format(b.Colorize()))
+	// Note: we're modifying the backing slice of this plan object in-place
+	// here. The ordering of resource changes in a plan is not significant,
+	// but we can only do this safely here because we can assume that nobody
+	// is concurrently modifying our changes while we're trying to print it.
+	rChanges := plan.Changes.Resources
+	sort.Slice(rChanges, func(i, j int) bool {
+		iA := rChanges[i].Addr
+		jA := rChanges[j].Addr
+		if iA.String() == jA.String() {
+			return rChanges[i].DeposedKey < rChanges[j].DeposedKey
+		}
+		return iA.Less(jA)
+	})
 
-	stats := dispPlan.Stats()
+	for _, rcs := range rChanges {
+		if rcs.Action == plans.NoOp {
+			continue
+		}
+		providerSchema := schemas.ProviderSchema(rcs.ProviderAddr.ProviderConfig.Type)
+		if providerSchema == nil {
+			// Should never happen
+			b.CLI.Output(fmt.Sprintf("(schema missing for %s)\n", rcs.ProviderAddr))
+			continue
+		}
+		rSchema := providerSchema.SchemaForResourceAddr(rcs.Addr.Resource.Resource)
+		if rSchema == nil {
+			// Should never happen
+			b.CLI.Output(fmt.Sprintf("(schema missing for %s)\n", rcs.Addr))
+			continue
+		}
+		b.CLI.Output(format.ResourceChange(
+			rcs,
+			rSchema,
+			b.CLIColor,
+		))
+	}
+
+	// stats is similar to counts above, but:
+	// - it considers only resource changes
+	// - it simplifies "replace" into both a create and a delete
+	stats := map[plans.Action]int{}
+	for _, change := range rChanges {
+		switch change.Action {
+		case plans.CreateThenDelete, plans.DeleteThenCreate:
+			stats[plans.Create]++
+			stats[plans.Delete]++
+		default:
+			stats[change.Action]++
+		}
+	}
 	b.CLI.Output(b.Colorize().Color(fmt.Sprintf(
 		"[reset][bold]Plan:[reset] "+
 			"%d to add, %d to change, %d to destroy.",
-		stats.ToAdd, stats.ToChange, stats.ToDestroy,
+		stats[plans.Create], stats[plans.Update], stats[plans.Delete],
 	)))
 }
 

@@ -2,6 +2,9 @@ package terraform
 
 import (
 	"fmt"
+	"log"
+
+	"github.com/hashicorp/terraform/addrs"
 
 	"github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/terraform/dag"
@@ -22,8 +25,8 @@ type GraphNodeCloseProvisioner interface {
 }
 
 // GraphNodeProvisionerConsumer is an interface that nodes that require
-// a provisioner must implement. ProvisionedBy must return the name of the
-// provisioner to use.
+// a provisioner must implement. ProvisionedBy must return the names of the
+// provisioners to use.
 type GraphNodeProvisionerConsumer interface {
 	ProvisionedBy() []string
 }
@@ -48,6 +51,7 @@ func (t *ProvisionerTransformer) Transform(g *Graph) error {
 					continue
 				}
 
+				log.Printf("[TRACE] ProvisionerTransformer: %s is provisioned by %s (%q)", dag.VertexName(v), key, dag.VertexName(m[key]))
 				g.Connect(dag.BasicEdge(v, m[key]))
 			}
 		}
@@ -83,12 +87,9 @@ func (t *MissingProvisionerTransformer) Transform(g *Graph) error {
 
 		// If this node has a subpath, then we use that as a prefix
 		// into our map to check for an existing provider.
-		var path []string
+		path := addrs.RootModuleInstance
 		if sp, ok := pv.(GraphNodeSubPath); ok {
-			raw := normalizeModulePath(sp.Path())
-			if len(raw) > len(rootModulePath) {
-				path = raw
-			}
+			path = sp.Path()
 		}
 
 		for _, p := range pv.ProvisionedBy() {
@@ -101,7 +102,7 @@ func (t *MissingProvisionerTransformer) Transform(g *Graph) error {
 			}
 
 			if _, ok := supported[p]; !ok {
-				// If we don't support the provisioner type, skip it.
+				// If we don't support the provisioner type, we skip it.
 				// Validation later will catch this as an error.
 				continue
 			}
@@ -114,6 +115,7 @@ func (t *MissingProvisionerTransformer) Transform(g *Graph) error {
 
 			// Add the missing provisioner node to the graph
 			m[key] = g.Add(newV)
+			log.Printf("[TRACE] MissingProviderTransformer: added implicit provisioner %s, first implied by %s", key, dag.VertexName(v))
 		}
 	}
 
@@ -156,10 +158,7 @@ func (t *CloseProvisionerTransformer) Transform(g *Graph) error {
 func provisionerMapKey(k string, v dag.Vertex) string {
 	pathPrefix := ""
 	if sp, ok := v.(GraphNodeSubPath); ok {
-		raw := normalizeModulePath(sp.Path())
-		if len(raw) > len(rootModulePath) {
-			pathPrefix = modulePrefixStr(raw) + "."
-		}
+		pathPrefix = sp.Path().String() + "."
 	}
 
 	return pathPrefix + k

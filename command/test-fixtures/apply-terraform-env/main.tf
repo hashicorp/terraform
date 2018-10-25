@@ -1,1 +1,3 @@
-output "output" { value = "${terraform.env}" }
+output "output" {
+  value = terraform.workspace
+}

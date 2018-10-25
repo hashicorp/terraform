@@ -1,20 +1,20 @@
-variable "ami" {
+variable "string" {
   default = "foo"
-  type    = "string"
+  type    = string
 }
 
 variable "list" {
   default = []
-  type    = "list"
+  type    = list(string)
 }
 
 variable "map" {
   default = {}
-  type = "map"
+  type    = map(string)
 }
 
 resource "aws_instance" "bar" {
-  foo = "${var.ami}"
-  bar = "${join(",", var.list)}"
-  baz = "${join(",", keys(var.map))}"
+  string  = var.string
+  list    = var.list
+  map     = var.map
 }

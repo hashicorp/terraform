@@ -4,6 +4,12 @@ package directoryservice
 
 const (
 
+	// ErrCodeAccessDeniedException for service response error code
+	// "AccessDeniedException".
+	//
+	// You do not have sufficient access to perform this action.
+	ErrCodeAccessDeniedException = "AccessDeniedException"
+
 	// ErrCodeAuthenticationFailedException for service response error code
 	// "AuthenticationFailedException".
 	//
@@ -16,6 +22,12 @@ const (
 	// A client exception has occurred.
 	ErrCodeClientException = "ClientException"
 
+	// ErrCodeDirectoryAlreadySharedException for service response error code
+	// "DirectoryAlreadySharedException".
+	//
+	// The specified directory has already been shared with this AWS account.
+	ErrCodeDirectoryAlreadySharedException = "DirectoryAlreadySharedException"
+
 	// ErrCodeDirectoryLimitExceededException for service response error code
 	// "DirectoryLimitExceededException".
 	//
@@ -23,6 +35,12 @@ const (
 	// use the GetDirectoryLimits operation to determine your directory limits in
 	// the region.
 	ErrCodeDirectoryLimitExceededException = "DirectoryLimitExceededException"
+
+	// ErrCodeDirectoryNotSharedException for service response error code
+	// "DirectoryNotSharedException".
+	//
+	// The specified directory has not been shared with this AWS account.
+	ErrCodeDirectoryNotSharedException = "DirectoryNotSharedException"
 
 	// ErrCodeDirectoryUnavailableException for service response error code
 	// "DirectoryUnavailableException".
@@ -74,6 +92,12 @@ const (
 	// requirements defined in your directory.
 	ErrCodeInvalidPasswordException = "InvalidPasswordException"
 
+	// ErrCodeInvalidTargetException for service response error code
+	// "InvalidTargetException".
+	//
+	// The specified shared target is not valid.
+	ErrCodeInvalidTargetException = "InvalidTargetException"
+
 	// ErrCodeIpRouteLimitExceededException for service response error code
 	// "IpRouteLimitExceededException".
 	//
@@ -81,11 +105,24 @@ const (
 	// is 100 IP address blocks.
 	ErrCodeIpRouteLimitExceededException = "IpRouteLimitExceededException"
 
+	// ErrCodeOrganizationsException for service response error code
+	// "OrganizationsException".
+	//
+	// Exception encountered while trying to access your AWS organization.
+	ErrCodeOrganizationsException = "OrganizationsException"
+
 	// ErrCodeServiceException for service response error code
 	// "ServiceException".
 	//
 	// An exception has occurred in AWS Directory Service.
 	ErrCodeServiceException = "ServiceException"
+
+	// ErrCodeShareLimitExceededException for service response error code
+	// "ShareLimitExceededException".
+	//
+	// The maximum number of AWS accounts that you can share with this directory
+	// has been reached.
+	ErrCodeShareLimitExceededException = "ShareLimitExceededException"
 
 	// ErrCodeSnapshotLimitExceededException for service response error code
 	// "SnapshotLimitExceededException".

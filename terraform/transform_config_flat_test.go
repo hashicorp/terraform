@@ -3,10 +3,12 @@ package terraform
 import (
 	"strings"
 	"testing"
+
+	"github.com/hashicorp/terraform/addrs"
 )
 
 func TestFlatConfigTransformer_nilModule(t *testing.T) {
-	g := Graph{Path: RootModulePath}
+	g := Graph{Path: addrs.RootModuleInstance}
 	tf := &FlatConfigTransformer{}
 	if err := tf.Transform(&g); err != nil {
 		t.Fatalf("err: %s", err)
@@ -18,9 +20,9 @@ func TestFlatConfigTransformer_nilModule(t *testing.T) {
 }
 
 func TestFlatConfigTransformer(t *testing.T) {
-	g := Graph{Path: RootModulePath}
+	g := Graph{Path: addrs.RootModuleInstance}
 	tf := &FlatConfigTransformer{
-		Module: testModule(t, "transform-flat-config-basic"),
+		Config: testModule(t, "transform-flat-config-basic"),
 	}
 	if err := tf.Transform(&g); err != nil {
 		t.Fatalf("err: %s", err)

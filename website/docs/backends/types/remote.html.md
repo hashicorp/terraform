@@ -11,12 +11,12 @@ description: |-
 **Kind: Enhanced**
 
 The remote backend stores state and runs operations remotely. When running
-`terraform plan` with this backend, the actual execution occurs in Terraform
-Enterprise, with log output streaming to the local terminal.
+`terraform plan` or `terraform apply` with this backend, the actual execution
+occurs in Terraform Enterprise, with log output streaming to the local terminal.
 
 To use this backend you need a Terraform Enterprise account on
-[app.terraform.io](https://app.terraform.io). A future release will also allow 
-use of this backend on a private instance of Terraform Enterprise.
+[app.terraform.io](https://app.terraform.io) or have a private instance of
+Terraform Enterprise (version v201809-1 or newer).
 
 -> **Preview Release**: As of Terraform 0.11.8, the remote backend is a preview
    release and we do not recommend using it with production workloads. Please
@@ -27,6 +27,7 @@ use of this backend on a private instance of Terraform Enterprise.
 
 Currently the remote backend supports the following Terraform commands:
 
+- `apply`
 - `fmt`
 - `get`
 - `init`
@@ -40,29 +41,25 @@ Currently the remote backend supports the following Terraform commands:
 - `version`
 - `workspace`
 
-Importantly, it does not support the `apply` command.
-
 ## Workspaces
 
-The remote backend can work with either a single remote workspace, or with multiple similarly-named remote workspaces (like `networking-dev` and `networking-prod`). The `workspaces` block of the backend configuration determines which mode it uses:
+The remote backend can work with either a single remote workspace, or with
+multiple similarly-named remote workspaces (like `networking-dev` and
+`networking-prod`). The `workspaces` block of the backend configuration
+determines which mode it uses:
 
 - To use a single workspace, set `workspaces.name` to the remote workspace's
-  full name (like `networking-prod`).
+  full name (like `networking`).
 
 - To use multiple workspaces, set `workspaces.prefix` to a prefix used in
   all of the desired remote workspace names. For example, set
   `prefix = "networking-"` to use a group of workspaces with names like
   `networking-dev` and `networking-prod`.
 
-    When interacting with workspaces on the command line, Terraform uses
-    shortened names without the common prefix. For example, if
-    `prefix = "networking-"`, use `terraform workspace select prod` to switch to
-    the `networking-prod` workspace.
-
-    In prefix mode, the special `default` workspace is disabled. Before running
-    `terraform init`, ensure that there is no state stored for the local
-    `default` workspace and that a non-default workspace is currently selected;
-    otherwise, the initialization will fail.
+  When interacting with workspaces on the command line, Terraform uses
+  shortened names without the common prefix. For example, if
+  `prefix = "networking-"`, use `terraform workspace select prod` to switch to
+  the `networking-prod` workspace.
 
 The backend configuration requires either `name` or `prefix`. Omitting both or
 setting both results in a configuration error.
@@ -101,8 +98,19 @@ terraform {
 
 ## Example Reference
 
-(The remote backend does not support references via `terraform_remote_state`
-yet; an example will be included once support is available.)
+```hcl
+data "terraform_remote_state" "foo" {
+  backend = "remote"
+
+  config {
+    organization = "company"
+
+    workspaces {
+      name = "workspace"
+    }
+  }
+}
+```
 
 ## Configuration variables
 

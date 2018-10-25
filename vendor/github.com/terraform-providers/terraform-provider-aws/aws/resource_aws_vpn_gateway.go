@@ -35,7 +35,7 @@ func resourceAwsVpnGateway() *schema.Resource {
 				Optional:     true,
 				ForceNew:     true,
 				Computed:     true,
-				ValidateFunc: validateAmazonSideAsn,
+				ValidateFunc: validateVpnGatewayAmazonSideAsn,
 			},
 
 			"vpc_id": {

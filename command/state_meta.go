@@ -1,13 +1,14 @@
 package command
 
 import (
-	"errors"
 	"fmt"
 	"time"
 
-	backendLocal "github.com/hashicorp/terraform/backend/local"
+	"github.com/hashicorp/terraform/addrs"
+	backendlocal "github.com/hashicorp/terraform/backend/local"
 	"github.com/hashicorp/terraform/state"
-	"github.com/hashicorp/terraform/terraform"
+	"github.com/hashicorp/terraform/states"
+	"github.com/hashicorp/terraform/states/statemgr"
 )
 
 // StateMeta is the meta struct that should be embedded in state subcommands.
@@ -26,31 +27,29 @@ func (c *StateMeta) State() (state.State, error) {
 
 	// use the specified state
 	if c.statePath != "" {
-		realState = &state.LocalState{
-			Path: c.statePath,
-		}
+		realState = statemgr.NewFilesystem(c.statePath)
 	} else {
 		// Load the backend
-		b, err := c.Backend(nil)
-		if err != nil {
-			return nil, err
+		b, backendDiags := c.Backend(nil)
+		if backendDiags.HasErrors() {
+			return nil, backendDiags.Err()
 		}
 
-		env := c.Workspace()
+		workspace := c.Workspace()
 		// Get the state
-		s, err := b.State(env)
+		s, err := b.StateMgr(workspace)
 		if err != nil {
 			return nil, err
 		}
 
 		// Get a local backend
-		localRaw, err := c.Backend(&BackendOpts{ForceLocal: true})
-		if err != nil {
+		localRaw, backendDiags := c.Backend(&BackendOpts{ForceLocal: true})
+		if backendDiags.HasErrors() {
 			// This should never fail
-			panic(err)
+			panic(backendDiags.Err())
 		}
-		localB := localRaw.(*backendLocal.Local)
-		_, stateOutPath, _ = localB.StatePaths(env)
+		localB := localRaw.(*backendlocal.Local)
+		_, stateOutPath, _ = localB.StatePaths(workspace)
 		if err != nil {
 			return nil, err
 		}
@@ -70,31 +69,49 @@ func (c *StateMeta) State() (state.State, error) {
 			DefaultBackupExtension)
 	}
 
-	// Wrap it for backups
-	realState = &state.BackupState{
-		Real: realState,
-		Path: backupPath,
+	// If the backend is local (which it should always be, given our asserting
+	// of it above) we can now enable backups for it.
+	if lb, ok := realState.(*statemgr.Filesystem); ok {
+		lb.SetBackupPath(backupPath)
 	}
 
 	return realState, nil
 }
 
-// filterInstance filters a single instance out of filter results.
-func (c *StateMeta) filterInstance(rs []*terraform.StateFilterResult) (*terraform.StateFilterResult, error) {
-	var result *terraform.StateFilterResult
-	for _, r := range rs {
-		if _, ok := r.Value.(*terraform.InstanceState); !ok {
-			continue
+func (c *StateMeta) filter(state *states.State, args []string) ([]*states.FilterResult, error) {
+	var results []*states.FilterResult
+
+	filter := &states.Filter{State: state}
+	for _, arg := range args {
+		filtered, err := filter.Filter(arg)
+		if err != nil {
+			return nil, err
 		}
 
-		if result != nil {
-			return nil, errors.New(errStateMultiple)
+	filtered:
+		for _, result := range filtered {
+			switch result.Address.(type) {
+			case addrs.ModuleInstance:
+				for _, result := range filtered {
+					if _, ok := result.Address.(addrs.ModuleInstance); ok {
+						results = append(results, result)
+					}
+				}
+				break filtered
+			case addrs.AbsResource:
+				for _, result := range filtered {
+					if _, ok := result.Address.(addrs.AbsResource); ok {
+						results = append(results, result)
+					}
+				}
+				break filtered
+			case addrs.AbsResourceInstance:
+				results = append(results, result)
+			}
 		}
-
-		result = r
 	}
 
-	return result, nil
+	return results, nil
 }
 
 const errStateMultiple = `Multiple instances found for the given pattern!

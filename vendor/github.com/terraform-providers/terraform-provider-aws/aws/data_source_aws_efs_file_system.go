@@ -6,8 +6,8 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/efs"
-	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/hashicorp/terraform/helper/validation"
 )
 
 func dataSourceAwsEfsFileSystem() *schema.Resource {
@@ -20,7 +20,7 @@ func dataSourceAwsEfsFileSystem() *schema.Resource {
 				Optional:     true,
 				Computed:     true,
 				ForceNew:     true,
-				ValidateFunc: validateMaxLength(64),
+				ValidateFunc: validation.StringLenBetween(0, 64),
 			},
 			"encrypted": {
 				Type:     schema.TypeBool,
@@ -65,7 +65,7 @@ func dataSourceAwsEfsFileSystemRead(d *schema.ResourceData, meta interface{}) er
 	log.Printf("[DEBUG] Reading EFS File System: %s", describeEfsOpts)
 	describeResp, err := efsconn.DescribeFileSystems(describeEfsOpts)
 	if err != nil {
-		return errwrap.Wrapf("Error retrieving EFS: {{err}}", err)
+		return fmt.Errorf("Error retrieving EFS: %s", err)
 	}
 	if len(describeResp.FileSystems) != 1 {
 		return fmt.Errorf("Search returned %d results, please revise so only one is returned", len(describeResp.FileSystems))
@@ -105,7 +105,7 @@ func dataSourceAwsEfsFileSystemRead(d *schema.ResourceData, meta interface{}) er
 		return err
 	}
 
-	var fs *efs.UpdateFileSystemOutput
+	var fs *efs.FileSystemDescription
 	for _, f := range describeResp.FileSystems {
 		if d.Id() == *f.FileSystemId {
 			fs = f

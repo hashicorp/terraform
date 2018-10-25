@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/hashicorp/terraform/terraform"
+	"github.com/hashicorp/terraform/states"
 	"github.com/mitchellh/cli"
 )
 
@@ -22,7 +22,7 @@ func (c *StateListCommand) Run(args []string) int {
 	}
 
 	cmdFlags := c.Meta.flagSet("state list")
-	cmdFlags.StringVar(&c.Meta.statePath, "state", DefaultStateFilename, "path")
+	cmdFlags.StringVar(&c.Meta.statePath, "state", "", "path")
 	lookupId := cmdFlags.String("id", "", "Restrict output to paths with a resource having the specified ID.")
 	if err := cmdFlags.Parse(args); err != nil {
 		return cli.RunResultHelp
@@ -30,32 +30,31 @@ func (c *StateListCommand) Run(args []string) int {
 	args = cmdFlags.Args()
 
 	// Load the backend
-	b, err := c.Backend(nil)
-	if err != nil {
-		c.Ui.Error(fmt.Sprintf("Failed to load backend: %s", err))
+	b, backendDiags := c.Backend(nil)
+	if backendDiags.HasErrors() {
+		c.showDiagnostics(backendDiags)
 		return 1
 	}
 
-	env := c.Workspace()
 	// Get the state
-	state, err := b.State(env)
+	env := c.Workspace()
+	stateMgr, err := b.StateMgr(env)
 	if err != nil {
-		c.Ui.Error(fmt.Sprintf("Failed to load state: %s", err))
+		c.Ui.Error(fmt.Sprintf(errStateLoadingState, err))
+		return 1
+	}
+	if err := stateMgr.RefreshState(); err != nil {
+		c.Ui.Error(fmt.Sprintf("Failed to refresh state: %s", err))
 		return 1
 	}
 
-	if err := state.RefreshState(); err != nil {
-		c.Ui.Error(fmt.Sprintf("Failed to load state: %s", err))
-		return 1
-	}
-
-	stateReal := state.State()
-	if stateReal == nil {
+	state := stateMgr.State()
+	if state == nil {
 		c.Ui.Error(fmt.Sprintf(errStateNotFound))
 		return 1
 	}
 
-	filter := &terraform.StateFilter{State: stateReal}
+	filter := &states.Filter{State: state}
 	results, err := filter.Filter(args...)
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf(errStateFilter, err))
@@ -63,9 +62,9 @@ func (c *StateListCommand) Run(args []string) int {
 	}
 
 	for _, result := range results {
-		if i, ok := result.Value.(*terraform.InstanceState); ok {
-			if *lookupId == "" || i.ID == *lookupId {
-				c.Ui.Output(result.Address)
+		if is, ok := result.Value.(*states.ResourceInstance); ok {
+			if *lookupId == "" || *lookupId == states.LegacyInstanceObjectID(is.Current) {
+				c.Ui.Output(result.Address.String())
 			}
 		}
 	}

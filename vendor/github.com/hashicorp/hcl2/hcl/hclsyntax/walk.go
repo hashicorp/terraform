@@ -37,6 +37,8 @@ func Walk(node Node, w Walker) hcl.Diagnostics {
 		diags = append(diags, Walk(node, w)...)
 		return node
 	})
+	moreDiags := w.Exit(node)
+	diags = append(diags, moreDiags...)
 	return diags
 }
 

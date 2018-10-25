@@ -121,7 +121,7 @@ func saveTagsNeptune(conn *neptune.Neptune, d *schema.ResourceData, arn string) 
 	})
 
 	if err != nil {
-		return fmt.Errorf("[DEBUG] Error retreiving tags for ARN: %s", arn)
+		return fmt.Errorf("Error retreiving tags for ARN: %s", arn)
 	}
 
 	var dt []*neptune.Tag

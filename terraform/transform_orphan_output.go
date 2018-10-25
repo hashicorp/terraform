@@ -3,16 +3,17 @@ package terraform
 import (
 	"log"
 
-	"github.com/hashicorp/terraform/config"
-	"github.com/hashicorp/terraform/config/module"
+	"github.com/hashicorp/terraform/addrs"
+	"github.com/hashicorp/terraform/configs"
+	"github.com/hashicorp/terraform/states"
 )
 
 // OrphanOutputTransformer finds the outputs that aren't present
 // in the given config that are in the state and adds them to the graph
 // for deletion.
 type OrphanOutputTransformer struct {
-	Module *module.Tree // Root module
-	State  *State       // State is the root state
+	Config *configs.Config // Root of config tree
+	State  *states.State   // State is the root state
 }
 
 func (t *OrphanOutputTransformer) Transform(g *Graph) error {
@@ -29,24 +30,30 @@ func (t *OrphanOutputTransformer) Transform(g *Graph) error {
 	return nil
 }
 
-func (t *OrphanOutputTransformer) transform(g *Graph, ms *ModuleState) error {
+func (t *OrphanOutputTransformer) transform(g *Graph, ms *states.Module) error {
 	if ms == nil {
 		return nil
 	}
 
-	path := normalizeModulePath(ms.Path)
+	moduleAddr := ms.Addr
 
 	// Get the config for this path, which is nil if the entire module has been
 	// removed.
-	var c *config.Config
-	if m := t.Module.Child(path[1:]); m != nil {
-		c = m.Config()
+	var outputs map[string]*configs.Output
+	if c := t.Config.DescendentForInstance(moduleAddr); c != nil {
+		outputs = c.Module.Outputs
 	}
 
-	// add all the orphaned outputs to the graph
-	for _, n := range ms.RemovedOutputs(c) {
-		g.Add(&NodeOutputOrphan{OutputName: n, PathValue: path})
+	// An output is "orphaned" if it's present in the state but not declared
+	// in the configuration.
+	for name := range ms.OutputValues {
+		if _, exists := outputs[name]; exists {
+			continue
+		}
 
+		g.Add(&NodeOutputOrphan{
+			Addr: addrs.OutputValue{Name: name}.Absolute(moduleAddr),
+		})
 	}
 
 	return nil

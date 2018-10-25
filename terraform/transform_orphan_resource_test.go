@@ -5,47 +5,64 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/dag"
+	"github.com/hashicorp/terraform/states"
 )
 
-func TestOrphanResourceTransformer(t *testing.T) {
+func TestOrphanResourceInstanceTransformer(t *testing.T) {
 	mod := testModule(t, "transform-orphan-basic")
-	state := &State{
-		Modules: []*ModuleState{
-			&ModuleState{
-				Path: RootModulePath,
-				Resources: map[string]*ResourceState{
-					"aws_instance.web": &ResourceState{
-						Type: "aws_instance",
-						Primary: &InstanceState{
-							ID: "foo",
-						},
-					},
 
-					// The orphan
-					"aws_instance.db": &ResourceState{
-						Type: "aws_instance",
-						Primary: &InstanceState{
-							ID: "foo",
-						},
-					},
+	state := states.BuildState(func(s *states.SyncState) {
+		s.SetResourceInstanceCurrent(
+			addrs.Resource{
+				Mode: addrs.ManagedResourceMode,
+				Type: "aws_instance",
+				Name: "web",
+			}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+			&states.ResourceInstanceObjectSrc{
+				AttrsFlat: map[string]string{
+					"id": "foo",
 				},
+				Status: states.ObjectReady,
 			},
-		},
-	}
+			addrs.ProviderConfig{
+				Type: "aws",
+			}.Absolute(addrs.RootModuleInstance),
+		)
 
-	g := Graph{Path: RootModulePath}
+		// The orphan
+		s.SetResourceInstanceCurrent(
+			addrs.Resource{
+				Mode: addrs.ManagedResourceMode,
+				Type: "aws_instance",
+				Name: "db",
+			}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+			&states.ResourceInstanceObjectSrc{
+				AttrsFlat: map[string]string{
+					"id": "foo",
+				},
+				Status: states.ObjectReady,
+			},
+			addrs.ProviderConfig{
+				Type: "aws",
+			}.Absolute(addrs.RootModuleInstance),
+		)
+	})
+
+	g := Graph{Path: addrs.RootModuleInstance}
 	{
-		tf := &ConfigTransformer{Module: mod}
+		tf := &ConfigTransformer{Config: mod}
 		if err := tf.Transform(&g); err != nil {
 			t.Fatalf("err: %s", err)
 		}
 	}
 
 	{
-		tf := &OrphanResourceTransformer{
+		tf := &OrphanResourceInstanceTransformer{
 			Concrete: testOrphanResourceConcreteFunc,
-			State:    state, Module: mod,
+			State:    state,
+			Config:   mod,
 		}
 		if err := tf.Transform(&g); err != nil {
 			t.Fatalf("err: %s", err)
@@ -59,68 +76,57 @@ func TestOrphanResourceTransformer(t *testing.T) {
 	}
 }
 
-func TestOrphanResourceTransformer_nilModule(t *testing.T) {
-	mod := testModule(t, "transform-orphan-basic")
-	state := &State{
-		Modules: []*ModuleState{nil},
-	}
-
-	g := Graph{Path: RootModulePath}
-	{
-		tf := &ConfigTransformer{Module: mod}
-		if err := tf.Transform(&g); err != nil {
-			t.Fatalf("err: %s", err)
-		}
-	}
-
-	{
-		tf := &OrphanResourceTransformer{
-			Concrete: testOrphanResourceConcreteFunc,
-			State:    state, Module: mod,
-		}
-		if err := tf.Transform(&g); err != nil {
-			t.Fatalf("err: %s", err)
-		}
-	}
-}
-
-func TestOrphanResourceTransformer_countGood(t *testing.T) {
+func TestOrphanResourceInstanceTransformer_countGood(t *testing.T) {
 	mod := testModule(t, "transform-orphan-count")
-	state := &State{
-		Modules: []*ModuleState{
-			&ModuleState{
-				Path: RootModulePath,
-				Resources: map[string]*ResourceState{
-					"aws_instance.foo.0": &ResourceState{
-						Type: "aws_instance",
-						Primary: &InstanceState{
-							ID: "foo",
-						},
-					},
 
-					"aws_instance.foo.1": &ResourceState{
-						Type: "aws_instance",
-						Primary: &InstanceState{
-							ID: "foo",
-						},
-					},
+	state := states.BuildState(func(s *states.SyncState) {
+		s.SetResourceInstanceCurrent(
+			addrs.Resource{
+				Mode: addrs.ManagedResourceMode,
+				Type: "aws_instance",
+				Name: "foo",
+			}.Instance(addrs.IntKey(0)).Absolute(addrs.RootModuleInstance),
+			&states.ResourceInstanceObjectSrc{
+				AttrsFlat: map[string]string{
+					"id": "foo",
 				},
+				Status: states.ObjectReady,
 			},
-		},
-	}
+			addrs.ProviderConfig{
+				Type: "aws",
+			}.Absolute(addrs.RootModuleInstance),
+		)
+		s.SetResourceInstanceCurrent(
+			addrs.Resource{
+				Mode: addrs.ManagedResourceMode,
+				Type: "aws_instance",
+				Name: "foo",
+			}.Instance(addrs.IntKey(1)).Absolute(addrs.RootModuleInstance),
+			&states.ResourceInstanceObjectSrc{
+				AttrsFlat: map[string]string{
+					"id": "foo",
+				},
+				Status: states.ObjectReady,
+			},
+			addrs.ProviderConfig{
+				Type: "aws",
+			}.Absolute(addrs.RootModuleInstance),
+		)
+	})
 
-	g := Graph{Path: RootModulePath}
+	g := Graph{Path: addrs.RootModuleInstance}
 	{
-		tf := &ConfigTransformer{Module: mod}
+		tf := &ConfigTransformer{Config: mod}
 		if err := tf.Transform(&g); err != nil {
 			t.Fatalf("err: %s", err)
 		}
 	}
 
 	{
-		tf := &OrphanResourceTransformer{
+		tf := &OrphanResourceInstanceTransformer{
 			Concrete: testOrphanResourceConcreteFunc,
-			State:    state, Module: mod,
+			State:    state,
+			Config:   mod,
 		}
 		if err := tf.Transform(&g); err != nil {
 			t.Fatalf("err: %s", err)
@@ -134,43 +140,56 @@ func TestOrphanResourceTransformer_countGood(t *testing.T) {
 	}
 }
 
-func TestOrphanResourceTransformer_countBad(t *testing.T) {
+func TestOrphanResourceInstanceTransformer_countBad(t *testing.T) {
 	mod := testModule(t, "transform-orphan-count-empty")
-	state := &State{
-		Modules: []*ModuleState{
-			&ModuleState{
-				Path: RootModulePath,
-				Resources: map[string]*ResourceState{
-					"aws_instance.foo.0": &ResourceState{
-						Type: "aws_instance",
-						Primary: &InstanceState{
-							ID: "foo",
-						},
-					},
-
-					"aws_instance.foo.1": &ResourceState{
-						Type: "aws_instance",
-						Primary: &InstanceState{
-							ID: "foo",
-						},
-					},
+	state := states.BuildState(func(s *states.SyncState) {
+		s.SetResourceInstanceCurrent(
+			addrs.Resource{
+				Mode: addrs.ManagedResourceMode,
+				Type: "aws_instance",
+				Name: "foo",
+			}.Instance(addrs.IntKey(0)).Absolute(addrs.RootModuleInstance),
+			&states.ResourceInstanceObjectSrc{
+				AttrsFlat: map[string]string{
+					"id": "foo",
 				},
+				Status: states.ObjectReady,
 			},
-		},
-	}
+			addrs.ProviderConfig{
+				Type: "aws",
+			}.Absolute(addrs.RootModuleInstance),
+		)
+		s.SetResourceInstanceCurrent(
+			addrs.Resource{
+				Mode: addrs.ManagedResourceMode,
+				Type: "aws_instance",
+				Name: "foo",
+			}.Instance(addrs.IntKey(1)).Absolute(addrs.RootModuleInstance),
+			&states.ResourceInstanceObjectSrc{
+				AttrsFlat: map[string]string{
+					"id": "foo",
+				},
+				Status: states.ObjectReady,
+			},
+			addrs.ProviderConfig{
+				Type: "aws",
+			}.Absolute(addrs.RootModuleInstance),
+		)
+	})
 
-	g := Graph{Path: RootModulePath}
+	g := Graph{Path: addrs.RootModuleInstance}
 	{
-		tf := &ConfigTransformer{Module: mod}
+		tf := &ConfigTransformer{Config: mod}
 		if err := tf.Transform(&g); err != nil {
 			t.Fatalf("err: %s", err)
 		}
 	}
 
 	{
-		tf := &OrphanResourceTransformer{
+		tf := &OrphanResourceInstanceTransformer{
 			Concrete: testOrphanResourceConcreteFunc,
-			State:    state, Module: mod,
+			State:    state,
+			Config:   mod,
 		}
 		if err := tf.Transform(&g); err != nil {
 			t.Fatalf("err: %s", err)
@@ -184,58 +203,66 @@ func TestOrphanResourceTransformer_countBad(t *testing.T) {
 	}
 }
 
-func TestOrphanResourceTransformer_modules(t *testing.T) {
+func TestOrphanResourceInstanceTransformer_modules(t *testing.T) {
 	mod := testModule(t, "transform-orphan-modules")
-	state := &State{
-		Modules: []*ModuleState{
-			&ModuleState{
-				Path: RootModulePath,
-				Resources: map[string]*ResourceState{
-					"aws_instance.foo": &ResourceState{
-						Type: "aws_instance",
-						Primary: &InstanceState{
-							ID: "foo",
-						},
-					},
+	state := states.BuildState(func(s *states.SyncState) {
+		s.SetResourceInstanceCurrent(
+			addrs.Resource{
+				Mode: addrs.ManagedResourceMode,
+				Type: "aws_instance",
+				Name: "foo",
+			}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+			&states.ResourceInstanceObjectSrc{
+				AttrsFlat: map[string]string{
+					"id": "foo",
 				},
+				Status: states.ObjectReady,
 			},
-
-			&ModuleState{
-				Path: []string{"root", "child"},
-				Resources: map[string]*ResourceState{
-					"aws_instance.web": &ResourceState{
-						Type: "aws_instance",
-						Primary: &InstanceState{
-							ID: "foo",
-						},
-					},
+			addrs.ProviderConfig{
+				Type: "aws",
+			}.Absolute(addrs.RootModuleInstance),
+		)
+		s.SetResourceInstanceCurrent(
+			addrs.Resource{
+				Mode: addrs.ManagedResourceMode,
+				Type: "aws_instance",
+				Name: "web",
+			}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance.Child("child", addrs.NoKey)),
+			&states.ResourceInstanceObjectSrc{
+				AttrsFlat: map[string]string{
+					"id": "foo",
 				},
+				Status: states.ObjectReady,
 			},
-		},
-	}
+			addrs.ProviderConfig{
+				Type: "aws",
+			}.Absolute(addrs.RootModuleInstance),
+		)
+	})
 
-	g := Graph{Path: RootModulePath}
+	g := Graph{Path: addrs.RootModuleInstance}
 	{
-		tf := &ConfigTransformer{Module: mod}
+		tf := &ConfigTransformer{Config: mod}
 		if err := tf.Transform(&g); err != nil {
 			t.Fatalf("err: %s", err)
 		}
 	}
 
 	{
-		tf := &OrphanResourceTransformer{
+		tf := &OrphanResourceInstanceTransformer{
 			Concrete: testOrphanResourceConcreteFunc,
-			State:    state, Module: mod,
+			State:    state,
+			Config:   mod,
 		}
 		if err := tf.Transform(&g); err != nil {
 			t.Fatalf("err: %s", err)
 		}
 	}
 
-	actual := strings.TrimSpace(g.String())
-	expected := strings.TrimSpace(testTransformOrphanResourceModulesStr)
-	if actual != expected {
-		t.Fatalf("bad:\n\n%s", actual)
+	got := strings.TrimSpace(g.String())
+	want := strings.TrimSpace(testTransformOrphanResourceModulesStr)
+	if got != want {
+		t.Fatalf("wrong state result\ngot:\n%s\n\nwant:\n%s", got, want)
 	}
 }
 
@@ -258,14 +285,14 @@ aws_instance.foo
 module.child.aws_instance.web (orphan)
 `
 
-func testOrphanResourceConcreteFunc(a *NodeAbstractResource) dag.Vertex {
-	return &testOrphanResourceConcrete{a}
+func testOrphanResourceConcreteFunc(a *NodeAbstractResourceInstance) dag.Vertex {
+	return &testOrphanResourceInstanceConcrete{a}
 }
 
-type testOrphanResourceConcrete struct {
-	*NodeAbstractResource
+type testOrphanResourceInstanceConcrete struct {
+	*NodeAbstractResourceInstance
 }
 
-func (n *testOrphanResourceConcrete) Name() string {
-	return fmt.Sprintf("%s (orphan)", n.NodeAbstractResource.Name())
+func (n *testOrphanResourceInstanceConcrete) Name() string {
+	return fmt.Sprintf("%s (orphan)", n.NodeAbstractResourceInstance.Name())
 }

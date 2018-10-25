@@ -1,12 +1,15 @@
 provider "aws" {
-    root = "1"
+    root = 1
 }
 
 provider "aws" {
-    child = "eu"
+    value = "eu"
     alias = "eu"
 }
 
 module "child" {
     source = "./child"
+    providers = {
+      "aws.eu" = "aws.eu"
+    }
 }

@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/hashicorp/terraform/terraform"
+	"github.com/hashicorp/terraform/states"
 	"github.com/mitchellh/cli"
 )
 
@@ -74,59 +74,63 @@ func (c *StateMvCommand) Run(args []string) int {
 
 		stateToReal = stateTo.State()
 		if stateToReal == nil {
-			stateToReal = terraform.NewState()
+			stateToReal = states.NewState()
 		}
 	}
 
-	// Filter what we're moving
-	filter := &terraform.StateFilter{State: stateFromReal}
-	results, err := filter.Filter(args[0])
-	if err != nil {
-		c.Ui.Error(fmt.Sprintf(errStateMv, err))
-		return cli.RunResultHelp
-	}
-	if len(results) == 0 {
-		c.Ui.Output(fmt.Sprintf("Item to move doesn't exist: %s", args[0]))
-		return 1
-	}
+	c.Ui.Error("state mv command not yet updated for new state types")
+	return 1
+	/*
+		// Filter what we're moving
+		filter := &terraform.StateFilter{State: stateFromReal}
+		results, err := filter.Filter(args[0])
+		if err != nil {
+			c.Ui.Error(fmt.Sprintf(errStateMv, err))
+			return cli.RunResultHelp
+		}
+		if len(results) == 0 {
+			c.Ui.Output(fmt.Sprintf("Item to move doesn't exist: %s", args[0]))
+			return 1
+		}
 
-	// Get the item to add to the state
-	add := c.addableResult(results)
+		// Get the item to add to the state
+		add := c.addableResult(results)
 
-	// Do the actual move
-	if err := stateFromReal.Remove(args[0]); err != nil {
-		c.Ui.Error(fmt.Sprintf(errStateMv, err))
-		return 1
-	}
+		// Do the actual move
+		if err := stateFromReal.Remove(args[0]); err != nil {
+			c.Ui.Error(fmt.Sprintf(errStateMv, err))
+			return 1
+		}
 
-	if err := stateToReal.Add(args[0], args[1], add); err != nil {
-		c.Ui.Error(fmt.Sprintf(errStateMv, err))
-		return 1
-	}
+		if err := stateToReal.Add(args[0], args[1], add); err != nil {
+			c.Ui.Error(fmt.Sprintf(errStateMv, err))
+			return 1
+		}
 
-	// Write the new state
-	if err := stateTo.WriteState(stateToReal); err != nil {
-		c.Ui.Error(fmt.Sprintf(errStateMvPersist, err))
-		return 1
-	}
-
-	if err := stateTo.PersistState(); err != nil {
-		c.Ui.Error(fmt.Sprintf(errStateMvPersist, err))
-		return 1
-	}
-
-	// Write the old state if it is different
-	if stateTo != stateFrom {
-		if err := stateFrom.WriteState(stateFromReal); err != nil {
+		// Write the new state
+		if err := stateTo.WriteState(stateToReal); err != nil {
 			c.Ui.Error(fmt.Sprintf(errStateMvPersist, err))
 			return 1
 		}
 
-		if err := stateFrom.PersistState(); err != nil {
+		if err := stateTo.PersistState(); err != nil {
 			c.Ui.Error(fmt.Sprintf(errStateMvPersist, err))
 			return 1
 		}
-	}
+
+		// Write the old state if it is different
+		if stateTo != stateFrom {
+			if err := stateFrom.WriteState(stateFromReal); err != nil {
+				c.Ui.Error(fmt.Sprintf(errStateMvPersist, err))
+				return 1
+			}
+
+			if err := stateFrom.PersistState(); err != nil {
+				c.Ui.Error(fmt.Sprintf(errStateMvPersist, err))
+				return 1
+			}
+		}
+	*/
 
 	c.Ui.Output(fmt.Sprintf(
 		"Moved %s to %s", args[0], args[1]))
@@ -136,43 +140,18 @@ func (c *StateMvCommand) Run(args []string) int {
 // addableResult takes the result from a filter operation and returns what to
 // call State.Add with. The reason we do this is because in the module case
 // we must add the list of all modules returned versus just the root module.
-func (c *StateMvCommand) addableResult(results []*terraform.StateFilterResult) interface{} {
+func (c *StateMvCommand) addableResult(results []*states.FilterResult) interface{} {
 	switch v := results[0].Value.(type) {
-	case *terraform.ModuleState:
-		// If a module state then we should add the full list of modules
-		result := []*terraform.ModuleState{v}
+	case *states.Module:
+		// If a state module then we should add the full list of modules
+		result := []*states.Module{v}
 		if len(results) > 1 {
 			for _, r := range results[1:] {
-				if ms, ok := r.Value.(*terraform.ModuleState); ok {
+				if ms, ok := r.Value.(*states.Module); ok {
 					result = append(result, ms)
 				}
 			}
 		}
-
-		return result
-
-	case *terraform.ResourceState:
-		// If a resource state with more than one result, it has a multi-count
-		// and we need to add all of them.
-		result := []*terraform.ResourceState{v}
-		if len(results) > 1 {
-			for _, r := range results[1:] {
-				rs, ok := r.Value.(*terraform.ResourceState)
-				if !ok {
-					continue
-				}
-
-				if rs.Type == v.Type {
-					result = append(result, rs)
-				}
-			}
-		}
-
-		// If we only have one item, add it directly
-		if len(result) == 1 {
-			return result[0]
-		}
-
 		return result
 
 	default:

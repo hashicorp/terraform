@@ -25,6 +25,8 @@ in close collaboration with HashiCorp, and are tested by HashiCorp.
 
 [DNSMadeEasy](/docs/providers/dme/index.html)
 
+[F5 BIG-IP](/docs/providers/bigip/index.html)
+
 [HTTP](/docs/providers/http/index.html)
 
 [NS1](/docs/providers/ns1/index.html)

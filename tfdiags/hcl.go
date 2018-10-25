@@ -40,6 +40,16 @@ func (d hclDiagnostic) Source() Source {
 	return ret
 }
 
+func (d hclDiagnostic) FromExpr() *FromExpr {
+	if d.diag.Expression == nil || d.diag.EvalContext == nil {
+		return nil
+	}
+	return &FromExpr{
+		Expression:  d.diag.Expression,
+		EvalContext: d.diag.EvalContext,
+	}
+}
+
 // SourceRangeFromHCL constructs a SourceRange from the corresponding range
 // type within the HCL package.
 func SourceRangeFromHCL(hclRange hcl.Range) SourceRange {

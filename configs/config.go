@@ -1,8 +1,11 @@
 package configs
 
 import (
+	"sort"
+
 	version "github.com/hashicorp/go-version"
 	"github.com/hashicorp/hcl2/hcl"
+	"github.com/hashicorp/terraform/addrs"
 )
 
 // A Config is a node in the tree of modules within a configuration.
@@ -27,13 +30,12 @@ type Config struct {
 	// Path is a sequence of module logical names that traverse from the root
 	// module to this config. Path is empty for the root module.
 	//
-	// This should not be used to display a path to the end-user, since
-	// our UI conventions call for us to return a module address string in that
-	// case, and a module address string ought to be built from the dynamic
-	// module tree (resulting from evaluating "count" and "for_each" arguments
-	// on our calls to produce potentially multiple child instances per call)
-	// rather than from our static module tree.
-	Path []string
+	// This should only be used to display paths to the end-user in rare cases
+	// where we are talking about the static module tree, before module calls
+	// have been resolved. In most cases, a addrs.ModuleInstance describing
+	// a node in the dynamic module tree is better, since it will then include
+	// any keys resulting from evaluating "count" and "for_each" arguments.
+	Path addrs.Module
 
 	// ChildModules points to the Config for each of the direct child modules
 	// called from this module. The keys in this map match the keys in
@@ -71,6 +73,17 @@ type Config struct {
 	// This field is meaningless for the root module, where it will always
 	// be nil.
 	Version *version.Version
+}
+
+// NewEmptyConfig constructs a single-node configuration tree with an empty
+// root module. This is generally a pretty useless thing to do, so most callers
+// should instead use BuildConfig.
+func NewEmptyConfig() *Config {
+	ret := &Config{}
+	ret.Root = ret
+	ret.Children = make(map[string]*Config)
+	ret.Module = &Module{}
+	return ret
 }
 
 // Depth returns the number of "hops" the receiver is from the root of its
@@ -112,4 +125,81 @@ func (c *Config) AllModules() []*Config {
 		ret = append(ret, c)
 	})
 	return ret
+}
+
+// Descendent returns the descendent config that has the given path beneath
+// the receiver, or nil if there is no such module.
+//
+// The path traverses the static module tree, prior to any expansion to handle
+// count and for_each arguments.
+//
+// An empty path will just return the receiver, and is therefore pointless.
+func (c *Config) Descendent(path addrs.Module) *Config {
+	current := c
+	for _, name := range path {
+		current = current.Children[name]
+		if current == nil {
+			return nil
+		}
+	}
+	return current
+}
+
+// DescendentForInstance is like Descendent except that it accepts a path
+// to a particular module instance in the dynamic module graph, returning
+// the node from the static module graph that corresponds to it.
+//
+// All instances created by a particular module call share the same
+// configuration, so the keys within the given path are disregarded.
+func (c *Config) DescendentForInstance(path addrs.ModuleInstance) *Config {
+	current := c
+	for _, step := range path {
+		current = current.Children[step.Name]
+		if current == nil {
+			return nil
+		}
+	}
+	return current
+}
+
+// ProviderTypes returns the names of each distinct provider type referenced
+// in the receiving configuration.
+//
+// This is a helper for easily determining which provider types are required
+// to fully interpret the configuration, though it does not include version
+// information and so callers are expected to have already dealt with
+// provider version selection in an earlier step and have identified suitable
+// versions for each provider.
+func (c *Config) ProviderTypes() []string {
+	m := make(map[string]struct{})
+	c.gatherProviderTypes(m)
+
+	ret := make([]string, 0, len(m))
+	for k := range m {
+		ret = append(ret, k)
+	}
+	sort.Strings(ret)
+	return ret
+}
+func (c *Config) gatherProviderTypes(m map[string]struct{}) {
+	if c == nil {
+		return
+	}
+
+	for _, pc := range c.Module.ProviderConfigs {
+		m[pc.Name] = struct{}{}
+	}
+	for _, rc := range c.Module.ManagedResources {
+		providerAddr := rc.ProviderConfigAddr()
+		m[providerAddr.Type] = struct{}{}
+	}
+	for _, rc := range c.Module.DataResources {
+		providerAddr := rc.ProviderConfigAddr()
+		m[providerAddr.Type] = struct{}{}
+	}
+
+	// Must also visit our child modules, recursively.
+	for _, cc := range c.Children {
+		cc.gatherProviderTypes(m)
+	}
 }
