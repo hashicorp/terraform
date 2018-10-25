@@ -60,7 +60,7 @@ providers {
 
   # Include a custom plugin to the bundle. Will search for the plugin in the
   # plugins directory, and package it with the bundle archive. Plugin must have
-  # a name of the form: terraform-provider-*, and must be build with the operating
+  # a name of the form: terraform-provider-*_v*, and must be built with the operating
   # system and architecture that terraform enterprise is running, e.g. linux and amd64
   customplugin = ["0.1"]
 }
