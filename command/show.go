@@ -23,7 +23,6 @@ type ShowCommand struct {
 }
 
 func (c *ShowCommand) Run(args []string) int {
-
 	args, err := c.Meta.process(args, false)
 	if err != nil {
 		return 1

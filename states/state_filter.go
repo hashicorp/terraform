@@ -40,7 +40,7 @@ func (f *Filter) Filter(fs ...string) ([]*FilterResult, error) {
 			as[i] = addr
 			continue
 		}
-		return nil, fmt.Errorf("Error parsing address '%s'", v)
+		return nil, fmt.Errorf("Error parsing address: %s", v)
 	}
 
 	// If we weren't given any filters, then we list all
