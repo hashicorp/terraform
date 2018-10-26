@@ -276,7 +276,7 @@ func newResourceConfigShimmedComputedKeys(obj cty.Value, schema *configschema.Bl
 		}
 
 		blockVal := obj.GetAttr(typeName)
-		if !blockVal.IsKnown() {
+		if !blockVal.IsKnown() || blockVal.IsNull() {
 			continue
 		}
 
