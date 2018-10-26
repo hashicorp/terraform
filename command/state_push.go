@@ -32,8 +32,8 @@ func (c *StatePushCommand) Run(args []string) int {
 	args = cmdFlags.Args()
 
 	if len(args) != 1 {
-		c.Ui.Error("Exactly one argument expected: path to state to push")
-		return 1
+		c.Ui.Error("Exactly one argument expected.\n")
+		return cli.RunResultHelp
 	}
 
 	// Determine our reader for the input state. This is the filepath
