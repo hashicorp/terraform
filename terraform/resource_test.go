@@ -6,6 +6,9 @@ import (
 	"strconv"
 	"testing"
 
+	"github.com/hashicorp/terraform/configs/configschema"
+	"github.com/zclconf/go-cty/cty"
+
 	"github.com/hashicorp/hil"
 	"github.com/hashicorp/hil/ast"
 	"github.com/hashicorp/terraform/config"
@@ -756,4 +759,205 @@ func testResourceConfig(
 	}
 
 	return NewResourceConfig(raw)
+}
+
+func TestNewResourceConfigShimmed(t *testing.T) {
+	for _, tc := range []struct {
+		Name     string
+		Val      cty.Value
+		Schema   *configschema.Block
+		Expected *ResourceConfig
+	}{
+		{
+			Name: "empty object",
+			Val:  cty.NullVal(cty.EmptyObject),
+			Schema: &configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"foo": {
+						Type:     cty.String,
+						Optional: true,
+					},
+				},
+			},
+			Expected: &ResourceConfig{
+				Raw:    map[string]interface{}{},
+				Config: map[string]interface{}{},
+			},
+		},
+		{
+			Name: "basic",
+			Val: cty.ObjectVal(map[string]cty.Value{
+				"foo": cty.StringVal("bar"),
+			}),
+			Schema: &configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"foo": {
+						Type:     cty.String,
+						Optional: true,
+					},
+				},
+			},
+			Expected: &ResourceConfig{
+				Raw: map[string]interface{}{
+					"foo": "bar",
+				},
+				Config: map[string]interface{}{
+					"foo": "bar",
+				},
+			},
+		},
+		{
+			Name: "null string",
+			Val: cty.ObjectVal(map[string]cty.Value{
+				"foo": cty.NullVal(cty.String),
+			}),
+			Schema: &configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"foo": {
+						Type:     cty.String,
+						Optional: true,
+					},
+				},
+			},
+			Expected: &ResourceConfig{
+				Raw:    map[string]interface{}{},
+				Config: map[string]interface{}{},
+			},
+		},
+		{
+			Name: "unknown string",
+			Val: cty.ObjectVal(map[string]cty.Value{
+				"foo": cty.UnknownVal(cty.String),
+			}),
+			Schema: &configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"foo": {
+						Type:     cty.String,
+						Optional: true,
+					},
+				},
+			},
+			Expected: &ResourceConfig{
+				ComputedKeys: []string{"foo"},
+				Raw: map[string]interface{}{
+					"foo": config.UnknownVariableValue,
+				},
+				Config: map[string]interface{}{
+					"foo": config.UnknownVariableValue,
+				},
+			},
+		},
+		{
+			Name: "unknown collections",
+			Val: cty.ObjectVal(map[string]cty.Value{
+				"bar": cty.UnknownVal(cty.Map(cty.String)),
+				"baz": cty.UnknownVal(cty.List(cty.String)),
+			}),
+			Schema: &configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"bar": {
+						Type:     cty.Map(cty.String),
+						Required: true,
+					},
+					"baz": {
+						Type:     cty.List(cty.String),
+						Optional: true,
+					},
+				},
+			},
+			Expected: &ResourceConfig{
+				ComputedKeys: []string{"bar", "baz"},
+				Raw: map[string]interface{}{
+					"bar": config.UnknownVariableValue,
+					"baz": config.UnknownVariableValue,
+				},
+				Config: map[string]interface{}{
+					"bar": config.UnknownVariableValue,
+					"baz": config.UnknownVariableValue,
+				},
+			},
+		},
+		{
+			Name: "null collections",
+			Val: cty.ObjectVal(map[string]cty.Value{
+				"bar": cty.NullVal(cty.Map(cty.String)),
+				"baz": cty.NullVal(cty.List(cty.String)),
+			}),
+			Schema: &configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"bar": {
+						Type:     cty.Map(cty.String),
+						Required: true,
+					},
+					"baz": {
+						Type:     cty.List(cty.String),
+						Optional: true,
+					},
+				},
+			},
+			Expected: &ResourceConfig{
+				Raw:    map[string]interface{}{},
+				Config: map[string]interface{}{},
+			},
+		},
+		{
+			Name: "unknown blocks",
+			Val: cty.ObjectVal(map[string]cty.Value{
+				"bar": cty.UnknownVal(cty.Map(cty.String)),
+				"baz": cty.UnknownVal(cty.List(cty.String)),
+			}),
+			Schema: &configschema.Block{
+				BlockTypes: map[string]*configschema.NestedBlock{
+					"bar": {
+						Block:   configschema.Block{},
+						Nesting: configschema.NestingList,
+					},
+					"baz": {
+						Block:   configschema.Block{},
+						Nesting: configschema.NestingSet,
+					},
+				},
+			},
+			Expected: &ResourceConfig{
+				Raw: map[string]interface{}{
+					"bar": config.UnknownVariableValue,
+					"baz": config.UnknownVariableValue,
+				},
+				Config: map[string]interface{}{
+					"bar": config.UnknownVariableValue,
+					"baz": config.UnknownVariableValue,
+				},
+			},
+		},
+		{
+			Name: "null blocks",
+			Val: cty.ObjectVal(map[string]cty.Value{
+				"bar": cty.NullVal(cty.Map(cty.String)),
+				"baz": cty.NullVal(cty.List(cty.String)),
+			}),
+			Schema: &configschema.Block{
+				BlockTypes: map[string]*configschema.NestedBlock{
+					"bar": {
+						Block:   configschema.Block{},
+						Nesting: configschema.NestingMap,
+					},
+					"baz": {
+						Block:   configschema.Block{},
+						Nesting: configschema.NestingSingle,
+					},
+				},
+			},
+			Expected: &ResourceConfig{
+				Raw:    map[string]interface{}{},
+				Config: map[string]interface{}{},
+			},
+		},
+	} {
+		t.Run(tc.Name, func(*testing.T) {
+			cfg := NewResourceConfigShimmed(tc.Val, tc.Schema)
+			if !tc.Expected.Equal(cfg) {
+				t.Fatalf("expected:\n%#v\ngot:\n%#v", tc.Expected, cfg)
+			}
+		})
+	}
 }
