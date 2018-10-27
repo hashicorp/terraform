@@ -2,6 +2,7 @@ package command
 
 import (
 	"fmt"
+	"sort"
 	"time"
 
 	"github.com/hashicorp/terraform/addrs"
@@ -110,6 +111,25 @@ func (c *StateMeta) filter(state *states.State, args []string) ([]*states.Filter
 			}
 		}
 	}
+
+	// Sort the results
+	sort.Slice(results, func(i, j int) bool {
+		a, b := results[i], results[j]
+
+		// If the length is different, sort on the length so that the
+		// best match is the first result.
+		if len(a.Address.String()) != len(b.Address.String()) {
+			return len(a.Address.String()) < len(b.Address.String())
+		}
+
+		// If the addresses are different it is just lexographic sorting
+		if a.Address.String() != b.Address.String() {
+			return a.Address.String() < b.Address.String()
+		}
+
+		// Addresses are the same, which means it matters on the type
+		return a.SortedType() < b.SortedType()
+	})
 
 	return results, nil
 }
