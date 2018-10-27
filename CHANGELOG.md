@@ -3,6 +3,7 @@
 IMPROVEMENTS:
 
 * backend/s3: Support `credential_source` if specified in AWS configuration file [GH-19190]
+* command/state: Update and enable the `state mv` command [GH-19197]
 * command/state: Update and enable the `state rm` command [GH-19178]
 
 BUG FIXES:
