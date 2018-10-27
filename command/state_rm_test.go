@@ -115,11 +115,11 @@ func TestStateRmNoArgs(t *testing.T) {
 	args := []string{
 		"-state", statePath,
 	}
-	if code := c.Run(args); code != 1 {
-		t.Errorf("wrong exit status %d; want %d", code, 1)
+	if code := c.Run(args); code == 0 {
+		t.Errorf("expected non-zero exit code, got: %d", code)
 	}
 
-	if msg := ui.ErrorWriter.String(); !strings.Contains(msg, "At least one resource address") {
+	if msg := ui.ErrorWriter.String(); !strings.Contains(msg, "At least one address") {
 		t.Errorf("not the error we were looking for:\n%s", msg)
 	}
 
@@ -207,7 +207,7 @@ func TestStateRm_backupExplicit(t *testing.T) {
 		)
 	})
 	statePath := testStateFile(t, state)
-	backupPath := statePath + ".mybackup"
+	backupPath := statePath + ".backup.test"
 
 	p := testProvider()
 	ui := new(cli.MockUi)
@@ -251,7 +251,7 @@ func TestStateRm_noState(t *testing.T) {
 		},
 	}
 
-	args := []string{}
+	args := []string{"foo"}
 	if code := c.Run(args); code != 1 {
 		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
 	}
