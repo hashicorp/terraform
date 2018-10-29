@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
@@ -388,8 +389,8 @@ func TestApplyResourceChange(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// A propsed state with only the ID unknown will produce a nil diff, and
-	// should return the propsed state value.
+	// A proposed state with only the ID unknown will produce a nil diff, and
+	// should return the proposed state value.
 	plannedVal, err := schema.CoerceValue(cty.ObjectVal(map[string]cty.Value{
 		"id": cty.UnknownVal(cty.String),
 	}))
@@ -593,5 +594,46 @@ func TestPrepareProviderConfig(t *testing.T) {
 				t.Fatalf("\nexpected: %#v\ngot: %#v", tc.ExpectConfig, val)
 			}
 		})
+	}
+}
+
+func TestGetSchemaTimeouts(t *testing.T) {
+	r := &schema.Resource{
+		SchemaVersion: 4,
+		Timeouts: &schema.ResourceTimeout{
+			Create:  schema.DefaultTimeout(time.Second),
+			Read:    schema.DefaultTimeout(2 * time.Second),
+			Update:  schema.DefaultTimeout(3 * time.Second),
+			Default: schema.DefaultTimeout(10 * time.Second),
+		},
+		Schema: map[string]*schema.Schema{
+			"foo": {
+				Type:     schema.TypeInt,
+				Optional: true,
+			},
+		},
+	}
+
+	// verify that the timeouts appear in the schema as defined
+	block := r.CoreConfigSchema()
+	timeoutsBlock := block.BlockTypes["timeouts"]
+	if timeoutsBlock == nil {
+		t.Fatal("missing timeouts in schema")
+	}
+
+	if timeoutsBlock.Attributes["create"] == nil {
+		t.Fatal("missing create timeout in schema")
+	}
+	if timeoutsBlock.Attributes["read"] == nil {
+		t.Fatal("missing read timeout in schema")
+	}
+	if timeoutsBlock.Attributes["update"] == nil {
+		t.Fatal("missing update timeout in schema")
+	}
+	if d := timeoutsBlock.Attributes["delete"]; d != nil {
+		t.Fatalf("unexpected delete timeout in schema: %#v", d)
+	}
+	if timeoutsBlock.Attributes["default"] == nil {
+		t.Fatal("missing default timeout in schema")
 	}
 }

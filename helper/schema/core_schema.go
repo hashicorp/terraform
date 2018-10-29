@@ -172,6 +172,53 @@ func (r *Resource) CoreConfigSchema() *configschema.Block {
 		}
 	}
 
+	// insert configured timeout values into the schema
+	if r.Timeouts != nil {
+		timeouts := configschema.Block{
+			Attributes: map[string]*configschema.Attribute{},
+		}
+
+		if r.Timeouts.Create != nil {
+			timeouts.Attributes["create"] = &configschema.Attribute{
+				Type:     cty.String,
+				Optional: true,
+			}
+		}
+
+		if r.Timeouts.Read != nil {
+			timeouts.Attributes["read"] = &configschema.Attribute{
+				Type:     cty.String,
+				Optional: true,
+			}
+		}
+
+		if r.Timeouts.Update != nil {
+			timeouts.Attributes["update"] = &configschema.Attribute{
+				Type:     cty.String,
+				Optional: true,
+			}
+		}
+
+		if r.Timeouts.Delete != nil {
+			timeouts.Attributes["delete"] = &configschema.Attribute{
+				Type:     cty.String,
+				Optional: true,
+			}
+		}
+
+		if r.Timeouts.Default != nil {
+			timeouts.Attributes["default"] = &configschema.Attribute{
+				Type:     cty.String,
+				Optional: true,
+			}
+		}
+
+		block.BlockTypes["timeouts"] = &configschema.NestedBlock{
+			Nesting: configschema.NestingSingle,
+			Block:   timeouts,
+		}
+	}
+
 	return block
 }
 
