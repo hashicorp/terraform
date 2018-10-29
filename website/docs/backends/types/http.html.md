@@ -35,7 +35,7 @@ terraform {
 ```hcl
 data "terraform_remote_state" "foo" {
   backend = "http"
-  config {
+  config = {
     address = "http://my.rest.api.com"
   }
 }

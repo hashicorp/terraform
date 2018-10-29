@@ -29,7 +29,7 @@ terraform {
 data "terraform_remote_state" "foo" {
   backend = "local"
 
-  config {
+  config = {
     path = "${path.module}/../../terraform.tfstate"
   }
 }

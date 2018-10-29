@@ -38,7 +38,7 @@ terraform {
 ```hcl
 data "terraform_remote_state" "foo" {
   backend = "artifactory"
-  config {
+  config = {
     username = "SheldonCooper"
     password = "AmyFarrahFowler"
     url      = "https://custom.artifactoryonline.com/artifactory"
