@@ -102,7 +102,7 @@ terraform {
 data "terraform_remote_state" "foo" {
   backend = "remote"
 
-  config {
+  config = {
     organization = "company"
 
     workspaces {
