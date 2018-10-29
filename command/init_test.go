@@ -509,6 +509,14 @@ func TestInit_backendReinitConfigToExtra(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	ui = new(cli.MockUi)
+	c = &InitCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(testProvider()),
+			Ui:               ui,
+		},
+	}
+
 	args := []string{"-input=false", "-backend-config=path=foo"}
 	if code := c.Run(args); code != 0 {
 		t.Fatalf("bad: \n%s", ui.ErrorWriter.String())
