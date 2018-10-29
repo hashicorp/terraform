@@ -33,7 +33,7 @@ Note that for the access credentials we recommend using a
 ```hcl
 data "terraform_remote_state" "foo" {
   backend = "azurerm"
-  config {
+  config = {
     storage_account_name = "terraform123abc"
     container_name       = "terraform-state"
     key                  = "prod.terraform.tfstate"
