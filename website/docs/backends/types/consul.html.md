@@ -34,7 +34,7 @@ Note that for the access credentials we recommend using a
 ```hcl
 data "terraform_remote_state" "foo" {
   backend = "consul"
-  config {
+  config = {
     path = "full/path"
   }
 }

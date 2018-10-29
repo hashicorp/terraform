@@ -28,7 +28,7 @@ terraform {
 ```hcl
 data "terraform_remote_state" "foo" {
   backend = "gcs"
-  config {
+  config = {
     bucket  = "terraform-state"
     prefix  = "prod"
   }
