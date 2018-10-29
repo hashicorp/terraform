@@ -463,7 +463,7 @@ func (s *GRPCProviderServer) PlanResourceChange(_ context.Context, req *proto.Pl
 	}
 	priorState.Meta = priorPrivate
 
-	// turn the propsed state into a legacy configuration
+	// turn the proposed state into a legacy configuration
 	config := terraform.NewResourceConfigShimmed(proposedNewStateVal, block)
 
 	diff, err := s.provider.SimpleDiff(info, priorState, config)
