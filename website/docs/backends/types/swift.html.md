@@ -109,3 +109,4 @@ The following configuration options are supported:
 
  * `expire_after` - (Optional) How long should the `terraform.tfstate` created at `container`
    be retained for? If specified, Swift [expiring object support](https://docs.openstack.org/developer/swift/latest/overview_expiring_objects.html) is enabled on the state. Supported durations: `m` - Minutes, `h` - Hours, `d` - Days.
+   ~> **NOTE:** Since Terraform is inherently stateful - we'd strongly recommend against auto-expiring Statefiles.
