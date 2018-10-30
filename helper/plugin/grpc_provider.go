@@ -412,20 +412,22 @@ func (s *GRPCProviderServer) ReadResource(_ context.Context, req *proto.ReadReso
 	// helper/schema should always copy the ID over, but do it again just to be safe
 	newInstanceState.Attributes["id"] = newInstanceState.ID
 
-	newConfigVal, err := hcl2shim.HCL2ValueFromFlatmap(newInstanceState.Attributes, block.ImpliedType())
+	newStateVal, err := hcl2shim.HCL2ValueFromFlatmap(newInstanceState.Attributes, block.ImpliedType())
 	if err != nil {
 		resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
 		return resp, nil
 	}
 
-	newConfigMP, err := msgpack.Marshal(newConfigVal, block.ImpliedType())
+	newStateVal = copyTimeoutValues(newStateVal, stateVal)
+
+	newStateMP, err := msgpack.Marshal(newStateVal, block.ImpliedType())
 	if err != nil {
 		resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
 		return resp, nil
 	}
 
 	resp.NewState = &proto.DynamicValue{
-		Msgpack: newConfigMP,
+		Msgpack: newStateMP,
 	}
 
 	return resp, nil
@@ -461,6 +463,7 @@ func (s *GRPCProviderServer) PlanResourceChange(_ context.Context, req *proto.Pl
 			return resp, nil
 		}
 	}
+
 	priorState.Meta = priorPrivate
 
 	// turn the proposed state into a legacy configuration
@@ -488,6 +491,8 @@ func (s *GRPCProviderServer) PlanResourceChange(_ context.Context, req *proto.Pl
 		return resp, nil
 	}
 
+	plannedStateVal = copyTimeoutValues(plannedStateVal, proposedNewStateVal)
+
 	plannedMP, err := msgpack.Marshal(plannedStateVal, block.ImpliedType())
 	if err != nil {
 		resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
@@ -498,12 +503,14 @@ func (s *GRPCProviderServer) PlanResourceChange(_ context.Context, req *proto.Pl
 	}
 
 	// the Meta field gets encoded into PlannedPrivate
-	plannedPrivate, err := json.Marshal(diff.Meta)
-	if err != nil {
-		resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
-		return resp, nil
+	if diff.Meta != nil {
+		plannedPrivate, err := json.Marshal(diff.Meta)
+		if err != nil {
+			resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
+			return resp, nil
+		}
+		resp.PlannedPrivate = plannedPrivate
 	}
-	resp.PlannedPrivate = plannedPrivate
 
 	// collect the attributes that require instance replacement, and convert
 	// them to cty.Paths.
@@ -594,7 +601,10 @@ func (s *GRPCProviderServer) ApplyResourceChange(_ context.Context, req *proto.A
 			Meta:       make(map[string]interface{}),
 		}
 	}
-	diff.Meta = private
+
+	if private != nil {
+		diff.Meta = private
+	}
 
 	newInstanceState, err := s.provider.Apply(info, priorState, diff)
 	if err != nil {
@@ -613,6 +623,8 @@ func (s *GRPCProviderServer) ApplyResourceChange(_ context.Context, req *proto.A
 			return resp, nil
 		}
 	}
+
+	newStateVal = copyTimeoutValues(newStateVal, plannedStateVal)
 
 	newStateMP, err := msgpack.Marshal(newStateVal, block.ImpliedType())
 	if err != nil {
@@ -726,6 +738,8 @@ func (s *GRPCProviderServer) ReadDataSource(_ context.Context, req *proto.ReadDa
 		return resp, nil
 	}
 
+	newStateVal = copyTimeoutValues(newStateVal, configVal)
+
 	newStateMP, err := msgpack.Marshal(newStateVal, block.ImpliedType())
 	if err != nil {
 		resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
@@ -769,4 +783,29 @@ func pathToAttributePath(path cty.Path) *proto.AttributePath {
 	}
 
 	return &proto.AttributePath{Steps: steps}
+}
+
+// helper/schema throws away timeout values from the config and stores them in
+// the Private/Meta fields. we need to copy those values into the planned state
+// so that core doesn't see a perpetual diff with the timeout block.
+func copyTimeoutValues(to cty.Value, from cty.Value) cty.Value {
+	// if `from` is null, then there are no attributes, and if `to` is null we
+	// are planning to remove it altogether.
+	if from.IsNull() || to.IsNull() {
+		return to
+	}
+
+	fromAttrs := from.AsValueMap()
+	timeouts, ok := fromAttrs[schema.TimeoutsConfigKey]
+
+	// no timeouts to copy
+	// timeouts shouldn't be unknown, but don't copy possibly invalid values
+	if !ok || timeouts.IsNull() || !timeouts.IsWhollyKnown() {
+		return to
+	}
+
+	toAttrs := to.AsValueMap()
+	toAttrs[schema.TimeoutsConfigKey] = timeouts
+
+	return cty.ObjectVal(toAttrs)
 }
