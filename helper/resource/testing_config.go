@@ -77,7 +77,7 @@ func testStep(opts terraform.ContextOpts, state *terraform.State, step TestStep,
 		}
 
 		// We need to keep a copy of the state prior to destroying
-		// such that destroy steps can verify their behaviour in the check
+		// such that destroy steps can verify their behavior in the check
 		// function
 		stateBeforeApplication := state.DeepCopy()
 
