@@ -476,11 +476,16 @@ func (s *GRPCProviderServer) PlanResourceChange(_ context.Context, req *proto.Pl
 	}
 
 	if diff == nil {
-		// schema.Provider.Diff returns nil if it ends up making a diff with
-		// no changes, but our new interface wants us to return an actual
-		// change description that _shows_ there are no changes, so we return
-		// the proposed change that produces no diff.
-		resp.PlannedState = req.ProposedNewState
+		// schema.Provider.Diff returns nil if it ends up making a diff with no
+		// changes, but our new interface wants us to return an actual change
+		// description that _shows_ there are no changes. This is usually the
+		// PriorSate, however if there was no prior state and no diff, then we
+		// use the ProposedNewState.
+		if !priorStateVal.IsNull() {
+			resp.PlannedState = req.PriorState
+		} else {
+			resp.PlannedState = req.ProposedNewState
+		}
 		return resp, nil
 	}
 
