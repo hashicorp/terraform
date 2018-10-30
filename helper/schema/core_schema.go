@@ -172,48 +172,52 @@ func (r *Resource) CoreConfigSchema() *configschema.Block {
 		}
 	}
 
-	// insert configured timeout values into the schema
-	if r.Timeouts != nil {
+	_, timeoutsAttr := block.Attributes[TimeoutsConfigKey]
+	_, timeoutsBlock := block.BlockTypes[TimeoutsConfigKey]
+
+	// Insert configured timeout values into the schema, as long as the schema
+	// didn't define anything else by that name.
+	if r.Timeouts != nil && !timeoutsAttr && !timeoutsBlock {
 		timeouts := configschema.Block{
 			Attributes: map[string]*configschema.Attribute{},
 		}
 
 		if r.Timeouts.Create != nil {
-			timeouts.Attributes["create"] = &configschema.Attribute{
+			timeouts.Attributes[TimeoutCreate] = &configschema.Attribute{
 				Type:     cty.String,
 				Optional: true,
 			}
 		}
 
 		if r.Timeouts.Read != nil {
-			timeouts.Attributes["read"] = &configschema.Attribute{
+			timeouts.Attributes[TimeoutRead] = &configschema.Attribute{
 				Type:     cty.String,
 				Optional: true,
 			}
 		}
 
 		if r.Timeouts.Update != nil {
-			timeouts.Attributes["update"] = &configschema.Attribute{
+			timeouts.Attributes[TimeoutUpdate] = &configschema.Attribute{
 				Type:     cty.String,
 				Optional: true,
 			}
 		}
 
 		if r.Timeouts.Delete != nil {
-			timeouts.Attributes["delete"] = &configschema.Attribute{
+			timeouts.Attributes[TimeoutDelete] = &configschema.Attribute{
 				Type:     cty.String,
 				Optional: true,
 			}
 		}
 
 		if r.Timeouts.Default != nil {
-			timeouts.Attributes["default"] = &configschema.Attribute{
+			timeouts.Attributes[TimeoutDefault] = &configschema.Attribute{
 				Type:     cty.String,
 				Optional: true,
 			}
 		}
 
-		block.BlockTypes["timeouts"] = &configschema.NestedBlock{
+		block.BlockTypes[TimeoutsConfigKey] = &configschema.NestedBlock{
 			Nesting: configschema.NestingSingle,
 			Block:   timeouts,
 		}
