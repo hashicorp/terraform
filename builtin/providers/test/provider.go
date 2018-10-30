@@ -21,6 +21,7 @@ func Provider() terraform.ResourceProvider {
 			"test_resource_gh12183":          testResourceGH12183(),
 			"test_resource_with_custom_diff": testResourceCustomDiff(),
 			"test_resource_timeout":          testResourceTimeout(),
+			"test_resource_diff_suppress":    testResourceDiffSuppress(),
 		},
 		DataSourcesMap: map[string]*schema.Resource{
 			"test_data_source":    testDataSource(),
