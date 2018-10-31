@@ -28,6 +28,10 @@ func RequiresReplace(attrs []string, ty cty.Type) ([]cty.Path, error) {
 		paths = append(paths, p)
 	}
 
+	// now trim off any trailing paths that aren't GetAttrSteps, since only an
+	// attribute itself can require replacement
+	paths = trimPaths(paths)
+
 	// There may be redundant paths due to set elements or index attributes
 	// Do some ugly n^2 filtering, but these are always fairly small sets.
 	for i := 0; i < len(paths)-1; i++ {
@@ -42,6 +46,30 @@ func RequiresReplace(attrs []string, ty cty.Type) ([]cty.Path, error) {
 	}
 
 	return paths, nil
+}
+
+// trimPaths removes any trailing steps that aren't of type GetAttrSet, since
+// only an attribute itself can require replacement
+func trimPaths(paths []cty.Path) []cty.Path {
+	var trimmed []cty.Path
+	for _, path := range paths {
+		path = trimPath(path)
+		if len(path) > 0 {
+			trimmed = append(trimmed, path)
+		}
+	}
+	return trimmed
+}
+
+func trimPath(path cty.Path) cty.Path {
+	for len(path) > 0 {
+		_, isGetAttr := path[len(path)-1].(cty.GetAttrStep)
+		if isGetAttr {
+			break
+		}
+		path = path[:len(path)-1]
+	}
+	return path
 }
 
 // requiresReplacePath takes a key from a flatmap along with the cty.Type
