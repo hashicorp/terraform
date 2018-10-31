@@ -12,7 +12,6 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/backend"
-	backendinit "github.com/hashicorp/terraform/backend/init"
 	"github.com/hashicorp/terraform/config"
 	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/configs/configschema"
@@ -21,6 +20,8 @@ import (
 	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/hashicorp/terraform/tfdiags"
+
+	backendInit "github.com/hashicorp/terraform/backend/init"
 )
 
 // InitCommand is a Command implementation that takes a Terraform
@@ -153,10 +154,12 @@ func (c *InitCommand) Run(args []string) int {
 
 	// If our directory is empty, then we're done. We can't get or setup
 	// the backend with an empty directory.
-	if empty, err := config.IsEmptyDir(path); err != nil {
+	empty, err := config.IsEmptyDir(path)
+	if err != nil {
 		diags = diags.Append(fmt.Errorf("Error checking configuration: %s", err))
 		return 1
-	} else if empty {
+	}
+	if empty {
 		c.Ui.Output(c.Colorize().Color(strings.TrimSpace(outputInitEmpty)))
 		return 0
 	}
@@ -212,7 +215,7 @@ func (c *InitCommand) Run(args []string) int {
 				c.Ui.Output(c.Colorize().Color(fmt.Sprintf("\n[reset][bold]Initializing the backend...")))
 
 				backendType := config.Backend.Type
-				bf := backendinit.Backend(backendType)
+				bf := backendInit.Backend(backendType)
 				if bf == nil {
 					diags = diags.Append(&hcl.Diagnostic{
 						Severity: hcl.DiagError,
@@ -275,14 +278,12 @@ func (c *InitCommand) Run(args []string) int {
 	if back != nil {
 		sMgr, err := back.StateMgr(c.Workspace())
 		if err != nil {
-			c.Ui.Error(fmt.Sprintf(
-				"Error loading state: %s", err))
+			c.Ui.Error(fmt.Sprintf("Error loading state: %s", err))
 			return 1
 		}
 
 		if err := sMgr.RefreshState(); err != nil {
-			c.Ui.Error(fmt.Sprintf(
-				"Error refreshing state: %s", err))
+			c.Ui.Error(fmt.Sprintf("Error refreshing state: %s", err))
 			return 1
 		}
 

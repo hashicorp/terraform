@@ -10,23 +10,24 @@ import (
 	"fmt"
 	"log"
 	"path/filepath"
+	"strconv"
 	"strings"
 
 	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/hcl2/hcl"
 	"github.com/hashicorp/hcl2/hcldec"
-	"github.com/zclconf/go-cty/cty"
-	ctyjson "github.com/zclconf/go-cty/cty/json"
-
 	"github.com/hashicorp/terraform/backend"
-	backendinit "github.com/hashicorp/terraform/backend/init"
-	backendlocal "github.com/hashicorp/terraform/backend/local"
 	"github.com/hashicorp/terraform/command/clistate"
 	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/plans"
 	"github.com/hashicorp/terraform/state"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/hashicorp/terraform/tfdiags"
+	"github.com/zclconf/go-cty/cty"
+	ctyjson "github.com/zclconf/go-cty/cty/json"
+
+	backendInit "github.com/hashicorp/terraform/backend/init"
+	backendLocal "github.com/hashicorp/terraform/backend/local"
 )
 
 // BackendOpts are the options used to initialize a backend.Backend.
@@ -91,7 +92,7 @@ func (m *Meta) Backend(opts *BackendOpts) (backend.Enhanced, tfdiags.Diagnostics
 		log.Printf("[INFO] command: backend initialized: %T", b)
 	}
 
-	// Setup the CLI opts we pass into backends that support it
+	// Setup the CLI opts we pass into backends that support it.
 	cliOpts := m.backendCLIOpts()
 	cliOpts.Validation = true
 
@@ -122,7 +123,7 @@ func (m *Meta) Backend(opts *BackendOpts) (backend.Enhanced, tfdiags.Diagnostics
 	}
 
 	// Build the local backend
-	local := &backendlocal.Local{Backend: b}
+	local := backendLocal.NewWithBackend(b)
 	if err := local.CLIInit(cliOpts); err != nil {
 		// Local backend isn't allowed to fail. It would be a bug.
 		panic(err)
@@ -163,7 +164,7 @@ func (m *Meta) Backend(opts *BackendOpts) (backend.Enhanced, tfdiags.Diagnostics
 func (m *Meta) BackendForPlan(settings plans.Backend) (backend.Enhanced, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
-	f := backendinit.Backend(settings.Type)
+	f := backendInit.Backend(settings.Type)
 	if f == nil {
 		diags = diags.Append(fmt.Errorf(strings.TrimSpace(errBackendSavedUnknown), settings.Type))
 		return nil, diags
@@ -209,7 +210,7 @@ func (m *Meta) BackendForPlan(settings plans.Backend) (backend.Enhanced, tfdiags
 	// to cause any operations to be run locally.
 	cliOpts := m.backendCLIOpts()
 	cliOpts.Validation = false // don't validate here in case config contains file(...) calls where the file doesn't exist
-	local := &backendlocal.Local{Backend: b}
+	local := backendLocal.NewWithBackend(b)
 	if err := local.CLIInit(cliOpts); err != nil {
 		// Local backend should never fail, so this is always a bug.
 		panic(err)
@@ -238,7 +239,7 @@ func (m *Meta) backendCLIOpts() *backend.CLIOpts {
 // for some checks that require a remote backend.
 func (m *Meta) IsLocalBackend(b backend.Backend) bool {
 	// Is it a local backend?
-	bLocal, ok := b.(*backendlocal.Local)
+	bLocal, ok := b.(*backendLocal.Local)
 
 	// If it is, does it not have an alternate state backend?
 	if ok {
@@ -267,6 +268,7 @@ func (m *Meta) Operation(b backend.Backend) *backend.Operation {
 
 	return &backend.Operation{
 		PlanOutBackend:   planOutBackend,
+		Parallelism:      m.parallelism,
 		Targets:          m.targets,
 		UIIn:             m.UIInput(),
 		UIOut:            m.Ui,
@@ -303,7 +305,7 @@ func (m *Meta) backendConfig(opts *BackendOpts) (*configs.Backend, int, tfdiags.
 		return nil, 0, nil
 	}
 
-	bf := backendinit.Backend(c.Type)
+	bf := backendInit.Backend(c.Type)
 	if bf == nil {
 		diags = diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagError,
@@ -598,22 +600,31 @@ func (m *Meta) backend_C_r_s(c *configs.Backend, cHash int, sMgr *state.LocalSta
 		return nil, diags
 	}
 
-	workspace := m.Workspace()
-
-	localState, err := localB.StateMgr(workspace)
+	workspaces, err := localB.Workspaces()
 	if err != nil {
 		diags = diags.Append(fmt.Errorf(errBackendLocalRead, err))
 		return nil, diags
 	}
-	if err := localState.RefreshState(); err != nil {
-		diags = diags.Append(fmt.Errorf(errBackendLocalRead, err))
-		return nil, diags
+
+	var localStates []state.State
+	for _, workspace := range workspaces {
+		localState, err := localB.StateMgr(workspace)
+		if err != nil {
+			diags = diags.Append(fmt.Errorf(errBackendLocalRead, err))
+			return nil, diags
+		}
+		if err := localState.RefreshState(); err != nil {
+			diags = diags.Append(fmt.Errorf(errBackendLocalRead, err))
+			return nil, diags
+		}
+
+		// We only care about non-empty states.
+		if localS := localState.State(); !localS.Empty() {
+			localStates = append(localStates, localState)
+		}
 	}
 
-	// If the local state is not empty, we need to potentially do a
-	// state migration to the new backend (with user permission), unless the
-	// destination is also "local"
-	if localS := localState.State(); !localS.Empty() {
+	if len(localStates) > 0 {
 		// Perform the migration
 		err = m.backendMigrateState(&backendMigrateOpts{
 			OneType: "local",
@@ -631,8 +642,8 @@ func (m *Meta) backend_C_r_s(c *configs.Backend, cHash int, sMgr *state.LocalSta
 		// can get us here too. Don't delete our state if the old and new paths
 		// are the same.
 		erase := true
-		if newLocalB, ok := b.(*backendlocal.Local); ok {
-			if localB, ok := localB.(*backendlocal.Local); ok {
+		if newLocalB, ok := b.(*backendLocal.Local); ok {
+			if localB, ok := localB.(*backendLocal.Local); ok {
 				if newLocalB.StatePath == localB.StatePath {
 					erase = false
 				}
@@ -640,14 +651,16 @@ func (m *Meta) backend_C_r_s(c *configs.Backend, cHash int, sMgr *state.LocalSta
 		}
 
 		if erase {
-			// We always delete the local state, unless that was our new state too.
-			if err := localState.WriteState(nil); err != nil {
-				diags = diags.Append(fmt.Errorf(errBackendMigrateLocalDelete, err))
-				return nil, diags
-			}
-			if err := localState.PersistState(); err != nil {
-				diags = diags.Append(fmt.Errorf(errBackendMigrateLocalDelete, err))
-				return nil, diags
+			for _, localState := range localStates {
+				// We always delete the local state, unless that was our new state too.
+				if err := localState.WriteState(nil); err != nil {
+					diags = diags.Append(fmt.Errorf(errBackendMigrateLocalDelete, err))
+					return nil, diags
+				}
+				if err := localState.PersistState(); err != nil {
+					diags = diags.Append(fmt.Errorf(errBackendMigrateLocalDelete, err))
+					return nil, diags
+				}
 			}
 		}
 	}
@@ -687,11 +700,65 @@ func (m *Meta) backend_C_r_s(c *configs.Backend, cHash int, sMgr *state.LocalSta
 		return nil, diags
 	}
 
+	// Its possible that the currently selected workspace is not migrated,
+	// so we call selectWorkspace to ensure a valid workspace is selected.
+	if err := m.selectWorkspace(b); err != nil {
+		diags = diags.Append(err)
+		return nil, diags
+	}
+
 	m.Ui.Output(m.Colorize().Color(fmt.Sprintf(
 		"[reset][green]\n"+strings.TrimSpace(successBackendSet), s.Backend.Type)))
 
 	// Return the backend
 	return b, diags
+}
+
+// selectWorkspace gets a list of migrated workspaces and then checks
+// if the currently selected workspace is valid. If not, it will ask
+// the user to select a workspace from the list.
+func (m *Meta) selectWorkspace(b backend.Backend) error {
+	workspaces, err := b.Workspaces()
+	if err != nil {
+		return fmt.Errorf("Failed to get migrated workspaces: %s", err)
+	}
+	if len(workspaces) == 0 {
+		return fmt.Errorf(errBackendNoMigratedWorkspaces)
+	}
+
+	// Get the currently selected workspace.
+	workspace := m.Workspace()
+
+	// Check if any of the migrated workspaces match the selected workspace
+	// and create a numbered list with migrated workspaces.
+	var list strings.Builder
+	for i, w := range workspaces {
+		if w == workspace {
+			return nil
+		}
+		fmt.Fprintf(&list, "%d. %s\n", i+1, w)
+	}
+
+	// If the selected workspace is not migrated, ask the user to select
+	// a workspace from the list of migrated workspaces.
+	v, err := m.UIInput().Input(&terraform.InputOpts{
+		Id: "select-workspace",
+		Query: fmt.Sprintf(
+			"[reset][bold][yellow]The currently selected workspace (%s) is not migrated.[reset]",
+			workspace),
+		Description: fmt.Sprintf(
+			strings.TrimSpace(inputBackendSelectWorkspace), list.String()),
+	})
+	if err != nil {
+		return fmt.Errorf("Error asking to select workspace: %s", err)
+	}
+
+	idx, err := strconv.Atoi(v)
+	if err != nil || (idx < 1 || idx > len(workspaces)) {
+		return fmt.Errorf("Error selecting workspace: input not a valid number")
+	}
+
+	return m.SetWorkspace(workspaces[idx-1])
 }
 
 // Changing a previously saved backend.
@@ -797,7 +864,7 @@ func (m *Meta) backend_C_r_S_unchanged(c *configs.Backend, cHash int, sMgr *stat
 	}
 
 	// Get the backend
-	f := backendinit.Backend(s.Backend.Type)
+	f := backendInit.Backend(s.Backend.Type)
 	if f == nil {
 		diags = diags.Append(fmt.Errorf(strings.TrimSpace(errBackendSavedUnknown), s.Backend.Type))
 		return nil, diags
@@ -861,7 +928,7 @@ func (m *Meta) backendInitFromConfig(c *configs.Backend) (backend.Backend, cty.V
 	var diags tfdiags.Diagnostics
 
 	// Get the backend
-	f := backendinit.Backend(c.Type)
+	f := backendInit.Backend(c.Type)
 	if f == nil {
 		diags = diags.Append(fmt.Errorf(strings.TrimSpace(errBackendNewUnknown), c.Type))
 		return nil, cty.NilVal, diags
@@ -901,7 +968,7 @@ func (m *Meta) backendInitFromSaved(s *terraform.BackendState) (backend.Backend,
 	var diags tfdiags.Diagnostics
 
 	// Get the backend
-	f := backendinit.Backend(s.Type)
+	f := backendInit.Backend(s.Type)
 	if f == nil {
 		diags = diags.Append(fmt.Errorf(strings.TrimSpace(errBackendSavedUnknown), s.Type))
 		return nil, diags

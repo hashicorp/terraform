@@ -97,6 +97,8 @@ github.com/google/btree v0.0.0-20180813153112-4030bb1f1f0c h1:964Od4U6p2jUkFxvCy
 github.com/google/btree v0.0.0-20180813153112-4030bb1f1f0c/go.mod h1:lNA+9X1NB3Zf8V7Ke586lFgjr2dZNuvo3lPJSGZ5JPQ=
 github.com/google/go-cmp v0.2.0 h1:+dTQ8DZQJz0Mb/HjFlkptS1FeQ4cWSnN941F8aEG4SQ=
 github.com/google/go-cmp v0.2.0/go.mod h1:oXzfMopK8JAjlY9xF4vHSVASa0yLyX7SntLO5aqRK0M=
+github.com/google/go-querystring v1.0.0 h1:Xkwi/a1rcvNg1PPYe5vI8GbeBY/jrVuDX5ASuANWTrk=
+github.com/google/go-querystring v1.0.0/go.mod h1:odCYkC5MyYFN7vkCjXpyrEuKhc/BUO6wN/zVPAxq5ck=
 github.com/googleapis/gax-go v0.0.0-20161107002406-da06d194a00e h1:CYRpN206UTHUinz3VJoLaBdy1gEGeJNsqT0mvswDcMw=
 github.com/googleapis/gax-go v0.0.0-20161107002406-da06d194a00e/go.mod h1:SFVmujtThgffbyetf+mdk2eWhX2bMyUtNHzFKcPA9HY=
 github.com/gophercloud/gophercloud v0.0.0-20170524130959-3027adb1ce72 h1:I0ssFkBxJw27fhEVIBVjGQVMqKj5HyzfvfIhdr5Tx2E=
@@ -141,8 +143,12 @@ github.com/hashicorp/go-rootcerts v0.0.0-20160503143440-6bb64b370b90 h1:9HVkPxOp
 github.com/hashicorp/go-rootcerts v0.0.0-20160503143440-6bb64b370b90/go.mod h1:o4zcYY1e0GEZI6eSEr+43QDYmuGglw1qSO6qdHUHCgg=
 github.com/hashicorp/go-safetemp v0.0.0-20180326211150-b1a1dbde6fdc h1:wAa9fGALVHfjYxZuXRnmuJG2CnwRpJYOTvY6YdErAh0=
 github.com/hashicorp/go-safetemp v0.0.0-20180326211150-b1a1dbde6fdc/go.mod h1:oaerMy3BhqiTbVye6QuFhFtIceqFoDHxNAB65b+Rj1I=
+github.com/hashicorp/go-slug v0.1.0 h1:MJGEiOwRGrQCBmMMZABHqIESySFJ4ajrsjgDI4/aFI0=
+github.com/hashicorp/go-slug v0.1.0/go.mod h1:+zDycQOzGqOqMW7Kn2fp9vz/NtqpMLQlgb9JUF+0km4=
 github.com/hashicorp/go-sockaddr v0.0.0-20180320115054-6d291a969b86 h1:7YOlAIO2YWnJZkQp7B5eFykaIY7C9JndqAFQyVV5BhM=
 github.com/hashicorp/go-sockaddr v0.0.0-20180320115054-6d291a969b86/go.mod h1:7Xibr9yA9JjQq1JpNB2Vw7kxv8xerXegt+ozgdvDeDU=
+github.com/hashicorp/go-tfe v0.2.6 h1:o2ryV7ZS0BgaLfNvzWz+A/6J70UETMy+wFL+DQlUy/M=
+github.com/hashicorp/go-tfe v0.2.6/go.mod h1:nJs7lSMcNPGQQtjyPG6en099CQ/f83+hfeeSqehl2Fg=
 github.com/hashicorp/go-uuid v1.0.0 h1:RS8zrF7PhGwyNPOtxSClXXj9HA8feRnJzgnI1RJCSnM=
 github.com/hashicorp/go-uuid v1.0.0/go.mod h1:6SBZvOh/SIDV7/2o3Jml5SYk/TvGqwFJ/bN7x4byOro=
 github.com/hashicorp/go-version v0.0.0-20180322230233-23480c066577 h1:at4+18LrM8myamuV7/vT6x2s1JNXp2k4PsSbt4I02X4=
@@ -277,6 +283,8 @@ github.com/spf13/afero v1.0.2/go.mod h1:j4pytiNVoe2o6bmDsKpLACNPDBIoEAkihy7loJ1B
 github.com/spf13/pflag v1.0.2/go.mod h1:DYY7MBk1bdzusC3SYhjObp+wFpr4gzcvqqNjLnInEg4=
 github.com/stretchr/testify v1.2.2 h1:bSDNvY7ZPG5RlJ8otE/7V6gMiyenm9RtJ7IUVIAoJ1w=
 github.com/stretchr/testify v1.2.2/go.mod h1:a8OnRcib4nhh0OaRAV+Yts87kKdq0PP7pXfy6kDkUVs=
+github.com/svanharmelen/jsonapi v0.0.0-20180618144545-0c0828c3f16d h1:Z4EH+5EffvBEhh37F0C0DnpklTMh00JOkjW5zK3ofBI=
+github.com/svanharmelen/jsonapi v0.0.0-20180618144545-0c0828c3f16d/go.mod h1:BSTlc8jOjh0niykqEGVXOLXdi9o0r0kR8tCYiMvjFgw=
 github.com/terraform-providers/terraform-provider-aws v1.41.0 h1:ZOuxMXREOtJ+SHMX5SnbZbiqYhl9GNfZDl4f0H6CaOM=
 github.com/terraform-providers/terraform-provider-aws v1.41.0/go.mod h1:uvqaeKnm2ydZ2LuKuW1NDNBu6heC/7IDGXWm36/6oKs=
 github.com/terraform-providers/terraform-provider-openstack v0.0.0-20170616075611-4080a521c6ea h1:IfuzHOI3XwwYZS2Xw8SQbxOtGXlIUrKtXtuDCTNxmsQ=

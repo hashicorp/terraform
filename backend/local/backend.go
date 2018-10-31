@@ -12,14 +12,13 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/hashicorp/terraform/tfdiags"
-
 	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/command/clistate"
 	"github.com/hashicorp/terraform/configs/configschema"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/states/statemgr"
 	"github.com/hashicorp/terraform/terraform"
+	"github.com/hashicorp/terraform/tfdiags"
 	"github.com/mitchellh/cli"
 	"github.com/mitchellh/colorstring"
 	"github.com/zclconf/go-cty/cty"
@@ -96,11 +95,24 @@ type Local struct {
 	// exact commands that are being run.
 	RunningInAutomation bool
 
+	// opLock locks operations
 	opLock sync.Mutex
-	once   sync.Once
 }
 
 var _ backend.Backend = (*Local)(nil)
+
+// New returns a new initialized local backend.
+func New() *Local {
+	return NewWithBackend(nil)
+}
+
+// NewWithBackend returns a new local backend initialized with a
+// dedicated backend for non-enhanced behavior.
+func NewWithBackend(backend backend.Backend) *Local {
+	return &Local{
+		Backend: backend,
+	}
+}
 
 func (b *Local) ConfigSchema() *configschema.Block {
 	if b.Backend != nil {
@@ -116,8 +128,6 @@ func (b *Local) ConfigSchema() *configschema.Block {
 				Type:     cty.String,
 				Optional: true,
 			},
-			// environment_dir was previously a deprecated alias for
-			// workspace_dir, but now removed.
 		},
 	}
 }
@@ -342,7 +352,7 @@ func (b *Local) Operation(ctx context.Context, op *backend.Operation) (*backend.
 	return runningOp, nil
 }
 
-// opWait wats for the operation to complete, and a stop signal or a
+// opWait waits for the operation to complete, and a stop signal or a
 // cancelation signal.
 func (b *Local) opWait(
 	doneCh <-chan struct{},
@@ -416,7 +426,10 @@ func (b *Local) ReportResult(op *backend.RunningOperation, diags tfdiags.Diagnos
 		// Shouldn't generally happen, but if it does then we'll at least
 		// make some noise in the logs to help us spot it.
 		if len(diags) != 0 {
-			log.Printf("[ERROR] Local backend needs to report diagnostics but ShowDiagnostics callback is not set: %s", diags.ErrWithWarnings())
+			log.Printf(
+				"[ERROR] Local backend needs to report diagnostics but ShowDiagnostics is not set:\n%s",
+				diags.ErrWithWarnings(),
+			)
 		}
 	}
 }

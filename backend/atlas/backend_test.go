@@ -18,7 +18,7 @@ func TestConfigure_envAddr(t *testing.T) {
 	defer os.Setenv("ATLAS_ADDRESS", os.Getenv("ATLAS_ADDRESS"))
 	os.Setenv("ATLAS_ADDRESS", "http://foo.com")
 
-	b := &Backend{}
+	b := New()
 	diags := b.Configure(cty.ObjectVal(map[string]cty.Value{
 		"name":         cty.StringVal("foo/bar"),
 		"address":      cty.NullVal(cty.String),
@@ -37,7 +37,7 @@ func TestConfigure_envToken(t *testing.T) {
 	defer os.Setenv("ATLAS_TOKEN", os.Getenv("ATLAS_TOKEN"))
 	os.Setenv("ATLAS_TOKEN", "foo")
 
-	b := &Backend{}
+	b := New()
 	diags := b.Configure(cty.ObjectVal(map[string]cty.Value{
 		"name":         cty.StringVal("foo/bar"),
 		"address":      cty.NullVal(cty.String),

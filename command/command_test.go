@@ -19,10 +19,7 @@ import (
 	"syscall"
 	"testing"
 
-	"github.com/zclconf/go-cty/cty"
-
 	"github.com/hashicorp/terraform/addrs"
-	backendinit "github.com/hashicorp/terraform/backend/init"
 	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/configs/configload"
 	"github.com/hashicorp/terraform/configs/configschema"
@@ -36,6 +33,9 @@ import (
 	"github.com/hashicorp/terraform/states/statemgr"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/hashicorp/terraform/version"
+	"github.com/zclconf/go-cty/cty"
+
+	backendInit "github.com/hashicorp/terraform/backend/init"
 )
 
 // This is the directory where our test fixtures are.
@@ -46,6 +46,9 @@ var testingDir string
 
 func init() {
 	test = true
+
+	// Initialize the backends
+	backendInit.Init(nil)
 
 	// Expand the fixture dir on init because we change the working
 	// directory in some tests.
@@ -74,7 +77,7 @@ func TestMain(m *testing.M) {
 	}
 
 	// Make sure backend init is initialized, since our tests tend to assume it.
-	backendinit.Init(nil)
+	backendInit.Init(nil)
 
 	os.Exit(m.Run())
 }

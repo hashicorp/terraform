@@ -3,27 +3,28 @@
 package init
 
 import (
+	"os"
 	"sync"
 
 	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/svchost/disco"
 	"github.com/hashicorp/terraform/tfdiags"
+	"github.com/zclconf/go-cty/cty"
 
-	backendatlas "github.com/hashicorp/terraform/backend/atlas"
-	backendlocal "github.com/hashicorp/terraform/backend/local"
-	backendartifactory "github.com/hashicorp/terraform/backend/remote-state/artifactory"
+	backendAtlas "github.com/hashicorp/terraform/backend/atlas"
+	backendLocal "github.com/hashicorp/terraform/backend/local"
+	backendRemote "github.com/hashicorp/terraform/backend/remote"
+	backendArtifactory "github.com/hashicorp/terraform/backend/remote-state/artifactory"
 	backendAzure "github.com/hashicorp/terraform/backend/remote-state/azure"
-	backendconsul "github.com/hashicorp/terraform/backend/remote-state/consul"
-	backendetcdv2 "github.com/hashicorp/terraform/backend/remote-state/etcdv2"
-	backendetcdv3 "github.com/hashicorp/terraform/backend/remote-state/etcdv3"
+	backendConsul "github.com/hashicorp/terraform/backend/remote-state/consul"
+	backendEtcdv2 "github.com/hashicorp/terraform/backend/remote-state/etcdv2"
+	backendEtcdv3 "github.com/hashicorp/terraform/backend/remote-state/etcdv3"
 	backendGCS "github.com/hashicorp/terraform/backend/remote-state/gcs"
-	backendhttp "github.com/hashicorp/terraform/backend/remote-state/http"
-	backendinmem "github.com/hashicorp/terraform/backend/remote-state/inmem"
+	backendHTTP "github.com/hashicorp/terraform/backend/remote-state/http"
+	backendInmem "github.com/hashicorp/terraform/backend/remote-state/inmem"
 	backendManta "github.com/hashicorp/terraform/backend/remote-state/manta"
 	backendS3 "github.com/hashicorp/terraform/backend/remote-state/s3"
 	backendSwift "github.com/hashicorp/terraform/backend/remote-state/swift"
-
-	"github.com/zclconf/go-cty/cty"
 )
 
 // backends is the list of available backends. This is a global variable
@@ -37,27 +38,40 @@ import (
 // complex structures and supporting that over the plugin system is currently
 // prohibitively difficult. For those wanting to implement a custom backend,
 // they can do so with recompilation.
-var backends map[string]func() backend.Backend
+var backends map[string]backend.InitFn
 var backendsLock sync.Mutex
 
+// Init initializes the backends map with all our hardcoded backends.
 func Init(services *disco.Disco) {
-	// Our hardcoded backends. We don't need to acquire a lock here
-	// since init() code is serial and can't spawn goroutines.
-	backends = map[string]func() backend.Backend{
-		"artifactory": func() backend.Backend { return backendartifactory.New() },
-		"atlas":       func() backend.Backend { return &backendatlas.Backend{} },
-		"http":        func() backend.Backend { return backendhttp.New() },
-		"local":       func() backend.Backend { return &backendlocal.Local{} },
-		"consul":      func() backend.Backend { return backendconsul.New() },
-		"inmem":       func() backend.Backend { return backendinmem.New() },
-		"swift":       func() backend.Backend { return backendSwift.New() },
-		"s3":          func() backend.Backend { return backendS3.New() },
-		"azurerm":     func() backend.Backend { return backendAzure.New() },
-		"etcd":        func() backend.Backend { return backendetcdv2.New() },
-		"etcdv3":      func() backend.Backend { return backendetcdv3.New() },
-		"gcs":         func() backend.Backend { return backendGCS.New() },
-		"manta":       func() backend.Backend { return backendManta.New() },
+	backendsLock.Lock()
+	defer backendsLock.Unlock()
 
+	backends = map[string]backend.InitFn{
+		// Enhanced backends.
+		"local": func() backend.Backend { return backendLocal.New() },
+		"remote": func() backend.Backend {
+			b := backendRemote.New(services)
+			if os.Getenv("TF_FORCE_LOCAL_BACKEND") != "" {
+				return backendLocal.NewWithBackend(b)
+			}
+			return b
+		},
+
+		// Remote State backends.
+		"artifactory": func() backend.Backend { return backendArtifactory.New() },
+		"atlas":       func() backend.Backend { return backendAtlas.New() },
+		"azurerm":     func() backend.Backend { return backendAzure.New() },
+		"consul":      func() backend.Backend { return backendConsul.New() },
+		"etcd":        func() backend.Backend { return backendEtcdv2.New() },
+		"etcdv3":      func() backend.Backend { return backendEtcdv3.New() },
+		"gcs":         func() backend.Backend { return backendGCS.New() },
+		"http":        func() backend.Backend { return backendHTTP.New() },
+		"inmem":       func() backend.Backend { return backendInmem.New() },
+		"manta":       func() backend.Backend { return backendManta.New() },
+		"s3":          func() backend.Backend { return backendS3.New() },
+		"swift":       func() backend.Backend { return backendSwift.New() },
+
+		// Deprecated backends.
 		"azure": func() backend.Backend {
 			return deprecateBackend(
 				backendAzure.New(),
@@ -69,7 +83,7 @@ func Init(services *disco.Disco) {
 
 // Backend returns the initialization factory for the given backend, or
 // nil if none exists.
-func Backend(name string) func() backend.Backend {
+func Backend(name string) backend.InitFn {
 	backendsLock.Lock()
 	defer backendsLock.Unlock()
 	return backends[name]
@@ -82,7 +96,7 @@ func Backend(name string) func() backend.Backend {
 // This method sets this backend globally and care should be taken to do
 // this only before Terraform is executing to prevent odd behavior of backends
 // changing mid-execution.
-func Set(name string, f func() backend.Backend) {
+func Set(name string, f backend.InitFn) {
 	backendsLock.Lock()
 	defer backendsLock.Unlock()
 

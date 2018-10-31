@@ -52,6 +52,11 @@ type Backend struct {
 
 var _ backend.Backend = (*Backend)(nil)
 
+// New returns a new initialized Atlas backend.
+func New() *Backend {
+	return &Backend{}
+}
+
 func (b *Backend) ConfigSchema() *configschema.Block {
 	return &configschema.Block{
 		Attributes: map[string]*configschema.Attribute{
@@ -163,16 +168,16 @@ func (b *Backend) Configure(obj cty.Value) tfdiags.Diagnostics {
 }
 
 func (b *Backend) Workspaces() ([]string, error) {
-	return nil, backend.ErrNamedStatesNotSupported
+	return nil, backend.ErrWorkspacesNotSupported
 }
 
 func (b *Backend) DeleteWorkspace(name string) error {
-	return backend.ErrNamedStatesNotSupported
+	return backend.ErrWorkspacesNotSupported
 }
 
 func (b *Backend) StateMgr(name string) (state.State, error) {
 	if name != backend.DefaultStateName {
-		return nil, backend.ErrNamedStatesNotSupported
+		return nil, backend.ErrWorkspacesNotSupported
 	}
 
 	return &remote.State{Client: b.stateClient}, nil

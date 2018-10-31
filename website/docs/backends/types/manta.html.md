@@ -49,5 +49,4 @@ The following configuration options are supported:
  * `key_id` - (Required) This is the fingerprint of the public key matching the key specified in key_path. It can be obtained via the command ssh-keygen -l -E md5 -f /path/to/key. Can be set via the `SDC_KEY_ID` or `TRITON_KEY_ID` environment variables.
  * `insecure_skip_tls_verify` - (Optional) This allows skipping TLS verification of the Triton endpoint. It is useful when connecting to a temporary Triton installation such as Cloud-On-A-Laptop which does not generally use a certificate signed by a trusted root CA. Defaults to `false`.
  * `path` - (Required) The path relative to your private storage directory (`/$MANTA_USER/stor`) where the state file will be stored. **Please Note:** If this path does not exist, then the backend will create this folder location as part of backend creation.
- * `objectName` - (Optional, Deprecated) Use `object_name` instead.
  * `object_name` - (Optional) The name of the state file (defaults to `terraform.tfstate`)

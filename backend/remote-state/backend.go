@@ -50,11 +50,11 @@ func (b *Backend) Configure(obj cty.Value) tfdiags.Diagnostics {
 }
 
 func (b *Backend) Workspaces() ([]string, error) {
-	return nil, backend.ErrNamedStatesNotSupported
+	return nil, backend.ErrWorkspacesNotSupported
 }
 
 func (b *Backend) DeleteWorkspace(name string) error {
-	return backend.ErrNamedStatesNotSupported
+	return backend.ErrWorkspacesNotSupported
 }
 
 func (b *Backend) StateMgr(name string) (statemgr.Full, error) {
@@ -64,7 +64,7 @@ func (b *Backend) StateMgr(name string) (statemgr.Full, error) {
 	}
 
 	if name != backend.DefaultStateName {
-		return nil, backend.ErrNamedStatesNotSupported
+		return nil, backend.ErrWorkspacesNotSupported
 	}
 
 	s := &remote.State{Client: b.client}
