@@ -12,7 +12,6 @@ import (
 	"sync"
 
 	"github.com/hashicorp/go-plugin"
-	backendInit "github.com/hashicorp/terraform/backend/init"
 	"github.com/hashicorp/terraform/command/format"
 	"github.com/hashicorp/terraform/helper/logging"
 	"github.com/hashicorp/terraform/svchost/disco"
@@ -22,6 +21,8 @@ import (
 	"github.com/mitchellh/colorstring"
 	"github.com/mitchellh/panicwrap"
 	"github.com/mitchellh/prefixedio"
+
+	backendInit "github.com/hashicorp/terraform/backend/init"
 )
 
 const (

@@ -61,18 +61,10 @@ func New() backend.Backend {
 				Required: true,
 			},
 
-			"objectName": {
-				Type:       schema.TypeString,
-				Optional:   true,
-				Default:    "terraform.tfstate",
-				Deprecated: "please use the object_name attribute",
-			},
-
 			"object_name": {
 				Type:     schema.TypeString,
 				Optional: true,
-				// Set this default once the objectName attribute is removed!
-				// Default:  "terraform.tfstate",
+				Default:  "terraform.tfstate",
 			},
 		},
 	}

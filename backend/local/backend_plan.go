@@ -26,13 +26,13 @@ func (b *Local) opPlan(
 	log.Printf("[INFO] backend/local: starting Plan operation")
 
 	var diags tfdiags.Diagnostics
-	var err error
 
-	if b.CLI != nil && op.PlanFile != nil {
+	if op.PlanFile != nil {
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
 			"Can't re-plan a saved plan",
-			"The plan command was given a saved plan file as its input. This command generates a new plan, and so it requires a configuration directory as its argument.",
+			"The plan command was given a saved plan file as its input. This command generates "+
+				"a new plan, and so it requires a configuration directory as its argument.",
 		))
 		b.ReportResult(runningOp, diags)
 		return
@@ -43,7 +43,10 @@ func (b *Local) opPlan(
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
 			"No configuration files",
-			"Plan requires configuration to be present. Planning without a configuration would mark everything for destruction, which is normally not what is desired. If you would like to destroy everything, run plan with the -destroy option. Otherwise, create a Terraform configuration file (.tf file) and try again.",
+			"Plan requires configuration to be present. Planning without a configuration would "+
+				"mark everything for destruction, which is normally not what is desired. If you "+
+				"would like to destroy everything, run plan with the -destroy option. Otherwise, "+
+				"create a Terraform configuration file (.tf file) and try again.",
 		))
 		b.ReportResult(runningOp, diags)
 		return
@@ -122,7 +125,9 @@ func (b *Local) opPlan(
 		if op.PlanOutBackend == nil {
 			// This is always a bug in the operation caller; it's not valid
 			// to set PlanOutPath without also setting PlanOutBackend.
-			diags = diags.Append(fmt.Errorf("PlanOutPath set without also setting PlanOutBackend (this is a bug in Terraform)"))
+			diags = diags.Append(fmt.Errorf(
+				"PlanOutPath set without also setting PlanOutBackend (this is a bug in Terraform)"),
+			)
 			b.ReportResult(runningOp, diags)
 			return
 		}
@@ -134,7 +139,7 @@ func (b *Local) opPlan(
 		plannedStateFile := statemgr.PlannedStateUpdate(opState, baseState)
 
 		log.Printf("[INFO] backend/local: writing plan output to: %s", path)
-		err = planfile.Create(path, configSnap, plannedStateFile, plan)
+		err := planfile.Create(path, configSnap, plannedStateFile, plan)
 		if err != nil {
 			diags = diags.Append(tfdiags.Sourceless(
 				tfdiags.Error,

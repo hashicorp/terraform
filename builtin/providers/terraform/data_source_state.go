@@ -4,13 +4,13 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/zclconf/go-cty/cty"
-
 	"github.com/hashicorp/terraform/backend"
-	backendinit "github.com/hashicorp/terraform/backend/init"
 	"github.com/hashicorp/terraform/configs/configschema"
 	"github.com/hashicorp/terraform/providers"
 	"github.com/hashicorp/terraform/tfdiags"
+	"github.com/zclconf/go-cty/cty"
+
+	backendInit "github.com/hashicorp/terraform/backend/init"
 )
 
 func dataSourceRemoteStateGetSchema() providers.Schema {
@@ -58,7 +58,7 @@ func dataSourceRemoteStateRead(d *cty.Value) (cty.Value, tfdiags.Diagnostics) {
 
 	// Create the client to access our remote state
 	log.Printf("[DEBUG] Initializing remote state backend: %s", backendType)
-	f := backendinit.Backend(backendType)
+	f := backendInit.Backend(backendType)
 	if f == nil {
 		diags = diags.Append(tfdiags.AttributeValue(
 			tfdiags.Error,

@@ -95,17 +95,19 @@ func (c *PlanCommand) Run(args []string) int {
 
 	// Build the operation
 	opReq := c.Operation(b)
-	opReq.Destroy = destroy
 	opReq.ConfigDir = configPath
+	opReq.Destroy = destroy
 	opReq.PlanRefresh = refresh
 	opReq.PlanOutPath = outPath
 	opReq.PlanRefresh = refresh
 	opReq.Type = backend.OperationTypePlan
+
 	opReq.ConfigLoader, err = c.initConfigLoader()
 	if err != nil {
 		c.showDiagnostics(err)
 		return 1
 	}
+
 	{
 		var moreDiags tfdiags.Diagnostics
 		opReq.Variables, moreDiags = c.collectVariableValues()
