@@ -310,11 +310,15 @@ func (n *EvalDiff) Eval(ctx EvalContext) (interface{}, error) {
 		// from known prior values to unknown values, unless the provider is
 		// able to predict new values for any of these computed attributes.
 		nullPriorVal := cty.NullVal(schema.ImpliedType())
+
+		// create a new proposed value from the null state and the config
+		proposedNewVal = objchange.ProposedNewObject(schema, nullPriorVal, configVal)
+
 		resp = provider.PlanResourceChange(providers.PlanResourceChangeRequest{
 			TypeName:         n.Addr.Resource.Type,
 			Config:           configVal,
 			PriorState:       nullPriorVal,
-			ProposedNewState: configVal,
+			ProposedNewState: proposedNewVal,
 			PriorPrivate:     plannedPrivate,
 		})
 		// We need to tread carefully here, since if there are any warnings
