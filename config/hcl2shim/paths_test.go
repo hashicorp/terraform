@@ -6,7 +6,16 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/google/go-cmp/cmp/cmpopts"
+
+	"github.com/google/go-cmp/cmp"
+
 	"github.com/zclconf/go-cty/cty"
+)
+
+var (
+	ignoreUnexported = cmpopts.IgnoreUnexported(cty.GetAttrStep{}, cty.IndexStep{})
+	valueComparer    = cmp.Comparer(cty.Value.RawEquals)
 )
 
 func TestPathFromFlatmap(t *testing.T) {
@@ -220,4 +229,141 @@ func TestPathFromFlatmap(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestRequiresReplace(t *testing.T) {
+	for _, tc := range []struct {
+		name     string
+		attrs    []string
+		expected []cty.Path
+		ty       cty.Type
+	}{
+		{
+			name: "basic",
+			attrs: []string{
+				"foo",
+			},
+			ty: cty.Object(map[string]cty.Type{
+				"foo": cty.String,
+			}),
+			expected: []cty.Path{
+				cty.Path{cty.GetAttrStep{Name: "foo"}},
+			},
+		},
+		{
+			name: "two",
+			attrs: []string{
+				"foo",
+				"bar",
+			},
+			ty: cty.Object(map[string]cty.Type{
+				"foo": cty.String,
+				"bar": cty.String,
+			}),
+			expected: []cty.Path{
+				cty.Path{cty.GetAttrStep{Name: "foo"}},
+				cty.Path{cty.GetAttrStep{Name: "bar"}},
+			},
+		},
+		{
+			name: "nested object",
+			attrs: []string{
+				"foo.bar",
+			},
+			ty: cty.Object(map[string]cty.Type{
+				"foo": cty.Object(map[string]cty.Type{
+					"bar": cty.String,
+				}),
+			}),
+			expected: []cty.Path{
+				cty.Path{cty.GetAttrStep{Name: "foo"}, cty.GetAttrStep{Name: "bar"}},
+			},
+		},
+		{
+			name: "nested objects",
+			attrs: []string{
+				"foo.bar.baz",
+			},
+			ty: cty.Object(map[string]cty.Type{
+				"foo": cty.Object(map[string]cty.Type{
+					"bar": cty.Object(map[string]cty.Type{
+						"baz": cty.String,
+					}),
+				}),
+			}),
+			expected: []cty.Path{
+				cty.Path{cty.GetAttrStep{Name: "foo"}, cty.GetAttrStep{Name: "bar"}, cty.GetAttrStep{Name: "baz"}},
+			},
+		},
+		{
+			name: "nested map",
+			attrs: []string{
+				"foo.%",
+				"foo.bar",
+			},
+			ty: cty.Object(map[string]cty.Type{
+				"foo": cty.Map(cty.String),
+			}),
+			expected: []cty.Path{
+				cty.Path{cty.GetAttrStep{Name: "foo"}},
+			},
+		},
+		{
+			name: "nested list",
+			attrs: []string{
+				"foo.#",
+				"foo.1",
+			},
+			ty: cty.Object(map[string]cty.Type{
+				"foo": cty.Map(cty.String),
+			}),
+			expected: []cty.Path{
+				cty.Path{cty.GetAttrStep{Name: "foo"}},
+			},
+		},
+		{
+			name: "object in map",
+			attrs: []string{
+				"foo.bar.baz",
+			},
+			ty: cty.Object(map[string]cty.Type{
+				"foo": cty.Map(cty.Object(
+					map[string]cty.Type{
+						"baz": cty.String,
+					},
+				)),
+			}),
+			expected: []cty.Path{
+				cty.Path{cty.GetAttrStep{Name: "foo"}, cty.IndexStep{Key: cty.StringVal("bar")}, cty.GetAttrStep{Name: "baz"}},
+			},
+		},
+		{
+			name: "object in list",
+			attrs: []string{
+				"foo.1.baz",
+			},
+			ty: cty.Object(map[string]cty.Type{
+				"foo": cty.List(cty.Object(
+					map[string]cty.Type{
+						"baz": cty.String,
+					},
+				)),
+			}),
+			expected: []cty.Path{
+				cty.Path{cty.GetAttrStep{Name: "foo"}, cty.IndexStep{Key: cty.NumberIntVal(1)}, cty.GetAttrStep{Name: "baz"}},
+			},
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			rp, err := RequiresReplace(tc.attrs, tc.ty)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if !cmp.Equal(tc.expected, rp, ignoreUnexported, valueComparer) {
+				t.Fatalf("\nexpected: %#v\ngot: %#v\n", tc.expected, rp)
+			}
+		})
+
+	}
+
 }
