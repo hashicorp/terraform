@@ -1,5 +1,8 @@
 ## 0.12.0-beta1 (Unreleased)
 
+
+## 0.12.0-alpha2 (October 30, 2018)
+
 IMPROVEMENTS:
 
 * backend/s3: Support `credential_source` if specified in AWS configuration file [GH-19190]
@@ -9,6 +12,10 @@ IMPROVEMENTS:
 BUG FIXES:
 
 * lang: Fix crash in `lookup` function [GH-19161]
+* Hostnames inside module registry source strings may now contain segments that begin with digits, due to an upstream fix in the IDNA parsing library. [GH-18039]
+* helper/schema: Fix panic when null values appear for nested blocks [GH-19201]
+* helper/schema: Restore handling of the special "timeouts" block in certain resource types. [GH-19222]
+* helper/schema: Restore handling of DiffSuppressFunc and StateFunc. [GH-19226]
 
 ## 0.12.0-alpha1 (October 19, 2018)
 
