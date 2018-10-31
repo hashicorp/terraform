@@ -1,3 +1,22 @@
+## 0.12.0-beta1 (Unreleased)
+
+
+## 0.12.0-alpha2 (October 30, 2018)
+
+IMPROVEMENTS:
+
+* backend/s3: Support `credential_source` if specified in AWS configuration file [GH-19190]
+* command/state: Update and enable the `state mv` command [GH-19197]
+* command/state: Update and enable the `state rm` command [GH-19178]
+
+BUG FIXES:
+
+* lang: Fix crash in `lookup` function [GH-19161]
+* Hostnames inside module registry source strings may now contain segments that begin with digits, due to an upstream fix in the IDNA parsing library. [GH-18039]
+* helper/schema: Fix panic when null values appear for nested blocks [GH-19201]
+* helper/schema: Restore handling of the special "timeouts" block in certain resource types. [GH-19222]
+* helper/schema: Restore handling of DiffSuppressFunc and StateFunc. [GH-19226]
+
 ## 0.12.0-alpha1 (October 19, 2018)
 
 The goal of this release is to give users an early preview of the new language features, and to collect feedback primarily about bugs and usability issues related to the language itself, while the Terraform team addresses the remaining problems. There will be at least one beta and at least one release candidate before final, which should give a more complete impression of how the final v0.12.0 release will behave.
