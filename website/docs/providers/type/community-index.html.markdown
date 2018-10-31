@@ -104,7 +104,7 @@ please fill out this [community providers form](https://docs.google.com/forms/d/
     <tr>
     <td><a href="https://github.com/ewilde/terraform-provider-openfaas">OpenFaaS</a></td>
     <td><a href="https://github.com/camptocamp/terraform-provider-pass">Pass</a></td>
-    <rd><a href="https://bitbucket.org/devops_sysops/pingdom-provider">Pingdom</a></td>
+    <td><a href="https://bitbucket.org/devops_sysops/pingdom-provider">Pingdom</a></td>
     </tr>
     <tr>
     <td><a href="https://github.com/camptocamp/terraform-provider-puppetca">Puppet CA</a></td>
