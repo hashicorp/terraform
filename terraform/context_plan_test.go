@@ -5513,3 +5513,68 @@ func objectVal(t *testing.T, schema *configschema.Block, m map[string]cty.Value)
 	}
 	return v
 }
+
+func TestContext2Plan_requiredModuleOutput(t *testing.T) {
+	m := testModule(t, "plan-required-output")
+	p := testProvider("test")
+	p.GetSchemaReturn = &ProviderSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"test_resource": {
+				Attributes: map[string]*configschema.Attribute{
+					"id":       {Type: cty.String, Computed: true},
+					"required": {Type: cty.String, Required: true},
+				},
+			},
+		},
+	}
+	p.DiffFn = testDiffFn
+
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		ProviderResolver: providers.ResolverFixed(
+			map[string]providers.Factory{
+				"test": testProviderFuncFixed(p),
+			},
+		),
+	})
+
+	plan, diags := ctx.Plan()
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors: %s", diags.Err())
+	}
+
+	schema := p.GetSchemaReturn.ResourceTypes["test_resource"]
+	ty := schema.ImpliedType()
+
+	if len(plan.Changes.Resources) != 2 {
+		t.Fatal("expected 2 changes, got", len(plan.Changes.Resources))
+	}
+
+	for _, res := range plan.Changes.Resources {
+		if res.Action != plans.Create {
+			t.Fatalf("expected resource creation, got %s", res.Action)
+		}
+		ric, err := res.Decode(ty)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		var expected cty.Value
+		switch i := ric.Addr.String(); i {
+		case "test_resource.root":
+			expected = objectVal(t, schema, map[string]cty.Value{
+				"id":       cty.UnknownVal(cty.String),
+				"required": cty.UnknownVal(cty.String),
+			})
+		case "module.mod.test_resource.for_output":
+			expected = objectVal(t, schema, map[string]cty.Value{
+				"id":       cty.UnknownVal(cty.String),
+				"required": cty.StringVal("val"),
+			})
+		default:
+			t.Fatal("unknown instance:", i)
+		}
+
+		checkVals(t, expected, ric.After)
+	}
+}
