@@ -23,6 +23,7 @@ func Provider() terraform.ResourceProvider {
 			"test_resource_timeout":          testResourceTimeout(),
 			"test_resource_diff_suppress":    testResourceDiffSuppress(),
 			"test_resource_force_new":        testResourceForceNew(),
+			"test_resource_nested":           testResourceNested(),
 		},
 		DataSourcesMap: map[string]*schema.Resource{
 			"test_data_source":    testDataSource(),
