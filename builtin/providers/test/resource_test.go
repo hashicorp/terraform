@@ -443,3 +443,33 @@ output "value_from_map_from_list" {
 func testAccCheckResourceDestroy(s *terraform.State) error {
 	return nil
 }
+
+func TestResource_removeForceNew(t *testing.T) {
+	resource.UnitTest(t, resource.TestCase{
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckResourceDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: strings.TrimSpace(`
+resource "test_resource" "foo" {
+	required           = "yep"
+	required_map = {
+	  key = "value"
+	}
+	optional_force_new = "here"
+}
+				`),
+			},
+			resource.TestStep{
+				Config: strings.TrimSpace(`
+resource "test_resource" "foo" {
+	required           = "yep"
+	required_map = {
+	  key = "value"
+	}
+}
+				`),
+			},
+		},
+	})
+}
