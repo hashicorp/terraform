@@ -869,7 +869,7 @@ func (m *Meta) backendInitFromConfig(c *configs.Backend) (backend.Backend, cty.V
 	b := f()
 
 	schema := b.ConfigSchema()
-	decSpec := schema.DecoderSpec()
+	decSpec := schema.NoneRequired().DecoderSpec()
 	configVal, hclDiags := hcldec.Decode(c.Config, decSpec, nil)
 	diags = diags.Append(hclDiags)
 	if hclDiags.HasErrors() {
