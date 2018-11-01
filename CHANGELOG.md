@@ -1,5 +1,8 @@
 ## 0.12.0-beta1 (Unreleased)
 
+IMPROVEMENTS:
+
+* command/state: Update and enable the `state show` command [GH-19200]
 
 ## 0.12.0-alpha2 (October 30, 2018)
 
