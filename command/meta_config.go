@@ -231,12 +231,10 @@ func (m *Meta) inputForSchema(given cty.Value, schema *configschema.Block) (cty.
 		return given, nil
 	}
 
-	givenVals := given.AsValueMap()
-	retVals := make(map[string]cty.Value, len(givenVals))
+	retVals := given.AsValueMap()
 	names := make([]string, 0, len(schema.Attributes))
 	for name, attrS := range schema.Attributes {
-		retVals[name] = givenVals[name]
-		if givenVal := givenVals[name]; attrS.Required && givenVal.IsNull() && attrS.Type.IsPrimitiveType() {
+		if attrS.Required && retVals[name].IsNull() && attrS.Type.IsPrimitiveType() {
 			names = append(names, name)
 		}
 	}
