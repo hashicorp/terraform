@@ -133,9 +133,3 @@ func (c *StateMeta) filter(state *states.State, args []string) ([]*states.Filter
 
 	return results, nil
 }
-
-const errStateMultiple = `Multiple instances found for the given pattern!
-
-This command requires that the pattern match exactly one instance
-of a resource. To view the matched instances, use "terraform state list".
-Please modify the pattern to match only a single instance.`
