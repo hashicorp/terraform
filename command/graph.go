@@ -31,7 +31,7 @@ func (c *GraphCommand) Run(args []string) int {
 	}
 
 	cmdFlags := flag.NewFlagSet("graph", flag.ContinueOnError)
-	c.addModuleDepthFlag(cmdFlags, &moduleDepth)
+	cmdFlags.IntVar(&moduleDepth, "module-depth", -1, "module-depth")
 	cmdFlags.BoolVar(&verbose, "verbose", false, "verbose")
 	cmdFlags.BoolVar(&drawCycles, "draw-cycles", false, "draw-cycles")
 	cmdFlags.StringVar(&graphTypeStr, "type", "", "type")
@@ -181,13 +181,16 @@ Usage: terraform graph [options] [DIR]
 
 Options:
 
-  -draw-cycles   Highlight any cycles in the graph with colored edges.
-                 This helps when diagnosing cycle errors.
+  -draw-cycles     Highlight any cycles in the graph with colored edges.
+                   This helps when diagnosing cycle errors.
 
-  -no-color      If specified, output won't contain any color.
+  -module-depth=n  Specifies the depth of modules to show in the output.	
+                   By default this is -1, which will expand all.
 
-  -type=plan     Type of graph to output. Can be: plan, plan-destroy, apply,
-                 validate, input, refresh.
+  -no-color        If specified, output won't contain any color.
+
+  -type=plan       Type of graph to output. Can be: plan, plan-destroy, apply,
+                   validate, input, refresh.
 
 
 `

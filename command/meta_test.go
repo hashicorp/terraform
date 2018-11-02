@@ -1,7 +1,6 @@
 package command
 
 import (
-	"flag"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -223,58 +222,6 @@ func TestMeta_initStatePaths(t *testing.T) {
 	}
 	if m.backupPath != "foo"+DefaultBackupExtension {
 		t.Fatalf("bad: %#v", m)
-	}
-}
-
-func TestMeta_addModuleDepthFlag(t *testing.T) {
-	old := os.Getenv(ModuleDepthEnvVar)
-	defer os.Setenv(ModuleDepthEnvVar, old)
-
-	cases := map[string]struct {
-		EnvVar   string
-		Args     []string
-		Expected int
-	}{
-		"env var sets value when no flag present": {
-			EnvVar:   "4",
-			Args:     []string{},
-			Expected: 4,
-		},
-		"flag overrides envvar": {
-			EnvVar:   "4",
-			Args:     []string{"-module-depth=-1"},
-			Expected: -1,
-		},
-		"negative envvar works": {
-			EnvVar:   "-1",
-			Args:     []string{},
-			Expected: -1,
-		},
-		"invalid envvar is ignored": {
-			EnvVar:   "-#",
-			Args:     []string{},
-			Expected: ModuleDepthDefault,
-		},
-		"empty envvar is okay too": {
-			EnvVar:   "",
-			Args:     []string{},
-			Expected: ModuleDepthDefault,
-		},
-	}
-
-	for tn, tc := range cases {
-		m := new(Meta)
-		var moduleDepth int
-		flags := flag.NewFlagSet("test", flag.ContinueOnError)
-		os.Setenv(ModuleDepthEnvVar, tc.EnvVar)
-		m.addModuleDepthFlag(flags, &moduleDepth)
-		err := flags.Parse(tc.Args)
-		if err != nil {
-			t.Fatalf("%s: err: %#v", tn, err)
-		}
-		if moduleDepth != tc.Expected {
-			t.Fatalf("%s: expected: %#v, got: %#v", tn, tc.Expected, moduleDepth)
-		}
 	}
 }
 
