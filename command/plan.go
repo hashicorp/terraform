@@ -19,7 +19,6 @@ type PlanCommand struct {
 func (c *PlanCommand) Run(args []string) int {
 	var destroy, refresh, detailed bool
 	var outPath string
-	var moduleDepth int
 
 	args, err := c.Meta.process(args, true)
 	if err != nil {
@@ -29,7 +28,6 @@ func (c *PlanCommand) Run(args []string) int {
 	cmdFlags := c.Meta.flagSet("plan")
 	cmdFlags.BoolVar(&destroy, "destroy", false, "destroy")
 	cmdFlags.BoolVar(&refresh, "refresh", true, "refresh")
-	c.addModuleDepthFlag(cmdFlags, &moduleDepth)
 	cmdFlags.StringVar(&outPath, "out", "", "path")
 	cmdFlags.IntVar(
 		&c.Meta.parallelism, "parallelism", DefaultParallelism, "parallelism")
@@ -220,10 +218,6 @@ Options:
   -lock=true          Lock the state file when locking is supported.
 
   -lock-timeout=0s    Duration to retry a state lock.
-
-  -module-depth=n     Specifies the depth of modules to show in the output.
-                      This does not affect the plan itself, only the output
-                      shown. By default, this is -1, which will expand all.
 
   -no-color           If specified, output won't contain any color.
 
