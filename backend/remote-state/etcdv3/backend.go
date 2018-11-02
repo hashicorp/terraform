@@ -17,6 +17,7 @@ const (
 	passwordEnvVarName = "ETCDV3_PASSWORD"
 	prefixKey          = "prefix"
 	lockKey            = "lock"
+	maxSendSizeKey     = "max_send_size"
 	cacertPathKey      = "cacert_path"
 	certPathKey        = "cert_path"
 	keyPathKey         = "key_path"
@@ -83,6 +84,13 @@ func New() backend.Backend {
 				Description: "The path to a PEM-encoded key to provide to etcd for secure client identification.",
 				Default:     "",
 			},
+
+			maxSendSizeKey: &schema.Schema{
+				Type:        schema.schema.TypeInt,
+				Optional:    true,
+				Description: "The maximum request size to etcd.",
+				Default:     2097152,
+			},
 		},
 	}
 
@@ -127,6 +135,9 @@ func (b *Backend) rawClient() (*etcdv3.Client, error) {
 	}
 	if v, ok := b.data.GetOk(passwordKey); ok && v.(string) != "" {
 		config.Password = v.(string)
+	}
+	if v, ok := b.data.GetOk(maxSendSizeKey); ok {
+		config.MaxCallSendMsgSize = v.(int)
 	}
 	if v, ok := b.data.GetOk(cacertPathKey); ok && v.(string) != "" {
 		tlsInfo.TrustedCAFile = v.(string)
