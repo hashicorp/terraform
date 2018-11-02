@@ -254,6 +254,7 @@ func (oc *OutputChange) Encode() (*OutputChangeSrc, error) {
 		return nil, err
 	}
 	return &OutputChangeSrc{
+		Addr:      oc.Addr,
 		ChangeSrc: *cs,
 		Sensitive: oc.Sensitive,
 	}, err
