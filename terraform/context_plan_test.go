@@ -5551,30 +5551,32 @@ func TestContext2Plan_requiredModuleOutput(t *testing.T) {
 	}
 
 	for _, res := range plan.Changes.Resources {
-		if res.Action != plans.Create {
-			t.Fatalf("expected resource creation, got %s", res.Action)
-		}
-		ric, err := res.Decode(ty)
-		if err != nil {
-			t.Fatal(err)
-		}
+		t.Run(fmt.Sprintf("%s %s", res.Action, res.Addr), func(t *testing.T) {
+			if res.Action != plans.Create {
+				t.Fatalf("expected resource creation, got %s", res.Action)
+			}
+			ric, err := res.Decode(ty)
+			if err != nil {
+				t.Fatal(err)
+			}
 
-		var expected cty.Value
-		switch i := ric.Addr.String(); i {
-		case "test_resource.root":
-			expected = objectVal(t, schema, map[string]cty.Value{
-				"id":       cty.UnknownVal(cty.String),
-				"required": cty.UnknownVal(cty.String),
-			})
-		case "module.mod.test_resource.for_output":
-			expected = objectVal(t, schema, map[string]cty.Value{
-				"id":       cty.UnknownVal(cty.String),
-				"required": cty.StringVal("val"),
-			})
-		default:
-			t.Fatal("unknown instance:", i)
-		}
+			var expected cty.Value
+			switch i := ric.Addr.String(); i {
+			case "test_resource.root":
+				expected = objectVal(t, schema, map[string]cty.Value{
+					"id":       cty.UnknownVal(cty.String),
+					"required": cty.UnknownVal(cty.String),
+				})
+			case "module.mod.test_resource.for_output":
+				expected = objectVal(t, schema, map[string]cty.Value{
+					"id":       cty.UnknownVal(cty.String),
+					"required": cty.StringVal("val"),
+				})
+			default:
+				t.Fatal("unknown instance:", i)
+			}
 
-		checkVals(t, expected, ric.After)
+			checkVals(t, expected, ric.After)
+		})
 	}
 }
