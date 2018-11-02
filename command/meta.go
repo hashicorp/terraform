@@ -513,25 +513,6 @@ func (m *Meta) showDiagnostics(vals ...interface{}) {
 	}
 }
 
-const (
-	// ModuleDepthDefault is the default value for
-	// module depth, which can be overridden by flag
-	// or env var
-	ModuleDepthDefault = -1
-
-	// ModuleDepthEnvVar is the name of the environment variable that can be used to set module depth.
-	ModuleDepthEnvVar = "TF_MODULE_DEPTH"
-)
-
-func (m *Meta) addModuleDepthFlag(flags *flag.FlagSet, moduleDepth *int) {
-	flags.IntVar(moduleDepth, "module-depth", ModuleDepthDefault, "module-depth")
-	if envVar := os.Getenv(ModuleDepthEnvVar); envVar != "" {
-		if md, err := strconv.Atoi(envVar); err == nil {
-			*moduleDepth = md
-		}
-	}
-}
-
 // outputShadowError outputs the error from ctx.ShadowError. If the
 // error is nil then nothing happens. If output is false then it isn't
 // outputted to the user (you can define logic to guard against outputting).

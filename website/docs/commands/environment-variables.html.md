@@ -48,16 +48,6 @@ If set to "false" or "0", causes terraform commands to behave as if the `-input=
 export TF_INPUT=0
 ```
 
-## TF_MODULE_DEPTH
-
-When given a value, causes terraform commands to behave as if the `-module-depth=VALUE` flag was specified. By setting this to 0, for example, you enable commands such as [plan](/docs/commands/plan.html) and [graph](/docs/commands/graph.html) to display more compressed information.
-
-```shell
-export TF_MODULE_DEPTH=0
-```
-
-For more information regarding modules, check out the section on [Using Modules](/docs/modules/usage.html).
-
 ## TF_VAR_name
 
 Environment variables can be used to set variables. The environment variables must be in the format `TF_VAR_name` and this will be checked last for a value. For example:
