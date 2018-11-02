@@ -4,6 +4,11 @@ IMPROVEMENTS:
 
 * command/state: Update and enable the `state show` command [GH-19200]
 
+BUG FIXES:
+
+* helper/schema: Prevent the insertion of empty diff values when converting legacy diffs [GH-19253]
+* core: Fix inconsistent plans when replacing instances. [GH-19233]
+
 ## 0.12.0-alpha2 (October 30, 2018)
 
 IMPROVEMENTS:
