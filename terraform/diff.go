@@ -457,6 +457,11 @@ func (d *InstanceDiff) ApplyToValue(base cty.Value, schema *configschema.Block) 
 			continue
 		}
 
+		// sometimes helper/schema gives us values that aren't really a diff
+		if diff.Old == diff.New {
+			continue
+		}
+
 		attrs[attr] = diff.New
 	}
 
