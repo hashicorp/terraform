@@ -1,10 +1,12 @@
 package hclwrite
 
 import (
+	"fmt"
 	"sort"
 
 	"github.com/hashicorp/hcl2/hcl"
 	"github.com/hashicorp/hcl2/hcl/hclsyntax"
+	"github.com/zclconf/go-cty/cty"
 )
 
 // Our "parser" here is actually not doing any parsing of its own. Instead,
@@ -49,18 +51,19 @@ func parse(src []byte, filename string, start hcl.Pos) (*File, hcl.Diagnostics) 
 	}
 
 	before, root, after := parseBody(file.Body.(*hclsyntax.Body), from)
+	ret := &File{
+		inTree: newInTree(),
 
-	return &File{
-		Name:     filename,
-		SrcBytes: src,
+		srcBytes: src,
+		body:     root,
+	}
 
-		Body: root,
-		AllTokens: &TokenSeq{
-			before.Seq(),
-			root.AllTokens,
-			after.Seq(),
-		},
-	}, nil
+	nodes := ret.inTree.children
+	nodes.Append(before.Tokens())
+	nodes.AppendNode(root)
+	nodes.Append(after.Tokens())
+
+	return ret, diags
 }
 
 type inputTokens struct {
@@ -74,6 +77,23 @@ func (it inputTokens) Partition(rng hcl.Range) (before, within, after inputToken
 	within = it.Slice(start, end)
 	after = it.Slice(end, len(it.nativeTokens))
 	return
+}
+
+func (it inputTokens) PartitionType(ty hclsyntax.TokenType) (before, within, after inputTokens) {
+	for i, t := range it.writerTokens {
+		if t.Type == ty {
+			return it.Slice(0, i), it.Slice(i, i+1), it.Slice(i+1, len(it.nativeTokens))
+		}
+	}
+	panic(fmt.Sprintf("didn't find any token of type %s", ty))
+}
+
+func (it inputTokens) PartitionTypeSingle(ty hclsyntax.TokenType) (before inputTokens, found *Token, after inputTokens) {
+	before, within, after := it.PartitionType(ty)
+	if within.Len() != 1 {
+		panic("PartitionType found more than one token")
+	}
+	return before, within.Tokens()[0], after
 }
 
 // PartitionIncludeComments is like Partition except the returned "within"
@@ -133,8 +153,8 @@ func (it inputTokens) Len() int {
 	return len(it.nativeTokens)
 }
 
-func (it inputTokens) Seq() *TokenSeq {
-	return &TokenSeq{it.writerTokens}
+func (it inputTokens) Tokens() Tokens {
+	return it.writerTokens
 }
 
 func (it inputTokens) Types() []hclsyntax.TokenType {
@@ -148,7 +168,7 @@ func (it inputTokens) Types() []hclsyntax.TokenType {
 // parseBody locates the given body within the given input tokens and returns
 // the resulting *Body object as well as the tokens that appeared before and
 // after it.
-func parseBody(nativeBody *hclsyntax.Body, from inputTokens) (inputTokens, *Body, inputTokens) {
+func parseBody(nativeBody *hclsyntax.Body, from inputTokens) (inputTokens, *node, inputTokens) {
 	before, within, after := from.PartitionIncludingComments(nativeBody.SrcRange)
 
 	// The main AST doesn't retain the original source ordering of the
@@ -164,7 +184,8 @@ func parseBody(nativeBody *hclsyntax.Body, from inputTokens) (inputTokens, *Body
 	sort.Sort(nativeNodeSorter{nativeItems})
 
 	body := &Body{
-		IndentLevel: 0, // TODO: deal with this
+		inTree: newInTree(),
+		items:  newNodeSet(),
 	}
 
 	remain := within
@@ -172,24 +193,24 @@ func parseBody(nativeBody *hclsyntax.Body, from inputTokens) (inputTokens, *Body
 		beforeItem, item, afterItem := parseBodyItem(nativeItem, remain)
 
 		if beforeItem.Len() > 0 {
-			body.AppendUnstructuredTokens(beforeItem.Seq())
+			body.AppendUnstructuredTokens(beforeItem.Tokens())
 		}
-		body.AppendItem(item)
+		body.appendItemNode(item)
 
 		remain = afterItem
 	}
 
 	if remain.Len() > 0 {
-		body.AppendUnstructuredTokens(remain.Seq())
+		body.AppendUnstructuredTokens(remain.Tokens())
 	}
 
-	return before, body, after
+	return before, newNode(body), after
 }
 
-func parseBodyItem(nativeItem hclsyntax.Node, from inputTokens) (inputTokens, Node, inputTokens) {
+func parseBodyItem(nativeItem hclsyntax.Node, from inputTokens) (inputTokens, *node, inputTokens) {
 	before, leadComments, within, lineComments, newline, after := from.PartitionBlockItem(nativeItem.Range())
 
-	var item Node
+	var item *node
 
 	switch tItem := nativeItem.(type) {
 	case *hclsyntax.Attribute:
@@ -204,90 +225,96 @@ func parseBodyItem(nativeItem hclsyntax.Node, from inputTokens) (inputTokens, No
 	return before, item, after
 }
 
-func parseAttribute(nativeAttr *hclsyntax.Attribute, from, leadComments, lineComments, newline inputTokens) *Attribute {
-	var allTokens TokenSeq
-	attr := &Attribute{}
+func parseAttribute(nativeAttr *hclsyntax.Attribute, from, leadComments, lineComments, newline inputTokens) *node {
+	attr := &Attribute{
+		inTree: newInTree(),
+	}
+	children := attr.inTree.children
 
-	if leadComments.Len() > 0 {
-		attr.LeadCommentTokens = leadComments.Seq()
-		allTokens = append(allTokens, attr.LeadCommentTokens)
+	{
+		cn := newNode(newComments(leadComments.Tokens()))
+		attr.leadComments = cn
+		children.AppendNode(cn)
 	}
 
 	before, nameTokens, from := from.Partition(nativeAttr.NameRange)
-	if before.Len() > 0 {
-		allTokens = append(allTokens, before.Seq())
+	{
+		children.AppendUnstructuredTokens(before.Tokens())
+		if nameTokens.Len() != 1 {
+			// Should never happen with valid input
+			panic("attribute name is not exactly one token")
+		}
+		token := nameTokens.Tokens()[0]
+		in := newNode(newIdentifier(token))
+		attr.name = in
+		children.AppendNode(in)
 	}
-	attr.NameTokens = nameTokens.Seq()
-	allTokens = append(allTokens, attr.NameTokens)
 
 	before, equalsTokens, from := from.Partition(nativeAttr.EqualsRange)
-	if before.Len() > 0 {
-		allTokens = append(allTokens, before.Seq())
-	}
-	attr.EqualsTokens = equalsTokens.Seq()
-	allTokens = append(allTokens, attr.EqualsTokens)
+	children.AppendUnstructuredTokens(before.Tokens())
+	children.AppendUnstructuredTokens(equalsTokens.Tokens())
 
 	before, exprTokens, from := from.Partition(nativeAttr.Expr.Range())
-	if before.Len() > 0 {
-		allTokens = append(allTokens, before.Seq())
-	}
-	attr.Expr = parseExpression(nativeAttr.Expr, exprTokens)
-	allTokens = append(allTokens, attr.Expr.AllTokens)
-
-	if lineComments.Len() > 0 {
-		attr.LineCommentTokens = lineComments.Seq()
-		allTokens = append(allTokens, attr.LineCommentTokens)
+	{
+		children.AppendUnstructuredTokens(before.Tokens())
+		exprNode := parseExpression(nativeAttr.Expr, exprTokens)
+		attr.expr = exprNode
+		children.AppendNode(exprNode)
 	}
 
-	if newline.Len() > 0 {
-		attr.EOLTokens = newline.Seq()
-		allTokens = append(allTokens, attr.EOLTokens)
+	{
+		cn := newNode(newComments(lineComments.Tokens()))
+		attr.lineComments = cn
+		children.AppendNode(cn)
 	}
+
+	children.AppendUnstructuredTokens(newline.Tokens())
 
 	// Collect any stragglers, though there shouldn't be any
-	if from.Len() > 0 {
-		allTokens = append(allTokens, from.Seq())
-	}
+	children.AppendUnstructuredTokens(from.Tokens())
 
-	attr.AllTokens = &allTokens
-
-	return attr
+	return newNode(attr)
 }
 
-func parseBlock(nativeBlock *hclsyntax.Block, from, leadComments, lineComments, newline inputTokens) *Block {
-	var allTokens TokenSeq
-	block := &Block{}
+func parseBlock(nativeBlock *hclsyntax.Block, from, leadComments, lineComments, newline inputTokens) *node {
+	block := &Block{
+		inTree: newInTree(),
+		labels: newNodeSet(),
+	}
+	children := block.inTree.children
 
-	if leadComments.Len() > 0 {
-		block.LeadCommentTokens = leadComments.Seq()
-		allTokens = append(allTokens, block.LeadCommentTokens)
+	{
+		cn := newNode(newComments(leadComments.Tokens()))
+		block.leadComments = cn
+		children.AppendNode(cn)
 	}
 
 	before, typeTokens, from := from.Partition(nativeBlock.TypeRange)
-	if before.Len() > 0 {
-		allTokens = append(allTokens, before.Seq())
+	{
+		children.AppendUnstructuredTokens(before.Tokens())
+		if typeTokens.Len() != 1 {
+			// Should never happen with valid input
+			panic("block type name is not exactly one token")
+		}
+		token := typeTokens.Tokens()[0]
+		in := newNode(newIdentifier(token))
+		block.typeName = in
+		children.AppendNode(in)
 	}
-	block.TypeTokens = typeTokens.Seq()
-	allTokens = append(allTokens, block.TypeTokens)
 
 	for _, rng := range nativeBlock.LabelRanges {
 		var labelTokens inputTokens
 		before, labelTokens, from = from.Partition(rng)
-		if before.Len() > 0 {
-			allTokens = append(allTokens, before.Seq())
-		}
-		seq := labelTokens.Seq()
-		block.LabelTokens = append(block.LabelTokens, seq)
-		*(block.LabelTokensFlat) = append(*(block.LabelTokensFlat), seq)
-		allTokens = append(allTokens, seq)
+		children.AppendUnstructuredTokens(before.Tokens())
+		tokens := labelTokens.Tokens()
+		ln := newNode(newQuoted(tokens))
+		block.labels.Add(ln)
+		children.AppendNode(ln)
 	}
 
 	before, oBrace, from := from.Partition(nativeBlock.OpenBraceRange)
-	if before.Len() > 0 {
-		allTokens = append(allTokens, before.Seq())
-	}
-	block.OBraceTokens = oBrace.Seq()
-	allTokens = append(allTokens, block.OBraceTokens)
+	children.AppendUnstructuredTokens(before.Tokens())
+	children.AppendUnstructuredTokens(oBrace.Tokens())
 
 	// We go a bit out of order here: we go hunting for the closing brace
 	// so that we have a delimited body, but then we'll deal with the body
@@ -295,42 +322,109 @@ func parseBlock(nativeBlock *hclsyntax.Block, from, leadComments, lineComments, 
 	// that appear after it.
 	bodyTokens, cBrace, from := from.Partition(nativeBlock.CloseBraceRange)
 	before, body, after := parseBody(nativeBlock.Body, bodyTokens)
+	children.AppendUnstructuredTokens(before.Tokens())
+	block.body = body
+	children.AppendNode(body)
+	children.AppendUnstructuredTokens(after.Tokens())
 
-	if before.Len() > 0 {
-		allTokens = append(allTokens, before.Seq())
-	}
-	block.Body = body
-	allTokens = append(allTokens, body.AllTokens)
-	if after.Len() > 0 {
-		allTokens = append(allTokens, after.Seq())
-	}
-
-	block.CBraceTokens = cBrace.Seq()
-	allTokens = append(allTokens, block.CBraceTokens)
+	children.AppendUnstructuredTokens(cBrace.Tokens())
 
 	// stragglers
-	if after.Len() > 0 {
-		allTokens = append(allTokens, from.Seq())
-	}
+	children.AppendUnstructuredTokens(from.Tokens())
 	if lineComments.Len() > 0 {
 		// blocks don't actually have line comments, so we'll just treat
 		// them as extra stragglers
-		allTokens = append(allTokens, lineComments.Seq())
+		children.AppendUnstructuredTokens(lineComments.Tokens())
 	}
-	if newline.Len() > 0 {
-		block.EOLTokens = newline.Seq()
-		allTokens = append(allTokens, block.EOLTokens)
-	}
+	children.AppendUnstructuredTokens(newline.Tokens())
 
-	block.AllTokens = &allTokens
-	return block
+	return newNode(block)
 }
 
-func parseExpression(nativeExpr hclsyntax.Expression, from inputTokens) *Expression {
-	// TODO: Populate VarRefs by analyzing the result of nativeExpr.Variables()
-	return &Expression{
-		AllTokens: from.Seq(),
+func parseExpression(nativeExpr hclsyntax.Expression, from inputTokens) *node {
+	expr := newExpression()
+	children := expr.inTree.children
+
+	nativeVars := nativeExpr.Variables()
+
+	for _, nativeTraversal := range nativeVars {
+		before, traversal, after := parseTraversal(nativeTraversal, from)
+		children.AppendUnstructuredTokens(before.Tokens())
+		children.AppendNode(traversal)
+		expr.absTraversals.Add(traversal)
+		from = after
 	}
+	// Attach any stragglers that don't belong to a traversal to the expression
+	// itself. In an expression with no traversals at all, this is just the
+	// entirety of "from".
+	children.AppendUnstructuredTokens(from.Tokens())
+
+	return newNode(expr)
+}
+
+func parseTraversal(nativeTraversal hcl.Traversal, from inputTokens) (before inputTokens, n *node, after inputTokens) {
+	traversal := newTraversal()
+	children := traversal.inTree.children
+	before, from, after = from.Partition(nativeTraversal.SourceRange())
+
+	stepAfter := from
+	for _, nativeStep := range nativeTraversal {
+		before, step, after := parseTraversalStep(nativeStep, stepAfter)
+		children.AppendUnstructuredTokens(before.Tokens())
+		children.AppendNode(step)
+		stepAfter = after
+	}
+
+	return before, newNode(traversal), after
+}
+
+func parseTraversalStep(nativeStep hcl.Traverser, from inputTokens) (before inputTokens, n *node, after inputTokens) {
+	var children *nodes
+	switch tNativeStep := nativeStep.(type) {
+
+	case hcl.TraverseRoot, hcl.TraverseAttr:
+		step := newTraverseName()
+		children = step.inTree.children
+		before, from, after = from.Partition(nativeStep.SourceRange())
+		inBefore, token, inAfter := from.PartitionTypeSingle(hclsyntax.TokenIdent)
+		name := newIdentifier(token)
+		children.AppendUnstructuredTokens(inBefore.Tokens())
+		step.name = children.Append(name)
+		children.AppendUnstructuredTokens(inAfter.Tokens())
+		return before, newNode(step), after
+
+	case hcl.TraverseIndex:
+		step := newTraverseIndex()
+		children = step.inTree.children
+		before, from, after = from.Partition(nativeStep.SourceRange())
+
+		var inBefore, oBrack, keyTokens, cBrack inputTokens
+		inBefore, oBrack, from = from.PartitionType(hclsyntax.TokenOBrack)
+		children.AppendUnstructuredTokens(inBefore.Tokens())
+		children.AppendUnstructuredTokens(oBrack.Tokens())
+		keyTokens, cBrack, from = from.PartitionType(hclsyntax.TokenCBrack)
+
+		keyVal := tNativeStep.Key
+		switch keyVal.Type() {
+		case cty.String:
+			key := newQuoted(keyTokens.Tokens())
+			step.key = children.Append(key)
+		case cty.Number:
+			valBefore, valToken, valAfter := keyTokens.PartitionTypeSingle(hclsyntax.TokenNumberLit)
+			children.AppendUnstructuredTokens(valBefore.Tokens())
+			key := newNumber(valToken)
+			step.key = children.Append(key)
+			children.AppendUnstructuredTokens(valAfter.Tokens())
+		}
+
+		children.AppendUnstructuredTokens(cBrack.Tokens())
+		children.AppendUnstructuredTokens(from.Tokens())
+
+		return before, newNode(step), after
+	default:
+		panic(fmt.Sprintf("unsupported traversal step type %T", nativeStep))
+	}
+
 }
 
 // writerTokens takes a sequence of tokens as produced by the main hclsyntax

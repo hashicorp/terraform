@@ -18,7 +18,7 @@ const opAcceptMatch = "AcceptMatch"
 // AcceptMatchRequest generates a "aws/request.Request" representing the
 // client's request for the AcceptMatch operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -143,7 +143,7 @@ const opCreateAlias = "CreateAlias"
 // CreateAliasRequest generates a "aws/request.Request" representing the
 // client's request for the CreateAlias operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -272,7 +272,7 @@ const opCreateBuild = "CreateBuild"
 // CreateBuildRequest generates a "aws/request.Request" representing the
 // client's request for the CreateBuild operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -413,7 +413,7 @@ const opCreateFleet = "CreateFleet"
 // CreateFleetRequest generates a "aws/request.Request" representing the
 // client's request for the CreateFleet operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -603,7 +603,7 @@ const opCreateGameSession = "CreateGameSession"
 // CreateGameSessionRequest generates a "aws/request.Request" representing the
 // client's request for the CreateGameSession operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -775,7 +775,7 @@ const opCreateGameSessionQueue = "CreateGameSessionQueue"
 // CreateGameSessionQueueRequest generates a "aws/request.Request" representing the
 // client's request for the CreateGameSessionQueue operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -906,7 +906,7 @@ const opCreateMatchmakingConfiguration = "CreateMatchmakingConfiguration"
 // CreateMatchmakingConfigurationRequest generates a "aws/request.Request" representing the
 // client's request for the CreateMatchmakingConfiguration operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1045,7 +1045,7 @@ const opCreateMatchmakingRuleSet = "CreateMatchmakingRuleSet"
 // CreateMatchmakingRuleSetRequest generates a "aws/request.Request" representing the
 // client's request for the CreateMatchmakingRuleSet operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1169,7 +1169,7 @@ const opCreatePlayerSession = "CreatePlayerSession"
 // CreatePlayerSessionRequest generates a "aws/request.Request" representing the
 // client's request for the CreatePlayerSession operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1302,7 +1302,7 @@ const opCreatePlayerSessions = "CreatePlayerSessions"
 // CreatePlayerSessionsRequest generates a "aws/request.Request" representing the
 // client's request for the CreatePlayerSessions operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1436,7 +1436,7 @@ const opCreateVpcPeeringAuthorization = "CreateVpcPeeringAuthorization"
 // CreateVpcPeeringAuthorizationRequest generates a "aws/request.Request" representing the
 // client's request for the CreateVpcPeeringAuthorization operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1569,7 +1569,7 @@ const opCreateVpcPeeringConnection = "CreateVpcPeeringConnection"
 // CreateVpcPeeringConnectionRequest generates a "aws/request.Request" representing the
 // client's request for the CreateVpcPeeringConnection operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1697,7 +1697,7 @@ const opDeleteAlias = "DeleteAlias"
 // DeleteAliasRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteAlias operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1807,7 +1807,7 @@ const opDeleteBuild = "DeleteBuild"
 // DeleteBuildRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteBuild operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1918,7 +1918,7 @@ const opDeleteFleet = "DeleteFleet"
 // DeleteFleetRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteFleet operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -2061,7 +2061,7 @@ const opDeleteGameSessionQueue = "DeleteGameSessionQueue"
 // DeleteGameSessionQueueRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteGameSessionQueue operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -2165,7 +2165,7 @@ const opDeleteMatchmakingConfiguration = "DeleteMatchmakingConfiguration"
 // DeleteMatchmakingConfigurationRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteMatchmakingConfiguration operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -2275,7 +2275,7 @@ const opDeleteScalingPolicy = "DeleteScalingPolicy"
 // DeleteScalingPolicyRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteScalingPolicy operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -2396,7 +2396,7 @@ const opDeleteVpcPeeringAuthorization = "DeleteVpcPeeringAuthorization"
 // DeleteVpcPeeringAuthorizationRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteVpcPeeringAuthorization operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -2504,7 +2504,7 @@ const opDeleteVpcPeeringConnection = "DeleteVpcPeeringConnection"
 // DeleteVpcPeeringConnectionRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteVpcPeeringConnection operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -2618,7 +2618,7 @@ const opDescribeAlias = "DescribeAlias"
 // DescribeAliasRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeAlias operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -2728,7 +2728,7 @@ const opDescribeBuild = "DescribeBuild"
 // DescribeBuildRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeBuild operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -2833,7 +2833,7 @@ const opDescribeEC2InstanceLimits = "DescribeEC2InstanceLimits"
 // DescribeEC2InstanceLimitsRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeEC2InstanceLimits operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -2969,7 +2969,7 @@ const opDescribeFleetAttributes = "DescribeFleetAttributes"
 // DescribeFleetAttributesRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeFleetAttributes operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -3111,7 +3111,7 @@ const opDescribeFleetCapacity = "DescribeFleetCapacity"
 // DescribeFleetCapacityRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeFleetCapacity operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -3254,7 +3254,7 @@ const opDescribeFleetEvents = "DescribeFleetEvents"
 // DescribeFleetEventsRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeFleetEvents operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -3389,7 +3389,7 @@ const opDescribeFleetPortSettings = "DescribeFleetPortSettings"
 // DescribeFleetPortSettingsRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeFleetPortSettings operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -3526,7 +3526,7 @@ const opDescribeFleetUtilization = "DescribeFleetUtilization"
 // DescribeFleetUtilizationRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeFleetUtilization operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -3667,7 +3667,7 @@ const opDescribeGameSessionDetails = "DescribeGameSessionDetails"
 // DescribeGameSessionDetailsRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeGameSessionDetails operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -3798,7 +3798,7 @@ const opDescribeGameSessionPlacement = "DescribeGameSessionPlacement"
 // DescribeGameSessionPlacementRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeGameSessionPlacement operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -3914,7 +3914,7 @@ const opDescribeGameSessionQueues = "DescribeGameSessionQueues"
 // DescribeGameSessionQueuesRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeGameSessionQueues operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -4020,7 +4020,7 @@ const opDescribeGameSessions = "DescribeGameSessions"
 // DescribeGameSessionsRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeGameSessions operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -4152,7 +4152,7 @@ const opDescribeInstances = "DescribeInstances"
 // DescribeInstancesRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeInstances operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -4251,7 +4251,7 @@ const opDescribeMatchmaking = "DescribeMatchmaking"
 // DescribeMatchmakingRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeMatchmaking operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -4362,7 +4362,7 @@ const opDescribeMatchmakingConfigurations = "DescribeMatchmakingConfigurations"
 // DescribeMatchmakingConfigurationsRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeMatchmakingConfigurations operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -4473,7 +4473,7 @@ const opDescribeMatchmakingRuleSets = "DescribeMatchmakingRuleSets"
 // DescribeMatchmakingRuleSetsRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeMatchmakingRuleSets operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -4585,7 +4585,7 @@ const opDescribePlayerSessions = "DescribePlayerSessions"
 // DescribePlayerSessionsRequest generates a "aws/request.Request" representing the
 // client's request for the DescribePlayerSessions operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -4705,7 +4705,7 @@ const opDescribeRuntimeConfiguration = "DescribeRuntimeConfiguration"
 // DescribeRuntimeConfigurationRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeRuntimeConfiguration operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -4839,7 +4839,7 @@ const opDescribeScalingPolicies = "DescribeScalingPolicies"
 // DescribeScalingPoliciesRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeScalingPolicies operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -4963,7 +4963,7 @@ const opDescribeVpcPeeringAuthorizations = "DescribeVpcPeeringAuthorizations"
 // DescribeVpcPeeringAuthorizationsRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeVpcPeeringAuthorizations operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -5067,7 +5067,7 @@ const opDescribeVpcPeeringConnections = "DescribeVpcPeeringConnections"
 // DescribeVpcPeeringConnectionsRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeVpcPeeringConnections operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -5180,7 +5180,7 @@ const opGetGameSessionLogUrl = "GetGameSessionLogUrl"
 // GetGameSessionLogUrlRequest generates a "aws/request.Request" representing the
 // client's request for the GetGameSessionLogUrl operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -5301,7 +5301,7 @@ const opGetInstanceAccess = "GetInstanceAccess"
 // GetInstanceAccessRequest generates a "aws/request.Request" representing the
 // client's request for the GetInstanceAccess operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -5408,7 +5408,7 @@ const opListAliases = "ListAliases"
 // ListAliasesRequest generates a "aws/request.Request" representing the
 // client's request for the ListAliases operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -5514,7 +5514,7 @@ const opListBuilds = "ListBuilds"
 // ListBuildsRequest generates a "aws/request.Request" representing the
 // client's request for the ListBuilds operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -5619,7 +5619,7 @@ const opListFleets = "ListFleets"
 // ListFleetsRequest generates a "aws/request.Request" representing the
 // client's request for the ListFleets operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -5755,7 +5755,7 @@ const opPutScalingPolicy = "PutScalingPolicy"
 // PutScalingPolicyRequest generates a "aws/request.Request" representing the
 // client's request for the PutScalingPolicy operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -5942,7 +5942,7 @@ const opRequestUploadCredentials = "RequestUploadCredentials"
 // RequestUploadCredentialsRequest generates a "aws/request.Request" representing the
 // client's request for the RequestUploadCredentials operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -6040,7 +6040,7 @@ const opResolveAlias = "ResolveAlias"
 // ResolveAliasRequest generates a "aws/request.Request" representing the
 // client's request for the ResolveAlias operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -6153,7 +6153,7 @@ const opSearchGameSessions = "SearchGameSessions"
 // SearchGameSessionsRequest generates a "aws/request.Request" representing the
 // client's request for the SearchGameSessions operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -6322,7 +6322,7 @@ const opStartFleetActions = "StartFleetActions"
 // StartFleetActionsRequest generates a "aws/request.Request" representing the
 // client's request for the StartFleetActions operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -6443,7 +6443,7 @@ const opStartGameSessionPlacement = "StartGameSessionPlacement"
 // StartGameSessionPlacementRequest generates a "aws/request.Request" representing the
 // client's request for the StartGameSessionPlacement operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -6597,7 +6597,7 @@ const opStartMatchBackfill = "StartMatchBackfill"
 // StartMatchBackfillRequest generates a "aws/request.Request" representing the
 // client's request for the StartMatchBackfill operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -6725,7 +6725,7 @@ const opStartMatchmaking = "StartMatchmaking"
 // StartMatchmakingRequest generates a "aws/request.Request" representing the
 // client's request for the StartMatchmaking operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -6889,7 +6889,7 @@ const opStopFleetActions = "StopFleetActions"
 // StopFleetActionsRequest generates a "aws/request.Request" representing the
 // client's request for the StopFleetActions operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -6990,7 +6990,7 @@ const opStopGameSessionPlacement = "StopGameSessionPlacement"
 // StopGameSessionPlacementRequest generates a "aws/request.Request" representing the
 // client's request for the StopGameSessionPlacement operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -7106,7 +7106,7 @@ const opStopMatchmaking = "StopMatchmaking"
 // StopMatchmakingRequest generates a "aws/request.Request" representing the
 // client's request for the StopMatchmaking operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -7212,7 +7212,7 @@ const opUpdateAlias = "UpdateAlias"
 // UpdateAliasRequest generates a "aws/request.Request" representing the
 // client's request for the UpdateAlias operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -7321,7 +7321,7 @@ const opUpdateBuild = "UpdateBuild"
 // UpdateBuildRequest generates a "aws/request.Request" representing the
 // client's request for the UpdateBuild operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -7428,7 +7428,7 @@ const opUpdateFleetAttributes = "UpdateFleetAttributes"
 // UpdateFleetAttributesRequest generates a "aws/request.Request" representing the
 // client's request for the UpdateFleetAttributes operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -7576,7 +7576,7 @@ const opUpdateFleetCapacity = "UpdateFleetCapacity"
 // UpdateFleetCapacityRequest generates a "aws/request.Request" representing the
 // client's request for the UpdateFleetCapacity operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -7737,7 +7737,7 @@ const opUpdateFleetPortSettings = "UpdateFleetPortSettings"
 // UpdateFleetPortSettingsRequest generates a "aws/request.Request" representing the
 // client's request for the UpdateFleetPortSettings operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -7888,7 +7888,7 @@ const opUpdateGameSession = "UpdateGameSession"
 // UpdateGameSessionRequest generates a "aws/request.Request" representing the
 // client's request for the UpdateGameSession operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -8018,7 +8018,7 @@ const opUpdateGameSessionQueue = "UpdateGameSessionQueue"
 // UpdateGameSessionQueueRequest generates a "aws/request.Request" representing the
 // client's request for the UpdateGameSessionQueue operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -8123,7 +8123,7 @@ const opUpdateMatchmakingConfiguration = "UpdateMatchmakingConfiguration"
 // UpdateMatchmakingConfigurationRequest generates a "aws/request.Request" representing the
 // client's request for the UpdateMatchmakingConfiguration operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -8232,7 +8232,7 @@ const opUpdateRuntimeConfiguration = "UpdateRuntimeConfiguration"
 // UpdateRuntimeConfigurationRequest generates a "aws/request.Request" representing the
 // client's request for the UpdateRuntimeConfiguration operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -8384,7 +8384,7 @@ const opValidateMatchmakingRuleSet = "ValidateMatchmakingRuleSet"
 // ValidateMatchmakingRuleSetRequest generates a "aws/request.Request" representing the
 // client's request for the ValidateMatchmakingRuleSet operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.

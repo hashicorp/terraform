@@ -7,6 +7,13 @@ import (
 	"fmt"
 	"sort"
 	"strings"
+
+	ctyjson "github.com/zclconf/go-cty/cty/json"
+
+	"github.com/hashicorp/terraform/addrs"
+	"github.com/hashicorp/terraform/config/hcl2shim"
+	"github.com/hashicorp/terraform/repl"
+	"github.com/hashicorp/terraform/tfdiags"
 )
 
 // OutputCommand is a Command implementation that reads an output
@@ -46,17 +53,20 @@ func (c *OutputCommand) Run(args []string) int {
 		name = args[0]
 	}
 
+	var diags tfdiags.Diagnostics
+
 	// Load the backend
-	b, err := c.Backend(nil)
-	if err != nil {
-		c.Ui.Error(fmt.Sprintf("Failed to load backend: %s", err))
+	b, backendDiags := c.Backend(nil)
+	diags = diags.Append(backendDiags)
+	if backendDiags.HasErrors() {
+		c.showDiagnostics(diags)
 		return 1
 	}
 
 	env := c.Workspace()
 
 	// Get the state
-	stateStore, err := b.State(env)
+	stateStore, err := b.StateMgr(env)
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf("Failed to load state: %s", err))
 		return 1
@@ -67,17 +77,25 @@ func (c *OutputCommand) Run(args []string) int {
 		return 1
 	}
 
-	if module == "" {
-		module = "root"
-	} else {
-		module = "root." + module
+	moduleAddr := addrs.RootModuleInstance
+	if module != "" {
+		// This option was supported prior to 0.12.0, but no longer supported
+		// because we only persist the root module outputs in state.
+		// (We could perhaps re-introduce this by doing an eval walk here to
+		// repopulate them, similar to how "terraform console" does it, but
+		// that requires more thought since it would imply this command
+		// supporting remote operations, which is a big change.)
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Unsupported option",
+			"The -module option is no longer supported since Terraform 0.12, because now only root outputs are persisted in the state.",
+		))
+		c.showDiagnostics(diags)
+		return 1
 	}
 
-	// Get the proper module we want to get outputs for
-	modPath := strings.Split(module, ".")
-
 	state := stateStore.State()
-	mod := state.ModuleByPath(modPath)
+	mod := state.Module(moduleAddr)
 	if mod == nil {
 		c.Ui.Error(fmt.Sprintf(
 			"The module %s could not be found. There is nothing to output.",
@@ -85,7 +103,7 @@ func (c *OutputCommand) Run(args []string) int {
 		return 1
 	}
 
-	if !jsonOutput && (state.Empty() || len(mod.Outputs) == 0) {
+	if !jsonOutput && (state.Empty() || len(mod.OutputValues) == 0) {
 		c.Ui.Error(
 			"The state file either has no outputs defined, or all the defined\n" +
 				"outputs are empty. Please define an output in your configuration\n" +
@@ -98,20 +116,54 @@ func (c *OutputCommand) Run(args []string) int {
 
 	if name == "" {
 		if jsonOutput {
-			jsonOutputs, err := json.MarshalIndent(mod.Outputs, "", "    ")
-			if err != nil {
-				return 1
+			// Due to a historical accident, the switch from state version 2 to
+			// 3 caused our JSON output here to be the full metadata about the
+			// outputs rather than just the output values themselves as we'd
+			// show in the single value case. We must now maintain that behavior
+			// for compatibility, so this is an emulation of the JSON
+			// serialization of outputs used in state format version 3.
+			type OutputMeta struct {
+				Sensitive bool            `json:"sensitive"`
+				Type      json.RawMessage `json:"type"`
+				Value     json.RawMessage `json:"value"`
+			}
+			outputs := map[string]OutputMeta{}
+
+			for n, os := range mod.OutputValues {
+				jsonVal, err := ctyjson.Marshal(os.Value, os.Value.Type())
+				if err != nil {
+					diags = diags.Append(err)
+					c.showDiagnostics(diags)
+					return 1
+				}
+				jsonType, err := ctyjson.MarshalType(os.Value.Type())
+				if err != nil {
+					diags = diags.Append(err)
+					c.showDiagnostics(diags)
+					return 1
+				}
+				outputs[n] = OutputMeta{
+					Sensitive: os.Sensitive,
+					Type:      json.RawMessage(jsonType),
+					Value:     json.RawMessage(jsonVal),
+				}
 			}
 
+			jsonOutputs, err := json.MarshalIndent(outputs, "", "  ")
+			if err != nil {
+				diags = diags.Append(err)
+				c.showDiagnostics(diags)
+				return 1
+			}
 			c.Ui.Output(string(jsonOutputs))
 			return 0
 		} else {
-			c.Ui.Output(outputsAsString(state, modPath, nil, false))
+			c.Ui.Output(outputsAsString(state, moduleAddr, false))
 			return 0
 		}
 	}
 
-	v, ok := mod.Outputs[name]
+	os, ok := mod.OutputValues[name]
 	if !ok {
 		c.Ui.Error(fmt.Sprintf(
 			"The output variable requested could not be found in the state\n" +
@@ -120,29 +172,27 @@ func (c *OutputCommand) Run(args []string) int {
 				"with new output variables until that command is run."))
 		return 1
 	}
+	v := os.Value
 
 	if jsonOutput {
-		jsonOutputs, err := json.MarshalIndent(v, "", "    ")
+		jsonOutput, err := ctyjson.Marshal(v, v.Type())
 		if err != nil {
 			return 1
 		}
 
-		c.Ui.Output(string(jsonOutputs))
+		c.Ui.Output(string(jsonOutput))
 	} else {
-		switch output := v.Value.(type) {
-		case string:
-			c.Ui.Output(output)
-			return 0
-		case []interface{}:
-			c.Ui.Output(formatListOutput("", "", output))
-			return 0
-		case map[string]interface{}:
-			c.Ui.Output(formatMapOutput("", "", output))
-			return 0
-		default:
-			c.Ui.Error(fmt.Sprintf("Unknown output type: %T", v.Type))
+		// Our formatter still wants an old-style raw interface{} value, so
+		// for now we'll just shim it.
+		// FIXME: Port the formatter to work with cty.Value directly.
+		legacyVal := hcl2shim.ConfigValueFromHCL2(v)
+		result, err := repl.FormatResult(legacyVal)
+		if err != nil {
+			diags = diags.Append(err)
+			c.showDiagnostics(diags)
 			return 1
 		}
+		c.Ui.Output(result)
 	}
 
 	return 0
@@ -276,9 +326,6 @@ Options:
                    "terraform.tfstate".
 
   -no-color        If specified, output won't contain any color.
-
-  -module=name     If specified, returns the outputs for a
-                   specific module
 
   -json            If specified, machine readable output will be
                    printed in JSON format

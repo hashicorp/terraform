@@ -8,7 +8,6 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/kms"
-	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/helper/structure"
@@ -55,7 +54,7 @@ func resourceAwsKmsKey() *schema.Resource {
 				Type:             schema.TypeString,
 				Optional:         true,
 				Computed:         true,
-				ValidateFunc:     validateJsonString,
+				ValidateFunc:     validation.ValidateJsonString,
 				DiffSuppressFunc: suppressEquivalentAwsPolicyDiffs,
 			},
 			"is_enabled": {
@@ -169,7 +168,7 @@ func resourceAwsKmsKeyRead(d *schema.ResourceData, meta interface{}) error {
 	p := pOut.(*kms.GetKeyPolicyOutput)
 	policy, err := structure.NormalizeJsonString(*p.Policy)
 	if err != nil {
-		return errwrap.Wrapf("policy contains an invalid JSON: {{err}}", err)
+		return fmt.Errorf("policy contains an invalid JSON: %s", err)
 	}
 	d.Set("policy", policy)
 
@@ -260,7 +259,7 @@ func resourceAwsKmsKeyDescriptionUpdate(conn *kms.KMS, d *schema.ResourceData) e
 func resourceAwsKmsKeyPolicyUpdate(conn *kms.KMS, d *schema.ResourceData) error {
 	policy, err := structure.NormalizeJsonString(d.Get("policy").(string))
 	if err != nil {
-		return errwrap.Wrapf("policy contains an invalid JSON: {{err}}", err)
+		return fmt.Errorf("policy contains an invalid JSON: %s", err)
 	}
 	keyId := d.Get("key_id").(string)
 

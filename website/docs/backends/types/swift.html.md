@@ -35,7 +35,7 @@ For the access credentials we recommend using a
 ```hcl
 data "terraform_remote_state" "foo" {
   backend = "swift"
-  config {
+  config = {
     path = "terraform_state"
   }
 }

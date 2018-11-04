@@ -18,7 +18,7 @@ const opBatchGetResourceConfig = "BatchGetResourceConfig"
 // BatchGetResourceConfigRequest generates a "aws/request.Request" representing the
 // client's request for the BatchGetResourceConfig operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -109,7 +109,7 @@ const opDeleteAggregationAuthorization = "DeleteAggregationAuthorization"
 // DeleteAggregationAuthorizationRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteAggregationAuthorization operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -192,7 +192,7 @@ const opDeleteConfigRule = "DeleteConfigRule"
 // DeleteConfigRuleRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteConfigRule operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -284,7 +284,7 @@ const opDeleteConfigurationAggregator = "DeleteConfigurationAggregator"
 // DeleteConfigurationAggregatorRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteConfigurationAggregator operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -366,7 +366,7 @@ const opDeleteConfigurationRecorder = "DeleteConfigurationRecorder"
 // DeleteConfigurationRecorderRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteConfigurationRecorder operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -456,7 +456,7 @@ const opDeleteDeliveryChannel = "DeleteDeliveryChannel"
 // DeleteDeliveryChannelRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteDeliveryChannel operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -544,7 +544,7 @@ const opDeleteEvaluationResults = "DeleteEvaluationResults"
 // DeleteEvaluationResultsRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteEvaluationResults operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -631,7 +631,7 @@ const opDeletePendingAggregationRequest = "DeletePendingAggregationRequest"
 // DeletePendingAggregationRequestRequest generates a "aws/request.Request" representing the
 // client's request for the DeletePendingAggregationRequest operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -714,7 +714,7 @@ const opDeleteRetentionConfiguration = "DeleteRetentionConfiguration"
 // DeleteRetentionConfigurationRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteRetentionConfiguration operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -799,7 +799,7 @@ const opDeliverConfigSnapshot = "DeliverConfigSnapshot"
 // DeliverConfigSnapshotRequest generates a "aws/request.Request" representing the
 // client's request for the DeliverConfigSnapshot operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -895,7 +895,7 @@ const opDescribeAggregateComplianceByConfigRules = "DescribeAggregateComplianceB
 // DescribeAggregateComplianceByConfigRulesRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeAggregateComplianceByConfigRules operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -988,7 +988,7 @@ const opDescribeAggregationAuthorizations = "DescribeAggregationAuthorizations"
 // DescribeAggregationAuthorizationsRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeAggregationAuthorizations operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1076,7 +1076,7 @@ const opDescribeComplianceByConfigRule = "DescribeComplianceByConfigRule"
 // DescribeComplianceByConfigRuleRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeComplianceByConfigRule operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1186,7 +1186,7 @@ const opDescribeComplianceByResource = "DescribeComplianceByResource"
 // DescribeComplianceByResourceRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeComplianceByResource operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1294,7 +1294,7 @@ const opDescribeConfigRuleEvaluationStatus = "DescribeConfigRuleEvaluationStatus
 // DescribeConfigRuleEvaluationStatusRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeConfigRuleEvaluationStatus operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1385,7 +1385,7 @@ const opDescribeConfigRules = "DescribeConfigRules"
 // DescribeConfigRulesRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeConfigRules operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1469,7 +1469,7 @@ const opDescribeConfigurationAggregatorSourcesStatus = "DescribeConfigurationAgg
 // DescribeConfigurationAggregatorSourcesStatusRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeConfigurationAggregatorSourcesStatus operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1562,7 +1562,7 @@ const opDescribeConfigurationAggregators = "DescribeConfigurationAggregators"
 // DescribeConfigurationAggregatorsRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeConfigurationAggregators operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1654,7 +1654,7 @@ const opDescribeConfigurationRecorderStatus = "DescribeConfigurationRecorderStat
 // DescribeConfigurationRecorderStatusRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeConfigurationRecorderStatus operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1738,7 +1738,7 @@ const opDescribeConfigurationRecorders = "DescribeConfigurationRecorders"
 // DescribeConfigurationRecordersRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeConfigurationRecorders operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1822,7 +1822,7 @@ const opDescribeDeliveryChannelStatus = "DescribeDeliveryChannelStatus"
 // DescribeDeliveryChannelStatusRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeDeliveryChannelStatus operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1905,7 +1905,7 @@ const opDescribeDeliveryChannels = "DescribeDeliveryChannels"
 // DescribeDeliveryChannelsRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeDeliveryChannels operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1988,7 +1988,7 @@ const opDescribePendingAggregationRequests = "DescribePendingAggregationRequests
 // DescribePendingAggregationRequestsRequest generates a "aws/request.Request" representing the
 // client's request for the DescribePendingAggregationRequests operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -2075,7 +2075,7 @@ const opDescribeRetentionConfigurations = "DescribeRetentionConfigurations"
 // DescribeRetentionConfigurationsRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeRetentionConfigurations operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -2167,7 +2167,7 @@ const opGetAggregateComplianceDetailsByConfigRule = "GetAggregateComplianceDetai
 // GetAggregateComplianceDetailsByConfigRuleRequest generates a "aws/request.Request" representing the
 // client's request for the GetAggregateComplianceDetailsByConfigRule operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -2262,7 +2262,7 @@ const opGetAggregateConfigRuleComplianceSummary = "GetAggregateConfigRuleComplia
 // GetAggregateConfigRuleComplianceSummaryRequest generates a "aws/request.Request" representing the
 // client's request for the GetAggregateConfigRuleComplianceSummary operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -2355,7 +2355,7 @@ const opGetComplianceDetailsByConfigRule = "GetComplianceDetailsByConfigRule"
 // GetComplianceDetailsByConfigRuleRequest generates a "aws/request.Request" representing the
 // client's request for the GetComplianceDetailsByConfigRule operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -2445,7 +2445,7 @@ const opGetComplianceDetailsByResource = "GetComplianceDetailsByResource"
 // GetComplianceDetailsByResourceRequest generates a "aws/request.Request" representing the
 // client's request for the GetComplianceDetailsByResource operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -2527,7 +2527,7 @@ const opGetComplianceSummaryByConfigRule = "GetComplianceSummaryByConfigRule"
 // GetComplianceSummaryByConfigRuleRequest generates a "aws/request.Request" representing the
 // client's request for the GetComplianceSummaryByConfigRule operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -2602,7 +2602,7 @@ const opGetComplianceSummaryByResourceType = "GetComplianceSummaryByResourceType
 // GetComplianceSummaryByResourceTypeRequest generates a "aws/request.Request" representing the
 // client's request for the GetComplianceSummaryByResourceType operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -2684,7 +2684,7 @@ const opGetDiscoveredResourceCounts = "GetDiscoveredResourceCounts"
 // GetDiscoveredResourceCountsRequest generates a "aws/request.Request" representing the
 // client's request for the GetDiscoveredResourceCounts operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -2803,7 +2803,7 @@ const opGetResourceConfigHistory = "GetResourceConfigHistory"
 // GetResourceConfigHistoryRequest generates a "aws/request.Request" representing the
 // client's request for the GetResourceConfigHistory operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -2969,7 +2969,7 @@ const opListDiscoveredResources = "ListDiscoveredResources"
 // ListDiscoveredResourcesRequest generates a "aws/request.Request" representing the
 // client's request for the ListDiscoveredResources operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -3072,7 +3072,7 @@ const opPutAggregationAuthorization = "PutAggregationAuthorization"
 // PutAggregationAuthorizationRequest generates a "aws/request.Request" representing the
 // client's request for the PutAggregationAuthorization operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -3153,7 +3153,7 @@ const opPutConfigRule = "PutConfigRule"
 // PutConfigRuleRequest generates a "aws/request.Request" representing the
 // client's request for the PutConfigRule operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -3292,7 +3292,7 @@ const opPutConfigurationAggregator = "PutConfigurationAggregator"
 // PutConfigurationAggregatorRequest generates a "aws/request.Request" representing the
 // client's request for the PutConfigurationAggregator operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -3355,8 +3355,12 @@ func (c *ConfigService) PutConfigurationAggregatorRequest(input *PutConfiguratio
 //   are valid and try again.
 //
 //   * ErrCodeLimitExceededException "LimitExceededException"
-//   This exception is thrown if an evaluation is in progress or if you call the
-//   StartConfigRulesEvaluation API more than once per minute.
+//   For StartConfigRulesEvaluation API, this exception is thrown if an evaluation
+//   is in progress or if you call the StartConfigRulesEvaluation API more than
+//   once per minute.
+//
+//   For PutConfigurationAggregator API, this exception is thrown if the number
+//   of accounts and aggregators exceeds the limit.
 //
 //   * ErrCodeInvalidRoleException "InvalidRoleException"
 //   You have provided a null or empty role ARN.
@@ -3398,7 +3402,7 @@ const opPutConfigurationRecorder = "PutConfigurationRecorder"
 // PutConfigurationRecorderRequest generates a "aws/request.Request" representing the
 // client's request for the PutConfigurationRecorder operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -3499,7 +3503,7 @@ const opPutDeliveryChannel = "PutDeliveryChannel"
 // PutDeliveryChannelRequest generates a "aws/request.Request" representing the
 // client's request for the PutDeliveryChannel operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -3612,7 +3616,7 @@ const opPutEvaluations = "PutEvaluations"
 // PutEvaluationsRequest generates a "aws/request.Request" representing the
 // client's request for the PutEvaluations operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -3701,7 +3705,7 @@ const opPutRetentionConfiguration = "PutRetentionConfiguration"
 // PutRetentionConfigurationRequest generates a "aws/request.Request" representing the
 // client's request for the PutRetentionConfiguration operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -3792,7 +3796,7 @@ const opStartConfigRulesEvaluation = "StartConfigRulesEvaluation"
 // StartConfigRulesEvaluationRequest generates a "aws/request.Request" representing the
 // client's request for the StartConfigRulesEvaluation operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -3875,8 +3879,12 @@ func (c *ConfigService) StartConfigRulesEvaluationRequest(input *StartConfigRule
 //   rule names are correct and try again.
 //
 //   * ErrCodeLimitExceededException "LimitExceededException"
-//   This exception is thrown if an evaluation is in progress or if you call the
-//   StartConfigRulesEvaluation API more than once per minute.
+//   For StartConfigRulesEvaluation API, this exception is thrown if an evaluation
+//   is in progress or if you call the StartConfigRulesEvaluation API more than
+//   once per minute.
+//
+//   For PutConfigurationAggregator API, this exception is thrown if the number
+//   of accounts and aggregators exceeds the limit.
 //
 //   * ErrCodeResourceInUseException "ResourceInUseException"
 //   The rule is currently being deleted or the rule is deleting your evaluation
@@ -3913,7 +3921,7 @@ const opStartConfigurationRecorder = "StartConfigurationRecorder"
 // StartConfigurationRecorderRequest generates a "aws/request.Request" representing the
 // client's request for the StartConfigurationRecorder operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -4001,7 +4009,7 @@ const opStopConfigurationRecorder = "StopConfigurationRecorder"
 // StopConfigurationRecorderRequest generates a "aws/request.Request" representing the
 // client's request for the StopConfigurationRecorder operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -5045,6 +5053,12 @@ type ConfigRule struct {
 	// available.
 	ConfigRuleState *string `type:"string" enum:"ConfigRuleState"`
 
+	// Service principal name of the service that created the rule.
+	//
+	// The field is populated only if the service linked rule is created by a service.
+	// The field is empty if you create your own rule.
+	CreatedBy *string `min:"1" type:"string"`
+
 	// The description that you provide for the AWS Config rule.
 	Description *string `type:"string"`
 
@@ -5095,6 +5109,9 @@ func (s *ConfigRule) Validate() error {
 	if s.ConfigRuleName != nil && len(*s.ConfigRuleName) < 1 {
 		invalidParams.Add(request.NewErrParamMinLen("ConfigRuleName", 1))
 	}
+	if s.CreatedBy != nil && len(*s.CreatedBy) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("CreatedBy", 1))
+	}
 	if s.InputParameters != nil && len(*s.InputParameters) < 1 {
 		invalidParams.Add(request.NewErrParamMinLen("InputParameters", 1))
 	}
@@ -5139,6 +5156,12 @@ func (s *ConfigRule) SetConfigRuleName(v string) *ConfigRule {
 // SetConfigRuleState sets the ConfigRuleState field's value.
 func (s *ConfigRule) SetConfigRuleState(v string) *ConfigRule {
 	s.ConfigRuleState = &v
+	return s
+}
+
+// SetCreatedBy sets the CreatedBy field's value.
+func (s *ConfigRule) SetCreatedBy(v string) *ConfigRule {
+	s.CreatedBy = &v
 	return s
 }
 

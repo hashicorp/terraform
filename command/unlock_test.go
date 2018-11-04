@@ -25,7 +25,7 @@ func TestUnlock(t *testing.T) {
 		if err != nil {
 			t.Fatalf("err: %s", err)
 		}
-		err = terraform.WriteState(testState(), f)
+		err = terraform.WriteState(terraform.NewState(), f)
 		f.Close()
 		if err != nil {
 			t.Fatalf("err: %s", err)

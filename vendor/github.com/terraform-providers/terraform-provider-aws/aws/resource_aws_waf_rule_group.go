@@ -108,6 +108,9 @@ func resourceAwsWafRuleGroupRead(d *schema.ResourceData, meta interface{}) error
 	rResp, err := conn.ListActivatedRulesInRuleGroup(&waf.ListActivatedRulesInRuleGroupInput{
 		RuleGroupId: aws.String(d.Id()),
 	})
+	if err != nil {
+		return fmt.Errorf("error listing activated rules in WAF Rule Group (%s): %s", d.Id(), err)
+	}
 
 	d.Set("activated_rule", flattenWafActivatedRules(rResp.ActivatedRules))
 	d.Set("name", resp.RuleGroup.Name)

@@ -12,6 +12,9 @@
 //
 // For more information about how AWS IoT works, see the Developer Guide (http://docs.aws.amazon.com/iot/latest/developerguide/aws-iot-how-it-works.html).
 //
+// For information about how to use the credentials provider for AWS IoT, see
+// Authorizing Direct Calls to AWS Services (http://docs.aws.amazon.com/iot/latest/developerguide/authorizing-direct-aws.html).
+//
 // See iot package documentation for more information.
 // https://docs.aws.amazon.com/sdk-for-go/api/service/iot/
 //

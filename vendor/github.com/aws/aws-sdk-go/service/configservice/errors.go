@@ -102,8 +102,12 @@ const (
 	// ErrCodeLimitExceededException for service response error code
 	// "LimitExceededException".
 	//
-	// This exception is thrown if an evaluation is in progress or if you call the
-	// StartConfigRulesEvaluation API more than once per minute.
+	// For StartConfigRulesEvaluation API, this exception is thrown if an evaluation
+	// is in progress or if you call the StartConfigRulesEvaluation API more than
+	// once per minute.
+	//
+	// For PutConfigurationAggregator API, this exception is thrown if the number
+	// of accounts and aggregators exceeds the limit.
 	ErrCodeLimitExceededException = "LimitExceededException"
 
 	// ErrCodeMaxNumberOfConfigRulesExceededException for service response error code

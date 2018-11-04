@@ -6,13 +6,13 @@ import (
 	"log"
 	"regexp"
 
-	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/terraform/helper/schema"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/glacier"
 	"github.com/hashicorp/terraform/helper/structure"
+	"github.com/hashicorp/terraform/helper/validation"
 )
 
 func resourceAwsGlacierVault() *schema.Resource {
@@ -58,7 +58,7 @@ func resourceAwsGlacierVault() *schema.Resource {
 			"access_policy": {
 				Type:         schema.TypeString,
 				Optional:     true,
-				ValidateFunc: validateJsonString,
+				ValidateFunc: validation.ValidateJsonString,
 				StateFunc: func(v interface{}) string {
 					json, _ := structure.NormalizeJsonString(v)
 					return json
@@ -167,7 +167,7 @@ func resourceAwsGlacierVaultRead(d *schema.ResourceData, meta interface{}) error
 	} else if pol != nil {
 		policy, err := structure.NormalizeJsonString(*pol.Policy.Policy)
 		if err != nil {
-			return errwrap.Wrapf("access policy contains an invalid JSON: {{err}}", err)
+			return fmt.Errorf("access policy contains an invalid JSON: %s", err)
 		}
 		d.Set("access_policy", policy)
 	} else {

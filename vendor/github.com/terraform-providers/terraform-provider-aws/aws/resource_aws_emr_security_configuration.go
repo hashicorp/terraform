@@ -7,6 +7,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/emr"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/hashicorp/terraform/helper/validation"
 )
 
 func resourceAwsEMRSecurityConfiguration() *schema.Resource {
@@ -25,21 +26,21 @@ func resourceAwsEMRSecurityConfiguration() *schema.Resource {
 				Computed:      true,
 				ForceNew:      true,
 				ConflictsWith: []string{"name_prefix"},
-				ValidateFunc:  validateMaxLength(10280),
+				ValidateFunc:  validation.StringLenBetween(0, 10280),
 			},
 			"name_prefix": {
 				Type:          schema.TypeString,
 				Optional:      true,
 				ForceNew:      true,
 				ConflictsWith: []string{"name"},
-				ValidateFunc:  validateMaxLength(10280 - resource.UniqueIDSuffixLength),
+				ValidateFunc:  validation.StringLenBetween(0, 10280-resource.UniqueIDSuffixLength),
 			},
 
 			"configuration": {
 				Type:         schema.TypeString,
 				Required:     true,
 				ForceNew:     true,
-				ValidateFunc: validateJsonString,
+				ValidateFunc: validation.ValidateJsonString,
 			},
 
 			"creation_date": {
@@ -65,7 +66,7 @@ func resourceAwsEmrSecurityConfigurationCreate(d *schema.ResourceData, meta inte
 	}
 
 	resp, err := conn.CreateSecurityConfiguration(&emr.CreateSecurityConfigurationInput{
-		Name: aws.String(emrSCName),
+		Name:                  aws.String(emrSCName),
 		SecurityConfiguration: aws.String(d.Get("configuration").(string)),
 	})
 
@@ -85,7 +86,7 @@ func resourceAwsEmrSecurityConfigurationRead(d *schema.ResourceData, meta interf
 	})
 	if err != nil {
 		if isAWSErr(err, "InvalidRequestException", "does not exist") {
-			log.Printf("[WARN] EMR Security Configuraiton (%s) not found, removing from state", d.Id())
+			log.Printf("[WARN] EMR Security Configuration (%s) not found, removing from state", d.Id())
 			d.SetId("")
 			return nil
 		}

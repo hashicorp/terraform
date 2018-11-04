@@ -18,12 +18,12 @@ func resourceAwsIamUserPolicyAttachment() *schema.Resource {
 		Delete: resourceAwsIamUserPolicyAttachmentDelete,
 
 		Schema: map[string]*schema.Schema{
-			"user": &schema.Schema{
+			"user": {
 				Type:     schema.TypeString,
 				ForceNew: true,
 				Required: true,
 			},
-			"policy_arn": &schema.Schema{
+			"policy_arn": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
@@ -40,7 +40,7 @@ func resourceAwsIamUserPolicyAttachmentCreate(d *schema.ResourceData, meta inter
 
 	err := attachPolicyToUser(conn, user, arn)
 	if err != nil {
-		return fmt.Errorf("[WARN] Error attaching policy %s to IAM User %s: %v", arn, user, err)
+		return fmt.Errorf("Error attaching policy %s to IAM User %s: %v", arn, user, err)
 	}
 
 	d.SetId(resource.PrefixedUniqueId(fmt.Sprintf("%s-", user)))
@@ -95,7 +95,7 @@ func resourceAwsIamUserPolicyAttachmentDelete(d *schema.ResourceData, meta inter
 
 	err := detachPolicyFromUser(conn, user, arn)
 	if err != nil {
-		return fmt.Errorf("[WARN] Error removing policy %s from IAM User %s: %v", arn, user, err)
+		return fmt.Errorf("Error removing policy %s from IAM User %s: %v", arn, user, err)
 	}
 	return nil
 }

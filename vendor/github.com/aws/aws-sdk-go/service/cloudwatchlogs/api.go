@@ -17,7 +17,7 @@ const opAssociateKmsKey = "AssociateKmsKey"
 // AssociateKmsKeyRequest generates a "aws/request.Request" representing the
 // client's request for the AssociateKmsKey operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -120,7 +120,7 @@ const opCancelExportTask = "CancelExportTask"
 // CancelExportTaskRequest generates a "aws/request.Request" representing the
 // client's request for the CancelExportTask operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -212,7 +212,7 @@ const opCreateExportTask = "CreateExportTask"
 // CreateExportTaskRequest generates a "aws/request.Request" representing the
 // client's request for the CreateExportTask operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -317,7 +317,7 @@ const opCreateLogGroup = "CreateLogGroup"
 // CreateLogGroupRequest generates a "aws/request.Request" representing the
 // client's request for the CreateLogGroup operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -431,7 +431,7 @@ const opCreateLogStream = "CreateLogStream"
 // CreateLogStreamRequest generates a "aws/request.Request" representing the
 // client's request for the CreateLogStream operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -532,7 +532,7 @@ const opDeleteDestination = "DeleteDestination"
 // DeleteDestinationRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteDestination operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -624,7 +624,7 @@ const opDeleteLogGroup = "DeleteLogGroup"
 // DeleteLogGroupRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteLogGroup operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -715,7 +715,7 @@ const opDeleteLogStream = "DeleteLogStream"
 // DeleteLogStreamRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteLogStream operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -806,7 +806,7 @@ const opDeleteMetricFilter = "DeleteMetricFilter"
 // DeleteMetricFilterRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteMetricFilter operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -896,7 +896,7 @@ const opDeleteResourcePolicy = "DeleteResourcePolicy"
 // DeleteResourcePolicyRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteResourcePolicy operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -984,7 +984,7 @@ const opDeleteRetentionPolicy = "DeleteRetentionPolicy"
 // DeleteRetentionPolicyRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteRetentionPolicy operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1077,7 +1077,7 @@ const opDeleteSubscriptionFilter = "DeleteSubscriptionFilter"
 // DeleteSubscriptionFilterRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteSubscriptionFilter operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1167,7 +1167,7 @@ const opDescribeDestinations = "DescribeDestinations"
 // DescribeDestinationsRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeDestinations operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1307,7 +1307,7 @@ const opDescribeExportTasks = "DescribeExportTasks"
 // DescribeExportTasksRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeExportTasks operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1390,7 +1390,7 @@ const opDescribeLogGroups = "DescribeLogGroups"
 // DescribeLogGroupsRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeLogGroups operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1530,7 +1530,7 @@ const opDescribeLogStreams = "DescribeLogStreams"
 // DescribeLogStreamsRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeLogStreams operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1677,7 +1677,7 @@ const opDescribeMetricFilters = "DescribeMetricFilters"
 // DescribeMetricFiltersRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeMetricFilters operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1821,7 +1821,7 @@ const opDescribeResourcePolicies = "DescribeResourcePolicies"
 // DescribeResourcePoliciesRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeResourcePolicies operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1903,7 +1903,7 @@ const opDescribeSubscriptionFilters = "DescribeSubscriptionFilters"
 // DescribeSubscriptionFiltersRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeSubscriptionFilters operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -2047,7 +2047,7 @@ const opDisassociateKmsKey = "DisassociateKmsKey"
 // DisassociateKmsKeyRequest generates a "aws/request.Request" representing the
 // client's request for the DisassociateKmsKey operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -2145,7 +2145,7 @@ const opFilterLogEvents = "FilterLogEvents"
 // FilterLogEventsRequest generates a "aws/request.Request" representing the
 // client's request for the FilterLogEvents operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -2295,7 +2295,7 @@ const opGetLogEvents = "GetLogEvents"
 // GetLogEventsRequest generates a "aws/request.Request" representing the
 // client's request for the GetLogEvents operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -2442,7 +2442,7 @@ const opListTagsLogGroup = "ListTagsLogGroup"
 // ListTagsLogGroupRequest generates a "aws/request.Request" representing the
 // client's request for the ListTagsLogGroup operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -2524,7 +2524,7 @@ const opPutDestination = "PutDestination"
 // PutDestinationRequest generates a "aws/request.Request" representing the
 // client's request for the PutDestination operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -2619,7 +2619,7 @@ const opPutDestinationPolicy = "PutDestinationPolicy"
 // PutDestinationPolicyRequest generates a "aws/request.Request" representing the
 // client's request for the PutDestinationPolicy operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -2709,7 +2709,7 @@ const opPutLogEvents = "PutLogEvents"
 // PutLogEventsRequest generates a "aws/request.Request" representing the
 // client's request for the PutLogEvents operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -2769,13 +2769,18 @@ func (c *CloudWatchLogs) PutLogEventsRequest(input *PutLogEventsInput) (req *req
 //    retention period of the log group.
 //
 //    * The log events in the batch must be in chronological ordered by their
-//    time stamp (the time the event occurred, expressed as the number of milliseconds
-//    after Jan 1, 1970 00:00:00 UTC).
+//    time stamp. The time stamp is the time the event occurred, expressed as
+//    the number of milliseconds after Jan 1, 1970 00:00:00 UTC. (In AWS Tools
+//    for PowerShell and the AWS SDK for .NET, the timestamp is specified in
+//    .NET format: yyyy-mm-ddThh:mm:ss. For example, 2017-09-15T13:45:30.)
 //
 //    * The maximum number of log events in a batch is 10,000.
 //
 //    * A batch of log events in a single request cannot span more than 24 hours.
 //    Otherwise, the operation fails.
+//
+// If a call to PutLogEvents returns "UnrecognizedClientException" the most
+// likely cause is an invalid AWS access key ID or secret key.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -2799,6 +2804,9 @@ func (c *CloudWatchLogs) PutLogEventsRequest(input *PutLogEventsInput) (req *req
 //
 //   * ErrCodeServiceUnavailableException "ServiceUnavailableException"
 //   The service cannot complete the request.
+//
+//   * ErrCodeUnrecognizedClientException "UnrecognizedClientException"
+//   The most likely cause is an invalid AWS access key ID or secret key.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/logs-2014-03-28/PutLogEvents
 func (c *CloudWatchLogs) PutLogEvents(input *PutLogEventsInput) (*PutLogEventsOutput, error) {
@@ -2827,7 +2835,7 @@ const opPutMetricFilter = "PutMetricFilter"
 // PutMetricFilterRequest generates a "aws/request.Request" representing the
 // client's request for the PutMetricFilter operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -2925,7 +2933,7 @@ const opPutResourcePolicy = "PutResourcePolicy"
 // PutResourcePolicyRequest generates a "aws/request.Request" representing the
 // client's request for the PutResourcePolicy operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -2966,7 +2974,7 @@ func (c *CloudWatchLogs) PutResourcePolicyRequest(input *PutResourcePolicyInput)
 //
 // Creates or updates a resource policy allowing other AWS services to put log
 // events to this account, such as Amazon Route 53. An account can have up to
-// 50 resource policies per region.
+// 10 resource policies per region.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -3012,7 +3020,7 @@ const opPutRetentionPolicy = "PutRetentionPolicy"
 // PutRetentionPolicyRequest generates a "aws/request.Request" representing the
 // client's request for the PutRetentionPolicy operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -3104,7 +3112,7 @@ const opPutSubscriptionFilter = "PutSubscriptionFilter"
 // PutSubscriptionFilterRequest generates a "aws/request.Request" representing the
 // client's request for the PutSubscriptionFilter operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -3217,7 +3225,7 @@ const opTagLogGroup = "TagLogGroup"
 // TagLogGroupRequest generates a "aws/request.Request" representing the
 // client's request for the TagLogGroup operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -3308,7 +3316,7 @@ const opTestMetricFilter = "TestMetricFilter"
 // TestMetricFilterRequest generates a "aws/request.Request" representing the
 // client's request for the TestMetricFilter operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -3392,7 +3400,7 @@ const opUntagLogGroup = "UntagLogGroup"
 // UntagLogGroupRequest generates a "aws/request.Request" representing the
 // client's request for the UntagLogGroup operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -4629,7 +4637,7 @@ type DescribeLogStreamsInput struct {
 
 	// The prefix to match.
 	//
-	// iIf orderBy is LastEventTime,you cannot specify this parameter.
+	// If orderBy is LastEventTime,you cannot specify this parameter.
 	LogStreamNamePrefix *string `locationName:"logStreamNamePrefix" min:"1" type:"string"`
 
 	// The token for the next set of items to return. (You received this token from
@@ -4768,11 +4776,14 @@ type DescribeMetricFiltersInput struct {
 	// The name of the log group.
 	LogGroupName *string `locationName:"logGroupName" min:"1" type:"string"`
 
-	// The name of the CloudWatch metric to which the monitored log information
-	// should be published. For example, you may publish to a metric called ErrorCount.
+	// Filters results to include only those with the specified metric name. If
+	// you include this parameter in your request, you must also include the metricNamespace
+	// parameter.
 	MetricName *string `locationName:"metricName" type:"string"`
 
-	// The namespace of the CloudWatch metric.
+	// Filters results to include only those in the specified namespace. If you
+	// include this parameter in your request, you must also include the metricName
+	// parameter.
 	MetricNamespace *string `locationName:"metricNamespace" type:"string"`
 
 	// The token for the next set of items to return. (You received this token from
@@ -5377,7 +5388,10 @@ type FilterLogEventsInput struct {
 	// not returned.
 	EndTime *int64 `locationName:"endTime" type:"long"`
 
-	// The filter pattern to use. If not provided, all the events are matched.
+	// The filter pattern to use. For more information, see Filter and Pattern Syntax
+	// (http://docs.aws.amazon.com/AmazonCloudWatch/latest/logs/FilterAndPatternSyntax.html).
+	//
+	// If not provided, all the events are matched.
 	FilterPattern *string `locationName:"filterPattern" type:"string"`
 
 	// If the value is true, the operation makes a best effort to provide responses
@@ -5390,12 +5404,24 @@ type FilterLogEventsInput struct {
 	// The maximum number of events to return. The default is 10,000 events.
 	Limit *int64 `locationName:"limit" min:"1" type:"integer"`
 
-	// The name of the log group.
+	// The name of the log group to search.
 	//
 	// LogGroupName is a required field
 	LogGroupName *string `locationName:"logGroupName" min:"1" type:"string" required:"true"`
 
-	// Optional list of log stream names.
+	// Filters the results to include only events from log streams that have names
+	// starting with this prefix.
+	//
+	// If you specify a value for both logStreamNamePrefix and logStreamNames, but
+	// the value for logStreamNamePrefix does not match any log stream names specified
+	// in logStreamNames, the action returns an InvalidParameterException error.
+	LogStreamNamePrefix *string `locationName:"logStreamNamePrefix" min:"1" type:"string"`
+
+	// Filters the results to only logs from the log streams in this list.
+	//
+	// If you specify a value for both logStreamNamePrefix and logStreamNames, but
+	// the value for logStreamNamePrefix does not match any log stream names specified
+	// in logStreamNames, the action returns an InvalidParameterException error.
 	LogStreamNames []*string `locationName:"logStreamNames" min:"1" type:"list"`
 
 	// The token for the next set of events to return. (You received this token
@@ -5429,6 +5455,9 @@ func (s *FilterLogEventsInput) Validate() error {
 	}
 	if s.LogGroupName != nil && len(*s.LogGroupName) < 1 {
 		invalidParams.Add(request.NewErrParamMinLen("LogGroupName", 1))
+	}
+	if s.LogStreamNamePrefix != nil && len(*s.LogStreamNamePrefix) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("LogStreamNamePrefix", 1))
 	}
 	if s.LogStreamNames != nil && len(s.LogStreamNames) < 1 {
 		invalidParams.Add(request.NewErrParamMinLen("LogStreamNames", 1))
@@ -5470,6 +5499,12 @@ func (s *FilterLogEventsInput) SetLimit(v int64) *FilterLogEventsInput {
 // SetLogGroupName sets the LogGroupName field's value.
 func (s *FilterLogEventsInput) SetLogGroupName(v string) *FilterLogEventsInput {
 	s.LogGroupName = &v
+	return s
+}
+
+// SetLogStreamNamePrefix sets the LogStreamNamePrefix field's value.
+func (s *FilterLogEventsInput) SetLogStreamNamePrefix(v string) *FilterLogEventsInput {
+	s.LogStreamNamePrefix = &v
 	return s
 }
 
@@ -5600,8 +5635,8 @@ type GetLogEventsInput struct {
 	_ struct{} `type:"structure"`
 
 	// The end of the time range, expressed as the number of milliseconds after
-	// Jan 1, 1970 00:00:00 UTC. Events with a time stamp later than this time are
-	// not included.
+	// Jan 1, 1970 00:00:00 UTC. Events with a time stamp equal to or later than
+	// this time are not included.
 	EndTime *int64 `locationName:"endTime" type:"long"`
 
 	// The maximum number of log events returned. If you don't specify a value,
@@ -5629,8 +5664,9 @@ type GetLogEventsInput struct {
 	StartFromHead *bool `locationName:"startFromHead" type:"boolean"`
 
 	// The start of the time range, expressed as the number of milliseconds after
-	// Jan 1, 1970 00:00:00 UTC. Events with a time stamp earlier than this time
-	// are not included.
+	// Jan 1, 1970 00:00:00 UTC. Events with a time stamp equal to this time or
+	// later than this time are included. Events with a time stamp earlier than
+	// this time are not included.
 	StartTime *int64 `locationName:"startTime" type:"long"`
 }
 
@@ -5721,11 +5757,13 @@ type GetLogEventsOutput struct {
 	Events []*OutputLogEvent `locationName:"events" type:"list"`
 
 	// The token for the next set of items in the backward direction. The token
-	// expires after 24 hours.
+	// expires after 24 hours. This token will never be null. If you have reached
+	// the end of the stream, it will return the same token you passed in.
 	NextBackwardToken *string `locationName:"nextBackwardToken" min:"1" type:"string"`
 
 	// The token for the next set of items in the forward direction. The token expires
-	// after 24 hours.
+	// after 24 hours. If you have reached the end of the stream, it will return
+	// the same token you passed in.
 	NextForwardToken *string `locationName:"nextForwardToken" min:"1" type:"string"`
 }
 
@@ -5767,7 +5805,7 @@ type InputLogEvent struct {
 	// Message is a required field
 	Message *string `locationName:"message" min:"1" type:"string" required:"true"`
 
-	// The time the event occurred, expressed as the number of milliseconds fter
+	// The time the event occurred, expressed as the number of milliseconds after
 	// Jan 1, 1970 00:00:00 UTC.
 	//
 	// Timestamp is a required field
@@ -6714,9 +6752,9 @@ type PutResourcePolicyInput struct {
 	// to put DNS query logs in to the specified log group. Replace "logArn" with
 	// the ARN of your CloudWatch Logs resource, such as a log group or log stream.
 	//
-	// { "Version": "2012-10-17" "Statement": [ { "Sid": "Route53LogsToCloudWatchLogs",
+	// { "Version": "2012-10-17", "Statement": [ { "Sid": "Route53LogsToCloudWatchLogs",
 	// "Effect": "Allow", "Principal": { "Service": [ "route53.amazonaws.com" ]
-	// }, "Action":"logs:PutLogEvents", "Resource": logArn } ] }
+	// }, "Action":"logs:PutLogEvents", "Resource": "logArn" } ] }
 	PolicyDocument *string `locationName:"policyDocument" min:"1" type:"string"`
 
 	// Name of the new policy. This parameter is required.

@@ -170,19 +170,19 @@ func resourceAwsCognitoIdentityPoolRead(d *schema.ResourceData, meta interface{}
 	d.Set("developer_provider_name", ip.DeveloperProviderName)
 
 	if err := d.Set("cognito_identity_providers", flattenCognitoIdentityProviders(ip.CognitoIdentityProviders)); err != nil {
-		return fmt.Errorf("[DEBUG] Error setting cognito_identity_providers error: %#v", err)
+		return fmt.Errorf("Error setting cognito_identity_providers error: %#v", err)
 	}
 
 	if err := d.Set("openid_connect_provider_arns", flattenStringList(ip.OpenIdConnectProviderARNs)); err != nil {
-		return fmt.Errorf("[DEBUG] Error setting openid_connect_provider_arns error: %#v", err)
+		return fmt.Errorf("Error setting openid_connect_provider_arns error: %#v", err)
 	}
 
 	if err := d.Set("saml_provider_arns", flattenStringList(ip.SamlProviderARNs)); err != nil {
-		return fmt.Errorf("[DEBUG] Error setting saml_provider_arns error: %#v", err)
+		return fmt.Errorf("Error setting saml_provider_arns error: %#v", err)
 	}
 
 	if err := d.Set("supported_login_providers", flattenCognitoSupportedLoginProviders(ip.SupportedLoginProviders)); err != nil {
-		return fmt.Errorf("[DEBUG] Error setting supported_login_providers error: %#v", err)
+		return fmt.Errorf("Error setting supported_login_providers error: %#v", err)
 	}
 
 	return nil

@@ -7,7 +7,6 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/waf"
-	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -19,12 +18,12 @@ func resourceAwsWafXssMatchSet() *schema.Resource {
 		Delete: resourceAwsWafXssMatchSetDelete,
 
 		Schema: map[string]*schema.Schema{
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
-			"xss_match_tuples": &schema.Schema{
+			"xss_match_tuples": {
 				Type:     schema.TypeSet,
 				Optional: true,
 				Elem: &schema.Resource{
@@ -46,7 +45,7 @@ func resourceAwsWafXssMatchSet() *schema.Resource {
 								},
 							},
 						},
-						"text_transformation": &schema.Schema{
+						"text_transformation": {
 							Type:     schema.TypeString,
 							Required: true,
 						},
@@ -72,7 +71,7 @@ func resourceAwsWafXssMatchSetCreate(d *schema.ResourceData, meta interface{}) e
 		return conn.CreateXssMatchSet(params)
 	})
 	if err != nil {
-		return errwrap.Wrapf("[ERROR] Error creating XssMatchSet: {{err}}", err)
+		return fmt.Errorf("Error creating XssMatchSet: %s", err)
 	}
 	resp := out.(*waf.CreateXssMatchSetOutput)
 
@@ -114,7 +113,7 @@ func resourceAwsWafXssMatchSetUpdate(d *schema.ResourceData, meta interface{}) e
 
 		err := updateXssMatchSetResource(d.Id(), oldT, newT, conn)
 		if err != nil {
-			return errwrap.Wrapf("[ERROR] Error updating XssMatchSet: {{err}}", err)
+			return fmt.Errorf("Error updating XssMatchSet: %s", err)
 		}
 	}
 
@@ -143,7 +142,7 @@ func resourceAwsWafXssMatchSetDelete(d *schema.ResourceData, meta interface{}) e
 		return conn.DeleteXssMatchSet(req)
 	})
 	if err != nil {
-		return errwrap.Wrapf("[ERROR] Error deleting XssMatchSet: {{err}}", err)
+		return fmt.Errorf("Error deleting XssMatchSet: %s", err)
 	}
 
 	return nil
@@ -162,7 +161,7 @@ func updateXssMatchSetResource(id string, oldT, newT []interface{}, conn *waf.WA
 		return conn.UpdateXssMatchSet(req)
 	})
 	if err != nil {
-		return errwrap.Wrapf("[ERROR] Error updating XssMatchSet: {{err}}", err)
+		return fmt.Errorf("Error updating XssMatchSet: %s", err)
 	}
 
 	return nil

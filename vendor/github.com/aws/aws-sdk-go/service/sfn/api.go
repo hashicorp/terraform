@@ -15,7 +15,7 @@ const opCreateActivity = "CreateActivity"
 // CreateActivityRequest generates a "aws/request.Request" representing the
 // client's request for the CreateActivity operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -103,7 +103,7 @@ const opCreateStateMachine = "CreateStateMachine"
 // CreateStateMachineRequest generates a "aws/request.Request" representing the
 // client's request for the CreateStateMachine operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -202,7 +202,7 @@ const opDeleteActivity = "DeleteActivity"
 // DeleteActivityRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteActivity operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -281,7 +281,7 @@ const opDeleteStateMachine = "DeleteStateMachine"
 // DeleteStateMachineRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteStateMachine operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -365,7 +365,7 @@ const opDescribeActivity = "DescribeActivity"
 // DescribeActivityRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeActivity operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -447,7 +447,7 @@ const opDescribeExecution = "DescribeExecution"
 // DescribeExecutionRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeExecution operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -529,7 +529,7 @@ const opDescribeStateMachine = "DescribeStateMachine"
 // DescribeStateMachineRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeStateMachine operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -611,7 +611,7 @@ const opDescribeStateMachineForExecution = "DescribeStateMachineForExecution"
 // DescribeStateMachineForExecutionRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeStateMachineForExecution operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -693,7 +693,7 @@ const opGetActivityTask = "GetActivityTask"
 // GetActivityTaskRequest generates a "aws/request.Request" representing the
 // client's request for the GetActivityTask operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -788,7 +788,7 @@ const opGetExecutionHistory = "GetExecutionHistory"
 // GetExecutionHistoryRequest generates a "aws/request.Request" representing the
 // client's request for the GetExecutionHistory operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -935,7 +935,7 @@ const opListActivities = "ListActivities"
 // ListActivitiesRequest generates a "aws/request.Request" representing the
 // client's request for the ListActivities operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1074,7 +1074,7 @@ const opListExecutions = "ListExecutions"
 // ListExecutionsRequest generates a "aws/request.Request" representing the
 // client's request for the ListExecutions operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1219,7 +1219,7 @@ const opListStateMachines = "ListStateMachines"
 // ListStateMachinesRequest generates a "aws/request.Request" representing the
 // client's request for the ListStateMachines operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1358,7 +1358,7 @@ const opSendTaskFailure = "SendTaskFailure"
 // SendTaskFailureRequest generates a "aws/request.Request" representing the
 // client's request for the SendTaskFailure operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1441,7 +1441,7 @@ const opSendTaskHeartbeat = "SendTaskHeartbeat"
 // SendTaskHeartbeatRequest generates a "aws/request.Request" representing the
 // client's request for the SendTaskHeartbeat operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1536,7 +1536,7 @@ const opSendTaskSuccess = "SendTaskSuccess"
 // SendTaskSuccessRequest generates a "aws/request.Request" representing the
 // client's request for the SendTaskSuccess operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1623,7 +1623,7 @@ const opStartExecution = "StartExecution"
 // StartExecutionRequest generates a "aws/request.Request" representing the
 // client's request for the StartExecution operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1723,7 +1723,7 @@ const opStopExecution = "StopExecution"
 // StopExecutionRequest generates a "aws/request.Request" representing the
 // client's request for the StopExecution operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1805,7 +1805,7 @@ const opUpdateStateMachine = "UpdateStateMachine"
 // UpdateStateMachineRequest generates a "aws/request.Request" representing the
 // client's request for the UpdateStateMachine operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.

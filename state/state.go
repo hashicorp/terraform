@@ -1,20 +1,16 @@
 package state
 
 import (
-	"bytes"
 	"context"
-	"encoding/json"
-	"errors"
 	"fmt"
 	"math/rand"
 	"os"
 	"os/user"
-	"strings"
-	"text/template"
 	"time"
 
 	uuid "github.com/hashicorp/go-uuid"
-	"github.com/hashicorp/terraform/terraform"
+
+	"github.com/hashicorp/terraform/states/statemgr"
 	"github.com/hashicorp/terraform/version"
 )
 
@@ -24,74 +20,23 @@ func init() {
 	rngSource = rand.New(rand.NewSource(time.Now().UnixNano()))
 }
 
-// State is the collection of all state interfaces.
-type State interface {
-	StateReader
-	StateWriter
-	StateRefresher
-	StatePersister
-	Locker
-}
+// State is a deprecated alias for statemgr.Full
+type State = statemgr.Full
 
-// StateReader is the interface for things that can return a state. Retrieving
-// the state here must not error. Loading the state fresh (an operation that
-// can likely error) should be implemented by RefreshState. If a state hasn't
-// been loaded yet, it is okay for State to return nil.
-//
-// Each caller of this function must get a distinct copy of the state, and
-// it must also be distinct from any instance cached inside the reader, to
-// ensure that mutations of the returned state will not affect the values
-// returned to other callers.
-type StateReader interface {
-	State() *terraform.State
-}
+// StateReader is a deprecated alias for statemgr.Reader
+type StateReader = statemgr.Reader
 
-// StateWriter is the interface that must be implemented by something that
-// can write a state. Writing the state can be cached or in-memory, as
-// full persistence should be implemented by StatePersister.
-//
-// Implementors that cache the state in memory _must_ take a copy of it
-// before returning, since the caller may continue to modify it once
-// control returns. The caller must ensure that the state instance is not
-// concurrently modified _during_ the call, or behavior is undefined.
-//
-// If an object implements StatePersister in conjunction with StateReader
-// then these methods must coordinate such that a subsequent read returns
-// a copy of the most recent write, even if it has not yet been persisted.
-type StateWriter interface {
-	WriteState(*terraform.State) error
-}
+// StateWriter is a deprecated alias for statemgr.Writer
+type StateWriter = statemgr.Writer
 
-// StateRefresher is the interface that is implemented by something that
-// can load a state. This might be refreshing it from a remote location or
-// it might simply be reloading it from disk.
-type StateRefresher interface {
-	RefreshState() error
-}
+// StateRefresher is a deprecated alias for statemgr.Refresher
+type StateRefresher = statemgr.Refresher
 
-// StatePersister is implemented to truly persist a state. Whereas StateWriter
-// is allowed to perhaps be caching in memory, PersistState must write the
-// state to some durable storage.
-//
-// If an object implements StatePersister in conjunction with StateReader
-// and/or StateRefresher then these methods must coordinate such that
-// subsequent reads after a persist return an updated value.
-type StatePersister interface {
-	PersistState() error
-}
+// StatePersister is a deprecated alias for statemgr.Persister
+type StatePersister = statemgr.Persister
 
-// Locker is implemented to lock state during command execution.
-// The info parameter can be recorded with the lock, but the
-// implementation should not depend in its value. The string returned by Lock
-// is an ID corresponding to the lock acquired, and must be passed to Unlock to
-// ensure that the correct lock is being released.
-//
-// Lock and Unlock may return an error value of type LockError which in turn
-// can contain the LockInfo of a conflicting lock.
-type Locker interface {
-	Lock(info *LockInfo) (string, error)
-	Unlock(id string) error
-}
+// Locker is a deprecated alias for statemgr.Locker
+type Locker = statemgr.Locker
 
 // test hook to verify that LockWithContext has attempted a lock
 var postLockHook func()
@@ -165,78 +110,8 @@ func NewLockInfo() *LockInfo {
 	return info
 }
 
-// LockInfo stores lock metadata.
-//
-// Only Operation and Info are required to be set by the caller of Lock.
-type LockInfo struct {
-	// Unique ID for the lock. NewLockInfo provides a random ID, but this may
-	// be overridden by the lock implementation. The final value if ID will be
-	// returned by the call to Lock.
-	ID string
+// LockInfo is a deprecated lias for statemgr.LockInfo
+type LockInfo = statemgr.LockInfo
 
-	// Terraform operation, provided by the caller.
-	Operation string
-	// Extra information to store with the lock, provided by the caller.
-	Info string
-
-	// user@hostname when available
-	Who string
-	// Terraform version
-	Version string
-	// Time that the lock was taken.
-	Created time.Time
-
-	// Path to the state file when applicable. Set by the Lock implementation.
-	Path string
-}
-
-// Err returns the lock info formatted in an error
-func (l *LockInfo) Err() error {
-	return errors.New(l.String())
-}
-
-// Marshal returns a string json representation of the LockInfo
-func (l *LockInfo) Marshal() []byte {
-	js, err := json.Marshal(l)
-	if err != nil {
-		panic(err)
-	}
-	return js
-}
-
-// String return a multi-line string representation of LockInfo
-func (l *LockInfo) String() string {
-	tmpl := `Lock Info:
-  ID:        {{.ID}}
-  Path:      {{.Path}}
-  Operation: {{.Operation}}
-  Who:       {{.Who}}
-  Version:   {{.Version}}
-  Created:   {{.Created}}
-  Info:      {{.Info}}
-`
-
-	t := template.Must(template.New("LockInfo").Parse(tmpl))
-	var out bytes.Buffer
-	if err := t.Execute(&out, l); err != nil {
-		panic(err)
-	}
-	return out.String()
-}
-
-type LockError struct {
-	Info *LockInfo
-	Err  error
-}
-
-func (e *LockError) Error() string {
-	var out []string
-	if e.Err != nil {
-		out = append(out, e.Err.Error())
-	}
-
-	if e.Info != nil {
-		out = append(out, e.Info.String())
-	}
-	return strings.Join(out, "\n")
-}
+// LockError is a deprecated alias for statemgr.LockError
+type LockError = statemgr.LockError

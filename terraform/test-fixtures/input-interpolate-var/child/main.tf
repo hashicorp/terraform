@@ -1,5 +1,6 @@
-variable "list" { }
+variable "length" { }
+
 resource "template_file" "temp" {
-  count     = "${length(split(",", var.list))}"
+  count     = var.length
   template  = "foo"
 }

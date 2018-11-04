@@ -1,15 +1,33 @@
 package schema
 
 import (
-	"reflect"
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/zclconf/go-cty/cty"
 
-	"github.com/davecgh/go-spew/spew"
-
-	"github.com/hashicorp/terraform/config/configschema"
+	"github.com/hashicorp/terraform/configs/configschema"
 )
+
+// add the implicit "id" attribute for test resources
+func testResource(block *configschema.Block) *configschema.Block {
+	if block.Attributes == nil {
+		block.Attributes = make(map[string]*configschema.Attribute)
+	}
+
+	if block.BlockTypes == nil {
+		block.BlockTypes = make(map[string]*configschema.NestedBlock)
+	}
+
+	if block.Attributes["id"] == nil {
+		block.Attributes["id"] = &configschema.Attribute{
+			Type:     cty.String,
+			Optional: true,
+			Computed: true,
+		}
+	}
+	return block
+}
 
 func TestSchemaMapCoreConfigSchema(t *testing.T) {
 	tests := map[string]struct {
@@ -18,13 +36,14 @@ func TestSchemaMapCoreConfigSchema(t *testing.T) {
 	}{
 		"empty": {
 			map[string]*Schema{},
-			&configschema.Block{},
+			testResource(&configschema.Block{}),
 		},
 		"primitives": {
 			map[string]*Schema{
 				"int": {
-					Type:     TypeInt,
-					Required: true,
+					Type:        TypeInt,
+					Required:    true,
+					Description: "foo bar baz",
 				},
 				"float": {
 					Type:     TypeFloat,
@@ -40,11 +59,12 @@ func TestSchemaMapCoreConfigSchema(t *testing.T) {
 					Computed: true,
 				},
 			},
-			&configschema.Block{
+			testResource(&configschema.Block{
 				Attributes: map[string]*configschema.Attribute{
 					"int": {
-						Type:     cty.Number,
-						Required: true,
+						Type:        cty.Number,
+						Required:    true,
+						Description: "foo bar baz",
 					},
 					"float": {
 						Type:     cty.Number,
@@ -61,7 +81,7 @@ func TestSchemaMapCoreConfigSchema(t *testing.T) {
 					},
 				},
 				BlockTypes: map[string]*configschema.NestedBlock{},
-			},
+			}),
 		},
 		"simple collections": {
 			map[string]*Schema{
@@ -94,7 +114,7 @@ func TestSchemaMapCoreConfigSchema(t *testing.T) {
 					// for pre-existing schemas.
 				},
 			},
-			&configschema.Block{
+			testResource(&configschema.Block{
 				Attributes: map[string]*configschema.Attribute{
 					"list": {
 						Type:     cty.List(cty.Number),
@@ -114,7 +134,47 @@ func TestSchemaMapCoreConfigSchema(t *testing.T) {
 					},
 				},
 				BlockTypes: map[string]*configschema.NestedBlock{},
+			}),
+		},
+		"incorrectly-specified collections": {
+			// Historically we tolerated setting a type directly as the Elem
+			// attribute, rather than a Schema object. This is common enough
+			// in existing provider code that we must support it as an alias
+			// for a schema object with the given type.
+			map[string]*Schema{
+				"list": {
+					Type:     TypeList,
+					Required: true,
+					Elem:     TypeInt,
+				},
+				"set": {
+					Type:     TypeSet,
+					Optional: true,
+					Elem:     TypeString,
+				},
+				"map": {
+					Type:     TypeMap,
+					Optional: true,
+					Elem:     TypeBool,
+				},
 			},
+			testResource(&configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"list": {
+						Type:     cty.List(cty.Number),
+						Required: true,
+					},
+					"set": {
+						Type:     cty.Set(cty.String),
+						Optional: true,
+					},
+					"map": {
+						Type:     cty.Map(cty.Bool),
+						Optional: true,
+					},
+				},
+				BlockTypes: map[string]*configschema.NestedBlock{},
+			}),
 		},
 		"sub-resource collections": {
 			map[string]*Schema{
@@ -142,7 +202,7 @@ func TestSchemaMapCoreConfigSchema(t *testing.T) {
 					},
 				},
 			},
-			&configschema.Block{
+			testResource(&configschema.Block{
 				Attributes: map[string]*configschema.Attribute{},
 				BlockTypes: map[string]*configschema.NestedBlock{
 					"list": {
@@ -161,7 +221,7 @@ func TestSchemaMapCoreConfigSchema(t *testing.T) {
 						Block:   configschema.Block{},
 					},
 				},
-			},
+			}),
 		},
 		"nested attributes and blocks": {
 			map[string]*Schema{
@@ -191,7 +251,7 @@ func TestSchemaMapCoreConfigSchema(t *testing.T) {
 					},
 				},
 			},
-			&configschema.Block{
+			testResource(&configschema.Block{
 				Attributes: map[string]*configschema.Attribute{},
 				BlockTypes: map[string]*configschema.NestedBlock{
 					"foo": &configschema.NestedBlock{
@@ -213,7 +273,7 @@ func TestSchemaMapCoreConfigSchema(t *testing.T) {
 						MinItems: 1, // because schema is Required
 					},
 				},
-			},
+			}),
 		},
 		"sensitive": {
 			map[string]*Schema{
@@ -223,7 +283,7 @@ func TestSchemaMapCoreConfigSchema(t *testing.T) {
 					Sensitive: true,
 				},
 			},
-			&configschema.Block{
+			testResource(&configschema.Block{
 				Attributes: map[string]*configschema.Attribute{
 					"string": {
 						Type:      cty.String,
@@ -232,15 +292,15 @@ func TestSchemaMapCoreConfigSchema(t *testing.T) {
 					},
 				},
 				BlockTypes: map[string]*configschema.NestedBlock{},
-			},
+			}),
 		},
 	}
 
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
-			got := schemaMap(test.Schema).CoreConfigSchema()
-			if !reflect.DeepEqual(got, test.Want) {
-				t.Errorf("wrong result\ngot: %swant: %s", spew.Sdump(got), spew.Sdump(test.Want))
+			got := (&Resource{Schema: test.Schema}).CoreConfigSchema()
+			if !cmp.Equal(got, test.Want, equateEmpty, typeComparer) {
+				t.Error(cmp.Diff(got, test.Want, equateEmpty, typeComparer))
 			}
 		})
 	}

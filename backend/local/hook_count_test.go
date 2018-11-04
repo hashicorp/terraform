@@ -4,6 +4,11 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/zclconf/go-cty/cty"
+
+	"github.com/hashicorp/terraform/addrs"
+	"github.com/hashicorp/terraform/plans"
+	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/terraform"
 )
 
@@ -18,10 +23,14 @@ func TestCountHookPostDiff_DestroyDeposed(t *testing.T) {
 		"lorem": &terraform.InstanceDiff{DestroyDeposed: true},
 	}
 
-	n := &terraform.InstanceInfo{} // TODO
+	for k := range resources {
+		addr := addrs.Resource{
+			Mode: addrs.ManagedResourceMode,
+			Type: "test_instance",
+			Name: k,
+		}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance)
 
-	for _, d := range resources {
-		h.PostDiff(n, d)
+		h.PostDiff(addr, states.DeposedKey("deadbeef"), plans.Delete, cty.DynamicVal, cty.DynamicVal)
 	}
 
 	expected := new(CountHook)
@@ -31,8 +40,7 @@ func TestCountHookPostDiff_DestroyDeposed(t *testing.T) {
 	expected.ToRemove = 1
 
 	if !reflect.DeepEqual(expected, h) {
-		t.Fatalf("Expected %#v, got %#v instead.",
-			expected, h)
+		t.Fatalf("Expected %#v, got %#v instead.", expected, h)
 	}
 }
 
@@ -46,10 +54,14 @@ func TestCountHookPostDiff_DestroyOnly(t *testing.T) {
 		"ipsum": &terraform.InstanceDiff{Destroy: true},
 	}
 
-	n := &terraform.InstanceInfo{} // TODO
+	for k := range resources {
+		addr := addrs.Resource{
+			Mode: addrs.ManagedResourceMode,
+			Type: "test_instance",
+			Name: k,
+		}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance)
 
-	for _, d := range resources {
-		h.PostDiff(n, d)
+		h.PostDiff(addr, states.CurrentGen, plans.Delete, cty.DynamicVal, cty.DynamicVal)
 	}
 
 	expected := new(CountHook)
@@ -59,8 +71,7 @@ func TestCountHookPostDiff_DestroyOnly(t *testing.T) {
 	expected.ToRemove = 4
 
 	if !reflect.DeepEqual(expected, h) {
-		t.Fatalf("Expected %#v, got %#v instead.",
-			expected, h)
+		t.Fatalf("Expected %#v, got %#v instead.", expected, h)
 	}
 }
 
@@ -85,10 +96,14 @@ func TestCountHookPostDiff_AddOnly(t *testing.T) {
 		},
 	}
 
-	n := &terraform.InstanceInfo{}
+	for k := range resources {
+		addr := addrs.Resource{
+			Mode: addrs.ManagedResourceMode,
+			Type: "test_instance",
+			Name: k,
+		}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance)
 
-	for _, d := range resources {
-		h.PostDiff(n, d)
+		h.PostDiff(addr, states.CurrentGen, plans.Create, cty.DynamicVal, cty.DynamicVal)
 	}
 
 	expected := new(CountHook)
@@ -98,8 +113,7 @@ func TestCountHookPostDiff_AddOnly(t *testing.T) {
 	expected.ToRemove = 0
 
 	if !reflect.DeepEqual(expected, h) {
-		t.Fatalf("Expected %#v, got %#v instead.",
-			expected, h)
+		t.Fatalf("Expected %#v, got %#v instead.", expected, h)
 	}
 }
 
@@ -127,10 +141,14 @@ func TestCountHookPostDiff_ChangeOnly(t *testing.T) {
 		},
 	}
 
-	n := &terraform.InstanceInfo{}
+	for k := range resources {
+		addr := addrs.Resource{
+			Mode: addrs.ManagedResourceMode,
+			Type: "test_instance",
+			Name: k,
+		}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance)
 
-	for _, d := range resources {
-		h.PostDiff(n, d)
+		h.PostDiff(addr, states.CurrentGen, plans.Update, cty.DynamicVal, cty.DynamicVal)
 	}
 
 	expected := new(CountHook)
@@ -140,32 +158,28 @@ func TestCountHookPostDiff_ChangeOnly(t *testing.T) {
 	expected.ToRemove = 0
 
 	if !reflect.DeepEqual(expected, h) {
-		t.Fatalf("Expected %#v, got %#v instead.",
-			expected, h)
+		t.Fatalf("Expected %#v, got %#v instead.", expected, h)
 	}
 }
 
 func TestCountHookPostDiff_Mixed(t *testing.T) {
 	h := new(CountHook)
 
-	resources := map[string]*terraform.InstanceDiff{
-		"foo": &terraform.InstanceDiff{
-			Destroy: true,
-		},
-		"bar": &terraform.InstanceDiff{},
-		"lorem": &terraform.InstanceDiff{
-			Destroy: false,
-			Attributes: map[string]*terraform.ResourceAttrDiff{
-				"foo": &terraform.ResourceAttrDiff{},
-			},
-		},
-		"ipsum": &terraform.InstanceDiff{Destroy: true},
+	resources := map[string]plans.Action{
+		"foo":   plans.Delete,
+		"bar":   plans.NoOp,
+		"lorem": plans.Update,
+		"ipsum": plans.Delete,
 	}
 
-	n := &terraform.InstanceInfo{}
+	for k, a := range resources {
+		addr := addrs.Resource{
+			Mode: addrs.ManagedResourceMode,
+			Type: "test_instance",
+			Name: k,
+		}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance)
 
-	for _, d := range resources {
-		h.PostDiff(n, d)
+		h.PostDiff(addr, states.CurrentGen, a, cty.DynamicVal, cty.DynamicVal)
 	}
 
 	expected := new(CountHook)
@@ -190,10 +204,14 @@ func TestCountHookPostDiff_NoChange(t *testing.T) {
 		"ipsum": &terraform.InstanceDiff{},
 	}
 
-	n := &terraform.InstanceInfo{}
+	for k := range resources {
+		addr := addrs.Resource{
+			Mode: addrs.ManagedResourceMode,
+			Type: "test_instance",
+			Name: k,
+		}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance)
 
-	for _, d := range resources {
-		h.PostDiff(n, d)
+		h.PostDiff(addr, states.CurrentGen, plans.NoOp, cty.DynamicVal, cty.DynamicVal)
 	}
 
 	expected := new(CountHook)
@@ -211,23 +229,21 @@ func TestCountHookPostDiff_NoChange(t *testing.T) {
 func TestCountHookPostDiff_DataSource(t *testing.T) {
 	h := new(CountHook)
 
-	resources := map[string]*terraform.InstanceDiff{
-		"data.foo": &terraform.InstanceDiff{
-			Destroy: true,
-		},
-		"data.bar": &terraform.InstanceDiff{},
-		"data.lorem": &terraform.InstanceDiff{
-			Destroy: false,
-			Attributes: map[string]*terraform.ResourceAttrDiff{
-				"foo": &terraform.ResourceAttrDiff{},
-			},
-		},
-		"data.ipsum": &terraform.InstanceDiff{Destroy: true},
+	resources := map[string]plans.Action{
+		"foo":   plans.Delete,
+		"bar":   plans.NoOp,
+		"lorem": plans.Update,
+		"ipsum": plans.Delete,
 	}
 
-	for k, d := range resources {
-		n := &terraform.InstanceInfo{Id: k}
-		h.PostDiff(n, d)
+	for k, a := range resources {
+		addr := addrs.Resource{
+			Mode: addrs.DataResourceMode,
+			Type: "test_instance",
+			Name: k,
+		}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance)
+
+		h.PostDiff(addr, states.CurrentGen, a, cty.DynamicVal, cty.DynamicVal)
 	}
 
 	expected := new(CountHook)

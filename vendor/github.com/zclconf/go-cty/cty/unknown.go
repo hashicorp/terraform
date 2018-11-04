@@ -54,8 +54,13 @@ func (t pseudoTypeDynamic) Equals(other Type) bool {
 	return ok
 }
 
-func (t pseudoTypeDynamic) FriendlyName() string {
-	return "dynamic"
+func (t pseudoTypeDynamic) FriendlyName(mode friendlyTypeNameMode) string {
+	switch mode {
+	case friendlyTypeConstraintName:
+		return "any type"
+	default:
+		return "dynamic"
+	}
 }
 
 func (t pseudoTypeDynamic) GoString() string {

@@ -20,31 +20,31 @@ func resourceAwsWafRegionalRule() *schema.Resource {
 		Delete: resourceAwsWafRegionalRuleDelete,
 
 		Schema: map[string]*schema.Schema{
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
-			"metric_name": &schema.Schema{
+			"metric_name": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
-			"predicate": &schema.Schema{
+			"predicate": {
 				Type:     schema.TypeSet,
 				Optional: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"negated": &schema.Schema{
+						"negated": {
 							Type:     schema.TypeBool,
 							Required: true,
 						},
-						"data_id": &schema.Schema{
+						"data_id": {
 							Type:         schema.TypeString,
 							Required:     true,
 							ValidateFunc: validation.StringLenBetween(1, 128),
 						},
-						"type": &schema.Schema{
+						"type": {
 							Type:         schema.TypeString,
 							Required:     true,
 							ValidateFunc: validateWafPredicatesType(),

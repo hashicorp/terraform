@@ -13,8 +13,7 @@ const (
 	// ErrCodeExpiredNextTokenException for service response error code
 	// "ExpiredNextTokenException".
 	//
-	// The pagination token passed to the ListShards operation is expired. For more
-	// information, see ListShardsInput$NextToken.
+	// The pagination token passed to the operation is expired.
 	ErrCodeExpiredNextTokenException = "ExpiredNextTokenException"
 
 	// ErrCodeInvalidArgumentException for service response error code

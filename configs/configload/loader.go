@@ -2,6 +2,7 @@ package configload
 
 import (
 	"fmt"
+	"path/filepath"
 
 	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/registry"
@@ -83,4 +84,43 @@ func (l *Loader) Parser() *configs.Parser {
 // loader. This is a shorthand for l.Parser().Sources().
 func (l *Loader) Sources() map[string][]byte {
 	return l.parser.Sources()
+}
+
+// IsConfigDir returns true if and only if the given directory contains at
+// least one Terraform configuration file. This is a wrapper around calling
+// the same method name on the loader's parser.
+func (l *Loader) IsConfigDir(path string) bool {
+	return l.parser.IsConfigDir(path)
+}
+
+// ImportSources writes into the receiver's source code the given source
+// code buffers.
+//
+// This is useful in the situation where an ancillary loader is created for
+// some reason (e.g. loading config from a plan file) but the cached source
+// code from that loader must be imported into the "main" loader in order
+// to return source code snapshots in diagnostic messages.
+//
+//     loader.ImportSources(otherLoader.Sources())
+func (l *Loader) ImportSources(sources map[string][]byte) {
+	p := l.Parser()
+	for name, src := range sources {
+		p.ForceFileSource(name, src)
+	}
+}
+
+// ImportSourcesFromSnapshot writes into the receiver's source code the
+// source files from the given snapshot.
+//
+// This is similar to ImportSources but knows how to unpack and flatten a
+// snapshot data structure to get the corresponding flat source file map.
+func (l *Loader) ImportSourcesFromSnapshot(snap *Snapshot) {
+	p := l.Parser()
+	for _, m := range snap.Modules {
+		baseDir := m.Dir
+		for fn, src := range m.Files {
+			fullPath := filepath.Join(baseDir, fn)
+			p.ForceFileSource(fullPath, src)
+		}
+	}
 }

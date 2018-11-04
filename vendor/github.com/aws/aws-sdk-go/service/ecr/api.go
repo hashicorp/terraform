@@ -15,7 +15,7 @@ const opBatchCheckLayerAvailability = "BatchCheckLayerAvailability"
 // BatchCheckLayerAvailabilityRequest generates a "aws/request.Request" representing the
 // client's request for the BatchCheckLayerAvailability operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -107,7 +107,7 @@ const opBatchDeleteImage = "BatchDeleteImage"
 // BatchDeleteImageRequest generates a "aws/request.Request" representing the
 // client's request for the BatchDeleteImage operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -202,7 +202,7 @@ const opBatchGetImage = "BatchGetImage"
 // BatchGetImageRequest generates a "aws/request.Request" representing the
 // client's request for the BatchGetImage operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -290,7 +290,7 @@ const opCompleteLayerUpload = "CompleteLayerUpload"
 // CompleteLayerUploadRequest generates a "aws/request.Request" representing the
 // client's request for the CompleteLayerUpload operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -400,7 +400,7 @@ const opCreateRepository = "CreateRepository"
 // CreateRepositoryRequest generates a "aws/request.Request" representing the
 // client's request for the CreateRepository operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -492,7 +492,7 @@ const opDeleteLifecyclePolicy = "DeleteLifecyclePolicy"
 // DeleteLifecyclePolicyRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteLifecyclePolicy operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -582,7 +582,7 @@ const opDeleteRepository = "DeleteRepository"
 // DeleteRepositoryRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteRepository operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -674,7 +674,7 @@ const opDeleteRepositoryPolicy = "DeleteRepositoryPolicy"
 // DeleteRepositoryPolicyRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteRepositoryPolicy operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -765,7 +765,7 @@ const opDescribeImages = "DescribeImages"
 // DescribeImagesRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeImages operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -917,7 +917,7 @@ const opDescribeRepositories = "DescribeRepositories"
 // DescribeRepositoriesRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeRepositories operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1060,7 +1060,7 @@ const opGetAuthorizationToken = "GetAuthorizationToken"
 // GetAuthorizationTokenRequest generates a "aws/request.Request" representing the
 // client's request for the GetAuthorizationToken operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1150,7 +1150,7 @@ const opGetDownloadUrlForLayer = "GetDownloadUrlForLayer"
 // GetDownloadUrlForLayerRequest generates a "aws/request.Request" representing the
 // client's request for the GetDownloadUrlForLayer operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1250,7 +1250,7 @@ const opGetLifecyclePolicy = "GetLifecyclePolicy"
 // GetLifecyclePolicyRequest generates a "aws/request.Request" representing the
 // client's request for the GetLifecyclePolicy operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1340,7 +1340,7 @@ const opGetLifecyclePolicyPreview = "GetLifecyclePolicyPreview"
 // GetLifecyclePolicyPreviewRequest generates a "aws/request.Request" representing the
 // client's request for the GetLifecyclePolicyPreview operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1430,7 +1430,7 @@ const opGetRepositoryPolicy = "GetRepositoryPolicy"
 // GetRepositoryPolicyRequest generates a "aws/request.Request" representing the
 // client's request for the GetRepositoryPolicy operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1521,7 +1521,7 @@ const opInitiateLayerUpload = "InitiateLayerUpload"
 // InitiateLayerUploadRequest generates a "aws/request.Request" representing the
 // client's request for the InitiateLayerUpload operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1612,7 +1612,7 @@ const opListImages = "ListImages"
 // ListImagesRequest generates a "aws/request.Request" representing the
 // client's request for the ListImages operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1761,7 +1761,7 @@ const opPutImage = "PutImage"
 // PutImageRequest generates a "aws/request.Request" representing the
 // client's request for the PutImage operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1866,7 +1866,7 @@ const opPutLifecyclePolicy = "PutLifecyclePolicy"
 // PutLifecyclePolicyRequest generates a "aws/request.Request" representing the
 // client's request for the PutLifecyclePolicy operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1954,7 +1954,7 @@ const opSetRepositoryPolicy = "SetRepositoryPolicy"
 // SetRepositoryPolicyRequest generates a "aws/request.Request" representing the
 // client's request for the SetRepositoryPolicy operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -2041,7 +2041,7 @@ const opStartLifecyclePolicyPreview = "StartLifecyclePolicyPreview"
 // StartLifecyclePolicyPreviewRequest generates a "aws/request.Request" representing the
 // client's request for the StartLifecyclePolicyPreview operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -2136,7 +2136,7 @@ const opUploadLayerPart = "UploadLayerPart"
 // UploadLayerPartRequest generates a "aws/request.Request" representing the
 // client's request for the UploadLayerPart operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.

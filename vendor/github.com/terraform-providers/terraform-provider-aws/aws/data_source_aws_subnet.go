@@ -5,6 +5,7 @@ import (
 	"log"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/arn"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/hashicorp/terraform/helper/schema"
 )
@@ -71,6 +72,11 @@ func dataSourceAwsSubnet() *schema.Resource {
 			},
 
 			"ipv6_cidr_block_association_id": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+
+			"arn": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
@@ -154,6 +160,15 @@ func dataSourceAwsSubnetRead(d *schema.ResourceData, meta interface{}) error {
 			d.Set("ipv6_cidr_block", a.Ipv6CidrBlock)
 		}
 	}
+
+	arn := arn.ARN{
+		Partition: meta.(*AWSClient).partition,
+		Region:    meta.(*AWSClient).region,
+		Service:   "ec2",
+		AccountID: meta.(*AWSClient).accountid,
+		Resource:  fmt.Sprintf("subnet/%s", d.Id()),
+	}
+	d.Set("arn", arn.String())
 
 	return nil
 }

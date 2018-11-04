@@ -306,7 +306,7 @@ func resourceAwsEcsService() *schema.Resource {
 
 func resourceAwsEcsServiceImport(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
 	if len(strings.Split(d.Id(), "/")) != 2 {
-		return []*schema.ResourceData{}, fmt.Errorf("[ERR] Wrong format of resource: %s. Please follow 'cluster-name/service-name'", d.Id())
+		return []*schema.ResourceData{}, fmt.Errorf("Wrong format of resource: %s. Please follow 'cluster-name/service-name'", d.Id())
 	}
 	cluster := strings.Split(d.Id(), "/")[0]
 	name := strings.Split(d.Id(), "/")[1]
@@ -443,6 +443,9 @@ func resourceAwsEcsServiceCreate(d *schema.ResourceData, meta interface{}) error
 			if isAWSErr(err, ecs.ErrCodeInvalidParameterException, "Please verify that the ECS service role being passed has the proper permissions.") {
 				return resource.RetryableError(err)
 			}
+			if isAWSErr(err, ecs.ErrCodeInvalidParameterException, "does not have an associated load balancer") {
+				return resource.RetryableError(err)
+			}
 			return resource.NonRetryableError(err)
 		}
 
@@ -484,7 +487,9 @@ func resourceAwsEcsServiceRead(d *schema.ResourceData, meta interface{}) error {
 			if d.IsNewResource() {
 				return resource.RetryableError(fmt.Errorf("ECS service not created yet: %q", d.Id()))
 			}
-			return resource.NonRetryableError(fmt.Errorf("No ECS service found: %q", d.Id()))
+			log.Printf("[WARN] ECS Service %s not found, removing from state.", d.Id())
+			d.SetId("")
+			return nil
 		}
 
 		service := out.Services[0]
@@ -572,11 +577,11 @@ func resourceAwsEcsServiceRead(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	if err := d.Set("network_configuration", flattenEcsNetworkConfiguration(service.NetworkConfiguration)); err != nil {
-		return fmt.Errorf("[ERR] Error setting network_configuration for (%s): %s", d.Id(), err)
+		return fmt.Errorf("Error setting network_configuration for (%s): %s", d.Id(), err)
 	}
 
 	if err := d.Set("service_registries", flattenServiceRegistries(service.ServiceRegistries)); err != nil {
-		return fmt.Errorf("[ERR] Error setting service_registries for (%s): %s", d.Id(), err)
+		return fmt.Errorf("Error setting service_registries for (%s): %s", d.Id(), err)
 	}
 
 	return nil
@@ -643,11 +648,14 @@ func flattenPlacementStrategyDeprecated(pss []*ecs.PlacementStrategy) []map[stri
 	for _, ps := range pss {
 		c := make(map[string]interface{})
 		c["type"] = *ps.Type
-		c["field"] = *ps.Field
 
-		// for some fields the API requires lowercase for creation but will return uppercase on query
-		if *ps.Field == "MEMORY" || *ps.Field == "CPU" {
-			c["field"] = strings.ToLower(*ps.Field)
+		if ps.Field != nil {
+			c["field"] = *ps.Field
+
+			// for some fields the API requires lowercase for creation but will return uppercase on query
+			if *ps.Field == "MEMORY" || *ps.Field == "CPU" {
+				c["field"] = strings.ToLower(*ps.Field)
+			}
 		}
 
 		results = append(results, c)
@@ -659,7 +667,7 @@ func expandPlacementStrategy(s []interface{}) ([]*ecs.PlacementStrategy, error) 
 	if len(s) == 0 {
 		return nil, nil
 	}
-	ps := make([]*ecs.PlacementStrategy, 0)
+	pss := make([]*ecs.PlacementStrategy, 0)
 	for _, raw := range s {
 		p := raw.(map[string]interface{})
 		t := p["type"].(string)
@@ -667,19 +675,23 @@ func expandPlacementStrategy(s []interface{}) ([]*ecs.PlacementStrategy, error) 
 		if err := validateAwsEcsPlacementStrategy(t, f); err != nil {
 			return nil, err
 		}
-		ps = append(ps, &ecs.PlacementStrategy{
-			Type:  aws.String(t),
-			Field: aws.String(f),
-		})
+		ps := &ecs.PlacementStrategy{
+			Type: aws.String(t),
+		}
+		if f != "" {
+			// Field must be omitted (i.e. not empty string) for random strategy
+			ps.Field = aws.String(f)
+		}
+		pss = append(pss, ps)
 	}
-	return ps, nil
+	return pss, nil
 }
 
 func expandPlacementStrategyDeprecated(s *schema.Set) ([]*ecs.PlacementStrategy, error) {
 	if len(s.List()) == 0 {
 		return nil, nil
 	}
-	ps := make([]*ecs.PlacementStrategy, 0)
+	pss := make([]*ecs.PlacementStrategy, 0)
 	for _, raw := range s.List() {
 		p := raw.(map[string]interface{})
 		t := p["type"].(string)
@@ -687,12 +699,16 @@ func expandPlacementStrategyDeprecated(s *schema.Set) ([]*ecs.PlacementStrategy,
 		if err := validateAwsEcsPlacementStrategy(t, f); err != nil {
 			return nil, err
 		}
-		ps = append(ps, &ecs.PlacementStrategy{
-			Type:  aws.String(t),
-			Field: aws.String(f),
-		})
+		ps := &ecs.PlacementStrategy{
+			Type: aws.String(t),
+		}
+		if f != "" {
+			// Field must be omitted (i.e. not empty string) for random strategy
+			ps.Field = aws.String(f)
+		}
+		pss = append(pss, ps)
 	}
-	return ps, nil
+	return pss, nil
 }
 
 func flattenPlacementStrategy(pss []*ecs.PlacementStrategy) []interface{} {
@@ -703,11 +719,14 @@ func flattenPlacementStrategy(pss []*ecs.PlacementStrategy) []interface{} {
 	for _, ps := range pss {
 		c := make(map[string]interface{})
 		c["type"] = *ps.Type
-		c["field"] = *ps.Field
 
-		// for some fields the API requires lowercase for creation but will return uppercase on query
-		if *ps.Field == "MEMORY" || *ps.Field == "CPU" {
-			c["field"] = strings.ToLower(*ps.Field)
+		if ps.Field != nil {
+			c["field"] = *ps.Field
+
+			// for some fields the API requires lowercase for creation but will return uppercase on query
+			if *ps.Field == "MEMORY" || *ps.Field == "CPU" {
+				c["field"] = strings.ToLower(*ps.Field)
+			}
 		}
 
 		results = append(results, c)
@@ -778,6 +797,9 @@ func resourceAwsEcsServiceUpdate(d *schema.ResourceData, meta interface{}) error
 		out, err := conn.UpdateService(&input)
 		if err != nil {
 			if isAWSErr(err, ecs.ErrCodeInvalidParameterException, "Please verify that the ECS service role being passed has the proper permissions.") {
+				return resource.RetryableError(err)
+			}
+			if isAWSErr(err, ecs.ErrCodeInvalidParameterException, "does not have an associated load balancer") {
 				return resource.RetryableError(err)
 			}
 			return resource.NonRetryableError(err)

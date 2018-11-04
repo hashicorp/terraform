@@ -22,8 +22,5 @@ file. If no path is specified, the current state will be shown.
 
 The command-line flags are all optional. The list of available flags are:
 
-* `-module-depth=n` - Specifies the depth of modules to show in the output.
-  By default this is -1, which will expand all.
-
 * `-no-color` - Disables output with coloring
 

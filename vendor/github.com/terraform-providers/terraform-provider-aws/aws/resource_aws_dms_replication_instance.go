@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/awserr"
 	dms "github.com/aws/aws-sdk-go/service/databasemigrationservice"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
@@ -134,9 +133,10 @@ func resourceAwsDmsReplicationInstanceCreate(d *schema.ResourceData, meta interf
 	request := &dms.CreateReplicationInstanceInput{
 		AutoMinorVersionUpgrade:       aws.Bool(d.Get("auto_minor_version_upgrade").(bool)),
 		PubliclyAccessible:            aws.Bool(d.Get("publicly_accessible").(bool)),
+		MultiAZ:                       aws.Bool(d.Get("multi_az").(bool)),
 		ReplicationInstanceClass:      aws.String(d.Get("replication_instance_class").(string)),
 		ReplicationInstanceIdentifier: aws.String(d.Get("replication_instance_id").(string)),
-		Tags: dmsTagsFromMap(d.Get("tags").(map[string]interface{})),
+		Tags:                          dmsTagsFromMap(d.Get("tags").(map[string]interface{})),
 	}
 
 	// WARNING: GetOk returns the zero value for the type if the key is omitted in config. This means for optional
@@ -145,6 +145,9 @@ func resourceAwsDmsReplicationInstanceCreate(d *schema.ResourceData, meta interf
 
 	if v, ok := d.GetOk("allocated_storage"); ok {
 		request.AllocatedStorage = aws.Int64(int64(v.(int)))
+	}
+	if v, ok := d.GetOk("availability_zone"); ok {
+		request.AvailabilityZone = aws.String(v.(string))
 	}
 	if v, ok := d.GetOk("engine_version"); ok {
 		request.EngineVersion = aws.String(v.(string))
@@ -162,24 +165,11 @@ func resourceAwsDmsReplicationInstanceCreate(d *schema.ResourceData, meta interf
 		request.VpcSecurityGroupIds = expandStringList(v.(*schema.Set).List())
 	}
 
-	az, azSet := d.GetOk("availability_zone")
-	if azSet {
-		request.AvailabilityZone = aws.String(az.(string))
-	}
-
-	if multiAz, ok := d.GetOk("multi_az"); ok {
-		request.MultiAZ = aws.Bool(multiAz.(bool))
-
-		if multiAz.(bool) && azSet {
-			return fmt.Errorf("Cannot set availability_zone if multi_az is set to true")
-		}
-	}
-
 	log.Println("[DEBUG] DMS create replication instance:", request)
 
 	_, err := conn.CreateReplicationInstance(request)
 	if err != nil {
-		return err
+		return fmt.Errorf("error creating DMS Replication Instance: %s", err)
 	}
 
 	d.SetId(d.Get("replication_instance_id").(string))
@@ -187,7 +177,7 @@ func resourceAwsDmsReplicationInstanceCreate(d *schema.ResourceData, meta interf
 	stateConf := &resource.StateChangeConf{
 		Pending:    []string{"creating", "modifying"},
 		Target:     []string{"available"},
-		Refresh:    resourceAwsDmsReplicationInstanceStateRefreshFunc(d, meta),
+		Refresh:    resourceAwsDmsReplicationInstanceStateRefreshFunc(conn, d.Id()),
 		Timeout:    d.Timeout(schema.TimeoutCreate),
 		MinTimeout: 10 * time.Second,
 		Delay:      30 * time.Second, // Wait 30 secs before starting
@@ -196,7 +186,7 @@ func resourceAwsDmsReplicationInstanceCreate(d *schema.ResourceData, meta interf
 	// Wait, catching any errors
 	_, err = stateConf.WaitForState()
 	if err != nil {
-		return err
+		return fmt.Errorf("error waiting for DMS Replication Instance (%s) creation: %s", d.Id(), err)
 	}
 
 	return resourceAwsDmsReplicationInstanceRead(d, meta)
@@ -213,32 +203,73 @@ func resourceAwsDmsReplicationInstanceRead(d *schema.ResourceData, meta interfac
 			},
 		},
 	})
-	if err != nil {
-		if dmserr, ok := err.(awserr.Error); ok && dmserr.Code() == "ResourceNotFoundFault" {
-			log.Printf("[DEBUG] DMS Replication Instance %q Not Found", d.Id())
-			d.SetId("")
-			return nil
-		}
-		return err
+
+	if isAWSErr(err, dms.ErrCodeResourceNotFoundFault, "") {
+		log.Printf("[WARN] DMS Replication Instance (%s) not found, removing from state", d.Id())
+		d.SetId("")
+		return nil
 	}
 
-	err = resourceAwsDmsReplicationInstanceSetState(d, response.ReplicationInstances[0])
 	if err != nil {
-		return err
+		return fmt.Errorf("error describing DMS Replication Instance (%s): %s", d.Id(), err)
+	}
+
+	if response == nil || len(response.ReplicationInstances) == 0 || response.ReplicationInstances[0] == nil {
+		log.Printf("[WARN] DMS Replication Instance (%s) not found, removing from state", d.Id())
+		d.SetId("")
+		return nil
+	}
+
+	instance := response.ReplicationInstances[0]
+
+	d.Set("allocated_storage", instance.AllocatedStorage)
+	d.Set("auto_minor_version_upgrade", instance.AutoMinorVersionUpgrade)
+	d.Set("availability_zone", instance.AvailabilityZone)
+	d.Set("engine_version", instance.EngineVersion)
+	d.Set("kms_key_arn", instance.KmsKeyId)
+	d.Set("multi_az", instance.MultiAZ)
+	d.Set("preferred_maintenance_window", instance.PreferredMaintenanceWindow)
+	d.Set("publicly_accessible", instance.PubliclyAccessible)
+	d.Set("replication_instance_arn", instance.ReplicationInstanceArn)
+	d.Set("replication_instance_class", instance.ReplicationInstanceClass)
+	d.Set("replication_instance_id", instance.ReplicationInstanceIdentifier)
+
+	if err := d.Set("replication_instance_private_ips", aws.StringValueSlice(instance.ReplicationInstancePrivateIpAddresses)); err != nil {
+		return fmt.Errorf("error setting replication_instance_private_ips: %s", err)
+	}
+
+	if err := d.Set("replication_instance_public_ips", aws.StringValueSlice(instance.ReplicationInstancePublicIpAddresses)); err != nil {
+		return fmt.Errorf("error setting replication_instance_private_ips: %s", err)
+	}
+
+	d.Set("replication_subnet_group_id", instance.ReplicationSubnetGroup.ReplicationSubnetGroupIdentifier)
+
+	vpc_security_group_ids := []string{}
+	for _, sg := range instance.VpcSecurityGroups {
+		vpc_security_group_ids = append(vpc_security_group_ids, aws.StringValue(sg.VpcSecurityGroupId))
+	}
+
+	if err := d.Set("vpc_security_group_ids", vpc_security_group_ids); err != nil {
+		return fmt.Errorf("error setting vpc_security_group_ids: %s", err)
 	}
 
 	tagsResp, err := conn.ListTagsForResource(&dms.ListTagsForResourceInput{
 		ResourceArn: aws.String(d.Get("replication_instance_arn").(string)),
 	})
 	if err != nil {
-		return err
+		return fmt.Errorf("error listing tags for DMS Replication Instance (%s): %s", d.Id(), err)
 	}
-	d.Set("tags", dmsTagsToMap(tagsResp.TagList))
+
+	if err := d.Set("tags", dmsTagsToMap(tagsResp.TagList)); err != nil {
+		return fmt.Errorf("error setting tags: %s", err)
+	}
 
 	return nil
 }
 
 func resourceAwsDmsReplicationInstanceUpdate(d *schema.ResourceData, meta interface{}) error {
+	conn := meta.(*AWSClient).dmsconn
+
 	request := &dms.ModifyReplicationInstanceInput{
 		ApplyImmediately:       aws.Bool(d.Get("apply_immediately").(bool)),
 		ReplicationInstanceArn: aws.String(d.Get("replication_instance_arn").(string)),
@@ -259,16 +290,14 @@ func resourceAwsDmsReplicationInstanceUpdate(d *schema.ResourceData, meta interf
 
 	if d.HasChange("engine_version") {
 		if v, ok := d.GetOk("engine_version"); ok {
-			request.ReplicationInstanceClass = aws.String(v.(string))
+			request.EngineVersion = aws.String(v.(string))
 			hasChanges = true
 		}
 	}
 
 	if d.HasChange("multi_az") {
-		if v, ok := d.GetOk("multi_az"); ok {
-			request.MultiAZ = aws.Bool(v.(bool))
-			hasChanges = true
-		}
+		request.MultiAZ = aws.Bool(d.Get("multi_az").(bool))
+		hasChanges = true
 	}
 
 	if d.HasChange("preferred_maintenance_window") {
@@ -279,10 +308,8 @@ func resourceAwsDmsReplicationInstanceUpdate(d *schema.ResourceData, meta interf
 	}
 
 	if d.HasChange("replication_instance_class") {
-		if v, ok := d.GetOk("replication_instance_class"); ok {
-			request.ReplicationInstanceClass = aws.String(v.(string))
-			hasChanges = true
-		}
+		request.ReplicationInstanceClass = aws.String(d.Get("replication_instance_class").(string))
+		hasChanges = true
 	}
 
 	if d.HasChange("vpc_security_group_ids") {
@@ -300,17 +327,15 @@ func resourceAwsDmsReplicationInstanceUpdate(d *schema.ResourceData, meta interf
 	}
 
 	if hasChanges {
-		conn := meta.(*AWSClient).dmsconn
-
 		_, err := conn.ModifyReplicationInstance(request)
 		if err != nil {
-			return err
+			return fmt.Errorf("error modifying DMS Replication Instance (%s): %s", d.Id(), err)
 		}
 
 		stateConf := &resource.StateChangeConf{
-			Pending:    []string{"modifying"},
+			Pending:    []string{"modifying", "upgrading"},
 			Target:     []string{"available"},
-			Refresh:    resourceAwsDmsReplicationInstanceStateRefreshFunc(d, meta),
+			Refresh:    resourceAwsDmsReplicationInstanceStateRefreshFunc(conn, d.Id()),
 			Timeout:    d.Timeout(schema.TimeoutUpdate),
 			MinTimeout: 10 * time.Second,
 			Delay:      30 * time.Second, // Wait 30 secs before starting
@@ -319,13 +344,11 @@ func resourceAwsDmsReplicationInstanceUpdate(d *schema.ResourceData, meta interf
 		// Wait, catching any errors
 		_, err = stateConf.WaitForState()
 		if err != nil {
-			return err
+			return fmt.Errorf("error waiting for DMS Replication Instance (%s) modification: %s", d.Id(), err)
 		}
-
-		return resourceAwsDmsReplicationInstanceRead(d, meta)
 	}
 
-	return nil
+	return resourceAwsDmsReplicationInstanceRead(d, meta)
 }
 
 func resourceAwsDmsReplicationInstanceDelete(d *schema.ResourceData, meta interface{}) error {
@@ -338,14 +361,19 @@ func resourceAwsDmsReplicationInstanceDelete(d *schema.ResourceData, meta interf
 	log.Printf("[DEBUG] DMS delete replication instance: %#v", request)
 
 	_, err := conn.DeleteReplicationInstance(request)
+
+	if isAWSErr(err, dms.ErrCodeResourceNotFoundFault, "") {
+		return nil
+	}
+
 	if err != nil {
-		return err
+		return fmt.Errorf("error deleting DMS Replication Instance (%s): %s", d.Id(), err)
 	}
 
 	stateConf := &resource.StateChangeConf{
 		Pending:    []string{"deleting"},
 		Target:     []string{},
-		Refresh:    resourceAwsDmsReplicationInstanceStateRefreshFunc(d, meta),
+		Refresh:    resourceAwsDmsReplicationInstanceStateRefreshFunc(conn, d.Id()),
 		Timeout:    d.Timeout(schema.TimeoutDelete),
 		MinTimeout: 10 * time.Second,
 		Delay:      30 * time.Second, // Wait 30 secs before starting
@@ -354,81 +382,35 @@ func resourceAwsDmsReplicationInstanceDelete(d *schema.ResourceData, meta interf
 	// Wait, catching any errors
 	_, err = stateConf.WaitForState()
 	if err != nil {
-		return err
+		return fmt.Errorf("error waiting for DMS Replication Instance (%s) deletion: %s", d.Id(), err)
 	}
 
 	return nil
 }
 
-func resourceAwsDmsReplicationInstanceSetState(d *schema.ResourceData, instance *dms.ReplicationInstance) error {
-	d.SetId(*instance.ReplicationInstanceIdentifier)
-
-	d.Set("replication_instance_id", instance.ReplicationInstanceIdentifier)
-	d.Set("allocated_storage", instance.AllocatedStorage)
-	d.Set("auto_minor_version_upgrade", instance.AutoMinorVersionUpgrade)
-	d.Set("availability_zone", instance.AvailabilityZone)
-	d.Set("engine_version", instance.EngineVersion)
-	d.Set("kms_key_arn", instance.KmsKeyId)
-	d.Set("multi_az", instance.MultiAZ)
-	d.Set("preferred_maintenance_window", instance.PreferredMaintenanceWindow)
-	d.Set("publicly_accessible", instance.PubliclyAccessible)
-	d.Set("replication_instance_arn", instance.ReplicationInstanceArn)
-	d.Set("replication_instance_class", instance.ReplicationInstanceClass)
-	d.Set("replication_subnet_group_id", instance.ReplicationSubnetGroup.ReplicationSubnetGroupIdentifier)
-
-	vpc_security_group_ids := []string{}
-	for _, sg := range instance.VpcSecurityGroups {
-		vpc_security_group_ids = append(vpc_security_group_ids, aws.StringValue(sg.VpcSecurityGroupId))
-	}
-
-	d.Set("vpc_security_group_ids", vpc_security_group_ids)
-
-	private_ip_addresses := []string{}
-	for _, ip := range instance.ReplicationInstancePrivateIpAddresses {
-		private_ip_addresses = append(private_ip_addresses, aws.StringValue(ip))
-	}
-
-	d.Set("replication_instance_private_ips", private_ip_addresses)
-
-	public_ip_addresses := []string{}
-	for _, ip := range instance.ReplicationInstancePublicIpAddresses {
-		public_ip_addresses = append(public_ip_addresses, aws.StringValue(ip))
-	}
-
-	d.Set("replication_instance_public_ips", public_ip_addresses)
-
-	return nil
-}
-
-func resourceAwsDmsReplicationInstanceStateRefreshFunc(
-	d *schema.ResourceData, meta interface{}) resource.StateRefreshFunc {
+func resourceAwsDmsReplicationInstanceStateRefreshFunc(conn *dms.DatabaseMigrationService, replicationInstanceID string) resource.StateRefreshFunc {
 	return func() (interface{}, string, error) {
-		conn := meta.(*AWSClient).dmsconn
-
 		v, err := conn.DescribeReplicationInstances(&dms.DescribeReplicationInstancesInput{
 			Filters: []*dms.Filter{
 				{
 					Name:   aws.String("replication-instance-id"),
-					Values: []*string{aws.String(d.Id())}, // Must use d.Id() to work with import.
+					Values: []*string{aws.String(replicationInstanceID)},
 				},
 			},
 		})
-		if err != nil {
-			if dmserr, ok := err.(awserr.Error); ok && dmserr.Code() == "ResourceNotFoundFault" {
-				return nil, "", nil
-			}
-			log.Printf("Error on retrieving DMS Replication Instance when waiting: %s", err)
-			return nil, "", err
-		}
 
-		if v == nil {
+		if isAWSErr(err, dms.ErrCodeResourceNotFoundFault, "") {
 			return nil, "", nil
 		}
 
-		if v.ReplicationInstances == nil {
-			return nil, "", fmt.Errorf("Error on retrieving DMS Replication Instance when waiting for State")
+		if err != nil {
+			return nil, "", err
 		}
 
-		return v, *v.ReplicationInstances[0].ReplicationInstanceStatus, nil
+		if v == nil || len(v.ReplicationInstances) == 0 || v.ReplicationInstances[0] == nil {
+			return nil, "", nil
+		}
+
+		return v, aws.StringValue(v.ReplicationInstances[0].ReplicationInstanceStatus), nil
 	}
 }

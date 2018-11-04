@@ -5,7 +5,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/hashicorp/terraform/terraform"
+	"github.com/hashicorp/terraform/states/statefile"
+	"github.com/hashicorp/terraform/states/statemgr"
 	"github.com/mitchellh/cli"
 )
 
@@ -28,35 +29,38 @@ func (c *StatePullCommand) Run(args []string) int {
 	args = cmdFlags.Args()
 
 	// Load the backend
-	b, err := c.Backend(nil)
-	if err != nil {
-		c.Ui.Error(fmt.Sprintf("Failed to load backend: %s", err))
+	b, backendDiags := c.Backend(nil)
+	if backendDiags.HasErrors() {
+		c.showDiagnostics(backendDiags)
 		return 1
 	}
 
 	// Get the state
 	env := c.Workspace()
-	state, err := b.State(env)
+	stateMgr, err := b.StateMgr(env)
 	if err != nil {
-		c.Ui.Error(fmt.Sprintf("Failed to load state: %s", err))
+		c.Ui.Error(fmt.Sprintf(errStateLoadingState, err))
 		return 1
 	}
-	if err := state.RefreshState(); err != nil {
-		c.Ui.Error(fmt.Sprintf("Failed to load state: %s", err))
+	if err := stateMgr.RefreshState(); err != nil {
+		c.Ui.Error(fmt.Sprintf("Failed to refresh state: %s", err))
 		return 1
 	}
 
-	s := state.State()
-	if s == nil {
+	state := stateMgr.State()
+	if state == nil {
 		// Output on "error" so it shows up on stderr
 		c.Ui.Error("Empty state (no state)")
-
 		return 0
 	}
 
+	// Get the state file.
+	stateFile := statemgr.StateFile(stateMgr, state)
+
 	var buf bytes.Buffer
-	if err := terraform.WriteState(s, &buf); err != nil {
-		c.Ui.Error(fmt.Sprintf("Failed to load state: %s", err))
+	err = statefile.Write(stateFile, &buf)
+	if err != nil {
+		c.Ui.Error(fmt.Sprintf("Failed to write state: %s", err))
 		return 1
 	}
 

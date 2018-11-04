@@ -3,6 +3,7 @@ package terraform
 import (
 	"log"
 
+	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/dag"
 )
 
@@ -12,7 +13,7 @@ import (
 // provided will contain every target provided, and each implementing graph
 // node must filter this list to targets considered relevant.
 type GraphNodeTargetable interface {
-	SetTargets([]ResourceAddress)
+	SetTargets([]addrs.Targetable)
 }
 
 // GraphNodeTargetDownstream is an interface for graph nodes that need to
@@ -35,11 +36,7 @@ type GraphNodeTargetDownstream interface {
 // their dependencies.
 type TargetsTransformer struct {
 	// List of targeted resource names specified by the user
-	Targets []string
-
-	// List of parsed targets, provided by callers like ResourceCountTransform
-	// that already have the targets parsed
-	ParsedTargets []ResourceAddress
+	Targets []addrs.Targetable
 
 	// If set, the index portions of resource addresses will be ignored
 	// for comparison. This is used when transforming a graph where
@@ -53,17 +50,8 @@ type TargetsTransformer struct {
 }
 
 func (t *TargetsTransformer) Transform(g *Graph) error {
-	if len(t.Targets) > 0 && len(t.ParsedTargets) == 0 {
-		addrs, err := t.parseTargetAddresses()
-		if err != nil {
-			return err
-		}
-
-		t.ParsedTargets = addrs
-	}
-
-	if len(t.ParsedTargets) > 0 {
-		targetedNodes, err := t.selectTargetedNodes(g, t.ParsedTargets)
+	if len(t.Targets) > 0 {
+		targetedNodes, err := t.selectTargetedNodes(g, t.Targets)
 		if err != nil {
 			return err
 		}
@@ -88,24 +76,10 @@ func (t *TargetsTransformer) Transform(g *Graph) error {
 	return nil
 }
 
-func (t *TargetsTransformer) parseTargetAddresses() ([]ResourceAddress, error) {
-	addrs := make([]ResourceAddress, len(t.Targets))
-	for i, target := range t.Targets {
-		ta, err := ParseResourceAddress(target)
-		if err != nil {
-			return nil, err
-		}
-		addrs[i] = *ta
-	}
-
-	return addrs, nil
-}
-
-// Returns the list of targeted nodes. A targeted node is either addressed
-// directly, or is an Ancestor of a targeted node. Destroy mode keeps
-// Descendents instead of Ancestors.
-func (t *TargetsTransformer) selectTargetedNodes(
-	g *Graph, addrs []ResourceAddress) (*dag.Set, error) {
+// Returns a set of targeted nodes. A targeted node is either addressed
+// directly, address indirectly via its container, or it's a dependency of a
+// targeted node. Destroy mode keeps dependents instead of dependencies.
+func (t *TargetsTransformer) selectTargetedNodes(g *Graph, addrs []addrs.Targetable) (*dag.Set, error) {
 	targetedNodes := new(dag.Set)
 
 	vertices := g.Vertices()
@@ -154,6 +128,12 @@ func (t *TargetsTransformer) addDependencies(targetedNodes *dag.Set, g *Graph) (
 		vertices := queue
 		queue = nil // ready to append for next iteration if neccessary
 		for _, v := range vertices {
+			// providers don't cause transitive dependencies, so don't target
+			// downstream from them.
+			if _, ok := v.(GraphNodeProvider); ok {
+				continue
+			}
+
 			dependers := g.UpEdges(v)
 			if dependers == nil {
 				// indicates that there are no up edges for this node, so
@@ -240,21 +220,34 @@ func filterPartialOutputs(v interface{}, targetedNodes *dag.Set, g *Graph) bool 
 	return true
 }
 
-func (t *TargetsTransformer) nodeIsTarget(
-	v dag.Vertex, addrs []ResourceAddress) bool {
-	r, ok := v.(GraphNodeResource)
+func (t *TargetsTransformer) nodeIsTarget(v dag.Vertex, targets []addrs.Targetable) bool {
+	var vertexAddr addrs.Targetable
+	switch r := v.(type) {
+	case GraphNodeResourceInstance:
+		vertexAddr = r.ResourceInstanceAddr()
+	case GraphNodeResource:
+		vertexAddr = r.ResourceAddr()
+	default:
+		// Only resource and resource instance nodes can be targeted.
+		return false
+	}
+	_, ok := v.(GraphNodeResource)
 	if !ok {
 		return false
 	}
 
-	addr := r.ResourceAddr()
-	for _, targetAddr := range addrs {
+	for _, targetAddr := range targets {
 		if t.IgnoreIndices {
-			// targetAddr is not a pointer, so we can safely mutate it without
-			// interfering with references elsewhere.
-			targetAddr.Index = -1
+			// If we're ignoring indices then we'll convert any resource instance
+			// addresses into resource addresses. We don't need to convert
+			// vertexAddr because instance addresses are contained within
+			// their associated resources, and so .TargetContains will take
+			// care of this for us.
+			if instance, isInstance := targetAddr.(addrs.AbsResourceInstance); isInstance {
+				targetAddr = instance.ContainingResource()
+			}
 		}
-		if targetAddr.Contains(addr) {
+		if targetAddr.TargetContains(vertexAddr) {
 			return true
 		}
 	}

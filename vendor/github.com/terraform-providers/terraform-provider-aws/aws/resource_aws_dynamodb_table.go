@@ -580,7 +580,7 @@ func deleteAwsDynamoDbTable(tableName string, conn *dynamodb.DynamoDB) error {
 		TableName: aws.String(tableName),
 	}
 
-	return resource.Retry(1*time.Minute, func() *resource.RetryError {
+	return resource.Retry(5*time.Minute, func() *resource.RetryError {
 		_, err := conn.DeleteTable(input)
 		if err != nil {
 			// Subscriber limit exceeded: Only 10 tables can be created, updated, or deleted simultaneously
@@ -688,7 +688,9 @@ func readDynamoDbTableTags(arn string, conn *dynamodb.DynamoDB) (map[string]stri
 	output, err := conn.ListTagsOfResource(&dynamodb.ListTagsOfResourceInput{
 		ResourceArn: aws.String(arn),
 	})
-	if err != nil {
+
+	// Do not fail if interfacing with dynamodb-local
+	if err != nil && !isAWSErr(err, "UnknownOperationException", "Tagging is not currently supported in DynamoDB Local.") {
 		return nil, fmt.Errorf("Error reading tags from dynamodb resource: %s", err)
 	}
 

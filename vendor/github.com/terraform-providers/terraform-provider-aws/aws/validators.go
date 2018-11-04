@@ -14,7 +14,6 @@ import (
 	"github.com/aws/aws-sdk-go/service/cognitoidentity"
 	"github.com/aws/aws-sdk-go/service/cognitoidentityprovider"
 	"github.com/aws/aws-sdk-go/service/configservice"
-	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/waf"
 	"github.com/hashicorp/terraform/helper/resource"
@@ -23,12 +22,25 @@ import (
 	"github.com/hashicorp/terraform/helper/validation"
 )
 
-// When released, replace all usage with upstream validation function:
-// https://github.com/hashicorp/terraform/pull/17484
-func validateRFC3339TimeString(v interface{}, k string) (ws []string, errors []error) {
-	if _, err := time.Parse(time.RFC3339, v.(string)); err != nil {
-		errors = append(errors, fmt.Errorf("%q: %s", k, err))
+// validateTypeStringNullableBoolean provides custom error messaging for TypeString booleans
+// Some arguments require three values: true, false, and "" (unspecified).
+// This ValidateFunc returns a custom message since the message with
+// validation.StringInSlice([]string{"", "false", "true"}, false) is confusing:
+// to be one of [ false true], got 1
+func validateTypeStringNullableBoolean(v interface{}, k string) (ws []string, es []error) {
+	value, ok := v.(string)
+	if !ok {
+		es = append(es, fmt.Errorf("expected type of %s to be string", k))
+		return
 	}
+
+	for _, str := range []string{"", "0", "1", "false", "true"} {
+		if value == str {
+			return
+		}
+	}
+
+	es = append(es, fmt.Errorf("expected %s to be one of [\"\", false, true], got %s", k, value))
 	return
 }
 
@@ -328,25 +340,6 @@ func validateCloudWatchLogResourcePolicyDocument(v interface{}, k string) (ws []
 	return
 }
 
-func validateMaxLength(length int) schema.SchemaValidateFunc {
-	return validation.StringLenBetween(0, length)
-}
-
-func validateIntegerInRange(min, max int) schema.SchemaValidateFunc {
-	return func(v interface{}, k string) (ws []string, errors []error) {
-		value := v.(int)
-		if value < min {
-			errors = append(errors, fmt.Errorf(
-				"%q cannot be lower than %d: %d", k, min, value))
-		}
-		if value > max {
-			errors = append(errors, fmt.Errorf(
-				"%q cannot be higher than %d: %d", k, max, value))
-		}
-		return
-	}
-}
-
 func validateCloudWatchEventTargetId(v interface{}, k string) (ws []string, errors []error) {
 	value := v.(string)
 	if len(value) > 64 {
@@ -625,13 +618,6 @@ func validateDbEventSubscriptionName(v interface{}, k string) (ws []string, erro
 	return
 }
 
-func validateJsonString(v interface{}, k string) (ws []string, errors []error) {
-	if _, err := structure.NormalizeJsonString(v); err != nil {
-		errors = append(errors, fmt.Errorf("%q contains an invalid JSON: %s", k, err))
-	}
-	return
-}
-
 func validateIAMPolicyJson(v interface{}, k string) (ws []string, errors []error) {
 	// IAM Policy documents need to be valid JSON, and pass legacy parsing
 	value := v.(string)
@@ -776,8 +762,11 @@ func validateAwsDynamoDbGlobalTableName(v interface{}, k string) (ws []string, e
 func validateAwsEcsPlacementStrategy(stratType, stratField string) error {
 	switch stratType {
 	case "random":
-		// random does not need the field attribute set, could error, but it isn't read at the API level
-		return nil
+		// random requires the field attribute to be unset.
+		if stratField != "" {
+			return fmt.Errorf("Random type requires the field attribute to be unset. Got: %s",
+				stratField)
+		}
 	case "spread":
 		//  For the spread placement strategy, valid values are instanceId
 		// (or host, which has the same effect), or any platform or custom attribute
@@ -800,6 +789,7 @@ func validateAwsEmrEbsVolumeType() schema.SchemaValidateFunc {
 		"gp2",
 		"io1",
 		"standard",
+		"st1",
 	}, false)
 }
 
@@ -1624,6 +1614,19 @@ func validateIoTTopicRuleElasticSearchEndpoint(v interface{}, k string) (ws []st
 	return
 }
 
+func validateIoTTopicRuleFirehoseSeparator(v interface{}, s string) ([]string, []error) {
+	switch v.(string) {
+	case
+		",",
+		"\t",
+		"\n",
+		"\r\n":
+		return nil, nil
+	}
+
+	return nil, []error{fmt.Errorf("Separator must be one of ',' (comma), '\\t' (tab) '\\n' (newline) or '\\r\\n' (Windows newline)")}
+}
+
 func validateCognitoRoleMappingsAmbiguousRoleResolutionAgainstType(v map[string]interface{}) (errors []error) {
 	t := v["type"].(string)
 	isRequired := t == cognitoidentity.RoleMappingTypeToken || t == cognitoidentity.RoleMappingTypeRules
@@ -1685,7 +1688,15 @@ func validateCognitoUserPoolDomain(v interface{}, k string) (ws []string, errors
 }
 
 func validateDxConnectionBandWidth() schema.SchemaValidateFunc {
-	return validation.StringInSlice([]string{"1Gbps", "10Gbps"}, false)
+	return validation.StringInSlice([]string{
+		"1Gbps",
+		"10Gbps",
+		"50Mbps",
+		"100Mbps",
+		"200Mbps",
+		"300Mbps",
+		"400Mbps",
+		"500Mbps"}, false)
 }
 
 func validateKmsKey(v interface{}, k string) (ws []string, errors []error) {
@@ -1732,29 +1743,31 @@ func validateDynamoDbStreamSpec(d *schema.ResourceDiff) error {
 	return nil
 }
 
-func validateVpcEndpointType(v interface{}, k string) (ws []string, errors []error) {
-	return validateStringIn(ec2.VpcEndpointTypeGateway, ec2.VpcEndpointTypeInterface)(v, k)
-}
-
-func validateStringIn(validValues ...string) schema.SchemaValidateFunc {
-	return func(v interface{}, k string) (ws []string, errors []error) {
-		value := v.(string)
-		for _, s := range validValues {
-			if value == s {
-				return
-			}
-		}
-		errors = append(errors, fmt.Errorf(
-			"%q contains an invalid value %q. Valid values are %q.",
-			k, value, validValues))
-		return
-	}
-}
-
-func validateAmazonSideAsn(v interface{}, k string) (ws []string, errors []error) {
+func validateVpnGatewayAmazonSideAsn(v interface{}, k string) (ws []string, errors []error) {
 	value := v.(string)
 
 	// http://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_CreateVpnGateway.html
+	asn, err := strconv.ParseInt(value, 10, 64)
+	if err != nil {
+		errors = append(errors, fmt.Errorf("%q (%q) must be a 64-bit integer", k, v))
+		return
+	}
+
+	// https://github.com/terraform-providers/terraform-provider-aws/issues/5263
+	isLegacyAsn := func(a int64) bool {
+		return a == 7224 || a == 9059 || a == 10124 || a == 17493
+	}
+
+	if !isLegacyAsn(asn) && ((asn < 64512) || (asn > 65534 && asn < 4200000000) || (asn > 4294967294)) {
+		errors = append(errors, fmt.Errorf("%q (%q) must be 7224, 9059, 10124 or 17493 or in the range 64512 to 65534 or 4200000000 to 4294967294", k, v))
+	}
+	return
+}
+
+func validateDxGatewayAmazonSideAsn(v interface{}, k string) (ws []string, errors []error) {
+	value := v.(string)
+
+	// https://docs.aws.amazon.com/directconnect/latest/APIReference/API_CreateDirectConnectGateway.html
 	asn, err := strconv.ParseInt(value, 10, 64)
 	if err != nil {
 		errors = append(errors, fmt.Errorf("%q (%q) must be a 64-bit integer", k, v))
@@ -1919,6 +1932,60 @@ func validateNeptuneParamGroupNamePrefix(v interface{}, k string) (ws []string, 
 			"%q cannot contain two consecutive hyphens", k))
 	}
 	prefixMaxLength := 255 - resource.UniqueIDSuffixLength
+	if len(value) > prefixMaxLength {
+		errors = append(errors, fmt.Errorf(
+			"%q cannot be greater than %d characters", k, prefixMaxLength))
+	}
+	return
+}
+
+func validateNeptuneEventSubscriptionName(v interface{}, k string) (ws []string, errors []error) {
+	value := v.(string)
+	if !regexp.MustCompile(`^[0-9A-Za-z-]+$`).MatchString(value) {
+		errors = append(errors, fmt.Errorf(
+			"only alphanumeric characters and hyphens allowed in %q", k))
+	}
+	if len(value) > 255 {
+		errors = append(errors, fmt.Errorf(
+			"%q cannot be greater than 255 characters", k))
+	}
+	return
+}
+
+func validateNeptuneEventSubscriptionNamePrefix(v interface{}, k string) (ws []string, errors []error) {
+	value := v.(string)
+	if !regexp.MustCompile(`^[0-9A-Za-z-]+$`).MatchString(value) {
+		errors = append(errors, fmt.Errorf(
+			"only alphanumeric characters and hyphens allowed in %q", k))
+	}
+	prefixMaxLength := 255 - resource.UniqueIDSuffixLength
+	if len(value) > prefixMaxLength {
+		errors = append(errors, fmt.Errorf(
+			"%q cannot be greater than %d characters", k, prefixMaxLength))
+	}
+	return
+}
+
+func validateCloudFrontPublicKeyName(v interface{}, k string) (ws []string, errors []error) {
+	value := v.(string)
+	if !regexp.MustCompile(`^[0-9A-Za-z_-]+$`).MatchString(value) {
+		errors = append(errors, fmt.Errorf(
+			"only alphanumeric characters, underscores and hyphens allowed in %q", k))
+	}
+	if len(value) > 128 {
+		errors = append(errors, fmt.Errorf(
+			"%q cannot be greater than 128 characters", k))
+	}
+	return
+}
+
+func validateCloudFrontPublicKeyNamePrefix(v interface{}, k string) (ws []string, errors []error) {
+	value := v.(string)
+	if !regexp.MustCompile(`^[0-9A-Za-z_-]+$`).MatchString(value) {
+		errors = append(errors, fmt.Errorf(
+			"only alphanumeric characters, underscores and hyphens allowed in %q", k))
+	}
+	prefixMaxLength := 128 - resource.UniqueIDSuffixLength
 	if len(value) > prefixMaxLength {
 		errors = append(errors, fmt.Errorf(
 			"%q cannot be greater than %d characters", k, prefixMaxLength))

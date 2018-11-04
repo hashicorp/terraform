@@ -7,14 +7,15 @@ import (
 	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/state"
 	"github.com/hashicorp/terraform/state/remote"
-	"github.com/hashicorp/terraform/terraform"
+	"github.com/hashicorp/terraform/states"
+	"github.com/hashicorp/terraform/states/statemgr"
 )
 
 const (
 	keyEnvPrefix = "-env:"
 )
 
-func (b *Backend) States() ([]string, error) {
+func (b *Backend) Workspaces() ([]string, error) {
 	// List our raw path
 	prefix := b.configData.Get("path").(string) + keyEnvPrefix
 	keys, _, err := b.client.KV().Keys(prefix, "/", nil)
@@ -49,7 +50,7 @@ func (b *Backend) States() ([]string, error) {
 	return result, nil
 }
 
-func (b *Backend) DeleteState(name string) error {
+func (b *Backend) DeleteWorkspace(name string) error {
 	if name == backend.DefaultStateName || name == "" {
 		return fmt.Errorf("can't delete default state")
 	}
@@ -63,7 +64,7 @@ func (b *Backend) DeleteState(name string) error {
 	return err
 }
 
-func (b *Backend) State(name string) (state.State, error) {
+func (b *Backend) StateMgr(name string) (statemgr.Full, error) {
 	// Determine the path of the data
 	path := b.path(name)
 
@@ -71,7 +72,7 @@ func (b *Backend) State(name string) (state.State, error) {
 	gzip := b.configData.Get("gzip").(bool)
 
 	// Build the state client
-	var stateMgr state.State = &remote.State{
+	var stateMgr = &remote.State{
 		Client: &RemoteClient{
 			Client:    b.client,
 			Path:      path,
@@ -80,9 +81,8 @@ func (b *Backend) State(name string) (state.State, error) {
 		},
 	}
 
-	// If we're not locking, disable it
 	if !b.lock {
-		stateMgr = &state.LockDisabled{Inner: stateMgr}
+		stateMgr.DisableLocks()
 	}
 
 	// the default state always exists
@@ -117,7 +117,7 @@ func (b *Backend) State(name string) (state.State, error) {
 
 	// If we have no state, we have to create an empty state
 	if v := stateMgr.State(); v == nil {
-		if err := stateMgr.WriteState(terraform.NewState()); err != nil {
+		if err := stateMgr.WriteState(states.NewState()); err != nil {
 			err = lockUnlock(err)
 			return nil, err
 		}

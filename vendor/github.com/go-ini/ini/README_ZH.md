@@ -99,6 +99,12 @@ cfg, err := LoadSources(LoadOptions{AllowBooleanKeys: true}, "my.cnf"))
 
 这些键的值永远为 `true`，且在保存到文件时也只会输出键名。
 
+如果您想要通过程序来生成此类键，则可以使用 `NewBooleanKey`：
+
+```go
+key, err := sec.NewBooleanKey("skip-host-cache")
+```
+
 #### 关于注释
 
 下述几种情况的内容将被视为注释：

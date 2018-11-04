@@ -2,10 +2,13 @@ package command
 
 import (
 	"fmt"
+	"path/filepath"
 	"sort"
 
+	"github.com/hashicorp/terraform/config"
 	"github.com/hashicorp/terraform/moduledeps"
 	"github.com/hashicorp/terraform/terraform"
+	"github.com/hashicorp/terraform/tfdiags"
 	"github.com/xlab/treeprint"
 )
 
@@ -38,32 +41,52 @@ func (c *ProvidersCommand) Run(args []string) int {
 		return 1
 	}
 
-	// Load the config
-	root, diags := c.Module(configPath)
-	if diags.HasErrors() {
+	var diags tfdiags.Diagnostics
+
+	empty, err := config.IsEmptyDir(configPath)
+	if err != nil {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Error validating configuration directory",
+			fmt.Sprintf("Terraform encountered an unexpected error while verifying that the given configuration directory is valid: %s.", err),
+		))
 		c.showDiagnostics(diags)
 		return 1
 	}
-	if root == nil {
-		c.Ui.Error(fmt.Sprintf(
-			"No configuration files found in the directory: %s\n\n"+
-				"This command requires configuration to run.",
-			configPath))
+	if empty {
+		absPath, err := filepath.Abs(configPath)
+		if err != nil {
+			absPath = configPath
+		}
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"No configuration files",
+			fmt.Sprintf("The directory %s contains no Terraform configuration files.", absPath),
+		))
+		c.showDiagnostics(diags)
+		return 1
+	}
+
+	config, configDiags := c.loadConfig(configPath)
+	diags = diags.Append(configDiags)
+	if configDiags.HasErrors() {
+		c.showDiagnostics(diags)
 		return 1
 	}
 
 	// Load the backend
-	b, err := c.Backend(&BackendOpts{
-		Config: root.Config(),
+	b, backendDiags := c.Backend(&BackendOpts{
+		Config: config.Module.Backend,
 	})
-	if err != nil {
-		c.Ui.Error(fmt.Sprintf("Failed to load backend: %s", err))
+	diags = diags.Append(backendDiags)
+	if backendDiags.HasErrors() {
+		c.showDiagnostics(diags)
 		return 1
 	}
 
 	// Get the state
 	env := c.Workspace()
-	state, err := b.State(env)
+	state, err := b.StateMgr(env)
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf("Failed to load state: %s", err))
 		return 1
@@ -74,8 +97,7 @@ func (c *ProvidersCommand) Run(args []string) int {
 	}
 
 	s := state.State()
-
-	depTree := terraform.ModuleTreeDependencies(root, s)
+	depTree := terraform.ConfigTreeDependencies(config, s)
 	depTree.SortDescendents()
 
 	printRoot := treeprint.New()

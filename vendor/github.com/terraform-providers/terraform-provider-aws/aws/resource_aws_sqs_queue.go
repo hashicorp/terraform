@@ -5,17 +5,16 @@ import (
 	"log"
 	"net/url"
 	"strconv"
-	"time"
-
-	"github.com/hashicorp/terraform/helper/schema"
-
 	"strings"
+	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/sqs"
 	"github.com/hashicorp/terraform/helper/resource"
+	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/helper/structure"
+	"github.com/hashicorp/terraform/helper/validation"
 )
 
 var sqsQueueAttributeMap = map[string]string{
@@ -90,13 +89,13 @@ func resourceAwsSqsQueue() *schema.Resource {
 				Type:             schema.TypeString,
 				Optional:         true,
 				Computed:         true,
-				ValidateFunc:     validateJsonString,
+				ValidateFunc:     validation.ValidateJsonString,
 				DiffSuppressFunc: suppressEquivalentAwsPolicyDiffs,
 			},
 			"redrive_policy": {
 				Type:         schema.TypeString,
 				Optional:     true,
-				ValidateFunc: validateJsonString,
+				ValidateFunc: validation.ValidateJsonString,
 				StateFunc: func(v interface{}) string {
 					json, _ := structure.NormalizeJsonString(v)
 					return json
@@ -250,7 +249,7 @@ func resourceAwsSqsQueueUpdate(d *schema.ResourceData, meta interface{}) error {
 			Attributes: attributes,
 		}
 		if _, err := sqsconn.SetQueueAttributes(req); err != nil {
-			return fmt.Errorf("[ERR] Error updating SQS attributes: %s", err)
+			return fmt.Errorf("Error updating SQS attributes: %s", err)
 		}
 	}
 
@@ -373,7 +372,7 @@ func setTagsSQS(conn *sqs.SQS, d *schema.ResourceData) error {
 		if len(remove) > 0 {
 			log.Printf("[DEBUG] Removing tags: %#v", remove)
 			keys := make([]*string, 0, len(remove))
-			for k, _ := range remove {
+			for k := range remove {
 				keys = append(keys, aws.String(k))
 			}
 

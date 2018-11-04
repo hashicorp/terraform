@@ -2,76 +2,80 @@ package terraform
 
 import (
 	"fmt"
-	"log"
-	"reflect"
+
+	"github.com/hashicorp/terraform/addrs"
 )
 
 // NodeModuleRemoved represents a module that is no longer in the
 // config.
 type NodeModuleRemoved struct {
-	PathValue []string
+	Addr addrs.ModuleInstance
 }
 
+var (
+	_ GraphNodeSubPath          = (*NodeModuleRemoved)(nil)
+	_ GraphNodeEvalable         = (*NodeModuleRemoved)(nil)
+	_ GraphNodeReferencer       = (*NodeModuleRemoved)(nil)
+	_ GraphNodeReferenceOutside = (*NodeModuleRemoved)(nil)
+)
+
 func (n *NodeModuleRemoved) Name() string {
-	return fmt.Sprintf("%s (removed)", modulePrefixStr(n.PathValue))
+	return fmt.Sprintf("%s (removed)", n.Addr.String())
 }
 
 // GraphNodeSubPath
-func (n *NodeModuleRemoved) Path() []string {
-	return n.PathValue
+func (n *NodeModuleRemoved) Path() addrs.ModuleInstance {
+	return n.Addr
 }
 
 // GraphNodeEvalable
 func (n *NodeModuleRemoved) EvalTree() EvalNode {
 	return &EvalOpFilter{
 		Ops: []walkOperation{walkRefresh, walkApply, walkDestroy},
-		Node: &EvalDeleteModule{
-			PathValue: n.PathValue,
+		Node: &EvalCheckModuleRemoved{
+			Addr: n.Addr,
 		},
 	}
 }
 
-func (n *NodeModuleRemoved) ReferenceGlobal() bool {
-	return true
+func (n *NodeModuleRemoved) ReferenceOutside() (selfPath, referencePath addrs.ModuleInstance) {
+	// Our "References" implementation indicates that this node depends on
+	// the call to the module it represents, which implicitly depends on
+	// everything inside the module. That reference must therefore be
+	// interpreted in terms of our parent module.
+	return n.Addr, n.Addr.Parent()
 }
 
-func (n *NodeModuleRemoved) References() []string {
-	return []string{modulePrefixStr(n.PathValue)}
-}
+func (n *NodeModuleRemoved) References() []*addrs.Reference {
+	// We depend on the call to the module we represent, because that
+	// implicitly then depends on everything inside that module.
+	// Our ReferenceOutside implementation causes this to be interpreted
+	// within the parent module.
 
-// EvalDeleteModule is an EvalNode implementation that removes an empty module
-// entry from the state.
-type EvalDeleteModule struct {
-	PathValue []string
-}
+	_, call := n.Addr.CallInstance()
+	return []*addrs.Reference{
+		{
+			Subject: call,
 
-func (n *EvalDeleteModule) Eval(ctx EvalContext) (interface{}, error) {
-	state, lock := ctx.State()
-	if state == nil {
-		return nil, nil
+			// No source range here, because there's nothing reasonable for
+			// us to return.
+		},
 	}
+}
 
-	// Get a write lock so we can access this instance
-	lock.Lock()
-	defer lock.Unlock()
+// EvalCheckModuleRemoved is an EvalNode implementation that verifies that
+// a module has been removed from the state as expected.
+type EvalCheckModuleRemoved struct {
+	Addr addrs.ModuleInstance
+}
 
-	// Make sure we have a clean state
-	// Destroyed resources aren't deleted, they're written with an ID of "".
-	state.prune()
-
-	// find the module and delete it
-	for i, m := range state.Modules {
-		if reflect.DeepEqual(m.Path, n.PathValue) {
-			if !m.Empty() {
-				// a targeted apply may leave module resources even without a config,
-				// so just log this and return.
-				log.Printf("[DEBUG] cannot remove module %s, not empty", modulePrefixStr(n.PathValue))
-				break
-			}
-			state.Modules = append(state.Modules[:i], state.Modules[i+1:]...)
-			break
-		}
+func (n *EvalCheckModuleRemoved) Eval(ctx EvalContext) (interface{}, error) {
+	mod := ctx.State().Module(n.Addr)
+	if mod != nil {
+		// If we get here then that indicates a bug either in the states
+		// module or in an earlier step of the graph walk, since we should've
+		// pruned out the module when the last resource was removed from it.
+		return nil, fmt.Errorf("leftover module %s in state that should have been removed; this is a bug in Terraform and should be reported", n.Addr)
 	}
-
 	return nil, nil
 }

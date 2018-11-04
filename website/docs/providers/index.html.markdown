@@ -74,37 +74,42 @@ down to see all providers.
     <tr>
     <td><a href="/docs/providers/google/index.html">Google Cloud</a></td>
     <td><a href="/docs/providers/grafana/index.html">Grafana</a></td>
-    <td><a href="/docs/providers/heroku/index.html">Heroku</a></td>
+    <td><a href="/docs/providers/helm/index.html">Helm</a></td>
     </tr>
     <tr>
+    <td><a href="/docs/providers/heroku/index.html">Heroku</a></td>
     <td><a href="/docs/providers/hcloud/index.html">Hetzner Cloud</a></td>
     <td><a href="/docs/providers/http/index.html">HTTP</a></td>
-    <td><a href="/docs/providers/huaweicloud/index.html">HuaweiCloud</a></td>
     </tr>
     <tr>
+    <td><a href="/docs/providers/huaweicloud/index.html">HuaweiCloud</a></td>
     <td><a href="/docs/providers/icinga2/index.html">Icinga2</a></td>
     <td><a href="/docs/providers/ignition/index.html">Ignition</a></td>
-    <td><a href="/docs/providers/influxdb/index.html">InfluxDB</a></td>
     </tr>
     <tr>
+    <td><a href="/docs/providers/influxdb/index.html">InfluxDB</a></td>
     <td><a href="/docs/providers/kubernetes/index.html">Kubernetes</a></td>
     <td><a href="/docs/providers/librato/index.html">Librato</a></td>
-    <td><a href="/docs/providers/local/index.html">Local</a></td>
     </tr>
     <tr>
+    <td><a href="/docs/providers/linode/index.html">Linode</a></td>
+    <td><a href="/docs/providers/local/index.html">Local</a></td>
     <td><a href="/docs/providers/logentries/index.html">Logentries</a></td>
+    </tr>
+    <tr>
     <td><a href="/docs/providers/logicmonitor/index.html">LogicMonitor</a></td>
     <td><a href="/docs/providers/mailgun/index.html">Mailgun</a></td>
+    <td><a href="/docs/providers/mysql/index.html">MySQL</a></td>
     </tr>
     <tr>
-    <td><a href="/docs/providers/mysql/index.html">MySQL</a></td>
     <td><a href="/docs/providers/netlify/index.html">Netlify</a></td>
     <td><a href="/docs/providers/newrelic/index.html">New Relic</a></td>
+    <td><a href="/docs/providers/nomad/index.html">Nomad</a></td>
     </tr>
     <tr>
-    <td><a href="/docs/providers/nomad/index.html">Nomad</a></td>
     <td><a href="/docs/providers/ns1/index.html">NS1</a></td>
     <td><a href="/docs/providers/null/index.html">Null</a></td>
+    <td><a href="/docs/providers/nutanix/index.html">Nutanix</a></td>
     </tr>
     <tr>
     <td><a href="/docs/providers/oneandone/index.html">1&1</a></td>

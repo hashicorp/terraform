@@ -6,6 +6,20 @@ import (
 	"github.com/hashicorp/hcl2/hcl"
 )
 
+// NewFile creates a new file object that is empty and ready to have constructs
+// added t it.
+func NewFile() *File {
+	body := &Body{
+		inTree: newInTree(),
+		items:  newNodeSet(),
+	}
+	file := &File{
+		inTree: newInTree(),
+	}
+	file.body = file.inTree.children.Append(body)
+	return file
+}
+
 // ParseConfig interprets the given source bytes into a *hclwrite.File. The
 // resulting AST can be used to perform surgical edits on the source code
 // before turning it back into bytes again.
@@ -25,6 +39,6 @@ func Format(src []byte) []byte {
 	tokens := lexConfig(src)
 	format(tokens)
 	buf := &bytes.Buffer{}
-	(&TokenSeq{tokens}).WriteTo(buf)
+	tokens.WriteTo(buf)
 	return buf.Bytes()
 }

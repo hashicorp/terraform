@@ -55,7 +55,7 @@ func parseValue(p *peeker) (node, hcl.Diagnostics) {
 		return wrapInvalid(nil, hcl.Diagnostics{
 			{
 				Severity: hcl.DiagError,
-				Summary:  "Missing attribute value",
+				Summary:  "Missing JSON value",
 				Detail:   "A JSON value must start with a brace, a bracket, a number, a string, or a keyword.",
 				Subject:  &tok.Range,
 			},
@@ -144,8 +144,8 @@ Token:
 		if !ok {
 			return nil, diags.Append(&hcl.Diagnostic{
 				Severity: hcl.DiagError,
-				Summary:  "Invalid object attribute name",
-				Detail:   "A JSON object attribute name must be a string",
+				Summary:  "Invalid object property name",
+				Detail:   "A JSON object property name must be a string",
 				Subject:  keyNode.StartRange().Ptr(),
 			})
 		}
@@ -171,7 +171,7 @@ Token:
 				// Possible confusion with native HCL syntax.
 				return nil, diags.Append(&hcl.Diagnostic{
 					Severity: hcl.DiagError,
-					Summary:  "Missing attribute value colon",
+					Summary:  "Missing property value colon",
 					Detail:   "JSON uses a colon as its name/value delimiter, not an equals sign.",
 					Subject:  &colon.Range,
 				})
@@ -179,8 +179,8 @@ Token:
 
 			return nil, diags.Append(&hcl.Diagnostic{
 				Severity: hcl.DiagError,
-				Summary:  "Missing attribute value colon",
-				Detail:   "A colon must appear between an object attribute's name and its value.",
+				Summary:  "Missing property value colon",
+				Detail:   "A colon must appear between an object property's name and its value.",
 				Subject:  &colon.Range,
 			})
 		}
@@ -205,7 +205,7 @@ Token:
 				return nil, diags.Append(&hcl.Diagnostic{
 					Severity: hcl.DiagError,
 					Summary:  "Trailing comma in object",
-					Detail:   "JSON does not permit a trailing comma after the final attribute in an object.",
+					Detail:   "JSON does not permit a trailing comma after the final property in an object.",
 					Subject:  &comma.Range,
 				})
 			}
@@ -234,7 +234,7 @@ Token:
 			return nil, diags.Append(&hcl.Diagnostic{
 				Severity: hcl.DiagError,
 				Summary:  "Missing attribute seperator comma",
-				Detail:   "A comma must appear between each attribute declaration in an object.",
+				Detail:   "A comma must appear between each property definition in an object.",
 				Subject:  p.Peek().Range.Ptr(),
 			})
 		}
@@ -301,7 +301,7 @@ Token:
 				return nil, diags.Append(&hcl.Diagnostic{
 					Severity: hcl.DiagError,
 					Summary:  "Trailing comma in array",
-					Detail:   "JSON does not permit a trailing comma after the final attribute in an array.",
+					Detail:   "JSON does not permit a trailing comma after the final value in an array.",
 					Subject:  &comma.Range,
 				})
 			}

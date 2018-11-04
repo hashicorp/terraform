@@ -1,7 +1,9 @@
 variable "input" {}
 
-resource "null_resource" "foo" {
-    triggers { input = "${var.input}" }
+resource "test_object" "foo" {
+  test_string = var.input
 }
 
-output "output" { value = "${null_resource.foo.id}" }
+output "output" {
+  value = test_object.foo.id
+}

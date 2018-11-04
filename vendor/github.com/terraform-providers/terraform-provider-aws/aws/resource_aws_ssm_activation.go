@@ -7,9 +7,9 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ssm"
-	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/hashicorp/terraform/helper/validation"
 )
 
 func resourceAwsSsmActivation() *schema.Resource {
@@ -37,7 +37,7 @@ func resourceAwsSsmActivation() *schema.Resource {
 				Type:         schema.TypeString,
 				Optional:     true,
 				ForceNew:     true,
-				ValidateFunc: validateRFC3339TimeString,
+				ValidateFunc: validation.ValidateRFC3339TimeString,
 			},
 			"iam_role": {
 				Type:     schema.TypeString,
@@ -106,11 +106,11 @@ func resourceAwsSsmActivationCreate(d *schema.ResourceData, meta interface{}) er
 	})
 
 	if err != nil {
-		return errwrap.Wrapf("[ERROR] Error creating SSM activation: {{err}}", err)
+		return fmt.Errorf("Error creating SSM activation: %s", err)
 	}
 
 	if resp.ActivationId == nil {
-		return fmt.Errorf("[ERROR] ActivationId was nil")
+		return fmt.Errorf("ActivationId was nil")
 	}
 	d.SetId(*resp.ActivationId)
 	d.Set("activation_code", resp.ActivationCode)
@@ -138,10 +138,10 @@ func resourceAwsSsmActivationRead(d *schema.ResourceData, meta interface{}) erro
 	resp, err := ssmconn.DescribeActivations(params)
 
 	if err != nil {
-		return errwrap.Wrapf("[ERROR] Error reading SSM activation: {{err}}", err)
+		return fmt.Errorf("Error reading SSM activation: %s", err)
 	}
 	if resp.ActivationList == nil || len(resp.ActivationList) == 0 {
-		return fmt.Errorf("[ERROR] ActivationList was nil or empty")
+		return fmt.Errorf("ActivationList was nil or empty")
 	}
 
 	activation := resp.ActivationList[0] // Only 1 result as MaxResults is 1 above
@@ -168,7 +168,7 @@ func resourceAwsSsmActivationDelete(d *schema.ResourceData, meta interface{}) er
 	_, err := ssmconn.DeleteActivation(params)
 
 	if err != nil {
-		return errwrap.Wrapf("[ERROR] Error deleting SSM activation: {{err}}", err)
+		return fmt.Errorf("Error deleting SSM activation: %s", err)
 	}
 
 	return nil

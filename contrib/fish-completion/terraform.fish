@@ -59,6 +59,7 @@ complete -f -c terraform -n '__fish_seen_subcommand_from get' -o no-color -d 'If
 ### graph
 complete -f -c terraform -n '__fish_use_subcommand' -a graph -d 'Create a visual graph of Terraform resources'
 complete -f -c terraform -n '__fish_seen_subcommand_from graph' -o draw-cycles -d 'Highlight any cycles in the graph'
+complete -f -c terraform -n '__fish_seen_subcommand_from graph' -o module-depth -d 'Depth of modules to show in the output'
 complete -f -c terraform -n '__fish_seen_subcommand_from graph' -o no-color -d 'If specified, output won\'t contain any color'
 complete -f -c terraform -n '__fish_seen_subcommand_from graph' -o type -d 'Type of graph to output'
 
@@ -101,7 +102,6 @@ complete -f -c terraform -n '__fish_seen_subcommand_from plan' -o detailed-exitc
 complete -f -c terraform -n '__fish_seen_subcommand_from plan' -o input -d 'Ask for input for variables if not directly set'
 complete -f -c terraform -n '__fish_seen_subcommand_from plan' -o lock -d 'Lock the state file when locking is supported'
 complete -f -c terraform -n '__fish_seen_subcommand_from plan' -o lock-timeout -d 'Duration to retry a state lock'
-complete -f -c terraform -n '__fish_seen_subcommand_from plan' -o module-depth -d 'Depth of modules to show in the output'
 complete -f -c terraform -n '__fish_seen_subcommand_from plan' -o no-color -d 'If specified, output won\'t contain any color'
 complete -f -c terraform -n '__fish_seen_subcommand_from plan' -o out -d 'Write a plan file to the given path'
 complete -f -c terraform -n '__fish_seen_subcommand_from plan' -o parallelism -d 'Limit the number of concurrent operations'
@@ -138,7 +138,6 @@ complete -f -c terraform -n '__fish_seen_subcommand_from refresh' -o var-file -d
 
 ### show
 complete -f -c terraform -n '__fish_use_subcommand' -a show -d 'Inspect Terraform state or plan'
-complete -f -c terraform -n '__fish_seen_subcommand_from show' -o module-depth -d 'Depth of modules to show in the output'
 complete -f -c terraform -n '__fish_seen_subcommand_from show' -o no-color -d 'If specified, output won\'t contain any color'
 
 ### taint

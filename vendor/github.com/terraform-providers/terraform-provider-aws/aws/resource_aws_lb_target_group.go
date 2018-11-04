@@ -9,9 +9,7 @@ import (
 	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/elbv2"
-	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/helper/validation"
@@ -47,14 +45,14 @@ func resourceAwsLbTargetGroup() *schema.Resource {
 				Computed:      true,
 				ForceNew:      true,
 				ConflictsWith: []string{"name_prefix"},
-				ValidateFunc:  validateMaxLength(32),
+				ValidateFunc:  validation.StringLenBetween(0, 32),
 			},
 			"name_prefix": {
 				Type:          schema.TypeString,
 				Optional:      true,
 				ForceNew:      true,
 				ConflictsWith: []string{"name"},
-				ValidateFunc:  validateMaxLength(32 - resource.UniqueIDSuffixLength),
+				ValidateFunc:  validation.StringLenBetween(0, 32-resource.UniqueIDSuffixLength),
 			},
 
 			"port": {
@@ -65,10 +63,14 @@ func resourceAwsLbTargetGroup() *schema.Resource {
 			},
 
 			"protocol": {
-				Type:         schema.TypeString,
-				Required:     true,
-				ForceNew:     true,
-				ValidateFunc: validateLbListenerProtocol(),
+				Type:     schema.TypeString,
+				Required: true,
+				ForceNew: true,
+				ValidateFunc: validation.StringInSlice([]string{
+					elbv2.ProtocolEnumHttp,
+					elbv2.ProtocolEnumHttps,
+					elbv2.ProtocolEnumTcp,
+				}, true),
 			},
 
 			"vpc_id": {
@@ -167,7 +169,11 @@ func resourceAwsLbTargetGroup() *schema.Resource {
 							StateFunc: func(v interface{}) string {
 								return strings.ToUpper(v.(string))
 							},
-							ValidateFunc: validateLbListenerProtocol(),
+							ValidateFunc: validation.StringInSlice([]string{
+								elbv2.ProtocolEnumHttp,
+								elbv2.ProtocolEnumHttps,
+								elbv2.ProtocolEnumTcp,
+							}, true),
 						},
 
 						"timeout": {
@@ -255,15 +261,14 @@ func resourceAwsLbTargetGroupCreate(d *schema.ResourceData, meta interface{}) er
 
 	resp, err := elbconn.CreateTargetGroup(params)
 	if err != nil {
-		return errwrap.Wrapf("Error creating LB Target Group: {{err}}", err)
+		return fmt.Errorf("Error creating LB Target Group: %s", err)
 	}
 
 	if len(resp.TargetGroups) == 0 {
 		return errors.New("Error creating LB Target Group: no groups returned in response")
 	}
 
-	targetGroupArn := resp.TargetGroups[0].TargetGroupArn
-	d.SetId(*targetGroupArn)
+	d.SetId(aws.StringValue(resp.TargetGroups[0].TargetGroupArn))
 
 	return resourceAwsLbTargetGroupUpdate(d, meta)
 }
@@ -275,12 +280,12 @@ func resourceAwsLbTargetGroupRead(d *schema.ResourceData, meta interface{}) erro
 		TargetGroupArns: []*string{aws.String(d.Id())},
 	})
 	if err != nil {
-		if isTargetGroupNotFound(err) {
+		if isAWSErr(err, elbv2.ErrCodeTargetGroupNotFoundException, "") {
 			log.Printf("[DEBUG] DescribeTargetGroups - removing %s from state", d.Id())
 			d.SetId("")
 			return nil
 		}
-		return errwrap.Wrapf("Error retrieving Target Group: {{err}}", err)
+		return fmt.Errorf("Error retrieving Target Group: %s", err)
 	}
 
 	if len(resp.TargetGroups) != 1 {
@@ -294,7 +299,7 @@ func resourceAwsLbTargetGroupUpdate(d *schema.ResourceData, meta interface{}) er
 	elbconn := meta.(*AWSClient).elbv2conn
 
 	if err := setElbV2Tags(elbconn, d); err != nil {
-		return errwrap.Wrapf("Error Modifying Tags on LB Target Group: {{err}}", err)
+		return fmt.Errorf("Error Modifying Tags on LB Target Group: %s", err)
 	}
 
 	if d.HasChange("health_check") {
@@ -333,7 +338,7 @@ func resourceAwsLbTargetGroupUpdate(d *schema.ResourceData, meta interface{}) er
 		if params != nil {
 			_, err := elbconn.ModifyTargetGroup(params)
 			if err != nil {
-				return errwrap.Wrapf("Error modifying Target Group: {{err}}", err)
+				return fmt.Errorf("Error modifying Target Group: %s", err)
 			}
 		}
 	}
@@ -399,7 +404,7 @@ func resourceAwsLbTargetGroupUpdate(d *schema.ResourceData, meta interface{}) er
 
 		_, err := elbconn.ModifyTargetGroupAttributes(params)
 		if err != nil {
-			return errwrap.Wrapf("Error modifying Target Group Attributes: {{err}}", err)
+			return fmt.Errorf("Error modifying Target Group Attributes: %s", err)
 		}
 	}
 
@@ -413,15 +418,10 @@ func resourceAwsLbTargetGroupDelete(d *schema.ResourceData, meta interface{}) er
 		TargetGroupArn: aws.String(d.Id()),
 	})
 	if err != nil {
-		return errwrap.Wrapf("Error deleting Target Group: {{err}}", err)
+		return fmt.Errorf("Error deleting Target Group: %s", err)
 	}
 
 	return nil
-}
-
-func isTargetGroupNotFound(err error) bool {
-	elberr, ok := err.(awserr.Error)
-	return ok && elberr.Code() == "TargetGroupNotFound"
 }
 
 func validateAwsLbTargetGroupHealthCheckPath(v interface{}, k string) (ws []string, errors []error) {
@@ -496,37 +496,37 @@ func flattenAwsLbTargetGroupResource(d *schema.ResourceData, meta interface{}, t
 	d.Set("target_type", targetGroup.TargetType)
 
 	healthCheck := make(map[string]interface{})
-	healthCheck["interval"] = *targetGroup.HealthCheckIntervalSeconds
-	healthCheck["port"] = *targetGroup.HealthCheckPort
-	healthCheck["protocol"] = *targetGroup.HealthCheckProtocol
-	healthCheck["timeout"] = *targetGroup.HealthCheckTimeoutSeconds
-	healthCheck["healthy_threshold"] = *targetGroup.HealthyThresholdCount
-	healthCheck["unhealthy_threshold"] = *targetGroup.UnhealthyThresholdCount
+	healthCheck["interval"] = int(aws.Int64Value(targetGroup.HealthCheckIntervalSeconds))
+	healthCheck["port"] = aws.StringValue(targetGroup.HealthCheckPort)
+	healthCheck["protocol"] = aws.StringValue(targetGroup.HealthCheckProtocol)
+	healthCheck["timeout"] = int(aws.Int64Value(targetGroup.HealthCheckTimeoutSeconds))
+	healthCheck["healthy_threshold"] = int(aws.Int64Value(targetGroup.HealthyThresholdCount))
+	healthCheck["unhealthy_threshold"] = int(aws.Int64Value(targetGroup.UnhealthyThresholdCount))
 
 	if targetGroup.HealthCheckPath != nil {
-		healthCheck["path"] = *targetGroup.HealthCheckPath
+		healthCheck["path"] = aws.StringValue(targetGroup.HealthCheckPath)
 	}
 	if targetGroup.Matcher != nil && targetGroup.Matcher.HttpCode != nil {
-		healthCheck["matcher"] = *targetGroup.Matcher.HttpCode
+		healthCheck["matcher"] = aws.StringValue(targetGroup.Matcher.HttpCode)
 	}
 
 	if err := d.Set("health_check", []interface{}{healthCheck}); err != nil {
-		log.Printf("[WARN] Error setting health check: %s", err)
+		return fmt.Errorf("error setting health_check: %s", err)
 	}
 
 	attrResp, err := elbconn.DescribeTargetGroupAttributes(&elbv2.DescribeTargetGroupAttributesInput{
 		TargetGroupArn: aws.String(d.Id()),
 	})
 	if err != nil {
-		return errwrap.Wrapf("Error retrieving Target Group Attributes: {{err}}", err)
+		return fmt.Errorf("Error retrieving Target Group Attributes: %s", err)
 	}
 
 	for _, attr := range attrResp.Attributes {
-		switch *attr.Key {
+		switch aws.StringValue(attr.Key) {
 		case "proxy_protocol_v2.enabled":
-			enabled, err := strconv.ParseBool(*attr.Value)
+			enabled, err := strconv.ParseBool(aws.StringValue(attr.Value))
 			if err != nil {
-				return fmt.Errorf("Error converting proxy_protocol_v2.enabled to bool: %s", *attr.Value)
+				return fmt.Errorf("Error converting proxy_protocol_v2.enabled to bool: %s", aws.StringValue(attr.Value))
 			}
 			d.Set("proxy_protocol_v2", enabled)
 		case "slow_start.duration_seconds":
@@ -547,13 +547,13 @@ func flattenAwsLbTargetGroupResource(d *schema.ResourceData, meta interface{}, t
 	// This is a workaround to support module design where the module needs to
 	// support HTTP and TCP target groups.
 	switch {
-	case *targetGroup.Protocol != "TCP":
+	case aws.StringValue(targetGroup.Protocol) != "TCP":
 		if err = flattenAwsLbTargetGroupStickiness(d, attrResp.Attributes); err != nil {
 			return err
 		}
-	case *targetGroup.Protocol == "TCP" && len(d.Get("stickiness").([]interface{})) < 1:
+	case aws.StringValue(targetGroup.Protocol) == "TCP" && len(d.Get("stickiness").([]interface{})) < 1:
 		if err = d.Set("stickiness", []interface{}{}); err != nil {
-			return err
+			return fmt.Errorf("error setting stickiness: %s", err)
 		}
 	}
 
@@ -561,12 +561,12 @@ func flattenAwsLbTargetGroupResource(d *schema.ResourceData, meta interface{}, t
 		ResourceArns: []*string{aws.String(d.Id())},
 	})
 	if err != nil {
-		return errwrap.Wrapf("Error retrieving Target Group Tags: {{err}}", err)
+		return fmt.Errorf("Error retrieving Target Group Tags: %s", err)
 	}
 	for _, t := range tagsResp.TagDescriptions {
-		if *t.ResourceArn == d.Id() {
+		if aws.StringValue(t.ResourceArn) == d.Id() {
 			if err := d.Set("tags", tagsToMapELBv2(t.Tags)); err != nil {
-				return err
+				return fmt.Errorf("error setting tags: %s", err)
 			}
 		}
 	}
@@ -577,25 +577,25 @@ func flattenAwsLbTargetGroupResource(d *schema.ResourceData, meta interface{}, t
 func flattenAwsLbTargetGroupStickiness(d *schema.ResourceData, attributes []*elbv2.TargetGroupAttribute) error {
 	stickinessMap := map[string]interface{}{}
 	for _, attr := range attributes {
-		switch *attr.Key {
+		switch aws.StringValue(attr.Key) {
 		case "stickiness.enabled":
-			enabled, err := strconv.ParseBool(*attr.Value)
+			enabled, err := strconv.ParseBool(aws.StringValue(attr.Value))
 			if err != nil {
-				return fmt.Errorf("Error converting stickiness.enabled to bool: %s", *attr.Value)
+				return fmt.Errorf("Error converting stickiness.enabled to bool: %s", aws.StringValue(attr.Value))
 			}
 			stickinessMap["enabled"] = enabled
 		case "stickiness.type":
-			stickinessMap["type"] = *attr.Value
+			stickinessMap["type"] = aws.StringValue(attr.Value)
 		case "stickiness.lb_cookie.duration_seconds":
-			duration, err := strconv.Atoi(*attr.Value)
+			duration, err := strconv.Atoi(aws.StringValue(attr.Value))
 			if err != nil {
-				return fmt.Errorf("Error converting stickiness.lb_cookie.duration_seconds to int: %s", *attr.Value)
+				return fmt.Errorf("Error converting stickiness.lb_cookie.duration_seconds to int: %s", aws.StringValue(attr.Value))
 			}
 			stickinessMap["cookie_duration"] = duration
 		case "deregistration_delay.timeout_seconds":
-			timeout, err := strconv.Atoi(*attr.Value)
+			timeout, err := strconv.Atoi(aws.StringValue(attr.Value))
 			if err != nil {
-				return fmt.Errorf("Error converting deregistration_delay.timeout_seconds to int: %s", *attr.Value)
+				return fmt.Errorf("Error converting deregistration_delay.timeout_seconds to int: %s", aws.StringValue(attr.Value))
 			}
 			d.Set("deregistration_delay", timeout)
 		}

@@ -390,9 +390,8 @@ several regions or datacenters.
 
 ## Summarizing Modules in the UI
 
-By default, commands such as the [plan command](/docs/commands/plan.html) and
-[graph command](/docs/commands/graph.html) will show each resource in a nested
-module to represent the full scope of the configuration. For more complex
+By default the [graph command](/docs/commands/graph.html) will show each resource
+in a nested module to represent the full scope of the configuration. For more complex
 configurations, the `-module-depth` option may be useful to summarize some or all
 of the modules as single objects.
 
@@ -404,10 +403,6 @@ graph output looks like the following:
 If we instead set `-module-depth=0`, the graph will look like this:
 
 ![Terraform Module Graph](docs/module_graph.png)
-
-Other commands work similarly with modules. Note that `-module-depth` only
-affects how modules are presented in the UI; it does not affect how modules
-and their contained resources are processed by Terraform operations.
 
 ## Tainting resources within a module
 

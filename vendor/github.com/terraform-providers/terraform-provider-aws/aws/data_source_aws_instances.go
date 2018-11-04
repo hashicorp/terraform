@@ -69,7 +69,7 @@ func dataSourceAwsInstancesRead(d *schema.ResourceData, meta interface{}) error 
 	}
 	params := &ec2.DescribeInstancesInput{
 		Filters: []*ec2.Filter{
-			&ec2.Filter{
+			{
 				Name:   aws.String("instance-state-name"),
 				Values: instanceStateNames,
 			},

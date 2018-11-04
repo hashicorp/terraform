@@ -1,9 +1,9 @@
 variable "amap" {
-  type = "map"
+  type = map(string)
 }
 
 variable "othermap" {
-  type = "map"
+  type = map(string)
 }
 
 resource "aws_instance" "foo" {

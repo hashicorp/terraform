@@ -59,7 +59,7 @@ func resourceAwsDmsReplicationTask() *schema.Resource {
 			"replication_task_settings": {
 				Type:             schema.TypeString,
 				Optional:         true,
-				ValidateFunc:     validateJsonString,
+				ValidateFunc:     validation.ValidateJsonString,
 				DiffSuppressFunc: suppressEquivalentJsonDiffs,
 			},
 			"source_endpoint_arn": {
@@ -71,7 +71,7 @@ func resourceAwsDmsReplicationTask() *schema.Resource {
 			"table_mappings": {
 				Type:             schema.TypeString,
 				Required:         true,
-				ValidateFunc:     validateJsonString,
+				ValidateFunc:     validation.ValidateJsonString,
 				DiffSuppressFunc: suppressEquivalentJsonDiffs,
 			},
 			"tags": {
@@ -104,7 +104,7 @@ func resourceAwsDmsReplicationTaskCreate(d *schema.ResourceData, meta interface{
 	if v, ok := d.GetOk("cdc_start_time"); ok {
 		seconds, err := strconv.ParseInt(v.(string), 10, 64)
 		if err != nil {
-			return fmt.Errorf("[ERROR] DMS create replication task. Invalid CDC Unix timestamp: %s", err)
+			return fmt.Errorf("DMS create replication task. Invalid CDC Unix timestamp: %s", err)
 		}
 		request.CdcStartTime = aws.Time(time.Unix(seconds, 0))
 	}
@@ -188,7 +188,7 @@ func resourceAwsDmsReplicationTaskUpdate(d *schema.ResourceData, meta interface{
 	if d.HasChange("cdc_start_time") {
 		seconds, err := strconv.ParseInt(d.Get("cdc_start_time").(string), 10, 64)
 		if err != nil {
-			return fmt.Errorf("[ERROR] DMS update replication task. Invalid CRC Unix timestamp: %s", err)
+			return fmt.Errorf("DMS update replication task. Invalid CRC Unix timestamp: %s", err)
 		}
 		request.CdcStartTime = aws.Time(time.Unix(seconds, 0))
 		hasChanges = true

@@ -7,7 +7,7 @@ description: |-
   configuration file.
 ---
 
-# CLI Configuration File (`.terraformrc`/`terraform.rc`)
+# CLI Configuration File (`.terraformrc` or `terraform.rc`)
 
 The CLI configuration file configures per-user settings for CLI behaviors,
 which apply across all Terraform working directories. This is separate from
