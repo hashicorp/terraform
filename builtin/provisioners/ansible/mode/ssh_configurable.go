@@ -85,11 +85,12 @@ func (c *sshConfigurator) sshAgent() ssh.AuthMethod {
 }
 
 func (c *sshConfigurator) publicKeyFile() ssh.AuthMethod {
-	buffer, err := ioutil.ReadFile(c.provider.pemFile())
-	if err != nil {
-		return nil
-	}
-	key, err := ssh.ParsePrivateKey(buffer)
+	// public key file is actually not a file, it contains
+	// the contents of the file, as documented in
+	// - https://www.terraform.io/docs/provisioners/connection.html#private_key
+	// = https://www.terraform.io/docs/provisioners/connection.html#bastion_private_key
+	// So, don't read the file, just convert it into bytes.
+	key, err := ssh.ParsePrivateKey([]byte(c.provider.pemFile()))
 	if err != nil {
 		return nil
 	}
