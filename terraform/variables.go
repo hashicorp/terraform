@@ -32,10 +32,14 @@ const (
 	// e.g. the default value defined for a variable.
 	ValueFromConfig ValueSourceType = 'C'
 
-	// ValueFromFile indicates that a value came from a "values file", like
-	// a .tfvars file, either passed explicitly on the command line or
-	// implicitly loaded by naming convention.
-	ValueFromFile ValueSourceType = 'F'
+	// ValueFromAutoFile indicates that a value came from a "values file", like
+	// a .tfvars file, that was implicitly loaded by naming convention.
+	ValueFromAutoFile ValueSourceType = 'F'
+
+	// ValueFromNamedFile indicates that a value came from a named "values file",
+	// like a .tfvars file, that was passed explicitly on the command line (e.g.
+	// -var-file=foo.tfvars).
+	ValueFromNamedFile ValueSourceType = 'N'
 
 	// ValueFromCLIArg indicates that the value was provided directly in
 	// a CLI argument. The name of this argument is not recorded and so it must
