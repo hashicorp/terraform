@@ -110,7 +110,8 @@ func (t *ResourceTimeout) ConfigDecode(s *Resource, c *terraform.ResourceConfig)
 				}
 			}
 		} else {
-			log.Printf("[WARN] Invalid Timeout structure found, skipping timeouts")
+			log.Printf("[ERROR] Invalid timeout structure: %T", raw)
+			return fmt.Errorf("Invalid Timeout structure found")
 		}
 	}
 
