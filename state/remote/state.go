@@ -69,7 +69,6 @@ func (s *State) refreshState() error {
 	// no remote state is OK
 	if payload == nil {
 		s.readState = nil
-		s.state = nil
 		s.lineage = ""
 		s.serial = 0
 		return nil
