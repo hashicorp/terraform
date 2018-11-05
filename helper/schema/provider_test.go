@@ -326,6 +326,52 @@ func TestProviderDiff_timeoutInvalidType(t *testing.T) {
 	}
 }
 
+func TestProviderDiff_timeoutInvalidValue(t *testing.T) {
+	p := &Provider{
+		ResourcesMap: map[string]*Resource{
+			"blah": &Resource{
+				Schema: map[string]*Schema{
+					"foo": {
+						Type:     TypeInt,
+						Optional: true,
+					},
+				},
+				Timeouts: &ResourceTimeout{
+					Create: DefaultTimeout(10 * time.Minute),
+				},
+			},
+		},
+	}
+
+	invalidCfg := map[string]interface{}{
+		"foo": 42,
+		"timeouts": map[string]interface{}{
+			"create": "invalid",
+		},
+	}
+	ic, err := config.NewRawConfig(invalidCfg)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	_, err = p.Diff(
+		&terraform.InstanceInfo{
+			Type: "blah",
+		},
+		nil,
+		terraform.NewResourceConfig(ic),
+	)
+	if err == nil {
+		t.Fatal("Expected provider.Diff to fail with invalid timeout value")
+	}
+	expectedErrMsg := "time: invalid duration invalid"
+	if !strings.Contains(err.Error(), expectedErrMsg) {
+		t.Fatalf("Unexpected error message: %q\nExpected message to contain %q",
+			err.Error(),
+			expectedErrMsg)
+	}
+}
+
 func TestProviderValidateResource(t *testing.T) {
 	cases := []struct {
 		P      *Provider
