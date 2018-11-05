@@ -79,7 +79,7 @@ func checkInputVariables(vcs map[string]*configs.Variable, vs InputValues) tfdia
 		_, err := convert.Convert(val.Value, wantType)
 		if err != nil {
 			switch val.SourceType {
-			case ValueFromConfig, ValueFromFile:
+			case ValueFromConfig, ValueFromAutoFile, ValueFromNamedFile:
 				// We have source location information for these.
 				diags = diags.Append(&hcl.Diagnostic{
 					Severity: hcl.DiagError,
