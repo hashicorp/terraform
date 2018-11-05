@@ -7,6 +7,7 @@ import (
 	"sort"
 	"sync"
 
+	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/terraform/config"
 	"github.com/hashicorp/terraform/configs/configschema"
@@ -280,7 +281,11 @@ func (p *Provider) Apply(
 		return nil, fmt.Errorf("unknown resource type: %s", info.Type)
 	}
 
-	return r.Apply(s, d, p.meta)
+	is, err := r.Apply(s, d, p.meta)
+	if err != nil {
+		return is, errwrap.Wrapf(fmt.Sprintf("%s: {{err}}", info.Type), err)
+	}
+	return is, nil
 }
 
 // Diff implementation of terraform.ResourceProvider interface.
@@ -293,7 +298,11 @@ func (p *Provider) Diff(
 		return nil, fmt.Errorf("unknown resource type: %s", info.Type)
 	}
 
-	return r.Diff(s, c, p.meta)
+	is, err := r.Diff(s, c, p.meta)
+	if err != nil {
+		return is, errwrap.Wrapf(fmt.Sprintf("%s: {{err}}", info.Type), err)
+	}
+	return is, nil
 }
 
 // SimpleDiff is used by the new protocol wrappers to get a diff that doesn't
@@ -307,7 +316,11 @@ func (p *Provider) SimpleDiff(
 		return nil, fmt.Errorf("unknown resource type: %s", info.Type)
 	}
 
-	return r.simpleDiff(s, c, p.meta)
+	is, err := r.simpleDiff(s, c, p.meta)
+	if err != nil {
+		return is, errwrap.Wrapf(fmt.Sprintf("%s: {{err}}", info.Type), err)
+	}
+	return is, nil
 }
 
 // Refresh implementation of terraform.ResourceProvider interface.
@@ -319,7 +332,11 @@ func (p *Provider) Refresh(
 		return nil, fmt.Errorf("unknown resource type: %s", info.Type)
 	}
 
-	return r.Refresh(s, p.meta)
+	is, err := r.Refresh(s, p.meta)
+	if err != nil {
+		return is, errwrap.Wrapf(fmt.Sprintf("%s: {{err}}", info.Type), err)
+	}
+	return is, nil
 }
 
 // Resources implementation of terraform.ResourceProvider interface.
