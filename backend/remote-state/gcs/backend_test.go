@@ -178,7 +178,7 @@ func testStaleLocks(t *testing.T, b1, b2 backend.Backend) {
 	t.Helper()
 
 	// Get the default state for each
-	b1StateMgr, err := b1.State(backend.DefaultStateName)
+	b1StateMgr, err := b1.StateMgr(backend.DefaultStateName)
 	if err != nil {
 		t.Fatalf("error: %s", err)
 	}
@@ -186,7 +186,7 @@ func testStaleLocks(t *testing.T, b1, b2 backend.Backend) {
 		t.Fatalf("bad: %s", err)
 	}
 
-	b2StateMgr, err := b2.State(backend.DefaultStateName)
+	b2StateMgr, err := b2.StateMgr(backend.DefaultStateName)
 	if err != nil {
 		t.Fatalf("error: %s", err)
 	}
