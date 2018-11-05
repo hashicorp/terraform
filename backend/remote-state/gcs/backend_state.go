@@ -75,12 +75,14 @@ func (b *Backend) client(name string) (*remoteClient, error) {
 	}
 
 	return &remoteClient{
-		storageContext: b.storageContext,
-		storageClient:  b.storageClient,
-		bucketName:     b.bucketName,
-		stateFilePath:  b.stateFile(name),
-		lockFilePath:   b.lockFile(name),
-		encryptionKey:  b.encryptionKey,
+		storageContext:        b.storageContext,
+		storageClient:         b.storageClient,
+		bucketName:            b.bucketName,
+		stateFilePath:         b.stateFile(name),
+		lockFilePath:          b.lockFile(name),
+		encryptionKey:         b.encryptionKey,
+		lockHeartbeatInterval: b.lockHeartbeatInterval,
+		lockStaleAfter:        b.lockStaleAfter,
 	}, nil
 }
 

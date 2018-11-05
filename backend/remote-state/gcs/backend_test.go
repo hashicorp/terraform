@@ -207,15 +207,15 @@ func testStaleLocks(t *testing.T, b1, b2 backend.Backend) {
 	infoB.Who = "clientB"
 
 	// For faster tests, reduce the duration until the lock is considered stale.
-	heartbeatInterval = 5 * time.Second
-	minHeartbeatAgeUntilStale = 20 * time.Second
+	lockerB.(*remote.State).Client.(*remoteClient).lockHeartbeatInterval = 5 * time.Second
+	lockerB.(*remote.State).Client.(*remoteClient).lockStaleAfter = 20 * time.Second
 
 	lockIDA, err := lockerA.Lock(infoA)
 	if err != nil {
 		t.Fatal("unable to get initial lock:", err)
 	}
 
-	// Stop heartbeating on the lock file. It will be considered stale after minHeartbeatAgeUntilStale.
+	// Stop heartbeating on the lock file. It will be considered stale after lockStaleAfter.
 	lockerA.(*remote.State).Client.(*remoteClient).stopHeartbeatCh <- true
 
 	// Lock is still held by A after 10 seconds.

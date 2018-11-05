@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"cloud.google.com/go/storage"
-	multierror "github.com/hashicorp/go-multierror"
+	"github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/terraform/state"
 	"github.com/hashicorp/terraform/state/remote"
 	"golang.org/x/net/context"
@@ -22,12 +22,14 @@ import (
 type remoteClient struct {
 	mutex sync.Mutex
 
-	storageContext context.Context
-	storageClient  *storage.Client
-	bucketName     string
-	stateFilePath  string
-	lockFilePath   string
-	encryptionKey  []byte
+	storageContext        context.Context
+	storageClient         *storage.Client
+	bucketName            string
+	stateFilePath         string
+	lockFilePath          string
+	encryptionKey         []byte
+	lockHeartbeatInterval time.Duration
+	lockStaleAfter        time.Duration
 
 	// The initial generation number of the lock file created by this
 	// remoteClient.
@@ -42,17 +44,8 @@ type remoteClient struct {
 // heartbeats on it. This header facilitates a safe migration from previous
 // Terraform versions that do not yet perform any heartbeats on the lock file.
 // A lock file will only be considered stale and force-unlocked if its age
-// exceeds minHeartbeatAgeUntilStale AND this metadata header is present.
+// exceeds lockStaleAfter AND this metadata header is present.
 const metadataHeaderHeartbeatEnabled = "x-goog-meta-heartbeating"
-
-var (
-	// Time between consecutive heartbeats on the lock file.
-	heartbeatInterval = 1 * time.Minute
-
-	// The mininum duration that must have passed since the youngest
-	// recorded heartbeat before the lock file is considered stale/orphaned.
-	minHeartbeatAgeUntilStale = 15 * time.Minute
-)
 
 func (c *remoteClient) Get() (payload *remote.Payload, err error) {
 	stateFileReader, err := c.stateFile().NewReader(c.storageContext)
@@ -153,8 +146,8 @@ func (c *remoteClient) unlockIfStale() bool {
 			log.Printf("[TRACE] Found existing lock file %s from an older client that does not perform heartbeats", c.lockFileURL())
 			return false
 		}
-		age := time.Now().Sub(attrs.Updated)
-		if age > minHeartbeatAgeUntilStale {
+		age := time.Since(attrs.Updated)
+		if age > c.lockStaleAfter {
 			log.Printf("[WARN] Existing lock file %s is considered stale, last heartbeat was %s ago", c.lockFileURL(), age)
 			if err := c.Unlock(strconv.FormatInt(attrs.Generation, 10)); err != nil {
 				log.Printf("[WARN] Failed to release stale lock: %s", err)
@@ -170,9 +163,9 @@ func (c *remoteClient) unlockIfStale() bool {
 // heartbeatLockFile periodically updates the "updated" timestamp of the lock
 // file until the lock is released in Unlock().
 func (c *remoteClient) heartbeatLockFile() {
-	log.Printf("[TRACE] Starting heartbeat on lock file %s, interval is %s", c.lockFileURL(), heartbeatInterval)
+	log.Printf("[TRACE] Starting heartbeat on lock file %s, interval is %s", c.lockFileURL(), c.lockHeartbeatInterval)
 
-	ticker := time.NewTicker(heartbeatInterval)
+	ticker := time.NewTicker(c.lockHeartbeatInterval)
 	defer ticker.Stop()
 
 	defer func() {
