@@ -8,6 +8,7 @@ BUG FIXES:
 
 * helper/schema: Prevent the insertion of empty diff values when converting legacy diffs [GH-19253]
 * core: Fix inconsistent plans when replacing instances. [GH-19233]
+* core: Correct handling of unknown values in module outputs during planning and final resolution of them during apply. [GH-19237]
 
 ## 0.12.0-alpha2 (October 30, 2018)
 
