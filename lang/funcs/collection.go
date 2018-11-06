@@ -87,7 +87,7 @@ var LengthFunc = function.New(&function.Spec{
 	Type: func(args []cty.Value) (cty.Type, error) {
 		collTy := args[0].Type()
 		switch {
-		case collTy == cty.String || collTy.IsTupleType() || collTy.IsListType() || collTy.IsMapType() || collTy.IsSetType() || collTy == cty.DynamicPseudoType:
+		case collTy == cty.String || collTy.IsTupleType() || collTy.IsObjectType() || collTy.IsListType() || collTy.IsMapType() || collTy.IsSetType() || collTy == cty.DynamicPseudoType:
 			return cty.Number, nil
 		default:
 			return cty.Number, fmt.Errorf("argument must be a string, a collection type, or a structural type")

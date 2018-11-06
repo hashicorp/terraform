@@ -164,7 +164,23 @@ func TestLength(t *testing.T) {
 			cty.NumberIntVal(0),
 		},
 		{
+			cty.UnknownVal(cty.EmptyTuple),
+			cty.NumberIntVal(0),
+		},
+		{
 			cty.TupleVal([]cty.Value{cty.True}),
+			cty.NumberIntVal(1),
+		},
+		{
+			cty.EmptyObjectVal,
+			cty.NumberIntVal(0),
+		},
+		{
+			cty.UnknownVal(cty.EmptyObject),
+			cty.NumberIntVal(0),
+		},
+		{
+			cty.ObjectVal(map[string]cty.Value{"true": cty.True}),
 			cty.NumberIntVal(1),
 		},
 		{
