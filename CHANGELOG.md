@@ -7,6 +7,7 @@ IMPROVEMENTS:
 BUG FIXES:
 
 * helper/schema: Prevent the insertion of empty diff values when converting legacy diffs [GH-19253]
+* helper/schema: Fix timeout parsing during Provider.Diff (plan) [GH-19286]
 * core: Fix inconsistent plans when replacing instances. [GH-19233]
 * core: Correct handling of unknown values in module outputs during planning and final resolution of them during apply. [GH-19237]
 
