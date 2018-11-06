@@ -12,6 +12,7 @@ import (
 	"github.com/hashicorp/terraform/tfdiags"
 
 	"github.com/hashicorp/terraform/command/format"
+	"github.com/hashicorp/terraform/command/jsonplan"
 	"github.com/hashicorp/terraform/plans"
 	"github.com/hashicorp/terraform/states"
 )
@@ -28,7 +29,10 @@ func (c *ShowCommand) Run(args []string) int {
 		return 1
 	}
 
+	var jsonOutput bool
+
 	cmdFlags := flag.NewFlagSet("show", flag.ContinueOnError)
+	cmdFlags.BoolVar(&jsonOutput, "json", false, "produce JSON output (only available when showing a plan")
 
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
 	if err := cmdFlags.Parse(args); err != nil {
@@ -36,10 +40,10 @@ func (c *ShowCommand) Run(args []string) int {
 	}
 
 	args = cmdFlags.Args()
-	if len(args) > 1 {
+	if len(args) > 2 {
 		c.Ui.Error(
-			"The show command expects at most one argument with the path\n" +
-				"to a Terraform state or plan file.\n")
+			"The show command expects at most two arguments.\n The path to a " +
+				"Terraform state or plan file, and optionally -json for json output.\n")
 		cmdFlags.Usage()
 		return 1
 	}
@@ -99,6 +103,12 @@ func (c *ShowCommand) Run(args []string) int {
 		path = args[0]
 		pr, err := planfile.Open(path)
 		if err != nil {
+			if jsonOutput == true {
+				c.Ui.Error(fmt.Sprintf(
+					"Error: JSON output not available for state",
+				))
+				return 1
+			}
 			f, err := os.Open(path)
 			if err != nil {
 				c.Ui.Error(fmt.Sprintf("Error loading file: %s", err))
@@ -151,6 +161,21 @@ func (c *ShowCommand) Run(args []string) int {
 	}
 
 	if plan != nil {
+		if jsonOutput == true {
+
+			_, snapshot, loadDiags := opReq.ConfigLoader.LoadConfigWithSnapshot(cwd)
+			if loadDiags.HasErrors() {
+				c.showDiagnostics(diags)
+				return 1
+			}
+			jsonPlan, err := jsonplan.Marshall(snapshot, plan, state)
+			if err != nil {
+				c.Ui.Error(fmt.Sprintf("Failed to load config: %s", err))
+				return 1
+			}
+			c.Ui.Output(string(jsonPlan))
+			return 0
+		}
 		dispPlan := format.NewPlan(plan.Changes)
 		c.Ui.Output(dispPlan.Format(c.Colorize()))
 		return 0
