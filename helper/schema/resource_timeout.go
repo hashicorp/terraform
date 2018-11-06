@@ -62,55 +62,52 @@ func (t *ResourceTimeout) ConfigDecode(s *Resource, c *terraform.ResourceConfig)
 	}
 
 	if raw, ok := c.Config[TimeoutsConfigKey]; ok {
-		if configTimeouts, ok := raw.([]map[string]interface{}); ok {
-			for _, timeoutValues := range configTimeouts {
-				// loop through each Timeout given in the configuration and validate they
-				// the Timeout defined in the resource
-				for timeKey, timeValue := range timeoutValues {
-					// validate that we're dealing with the normal CRUD actions
-					var found bool
-					for _, key := range timeoutKeys() {
-						if timeKey == key {
-							found = true
-							break
-						}
+		if timeoutValues, ok := raw.(map[string]interface{}); ok {
+			for timeKey, timeValue := range timeoutValues {
+				// validate that we're dealing with the normal CRUD actions
+				var found bool
+				for _, key := range timeoutKeys() {
+					if timeKey == key {
+						found = true
+						break
 					}
-
-					if !found {
-						return fmt.Errorf("Unsupported Timeout configuration key found (%s)", timeKey)
-					}
-
-					// Get timeout
-					rt, err := time.ParseDuration(timeValue.(string))
-					if err != nil {
-						return fmt.Errorf("Error parsing Timeout for (%s): %s", timeKey, err)
-					}
-
-					var timeout *time.Duration
-					switch timeKey {
-					case TimeoutCreate:
-						timeout = t.Create
-					case TimeoutUpdate:
-						timeout = t.Update
-					case TimeoutRead:
-						timeout = t.Read
-					case TimeoutDelete:
-						timeout = t.Delete
-					case TimeoutDefault:
-						timeout = t.Default
-					}
-
-					// If the resource has not delcared this in the definition, then error
-					// with an unsupported message
-					if timeout == nil {
-						return unsupportedTimeoutKeyError(timeKey)
-					}
-
-					*timeout = rt
 				}
+
+				if !found {
+					return fmt.Errorf("Unsupported Timeout configuration key found (%s)", timeKey)
+				}
+
+				// Get timeout
+				rt, err := time.ParseDuration(timeValue.(string))
+				if err != nil {
+					return fmt.Errorf("Error parsing %q timeout: %s", timeKey, err)
+				}
+
+				var timeout *time.Duration
+				switch timeKey {
+				case TimeoutCreate:
+					timeout = t.Create
+				case TimeoutUpdate:
+					timeout = t.Update
+				case TimeoutRead:
+					timeout = t.Read
+				case TimeoutDelete:
+					timeout = t.Delete
+				case TimeoutDefault:
+					timeout = t.Default
+				}
+
+				// If the resource has not delcared this in the definition, then error
+				// with an unsupported message
+				if timeout == nil {
+					return unsupportedTimeoutKeyError(timeKey)
+				}
+
+				*timeout = rt
 			}
 		} else {
-			log.Printf("[WARN] Invalid Timeout structure found, skipping timeouts")
+			log.Printf("[ERROR] Invalid timeout structure: %T", raw)
+			return fmt.Errorf("Invalid Timeout structure found")
 		}
 	}
 
