@@ -16,7 +16,7 @@ Stores the state as an object in a configurable prefix and bucket on [Google Clo
 
 ```hcl
 terraform {
-  backend "gcs" {
+  backend = "gcs" {
     bucket  = "tf-state-prod"
     prefix  = "terraform/state"
   }
