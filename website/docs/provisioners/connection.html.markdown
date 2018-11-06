@@ -86,6 +86,9 @@ provisioner "file" {
 * `host_key` - The public key from the remote host or the signing CA, used to
   verify the connection.
 
+* `keep_alive_interval` - The interval keepalives will be sent to the server to keep the
+  ssh session active. Defaults to 30 seconds. Should be provided as a string like `30s` or `5m`.
+
 **Additional arguments only supported by the `winrm` connection type:**
 
 * `https` - Set to `true` to connect using HTTPS instead of HTTP.

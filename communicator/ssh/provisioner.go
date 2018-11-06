@@ -34,6 +34,9 @@ const (
 
 	// DefaultTimeout is used if there is no timeout given
 	DefaultTimeout = 5 * time.Minute
+
+	// DefaultKeepAliveInterval is used if there is no interval given
+	DefaultKeepAliveInterval = 30 * time.Second
 )
 
 // connectionInfo is decoded from the ConnInfo of the resource. These are the
@@ -50,6 +53,9 @@ type connectionInfo struct {
 	Timeout    string
 	ScriptPath string        `mapstructure:"script_path"`
 	TimeoutVal time.Duration `mapstructure:"-"`
+
+	KeepAliveInterval string `mapstructure:"keep_alive_interval"`
+	KeepAliveIntervalVal time.Duration `mapstructure:"-"`
 
 	BastionUser       string `mapstructure:"bastion_user"`
 	BastionPassword   string `mapstructure:"bastion_password"`
@@ -126,6 +132,12 @@ func parseConnectionInfo(s *terraform.InstanceState) (*connectionInfo, error) {
 		}
 	}
 
+	if connInfo.KeepAliveInterval != "" {
+		connInfo.KeepAliveIntervalVal = safeDuration(connInfo.KeepAliveInterval, DefaultKeepAliveInterval)
+	} else {
+		connInfo.KeepAliveIntervalVal = DefaultKeepAliveInterval
+	}
+
 	return connInfo, nil
 }
 
@@ -186,6 +198,7 @@ func prepareSSHConfig(connInfo *connectionInfo) (*sshConfig, error) {
 		config:     sshConf,
 		connection: connectFunc,
 		sshAgent:   sshAgent,
+		KeepAliveInterval:  connInfo.KeepAliveIntervalVal,
 	}
 	return config, nil
 }

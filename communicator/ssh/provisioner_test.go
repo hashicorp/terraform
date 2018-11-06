@@ -17,6 +17,7 @@ func TestProvisioner_connInfo(t *testing.T) {
 				"host":        "127.0.0.1",
 				"port":        "22",
 				"timeout":     "30s",
+				"keep_alive_interval":     "1m",
 
 				"bastion_host": "127.0.1.1",
 			},
@@ -62,6 +63,9 @@ func TestProvisioner_connInfo(t *testing.T) {
 		t.Fatalf("bad: %v", conf)
 	}
 	if conf.BastionPrivateKey != "someprivatekeycontents" {
+		t.Fatalf("bad: %v", conf)
+	}
+	if conf.KeepAliveInterval != "1m" {
 		t.Fatalf("bad: %v", conf)
 	}
 }

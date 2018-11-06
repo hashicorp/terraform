@@ -61,6 +61,10 @@ type sshConfig struct {
 	// sshAgent is a struct surrounding the agent.Agent client and the net.Conn
 	// to the SSH Agent. It is nil if no SSH agent is configured
 	sshAgent *sshAgent
+
+	// KeepAliveInterval sets how often we send a channel request to the
+	// server. A value < 0 disables.
+	KeepAliveInterval time.Duration
 }
 
 type fatalError struct {
@@ -277,6 +281,22 @@ func (c *Communicator) Start(cmd *remote.Cmd) error {
 	if err != nil {
 		return err
 	}
+
+	// Start a goroutine that executes every KeepAliveInterval to keep the session alive
+	// will return when the session no longer responds to requests
+	go func() {
+		if c.config.KeepAliveInterval < 0 {
+			return
+		}
+		t := time.NewTicker(c.config.KeepAliveInterval)
+		defer t.Stop()
+		for range t.C {
+			_, err := session.SendRequest("keepalive@terraform.io", true, nil)
+			if err != nil {
+				return
+			}
+		}
+	}()
 
 	// Start a goroutine to wait for the session to end and set the
 	// exit boolean and status.
