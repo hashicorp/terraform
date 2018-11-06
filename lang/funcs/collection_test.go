@@ -1287,7 +1287,7 @@ func TestLookup(t *testing.T) {
 				}),
 				cty.UnknownVal(cty.String),
 			},
-			cty.UnknownVal(cty.String),
+			cty.DynamicVal, // if the key is unknown then we don't know which object attribute and thus can't know the type
 			false,
 		},
 	}
