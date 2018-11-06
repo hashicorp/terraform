@@ -419,27 +419,69 @@ func flattener(finalList []cty.Value, flattenList cty.Value) []cty.Value {
 var KeysFunc = function.New(&function.Spec{
 	Params: []function.Parameter{
 		{
-			Name: "inputMap",
-			Type: cty.DynamicPseudoType,
+			Name:         "inputMap",
+			Type:         cty.DynamicPseudoType,
+			AllowUnknown: true,
 		},
 	},
-	Type: function.StaticReturnType(cty.List(cty.String)),
-	Impl: func(args []cty.Value, retType cty.Type) (ret cty.Value, err error) {
-		var keys []cty.Value
+	Type: func(args []cty.Value) (cty.Type, error) {
 		ty := args[0].Type()
-
-		if !ty.IsObjectType() && !ty.IsMapType() {
-			return cty.NilVal, fmt.Errorf("keys() requires a map")
-		}
-
-		for it := args[0].ElementIterator(); it.Next(); {
-			k, _ := it.Element()
-			keys = append(keys, k)
-			if err != nil {
-				return cty.ListValEmpty(cty.String), err
+		switch {
+		case ty.IsMapType():
+			return cty.List(cty.String), nil
+		case ty.IsObjectType():
+			atys := ty.AttributeTypes()
+			if len(atys) == 0 {
+				return cty.EmptyTuple, nil
 			}
+			// All of our result elements will be strings, and atys just
+			// decides how many there are.
+			etys := make([]cty.Type, len(atys))
+			for i := range etys {
+				etys[i] = cty.String
+			}
+			return cty.Tuple(etys), nil
+		default:
+			return cty.DynamicPseudoType, function.NewArgErrorf(0, "must have map or object type")
 		}
-		return cty.ListVal(keys), nil
+	},
+	Impl: func(args []cty.Value, retType cty.Type) (cty.Value, error) {
+		m := args[0]
+		var keys []cty.Value
+
+		switch {
+		case m.Type().IsObjectType():
+			// In this case we allow unknown values so we must work only with
+			// the attribute _types_, not with the value itself.
+			var names []string
+			for name := range m.Type().AttributeTypes() {
+				names = append(names, name)
+			}
+			sort.Strings(names) // same ordering guaranteed by cty's ElementIterator
+			if len(names) == 0 {
+				return cty.EmptyTupleVal, nil
+			}
+			keys = make([]cty.Value, len(names))
+			for i, name := range names {
+				keys[i] = cty.StringVal(name)
+			}
+			return cty.TupleVal(keys), nil
+		default:
+			if !m.IsKnown() {
+				return cty.UnknownVal(retType), nil
+			}
+
+			// cty guarantees that ElementIterator will iterate in lexicographical
+			// order by key.
+			for it := args[0].ElementIterator(); it.Next(); {
+				k, _ := it.Element()
+				keys = append(keys, k)
+			}
+			if len(keys) == 0 {
+				return cty.ListValEmpty(cty.String), nil
+			}
+			return cty.ListVal(keys), nil
+		}
 	},
 })
 
@@ -891,9 +933,23 @@ var ValuesFunc = function.New(&function.Spec{
 		if ty.IsMapType() {
 			return cty.List(ty.ElementType()), nil
 		} else if ty.IsObjectType() {
-			var tys []cty.Type
-			for _, v := range ty.AttributeTypes() {
-				tys = append(tys, v)
+			// The result is a tuple type with all of the same types as our
+			// object type's attributes, sorted in lexicographical order by the
+			// keys. (This matches the sort order guaranteed by ElementIterator
+			// on a cty object value.)
+			atys := ty.AttributeTypes()
+			if len(atys) == 0 {
+				return cty.EmptyTuple, nil
+			}
+			attrNames := make([]string, 0, len(atys))
+			for name := range atys {
+				attrNames = append(attrNames, name)
+			}
+			sort.Strings(attrNames)
+
+			tys := make([]cty.Type, len(attrNames))
+			for i, name := range attrNames {
+				tys[i] = atys[name]
 			}
 			return cty.Tuple(tys), nil
 		}
@@ -902,33 +958,12 @@ var ValuesFunc = function.New(&function.Spec{
 	Impl: func(args []cty.Value, retType cty.Type) (ret cty.Value, err error) {
 		mapVar := args[0]
 
-		if !mapVar.IsWhollyKnown() {
-			return cty.UnknownVal(retType), nil
-		}
-
-		if mapVar.LengthInt() == 0 {
-			return cty.ListValEmpty(retType.ElementType()), nil
-		}
-
-		keys, err := Keys(mapVar)
-		if err != nil {
-			return cty.NilVal, err
-		}
-
+		// We can just iterate the map/object value here because cty guarantees
+		// that these types always iterate in key lexicographical order.
 		var values []cty.Value
-
-		for it := keys.ElementIterator(); it.Next(); {
-			_, key := it.Element()
-			k := key.AsString()
-			if mapVar.Type().IsObjectType() {
-				if mapVar.Type().HasAttribute(k) {
-					value := mapVar.GetAttr(k)
-					values = append(values, value)
-				}
-			} else {
-				value := mapVar.Index(cty.StringVal(k))
-				values = append(values, value)
-			}
+		for it := mapVar.ElementIterator(); it.Next(); {
+			_, val := it.Element()
+			values = append(values, val)
 		}
 
 		if retType.IsTupleType() {
