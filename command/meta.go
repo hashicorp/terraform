@@ -413,7 +413,9 @@ func (m *Meta) moduleStorage(root string, mode module.GetMode) *module.Storage {
 // will potentially modify the args in-place. It will return the resulting
 // slice.
 //
-// vars says whether or not we support variables.
+// vars is now ignored. It used to control whether to process variables, but
+// that is no longer the responsibility of this function. (That happens
+// instead in Meta.collectVariableValues.)
 func (m *Meta) process(args []string, vars bool) ([]string, error) {
 	// We do this so that we retain the ability to technically call
 	// process multiple times, even if we have no plans to do so
