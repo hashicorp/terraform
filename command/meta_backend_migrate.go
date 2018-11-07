@@ -10,14 +10,24 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/hashicorp/terraform/states"
-	"github.com/hashicorp/terraform/states/statemgr"
-
 	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/command/clistate"
 	"github.com/hashicorp/terraform/state"
+	"github.com/hashicorp/terraform/states"
+	"github.com/hashicorp/terraform/states/statemgr"
 	"github.com/hashicorp/terraform/terraform"
 )
+
+type backendMigrateOpts struct {
+	OneType, TwoType string
+	One, Two         backend.Backend
+
+	// Fields below are set internally when migrate is called
+
+	oneEnv string // source env
+	twoEnv string // dest env
+	force  bool   // if true, won't ask for confirmation
+}
 
 // backendMigrateState handles migrating (copying) state from one backend
 // to another. This function handles asking the user for confirmation
@@ -212,7 +222,47 @@ func (m *Meta) backendMigrateState_s_s(opts *backendMigrateOpts) error {
 			errMigrateSingleLoadDefault), opts.OneType, err)
 	}
 
+	// Do not migrate workspaces without state.
+	if stateOne.State().Empty() {
+		return nil
+	}
+
 	stateTwo, err := opts.Two.StateMgr(opts.twoEnv)
+	if err == backend.ErrDefaultWorkspaceNotSupported {
+		// If the backend doesn't support using the default state, we ask the user
+		// for a new name and migrate the default state to the given named state.
+		stateTwo, err = func() (statemgr.Full, error) {
+			name, err := m.UIInput().Input(&terraform.InputOpts{
+				Id: "new-state-name",
+				Query: fmt.Sprintf(
+					"[reset][bold][yellow]The %q backend configuration only allows "+
+						"named workspaces![reset]",
+					opts.TwoType),
+				Description: strings.TrimSpace(inputBackendNewWorkspaceName),
+			})
+			if err != nil {
+				return nil, fmt.Errorf("Error asking for new state name: %s", err)
+			}
+
+			// Update the name of the target state.
+			opts.twoEnv = name
+
+			stateTwo, err := opts.Two.StateMgr(opts.twoEnv)
+			if err != nil {
+				return nil, err
+			}
+
+			// If the currently selected workspace is the default workspace, then set
+			// the named workspace as the new selected workspace.
+			if m.Workspace() == backend.DefaultStateName {
+				if err := m.SetWorkspace(opts.twoEnv); err != nil {
+					return nil, fmt.Errorf("Failed to set new workspace: %s", err)
+				}
+			}
+
+			return stateTwo, nil
+		}()
+	}
 	if err != nil {
 		return fmt.Errorf(strings.TrimSpace(
 			errMigrateSingleLoadDefault), opts.TwoType, err)
@@ -381,17 +431,6 @@ func (m *Meta) backendMigrateNonEmptyConfirm(
 	return m.confirm(inputOpts)
 }
 
-type backendMigrateOpts struct {
-	OneType, TwoType string
-	One, Two         backend.Backend
-
-	// Fields below are set internally when migrate is called
-
-	oneEnv string // source env
-	twoEnv string // dest env
-	force  bool   // if true, won't ask for confirmation
-}
-
 const errMigrateLoadStates = `
 Error inspecting states in the %q backend:
     %s
@@ -414,8 +453,8 @@ above error and try again.
 `
 
 const errMigrateMulti = `
-Error migrating the workspace %q from the previous %q backend to the newly
-configured %q backend:
+Error migrating the workspace %q from the previous %q backend
+to the newly configured %q backend:
     %s
 
 Terraform copies workspaces in alphabetical order. Any workspaces
@@ -428,11 +467,20 @@ This will attempt to copy (with permission) all workspaces again.
 `
 
 const errBackendStateCopy = `
-Error copying state from the previous %q backend to the newly configured %q backend:
+Error copying state from the previous %q backend to the newly configured 
+%q backend:
     %s
 
 The state in the previous backend remains intact and unmodified. Please resolve
 the error above and try again.
+`
+
+const errBackendNoMigratedWorkspaces = `
+No workspaces are migrated. Use the "terraform workspace" command to create
+and select a new workspace.
+
+If the backend already contains existing workspaces, you may need to update
+the workspace name or prefix in the backend configuration.
 `
 
 const inputBackendMigrateEmpty = `
@@ -466,9 +514,9 @@ up, or cancel altogether, answer "no" and Terraform will abort.
 `
 
 const inputBackendMigrateMultiToMulti = `
-Both the existing %[1]q backend and the newly configured %[2]q backend support
-workspaces. When migrating between backends, Terraform will copy all
-workspaces (with the same names). THIS WILL OVERWRITE any conflicting
+Both the existing %[1]q backend and the newly configured %[2]q backend
+support workspaces. When migrating between backends, Terraform will copy
+all workspaces (with the same names). THIS WILL OVERWRITE any conflicting
 states in the destination.
 
 Terraform initialization doesn't currently migrate only select workspaces.
@@ -477,4 +525,16 @@ pull and push those states.
 
 If you answer "yes", Terraform will migrate all states. If you answer
 "no", Terraform will abort.
+`
+
+const inputBackendNewWorkspaceName = `
+Please provide a new workspace name (e.g. dev, test) that will be used
+to migrate the existing default workspace. 
+`
+
+const inputBackendSelectWorkspace = `
+This is expected behavior when the selected workspace did not have an
+existing non-empty state. Please enter a number to select a workspace:
+
+%s
 `

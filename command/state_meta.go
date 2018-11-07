@@ -6,10 +6,11 @@ import (
 	"time"
 
 	"github.com/hashicorp/terraform/addrs"
-	backendlocal "github.com/hashicorp/terraform/backend/local"
 	"github.com/hashicorp/terraform/state"
 	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/states/statemgr"
+
+	backendLocal "github.com/hashicorp/terraform/backend/local"
 )
 
 // StateMeta is the meta struct that should be embedded in state subcommands.
@@ -49,7 +50,7 @@ func (c *StateMeta) State() (state.State, error) {
 			// This should never fail
 			panic(backendDiags.Err())
 		}
-		localB := localRaw.(*backendlocal.Local)
+		localB := localRaw.(*backendLocal.Local)
 		_, stateOutPath, _ = localB.StatePaths(workspace)
 		if err != nil {
 			return nil, err

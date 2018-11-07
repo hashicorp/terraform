@@ -17,6 +17,7 @@ func TestInit_backend(t *testing.T) {
 		Type string
 	}{
 		{"local", "*local.Local"},
+		{"remote", "*remote.Remote"},
 		{"atlas", "*atlas.Backend"},
 		{"azurerm", "*azure.Backend"},
 		{"consul", "*consul.Backend"},
@@ -53,6 +54,7 @@ func TestInit_forceLocalBackend(t *testing.T) {
 		Type string
 	}{
 		{"local", "nil"},
+		{"remote", "*remote.Remote"},
 	}
 
 	// Set the TF_FORCE_LOCAL_BACKEND flag so all enhanced backends will
