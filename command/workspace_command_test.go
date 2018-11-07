@@ -276,8 +276,8 @@ func TestWorkspace_createWithState(t *testing.T) {
 
 	newState := sMgr.State()
 
-	if !originalState.Equal(newState) {
-		t.Fatalf("states not equal\norig: %s\nnew: %s", originalState, newState)
+	if got, want := newState.String(), originalState.String(); got != want {
+		t.Fatalf("states not equal\ngot: %s\nwant: %s", got, want)
 	}
 }
 
