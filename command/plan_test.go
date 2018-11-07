@@ -761,16 +761,18 @@ func TestPlan_shutdown(t *testing.T) {
 		"-state=nonexistent.tfstate",
 		testFixturePath("apply-shutdown"),
 	})
-	if code != 1 {
-		// FIXME: we should be able to avoid the error during evaluation
-		// the early exit isn't caught before the interpolation is evaluated
-		t.Fatalf("wrong exit code %d; want 1\noutput:\n%s", code, ui.OutputWriter.String())
+	if code != 0 {
+		// FIXME: In retrospect cancellation ought to be an unsuccessful exit
+		// case, but we need to do that cautiously in case it impacts automation
+		// wrappers. See the note about this in the terraform.stopHook
+		// implementation for more.
+		t.Errorf("wrong exit code %d; want 0\noutput:\n%s", code, ui.OutputWriter.String())
 	}
 
 	select {
 	case <-cancelled:
 	default:
-		t.Fatal("command not cancelled")
+		t.Error("command not cancelled")
 	}
 }
 
