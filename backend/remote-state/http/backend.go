@@ -151,16 +151,16 @@ func (b *Backend) configure(ctx context.Context) error {
 
 func (b *Backend) StateMgr(name string) (state.State, error) {
 	if name != backend.DefaultStateName {
-		return nil, backend.ErrNamedStatesNotSupported
+		return nil, backend.ErrWorkspacesNotSupported
 	}
 
 	return &remote.State{Client: b.client}, nil
 }
 
 func (b *Backend) Workspaces() ([]string, error) {
-	return nil, backend.ErrNamedStatesNotSupported
+	return nil, backend.ErrWorkspacesNotSupported
 }
 
 func (b *Backend) DeleteWorkspace(string) error {
-	return backend.ErrNamedStatesNotSupported
+	return backend.ErrWorkspacesNotSupported
 }

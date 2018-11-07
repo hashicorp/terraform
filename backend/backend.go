@@ -9,8 +9,6 @@ import (
 	"errors"
 	"time"
 
-	"github.com/zclconf/go-cty/cty"
-
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/command/clistate"
 	"github.com/hashicorp/terraform/configs"
@@ -22,24 +20,35 @@ import (
 	"github.com/hashicorp/terraform/states/statemgr"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/hashicorp/terraform/tfdiags"
+	"github.com/zclconf/go-cty/cty"
 )
 
 // DefaultStateName is the name of the default, initial state that every
 // backend must have. This state cannot be deleted.
 const DefaultStateName = "default"
 
-// ErrWorkspacesNotSupported is an error returned when a caller attempts
-// to perform an operation on a workspace other than "default" for a
-// backend that doesn't support multiple workspaces.
-//
-// The caller can detect this to do special fallback behavior or produce
-// a specific, helpful error message.
-var ErrWorkspacesNotSupported = errors.New("workspaces not supported")
+var (
+	// ErrDefaultWorkspaceNotSupported is returned when an operation does not
+	// support using the default workspace, but requires a named workspace to
+	// be selected.
+	ErrDefaultWorkspaceNotSupported = errors.New("default workspace not supported\n" +
+		"You can create a new workspace with the \"workspace new\" command.")
 
-// ErrNamedStatesNotSupported is an older name for ErrWorkspacesNotSupported.
-//
-// Deprecated: Use ErrWorkspacesNotSupported instead.
-var ErrNamedStatesNotSupported = ErrWorkspacesNotSupported
+	// ErrOperationNotSupported is returned when an unsupported operation
+	// is detected by the configured backend.
+	ErrOperationNotSupported = errors.New("operation not supported")
+
+	// ErrWorkspacesNotSupported is an error returned when a caller attempts
+	// to perform an operation on a workspace other than "default" for a
+	// backend that doesn't support multiple workspaces.
+	//
+	// The caller can detect this to do special fallback behavior or produce
+	// a specific, helpful error message.
+	ErrWorkspacesNotSupported = errors.New("workspaces not supported")
+)
+
+// InitFn is used to initialize a new backend.
+type InitFn func() Backend
 
 // Backend is the minimal interface that must be implemented to enable Terraform.
 type Backend interface {
@@ -179,11 +188,12 @@ type Operation struct {
 
 	// The options below are more self-explanatory and affect the runtime
 	// behavior of the operation.
+	AutoApprove  bool
 	Destroy      bool
+	DestroyForce bool
+	Parallelism  int
 	Targets      []addrs.Targetable
 	Variables    map[string]UnparsedVariableValue
-	AutoApprove  bool
-	DestroyForce bool
 
 	// Input/output/control options.
 	UIIn  terraform.UIInput
@@ -243,10 +253,6 @@ type RunningOperation struct {
 	// Result is the exit status of the operation, populated only after the
 	// operation has completed.
 	Result OperationResult
-
-	// ExitCode can be used to set a custom exit code. This enables enhanced
-	// backends to set specific exit codes that miror any remote exit codes.
-	ExitCode int
 
 	// PlanEmpty is populated after a Plan operation completes without error
 	// to note whether a plan is empty or has changes.

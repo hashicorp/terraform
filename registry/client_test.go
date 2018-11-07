@@ -85,6 +85,18 @@ func TestRegistryAuth(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	_, err = client.ModuleVersions(mod)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = client.ModuleLocation(mod, "1.0.0")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Also test without a credentials source
+	client.services.SetCredentialsSource(nil)
+
 	// both should fail without auth
 	_, err = client.ModuleVersions(mod)
 	if err == nil {
@@ -93,18 +105,6 @@ func TestRegistryAuth(t *testing.T) {
 	_, err = client.ModuleLocation(mod, "1.0.0")
 	if err == nil {
 		t.Fatal("expected error")
-	}
-
-	// Also test without a credentials source
-	client.services.SetCredentialsSource(nil)
-
-	_, err = client.ModuleVersions(mod)
-	if err != nil {
-		t.Fatal(err)
-	}
-	_, err = client.ModuleLocation(mod, "1.0.0")
-	if err != nil {
-		t.Fatal(err)
 	}
 }
 

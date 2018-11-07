@@ -21,30 +21,30 @@ import (
 // public fields without any locks.
 func TestLocal(t *testing.T) (*Local, func()) {
 	t.Helper()
-
 	tempDir := testTempDir(t)
-	var local *Local
-	local = &Local{
-		StatePath:         filepath.Join(tempDir, "state.tfstate"),
-		StateOutPath:      filepath.Join(tempDir, "state.tfstate"),
-		StateBackupPath:   filepath.Join(tempDir, "state.tfstate.bak"),
-		StateWorkspaceDir: filepath.Join(tempDir, "state.tfstate.d"),
-		ContextOpts:       &terraform.ContextOpts{},
-		ShowDiagnostics: func(vals ...interface{}) {
-			var diags tfdiags.Diagnostics
-			diags = diags.Append(vals...)
-			for _, diag := range diags {
-				// NOTE: Since the caller here is not directly the TestLocal
-				// function, t.Helper doesn't apply and so the log source
-				// isn't correctly shown in the test log output. This seems
-				// unavoidable as long as this is happening so indirectly.
-				t.Log(diag.Description().Summary)
-				if local.CLI != nil {
-					local.CLI.Error(diag.Description().Summary)
-				}
+
+	local := New()
+	local.StatePath = filepath.Join(tempDir, "state.tfstate")
+	local.StateOutPath = filepath.Join(tempDir, "state.tfstate")
+	local.StateBackupPath = filepath.Join(tempDir, "state.tfstate.bak")
+	local.StateWorkspaceDir = filepath.Join(tempDir, "state.tfstate.d")
+	local.ContextOpts = &terraform.ContextOpts{}
+
+	local.ShowDiagnostics = func(vals ...interface{}) {
+		var diags tfdiags.Diagnostics
+		diags = diags.Append(vals...)
+		for _, diag := range diags {
+			// NOTE: Since the caller here is not directly the TestLocal
+			// function, t.Helper doesn't apply and so the log source
+			// isn't correctly shown in the test log output. This seems
+			// unavoidable as long as this is happening so indirectly.
+			t.Log(diag.Description().Summary)
+			if local.CLI != nil {
+				local.CLI.Error(diag.Description().Summary)
 			}
-		},
+		}
 	}
+
 	cleanup := func() {
 		if err := os.RemoveAll(tempDir); err != nil {
 			t.Fatal("error cleanup up test:", err)
@@ -86,36 +86,80 @@ func TestLocalProvider(t *testing.T, b *Local, name string, schema *terraform.Pr
 
 }
 
-// TestNewLocalSingle is a factory for creating a TestLocalSingleState.
-// This function matches the signature required for backend/init.
-func TestNewLocalSingle() backend.Backend {
-	return &TestLocalSingleState{}
-}
-
 // TestLocalSingleState is a backend implementation that wraps Local
 // and modifies it to only support single states (returns
-// ErrNamedStatesNotSupported for multi-state operations).
+// ErrWorkspacesNotSupported for multi-state operations).
 //
 // This isn't an actual use case, this is exported just to provide a
 // easy way to test that behavior.
 type TestLocalSingleState struct {
-	Local
+	*Local
 }
 
-func (b *TestLocalSingleState) State(name string) (statemgr.Full, error) {
+// TestNewLocalSingle is a factory for creating a TestLocalSingleState.
+// This function matches the signature required for backend/init.
+func TestNewLocalSingle() backend.Backend {
+	return &TestLocalSingleState{Local: New()}
+}
+
+func (b *TestLocalSingleState) Workspaces() ([]string, error) {
+	return nil, backend.ErrWorkspacesNotSupported
+}
+
+func (b *TestLocalSingleState) DeleteWorkspace(string) error {
+	return backend.ErrWorkspacesNotSupported
+}
+
+func (b *TestLocalSingleState) StateMgr(name string) (statemgr.Full, error) {
 	if name != backend.DefaultStateName {
-		return nil, backend.ErrNamedStatesNotSupported
+		return nil, backend.ErrWorkspacesNotSupported
 	}
 
 	return b.Local.StateMgr(name)
 }
 
-func (b *TestLocalSingleState) States() ([]string, error) {
-	return nil, backend.ErrNamedStatesNotSupported
+// TestLocalNoDefaultState is a backend implementation that wraps
+// Local and modifies it to support named states, but not the
+// default state. It returns ErrDefaultWorkspaceNotSupported when
+// the DefaultStateName is used.
+type TestLocalNoDefaultState struct {
+	*Local
 }
 
-func (b *TestLocalSingleState) DeleteState(string) error {
-	return backend.ErrNamedStatesNotSupported
+// TestNewLocalNoDefault is a factory for creating a TestLocalNoDefaultState.
+// This function matches the signature required for backend/init.
+func TestNewLocalNoDefault() backend.Backend {
+	return &TestLocalNoDefaultState{Local: New()}
+}
+
+func (b *TestLocalNoDefaultState) Workspaces() ([]string, error) {
+	workspaces, err := b.Local.Workspaces()
+	if err != nil {
+		return nil, err
+	}
+
+	filtered := workspaces[:0]
+	for _, name := range workspaces {
+		if name != backend.DefaultStateName {
+			filtered = append(filtered, name)
+		}
+	}
+
+	return filtered, nil
+}
+
+func (b *TestLocalNoDefaultState) DeleteWorkspace(name string) error {
+	if name == backend.DefaultStateName {
+		return backend.ErrDefaultWorkspaceNotSupported
+	}
+	return b.Local.DeleteWorkspace(name)
+}
+
+func (b *TestLocalNoDefaultState) StateMgr(name string) (statemgr.Full, error) {
+	if name == backend.DefaultStateName {
+		return nil, backend.ErrDefaultWorkspaceNotSupported
+	}
+	return b.Local.StateMgr(name)
 }
 
 func testTempDir(t *testing.T) string {
