@@ -3,6 +3,7 @@
 IMPROVEMENTS:
 
 * command/state: Update and enable the `state show` command [GH-19200]
+* backend/remote: Implement the remote enhanced backend [GH-19299]
 
 BUG FIXES:
 
