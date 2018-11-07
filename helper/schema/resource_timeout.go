@@ -5,6 +5,7 @@ import (
 	"log"
 	"time"
 
+	"github.com/hashicorp/terraform/config"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/mitchellh/copystructure"
 )
@@ -105,10 +106,16 @@ func (t *ResourceTimeout) ConfigDecode(s *Resource, c *terraform.ResourceConfig)
 
 				*timeout = rt
 			}
-		} else {
-			log.Printf("[ERROR] Invalid timeout structure: %T", raw)
-			return fmt.Errorf("Invalid Timeout structure found")
+			return nil
 		}
+		if v, ok := raw.(string); ok && v == config.UnknownVariableValue {
+			// Timeout is not defined in the config
+			// Defaults will be used instead
+			return nil
+		}
+
+		log.Printf("[ERROR] Invalid timeout structure: %T", raw)
+		return fmt.Errorf("Invalid Timeout structure found")
 	}
 
 	return nil
