@@ -1,11 +1,14 @@
 package command
 
 import (
+	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"reflect"
 	"testing"
+
+	"github.com/google/go-cmp/cmp"
 
 	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/terraform"
@@ -269,7 +272,13 @@ func TestMeta_process(t *testing.T) {
 	defer os.RemoveAll(d)
 	defer testChdir(t, d)()
 
-	// Create two vars files
+	// At one point it was the responsibility of this process function to
+	// insert fake additional -var-file options into the command line
+	// if the automatic tfvars files were present. This is no longer the
+	// responsibility of process (it happens in collectVariableValues instead)
+	// but we're still testing with these files in place to verify that
+	// they _aren't_ being interpreted by process, since that could otherwise
+	// cause them to be added more than once and mess up the precedence order.
 	defaultVarsfile := "terraform.tfvars"
 	err := ioutil.WriteFile(
 		filepath.Join(d, defaultVarsfile),
@@ -304,33 +313,54 @@ func TestMeta_process(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	m := new(Meta)
-	args := []string{}
-	args, err = m.process(args, true)
-	if err != nil {
-		t.Fatalf("err: %s", err)
+	tests := []struct {
+		GivenArgs    []string
+		FilteredArgs []string
+		ExtraCheck   func(*testing.T, *Meta)
+	}{
+		{
+			[]string{},
+			[]string{},
+			func(t *testing.T, m *Meta) {
+				if got, want := m.color, true; got != want {
+					t.Errorf("wrong m.color value %#v; want %#v", got, want)
+				}
+				if got, want := m.Color, true; got != want {
+					t.Errorf("wrong m.Color value %#v; want %#v", got, want)
+				}
+			},
+		},
+		{
+			[]string{"-no-color"},
+			[]string{},
+			func(t *testing.T, m *Meta) {
+				if got, want := m.color, false; got != want {
+					t.Errorf("wrong m.color value %#v; want %#v", got, want)
+				}
+				if got, want := m.Color, false; got != want {
+					t.Errorf("wrong m.Color value %#v; want %#v", got, want)
+				}
+			},
+		},
 	}
 
-	if len(args) != 6 {
-		t.Fatalf("expected 6 args, got %v", args)
-	}
+	for _, test := range tests {
+		t.Run(fmt.Sprintf("%s", test.GivenArgs), func(t *testing.T) {
+			m := new(Meta)
+			m.Color = true // this is the default also for normal use, overridden by -no-color
+			args := test.GivenArgs
+			args, err = m.process(args, true)
+			if err != nil {
+				t.Fatalf("err: %s", err)
+			}
 
-	if args[0] != "-var-file-default" {
-		t.Fatalf("expected %q, got %q", "-var-file-default", args[0])
-	}
-	if args[1] != defaultVarsfile {
-		t.Fatalf("expected %q, got %q", defaultVarsfile, args[1])
-	}
-	if args[2] != "-var-file-default" {
-		t.Fatalf("expected %q, got %q", "-var-file-default", args[2])
-	}
-	if args[3] != fileFirstAlphabetical {
-		t.Fatalf("expected %q, got %q", fileFirstAlphabetical, args[3])
-	}
-	if args[4] != "-var-file-default" {
-		t.Fatalf("expected %q, got %q", "-var-file-default", args[4])
-	}
-	if args[5] != fileLastAlphabetical {
-		t.Fatalf("expected %q, got %q", fileLastAlphabetical, args[5])
+			if !cmp.Equal(test.FilteredArgs, args) {
+				t.Errorf("wrong filtered arguments\n%s", cmp.Diff(test.FilteredArgs, args))
+			}
+
+			if test.ExtraCheck != nil {
+				test.ExtraCheck(t, m)
+			}
+		})
 	}
 }
