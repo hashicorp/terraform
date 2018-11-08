@@ -356,6 +356,11 @@ func hcl2ValueFromFlatmapSet(m map[string]string, prefix string, ty cty.Type) (c
 		return cty.UnknownVal(ty), nil
 	}
 
+	// Keep track of keys we've seen, se we don't add the same set value
+	// multiple times. The cty.Set will normally de-duplicate values, but we may
+	// have unknown values that would not show as equivalent.
+	seen := map[string]bool{}
+
 	for fullKey := range m {
 		if !strings.HasPrefix(fullKey, prefix) {
 			continue
@@ -369,6 +374,12 @@ func hcl2ValueFromFlatmapSet(m map[string]string, prefix string, ty cty.Type) (c
 		if dot := strings.IndexByte(subKey, '.'); dot != -1 {
 			key = fullKey[:dot+len(prefix)]
 		}
+
+		if seen[key] {
+			continue
+		}
+
+		seen[key] = true
 
 		// The flatmap format doesn't allow us to distinguish between keys
 		// that contain periods and nested objects, so by convention a
@@ -386,5 +397,6 @@ func hcl2ValueFromFlatmapSet(m map[string]string, prefix string, ty cty.Type) (c
 	if len(vals) == 0 {
 		return cty.SetValEmpty(ety), nil
 	}
+
 	return cty.SetVal(vals), nil
 }
