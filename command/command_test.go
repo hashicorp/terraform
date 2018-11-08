@@ -664,6 +664,19 @@ func testInputMap(t *testing.T, answers map[string]string) func() {
 // testBackendState is used to make a test HTTP server to test a configured
 // backend. This returns the complete state that can be saved. Use
 // `testStateFileRemote` to write the returned state.
+//
+// When using this function, the configuration fixture for the test must
+// include an empty configuration block for the HTTP backend, like this:
+//
+// terraform {
+//   backend "http" {
+//   }
+// }
+//
+// If such a block isn't present, or if it isn't empty, then an error will
+// be returned about the backend configuration having changed and that
+// "terraform init" must be run, since the test backend config cache created
+// by this function contains the hash for an empty configuration.
 func testBackendState(t *testing.T, s *terraform.State, c int) (*terraform.State, *httptest.Server) {
 	t.Helper()
 
@@ -696,11 +709,19 @@ func testBackendState(t *testing.T, s *terraform.State, c int) (*terraform.State
 
 	srv := httptest.NewServer(http.HandlerFunc(cb))
 
+	backendConfig := &configs.Backend{
+		Type:   "http",
+		Config: configs.SynthBody("<testBackendState>", map[string]cty.Value{}),
+	}
+	b := backendinit.Backend("http")()
+	configSchema := b.ConfigSchema()
+	hash := backendConfig.Hash(configSchema)
+
 	state := terraform.NewState()
 	state.Backend = &terraform.BackendState{
 		Type:      "http",
 		ConfigRaw: json.RawMessage(fmt.Sprintf(`{"address":%q}`, srv.URL)),
-		Hash:      2529831861221416334,
+		Hash:      hash,
 	}
 
 	return state, srv
