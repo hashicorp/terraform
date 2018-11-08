@@ -566,7 +566,7 @@ func TestRefresh_backup(t *testing.T) {
 		t.Fatalf("wrong new object\ngot:  %swant: %s", spew.Sdump(actual), spew.Sdump(expected))
 	}
 
-	backupState := testStateRead(t, outPath+DefaultBackupExtension)
+	backupState := testStateRead(t, backupPath)
 	actualStr := strings.TrimSpace(backupState.String())
 	expectedStr := strings.TrimSpace(state.String())
 	if actualStr != expectedStr {
