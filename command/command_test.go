@@ -713,7 +713,7 @@ func testBackendState(t *testing.T, s *terraform.State, c int) (*terraform.State
 		Type:   "http",
 		Config: configs.SynthBody("<testBackendState>", map[string]cty.Value{}),
 	}
-	b := backendinit.Backend("http")()
+	b := backendInit.Backend("http")()
 	configSchema := b.ConfigSchema()
 	hash := backendConfig.Hash(configSchema)
 
