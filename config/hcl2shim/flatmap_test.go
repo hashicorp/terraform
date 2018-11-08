@@ -635,6 +635,50 @@ func TestHCL2ValueFromFlatmap(t *testing.T) {
 				}),
 			}),
 		},
+		{
+			Flatmap: map[string]string{
+				"single.#":                 "1",
+				"single.~1.value":          "a",
+				"single.~1.optional":       UnknownVariableValue,
+				"two.#":                    "2",
+				"two.~2381914684.value":    "a",
+				"two.~2381914684.optional": UnknownVariableValue,
+				"two.~2798940671.value":    "b",
+				"two.~2798940671.optional": UnknownVariableValue,
+			},
+			Type: cty.Object(map[string]cty.Type{
+				"single": cty.Set(
+					cty.Object(map[string]cty.Type{
+						"value":    cty.String,
+						"optional": cty.String,
+					}),
+				),
+				"two": cty.Set(
+					cty.Object(map[string]cty.Type{
+						"optional": cty.String,
+						"value":    cty.String,
+					}),
+				),
+			}),
+			Want: cty.ObjectVal(map[string]cty.Value{
+				"single": cty.SetVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"value":    cty.StringVal("a"),
+						"optional": cty.UnknownVal(cty.String),
+					}),
+				}),
+				"two": cty.SetVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"value":    cty.StringVal("a"),
+						"optional": cty.UnknownVal(cty.String),
+					}),
+					cty.ObjectVal(map[string]cty.Value{
+						"value":    cty.StringVal("b"),
+						"optional": cty.UnknownVal(cty.String),
+					}),
+				}),
+			}),
+		},
 	}
 
 	for _, test := range tests {
