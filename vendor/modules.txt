@@ -231,6 +231,8 @@ github.com/google/go-cmp/cmp/cmpopts
 github.com/google/go-cmp/cmp/internal/diff
 github.com/google/go-cmp/cmp/internal/function
 github.com/google/go-cmp/cmp/internal/value
+# github.com/google/go-querystring v1.0.0
+github.com/google/go-querystring/query
 # github.com/googleapis/gax-go v0.0.0-20161107002406-da06d194a00e
 github.com/googleapis/gax-go
 # github.com/gophercloud/gophercloud v0.0.0-20170524130959-3027adb1ce72
@@ -311,6 +313,10 @@ github.com/hashicorp/go-retryablehttp
 github.com/hashicorp/go-rootcerts
 # github.com/hashicorp/go-safetemp v0.0.0-20180326211150-b1a1dbde6fdc
 github.com/hashicorp/go-safetemp
+# github.com/hashicorp/go-slug v0.1.0
+github.com/hashicorp/go-slug
+# github.com/hashicorp/go-tfe v0.2.6
+github.com/hashicorp/go-tfe
 # github.com/hashicorp/go-uuid v1.0.0
 github.com/hashicorp/go-uuid
 # github.com/hashicorp/go-version v0.0.0-20180322230233-23480c066577
@@ -435,6 +441,8 @@ github.com/satori/uuid
 # github.com/spf13/afero v1.0.2
 github.com/spf13/afero
 github.com/spf13/afero/mem
+# github.com/svanharmelen/jsonapi v0.0.0-20180618144545-0c0828c3f16d
+github.com/svanharmelen/jsonapi
 # github.com/terraform-providers/terraform-provider-aws v1.41.0
 github.com/terraform-providers/terraform-provider-aws/aws
 # github.com/terraform-providers/terraform-provider-openstack v0.0.0-20170616075611-4080a521c6ea
