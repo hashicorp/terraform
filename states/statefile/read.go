@@ -62,6 +62,15 @@ func Read(r io.Reader) (*File, error) {
 		panic("readState returned nil state with no errors")
 	}
 
+	if state.TerraformVersion != nil && state.TerraformVersion.GreaterThan(tfversion.SemVer) {
+		return state, fmt.Errorf(
+			"state snapshot was created by Terraform v%s, which is newer than current v%s; upgrade to Terraform v%s or greater to work with this state",
+			state.TerraformVersion,
+			tfversion.SemVer,
+			state.TerraformVersion,
+		)
+	}
+
 	return state, diags.Err()
 }
 
