@@ -54,7 +54,7 @@ type connectionInfo struct {
 	ScriptPath string        `mapstructure:"script_path"`
 	TimeoutVal time.Duration `mapstructure:"-"`
 
-	KeepAliveInterval string `mapstructure:"keep_alive_interval"`
+	KeepAliveInterval    string        `mapstructure:"keep_alive_interval"`
 	KeepAliveIntervalVal time.Duration `mapstructure:"-"`
 
 	BastionUser       string `mapstructure:"bastion_user"`
@@ -195,10 +195,10 @@ func prepareSSHConfig(connInfo *connectionInfo) (*sshConfig, error) {
 	}
 
 	config := &sshConfig{
-		config:     sshConf,
-		connection: connectFunc,
-		sshAgent:   sshAgent,
-		KeepAliveInterval:  connInfo.KeepAliveIntervalVal,
+		config:            sshConf,
+		connection:        connectFunc,
+		sshAgent:          sshAgent,
+		KeepAliveInterval: connInfo.KeepAliveIntervalVal,
 	}
 	return config, nil
 }

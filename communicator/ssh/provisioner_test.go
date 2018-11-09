@@ -10,14 +10,14 @@ func TestProvisioner_connInfo(t *testing.T) {
 	r := &terraform.InstanceState{
 		Ephemeral: terraform.EphemeralState{
 			ConnInfo: map[string]string{
-				"type":        "ssh",
-				"user":        "root",
-				"password":    "supersecret",
-				"private_key": "someprivatekeycontents",
-				"host":        "127.0.0.1",
-				"port":        "22",
-				"timeout":     "30s",
-				"keep_alive_interval":     "1m",
+				"type":                "ssh",
+				"user":                "root",
+				"password":            "supersecret",
+				"private_key":         "someprivatekeycontents",
+				"host":                "127.0.0.1",
+				"port":                "22",
+				"timeout":             "30s",
+				"keep_alive_interval": "1m",
 
 				"bastion_host": "127.0.1.1",
 			},
