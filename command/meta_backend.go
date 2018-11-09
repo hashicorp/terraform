@@ -329,7 +329,7 @@ func (m *Meta) backendConfig(opts *BackendOpts) (*configs.Backend, int, tfdiags.
 	// We'll shallow-copy configs.Backend here so that we can replace the
 	// body without affecting others that hold this reference.
 	configCopy := *c
-	c.Config = configBody
+	configCopy.Config = configBody
 	return &configCopy, configHash, diags
 }
 
