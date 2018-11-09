@@ -691,7 +691,7 @@ func TestInit_getProvider(t *testing.T) {
 		}
 
 		errMsg := ui.ErrorWriter.String()
-		if !strings.Contains(errMsg, "future Terraform version") {
+		if !strings.Contains(errMsg, "which is newer than current") {
 			t.Fatal("unexpected error:", errMsg)
 		}
 	})
