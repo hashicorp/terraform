@@ -116,7 +116,7 @@ func TestStatePush_lineageMismatch(t *testing.T) {
 	expected := testStateRead(t, "local-state.tfstate")
 
 	p := testProvider()
-	ui := new(cli.MockUi)
+	ui := cli.NewMockUi()
 	c := &StatePushCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
