@@ -79,6 +79,14 @@ func TestInit_fromModule_explicitDest(t *testing.T) {
 		},
 	}
 
+	if _, err := os.Stat(DefaultStateFilename); err == nil {
+		// This should never happen; it indicates a bug in another test
+		// is causing a terraform.tfstate to get left behind in our directory
+		// here, which can interfere with our init process in a way that
+		// isn't relevant to this test.
+		t.Fatalf("some other test has left terraform.tfstate behind")
+	}
+
 	args := []string{
 		"-from-module=" + testFixturePath("init"),
 		dir,
