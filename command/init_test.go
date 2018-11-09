@@ -11,15 +11,18 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/hashicorp/terraform/configs"
+	"github.com/mitchellh/cli"
 	"github.com/zclconf/go-cty/cty"
 
+	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/backend/local"
+	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/helper/copy"
 	"github.com/hashicorp/terraform/plugin/discovery"
 	"github.com/hashicorp/terraform/state"
+	"github.com/hashicorp/terraform/states"
+	"github.com/hashicorp/terraform/states/statemgr"
 	"github.com/hashicorp/terraform/terraform"
-	"github.com/mitchellh/cli"
 )
 
 func TestInit_empty(t *testing.T) {
@@ -553,13 +556,24 @@ func TestInit_inputFalse(t *testing.T) {
 	}
 
 	// write different states for foo and bar
-	s := terraform.NewState()
-	s.Lineage = "foo"
-	if err := (&state.LocalState{Path: "foo"}).WriteState(s); err != nil {
+	fooState := states.BuildState(func(s *states.SyncState) {
+		s.SetOutputValue(
+			addrs.OutputValue{Name: "foo"}.Absolute(addrs.RootModuleInstance),
+			cty.StringVal("foo"),
+			false, // not sensitive
+		)
+	})
+	if err := statemgr.NewFilesystem("foo").WriteState(fooState); err != nil {
 		t.Fatal(err)
 	}
-	s.Lineage = "bar"
-	if err := (&state.LocalState{Path: "bar"}).WriteState(s); err != nil {
+	barState := states.BuildState(func(s *states.SyncState) {
+		s.SetOutputValue(
+			addrs.OutputValue{Name: "bar"}.Absolute(addrs.RootModuleInstance),
+			cty.StringVal("bar"),
+			false, // not sensitive
+		)
+	})
+	if err := statemgr.NewFilesystem("bar").WriteState(barState); err != nil {
 		t.Fatal(err)
 	}
 
