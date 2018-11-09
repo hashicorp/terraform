@@ -509,11 +509,23 @@ func TestInit_backendReinitConfigToExtra(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// We need a fresh InitCommand here because the old one now has our configuration
+	// file cached inside it, so it won't re-read the modification we just made.
+	c = &InitCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(testProvider()),
+			Ui:               ui,
+		},
+	}
+
 	args := []string{"-input=false", "-backend-config=path=foo"}
 	if code := c.Run(args); code != 0 {
 		t.Fatalf("bad: \n%s", ui.ErrorWriter.String())
 	}
 	state = testDataStateRead(t, filepath.Join(DefaultDataDir, DefaultStateFilename))
+	if got, want := normalizeJSON(t, state.Backend.ConfigRaw), `{"path":"foo","workspace_dir":null}`; got != want {
+		t.Errorf("wrong config after moving to arg\ngot:  %s\nwant: %s", got, want)
+	}
 
 	if state.Backend.Hash == backendHash {
 		t.Fatal("state.Backend.Hash was not updated")
