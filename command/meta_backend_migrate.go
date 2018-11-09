@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"os"
 	"path/filepath"
 	"sort"
@@ -41,6 +42,7 @@ type backendMigrateOpts struct {
 //
 // This will attempt to lock both states for the migration.
 func (m *Meta) backendMigrateState(opts *backendMigrateOpts) error {
+	log.Printf("[TRACE] backendMigrateState: need to migrate from %q to %q backend config", opts.OneType, opts.TwoType)
 	// We need to check what the named state status is. If we're converting
 	// from multi-state to single-state for example, we need to handle that.
 	var oneSingle, twoSingle bool
@@ -126,6 +128,8 @@ func (m *Meta) backendMigrateState(opts *backendMigrateOpts) error {
 
 // Multi-state to multi-state.
 func (m *Meta) backendMigrateState_S_S(opts *backendMigrateOpts) error {
+	log.Print("[TRACE] backendMigrateState: migrating all named workspaces")
+
 	// Ask the user if they want to migrate their existing remote state
 	migrate, err := m.confirm(&terraform.InputOpts{
 		Id: "backend-migrate-multistate-to-multistate",
@@ -175,6 +179,8 @@ func (m *Meta) backendMigrateState_S_S(opts *backendMigrateOpts) error {
 
 // Multi-state to single state.
 func (m *Meta) backendMigrateState_S_s(opts *backendMigrateOpts) error {
+	log.Printf("[TRACE] backendMigrateState: target backend type %q does not support named workspaces", opts.TwoType)
+
 	currentEnv := m.Workspace()
 
 	migrate := opts.force
@@ -212,6 +218,8 @@ func (m *Meta) backendMigrateState_S_s(opts *backendMigrateOpts) error {
 
 // Single state to single state, assumed default state name.
 func (m *Meta) backendMigrateState_s_s(opts *backendMigrateOpts) error {
+	log.Printf("[TRACE] backendMigrateState: migrating %q workspace to %q workspace", opts.oneEnv, opts.twoEnv)
+
 	stateOne, err := opts.One.StateMgr(opts.oneEnv)
 	if err != nil {
 		return fmt.Errorf(strings.TrimSpace(
@@ -224,6 +232,7 @@ func (m *Meta) backendMigrateState_s_s(opts *backendMigrateOpts) error {
 
 	// Do not migrate workspaces without state.
 	if stateOne.State().Empty() {
+		log.Print("[TRACE] backendMigrateState: source workspace has empty state, so nothing to migrate")
 		return nil
 	}
 
@@ -232,6 +241,7 @@ func (m *Meta) backendMigrateState_s_s(opts *backendMigrateOpts) error {
 		// If the backend doesn't support using the default state, we ask the user
 		// for a new name and migrate the default state to the given named state.
 		stateTwo, err = func() (statemgr.Full, error) {
+			log.Print("[TRACE] backendMigrateState: target doesn't support a default workspace, so we must prompt for a new name")
 			name, err := m.UIInput().Input(&terraform.InputOpts{
 				Id: "new-state-name",
 				Query: fmt.Sprintf(
@@ -284,9 +294,11 @@ func (m *Meta) backendMigrateState_s_s(opts *backendMigrateOpts) error {
 		sm2, _ := stateTwo.(statemgr.PersistentMeta)
 		if one != nil && two != nil {
 			if sm1 == nil || sm2 == nil {
+				log.Print("[TRACE] backendMigrateState: both source and destination workspaces have no state, so no migration is needed")
 				return nil
 			}
 			if sm1.StateSnapshotMeta().Lineage == sm2.StateSnapshotMeta().Lineage {
+				log.Printf("[TRACE] backendMigrateState: both source and destination workspaces have equal state with lineage %q, so no migration is needed", sm1.StateSnapshotMeta().Lineage)
 				return nil
 			}
 		}
@@ -309,10 +321,12 @@ func (m *Meta) backendMigrateState_s_s(opts *backendMigrateOpts) error {
 
 		// We now own a lock, so double check that we have the version
 		// corresponding to the lock.
+		log.Print("[TRACE] backendMigrateState: refreshing source workspace state")
 		if err := stateOne.RefreshState(); err != nil {
 			return fmt.Errorf(strings.TrimSpace(
 				errMigrateSingleLoadDefault), opts.OneType, err)
 		}
+		log.Print("[TRACE] backendMigrateState: refreshing target workspace state")
 		if err := stateTwo.RefreshState(); err != nil {
 			return fmt.Errorf(strings.TrimSpace(
 				errMigrateSingleLoadDefault), opts.OneType, err)
@@ -326,20 +340,24 @@ func (m *Meta) backendMigrateState_s_s(opts *backendMigrateOpts) error {
 	switch {
 	// No migration necessary
 	case one.Empty() && two.Empty():
+		log.Print("[TRACE] backendMigrateState: both source and destination workspaces have empty state, so no migration is required")
 		return nil
 
 	// No migration necessary if we're inheriting state.
 	case one.Empty() && !two.Empty():
+		log.Print("[TRACE] backendMigrateState: source workspace has empty state, so no migration is required")
 		return nil
 
 	// We have existing state moving into no state. Ask the user if
 	// they'd like to do this.
 	case !one.Empty() && two.Empty():
+		log.Print("[TRACE] backendMigrateState: target workspace has empty state, so might copy source workspace state")
 		confirmFunc = m.backendMigrateEmptyConfirm
 
 	// Both states are non-empty, meaning we need to determine which
 	// state should be used and update accordingly.
 	case !one.Empty() && !two.Empty():
+		log.Print("[TRACE] backendMigrateState: both source and destination workspaces have states, so might overwrite destination with source")
 		confirmFunc = m.backendMigrateNonEmptyConfirm
 	}
 
@@ -350,6 +368,7 @@ func (m *Meta) backendMigrateState_s_s(opts *backendMigrateOpts) error {
 	if !opts.force {
 		// Abort if we can't ask for input.
 		if !m.input {
+			log.Print("[TRACE] backendMigrateState: can't prompt for input, so aborting migration")
 			return errors.New("error asking for state migration action: input disabled")
 		}
 
