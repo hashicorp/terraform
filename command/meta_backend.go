@@ -450,11 +450,8 @@ func (m *Meta) backendFromConfig(opts *BackendOpts) (backend.Backend, tfdiags.Di
 	case c != nil && !s.Backend.Empty():
 		// If our configuration is the same, then we're just initializing
 		// a previously configured remote backend.
-		if !s.Backend.Empty() {
-			storedHash := s.Backend.Hash
-			if storedHash == cHash {
-				return m.backend_C_r_S_unchanged(c, cHash, sMgr)
-			}
+		if !m.backendConfigNeedsMigration(c, s.Backend) {
+			return m.backend_C_r_S_unchanged(c, cHash, sMgr)
 		}
 
 		if !opts.Init {
@@ -466,9 +463,7 @@ func (m *Meta) backendFromConfig(opts *BackendOpts) (backend.Backend, tfdiags.Di
 			return nil, diags
 		}
 
-		log.Printf(
-			"[WARN] command: backend config change! saved: %d, new: %d",
-			s.Backend.Hash, cHash)
+		log.Printf("[WARN] backend config has changed since last init")
 		return m.backend_C_r_S_changed(c, cHash, sMgr, true)
 
 	default:
@@ -928,6 +923,60 @@ func (m *Meta) backend_C_R_S_unchanged(c *configs.Backend, sMgr *state.LocalStat
 //-------------------------------------------------------------------
 // Reusable helper functions for backend management
 //-------------------------------------------------------------------
+
+// backendConfigNeedsMigration returns true if migration might be required to
+// move from the configured backend to the given cached backend config.
+//
+// This must be called with the synthetic *configs.Backend that results from
+// merging in any command-line options for correct behavior.
+//
+// If either the given configuration or cached configuration are invalid then
+// this function will conservatively assume that migration is required,
+// expecting that the migration code will subsequently deal with the same
+// errors.
+func (m *Meta) backendConfigNeedsMigration(c *configs.Backend, s *terraform.BackendState) bool {
+	if s == nil || s.Empty() {
+		log.Print("[TRACE] backendConfigNeedsMigration: no cached config, so migration is required")
+		return true
+	}
+	if c.Type != s.Type {
+		log.Printf("[TRACE] backendConfigNeedsMigration: type changed from %q to %q, so migration is required", s.Type, c.Type)
+		return true
+	}
+
+	// We need the backend's schema to do our comparison here.
+	f := backendInit.Backend(c.Type)
+	if f == nil {
+		log.Printf("[TRACE] backendConfigNeedsMigration: no backend of type %q, which migration codepath must handle", c.Type)
+		return true // let the migration codepath deal with the missing backend
+	}
+	b := f()
+
+	schema := b.ConfigSchema()
+	decSpec := schema.NoneRequired().DecoderSpec()
+	givenVal, diags := hcldec.Decode(c.Config, decSpec, nil)
+	if diags.HasErrors() {
+		log.Printf("[TRACE] backendConfigNeedsMigration: failed to decode given config; migration codepath must handle problem: %s", diags.Error())
+		return true // let the migration codepath deal with these errors
+	}
+
+	cachedVal, err := s.Config(schema)
+	if err != nil {
+		log.Printf("[TRACE] backendConfigNeedsMigration: failed to decode cached config; migration codepath must handle problem: %s", err)
+		return true // let the migration codepath deal with the error
+	}
+
+	// If we get all the way down here then it's the exact equality of the
+	// two decoded values that decides our outcome. It's safe to use RawEquals
+	// here (rather than Equals) because we know that unknown values can
+	// never appear in backend configurations.
+	if cachedVal.RawEquals(givenVal) {
+		log.Print("[TRACE] backendConfigNeedsMigration: given configuration matches cached configuration, so no migration is required")
+		return false
+	}
+	log.Print("[TRACE] backendConfigNeedsMigration: configuration values have changed, so migration is required")
+	return true
+}
 
 func (m *Meta) backendInitFromConfig(c *configs.Backend) (backend.Backend, cty.Value, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
