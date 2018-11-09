@@ -959,7 +959,7 @@ func TestInit_getProviderHaveLegacyVersion(t *testing.T) {
 	}
 }
 
-func TestInit_getProviderCheckRequiredVersion(t *testing.T) {
+func TestInit_checkRequiredVersion(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := tempDir(t)
 	copy.CopyDir(testFixturePath("init-check-required-version"), td)

@@ -257,6 +257,24 @@ func (c *InitCommand) Run(args []string) int {
 		}
 	}
 
+	// With modules now installed, we should be able to load the whole
+	// configuration and check the core version constraints.
+	config, confDiags := c.loadConfig(path)
+	diags = diags.Append(confDiags)
+	if confDiags.HasErrors() {
+		// Since this may be the user's first ever interaction with Terraform,
+		// we'll provide some additional context in this case.
+		c.Ui.Error(strings.TrimSpace(errInitConfigError))
+		c.showDiagnostics(diags)
+		return 1
+	}
+	confDiags = terraform.CheckCoreVersionRequirements(config)
+	diags = diags.Append(confDiags)
+	if confDiags.HasErrors() {
+		c.showDiagnostics(diags)
+		return 1
+	}
+
 	if back == nil {
 		// If we didn't initialize a backend then we'll try to at least
 		// instantiate one. This might fail if it wasn't already initalized
