@@ -700,7 +700,7 @@ suggested below.
 const errProviderNotFound = `
 [reset][bold][red]Provider %[1]q not available for installation.[reset][red]
 
-A provider named %[1]q could not be found in the official repository.
+A provider named %[1]q could not be found in the Terraform Registry.
 
 This may result from mistyping the provider name, or the given provider may
 be a third-party provider that cannot be installed automatically.
