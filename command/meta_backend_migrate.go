@@ -475,14 +475,6 @@ The state in the previous backend remains intact and unmodified. Please resolve
 the error above and try again.
 `
 
-const errBackendNoMigratedWorkspaces = `
-No workspaces are migrated. Use the "terraform workspace" command to create
-and select a new workspace.
-
-If the backend already contains existing workspaces, you may need to update
-the workspace name or prefix in the backend configuration.
-`
-
 const inputBackendMigrateEmpty = `
 Pre-existing state was found while migrating the previous %q backend to the
 newly configured %q backend. No existing state was found in the newly
