@@ -1,5 +1,8 @@
 ## 0.12.0-beta1 (Unreleased)
 
+BACKWARDS INCOMPATIBILITIES / NOTES:
+* command: Remove `-module-depth` flag from plan, apply, show, and graph. This flag was not widely used and the various updates and improvements to cli output should remove the need for this flag. [GH-19267]
+
 IMPROVEMENTS:
 
 * command/state: Update and enable the `state show` command [GH-19200]
