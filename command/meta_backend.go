@@ -700,15 +700,16 @@ func (m *Meta) backend_C_r_s(c *configs.Backend, cHash int, sMgr *state.LocalSta
 		return nil, diags
 	}
 
+	// By now the backend is successfully configured.
+	m.Ui.Output(m.Colorize().Color(fmt.Sprintf(
+		"[reset][green]\n"+strings.TrimSpace(successBackendSet), s.Backend.Type)))
+
 	// Its possible that the currently selected workspace is not migrated,
 	// so we call selectWorkspace to ensure a valid workspace is selected.
 	if err := m.selectWorkspace(b); err != nil {
 		diags = diags.Append(err)
 		return nil, diags
 	}
-
-	m.Ui.Output(m.Colorize().Color(fmt.Sprintf(
-		"[reset][green]\n"+strings.TrimSpace(successBackendSet), s.Backend.Type)))
 
 	// Return the backend
 	return b, diags
@@ -720,10 +721,14 @@ func (m *Meta) backend_C_r_s(c *configs.Backend, cHash int, sMgr *state.LocalSta
 func (m *Meta) selectWorkspace(b backend.Backend) error {
 	workspaces, err := b.Workspaces()
 	if err != nil {
+		if err == backend.ErrWorkspacesNotSupported {
+			return nil
+		}
 		return fmt.Errorf("Failed to get migrated workspaces: %s", err)
 	}
+
 	if len(workspaces) == 0 {
-		return fmt.Errorf(errBackendNoMigratedWorkspaces)
+		return fmt.Errorf(strings.TrimSpace(errBackendNoMigratedWorkspaces))
 	}
 
 	// Get the currently selected workspace.
@@ -744,18 +749,18 @@ func (m *Meta) selectWorkspace(b backend.Backend) error {
 	v, err := m.UIInput().Input(&terraform.InputOpts{
 		Id: "select-workspace",
 		Query: fmt.Sprintf(
-			"[reset][bold][yellow]The currently selected workspace (%s) is not migrated.[reset]",
+			"\n[reset][bold][yellow]The currently selected workspace (%s) is not migrated.[reset]",
 			workspace),
 		Description: fmt.Sprintf(
 			strings.TrimSpace(inputBackendSelectWorkspace), list.String()),
 	})
 	if err != nil {
-		return fmt.Errorf("Error asking to select workspace: %s", err)
+		return fmt.Errorf("Failed to select workspace: %s", err)
 	}
 
 	idx, err := strconv.Atoi(v)
 	if err != nil || (idx < 1 || idx > len(workspaces)) {
-		return fmt.Errorf("Error selecting workspace: input not a valid number")
+		return fmt.Errorf("Failed to select workspace: input not a valid number")
 	}
 
 	return m.SetWorkspace(workspaces[idx-1])
@@ -1084,6 +1089,14 @@ backend type. Please check your configuration and your Terraform version.
 
 If you'd like to run Terraform and store state locally, you can fix this
 error by removing the backend configuration from your configuration.
+`
+
+const errBackendNoMigratedWorkspaces = `
+No workspaces are migrated.
+
+Use the "terraform workspace" command to create and select a new workspace.
+If the backend already contains existing workspaces, you may need to update
+the backend configuration.
 `
 
 const errBackendRemoteRead = `
