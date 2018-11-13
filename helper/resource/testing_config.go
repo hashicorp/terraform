@@ -53,7 +53,7 @@ func testStep(opts terraform.ContextOpts, state *terraform.State, step TestStep,
 	}
 	if stepDiags := ctx.Validate(); len(stepDiags) > 0 {
 		if stepDiags.HasErrors() {
-			return nil, errwrap.Wrapf("config is invalid: {{err}}", stepDiags.Err())
+			return state, errwrap.Wrapf("config is invalid: {{err}}", stepDiags.Err())
 		}
 
 		log.Printf("[WARN] Config warnings:\n%s", stepDiags)
