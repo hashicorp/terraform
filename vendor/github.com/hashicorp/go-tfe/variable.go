@@ -73,10 +73,10 @@ type VariableListOptions struct {
 
 func (o VariableListOptions) valid() error {
 	if !validString(o.Organization) {
-		return errors.New("Organization is required")
+		return errors.New("organization is required")
 	}
 	if !validString(o.Workspace) {
-		return errors.New("Workspace is required")
+		return errors.New("workspace is required")
 	}
 	return nil
 }
@@ -127,16 +127,16 @@ type VariableCreateOptions struct {
 
 func (o VariableCreateOptions) valid() error {
 	if !validString(o.Key) {
-		return errors.New("Key is required")
+		return errors.New("key is required")
 	}
 	if !validString(o.Value) {
-		return errors.New("Value is required")
+		return errors.New("value is required")
 	}
 	if o.Category == nil {
-		return errors.New("Category is required")
+		return errors.New("category is required")
 	}
 	if o.Workspace == nil {
-		return errors.New("Workspace is required")
+		return errors.New("workspace is required")
 	}
 	return nil
 }
@@ -167,7 +167,7 @@ func (s *variables) Create(ctx context.Context, options VariableCreateOptions) (
 // Read a variable by its ID.
 func (s *variables) Read(ctx context.Context, variableID string) (*Variable, error) {
 	if !validStringID(&variableID) {
-		return nil, errors.New("Invalid value for variable ID")
+		return nil, errors.New("invalid value for variable ID")
 	}
 
 	u := fmt.Sprintf("vars/%s", url.QueryEscape(variableID))
@@ -206,7 +206,7 @@ type VariableUpdateOptions struct {
 // Update values of an existing variable.
 func (s *variables) Update(ctx context.Context, variableID string, options VariableUpdateOptions) (*Variable, error) {
 	if !validStringID(&variableID) {
-		return nil, errors.New("Invalid value for variable ID")
+		return nil, errors.New("invalid value for variable ID")
 	}
 
 	// Make sure we don't send a user provided ID.
@@ -230,7 +230,7 @@ func (s *variables) Update(ctx context.Context, variableID string, options Varia
 // Delete a variable by its ID.
 func (s *variables) Delete(ctx context.Context, variableID string) error {
 	if !validStringID(&variableID) {
-		return errors.New("Invalid value for variable ID")
+		return errors.New("invalid value for variable ID")
 	}
 
 	u := fmt.Sprintf("vars/%s", url.QueryEscape(variableID))

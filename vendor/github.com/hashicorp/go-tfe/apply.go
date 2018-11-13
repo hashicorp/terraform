@@ -69,7 +69,7 @@ type ApplyStatusTimestamps struct {
 // Read an apply by its ID.
 func (s *applies) Read(ctx context.Context, applyID string) (*Apply, error) {
 	if !validStringID(&applyID) {
-		return nil, errors.New("Invalid value for apply ID")
+		return nil, errors.New("invalid value for apply ID")
 	}
 
 	u := fmt.Sprintf("applies/%s", url.QueryEscape(applyID))
@@ -90,7 +90,7 @@ func (s *applies) Read(ctx context.Context, applyID string) (*Apply, error) {
 // Logs retrieves the logs of an apply.
 func (s *applies) Logs(ctx context.Context, applyID string) (io.Reader, error) {
 	if !validStringID(&applyID) {
-		return nil, errors.New("Invalid value for apply ID")
+		return nil, errors.New("invalid value for apply ID")
 	}
 
 	// Get the apply to make sure it exists.
@@ -101,12 +101,12 @@ func (s *applies) Logs(ctx context.Context, applyID string) (io.Reader, error) {
 
 	// Return an error if the log URL is empty.
 	if a.LogReadURL == "" {
-		return nil, fmt.Errorf("Apply %s does not have a log URL", applyID)
+		return nil, fmt.Errorf("apply %s does not have a log URL", applyID)
 	}
 
 	u, err := url.Parse(a.LogReadURL)
 	if err != nil {
-		return nil, fmt.Errorf("Invalid log URL: %v", err)
+		return nil, fmt.Errorf("invalid log URL: %v", err)
 	}
 
 	done := func() (bool, error) {

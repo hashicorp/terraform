@@ -121,8 +121,8 @@ github.com/hashicorp/errwrap v1.0.0 h1:hLrqtEDnRye3+sgx6z4qVLNuviH3MR5aQ0ykNJa/U
 github.com/hashicorp/errwrap v1.0.0/go.mod h1:YH+1FKiLXxHSkmPseP+kNlulaMuP3n2brvKWEqk/Jc4=
 github.com/hashicorp/go-checkpoint v0.0.0-20171009173528-1545e56e46de h1:XDCSythtg8aWSRSO29uwhgh7b127fWr+m5SemqjSUL8=
 github.com/hashicorp/go-checkpoint v0.0.0-20171009173528-1545e56e46de/go.mod h1:xIwEieBHERyEvaeKF/TcHh1Hu+lxPM+n2vT1+g9I4m4=
-github.com/hashicorp/go-cleanhttp v0.0.0-20171130225243-06c9ea3a335b h1:xrvnoavY7pMnMB/4x+cSAMgkzwjiSyilS55LZ14Ko7o=
-github.com/hashicorp/go-cleanhttp v0.0.0-20171130225243-06c9ea3a335b/go.mod h1:JpRdi6/HCYpAwUzNwuwqhbovhLtngrth3wmdIIUrZ80=
+github.com/hashicorp/go-cleanhttp v0.5.0 h1:wvCrVc9TjDls6+YGAF2hAifE1E5U1+b4tH6KdvN3Gig=
+github.com/hashicorp/go-cleanhttp v0.5.0/go.mod h1:JpRdi6/HCYpAwUzNwuwqhbovhLtngrth3wmdIIUrZ80=
 github.com/hashicorp/go-getter v0.0.0-20180327010114-90bb99a48d86 h1:mv3oKLM8sTaxmU/PrT39T35HRnUfchK+vtzXw6Ci9lY=
 github.com/hashicorp/go-getter v0.0.0-20180327010114-90bb99a48d86/go.mod h1:6rdJFnhkXnzGOJbvkrdv4t9nLwKcVA+tmbQeUlkIzrU=
 github.com/hashicorp/go-hclog v0.0.0-20181001195459-61d530d6c27f h1:Yv9YzBlAETjy6AOX9eLBZ3nshNVRREgerT/3nvxlGho=
@@ -137,8 +137,8 @@ github.com/hashicorp/go-multierror v1.0.0 h1:iVjPR7a6H0tWELX5NxNe7bYopibicUzc7uP
 github.com/hashicorp/go-multierror v1.0.0/go.mod h1:dHtQlpGsu+cZNNAkkCN/P3hoUDHhCYQXV3UM06sGGrk=
 github.com/hashicorp/go-plugin v0.0.0-20181002195811-1faddcf740b6 h1:czAJ5CXRPr+6vd6RGdJelApnxNbK3dAkakgBwLEWfrc=
 github.com/hashicorp/go-plugin v0.0.0-20181002195811-1faddcf740b6/go.mod h1:JSqWYsict+jzcj0+xElxyrBQRPNoiWQuddnxArJ7XHQ=
-github.com/hashicorp/go-retryablehttp v0.0.0-20160930035102-6e85be8fee1d h1:/T1aqTlRV/71ER/wHvhqTZaXGQW7XSO+F16mIIHw7zc=
-github.com/hashicorp/go-retryablehttp v0.0.0-20160930035102-6e85be8fee1d/go.mod h1:fXcdFsQoipQa7mwORhKad5jmDCeSy/RCGzWA08PO0lM=
+github.com/hashicorp/go-retryablehttp v0.0.0-20180718195005-e651d75abec6 h1:qCv4319q2q7XKn0MQbi8p37hsJ+9Xo8e6yojA73JVxk=
+github.com/hashicorp/go-retryablehttp v0.0.0-20180718195005-e651d75abec6/go.mod h1:fXcdFsQoipQa7mwORhKad5jmDCeSy/RCGzWA08PO0lM=
 github.com/hashicorp/go-rootcerts v0.0.0-20160503143440-6bb64b370b90 h1:9HVkPxOpo+yO93Ah4yrO67d/qh0fbLLWbKqhYjyHq9A=
 github.com/hashicorp/go-rootcerts v0.0.0-20160503143440-6bb64b370b90/go.mod h1:o4zcYY1e0GEZI6eSEr+43QDYmuGglw1qSO6qdHUHCgg=
 github.com/hashicorp/go-safetemp v0.0.0-20180326211150-b1a1dbde6fdc h1:wAa9fGALVHfjYxZuXRnmuJG2CnwRpJYOTvY6YdErAh0=
@@ -147,8 +147,10 @@ github.com/hashicorp/go-slug v0.1.0 h1:MJGEiOwRGrQCBmMMZABHqIESySFJ4ajrsjgDI4/aF
 github.com/hashicorp/go-slug v0.1.0/go.mod h1:+zDycQOzGqOqMW7Kn2fp9vz/NtqpMLQlgb9JUF+0km4=
 github.com/hashicorp/go-sockaddr v0.0.0-20180320115054-6d291a969b86 h1:7YOlAIO2YWnJZkQp7B5eFykaIY7C9JndqAFQyVV5BhM=
 github.com/hashicorp/go-sockaddr v0.0.0-20180320115054-6d291a969b86/go.mod h1:7Xibr9yA9JjQq1JpNB2Vw7kxv8xerXegt+ozgdvDeDU=
-github.com/hashicorp/go-tfe v0.2.6 h1:o2ryV7ZS0BgaLfNvzWz+A/6J70UETMy+wFL+DQlUy/M=
-github.com/hashicorp/go-tfe v0.2.6/go.mod h1:nJs7lSMcNPGQQtjyPG6en099CQ/f83+hfeeSqehl2Fg=
+github.com/hashicorp/go-tfe v0.2.7 h1:Cy0irO9Qfgdn7FmvxSoXIQrRa3iM/kFmp/c0oCboCow=
+github.com/hashicorp/go-tfe v0.2.7/go.mod h1:WJgjAJVdnXYPOWF6j66VI20djUGfeFjeayIgUDhohsU=
+github.com/hashicorp/go-tfe v0.2.9 h1:CmxjF5zBKh5XBf2fMseJPaSKxKIauIIS4r+6+hNX8JM=
+github.com/hashicorp/go-tfe v0.2.9/go.mod h1:WJgjAJVdnXYPOWF6j66VI20djUGfeFjeayIgUDhohsU=
 github.com/hashicorp/go-uuid v1.0.0 h1:RS8zrF7PhGwyNPOtxSClXXj9HA8feRnJzgnI1RJCSnM=
 github.com/hashicorp/go-uuid v1.0.0/go.mod h1:6SBZvOh/SIDV7/2o3Jml5SYk/TvGqwFJ/bN7x4byOro=
 github.com/hashicorp/go-version v0.0.0-20180322230233-23480c066577 h1:at4+18LrM8myamuV7/vT6x2s1JNXp2k4PsSbt4I02X4=
@@ -343,8 +345,8 @@ golang.org/x/sys v0.0.0-20180925112736-b09afc3d579e h1:LSlw/Dbj0MkNvPYAAkGinYmGl
 golang.org/x/sys v0.0.0-20180925112736-b09afc3d579e/go.mod h1:STP8DvDyc/dI5b8T5hshtkjS+E42TnysNCUPdjciGhY=
 golang.org/x/text v0.3.0 h1:g61tztE5qeGQ89tm6NTjjM9VPIm088od1l6aSorWRWg=
 golang.org/x/text v0.3.0/go.mod h1:NqM8EUOU14njkJ3fqMW+pc6Ldnwhi/IjpwHt7yyuwOQ=
-golang.org/x/time v0.0.0-20180412165947-fbb02b2291d2 h1:+DCIGbF/swA92ohVg0//6X2IVY3KZs6p9mix0ziNYJM=
-golang.org/x/time v0.0.0-20180412165947-fbb02b2291d2/go.mod h1:tRJNPiyCQ0inRvYxbN9jk5I+vvW/OXSQhTDSoE431IQ=
+golang.org/x/time v0.0.0-20181108054448-85acf8d2951c h1:fqgJT0MGcGpPgpWU7VRdRjuArfcOvC4AoJmILihzhDg=
+golang.org/x/time v0.0.0-20181108054448-85acf8d2951c/go.mod h1:tRJNPiyCQ0inRvYxbN9jk5I+vvW/OXSQhTDSoE431IQ=
 google.golang.org/api v0.0.0-20180910000450-7ca32eb868bf/go.mod h1:4mhQ8q/RsB7i+udVvVy5NUi08OU8ZlA0gRVgrF7VFY0=
 google.golang.org/api v0.0.0-20181015145326-625cd1887957 h1:jwCmWUTrTFfjsobRuGurnCQeW4NZKijaIf6yAXwLR0E=
 google.golang.org/api v0.0.0-20181015145326-625cd1887957/go.mod h1:4mhQ8q/RsB7i+udVvVy5NUi08OU8ZlA0gRVgrF7VFY0=
