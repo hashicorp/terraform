@@ -70,7 +70,7 @@ type PlanStatusTimestamps struct {
 // Read a plan by its ID.
 func (s *plans) Read(ctx context.Context, planID string) (*Plan, error) {
 	if !validStringID(&planID) {
-		return nil, errors.New("Invalid value for plan ID")
+		return nil, errors.New("invalid value for plan ID")
 	}
 
 	u := fmt.Sprintf("plans/%s", url.QueryEscape(planID))
@@ -91,7 +91,7 @@ func (s *plans) Read(ctx context.Context, planID string) (*Plan, error) {
 // Logs retrieves the logs of a plan.
 func (s *plans) Logs(ctx context.Context, planID string) (io.Reader, error) {
 	if !validStringID(&planID) {
-		return nil, errors.New("Invalid value for plan ID")
+		return nil, errors.New("invalid value for plan ID")
 	}
 
 	// Get the plan to make sure it exists.
@@ -102,12 +102,12 @@ func (s *plans) Logs(ctx context.Context, planID string) (io.Reader, error) {
 
 	// Return an error if the log URL is empty.
 	if p.LogReadURL == "" {
-		return nil, fmt.Errorf("Plan %s does not have a log URL", planID)
+		return nil, fmt.Errorf("plan %s does not have a log URL", planID)
 	}
 
 	u, err := url.Parse(p.LogReadURL)
 	if err != nil {
-		return nil, fmt.Errorf("Invalid log URL: %v", err)
+		return nil, fmt.Errorf("invalid log URL: %v", err)
 	}
 
 	done := func() (bool, error) {

@@ -62,7 +62,7 @@ type OAuthTokenListOptions struct {
 // List all the OAuth tokens for a given organization.
 func (s *oAuthTokens) List(ctx context.Context, organization string, options OAuthTokenListOptions) (*OAuthTokenList, error) {
 	if !validStringID(&organization) {
-		return nil, errors.New("Invalid value for organization")
+		return nil, errors.New("invalid value for organization")
 	}
 
 	u := fmt.Sprintf("organizations/%s/oauth-tokens", url.QueryEscape(organization))
@@ -83,7 +83,7 @@ func (s *oAuthTokens) List(ctx context.Context, organization string, options OAu
 // Read an OAuth token by its ID.
 func (s *oAuthTokens) Read(ctx context.Context, oAuthTokenID string) (*OAuthToken, error) {
 	if !validStringID(&oAuthTokenID) {
-		return nil, errors.New("Invalid value for OAuth token ID")
+		return nil, errors.New("invalid value for OAuth token ID")
 	}
 
 	u := fmt.Sprintf("oauth-tokens/%s", url.QueryEscape(oAuthTokenID))
@@ -113,7 +113,7 @@ type OAuthTokenUpdateOptions struct {
 // Update an existing OAuth token.
 func (s *oAuthTokens) Update(ctx context.Context, oAuthTokenID string, options OAuthTokenUpdateOptions) (*OAuthToken, error) {
 	if !validStringID(&oAuthTokenID) {
-		return nil, errors.New("Invalid value for OAuth token ID")
+		return nil, errors.New("invalid value for OAuth token ID")
 	}
 
 	// Make sure we don't send a user provided ID.
@@ -137,7 +137,7 @@ func (s *oAuthTokens) Update(ctx context.Context, oAuthTokenID string, options O
 // Delete an OAuth token by its ID.
 func (s *oAuthTokens) Delete(ctx context.Context, oAuthTokenID string) error {
 	if !validStringID(&oAuthTokenID) {
-		return errors.New("Invalid value for OAuth token ID")
+		return errors.New("invalid value for OAuth token ID")
 	}
 
 	u := fmt.Sprintf("oauth-tokens/%s", url.QueryEscape(oAuthTokenID))
