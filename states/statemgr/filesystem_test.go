@@ -4,23 +4,26 @@ import (
 	"io/ioutil"
 	"os"
 	"os/exec"
+	"strings"
 	"sync"
 	"testing"
 
 	"github.com/go-test/deep"
-
 	version "github.com/hashicorp/go-version"
 
 	"github.com/hashicorp/terraform/states/statefile"
+	tfversion "github.com/hashicorp/terraform/version"
 )
 
 func TestFilesystem(t *testing.T) {
+	defer testOverrideVersion(t, "1.2.3")()
 	ls := testFilesystem(t)
 	defer os.Remove(ls.readPath)
 	TestFull(t, ls)
 }
 
 func TestFilesystemRace(t *testing.T) {
+	defer testOverrideVersion(t, "1.2.3")()
 	ls := testFilesystem(t)
 	defer os.Remove(ls.readPath)
 
@@ -37,6 +40,7 @@ func TestFilesystemRace(t *testing.T) {
 }
 
 func TestFilesystemLocks(t *testing.T) {
+	defer testOverrideVersion(t, "1.2.3")()
 	s := testFilesystem(t)
 	defer os.Remove(s.readPath)
 
@@ -97,6 +101,7 @@ func TestFilesystemLocks(t *testing.T) {
 // Verify that we can write to the state file, as Windows' mandatory locking
 // will prevent writing to a handle different than the one that hold the lock.
 func TestFilesystem_writeWhileLocked(t *testing.T) {
+	defer testOverrideVersion(t, "1.2.3")()
 	s := testFilesystem(t)
 	defer os.Remove(s.readPath)
 
@@ -119,6 +124,7 @@ func TestFilesystem_writeWhileLocked(t *testing.T) {
 }
 
 func TestFilesystem_pathOut(t *testing.T) {
+	defer testOverrideVersion(t, "1.2.3")()
 	f, err := ioutil.TempFile("", "tf")
 	if err != nil {
 		t.Fatalf("err: %s", err)
@@ -134,6 +140,7 @@ func TestFilesystem_pathOut(t *testing.T) {
 }
 
 func TestFilesystem_backup(t *testing.T) {
+	defer testOverrideVersion(t, "1.2.3")()
 	f, err := ioutil.TempFile("", "tf")
 	if err != nil {
 		t.Fatalf("err: %s", err)
@@ -166,6 +173,7 @@ func TestFilesystem_backup(t *testing.T) {
 }
 
 func TestFilesystem_nonExist(t *testing.T) {
+	defer testOverrideVersion(t, "1.2.3")()
 	ls := NewFilesystem("ishouldntexist")
 	if err := ls.RefreshState(); err != nil {
 		t.Fatalf("err: %s", err)
@@ -177,6 +185,7 @@ func TestFilesystem_nonExist(t *testing.T) {
 }
 
 func TestFilesystem_impl(t *testing.T) {
+	defer testOverrideVersion(t, "1.2.3")()
 	var _ Reader = new(Filesystem)
 	var _ Writer = new(Filesystem)
 	var _ Persister = new(Filesystem)
@@ -212,6 +221,7 @@ func testFilesystem(t *testing.T) *Filesystem {
 
 // Make sure we can refresh while the state is locked
 func TestFilesystem_refreshWhileLocked(t *testing.T) {
+	defer testOverrideVersion(t, "1.2.3")()
 	f, err := ioutil.TempFile("", "tf")
 	if err != nil {
 		t.Fatalf("err: %s", err)
@@ -251,5 +261,33 @@ func TestFilesystem_refreshWhileLocked(t *testing.T) {
 	readState := s.State()
 	if readState == nil {
 		t.Fatal("missing state")
+	}
+}
+
+func testOverrideVersion(t *testing.T, v string) func() {
+	oldVersionStr := tfversion.Version
+	oldPrereleaseStr := tfversion.Prerelease
+	oldSemVer := tfversion.SemVer
+
+	var newPrereleaseStr string
+	if dash := strings.Index(v, "-"); dash != -1 {
+		newPrereleaseStr = v[dash+1:]
+		v = v[:dash]
+	}
+
+	newSemVer, err := version.NewVersion(v)
+	if err != nil {
+		t.Errorf("invalid override version %q: %s", v, err)
+	}
+	newVersionStr := newSemVer.String()
+
+	tfversion.Version = newVersionStr
+	tfversion.Prerelease = newPrereleaseStr
+	tfversion.SemVer = newSemVer
+
+	return func() { // reset function
+		tfversion.Version = oldVersionStr
+		tfversion.Prerelease = oldPrereleaseStr
+		tfversion.SemVer = oldSemVer
 	}
 }
