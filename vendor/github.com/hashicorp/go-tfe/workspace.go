@@ -112,7 +112,7 @@ type WorkspaceListOptions struct {
 // List all the workspaces within an organization.
 func (s *workspaces) List(ctx context.Context, organization string, options WorkspaceListOptions) (*WorkspaceList, error) {
 	if !validStringID(&organization) {
-		return nil, errors.New("Invalid value for organization")
+		return nil, errors.New("invalid value for organization")
 	}
 
 	u := fmt.Sprintf("organizations/%s/workspaces", url.QueryEscape(organization))
@@ -173,10 +173,10 @@ type VCSRepoOptions struct {
 
 func (o WorkspaceCreateOptions) valid() error {
 	if !validString(o.Name) {
-		return errors.New("Name is required")
+		return errors.New("name is required")
 	}
 	if !validStringID(o.Name) {
-		return errors.New("Invalid value for name")
+		return errors.New("invalid value for name")
 	}
 	return nil
 }
@@ -184,7 +184,7 @@ func (o WorkspaceCreateOptions) valid() error {
 // Create is used to create a new workspace.
 func (s *workspaces) Create(ctx context.Context, organization string, options WorkspaceCreateOptions) (*Workspace, error) {
 	if !validStringID(&organization) {
-		return nil, errors.New("Invalid value for organization")
+		return nil, errors.New("invalid value for organization")
 	}
 	if err := options.valid(); err != nil {
 		return nil, err
@@ -211,10 +211,10 @@ func (s *workspaces) Create(ctx context.Context, organization string, options Wo
 // Read a workspace by its name.
 func (s *workspaces) Read(ctx context.Context, organization, workspace string) (*Workspace, error) {
 	if !validStringID(&organization) {
-		return nil, errors.New("Invalid value for organization")
+		return nil, errors.New("invalid value for organization")
 	}
 	if !validStringID(&workspace) {
-		return nil, errors.New("Invalid value for workspace")
+		return nil, errors.New("invalid value for workspace")
 	}
 
 	u := fmt.Sprintf(
@@ -270,10 +270,10 @@ type WorkspaceUpdateOptions struct {
 // Update settings of an existing workspace.
 func (s *workspaces) Update(ctx context.Context, organization, workspace string, options WorkspaceUpdateOptions) (*Workspace, error) {
 	if !validStringID(&organization) {
-		return nil, errors.New("Invalid value for organization")
+		return nil, errors.New("invalid value for organization")
 	}
 	if !validStringID(&workspace) {
-		return nil, errors.New("Invalid value for workspace")
+		return nil, errors.New("invalid value for workspace")
 	}
 
 	// Make sure we don't send a user provided ID.
@@ -301,10 +301,10 @@ func (s *workspaces) Update(ctx context.Context, organization, workspace string,
 // Delete a workspace by its name.
 func (s *workspaces) Delete(ctx context.Context, organization, workspace string) error {
 	if !validStringID(&organization) {
-		return errors.New("Invalid value for organization")
+		return errors.New("invalid value for organization")
 	}
 	if !validStringID(&workspace) {
-		return errors.New("Invalid value for workspace")
+		return errors.New("invalid value for workspace")
 	}
 
 	u := fmt.Sprintf(
@@ -329,7 +329,7 @@ type WorkspaceLockOptions struct {
 // Lock a workspace by its ID.
 func (s *workspaces) Lock(ctx context.Context, workspaceID string, options WorkspaceLockOptions) (*Workspace, error) {
 	if !validStringID(&workspaceID) {
-		return nil, errors.New("Invalid value for workspace ID")
+		return nil, errors.New("invalid value for workspace ID")
 	}
 
 	u := fmt.Sprintf("workspaces/%s/actions/lock", url.QueryEscape(workspaceID))
@@ -350,7 +350,7 @@ func (s *workspaces) Lock(ctx context.Context, workspaceID string, options Works
 // Unlock a workspace by its ID.
 func (s *workspaces) Unlock(ctx context.Context, workspaceID string) (*Workspace, error) {
 	if !validStringID(&workspaceID) {
-		return nil, errors.New("Invalid value for workspace ID")
+		return nil, errors.New("invalid value for workspace ID")
 	}
 
 	u := fmt.Sprintf("workspaces/%s/actions/unlock", url.QueryEscape(workspaceID))
@@ -383,7 +383,7 @@ func (o WorkspaceAssignSSHKeyOptions) valid() error {
 		return errors.New("SSH key ID is required")
 	}
 	if !validStringID(o.SSHKeyID) {
-		return errors.New("Invalid value for SSH key ID")
+		return errors.New("invalid value for SSH key ID")
 	}
 	return nil
 }
@@ -391,7 +391,7 @@ func (o WorkspaceAssignSSHKeyOptions) valid() error {
 // AssignSSHKey to a workspace.
 func (s *workspaces) AssignSSHKey(ctx context.Context, workspaceID string, options WorkspaceAssignSSHKeyOptions) (*Workspace, error) {
 	if !validStringID(&workspaceID) {
-		return nil, errors.New("Invalid value for workspace ID")
+		return nil, errors.New("invalid value for workspace ID")
 	}
 	if err := options.valid(); err != nil {
 		return nil, err
@@ -428,7 +428,7 @@ type workspaceUnassignSSHKeyOptions struct {
 // UnassignSSHKey from a workspace.
 func (s *workspaces) UnassignSSHKey(ctx context.Context, workspaceID string) (*Workspace, error) {
 	if !validStringID(&workspaceID) {
-		return nil, errors.New("Invalid value for workspace ID")
+		return nil, errors.New("invalid value for workspace ID")
 	}
 
 	u := fmt.Sprintf("workspaces/%s/relationships/ssh-key", url.QueryEscape(workspaceID))

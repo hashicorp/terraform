@@ -118,7 +118,7 @@ type PolicyCheckListOptions struct {
 // List all policy checks of the given run.
 func (s *policyChecks) List(ctx context.Context, runID string, options PolicyCheckListOptions) (*PolicyCheckList, error) {
 	if !validStringID(&runID) {
-		return nil, errors.New("Invalid value for run ID")
+		return nil, errors.New("invalid value for run ID")
 	}
 
 	u := fmt.Sprintf("runs/%s/policy-checks", url.QueryEscape(runID))
@@ -139,7 +139,7 @@ func (s *policyChecks) List(ctx context.Context, runID string, options PolicyChe
 // Read a policy check by its ID.
 func (s *policyChecks) Read(ctx context.Context, policyCheckID string) (*PolicyCheck, error) {
 	if !validStringID(&policyCheckID) {
-		return nil, errors.New("Invalid value for policy check ID")
+		return nil, errors.New("invalid value for policy check ID")
 	}
 
 	u := fmt.Sprintf("policy-checks/%s", url.QueryEscape(policyCheckID))
@@ -160,7 +160,7 @@ func (s *policyChecks) Read(ctx context.Context, policyCheckID string) (*PolicyC
 // Override a soft-mandatory or warning policy.
 func (s *policyChecks) Override(ctx context.Context, policyCheckID string) (*PolicyCheck, error) {
 	if !validStringID(&policyCheckID) {
-		return nil, errors.New("Invalid value for policy check ID")
+		return nil, errors.New("invalid value for policy check ID")
 	}
 
 	u := fmt.Sprintf("policy-checks/%s/actions/override", url.QueryEscape(policyCheckID))
@@ -181,7 +181,7 @@ func (s *policyChecks) Override(ctx context.Context, policyCheckID string) (*Pol
 // Logs retrieves the logs of a policy check.
 func (s *policyChecks) Logs(ctx context.Context, policyCheckID string) (io.Reader, error) {
 	if !validStringID(&policyCheckID) {
-		return nil, errors.New("Invalid value for policy check ID")
+		return nil, errors.New("invalid value for policy check ID")
 	}
 
 	// Loop until the context is canceled or the policy check is finished

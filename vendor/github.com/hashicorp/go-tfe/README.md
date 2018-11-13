@@ -28,6 +28,7 @@ Currently the following endpoints are supported:
 - [x] [Organizations](https://www.terraform.io/docs/enterprise/api/organizations.html)
 - [x] [Organization Tokens](https://www.terraform.io/docs/enterprise/api/organization-tokens.html)
 - [x] [Policies](https://www.terraform.io/docs/enterprise/api/policies.html)
+- [x] [Policy Sets](https://www.terraform.io/docs/enterprise/api/policy-sets.html)
 - [x] [Policy Checks](https://www.terraform.io/docs/enterprise/api/policy-checks.html)
 - [ ] [Registry Modules](https://www.terraform.io/docs/enterprise/api/modules.html)
 - [x] [Runs](https://www.terraform.io/docs/enterprise/api/run.html)

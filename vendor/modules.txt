@@ -296,7 +296,7 @@ github.com/hashicorp/consul/testutil/retry
 github.com/hashicorp/errwrap
 # github.com/hashicorp/go-checkpoint v0.0.0-20171009173528-1545e56e46de
 github.com/hashicorp/go-checkpoint
-# github.com/hashicorp/go-cleanhttp v0.0.0-20171130225243-06c9ea3a335b
+# github.com/hashicorp/go-cleanhttp v0.5.0
 github.com/hashicorp/go-cleanhttp
 # github.com/hashicorp/go-getter v0.0.0-20180327010114-90bb99a48d86
 github.com/hashicorp/go-getter
@@ -307,7 +307,7 @@ github.com/hashicorp/go-hclog
 github.com/hashicorp/go-multierror
 # github.com/hashicorp/go-plugin v0.0.0-20181002195811-1faddcf740b6
 github.com/hashicorp/go-plugin
-# github.com/hashicorp/go-retryablehttp v0.0.0-20160930035102-6e85be8fee1d
+# github.com/hashicorp/go-retryablehttp v0.0.0-20180718195005-e651d75abec6
 github.com/hashicorp/go-retryablehttp
 # github.com/hashicorp/go-rootcerts v0.0.0-20160503143440-6bb64b370b90
 github.com/hashicorp/go-rootcerts
@@ -315,7 +315,7 @@ github.com/hashicorp/go-rootcerts
 github.com/hashicorp/go-safetemp
 # github.com/hashicorp/go-slug v0.1.0
 github.com/hashicorp/go-slug
-# github.com/hashicorp/go-tfe v0.2.6
+# github.com/hashicorp/go-tfe v0.2.9
 github.com/hashicorp/go-tfe
 # github.com/hashicorp/go-uuid v1.0.0
 github.com/hashicorp/go-uuid
@@ -543,6 +543,8 @@ golang.org/x/text/encoding/unicode
 golang.org/x/text/internal/tag
 golang.org/x/text/internal/utf8internal
 golang.org/x/text/runes
+# golang.org/x/time v0.0.0-20181108054448-85acf8d2951c
+golang.org/x/time/rate
 # google.golang.org/api v0.0.0-20181015145326-625cd1887957
 google.golang.org/api/iterator
 google.golang.org/api/option

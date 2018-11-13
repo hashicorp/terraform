@@ -8,18 +8,28 @@
 // response is received, then a retry is invoked. Otherwise, the response is
 // returned and left to the caller to interpret.
 //
-// The main difference from net/http is that requests which take a request body
-// (POST/PUT et. al) require an io.ReadSeeker to be provided. This enables the
-// request body to be "rewound" if the initial request fails so that the full
-// request can be attempted again.
+// Requests which take a request body should provide a non-nil function
+// parameter. The best choice is to provide either a function satisfying
+// ReaderFunc which provides multiple io.Readers in an efficient manner, a
+// *bytes.Buffer (the underlying raw byte slice will be used) or a raw byte
+// slice. As it is a reference type, and we will wrap it as needed by readers,
+// we can efficiently re-use the request body without needing to copy it. If an
+// io.Reader (such as a *bytes.Reader) is provided, the full body will be read
+// prior to the first request, and will be efficiently re-used for any retries.
+// ReadSeeker can be used, but some users have observed occasional data races
+// between the net/http library and the Seek functionality of some
+// implementations of ReadSeeker, so should be avoided if possible.
 package retryablehttp
 
 import (
+	"bytes"
+	"context"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"log"
 	"math"
+	"math/rand"
 	"net/http"
 	"net/url"
 	"os"
@@ -44,6 +54,9 @@ var (
 	respReadLimit = int64(4096)
 )
 
+// ReaderFunc is the type of function that can be given natively to NewRequest
+type ReaderFunc func() (io.Reader, error)
+
 // LenReader is an interface implemented by many in-memory io.Reader's. Used
 // for automatically sending the right Content-Length header when possible.
 type LenReader interface {
@@ -54,32 +67,118 @@ type LenReader interface {
 type Request struct {
 	// body is a seekable reader over the request body payload. This is
 	// used to rewind the request data in between retries.
-	body io.ReadSeeker
+	body ReaderFunc
 
 	// Embed an HTTP request directly. This makes a *Request act exactly
 	// like an *http.Request so that all meta methods are supported.
 	*http.Request
 }
 
+// WithContext returns wrapped Request with a shallow copy of underlying *http.Request
+// with its context changed to ctx. The provided ctx must be non-nil.
+func (r *Request) WithContext(ctx context.Context) *Request {
+	r.Request = r.Request.WithContext(ctx)
+	return r
+}
+
 // NewRequest creates a new wrapped request.
-func NewRequest(method, url string, body io.ReadSeeker) (*Request, error) {
-	// Wrap the body in a noop ReadCloser if non-nil. This prevents the
-	// reader from being closed by the HTTP client.
-	var rcBody io.ReadCloser
-	if body != nil {
-		rcBody = ioutil.NopCloser(body)
+func NewRequest(method, url string, rawBody interface{}) (*Request, error) {
+	var err error
+	var body ReaderFunc
+	var contentLength int64
+
+	if rawBody != nil {
+		switch rawBody.(type) {
+		// If they gave us a function already, great! Use it.
+		case ReaderFunc:
+			body = rawBody.(ReaderFunc)
+			tmp, err := body()
+			if err != nil {
+				return nil, err
+			}
+			if lr, ok := tmp.(LenReader); ok {
+				contentLength = int64(lr.Len())
+			}
+			if c, ok := tmp.(io.Closer); ok {
+				c.Close()
+			}
+
+		case func() (io.Reader, error):
+			body = rawBody.(func() (io.Reader, error))
+			tmp, err := body()
+			if err != nil {
+				return nil, err
+			}
+			if lr, ok := tmp.(LenReader); ok {
+				contentLength = int64(lr.Len())
+			}
+			if c, ok := tmp.(io.Closer); ok {
+				c.Close()
+			}
+
+		// If a regular byte slice, we can read it over and over via new
+		// readers
+		case []byte:
+			buf := rawBody.([]byte)
+			body = func() (io.Reader, error) {
+				return bytes.NewReader(buf), nil
+			}
+			contentLength = int64(len(buf))
+
+		// If a bytes.Buffer we can read the underlying byte slice over and
+		// over
+		case *bytes.Buffer:
+			buf := rawBody.(*bytes.Buffer)
+			body = func() (io.Reader, error) {
+				return bytes.NewReader(buf.Bytes()), nil
+			}
+			contentLength = int64(buf.Len())
+
+		// We prioritize *bytes.Reader here because we don't really want to
+		// deal with it seeking so want it to match here instead of the
+		// io.ReadSeeker case.
+		case *bytes.Reader:
+			buf, err := ioutil.ReadAll(rawBody.(*bytes.Reader))
+			if err != nil {
+				return nil, err
+			}
+			body = func() (io.Reader, error) {
+				return bytes.NewReader(buf), nil
+			}
+			contentLength = int64(len(buf))
+
+		// Compat case
+		case io.ReadSeeker:
+			raw := rawBody.(io.ReadSeeker)
+			body = func() (io.Reader, error) {
+				raw.Seek(0, 0)
+				return ioutil.NopCloser(raw), nil
+			}
+			if lr, ok := raw.(LenReader); ok {
+				contentLength = int64(lr.Len())
+			}
+
+		// Read all in so we can reset
+		case io.Reader:
+			buf, err := ioutil.ReadAll(rawBody.(io.Reader))
+			if err != nil {
+				return nil, err
+			}
+			body = func() (io.Reader, error) {
+				return bytes.NewReader(buf), nil
+			}
+			contentLength = int64(len(buf))
+
+		default:
+			return nil, fmt.Errorf("cannot handle type %T", rawBody)
+		}
 	}
 
-	// Make the request with the noop-closer for the body.
-	httpReq, err := http.NewRequest(method, url, rcBody)
+	httpReq, err := http.NewRequest(method, url, nil)
 	if err != nil {
 		return nil, err
 	}
-
-	// Check if we can set the Content-Length automatically.
-	if lr, ok := body.(LenReader); ok {
-		httpReq.ContentLength = int64(lr.Len())
-	}
+	httpReq.ContentLength = contentLength
 
 	return &Request{body, httpReq}, nil
 }
@@ -105,7 +204,18 @@ type ResponseLogHook func(*log.Logger, *http.Response)
 // Client will close any response body when retrying, but if the retry is
 // aborted it is up to the CheckResponse callback to properly close any
 // response body before returning.
-type CheckRetry func(resp *http.Response, err error) (bool, error)
+type CheckRetry func(ctx context.Context, resp *http.Response, err error) (bool, error)
+
+// Backoff specifies a policy for how long to wait between retries.
+// It is called after a failing request to determine the amount of time
+// that should pass before trying again.
+type Backoff func(min, max time.Duration, attemptNum int, resp *http.Response) time.Duration
+
+// ErrorHandler is called if retries are expired, containing the last status
+// from the http library. If not specified, default behavior for the library is
+// to close the body and return an error indicating how many tries were
+// attempted. If overriding this, be sure to close the body if needed.
+type ErrorHandler func(resp *http.Response, err error, numTries int) (*http.Response, error)
 
 // Client is used to make HTTP requests. It adds additional functionality
 // like automatic retries to tolerate minor outages.
@@ -128,6 +238,12 @@ type Client struct {
 	// CheckRetry specifies the policy for handling retries, and is called
 	// after each request. The default policy is DefaultRetryPolicy.
 	CheckRetry CheckRetry
+
+	// Backoff specifies the policy for how long to wait between retries
+	Backoff Backoff
+
+	// ErrorHandler specifies the custom error handler to use, if any
+	ErrorHandler ErrorHandler
 }
 
 // NewClient creates a new Client with default settings.
@@ -139,12 +255,18 @@ func NewClient() *Client {
 		RetryWaitMax: defaultRetryWaitMax,
 		RetryMax:     defaultRetryMax,
 		CheckRetry:   DefaultRetryPolicy,
+		Backoff:      DefaultBackoff,
 	}
 }
 
 // DefaultRetryPolicy provides a default callback for Client.CheckRetry, which
 // will retry on connection errors and server errors.
-func DefaultRetryPolicy(resp *http.Response, err error) (bool, error) {
+func DefaultRetryPolicy(ctx context.Context, resp *http.Response, err error) (bool, error) {
+	// do not retry on context.Canceled or context.DeadlineExceeded
+	if ctx.Err() != nil {
+		return false, ctx.Err()
+	}
+
 	if err != nil {
 		return true, err
 	}
@@ -152,24 +274,92 @@ func DefaultRetryPolicy(resp *http.Response, err error) (bool, error) {
 	// the server time to recover, as 500's are typically not permanent
 	// errors and may relate to outages on the server side. This will catch
 	// invalid response codes as well, like 0 and 999.
-	if resp.StatusCode == 0 || resp.StatusCode >= 500 {
+	if resp.StatusCode == 0 || (resp.StatusCode >= 500 && resp.StatusCode != 501) {
 		return true, nil
 	}
 
 	return false, nil
 }
 
+// DefaultBackoff provides a default callback for Client.Backoff which
+// will perform exponential backoff based on the attempt number and limited
+// by the provided minimum and maximum durations.
+func DefaultBackoff(min, max time.Duration, attemptNum int, resp *http.Response) time.Duration {
+	mult := math.Pow(2, float64(attemptNum)) * float64(min)
+	sleep := time.Duration(mult)
+	if float64(sleep) != mult || sleep > max {
+		sleep = max
+	}
+	return sleep
+}
+
+// LinearJitterBackoff provides a callback for Client.Backoff which will
+// perform linear backoff based on the attempt number and with jitter to
+// prevent a thundering herd.
+//
+// min and max here are *not* absolute values. The number to be multipled by
+// the attempt number will be chosen at random from between them, thus they are
+// bounding the jitter.
+//
+// For instance:
+// * To get strictly linear backoff of one second increasing each retry, set
+// both to one second (1s, 2s, 3s, 4s, ...)
+// * To get a small amount of jitter centered around one second increasing each
+// retry, set to around one second, such as a min of 800ms and max of 1200ms
+// (892ms, 2102ms, 2945ms, 4312ms, ...)
+// * To get extreme jitter, set to a very wide spread, such as a min of 100ms
+// and a max of 20s (15382ms, 292ms, 51321ms, 35234ms, ...)
+func LinearJitterBackoff(min, max time.Duration, attemptNum int, resp *http.Response) time.Duration {
+	// attemptNum always starts at zero but we want to start at 1 for multiplication
+	attemptNum++
+
+	if max <= min {
+		// Unclear what to do here, or they are the same, so return min *
+		// attemptNum
+		return min * time.Duration(attemptNum)
+	}
+
+	// Seed rand; doing this every time is fine
+	rand := rand.New(rand.NewSource(int64(time.Now().Nanosecond())))
+
+	// Pick a random number that lies somewhere between the min and max and
+	// multiply by the attemptNum. attemptNum starts at zero so we always
+	// increment here. We first get a random percentage, then apply that to the
+	// difference between min and max, and add to min.
+	jitter := rand.Float64() * float64(max-min)
+	jitterMin := int64(jitter) + int64(min)
+	return time.Duration(jitterMin * int64(attemptNum))
+}
+
+// PassthroughErrorHandler is an ErrorHandler that directly passes through the
+// values from the net/http library for the final request. The body is not
+// closed.
+func PassthroughErrorHandler(resp *http.Response, err error, _ int) (*http.Response, error) {
+	return resp, err
+}
+
 // Do wraps calling an HTTP method with retries.
 func (c *Client) Do(req *Request) (*http.Response, error) {
-	c.Logger.Printf("[DEBUG] %s %s", req.Method, req.URL)
+	if c.Logger != nil {
+		c.Logger.Printf("[DEBUG] %s %s", req.Method, req.URL)
+	}
+
+	var resp *http.Response
+	var err error
 
 	for i := 0; ; i++ {
 		var code int // HTTP response code
 
 		// Always rewind the request body when non-nil.
 		if req.body != nil {
-			if _, err := req.body.Seek(0, 0); err != nil {
-				return nil, fmt.Errorf("failed to seek body: %v", err)
+			body, err := req.body()
+			if err != nil {
+				return resp, err
+			}
+			if c, ok := body.(io.ReadCloser); ok {
+				req.Request.Body = c
+			} else {
+				req.Request.Body = ioutil.NopCloser(body)
 			}
 		}
 
@@ -178,13 +368,18 @@ func (c *Client) Do(req *Request) (*http.Response, error) {
 		}
 
 		// Attempt the request
-		resp, err := c.HTTPClient.Do(req.Request)
+		resp, err = c.HTTPClient.Do(req.Request)
+		if resp != nil {
+			code = resp.StatusCode
+		}
 
 		// Check if we should continue with retries.
-		checkOK, checkErr := c.CheckRetry(resp, err)
+		checkOK, checkErr := c.CheckRetry(req.Request.Context(), resp, err)
 
 		if err != nil {
-			c.Logger.Printf("[ERR] %s %s request failed: %v", req.Method, req.URL, err)
+			if c.Logger != nil {
+				c.Logger.Printf("[ERR] %s %s request failed: %v", req.Method, req.URL, err)
+			}
 		} else {
 			// Call this here to maintain the behavior of logging all requests,
 			// even if CheckRetry signals to stop.
@@ -202,25 +397,38 @@ func (c *Client) Do(req *Request) (*http.Response, error) {
 			return resp, err
 		}
 
+		// We do this before drainBody beause there's no need for the I/O if
+		// we're breaking out
+		remain := c.RetryMax - i
+		if remain <= 0 {
+			break
+		}
+
 		// We're going to retry, consume any response to reuse the connection.
-		if err == nil {
+		if err == nil && resp != nil {
 			c.drainBody(resp.Body)
 		}
 
-		remain := c.RetryMax - i
-		if remain == 0 {
-			break
-		}
-		wait := backoff(c.RetryWaitMin, c.RetryWaitMax, i)
+		wait := c.Backoff(c.RetryWaitMin, c.RetryWaitMax, i, resp)
 		desc := fmt.Sprintf("%s %s", req.Method, req.URL)
 		if code > 0 {
 			desc = fmt.Sprintf("%s (status: %d)", desc, code)
 		}
-		c.Logger.Printf("[DEBUG] %s: retrying in %s (%d left)", desc, wait, remain)
+		if c.Logger != nil {
+			c.Logger.Printf("[DEBUG] %s: retrying in %s (%d left)", desc, wait, remain)
+		}
 		time.Sleep(wait)
 	}
 
-	// Return an error if we fall out of the retry loop
+	if c.ErrorHandler != nil {
+		return c.ErrorHandler(resp, err, c.RetryMax+1)
+	}
+
+	// By default, we close the response body and return an error without
+	// returning the response
+	if resp != nil {
+		resp.Body.Close()
+	}
 	return nil, fmt.Errorf("%s %s giving up after %d attempts",
 		req.Method, req.URL, c.RetryMax+1)
 }
@@ -230,7 +438,9 @@ func (c *Client) drainBody(body io.ReadCloser) {
 	defer body.Close()
 	_, err := io.Copy(ioutil.Discard, io.LimitReader(body, respReadLimit))
 	if err != nil {
-		c.Logger.Printf("[ERR] error reading response body: %v", err)
+		if c.Logger != nil {
+			c.Logger.Printf("[ERR] error reading response body: %v", err)
+		}
 	}
 }
 
@@ -263,12 +473,12 @@ func (c *Client) Head(url string) (*http.Response, error) {
 }
 
 // Post is a shortcut for doing a POST request without making a new client.
-func Post(url, bodyType string, body io.ReadSeeker) (*http.Response, error) {
+func Post(url, bodyType string, body interface{}) (*http.Response, error) {
 	return defaultClient.Post(url, bodyType, body)
 }
 
 // Post is a convenience method for doing simple POST requests.
-func (c *Client) Post(url, bodyType string, body io.ReadSeeker) (*http.Response, error) {
+func (c *Client) Post(url, bodyType string, body interface{}) (*http.Response, error) {
 	req, err := NewRequest("POST", url, body)
 	if err != nil {
 		return nil, err
@@ -287,16 +497,4 @@ func PostForm(url string, data url.Values) (*http.Response, error) {
 // pre-filled url.Values form data.
 func (c *Client) PostForm(url string, data url.Values) (*http.Response, error) {
 	return c.Post(url, "application/x-www-form-urlencoded", strings.NewReader(data.Encode()))
-}
-
-// backoff is used to calculate how long to sleep before retrying
-// after observing failures. It takes the minimum/maximum wait time and
-// iteration, and returns the duration to wait.
-func backoff(min, max time.Duration, iter int) time.Duration {
-	mult := math.Pow(2, float64(iter)) * float64(min)
-	sleep := time.Duration(mult)
-	if float64(sleep) != mult || sleep > max {
-		sleep = max
-	}
-	return sleep
 }
