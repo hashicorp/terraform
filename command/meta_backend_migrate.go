@@ -382,8 +382,10 @@ func (m *Meta) backendMigrateState_s_s(opts *backendMigrateOpts) error {
 		}
 	}
 
-	// Confirmed! Write.
-	if err := stateTwo.WriteState(one); err != nil {
+	// Confirmed! We'll have the statemgr package handle the migration, which
+	// includes preserving any lineage/serial information where possible, if
+	// both managers support such metadata.
+	if err := statemgr.Migrate(stateTwo, stateOne); err != nil {
 		return fmt.Errorf(strings.TrimSpace(errBackendStateCopy),
 			opts.OneType, opts.TwoType, err)
 	}
