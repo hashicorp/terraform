@@ -44,6 +44,37 @@ func testResourceNestedSet() *schema.Resource {
 					},
 				},
 			},
+			"multi": {
+				Type:     schema.TypeSet,
+				Optional: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"set": {
+							Type:     schema.TypeSet,
+							Optional: true,
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"required": {
+										Type:     schema.TypeString,
+										Required: true,
+										ForceNew: true,
+									},
+									"optional_int": {
+										Type:     schema.TypeInt,
+										Optional: true,
+									},
+								},
+							},
+						},
+
+						"optional": {
+							Type:     schema.TypeString,
+							ForceNew: true,
+							Optional: true,
+						},
+					},
+				},
+			},
 		},
 	}
 }
