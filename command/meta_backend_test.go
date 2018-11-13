@@ -326,24 +326,23 @@ func TestMetaBackend_configureNewWithState(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %s", err)
 	}
-	if err := s.RefreshState(); err != nil {
+	state, err := statemgr.RefreshAndRead(s)
+	if err != nil {
 		t.Fatalf("unexpected error: %s", err)
 	}
-	state := s.State()
 	if state == nil {
 		t.Fatal("state is nil")
 	}
 
-	if testStateMgrCurrentLineage(s) != "backend-new-migrate" {
-		t.Fatalf("bad: %#v", state)
+	if got, want := testStateMgrCurrentLineage(s), "backend-new-migrate"; got != want {
+		t.Fatalf("lineage changed during migration\nnow: %s\nwas: %s", got, want)
 	}
 
 	// Write some state
 	state = states.NewState()
 	mark := markStateForMatching(state, "changing")
 
-	s.WriteState(state)
-	if err := s.PersistState(); err != nil {
+	if err := statemgr.WriteAndPersist(s, state); err != nil {
 		t.Fatalf("unexpected error: %s", err)
 	}
 
