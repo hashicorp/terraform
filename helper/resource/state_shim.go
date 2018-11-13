@@ -71,7 +71,7 @@ func shimNewState(newState *states.State, schemas *terraform.Schemas) (*terrafor
 			}
 
 			if resSchema == nil {
-				return nil, fmt.Errorf("mising resource schema for %q in %q", resType, providerType)
+				return nil, fmt.Errorf("missing resource schema for %q in %q", resType, providerType)
 			}
 
 			for key, i := range res.Instances {
