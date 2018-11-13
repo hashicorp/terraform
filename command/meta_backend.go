@@ -89,7 +89,7 @@ func (m *Meta) Backend(opts *BackendOpts) (backend.Enhanced, tfdiags.Diagnostics
 			return nil, diags
 		}
 
-		log.Printf("[INFO] command: backend initialized: %T", b)
+		log.Printf("[TRACE] Meta.Backend: instantiated backend of type %T", b)
 	}
 
 	// Setup the CLI opts we pass into backends that support it.
@@ -111,6 +111,7 @@ func (m *Meta) Backend(opts *BackendOpts) (backend.Enhanced, tfdiags.Diagnostics
 	// If the result of loading the backend is an enhanced backend,
 	// then return that as-is. This works even if b == nil (it will be !ok).
 	if enhanced, ok := b.(backend.Enhanced); ok {
+		log.Printf("[TRACE] Meta.Backend: backend %T supports operations", b)
 		return enhanced, nil
 	}
 
@@ -119,7 +120,7 @@ func (m *Meta) Backend(opts *BackendOpts) (backend.Enhanced, tfdiags.Diagnostics
 	// non-enhanced (if any) as the state backend.
 
 	if !opts.ForceLocal {
-		log.Printf("[INFO] command: backend %T is not enhanced, wrapping in local", b)
+		log.Printf("[TRACE] Meta.Backend: backend %T does not support operations, so wrapping it in a local backend", b)
 	}
 
 	// Build the local backend
@@ -290,18 +291,18 @@ func (m *Meta) backendConfig(opts *BackendOpts) (*configs.Backend, int, tfdiags.
 		}
 
 		if conf == nil {
-			log.Println("[INFO] command: no config, returning nil")
+			log.Println("[TRACE] Meta.Backend: no config given or present on disk, so returning nil config")
 			return nil, 0, nil
 		}
 
-		log.Println("[WARN] BackendOpts.Config not set, but config found")
+		log.Printf("[TRACE] Meta.Backend: BackendOpts.Config not set, so using settings loaded from %s", conf.DeclRange)
 		opts.Config = conf
 	}
 
 	c := opts.Config
 
 	if c == nil {
-		log.Println("[INFO] command: no explicit backend config")
+		log.Println("[TRACE] Meta.Backend: no explicit backend config, so returning nil config")
 		return nil, 0, nil
 	}
 
@@ -323,8 +324,11 @@ func (m *Meta) backendConfig(opts *BackendOpts) (*configs.Backend, int, tfdiags.
 
 	// If we have an override configuration body then we must apply it now.
 	if opts.ConfigOverride != nil {
+		log.Println("[TRACE] Meta.Backend: merging -backend-config=... CLI overrides into backend configuration")
 		configBody = configs.MergeBodies(configBody, opts.ConfigOverride)
 	}
+
+	log.Printf("[TRACE] Meta.Backend: built configuration for %q backend with hash value %d", c.Type, configHash)
 
 	// We'll shallow-copy configs.Backend here so that we can replace the
 	// body without affecting others that hold this reference.
@@ -382,8 +386,12 @@ func (m *Meta) backendFromConfig(opts *BackendOpts) (backend.Backend, tfdiags.Di
 	// Load the state, it must be non-nil for the tests below but can be empty
 	s := sMgr.State()
 	if s == nil {
-		log.Printf("[DEBUG] command: no data state file found for backend config")
+		log.Printf("[TRACE] Meta.Backend: backend has not previously been initialized in this working directory")
 		s = terraform.NewState()
+	} else if s.Backend != nil {
+		log.Printf("[TRACE] Meta.Backend: working directory was previously initialized for %q backend", s.Backend.Type)
+	} else {
+		log.Printf("[TRACE] Meta.Backend: working directory was previously initialized but has no backend (is using legacy remote state?)")
 	}
 
 	// if we want to force reconfiguration of the backend, we set the backend
@@ -418,10 +426,12 @@ func (m *Meta) backendFromConfig(opts *BackendOpts) (backend.Backend, tfdiags.Di
 	switch {
 	// No configuration set at all. Pure local state.
 	case c == nil && s.Backend.Empty():
+		log.Printf("[TRACE] Meta.Backend: using default local state only (no backend configuration, and no existing initialized backend)")
 		return nil, nil
 
 	// We're unsetting a backend (moving from backend => local)
 	case c == nil && !s.Backend.Empty():
+		log.Printf("[TRACE] Meta.Backend: previously-initialized %q backend is no longer present in config", s.Backend.Type)
 		if !opts.Init {
 			initReason := fmt.Sprintf(
 				"Unsetting the previously set backend %q",
@@ -435,6 +445,7 @@ func (m *Meta) backendFromConfig(opts *BackendOpts) (backend.Backend, tfdiags.Di
 
 	// Configuring a backend for the first time.
 	case c != nil && s.Backend.Empty():
+		log.Printf("[TRACE] Meta.Backend: moving from default local state only to %q backend", c.Type)
 		if !opts.Init {
 			initReason := fmt.Sprintf(
 				"Initial configuration of the requested backend %q",
@@ -451,8 +462,10 @@ func (m *Meta) backendFromConfig(opts *BackendOpts) (backend.Backend, tfdiags.Di
 		// If our configuration is the same, then we're just initializing
 		// a previously configured remote backend.
 		if !m.backendConfigNeedsMigration(c, s.Backend) {
+			log.Printf("[TRACE] Meta.Backend: using already-initialized %q backend configuration", c.Type)
 			return m.backend_C_r_S_unchanged(c, cHash, sMgr)
 		}
+		log.Printf("[TRACE] Meta.Backend: backend configuration has changed (from type %q to type %q)", s.Backend.Type, c.Type)
 
 		if !opts.Init {
 			initReason := fmt.Sprintf(
@@ -615,7 +628,10 @@ func (m *Meta) backend_C_r_s(c *configs.Backend, cHash int, sMgr *state.LocalSta
 
 		// We only care about non-empty states.
 		if localS := localState.State(); !localS.Empty() {
+			log.Printf("[TRACE] Meta.Backend: will need to migrate workspace states because of existing %q workspace", workspace)
 			localStates = append(localStates, localState)
+		} else {
+			log.Printf("[TRACE] Meta.Backend: ignoring local %q workspace because its state is empty", workspace)
 		}
 	}
 
