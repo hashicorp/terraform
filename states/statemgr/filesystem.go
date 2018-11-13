@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"log"
 	"os"
 	"path/filepath"
 	"sync"
@@ -62,6 +63,7 @@ type Filesystem struct {
 var (
 	_ Full           = (*Filesystem)(nil)
 	_ PersistentMeta = (*Filesystem)(nil)
+	_ Migrator       = (*Filesystem)(nil)
 )
 
 // NewFilesystem creates a filesystem-based state manager that reads and writes
@@ -121,9 +123,6 @@ func (s *Filesystem) State() *states.State {
 
 // WriteState is an incorrect implementation of Writer that actually also
 // persists.
-// WriteState for LocalState always persists the state as well.
-//
-// StateWriter impl.
 func (s *Filesystem) WriteState(state *states.State) error {
 	// TODO: this should use a more robust method of writing state, by first
 	// writing to a temp file on the same filesystem, and renaming the file over
@@ -137,7 +136,10 @@ func (s *Filesystem) WriteState(state *states.State) error {
 	}
 
 	defer s.mutex()()
+	return s.writeState(state, nil)
+}
 
+func (s *Filesystem) writeState(state *states.State, meta *SnapshotMeta) error {
 	// We'll try to write our backup first, so we can be sure we've created
 	// it successfully before clobbering the original file it came from.
 	if !s.writtenBackup && s.backupFile != nil && s.backupPath != "" && !statefile.StatesMarshalEqual(state, s.backupFile.State) {
@@ -180,8 +182,14 @@ func (s *Filesystem) WriteState(state *states.State) error {
 		return nil
 	}
 
-	if s.readFile == nil || !statefile.StatesMarshalEqual(s.file.State, s.readFile.State) {
-		s.file.Serial++
+	if meta == nil {
+		if s.readFile == nil || !statefile.StatesMarshalEqual(s.file.State, s.readFile.State) {
+			s.file.Serial++
+		}
+	} else {
+		// Force new metadata
+		s.file.Lineage = meta.Lineage
+		s.file.Serial = meta.Serial
 	}
 
 	if err := statefile.Write(s.file, s.stateFileOut); err != nil {
@@ -343,6 +351,51 @@ func (s *Filesystem) StateSnapshotMeta() SnapshotMeta {
 
 		TerraformVersion: s.file.TerraformVersion,
 	}
+}
+
+// StateForMigration is part of our implementation of Migrator.
+func (s *Filesystem) StateForMigration() *statefile.File {
+	return s.file.DeepCopy()
+}
+
+// WriteStateForMigration is part of our implementation of Migrator.
+func (s *Filesystem) WriteStateForMigration(f *statefile.File, force bool) error {
+	if s.readFile == nil {
+		err := s.RefreshState()
+		if err != nil {
+			return err
+		}
+	}
+	defer s.mutex()()
+
+	if !force {
+		err := CheckValidImport(f, s.readFile)
+		if err != nil {
+			return err
+		}
+	}
+
+	if s.readFile != nil {
+		log.Printf(
+			"[TRACE] statemgr.Filesystem: Importing snapshot with lineage %q serial %d over snapshot with lineage %q serial %d at %s",
+			f.Lineage, f.Serial,
+			s.readFile.Lineage, s.readFile.Serial,
+			s.path,
+		)
+	} else {
+		log.Printf(
+			"[TRACE] statemgr.Filesystem: Importing snapshot with lineage %q serial %d as the initial state snapshot at %s",
+			f.Lineage, f.Serial,
+			s.path,
+		)
+	}
+
+	err := s.writeState(f.State, &SnapshotMeta{Lineage: f.Lineage, Serial: f.Serial})
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // Open the state file, creating the directories and file as needed.

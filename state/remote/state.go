@@ -28,6 +28,7 @@ type State struct {
 }
 
 var _ statemgr.Full = (*State)(nil)
+var _ statemgr.Migrator = (*State)(nil)
 
 // statemgr.Reader impl.
 func (s *State) State() *states.State {
@@ -35,6 +36,14 @@ func (s *State) State() *states.State {
 	defer s.mu.Unlock()
 
 	return s.state.DeepCopy()
+}
+
+// StateForMigration is part of our implementation of statemgr.Migrator.
+func (s *State) StateForMigration() *statefile.File {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	return statefile.New(s.state.DeepCopy(), s.lineage, s.serial)
 }
 
 // statemgr.Writer impl.
@@ -46,6 +55,28 @@ func (s *State) WriteState(state *states.State) error {
 	// a reference to the given object and can potentially go on to mutate
 	// it after we return, but we want the snapshot at this point in time.
 	s.state = state.DeepCopy()
+
+	return nil
+}
+
+// WriteStateForMigration is part of our implementation of statemgr.Migrator.
+func (s *State) WriteStateForMigration(f *statefile.File, force bool) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	checkFile := statefile.New(s.state, s.lineage, s.serial)
+	if !force {
+		if err := statemgr.CheckValidImport(f, checkFile); err != nil {
+			return err
+		}
+	}
+
+	// We create a deep copy of the state here, because the caller also has
+	// a reference to the given object and can potentially go on to mutate
+	// it after we return, but we want the snapshot at this point in time.
+	s.state = f.State.DeepCopy()
+	s.lineage = f.Lineage
+	s.serial = f.Serial
 
 	return nil
 }
