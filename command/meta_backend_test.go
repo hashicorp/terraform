@@ -207,7 +207,7 @@ func TestMetaBackend_emptyWithExplicitState(t *testing.T) {
 	// Write some state
 	next := testState()
 	markStateForMatching(next, "bar") // just any change so it shows as different than before
-	s.WriteState(testState())
+	s.WriteState(next)
 	if err := s.PersistState(); err != nil {
 		t.Fatalf("unexpected error: %s", err)
 	}
