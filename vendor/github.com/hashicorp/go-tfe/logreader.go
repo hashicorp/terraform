@@ -63,8 +63,13 @@ func (r *LogReader) read(l []byte) (int, error) {
 	}
 	req = req.WithContext(r.ctx)
 
+	// Attach the default headers.
+	for k, v := range r.client.headers {
+		req.Header[k] = v
+	}
+
 	// Retrieve the next chunk.
-	resp, err := r.client.http.Do(req)
+	resp, err := r.client.http.HTTPClient.Do(req)
 	if err != nil {
 		return 0, err
 	}

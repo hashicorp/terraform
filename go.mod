@@ -45,7 +45,6 @@ require (
 	github.com/golang/protobuf v1.2.0
 	github.com/google/btree v0.0.0-20180813153112-4030bb1f1f0c // indirect
 	github.com/google/go-cmp v0.2.0
-	github.com/google/go-querystring v1.0.0 // indirect
 	github.com/googleapis/gax-go v0.0.0-20161107002406-da06d194a00e // indirect
 	github.com/gophercloud/gophercloud v0.0.0-20170524130959-3027adb1ce72
 	github.com/gopherjs/gopherjs v0.0.0-20181004151105-1babbf986f6f // indirect
@@ -56,19 +55,18 @@ require (
 	github.com/hashicorp/consul v0.0.0-20171026175957-610f3c86a089
 	github.com/hashicorp/errwrap v1.0.0
 	github.com/hashicorp/go-checkpoint v0.0.0-20171009173528-1545e56e46de
-	github.com/hashicorp/go-cleanhttp v0.0.0-20171130225243-06c9ea3a335b
+	github.com/hashicorp/go-cleanhttp v0.5.0
 	github.com/hashicorp/go-getter v0.0.0-20180327010114-90bb99a48d86
 	github.com/hashicorp/go-hclog v0.0.0-20181001195459-61d530d6c27f
 	github.com/hashicorp/go-immutable-radix v0.0.0-20180129170900-7f3cd4390caa // indirect
 	github.com/hashicorp/go-msgpack v0.0.0-20150518234257-fa3f63826f7c // indirect
 	github.com/hashicorp/go-multierror v1.0.0
 	github.com/hashicorp/go-plugin v0.0.0-20181002195811-1faddcf740b6
-	github.com/hashicorp/go-retryablehttp v0.0.0-20160930035102-6e85be8fee1d
+	github.com/hashicorp/go-retryablehttp v0.0.0-20180718195005-e651d75abec6
 	github.com/hashicorp/go-rootcerts v0.0.0-20160503143440-6bb64b370b90
 	github.com/hashicorp/go-safetemp v0.0.0-20180326211150-b1a1dbde6fdc // indirect
-	github.com/hashicorp/go-slug v0.1.0 // indirect
 	github.com/hashicorp/go-sockaddr v0.0.0-20180320115054-6d291a969b86 // indirect
-	github.com/hashicorp/go-tfe v0.2.6
+	github.com/hashicorp/go-tfe v0.2.9
 	github.com/hashicorp/go-uuid v1.0.0
 	github.com/hashicorp/go-version v0.0.0-20180322230233-23480c066577
 	github.com/hashicorp/golang-lru v0.5.0 // indirect
@@ -121,7 +119,6 @@ require (
 	github.com/smartystreets/goconvey v0.0.0-20180222194500-ef6db91d284a // indirect
 	github.com/soheilhy/cmux v0.1.4 // indirect
 	github.com/spf13/afero v1.0.2
-	github.com/svanharmelen/jsonapi v0.0.0-20180618144545-0c0828c3f16d // indirect
 	github.com/terraform-providers/terraform-provider-aws v1.41.0
 	github.com/terraform-providers/terraform-provider-openstack v0.0.0-20170616075611-4080a521c6ea
 	github.com/terraform-providers/terraform-provider-template v1.0.0 // indirect
@@ -142,7 +139,6 @@ require (
 	golang.org/x/net v0.0.0-20181017193950-04a2e542c03f
 	golang.org/x/oauth2 v0.0.0-20181003184128-c57b0facaced
 	golang.org/x/sys v0.0.0-20180925112736-b09afc3d579e // indirect
-	golang.org/x/time v0.0.0-20180412165947-fbb02b2291d2 // indirect
 	google.golang.org/api v0.0.0-20181015145326-625cd1887957
 	google.golang.org/appengine v1.2.0 // indirect
 	google.golang.org/grpc v1.14.0

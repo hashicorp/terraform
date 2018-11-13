@@ -67,10 +67,10 @@ type StateVersionListOptions struct {
 
 func (o StateVersionListOptions) valid() error {
 	if !validString(o.Organization) {
-		return errors.New("Organization is required")
+		return errors.New("organization is required")
 	}
 	if !validString(o.Workspace) {
-		return errors.New("Workspace is required")
+		return errors.New("workspace is required")
 	}
 	return nil
 }
@@ -121,10 +121,10 @@ func (o StateVersionCreateOptions) valid() error {
 		return errors.New("MD5 is required")
 	}
 	if o.Serial == nil {
-		return errors.New("Serial is required")
+		return errors.New("serial is required")
 	}
 	if !validString(o.State) {
-		return errors.New("State is required")
+		return errors.New("state is required")
 	}
 	return nil
 }
@@ -132,7 +132,7 @@ func (o StateVersionCreateOptions) valid() error {
 // Create a new state version for the given workspace.
 func (s *stateVersions) Create(ctx context.Context, workspaceID string, options StateVersionCreateOptions) (*StateVersion, error) {
 	if !validStringID(&workspaceID) {
-		return nil, errors.New("Invalid value for workspace ID")
+		return nil, errors.New("invalid value for workspace ID")
 	}
 	if err := options.valid(); err != nil {
 		return nil, err
@@ -159,7 +159,7 @@ func (s *stateVersions) Create(ctx context.Context, workspaceID string, options 
 // Read a state version by its ID.
 func (s *stateVersions) Read(ctx context.Context, svID string) (*StateVersion, error) {
 	if !validStringID(&svID) {
-		return nil, errors.New("Invalid value for state version ID")
+		return nil, errors.New("invalid value for state version ID")
 	}
 
 	u := fmt.Sprintf("state-versions/%s", url.QueryEscape(svID))
@@ -180,7 +180,7 @@ func (s *stateVersions) Read(ctx context.Context, svID string) (*StateVersion, e
 // Current reads the latest available state from the given workspace.
 func (s *stateVersions) Current(ctx context.Context, workspaceID string) (*StateVersion, error) {
 	if !validStringID(&workspaceID) {
-		return nil, errors.New("Invalid value for workspace ID")
+		return nil, errors.New("invalid value for workspace ID")
 	}
 
 	u := fmt.Sprintf("workspaces/%s/current-state-version", url.QueryEscape(workspaceID))

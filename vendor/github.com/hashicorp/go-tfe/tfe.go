@@ -7,30 +7,37 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
+	"math/rand"
 	"net/http"
 	"net/url"
 	"os"
 	"reflect"
+	"strconv"
 	"strings"
+	"time"
 
 	"github.com/google/go-querystring/query"
 	"github.com/hashicorp/go-cleanhttp"
+	retryablehttp "github.com/hashicorp/go-retryablehttp"
 	"github.com/svanharmelen/jsonapi"
+	"golang.org/x/time/rate"
 )
 
 const (
+	userAgent       = "go-tfe"
+	headerRateLimit = "X-RateLimit-Limit"
+	headerRateReset = "X-RateLimit-Reset"
+
 	// DefaultAddress of Terraform Enterprise.
 	DefaultAddress = "https://app.terraform.io"
 	// DefaultBasePath on which the API is served.
 	DefaultBasePath = "/api/v2/"
 )
 
-const (
-	userAgent = "go-tfe"
-)
-
 var (
+	// random is used to generate pseudo-random numbers.
+	random = rand.New(rand.NewSource(time.Now().UnixNano()))
+
 	// ErrUnauthorized is returned when a receiving a 401.
 	ErrUnauthorized = errors.New("unauthorized")
 	// ErrResourceNotFound is returned when a receiving a 404.
@@ -82,7 +89,8 @@ type Client struct {
 	baseURL *url.URL
 	token   string
 	headers http.Header
-	http    *http.Client
+	http    *retryablehttp.Client
+	limiter *rate.Limiter
 
 	Applies               Applies
 	ConfigurationVersions ConfigurationVersions
@@ -93,6 +101,7 @@ type Client struct {
 	Plans                 Plans
 	Policies              Policies
 	PolicyChecks          PolicyChecks
+	PolicySets            PolicySets
 	Runs                  Runs
 	SSHKeys               SSHKeys
 	StateVersions         StateVersions
@@ -131,7 +140,7 @@ func NewClient(cfg *Config) (*Client, error) {
 	// Parse the address to make sure its a valid URL.
 	baseURL, err := url.Parse(config.Address)
 	if err != nil {
-		return nil, fmt.Errorf("Invalid address: %v", err)
+		return nil, fmt.Errorf("invalid address: %v", err)
 	}
 
 	baseURL.Path = config.BasePath
@@ -141,7 +150,7 @@ func NewClient(cfg *Config) (*Client, error) {
 
 	// This value must be provided by the user.
 	if config.Token == "" {
-		return nil, fmt.Errorf("Missing API token")
+		return nil, fmt.Errorf("missing API token")
 	}
 
 	// Create the client.
@@ -149,7 +158,20 @@ func NewClient(cfg *Config) (*Client, error) {
 		baseURL: baseURL,
 		token:   config.Token,
 		headers: config.Headers,
-		http:    config.HTTPClient,
+		http: &retryablehttp.Client{
+			Backoff:      rateLimitBackoff,
+			CheckRetry:   rateLimitRetry,
+			ErrorHandler: retryablehttp.PassthroughErrorHandler,
+			HTTPClient:   config.HTTPClient,
+			RetryWaitMin: 100 * time.Millisecond,
+			RetryWaitMax: 300 * time.Millisecond,
+			RetryMax:     5,
+		},
+	}
+
+	// Configure the rate limiter.
+	if err := client.configureLimiter(); err != nil {
+		return nil, err
 	}
 
 	// Create the services.
@@ -162,6 +184,7 @@ func NewClient(cfg *Config) (*Client, error) {
 	client.Plans = &plans{client: client}
 	client.Policies = &policies{client: client}
 	client.PolicyChecks = &policyChecks{client: client}
+	client.PolicySets = &policySets{client: client}
 	client.Runs = &runs{client: client}
 	client.SSHKeys = &sshKeys{client: client}
 	client.StateVersions = &stateVersions{client: client}
@@ -174,6 +197,96 @@ func NewClient(cfg *Config) (*Client, error) {
 	client.Workspaces = &workspaces{client: client}
 
 	return client, nil
+}
+
+// rateLimitRetry provides a callback for Client.CheckRetry, which will only
+// retry when receiving a 429 response which indicates being rate limited.
+func rateLimitRetry(ctx context.Context, resp *http.Response, err error) (bool, error) {
+	// Do not retry on context.Canceled or context.DeadlineExceeded.
+	if ctx.Err() != nil {
+		return false, ctx.Err()
+	}
+	// Do not retry on any unexpected errors.
+	if err != nil {
+		return false, err
+	}
+	// Only retry when we are rate limited.
+	if resp.StatusCode == 429 {
+		return true, nil
+	}
+	return false, nil
+}
+
+// rateLimitBackoff provides a callback for Client.Backoff which will use the
+// X-RateLimit_Reset header to determine the time to wait. We add some jitter
+// to prevent a thundering herd.
+//
+// min and max are mainly used for bounding the jitter that will be added to
+// the reset time retrieved from the headers. But if the final wait time is
+// less then min, min will be used instead.
+func rateLimitBackoff(min, max time.Duration, attemptNum int, resp *http.Response) time.Duration {
+	// First create some jitter bounded by the min and max durations.
+	jitter := time.Duration(rand.Float64() * float64(max-min))
+
+	if resp != nil {
+		if v := resp.Header.Get(headerRateReset); v != "" {
+			if reset, _ := strconv.ParseFloat(v, 64); reset > 0 {
+				// Only update min if the given time to wait is longer.
+				if wait := time.Duration(reset * 1e9); wait > min {
+					min = wait
+				}
+			}
+		}
+	}
+
+	return min + jitter
+}
+
+// configureLimiter configures the rate limiter.
+func (c *Client) configureLimiter() error {
+	u, err := c.baseURL.Parse("/")
+	if err != nil {
+		return err
+	}
+
+	// Create a new request.
+	req, err := http.NewRequest("GET", u.String(), nil)
+	if err != nil {
+		return err
+	}
+
+	// Attach the default headers.
+	for k, v := range c.headers {
+		req.Header[k] = v
+	}
+
+	// Make a single request to retrieve the rate limit headers.
+	resp, err := c.http.HTTPClient.Do(req)
+	if err != nil {
+		return err
+	}
+	resp.Body.Close()
+
+	// Set default values for when rate limiting is disabled.
+	limit := rate.Inf
+	burst := 0
+
+	if v := resp.Header.Get(headerRateLimit); v != "" {
+		if rateLimit, _ := strconv.ParseFloat(v, 64); rateLimit > 0 {
+			// Configure the limit and burst using a split of 2/3 for the limit and
+			// 1/3 for the burst. This enables clients to burst 1/3 of the allowed
+			// calls before the limiter kicks in. The remaining calls will then be
+			// spread out evenly using intervals of time.Second / limit which should
+			// prevent hitting the rate limit.
+			limit = rate.Limit(rateLimit * 0.66)
+			burst = int(rateLimit * 0.33)
+		}
+	}
+
+	// Create a new limiter using the calculated values.
+	c.limiter = rate.NewLimiter(limit, burst)
+
+	return nil
 }
 
 // ListOptions is used to specify pagination options when making API requests.
@@ -202,30 +315,20 @@ type Pagination struct {
 // If v is supplied, the value will be JSONAPI encoded and included as the
 // request body. If the method is GET, the value will be parsed and added as
 // query parameters.
-func (c *Client) newRequest(method, path string, v interface{}) (*http.Request, error) {
+func (c *Client) newRequest(method, path string, v interface{}) (*retryablehttp.Request, error) {
 	u, err := c.baseURL.Parse(path)
 	if err != nil {
 		return nil, err
 	}
 
-	req := &http.Request{
-		Method:     method,
-		URL:        u,
-		Proto:      "HTTP/1.1",
-		ProtoMajor: 1,
-		ProtoMinor: 1,
-		Header:     make(http.Header),
-		Host:       u.Host,
-	}
+	// Create a request specific headers map.
+	reqHeaders := make(http.Header)
+	reqHeaders.Set("Authorization", "Bearer "+c.token)
 
-	// Set default headers.
-	for k, v := range c.headers {
-		req.Header[k] = v
-	}
-
+	var body interface{}
 	switch method {
 	case "GET":
-		req.Header.Set("Accept", "application/vnd.api+json")
+		reqHeaders.Set("Accept", "application/vnd.api+json")
 
 		if v != nil {
 			q, err := query.Values(v)
@@ -235,37 +338,36 @@ func (c *Client) newRequest(method, path string, v interface{}) (*http.Request, 
 			u.RawQuery = q.Encode()
 		}
 	case "DELETE", "PATCH", "POST":
-		req.Header.Set("Accept", "application/vnd.api+json")
-		req.Header.Set("Content-Type", "application/vnd.api+json")
+		reqHeaders.Set("Accept", "application/vnd.api+json")
+		reqHeaders.Set("Content-Type", "application/vnd.api+json")
 
 		if v != nil {
-			var body bytes.Buffer
-			if err := jsonapi.MarshalPayloadWithoutIncluded(&body, v); err != nil {
+			buf := bytes.NewBuffer(nil)
+			if err := jsonapi.MarshalPayloadWithoutIncluded(buf, v); err != nil {
 				return nil, err
 			}
-			req.Body = ioutil.NopCloser(&body)
-			req.ContentLength = int64(body.Len())
+			body = buf
 		}
 	case "PUT":
-		req.Header.Set("Accept", "application/json")
-		req.Header.Set("Content-Type", "application/octet-stream")
-
-		if v != nil {
-			switch v := v.(type) {
-			case *bytes.Buffer:
-				req.Body = ioutil.NopCloser(v)
-				req.ContentLength = int64(v.Len())
-			case []byte:
-				req.Body = ioutil.NopCloser(bytes.NewReader(v))
-				req.ContentLength = int64(len(v))
-			default:
-				return nil, fmt.Errorf("Unexpected type: %T", v)
-			}
-		}
+		reqHeaders.Set("Accept", "application/json")
+		reqHeaders.Set("Content-Type", "application/octet-stream")
+		body = v
 	}
 
-	// Set the authorization header.
-	req.Header.Set("Authorization", "Bearer "+c.token)
+	req, err := retryablehttp.NewRequest(method, u.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	// Set the default headers.
+	for k, v := range c.headers {
+		req.Header[k] = v
+	}
+
+	// Set the request specific headers.
+	for k, v := range reqHeaders {
+		req.Header[k] = v
+	}
 
 	return req, nil
 }
@@ -279,7 +381,13 @@ func (c *Client) newRequest(method, path string, v interface{}) (*http.Request, 
 //
 // The provided ctx must be non-nil. If it is canceled or times out, ctx.Err()
 // will be returned.
-func (c *Client) do(ctx context.Context, req *http.Request, v interface{}) error {
+func (c *Client) do(ctx context.Context, req *retryablehttp.Request, v interface{}) error {
+	// Wait will block until the limiter can obtain a new token
+	// or returns an error if the given context is canceled.
+	if err := c.limiter.Wait(ctx); err != nil {
+		return err
+	}
+
 	// Add the context to the request.
 	req = req.WithContext(ctx)
 

@@ -136,7 +136,7 @@ type RunListOptions struct {
 // List all the runs of the given workspace.
 func (s *runs) List(ctx context.Context, workspaceID string, options RunListOptions) (*RunList, error) {
 	if !validStringID(&workspaceID) {
-		return nil, errors.New("Invalid value for workspace ID")
+		return nil, errors.New("invalid value for workspace ID")
 	}
 
 	u := fmt.Sprintf("workspaces/%s/runs", url.QueryEscape(workspaceID))
@@ -177,7 +177,7 @@ type RunCreateOptions struct {
 
 func (o RunCreateOptions) valid() error {
 	if o.Workspace == nil {
-		return errors.New("Workspace is required")
+		return errors.New("workspace is required")
 	}
 	return nil
 }
@@ -208,7 +208,7 @@ func (s *runs) Create(ctx context.Context, options RunCreateOptions) (*Run, erro
 // Read a run by its ID.
 func (s *runs) Read(ctx context.Context, runID string) (*Run, error) {
 	if !validStringID(&runID) {
-		return nil, errors.New("Invalid value for run ID")
+		return nil, errors.New("invalid value for run ID")
 	}
 
 	u := fmt.Sprintf("runs/%s", url.QueryEscape(runID))
@@ -235,7 +235,7 @@ type RunApplyOptions struct {
 // Apply a run by its ID.
 func (s *runs) Apply(ctx context.Context, runID string, options RunApplyOptions) error {
 	if !validStringID(&runID) {
-		return errors.New("Invalid value for run ID")
+		return errors.New("invalid value for run ID")
 	}
 
 	u := fmt.Sprintf("runs/%s/actions/apply", url.QueryEscape(runID))
@@ -256,7 +256,7 @@ type RunCancelOptions struct {
 // Cancel a run by its ID.
 func (s *runs) Cancel(ctx context.Context, runID string, options RunCancelOptions) error {
 	if !validStringID(&runID) {
-		return errors.New("Invalid value for run ID")
+		return errors.New("invalid value for run ID")
 	}
 
 	u := fmt.Sprintf("runs/%s/actions/cancel", url.QueryEscape(runID))
@@ -277,7 +277,7 @@ type RunForceCancelOptions struct {
 // ForceCancel is used to forcefully cancel a run by its ID.
 func (s *runs) ForceCancel(ctx context.Context, runID string, options RunForceCancelOptions) error {
 	if !validStringID(&runID) {
-		return errors.New("Invalid value for run ID")
+		return errors.New("invalid value for run ID")
 	}
 
 	u := fmt.Sprintf("runs/%s/actions/force-cancel", url.QueryEscape(runID))
@@ -298,7 +298,7 @@ type RunDiscardOptions struct {
 // Discard a run by its ID.
 func (s *runs) Discard(ctx context.Context, runID string, options RunDiscardOptions) error {
 	if !validStringID(&runID) {
-		return errors.New("Invalid value for run ID")
+		return errors.New("invalid value for run ID")
 	}
 
 	u := fmt.Sprintf("runs/%s/actions/discard", url.QueryEscape(runID))

@@ -147,13 +147,13 @@ type OrganizationCreateOptions struct {
 
 func (o OrganizationCreateOptions) valid() error {
 	if !validString(o.Name) {
-		return errors.New("Name is required")
+		return errors.New("name is required")
 	}
 	if !validStringID(o.Name) {
-		return errors.New("Invalid value for name")
+		return errors.New("invalid value for name")
 	}
 	if !validString(o.Email) {
-		return errors.New("Email is required")
+		return errors.New("email is required")
 	}
 	return nil
 }
@@ -184,7 +184,7 @@ func (s *organizations) Create(ctx context.Context, options OrganizationCreateOp
 // Read an organization by its name.
 func (s *organizations) Read(ctx context.Context, organization string) (*Organization, error) {
 	if !validStringID(&organization) {
-		return nil, errors.New("Invalid value for organization")
+		return nil, errors.New("invalid value for organization")
 	}
 
 	u := fmt.Sprintf("organizations/%s", url.QueryEscape(organization))
@@ -226,7 +226,7 @@ type OrganizationUpdateOptions struct {
 // Update attributes of an existing organization.
 func (s *organizations) Update(ctx context.Context, organization string, options OrganizationUpdateOptions) (*Organization, error) {
 	if !validStringID(&organization) {
-		return nil, errors.New("Invalid value for organization")
+		return nil, errors.New("invalid value for organization")
 	}
 
 	// Make sure we don't send a user provided ID.
@@ -250,7 +250,7 @@ func (s *organizations) Update(ctx context.Context, organization string, options
 // Delete an organization by its name.
 func (s *organizations) Delete(ctx context.Context, organization string) error {
 	if !validStringID(&organization) {
-		return errors.New("Invalid value for organization")
+		return errors.New("invalid value for organization")
 	}
 
 	u := fmt.Sprintf("organizations/%s", url.QueryEscape(organization))
@@ -265,7 +265,7 @@ func (s *organizations) Delete(ctx context.Context, organization string) error {
 // Capacity shows the currently used capacity of an organization.
 func (s *organizations) Capacity(ctx context.Context, organization string) (*Capacity, error) {
 	if !validStringID(&organization) {
-		return nil, errors.New("Invalid value for organization")
+		return nil, errors.New("invalid value for organization")
 	}
 
 	u := fmt.Sprintf("organizations/%s/capacity", url.QueryEscape(organization))
@@ -291,7 +291,7 @@ type RunQueueOptions struct {
 // RunQueue shows the current run queue of an organization.
 func (s *organizations) RunQueue(ctx context.Context, organization string, options RunQueueOptions) (*RunQueue, error) {
 	if !validStringID(&organization) {
-		return nil, errors.New("Invalid value for organization")
+		return nil, errors.New("invalid value for organization")
 	}
 
 	u := fmt.Sprintf("organizations/%s/runs/queue", url.QueryEscape(organization))
