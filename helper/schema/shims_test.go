@@ -599,6 +599,7 @@ func TestShimSchemaMap_Diff(t *testing.T) {
 			},
 
 			State: &terraform.InstanceState{
+				ID: "id",
 				Attributes: map[string]string{
 					"availability_zone": "foo",
 				},
@@ -901,6 +902,7 @@ func TestShimSchemaMap_Diff(t *testing.T) {
 			},
 
 			State: &terraform.InstanceState{
+				ID: "id",
 				Attributes: map[string]string{
 					"delete": "false",
 				},
@@ -952,43 +954,6 @@ func TestShimSchemaMap_Diff(t *testing.T) {
 
 			Err: false,
 		},
-
-		/*
-			// disabled for shims
-			// there is no longer any "list promotion"
-			{
-				Name: "List decode with promotion",
-				Schema: map[string]*Schema{
-					"ports": &Schema{
-						Type:          TypeList,
-						Required:      true,
-						Elem:          &Schema{Type: TypeInt},
-						PromoteSingle: true,
-					},
-				},
-
-				State: nil,
-
-				Config: map[string]interface{}{
-					"ports": "5",
-				},
-
-				Diff: &terraform.InstanceDiff{
-					Attributes: map[string]*terraform.ResourceAttrDiff{
-						"ports.#": &terraform.ResourceAttrDiff{
-							Old: "0",
-							New: "1",
-						},
-						"ports.0": &terraform.ResourceAttrDiff{
-							Old: "",
-							New: "5",
-						},
-					},
-				},
-
-				Err: false,
-			},
-		*/
 
 		{
 			Name: "List decode with promotion with list",
@@ -1109,6 +1074,7 @@ func TestShimSchemaMap_Diff(t *testing.T) {
 			},
 
 			State: &terraform.InstanceState{
+				ID: "id",
 				Attributes: map[string]string{
 					"ports.#": "3",
 					"ports.0": "1",
@@ -1137,6 +1103,7 @@ func TestShimSchemaMap_Diff(t *testing.T) {
 			},
 
 			State: &terraform.InstanceState{
+				ID: "id",
 				Attributes: map[string]string{
 					"ports.#": "2",
 					"ports.0": "1",
@@ -1353,6 +1320,7 @@ func TestShimSchemaMap_Diff(t *testing.T) {
 			},
 
 			State: &terraform.InstanceState{
+				ID: "id",
 				Attributes: map[string]string{
 					"ports.#": "0",
 				},
@@ -1493,6 +1461,7 @@ func TestShimSchemaMap_Diff(t *testing.T) {
 			},
 
 			State: &terraform.InstanceState{
+				ID: "id",
 				Attributes: map[string]string{
 					"ports.#": "2",
 					"ports.1": "1",
@@ -1528,55 +1497,6 @@ func TestShimSchemaMap_Diff(t *testing.T) {
 			Err: false,
 		},
 
-		/*
-			// disabled for shims
-			// you can't remove a required attribute
-			{
-				Name: "Set-7",
-				Schema: map[string]*Schema{
-					"ports": &Schema{
-						Type:     TypeSet,
-						Required: true,
-						Elem:     &Schema{Type: TypeInt},
-						Set: func(a interface{}) int {
-							return a.(int)
-						},
-					},
-				},
-
-				State: &terraform.InstanceState{
-					Attributes: map[string]string{
-						"ports.#": "2",
-						"ports.1": "1",
-						"ports.2": "2",
-					},
-				},
-
-				Config: map[string]interface{}{},
-
-				Diff: &terraform.InstanceDiff{
-					Attributes: map[string]*terraform.ResourceAttrDiff{
-						"ports.#": &terraform.ResourceAttrDiff{
-							Old: "2",
-							New: "0",
-						},
-						"ports.1": &terraform.ResourceAttrDiff{
-							Old:        "1",
-							New:        "0",
-							NewRemoved: true,
-						},
-						"ports.2": &terraform.ResourceAttrDiff{
-							Old:        "2",
-							New:        "0",
-							NewRemoved: true,
-						},
-					},
-				},
-
-				Err: false,
-			},
-		*/
-
 		{
 			Name: "Set-8",
 			Schema: map[string]*Schema{
@@ -1592,6 +1512,7 @@ func TestShimSchemaMap_Diff(t *testing.T) {
 			},
 
 			State: &terraform.InstanceState{
+				ID: "id",
 				Attributes: map[string]string{
 					"availability_zone": "bar",
 					"ports.#":           "1",
@@ -1634,6 +1555,7 @@ func TestShimSchemaMap_Diff(t *testing.T) {
 			},
 
 			State: &terraform.InstanceState{
+				ID: "id",
 				Attributes: map[string]string{
 					"ingress.#":           "2",
 					"ingress.80.ports.#":  "1",
@@ -1718,6 +1640,7 @@ func TestShimSchemaMap_Diff(t *testing.T) {
 			},
 
 			State: &terraform.InstanceState{
+				ID: "id",
 				Attributes: map[string]string{
 					"availability_zone": "foo",
 					"port":              "80",
@@ -1734,7 +1657,42 @@ func TestShimSchemaMap_Diff(t *testing.T) {
 		},
 
 		{
-			Name: "",
+			Name: "computed",
+			Schema: map[string]*Schema{
+				"availability_zone": &Schema{
+					Type:         TypeString,
+					Computed:     true,
+					ComputedWhen: []string{"port"},
+				},
+
+				"port": &Schema{
+					Type:     TypeInt,
+					Optional: true,
+				},
+			},
+
+			State: nil,
+
+			Config: map[string]interface{}{
+				"port": 80,
+			},
+
+			Diff: &terraform.InstanceDiff{
+				Attributes: map[string]*terraform.ResourceAttrDiff{
+					"availability_zone": &terraform.ResourceAttrDiff{
+						NewComputed: true,
+					},
+					"port": &terraform.ResourceAttrDiff{
+						New: "80",
+					},
+				},
+			},
+
+			Err: false,
+		},
+
+		{
+			Name: "computed, exists",
 			Schema: map[string]*Schema{
 				"availability_zone": &Schema{
 					Type:         TypeString,
@@ -1749,6 +1707,7 @@ func TestShimSchemaMap_Diff(t *testing.T) {
 			},
 
 			State: &terraform.InstanceState{
+				ID: "id",
 				Attributes: map[string]string{
 					"port": "80",
 				},
@@ -1758,13 +1717,8 @@ func TestShimSchemaMap_Diff(t *testing.T) {
 				"port": 80,
 			},
 
-			Diff: &terraform.InstanceDiff{
-				Attributes: map[string]*terraform.ResourceAttrDiff{
-					"availability_zone": &terraform.ResourceAttrDiff{
-						NewComputed: true,
-					},
-				},
-			},
+			// there is no computed diff when the instance exists already
+			Diff: nil,
 
 			Err: false,
 		},
@@ -1811,6 +1765,7 @@ func TestShimSchemaMap_Diff(t *testing.T) {
 			},
 
 			State: &terraform.InstanceState{
+				ID: "id",
 				Attributes: map[string]string{
 					"config_vars.%":   "1",
 					"config_vars.foo": "bar",
@@ -1850,6 +1805,7 @@ func TestShimSchemaMap_Diff(t *testing.T) {
 			},
 
 			State: &terraform.InstanceState{
+				ID: "id",
 				Attributes: map[string]string{
 					"vars.%":   "1",
 					"vars.foo": "bar",
@@ -1889,6 +1845,7 @@ func TestShimSchemaMap_Diff(t *testing.T) {
 			},
 
 			State: &terraform.InstanceState{
+				ID: "id",
 				Attributes: map[string]string{
 					"vars.%":   "1",
 					"vars.foo": "bar",
@@ -1912,6 +1869,7 @@ func TestShimSchemaMap_Diff(t *testing.T) {
 			},
 
 			State: &terraform.InstanceState{
+				ID: "id",
 				Attributes: map[string]string{
 					"config_vars.#":     "1",
 					"config_vars.0.%":   "1",
@@ -1954,6 +1912,7 @@ func TestShimSchemaMap_Diff(t *testing.T) {
 			},
 
 			State: &terraform.InstanceState{
+				ID: "id",
 				Attributes: map[string]string{
 					"config_vars.#":     "1",
 					"config_vars.0.%":   "2",
@@ -2005,6 +1964,7 @@ func TestShimSchemaMap_Diff(t *testing.T) {
 			},
 
 			State: &terraform.InstanceState{
+				ID: "id",
 				Attributes: map[string]string{
 					"availability_zone": "bar",
 					"address":           "foo",
@@ -2049,6 +2009,7 @@ func TestShimSchemaMap_Diff(t *testing.T) {
 			},
 
 			State: &terraform.InstanceState{
+				ID: "id",
 				Attributes: map[string]string{
 					"availability_zone": "bar",
 					"ports.#":           "1",
@@ -2088,6 +2049,7 @@ func TestShimSchemaMap_Diff(t *testing.T) {
 			},
 
 			State: &terraform.InstanceState{
+				ID: "id",
 				Attributes: map[string]string{
 					"instances.#": "0",
 				},
@@ -2275,6 +2237,7 @@ func TestShimSchemaMap_Diff(t *testing.T) {
 			},
 
 			State: &terraform.InstanceState{
+				ID: "id",
 				Attributes: map[string]string{
 					"vars.%": "0",
 				},
@@ -2303,7 +2266,7 @@ func TestShimSchemaMap_Diff(t *testing.T) {
 		},
 
 		{
-			Name:   " - Empty",
+			Name:   "Empty",
 			Schema: map[string]*Schema{},
 
 			State: &terraform.InstanceState{},
@@ -2324,6 +2287,7 @@ func TestShimSchemaMap_Diff(t *testing.T) {
 			},
 
 			State: &terraform.InstanceState{
+				ID: "id",
 				Attributes: map[string]string{
 					"some_threshold": "567.8",
 				},
@@ -2376,6 +2340,7 @@ func TestShimSchemaMap_Diff(t *testing.T) {
 			},
 
 			State: &terraform.InstanceState{
+				ID: "id",
 				Attributes: map[string]string{
 					"block_device.#": "2",
 					"block_device.616397234.delete_on_termination":  "true",
@@ -2410,6 +2375,7 @@ func TestShimSchemaMap_Diff(t *testing.T) {
 			},
 
 			State: &terraform.InstanceState{
+				ID: "id",
 				Attributes: map[string]string{
 					"port": "false",
 				},
@@ -2453,6 +2419,7 @@ func TestShimSchemaMap_Diff(t *testing.T) {
 			},
 
 			State: &terraform.InstanceState{
+				ID: "id",
 				Attributes: map[string]string{
 					"route.#": "0",
 				},
@@ -2476,6 +2443,7 @@ func TestShimSchemaMap_Diff(t *testing.T) {
 			},
 
 			State: &terraform.InstanceState{
+				ID: "id",
 				Attributes: map[string]string{
 					"active": "true",
 				},
@@ -2503,6 +2471,7 @@ func TestShimSchemaMap_Diff(t *testing.T) {
 			},
 
 			State: &terraform.InstanceState{
+				ID: "id",
 				Attributes: map[string]string{
 					"instances.#": "1",
 					"instances.3": "foo",
@@ -2615,6 +2584,7 @@ func TestShimSchemaMap_Diff(t *testing.T) {
 			},
 
 			State: &terraform.InstanceState{
+				ID: "id",
 				Attributes: map[string]string{
 					"metadata_keys.#": "0",
 				},
@@ -2675,6 +2645,7 @@ func TestShimSchemaMap_Diff(t *testing.T) {
 			Config: nil,
 
 			State: &terraform.InstanceState{
+				ID: "id",
 				Attributes: map[string]string{
 					"tags.%": "0",
 				},
@@ -2743,7 +2714,7 @@ func TestShimSchemaMap_Diff(t *testing.T) {
 		},
 
 		{
-			Name: ": StateFunc in nested set (#1759)",
+			Name: "StateFunc in nested set (#1759)",
 			Schema: map[string]*Schema{
 				"service_account": &Schema{
 					Type:     TypeList,
@@ -2823,6 +2794,7 @@ func TestShimSchemaMap_Diff(t *testing.T) {
 			},
 
 			State: &terraform.InstanceState{
+				ID: "id",
 				Attributes: map[string]string{
 					"instances.#": "2",
 					"instances.3": "333",
@@ -2875,6 +2847,7 @@ func TestShimSchemaMap_Diff(t *testing.T) {
 			},
 
 			State: &terraform.InstanceState{
+				ID: "id",
 				Attributes: map[string]string{
 					"one":   "false",
 					"two":   "true",
@@ -2913,6 +2886,7 @@ func TestShimSchemaMap_Diff(t *testing.T) {
 			Schema: map[string]*Schema{},
 
 			State: &terraform.InstanceState{
+				ID: "id",
 				Attributes: map[string]string{
 					"id": "someid",
 				},
@@ -2942,6 +2916,7 @@ func TestShimSchemaMap_Diff(t *testing.T) {
 			},
 
 			State: &terraform.InstanceState{
+				ID: "id",
 				Attributes: map[string]string{
 					"ports.#": "3",
 					"ports.1": "1",
@@ -2990,6 +2965,7 @@ func TestShimSchemaMap_Diff(t *testing.T) {
 			},
 
 			State: &terraform.InstanceState{
+				ID: "id",
 				Attributes: map[string]string{
 					"description": "foo",
 				},
@@ -3023,7 +2999,9 @@ func TestShimSchemaMap_Diff(t *testing.T) {
 				},
 			},
 
-			State: &terraform.InstanceState{},
+			State: &terraform.InstanceState{
+				ID: "id",
+			},
 
 			Config: map[string]interface{}{
 				"foo": "${var.foo}",
@@ -3063,6 +3041,7 @@ func TestShimSchemaMap_Diff(t *testing.T) {
 			},
 
 			State: &terraform.InstanceState{
+				ID: "id",
 				Attributes: map[string]string{
 					"ports.#": "3",
 					"ports.1": "1",
@@ -3103,6 +3082,7 @@ func TestShimSchemaMap_Diff(t *testing.T) {
 			},
 
 			State: &terraform.InstanceState{
+				ID: "id",
 				Attributes: map[string]string{
 					"config.#": "2",
 					"config.0": "a",
@@ -3310,6 +3290,7 @@ func TestShimSchemaMap_Diff(t *testing.T) {
 			},
 
 			State: &terraform.InstanceState{
+				ID: "id",
 				Attributes: map[string]string{
 					"ports.#": "3",
 					"ports.1": "1",
@@ -3362,6 +3343,7 @@ func TestShimSchemaMap_Diff(t *testing.T) {
 			Schema: map[string]*Schema{},
 
 			State: &terraform.InstanceState{
+				ID: "someid",
 				Attributes: map[string]string{
 					"id": "someid",
 				},
@@ -3397,6 +3379,7 @@ func TestShimSchemaMap_Diff(t *testing.T) {
 			},
 
 			State: &terraform.InstanceState{
+				ID: "id",
 				Attributes: map[string]string{
 					"etag":       "foo",
 					"version_id": "1",
@@ -3442,6 +3425,7 @@ func TestShimSchemaMap_Diff(t *testing.T) {
 			},
 
 			State: &terraform.InstanceState{
+				ID: "id",
 				Attributes: map[string]string{
 					"foo": "bar",
 				},
@@ -3471,6 +3455,7 @@ func TestShimSchemaMap_Diff(t *testing.T) {
 			},
 
 			State: &terraform.InstanceState{
+				ID: "id",
 				Attributes: map[string]string{
 					"attr": "bar",
 				},
@@ -3508,6 +3493,7 @@ func TestShimSchemaMap_Diff(t *testing.T) {
 			},
 
 			State: &terraform.InstanceState{
+				ID: "id",
 				Attributes: map[string]string{
 					"unrelated_set.#":  "0",
 					"stream_enabled":   "true",
@@ -3549,11 +3535,10 @@ func TestShimSchemaMap_Diff(t *testing.T) {
 			}
 
 			{
-				d, err := InternalMap(tc.Schema).Diff(tc.State, terraform.NewResourceConfig(c), tc.CustomizeDiff, nil, false)
+				d, err := schemaMap(tc.Schema).Diff(tc.State, terraform.NewResourceConfig(c), tc.CustomizeDiff, nil, false)
 				if err != nil != tc.Err {
 					t.Fatalf("err: %s", err)
 				}
-
 				if !cmp.Equal(d, tc.Diff, equateEmpty) {
 					t.Fatal(cmp.Diff(d, tc.Diff, equateEmpty))
 				}
@@ -3597,6 +3582,7 @@ func TestShimSchemaMap_Diff(t *testing.T) {
 			}
 
 			res := &Resource{Schema: tc.Schema}
+
 			d, err := diffFromValues(stateVal, configVal, res, tc.CustomizeDiff)
 			if err != nil {
 				if !tc.Err {
