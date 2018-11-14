@@ -40,10 +40,10 @@ func TestBackendConfig(t *testing.T) {
 	}
 	defer dbCleaner.Query(fmt.Sprintf("DROP SCHEMA IF EXISTS %s CASCADE", schemaName))
 
-	config := map[string]interface{}{
+	config := backend.TestWrapConfig(map[string]interface{}{
 		"conn_str":    connStr,
 		"schema_name": schemaName,
-	}
+	})
 	b := backend.TestBackendConfig(t, New(), config).(*Backend)
 
 	if b == nil {
@@ -60,12 +60,12 @@ func TestBackendConfig(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	_, err = b.State(backend.DefaultStateName)
+	_, err = b.StateMgr(backend.DefaultStateName)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	s, err := b.State(backend.DefaultStateName)
+	s, err := b.StateMgr(backend.DefaultStateName)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -85,10 +85,10 @@ func TestBackendStates(t *testing.T) {
 	}
 	defer dbCleaner.Query(fmt.Sprintf("DROP SCHEMA IF EXISTS %s CASCADE", schemaName))
 
-	config := map[string]interface{}{
+	config := backend.TestWrapConfig(map[string]interface{}{
 		"conn_str":    connStr,
 		"schema_name": schemaName,
-	}
+	})
 	b := backend.TestBackendConfig(t, New(), config).(*Backend)
 
 	if b == nil {
@@ -108,10 +108,10 @@ func TestBackendStateLocks(t *testing.T) {
 	}
 	defer dbCleaner.Query(fmt.Sprintf("DROP SCHEMA IF EXISTS %s CASCADE", schemaName))
 
-	config := map[string]interface{}{
+	config := backend.TestWrapConfig(map[string]interface{}{
 		"conn_str":    connStr,
 		"schema_name": schemaName,
-	}
+	})
 	b := backend.TestBackendConfig(t, New(), config).(*Backend)
 
 	if b == nil {
@@ -138,11 +138,11 @@ func TestBackendStateLocksDisabled(t *testing.T) {
 	}
 	defer dbCleaner.Query(fmt.Sprintf("DROP SCHEMA IF EXISTS %s CASCADE", schemaName))
 
-	config := map[string]interface{}{
+	config := backend.TestWrapConfig(map[string]interface{}{
 		"conn_str":    connStr,
 		"schema_name": schemaName,
 		"lock":        false,
-	}
+	})
 	b := backend.TestBackendConfig(t, New(), config).(*Backend)
 
 	if b == nil {
