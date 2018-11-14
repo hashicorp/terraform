@@ -21,7 +21,7 @@ will behave as expected.
 
 The optional `-out` argument can be used to save the generated plan to a file
 for later execution with `terraform apply`, which can be useful when
-[running Terraform in automation](/guides/running-terraform-in-automation.html).
+[running Terraform in automation](https://learn.hashicorp.com/terraform/development/running-terraform-in-automation).
 
 ## Usage
 

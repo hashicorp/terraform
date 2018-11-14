@@ -163,4 +163,4 @@ other interesting features such as integration with version control hooks.
 There are some special concerns when running `init` in such an environment,
 including optionally making plugins available locally to avoid repeated
 re-installation. For more information, see
-[`Running Terraform in Automation`](/guides/running-terraform-in-automation.html).
+[`Running Terraform in Automation`](https://learn.hashicorp.com/terraform/development/running-terraform-in-automation).

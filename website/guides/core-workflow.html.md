@@ -157,7 +157,7 @@ Terraform operations are executed in a shared Continuous Integration (CI)
 environment. The work needed to create such a CI environment is nontrivial, and
 is outside the scope of this core workflow overview, but a full deep dive on
 this topic can be found in our
-[Running Terraform in Automation](https://www.terraform.io/guides/running-terraform-in-automation.html)
+[Running Terraform in Automation](https://learn.hashicorp.com/terraform/development/running-terraform-in-automation)
 guide.
 
 This longer iteration cycle of committing changes to version control and then
