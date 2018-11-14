@@ -200,6 +200,24 @@ resource "test_resource_nested_set" "foo" {
 				`),
 				Check: checkFunc,
 			},
+
+			resource.TestStep{
+				Config: strings.TrimSpace(`
+resource "test_resource_nested_set" "foo" {
+	single {
+		value = "bar"
+		optional = "baz"
+	}
+	multi {
+		set {
+			required = "new"
+			optional_int = 3
+		}
+	}
+}
+			`),
+				Check: checkFunc,
+			},
 		},
 	})
 }

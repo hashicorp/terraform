@@ -63,13 +63,22 @@ func testResourceNestedSet() *schema.Resource {
 										Type:     schema.TypeInt,
 										Optional: true,
 									},
+									"bool": {
+										Type:     schema.TypeBool,
+										Optional: true,
+									},
 								},
 							},
 						},
 
 						"optional": {
-							Type:     schema.TypeString,
-							ForceNew: true,
+							Type: schema.TypeString,
+							// commenting this causes it to get missed during apply
+							//ForceNew: true,
+							Optional: true,
+						},
+						"bool": {
+							Type:     schema.TypeBool,
 							Optional: true,
 						},
 					},
