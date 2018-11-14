@@ -7,10 +7,10 @@ import (
 	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/state"
 	"github.com/hashicorp/terraform/state/remote"
-	"github.com/hashicorp/terraform/terraform"
+	"github.com/hashicorp/terraform/states"
 )
 
-func (b *Backend) States() ([]string, error) {
+func (b *Backend) Workspaces() ([]string, error) {
 	query := `SELECT name FROM %s.%s ORDER BY name`
 	rows, err := b.db.Query(fmt.Sprintf(query, b.schemaName, statesTableName))
 	if err != nil {
@@ -34,7 +34,7 @@ func (b *Backend) States() ([]string, error) {
 	return result, nil
 }
 
-func (b *Backend) DeleteState(name string) error {
+func (b *Backend) DeleteWorkspace(name string) error {
 	if name == backend.DefaultStateName || name == "" {
 		return fmt.Errorf("can't delete default state")
 	}
@@ -48,7 +48,7 @@ func (b *Backend) DeleteState(name string) error {
 	return nil
 }
 
-func (b *Backend) State(name string) (state.State, error) {
+func (b *Backend) StateMgr(name string) (state.State, error) {
 	// Build the state client
 	var stateMgr state.State = &remote.State{
 		Client: &RemoteClient{
@@ -72,7 +72,7 @@ func (b *Backend) State(name string) (state.State, error) {
 	// If we need to force-unlock, but for some reason the state no longer
 	// exists, the user will have to use the `psql` tool to manually fix the
 	// situation.
-	existing, err := b.States()
+	existing, err := b.Workspaces()
 	if err != nil {
 		return nil, err
 	}
@@ -87,7 +87,7 @@ func (b *Backend) State(name string) (state.State, error) {
 
 	// Grab a lock, we use this to write an empty state if one doesn't
 	// exist already. We have to write an empty state as a sentinel value
-	// so States() knows it exists.
+	// so Workspaces() knows it exists.
 	if !exists {
 		lockInfo := state.NewLockInfo()
 		lockInfo.Operation = "init"
@@ -107,7 +107,7 @@ func (b *Backend) State(name string) (state.State, error) {
 
 		// If we have no state, we have to create an empty state
 		if v := stateMgr.State(); v == nil {
-			if err := stateMgr.WriteState(terraform.NewState()); err != nil {
+			if err := stateMgr.WriteState(states.NewState()); err != nil {
 				err = lockUnlock(err)
 				return nil, err
 			}

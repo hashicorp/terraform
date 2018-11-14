@@ -23,17 +23,17 @@ func TestRemoteClient(t *testing.T) {
 	}
 	defer dbCleaner.Query(fmt.Sprintf("DROP SCHEMA IF EXISTS %s CASCADE", schemaName))
 
-	config := map[string]interface{}{
+	config := backend.TestWrapConfig(map[string]interface{}{
 		"conn_str":    connStr,
 		"schema_name": schemaName,
-	}
+	})
 	b := backend.TestBackendConfig(t, New(), config).(*Backend)
 
 	if b == nil {
 		t.Fatal("Backend could not be configured")
 	}
 
-	s, err := b.State(backend.DefaultStateName)
+	s, err := b.StateMgr(backend.DefaultStateName)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -50,13 +50,13 @@ func TestRemoteLocks(t *testing.T) {
 	}
 	defer dbCleaner.Query(fmt.Sprintf("DROP SCHEMA IF EXISTS %s CASCADE", schemaName))
 
-	config := map[string]interface{}{
+	config := backend.TestWrapConfig(map[string]interface{}{
 		"conn_str":    connStr,
 		"schema_name": schemaName,
-	}
+	})
 	b := backend.TestBackendConfig(t, New(), config).(*Backend)
 
-	s, err := b.State(backend.DefaultStateName)
+	s, err := b.StateMgr(backend.DefaultStateName)
 	if err != nil {
 		t.Fatal(err)
 	}
