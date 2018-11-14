@@ -466,6 +466,15 @@ func (s *GRPCProviderServer) PlanResourceChange(_ context.Context, req *proto.Pl
 
 	priorState.Meta = priorPrivate
 
+	// We now rebuild the state through the ResourceData, so that the set indexes
+	// match what helper/schema expects.
+	data, err := schema.InternalMap(res.Schema).Data(priorState, nil)
+	if err != nil {
+		// FIXME
+		panic(err)
+	}
+	priorState = data.State()
+
 	// turn the proposed state into a legacy configuration
 	config := terraform.NewResourceConfigShimmed(proposedNewStateVal, block)
 
@@ -489,8 +498,23 @@ func (s *GRPCProviderServer) PlanResourceChange(_ context.Context, req *proto.Pl
 		return resp, nil
 	}
 
+	if priorState == nil {
+		priorState = &terraform.InstanceState{}
+	}
+
 	// now we need to apply the diff to the prior state, so get the planned state
-	plannedStateVal, err := schema.ApplyDiff(priorStateVal, diff, block)
+	plannedAttrs, err := diff.Apply(priorState.Attributes, block)
+	plannedStateVal, err := hcl2shim.HCL2ValueFromFlatmap(plannedAttrs, block.ImpliedType())
+	if err != nil {
+		resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
+		return resp, nil
+	}
+
+	plannedStateVal, err = block.CoerceValue(plannedStateVal)
+	if err != nil {
+		resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
+		return resp, nil
+	}
 	if err != nil {
 		resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
 		return resp, nil

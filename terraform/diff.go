@@ -415,17 +415,39 @@ func (d *InstanceDiff) Unlock() { d.mu.Unlock() }
 // This method is intended for shimming old subsystems that still use this
 // legacy diff type to work with the new-style types.
 func (d *InstanceDiff) ApplyToValue(base cty.Value, schema *configschema.Block) (cty.Value, error) {
-	// We always build a new value here, even if the given diff is "empty",
-	// because we might be planning to create a new instance that happens
-	// to have no attributes set, and so we want to produce an empty object
-	// rather than just echoing back the null old value.
 
 	// Create an InstanceState attributes from our existing state.
 	// We can use this to more easily apply the diff changes.
 	attrs := hcl2shim.FlatmapValueFromHCL2(base)
+	applied, err := d.Apply(attrs, schema)
+	if err != nil {
+		return base, err
+	}
+
+	val, err := hcl2shim.HCL2ValueFromFlatmap(applied, schema.ImpliedType())
+	if err != nil {
+		return base, err
+	}
+
+	return schema.CoerceValue(val)
+}
+
+// Apply applies the diff to the provided flatmapped attributes,
+// returning the new instance attributes.
+//
+// This method is intended for shimming old subsystems that still use this
+// legacy diff type to work with the new-style types.
+func (d *InstanceDiff) Apply(attrs map[string]string, schema *configschema.Block) (map[string]string, error) {
+	// We always build a new value here, even if the given diff is "empty",
+	// because we might be planning to create a new instance that happens
+	// to have no attributes set, and so we want to produce an empty object
+	// rather than just echoing back the null old value.
 	if attrs == nil {
 		attrs = map[string]string{}
 	}
+
+	fmt.Printf("\nBASE ATTRS: %#v\n", attrs)
+	fmt.Printf("\nDIFF: %#v\n", d)
 
 	if d.Destroy || d.DestroyDeposed || d.DestroyTainted {
 		// to mark a destroy, we remove all attributes
@@ -444,7 +466,7 @@ func (d *InstanceDiff) ApplyToValue(base cty.Value, schema *configschema.Block) 
 			// if new or old is unknown, then there's no mismatch
 			old != config.UnknownVariableValue &&
 			diff.Old != config.UnknownVariableValue {
-			return base, fmt.Errorf("diff apply conflict for %s: diff expects %q, but prior value has %q", attr, diff.Old, old)
+			return nil, fmt.Errorf("diff apply conflict for %s: diff expects %q, but prior value has %q", attr, diff.Old, old)
 		}
 
 		if diff.NewComputed {
@@ -465,12 +487,8 @@ func (d *InstanceDiff) ApplyToValue(base cty.Value, schema *configschema.Block) 
 		attrs[attr] = diff.New
 	}
 
-	val, err := hcl2shim.HCL2ValueFromFlatmap(attrs, schema.ImpliedType())
-	if err != nil {
-		return val, err
-	}
-
-	return schema.CoerceValue(val)
+	fmt.Printf("\nPLANNED ATTRS: %#v\n", attrs)
+	return attrs, nil
 }
 
 // ResourceAttrDiff is the diff of a single attribute of a resource.
