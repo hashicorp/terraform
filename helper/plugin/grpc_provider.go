@@ -387,7 +387,11 @@ func (s *GRPCProviderServer) ReadResource(_ context.Context, req *proto.ReadReso
 		return resp, nil
 	}
 
-	instanceState := schema.InstanceStateFromStateValue(stateVal, res.SchemaVersion)
+	instanceState, err := res.ShimInstanceStateFromValue(stateVal)
+	if err != nil {
+		resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
+		return resp, nil
+	}
 
 	newInstanceState, err := res.RefreshWithoutUpgrade(instanceState, s.provider.Meta())
 	if err != nil {
@@ -455,7 +459,12 @@ func (s *GRPCProviderServer) PlanResourceChange(_ context.Context, req *proto.Pl
 		Type: req.TypeName,
 	}
 
-	priorState := schema.InstanceStateFromStateValue(priorStateVal, res.SchemaVersion)
+	priorState, err := res.ShimInstanceStateFromValue(priorStateVal)
+	if err != nil {
+		resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
+		return resp, nil
+	}
+
 	priorPrivate := make(map[string]interface{})
 	if len(req.PriorPrivate) > 0 {
 		if err := json.Unmarshal(req.PriorPrivate, &priorPrivate); err != nil {
@@ -465,15 +474,6 @@ func (s *GRPCProviderServer) PlanResourceChange(_ context.Context, req *proto.Pl
 	}
 
 	priorState.Meta = priorPrivate
-
-	// We now rebuild the state through the ResourceData, so that the set indexes
-	// match what helper/schema expects.
-	data, err := schema.InternalMap(res.Schema).Data(priorState, nil)
-	if err != nil {
-		// FIXME
-		panic(err)
-	}
-	priorState = data.State()
 
 	// turn the proposed state into a legacy configuration
 	config := terraform.NewResourceConfigShimmed(proposedNewStateVal, block)
@@ -595,7 +595,12 @@ func (s *GRPCProviderServer) ApplyResourceChange(_ context.Context, req *proto.A
 		Type: req.TypeName,
 	}
 
-	priorState := schema.InstanceStateFromStateValue(priorStateVal, res.SchemaVersion)
+	//priorState := terraform.NewInstanceStateShimmedFromValue(priorStateVal, res.SchemaVersion)
+	priorState, err := res.ShimInstanceStateFromValue(priorStateVal)
+	if err != nil {
+		resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
+		return resp, nil
+	}
 
 	private := make(map[string]interface{})
 	if len(req.PlannedPrivate) > 0 {
