@@ -375,9 +375,11 @@ func (m *Meta) backendMigrateState_s_s(opts *backendMigrateOpts) error {
 		// Confirm with the user whether we want to copy state over
 		confirm, err := confirmFunc(stateOne, stateTwo, opts)
 		if err != nil {
+			log.Print("[TRACE] backendMigrateState: error reading input, so aborting migration")
 			return err
 		}
 		if !confirm {
+			log.Print("[TRACE] backendMigrateState: user cancelled at confirmation prompt, so aborting migration")
 			return nil
 		}
 	}
@@ -385,6 +387,7 @@ func (m *Meta) backendMigrateState_s_s(opts *backendMigrateOpts) error {
 	// Confirmed! We'll have the statemgr package handle the migration, which
 	// includes preserving any lineage/serial information where possible, if
 	// both managers support such metadata.
+	log.Print("[TRACE] backendMigrateState: migration confirmed, so migrating")
 	if err := statemgr.Migrate(stateTwo, stateOne); err != nil {
 		return fmt.Errorf(strings.TrimSpace(errBackendStateCopy),
 			opts.OneType, opts.TwoType, err)
