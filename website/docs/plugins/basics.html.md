@@ -13,7 +13,7 @@ topic in Terraform, and is not required knowledge for day-to-day usage.
 If you don't plan on writing any plugins, this section of the documentation is
 not necessary to read. For general use of Terraform, please see our
 [Intro to Terraform](/intro/index.html) and [Getting
-Started](/intro/getting-started/install.html) guides.
+Started](https://learn.hashicorp.com/terraform/getting-started/install) guides.
 
 This page documents the basics of how the plugin system in Terraform
 works, and how to setup a basic development environment for plugin development
