@@ -70,7 +70,7 @@ func (c *StatePushCommand) Run(args []string) int {
 		return 1
 	}
 
-	// Get the state
+	// Get the state manager for the currently-selected workspace
 	env := c.Workspace()
 	stateMgr, err := b.StateMgr(env)
 	if err != nil {
@@ -81,23 +81,17 @@ func (c *StatePushCommand) Run(args []string) int {
 		c.Ui.Error(fmt.Sprintf("Failed to refresh destination state: %s", err))
 		return 1
 	}
-	dstState := stateMgr.State()
 
-	// If we're not forcing, then perform safety checks
-	if !flagForce && !dstState.Empty() {
-		dstStateFile := statemgr.StateFile(stateMgr, dstState)
-
-		if dstStateFile.Lineage != srcStateFile.Lineage {
-			c.Ui.Error(strings.TrimSpace(errStatePushLineage))
-			return 1
-		}
-		if dstStateFile.Serial > srcStateFile.Serial {
-			c.Ui.Error(strings.TrimSpace(errStatePushSerialNewer))
-			return 1
-		}
+	if srcStateFile == nil {
+		// We'll push a new empty state instead
+		srcStateFile = statemgr.NewStateFile()
 	}
 
-	// Overwrite it
+	// Import it, forcing through the lineage/serial if requested and possible.
+	if err := statemgr.Import(srcStateFile, stateMgr, flagForce); err != nil {
+		c.Ui.Error(fmt.Sprintf("Failed to write state: %s", err))
+		return 1
+	}
 	if err := stateMgr.WriteState(srcStateFile.State); err != nil {
 		c.Ui.Error(fmt.Sprintf("Failed to write state: %s", err))
 		return 1
