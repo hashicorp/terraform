@@ -446,49 +446,253 @@ func (d *InstanceDiff) Apply(attrs map[string]string, schema *configschema.Block
 		attrs = map[string]string{}
 	}
 
-	fmt.Printf("\nBASE ATTRS: %#v\n", attrs)
-	fmt.Printf("\nDIFF: %#v\n", d)
+	return d.applyDiff(attrs, schema)
+}
+
+func (d *InstanceDiff) applyDiff(attrs map[string]string, schema *configschema.Block) (map[string]string, error) {
+	// We always build a new value here, even if the given diff is "empty",
+	// because we might be planning to create a new instance that happens
+	// to have no attributes set, and so we want to produce an empty object
+	// rather than just echoing back the null old value.
+
+	// Rather applying the diff to mutate the attrs, we'll copy new values into
+	// here to avoid the possibility of leaving stale values.
+	result := map[string]string{}
 
 	if d.Destroy || d.DestroyDeposed || d.DestroyTainted {
-		// to mark a destroy, we remove all attributes
-		attrs = map[string]string{}
-	} else if attrs["id"] == "" || d.RequiresNew() {
-		// Since "id" is always computed, make sure it always has a value. Set
-		// it as unknown to generate the correct cty.Value
-		attrs["id"] = config.UnknownVariableValue
+		return result, nil
 	}
 
-	for attr, diff := range d.Attributes {
-		old, exists := attrs[attr]
+	// iterate over the schema rather than the attributes, so we can handle
+	// blocks separately from plain attributes
+	for name, attrSchema := range schema.Attributes {
+		var err error
+		var newAttrs map[string]string
 
-		if exists &&
-			old != diff.Old &&
-			// if new or old is unknown, then there's no mismatch
-			old != config.UnknownVariableValue &&
-			diff.Old != config.UnknownVariableValue {
-			return nil, fmt.Errorf("diff apply conflict for %s: diff expects %q, but prior value has %q", attr, diff.Old, old)
+		// handle non-block collections
+		switch ty := attrSchema.Type; {
+		case ty.IsListType() || ty.IsTupleType() || ty.IsMapType():
+			newAttrs, err = d.applyCollectionDiff(name, attrs, attrSchema)
+		case ty.IsSetType():
+			newAttrs, err = d.applySetDiff(name, attrs, schema)
+		default:
+			newAttrs, err = d.applyAttrDiff(name, attrs, attrSchema)
+		}
+
+		if err != nil {
+			return result, err
+		}
+
+		for k, v := range newAttrs {
+			result[k] = v
+		}
+	}
+
+	for name, block := range schema.BlockTypes {
+		newAttrs, err := d.applySetDiff(name, attrs, &block.Block)
+		if err != nil {
+			return result, err
+		}
+
+		for k, v := range newAttrs {
+			result[k] = v
+		}
+	}
+
+	return result, nil
+}
+
+func (d *InstanceDiff) applyAttrDiff(attrName string, oldAttrs map[string]string, attrSchema *configschema.Attribute) (map[string]string, error) {
+	result := map[string]string{}
+
+	diff := d.Attributes[attrName]
+	old, exists := oldAttrs[attrName]
+
+	if diff != nil && diff.NewComputed {
+		result[attrName] = config.UnknownVariableValue
+		return result, nil
+	}
+
+	// skip "id", as we already handled it
+	if attrName == "id" {
+		if old == "" {
+			result["id"] = config.UnknownVariableValue
+		} else {
+			result["id"] = old
+		}
+		return result, nil
+	}
+
+	// attribute diffs are sometimes missed, so assume no diff means keep the
+	// old value
+	if diff == nil {
+		if exists {
+			result[attrName] = old
+
+		} else {
+			// We need required values, so set those with an empty value. It
+			// must be set in the config, since if it were missing it would have
+			// failed validation.
+			if attrSchema.Required {
+				result[attrName] = ""
+			}
+		}
+		return result, nil
+	}
+
+	// check for missmatched diff values
+	if exists &&
+		old != diff.Old &&
+		old != config.UnknownVariableValue &&
+		diff.Old != config.UnknownVariableValue {
+		return result, fmt.Errorf("diff apply conflict for %s: diff expects %q, but prior value has %q", attrName, diff.Old, old)
+	}
+
+	if attrSchema.Computed && diff.NewComputed {
+		result[attrName] = config.UnknownVariableValue
+		return result, nil
+	}
+
+	if diff.NewRemoved {
+		// don't set anything in the new value
+		return result, nil
+	}
+
+	result[attrName] = diff.New
+	return result, nil
+}
+
+func (d *InstanceDiff) applyCollectionDiff(attrName string, oldAttrs map[string]string, attrSchema *configschema.Attribute) (map[string]string, error) {
+	result := map[string]string{}
+
+	// check the index first for special handling
+	for k, diff := range d.Attributes {
+		// check the index value, which can be set, and 0
+		if k == attrName+".#" || k == attrName+".%" {
+			if diff.NewRemoved {
+				return result, nil
+			}
+
+			if diff.NewComputed {
+				result[k] = config.UnknownVariableValue
+				return result, nil
+			}
+
+			// do what the diff tells us to here, so that it's consistent with applies
+			if diff.New == "0" {
+				result[k] = "0"
+				return result, nil
+			}
+		}
+	}
+
+	// collect all the keys from the diff and the old state
+	keys := map[string]bool{}
+	for k := range d.Attributes {
+		keys[k] = true
+	}
+	for k := range oldAttrs {
+		keys[k] = true
+	}
+
+	idx := attrName + ".#"
+	if attrSchema.Type.IsMapType() {
+		idx = attrName + ".%"
+	}
+
+	// record if we got the index from the diff
+	setIndex := false
+
+	for k := range keys {
+		if !strings.HasPrefix(k, attrName+".") {
+			continue
+		}
+
+		// we need to verify if we saw the index later
+		if k == idx {
+			setIndex = true
+		}
+
+		res, err := d.applyAttrDiff(k, oldAttrs, attrSchema)
+		if err != nil {
+			return result, err
+		}
+
+		for k, v := range res {
+			result[k] = v
+		}
+	}
+
+	// Verify we have the index count.
+	// If it wasn't added from a diff, check it from the previous value.
+	// Make sure we keep the count if it existed before, so we can tell if it
+	// existed, or was null.
+	if !setIndex {
+		old := oldAttrs[idx]
+		if old != "" {
+			result[idx] = old
+		}
+	}
+
+	return result, nil
+}
+
+func (d *InstanceDiff) applySetDiff(attrName string, oldAttrs map[string]string, block *configschema.Block) (map[string]string, error) {
+	result := map[string]string{}
+
+	idx := attrName + ".#"
+	// first find the index diff
+	for k, diff := range d.Attributes {
+		if k != idx {
+			continue
 		}
 
 		if diff.NewComputed {
-			attrs[attr] = config.UnknownVariableValue
-			continue
+			result[k] = config.UnknownVariableValue
+			return result, nil
 		}
-
-		if diff.NewRemoved {
-			delete(attrs, attr)
-			continue
-		}
-
-		// sometimes helper/schema gives us values that aren't really a diff
-		if diff.Old == diff.New {
-			continue
-		}
-
-		attrs[attr] = diff.New
 	}
 
-	fmt.Printf("\nPLANNED ATTRS: %#v\n", attrs)
-	return attrs, nil
+	// Flag if there was a diff used in the set at all.
+	// If not, take the pre-existing set values
+	setDiff := false
+
+	// here we're trusting the diff to supply all the known items
+	for k, diff := range d.Attributes {
+		if !strings.HasPrefix(k, attrName+".") {
+			continue
+		}
+
+		setDiff = true
+		if diff.NewRemoved {
+			// no longer in the set
+			continue
+		}
+
+		if diff.NewComputed {
+			result[k] = config.UnknownVariableValue
+			continue
+		}
+
+		// helper/schema doesn't list old removed values, but since the set
+		// exists NewRemoved may not be true.
+		if diff.New == "" && diff.Old == "" {
+			continue
+		}
+
+		result[k] = diff.New
+	}
+
+	// use the existing values if there was no set diff at all
+	if !setDiff {
+		for k, v := range oldAttrs {
+			if strings.HasPrefix(k, attrName+".") {
+				result[k] = v
+			}
+		}
+	}
+
+	return result, nil
 }
 
 // ResourceAttrDiff is the diff of a single attribute of a resource.
