@@ -39,7 +39,7 @@ and tests a particular provider.
 -> **Note:** This document is primarily intended for the "HashiCorp/Vendors" row in
 the table above. Community contributors who’re interested in contributing to
 existing providers or building new providers should refer to the
-[Writing Custom Providers guide](/guides/writing-custom-terraform-providers.html).
+[Writing Custom Providers guide][writing].
 
 ## Provider Development Process
 
@@ -71,11 +71,11 @@ connect similar parties to avoid duplicate work.
 
 ### 2. Enable
 
-We’ve found the provider development to be fairly straightforward and simple
+We’ve found the provider development process to be fairly straightforward and simple
 when vendors pay close attention and follow to the resources below. Adopting
 the same structure and coding patterns helps expedite the review and release cycles.
 
-* Writing custom providers [guide](https://www.terraform.io/guides/writing-custom-terraform-providers.html)
+* [Writing custom providers guide][writing]
 * How-to build a provider [video](https://www.youtube.com/watch?v=2BvpqmFpchI)
 * Sample provider developed by [partner](http://container-solutions.com/write-terraform-provider-part-1/)
 * Example providers for reference: [AWS](https://github.com/terraform-providers/terraform-provider-aws), [OPC](https://github.com/terraform-providers/terraform-provider-opc)
@@ -86,7 +86,7 @@ the same structure and coding patterns helps expedite the review and release cyc
 
 Terraform providers are written in the [Go](https://golang.org/) programming
 language. The
-[Writing Custom Providers guide](/guides/writing-custom-terraform-providers.html)
+[Writing Custom Providers guide][writing]
 is a good resource for developers to begin writing a new provider.
 
 The best approach to building a new provider is to be familiar with both the
@@ -231,6 +231,6 @@ in the section above.
 
 For any questions or feedback please contact us at <terraform-provider-dev@hashicorp.com>.
 
-[writing]: /guides/writing-custom-terraform-providers.html 
-[extending]: /docs/extend/index.html 
+[writing]: /docs/extend/writing-custom-providers.html
+[extending]: /docs/extend/index.html
 
