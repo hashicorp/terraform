@@ -23,7 +23,7 @@ When you declare them in [child modules](./modules.html),
 the calling module should pass values in the `module` block.
 
 Input variable usage is introduced in the Getting Started guide section
-[_Input Variables_](/intro/getting-started/variables.html).
+[_Input Variables_](https://learn.hashicorp.com/terraform/getting-started/variables).
 
 -> **Note:** For brevity, input variables are often referred to as just
 "variables" or "Terraform variables" when it is clear from context what sort of
