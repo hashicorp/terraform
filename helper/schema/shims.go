@@ -23,7 +23,10 @@ func DiffFromValues(prior, planned cty.Value, res *Resource) (*terraform.Instanc
 // only needs to be created for the apply operation, and any customizations
 // have already been done.
 func diffFromValues(prior, planned cty.Value, res *Resource, cust CustomizeDiffFunc) (*terraform.InstanceDiff, error) {
-	instanceState := terraform.NewInstanceStateShimmedFromValue(prior, res.SchemaVersion)
+	instanceState, err := res.ShimInstanceStateFromValue(prior)
+	if err != nil {
+		return nil, err
+	}
 
 	configSchema := res.CoreConfigSchema()
 
