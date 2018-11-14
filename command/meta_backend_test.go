@@ -502,8 +502,8 @@ func TestMetaBackend_configureNewWithStateExisting(t *testing.T) {
 	if state == nil {
 		t.Fatal("state is nil")
 	}
-	if testStateMgrCurrentLineage(s) != "local" {
-		t.Fatalf("bad: %#v", state)
+	if got, want := testStateMgrCurrentLineage(s), "local"; got != want {
+		t.Fatalf("wrong lineage %q; want %q", got, want)
 	}
 
 	// Write some state
@@ -1414,8 +1414,8 @@ func TestMetaBackend_configuredUnsetCopy(t *testing.T) {
 	if state == nil {
 		t.Fatal("state is nil")
 	}
-	if testStateMgrCurrentLineage(s) != "configuredUnset" {
-		t.Fatalf("bad: %#v", state)
+	if got, want := testStateMgrCurrentLineage(s), "configuredUnset"; got != want {
+		t.Fatalf("wrong state lineage %q; want %q", got, want)
 	}
 
 	// Verify a backup doesn't exist
