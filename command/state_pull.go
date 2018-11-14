@@ -35,7 +35,7 @@ func (c *StatePullCommand) Run(args []string) int {
 		return 1
 	}
 
-	// Get the state
+	// Get the state manager for the current workspace
 	env := c.Workspace()
 	stateMgr, err := b.StateMgr(env)
 	if err != nil {
@@ -47,24 +47,20 @@ func (c *StatePullCommand) Run(args []string) int {
 		return 1
 	}
 
-	state := stateMgr.State()
-	if state == nil {
-		// Output on "error" so it shows up on stderr
-		c.Ui.Error("Empty state (no state)")
-		return 0
+	// Get a statefile object representing the latest snapshot
+	stateFile := statemgr.Export(stateMgr)
+
+	if stateFile != nil { // we produce no output if the statefile is nil
+		var buf bytes.Buffer
+		err = statefile.Write(stateFile, &buf)
+		if err != nil {
+			c.Ui.Error(fmt.Sprintf("Failed to write state: %s", err))
+			return 1
+		}
+
+		c.Ui.Output(buf.String())
 	}
 
-	// Get the state file.
-	stateFile := statemgr.StateFile(stateMgr, state)
-
-	var buf bytes.Buffer
-	err = statefile.Write(stateFile, &buf)
-	if err != nil {
-		c.Ui.Error(fmt.Sprintf("Failed to write state: %s", err))
-		return 1
-	}
-
-	c.Ui.Output(buf.String())
 	return 0
 }
 
