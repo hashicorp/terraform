@@ -2,6 +2,7 @@ package response
 
 import (
 	"sort"
+	"strings"
 
 	version "github.com/hashicorp/go-version"
 )
@@ -50,10 +51,37 @@ type TerraformProviderPlatformLocation struct {
 	DownloadURL         string `json:"download_url"`
 	ShasumsURL          string `json:"shasums_url"`
 	ShasumsSignatureURL string `json:"shasums_signature_url"`
+	Shasum              string `json:"shasum"`
+
+	SigningKeys SigningKeyList `json:"signing_keys"`
+}
+
+// SigningKeyList is the response structure for a list of signing keys.
+type SigningKeyList struct {
+	GPGKeys []*GPGKey `json:"gpg_public_keys"`
+}
+
+// GPGKey is the response structure for a GPG key.
+type GPGKey struct {
+	ASCIIArmor string  `json:"ascii_armor"`
+	Source     string  `json:"source"`
+	SourceURL  *string `json:"source_url"`
 }
 
 // Collection type for TerraformProviderVersion
 type ProviderVersionCollection []*TerraformProviderVersion
+
+// GPGASCIIArmor returns an ASCII-armor-formatted string for all of the gpg
+// keys in the response.
+func (signingKeys *SigningKeyList) GPGASCIIArmor() string {
+	keys := []string{}
+
+	for _, gpgKey := range signingKeys.GPGKeys {
+		keys = append(keys, gpgKey.ASCIIArmor)
+	}
+
+	return strings.Join(keys, "\n")
+}
 
 // Sort sorts versions from newest to oldest.
 func (v ProviderVersionCollection) Sort() {
