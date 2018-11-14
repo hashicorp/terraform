@@ -207,6 +207,12 @@ automatically. This is the most common way to access non-public Git
 repositories from automated systems beacuse it is easy to configure
 and allows access to private repositories without interactive prompts.
 
+~> **Note:** The SSH url syntax is different from the SCP syntax (the SCP 
+syntax is what you may be familiar with from GitHub's SSH clone information).
+In Git SSH urls, port is separated from the host by `:` and the directory is 
+separated by `/`, not `:`. If you get an error that Git cannot resolve a
+hostname, this is most likely caused by an incorrect Git SSH url syntax.
+
 If using the HTTP/HTTPS protocol, or any other protocol that uses
 username/password credentials, configure
 [Git Credentials Storage](https://git-scm.com/book/en/v2/Git-Tools-Credential-Storage)
