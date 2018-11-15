@@ -462,6 +462,16 @@ func (m *Meta) backendFromConfig(opts *BackendOpts) (backend.Backend, tfdiags.Di
 
 	// Potentially changing a backend configuration
 	case c != nil && !s.Backend.Empty():
+		// If we're not initializing, then it's sufficient for the configuration
+		// hashes to match, since that suggests that the static backend
+		// settings in the configuration files are unchanged. (The only
+		// record we have of CLI overrides is in the settings cache in this
+		// case, so we have no other source to compare with.
+		if !opts.Init && cHash == s.Backend.Hash {
+			log.Printf("[TRACE] Meta.Backend: using already-initialized, unchanged %q backend configuration", c.Type)
+			return m.backend_C_r_S_unchanged(c, cHash, sMgr)
+		}
+
 		// If our configuration is the same, then we're just initializing
 		// a previously configured remote backend.
 		if !m.backendConfigNeedsMigration(c, s.Backend) {
