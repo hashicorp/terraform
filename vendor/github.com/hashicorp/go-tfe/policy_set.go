@@ -16,7 +16,7 @@ var _ PolicySets = (*policySets)(nil)
 //
 // TFE API docs: https://www.terraform.io/docs/enterprise/api/policies.html
 type PolicySets interface {
-	// List all the policy sets for a given organization
+	// List all the policy sets for a given organization.
 	List(ctx context.Context, organization string, options PolicySetListOptions) (*PolicySetList, error)
 
 	// Create a policy set and associate it with an organization.
@@ -34,11 +34,11 @@ type PolicySets interface {
 	// Remove policies from a policy set.
 	RemovePolicies(ctx context.Context, policySetID string, options PolicySetRemovePoliciesOptions) error
 
-	// Attach a policy set to workspaces.
-	AttachToWorkspaces(ctx context.Context, policySetID string, options PolicySetAttachToWorkspacesOptions) error
+	// Add workspaces to a policy set.
+	AddWorkspaces(ctx context.Context, policySetID string, options PolicySetAddWorkspacesOptions) error
 
-	// Detach a policy set from workspaces.
-	DetachFromWorkspaces(ctx context.Context, policySetID string, options PolicySetDetachFromWorkspacesOptions) error
+	// Remove workspaces from a policy set.
+	RemoveWorkspaces(ctx context.Context, policySetID string, options PolicySetRemoveWorkspacesOptions) error
 
 	// Delete a policy set by its ID.
 	Delete(ctx context.Context, policyID string) error
@@ -49,7 +49,7 @@ type policySets struct {
 	client *Client
 }
 
-// PolicySetList represents a list of policy sets..
+// PolicySetList represents a list of policy sets.
 type PolicySetList struct {
 	*Pagination
 	Items []*PolicySet
@@ -80,7 +80,7 @@ type PolicySetListOptions struct {
 	Search *string `url:"search[name],omitempty"`
 }
 
-// List all the policies for a given organization
+// List all the policies for a given organization.
 func (s *policySets) List(ctx context.Context, organization string, options PolicySetListOptions) (*PolicySetList, error) {
 	if !validStringID(&organization) {
 		return nil, errors.New("invalid value for organization")
@@ -118,7 +118,7 @@ type PolicySetCreateOptions struct {
 	// The initial members of the policy set.
 	Policies []*Policy `jsonapi:"relation,policies,omitempty"`
 
-	// The initial list of workspaces the policy set should be attached to.
+	// The initial list of workspaces for which the policy set should be enforced.
 	Workspaces []*Workspace `jsonapi:"relation,workspaces,omitempty"`
 }
 
@@ -229,7 +229,8 @@ func (s *policySets) Update(ctx context.Context, policySetID string, options Pol
 	return ps, err
 }
 
-// PolicySetAddPoliciesOptions represents the options for adding policies to a policy set.
+// PolicySetAddPoliciesOptions represents the options for adding policies
+// to a policy set.
 type PolicySetAddPoliciesOptions struct {
 	/// The policies to add to the policy set.
 	Policies []*Policy
@@ -263,7 +264,8 @@ func (s *policySets) AddPolicies(ctx context.Context, policySetID string, option
 	return s.client.do(ctx, req, nil)
 }
 
-// PolicySetRemovePoliciesOptions represents the options for removing policies from a policy set.
+// PolicySetRemovePoliciesOptions represents the options for removing
+// policies from a policy set.
 type PolicySetRemovePoliciesOptions struct {
 	/// The policies to remove from the policy set.
 	Policies []*Policy
@@ -297,13 +299,14 @@ func (s *policySets) RemovePolicies(ctx context.Context, policySetID string, opt
 	return s.client.do(ctx, req, nil)
 }
 
-// PolicySetAttachToWorkspacesOptions represents the options for attaching a policy set to workspaces.
-type PolicySetAttachToWorkspacesOptions struct {
-	/// The workspaces on which to attach the policy set.
+// PolicySetAddWorkspacesOptions represents the options for adding workspaces
+// to a policy set.
+type PolicySetAddWorkspacesOptions struct {
+	/// The workspaces to add to the policy set.
 	Workspaces []*Workspace
 }
 
-func (o PolicySetAttachToWorkspacesOptions) valid() error {
+func (o PolicySetAddWorkspacesOptions) valid() error {
 	if o.Workspaces == nil {
 		return errors.New("workspaces is required")
 	}
@@ -313,8 +316,8 @@ func (o PolicySetAttachToWorkspacesOptions) valid() error {
 	return nil
 }
 
-// Attach a policy set to workspaces
-func (s *policySets) AttachToWorkspaces(ctx context.Context, policySetID string, options PolicySetAttachToWorkspacesOptions) error {
+// Add workspaces to a policy set.
+func (s *policySets) AddWorkspaces(ctx context.Context, policySetID string, options PolicySetAddWorkspacesOptions) error {
 	if !validStringID(&policySetID) {
 		return errors.New("invalid value for policy set ID")
 	}
@@ -331,13 +334,14 @@ func (s *policySets) AttachToWorkspaces(ctx context.Context, policySetID string,
 	return s.client.do(ctx, req, nil)
 }
 
-// PolicySetDetachFromWorkspacesOptions represents the options for detaching a policy set from workspaces.
-type PolicySetDetachFromWorkspacesOptions struct {
-	/// The workspaces from which to detach the policy set.
+// PolicySetRemoveWorkspacesOptions represents the options for removing
+// workspaces from a policy set.
+type PolicySetRemoveWorkspacesOptions struct {
+	/// The workspaces to remove from the policy set.
 	Workspaces []*Workspace
 }
 
-func (o PolicySetDetachFromWorkspacesOptions) valid() error {
+func (o PolicySetRemoveWorkspacesOptions) valid() error {
 	if o.Workspaces == nil {
 		return errors.New("workspaces is required")
 	}
@@ -347,8 +351,8 @@ func (o PolicySetDetachFromWorkspacesOptions) valid() error {
 	return nil
 }
 
-// Detach a policy set from workspaces
-func (s *policySets) DetachFromWorkspaces(ctx context.Context, policySetID string, options PolicySetDetachFromWorkspacesOptions) error {
+// Remove workspaces from a policy set.
+func (s *policySets) RemoveWorkspaces(ctx context.Context, policySetID string, options PolicySetRemoveWorkspacesOptions) error {
 	if !validStringID(&policySetID) {
 		return errors.New("invalid value for policy set ID")
 	}
