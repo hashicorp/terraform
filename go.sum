@@ -137,8 +137,8 @@ github.com/hashicorp/go-multierror v1.0.0 h1:iVjPR7a6H0tWELX5NxNe7bYopibicUzc7uP
 github.com/hashicorp/go-multierror v1.0.0/go.mod h1:dHtQlpGsu+cZNNAkkCN/P3hoUDHhCYQXV3UM06sGGrk=
 github.com/hashicorp/go-plugin v0.0.0-20181002195811-1faddcf740b6 h1:czAJ5CXRPr+6vd6RGdJelApnxNbK3dAkakgBwLEWfrc=
 github.com/hashicorp/go-plugin v0.0.0-20181002195811-1faddcf740b6/go.mod h1:JSqWYsict+jzcj0+xElxyrBQRPNoiWQuddnxArJ7XHQ=
-github.com/hashicorp/go-retryablehttp v0.0.0-20180718195005-e651d75abec6 h1:qCv4319q2q7XKn0MQbi8p37hsJ+9Xo8e6yojA73JVxk=
-github.com/hashicorp/go-retryablehttp v0.0.0-20180718195005-e651d75abec6/go.mod h1:fXcdFsQoipQa7mwORhKad5jmDCeSy/RCGzWA08PO0lM=
+github.com/hashicorp/go-retryablehttp v0.5.0 h1:aVN0FYnPwAgZI/hVzqwfMiM86ttcHTlQKbBVeVmXPIs=
+github.com/hashicorp/go-retryablehttp v0.5.0/go.mod h1:9B5zBasrRhHXnJnui7y6sL7es7NDiJgTc6Er0maI1Xs=
 github.com/hashicorp/go-rootcerts v0.0.0-20160503143440-6bb64b370b90 h1:9HVkPxOpo+yO93Ah4yrO67d/qh0fbLLWbKqhYjyHq9A=
 github.com/hashicorp/go-rootcerts v0.0.0-20160503143440-6bb64b370b90/go.mod h1:o4zcYY1e0GEZI6eSEr+43QDYmuGglw1qSO6qdHUHCgg=
 github.com/hashicorp/go-safetemp v0.0.0-20180326211150-b1a1dbde6fdc h1:wAa9fGALVHfjYxZuXRnmuJG2CnwRpJYOTvY6YdErAh0=
@@ -147,10 +147,8 @@ github.com/hashicorp/go-slug v0.1.0 h1:MJGEiOwRGrQCBmMMZABHqIESySFJ4ajrsjgDI4/aF
 github.com/hashicorp/go-slug v0.1.0/go.mod h1:+zDycQOzGqOqMW7Kn2fp9vz/NtqpMLQlgb9JUF+0km4=
 github.com/hashicorp/go-sockaddr v0.0.0-20180320115054-6d291a969b86 h1:7YOlAIO2YWnJZkQp7B5eFykaIY7C9JndqAFQyVV5BhM=
 github.com/hashicorp/go-sockaddr v0.0.0-20180320115054-6d291a969b86/go.mod h1:7Xibr9yA9JjQq1JpNB2Vw7kxv8xerXegt+ozgdvDeDU=
-github.com/hashicorp/go-tfe v0.2.7 h1:Cy0irO9Qfgdn7FmvxSoXIQrRa3iM/kFmp/c0oCboCow=
-github.com/hashicorp/go-tfe v0.2.7/go.mod h1:WJgjAJVdnXYPOWF6j66VI20djUGfeFjeayIgUDhohsU=
-github.com/hashicorp/go-tfe v0.2.9 h1:CmxjF5zBKh5XBf2fMseJPaSKxKIauIIS4r+6+hNX8JM=
-github.com/hashicorp/go-tfe v0.2.9/go.mod h1:WJgjAJVdnXYPOWF6j66VI20djUGfeFjeayIgUDhohsU=
+github.com/hashicorp/go-tfe v0.3.0 h1:X0oM8RNKgMlmaMOEzLkx8/RTIC3d2K30R8+G4cSXJPc=
+github.com/hashicorp/go-tfe v0.3.0/go.mod h1:SRMjgjY06SfEKstIPRUVMtQfhSYR2H3GHVop0lfedkY=
 github.com/hashicorp/go-uuid v1.0.0 h1:RS8zrF7PhGwyNPOtxSClXXj9HA8feRnJzgnI1RJCSnM=
 github.com/hashicorp/go-uuid v1.0.0/go.mod h1:6SBZvOh/SIDV7/2o3Jml5SYk/TvGqwFJ/bN7x4byOro=
 github.com/hashicorp/go-version v0.0.0-20180322230233-23480c066577 h1:at4+18LrM8myamuV7/vT6x2s1JNXp2k4PsSbt4I02X4=

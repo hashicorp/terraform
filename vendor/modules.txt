@@ -307,7 +307,7 @@ github.com/hashicorp/go-hclog
 github.com/hashicorp/go-multierror
 # github.com/hashicorp/go-plugin v0.0.0-20181002195811-1faddcf740b6
 github.com/hashicorp/go-plugin
-# github.com/hashicorp/go-retryablehttp v0.0.0-20180718195005-e651d75abec6
+# github.com/hashicorp/go-retryablehttp v0.5.0
 github.com/hashicorp/go-retryablehttp
 # github.com/hashicorp/go-rootcerts v0.0.0-20160503143440-6bb64b370b90
 github.com/hashicorp/go-rootcerts
@@ -315,7 +315,7 @@ github.com/hashicorp/go-rootcerts
 github.com/hashicorp/go-safetemp
 # github.com/hashicorp/go-slug v0.1.0
 github.com/hashicorp/go-slug
-# github.com/hashicorp/go-tfe v0.2.9
+# github.com/hashicorp/go-tfe v0.3.0
 github.com/hashicorp/go-tfe
 # github.com/hashicorp/go-uuid v1.0.0
 github.com/hashicorp/go-uuid

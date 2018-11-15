@@ -4,7 +4,7 @@ require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/google/go-querystring v1.0.0
 	github.com/hashicorp/go-cleanhttp v0.5.0
-	github.com/hashicorp/go-retryablehttp v0.0.0-20180718195005-e651d75abec6
+	github.com/hashicorp/go-retryablehttp v0.5.0
 	github.com/hashicorp/go-slug v0.1.0
 	github.com/hashicorp/go-uuid v1.0.0
 	github.com/pmezard/go-difflib v1.0.0 // indirect
