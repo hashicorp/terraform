@@ -1154,7 +1154,7 @@ func TestMetaBackend_configuredChangeCopy_multiToMulti(t *testing.T) {
 		// Verify existing workspaces exist
 		envPath := filepath.Join(backendLocal.DefaultWorkspaceDir, "env2", backendLocal.DefaultStateFilename)
 		if _, err := os.Stat(envPath); err != nil {
-			t.Fatal("env should exist")
+			t.Fatalf("%s should exist, but does not", envPath)
 		}
 	}
 
@@ -1162,7 +1162,7 @@ func TestMetaBackend_configuredChangeCopy_multiToMulti(t *testing.T) {
 		// Verify new workspaces exist
 		envPath := filepath.Join("envdir-new", "env2", backendLocal.DefaultStateFilename)
 		if _, err := os.Stat(envPath); err != nil {
-			t.Fatal("env should exist")
+			t.Fatalf("%s should exist, but does not", envPath)
 		}
 	}
 }

@@ -62,6 +62,14 @@ type Local struct {
 	StateBackupPath   string
 	StateWorkspaceDir string
 
+	// The OverrideState* paths are set based on per-operation CLI arguments
+	// and will override what'd be built from the State* fields if non-empty.
+	// While the interpretation of the State* fields depends on the active
+	// workspace, the OverrideState* fields are always used literally.
+	OverrideStatePath       string
+	OverrideStateOutPath    string
+	OverrideStateBackupPath string
+
 	// We only want to create a single instance of a local state, so store them
 	// here as they're loaded.
 	states map[string]statemgr.Full
@@ -251,6 +259,7 @@ func (b *Local) DeleteWorkspace(name string) error {
 
 func (b *Local) StateMgr(name string) (statemgr.Full, error) {
 	statePath, stateOutPath, backupPath := b.StatePaths(name)
+	log.Printf("[TRACE] backend/local: state manager for workspace %q will:\n - read initial snapshot from %s\n - write new snapshots to %s\n - create any backup at %s", name, statePath, stateOutPath, backupPath)
 
 	// If we have a backend handling state, delegate to that.
 	if b.Backend != nil {
@@ -484,26 +493,31 @@ func (b *Local) schemaConfigure(ctx context.Context) error {
 // StatePaths returns the StatePath, StateOutPath, and StateBackupPath as
 // configured from the CLI.
 func (b *Local) StatePaths(name string) (stateIn, stateOut, backupOut string) {
-	statePath := b.StatePath
-	stateOutPath := b.StateOutPath
-	backupPath := b.StateBackupPath
+	statePath := b.OverrideStatePath
+	stateOutPath := b.OverrideStateOutPath
+	backupPath := b.OverrideStateBackupPath
 
-	if name == "" {
-		name = backend.DefaultStateName
+	isDefault := name == backend.DefaultStateName || name == ""
+
+	baseDir := ""
+	if !isDefault {
+		baseDir = filepath.Join(b.stateWorkspaceDir(), name)
 	}
 
-	if name == backend.DefaultStateName {
-		if statePath == "" {
-			statePath = DefaultStateFilename
+	if statePath == "" {
+		if isDefault {
+			statePath = b.StatePath // s.StatePath applies only to the default workspace, since StateWorkspaceDir is used otherwise
 		}
-	} else {
-		statePath = filepath.Join(b.stateWorkspaceDir(), name, DefaultStateFilename)
+		if statePath == "" {
+			statePath = filepath.Join(baseDir, DefaultStateFilename)
+		}
 	}
-
 	if stateOutPath == "" {
 		stateOutPath = statePath
 	}
-
+	if backupPath == "" {
+		backupPath = b.StateBackupPath
+	}
 	switch backupPath {
 	case "-":
 		backupPath = ""
