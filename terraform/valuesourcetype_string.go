@@ -8,14 +8,15 @@ const (
 	_ValueSourceType_name_0 = "ValueFromUnknown"
 	_ValueSourceType_name_1 = "ValueFromCLIArg"
 	_ValueSourceType_name_2 = "ValueFromConfig"
-	_ValueSourceType_name_3 = "ValueFromEnvVarValueFromFile"
+	_ValueSourceType_name_3 = "ValueFromEnvVarValueFromAutoFile"
 	_ValueSourceType_name_4 = "ValueFromInput"
-	_ValueSourceType_name_5 = "ValueFromPlan"
-	_ValueSourceType_name_6 = "ValueFromCaller"
+	_ValueSourceType_name_5 = "ValueFromNamedFile"
+	_ValueSourceType_name_6 = "ValueFromPlan"
+	_ValueSourceType_name_7 = "ValueFromCaller"
 )
 
 var (
-	_ValueSourceType_index_3 = [...]uint8{0, 15, 28}
+	_ValueSourceType_index_3 = [...]uint8{0, 15, 32}
 )
 
 func (i ValueSourceType) String() string {
@@ -31,10 +32,12 @@ func (i ValueSourceType) String() string {
 		return _ValueSourceType_name_3[_ValueSourceType_index_3[i]:_ValueSourceType_index_3[i+1]]
 	case i == 73:
 		return _ValueSourceType_name_4
-	case i == 80:
+	case i == 78:
 		return _ValueSourceType_name_5
-	case i == 83:
+	case i == 80:
 		return _ValueSourceType_name_6
+	case i == 83:
+		return _ValueSourceType_name_7
 	default:
 		return "ValueSourceType(" + strconv.FormatInt(int64(i), 10) + ")"
 	}
