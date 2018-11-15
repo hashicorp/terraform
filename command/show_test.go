@@ -1,6 +1,7 @@
 package command
 
 import (
+	"fmt"
 	"path/filepath"
 	"testing"
 
@@ -104,7 +105,8 @@ func TestShow_plan(t *testing.T) {
 }
 
 func TestShow_plan_json(t *testing.T) {
-	planPath := testPlanFileNoop(t)
+	// TODO: create a showFixturePlanFile
+	planPath := applyFixturePlanFile(t)
 
 	ui := new(cli.MockUi)
 	c := &ShowCommand{
@@ -121,6 +123,7 @@ func TestShow_plan_json(t *testing.T) {
 	if code := c.Run(args); code != 0 {
 		t.Fatalf("bad: \n%s", ui.ErrorWriter.String())
 	}
+	fmt.Println(ui.OutputWriter.String())
 }
 
 func TestShow_state(t *testing.T) {

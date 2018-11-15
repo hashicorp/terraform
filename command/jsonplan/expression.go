@@ -6,7 +6,7 @@ import "encoding/json"
 // arguments are mapped directly with the attribute name as key and an
 // <expression-representation> as value.
 type expressions struct {
-	Expression map[string]expression
+	Expression map[string]expression `json:"expression,omitempty"`
 }
 
 // expression represents any unparsed expression
@@ -28,5 +28,5 @@ type expression struct {
 	// "source" is an object describing the source span of this expression in
 	// the configuration. Callers might use this, for example, to extract a raw
 	// source code snippet for display purposes.
-	Source source `json:"source"`
+	Source source `json:"source,omitempty"`
 }
