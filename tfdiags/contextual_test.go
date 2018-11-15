@@ -28,10 +28,31 @@ baz "a" {
 baz "b" {
   bar = "boop"
 }
+parent {
+  nested_str = "hello"
+  nested_str_tuple = ["aa", "bbb", "cccc"]
+  nested_num_tuple = [1, 9863, 22]
+  nested_map = {
+    first_key  = "first_value"
+    second_key = "2nd value"
+  }
+}
+tuple_of_one = ["one"]
+tuple_of_two = ["first", "22222"]
+root_map = {
+  first  = "1st"
+  second = "2nd"
+}
+simple_attr = "val"
 `
 	f, parseDiags := hclsyntax.ParseConfig([]byte(testConfig), "test.tf", hcl.Pos{Line: 1, Column: 1})
 	if len(parseDiags) != 0 {
 		t.Fatal(parseDiags)
+	}
+	emptySrcRng := &SourceRange{
+		Filename: "test.tf",
+		Start:    SourcePos{Line: 33, Column: 1, Byte: 440},
+		End:      SourcePos{Line: 33, Column: 1, Byte: 440},
 	}
 
 	testCases := []struct {
@@ -71,6 +92,19 @@ baz "b" {
 				Start:    SourcePos{Line: 6, Column: 9, Byte: 36},
 				End:      SourcePos{Line: 6, Column: 14, Byte: 41},
 			},
+		},
+		{
+			AttributeValue(
+				Error,
+				"foo[99].bar",
+				"detail",
+				cty.Path{
+					cty.GetAttrStep{Name: "foo"},
+					cty.IndexStep{Key: cty.NumberIntVal(99)},
+					cty.GetAttrStep{Name: "bar"},
+				},
+			),
+			emptySrcRng,
 		},
 		{
 			AttributeValue(
@@ -123,10 +157,24 @@ baz "b" {
 			},
 		},
 		{
+			AttributeValue(
+				Error,
+				`baz["not_exists"].bar`,
+				"detail",
+				cty.Path{
+					cty.GetAttrStep{Name: "baz"},
+					cty.IndexStep{Key: cty.StringVal("not_exists")},
+					cty.GetAttrStep{Name: "bar"},
+				},
+			),
+			emptySrcRng,
+		},
+		{
 			// Attribute value with subject already populated should not be disturbed.
 			// (in a real case, this might've been passed through from a deeper function
 			// in the call stack, for example.)
 			&attributeDiagnostic{
+				attrPath: cty.Path{cty.GetAttrStep{Name: "foo"}},
 				diagnosticBase: diagnosticBase{
 					summary: "preexisting",
 					detail:  "detail",
@@ -138,6 +186,342 @@ baz "b" {
 			&SourceRange{
 				Filename: "somewhere_else.tf",
 			},
+		},
+		{
+			// Missing path
+			&attributeDiagnostic{
+				diagnosticBase: diagnosticBase{
+					summary: "missing path",
+				},
+			},
+			nil,
+		},
+
+		// Nested attributes
+		{
+			AttributeValue(
+				Error,
+				"parent.nested_str",
+				"detail",
+				cty.Path{
+					cty.GetAttrStep{Name: "parent"},
+					cty.GetAttrStep{Name: "nested_str"},
+				},
+			),
+			&SourceRange{
+				Filename: "test.tf",
+				Start:    SourcePos{Line: 18, Column: 16, Byte: 145},
+				End:      SourcePos{Line: 18, Column: 23, Byte: 152},
+			},
+		},
+		{
+			AttributeValue(
+				Error,
+				"parent.nested_str_tuple[99]",
+				"detail",
+				cty.Path{
+					cty.GetAttrStep{Name: "parent"},
+					cty.GetAttrStep{Name: "nested_str_tuple"},
+					cty.IndexStep{Key: cty.NumberIntVal(99)},
+				},
+			),
+			&SourceRange{
+				Filename: "test.tf",
+				Start:    SourcePos{Line: 19, Column: 3, Byte: 155},
+				End:      SourcePos{Line: 19, Column: 19, Byte: 171},
+			},
+		},
+		{
+			AttributeValue(
+				Error,
+				"parent.nested_str_tuple[0]",
+				"detail",
+				cty.Path{
+					cty.GetAttrStep{Name: "parent"},
+					cty.GetAttrStep{Name: "nested_str_tuple"},
+					cty.IndexStep{Key: cty.NumberIntVal(0)},
+				},
+			),
+			&SourceRange{
+				Filename: "test.tf",
+				Start:    SourcePos{Line: 19, Column: 23, Byte: 175},
+				End:      SourcePos{Line: 19, Column: 27, Byte: 179},
+			},
+		},
+		{
+			AttributeValue(
+				Error,
+				"parent.nested_str_tuple[2]",
+				"detail",
+				cty.Path{
+					cty.GetAttrStep{Name: "parent"},
+					cty.GetAttrStep{Name: "nested_str_tuple"},
+					cty.IndexStep{Key: cty.NumberIntVal(2)},
+				},
+			),
+			&SourceRange{
+				Filename: "test.tf",
+				Start:    SourcePos{Line: 19, Column: 36, Byte: 188},
+				End:      SourcePos{Line: 19, Column: 42, Byte: 194},
+			},
+		},
+		{
+			AttributeValue(
+				Error,
+				"parent.nested_num_tuple[0]",
+				"detail",
+				cty.Path{
+					cty.GetAttrStep{Name: "parent"},
+					cty.GetAttrStep{Name: "nested_num_tuple"},
+					cty.IndexStep{Key: cty.NumberIntVal(0)},
+				},
+			),
+			&SourceRange{
+				Filename: "test.tf",
+				Start:    SourcePos{Line: 20, Column: 23, Byte: 218},
+				End:      SourcePos{Line: 20, Column: 24, Byte: 219},
+			},
+		},
+		{
+			AttributeValue(
+				Error,
+				"parent.nested_num_tuple[1]",
+				"detail",
+				cty.Path{
+					cty.GetAttrStep{Name: "parent"},
+					cty.GetAttrStep{Name: "nested_num_tuple"},
+					cty.IndexStep{Key: cty.NumberIntVal(1)},
+				},
+			),
+			&SourceRange{
+				Filename: "test.tf",
+				Start:    SourcePos{Line: 20, Column: 26, Byte: 221},
+				End:      SourcePos{Line: 20, Column: 30, Byte: 225},
+			},
+		},
+		{
+			AttributeValue(
+				Error,
+				"parent.nested_map.first_key",
+				"detail",
+				cty.Path{
+					cty.GetAttrStep{Name: "parent"},
+					cty.GetAttrStep{Name: "nested_map"},
+					cty.IndexStep{Key: cty.StringVal("first_key")},
+				},
+			),
+			&SourceRange{
+				Filename: "test.tf",
+				Start:    SourcePos{Line: 22, Column: 19, Byte: 266},
+				End:      SourcePos{Line: 22, Column: 30, Byte: 277},
+			},
+		},
+		{
+			AttributeValue(
+				Error,
+				"parent.nested_map.second_key",
+				"detail",
+				cty.Path{
+					cty.GetAttrStep{Name: "parent"},
+					cty.GetAttrStep{Name: "nested_map"},
+					cty.IndexStep{Key: cty.StringVal("second_key")},
+				},
+			),
+			&SourceRange{
+				Filename: "test.tf",
+				Start:    SourcePos{Line: 23, Column: 19, Byte: 297},
+				End:      SourcePos{Line: 23, Column: 28, Byte: 306},
+			},
+		},
+		{
+			AttributeValue(
+				Error,
+				"parent.nested_map.undefined_key",
+				"detail",
+				cty.Path{
+					cty.GetAttrStep{Name: "parent"},
+					cty.GetAttrStep{Name: "nested_map"},
+					cty.IndexStep{Key: cty.StringVal("undefined_key")},
+				},
+			),
+			&SourceRange{
+				Filename: "test.tf",
+				Start:    SourcePos{Line: 21, Column: 3, Byte: 233},
+				End:      SourcePos{Line: 21, Column: 13, Byte: 243},
+			},
+		},
+
+		// Root attributes of complex types
+		{
+			AttributeValue(
+				Error,
+				"tuple_of_one[0]",
+				"detail",
+				cty.Path{
+					cty.GetAttrStep{Name: "tuple_of_one"},
+					cty.IndexStep{Key: cty.NumberIntVal(0)},
+				},
+			),
+			&SourceRange{
+				Filename: "test.tf",
+				Start:    SourcePos{Line: 26, Column: 17, Byte: 330},
+				End:      SourcePos{Line: 26, Column: 22, Byte: 335},
+			},
+		},
+		{
+			AttributeValue(
+				Error,
+				"tuple_of_two[0]",
+				"detail",
+				cty.Path{
+					cty.GetAttrStep{Name: "tuple_of_two"},
+					cty.IndexStep{Key: cty.NumberIntVal(0)},
+				},
+			),
+			&SourceRange{
+				Filename: "test.tf",
+				Start:    SourcePos{Line: 27, Column: 17, Byte: 353},
+				End:      SourcePos{Line: 27, Column: 24, Byte: 360},
+			},
+		},
+		{
+			AttributeValue(
+				Error,
+				"tuple_of_two[1]",
+				"detail",
+				cty.Path{
+					cty.GetAttrStep{Name: "tuple_of_two"},
+					cty.IndexStep{Key: cty.NumberIntVal(1)},
+				},
+			),
+			&SourceRange{
+				Filename: "test.tf",
+				Start:    SourcePos{Line: 27, Column: 26, Byte: 362},
+				End:      SourcePos{Line: 27, Column: 33, Byte: 369},
+			},
+		},
+		{
+			AttributeValue(
+				Error,
+				"tuple_of_one[null]",
+				"detail",
+				cty.Path{
+					cty.GetAttrStep{Name: "tuple_of_one"},
+					cty.IndexStep{Key: cty.NullVal(cty.Number)},
+				},
+			),
+			&SourceRange{
+				Filename: "test.tf",
+				Start:    SourcePos{Line: 26, Column: 1, Byte: 314},
+				End:      SourcePos{Line: 26, Column: 13, Byte: 326},
+			},
+		},
+		{
+			// index out of range
+			AttributeValue(
+				Error,
+				"tuple_of_two[99]",
+				"detail",
+				cty.Path{
+					cty.GetAttrStep{Name: "tuple_of_two"},
+					cty.IndexStep{Key: cty.NumberIntVal(99)},
+				},
+			),
+			&SourceRange{
+				Filename: "test.tf",
+				Start:    SourcePos{Line: 27, Column: 1, Byte: 337},
+				End:      SourcePos{Line: 27, Column: 13, Byte: 349},
+			},
+		},
+		{
+			AttributeValue(
+				Error,
+				"root_map.first",
+				"detail",
+				cty.Path{
+					cty.GetAttrStep{Name: "root_map"},
+					cty.IndexStep{Key: cty.StringVal("first")},
+				},
+			),
+			&SourceRange{
+				Filename: "test.tf",
+				Start:    SourcePos{Line: 29, Column: 13, Byte: 396},
+				End:      SourcePos{Line: 29, Column: 16, Byte: 399},
+			},
+		},
+		{
+			AttributeValue(
+				Error,
+				"root_map.second",
+				"detail",
+				cty.Path{
+					cty.GetAttrStep{Name: "root_map"},
+					cty.IndexStep{Key: cty.StringVal("second")},
+				},
+			),
+			&SourceRange{
+				Filename: "test.tf",
+				Start:    SourcePos{Line: 30, Column: 13, Byte: 413},
+				End:      SourcePos{Line: 30, Column: 16, Byte: 416},
+			},
+		},
+		{
+			AttributeValue(
+				Error,
+				"root_map.undefined_key",
+				"detail",
+				cty.Path{
+					cty.GetAttrStep{Name: "root_map"},
+					cty.IndexStep{Key: cty.StringVal("undefined_key")},
+				},
+			),
+			&SourceRange{
+				Filename: "test.tf",
+				Start:    SourcePos{Line: 28, Column: 1, Byte: 371},
+				End:      SourcePos{Line: 28, Column: 9, Byte: 379},
+			},
+		},
+		{
+			AttributeValue(
+				Error,
+				"simple_attr",
+				"detail",
+				cty.Path{
+					cty.GetAttrStep{Name: "simple_attr"},
+				},
+			),
+			&SourceRange{
+				Filename: "test.tf",
+				Start:    SourcePos{Line: 32, Column: 15, Byte: 434},
+				End:      SourcePos{Line: 32, Column: 20, Byte: 439},
+			},
+		},
+		{
+			// This should never happen as error should always point to an attribute
+			// or index of an attribute, but we should not crash if it does
+			AttributeValue(
+				Error,
+				"key",
+				"index_step",
+				cty.Path{
+					cty.IndexStep{Key: cty.StringVal("key")},
+				},
+			),
+			emptySrcRng,
+		},
+		{
+			// This should never happen as error should always point to an attribute
+			// or index of an attribute, but we should not crash if it does
+			AttributeValue(
+				Error,
+				"key.another",
+				"index_step",
+				cty.Path{
+					cty.IndexStep{Key: cty.StringVal("key")},
+					cty.IndexStep{Key: cty.StringVal("another")},
+				},
+			),
+			emptySrcRng,
 		},
 	}
 
