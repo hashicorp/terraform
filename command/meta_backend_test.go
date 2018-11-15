@@ -1279,9 +1279,9 @@ func TestMetaBackend_configuredChangeCopy_multiToNoDefaultWithoutDefault(t *test
 	}
 
 	sort.Strings(workspaces)
-	expected := []string{"default", "env2"}
+	expected := []string{"env2"} // default is skipped because it is absent in the source backend
 	if !reflect.DeepEqual(workspaces, expected) {
-		t.Fatalf("bad: %#v", workspaces)
+		t.Fatalf("wrong workspaces\ngot:  %#v\nwant: %#v", workspaces, expected)
 	}
 
 	{
@@ -1306,7 +1306,7 @@ func TestMetaBackend_configuredChangeCopy_multiToNoDefaultWithoutDefault(t *test
 		// Verify existing workspaces exist
 		envPath := filepath.Join(backendLocal.DefaultWorkspaceDir, "env2", backendLocal.DefaultStateFilename)
 		if _, err := os.Stat(envPath); err != nil {
-			t.Fatal("env should exist")
+			t.Fatalf("%s should exist, but does not", envPath)
 		}
 	}
 
@@ -1314,7 +1314,7 @@ func TestMetaBackend_configuredChangeCopy_multiToNoDefaultWithoutDefault(t *test
 		// Verify new workspaces exist
 		envPath := filepath.Join("envdir-new", "env2", backendLocal.DefaultStateFilename)
 		if _, err := os.Stat(envPath); err != nil {
-			t.Fatal("env should exist")
+			t.Fatalf("%s should exist, but does not", envPath)
 		}
 	}
 }
