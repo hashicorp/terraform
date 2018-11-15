@@ -299,12 +299,17 @@ func upgradeInstanceObjectV3ToV4(rsOld *resourceStateV2, isOld *instanceStateV2,
 		}
 	}
 
+	dependencies := make([]string, len(rsOld.Dependencies))
+	for i, v := range rsOld.Dependencies {
+		dependencies[i] = strings.TrimSuffix(v, ".*")
+	}
+
 	return &instanceObjectStateV4{
 		IndexKey:       instKeyRaw,
 		Status:         status,
 		Deposed:        string(deposedKey),
 		AttributesFlat: attributes,
-		Dependencies:   rsOld.Dependencies,
+		Dependencies:   dependencies,
 		SchemaVersion:  schemaVersion,
 		PrivateRaw:     privateJSON,
 	}, nil
