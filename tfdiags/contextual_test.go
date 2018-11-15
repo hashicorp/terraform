@@ -45,6 +45,13 @@ root_map = {
 }
 simple_attr = "val"
 `
+	// TODO: Test ConditionalExpr
+	// TODO: Test ForExpr
+	// TODO: Test FunctionCallExpr
+	// TODO: Test IndexExpr
+	// TODO: Test interpolation
+	// TODO: Test SplatExpr
+
 	f, parseDiags := hclsyntax.ParseConfig([]byte(testConfig), "test.tf", hcl.Pos{Line: 1, Column: 1})
 	if len(parseDiags) != 0 {
 		t.Fatal(parseDiags)
