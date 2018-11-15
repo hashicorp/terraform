@@ -12,14 +12,8 @@ import (
 	"github.com/hashicorp/terraform/tfdiags"
 )
 
-func (b *Remote) opApply(stopCtx, cancelCtx context.Context, op *backend.Operation) (*tfe.Run, error) {
+func (b *Remote) opApply(stopCtx, cancelCtx context.Context, op *backend.Operation, w *tfe.Workspace) (*tfe.Run, error) {
 	log.Printf("[INFO] backend/remote: starting Apply operation")
-
-	// Retrieve the workspace used to run this operation in.
-	w, err := b.client.Workspaces.Read(stopCtx, b.organization, op.Workspace)
-	if err != nil {
-		return nil, generalError("Failed to retrieve workspace", err)
-	}
 
 	var diags tfdiags.Diagnostics
 

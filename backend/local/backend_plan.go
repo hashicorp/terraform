@@ -188,7 +188,6 @@ func (b *Local) opPlan(
 }
 
 func (b *Local) renderPlan(plan *plans.Plan, schemas *terraform.Schemas) {
-
 	counts := map[plans.Action]int{}
 	for _, change := range plan.Changes.Resources {
 		counts[change.Action]++

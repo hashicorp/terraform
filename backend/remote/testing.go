@@ -11,6 +11,8 @@ import (
 	tfe "github.com/hashicorp/go-tfe"
 	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/configs"
+	"github.com/hashicorp/terraform/configs/configschema"
+	"github.com/hashicorp/terraform/providers"
 	"github.com/hashicorp/terraform/state/remote"
 	"github.com/hashicorp/terraform/svchost"
 	"github.com/hashicorp/terraform/svchost/auth"
@@ -19,6 +21,8 @@ import (
 	"github.com/hashicorp/terraform/tfdiags"
 	"github.com/mitchellh/cli"
 	"github.com/zclconf/go-cty/cty"
+
+	backendLocal "github.com/hashicorp/terraform/backend/local"
 )
 
 const (
@@ -108,6 +112,9 @@ func testBackend(t *testing.T, obj cty.Value) *Remote {
 		}
 	}
 
+	// Set local to a local test backend.
+	b.local = testLocalBackend(t, b)
+
 	ctx := context.Background()
 
 	// Create the organization.
@@ -131,6 +138,29 @@ func testBackend(t *testing.T, obj cty.Value) *Remote {
 	return b
 }
 
+func testLocalBackend(t *testing.T, remote *Remote) backend.Enhanced {
+	b := backendLocal.NewWithBackend(remote)
+
+	b.CLI = remote.CLI
+	b.ShowDiagnostics = remote.ShowDiagnostics
+
+	// Add a test provider to the local backend.
+	p := backendLocal.TestLocalProvider(t, b, "null", &terraform.ProviderSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"null_resource": {
+				Attributes: map[string]*configschema.Attribute{
+					"id": {Type: cty.String, Computed: true},
+				},
+			},
+		},
+	})
+	p.ApplyResourceChangeResponse = providers.ApplyResourceChangeResponse{NewState: cty.ObjectVal(map[string]cty.Value{
+		"id": cty.StringVal("yes"),
+	})}
+
+	return b
+}
+
 // testServer returns a *httptest.Server used for local testing.
 func testServer(t *testing.T) *httptest.Server {
 	mux := http.NewServeMux()
@@ -139,6 +169,49 @@ func testServer(t *testing.T) *httptest.Server {
 	mux.HandleFunc("/well-known/terraform.json", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		io.WriteString(w, `{"tfe.v2":"/api/v2/"}`)
+	})
+
+	// Respond to the initial query to read the organization settings.
+	mux.HandleFunc("/api/v2/organizations/hashicorp", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/vnd.api+json")
+		io.WriteString(w, `{
+  "data": {
+    "id": "hashicorp",
+    "type": "organizations",
+    "attributes": {
+      "name": "hashicorp",
+      "created-at": "2017-09-07T14:34:40.492Z",
+      "email": "user@example.com",
+      "collaborator-auth-policy": "password",
+      "enterprise-plan": "premium",
+      "permissions": {
+        "can-update": true,
+        "can-destroy": true,
+        "can-create-team": true,
+        "can-create-workspace": true,
+        "can-update-oauth": true,
+        "can-update-api-token": true,
+        "can-update-sentinel": true,
+        "can-traverse": true,
+        "can-create-workspace-migration": true
+      }
+    }
+  }
+}`)
+	})
+
+	// All tests that are assumed to pass will use the hashicorp organization,
+	// so for all other organization requests we will return a 404.
+	mux.HandleFunc("/api/v2/organizations/", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(404)
+		io.WriteString(w, `{
+  "errors": [
+    {
+      "status": "404",
+      "title": "not found"
+    }
+  ]
+}`)
 	})
 
 	return httptest.NewServer(mux)
