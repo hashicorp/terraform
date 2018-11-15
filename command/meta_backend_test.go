@@ -1549,7 +1549,7 @@ func TestMetaBackend_planLocalStatePath(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	backendConfig := plans.Backend{
+	plannedBackend := plans.Backend{
 		Type:      "local",
 		Config:    backendConfigRaw,
 		Workspace: "default",
@@ -1569,7 +1569,7 @@ func TestMetaBackend_planLocalStatePath(t *testing.T) {
 	m.stateOutPath = statePath
 
 	// Get the backend
-	b, diags := m.BackendForPlan(backendConfig)
+	b, diags := m.BackendForPlan(plannedBackend)
 	if diags.HasErrors() {
 		t.Fatal(diags.Err())
 	}
@@ -1583,10 +1583,9 @@ func TestMetaBackend_planLocalStatePath(t *testing.T) {
 		t.Fatalf("unexpected error: %s", err)
 	}
 	state := s.State()
-	if state == nil {
-		t.Fatal("state is nil")
+	if state != nil {
+		t.Fatal("default workspace state is not nil, but should be because we've not put anything there")
 	}
-	assertStateHasMarker(t, state, mark)
 
 	// Verify the default path doesn't exist
 	if _, err := os.Stat(DefaultStateFilename); err == nil {
