@@ -54,8 +54,11 @@ func TestRemote_planBasic(t *testing.T) {
 	}
 
 	output := b.CLI.(*cli.MockUi).OutputWriter.String()
+	if !strings.Contains(output, "Running plan in the remote backend") {
+		t.Fatalf("expected remote backend header in output: %s", output)
+	}
 	if !strings.Contains(output, "1 to add, 0 to change, 0 to destroy") {
-		t.Fatalf("missing plan summery in output: %s", output)
+		t.Fatalf("expected plan summery in output: %s", output)
 	}
 }
 
@@ -284,6 +287,86 @@ func TestRemote_planNoConfig(t *testing.T) {
 	}
 }
 
+func TestRemote_planForceLocal(t *testing.T) {
+	// Set TF_FORCE_LOCAL_BACKEND so the remote backend will use
+	// the local backend with itself as embedded backend.
+	if err := os.Setenv("TF_FORCE_LOCAL_BACKEND", "1"); err != nil {
+		t.Fatalf("error setting environment variable TF_FORCE_LOCAL_BACKEND: %v", err)
+	}
+	defer os.Unsetenv("TF_FORCE_LOCAL_BACKEND")
+
+	b := testBackendDefault(t)
+
+	op, configCleanup := testOperationPlan(t, "./test-fixtures/plan")
+	defer configCleanup()
+
+	op.Workspace = backend.DefaultStateName
+
+	run, err := b.Operation(context.Background(), op)
+	if err != nil {
+		t.Fatalf("error starting operation: %v", err)
+	}
+
+	<-run.Done()
+	if run.Result != backend.OperationSuccess {
+		t.Fatalf("operation failed: %s", b.CLI.(*cli.MockUi).ErrorWriter.String())
+	}
+	if run.PlanEmpty {
+		t.Fatalf("expected a non-empty plan")
+	}
+
+	output := b.CLI.(*cli.MockUi).OutputWriter.String()
+	if strings.Contains(output, "Running plan in the remote backend") {
+		t.Fatalf("unexpected remote backend header in output: %s", output)
+	}
+	if !strings.Contains(output, "1 to add, 0 to change, 0 to destroy") {
+		t.Fatalf("expected plan summery in output: %s", output)
+	}
+}
+
+func TestRemote_planWorkspaceWithoutOperations(t *testing.T) {
+	b := testBackendNoDefault(t)
+	ctx := context.Background()
+
+	// Create a named workspace that doesn't allow operations.
+	_, err := b.client.Workspaces.Create(
+		ctx,
+		b.organization,
+		tfe.WorkspaceCreateOptions{
+			Name: tfe.String(b.prefix + "no-operations"),
+		},
+	)
+	if err != nil {
+		t.Fatalf("error creating named workspace: %v", err)
+	}
+
+	op, configCleanup := testOperationPlan(t, "./test-fixtures/plan")
+	defer configCleanup()
+
+	op.Workspace = "no-operations"
+
+	run, err := b.Operation(ctx, op)
+	if err != nil {
+		t.Fatalf("error starting operation: %v", err)
+	}
+
+	<-run.Done()
+	if run.Result != backend.OperationSuccess {
+		t.Fatalf("operation failed: %s", b.CLI.(*cli.MockUi).ErrorWriter.String())
+	}
+	if run.PlanEmpty {
+		t.Fatalf("expected a non-empty plan")
+	}
+
+	output := b.CLI.(*cli.MockUi).OutputWriter.String()
+	if strings.Contains(output, "Running plan in the remote backend") {
+		t.Fatalf("unexpected remote backend header in output: %s", output)
+	}
+	if !strings.Contains(output, "1 to add, 0 to change, 0 to destroy") {
+		t.Fatalf("expected plan summery in output: %s", output)
+	}
+}
+
 func TestRemote_planLockTimeout(t *testing.T) {
 	b := testBackendDefault(t)
 	ctx := context.Background()
@@ -342,8 +425,11 @@ func TestRemote_planLockTimeout(t *testing.T) {
 	}
 
 	output := b.CLI.(*cli.MockUi).OutputWriter.String()
+	if !strings.Contains(output, "Running plan in the remote backend") {
+		t.Fatalf("expected remote backend header in output: %s", output)
+	}
 	if !strings.Contains(output, "Lock timeout exceeded") {
-		t.Fatalf("missing lock timout error in output: %s", output)
+		t.Fatalf("expected lock timout error in output: %s", output)
 	}
 	if strings.Contains(output, "1 to add, 0 to change, 0 to destroy") {
 		t.Fatalf("unexpected plan summery in output: %s", output)
@@ -428,8 +514,11 @@ func TestRemote_planWithWorkingDirectory(t *testing.T) {
 	}
 
 	output := b.CLI.(*cli.MockUi).OutputWriter.String()
+	if !strings.Contains(output, "Running plan in the remote backend") {
+		t.Fatalf("expected remote backend header in output: %s", output)
+	}
 	if !strings.Contains(output, "1 to add, 0 to change, 0 to destroy") {
-		t.Fatalf("missing plan summery in output: %s", output)
+		t.Fatalf("expected plan summery in output: %s", output)
 	}
 }
 
@@ -455,11 +544,14 @@ func TestRemote_planPolicyPass(t *testing.T) {
 	}
 
 	output := b.CLI.(*cli.MockUi).OutputWriter.String()
+	if !strings.Contains(output, "Running plan in the remote backend") {
+		t.Fatalf("expected remote backend header in output: %s", output)
+	}
 	if !strings.Contains(output, "1 to add, 0 to change, 0 to destroy") {
-		t.Fatalf("missing plan summery in output: %s", output)
+		t.Fatalf("expected plan summery in output: %s", output)
 	}
 	if !strings.Contains(output, "Sentinel Result: true") {
-		t.Fatalf("missing polic check result in output: %s", output)
+		t.Fatalf("expected polic check result in output: %s", output)
 	}
 }
 
@@ -490,11 +582,14 @@ func TestRemote_planPolicyHardFail(t *testing.T) {
 	}
 
 	output := b.CLI.(*cli.MockUi).OutputWriter.String()
+	if !strings.Contains(output, "Running plan in the remote backend") {
+		t.Fatalf("expected remote backend header in output: %s", output)
+	}
 	if !strings.Contains(output, "1 to add, 0 to change, 0 to destroy") {
-		t.Fatalf("missing plan summery in output: %s", output)
+		t.Fatalf("expected plan summery in output: %s", output)
 	}
 	if !strings.Contains(output, "Sentinel Result: false") {
-		t.Fatalf("missing policy check result in output: %s", output)
+		t.Fatalf("expected policy check result in output: %s", output)
 	}
 }
 
@@ -525,11 +620,14 @@ func TestRemote_planPolicySoftFail(t *testing.T) {
 	}
 
 	output := b.CLI.(*cli.MockUi).OutputWriter.String()
+	if !strings.Contains(output, "Running plan in the remote backend") {
+		t.Fatalf("expected remote backend header in output: %s", output)
+	}
 	if !strings.Contains(output, "1 to add, 0 to change, 0 to destroy") {
-		t.Fatalf("missing plan summery in output: %s", output)
+		t.Fatalf("expected plan summery in output: %s", output)
 	}
 	if !strings.Contains(output, "Sentinel Result: false") {
-		t.Fatalf("missing policy check result in output: %s", output)
+		t.Fatalf("expected policy check result in output: %s", output)
 	}
 }
 
@@ -555,7 +653,10 @@ func TestRemote_planWithRemoteError(t *testing.T) {
 	}
 
 	output := b.CLI.(*cli.MockUi).OutputWriter.String()
+	if !strings.Contains(output, "Running plan in the remote backend") {
+		t.Fatalf("expected remote backend header in output: %s", output)
+	}
 	if !strings.Contains(output, "null_resource.foo: 1 error") {
-		t.Fatalf("missing plan error in output: %s", output)
+		t.Fatalf("expected plan error in output: %s", output)
 	}
 }
