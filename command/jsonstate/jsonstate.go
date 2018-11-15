@@ -3,7 +3,6 @@ package jsonstate
 import (
 	"encoding/json"
 
-	"github.com/hashicorp/terraform/configs/configload"
 	"github.com/hashicorp/terraform/states"
 )
 
@@ -12,9 +11,9 @@ import (
 // consuming parser.
 const FormatVersion = "0.1"
 
-// State is the top-level representation of the json format of a terraform
-//  state.
-type State struct {
+// state is the top-level representation of the json format of a terraform
+// state.
+type state struct {
 	FormatVersion string          `json:"format_version"`
 	Values        json.RawMessage `json:"values"`
 }
@@ -89,7 +88,27 @@ type source struct {
 	End      string `json:"end"`
 }
 
-// Marshall returns the json encoding of a terraform plan.
-func Marshall(c *configload.Snapshot, s *states.State) ([]byte, error) {
-	return nil, nil
+// newState() returns a minimally-initialized state
+func newState() *state {
+	return &state{
+		FormatVersion: FormatVersion,
+	}
 }
+
+// Marshall returns the json encoding of a terraform plan.
+func Marshall(s *states.State) ([]byte, error) {
+	if s.Empty() {
+		return nil, nil
+	}
+
+	output := newState()
+
+	ret, err := json.Marshal(output)
+	return ret, err
+}
+
+// jbardin [7:50 AM] `SchemaVersion` comes from the provider. It's recorded so
+// that the provider can know how to upgrade the schema of a resource.
+// I'm looking to see where it ends up through core. It comes back in the
+// `providers.Schema` type
+// ah, state stores it in the `ResourceInstanceObjectSrc`

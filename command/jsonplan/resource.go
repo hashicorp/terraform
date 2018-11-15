@@ -5,32 +5,32 @@ import "encoding/json"
 // Resource is the representation of a resource in the json plan
 type resource struct {
 	// Address is the absolute resource address
-	Address string `json:"address"`
+	Address string `json:"address,omitempty"`
 
 	// Mode can be "managed" or "data"
-	Mode string `json:"mode"`
+	Mode string `json:"mode,omitempty"`
 
-	Type string `json:"type"`
-	Name string `json:"name"`
+	Type string `json:"type,omitempty"`
+	Name string `json:"name,omitempty"`
 
 	// Index is omitted for a resource not using `count` or `for_each`
-	Index int `json:"index,omitempty"`
+	Index string `json:"index,omitempty"`
 
 	// ProviderName allows the property "type" to be interpreted unambiguously
 	// in the unusual situation where a provider offers a resource type whose
 	// name does not start with its own name, such as the "googlebeta" provider
 	// offering "google_compute_instance".
-	ProviderName string `json:"provider_name"`
+	ProviderName string `json:"provider_name,omitempty"`
 
 	// SchemaVersion indicates which version of the resource type schema the
 	// "values" property conforms to.
-	SchemaVersion int `json:"schema_version"`
+	SchemaVersion int `json:"schema_version,omitempty"`
 
 	// Values is the JSON representation of the attribute values of the
 	// resource, whose structure depends on the resource type schema. Any
 	// unknown values are omitted or set to null, making them indistinguishable
 	// from absent values.
-	Values json.RawMessage `json:"values"`
+	Values json.RawMessage `json:"values,omitempty"`
 }
 
 // resourceChange is a description of an individual change action that Terraform
@@ -46,11 +46,11 @@ type resourceChange struct {
 	ModuleAddress string `json:"module_address,omitempty"`
 
 	// "managed" or "data"
-	Mode string
+	Mode string `json:"mode,omitempty"`
 
-	Type  string
-	Name  string
-	Index string
+	Type  string `json:"type,omitempty"`
+	Name  string `json:"name,omitempty"`
+	Index string `json:"index,omitempty"`
 
 	// "deposed", if set, indicates that this action applies to a "deposed"
 	// object of the given instance rather than to its "current" object. Omitted
@@ -58,5 +58,5 @@ type resourceChange struct {
 	Deposed bool `json:"deposed,omitempty"`
 
 	// Change describes the change that will be made to this object
-	Change change
+	Change change `json:"change,omitempty"`
 }

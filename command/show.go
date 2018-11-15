@@ -29,6 +29,8 @@ func (c *ShowCommand) Run(args []string) int {
 	}
 
 	cmdFlags := c.Meta.defaultFlagSet("show")
+	var jsonOutput bool
+	cmdFlags.BoolVar(&jsonOutput, "json", false, "produce JSON output (only available when showing a planfile)")
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
 	if err := cmdFlags.Parse(args); err != nil {
 		return 1
@@ -164,9 +166,9 @@ func (c *ShowCommand) Run(args []string) int {
 				c.showDiagnostics(diags)
 				return 1
 			}
-			jsonPlan, err := jsonplan.Marshall(snapshot, plan, state)
+			jsonPlan, err := jsonplan.Marshal(snapshot, plan, state, schemas)
 			if err != nil {
-				c.Ui.Error(fmt.Sprintf("Failed to load config: %s", err))
+				c.Ui.Error(fmt.Sprintf("Failed to marshal plan to json: %s", err))
 				return 1
 			}
 			c.Ui.Output(string(jsonPlan))
@@ -195,6 +197,8 @@ Usage: terraform show [options] [path]
 Options:
 
   -no-color           If specified, output won't contain any color.
+  -json				  If specified, output the Terraform plan in a machine-
+						readable form. Only available for plan files.
 
 `
 	return strings.TrimSpace(helpText)
