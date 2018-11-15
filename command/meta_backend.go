@@ -171,6 +171,7 @@ func (m *Meta) BackendForPlan(settings plans.Backend) (backend.Enhanced, tfdiags
 		return nil, diags
 	}
 	b := f()
+	log.Printf("[TRACE] Meta.BackendForPlan: instantiated backend of type %T", b)
 
 	schema := b.ConfigSchema()
 	configVal, err := settings.Config.Decode(schema.ImpliedType())
@@ -204,11 +205,13 @@ func (m *Meta) BackendForPlan(settings plans.Backend) (backend.Enhanced, tfdiags
 	// If the result of loading the backend is an enhanced backend,
 	// then return that as-is. This works even if b == nil (it will be !ok).
 	if enhanced, ok := b.(backend.Enhanced); ok {
+		log.Printf("[TRACE] Meta.BackendForPlan: backend %T supports operations", b)
 		return enhanced, nil
 	}
 
 	// Otherwise, we'll wrap our state-only remote backend in the local backend
 	// to cause any operations to be run locally.
+	log.Printf("[TRACE] Meta.Backend: backend %T does not support operations, so wrapping it in a local backend", b)
 	cliOpts := m.backendCLIOpts()
 	cliOpts.Validation = false // don't validate here in case config contains file(...) calls where the file doesn't exist
 	local := backendLocal.NewWithBackend(b)
