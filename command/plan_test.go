@@ -342,7 +342,7 @@ func TestPlan_outBackend(t *testing.T) {
 	}
 	if code := c.Run(args); code != 0 {
 		t.Logf("stdout: %s", ui.OutputWriter.String())
-		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+		t.Fatalf("plan command failed with exit code %d\n\n%s", code, ui.ErrorWriter.String())
 	}
 
 	plan := testReadPlan(t, outPath)
