@@ -143,6 +143,7 @@ func (s *Filesystem) writeState(state *states.State, meta *SnapshotMeta) error {
 	// We'll try to write our backup first, so we can be sure we've created
 	// it successfully before clobbering the original file it came from.
 	if !s.writtenBackup && s.backupFile != nil && s.backupPath != "" && !statefile.StatesMarshalEqual(state, s.backupFile.State) {
+		log.Printf("[TRACE] statemgr.Filesystem: creating backup snapshot at %s", s.backupPath)
 		bfh, err := os.Create(s.backupPath)
 		if err != nil {
 			return fmt.Errorf("failed to create local state backup file: %s", err)
@@ -170,6 +171,7 @@ func (s *Filesystem) writeState(state *states.State, meta *SnapshotMeta) error {
 	}
 	s.file.State = state.DeepCopy()
 
+	log.Print("[TRACE] statemgr.Filesystem: truncating the state file")
 	if _, err := s.stateFileOut.Seek(0, os.SEEK_SET); err != nil {
 		return err
 	}
@@ -179,19 +181,25 @@ func (s *Filesystem) writeState(state *states.State, meta *SnapshotMeta) error {
 
 	if state == nil {
 		// if we have no state, don't write anything else.
+		log.Print("[TRACE] statemgr.Filesystem: state is nil, so leaving the file empty")
 		return nil
 	}
 
 	if meta == nil {
 		if s.readFile == nil || !statefile.StatesMarshalEqual(s.file.State, s.readFile.State) {
 			s.file.Serial++
+			log.Printf("[TRACE] statemgr.Filesystem: state has changed since last snapshot, so incrementing serial to %d", s.file.Serial)
+		} else {
+			log.Print("[TRACE] statemgr.Filesystem: no state changes since last snapshot")
 		}
 	} else {
 		// Force new metadata
 		s.file.Lineage = meta.Lineage
 		s.file.Serial = meta.Serial
+		log.Printf("[TRACE] statemgr.Filesystem: forcing lineage %q serial %d for migration/import", s.file.Lineage, s.file.Serial)
 	}
 
+	log.Printf("[TRACE] statemgr.Filesystem: writing snapshot at %s", s.path)
 	if err := statefile.Write(s.file, s.stateFileOut); err != nil {
 		return err
 	}
@@ -220,6 +228,8 @@ func (s *Filesystem) RefreshState() error {
 	// output file, and the output file has been locked already, we can't open
 	// the file again.
 	if !s.written && (s.stateFileOut == nil || s.readPath != s.path) {
+		log.Printf("[TRACE] statemgr.Filesystem: reading initial snapshot from %s", s.readPath)
+
 		// we haven't written a state file yet, so load from readPath
 		f, err := os.Open(s.readPath)
 		if err != nil {
@@ -237,8 +247,11 @@ func (s *Filesystem) RefreshState() error {
 			reader = f
 		}
 	} else {
+		log.Printf("[TRACE] statemgr.Filesystem: reading snapshot from %s", s.path)
+
 		// no state to refresh
 		if s.stateFileOut == nil {
+			log.Printf("[TRACE] statemgr.Filesystem: no state snapshot has been written yet")
 			return nil
 		}
 
@@ -251,16 +264,21 @@ func (s *Filesystem) RefreshState() error {
 
 	// nothing to backup if there's no initial state
 	if f == nil {
+		log.Printf("[TRACE] statemgr.Filesystem: no initial state, so will skip writing a backup")
 		s.writtenBackup = true
 	}
 
 	// if there's no state we just assign the nil return value
 	if err != nil && err != statefile.ErrNoState {
+		log.Printf("[TRACE] statemgr.Filesystem: state snapshot is nil")
 		return err
 	}
 
 	s.file = f
 	s.readFile = s.file.DeepCopy()
+	if s.file != nil {
+		log.Printf("[TRACE] statemgr.Filesystem: read snapshot with lineage %q serial %d", s.file.Lineage, s.file.Serial)
+	}
 	return nil
 }
 
@@ -400,6 +418,7 @@ func (s *Filesystem) WriteStateForMigration(f *statefile.File, force bool) error
 
 // Open the state file, creating the directories and file as needed.
 func (s *Filesystem) createStateFiles() error {
+	log.Printf("[TRACE] statemgr.Filesystem: preparing to manage state snapshots at %s", s.path)
 
 	// This could race, but we only use it to clean up empty files
 	if _, err := os.Stat(s.path); os.IsNotExist(err) {
