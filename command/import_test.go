@@ -1,6 +1,7 @@
 package command
 
 import (
+	"log"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -161,7 +162,7 @@ func TestImport_remoteState(t *testing.T) {
 	statePath := "imported.tfstate"
 
 	// init our backend
-	ui := new(cli.MockUi)
+	ui := cli.NewMockUi()
 	m := Meta{
 		testingOverrides: metaOverridesForProvider(testProvider()),
 		Ui:               ui,
@@ -178,8 +179,10 @@ func TestImport_remoteState(t *testing.T) {
 		},
 	}
 
+	// (Using log here rather than t.Log so that these messages interleave with other trace logs)
+	log.Print("[TRACE] TestImport_remoteState running: terraform init")
 	if code := ic.Run([]string{}); code != 0 {
-		t.Fatalf("bad: \n%s", ui.ErrorWriter)
+		t.Fatalf("init failed\n%s", ui.ErrorWriter)
 	}
 
 	p := testProvider()
@@ -233,7 +236,7 @@ func TestImport_remoteState(t *testing.T) {
 		"test_instance.foo",
 		"bar",
 	}
-
+	log.Printf("[TRACE] TestImport_remoteState running: terraform import %s %s", args[0], args[1])
 	if code := c.Run(args); code != 0 {
 		fmt.Println(ui.OutputWriter)
 		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
