@@ -610,7 +610,6 @@ func (s *GRPCProviderServer) ApplyResourceChange(_ context.Context, req *proto.A
 		Type: req.TypeName,
 	}
 
-	//priorState := terraform.NewInstanceStateShimmedFromValue(priorStateVal, res.SchemaVersion)
 	priorState, err := res.ShimInstanceStateFromValue(priorStateVal)
 	if err != nil {
 		resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)

@@ -450,11 +450,6 @@ func (d *InstanceDiff) Apply(attrs map[string]string, schema *configschema.Block
 }
 
 func (d *InstanceDiff) applyDiff(attrs map[string]string, schema *configschema.Block) (map[string]string, error) {
-	// We always build a new value here, even if the given diff is "empty",
-	// because we might be planning to create a new instance that happens
-	// to have no attributes set, and so we want to produce an empty object
-	// rather than just echoing back the null old value.
-
 	// Rather applying the diff to mutate the attrs, we'll copy new values into
 	// here to avoid the possibility of leaving stale values.
 	result := map[string]string{}
@@ -513,7 +508,6 @@ func (d *InstanceDiff) applyAttrDiff(attrName string, oldAttrs map[string]string
 		return result, nil
 	}
 
-	// skip "id", as we already handled it
 	if attrName == "id" {
 		if old == "" {
 			result["id"] = config.UnknownVariableValue
