@@ -4,13 +4,17 @@ import (
 	"io/ioutil"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 	"sync"
 	"testing"
 
 	"github.com/go-test/deep"
 	version "github.com/hashicorp/go-version"
+	"github.com/zclconf/go-cty/cty"
 
+	"github.com/hashicorp/terraform/addrs"
+	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/states/statefile"
 	tfversion "github.com/hashicorp/terraform/version"
 )
@@ -57,7 +61,7 @@ func TestFilesystemLocks(t *testing.T) {
 		t.Fatal("unexpected lock failure", err, string(out))
 	}
 
-	if string(out) != "lock failed" {
+	if !strings.Contains(string(out), "lock failed") {
 		t.Fatal("expected 'locked failed', got", string(out))
 	}
 
@@ -170,6 +174,116 @@ func TestFilesystem_backup(t *testing.T) {
 			t.Error(problem)
 		}
 	}
+}
+
+// This test verifies a particularly tricky behavior where the input file
+// is overridden and backups are enabled at the same time. This combination
+// requires special care because we must ensure that when we create a backup
+// it is of the original contents of the output file (which we're overwriting),
+// not the contents of the input file (which is left unchanged).
+func TestFilesystem_backupAndReadPath(t *testing.T) {
+	defer testOverrideVersion(t, "1.2.3")()
+
+	workDir, err := ioutil.TempDir("", "tf")
+	if err != nil {
+		t.Fatalf("failed to create temporary directory: %s", err)
+	}
+	defer os.RemoveAll(workDir)
+
+	markerOutput := addrs.OutputValue{Name: "foo"}.Absolute(addrs.RootModuleInstance)
+
+	outState := states.BuildState(func(ss *states.SyncState) {
+		ss.SetOutputValue(
+			markerOutput,
+			cty.StringVal("from-output-state"),
+			false, // not sensitive
+		)
+	})
+	outFile, err := os.Create(filepath.Join(workDir, "output.tfstate"))
+	if err != nil {
+		t.Fatalf("failed to create temporary outFile %s", err)
+	}
+	defer outFile.Close()
+	err = statefile.Write(&statefile.File{
+		Lineage:          "-",
+		Serial:           0,
+		TerraformVersion: version.Must(version.NewVersion("1.2.3")),
+		State:            outState,
+	}, outFile)
+	if err != nil {
+		t.Fatalf("failed to write initial outfile state to %s: %s", outFile.Name(), err)
+	}
+
+	inState := states.BuildState(func(ss *states.SyncState) {
+		ss.SetOutputValue(
+			markerOutput,
+			cty.StringVal("from-input-state"),
+			false, // not sensitive
+		)
+	})
+	inFile, err := os.Create(filepath.Join(workDir, "input.tfstate"))
+	if err != nil {
+		t.Fatalf("failed to create temporary inFile %s", err)
+	}
+	defer inFile.Close()
+	err = statefile.Write(&statefile.File{
+		Lineage:          "-",
+		Serial:           0,
+		TerraformVersion: version.Must(version.NewVersion("1.2.3")),
+		State:            inState,
+	}, inFile)
+	if err != nil {
+		t.Fatalf("failed to write initial infile state to %s: %s", inFile.Name(), err)
+	}
+
+	backupPath := outFile.Name() + ".backup"
+
+	ls := NewFilesystemBetweenPaths(inFile.Name(), outFile.Name())
+	ls.SetBackupPath(backupPath)
+
+	newState := states.BuildState(func(ss *states.SyncState) {
+		ss.SetOutputValue(
+			markerOutput,
+			cty.StringVal("from-new-state"),
+			false, // not sensitive
+		)
+	})
+	err = ls.WriteState(newState)
+	if err != nil {
+		t.Fatalf("failed to write new state: %s", err)
+	}
+
+	// The backup functionality should've saved a copy of the original contents
+	// of the _output_ file, even though the first snapshot was read from
+	// the _input_ file.
+	t.Run("backup file", func (t *testing.T) {
+		bfh, err := os.Open(backupPath)
+		if err != nil {
+			t.Fatal(err)
+		}
+		bf, err := statefile.Read(bfh)
+		if err != nil {
+			t.Fatal(err)
+		}
+		os := bf.State.OutputValue(markerOutput)
+		if got, want := os.Value, cty.StringVal("from-output-state"); !want.RawEquals(got) {
+			t.Errorf("wrong marker value in backup state file\ngot:  %#v\nwant: %#v", got, want)
+		}
+	})
+	t.Run("output file", func (t *testing.T) {
+		ofh, err := os.Open(outFile.Name())
+		if err != nil {
+			t.Fatal(err)
+		}
+		of, err := statefile.Read(ofh)
+		if err != nil {
+			t.Fatal(err)
+		}
+		os := of.State.OutputValue(markerOutput)
+		if got, want := os.Value, cty.StringVal("from-new-state"); !want.RawEquals(got) {
+			t.Errorf("wrong marker value in backup state file\ngot:  %#v\nwant: %#v", got, want)
+		}
+	})
 }
 
 func TestFilesystem_nonExist(t *testing.T) {
