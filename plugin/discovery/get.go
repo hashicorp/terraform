@@ -27,6 +27,12 @@ import (
 
 const protocolVersionHeader = "x-terraform-protocol-version"
 
+const gpgVerificationError = `GPG signature verification error:
+Terraform was unable to verify the GPG signature of the downloaded provider
+files using the keys downloaded from the Terraform Registry. This may mean that
+the publisher of the provider removed the key it was signed with, or that the
+distributed files were changed after this version was released.`
+
 var httpClient *http.Client
 
 var errVersionNotFound = errors.New("version not found")
@@ -369,13 +375,14 @@ func (i *ProviderInstaller) getProviderChecksum(urls *response.TerraformProvider
 	asciiArmor := urls.SigningKeys.GPGASCIIArmor()
 	signer, err := verifySig(shasums, signature, asciiArmor)
 	if err != nil {
-		return "", err
+		log.Printf("[ERROR] error verifying signature: %s", err)
+		return "", fmt.Errorf(gpgVerificationError)
 	}
 
 	// Display identity for GPG key which succeeded verifying the signature.
 	// This could also be used to display to the user with i.Ui.Info().
 	identities := []string{}
-	for k, _ := range signer.Identities {
+	for k := range signer.Identities {
 		identities = append(identities, k)
 	}
 	identity := strings.Join(identities, ", ")
