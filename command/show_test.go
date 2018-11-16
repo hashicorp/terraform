@@ -123,6 +123,8 @@ func TestShow_plan_json(t *testing.T) {
 	if code := c.Run(args); code != 0 {
 		t.Fatalf("bad: \n%s", ui.ErrorWriter.String())
 	}
+
+	// FIXME
 	fmt.Println(ui.OutputWriter.String())
 }
 

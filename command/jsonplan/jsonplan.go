@@ -7,6 +7,8 @@ import (
 	"github.com/hashicorp/terraform/configs/configload"
 	"github.com/hashicorp/terraform/plans"
 	"github.com/hashicorp/terraform/states"
+
+	ctyjson "github.com/zclconf/go-cty/cty/json"
 )
 
 // FormatVersion represents the version of the json format and will be
@@ -77,28 +79,39 @@ type source struct {
 }
 
 // Marshall returns the json encoding of a terraform plan.
-func Marshall(c *configload.Snapshot, p *plans.Plan, s *states.State) ([]byte, error) {
+func Marshal(c *configload.Snapshot, p *plans.Plan, s *states.State) ([]byte, error) {
 	output := newPlan()
+	schemaLoader := configload.NewLoaderFromSnapshot(c)
+	schemaLoader.ImportSourcesFromSnapshot(c)
 
 	// output.Config = config{
 	// 	ProviderConfigs: []providerConfig{},
 	// 	RootModule:      configRootModule{},
 	// }
 	// output.OutputChanges =
-	output.marshallOutputChanges(p.Changes)
+	err := output.marshalOutputChanges(p.Changes)
+	if err != nil {
+		return nil, err
+	}
 	// output.PlannedValues
 	// output.PriorState
 	// output.ProposedUnknown
 	// output.ResourceChanges = marshalResourceChanges(p)
-	output.marshallResourceChanges(p.Changes)
+
+	err = output.marshalResourceChanges(p.Changes)
+	if err != nil {
+		return nil, err
+	}
+
+	// FIXME MarshalIndent is nice for humans
 	ret, err := json.MarshalIndent(output, "", "  ")
 	return ret, err
 }
 
-func (p *plan) marshallResourceChanges(changes *plans.Changes) {
+func (p *plan) marshalResourceChanges(changes *plans.Changes) error {
 	if changes == nil {
 		// Nothing to do!
-		return
+		return nil
 	}
 	for _, rc := range changes.Resources {
 		var r resourceChange
@@ -114,9 +127,29 @@ func (p *plan) marshallResourceChanges(changes *plans.Changes) {
 
 		r.Address = addr.String()
 
+		var before []byte
+		if rc.Before != nil {
+
+			// this does not work
+			// we will need to get this type from the schema
+			beforeTy, err := rc.Before.ImpliedType()
+			if err != nil {
+				return err
+			}
+			beforeVal, err := rc.Before.Decode(beforeTy)
+			if err != nil {
+				return err
+			}
+
+			before, err = ctyjson.Marshal(beforeVal, beforeTy)
+			if err != nil {
+				return err
+			}
+		}
+
 		r.Change = change{
 			Actions: []string{rc.Action.String()},
-			Before:  json.RawMessage(rc.Before),
+			Before:  json.RawMessage(before),
 			// After:   json.RawMessage(rc.After),
 		}
 		r.Deposed = rc.DeposedKey == states.NotDeposed
@@ -133,20 +166,23 @@ func (p *plan) marshallResourceChanges(changes *plans.Changes) {
 		p.ResourceChanges = append(p.ResourceChanges, r)
 
 	}
+
+	return nil
 }
 
-func (p *plan) marshallOutputChanges(changes *plans.Changes) {
+func (p *plan) marshalOutputChanges(changes *plans.Changes) error {
 	if changes == nil {
 		// Nothing to do!
-		return
+		return nil
 	}
 
 	var c change
 	for _, oc := range changes.Outputs {
 		c.Actions = []string{oc.Action.String()}
-		c.Before = json.RawMessage(oc.Before)
-		c.After = json.RawMessage(oc.After)
+		// c.Before = json.RawMessage(oc.Before)
+		// c.After = json.RawMessage(oc.After)
 		p.OutputChanges[oc.Addr.String()] = c
 	}
 
+	return nil
 }
