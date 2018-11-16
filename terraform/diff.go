@@ -7,6 +7,7 @@ import (
 	"reflect"
 	"regexp"
 	"sort"
+	"strconv"
 	"strings"
 	"sync"
 
@@ -617,17 +618,9 @@ func (d *InstanceDiff) applyCollectionDiff(attrName string, oldAttrs map[string]
 		}
 	}
 
-	// Verify we have the index count.
-	// If it wasn't added from a diff, check it from the previous value.
-	// Make sure we keep the count if it existed before, so we can tell if it
-	// existed, or was null.
-	if !setIndex {
-		old := oldAttrs[idx]
-		if old != "" {
-			result[idx] = old
-		}
-	}
-
+	// Don't trust helper/schema to return a valid count, or even have one at
+	// all.
+	result[idx] = countFlatmapContainerValues(idx, result)
 	return result, nil
 }
 
@@ -686,7 +679,39 @@ func (d *InstanceDiff) applySetDiff(attrName string, oldAttrs map[string]string,
 		}
 	}
 
+	result[idx] = countFlatmapContainerValues(idx, result)
+
 	return result, nil
+}
+
+// countFlatmapContainerValues returns the number of values in the flatmapped container
+// (set, map, list) indexed by key. The key argument is expected to include the
+// trailing ".#", or ".%".
+func countFlatmapContainerValues(key string, attrs map[string]string) string {
+	if len(key) < 3 || !(strings.HasSuffix(key, ".#") || strings.HasSuffix(key, ".%")) {
+		panic(fmt.Sprintf("invalid index value %q", key))
+	}
+
+	prefix := key[:len(key)-1]
+	items := map[string]int{}
+
+	for k := range attrs {
+		if k == key {
+			continue
+		}
+		if !strings.HasPrefix(k, prefix) {
+			continue
+		}
+
+		suffix := k[len(prefix):]
+		dot := strings.Index(suffix, ".")
+		if dot > 0 {
+			suffix = suffix[:dot]
+		}
+
+		items[suffix]++
+	}
+	return strconv.Itoa(len(items))
 }
 
 // ResourceAttrDiff is the diff of a single attribute of a resource.
