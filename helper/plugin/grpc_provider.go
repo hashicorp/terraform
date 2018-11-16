@@ -3,7 +3,10 @@ package plugin
 import (
 	"encoding/json"
 	"errors"
+	"regexp"
+	"sort"
 	"strconv"
+	"strings"
 
 	"github.com/zclconf/go-cty/cty"
 	ctyconvert "github.com/zclconf/go-cty/cty/convert"
@@ -416,6 +419,8 @@ func (s *GRPCProviderServer) ReadResource(_ context.Context, req *proto.ReadReso
 	// helper/schema should always copy the ID over, but do it again just to be safe
 	newInstanceState.Attributes["id"] = newInstanceState.ID
 
+	newInstanceState.Attributes = normalizeFlatmapContainers(newInstanceState.Attributes)
+
 	newStateVal, err := hcl2shim.HCL2ValueFromFlatmap(newInstanceState.Attributes, block.ImpliedType())
 	if err != nil {
 		resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
@@ -498,12 +503,22 @@ func (s *GRPCProviderServer) PlanResourceChange(_ context.Context, req *proto.Pl
 		return resp, nil
 	}
 
+	// strip out non-diffs
+	for k, v := range diff.Attributes {
+		if v.New == v.Old && !v.NewComputed && !v.NewRemoved {
+			delete(diff.Attributes, k)
+		}
+	}
+
 	if priorState == nil {
 		priorState = &terraform.InstanceState{}
 	}
 
 	// now we need to apply the diff to the prior state, so get the planned state
 	plannedAttrs, err := diff.Apply(priorState.Attributes, block)
+
+	plannedAttrs = normalizeFlatmapContainers(plannedAttrs)
+
 	plannedStateVal, err := hcl2shim.HCL2ValueFromFlatmap(plannedAttrs, block.ImpliedType())
 	if err != nil {
 		resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
@@ -636,6 +651,13 @@ func (s *GRPCProviderServer) ApplyResourceChange(_ context.Context, req *proto.A
 		}
 	}
 
+	// strip out non-diffs
+	for k, v := range diff.Attributes {
+		if v.New == v.Old && !v.NewComputed && !v.NewRemoved {
+			delete(diff.Attributes, k)
+		}
+	}
+
 	if private != nil {
 		diff.Meta = private
 	}
@@ -644,6 +666,10 @@ func (s *GRPCProviderServer) ApplyResourceChange(_ context.Context, req *proto.A
 	if err != nil {
 		resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
 		return resp, nil
+	}
+
+	if newInstanceState != nil {
+		newInstanceState.Attributes = normalizeFlatmapContainers(newInstanceState.Attributes)
 	}
 
 	newStateVal := cty.NullVal(block.ImpliedType())
@@ -817,6 +843,62 @@ func pathToAttributePath(path cty.Path) *proto.AttributePath {
 	}
 
 	return &proto.AttributePath{Steps: steps}
+}
+
+// normalizeFlatmapContainers removes empty containers, and fixes counts in a
+// set of flatmapped attributes.
+func normalizeFlatmapContainers(attrs map[string]string) map[string]string {
+	keyRx := regexp.MustCompile(`.*\.[%#]$`)
+
+	// find container keys
+	var keys []string
+	for k := range attrs {
+		if keyRx.MatchString(k) {
+			keys = append(keys, k)
+		}
+	}
+
+	// sort the keys in reverse, so that we check the longest subkeys first
+	sort.Slice(keys, func(i, j int) bool {
+		a, b := keys[i], keys[j]
+
+		if strings.HasPrefix(a, b) {
+			return true
+		}
+
+		if strings.HasPrefix(b, a) {
+			return false
+		}
+
+		return a > b
+	})
+
+	for _, k := range keys {
+		prefix := k[:len(k)-1]
+		indexes := map[string]int{}
+		for cand := range attrs {
+			if cand == k {
+				continue
+			}
+
+			if strings.HasPrefix(cand, prefix) {
+				idx := cand[len(prefix):]
+				dot := strings.Index(idx, ".")
+				if dot > 0 {
+					idx = idx[:dot]
+				}
+				indexes[idx]++
+			}
+		}
+
+		if len(indexes) > 0 {
+			attrs[k] = strconv.Itoa(len(indexes))
+		} else {
+			delete(attrs, k)
+		}
+	}
+
+	return attrs
 }
 
 // helper/schema throws away timeout values from the config and stores them in
