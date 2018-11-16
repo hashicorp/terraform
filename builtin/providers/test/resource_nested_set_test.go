@@ -305,3 +305,37 @@ resource "test_resource_nested_set" "foo" {
 		},
 	})
 }
+
+func TestResourceNestedSet_setWithList(t *testing.T) {
+	checkFunc := func(s *terraform.State) error {
+		return nil
+	}
+	resource.UnitTest(t, resource.TestCase{
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckResourceDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: strings.TrimSpace(`
+resource "test_resource_nested_set" "foo" {
+	with_list {
+		required = "bar"
+		list = ["initial value"]
+	}
+}
+				`),
+				Check: checkFunc,
+			},
+			resource.TestStep{
+				Config: strings.TrimSpace(`
+resource "test_resource_nested_set" "foo" {
+	with_list {
+		required = "bar"
+		list = ["second value"]
+	}
+}
+				`),
+				Check: checkFunc,
+			},
+		},
+	})
+}
