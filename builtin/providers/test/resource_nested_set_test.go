@@ -127,7 +127,7 @@ resource "test_resource_nested_set" "foo" {
 		},
 	})
 }
-func TestResourceNestedSet_multi(t *testing.T) {
+func TestResourceNestedSet_multiAddRemove(t *testing.T) {
 	checkFunc := func(s *terraform.State) error {
 		return nil
 	}
@@ -216,6 +216,90 @@ resource "test_resource_nested_set" "foo" {
 	}
 }
 			`),
+				Check: checkFunc,
+			},
+
+			resource.TestStep{
+				Config: strings.TrimSpace(`
+resource "test_resource_nested_set" "foo" {
+	optional = true
+	single {
+		value = "bar"
+		optional = "baz"
+	}
+	multi {
+		set {
+			required = "new"
+			optional_int = 3
+		}
+	}
+}
+			`),
+				Check: checkFunc,
+			},
+		},
+	})
+}
+
+func TestResourceNestedSet_forceNewEmptyString(t *testing.T) {
+	var id string
+	step := 0
+	checkFunc := func(s *terraform.State) error {
+		root := s.ModuleByPath(addrs.RootModuleInstance)
+		res := root.Resources["test_resource_nested_set.foo"]
+		defer func() {
+			step++
+			id = res.Primary.ID
+		}()
+
+		if step == 2 && res.Primary.ID == id {
+			// setting an empty string currently does not trigger ForceNew, but
+			// it should in the future.
+			return nil
+		}
+
+		if res.Primary.ID == id {
+			return errors.New("expected new resource")
+		}
+
+		return nil
+	}
+	resource.UnitTest(t, resource.TestCase{
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckResourceDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: strings.TrimSpace(`
+resource "test_resource_nested_set" "foo" {
+	multi {
+		set {
+			required = "val"
+		}
+	}
+}
+				`),
+				Check: checkFunc,
+			},
+
+			resource.TestStep{
+				Config: strings.TrimSpace(`
+resource "test_resource_nested_set" "foo" {
+	multi {
+		set {
+			required = ""
+		}
+	}
+}
+				`),
+				Check: checkFunc,
+			},
+
+			resource.TestStep{
+				Config: strings.TrimSpace(`
+resource "test_resource_nested_set" "foo" {
+	force_new = ""
+}
+				`),
 				Check: checkFunc,
 			},
 		},
