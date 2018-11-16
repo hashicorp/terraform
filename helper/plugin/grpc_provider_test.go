@@ -3,6 +3,8 @@ package plugin
 import (
 	"context"
 	"fmt"
+	"reflect"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -635,5 +637,36 @@ func TestGetSchemaTimeouts(t *testing.T) {
 	}
 	if timeoutsBlock.Attributes["default"] == nil {
 		t.Fatal("missing default timeout in schema")
+	}
+}
+
+func TestNormalizeFlatmapContainers(t *testing.T) {
+	for i, tc := range []struct {
+		attrs  map[string]string
+		expect map[string]string
+	}{
+		{
+			attrs:  map[string]string{"id": "1", "multi.2.set.#": "1", "multi.1.set.#": "0", "single.#": "0"},
+			expect: map[string]string{"id": "1"},
+		},
+		{
+			attrs:  map[string]string{"id": "1", "multi.2.set.#": "2", "multi.2.set.1.foo": "bar", "multi.1.set.#": "0", "single.#": "0"},
+			expect: map[string]string{"id": "1", "multi.2.set.#": "1", "multi.2.set.1.foo": "bar"},
+		},
+		{
+			attrs:  map[string]string{"id": "78629a0f5f3f164f", "multi.#": "1"},
+			expect: map[string]string{"id": "78629a0f5f3f164f"},
+		},
+		{
+			attrs:  map[string]string{"multi.529860700.set.#": "1", "multi.#": "1", "id": "78629a0f5f3f164f"},
+			expect: map[string]string{"id": "78629a0f5f3f164f"},
+		},
+	} {
+		t.Run(strconv.Itoa(i), func(t *testing.T) {
+			got := normalizeFlatmapContainers(tc.attrs)
+			if !reflect.DeepEqual(tc.expect, got) {
+				t.Fatalf("expected:\n%#v\ngot:\n%#v\n", tc.expect, got)
+			}
+		})
 	}
 }
