@@ -595,17 +595,9 @@ func (d *InstanceDiff) applyCollectionDiff(attrName string, oldAttrs map[string]
 		idx = attrName + ".%"
 	}
 
-	// record if we got the index from the diff
-	setIndex := false
-
 	for k := range keys {
 		if !strings.HasPrefix(k, attrName+".") {
 			continue
-		}
-
-		// we need to verify if we saw the index later
-		if k == idx {
-			setIndex = true
 		}
 
 		res, err := d.applyAttrDiff(k, oldAttrs, attrSchema)
