@@ -528,6 +528,42 @@ func (b *Local) StatePaths(name string) (stateIn, stateOut, backupOut string) {
 	return statePath, stateOutPath, backupPath
 }
 
+// PathsConflictWith returns true if any state path used by a workspace in
+// the receiver is the same as any state path used by the other given
+// local backend instance.
+//
+// This should be used when "migrating" from one local backend configuration to
+// another in order to avoid deleting the "old" state snapshots if they are
+// in the same files as the "new" state snapshots.
+func (b *Local) PathsConflictWith(other *Local) bool {
+	otherPaths := map[string]struct{}{}
+	otherWorkspaces, err := other.Workspaces()
+	if err != nil {
+		// If we can't enumerate the workspaces then we'll conservatively
+		// assume that paths _do_ overlap, since we can't be certain.
+		return true
+	}
+	for _, name := range otherWorkspaces {
+		p, _, _ := other.StatePaths(name)
+		otherPaths[p] = struct{}{}
+	}
+
+	ourWorkspaces, err := other.Workspaces()
+	if err != nil {
+		// If we can't enumerate the workspaces then we'll conservatively
+		// assume that paths _do_ overlap, since we can't be certain.
+		return true
+	}
+
+	for _, name := range ourWorkspaces {
+		p, _, _ := b.StatePaths(name)
+		if _, exists := otherPaths[p]; exists {
+			return true
+		}
+	}
+	return false
+}
+
 // this only ensures that the named directory exists
 func (b *Local) createState(name string) error {
 	if name == backend.DefaultStateName {
