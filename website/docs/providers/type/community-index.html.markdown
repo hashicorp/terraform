@@ -64,7 +64,6 @@ please fill out this [community providers form](https://docs.google.com/forms/d/
     <tr>
     <td><a href="https://github.com/sethvargo/terraform-provider-googlecalendar">Google Calendar</a></td>
     <td><a href="https://github.com/DeviaVir/terraform-provider-gsuite">Google G Suite</a></td>
-    <td><a href="https://github.com/mcuadros/terraform-provider-helm">Helm</a></td>
     </tr>
     <tr>
     <td><a href="https://github.com/ribbybibby/terraform-provider-hiera">Hiera</a></td>
@@ -94,7 +93,7 @@ please fill out this [community providers form](https://docs.google.com/forms/d/
     <tr>
     <td><a href="https://github.com/akshaykarle/terraform-provider-mongodbatlas">MongoDB Atlas</a></td>
     <td><a href="https://github.com/GSLabDev/terraform-provider-nsxv">NSX-V</a></td>
-    <td><a href="https://github.com/nutanix/terraform-provider-nutanix">Nutanix</a></td>
+    <td><a href="https://github.com/articulate/terraform-provider-okta">Okta<a/></td>
     </tr>
     <tr>
     <td><a href="https://github.com/src-d/terraform-provider-online-net">Online.net</a></td>
@@ -130,6 +129,7 @@ please fill out this [community providers form](https://docs.google.com/forms/d/
     <td><a href="https://github.com/ShopRunner/terraform-provider-snowflake">Snowflake</a></td>
     <td><a href="https://github.com/Ashald/terraform-provider-stateful">Stateful</a></td>
     <td><a href="https://github.com/franckverrot/terraform-provider-stripe">Stripe</a></td>
+    <td><a href="https://github.com/cvbarros/terraform-provider-teamcity">TeamCity</a></td>
     </tr>
     <tr>
     <td><a href="https://github.com/bocodigitalmedia/terraform-provider-transloadit">Transloadit</a></td>
@@ -143,6 +143,7 @@ please fill out this [community providers form](https://docs.google.com/forms/d/
     </tr>
     <tr>
     <td><a href="https://github.com/Venafi/terraform-provider-venafi">Venafi</a></td>
+    <td><a href="https://github.com/squat/terraform-provider-vultr">Vultr</a></td>
     <td><a href="https://github.com/cormacrelf/terraform-provider-zerotier">ZeroTier</a></td>
     <td><a></a></td>
     </tr>
