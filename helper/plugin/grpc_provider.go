@@ -847,7 +847,7 @@ func pathToAttributePath(path cty.Path) *proto.AttributePath {
 // normalizeFlatmapContainers removes empty containers, and fixes counts in a
 // set of flatmapped attributes.
 func normalizeFlatmapContainers(attrs map[string]string) map[string]string {
-	keyRx := regexp.MustCompile(`.*\.[%#]$`)
+	keyRx := regexp.MustCompile(`.\.[%#]$`)
 
 	// find container keys
 	var keys []string

@@ -661,6 +661,10 @@ func TestNormalizeFlatmapContainers(t *testing.T) {
 			attrs:  map[string]string{"multi.529860700.set.#": "1", "multi.#": "1", "id": "78629a0f5f3f164f"},
 			expect: map[string]string{"id": "78629a0f5f3f164f"},
 		},
+		{
+			attrs:  map[string]string{"set.2.required": "bar", "set.2.list.#": "1", "set.2.list.0": "x", "set.1.list.#": "0"},
+			expect: map[string]string{"set.2.list.#": "1", "set.2.list.0": "x", "set.2.required": "bar", "set.#": "1"},
+		},
 	} {
 		t.Run(strconv.Itoa(i), func(t *testing.T) {
 			got := normalizeFlatmapContainers(tc.attrs)
