@@ -668,13 +668,15 @@ func (m *Meta) backend_C_r_s(c *configs.Backend, cHash int, sMgr *state.LocalSta
 		erase := true
 		if newLocalB, ok := b.(*backendLocal.Local); ok {
 			if localB, ok := localB.(*backendLocal.Local); ok {
-				if newLocalB.StatePath == localB.StatePath {
+				if newLocalB.PathsConflictWith(localB) {
 					erase = false
+					log.Printf("[TRACE] Meta.Backend: both old and new backends share the same local state paths, so not erasing old state")
 				}
 			}
 		}
 
 		if erase {
+			log.Printf("[TRACE] Meta.Backend: removing old state snapshots from old backend")
 			for _, localState := range localStates {
 				// We always delete the local state, unless that was our new state too.
 				if err := localState.WriteState(nil); err != nil {
