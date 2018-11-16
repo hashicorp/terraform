@@ -23,6 +23,11 @@ func testResourceNestedSet() *schema.Resource {
 				Type:     schema.TypeBool,
 				Optional: true,
 			},
+			"force_new": {
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+			},
 			"single": {
 				Type:     schema.TypeSet,
 				Optional: true,
