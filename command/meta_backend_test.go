@@ -238,7 +238,6 @@ func TestMetaBackend_configureInterpolation(t *testing.T) {
 
 // Newly configured backend
 func TestMetaBackend_configureNew(t *testing.T) {
-	// Create a temporary working directory that is empty
 	td := tempDir(t)
 	copy.CopyDir(testFixturePath("backend-new"), td)
 	defer os.RemoveAll(td)
@@ -1532,7 +1531,6 @@ func TestMetaBackend_planLocal(t *testing.T) {
 
 // A plan with a custom state save path
 func TestMetaBackend_planLocalStatePath(t *testing.T) {
-	// Create a temporary working directory that is empty
 	td := tempDir(t)
 	copy.CopyDir(testFixturePath("backend-plan-local"), td)
 	defer os.RemoveAll(td)
