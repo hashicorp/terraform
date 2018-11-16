@@ -23,7 +23,10 @@ func DiffFromValues(prior, planned cty.Value, res *Resource) (*terraform.Instanc
 // only needs to be created for the apply operation, and any customizations
 // have already been done.
 func diffFromValues(prior, planned cty.Value, res *Resource, cust CustomizeDiffFunc) (*terraform.InstanceDiff, error) {
-	instanceState := InstanceStateFromStateValue(prior, res.SchemaVersion)
+	instanceState, err := res.ShimInstanceStateFromValue(prior)
+	if err != nil {
+		return nil, err
+	}
 
 	configSchema := res.CoreConfigSchema()
 
@@ -84,12 +87,4 @@ func JSONMapToStateValue(m map[string]interface{}, block *configschema.Block) (c
 // ID as the "id" attribute.
 func StateValueFromInstanceState(is *terraform.InstanceState, ty cty.Type) (cty.Value, error) {
 	return is.AttrsAsObjectValue(ty)
-}
-
-// InstanceStateFromStateValue converts a cty.Value to a
-// terraform.InstanceState. This function requires the schema version used by
-// the provider, because the legacy providers used the private Meta data in the
-// InstanceState to store the schema version.
-func InstanceStateFromStateValue(state cty.Value, schemaVersion int) *terraform.InstanceState {
-	return terraform.NewInstanceStateShimmedFromValue(state, schemaVersion)
 }
