@@ -1,6 +1,7 @@
 package convert
 
 import (
+	"github.com/hashicorp/terraform/helper/schema"
 	proto "github.com/hashicorp/terraform/internal/tfplugin5"
 	"github.com/hashicorp/terraform/tfdiags"
 	"github.com/zclconf/go-cty/cty"
@@ -24,6 +25,13 @@ func WarnsAndErrsToProto(warns []string, errs []error) (diags []*proto.Diagnosti
 // This panics if d is not a string or error.
 func AppendProtoDiag(diags []*proto.Diagnostic, d interface{}) []*proto.Diagnostic {
 	switch d := d.(type) {
+	case *schema.AttributeError:
+		ap := PathToAttributePath(d.Path())
+		diags = append(diags, &proto.Diagnostic{
+			Severity:  proto.Diagnostic_ERROR,
+			Summary:   d.Error(),
+			Attribute: ap,
+		})
 	case cty.PathError:
 		ap := PathToAttributePath(d.Path)
 		diags = append(diags, &proto.Diagnostic{

@@ -2,6 +2,7 @@ package convert
 
 import (
 	"errors"
+	"fmt"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -353,6 +354,200 @@ func TestDiagnostics(t *testing.T) {
 
 			if !cmp.Equal(flat, tc.Want, typeComparer, valueComparer, equateEmpty) {
 				t.Fatal(cmp.Diff(flat, tc.Want, typeComparer, valueComparer, equateEmpty))
+			}
+		})
+	}
+}
+
+func TestPathToAttributePath(t *testing.T) {
+	testCases := []struct {
+		Path                  cty.Path
+		ExpectedAttributePath *proto.AttributePath
+	}{
+		{
+			cty.Path{
+				cty.GetAttrStep{Name: "just_attribute"},
+			},
+			&proto.AttributePath{
+				Steps: []*proto.AttributePath_Step{
+					{
+						Selector: &proto.AttributePath_Step_AttributeName{
+							AttributeName: "just_attribute",
+						},
+					},
+				},
+			},
+		},
+		{
+			cty.Path{
+				cty.GetAttrStep{Name: "list_attribute"},
+				cty.IndexStep{Key: cty.NumberIntVal(0)},
+			},
+			&proto.AttributePath{
+				Steps: []*proto.AttributePath_Step{
+					{
+						Selector: &proto.AttributePath_Step_AttributeName{
+							AttributeName: "list_attribute",
+						},
+					},
+					{
+						Selector: &proto.AttributePath_Step_ElementKeyInt{
+							ElementKeyInt: int64(0),
+						},
+					},
+				},
+			},
+		},
+		{
+			cty.Path{
+				cty.GetAttrStep{Name: "list_attribute"},
+				cty.IndexStep{Key: cty.NumberIntVal(99)},
+			},
+			&proto.AttributePath{
+				Steps: []*proto.AttributePath_Step{
+					{
+						Selector: &proto.AttributePath_Step_AttributeName{
+							AttributeName: "list_attribute",
+						},
+					},
+					{
+						Selector: &proto.AttributePath_Step_ElementKeyInt{
+							ElementKeyInt: int64(99),
+						},
+					},
+				},
+			},
+		},
+		{
+			cty.Path{
+				cty.GetAttrStep{Name: "map_attribute"},
+				cty.IndexStep{Key: cty.StringVal("key")},
+			},
+			&proto.AttributePath{
+				Steps: []*proto.AttributePath_Step{
+					{
+						Selector: &proto.AttributePath_Step_AttributeName{
+							AttributeName: "map_attribute",
+						},
+					},
+					{
+						Selector: &proto.AttributePath_Step_ElementKeyString{
+							ElementKeyString: "key",
+						},
+					},
+				},
+			},
+		},
+		{
+			cty.Path{
+				cty.GetAttrStep{Name: "double"},
+				cty.GetAttrStep{Name: "nested"},
+				cty.GetAttrStep{Name: "attribute"},
+			},
+			&proto.AttributePath{
+				Steps: []*proto.AttributePath_Step{
+					{
+						Selector: &proto.AttributePath_Step_AttributeName{
+							AttributeName: "double",
+						},
+					},
+					{
+						Selector: &proto.AttributePath_Step_AttributeName{
+							AttributeName: "nested",
+						},
+					},
+					{
+						Selector: &proto.AttributePath_Step_AttributeName{
+							AttributeName: "attribute",
+						},
+					},
+				},
+			},
+		},
+		{
+			cty.Path{
+				cty.GetAttrStep{Name: "double"},
+				cty.GetAttrStep{Name: "nested"},
+				cty.GetAttrStep{Name: "attribute"},
+				cty.GetAttrStep{Name: "with_num_index"},
+				cty.IndexStep{Key: cty.NumberIntVal(5)},
+			},
+			&proto.AttributePath{
+				Steps: []*proto.AttributePath_Step{
+					{
+						Selector: &proto.AttributePath_Step_AttributeName{
+							AttributeName: "double",
+						},
+					},
+					{
+						Selector: &proto.AttributePath_Step_AttributeName{
+							AttributeName: "nested",
+						},
+					},
+					{
+						Selector: &proto.AttributePath_Step_AttributeName{
+							AttributeName: "attribute",
+						},
+					},
+					{
+						Selector: &proto.AttributePath_Step_AttributeName{
+							AttributeName: "with_num_index",
+						},
+					},
+					{
+						Selector: &proto.AttributePath_Step_ElementKeyInt{
+							ElementKeyInt: int64(5),
+						},
+					},
+				},
+			},
+		},
+		{
+			cty.Path{
+				cty.GetAttrStep{Name: "double"},
+				cty.GetAttrStep{Name: "nested"},
+				cty.GetAttrStep{Name: "attribute"},
+				cty.GetAttrStep{Name: "with_map"},
+				cty.IndexStep{Key: cty.StringVal("something")},
+			},
+			&proto.AttributePath{
+				Steps: []*proto.AttributePath_Step{
+					{
+						Selector: &proto.AttributePath_Step_AttributeName{
+							AttributeName: "double",
+						},
+					},
+					{
+						Selector: &proto.AttributePath_Step_AttributeName{
+							AttributeName: "nested",
+						},
+					},
+					{
+						Selector: &proto.AttributePath_Step_AttributeName{
+							AttributeName: "attribute",
+						},
+					},
+					{
+						Selector: &proto.AttributePath_Step_AttributeName{
+							AttributeName: "with_map",
+						},
+					},
+					{
+						Selector: &proto.AttributePath_Step_ElementKeyString{
+							ElementKeyString: "something",
+						},
+					},
+				},
+			},
+		},
+	}
+
+	for i, tc := range testCases {
+		t.Run(fmt.Sprintf("%d:%s", i, tc.Path), func(t *testing.T) {
+			ap := PathToAttributePath(tc.Path)
+			if !cmp.Equal(ap, tc.ExpectedAttributePath) {
+				t.Fatalf("%d: Unexpected attribute path.\n%s\n",
+					i, cmp.Diff(tc.ExpectedAttributePath, ap))
 			}
 		})
 	}
