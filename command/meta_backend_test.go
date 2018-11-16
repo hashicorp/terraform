@@ -1683,11 +1683,6 @@ func TestMetaBackend_planLocalMatch(t *testing.T) {
 		t.Fatal("state is empty")
 	}
 
-	// Verify a backup exists
-	if _, err := os.Stat(DefaultStateFilename + DefaultBackupExtension); err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
 	// Verify we have no configured backend/legacy
 	path := filepath.Join(m.DataDir(), DefaultStateFilename)
 	if _, err := os.Stat(path); err == nil {
