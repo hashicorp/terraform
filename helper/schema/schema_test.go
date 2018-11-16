@@ -16,6 +16,7 @@ import (
 	"github.com/hashicorp/terraform/config"
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/terraform"
+	"github.com/zclconf/go-cty/cty"
 )
 
 func TestEnvDefaultFunc(t *testing.T) {
@@ -4796,7 +4797,7 @@ func TestSchemaMap_Validate(t *testing.T) {
 
 			Err: true,
 			Errors: []error{
-				fmt.Errorf("\"long_gone\": [REMOVED] no longer supported by Cloud API"),
+				NewAttributeError(cty.Path{cty.GetAttrStep{Name: "long_gone"}}, fmt.Errorf("\"long_gone\": [REMOVED] no longer supported by Cloud API")),
 			},
 		},
 
@@ -4832,7 +4833,7 @@ func TestSchemaMap_Validate(t *testing.T) {
 
 			Err: true,
 			Errors: []error{
-				fmt.Errorf("\"blacklist\": conflicts with whitelist"),
+				NewAttributeError(cty.Path{cty.GetAttrStep{Name: "blacklist"}}, fmt.Errorf("\"blacklist\": conflicts with whitelist")),
 			},
 		},
 
@@ -4876,7 +4877,7 @@ func TestSchemaMap_Validate(t *testing.T) {
 
 			Err: true,
 			Errors: []error{
-				fmt.Errorf(`"optional_att": conflicts with required_att`),
+				NewAttributeError(cty.Path{cty.GetAttrStep{Name: "optional_att"}}, fmt.Errorf(`"optional_att": conflicts with required_att`)),
 			},
 		},
 
@@ -4903,8 +4904,8 @@ func TestSchemaMap_Validate(t *testing.T) {
 
 			Err: true,
 			Errors: []error{
-				fmt.Errorf(`"foo_att": conflicts with bar_att`),
-				fmt.Errorf(`"bar_att": conflicts with foo_att`),
+				NewAttributeError(cty.Path{cty.GetAttrStep{Name: "foo_att"}}, fmt.Errorf(`"foo_att": conflicts with bar_att`)),
+				NewAttributeError(cty.Path{cty.GetAttrStep{Name: "bar_att"}}, fmt.Errorf(`"bar_att": conflicts with foo_att`)),
 			},
 		},
 
@@ -4984,7 +4985,7 @@ func TestSchemaMap_Validate(t *testing.T) {
 			},
 			Err: true,
 			Errors: []error{
-				fmt.Errorf(`something is not right here`),
+				NewAttributeError(cty.Path{cty.GetAttrStep{Name: "validate_me"}}, fmt.Errorf(`something is not right here`)),
 			},
 		},
 
@@ -5300,7 +5301,7 @@ func TestSchemaSet_ValidateMaxItems(t *testing.T) {
 			Diff: nil,
 			Err:  true,
 			Errors: []error{
-				fmt.Errorf("aliases: attribute supports 1 item maximum, config has 2 declared"),
+				NewAttributeError(cty.Path{cty.GetAttrStep{Name: "aliases"}}, fmt.Errorf("aliases: attribute supports 1 item maximum, config has 2 declared")),
 			},
 		},
 		"#1": {
@@ -5424,7 +5425,7 @@ func TestSchemaSet_ValidateMinItems(t *testing.T) {
 			Diff: nil,
 			Err:  true,
 			Errors: []error{
-				fmt.Errorf("aliases: attribute supports 2 item as a minimum, config has 1 declared"),
+				NewAttributeError(cty.Path{cty.GetAttrStep{Name: "aliases"}}, fmt.Errorf("aliases: attribute supports 2 item as a minimum, config has 1 declared")),
 			},
 		},
 	}

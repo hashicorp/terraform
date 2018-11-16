@@ -13,6 +13,7 @@ package schema
 
 import (
 	"fmt"
+	"log"
 	"os"
 	"reflect"
 	"regexp"
@@ -24,6 +25,7 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/mitchellh/copystructure"
 	"github.com/mitchellh/mapstructure"
+	"github.com/zclconf/go-cty/cty"
 )
 
 // Name of ENV variable which (if not empty) prefers panic over error
@@ -614,7 +616,7 @@ func (m schemaMap) Input(
 
 // Validate validates the configuration against this schema mapping.
 func (m schemaMap) Validate(c *terraform.ResourceConfig) ([]string, []error) {
-	return m.validateObject("", m, c)
+	return m.validateObject(cty.Path{}, m, c)
 }
 
 // InternalValidate validates the format of this schema. This should be called
@@ -1231,17 +1233,17 @@ func (m schemaMap) inputString(
 }
 
 func (m schemaMap) validate(
-	k string,
+	p cty.Path,
 	schema *Schema,
 	c *terraform.ResourceConfig) ([]string, []error) {
-	raw, ok := c.Get(k)
+	raw, ok := c.Get(p.String())
 	if !ok && schema.DefaultFunc != nil {
 		// We have a dynamic default. Check if we have a value.
 		var err error
 		raw, err = schema.DefaultFunc()
 		if err != nil {
-			return nil, []error{fmt.Errorf(
-				"%q, error loading default: %s", k, err)}
+			return nil, []error{NewAttributeError(p,
+				fmt.Errorf("%q, error loading default: %s", p, err))}
 		}
 
 		// We're okay as long as we had a value set
@@ -1249,8 +1251,8 @@ func (m schemaMap) validate(
 	}
 	if !ok {
 		if schema.Required {
-			return nil, []error{fmt.Errorf(
-				"%q: required field is not set", k)}
+			return nil, []error{NewAttributeError(p,
+				fmt.Errorf("%q: required field is not set", p))}
 		}
 
 		return nil, nil
@@ -1258,20 +1260,20 @@ func (m schemaMap) validate(
 
 	if !schema.Required && !schema.Optional {
 		// This is a computed-only field
-		return nil, []error{fmt.Errorf(
-			"%q: this field cannot be set", k)}
+		return nil, []error{NewAttributeError(p,
+			fmt.Errorf("%q: this field cannot be set", p))}
 	}
 
-	err := m.validateConflictingAttributes(k, schema, c)
+	err := m.validateConflictingAttributes(p, schema, c)
 	if err != nil {
 		return nil, []error{err}
 	}
 
-	return m.validateType(k, raw, schema, c)
+	return m.validateType(p, raw, schema, c)
 }
 
 func (m schemaMap) validateConflictingAttributes(
-	k string,
+	p cty.Path,
 	schema *Schema,
 	c *terraform.ResourceConfig) error {
 
@@ -1281,8 +1283,8 @@ func (m schemaMap) validateConflictingAttributes(
 
 	for _, conflicting_key := range schema.ConflictsWith {
 		if _, ok := c.Get(conflicting_key); ok {
-			return fmt.Errorf(
-				"%q: conflicts with %s", k, conflicting_key)
+			return NewAttributeError(p, fmt.Errorf(
+				"%q: conflicts with %s", p, conflicting_key))
 		}
 	}
 
@@ -1290,7 +1292,7 @@ func (m schemaMap) validateConflictingAttributes(
 }
 
 func (m schemaMap) validateList(
-	k string,
+	p cty.Path,
 	raw interface{},
 	schema *Schema,
 	c *terraform.ResourceConfig) ([]string, []error) {
@@ -1313,19 +1315,19 @@ func (m schemaMap) validateList(
 	}
 
 	if rawV.Kind() != reflect.Slice {
-		return nil, []error{fmt.Errorf(
-			"%s: should be a list", k)}
+		return nil, []error{NewAttributeError(p, fmt.Errorf(
+			"%s: should be a list", p))}
 	}
 
 	// Validate length
 	if schema.MaxItems > 0 && rawV.Len() > schema.MaxItems {
-		return nil, []error{fmt.Errorf(
-			"%s: attribute supports %d item maximum, config has %d declared", k, schema.MaxItems, rawV.Len())}
+		return nil, []error{NewAttributeError(p, fmt.Errorf(
+			"%s: attribute supports %d item maximum, config has %d declared", p, schema.MaxItems, rawV.Len()))}
 	}
 
 	if schema.MinItems > 0 && rawV.Len() < schema.MinItems {
-		return nil, []error{fmt.Errorf(
-			"%s: attribute supports %d item as a minimum, config has %d declared", k, schema.MinItems, rawV.Len())}
+		return nil, []error{NewAttributeError(p, fmt.Errorf(
+			"%s: attribute supports %d item as a minimum, config has %d declared", p, schema.MinItems, rawV.Len()))}
 	}
 
 	// Now build the []interface{}
@@ -1337,7 +1339,8 @@ func (m schemaMap) validateList(
 	var ws []string
 	var es []error
 	for i, raw := range raws {
-		key := fmt.Sprintf("%s.%d", k, i)
+		idxPath := p.Index(cty.NumberIntVal(int64(i)))
+		key := idxPath.String()
 
 		// Reify the key value from the ResourceConfig.
 		// If the list was computed we have all raw values, but some of these
@@ -1351,9 +1354,9 @@ func (m schemaMap) validateList(
 		switch t := schema.Elem.(type) {
 		case *Resource:
 			// This is a sub-resource
-			ws2, es2 = m.validateObject(key, t.Schema, c)
+			ws2, es2 = m.validateObject(idxPath, t.Schema, c)
 		case *Schema:
-			ws2, es2 = m.validateType(key, raw, t, c)
+			ws2, es2 = m.validateType(idxPath, raw, t, c)
 		}
 
 		if len(ws2) > 0 {
@@ -1368,7 +1371,7 @@ func (m schemaMap) validateList(
 }
 
 func (m schemaMap) validateMap(
-	k string,
+	p cty.Path,
 	raw interface{},
 	schema *Schema,
 	c *terraform.ResourceConfig) ([]string, []error) {
@@ -1378,6 +1381,7 @@ func (m schemaMap) validateMap(
 			return nil, nil
 		}
 	}
+	k := p.String()
 
 	// We use reflection to verify the slice because you can't
 	// case to []interface{} unless the slice is exactly that type.
@@ -1388,24 +1392,30 @@ func (m schemaMap) validateMap(
 		// be rejected.
 		reified, reifiedOk := c.Get(k)
 		if reifiedOk && raw == reified && !c.IsComputed(k) {
-			return nil, []error{fmt.Errorf("%s: should be a map", k)}
+			return nil, []error{NewAttributeError(p,
+				fmt.Errorf("%s: should be a map", p))}
 		}
 		// Otherwise it's likely raw is an interpolation.
 		return nil, nil
 	case reflect.Map:
 	case reflect.Slice:
 	default:
-		return nil, []error{fmt.Errorf("%s: should be a map", k)}
+		return nil, []error{NewAttributeError(p,
+			fmt.Errorf("%s: should be a map", p))}
 	}
 
 	// If it is not a slice, validate directly
 	if rawV.Kind() != reflect.Slice {
 		mapIface := rawV.Interface()
-		if _, errs := validateMapValues(k, mapIface.(map[string]interface{}), schema); len(errs) > 0 {
+		if _, errs := validateMapValues(p, mapIface.(map[string]interface{}), schema); len(errs) > 0 {
 			return nil, errs
 		}
 		if schema.ValidateFunc != nil {
-			return schema.ValidateFunc(mapIface, k)
+			warns, errs := schema.ValidateFunc(mapIface, k)
+			for i, err := range errs {
+				errs[i] = NewAttributeError(p, err)
+			}
+			return warns, errs
 		}
 		return nil, nil
 	}
@@ -1419,11 +1429,11 @@ func (m schemaMap) validateMap(
 	for _, raw := range raws {
 		v := reflect.ValueOf(raw)
 		if v.Kind() != reflect.Map {
-			return nil, []error{fmt.Errorf(
-				"%s: should be a map", k)}
+			return nil, []error{NewAttributeError(p,
+				fmt.Errorf("%s: should be a map", p))}
 		}
 		mapIface := v.Interface()
-		if _, errs := validateMapValues(k, mapIface.(map[string]interface{}), schema); len(errs) > 0 {
+		if _, errs := validateMapValues(p, mapIface.(map[string]interface{}), schema); len(errs) > 0 {
 			return nil, errs
 		}
 	}
@@ -1436,39 +1446,46 @@ func (m schemaMap) validateMap(
 			}
 		}
 
-		return schema.ValidateFunc(validatableMap, k)
+		warns, errs := schema.ValidateFunc(validatableMap, k)
+		for i, err := range errs {
+			errs[i] = NewAttributeError(p, err)
+		}
+		return warns, errs
 	}
 
 	return nil, nil
 }
 
-func validateMapValues(k string, m map[string]interface{}, schema *Schema) ([]string, []error) {
+func validateMapValues(p cty.Path, m map[string]interface{}, schema *Schema) ([]string, []error) {
+	k := p.String()
 	for key, raw := range m {
 		valueType, err := getValueType(k, schema)
 		if err != nil {
-			return nil, []error{err}
+			return nil, []error{NewAttributeError(p, err)}
 		}
+
+		p = p.Append(cty.IndexStep{Key: cty.StringVal(key)})
 
 		switch valueType {
 		case TypeBool:
 			var n bool
 			if err := mapstructure.WeakDecode(raw, &n); err != nil {
-				return nil, []error{fmt.Errorf("%s (%s): %s", k, key, err)}
+				return nil, []error{NewAttributeError(p, fmt.Errorf("%s (%s): %s", p, key, err))}
 			}
 		case TypeInt:
 			var n int
 			if err := mapstructure.WeakDecode(raw, &n); err != nil {
-				return nil, []error{fmt.Errorf("%s (%s): %s", k, key, err)}
+				return nil, []error{NewAttributeError(p, fmt.Errorf("%s (%s): %s", p, key, err))}
 			}
 		case TypeFloat:
 			var n float64
 			if err := mapstructure.WeakDecode(raw, &n); err != nil {
-				return nil, []error{fmt.Errorf("%s (%s): %s", k, key, err)}
+				return nil, []error{NewAttributeError(p, fmt.Errorf("%s (%s): %s", p, key, err))}
 			}
 		case TypeString:
 			var n string
 			if err := mapstructure.WeakDecode(raw, &n); err != nil {
-				return nil, []error{fmt.Errorf("%s (%s): %s", k, key, err)}
+				return nil, []error{NewAttributeError(p, fmt.Errorf("%s (%s): %s", p, key, err))}
 			}
 		default:
 			panic(fmt.Sprintf("Unknown validation type: %#v", schema.Type))
@@ -1501,25 +1518,26 @@ func getValueType(k string, schema *Schema) (ValueType, error) {
 }
 
 func (m schemaMap) validateObject(
-	k string,
+	p cty.Path,
 	schema map[string]*Schema,
 	c *terraform.ResourceConfig) ([]string, []error) {
+	k := p.String()
+	log.Printf("[DEBUG] schemaMap validateObject(%q)", k)
 	raw, _ := c.Get(k)
 	if _, ok := raw.(map[string]interface{}); !ok && !c.IsComputed(k) {
-		return nil, []error{fmt.Errorf(
-			"%s: expected object, got %s",
-			k, reflect.ValueOf(raw).Kind())}
+		return nil, []error{NewAttributeError(p,
+			fmt.Errorf("%s: expected object, got %s", p, reflect.ValueOf(raw).Kind()))}
 	}
 
 	var ws []string
 	var es []error
 	for subK, s := range schema {
-		key := subK
+		path := cty.Path{cty.GetAttrStep{Name: subK}}
 		if k != "" {
-			key = fmt.Sprintf("%s.%s", k, subK)
+			path = path.Prepend(cty.GetAttrStep{Name: k})
 		}
 
-		ws2, es2 := m.validate(key, s, c)
+		ws2, es2 := m.validate(path, s, c)
 		if len(ws2) > 0 {
 			ws = append(ws, ws2...)
 		}
@@ -1535,8 +1553,9 @@ func (m schemaMap) validateObject(
 				if subk == TimeoutsConfigKey {
 					continue
 				}
-				es = append(es, fmt.Errorf(
-					"%s: invalid or unknown key: %s", k, subk))
+				es = append(es, NewAttributeError(p.Append(
+					cty.IndexStep{Key: cty.StringVal(subk)}),
+					fmt.Errorf("%s: invalid or unknown key: %s", k, subk)))
 			}
 		}
 	}
@@ -1545,7 +1564,7 @@ func (m schemaMap) validateObject(
 }
 
 func (m schemaMap) validatePrimitive(
-	k string,
+	p cty.Path,
 	raw interface{},
 	schema *Schema,
 	c *terraform.ResourceConfig) ([]string, []error) {
@@ -1554,17 +1573,17 @@ func (m schemaMap) validatePrimitive(
 	// doesn't contain Go type system terminology.
 	switch reflect.ValueOf(raw).Type().Kind() {
 	case reflect.Slice:
-		return nil, []error{
-			fmt.Errorf("%s must be a single value, not a list", k),
+		return nil, []error{NewAttributeError(p,
+			fmt.Errorf("%s must be a single value, not a list", p)),
 		}
 	case reflect.Map:
-		return nil, []error{
-			fmt.Errorf("%s must be a single value, not a map", k),
+		return nil, []error{NewAttributeError(p,
+			fmt.Errorf("%s must be a single value, not a map", p)),
 		}
 	default: // ok
 	}
 
-	if c.IsComputed(k) {
+	if c.IsComputed(p.String()) {
 		// If the key is being computed, then it is not an error as
 		// long as it's not a slice or map.
 		return nil, nil
@@ -1576,28 +1595,28 @@ func (m schemaMap) validatePrimitive(
 		// Verify that we can parse this as the correct type
 		var n bool
 		if err := mapstructure.WeakDecode(raw, &n); err != nil {
-			return nil, []error{fmt.Errorf("%s: %s", k, err)}
+			return nil, []error{NewAttributeError(p, fmt.Errorf("%s: %s", p, err))}
 		}
 		decoded = n
 	case TypeInt:
 		// Verify that we can parse this as an int
 		var n int
 		if err := mapstructure.WeakDecode(raw, &n); err != nil {
-			return nil, []error{fmt.Errorf("%s: %s", k, err)}
+			return nil, []error{NewAttributeError(p, fmt.Errorf("%s: %s", p, err))}
 		}
 		decoded = n
 	case TypeFloat:
 		// Verify that we can parse this as an int
 		var n float64
 		if err := mapstructure.WeakDecode(raw, &n); err != nil {
-			return nil, []error{fmt.Errorf("%s: %s", k, err)}
+			return nil, []error{NewAttributeError(p, fmt.Errorf("%s: %s", p, err))}
 		}
 		decoded = n
 	case TypeString:
 		// Verify that we can parse this as a string
 		var n string
 		if err := mapstructure.WeakDecode(raw, &n); err != nil {
-			return nil, []error{fmt.Errorf("%s: %s", k, err)}
+			return nil, []error{NewAttributeError(p, fmt.Errorf("%s: %s", p, err))}
 		}
 		decoded = n
 	default:
@@ -1605,14 +1624,18 @@ func (m schemaMap) validatePrimitive(
 	}
 
 	if schema.ValidateFunc != nil {
-		return schema.ValidateFunc(decoded, k)
+		warns, errs := schema.ValidateFunc(decoded, p.String())
+		for i, err := range errs {
+			errs[i] = NewAttributeError(p, err)
+		}
+		return warns, errs
 	}
 
 	return nil, nil
 }
 
 func (m schemaMap) validateType(
-	k string,
+	p cty.Path,
 	raw interface{},
 	schema *Schema,
 	c *terraform.ResourceConfig) ([]string, []error) {
@@ -1620,21 +1643,21 @@ func (m schemaMap) validateType(
 	var es []error
 	switch schema.Type {
 	case TypeSet, TypeList:
-		ws, es = m.validateList(k, raw, schema, c)
+		ws, es = m.validateList(p, raw, schema, c)
 	case TypeMap:
-		ws, es = m.validateMap(k, raw, schema, c)
+		ws, es = m.validateMap(p, raw, schema, c)
 	default:
-		ws, es = m.validatePrimitive(k, raw, schema, c)
+		ws, es = m.validatePrimitive(p, raw, schema, c)
 	}
 
 	if schema.Deprecated != "" {
 		ws = append(ws, fmt.Sprintf(
-			"%q: [DEPRECATED] %s", k, schema.Deprecated))
+			"%q: [DEPRECATED] %s", p, schema.Deprecated))
 	}
 
 	if schema.Removed != "" {
-		es = append(es, fmt.Errorf(
-			"%q: [REMOVED] %s", k, schema.Removed))
+		es = append(es, NewAttributeError(p, fmt.Errorf(
+			"%q: [REMOVED] %s", p, schema.Removed)))
 	}
 
 	return ws, es
