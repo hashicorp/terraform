@@ -131,11 +131,70 @@ func (d *attributeDiagnostic) ElaborateFromConfigBody(body hcl.Body) Diagnostic 
 	// propagated to every place in Terraform, and this happens only in the
 	// presence of errors where performance isn't a concern.
 
-	traverse := d.attrPath[:len(d.attrPath)-1]
+	traverse := d.attrPath[:]
 	final := d.attrPath[len(d.attrPath)-1]
 
-	// If we have more than one step then we'll first try to traverse to
-	// a child body corresponding to the requested path.
+	// Index should never be the first step
+	// as indexing of top blocks (such as resources & data sources)
+	// is handled elsewhere
+	if _, isIdxStep := traverse[0].(cty.IndexStep); isIdxStep {
+		subject := SourceRangeFromHCL(body.MissingItemRange())
+		ret.subject = &subject
+		return &ret
+	}
+
+	// Process index separately
+	idxStep, hasIdx := final.(cty.IndexStep)
+	if hasIdx {
+		final = d.attrPath[len(d.attrPath)-2]
+		traverse = d.attrPath[:len(d.attrPath)-1]
+	}
+
+	// If we have more than one step after removing index
+	// then we'll first try to traverse to a child body
+	// corresponding to the requested path.
+	if len(traverse) > 1 {
+		body = traversePathSteps(traverse, body)
+	}
+
+	// Default is to indicate a missing item in the deepest body we reached
+	// while traversing.
+	subject := SourceRangeFromHCL(body.MissingItemRange())
+	ret.subject = &subject
+
+	// Once we get here, "final" should be a GetAttr step that maps to an
+	// attribute in our current body.
+	finalStep, isAttr := final.(cty.GetAttrStep)
+	if !isAttr {
+		return &ret
+	}
+
+	content, _, contentDiags := body.PartialContent(&hcl.BodySchema{
+		Attributes: []hcl.AttributeSchema{
+			{
+				Name:     finalStep.Name,
+				Required: true,
+			},
+		},
+	})
+	if contentDiags.HasErrors() {
+		return &ret
+	}
+
+	if attr, ok := content.Attributes[finalStep.Name]; ok {
+		hclRange := attr.Expr.Range()
+		if hasIdx {
+			// Try to be more precise by finding index range
+			hclRange = hclRangeFromIndexStepAndAttribute(idxStep, attr)
+		}
+		subject = SourceRangeFromHCL(hclRange)
+		ret.subject = &subject
+	}
+
+	return &ret
+}
+
+func traversePathSteps(traverse []cty.PathStep, body hcl.Body) hcl.Body {
 	for i := 0; i < len(traverse); i++ {
 		step := traverse[i]
 
@@ -173,9 +232,7 @@ func (d *attributeDiagnostic) ElaborateFromConfigBody(body hcl.Body) Diagnostic 
 				},
 			})
 			if contentDiags.HasErrors() {
-				subject := SourceRangeFromHCL(body.MissingItemRange())
-				ret.subject = &subject
-				return &ret
+				return body
 			}
 			filtered := make([]*hcl.Block, 0, len(content.Blocks))
 			for _, block := range content.Blocks {
@@ -184,23 +241,21 @@ func (d *attributeDiagnostic) ElaborateFromConfigBody(body hcl.Body) Diagnostic 
 				}
 			}
 			if len(filtered) == 0 {
+				// Step doesn't refer to a block
+				continue
 			}
 
 			switch indexType {
 			case cty.NilType: // no index at all
 				if len(filtered) != 1 {
-					subject := SourceRangeFromHCL(body.MissingItemRange())
-					ret.subject = &subject
-					return &ret
+					return body
 				}
 				body = filtered[0].Body
 			case cty.Number:
 				var idx int
 				err := gocty.FromCtyValue(indexVal, &idx)
 				if err != nil || idx >= len(filtered) {
-					subject := SourceRangeFromHCL(body.MissingItemRange())
-					ret.subject = &subject
-					return &ret
+					return body
 				}
 				body = filtered[idx].Body
 			case cty.String:
@@ -215,58 +270,56 @@ func (d *attributeDiagnostic) ElaborateFromConfigBody(body hcl.Body) Diagnostic 
 				if block == nil {
 					// No block with this key, so we'll just indicate a
 					// missing item in the containing block.
-					subject := SourceRangeFromHCL(body.MissingItemRange())
-					ret.subject = &subject
-					return &ret
+					return body
 				}
 				body = block.Body
 			default:
 				// Should never happen, because only string and numeric indices
 				// are supported by cty collections.
-				subject := SourceRangeFromHCL(body.MissingItemRange())
-				ret.subject = &subject
-				return &ret
+				return body
 			}
 
 		default:
 			// For any other kind of step, we'll just return our current body
 			// as the subject and accept that this is a little inaccurate.
-			subject := SourceRangeFromHCL(body.MissingItemRange())
-			ret.subject = &subject
-			return &ret
+			return body
 		}
 	}
+	return body
+}
 
-	// Default is to indicate a missing item in the deepest body we reached
-	// while traversing.
-	subject := SourceRangeFromHCL(body.MissingItemRange())
-	ret.subject = &subject
-
-	// Once we get here, "final" should be a GetAttr step that maps to an
-	// attribute in our current body.
-	finalStep, isAttr := final.(cty.GetAttrStep)
-	if !isAttr {
-		return &ret
+func hclRangeFromIndexStepAndAttribute(idxStep cty.IndexStep, attr *hcl.Attribute) hcl.Range {
+	switch idxStep.Key.Type() {
+	case cty.Number:
+		var idx int
+		err := gocty.FromCtyValue(idxStep.Key, &idx)
+		items, diags := hcl.ExprList(attr.Expr)
+		if diags.HasErrors() {
+			return attr.Expr.Range()
+		}
+		if err != nil || idx >= len(items) {
+			return attr.NameRange
+		}
+		return items[idx].Range()
+	case cty.String:
+		pairs, diags := hcl.ExprMap(attr.Expr)
+		if diags.HasErrors() {
+			return attr.Expr.Range()
+		}
+		stepKey := idxStep.Key.AsString()
+		for _, kvPair := range pairs {
+			key, err := kvPair.Key.Value(nil)
+			if err != nil {
+				return attr.Expr.Range()
+			}
+			if key.AsString() == stepKey {
+				startRng := kvPair.Value.StartRange()
+				return startRng
+			}
+		}
+		return attr.NameRange
 	}
-
-	content, _, contentDiags := body.PartialContent(&hcl.BodySchema{
-		Attributes: []hcl.AttributeSchema{
-			{
-				Name:     finalStep.Name,
-				Required: true,
-			},
-		},
-	})
-	if contentDiags.HasErrors() {
-		return &ret
-	}
-
-	if attr, ok := content.Attributes[finalStep.Name]; ok {
-		subject = SourceRangeFromHCL(attr.Expr.Range())
-		ret.subject = &subject
-	}
-
-	return &ret
+	return attr.Expr.Range()
 }
 
 func (d *attributeDiagnostic) Source() Source {
