@@ -345,7 +345,9 @@ func (s *Filesystem) Unlock(id string) error {
 		}
 	}
 
-	os.Remove(s.lockInfoPath())
+	lockInfoPath := s.lockInfoPath()
+	log.Printf("[TRACE] statemgr.Filesystem: removing lock metadata file %s", lockInfoPath)
+	os.Remove(lockInfoPath)
 
 	fileName := s.stateFileOut.Name()
 
@@ -466,7 +468,7 @@ func (s *Filesystem) createStateFiles() error {
 
 // return the path for the lockInfo metadata.
 func (s *Filesystem) lockInfoPath() string {
-	stateDir, stateName := filepath.Split(s.readPath)
+	stateDir, stateName := filepath.Split(s.path)
 	if stateName == "" {
 		panic("empty state file path")
 	}
@@ -500,6 +502,7 @@ func (s *Filesystem) writeLockInfo(info *LockInfo) error {
 	info.Path = s.readPath
 	info.Created = time.Now().UTC()
 
+	log.Printf("[TRACE] statemgr.Filesystem: writing lock metadata to %s", path)
 	err := ioutil.WriteFile(path, info.Marshal(), 0600)
 	if err != nil {
 		return fmt.Errorf("could not write lock info for %q: %s", s.readPath, err)
