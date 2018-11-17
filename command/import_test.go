@@ -1,9 +1,9 @@
 package command
 
 import (
-	"log"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"os"
 	"path/filepath"
 	"strings"

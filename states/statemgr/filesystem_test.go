@@ -256,7 +256,7 @@ func TestFilesystem_backupAndReadPath(t *testing.T) {
 	// The backup functionality should've saved a copy of the original contents
 	// of the _output_ file, even though the first snapshot was read from
 	// the _input_ file.
-	t.Run("backup file", func (t *testing.T) {
+	t.Run("backup file", func(t *testing.T) {
 		bfh, err := os.Open(backupPath)
 		if err != nil {
 			t.Fatal(err)
@@ -270,7 +270,7 @@ func TestFilesystem_backupAndReadPath(t *testing.T) {
 			t.Errorf("wrong marker value in backup state file\ngot:  %#v\nwant: %#v", got, want)
 		}
 	})
-	t.Run("output file", func (t *testing.T) {
+	t.Run("output file", func(t *testing.T) {
 		ofh, err := os.Open(outFile.Name())
 		if err != nil {
 			t.Fatal(err)
