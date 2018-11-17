@@ -7,12 +7,12 @@ import (
 	"testing"
 
 	"github.com/davecgh/go-spew/spew"
-	version "github.com/hashicorp/go-version"
 
 	"github.com/hashicorp/terraform/configs/configload"
 	"github.com/hashicorp/terraform/plans"
 	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/states/statefile"
+	tfversion "github.com/hashicorp/terraform/version"
 )
 
 func TestRoundtrip(t *testing.T) {
@@ -33,7 +33,7 @@ func TestRoundtrip(t *testing.T) {
 	// We don't need to test the entire thing because the state file
 	// serialization is already tested in its own package.
 	stateFileIn := &statefile.File{
-		TerraformVersion: version.Must(version.NewVersion("1.0.0")),
+		TerraformVersion: tfversion.SemVer,
 		Serial:           1,
 		Lineage:          "abc123",
 		State:            states.NewState(),
