@@ -511,8 +511,14 @@ func TestRefresh_backup(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 	outPath := outf.Name()
-	outf.Close()
-	os.Remove(outPath)
+	defer outf.Close()
+
+	// Need to put some state content in the output file so that there's
+	// something to back up.
+	err = statefile.Write(statefile.New(state, "baz", 0), outf)
+	if err != nil {
+		t.Fatalf("error writing initial output state file %s", err)
+	}
 
 	// Backup path
 	backupf, err := ioutil.TempFile(testingDir, "tf")
