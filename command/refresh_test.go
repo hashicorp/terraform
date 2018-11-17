@@ -343,11 +343,11 @@ func TestRefresh_outPath(t *testing.T) {
 		t.Fatalf("wrong new object\ngot:  %swant: %s", spew.Sdump(actual), spew.Sdump(expected))
 	}
 
-	backupState := testStateRead(t, outPath+DefaultBackupExtension)
-	actualStr := strings.TrimSpace(backupState.String())
-	expectedStr := strings.TrimSpace(state.String())
-	if actualStr != expectedStr {
-		t.Fatalf("bad:\n\n%s\n\n%s", actualStr, expectedStr)
+	if _, err := os.Stat(outPath+DefaultBackupExtension); !os.IsNotExist(err) {
+		if err != nil {
+			t.Fatalf("failed to test for backup file: %s", err)
+		}
+		t.Fatalf("backup file exists, but it should not because output file did not initially exist")
 	}
 }
 
