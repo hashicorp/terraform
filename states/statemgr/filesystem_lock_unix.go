@@ -3,6 +3,7 @@
 package statemgr
 
 import (
+	"log"
 	"os"
 	"syscall"
 )
@@ -10,6 +11,7 @@ import (
 // use fcntl POSIX locks for the most consistent behavior across platforms, and
 // hopefully some campatibility over NFS and CIFS.
 func (s *Filesystem) lock() error {
+	log.Printf("[TRACE] statemgr.Filesystem: locking %s using fcntl flock", s.path)
 	flock := &syscall.Flock_t{
 		Type:   syscall.F_RDLCK | syscall.F_WRLCK,
 		Whence: int16(os.SEEK_SET),
@@ -22,6 +24,7 @@ func (s *Filesystem) lock() error {
 }
 
 func (s *Filesystem) unlock() error {
+	log.Printf("[TRACE] statemgr.Filesystem: unlocking %s using fcntl flock", s.path)
 	flock := &syscall.Flock_t{
 		Type:   syscall.F_UNLCK,
 		Whence: int16(os.SEEK_SET),
