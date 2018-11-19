@@ -2159,7 +2159,8 @@ func TestContext2Plan_computedList(t *testing.T) {
 		switch i := ric.Addr.String(); i {
 		case "aws_instance.bar":
 			checkVals(t, objectVal(t, schema, map[string]cty.Value{
-				"foo": cty.UnknownVal(cty.String),
+				"list": cty.UnknownVal(cty.List(cty.String)),
+				"foo":  cty.UnknownVal(cty.String),
 			}), ric.After)
 		case "aws_instance.foo":
 			checkVals(t, objectVal(t, schema, map[string]cty.Value{
