@@ -3,7 +3,7 @@ package plugin
 import (
 	"github.com/hashicorp/go-plugin"
 	grpcplugin "github.com/hashicorp/terraform/helper/plugin"
-	"github.com/hashicorp/terraform/plugin/proto"
+	proto "github.com/hashicorp/terraform/internal/tfplugin5"
 	"github.com/hashicorp/terraform/terraform"
 )
 

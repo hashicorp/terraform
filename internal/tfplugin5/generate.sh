@@ -13,4 +13,4 @@ DIR="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
 
 cd "$DIR"
 
-protoc -I ./ plugin.proto --go_out=plugins=grpc:./
+protoc -I ./ tfplugin5.proto --go_out=plugins=grpc:./

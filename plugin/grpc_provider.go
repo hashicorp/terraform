@@ -10,8 +10,8 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	plugin "github.com/hashicorp/go-plugin"
+	proto "github.com/hashicorp/terraform/internal/tfplugin5"
 	"github.com/hashicorp/terraform/plugin/convert"
-	"github.com/hashicorp/terraform/plugin/proto"
 	"github.com/hashicorp/terraform/providers"
 	"github.com/hashicorp/terraform/version"
 	"github.com/zclconf/go-cty/cty/msgpack"

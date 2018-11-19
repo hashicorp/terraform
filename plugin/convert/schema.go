@@ -6,7 +6,7 @@ import (
 	"sort"
 
 	"github.com/hashicorp/terraform/configs/configschema"
-	"github.com/hashicorp/terraform/plugin/proto"
+	proto "github.com/hashicorp/terraform/internal/tfplugin5"
 	"github.com/hashicorp/terraform/providers"
 )
 
