@@ -1,6 +1,24 @@
+// Terraform Plugin RPC protocol version 5.0
+//
+// This file defines version 5.0 of the RPC protocol. To implement a plugin
+// against this protocol, copy this definition into your own codebase and
+// use protoc to generate stubs for your target language.
+//
+// This file will be updated in-place in the source Terraform repository for
+// any minor versions of protocol 5, but later minor versions will always be
+// backwards compatible. Breaking changes, if any are required, will come
+// in a subsequent major version with its own separate proto definition.
+//
+// Note that only the proto files included in a release tag of Terraform are
+// official protocol releases. Proto files taken from other commits may include
+// incomplete changes or features that did not make it into a final release.
+// In all reasonable cases, plugin developers should take the proto file from
+// the tag of the most recent release of Terraform, and not from the master
+// branch or any other development branch.
+//
 syntax = "proto3";
 
-package proto;
+package tfplugin5;
 
 // DynamicValue is an opaque encoding of terraform data, with the field name
 // indicating the encoding scheme used.
