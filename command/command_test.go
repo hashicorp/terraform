@@ -798,7 +798,7 @@ func testLockState(sourceDir, path string) (func(), error) {
 	source := filepath.Join(sourceDir, "statelocker.go")
 	lockBin := filepath.Join(buildDir, "statelocker")
 
-	out, err := exec.Command("go", "build", "-o", lockBin, source).CombinedOutput()
+	out, err := exec.Command("go", "build", "-mod=vendor", "-o", lockBin, source).CombinedOutput()
 	if err != nil {
 		cleanFunc()
 		return nil, fmt.Errorf("%s %s", err, out)
