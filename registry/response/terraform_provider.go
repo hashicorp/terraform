@@ -45,13 +45,14 @@ type TerraformProviderPlatform struct {
 // structure for a provider platform with all details required to perform a
 // download.
 type TerraformProviderPlatformLocation struct {
-	OS                  string `json:"os"`
-	Arch                string `json:"arch"`
-	Filename            string `json:"filename"`
-	DownloadURL         string `json:"download_url"`
-	ShasumsURL          string `json:"shasums_url"`
-	ShasumsSignatureURL string `json:"shasums_signature_url"`
-	Shasum              string `json:"shasum"`
+	Protocols           []string `json:"protocols"`
+	OS                  string   `json:"os"`
+	Arch                string   `json:"arch"`
+	Filename            string   `json:"filename"`
+	DownloadURL         string   `json:"download_url"`
+	ShasumsURL          string   `json:"shasums_url"`
+	ShasumsSignatureURL string   `json:"shasums_signature_url"`
+	Shasum              string   `json:"shasum"`
 
 	SigningKeys SigningKeyList `json:"signing_keys"`
 }
