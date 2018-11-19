@@ -563,7 +563,7 @@ func (d *InstanceDiff) applyCollectionDiff(attrName string, oldAttrs map[string]
 	// check the index first for special handling
 	for k, diff := range d.Attributes {
 		// check the index value, which can be set, and 0
-		if k == attrName+".#" || k == attrName+".%" {
+		if k == attrName+".#" || k == attrName+".%" || k == attrName {
 			if diff.NewRemoved {
 				return result, nil
 			}

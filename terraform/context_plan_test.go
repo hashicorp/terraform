@@ -2075,7 +2075,56 @@ func TestContext2Plan_computedList(t *testing.T) {
 			},
 		},
 	}
-	p.DiffFn = testDiffFn
+	p.DiffFn = func(info *InstanceInfo, s *InstanceState, c *ResourceConfig) (*InstanceDiff, error) {
+		diff := &InstanceDiff{
+			Attributes: map[string]*ResourceAttrDiff{},
+		}
+
+		computedKeys := map[string]bool{}
+		for _, k := range c.ComputedKeys {
+			computedKeys[k] = true
+		}
+
+		compute, _ := c.Raw["compute"].(string)
+		if compute != "" {
+			diff.Attributes[compute] = &ResourceAttrDiff{
+				Old:         "",
+				New:         "",
+				NewComputed: true,
+			}
+		}
+
+		fooOld := s.Attributes["foo"]
+		fooNew, _ := c.Raw["foo"].(string)
+		if fooOld != fooNew {
+			diff.Attributes["foo"] = &ResourceAttrDiff{
+				Old:         fooOld,
+				New:         fooNew,
+				NewComputed: computedKeys["foo"],
+			}
+		}
+
+		numOld := s.Attributes["num"]
+		numNew, _ := c.Raw["num"].(string)
+		if numOld != numNew {
+			diff.Attributes["num"] = &ResourceAttrDiff{
+				Old:         numOld,
+				New:         numNew,
+				NewComputed: computedKeys["num"],
+			}
+		}
+
+		listOld := s.Attributes["list.#"]
+		if listOld == "" {
+			diff.Attributes["list.#"] = &ResourceAttrDiff{
+				Old:         "",
+				New:         "",
+				NewComputed: true,
+			}
+		}
+
+		return diff, nil
+	}
 
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
@@ -2129,6 +2178,7 @@ func TestContext2Plan_computedMultiIndex(t *testing.T) {
 	m := testModule(t, "plan-computed-multi-index")
 	p := testProvider("aws")
 	p.DiffFn = testDiffFn
+
 	p.GetSchemaReturn = &ProviderSchema{
 		ResourceTypes: map[string]*configschema.Block{
 			"aws_instance": {
@@ -2139,6 +2189,47 @@ func TestContext2Plan_computedMultiIndex(t *testing.T) {
 				},
 			},
 		},
+	}
+
+	p.DiffFn = func(info *InstanceInfo, s *InstanceState, c *ResourceConfig) (*InstanceDiff, error) {
+		diff := &InstanceDiff{
+			Attributes: map[string]*ResourceAttrDiff{},
+		}
+
+		compute, _ := c.Raw["compute"].(string)
+		if compute != "" {
+			diff.Attributes[compute] = &ResourceAttrDiff{
+				Old:         "",
+				New:         "",
+				NewComputed: true,
+			}
+		}
+
+		fooOld := s.Attributes["foo"]
+		fooNew, _ := c.Raw["foo"].(string)
+		fooComputed := false
+		for _, k := range c.ComputedKeys {
+			if k == "foo" {
+				fooComputed = true
+			}
+		}
+		if fooNew != "" {
+			diff.Attributes["foo"] = &ResourceAttrDiff{
+				Old:         fooOld,
+				New:         fooNew,
+				NewComputed: fooComputed,
+			}
+		}
+
+		ipOld := s.Attributes["ip"]
+		ipComputed := ipOld == ""
+		diff.Attributes["ip"] = &ResourceAttrDiff{
+			Old:         ipOld,
+			New:         "",
+			NewComputed: ipComputed,
+		}
+
+		return diff, nil
 	}
 
 	ctx := testContext2(t, &ContextOpts{
@@ -2174,14 +2265,17 @@ func TestContext2Plan_computedMultiIndex(t *testing.T) {
 		switch i := ric.Addr.String(); i {
 		case "aws_instance.foo[0]":
 			checkVals(t, objectVal(t, schema, map[string]cty.Value{
-				"ip": cty.UnknownVal(cty.List(cty.String)),
+				"ip":  cty.UnknownVal(cty.List(cty.String)),
+				"foo": cty.ListValEmpty(cty.String),
 			}), ric.After)
 		case "aws_instance.foo[1]":
 			checkVals(t, objectVal(t, schema, map[string]cty.Value{
-				"ip": cty.UnknownVal(cty.List(cty.String)),
+				"ip":  cty.UnknownVal(cty.List(cty.String)),
+				"foo": cty.ListValEmpty(cty.String),
 			}), ric.After)
 		case "aws_instance.bar[0]":
 			checkVals(t, objectVal(t, schema, map[string]cty.Value{
+				"ip":  cty.UnknownVal(cty.List(cty.String)),
 				"foo": cty.UnknownVal(cty.List(cty.String)),
 			}), ric.After)
 		default:
