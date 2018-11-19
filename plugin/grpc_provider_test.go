@@ -12,8 +12,8 @@ import (
 	"github.com/hashicorp/terraform/tfdiags"
 	"github.com/zclconf/go-cty/cty"
 
+	proto "github.com/hashicorp/terraform/internal/tfplugin5"
 	mockproto "github.com/hashicorp/terraform/plugin/mock_proto"
-	"github.com/hashicorp/terraform/plugin/proto"
 )
 
 var _ providers.Interface = (*GRPCProvider)(nil)

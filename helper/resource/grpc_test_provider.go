@@ -6,8 +6,8 @@ import (
 	"time"
 
 	"github.com/hashicorp/terraform/helper/plugin"
+	proto "github.com/hashicorp/terraform/internal/tfplugin5"
 	tfplugin "github.com/hashicorp/terraform/plugin"
-	"github.com/hashicorp/terraform/plugin/proto"
 	"github.com/hashicorp/terraform/providers"
 	"github.com/hashicorp/terraform/terraform"
 	"google.golang.org/grpc"
