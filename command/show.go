@@ -168,9 +168,9 @@ func (c *ShowCommand) Run(args []string) int {
 				c.showDiagnostics(diags)
 				return 1
 			}
-			jsonPlan, err := jsonplan.Marshal(snapshot, plan, state)
+			jsonPlan, err := jsonplan.Marshal(snapshot, plan, state, schemas)
 			if err != nil {
-				c.Ui.Error(fmt.Sprintf("Failed to load config: %s", err))
+				c.Ui.Error(fmt.Sprintf("Failed to marshal plan to json: %s", err))
 				return 1
 			}
 			c.Ui.Output(string(jsonPlan))

@@ -5,8 +5,10 @@ import (
 
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs/configload"
+	"github.com/hashicorp/terraform/configs/configschema"
 	"github.com/hashicorp/terraform/plans"
 	"github.com/hashicorp/terraform/states"
+	"github.com/hashicorp/terraform/terraform"
 
 	ctyjson "github.com/zclconf/go-cty/cty/json"
 )
@@ -78,18 +80,24 @@ type source struct {
 	End      string `json:"end,omitempty"`
 }
 
-// Marshall returns the json encoding of a terraform plan.
-func Marshal(c *configload.Snapshot, p *plans.Plan, s *states.State) ([]byte, error) {
-	output := newPlan()
-	schemaLoader := configload.NewLoaderFromSnapshot(c)
-	schemaLoader.ImportSourcesFromSnapshot(c)
+// Marshal returns the json encoding of a terraform plan.
+func Marshal(
+	c *configload.Snapshot,
+	p *plans.Plan,
+	s *states.State,
+	schemas *terraform.Schemas,
+) ([]byte, error) {
 
+	output := newPlan()
+
+	// configLoader := configload.NewLoaderFromSnapshot(c)
+	// configLoader.ImportSourcesFromSnapshot(c)
 	// output.Config = config{
 	// 	ProviderConfigs: []providerConfig{},
 	// 	RootModule:      configRootModule{},
 	// }
 	// output.OutputChanges =
-	err := output.marshalOutputChanges(p.Changes)
+	err := output.marshalOutputChanges(p.Changes, schemas)
 	if err != nil {
 		return nil, err
 	}
@@ -98,7 +106,7 @@ func Marshal(c *configload.Snapshot, p *plans.Plan, s *states.State) ([]byte, er
 	// output.ProposedUnknown
 	// output.ResourceChanges = marshalResourceChanges(p)
 
-	err = output.marshalResourceChanges(p.Changes)
+	err = output.marshalResourceChanges(p.Changes, schemas)
 	if err != nil {
 		return nil, err
 	}
@@ -108,7 +116,7 @@ func Marshal(c *configload.Snapshot, p *plans.Plan, s *states.State) ([]byte, er
 	return ret, err
 }
 
-func (p *plan) marshalResourceChanges(changes *plans.Changes) error {
+func (p *plan) marshalResourceChanges(changes *plans.Changes, schemas *terraform.Schemas) error {
 	if changes == nil {
 		// Nothing to do!
 		return nil
@@ -116,8 +124,9 @@ func (p *plan) marshalResourceChanges(changes *plans.Changes) error {
 	for _, rc := range changes.Resources {
 		var r resourceChange
 		addr := rc.Addr
-		dataSource := addr.Resource.Resource.Mode == addrs.DataResourceMode
+		r.Address = addr.String()
 
+		dataSource := addr.Resource.Resource.Mode == addrs.DataResourceMode
 		// We create "delete" actions for data resources so we can clean
 		// up their entries in state, but this is an implementation detail
 		// that users shouldn't see.
@@ -125,23 +134,27 @@ func (p *plan) marshalResourceChanges(changes *plans.Changes) error {
 			continue
 		}
 
-		r.Address = addr.String()
+		var schema *configschema.Block
+		if dataSource {
+			schema = schemas.DataSourceConfig(rc.ProviderAddr.ProviderConfig.StringCompact(), addr.Resource.Resource.Type)
+		} else {
+			schema = schemas.ResourceTypeConfig(rc.ProviderAddr.ProviderConfig.StringCompact(), addr.Resource.Resource.Type)
+		}
 
-		var before []byte
-		if rc.Before != nil {
+		changeV, err := rc.Decode(schema.ImpliedType())
+		if err != nil {
+			return err
+		}
 
-			// this does not work
-			// we will need to get this type from the schema
-			beforeTy, err := rc.Before.ImpliedType()
+		var before, after []byte
+		if before != nil {
+			before, err = ctyjson.Marshal(changeV.Before, changeV.Before.Type())
 			if err != nil {
 				return err
 			}
-			beforeVal, err := rc.Before.Decode(beforeTy)
-			if err != nil {
-				return err
-			}
-
-			before, err = ctyjson.Marshal(beforeVal, beforeTy)
+		}
+		if after != nil {
+			after, err = ctyjson.Marshal(changeV.After, changeV.After.Type())
 			if err != nil {
 				return err
 			}
@@ -150,7 +163,7 @@ func (p *plan) marshalResourceChanges(changes *plans.Changes) error {
 		r.Change = change{
 			Actions: []string{rc.Action.String()},
 			Before:  json.RawMessage(before),
-			// After:   json.RawMessage(rc.After),
+			After:   json.RawMessage(after),
 		}
 		r.Deposed = rc.DeposedKey == states.NotDeposed
 
@@ -170,13 +183,14 @@ func (p *plan) marshalResourceChanges(changes *plans.Changes) error {
 	return nil
 }
 
-func (p *plan) marshalOutputChanges(changes *plans.Changes) error {
+func (p *plan) marshalOutputChanges(changes *plans.Changes, schemas *terraform.Schemas) error {
 	if changes == nil {
 		// Nothing to do!
 		return nil
 	}
 
 	var c change
+	p.OutputChanges = make(map[string]change, len(changes.Outputs))
 	for _, oc := range changes.Outputs {
 		c.Actions = []string{oc.Action.String()}
 		// c.Before = json.RawMessage(oc.Before)
