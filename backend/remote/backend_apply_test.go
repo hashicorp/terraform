@@ -338,6 +338,9 @@ func TestRemote_applyNoChanges(t *testing.T) {
 	if !strings.Contains(output, "No changes. Infrastructure is up-to-date.") {
 		t.Fatalf("expected no changes in plan summery: %s", output)
 	}
+	if !strings.Contains(output, "Sentinel Result: true") {
+		t.Fatalf("expected policy check result in output: %s", output)
+	}
 }
 
 func TestRemote_applyNoApprove(t *testing.T) {
@@ -771,7 +774,7 @@ func TestRemote_applyPolicyPass(t *testing.T) {
 		t.Fatalf("expected plan summery in output: %s", output)
 	}
 	if !strings.Contains(output, "Sentinel Result: true") {
-		t.Fatalf("expected polic check result in output: %s", output)
+		t.Fatalf("expected policy check result in output: %s", output)
 	}
 	if !strings.Contains(output, "1 added, 0 changed, 0 destroyed") {
 		t.Fatalf("expected apply summery in output: %s", output)
