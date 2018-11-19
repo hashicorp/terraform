@@ -2,7 +2,7 @@
 
 BACKWARDS INCOMPATIBILITIES / NOTES:
 * command: Remove `-module-depth` flag from plan, apply, show, and graph. This flag was not widely used and the various updates and improvements to cli output should remove the need for this flag. [GH-19267]
-* plugins: The protobuf/grpc package name for the provider protocol was changed from `proto` to `tfplugin5` in preparation for future protocol versioning. This means that plugin binaries built for alpha1 and alpha2 are no longer compatible and will need to be rebuilt.
+* plugins: The protobuf/grpc package name for the provider protocol was changed from `proto` to `tfplugin5` in preparation for future protocol versioning. This means that plugin binaries built for alpha1 and alpha2 are no longer compatible and will need to be rebuilt. [GH-19393]
 
 IMPROVEMENTS:
 
