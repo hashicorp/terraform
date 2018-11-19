@@ -282,6 +282,7 @@ func (p *MockProvider) PlanResourceChange(r providers.PlanResourceChangeRequest)
 		}
 		priorState := NewInstanceStateShimmedFromValue(r.PriorState, 0)
 		cfg := NewResourceConfigShimmed(r.Config, schema)
+
 		legacyDiff, err := p.DiffFn(info, priorState, cfg)
 
 		var res providers.PlanResourceChangeResponse
@@ -294,6 +295,7 @@ func (p *MockProvider) PlanResourceChange(r providers.PlanResourceChangeRequest)
 			if err != nil {
 				res.Diagnostics = res.Diagnostics.Append(err)
 			}
+
 			res.PlannedState = newVal
 
 			var requiresNew []string
