@@ -236,6 +236,7 @@ func GoBuild(pkgPath, tmpPrefix string) string {
 
 	cmd := exec.Command(
 		"go", "build",
+		"-mod=vendor",
 		"-o", tmpFilename,
 		pkgPath,
 	)
