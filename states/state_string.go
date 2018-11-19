@@ -164,8 +164,13 @@ func (m *Module) testString() string {
 			}
 		}
 		attrKeys := make([]string, 0, len(attributes))
-		for ak, _ := range attributes {
+		for ak, val := range attributes {
 			if ak == "id" {
+				continue
+			}
+
+			// don't show empty containers in the output
+			if val == "0" && (strings.HasSuffix(ak, ".#") || strings.HasSuffix(ak, ".%")) {
 				continue
 			}
 
