@@ -15,7 +15,6 @@ import (
 
 	getter "github.com/hashicorp/go-getter"
 	multierror "github.com/hashicorp/go-multierror"
-
 	"github.com/hashicorp/terraform/httpclient"
 	"github.com/hashicorp/terraform/registry"
 	"github.com/hashicorp/terraform/registry/regsrc"
@@ -27,6 +26,12 @@ import (
 // Releases are located by querying the terraform registry.
 
 const protocolVersionHeader = "x-terraform-protocol-version"
+
+const gpgVerificationError = `GPG signature verification error:
+Terraform was unable to verify the GPG signature of the downloaded provider
+files using the keys downloaded from the Terraform Registry. This may mean that
+the publisher of the provider removed the key it was signed with, or that the
+distributed files were changed after this version was released.`
 
 var httpClient *http.Client
 
@@ -173,6 +178,9 @@ func (i *ProviderInstaller) Get(provider string, req Constraints) (PluginMeta, e
 	downloadURLs, err := i.listProviderDownloadURLs(provider, versionMeta.Version)
 	providerURL := downloadURLs.DownloadURL
 
+	i.Ui.Info(fmt.Sprintf("- Downloading plugin for provider %q (%s)...", provider, versionMeta.Version))
+	log.Printf("[DEBUG] getting provider %q version %q", provider, versionMeta.Version)
+
 	if !i.SkipVerify {
 		sha256, err := i.getProviderChecksum(downloadURLs)
 		if err != nil {
@@ -185,8 +193,6 @@ func (i *ProviderInstaller) Get(provider string, req Constraints) (PluginMeta, e
 		}
 	}
 
-	i.Ui.Info(fmt.Sprintf("- Downloading plugin for provider %q (%s)...", provider, versionMeta.Version))
-	log.Printf("[DEBUG] getting provider %q version %q", provider, versionMeta.Version)
 	err = i.install(provider, v, providerURL)
 	if err != nil {
 		return PluginMeta{}, err
@@ -353,12 +359,37 @@ func (i *ProviderInstaller) PurgeUnused(used map[string]PluginMeta) (PluginMetaS
 }
 
 func (i *ProviderInstaller) getProviderChecksum(urls *response.TerraformProviderPlatformLocation) (string, error) {
-	checksums, err := getPluginSHA256SUMs(urls.ShasumsURL, urls.ShasumsSignatureURL)
+	// Get SHA256SUMS file.
+	shasums, err := getFile(urls.ShasumsURL)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("error fetching checksums: %s", err)
 	}
 
-	return checksumForFile(checksums, urls.Filename), nil
+	// Get SHA256SUMS.sig file.
+	signature, err := getFile(urls.ShasumsSignatureURL)
+	if err != nil {
+		return "", fmt.Errorf("error fetching checksums signature: %s", err)
+	}
+
+	// Verify GPG signature.
+	asciiArmor := urls.SigningKeys.GPGASCIIArmor()
+	signer, err := verifySig(shasums, signature, asciiArmor)
+	if err != nil {
+		log.Printf("[ERROR] error verifying signature: %s", err)
+		return "", fmt.Errorf(gpgVerificationError)
+	}
+
+	// Display identity for GPG key which succeeded verifying the signature.
+	// This could also be used to display to the user with i.Ui.Info().
+	identities := []string{}
+	for k := range signer.Identities {
+		identities = append(identities, k)
+	}
+	identity := strings.Join(identities, ", ")
+	log.Printf("[DEBUG] verified GPG signature with key from %s", identity)
+
+	// Extract checksum for this os/arch platform binary.
+	return checksumForFile(shasums, urls.Filename), nil
 }
 
 // list all versions available for the named provider
@@ -485,25 +516,6 @@ func checksumForFile(sums []byte, name string) string {
 		}
 	}
 	return ""
-}
-
-// fetch the SHA256SUMS file provided, and verify its signature.
-func getPluginSHA256SUMs(sumsURL, sigURL string) ([]byte, error) {
-	sums, err := getFile(sumsURL)
-	if err != nil {
-		return nil, fmt.Errorf("error fetching checksums: %s", err)
-	}
-
-	sig, err := getFile(sigURL)
-	if err != nil {
-		return nil, fmt.Errorf("error fetching checksums signature: %s", err)
-	}
-
-	if err := verifySig(sums, sig); err != nil {
-		return nil, err
-	}
-
-	return sums, nil
 }
 
 func getFile(url string) ([]byte, error) {
