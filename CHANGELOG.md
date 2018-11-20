@@ -8,6 +8,7 @@ IMPROVEMENTS:
 
 * command/state: Update and enable the `state show` command [GH-19200]
 * backend/remote: Implement the remote enhanced backend [GH-19299]
+* plugin/discovery: Use signing keys from the Terraform Registry when downloading providers. [GH-19389]
 
 BUG FIXES:
 
