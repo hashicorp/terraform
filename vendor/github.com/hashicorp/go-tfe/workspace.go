@@ -66,6 +66,7 @@ type Workspace struct {
 	Locked               bool                  `jsonapi:"attr,locked"`
 	MigrationEnvironment string                `jsonapi:"attr,migration-environment"`
 	Name                 string                `jsonapi:"attr,name"`
+	Operations           bool                  `jsonapi:"attr,operations"`
 	Permissions          *WorkspacePermissions `jsonapi:"attr,permissions"`
 	TerraformVersion     string                `jsonapi:"attr,terraform-version"`
 	VCSRepo              *VCSRepo              `jsonapi:"attr,vcs-repo"`

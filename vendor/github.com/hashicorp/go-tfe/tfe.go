@@ -289,25 +289,6 @@ func (c *Client) configureLimiter() error {
 	return nil
 }
 
-// ListOptions is used to specify pagination options when making API requests.
-// Pagination allows breaking up large result sets into chunks, or "pages".
-type ListOptions struct {
-	// The page number to request. The results vary based on the PageSize.
-	PageNumber int `url:"page[number],omitempty"`
-
-	// The number of elements returned in a single page.
-	PageSize int `url:"page[size],omitempty"`
-}
-
-// Pagination is used to return the pagination details of an API request.
-type Pagination struct {
-	CurrentPage  int `json:"current-page"`
-	PreviousPage int `json:"prev-page"`
-	NextPage     int `json:"next-page"`
-	TotalPages   int `json:"total-pages"`
-	TotalCount   int `json:"total-count"`
-}
-
 // newRequest creates an API request. A relative URL path can be provided in
 // path, in which case it is resolved relative to the apiVersionPath of the
 // Client. Relative URL paths should always be specified without a preceding
@@ -477,6 +458,25 @@ func (c *Client) do(ctx context.Context, req *retryablehttp.Request, v interface
 	pagination.Set(reflect.ValueOf(p))
 
 	return nil
+}
+
+// ListOptions is used to specify pagination options when making API requests.
+// Pagination allows breaking up large result sets into chunks, or "pages".
+type ListOptions struct {
+	// The page number to request. The results vary based on the PageSize.
+	PageNumber int `url:"page[number],omitempty"`
+
+	// The number of elements returned in a single page.
+	PageSize int `url:"page[size],omitempty"`
+}
+
+// Pagination is used to return the pagination details of an API request.
+type Pagination struct {
+	CurrentPage  int `json:"current-page"`
+	PreviousPage int `json:"prev-page"`
+	NextPage     int `json:"next-page"`
+	TotalPages   int `json:"total-pages"`
+	TotalCount   int `json:"total-count"`
 }
 
 func parsePagination(body io.Reader) (*Pagination, error) {
