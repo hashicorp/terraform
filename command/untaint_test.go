@@ -67,7 +67,7 @@ func TestUntaint_lockedState(t *testing.T) {
 		)
 	})
 	statePath := testStateFile(t, state)
-	unlock, err := testLockState("./testdata", statePath)
+	unlock, err := testLockState(testDataDir, statePath)
 	if err != nil {
 		t.Fatal(err)
 	}

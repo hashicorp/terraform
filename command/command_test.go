@@ -38,8 +38,11 @@ import (
 	backendInit "github.com/hashicorp/terraform/backend/init"
 )
 
-// This is the directory where our test fixtures are.
-var fixtureDir = "./test-fixtures"
+// These are the directories for our test data and fixtures.
+var (
+	fixtureDir  = "./test-fixtures"
+	testDataDir = "./testdata"
+)
 
 // a top level temp directory which will be cleaned after all tests
 var testingDir string
@@ -50,10 +53,15 @@ func init() {
 	// Initialize the backends
 	backendInit.Init(nil)
 
-	// Expand the fixture dir on init because we change the working
-	// directory in some tests.
+	// Expand the data and fixture dirs on init because
+	// we change the working directory in some tests.
 	var err error
 	fixtureDir, err = filepath.Abs(fixtureDir)
+	if err != nil {
+		panic(err)
+	}
+
+	testDataDir, err = filepath.Abs(testDataDir)
 	if err != nil {
 		panic(err)
 	}
@@ -783,7 +791,7 @@ func testRemoteState(t *testing.T, s *states.State, c int) (*terraform.State, *h
 
 // testlockState calls a separate process to the lock the state file at path.
 // deferFunc should be called in the caller to properly unlock the file.
-// Since many tests change the working durectory, the sourcedir argument must be
+// Since many tests change the working directory, the sourcedir argument must be
 // supplied to locate the statelocker.go source.
 func testLockState(sourceDir, path string) (func(), error) {
 	// build and run the binary ourselves so we can quickly terminate it for cleanup
@@ -798,7 +806,10 @@ func testLockState(sourceDir, path string) (func(), error) {
 	source := filepath.Join(sourceDir, "statelocker.go")
 	lockBin := filepath.Join(buildDir, "statelocker")
 
-	out, err := exec.Command("go", "build", "-mod=vendor", "-o", lockBin, source).CombinedOutput()
+	cmd := exec.Command("go", "build", "-mod=vendor", "-o", lockBin, source)
+	cmd.Dir = filepath.Dir(sourceDir)
+
+	out, err := cmd.CombinedOutput()
 	if err != nil {
 		cleanFunc()
 		return nil, fmt.Errorf("%s %s", err, out)

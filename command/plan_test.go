@@ -56,7 +56,7 @@ func TestPlan_lockedState(t *testing.T) {
 	}
 
 	testPath := testFixturePath("plan")
-	unlock, err := testLockState("./testdata", filepath.Join(testPath, DefaultStateFilename))
+	unlock, err := testLockState(testDataDir, filepath.Join(testPath, DefaultStateFilename))
 	if err != nil {
 		t.Fatal(err)
 	}

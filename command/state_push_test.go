@@ -3,6 +3,7 @@ package command
 import (
 	"bytes"
 	"os"
+	"strings"
 	"testing"
 
 	"github.com/hashicorp/terraform/backend"
@@ -38,6 +39,37 @@ func TestStatePush_empty(t *testing.T) {
 	actual := testStateRead(t, "local-state.tfstate")
 	if !actual.Equal(expected) {
 		t.Fatalf("bad: %#v", actual)
+	}
+}
+
+func TestStatePush_lockedState(t *testing.T) {
+	// Create a temporary working directory that is empty
+	td := tempDir(t)
+	copy.CopyDir(testFixturePath("state-push-good"), td)
+	defer os.RemoveAll(td)
+	defer testChdir(t, td)()
+
+	p := testProvider()
+	ui := new(cli.MockUi)
+	c := &StatePushCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
+		},
+	}
+
+	unlock, err := testLockState(testDataDir, "local-state.tfstate")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer unlock()
+
+	args := []string{"replace.tfstate"}
+	if code := c.Run(args); code != 1 {
+		t.Fatalf("bad: %d", code)
+	}
+	if !strings.Contains(ui.ErrorWriter.String(), "Error acquiring the state lock") {
+		t.Fatalf("expected a lock error, got: %s", ui.ErrorWriter.String())
 	}
 }
 
