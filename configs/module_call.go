@@ -68,16 +68,40 @@ func decodeModuleBlock(block *hcl.Block, override bool) (*ModuleCall, hcl.Diagno
 
 	if attr, exists := content.Attributes["count"]; exists {
 		mc.Count = attr.Expr
+
+		// We currently parse this, but don't yet do anything with it.
+		diags = append(diags, &hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Reserved argument name in module block",
+			Detail:   fmt.Sprintf("The name %q is reserved for use in a future version of Terraform.", attr.Name),
+			Subject:  &attr.NameRange,
+		})
 	}
 
 	if attr, exists := content.Attributes["for_each"]; exists {
 		mc.ForEach = attr.Expr
+
+		// We currently parse this, but don't yet do anything with it.
+		diags = append(diags, &hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Reserved argument name in module block",
+			Detail:   fmt.Sprintf("The name %q is reserved for use in a future version of Terraform.", attr.Name),
+			Subject:  &attr.NameRange,
+		})
 	}
 
 	if attr, exists := content.Attributes["depends_on"]; exists {
 		deps, depsDiags := decodeDependsOn(attr)
 		diags = append(diags, depsDiags...)
 		mc.DependsOn = append(mc.DependsOn, deps...)
+
+		// We currently parse this, but don't yet do anything with it.
+		diags = append(diags, &hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Reserved argument name in module block",
+			Detail:   fmt.Sprintf("The name %q is reserved for use in a future version of Terraform.", attr.Name),
+			Subject:  &attr.NameRange,
+		})
 	}
 
 	if attr, exists := content.Attributes["providers"]; exists {
@@ -113,6 +137,16 @@ func decodeModuleBlock(block *hcl.Block, override bool) (*ModuleCall, hcl.Diagno
 		}
 	}
 
+	// Reserved block types (all of them)
+	for _, block := range content.Blocks {
+		diags = append(diags, &hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Reserved block type name in module block",
+			Detail:   fmt.Sprintf("The block type name %q is reserved for use by Terraform in a future version.", block.Type),
+			Subject:  &block.TypeRange,
+		})
+	}
+
 	return mc, diags
 }
 
@@ -144,5 +178,11 @@ var moduleBlockSchema = &hcl.BodySchema{
 		{
 			Name: "providers",
 		},
+	},
+	Blocks: []hcl.BlockHeaderSchema{
+		// These are all reserved for future use.
+		{Type: "lifecycle"},
+		{Type: "locals"},
+		{Type: "provider", LabelNames: []string{"type"}},
 	},
 }
