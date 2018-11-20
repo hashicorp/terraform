@@ -662,7 +662,7 @@ func TestNormalizeFlatmapContainers(t *testing.T) {
 			expect: map[string]string{"id": "78629a0f5f3f164f"},
 		},
 		{
-			attrs:  map[string]string{"set.2.required": "bar", "set.2.list.#": "1", "set.2.list.0": "x", "set.1.list.#": "0"},
+			attrs:  map[string]string{"set.2.required": "bar", "set.2.list.#": "1", "set.2.list.0": "x", "set.1.list.#": "0", "set.#": "2"},
 			expect: map[string]string{"set.2.list.#": "1", "set.2.list.0": "x", "set.2.required": "bar", "set.#": "1"},
 		},
 	} {
