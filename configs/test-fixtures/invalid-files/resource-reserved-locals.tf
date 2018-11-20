@@ -1,0 +1,3 @@
+resource "test" "foo" {
+  locals {}
+}
