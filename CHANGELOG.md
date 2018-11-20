@@ -1,7 +1,7 @@
 ## 0.12.0-beta1 (Unreleased)
 
 BACKWARDS INCOMPATIBILITIES / NOTES:
-* command: Remove `-module-depth` flag from plan, apply, show, and graph. This flag was not widely used and the various updates and improvements to cli output should remove the need for this flag. [GH-19267]
+* command: Remove `-module-depth` flag from plan, apply, and show. This flag was not widely used and the various updates and improvements to cli output should remove the need for this flag. [GH-19267]
 * plugins: The protobuf/grpc package name for the provider protocol was changed from `proto` to `tfplugin5` in preparation for future protocol versioning. This means that plugin binaries built for alpha1 and alpha2 are no longer compatible and will need to be rebuilt. [GH-19393]
 
 IMPROVEMENTS:
@@ -15,6 +15,7 @@ BUG FIXES:
 * helper/schema: Fix timeout parsing during Provider.Diff (plan) [GH-19286]
 * core: Fix inconsistent plans when replacing instances. [GH-19233]
 * core: Correct handling of unknown values in module outputs during planning and final resolution of them during apply. [GH-19237]
+* core: Correct handling of wildcard dependencies when upgrading states [GH-19374]
 
 ## 0.12.0-alpha2 (October 30, 2018)
 
