@@ -76,7 +76,7 @@ func (c *TaintCommand) Run(args []string) int {
 
 	// Get the state
 	env := c.Workspace()
-	st, err := b.StateMgr(env)
+	stateMgr, err := b.StateMgr(env)
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf("Failed to load state: %s", err))
 		return 1
@@ -84,21 +84,21 @@ func (c *TaintCommand) Run(args []string) int {
 
 	if c.stateLock {
 		stateLocker := clistate.NewLocker(context.Background(), c.stateLockTimeout, c.Ui, c.Colorize())
-		if err := stateLocker.Lock(st, "taint"); err != nil {
+		if err := stateLocker.Lock(stateMgr, "taint"); err != nil {
 			c.Ui.Error(fmt.Sprintf("Error locking state: %s", err))
 			return 1
 		}
 		defer stateLocker.Unlock(nil)
 	}
 
-	if err := st.RefreshState(); err != nil {
+	if err := stateMgr.RefreshState(); err != nil {
 		c.Ui.Error(fmt.Sprintf("Failed to load state: %s", err))
 		return 1
 	}
 
 	// Get the actual state structure
-	s := st.State()
-	if s.Empty() {
+	state := stateMgr.State()
+	if state.Empty() {
 		if allowMissing {
 			return c.allowMissingExit(addr)
 		}
@@ -112,11 +112,11 @@ func (c *TaintCommand) Run(args []string) int {
 		return 1
 	}
 
-	state := s.SyncWrapper()
+	ss := state.SyncWrapper()
 
 	// Get the resource and instance we're going to taint
-	rs := state.Resource(addr.ContainingResource())
-	is := state.ResourceInstance(addr)
+	rs := ss.Resource(addr.ContainingResource())
+	is := ss.ResourceInstance(addr)
 	if is == nil {
 		if allowMissing {
 			return c.allowMissingExit(addr)
@@ -152,13 +152,13 @@ func (c *TaintCommand) Run(args []string) int {
 	}
 
 	obj.Status = states.ObjectTainted
-	state.SetResourceInstanceCurrent(addr, obj, rs.ProviderConfig)
+	ss.SetResourceInstanceCurrent(addr, obj, rs.ProviderConfig)
 
-	if err := st.WriteState(s); err != nil {
+	if err := stateMgr.WriteState(state); err != nil {
 		c.Ui.Error(fmt.Sprintf("Error writing state file: %s", err))
 		return 1
 	}
-	if err := st.PersistState(); err != nil {
+	if err := stateMgr.PersistState(); err != nil {
 		c.Ui.Error(fmt.Sprintf("Error writing state file: %s", err))
 		return 1
 	}

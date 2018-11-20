@@ -1,11 +1,13 @@
 package command
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"os"
 	"strings"
 
+	"github.com/hashicorp/terraform/command/clistate"
 	"github.com/hashicorp/terraform/states/statefile"
 	"github.com/hashicorp/terraform/states/statemgr"
 	"github.com/mitchellh/cli"
@@ -77,6 +79,16 @@ func (c *StatePushCommand) Run(args []string) int {
 		c.Ui.Error(fmt.Sprintf("Failed to load destination state: %s", err))
 		return 1
 	}
+
+	if c.stateLock {
+		stateLocker := clistate.NewLocker(context.Background(), c.stateLockTimeout, c.Ui, c.Colorize())
+		if err := stateLocker.Lock(stateMgr, "taint"); err != nil {
+			c.Ui.Error(fmt.Sprintf("Error locking state: %s", err))
+			return 1
+		}
+		defer stateLocker.Unlock(nil)
+	}
+
 	if err := stateMgr.RefreshState(); err != nil {
 		c.Ui.Error(fmt.Sprintf("Failed to refresh destination state: %s", err))
 		return 1
