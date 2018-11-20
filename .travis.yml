@@ -36,7 +36,7 @@ script:
 - make vendor-status
 - make test
 - make e2etest
-- GOOS=windows go build
+- GOOS=windows go build -mod=vendor
 # website-test is temporarily disabled while we get the website build back in shape after the v0.12 reorganization
 #- make website-test
 
