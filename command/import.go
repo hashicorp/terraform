@@ -235,6 +235,7 @@ func (c *ImportCommand) Run(args []string) int {
 		return 1
 	}
 
+	// Make sure to unlock the state
 	defer func() {
 		err := opReq.StateLocker.Unlock(nil)
 		if err != nil {

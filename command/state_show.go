@@ -79,6 +79,14 @@ func (c *StateShowCommand) Run(args []string) int {
 		return 1
 	}
 
+	// Make sure to unlock the state
+	defer func() {
+		err := opReq.StateLocker.Unlock(nil)
+		if err != nil {
+			c.Ui.Error(err.Error())
+		}
+	}()
+
 	// Get the schemas from the context
 	schemas := ctx.Schemas()
 
