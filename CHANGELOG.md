@@ -9,7 +9,7 @@ IMPROVEMENTS:
 * command/state: Update and enable the `state show` command [GH-19200]
 * command/state: Lock the state when pushing a new state using `state push` [GH-19411]
 * backend/remote: Implement the remote enhanced backend [GH-19299]
-* backend/remote: Support remote state only usage by dynamically falling back the local backend [GH-19378]
+* backend/remote: Support remote state only usage by dynamically falling back to the local backend [GH-19378]
 * plugin/discovery: Use signing keys from the Terraform Registry when downloading providers. [GH-19389]
 
 BUG FIXES:
