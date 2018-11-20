@@ -76,12 +76,6 @@ type output struct {
 	Value     json.RawMessage `json:"value,omitempty"`
 }
 
-type source struct {
-	FileName string `json:"filename,omitempty"`
-	Start    string `json:"start,omitempty"`
-	End      string `json:"end,omitempty"`
-}
-
 // Marshal returns the json encoding of a terraform plan.
 func Marshal(
 	snap *configload.Snapshot,

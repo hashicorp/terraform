@@ -1,10 +1,9 @@
 package jsonplan
 
 import (
-	"encoding/json"
-
 	"github.com/hashicorp/terraform/configs/configload"
-
+	"github.com/hashicorp/terraform/lang"
+	"github.com/zclconf/go-cty/cty"
 	ctyjson "github.com/zclconf/go-cty/cty/json"
 )
 
@@ -26,14 +25,52 @@ type providerConfig struct {
 }
 
 type configRootModule struct {
-	Outputs     map[string]output `json:"outputs,omitempty"`
-	Resources   []resource        `json:"resources,omitempty"`
-	ModuleCalls []moduleCall      `json:"module_calls,omitempty"`
+	Outputs     map[string]configOutput `json:"outputs,omitempty"`
+	Resources   []configResource        `json:"resources,omitempty"`
+	ModuleCalls []moduleCall            `json:"module_calls,omitempty"`
+}
+
+// Resource is the representation of a resource in the config
+type configResource struct {
+	// Address is the absolute resource address
+	Address string `json:"address,omitempty"`
+
+	// Mode can be "managed" or "data"
+	Mode string `json:"mode,omitempty"`
+
+	Type string `json:"type,omitempty"`
+	Name string `json:"name,omitempty"`
+
+	// ProviderConfigKey is the key into "provider_configs" (shown above) for
+	// the provider configuration that this resource is associated with.
+	ProviderConfigKey string `json:"provider_config_key,omitempty"`
+
+	// Provisioners is an optional field which describes any provisioners.
+	// Connection info will not be included here.
+	Provisioners []provisioner `json:"provisioners,omitempty"`
+
+	// Expressions" describes the resource-type-specific  content of the
+	// configuration block.
+	Expressions expressions `json:"expressions,omitempty"`
+	// SchemaVersion indicates which version of the resource type schema the
+	// "values" property conforms to.
+	SchemaVersion int `json:"schema_version,omitempty"`
+
+	// CountExpression and ForEachExpression describe the expressions given for
+	// the corresponding meta-arguments in the resource configuration block.
+	// These are omitted if the corresponding argument isn't set.
+	CountExpression   expression `json:"count_expression"`
+	ForEachExpression expression `json:"for_each_expression,omitempty"`
 }
 
 type configOutput struct {
 	Sensitive  bool       `json:"sensitive,omitempty"`
 	Expression expression `json:"expression,omitempty"`
+}
+
+type provisioner struct {
+	Name        string      `json:"name,omitempty"`
+	Expressions expressions `json:"expressions,omitempty"`
 }
 
 func (p *plan) marshalConfig(snap *configload.Snapshot) error {
@@ -43,43 +80,53 @@ func (p *plan) marshalConfig(snap *configload.Snapshot) error {
 		return diags
 	}
 
-	var rs []resource
+	var rs []configResource
 	for _, v := range c.Module.ManagedResources {
-		r := resource{
-			Address: v.Addr().String(),
-			Mode:    v.Mode.String(),
-			Type:    v.Type,
-			Name:    v.Name,
-			// Index: // Does not apply for config?
-			ProviderName: v.ProviderConfigAddr().String(),
+		r := configResource{
+			Address:           v.Addr().String(),
+			Mode:              v.Mode.String(),
+			Type:              v.Type,
+			Name:              v.Name,
+			ProviderConfigKey: v.ProviderConfigAddr().String(),
 			// SchemaVersion:
-			// Values:
+			// Expressions:
 		}
 		rs = append(rs, r)
 	}
 	for _, v := range c.Module.DataResources {
-		r := resource{
-			Address: v.Addr().String(),
-			Mode:    v.Mode.String(),
-			Type:    v.Type,
-			Name:    v.Name,
-			// Index: // Does not apply for config?
-			ProviderName: v.ProviderConfigRef.Name,
+		r := configResource{
+			Address:           v.Addr().String(),
+			Mode:              v.Mode.String(),
+			Type:              v.Type,
+			Name:              v.Name,
+			ProviderConfigKey: v.ProviderConfigRef.Name,
 			// SchemaVersion:
-			// Values:
+			// Expressions:
 		}
 		rs = append(rs, r)
 	}
 	p.Config.RootModule.Resources = rs
 
-	outputs := make(map[string]output)
+	outputs := make(map[string]configOutput)
 	for _, v := range c.Module.Outputs {
 		// Is there a context I should be using here?
 		val, _ := v.Expr.Value(nil)
-		valJSON, _ := ctyjson.Marshal(val, val.Type())
-		outputs[v.Name] = output{
-			Sensitive: v.Sensitive,
-			Value:     json.RawMessage(valJSON),
+		var ex expression
+		if val != cty.NilVal {
+			valJSON, _ := ctyjson.Marshal(val, val.Type())
+			ex.ConstantValue = valJSON
+		}
+
+		vars, _ := lang.ReferencesInExpr(v.Expr)
+		var varString []string
+		for _, v := range vars {
+			varString = append(varString, v.Subject.String())
+		}
+		ex.References = varString
+
+		outputs[v.Name] = configOutput{
+			Sensitive:  v.Sensitive,
+			Expression: ex,
 		}
 	}
 	p.Config.RootModule.Outputs = outputs

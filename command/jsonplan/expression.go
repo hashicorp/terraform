@@ -24,9 +24,4 @@ type expression struct {
 	// expressions. Callers should only use string equality checks here, since
 	// the syntax may be extended in future releases.
 	References []string `json:"references,omitempty"`
-
-	// "source" is an object describing the source span of this expression in
-	// the configuration. Callers might use this, for example, to extract a raw
-	// source code snippet for display purposes.
-	Source source `json:"source,omitempty"`
 }
