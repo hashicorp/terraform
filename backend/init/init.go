@@ -3,7 +3,6 @@
 package init
 
 import (
-	"os"
 	"sync"
 
 	"github.com/hashicorp/terraform/backend"
@@ -48,14 +47,8 @@ func Init(services *disco.Disco) {
 
 	backends = map[string]backend.InitFn{
 		// Enhanced backends.
-		"local": func() backend.Backend { return backendLocal.New() },
-		"remote": func() backend.Backend {
-			b := backendRemote.New(services)
-			if os.Getenv("TF_FORCE_LOCAL_BACKEND") != "" {
-				return backendLocal.NewWithBackend(b)
-			}
-			return b
-		},
+		"local":  func() backend.Backend { return backendLocal.New() },
+		"remote": func() backend.Backend { return backendRemote.New(services) },
 
 		// Remote State backends.
 		"artifactory": func() backend.Backend { return backendArtifactory.New() },

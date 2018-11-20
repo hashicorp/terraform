@@ -7,6 +7,8 @@ import (
 
 	"github.com/hashicorp/terraform/backend"
 	"github.com/zclconf/go-cty/cty"
+
+	backendLocal "github.com/hashicorp/terraform/backend/local"
 )
 
 func TestRemote(t *testing.T) {
@@ -32,6 +34,30 @@ func TestRemote_config(t *testing.T) {
 		confErr string
 		valErr  string
 	}{
+		"with_a_nonexisting_organization": {
+			config: cty.ObjectVal(map[string]cty.Value{
+				"hostname":     cty.NullVal(cty.String),
+				"organization": cty.StringVal("nonexisting"),
+				"token":        cty.NullVal(cty.String),
+				"workspaces": cty.ObjectVal(map[string]cty.Value{
+					"name":   cty.StringVal("prod"),
+					"prefix": cty.NullVal(cty.String),
+				}),
+			}),
+			confErr: "organization nonexisting does not exist",
+		},
+		"with_an_unknown_host": {
+			config: cty.ObjectVal(map[string]cty.Value{
+				"hostname":     cty.StringVal("nonexisting.local"),
+				"organization": cty.StringVal("hashicorp"),
+				"token":        cty.NullVal(cty.String),
+				"workspaces": cty.ObjectVal(map[string]cty.Value{
+					"name":   cty.StringVal("prod"),
+					"prefix": cty.NullVal(cty.String),
+				}),
+			}),
+			confErr: "Host nonexisting.local does not provide a remote backend API",
+		},
 		"with_a_name": {
 			config: cty.ObjectVal(map[string]cty.Value{
 				"hostname":     cty.NullVal(cty.String),
@@ -78,18 +104,6 @@ func TestRemote_config(t *testing.T) {
 			}),
 			valErr: `Only one of workspace "name" or "prefix" is allowed`,
 		},
-		"with_an_unknown_host": {
-			config: cty.ObjectVal(map[string]cty.Value{
-				"hostname":     cty.StringVal("nonexisting.local"),
-				"organization": cty.StringVal("hashicorp"),
-				"token":        cty.NullVal(cty.String),
-				"workspaces": cty.ObjectVal(map[string]cty.Value{
-					"name":   cty.StringVal("prod"),
-					"prefix": cty.NullVal(cty.String),
-				}),
-			}),
-			confErr: "Host nonexisting.local does not provide a remote backend API",
-		},
 	}
 
 	for name, tc := range cases {
@@ -107,27 +121,22 @@ func TestRemote_config(t *testing.T) {
 		confDiags := b.Configure(tc.config)
 		if (confDiags.Err() == nil && tc.confErr != "") ||
 			(confDiags.Err() != nil && !strings.Contains(confDiags.Err().Error(), tc.confErr)) {
-			t.Fatalf("%s: unexpected configure result: %v", name, valDiags.Err())
+			t.Fatalf("%s: unexpected configure result: %v", name, confDiags.Err())
 		}
 	}
 }
 
-func TestRemote_nonexistingOrganization(t *testing.T) {
-	msg := "does not exist"
+func TestRemote_localBackend(t *testing.T) {
+	b := testBackendDefault(t)
 
-	b := testBackendNoDefault(t)
-	b.organization = "nonexisting"
-
-	if _, err := b.StateMgr("prod"); err == nil || !strings.Contains(err.Error(), msg) {
-		t.Fatalf("expected %q error, got: %v", msg, err)
+	local, ok := b.local.(*backendLocal.Local)
+	if !ok {
+		t.Fatalf("expected b.local to be \"*local.Local\", got: %T", b.local)
 	}
 
-	if err := b.DeleteWorkspace("prod"); err == nil || !strings.Contains(err.Error(), msg) {
-		t.Fatalf("expected %q error, got: %v", msg, err)
-	}
-
-	if _, err := b.Workspaces(); err == nil || !strings.Contains(err.Error(), msg) {
-		t.Fatalf("expected %q error, got: %v", msg, err)
+	remote, ok := local.Backend.(*Remote)
+	if !ok {
+		t.Fatalf("expected local.Backend to be *remote.Remote, got: %T", remote)
 	}
 }
 
