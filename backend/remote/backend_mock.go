@@ -905,8 +905,9 @@ func (m *mockWorkspaces) List(ctx context.Context, organization string, options 
 
 func (m *mockWorkspaces) Create(ctx context.Context, organization string, options tfe.WorkspaceCreateOptions) (*tfe.Workspace, error) {
 	w := &tfe.Workspace{
-		ID:   generateID("ws-"),
-		Name: *options.Name,
+		ID:         generateID("ws-"),
+		Name:       *options.Name,
+		Operations: !strings.HasSuffix(*options.Name, "no-operations"),
 		Permissions: &tfe.WorkspacePermissions{
 			CanQueueRun: true,
 			CanUpdate:   true,

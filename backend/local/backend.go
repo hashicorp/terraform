@@ -258,9 +258,6 @@ func (b *Local) DeleteWorkspace(name string) error {
 }
 
 func (b *Local) StateMgr(name string) (statemgr.Full, error) {
-	statePath, stateOutPath, backupPath := b.StatePaths(name)
-	log.Printf("[TRACE] backend/local: state manager for workspace %q will:\n - read initial snapshot from %s\n - write new snapshots to %s\n - create any backup at %s", name, statePath, stateOutPath, backupPath)
-
 	// If we have a backend handling state, delegate to that.
 	if b.Backend != nil {
 		return b.Backend.StateMgr(name)
@@ -273,6 +270,9 @@ func (b *Local) StateMgr(name string) (statemgr.Full, error) {
 	if err := b.createState(name); err != nil {
 		return nil, err
 	}
+
+	statePath, stateOutPath, backupPath := b.StatePaths(name)
+	log.Printf("[TRACE] backend/local: state manager for workspace %q will:\n - read initial snapshot from %s\n - write new snapshots to %s\n - create any backup at %s", name, statePath, stateOutPath, backupPath)
 
 	s := statemgr.NewFilesystemBetweenPaths(statePath, stateOutPath)
 	if backupPath != "" {

@@ -147,8 +147,8 @@ github.com/hashicorp/go-slug v0.1.0 h1:MJGEiOwRGrQCBmMMZABHqIESySFJ4ajrsjgDI4/aF
 github.com/hashicorp/go-slug v0.1.0/go.mod h1:+zDycQOzGqOqMW7Kn2fp9vz/NtqpMLQlgb9JUF+0km4=
 github.com/hashicorp/go-sockaddr v0.0.0-20180320115054-6d291a969b86 h1:7YOlAIO2YWnJZkQp7B5eFykaIY7C9JndqAFQyVV5BhM=
 github.com/hashicorp/go-sockaddr v0.0.0-20180320115054-6d291a969b86/go.mod h1:7Xibr9yA9JjQq1JpNB2Vw7kxv8xerXegt+ozgdvDeDU=
-github.com/hashicorp/go-tfe v0.3.0 h1:X0oM8RNKgMlmaMOEzLkx8/RTIC3d2K30R8+G4cSXJPc=
-github.com/hashicorp/go-tfe v0.3.0/go.mod h1:SRMjgjY06SfEKstIPRUVMtQfhSYR2H3GHVop0lfedkY=
+github.com/hashicorp/go-tfe v0.3.1 h1:178hBlqjBsXohfcJ2/t2RM8c29IviQrEkj+mqdbkQzM=
+github.com/hashicorp/go-tfe v0.3.1/go.mod h1:SRMjgjY06SfEKstIPRUVMtQfhSYR2H3GHVop0lfedkY=
 github.com/hashicorp/go-uuid v1.0.0 h1:RS8zrF7PhGwyNPOtxSClXXj9HA8feRnJzgnI1RJCSnM=
 github.com/hashicorp/go-uuid v1.0.0/go.mod h1:6SBZvOh/SIDV7/2o3Jml5SYk/TvGqwFJ/bN7x4byOro=
 github.com/hashicorp/go-version v0.0.0-20180322230233-23480c066577 h1:at4+18LrM8myamuV7/vT6x2s1JNXp2k4PsSbt4I02X4=
