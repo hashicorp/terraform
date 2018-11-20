@@ -64,7 +64,7 @@ func TestApply(t *testing.T) {
 func TestApply_lockedState(t *testing.T) {
 	statePath := testTempFile(t)
 
-	unlock, err := testLockState("./testdata", statePath)
+	unlock, err := testLockState(testDataDir, statePath)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -98,7 +98,7 @@ func TestApply_lockedState(t *testing.T) {
 func TestApply_lockedStateWait(t *testing.T) {
 	statePath := testTempFile(t)
 
-	unlock, err := testLockState("./testdata", statePath)
+	unlock, err := testLockState(testDataDir, statePath)
 	if err != nil {
 		t.Fatal(err)
 	}
