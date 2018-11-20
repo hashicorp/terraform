@@ -9,7 +9,7 @@ import (
 )
 
 func TestLoadModuleCall(t *testing.T) {
-	src, err := ioutil.ReadFile("test-fixtures/valid-files/module-calls.tf")
+	src, err := ioutil.ReadFile("test-fixtures/invalid-files/module-calls.tf")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -19,13 +19,11 @@ func TestLoadModuleCall(t *testing.T) {
 	})
 
 	file, diags := parser.LoadConfigFile("module-calls.tf")
-	if len(diags) != 0 {
-		t.Errorf("Wrong number of diagnostics %d; want 0", len(diags))
-		for _, diag := range diags {
-			t.Logf("- %s", diag)
-		}
-		return
-	}
+	assertExactDiagnostics(t, diags, []string{
+		`module-calls.tf:19,3-8: Reserved argument name in module block; The name "count" is reserved for use in a future version of Terraform.`,
+		`module-calls.tf:20,3-11: Reserved argument name in module block; The name "for_each" is reserved for use in a future version of Terraform.`,
+		`module-calls.tf:22,3-13: Reserved argument name in module block; The name "depends_on" is reserved for use in a future version of Terraform.`,
+	})
 
 	gotModules := file.ModuleCalls
 	wantModules := []*ModuleCall{

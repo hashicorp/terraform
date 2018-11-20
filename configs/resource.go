@@ -110,7 +110,14 @@ func decodeResourceBlock(block *hcl.Block) (*Resource, hcl.Diagnostics) {
 	}
 
 	if attr, exists := content.Attributes["for_each"]; exists {
-		r.Count = attr.Expr
+		r.ForEach = attr.Expr
+		// We currently parse this, but don't yet do anything with it.
+		diags = append(diags, &hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Reserved argument name in resource block",
+			Detail:   fmt.Sprintf("The name %q is reserved for use in a future version of Terraform.", attr.Name),
+			Subject:  &attr.NameRange,
+		})
 	}
 
 	if attr, exists := content.Attributes["provider"]; exists {
@@ -244,9 +251,14 @@ func decodeResourceBlock(block *hcl.Block) (*Resource, hcl.Diagnostics) {
 			}
 
 		default:
-			// Should never happen, because the above cases should always be
-			// exhaustive for all the types specified in our schema.
-			continue
+			// Any other block types are ones we've reserved for future use,
+			// so they get a generic message.
+			diags = append(diags, &hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Reserved block type name in resource block",
+				Detail:   fmt.Sprintf("The block type name %q is reserved for use by Terraform in a future version.", block.Type),
+				Subject:  &block.TypeRange,
+			})
 		}
 	}
 
@@ -287,7 +299,14 @@ func decodeDataBlock(block *hcl.Block) (*Resource, hcl.Diagnostics) {
 	}
 
 	if attr, exists := content.Attributes["for_each"]; exists {
-		r.Count = attr.Expr
+		r.ForEach = attr.Expr
+		// We currently parse this, but don't yet do anything with it.
+		diags = append(diags, &hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Reserved argument name in module block",
+			Detail:   fmt.Sprintf("The name %q is reserved for use in a future version of Terraform.", attr.Name),
+			Subject:  &attr.NameRange,
+		})
 	}
 
 	if attr, exists := content.Attributes["provider"]; exists {
@@ -303,17 +322,23 @@ func decodeDataBlock(block *hcl.Block) (*Resource, hcl.Diagnostics) {
 	}
 
 	for _, block := range content.Blocks {
-		// Our schema only allows for "lifecycle" blocks, so we can assume
-		// that this is all we will see here. We don't have any lifecycle
-		// attributes for data resources currently, so we'll just produce
-		// an error.
-		diags = append(diags, &hcl.Diagnostic{
-			Severity: hcl.DiagError,
-			Summary:  "Unsupported lifecycle block",
-			Detail:   "Data resources do not have lifecycle settings, so a lifecycle block is not allowed.",
-			Subject:  &block.DefRange,
-		})
-		break
+		// All of the block types we accept are just reserved for future use, but some get a specialized error message.
+		switch block.Type {
+		case "lifecycle":
+			diags = append(diags, &hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Unsupported lifecycle block",
+				Detail:   "Data resources do not have lifecycle settings, so a lifecycle block is not allowed.",
+				Subject:  &block.DefRange,
+			})
+		default:
+			diags = append(diags, &hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Reserved block type name in data block",
+				Detail:   fmt.Sprintf("The block type name %q is reserved for use by Terraform in a future version.", block.Type),
+				Subject:  &block.TypeRange,
+			})
+		}
 	}
 
 	return r, diags
@@ -431,25 +456,18 @@ var commonResourceAttributes = []hcl.AttributeSchema{
 var resourceBlockSchema = &hcl.BodySchema{
 	Attributes: commonResourceAttributes,
 	Blocks: []hcl.BlockHeaderSchema{
-		{
-			Type: "lifecycle",
-		},
-		{
-			Type: "connection",
-		},
-		{
-			Type:       "provisioner",
-			LabelNames: []string{"type"},
-		},
+		{Type: "locals"}, // reserved for future use
+		{Type: "lifecycle"},
+		{Type: "connection"},
+		{Type: "provisioner", LabelNames: []string{"type"}},
 	},
 }
 
 var dataBlockSchema = &hcl.BodySchema{
 	Attributes: commonResourceAttributes,
 	Blocks: []hcl.BlockHeaderSchema{
-		{
-			Type: "lifecycle",
-		},
+		{Type: "lifecycle"}, // reserved for future use
+		{Type: "locals"},    // reserved for future use
 	},
 }
 

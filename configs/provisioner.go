@@ -93,8 +93,14 @@ func decodeProvisionerBlock(block *hcl.Block) (*Provisioner, hcl.Diagnostics) {
 			}
 
 		default:
-			// Should never happen because there are no other block types
-			// declared in our schema.
+			// Any other block types are ones we've reserved for future use,
+			// so they get a generic message.
+			diags = append(diags, &hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Reserved block type name in provisioner block",
+				Detail:   fmt.Sprintf("The block type name %q is reserved for use by Terraform in a future version.", block.Type),
+				Subject:  &block.TypeRange,
+			})
 		}
 	}
 
@@ -134,16 +140,11 @@ const (
 
 var provisionerBlockSchema = &hcl.BodySchema{
 	Attributes: []hcl.AttributeSchema{
-		{
-			Name: "when",
-		},
-		{
-			Name: "on_failure",
-		},
+		{Name: "when"},
+		{Name: "on_failure"},
 	},
 	Blocks: []hcl.BlockHeaderSchema{
-		{
-			Type: "connection",
-		},
+		{Type: "connection"},
+		{Type: "lifecycle"}, // reserved for future use
 	},
 }
