@@ -2,8 +2,10 @@ package jsonplan
 
 import (
 	"encoding/json"
+	"fmt"
 
 	"github.com/hashicorp/terraform/addrs"
+	"github.com/hashicorp/terraform/command/jsonstate"
 	"github.com/hashicorp/terraform/configs/configload"
 	"github.com/hashicorp/terraform/configs/configschema"
 	"github.com/hashicorp/terraform/plans"
@@ -82,7 +84,7 @@ type source struct {
 
 // Marshal returns the json encoding of a terraform plan.
 func Marshal(
-	c *configload.Snapshot,
+	snap *configload.Snapshot,
 	p *plans.Plan,
 	s *states.State,
 	schemas *terraform.Schemas,
@@ -90,21 +92,22 @@ func Marshal(
 
 	output := newPlan()
 
-	// configLoader := configload.NewLoaderFromSnapshot(c)
-	// configLoader.ImportSourcesFromSnapshot(c)
-	// output.Config = config{
-	// 	ProviderConfigs: []providerConfig{},
-	// 	RootModule:      configRootModule{},
-	// }
-	// output.OutputChanges =
-	err := output.marshalOutputChanges(p.Changes, schemas)
+	err := output.marshalConfig(snap)
 	if err != nil {
 		return nil, err
 	}
+
+	err = output.marshalOutputChanges(p.Changes, schemas)
+	if err != nil {
+		return nil, err
+	}
+
 	// output.PlannedValues
-	// output.PriorState
+	output.PriorState, err = jsonstate.Marshall(s)
+	if err != nil {
+		return nil, err
+	}
 	// output.ProposedUnknown
-	// output.ResourceChanges = marshalResourceChanges(p)
 
 	err = output.marshalResourceChanges(p.Changes, schemas)
 	if err != nil {
@@ -127,9 +130,9 @@ func (p *plan) marshalResourceChanges(changes *plans.Changes, schemas *terraform
 		r.Address = addr.String()
 
 		dataSource := addr.Resource.Resource.Mode == addrs.DataResourceMode
-		// We create "delete" actions for data resources so we can clean
-		// up their entries in state, but this is an implementation detail
-		// that users shouldn't see.
+		// We create "delete" actions for data resources so we can clean up
+		// their entries in state, but this is an implementation detail that
+		// users shouldn't see.
 		if dataSource && rc.Action == plans.Delete {
 			continue
 		}
@@ -139,6 +142,10 @@ func (p *plan) marshalResourceChanges(changes *plans.Changes, schemas *terraform
 			schema = schemas.DataSourceConfig(rc.ProviderAddr.ProviderConfig.StringCompact(), addr.Resource.Resource.Type)
 		} else {
 			schema = schemas.ResourceTypeConfig(rc.ProviderAddr.ProviderConfig.StringCompact(), addr.Resource.Resource.Type)
+		}
+
+		if schema == nil {
+			return fmt.Errorf("no schema found for %s", r.Address)
 		}
 
 		changeV, err := rc.Decode(schema.ImpliedType())
@@ -193,9 +200,8 @@ func (p *plan) marshalOutputChanges(changes *plans.Changes, schemas *terraform.S
 	p.OutputChanges = make(map[string]change, len(changes.Outputs))
 	for _, oc := range changes.Outputs {
 		c.Actions = []string{oc.Action.String()}
-		// c.Before = json.RawMessage(oc.Before)
-		// c.After = json.RawMessage(oc.After)
-		p.OutputChanges[oc.Addr.String()] = c
+		c.Before = json.RawMessage(oc.Before)
+		c.After = json.RawMessage(oc.After)
 	}
 
 	return nil

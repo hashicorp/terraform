@@ -1,7 +1,7 @@
 package jsonplan
 
-// module is the representation of a module in state This can be the root module
-// or a child module
+// module is the representation of a module in state. This can be the root
+// module or a child module.
 type module struct {
 	Resources []resource `json:"resources,omitempty"`
 
