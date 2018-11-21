@@ -6,8 +6,11 @@ BACKWARDS INCOMPATIBILITIES / NOTES:
 
 IMPROVEMENTS:
 
+* dependencies: upgrading to v21.3.0 of `github.com/Azure/azure-sdk-for-go` [GH-19414]
+* dependencies: upgrading to v10.15.4 of `github.com/Azure/go-autorest` [GH-19414]
 * command/state: Update and enable the `state show` command [GH-19200]
 * command/state: Lock the state when pushing a new state using `state push` [GH-19411]
+* backend/azurerm: Using the proxy from the environment when set [GH-19414]
 * backend/remote: Implement the remote enhanced backend [GH-19299]
 * backend/remote: Support remote state only usage by dynamically falling back to the local backend [GH-19378]
 * plugin/discovery: Use signing keys from the Terraform Registry when downloading providers. [GH-19389]
