@@ -147,3 +147,5 @@ require (
 	google.golang.org/grpc v1.14.0
 	gopkg.in/vmihailenco/msgpack.v2 v2.9.1 // indirect
 )
+
+replace github.com/zclconf/go-cty => github.com/radeksimko/go-cty v0.0.0-20181120140508-f5c31b7e8fe2

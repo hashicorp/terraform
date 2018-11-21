@@ -3,6 +3,8 @@ package cty
 import (
 	"errors"
 	"fmt"
+	"math/big"
+	"strings"
 )
 
 // A Path is a sequence of operations to locate a nested value within a
@@ -117,6 +119,46 @@ func (p Path) Copy() Path {
 	ret := make(Path, len(p))
 	copy(ret, p)
 	return ret
+}
+
+func (p Path) Append(step PathStep) Path {
+	return append(p, step)
+}
+
+func (p Path) Prepend(step PathStep) Path {
+	return append(Path{step}, p...)
+}
+
+func (p Path) String() string {
+	parts := make([]string, 0)
+	i := 0
+	for _, ps := range p {
+		switch step := ps.(type) {
+		case GetAttrStep:
+			parts = append(parts, step.Name)
+			i++
+		case IndexStep:
+			idxKey := step.Key
+			keyType := idxKey.Type()
+			switch keyType {
+			case String:
+				parts[i-1] = fmt.Sprintf("%s[%q]", parts[i-1], idxKey.AsString())
+			case Number:
+				bf := idxKey.AsBigFloat()
+				idx, accuracy := bf.Int64()
+				if accuracy != big.Exact || idx < 0 {
+					panic("element key for list must be non-negative integer")
+				}
+				parts[i-1] = fmt.Sprintf("%s[%d]", parts[i-1], idx)
+			default:
+				parts[i-1] = fmt.Sprintf("%s[<%q>]", parts[i-1], keyType)
+			}
+		default:
+			parts = append(parts, fmt.Sprintf("<%T>", step))
+			i++
+		}
+	}
+	return strings.Join(parts, ".")
 }
 
 // IndexStep is a Step implementation representing applying the index operation
