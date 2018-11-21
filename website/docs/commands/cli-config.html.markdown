@@ -19,7 +19,7 @@ The configuration is placed in a single file whose location depends on the
 host operating system:
 
 * On Windows, the file must be named named `terraform.rc` and placed
-  in the relevant user's "Application Data" directory. The physical location
+  in the relevant user's `%APPDATA%` directory. The physical location
   of this directory depends on your Windows version and system configuration;
   use `$env:APPDATA` in PowerShell to find its location on your system.
 * On all other systems, the file must be named `.terraformrc` (note
