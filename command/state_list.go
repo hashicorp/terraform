@@ -21,7 +21,7 @@ func (c *StateListCommand) Run(args []string) int {
 		return 1
 	}
 
-	cmdFlags := c.Meta.flagSet("state list")
+	cmdFlags := c.Meta.defaultFlagSet("state list")
 	cmdFlags.StringVar(&c.Meta.statePath, "state", "", "path")
 	lookupId := cmdFlags.String("id", "", "Restrict output to paths with a resource having the specified ID.")
 	if err := cmdFlags.Parse(args); err != nil {

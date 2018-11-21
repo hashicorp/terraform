@@ -50,7 +50,8 @@ func (c *InitCommand) Run(args []string) int {
 	if err != nil {
 		return 1
 	}
-	cmdFlags := c.flagSet("init")
+
+	cmdFlags := c.Meta.extendedFlagSet("init")
 	cmdFlags.BoolVar(&flagBackend, "backend", true, "")
 	cmdFlags.Var(flagConfigExtra, "backend-config", "")
 	cmdFlags.StringVar(&flagFromModule, "from-module", "", "copy the source of the given module into the directory before init")
@@ -63,7 +64,6 @@ func (c *InitCommand) Run(args []string) int {
 	cmdFlags.BoolVar(&flagUpgrade, "upgrade", false, "")
 	cmdFlags.Var(&flagPluginPath, "plugin-dir", "plugin directory")
 	cmdFlags.BoolVar(&flagVerifyPlugins, "verify-plugins", true, "verify plugins")
-
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
 	if err := cmdFlags.Parse(args); err != nil {
 		return 1

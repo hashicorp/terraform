@@ -16,7 +16,7 @@ func (c *WorkspaceShowCommand) Run(args []string) int {
 		return 1
 	}
 
-	cmdFlags := c.Meta.flagSet("workspace show")
+	cmdFlags := c.Meta.extendedFlagSet("workspace show")
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
 	if err := cmdFlags.Parse(args); err != nil {
 		return 1

@@ -1,7 +1,6 @@
 package command
 
 import (
-	"flag"
 	"fmt"
 	"strings"
 
@@ -20,21 +19,21 @@ type GraphCommand struct {
 }
 
 func (c *GraphCommand) Run(args []string) int {
-	var moduleDepth int
-	var verbose bool
 	var drawCycles bool
 	var graphTypeStr string
+	var moduleDepth int
+	var verbose bool
 
 	args, err := c.Meta.process(args, false)
 	if err != nil {
 		return 1
 	}
 
-	cmdFlags := flag.NewFlagSet("graph", flag.ContinueOnError)
-	cmdFlags.IntVar(&moduleDepth, "module-depth", -1, "module-depth")
-	cmdFlags.BoolVar(&verbose, "verbose", false, "verbose")
+	cmdFlags := c.Meta.defaultFlagSet("graph")
 	cmdFlags.BoolVar(&drawCycles, "draw-cycles", false, "draw-cycles")
 	cmdFlags.StringVar(&graphTypeStr, "type", "", "type")
+	cmdFlags.IntVar(&moduleDepth, "module-depth", -1, "module-depth")
+	cmdFlags.BoolVar(&verbose, "verbose", false, "verbose")
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
 	if err := cmdFlags.Parse(args); err != nil {
 		return 1
@@ -187,11 +186,8 @@ Options:
   -module-depth=n  Specifies the depth of modules to show in the output.	
                    By default this is -1, which will expand all.
 
-  -no-color        If specified, output won't contain any color.
-
   -type=plan       Type of graph to output. Can be: plan, plan-destroy, apply,
                    validate, input, refresh.
-
 
 `
 	return strings.TrimSpace(helpText)
