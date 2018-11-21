@@ -18,6 +18,10 @@ type dataForTests struct {
 
 var _ Data = &dataForTests{}
 
+func (d *dataForTests) StaticValidateReferences(refs []*addrs.Reference, self addrs.Referenceable) tfdiags.Diagnostics {
+	return nil // does nothing in this stub implementation
+}
+
 func (d *dataForTests) GetCountAttr(addr addrs.CountAttr, rng tfdiags.SourceRange) (cty.Value, tfdiags.Diagnostics) {
 	return d.CountAttrs[addr.Name], nil
 }
