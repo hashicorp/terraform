@@ -7,13 +7,15 @@ description: |-
 
 ---
 
-# azurerm (formerly azure)
+# azurerm
 
 **Kind: Standard (with state locking)**
 
-Stores the state as a given key in a given blob container on [Microsoft Azure Storage](https://azure.microsoft.com/en-us/documentation/articles/storage-introduction/). This backend also supports state locking and consistency checking via native capabilities of Microsoft Azure Storage.
+Stores the state as a Blob with the given Key within the Blob Container within [the Blob Storage Account](https://docs.microsoft.com/azure/storage/common/storage-introduction). This backend also supports state locking and consistency checking via native capabilities of Azure Blob Storage.
 
 ## Example Configuration
+
+When authenticating using a Service Principal:
 
 ```hcl
 terraform {
@@ -25,10 +27,27 @@ terraform {
 }
 ```
 
-Note that for the access credentials we recommend using a
-[partial configuration](/docs/backends/config.html).
+When authenticating using the Access Key associated with the Storage Account:
+
+```hcl
+terraform {
+  backend "azurerm" {
+    storage_account_name = "abcd1234"
+    container_name       = "tfstate"
+    key                  = "prod.terraform.tfstate"
+
+    # rather than defining this inline, the Access Key can also be sourced
+    # from an Environment Variable - more information is available below.
+    access_key = "abcdefghijklmnopqrstuvwxyz0123456789..."
+  }
+}
+```
+
+-> **NOTE:** When using a Service Principal or an Access Key - we recommend using a [Partial Configuration](/docs/backends/config.html) for the credentials.
 
 ## Example Referencing
+
+When authenticating using a Service Principal:
 
 ```hcl
 data "terraform_remote_state" "foo" {
@@ -41,24 +60,51 @@ data "terraform_remote_state" "foo" {
 }
 ```
 
+When authenticating using the Access Key associated with the Storage Account:
+
+```hcl
+data "terraform_remote_state" "foo" {
+  backend = "azurerm"
+  config = {
+    storage_account_name = "terraform123abc"
+    container_name       = "terraform-state"
+    key                  = "prod.terraform.tfstate"
+
+    # rather than defining this inline, the Access Key can also be sourced
+    # from an Environment Variable - more information is available below.
+    access_key = "abcdefghijklmnopqrstuvwxyz0123456789..."
+  }
+}
+```
+
 ## Configuration variables
 
 The following configuration options are supported:
 
- * `storage_account_name` - (Required) The name of the storage account
- * `container_name` - (Required) The name of the container to use within the storage account
- * `key` - (Required) The key where to place/look for state file inside the container
- * `access_key` / `ARM_ACCESS_KEY` - (Optional) Storage account access key
- * `environment` / `ARM_ENVIRONMENT` - (Optional) The cloud environment to use. Supported values are:
-   * `public` (default)
-   * `usgovernment`
-   * `german`
-   * `china`
+* `storage_account_name` - (Required) The Name of [the Storage Account](https://www.terraform.io/docs/providers/azurerm/r/storage_account.html).
 
-The following configuration options must be supplied if `access_key` is not.
+* `container_name` - (Required) The Name of [the Storage Container](https://www.terraform.io/docs/providers/azurerm/r/storage_container.html) within the Storage Account.
 
- * `resource_group_name` - The resource group which contains the storage account.
- * `arm_subscription_id` / `ARM_SUBSCRIPTION_ID` - The Azure Subscription ID.
- * `arm_client_id` / `ARM_CLIENT_ID` - The Azure Client ID.
- * `arm_client_secret` / `ARM_CLIENT_SECRET` - The Azure Client Secret.
- * `arm_tenant_id` / `ARM_TENANT_ID` - The Azure Tenant ID.
+* `key` - (Required) The name of the Blob used to retrieve/store Terraform's State file inside the Storage Container.
+
+* `environment` - (Optional) The Azure Environment which should be used. This can also be sourced from the `ARM_ENVIRONMENT` environment variable. Possible values are `public`, `china`, `german`, `stack` and `usgovernment`. Defaults to `public`.
+
+---
+
+When authenticating using the Storage Account's Access Key - the following fields are also supported:
+
+* `access_key` - (Optional) The Access Key used to access the Blob Storage Account. This can also be sourced from the `ARM_ACCESS_KEY` environment variable.
+
+---
+
+When authenticating using a Service Principal - the following fields are also supported:
+
+* `resource_group_name` - (Required) The Name of the Resource Group in which the Storage Account exists.
+
+* `arm_client_id` - (Optional) The Client ID of the Service Principal. This can also be sourced from the `ARM_CLIENT_ID` environment variable.
+
+* `arm_client_secret` - (Optional) The Client Secret of the Service Principal. This can also be sourced from the `ARM_CLIENT_SECRET` environment variable.
+
+* `arm_subscription_id` - (Optional) The Subscription ID in which the Storage Account exists. This can also be sourced from the `ARM_SUBSCRIPTION_ID` environment variable.
+
+* `arm_tenant_id` - (Optional) The Tenant ID in which the Subscription exists. This can also be sourced from the `ARM_TENANT_ID` environment variable.
