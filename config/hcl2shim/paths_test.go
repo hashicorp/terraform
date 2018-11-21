@@ -367,3 +367,49 @@ func TestRequiresReplace(t *testing.T) {
 	}
 
 }
+
+func TestAttributePathToLegacyPath(t *testing.T) {
+	testCases := []struct {
+		NewPath, LegacyPath string
+	}{
+		{
+			"",
+			"",
+		},
+		{
+			`single_attr`,
+			`single_attr`,
+		},
+		{
+			`list_attr[4]`,
+			`list_attr.4`,
+		},
+		{
+			`map_attr["key"]`,
+			`map_attr.key`,
+		},
+		{
+			`first.second.parent["child"]`,
+			`first.second.parent.child`,
+		},
+		{
+			`single_attr.#`,
+			`single_attr.#`,
+		},
+		{
+			`single_attr.%`,
+			`single_attr.%`,
+		},
+	}
+
+	for _, tc := range testCases {
+		legacyPath, errs := AttributePathToLegacyPath(tc.NewPath)
+		if len(errs) > 0 {
+			t.Fatal(errs)
+		}
+		if legacyPath != tc.LegacyPath {
+			t.Fatalf("Expected: %q, Given: %q", tc.LegacyPath, legacyPath)
+		}
+	}
+
+}

@@ -2,10 +2,13 @@ package hcl2shim
 
 import (
 	"fmt"
+	"log"
 	"reflect"
 	"strconv"
 	"strings"
 
+	hcl2 "github.com/hashicorp/hcl2/hcl"
+	hcl2syntax "github.com/hashicorp/hcl2/hcl/hclsyntax"
 	"github.com/zclconf/go-cty/cty"
 )
 
@@ -46,6 +49,86 @@ func RequiresReplace(attrs []string, ty cty.Type) ([]cty.Path, error) {
 	}
 
 	return paths, nil
+}
+
+func AttributePathToLegacyPath(path string) (string, []error) {
+	if path == "" || strings.HasSuffix(path, ".#") || strings.HasSuffix(path, ".%") {
+		return path, []error{}
+	}
+
+	ret := []string{}
+
+	expr, diags := hcl2syntax.ParseExpression([]byte(path), "", hcl2.Pos{Line: 1, Column: 1})
+	if diags.HasErrors() {
+		return "", diags.Errs()
+	}
+	diags = hcl2syntax.VisitAll(expr, func(node hcl2syntax.Node) hcl2.Diagnostics {
+		names := getNamesFromExpression(node)
+		ret = append(ret, names...)
+		return nil
+	})
+	if diags.HasErrors() {
+		return "", diags.Errs()
+	}
+
+	return strings.Join(ret, "."), []error{}
+}
+
+func getNamesFromExpression(node hcl2syntax.Node) []string {
+	switch nt := node.(type) {
+	case *hcl2syntax.ScopeTraversalExpr:
+		names := []string{}
+		for _, step := range nt.Traversal {
+			switch tStep := step.(type) {
+			case hcl2.TraverseRoot:
+				names = append(names, tStep.Name)
+			case hcl2.TraverseAttr:
+				names = append(names, tStep.Name)
+			case hcl2.TraverseIndex:
+				if keyTy := tStep.Key.Type(); keyTy.IsPrimitiveType() {
+					str, err := valueStr(tStep.Key)
+					if err != nil {
+						log.Printf("[ERROR] %s", err)
+					}
+					names = append(names, str)
+				}
+			}
+		}
+		return names
+	case *hcl2syntax.LiteralValueExpr:
+		val, _ := nt.Value(nil)
+		str, err := valueStr(val)
+		if err != nil {
+			log.Printf("[ERROR] %s", err)
+		}
+		return []string{str}
+	case *hcl2syntax.TemplateExpr:
+	case *hcl2syntax.IndexExpr:
+	}
+
+	return []string{}
+}
+
+func valueStr(val cty.Value) (string, error) {
+	ty := val.Type()
+	switch {
+	case val.IsNull():
+		return "null", nil
+	case ty == cty.Bool:
+		if val.True() {
+			return "true", nil
+		}
+		return "false", nil
+	case ty == cty.Number:
+		bf := val.AsBigFloat()
+		return bf.Text('g', 10), nil
+	case ty == cty.String:
+		// Go string syntax is not exactly the same as HCL native string syntax,
+		// but we'll accept the minor edge-cases where this is different here
+		// for now, just to get something reasonable here.
+		return fmt.Sprintf("%s", val.AsString()), nil
+	}
+	return "", fmt.Errorf("Unexpected value (%s)", ty)
 }
 
 // trimPaths removes any trailing steps that aren't of type GetAttrSet, since
