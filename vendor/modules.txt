@@ -5,17 +5,23 @@ cloud.google.com/go/internal
 cloud.google.com/go/internal/optional
 cloud.google.com/go/internal/version
 cloud.google.com/go/compute/metadata
-# github.com/Azure/azure-sdk-for-go v10.3.0-beta+incompatible
-github.com/Azure/azure-sdk-for-go/arm/storage
+# github.com/Azure/azure-sdk-for-go v21.3.0+incompatible
+github.com/Azure/azure-sdk-for-go/profiles/2017-03-09/resources/mgmt/resources
+github.com/Azure/azure-sdk-for-go/profiles/2017-03-09/storage/mgmt/storage
 github.com/Azure/azure-sdk-for-go/storage
-github.com/Azure/azure-sdk-for-go/arm/resources/resources
-# github.com/Azure/go-autorest v8.3.1+incompatible
+github.com/Azure/azure-sdk-for-go/services/resources/mgmt/2016-02-01/resources
+github.com/Azure/azure-sdk-for-go/services/storage/mgmt/2016-01-01/storage
+github.com/Azure/azure-sdk-for-go/version
+# github.com/Azure/go-autorest v10.15.4+incompatible
 github.com/Azure/go-autorest/autorest
 github.com/Azure/go-autorest/autorest/adal
 github.com/Azure/go-autorest/autorest/azure
+github.com/Azure/go-autorest/logger
+github.com/Azure/go-autorest/version
 github.com/Azure/go-autorest/autorest/date
-github.com/Azure/go-autorest/autorest/validation
+github.com/Azure/go-autorest/autorest/azure/cli
 github.com/Azure/go-autorest/autorest/to
+github.com/Azure/go-autorest/autorest/validation
 # github.com/Azure/go-ntlmssp v0.0.0-20170803034930-c92175d54006
 github.com/Azure/go-ntlmssp
 # github.com/ChrisTrenkamp/goxpath v0.0.0-20170625215350-4fe035839290
@@ -204,6 +210,8 @@ github.com/coreos/go-semver/semver
 github.com/davecgh/go-spew/spew
 # github.com/dgrijalva/jwt-go v0.0.0-20160617170158-f0777076321a
 github.com/dgrijalva/jwt-go
+# github.com/dimchansky/utfbom v1.0.0
+github.com/dimchansky/utfbom
 # github.com/dylanmei/iso8601 v0.1.0
 github.com/dylanmei/iso8601
 # github.com/dylanmei/winrmtest v0.0.0-20170819153634-c2fbb09e6c08
@@ -294,6 +302,8 @@ github.com/hashicorp/consul/lib/freeport
 github.com/hashicorp/consul/testutil/retry
 # github.com/hashicorp/errwrap v1.0.0
 github.com/hashicorp/errwrap
+# github.com/hashicorp/go-azure-helpers v0.0.0-20181120094008-dd1e326c8888
+github.com/hashicorp/go-azure-helpers/authentication
 # github.com/hashicorp/go-checkpoint v0.0.0-20171009173528-1545e56e46de
 github.com/hashicorp/go-checkpoint
 # github.com/hashicorp/go-cleanhttp v0.5.0
@@ -383,6 +393,8 @@ github.com/keybase/go-crypto/cast5
 github.com/keybase/go-crypto/openpgp/elgamal
 # github.com/lusis/go-artifactory v0.0.0-20160115162124-7e4ce345df82
 github.com/lusis/go-artifactory/src/artifactory.v401
+# github.com/marstr/guid v1.1.0
+github.com/marstr/guid
 # github.com/masterzen/azure-sdk-for-go v0.0.0-20161014135628-ee4f0065d00c
 github.com/masterzen/azure-sdk-for-go/core/http
 github.com/masterzen/azure-sdk-for-go/core/tls
@@ -436,8 +448,6 @@ github.com/posener/complete/cmd
 github.com/posener/complete/match
 # github.com/satori/go.uuid v0.0.0-20160927100844-b061729afc07
 github.com/satori/go.uuid
-# github.com/satori/uuid v0.0.0-20160927100844-b061729afc07
-github.com/satori/uuid
 # github.com/spf13/afero v1.0.2
 github.com/spf13/afero
 github.com/spf13/afero/mem
@@ -484,12 +494,13 @@ go.opencensus.io/internal
 go.opencensus.io/trace/internal
 go.opencensus.io/trace/tracestate
 go.opencensus.io
-# golang.org/x/crypto v0.0.0-20180910181607-0e37d006457b
+# golang.org/x/crypto v0.0.0-20181112202954-3d3f9f413869
 golang.org/x/crypto/ssh
 golang.org/x/crypto/ssh/agent
 golang.org/x/crypto/ssh/knownhosts
 golang.org/x/crypto/bcrypt
 golang.org/x/crypto/openpgp
+golang.org/x/crypto/pkcs12
 golang.org/x/crypto/curve25519
 golang.org/x/crypto/ed25519
 golang.org/x/crypto/internal/chacha20
@@ -499,6 +510,7 @@ golang.org/x/crypto/openpgp/armor
 golang.org/x/crypto/openpgp/errors
 golang.org/x/crypto/openpgp/packet
 golang.org/x/crypto/openpgp/s2k
+golang.org/x/crypto/pkcs12/internal/rc2
 golang.org/x/crypto/ed25519/internal/edwards25519
 golang.org/x/crypto/internal/subtle
 golang.org/x/crypto/md4
