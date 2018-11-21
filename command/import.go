@@ -37,7 +37,7 @@ func (c *ImportCommand) Run(args []string) int {
 		return 1
 	}
 
-	cmdFlags := c.Meta.flagSet("import")
+	cmdFlags := c.Meta.extendedFlagSet("import")
 	cmdFlags.IntVar(&c.Meta.parallelism, "parallelism", 0, "parallelism")
 	cmdFlags.StringVar(&c.Meta.statePath, "state", "", "path")
 	cmdFlags.StringVar(&c.Meta.stateOutPath, "state-out", "", "path")

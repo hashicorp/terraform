@@ -22,7 +22,7 @@ func (c *StatePullCommand) Run(args []string) int {
 		return 1
 	}
 
-	cmdFlags := c.Meta.flagSet("state pull")
+	cmdFlags := c.Meta.defaultFlagSet("state pull")
 	if err := cmdFlags.Parse(args); err != nil {
 		return cli.RunResultHelp
 	}

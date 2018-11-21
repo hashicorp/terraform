@@ -25,13 +25,18 @@ func (c *ValidateCommand) Run(args []string) int {
 		return 1
 	}
 
-	var jsonOutput bool
-
-	cmdFlags := c.Meta.flagSet("validate")
-	cmdFlags.BoolVar(&jsonOutput, "json", false, "produce JSON output")
-	cmdFlags.Usage = func() {
-		c.Ui.Error(c.Help())
+	if c.Meta.variableArgs.items == nil {
+		c.Meta.variableArgs = newRawFlags("-var")
 	}
+	varValues := c.Meta.variableArgs.Alias("-var")
+	varFiles := c.Meta.variableArgs.Alias("-var-file")
+
+	var jsonOutput bool
+	cmdFlags := c.Meta.defaultFlagSet("validate")
+	cmdFlags.BoolVar(&jsonOutput, "json", false, "produce JSON output")
+	cmdFlags.Var(varValues, "var", "variables")
+	cmdFlags.Var(varFiles, "var-file", "variable file")
+	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
 	if err := cmdFlags.Parse(args); err != nil {
 		return 1
 	}
@@ -66,49 +71,6 @@ func (c *ValidateCommand) Run(args []string) int {
 	diags = diags.Append(validateDiags)
 
 	return c.showResults(diags, jsonOutput)
-}
-
-func (c *ValidateCommand) Synopsis() string {
-	return "Validates the Terraform files"
-}
-
-func (c *ValidateCommand) Help() string {
-	helpText := `
-Usage: terraform validate [options] [dir]
-
-  Validate the configuration files in a directory, referring only to the
-  configuration and not accessing any remote services such as remote state,
-  provider APIs, etc.
-
-  Validate runs checks that verify whether a configuration is
-  internally-consistent, regardless of any provided variables or existing
-  state. It is thus primarily useful for general verification of reusable
-  modules, including correctness of attribute names and value types.
-
-  To verify configuration in the context of a particular run (a particular
-  target workspace, operation variables, etc), use the following command
-  instead:
-      terraform plan -validate-only
-
-  It is safe to run this command automatically, for example as a post-save
-  check in a text editor or as a test step for a re-usable module in a CI
-  system.
-
-  Validation requires an initialized working directory with any referenced
-  plugins and modules installed. To initialize a working directory for
-  validation without accessing any configured remote backend, use:
-      terraform init -backend=false
-
-  If dir is not specified, then the current directory will be used.
-
-Options:
-
-  -json        Produce output in a machine-readable JSON format, suitable for
-               use in e.g. text editor integrations.
-
-  -no-color    If specified, output won't contain any color.
-`
-	return strings.TrimSpace(helpText)
 }
 
 func (c *ValidateCommand) validate(dir string) tfdiags.Diagnostics {
@@ -253,4 +215,46 @@ func (c *ValidateCommand) showResults(diags tfdiags.Diagnostics, jsonOutput bool
 		return 1
 	}
 	return 0
+}
+
+func (c *ValidateCommand) Synopsis() string {
+	return "Validates the Terraform files"
+}
+
+func (c *ValidateCommand) Help() string {
+	helpText := `
+Usage: terraform validate [options] [dir]
+
+  Validate the configuration files in a directory, referring only to the
+  configuration and not accessing any remote services such as remote state,
+  provider APIs, etc.
+
+  Validate runs checks that verify whether a configuration is
+  internally-consistent, regardless of any provided variables or existing
+  state. It is thus primarily useful for general verification of reusable
+  modules, including correctness of attribute names and value types.
+
+  To verify configuration in the context of a particular run (a particular
+  target workspace, operation variables, etc), use the following command
+  instead:
+      terraform plan -validate-only
+
+  It is safe to run this command automatically, for example as a post-save
+  check in a text editor or as a test step for a re-usable module in a CI
+  system.
+
+  Validation requires an initialized working directory with any referenced
+  plugins and modules installed. To initialize a working directory for
+  validation without accessing any configured remote backend, use:
+      terraform init -backend=false
+
+  If dir is not specified, then the current directory will be used.
+
+Options:
+
+  -json        Produce output in a machine-readable JSON format, suitable for
+               use in e.g. text editor integrations.
+
+`
+	return strings.TrimSpace(helpText)
 }

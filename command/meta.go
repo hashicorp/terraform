@@ -136,8 +136,6 @@ type Meta struct {
 	// parallelism is used to control the number of concurrent operations
 	// allowed when walking the graph
 	//
-	// shadow is used to enable/disable the shadow graph
-	//
 	// provider is to specify specific resource providers
 	//
 	// stateLock is set to false to disable state locking
@@ -153,7 +151,6 @@ type Meta struct {
 	stateOutPath     string
 	backupPath       string
 	parallelism      int
-	shadow           bool
 	provider         string
 	stateLock        bool
 	stateLockTimeout time.Duration
@@ -350,25 +347,9 @@ func (m *Meta) contextOpts() *terraform.ContextOpts {
 	return &opts
 }
 
-// flags adds the meta flags to the given FlagSet.
-func (m *Meta) flagSet(n string) *flag.FlagSet {
+// defaultFlagSet creates a default flag set for commands.
+func (m *Meta) defaultFlagSet(n string) *flag.FlagSet {
 	f := flag.NewFlagSet(n, flag.ContinueOnError)
-	f.BoolVar(&m.input, "input", true, "input")
-	f.Var((*FlagTargetSlice)(&m.targets), "target", "resource to target")
-
-	if m.variableArgs.items == nil {
-		m.variableArgs = newRawFlags("-var")
-	}
-	varValues := m.variableArgs.Alias("-var")
-	varFiles := m.variableArgs.Alias("-var-file")
-	f.Var(varValues, "var", "variables")
-	f.Var(varFiles, "var-file", "variable file")
-
-	// Advanced (don't need documentation, or unlikely to be set)
-	f.BoolVar(&m.shadow, "shadow", true, "shadow graph")
-
-	// Experimental features
-	experiment.Flag(f)
 
 	// Create an io.Writer that writes to our Ui properly for errors.
 	// This is kind of a hack, but it does the job. Basically: create
@@ -393,8 +374,30 @@ func (m *Meta) flagSet(n string) *flag.FlagSet {
 	// Set the default Usage to empty
 	f.Usage = func() {}
 
-	// command that bypass locking will supply their own flag on this var, but
-	// set the initial meta value to true as a failsafe.
+	return f
+}
+
+// extendedFlagSet adds custom flags that are mostly used by commands
+// that are used to run an operation like plan or apply.
+func (m *Meta) extendedFlagSet(n string) *flag.FlagSet {
+	f := m.defaultFlagSet(n)
+
+	f.BoolVar(&m.input, "input", true, "input")
+	f.Var((*FlagTargetSlice)(&m.targets), "target", "resource to target")
+
+	if m.variableArgs.items == nil {
+		m.variableArgs = newRawFlags("-var")
+	}
+	varValues := m.variableArgs.Alias("-var")
+	varFiles := m.variableArgs.Alias("-var-file")
+	f.Var(varValues, "var", "variables")
+	f.Var(varFiles, "var-file", "variable file")
+
+	// Experimental features
+	experiment.Flag(f)
+
+	// commands that bypass locking will supply their own flag on this var,
+	// but set the initial meta value to true as a failsafe.
 	m.stateLock = true
 
 	return f

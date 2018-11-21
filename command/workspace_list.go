@@ -21,7 +21,7 @@ func (c *WorkspaceListCommand) Run(args []string) int {
 
 	envCommandShowWarning(c.Ui, c.LegacyName)
 
-	cmdFlags := c.Meta.flagSet("workspace list")
+	cmdFlags := c.Meta.defaultFlagSet("workspace list")
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
 	if err := cmdFlags.Parse(args); err != nil {
 		return 1
@@ -93,6 +93,7 @@ func (c *WorkspaceListCommand) Help() string {
 Usage: terraform workspace list [DIR]
 
   List Terraform workspaces.
+
 `
 	return strings.TrimSpace(helpText)
 }

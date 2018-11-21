@@ -38,7 +38,7 @@ func (c *ApplyCommand) Run(args []string) int {
 		cmdName = "destroy"
 	}
 
-	cmdFlags := c.Meta.flagSet(cmdName)
+	cmdFlags := c.Meta.extendedFlagSet(cmdName)
 	cmdFlags.BoolVar(&autoApprove, "auto-approve", false, "skip interactive approval of plan before applying")
 	if c.Destroy {
 		cmdFlags.BoolVar(&destroyForce, "force", false, "deprecated: same as auto-approve")

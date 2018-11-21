@@ -25,12 +25,11 @@ func (c *PlanCommand) Run(args []string) int {
 		return 1
 	}
 
-	cmdFlags := c.Meta.flagSet("plan")
+	cmdFlags := c.Meta.extendedFlagSet("plan")
 	cmdFlags.BoolVar(&destroy, "destroy", false, "destroy")
 	cmdFlags.BoolVar(&refresh, "refresh", true, "refresh")
 	cmdFlags.StringVar(&outPath, "out", "", "path")
-	cmdFlags.IntVar(
-		&c.Meta.parallelism, "parallelism", DefaultParallelism, "parallelism")
+	cmdFlags.IntVar(&c.Meta.parallelism, "parallelism", DefaultParallelism, "parallelism")
 	cmdFlags.StringVar(&c.Meta.statePath, "state", "", "path")
 	cmdFlags.BoolVar(&detailed, "detailed-exitcode", false, "detailed-exitcode")
 	cmdFlags.BoolVar(&c.Meta.stateLock, "lock", true, "lock state")
