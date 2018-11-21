@@ -4,9 +4,9 @@ import (
 	"log"
 	"net/http"
 	"net/http/httputil"
-	"os"
 
 	"github.com/Azure/go-autorest/autorest"
+	"github.com/hashicorp/terraform/helper/logging"
 )
 
 func buildSender() autorest.Sender {
@@ -21,7 +21,7 @@ func withRequestLogging() autorest.SendDecorator {
 	return func(s autorest.Sender) autorest.Sender {
 		return autorest.SenderFunc(func(r *http.Request) (*http.Response, error) {
 			// only log if logging's enabled
-			logLevel := os.Getenv("TF_LOG")
+			logLevel := logging.LogLevel()
 			if logLevel == "" {
 				return s.Do(r)
 			}
