@@ -9,9 +9,8 @@ import (
 	"log"
 
 	"github.com/Azure/azure-sdk-for-go/storage"
-	multierror "github.com/hashicorp/go-multierror"
-	uuid "github.com/hashicorp/go-uuid"
-
+	"github.com/hashicorp/go-multierror"
+	"github.com/hashicorp/go-uuid"
 	"github.com/hashicorp/terraform/state"
 	"github.com/hashicorp/terraform/state/remote"
 	"github.com/hashicorp/terraform/states"

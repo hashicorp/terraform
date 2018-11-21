@@ -1,28 +1,13 @@
 package azure
 
 import (
-	"fmt"
+	"context"
 	"os"
 	"testing"
 
-	"github.com/Azure/azure-sdk-for-go/arm/resources/resources"
-	armStorage "github.com/Azure/azure-sdk-for-go/arm/storage"
-	"github.com/Azure/azure-sdk-for-go/storage"
-	"github.com/Azure/go-autorest/autorest"
-	"github.com/Azure/go-autorest/autorest/adal"
-	"github.com/Azure/go-autorest/autorest/azure"
 	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/helper/acctest"
 )
-
-// verify that we are doing ACC tests or the Azure tests specifically
-func testACC(t *testing.T) {
-	skip := os.Getenv("TF_ACC") == "" && os.Getenv("TF_AZURE_TEST") == ""
-	if skip {
-		t.Log("azure backend tests require setting TF_ACC or TF_AZURE_TEST")
-		t.Skip()
-	}
-}
 
 func TestBackend_impl(t *testing.T) {
 	var _ backend.Backend = new(Backend)
@@ -50,183 +35,129 @@ func TestBackendConfig(t *testing.T) {
 	}
 }
 
-func TestBackend(t *testing.T) {
-	testACC(t)
+func TestBackendAccessKeyBasic(t *testing.T) {
+	testAccAzureBackend(t)
+	rs := acctest.RandString(4)
+	res := testResourceNames(rs, "testState")
+	armClient := buildTestClient(t, res)
 
-	keyName := "testState"
-	res := setupResources(t, keyName)
-	defer destroyResources(t, res.resourceGroupName)
+	ctx := context.TODO()
+	err := armClient.buildTestResources(ctx, &res)
+	if err != nil {
+		armClient.destroyTestResources(ctx, res)
+		t.Fatalf("Error creating Test Resources: %q", err)
+	}
+	defer armClient.destroyTestResources(ctx, res)
 
 	b := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
 		"storage_account_name": res.storageAccountName,
-		"container_name":       res.containerName,
-		"key":                  keyName,
-		"access_key":           res.accessKey,
+		"container_name":       res.storageContainerName,
+		"key":                  res.storageKeyName,
+		"access_key":           res.storageAccountAccessKey,
 	})).(*Backend)
 
 	backend.TestBackendStates(t, b)
 }
 
-func TestBackendLocked(t *testing.T) {
-	testACC(t)
+func TestBackendServicePrincipalBasic(t *testing.T) {
+	testAccAzureBackend(t)
+	rs := acctest.RandString(4)
+	res := testResourceNames(rs, "testState")
+	armClient := buildTestClient(t, res)
 
-	keyName := "testState"
-	res := setupResources(t, keyName)
-	defer destroyResources(t, res.resourceGroupName)
+	ctx := context.TODO()
+	err := armClient.buildTestResources(ctx, &res)
+	if err != nil {
+		armClient.destroyTestResources(ctx, res)
+		t.Fatalf("Error creating Test Resources: %q", err)
+	}
+	defer armClient.destroyTestResources(ctx, res)
+
+	b := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
+		"storage_account_name": res.storageAccountName,
+		"container_name":       res.storageContainerName,
+		"key":                  res.storageKeyName,
+		"resource_group_name":  res.resourceGroup,
+		"arm_subscription_id":  os.Getenv("ARM_SUBSCRIPTION_ID"),
+		"arm_tenant_id":        os.Getenv("ARM_TENANT_ID"),
+		"arm_client_id":        os.Getenv("ARM_CLIENT_ID"),
+		"arm_client_secret":    os.Getenv("ARM_CLIENT_SECRET"),
+		"environment":          os.Getenv("ARM_ENVIRONMENT"),
+	})).(*Backend)
+
+	backend.TestBackendStates(t, b)
+}
+
+func TestBackendAccessKeyLocked(t *testing.T) {
+	testAccAzureBackend(t)
+	rs := acctest.RandString(4)
+	res := testResourceNames(rs, "testState")
+	armClient := buildTestClient(t, res)
+
+	ctx := context.TODO()
+	err := armClient.buildTestResources(ctx, &res)
+	if err != nil {
+		armClient.destroyTestResources(ctx, res)
+		t.Fatalf("Error creating Test Resources: %q", err)
+	}
+	defer armClient.destroyTestResources(ctx, res)
 
 	b1 := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
 		"storage_account_name": res.storageAccountName,
-		"container_name":       res.containerName,
-		"key":                  keyName,
-		"access_key":           res.accessKey,
+		"container_name":       res.storageContainerName,
+		"key":                  res.storageKeyName,
+		"access_key":           res.storageAccountAccessKey,
 	})).(*Backend)
 
 	b2 := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
 		"storage_account_name": res.storageAccountName,
-		"container_name":       res.containerName,
-		"key":                  keyName,
-		"access_key":           res.accessKey,
+		"container_name":       res.storageContainerName,
+		"key":                  res.storageKeyName,
+		"access_key":           res.storageAccountAccessKey,
 	})).(*Backend)
 
 	backend.TestBackendStateLocks(t, b1, b2)
 	backend.TestBackendStateForceUnlock(t, b1, b2)
 }
 
-type testResources struct {
-	resourceGroupName  string
-	storageAccountName string
-	containerName      string
-	keyName            string
-	accessKey          string
-}
-
-func setupResources(t *testing.T, keyName string) testResources {
-	clients := getTestClient(t)
-
-	ri := acctest.RandInt()
+func TestBackendServicePrincipalLocked(t *testing.T) {
+	testAccAzureBackend(t)
 	rs := acctest.RandString(4)
-	res := testResources{
-		resourceGroupName:  fmt.Sprintf("terraform-backend-testing-%d", ri),
-		storageAccountName: fmt.Sprintf("tfbackendtesting%s", rs),
-		containerName:      "terraform",
-		keyName:            keyName,
-	}
+	res := testResourceNames(rs, "testState")
+	armClient := buildTestClient(t, res)
 
-	location := os.Getenv("ARM_LOCATION")
-	if location == "" {
-		location = "westus"
-	}
-
-	t.Logf("creating resource group %s", res.resourceGroupName)
-	_, err := clients.groupsClient.CreateOrUpdate(res.resourceGroupName, resources.Group{Location: &location})
+	ctx := context.TODO()
+	err := armClient.buildTestResources(ctx, &res)
 	if err != nil {
-		t.Fatalf("failed to create test resource group: %s", err)
+		armClient.destroyTestResources(ctx, res)
+		t.Fatalf("Error creating Test Resources: %q", err)
 	}
+	defer armClient.destroyTestResources(ctx, res)
 
-	t.Logf("creating storage account %s", res.storageAccountName)
-	_, createError := clients.storageAccountsClient.Create(res.resourceGroupName, res.storageAccountName, armStorage.AccountCreateParameters{
-		Sku: &armStorage.Sku{
-			Name: armStorage.StandardLRS,
-			Tier: armStorage.Standard,
-		},
-		Location: &location,
-	}, make(chan struct{}))
-	createErr := <-createError
-	if createErr != nil {
-		destroyResources(t, res.resourceGroupName)
-		t.Fatalf("failed to create test storage account: %s", err)
-	}
+	b1 := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
+		"storage_account_name": res.storageAccountName,
+		"container_name":       res.storageContainerName,
+		"key":                  res.storageKeyName,
+		"access_key":           res.storageAccountAccessKey,
+		"arm_subscription_id":  os.Getenv("ARM_SUBSCRIPTION_ID"),
+		"arm_tenant_id":        os.Getenv("ARM_TENANT_ID"),
+		"arm_client_id":        os.Getenv("ARM_CLIENT_ID"),
+		"arm_client_secret":    os.Getenv("ARM_CLIENT_SECRET"),
+		"environment":          os.Getenv("ARM_ENVIRONMENT"),
+	})).(*Backend)
 
-	t.Log("fetching access key for storage account")
-	resp, err := clients.storageAccountsClient.ListKeys(res.resourceGroupName, res.storageAccountName)
-	if err != nil {
-		destroyResources(t, res.resourceGroupName)
-		t.Fatalf("failed to list storage account keys %s:", err)
-	}
+	b2 := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
+		"storage_account_name": res.storageAccountName,
+		"container_name":       res.storageContainerName,
+		"key":                  res.storageKeyName,
+		"access_key":           res.storageAccountAccessKey,
+		"arm_subscription_id":  os.Getenv("ARM_SUBSCRIPTION_ID"),
+		"arm_tenant_id":        os.Getenv("ARM_TENANT_ID"),
+		"arm_client_id":        os.Getenv("ARM_CLIENT_ID"),
+		"arm_client_secret":    os.Getenv("ARM_CLIENT_SECRET"),
+		"environment":          os.Getenv("ARM_ENVIRONMENT"),
+	})).(*Backend)
 
-	keys := *resp.Keys
-	res.accessKey = *keys[0].Value
-
-	storageClient, err := storage.NewClient(res.storageAccountName, res.accessKey,
-		clients.environment.StorageEndpointSuffix, storage.DefaultAPIVersion, true)
-	if err != nil {
-		destroyResources(t, res.resourceGroupName)
-		t.Fatalf("failed to list storage account keys %s:", err)
-	}
-
-	t.Logf("creating container %s", res.containerName)
-	blobService := storageClient.GetBlobService()
-	container := blobService.GetContainerReference(res.containerName)
-	err = container.Create(&storage.CreateContainerOptions{})
-	if err != nil {
-		destroyResources(t, res.resourceGroupName)
-		t.Fatalf("failed to create storage container: %s", err)
-	}
-
-	return res
-}
-
-func destroyResources(t *testing.T, resourceGroupName string) {
-	warning := "WARNING: Failed to delete the test Azure resources. They may incur charges. (error was %s)"
-
-	clients := getTestClient(t)
-
-	t.Log("destroying created resources")
-
-	// destroying is simple as deleting the resource group will destroy everything else
-	_, deleteErr := clients.groupsClient.Delete(resourceGroupName, make(chan struct{}))
-	err := <-deleteErr
-	if err != nil {
-		t.Logf(warning, err)
-		return
-	}
-
-	t.Log("Azure resources destroyed")
-}
-
-type testClient struct {
-	subscriptionID        string
-	tenantID              string
-	clientID              string
-	clientSecret          string
-	environment           azure.Environment
-	groupsClient          resources.GroupsClient
-	storageAccountsClient armStorage.AccountsClient
-}
-
-func getTestClient(t *testing.T) testClient {
-	client := testClient{
-		subscriptionID: os.Getenv("ARM_SUBSCRIPTION_ID"),
-		tenantID:       os.Getenv("ARM_TENANT_ID"),
-		clientID:       os.Getenv("ARM_CLIENT_ID"),
-		clientSecret:   os.Getenv("ARM_CLIENT_SECRET"),
-	}
-
-	if client.subscriptionID == "" || client.tenantID == "" || client.clientID == "" || client.clientSecret == "" {
-		t.Fatal("Azure credentials missing or incomplete")
-	}
-
-	env, err := getAzureEnvironment(os.Getenv("ARM_ENVIRONMENT"))
-	if err != nil {
-		t.Fatalf("Failed to detect Azure environment from ARM_ENVIRONMENT value: %s", os.Getenv("ARM_ENVIRONMENT"))
-	}
-	client.environment = env
-
-	oauthConfig, err := adal.NewOAuthConfig(env.ActiveDirectoryEndpoint, client.tenantID)
-	if err != nil {
-		t.Fatalf("Failed to get OAuth config: %s", err)
-	}
-
-	spt, err := adal.NewServicePrincipalToken(*oauthConfig, client.clientID, client.clientSecret, env.ResourceManagerEndpoint)
-	if err != nil {
-		t.Fatalf("Failed to create Service Principal Token: %s", err)
-	}
-
-	client.groupsClient = resources.NewGroupsClientWithBaseURI(env.ResourceManagerEndpoint, client.subscriptionID)
-	client.groupsClient.Authorizer = autorest.NewBearerAuthorizer(spt)
-
-	client.storageAccountsClient = armStorage.NewAccountsClientWithBaseURI(env.ResourceManagerEndpoint, client.subscriptionID)
-	client.storageAccountsClient.Authorizer = autorest.NewBearerAuthorizer(spt)
-
-	return client
+	backend.TestBackendStateLocks(t, b1, b2)
+	backend.TestBackendStateForceUnlock(t, b1, b2)
 }

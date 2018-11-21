@@ -4,17 +4,11 @@ import (
 	"context"
 	"fmt"
 
-	armStorage "github.com/Azure/azure-sdk-for-go/arm/storage"
-	"github.com/Azure/azure-sdk-for-go/storage"
-	"github.com/Azure/go-autorest/autorest"
-	"github.com/Azure/go-autorest/autorest/adal"
-	"github.com/Azure/go-autorest/autorest/azure"
-
 	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
-// New creates a new backend for S3 remote state.
+// New creates a new backend for Azure remote state.
 func New() backend.Backend {
 	s := &schema.Backend{
 		Schema: map[string]*schema.Schema{
@@ -40,7 +34,7 @@ func New() backend.Backend {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Description: "The Azure cloud environment.",
-				DefaultFunc: schema.EnvDefaultFunc("ARM_ENVIRONMENT", ""),
+				DefaultFunc: schema.EnvDefaultFunc("ARM_ENVIRONMENT", "public"),
 			},
 
 			"access_key": {
@@ -83,6 +77,9 @@ func New() backend.Backend {
 				Description: "The Tenant ID.",
 				DefaultFunc: schema.EnvDefaultFunc("ARM_TENANT_ID", ""),
 			},
+
+			// TODO: rename these fields
+			// TODO: support for custom resource manager endpoints
 		},
 	}
 
@@ -95,22 +92,23 @@ type Backend struct {
 	*schema.Backend
 
 	// The fields below are set from configure
-	blobClient storage.BlobStorageClient
-
+	armClient     *ArmClient
 	containerName string
 	keyName       string
-	leaseID       string
 }
 
 type BackendConfig struct {
-	AccessKey          string
-	Environment        string
-	ClientID           string
-	ClientSecret       string
-	ResourceGroupName  string
+	// Required
 	StorageAccountName string
-	SubscriptionID     string
-	TenantID           string
+
+	// Optional
+	AccessKey         string
+	ClientID          string
+	ClientSecret      string
+	Environment       string
+	ResourceGroupName string
+	SubscriptionID    string
+	TenantID          string
 }
 
 func (b *Backend) configure(ctx context.Context) error {
@@ -135,92 +133,15 @@ func (b *Backend) configure(ctx context.Context) error {
 		TenantID:           data.Get("arm_tenant_id").(string),
 	}
 
-	blobClient, err := getBlobClient(config)
+	armClient, err := buildArmClient(config)
 	if err != nil {
 		return err
 	}
-	b.blobClient = blobClient
 
+	if config.AccessKey == "" && config.ResourceGroupName == "" {
+		return fmt.Errorf("Either an Access Key or the Resource Group for the Storage Account must be specified")
+	}
+
+	b.armClient = armClient
 	return nil
-}
-
-func getBlobClient(config BackendConfig) (storage.BlobStorageClient, error) {
-	var client storage.BlobStorageClient
-
-	env, err := getAzureEnvironment(config.Environment)
-	if err != nil {
-		return client, err
-	}
-
-	accessKey, err := getAccessKey(config, env)
-	if err != nil {
-		return client, err
-	}
-
-	storageClient, err := storage.NewClient(config.StorageAccountName, accessKey, env.StorageEndpointSuffix,
-		storage.DefaultAPIVersion, true)
-	if err != nil {
-		return client, fmt.Errorf("Error creating storage client for storage account %q: %s", config.StorageAccountName, err)
-	}
-
-	client = storageClient.GetBlobService()
-	return client, nil
-}
-
-func getAccessKey(config BackendConfig, env azure.Environment) (string, error) {
-	if config.AccessKey != "" {
-		return config.AccessKey, nil
-	}
-
-	rgOk := config.ResourceGroupName != ""
-	subOk := config.SubscriptionID != ""
-	clientIDOk := config.ClientID != ""
-	clientSecretOK := config.ClientSecret != ""
-	tenantIDOk := config.TenantID != ""
-	if !rgOk || !subOk || !clientIDOk || !clientSecretOK || !tenantIDOk {
-		return "", fmt.Errorf("resource_group_name and credentials must be provided when access_key is absent")
-	}
-
-	oauthConfig, err := adal.NewOAuthConfig(env.ActiveDirectoryEndpoint, config.TenantID)
-	if err != nil {
-		return "", err
-	}
-
-	spt, err := adal.NewServicePrincipalToken(*oauthConfig, config.ClientID, config.ClientSecret, env.ResourceManagerEndpoint)
-	if err != nil {
-		return "", err
-	}
-
-	accountsClient := armStorage.NewAccountsClientWithBaseURI(env.ResourceManagerEndpoint, config.SubscriptionID)
-	accountsClient.Authorizer = autorest.NewBearerAuthorizer(spt)
-
-	keys, err := accountsClient.ListKeys(config.ResourceGroupName, config.StorageAccountName)
-	if err != nil {
-		return "", fmt.Errorf("Error retrieving keys for storage account %q: %s", config.StorageAccountName, err)
-	}
-
-	if keys.Keys == nil {
-		return "", fmt.Errorf("Nil key returned for storage account %q", config.StorageAccountName)
-	}
-
-	accessKeys := *keys.Keys
-	return *accessKeys[0].Value, nil
-}
-
-func getAzureEnvironment(environment string) (azure.Environment, error) {
-	if environment == "" {
-		return azure.PublicCloud, nil
-	}
-
-	env, err := azure.EnvironmentFromName(environment)
-	if err != nil {
-		// try again with wrapped value to support readable values like german instead of AZUREGERMANCLOUD
-		var innerErr error
-		env, innerErr = azure.EnvironmentFromName(fmt.Sprintf("AZURE%sCLOUD", environment))
-		if innerErr != nil {
-			return env, fmt.Errorf("invalid 'environment' configuration: %s", err)
-		}
-	}
-
-	return env, nil
 }

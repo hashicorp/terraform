@@ -1,12 +1,12 @@
 package azure
 
 import (
+	"context"
 	"fmt"
 	"sort"
 	"strings"
 
 	"github.com/Azure/azure-sdk-for-go/storage"
-
 	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/state"
 	"github.com/hashicorp/terraform/state/remote"
@@ -25,7 +25,12 @@ func (b *Backend) Workspaces() ([]string, error) {
 		Prefix: prefix,
 	}
 
-	container := b.blobClient.GetContainerReference(b.containerName)
+	ctx := context.TODO()
+	client, err := b.armClient.getBlobClient(ctx)
+	if err != nil {
+		return nil, err
+	}
+	container := client.GetContainerReference(b.containerName)
 	resp, err := container.ListBlobs(params)
 	if err != nil {
 		return nil, err
@@ -58,7 +63,13 @@ func (b *Backend) DeleteWorkspace(name string) error {
 		return fmt.Errorf("can't delete default state")
 	}
 
-	containerReference := b.blobClient.GetContainerReference(b.containerName)
+	ctx := context.TODO()
+	client, err := b.armClient.getBlobClient(ctx)
+	if err != nil {
+		return err
+	}
+
+	containerReference := client.GetContainerReference(b.containerName)
 	blobReference := containerReference.GetBlobReference(b.path(name))
 	options := &storage.DeleteBlobOptions{}
 
@@ -66,8 +77,14 @@ func (b *Backend) DeleteWorkspace(name string) error {
 }
 
 func (b *Backend) StateMgr(name string) (state.State, error) {
+	ctx := context.TODO()
+	blobClient, err := b.armClient.getBlobClient(ctx)
+	if err != nil {
+		return nil, err
+	}
+
 	client := &RemoteClient{
-		blobClient:    b.blobClient,
+		blobClient:    *blobClient,
 		containerName: b.containerName,
 		keyName:       b.path(name),
 	}
