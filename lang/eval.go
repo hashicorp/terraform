@@ -52,6 +52,11 @@ func (s *Scope) EvalBlock(body hcl.Body, schema *configschema.Block) (cty.Value,
 
 	ctx, ctxDiags := s.EvalContext(refs)
 	diags = diags.Append(ctxDiags)
+	if diags.HasErrors() {
+		// We'll stop early if we found problems in the references, because
+		// it's likely evaluation will produce redundant copies of the same errors.
+		return cty.UnknownVal(schema.ImpliedType()), diags
+	}
 
 	val, evalDiags := hcldec.Decode(body, spec, ctx)
 	diags = diags.Append(evalDiags)
@@ -74,6 +79,11 @@ func (s *Scope) EvalExpr(expr hcl.Expression, wantType cty.Type) (cty.Value, tfd
 
 	ctx, ctxDiags := s.EvalContext(refs)
 	diags = diags.Append(ctxDiags)
+	if diags.HasErrors() {
+		// We'll stop early if we found problems in the references, because
+		// it's likely evaluation will produce redundant copies of the same errors.
+		return cty.UnknownVal(wantType), diags
+	}
 
 	val, evalDiags := expr.Value(ctx)
 	diags = diags.Append(evalDiags)
@@ -152,6 +162,14 @@ func (s *Scope) evalContext(refs []*addrs.Reference, selfAddr addrs.Referenceabl
 
 	if len(refs) == 0 {
 		// Easy path for common case where there are no references at all.
+		return ctx, diags
+	}
+
+	// First we'll do static validation of the references. This catches things
+	// early that might otherwise not get caught due to unknown values being
+	// present in the scope during planning.
+	if staticDiags := s.Data.StaticValidateReferences(refs, selfAddr); staticDiags.HasErrors() {
+		diags = diags.Append(staticDiags)
 		return ctx, diags
 	}
 

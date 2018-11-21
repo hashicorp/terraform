@@ -1149,12 +1149,6 @@ func TestContext2Validate_PlanGraphBuilder(t *testing.T) {
 	}
 }
 
-// FIXME: these 2 tests should be caught in validation.
-// Since the evaluator can't determine if the resource contains a count during
-// validation, any refereces are currently returned as unknown. We need a
-// static validation of a reference to determine if it's possible within a
-// particular schema.
-/*
 func TestContext2Validate_invalidOutput(t *testing.T) {
 	m := testModuleInline(t, map[string]string{
 		"main.tf": `
@@ -1177,9 +1171,12 @@ output "out" {
 
 	diags := ctx.Validate()
 	if !diags.HasErrors() {
-		// Should get this error:
-		// Unsupported attribute: This object does not have an attribute named "missing"
 		t.Fatal("succeeded; want errors")
+	}
+	// Should get this error:
+	// Unsupported attribute: This object does not have an attribute named "missing"
+	if got, want := diags.Err().Error(), "Unsupported attribute"; strings.Index(got, want) == -1 {
+		t.Fatalf("wrong error:\ngot:  %s\nwant: message containing %q", got, want)
 	}
 }
 
@@ -1213,9 +1210,42 @@ resource "aws_instance" "foo" {
 
 	diags := ctx.Validate()
 	if !diags.HasErrors() {
-		// Should get this error:
-		// Unsupported attribute: This object does not have an attribute named "missing"
 		t.Fatal("succeeded; want errors")
 	}
+	// Should get this error:
+	// Unsupported attribute: This object does not have an attribute named "missing"
+	if got, want := diags.Err().Error(), "Unsupported attribute"; strings.Index(got, want) == -1 {
+		t.Fatalf("wrong error:\ngot:  %s\nwant: message containing %q", got, want)
+	}
 }
-*/
+
+func TestContext2Validate_legacyResourceCount(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+resource "aws_instance" "test" {}
+
+output "out" {
+  value = aws_instance.test.count
+}`,
+	})
+
+	p := testProvider("aws")
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		ProviderResolver: providers.ResolverFixed(
+			map[string]providers.Factory{
+				"aws": testProviderFuncFixed(p),
+			},
+		),
+	})
+
+	diags := ctx.Validate()
+	if !diags.HasErrors() {
+		t.Fatal("succeeded; want errors")
+	}
+	// Should get this error:
+	// Invalid resource count attribute: The special "count" attribute is no longer supported after Terraform v0.12. Instead, use length(aws_instance.test) to count resource instances.
+	if got, want := diags.Err().Error(), "Invalid resource count attribute:"; strings.Index(got, want) == -1 {
+		t.Fatalf("wrong error:\ngot:  %s\nwant: message containing %q", got, want)
+	}
+}

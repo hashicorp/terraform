@@ -84,7 +84,7 @@ func TestSession_basicState(t *testing.T) {
 				{
 					Input:         "test_instance.bar.id",
 					Error:         true,
-					ErrorContains: `A resource "test_instance" "bar" has not been declared`,
+					ErrorContains: `A managed resource "test_instance" "bar" has not been declared`,
 				},
 			},
 		})
@@ -176,6 +176,8 @@ func TestSession_stateless(t *testing.T) {
 }
 
 func testSession(t *testing.T, test testSessionTest) {
+	t.Helper()
+
 	p := &terraform.MockProvider{}
 	p.GetSchemaReturn = &terraform.ProviderSchema{
 		ResourceTypes: map[string]*configschema.Block{
