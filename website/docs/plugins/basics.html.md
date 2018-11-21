@@ -36,11 +36,16 @@ in its respective documentation section.
 
 ## Installing Plugins
 
-The [provider plugins distributed by HashiCorp](/docs/providers/index.html) are
-automatically installed by `terraform init`. Third-party plugins (both
-providers and provisioners) can be manually installed into the user plugins
-directory, located at `%APPDATA%\terraform.d\plugins` on Windows and
-`~/.terraform.d/plugins` on other systems.
+The [provider plugins distributed by HashiCorp](/docs/providers/index.html) are 
+automatically installed by `terraform init` on `.terraform.d/plugins` directory.
+
+Third-party plugins (both providers and provisioners) can be manually installed:
+
+- global for all projects, into the user plugins directory, located at 
+`%APPDATA%\terraform.d\plugins` on Windows and `~/.terraform.d/plugins` on other
+systems.
+
+- local for the current project, in `terraform.d/plugins` directory.
 
 For more information, see:
 
