@@ -59,6 +59,34 @@ func TestBackendAccessKeyBasic(t *testing.T) {
 	backend.TestBackendStates(t, b)
 }
 
+func TestBackendManagedServiceIdentityBasic(t *testing.T) {
+	testAccAzureBackendRunningInAzure(t)
+	rs := acctest.RandString(4)
+	res := testResourceNames(rs, "testState")
+	armClient := buildTestClient(t, res)
+
+	ctx := context.TODO()
+	err := armClient.buildTestResources(ctx, &res)
+	if err != nil {
+		armClient.destroyTestResources(ctx, res)
+		t.Fatalf("Error creating Test Resources: %q", err)
+	}
+	defer armClient.destroyTestResources(ctx, res)
+
+	b := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
+		"storage_account_name": res.storageAccountName,
+		"container_name":       res.storageContainerName,
+		"key":                  res.storageKeyName,
+		"resource_group_name":  res.resourceGroup,
+		"use_msi":              true,
+		"arm_subscription_id":  os.Getenv("ARM_SUBSCRIPTION_ID"),
+		"arm_tenant_id":        os.Getenv("ARM_TENANT_ID"),
+		"environment":          os.Getenv("ARM_ENVIRONMENT"),
+	})).(*Backend)
+
+	backend.TestBackendStates(t, b)
+}
+
 func TestBackendServicePrincipalBasic(t *testing.T) {
 	testAccAzureBackend(t)
 	rs := acctest.RandString(4)

@@ -50,10 +50,12 @@ func buildArmClient(config BackendConfig) (*ArmClient, error) {
 		SubscriptionID: config.SubscriptionID,
 		TenantID:       config.TenantID,
 		Environment:    config.Environment,
+		MsiEndpoint:    config.MsiEndpoint,
 
 		// Feature Toggles
-		SupportsClientSecretAuth: true,
-		// TODO: support for Azure CLI / Client Certificate / MSI
+		SupportsClientSecretAuth:       true,
+		SupportsManagedServiceIdentity: config.UseMsi,
+		// TODO: support for Azure CLI / Client Certificate auth
 	}
 	armConfig, err := builder.Build()
 	if err != nil {

@@ -27,6 +27,21 @@ terraform {
 }
 ```
 
+When authenticating using Managed Service Identity (MSI):
+
+```hcl
+terraform {
+  backend "azurerm" {
+    storage_account_name = "abcd1234"
+    container_name       = "tfstate"
+    key                  = "prod.terraform.tfstate"
+    use_msi              = true
+    arm_subscription_id  = "00000000-0000-0000-0000-000000000000"
+    arm_tenant_id        = "00000000-0000-0000-0000-000000000000"
+  }
+}
+```
+
 When authenticating using the Access Key associated with the Storage Account:
 
 ```hcl
@@ -60,6 +75,22 @@ data "terraform_remote_state" "foo" {
 }
 ```
 
+When authenticating using Managed Service Identity (MSI):
+
+```hcl
+data "terraform_remote_state" "foo" {
+  backend = "azurerm"
+  config = {
+    storage_account_name = "terraform123abc"
+    container_name       = "terraform-state"
+    key                  = "prod.terraform.tfstate"
+    use_msi              = true
+    arm_subscription_id  = "00000000-0000-0000-0000-000000000000"
+    arm_tenant_id        = "00000000-0000-0000-0000-000000000000"
+  }
+}
+```
+
 When authenticating using the Access Key associated with the Storage Account:
 
 ```hcl
@@ -88,6 +119,18 @@ The following configuration options are supported:
 * `key` - (Required) The name of the Blob used to retrieve/store Terraform's State file inside the Storage Container.
 
 * `environment` - (Optional) The Azure Environment which should be used. This can also be sourced from the `ARM_ENVIRONMENT` environment variable. Possible values are `public`, `china`, `german`, `stack` and `usgovernment`. Defaults to `public`.
+
+---
+
+When authenticating using the Managed Service Identity (MSI) - the following fields are also supported:
+
+* `arm_subscription_id` - (Optional) The Subscription ID in which the Storage Account exists. This can also be sourced from the `ARM_SUBSCRIPTION_ID` environment variable.
+
+* `arm_tenant_id` - (Optional) The Tenant ID in which the Subscription exists. This can also be sourced from the `ARM_TENANT_ID` environment variable.
+
+* `msi_endpoint` - (Optional) The path to a custom Managed Service Identity endpoint which is automatically determined if not specified. This can also be sourced from the `ARM_MSI_ENDPOINT` environment variable.
+
+* `use_msi` - (Optional) Should Managed Service Identity authentication be used? This can also be sourced from the `ARM_USE_MSI` environment variable.
 
 ---
 
