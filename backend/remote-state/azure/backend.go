@@ -78,6 +78,20 @@ func New() backend.Backend {
 				DefaultFunc: schema.EnvDefaultFunc("ARM_TENANT_ID", ""),
 			},
 
+			"use_msi": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Description: "Should Managed Service Identity be used?.",
+				DefaultFunc: schema.EnvDefaultFunc("ARM_USE_MSI", false),
+			},
+
+			"msi_endpoint": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "The Managed Service Identity Endpoint.",
+				DefaultFunc: schema.EnvDefaultFunc("ARM_MSI_ENDPOINT", ""),
+			},
+
 			// TODO: rename these fields
 			// TODO: support for custom resource manager endpoints
 		},
@@ -106,9 +120,11 @@ type BackendConfig struct {
 	ClientID          string
 	ClientSecret      string
 	Environment       string
+	MsiEndpoint       string
 	ResourceGroupName string
 	SubscriptionID    string
 	TenantID          string
+	UseMsi            bool
 }
 
 func (b *Backend) configure(ctx context.Context) error {
@@ -127,10 +143,12 @@ func (b *Backend) configure(ctx context.Context) error {
 		ClientID:           data.Get("arm_client_id").(string),
 		ClientSecret:       data.Get("arm_client_secret").(string),
 		Environment:        data.Get("environment").(string),
+		MsiEndpoint:        data.Get("msi_endpoint").(string),
 		ResourceGroupName:  data.Get("resource_group_name").(string),
 		StorageAccountName: data.Get("storage_account_name").(string),
 		SubscriptionID:     data.Get("arm_subscription_id").(string),
 		TenantID:           data.Get("arm_tenant_id").(string),
+		UseMsi:             data.Get("use_msi").(bool),
 	}
 
 	armClient, err := buildArmClient(config)
