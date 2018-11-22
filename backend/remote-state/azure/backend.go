@@ -44,6 +44,13 @@ func New() backend.Backend {
 				DefaultFunc: schema.EnvDefaultFunc("ARM_ACCESS_KEY", ""),
 			},
 
+			"sas_token": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "A SAS Token used to interact with the Blob Storage Account.",
+				DefaultFunc: schema.EnvDefaultFunc("ARM_SAS_TOKEN", ""),
+			},
+
 			"resource_group_name": {
 				Type:        schema.TypeString,
 				Optional:    true,
@@ -122,6 +129,7 @@ type BackendConfig struct {
 	Environment       string
 	MsiEndpoint       string
 	ResourceGroupName string
+	SasToken          string
 	SubscriptionID    string
 	TenantID          string
 	UseMsi            bool
@@ -145,6 +153,7 @@ func (b *Backend) configure(ctx context.Context) error {
 		Environment:        data.Get("environment").(string),
 		MsiEndpoint:        data.Get("msi_endpoint").(string),
 		ResourceGroupName:  data.Get("resource_group_name").(string),
+		SasToken:           data.Get("sas_token").(string),
 		StorageAccountName: data.Get("storage_account_name").(string),
 		SubscriptionID:     data.Get("arm_subscription_id").(string),
 		TenantID:           data.Get("arm_tenant_id").(string),
@@ -156,8 +165,8 @@ func (b *Backend) configure(ctx context.Context) error {
 		return err
 	}
 
-	if config.AccessKey == "" && config.ResourceGroupName == "" {
-		return fmt.Errorf("Either an Access Key or the Resource Group for the Storage Account must be specified")
+	if config.AccessKey == "" && config.SasToken == "" && config.ResourceGroupName == "" {
+		return fmt.Errorf("Either an Access Key / SAS Token or the Resource Group for the Storage Account must be specified")
 	}
 
 	b.armClient = armClient

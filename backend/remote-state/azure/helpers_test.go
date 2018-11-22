@@ -7,10 +7,16 @@ import (
 	"os"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/Azure/azure-sdk-for-go/profiles/2017-03-09/resources/mgmt/resources"
 	armStorage "github.com/Azure/azure-sdk-for-go/profiles/2017-03-09/storage/mgmt/storage"
 	"github.com/Azure/azure-sdk-for-go/storage"
+	sasStorage "github.com/hashicorp/go-azure-helpers/storage"
+)
+
+const (
+	sasSignedVersion = "2017-07-29"
 )
 
 // verify that we are doing ACC tests or the Azure tests specifically
@@ -78,6 +84,31 @@ func buildTestClient(t *testing.T, res resourceNames) *ArmClient {
 	}
 
 	return armClient
+}
+
+func buildSasToken(accountName, accessKey string) (*string, error) {
+	// grant full access to Objects in the Blob Storage Account
+	permissions := "rwdlacup" // full control
+	resourceTypes := "sco"    // service, container, object
+	services := "b"           // blob
+
+	// Details on how to do this are here:
+	// https://docs.microsoft.com/en-us/rest/api/storageservices/Constructing-an-Account-SAS
+	signedProtocol := "https,http"
+	signedIp := ""
+	signedVersion := sasSignedVersion
+
+	utcNow := time.Now().UTC()
+	startDate := utcNow.Format(time.RFC3339)
+	endDate := utcNow.Add(time.Hour * 24).Format(time.RFC3339)
+
+	sasToken, err := sasStorage.ComputeSASToken(accountName, accessKey, permissions, services, resourceTypes,
+		startDate, endDate, signedProtocol, signedIp, signedVersion)
+	if err != nil {
+		return nil, fmt.Errorf("Error computing SAS Token: %+v", err)
+	}
+	log.Printf("SAS Token should be %q", sasToken)
+	return &sasToken, nil
 }
 
 type resourceNames struct {

@@ -43,17 +43,18 @@ func TestBackendAccessKeyBasic(t *testing.T) {
 
 	ctx := context.TODO()
 	err := armClient.buildTestResources(ctx, &res)
+	defer armClient.destroyTestResources(ctx, res)
 	if err != nil {
 		armClient.destroyTestResources(ctx, res)
 		t.Fatalf("Error creating Test Resources: %q", err)
 	}
-	defer armClient.destroyTestResources(ctx, res)
 
 	b := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
 		"storage_account_name": res.storageAccountName,
 		"container_name":       res.storageContainerName,
 		"key":                  res.storageKeyName,
 		"access_key":           res.storageAccountAccessKey,
+		"environment":          os.Getenv("ARM_ENVIRONMENT"),
 	})).(*Backend)
 
 	backend.TestBackendStates(t, b)
@@ -67,11 +68,10 @@ func TestBackendManagedServiceIdentityBasic(t *testing.T) {
 
 	ctx := context.TODO()
 	err := armClient.buildTestResources(ctx, &res)
+	defer armClient.destroyTestResources(ctx, res)
 	if err != nil {
-		armClient.destroyTestResources(ctx, res)
 		t.Fatalf("Error creating Test Resources: %q", err)
 	}
-	defer armClient.destroyTestResources(ctx, res)
 
 	b := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
 		"storage_account_name": res.storageAccountName,
@@ -87,6 +87,35 @@ func TestBackendManagedServiceIdentityBasic(t *testing.T) {
 	backend.TestBackendStates(t, b)
 }
 
+func TestBackendSASTokenBasic(t *testing.T) {
+	testAccAzureBackend(t)
+	rs := acctest.RandString(4)
+	res := testResourceNames(rs, "testState")
+	armClient := buildTestClient(t, res)
+
+	ctx := context.TODO()
+	err := armClient.buildTestResources(ctx, &res)
+	defer armClient.destroyTestResources(ctx, res)
+	if err != nil {
+		t.Fatalf("Error creating Test Resources: %q", err)
+	}
+
+	sasToken, err := buildSasToken(res.storageAccountName, res.storageAccountAccessKey)
+	if err != nil {
+		t.Fatalf("Error building SAS Token: %+v", err)
+	}
+
+	b := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
+		"storage_account_name": res.storageAccountName,
+		"container_name":       res.storageContainerName,
+		"key":                  res.storageKeyName,
+		"sas_token":            *sasToken,
+		"environment":          os.Getenv("ARM_ENVIRONMENT"),
+	})).(*Backend)
+
+	backend.TestBackendStates(t, b)
+}
+
 func TestBackendServicePrincipalBasic(t *testing.T) {
 	testAccAzureBackend(t)
 	rs := acctest.RandString(4)
@@ -95,11 +124,10 @@ func TestBackendServicePrincipalBasic(t *testing.T) {
 
 	ctx := context.TODO()
 	err := armClient.buildTestResources(ctx, &res)
+	defer armClient.destroyTestResources(ctx, res)
 	if err != nil {
-		armClient.destroyTestResources(ctx, res)
 		t.Fatalf("Error creating Test Resources: %q", err)
 	}
-	defer armClient.destroyTestResources(ctx, res)
 
 	b := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
 		"storage_account_name": res.storageAccountName,
@@ -124,17 +152,17 @@ func TestBackendAccessKeyLocked(t *testing.T) {
 
 	ctx := context.TODO()
 	err := armClient.buildTestResources(ctx, &res)
+	defer armClient.destroyTestResources(ctx, res)
 	if err != nil {
-		armClient.destroyTestResources(ctx, res)
 		t.Fatalf("Error creating Test Resources: %q", err)
 	}
-	defer armClient.destroyTestResources(ctx, res)
 
 	b1 := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
 		"storage_account_name": res.storageAccountName,
 		"container_name":       res.storageContainerName,
 		"key":                  res.storageKeyName,
 		"access_key":           res.storageAccountAccessKey,
+		"environment":          os.Getenv("ARM_ENVIRONMENT"),
 	})).(*Backend)
 
 	b2 := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
@@ -142,6 +170,7 @@ func TestBackendAccessKeyLocked(t *testing.T) {
 		"container_name":       res.storageContainerName,
 		"key":                  res.storageKeyName,
 		"access_key":           res.storageAccountAccessKey,
+		"environment":          os.Getenv("ARM_ENVIRONMENT"),
 	})).(*Backend)
 
 	backend.TestBackendStateLocks(t, b1, b2)
@@ -156,11 +185,10 @@ func TestBackendServicePrincipalLocked(t *testing.T) {
 
 	ctx := context.TODO()
 	err := armClient.buildTestResources(ctx, &res)
+	defer armClient.destroyTestResources(ctx, res)
 	if err != nil {
-		armClient.destroyTestResources(ctx, res)
 		t.Fatalf("Error creating Test Resources: %q", err)
 	}
-	defer armClient.destroyTestResources(ctx, res)
 
 	b1 := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
 		"storage_account_name": res.storageAccountName,
