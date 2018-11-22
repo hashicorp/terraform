@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strings"
 	"testing"
 
 	"github.com/Azure/azure-sdk-for-go/profiles/2017-03-09/resources/mgmt/resources"
@@ -35,13 +36,31 @@ func buildTestClient(t *testing.T, res resourceNames) *ArmClient {
 	tenantID := os.Getenv("ARM_TENANT_ID")
 	clientID := os.Getenv("ARM_CLIENT_ID")
 	clientSecret := os.Getenv("ARM_CLIENT_SECRET")
+	msiEnabled := strings.EqualFold(os.Getenv("ARM_USE_MSI"), "true")
 	environment := os.Getenv("ARM_ENVIRONMENT")
 
 	// location isn't used in this method, but is in the other test methods
 	location := os.Getenv("ARM_LOCATION")
 
-	if subscriptionID == "" || tenantID == "" || clientID == "" || clientSecret == "" || environment == "" || location == "" {
+	hasCredentials := (clientID != "" && clientSecret != "") || msiEnabled
+	if !hasCredentials {
 		t.Fatal("Azure credentials missing or incomplete")
+	}
+
+	if subscriptionID == "" {
+		t.Fatalf("Missing ARM_SUBSCRIPTION_ID")
+	}
+
+	if tenantID == "" {
+		t.Fatalf("Missing ARM_TENANT_ID")
+	}
+
+	if environment == "" {
+		t.Fatalf("Missing ARM_ENVIRONMENT")
+	}
+
+	if location == "" {
+		t.Fatalf("Missing ARM_LOCATION")
 	}
 
 	armClient, err := buildArmClient(BackendConfig{
@@ -52,6 +71,7 @@ func buildTestClient(t *testing.T, res resourceNames) *ArmClient {
 		Environment:        environment,
 		ResourceGroupName:  res.resourceGroup,
 		StorageAccountName: res.storageAccountName,
+		UseMsi:             msiEnabled,
 	})
 	if err != nil {
 		t.Fatalf("Failed to build ArmClient: %+v", err)
