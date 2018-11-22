@@ -77,6 +77,7 @@ func TestBackendManagedServiceIdentityBasic(t *testing.T) {
 		"storage_account_name": res.storageAccountName,
 		"container_name":       res.storageContainerName,
 		"key":                  res.storageKeyName,
+		"resource_group_name":  res.resourceGroup,
 		"use_msi":              true,
 		"arm_subscription_id":  os.Getenv("ARM_SUBSCRIPTION_ID"),
 		"arm_tenant_id":        os.Getenv("ARM_TENANT_ID"),

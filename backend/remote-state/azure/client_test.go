@@ -63,6 +63,7 @@ func TestRemoteClientManagedServiceIdentityBasic(t *testing.T) {
 		"storage_account_name": res.storageAccountName,
 		"container_name":       res.storageContainerName,
 		"key":                  res.storageKeyName,
+		"resource_group_name":  res.resourceGroup,
 		"use_msi":              true,
 		"arm_subscription_id":  os.Getenv("ARM_SUBSCRIPTION_ID"),
 		"arm_tenant_id":        os.Getenv("ARM_TENANT_ID"),
@@ -95,12 +96,12 @@ func TestRemoteClientServicePrincipalBasic(t *testing.T) {
 		"storage_account_name": res.storageAccountName,
 		"container_name":       res.storageContainerName,
 		"key":                  res.storageKeyName,
-		"resource_group_name": res.resourceGroup,
-		"arm_subscription_id": os.Getenv("ARM_SUBSCRIPTION_ID"),
-		"arm_tenant_id":       os.Getenv("ARM_TENANT_ID"),
-		"arm_client_id":       os.Getenv("ARM_CLIENT_ID"),
-		"arm_client_secret":   os.Getenv("ARM_CLIENT_SECRET"),
-		"environment":         os.Getenv("ARM_ENVIRONMENT"),
+		"resource_group_name":  res.resourceGroup,
+		"arm_subscription_id":  os.Getenv("ARM_SUBSCRIPTION_ID"),
+		"arm_tenant_id":        os.Getenv("ARM_TENANT_ID"),
+		"arm_client_id":        os.Getenv("ARM_CLIENT_ID"),
+		"arm_client_secret":    os.Getenv("ARM_CLIENT_SECRET"),
+		"environment":          os.Getenv("ARM_ENVIRONMENT"),
 	})).(*Backend)
 
 	state, err := b.StateMgr(backend.DefaultStateName)
@@ -170,24 +171,24 @@ func TestRemoteClientServicePrincipalLocks(t *testing.T) {
 		"storage_account_name": res.storageAccountName,
 		"container_name":       res.storageContainerName,
 		"key":                  res.storageKeyName,
-		"resource_group_name": res.resourceGroup,
-		"arm_subscription_id": os.Getenv("ARM_SUBSCRIPTION_ID"),
-		"arm_tenant_id":       os.Getenv("ARM_TENANT_ID"),
-		"arm_client_id":       os.Getenv("ARM_CLIENT_ID"),
-		"arm_client_secret":   os.Getenv("ARM_CLIENT_SECRET"),
-		"environment":         os.Getenv("ARM_ENVIRONMENT"),
+		"resource_group_name":  res.resourceGroup,
+		"arm_subscription_id":  os.Getenv("ARM_SUBSCRIPTION_ID"),
+		"arm_tenant_id":        os.Getenv("ARM_TENANT_ID"),
+		"arm_client_id":        os.Getenv("ARM_CLIENT_ID"),
+		"arm_client_secret":    os.Getenv("ARM_CLIENT_SECRET"),
+		"environment":          os.Getenv("ARM_ENVIRONMENT"),
 	})).(*Backend)
 
 	b2 := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
 		"storage_account_name": res.storageAccountName,
 		"container_name":       res.storageContainerName,
 		"key":                  res.storageKeyName,
-		"resource_group_name": res.resourceGroup,
-		"arm_subscription_id": os.Getenv("ARM_SUBSCRIPTION_ID"),
-		"arm_tenant_id":       os.Getenv("ARM_TENANT_ID"),
-		"arm_client_id":       os.Getenv("ARM_CLIENT_ID"),
-		"arm_client_secret":   os.Getenv("ARM_CLIENT_SECRET"),
-		"environment":         os.Getenv("ARM_ENVIRONMENT"),
+		"resource_group_name":  res.resourceGroup,
+		"arm_subscription_id":  os.Getenv("ARM_SUBSCRIPTION_ID"),
+		"arm_tenant_id":        os.Getenv("ARM_TENANT_ID"),
+		"arm_client_id":        os.Getenv("ARM_CLIENT_ID"),
+		"arm_client_secret":    os.Getenv("ARM_CLIENT_SECRET"),
+		"environment":          os.Getenv("ARM_ENVIRONMENT"),
 	})).(*Backend)
 
 	s1, err := b1.StateMgr(backend.DefaultStateName)
