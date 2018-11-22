@@ -3,7 +3,10 @@ package azure
 import (
 	"context"
 	"fmt"
+	"log"
+	"net/url"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/Azure/azure-sdk-for-go/profiles/2017-03-09/resources/mgmt/resources"
@@ -25,6 +28,7 @@ type ArmClient struct {
 	environment        azure.Environment
 	resourceGroupName  string
 	storageAccountName string
+	sasToken           string
 }
 
 func buildArmClient(config BackendConfig) (*ArmClient, error) {
@@ -41,6 +45,12 @@ func buildArmClient(config BackendConfig) (*ArmClient, error) {
 	// if we have an Access Key - we don't need the other clients
 	if config.AccessKey != "" {
 		client.accessKey = config.AccessKey
+		return &client, nil
+	}
+
+	// likewise with a SAS token
+	if config.SasToken != "" {
+		client.sasToken = config.SasToken
 		return &client, nil
 	}
 
@@ -85,6 +95,7 @@ func buildArmClient(config BackendConfig) (*ArmClient, error) {
 
 func (c ArmClient) getBlobClient(ctx context.Context) (*storage.BlobStorageClient, error) {
 	if c.accessKey != "" {
+		log.Printf("Building the Blob Client from an Access Token")
 		storageClient, err := storage.NewBasicClientOnSovereignCloud(c.storageAccountName, c.accessKey, c.environment)
 		if err != nil {
 			return nil, fmt.Errorf("Error creating storage client for storage account %q: %s", c.storageAccountName, err)
@@ -93,6 +104,20 @@ func (c ArmClient) getBlobClient(ctx context.Context) (*storage.BlobStorageClien
 		return &client, nil
 	}
 
+	if c.sasToken != "" {
+		log.Printf("Building the Blob Client from a SAS Token")
+		token := strings.TrimPrefix(c.sasToken, "?")
+		uri, err := url.ParseQuery(token)
+		if err != nil {
+			return nil, fmt.Errorf("Error parsing SAS Token: %+v", err)
+		}
+
+		storageClient := storage.NewAccountSASClient(c.storageAccountName, uri, c.environment)
+		client := storageClient.GetBlobService()
+		return &client, nil
+	}
+
+	log.Printf("Building the Blob Client from an Access Token (using user credentials)")
 	keys, err := c.storageAccountsClient.ListKeys(ctx, c.resourceGroupName, c.storageAccountName)
 	if err != nil {
 		return nil, fmt.Errorf("Error retrieving keys for Storage Account %q: %s", c.storageAccountName, err)
