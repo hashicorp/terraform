@@ -10,6 +10,7 @@ IMPROVEMENTS:
 * dependencies: upgrading to v10.15.4 of `github.com/Azure/go-autorest` [GH-19414]
 * command/state: Update and enable the `state show` command [GH-19200]
 * command/state: Lock the state when pushing a new state using `state push` [GH-19411]
+* backend/azurerm: fixing a bug where locks couldn't be unlocked [GH-19441]
 * backend/azurerm: Support for authenticating via Managed Service Identity [GH-19433]
 * backend/azurerm: Using the proxy from the environment when set [GH-19414]
 * backend/remote: Implement the remote enhanced backend [GH-19299]
