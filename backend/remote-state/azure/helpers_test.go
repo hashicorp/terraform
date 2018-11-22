@@ -37,15 +37,6 @@ func testAccAzureBackendRunningInAzure(t *testing.T) {
 	}
 }
 
-// these kind of tests can only run when within Azure (e.g. MSI)
-func testAccAzureBackendRunningInAzure(t *testing.T) {
-	testAccAzureBackend(t)
-
-	if os.Getenv("TF_RUNNING_IN_AZURE") == "" {
-		t.Skip("Skipping test since not running in Azure")
-	}
-}
-
 func buildTestClient(t *testing.T, res resourceNames) *ArmClient {
 	subscriptionID := os.Getenv("ARM_SUBSCRIPTION_ID")
 	tenantID := os.Getenv("ARM_TENANT_ID")
