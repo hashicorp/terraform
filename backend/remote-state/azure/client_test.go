@@ -35,6 +35,7 @@ func TestRemoteClientAccessKeyBasic(t *testing.T) {
 		"container_name":       res.storageContainerName,
 		"key":                  res.storageKeyName,
 		"access_key":           res.storageAccountAccessKey,
+		"environment":          os.Getenv("ARM_ENVIRONMENT"),
 	})).(*Backend)
 
 	state, err := b.StateMgr(backend.DefaultStateName)
@@ -100,6 +101,41 @@ func TestRemoteClientManagedServiceIdentityBasic(t *testing.T) {
 		"use_msi":              true,
 		"arm_subscription_id":  os.Getenv("ARM_SUBSCRIPTION_ID"),
 		"arm_tenant_id":        os.Getenv("ARM_TENANT_ID"),
+		"environment":          os.Getenv("ARM_ENVIRONMENT"),
+	})).(*Backend)
+
+	state, err := b.StateMgr(backend.DefaultStateName)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	remote.TestClient(t, state.(*remote.State).Client)
+}
+
+func TestRemoteClientSasTokenBasic(t *testing.T) {
+	testAccAzureBackend(t)
+	rs := acctest.RandString(4)
+	res := testResourceNames(rs, "testState")
+	armClient := buildTestClient(t, res)
+
+	ctx := context.TODO()
+	err := armClient.buildTestResources(ctx, &res)
+	if err != nil {
+		armClient.destroyTestResources(ctx, res)
+		t.Fatalf("Error creating Test Resources: %q", err)
+	}
+	defer armClient.destroyTestResources(ctx, res)
+
+	sasToken, err := buildSasToken(res.storageAccountName, res.storageAccountAccessKey)
+	if err != nil {
+		t.Fatalf("Error building SAS Token: %+v", err)
+	}
+
+	b := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
+		"storage_account_name": res.storageAccountName,
+		"container_name":       res.storageContainerName,
+		"key":                  res.storageKeyName,
+		"sas_token":            *sasToken,
 		"environment":          os.Getenv("ARM_ENVIRONMENT"),
 	})).(*Backend)
 
@@ -164,6 +200,7 @@ func TestRemoteClientAccessKeyLocks(t *testing.T) {
 		"container_name":       res.storageContainerName,
 		"key":                  res.storageKeyName,
 		"access_key":           res.storageAccountAccessKey,
+		"environment":          os.Getenv("ARM_ENVIRONMENT"),
 	})).(*Backend)
 
 	b2 := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
@@ -171,6 +208,7 @@ func TestRemoteClientAccessKeyLocks(t *testing.T) {
 		"container_name":       res.storageContainerName,
 		"key":                  res.storageKeyName,
 		"access_key":           res.storageAccountAccessKey,
+		"environment":          os.Getenv("ARM_ENVIRONMENT"),
 	})).(*Backend)
 
 	s1, err := b1.StateMgr(backend.DefaultStateName)

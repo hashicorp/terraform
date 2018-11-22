@@ -58,6 +58,22 @@ terraform {
 }
 ```
 
+When authenticating using a SAS Token associated with the Storage Account:
+
+```hcl
+terraform {
+  backend "azurerm" {
+    storage_account_name = "abcd1234"
+    container_name       = "tfstate"
+    key                  = "prod.terraform.tfstate"
+
+    # rather than defining this inline, the SAS Token can also be sourced
+    # from an Environment Variable - more information is available below.
+    sas_token = "abcdefghijklmnopqrstuvwxyz0123456789..."
+  }
+}
+```
+
 -> **NOTE:** When using a Service Principal or an Access Key - we recommend using a [Partial Configuration](/docs/backends/config.html) for the credentials.
 
 ## Example Referencing
@@ -106,6 +122,22 @@ data "terraform_remote_state" "foo" {
     access_key = "abcdefghijklmnopqrstuvwxyz0123456789..."
   }
 }
+
+When authenticating using a SAS Token associated with the Storage Account:
+
+```hcl
+data "terraform_remote_state" "foo" {
+  backend = "azurerm"
+  config = {
+    storage_account_name = "terraform123abc"
+    container_name       = "terraform-state"
+    key                  = "prod.terraform.tfstate"
+
+    # rather than defining this inline, the SAS Token can also be sourced
+    # from an Environment Variable - more information is available below.
+    sas_token = "abcdefghijklmnopqrstuvwxyz0123456789..."
+  }
+}
 ```
 
 ## Configuration variables
@@ -131,6 +163,12 @@ When authenticating using the Managed Service Identity (MSI) - the following fie
 * `msi_endpoint` - (Optional) The path to a custom Managed Service Identity endpoint which is automatically determined if not specified. This can also be sourced from the `ARM_MSI_ENDPOINT` environment variable.
 
 * `use_msi` - (Optional) Should Managed Service Identity authentication be used? This can also be sourced from the `ARM_USE_MSI` environment variable.
+
+---
+
+When authenticating using a SAS Token associated with the Storage Account - the following fields are also supported:
+
+* `sas_token` - (Optional) The SAS Token used to access the Blob Storage Account. This can also be sourced from the `ARM_SAS_TOKEN` environment variable.
 
 ---
 
