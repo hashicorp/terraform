@@ -24,11 +24,10 @@ func TestRemoteClientAccessKeyBasic(t *testing.T) {
 
 	ctx := context.TODO()
 	err := armClient.buildTestResources(ctx, &res)
+	defer armClient.destroyTestResources(ctx, res)
 	if err != nil {
-		armClient.destroyTestResources(ctx, res)
 		t.Fatalf("Error creating Test Resources: %q", err)
 	}
-	defer armClient.destroyTestResources(ctx, res)
 
 	b := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
 		"storage_account_name": res.storageAccountName,
@@ -54,11 +53,10 @@ func TestRemoteClientManagedServiceIdentityBasic(t *testing.T) {
 
 	ctx := context.TODO()
 	err := armClient.buildTestResources(ctx, &res)
+	defer armClient.destroyTestResources(ctx, res)
 	if err != nil {
-		armClient.destroyTestResources(ctx, res)
 		t.Fatalf("Error creating Test Resources: %q", err)
 	}
-	defer armClient.destroyTestResources(ctx, res)
 
 	b := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
 		"storage_account_name": res.storageAccountName,
@@ -87,11 +85,10 @@ func TestRemoteClientSasTokenBasic(t *testing.T) {
 
 	ctx := context.TODO()
 	err := armClient.buildTestResources(ctx, &res)
+	defer armClient.destroyTestResources(ctx, res)
 	if err != nil {
-		armClient.destroyTestResources(ctx, res)
 		t.Fatalf("Error creating Test Resources: %q", err)
 	}
-	defer armClient.destroyTestResources(ctx, res)
 
 	sasToken, err := buildSasToken(res.storageAccountName, res.storageAccountAccessKey)
 	if err != nil {
@@ -122,11 +119,10 @@ func TestRemoteClientServicePrincipalBasic(t *testing.T) {
 
 	ctx := context.TODO()
 	err := armClient.buildTestResources(ctx, &res)
+	defer armClient.destroyTestResources(ctx, res)
 	if err != nil {
-		armClient.destroyTestResources(ctx, res)
 		t.Fatalf("Error creating Test Resources: %q", err)
 	}
-	defer armClient.destroyTestResources(ctx, res)
 
 	b := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
 		"storage_account_name": res.storageAccountName,
@@ -156,11 +152,10 @@ func TestRemoteClientAccessKeyLocks(t *testing.T) {
 
 	ctx := context.TODO()
 	err := armClient.buildTestResources(ctx, &res)
+	defer armClient.destroyTestResources(ctx, res)
 	if err != nil {
-		armClient.destroyTestResources(ctx, res)
 		t.Fatalf("Error creating Test Resources: %q", err)
 	}
-	defer armClient.destroyTestResources(ctx, res)
 
 	b1 := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
 		"storage_account_name": res.storageAccountName,
@@ -199,11 +194,10 @@ func TestRemoteClientServicePrincipalLocks(t *testing.T) {
 
 	ctx := context.TODO()
 	err := armClient.buildTestResources(ctx, &res)
+	defer armClient.destroyTestResources(ctx, res)
 	if err != nil {
-		armClient.destroyTestResources(ctx, res)
 		t.Fatalf("Error creating Test Resources: %q", err)
 	}
-	defer armClient.destroyTestResources(ctx, res)
 
 	b1 := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
 		"storage_account_name": res.storageAccountName,
@@ -250,11 +244,10 @@ func TestPutMaintainsMetaData(t *testing.T) {
 
 	ctx := context.TODO()
 	err := armClient.buildTestResources(ctx, &res)
+	defer armClient.destroyTestResources(ctx, res)
 	if err != nil {
-		armClient.destroyTestResources(ctx, res)
 		t.Fatalf("Error creating Test Resources: %q", err)
 	}
-	defer armClient.destroyTestResources(ctx, res)
 
 	headerName := "acceptancetest"
 	expectedValue := "f3b56bad-33ad-4b93-a600-7a66e9cbd1eb"
