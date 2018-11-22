@@ -252,6 +252,7 @@ func (c *RemoteClient) Unlock(id string) error {
 		return lockErr
 	}
 
+	c.leaseID = lockInfo.ID
 	if err := c.writeLockInfo(nil); err != nil {
 		lockErr.Err = fmt.Errorf("failed to delete lock info from metadata: %s", err)
 		return lockErr
