@@ -36,8 +36,8 @@ terraform {
     container_name       = "tfstate"
     key                  = "prod.terraform.tfstate"
     use_msi              = true
-    arm_subscription_id  = "00000000-0000-0000-0000-000000000000"
-    arm_tenant_id        = "00000000-0000-0000-0000-000000000000"
+    subscription_id  = "00000000-0000-0000-0000-000000000000"
+    tenant_id        = "00000000-0000-0000-0000-000000000000"
   }
 }
 ```
@@ -101,8 +101,8 @@ data "terraform_remote_state" "foo" {
     container_name       = "terraform-state"
     key                  = "prod.terraform.tfstate"
     use_msi              = true
-    arm_subscription_id  = "00000000-0000-0000-0000-000000000000"
-    arm_tenant_id        = "00000000-0000-0000-0000-000000000000"
+    subscription_id  = "00000000-0000-0000-0000-000000000000"
+    tenant_id        = "00000000-0000-0000-0000-000000000000"
   }
 }
 ```
@@ -156,9 +156,9 @@ The following configuration options are supported:
 
 When authenticating using the Managed Service Identity (MSI) - the following fields are also supported:
 
-* `arm_subscription_id` - (Optional) The Subscription ID in which the Storage Account exists. This can also be sourced from the `ARM_SUBSCRIPTION_ID` environment variable.
+* `subscription_id` - (Optional) The Subscription ID in which the Storage Account exists. This can also be sourced from the `ARM_SUBSCRIPTION_ID` environment variable.
 
-* `arm_tenant_id` - (Optional) The Tenant ID in which the Subscription exists. This can also be sourced from the `ARM_TENANT_ID` environment variable.
+* `tenant_id` - (Optional) The Tenant ID in which the Subscription exists. This can also be sourced from the `ARM_TENANT_ID` environment variable.
 
 * `msi_endpoint` - (Optional) The path to a custom Managed Service Identity endpoint which is automatically determined if not specified. This can also be sourced from the `ARM_MSI_ENDPOINT` environment variable.
 
@@ -182,10 +182,10 @@ When authenticating using a Service Principal - the following fields are also su
 
 * `resource_group_name` - (Required) The Name of the Resource Group in which the Storage Account exists.
 
-* `arm_client_id` - (Optional) The Client ID of the Service Principal. This can also be sourced from the `ARM_CLIENT_ID` environment variable.
+* `client_id` - (Optional) The Client ID of the Service Principal. This can also be sourced from the `ARM_CLIENT_ID` environment variable.
 
-* `arm_client_secret` - (Optional) The Client Secret of the Service Principal. This can also be sourced from the `ARM_CLIENT_SECRET` environment variable.
+* `client_secret` - (Optional) The Client Secret of the Service Principal. This can also be sourced from the `ARM_CLIENT_SECRET` environment variable.
 
-* `arm_subscription_id` - (Optional) The Subscription ID in which the Storage Account exists. This can also be sourced from the `ARM_SUBSCRIPTION_ID` environment variable.
+* `subscription_id` - (Optional) The Subscription ID in which the Storage Account exists. This can also be sourced from the `ARM_SUBSCRIPTION_ID` environment variable.
 
-* `arm_tenant_id` - (Optional) The Tenant ID in which the Subscription exists. This can also be sourced from the `ARM_TENANT_ID` environment variable.
+* `tenant_id` - (Optional) The Tenant ID in which the Subscription exists. This can also be sourced from the `ARM_TENANT_ID` environment variable.
