@@ -50,6 +50,8 @@ github.com/blang/semver v0.0.0-20170202183821-4a1e882c79dc h1:J/iAaGTCZYfT/allw6
 github.com/blang/semver v0.0.0-20170202183821-4a1e882c79dc/go.mod h1:kRBLl5iJ+tD4TcOOxsy/0fnwebNt5EWlYSAyrTnjyyk=
 github.com/boltdb/bolt v1.3.1 h1:JQmyP4ZBrce+ZQu0dY660FMfatumYDLun9hBCUVIkF4=
 github.com/boltdb/bolt v1.3.1/go.mod h1:clJnj/oiGkjum5o1McbSZDSLxVThjynRyGBgiAx27Ps=
+github.com/bsm/go-vlq v0.0.0-20150828105119-ec6e8d4f5f4e h1:D64GF/Xr5zSUnM3q1Jylzo4sK7szhP/ON+nb2DB5XJA=
+github.com/bsm/go-vlq v0.0.0-20150828105119-ec6e8d4f5f4e/go.mod h1:N+BjUcTjSxc2mtRGSCPsat1kze3CUtvJN3/jTXlp29k=
 github.com/chzyer/logex v1.1.10 h1:Swpa1K6QvQznwJRcfTfQJmTE72DqScAa40E+fbHEXEE=
 github.com/chzyer/logex v1.1.10/go.mod h1:+Ywpsq7O8HXn0nuIou7OrIPyXbp3wmkHB+jjWRnGsAI=
 github.com/chzyer/readline v0.0.0-20161106042343-c914be64f07d h1:aG5FcWiZTOhPQzYIxwxSR1zEOxzL32fwr1CsaCfhO6w=
@@ -166,6 +168,10 @@ github.com/hashicorp/hcl v0.0.0-20170504190234-a4b07c25de5f h1:UdxlrJz4JOnY8W+Db
 github.com/hashicorp/hcl v0.0.0-20170504190234-a4b07c25de5f/go.mod h1:oZtUIOe8dh44I2q6ScRibXws4Ajl+d+nod3AaR9vL5w=
 github.com/hashicorp/hcl2 v0.0.0-20180925175540-3f1c5474d4f7 h1:lNBI8nmNlIpLl8Lqf+9JLBmNGrU91Nlt71q7cGpZi+k=
 github.com/hashicorp/hcl2 v0.0.0-20180925175540-3f1c5474d4f7/go.mod h1:hrRmgPTdXWuNLpHcv7cRXL+ofoFsY76vDylTzH8eu3E=
+github.com/hashicorp/hcl2 v0.0.0-20181123160133-f901b36da204 h1:/rUVBMdrcpWOwNw5KFhqrbMVnbgsN1zJOp5sAEx2XXQ=
+github.com/hashicorp/hcl2 v0.0.0-20181123160133-f901b36da204/go.mod h1:4nBvwJRETsbpa0LQ7FbXXVFmo0Crvhya1Dmpbm7cVow=
+github.com/hashicorp/hcl2 v0.0.0-20181126233546-67424e43b184 h1:cBDzEsx+Tm9vHp9WiUeBlhPazwbbKJxOiRAT+pVLuag=
+github.com/hashicorp/hcl2 v0.0.0-20181126233546-67424e43b184/go.mod h1:4nBvwJRETsbpa0LQ7FbXXVFmo0Crvhya1Dmpbm7cVow=
 github.com/hashicorp/hil v0.0.0-20170627220502-fa9f258a9250 h1:fooK5IvDL/KIsi4LxF/JH68nVdrBSiGNPhS2JAQjtjo=
 github.com/hashicorp/hil v0.0.0-20170627220502-fa9f258a9250/go.mod h1:KHvg/R2/dPtaePb16oW4qIyzkMxXOL38xjRN64adsts=
 github.com/hashicorp/logutils v0.0.0-20150609070431-0dc08b1671f3 h1:oD64EFjELI9RY9yoWlfua58r+etdnoIC871z+rr6lkA=

@@ -4,4 +4,8 @@
 // It operates at a different level of abstraction than the main HCL parser
 // and AST, since details such as the placement of comments and newlines
 // are preserved when unchanged.
+//
+// The hclwrite API follows a similar principle to XML/HTML DOM, allowing nodes
+// to be read out, created and inserted, etc. Nodes represent syntax constructs
+// rather than semantic concepts.
 package hclwrite

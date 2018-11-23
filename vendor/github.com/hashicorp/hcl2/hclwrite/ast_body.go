@@ -12,6 +12,13 @@ type Body struct {
 	items nodeSet
 }
 
+func newBody() *Body {
+	return &Body{
+		inTree: newInTree(),
+		items:  newNodeSet(),
+	}
+}
+
 func (b *Body) appendItem(c nodeContent) *node {
 	nn := b.children.Append(c)
 	b.items.Add(nn)
@@ -25,8 +32,38 @@ func (b *Body) appendItemNode(nn *node) *node {
 	return nn
 }
 
+// Clear removes all of the items from the body, making it empty.
+func (b *Body) Clear() {
+	b.children.Clear()
+}
+
 func (b *Body) AppendUnstructuredTokens(ts Tokens) {
 	b.inTree.children.Append(ts)
+}
+
+// Attributes returns a new map of all of the attributes in the body, with
+// the attribute names as the keys.
+func (b *Body) Attributes() map[string]*Attribute {
+	ret := make(map[string]*Attribute)
+	for n := range b.items {
+		if attr, isAttr := n.content.(*Attribute); isAttr {
+			nameObj := attr.name.content.(*identifier)
+			name := string(nameObj.token.Bytes)
+			ret[name] = attr
+		}
+	}
+	return ret
+}
+
+// Blocks returns a new slice of all the blocks in the body.
+func (b *Body) Blocks() []*Block {
+	ret := make([]*Block, 0, len(b.items))
+	for n := range b.items {
+		if block, isBlock := n.content.(*Block); isBlock {
+			ret = append(ret, block)
+		}
+	}
+	return ret
 }
 
 // GetAttribute returns the attribute from the body that has the given name,
@@ -67,7 +104,7 @@ func (b *Body) SetAttributeValue(name string, val cty.Value) *Attribute {
 }
 
 // SetAttributeTraversal either replaces the expression of an existing attribute
-// of the given name or adds a new attribute definition to the end of the block.
+// of the given name or adds a new attribute definition to the end of the body.
 //
 // The new expression is given as a hcl.Traversal, which must be an absolute
 // traversal. To set a literal value, use SetAttributeValue.
@@ -75,59 +112,42 @@ func (b *Body) SetAttributeValue(name string, val cty.Value) *Attribute {
 // The return value is the attribute that was either modified in-place or
 // created.
 func (b *Body) SetAttributeTraversal(name string, traversal hcl.Traversal) *Attribute {
-	panic("Body.SetAttributeTraversal not yet implemented")
-}
-
-type Attribute struct {
-	inTree
-
-	leadComments *node
-	name         *node
-	expr         *node
-	lineComments *node
-}
-
-func newAttribute() *Attribute {
-	return &Attribute{
-		inTree: newInTree(),
+	attr := b.GetAttribute(name)
+	expr := NewExpressionAbsTraversal(traversal)
+	if attr != nil {
+		attr.expr = attr.expr.ReplaceWith(expr)
+	} else {
+		attr := newAttribute()
+		attr.init(name, expr)
+		b.appendItem(attr)
 	}
+	return attr
 }
 
-func (a *Attribute) init(name string, expr *Expression) {
-	expr.assertUnattached()
+// AppendBlock appends an existing block (which must not be already attached
+// to a body) to the end of the receiving body.
+func (b *Body) AppendBlock(block *Block) *Block {
+	b.appendItem(block)
+	return block
+}
 
-	nameTok := newIdentToken(name)
-	nameObj := newIdentifier(nameTok)
-	a.leadComments = a.children.Append(newComments(nil))
-	a.name = a.children.Append(nameObj)
-	a.children.AppendUnstructuredTokens(Tokens{
-		{
-			Type:  hclsyntax.TokenEqual,
-			Bytes: []byte{'='},
-		},
-	})
-	a.expr = a.children.Append(expr)
-	a.expr.list = a.children
-	a.lineComments = a.children.Append(newComments(nil))
-	a.children.AppendUnstructuredTokens(Tokens{
+// AppendNewBlock appends a new nested block to the end of the receiving body
+// with the given type name and labels.
+func (b *Body) AppendNewBlock(typeName string, labels []string) *Block {
+	block := newBlock()
+	block.init(typeName, labels)
+	b.appendItem(block)
+	return block
+}
+
+// AppendNewline appends a newline token to th end of the receiving body,
+// which generally serves as a separator between different sets of body
+// contents.
+func (b *Body) AppendNewline() {
+	b.AppendUnstructuredTokens(Tokens{
 		{
 			Type:  hclsyntax.TokenNewline,
 			Bytes: []byte{'\n'},
 		},
 	})
-}
-
-func (a *Attribute) Expr() *Expression {
-	return a.expr.content.(*Expression)
-}
-
-type Block struct {
-	inTree
-
-	leadComments *node
-	typeName     *node
-	labels       nodeSet
-	open         *node
-	body         *node
-	close        *node
 }
