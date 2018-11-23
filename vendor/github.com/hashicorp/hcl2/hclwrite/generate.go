@@ -5,6 +5,7 @@ import (
 	"unicode"
 	"unicode/utf8"
 
+	"github.com/hashicorp/hcl2/hcl"
 	"github.com/hashicorp/hcl2/hcl/hclsyntax"
 	"github.com/zclconf/go-cty/cty"
 )
@@ -21,6 +22,19 @@ import (
 // no unknown values are present before calling TokensForValue.
 func TokensForValue(val cty.Value) Tokens {
 	toks := appendTokensForValue(val, nil)
+	format(toks) // fiddle with the SpacesBefore field to get canonical spacing
+	return toks
+}
+
+// TokensForTraversal returns a sequence of tokens that represents the given
+// traversal.
+//
+// If the traversal is absolute then the result is a self-contained, valid
+// reference expression. If the traversal is relative then the returned tokens
+// could be appended to some other expression tokens to traverse into the
+// represented expression.
+func TokensForTraversal(traversal hcl.Traversal) Tokens {
+	toks := appendTokensForTraversal(traversal, nil)
 	format(toks) // fiddle with the SpacesBefore field to get canonical spacing
 	return toks
 }
@@ -141,6 +155,47 @@ func appendTokensForValue(val cty.Value, toks Tokens) Tokens {
 	}
 
 	return toks
+}
+
+func appendTokensForTraversal(traversal hcl.Traversal, toks Tokens) Tokens {
+	for _, step := range traversal {
+		appendTokensForTraversalStep(step, toks)
+	}
+	return toks
+}
+
+func appendTokensForTraversalStep(step hcl.Traverser, toks Tokens) {
+	switch ts := step.(type) {
+	case hcl.TraverseRoot:
+		toks = append(toks, &Token{
+			Type:  hclsyntax.TokenIdent,
+			Bytes: []byte(ts.Name),
+		})
+	case hcl.TraverseAttr:
+		toks = append(
+			toks,
+			&Token{
+				Type:  hclsyntax.TokenDot,
+				Bytes: []byte{'.'},
+			},
+			&Token{
+				Type:  hclsyntax.TokenIdent,
+				Bytes: []byte(ts.Name),
+			},
+		)
+	case hcl.TraverseIndex:
+		toks = append(toks, &Token{
+			Type:  hclsyntax.TokenOBrack,
+			Bytes: []byte{'['},
+		})
+		appendTokensForValue(ts.Key, toks)
+		toks = append(toks, &Token{
+			Type:  hclsyntax.TokenCBrack,
+			Bytes: []byte{']'},
+		})
+	default:
+		panic(fmt.Sprintf("unsupported traversal step type %T", step))
+	}
 }
 
 func escapeQuotedStringLit(s string) []byte {

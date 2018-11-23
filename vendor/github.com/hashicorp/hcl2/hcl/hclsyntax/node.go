@@ -19,4 +19,4 @@ type Node interface {
 	Range() hcl.Range
 }
 
-type internalWalkFunc func(Node) Node
+type internalWalkFunc func(Node)
