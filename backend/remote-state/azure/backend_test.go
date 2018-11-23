@@ -144,34 +144,6 @@ func TestBackendServicePrincipalBasic(t *testing.T) {
 	backend.TestBackendStates(t, b)
 }
 
-func TestBackendServicePrincipalDeprecatedFields(t *testing.T) {
-	testAccAzureBackend(t)
-	rs := acctest.RandString(4)
-	res := testResourceNames(rs, "testState")
-	armClient := buildTestClient(t, res)
-
-	ctx := context.TODO()
-	err := armClient.buildTestResources(ctx, &res)
-	defer armClient.destroyTestResources(ctx, res)
-	if err != nil {
-		t.Fatalf("Error creating Test Resources: %q", err)
-	}
-
-	b := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
-		"storage_account_name": res.storageAccountName,
-		"container_name":       res.storageContainerName,
-		"key":                  res.storageKeyName,
-		"resource_group_name":  res.resourceGroup,
-		"arm_subscription_id":  os.Getenv("ARM_SUBSCRIPTION_ID"),
-		"arm_tenant_id":        os.Getenv("ARM_TENANT_ID"),
-		"arm_client_id":        os.Getenv("ARM_CLIENT_ID"),
-		"arm_client_secret":    os.Getenv("ARM_CLIENT_SECRET"),
-		"environment":          os.Getenv("ARM_ENVIRONMENT"),
-	})).(*Backend)
-
-	backend.TestBackendStates(t, b)
-}
-
 func TestBackendAccessKeyLocked(t *testing.T) {
 	testAccAzureBackend(t)
 	rs := acctest.RandString(4)
