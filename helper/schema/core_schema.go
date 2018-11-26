@@ -125,6 +125,20 @@ func (s *Schema) coreConfigSchemaBlock() *configschema.NestedBlock {
 		// blocks, but we can fake it by requiring at least one item.
 		ret.MinItems = 1
 	}
+	if s.Optional && s.MinItems > 0 {
+		// Historically helper/schema would ignore MinItems if Optional were
+		// set, so we must mimic this behavior here to ensure that providers
+		// relying on that undocumented behavior can continue to operate as
+		// they did before.
+		ret.MinItems = 0
+	}
+	if s.Computed && !s.Optional {
+		// MinItems/MaxItems are meaningless for computed nested blocks, since
+		// they are never set by the user anyway. This ensures that we'll never
+		// generate weird errors about them.
+		ret.MinItems = 0
+		ret.MaxItems = 0
+	}
 
 	return ret
 }

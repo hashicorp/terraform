@@ -224,6 +224,90 @@ func TestSchemaMapCoreConfigSchema(t *testing.T) {
 				},
 			}),
 		},
+		"sub-resource collections minitems+optional": {
+			// This particular case is an odd one where the provider gives
+			// conflicting information about whether a sub-resource is required,
+			// by marking it as optional but also requiring one item.
+			// Historically the optional-ness "won" here, and so we must
+			// honor that for compatibility with providers that relied on this
+			// undocumented interaction.
+			map[string]*Schema{
+				"list": {
+					Type:     TypeList,
+					Optional: true,
+					Elem: &Resource{
+						Schema: map[string]*Schema{},
+					},
+					MinItems: 1,
+					MaxItems: 1,
+				},
+				"set": {
+					Type:     TypeSet,
+					Optional: true,
+					Elem: &Resource{
+						Schema: map[string]*Schema{},
+					},
+					MinItems: 1,
+					MaxItems: 1,
+				},
+			},
+			testResource(&configschema.Block{
+				Attributes: map[string]*configschema.Attribute{},
+				BlockTypes: map[string]*configschema.NestedBlock{
+					"list": {
+						Nesting:  configschema.NestingList,
+						Block:    configschema.Block{},
+						MinItems: 0,
+						MaxItems: 1,
+					},
+					"set": {
+						Nesting:  configschema.NestingSet,
+						Block:    configschema.Block{},
+						MinItems: 0,
+						MaxItems: 1,
+					},
+				},
+			}),
+		},
+		"sub-resource collections minitems+computed": {
+			map[string]*Schema{
+				"list": {
+					Type:     TypeList,
+					Computed: true,
+					Elem: &Resource{
+						Schema: map[string]*Schema{},
+					},
+					MinItems: 1,
+					MaxItems: 1,
+				},
+				"set": {
+					Type:     TypeSet,
+					Computed: true,
+					Elem: &Resource{
+						Schema: map[string]*Schema{},
+					},
+					MinItems: 1,
+					MaxItems: 1,
+				},
+			},
+			testResource(&configschema.Block{
+				Attributes: map[string]*configschema.Attribute{},
+				BlockTypes: map[string]*configschema.NestedBlock{
+					"list": {
+						Nesting:  configschema.NestingList,
+						Block:    configschema.Block{},
+						MinItems: 0,
+						MaxItems: 0,
+					},
+					"set": {
+						Nesting:  configschema.NestingSet,
+						Block:    configschema.Block{},
+						MinItems: 0,
+						MaxItems: 0,
+					},
+				},
+			}),
+		},
 		"nested attributes and blocks": {
 			map[string]*Schema{
 				"foo": {
