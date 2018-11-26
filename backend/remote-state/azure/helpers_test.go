@@ -16,7 +16,8 @@ import (
 )
 
 const (
-	sasSignedVersion = "2017-07-29"
+	// required for Azure Stack
+	sasSignedVersion = "2015-04-05"
 )
 
 // verify that we are doing ACC tests or the Azure tests specifically
@@ -45,9 +46,6 @@ func buildTestClient(t *testing.T, res resourceNames) *ArmClient {
 	msiEnabled := strings.EqualFold(os.Getenv("ARM_USE_MSI"), "true")
 	environment := os.Getenv("ARM_ENVIRONMENT")
 
-	// location isn't used in this method, but is in the other test methods
-	location := os.Getenv("ARM_LOCATION")
-
 	hasCredentials := (clientID != "" && clientSecret != "") || msiEnabled
 	if !hasCredentials {
 		t.Fatal("Azure credentials missing or incomplete")
@@ -65,19 +63,25 @@ func buildTestClient(t *testing.T, res resourceNames) *ArmClient {
 		t.Fatalf("Missing ARM_ENVIRONMENT")
 	}
 
+	// location isn't used in this method, but is in the other test methods
+	location := os.Getenv("ARM_LOCATION")
 	if location == "" {
 		t.Fatalf("Missing ARM_LOCATION")
 	}
 
+	// Endpoint is optional (only for Stack)
+	endpoint := os.Getenv("ARM_ENDPOINT")
+
 	armClient, err := buildArmClient(BackendConfig{
-		SubscriptionID:     subscriptionID,
-		TenantID:           tenantID,
-		ClientID:           clientID,
-		ClientSecret:       clientSecret,
-		Environment:        environment,
-		ResourceGroupName:  res.resourceGroup,
-		StorageAccountName: res.storageAccountName,
-		UseMsi:             msiEnabled,
+		SubscriptionID:                subscriptionID,
+		TenantID:                      tenantID,
+		ClientID:                      clientID,
+		ClientSecret:                  clientSecret,
+		CustomResourceManagerEndpoint: endpoint,
+		Environment:                   environment,
+		ResourceGroupName:             res.resourceGroup,
+		StorageAccountName:            res.storageAccountName,
+		UseMsi:                        msiEnabled,
 	})
 	if err != nil {
 		t.Fatalf("Failed to build ArmClient: %+v", err)
@@ -99,7 +103,9 @@ func buildSasToken(accountName, accessKey string) (*string, error) {
 	signedVersion := sasSignedVersion
 
 	utcNow := time.Now().UTC()
-	startDate := utcNow.Format(time.RFC3339)
+
+	// account for servers being up to 5 minutes out
+	startDate := utcNow.Add(time.Minute * -5).Format(time.RFC3339)
 	endDate := utcNow.Add(time.Hour * 24).Format(time.RFC3339)
 
 	sasToken, err := sasStorage.ComputeSASToken(accountName, accessKey, permissions, services, resourceTypes,

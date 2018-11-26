@@ -55,6 +55,7 @@ func TestBackendAccessKeyBasic(t *testing.T) {
 		"key":                  res.storageKeyName,
 		"access_key":           res.storageAccountAccessKey,
 		"environment":          os.Getenv("ARM_ENVIRONMENT"),
+		"endpoint":             os.Getenv("ARM_ENDPOINT"),
 	})).(*Backend)
 
 	backend.TestBackendStates(t, b)
@@ -82,6 +83,7 @@ func TestBackendManagedServiceIdentityBasic(t *testing.T) {
 		"subscription_id":      os.Getenv("ARM_SUBSCRIPTION_ID"),
 		"tenant_id":            os.Getenv("ARM_TENANT_ID"),
 		"environment":          os.Getenv("ARM_ENVIRONMENT"),
+		"endpoint":             os.Getenv("ARM_ENDPOINT"),
 	})).(*Backend)
 
 	backend.TestBackendStates(t, b)
@@ -111,6 +113,7 @@ func TestBackendSASTokenBasic(t *testing.T) {
 		"key":                  res.storageKeyName,
 		"sas_token":            *sasToken,
 		"environment":          os.Getenv("ARM_ENVIRONMENT"),
+		"endpoint":             os.Getenv("ARM_ENDPOINT"),
 	})).(*Backend)
 
 	backend.TestBackendStates(t, b)
@@ -139,6 +142,43 @@ func TestBackendServicePrincipalBasic(t *testing.T) {
 		"client_id":            os.Getenv("ARM_CLIENT_ID"),
 		"client_secret":        os.Getenv("ARM_CLIENT_SECRET"),
 		"environment":          os.Getenv("ARM_ENVIRONMENT"),
+		"endpoint":             os.Getenv("ARM_ENDPOINT"),
+	})).(*Backend)
+
+	backend.TestBackendStates(t, b)
+}
+
+func TestBackendServicePrincipalCustomEndpoint(t *testing.T) {
+	testAccAzureBackend(t)
+
+	// this is only applicable for Azure Stack.
+	endpoint := os.Getenv("ARM_ENDPOINT")
+	if endpoint == "" {
+		t.Skip("Skipping as ARM_ENDPOINT isn't configured")
+	}
+
+	rs := acctest.RandString(4)
+	res := testResourceNames(rs, "testState")
+	armClient := buildTestClient(t, res)
+
+	ctx := context.TODO()
+	err := armClient.buildTestResources(ctx, &res)
+	defer armClient.destroyTestResources(ctx, res)
+	if err != nil {
+		t.Fatalf("Error creating Test Resources: %q", err)
+	}
+
+	b := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
+		"storage_account_name": res.storageAccountName,
+		"container_name":       res.storageContainerName,
+		"key":                  res.storageKeyName,
+		"resource_group_name":  res.resourceGroup,
+		"subscription_id":      os.Getenv("ARM_SUBSCRIPTION_ID"),
+		"tenant_id":            os.Getenv("ARM_TENANT_ID"),
+		"client_id":            os.Getenv("ARM_CLIENT_ID"),
+		"client_secret":        os.Getenv("ARM_CLIENT_SECRET"),
+		"environment":          os.Getenv("ARM_ENVIRONMENT"),
+		"endpoint":             endpoint,
 	})).(*Backend)
 
 	backend.TestBackendStates(t, b)
@@ -163,6 +203,7 @@ func TestBackendAccessKeyLocked(t *testing.T) {
 		"key":                  res.storageKeyName,
 		"access_key":           res.storageAccountAccessKey,
 		"environment":          os.Getenv("ARM_ENVIRONMENT"),
+		"endpoint":             os.Getenv("ARM_ENDPOINT"),
 	})).(*Backend)
 
 	b2 := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
@@ -171,6 +212,7 @@ func TestBackendAccessKeyLocked(t *testing.T) {
 		"key":                  res.storageKeyName,
 		"access_key":           res.storageAccountAccessKey,
 		"environment":          os.Getenv("ARM_ENVIRONMENT"),
+		"endpoint":             os.Getenv("ARM_ENDPOINT"),
 	})).(*Backend)
 
 	backend.TestBackendStateLocks(t, b1, b2)
@@ -200,6 +242,7 @@ func TestBackendServicePrincipalLocked(t *testing.T) {
 		"client_id":            os.Getenv("ARM_CLIENT_ID"),
 		"client_secret":        os.Getenv("ARM_CLIENT_SECRET"),
 		"environment":          os.Getenv("ARM_ENVIRONMENT"),
+		"endpoint":             os.Getenv("ARM_ENDPOINT"),
 	})).(*Backend)
 
 	b2 := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
@@ -212,6 +255,7 @@ func TestBackendServicePrincipalLocked(t *testing.T) {
 		"client_id":            os.Getenv("ARM_CLIENT_ID"),
 		"client_secret":        os.Getenv("ARM_CLIENT_SECRET"),
 		"environment":          os.Getenv("ARM_ENVIRONMENT"),
+		"endpoint":             os.Getenv("ARM_ENDPOINT"),
 	})).(*Backend)
 
 	backend.TestBackendStateLocks(t, b1, b2)

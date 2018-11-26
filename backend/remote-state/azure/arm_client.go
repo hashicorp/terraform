@@ -32,10 +32,11 @@ type ArmClient struct {
 }
 
 func buildArmClient(config BackendConfig) (*ArmClient, error) {
-	env, err := authentication.DetermineEnvironment(config.Environment)
+	env, err := buildArmEnvironment(config)
 	if err != nil {
 		return nil, err
 	}
+
 	client := ArmClient{
 		environment:        *env,
 		resourceGroupName:  config.ResourceGroupName,
@@ -55,12 +56,13 @@ func buildArmClient(config BackendConfig) (*ArmClient, error) {
 	}
 
 	builder := authentication.Builder{
-		ClientID:       config.ClientID,
-		ClientSecret:   config.ClientSecret,
-		SubscriptionID: config.SubscriptionID,
-		TenantID:       config.TenantID,
-		Environment:    config.Environment,
-		MsiEndpoint:    config.MsiEndpoint,
+		ClientID:                      config.ClientID,
+		ClientSecret:                  config.ClientSecret,
+		SubscriptionID:                config.SubscriptionID,
+		TenantID:                      config.TenantID,
+		CustomResourceManagerEndpoint: config.CustomResourceManagerEndpoint,
+		Environment:                   config.Environment,
+		MsiEndpoint:                   config.MsiEndpoint,
 
 		// Feature Toggles
 		SupportsClientSecretAuth:       true,
@@ -77,7 +79,7 @@ func buildArmClient(config BackendConfig) (*ArmClient, error) {
 		return nil, err
 	}
 
-	auth, err := armConfig.GetAuthorizationToken(oauthConfig, env.ResourceManagerEndpoint)
+	auth, err := armConfig.GetAuthorizationToken(oauthConfig, env.TokenAudience)
 	if err != nil {
 		return nil, err
 	}
@@ -91,6 +93,16 @@ func buildArmClient(config BackendConfig) (*ArmClient, error) {
 	client.groupsClient = &groupsClient
 
 	return &client, nil
+}
+
+func buildArmEnvironment(config BackendConfig) (*azure.Environment, error) {
+	if config.CustomResourceManagerEndpoint != "" {
+		log.Printf("Loading Environment from Endpoint %q", config.CustomResourceManagerEndpoint)
+		return authentication.LoadEnvironmentFromUrl(config.CustomResourceManagerEndpoint)
+	}
+
+	log.Printf("Loading Environment %q", config.Environment)
+	return authentication.DetermineEnvironment(config.Environment)
 }
 
 func (c ArmClient) getBlobClient(ctx context.Context) (*storage.BlobStorageClient, error) {

@@ -152,6 +152,10 @@ The following configuration options are supported:
 
 * `environment` - (Optional) The Azure Environment which should be used. This can also be sourced from the `ARM_ENVIRONMENT` environment variable. Possible values are `public`, `china`, `german`, `stack` and `usgovernment`. Defaults to `public`.
 
+* `endpoint` - (Optional) The Custom Endpoint for Azure Resource Manager. This can also be sourced from the `ARM_ENDPOINT` environment variable.
+
+~> **NOTE:** An `endpoint` should only be configured when using Azure Stack.
+
 ---
 
 When authenticating using the Managed Service Identity (MSI) - the following fields are also supported:
