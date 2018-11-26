@@ -55,8 +55,6 @@ vendor in close collaboration with HashiCorp, and are tested by HashiCorp.
 
 [Scaleway](/docs/providers/scaleway/index.html)
 
-[SelVPC](/docs/provider/selvpc/index.html)
-
 [SoftLayer](/docs/providers/softlayer/index.html)
 
 [TelefonicaOpenCloud](/docs/providers/telefonicaopencloud/index.html)
