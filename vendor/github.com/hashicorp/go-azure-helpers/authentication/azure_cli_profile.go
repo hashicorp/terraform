@@ -13,7 +13,6 @@ type azureCLIProfile struct {
 	subscriptionId  string
 	tenantId        string
 	accessToken     *adal.Token
-	usingCloudShell bool
 }
 
 func (a *azureCLIProfile) populateFields() error {
@@ -31,12 +30,6 @@ func (a *azureCLIProfile) populateFields() error {
 		if err != nil {
 			return err
 		}
-	}
-
-	// now we know the Subscription ID & Tenant ID we can find the associated Client ID/Access Token
-	err := a.populateClientIdAndAccessToken()
-	if err != nil {
-		return err
 	}
 
 	// always pull the environment from the Azure CLI, since the Access Token's associated with it
