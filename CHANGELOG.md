@@ -11,6 +11,7 @@ IMPROVEMENTS:
 * backend/azurerm: Fixing a bug where locks couldn't be unlocked [GH-19441]
 * backend/azurerm: Support for authenticating via Managed Service Identity [GH-19433]
 * backend/azurerm: Support for authenticating using a SAS Token [GH-19440]
+* backend/azurerm: Support for custom Resource Manager Endpoints [GH-19460]
 * backend/azurerm: Using the proxy from the environment when set [GH-19414]
 * backend/azurerm: Deprecating the `arm_` prefix for keys used in the backend configuration [GH-19448]
 * command/state: Update and enable the `state show` command [GH-19200]
