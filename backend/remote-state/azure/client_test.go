@@ -35,6 +35,7 @@ func TestRemoteClientAccessKeyBasic(t *testing.T) {
 		"key":                  res.storageKeyName,
 		"access_key":           res.storageAccountAccessKey,
 		"environment":          os.Getenv("ARM_ENVIRONMENT"),
+		"endpoint":             os.Getenv("ARM_ENDPOINT"),
 	})).(*Backend)
 
 	state, err := b.StateMgr(backend.DefaultStateName)
@@ -67,6 +68,7 @@ func TestRemoteClientManagedServiceIdentityBasic(t *testing.T) {
 		"subscription_id":      os.Getenv("ARM_SUBSCRIPTION_ID"),
 		"tenant_id":            os.Getenv("ARM_TENANT_ID"),
 		"environment":          os.Getenv("ARM_ENVIRONMENT"),
+		"endpoint":             os.Getenv("ARM_ENDPOINT"),
 	})).(*Backend)
 
 	state, err := b.StateMgr(backend.DefaultStateName)
@@ -101,6 +103,7 @@ func TestRemoteClientSasTokenBasic(t *testing.T) {
 		"key":                  res.storageKeyName,
 		"sas_token":            *sasToken,
 		"environment":          os.Getenv("ARM_ENVIRONMENT"),
+		"endpoint":             os.Getenv("ARM_ENDPOINT"),
 	})).(*Backend)
 
 	state, err := b.StateMgr(backend.DefaultStateName)
@@ -134,6 +137,7 @@ func TestRemoteClientServicePrincipalBasic(t *testing.T) {
 		"client_id":            os.Getenv("ARM_CLIENT_ID"),
 		"client_secret":        os.Getenv("ARM_CLIENT_SECRET"),
 		"environment":          os.Getenv("ARM_ENVIRONMENT"),
+		"endpoint":             os.Getenv("ARM_ENDPOINT"),
 	})).(*Backend)
 
 	state, err := b.StateMgr(backend.DefaultStateName)
@@ -163,6 +167,7 @@ func TestRemoteClientAccessKeyLocks(t *testing.T) {
 		"key":                  res.storageKeyName,
 		"access_key":           res.storageAccountAccessKey,
 		"environment":          os.Getenv("ARM_ENVIRONMENT"),
+		"endpoint":             os.Getenv("ARM_ENDPOINT"),
 	})).(*Backend)
 
 	b2 := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
@@ -171,6 +176,7 @@ func TestRemoteClientAccessKeyLocks(t *testing.T) {
 		"key":                  res.storageKeyName,
 		"access_key":           res.storageAccountAccessKey,
 		"environment":          os.Getenv("ARM_ENVIRONMENT"),
+		"endpoint":             os.Getenv("ARM_ENDPOINT"),
 	})).(*Backend)
 
 	s1, err := b1.StateMgr(backend.DefaultStateName)
@@ -209,6 +215,7 @@ func TestRemoteClientServicePrincipalLocks(t *testing.T) {
 		"client_id":            os.Getenv("ARM_CLIENT_ID"),
 		"client_secret":        os.Getenv("ARM_CLIENT_SECRET"),
 		"environment":          os.Getenv("ARM_ENVIRONMENT"),
+		"endpoint":             os.Getenv("ARM_ENDPOINT"),
 	})).(*Backend)
 
 	b2 := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
@@ -221,6 +228,7 @@ func TestRemoteClientServicePrincipalLocks(t *testing.T) {
 		"client_id":            os.Getenv("ARM_CLIENT_ID"),
 		"client_secret":        os.Getenv("ARM_CLIENT_SECRET"),
 		"environment":          os.Getenv("ARM_ENVIRONMENT"),
+		"endpoint":             os.Getenv("ARM_ENDPOINT"),
 	})).(*Backend)
 
 	s1, err := b1.StateMgr(backend.DefaultStateName)

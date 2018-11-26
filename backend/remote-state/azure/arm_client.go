@@ -32,10 +32,11 @@ type ArmClient struct {
 }
 
 func buildArmClient(config BackendConfig) (*ArmClient, error) {
-	env, err := authentication.DetermineEnvironment(config.Environment)
+	env, err := buildArmEnvironment(config)
 	if err != nil {
 		return nil, err
 	}
+
 	client := ArmClient{
 		environment:        *env,
 		resourceGroupName:  config.ResourceGroupName,
@@ -55,12 +56,13 @@ func buildArmClient(config BackendConfig) (*ArmClient, error) {
 	}
 
 	builder := authentication.Builder{
-		ClientID:       config.ClientID,
-		ClientSecret:   config.ClientSecret,
-		SubscriptionID: config.SubscriptionID,
-		TenantID:       config.TenantID,
-		Environment:    config.Environment,
-		MsiEndpoint:    config.MsiEndpoint,
+		ClientID:                      config.ClientID,
+		ClientSecret:                  config.ClientSecret,
+		SubscriptionID:                config.SubscriptionID,
+		TenantID:                      config.TenantID,
+		CustomResourceManagerEndpoint: config.CustomResourceManagerEndpoint,
+		Environment:                   config.Environment,
+		MsiEndpoint:                   config.MsiEndpoint,
 
 		// Feature Toggles
 		SupportsClientSecretAuth:       true,
@@ -77,7 +79,7 @@ func buildArmClient(config BackendConfig) (*ArmClient, error) {
 		return nil, err
 	}
 
-	auth, err := armConfig.GetAuthorizationToken(oauthConfig, env.ResourceManagerEndpoint)
+	auth, err := armConfig.GetAuthorizationToken(oauthConfig, env.TokenAudience)
 	if err != nil {
 		return nil, err
 	}
@@ -93,9 +95,19 @@ func buildArmClient(config BackendConfig) (*ArmClient, error) {
 	return &client, nil
 }
 
+func buildArmEnvironment(config BackendConfig) (*azure.Environment, error) {
+	if config.CustomResourceManagerEndpoint != "" {
+		log.Printf("[DEBUG] Loading Environment from Endpoint %q", config.CustomResourceManagerEndpoint)
+		return authentication.LoadEnvironmentFromUrl(config.CustomResourceManagerEndpoint)
+	}
+
+	log.Printf("[DEBUG] Loading Environment %q", config.Environment)
+	return authentication.DetermineEnvironment(config.Environment)
+}
+
 func (c ArmClient) getBlobClient(ctx context.Context) (*storage.BlobStorageClient, error) {
 	if c.accessKey != "" {
-		log.Printf("Building the Blob Client from an Access Token")
+		log.Printf("[DEBUG] Building the Blob Client from an Access Token")
 		storageClient, err := storage.NewBasicClientOnSovereignCloud(c.storageAccountName, c.accessKey, c.environment)
 		if err != nil {
 			return nil, fmt.Errorf("Error creating storage client for storage account %q: %s", c.storageAccountName, err)
@@ -105,7 +117,7 @@ func (c ArmClient) getBlobClient(ctx context.Context) (*storage.BlobStorageClien
 	}
 
 	if c.sasToken != "" {
-		log.Printf("Building the Blob Client from a SAS Token")
+		log.Printf("[DEBUG] Building the Blob Client from a SAS Token")
 		token := strings.TrimPrefix(c.sasToken, "?")
 		uri, err := url.ParseQuery(token)
 		if err != nil {
@@ -117,7 +129,7 @@ func (c ArmClient) getBlobClient(ctx context.Context) (*storage.BlobStorageClien
 		return &client, nil
 	}
 
-	log.Printf("Building the Blob Client from an Access Token (using user credentials)")
+	log.Printf("[DEBUG] Building the Blob Client from an Access Token (using user credentials)")
 	keys, err := c.storageAccountsClient.ListKeys(ctx, c.resourceGroupName, c.storageAccountName)
 	if err != nil {
 		return nil, fmt.Errorf("Error retrieving keys for Storage Account %q: %s", c.storageAccountName, err)
