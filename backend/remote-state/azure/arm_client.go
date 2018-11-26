@@ -65,6 +65,7 @@ func buildArmClient(config BackendConfig) (*ArmClient, error) {
 		MsiEndpoint:                   config.MsiEndpoint,
 
 		// Feature Toggles
+		SupportsAzureCliToken:          true,
 		SupportsClientSecretAuth:       true,
 		SupportsManagedServiceIdentity: config.UseMsi,
 		// TODO: support for Azure CLI / Client Certificate auth
