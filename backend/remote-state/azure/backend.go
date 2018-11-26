@@ -57,28 +57,28 @@ func New() backend.Backend {
 				Description: "The resource group name.",
 			},
 
-			"arm_subscription_id": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				Description: "The Subscription ID.",
-				DefaultFunc: schema.EnvDefaultFunc("ARM_SUBSCRIPTION_ID", ""),
-			},
-
-			"arm_client_id": {
+			"client_id": {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Description: "The Client ID.",
 				DefaultFunc: schema.EnvDefaultFunc("ARM_CLIENT_ID", ""),
 			},
 
-			"arm_client_secret": {
+			"client_secret": {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Description: "The Client Secret.",
 				DefaultFunc: schema.EnvDefaultFunc("ARM_CLIENT_SECRET", ""),
 			},
 
-			"arm_tenant_id": {
+			"subscription_id": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "The Subscription ID.",
+				DefaultFunc: schema.EnvDefaultFunc("ARM_SUBSCRIPTION_ID", ""),
+			},
+
+			"tenant_id": {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Description: "The Tenant ID.",
@@ -99,7 +99,35 @@ func New() backend.Backend {
 				DefaultFunc: schema.EnvDefaultFunc("ARM_MSI_ENDPOINT", ""),
 			},
 
-			// TODO: rename these fields
+			// Deprecated fields
+			"arm_client_id": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "The Client ID.",
+				Deprecated:  "`arm_client_id` has been replaced by `client_id`",
+			},
+
+			"arm_client_secret": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "The Client Secret.",
+				Deprecated:  "`arm_client_secret` has been replaced by `client_secret`",
+			},
+
+			"arm_subscription_id": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "The Subscription ID.",
+				Deprecated:  "`arm_subscription_id` has been replaced by `subscription_id`",
+			},
+
+			"arm_tenant_id": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "The Tenant ID.",
+				Deprecated:  "`arm_tenant_id` has been replaced by `tenant_id`",
+			},
+
 			// TODO: support for custom resource manager endpoints
 		},
 	}
@@ -142,21 +170,26 @@ func (b *Backend) configure(ctx context.Context) error {
 
 	// Grab the resource data
 	data := schema.FromContextBackendConfig(ctx)
-
 	b.containerName = data.Get("container_name").(string)
 	b.keyName = data.Get("key").(string)
 
+	// support for previously deprecated fields
+	clientId := valueFromDeprecatedField(data, "client_id", "arm_client_id")
+	clientSecret := valueFromDeprecatedField(data, "client_secret", "arm_client_secret")
+	subscriptionId := valueFromDeprecatedField(data, "subscription_id", "arm_subscription_id")
+	tenantId := valueFromDeprecatedField(data, "tenant_id", "arm_tenant_id")
+
 	config := BackendConfig{
 		AccessKey:          data.Get("access_key").(string),
-		ClientID:           data.Get("arm_client_id").(string),
-		ClientSecret:       data.Get("arm_client_secret").(string),
+		ClientID:           clientId,
+		ClientSecret:       clientSecret,
 		Environment:        data.Get("environment").(string),
 		MsiEndpoint:        data.Get("msi_endpoint").(string),
 		ResourceGroupName:  data.Get("resource_group_name").(string),
 		SasToken:           data.Get("sas_token").(string),
 		StorageAccountName: data.Get("storage_account_name").(string),
-		SubscriptionID:     data.Get("arm_subscription_id").(string),
-		TenantID:           data.Get("arm_tenant_id").(string),
+		SubscriptionID:     subscriptionId,
+		TenantID:           tenantId,
 		UseMsi:             data.Get("use_msi").(bool),
 	}
 
@@ -171,4 +204,14 @@ func (b *Backend) configure(ctx context.Context) error {
 
 	b.armClient = armClient
 	return nil
+}
+
+func valueFromDeprecatedField(d *schema.ResourceData, key, deprecatedFieldKey string) string {
+	v := d.Get(key).(string)
+
+	if v == "" {
+		v = d.Get(deprecatedFieldKey).(string)
+	}
+
+	return v
 }
