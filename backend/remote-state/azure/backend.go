@@ -99,6 +99,13 @@ func New() backend.Backend {
 				DefaultFunc: schema.EnvDefaultFunc("ARM_MSI_ENDPOINT", ""),
 			},
 
+			"endpoint": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "A custom Endpoint used to access the Azure Resource Manager API's.",
+				DefaultFunc: schema.EnvDefaultFunc("ARM_ENDPOINT", ""),
+			},
+
 			// Deprecated fields
 			"arm_client_id": {
 				Type:        schema.TypeString,
@@ -127,8 +134,6 @@ func New() backend.Backend {
 				Description: "The Tenant ID.",
 				Deprecated:  "`arm_tenant_id` has been replaced by `tenant_id`",
 			},
-
-			// TODO: support for custom resource manager endpoints
 		},
 	}
 
@@ -151,16 +156,17 @@ type BackendConfig struct {
 	StorageAccountName string
 
 	// Optional
-	AccessKey         string
-	ClientID          string
-	ClientSecret      string
-	Environment       string
-	MsiEndpoint       string
-	ResourceGroupName string
-	SasToken          string
-	SubscriptionID    string
-	TenantID          string
-	UseMsi            bool
+	AccessKey                     string
+	ClientID                      string
+	ClientSecret                  string
+	CustomResourceManagerEndpoint string
+	Environment                   string
+	MsiEndpoint                   string
+	ResourceGroupName             string
+	SasToken                      string
+	SubscriptionID                string
+	TenantID                      string
+	UseMsi                        bool
 }
 
 func (b *Backend) configure(ctx context.Context) error {
@@ -180,17 +186,18 @@ func (b *Backend) configure(ctx context.Context) error {
 	tenantId := valueFromDeprecatedField(data, "tenant_id", "arm_tenant_id")
 
 	config := BackendConfig{
-		AccessKey:          data.Get("access_key").(string),
-		ClientID:           clientId,
-		ClientSecret:       clientSecret,
-		Environment:        data.Get("environment").(string),
-		MsiEndpoint:        data.Get("msi_endpoint").(string),
-		ResourceGroupName:  data.Get("resource_group_name").(string),
-		SasToken:           data.Get("sas_token").(string),
-		StorageAccountName: data.Get("storage_account_name").(string),
-		SubscriptionID:     subscriptionId,
-		TenantID:           tenantId,
-		UseMsi:             data.Get("use_msi").(bool),
+		AccessKey:                     data.Get("access_key").(string),
+		ClientID:                      clientId,
+		ClientSecret:                  clientSecret,
+		CustomResourceManagerEndpoint: data.Get("endpoint").(string),
+		Environment:                   data.Get("environment").(string),
+		MsiEndpoint:                   data.Get("msi_endpoint").(string),
+		ResourceGroupName:             data.Get("resource_group_name").(string),
+		SasToken:                      data.Get("sas_token").(string),
+		StorageAccountName:            data.Get("storage_account_name").(string),
+		SubscriptionID:                subscriptionId,
+		TenantID:                      tenantId,
+		UseMsi:                        data.Get("use_msi").(bool),
 	}
 
 	armClient, err := buildArmClient(config)
