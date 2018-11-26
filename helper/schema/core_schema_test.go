@@ -1,6 +1,7 @@
 package schema
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -289,6 +290,70 @@ func TestSchemaMapCoreConfigSchema(t *testing.T) {
 						Type:      cty.String,
 						Optional:  true,
 						Sensitive: true,
+					},
+				},
+				BlockTypes: map[string]*configschema.NestedBlock{},
+			}),
+		},
+		"conditionally required on": {
+			map[string]*Schema{
+				"string": {
+					Type:     TypeString,
+					Required: true,
+					DefaultFunc: func() (interface{}, error) {
+						return nil, nil
+					},
+				},
+			},
+			testResource(&configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"string": {
+						Type:     cty.String,
+						Required: true,
+					},
+				},
+				BlockTypes: map[string]*configschema.NestedBlock{},
+			}),
+		},
+		"conditionally required off": {
+			map[string]*Schema{
+				"string": {
+					Type:     TypeString,
+					Required: true,
+					DefaultFunc: func() (interface{}, error) {
+						// If we return a non-nil default then this overrides
+						// the "Required: true" for the purpose of building
+						// the core schema, so that core will ignore it not
+						// being set and let the provider handle it.
+						return "boop", nil
+					},
+				},
+			},
+			testResource(&configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"string": {
+						Type:     cty.String,
+						Optional: true,
+					},
+				},
+				BlockTypes: map[string]*configschema.NestedBlock{},
+			}),
+		},
+		"conditionally required error": {
+			map[string]*Schema{
+				"string": {
+					Type:     TypeString,
+					Required: true,
+					DefaultFunc: func() (interface{}, error) {
+						return nil, fmt.Errorf("placeholder error")
+					},
+				},
+			},
+			testResource(&configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"string": {
+						Type:     cty.String,
+						Optional: true, // Just so we can progress to provider-driven validation and return the error there
 					},
 				},
 				BlockTypes: map[string]*configschema.NestedBlock{},
