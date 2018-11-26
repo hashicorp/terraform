@@ -15,7 +15,7 @@ Stores the state as a Blob with the given Key within the Blob Container within [
 
 ## Example Configuration
 
-When authenticating using a Service Principal:
+When authenticating using the Azure CLI or a Service Principal:
 
 ```hcl
 terraform {
