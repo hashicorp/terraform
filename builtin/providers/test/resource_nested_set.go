@@ -92,7 +92,6 @@ func testResourceNestedSet() *schema.Resource {
 			"with_list": {
 				Type:     schema.TypeSet,
 				Optional: true,
-				Computed: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"required": {
@@ -131,7 +130,7 @@ func testResourceNestedSetCreate(d *schema.ResourceData, meta interface{}) error
 
 	d.Set("single", set)
 
-	return testResourceNestedRead(d, meta)
+	return testResourceNestedSetRead(d, meta)
 }
 
 func testResourceNestedSetRead(d *schema.ResourceData, meta interface{}) error {
