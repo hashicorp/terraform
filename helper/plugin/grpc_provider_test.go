@@ -11,6 +11,7 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
+	"github.com/hashicorp/terraform/config/hcl2shim"
 	"github.com/hashicorp/terraform/helper/schema"
 	proto "github.com/hashicorp/terraform/internal/tfplugin5"
 	"github.com/hashicorp/terraform/terraform"
@@ -642,6 +643,7 @@ func TestGetSchemaTimeouts(t *testing.T) {
 
 func TestNormalizeFlatmapContainers(t *testing.T) {
 	for i, tc := range []struct {
+		prior  map[string]string
 		attrs  map[string]string
 		expect map[string]string
 	}{
@@ -665,9 +667,23 @@ func TestNormalizeFlatmapContainers(t *testing.T) {
 			attrs:  map[string]string{"set.2.required": "bar", "set.2.list.#": "1", "set.2.list.0": "x", "set.1.list.#": "0", "set.#": "2"},
 			expect: map[string]string{"set.2.list.#": "1", "set.2.list.0": "x", "set.2.required": "bar", "set.#": "1"},
 		},
+		{
+			attrs:  map[string]string{"map.%": hcl2shim.UnknownVariableValue, "list.#": hcl2shim.UnknownVariableValue, "id": "1"},
+			expect: map[string]string{"id": "1", "map.%": hcl2shim.UnknownVariableValue, "list.#": hcl2shim.UnknownVariableValue},
+		},
+		{
+			prior:  map[string]string{"map.%": "0"},
+			attrs:  map[string]string{"map.%": "0", "list.#": "0", "id": "1"},
+			expect: map[string]string{"id": "1", "map.%": "0"},
+		},
+		{
+			prior:  map[string]string{"map.%": hcl2shim.UnknownVariableValue, "list.#": "0"},
+			attrs:  map[string]string{"map.%": "0", "list.#": "0", "id": "1"},
+			expect: map[string]string{"id": "1", "map.%": "0", "list.#": "0"},
+		},
 	} {
 		t.Run(strconv.Itoa(i), func(t *testing.T) {
-			got := normalizeFlatmapContainers(tc.attrs)
+			got := normalizeFlatmapContainers(tc.prior, tc.attrs)
 			if !reflect.DeepEqual(tc.expect, got) {
 				t.Fatalf("expected:\n%#v\ngot:\n%#v\n", tc.expect, got)
 			}

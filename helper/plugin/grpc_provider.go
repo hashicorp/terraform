@@ -419,7 +419,7 @@ func (s *GRPCProviderServer) ReadResource(_ context.Context, req *proto.ReadReso
 	// helper/schema should always copy the ID over, but do it again just to be safe
 	newInstanceState.Attributes["id"] = newInstanceState.ID
 
-	newInstanceState.Attributes = normalizeFlatmapContainers(newInstanceState.Attributes)
+	newInstanceState.Attributes = normalizeFlatmapContainers(instanceState.Attributes, newInstanceState.Attributes)
 
 	newStateVal, err := hcl2shim.HCL2ValueFromFlatmap(newInstanceState.Attributes, block.ImpliedType())
 	if err != nil {
@@ -481,9 +481,9 @@ func (s *GRPCProviderServer) PlanResourceChange(_ context.Context, req *proto.Pl
 	priorState.Meta = priorPrivate
 
 	// turn the proposed state into a legacy configuration
-	config := terraform.NewResourceConfigShimmed(proposedNewStateVal, block)
+	cfg := terraform.NewResourceConfigShimmed(proposedNewStateVal, block)
 
-	diff, err := s.provider.SimpleDiff(info, priorState, config)
+	diff, err := s.provider.SimpleDiff(info, priorState, cfg)
 	if err != nil {
 		resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
 		return resp, nil
@@ -517,7 +517,7 @@ func (s *GRPCProviderServer) PlanResourceChange(_ context.Context, req *proto.Pl
 	// now we need to apply the diff to the prior state, so get the planned state
 	plannedAttrs, err := diff.Apply(priorState.Attributes, block)
 
-	plannedAttrs = normalizeFlatmapContainers(plannedAttrs)
+	plannedAttrs = normalizeFlatmapContainers(priorState.Attributes, plannedAttrs)
 
 	plannedStateVal, err := hcl2shim.HCL2ValueFromFlatmap(plannedAttrs, block.ImpliedType())
 	if err != nil {
@@ -667,8 +667,12 @@ func (s *GRPCProviderServer) ApplyResourceChange(_ context.Context, req *proto.A
 		return resp, nil
 	}
 
+	// here we use the planned state to check for unknown/zero containers values
+	// when normalizing the flatmap.
+	plannedState := hcl2shim.FlatmapValueFromHCL2(plannedStateVal)
+
 	if newInstanceState != nil {
-		newInstanceState.Attributes = normalizeFlatmapContainers(newInstanceState.Attributes)
+		newInstanceState.Attributes = normalizeFlatmapContainers(plannedState, newInstanceState.Attributes)
 	}
 
 	newStateVal := cty.NullVal(block.ImpliedType())
@@ -845,16 +849,37 @@ func pathToAttributePath(path cty.Path) *proto.AttributePath {
 }
 
 // normalizeFlatmapContainers removes empty containers, and fixes counts in a
-// set of flatmapped attributes.
-func normalizeFlatmapContainers(attrs map[string]string) map[string]string {
+// set of flatmapped attributes. The prior value is used to determine if there
+// could be zero-length flatmap containers which we need to preserve. This
+// allows a provider to set an empty computed container in the state without
+// creating perpetual diff.
+func normalizeFlatmapContainers(prior map[string]string, attrs map[string]string) map[string]string {
 	keyRx := regexp.MustCompile(`.\.[%#]$`)
+
+	// while we can't determine if the value was actually computed here, we will
+	// trust that our shims stored and retrieved a zero-value container
+	// correctly.
+	zeros := map[string]bool{}
+	for k, v := range prior {
+		if keyRx.MatchString(k) && (v == "0" || v == hcl2shim.UnknownVariableValue) {
+			zeros[k] = true
+		}
+	}
 
 	// find container keys
 	var keys []string
-	for k := range attrs {
-		if keyRx.MatchString(k) {
-			keys = append(keys, k)
+	for k, v := range attrs {
+		if !keyRx.MatchString(k) {
+			continue
 		}
+
+		if v == hcl2shim.UnknownVariableValue {
+			// if the index value indicates the container is unknown, skip
+			// updating the counts.
+			continue
+		}
+
+		keys = append(keys, k)
 	}
 
 	// sort the keys in reverse, so that we check the longest subkeys first
@@ -890,9 +915,15 @@ func normalizeFlatmapContainers(attrs map[string]string) map[string]string {
 			}
 		}
 
-		if len(indexes) > 0 {
+		switch {
+		case len(indexes) == 0 && zeros[k]:
+			// if there were no keys, but the value was known to be zero, the provider
+			// must have set the computed value to an empty container, and we
+			// need to leave it in the flatmap.
+			attrs[k] = "0"
+		case len(indexes) > 0:
 			attrs[k] = strconv.Itoa(len(indexes))
-		} else {
+		default:
 			delete(attrs, k)
 		}
 	}
