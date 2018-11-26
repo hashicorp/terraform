@@ -79,8 +79,8 @@ func TestBackendManagedServiceIdentityBasic(t *testing.T) {
 		"key":                  res.storageKeyName,
 		"resource_group_name":  res.resourceGroup,
 		"use_msi":              true,
-		"arm_subscription_id":  os.Getenv("ARM_SUBSCRIPTION_ID"),
-		"arm_tenant_id":        os.Getenv("ARM_TENANT_ID"),
+		"subscription_id":      os.Getenv("ARM_SUBSCRIPTION_ID"),
+		"tenant_id":            os.Getenv("ARM_TENANT_ID"),
 		"environment":          os.Getenv("ARM_ENVIRONMENT"),
 	})).(*Backend)
 
@@ -134,10 +134,10 @@ func TestBackendServicePrincipalBasic(t *testing.T) {
 		"container_name":       res.storageContainerName,
 		"key":                  res.storageKeyName,
 		"resource_group_name":  res.resourceGroup,
-		"arm_subscription_id":  os.Getenv("ARM_SUBSCRIPTION_ID"),
-		"arm_tenant_id":        os.Getenv("ARM_TENANT_ID"),
-		"arm_client_id":        os.Getenv("ARM_CLIENT_ID"),
-		"arm_client_secret":    os.Getenv("ARM_CLIENT_SECRET"),
+		"subscription_id":      os.Getenv("ARM_SUBSCRIPTION_ID"),
+		"tenant_id":            os.Getenv("ARM_TENANT_ID"),
+		"client_id":            os.Getenv("ARM_CLIENT_ID"),
+		"client_secret":        os.Getenv("ARM_CLIENT_SECRET"),
 		"environment":          os.Getenv("ARM_ENVIRONMENT"),
 	})).(*Backend)
 
@@ -195,10 +195,10 @@ func TestBackendServicePrincipalLocked(t *testing.T) {
 		"container_name":       res.storageContainerName,
 		"key":                  res.storageKeyName,
 		"access_key":           res.storageAccountAccessKey,
-		"arm_subscription_id":  os.Getenv("ARM_SUBSCRIPTION_ID"),
-		"arm_tenant_id":        os.Getenv("ARM_TENANT_ID"),
-		"arm_client_id":        os.Getenv("ARM_CLIENT_ID"),
-		"arm_client_secret":    os.Getenv("ARM_CLIENT_SECRET"),
+		"subscription_id":      os.Getenv("ARM_SUBSCRIPTION_ID"),
+		"tenant_id":            os.Getenv("ARM_TENANT_ID"),
+		"client_id":            os.Getenv("ARM_CLIENT_ID"),
+		"client_secret":        os.Getenv("ARM_CLIENT_SECRET"),
 		"environment":          os.Getenv("ARM_ENVIRONMENT"),
 	})).(*Backend)
 
@@ -207,10 +207,10 @@ func TestBackendServicePrincipalLocked(t *testing.T) {
 		"container_name":       res.storageContainerName,
 		"key":                  res.storageKeyName,
 		"access_key":           res.storageAccountAccessKey,
-		"arm_subscription_id":  os.Getenv("ARM_SUBSCRIPTION_ID"),
-		"arm_tenant_id":        os.Getenv("ARM_TENANT_ID"),
-		"arm_client_id":        os.Getenv("ARM_CLIENT_ID"),
-		"arm_client_secret":    os.Getenv("ARM_CLIENT_SECRET"),
+		"subscription_id":      os.Getenv("ARM_SUBSCRIPTION_ID"),
+		"tenant_id":            os.Getenv("ARM_TENANT_ID"),
+		"client_id":            os.Getenv("ARM_CLIENT_ID"),
+		"client_secret":        os.Getenv("ARM_CLIENT_SECRET"),
 		"environment":          os.Getenv("ARM_ENVIRONMENT"),
 	})).(*Backend)
 
