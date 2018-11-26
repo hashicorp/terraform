@@ -58,22 +58,10 @@ func Diagnostic(diag tfdiags.Diagnostic, sources map[string][]byte, color *color
 		if sourceRefs.Context != nil {
 			snippetRange = sourceRefs.Context.ToHCL()
 		}
+
 		// Make sure the snippet includes the highlight. This should be true
 		// for any reasonable diagnostic, but we'll make sure.
 		snippetRange = hcl.RangeOver(snippetRange, highlightRange)
-
-		// We can't illustrate an empty range, so we'll turn such ranges into
-		// single-character ranges, which might not be totally valid (may point
-		// off the end of a line, or off the end of the file) but are good
-		// enough for the bounds checks we do below.
-		if snippetRange.Empty() {
-			snippetRange.End.Byte++
-			snippetRange.End.Column++
-		}
-		if highlightRange.Empty() {
-			highlightRange.End.Byte++
-			highlightRange.End.Column++
-		}
 
 		var src []byte
 		if sources != nil {
@@ -86,12 +74,25 @@ func Diagnostic(diag tfdiags.Diagnostic, sources map[string][]byte, color *color
 			// a not-so-helpful error message.
 			fmt.Fprintf(&buf, "  on %s line %d:\n  (source code not available)\n", highlightRange.Filename, highlightRange.Start.Line)
 		} else {
-			contextStr := sourceCodeContextStr(src, highlightRange)
+			file, offset := parseRange(src, highlightRange)
+
+			headerRange := highlightRange
+			if snippetRange.Empty() {
+				// We assume that empty range signals diagnostic
+				// related to the whole body, so we lookup the definition
+				// instead of attempting to render empty range
+				snippetRange = hcled.ContextDefRange(file, offset-1)
+				headerRange = snippetRange
+			}
+
+			contextStr := hcled.ContextString(file, offset-1)
 			if contextStr != "" {
 				contextStr = ", in " + contextStr
 			}
-			fmt.Fprintf(&buf, "  on %s line %d%s:\n", highlightRange.Filename, highlightRange.Start.Line, contextStr)
 
+			fmt.Fprintf(&buf, "  on %s line %d%s:\n", headerRange.Filename, headerRange.Start.Line, contextStr)
+
+			// Config snippet rendering
 			sc := hcl.NewRangeScanner(src, highlightRange.Filename, bufio.ScanLines)
 			for sc.Scan() {
 				lineRange := sc.Range()
@@ -185,7 +186,7 @@ func Diagnostic(diag tfdiags.Diagnostic, sources map[string][]byte, color *color
 // An empty string is returned if no suitable description is available, e.g.
 // because the source is invalid, or because the offset is not inside any sort
 // of identifiable container.
-func sourceCodeContextStr(src []byte, rng hcl.Range) string {
+func parseRange(src []byte, rng hcl.Range) (*hcl.File, int) {
 	filename := rng.Filename
 	offset := rng.Start.Byte
 
@@ -203,10 +204,10 @@ func sourceCodeContextStr(src []byte, rng hcl.Range) string {
 		file, diags = parser.ParseHCL(src, filename)
 	}
 	if diags.HasErrors() {
-		return ""
+		return file, offset
 	}
 
-	return hcled.ContextString(file, offset)
+	return file, offset
 }
 
 // traversalStr produces a representation of an HCL traversal that is compact,

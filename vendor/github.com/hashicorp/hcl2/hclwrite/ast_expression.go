@@ -1,7 +1,10 @@
 package hclwrite
 
 import (
+	"fmt"
+
 	"github.com/hashicorp/hcl2/hcl"
+	"github.com/hashicorp/hcl2/hcl/hclsyntax"
 	"github.com/zclconf/go-cty/cty"
 )
 
@@ -41,9 +44,125 @@ func NewExpressionLiteral(val cty.Value) *Expression {
 // NewExpressionAbsTraversal constructs an expression that represents the
 // given traversal, which must be absolute or this function will panic.
 func NewExpressionAbsTraversal(traversal hcl.Traversal) *Expression {
-	panic("NewExpressionAbsTraversal not yet implemented")
+	if traversal.IsRelative() {
+		panic("can't construct expression from relative traversal")
+	}
+
+	physT := newTraversal()
+	rootName := traversal.RootName()
+	steps := traversal[1:]
+
+	{
+		tn := newTraverseName()
+		tn.name = tn.children.Append(newIdentifier(&Token{
+			Type:  hclsyntax.TokenIdent,
+			Bytes: []byte(rootName),
+		}))
+		physT.steps.Add(physT.children.Append(tn))
+	}
+
+	for _, step := range steps {
+		switch ts := step.(type) {
+		case hcl.TraverseAttr:
+			tn := newTraverseName()
+			tn.children.AppendUnstructuredTokens(Tokens{
+				{
+					Type:  hclsyntax.TokenDot,
+					Bytes: []byte{'.'},
+				},
+			})
+			tn.name = tn.children.Append(newIdentifier(&Token{
+				Type:  hclsyntax.TokenIdent,
+				Bytes: []byte(ts.Name),
+			}))
+			physT.steps.Add(physT.children.Append(tn))
+		case hcl.TraverseIndex:
+			ti := newTraverseIndex()
+			ti.children.AppendUnstructuredTokens(Tokens{
+				{
+					Type:  hclsyntax.TokenOBrack,
+					Bytes: []byte{'['},
+				},
+			})
+			indexExpr := NewExpressionLiteral(ts.Key)
+			ti.key = ti.children.Append(indexExpr)
+			ti.children.AppendUnstructuredTokens(Tokens{
+				{
+					Type:  hclsyntax.TokenCBrack,
+					Bytes: []byte{']'},
+				},
+			})
+			physT.steps.Add(physT.children.Append(ti))
+		}
+	}
+
+	expr := newExpression()
+	expr.absTraversals.Add(expr.children.Append(physT))
+	return expr
 }
 
+// Variables returns the absolute traversals that exist within the receiving
+// expression.
+func (e *Expression) Variables() []*Traversal {
+	nodes := e.absTraversals.List()
+	ret := make([]*Traversal, len(nodes))
+	for i, node := range nodes {
+		ret[i] = node.content.(*Traversal)
+	}
+	return ret
+}
+
+// RenameVariablePrefix examines each of the absolute traversals in the
+// receiving expression to see if they have the given sequence of names as
+// a prefix prefix. If so, they are updated in place to have the given
+// replacement names instead of that prefix.
+//
+// This can be used to implement symbol renaming. The calling application can
+// visit all relevant expressions in its input and apply the same renaming
+// to implement a global symbol rename.
+//
+// The search and replacement traversals must be the same length, or this
+// method will panic. Only attribute access operations can be matched and
+// replaced. Index steps never match the prefix.
+func (e *Expression) RenameVariablePrefix(search, replacement []string) {
+	if len(search) != len(replacement) {
+		panic(fmt.Sprintf("search and replacement length mismatch (%d and %d)", len(search), len(replacement)))
+	}
+Traversals:
+	for node := range e.absTraversals {
+		traversal := node.content.(*Traversal)
+		if len(traversal.steps) < len(search) {
+			// If it's shorter then it can't have our prefix
+			continue
+		}
+
+		stepNodes := traversal.steps.List()
+		for i, name := range search {
+			step, isName := stepNodes[i].content.(*TraverseName)
+			if !isName {
+				continue Traversals // only name nodes can match
+			}
+			foundNameBytes := step.name.content.(*identifier).token.Bytes
+			if len(foundNameBytes) != len(name) {
+				continue Traversals
+			}
+			if string(foundNameBytes) != name {
+				continue Traversals
+			}
+		}
+
+		// If we get here then the prefix matched, so now we'll swap in
+		// the replacement strings.
+		for i, name := range replacement {
+			step := stepNodes[i].content.(*TraverseName)
+			token := step.name.content.(*identifier).token
+			token.Bytes = []byte(name)
+		}
+	}
+}
+
+// Traversal represents a sequence of variable, attribute, and/or index
+// operations.
 type Traversal struct {
 	inTree
 

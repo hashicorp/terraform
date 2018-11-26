@@ -47,8 +47,8 @@ type Body struct {
 var assertBodyImplBody hcl.Body = &Body{}
 
 func (b *Body) walkChildNodes(w internalWalkFunc) {
-	b.Attributes = w(b.Attributes).(Attributes)
-	b.Blocks = w(b.Blocks).(Blocks)
+	w(b.Attributes)
+	w(b.Blocks)
 }
 
 func (b *Body) Range() hcl.Range {
@@ -86,8 +86,8 @@ func (b *Body) Content(schema *hcl.BodySchema) (*hcl.BodyContent, hcl.Diagnostic
 
 			diags = append(diags, &hcl.Diagnostic{
 				Severity: hcl.DiagError,
-				Summary:  "Unsupported attribute",
-				Detail:   fmt.Sprintf("An attribute named %q is not expected here.%s", name, suggestion),
+				Summary:  "Unsupported argument",
+				Detail:   fmt.Sprintf("An argument named %q is not expected here.%s", name, suggestion),
 				Subject:  &attr.NameRange,
 			})
 		}
@@ -107,7 +107,7 @@ func (b *Body) Content(schema *hcl.BodySchema) (*hcl.BodyContent, hcl.Diagnostic
 				// Is there an attribute of the same name?
 				for _, attrS := range schema.Attributes {
 					if attrS.Name == blockTy {
-						suggestion = fmt.Sprintf(" Did you mean to define attribute %q?", blockTy)
+						suggestion = fmt.Sprintf(" Did you mean to define argument %q? If so, use the equals sign to assign it a value.", blockTy)
 						break
 					}
 				}
@@ -151,8 +151,8 @@ func (b *Body) PartialContent(schema *hcl.BodySchema) (*hcl.BodyContent, hcl.Bod
 			if attrS.Required {
 				diags = append(diags, &hcl.Diagnostic{
 					Severity: hcl.DiagError,
-					Summary:  "Missing required attribute",
-					Detail:   fmt.Sprintf("The attribute %q is required, but no definition was found.", attrS.Name),
+					Summary:  "Missing required argument",
+					Detail:   fmt.Sprintf("The argument %q is required, but no definition was found.", attrS.Name),
 					Subject:  b.MissingItemRange().Ptr(),
 				})
 			}
@@ -286,8 +286,8 @@ func (b *Body) MissingItemRange() hcl.Range {
 type Attributes map[string]*Attribute
 
 func (a Attributes) walkChildNodes(w internalWalkFunc) {
-	for k, attr := range a {
-		a[k] = w(attr).(*Attribute)
+	for _, attr := range a {
+		w(attr)
 	}
 }
 
@@ -321,7 +321,7 @@ type Attribute struct {
 }
 
 func (a *Attribute) walkChildNodes(w internalWalkFunc) {
-	a.Expr = w(a.Expr).(Expression)
+	w(a.Expr)
 }
 
 func (a *Attribute) Range() hcl.Range {
@@ -346,8 +346,8 @@ func (a *Attribute) AsHCLAttribute() *hcl.Attribute {
 type Blocks []*Block
 
 func (bs Blocks) walkChildNodes(w internalWalkFunc) {
-	for i, block := range bs {
-		bs[i] = w(block).(*Block)
+	for _, block := range bs {
+		w(block)
 	}
 }
 
@@ -378,9 +378,13 @@ type Block struct {
 }
 
 func (b *Block) walkChildNodes(w internalWalkFunc) {
-	b.Body = w(b.Body).(*Body)
+	w(b.Body)
 }
 
 func (b *Block) Range() hcl.Range {
 	return hcl.RangeBetween(b.TypeRange, b.CloseBraceRange)
+}
+
+func (b *Block) DefRange() hcl.Range {
+	return hcl.RangeBetween(b.TypeRange, b.OpenBraceRange)
 }
