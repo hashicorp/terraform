@@ -22,6 +22,7 @@ IMPROVEMENTS:
 
 BUG FIXES:
 
+* command/format: Fix rendering of attribute-agnostic diagnostics [GH-19453]
 * helper/schema: Prevent the insertion of empty diff values when converting legacy diffs [GH-19253]
 * helper/schema: Fix timeout parsing during Provider.Diff (plan) [GH-19286]
 * core: Fix inconsistent plans when replacing instances. [GH-19233]
