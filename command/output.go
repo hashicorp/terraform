@@ -3,7 +3,6 @@ package command
 import (
 	"bytes"
 	"encoding/json"
-	"flag"
 	"fmt"
 	"sort"
 	"strings"
@@ -31,7 +30,7 @@ func (c *OutputCommand) Run(args []string) int {
 
 	var module string
 	var jsonOutput bool
-	cmdFlags := flag.NewFlagSet("output", flag.ContinueOnError)
+	cmdFlags := c.Meta.defaultFlagSet("output")
 	cmdFlags.BoolVar(&jsonOutput, "json", false, "json")
 	cmdFlags.StringVar(&c.Meta.statePath, "state", DefaultStateFilename, "path")
 	cmdFlags.StringVar(&module, "module", "", "module")

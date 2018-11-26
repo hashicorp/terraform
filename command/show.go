@@ -1,7 +1,6 @@
 package command
 
 import (
-	"flag"
 	"fmt"
 	"os"
 	"strings"
@@ -28,8 +27,7 @@ func (c *ShowCommand) Run(args []string) int {
 		return 1
 	}
 
-	cmdFlags := flag.NewFlagSet("show", flag.ContinueOnError)
-
+	cmdFlags := c.Meta.defaultFlagSet("show")
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
 	if err := cmdFlags.Parse(args); err != nil {
 		return 1
@@ -87,6 +85,7 @@ func (c *ShowCommand) Run(args []string) int {
 		return 1
 	}
 
+	// Get the schemas from the context
 	schemas := ctx.Schemas()
 
 	env := c.Workspace()

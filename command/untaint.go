@@ -5,12 +5,10 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/hashicorp/terraform/states"
-
-	"github.com/hashicorp/terraform/tfdiags"
-
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/command/clistate"
+	"github.com/hashicorp/terraform/states"
+	"github.com/hashicorp/terraform/tfdiags"
 )
 
 // UntaintCommand is a cli.Command implementation that manually untaints
@@ -25,16 +23,16 @@ func (c *UntaintCommand) Run(args []string) int {
 		return 1
 	}
 
-	var allowMissing bool
 	var module string
-	cmdFlags := c.Meta.flagSet("untaint")
+	var allowMissing bool
+	cmdFlags := c.Meta.defaultFlagSet("untaint")
 	cmdFlags.BoolVar(&allowMissing, "allow-missing", false, "module")
-	cmdFlags.StringVar(&module, "module", "", "module")
-	cmdFlags.StringVar(&c.Meta.statePath, "state", DefaultStateFilename, "path")
-	cmdFlags.StringVar(&c.Meta.stateOutPath, "state-out", "", "path")
 	cmdFlags.StringVar(&c.Meta.backupPath, "backup", "", "path")
 	cmdFlags.BoolVar(&c.Meta.stateLock, "lock", true, "lock state")
 	cmdFlags.DurationVar(&c.Meta.stateLockTimeout, "lock-timeout", 0, "lock timeout")
+	cmdFlags.StringVar(&module, "module", "", "module")
+	cmdFlags.StringVar(&c.Meta.statePath, "state", DefaultStateFilename, "path")
+	cmdFlags.StringVar(&c.Meta.stateOutPath, "state-out", "", "path")
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
 	if err := cmdFlags.Parse(args); err != nil {
 		return 1
@@ -201,8 +199,6 @@ Options:
   -module=path        The module path where the resource lives. By
                       default this will be root. Child modules can be specified
                       by names. Ex. "consul" or "consul.vpc" (nested modules).
-
-  -no-color           If specified, output won't contain any color.
 
   -state=path         Path to read and save state (unless state-out
                       is specified). Defaults to "terraform.tfstate".

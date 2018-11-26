@@ -389,6 +389,9 @@ func (f rawFlags) Empty() bool {
 }
 
 func (f rawFlags) AllItems() []rawFlag {
+	if f.items == nil {
+		return nil
+	}
 	return *f.items
 }
 

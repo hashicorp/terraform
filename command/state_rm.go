@@ -22,15 +22,17 @@ func (c *StateRmCommand) Run(args []string) int {
 	}
 
 	var dryRun bool
-	cmdFlags := c.Meta.flagSet("state show")
+	cmdFlags := c.Meta.defaultFlagSet("state rm")
 	cmdFlags.BoolVar(&dryRun, "dry-run", false, "dry run")
 	cmdFlags.StringVar(&c.backupPath, "backup", "-", "backup")
+	cmdFlags.BoolVar(&c.Meta.stateLock, "lock", true, "lock state")
+	cmdFlags.DurationVar(&c.Meta.stateLockTimeout, "lock-timeout", 0, "lock timeout")
 	cmdFlags.StringVar(&c.statePath, "state", "", "path")
 	if err := cmdFlags.Parse(args); err != nil {
 		return cli.RunResultHelp
 	}
-	args = cmdFlags.Args()
 
+	args = cmdFlags.Args()
 	if len(args) < 1 {
 		c.Ui.Error("At least one address is required.\n")
 		return cli.RunResultHelp
@@ -164,6 +166,10 @@ Options:
                       state. This can't be disabled. If not set, Terraform
                       will write it to the same path as the statefile with
                       a backup extension.
+
+  -lock=true          Lock the state file when locking is supported.
+
+  -lock-timeout=0s    Duration to retry a state lock.
 
   -state=PATH         Path to the source state file. Defaults to the configured
                       backend, or "terraform.tfstate"

@@ -24,7 +24,7 @@ func (c *StateShowCommand) Run(args []string) int {
 		return 1
 	}
 
-	cmdFlags := c.Meta.flagSet("state show")
+	cmdFlags := c.Meta.defaultFlagSet("state show")
 	cmdFlags.StringVar(&c.Meta.statePath, "state", "", "path")
 	if err := cmdFlags.Parse(args); err != nil {
 		return cli.RunResultHelp
@@ -66,6 +66,7 @@ func (c *StateShowCommand) Run(args []string) int {
 	// Build the operation (required to get the schemas)
 	opReq := c.Operation(b)
 	opReq.ConfigDir = cwd
+
 	opReq.ConfigLoader, err = c.initConfigLoader()
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf("Error initializing config loader: %s", err))
@@ -78,14 +79,6 @@ func (c *StateShowCommand) Run(args []string) int {
 		c.showDiagnostics(ctxDiags)
 		return 1
 	}
-
-	// Make sure to unlock the state
-	defer func() {
-		err := opReq.StateLocker.Unlock(nil)
-		if err != nil {
-			c.Ui.Error(err.Error())
-		}
-	}()
 
 	// Get the schemas from the context
 	schemas := ctx.Schemas()

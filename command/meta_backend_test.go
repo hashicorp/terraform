@@ -1864,7 +1864,7 @@ func testMetaBackend(t *testing.T, args []string) *Meta {
 	var m Meta
 	m.Ui = new(cli.MockUi)
 	m.process(args, true)
-	f := m.flagSet("test")
+	f := m.extendedFlagSet("test")
 	if err := f.Parse(args); err != nil {
 		t.Fatalf("unexpected error: %s", err)
 	}
