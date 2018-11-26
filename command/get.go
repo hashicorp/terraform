@@ -1,7 +1,6 @@
 package command
 
 import (
-	"flag"
 	"fmt"
 	"strings"
 
@@ -22,7 +21,7 @@ func (c *GetCommand) Run(args []string) int {
 		return 1
 	}
 
-	cmdFlags := flag.NewFlagSet("get", flag.ContinueOnError)
+	cmdFlags := c.Meta.defaultFlagSet("get")
 	cmdFlags.BoolVar(&update, "update", false, "update")
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
 	if err := cmdFlags.Parse(args); err != nil {

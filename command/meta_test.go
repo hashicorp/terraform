@@ -73,7 +73,7 @@ func TestMetaInputMode(t *testing.T) {
 	m := new(Meta)
 	args := []string{}
 
-	fs := m.flagSet("foo")
+	fs := m.extendedFlagSet("foo")
 	if err := fs.Parse(args); err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -92,7 +92,7 @@ func TestMetaInputMode_envVar(t *testing.T) {
 	m := new(Meta)
 	args := []string{}
 
-	fs := m.flagSet("foo")
+	fs := m.extendedFlagSet("foo")
 	if err := fs.Parse(args); err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -124,7 +124,7 @@ func TestMetaInputMode_disable(t *testing.T) {
 	m := new(Meta)
 	args := []string{"-input=false"}
 
-	fs := m.flagSet("foo")
+	fs := m.extendedFlagSet("foo")
 	if err := fs.Parse(args); err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -160,7 +160,7 @@ func TestMetaInputMode_defaultVars(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	fs := m.flagSet("foo")
+	fs := m.extendedFlagSet("foo")
 	if err := fs.Parse(args); err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -177,7 +177,7 @@ func TestMetaInputMode_vars(t *testing.T) {
 	m := new(Meta)
 	args := []string{"-var", "foo=bar"}
 
-	fs := m.flagSet("foo")
+	fs := m.extendedFlagSet("foo")
 	if err := fs.Parse(args); err != nil {
 		t.Fatalf("err: %s", err)
 	}

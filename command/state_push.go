@@ -26,8 +26,10 @@ func (c *StatePushCommand) Run(args []string) int {
 	}
 
 	var flagForce bool
-	cmdFlags := c.Meta.flagSet("state push")
+	cmdFlags := c.Meta.defaultFlagSet("state push")
 	cmdFlags.BoolVar(&flagForce, "force", false, "")
+	cmdFlags.BoolVar(&c.Meta.stateLock, "lock", true, "lock state")
+	cmdFlags.DurationVar(&c.Meta.stateLockTimeout, "lock-timeout", 0, "lock timeout")
 	if err := cmdFlags.Parse(args); err != nil {
 		return cli.RunResultHelp
 	}
@@ -138,6 +140,10 @@ Options:
 
   -force              Write the state even if lineages don't match or the
                       remote serial is higher.
+
+  -lock=true          Lock the state file when locking is supported.
+
+  -lock-timeout=0s    Duration to retry a state lock.
 
 `
 	return strings.TrimSpace(helpText)

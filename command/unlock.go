@@ -23,8 +23,8 @@ func (c *UnlockCommand) Run(args []string) int {
 		return 1
 	}
 
-	force := false
-	cmdFlags := c.Meta.flagSet("force-unlock")
+	var force bool
+	cmdFlags := c.Meta.defaultFlagSet("force-unlock")
 	cmdFlags.BoolVar(&force, "force", false, "force")
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
 	if err := cmdFlags.Parse(args); err != nil {
@@ -68,13 +68,13 @@ func (c *UnlockCommand) Run(args []string) int {
 	}
 
 	env := c.Workspace()
-	st, err := b.StateMgr(env)
+	stateMgr, err := b.StateMgr(env)
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf("Failed to load state: %s", err))
 		return 1
 	}
 
-	_, isLocal := st.(*statemgr.Filesystem)
+	_, isLocal := stateMgr.(*statemgr.Filesystem)
 
 	if !force {
 		// Forcing this doesn't do anything, but doesn't break anything either,
@@ -103,7 +103,7 @@ func (c *UnlockCommand) Run(args []string) int {
 		}
 	}
 
-	if err := st.Unlock(lockID); err != nil {
+	if err := stateMgr.Unlock(lockID); err != nil {
 		c.Ui.Error(fmt.Sprintf("Failed to unlock state: %s", err))
 		return 1
 	}
