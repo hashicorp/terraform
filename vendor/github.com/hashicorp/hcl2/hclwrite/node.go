@@ -104,6 +104,11 @@ func (ns *nodes) BuildTokens(to Tokens) Tokens {
 	return to
 }
 
+func (ns *nodes) Clear() {
+	ns.first = nil
+	ns.last = nil
+}
+
 func (ns *nodes) Append(c nodeContent) *node {
 	n := &node{
 		content: c,

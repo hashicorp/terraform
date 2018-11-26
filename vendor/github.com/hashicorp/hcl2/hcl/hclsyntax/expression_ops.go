@@ -129,8 +129,8 @@ type BinaryOpExpr struct {
 }
 
 func (e *BinaryOpExpr) walkChildNodes(w internalWalkFunc) {
-	e.LHS = w(e.LHS).(Expression)
-	e.RHS = w(e.RHS).(Expression)
+	w(e.LHS)
+	w(e.RHS)
 }
 
 func (e *BinaryOpExpr) Value(ctx *hcl.EvalContext) (cty.Value, hcl.Diagnostics) {
@@ -212,7 +212,7 @@ type UnaryOpExpr struct {
 }
 
 func (e *UnaryOpExpr) walkChildNodes(w internalWalkFunc) {
-	e.Val = w(e.Val).(Expression)
+	w(e.Val)
 }
 
 func (e *UnaryOpExpr) Value(ctx *hcl.EvalContext) (cty.Value, hcl.Diagnostics) {
