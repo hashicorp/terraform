@@ -147,29 +147,34 @@ down to see all providers.
     <td><a href="/docs/providers/scaleway/index.html">Scaleway</a></td>
     </tr>
     <tr>
+    <td><a href="/docs/providers/selvpc/index.html">SelVPC</a></td>
     <td><a href="/docs/providers/softlayer/index.html">SoftLayer</a></td>
     <td><a href="/docs/providers/statuscake/index.html">StatusCake</a></td>
-    <td><a href="/docs/providers/spotinst/index.html">Spotinst</a></td>
     </tr>
     <tr>
+    <td><a href="/docs/providers/spotinst/index.html">Spotinst</a></td>
     <td><a href="/docs/providers/telefonicaopencloud/index.html">TelefonicaOpenCloud</a></td>
     <td><a href="/docs/providers/template/index.html">Template</a></td>
-    <td><a href="/docs/providers/tencentcloud/index.html">TencentCloud</a></td>
     </tr>
     <tr>
+    <td><a href="/docs/providers/tencentcloud/index.html">TencentCloud</a></td>
     <td><a href="/docs/providers/terraform/index.html">Terraform</a></td>
     <td><a href="/docs/providers/tfe/index.html">Terraform Enterprise</a></td>
-    <td><a href="/docs/providers/tls/index.html">TLS</a></td>
     </tr>
     <tr>
+    <td><a href="/docs/providers/tls/index.html">TLS</a></td>
     <td><a href="/docs/providers/triton/index.html">Triton</a></td>
     <td><a href="/docs/providers/ultradns/index.html">UltraDNS</a></td>
-    <td><a href="/docs/providers/vault/index.html">Vault</a></td>
     </tr>
     <tr>
+    <td><a href="/docs/providers/vault/index.html">Vault</a></td>
     <td><a href="/docs/providers/vcd/index.html">VMware vCloud Director</a></td>
     <td><a href="/docs/providers/nsxt/index.html">VMware NSX-T</a></td>
+    </tr>
+    <tr>
     <td><a href="/docs/providers/vsphere/index.html">VMware vSphere</a></td>
+    <td><a></a></td>
+    <td><a></a></td>
     </tr>
 </table>
 
