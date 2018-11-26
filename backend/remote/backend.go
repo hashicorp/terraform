@@ -328,6 +328,84 @@ func (b *Remote) token(hostname string) (string, error) {
 	return "", nil
 }
 
+// Workspaces implements backend.Enhanced.
+func (b *Remote) Workspaces() ([]string, error) {
+	if b.prefix == "" {
+		return nil, backend.ErrWorkspacesNotSupported
+	}
+	return b.workspaces()
+}
+
+// workspaces returns a filtered list of remote workspace names.
+func (b *Remote) workspaces() ([]string, error) {
+	options := tfe.WorkspaceListOptions{}
+	switch {
+	case b.workspace != "":
+		options.Search = tfe.String(b.workspace)
+	case b.prefix != "":
+		options.Search = tfe.String(b.prefix)
+	}
+
+	// Create a slice to contain all the names.
+	var names []string
+
+	for {
+		wl, err := b.client.Workspaces.List(context.Background(), b.organization, options)
+		if err != nil {
+			return nil, err
+		}
+
+		for _, w := range wl.Items {
+			if b.workspace != "" && w.Name == b.workspace {
+				names = append(names, backend.DefaultStateName)
+				continue
+			}
+			if b.prefix != "" && strings.HasPrefix(w.Name, b.prefix) {
+				names = append(names, strings.TrimPrefix(w.Name, b.prefix))
+			}
+		}
+
+		// Exit the loop when we've seen all pages.
+		if wl.CurrentPage >= wl.TotalPages {
+			break
+		}
+
+		// Update the page number to get the next page.
+		options.PageNumber = wl.NextPage
+	}
+
+	// Sort the result so we have consistent output.
+	sort.StringSlice(names).Sort()
+
+	return names, nil
+}
+
+// DeleteWorkspace implements backend.Enhanced.
+func (b *Remote) DeleteWorkspace(name string) error {
+	if b.workspace == "" && name == backend.DefaultStateName {
+		return backend.ErrDefaultWorkspaceNotSupported
+	}
+	if b.prefix == "" && name != backend.DefaultStateName {
+		return backend.ErrWorkspacesNotSupported
+	}
+
+	// Configure the remote workspace name.
+	switch {
+	case name == backend.DefaultStateName:
+		name = b.workspace
+	case b.prefix != "" && !strings.HasPrefix(name, b.prefix):
+		name = b.prefix + name
+	}
+
+	client := &remoteClient{
+		client:       b.client,
+		organization: b.organization,
+		workspace:    name,
+	}
+
+	return client.Delete()
+}
+
 // StateMgr implements backend.Enhanced.
 func (b *Remote) StateMgr(name string) (state.State, error) {
 	if b.workspace == "" && name == backend.DefaultStateName {
@@ -385,84 +463,6 @@ func (b *Remote) StateMgr(name string) (state.State, error) {
 	}
 
 	return &remote.State{Client: client}, nil
-}
-
-// DeleteWorkspace implements backend.Enhanced.
-func (b *Remote) DeleteWorkspace(name string) error {
-	if b.workspace == "" && name == backend.DefaultStateName {
-		return backend.ErrDefaultWorkspaceNotSupported
-	}
-	if b.prefix == "" && name != backend.DefaultStateName {
-		return backend.ErrWorkspacesNotSupported
-	}
-
-	// Configure the remote workspace name.
-	switch {
-	case name == backend.DefaultStateName:
-		name = b.workspace
-	case b.prefix != "" && !strings.HasPrefix(name, b.prefix):
-		name = b.prefix + name
-	}
-
-	client := &remoteClient{
-		client:       b.client,
-		organization: b.organization,
-		workspace:    name,
-	}
-
-	return client.Delete()
-}
-
-// Workspaces implements backend.Enhanced.
-func (b *Remote) Workspaces() ([]string, error) {
-	if b.prefix == "" {
-		return nil, backend.ErrWorkspacesNotSupported
-	}
-	return b.workspaces()
-}
-
-// workspaces returns a filtered list of remote workspace names.
-func (b *Remote) workspaces() ([]string, error) {
-	options := tfe.WorkspaceListOptions{}
-	switch {
-	case b.workspace != "":
-		options.Search = tfe.String(b.workspace)
-	case b.prefix != "":
-		options.Search = tfe.String(b.prefix)
-	}
-
-	// Create a slice to contain all the names.
-	var names []string
-
-	for {
-		wl, err := b.client.Workspaces.List(context.Background(), b.organization, options)
-		if err != nil {
-			return nil, err
-		}
-
-		for _, w := range wl.Items {
-			if b.workspace != "" && w.Name == b.workspace {
-				names = append(names, backend.DefaultStateName)
-				continue
-			}
-			if b.prefix != "" && strings.HasPrefix(w.Name, b.prefix) {
-				names = append(names, strings.TrimPrefix(w.Name, b.prefix))
-			}
-		}
-
-		// Exit the loop when we've seen all pages.
-		if wl.CurrentPage >= wl.TotalPages {
-			break
-		}
-
-		// Update the page number to get the next page.
-		options.PageNumber = wl.NextPage
-	}
-
-	// Sort the result so we have consistent output.
-	sort.StringSlice(names).Sort()
-
-	return names, nil
 }
 
 // Operation implements backend.Enhanced.
@@ -645,16 +645,18 @@ func (b *Remote) ReportResult(op *backend.RunningOperation, err error) {
 // Colorize returns the Colorize structure that can be used for colorizing
 // output. This is guaranteed to always return a non-nil value and so useful
 // as a helper to wrap any potentially colored strings.
-// func (b *Remote) Colorize() *colorstring.Colorize {
-// 	if b.CLIColor != nil {
-// 		return b.CLIColor
-// 	}
+//
+// TODO SvH: Rename this back to Colorize as soon as we can pass -no-color.
+func (b *Remote) cliColorize() *colorstring.Colorize {
+	if b.CLIColor != nil {
+		return b.CLIColor
+	}
 
-// 	return &colorstring.Colorize{
-// 		Colors:  colorstring.DefaultColors,
-// 		Disable: true,
-// 	}
-// }
+	return &colorstring.Colorize{
+		Colors:  colorstring.DefaultColors,
+		Disable: true,
+	}
+}
 
 func generalError(msg string, err error) error {
 	var diags tfdiags.Diagnostics

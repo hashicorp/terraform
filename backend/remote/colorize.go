@@ -6,6 +6,9 @@ import (
 	"github.com/mitchellh/colorstring"
 )
 
+// TODO SvH: This file should be deleted and the type cliColorize should be
+// renamed back to Colorize as soon as we can pass -no-color to the backend.
+
 // colorsRe is used to find ANSI escaped color codes.
 var colorsRe = regexp.MustCompile("\033\\[\\d{1,3}m")
 
