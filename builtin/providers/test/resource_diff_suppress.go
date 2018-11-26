@@ -81,6 +81,10 @@ func testResourceDiffSuppressCreate(d *schema.ResourceData, meta interface{}) er
 	d.Set("network", "modified")
 	d.Set("subnetwork", "modified")
 
+	if _, ok := d.GetOk("node_pool"); !ok {
+		d.Set("node_pool", []string{})
+	}
+
 	id := fmt.Sprintf("%x", rand.Int63())
 	d.SetId(id)
 	return nil
