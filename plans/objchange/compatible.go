@@ -197,9 +197,11 @@ func assertValueCompatible(planned, actual cty.Value, path cty.Path) []error {
 			return nil
 		}
 		errs = append(errs, path.NewErrorf("was %#v, but now null", planned))
+		return errs
 	}
 	if planned.IsNull() {
 		errs = append(errs, path.NewErrorf("was null, but now %#v", actual))
+		return errs
 	}
 
 	ty := planned.Type()

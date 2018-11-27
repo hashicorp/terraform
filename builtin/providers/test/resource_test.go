@@ -473,3 +473,23 @@ resource "test_resource" "foo" {
 		},
 	})
 }
+
+func TestResource_unknownFuncInMap(t *testing.T) {
+	resource.UnitTest(t, resource.TestCase{
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckResourceDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: strings.TrimSpace(`
+resource "test_resource" "foo" {
+	required           = "ok"
+	required_map = {
+	  key = "${uuid()}"
+	}
+}
+				`),
+				ExpectNonEmptyPlan: true,
+			},
+		},
+	})
+}
