@@ -798,17 +798,9 @@ func (d *evaluationStateData) getResourceInstancesAll(addr addrs.Resource, rng t
 
 func (d *evaluationStateData) getResourceSchema(addr addrs.Resource, providerAddr addrs.AbsProviderConfig) *configschema.Block {
 	providerType := providerAddr.ProviderConfig.Type
-	typeName := addr.Type
 	schemas := d.Evaluator.Schemas
-	switch addr.Mode {
-	case addrs.ManagedResourceMode:
-		return schemas.ResourceTypeConfig(providerType, typeName)
-	case addrs.DataResourceMode:
-		return schemas.DataSourceConfig(providerType, typeName)
-	default:
-		log.Printf("[WARN] Don't know how to fetch schema for resource %s", providerAddr)
-		return nil
-	}
+	schema, _ := schemas.ResourceTypeConfig(providerType, addr.Mode, addr.Type)
+	return schema
 }
 
 // coerceInstanceKey attempts to convert the given key to the type expected

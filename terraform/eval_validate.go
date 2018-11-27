@@ -373,8 +373,8 @@ func (n *EvalValidateResource) Eval(ctx EvalContext) (interface{}, error) {
 	// in the provider abstraction.
 	switch mode {
 	case addrs.ManagedResourceMode:
-		schema, exists := schema.ResourceTypes[cfg.Type]
-		if !exists {
+		schema, _ := schema.SchemaForResourceType(mode, cfg.Type)
+		if schema == nil {
 			diags = diags.Append(&hcl.Diagnostic{
 				Severity: hcl.DiagError,
 				Summary:  "Invalid resource type",
@@ -403,8 +403,8 @@ func (n *EvalValidateResource) Eval(ctx EvalContext) (interface{}, error) {
 		}
 
 	case addrs.DataResourceMode:
-		schema, exists := schema.DataSources[cfg.Type]
-		if !exists {
+		schema, _ := schema.SchemaForResourceType(mode, cfg.Type)
+		if schema == nil {
 			diags = diags.Append(&hcl.Diagnostic{
 				Severity: hcl.DiagError,
 				Summary:  "Invalid data source",

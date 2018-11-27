@@ -7,7 +7,6 @@ import (
 
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs"
-	"github.com/hashicorp/terraform/configs/configschema"
 	"github.com/hashicorp/terraform/tfdiags"
 )
 
@@ -112,13 +111,7 @@ func (d *evaluationStateData) staticValidateResourceReference(modCfg *configs.Co
 	// account provider inheritance, etc but it's okay here because we're only
 	// paying attention to the type anyway.
 	providerType := cfg.ProviderConfigAddr().Type
-	var schema *configschema.Block
-	switch addr.Mode {
-	case addrs.ManagedResourceMode:
-		schema = d.Evaluator.Schemas.ResourceTypeConfig(providerType, addr.Type)
-	case addrs.DataResourceMode:
-		schema = d.Evaluator.Schemas.DataSourceConfig(providerType, addr.Type)
-	}
+	schema, _ := d.Evaluator.Schemas.ResourceTypeConfig(providerType, addr.Mode, addr.Type)
 
 	if schema == nil {
 		// Prior validation should've taken care of a resource block with an
