@@ -142,13 +142,17 @@ type Schema struct {
 	// used to wrap a complex structure, however less than one instance would
 	// cause instability.
 	//
-	// PromoteSingle, if true, will allow single elements to be standalone
-	// and promote them to a list. For example "foo" would be promoted to
-	// ["foo"] automatically. This is primarily for legacy reasons and the
-	// ambiguity is not recommended for new usage. Promotion is only allowed
-	// for primitive element types.
-	MaxItems      int
-	MinItems      int
+	// If the field Optional is set to true then MinItems is ignored and thus
+	// effectively zero.
+	MaxItems int
+	MinItems int
+
+	// PromoteSingle originally allowed for a single element to be assigned
+	// where a primitive list was expected, but this no longer works from
+	// Terraform v0.12 onwards (Terraform Core will require a list to be set
+	// regardless of what this is set to) and so only applies to Terraform v0.11
+	// and earlier, and so should be used only to retain this functionality
+	// for those still using v0.11 with a provider that formerly used this.
 	PromoteSingle bool
 
 	// The following fields are only valid for a TypeSet type.
