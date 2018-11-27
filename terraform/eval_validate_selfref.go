@@ -40,19 +40,9 @@ func (n *EvalValidateSelfRef) Eval(ctx EvalContext) (interface{}, error) {
 	var schema *configschema.Block
 	switch tAddr := addr.(type) {
 	case addrs.Resource:
-		switch tAddr.Mode {
-		case addrs.ManagedResourceMode:
-			schema = providerSchema.ResourceTypes[tAddr.Type]
-		case addrs.DataResourceMode:
-			schema = providerSchema.DataSources[tAddr.Type]
-		}
+		schema, _ = providerSchema.SchemaForResourceAddr(tAddr)
 	case addrs.ResourceInstance:
-		switch tAddr.Resource.Mode {
-		case addrs.ManagedResourceMode:
-			schema = providerSchema.ResourceTypes[tAddr.Resource.Type]
-		case addrs.DataResourceMode:
-			schema = providerSchema.DataSources[tAddr.Resource.Type]
-		}
+		schema, _ = providerSchema.SchemaForResourceAddr(tAddr.ContainingResource())
 	}
 
 	if schema == nil {

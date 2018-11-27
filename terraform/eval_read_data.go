@@ -83,7 +83,7 @@ func (n *EvalReadData) Eval(ctx EvalContext) (interface{}, error) {
 	config := *n.Config
 	provider := *n.Provider
 	providerSchema := *n.ProviderSchema
-	schema := providerSchema.DataSources[n.Addr.Resource.Type]
+	schema, _ := providerSchema.SchemaForResourceAddr(n.Addr.ContainingResource())
 	if schema == nil {
 		// Should be caught during validation, so we don't bother with a pretty error here
 		return nil, fmt.Errorf("provider %q does not support data source %q", n.ProviderAddr.ProviderConfig.Type, n.Addr.Resource.Type)
@@ -322,7 +322,7 @@ func (n *EvalReadDataDiff) Eval(ctx EvalContext) (interface{}, error) {
 	} else {
 		config := *n.Config
 		providerSchema := *n.ProviderSchema
-		schema := providerSchema.DataSources[n.Addr.Resource.Type]
+		schema, _ := providerSchema.SchemaForResourceAddr(n.Addr.ContainingResource())
 		if schema == nil {
 			// Should be caught during validation, so we don't bother with a pretty error here
 			return nil, fmt.Errorf("provider does not support data source %q", n.Addr.Resource.Type)
@@ -440,7 +440,7 @@ func (n *EvalReadDataApply) Eval(ctx EvalContext) (interface{}, error) {
 		return nil, diags.Err()
 	}
 
-	schema := providerSchema.DataSources[n.Addr.Resource.Type]
+	schema, _ := providerSchema.SchemaForResourceAddr(n.Addr.ContainingResource())
 	if schema == nil {
 		// Should be caught during validation, so we don't bother with a pretty error here
 		return nil, fmt.Errorf("provider does not support data source %q", n.Addr.Resource.Type)
