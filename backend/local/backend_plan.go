@@ -245,7 +245,7 @@ func (b *Local) renderPlan(plan *plans.Plan, schemas *terraform.Schemas) {
 			b.CLI.Output(fmt.Sprintf("(schema missing for %s)\n", rcs.ProviderAddr))
 			continue
 		}
-		rSchema := providerSchema.SchemaForResourceAddr(rcs.Addr.Resource.Resource)
+		rSchema, _ := providerSchema.SchemaForResourceAddr(rcs.Addr.Resource.Resource)
 		if rSchema == nil {
 			// Should never happen
 			b.CLI.Output(fmt.Sprintf("(schema missing for %s)\n", rcs.Addr))

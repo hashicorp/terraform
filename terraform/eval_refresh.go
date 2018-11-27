@@ -36,7 +36,7 @@ func (n *EvalRefresh) Eval(ctx EvalContext) (interface{}, error) {
 		return nil, diags.ErrWithWarnings()
 	}
 
-	schema := (*n.ProviderSchema).ResourceTypes[n.Addr.Resource.Type]
+	schema, _ := (*n.ProviderSchema).SchemaForResourceAddr(n.Addr.ContainingResource())
 	if schema == nil {
 		// Should be caught during validation, so we don't bother with a pretty error here
 		return nil, fmt.Errorf("provider does not support resource type %q", n.Addr.Resource.Type)

@@ -50,31 +50,12 @@ func (ss *Schemas) ProviderConfig(typeName string) *configschema.Block {
 // a resource using the "provider" meta-argument. Therefore it's important to
 // always pass the correct provider name, even though it many cases it feels
 // redundant.
-func (ss *Schemas) ResourceTypeConfig(providerType string, resourceType string) *configschema.Block {
+func (ss *Schemas) ResourceTypeConfig(providerType string, resourceMode addrs.ResourceMode, resourceType string) (block *configschema.Block, schemaVersion uint64) {
 	ps := ss.ProviderSchema(providerType)
 	if ps == nil || ps.ResourceTypes == nil {
-		return nil
+		return nil, 0
 	}
-
-	return ps.ResourceTypes[resourceType]
-}
-
-// DataSourceConfig returns the schema for the configuration of a given
-// data source belonging to a given provider type, or nil of no such
-// schema is available.
-//
-// In many cases the provider type is inferrable from the data source name,
-// but this is not always true because users can override the provider for
-// a resource using the "provider" meta-argument. Therefore it's important to
-// always pass the correct provider name, even though it many cases it feels
-// redundant.
-func (ss *Schemas) DataSourceConfig(providerType string, dataSource string) *configschema.Block {
-	ps := ss.ProviderSchema(providerType)
-	if ps == nil || ps.DataSources == nil {
-		return nil
-	}
-
-	return ps.DataSources[dataSource]
+	return ps.SchemaForResourceType(resourceMode, resourceType)
 }
 
 // ProvisionerConfig returns the schema for the configuration of a given
@@ -146,10 +127,13 @@ func loadProviderSchemas(schemas map[string]*ProviderSchema, config *configs.Con
 			Provider:      resp.Provider.Block,
 			ResourceTypes: make(map[string]*configschema.Block),
 			DataSources:   make(map[string]*configschema.Block),
+
+			ResourceTypeSchemaVersions: make(map[string]uint64),
 		}
 
 		for t, r := range resp.ResourceTypes {
 			s.ResourceTypes[t] = r.Block
+			s.ResourceTypeSchemaVersions[t] = r.Version
 		}
 
 		for t, d := range resp.DataSources {
@@ -241,22 +225,32 @@ type ProviderSchema struct {
 	Provider      *configschema.Block
 	ResourceTypes map[string]*configschema.Block
 	DataSources   map[string]*configschema.Block
+
+	ResourceTypeSchemaVersions map[string]uint64
+}
+
+// SchemaForResourceType attempts to find a schema for the given mode and type.
+// Returns nil if no such schema is available.
+func (ps *ProviderSchema) SchemaForResourceType(mode addrs.ResourceMode, typeName string) (schema *configschema.Block, version uint64) {
+	var m map[string]providers.Schema
+	switch mode {
+	case addrs.ManagedResourceMode:
+		return ps.ResourceTypes[typeName], ps.ResourceTypeSchemaVersions[typeName]
+	case addrs.DataResourceMode:
+		// Data resources don't have schema versions right now, since state is discarded for each refresh
+		return ps.DataSources[typeName], 0
+	default:
+		// Shouldn't happen, because the above cases are comprehensive.
+		return nil, 0
+	}
+	s := m[typeName]
+	return s.Block, s.Version
 }
 
 // SchemaForResourceAddr attempts to find a schema for the mode and type from
 // the given resource address. Returns nil if no such schema is available.
-func (ps *ProviderSchema) SchemaForResourceAddr(addr addrs.Resource) *configschema.Block {
-	var m map[string]*configschema.Block
-	switch addr.Mode {
-	case addrs.ManagedResourceMode:
-		m = ps.ResourceTypes
-	case addrs.DataResourceMode:
-		m = ps.DataSources
-	default:
-		// Shouldn't happen, because the above cases are comprehensive.
-		return nil
-	}
-	return m[addr.Type]
+func (ps *ProviderSchema) SchemaForResourceAddr(addr addrs.Resource) (schema *configschema.Block, version uint64) {
+	return ps.SchemaForResourceType(addr.Mode, addr.Type)
 }
 
 // ProviderSchemaRequest is used to describe to a ResourceProvider which

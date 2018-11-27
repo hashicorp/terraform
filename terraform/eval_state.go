@@ -49,16 +49,11 @@ func (n *EvalReadState) Eval(ctx EvalContext) (interface{}, error) {
 		return nil, nil
 	}
 
-	// TODO: Update n.ResourceTypeSchema to be a providers.Schema and then
-	// check the version number here and upgrade if necessary.
-	/*
-		if src.SchemaVersion < n.ResourceTypeSchema.Version {
-			// TODO: Implement schema upgrades
-			return nil, fmt.Errorf("schema upgrading is not yet implemented to take state from version %d to version %d", src.SchemaVersion, n.ResourceTypeSchema.Version)
-		}
-	*/
-
-	schema := (*n.ProviderSchema).SchemaForResourceAddr(n.Addr.ContainingResource())
+	schema, currentVersion := (*n.ProviderSchema).SchemaForResourceAddr(n.Addr.ContainingResource())
+	if src.SchemaVersion < currentVersion {
+		// TODO: Implement schema upgrades
+		return nil, fmt.Errorf("schema upgrading is not yet implemented to take state from version %d to version %d", src.SchemaVersion, currentVersion)
+	}
 
 	obj, err := src.Decode(schema.ImpliedType())
 	if err != nil {
@@ -107,16 +102,12 @@ func (n *EvalReadStateDeposed) Eval(ctx EvalContext) (interface{}, error) {
 		return nil, nil
 	}
 
-	// TODO: Update n.ResourceTypeSchema to be a providers.Schema and then
-	// check the version number here and upgrade if necessary.
-	/*
-		if src.SchemaVersion < n.ResourceTypeSchema.Version {
-			// TODO: Implement schema upgrades
-			return nil, fmt.Errorf("schema upgrading is not yet implemented to take state from version %d to version %d", src.SchemaVersion, n.ResourceTypeSchema.Version)
-		}
-	*/
+	schema, currentVersion := (*n.ProviderSchema).SchemaForResourceAddr(n.Addr.ContainingResource())
+	if src.SchemaVersion < currentVersion {
+		// TODO: Implement schema upgrades
+		return nil, fmt.Errorf("schema upgrading is not yet implemented to take state from version %d to version %d", src.SchemaVersion, currentVersion)
+	}
 
-	schema := (*n.ProviderSchema).SchemaForResourceAddr(n.Addr.ContainingResource())
 	obj, err := src.Decode(schema.ImpliedType())
 	if err != nil {
 		return nil, err
@@ -216,16 +207,14 @@ func (n *EvalWriteState) Eval(ctx EvalContext) (interface{}, error) {
 		log.Printf("[TRACE] EvalWriteState: removing current state object for %s", absAddr)
 	}
 
-	// TODO: Update this to use providers.Schema and populate the real
-	// schema version in the second argument to Encode below.
-	schema := (*n.ProviderSchema).SchemaForResourceAddr(n.Addr.ContainingResource())
+	schema, currentVersion := (*n.ProviderSchema).SchemaForResourceAddr(n.Addr.ContainingResource())
 	if schema == nil {
 		// It shouldn't be possible to get this far in any real scenario
 		// without a schema, but we might end up here in contrived tests that
 		// fail to set up their world properly.
 		return nil, fmt.Errorf("failed to encode %s in state: no resource type schema available", absAddr)
 	}
-	src, err := obj.Encode(schema.ImpliedType(), 0)
+	src, err := obj.Encode(schema.ImpliedType(), currentVersion)
 	if err != nil {
 		return nil, fmt.Errorf("failed to encode %s in state: %s", absAddr, err)
 	}
@@ -282,16 +271,14 @@ func (n *EvalWriteStateDeposed) Eval(ctx EvalContext) (interface{}, error) {
 		panic("EvalWriteStateDeposed used with no ProviderSchema object")
 	}
 
-	// TODO: Update this to use providers.Schema and populate the real
-	// schema version in the second argument to Encode below.
-	schema := (*n.ProviderSchema).SchemaForResourceAddr(n.Addr.ContainingResource())
+	schema, currentVersion := (*n.ProviderSchema).SchemaForResourceAddr(n.Addr.ContainingResource())
 	if schema == nil {
 		// It shouldn't be possible to get this far in any real scenario
 		// without a schema, but we might end up here in contrived tests that
 		// fail to set up their world properly.
 		return nil, fmt.Errorf("failed to encode %s in state: no resource type schema available", absAddr)
 	}
-	src, err := obj.Encode(schema.ImpliedType(), 0)
+	src, err := obj.Encode(schema.ImpliedType(), currentVersion)
 	if err != nil {
 		return nil, fmt.Errorf("failed to encode %s in state: %s", absAddr, err)
 	}
