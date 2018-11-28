@@ -51,9 +51,10 @@ type configResource struct {
 	// Expressions" describes the resource-type-specific  content of the
 	// configuration block.
 	Expressions map[string]interface{} `json:"expressions,omitempty"`
+
 	// SchemaVersion indicates which version of the resource type schema the
 	// "values" property conforms to.
-	SchemaVersion uint64 `json:"schema_version,omitempty"`
+	SchemaVersion uint64 `json:"schema_version"`
 
 	// CountExpression and ForEachExpression describe the expressions given for
 	// the corresponding meta-arguments in the resource configuration block.

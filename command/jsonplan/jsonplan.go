@@ -107,7 +107,6 @@ func Marshal(
 		return nil, err
 	}
 
-	// FIXME MarshalIndent is nice for humans
 	ret, err := json.MarshalIndent(output, "", "  ")
 	return ret, err
 }
