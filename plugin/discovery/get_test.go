@@ -130,6 +130,7 @@ func testHandler(w http.ResponseWriter, r *http.Request) {
 
 func testReleaseServer() *httptest.Server {
 	handler := http.NewServeMux()
+	handler.HandleFunc("/v1/providers/-/", testHandler)
 	handler.HandleFunc("/v1/providers/terraform-providers/", testHandler)
 	handler.HandleFunc("/terraform-provider-template/", testChecksumHandler)
 	handler.HandleFunc("/terraform-provider-badsig/", testChecksumHandler)
@@ -479,7 +480,7 @@ func Disco(s *httptest.Server) *disco.Disco {
 }
 
 var versionList = response.TerraformProvider{
-	ID: "test",
+	ID: "terraform-providers/test",
 	Versions: []*response.TerraformProviderVersion{
 		{Version: "1.2.1"},
 		{Version: "1.2.3"},
