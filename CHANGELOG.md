@@ -31,6 +31,7 @@ BUG FIXES:
 * core: Fix inconsistent plans when replacing instances. [GH-19233]
 * core: Correct handling of unknown values in module outputs during planning and final resolution of them during apply. [GH-19237]
 * core: Correct handling of wildcard dependencies when upgrading states [GH-19374]
+* core: Fix missing validation of references to non-existing child modules, which was previously resulting in a panic. [GH-19487]
 * helper/schema: Provider arguments set from environment variables now work correctly again, after regressing in the prior 0.12 alphas. [GH-19478]
 * helper/schema: For schema attributes that have `Elem` as a nested `schema.Resource`, setting `Optional: true` now forces `MinItems` to be zero, thus mimicking a previously-undocumented behavior that some providers were relying on. [GH-19478]
 
