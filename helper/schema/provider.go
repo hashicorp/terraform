@@ -11,6 +11,7 @@ import (
 	"github.com/hashicorp/terraform/config"
 	"github.com/hashicorp/terraform/configs/configschema"
 	"github.com/hashicorp/terraform/terraform"
+	"github.com/zclconf/go-cty/cty"
 )
 
 // Provider represents a resource provider in Terraform, and properly
@@ -217,7 +218,7 @@ func (p *Provider) Input(
 }
 
 // Validate implementation of terraform.ResourceProvider interface.
-func (p *Provider) Validate(c *terraform.ResourceConfig) ([]string, []error) {
+func (p *Provider) Validate(c cty.Value) ([]string, []error) {
 	if err := p.InternalValidate(); err != nil {
 		return nil, []error{fmt.Errorf(
 			"Internal validation of the provider failed! This is always a bug\n"+
@@ -230,14 +231,14 @@ func (p *Provider) Validate(c *terraform.ResourceConfig) ([]string, []error) {
 
 // ValidateResource implementation of terraform.ResourceProvider interface.
 func (p *Provider) ValidateResource(
-	t string, c *terraform.ResourceConfig) ([]string, []error) {
+	t string, value cty.Value) ([]string, []error) {
 	r, ok := p.ResourcesMap[t]
 	if !ok {
 		return nil, []error{fmt.Errorf(
 			"Provider doesn't support resource: %s", t)}
 	}
 
-	return r.Validate(c)
+	return r.Validate(value)
 }
 
 // Configure implementation of terraform.ResourceProvider interface.
@@ -404,14 +405,14 @@ func (p *Provider) ImportState(
 
 // ValidateDataSource implementation of terraform.ResourceProvider interface.
 func (p *Provider) ValidateDataSource(
-	t string, c *terraform.ResourceConfig) ([]string, []error) {
+	t string, value cty.Value) ([]string, []error) {
 	r, ok := p.DataSourcesMap[t]
 	if !ok {
 		return nil, []error{fmt.Errorf(
 			"Provider doesn't support data source: %s", t)}
 	}
 
-	return r.Validate(c)
+	return r.Validate(value)
 }
 
 // ReadDataDiff implementation of terraform.ResourceProvider interface.

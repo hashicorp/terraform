@@ -3,6 +3,7 @@ package plugin
 import (
 	"encoding/json"
 	"errors"
+	"log"
 	"regexp"
 	"sort"
 	"strconv"
@@ -147,8 +148,10 @@ func (s *GRPCProviderServer) PrepareProviderConfig(_ context.Context, req *proto
 		return resp, nil
 	}
 
+	log.Printf("[DEBUG] GRPCProviderServer.PrepareProviderConfig configVal: %T", configVal)
 	config := terraform.NewResourceConfigShimmed(configVal, block)
 
+	log.Printf("[DEBUG] GRPCProviderServer.PrepareProviderConfig on %T", s.provider)
 	warns, errs := s.provider.Validate(config)
 	resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, convert.WarnsAndErrsToProto(warns, errs))
 
@@ -174,9 +177,8 @@ func (s *GRPCProviderServer) ValidateResourceTypeConfig(_ context.Context, req *
 		return resp, nil
 	}
 
-	config := terraform.NewResourceConfigShimmed(configVal, block)
-
-	warns, errs := s.provider.ValidateResource(req.TypeName, config)
+	log.Printf("[DEBUG] GRPCProviderServer.ValidateResourceTypeConfig on %T", s.provider)
+	warns, errs := s.provider.ValidateResource(req.TypeName, configVal)
 	resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, convert.WarnsAndErrsToProto(warns, errs))
 
 	return resp, nil
@@ -193,9 +195,8 @@ func (s *GRPCProviderServer) ValidateDataSourceConfig(_ context.Context, req *pr
 		return resp, nil
 	}
 
-	config := terraform.NewResourceConfigShimmed(configVal, block)
-
-	warns, errs := s.provider.ValidateDataSource(req.TypeName, config)
+	log.Printf("[DEBUG] GRPCProviderServer.ValidateDataSource on %T", s.provider)
+	warns, errs := s.provider.ValidateDataSource(req.TypeName, configVal)
 	resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, convert.WarnsAndErrsToProto(warns, errs))
 
 	return resp, nil
@@ -372,6 +373,7 @@ func (s *GRPCProviderServer) Configure(_ context.Context, req *proto.Configure_R
 	}
 
 	config := terraform.NewResourceConfigShimmed(configVal, block)
+	log.Printf("[DEBUG] GRPCProviderServer.Configure on %T", s.provider)
 	err = s.provider.Configure(config)
 	resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
 
@@ -483,6 +485,7 @@ func (s *GRPCProviderServer) PlanResourceChange(_ context.Context, req *proto.Pl
 	// turn the proposed state into a legacy configuration
 	config := terraform.NewResourceConfigShimmed(proposedNewStateVal, block)
 
+	log.Printf("[DEBUG] GRPCProviderServer.PlanResourceChange on %T", s.provider)
 	diff, err := s.provider.SimpleDiff(info, priorState, config)
 	if err != nil {
 		resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
@@ -778,6 +781,7 @@ func (s *GRPCProviderServer) ReadDataSource(_ context.Context, req *proto.ReadDa
 
 	// we need to still build the diff separately with the Read method to match
 	// the old behavior
+	log.Printf("[DEBUG] GRPCProviderServer.ReadDataSource on %T", s.provider)
 	diff, err := s.provider.ReadDataDiff(info, config)
 	if err != nil {
 		resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)

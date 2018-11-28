@@ -364,7 +364,7 @@ func (r *Resource) simpleDiff(
 }
 
 // Validate validates the resource configuration against the schema.
-func (r *Resource) Validate(c *terraform.ResourceConfig) ([]string, []error) {
+func (r *Resource) Validate(c cty.Value) ([]string, []error) {
 	warns, errs := schemaMap(r.Schema).Validate(c)
 
 	if r.DeprecationMessage != "" {

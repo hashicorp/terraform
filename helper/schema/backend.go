@@ -55,8 +55,7 @@ func (b *Backend) ValidateConfig(obj cty.Value) tfdiags.Diagnostics {
 	}
 
 	var diags tfdiags.Diagnostics
-	shimRC := b.shimConfig(obj)
-	warns, errs := schemaMap(b.Schema).Validate(shimRC)
+	warns, errs := schemaMap(b.Schema).Validate(obj)
 	for _, warn := range warns {
 		diags = diags.Append(tfdiags.SimpleWarning(warn))
 	}

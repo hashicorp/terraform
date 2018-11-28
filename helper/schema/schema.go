@@ -615,7 +615,7 @@ func (m schemaMap) Input(
 }
 
 // Validate validates the configuration against this schema mapping.
-func (m schemaMap) Validate(c *terraform.ResourceConfig) ([]string, []error) {
+func (m schemaMap) Validate(c cty.Value) ([]string, []error) {
 	return m.validateObject(cty.Path{}, m, c)
 }
 
@@ -1235,7 +1235,7 @@ func (m schemaMap) inputString(
 func (m schemaMap) validate(
 	p cty.Path,
 	schema *Schema,
-	c *terraform.ResourceConfig) ([]string, []error) {
+	c cty.Value) ([]string, []error) {
 	raw, ok := c.Get(p.String())
 	if !ok && schema.DefaultFunc != nil {
 		// We have a dynamic default. Check if we have a value.
@@ -1275,7 +1275,7 @@ func (m schemaMap) validate(
 func (m schemaMap) validateConflictingAttributes(
 	p cty.Path,
 	schema *Schema,
-	c *terraform.ResourceConfig) error {
+	c cty.Value) error {
 
 	if len(schema.ConflictsWith) == 0 {
 		return nil
@@ -1295,7 +1295,7 @@ func (m schemaMap) validateList(
 	p cty.Path,
 	raw interface{},
 	schema *Schema,
-	c *terraform.ResourceConfig) ([]string, []error) {
+	c cty.Value) ([]string, []error) {
 	// first check if the list is wholly unknown
 	if s, ok := raw.(string); ok {
 		if s == config.UnknownVariableValue {
@@ -1374,7 +1374,7 @@ func (m schemaMap) validateMap(
 	p cty.Path,
 	raw interface{},
 	schema *Schema,
-	c *terraform.ResourceConfig) ([]string, []error) {
+	c cty.Value) ([]string, []error) {
 	// first check if the list is wholly unknown
 	if s, ok := raw.(string); ok {
 		if s == config.UnknownVariableValue {
@@ -1520,7 +1520,7 @@ func getValueType(k string, schema *Schema) (ValueType, error) {
 func (m schemaMap) validateObject(
 	p cty.Path,
 	schema map[string]*Schema,
-	c *terraform.ResourceConfig) ([]string, []error) {
+	c cty.Value) ([]string, []error) {
 	k := p.String()
 	log.Printf("[DEBUG] schemaMap validateObject(%q)", k)
 	raw, _ := c.Get(k)
@@ -1567,7 +1567,7 @@ func (m schemaMap) validatePrimitive(
 	p cty.Path,
 	raw interface{},
 	schema *Schema,
-	c *terraform.ResourceConfig) ([]string, []error) {
+	c cty.Value) ([]string, []error) {
 	// Catch if the user gave a complex type where a primitive was
 	// expected, so we can return a friendly error message that
 	// doesn't contain Go type system terminology.
@@ -1638,7 +1638,7 @@ func (m schemaMap) validateType(
 	p cty.Path,
 	raw interface{},
 	schema *Schema,
-	c *terraform.ResourceConfig) ([]string, []error) {
+	c cty.Value) ([]string, []error) {
 	var ws []string
 	var es []error
 	switch schema.Type {

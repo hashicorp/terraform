@@ -251,7 +251,7 @@ func TestProviderDataSources(t *testing.T) {
 func TestProviderValidate(t *testing.T) {
 	cases := []struct {
 		P      *Provider
-		Config map[string]interface{}
+		Config cty.Value
 		Err    bool
 	}{
 		{
@@ -260,18 +260,13 @@ func TestProviderValidate(t *testing.T) {
 					"foo": &Schema{},
 				},
 			},
-			Config: nil,
+			Config: cty.NilVal,
 			Err:    true,
 		},
 	}
 
 	for i, tc := range cases {
-		c, err := config.NewRawConfig(tc.Config)
-		if err != nil {
-			t.Fatalf("err: %s", err)
-		}
-
-		_, es := tc.P.Validate(terraform.NewResourceConfig(c))
+		_, es := tc.P.Validate(tc.Config)
 		if len(es) > 0 != tc.Err {
 			t.Fatalf("%d: %#v", i, es)
 		}
@@ -376,13 +371,13 @@ func TestProviderValidateResource(t *testing.T) {
 	cases := []struct {
 		P      *Provider
 		Type   string
-		Config map[string]interface{}
+		Config cty.Value
 		Err    bool
 	}{
 		{
 			P:      &Provider{},
 			Type:   "foo",
-			Config: nil,
+			Config: cty.NilVal,
 			Err:    true,
 		},
 
@@ -393,18 +388,13 @@ func TestProviderValidateResource(t *testing.T) {
 				},
 			},
 			Type:   "foo",
-			Config: nil,
+			Config: cty.NilVal,
 			Err:    false,
 		},
 	}
 
 	for i, tc := range cases {
-		c, err := config.NewRawConfig(tc.Config)
-		if err != nil {
-			t.Fatalf("err: %s", err)
-		}
-
-		_, es := tc.P.ValidateResource(tc.Type, terraform.NewResourceConfig(c))
+		_, es := tc.P.ValidateResource(tc.Type, tc.Config)
 		if len(es) > 0 != tc.Err {
 			t.Fatalf("%d: %#v", i, es)
 		}

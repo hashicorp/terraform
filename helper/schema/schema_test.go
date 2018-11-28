@@ -4112,7 +4112,7 @@ func TestSchemaMap_DiffSuppress(t *testing.T) {
 func TestSchemaMap_Validate(t *testing.T) {
 	cases := map[string]struct {
 		Schema   map[string]*Schema
-		Config   map[string]interface{}
+		Config   cty.Value
 		Vars     map[string]string
 		Err      bool
 		Errors   []error
@@ -4128,8 +4128,8 @@ func TestSchemaMap_Validate(t *testing.T) {
 				},
 			},
 
-			Config: map[string]interface{}{
-				"availability_zone": "foo",
+			Config: map[string]cty.Value{
+				"availability_zone": cty.StringVal("foo"),
 			},
 		},
 
@@ -4141,7 +4141,7 @@ func TestSchemaMap_Validate(t *testing.T) {
 				},
 			},
 
-			Config: map[string]interface{}{
+			Config: map[string]cty.Value{
 				"size": "${var.foo}",
 			},
 
@@ -4158,7 +4158,7 @@ func TestSchemaMap_Validate(t *testing.T) {
 				},
 			},
 
-			Config: map[string]interface{}{},
+			Config: cty.NullVal(cty.String),
 
 			Err: true,
 		},
@@ -4171,8 +4171,8 @@ func TestSchemaMap_Validate(t *testing.T) {
 				},
 			},
 
-			Config: map[string]interface{}{
-				"port": "I am invalid",
+			Config: map[string]cty.Value{
+				"port": cty.StringVal("I am invalid"),
 			},
 
 			Err: true,
@@ -4186,12 +4186,12 @@ func TestSchemaMap_Validate(t *testing.T) {
 				},
 			},
 
-			Config: map[string]interface{}{
-				"user_data": []interface{}{
-					map[string]interface{}{
-						"foo": "bar",
-					},
-				},
+			Config: map[string]cty.Value{
+				"user_data": cty.ListVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"foo": cty.StringVal("bar"),
+					}),
+				}),
 			},
 
 			Err: true,
@@ -4205,7 +4205,7 @@ func TestSchemaMap_Validate(t *testing.T) {
 				},
 			},
 
-			Config: map[string]interface{}{
+			Config: map[string]cty.Value{
 				"size": "${var.foo}",
 			},
 
@@ -4227,7 +4227,7 @@ func TestSchemaMap_Validate(t *testing.T) {
 				},
 			},
 
-			Config: nil,
+			Config: cty.NilVal,
 		},
 
 		"Required but has DefaultFunc return nil": {
@@ -4241,7 +4241,7 @@ func TestSchemaMap_Validate(t *testing.T) {
 				},
 			},
 
-			Config: nil,
+			Config: cty.NilVal,
 
 			Err: true,
 		},
@@ -4256,8 +4256,8 @@ func TestSchemaMap_Validate(t *testing.T) {
 				},
 			},
 
-			Config: map[string]interface{}{
-				"ingress": "5",
+			Config: map[string]cty.Value{
+				"ingress": cty.NumberIntVal(int64(5)),
 			},
 
 			Err: false,
@@ -4273,8 +4273,10 @@ func TestSchemaMap_Validate(t *testing.T) {
 				},
 			},
 
-			Config: map[string]interface{}{
-				"ingress": []interface{}{"5"},
+			Config: map[string]cty.Value{
+				"ingress": cty.ListVal([]cty.Value{
+					cty.NumberIntVal(int64(5)),
+				}),
 			},
 
 			Err: false,
@@ -4295,7 +4297,7 @@ func TestSchemaMap_Validate(t *testing.T) {
 				},
 			},
 
-			Config: map[string]interface{}{},
+			Config: map[string]cty.Value{},
 
 			Err: false,
 		},
@@ -4316,8 +4318,10 @@ func TestSchemaMap_Validate(t *testing.T) {
 				},
 			},
 
-			Config: map[string]interface{}{
-				"ingress": []interface{}{"foo"},
+			Config: map[string]cty.Value{
+				"ingress": cty.ListVal([]cty.Value{
+					cty.StringVal("foo"),
+				}),
 			},
 
 			Err: true,
@@ -4338,8 +4342,8 @@ func TestSchemaMap_Validate(t *testing.T) {
 				},
 			},
 
-			Config: map[string]interface{}{
-				"ingress": "foo",
+			Config: map[string]cty.Value{
+				"ingress": cty.StringVal("foo"),
 			},
 
 			Err: true,
@@ -4360,10 +4364,10 @@ func TestSchemaMap_Validate(t *testing.T) {
 				},
 			},
 
-			Config: map[string]interface{}{
-				"ingress": []interface{}{
-					map[string]interface{}{},
-				},
+			Config: map[string]cty.Value{
+				"ingress": cty.ListVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{}),
+				}),
 			},
 
 			Err: true,
@@ -4385,12 +4389,12 @@ func TestSchemaMap_Validate(t *testing.T) {
 				},
 			},
 
-			Config: map[string]interface{}{
-				"ingress": []interface{}{
-					map[string]interface{}{
-						"from": 80,
-					},
-				},
+			Config: map[string]cty.Value{
+				"ingress": cty.ListVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"from": cty.NumberIntVal(int64(80)),
+					}),
+				}),
 			},
 
 			Err: false,
@@ -4412,10 +4416,10 @@ func TestSchemaMap_Validate(t *testing.T) {
 				},
 			},
 
-			Config: map[string]interface{}{
-				"ingress": []interface{}{
+			Config: map[string]cty.Value{
+				"ingress": cty.ListVal([]cty.Value{
 					`${map("from", "80")}`,
-				},
+				}),
 			},
 
 			Vars: map[string]string{},
@@ -4439,10 +4443,10 @@ func TestSchemaMap_Validate(t *testing.T) {
 				},
 			},
 
-			Config: map[string]interface{}{
-				"ingress": []interface{}{
+			Config: map[string]cty.Value{
+				"ingress": cty.ListVal([]cty.Value{
 					`${map("from", var.port)}`,
-				},
+				}),
 			},
 
 			Vars: map[string]string{
@@ -4462,8 +4466,8 @@ func TestSchemaMap_Validate(t *testing.T) {
 				},
 			},
 
-			Config: map[string]interface{}{
-				"foo": "bar",
+			Config: map[string]cty.Value{
+				"foo": cty.StringVal("bar"),
 			},
 
 			Err: true,
@@ -4479,7 +4483,7 @@ func TestSchemaMap_Validate(t *testing.T) {
 				},
 			},
 
-			Config: map[string]interface{}{
+			Config: map[string]cty.Value{
 				"foo": "${var.foo}",
 			},
 
@@ -4498,8 +4502,8 @@ func TestSchemaMap_Validate(t *testing.T) {
 				},
 			},
 
-			Config: map[string]interface{}{
-				"availability_zone": "bar",
+			Config: map[string]cty.Value{
+				"availability_zone": cty.StringVal("bar"),
 			},
 
 			Err: true,
@@ -4517,8 +4521,8 @@ func TestSchemaMap_Validate(t *testing.T) {
 				},
 			},
 
-			Config: map[string]interface{}{
-				"ports": "foo",
+			Config: map[string]cty.Value{
+				"ports": cty.StringVal("foo"),
 			},
 
 			Err: true,
@@ -4532,8 +4536,8 @@ func TestSchemaMap_Validate(t *testing.T) {
 				},
 			},
 
-			Config: map[string]interface{}{
-				"user_data": "foo",
+			Config: map[string]cty.Value{
+				"user_data": cty.StringVal("foo"),
 			},
 
 			Err: true,
@@ -4547,12 +4551,12 @@ func TestSchemaMap_Validate(t *testing.T) {
 				},
 			},
 
-			Config: map[string]interface{}{
-				"user_data": []interface{}{
-					map[string]interface{}{
-						"foo": "bar",
-					},
-				},
+			Config: map[string]cty.Value{
+				"user_data": cty.ListVal([]cty.Value{
+					cty.MapVal(map[string]cty.Value{
+						"foo": cty.StringVal("bar"),
+					}),
+				}),
 			},
 		},
 
@@ -4564,10 +4568,10 @@ func TestSchemaMap_Validate(t *testing.T) {
 				},
 			},
 
-			Config: map[string]interface{}{
-				"user_data": map[string]interface{}{
-					"foo": "bar",
-				},
+			Config: map[string]cty.Value{
+				cty.MapVal(map[string]cty.Value{
+					"foo": cty.StringVal("bar"),
+				}),
 			},
 		},
 
@@ -4580,10 +4584,10 @@ func TestSchemaMap_Validate(t *testing.T) {
 				},
 			},
 
-			Config: map[string]interface{}{
-				"user_data": map[string]interface{}{
-					"foo": "not_a_bool",
-				},
+			Config: map[string]cty.Value{
+				"user_data": cty.MapVal(map[string]cty.Value{
+					"foo": cty.StringVal("not_a_bool"),
+				}),
 			},
 
 			Err: true,
@@ -4598,10 +4602,10 @@ func TestSchemaMap_Validate(t *testing.T) {
 				},
 			},
 
-			Config: map[string]interface{}{
-				"user_data": map[string]interface{}{
-					"foo": "not_a_bool",
-				},
+			Config: map[string]cty.Value{
+				"user_data": cty.MapVal(map[string]cty.Value{
+					"foo": cty.StringVal("not_a_bool"),
+				}),
 			},
 
 			Err: true,
@@ -4615,10 +4619,10 @@ func TestSchemaMap_Validate(t *testing.T) {
 				},
 			},
 
-			Config: map[string]interface{}{
-				"user_data": []interface{}{
-					"foo",
-				},
+			Config: map[string]cty.Value{
+				"user_data": cty.ListVal([]cty.Value{
+					cty.StringVal("foo"),
+				}),
 			},
 
 			Err: true,
@@ -4638,8 +4642,8 @@ func TestSchemaMap_Validate(t *testing.T) {
 				},
 			},
 
-			Config: map[string]interface{}{
-				"security_groups": []interface{}{"${var.foo}"},
+			Config: map[string]cty.Value{
+				"security_groups": cty.ListVal([]cty.Value{"${var.foo}"}),
 			},
 
 			Err: false,
@@ -4656,7 +4660,7 @@ func TestSchemaMap_Validate(t *testing.T) {
 				},
 			},
 
-			Config: map[string]interface{}{
+			Config: map[string]cty.Value{
 				"security_groups": "${var.foo}",
 			},
 
@@ -4679,13 +4683,13 @@ func TestSchemaMap_Validate(t *testing.T) {
 				},
 			},
 
-			Config: map[string]interface{}{
-				"ingress": []interface{}{
-					map[string]interface{}{
-						"port":  80,
-						"other": "yes",
-					},
-				},
+			Config: map[string]cty.Value{
+				"ingress": cty.ListVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"port":  cty.NumberIntVal(int64(80)),
+						"other": cty.StringVal("yes"),
+					}),
+				}),
 			},
 
 			Err: true,
@@ -4707,12 +4711,12 @@ func TestSchemaMap_Validate(t *testing.T) {
 				},
 			},
 
-			Config: map[string]interface{}{
-				"ingress": []interface{}{
-					map[string]interface{}{
-						"port": "bad",
-					},
-				},
+			Config: map[string]cty.Value{
+				"ingress": cty.ListVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"port": cty.StringVal("bad"),
+					}),
+				}),
 			},
 
 			Err: true,
@@ -4726,8 +4730,12 @@ func TestSchemaMap_Validate(t *testing.T) {
 				},
 			},
 
-			Config: map[string]interface{}{
-				"availability_zone": []interface{}{"foo", "bar", "baz"},
+			Config: map[string]cty.Value{
+				"availability_zone": cty.ListVal([]cty.Value{
+					cty.StringVal("foo"),
+					cty.StringVal("bar"),
+					cty.StringVal("baz"),
+				}),
 			},
 
 			Err: true,
@@ -4741,8 +4749,11 @@ func TestSchemaMap_Validate(t *testing.T) {
 				},
 			},
 
-			Config: map[string]interface{}{
-				"availability_zone": map[string]interface{}{"foo": "bar", "baz": "thing"},
+			Config: map[string]cty.Value{
+				"availability_zone": cty.MapVal(map[string]cty.Value{
+					"foo": cty.StringVal("bar"),
+					"baz": cty.StringVal("thing"),
+				}),
 			},
 
 			Err: true,
@@ -4757,8 +4768,8 @@ func TestSchemaMap_Validate(t *testing.T) {
 				},
 			},
 
-			Config: map[string]interface{}{
-				"old_news": "extra extra!",
+			Config: map[string]cty.Value{
+				"old_news": cty.StringVal("extra extra!"),
 			},
 
 			Err: false,
@@ -4791,8 +4802,8 @@ func TestSchemaMap_Validate(t *testing.T) {
 				},
 			},
 
-			Config: map[string]interface{}{
-				"long_gone": "still here!",
+			Config: map[string]cty.Value{
+				"long_gone": cty.StringVal("still here!"),
 			},
 
 			Err: true,
@@ -4826,9 +4837,9 @@ func TestSchemaMap_Validate(t *testing.T) {
 				},
 			},
 
-			Config: map[string]interface{}{
-				"whitelist": "white-val",
-				"blacklist": "black-val",
+			Config: map[string]cty.Value{
+				"whitelist": cty.StringVal("white-val"),
+				"blacklist": cty.StringVal("black-val"),
 			},
 
 			Err: true,
@@ -4850,8 +4861,8 @@ func TestSchemaMap_Validate(t *testing.T) {
 				},
 			},
 
-			Config: map[string]interface{}{
-				"required_att": "required-val",
+			Config: map[string]cty.Value{
+				"required_att": cty.StringVal("required-val"),
 			},
 
 			Err: false,
@@ -4870,9 +4881,9 @@ func TestSchemaMap_Validate(t *testing.T) {
 				},
 			},
 
-			Config: map[string]interface{}{
-				"required_att": "required-val",
-				"optional_att": "optional-val",
+			Config: map[string]cty.Value{
+				"required_att": cty.StringVal("required-val"),
+				"optional_att": cty.StringVal("optional-val"),
 			},
 
 			Err: true,
@@ -4897,9 +4908,9 @@ func TestSchemaMap_Validate(t *testing.T) {
 				},
 			},
 
-			Config: map[string]interface{}{
-				"foo_att": "foo-val",
-				"bar_att": "bar-val",
+			Config: map[string]cty.Value{
+				"foo_att": cty.StringVal("foo-val"),
+				"bar_att": cty.StringVal("bar-val"),
 			},
 
 			Err: true,
@@ -4925,8 +4936,8 @@ func TestSchemaMap_Validate(t *testing.T) {
 				},
 			},
 
-			Config: map[string]interface{}{
-				"foo_att": "foo-val",
+			Config: map[string]cty.Value{
+				"foo_att": cty.StringVal("foo-val"),
 			},
 
 			Err: false,
@@ -4948,7 +4959,7 @@ func TestSchemaMap_Validate(t *testing.T) {
 				},
 			},
 
-			Config: map[string]interface{}{},
+			Config: map[string]cty.Value{},
 
 			Err: false,
 		},
@@ -4963,8 +4974,8 @@ func TestSchemaMap_Validate(t *testing.T) {
 					},
 				},
 			},
-			Config: map[string]interface{}{
-				"validate_me": "valid",
+			Config: map[string]cty.Value{
+				"validate_me": cty.StringVal("valid"),
 			},
 			Err: false,
 		},
@@ -4980,8 +4991,8 @@ func TestSchemaMap_Validate(t *testing.T) {
 					},
 				},
 			},
-			Config: map[string]interface{}{
-				"validate_me": "invalid",
+			Config: map[string]cty.Value{
+				"validate_me": cty.StringVal("invalid"),
 			},
 			Err: true,
 			Errors: []error{
@@ -5000,8 +5011,8 @@ func TestSchemaMap_Validate(t *testing.T) {
 					},
 				},
 			},
-			Config: map[string]interface{}{
-				"number": "NaN",
+			Config: map[string]cty.Value{
+				"number": cty.StringVal("NaN"),
 			},
 			Err: true,
 		},
@@ -5019,8 +5030,8 @@ func TestSchemaMap_Validate(t *testing.T) {
 					},
 				},
 			},
-			Config: map[string]interface{}{
-				"maybe": "true",
+			Config: map[string]cty.Value{
+				"maybe": cty.BoolVal(true),
 			},
 		},
 
@@ -5035,7 +5046,7 @@ func TestSchemaMap_Validate(t *testing.T) {
 					},
 				},
 			},
-			Config: map[string]interface{}{
+			Config: map[string]cty.Value{
 				"validate_me": "${var.foo}",
 			},
 			Vars: map[string]string{
@@ -5055,8 +5066,8 @@ func TestSchemaMap_Validate(t *testing.T) {
 				},
 			},
 
-			Config: map[string]interface{}{
-				TimeoutsConfigKey: "bar",
+			Config: map[string]cty.Value{
+				TimeoutsConfigKey: cty.StringVal("bar"),
 			},
 
 			Err: false,
@@ -5069,8 +5080,8 @@ func TestSchemaMap_Validate(t *testing.T) {
 					Optional: true,
 				},
 			},
-			Config: map[string]interface{}{
-				"bool_field": "abcdef",
+			Config: map[string]cty.Value{
+				"bool_field": cty.StringVal("abcdef"),
 			},
 			Err: true,
 		},
@@ -5081,8 +5092,8 @@ func TestSchemaMap_Validate(t *testing.T) {
 					Optional: true,
 				},
 			},
-			Config: map[string]interface{}{
-				"integer_field": "abcdef",
+			Config: map[string]cty.Value{
+				"integer_field": cty.StringVal("abcdef"),
 			},
 			Err: true,
 		},
@@ -5093,8 +5104,8 @@ func TestSchemaMap_Validate(t *testing.T) {
 					Optional: true,
 				},
 			},
-			Config: map[string]interface{}{
-				"float_field": "abcdef",
+			Config: map[string]cty.Value{
+				"float_field": cty.StringVal("abcdef"),
 			},
 			Err: true,
 		},
@@ -5108,10 +5119,10 @@ func TestSchemaMap_Validate(t *testing.T) {
 					Optional: true,
 				},
 			},
-			Config: map[string]interface{}{
-				"boolMap": map[string]interface{}{
-					"boolField": "notbool",
-				},
+			Config: map[string]cty.Value{
+				"boolMap": cty.MapVal(map[string]cty.Value{
+					"boolField": cty.StringVal("notbool"),
+				}),
 			},
 			Err: true,
 		},
@@ -5123,10 +5134,10 @@ func TestSchemaMap_Validate(t *testing.T) {
 					Optional: true,
 				},
 			},
-			Config: map[string]interface{}{
-				"intMap": map[string]interface{}{
-					"intField": "notInt",
-				},
+			Config: map[string]cty.Value{
+				"intMap": cty.MapVal(map[string]cty.Value{
+					"intField": cty.StringVal("notInt"),
+				}),
 			},
 			Err: true,
 		},
@@ -5138,10 +5149,10 @@ func TestSchemaMap_Validate(t *testing.T) {
 					Optional: true,
 				},
 			},
-			Config: map[string]interface{}{
-				"floatMap": map[string]interface{}{
-					"floatField": "notFloat",
-				},
+			Config: map[string]cty.Value{
+				"floatMap": cty.MapVal(map[string]cty.Value{
+					"floatField": cty.StringVal("notFloat"),
+				}),
 			},
 			Err: true,
 		},
@@ -5157,11 +5168,11 @@ func TestSchemaMap_Validate(t *testing.T) {
 					},
 				},
 			},
-			Config: map[string]interface{}{
-				"floatInt": map[string]interface{}{
-					"rightAnswer": "42",
-					"tooMuch":     "43",
-				},
+			Config: map[string]cty.Value{
+				"floatInt": cty.MapVal(map[string]cty.Value{
+					"rightAnswer": cty.NumberIntVal(int64(42)),
+					"tooMuch":     cty.NumberIntVal(int64(43)),
+				}),
 			},
 			Err: false,
 		},
@@ -5177,11 +5188,11 @@ func TestSchemaMap_Validate(t *testing.T) {
 					},
 				},
 			},
-			Config: map[string]interface{}{
-				"floatInt": map[string]interface{}{
-					"rightAnswer": "42",
-					"tooMuch":     "43",
-				},
+			Config: map[string]cty.Value{
+				"floatInt": cty.MapVal(map[string]cty.Value{
+					"rightAnswer": cty.NumberIntVal(int64(42)),
+					"tooMuch":     cty.NumberIntVal(int64(43)),
+				}),
 			},
 			Err: true,
 		},
@@ -5213,12 +5224,16 @@ func TestSchemaMap_Validate(t *testing.T) {
 					},
 				},
 			},
-			Config: map[string]interface{}{
-				"outer": []map[string]interface{}{
-					{
-						"list": []interface{}{"${var.a}", "${var.b}", "c"},
-					},
-				},
+			Config: map[string]cty.Value{
+				"outer": cty.SetVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"list": cty.ListVal([]cty.Value{
+							"${var.a}",
+							"${var.b}",
+							cty.StringVal("c"),
+						}),
+					}),
+				}),
 			},
 			Vars: map[string]string{
 				"var.a": "A",

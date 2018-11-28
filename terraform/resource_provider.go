@@ -6,6 +6,7 @@ import (
 	multierror "github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/terraform/plugin/discovery"
 	"github.com/hashicorp/terraform/providers"
+	"github.com/zclconf/go-cty/cty"
 )
 
 // ResourceProvider is an interface that must be implemented by any
@@ -49,7 +50,7 @@ type ResourceProvider interface {
 	// This should not assume that any values of the configurations are valid.
 	// The primary use case of this call is to check that required keys are
 	// set.
-	Validate(*ResourceConfig) ([]string, []error)
+	Validate(cty.Value) ([]string, []error)
 
 	// Configure configures the provider itself with the configuration
 	// given. This is useful for setting things like access keys.
@@ -97,7 +98,7 @@ type ResourceProvider interface {
 	// are valid since it is possible they have to be interpolated still.
 	// The primary use case of this call is to check that the required keys
 	// are set and that the general structure is correct.
-	ValidateResource(string, *ResourceConfig) ([]string, []error)
+	ValidateResource(string, cty.Value) ([]string, []error)
 
 	// Apply applies a diff to a specific resource and returns the new
 	// resource state along with an error.
@@ -154,7 +155,7 @@ type ResourceProvider interface {
 	// are valid since it is possible they have to be interpolated still.
 	// The primary use case of this call is to check that the required keys
 	// are set and that the general structure is correct.
-	ValidateDataSource(string, *ResourceConfig) ([]string, []error)
+	ValidateDataSource(string, cty.Value) ([]string, []error)
 
 	// DataSources returns all of the available data sources that this
 	// provider implements.
