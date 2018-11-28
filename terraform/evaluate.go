@@ -296,8 +296,8 @@ func (d *evaluationStateData) GetModuleInstance(addr addrs.ModuleCallInstance, r
 	// type even if our data is incomplete for some reason.
 	moduleConfig := d.Evaluator.Config.DescendentForInstance(moduleAddr)
 	if moduleConfig == nil {
-		// should never happen, since we can't be evaluating in a module
-		// that wasn't mentioned in configuration.
+		// should never happen, since this should've been caught during
+		// static validation.
 		panic(fmt.Sprintf("output value read from %s, which has no configuration", moduleAddr))
 	}
 	outputConfigs := moduleConfig.Module.Outputs

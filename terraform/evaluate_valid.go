@@ -2,11 +2,13 @@ package terraform
 
 import (
 	"fmt"
+	"sort"
 
 	"github.com/hashicorp/hcl2/hcl"
 
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs"
+	"github.com/hashicorp/terraform/helper/didyoumean"
 	"github.com/hashicorp/terraform/tfdiags"
 )
 
@@ -74,6 +76,28 @@ func (d *evaluationStateData) staticValidateReference(ref *addrs.Reference, self
 		return d.staticValidateResourceReference(modCfg, addr, ref.Remaining, ref.SourceRange)
 	case addrs.ResourceInstance:
 		return d.staticValidateResourceReference(modCfg, addr.ContainingResource(), ref.Remaining, ref.SourceRange)
+
+	// We also handle all module call references the same way, disregarding index.
+	case addrs.ModuleCall:
+		return d.staticValidateModuleCallReference(modCfg, addr, ref.Remaining, ref.SourceRange)
+	case addrs.ModuleCallInstance:
+		return d.staticValidateModuleCallReference(modCfg, addr.Call, ref.Remaining, ref.SourceRange)
+	case addrs.ModuleCallOutput:
+		// This one is a funny one because we will take the output name referenced
+		// and use it to fake up a "remaining" that would make sense for the
+		// module call itself, rather than for the specific output, and then
+		// we can just re-use our static module call validation logic.
+		remain := make(hcl.Traversal, len(ref.Remaining)+1)
+		copy(remain[1:], ref.Remaining)
+		remain[0] = hcl.TraverseAttr{
+			Name: addr.Name,
+
+			// Using the whole reference as the source range here doesn't exactly
+			// match how HCL would normally generate an attribute traversal,
+			// but is close enough for our purposes.
+			SrcRange: ref.SourceRange.ToHCL(),
+		}
+		return d.staticValidateModuleCallReference(modCfg, addr.Call.Call, remain, ref.SourceRange)
 
 	default:
 		// Anything else we'll just permit through without any static validation
@@ -146,6 +170,35 @@ func (d *evaluationStateData) staticValidateResourceReference(modCfg *configs.Co
 	// steps against our schema.
 	moreDiags := schema.StaticValidateTraversal(remain)
 	diags = diags.Append(moreDiags)
+
+	return diags
+}
+
+func (d *evaluationStateData) staticValidateModuleCallReference(modCfg *configs.Config, addr addrs.ModuleCall, remain hcl.Traversal, rng tfdiags.SourceRange) tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
+
+	// For now, our focus here is just in testing that the referenced module
+	// call exists. All other validation is deferred until evaluation time.
+	_, exists := modCfg.Module.ModuleCalls[addr.Name]
+	if !exists {
+		var suggestions []string
+		for name := range modCfg.Module.ModuleCalls {
+			suggestions = append(suggestions, name)
+		}
+		sort.Strings(suggestions)
+		suggestion := didyoumean.NameSuggestion(addr.Name, suggestions)
+		if suggestion != "" {
+			suggestion = fmt.Sprintf(" Did you mean %q?", suggestion)
+		}
+
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  `Reference to undeclared module`,
+			Detail:   fmt.Sprintf(`No module call named %q is declared in %s.%s`, addr.Name, moduleConfigDisplayAddr(modCfg.Path), suggestion),
+			Subject:  rng.ToHCL().Ptr(),
+		})
+		return diags
+	}
 
 	return diags
 }

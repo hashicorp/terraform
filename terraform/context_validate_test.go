@@ -1249,3 +1249,69 @@ output "out" {
 		t.Fatalf("wrong error:\ngot:  %s\nwant: message containing %q", got, want)
 	}
 }
+
+func TestContext2Validate_invalidModuleRef(t *testing.T) {
+	// This test is verifying that we properly validate and report on references
+	// to modules that are not declared, since we were missing some validation
+	// here in early 0.12.0 alphas that led to a panic.
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+output "out" {
+  # Intentionally referencing undeclared module to ensure error
+  value = module.foo
+}`,
+	})
+
+	p := testProvider("aws")
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		ProviderResolver: providers.ResolverFixed(
+			map[string]providers.Factory{
+				"aws": testProviderFuncFixed(p),
+			},
+		),
+	})
+
+	diags := ctx.Validate()
+	if !diags.HasErrors() {
+		t.Fatal("succeeded; want errors")
+	}
+	// Should get this error:
+	// Reference to undeclared module: No module call named "foo" is declared in the root module.
+	if got, want := diags.Err().Error(), "Reference to undeclared module:"; strings.Index(got, want) == -1 {
+		t.Fatalf("wrong error:\ngot:  %s\nwant: message containing %q", got, want)
+	}
+}
+
+func TestContext2Validate_invalidModuleOutputRef(t *testing.T) {
+	// This test is verifying that we properly validate and report on references
+	// to modules that are not declared, since we were missing some validation
+	// here in early 0.12.0 alphas that led to a panic.
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+output "out" {
+  # Intentionally referencing undeclared module to ensure error
+  value = module.foo.bar
+}`,
+	})
+
+	p := testProvider("aws")
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		ProviderResolver: providers.ResolverFixed(
+			map[string]providers.Factory{
+				"aws": testProviderFuncFixed(p),
+			},
+		),
+	})
+
+	diags := ctx.Validate()
+	if !diags.HasErrors() {
+		t.Fatal("succeeded; want errors")
+	}
+	// Should get this error:
+	// Reference to undeclared module: No module call named "foo" is declared in the root module.
+	if got, want := diags.Err().Error(), "Reference to undeclared module:"; strings.Index(got, want) == -1 {
+		t.Fatalf("wrong error:\ngot:  %s\nwant: message containing %q", got, want)
+	}
+}

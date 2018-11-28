@@ -95,9 +95,22 @@ func TestSession_basicState(t *testing.T) {
 			State: state,
 			Inputs: []testSessionInput{
 				{
+					Input:         "module.child",
+					Error:         true,
+					ErrorContains: `No module call named "child" is declared in the root module.`,
+				},
+			},
+		})
+	})
+
+	t.Run("missing module referencing just one output", func(t *testing.T) {
+		testSession(t, testSessionTest{
+			State: state,
+			Inputs: []testSessionInput{
+				{
 					Input:         "module.child.foo",
 					Error:         true,
-					ErrorContains: `The configuration contains no module.child`,
+					ErrorContains: `No module call named "child" is declared in the root module.`,
 				},
 			},
 		})
