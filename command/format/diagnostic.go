@@ -72,7 +72,7 @@ func Diagnostic(diag tfdiags.Diagnostic, sources map[string][]byte, color *color
 			// loaded through the main loader. We may load things in other
 			// ways in weird cases, so we'll tolerate it at the expense of
 			// a not-so-helpful error message.
-			fmt.Fprintf(&buf, "  on %s line %d:\n  (source code not available)\n", highlightRange.Filename, highlightRange.Start.Line)
+			fmt.Fprintf(&buf, "  on %s:%d:\n  (source code not available)\n", highlightRange.Filename, highlightRange.Start.Line)
 		} else {
 			file, offset := parseRange(src, highlightRange)
 
@@ -90,7 +90,7 @@ func Diagnostic(diag tfdiags.Diagnostic, sources map[string][]byte, color *color
 				contextStr = ", in " + contextStr
 			}
 
-			fmt.Fprintf(&buf, "  on %s line %d%s:\n", headerRange.Filename, headerRange.Start.Line, contextStr)
+			fmt.Fprintf(&buf, "  on %s:%d%s:\n", headerRange.Filename, headerRange.Start.Line, contextStr)
 
 			// Config snippet rendering
 			sc := hcl.NewRangeScanner(src, highlightRange.Filename, bufio.ScanLines)
@@ -101,14 +101,13 @@ func Diagnostic(diag tfdiags.Diagnostic, sources map[string][]byte, color *color
 				}
 				beforeRange, highlightedRange, afterRange := lineRange.PartitionAround(highlightRange)
 				if highlightedRange.Empty() {
-					fmt.Fprintf(&buf, "%4d: %s\n", lineRange.Start.Line, sc.Bytes())
+					fmt.Fprintf(&buf, "    %s\n", sc.Bytes())
 				} else {
 					before := beforeRange.SliceBytes(src)
 					highlighted := highlightedRange.SliceBytes(src)
 					after := afterRange.SliceBytes(src)
 					fmt.Fprintf(
-						&buf, color.Color("%4d: %s[underline]%s[reset]%s\n"),
-						lineRange.Start.Line,
+						&buf, color.Color("    %s[underline]%s[reset]%s\n"),
 						before, highlighted, after,
 					)
 				}
