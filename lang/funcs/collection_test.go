@@ -2204,13 +2204,88 @@ func TestZipmap(t *testing.T) {
 			}),
 			false,
 		},
+		{ // tuple values produce object
+			cty.ListVal([]cty.Value{
+				cty.StringVal("hello"),
+				cty.StringVal("world"),
+			}),
+			cty.TupleVal([]cty.Value{
+				cty.StringVal("bar"),
+				cty.UnknownVal(cty.Bool),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"hello": cty.StringVal("bar"),
+				"world": cty.UnknownVal(cty.Bool),
+			}),
+			false,
+		},
+		{ // empty tuple produces empty object
+			cty.ListValEmpty(cty.String),
+			cty.EmptyTupleVal,
+			cty.EmptyObjectVal,
+			false,
+		},
+		{ // tuple with any unknown keys produces DynamicVal
+			cty.ListVal([]cty.Value{
+				cty.StringVal("hello"),
+				cty.UnknownVal(cty.String),
+			}),
+			cty.TupleVal([]cty.Value{
+				cty.StringVal("bar"),
+				cty.True,
+			}),
+			cty.DynamicVal,
+			false,
+		},
+		{ // tuple with all keys unknown produces DynamicVal
+			cty.UnknownVal(cty.List(cty.String)),
+			cty.TupleVal([]cty.Value{
+				cty.StringVal("bar"),
+				cty.True,
+			}),
+			cty.DynamicVal,
+			false,
+		},
+		{ // list with all keys unknown produces correctly-typed unknown map
+			cty.UnknownVal(cty.List(cty.String)),
+			cty.ListVal([]cty.Value{
+				cty.StringVal("bar"),
+				cty.StringVal("baz"),
+			}),
+			cty.UnknownVal(cty.Map(cty.String)),
+			false,
+		},
+		{ // unknown tuple as values produces correctly-typed unknown object
+			cty.ListVal([]cty.Value{
+				cty.StringVal("hello"),
+				cty.StringVal("world"),
+			}),
+			cty.UnknownVal(cty.Tuple([]cty.Type{
+				cty.String,
+				cty.Bool,
+			})),
+			cty.UnknownVal(cty.Object(map[string]cty.Type{
+				"hello": cty.String,
+				"world": cty.Bool,
+			})),
+			false,
+		},
+		{ // unknown list as values produces correctly-typed unknown map
+			cty.ListVal([]cty.Value{
+				cty.StringVal("hello"),
+				cty.StringVal("world"),
+			}),
+			cty.UnknownVal(cty.List(cty.String)),
+			cty.UnknownVal(cty.Map(cty.String)),
+			false,
+		},
 		{ // empty input returns an empty map
 			cty.ListValEmpty(cty.String),
 			cty.ListValEmpty(cty.String),
-			cty.MapValEmpty(cty.DynamicPseudoType),
+			cty.MapValEmpty(cty.String),
 			false,
 		},
-		{ // keys cannot be a list
+		{ // keys cannot be a list of lists
 			list5,
 			list1,
 			cty.NilVal,
@@ -2232,7 +2307,7 @@ func TestZipmap(t *testing.T) {
 			}
 
 			if !got.RawEquals(test.Want) {
-				t.Errorf("wrong result\ngot:  %#v\nwant: %#v", got, test.Want)
+				t.Errorf("wrong result\n\nkeys:   %#v\nvalues: %#v\ngot:    %#v\nwant:   %#v", test.Keys, test.Values, got, test.Want)
 			}
 		})
 	}

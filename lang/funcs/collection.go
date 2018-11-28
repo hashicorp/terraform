@@ -986,29 +986,57 @@ var ZipmapFunc = function.New(&function.Spec{
 		},
 		{
 			Name: "values",
-			Type: cty.List(cty.DynamicPseudoType),
+			Type: cty.DynamicPseudoType,
 		},
 	},
 	Type: func(args []cty.Value) (ret cty.Type, err error) {
 		keys := args[0]
 		values := args[1]
+		valuesTy := values.Type()
 
-		if !keys.IsKnown() || !values.IsKnown() || keys.LengthInt() == 0 {
-			return cty.Map(cty.DynamicPseudoType), nil
-		}
+		switch {
+		case valuesTy.IsListType():
+			return cty.Map(values.Type().ElementType()), nil
+		case valuesTy.IsTupleType():
+			if !keys.IsWhollyKnown() {
+				// Since zipmap with a tuple produces an object, we need to know
+				// all of the key names before we can predict our result type.
+				return cty.DynamicPseudoType, nil
+			}
 
-		if keys.LengthInt() != values.LengthInt() {
-			return cty.NilType, fmt.Errorf("count of keys (%d) does not match count of values (%d)",
-				keys.LengthInt(), values.LengthInt())
+			keysRaw := keys.AsValueSlice()
+			valueTypesRaw := valuesTy.TupleElementTypes()
+			if len(keysRaw) != len(valueTypesRaw) {
+				return cty.NilType, fmt.Errorf("number of keys (%d) does not match number of values (%d)", len(keysRaw), len(valueTypesRaw))
+			}
+			atys := make(map[string]cty.Type, len(valueTypesRaw))
+			for i, keyVal := range keysRaw {
+				if keyVal.IsNull() {
+					return cty.NilType, fmt.Errorf("keys list has null value at index %d", i)
+				}
+				key := keyVal.AsString()
+				atys[key] = valueTypesRaw[i]
+			}
+			return cty.Object(atys), nil
+
+		default:
+			return cty.NilType, fmt.Errorf("values argument must be a list or tuple value")
 		}
-		return cty.Map(values.Type().ElementType()), nil
 	},
 	Impl: func(args []cty.Value, retType cty.Type) (ret cty.Value, err error) {
 		keys := args[0]
 		values := args[1]
 
-		if !keys.IsKnown() || !values.IsKnown() || keys.LengthInt() == 0 {
-			return cty.MapValEmpty(cty.DynamicPseudoType), nil
+		if !keys.IsWhollyKnown() {
+			// Unknown map keys and object attributes are not supported, so
+			// our entire result must be unknown in this case.
+			return cty.UnknownVal(retType), nil
+		}
+
+		// both keys and values are guaranteed to be shallowly-known here,
+		// because our declared params above don't allow unknown or null values.
+		if keys.LengthInt() != values.LengthInt() {
+			return cty.NilVal, fmt.Errorf("number of keys (%d) does not match number of values (%d)", keys.LengthInt(), values.LengthInt())
 		}
 
 		output := make(map[string]cty.Value)
@@ -1021,7 +1049,19 @@ var ZipmapFunc = function.New(&function.Spec{
 			i++
 		}
 
-		return cty.MapVal(output), nil
+		switch {
+		case retType.IsMapType():
+			if len(output) == 0 {
+				return cty.MapValEmpty(retType.ElementType()), nil
+			}
+			return cty.MapVal(output), nil
+		case retType.IsObjectType():
+			return cty.ObjectVal(output), nil
+		default:
+			// Should never happen because the type-check function should've
+			// caught any other case.
+			return cty.NilVal, fmt.Errorf("internally selected incorrect result type %s (this is a bug)", retType.FriendlyName())
+		}
 	},
 })
 
