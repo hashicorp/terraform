@@ -26,6 +26,11 @@ func testDataSource() *schema.Resource {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
+			// this attribute is computed, but never set by the provider
+			"nil": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
 		},
 	}
 }
