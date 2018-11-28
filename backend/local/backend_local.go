@@ -66,7 +66,7 @@ func (b *Local) context(op *backend.Operation) (*terraform.Context, *configload.
 	// Load the latest state. If we enter contextFromPlanFile below then the
 	// state snapshot in the plan file must match this, or else it'll return
 	// error diagnostics.
-	log.Printf("[TRACE] backend/local: retrieving the local state snapshot for workspace %q", op.Workspace)
+	log.Printf("[TRACE] backend/local: retrieving local state snapshot for workspace %q", op.Workspace)
 	opts.State = s.State()
 
 	var tfCtx *terraform.Context
