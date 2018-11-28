@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/terraform/addrs"
+	"github.com/hashicorp/terraform/command/jsonconfig"
 	"github.com/hashicorp/terraform/command/jsonstate"
 	"github.com/hashicorp/terraform/configs/configload"
 	"github.com/hashicorp/terraform/plans"
@@ -24,7 +25,7 @@ const FormatVersion = "0.1"
 type plan struct {
 	FormatVersion   string            `json:"format_version,omitempty"`
 	PriorState      json.RawMessage   `json:"prior_state,omitempty"`
-	Config          config            `json:"configuration,omitempty"`
+	Config          json.RawMessage   `json:"configuration,omitempty"`
 	PlannedValues   values            `json:"planned_values,omitempty"`
 	ProposedUnknown values            `json:"proposed_unknown,omitempty"`
 	ResourceChanges []resourceChange  `json:"resource_changes,omitempty"`
@@ -85,28 +86,37 @@ func Marshal(
 
 	output := newPlan()
 
-	err := output.marshalConfig(snap, schemas)
-	if err != nil {
-		return nil, err
-	}
-
-	err = output.marshalOutputChanges(p.Changes)
-	if err != nil {
-		return nil, err
-	}
-
+	// TODO:
 	// output.PlannedValues
-	output.PriorState, err = jsonstate.Marshall(s)
-	if err != nil {
-		return nil, err
-	}
+
+	// TODO:
 	// output.ProposedUnknown
 
+	// output.OutputChanges
+	err := output.marshalOutputChanges(p.Changes)
+	if err != nil {
+		return nil, err
+	}
+
+	// output.ResourceChanges
 	err = output.marshalResourceChanges(p.Changes, schemas)
 	if err != nil {
 		return nil, err
 	}
 
+	// output.Config
+	output.Config, err = jsonconfig.Marshal(snap, schemas)
+	if err != nil {
+		return nil, err
+	}
+
+	// output.PriorState
+	output.PriorState, err = jsonstate.Marshal(s)
+	if err != nil {
+		return nil, err
+	}
+
+	// add some polish
 	ret, err := json.MarshalIndent(output, "", "  ")
 	return ret, err
 }

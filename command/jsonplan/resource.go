@@ -36,7 +36,6 @@ type resource struct {
 // resourceChange is a description of an individual change action that Terraform
 // plans to use to move from the prior state to a new state matching the
 // configuration.
-
 type resourceChange struct {
 	// Address is the absolute resource address
 	Address string `json:"address,omitempty"`

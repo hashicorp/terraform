@@ -1,4 +1,4 @@
-package jsonplan
+package jsonconfig
 
 import (
 	"encoding/json"
@@ -15,7 +15,7 @@ import (
 // // arguments are mapped directly with the attribute name as key and an
 // // <expression-representation> as value.
 // type expressions struct {
-// 	Expression map[string]interface{} `json:"expression,omitempty"`
+// 	Expression map[string]interface{} `json:"expressions,omitempty"`
 // }
 
 // expression represents any unparsed expression
