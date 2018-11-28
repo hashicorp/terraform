@@ -147,7 +147,7 @@ down to see all providers.
     <td><a href="/docs/providers/scaleway/index.html">Scaleway</a></td>
     </tr>
     <tr>
-    <td><a href="/docs/providers/selvpc/index.html">SelVPC</a></td>
+    <td><a href="/docs/providers/selvpc/index.html">Selectel</a></td>
     <td><a href="/docs/providers/softlayer/index.html">SoftLayer</a></td>
     <td><a href="/docs/providers/statuscake/index.html">StatusCake</a></td>
     </tr>

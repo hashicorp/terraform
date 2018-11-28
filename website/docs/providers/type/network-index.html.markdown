@@ -35,6 +35,4 @@ in close collaboration with HashiCorp, and are tested by HashiCorp.
 
 [PowerDNS](/docs/providers/powerdns/index.html)
 
-[SelVPC](/docs/providers/selvpc/index.html)
-
 [UltraDNS](/docs/providers/ultradns/index.html)
