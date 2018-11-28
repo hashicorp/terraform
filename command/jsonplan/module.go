@@ -12,11 +12,3 @@ type module struct {
 	// recursively describing the full module tree.
 	ChildModules []module `json:"child_modules,omitempty"`
 }
-
-type moduleCall struct {
-	ResolvedSource    string                 `json:"resolved_source,omitempty"`
-	Expressions       map[string]interface{} `json:"expressions,omitempty"`
-	CountExpression   expression             `json:"count_expression,omitempty"`
-	ForEachExpression expression             `json:"for_each_expression,omitempty"`
-	Module            module                 `json:"module,omitempty"`
-}

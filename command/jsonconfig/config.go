@@ -1,6 +1,8 @@
-package jsonplan
+package jsonconfig
 
 import (
+	"encoding/json"
+
 	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/configs/configload"
 	"github.com/hashicorp/terraform/terraform"
@@ -9,7 +11,7 @@ import (
 // Config represents the complete configuration source
 type config struct {
 	ProviderConfigs []providerConfig `json:"provider_config,omitempty"`
-	RootModule      configModule     `json:"root_module,omitempty"`
+	RootModule      module           `json:"root_module,omitempty"`
 }
 
 // ProviderConfig describes all of the provider configurations throughout the
@@ -23,14 +25,22 @@ type providerConfig struct {
 	Expressions   map[string]interface{} `json:"expressions,omitempty"`
 }
 
-type configModule struct {
+type module struct {
 	Outputs     map[string]configOutput `json:"outputs,omitempty"`
-	Resources   []configResource        `json:"resources,omitempty"`
+	Resources   []resource              `json:"resources,omitempty"`
 	ModuleCalls []moduleCall            `json:"module_calls,omitempty"`
 }
 
+type moduleCall struct {
+	ResolvedSource    string                 `json:"resolved_source,omitempty"`
+	Expressions       map[string]interface{} `json:"expressions,omitempty"`
+	CountExpression   expression             `json:"count_expression,omitempty"`
+	ForEachExpression expression             `json:"for_each_expression,omitempty"`
+	Module            module                 `json:"module,omitempty"`
+}
+
 // Resource is the representation of a resource in the config
-type configResource struct {
+type resource struct {
 	// Address is the absolute resource address
 	Address string `json:"address,omitempty"`
 
@@ -73,11 +83,14 @@ type provisioner struct {
 	Expressions map[string]interface{} `json:"expressions,omitempty"`
 }
 
-func (p *plan) marshalConfig(snap *configload.Snapshot, schemas *terraform.Schemas) error {
+// Marshal returns the json encoding of terraform configuration.
+func Marshal(snap *configload.Snapshot, schemas *terraform.Schemas) ([]byte, error) {
+	var output config
+
 	configLoader := configload.NewLoaderFromSnapshot(snap)
 	c, diags := configLoader.LoadConfig(snap.Modules[""].Dir)
 	if diags.HasErrors() {
-		return diags
+		return nil, diags
 	}
 
 	// FIXME: this is not accurate provider marshaling, just a placeholder
@@ -89,16 +102,17 @@ func (p *plan) marshalConfig(snap *configload.Snapshot, schemas *terraform.Schem
 		}
 		pcs = append(pcs, pc)
 	}
-	p.Config.ProviderConfigs = pcs
-	p.Config.RootModule = marshalRootModule(c.Module, schemas)
+	output.ProviderConfigs = pcs
+	output.RootModule = marshalRootModule(c.Module, schemas)
 
-	return nil
+	ret, err := json.Marshal(output)
+	return ret, err
 }
 
-func marshalRootModule(m *configs.Module, schemas *terraform.Schemas) configModule {
-	var module configModule
+func marshalRootModule(m *configs.Module, schemas *terraform.Schemas) module {
+	var module module
 
-	var rs []configResource
+	var rs []resource
 
 	// NOTE TO REVIEWERS:
 	// This is precisely where I started to worry.
@@ -139,10 +153,10 @@ func marshalRootModule(m *configs.Module, schemas *terraform.Schemas) configModu
 	return module
 }
 
-func marshalConfigResources(resources map[string]*configs.Resource, schemas *terraform.Schemas) []configResource {
-	var rs []configResource
+func marshalConfigResources(resources map[string]*configs.Resource, schemas *terraform.Schemas) []resource {
+	var rs []resource
 	for _, v := range resources {
-		r := configResource{
+		r := resource{
 			Address:           v.Addr().String(),
 			Mode:              v.Mode.String(),
 			Type:              v.Type,

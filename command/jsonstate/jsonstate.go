@@ -44,11 +44,11 @@ type module struct {
 }
 
 type moduleCall struct {
-	ResolvedSource    string      `json:"resolved_source"`
-	Expressions       expressions `json:"expressions"`
-	CountExpression   expression  `json:"count_expression"`
-	ForEachExpression expression  `json:"for_each_expression"`
-	Module            module      `json:"module"`
+	ResolvedSource    string                 `json:"resolved_source"`
+	Expressions       map[string]interface{} `json:"expressions,omitempty"`
+	CountExpression   expression             `json:"count_expression"`
+	ForEachExpression expression             `json:"for_each_expression"`
+	Module            module                 `json:"module"`
 }
 
 // Resource is the representation of a resource in the state.
@@ -95,8 +95,8 @@ func newState() *state {
 	}
 }
 
-// Marshall returns the json encoding of a terraform plan.
-func Marshall(s *states.State) ([]byte, error) {
+// Marshal returns the json encoding of a terraform plan.
+func Marshal(s *states.State) ([]byte, error) {
 	if s.Empty() {
 		return nil, nil
 	}
@@ -106,9 +106,3 @@ func Marshall(s *states.State) ([]byte, error) {
 	ret, err := json.Marshal(output)
 	return ret, err
 }
-
-// jbardin [7:50 AM] `SchemaVersion` comes from the provider. It's recorded so
-// that the provider can know how to upgrade the schema of a resource.
-// I'm looking to see where it ends up through core. It comes back in the
-// `providers.Schema` type
-// ah, state stores it in the `ResourceInstanceObjectSrc`
