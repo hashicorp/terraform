@@ -14,6 +14,8 @@ Stores the state in the [Consul](https://www.consul.io/) KV store at a given pat
 
 This backend supports [state locking](/docs/state/locking.html).
 
+~> Note that state storage with this backend is subject to the [maximum 512KB limit](https://www.consul.io/docs/faq.html#q-what-is-the-per-key-value-size-limitation-for-consul-39-s-key-value-store-) in Vault. See also the `gzip` option below.
+
 ## Example Configuration
 
 ```hcl
