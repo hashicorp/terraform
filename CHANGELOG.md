@@ -21,6 +21,7 @@ IMPROVEMENTS:
 * backend/remote: Also show Sentinel policy output when there are no changes [GH-19403]
 * backend/remote: Add support for the `console`, `graph` and `import` commands [GH-19464]
 * plugin/discovery: Use signing keys from the Terraform Registry when downloading providers. [GH-19389]
+* plugin/discovery: Use default `-` namespace alias when fetching available providers from Terraform Registry. [GH-19494]
 
 BUG FIXES:
 
