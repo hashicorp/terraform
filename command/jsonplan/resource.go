@@ -24,7 +24,7 @@ type resource struct {
 
 	// SchemaVersion indicates which version of the resource type schema the
 	// "values" property conforms to.
-	SchemaVersion int `json:"schema_version,omitempty"`
+	SchemaVersion uint64 `json:"schema_version"`
 
 	// Values is the JSON representation of the attribute values of the
 	// resource, whose structure depends on the resource type schema. Any
