@@ -134,6 +134,7 @@ func (i *ProviderInstaller) Get(provider string, req Constraints) (PluginMeta, e
 	if len(allVersions.Versions) == 0 {
 		return PluginMeta{}, ErrorNoSuitableVersion
 	}
+	providerSource := allVersions.ID
 
 	// Filter the list of plugin versions to those which meet the version constraints
 	versions := allowedVersions(allVersions, req)
@@ -175,7 +176,7 @@ func (i *ProviderInstaller) Get(provider string, req Constraints) (PluginMeta, e
 		return PluginMeta{}, ErrorNoVersionCompatibleWithPlatform
 	}
 
-	downloadURLs, err := i.listProviderDownloadURLs(provider, versionMeta.Version)
+	downloadURLs, err := i.listProviderDownloadURLs(providerSource, versionMeta.Version)
 	providerURL := downloadURLs.DownloadURL
 
 	i.Ui.Info(fmt.Sprintf("- Downloading plugin for provider %q (%s)...", provider, versionMeta.Version))
@@ -193,6 +194,9 @@ func (i *ProviderInstaller) Get(provider string, req Constraints) (PluginMeta, e
 		}
 	}
 
+	printedProviderName := fmt.Sprintf("%s (%s)", provider, providerSource)
+	i.Ui.Info(fmt.Sprintf("- Downloading plugin for provider %q (%s)...", printedProviderName, versionMeta.Version))
+	log.Printf("[DEBUG] getting provider %q version %q", printedProviderName, versionMeta.Version)
 	err = i.install(provider, v, providerURL)
 	if err != nil {
 		return PluginMeta{}, err
