@@ -260,7 +260,7 @@ func (b *Remote) checkPolicy(stopCtx, cancelCtx context.Context, op *backend.Ope
 
 		switch pc.Status {
 		case tfe.PolicyPasses:
-			if (op.Type == backend.OperationTypeApply || i < len(r.PolicyChecks)-1) && b.CLI != nil {
+			if (r.HasChanges && op.Type == backend.OperationTypeApply || i < len(r.PolicyChecks)-1) && b.CLI != nil {
 				b.CLI.Output("\n------------------------------------------------------------------------")
 			}
 			continue
