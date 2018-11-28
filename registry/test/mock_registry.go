@@ -100,20 +100,36 @@ var testMods = map[string][]testMod{
 }
 
 var testProviders = map[string][]testProvider{
-	"terraform-providers/foo": {
+	"-/foo": {
 		{
 			version: "0.2.3",
 			url:     "https://releases.hashicorp.com/terraform-provider-foo/0.2.3/terraform-provider-foo.zip",
 		},
 		{version: "0.3.0"},
 	},
-	"terraform-providers/bar": {
+	"-/bar": {
 		{
 			version: "0.1.1",
 			url:     "https://releases.hashicorp.com/terraform-provider-bar/0.1.1/terraform-provider-bar.zip",
 		},
 		{version: "0.1.2"},
 	},
+}
+
+func providerAlias(provider string) string {
+	re := regexp.MustCompile("^-/")
+	if re.MatchString(provider) {
+		return re.ReplaceAllString(provider, "terraform-providers/")
+	}
+	return provider
+}
+
+func init() {
+	// Add provider aliases
+	for provider, info := range testProviders {
+		alias := providerAlias(provider)
+		testProviders[alias] = info
+	}
 }
 
 func latestVersion(versions []string) string {
@@ -287,7 +303,7 @@ func mockRegHandler() http.Handler {
 			}
 		}
 
-		name := fmt.Sprintf("%s", matches[1])
+		name := providerAlias(fmt.Sprintf("%s", matches[1]))
 		versions, ok := testProviders[name]
 		if !ok {
 			http.NotFound(w, r)
@@ -295,7 +311,7 @@ func mockRegHandler() http.Handler {
 		}
 
 		// only adding the single requested provider for now
-		// this is the minimal that any regisry is epected to support
+		// this is the minimal that any registry is expected to support
 		pvs := &response.TerraformProviderVersions{
 			ID: name,
 		}
