@@ -6,11 +6,11 @@
 package unix
 
 const (
-	sizeofPtr      = 0x8
-	sizeofShort    = 0x2
-	sizeofInt      = 0x4
-	sizeofLong     = 0x8
-	sizeofLongLong = 0x8
+	SizeofPtr      = 0x8
+	SizeofShort    = 0x2
+	SizeofInt      = 0x4
+	SizeofLong     = 0x8
+	SizeofLongLong = 0x8
 	PathMax        = 0x1000
 )
 
@@ -289,6 +289,8 @@ type RawSockaddrXDP struct {
 	Shared_umem_fd uint32
 }
 
+type RawSockaddrPPPoX [0x1e]byte
+
 type RawSockaddr struct {
 	Family uint16
 	Data   [14]int8
@@ -426,6 +428,7 @@ const (
 	SizeofSockaddrALG       = 0x58
 	SizeofSockaddrVM        = 0x10
 	SizeofSockaddrXDP       = 0x10
+	SizeofSockaddrPPPoX     = 0x1e
 	SizeofLinger            = 0x8
 	SizeofIovec             = 0x10
 	SizeofIPMreq            = 0x8
@@ -499,7 +502,7 @@ const (
 	IFLA_EVENT           = 0x2c
 	IFLA_NEW_NETNSID     = 0x2d
 	IFLA_IF_NETNSID      = 0x2e
-	IFLA_MAX             = 0x31
+	IFLA_MAX             = 0x33
 	RT_SCOPE_UNIVERSE    = 0x0
 	RT_SCOPE_SITE        = 0xc8
 	RT_SCOPE_LINK        = 0xfd
@@ -1938,3 +1941,52 @@ type XDPDesc struct {
 	Len     uint32
 	Options uint32
 }
+
+const (
+	NCSI_CMD_UNSPEC                 = 0x0
+	NCSI_CMD_PKG_INFO               = 0x1
+	NCSI_CMD_SET_INTERFACE          = 0x2
+	NCSI_CMD_CLEAR_INTERFACE        = 0x3
+	NCSI_ATTR_UNSPEC                = 0x0
+	NCSI_ATTR_IFINDEX               = 0x1
+	NCSI_ATTR_PACKAGE_LIST          = 0x2
+	NCSI_ATTR_PACKAGE_ID            = 0x3
+	NCSI_ATTR_CHANNEL_ID            = 0x4
+	NCSI_PKG_ATTR_UNSPEC            = 0x0
+	NCSI_PKG_ATTR                   = 0x1
+	NCSI_PKG_ATTR_ID                = 0x2
+	NCSI_PKG_ATTR_FORCED            = 0x3
+	NCSI_PKG_ATTR_CHANNEL_LIST      = 0x4
+	NCSI_CHANNEL_ATTR_UNSPEC        = 0x0
+	NCSI_CHANNEL_ATTR               = 0x1
+	NCSI_CHANNEL_ATTR_ID            = 0x2
+	NCSI_CHANNEL_ATTR_VERSION_MAJOR = 0x3
+	NCSI_CHANNEL_ATTR_VERSION_MINOR = 0x4
+	NCSI_CHANNEL_ATTR_VERSION_STR   = 0x5
+	NCSI_CHANNEL_ATTR_LINK_STATE    = 0x6
+	NCSI_CHANNEL_ATTR_ACTIVE        = 0x7
+	NCSI_CHANNEL_ATTR_FORCED        = 0x8
+	NCSI_CHANNEL_ATTR_VLAN_LIST     = 0x9
+	NCSI_CHANNEL_ATTR_VLAN_ID       = 0xa
+)
+
+const (
+	SOF_TIMESTAMPING_TX_HARDWARE  = 0x1
+	SOF_TIMESTAMPING_TX_SOFTWARE  = 0x2
+	SOF_TIMESTAMPING_RX_HARDWARE  = 0x4
+	SOF_TIMESTAMPING_RX_SOFTWARE  = 0x8
+	SOF_TIMESTAMPING_SOFTWARE     = 0x10
+	SOF_TIMESTAMPING_SYS_HARDWARE = 0x20
+	SOF_TIMESTAMPING_RAW_HARDWARE = 0x40
+	SOF_TIMESTAMPING_OPT_ID       = 0x80
+	SOF_TIMESTAMPING_TX_SCHED     = 0x100
+	SOF_TIMESTAMPING_TX_ACK       = 0x200
+	SOF_TIMESTAMPING_OPT_CMSG     = 0x400
+	SOF_TIMESTAMPING_OPT_TSONLY   = 0x800
+	SOF_TIMESTAMPING_OPT_STATS    = 0x1000
+	SOF_TIMESTAMPING_OPT_PKTINFO  = 0x2000
+	SOF_TIMESTAMPING_OPT_TX_SWHW  = 0x4000
+
+	SOF_TIMESTAMPING_LAST = 0x4000
+	SOF_TIMESTAMPING_MASK = 0x7fff
+)
