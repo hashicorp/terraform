@@ -24,6 +24,7 @@ terraform {
     address = "demo.consul.io"
     scheme  = "https"
     path    = "full/path"
+    gzip    = true
   }
 }
 ```
@@ -37,7 +38,10 @@ Note that for the access credentials we recommend using a
 data "terraform_remote_state" "foo" {
   backend = "consul"
   config = {
-    path = "full/path"
+    address = "demo.consul.io"
+    scheme  = "https"
+    path    = "full/path"
+    gzip    = true
   }
 }
 ```
