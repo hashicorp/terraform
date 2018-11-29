@@ -29,9 +29,10 @@ func (c *OutputCommand) Run(args []string) int {
 	}
 
 	var module string
-	var jsonOutput bool
+	var jsonOutput, nocolor bool
 	cmdFlags := c.Meta.defaultFlagSet("output")
 	cmdFlags.BoolVar(&jsonOutput, "json", false, "json")
+	cmdFlags.BoolVar(&nocolor, "no-color", false, "no-color")
 	cmdFlags.StringVar(&c.Meta.statePath, "state", DefaultStateFilename, "path")
 	cmdFlags.StringVar(&module, "module", "", "module")
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
@@ -159,11 +160,21 @@ func (c *OutputCommand) Run(args []string) int {
 				c.showDiagnostics(diags)
 				return 1
 			}
-			c.Ui.Output(string(jsonOutputs))
-			return 0
+			if !nocolor {
+				c.Ui.Output(c.Colorize().Color("[green] string(jsonOutputs [reset] \n"))
+				return 0
+			} else {
+				c.Ui.Output(string(jsonOutputs))
+				return 0
+			}
 		} else {
-			c.Ui.Output(outputsAsString(state, moduleAddr, false))
-			return 0
+			if !nocolor {
+				c.Ui.Output(c.Colorize().Color("[green] outputsAsString(state, moduleAddr, false [reset] \n"))
+				return 0
+			} else {
+				c.Ui.Output(outputsAsString(state, moduleAddr, false))
+				return 0
+			}
 		}
 	}
 
@@ -183,8 +194,12 @@ func (c *OutputCommand) Run(args []string) int {
 		if err != nil {
 			return 1
 		}
+		if !nocolor {
+			c.Ui.Output(c.Colorize().Color("[green] string(jsonOutput [reset] \n"))
+		} else {
 
-		c.Ui.Output(string(jsonOutput))
+			c.Ui.Output(string(jsonOutput))
+		}
 	} else {
 		// Our formatter still wants an old-style raw interface{} value, so
 		// for now we'll just shim it.
@@ -196,7 +211,12 @@ func (c *OutputCommand) Run(args []string) int {
 			c.showDiagnostics(diags)
 			return 1
 		}
-		c.Ui.Output(result)
+		if !nocolor {
+			c.Ui.Output(c.Colorize().Color("[green] result [reset] \n"))
+		} else {
+
+			c.Ui.Output(result)
+		}
 	}
 
 	return 0
