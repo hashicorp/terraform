@@ -15,7 +15,7 @@ import (
 )
 
 // analysis is a container for the various different information gathered
-// by ModuleSources.analyze.
+// by Upgrader.analyze.
 type analysis struct {
 	ProviderSchemas      map[string]*terraform.ProviderSchema
 	ProvisionerSchemas   map[string]*configschema.Block

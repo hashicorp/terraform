@@ -9,13 +9,12 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/hashicorp/terraform/configs/configschema"
 	"github.com/hashicorp/terraform/providers"
 	"github.com/hashicorp/terraform/terraform"
 )
 
 func TestUpgradeValid(t *testing.T) {
-	t.Skip("configupgrade is not yet complete enough to run tests against")
-
 	// This test uses the contents of the test-fixtures/valid directory as
 	// a table of tests. Every directory there must have both "input" and
 	// "want" subdirectories, where "input" is the configuration to be
@@ -181,6 +180,11 @@ func diffSourceFilesFallback(got, want []byte) []byte {
 var testProviders = map[string]providers.Factory{
 	"test": providers.Factory(func() (providers.Interface, error) {
 		p := &terraform.MockProvider{}
+		p.GetSchemaReturn = &terraform.ProviderSchema{
+			ResourceTypes: map[string]*configschema.Block{
+				"test_resource": {},
+			},
+		}
 		return p, nil
 	}),
 }
