@@ -55,7 +55,7 @@ vendor in close collaboration with HashiCorp, and are tested by HashiCorp.
 
 [Scaleway](/docs/providers/scaleway/index.html)
 
-[Selectel](/docs/provider/selvpc/index.html)
+[Selectel](/docs/providers/selvpc/index.html)
 
 [SoftLayer](/docs/providers/softlayer/index.html)
 
