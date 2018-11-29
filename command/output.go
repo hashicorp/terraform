@@ -161,7 +161,7 @@ func (c *OutputCommand) Run(args []string) int {
 				return 1
 			}
 			if !nocolor {
-				c.Ui.Output(c.Colorize().Color("[green] string(jsonOutputs [reset] \n"))
+				c.Ui.Output(c.Colorize().Color(fmt.Sprintf("[green]%s[reset]", string(jsonOutputs))))
 				return 0
 			} else {
 				c.Ui.Output(string(jsonOutputs))
@@ -169,7 +169,7 @@ func (c *OutputCommand) Run(args []string) int {
 			}
 		} else {
 			if !nocolor {
-				c.Ui.Output(c.Colorize().Color("[green] outputsAsString(state, moduleAddr, false [reset] \n"))
+				c.Ui.Output(c.Colorize().Color(fmt.Sprintf("[green]%s[reset]", outputsAsString(state, moduleAddr, false))))
 				return 0
 			} else {
 				c.Ui.Output(outputsAsString(state, moduleAddr, false))
@@ -195,7 +195,7 @@ func (c *OutputCommand) Run(args []string) int {
 			return 1
 		}
 		if !nocolor {
-			c.Ui.Output(c.Colorize().Color("[green] string(jsonOutput [reset] \n"))
+			c.Ui.Output(c.Colorize().Color(fmt.Sprintf("[green]%s[reset]", string(jsonOutput))))
 		} else {
 
 			c.Ui.Output(string(jsonOutput))
@@ -212,7 +212,7 @@ func (c *OutputCommand) Run(args []string) int {
 			return 1
 		}
 		if !nocolor {
-			c.Ui.Output(c.Colorize().Color("[green] result [reset] \n"))
+			c.Ui.Output(c.Colorize().Color(fmt.Sprintf("[green]%s[reset]", result)))
 		} else {
 
 			c.Ui.Output(result)
