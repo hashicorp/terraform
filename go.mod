@@ -73,7 +73,7 @@ require (
 	github.com/hashicorp/go-version v0.0.0-20180322230233-23480c066577
 	github.com/hashicorp/golang-lru v0.5.0 // indirect
 	github.com/hashicorp/hcl v0.0.0-20170504190234-a4b07c25de5f
-	github.com/hashicorp/hcl2 v0.0.0-20181126233546-67424e43b184
+	github.com/hashicorp/hcl2 v0.0.0-20181129202151-4d82d52bfa49
 	github.com/hashicorp/hil v0.0.0-20170627220502-fa9f258a9250
 	github.com/hashicorp/logutils v0.0.0-20150609070431-0dc08b1671f3
 	github.com/hashicorp/memberlist v0.1.0 // indirect
@@ -115,7 +115,6 @@ require (
 	github.com/pkg/errors v0.0.0-20170505043639-c605e284fe17 // indirect
 	github.com/posener/complete v0.0.0-20171219111128-6bee943216c8
 	github.com/satori/go.uuid v0.0.0-20160927100844-b061729afc07 // indirect
-	github.com/satori/uuid v0.0.0-20160927100844-b061729afc07 // indirect
 	github.com/sean-/seed v0.0.0-20170313163322-e2103e2c3529 // indirect
 	github.com/sirupsen/logrus v1.1.1 // indirect
 	github.com/smartystreets/assertions v0.0.0-20180927180507-b2de0cb4f26d // indirect
@@ -129,21 +128,21 @@ require (
 	github.com/tmc/grpc-websocket-proxy v0.0.0-20171017195756-830351dc03c6 // indirect
 	github.com/ugorji/go v0.0.0-20180813092308-00b869d2f4a5 // indirect
 	github.com/ulikunitz/xz v0.5.4 // indirect
-	github.com/vmihailenco/msgpack v4.0.0+incompatible // indirect
+	github.com/vmihailenco/msgpack v4.0.1+incompatible // indirect
 	github.com/xanzy/ssh-agent v0.2.0
 	github.com/xiang90/probing v0.0.0-20160813154853-07dd2e8dfe18 // indirect
 	github.com/xlab/treeprint v0.0.0-20161029104018-1d6e34225557
-	github.com/zclconf/go-cty v0.0.0-20181017232614-01c5aba823a6
+	github.com/zclconf/go-cty v0.0.0-20181129180422-88fbe721e0f8
 	go.opencensus.io v0.17.0 // indirect
 	go.uber.org/atomic v1.3.2 // indirect
 	go.uber.org/multierr v1.1.0 // indirect
 	go.uber.org/zap v1.9.1 // indirect
-	golang.org/x/crypto v0.0.0-20181112202954-3d3f9f413869
-	golang.org/x/net v0.0.0-20181017193950-04a2e542c03f
+	golang.org/x/crypto v0.0.0-20181127143415-eb0de9b17e85
+	golang.org/x/net v0.0.0-20181129055619-fae4c4e3ad76
 	golang.org/x/oauth2 v0.0.0-20181003184128-c57b0facaced
-	golang.org/x/sys v0.0.0-20180925112736-b09afc3d579e // indirect
+	golang.org/x/sys v0.0.0-20181128092732-4ed8d59d0b35 // indirect
 	google.golang.org/api v0.0.0-20181015145326-625cd1887957
-	google.golang.org/appengine v1.2.0 // indirect
+	google.golang.org/appengine v1.3.0 // indirect
 	google.golang.org/grpc v1.14.0
 	gopkg.in/vmihailenco/msgpack.v2 v2.9.1 // indirect
 )

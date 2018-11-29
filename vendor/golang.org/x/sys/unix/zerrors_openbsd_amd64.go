@@ -952,6 +952,7 @@ const (
 	MNT_NOATIME                       = 0x8000
 	MNT_NODEV                         = 0x10
 	MNT_NOEXEC                        = 0x4
+	MNT_NOPERM                        = 0x20
 	MNT_NOSUID                        = 0x8
 	MNT_NOWAIT                        = 0x2
 	MNT_QUOTA                         = 0x2000
@@ -959,6 +960,7 @@ const (
 	MNT_RELOAD                        = 0x40000
 	MNT_ROOTFS                        = 0x4000
 	MNT_SOFTDEP                       = 0x4000000
+	MNT_STALLED                       = 0x100000
 	MNT_SYNCHRONOUS                   = 0x2
 	MNT_UPDATE                        = 0x10000
 	MNT_VISFLAGMASK                   = 0x400ffff
@@ -1441,6 +1443,8 @@ const (
 	TIOCUCNTL_CBRK                    = 0x7a
 	TIOCUCNTL_SBRK                    = 0x7b
 	TOSTOP                            = 0x400000
+	UTIME_NOW                         = -0x2
+	UTIME_OMIT                        = -0x1
 	VDISCARD                          = 0xf
 	VDSUSP                            = 0xb
 	VEOF                              = 0x0

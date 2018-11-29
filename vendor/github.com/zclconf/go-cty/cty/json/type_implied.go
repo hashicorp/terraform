@@ -138,7 +138,7 @@ func impliedObjectType(dec *json.Decoder) (cty.Type, error) {
 }
 
 func impliedTupleType(dec *json.Decoder) (cty.Type, error) {
-	// By the time we get in here, we've already consumed the { delimiter
+	// By the time we get in here, we've already consumed the [ delimiter
 	// and so our next token should be the first value.
 
 	var etys []cty.Type
@@ -150,10 +150,9 @@ func impliedTupleType(dec *json.Decoder) (cty.Type, error) {
 		}
 
 		if ttok, ok := tok.(json.Delim); ok {
-			if rune(ttok) != ']' {
-				return cty.NilType, fmt.Errorf("unexpected delimiter %q", ttok)
+			if rune(ttok) == ']' {
+				break
 			}
-			break
 		}
 
 		ety, err := impliedTypeForTok(tok, dec)

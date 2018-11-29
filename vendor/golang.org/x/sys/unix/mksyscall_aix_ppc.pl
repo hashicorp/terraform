@@ -19,7 +19,7 @@
 
 use strict;
 
-my $cmdline = "mksyscall_aix.pl " . join(' ', @ARGV);
+my $cmdline = "mksyscall_aix_ppc.pl " . join(' ', @ARGV);
 my $errors = 0;
 my $_32bit = "";
 my $tags = "";  # build tags
@@ -72,7 +72,7 @@ sub parseparam($) {
 
 my $package = "";
 my $text = "";
-my $c_extern = "/*\n#include <stdint.h>\n";
+my $c_extern = "/*\n#include <stdint.h>\n#include <stddef.h>\n";
 my @vars = ();
 while(<>) {
 	chomp;
@@ -369,7 +369,6 @@ $c_extern
 import "C"
 import (
 	"unsafe"
-	"syscall"
 )
 
 
