@@ -14,7 +14,7 @@ Stores the state in the [Consul](https://www.consul.io/) KV store at a given pat
 
 This backend supports [state locking](/docs/state/locking.html).
 
-~> Note that state storage with this backend is subject to the [maximum 512KB limit](https://www.consul.io/docs/faq.html#q-what-is-the-per-key-value-size-limitation-for-consul-39-s-key-value-store-) in Vault. See also the `gzip` option below.
+~> Note that state storage with this backend is subject to Consul's [maximum 512KB limit](https://www.consul.io/docs/faq.html#q-what-is-the-per-key-value-size-limitation-for-consul-39-s-key-value-store-). Set the `gzip` option to true for anything other than small demo configurations, and consider using a different backend if you plan to manage several hundred resources.
 
 ## Example Configuration
 
@@ -56,11 +56,12 @@ The following configuration options / environment variables are supported:
    format `dnsname:port`. Defaults to the local agent HTTP listener.
  * `scheme` - (Optional) Specifies what protocol to use when talking to the given
    `address`, either `http` or `https`. SSL support can also be triggered
-   by setting then environment variable `CONSUL_HTTP_SSL` to `true`.
+   by setting the environment variable `CONSUL_HTTP_SSL` to `true`.
  * `datacenter` - (Optional) The datacenter to use. Defaults to that of the agent.
- * `http_auth` / `CONSUL_HTTP_AUTH` - (Optional) HTTP Basic Authentication credentials to be used when
+ * `http_auth` / `CONSUL_HTTP_AUTH` - (Optional) HTTP Basic Authentication credentials to use when
    communicating with Consul, in the format of either `user` or `user:pass`.
  * `gzip` - (Optional) `true` to compress the state data using gzip, or `false` (the default) to leave it uncompressed.
+   Although this defaults to `false` for compatibility reasons, most users should set it to `true`.
  * `lock` - (Optional) `false` to disable locking. This defaults to true, but will require session permissions with Consul to perform locking.
  * `ca_file` / `CONSUL_CAFILE` - (Optional) A path to a PEM-encoded certificate authority used to verify the remote agent's certificate.
  * `cert_file` / `CONSUL_CLIENT_CERT` - (Optional) A path to a PEM-encoded certificate provided to the remote agent; requires use of `key_file`.
