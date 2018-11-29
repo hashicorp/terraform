@@ -7,8 +7,6 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/hashicorp/terraform/addrs"
-
 	version "github.com/hashicorp/go-version"
 
 	hcl1ast "github.com/hashicorp/hcl/hcl/ast"
@@ -19,6 +17,8 @@ import (
 	hcl2 "github.com/hashicorp/hcl2/hcl"
 	hcl2syntax "github.com/hashicorp/hcl2/hcl/hclsyntax"
 
+	"github.com/hashicorp/terraform/addrs"
+	"github.com/hashicorp/terraform/configs/configschema"
 	"github.com/hashicorp/terraform/tfdiags"
 )
 
@@ -79,13 +79,13 @@ func (u *Upgrader) upgradeNativeSyntaxFile(filename string, src []byte, an *anal
 
 		switch blockType {
 
-		case "resource":
+		case "resource", "data":
 			if len(labels) != 2 {
 				// Should never happen for valid input.
 				diags = diags.Append(&hcl2.Diagnostic{
 					Severity: hcl2.DiagError,
-					Summary:  "Invalid resource block",
-					Detail:   "A resource block must have two labels: the resource type and name.",
+					Summary:  fmt.Sprintf("Invalid %s block", blockType),
+					Detail:   fmt.Sprintf("A %s block must have two labels: the type and the name.", blockType),
 					Subject:  &declRange,
 				})
 				continue
@@ -96,111 +96,27 @@ func (u *Upgrader) upgradeNativeSyntaxFile(filename string, src []byte, an *anal
 				Type: labels[0],
 				Name: labels[1],
 			}
+			if blockType == "data" {
+				rAddr.Mode = addrs.DataResourceMode
+			}
 
-			// We should always have a schema for each provider in our analysis
-			// object. If not, it's a bug in the analyzer.
-			providerType, ok := an.ResourceProviderType[rAddr]
-			if !ok {
-				panic(fmt.Sprintf("unknown provider type for %s", rAddr.String()))
-			}
-			providerSchema, ok := an.ProviderSchemas[providerType]
-			if !ok {
-				panic(fmt.Sprintf("missing schema for provider type %q", providerType))
-			}
-			schema, ok := providerSchema.ResourceTypes[rAddr.Type]
-			if !ok {
+			moreDiags := u.upgradeNativeSyntaxResource(filename, &buf, rAddr, item, an, adhocComments)
+			diags = diags.Append(moreDiags)
+
+		case "provider":
+			if len(labels) != 1 {
 				diags = diags.Append(&hcl2.Diagnostic{
 					Severity: hcl2.DiagError,
-					Summary:  "Unknown resource type",
-					Detail:   fmt.Sprintf("The resource type %q is not known to the currently-selected version of provider %q.", rAddr.Type, providerType),
+					Summary:  fmt.Sprintf("Invalid %s block", blockType),
+					Detail:   fmt.Sprintf("A %s block must have one label: the provider type.", blockType),
 					Subject:  &declRange,
 				})
 				continue
 			}
 
-			printComments(&buf, item.LeadComment)
-			printBlockOpen(&buf, blockType, labels, item.LineComment)
-			args := body.List.Items
-			for i, arg := range args {
-				comments := adhocComments.TakeBefore(arg)
-				for _, group := range comments {
-					printComments(&buf, group)
-					buf.WriteByte('\n') // Extra separator after each group
-				}
-
-				printComments(&buf, arg.LeadComment)
-
-				name := arg.Keys[0].Token.Value().(string)
-				//labelKeys := arg.Keys[1:]
-
-				switch name {
-				// TODO: Special case for all of the "meta-arguments" allowed
-				// in a resource block, such as "count", "lifecycle",
-				// "provisioner", etc.
-
-				default:
-					// We'll consult the schema to see how we ought to interpret
-					// this item.
-
-					if _, isAttr := schema.Attributes[name]; isAttr {
-						// We'll tolerate a block with no labels here as a degenerate
-						// way to assign a map, but we can't migrate a block that has
-						// labels. In practice this should never happen because
-						// nested blocks in resource blocks did not accept labels
-						// prior to v0.12.
-						if len(arg.Keys) != 1 {
-							diags = diags.Append(&hcl2.Diagnostic{
-								Severity: hcl2.DiagError,
-								Summary:  "Block where attribute was expected",
-								Detail:   fmt.Sprintf("Within %s the name %q is an attribute name, not a block type.", rAddr.Type, name),
-								Subject:  hcl1PosRange(filename, arg.Keys[0].Pos()).Ptr(),
-							})
-							continue
-						}
-
-						valSrc, valDiags := upgradeExpr(arg.Val, filename, true, an)
-						diags = diags.Append(valDiags)
-						printAttribute(&buf, arg.Keys[0].Token.Value().(string), valSrc, arg.LineComment)
-					} else if _, isBlock := schema.BlockTypes[name]; isBlock {
-						// TODO: Also upgrade blocks.
-						// In particular we need to handle the tricky case where
-						// a user attempts to treat a block type name like it's
-						// an attribute, by producing a "dynamic" block.
-						hcl1printer.Fprint(&buf, arg)
-						buf.WriteByte('\n')
-					} else {
-						if arg.Assign.IsValid() {
-							diags = diags.Append(&hcl2.Diagnostic{
-								Severity: hcl2.DiagError,
-								Summary:  "Unrecognized attribute name",
-								Detail:   fmt.Sprintf("Resource type %s does not expect an attribute named %q.", rAddr.Type, name),
-								Subject:  hcl1PosRange(filename, arg.Keys[0].Pos()).Ptr(),
-							})
-						} else {
-							diags = diags.Append(&hcl2.Diagnostic{
-								Severity: hcl2.DiagError,
-								Summary:  "Unrecognized block type",
-								Detail:   fmt.Sprintf("Resource type %s does not expect blocks of type %q.", rAddr.Type, name),
-								Subject:  hcl1PosRange(filename, arg.Keys[0].Pos()).Ptr(),
-							})
-						}
-						continue
-					}
-				}
-
-				// If we have another item and it's more than one line away
-				// from the current one then we'll print an extra blank line
-				// to retain that separation.
-				if (i + 1) < len(args) {
-					next := args[i+1]
-					thisPos := arg.Pos()
-					nextPos := next.Pos()
-					if nextPos.Line-thisPos.Line > 1 {
-						buf.WriteByte('\n')
-					}
-				}
-			}
-			buf.WriteString("}\n\n")
+			pType := labels[0]
+			moreDiags := u.upgradeNativeSyntaxProvider(filename, &buf, pType, item, an, adhocComments)
+			diags = diags.Append(moreDiags)
 
 		case "variable":
 			printComments(&buf, item.LeadComment)
@@ -406,6 +322,157 @@ func (u *Upgrader) upgradeNativeSyntaxFile(filename string, src []byte, an *anal
 	result.Content = buf.Bytes()
 
 	return result, diags
+}
+
+func (u *Upgrader) upgradeNativeSyntaxResource(filename string, buf *bytes.Buffer, addr addrs.Resource, item *hcl1ast.ObjectItem, an *analysis, adhocComments *commentQueue) tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
+
+	body := item.Val.(*hcl1ast.ObjectType)
+	declRange := hcl1PosRange(filename, item.Keys[0].Pos())
+
+	// We should always have a schema for each provider in our analysis
+	// object. If not, it's a bug in the analyzer.
+	providerType, ok := an.ResourceProviderType[addr]
+	if !ok {
+		panic(fmt.Sprintf("unknown provider type for %s", addr.String()))
+	}
+	providerSchema, ok := an.ProviderSchemas[providerType]
+	if !ok {
+		panic(fmt.Sprintf("missing schema for provider type %q", providerType))
+	}
+	schema, _ := providerSchema.SchemaForResourceAddr(addr)
+	if !ok {
+		diags = diags.Append(&hcl2.Diagnostic{
+			Severity: hcl2.DiagError,
+			Summary:  "Unknown resource type",
+			Detail:   fmt.Sprintf("The resource type %q is not known to the currently-selected version of provider %q.", addr.Type, providerType),
+			Subject:  &declRange,
+		})
+		return diags
+	}
+
+	var blockType string
+	switch addr.Mode {
+	case addrs.ManagedResourceMode:
+		blockType = "resource"
+	case addrs.DataResourceMode:
+		blockType = "data"
+	}
+	labels := []string{addr.Type, addr.Name}
+
+	printComments(buf, item.LeadComment)
+	printBlockOpen(buf, blockType, labels, item.LineComment)
+	u.upgradeBlockBody(filename, addr.String(), buf, body.List.Items, schema, an, adhocComments)
+	buf.WriteString("}\n\n")
+
+	return diags
+}
+
+func (u *Upgrader) upgradeNativeSyntaxProvider(filename string, buf *bytes.Buffer, typeName string, item *hcl1ast.ObjectItem, an *analysis, adhocComments *commentQueue) tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
+
+	body := item.Val.(*hcl1ast.ObjectType)
+
+	// We should always have a schema for each provider in our analysis
+	// object. If not, it's a bug in the analyzer.
+	providerSchema, ok := an.ProviderSchemas[typeName]
+	if !ok {
+		panic(fmt.Sprintf("missing schema for provider type %q", typeName))
+	}
+	schema := providerSchema.Provider
+
+	printComments(buf, item.LeadComment)
+	printBlockOpen(buf, "provider", []string{typeName}, item.LineComment)
+	u.upgradeBlockBody(filename, fmt.Sprintf("provider.%s", typeName), buf, body.List.Items, schema, an, adhocComments)
+	buf.WriteString("}\n\n")
+
+	return diags
+}
+
+func (u *Upgrader) upgradeBlockBody(filename string, blockAddr string, buf *bytes.Buffer, args []*hcl1ast.ObjectItem, schema *configschema.Block, an *analysis, adhocComments *commentQueue) tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
+
+	for i, arg := range args {
+		comments := adhocComments.TakeBefore(arg)
+		for _, group := range comments {
+			printComments(buf, group)
+			buf.WriteByte('\n') // Extra separator after each group
+		}
+
+		printComments(buf, arg.LeadComment)
+
+		name := arg.Keys[0].Token.Value().(string)
+		//labelKeys := arg.Keys[1:]
+
+		switch name {
+		// TODO: Special case for all of the "meta-arguments" allowed
+		// in a resource block, such as "count", "lifecycle",
+		// "provisioner", etc.
+
+		default:
+			// We'll consult the schema to see how we ought to interpret
+			// this item.
+
+			if _, isAttr := schema.Attributes[name]; isAttr {
+				// We'll tolerate a block with no labels here as a degenerate
+				// way to assign a map, but we can't migrate a block that has
+				// labels. In practice this should never happen because
+				// nested blocks in resource blocks did not accept labels
+				// prior to v0.12.
+				if len(arg.Keys) != 1 {
+					diags = diags.Append(&hcl2.Diagnostic{
+						Severity: hcl2.DiagError,
+						Summary:  "Block where attribute was expected",
+						Detail:   fmt.Sprintf("Within %s the name %q is an attribute name, not a block type.", blockAddr, name),
+						Subject:  hcl1PosRange(filename, arg.Keys[0].Pos()).Ptr(),
+					})
+					continue
+				}
+
+				valSrc, valDiags := upgradeExpr(arg.Val, filename, true, an)
+				diags = diags.Append(valDiags)
+				printAttribute(buf, arg.Keys[0].Token.Value().(string), valSrc, arg.LineComment)
+			} else if _, isBlock := schema.BlockTypes[name]; isBlock {
+				// TODO: Also upgrade blocks.
+				// In particular we need to handle the tricky case where
+				// a user attempts to treat a block type name like it's
+				// an attribute, by producing a "dynamic" block.
+				hcl1printer.Fprint(buf, arg)
+				buf.WriteByte('\n')
+			} else {
+				if arg.Assign.IsValid() {
+					diags = diags.Append(&hcl2.Diagnostic{
+						Severity: hcl2.DiagError,
+						Summary:  "Unrecognized attribute name",
+						Detail:   fmt.Sprintf("No attribute named %q is expected in %s.", name, blockAddr),
+						Subject:  hcl1PosRange(filename, arg.Keys[0].Pos()).Ptr(),
+					})
+				} else {
+					diags = diags.Append(&hcl2.Diagnostic{
+						Severity: hcl2.DiagError,
+						Summary:  "Unrecognized block type",
+						Detail:   fmt.Sprintf("Blocks of type %q are not expected in %s.", name, blockAddr),
+						Subject:  hcl1PosRange(filename, arg.Keys[0].Pos()).Ptr(),
+					})
+				}
+				continue
+			}
+		}
+
+		// If we have another item and it's more than one line away
+		// from the current one then we'll print an extra blank line
+		// to retain that separation.
+		if (i + 1) < len(args) {
+			next := args[i+1]
+			thisPos := arg.Pos()
+			nextPos := next.Pos()
+			if nextPos.Line-thisPos.Line > 1 {
+				buf.WriteByte('\n')
+			}
+		}
+	}
+
+	return diags
 }
 
 func printComments(buf *bytes.Buffer, group *hcl1ast.CommentGroup) {
