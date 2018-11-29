@@ -179,16 +179,19 @@ func marshalConfigResources(resources map[string]*configs.Resource, schemas *ter
 
 		r.Expressions = marshalExpressions(v.Config, schema)
 
-		var provisioners []provisioner
-		for _, p := range v.Managed.Provisioners {
-			schema := schemas.ProvisionerConfig(p.Type)
-			prov := provisioner{
-				Name:        p.Type,
-				Expressions: marshalExpressions(p.Config, schema),
+		// Managed is populated only for Mode = addrs.ManagedResourceMode
+		if v.Managed != nil && len(v.Managed.Provisioners) > 0 {
+			var provisioners []provisioner
+			for _, p := range v.Managed.Provisioners {
+				schema := schemas.ProvisionerConfig(p.Type)
+				prov := provisioner{
+					Name:        p.Type,
+					Expressions: marshalExpressions(p.Config, schema),
+				}
+				provisioners = append(provisioners, prov)
 			}
-			provisioners = append(provisioners, prov)
+			r.Provisioners = provisioners
 		}
-		r.Provisioners = provisioners
 
 		rs = append(rs, r)
 	}
