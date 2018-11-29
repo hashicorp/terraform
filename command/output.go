@@ -160,19 +160,19 @@ func (c *OutputCommand) Run(args []string) int {
 				c.showDiagnostics(diags)
 				return 1
 			}
-			if !nocolor {
-				c.Ui.Output(c.Colorize().Color(fmt.Sprintf("[green]%s[reset]", string(jsonOutputs))))
+			if nocolor {
+				c.Ui.Output(string(jsonOutputs))
 				return 0
 			} else {
-				c.Ui.Output(string(jsonOutputs))
+				c.Ui.Output(c.Colorize().Color(fmt.Sprintf("[green]%s[reset]", string(jsonOutputs))))
 				return 0
 			}
 		} else {
-			if !nocolor {
-				c.Ui.Output(c.Colorize().Color(fmt.Sprintf("[green]%s[reset]", outputsAsString(state, moduleAddr, false))))
+			if nocolor {
+				c.Ui.Output(outputsAsString(state, moduleAddr, false))
 				return 0
 			} else {
-				c.Ui.Output(outputsAsString(state, moduleAddr, false))
+				c.Ui.Output(c.Colorize().Color(fmt.Sprintf("[green]%s[reset]", outputsAsString(state, moduleAddr, false))))
 				return 0
 			}
 		}
@@ -194,11 +194,11 @@ func (c *OutputCommand) Run(args []string) int {
 		if err != nil {
 			return 1
 		}
-		if !nocolor {
-			c.Ui.Output(c.Colorize().Color(fmt.Sprintf("[green]%s[reset]", string(jsonOutput))))
+		if nocolor {
+			c.Ui.Output(string(jsonOutput))
 		} else {
 
-			c.Ui.Output(string(jsonOutput))
+			c.Ui.Output(c.Colorize().Color(fmt.Sprintf("[green]%s[reset]", string(jsonOutput))))
 		}
 	} else {
 		// Our formatter still wants an old-style raw interface{} value, so
@@ -211,11 +211,11 @@ func (c *OutputCommand) Run(args []string) int {
 			c.showDiagnostics(diags)
 			return 1
 		}
-		if !nocolor {
-			c.Ui.Output(c.Colorize().Color(fmt.Sprintf("[green]%s[reset]", result)))
+		if nocolor {
+			c.Ui.Output(result)
 		} else {
 
-			c.Ui.Output(result)
+			c.Ui.Output(c.Colorize().Color(fmt.Sprintf("[green]%s[reset]", result)))
 		}
 	}
 
