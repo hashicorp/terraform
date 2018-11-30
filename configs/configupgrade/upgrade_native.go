@@ -132,7 +132,7 @@ func (u *Upgrader) upgradeNativeSyntaxFile(filename string, src []byte, an *anal
 			printBlockOpen(&buf, blockType, labels, item.LineComment)
 			rules := bodyContentRules{
 				"description": noInterpAttributeRule(filename, cty.String, an),
-				"default": noInterpAttributeRule(filename, cty.DynamicPseudoType, an),
+				"default":     noInterpAttributeRule(filename, cty.DynamicPseudoType, an),
 				"type": maybeBareKeywordAttributeRule(filename, an, map[string]string{
 					// "list" and "map" in older versions were documented to
 					// mean list and map of strings, so we'll migrate to that
@@ -141,7 +141,8 @@ func (u *Upgrader) upgradeNativeSyntaxFile(filename string, src []byte, an *anal
 					"map":  `map(string)`,
 				}),
 			}
-			u.upgradeBlockBody(filename, fmt.Sprintf("var.%s", labels[0]), &buf, body.List.Items, rules, adhocComments)
+			bodyDiags := u.upgradeBlockBody(filename, fmt.Sprintf("var.%s", labels[0]), &buf, body.List.Items, rules, adhocComments)
+			diags = diags.Append(bodyDiags)
 			buf.WriteString("}\n\n")
 
 		case "output":
@@ -160,11 +161,12 @@ func (u *Upgrader) upgradeNativeSyntaxFile(filename string, src []byte, an *anal
 
 			rules := bodyContentRules{
 				"description": noInterpAttributeRule(filename, cty.String, an),
-				"value": normalAttributeRule(filename, cty.DynamicPseudoType, an),
-				"sensitive": noInterpAttributeRule(filename, cty.Bool, an),
-				"depends_on": dependsOnAttributeRule(filename, an),
+				"value":       normalAttributeRule(filename, cty.DynamicPseudoType, an),
+				"sensitive":   noInterpAttributeRule(filename, cty.Bool, an),
+				"depends_on":  dependsOnAttributeRule(filename, an),
 			}
-			u.upgradeBlockBody(filename, fmt.Sprintf("output.%s", labels[0]), &buf, body.List.Items, rules, adhocComments)
+			bodyDiags := u.upgradeBlockBody(filename, fmt.Sprintf("output.%s", labels[0]), &buf, body.List.Items, rules, adhocComments)
+			diags = diags.Append(bodyDiags)
 			buf.WriteString("}\n\n")
 
 		case "locals":
@@ -287,7 +289,8 @@ func (u *Upgrader) upgradeNativeSyntaxResource(filename string, buf *bytes.Buffe
 
 	printComments(buf, item.LeadComment)
 	printBlockOpen(buf, blockType, labels, item.LineComment)
-	u.upgradeBlockBody(filename, addr.String(), buf, body.List.Items, rules, adhocComments)
+	bodyDiags := u.upgradeBlockBody(filename, addr.String(), buf, body.List.Items, rules, adhocComments)
+	diags = diags.Append(bodyDiags)
 	buf.WriteString("}\n\n")
 
 	return diags
@@ -309,7 +312,8 @@ func (u *Upgrader) upgradeNativeSyntaxProvider(filename string, buf *bytes.Buffe
 
 	printComments(buf, item.LeadComment)
 	printBlockOpen(buf, "provider", []string{typeName}, item.LineComment)
-	u.upgradeBlockBody(filename, fmt.Sprintf("provider.%s", typeName), buf, body.List.Items, rules, adhocComments)
+	bodyDiags := u.upgradeBlockBody(filename, fmt.Sprintf("provider.%s", typeName), buf, body.List.Items, rules, adhocComments)
+	diags = diags.Append(bodyDiags)
 	buf.WriteString("}\n\n")
 
 	return diags
