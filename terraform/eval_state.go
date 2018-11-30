@@ -88,6 +88,13 @@ type EvalReadStateDeposed struct {
 }
 
 func (n *EvalReadStateDeposed) Eval(ctx EvalContext) (interface{}, error) {
+	if n.Provider == nil || *n.Provider == nil {
+		panic("EvalReadStateDeposed used with no Provider object")
+	}
+	if n.ProviderSchema == nil || *n.ProviderSchema == nil {
+		panic("EvalReadStateDeposed used with no ProviderSchema object")
+	}
+
 	key := n.Key
 	if key == states.NotDeposed {
 		return nil, fmt.Errorf("EvalReadStateDeposed used with no instance key; this is a bug in Terraform and should be reported")
