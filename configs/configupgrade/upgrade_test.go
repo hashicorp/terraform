@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	backendinit "github.com/hashicorp/terraform/backend/init"
 	"github.com/hashicorp/terraform/configs/configschema"
 	"github.com/hashicorp/terraform/providers"
 	"github.com/hashicorp/terraform/terraform"
@@ -187,4 +188,9 @@ var testProviders = map[string]providers.Factory{
 		}
 		return p, nil
 	}),
+}
+
+func init() {
+	// Initialize the backends
+	backendinit.Init(nil)
 }

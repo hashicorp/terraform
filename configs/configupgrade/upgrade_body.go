@@ -158,3 +158,27 @@ func schemaDefaultBodyRules(filename string, schema *configschema.Block, an *ana
 
 	return ret
 }
+
+// schemaNoInterpBodyRules constructs standard body content rules for the given
+// schema. Each call is guaranteed to produce a distinct object so that
+// callers can safely mutate the result in order to impose custom rules
+// in addition to or instead of those created by default, for situations
+// where schema-based and predefined items mix in a single body.
+func schemaNoInterpBodyRules(filename string, schema *configschema.Block, an *analysis) bodyContentRules {
+	ret := make(bodyContentRules)
+	if schema == nil {
+		// Shouldn't happen in any real case, but often crops up in tests
+		// where the mock schemas tend to be incomplete.
+		return ret
+	}
+
+	for name, attrS := range schema.Attributes {
+		ret[name] = noInterpAttributeRule(filename, attrS.Type, an)
+	}
+	for name, blockS := range schema.BlockTypes {
+		nestedRules := schemaDefaultBodyRules(filename, &blockS.Block, an)
+		ret[name] = nestedBlockRule(filename, nestedRules, an)
+	}
+
+	return ret
+}
