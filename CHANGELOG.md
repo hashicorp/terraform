@@ -20,20 +20,22 @@ IMPROVEMENTS:
 * backend/remote: Support remote state only usage by dynamically falling back to the local backend [GH-19378]
 * backend/remote: Also show Sentinel policy output when there are no changes [GH-19403]
 * backend/remote: Add support for the `console`, `graph` and `import` commands [GH-19464]
+* backend/remote: Use the new force-unlock API [GH-19520]
 * plugin/discovery: Use signing keys from the Terraform Registry when downloading providers. [GH-19389]
 * plugin/discovery: Use default `-` namespace alias when fetching available providers from Terraform Registry. [GH-19494]
 
 BUG FIXES:
 
 * command/format: Fix rendering of attribute-agnostic diagnostics [GH-19453]
-* helper/schema: Prevent the insertion of empty diff values when converting legacy diffs [GH-19253]
-* helper/schema: Fix timeout parsing during Provider.Diff (plan) [GH-19286]
 * core: Fix inconsistent plans when replacing instances. [GH-19233]
 * core: Correct handling of unknown values in module outputs during planning and final resolution of them during apply. [GH-19237]
 * core: Correct handling of wildcard dependencies when upgrading states [GH-19374]
 * core: Fix missing validation of references to non-existing child modules, which was previously resulting in a panic. [GH-19487]
+* helper/schema: Prevent the insertion of empty diff values when converting legacy diffs [GH-19253]
+* helper/schema: Fix timeout parsing during Provider.Diff (plan) [GH-19286]
 * helper/schema: Provider arguments set from environment variables now work correctly again, after regressing in the prior 0.12 alphas. [GH-19478]
 * helper/schema: For schema attributes that have `Elem` as a nested `schema.Resource`, setting `Optional: true` now forces `MinItems` to be zero, thus mimicking a previously-undocumented behavior that some providers were relying on. [GH-19478]
+* backend/remote: Fix issues with uploaded configs that contain symlinks [GH-19520]
 
 ## 0.12.0-alpha2 (October 30, 2018)
 
