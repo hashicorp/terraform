@@ -88,6 +88,7 @@ func (n *NodePlanDeposedResourceInstanceObject) EvalTree() EvalNode {
 				},
 				&EvalReadStateDeposed{
 					Addr:           addr.Resource,
+					Provider:       &provider,
 					ProviderSchema: &providerSchema,
 					Key:            n.DeposedKey,
 					Output:         &state,
