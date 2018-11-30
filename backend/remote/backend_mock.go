@@ -967,6 +967,9 @@ func (m *mockWorkspaces) Lock(ctx context.Context, workspaceID string, options t
 	if !ok {
 		return nil, tfe.ErrResourceNotFound
 	}
+	if w.Locked {
+		return nil, tfe.ErrWorkspaceLocked
+	}
 	w.Locked = true
 	return w, nil
 }
@@ -975,6 +978,21 @@ func (m *mockWorkspaces) Unlock(ctx context.Context, workspaceID string) (*tfe.W
 	w, ok := m.workspaceIDs[workspaceID]
 	if !ok {
 		return nil, tfe.ErrResourceNotFound
+	}
+	if !w.Locked {
+		return nil, tfe.ErrWorkspaceNotLocked
+	}
+	w.Locked = false
+	return w, nil
+}
+
+func (m *mockWorkspaces) ForceUnlock(ctx context.Context, workspaceID string) (*tfe.Workspace, error) {
+	w, ok := m.workspaceIDs[workspaceID]
+	if !ok {
+		return nil, tfe.ErrResourceNotFound
+	}
+	if !w.Locked {
+		return nil, tfe.ErrWorkspaceNotLocked
 	}
 	w.Locked = false
 	return w, nil
