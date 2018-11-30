@@ -15,10 +15,9 @@ import (
 	hcl1token "github.com/hashicorp/hcl/hcl/token"
 
 	hcl2 "github.com/hashicorp/hcl2/hcl"
-	hcl2syntax "github.com/hashicorp/hcl2/hcl/hclsyntax"
+	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/addrs"
-	"github.com/hashicorp/terraform/configs/configschema"
 	"github.com/hashicorp/terraform/tfdiags"
 )
 
@@ -119,138 +118,62 @@ func (u *Upgrader) upgradeNativeSyntaxFile(filename string, src []byte, an *anal
 			diags = diags.Append(moreDiags)
 
 		case "variable":
+			if len(labels) != 1 {
+				diags = diags.Append(&hcl2.Diagnostic{
+					Severity: hcl2.DiagError,
+					Summary:  fmt.Sprintf("Invalid %s block", blockType),
+					Detail:   fmt.Sprintf("A %s block must have one label: the variable name.", blockType),
+					Subject:  &declRange,
+				})
+				continue
+			}
+
 			printComments(&buf, item.LeadComment)
 			printBlockOpen(&buf, blockType, labels, item.LineComment)
-			args := body.List.Items
-			for i, arg := range args {
-				if len(arg.Keys) != 1 {
-					// Should never happen for valid input, since there are no nested blocks expected here.
-					diags = diags.Append(&hcl2.Diagnostic{
-						Severity: hcl2.DiagWarning,
-						Summary:  "Invalid nested block",
-						Detail:   fmt.Sprintf("Blocks of type %q are not expected here, so this was not automatically upgraded.", arg.Keys[0].Token.Value().(string)),
-						Subject:  hcl1PosRange(filename, arg.Keys[0].Pos()).Ptr(),
-					})
-					// Preserve the item as-is, using the hcl1printer package.
-					buf.WriteString("\n# TF-UPGRADE-TODO: Blocks are not expected here, so this was not automatically upgraded.\n")
-					hcl1printer.Fprint(&buf, arg)
-					buf.WriteString("\n\n")
-					continue
-				}
-
-				comments := adhocComments.TakeBefore(arg)
-				for _, group := range comments {
-					printComments(&buf, group)
-					buf.WriteByte('\n') // Extra separator after each group
-				}
-
-				printComments(&buf, arg.LeadComment)
-
-				switch arg.Keys[0].Token.Value() {
-				case "type":
-					// It is no longer idiomatic to place the type keyword in quotes,
-					// so we'll unquote it here as long as it looks like the result
-					// will be valid.
-					if lit, isLit := arg.Val.(*hcl1ast.LiteralType); isLit {
-						if lit.Token.Type == hcl1token.STRING {
-							kw := lit.Token.Value().(string)
-							if hcl2syntax.ValidIdentifier(kw) {
-
-								// "list" and "map" in older versions really meant
-								// list and map of strings, so we'll migrate to
-								// that and let the user adjust to "any" as
-								// the element type if desired.
-								switch strings.TrimSpace(kw) {
-								case "list":
-									kw = "list(string)"
-								case "map":
-									kw = "map(string)"
-								}
-
-								printAttribute(&buf, "type", []byte(kw), arg.LineComment)
-								break
-							}
-						}
-					}
-					// If we got something invalid there then we'll just fall through
-					// into the default case and migrate it as a normal expression.
-					fallthrough
-				default:
-					valSrc, valDiags := upgradeExpr(arg.Val, filename, false, an)
-					diags = diags.Append(valDiags)
-					printAttribute(&buf, arg.Keys[0].Token.Value().(string), valSrc, arg.LineComment)
-				}
-
-				// If we have another item and it's more than one line away
-				// from the current one then we'll print an extra blank line
-				// to retain that separation.
-				if (i + 1) < len(args) {
-					next := args[i+1]
-					thisPos := arg.Pos()
-					nextPos := next.Pos()
-					if nextPos.Line-thisPos.Line > 1 {
-						buf.WriteByte('\n')
-					}
-				}
+			rules := bodyContentRules{
+				"description": noInterpAttributeRule(filename, cty.String, an),
+				"default": noInterpAttributeRule(filename, cty.DynamicPseudoType, an),
+				"type": maybeBareKeywordAttributeRule(filename, an, map[string]string{
+					// "list" and "map" in older versions were documented to
+					// mean list and map of strings, so we'll migrate to that
+					// and let the user adjust it to some other type if desired.
+					"list": `list(string)`,
+					"map":  `map(string)`,
+				}),
 			}
+			u.upgradeBlockBody(filename, fmt.Sprintf("var.%s", labels[0]), &buf, body.List.Items, rules, adhocComments)
 			buf.WriteString("}\n\n")
 
 		case "output":
+			if len(labels) != 1 {
+				diags = diags.Append(&hcl2.Diagnostic{
+					Severity: hcl2.DiagError,
+					Summary:  fmt.Sprintf("Invalid %s block", blockType),
+					Detail:   fmt.Sprintf("A %s block must have one label: the output name.", blockType),
+					Subject:  &declRange,
+				})
+				continue
+			}
+
 			printComments(&buf, item.LeadComment)
 			printBlockOpen(&buf, blockType, labels, item.LineComment)
-			args := body.List.Items
-			for i, arg := range args {
-				if len(arg.Keys) != 1 {
-					// Should never happen for valid input, since there are no nested blocks expected here.
-					diags = diags.Append(&hcl2.Diagnostic{
-						Severity: hcl2.DiagWarning,
-						Summary:  "Invalid nested block",
-						Detail:   fmt.Sprintf("Blocks of type %q are not expected here, so this was not automatically upgraded.", arg.Keys[0].Token.Value().(string)),
-						Subject:  hcl1PosRange(filename, arg.Keys[0].Pos()).Ptr(),
-					})
-					// Preserve the item as-is, using the hcl1printer package.
-					buf.WriteString("\n# TF-UPGRADE-TODO: Blocks are not expected here, so this was not automatically upgraded.\n")
-					hcl1printer.Fprint(&buf, arg)
-					buf.WriteString("\n\n")
-					continue
-				}
 
-				comments := adhocComments.TakeBefore(arg)
-				for _, group := range comments {
-					printComments(&buf, group)
-					buf.WriteByte('\n') // Extra separator after each group
-				}
-
-				printComments(&buf, arg.LeadComment)
-
-				interp := false
-				switch arg.Keys[0].Token.Value() {
-				case "value":
-					interp = true
-				}
-
-				valSrc, valDiags := upgradeExpr(arg.Val, filename, interp, an)
-				diags = diags.Append(valDiags)
-				printAttribute(&buf, arg.Keys[0].Token.Value().(string), valSrc, arg.LineComment)
-
-				// If we have another item and it's more than one line away
-				// from the current one then we'll print an extra blank line
-				// to retain that separation.
-				if (i + 1) < len(args) {
-					next := args[i+1]
-					thisPos := arg.Pos()
-					nextPos := next.Pos()
-					if nextPos.Line-thisPos.Line > 1 {
-						buf.WriteByte('\n')
-					}
-				}
+			rules := bodyContentRules{
+				"description": noInterpAttributeRule(filename, cty.String, an),
+				"value": normalAttributeRule(filename, cty.DynamicPseudoType, an),
+				"sensitive": noInterpAttributeRule(filename, cty.Bool, an),
+				"depends_on": dependsOnAttributeRule(filename, an),
 			}
+			u.upgradeBlockBody(filename, fmt.Sprintf("output.%s", labels[0]), &buf, body.List.Items, rules, adhocComments)
 			buf.WriteString("}\n\n")
 
 		case "locals":
 			printComments(&buf, item.LeadComment)
 			printBlockOpen(&buf, blockType, labels, item.LineComment)
 
+			// The "locals" block contents are free-form declarations, so
+			// we'll need to treat this one as special and not do a rules-based
+			// upgrade as we do for most other block types.
 			args := body.List.Items
 			for i, arg := range args {
 				if len(arg.Keys) != 1 {
@@ -360,9 +283,11 @@ func (u *Upgrader) upgradeNativeSyntaxResource(filename string, buf *bytes.Buffe
 	}
 	labels := []string{addr.Type, addr.Name}
 
+	rules := schemaDefaultBodyRules(filename, schema, an)
+
 	printComments(buf, item.LeadComment)
 	printBlockOpen(buf, blockType, labels, item.LineComment)
-	u.upgradeBlockBody(filename, addr.String(), buf, body.List.Items, schema, an, adhocComments)
+	u.upgradeBlockBody(filename, addr.String(), buf, body.List.Items, rules, adhocComments)
 	buf.WriteString("}\n\n")
 
 	return diags
@@ -380,16 +305,17 @@ func (u *Upgrader) upgradeNativeSyntaxProvider(filename string, buf *bytes.Buffe
 		panic(fmt.Sprintf("missing schema for provider type %q", typeName))
 	}
 	schema := providerSchema.Provider
+	rules := schemaDefaultBodyRules(filename, schema, an)
 
 	printComments(buf, item.LeadComment)
 	printBlockOpen(buf, "provider", []string{typeName}, item.LineComment)
-	u.upgradeBlockBody(filename, fmt.Sprintf("provider.%s", typeName), buf, body.List.Items, schema, an, adhocComments)
+	u.upgradeBlockBody(filename, fmt.Sprintf("provider.%s", typeName), buf, body.List.Items, rules, adhocComments)
 	buf.WriteString("}\n\n")
 
 	return diags
 }
 
-func (u *Upgrader) upgradeBlockBody(filename string, blockAddr string, buf *bytes.Buffer, args []*hcl1ast.ObjectItem, schema *configschema.Block, an *analysis, adhocComments *commentQueue) tfdiags.Diagnostics {
+func (u *Upgrader) upgradeBlockBody(filename string, blockAddr string, buf *bytes.Buffer, args []*hcl1ast.ObjectItem, rules bodyContentRules, adhocComments *commentQueue) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 
 	for i, arg := range args {
@@ -404,60 +330,28 @@ func (u *Upgrader) upgradeBlockBody(filename string, blockAddr string, buf *byte
 		name := arg.Keys[0].Token.Value().(string)
 		//labelKeys := arg.Keys[1:]
 
-		switch name {
-		// TODO: Special case for all of the "meta-arguments" allowed
-		// in a resource block, such as "count", "lifecycle",
-		// "provisioner", etc.
-
-		default:
-			// We'll consult the schema to see how we ought to interpret
-			// this item.
-
-			if _, isAttr := schema.Attributes[name]; isAttr {
-				// We'll tolerate a block with no labels here as a degenerate
-				// way to assign a map, but we can't migrate a block that has
-				// labels. In practice this should never happen because
-				// nested blocks in resource blocks did not accept labels
-				// prior to v0.12.
-				if len(arg.Keys) != 1 {
-					diags = diags.Append(&hcl2.Diagnostic{
-						Severity: hcl2.DiagError,
-						Summary:  "Block where attribute was expected",
-						Detail:   fmt.Sprintf("Within %s the name %q is an attribute name, not a block type.", blockAddr, name),
-						Subject:  hcl1PosRange(filename, arg.Keys[0].Pos()).Ptr(),
-					})
-					continue
-				}
-
-				valSrc, valDiags := upgradeExpr(arg.Val, filename, true, an)
-				diags = diags.Append(valDiags)
-				printAttribute(buf, arg.Keys[0].Token.Value().(string), valSrc, arg.LineComment)
-			} else if _, isBlock := schema.BlockTypes[name]; isBlock {
-				// TODO: Also upgrade blocks.
-				// In particular we need to handle the tricky case where
-				// a user attempts to treat a block type name like it's
-				// an attribute, by producing a "dynamic" block.
-				hcl1printer.Fprint(buf, arg)
-				buf.WriteByte('\n')
+		rule, expected := rules[name]
+		if !expected {
+			if arg.Assign.IsValid() {
+				diags = diags.Append(&hcl2.Diagnostic{
+					Severity: hcl2.DiagError,
+					Summary:  "Unrecognized attribute name",
+					Detail:   fmt.Sprintf("No attribute named %q is expected in %s.", name, blockAddr),
+					Subject:  hcl1PosRange(filename, arg.Keys[0].Pos()).Ptr(),
+				})
 			} else {
-				if arg.Assign.IsValid() {
-					diags = diags.Append(&hcl2.Diagnostic{
-						Severity: hcl2.DiagError,
-						Summary:  "Unrecognized attribute name",
-						Detail:   fmt.Sprintf("No attribute named %q is expected in %s.", name, blockAddr),
-						Subject:  hcl1PosRange(filename, arg.Keys[0].Pos()).Ptr(),
-					})
-				} else {
-					diags = diags.Append(&hcl2.Diagnostic{
-						Severity: hcl2.DiagError,
-						Summary:  "Unrecognized block type",
-						Detail:   fmt.Sprintf("Blocks of type %q are not expected in %s.", name, blockAddr),
-						Subject:  hcl1PosRange(filename, arg.Keys[0].Pos()).Ptr(),
-					})
-				}
-				continue
+				diags = diags.Append(&hcl2.Diagnostic{
+					Severity: hcl2.DiagError,
+					Summary:  "Unrecognized block type",
+					Detail:   fmt.Sprintf("Blocks of type %q are not expected in %s.", name, blockAddr),
+					Subject:  hcl1PosRange(filename, arg.Keys[0].Pos()).Ptr(),
+				})
 			}
+			continue
 		}
+
+		itemDiags := rule(buf, blockAddr, arg)
+		diags = diags.Append(itemDiags)
 
 		// If we have another item and it's more than one line away
 		// from the current one then we'll print an extra blank line
