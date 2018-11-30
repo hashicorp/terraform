@@ -38,6 +38,13 @@ var (
 	// random is used to generate pseudo-random numbers.
 	random = rand.New(rand.NewSource(time.Now().UnixNano()))
 
+	// ErrWorkspaceLocked is returned when trying to lock a
+	// locked workspace.
+	ErrWorkspaceLocked = errors.New("workspace already locked")
+	// ErrWorkspaceNotLocked is returned when trying to unlock
+	// a unlocked workspace.
+	ErrWorkspaceNotLocked = errors.New("workspace already unlocked")
+
 	// ErrUnauthorized is returned when a receiving a 401.
 	ErrUnauthorized = errors.New("unauthorized")
 	// ErrResourceNotFound is returned when a receiving a 404.
@@ -164,8 +171,8 @@ func NewClient(cfg *Config) (*Client, error) {
 			ErrorHandler: retryablehttp.PassthroughErrorHandler,
 			HTTPClient:   config.HTTPClient,
 			RetryWaitMin: 100 * time.Millisecond,
-			RetryWaitMax: 300 * time.Millisecond,
-			RetryMax:     5,
+			RetryWaitMax: 400 * time.Millisecond,
+			RetryMax:     30,
 		},
 	}
 
@@ -505,6 +512,15 @@ func checkResponseCode(r *http.Response) error {
 		return ErrUnauthorized
 	case 404:
 		return ErrResourceNotFound
+	case 409:
+		switch {
+		case strings.HasSuffix(r.Request.URL.Path, "actions/lock"):
+			return ErrWorkspaceLocked
+		case strings.HasSuffix(r.Request.URL.Path, "actions/unlock"):
+			return ErrWorkspaceNotLocked
+		case strings.HasSuffix(r.Request.URL.Path, "actions/force-unlock"):
+			return ErrWorkspaceNotLocked
+		}
 	}
 
 	// Decode the error payload.
