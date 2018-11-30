@@ -34,7 +34,7 @@ func testApplyDiff(t *testing.T,
 	diff *terraform.InstanceDiff) {
 
 	testSchema := providers.Schema{
-		Version: uint64(resource.SchemaVersion),
+		Version: int64(resource.SchemaVersion),
 		Block:   resourceSchemaToBlock(resource.Schema),
 	}
 
@@ -338,7 +338,7 @@ func TestShimResourceDiff_Timeout_diff(t *testing.T) {
 	}
 
 	testSchema := providers.Schema{
-		Version: uint64(r.SchemaVersion),
+		Version: int64(r.SchemaVersion),
 		Block:   resourceSchemaToBlock(r.Schema),
 	}
 
