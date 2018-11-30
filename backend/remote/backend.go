@@ -63,8 +63,8 @@ type Remote struct {
 	// workspace is used to map the default workspace to a remote workspace.
 	workspace string
 
-	// prefix is used to filter down a set of workspaces that use a single.
-	// configuration
+	// prefix is used to filter down a set of workspaces that use a single
+	// configuration.
 	prefix string
 
 	// schema defines the configuration for the backend.
@@ -400,7 +400,9 @@ func (b *Remote) DeleteWorkspace(name string) error {
 	client := &remoteClient{
 		client:       b.client,
 		organization: b.organization,
-		workspace:    name,
+		workspace: &tfe.Workspace{
+			Name: name,
+		},
 	}
 
 	return client.Delete()
@@ -415,19 +417,6 @@ func (b *Remote) StateMgr(name string) (state.State, error) {
 		return nil, backend.ErrWorkspacesNotSupported
 	}
 
-	workspaces, err := b.workspaces()
-	if err != nil {
-		return nil, fmt.Errorf("Error retrieving workspaces: %v", err)
-	}
-
-	exists := false
-	for _, workspace := range workspaces {
-		if name == workspace {
-			exists = true
-			break
-		}
-	}
-
 	// Configure the remote workspace name.
 	switch {
 	case name == backend.DefaultStateName:
@@ -436,7 +425,12 @@ func (b *Remote) StateMgr(name string) (state.State, error) {
 		name = b.prefix + name
 	}
 
-	if !exists {
+	workspace, err := b.client.Workspaces.Read(context.Background(), b.organization, name)
+	if err != nil && err != tfe.ErrResourceNotFound {
+		return nil, fmt.Errorf("Failed to retrieve workspace %s: %v", name, err)
+	}
+
+	if err == tfe.ErrResourceNotFound {
 		options := tfe.WorkspaceCreateOptions{
 			Name: tfe.String(name),
 		}
@@ -447,7 +441,7 @@ func (b *Remote) StateMgr(name string) (state.State, error) {
 			options.TerraformVersion = tfe.String(version.String())
 		}
 
-		_, err = b.client.Workspaces.Create(context.Background(), b.organization, options)
+		workspace, err = b.client.Workspaces.Create(context.Background(), b.organization, options)
 		if err != nil {
 			return nil, fmt.Errorf("Error creating workspace %s: %v", name, err)
 		}
@@ -456,7 +450,7 @@ func (b *Remote) StateMgr(name string) (state.State, error) {
 	client := &remoteClient{
 		client:       b.client,
 		organization: b.organization,
-		workspace:    name,
+		workspace:    workspace,
 
 		// This is optionally set during Terraform Enterprise runs.
 		runID: os.Getenv("TFE_RUN_ID"),
@@ -468,16 +462,16 @@ func (b *Remote) StateMgr(name string) (state.State, error) {
 // Operation implements backend.Enhanced.
 func (b *Remote) Operation(ctx context.Context, op *backend.Operation) (*backend.RunningOperation, error) {
 	// Get the remote workspace name.
-	workspace := op.Workspace
+	name := op.Workspace
 	switch {
 	case op.Workspace == backend.DefaultStateName:
-		workspace = b.workspace
+		name = b.workspace
 	case b.prefix != "" && !strings.HasPrefix(op.Workspace, b.prefix):
-		workspace = b.prefix + op.Workspace
+		name = b.prefix + op.Workspace
 	}
 
 	// Retrieve the workspace for this operation.
-	w, err := b.client.Workspaces.Read(ctx, b.organization, workspace)
+	w, err := b.client.Workspaces.Read(ctx, b.organization, name)
 	if err != nil {
 		return nil, generalError("Failed to retrieve workspace", err)
 	}

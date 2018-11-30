@@ -185,7 +185,7 @@ func (s *configurationVersions) Read(ctx context.Context, cvID string) (*Configu
 func (s *configurationVersions) Upload(ctx context.Context, url, path string) error {
 	body := bytes.NewBuffer(nil)
 
-	_, err := slug.Pack(path, body)
+	_, err := slug.Pack(path, body, true)
 	if err != nil {
 		return err
 	}
