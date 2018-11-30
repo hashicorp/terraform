@@ -252,7 +252,6 @@ type ProviderSchema struct {
 // SchemaForResourceType attempts to find a schema for the given mode and type.
 // Returns nil if no such schema is available.
 func (ps *ProviderSchema) SchemaForResourceType(mode addrs.ResourceMode, typeName string) (schema *configschema.Block, version uint64) {
-	var m map[string]providers.Schema
 	switch mode {
 	case addrs.ManagedResourceMode:
 		return ps.ResourceTypes[typeName], ps.ResourceTypeSchemaVersions[typeName]
@@ -263,8 +262,6 @@ func (ps *ProviderSchema) SchemaForResourceType(mode addrs.ResourceMode, typeNam
 		// Shouldn't happen, because the above cases are comprehensive.
 		return nil, 0
 	}
-	s := m[typeName]
-	return s.Block, s.Version
 }
 
 // SchemaForResourceAddr attempts to find a schema for the mode and type from
