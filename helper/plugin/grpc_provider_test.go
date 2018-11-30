@@ -526,7 +526,7 @@ func TestPrepareProviderConfig(t *testing.T) {
 			Schema: map[string]*schema.Schema{
 				"foo": &schema.Schema{
 					Type:     schema.TypeString,
-					Required: true,
+					Optional: true,
 					Default:  true,
 				},
 			},
@@ -538,11 +538,27 @@ func TestPrepareProviderConfig(t *testing.T) {
 			}),
 		},
 		{
+			Name: "test incorrect default bool type",
+			Schema: map[string]*schema.Schema{
+				"foo": &schema.Schema{
+					Type:     schema.TypeBool,
+					Optional: true,
+					Default:  "",
+				},
+			},
+			ConfigVal: cty.ObjectVal(map[string]cty.Value{
+				"foo": cty.NullVal(cty.Bool),
+			}),
+			ExpectConfig: cty.ObjectVal(map[string]cty.Value{
+				"foo": cty.False,
+			}),
+		},
+		{
 			Name: "test deprecated default",
 			Schema: map[string]*schema.Schema{
 				"foo": &schema.Schema{
 					Type:     schema.TypeString,
-					Required: true,
+					Optional: true,
 					Default:  "do not use",
 					Removed:  "don't use this",
 				},
@@ -580,11 +596,19 @@ func TestPrepareProviderConfig(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if tc.ExpectError == "" && len(resp.Diagnostics) > 0 {
+			if tc.ExpectError != "" && len(resp.Diagnostics) > 0 {
 				for _, d := range resp.Diagnostics {
 					if !strings.Contains(d.Summary, tc.ExpectError) {
 						t.Fatalf("Unexpected error: %s/%s", d.Summary, d.Detail)
 					}
+				}
+				return
+			}
+
+			// we should have no errors past this point
+			for _, d := range resp.Diagnostics {
+				if d.Severity == proto.Diagnostic_ERROR {
+					t.Fatal(resp.Diagnostics)
 				}
 			}
 
