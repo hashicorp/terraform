@@ -18,6 +18,7 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/addrs"
+	backendinit "github.com/hashicorp/terraform/backend/init"
 	"github.com/hashicorp/terraform/tfdiags"
 )
 
@@ -115,6 +116,19 @@ func (u *Upgrader) upgradeNativeSyntaxFile(filename string, src []byte, an *anal
 
 			pType := labels[0]
 			moreDiags := u.upgradeNativeSyntaxProvider(filename, &buf, pType, item, an, adhocComments)
+			diags = diags.Append(moreDiags)
+
+		case "terraform":
+			if len(labels) != 0 {
+				diags = diags.Append(&hcl2.Diagnostic{
+					Severity: hcl2.DiagError,
+					Summary:  fmt.Sprintf("Invalid %s block", blockType),
+					Detail:   fmt.Sprintf("A %s block must not have any labels.", blockType),
+					Subject:  &declRange,
+				})
+				continue
+			}
+			moreDiags := u.upgradeNativeSyntaxTerraformBlock(filename, &buf, item, an, adhocComments)
 			diags = diags.Append(moreDiags)
 
 		case "variable":
@@ -313,6 +327,63 @@ func (u *Upgrader) upgradeNativeSyntaxProvider(filename string, buf *bytes.Buffe
 	printComments(buf, item.LeadComment)
 	printBlockOpen(buf, "provider", []string{typeName}, item.LineComment)
 	bodyDiags := u.upgradeBlockBody(filename, fmt.Sprintf("provider.%s", typeName), buf, body.List.Items, rules, adhocComments)
+	diags = diags.Append(bodyDiags)
+	buf.WriteString("}\n\n")
+
+	return diags
+}
+
+func (u *Upgrader) upgradeNativeSyntaxTerraformBlock(filename string, buf *bytes.Buffer, item *hcl1ast.ObjectItem, an *analysis, adhocComments *commentQueue) tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
+
+	body := item.Val.(*hcl1ast.ObjectType)
+
+	rules := bodyContentRules{
+		"required_version": noInterpAttributeRule(filename, cty.String, an),
+		"backend": func(buf *bytes.Buffer, blockAddr string, item *hcl1ast.ObjectItem) tfdiags.Diagnostics {
+			var diags tfdiags.Diagnostics
+
+			declRange := hcl1PosRange(filename, item.Keys[0].Pos())
+			if len(item.Keys) != 2 {
+				diags = diags.Append(&hcl2.Diagnostic{
+					Severity: hcl2.DiagError,
+					Summary:  `Invalid backend block`,
+					Detail:   `A backend block must have one label: the backend type name.`,
+					Subject:  &declRange,
+				})
+				return diags
+			}
+
+			typeName := item.Keys[1].Token.Value().(string)
+			beFn := backendinit.Backend(typeName)
+			if beFn == nil {
+				diags = diags.Append(&hcl2.Diagnostic{
+					Severity: hcl2.DiagError,
+					Summary:  "Unsupported backend type",
+					Detail:   fmt.Sprintf("Terraform does not support a backend type named %q.", typeName),
+					Subject:  &declRange,
+				})
+				return diags
+			}
+			be := beFn()
+			schema := be.ConfigSchema()
+			rules := schemaNoInterpBodyRules(filename, schema, an)
+
+			body := item.Val.(*hcl1ast.ObjectType)
+
+			printComments(buf, item.LeadComment)
+			printBlockOpen(buf, "backend", []string{typeName}, item.LineComment)
+			bodyDiags := u.upgradeBlockBody(filename, fmt.Sprintf("terraform.backend.%s", typeName), buf, body.List.Items, rules, adhocComments)
+			diags = diags.Append(bodyDiags)
+			buf.WriteString("}\n")
+
+			return diags
+		},
+	}
+
+	printComments(buf, item.LeadComment)
+	printBlockOpen(buf, "terraform", nil, item.LineComment)
+	bodyDiags := u.upgradeBlockBody(filename, "terraform", buf, body.List.Items, rules, adhocComments)
 	diags = diags.Append(bodyDiags)
 	buf.WriteString("}\n\n")
 
