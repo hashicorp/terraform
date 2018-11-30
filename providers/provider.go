@@ -86,7 +86,7 @@ type GetSchemaResponse struct {
 // Schema pairs a provider or resource schema with that schema's version.
 // This is used to be able to upgrade the schema in UpgradeResourceState.
 type Schema struct {
-	Version uint64
+	Version int64
 	Block   *configschema.Block
 }
 
@@ -135,7 +135,7 @@ type UpgradeResourceStateRequest struct {
 	TypeName string
 
 	// Version is version of the schema that created the current state.
-	Version int
+	Version int64
 
 	// RawStateJSON and RawStateFlatmap contiain the state that needs to be
 	// upgraded to match the current schema version. Because the schema is
