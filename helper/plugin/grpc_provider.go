@@ -3,6 +3,7 @@ package plugin
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"regexp"
 	"sort"
 	"strconv"
@@ -94,7 +95,7 @@ func (s *GRPCProviderServer) PrepareProviderConfig(_ context.Context, req *proto
 
 	// lookup any required, top-level attributes that are Null, and see if we
 	// have a Default value available.
-	configVal, _ = cty.Transform(configVal, func(path cty.Path, val cty.Value) (cty.Value, error) {
+	configVal, err = cty.Transform(configVal, func(path cty.Path, val cty.Value) (cty.Value, error) {
 		// we're only looking for top-level attributes
 		if len(path) != 1 {
 			return val, nil
@@ -126,20 +127,36 @@ func (s *GRPCProviderServer) PrepareProviderConfig(_ context.Context, req *proto
 		// find a default value if it exists
 		def, err := attrSchema.DefaultValue()
 		if err != nil {
+			resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, fmt.Errorf("error getting default for %q: %s", getAttr.Name, err))
 			return val, err
 		}
 
 		// no default
 		if def == nil {
-			return val, err
+			return val, nil
 		}
 
 		// create a cty.Value and make sure it's the correct type
 		tmpVal := hcl2shim.HCL2ValueFromConfigValue(def)
+
+		// helper/schema used to allow setting "" to a bool
+		if val.Type() == cty.Bool && tmpVal.RawEquals(cty.StringVal("")) {
+			// return a warning about the conversion
+			resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, "provider set empty string as default value for bool "+getAttr.Name)
+			tmpVal = cty.False
+		}
+
 		val, err = ctyconvert.Convert(tmpVal, val.Type())
+		if err != nil {
+			resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, fmt.Errorf("error setting default for %q: %s", getAttr.Name, err))
+		}
 
 		return val, err
 	})
+	if err != nil {
+		// any error here was already added to the diagnostics
+		return resp, nil
+	}
 
 	configVal, err = block.CoerceValue(configVal)
 	if err != nil {
