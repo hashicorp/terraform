@@ -37,6 +37,9 @@ type Workspaces interface {
 	// Unlock a workspace by its ID.
 	Unlock(ctx context.Context, workspaceID string) (*Workspace, error)
 
+	// ForceUnlock a workspace by its ID.
+	ForceUnlock(ctx context.Context, workspaceID string) (*Workspace, error)
+
 	// AssignSSHKey to a workspace.
 	AssignSSHKey(ctx context.Context, workspaceID string, options WorkspaceAssignSSHKeyOptions) (*Workspace, error)
 
@@ -355,6 +358,27 @@ func (s *workspaces) Unlock(ctx context.Context, workspaceID string) (*Workspace
 	}
 
 	u := fmt.Sprintf("workspaces/%s/actions/unlock", url.QueryEscape(workspaceID))
+	req, err := s.client.newRequest("POST", u, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	w := &Workspace{}
+	err = s.client.do(ctx, req, w)
+	if err != nil {
+		return nil, err
+	}
+
+	return w, nil
+}
+
+// ForceUnlock a workspace by its ID.
+func (s *workspaces) ForceUnlock(ctx context.Context, workspaceID string) (*Workspace, error) {
+	if !validStringID(&workspaceID) {
+		return nil, errors.New("invalid value for workspace ID")
+	}
+
+	u := fmt.Sprintf("workspaces/%s/actions/force-unlock", url.QueryEscape(workspaceID))
 	req, err := s.client.newRequest("POST", u, nil)
 	if err != nil {
 		return nil, err
