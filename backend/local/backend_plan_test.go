@@ -320,8 +320,7 @@ func testPlanState() *states.State {
 			Name: "foo",
 		}.Instance(addrs.IntKey(0)),
 		&states.ResourceInstanceObjectSrc{
-			Status:        states.ObjectReady,
-			SchemaVersion: 1,
+			Status: states.ObjectReady,
 			AttrsJSON: []byte(`{
 				"ami": "bar",
 				"network_interface": [{

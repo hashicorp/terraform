@@ -141,7 +141,7 @@ func loadProviderSchemas(schemas map[string]*ProviderSchema, config *configs.Con
 
 		for t, r := range resp.ResourceTypes {
 			s.ResourceTypes[t] = r.Block
-			s.ResourceTypeSchemaVersions[t] = r.Version
+			s.ResourceTypeSchemaVersions[t] = uint64(r.Version)
 			if r.Version < 0 {
 				diags = diags.Append(
 					fmt.Errorf("invalid negative schema version for resource type %s in provider %q", t, typeName),
