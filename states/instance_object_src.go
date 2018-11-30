@@ -89,3 +89,25 @@ func (os *ResourceInstanceObjectSrc) Decode(ty cty.Type) (*ResourceInstanceObjec
 		Private:      os.Private,
 	}, nil
 }
+
+// CompleteUpgrade creates a new ResourceInstanceObjectSrc by copying the
+// metadata from the receiver and writing in the given new schema version
+// and attribute value that are presumed to have resulted from upgrading
+// from an older schema version.
+func (os *ResourceInstanceObjectSrc) CompleteUpgrade(newAttrs cty.Value, newType cty.Type, newSchemaVersion uint64) (*ResourceInstanceObjectSrc, error) {
+	new := os.DeepCopy()
+	new.AttrsFlat = nil // We always use JSON after an upgrade, even if the source used flatmap
+
+	// This is the same principle as ResourceInstanceObject.Encode, but
+	// avoiding a decode/re-encode cycle because we don't have type info
+	// available for the "old" attributes.
+	newAttrs = cty.UnknownAsNull(newAttrs)
+	src, err := ctyjson.Marshal(newAttrs, newType)
+	if err != nil {
+		return nil, err
+	}
+
+	new.AttrsJSON = src
+	new.SchemaVersion = newSchemaVersion
+	return new, nil
+}

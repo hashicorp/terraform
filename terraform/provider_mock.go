@@ -125,7 +125,8 @@ func (p *MockProvider) getSchema() providers.GetSchemaResponse {
 		}
 		for n, s := range p.GetSchemaReturn.ResourceTypes {
 			ret.ResourceTypes[n] = providers.Schema{
-				Block: s,
+				Version: int64(p.GetSchemaReturn.ResourceTypeSchemaVersions[n]),
+				Block:   s,
 			}
 		}
 	}

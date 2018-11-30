@@ -4,13 +4,11 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/hashicorp/terraform/tfdiags"
-
-	"github.com/hashicorp/terraform/configs"
-
 	"github.com/hashicorp/terraform/addrs"
+	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/providers"
 	"github.com/hashicorp/terraform/states"
+	"github.com/hashicorp/terraform/tfdiags"
 )
 
 // EvalReadState is an EvalNode implementation that reads the
@@ -50,9 +48,18 @@ func (n *EvalReadState) Eval(ctx EvalContext) (interface{}, error) {
 	}
 
 	schema, currentVersion := (*n.ProviderSchema).SchemaForResourceAddr(n.Addr.ContainingResource())
-	if src.SchemaVersion < currentVersion {
-		// TODO: Implement schema upgrades
-		return nil, fmt.Errorf("schema upgrading is not yet implemented to take state from version %d to version %d", src.SchemaVersion, currentVersion)
+	if schema == nil {
+		// Shouldn't happen since we should've failed long ago if no schema is present
+		return nil, fmt.Errorf("no schema available for %s while reading state; this is a bug in Terraform and should be reported", absAddr)
+	}
+	var diags tfdiags.Diagnostics
+	src, diags = UpgradeResourceState(absAddr, *n.Provider, src, schema, currentVersion)
+	if diags.HasErrors() {
+		// Note that we don't have any channel to return warnings here. We'll
+		// accept that for now since warnings during a schema upgrade would
+		// be pretty weird anyway, since this operation is supposed to seem
+		// invisible to the user.
+		return nil, diags.Err()
 	}
 
 	obj, err := src.Decode(schema.ImpliedType())
@@ -110,9 +117,18 @@ func (n *EvalReadStateDeposed) Eval(ctx EvalContext) (interface{}, error) {
 	}
 
 	schema, currentVersion := (*n.ProviderSchema).SchemaForResourceAddr(n.Addr.ContainingResource())
-	if src.SchemaVersion < currentVersion {
-		// TODO: Implement schema upgrades
-		return nil, fmt.Errorf("schema upgrading is not yet implemented to take state from version %d to version %d", src.SchemaVersion, currentVersion)
+	if schema == nil {
+		// Shouldn't happen since we should've failed long ago if no schema is present
+		return nil, fmt.Errorf("no schema available for %s while reading state; this is a bug in Terraform and should be reported", absAddr)
+	}
+	var diags tfdiags.Diagnostics
+	src, diags = UpgradeResourceState(absAddr, *n.Provider, src, schema, currentVersion)
+	if diags.HasErrors() {
+		// Note that we don't have any channel to return warnings here. We'll
+		// accept that for now since warnings during a schema upgrade would
+		// be pretty weird anyway, since this operation is supposed to seem
+		// invisible to the user.
+		return nil, diags.Err()
 	}
 
 	obj, err := src.Decode(schema.ImpliedType())
