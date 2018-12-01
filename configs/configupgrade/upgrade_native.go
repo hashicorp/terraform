@@ -161,7 +161,7 @@ func (u *Upgrader) upgradeNativeSyntaxFile(filename string, src []byte, an *anal
 				}),
 			}
 			log.Printf("[TRACE] configupgrade: Upgrading var.%s at %s", labels[0], declRange)
-			bodyDiags := u.upgradeBlockBody(filename, fmt.Sprintf("var.%s", labels[0]), &buf, body.List.Items, rules, adhocComments)
+			bodyDiags := upgradeBlockBody(filename, fmt.Sprintf("var.%s", labels[0]), &buf, body.List.Items, rules, adhocComments)
 			diags = diags.Append(bodyDiags)
 			buf.WriteString("}\n\n")
 
@@ -186,7 +186,7 @@ func (u *Upgrader) upgradeNativeSyntaxFile(filename string, src []byte, an *anal
 				"depends_on":  dependsOnAttributeRule(filename, an),
 			}
 			log.Printf("[TRACE] configupgrade: Upgrading output.%s at %s", labels[0], declRange)
-			bodyDiags := u.upgradeBlockBody(filename, fmt.Sprintf("output.%s", labels[0]), &buf, body.List.Items, rules, adhocComments)
+			bodyDiags := upgradeBlockBody(filename, fmt.Sprintf("output.%s", labels[0]), &buf, body.List.Items, rules, adhocComments)
 			diags = diags.Append(bodyDiags)
 			buf.WriteString("}\n\n")
 
@@ -307,11 +307,11 @@ func (u *Upgrader) upgradeNativeSyntaxResource(filename string, buf *bytes.Buffe
 	}
 	labels := []string{addr.Type, addr.Name}
 
-	rules := schemaDefaultBodyRules(filename, schema, an)
+	rules := schemaDefaultBodyRules(filename, schema, an, adhocComments)
 
 	printComments(buf, item.LeadComment)
 	printBlockOpen(buf, blockType, labels, item.LineComment)
-	bodyDiags := u.upgradeBlockBody(filename, addr.String(), buf, body.List.Items, rules, adhocComments)
+	bodyDiags := upgradeBlockBody(filename, addr.String(), buf, body.List.Items, rules, adhocComments)
 	diags = diags.Append(bodyDiags)
 	buf.WriteString("}\n\n")
 
@@ -330,11 +330,11 @@ func (u *Upgrader) upgradeNativeSyntaxProvider(filename string, buf *bytes.Buffe
 		panic(fmt.Sprintf("missing schema for provider type %q", typeName))
 	}
 	schema := providerSchema.Provider
-	rules := schemaDefaultBodyRules(filename, schema, an)
+	rules := schemaDefaultBodyRules(filename, schema, an, adhocComments)
 
 	printComments(buf, item.LeadComment)
 	printBlockOpen(buf, "provider", []string{typeName}, item.LineComment)
-	bodyDiags := u.upgradeBlockBody(filename, fmt.Sprintf("provider.%s", typeName), buf, body.List.Items, rules, adhocComments)
+	bodyDiags := upgradeBlockBody(filename, fmt.Sprintf("provider.%s", typeName), buf, body.List.Items, rules, adhocComments)
 	diags = diags.Append(bodyDiags)
 	buf.WriteString("}\n\n")
 
@@ -375,13 +375,13 @@ func (u *Upgrader) upgradeNativeSyntaxTerraformBlock(filename string, buf *bytes
 			}
 			be := beFn()
 			schema := be.ConfigSchema()
-			rules := schemaNoInterpBodyRules(filename, schema, an)
+			rules := schemaNoInterpBodyRules(filename, schema, an, adhocComments)
 
 			body := item.Val.(*hcl1ast.ObjectType)
 
 			printComments(buf, item.LeadComment)
 			printBlockOpen(buf, "backend", []string{typeName}, item.LineComment)
-			bodyDiags := u.upgradeBlockBody(filename, fmt.Sprintf("terraform.backend.%s", typeName), buf, body.List.Items, rules, adhocComments)
+			bodyDiags := upgradeBlockBody(filename, fmt.Sprintf("terraform.backend.%s", typeName), buf, body.List.Items, rules, adhocComments)
 			diags = diags.Append(bodyDiags)
 			buf.WriteString("}\n")
 
@@ -391,14 +391,14 @@ func (u *Upgrader) upgradeNativeSyntaxTerraformBlock(filename string, buf *bytes
 
 	printComments(buf, item.LeadComment)
 	printBlockOpen(buf, "terraform", nil, item.LineComment)
-	bodyDiags := u.upgradeBlockBody(filename, "terraform", buf, body.List.Items, rules, adhocComments)
+	bodyDiags := upgradeBlockBody(filename, "terraform", buf, body.List.Items, rules, adhocComments)
 	diags = diags.Append(bodyDiags)
 	buf.WriteString("}\n\n")
 
 	return diags
 }
 
-func (u *Upgrader) upgradeBlockBody(filename string, blockAddr string, buf *bytes.Buffer, args []*hcl1ast.ObjectItem, rules bodyContentRules, adhocComments *commentQueue) tfdiags.Diagnostics {
+func upgradeBlockBody(filename string, blockAddr string, buf *bytes.Buffer, args []*hcl1ast.ObjectItem, rules bodyContentRules, adhocComments *commentQueue) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 
 	for i, arg := range args {

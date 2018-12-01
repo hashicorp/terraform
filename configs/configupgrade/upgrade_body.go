@@ -123,12 +123,102 @@ func attributeRule(filename string, wantTy cty.Type, an *analysis, upgradeExpr f
 	}
 }
 
-func nestedBlockRule(filename string, nestedRules bodyContentRules, an *analysis) bodyItemRule {
+func nestedBlockRule(filename string, nestedRules bodyContentRules, an *analysis, adhocComments *commentQueue) bodyItemRule {
 	return func(buf *bytes.Buffer, blockAddr string, item *hcl1ast.ObjectItem) tfdiags.Diagnostics {
-		// TODO: Deal with this.
-		// In particular we need to handle the tricky case where
-		// a user attempts to treat a block type name like it's
-		// an attribute, by producing a "dynamic" block.
+		// This simpler nestedBlockRule is for contexts where the special
+		// "dynamic" block type is not accepted and so only HCL1 object
+		// constructs can be accepted. Attempts to assign arbitrary HIL
+		// expressions will be rejected as errors.
+
+		var diags tfdiags.Diagnostics
+		declRange := hcl1PosRange(filename, item.Keys[0].Pos())
+		blockType := item.Keys[0].Token.Value().(string)
+		labels := make([]string, len(item.Keys)-1)
+		for i, key := range item.Keys[1:] {
+			labels[i] = key.Token.Value().(string)
+		}
+
+		var blockItems []*hcl1ast.ObjectType
+
+		switch val := item.Val.(type) {
+
+		case *hcl1ast.ObjectType:
+			blockItems = []*hcl1ast.ObjectType{val}
+
+		case *hcl1ast.ListType:
+			for _, node := range val.List {
+				switch listItem := node.(type) {
+				case *hcl1ast.ObjectType:
+					blockItems = append(blockItems, listItem)
+				default:
+					diags = diags.Append(&hcl2.Diagnostic{
+						Severity: hcl2.DiagError,
+						Summary:  "Invalid value for nested block",
+						Detail:   fmt.Sprintf("In %s the name %q is a nested block type, so any value assigned to it must be an object.", blockAddr, blockType),
+						Subject:  hcl1PosRange(filename, node.Pos()).Ptr(),
+					})
+				}
+			}
+
+		default:
+			diags = diags.Append(&hcl2.Diagnostic{
+				Severity: hcl2.DiagError,
+				Summary:  "Invalid value for nested block",
+				Detail:   fmt.Sprintf("In %s the name %q is a nested block type, so any value assigned to it must be an object.", blockAddr, blockType),
+				Subject:  &declRange,
+			})
+			return diags
+		}
+
+		for _, blockItem := range blockItems {
+			printBlockOpen(buf, blockType, labels, item.LineComment)
+			bodyDiags := upgradeBlockBody(
+				filename, fmt.Sprintf("%s.%s", blockAddr, blockType), buf,
+				blockItem.List.Items, nestedRules, adhocComments,
+			)
+			diags = diags.Append(bodyDiags)
+			buf.WriteString("}\n")
+		}
+
+		return diags
+	}
+}
+
+func nestedBlockRuleWithDynamic(filename string, nestedRules bodyContentRules, an *analysis, adhocComments *commentQueue) bodyItemRule {
+	return func(buf *bytes.Buffer, blockAddr string, item *hcl1ast.ObjectItem) tfdiags.Diagnostics {
+		// In Terraform v0.11 it was possible in some cases to trick Terraform
+		// and providers into accepting HCL's attribute syntax and some HIL
+		// expressions in places where blocks or sequences of blocks were
+		// expected, since the information about the heritage of the values
+		// was lost during decoding and interpolation.
+		//
+		// In order to avoid all of the weird rough edges that resulted from
+		// those misinterpretations, Terraform v0.12 is stricter and requires
+		// the use of block syntax for blocks in all cases. However, because
+		// various abuses of attribute syntax _did_ work (with some caveats)
+		// in v0.11 we will upgrade them as best we can to use proper block
+		// syntax.
+		//
+		// There are a few different permutations supported by this code:
+		//
+		// - Assigning a single HCL1 "object" using attribute syntax. This is
+		//   straightforward to migrate just by dropping the equals sign.
+		//
+		// - Assigning a HCL1 list of objects using attribute syntax. Each
+		//   object in that list can be translated to a separate block.
+		//
+		// - Assigning a HCL1 list containing HIL expressions that evaluate
+		//   to maps. This is a hard case because we can't know the internal
+		//   structure of those maps during static analysis, and so we must
+		//   generate a worst-case dynamic block structure for it.
+		//
+		// - Assigning a single HIL expression that evaluates to a list of
+		//   maps. This is just like the previous case except additionally
+		//   we cannot even predict the number of generated blocks, so we must
+		//   generate a single "dynamic" block to iterate over the list at
+		//   runtime.
+
+		// TODO: Implement this
 		hcl1printer.Fprint(buf, item)
 		buf.WriteByte('\n')
 		return nil
@@ -140,7 +230,7 @@ func nestedBlockRule(filename string, nestedRules bodyContentRules, an *analysis
 // callers can safely mutate the result in order to impose custom rules
 // in addition to or instead of those created by default, for situations
 // where schema-based and predefined items mix in a single body.
-func schemaDefaultBodyRules(filename string, schema *configschema.Block, an *analysis) bodyContentRules {
+func schemaDefaultBodyRules(filename string, schema *configschema.Block, an *analysis, adhocComments *commentQueue) bodyContentRules {
 	ret := make(bodyContentRules)
 	if schema == nil {
 		// Shouldn't happen in any real case, but often crops up in tests
@@ -152,8 +242,8 @@ func schemaDefaultBodyRules(filename string, schema *configschema.Block, an *ana
 		ret[name] = normalAttributeRule(filename, attrS.Type, an)
 	}
 	for name, blockS := range schema.BlockTypes {
-		nestedRules := schemaDefaultBodyRules(filename, &blockS.Block, an)
-		ret[name] = nestedBlockRule(filename, nestedRules, an)
+		nestedRules := schemaDefaultBodyRules(filename, &blockS.Block, an, adhocComments)
+		ret[name] = nestedBlockRule(filename, nestedRules, an, adhocComments)
 	}
 
 	return ret
@@ -164,7 +254,7 @@ func schemaDefaultBodyRules(filename string, schema *configschema.Block, an *ana
 // callers can safely mutate the result in order to impose custom rules
 // in addition to or instead of those created by default, for situations
 // where schema-based and predefined items mix in a single body.
-func schemaNoInterpBodyRules(filename string, schema *configschema.Block, an *analysis) bodyContentRules {
+func schemaNoInterpBodyRules(filename string, schema *configschema.Block, an *analysis, adhocComments *commentQueue) bodyContentRules {
 	ret := make(bodyContentRules)
 	if schema == nil {
 		// Shouldn't happen in any real case, but often crops up in tests
@@ -176,8 +266,8 @@ func schemaNoInterpBodyRules(filename string, schema *configschema.Block, an *an
 		ret[name] = noInterpAttributeRule(filename, attrS.Type, an)
 	}
 	for name, blockS := range schema.BlockTypes {
-		nestedRules := schemaDefaultBodyRules(filename, &blockS.Block, an)
-		ret[name] = nestedBlockRule(filename, nestedRules, an)
+		nestedRules := schemaDefaultBodyRules(filename, &blockS.Block, an, adhocComments)
+		ret[name] = nestedBlockRule(filename, nestedRules, an, adhocComments)
 	}
 
 	return ret
