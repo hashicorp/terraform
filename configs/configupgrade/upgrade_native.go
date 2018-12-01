@@ -1,6 +1,7 @@
 package configupgrade
 
 import (
+	"log"
 	"bytes"
 	"fmt"
 	"io"
@@ -30,6 +31,8 @@ type upgradeFileResult struct {
 func (u *Upgrader) upgradeNativeSyntaxFile(filename string, src []byte, an *analysis) (upgradeFileResult, tfdiags.Diagnostics) {
 	var result upgradeFileResult
 	var diags tfdiags.Diagnostics
+
+	log.Printf("[TRACE] configupgrade: Working on %q", filename)
 
 	var buf bytes.Buffer
 
@@ -100,6 +103,7 @@ func (u *Upgrader) upgradeNativeSyntaxFile(filename string, src []byte, an *anal
 				rAddr.Mode = addrs.DataResourceMode
 			}
 
+			log.Printf("[TRACE] configupgrade: Upgrading %s at %s", rAddr, declRange)
 			moreDiags := u.upgradeNativeSyntaxResource(filename, &buf, rAddr, item, an, adhocComments)
 			diags = diags.Append(moreDiags)
 
@@ -115,6 +119,7 @@ func (u *Upgrader) upgradeNativeSyntaxFile(filename string, src []byte, an *anal
 			}
 
 			pType := labels[0]
+			log.Printf("[TRACE] configupgrade: Upgrading provider.%s at %s", pType, declRange)
 			moreDiags := u.upgradeNativeSyntaxProvider(filename, &buf, pType, item, an, adhocComments)
 			diags = diags.Append(moreDiags)
 
@@ -155,6 +160,7 @@ func (u *Upgrader) upgradeNativeSyntaxFile(filename string, src []byte, an *anal
 					"map":  `map(string)`,
 				}),
 			}
+			log.Printf("[TRACE] configupgrade: Upgrading var.%s at %s", labels[0], declRange)
 			bodyDiags := u.upgradeBlockBody(filename, fmt.Sprintf("var.%s", labels[0]), &buf, body.List.Items, rules, adhocComments)
 			diags = diags.Append(bodyDiags)
 			buf.WriteString("}\n\n")
@@ -179,11 +185,13 @@ func (u *Upgrader) upgradeNativeSyntaxFile(filename string, src []byte, an *anal
 				"sensitive":   noInterpAttributeRule(filename, cty.Bool, an),
 				"depends_on":  dependsOnAttributeRule(filename, an),
 			}
+			log.Printf("[TRACE] configupgrade: Upgrading output.%s at %s", labels[0], declRange)
 			bodyDiags := u.upgradeBlockBody(filename, fmt.Sprintf("output.%s", labels[0]), &buf, body.List.Items, rules, adhocComments)
 			diags = diags.Append(bodyDiags)
 			buf.WriteString("}\n\n")
 
 		case "locals":
+			log.Printf("[TRACE] configupgrade: Upgrading locals block at %s", declRange)
 			printComments(&buf, item.LeadComment)
 			printBlockOpen(&buf, blockType, labels, item.LineComment)
 
@@ -280,7 +288,7 @@ func (u *Upgrader) upgradeNativeSyntaxResource(filename string, buf *bytes.Buffe
 		panic(fmt.Sprintf("missing schema for provider type %q", providerType))
 	}
 	schema, _ := providerSchema.SchemaForResourceAddr(addr)
-	if !ok {
+	if schema == nil {
 		diags = diags.Append(&hcl2.Diagnostic{
 			Severity: hcl2.DiagError,
 			Summary:  "Unknown resource type",
