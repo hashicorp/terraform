@@ -173,7 +173,7 @@ func nestedBlockRule(filename string, nestedRules bodyContentRules, an *analysis
 			printBlockOpen(buf, blockType, labels, item.LineComment)
 			bodyDiags := upgradeBlockBody(
 				filename, fmt.Sprintf("%s.%s", blockAddr, blockType), buf,
-				blockItem.List.Items, nestedRules, adhocComments,
+				blockItem.List.Items, blockItem.Rbrace, nestedRules, adhocComments,
 			)
 			diags = diags.Append(bodyDiags)
 			buf.WriteString("}\n")
@@ -264,7 +264,7 @@ func nestedBlockRuleWithDynamic(filename string, nestedRules bodyContentRules, n
 				printBlockOpen(buf, blockType, labels, item.LineComment)
 				bodyDiags := upgradeBlockBody(
 					filename, fmt.Sprintf("%s.%s", blockAddr, blockType), buf,
-					ti.List.Items, nestedRules, adhocComments,
+					ti.List.Items, ti.Rbrace, nestedRules, adhocComments,
 				)
 				diags = diags.Append(bodyDiags)
 				buf.WriteString("}\n")
