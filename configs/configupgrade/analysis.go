@@ -162,6 +162,8 @@ func (u *Upgrader) analyze(ms ModuleSources) (*analysis, error) {
 
 				if o := listVal.Filter("count"); len(o.Items) > 0 {
 					ret.ResourceHasCount[rAddr] = true
+				} else {
+					ret.ResourceHasCount[rAddr] = false
 				}
 
 				var providerKey string
