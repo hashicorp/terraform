@@ -3,6 +3,7 @@ package configupgrade
 import (
 	"bytes"
 	"fmt"
+	"log"
 	"strconv"
 
 	hcl2 "github.com/hashicorp/hcl2/hcl"
@@ -28,8 +29,11 @@ func upgradeExpr(val interface{}, filename string, interp bool, an *analysis) ([
 	switch tv := val.(type) {
 
 	case *hcl1ast.LiteralType:
-		litVal := tv.Token.Value()
-		switch tv.Token.Type {
+		return upgradeExpr(tv.Token, filename, interp, an)
+
+	case hcl1token.Token:
+		litVal := tv.Value()
+		switch tv.Type {
 		case hcl1token.STRING:
 			if !interp {
 				// Easy case, then.
@@ -43,7 +47,7 @@ func upgradeExpr(val interface{}, filename string, interp bool, an *analysis) ([
 					Severity: hcl2.DiagError,
 					Summary:  "Invalid interpolated string",
 					Detail:   fmt.Sprintf("Interpolation parsing failed: %s", err),
-					Subject:  hcl1PosRange(filename, tv.Pos()).Ptr(),
+					Subject:  hcl1PosRange(filename, tv.Pos).Ptr(),
 				})
 			}
 
@@ -64,9 +68,50 @@ func upgradeExpr(val interface{}, filename string, interp bool, an *analysis) ([
 
 		default:
 			// For everything else (NUMBER, FLOAT) we'll just pass through the given bytes verbatim.
-			buf.WriteString(tv.Token.Text)
+			buf.WriteString(tv.Text)
 
 		}
+
+	case *hcl1ast.ListType:
+		multiline := tv.Lbrack.Line != tv.Rbrack.Line
+		buf.WriteString("[")
+		if multiline {
+			buf.WriteString("\n")
+		}
+		for i, node := range tv.List {
+			src, moreDiags := upgradeExpr(node, filename, interp, an)
+			diags = diags.Append(moreDiags)
+			buf.Write(src)
+			if multiline {
+				buf.WriteString(",\n")
+			} else if i < len(tv.List)-1 {
+				buf.WriteString(", ")
+			}
+		}
+		buf.WriteString("]")
+
+	case *hcl1ast.ObjectType:
+		buf.WriteString("{\n")
+		for _, item := range tv.List.Items {
+			if len(item.Keys) != 1 {
+				diags = diags.Append(&hcl2.Diagnostic{
+					Severity: hcl2.DiagError,
+					Summary:  "Invalid map element",
+					Detail:   "A map element may not have any block-style labels.",
+					Subject:  hcl1PosRange(filename, item.Pos()).Ptr(),
+				})
+				continue
+			}
+			keySrc, moreDiags := upgradeExpr(item.Keys[0].Token, filename, interp, an)
+			diags = diags.Append(moreDiags)
+			valueSrc, moreDiags := upgradeExpr(item.Val, filename, interp, an)
+			diags = diags.Append(moreDiags)
+			buf.Write(keySrc)
+			buf.WriteString(" = ")
+			buf.Write(valueSrc)
+			buf.WriteString("\n")
+		}
+		buf.WriteString("}")
 
 	case hcl1ast.Node:
 		// If our more-specific cases above didn't match this then we'll
@@ -74,6 +119,7 @@ func upgradeExpr(val interface{}, filename string, interp bool, an *analysis) ([
 		// itself, and assume it'll still be valid in HCL2.
 		// (We should rarely end up here, since our cases above should
 		// be comprehensive.)
+		log.Printf("[TRACE] configupgrade: Don't know how to upgrade %T as expression, so just passing it through as-is", tv)
 		hcl1printer.Fprint(&buf, tv)
 
 	case *hilast.LiteralNode:
