@@ -236,6 +236,19 @@ func upgradeExpr(val interface{}, filename string, interp bool, an *analysis) ([
 				buf.WriteByte('}')
 				return buf.Bytes(), diags
 			}
+		case "lookup":
+			// A lookup call with only two arguments is equivalent to native
+			// index syntax. (A third argument would specify a default value,
+			// so calls like that must be left alone.)
+			// (Note that we can't safely do this for element(...) because
+			// the user may be relying on its wraparound behavior.)
+			if len(argExprs) == 2 {
+				buf.Write(argExprs[0])
+				buf.WriteByte('[')
+				buf.Write(argExprs[1])
+				buf.WriteByte(']')
+				return buf.Bytes(), diags
+			}
 		}
 
 		buf.WriteString(name)
