@@ -20,6 +20,7 @@ import (
 
 	"github.com/hashicorp/terraform/addrs"
 	backendinit "github.com/hashicorp/terraform/backend/init"
+	"github.com/hashicorp/terraform/configs/configschema"
 	"github.com/hashicorp/terraform/tfdiags"
 )
 
@@ -452,6 +453,76 @@ func upgradeBlockBody(filename string, blockAddr string, buf *bytes.Buffer, args
 	return diags
 }
 
+// printDynamicBody prints out a conservative, exhaustive dynamic block body
+// for every attribute and nested block in the given schema, for situations
+// when a dynamic expression was being assigned to a block type name in input
+// configuration and so we can assume it's a list of maps but can't make
+// any assumptions about what subset of the schema-specified keys might be
+// present in the map values.
+func printDynamicBlockBody(buf *bytes.Buffer, iterName string, schema *configschema.Block) tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
+
+	attrNames := make([]string, 0, len(schema.Attributes))
+	for name := range schema.Attributes {
+		attrNames = append(attrNames, name)
+	}
+	sort.Strings(attrNames)
+	for _, name := range attrNames {
+		attrS := schema.Attributes[name]
+		if !(attrS.Required || attrS.Optional) { // no Computed-only attributes
+			continue
+		}
+		if attrS.Required {
+			// For required attributes we can generate a simpler expression
+			// that just assumes the presence of the key representing the
+			// attribute value.
+			printAttribute(buf, name, []byte(fmt.Sprintf(`%s.value.%s`, iterName, name)), nil)
+		} else {
+			// Otherwise we must be conservative and generate a conditional
+			// lookup that will just populate nothing at all if the expected
+			// key is not present.
+			printAttribute(buf, name, []byte(fmt.Sprintf(`lookup(%s.value, %q, null)`, iterName, name)), nil)
+		}
+	}
+
+	blockTypeNames := make([]string, 0, len(schema.BlockTypes))
+	for name := range schema.BlockTypes {
+		blockTypeNames = append(blockTypeNames, name)
+	}
+	sort.Strings(blockTypeNames)
+	for i, name := range blockTypeNames {
+		blockS := schema.BlockTypes[name]
+
+		// We'll disregard any block type that consists only of computed
+		// attributes, since otherwise we'll just create weird empty blocks
+		// that do nothing except create confusion.
+		if !schemaHasSettableArguments(&blockS.Block) {
+			continue
+		}
+
+		if i > 0 || len(attrNames) > 0 {
+			buf.WriteByte('\n')
+		}
+		printBlockOpen(buf, "dynamic", []string{name}, nil)
+		switch blockS.Nesting {
+		case configschema.NestingMap:
+			printAttribute(buf, "for_each", []byte(fmt.Sprintf(`lookup(%s.value, %q, {})`, iterName, name)), nil)
+			printAttribute(buf, "labels", []byte(fmt.Sprintf(`[%s.key]`, name)), nil)
+		case configschema.NestingSingle:
+			printAttribute(buf, "for_each", []byte(fmt.Sprintf(`lookup(%s.value, %q, null) != null ? [%s.value.%s] : []`, iterName, name, iterName, name)), nil)
+		default:
+			printAttribute(buf, "for_each", []byte(fmt.Sprintf(`lookup(%s.value, %q, [])`, iterName, name)), nil)
+		}
+		printBlockOpen(buf, "content", nil, nil)
+		moreDiags := printDynamicBlockBody(buf, name, &blockS.Block)
+		diags = diags.Append(moreDiags)
+		buf.WriteString("}\n")
+		buf.WriteString("}\n")
+	}
+
+	return diags
+}
+
 func printComments(buf *bytes.Buffer, group *hcl1ast.CommentGroup) {
 	if group == nil {
 		return
@@ -632,4 +703,18 @@ func passthruBlockTodo(w io.Writer, node hcl1ast.Node, msg string) {
 	fmt.Fprintf(w, "\n# TF-UPGRADE-TODO: %s\n", msg)
 	hcl1printer.Fprint(w, node)
 	w.Write([]byte{'\n', '\n'})
+}
+
+func schemaHasSettableArguments(schema *configschema.Block) bool {
+	for _, attrS := range schema.Attributes {
+		if attrS.Optional || attrS.Required {
+			return true
+		}
+	}
+	for _, blockS := range schema.BlockTypes {
+		if schemaHasSettableArguments(&blockS.Block) {
+			return true
+		}
+	}
+	return false
 }

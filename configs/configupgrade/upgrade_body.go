@@ -5,7 +5,6 @@ import (
 	"fmt"
 
 	hcl1ast "github.com/hashicorp/hcl/hcl/ast"
-	hcl1printer "github.com/hashicorp/hcl/hcl/printer"
 	hcl1token "github.com/hashicorp/hcl/hcl/token"
 	hcl2 "github.com/hashicorp/hcl2/hcl"
 	hcl2syntax "github.com/hashicorp/hcl2/hcl/hclsyntax"
@@ -184,7 +183,7 @@ func nestedBlockRule(filename string, nestedRules bodyContentRules, an *analysis
 	}
 }
 
-func nestedBlockRuleWithDynamic(filename string, nestedRules bodyContentRules, an *analysis, adhocComments *commentQueue) bodyItemRule {
+func nestedBlockRuleWithDynamic(filename string, nestedRules bodyContentRules, nestedSchema *configschema.NestedBlock, an *analysis, adhocComments *commentQueue) bodyItemRule {
 	return func(buf *bytes.Buffer, blockAddr string, item *hcl1ast.ObjectItem) tfdiags.Diagnostics {
 		// In Terraform v0.11 it was possible in some cases to trick Terraform
 		// and providers into accepting HCL's attribute syntax and some HIL
@@ -218,10 +217,92 @@ func nestedBlockRuleWithDynamic(filename string, nestedRules bodyContentRules, a
 		//   generate a single "dynamic" block to iterate over the list at
 		//   runtime.
 
-		// TODO: Implement this
-		hcl1printer.Fprint(buf, item)
-		buf.WriteByte('\n')
-		return nil
+		var diags tfdiags.Diagnostics
+		blockType := item.Keys[0].Token.Value().(string)
+		labels := make([]string, len(item.Keys)-1)
+		for i, key := range item.Keys[1:] {
+			labels[i] = key.Token.Value().(string)
+		}
+
+		var blockItems []hcl1ast.Node
+
+		switch val := item.Val.(type) {
+
+		case *hcl1ast.ObjectType:
+			blockItems = append(blockItems, val)
+
+		case *hcl1ast.ListType:
+			for _, node := range val.List {
+				switch listItem := node.(type) {
+				case *hcl1ast.ObjectType:
+					blockItems = append(blockItems, listItem)
+				default:
+					// We're going to cheat a bit here and construct a synthetic
+					// HCL1 list just because that makes our logic
+					// simpler below where we can just treat all non-objects
+					// in the same way when producing "dynamic" blocks.
+					synthList := &hcl1ast.ListType{
+						List:   []hcl1ast.Node{listItem},
+						Lbrack: listItem.Pos(),
+						Rbrack: hcl1NodeEndPos(listItem),
+					}
+					blockItems = append(blockItems, synthList)
+				}
+			}
+
+		default:
+			blockItems = append(blockItems, item.Val)
+		}
+
+		for _, blockItem := range blockItems {
+			switch ti := blockItem.(type) {
+			case *hcl1ast.ObjectType:
+				// If we have an object then we'll pass through its content
+				// as a block directly. This is the most straightforward mapping
+				// from the source input, since we know exactly which keys
+				// are present.
+				printBlockOpen(buf, blockType, labels, item.LineComment)
+				bodyDiags := upgradeBlockBody(
+					filename, fmt.Sprintf("%s.%s", blockAddr, blockType), buf,
+					ti.List.Items, nestedRules, adhocComments,
+				)
+				diags = diags.Append(bodyDiags)
+				buf.WriteString("}\n")
+			default:
+				// For any other sort of value we can't predict what shape it
+				// will have at runtime, so we must generate a very conservative
+				// "dynamic" block that tries to assign everything from the
+				// schema. The result of this is likely to be pretty ugly.
+				printBlockOpen(buf, "dynamic", []string{blockType}, item.LineComment)
+				eachSrc, eachDiags := upgradeExpr(blockItem, filename, true, an)
+				diags = diags.Append(eachDiags)
+				printAttribute(buf, "for_each", eachSrc, nil)
+				if nestedSchema.Nesting == configschema.NestingMap {
+					// This is a pretty odd situation since map-based blocks
+					// didn't exist prior to Terraform v0.12, but we'll support
+					// this anyway in case we decide to add support in a later
+					// SDK release that is still somehow compatible with
+					// Terraform v0.11.
+					printAttribute(buf, "labels", []byte(fmt.Sprintf(`[%s.key]`, blockType)), nil)
+				}
+				printBlockOpen(buf, "content", nil, nil)
+				buf.WriteString("# TF-UPGRADE-TODO: The automatic upgrade tool can't predict\n")
+				buf.WriteString("# which keys might be set in maps assigned here, so it has\n")
+				buf.WriteString("# produced a comprehensive set here. Consider simplifying\n")
+				buf.WriteString("# this after confirming which keys can be set in practice.\n\n")
+				printDynamicBlockBody(buf, blockType, &nestedSchema.Block)
+				buf.WriteString("}\n")
+				buf.WriteString("}\n")
+				diags = diags.Append(&hcl2.Diagnostic{
+					Severity: hcl2.DiagWarning,
+					Summary:  "Approximate migration of invalid block type assignment",
+					Detail:   fmt.Sprintf("In %s the name %q is a nested block type, but this configuration is exploiting some missing validation rules from Terraform v0.11 and prior to trick Terraform into creating blocks dynamically.\n\nThis has been upgraded to use the new Terraform v0.12 dynamic blocks feature, but since the upgrade tool cannot predict which map keys will be present a fully-comprehensive set has been generated.", blockAddr, blockType),
+					Subject:  hcl1PosRange(filename, blockItem.Pos()).Ptr(),
+				})
+			}
+		}
+
+		return diags
 	}
 }
 
@@ -243,7 +324,7 @@ func schemaDefaultBodyRules(filename string, schema *configschema.Block, an *ana
 	}
 	for name, blockS := range schema.BlockTypes {
 		nestedRules := schemaDefaultBodyRules(filename, &blockS.Block, an, adhocComments)
-		ret[name] = nestedBlockRule(filename, nestedRules, an, adhocComments)
+		ret[name] = nestedBlockRuleWithDynamic(filename, nestedRules, blockS, an, adhocComments)
 	}
 
 	return ret
