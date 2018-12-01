@@ -15,9 +15,27 @@ locals {
   remote_state_idx_attr     = data.terraform_remote_state.foo[1].backend
   remote_state_splat_output = data.terraform_remote_state.foo.*.outputs.bar
   remote_state_splat_attr   = data.terraform_remote_state.foo.*.backend
+
+  has_index_should   = test_instance.b[0].id
+  has_index_shouldnt = test_instance.c.id
+  no_index_should    = test_instance.a[0].id
+  no_index_shouldnt  = test_instance.c.id
+
+  has_index_shouldnt_data = data.terraform_remote_state.foo.backend
 }
 
 data "terraform_remote_state" "foo" {
   # This is just here to make sure the schema for this gets loaded to
   # support the remote_state_* checks above.
+}
+
+resource "test_instance" "a" {
+  count = 1
+}
+
+resource "test_instance" "b" {
+  count = var.count
+}
+
+resource "test_instance" "c" {
 }

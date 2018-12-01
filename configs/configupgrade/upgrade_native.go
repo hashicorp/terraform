@@ -309,6 +309,7 @@ func (u *Upgrader) upgradeNativeSyntaxResource(filename string, buf *bytes.Buffe
 	labels := []string{addr.Type, addr.Name}
 
 	rules := schemaDefaultBodyRules(filename, schema, an, adhocComments)
+	rules["count"] = normalAttributeRule(filename, cty.Number, an)
 
 	printComments(buf, item.LeadComment)
 	printBlockOpen(buf, blockType, labels, item.LineComment)

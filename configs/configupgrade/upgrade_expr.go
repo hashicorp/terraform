@@ -413,8 +413,76 @@ var hilArithmeticOpSyms = map[hilast.ArithmeticOp]string{
 // upgradeTraversalParts might alter the given split parts from a HIL-style
 // variable access to account for renamings made in Terraform v0.12.
 func upgradeTraversalParts(parts []string, an *analysis) []string {
-	// For now this just deals with data.terraform_remote_state
-	return upgradeTerraformRemoteStateTraversalParts(parts, an)
+	parts = upgradeCountTraversalParts(parts, an)
+	parts = upgradeTerraformRemoteStateTraversalParts(parts, an)
+	return parts
+}
+
+func upgradeCountTraversalParts(parts []string, an *analysis) []string {
+	// test_instance.foo.id needs to become test_instance.foo[0].id if
+	// count is set for test_instance.foo. Likewise, if count _isn't_ set
+	// then test_instance.foo.0.id must become test_instance.foo.id.
+	if len(parts) < 3 {
+		return parts
+	}
+	var addr addrs.Resource
+	var idxIdx int
+	switch parts[0] {
+	case "data":
+		addr.Mode = addrs.DataResourceMode
+		addr.Type = parts[1]
+		addr.Name = parts[2]
+		idxIdx = 3
+	default:
+		addr.Mode = addrs.ManagedResourceMode
+		addr.Type = parts[0]
+		addr.Name = parts[1]
+		idxIdx = 2
+	}
+
+	hasCount, exists := an.ResourceHasCount[addr]
+	if !exists {
+		// Probably not actually a resource instance at all, then.
+		return parts
+	}
+
+	// Since at least one attribute is required after a resource reference
+	// prior to Terraform v0.12, we can assume there will be at least enough
+	// parts to contain the index even if no index is actually present.
+	if idxIdx >= len(parts) {
+		return parts
+	}
+
+	maybeIdx := parts[idxIdx]
+	switch {
+	case hasCount:
+		if _, err := strconv.Atoi(maybeIdx); err == nil || maybeIdx == "*" {
+			// Has an index already, so no changes required.
+			return parts
+		}
+		// Need to insert index zero at idxIdx.
+		log.Printf("[TRACE] configupgrade: %s has count but reference does not have index, so adding one", addr)
+		newParts := make([]string, len(parts)+1)
+		copy(newParts, parts[:idxIdx])
+		newParts[idxIdx] = "0"
+		copy(newParts[idxIdx+1:], parts[idxIdx:])
+		return newParts
+	default:
+		// For removing indexes we'll be more conservative and only remove
+		// exactly index "0", because other indexes on a resource without
+		// count are invalid anyway and we're better off letting the normal
+		// configuration parser deal with that.
+		if maybeIdx != "0" {
+			return parts
+		}
+
+		// Need to remove the index zero.
+		log.Printf("[TRACE] configupgrade: %s does not have count but reference has index, so removing it", addr)
+		newParts := make([]string, len(parts)-1)
+		copy(newParts, parts[:idxIdx])
+		copy(newParts[idxIdx:], parts[idxIdx+1:])
+		return newParts
+	}
 }
 
 func upgradeTerraformRemoteStateTraversalParts(parts []string, an *analysis) []string {
