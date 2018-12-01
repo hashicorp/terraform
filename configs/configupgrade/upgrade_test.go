@@ -230,6 +230,22 @@ var testProviders = map[string]providers.Factory{
 		}
 		return p, nil
 	}),
+	"terraform": providers.Factory(func() (providers.Interface, error) {
+		p := &terraform.MockProvider{}
+		p.GetSchemaReturn = &terraform.ProviderSchema{
+			DataSources: map[string]*configschema.Block{
+				"terraform_remote_state": {
+					// This is just enough an approximation of the remote state
+					// schema to check out reference upgrade logic. It is
+					// intentionally not fully-comprehensive.
+					Attributes: map[string]*configschema.Attribute{
+						"backend": {Type: cty.String, Optional: true},
+					},
+				},
+			},
+		}
+		return p, nil
+	}),
 }
 
 func init() {

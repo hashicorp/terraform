@@ -5,8 +5,10 @@ import (
 	"fmt"
 	"log"
 	"strconv"
+	"strings"
 
 	hcl2 "github.com/hashicorp/hcl2/hcl"
+	hcl2syntax "github.com/hashicorp/hcl2/hcl/hclsyntax"
 
 	hcl1ast "github.com/hashicorp/hcl/hcl/ast"
 	hcl1printer "github.com/hashicorp/hcl/hcl/printer"
@@ -15,6 +17,8 @@ import (
 	"github.com/hashicorp/hil"
 	hilast "github.com/hashicorp/hil/ast"
 
+	"github.com/hashicorp/terraform/addrs"
+	"github.com/hashicorp/terraform/configs/configschema"
 	"github.com/hashicorp/terraform/tfdiags"
 )
 
@@ -142,7 +146,50 @@ Value:
 		}
 
 	case *hilast.VariableAccess:
-		buf.WriteString(tv.Name)
+		// In HIL a variable access is just a single string which might contain
+		// a mixture of identifiers, dots, integer indices, and splat expressions.
+		// All of these concepts were formerly interpreted by Terraform itself,
+		// rather than by HIL. We're going to process this one chunk at a time
+		// here so we can normalize and introduce some newer syntax where it's
+		// safe to do so.
+		parts := strings.Split(tv.Name, ".")
+		parts = upgradeTraversalParts(parts, an) // might add/remove/change parts
+		first, remain := parts[0], parts[1:]
+		buf.WriteString(first)
+		seenSplat := false
+		for _, part := range remain {
+			if part == "*" {
+				seenSplat = true
+				buf.WriteString(".*")
+				continue
+			}
+
+			// Other special cases apply only if we've not previously
+			// seen a splat expression marker, since attribute vs. index
+			// syntax have different interpretations after a simple splat.
+			if !seenSplat {
+				if v, err := strconv.Atoi(part); err == nil {
+					// Looks like it's old-style index traversal syntax foo.0.bar
+					// so we'll replace with canonical index syntax foo[0].bar.
+					fmt.Fprintf(&buf, "[%d]", v)
+					continue
+				}
+				if !hcl2syntax.ValidIdentifier(part) {
+					// This should be rare since HIL's identifier syntax is _close_
+					// to HCL2's, but we'll get here if one of the intervening
+					// parts is not a valid identifier in isolation, since HIL
+					// did not consider these to be separate identifiers.
+					// e.g. foo.1bar would be invalid in HCL2; must instead be foo["1bar"].
+					buf.WriteByte('[')
+					printQuotedString(&buf, part)
+					buf.WriteByte(']')
+					continue
+				}
+			}
+
+			buf.WriteByte('.')
+			buf.WriteString(part)
+		}
 
 	case *hilast.Arithmetic:
 		op, exists := hilArithmeticOpSyms[tv.Op]
@@ -361,4 +408,61 @@ var hilArithmeticOpSyms = map[hilast.ArithmeticOp]string{
 	hilast.ArithmeticOpLessThanOrEqual:    " <= ",
 	hilast.ArithmeticOpGreaterThan:        " > ",
 	hilast.ArithmeticOpGreaterThanOrEqual: " >= ",
+}
+
+// upgradeTraversalParts might alter the given split parts from a HIL-style
+// variable access to account for renamings made in Terraform v0.12.
+func upgradeTraversalParts(parts []string, an *analysis) []string {
+	// For now this just deals with data.terraform_remote_state
+	return upgradeTerraformRemoteStateTraversalParts(parts, an)
+}
+
+func upgradeTerraformRemoteStateTraversalParts(parts []string, an *analysis) []string {
+	// data.terraform_remote_state.x.foo needs to become
+	// data.terraform_remote_state.x.outputs.foo unless "foo" is a real
+	// attribute in the object type implied by the remote state schema.
+	if len(parts) < 4 {
+		return parts
+	}
+	if parts[0] != "data" || parts[1] != "terraform_remote_state" {
+		return parts
+	}
+
+	attrIdx := 3
+	if parts[attrIdx] == "*" {
+		attrIdx = 4 // data.terraform_remote_state.x.*.foo
+	} else if _, err := strconv.Atoi(parts[attrIdx]); err == nil {
+		attrIdx = 4 // data.terraform_remote_state.x.1.foo
+	}
+	if attrIdx >= len(parts) {
+		return parts
+	}
+
+	attrName := parts[attrIdx]
+
+	// Now we'll use the schema of data.terraform_remote_state to decide if
+	// the user intended this to be an output, or whether it's one of the real
+	// attributes of this data source.
+	var schema *configschema.Block
+	if providerSchema := an.ProviderSchemas["terraform"]; providerSchema != nil {
+		schema, _ = providerSchema.SchemaForResourceType(addrs.DataResourceMode, "terraform_remote_state")
+	}
+	// Schema should be available in all reasonable cases, but might be nil
+	// if input configuration contains a reference to a remote state data resource
+	// without actually defining that data resource. In that weird edge case,
+	// we'll just assume all attributes are outputs.
+	if schema != nil && schema.ImpliedType().HasAttribute(attrName) {
+		// User is accessing one of the real attributes, then, and we have
+		// no need to rewrite it.
+		return parts
+	}
+
+	// If we get down here then our task is to produce a new parts slice
+	// that has the fixed additional attribute name "outputs" inserted at
+	// attrIdx, retaining all other parts.
+	newParts := make([]string, len(parts)+1)
+	copy(newParts, parts[:attrIdx])
+	newParts[attrIdx] = "outputs"
+	copy(newParts[attrIdx+1:], parts[attrIdx:])
+	return newParts
 }
