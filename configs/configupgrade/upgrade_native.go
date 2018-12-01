@@ -1,10 +1,10 @@
 package configupgrade
 
 import (
-	"log"
 	"bytes"
 	"fmt"
 	"io"
+	"log"
 	"sort"
 	"strings"
 
@@ -234,7 +234,7 @@ func (u *Upgrader) upgradeNativeSyntaxFile(filename string, src []byte, an *anal
 				// to retain that separation.
 				if (i + 1) < len(args) {
 					next := args[i+1]
-					thisPos := arg.Pos()
+					thisPos := hcl1NodeEndPos(arg)
 					nextPos := next.Pos()
 					if nextPos.Line-thisPos.Line > 1 {
 						buf.WriteByte('\n')
@@ -441,7 +441,7 @@ func (u *Upgrader) upgradeBlockBody(filename string, blockAddr string, buf *byte
 		// to retain that separation.
 		if (i + 1) < len(args) {
 			next := args[i+1]
-			thisPos := arg.Pos()
+			thisPos := hcl1NodeEndPos(arg)
 			nextPos := next.Pos()
 			if nextPos.Line-thisPos.Line > 1 {
 				buf.WriteByte('\n')
@@ -581,6 +581,28 @@ func (q *commentQueue) TakeBefore(node hcl1ast.Node) []*hcl1ast.CommentGroup {
 	*q = (*q)[i:]
 
 	return ret
+}
+
+// hcl1NodeEndPos tries to find the latest possible position in the given
+// node. This is primarily to try to find the last line number of a multi-line
+// construct and is a best-effort sort of thing because HCL1 only tracks
+// start positions for tokens and has no generalized way to find the full
+// range for a single node.
+func hcl1NodeEndPos(node hcl1ast.Node) hcl1token.Pos {
+	switch tn := node.(type) {
+	case *hcl1ast.ObjectItem:
+		if tn.LineComment != nil && len(tn.LineComment.List) > 0 {
+			return tn.LineComment.List[len(tn.LineComment.List)-1].Start
+		}
+		return hcl1NodeEndPos(tn.Val)
+	case *hcl1ast.ListType:
+		return tn.Rbrack
+	case *hcl1ast.ObjectType:
+		return tn.Rbrace
+	default:
+		// If all else fails, we'll just return the position of what we were given.
+		return tn.Pos()
+	}
 }
 
 func hcl1ErrSubjectRange(filename string, err error) *hcl2.Range {
