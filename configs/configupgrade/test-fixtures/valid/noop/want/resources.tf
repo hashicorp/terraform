@@ -1,3 +1,3 @@
 
-resource "test_resource" "example" {
+resource "test_instance" "example" {
 }

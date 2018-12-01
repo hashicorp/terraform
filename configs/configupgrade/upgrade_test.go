@@ -188,7 +188,7 @@ var testProviders = map[string]providers.Factory{
 		p := &terraform.MockProvider{}
 		p.GetSchemaReturn = &terraform.ProviderSchema{
 			ResourceTypes: map[string]*configschema.Block{
-				"test_resource": {
+				"test_instance": {
 					Attributes: map[string]*configschema.Attribute{
 						"id":    {Type: cty.String, Computed: true},
 						"type":  {Type: cty.String, Optional: true},
