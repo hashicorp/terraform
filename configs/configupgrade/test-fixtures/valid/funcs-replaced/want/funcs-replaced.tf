@@ -26,4 +26,9 @@ locals {
   map_of_list = {
     "a" = ["b"]
   }
+
+  lookup_literal = {
+    "a" = "b"
+  }["a"]
+  lookup_ref = local.map["a"]
 }
