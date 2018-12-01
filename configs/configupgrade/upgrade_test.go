@@ -9,6 +9,8 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/zclconf/go-cty/cty"
+
 	backendinit "github.com/hashicorp/terraform/backend/init"
 	"github.com/hashicorp/terraform/configs/configschema"
 	"github.com/hashicorp/terraform/providers"
@@ -183,7 +185,24 @@ var testProviders = map[string]providers.Factory{
 		p := &terraform.MockProvider{}
 		p.GetSchemaReturn = &terraform.ProviderSchema{
 			ResourceTypes: map[string]*configschema.Block{
-				"test_resource": {},
+				"test_resource": {
+					Attributes: map[string]*configschema.Attribute{
+						"id":    {Type: cty.String, Computed: true},
+						"type":  {Type: cty.String, Optional: true},
+						"image": {Type: cty.String, Optional: true},
+						"tags":  {Type: cty.Map(cty.String), Optional: true},
+					},
+					BlockTypes: map[string]*configschema.NestedBlock{
+						"network": {
+							Nesting: configschema.NestingSet,
+							Block: configschema.Block{
+								Attributes: map[string]*configschema.Attribute{
+									"cidr_block": {Type: cty.String, Computed: true},
+								},
+							},
+						},
+					},
+				},
 			},
 		}
 		return p, nil
