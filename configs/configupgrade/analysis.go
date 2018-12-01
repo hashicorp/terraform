@@ -2,6 +2,7 @@ package configupgrade
 
 import (
 	"fmt"
+	"log"
 
 	hcl1 "github.com/hashicorp/hcl"
 	hcl1ast "github.com/hashicorp/hcl/hcl/ast"
@@ -48,12 +49,15 @@ func (u *Upgrader) analyze(ms ModuleSources) (*analysis, error) {
 			continue
 		}
 
+		log.Printf("[TRACE] configupgrade: Analyzing %q", name)
+
 		f, err := hcl1parser.Parse(src)
 		if err != nil {
 			// If we encounter a syntax error then we'll just skip for now
 			// and assume that we'll catch this again when we do the upgrade.
 			// If not, we'll break the upgrade step of renaming .tf files to
 			// .tf.json if they seem to be JSON syntax.
+			log.Printf("[ERROR] Failed to parse %q: %s", name, err)
 			continue
 		}
 
@@ -104,6 +108,7 @@ func (u *Upgrader) analyze(ms ModuleSources) (*analysis, error) {
 				if alias != "" {
 					inst = moduledeps.ProviderInstance(name + "." + alias)
 				}
+				log.Printf("[TRACE] Provider block requires provider %q", inst)
 				m.Providers[inst] = moduledeps.ProviderDependency{
 					Constraints: constraints,
 					Reason:      moduledeps.ProviderDependencyExplicit,
@@ -157,6 +162,7 @@ func (u *Upgrader) analyze(ms ModuleSources) (*analysis, error) {
 				}
 
 				inst := moduledeps.ProviderInstance(providerKey)
+				log.Printf("[TRACE] Resource block for %q %q requires provider %q", typeName, name, inst)
 				if _, exists := m.Providers[inst]; !exists {
 					m.Providers[inst] = moduledeps.ProviderDependency{
 						Reason: moduledeps.ProviderDependencyImplicit,
@@ -173,6 +179,7 @@ func (u *Upgrader) analyze(ms ModuleSources) (*analysis, error) {
 	}
 
 	for name, fn := range providerFactories {
+		log.Printf("[TRACE] Fetching schema from provider %q", name)
 		provider, err := fn()
 		if err != nil {
 			return nil, fmt.Errorf("failed to load provider %q: %s", name, err)

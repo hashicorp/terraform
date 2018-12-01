@@ -4,15 +4,18 @@ import (
 	"bytes"
 	"io"
 	"io/ioutil"
+	"log"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"testing"
 
+	"github.com/davecgh/go-spew/spew"
 	"github.com/zclconf/go-cty/cty"
 
 	backendinit "github.com/hashicorp/terraform/backend/init"
 	"github.com/hashicorp/terraform/configs/configschema"
+	"github.com/hashicorp/terraform/helper/logging"
 	"github.com/hashicorp/terraform/providers"
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -212,4 +215,23 @@ var testProviders = map[string]providers.Factory{
 func init() {
 	// Initialize the backends
 	backendinit.Init(nil)
+}
+
+func TestMain(m *testing.M) {
+	if testing.Verbose() {
+		// if we're verbose, use the logging requested by TF_LOG
+		logging.SetOutput()
+	} else {
+		// otherwise silence all logs
+		log.SetOutput(ioutil.Discard)
+	}
+
+	// We have fmt.Stringer implementations on lots of objects that hide
+	// details that we very often want to see in tests, so we just disable
+	// spew's use of String methods globally on the assumption that spew
+	// usage implies an intent to see the raw values and ignore any
+	// abstractions.
+	spew.Config.DisableMethods = true
+
+	os.Exit(m.Run())
 }
