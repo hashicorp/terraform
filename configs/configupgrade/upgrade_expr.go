@@ -26,6 +26,7 @@ func upgradeExpr(val interface{}, filename string, interp bool, an *analysis) ([
 	// of these correspond to expressions in HCL2. Therefore we need to
 	// comprehensively handle every possible HCL1 *and* HIL AST node type
 	// and, at minimum, print it out as-is in HCL2 syntax.
+Value:
 	switch tv := val.(type) {
 
 	case *hcl1ast.LiteralType:
@@ -214,14 +215,14 @@ func upgradeExpr(val interface{}, filename string, interp bool, an *analysis) ([
 				}
 			}
 			buf.WriteByte(']')
-			return buf.Bytes(), diags
+			break Value
 		case "map":
 			// Should now use object constructor syntax, but we can only
 			// achieve that if the call is valid, which requires an even
 			// number of arguments.
 			if len(argExprs) == 0 {
 				buf.WriteString("{}")
-				return buf.Bytes(), diags
+				break Value
 			} else if len(argExprs)%2 == 0 {
 				buf.WriteString("{\n")
 				for i := 0; i < len(argExprs); i += 2 {
@@ -234,7 +235,7 @@ func upgradeExpr(val interface{}, filename string, interp bool, an *analysis) ([
 					buf.WriteByte('\n')
 				}
 				buf.WriteByte('}')
-				return buf.Bytes(), diags
+				break Value
 			}
 		case "lookup":
 			// A lookup call with only two arguments is equivalent to native
@@ -247,7 +248,7 @@ func upgradeExpr(val interface{}, filename string, interp bool, an *analysis) ([
 				buf.WriteByte('[')
 				buf.Write(argExprs[1])
 				buf.WriteByte(']')
-				return buf.Bytes(), diags
+				break Value
 			}
 		}
 
