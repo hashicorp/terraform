@@ -200,7 +200,27 @@ var testProviders = map[string]providers.Factory{
 							Nesting: configschema.NestingSet,
 							Block: configschema.Block{
 								Attributes: map[string]*configschema.Attribute{
-									"cidr_block": {Type: cty.String, Computed: true},
+									"cidr_block":   {Type: cty.String, Optional: true},
+									"subnet_cidrs": {Type: cty.Map(cty.String), Computed: true},
+								},
+								BlockTypes: map[string]*configschema.NestedBlock{
+									"subnet": {
+										Nesting: configschema.NestingSet,
+										Block: configschema.Block{
+											Attributes: map[string]*configschema.Attribute{
+												"number": {Type: cty.Number, Required: true},
+											},
+										},
+									},
+								},
+							},
+						},
+						"addresses": {
+							Nesting: configschema.NestingSingle,
+							Block: configschema.Block{
+								Attributes: map[string]*configschema.Attribute{
+									"ipv4": {Type: cty.String, Computed: true},
+									"ipv6": {Type: cty.String, Computed: true},
 								},
 							},
 						},
