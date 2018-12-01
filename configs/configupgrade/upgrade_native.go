@@ -162,7 +162,7 @@ func (u *Upgrader) upgradeNativeSyntaxFile(filename string, src []byte, an *anal
 				}),
 			}
 			log.Printf("[TRACE] configupgrade: Upgrading var.%s at %s", labels[0], declRange)
-			bodyDiags := upgradeBlockBody(filename, fmt.Sprintf("var.%s", labels[0]), &buf, body.List.Items, rules, adhocComments)
+			bodyDiags := upgradeBlockBody(filename, fmt.Sprintf("var.%s", labels[0]), &buf, body.List.Items, body.Rbrace, rules, adhocComments)
 			diags = diags.Append(bodyDiags)
 			buf.WriteString("}\n\n")
 
@@ -187,7 +187,7 @@ func (u *Upgrader) upgradeNativeSyntaxFile(filename string, src []byte, an *anal
 				"depends_on":  dependsOnAttributeRule(filename, an),
 			}
 			log.Printf("[TRACE] configupgrade: Upgrading output.%s at %s", labels[0], declRange)
-			bodyDiags := upgradeBlockBody(filename, fmt.Sprintf("output.%s", labels[0]), &buf, body.List.Items, rules, adhocComments)
+			bodyDiags := upgradeBlockBody(filename, fmt.Sprintf("output.%s", labels[0]), &buf, body.List.Items, body.Rbrace, rules, adhocComments)
 			diags = diags.Append(bodyDiags)
 			buf.WriteString("}\n\n")
 
@@ -312,7 +312,7 @@ func (u *Upgrader) upgradeNativeSyntaxResource(filename string, buf *bytes.Buffe
 
 	printComments(buf, item.LeadComment)
 	printBlockOpen(buf, blockType, labels, item.LineComment)
-	bodyDiags := upgradeBlockBody(filename, addr.String(), buf, body.List.Items, rules, adhocComments)
+	bodyDiags := upgradeBlockBody(filename, addr.String(), buf, body.List.Items, body.Rbrace, rules, adhocComments)
 	diags = diags.Append(bodyDiags)
 	buf.WriteString("}\n\n")
 
@@ -335,7 +335,7 @@ func (u *Upgrader) upgradeNativeSyntaxProvider(filename string, buf *bytes.Buffe
 
 	printComments(buf, item.LeadComment)
 	printBlockOpen(buf, "provider", []string{typeName}, item.LineComment)
-	bodyDiags := upgradeBlockBody(filename, fmt.Sprintf("provider.%s", typeName), buf, body.List.Items, rules, adhocComments)
+	bodyDiags := upgradeBlockBody(filename, fmt.Sprintf("provider.%s", typeName), buf, body.List.Items, body.Rbrace, rules, adhocComments)
 	diags = diags.Append(bodyDiags)
 	buf.WriteString("}\n\n")
 
@@ -382,7 +382,7 @@ func (u *Upgrader) upgradeNativeSyntaxTerraformBlock(filename string, buf *bytes
 
 			printComments(buf, item.LeadComment)
 			printBlockOpen(buf, "backend", []string{typeName}, item.LineComment)
-			bodyDiags := upgradeBlockBody(filename, fmt.Sprintf("terraform.backend.%s", typeName), buf, body.List.Items, rules, adhocComments)
+			bodyDiags := upgradeBlockBody(filename, fmt.Sprintf("terraform.backend.%s", typeName), buf, body.List.Items, body.Rbrace, rules, adhocComments)
 			diags = diags.Append(bodyDiags)
 			buf.WriteString("}\n")
 
@@ -392,14 +392,14 @@ func (u *Upgrader) upgradeNativeSyntaxTerraformBlock(filename string, buf *bytes
 
 	printComments(buf, item.LeadComment)
 	printBlockOpen(buf, "terraform", nil, item.LineComment)
-	bodyDiags := upgradeBlockBody(filename, "terraform", buf, body.List.Items, rules, adhocComments)
+	bodyDiags := upgradeBlockBody(filename, "terraform", buf, body.List.Items, body.Rbrace, rules, adhocComments)
 	diags = diags.Append(bodyDiags)
 	buf.WriteString("}\n\n")
 
 	return diags
 }
 
-func upgradeBlockBody(filename string, blockAddr string, buf *bytes.Buffer, args []*hcl1ast.ObjectItem, rules bodyContentRules, adhocComments *commentQueue) tfdiags.Diagnostics {
+func upgradeBlockBody(filename string, blockAddr string, buf *bytes.Buffer, args []*hcl1ast.ObjectItem, end hcl1token.Pos, rules bodyContentRules, adhocComments *commentQueue) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 
 	for i, arg := range args {
@@ -412,7 +412,6 @@ func upgradeBlockBody(filename string, blockAddr string, buf *bytes.Buffer, args
 		printComments(buf, arg.LeadComment)
 
 		name := arg.Keys[0].Token.Value().(string)
-		//labelKeys := arg.Keys[1:]
 
 		rule, expected := rules[name]
 		if !expected {
@@ -447,6 +446,16 @@ func upgradeBlockBody(filename string, blockAddr string, buf *bytes.Buffer, args
 			if nextPos.Line-thisPos.Line > 1 {
 				buf.WriteByte('\n')
 			}
+		}
+	}
+
+	// Before we return, we must also print any remaining adhocComments that
+	// appear between our last item and the closing brace.
+	comments := adhocComments.TakeBeforePos(end)
+	for i, group := range comments {
+		printComments(buf, group)
+		if i < len(comments)-1 {
+			buf.WriteByte('\n') // Extra separator after each group
 		}
 	}
 
@@ -636,8 +645,16 @@ func collectAdhocComments(f *hcl1ast.File) *commentQueue {
 
 type commentQueue []*hcl1ast.CommentGroup
 
+func (q *commentQueue) TakeBeforeToken(token hcl1token.Token) []*hcl1ast.CommentGroup {
+	return q.TakeBeforePos(token.Pos)
+}
+
 func (q *commentQueue) TakeBefore(node hcl1ast.Node) []*hcl1ast.CommentGroup {
-	toPos := node.Pos()
+	return q.TakeBeforePos(node.Pos())
+}
+
+func (q *commentQueue) TakeBeforePos(pos hcl1token.Pos) []*hcl1ast.CommentGroup {
+	toPos := pos
 	var i int
 	for i = 0; i < len(*q); i++ {
 		if (*q)[i].Pos().After(toPos) {
