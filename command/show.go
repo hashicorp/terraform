@@ -70,9 +70,18 @@ func (c *ShowCommand) Run(args []string) int {
 		return 1
 	}
 
+	// Determine if a planfile was passed to the command
+	var planFile *planfile.Reader
+	if len(args) > 0 {
+		// We will handle error checking later on - this is just required to
+		// load the local context if the given path is a planfile.
+		planFile, _ = c.PlanFile(args[0])
+	}
+
 	// Build the operation
 	opReq := c.Operation(b)
 	opReq.ConfigDir = cwd
+	opReq.PlanFile = planFile
 	opReq.ConfigLoader, err = c.initConfigLoader()
 	if err != nil {
 		diags = diags.Append(err)
@@ -91,56 +100,31 @@ func (c *ShowCommand) Run(args []string) int {
 	// Get the schemas from the context
 	schemas := ctx.Schemas()
 
-	env := c.Workspace()
-
 	var planErr, stateErr error
-	var path string
 	var plan *plans.Plan
 	var state *states.State
-	if len(args) > 0 {
-		path = args[0]
-		pr, err := planfile.Open(path)
-		if err != nil {
-			if jsonOutput == true {
-				c.Ui.Error(fmt.Sprintf(
-					"Error: JSON output not available for state",
-				))
-				return 1
-			}
-			f, err := os.Open(path)
-			if err != nil {
-				c.Ui.Error(fmt.Sprintf("Error loading file: %s", err))
-				return 1
-			}
-			defer f.Close()
 
-			var stateFile *statefile.File
-			stateFile, err = statefile.Read(f)
-			if err != nil {
-				stateErr = err
-			} else {
-				state = stateFile.State
+	// if a path was provided, try to read it as a path to a planfile
+	// if that fails, try to read the cli argument as a path to a statefile
+	// otherwise, load the currnet state
+	if len(args) > 0 {
+		path := args[0]
+		plan, planErr = getPlanFromPath(path)
+		if planErr != nil {
+			// json output is only supported for plans
+			if jsonOutput == true {
+				c.Ui.Error("Invalid Argument: JSON output not available for state")
+				return 1
 			}
-		} else {
-			plan, err = pr.ReadPlan()
-			if err != nil {
-				planErr = err
-			}
+			state, stateErr = getStateFromPath(path)
 		}
 	} else {
-		// Get the state
-		stateStore, err := b.StateMgr(env)
+		env := c.Workspace()
+		state, stateErr = getStateFromEnv(b, env)
 		if err != nil {
-			c.Ui.Error(fmt.Sprintf("Failed to load state: %s", err))
+			c.Ui.Error(err.Error())
 			return 1
 		}
-
-		if err := stateStore.RefreshState(); err != nil {
-			c.Ui.Error(fmt.Sprintf("Failed to load state: %s", err))
-			return 1
-		}
-
-		state = stateStore.State()
 		if state == nil {
 			c.Ui.Output("No state.")
 			return 0
@@ -160,7 +144,6 @@ func (c *ShowCommand) Run(args []string) int {
 
 	if plan != nil {
 		if jsonOutput == true {
-
 			_, snapshot, loadDiags := opReq.ConfigLoader.LoadConfigWithSnapshot(cwd)
 			if loadDiags.HasErrors() {
 				c.showDiagnostics(diags)
@@ -206,4 +189,51 @@ Options:
 
 func (c *ShowCommand) Synopsis() string {
 	return "Inspect Terraform state or plan"
+}
+
+// getPlanFromPath returns a plan if the user-supplied path points to a planfile.
+// If both plan and error are nil, the path is likely a directory.
+// An error could suggests that the given path points to a statefile.
+func getPlanFromPath(path string) (*plans.Plan, error) {
+	pr, err := planfile.Open(path)
+	if err != nil {
+		return nil, err
+	}
+	plan, err := pr.ReadPlan()
+	if err != nil {
+		return nil, err
+	}
+	return plan, nil
+}
+
+// getStateFromPath returns a State if the user-supplied path points to a statefile.
+func getStateFromPath(path string) (*states.State, error) {
+	f, err := os.Open(path)
+	if err != nil {
+		return nil, err
+	}
+	defer f.Close()
+
+	var stateFile *statefile.File
+	stateFile, err = statefile.Read(f)
+	if err != nil {
+		return nil, err
+	}
+	return stateFile.State, nil
+}
+
+// getStateFromEnv returns the State for the current workspace, if available.
+func getStateFromEnv(b backend.Backend, env string) (*states.State, error) {
+	// Get the state
+	stateStore, err := b.StateMgr(env)
+	if err != nil {
+		return nil, fmt.Errorf("Failed to load state: %s", err)
+	}
+
+	if err := stateStore.RefreshState(); err != nil {
+		return nil, fmt.Errorf("Failed to load state: %s", err)
+	}
+
+	state := stateStore.State()
+	return state, nil
 }

@@ -86,14 +86,14 @@ func Marshal(
 
 	output := newPlan()
 
-	// TODO:
-	// output.PlannedValues
-
-	// TODO:
-	// output.ProposedUnknown
+	// output.PlannedValues and output.ProposedUnknown
+	err := output.marshalVariableValues(p.VariableValues)
+	if err != nil {
+		return nil, err
+	}
 
 	// output.OutputChanges
-	err := output.marshalOutputChanges(p.Changes)
+	err = output.marshalOutputChanges(p.Changes)
 	if err != nil {
 		return nil, err
 	}
@@ -119,6 +119,12 @@ func Marshal(
 	// add some polish
 	ret, err := json.MarshalIndent(output, "", "  ")
 	return ret, err
+}
+
+// marshalVariableValues marshals knows variables into
+func (p *plan) marshalVariableValues(values map[string]plans.DynamicValue) error {
+
+	return nil
 }
 
 func (p *plan) marshalResourceChanges(changes *plans.Changes, schemas *terraform.Schemas) error {
