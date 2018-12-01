@@ -10,4 +10,7 @@ locals {
 
   list_of_map = "${list(map("a", "b"))}"
   map_of_list = "${map("a", list("b"))}"
+
+  lookup_literal = "${lookup(map("a", "b"), "a")}"
+  lookup_ref     = "${lookup(local.map, "a")}"
 }
