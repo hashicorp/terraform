@@ -172,16 +172,86 @@ func upgradeExpr(val interface{}, filename string, interp bool, an *analysis) ([
 		name := tv.Func
 		args := tv.Args
 
-		buf.WriteString(name)
-		buf.WriteByte('(')
+		argExprs := make([][]byte, len(args))
+		multiline := false
+		totalLen := 0
 		for i, arg := range args {
 			if i > 0 {
-				buf.WriteString(", ")
+				totalLen += 2
 			}
-
 			exprSrc, exprDiags := upgradeExpr(arg, filename, true, an)
 			diags = diags.Append(exprDiags)
+			argExprs[i] = exprSrc
+			if bytes.Contains(exprSrc, []byte{'\n'}) {
+				// If any of our arguments are multi-line then we'll also be multiline
+				multiline = true
+			}
+			totalLen += len(exprSrc)
+		}
+
+		if totalLen > 60 { // heuristic, since we don't know here how indented we are already
+			multiline = true
+		}
+
+		// Some functions are now better expressed as native language constructs.
+		// These cases will return early if they emit anything, or otherwise
+		// fall through to the default emitter.
+		switch name {
+		case "list":
+			// Should now use tuple constructor syntax
+			buf.WriteByte('[')
+			if multiline {
+				buf.WriteByte('\n')
+			}
+			for i, exprSrc := range argExprs {
+				buf.Write(exprSrc)
+				if multiline {
+					buf.WriteString(",\n")
+				} else {
+					if i < len(args)-1 {
+						buf.WriteString(", ")
+					}
+				}
+			}
+			buf.WriteByte(']')
+			return buf.Bytes(), diags
+		case "map":
+			// Should now use object constructor syntax, but we can only
+			// achieve that if the call is valid, which requires an even
+			// number of arguments.
+			if len(argExprs) == 0 {
+				buf.WriteString("{}")
+				return buf.Bytes(), diags
+			} else if len(argExprs)%2 == 0 {
+				buf.WriteString("{\n")
+				for i := 0; i < len(argExprs); i += 2 {
+					k := argExprs[i]
+					v := argExprs[i+1]
+
+					buf.Write(k)
+					buf.WriteString(" = ")
+					buf.Write(v)
+					buf.WriteByte('\n')
+				}
+				buf.WriteByte('}')
+				return buf.Bytes(), diags
+			}
+		}
+
+		buf.WriteString(name)
+		buf.WriteByte('(')
+		if multiline {
+			buf.WriteByte('\n')
+		}
+		for i, exprSrc := range argExprs {
 			buf.Write(exprSrc)
+			if multiline {
+				buf.WriteString(",\n")
+			} else {
+				if i < len(args)-1 {
+					buf.WriteString(", ")
+				}
+			}
 		}
 		buf.WriteByte(')')
 
