@@ -7,6 +7,7 @@ import (
 	hcl1 "github.com/hashicorp/hcl"
 	hcl1ast "github.com/hashicorp/hcl/hcl/ast"
 	hcl1parser "github.com/hashicorp/hcl/hcl/parser"
+	hcl1token "github.com/hashicorp/hcl/hcl/token"
 
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs/configschema"
@@ -117,32 +118,46 @@ func (u *Upgrader) analyze(ms ModuleSources) (*analysis, error) {
 		}
 
 		{
-			// For our purposes here we don't need to distinguish "resource"
-			// and "data" blocks -- provider references are the same for
-			// both of them -- so we'll just merge them together into a
-			// single list and iterate it.
 			resourceConfigsList := list.Filter("resource")
 			dataResourceConfigsList := list.Filter("data")
+			// list.Filter annoyingly strips off the key used for matching,
+			// so we'll put it back here so we can distinguish our two types
+			// of blocks below.
+			for _, obj := range resourceConfigsList.Items {
+				obj.Keys = append([]*hcl1ast.ObjectKey{
+					{Token: hcl1token.Token{Type: hcl1token.IDENT, Text: "resource"}},
+				}, obj.Keys...)
+			}
+			for _, obj := range dataResourceConfigsList.Items {
+				obj.Keys = append([]*hcl1ast.ObjectKey{
+					{Token: hcl1token.Token{Type: hcl1token.IDENT, Text: "data"}},
+				}, obj.Keys...)
+			}
+			// Now we can merge the two lists together, since we can distinguish
+			// them just by their keys[0].
 			resourceConfigsList.Items = append(resourceConfigsList.Items, dataResourceConfigsList.Items...)
 
 			resourceObjs := resourceConfigsList.Children()
 			for _, resourceObj := range resourceObjs.Items {
-				if len(resourceObj.Keys) != 2 {
+				if len(resourceObj.Keys) != 3 {
 					return nil, fmt.Errorf("resource or data block has wrong number of labels")
 				}
-				typeName := resourceObj.Keys[0].Token.Value().(string)
-				name := resourceObj.Keys[1].Token.Value().(string)
+				typeName := resourceObj.Keys[1].Token.Value().(string)
+				name := resourceObj.Keys[2].Token.Value().(string)
 				rAddr := addrs.Resource{
-					Mode: addrs.ManagedResourceMode, // not necessarily true, but good enough for our purposes here
+					Mode: addrs.ManagedResourceMode,
 					Type: typeName,
 					Name: name,
+				}
+				if resourceObj.Keys[0].Token.Value() == "data" {
+					rAddr.Mode = addrs.DataResourceMode
 				}
 
 				var listVal *hcl1ast.ObjectList
 				if ot, ok := resourceObj.Val.(*hcl1ast.ObjectType); ok {
 					listVal = ot.List
 				} else {
-					return nil, fmt.Errorf("resource %q %q must be a block", typeName, name)
+					return nil, fmt.Errorf("config for %q must be a block", rAddr)
 				}
 
 				if o := listVal.Filter("count"); len(o.Items) > 0 {
@@ -153,7 +168,7 @@ func (u *Upgrader) analyze(ms ModuleSources) (*analysis, error) {
 				if o := listVal.Filter("provider"); len(o.Items) > 0 {
 					err := hcl1.DecodeObject(&providerKey, o.Items[0].Val)
 					if err != nil {
-						return nil, fmt.Errorf("Error reading provider for resource %q %q: %s", typeName, name, err)
+						return nil, fmt.Errorf("Error reading provider for resource %s: %s", rAddr, err)
 					}
 				}
 
@@ -162,7 +177,7 @@ func (u *Upgrader) analyze(ms ModuleSources) (*analysis, error) {
 				}
 
 				inst := moduledeps.ProviderInstance(providerKey)
-				log.Printf("[TRACE] Resource block for %q %q requires provider %q", typeName, name, inst)
+				log.Printf("[TRACE] Resource block for %s requires provider %q", rAddr, inst)
 				if _, exists := m.Providers[inst]; !exists {
 					m.Providers[inst] = moduledeps.ProviderDependency{
 						Reason: moduledeps.ProviderDependencyImplicit,
