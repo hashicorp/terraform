@@ -242,9 +242,9 @@ var fmtFixture = struct {
 	input, golden []byte
 }{
 	"main.tf",
-	[]byte(`  foo  =                  "bar"
+	[]byte(`  foo  =  "bar"
 `),
-	[]byte(`foo =        "bar"
+	[]byte(`foo = "bar"
 `),
 }
 
