@@ -57,11 +57,6 @@ func (c *FmtCommand) Run(args []string) int {
 	}
 
 	args = cmdFlags.Args()
-	if len(args) > 1 {
-		c.Ui.Error("The fmt command expects at most one argument.")
-		cmdFlags.Usage()
-		return 1
-	}
 
 	var dirs []string
 	if len(args) == 0 {
@@ -70,7 +65,7 @@ func (c *FmtCommand) Run(args []string) int {
 		c.list = false
 		c.write = false
 	} else {
-		dirs = []string{args[0]}
+		dirs = args
 	}
 
 	var output io.Writer
@@ -232,7 +227,7 @@ func (c *FmtCommand) processDir(path string, stdout io.Writer) tfdiags.Diagnosti
 
 func (c *FmtCommand) Help() string {
 	helpText := `
-Usage: terraform fmt [options] [DIR]
+Usage: terraform fmt [options] DIR [DIR ..]
 
 	Rewrites all Terraform configuration files to a canonical format. Both
 	configuration files (.tf) and variables files (.tfvars) are updated.

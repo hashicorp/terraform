@@ -35,29 +35,6 @@ func TestFmt_errorReporting(t *testing.T) {
 	}
 }
 
-func TestFmt_tooManyArgs(t *testing.T) {
-	ui := new(cli.MockUi)
-	c := &FmtCommand{
-		Meta: Meta{
-			testingOverrides: metaOverridesForProvider(testProvider()),
-			Ui:               ui,
-		},
-	}
-
-	args := []string{
-		"one",
-		"two",
-	}
-	if code := c.Run(args); code != 1 {
-		t.Fatalf("wrong exit code. errors: \n%s", ui.ErrorWriter.String())
-	}
-
-	expected := "The fmt command expects at most one argument."
-	if actual := ui.ErrorWriter.String(); !strings.Contains(actual, expected) {
-		t.Fatalf("expected:\n%s\n\nto include: %q", actual, expected)
-	}
-}
-
 func TestFmt_workingDirectory(t *testing.T) {
 	tempDir := fmtFixtureWriteDir(t)
 
@@ -115,6 +92,48 @@ func TestFmt_directoryArg(t *testing.T) {
 	if got != want {
 		t.Fatalf("wrong output\ngot:  %s\nwant: %s", got, want)
 	}
+}
+
+func TestFmt_multipleDirectoryArg(t *testing.T) {
+	firstTempDir := fmtFixtureWriteDir(t)
+	secondTempDir := fmtFixtureWriteDir(t)
+
+	ui := new(cli.MockUi)
+	c := &FmtCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(testProvider()),
+			Ui:               ui,
+		},
+	}
+
+	args := []string{firstTempDir, secondTempDir}
+	if code := c.Run(args); code != 0 {
+		t.Fatalf("wrong exit code. errors: \n%s", ui.ErrorWriter.String())
+	}
+	dirs := strings.Split(strings.TrimSpace(ui.OutputWriter.String()), "\n")
+	if len(dirs) != 2 {
+		t.Fatalf("wrong output: expected 2 results, got: %d\n", len(dirs))
+	}
+	formattedDirs := map[string]bool{}
+	for index, dir := range dirs {
+		absDir, err := filepath.Abs(dir)
+		if err != nil {
+			t.Fatal(err)
+		}
+		dirs[index] = absDir
+		formattedDirs[absDir] = true
+	}
+	wantDirs := []string{
+		filepath.Join(firstTempDir, fmtFixture.filename),
+		filepath.Join(firstTempDir, fmtFixture.filename),
+	}
+	for _, wantDir := range wantDirs {
+		_, ok := formattedDirs[wantDir]
+		if !ok {
+			t.Fatalf("wrong output\ngot:  %s\nwant: %s", wantDir, dirs)
+		}
+	}
+
 }
 
 func TestFmt_stdinArg(t *testing.T) {
@@ -223,9 +242,9 @@ var fmtFixture = struct {
 	input, golden []byte
 }{
 	"main.tf",
-	[]byte(`  foo  =  "bar"
+	[]byte(`  foo  =                  "bar"
 `),
-	[]byte(`foo = "bar"
+	[]byte(`foo =        "bar"
 `),
 }
 
