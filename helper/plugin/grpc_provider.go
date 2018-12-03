@@ -22,6 +22,8 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 )
 
+const newExtraKey = "_new_extra_shim"
+
 // NewGRPCProviderServerShim wraps a terraform.ResourceProvider in a
 // proto.ProviderServer implementation. If the provided provider is not a
 // *schema.Provider, this will return nil,
@@ -563,15 +565,29 @@ func (s *GRPCProviderServer) PlanResourceChange(_ context.Context, req *proto.Pl
 		Msgpack: plannedMP,
 	}
 
-	// the Meta field gets encoded into PlannedPrivate
-	if diff.Meta != nil {
-		plannedPrivate, err := json.Marshal(diff.Meta)
-		if err != nil {
-			resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
-			return resp, nil
-		}
-		resp.PlannedPrivate = plannedPrivate
+	// Now we need to store any NewExtra values, which are where any actual
+	// StateFunc modified config fields are hidden.
+	privateMap := diff.Meta
+	if privateMap == nil {
+		privateMap = map[string]interface{}{}
 	}
+
+	newExtra := map[string]interface{}{}
+
+	for k, v := range diff.Attributes {
+		if v.NewExtra != nil {
+			newExtra[k] = v.NewExtra
+		}
+	}
+	privateMap[newExtraKey] = newExtra
+
+	// the Meta field gets encoded into PlannedPrivate
+	plannedPrivate, err := json.Marshal(privateMap)
+	if err != nil {
+		resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
+		return resp, nil
+	}
+	resp.PlannedPrivate = plannedPrivate
 
 	// collect the attributes that require instance replacement, and convert
 	// them to cty.Paths.
@@ -653,7 +669,7 @@ func (s *GRPCProviderServer) ApplyResourceChange(_ context.Context, req *proto.A
 			Destroy:    true,
 		}
 	} else {
-		diff, err = schema.DiffFromValues(priorStateVal, plannedStateVal, res)
+		diff, err = schema.DiffFromValues(priorStateVal, plannedStateVal, stripResourceModifiers(res))
 		if err != nil {
 			resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
 			return resp, nil
@@ -667,9 +683,23 @@ func (s *GRPCProviderServer) ApplyResourceChange(_ context.Context, req *proto.A
 		}
 	}
 
+	// add NewExtra Fields that may have been stored in the private data
+	if newExtra := private[newExtraKey]; newExtra != nil {
+		for k, v := range newExtra.(map[string]interface{}) {
+			d := diff.Attributes[k]
+
+			if d == nil {
+				d = &terraform.ResourceAttrDiff{}
+			}
+
+			d.NewExtra = v
+			diff.Attributes[k] = d
+		}
+	}
+
 	// strip out non-diffs
 	for k, v := range diff.Attributes {
-		if v.New == v.Old && !v.NewComputed && !v.NewRemoved {
+		if v.New == v.Old && !v.NewComputed && !v.NewRemoved && v.NewExtra == "" {
 			delete(diff.Attributes, k)
 		}
 	}
@@ -684,11 +714,10 @@ func (s *GRPCProviderServer) ApplyResourceChange(_ context.Context, req *proto.A
 		return resp, nil
 	}
 
-	// here we use the planned state to check for unknown/zero containers values
-	// when normalizing the flatmap.
-	plannedState := hcl2shim.FlatmapValueFromHCL2(plannedStateVal)
-
 	if newInstanceState != nil {
+		// here we use the planned state to check for unknown/zero containers values
+		// when normalizing the flatmap.
+		plannedState := hcl2shim.FlatmapValueFromHCL2(plannedStateVal)
 		newInstanceState.Attributes = normalizeFlatmapContainers(plannedState, newInstanceState.Attributes)
 	}
 
@@ -971,4 +1000,46 @@ func copyTimeoutValues(to cty.Value, from cty.Value) cty.Value {
 	toAttrs[schema.TimeoutsConfigKey] = timeouts
 
 	return cty.ObjectVal(toAttrs)
+}
+
+// stripResourceModifiers takes a *schema.Resource and returns a deep copy with all
+// StateFuncs and CustomizeDiffs removed. This will be used during apply to
+// create a diff from a planned state where the diff modifications have already
+// been applied.
+func stripResourceModifiers(r *schema.Resource) *schema.Resource {
+	if r == nil {
+		return nil
+	}
+	// start with a shallow copy
+	newResource := new(schema.Resource)
+	*newResource = *r
+
+	newResource.CustomizeDiff = nil
+	newResource.Schema = map[string]*schema.Schema{}
+
+	for k, s := range r.Schema {
+		newResource.Schema[k] = stripSchema(s)
+	}
+
+	return newResource
+}
+
+func stripSchema(s *schema.Schema) *schema.Schema {
+	if s == nil {
+		return nil
+	}
+	// start with a shallow copy
+	newSchema := new(schema.Schema)
+	*newSchema = *s
+
+	newSchema.StateFunc = nil
+
+	switch e := newSchema.Elem.(type) {
+	case *schema.Schema:
+		newSchema.Elem = stripSchema(e)
+	case *schema.Resource:
+		newSchema.Elem = stripResourceModifiers(e)
+	}
+
+	return newSchema
 }
