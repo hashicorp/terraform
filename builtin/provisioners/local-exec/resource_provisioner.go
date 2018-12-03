@@ -160,7 +160,7 @@ func generateCommand(d *schema.ResourceData) (string, error) {
 		if !ok {
 			return "", fmt.Errorf("Error parsing %v as string", l)
 		}
-		lines = append(lines, line):
+		lines = append(lines, line)
 	}
 	return strings.Join(lines, "\n"), nil
 }
