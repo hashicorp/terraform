@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/exec"
 	"runtime"
+	"strings"
 
 	"github.com/armon/circbuf"
 	"github.com/hashicorp/terraform/helper/schema"
@@ -25,8 +26,10 @@ func Provisioner() terraform.ResourceProvisioner {
 	return &schema.Provisioner{
 		Schema: map[string]*schema.Schema{
 			"command": &schema.Schema{
-				Type:     schema.TypeString,
-				Required: true,
+				Type:          schema.TypeList,
+				Elem:          &schema.Schema{Type: schema.TypeString},
+				PromoteSingle: true,
+				Required:      true,
 			},
 			"interpreter": &schema.Schema{
 				Type:     schema.TypeList,
@@ -51,9 +54,9 @@ func applyFn(ctx context.Context) error {
 	data := ctx.Value(schema.ProvConfigDataKey).(*schema.ResourceData)
 	o := ctx.Value(schema.ProvOutputKey).(terraform.UIOutput)
 
-	command := data.Get("command").(string)
-	if command == "" {
-		return fmt.Errorf("local-exec provisioner command must be a non-empty string")
+	command, err := generateCommand(data)
+	if err != nil {
+		return err
 	}
 
 	// Execute the command with env
@@ -147,6 +150,19 @@ func applyFn(ctx context.Context) error {
 	}
 
 	return nil
+}
+
+// generateCommand takes the configuration and creates a script from each command config
+func generateCommand(d *schema.ResourceData) (string, error) {
+	var lines []string
+	for _, l := range d.Get("command").([]interface{}) {
+		line, ok := l.(string)
+		if !ok {
+			return "", fmt.Errorf("Error parsing %v as string", l)
+		}
+		lines = append(lines, line)
+	}
+	return strings.Join(lines, "\n"), nil
 }
 
 func copyOutput(o terraform.UIOutput, r io.Reader, doneCh chan<- struct{}) {
