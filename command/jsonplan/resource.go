@@ -1,7 +1,5 @@
 package jsonplan
 
-import "encoding/json"
-
 // Resource is the representation of a resource in the json plan
 type resource struct {
 	// Address is the absolute resource address
@@ -26,11 +24,11 @@ type resource struct {
 	// "values" property conforms to.
 	SchemaVersion uint64 `json:"schema_version"`
 
-	// Values is the JSON representation of the attribute values of the
+	// AttributeValues is the JSON representation of the attribute values of the
 	// resource, whose structure depends on the resource type schema. Any
 	// unknown values are omitted or set to null, making them indistinguishable
 	// from absent values.
-	Values json.RawMessage `json:"values,omitempty"`
+	AttributeValues attributeValues `json:"values,omitempty"`
 }
 
 // resourceChange is a description of an individual change action that Terraform
