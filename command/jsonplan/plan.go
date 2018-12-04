@@ -26,8 +26,8 @@ type plan struct {
 	FormatVersion   string            `json:"format_version,omitempty"`
 	PriorState      json.RawMessage   `json:"prior_state,omitempty"`
 	Config          json.RawMessage   `json:"configuration,omitempty"`
-	PlannedValues   values            `json:"planned_values,omitempty"`
-	ProposedUnknown values            `json:"proposed_unknown,omitempty"`
+	PlannedValues   stateValues       `json:"planned_values,omitempty"`
+	ProposedUnknown stateValues       `json:"proposed_unknown,omitempty"`
 	ResourceChanges []resourceChange  `json:"resource_changes,omitempty"`
 	OutputChanges   map[string]change `json:"output_changes,omitempty"`
 }
@@ -64,13 +64,6 @@ type change struct {
 	After  json.RawMessage `json:"after,omitempty"`
 }
 
-// Values is the common representation of resolved values for both the prior
-// state (which is always complete) and the planned new state.
-type values struct {
-	Outputs    map[string]output `json:"outputs,omitempty"`
-	RootModule module            `json:"root_module,omitempty"`
-}
-
 type output struct {
 	Sensitive bool            `json:"sensitive,omitempty"`
 	Value     json.RawMessage `json:"value,omitempty"`
@@ -87,10 +80,12 @@ func Marshal(
 	output := newPlan()
 
 	// output.PlannedValues and output.ProposedUnknown
-	err := output.marshalVariableValues(p.VariableValues)
+	err := output.marshalPlannedValues(p.Changes, s)
 	if err != nil {
 		return nil, err
 	}
+
+	// TODO: output.ProposedUnknown
 
 	// output.OutputChanges
 	err = output.marshalOutputChanges(p.Changes)
@@ -119,12 +114,6 @@ func Marshal(
 	// add some polish
 	ret, err := json.MarshalIndent(output, "", "  ")
 	return ret, err
-}
-
-// marshalVariableValues marshals knows variables into
-func (p *plan) marshalVariableValues(values map[string]plans.DynamicValue) error {
-
-	return nil
 }
 
 func (p *plan) marshalResourceChanges(changes *plans.Changes, schemas *terraform.Schemas) error {

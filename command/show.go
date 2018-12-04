@@ -74,7 +74,8 @@ func (c *ShowCommand) Run(args []string) int {
 	var planFile *planfile.Reader
 	if len(args) > 0 {
 		// We will handle error checking later on - this is just required to
-		// load the local context if the given path is a planfile.
+		// load the local context if the given path is successfully read as
+		// a planfile.
 		planFile, _ = c.PlanFile(args[0])
 	}
 
