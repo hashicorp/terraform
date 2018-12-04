@@ -45,7 +45,11 @@ func testStep(opts terraform.ContextOpts, state *terraform.State, step TestStep,
 
 	// Build the context
 	opts.Config = cfg
-	opts.State = terraform.MustShimLegacyState(state)
+	opts.State, err = terraform.ShimLegacyState(state)
+	if err != nil {
+		return nil, err
+	}
+
 	opts.Destroy = step.Destroy
 	ctx, stepDiags := terraform.NewContext(&opts)
 	if stepDiags.HasErrors() {
@@ -61,7 +65,11 @@ func testStep(opts terraform.ContextOpts, state *terraform.State, step TestStep,
 
 	// Refresh!
 	newState, stepDiags := ctx.Refresh()
-	state = mustShimNewState(newState, schemas)
+	// shim the state first so the test can check the state on errors
+	state, err = shimNewState(newState, schemas)
+	if err != nil {
+		return nil, err
+	}
 	if stepDiags.HasErrors() {
 		return state, fmt.Errorf("Error refreshing: %s", stepDiags.Err())
 	}
@@ -83,7 +91,11 @@ func testStep(opts terraform.ContextOpts, state *terraform.State, step TestStep,
 
 		// Apply the diff, creating real resources.
 		newState, stepDiags = ctx.Apply()
-		state = mustShimNewState(newState, schemas)
+		// shim the state first so the test can check the state on errors
+		state, err = shimNewState(newState, schemas)
+		if err != nil {
+			return nil, err
+		}
 		if stepDiags.HasErrors() {
 			return state, fmt.Errorf("Error applying: %s", stepDiags.Err())
 		}
@@ -123,7 +135,11 @@ func testStep(opts terraform.ContextOpts, state *terraform.State, step TestStep,
 		if stepDiags.HasErrors() {
 			return state, fmt.Errorf("Error on follow-up refresh: %s", stepDiags.Err())
 		}
-		state = mustShimNewState(newState, schemas)
+
+		state, err = shimNewState(newState, schemas)
+		if err != nil {
+			return nil, err
+		}
 	}
 	if p, stepDiags = ctx.Plan(); stepDiags.HasErrors() {
 		return state, fmt.Errorf("Error on second follow-up plan: %s", stepDiags.Err())
