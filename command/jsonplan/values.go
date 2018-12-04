@@ -25,20 +25,24 @@ func (p *plan) marshalPlannedValues(
 	s *states.State,
 	schemas *terraform.Schemas,
 ) error {
-	// if state is nil, the entire plan is the proposed value
-	if s.Empty() {
-		// marshal the plan into a `stateValues` and move on
-		//
+
+	// var curr, planned stateValues
+	var curr stateValues
+	// marshal the current state into a stateValues
+	err := curr.MarshalState(s, schemas)
+	if err != nil {
+		return err
 	}
 
-	// I wonder if there's a short-circuit here - would we know if the plan is a complete destroy?
-	// If so we would just set the planned values to nil
-	// if "destroy-everything" {
-	// 	return nil
-	// }
+	// // marshal the changes into a stateValues
+	// planned.MarshalChanges(changes, schemas)
 
-	// start with the root module from the state
-	outputs, err := marshalOutputs(changes, s)
+	// // merge the planned stateValues into the current stateValues
+	// plannedChanges := curr.Merge(planned)
+
+	// p.PlannedValues.RootModule = plannedChanges
+
+	outputs, err := marshalPlannedOutputs(changes, s)
 	if err != nil {
 		return err
 	}
@@ -55,7 +59,7 @@ func marshalAttributeValues() attributeValues {
 	return attributeValues{}
 }
 
-func marshalOutputs(changes *plans.Changes, s *states.State) (map[string]output, error) {
+func marshalPlannedOutputs(changes *plans.Changes, s *states.State) (map[string]output, error) {
 	ret := make(map[string]output)
 
 	// add the current state's outputs to the map
@@ -107,3 +111,25 @@ func marshalOutputs(changes *plans.Changes, s *states.State) (map[string]output,
 	return ret, nil
 
 }
+
+func (sv *stateValues) MarshalState(s *states.State, schemas *terraform.Schemas) error {
+	if s.Empty() {
+		return nil
+	}
+
+	// var rootModule module
+	// var rs []resource
+
+	// start with the root module
+	// rs, err := marshalResources(s.RootModule().Resources, schemas)
+
+	return nil
+}
+
+// func marshalResources(resources map[string]*states.Resource, schemas *terraform.Schemas) ([]resource, error) {
+// 	var rs []resource
+// 	for _, v := range resources {
+
+// 	}
+// 	return rs, nil
+// }
