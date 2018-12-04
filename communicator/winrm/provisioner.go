@@ -18,7 +18,7 @@ const (
 
 	// DefaultPort is used if there is no port given
 	DefaultPort = 5985
-	
+
 	// DefaultSslPort is used if there is no port given and HTTPS is true
 	DefaultSslPort = 5986
 
