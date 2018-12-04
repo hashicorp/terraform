@@ -31,6 +31,8 @@ BUG FIXES:
 * core: Correct handling of unknown values in module outputs during planning and final resolution of them during apply. [GH-19237]
 * core: Correct handling of wildcard dependencies when upgrading states [GH-19374]
 * core: Fix missing validation of references to non-existing child modules, which was previously resulting in a panic. [GH-19487]
+* helper/schema: Don't re-apply schema StateFuncs during apply [GH-19536]
+* helper/schema: Allow providers to continue setting and empty string to a default bool value [GH-19521]
 * helper/schema: Prevent the insertion of empty diff values when converting legacy diffs [GH-19253]
 * helper/schema: Fix timeout parsing during Provider.Diff (plan) [GH-19286]
 * helper/schema: Provider arguments set from environment variables now work correctly again, after regressing in the prior 0.12 alphas. [GH-19478]
