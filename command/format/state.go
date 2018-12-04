@@ -73,6 +73,7 @@ func State(opts *StateOpts) string {
 			v := m.OutputValues[k]
 			p.buf.WriteString(fmt.Sprintf("%s = ", k))
 			p.writeValue(v.Value, plans.NoOp, 0)
+			p.buf.WriteString("\n\n")
 		}
 	}
 
