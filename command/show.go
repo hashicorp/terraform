@@ -114,7 +114,7 @@ func (c *ShowCommand) Run(args []string) int {
 		if planErr != nil {
 			// json output is only supported for plans
 			if jsonOutput == true {
-				c.Ui.Error("Invalid Argument: JSON output not available for state")
+				c.Ui.Error("Error: JSON output not available for state")
 				return 1
 			}
 			state, stateErr = getStateFromPath(path)

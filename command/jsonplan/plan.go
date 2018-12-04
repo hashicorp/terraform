@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/zclconf/go-cty/cty"
+
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/command/jsonconfig"
 	"github.com/hashicorp/terraform/command/jsonstate"
@@ -79,19 +81,13 @@ func Marshal(
 
 	output := newPlan()
 
-	// output.PlannedValues and output.ProposedUnknown
-	err := output.marshalPlannedValues(p.Changes, s)
+	// TODO: output.PlannedValues
+	err := output.marshalPlannedValues(p.Changes, s, schemas)
 	if err != nil {
 		return nil, err
 	}
 
 	// TODO: output.ProposedUnknown
-
-	// output.OutputChanges
-	err = output.marshalOutputChanges(p.Changes)
-	if err != nil {
-		return nil, err
-	}
 
 	// output.ResourceChanges
 	err = output.marshalResourceChanges(p.Changes, schemas)
@@ -99,14 +95,20 @@ func Marshal(
 		return nil, err
 	}
 
-	// output.Config
-	output.Config, err = jsonconfig.Marshal(snap, schemas)
+	// output.OutputChanges
+	err = output.marshalOutputChanges(p.Changes)
 	if err != nil {
 		return nil, err
 	}
 
 	// output.PriorState
 	output.PriorState, err = jsonstate.Marshal(s)
+	if err != nil {
+		return nil, err
+	}
+
+	// output.Config
+	output.Config, err = jsonconfig.Marshal(snap, schemas)
 	if err != nil {
 		return nil, err
 	}
@@ -145,16 +147,20 @@ func (p *plan) marshalResourceChanges(changes *plans.Changes, schemas *terraform
 		}
 
 		var before, after []byte
-		if before != nil {
+		if changeV.Before != cty.NilVal {
 			before, err = ctyjson.Marshal(changeV.Before, changeV.Before.Type())
 			if err != nil {
 				return err
 			}
 		}
-		if after != nil {
-			after, err = ctyjson.Marshal(changeV.After, changeV.After.Type())
-			if err != nil {
-				return err
+		if changeV.After != cty.NilVal {
+			if changeV.After.IsWhollyKnown() {
+				after, err = ctyjson.Marshal(changeV.After, changeV.After.Type())
+				if err != nil {
+					return err
+				}
+			} else {
+				// TODO: what is the expected value if after is not known?
 			}
 		}
 
@@ -165,9 +171,10 @@ func (p *plan) marshalResourceChanges(changes *plans.Changes, schemas *terraform
 		}
 		r.Deposed = rc.DeposedKey == states.NotDeposed
 
+		// TODO: THIS SHOULD NOT BE A STRING
 		key := addr.Resource.Key
 		if key != nil {
-			r.Index = key.String()
+			r.Index = key
 		}
 		r.Mode = addr.Resource.Resource.Mode.String()
 		r.ModuleAddress = addr.Module.String()
@@ -187,12 +194,34 @@ func (p *plan) marshalOutputChanges(changes *plans.Changes) error {
 		return nil
 	}
 
-	var c change
 	p.OutputChanges = make(map[string]change, len(changes.Outputs))
 	for _, oc := range changes.Outputs {
+		changeV, err := oc.Decode()
+		if err != nil {
+			return err
+		}
+
+		var before, after []byte
+		if changeV.Before != cty.NilVal {
+			before, err = ctyjson.Marshal(changeV.Before, changeV.Before.Type())
+			if err != nil {
+				return err
+			}
+		}
+		if changeV.After != cty.NilVal {
+			if changeV.After.IsWhollyKnown() {
+				after, err = ctyjson.Marshal(changeV.After, changeV.After.Type())
+				if err != nil {
+					return err
+				}
+			}
+		}
+
+		var c change
 		c.Actions = []string{oc.Action.String()}
-		c.Before = json.RawMessage(oc.Before)
-		c.After = json.RawMessage(oc.After)
+		c.Before = json.RawMessage(before)
+		c.After = json.RawMessage(after)
+		p.OutputChanges[oc.Addr.String()] = c
 	}
 
 	return nil
