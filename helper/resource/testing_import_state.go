@@ -91,7 +91,10 @@ func testStepImportState(
 		return state, stepDiags.Err()
 	}
 
-	newState := mustShimNewState(importedState, schemas)
+	newState, err := shimNewState(importedState, schemas)
+	if err != nil {
+		return nil, err
+	}
 
 	// Go through the new state and verify
 	if step.ImportStateCheck != nil {
@@ -127,13 +130,31 @@ func testStepImportState(
 					r.Primary.ID)
 			}
 
+			// don't add empty flatmapped containers, so we can more easily
+			// compare the attributes
+			skipEmpty := func(k, v string) bool {
+				if strings.HasSuffix(k, ".#") || strings.HasSuffix(k, ".%") {
+					if v == "0" {
+						return true
+					}
+				}
+				return false
+			}
+
 			// Compare their attributes
 			actual := make(map[string]string)
 			for k, v := range r.Primary.Attributes {
+				if skipEmpty(k, v) {
+					continue
+				}
 				actual[k] = v
 			}
+
 			expected := make(map[string]string)
 			for k, v := range oldR.Primary.Attributes {
+				if skipEmpty(k, v) {
+					continue
+				}
 				expected[k] = v
 			}
 
