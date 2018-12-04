@@ -210,6 +210,34 @@ func (u *Upgrader) upgradeNativeSyntaxFile(filename string, src []byte, an *anal
 			// the special lifecycle arguments below.
 			rules := justAttributesBodyRules(filename, body, an)
 			rules["source"] = noInterpAttributeRule(filename, cty.String, an)
+			rules["version"] = noInterpAttributeRule(filename, cty.String, an)
+			rules["providers"] = func(buf *bytes.Buffer, blockAddr string, item *hcl1ast.ObjectItem) tfdiags.Diagnostics {
+				var diags tfdiags.Diagnostics
+				subBody, ok := item.Val.(*hcl1ast.ObjectType)
+				if !ok {
+					diags = diags.Append(&hcl2.Diagnostic{
+						Severity: hcl2.DiagError,
+						Summary:  "Invalid providers argument",
+						Detail:   `The "providers" argument must be a map from provider addresses in the child module to corresponding provider addresses in this module.`,
+						Subject:  &declRange,
+					})
+					return diags
+				}
+
+				// We're gonna cheat here and use justAttributesBodyRules to
+				// find all the attribute names but then just rewrite them all
+				// to be our specialized traversal-style mapping instead.
+				subRules := justAttributesBodyRules(filename, subBody, an)
+				for k := range subRules {
+					subRules[k] = maybeBareTraversalAttributeRule(filename, an)
+				}
+				buf.WriteString("providers = {\n")
+				bodyDiags := upgradeBlockBody(filename, blockAddr, buf, subBody.List.Items, body.Rbrace, subRules, adhocComments)
+				diags = diags.Append(bodyDiags)
+				buf.WriteString("}\n")
+
+				return diags
+			}
 
 			printComments(&buf, item.LeadComment)
 			printBlockOpen(&buf, blockType, labels, item.LineComment)
@@ -298,6 +326,7 @@ func (u *Upgrader) upgradeNativeSyntaxResource(filename string, buf *bytes.Buffe
 
 	rules := schemaDefaultBodyRules(filename, schema, an, adhocComments)
 	rules["count"] = normalAttributeRule(filename, cty.Number, an)
+	rules["provider"] = maybeBareTraversalAttributeRule(filename, an)
 
 	printComments(buf, item.LeadComment)
 	printBlockOpen(buf, blockType, labels, item.LineComment)
@@ -321,6 +350,8 @@ func (u *Upgrader) upgradeNativeSyntaxProvider(filename string, buf *bytes.Buffe
 	}
 	schema := providerSchema.Provider
 	rules := schemaDefaultBodyRules(filename, schema, an, adhocComments)
+	rules["alias"] = noInterpAttributeRule(filename, cty.String, an)
+	rules["version"] = noInterpAttributeRule(filename, cty.String, an)
 
 	printComments(buf, item.LeadComment)
 	printBlockOpen(buf, "provider", []string{typeName}, item.LineComment)
