@@ -171,7 +171,6 @@ func (p *plan) marshalResourceChanges(changes *plans.Changes, schemas *terraform
 		}
 		r.Deposed = rc.DeposedKey == states.NotDeposed
 
-		// TODO: THIS SHOULD NOT BE A STRING
 		key := addr.Resource.Key
 		if key != nil {
 			r.Index = key

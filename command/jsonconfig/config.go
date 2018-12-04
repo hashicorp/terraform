@@ -95,7 +95,7 @@ func Marshal(snap *configload.Snapshot, schemas *terraform.Schemas) ([]byte, err
 		return nil, diags
 	}
 
-	// FIXME: this is not accurate provider marshaling, just a placeholder
+	// TODO: this is not accurate provider marshaling, just a placeholder
 	var pcs []providerConfig
 	providers := c.ProviderTypes()
 	for p := range providers {
@@ -120,11 +120,11 @@ func marshalRootModule(m *configs.Module, schemas *terraform.Schemas) (module, e
 
 	var rs []resource
 
-	managedResources, err := marshalConfigResources(m.ManagedResources, schemas)
+	managedResources, err := marshalResources(m.ManagedResources, schemas)
 	if err != nil {
 		return module, err
 	}
-	dataResources, err := marshalConfigResources(m.DataResources, schemas)
+	dataResources, err := marshalResources(m.DataResources, schemas)
 	if err != nil {
 		return module, err
 	}
@@ -166,7 +166,7 @@ func marshalRootModule(m *configs.Module, schemas *terraform.Schemas) (module, e
 	return module, nil
 }
 
-func marshalConfigResources(resources map[string]*configs.Resource, schemas *terraform.Schemas) ([]resource, error) {
+func marshalResources(resources map[string]*configs.Resource, schemas *terraform.Schemas) ([]resource, error) {
 	var rs []resource
 	for _, v := range resources {
 		r := resource{
