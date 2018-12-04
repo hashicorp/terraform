@@ -353,3 +353,23 @@ func schemaNoInterpBodyRules(filename string, schema *configschema.Block, an *an
 
 	return ret
 }
+
+// justAttributesBodyRules constructs body content rules that just use the
+// standard interpolated attribute mapping for every name already present
+// in the given body object.
+//
+// This is a little weird vs. just processing directly the attributes, but
+// has the advantage that the caller can then apply overrides to the result
+// as necessary to deal with any known names that need special handling.
+//
+// Any attribute rules created by this function do not have a specific wanted
+// value type specified, instead setting it to just cty.DynamicPseudoType.
+func justAttributesBodyRules(filename string, body *hcl1ast.ObjectType, an *analysis) bodyContentRules {
+	rules := make(bodyContentRules, len(body.List.Items))
+	args := body.List.Items
+	for _, arg := range args {
+		name := arg.Keys[0].Token.Value().(string)
+		rules[name] = normalAttributeRule(filename, cty.DynamicPseudoType, an)
+	}
+	return rules
+}
