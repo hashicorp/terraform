@@ -191,6 +191,33 @@ func (u *Upgrader) upgradeNativeSyntaxFile(filename string, src []byte, an *anal
 			diags = diags.Append(bodyDiags)
 			buf.WriteString("}\n\n")
 
+		case "module":
+			if len(labels) != 1 {
+				diags = diags.Append(&hcl2.Diagnostic{
+					Severity: hcl2.DiagError,
+					Summary:  fmt.Sprintf("Invalid %s block", blockType),
+					Detail:   fmt.Sprintf("A %s block must have one label: the module call name.", blockType),
+					Subject:  &declRange,
+				})
+				continue
+			}
+
+			// Since upgrading is a single-module endeavor, we don't have access
+			// to the configuration of the child module here, but we know that
+			// in practice all arguments that aren't reserved meta-arguments
+			// in a module block are normal expression attributes so we'll
+			// start with the straightforward mapping of those and override
+			// the special lifecycle arguments below.
+			rules := justAttributesBodyRules(filename, body, an)
+			rules["source"] = noInterpAttributeRule(filename, cty.String, an)
+
+			printComments(&buf, item.LeadComment)
+			printBlockOpen(&buf, blockType, labels, item.LineComment)
+			log.Printf("[TRACE] configupgrade: Upgrading module.%s at %s", labels[0], declRange)
+			bodyDiags := upgradeBlockBody(filename, fmt.Sprintf("module.%s", labels[0]), &buf, body.List.Items, body.Rbrace, rules, adhocComments)
+			diags = diags.Append(bodyDiags)
+			buf.WriteString("}\n\n")
+
 		case "locals":
 			log.Printf("[TRACE] configupgrade: Upgrading locals block at %s", declRange)
 			printComments(&buf, item.LeadComment)
