@@ -197,51 +197,12 @@ func (u *Upgrader) upgradeNativeSyntaxFile(filename string, src []byte, an *anal
 			printBlockOpen(&buf, blockType, labels, item.LineComment)
 
 			// The "locals" block contents are free-form declarations, so
-			// we'll need to treat this one as special and not do a rules-based
-			// upgrade as we do for most other block types.
-			args := body.List.Items
-			for i, arg := range args {
-				if len(arg.Keys) != 1 {
-					// Should never happen for valid input, since there are no nested blocks expected here.
-					diags = diags.Append(&hcl2.Diagnostic{
-						Severity: hcl2.DiagWarning,
-						Summary:  "Invalid nested block",
-						Detail:   fmt.Sprintf("Blocks of type %q are not expected here, so this was not automatically upgraded.", arg.Keys[0].Token.Value().(string)),
-						Subject:  hcl1PosRange(filename, arg.Keys[0].Pos()).Ptr(),
-					})
-					// Preserve the item as-is, using the hcl1printer package.
-					buf.WriteString("\n# TF-UPGRADE-TODO: Blocks are not expected here, so this was not automatically upgraded.\n")
-					hcl1printer.Fprint(&buf, arg)
-					buf.WriteString("\n\n")
-					continue
-				}
-
-				comments := adhocComments.TakeBefore(arg)
-				for _, group := range comments {
-					printComments(&buf, group)
-					buf.WriteByte('\n') // Extra separator after each group
-				}
-
-				printComments(&buf, arg.LeadComment)
-
-				name := arg.Keys[0].Token.Value().(string)
-				expr := arg.Val
-				exprSrc, exprDiags := upgradeExpr(expr, filename, true, an)
-				diags = diags.Append(exprDiags)
-				printAttribute(&buf, name, exprSrc, arg.LineComment)
-
-				// If we have another item and it's more than one line away
-				// from the current one then we'll print an extra blank line
-				// to retain that separation.
-				if (i + 1) < len(args) {
-					next := args[i+1]
-					thisPos := hcl1NodeEndPos(arg)
-					nextPos := next.Pos()
-					if nextPos.Line-thisPos.Line > 1 {
-						buf.WriteByte('\n')
-					}
-				}
-			}
+			// we'll just use the default attribute mapping rule for everything
+			// inside it.
+			rules := justAttributesBodyRules(filename, body, an)
+			log.Printf("[TRACE] configupgrade: Upgrading locals block at %s", declRange)
+			bodyDiags := upgradeBlockBody(filename, "locals", &buf, body.List.Items, body.Rbrace, rules, adhocComments)
+			diags = diags.Append(bodyDiags)
 			buf.WriteString("}\n\n")
 
 		default:
