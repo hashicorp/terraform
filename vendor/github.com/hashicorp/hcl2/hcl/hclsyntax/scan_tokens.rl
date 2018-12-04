@@ -60,7 +60,7 @@ func scanTokens(data []byte, filename string, start hcl.Pos, mode scanMode) []To
         Comment = (
             ("#" (any - EndOfLine)* EndOfLine) |
             ("//" (any - EndOfLine)* EndOfLine) |
-            ("/*" any* "*/")
+            ("/*" any* :>> "*/")
         );
 
         # Note: hclwrite assumes that only ASCII spaces appear between tokens,
