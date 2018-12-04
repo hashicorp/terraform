@@ -60,19 +60,24 @@ func (e *expression) Empty() bool {
 	return e.ConstantValue == nil && e.References == nil
 }
 
-func marshalExpressions(body hcl.Body, schema *configschema.Block) map[string]interface{} {
-	// Since we want the raw, un-evaluated expressions we need to use the
-	// low-level HCL API here, rather than the hcldec decoder API. That
-	// means we need the low-level schema.
-	lowSchema := hcldec.ImpliedSchema(schema.DecoderSpec())
-	// (lowSchema is an hcl.BodySchema: https://godoc.org/github.com/hashicorp/hcl2/hcl#BodySchema )
+// expressions is used to represent the entire content of a block. Attribute
+// arguments are mapped directly with the attribute name as key and an
+// expression as value.
+type expressions map[string]interface{}
 
-	// Use the low-level schema with the body to decode one level
-	// We'll just ignore any additional content that's not covered by
-	// the schema, which will effectively ignore "dynamic" blocks,
-	// and may also ignore other unknown stuff but anything else
-	// would get flagged by Terraform as an error anyway, and so
-	// we wouldn't end up in here.
+func marshalExpressions(body hcl.Body, schema *configschema.Block) expressions {
+	// Since we want the raw, un-evaluated expressions we need to use the
+	// low-level HCL API here, rather than the hcldec decoder API. That means we
+	// need the low-level schema.
+	lowSchema := hcldec.ImpliedSchema(schema.DecoderSpec())
+	// (lowSchema is an hcl.BodySchema:
+	// https://godoc.org/github.com/hashicorp/hcl2/hcl#BodySchema )
+
+	// Use the low-level schema with the body to decode one level We'll just
+	// ignore any additional content that's not covered by the schema, which
+	// will effectively ignore "dynamic" blocks, and may also ignore other
+	// unknown stuff but anything else would get flagged by Terraform as an
+	// error anyway, and so we wouldn't end up in here.
 	content, _, _ := body.PartialContent(lowSchema)
 	if content == nil {
 		// Should never happen for a valid body, but we'll just generate empty
@@ -80,20 +85,21 @@ func marshalExpressions(body hcl.Body, schema *configschema.Block) map[string]in
 		return nil
 	}
 
-	ret := make(map[string]interface{})
+	ret := make(expressions)
 
 	// Any attributes we encode directly as expression objects.
 	for name, attr := range content.Attributes {
 		ret[name] = marshalExpression(attr.Expr) // note: singular expression for this one
 	}
 
-	// Any nested blocks require a recursive call to produce nested
-	// expressions objects.
+	// Any nested blocks require a recursive call to produce nested expressions
+	// objects.
 	for _, block := range content.Blocks {
 		typeName := block.Type
 		blockS, exists := schema.BlockTypes[typeName]
 		if !exists {
-			// Should never happen since only block types in the schema would be put in blocks list
+			// Should never happen since only block types in the schema would be
+			// put in blocks list
 			continue
 		}
 
