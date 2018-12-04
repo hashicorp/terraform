@@ -2,7 +2,9 @@ package jsonconfig
 
 import (
 	"encoding/json"
+	"fmt"
 
+	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/configs/configload"
 	"github.com/hashicorp/terraform/terraform"
@@ -103,19 +105,31 @@ func Marshal(snap *configload.Snapshot, schemas *terraform.Schemas) ([]byte, err
 		pcs = append(pcs, pc)
 	}
 	output.ProviderConfigs = pcs
-	output.RootModule = marshalRootModule(c.Module, schemas)
+	rootModule, err := marshalRootModule(c.Module, schemas)
+	if err != nil {
+		return nil, err
+	}
+	output.RootModule = rootModule
 
 	ret, err := json.Marshal(output)
 	return ret, err
 }
 
-func marshalRootModule(m *configs.Module, schemas *terraform.Schemas) module {
+func marshalRootModule(m *configs.Module, schemas *terraform.Schemas) (module, error) {
 	var module module
 
 	var rs []resource
 
-	rs = marshalConfigResources(m.ManagedResources, schemas)
-	rs = append(rs, marshalConfigResources(m.DataResources, schemas)...)
+	managedResources, err := marshalConfigResources(m.ManagedResources, schemas)
+	if err != nil {
+		return module, err
+	}
+	dataResources, err := marshalConfigResources(m.DataResources, schemas)
+	if err != nil {
+		return module, err
+	}
+
+	rs = append(managedResources, dataResources...)
 	module.Resources = rs
 
 	outputs := make(map[string]configOutput)
@@ -149,18 +163,26 @@ func marshalRootModule(m *configs.Module, schemas *terraform.Schemas) module {
 	}
 
 	module.ModuleCalls = mcs
-	return module
+	return module, nil
 }
 
-func marshalConfigResources(resources map[string]*configs.Resource, schemas *terraform.Schemas) []resource {
+func marshalConfigResources(resources map[string]*configs.Resource, schemas *terraform.Schemas) ([]resource, error) {
 	var rs []resource
 	for _, v := range resources {
 		r := resource{
 			Address:           v.Addr().String(),
-			Mode:              v.Mode.String(),
 			Type:              v.Type,
 			Name:              v.Name,
 			ProviderConfigKey: v.ProviderConfigAddr().String(),
+		}
+
+		switch v.Mode {
+		case addrs.ManagedResourceMode:
+			r.Mode = "managed"
+		case addrs.DataResourceMode:
+			r.Mode = "data"
+		default:
+			return rs, fmt.Errorf("resource %s has an unsupported mode %s", r.Address, v.Mode.String())
 		}
 
 		cExp := marshalExpression(v.Count)
@@ -194,5 +216,5 @@ func marshalConfigResources(resources map[string]*configs.Resource, schemas *ter
 
 		rs = append(rs, r)
 	}
-	return rs
+	return rs, nil
 }

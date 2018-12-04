@@ -26,12 +26,12 @@ const FormatVersion = "0.1"
 // the complete config and current state.
 type plan struct {
 	FormatVersion   string            `json:"format_version,omitempty"`
-	PriorState      json.RawMessage   `json:"prior_state,omitempty"`
-	Config          json.RawMessage   `json:"configuration,omitempty"`
 	PlannedValues   stateValues       `json:"planned_values,omitempty"`
 	ProposedUnknown stateValues       `json:"proposed_unknown,omitempty"`
 	ResourceChanges []resourceChange  `json:"resource_changes,omitempty"`
 	OutputChanges   map[string]change `json:"output_changes,omitempty"`
+	PriorState      json.RawMessage   `json:"prior_state,omitempty"`
+	Config          json.RawMessage   `json:"configuration,omitempty"`
 }
 
 func newPlan() *plan {
@@ -176,7 +176,15 @@ func (p *plan) marshalResourceChanges(changes *plans.Changes, schemas *terraform
 		if key != nil {
 			r.Index = key
 		}
-		r.Mode = addr.Resource.Resource.Mode.String()
+
+		switch addr.Resource.Resource.Mode {
+		case addrs.ManagedResourceMode:
+			r.Mode = "managed"
+		case addrs.DataResourceMode:
+			r.Mode = "data"
+		default:
+			return fmt.Errorf("resource %s has an unsupported mode %s", r.Address, addr.Resource.Resource.Mode.String())
+		}
 		r.ModuleAddress = addr.Module.String()
 		r.Name = addr.Resource.Resource.Name
 		r.Type = addr.Resource.Resource.Type
@@ -221,7 +229,7 @@ func (p *plan) marshalOutputChanges(changes *plans.Changes) error {
 		c.Actions = []string{oc.Action.String()}
 		c.Before = json.RawMessage(before)
 		c.After = json.RawMessage(after)
-		p.OutputChanges[oc.Addr.String()] = c
+		p.OutputChanges[oc.Addr.OutputValue.Name] = c
 	}
 
 	return nil
