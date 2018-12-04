@@ -114,8 +114,6 @@ func marshalRootModule(m *configs.Module, schemas *terraform.Schemas) module {
 
 	var rs []resource
 
-	// NOTE TO REVIEWERS:
-	// This is precisely where I started to worry.
 	rs = marshalConfigResources(m.ManagedResources, schemas)
 	rs = append(rs, marshalConfigResources(m.DataResources, schemas)...)
 	module.Resources = rs
@@ -144,7 +142,8 @@ func marshalRootModule(m *configs.Module, schemas *terraform.Schemas) module {
 			}
 		}
 
-		// schema = schemas.
+		// TODO
+		// schema := schemas.?
 		// mc.Expressions = marshalExpressions(v.Config, schema)
 		mcs = append(mcs, mc)
 	}

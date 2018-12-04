@@ -14,13 +14,13 @@ const FormatVersion = "0.1"
 // state is the top-level representation of the json format of a terraform
 // state.
 type state struct {
-	FormatVersion string          `json:"format_version"`
-	Values        json.RawMessage `json:"values"`
+	FormatVersion string      `json:"format_version"`
+	Values        stateValues `json:"values"`
 }
 
-// Values is the common representation of resolved values for both the prior
+// stateValues is the common representation of resolved values for both the prior
 // state (which is always complete) and the planned new state.
-type values struct {
+type stateValues struct {
 	Outputs    map[string]output
 	RootModule module
 }
