@@ -97,14 +97,17 @@ func shimNewState(newState *states.State, schemas *terraform.Schemas) (*terrafor
 				idx := ""
 				switch key.(type) {
 				case addrs.IntKey:
-					idx = fmt.Sprintf(".%d", key)
+					// don't add numeric index values to resources with a count of 0
+					if len(res.Instances) > 1 {
+						idx = fmt.Sprintf(".%d", key)
+					}
 				case addrs.StringKey:
 					idx = "." + key.String()
 				}
 
 				mod.Resources[res.Addr.String()+idx] = resState
 
-				// ad any deposed instances
+				// add any deposed instances
 				for _, dep := range i.Deposed {
 					flatmap, err := shimmedAttributes(dep, resSchema.ImpliedType())
 					if err != nil {
