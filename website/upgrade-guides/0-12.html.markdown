@@ -8,9 +8,9 @@ description: |-
 
 # Upgrading to Terraform v0.12
 
-~> Terraform 0.12 will not be released until later this summer. This guide is
-proactive to help users understand what the upgrade path to 0.12 will be like.
-This guide will be updated with more detail up until the release of 0.12.
+~> Terraform 0.12 has not yet been released. This guide is proactive to help
+users understand what the upgrade path to 0.12 will be like. This guide will
+be updated with more detail up until the release of 0.12.
 
 [Terraform v0.12 will be a major release](https://hashicorp.com/blog/terraform-0-1-2-preview)
 focused on configuration language improvements and thus will include some
