@@ -316,8 +316,9 @@ github.com/hashicorp/go-getter/helper/url
 github.com/hashicorp/go-hclog
 # github.com/hashicorp/go-multierror v1.0.0
 github.com/hashicorp/go-multierror
-# github.com/hashicorp/go-plugin v0.0.0-20181002195811-1faddcf740b6
+# github.com/hashicorp/go-plugin v0.0.0-20181205205220-20341d70f4ff
 github.com/hashicorp/go-plugin
+github.com/hashicorp/go-plugin/internal/proto
 # github.com/hashicorp/go-retryablehttp v0.5.0
 github.com/hashicorp/go-retryablehttp
 # github.com/hashicorp/go-rootcerts v0.0.0-20160503143440-6bb64b370b90
@@ -368,7 +369,7 @@ github.com/hashicorp/serf/coordinate
 github.com/hashicorp/vault/helper/pgpkeys
 github.com/hashicorp/vault/helper/jsonutil
 github.com/hashicorp/vault/helper/compressutil
-# github.com/hashicorp/yamux v0.0.0-20160720233140-d1caa6c97c9f
+# github.com/hashicorp/yamux v0.0.0-20180604194846-3520598351bb
 github.com/hashicorp/yamux
 # github.com/jen20/awspolicyequivalence v0.0.0-20170831201602-3d48364a137a
 github.com/jen20/awspolicyequivalence
@@ -420,7 +421,7 @@ github.com/mitchellh/copystructure
 github.com/mitchellh/go-homedir
 # github.com/mitchellh/go-linereader v0.0.0-20141013185533-07bab5fdd958
 github.com/mitchellh/go-linereader
-# github.com/mitchellh/go-testing-interface v0.0.0-20170730050907-9a441910b168
+# github.com/mitchellh/go-testing-interface v0.0.0-20171004221916-a61a99592b77
 github.com/mitchellh/go-testing-interface
 # github.com/mitchellh/go-wordwrap v1.0.0
 github.com/mitchellh/go-wordwrap
