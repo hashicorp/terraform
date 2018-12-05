@@ -327,6 +327,7 @@ func (u *Upgrader) upgradeNativeSyntaxResource(filename string, buf *bytes.Buffe
 	rules := schemaDefaultBodyRules(filename, schema, an, adhocComments)
 	rules["count"] = normalAttributeRule(filename, cty.Number, an)
 	rules["provider"] = maybeBareTraversalAttributeRule(filename, an)
+	rules["lifecycle"] = nestedBlockRule(filename, lifecycleBlockBodyRules(filename, an), an, adhocComments)
 
 	printComments(buf, item.LeadComment)
 	printBlockOpen(buf, blockType, labels, item.LineComment)
