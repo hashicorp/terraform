@@ -37,6 +37,7 @@ BUG FIXES:
 * helper/schema: Fix timeout parsing during Provider.Diff (plan) [GH-19286]
 * helper/schema: Provider arguments set from environment variables now work correctly again, after regressing in the prior 0.12 alphas. [GH-19478]
 * helper/schema: For schema attributes that have `Elem` as a nested `schema.Resource`, setting `Optional: true` now forces `MinItems` to be zero, thus mimicking a previously-undocumented behavior that some providers were relying on. [GH-19478]
+* helper/schema: Always propagate NewComputed for previously zero value primitive type attributes [GH-19548]
 * backend/remote: Fix issues with uploaded configs that contain symlinks [GH-19520]
 
 ## 0.12.0-alpha2 (October 30, 2018)
