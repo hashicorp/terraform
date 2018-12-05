@@ -35,6 +35,9 @@ type Organizations interface {
 	// Capacity shows the current run capacity of an organization.
 	Capacity(ctx context.Context, organization string) (*Capacity, error)
 
+	// Entitlements shows the entitlements of an organization.
+	Entitlements(ctx context.Context, organization string) (*Entitlements, error)
+
 	// RunQueue shows the current run queue of an organization.
 	RunQueue(ctx context.Context, organization string, options RunQueueOptions) (*RunQueue, error)
 }
@@ -91,6 +94,17 @@ type Capacity struct {
 	Organization string `jsonapi:"primary,organization-capacity"`
 	Pending      int    `jsonapi:"attr,pending"`
 	Running      int    `jsonapi:"attr,running"`
+}
+
+// Entitlements represents the entitlements of an organization.
+type Entitlements struct {
+	ID                    string `jsonapi:"primary,entitlement-sets"`
+	StateStorage          bool   `jsonapi:"attr,state-storage"`
+	Operations            bool   `jsonapi:"attr,operations"`
+	VCSIntegrations       bool   `jsonapi:"attr,vcs-integrations"`
+	Sentinel              bool   `jsonapi:"attr,sentinel"`
+	PrivateModuleRegistry bool   `jsonapi:"attr,private-module-registry"`
+	Teams                 bool   `jsonapi:"attr,teams"`
 }
 
 // RunQueue represents the current run queue of an organization.
@@ -281,6 +295,27 @@ func (s *organizations) Capacity(ctx context.Context, organization string) (*Cap
 	}
 
 	return c, nil
+}
+
+// Entitlements shows the entitlements of an organization.
+func (s *organizations) Entitlements(ctx context.Context, organization string) (*Entitlements, error) {
+	if !validStringID(&organization) {
+		return nil, errors.New("invalid value for organization")
+	}
+
+	u := fmt.Sprintf("organizations/%s/entitlement-set", url.QueryEscape(organization))
+	req, err := s.client.newRequest("GET", u, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	e := &Entitlements{}
+	err = s.client.do(ctx, req, e)
+	if err != nil {
+		return nil, err
+	}
+
+	return e, nil
 }
 
 // RunQueueOptions represents the options for showing the queue.
