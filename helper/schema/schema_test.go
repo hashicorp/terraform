@@ -3127,6 +3127,40 @@ func TestSchemaMap_Diff(t *testing.T) {
 		},
 
 		{
+			Name: "NewComputed should always propagate with CustomizeDiff",
+			Schema: map[string]*Schema{
+				"foo": &Schema{
+					Type:     TypeString,
+					Computed: true,
+				},
+			},
+
+			State: &terraform.InstanceState{
+				Attributes: map[string]string{
+					"foo": "",
+				},
+				ID: "pre-existing",
+			},
+
+			Config: map[string]interface{}{},
+
+			CustomizeDiff: func(d *ResourceDiff, meta interface{}) error {
+				d.SetNewComputed("foo")
+				return nil
+			},
+
+			Diff: &terraform.InstanceDiff{
+				Attributes: map[string]*terraform.ResourceAttrDiff{
+					"foo": &terraform.ResourceAttrDiff{
+						NewComputed: true,
+					},
+				},
+			},
+
+			Err: false,
+		},
+
+		{
 			Name: "vetoing a diff",
 			Schema: map[string]*Schema{
 				"foo": &Schema{
