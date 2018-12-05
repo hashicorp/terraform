@@ -599,6 +599,37 @@ func testDiffCases(t *testing.T, oldPrefix string, oldOffset int, computed bool)
 				},
 			},
 		},
+		resourceDiffTestCase{
+			Name: "NewComputed should always propagate",
+			Schema: map[string]*Schema{
+				"foo": &Schema{
+					Type:     TypeString,
+					Computed: true,
+				},
+			},
+			State: &terraform.InstanceState{
+				Attributes: map[string]string{
+					"foo": "",
+				},
+				ID: "pre-existing",
+			},
+			Config:   testConfig(t, map[string]interface{}{}),
+			Diff:     &terraform.InstanceDiff{Attributes: map[string]*terraform.ResourceAttrDiff{}},
+			Key:      "foo",
+			NewValue: "",
+			Expected: &terraform.InstanceDiff{
+				Attributes: func() map[string]*terraform.ResourceAttrDiff {
+					if computed {
+						return map[string]*terraform.ResourceAttrDiff{
+							"foo": &terraform.ResourceAttrDiff{
+								NewComputed: computed,
+							},
+						}
+					}
+					return map[string]*terraform.ResourceAttrDiff{}
+				}(),
+			},
+		},
 	}
 }
 

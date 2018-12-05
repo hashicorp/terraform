@@ -1185,7 +1185,7 @@ func (m schemaMap) diffString(
 		return fmt.Errorf("%s: %s", k, err)
 	}
 
-	if os == ns && !all {
+	if os == ns && !all && !computed {
 		// They're the same value. If there old value is not blank or we
 		// have an ID, then return right away since we're already setup.
 		if os != "" || d.Id() != "" {
@@ -1193,7 +1193,7 @@ func (m schemaMap) diffString(
 		}
 
 		// Otherwise, only continue if we're computed
-		if !schema.Computed && !computed {
+		if !schema.Computed {
 			return nil
 		}
 	}
