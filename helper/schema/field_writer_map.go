@@ -297,13 +297,14 @@ func (w *MapFieldWriter) setSet(
 	// we get the proper order back based on the hash code.
 	if v := reflect.ValueOf(value); v.Kind() == reflect.Slice {
 		// Build a temp *ResourceData to use for the conversion
+		tempAddr := addr[len(addr)-1:]
 		tempSchema := *schema
 		tempSchema.Type = TypeList
-		tempSchemaMap := map[string]*Schema{addr[0]: &tempSchema}
+		tempSchemaMap := map[string]*Schema{tempAddr[0]: &tempSchema}
 		tempW := &MapFieldWriter{Schema: tempSchemaMap}
 
 		// Set the entire list, this lets us get sane values out of it
-		if err := tempW.WriteField(addr, value); err != nil {
+		if err := tempW.WriteField(tempAddr, value); err != nil {
 			return err
 		}
 
@@ -319,7 +320,7 @@ func (w *MapFieldWriter) setSet(
 		}
 		for i := 0; i < v.Len(); i++ {
 			is := strconv.FormatInt(int64(i), 10)
-			result, err := tempR.ReadField(append(addrCopy, is))
+			result, err := tempR.ReadField(append(tempAddr, is))
 			if err != nil {
 				return err
 			}
