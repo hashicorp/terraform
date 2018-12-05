@@ -354,6 +354,36 @@ func TestRemote_planForceLocal(t *testing.T) {
 	}
 }
 
+func TestRemote_planWithoutOperationsEntitlement(t *testing.T) {
+	b := testBackendNoOperations(t)
+
+	op, configCleanup := testOperationPlan(t, "./test-fixtures/plan")
+	defer configCleanup()
+
+	op.Workspace = backend.DefaultStateName
+
+	run, err := b.Operation(context.Background(), op)
+	if err != nil {
+		t.Fatalf("error starting operation: %v", err)
+	}
+
+	<-run.Done()
+	if run.Result != backend.OperationSuccess {
+		t.Fatalf("operation failed: %s", b.CLI.(*cli.MockUi).ErrorWriter.String())
+	}
+	if run.PlanEmpty {
+		t.Fatalf("expected a non-empty plan")
+	}
+
+	output := b.CLI.(*cli.MockUi).OutputWriter.String()
+	if strings.Contains(output, "Running plan in the remote backend") {
+		t.Fatalf("unexpected remote backend header in output: %s", output)
+	}
+	if !strings.Contains(output, "1 to add, 0 to change, 0 to destroy") {
+		t.Fatalf("expected plan summery in output: %s", output)
+	}
+}
+
 func TestRemote_planWorkspaceWithoutOperations(t *testing.T) {
 	b := testBackendNoDefault(t)
 	ctx := context.Background()
