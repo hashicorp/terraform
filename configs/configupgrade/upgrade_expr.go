@@ -392,6 +392,18 @@ Value:
 	return buf.Bytes(), diags
 }
 
+func upgradeTraversalExpr(val interface{}, filename string, an *analysis) ([]byte, tfdiags.Diagnostics) {
+	if lit, ok := val.(*hcl1ast.LiteralType); ok && lit.Token.Type == hcl1token.STRING {
+		trStr := lit.Token.Value().(string)
+		trSrc := []byte(trStr)
+		_, trDiags := hcl2syntax.ParseTraversalAbs(trSrc, "", hcl2.Pos{})
+		if !trDiags.HasErrors() {
+			return trSrc, nil
+		}
+	}
+	return upgradeExpr(val, filename, false, an)
+}
+
 var hilArithmeticOpSyms = map[hilast.ArithmeticOp]string{
 	hilast.ArithmeticOpAdd: " + ",
 	hilast.ArithmeticOpSub: " - ",

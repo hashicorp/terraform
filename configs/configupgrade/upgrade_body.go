@@ -65,20 +65,7 @@ func maybeBareKeywordAttributeRule(filename string, an *analysis, specials map[s
 
 func maybeBareTraversalAttributeRule(filename string, an *analysis) bodyItemRule {
 	exprRule := func(val interface{}) ([]byte, tfdiags.Diagnostics) {
-		// If the expression is a literal that would be valid as a naked
-		// absolute traversal then we'll turn it into one.
-		if lit, isLit := val.(*hcl1ast.LiteralType); isLit {
-			if lit.Token.Type == hcl1token.STRING {
-				trStr := lit.Token.Value().(string)
-				trSrc := []byte(trStr)
-				_, trDiags := hcl2syntax.ParseTraversalAbs(trSrc, "", hcl2.Pos{})
-				if !trDiags.HasErrors() {
-					return trSrc, nil
-				}
-			}
-		}
-
-		return upgradeExpr(val, filename, false, an)
+		return upgradeTraversalExpr(val, filename, an)
 	}
 	return attributeRule(filename, cty.String, an, exprRule)
 }
@@ -372,4 +359,55 @@ func justAttributesBodyRules(filename string, body *hcl1ast.ObjectType, an *anal
 		rules[name] = normalAttributeRule(filename, cty.DynamicPseudoType, an)
 	}
 	return rules
+}
+
+func lifecycleBlockBodyRules(filename string, an *analysis) bodyContentRules {
+	return bodyContentRules{
+		"create_before_destroy": noInterpAttributeRule(filename, cty.Bool, an),
+		"prevent_destroy":       noInterpAttributeRule(filename, cty.Bool, an),
+		"ignore_changes": func(buf *bytes.Buffer, blockAddr string, item *hcl1ast.ObjectItem) tfdiags.Diagnostics {
+			var diags tfdiags.Diagnostics
+			val, ok := item.Val.(*hcl1ast.ListType)
+			if !ok {
+				diags = diags.Append(&hcl2.Diagnostic{
+					Severity: hcl2.DiagError,
+					Summary:  "Invalid providers argument",
+					Detail:   `The "providers" argument must be a map from provider addresses in the child module to corresponding provider addresses in this module.`,
+					Subject:  hcl1PosRange(filename, item.Keys[0].Pos()).Ptr(),
+				})
+				return diags
+			}
+
+			// As a special case, we'll map the single-element list ["*"] to
+			// the new keyword "all".
+			if len(val.List) == 1 {
+				if lit, ok := val.List[0].(*hcl1ast.LiteralType); ok {
+					if lit.Token.Value() == "*" {
+						printAttribute(buf, item.Keys[0].Token.Value().(string), []byte("all"), item.LineComment)
+						return diags
+					}
+				}
+			}
+
+			var exprBuf bytes.Buffer
+			multiline := len(val.List) > 1
+			exprBuf.WriteByte('[')
+			if multiline {
+				exprBuf.WriteByte('\n')
+			}
+			for _, node := range val.List {
+				itemSrc, moreDiags := upgradeTraversalExpr(node, filename, an)
+				diags = diags.Append(moreDiags)
+				exprBuf.Write(itemSrc)
+				if multiline {
+					exprBuf.WriteString(",\n")
+				}
+			}
+			exprBuf.WriteByte(']')
+
+			printAttribute(buf, item.Keys[0].Token.Value().(string), exprBuf.Bytes(), item.LineComment)
+
+			return diags
+		},
+	}
 }
