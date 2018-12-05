@@ -3,6 +3,8 @@ package configupgrade
 import (
 	"bytes"
 	"fmt"
+	"strconv"
+	"strings"
 
 	hcl1ast "github.com/hashicorp/hcl/hcl/ast"
 	hcl1token "github.com/hashicorp/hcl/hcl/token"
@@ -71,13 +73,84 @@ func maybeBareTraversalAttributeRule(filename string, an *analysis) bodyItemRule
 }
 
 func dependsOnAttributeRule(filename string, an *analysis) bodyItemRule {
-	// FIXME: Should dig into the individual list items here and try to unwrap
-	// them as naked references, as well as upgrading any legacy-style index
-	// references like aws_instance.foo.0 to be aws_instance.foo[0] instead.
-	exprRule := func(val interface{}) ([]byte, tfdiags.Diagnostics) {
-		return upgradeExpr(val, filename, false, an)
+	return func(buf *bytes.Buffer, blockAddr string, item *hcl1ast.ObjectItem) tfdiags.Diagnostics {
+		var diags tfdiags.Diagnostics
+		val, ok := item.Val.(*hcl1ast.ListType)
+		if !ok {
+			diags = diags.Append(&hcl2.Diagnostic{
+				Severity: hcl2.DiagError,
+				Summary:  "Invalid depends_on argument",
+				Detail:   `The "depends_on" argument must be a list of strings containing references to resources and modules.`,
+				Subject:  hcl1PosRange(filename, item.Keys[0].Pos()).Ptr(),
+			})
+			return diags
+		}
+
+		var exprBuf bytes.Buffer
+		multiline := len(val.List) > 1
+		exprBuf.WriteByte('[')
+		if multiline {
+			exprBuf.WriteByte('\n')
+		}
+		for _, node := range val.List {
+			lit, ok := node.(*hcl1ast.LiteralType)
+			if (!ok) || lit.Token.Type != hcl1token.STRING {
+				diags = diags.Append(&hcl2.Diagnostic{
+					Severity: hcl2.DiagError,
+					Summary:  "Invalid depends_on argument",
+					Detail:   `The "depends_on" argument must be a list of strings containing references to resources and modules.`,
+					Subject:  hcl1PosRange(filename, item.Keys[0].Pos()).Ptr(),
+				})
+				continue
+			}
+			refStr := lit.Token.Value().(string)
+			if refStr == "" {
+				continue
+			}
+			refParts := strings.Split(refStr, ".")
+			var maxNames int
+			switch refParts[0] {
+			case "data", "module":
+				maxNames = 3
+			default: // resource references
+				maxNames = 2
+			}
+
+			exprBuf.WriteString(refParts[0])
+			for i, part := range refParts[1:] {
+				if part == "*" {
+					// We used to allow test_instance.foo.* as a reference
+					// but now that's expressed instead as test_instance.foo,
+					// referring to the tuple of instances. This also
+					// always marks the end of the reference part of the
+					// traversal, so anything after this would be resource
+					// attributes that don't belong on depends_on.
+					break
+				}
+				if i, err := strconv.Atoi(part); err == nil {
+					fmt.Fprintf(&exprBuf, "[%d]", i)
+					// An index always marks the end of the reference part.
+					break
+				}
+				if (i + 1) >= maxNames {
+					// We've reached the end of the reference part, so anything
+					// after this would be invalid in 0.12.
+					break
+				}
+				exprBuf.WriteByte('.')
+				exprBuf.WriteString(part)
+			}
+
+			if multiline {
+				exprBuf.WriteString(",\n")
+			}
+		}
+		exprBuf.WriteByte(']')
+
+		printAttribute(buf, item.Keys[0].Token.Value().(string), exprBuf.Bytes(), item.LineComment)
+
+		return diags
 	}
-	return attributeRule(filename, cty.List(cty.String), an, exprRule)
 }
 
 func attributeRule(filename string, wantTy cty.Type, an *analysis, upgradeExpr func(val interface{}) ([]byte, tfdiags.Diagnostics)) bodyItemRule {
