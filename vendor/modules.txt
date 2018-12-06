@@ -380,7 +380,7 @@ github.com/joyent/triton-go/authentication
 github.com/joyent/triton-go/errors
 github.com/joyent/triton-go/storage
 github.com/joyent/triton-go/client
-# github.com/kardianos/osext v0.0.0-20160811001526-c2c54e542fb7
+# github.com/kardianos/osext v0.0.0-20170510131534-ae77be60afb1
 github.com/kardianos/osext
 # github.com/keybase/go-crypto v0.0.0-20161004153544-93f5b35093ba
 github.com/keybase/go-crypto/openpgp

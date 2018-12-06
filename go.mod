@@ -85,7 +85,7 @@ require (
 	github.com/jonboulle/clockwork v0.1.0 // indirect
 	github.com/joyent/triton-go v0.0.0-20180313100802-d8f9c0314926
 	github.com/jtolds/gls v4.2.1+incompatible // indirect
-	github.com/kardianos/osext v0.0.0-20160811001526-c2c54e542fb7
+	github.com/kardianos/osext v0.0.0-20170510131534-ae77be60afb1
 	github.com/keybase/go-crypto v0.0.0-20161004153544-93f5b35093ba // indirect
 	github.com/lusis/go-artifactory v0.0.0-20160115162124-7e4ce345df82
 	github.com/marstr/guid v1.1.0 // indirect
