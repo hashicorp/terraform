@@ -901,14 +901,14 @@ func parseVariableAsHCL(name string, input string, targetType config.VariableTyp
 	}
 }
 
-// shimLegacyState is a helper that takes the legacy state type and
+// ShimLegacyState is a helper that takes the legacy state type and
 // converts it to the new state type.
 //
 // This is implemented as a state file upgrade, so it will not preserve
 // parts of the state structure that are not included in a serialized state,
 // such as the resolved results of any local values, outputs in non-root
 // modules, etc.
-func shimLegacyState(legacy *State) (*states.State, error) {
+func ShimLegacyState(legacy *State) (*states.State, error) {
 	if legacy == nil {
 		return nil, nil
 	}
@@ -928,7 +928,7 @@ func shimLegacyState(legacy *State) (*states.State, error) {
 // the conversion does not succeed. This is primarily intended for tests where
 // the given legacy state is an object constructed within the test.
 func MustShimLegacyState(legacy *State) *states.State {
-	ret, err := shimLegacyState(legacy)
+	ret, err := ShimLegacyState(legacy)
 	if err != nil {
 		panic(err)
 	}
