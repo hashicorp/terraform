@@ -1,4 +1,4 @@
-## 0.12.0-beta1 (Unreleased)
+## 0.12.0-alpha3 (Unreleased)
 
 BACKWARDS INCOMPATIBILITIES / NOTES:
 * command: Remove `-module-depth` flag from plan, apply, and show. This flag was not widely used and the various updates and improvements to cli output should remove the need for this flag. [GH-19267]
