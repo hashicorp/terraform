@@ -16,7 +16,7 @@ type resource struct {
 	Name string `json:"name,omitempty"`
 
 	// Index is omitted for a resource not using `count` or `for_each`
-	Index string `json:"index,omitempty"`
+	Index addrs.InstanceKey `json:"index,omitempty"`
 
 	// ProviderName allows the property "type" to be interpreted unambiguously
 	// in the unusual situation where a provider offers a resource type whose

@@ -117,32 +117,34 @@ func (c *ShowCommand) Run(args []string) int {
 				return 1
 			}
 			state, stateErr = getStateFromPath(path)
+			if stateErr != nil {
+				c.Ui.Error(fmt.Sprintf(
+					"Terraform couldn't read the given file as a state or plan file.\n"+
+						"The errors while attempting to read the file as each format are\n"+
+						"shown below.\n\n"+
+						"State read error: %s\n\nPlan read error: %s",
+					stateErr,
+					planErr))
+				return 1
+			}
 		}
 	} 
 	
-	// if the state wasn't read from the command-line argument, load the current state.
-	if state.Empty() {
+	if state == nil {
 		env := c.Workspace()
 		state, stateErr = getStateFromEnv(b, env)
 		if err != nil {
 			c.Ui.Error(err.Error())
 			return 1
 		}
-		if state == nil {
-			c.Ui.Output("No state.")
-			return 0
-		}
 	}
 
+	// This is an odd-looking check, because it's ok if we have a plan and an
+	// empty state, and we've already validated that any command-line arguments
+	// have been read successfully
 	if plan == nil && state == nil {
-		c.Ui.Error(fmt.Sprintf(
-			"Terraform couldn't read the given file as a state or plan file.\n"+
-				"The errors while attempting to read the file as each format are\n"+
-				"shown below.\n\n"+
-				"State read error: %s\n\nPlan read error: %s",
-			stateErr,
-			planErr))
-		return 1
+		c.Ui.Output("No state.")
+		return 0
 	}
 
 	if plan != nil {

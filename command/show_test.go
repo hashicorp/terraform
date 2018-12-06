@@ -32,7 +32,7 @@ func TestShow(t *testing.T) {
 	}
 }
 
-func TestShowJSONStateNotImplemented(t *testing.T) {
+func TestShow_JSONStateNotImplemented(t *testing.T) {
 	// Create the default state
 	statePath := testStateFile(t, testState())
 	defer testChdir(t, filepath.Dir(statePath))()
