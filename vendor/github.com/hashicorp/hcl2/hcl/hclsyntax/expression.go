@@ -1226,16 +1226,61 @@ func (e *SplatExpr) Value(ctx *hcl.EvalContext) (cty.Value, hcl.Diagnostics) {
 		})
 		return cty.DynamicVal, diags
 	}
-	if !sourceVal.IsKnown() {
+
+	sourceTy := sourceVal.Type()
+	if sourceTy == cty.DynamicPseudoType {
+		// If we don't even know the _type_ of our source value yet then
+		// we'll need to defer all processing, since we can't decide our
+		// result type either.
 		return cty.DynamicVal, diags
 	}
 
 	// A "special power" of splat expressions is that they can be applied
 	// both to tuples/lists and to other values, and in the latter case
-	// the value will be treated as an implicit single-value list. We'll
+	// the value will be treated as an implicit single-value tuple. We'll
 	// deal with that here first.
-	if !(sourceVal.Type().IsTupleType() || sourceVal.Type().IsListType() || sourceVal.Type().IsSetType()) {
-		sourceVal = cty.ListVal([]cty.Value{sourceVal})
+	if !(sourceTy.IsTupleType() || sourceTy.IsListType() || sourceTy.IsSetType()) {
+		sourceVal = cty.TupleVal([]cty.Value{sourceVal})
+		sourceTy = sourceVal.Type()
+	}
+
+	// We'll compute our result type lazily if we need it. In the normal case
+	// it's inferred automatically from the value we construct.
+	resultTy := func() (cty.Type, hcl.Diagnostics) {
+		chiCtx := ctx.NewChild()
+		var diags hcl.Diagnostics
+		switch {
+		case sourceTy.IsListType() || sourceTy.IsSetType():
+			ety := sourceTy.ElementType()
+			e.Item.setValue(chiCtx, cty.UnknownVal(ety))
+			val, itemDiags := e.Each.Value(chiCtx)
+			diags = append(diags, itemDiags...)
+			e.Item.clearValue(chiCtx) // clean up our temporary value
+			return cty.List(val.Type()), diags
+		case sourceTy.IsTupleType():
+			etys := sourceTy.TupleElementTypes()
+			resultTys := make([]cty.Type, 0, len(etys))
+			for _, ety := range etys {
+				e.Item.setValue(chiCtx, cty.UnknownVal(ety))
+				val, itemDiags := e.Each.Value(chiCtx)
+				diags = append(diags, itemDiags...)
+				e.Item.clearValue(chiCtx) // clean up our temporary value
+				resultTys = append(resultTys, val.Type())
+			}
+			return cty.Tuple(resultTys), diags
+		default:
+			// Should never happen because of our promotion to list above.
+			return cty.DynamicPseudoType, diags
+		}
+	}
+
+	if !sourceVal.IsKnown() {
+		// We can't produce a known result in this case, but we'll still
+		// indicate what the result type would be, allowing any downstream type
+		// checking to proceed.
+		ty, tyDiags := resultTy()
+		diags = append(diags, tyDiags...)
+		return cty.UnknownVal(ty), diags
 	}
 
 	vals := make([]cty.Value, 0, sourceVal.LengthInt())
@@ -1259,10 +1304,23 @@ func (e *SplatExpr) Value(ctx *hcl.EvalContext) (cty.Value, hcl.Diagnostics) {
 	e.Item.clearValue(ctx) // clean up our temporary value
 
 	if !isKnown {
-		return cty.DynamicVal, diags
+		// We'll ingore the resultTy diagnostics in this case since they
+		// will just be the same errors we saw while iterating above.
+		ty, _ := resultTy()
+		return cty.UnknownVal(ty), diags
 	}
 
-	return cty.TupleVal(vals), diags
+	switch {
+	case sourceTy.IsListType() || sourceTy.IsSetType():
+		if len(vals) == 0 {
+			ty, tyDiags := resultTy()
+			diags = append(diags, tyDiags...)
+			return cty.ListValEmpty(ty.ElementType()), diags
+		}
+		return cty.ListVal(vals), diags
+	default:
+		return cty.TupleVal(vals), diags
+	}
 }
 
 func (e *SplatExpr) walkChildNodes(w internalWalkFunc) {
