@@ -153,7 +153,7 @@ func dependsOnAttributeRule(filename string, an *analysis) bodyItemRule {
 	}
 }
 
-func attributeRule(filename string, wantTy cty.Type, an *analysis, upgradeExpr func(val interface{}) ([]byte, tfdiags.Diagnostics)) bodyItemRule {
+func attributeRule(filename string, wantTy cty.Type, an *analysis, exprRule func(val interface{}) ([]byte, tfdiags.Diagnostics)) bodyItemRule {
 	return func(buf *bytes.Buffer, blockAddr string, item *hcl1ast.ObjectItem) tfdiags.Diagnostics {
 		var diags tfdiags.Diagnostics
 
@@ -174,7 +174,77 @@ func attributeRule(filename string, wantTy cty.Type, an *analysis, upgradeExpr f
 			return diags
 		}
 
-		valSrc, valDiags := upgradeExpr(item.Val)
+		val := item.Val
+
+		if typeIsSettableFromTupleCons(wantTy) && !typeIsSettableFromTupleCons(wantTy.ElementType()) {
+			// In Terraform circa 0.10 it was required to wrap any expression
+			// that produces a list in HCL list brackets to allow type analysis
+			// to complete successfully, even though logically that ought to
+			// have produced a list of lists.
+			//
+			// In Terraform 0.12 this construct _does_ produce a list of lists, so
+			// we need to update expressions that look like older usage. We can't
+			// do this exactly with static analysis, but we can make a best-effort
+			// and produce a warning if type inference is impossible for a
+			// particular expression. This should give good results for common
+			// simple examples, like splat expressions.
+			//
+			// There are four possible cases here:
+			// - The value isn't an HCL1 list expression at all, or is one that
+			//   contains more than one item, in which case this special case
+			//   does not apply.
+			// - The inner expression after upgrading can be proven to return
+			//   a sequence type, in which case we must definitely remove
+			//   the wrapping brackets.
+			// - The inner expression after upgrading can be proven to return
+			//   a non-sequence type, in which case we fall through and treat
+			//   the whole item like a normal expression.
+			// - Static type analysis is impossible (it returns cty.DynamicPseudoType),
+			//   in which case we will make no changes but emit a warning and
+			//   a TODO comment for the user to decide whether a change needs
+			//   to be made in practice.
+			if list, ok := val.(*hcl1ast.ListType); ok {
+				if len(list.List) == 1 {
+					maybeAlsoList := list.List[0]
+					if exprSrc, diags := upgradeExpr(maybeAlsoList, filename, true, an); !diags.HasErrors() {
+						// Ideally we would set "self" here but we don't have
+						// enough context to set it and in practice not setting
+						// it only affects expressions inside provisioner and
+						// connection blocks, and the list-wrapping thing isn't
+						// common there.
+						gotTy := an.InferExpressionType(exprSrc, nil)
+						if typeIsSettableFromTupleCons(gotTy) {
+							// Since this expression was already inside HCL list brackets,
+							// the ultimate result would be a list of lists and so we
+							// need to unwrap it by taking just the portion within
+							// the brackets here.
+							val = maybeAlsoList
+						}
+						if gotTy == cty.DynamicPseudoType {
+							// User must decide.
+							diags = diags.Append(&hcl2.Diagnostic{
+								Severity: hcl2.DiagError,
+								Summary:  "Possible legacy dynamic list usage",
+								Detail:   "This list may be using the legacy redundant-list expression style from Terraform v0.10 and earlier. If the expression within these brackets returns a list itself, remove these brackets.",
+								Subject:  hcl1PosRange(filename, list.Lbrack).Ptr(),
+							})
+							buf.WriteString(
+								"# TF-UPGRADE-TODO: In Terraform v0.10 and earlier, it was sometimes necessary to\n" +
+									"# force an interpolation expression to be interpreted as a list by wrapping it\n" +
+									"# in an extra set of list brackets. That form was supported for compatibilty in\n" +
+									"# v0.11, but is no longer supported in Terraform v0.12.\n" +
+									"#\n" +
+									"# If the expression in the following list itself returns a list, remove the\n" +
+									"# brackets to avoid interpretation as a list of lists. If the expression\n" +
+									"# returns a single list item then leave it as-is and remove this TODO comment.\n",
+							)
+						}
+					}
+				}
+			}
+		}
+
+		valSrc, valDiags := exprRule(val)
 		diags = diags.Append(valDiags)
 		printAttribute(buf, item.Keys[0].Token.Value().(string), valSrc, item.LineComment)
 

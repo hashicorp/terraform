@@ -190,10 +190,11 @@ var testProviders = map[string]providers.Factory{
 			ResourceTypes: map[string]*configschema.Block{
 				"test_instance": {
 					Attributes: map[string]*configschema.Attribute{
-						"id":    {Type: cty.String, Computed: true},
-						"type":  {Type: cty.String, Optional: true},
-						"image": {Type: cty.String, Optional: true},
-						"tags":  {Type: cty.Map(cty.String), Optional: true},
+						"id":              {Type: cty.String, Computed: true},
+						"type":            {Type: cty.String, Optional: true},
+						"image":           {Type: cty.String, Optional: true},
+						"tags":            {Type: cty.Map(cty.String), Optional: true},
+						"security_groups": {Type: cty.List(cty.String), Optional: true},
 					},
 					BlockTypes: map[string]*configschema.NestedBlock{
 						"network": {
