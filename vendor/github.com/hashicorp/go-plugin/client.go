@@ -5,6 +5,8 @@ import (
 	"context"
 	"crypto/subtle"
 	"crypto/tls"
+	"crypto/x509"
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"hash"
@@ -170,6 +172,29 @@ type ClientConfig struct {
 	// Logger is the logger that the client will used. If none is provided,
 	// it will default to hclog's default logger.
 	Logger hclog.Logger
+
+	// AutoMTLS has the client and server automatically negotiate mTLS for
+	// transport authentication. This ensures that only the original client will
+	// be allowed to connect to the server, and all other connections will be
+	// rejected. The client will also refuse to connect to any server that isn't
+	// the original instance started by the client.
+	//
+	// In this mode of operation, the client generates a one-time use tls
+	// certificate, sends the public x.509 certificate to the new server, and
+	// the server generates a one-time use tls certificate, and sends the public
+	// x.509 certificate back to the client. These are used to authenticate all
+	// rpc connections between the client and server.
+	//
+	// Setting AutoMTLS to true implies that the server must support the
+	// protocol, and correctly negotiate the tls certificates, or a connection
+	// failure will result.
+	//
+	// The client should not set TLSConfig, nor should the server set a
+	// TLSProvider, because AutoMTLS implies that a new certificate and tls
+	// configuration will be generated at startup.
+	//
+	// You cannot Reattach to a server with this option enabled.
+	AutoMTLS bool
 }
 
 // ReattachConfig is used to configure a client to reattach to an
@@ -400,11 +425,9 @@ func (c *Client) Kill() {
 	if graceful {
 		select {
 		case <-doneCh:
-			// FIXME: this is never reached under normal circumstances, because
-			// the plugin process is never signaled to exit. We can reach this
-			// if the child process exited abnormally before the Kill call.
+			c.logger.Debug("plugin exited")
 			return
-		case <-time.After(250 * time.Millisecond):
+		case <-time.After(1500 * time.Millisecond):
 			c.logger.Warn("plugin failed to exit gracefully")
 		}
 	}
@@ -527,21 +550,48 @@ func (c *Client) Start() (addr net.Addr, err error) {
 		fmt.Sprintf("PLUGIN_PROTOCOL_VERSIONS=%s", strings.Join(versionStrings, ",")),
 	}
 
-	stdout_r, stdout_w := io.Pipe()
-	stderr_r, stderr_w := io.Pipe()
-
 	cmd := c.config.Cmd
 	cmd.Env = append(cmd.Env, os.Environ()...)
 	cmd.Env = append(cmd.Env, env...)
 	cmd.Stdin = os.Stdin
-	cmd.Stderr = stderr_w
-	cmd.Stdout = stdout_w
+
+	cmdStdout, err := cmd.StdoutPipe()
+	if err != nil {
+		return nil, err
+	}
+	cmdStderr, err := cmd.StderrPipe()
+	if err != nil {
+		return nil, err
+	}
 
 	if c.config.SecureConfig != nil {
 		if ok, err := c.config.SecureConfig.Check(cmd.Path); err != nil {
 			return nil, fmt.Errorf("error verifying checksum: %s", err)
 		} else if !ok {
 			return nil, ErrChecksumsDoNotMatch
+		}
+	}
+
+	// Setup a temporary certificate for client/server mtls, and send the public
+	// certificate to the plugin.
+	if c.config.AutoMTLS {
+		c.logger.Info("configuring client automatic mTLS")
+		certPEM, keyPEM, err := generateCert()
+		if err != nil {
+			c.logger.Error("failed to generate client certificate", "error", err)
+			return nil, err
+		}
+		cert, err := tls.X509KeyPair(certPEM, keyPEM)
+		if err != nil {
+			c.logger.Error("failed to parse client certificate", "error", err)
+			return nil, err
+		}
+
+		cmd.Env = append(cmd.Env, fmt.Sprintf("PLUGIN_CLIENT_CERT=%s", certPEM))
+
+		c.config.TLSConfig = &tls.Config{
+			Certificates: []tls.Certificate{cert},
+			ServerName:   "localhost",
 		}
 	}
 
@@ -571,20 +621,20 @@ func (c *Client) Start() (addr net.Addr, err error) {
 	// Start goroutine to wait for process to exit
 	exitCh := make(chan struct{})
 	go func() {
-		// Make sure we close the write end of our stderr/stdout so
-		// that the readers send EOF properly.
-		defer stderr_w.Close()
-		defer stdout_w.Close()
-
 		// ensure the context is cancelled when we're done
 		defer ctxCancel()
+
+		// get the cmd info early, since the process information will be removed
+		// in Kill.
+		pid := c.process.Pid
+		path := cmd.Path
 
 		// Wait for the command to end.
 		err := cmd.Wait()
 
 		debugMsgArgs := []interface{}{
-			"path", cmd.Path,
-			"pid", c.process.Pid,
+			"path", path,
+			"pid", pid,
 		}
 		if err != nil {
 			debugMsgArgs = append(debugMsgArgs,
@@ -605,32 +655,25 @@ func (c *Client) Start() (addr net.Addr, err error) {
 	}()
 
 	// Start goroutine that logs the stderr
-	go c.logStderr(stderr_r)
+	go c.logStderr(cmdStderr)
 
 	// Start a goroutine that is going to be reading the lines
 	// out of stdout
-	linesCh := make(chan []byte)
+	linesCh := make(chan string)
 	go func() {
 		defer close(linesCh)
 
-		buf := bufio.NewReader(stdout_r)
-		for {
-			line, err := buf.ReadBytes('\n')
-			if line != nil {
-				linesCh <- line
-			}
-
-			if err == io.EOF {
-				return
-			}
+		scanner := bufio.NewScanner(cmdStdout)
+		for scanner.Scan() {
+			linesCh <- scanner.Text()
 		}
 	}()
 
 	// Make sure after we exit we read the lines from stdout forever
-	// so they don't block since it is an io.Pipe
+	// so they don't block since it is a pipe.
 	defer func() {
 		go func() {
-			for _ = range linesCh {
+			for range linesCh {
 			}
 		}()
 	}()
@@ -645,10 +688,10 @@ func (c *Client) Start() (addr net.Addr, err error) {
 		err = errors.New("timeout while waiting for plugin to start")
 	case <-exitCh:
 		err = errors.New("plugin exited before we could connect")
-	case lineBytes := <-linesCh:
+	case line := <-linesCh:
 		// Trim the line and split by "|" in order to get the parts of
 		// the output.
-		line := strings.TrimSpace(string(lineBytes))
+		line = strings.TrimSpace(line)
 		parts := strings.SplitN(line, "|", 6)
 		if len(parts) < 4 {
 			err = fmt.Errorf(
@@ -718,10 +761,40 @@ func (c *Client) Start() (addr net.Addr, err error) {
 			return addr, err
 		}
 
+		// See if we have a TLS certificate from the server.
+		// Checking if the length is > 50 rules out catching the unused "extra"
+		// data returned from some older implementations.
+		if len(parts) >= 6 && len(parts[5]) > 50 {
+			err := c.loadServerCert(parts[5])
+			if err != nil {
+				return nil, fmt.Errorf("error parsing server cert: %s", err)
+			}
+		}
 	}
 
 	c.address = addr
 	return
+}
+
+// loadServerCert is used by AutoMTLS to read an x.509 cert returned by the
+// server, and load it as the RootCA for the client TLSConfig.
+func (c *Client) loadServerCert(cert string) error {
+	certPool := x509.NewCertPool()
+
+	asn1, err := base64.RawStdEncoding.DecodeString(cert)
+	if err != nil {
+		return err
+	}
+
+	x509Cert, err := x509.ParseCertificate([]byte(asn1))
+	if err != nil {
+		return err
+	}
+
+	certPool.AddCert(x509Cert)
+
+	c.config.TLSConfig.RootCAs = certPool
+	return nil
 }
 
 // checkProtoVersion returns the negotiated version and PluginSet.
@@ -829,43 +902,40 @@ func (c *Client) dialer(_ string, timeout time.Duration) (net.Conn, error) {
 }
 
 func (c *Client) logStderr(r io.Reader) {
-	bufR := bufio.NewReader(r)
+	defer close(c.doneLogging)
+
+	scanner := bufio.NewScanner(r)
 	l := c.logger.Named(filepath.Base(c.config.Cmd.Path))
 
-	for {
-		line, err := bufR.ReadString('\n')
-		if line != "" {
-			c.config.Stderr.Write([]byte(line))
-			line = strings.TrimRightFunc(line, unicode.IsSpace)
+	for scanner.Scan() {
+		line := scanner.Text()
+		c.config.Stderr.Write([]byte(line + "\n"))
+		line = strings.TrimRightFunc(line, unicode.IsSpace)
 
-			entry, err := parseJSON(line)
-			// If output is not JSON format, print directly to Debug
-			if err != nil {
-				l.Debug(line)
-			} else {
-				out := flattenKVPairs(entry.KVPairs)
+		entry, err := parseJSON(line)
+		// If output is not JSON format, print directly to Debug
+		if err != nil {
+			l.Debug(line)
+		} else {
+			out := flattenKVPairs(entry.KVPairs)
 
-				out = append(out, "timestamp", entry.Timestamp.Format(hclog.TimeFormat))
-				switch hclog.LevelFromString(entry.Level) {
-				case hclog.Trace:
-					l.Trace(entry.Message, out...)
-				case hclog.Debug:
-					l.Debug(entry.Message, out...)
-				case hclog.Info:
-					l.Info(entry.Message, out...)
-				case hclog.Warn:
-					l.Warn(entry.Message, out...)
-				case hclog.Error:
-					l.Error(entry.Message, out...)
-				}
+			out = append(out, "timestamp", entry.Timestamp.Format(hclog.TimeFormat))
+			switch hclog.LevelFromString(entry.Level) {
+			case hclog.Trace:
+				l.Trace(entry.Message, out...)
+			case hclog.Debug:
+				l.Debug(entry.Message, out...)
+			case hclog.Info:
+				l.Info(entry.Message, out...)
+			case hclog.Warn:
+				l.Warn(entry.Message, out...)
+			case hclog.Error:
+				l.Error(entry.Message, out...)
 			}
-		}
-
-		if err == io.EOF {
-			break
 		}
 	}
 
-	// Flag that we've completed logging for others
-	close(c.doneLogging)
+	if err := scanner.Err(); err != nil {
+		l.Error("reading plugin stderr", "error", err)
+	}
 }
