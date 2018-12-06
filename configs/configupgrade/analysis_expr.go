@@ -68,7 +68,6 @@ func (d analysisData) StaticValidateReferences(refs []*addrs.Reference, self add
 
 func (d analysisData) GetCountAttr(addr addrs.CountAttr, rng tfdiags.SourceRange) (cty.Value, tfdiags.Diagnostics) {
 	// All valid count attributes are numbers
-	log.Printf("[TRACE] configupgrade: Determining type for %s", addr)
 	return cty.UnknownVal(cty.Number), nil
 }
 
@@ -149,8 +148,20 @@ func (d analysisData) GetTerraformAttr(addrs.TerraformAttr, tfdiags.SourceRange)
 	return cty.UnknownVal(cty.String), nil
 }
 
-func (d analysisData) GetInputVariable(addrs.InputVariable, tfdiags.SourceRange) (cty.Value, tfdiags.Diagnostics) {
+func (d analysisData) GetInputVariable(addr addrs.InputVariable, rng tfdiags.SourceRange) (cty.Value, tfdiags.Diagnostics) {
 	// TODO: Collect shallow type information (list vs. map vs. string vs. unknown)
 	// in analysis and then return a similarly-approximate type here.
-	return cty.DynamicVal, nil
+	log.Printf("[TRACE] configupgrade: Determining type for %s", addr)
+	name := addr.Name
+	typeName := d.an.VariableTypes[name]
+	switch typeName {
+	case "list":
+		return cty.UnknownVal(cty.List(cty.DynamicPseudoType)), nil
+	case "map":
+		return cty.UnknownVal(cty.Map(cty.DynamicPseudoType)), nil
+	case "string":
+		return cty.UnknownVal(cty.String), nil
+	default:
+		return cty.DynamicVal, nil
+	}
 }

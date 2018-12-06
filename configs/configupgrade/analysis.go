@@ -3,6 +3,7 @@ package configupgrade
 import (
 	"fmt"
 	"log"
+	"strings"
 
 	hcl1 "github.com/hashicorp/hcl"
 	hcl1ast "github.com/hashicorp/hcl/hcl/ast"
@@ -23,6 +24,7 @@ type analysis struct {
 	ProvisionerSchemas   map[string]*configschema.Block
 	ResourceProviderType map[addrs.Resource]string
 	ResourceHasCount     map[addrs.Resource]bool
+	VariableTypes        map[string]string
 }
 
 // analyze processes the configuration files included inside the receiver
@@ -34,6 +36,7 @@ func (u *Upgrader) analyze(ms ModuleSources) (*analysis, error) {
 		ProvisionerSchemas:   make(map[string]*configschema.Block),
 		ResourceProviderType: make(map[addrs.Resource]string),
 		ResourceHasCount:     make(map[addrs.Resource]bool),
+		VariableTypes:        make(map[string]string),
 	}
 
 	m := &moduledeps.Module{
@@ -186,6 +189,44 @@ func (u *Upgrader) analyze(ms ModuleSources) (*analysis, error) {
 					}
 				}
 				ret.ResourceProviderType[rAddr] = inst.Type()
+			}
+		}
+
+		if variablesList := list.Filter("variable"); len(variablesList.Items) > 0 {
+			variableObjs := variablesList.Children()
+			for _, variableObj := range variableObjs.Items {
+				if len(variableObj.Keys) != 1 {
+					return nil, fmt.Errorf("variable block has wrong number of labels")
+				}
+				name := variableObj.Keys[0].Token.Value().(string)
+
+				var listVal *hcl1ast.ObjectList
+				if ot, ok := variableObj.Val.(*hcl1ast.ObjectType); ok {
+					listVal = ot.List
+				} else {
+					return nil, fmt.Errorf("variable %q: must be a block", name)
+				}
+
+				var typeStr string
+				if a := listVal.Filter("type"); len(a.Items) > 0 {
+					err := hcl1.DecodeObject(&typeStr, a.Items[0].Val)
+					if err != nil {
+						return nil, fmt.Errorf("Error reading type for variable %q: %s", name, err)
+					}
+				} else if a := listVal.Filter("default"); len(a.Items) > 0 {
+					switch a.Items[0].Val.(type) {
+					case *hcl1ast.ObjectType:
+						typeStr = "map"
+					case *hcl1ast.ListType:
+						typeStr = "list"
+					default:
+						typeStr = "string"
+					}
+				} else {
+					typeStr = "string"
+				}
+
+				ret.VariableTypes[name] = strings.TrimSpace(typeStr)
 			}
 		}
 	}
