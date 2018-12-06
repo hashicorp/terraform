@@ -107,7 +107,6 @@ func (c *ShowCommand) Run(args []string) int {
 
 	// if a path was provided, try to read it as a path to a planfile
 	// if that fails, try to read the cli argument as a path to a statefile
-	// otherwise, load the currnet state
 	if len(args) > 0 {
 		path := args[0]
 		plan, planErr = getPlanFromPath(path)
@@ -119,7 +118,10 @@ func (c *ShowCommand) Run(args []string) int {
 			}
 			state, stateErr = getStateFromPath(path)
 		}
-	} else {
+	} 
+	
+	// if the state wasn't read from the command-line argument, load the current state.
+	if state.Empty() {
 		env := c.Workspace()
 		state, stateErr = getStateFromEnv(b, env)
 		if err != nil {
