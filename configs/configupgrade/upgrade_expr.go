@@ -9,6 +9,7 @@ import (
 
 	hcl2 "github.com/hashicorp/hcl2/hcl"
 	hcl2syntax "github.com/hashicorp/hcl2/hcl/hclsyntax"
+	"github.com/zclconf/go-cty/cty"
 
 	hcl1ast "github.com/hashicorp/hcl/hcl/ast"
 	hcl1printer "github.com/hashicorp/hcl/hcl/printer"
@@ -545,4 +546,8 @@ func upgradeTerraformRemoteStateTraversalParts(parts []string, an *analysis) []s
 	newParts[attrIdx] = "outputs"
 	copy(newParts[attrIdx+1:], parts[attrIdx:])
 	return newParts
+}
+
+func typeIsSettableFromTupleCons(ty cty.Type) bool {
+	return ty.IsListType() || ty.IsTupleType() || ty.IsSetType()
 }
