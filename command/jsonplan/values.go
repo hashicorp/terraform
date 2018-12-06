@@ -2,9 +2,12 @@ package jsonplan
 
 import (
 	"encoding/json"
+	"fmt"
 
 	"github.com/zclconf/go-cty/cty"
 
+	"github.com/hashicorp/terraform/addrs"
+	"github.com/hashicorp/terraform/configs/configschema"
 	"github.com/hashicorp/terraform/plans"
 	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/terraform"
@@ -34,19 +37,12 @@ func (p *plan) marshalPlannedValues(
 		return err
 	}
 
-	// // marshal the changes into a stateValues
-	// planned.MarshalChanges(changes, schemas)
-
-	// // merge the planned stateValues into the current stateValues
-	// plannedChanges := curr.Merge(planned)
-
-	// p.PlannedValues.RootModule = plannedChanges
-
 	outputs, err := marshalPlannedOutputs(changes, s)
 	if err != nil {
 		return err
 	}
 	p.PlannedValues.Outputs = outputs
+	p.PlannedValues.RootModule = curr.RootModule
 
 	return nil
 }
@@ -55,8 +51,15 @@ func (p *plan) marshalPlannedValues(
 // resource, whose structure depends on the resource type schema.
 type attributeValues map[string]interface{}
 
-func marshalAttributeValues() attributeValues {
-	return attributeValues{}
+func marshalAttributeValues(value cty.Value, schema *configschema.Block) attributeValues {
+	ret := make(attributeValues)
+
+	it := value.ElementIterator()
+	for it.Next() {
+		k, v := it.Element()
+		ret[k.AsString()] = v
+	}
+	return ret
 }
 
 func marshalPlannedOutputs(changes *plans.Changes, s *states.State) (map[string]output, error) {
@@ -117,19 +120,72 @@ func (sv *stateValues) MarshalState(s *states.State, schemas *terraform.Schemas)
 		return nil
 	}
 
-	// var rootModule module
-	// var rs []resource
-
 	// start with the root module
-	// rs, err := marshalResources(s.RootModule().Resources, schemas)
+	var rootModule module
+	rootModule.Address = s.RootModule().Addr.String()
+	rs, err := marshalStateResources(s.RootModule().Resources, schemas)
+	if err != nil {
+		return err
+	}
+	rootModule.Resources = rs
+
+	sv.RootModule = rootModule
 
 	return nil
 }
 
-// func marshalResources(resources map[string]*states.Resource, schemas *terraform.Schemas) ([]resource, error) {
-// 	var rs []resource
-// 	for _, v := range resources {
+func marshalStateResources(resources map[string]*states.Resource, schemas *terraform.Schemas) ([]resource, error) {
+	var rs []resource
 
-// 	}
-// 	return rs, nil
-// }
+	for _, r := range resources {
+		for k, ri := range r.Instances {
+
+			ret := resource{
+				Address:      r.Addr.String(),
+				Type:         r.Addr.Type,
+				Name:         r.Addr.Name,
+				ProviderName: r.ProviderConfig.ProviderConfig.String(),
+			}
+
+			switch r.Addr.Mode {
+			case addrs.ManagedResourceMode:
+				ret.Mode = "managed"
+			case addrs.DataResourceMode:
+				ret.Mode = "data"
+			default:
+				return rs, fmt.Errorf("resource %s has an unsupported mode %s",
+					r.Addr.String(),
+					r.Addr.Mode.String(),
+				)
+			}
+
+			if r.EachMode != states.NoEach {
+				ret.Index = k
+			}
+
+			schema, _ := schemas.ResourceTypeConfig(
+				r.ProviderConfig.ProviderConfig.StringCompact(),
+				r.Addr.Mode,
+				r.Addr.Type,
+			)
+			ret.SchemaVersion = ri.Current.SchemaVersion
+
+			if schema == nil {
+				return nil, fmt.Errorf("no schema found for %s", r.Addr.String())
+			}
+
+			riObj, err := ri.Current.Decode(schema.ImpliedType())
+			if err != nil {
+				fmt.Println("error in decode")
+				return nil, err
+			}
+
+			ret.AttributeValues = marshalAttributeValues(riObj.Value, schema)
+
+			rs = append(rs, ret)
+		}
+
+	}
+
+	return rs, nil
+}
