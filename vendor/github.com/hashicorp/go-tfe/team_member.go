@@ -38,7 +38,7 @@ type teamMember struct {
 // List all members of a team.
 func (s *teamMembers) List(ctx context.Context, teamID string) ([]*User, error) {
 	if !validStringID(&teamID) {
-		return nil, errors.New("Invalid value for team ID")
+		return nil, errors.New("invalid value for team ID")
 	}
 
 	options := struct {
@@ -69,10 +69,10 @@ type TeamMemberAddOptions struct {
 
 func (o *TeamMemberAddOptions) valid() error {
 	if o.Usernames == nil {
-		return errors.New("Usernames is required")
+		return errors.New("usernames is required")
 	}
 	if len(o.Usernames) == 0 {
-		return errors.New("Invalid value for usernames")
+		return errors.New("invalid value for usernames")
 	}
 	return nil
 }
@@ -80,7 +80,7 @@ func (o *TeamMemberAddOptions) valid() error {
 // Add multiple users to a team.
 func (s *teamMembers) Add(ctx context.Context, teamID string, options TeamMemberAddOptions) error {
 	if !validStringID(&teamID) {
-		return errors.New("Invalid value for team ID")
+		return errors.New("invalid value for team ID")
 	}
 	if err := options.valid(); err != nil {
 		return err
@@ -107,10 +107,10 @@ type TeamMemberRemoveOptions struct {
 
 func (o *TeamMemberRemoveOptions) valid() error {
 	if o.Usernames == nil {
-		return errors.New("Usernames is required")
+		return errors.New("usernames is required")
 	}
 	if len(o.Usernames) == 0 {
-		return errors.New("Invalid value for usernames")
+		return errors.New("invalid value for usernames")
 	}
 	return nil
 }
@@ -118,7 +118,7 @@ func (o *TeamMemberRemoveOptions) valid() error {
 // Remove multiple users from a team.
 func (s *teamMembers) Remove(ctx context.Context, teamID string, options TeamMemberRemoveOptions) error {
 	if !validStringID(&teamID) {
-		return errors.New("Invalid value for team ID")
+		return errors.New("invalid value for team ID")
 	}
 	if err := options.valid(); err != nil {
 		return err
