@@ -329,6 +329,10 @@ func dataSourceRemoteState() *schema.Resource {
 							Type:     schema.TypeString,
 							Optional: true,
 						},
+						"force_path_style": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+						},
 						"auth_url": &schema.Schema{
 							Type:     schema.TypeString,
 							Optional: true,
