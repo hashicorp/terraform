@@ -271,15 +271,15 @@ func (b *Remote) Configure(obj cty.Value) tfdiags.Diagnostics {
 		return diags
 	}
 
-	// Check if the organization exists.
-	_, err = b.client.Organizations.Read(context.Background(), b.organization)
+	// Check if the organization exists by reading its entitlements.
+	entitlements, err := b.client.Organizations.Entitlements(context.Background(), b.organization)
 	if err != nil {
 		if err == tfe.ErrResourceNotFound {
 			err = fmt.Errorf("organization %s does not exist", b.organization)
 		}
 		diags = diags.Append(tfdiags.AttributeValue(
 			tfdiags.Error,
-			"Failed to read organization settings",
+			"Failed to read organization entitlements",
 			fmt.Sprintf(
 				`The "remote" backend encountered an unexpected error while reading the `+
 					`organization settings: %s.`, err,
@@ -291,7 +291,7 @@ func (b *Remote) Configure(obj cty.Value) tfdiags.Diagnostics {
 
 	// Configure a local backend for when we need to run operations locally.
 	b.local = backendLocal.NewWithBackend(b)
-	b.forceLocal = os.Getenv("TF_FORCE_LOCAL_BACKEND") != ""
+	b.forceLocal = !entitlements.Operations || os.Getenv("TF_FORCE_LOCAL_BACKEND") != ""
 
 	return diags
 }
