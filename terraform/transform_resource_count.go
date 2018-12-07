@@ -43,6 +43,7 @@ func (t *ResourceCountTransformer) Transform(g *Graph) error {
 		addr := t.Addr.Instance(key)
 
 		abstract := NewNodeAbstractResourceInstance(addr)
+		abstract.Schema = t.Schema
 		var node dag.Vertex = abstract
 		if f := t.Concrete; f != nil {
 			node = f(abstract)
