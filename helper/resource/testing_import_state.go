@@ -19,8 +19,8 @@ import (
 func testStepImportState(
 	opts terraform.ContextOpts,
 	state *terraform.State,
-	step TestStep,
-	schemas *terraform.Schemas) (*terraform.State, error) {
+	step TestStep) (*terraform.State, error) {
+
 	// Determine the ID to import
 	var importId string
 	switch {
@@ -61,6 +61,10 @@ func testStepImportState(
 	if stepDiags.HasErrors() {
 		return state, stepDiags.Err()
 	}
+
+	// We will need access to the schemas in order to shim to the old-style
+	// testing API.
+	schemas := ctx.Schemas()
 
 	// The test step provides the resource address as a string, so we need
 	// to parse it to get an addrs.AbsResourceAddress to pass in to the

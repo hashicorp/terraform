@@ -22,7 +22,6 @@ import (
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/configs/configload"
-	"github.com/hashicorp/terraform/configs/configschema"
 	"github.com/hashicorp/terraform/helper/logging"
 	"github.com/hashicorp/terraform/providers"
 	"github.com/hashicorp/terraform/states"
@@ -478,42 +477,6 @@ func Test(t TestT, c TestCase) {
 		t.Fatal(err)
 	}
 
-	// collect the provider schemas
-	schemas := &terraform.Schemas{
-		Providers: make(map[string]*terraform.ProviderSchema),
-	}
-	factories, err := testProviderFactories(c)
-	if err != nil {
-		t.Fatal(err)
-	}
-	for providerName, f := range factories {
-		p, err := f()
-		if err != nil {
-			t.Fatal(err)
-		}
-
-		resp := p.GetSchema()
-		if resp.Diagnostics.HasErrors() {
-			t.Fatal(fmt.Sprintf("error fetching schema for %q: %v", providerName, resp.Diagnostics.Err()))
-		}
-
-		providerSchema := &terraform.ProviderSchema{
-			Provider:      resp.Provider.Block,
-			ResourceTypes: make(map[string]*configschema.Block),
-			DataSources:   make(map[string]*configschema.Block),
-		}
-
-		for r, s := range resp.ResourceTypes {
-			providerSchema.ResourceTypes[r] = s.Block
-		}
-
-		for d, s := range resp.DataSources {
-			providerSchema.DataSources[d] = s.Block
-		}
-
-		schemas.Providers[providerName] = providerSchema
-	}
-
 	opts := terraform.ContextOpts{ProviderResolver: providerResolver}
 
 	// A single state variable to track the lifecycle, starting with no state
@@ -550,9 +513,9 @@ func Test(t TestT, c TestCase) {
 
 				// Can optionally set step.Config in addition to
 				// step.ImportState, to provide config for the import.
-				state, err = testStepImportState(opts, state, step, schemas)
+				state, err = testStepImportState(opts, state, step)
 			} else {
-				state, err = testStepConfig(opts, state, step, schemas)
+				state, err = testStepConfig(opts, state, step)
 			}
 		}
 
@@ -637,7 +600,7 @@ func Test(t TestT, c TestCase) {
 		}
 
 		log.Printf("[WARN] Test: Executing destroy step")
-		state, err := testStep(opts, state, destroyStep, schemas)
+		state, err := testStep(opts, state, destroyStep)
 		if err != nil {
 			t.Error(fmt.Sprintf(
 				"Error destroying resource! WARNING: Dangling resources\n"+
