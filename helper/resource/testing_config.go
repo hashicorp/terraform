@@ -74,7 +74,7 @@ func testStep(opts terraform.ContextOpts, state *terraform.State, step TestStep)
 		return nil, err
 	}
 	if stepDiags.HasErrors() {
-		return state, fmt.Errorf("Error refreshing: %s", stepDiags.Err())
+		return state, newOperationError("refresh", stepDiags)
 	}
 
 	// If this step is a PlanOnly step, skip over this first Plan and subsequent
@@ -82,7 +82,7 @@ func testStep(opts terraform.ContextOpts, state *terraform.State, step TestStep)
 	if !step.PlanOnly {
 		// Plan!
 		if p, stepDiags := ctx.Plan(); stepDiags.HasErrors() {
-			return state, fmt.Errorf("Error planning: %s", stepDiags.Err())
+			return state, newOperationError("plan", stepDiags)
 		} else {
 			log.Printf("[WARN] Test: Step plan: %s", legacyPlanComparisonString(newState, p.Changes))
 		}
@@ -100,7 +100,7 @@ func testStep(opts terraform.ContextOpts, state *terraform.State, step TestStep)
 			return nil, err
 		}
 		if stepDiags.HasErrors() {
-			return state, fmt.Errorf("Error applying: %s", stepDiags.Err())
+			return state, newOperationError("apply", stepDiags)
 		}
 
 		// Run any configured checks
@@ -121,7 +121,7 @@ func testStep(opts terraform.ContextOpts, state *terraform.State, step TestStep)
 	// We do this with TWO plans. One without a refresh.
 	var p *plans.Plan
 	if p, stepDiags = ctx.Plan(); stepDiags.HasErrors() {
-		return state, fmt.Errorf("Error on follow-up plan: %s", stepDiags.Err())
+		return state, newOperationError("follow-up plan", stepDiags)
 	}
 	if !p.Changes.Empty() {
 		if step.ExpectNonEmptyPlan {
@@ -136,7 +136,7 @@ func testStep(opts terraform.ContextOpts, state *terraform.State, step TestStep)
 	if !step.Destroy || (step.Destroy && !step.PreventPostDestroyRefresh) {
 		newState, stepDiags = ctx.Refresh()
 		if stepDiags.HasErrors() {
-			return state, fmt.Errorf("Error on follow-up refresh: %s", stepDiags.Err())
+			return state, newOperationError("follow-up refresh", stepDiags)
 		}
 
 		state, err = shimNewState(newState, schemas)
@@ -145,7 +145,7 @@ func testStep(opts terraform.ContextOpts, state *terraform.State, step TestStep)
 		}
 	}
 	if p, stepDiags = ctx.Plan(); stepDiags.HasErrors() {
-		return state, fmt.Errorf("Error on second follow-up plan: %s", stepDiags.Err())
+		return state, newOperationError("second follow-up refresh", stepDiags)
 	}
 	empty := p.Changes.Empty()
 
