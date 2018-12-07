@@ -56,7 +56,7 @@ func TestFilesystemLocks(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	out, err := exec.Command("go", "run", "testdata/lockstate.go", s.path).CombinedOutput()
+	out, err := exec.Command("go", "run", "-mod=vendor", "testdata/lockstate.go", s.path).CombinedOutput()
 	if err != nil {
 		t.Fatal("unexpected lock failure", err, string(out))
 	}
