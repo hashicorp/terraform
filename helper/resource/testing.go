@@ -1,6 +1,7 @@
 package resource
 
 import (
+	"bytes"
 	"flag"
 	"fmt"
 	"io"
@@ -18,14 +19,17 @@ import (
 	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/logutils"
+	"github.com/mitchellh/colorstring"
 
 	"github.com/hashicorp/terraform/addrs"
+	"github.com/hashicorp/terraform/command/format"
 	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/configs/configload"
 	"github.com/hashicorp/terraform/helper/logging"
 	"github.com/hashicorp/terraform/providers"
 	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/terraform"
+	"github.com/hashicorp/terraform/tfdiags"
 )
 
 // flagSweep is a flag available when running tests on the command line. It
@@ -541,8 +545,7 @@ func Test(t TestT, c TestCase) {
 				}
 			} else {
 				errored = true
-				t.Error(fmt.Sprintf(
-					"Step %d error: %s", i, err))
+				t.Error(fmt.Sprintf("Step %d error: %s", i, detailedErrorMessage(err)))
 				break
 			}
 		}
@@ -1222,4 +1225,48 @@ func modulePathPrimaryInstanceState(s *terraform.State, mp addrs.ModuleInstance,
 func primaryInstanceState(s *terraform.State, name string) (*terraform.InstanceState, error) {
 	ms := s.RootModule()
 	return modulePrimaryInstanceState(s, ms, name)
+}
+
+// operationError is a specialized implementation of error used to describe
+// failures during one of the several operations performed for a particular
+// test case.
+type operationError struct {
+	OpName string
+	Diags  tfdiags.Diagnostics
+}
+
+func newOperationError(opName string, diags tfdiags.Diagnostics) error {
+	return operationError{opName, diags}
+}
+
+// Error returns a terse error string containing just the basic diagnostic
+// messages, for situations where normal Go error behavior is appropriate.
+func (err operationError) Error() string {
+	return fmt.Sprintf("errors during %s: %s", err.OpName, err.Diags.Err().Error())
+}
+
+// ErrorDetail is like Error except it includes verbosely-rendered diagnostics
+// similar to what would come from a normal Terraform run, which include
+// additional context not included in Error().
+func (err operationError) ErrorDetail() string {
+	var buf bytes.Buffer
+	fmt.Fprintf(&buf, "errors during %s:", err.OpName)
+	clr := &colorstring.Colorize{Disable: true, Colors: colorstring.DefaultColors}
+	for _, diag := range err.Diags {
+		diagStr := format.Diagnostic(diag, nil, clr, 78)
+		buf.WriteByte('\n')
+		buf.WriteString(diagStr)
+	}
+	return buf.String()
+}
+
+// detailedErrorMessage is a helper for calling ErrorDetail on an error if
+// it is an operationError or just taking Error otherwise.
+func detailedErrorMessage(err error) string {
+	switch tErr := err.(type) {
+	case operationError:
+		return tErr.ErrorDetail()
+	default:
+		return err.Error()
+	}
 }
