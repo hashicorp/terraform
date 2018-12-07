@@ -64,7 +64,7 @@ type TeamListOptions struct {
 // List all the teams of the given organization.
 func (s *teams) List(ctx context.Context, organization string, options TeamListOptions) (*TeamList, error) {
 	if !validStringID(&organization) {
-		return nil, errors.New("Invalid value for organization")
+		return nil, errors.New("invalid value for organization")
 	}
 
 	u := fmt.Sprintf("organizations/%s/teams", url.QueryEscape(organization))
@@ -93,10 +93,10 @@ type TeamCreateOptions struct {
 
 func (o TeamCreateOptions) valid() error {
 	if !validString(o.Name) {
-		return errors.New("Name is required")
+		return errors.New("name is required")
 	}
 	if !validStringID(o.Name) {
-		return errors.New("Invalid value for name")
+		return errors.New("invalid value for name")
 	}
 	return nil
 }
@@ -104,7 +104,7 @@ func (o TeamCreateOptions) valid() error {
 // Create a new team with the given options.
 func (s *teams) Create(ctx context.Context, organization string, options TeamCreateOptions) (*Team, error) {
 	if !validStringID(&organization) {
-		return nil, errors.New("Invalid value for organization")
+		return nil, errors.New("invalid value for organization")
 	}
 	if err := options.valid(); err != nil {
 		return nil, err
@@ -131,7 +131,7 @@ func (s *teams) Create(ctx context.Context, organization string, options TeamCre
 // Read a single team by its ID.
 func (s *teams) Read(ctx context.Context, teamID string) (*Team, error) {
 	if !validStringID(&teamID) {
-		return nil, errors.New("Invalid value for team ID")
+		return nil, errors.New("invalid value for team ID")
 	}
 
 	u := fmt.Sprintf("teams/%s", url.QueryEscape(teamID))
@@ -152,7 +152,7 @@ func (s *teams) Read(ctx context.Context, teamID string) (*Team, error) {
 // Delete a team by its ID.
 func (s *teams) Delete(ctx context.Context, teamID string) error {
 	if !validStringID(&teamID) {
-		return errors.New("Invalid value for team ID")
+		return errors.New("invalid value for team ID")
 	}
 
 	u := fmt.Sprintf("teams/%s", url.QueryEscape(teamID))
