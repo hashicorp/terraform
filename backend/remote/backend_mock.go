@@ -322,6 +322,17 @@ func (m *mockOrganizations) Capacity(ctx context.Context, name string) (*tfe.Cap
 	return &tfe.Capacity{Pending: pending, Running: running}, nil
 }
 
+func (m *mockOrganizations) Entitlements(ctx context.Context, name string) (*tfe.Entitlements, error) {
+	return &tfe.Entitlements{
+		Operations:            true,
+		PrivateModuleRegistry: true,
+		Sentinel:              true,
+		StateStorage:          true,
+		Teams:                 true,
+		VCSIntegrations:       true,
+	}, nil
+}
+
 func (m *mockOrganizations) RunQueue(ctx context.Context, name string, options tfe.RunQueueOptions) (*tfe.RunQueue, error) {
 	rq := &tfe.RunQueue{}
 

@@ -66,6 +66,19 @@ func testBackendNoDefault(t *testing.T) *Remote {
 	return testBackend(t, obj)
 }
 
+func testBackendNoOperations(t *testing.T) *Remote {
+	obj := cty.ObjectVal(map[string]cty.Value{
+		"hostname":     cty.NullVal(cty.String),
+		"organization": cty.StringVal("no-operations"),
+		"token":        cty.NullVal(cty.String),
+		"workspaces": cty.ObjectVal(map[string]cty.Value{
+			"name":   cty.StringVal("prod"),
+			"prefix": cty.NullVal(cty.String),
+		}),
+	})
+	return testBackend(t, obj)
+}
+
 func testRemoteClient(t *testing.T) remote.Client {
 	b := testBackendDefault(t)
 	raw, err := b.StateMgr(backend.DefaultStateName)
@@ -171,30 +184,39 @@ func testServer(t *testing.T) *httptest.Server {
 		io.WriteString(w, `{"tfe.v2":"/api/v2/"}`)
 	})
 
-	// Respond to the initial query to read the organization settings.
-	mux.HandleFunc("/api/v2/organizations/hashicorp", func(w http.ResponseWriter, r *http.Request) {
+	// Respond to the initial query to read the hashicorp org entitlements.
+	mux.HandleFunc("/api/v2/organizations/hashicorp/entitlement-set", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/vnd.api+json")
 		io.WriteString(w, `{
   "data": {
-    "id": "hashicorp",
-    "type": "organizations",
+    "id": "org-GExadygjSbKP8hsY",
+    "type": "entitlement-sets",
     "attributes": {
-      "name": "hashicorp",
-      "created-at": "2017-09-07T14:34:40.492Z",
-      "email": "user@example.com",
-      "collaborator-auth-policy": "password",
-      "enterprise-plan": "premium",
-      "permissions": {
-        "can-update": true,
-        "can-destroy": true,
-        "can-create-team": true,
-        "can-create-workspace": true,
-        "can-update-oauth": true,
-        "can-update-api-token": true,
-        "can-update-sentinel": true,
-        "can-traverse": true,
-        "can-create-workspace-migration": true
-      }
+      "operations": true,
+      "private-module-registry": true,
+      "sentinel": true,
+      "state-storage": true,
+      "teams": true,
+      "vcs-integrations": true
+    }
+  }
+}`)
+	})
+
+	// Respond to the initial query to read the no-operations org entitlements.
+	mux.HandleFunc("/api/v2/organizations/no-operations/entitlement-set", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/vnd.api+json")
+		io.WriteString(w, `{
+  "data": {
+    "id": "org-ufxa3y8jSbKP8hsT",
+    "type": "entitlement-sets",
+    "attributes": {
+      "operations": false,
+      "private-module-registry": true,
+      "sentinel": true,
+      "state-storage": true,
+      "teams": true,
+      "vcs-integrations": true
     }
   }
 }`)
