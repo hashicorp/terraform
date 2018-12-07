@@ -14,10 +14,6 @@ import (
 	"syscall"
 	"testing"
 
-	"github.com/hashicorp/terraform/configs/configschema"
-
-	"github.com/hashicorp/terraform/providers"
-
 	"github.com/davecgh/go-spew/spew"
 	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/go-multierror"
@@ -26,7 +22,9 @@ import (
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/configs/configload"
+	"github.com/hashicorp/terraform/configs/configschema"
 	"github.com/hashicorp/terraform/helper/logging"
+	"github.com/hashicorp/terraform/providers"
 	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -685,28 +683,18 @@ func testProviderResolver(c TestCase) (providers.Resolver, error) {
 	// called from terraform.
 	newProviders := make(map[string]providers.Factory)
 
-	// reset the providers if needed
 	for k, pf := range ctxProviders {
-		// we can ignore any errors here, if we don't have a provider to reset
-		// the error will be handled later
-		p, err := pf()
-		if err != nil {
-			return nil, err
-		}
-
-		// FIXME: verify if this is still needed with the new plugins being
-		// closed after every walk.
-		if p, ok := p.(TestProvider); ok {
-			err := p.TestReset()
+		newProviders[k] = func() (providers.Interface, error) {
+			p, err := pf()
 			if err != nil {
-				return nil, fmt.Errorf("[ERROR] failed to reset provider %q: %s", k, err)
+				return nil, err
 			}
-		}
 
-		// The provider is wrapped in a GRPCTestProvider so that it can be
-		// passed back to terraform core as a providers.Interface, rather
-		// than the legacy ResourceProvider.
-		newProviders[k] = providers.FactoryFixed(GRPCTestProvider(p))
+			// The provider is wrapped in a GRPCTestProvider so that it can be
+			// passed back to terraform core as a providers.Interface, rather
+			// than the legacy ResourceProvider.
+			return GRPCTestProvider(p), nil
+		}
 	}
 
 	return providers.ResolverFixed(newProviders), nil
@@ -724,15 +712,16 @@ func testProviderFactories(c TestCase) (map[string]providers.Factory, error) {
 		factories[k] = terraform.ResourceProviderFactoryFixed(p)
 	}
 
-	// now that the provider are all loaded in factories, fix each of them into
-	// a providers.Factory
+	// wrap the providers to be GRPC mocks rather than legacy terraform.ResourceProvider
 	newFactories := make(map[string]providers.Factory)
 	for k, pf := range factories {
-		p, err := pf()
-		if err != nil {
-			return nil, err
+		newFactories[k] = func() (providers.Interface, error) {
+			p, err := pf()
+			if err != nil {
+				return nil, err
+			}
+			return GRPCTestProvider(p), nil
 		}
-		newFactories[k] = providers.FactoryFixed(GRPCTestProvider(p))
 	}
 	return newFactories, nil
 }
