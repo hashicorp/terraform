@@ -1,5 +1,9 @@
 ## 0.11.11 (Unreleased)
 
+BUG FIXES:
+
+* backend/remote: Fix symlink issues and Windows support when uploading configurations [GH-19573]
+
 ## 0.11.10 (October 23, 2018)
 
 BUG FIXES:
