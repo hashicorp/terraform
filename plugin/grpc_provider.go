@@ -528,7 +528,7 @@ func (p *GRPCProvider) ReadDataSource(r providers.ReadDataSourceRequest) (resp p
 
 // closing the grpc connection is final, and terraform will call it at the end of every phase.
 func (p *GRPCProvider) Close() error {
-	log.Printf("[TRACE] GRPCProvider: PlanResourceChange")
+	log.Printf("[TRACE] GRPCProvider: Close")
 
 	// close the remote listener if we're running within a test
 	if p.TestListener != nil {
