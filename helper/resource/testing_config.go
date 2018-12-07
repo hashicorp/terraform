@@ -24,12 +24,11 @@ import (
 func testStepConfig(
 	opts terraform.ContextOpts,
 	state *terraform.State,
-	step TestStep,
-	schemas *terraform.Schemas) (*terraform.State, error) {
-	return testStep(opts, state, step, schemas)
+	step TestStep) (*terraform.State, error) {
+	return testStep(opts, state, step)
 }
 
-func testStep(opts terraform.ContextOpts, state *terraform.State, step TestStep, schemas *terraform.Schemas) (*terraform.State, error) {
+func testStep(opts terraform.ContextOpts, state *terraform.State, step TestStep) (*terraform.State, error) {
 	if !step.Destroy {
 		if err := testStepTaint(state, step); err != nil {
 			return state, err
@@ -62,6 +61,10 @@ func testStep(opts terraform.ContextOpts, state *terraform.State, step TestStep,
 
 		log.Printf("[WARN] Config warnings:\n%s", stepDiags)
 	}
+
+	// We will need access to the schemas in order to shim to the old-style
+	// testing API.
+	schemas := ctx.Schemas()
 
 	// Refresh!
 	newState, stepDiags := ctx.Refresh()
