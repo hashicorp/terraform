@@ -160,7 +160,7 @@ When using docker you don't need to have any of the Go development tools install
 For example, run the following command to build terraform in a linux-based container for macOS.
 
 ```sh
-docker run --rm -v $(pwd):/go/src/github.com/hashicorp/terraform -w /go/src/github.com/hashicorp/terraform -e XC_OS=darwin -e XC_ARCH=amd64 golang:latest bash -c "apt-get update && apt-get install -y zip && make bin"
+docker run --rm -v $(pwd):/go/src/github.com/hashicorp/terraform -w /go/src/github.com/hashicorp/terraform -e XC_OS=darwin -e XC_ARCH=amd64 golang:latest bash -c "apt-get update && apt-get install -y zip && make tools bin"
 ```
 
 
