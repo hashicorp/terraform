@@ -74,4 +74,5 @@ multiple ways Terraform can be used. Then see
 [how Terraform compares to other software](/intro/vs/index.html)
 to see how it fits into your existing infrastructure. Finally, continue onwards with
 the [getting started guide](/intro/getting-started/install.html) to use
-Terraform to manage real infrastructure and to see how it works.
+Terraform để quản lý cơ sở hạ tầng thực sự và để xem cách nó hoạt động.
+Hay nói, là một tài tài của, qua, qua, qua một, qua, một, tài
