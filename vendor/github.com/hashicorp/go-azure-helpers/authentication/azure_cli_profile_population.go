@@ -27,6 +27,29 @@ func (a *azureCLIProfile) populateTenantID() error {
 	return nil
 }
 
+func (a *azureCLIProfile) populateClientId() error {
+	// we can now pull out the ClientID and the Access Token to use from the Access Token
+	tokensPath, err := cli.AccessTokensPath()
+	if err != nil {
+		return fmt.Errorf("Error loading the Tokens Path from the Azure CLI: %+v", err)
+	}
+
+	tokens, err := cli.LoadTokens(tokensPath)
+	if err != nil {
+		return fmt.Errorf("No Authorization Tokens were found - please ensure the Azure CLI is installed and then log-in with `az login`.")
+	}
+
+	validToken, err := findValidAccessTokenForTenant(tokens, a.tenantId, true)
+	if err != nil {
+		return fmt.Errorf("No Authorization Tokens were found - please re-authenticate using `az login`.")
+	}
+
+	token := *validToken
+	a.clientId = token.ClientID
+
+	return nil
+}
+
 func (a *azureCLIProfile) populateClientIdAndAccessToken() error {
 	// we can now pull out the ClientID and the Access Token to use from the Access Token
 	tokensPath, err := cli.AccessTokensPath()
@@ -39,7 +62,7 @@ func (a *azureCLIProfile) populateClientIdAndAccessToken() error {
 		return fmt.Errorf("No Authorization Tokens were found - please ensure the Azure CLI is installed and then log-in with `az login`.")
 	}
 
-	validToken, err := findValidAccessTokenForTenant(tokens, a.tenantId)
+	validToken, err := findValidAccessTokenForTenant(tokens, a.tenantId, false)
 	if err != nil {
 		return fmt.Errorf("No (unexpired) Authorization Tokens were found - please re-authenticate using `az login`.")
 	}
@@ -47,7 +70,6 @@ func (a *azureCLIProfile) populateClientIdAndAccessToken() error {
 	token := *validToken
 	a.accessToken = token.AccessToken
 	a.clientId = token.ClientID
-	a.usingCloudShell = token.IsCloudShell
 
 	return nil
 }

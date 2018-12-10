@@ -208,7 +208,7 @@ github.com/coreos/etcd/pkg/tlsutil
 github.com/coreos/go-semver/semver
 # github.com/davecgh/go-spew v1.1.1
 github.com/davecgh/go-spew/spew
-# github.com/dgrijalva/jwt-go v0.0.0-20160617170158-f0777076321a
+# github.com/dgrijalva/jwt-go v3.2.0+incompatible
 github.com/dgrijalva/jwt-go
 # github.com/dimchansky/utfbom v1.0.0
 github.com/dimchansky/utfbom
@@ -302,7 +302,7 @@ github.com/hashicorp/consul/lib/freeport
 github.com/hashicorp/consul/testutil/retry
 # github.com/hashicorp/errwrap v1.0.0
 github.com/hashicorp/errwrap
-# github.com/hashicorp/go-azure-helpers v0.0.0-20181122151743-c51a3103be3b
+# github.com/hashicorp/go-azure-helpers v0.0.0-20181126135526-ec113df69f49
 github.com/hashicorp/go-azure-helpers/authentication
 github.com/hashicorp/go-azure-helpers/storage
 # github.com/hashicorp/go-checkpoint v0.0.0-20171009173528-1545e56e46de
@@ -417,7 +417,7 @@ github.com/mitchellh/cli
 github.com/mitchellh/colorstring
 # github.com/mitchellh/copystructure v0.0.0-20170525013902-d23ffcb85de3
 github.com/mitchellh/copystructure
-# github.com/mitchellh/go-homedir v0.0.0-20161203194507-b8bc1bf76747
+# github.com/mitchellh/go-homedir v1.0.0
 github.com/mitchellh/go-homedir
 # github.com/mitchellh/go-linereader v0.0.0-20141013185533-07bab5fdd958
 github.com/mitchellh/go-linereader

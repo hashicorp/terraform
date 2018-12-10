@@ -48,25 +48,16 @@ func (a azureCliParsingAuth) build(b Builder) (authMethod, error) {
 }
 
 func (a azureCliParsingAuth) isApplicable(b Builder) bool {
-	return b.SupportsAzureCliCloudShellParsing
+	return b.SupportsAzureCliParsing
 }
 
 func (a azureCliParsingAuth) getAuthorizationToken(oauthConfig *adal.OAuthConfig, endpoint string) (*autorest.BearerAuthorizer, error) {
-	if a.profile.usingCloudShell {
-		// load the refreshed tokens from the CloudShell Azure CLI credentials
-		err := a.profile.populateClientIdAndAccessToken()
-		if err != nil {
-			return nil, fmt.Errorf("Error loading the refreshed CloudShell tokens: %+v", err)
-		}
-	}
-
 	spt, err := adal.NewServicePrincipalTokenFromManualToken(*oauthConfig, a.profile.clientId, endpoint, *a.profile.accessToken)
 	if err != nil {
 		return nil, err
 	}
 
 	err = spt.Refresh()
-
 	if err != nil {
 		return nil, fmt.Errorf("Error refreshing Service Principal Token: %+v", err)
 	}
