@@ -84,6 +84,11 @@ please fill out this [community providers form](https://docs.google.com/forms/d/
     <tr>
     <td><a href="https://github.com/ewilde/terraform-provider-kibana">Kibana</a></td>
     <td><a href="https://github.com/kevholditch/terraform-provider-kong">Kong</a></td>
+    <td><a href="https://github.com/dmacvicar/terraform-provider-libvirt">libvirt</a></td>
+    </tr>
+    <tr>
+    <td><a href="https://github.com/dikhan/terraform-provider-logentries">Logentries</a></td>
+    <td><a href="https://github.com/jonboydell/logzio_terraform_provider">Logz.io</a></td>
     <td><a href="https://github.com/sl1pm4t/terraform-provider-lxd">LXD</a></td>
     </tr>
     <tr>
@@ -102,33 +107,38 @@ please fill out this [community providers form](https://docs.google.com/forms/d/
     <td><a href="https://github.com/ewilde/terraform-provider-openfaas">OpenFaaS</a></td>
     </tr>
     <tr>
+    <td><a href="https://github.com/imjoey/terraform-provider-ovirt">oVirt</a></td>
     <td><a href="https://github.com/camptocamp/terraform-provider-pass">Pass</a></td>
     <td><a href="https://bitbucket.org/devops_sysops/pingdom-provider">Pingdom</a></td>
-    <td><a href="https://github.com/camptocamp/terraform-provider-puppetca">Puppet CA</a></td>
     </tr>
     <tr>
+    <td><a href="https://github.com/Telmate/terraform-provider-proxmox">Proxmox</a></td>
+    <td><a href="https://github.com/camptocamp/terraform-provider-puppetca">Puppet CA</a></td>
     <td><a href="https://github.com/camptocamp/terraform-provider-puppetdb">PuppetDB</a></td>
+    </tr>
+    <tr>
     <td><a href="https://github.com/yunify/terraform-provider-qingcloud">QingCloud</a></td>
     <td><a href="https://github.com/frankfarrell/terraform-provider-redshift">Redshift</a></td>
+    <td><a href="https://github.com/yamamoto-febc/terraform-provider-rke">RKE</a></td>
     </tr>
     <tr>
-    <td><a href="https://github.com/yamamoto-febc/terraform-provider-rke">RKE</a></td>
     <td><a href="https://github.com/babbel/terraform-provider-rollbar">Rollbar</a></td>
     <td><a href="https://github.com/sacloud/terraform-provider-sakuracloud">SakuraCloud</a></td>
+    <td><a href="https://github.com/GSLabDev/terraform-provider-scvmm">SCVMM</a></td>
     </tr>
     <tr>
-    <td><a href="https://github.com/GSLabDev/terraform-provider-scvmm">SCVMM</a></td>
     <td><a href="https://github.com/jianyuan/terraform-provider-sentry">Sentry</a></td>
     <td><a href="https://github.com/SewanDevs/terraform-provider-sewan">Sewan</a></td>
+    <td><a href="https://github.com/Yelp/terraform-provider-signalform">SignalFx</a></td>
     </tr>
     <tr>
-    <td><a href="https://github.com/Yelp/terraform-provider-signalform">SignalFx</a></td>
     <td><a href="https://github.com/changli3/terraform-provider-smartronix">Smartronix</a></td>
     <td><a href="https://github.com/ShopRunner/terraform-provider-snowflake">Snowflake</a></td>
+    <td><a href="https://github.com/Ashald/terraform-provider-stateful">Stateful</a></td>
     </tr>
     <tr>
-    <td><a href="https://github.com/Ashald/terraform-provider-stateful">Stateful</a></td>
     <td><a href="https://github.com/franckverrot/terraform-provider-stripe">Stripe</a></td>
+    <td><a href="https://github.com/SumoLogic/sumologic-terraform-provider">Sumo Logic</a></td>
     <td><a href="https://github.com/cvbarros/terraform-provider-teamcity">TeamCity</a></td>
     </tr>
     <tr>
