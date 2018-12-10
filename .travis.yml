@@ -33,7 +33,6 @@ before_script:
 - git config --global url.https://github.com/.insteadOf ssh://git@github.com/
 
 script:
-- make vendor-status
 - make test
 - make e2etest
 - GOOS=windows go build -mod=vendor
