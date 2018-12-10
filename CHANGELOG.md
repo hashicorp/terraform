@@ -1,5 +1,9 @@
 ## 0.12.0-beta (unreleased)
 
+IMPROVEMENTS:
+
+* core: Enhance service discovery error handling and messaging [GH-19589]
+
 BUG FIXES:
 
 * helper/schema: Fix setting a set in a list [GH-19552]
