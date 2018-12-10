@@ -29,10 +29,9 @@ func (p *plan) marshalPlannedValues(
 	schemas *terraform.Schemas,
 ) error {
 
-	// var curr, planned stateValues
-	var curr stateValues
+	// var curr, planned module
 	// marshal the current state into a stateValues
-	err := curr.MarshalState(s, schemas)
+	curr, err := marshalState(s, schemas)
 	if err != nil {
 		return err
 	}
@@ -42,7 +41,7 @@ func (p *plan) marshalPlannedValues(
 		return err
 	}
 	p.PlannedValues.Outputs = outputs
-	p.PlannedValues.RootModule = curr.RootModule
+	p.PlannedValues.RootModule = curr
 
 	return nil
 }
@@ -115,23 +114,28 @@ func marshalPlannedOutputs(changes *plans.Changes, s *states.State) (map[string]
 
 }
 
-func (sv *stateValues) MarshalState(s *states.State, schemas *terraform.Schemas) error {
+func marshalState(s *states.State, schemas *terraform.Schemas) (module, error) {
+	var ret module
 	if s.Empty() {
-		return nil
+		return ret, nil
 	}
 
 	// start with the root module
-	var rootModule module
-	rootModule.Address = s.RootModule().Addr.String()
+	ret.Address = s.RootModule().Addr.String()
 	rs, err := marshalStateResources(s.RootModule().Resources, schemas)
 	if err != nil {
-		return err
+		return ret, err
 	}
-	rootModule.Resources = rs
+	ret.Resources = rs
 
-	sv.RootModule = rootModule
+	modules, err := marshalStateModules(s.Modules, schemas)
+	if err != nil {
+		return ret, err
+	}
 
-	return nil
+	ret.ChildModules = modules
+
+	return ret, nil
 }
 
 func marshalStateResources(resources map[string]*states.Resource, schemas *terraform.Schemas) ([]resource, error) {
@@ -188,4 +192,13 @@ func marshalStateResources(resources map[string]*states.Resource, schemas *terra
 	}
 
 	return rs, nil
+}
+
+func marshalStateModules(modules map[string]*states.Module, schemas *terraform.Schemas) ([]module, error) {
+	var ret []module
+
+	for _, v := range modules {
+		fmt.Printf("Modules: %#v\n", v.Addr.String())
+	}
+	return ret, nil
 }

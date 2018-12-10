@@ -9,7 +9,7 @@ import (
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/command/jsonconfig"
 	"github.com/hashicorp/terraform/command/jsonstate"
-	"github.com/hashicorp/terraform/configs/configload"
+	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/plans"
 	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/terraform"
@@ -73,7 +73,7 @@ type output struct {
 
 // Marshal returns the json encoding of a terraform plan.
 func Marshal(
-	snap *configload.Snapshot,
+	config *configs.Config,
 	p *plans.Plan,
 	s *states.State,
 	schemas *terraform.Schemas,
@@ -84,7 +84,7 @@ func Marshal(
 	// TODO: output.PlannedValues
 	err := output.marshalPlannedValues(p.Changes, s, schemas)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error in marshalPlannedValues: %s", err)
 	}
 
 	// TODO: output.ProposedUnknown
@@ -92,25 +92,25 @@ func Marshal(
 	// output.ResourceChanges
 	err = output.marshalResourceChanges(p.Changes, schemas)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error in marshalResourceChanges: %s", err)
 	}
 
 	// output.OutputChanges
 	err = output.marshalOutputChanges(p.Changes)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error in marshaling output changes: %s", err)
 	}
 
 	// output.PriorState
 	output.PriorState, err = jsonstate.Marshal(s)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error marshaling prior state: %s", err)
 	}
 
 	// output.Config
-	output.Config, err = jsonconfig.Marshal(snap, schemas)
+	output.Config, err = jsonconfig.Marshal(config, schemas)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error marshaling config: %s", err)
 	}
 
 	// add some polish

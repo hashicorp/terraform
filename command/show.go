@@ -128,8 +128,8 @@ func (c *ShowCommand) Run(args []string) int {
 				return 1
 			}
 		}
-	} 
-	
+	}
+
 	if state == nil {
 		env := c.Workspace()
 		state, stateErr = getStateFromEnv(b, env)
@@ -149,12 +149,8 @@ func (c *ShowCommand) Run(args []string) int {
 
 	if plan != nil {
 		if jsonOutput == true {
-			_, snapshot, loadDiags := opReq.ConfigLoader.LoadConfigWithSnapshot(cwd)
-			if loadDiags.HasErrors() {
-				c.showDiagnostics(diags)
-				return 1
-			}
-			jsonPlan, err := jsonplan.Marshal(snapshot, plan, state, schemas)
+			config := ctx.Config()
+			jsonPlan, err := jsonplan.Marshal(config, plan, state, schemas)
 			if err != nil {
 				c.Ui.Error(fmt.Sprintf("Failed to marshal plan to json: %s", err))
 				return 1
@@ -198,7 +194,7 @@ func (c *ShowCommand) Synopsis() string {
 
 // getPlanFromPath returns a plan if the user-supplied path points to a planfile.
 // If both plan and error are nil, the path is likely a directory.
-// An error could suggests that the given path points to a statefile.
+// An error could suggest that the given path points to a statefile.
 func getPlanFromPath(path string) (*plans.Plan, error) {
 	pr, err := planfile.Open(path)
 	if err != nil {
@@ -215,14 +211,14 @@ func getPlanFromPath(path string) (*plans.Plan, error) {
 func getStateFromPath(path string) (*states.State, error) {
 	f, err := os.Open(path)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("Error loading statefile: %s", err)
 	}
 	defer f.Close()
 
 	var stateFile *statefile.File
 	stateFile, err = statefile.Read(f)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("Error reading %s as a statefile: %s", path, err)
 	}
 	return stateFile.State, nil
 }
@@ -232,7 +228,7 @@ func getStateFromEnv(b backend.Backend, env string) (*states.State, error) {
 	// Get the state
 	stateStore, err := b.StateMgr(env)
 	if err != nil {
-		return nil, fmt.Errorf("Failed to load state: %s", err)
+		return nil, fmt.Errorf("Failed to load state manager: %s", err)
 	}
 
 	if err := stateStore.RefreshState(); err != nil {

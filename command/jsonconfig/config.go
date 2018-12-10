@@ -6,7 +6,6 @@ import (
 
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs"
-	"github.com/hashicorp/terraform/configs/configload"
 	"github.com/hashicorp/terraform/terraform"
 )
 
@@ -86,14 +85,8 @@ type provisioner struct {
 }
 
 // Marshal returns the json encoding of terraform configuration.
-func Marshal(snap *configload.Snapshot, schemas *terraform.Schemas) ([]byte, error) {
+func Marshal(c *configs.Config, schemas *terraform.Schemas) ([]byte, error) {
 	var output config
-
-	configLoader := configload.NewLoaderFromSnapshot(snap)
-	c, diags := configLoader.LoadConfig(snap.Modules[""].Dir)
-	if diags.HasErrors() {
-		return nil, diags
-	}
 
 	// TODO: this is not accurate provider marshaling, just a placeholder
 	var pcs []providerConfig
