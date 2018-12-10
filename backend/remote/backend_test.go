@@ -86,7 +86,7 @@ func TestRemote_config(t *testing.T) {
 					},
 				},
 			},
-			err: errors.New("host nonexisting.local does not provide a remote backend API"),
+			err: errors.New("Failed to request discovery document"),
 		},
 	}
 
@@ -112,7 +112,7 @@ func TestRemote_config(t *testing.T) {
 
 		// Configure
 		err = b.Configure(conf)
-		if err != tc.err && err != nil && tc.err != nil && err.Error() != tc.err.Error() {
+		if err != tc.err && err != nil && tc.err != nil && !strings.Contains(err.Error(), tc.err.Error()) {
 			t.Fatalf("%s: expected error %q, got: %q", name, tc.err, err)
 		}
 	}
