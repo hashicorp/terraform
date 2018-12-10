@@ -2,6 +2,7 @@
 
 IMPROVEMENTS:
 
+* backend/azurerm: Support for authenticating using the Azure CLI [GH-19465]
 * core: Enhance service discovery error handling and messaging [GH-19589]
 
 BUG FIXES:
