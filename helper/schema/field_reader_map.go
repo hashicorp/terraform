@@ -98,6 +98,9 @@ func (r *MapFieldReader) readPrimitive(
 
 func (r *MapFieldReader) readSet(
 	address []string, schema *Schema) (FieldReadResult, error) {
+	// copy address to ensure we don't modify the argument
+	address = append([]string(nil), address...)
+
 	// Get the number of elements in the list
 	countRaw, err := r.readPrimitive(
 		append(address, "#"), &Schema{Type: TypeInt})
