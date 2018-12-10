@@ -1,5 +1,9 @@
 ## 0.12.0-beta (unreleased)
 
+BUG FIXES:
+
+* helper/schema: Fix setting a set in a list [GH-19552]
+
 ## 0.12.0-alpha4 (December 7, 2018)
 NOTES:
 No changes to terraform; this release is only necessary to fix an incorrect version of the aws provider bundled in alpha3
