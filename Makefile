@@ -6,7 +6,6 @@ WEBSITE_REPO=github.com/hashicorp/terraform-website
 default: test
 
 tools:
-	GO111MODULE=off go get -u github.com/kardianos/govendor
 	GO111MODULE=off go get -u golang.org/x/tools/cmd/stringer
 	GO111MODULE=off go get -u golang.org/x/tools/cmd/cover
 	GO111MODULE=off go get -u github.com/golang/mock/mockgen
@@ -98,9 +97,6 @@ fmt:
 
 fmtcheck:
 	@sh -c "'$(CURDIR)/scripts/gofmtcheck.sh'"
-
-vendor-status:
-	@govendor status
 
 website:
 ifeq (,$(wildcard $(GOPATH)/src/$(WEBSITE_REPO)))
