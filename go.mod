@@ -32,8 +32,6 @@ require (
 	github.com/coreos/go-systemd v0.0.0-20181012123002-c6f51f82210d // indirect
 	github.com/coreos/pkg v0.0.0-20180928190104-399ea9e2e55f // indirect
 	github.com/davecgh/go-spew v1.1.1
-	github.com/dgrijalva/jwt-go v0.0.0-20160617170158-f0777076321a // indirect
-	github.com/dimchansky/utfbom v1.0.0 // indirect
 	github.com/dnaeon/go-vcr v0.0.0-20180920040454-5637cf3d8a31 // indirect
 	github.com/dylanmei/iso8601 v0.1.0 // indirect
 	github.com/dylanmei/winrmtest v0.0.0-20170819153634-c2fbb09e6c08
@@ -55,7 +53,7 @@ require (
 	github.com/grpc-ecosystem/grpc-gateway v1.5.1 // indirect
 	github.com/hashicorp/consul v0.0.0-20171026175957-610f3c86a089
 	github.com/hashicorp/errwrap v1.0.0
-	github.com/hashicorp/go-azure-helpers v0.0.0-20181122151743-c51a3103be3b
+	github.com/hashicorp/go-azure-helpers v0.0.0-20181126135526-ec113df69f49
 	github.com/hashicorp/go-checkpoint v0.0.0-20171009173528-1545e56e46de
 	github.com/hashicorp/go-cleanhttp v0.5.0
 	github.com/hashicorp/go-getter v0.0.0-20180327010114-90bb99a48d86
@@ -98,7 +96,7 @@ require (
 	github.com/mitchellh/cli v0.0.0-20171129193617-33edc47170b5
 	github.com/mitchellh/colorstring v0.0.0-20150917214807-8631ce90f286
 	github.com/mitchellh/copystructure v0.0.0-20170525013902-d23ffcb85de3
-	github.com/mitchellh/go-homedir v0.0.0-20161203194507-b8bc1bf76747
+	github.com/mitchellh/go-homedir v1.0.0
 	github.com/mitchellh/go-linereader v0.0.0-20141013185533-07bab5fdd958
 	github.com/mitchellh/go-wordwrap v1.0.0
 	github.com/mitchellh/hashstructure v0.0.0-20160209213820-6b17d669fac5
