@@ -302,9 +302,9 @@ func (b *Remote) discover(hostname string) (*url.URL, error) {
 	if err != nil {
 		return nil, err
 	}
-	service := b.services.DiscoverServiceURL(host, serviceID)
-	if service == nil {
-		return nil, fmt.Errorf("host %s does not provide a remote backend API", host)
+	service, err := b.services.DiscoverServiceURL(host, serviceID)
+	if err != nil {
+		return nil, err
 	}
 	return service, nil
 }
