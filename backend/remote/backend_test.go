@@ -56,7 +56,7 @@ func TestRemote_config(t *testing.T) {
 					"prefix": cty.NullVal(cty.String),
 				}),
 			}),
-			confErr: "Host nonexisting.local does not provide a remote backend API",
+			confErr: "Failed to request discovery document",
 		},
 		"with_a_name": {
 			config: cty.ObjectVal(map[string]cty.Value{
@@ -112,8 +112,8 @@ func TestRemote_config(t *testing.T) {
 
 		// Validate
 		valDiags := b.ValidateConfig(tc.config)
-		if (valDiags.Err() == nil && tc.valErr != "") ||
-			(valDiags.Err() != nil && !strings.Contains(valDiags.Err().Error(), tc.valErr)) {
+		if (valDiags.Err() != nil || tc.valErr != "") &&
+			(valDiags.Err() == nil || !strings.Contains(valDiags.Err().Error(), tc.valErr)) {
 			t.Fatalf("%s: unexpected validation result: %v", name, valDiags.Err())
 		}
 
