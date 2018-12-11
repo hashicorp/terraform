@@ -9,6 +9,7 @@ IMPROVEMENTS:
 BUG FIXES:
 
 * backend/local: Fix incorrect destroy/update count on apply [GH-19610]
+* command/format: Fix rendering of nested blocks during update [GH-19611]
 * helper/schema: Fix setting a set in a list [GH-19552]
 
 ## 0.12.0-alpha4 (December 7, 2018)
