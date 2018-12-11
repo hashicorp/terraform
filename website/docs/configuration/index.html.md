@@ -16,23 +16,53 @@ describing an intended goal rather than the steps to reach that goal.
 
 ## Resources and Modules
 
-The main purpose of the Terraform language is declaring [resources](/docs/configuration/resources.html).
+The main purpose of the Terraform language is declaring [resources](./resources.html).
 All other language features exist only to make the definition of resources
 more flexible and convenient.
 
-A group of resources can be gathered into a [module](/docs/configuration/modules.html),
+A group of resources can be gathered into a [module](./modules.html),
 which creates a larger unit of configuration. A resource describes a single
 infrastructure object, while a module might describe a set of objects and the
 necessary relationships between them in order to create a higher-level system.
 
 A _Terraform configuration_ consists of a _root module_, where evaluation
-begins, along with a tree of child modules created when one module references
+begins, along with a tree of child modules created when one module calls
 another.
+
+## Arguments, Blocks, and Expressions
+
+The syntax of the Terraform language consists of only a few basic elements:
+
+```hcl
+resource "aws_vpc" "main" {
+  cidr_block = var.base_cidr_block
+}
+
+<BLOCK TYPE> "<BLOCK LABEL>" "<BLOCK LABEL>" {
+  # Block body
+  <IDENTIFIER> = <EXPRESSION> # Argument
+}
+```
+
+- _Blocks_ are containers for other content and usually represent the
+  configuration of some kind of object, like a resource. Blocks have a
+  _block type,_ can have zero or more _labels,_ and have a _body_ that contains
+  any number of arguments and nested blocks. Most of Terraform's features are
+  controlled by top-level blocks in a configuration file.
+- _Arguments_ assign a value to a name. They appear within blocks.
+- _Expressions_ represent a value, either literally or by referencing and
+  combining other values. They appear as values for arguments, or within other
+  expressions.
+
+For full details about Terraform's syntax, see:
+
+- [Configuration Syntax](./syntax.html)
+- [Expressions](./expressions.html)
 
 ## Code Organization
 
 The Terraform language uses configuration files that are named with the `.tf`
-file extension. There is also [a JSON-based variant of the language](/docs/configuration/syntax-json.html)
+file extension. There is also [a JSON-based variant of the language](./syntax-json.html)
 that is named with the `.tf.json` file extension.
 
 Configuration files must always use UTF-8 encoding, and by convention are
@@ -53,31 +83,33 @@ or by organizing sets of resources into child modules.
 ## Configuration Ordering
 
 Because Terraform's configuration language is declarative, the ordering of
-blocks is generally not significant, except in some specific situations which
-are described explicitly elsewhere.
+blocks is generally not significant. (The order of `provisioner` blocks within a
+resource is the only major feature where block order matters.)
 
 Terraform automatically processes resources in the correct order based on
 relationships defined between them in configuration, and so you can organize
 resources into source files in whatever way makes sense for your infrastructure.
 
-## Terraform Core vs. Providers
+## Terraform CLI vs. Providers
 
-Terraform Core is a general engine for evaluating and applying Terraform
-configuations. It defines the Terraform language syntax and overall structure,
-and coordinates sequences of changes that must be made to make remote
-infrastructure match the given configuration.
+The Terraform command line interface (CLI) is a general engine for evaluating
+and applying Terraform configuations. It defines the Terraform language syntax
+and overall structure, and coordinates sequences of changes that must be made to
+make remote infrastructure match the given configuration.
 
-Terraform Core has no knowledge of specific infrastructure object types, though.
-Instead, Terraform uses plugins called [providers](/docs/configuration/providers.html)
-that each define and know how to manage a set of resource types. Most providers
-are associated with a particular cloud or on-premises infrastructure service,
-allowing Terraform to manage infrastructure objects within that service.
+This general engine has no knowledge about specific types of infrastructure
+objects. Instead, Terraform uses plugins called
+[providers](./providers.html) that each define and manage a
+set of resource types. Most providers are associated with a particular cloud or
+on-premises infrastructure service, allowing Terraform to manage infrastructure
+objects within that service.
 
-Since each provider has its own resource types with different features, the
-exact details of resources can vary between services, but Terraform Core
-ensures that the same language constructs and syntax are available across
-all services and allows resource types from different services to be combined
-as needed.
+Terraform doesn't have a concept of platform-independent resource types
+— resources are always tied to a provider, since the features of similar
+resources can vary greatly from provider to provider. But Terraform CLI's shared
+configuration engine ensures that the same language constructs and syntax are
+available across all services and allows resource types from different services
+to be combined as needed.
 
 ## Example
 
@@ -98,6 +130,7 @@ variable "base_cidr_block" {
 
 variable "availability_zones" {
   description = "A list of availability zones in which to create subnets"
+  type = list(string)
 }
 
 provider "aws" {

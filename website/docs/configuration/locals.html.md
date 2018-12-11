@@ -9,14 +9,17 @@ description: |-
 
 # Local Values
 
-A local value assigns a name to an [expression](/docs/configuration/expressions.html),
-allowing it to then be used multiple times within a module without repeating
+A local value assigns a name to an [expression](./expressions.html),
+allowing it to be used multiple times within a module without repeating
 it.
 
-Comparing modules to functions in a traditional programming language,
+Comparing modules to functions in a traditional programming language:
 if [input variables](./variables.html) are analogous to function arguments and
-[outputs values](./outputs.html) are analogous to function return values then
+[outputs values](./outputs.html) are analogous to function return values, then
 _local values_ are comparable to a function's local temporary symbols.
+
+-> **Note:** For brevity, local values are often referred to as just "locals"
+when the meaning is clear from context.
 
 ## Declaring a Local Value
 
@@ -29,9 +32,6 @@ locals {
   owner        = "Community Team"
 }
 ```
-
-For brevity, local values are often referred to just as "locals", when the
-meaning is clear from context.
 
 The expressions assigned to local value names can either be simple constants
 like the above, allowing these values to be defined only once but used many
@@ -54,7 +54,7 @@ locals {
 ```
 
 As shown above, local values can be referenced from elsewhere in the module
-with an expression like `local.common_tags`, and output values can reference
+with an expression like `local.common_tags`, and locals can reference
 each other in order to build more complex values from simpler ones.
 
 ```
@@ -67,12 +67,12 @@ resource "aws_instance" "example" {
 
 ## When To Use Local Values
 
-Local Values can be helpful to avoid repeating the same values or expressions
+Local values can be helpful to avoid repeating the same values or expressions
 multiple times in a configuration, but if overused they can also make a
 configuration hard to read by future maintainers by hiding the actual values
 used.
 
-Use Local Values only in moderation, in situations where a single value or
+Use local values only in moderation, in situations where a single value or
 result is used in many places _and_ that value is likely to be changed in
 future. The ability to easily change the value in a central place is the key
 advantage of local values.

@@ -8,7 +8,7 @@ description: |-
 
 # `pow` Function
 
-`pow` raises a number to a given power. That is, it calcluates the exponent.
+`pow` calculates an exponent, by raising its first argument to the power of the second argument.
 
 ## Examples
 
