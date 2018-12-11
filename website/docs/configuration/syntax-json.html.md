@@ -88,17 +88,18 @@ resource "aws_instance" "example" {
 ```
 
 Within each top-level block type the rules for mapping to JSON are slightly
-different, but the following general rules apply in most cases:
+different (see [Block-type-specific Exceptions][inpage-exceptions] below), but the following general rules apply in most cases:
 
 * The JSON object representing the block body contains properties that
-  correspond either to attribute arguments names or to nested block type names.
+  correspond either to argument names or to nested block type names.
 
-* Where a property corresponds to an attribute argument that accepts
+* Where a property corresponds to an argument that accepts
   [arbitrary expressions](./expressions.html) in the native syntax, the
   property value is mapped to an expression as described under
   [_Expression Mapping_](#expression-mapping) below. For arguments that
   do _not_ accept arbitrary expressions, the interpretation of the property
-  value depends on the argument, as described in [the block-type-specific exceptions](#block-type-specific-exceptions)
+  value depends on the argument, as described in the
+  [block-type-specific exceptions](#block-type-specific-exceptions)
   given later in this page.
 
 * Where a property name corresponds to an expected nested block type name,
@@ -181,7 +182,7 @@ resource "aws_instance" "example" {
 ```
 
 When the nested block type requires one or more labels, or when multiple
-blocks of the same type must be given, the mapping gets a little more
+blocks of the same type can be given, the mapping gets a little more
 complicated. For example, the `provisioner` nested block type used
 within `resource` blocks expects a label giving the provisioner to use,
 and the ordering of provisioner blocks is significant to decide the order
@@ -299,6 +300,8 @@ configuration file. This can be useful to note which program created the file.
 
 ## Block-type-specific Exceptions
 
+[inpage-block]: #block-type-specific-exceptions
+
 Certain arguments within specific block types are processed in a special way
 by Terraform, and so their mapping to the JSON syntax does not follow the
 general rules described above. The following sub-sections describe the special
@@ -311,9 +314,9 @@ references to objects, or literal keywords. When represented in JSON, the
 reference or keyword is given as a JSON string with no additonal surrounding
 spaces or symbols.
 
-For example, the `provider` meta-argument takes a special compact provider
-configuration reference, which appears directly in the native syntax but must
-be presented as a string in the JSON syntax:
+For example, the `provider` meta-argument takes a `<PROVIDER>.<ALIAS>` reference
+to a provider configuration, which appears unquoted in the native syntax but
+must be presented as a string in the JSON syntax:
 
 ```json
 {
@@ -330,8 +333,8 @@ be presented as a string in the JSON syntax:
 This special processing applies to the following meta-arguments:
 
 * `provider`: a single string, as shown above
-* `depends_on`: an array of strings containing object references, like
-  `["aws_instance.example"]`.
+* `depends_on`: an array of strings containing references to named entities,
+  like `["aws_instance.example"]`.
 * `ignore_changes` within the `lifecycle` block: if set to `all`, a single
   string `"all"` must be given. Otherwise, an array of JSON strings containing
   property references must be used, like `["ami"]`.

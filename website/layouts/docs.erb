@@ -2,7 +2,7 @@
   <% content_for :sidebar do %>
     <ul class="nav docs-sidenav">
       <li<%= sidebar_current("docs-config") %>>
-        <a href="/docs/configuration/index.html">Configuration</a>
+        <a href="/docs/configuration/index.html">Configuration Language</a>
         <ul class="nav">
           <li<%= sidebar_current("docs-config-resources") %>>
             <a href="/docs/configuration/resources.html">Resources</a>
@@ -50,6 +50,18 @@
 
           <li<%= sidebar_current("docs-config-override") %>>
             <a href="/docs/configuration/override.html">Override Files</a>
+          </li>
+
+          <li<%= sidebar_current("docs-config-style") %>>
+            <a href="/docs/configuration/style.html">Style Conventions</a>
+          </li>
+
+          <li<%= sidebar_current("docs-config-types") %>>
+            <a href="/docs/configuration/types.html">Type Constraints</a>
+          </li>
+
+          <li<%= sidebar_current("docs-config-syntax-json") %>>
+            <a href="/docs/configuration/syntax-json.html">JSON Configuration Syntax</a>
           </li>
         </ul>
       </li>
@@ -238,36 +250,36 @@
       <li<%= sidebar_current("docs-provisioners") %>>
         <a href="/docs/provisioners/index.html">Provisioners</a>
         <ul class="nav">
-          <li<%= sidebar_current("docs-provisioners-chef") %>>
-            <a href="/docs/provisioners/chef.html">chef</a>
+          <li<%= sidebar_current("docs-provisioners-connection") %>>
+            <a href="/docs/provisioners/connection.html">Provisioner Connections</a>
           </li>
 
-          <li<%= sidebar_current("docs-provisioners-connection") %>>
-            <a href="/docs/provisioners/connection.html">connection</a>
+          <li<%= sidebar_current("docs-provisioners-chef") %>>
+            <a href="/docs/provisioners/chef.html">chef Provisioner</a>
           </li>
 
           <li<%= sidebar_current("docs-provisioners-file") %>>
-            <a href="/docs/provisioners/file.html">file</a>
+            <a href="/docs/provisioners/file.html">file Provisioner</a>
           </li>
 
           <li<%= sidebar_current("docs-provisioners-habitat") %>>
-            <a href="/docs/provisioners/habitat.html">habitat</a>
+            <a href="/docs/provisioners/habitat.html">habitat Provisioner</a>
           </li>
 
           <li<%= sidebar_current("docs-provisioners-local") %>>
-            <a href="/docs/provisioners/local-exec.html">local-exec</a>
+            <a href="/docs/provisioners/local-exec.html">local-exec Provisioner</a>
           </li>
 
           <li<%= sidebar_current("docs-provisioners-null-resource") %>>
-            <a href="/docs/provisioners/null_resource.html">null_resource</a>
+            <a href="/docs/provisioners/null_resource.html">null_resource Provisioner</a>
           </li>
 
           <li<%= sidebar_current("docs-provisioners-remote") %>>
-            <a href="/docs/provisioners/remote-exec.html">remote-exec</a>
+            <a href="/docs/provisioners/remote-exec.html">remote-exec Provisioner</a>
           </li>
 
           <li<%= sidebar_current("docs-provisioners-salt-masterless") %>>
-            <a href="/docs/provisioners/salt-masterless.html">salt-masterless</a>
+            <a href="/docs/provisioners/salt-masterless.html">salt-masterless Provisioner</a>
           </li>
         </ul>
       </li>

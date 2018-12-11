@@ -19,7 +19,7 @@ This function produces a new value each time it is called, and so using it
 directly in resource arguments will result in spurious diffs. We do not
 recommend using the `uuid` function in resource configurations, but it can
 be used with care in conjunction with
-[the `ignore_changes` lifecycle meta-argument](/docs/configuration/resources.html#ignore_changes).
+[the `ignore_changes` lifecycle meta-argument](./resources.html#ignore_changes).
 
 In most cases we recommend using [the `random` provider](/docs/providers/random/index.html)
 instead, since it allows the one-time generation of random values that are

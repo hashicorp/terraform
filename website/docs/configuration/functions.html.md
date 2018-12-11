@@ -19,12 +19,12 @@ max(5, 12, 9)
 ```
 
 For more details on syntax, see
-[_Function Calls_](/docs/configuration/expressions.html#function-calls)
+[_Function Calls_](./expressions.html#function-calls)
 on the Expressions page.
 
 The Terraform language does not support user-defined functions, and so only
 the functions built in to the language are available for use. The navigation
-includes a list of all of the available built-in functions.
+for this section includes a list of all of the available built-in functions.
 
 You can experiment with the behavior of Terraform's built-in functions from
 the Terraform expression console, by running
