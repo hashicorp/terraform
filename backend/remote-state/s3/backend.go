@@ -44,11 +44,32 @@ func New() backend.Backend {
 				DefaultFunc: schema.EnvDefaultFunc("AWS_DEFAULT_REGION", nil),
 			},
 
+			"dynamodb_endpoint": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "A custom endpoint for the DynamoDB API",
+				DefaultFunc: schema.EnvDefaultFunc("AWS_DYNAMODB_ENDPOINT", ""),
+			},
+
 			"endpoint": {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Description: "A custom endpoint for the S3 API",
 				DefaultFunc: schema.EnvDefaultFunc("AWS_S3_ENDPOINT", ""),
+			},
+
+			"iam_endpoint": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "A custom endpoint for the IAM API",
+				DefaultFunc: schema.EnvDefaultFunc("AWS_IAM_ENDPOINT", ""),
+			},
+
+			"sts_endpoint": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "A custom endpoint for the STS API",
+				DefaultFunc: schema.EnvDefaultFunc("AWS_STS_ENDPOINT", ""),
 			},
 
 			"encrypt": {
@@ -252,7 +273,10 @@ func (b *Backend) configure(ctx context.Context) error {
 		CredsFilename:           data.Get("shared_credentials_file").(string),
 		Profile:                 data.Get("profile").(string),
 		Region:                  data.Get("region").(string),
+		DynamoDBEndpoint:        data.Get("dynamodb_endpoint").(string),
+		IamEndpoint:             data.Get("iam_endpoint").(string),
 		S3Endpoint:              data.Get("endpoint").(string),
+		StsEndpoint:             data.Get("sts_endpoint").(string),
 		SecretKey:               data.Get("secret_key").(string),
 		Token:                   data.Get("token").(string),
 		SkipCredsValidation:     data.Get("skip_credentials_validation").(bool),
