@@ -78,12 +78,12 @@ func TestBackendManagedServiceIdentityBasic(t *testing.T) {
 		"storage_account_name": res.storageAccountName,
 		"container_name":       res.storageContainerName,
 		"key":                  res.storageKeyName,
-		"resource_group_name":  res.resourceGroup,
-		"use_msi":              true,
-		"subscription_id":      os.Getenv("ARM_SUBSCRIPTION_ID"),
-		"tenant_id":            os.Getenv("ARM_TENANT_ID"),
-		"environment":          os.Getenv("ARM_ENVIRONMENT"),
-		"endpoint":             os.Getenv("ARM_ENDPOINT"),
+		"resource_group_name": res.resourceGroup,
+		"use_msi":             true,
+		"subscription_id":     os.Getenv("ARM_SUBSCRIPTION_ID"),
+		"tenant_id":           os.Getenv("ARM_TENANT_ID"),
+		"environment":         os.Getenv("ARM_ENVIRONMENT"),
+		"endpoint":            os.Getenv("ARM_ENDPOINT"),
 	})).(*Backend)
 
 	backend.TestBackendStates(t, b)
@@ -119,7 +119,7 @@ func TestBackendSASTokenBasic(t *testing.T) {
 	backend.TestBackendStates(t, b)
 }
 
-func TestBackendServicePrincipalBasic(t *testing.T) {
+func TestBackendServicePrincipalClientSecretBasic(t *testing.T) {
 	testAccAzureBackend(t)
 	rs := acctest.RandString(4)
 	res := testResourceNames(rs, "testState")
@@ -136,19 +136,19 @@ func TestBackendServicePrincipalBasic(t *testing.T) {
 		"storage_account_name": res.storageAccountName,
 		"container_name":       res.storageContainerName,
 		"key":                  res.storageKeyName,
-		"resource_group_name":  res.resourceGroup,
-		"subscription_id":      os.Getenv("ARM_SUBSCRIPTION_ID"),
-		"tenant_id":            os.Getenv("ARM_TENANT_ID"),
-		"client_id":            os.Getenv("ARM_CLIENT_ID"),
-		"client_secret":        os.Getenv("ARM_CLIENT_SECRET"),
-		"environment":          os.Getenv("ARM_ENVIRONMENT"),
-		"endpoint":             os.Getenv("ARM_ENDPOINT"),
+		"resource_group_name": res.resourceGroup,
+		"subscription_id":     os.Getenv("ARM_SUBSCRIPTION_ID"),
+		"tenant_id":           os.Getenv("ARM_TENANT_ID"),
+		"client_id":           os.Getenv("ARM_CLIENT_ID"),
+		"client_secret":       os.Getenv("ARM_CLIENT_SECRET"),
+		"environment":         os.Getenv("ARM_ENVIRONMENT"),
+		"endpoint":            os.Getenv("ARM_ENDPOINT"),
 	})).(*Backend)
 
 	backend.TestBackendStates(t, b)
 }
 
-func TestBackendServicePrincipalCustomEndpoint(t *testing.T) {
+func TestBackendServicePrincipalClientSecretCustomEndpoint(t *testing.T) {
 	testAccAzureBackend(t)
 
 	// this is only applicable for Azure Stack.
@@ -172,13 +172,13 @@ func TestBackendServicePrincipalCustomEndpoint(t *testing.T) {
 		"storage_account_name": res.storageAccountName,
 		"container_name":       res.storageContainerName,
 		"key":                  res.storageKeyName,
-		"resource_group_name":  res.resourceGroup,
-		"subscription_id":      os.Getenv("ARM_SUBSCRIPTION_ID"),
-		"tenant_id":            os.Getenv("ARM_TENANT_ID"),
-		"client_id":            os.Getenv("ARM_CLIENT_ID"),
-		"client_secret":        os.Getenv("ARM_CLIENT_SECRET"),
-		"environment":          os.Getenv("ARM_ENVIRONMENT"),
-		"endpoint":             endpoint,
+		"resource_group_name": res.resourceGroup,
+		"subscription_id":     os.Getenv("ARM_SUBSCRIPTION_ID"),
+		"tenant_id":           os.Getenv("ARM_TENANT_ID"),
+		"client_id":           os.Getenv("ARM_CLIENT_ID"),
+		"client_secret":       os.Getenv("ARM_CLIENT_SECRET"),
+		"environment":         os.Getenv("ARM_ENVIRONMENT"),
+		"endpoint":            endpoint,
 	})).(*Backend)
 
 	backend.TestBackendStates(t, b)
@@ -219,7 +219,7 @@ func TestBackendAccessKeyLocked(t *testing.T) {
 	backend.TestBackendStateForceUnlock(t, b1, b2)
 }
 
-func TestBackendServicePrincipalLocked(t *testing.T) {
+func TestBackendServicePrincipalClientSecretLocked(t *testing.T) {
 	testAccAzureBackend(t)
 	rs := acctest.RandString(4)
 	res := testResourceNames(rs, "testState")

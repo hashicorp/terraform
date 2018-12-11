@@ -114,7 +114,7 @@ func TestRemoteClientSasTokenBasic(t *testing.T) {
 	remote.TestClient(t, state.(*remote.State).Client)
 }
 
-func TestRemoteClientServicePrincipalBasic(t *testing.T) {
+func TestRemoteClientServicePrincipalClientSecretBasic(t *testing.T) {
 	testAccAzureBackend(t)
 	rs := acctest.RandString(4)
 	res := testResourceNames(rs, "testState")
@@ -192,7 +192,7 @@ func TestRemoteClientAccessKeyLocks(t *testing.T) {
 	remote.TestRemoteLocks(t, s1.(*remote.State).Client, s2.(*remote.State).Client)
 }
 
-func TestRemoteClientServicePrincipalLocks(t *testing.T) {
+func TestRemoteClientServicePrincipalClientSecretLocks(t *testing.T) {
 	testAccAzureBackend(t)
 	rs := acctest.RandString(4)
 	res := testResourceNames(rs, "testState")
