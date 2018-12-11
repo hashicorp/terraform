@@ -10,16 +10,8 @@ import (
 	"github.com/zclconf/go-cty/cty"
 )
 
-func TestResourceChange(t *testing.T) {
-	testCases := map[string]struct {
-		Action          plans.Action
-		Mode            addrs.ResourceMode
-		Before          cty.Value
-		After           cty.Value
-		Schema          *configschema.Block
-		RequiredReplace cty.PathSet
-		ExpectedOutput  string
-	}{
+func TestResourceChange_primitiveTypes(t *testing.T) {
+	testCases := map[string]testCase{
 		"creation": {
 			Action: plans.Create,
 			Mode:   addrs.ManagedResourceMode,
@@ -58,7 +50,7 @@ func TestResourceChange(t *testing.T) {
     }
 `,
 		},
-		"simple in-place update": {
+		"string in-place update": {
 			Action: plans.Update,
 			Mode:   addrs.ManagedResourceMode,
 			Before: cty.ObjectVal(map[string]cty.Value{
@@ -83,7 +75,7 @@ func TestResourceChange(t *testing.T) {
     }
 `,
 		},
-		"simple force-new update": {
+		"string force-new update": {
 			Action: plans.DeleteThenCreate,
 			Mode:   addrs.ManagedResourceMode,
 			Before: cty.ObjectVal(map[string]cty.Value{
@@ -91,7 +83,7 @@ func TestResourceChange(t *testing.T) {
 				"ami": cty.StringVal("ami-BEFORE"),
 			}),
 			After: cty.ObjectVal(map[string]cty.Value{
-				"id":  cty.UnknownVal(cty.String),
+				"id":  cty.StringVal("i-02ae66f368e8518a9"),
 				"ami": cty.StringVal("ami-AFTER"),
 			}),
 			Schema: &configschema.Block{
@@ -106,12 +98,110 @@ func TestResourceChange(t *testing.T) {
 			ExpectedOutput: `  # test_instance.example must be replaced
 -/+ resource "test_instance" "example" {
       ~ ami = "ami-BEFORE" -> "ami-AFTER"
-      ~ id  = "i-02ae66f368e8518a9" -> (known after apply)
+        id  = "i-02ae66f368e8518a9"
+    }
+`,
+		},
+		"string in-place update (null values)": {
+			Action: plans.Update,
+			Mode:   addrs.ManagedResourceMode,
+			Before: cty.ObjectVal(map[string]cty.Value{
+				"id":        cty.StringVal("i-02ae66f368e8518a9"),
+				"ami":       cty.StringVal("ami-BEFORE"),
+				"unchanged": cty.NullVal(cty.String),
+			}),
+			After: cty.ObjectVal(map[string]cty.Value{
+				"id":        cty.StringVal("i-02ae66f368e8518a9"),
+				"ami":       cty.StringVal("ami-AFTER"),
+				"unchanged": cty.NullVal(cty.String),
+			}),
+			Schema: &configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"id":        {Type: cty.String, Optional: true, Computed: true},
+					"ami":       {Type: cty.String, Optional: true},
+					"unchanged": {Type: cty.String, Optional: true},
+				},
+			},
+			RequiredReplace: cty.NewPathSet(),
+			ExpectedOutput: `  # test_instance.example will be updated in-place
+  ~ resource "test_instance" "example" {
+      ~ ami = "ami-BEFORE" -> "ami-AFTER"
+        id  = "i-02ae66f368e8518a9"
+    }
+`,
+		},
+		"in-place update of multi-line string field": {
+			Action: plans.Update,
+			Mode:   addrs.ManagedResourceMode,
+			Before: cty.ObjectVal(map[string]cty.Value{
+				"id": cty.StringVal("i-02ae66f368e8518a9"),
+				"more_lines": cty.StringVal(`original
+`),
+			}),
+			After: cty.ObjectVal(map[string]cty.Value{
+				"id": cty.UnknownVal(cty.String),
+				"more_lines": cty.StringVal(`original
+new line
+`),
+			}),
+			Schema: &configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"id":         {Type: cty.String, Optional: true, Computed: true},
+					"more_lines": {Type: cty.String, Optional: true},
+				},
+			},
+			RequiredReplace: cty.NewPathSet(),
+			ExpectedOutput: `  # test_instance.example will be updated in-place
+  ~ resource "test_instance" "example" {
+      ~ id         = "i-02ae66f368e8518a9" -> (known after apply)
+      ~ more_lines = <<~EOT
+            original
+          + new line
+        EOT
+    }
+`,
+		},
+
+		// Sensitive
+
+		"creation with sensitive field": {
+			Action: plans.Create,
+			Mode:   addrs.ManagedResourceMode,
+			Before: cty.NullVal(cty.EmptyObject),
+			After: cty.ObjectVal(map[string]cty.Value{
+				"id":       cty.UnknownVal(cty.String),
+				"password": cty.StringVal("top-secret"),
+			}),
+			Schema: &configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"id":       {Type: cty.String, Computed: true},
+					"password": {Type: cty.String, Optional: true, Sensitive: true},
+				},
+			},
+			RequiredReplace: cty.NewPathSet(),
+			ExpectedOutput: `  # test_instance.example will be created
+  + resource "test_instance" "example" {
+      + id       = (known after apply)
+      + password = (sensitive value)
     }
 `,
 		},
 	}
 
+	runTestCases(t, testCases)
+}
+
+type testCase struct {
+	Action          plans.Action
+	Mode            addrs.ResourceMode
+	Before          cty.Value
+	After           cty.Value
+	Schema          *configschema.Block
+	RequiredReplace cty.PathSet
+	ExpectedOutput  string
+}
+
+func runTestCases(t *testing.T, testCases map[string]testCase) {
 	color := &colorstring.Colorize{Colors: colorstring.DefaultColors, Disable: true}
 
 	for name, tc := range testCases {
