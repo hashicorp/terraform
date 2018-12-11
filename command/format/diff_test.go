@@ -45,9 +45,7 @@ func TestResourceChange_primitiveTypes(t *testing.T) {
 			},
 			RequiredReplace: cty.NewPathSet(),
 			ExpectedOutput: `  # test_instance.example will be destroyed
-  - resource "test_instance" "example" {
-      - id = "i-02ae66f368e8518a9" -> null
-    }
+  - resource "test_instance" "example"
 `,
 		},
 		"string in-place update": {

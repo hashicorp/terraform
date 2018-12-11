@@ -100,6 +100,11 @@ func ResourceChange(
 		buf.WriteString(addr.String())
 	}
 
+	if change.Action == plans.Delete {
+		buf.WriteString("\n")
+		return buf.String()
+	}
+
 	buf.WriteString(" {\n")
 
 	p := blockBodyDiffPrinter{
