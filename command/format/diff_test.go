@@ -191,6 +191,812 @@ new line
 	runTestCases(t, testCases)
 }
 
+func TestResourceChange_JSON(t *testing.T) {
+	testCases := map[string]testCase{
+		"creation": {
+			Action: plans.Create,
+			Mode:   addrs.ManagedResourceMode,
+			Before: cty.NullVal(cty.EmptyObject),
+			After: cty.ObjectVal(map[string]cty.Value{
+				"id": cty.UnknownVal(cty.String),
+				"json_field": cty.StringVal(`{
+					"str": "value",
+					"list":["a","b", 234, true],
+					"obj": {"key": "val"}
+				}`),
+			}),
+			Schema: &configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"id":         {Type: cty.String, Optional: true, Computed: true},
+					"json_field": {Type: cty.String, Optional: true},
+				},
+			},
+			RequiredReplace: cty.NewPathSet(),
+			ExpectedOutput: `  # test_instance.example will be created
+  + resource "test_instance" "example" {
+      + id         = (known after apply)
+      + json_field = jsonencode(
+            {
+              + list = [
+                  + "a",
+                  + "b",
+                  + 234,
+                  + true,
+                ]
+              + obj  = {
+                  + key = "val"
+                }
+              + str  = "value"
+            }
+        )
+    }
+`,
+		},
+		"in-place update": {
+			Action: plans.Update,
+			Mode:   addrs.ManagedResourceMode,
+			Before: cty.ObjectVal(map[string]cty.Value{
+				"id":         cty.StringVal("i-02ae66f368e8518a9"),
+				"json_field": cty.StringVal(`{"aaa": "value"}`),
+			}),
+			After: cty.ObjectVal(map[string]cty.Value{
+				"id":         cty.UnknownVal(cty.String),
+				"json_field": cty.StringVal(`{"aaa": "value", "bbb": "new_value"}`),
+			}),
+			Schema: &configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"id":         {Type: cty.String, Optional: true, Computed: true},
+					"json_field": {Type: cty.String, Optional: true},
+				},
+			},
+			RequiredReplace: cty.NewPathSet(),
+			ExpectedOutput: `  # test_instance.example will be updated in-place
+  ~ resource "test_instance" "example" {
+      ~ id         = "i-02ae66f368e8518a9" -> (known after apply)
+      ~ json_field = jsonencode(
+          ~ {
+              - aaa = "value"
+            } -> {
+              + aaa = "value"
+              + bbb = "new_value"
+            }
+        )
+    }
+`,
+		},
+		"in-place update (whitespace change)": {
+			Action: plans.Update,
+			Mode:   addrs.ManagedResourceMode,
+			Before: cty.ObjectVal(map[string]cty.Value{
+				"id":         cty.StringVal("i-02ae66f368e8518a9"),
+				"json_field": cty.StringVal(`{"aaa": "value", "bbb": "another"}`),
+			}),
+			After: cty.ObjectVal(map[string]cty.Value{
+				"id": cty.UnknownVal(cty.String),
+				"json_field": cty.StringVal(`{"aaa":"value",
+					"bbb":"another"}`),
+			}),
+			Schema: &configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"id":         {Type: cty.String, Optional: true, Computed: true},
+					"json_field": {Type: cty.String, Optional: true},
+				},
+			},
+			RequiredReplace: cty.NewPathSet(),
+			ExpectedOutput: `  # test_instance.example will be updated in-place
+  ~ resource "test_instance" "example" {
+      ~ id         = "i-02ae66f368e8518a9" -> (known after apply)
+      ~ json_field = jsonencode( # whitespace changes
+            {
+                aaa = "value"
+                bbb = "another"
+            }
+        )
+    }
+`,
+		},
+	}
+	runTestCases(t, testCases)
+}
+
+func TestResourceChange_primitiveList(t *testing.T) {
+	testCases := map[string]testCase{
+		"in-place update - creation": {
+			Action: plans.Update,
+			Mode:   addrs.ManagedResourceMode,
+			Before: cty.ObjectVal(map[string]cty.Value{
+				"id":         cty.StringVal("i-02ae66f368e8518a9"),
+				"ami":        cty.StringVal("ami-STATIC"),
+				"list_field": cty.ListValEmpty(cty.String),
+			}),
+			After: cty.ObjectVal(map[string]cty.Value{
+				"id":  cty.UnknownVal(cty.String),
+				"ami": cty.StringVal("ami-STATIC"),
+				"list_field": cty.ListVal([]cty.Value{
+					cty.StringVal("new-element"),
+				}),
+			}),
+			Schema: &configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"id":         {Type: cty.String, Optional: true, Computed: true},
+					"ami":        {Type: cty.String, Optional: true},
+					"list_field": {Type: cty.List(cty.String), Optional: true},
+				},
+			},
+			RequiredReplace: cty.NewPathSet(),
+			ExpectedOutput: `  # test_instance.example will be updated in-place
+  ~ resource "test_instance" "example" {
+        ami        = "ami-STATIC"
+      ~ id         = "i-02ae66f368e8518a9" -> (known after apply)
+      ~ list_field = [
+          + "new-element",
+        ]
+    }
+`,
+		},
+		"in-place update - insertion": {
+			Action: plans.Update,
+			Mode:   addrs.ManagedResourceMode,
+			Before: cty.ObjectVal(map[string]cty.Value{
+				"id":  cty.StringVal("i-02ae66f368e8518a9"),
+				"ami": cty.StringVal("ami-STATIC"),
+				"list_field": cty.ListVal([]cty.Value{
+					cty.StringVal("aaaa"),
+					cty.StringVal("cccc"),
+				}),
+			}),
+			After: cty.ObjectVal(map[string]cty.Value{
+				"id":  cty.UnknownVal(cty.String),
+				"ami": cty.StringVal("ami-STATIC"),
+				"list_field": cty.ListVal([]cty.Value{
+					cty.StringVal("aaaa"),
+					cty.StringVal("bbbb"),
+					cty.StringVal("cccc"),
+				}),
+			}),
+			Schema: &configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"id":         {Type: cty.String, Optional: true, Computed: true},
+					"ami":        {Type: cty.String, Optional: true},
+					"list_field": {Type: cty.List(cty.String), Optional: true},
+				},
+			},
+			RequiredReplace: cty.NewPathSet(),
+			ExpectedOutput: `  # test_instance.example will be updated in-place
+  ~ resource "test_instance" "example" {
+        ami        = "ami-STATIC"
+      ~ id         = "i-02ae66f368e8518a9" -> (known after apply)
+      ~ list_field = [
+            "aaaa",
+          + "bbbb",
+            "cccc",
+        ]
+    }
+`,
+		},
+		"in-place update - deletion": {
+			Action: plans.Update,
+			Mode:   addrs.ManagedResourceMode,
+			Before: cty.ObjectVal(map[string]cty.Value{
+				"id":  cty.StringVal("i-02ae66f368e8518a9"),
+				"ami": cty.StringVal("ami-STATIC"),
+				"list_field": cty.ListVal([]cty.Value{
+					cty.StringVal("aaaa"),
+					cty.StringVal("bbbb"),
+					cty.StringVal("cccc"),
+				}),
+			}),
+			After: cty.ObjectVal(map[string]cty.Value{
+				"id":  cty.UnknownVal(cty.String),
+				"ami": cty.StringVal("ami-STATIC"),
+				"list_field": cty.ListVal([]cty.Value{
+					cty.StringVal("bbbb"),
+				}),
+			}),
+			Schema: &configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"id":         {Type: cty.String, Optional: true, Computed: true},
+					"ami":        {Type: cty.String, Optional: true},
+					"list_field": {Type: cty.List(cty.String), Optional: true},
+				},
+			},
+			RequiredReplace: cty.NewPathSet(),
+			ExpectedOutput: `  # test_instance.example will be updated in-place
+  ~ resource "test_instance" "example" {
+        ami        = "ami-STATIC"
+      ~ id         = "i-02ae66f368e8518a9" -> (known after apply)
+      ~ list_field = [
+          - "aaaa",
+            "bbbb",
+          - "cccc",
+        ]
+    }
+`,
+		},
+	}
+	runTestCases(t, testCases)
+}
+
+func TestResourceChange_primitiveSet(t *testing.T) {
+	testCases := map[string]testCase{
+		"in-place update - creation": {
+			Action: plans.Update,
+			Mode:   addrs.ManagedResourceMode,
+			Before: cty.ObjectVal(map[string]cty.Value{
+				"id":        cty.StringVal("i-02ae66f368e8518a9"),
+				"ami":       cty.StringVal("ami-STATIC"),
+				"set_field": cty.SetValEmpty(cty.String),
+			}),
+			After: cty.ObjectVal(map[string]cty.Value{
+				"id":  cty.UnknownVal(cty.String),
+				"ami": cty.StringVal("ami-STATIC"),
+				"set_field": cty.SetVal([]cty.Value{
+					cty.StringVal("new-element"),
+				}),
+			}),
+			Schema: &configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"id":        {Type: cty.String, Optional: true, Computed: true},
+					"ami":       {Type: cty.String, Optional: true},
+					"set_field": {Type: cty.Set(cty.String), Optional: true},
+				},
+			},
+			RequiredReplace: cty.NewPathSet(),
+			ExpectedOutput: `  # test_instance.example will be updated in-place
+  ~ resource "test_instance" "example" {
+        ami       = "ami-STATIC"
+      ~ id        = "i-02ae66f368e8518a9" -> (known after apply)
+      ~ set_field = [
+          + "new-element",
+        ]
+    }
+`,
+		},
+		"in-place update - insertion": {
+			Action: plans.Update,
+			Mode:   addrs.ManagedResourceMode,
+			Before: cty.ObjectVal(map[string]cty.Value{
+				"id":  cty.StringVal("i-02ae66f368e8518a9"),
+				"ami": cty.StringVal("ami-STATIC"),
+				"set_field": cty.SetVal([]cty.Value{
+					cty.StringVal("aaaa"),
+					cty.StringVal("cccc"),
+				}),
+			}),
+			After: cty.ObjectVal(map[string]cty.Value{
+				"id":  cty.UnknownVal(cty.String),
+				"ami": cty.StringVal("ami-STATIC"),
+				"set_field": cty.SetVal([]cty.Value{
+					cty.StringVal("aaaa"),
+					cty.StringVal("bbbb"),
+					cty.StringVal("cccc"),
+				}),
+			}),
+			Schema: &configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"id":        {Type: cty.String, Optional: true, Computed: true},
+					"ami":       {Type: cty.String, Optional: true},
+					"set_field": {Type: cty.Set(cty.String), Optional: true},
+				},
+			},
+			RequiredReplace: cty.NewPathSet(),
+			ExpectedOutput: `  # test_instance.example will be updated in-place
+  ~ resource "test_instance" "example" {
+        ami       = "ami-STATIC"
+      ~ id        = "i-02ae66f368e8518a9" -> (known after apply)
+      ~ set_field = [
+            "aaaa",
+          + "bbbb",
+            "cccc",
+        ]
+    }
+`,
+		},
+		"in-place update - deletion": {
+			Action: plans.Update,
+			Mode:   addrs.ManagedResourceMode,
+			Before: cty.ObjectVal(map[string]cty.Value{
+				"id":  cty.StringVal("i-02ae66f368e8518a9"),
+				"ami": cty.StringVal("ami-STATIC"),
+				"set_field": cty.SetVal([]cty.Value{
+					cty.StringVal("aaaa"),
+					cty.StringVal("bbbb"),
+					cty.StringVal("cccc"),
+				}),
+			}),
+			After: cty.ObjectVal(map[string]cty.Value{
+				"id":  cty.UnknownVal(cty.String),
+				"ami": cty.StringVal("ami-STATIC"),
+				"set_field": cty.SetVal([]cty.Value{
+					cty.StringVal("bbbb"),
+				}),
+			}),
+			Schema: &configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"id":        {Type: cty.String, Optional: true, Computed: true},
+					"ami":       {Type: cty.String, Optional: true},
+					"set_field": {Type: cty.Set(cty.String), Optional: true},
+				},
+			},
+			RequiredReplace: cty.NewPathSet(),
+			ExpectedOutput: `  # test_instance.example will be updated in-place
+  ~ resource "test_instance" "example" {
+        ami       = "ami-STATIC"
+      ~ id        = "i-02ae66f368e8518a9" -> (known after apply)
+      ~ set_field = [
+          - "aaaa",
+            "bbbb",
+          - "cccc",
+        ]
+    }
+`,
+		},
+	}
+	runTestCases(t, testCases)
+}
+
+func TestResourceChange_map(t *testing.T) {
+	testCases := map[string]testCase{
+		"in-place update - creation": {
+			Action: plans.Update,
+			Mode:   addrs.ManagedResourceMode,
+			Before: cty.ObjectVal(map[string]cty.Value{
+				"id":        cty.StringVal("i-02ae66f368e8518a9"),
+				"ami":       cty.StringVal("ami-STATIC"),
+				"map_field": cty.MapValEmpty(cty.String),
+			}),
+			After: cty.ObjectVal(map[string]cty.Value{
+				"id":  cty.UnknownVal(cty.String),
+				"ami": cty.StringVal("ami-STATIC"),
+				"map_field": cty.MapVal(map[string]cty.Value{
+					"new-key": cty.StringVal("new-element"),
+				}),
+			}),
+			Schema: &configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"id":        {Type: cty.String, Optional: true, Computed: true},
+					"ami":       {Type: cty.String, Optional: true},
+					"map_field": {Type: cty.Map(cty.String), Optional: true},
+				},
+			},
+			RequiredReplace: cty.NewPathSet(),
+			ExpectedOutput: `  # test_instance.example will be updated in-place
+  ~ resource "test_instance" "example" {
+        ami       = "ami-STATIC"
+      ~ id        = "i-02ae66f368e8518a9" -> (known after apply)
+      ~ map_field = {
+          + "new-key" = "new-element"
+        }
+    }
+`,
+		},
+		"in-place update - insertion": {
+			Action: plans.Update,
+			Mode:   addrs.ManagedResourceMode,
+			Before: cty.ObjectVal(map[string]cty.Value{
+				"id":  cty.StringVal("i-02ae66f368e8518a9"),
+				"ami": cty.StringVal("ami-STATIC"),
+				"map_field": cty.MapVal(map[string]cty.Value{
+					"a": cty.StringVal("aaaa"),
+					"c": cty.StringVal("cccc"),
+				}),
+			}),
+			After: cty.ObjectVal(map[string]cty.Value{
+				"id":  cty.UnknownVal(cty.String),
+				"ami": cty.StringVal("ami-STATIC"),
+				"map_field": cty.MapVal(map[string]cty.Value{
+					"a": cty.StringVal("aaaa"),
+					"b": cty.StringVal("bbbb"),
+					"c": cty.StringVal("cccc"),
+				}),
+			}),
+			Schema: &configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"id":        {Type: cty.String, Optional: true, Computed: true},
+					"ami":       {Type: cty.String, Optional: true},
+					"map_field": {Type: cty.Map(cty.String), Optional: true},
+				},
+			},
+			RequiredReplace: cty.NewPathSet(),
+			ExpectedOutput: `  # test_instance.example will be updated in-place
+  ~ resource "test_instance" "example" {
+        ami       = "ami-STATIC"
+      ~ id        = "i-02ae66f368e8518a9" -> (known after apply)
+      ~ map_field = {
+            "a" = "aaaa"
+          + "b" = "bbbb"
+            "c" = "cccc"
+        }
+    }
+`,
+		},
+		"in-place update - deletion": {
+			Action: plans.Update,
+			Mode:   addrs.ManagedResourceMode,
+			Before: cty.ObjectVal(map[string]cty.Value{
+				"id":  cty.StringVal("i-02ae66f368e8518a9"),
+				"ami": cty.StringVal("ami-STATIC"),
+				"map_field": cty.MapVal(map[string]cty.Value{
+					"a": cty.StringVal("aaaa"),
+					"b": cty.StringVal("bbbb"),
+					"c": cty.StringVal("cccc"),
+				}),
+			}),
+			After: cty.ObjectVal(map[string]cty.Value{
+				"id":  cty.UnknownVal(cty.String),
+				"ami": cty.StringVal("ami-STATIC"),
+				"map_field": cty.MapVal(map[string]cty.Value{
+					"b": cty.StringVal("bbbb"),
+				}),
+			}),
+			Schema: &configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"id":        {Type: cty.String, Optional: true, Computed: true},
+					"ami":       {Type: cty.String, Optional: true},
+					"map_field": {Type: cty.Map(cty.String), Optional: true},
+				},
+			},
+			RequiredReplace: cty.NewPathSet(),
+			ExpectedOutput: `  # test_instance.example will be updated in-place
+  ~ resource "test_instance" "example" {
+        ami       = "ami-STATIC"
+      ~ id        = "i-02ae66f368e8518a9" -> (known after apply)
+      ~ map_field = {
+          - "a" = "aaaa" -> null
+            "b" = "bbbb"
+          - "c" = "cccc" -> null
+        }
+    }
+`,
+		},
+	}
+	runTestCases(t, testCases)
+}
+
+func TestResourceChange_nestedList(t *testing.T) {
+	testCases := map[string]testCase{
+		"in-place update - creation": {
+			Action: plans.Update,
+			Mode:   addrs.ManagedResourceMode,
+			Before: cty.ObjectVal(map[string]cty.Value{
+				"id":                cty.StringVal("i-02ae66f368e8518a9"),
+				"ami":               cty.StringVal("ami-BEFORE"),
+				"root_block_device": cty.ListValEmpty(cty.EmptyObject),
+			}),
+			After: cty.ObjectVal(map[string]cty.Value{
+				"id":  cty.StringVal("i-02ae66f368e8518a9"),
+				"ami": cty.StringVal("ami-AFTER"),
+				"root_block_device": cty.ListVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"volume_type": cty.StringVal("gp2"),
+					}),
+				}),
+			}),
+			RequiredReplace: cty.NewPathSet(),
+			Schema: &configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"id":  {Type: cty.String, Optional: true, Computed: true},
+					"ami": {Type: cty.String, Optional: true},
+				},
+				BlockTypes: map[string]*configschema.NestedBlock{
+					"root_block_device": {
+						Block: configschema.Block{
+							Attributes: map[string]*configschema.Attribute{
+								"volume_type": {
+									Type:     cty.String,
+									Optional: true,
+									Computed: true,
+								},
+							},
+						},
+						Nesting: 2,
+					},
+				},
+			},
+			ExpectedOutput: `  # test_instance.example will be updated in-place
+  ~ resource "test_instance" "example" {
+      ~ ami = "ami-BEFORE" -> "ami-AFTER"
+        id  = "i-02ae66f368e8518a9"
+
+      + root_block_device {
+          + volume_type = "gp2"
+        }
+    }
+`,
+		},
+		"in-place update - insertion": {
+			Action: plans.Update,
+			Mode:   addrs.ManagedResourceMode,
+			Before: cty.ObjectVal(map[string]cty.Value{
+				"id":  cty.StringVal("i-02ae66f368e8518a9"),
+				"ami": cty.StringVal("ami-BEFORE"),
+				"root_block_device": cty.ListVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"volume_type": cty.StringVal("gp2"),
+						"new_field":   cty.NullVal(cty.String),
+					}),
+				}),
+			}),
+			After: cty.ObjectVal(map[string]cty.Value{
+				"id":  cty.StringVal("i-02ae66f368e8518a9"),
+				"ami": cty.StringVal("ami-AFTER"),
+				"root_block_device": cty.ListVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"volume_type": cty.StringVal("gp2"),
+						"new_field":   cty.StringVal("new_value"),
+					}),
+				}),
+			}),
+			RequiredReplace: cty.NewPathSet(),
+			Schema: &configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"id":  {Type: cty.String, Optional: true, Computed: true},
+					"ami": {Type: cty.String, Optional: true},
+				},
+				BlockTypes: map[string]*configschema.NestedBlock{
+					"root_block_device": {
+						Block: configschema.Block{
+							Attributes: map[string]*configschema.Attribute{
+								"volume_type": {
+									Type:     cty.String,
+									Optional: true,
+									Computed: true,
+								},
+								"new_field": {
+									Type:     cty.String,
+									Optional: true,
+									Computed: true,
+								},
+							},
+						},
+						Nesting: 2,
+					},
+				},
+			},
+			ExpectedOutput: `  # test_instance.example will be updated in-place
+  ~ resource "test_instance" "example" {
+      ~ ami = "ami-BEFORE" -> "ami-AFTER"
+        id  = "i-02ae66f368e8518a9"
+
+      ~ root_block_device {
+          + new_field   = "new_value"
+            volume_type = "gp2"
+        }
+    }
+`,
+		},
+		"in-place update - deletion": {
+			Action: plans.Update,
+			Mode:   addrs.ManagedResourceMode,
+			Before: cty.ObjectVal(map[string]cty.Value{
+				"id":  cty.StringVal("i-02ae66f368e8518a9"),
+				"ami": cty.StringVal("ami-BEFORE"),
+				"root_block_device": cty.ListVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"volume_type": cty.StringVal("gp2"),
+						"new_field":   cty.StringVal("new_value"),
+					}),
+				}),
+			}),
+			After: cty.ObjectVal(map[string]cty.Value{
+				"id":                cty.StringVal("i-02ae66f368e8518a9"),
+				"ami":               cty.StringVal("ami-AFTER"),
+				"root_block_device": cty.ListValEmpty(cty.EmptyObject),
+			}),
+			RequiredReplace: cty.NewPathSet(),
+			Schema: &configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"id":  {Type: cty.String, Optional: true, Computed: true},
+					"ami": {Type: cty.String, Optional: true},
+				},
+				BlockTypes: map[string]*configschema.NestedBlock{
+					"root_block_device": {
+						Block: configschema.Block{
+							Attributes: map[string]*configschema.Attribute{
+								"volume_type": {
+									Type:     cty.String,
+									Optional: true,
+									Computed: true,
+								},
+								"new_field": {
+									Type:     cty.String,
+									Optional: true,
+									Computed: true,
+								},
+							},
+						},
+						Nesting: 2,
+					},
+				},
+			},
+			ExpectedOutput: `  # test_instance.example will be updated in-place
+  ~ resource "test_instance" "example" {
+      ~ ami = "ami-BEFORE" -> "ami-AFTER"
+        id  = "i-02ae66f368e8518a9"
+
+      - root_block_device {
+          - new_field   = "new_value" -> null
+          - volume_type = "gp2" -> null
+        }
+    }
+`,
+		},
+	}
+	runTestCases(t, testCases)
+}
+
+func TestResourceChange_nestedSet(t *testing.T) {
+	testCases := map[string]testCase{
+		"in-place update - creation": {
+			Action: plans.Update,
+			Mode:   addrs.ManagedResourceMode,
+			Before: cty.ObjectVal(map[string]cty.Value{
+				"id":                cty.StringVal("i-02ae66f368e8518a9"),
+				"ami":               cty.StringVal("ami-BEFORE"),
+				"root_block_device": cty.SetValEmpty(cty.EmptyObject),
+			}),
+			After: cty.ObjectVal(map[string]cty.Value{
+				"id":  cty.StringVal("i-02ae66f368e8518a9"),
+				"ami": cty.StringVal("ami-AFTER"),
+				"root_block_device": cty.SetVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"volume_type": cty.StringVal("gp2"),
+					}),
+				}),
+			}),
+			RequiredReplace: cty.NewPathSet(),
+			Schema: &configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"id":  {Type: cty.String, Optional: true, Computed: true},
+					"ami": {Type: cty.String, Optional: true},
+				},
+				BlockTypes: map[string]*configschema.NestedBlock{
+					"root_block_device": {
+						Block: configschema.Block{
+							Attributes: map[string]*configschema.Attribute{
+								"volume_type": {
+									Type:     cty.String,
+									Optional: true,
+									Computed: true,
+								},
+							},
+						},
+						Nesting: 2,
+					},
+				},
+			},
+			ExpectedOutput: `  # test_instance.example will be updated in-place
+  ~ resource "test_instance" "example" {
+      ~ ami = "ami-BEFORE" -> "ami-AFTER"
+        id  = "i-02ae66f368e8518a9"
+
+      + root_block_device {
+          + volume_type = "gp2"
+        }
+    }
+`,
+		},
+		"in-place update - insertion": {
+			Action: plans.Update,
+			Mode:   addrs.ManagedResourceMode,
+			Before: cty.ObjectVal(map[string]cty.Value{
+				"id":  cty.StringVal("i-02ae66f368e8518a9"),
+				"ami": cty.StringVal("ami-BEFORE"),
+				"root_block_device": cty.SetVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"volume_type": cty.StringVal("gp2"),
+						"new_field":   cty.NullVal(cty.String),
+					}),
+				}),
+			}),
+			After: cty.ObjectVal(map[string]cty.Value{
+				"id":  cty.StringVal("i-02ae66f368e8518a9"),
+				"ami": cty.StringVal("ami-AFTER"),
+				"root_block_device": cty.SetVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"volume_type": cty.StringVal("gp2"),
+						"new_field":   cty.StringVal("new_value"),
+					}),
+				}),
+			}),
+			RequiredReplace: cty.NewPathSet(),
+			Schema: &configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"id":  {Type: cty.String, Optional: true, Computed: true},
+					"ami": {Type: cty.String, Optional: true},
+				},
+				BlockTypes: map[string]*configschema.NestedBlock{
+					"root_block_device": {
+						Block: configschema.Block{
+							Attributes: map[string]*configschema.Attribute{
+								"volume_type": {
+									Type:     cty.String,
+									Optional: true,
+									Computed: true,
+								},
+								"new_field": {
+									Type:     cty.String,
+									Optional: true,
+									Computed: true,
+								},
+							},
+						},
+						Nesting: 2,
+					},
+				},
+			},
+			ExpectedOutput: `  # test_instance.example will be updated in-place
+  ~ resource "test_instance" "example" {
+      ~ ami = "ami-BEFORE" -> "ami-AFTER"
+        id  = "i-02ae66f368e8518a9"
+
+      ~ root_block_device {
+          + new_field   = "new_value"
+            volume_type = "gp2"
+        }
+    }
+`,
+		},
+		"in-place update - deletion": {
+			Action: plans.Update,
+			Mode:   addrs.ManagedResourceMode,
+			Before: cty.ObjectVal(map[string]cty.Value{
+				"id":  cty.StringVal("i-02ae66f368e8518a9"),
+				"ami": cty.StringVal("ami-BEFORE"),
+				"root_block_device": cty.SetVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"volume_type": cty.StringVal("gp2"),
+						"new_field":   cty.StringVal("new_value"),
+					}),
+				}),
+			}),
+			After: cty.ObjectVal(map[string]cty.Value{
+				"id":                cty.StringVal("i-02ae66f368e8518a9"),
+				"ami":               cty.StringVal("ami-AFTER"),
+				"root_block_device": cty.SetValEmpty(cty.EmptyObject),
+			}),
+			RequiredReplace: cty.NewPathSet(),
+			Schema: &configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"id":  {Type: cty.String, Optional: true, Computed: true},
+					"ami": {Type: cty.String, Optional: true},
+				},
+				BlockTypes: map[string]*configschema.NestedBlock{
+					"root_block_device": {
+						Block: configschema.Block{
+							Attributes: map[string]*configschema.Attribute{
+								"volume_type": {
+									Type:     cty.String,
+									Optional: true,
+									Computed: true,
+								},
+								"new_field": {
+									Type:     cty.String,
+									Optional: true,
+									Computed: true,
+								},
+							},
+						},
+						Nesting: 2,
+					},
+				},
+			},
+			ExpectedOutput: `  # test_instance.example will be updated in-place
+  ~ resource "test_instance" "example" {
+      ~ ami = "ami-BEFORE" -> "ami-AFTER"
+        id  = "i-02ae66f368e8518a9"
+
+      - root_block_device {
+          - new_field   = "new_value" -> null
+          - volume_type = "gp2" -> null
+        }
+    }
+`,
+		},
+	}
+	runTestCases(t, testCases)
+}
+
 type testCase struct {
 	Action          plans.Action
 	Mode            addrs.ResourceMode
