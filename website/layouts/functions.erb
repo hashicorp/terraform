@@ -5,14 +5,14 @@
           <li<%= sidebar_current("docs-config-index") %>>
             <a class="back" href="/docs/configuration/index.html">Terraform Language</a>
           </li>
-  
+
           <li<%= sidebar_current("docs-config-functions") %>>
             <a class="back" href="/docs/configuration/functions.html">Functions</a>
           </li>
-  
+
           <li<%= sidebar_current("docs-funcs-numeric") %>>
-            <a href="#">Numeric Functions</a>
-            <ul class="nav nav-visible">
+            <a href="#docs-funcs-numeric">Numeric Functions</a>
+            <ul class="nav nav-visible" id="docs-funcs-numeric">
 
               <li<%= sidebar_current("docs-funcs-numeric-abs") %>>
                 <a href="/docs/configuration/functions/abs.html">abs</a>
@@ -50,8 +50,8 @@
           </li>
 
           <li<%= sidebar_current("docs-funcs-string") %>>
-            <a href="#">String Functions</a>
-            <ul class="nav nav-visible">
+            <a href="#docs-funcs-string">String Functions</a>
+            <ul class="nav nav-visible" id="docs-funcs-string">
 
               <li<%= sidebar_current("docs-funcs-string-chomp") %>>
                 <a href="/docs/configuration/functions/chomp.html">chomp</a>
@@ -104,8 +104,8 @@
             </ul>
 
           <li<%= sidebar_current("docs-funcs-collection") %>>
-            <a href="#">Collection Functions</a>
-            <ul class="nav nav-visible">
+            <a href="#docs-funcs-collection">Collection Functions</a>
+            <ul class="nav nav-visible" id="docs-funcs-collection">
 
               <li<%= sidebar_current("docs-funcs-collection-chunklist") %>>
                 <a href="/docs/configuration/functions/chunklist.html">chunklist</a>
@@ -195,8 +195,8 @@
           </li>
 
           <li<%= sidebar_current("docs-funcs-encoding") %>>
-            <a href="#">Encoding Functions</a>
-            <ul class="nav nav-visible">
+            <a href="#docs-funcs-encoding">Encoding Functions</a>
+            <ul class="nav nav-visible" id="docs-funcs-encoding">
 
               <li<%= sidebar_current("docs-funcs-encoding-base64decode") %>>
                 <a href="/docs/configuration/functions/base64decode.html">base64decode</a>
@@ -230,8 +230,8 @@
           </li>
 
           <li<%= sidebar_current("docs-funcs-file") %>>
-            <a href="#">Filesystem Functions</a>
-            <ul class="nav nav-visible">
+            <a href="#docs-funcs-file">Filesystem Functions</a>
+            <ul class="nav nav-visible" id="docs-funcs-file">
 
               <li<%= sidebar_current("docs-funcs-file-dirname") %>>
                 <a href="/docs/configuration/functions/dirname.html">dirname</a>
@@ -261,8 +261,8 @@
           </li>
 
           <li<%= sidebar_current("docs-funcs-datetime") %>>
-            <a href="#">Date and Time Functions</a>
-            <ul class="nav nav-visible">
+            <a href="#docs-funcs-datetime">Date and Time Functions</a>
+            <ul class="nav nav-visible" id="docs-funcs-datetime">
 
               <li<%= sidebar_current("docs-funcs-datetime-timeadd") %>>
                 <a href="/docs/configuration/functions/timeadd.html">timeadd</a>
@@ -276,8 +276,8 @@
           </li>
 
           <li<%= sidebar_current("docs-funcs-crypto") %>>
-            <a href="#">Hash and Crypto Functions</a>
-            <ul class="nav nav-visible">
+            <a href="#docs-funcs-crypto">Hash and Crypto Functions</a>
+            <ul class="nav nav-visible" id="docs-funcs-crypto">
 
               <li<%= sidebar_current("docs-funcs-crypto-base64sha256") %>>
                 <a href="/docs/configuration/functions/base64sha256.html">base64sha256</a>
@@ -319,8 +319,8 @@
           </li>
 
           <li<%= sidebar_current("docs-funcs-ipnet") %>>
-            <a href="#">IP Network Functions</a>
-            <ul class="nav nav-visible">
+            <a href="#docs-funcs-ipnet">IP Network Functions</a>
+            <ul class="nav nav-visible" id="docs-funcs-ipnet">
 
               <li<%= sidebar_current("docs-funcs-ipnet-cidrhost") %>>
                 <a href="/docs/configuration/functions/cidrhost.html">cidrhost</a>
@@ -340,7 +340,6 @@
         </ul>
       </div>
     <% end %>
-  
+
     <%= yield %>
   <% end %>
-  

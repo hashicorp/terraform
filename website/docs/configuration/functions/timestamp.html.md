@@ -20,7 +20,7 @@ The result of this function will change every second, so using this function
 directly with resource attributes will cause a diff to be detected on every
 Terraform run. We do not recommend using this function in resource attributes,
 but in rare cases it can be used in conjunction with
-[the `ignore_changes` lifecycle meta-argument](/docs/configuration/resources.html#ignore_changes)
+[the `ignore_changes` lifecycle meta-argument](./resources.html#ignore_changes)
 to take the timestamp only on initial creation of the resource.
 
 Due to the constantly changing return value, the result of this function cannot

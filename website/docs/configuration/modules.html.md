@@ -9,12 +9,13 @@ description: |-
 # Modules
 
 A _module_ is a container for multiple resources that are used together.
+
 Every Terraform configuration has at least one module, known as its
 _root module_, which consists of the resources defined in the `.tf` files in
 the main working directory.
 
-A module can call other modules, allowing the suite of resources within the
-child module to be included into the configuration in a concise way. Modules
+A module can call other modules, which lets you include the child module's
+resources into the configuration in a concise way. Modules
 can also be called multiple times, either within the same configuration or
 in separate configurations, allowing resource configurations to be packaged
 and re-used.
@@ -28,7 +29,7 @@ created, and published in [the dedicated _Modules_ section](/docs/modules/index.
 
 To _call_ a module means to include the contents of that module into the
 configuration with specific values for its
-[input variables](/docs/configuration/variables.html). Modules are called
+[input variables](./variables.html). Modules are called
 from within other modules using `module` blocks:
 
 ```hcl
@@ -39,19 +40,22 @@ module "servers" {
 }
 ```
 
-The label immediately after the `module` keyword is a name that will be used
-to refer to this instance of the module within the calling module. The
-_calling module_ is the one that includes the `module` block shown above.
+A module that includes a `module` block like this is the _calling module_ of the
+child module.
+
+The label immediately after the `module` keyword is a local name, which the
+calling module can use to refer to this instance of the module.
 
 Within the block body (between `{` and `}`) are the arguments for the module.
-Most of the arguments correspond to [input variables](/docs/configuration/variables.html)
+Most of the arguments correspond to [input variables](./variables.html)
 defined by the module, including the `servers` argument in the above example.
 
-The `source` argument is a meta-argument defined and processed by Terraform
-itself. Its value is the path to a local directory containing the module's
-configuration files, or optionally a remote module source that Terraform should
-download and use. For more information on possible values for this argument,
-see [_Module Sources_](/docs/modules/sources.html).
+All modules require a `source` argument, which is a meta-argument defined by
+Terraform CLI. Its value is either the path to a local directory of the
+module's configuration files, or a remote module source that Terraform should
+download and use. This value must be a literal string with no template
+sequences; arbitrary expressions are not allowed. For more information on
+possible values for this argument, see [Module Sources](/docs/modules/sources.html).
 
 The same source address can be specified in multiple `module` blocks to create
 multiple copies of the resources defined within, possibly with different
@@ -61,7 +65,7 @@ variable values.
 
 The resources defined in a module are encapsulated, so the calling module
 cannot access their attributes directly. However, the child module can
-declare [output values](/docs/configuration/outputs.html) to selectively
+declare [output values](./outputs.html) to selectively
 export certain values to be accessed by the calling module.
 
 For example, if the `./app-cluster` module referenced in the example above
@@ -75,6 +79,9 @@ resource "aws_elb" "example" {
   instances = module.servers.instance_ids
 }
 ```
+
+For more information about referring to named values, see
+[Expressions](./expressions.html).
 
 ## Other Meta-arguments
 
