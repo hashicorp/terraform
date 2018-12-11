@@ -420,7 +420,7 @@ func (p *blockBodyDiffPrinter) writeValue(val cty.Value, action plans.Action, in
 		return
 	}
 	if val.IsNull() {
-		p.buf.WriteString("null")
+		p.buf.WriteString(p.color.Color("[dark_gray]null[reset]"))
 		return
 	}
 
@@ -815,7 +815,11 @@ func (p *blockBodyDiffPrinter) writeValueDiff(old, new cty.Value, indent int, pa
 
 	// In all other cases, we just show the new and old values as-is
 	p.writeValue(old, plans.Delete, indent)
-	p.buf.WriteString(p.color.Color(" [yellow]->[reset] "))
+	if new.IsNull() {
+		p.buf.WriteString(p.color.Color(" [dark_gray]->[reset] "))
+	} else {
+		p.buf.WriteString(p.color.Color(" [yellow]->[reset] "))
+	}
 	p.writeValue(new, plans.Create, indent)
 	if p.pathForcesNewResource(path) {
 		p.buf.WriteString(p.color.Color(forcesNewResourceCaption))
