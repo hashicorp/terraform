@@ -14,9 +14,9 @@ const (
 	connStringAccountNameKey = "AccountName"
 )
 
-// ComputeSASToken computes the SAS Token for a Storage Account based on the
+// ComputeAccountSASToken computes the SAS Token for a Storage Account based on the
 // access key & given permissions
-func ComputeSASToken(accountName string,
+func ComputeAccountSASToken(accountName string,
 	accountKey string,
 	permissions string,
 	services string,
@@ -67,8 +67,8 @@ func ComputeSASToken(accountName string,
 	return sasToken, nil
 }
 
-// ParseStorageAccountConnectionString parses the Connection String for a Storage Account
-func ParseStorageAccountConnectionString(connString string) (map[string]string, error) {
+// ParseAccountSASConnectionString parses the Connection String for a Storage Account
+func ParseAccountSASConnectionString(connString string) (map[string]string, error) {
 	// This connection string was for a real storage account which has been deleted
 	// so its safe to include here for reference to understand the format.
 	// DefaultEndpointsProtocol=https;AccountName=azurermtestsa0;AccountKey=2vJrjEyL4re2nxCEg590wJUUC7PiqqrDHjAN5RU304FNUQieiEwS2bfp83O0v28iSfWjvYhkGmjYQAdd9x+6nw==;EndpointSuffix=core.windows.net
@@ -82,10 +82,15 @@ func ParseStorageAccountConnectionString(connString string) (map[string]string, 
 	for _, atoken := range tokens {
 		// The individual k-v are separated by an equals sign.
 		kv := strings.SplitN(atoken, "=", 2)
+		if len(kv) != 2 {
+			return nil, fmt.Errorf("[ERROR] token `%s` is an invalid key=pair (connection string %s)", atoken, connString)
+		}
+
 		key := kv[0]
 		val := kv[1]
+
 		if _, present := validKeys[key]; !present {
-			return nil, fmt.Errorf("[ERROR] Unknown Key: %s", key)
+			return nil, fmt.Errorf("[ERROR] Unknown Key `%s` in connection string %s", key, connString)
 		}
 		kvp[key] = val
 	}
