@@ -313,11 +313,16 @@ func (p *blockBodyDiffPrinter) writeNestedBlockDiffs(name string, blockS *config
 		if blankBefore && (len(oldItems) > 0 || len(newItems) > 0) {
 			p.buf.WriteRune('\n')
 		}
+
 		for i := 0; i < commonLen; i++ {
 			path := append(path, cty.IndexStep{Key: cty.NumberIntVal(int64(i))})
 			oldItem := oldItems[i]
 			newItem := newItems[i]
-			p.writeNestedBlockDiff(name, nil, &blockS.Block, plans.Update, oldItem, newItem, indent, path)
+			action := plans.Update
+			if oldItem.RawEquals(newItem) {
+				action = plans.NoOp
+			}
+			p.writeNestedBlockDiff(name, nil, &blockS.Block, action, oldItem, newItem, indent, path)
 		}
 		for i := commonLen; i < len(oldItems); i++ {
 			path := append(path, cty.IndexStep{Key: cty.NumberIntVal(int64(i))})
