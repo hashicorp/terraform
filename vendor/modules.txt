@@ -302,7 +302,7 @@ github.com/hashicorp/consul/lib/freeport
 github.com/hashicorp/consul/testutil/retry
 # github.com/hashicorp/errwrap v1.0.0
 github.com/hashicorp/errwrap
-# github.com/hashicorp/go-azure-helpers v0.0.0-20181211094055-df9554e6b1e9
+# github.com/hashicorp/go-azure-helpers v0.0.0-20181211121309-38db96513363
 github.com/hashicorp/go-azure-helpers/authentication
 github.com/hashicorp/go-azure-helpers/storage
 # github.com/hashicorp/go-checkpoint v0.0.0-20171009173528-1545e56e46de
