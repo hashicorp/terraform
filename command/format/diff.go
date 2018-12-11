@@ -844,7 +844,7 @@ func (p *blockBodyDiffPrinter) writeActionSymbol(action plans.Action) {
 }
 
 func (p *blockBodyDiffPrinter) pathForcesNewResource(path cty.Path) bool {
-	if p.action.IsReplace() {
+	if !p.action.IsReplace() {
 		// "requiredReplace" only applies when the instance is being replaced
 		return false
 	}
