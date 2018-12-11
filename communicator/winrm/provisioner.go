@@ -19,8 +19,8 @@ const (
 	// DefaultPort is used if there is no port given
 	DefaultPort = 5985
 
-	// DefaultSslPort is used if there is no port given and HTTPS is true
-	DefaultSslPort = 5986
+	// DefaultHttpsPort is used if there is no port given and HTTPS is true
+	DefaultHttpsPort = 5986
 
 	// DefaultScriptPath is used as the path to copy the file to
 	// for remote execution if not provided otherwise.
@@ -84,7 +84,7 @@ func parseConnectionInfo(s *terraform.InstanceState) (*connectionInfo, error) {
 
 	if connInfo.Port == 0 {
 		if connInfo.HTTPS {
-			connInfo.Port = DefaultSslPort
+			connInfo.Port = DefaultHttpsPort
 		} else {
 			connInfo.Port = DefaultPort
 		}
