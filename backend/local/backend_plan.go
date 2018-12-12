@@ -8,6 +8,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/command/format"
 	"github.com/hashicorp/terraform/plans"
@@ -189,7 +190,14 @@ func (b *Local) opPlan(
 
 func (b *Local) renderPlan(plan *plans.Plan, schemas *terraform.Schemas) {
 	counts := map[plans.Action]int{}
+	var rChanges []*plans.ResourceInstanceChangeSrc
 	for _, change := range plan.Changes.Resources {
+		if change.Action == plans.Delete && change.Addr.Resource.Resource.Mode == addrs.DataResourceMode {
+			// Avoid rendering data sources on deletion
+			continue
+		}
+
+		rChanges = append(rChanges, change)
 		counts[change.Action]++
 	}
 
@@ -225,7 +233,6 @@ func (b *Local) renderPlan(plan *plans.Plan, schemas *terraform.Schemas) {
 	// here. The ordering of resource changes in a plan is not significant,
 	// but we can only do this safely here because we can assume that nobody
 	// is concurrently modifying our changes while we're trying to print it.
-	rChanges := plan.Changes.Resources
 	sort.Slice(rChanges, func(i, j int) bool {
 		iA := rChanges[i].Addr
 		jA := rChanges[j].Addr
