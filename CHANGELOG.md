@@ -2,12 +2,14 @@
 
 IMPROVEMENTS:
 
+* plugins: Plugin RPC connection is now authenticated [GH-19629]
 * backend/azurerm: Support for authenticating using the Azure CLI [GH-19465]
 * backend/s3: Support DynamoDB, IAM, and STS endpoint configurations [GH-19571]
 * core: Enhance service discovery error handling and messaging [GH-19589]
 
 BUG FIXES:
 
+* plugins: GRPC plugins shutdown correctly when Close is called [GH-19629]
 * backend/local: Fix incorrect destroy/update count on apply [GH-19610]
 * command/format: Fix rendering of nested blocks during update [GH-19611]
 * command/format: Fix rendering of force-new updates [GH-19609]
