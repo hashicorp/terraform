@@ -6,7 +6,7 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 )
 
-func TestProvisioner_defaultSslPort(t *testing.T) {
+func TestProvisioner_defaultHTTPSPort(t *testing.T) {
 	r := &terraform.InstanceState{
 		Ephemeral: terraform.EphemeralState{
 			ConnInfo: map[string]string{
