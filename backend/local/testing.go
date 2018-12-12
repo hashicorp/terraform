@@ -69,6 +69,9 @@ func TestLocalProvider(t *testing.T, b *Local, name string, schema *terraform.Pr
 	p.ReadResourceFn = func(req providers.ReadResourceRequest) providers.ReadResourceResponse {
 		return providers.ReadResourceResponse{NewState: req.PriorState}
 	}
+	p.ReadDataSourceFn = func(req providers.ReadDataSourceRequest) providers.ReadDataSourceResponse {
+		return providers.ReadDataSourceResponse{State: req.Config}
+	}
 
 	// Initialize the opts
 	if b.ContextOpts == nil {
