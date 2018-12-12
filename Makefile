@@ -29,10 +29,14 @@ plugin-dev: generate
 	mv $(GOPATH)/bin/$(PLUGIN) $(GOPATH)/bin/terraform-$(PLUGIN)
 
 # test runs the unit tests
-# we run this one package at a time here because running the entire suite in
-# one command creates memory usage issues when running in Travis-CI.
 test: fmtcheck generate
+ifeq ($(CI), true)
+	# we run this one package at a time here because running the entire suite in
+	# one command creates memory usage issues when running in Travis-CI.
 	go list -mod=vendor $(TEST) | xargs -t -n4 go test $(TESTARGS) -mod=vendor -timeout=2m -parallel=4
+else
+	go test $(TEST) $(TESTARGS) -mod=vendor -timeout=2m
+endif
 
 # testacc runs acceptance tests
 testacc: fmtcheck generate
