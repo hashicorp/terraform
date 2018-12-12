@@ -92,8 +92,7 @@ func Provisioner() terraform.ResourceProvisioner {
 				Optional: true,
 			},
 		},
-		ApplyFunc:    applyFn,
-		ValidateFunc: validateFn,
+		ApplyFunc: applyFn,
 	}
 }
 
@@ -207,10 +206,6 @@ func applyFn(ctx context.Context) (rerr error) {
 	}
 
 	return nil
-}
-
-func validateFn(config *terraform.ResourceConfig) (ws []string, es []error) {
-	return ws, es
 }
 
 func (p *provisioner) writeCSRAttributes(attrs *csrAttributes) (rerr error) {
