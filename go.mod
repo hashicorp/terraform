@@ -63,7 +63,7 @@ require (
 	github.com/hashicorp/go-immutable-radix v0.0.0-20180129170900-7f3cd4390caa // indirect
 	github.com/hashicorp/go-msgpack v0.0.0-20150518234257-fa3f63826f7c // indirect
 	github.com/hashicorp/go-multierror v1.0.0
-	github.com/hashicorp/go-plugin v0.0.0-20181205205220-20341d70f4ff
+	github.com/hashicorp/go-plugin v0.0.0-20181212150838-f444068e8f5a
 	github.com/hashicorp/go-retryablehttp v0.5.0
 	github.com/hashicorp/go-rootcerts v0.0.0-20160503143440-6bb64b370b90
 	github.com/hashicorp/go-safetemp v0.0.0-20180326211150-b1a1dbde6fdc // indirect
