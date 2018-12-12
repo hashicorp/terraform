@@ -242,6 +242,8 @@ func (p *provisioner) writeCSRAttributes(attrs *csrAttributes) (rerr error) {
 }
 
 func (p *provisioner) generateAutosignToken(certname string) (string, error) {
+	task := "autosign::generate_token"
+
 	masterConnInfo := map[string]string{
 		"type": "ssh",
 		"host": p.Server,
@@ -251,13 +253,17 @@ func (p *provisioner) generateAutosignToken(certname string) (string, error) {
 	result, err := bolt.Task(
 		masterConnInfo,
 		p.ServerUser != "root",
-		"autosign::generate_token",
+		task,
 		map[string]string{"certname": certname},
 	)
 	if err != nil {
 		return "", err
 	}
-	// TODO check error state in JSON
+
+	if result.Items[0].Status != "success" {
+		return "", fmt.Errorf("Bolt %s failed on %s: %v", task, result.Items[0].Node, result.Items[0].Result["_error"])
+	}
+
 	return result.Items[0].Result["_output"], nil
 }
 
@@ -269,7 +275,7 @@ func (p *provisioner) installPuppetAgentOpenSource() error {
 		nil,
 	)
 
-	if err != nil {
+	if err != nil || result.Items[0].Status != "success" {
 		return fmt.Errorf("puppet_agent::install failed: %s\n%+v", err, result)
 	}
 
