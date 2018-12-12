@@ -185,7 +185,7 @@ func TestResourceProvisioner_nixInstallPuppetAgent(t *testing.T) {
 			Commands: map[string]bool{
 				"curl -kO https://puppet.test.com:8140/packages/current/install.bash": true,
 				"bash -- ./install.bash --puppet-service-ensure stopped":              true,
-				"rm -f install.bash":                                                  true,
+				"rm -f install.bash": true,
 			},
 		},
 		"Respects the use_sudo config flag": {
@@ -196,7 +196,7 @@ func TestResourceProvisioner_nixInstallPuppetAgent(t *testing.T) {
 			Commands: map[string]bool{
 				"sudo curl -kO https://puppet.test.com:8140/packages/current/install.bash": true,
 				"sudo bash -- ./install.bash --puppet-service-ensure stopped":              true,
-				"sudo rm -f install.bash":                                                  true,
+				"sudo rm -f install.bash": true,
 			},
 		},
 		"When the curl command fails": {
@@ -207,7 +207,7 @@ func TestResourceProvisioner_nixInstallPuppetAgent(t *testing.T) {
 			Commands: map[string]bool{
 				"curl -kO https://puppet.test.com:8140/packages/current/install.bash": true,
 				"bash -- ./install.bash --puppet-service-ensure stopped":              false,
-				"rm -f install.bash":                                                  false,
+				"rm -f install.bash": false,
 			},
 			CommandFunc: func(r *remote.Cmd) error {
 				if r.Command == "curl -kO https://puppet.test.com:8140/packages/current/install.bash" {
@@ -231,7 +231,7 @@ func TestResourceProvisioner_nixInstallPuppetAgent(t *testing.T) {
 			Commands: map[string]bool{
 				"curl -kO https://puppet.test.com:8140/packages/current/install.bash": true,
 				"bash -- ./install.bash --puppet-service-ensure stopped":              true,
-				"rm -f install.bash":                                                  false,
+				"rm -f install.bash": false,
 			},
 			CommandFunc: func(r *remote.Cmd) error {
 				if r.Command == "bash -- ./install.bash --puppet-service-ensure stopped" {
@@ -255,7 +255,7 @@ func TestResourceProvisioner_nixInstallPuppetAgent(t *testing.T) {
 			Commands: map[string]bool{
 				"curl -kO https://puppet.test.com:8140/packages/current/install.bash": true,
 				"bash -- ./install.bash --puppet-service-ensure stopped":              true,
-				"rm -f install.bash":                                                  true,
+				"rm -f install.bash": true,
 			},
 			CommandFunc: func(r *remote.Cmd) error {
 				if r.Command == "rm -f install.bash" {
