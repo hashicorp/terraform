@@ -919,7 +919,7 @@ func TestResourceChange_nestedList(t *testing.T) {
 								},
 							},
 						},
-						Nesting: 2,
+						Nesting: configschema.NestingList,
 					},
 				},
 			},
@@ -968,7 +968,7 @@ func TestResourceChange_nestedList(t *testing.T) {
 								},
 							},
 						},
-						Nesting: 2,
+						Nesting: configschema.NestingList,
 					},
 				},
 			},
@@ -1028,7 +1028,7 @@ func TestResourceChange_nestedList(t *testing.T) {
 								},
 							},
 						},
-						Nesting: 2,
+						Nesting: configschema.NestingList,
 					},
 				},
 			},
@@ -1086,7 +1086,7 @@ func TestResourceChange_nestedList(t *testing.T) {
 								},
 							},
 						},
-						Nesting: 2,
+						Nesting: configschema.NestingList,
 					},
 				},
 			},
@@ -1141,7 +1141,7 @@ func TestResourceChange_nestedList(t *testing.T) {
 								},
 							},
 						},
-						Nesting: 2,
+						Nesting: configschema.NestingList,
 					},
 				},
 			},
@@ -1196,7 +1196,7 @@ func TestResourceChange_nestedList(t *testing.T) {
 								},
 							},
 						},
-						Nesting: 2,
+						Nesting: configschema.NestingList,
 					},
 				},
 			},
@@ -1252,7 +1252,7 @@ func TestResourceChange_nestedSet(t *testing.T) {
 								},
 							},
 						},
-						Nesting: 2,
+						Nesting: configschema.NestingSet,
 					},
 				},
 			},
@@ -1312,7 +1312,7 @@ func TestResourceChange_nestedSet(t *testing.T) {
 								},
 							},
 						},
-						Nesting: 2,
+						Nesting: configschema.NestingSet,
 					},
 				},
 			},
@@ -1321,66 +1321,12 @@ func TestResourceChange_nestedSet(t *testing.T) {
       ~ ami = "ami-BEFORE" -> "ami-AFTER"
         id  = "i-02ae66f368e8518a9"
 
-      ~ root_block_device {
-          + new_field   = "new_value"
-            volume_type = "gp2"
+      - root_block_device {
+          - volume_type = "gp2" -> null
         }
-    }
-`,
-		},
-		"force-new update (inside block)": {
-			Action: plans.DeleteThenCreate,
-			Mode:   addrs.ManagedResourceMode,
-			Before: cty.ObjectVal(map[string]cty.Value{
-				"id":  cty.StringVal("i-02ae66f368e8518a9"),
-				"ami": cty.StringVal("ami-BEFORE"),
-				"root_block_device": cty.SetVal([]cty.Value{
-					cty.ObjectVal(map[string]cty.Value{
-						"volume_type": cty.StringVal("gp2"),
-					}),
-				}),
-			}),
-			After: cty.ObjectVal(map[string]cty.Value{
-				"id":  cty.StringVal("i-02ae66f368e8518a9"),
-				"ami": cty.StringVal("ami-AFTER"),
-				"root_block_device": cty.SetVal([]cty.Value{
-					cty.ObjectVal(map[string]cty.Value{
-						"volume_type": cty.StringVal("different"),
-					}),
-				}),
-			}),
-			RequiredReplace: cty.NewPathSet(cty.Path{
-				cty.GetAttrStep{Name: "root_block_device"},
-				cty.IndexStep{Key: cty.NumberIntVal(0)},
-				cty.GetAttrStep{Name: "volume_type"},
-			}),
-			Schema: &configschema.Block{
-				Attributes: map[string]*configschema.Attribute{
-					"id":  {Type: cty.String, Optional: true, Computed: true},
-					"ami": {Type: cty.String, Optional: true},
-				},
-				BlockTypes: map[string]*configschema.NestedBlock{
-					"root_block_device": {
-						Block: configschema.Block{
-							Attributes: map[string]*configschema.Attribute{
-								"volume_type": {
-									Type:     cty.String,
-									Optional: true,
-									Computed: true,
-								},
-							},
-						},
-						Nesting: 2,
-					},
-				},
-			},
-			ExpectedOutput: `  # test_instance.example must be replaced
--/+ resource "test_instance" "example" {
-      ~ ami = "ami-BEFORE" -> "ami-AFTER"
-        id  = "i-02ae66f368e8518a9"
-
-      ~ root_block_device {
-          ~ volume_type = "gp2" -> "different" # forces replacement
+      + root_block_device {
+          + new_field   = "new_value"
+          + volume_type = "gp2"
         }
     }
 `,
@@ -1425,7 +1371,7 @@ func TestResourceChange_nestedSet(t *testing.T) {
 								},
 							},
 						},
-						Nesting: 2,
+						Nesting: configschema.NestingSet,
 					},
 				},
 			},
@@ -1434,8 +1380,11 @@ func TestResourceChange_nestedSet(t *testing.T) {
       ~ ami = "ami-BEFORE" -> "ami-AFTER"
         id  = "i-02ae66f368e8518a9"
 
-      ~ root_block_device { # forces replacement
-          ~ volume_type = "gp2" -> "different"
+      - root_block_device { # forces replacement
+          - volume_type = "gp2" -> null
+        }
+      + root_block_device { # forces replacement
+          + volume_type = "different"
         }
     }
 `,
@@ -1480,7 +1429,7 @@ func TestResourceChange_nestedSet(t *testing.T) {
 								},
 							},
 						},
-						Nesting: 2,
+						Nesting: configschema.NestingSet,
 					},
 				},
 			},
