@@ -16,8 +16,8 @@ type Result struct {
 		Status string
 		Result map[string]string
 	}
-	Node_count   int
-	Elapsed_time int
+	NodeCount   int `json:"node_count"`
+	ElapsedTime int `json:"elapsed_time"`
 }
 
 func runCommand(command string) ([]byte, error) {
