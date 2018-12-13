@@ -130,6 +130,132 @@ func TestLocal_planNoConfig(t *testing.T) {
 	}
 }
 
+func TestLocal_planTainted(t *testing.T) {
+	b, cleanup := TestLocal(t)
+	defer cleanup()
+	p := TestLocalProvider(t, b, "test", planFixtureSchema())
+	testStateFile(t, b.StatePath, testPlanState_tainted())
+	b.CLI = cli.NewMockUi()
+	outDir := testTempDir(t)
+	defer os.RemoveAll(outDir)
+	planPath := filepath.Join(outDir, "plan.tfplan")
+	op, configCleanup := testOperationPlan(t, "./test-fixtures/plan")
+	defer configCleanup()
+	op.PlanRefresh = true
+	op.PlanOutPath = planPath
+	cfg := cty.ObjectVal(map[string]cty.Value{
+		"path": cty.StringVal(b.StatePath),
+	})
+	cfgRaw, err := plans.NewDynamicValue(cfg, cfg.Type())
+	if err != nil {
+		t.Fatal(err)
+	}
+	op.PlanOutBackend = &plans.Backend{
+		// Just a placeholder so that we can generate a valid plan file.
+		Type:   "local",
+		Config: cfgRaw,
+	}
+	run, err := b.Operation(context.Background(), op)
+	if err != nil {
+		t.Fatalf("bad: %s", err)
+	}
+	<-run.Done()
+	if run.Result != backend.OperationSuccess {
+		t.Fatalf("plan operation failed")
+	}
+	if !p.ReadResourceCalled {
+		t.Fatal("ReadResource should be called")
+	}
+	if run.PlanEmpty {
+		t.Fatal("plan should not be empty")
+	}
+
+	expectedOutput := `An execution plan has been generated and is shown below.
+Resource actions are indicated with the following symbols:
+-/+ destroy and then create replacement
+
+Terraform will perform the following actions:
+
+  # test_instance.foo must be replaced
+-/+ resource "test_instance" "foo" {
+        ami = "bar"
+
+        network_interface {
+            description  = "Main network interface"
+            device_index = 0
+        }
+    }
+
+Plan: 1 to add, 0 to change, 1 to destroy.`
+	output := b.CLI.(*cli.MockUi).OutputWriter.String()
+	if !strings.Contains(output, expectedOutput) {
+		t.Fatalf("Unexpected output:\n%s", output)
+	}
+}
+
+func TestLocal_planTainted_createBeforeDestroy(t *testing.T) {
+	b, cleanup := TestLocal(t)
+	defer cleanup()
+	p := TestLocalProvider(t, b, "test", planFixtureSchema())
+	testStateFile(t, b.StatePath, testPlanState_tainted())
+	b.CLI = cli.NewMockUi()
+	outDir := testTempDir(t)
+	defer os.RemoveAll(outDir)
+	planPath := filepath.Join(outDir, "plan.tfplan")
+	op, configCleanup := testOperationPlan(t, "./test-fixtures/plan-cbd")
+	defer configCleanup()
+	op.PlanRefresh = true
+	op.PlanOutPath = planPath
+	cfg := cty.ObjectVal(map[string]cty.Value{
+		"path": cty.StringVal(b.StatePath),
+	})
+	cfgRaw, err := plans.NewDynamicValue(cfg, cfg.Type())
+	if err != nil {
+		t.Fatal(err)
+	}
+	op.PlanOutBackend = &plans.Backend{
+		// Just a placeholder so that we can generate a valid plan file.
+		Type:   "local",
+		Config: cfgRaw,
+	}
+	run, err := b.Operation(context.Background(), op)
+	if err != nil {
+		t.Fatalf("bad: %s", err)
+	}
+	<-run.Done()
+	if run.Result != backend.OperationSuccess {
+		t.Fatalf("plan operation failed")
+	}
+	if !p.ReadResourceCalled {
+		t.Fatal("ReadResource should be called")
+	}
+	if run.PlanEmpty {
+		t.Fatal("plan should not be empty")
+	}
+
+	expectedOutput := `An execution plan has been generated and is shown below.
+Resource actions are indicated with the following symbols:
++/- create replacement and then destroy
+
+Terraform will perform the following actions:
+
+  # test_instance.foo must be replaced
++/- resource "test_instance" "foo" {
+        ami = "bar"
+
+        network_interface {
+            description  = "Main network interface"
+            device_index = 0
+        }
+    }
+
+Plan: 1 to add, 0 to change, 1 to destroy.`
+	output := b.CLI.(*cli.MockUi).OutputWriter.String()
+	if !strings.Contains(output, expectedOutput) {
+		t.Fatalf("Unexpected output:\n%s", output)
+	}
+}
+
 func TestLocal_planRefreshFalse(t *testing.T) {
 	b, cleanup := TestLocal(t)
 	defer cleanup()
@@ -457,6 +583,32 @@ func testPlanState_withDataSource() *states.State {
 			Status: states.ObjectReady,
 			AttrsJSON: []byte(`{
 				"filter": "foo"
+			}`),
+		},
+		addrs.ProviderConfig{
+			Type: "test",
+		}.Absolute(addrs.RootModuleInstance),
+	)
+	return state
+}
+
+func testPlanState_tainted() *states.State {
+	state := states.NewState()
+	rootModule := state.RootModule()
+	rootModule.SetResourceInstanceCurrent(
+		addrs.Resource{
+			Mode: addrs.ManagedResourceMode,
+			Type: "test_instance",
+			Name: "foo",
+		}.Instance(addrs.IntKey(0)),
+		&states.ResourceInstanceObjectSrc{
+			Status: states.ObjectTainted,
+			AttrsJSON: []byte(`{
+				"ami": "bar",
+				"network_interface": [{
+					"device_index": 0,
+					"description": "Main network interface"
+				}]
 			}`),
 		},
 		addrs.ProviderConfig{
