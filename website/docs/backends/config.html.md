@@ -74,7 +74,7 @@ There are several ways to supply the remaining arguments:
     `init` command line. Note that many shells retain command-line flags in a
     history file, so this isn't recommended for secrets. To specify a single
     key/value pair, use the `-backend-config="KEY=VALUE"` option when running
-    `terraform init`.
+    `terraform init`. For a block, this can be: `-backend-config 'HASH=[{KEY="VALUE"}]'`
 
 If backend settings are provided in multiple locations, the top-level
 settings are merged such that any command-line options override the settings
