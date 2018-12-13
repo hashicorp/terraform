@@ -41,11 +41,13 @@ func TestMarshalStateModules(t *testing.T) {
 					Resources: []resource{
 						resource{Name: "test-resource"},
 					},
-				},
-				module{
-					Address: "modules/child",
-					Resources: []resource{
-						resource{Name: "test-module-resource"},
+					ChildModules: []module{
+						module{
+							Address: "modules/child",
+							Resources: []resource{
+								resource{Name: "test-module-resource"},
+							},
+						},
 					},
 				},
 			},
