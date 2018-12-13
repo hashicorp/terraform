@@ -28,8 +28,12 @@ Terraform Enterprise (version v201809-1 or newer).
 Currently the remote backend supports the following Terraform commands:
 
 - `apply`
+- `console`
+- `destroy` (requires manually setting `CONFIRM_DESTROY=1` on the workspace)
 - `fmt`
 - `get`
+- `graph`
+- `import`
 - `init`
 - `output`
 - `plan`

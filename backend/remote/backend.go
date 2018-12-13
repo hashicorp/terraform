@@ -32,7 +32,7 @@ import (
 const (
 	defaultHostname    = "app.terraform.io"
 	defaultParallelism = 10
-	serviceID          = "tfe.v2"
+	tfeServiceID       = "tfe.v2.1"
 )
 
 // Remote is an implementation of EnhancedBackend that performs all
@@ -141,15 +141,13 @@ func (b *Remote) ConfigSchema() *configschema.Block {
 func (b *Remote) ValidateConfig(obj cty.Value) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 
-	if val := obj.GetAttr("organization"); !val.IsNull() {
-		if val.AsString() == "" {
-			diags = diags.Append(tfdiags.AttributeValue(
-				tfdiags.Error,
-				"Invalid organization value",
-				`The "organization" attribute value must not be empty.`,
-				cty.Path{cty.GetAttrStep{Name: "organization"}},
-			))
-		}
+	if val := obj.GetAttr("organization"); val.IsNull() || val.AsString() == "" {
+		diags = diags.Append(tfdiags.AttributeValue(
+			tfdiags.Error,
+			"Invalid organization value",
+			`The "organization" attribute value must not be empty.`,
+			cty.Path{cty.GetAttrStep{Name: "organization"}},
+		))
 	}
 
 	var name, prefix string
@@ -219,9 +217,7 @@ func (b *Remote) Configure(obj cty.Value) tfdiags.Diagnostics {
 		diags = diags.Append(tfdiags.AttributeValue(
 			tfdiags.Error,
 			strings.ToUpper(err.Error()[:1])+err.Error()[1:],
-			`If you are sure the hostname is correct, this could also indicate SSL `+
-				`verification issues. Please use "openssl s_client -connect <HOST>" to `+
-				`identify any certificate or certificate chain issues.`,
+			"", // no description is needed here, the error is clear
 			cty.Path{cty.GetAttrStep{Name: "hostname"}},
 		))
 		return diags
@@ -234,9 +230,7 @@ func (b *Remote) Configure(obj cty.Value) tfdiags.Diagnostics {
 		diags = diags.Append(tfdiags.AttributeValue(
 			tfdiags.Error,
 			strings.ToUpper(err.Error()[:1])+err.Error()[1:],
-			`If you are sure the hostname is correct, this could also indicate SSL `+
-				`verification issues. Please use "openssl s_client -connect <HOST>" to `+
-				`identify any certificate or certificate chain issues.`,
+			"", // no description is needed here, the error is clear
 			cty.Path{cty.GetAttrStep{Name: "hostname"}},
 		))
 		return diags
@@ -245,6 +239,19 @@ func (b *Remote) Configure(obj cty.Value) tfdiags.Diagnostics {
 		if val := obj.GetAttr("token"); !val.IsNull() {
 			token = val.AsString()
 		}
+	}
+
+	// Return an error if we still don't have a token at this point.
+	if token == "" {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Required token could not be found",
+			fmt.Sprintf(
+				"Make sure you configured a credentials block for %s in your CLI Config File.",
+				b.hostname,
+			),
+		))
+		return diags
 	}
 
 	cfg := &tfe.Config{
@@ -302,7 +309,7 @@ func (b *Remote) discover(hostname string) (*url.URL, error) {
 	if err != nil {
 		return nil, err
 	}
-	service, err := b.services.DiscoverServiceURL(host, serviceID)
+	service, err := b.services.DiscoverServiceURL(host, tfeServiceID)
 	if err != nil {
 		return nil, err
 	}
@@ -473,7 +480,27 @@ func (b *Remote) Operation(ctx context.Context, op *backend.Operation) (*backend
 	// Retrieve the workspace for this operation.
 	w, err := b.client.Workspaces.Read(ctx, b.organization, name)
 	if err != nil {
-		return nil, generalError("Failed to retrieve workspace", err)
+		switch err {
+		case context.Canceled:
+			return nil, err
+		case tfe.ErrResourceNotFound:
+			return nil, fmt.Errorf(
+				"workspace %s not found\n\n"+
+					"The configured \"remote\" backend returns '404 Not Found' errors for resources\n"+
+					"that do not exist, as well as for resources that a user doesn't have access\n"+
+					"to. When the resource does exists, please check the rights for the used token.",
+				name,
+			)
+		default:
+			return nil, fmt.Errorf(
+				"%s\n\n"+
+					"The configured \"remote\" backend encountered an unexpected error. Sometimes\n"+
+					"this is caused by network connection problems, in which case you could retr\n"+
+					"the command. If the issue persists please open a support ticket to get help\n"+
+					"resolving the problem.",
+				err,
+			)
+		}
 	}
 
 	// Check if we need to use the local backend to run the operation.
@@ -493,9 +520,7 @@ func (b *Remote) Operation(ctx context.Context, op *backend.Operation) (*backend
 		f = b.opApply
 	default:
 		return nil, fmt.Errorf(
-			"\n\nThe \"remote\" backend does not support the %q operation.\n"+
-				"Please use the remote backend web UI for running this operation:\n"+
-				"https://%s/app/%s/%s", op.Type, b.hostname, b.organization, op.Workspace)
+			"\n\nThe \"remote\" backend does not support the %q operation.", op.Type)
 	}
 
 	// Lock
