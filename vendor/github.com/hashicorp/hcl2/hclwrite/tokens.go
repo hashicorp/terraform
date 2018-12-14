@@ -5,6 +5,7 @@ import (
 	"io"
 
 	"github.com/apparentlymart/go-textseg/textseg"
+	"github.com/hashicorp/hcl2/hcl"
 	"github.com/hashicorp/hcl2/hcl/hclsyntax"
 )
 
@@ -20,6 +21,23 @@ type Token struct {
 	// surgical changes in-place. When _new_ code is created it will always
 	// be in the canonical style, but we preserve layout of existing code.
 	SpacesBefore int
+}
+
+// asHCLSyntax returns the receiver expressed as an incomplete hclsyntax.Token.
+// A complete token is not possible since we don't have source location
+// information here, and so this method is unexported so we can be sure it will
+// only be used for internal purposes where we know the range isn't important.
+//
+// This is primarily intended to allow us to re-use certain functionality from
+// hclsyntax rather than re-implementing it against our own token type here.
+func (t *Token) asHCLSyntax() hclsyntax.Token {
+	return hclsyntax.Token{
+		Type:  t.Type,
+		Bytes: t.Bytes,
+		Range: hcl.Range{
+			Filename: "<invalid>",
+		},
+	}
 }
 
 // Tokens is a flat list of tokens.
