@@ -18,6 +18,7 @@ import (
 	"time"
 
 	cleanhttp "github.com/hashicorp/go-cleanhttp"
+	"github.com/hashicorp/terraform/httpclient"
 	"github.com/hashicorp/terraform/svchost"
 	"github.com/hashicorp/terraform/svchost/auth"
 )
@@ -97,14 +98,19 @@ func (d *Disco) ForceHostServices(hostname svchost.Hostname, services map[string
 	if services == nil {
 		services = map[string]interface{}{}
 	}
+	transport := d.Transport
+	if transport == nil {
+		transport = httpTransport
+	}
 	d.hostCache[hostname] = &Host{
 		discoURL: &url.URL{
 			Scheme: "https",
 			Host:   string(hostname),
 			Path:   discoPath,
 		},
-		hostname: hostname.ForDisplay(),
-		services: services,
+		hostname:  hostname.ForDisplay(),
+		services:  services,
+		transport: transport,
 	}
 }
 
@@ -151,13 +157,13 @@ func (d *Disco) discover(hostname svchost.Hostname) (*Host, error) {
 		Path:   discoPath,
 	}
 
-	t := d.Transport
-	if t == nil {
-		t = httpTransport
+	transport := d.Transport
+	if transport == nil {
+		transport = httpTransport
 	}
 
 	client := &http.Client{
-		Transport: t,
+		Transport: transport,
 		Timeout:   discoTimeout,
 
 		CheckRedirect: func(req *http.Request, via []*http.Request) error {
@@ -170,9 +176,12 @@ func (d *Disco) discover(hostname svchost.Hostname) (*Host, error) {
 	}
 
 	req := &http.Request{
+		Header: make(http.Header),
 		Method: "GET",
 		URL:    discoURL,
 	}
+	req.Header.Set("Accept", "application/json")
+	req.Header.Set("User-Agent", httpclient.UserAgentString())
 
 	creds, err := d.CredentialsForHost(hostname)
 	if err != nil {
@@ -194,8 +203,9 @@ func (d *Disco) discover(hostname svchost.Hostname) (*Host, error) {
 	host := &Host{
 		// Use the discovery URL from resp.Request in
 		// case the client followed any redirects.
-		discoURL: resp.Request.URL,
-		hostname: hostname.ForDisplay(),
+		discoURL:  resp.Request.URL,
+		hostname:  hostname.ForDisplay(),
+		transport: transport,
 	}
 
 	// Return the host without any services.
