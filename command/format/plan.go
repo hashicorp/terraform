@@ -238,7 +238,7 @@ func formatPlanInstanceDiff(buf *bytes.Buffer, r *InstanceDiff, keyLen int, colo
 	if r.Deposed {
 		extraStr = extraStr + " (deposed)"
 	}
-	if r.Action == plans.DeleteThenCreate || r.Action == plans.CreateThenDelete {
+	if r.Action.IsReplace() {
 		extraStr = extraStr + colorizer.Color(" [red][bold](new resource required)")
 	}
 
@@ -264,7 +264,7 @@ func formatPlanInstanceDiff(buf *bytes.Buffer, r *InstanceDiff, keyLen int, colo
 
 		updateMsg := ""
 		switch {
-		case attr.ForcesNew && (r.Action == plans.DeleteThenCreate || r.Action == plans.CreateThenDelete):
+		case attr.ForcesNew && r.Action.IsReplace():
 			updateMsg = colorizer.Color(" [red](forces new resource)")
 		case attr.Sensitive && oldValues:
 			updateMsg = colorizer.Color(" [yellow](attribute changed)")
