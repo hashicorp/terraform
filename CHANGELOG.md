@@ -1,5 +1,11 @@
 ## 0.11.11 (Unreleased)
 
+IMPROVEMENTS:
+
+* backend/remote: Return detailed version (in)compatibility information [GH-19659]
+* core: Enhance service discovery error handling and messaging [GH-19589]
+* core: Add support to retrieve version constraints to service discovery [GH-19647]
+
 BUG FIXES:
 
 * backend/remote: Fix symlink issues and Windows support when uploading configurations [GH-19573]
