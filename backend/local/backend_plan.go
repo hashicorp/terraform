@@ -204,25 +204,22 @@ func (b *Local) renderPlan(plan *plans.Plan, schemas *terraform.Schemas) {
 	headerBuf := &bytes.Buffer{}
 	fmt.Fprintf(headerBuf, "\n%s\n", strings.TrimSpace(planHeaderIntro))
 	if counts[plans.Create] > 0 {
-		fmt.Fprintf(headerBuf, "%s create\n", format.DiffActionSymbol(terraform.DiffCreate))
+		fmt.Fprintf(headerBuf, "%s create\n", format.DiffActionSymbol(plans.Create))
 	}
 	if counts[plans.Update] > 0 {
-		fmt.Fprintf(headerBuf, "%s update in-place\n", format.DiffActionSymbol(terraform.DiffUpdate))
+		fmt.Fprintf(headerBuf, "%s update in-place\n", format.DiffActionSymbol(plans.Update))
 	}
 	if counts[plans.Delete] > 0 {
-		fmt.Fprintf(headerBuf, "%s destroy\n", format.DiffActionSymbol(terraform.DiffDestroy))
+		fmt.Fprintf(headerBuf, "%s destroy\n", format.DiffActionSymbol(plans.Delete))
 	}
 	if counts[plans.DeleteThenCreate] > 0 {
-		fmt.Fprintf(headerBuf, "%s destroy and then create replacement\n", format.DiffActionSymbol(terraform.DiffDestroyCreate))
+		fmt.Fprintf(headerBuf, "%s destroy and then create replacement\n", format.DiffActionSymbol(plans.DeleteThenCreate))
 	}
 	if counts[plans.CreateThenDelete] > 0 {
-		// FIXME: This shows the wrong symbol, because our old diff action
-		// type can't represent CreateThenDelete. We should switch
-		// format.DiffActionSymbol over to using plans.Action instead.
-		fmt.Fprintf(headerBuf, "%s create replacement and then destroy prior\n", format.DiffActionSymbol(terraform.DiffDestroyCreate))
+		fmt.Fprintf(headerBuf, "%s create replacement and then destroy\n", format.DiffActionSymbol(plans.CreateThenDelete))
 	}
 	if counts[plans.Read] > 0 {
-		fmt.Fprintf(headerBuf, "%s read (data resources)\n", format.DiffActionSymbol(terraform.DiffRefresh))
+		fmt.Fprintf(headerBuf, "%s read (data resources)\n", format.DiffActionSymbol(plans.Read))
 	}
 
 	b.CLI.Output(b.Colorize().Color(headerBuf.String()))
