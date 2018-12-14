@@ -1,14 +1,14 @@
-## 0.11.11 (Unreleased)
+## 0.11.11 (December 14, 2018)
 
 IMPROVEMENTS:
 
-* backend/remote: Return detailed version (in)compatibility information [GH-19659]
-* core: Enhance service discovery error handling and messaging [GH-19589]
-* core: Add support to retrieve version constraints to service discovery [GH-19647]
+* backend/remote: Return detailed version (in)compatibility information ([#19659](https://github.com/hashicorp/terraform/issues/19659))
+* core: Enhance service discovery error handling and messaging ([#19589](https://github.com/hashicorp/terraform/issues/19589))
+* core: Add support to retrieve version constraints to service discovery ([#19647](https://github.com/hashicorp/terraform/issues/19647))
 
 BUG FIXES:
 
-* backend/remote: Fix symlink issues and Windows support when uploading configurations [GH-19573]
+* backend/remote: Fix symlink issues and Windows support when uploading configurations ([#19573](https://github.com/hashicorp/terraform/issues/19573))
 
 ## 0.11.10 (October 23, 2018)
 
