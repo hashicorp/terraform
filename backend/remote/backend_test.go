@@ -8,7 +8,9 @@ import (
 
 	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/config"
+	"github.com/hashicorp/terraform/svchost/disco"
 	"github.com/hashicorp/terraform/terraform"
+	"github.com/hashicorp/terraform/version"
 )
 
 func TestRemote(t *testing.T) {
@@ -86,7 +88,7 @@ func TestRemote_config(t *testing.T) {
 					},
 				},
 			},
-			err: errors.New("host nonexisting.local does not provide a remote backend API"),
+			err: errors.New("Failed to request discovery document"),
 		},
 	}
 
@@ -112,7 +114,7 @@ func TestRemote_config(t *testing.T) {
 
 		// Configure
 		err = b.Configure(conf)
-		if err != tc.err && err != nil && tc.err != nil && err.Error() != tc.err.Error() {
+		if err != tc.err && err != nil && tc.err != nil && !strings.Contains(err.Error(), tc.err.Error()) {
 			t.Fatalf("%s: expected error %q, got: %q", name, tc.err, err)
 		}
 	}
@@ -236,5 +238,97 @@ func TestRemote_addAndRemoveStatesNoDefault(t *testing.T) {
 	expectedStates = []string(nil)
 	if !reflect.DeepEqual(states, expectedStates) {
 		t.Fatalf("expected %#+v, got %#+v", expectedStates, states)
+	}
+}
+
+func TestRemote_checkConstraints(t *testing.T) {
+	b := testBackendDefault(t)
+
+	cases := map[string]struct {
+		constraints *disco.Constraints
+		prerelease  string
+		version     string
+		result      string
+	}{
+		"compatible version": {
+			constraints: &disco.Constraints{
+				Minimum: "0.11.0",
+				Maximum: "0.11.11",
+			},
+			version: "0.11.1",
+			result:  "",
+		},
+		"version too old": {
+			constraints: &disco.Constraints{
+				Minimum: "0.11.0",
+				Maximum: "0.11.11",
+			},
+			version: "0.10.1",
+			result:  "upgrade Terraform to >= 0.11.0",
+		},
+		"version too new": {
+			constraints: &disco.Constraints{
+				Minimum: "0.11.0",
+				Maximum: "0.11.11",
+			},
+			version: "0.12.0",
+			result:  "downgrade Terraform to <= 0.11.11",
+		},
+		"version excluded - ordered": {
+			constraints: &disco.Constraints{
+				Minimum:   "0.11.0",
+				Excluding: []string{"0.11.7", "0.11.8"},
+				Maximum:   "0.11.11",
+			},
+			version: "0.11.7",
+			result:  "upgrade Terraform to > 0.11.8",
+		},
+		"version excluded - unordered": {
+			constraints: &disco.Constraints{
+				Minimum:   "0.11.0",
+				Excluding: []string{"0.11.8", "0.11.6"},
+				Maximum:   "0.11.11",
+			},
+			version: "0.11.6",
+			result:  "upgrade Terraform to > 0.11.8",
+		},
+		"list versions": {
+			constraints: &disco.Constraints{
+				Minimum: "0.11.0",
+				Maximum: "0.11.11",
+			},
+			version: "0.10.1",
+			result:  "versions >= 0.11.0, < 0.11.11.",
+		},
+		"list exclusion": {
+			constraints: &disco.Constraints{
+				Minimum:   "0.11.0",
+				Excluding: []string{"0.11.6"},
+				Maximum:   "0.11.11",
+			},
+			version: "0.11.6",
+			result:  "excluding version 0.11.6.",
+		},
+		"list exclusions": {
+			constraints: &disco.Constraints{
+				Minimum:   "0.11.0",
+				Excluding: []string{"0.11.8", "0.11.6"},
+				Maximum:   "0.11.11",
+			},
+			version: "0.11.6",
+			result:  "excluding versions 0.11.6, 0.11.8.",
+		},
+	}
+
+	for name, tc := range cases {
+		version.Prerelease = tc.prerelease
+		version.Version = tc.version
+
+		// Check the constraints.
+		err := b.checkConstraints(tc.constraints)
+		if (err != nil || tc.result != "") &&
+			(err == nil || !strings.Contains(err.Error(), tc.result)) {
+			t.Fatalf("%s: unexpected constraints result: %v", name, err)
+		}
 	}
 }
