@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
@@ -40,18 +39,6 @@ func resourceAwsEgressOnlyInternetGatewayCreate(d *schema.ResourceData, meta int
 
 	d.SetId(*resp.EgressOnlyInternetGateway.EgressOnlyInternetGatewayId)
 
-	err = resource.Retry(5*time.Minute, func() *resource.RetryError {
-		igRaw, _, err := EIGWStateRefreshFunc(conn, d.Id())()
-		if igRaw != nil {
-			return nil
-		}
-		if err == nil {
-			return resource.RetryableError(err)
-		} else {
-			return resource.NonRetryableError(err)
-		}
-	})
-
 	if err != nil {
 		return fmt.Errorf("%s", err)
 	}
@@ -59,50 +46,35 @@ func resourceAwsEgressOnlyInternetGatewayCreate(d *schema.ResourceData, meta int
 	return resourceAwsEgressOnlyInternetGatewayRead(d, meta)
 }
 
-func EIGWStateRefreshFunc(conn *ec2.EC2, id string) resource.StateRefreshFunc {
-	return func() (interface{}, string, error) {
-		resp, err := conn.DescribeEgressOnlyInternetGateways(&ec2.DescribeEgressOnlyInternetGatewaysInput{
-			EgressOnlyInternetGatewayIds: []*string{aws.String(id)},
-		})
-		if err != nil {
-			ec2err, ok := err.(awserr.Error)
-			if ok && ec2err.Code() == "InvalidEgressInternetGatewayID.NotFound" {
-				resp = nil
-			} else {
-				log.Printf("[ERROR] Error on EIGWStateRefreshFunc: %s", err)
-				return nil, "", err
-			}
-		}
-		if len(resp.EgressOnlyInternetGateways) < 1 {
-			resp = nil
-		}
-
-		if resp == nil {
-			// Sometimes AWS just has consistency issues and doesn't see
-			// our instance yet. Return an empty state.
-			return nil, "", nil
-		}
-
-		ig := resp.EgressOnlyInternetGateways[0]
-		return ig, "available", nil
-	}
-}
-
 func resourceAwsEgressOnlyInternetGatewayRead(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).ec2conn
 
-	resp, err := conn.DescribeEgressOnlyInternetGateways(&ec2.DescribeEgressOnlyInternetGatewaysInput{
+	var found bool
+	var req = &ec2.DescribeEgressOnlyInternetGatewaysInput{
 		EgressOnlyInternetGatewayIds: []*string{aws.String(d.Id())},
-	})
-	if err != nil {
-		return fmt.Errorf("Error describing egress internet gateway: %s", err)
 	}
 
-	found := false
-	for _, igw := range resp.EgressOnlyInternetGateways {
-		if *igw.EgressOnlyInternetGatewayId == d.Id() {
-			found = true
+	err := resource.Retry(1*time.Minute, func() *resource.RetryError {
+		resp, err := conn.DescribeEgressOnlyInternetGateways(req)
+		if err != nil {
+			return resource.NonRetryableError(err)
 		}
+		if resp != nil && len(resp.EgressOnlyInternetGateways) > 0 {
+			for _, igw := range resp.EgressOnlyInternetGateways {
+				if aws.StringValue(igw.EgressOnlyInternetGatewayId) == d.Id() {
+					found = true
+					break
+				}
+			}
+		}
+		if d.IsNewResource() && !found {
+			return resource.RetryableError(fmt.Errorf("Egress Only Internet Gateway (%s) not found.", d.Id()))
+		}
+		return nil
+	})
+
+	if err != nil {
+		return fmt.Errorf("Error describing egress internet gateway: %s", err)
 	}
 
 	if !found {

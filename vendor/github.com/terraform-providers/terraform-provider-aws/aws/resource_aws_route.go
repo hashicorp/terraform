@@ -120,6 +120,11 @@ func resourceAwsRoute() *schema.Resource {
 				ForceNew: true,
 			},
 
+			"transit_gateway_id": {
+				Type:     schema.TypeString,
+				Optional: true,
+			},
+
 			"vpc_peering_connection_id": {
 				Type:     schema.TypeString,
 				Optional: true,
@@ -138,6 +143,7 @@ func resourceAwsRouteCreate(d *schema.ResourceData, meta interface{}) error {
 		"nat_gateway_id",
 		"instance_id",
 		"network_interface_id",
+		"transit_gateway_id",
 		"vpc_peering_connection_id",
 	}
 
@@ -210,6 +216,20 @@ func resourceAwsRouteCreate(d *schema.ResourceData, meta interface{}) error {
 			createOpts.DestinationIpv6CidrBlock = aws.String(v.(string))
 		}
 
+	case "transit_gateway_id":
+		createOpts = &ec2.CreateRouteInput{
+			RouteTableId:     aws.String(d.Get("route_table_id").(string)),
+			TransitGatewayId: aws.String(d.Get("transit_gateway_id").(string)),
+		}
+
+		if v, ok := d.GetOk("destination_cidr_block"); ok {
+			createOpts.DestinationCidrBlock = aws.String(v.(string))
+		}
+
+		if v, ok := d.GetOk("destination_ipv6_cidr_block"); ok {
+			createOpts.DestinationIpv6CidrBlock = aws.String(v.(string))
+		}
+
 	case "vpc_peering_connection_id":
 		createOpts = &ec2.CreateRouteInput{
 			RouteTableId:           aws.String(d.Get("route_table_id").(string)),
@@ -235,16 +255,15 @@ func resourceAwsRouteCreate(d *schema.ResourceData, meta interface{}) error {
 	err = resource.Retry(d.Timeout(schema.TimeoutCreate), func() *resource.RetryError {
 		_, err = conn.CreateRoute(createOpts)
 
-		if err != nil {
-			ec2err, ok := err.(awserr.Error)
-			if !ok {
-				return resource.NonRetryableError(err)
-			}
-			if ec2err.Code() == "InvalidParameterException" {
-				log.Printf("[DEBUG] Trying to create route again: %q", ec2err.Message())
-				return resource.RetryableError(err)
-			}
+		if isAWSErr(err, "InvalidParameterException", "") {
+			return resource.RetryableError(err)
+		}
 
+		if isAWSErr(err, "InvalidTransitGatewayID.NotFound", "") {
+			return resource.RetryableError(err)
+		}
+
+		if err != nil {
 			return resource.NonRetryableError(err)
 		}
 
@@ -312,6 +331,7 @@ func resourceAwsRouteSetResourceData(d *schema.ResourceData, route *ec2.Route) {
 	d.Set("network_interface_id", route.NetworkInterfaceId)
 	d.Set("origin", route.Origin)
 	d.Set("state", route.State)
+	d.Set("transit_gateway_id", route.TransitGatewayId)
 	d.Set("vpc_peering_connection_id", route.VpcPeeringConnectionId)
 }
 
@@ -326,6 +346,7 @@ func resourceAwsRouteUpdate(d *schema.ResourceData, meta interface{}) error {
 		"nat_gateway_id",
 		"network_interface_id",
 		"instance_id",
+		"transit_gateway_id",
 		"vpc_peering_connection_id",
 	}
 	replaceOpts := &ec2.ReplaceRouteInput{}
@@ -383,6 +404,12 @@ func resourceAwsRouteUpdate(d *schema.ResourceData, meta interface{}) error {
 			RouteTableId:         aws.String(d.Get("route_table_id").(string)),
 			DestinationCidrBlock: aws.String(d.Get("destination_cidr_block").(string)),
 			NetworkInterfaceId:   aws.String(d.Get("network_interface_id").(string)),
+		}
+	case "transit_gateway_id":
+		replaceOpts = &ec2.ReplaceRouteInput{
+			RouteTableId:         aws.String(d.Get("route_table_id").(string)),
+			DestinationCidrBlock: aws.String(d.Get("destination_cidr_block").(string)),
+			TransitGatewayId:     aws.String(d.Get("transit_gateway_id").(string)),
 		}
 	case "vpc_peering_connection_id":
 		replaceOpts = &ec2.ReplaceRouteInput{

@@ -5,6 +5,7 @@ import (
 	"log"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/arn"
 	"github.com/aws/aws-sdk-go/service/efs"
 	"github.com/hashicorp/terraform/helper/schema"
 )
@@ -19,7 +20,10 @@ func dataSourceAwsEfsMountTarget() *schema.Resource {
 				Required: true,
 				ForceNew: true,
 			},
-
+			"file_system_arn": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
 			"file_system_id": {
 				Type:     schema.TypeString,
 				Computed: true,
@@ -71,6 +75,16 @@ func dataSourceAwsEfsMountTargetRead(d *schema.ResourceData, meta interface{}) e
 	log.Printf("[DEBUG] Found EFS mount target: %#v", mt)
 
 	d.SetId(*mt.MountTargetId)
+
+	fsARN := arn.ARN{
+		AccountID: meta.(*AWSClient).accountid,
+		Partition: meta.(*AWSClient).partition,
+		Region:    meta.(*AWSClient).region,
+		Resource:  fmt.Sprintf("file-system/%s", aws.StringValue(mt.FileSystemId)),
+		Service:   "elasticfilesystem",
+	}.String()
+
+	d.Set("file_system_arn", fsARN)
 	d.Set("file_system_id", mt.FileSystemId)
 	d.Set("ip_address", mt.IpAddress)
 	d.Set("subnet_id", mt.SubnetId)

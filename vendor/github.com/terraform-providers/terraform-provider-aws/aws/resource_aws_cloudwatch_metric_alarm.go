@@ -73,8 +73,11 @@ func resourceAwsCloudWatchMetricAlarm() *schema.Resource {
 				Type:     schema.TypeSet,
 				Optional: true,
 				Elem: &schema.Schema{
-					Type:         schema.TypeString,
-					ValidateFunc: validateArn,
+					Type: schema.TypeString,
+					ValidateFunc: validateAny(
+						validateArn,
+						validateEC2AutomateARN,
+					),
 				},
 				Set: schema.HashString,
 			},

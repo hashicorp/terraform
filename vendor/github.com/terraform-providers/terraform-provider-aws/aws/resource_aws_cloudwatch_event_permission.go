@@ -12,6 +12,7 @@ import (
 	events "github.com/aws/aws-sdk-go/service/cloudwatchevents"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/hashicorp/terraform/helper/validation"
 )
 
 func resourceAwsCloudWatchEventPermission() *schema.Resource {
@@ -30,6 +31,30 @@ func resourceAwsCloudWatchEventPermission() *schema.Resource {
 				Optional:     true,
 				Default:      "events:PutEvents",
 				ValidateFunc: validateCloudWatchEventPermissionAction,
+			},
+			"condition": {
+				Type:     schema.TypeList,
+				Optional: true,
+				MaxItems: 1,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"key": {
+							Type:         schema.TypeString,
+							Required:     true,
+							ValidateFunc: validation.StringInSlice([]string{"aws:PrincipalOrgID"}, false),
+						},
+						"type": {
+							Type:         schema.TypeString,
+							Required:     true,
+							ValidateFunc: validation.StringInSlice([]string{"StringEquals"}, false),
+						},
+						"value": {
+							Type:         schema.TypeString,
+							Required:     true,
+							ValidateFunc: validation.NoZeroValues,
+						},
+					},
+				},
 			},
 			"principal": {
 				Type:         schema.TypeString,
@@ -53,6 +78,7 @@ func resourceAwsCloudWatchEventPermissionCreate(d *schema.ResourceData, meta int
 
 	input := events.PutPermissionInput{
 		Action:      aws.String(d.Get("action").(string)),
+		Condition:   expandCloudWatchEventsCondition(d.Get("condition").([]interface{})),
 		Principal:   aws.String(d.Get("principal").(string)),
 		StatementId: aws.String(statementID),
 	}
@@ -108,6 +134,10 @@ func resourceAwsCloudWatchEventPermissionRead(d *schema.ResourceData, meta inter
 
 	d.Set("action", policyStatement.Action)
 
+	if err := d.Set("condition", flattenCloudWatchEventPermissionPolicyStatementCondition(policyStatement.Condition)); err != nil {
+		return fmt.Errorf("error setting condition: %s", err)
+	}
+
 	principalString, ok := policyStatement.Principal.(string)
 	if ok && (principalString == "*") {
 		d.Set("principal", "*")
@@ -129,6 +159,7 @@ func resourceAwsCloudWatchEventPermissionUpdate(d *schema.ResourceData, meta int
 
 	input := events.PutPermissionInput{
 		Action:      aws.String(d.Get("action").(string)),
+		Condition:   expandCloudWatchEventsCondition(d.Get("condition").([]interface{})),
 		Principal:   aws.String(d.Get("principal").(string)),
 		StatementId: aws.String(d.Get("statement_id").(string)),
 	}
@@ -205,8 +236,40 @@ type CloudWatchEventPermissionPolicyStatement struct {
 	Sid       string
 	Effect    string
 	Action    string
-	Principal interface{} // "*" or {"AWS": "arn:aws:iam::111111111111:root"}
+	Condition *CloudWatchEventPermissionPolicyStatementCondition `json:"Condition,omitempty"`
+	Principal interface{}                                        // "*" or {"AWS": "arn:aws:iam::111111111111:root"}
 	Resource  string
+}
+
+// CloudWatchEventPermissionPolicyStatementCondition represents the Condition attribute of CloudWatchEventPermissionPolicyStatement
+// See also: https://docs.aws.amazon.com/AmazonCloudWatchEvents/latest/APIReference/API_DescribeEventBus.html
+type CloudWatchEventPermissionPolicyStatementCondition struct {
+	Key   string
+	Type  string
+	Value string
+}
+
+func (condition *CloudWatchEventPermissionPolicyStatementCondition) UnmarshalJSON(b []byte) error {
+	var out CloudWatchEventPermissionPolicyStatementCondition
+
+	// JSON representation: \"Condition\":{\"StringEquals\":{\"aws:PrincipalOrgID\":\"o-0123456789\"}}
+	var data map[string]map[string]string
+	if err := json.Unmarshal(b, &data); err != nil {
+		return err
+	}
+
+	for typeKey, typeValue := range data {
+		for conditionKey, conditionValue := range typeValue {
+			out = CloudWatchEventPermissionPolicyStatementCondition{
+				Key:   conditionKey,
+				Type:  typeKey,
+				Value: conditionValue,
+			}
+		}
+	}
+
+	*condition = out
+	return nil
 }
 
 func findCloudWatchEventPermissionPolicyStatementByID(policy *CloudWatchEventPermissionPolicyDoc, id string) (
@@ -224,4 +287,34 @@ func findCloudWatchEventPermissionPolicyStatementByID(policy *CloudWatchEventPer
 		LastResponse: policy,
 		Message:      fmt.Sprintf("Failed to find statement %q in CloudWatch Events permission policy:\n%s", id, policy.Statements),
 	}
+}
+
+func expandCloudWatchEventsCondition(l []interface{}) *events.Condition {
+	if len(l) == 0 || l[0] == nil {
+		return nil
+	}
+
+	m := l[0].(map[string]interface{})
+
+	condition := &events.Condition{
+		Key:   aws.String(m["key"].(string)),
+		Type:  aws.String(m["type"].(string)),
+		Value: aws.String(m["value"].(string)),
+	}
+
+	return condition
+}
+
+func flattenCloudWatchEventPermissionPolicyStatementCondition(condition *CloudWatchEventPermissionPolicyStatementCondition) []interface{} {
+	if condition == nil {
+		return []interface{}{}
+	}
+
+	m := map[string]interface{}{
+		"key":   condition.Key,
+		"type":  condition.Type,
+		"value": condition.Value,
+	}
+
+	return []interface{}{m}
 }

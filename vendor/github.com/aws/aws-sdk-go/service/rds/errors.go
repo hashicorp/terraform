@@ -49,6 +49,24 @@ const (
 	// BacktrackIdentifier doesn't refer to an existing backtrack.
 	ErrCodeDBClusterBacktrackNotFoundFault = "DBClusterBacktrackNotFoundFault"
 
+	// ErrCodeDBClusterEndpointAlreadyExistsFault for service response error code
+	// "DBClusterEndpointAlreadyExistsFault".
+	//
+	// The specified custom endpoint can't be created because it already exists.
+	ErrCodeDBClusterEndpointAlreadyExistsFault = "DBClusterEndpointAlreadyExistsFault"
+
+	// ErrCodeDBClusterEndpointNotFoundFault for service response error code
+	// "DBClusterEndpointNotFoundFault".
+	//
+	// The specified custom endpoint doesn't exist.
+	ErrCodeDBClusterEndpointNotFoundFault = "DBClusterEndpointNotFoundFault"
+
+	// ErrCodeDBClusterEndpointQuotaExceededFault for service response error code
+	// "DBClusterEndpointQuotaExceededFault".
+	//
+	// The cluster already has the maximum number of custom endpoints.
+	ErrCodeDBClusterEndpointQuotaExceededFault = "DBClusterEndpointQuotaExceededFault"
+
 	// ErrCodeDBClusterNotFoundFault for service response error code
 	// "DBClusterNotFoundFault".
 	//
@@ -107,6 +125,20 @@ const (
 	//
 	// The user already has a DB instance with the given identifier.
 	ErrCodeDBInstanceAlreadyExistsFault = "DBInstanceAlreadyExists"
+
+	// ErrCodeDBInstanceAutomatedBackupNotFoundFault for service response error code
+	// "DBInstanceAutomatedBackupNotFound".
+	//
+	// No automated backup for this DB instance was found.
+	ErrCodeDBInstanceAutomatedBackupNotFoundFault = "DBInstanceAutomatedBackupNotFound"
+
+	// ErrCodeDBInstanceAutomatedBackupQuotaExceededFault for service response error code
+	// "DBInstanceAutomatedBackupQuotaExceeded".
+	//
+	// The quota for retained automated backups was exceeded. This prevents you
+	// from retaining any additional automated backups. The retained automated backups
+	// quota is the same as your DB Instance quota.
+	ErrCodeDBInstanceAutomatedBackupQuotaExceededFault = "DBInstanceAutomatedBackupQuotaExceeded"
 
 	// ErrCodeDBInstanceNotFoundFault for service response error code
 	// "DBInstanceNotFound".
@@ -235,6 +267,18 @@ const (
 	// You have reached the maximum number of event subscriptions.
 	ErrCodeEventSubscriptionQuotaExceededFault = "EventSubscriptionQuotaExceeded"
 
+	// ErrCodeGlobalClusterAlreadyExistsFault for service response error code
+	// "GlobalClusterAlreadyExistsFault".
+	ErrCodeGlobalClusterAlreadyExistsFault = "GlobalClusterAlreadyExistsFault"
+
+	// ErrCodeGlobalClusterNotFoundFault for service response error code
+	// "GlobalClusterNotFoundFault".
+	ErrCodeGlobalClusterNotFoundFault = "GlobalClusterNotFoundFault"
+
+	// ErrCodeGlobalClusterQuotaExceededFault for service response error code
+	// "GlobalClusterQuotaExceededFault".
+	ErrCodeGlobalClusterQuotaExceededFault = "GlobalClusterQuotaExceededFault"
+
 	// ErrCodeInstanceQuotaExceededFault for service response error code
 	// "InstanceQuotaExceeded".
 	//
@@ -269,6 +313,13 @@ const (
 	// values are 2, 4, 8, 16, 32, 64, 128, and 256.
 	ErrCodeInvalidDBClusterCapacityFault = "InvalidDBClusterCapacityFault"
 
+	// ErrCodeInvalidDBClusterEndpointStateFault for service response error code
+	// "InvalidDBClusterEndpointStateFault".
+	//
+	// The requested operation can't be performed on the endpoint while the endpoint
+	// is in this state.
+	ErrCodeInvalidDBClusterEndpointStateFault = "InvalidDBClusterEndpointStateFault"
+
 	// ErrCodeInvalidDBClusterSnapshotStateFault for service response error code
 	// "InvalidDBClusterSnapshotStateFault".
 	//
@@ -278,8 +329,15 @@ const (
 	// ErrCodeInvalidDBClusterStateFault for service response error code
 	// "InvalidDBClusterStateFault".
 	//
-	// The DB cluster isn't in a valid state.
+	// The requested operation can't be performed while the cluster is in this state.
 	ErrCodeInvalidDBClusterStateFault = "InvalidDBClusterStateFault"
+
+	// ErrCodeInvalidDBInstanceAutomatedBackupStateFault for service response error code
+	// "InvalidDBInstanceAutomatedBackupState".
+	//
+	// The automated backup is in an invalid state. For example, this automated
+	// backup is associated with an active instance.
+	ErrCodeInvalidDBInstanceAutomatedBackupStateFault = "InvalidDBInstanceAutomatedBackupState"
 
 	// ErrCodeInvalidDBInstanceStateFault for service response error code
 	// "InvalidDBInstanceState".
@@ -332,6 +390,10 @@ const (
 	// This error can occur if someone else is modifying a subscription. You should
 	// retry the action.
 	ErrCodeInvalidEventSubscriptionStateFault = "InvalidEventSubscriptionState"
+
+	// ErrCodeInvalidGlobalClusterStateFault for service response error code
+	// "InvalidGlobalClusterStateFault".
+	ErrCodeInvalidGlobalClusterStateFault = "InvalidGlobalClusterStateFault"
 
 	// ErrCodeInvalidOptionGroupStateFault for service response error code
 	// "InvalidOptionGroupStateFault".

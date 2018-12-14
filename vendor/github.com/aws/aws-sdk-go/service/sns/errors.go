@@ -42,6 +42,57 @@ const (
 	// Indicates that a request parameter does not comply with the associated constraints.
 	ErrCodeInvalidParameterValueException = "ParameterValueInvalid"
 
+	// ErrCodeInvalidSecurityException for service response error code
+	// "InvalidSecurity".
+	//
+	// The credential signature isn't valid. You must use an HTTPS endpoint and
+	// sign your request using Signature Version 4.
+	ErrCodeInvalidSecurityException = "InvalidSecurity"
+
+	// ErrCodeKMSAccessDeniedException for service response error code
+	// "KMSAccessDenied".
+	//
+	// The ciphertext references a key that doesn't exist or that you don't have
+	// access to.
+	ErrCodeKMSAccessDeniedException = "KMSAccessDenied"
+
+	// ErrCodeKMSDisabledException for service response error code
+	// "KMSDisabled".
+	//
+	// The request was rejected because the specified customer master key (CMK)
+	// isn't enabled.
+	ErrCodeKMSDisabledException = "KMSDisabled"
+
+	// ErrCodeKMSInvalidStateException for service response error code
+	// "KMSInvalidState".
+	//
+	// The request was rejected because the state of the specified resource isn't
+	// valid for this request. For more information, see How Key State Affects Use
+	// of a Customer Master Key (http://docs.aws.amazon.com/kms/latest/developerguide/key-state.html)
+	// in the AWS Key Management Service Developer Guide.
+	ErrCodeKMSInvalidStateException = "KMSInvalidState"
+
+	// ErrCodeKMSNotFoundException for service response error code
+	// "KMSNotFound".
+	//
+	// The request was rejected because the specified entity or resource can't be
+	// found.
+	ErrCodeKMSNotFoundException = "KMSNotFound"
+
+	// ErrCodeKMSOptInRequired for service response error code
+	// "KMSOptInRequired".
+	//
+	// The AWS access key ID needs a subscription for the service.
+	ErrCodeKMSOptInRequired = "KMSOptInRequired"
+
+	// ErrCodeKMSThrottlingException for service response error code
+	// "KMSThrottling".
+	//
+	// The request was denied due to request throttling. For more information about
+	// throttling, see Limits (http://docs.aws.amazon.com/kms/latest/developerguide/limits.html#requests-per-second)
+	// in the AWS Key Management Service Developer Guide.
+	ErrCodeKMSThrottlingException = "KMSThrottling"
+
 	// ErrCodeNotFoundException for service response error code
 	// "NotFound".
 	//

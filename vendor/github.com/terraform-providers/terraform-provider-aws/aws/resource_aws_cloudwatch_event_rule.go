@@ -48,7 +48,7 @@ func resourceAwsCloudWatchEventRule() *schema.Resource {
 			"event_pattern": {
 				Type:         schema.TypeString,
 				Optional:     true,
-				ValidateFunc: validateEventPatternValue(2048),
+				ValidateFunc: validateEventPatternValue(),
 				StateFunc: func(v interface{}) string {
 					json, _ := structure.NormalizeJsonString(v.(string))
 					return json
@@ -281,7 +281,7 @@ func getStringStateFromBoolean(isEnabled bool) string {
 	return "DISABLED"
 }
 
-func validateEventPatternValue(length int) schema.SchemaValidateFunc {
+func validateEventPatternValue() schema.SchemaValidateFunc {
 	return func(v interface{}, k string) (ws []string, errors []error) {
 		json, err := structure.NormalizeJsonString(v)
 		if err != nil {
@@ -294,9 +294,9 @@ func validateEventPatternValue(length int) schema.SchemaValidateFunc {
 		}
 
 		// Check whether the normalized JSON is within the given length.
-		if len(json) > length {
+		if len(json) > 2048 {
 			errors = append(errors, fmt.Errorf(
-				"%q cannot be longer than %d characters: %q", k, length, json))
+				"%q cannot be longer than %d characters: %q", k, 2048, json))
 		}
 		return
 	}

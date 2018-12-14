@@ -7,19 +7,20 @@ const (
 	// ErrCodeContainerInUseException for service response error code
 	// "ContainerInUseException".
 	//
-	// Resource already exists or is being updated.
+	// The container that you specified in the request already exists or is being
+	// updated.
 	ErrCodeContainerInUseException = "ContainerInUseException"
 
 	// ErrCodeContainerNotFoundException for service response error code
 	// "ContainerNotFoundException".
 	//
-	// Could not perform an operation on a container that does not exist.
+	// The container that you specified in the request does not exist.
 	ErrCodeContainerNotFoundException = "ContainerNotFoundException"
 
 	// ErrCodeCorsPolicyNotFoundException for service response error code
 	// "CorsPolicyNotFoundException".
 	//
-	// Could not perform an operation on a policy that does not exist.
+	// The CORS policy that you specified in the request does not exist.
 	ErrCodeCorsPolicyNotFoundException = "CorsPolicyNotFoundException"
 
 	// ErrCodeInternalServerError for service response error code
@@ -37,6 +38,6 @@ const (
 	// ErrCodePolicyNotFoundException for service response error code
 	// "PolicyNotFoundException".
 	//
-	// Could not perform an operation on a policy that does not exist.
+	// The policy that you specified in the request does not exist.
 	ErrCodePolicyNotFoundException = "PolicyNotFoundException"
 )

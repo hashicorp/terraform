@@ -35,7 +35,7 @@ func resourceAwsVpnGateway() *schema.Resource {
 				Optional:     true,
 				ForceNew:     true,
 				Computed:     true,
-				ValidateFunc: validateVpnGatewayAmazonSideAsn,
+				ValidateFunc: validateAmazonSideAsn,
 			},
 
 			"vpc_id": {
@@ -218,7 +218,7 @@ func resourceAwsVpnGatewayAttach(d *schema.ResourceData, meta interface{}) error
 	stateConf := &resource.StateChangeConf{
 		Pending: []string{"detached", "attaching"},
 		Target:  []string{"attached"},
-		Refresh: vpnGatewayAttachStateRefreshFunc(conn, d.Id(), "available"),
+		Refresh: vpnGatewayAttachStateRefreshFunc(conn, d.Id()),
 		Timeout: 10 * time.Minute,
 	}
 	if _, err := stateConf.WaitForState(); err != nil {
@@ -279,7 +279,7 @@ func resourceAwsVpnGatewayDetach(d *schema.ResourceData, meta interface{}) error
 	stateConf := &resource.StateChangeConf{
 		Pending: []string{"attached", "detaching", "available"},
 		Target:  []string{"detached"},
-		Refresh: vpnGatewayAttachStateRefreshFunc(conn, d.Id(), "detached"),
+		Refresh: vpnGatewayAttachStateRefreshFunc(conn, d.Id()),
 		Timeout: 10 * time.Minute,
 	}
 	if _, err := stateConf.WaitForState(); err != nil {
@@ -293,7 +293,7 @@ func resourceAwsVpnGatewayDetach(d *schema.ResourceData, meta interface{}) error
 
 // vpnGatewayAttachStateRefreshFunc returns a resource.StateRefreshFunc that is used to watch
 // the state of a VPN gateway's attachment
-func vpnGatewayAttachStateRefreshFunc(conn *ec2.EC2, id string, expected string) resource.StateRefreshFunc {
+func vpnGatewayAttachStateRefreshFunc(conn *ec2.EC2, id string) resource.StateRefreshFunc {
 	var start time.Time
 	return func() (interface{}, string, error) {
 		if start.IsZero() {

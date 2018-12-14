@@ -376,8 +376,7 @@ func (c *LexModelBuildingService) DeleteBotRequest(input *DeleteBotInput) (req *
 
 	output = &DeleteBotOutput{}
 	req = c.newRequest(op, input, output)
-	req.Handlers.Unmarshal.Remove(restjson.UnmarshalHandler)
-	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
+	req.Handlers.Unmarshal.Swap(restjson.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -493,8 +492,7 @@ func (c *LexModelBuildingService) DeleteBotAliasRequest(input *DeleteBotAliasInp
 
 	output = &DeleteBotAliasOutput{}
 	req = c.newRequest(op, input, output)
-	req.Handlers.Unmarshal.Remove(restjson.UnmarshalHandler)
-	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
+	req.Handlers.Unmarshal.Swap(restjson.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -609,8 +607,7 @@ func (c *LexModelBuildingService) DeleteBotChannelAssociationRequest(input *Dele
 
 	output = &DeleteBotChannelAssociationOutput{}
 	req = c.newRequest(op, input, output)
-	req.Handlers.Unmarshal.Remove(restjson.UnmarshalHandler)
-	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
+	req.Handlers.Unmarshal.Swap(restjson.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -707,8 +704,7 @@ func (c *LexModelBuildingService) DeleteBotVersionRequest(input *DeleteBotVersio
 
 	output = &DeleteBotVersionOutput{}
 	req = c.newRequest(op, input, output)
-	req.Handlers.Unmarshal.Remove(restjson.UnmarshalHandler)
-	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
+	req.Handlers.Unmarshal.Swap(restjson.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -818,8 +814,7 @@ func (c *LexModelBuildingService) DeleteIntentRequest(input *DeleteIntentInput) 
 
 	output = &DeleteIntentOutput{}
 	req = c.newRequest(op, input, output)
-	req.Handlers.Unmarshal.Remove(restjson.UnmarshalHandler)
-	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
+	req.Handlers.Unmarshal.Swap(restjson.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -939,8 +934,7 @@ func (c *LexModelBuildingService) DeleteIntentVersionRequest(input *DeleteIntent
 
 	output = &DeleteIntentVersionOutput{}
 	req = c.newRequest(op, input, output)
-	req.Handlers.Unmarshal.Remove(restjson.UnmarshalHandler)
-	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
+	req.Handlers.Unmarshal.Swap(restjson.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -1050,8 +1044,7 @@ func (c *LexModelBuildingService) DeleteSlotTypeRequest(input *DeleteSlotTypeInp
 
 	output = &DeleteSlotTypeOutput{}
 	req = c.newRequest(op, input, output)
-	req.Handlers.Unmarshal.Remove(restjson.UnmarshalHandler)
-	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
+	req.Handlers.Unmarshal.Swap(restjson.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -1173,8 +1166,7 @@ func (c *LexModelBuildingService) DeleteSlotTypeVersionRequest(input *DeleteSlot
 
 	output = &DeleteSlotTypeVersionOutput{}
 	req = c.newRequest(op, input, output)
-	req.Handlers.Unmarshal.Remove(restjson.UnmarshalHandler)
-	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
+	req.Handlers.Unmarshal.Swap(restjson.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -1284,8 +1276,7 @@ func (c *LexModelBuildingService) DeleteUtterancesRequest(input *DeleteUtterance
 
 	output = &DeleteUtterancesOutput{}
 	req = c.newRequest(op, input, output)
-	req.Handlers.Unmarshal.Remove(restjson.UnmarshalHandler)
-	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
+	req.Handlers.Unmarshal.Swap(restjson.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -4324,7 +4315,7 @@ type BotChannelAssociation struct {
 	BotAlias *string `locationName:"botAlias" min:"1" type:"string"`
 
 	// Provides information necessary to communicate with the messaging platform.
-	BotConfiguration map[string]*string `locationName:"botConfiguration" min:"1" type:"map"`
+	BotConfiguration map[string]*string `locationName:"botConfiguration" min:"1" type:"map" sensitive:"true"`
 
 	// The name of the Amazon Lex bot to which this association is being made.
 	//
@@ -6394,7 +6385,7 @@ type GetBotChannelAssociationOutput struct {
 
 	// Provides information that the messaging platform needs to communicate with
 	// the Amazon Lex bot.
-	BotConfiguration map[string]*string `locationName:"botConfiguration" min:"1" type:"map"`
+	BotConfiguration map[string]*string `locationName:"botConfiguration" min:"1" type:"map" sensitive:"true"`
 
 	// The name of the Amazon Lex bot.
 	BotName *string `locationName:"botName" min:"2" type:"string"`
@@ -6660,6 +6651,9 @@ func (s *GetBotInput) Validate() error {
 	}
 	if s.VersionOrAlias == nil {
 		invalidParams.Add(request.NewErrParamRequired("VersionOrAlias"))
+	}
+	if s.VersionOrAlias != nil && len(*s.VersionOrAlias) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("VersionOrAlias", 1))
 	}
 
 	if invalidParams.Len() > 0 {
@@ -7084,6 +7078,9 @@ func (s *GetBuiltinIntentInput) Validate() error {
 	invalidParams := request.ErrInvalidParams{Context: "GetBuiltinIntentInput"}
 	if s.Signature == nil {
 		invalidParams.Add(request.NewErrParamRequired("Signature"))
+	}
+	if s.Signature != nil && len(*s.Signature) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Signature", 1))
 	}
 
 	if invalidParams.Len() > 0 {
@@ -7544,6 +7541,9 @@ func (s *GetImportInput) Validate() error {
 	invalidParams := request.ErrInvalidParams{Context: "GetImportInput"}
 	if s.ImportId == nil {
 		invalidParams.Add(request.NewErrParamRequired("ImportId"))
+	}
+	if s.ImportId != nil && len(*s.ImportId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ImportId", 1))
 	}
 
 	if invalidParams.Len() > 0 {

@@ -144,11 +144,8 @@ func resourceAwsWafRegionalRuleGroupDelete(d *schema.ResourceData, meta interfac
 
 	oldRules := d.Get("activated_rule").(*schema.Set).List()
 	err := deleteWafRegionalRuleGroup(d.Id(), oldRules, conn, region)
-	if err != nil {
-		return err
-	}
 
-	return nil
+	return err
 }
 
 func deleteWafRegionalRuleGroup(id string, oldRules []interface{}, conn *wafregional.WAFRegional, region string) error {

@@ -60,7 +60,7 @@ github.com/apparentlymart/go-textseg/textseg
 github.com/armon/circbuf
 # github.com/armon/go-radix v0.0.0-20160115234725-4239b77079c7
 github.com/armon/go-radix
-# github.com/aws/aws-sdk-go v1.15.55
+# github.com/aws/aws-sdk-go v1.16.4
 github.com/aws/aws-sdk-go/aws
 github.com/aws/aws-sdk-go/aws/awserr
 github.com/aws/aws-sdk-go/service/dynamodb
@@ -71,6 +71,7 @@ github.com/aws/aws-sdk-go/internal/sdkio
 github.com/aws/aws-sdk-go/aws/awsutil
 github.com/aws/aws-sdk-go/aws/client
 github.com/aws/aws-sdk-go/aws/client/metadata
+github.com/aws/aws-sdk-go/aws/crr
 github.com/aws/aws-sdk-go/aws/request
 github.com/aws/aws-sdk-go/aws/signer/v4
 github.com/aws/aws-sdk-go/private/protocol
@@ -91,6 +92,7 @@ github.com/aws/aws-sdk-go/service/acm
 github.com/aws/aws-sdk-go/service/acmpca
 github.com/aws/aws-sdk-go/service/apigateway
 github.com/aws/aws-sdk-go/service/applicationautoscaling
+github.com/aws/aws-sdk-go/service/appmesh
 github.com/aws/aws-sdk-go/service/appsync
 github.com/aws/aws-sdk-go/service/athena
 github.com/aws/aws-sdk-go/service/autoscaling
@@ -112,10 +114,12 @@ github.com/aws/aws-sdk-go/service/cognitoidentity
 github.com/aws/aws-sdk-go/service/cognitoidentityprovider
 github.com/aws/aws-sdk-go/service/configservice
 github.com/aws/aws-sdk-go/service/databasemigrationservice
+github.com/aws/aws-sdk-go/service/datasync
 github.com/aws/aws-sdk-go/service/dax
 github.com/aws/aws-sdk-go/service/devicefarm
 github.com/aws/aws-sdk-go/service/directconnect
 github.com/aws/aws-sdk-go/service/directoryservice
+github.com/aws/aws-sdk-go/service/dlm
 github.com/aws/aws-sdk-go/service/ec2
 github.com/aws/aws-sdk-go/service/ecr
 github.com/aws/aws-sdk-go/service/ecs
@@ -138,6 +142,7 @@ github.com/aws/aws-sdk-go/service/iam
 github.com/aws/aws-sdk-go/service/inspector
 github.com/aws/aws-sdk-go/service/iot
 github.com/aws/aws-sdk-go/service/kinesis
+github.com/aws/aws-sdk-go/service/kinesisanalytics
 github.com/aws/aws-sdk-go/service/kms
 github.com/aws/aws-sdk-go/service/lambda
 github.com/aws/aws-sdk-go/service/lexmodelbuildingservice
@@ -154,6 +159,7 @@ github.com/aws/aws-sdk-go/service/rds
 github.com/aws/aws-sdk-go/service/redshift
 github.com/aws/aws-sdk-go/service/route53
 github.com/aws/aws-sdk-go/service/secretsmanager
+github.com/aws/aws-sdk-go/service/securityhub
 github.com/aws/aws-sdk-go/service/servicecatalog
 github.com/aws/aws-sdk-go/service/servicediscovery
 github.com/aws/aws-sdk-go/service/ses
@@ -165,9 +171,11 @@ github.com/aws/aws-sdk-go/service/ssm
 github.com/aws/aws-sdk-go/service/storagegateway
 github.com/aws/aws-sdk-go/service/sts
 github.com/aws/aws-sdk-go/service/swf
+github.com/aws/aws-sdk-go/service/transfer
 github.com/aws/aws-sdk-go/service/waf
 github.com/aws/aws-sdk-go/service/wafregional
 github.com/aws/aws-sdk-go/service/workspaces
+github.com/aws/aws-sdk-go/internal/ini
 github.com/aws/aws-sdk-go/internal/shareddefaults
 github.com/aws/aws-sdk-go/internal/sdkrand
 github.com/aws/aws-sdk-go/private/protocol/query
@@ -175,6 +183,7 @@ github.com/aws/aws-sdk-go/private/protocol/xml/xmlutil
 github.com/aws/aws-sdk-go/internal/sdkuri
 github.com/aws/aws-sdk-go/aws/corehandlers
 github.com/aws/aws-sdk-go/aws/credentials/endpointcreds
+github.com/aws/aws-sdk-go/aws/credentials/processcreds
 github.com/aws/aws-sdk-go/aws/csm
 github.com/aws/aws-sdk-go/private/protocol/restjson
 github.com/aws/aws-sdk-go/private/protocol/ec2query
@@ -216,8 +225,6 @@ github.com/dimchansky/utfbom
 github.com/dylanmei/iso8601
 # github.com/dylanmei/winrmtest v0.0.0-20170819153634-c2fbb09e6c08
 github.com/dylanmei/winrmtest
-# github.com/go-ini/ini v1.25.4
-github.com/go-ini/ini
 # github.com/go-test/deep v1.0.1
 github.com/go-test/deep
 # github.com/gogo/protobuf v0.0.0-20180821102207-98f6aa8b3bcf
@@ -373,7 +380,7 @@ github.com/hashicorp/vault/helper/compressutil
 github.com/hashicorp/yamux
 # github.com/jen20/awspolicyequivalence v0.0.0-20170831201602-3d48364a137a
 github.com/jen20/awspolicyequivalence
-# github.com/jmespath/go-jmespath v0.0.0-20160803190731-bd40a432e4c7
+# github.com/jmespath/go-jmespath v0.0.0-20180206201540-c2b33e8439af
 github.com/jmespath/go-jmespath
 # github.com/joyent/triton-go v0.0.0-20180313100802-d8f9c0314926
 github.com/joyent/triton-go
@@ -455,7 +462,7 @@ github.com/spf13/afero
 github.com/spf13/afero/mem
 # github.com/svanharmelen/jsonapi v0.0.0-20180618144545-0c0828c3f16d
 github.com/svanharmelen/jsonapi
-# github.com/terraform-providers/terraform-provider-aws v1.41.0
+# github.com/terraform-providers/terraform-provider-aws v1.52.0
 github.com/terraform-providers/terraform-provider-aws/aws
 # github.com/terraform-providers/terraform-provider-openstack v0.0.0-20170616075611-4080a521c6ea
 github.com/terraform-providers/terraform-provider-openstack/openstack

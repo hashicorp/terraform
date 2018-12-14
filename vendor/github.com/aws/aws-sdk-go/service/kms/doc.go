@@ -30,7 +30,7 @@
 // Requests must be signed by using an access key ID and a secret access key.
 // We strongly recommend that you do not use your AWS account (root) access
 // key ID and secret key for everyday work with AWS KMS. Instead, use the access
-// key ID and secret access key for an IAM user. You can also use the AWS Security
+// key ID and secret access key for an IAM user, or you can use the AWS Security
 // Token Service to generate temporary security credentials that you can use
 // to sign requests.
 //
@@ -50,8 +50,8 @@
 // For more information about credentials and request signing, see the following:
 //
 //    * AWS Security Credentials (http://docs.aws.amazon.com/general/latest/gr/aws-security-credentials.html)
-//    - This topic provides general information about the types of credentials
-//    used for accessing AWS.
+//    - This topic provides general information about the of credentials used
+//    for accessing AWS.
 //
 //    * Temporary Security Credentials (http://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_temp.html)
 //    - This section of the IAM User Guide describes how to create and use temporary
@@ -61,11 +61,11 @@
 //    - This set of topics walks you through the process of signing a request
 //    using an access key ID and a secret access key.
 //
-// Commonly Used API Operations
+// Commonly Used APIs
 //
-// Of the API operations discussed in this guide, the following will prove the
-// most useful for most applications. You will likely perform operations other
-// than these, such as creating keys and assigning policies, by using the console.
+// Of the APIs discussed in this guide, the following will prove the most useful
+// for most applications. You will likely perform actions other than these,
+// such as creating keys and assigning policies, by using the console.
 //
 //    * Encrypt
 //

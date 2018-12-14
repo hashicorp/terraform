@@ -113,11 +113,7 @@ func resourceAwsWafRegionalWebAclAssociationDelete(d *schema.ResourceData, meta 
 
 	// If action successful HTTP 200 response with an empty body
 	_, err := conn.DisassociateWebACL(params)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return err
 }
 
 func resourceAwsWafRegionalWebAclAssociationParseId(id string) (webAclId, resourceArn string) {

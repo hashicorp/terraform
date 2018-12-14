@@ -46,6 +46,10 @@ func dataSourceAwsVpcDhcpOptions() *schema.Resource {
 				Elem:     &schema.Schema{Type: schema.TypeString},
 			},
 			"tags": tagsSchemaComputed(),
+			"owner_id": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
 		},
 	}
 }
@@ -121,6 +125,7 @@ func dataSourceAwsVpcDhcpOptionsRead(d *schema.ResourceData, meta interface{}) e
 	if err := d.Set("tags", d.Set("tags", tagsToMap(output.DhcpOptions[0].Tags))); err != nil {
 		return fmt.Errorf("error setting tags: %s", err)
 	}
+	d.Set("owner_id", output.DhcpOptions[0].OwnerId)
 
 	return nil
 }

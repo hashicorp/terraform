@@ -87,12 +87,10 @@ func resourceAwsVpcDhcpOptionsAssociationDelete(d *schema.ResourceData, meta int
 	conn := meta.(*AWSClient).ec2conn
 
 	log.Printf("[INFO] Disassociating DHCP Options Set %s from VPC %s...", d.Get("dhcp_options_id"), d.Get("vpc_id"))
-	if _, err := conn.AssociateDhcpOptions(&ec2.AssociateDhcpOptionsInput{
+	_, err := conn.AssociateDhcpOptions(&ec2.AssociateDhcpOptionsInput{
 		DhcpOptionsId: aws.String("default"),
 		VpcId:         aws.String(d.Get("vpc_id").(string)),
-	}); err != nil {
-		return err
-	}
+	})
 
-	return nil
+	return err
 }

@@ -138,13 +138,13 @@ func resourceAwsBatchJobQueueDelete(d *schema.ResourceData, meta interface{}) er
 	name := d.Get("name").(string)
 
 	log.Printf("[DEBUG] Disabling Batch Job Queue %s", name)
-	err := disableBatchJobQueue(name, 10*time.Minute, conn)
+	err := disableBatchJobQueue(name, conn)
 	if err != nil {
 		return fmt.Errorf("error disabling Batch Job Queue (%s): %s", name, err)
 	}
 
 	log.Printf("[DEBUG] Deleting Batch Job Queue %s", name)
-	err = deleteBatchJobQueue(name, 10*time.Minute, conn)
+	err = deleteBatchJobQueue(name, conn)
 	if err != nil {
 		return fmt.Errorf("error deleting Batch Job Queue (%s): %s", name, err)
 	}
@@ -162,7 +162,7 @@ func createComputeEnvironmentOrder(order []interface{}) (envs []*batch.ComputeEn
 	return
 }
 
-func deleteBatchJobQueue(jobQueue string, timeout time.Duration, conn *batch.Batch) error {
+func deleteBatchJobQueue(jobQueue string, conn *batch.Batch) error {
 	_, err := conn.DeleteJobQueue(&batch.DeleteJobQueueInput{
 		JobQueue: aws.String(jobQueue),
 	})
@@ -174,7 +174,7 @@ func deleteBatchJobQueue(jobQueue string, timeout time.Duration, conn *batch.Bat
 		Pending:    []string{batch.JQStateDisabled, batch.JQStatusDeleting},
 		Target:     []string{batch.JQStatusDeleted},
 		Refresh:    batchJobQueueRefreshStatusFunc(conn, jobQueue),
-		Timeout:    timeout,
+		Timeout:    10 * time.Minute,
 		Delay:      10 * time.Second,
 		MinTimeout: 3 * time.Second,
 	}
@@ -183,7 +183,7 @@ func deleteBatchJobQueue(jobQueue string, timeout time.Duration, conn *batch.Bat
 	return err
 }
 
-func disableBatchJobQueue(jobQueue string, timeout time.Duration, conn *batch.Batch) error {
+func disableBatchJobQueue(jobQueue string, conn *batch.Batch) error {
 	_, err := conn.UpdateJobQueue(&batch.UpdateJobQueueInput{
 		JobQueue: aws.String(jobQueue),
 		State:    aws.String(batch.JQStateDisabled),
@@ -196,7 +196,7 @@ func disableBatchJobQueue(jobQueue string, timeout time.Duration, conn *batch.Ba
 		Pending:    []string{batch.JQStatusUpdating},
 		Target:     []string{batch.JQStatusValid},
 		Refresh:    batchJobQueueRefreshStatusFunc(conn, jobQueue),
-		Timeout:    timeout,
+		Timeout:    10 * time.Minute,
 		Delay:      10 * time.Second,
 		MinTimeout: 3 * time.Second,
 	}
@@ -236,18 +236,5 @@ func batchJobQueueRefreshStatusFunc(conn *batch.Batch, sn string) resource.State
 			return 42, batch.JQStatusDeleted, nil
 		}
 		return ce, *ce.Status, nil
-	}
-}
-
-func batchJobQueueRefreshStateFunc(conn *batch.Batch, sn string) resource.StateRefreshFunc {
-	return func() (interface{}, string, error) {
-		ce, err := getJobQueue(conn, sn)
-		if err != nil {
-			return nil, "failed", err
-		}
-		if ce == nil {
-			return 42, batch.JQStateDisabled, nil
-		}
-		return ce, *ce.State, nil
 	}
 }

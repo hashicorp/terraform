@@ -173,20 +173,27 @@ func resourceAwsApiGatewayDeploymentDelete(d *schema.ResourceData, meta interfac
 	log.Printf("[DEBUG] Deleting API Gateway Deployment: %s", d.Id())
 
 	// If the stage has been updated to point at a different deployment, then
-	// the stage should not be removed then this deployment is deleted.
+	// the stage should not be removed when this deployment is deleted.
 	shouldDeleteStage := false
 
-	stage, err := conn.GetStage(&apigateway.GetStageInput{
-		StageName: aws.String(d.Get("stage_name").(string)),
-		RestApiId: aws.String(d.Get("rest_api_id").(string)),
-	})
+	// API Gateway allows an empty state name (e.g. ""), but the AWS Go SDK
+	// now has validation for the parameter, so we must check first.
+	// InvalidParameter: 1 validation error(s) found.
+	//  - minimum field size of 1, GetStageInput.StageName.
+	stageName := d.Get("stage_name").(string)
+	if stageName != "" {
+		stage, err := conn.GetStage(&apigateway.GetStageInput{
+			StageName: aws.String(stageName),
+			RestApiId: aws.String(d.Get("rest_api_id").(string)),
+		})
 
-	if err != nil && !isAWSErr(err, apigateway.ErrCodeNotFoundException, "") {
-		return fmt.Errorf("error getting referenced stage: %s", err)
-	}
+		if err != nil && !isAWSErr(err, apigateway.ErrCodeNotFoundException, "") {
+			return fmt.Errorf("error getting referenced stage: %s", err)
+		}
 
-	if stage != nil && aws.StringValue(stage.DeploymentId) == d.Id() {
-		shouldDeleteStage = true
+		if stage != nil && aws.StringValue(stage.DeploymentId) == d.Id() {
+			shouldDeleteStage = true
+		}
 	}
 
 	if shouldDeleteStage {
@@ -198,7 +205,7 @@ func resourceAwsApiGatewayDeploymentDelete(d *schema.ResourceData, meta interfac
 		}
 	}
 
-	_, err = conn.DeleteDeployment(&apigateway.DeleteDeploymentInput{
+	_, err := conn.DeleteDeployment(&apigateway.DeleteDeploymentInput{
 		DeploymentId: aws.String(d.Id()),
 		RestApiId:    aws.String(d.Get("rest_api_id").(string)),
 	})

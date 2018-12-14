@@ -3,6 +3,7 @@ package aws
 import (
 	"fmt"
 	"log"
+	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -26,12 +27,24 @@ func resourceAwsAcmCertificate() *schema.Resource {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
+				StateFunc: func(v interface{}) string {
+					// AWS Provider 1.42.0+ aws_route53_zone references may contain a
+					// trailing period, which generates an ACM API error
+					return strings.TrimSuffix(v.(string), ".")
+				},
 			},
 			"subject_alternative_names": {
 				Type:     schema.TypeList,
 				Optional: true,
 				ForceNew: true,
-				Elem:     &schema.Schema{Type: schema.TypeString},
+				Elem: &schema.Schema{
+					Type: schema.TypeString,
+					StateFunc: func(v interface{}) string {
+						// AWS Provider 1.42.0+ aws_route53_zone references may contain a
+						// trailing period, which generates an ACM API error
+						return strings.TrimSuffix(v.(string), ".")
+					},
+				},
 			},
 			"validation_method": {
 				Type:     schema.TypeString,
@@ -79,14 +92,16 @@ func resourceAwsAcmCertificate() *schema.Resource {
 func resourceAwsAcmCertificateCreate(d *schema.ResourceData, meta interface{}) error {
 	acmconn := meta.(*AWSClient).acmconn
 	params := &acm.RequestCertificateInput{
-		DomainName:       aws.String(d.Get("domain_name").(string)),
+		DomainName:       aws.String(strings.TrimSuffix(d.Get("domain_name").(string), ".")),
 		ValidationMethod: aws.String(d.Get("validation_method").(string)),
 	}
 
-	sans, ok := d.GetOk("subject_alternative_names")
-	if ok {
-		sanStrings := sans.([]interface{})
-		params.SubjectAlternativeNames = expandStringList(sanStrings)
+	if sans, ok := d.GetOk("subject_alternative_names"); ok {
+		subjectAlternativeNames := make([]*string, len(sans.([]interface{})))
+		for i, sanRaw := range sans.([]interface{}) {
+			subjectAlternativeNames[i] = aws.String(strings.TrimSuffix(sanRaw.(string), "."))
+		}
+		params.SubjectAlternativeNames = subjectAlternativeNames
 	}
 
 	log.Printf("[DEBUG] ACM Certificate Request: %#v", params)

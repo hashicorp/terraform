@@ -104,7 +104,7 @@ func resourceAwsWafWebAcl() *schema.Resource {
 func resourceAwsWafWebAclCreate(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).wafconn
 
-	wr := newWafRetryer(conn, "global")
+	wr := newWafRetryer(conn)
 	out, err := wr.RetryWithToken(func(token *string) (interface{}, error) {
 		params := &waf.CreateWebACLInput{
 			ChangeToken:   token,
@@ -165,7 +165,7 @@ func resourceAwsWafWebAclUpdate(d *schema.ResourceData, meta interface{}) error 
 		o, n := d.GetChange("rules")
 		oldR, newR := o.(*schema.Set).List(), n.(*schema.Set).List()
 
-		wr := newWafRetryer(conn, "global")
+		wr := newWafRetryer(conn)
 		_, err := wr.RetryWithToken(func(token *string) (interface{}, error) {
 			req := &waf.UpdateWebACLInput{
 				ChangeToken:   token,
@@ -189,7 +189,7 @@ func resourceAwsWafWebAclDelete(d *schema.ResourceData, meta interface{}) error 
 	// First, need to delete all rules
 	rules := d.Get("rules").(*schema.Set).List()
 	if len(rules) > 0 {
-		wr := newWafRetryer(conn, "global")
+		wr := newWafRetryer(conn)
 		_, err := wr.RetryWithToken(func(token *string) (interface{}, error) {
 			req := &waf.UpdateWebACLInput{
 				ChangeToken:   token,
@@ -204,7 +204,7 @@ func resourceAwsWafWebAclDelete(d *schema.ResourceData, meta interface{}) error 
 		}
 	}
 
-	wr := newWafRetryer(conn, "global")
+	wr := newWafRetryer(conn)
 	_, err := wr.RetryWithToken(func(token *string) (interface{}, error) {
 		req := &waf.DeleteWebACLInput{
 			ChangeToken: token,

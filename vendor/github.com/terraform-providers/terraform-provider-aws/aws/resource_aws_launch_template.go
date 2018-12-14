@@ -139,6 +139,37 @@ func resourceAwsLaunchTemplate() *schema.Resource {
 				},
 			},
 
+			"capacity_reservation_specification": {
+				Type:     schema.TypeList,
+				Optional: true,
+				MaxItems: 1,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"capacity_reservation_preference": {
+							Type:     schema.TypeString,
+							Optional: true,
+							ValidateFunc: validation.StringInSlice([]string{
+								ec2.CapacityReservationPreferenceOpen,
+								ec2.CapacityReservationPreferenceNone,
+							}, false),
+						},
+						"capacity_reservation_target": {
+							Type:     schema.TypeList,
+							Optional: true,
+							MaxItems: 1,
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"capacity_reservation_id": {
+										Type:     schema.TypeString,
+										Optional: true,
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+
 			"credit_specification": {
 				Type:     schema.TypeList,
 				Optional: true,
@@ -463,7 +494,7 @@ func resourceAwsLaunchTemplateCreate(d *schema.ResourceData, meta interface{}) e
 		ltName = resource.UniqueId()
 	}
 
-	launchTemplateData, err := buildLaunchTemplateData(d, meta)
+	launchTemplateData, err := buildLaunchTemplateData(d)
 	if err != nil {
 		return err
 	}
@@ -574,6 +605,10 @@ func resourceAwsLaunchTemplateRead(d *schema.ResourceData, meta interface{}) err
 		return err
 	}
 
+	if err := d.Set("capacity_reservation_specification", getCapacityReservationSpecification(ltData.CapacityReservationSpecification)); err != nil {
+		return err
+	}
+
 	if strings.HasPrefix(aws.StringValue(ltData.InstanceType), "t2") || strings.HasPrefix(aws.StringValue(ltData.InstanceType), "t3") {
 		if err := d.Set("credit_specification", getCreditSpecification(ltData.CreditSpecification)); err != nil {
 			return err
@@ -615,7 +650,7 @@ func resourceAwsLaunchTemplateUpdate(d *schema.ResourceData, meta interface{}) e
 	conn := meta.(*AWSClient).ec2conn
 
 	if !d.IsNewResource() {
-		launchTemplateData, err := buildLaunchTemplateData(d, meta)
+		launchTemplateData, err := buildLaunchTemplateData(d)
 		if err != nil {
 			return err
 		}
@@ -702,6 +737,27 @@ func getBlockDeviceMappings(m []*ec2.LaunchTemplateBlockDeviceMapping) []interfa
 			mapping["ebs"] = []interface{}{ebs}
 		}
 		s = append(s, mapping)
+	}
+	return s
+}
+
+func getCapacityReservationSpecification(crs *ec2.LaunchTemplateCapacityReservationSpecificationResponse) []interface{} {
+	s := []interface{}{}
+	if crs != nil {
+		s = append(s, map[string]interface{}{
+			"capacity_reservation_preference": aws.StringValue(crs.CapacityReservationPreference),
+			"capacity_reservation_target":     getCapacityReservationTarget(crs.CapacityReservationTarget),
+		})
+	}
+	return s
+}
+
+func getCapacityReservationTarget(crt *ec2.CapacityReservationTargetResponse) []interface{} {
+	s := []interface{}{}
+	if crt != nil {
+		s = append(s, map[string]interface{}{
+			"capacity_reservation_id": aws.StringValue(crt.CapacityReservationId),
+		})
 	}
 	return s
 }
@@ -869,7 +925,7 @@ func getTagSpecifications(t []*ec2.LaunchTemplateTagSpecification) []interface{}
 	return s
 }
 
-func buildLaunchTemplateData(d *schema.ResourceData, meta interface{}) (*ec2.RequestLaunchTemplateData, error) {
+func buildLaunchTemplateData(d *schema.ResourceData) (*ec2.RequestLaunchTemplateData, error) {
 	opts := &ec2.RequestLaunchTemplateData{
 		UserData: aws.String(d.Get("user_data").(string)),
 	}
@@ -931,6 +987,14 @@ func buildLaunchTemplateData(d *schema.ResourceData, meta interface{}) (*ec2.Req
 			blockDeviceMappings = append(blockDeviceMappings, blockDeviceMapping)
 		}
 		opts.BlockDeviceMappings = blockDeviceMappings
+	}
+
+	if v, ok := d.GetOk("capacity_reservation_specification"); ok {
+		crs := v.([]interface{})
+
+		if len(crs) > 0 {
+			opts.CapacityReservationSpecification = readCapacityReservationSpecificationFromConfig(crs[0].(map[string]interface{}))
+		}
 	}
 
 	if v, ok := d.GetOk("credit_specification"); ok && (strings.HasPrefix(instanceType, "t2") || strings.HasPrefix(instanceType, "t3")) {
@@ -1172,6 +1236,34 @@ func readIamInstanceProfileFromConfig(iip map[string]interface{}) *ec2.LaunchTem
 	}
 
 	return iamInstanceProfile
+}
+
+func readCapacityReservationSpecificationFromConfig(crs map[string]interface{}) *ec2.LaunchTemplateCapacityReservationSpecificationRequest {
+	capacityReservationSpecification := &ec2.LaunchTemplateCapacityReservationSpecificationRequest{}
+
+	if v, ok := crs["capacity_reservation_preference"].(string); ok && v != "" {
+		capacityReservationSpecification.CapacityReservationPreference = aws.String(v)
+	}
+
+	if v, ok := crs["capacity_reservation_target"]; ok {
+		crt := v.([]interface{})
+
+		if len(crt) > 0 {
+			capacityReservationSpecification.CapacityReservationTarget = readCapacityReservationTargetFromConfig(crt[0].(map[string]interface{}))
+		}
+	}
+
+	return capacityReservationSpecification
+}
+
+func readCapacityReservationTargetFromConfig(crt map[string]interface{}) *ec2.CapacityReservationTarget {
+	capacityReservationTarget := &ec2.CapacityReservationTarget{}
+
+	if v, ok := crt["capacity_reservation_id"].(string); ok && v != "" {
+		capacityReservationTarget.CapacityReservationId = aws.String(v)
+	}
+
+	return capacityReservationTarget
 }
 
 func readCreditSpecificationFromConfig(cs map[string]interface{}) *ec2.CreditSpecificationRequest {

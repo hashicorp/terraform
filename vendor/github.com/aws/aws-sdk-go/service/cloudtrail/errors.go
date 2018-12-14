@@ -13,11 +13,29 @@ const (
 	// arn:aws:cloudtrail:us-east-2:123456789012:trail/MyTrail
 	ErrCodeARNInvalidException = "CloudTrailARNInvalidException"
 
+	// ErrCodeAccessNotEnabledException for service response error code
+	// "CloudTrailAccessNotEnabledException".
+	//
+	// This exception is thrown when trusted access has not been enabled between
+	// AWS CloudTrail and AWS Organizations. For more information, see Enabling
+	// Trusted Access with Other AWS Services (https://docs.aws.amazon.com/organizations/latest/userguide/orgs_integrate_services.html)
+	// and Prepare For Creating a Trail For Your Organization (https://docs.aws.amazon.com/awscloudtrail/latest/userguide/creating-an-organizational-trail-prepare.html).
+	ErrCodeAccessNotEnabledException = "CloudTrailAccessNotEnabledException"
+
 	// ErrCodeCloudWatchLogsDeliveryUnavailableException for service response error code
 	// "CloudWatchLogsDeliveryUnavailableException".
 	//
 	// Cannot set a CloudWatch Logs delivery for this region.
 	ErrCodeCloudWatchLogsDeliveryUnavailableException = "CloudWatchLogsDeliveryUnavailableException"
+
+	// ErrCodeInsufficientDependencyServiceAccessPermissionException for service response error code
+	// "InsufficientDependencyServiceAccessPermissionException".
+	//
+	// This exception is thrown when the IAM user or role that is used to create
+	// the organization trail is lacking one or more required permissions for creating
+	// an organization trail in a required service. For more information, see Prepare
+	// For Creating a Trail For Your Organization (https://docs.aws.amazon.com/awscloudtrail/latest/userguide/creating-an-organizational-trail-prepare.html).
+	ErrCodeInsufficientDependencyServiceAccessPermissionException = "InsufficientDependencyServiceAccessPermissionException"
 
 	// ErrCodeInsufficientEncryptionPolicyException for service response error code
 	// "InsufficientEncryptionPolicyException".
@@ -196,11 +214,37 @@ const (
 	// This exception is thrown when the maximum number of trails is reached.
 	ErrCodeMaximumNumberOfTrailsExceededException = "MaximumNumberOfTrailsExceededException"
 
+	// ErrCodeNotOrganizationMasterAccountException for service response error code
+	// "NotOrganizationMasterAccountException".
+	//
+	// This exception is thrown when the AWS account making the request to create
+	// or update an organization trail is not the master account for an organization
+	// in AWS Organizations. For more information, see Prepare For Creating a Trail
+	// For Your Organization (https://docs.aws.amazon.com/awscloudtrail/latest/userguide/creating-an-organizational-trail-prepare.html).
+	ErrCodeNotOrganizationMasterAccountException = "NotOrganizationMasterAccountException"
+
 	// ErrCodeOperationNotPermittedException for service response error code
 	// "OperationNotPermittedException".
 	//
 	// This exception is thrown when the requested operation is not permitted.
 	ErrCodeOperationNotPermittedException = "OperationNotPermittedException"
+
+	// ErrCodeOrganizationNotInAllFeaturesModeException for service response error code
+	// "OrganizationNotInAllFeaturesModeException".
+	//
+	// This exception is thrown when AWS Organizations is not configured to support
+	// all features. All features must be enabled in AWS Organization to support
+	// creating an organization trail. For more information, see Prepare For Creating
+	// a Trail For Your Organization (https://docs.aws.amazon.com/awscloudtrail/latest/userguide/creating-an-organizational-trail-prepare.html).
+	ErrCodeOrganizationNotInAllFeaturesModeException = "OrganizationNotInAllFeaturesModeException"
+
+	// ErrCodeOrganizationsNotInUseException for service response error code
+	// "OrganizationsNotInUseException".
+	//
+	// This exception is thrown when the request is made from an AWS account that
+	// is not a member of an organization. To make this request, sign in using the
+	// credentials of an account that belongs to an organization.
+	ErrCodeOrganizationsNotInUseException = "OrganizationsNotInUseException"
 
 	// ErrCodeResourceNotFoundException for service response error code
 	// "ResourceNotFoundException".

@@ -35,6 +35,12 @@ func dataSourceAwsAvailabilityZone() *schema.Resource {
 				Optional: true,
 				Computed: true,
 			},
+
+			"zone_id": {
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
+			},
 		},
 	}
 }
@@ -44,10 +50,12 @@ func dataSourceAwsAvailabilityZoneRead(d *schema.ResourceData, meta interface{})
 
 	req := &ec2.DescribeAvailabilityZonesInput{}
 
-	if name := d.Get("name"); name != "" {
-		req.ZoneNames = []*string{aws.String(name.(string))}
+	if v := d.Get("name").(string); v != "" {
+		req.ZoneNames = []*string{aws.String(v)}
 	}
-
+	if v := d.Get("zone_id").(string); v != "" {
+		req.ZoneIds = []*string{aws.String(v)}
+	}
 	req.Filters = buildEC2AttributeFilterList(
 		map[string]string{
 			"state": d.Get("state").(string),
@@ -78,11 +86,12 @@ func dataSourceAwsAvailabilityZoneRead(d *schema.ResourceData, meta interface{})
 	// work regardless of region.
 	nameSuffix := (*az.ZoneName)[len(*az.RegionName):]
 
-	d.SetId(*az.ZoneName)
+	d.SetId(aws.StringValue(az.ZoneName))
 	d.Set("name", az.ZoneName)
 	d.Set("name_suffix", nameSuffix)
 	d.Set("region", az.RegionName)
 	d.Set("state", az.State)
+	d.Set("zone_id", az.ZoneId)
 
 	return nil
 }

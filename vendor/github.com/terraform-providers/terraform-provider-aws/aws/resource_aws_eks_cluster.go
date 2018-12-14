@@ -3,6 +3,7 @@ package aws
 import (
 	"fmt"
 	"log"
+	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -16,6 +17,7 @@ func resourceAwsEksCluster() *schema.Resource {
 	return &schema.Resource{
 		Create: resourceAwsEksClusterCreate,
 		Read:   resourceAwsEksClusterRead,
+		Update: resourceAwsEksClusterUpdate,
 		Delete: resourceAwsEksClusterDelete,
 
 		Importer: &schema.ResourceImporter{
@@ -24,6 +26,7 @@ func resourceAwsEksCluster() *schema.Resource {
 
 		Timeouts: &schema.ResourceTimeout{
 			Create: schema.DefaultTimeout(15 * time.Minute),
+			Update: schema.DefaultTimeout(60 * time.Minute),
 			Delete: schema.DefaultTimeout(15 * time.Minute),
 		},
 
@@ -73,7 +76,6 @@ func resourceAwsEksCluster() *schema.Resource {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
-				ForceNew: true,
 			},
 			"vpc_config": {
 				Type:     schema.TypeList,
@@ -210,6 +212,37 @@ func resourceAwsEksClusterRead(d *schema.ResourceData, meta interface{}) error {
 	return nil
 }
 
+func resourceAwsEksClusterUpdate(d *schema.ResourceData, meta interface{}) error {
+	conn := meta.(*AWSClient).eksconn
+
+	if d.HasChange("version") {
+		input := &eks.UpdateClusterVersionInput{
+			Name:    aws.String(d.Id()),
+			Version: aws.String(d.Get("version").(string)),
+		}
+
+		log.Printf("[DEBUG] Updating EKS Cluster (%s) version: %s", d.Id(), input)
+		output, err := conn.UpdateClusterVersion(input)
+
+		if err != nil {
+			return fmt.Errorf("error updating EKS Cluster (%s) version: %s", d.Id(), err)
+		}
+
+		if output == nil || output.Update == nil || output.Update.Id == nil {
+			return fmt.Errorf("error determining EKS Cluster (%s) version update ID: empty response", d.Id())
+		}
+
+		updateID := aws.StringValue(output.Update.Id)
+
+		err = waitForUpdateEksCluster(conn, d.Id(), updateID, d.Timeout(schema.TimeoutUpdate))
+		if err != nil {
+			return fmt.Errorf("error waiting for EKS Cluster (%s) update (%s): %s", d.Id(), updateID, err)
+		}
+	}
+
+	return resourceAwsEksClusterRead(d, meta)
+}
+
 func resourceAwsEksClusterDelete(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).eksconn
 
@@ -303,6 +336,27 @@ func refreshEksClusterStatus(conn *eks.EKS, clusterName string) resource.StateRe
 	}
 }
 
+func refreshEksUpdateStatus(conn *eks.EKS, clusterName, updateID string) resource.StateRefreshFunc {
+	return func() (interface{}, string, error) {
+		input := &eks.DescribeUpdateInput{
+			Name:     aws.String(clusterName),
+			UpdateId: aws.String(updateID),
+		}
+
+		output, err := conn.DescribeUpdate(input)
+
+		if err != nil {
+			return nil, "", err
+		}
+
+		if output == nil || output.Update == nil {
+			return nil, "", fmt.Errorf("EKS Cluster (%s) update (%s) missing", clusterName, updateID)
+		}
+
+		return output.Update, aws.StringValue(output.Update.Status), nil
+	}
+}
+
 func waitForDeleteEksCluster(conn *eks.EKS, clusterName string, timeout time.Duration) error {
 	stateConf := resource.StateChangeConf{
 		Pending: []string{
@@ -328,4 +382,35 @@ func waitForDeleteEksCluster(conn *eks.EKS, clusterName string, timeout time.Dur
 		return nil
 	}
 	return err
+}
+
+func waitForUpdateEksCluster(conn *eks.EKS, clusterName, updateID string, timeout time.Duration) error {
+	stateConf := resource.StateChangeConf{
+		Pending: []string{eks.UpdateStatusInProgress},
+		Target: []string{
+			eks.UpdateStatusCancelled,
+			eks.UpdateStatusFailed,
+			eks.UpdateStatusSuccessful,
+		},
+		Timeout: timeout,
+		Refresh: refreshEksUpdateStatus(conn, clusterName, updateID),
+	}
+	updateRaw, err := stateConf.WaitForState()
+
+	if err != nil {
+		return err
+	}
+
+	update := updateRaw.(*eks.Update)
+
+	if aws.StringValue(update.Status) == eks.UpdateStatusSuccessful {
+		return nil
+	}
+
+	var detailedErrors []string
+	for i, updateError := range update.Errors {
+		detailedErrors = append(detailedErrors, fmt.Sprintf("Error %d: Code: %s / Message: %s", i+1, aws.StringValue(updateError.ErrorCode), aws.StringValue(updateError.ErrorMessage)))
+	}
+
+	return fmt.Errorf("EKS Cluster (%s) update (%s) status (%s) not successful: Errors:\n%s", clusterName, updateID, aws.StringValue(update.Status), strings.Join(detailedErrors, "\n"))
 }

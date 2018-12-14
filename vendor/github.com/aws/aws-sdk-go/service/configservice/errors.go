@@ -212,6 +212,12 @@ const (
 	// not have all features enabled.
 	ErrCodeOrganizationAllFeaturesNotEnabledException = "OrganizationAllFeaturesNotEnabledException"
 
+	// ErrCodeOversizedConfigurationItemException for service response error code
+	// "OversizedConfigurationItemException".
+	//
+	// The configuration item size is outside the allowable range.
+	ErrCodeOversizedConfigurationItemException = "OversizedConfigurationItemException"
+
 	// ErrCodeResourceInUseException for service response error code
 	// "ResourceInUseException".
 	//

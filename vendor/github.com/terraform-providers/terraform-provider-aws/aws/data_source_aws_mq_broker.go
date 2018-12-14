@@ -76,10 +76,38 @@ func dataSourceAwsMqBroker() *schema.Resource {
 							Type:     schema.TypeString,
 							Computed: true,
 						},
+						"ip_address": {
+							Type:     schema.TypeString,
+							Computed: true,
+						},
 						"endpoints": {
 							Type:     schema.TypeList,
 							Computed: true,
 							Elem:     &schema.Schema{Type: schema.TypeString},
+						},
+					},
+				},
+			},
+			"logs": {
+				Type:     schema.TypeList,
+				Optional: true,
+				MaxItems: 1,
+				// Ignore missing configuration block
+				DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
+					if old == "1" && new == "0" {
+						return true
+					}
+					return false
+				},
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"general": {
+							Type:     schema.TypeBool,
+							Computed: true,
+						},
+						"audit": {
+							Type:     schema.TypeBool,
+							Computed: true,
 						},
 					},
 				},

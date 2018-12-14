@@ -50,8 +50,7 @@ func (c *Glacier) AbortMultipartUploadRequest(input *AbortMultipartUploadInput) 
 
 	output = &AbortMultipartUploadOutput{}
 	req = c.newRequest(op, input, output)
-	req.Handlers.Unmarshal.Remove(restjson.UnmarshalHandler)
-	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
+	req.Handlers.Unmarshal.Swap(restjson.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -157,8 +156,7 @@ func (c *Glacier) AbortVaultLockRequest(input *AbortVaultLockInput) (req *reques
 
 	output = &AbortVaultLockOutput{}
 	req = c.newRequest(op, input, output)
-	req.Handlers.Unmarshal.Remove(restjson.UnmarshalHandler)
-	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
+	req.Handlers.Unmarshal.Swap(restjson.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -260,8 +258,7 @@ func (c *Glacier) AddTagsToVaultRequest(input *AddTagsToVaultInput) (req *reques
 
 	output = &AddTagsToVaultOutput{}
 	req = c.newRequest(op, input, output)
-	req.Handlers.Unmarshal.Remove(restjson.UnmarshalHandler)
-	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
+	req.Handlers.Unmarshal.Swap(restjson.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -485,8 +482,7 @@ func (c *Glacier) CompleteVaultLockRequest(input *CompleteVaultLockInput) (req *
 
 	output = &CompleteVaultLockOutput{}
 	req = c.newRequest(op, input, output)
-	req.Handlers.Unmarshal.Remove(restjson.UnmarshalHandler)
-	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
+	req.Handlers.Unmarshal.Swap(restjson.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -695,8 +691,7 @@ func (c *Glacier) DeleteArchiveRequest(input *DeleteArchiveInput) (req *request.
 
 	output = &DeleteArchiveOutput{}
 	req = c.newRequest(op, input, output)
-	req.Handlers.Unmarshal.Remove(restjson.UnmarshalHandler)
-	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
+	req.Handlers.Unmarshal.Swap(restjson.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -807,8 +802,7 @@ func (c *Glacier) DeleteVaultRequest(input *DeleteVaultInput) (req *request.Requ
 
 	output = &DeleteVaultOutput{}
 	req = c.newRequest(op, input, output)
-	req.Handlers.Unmarshal.Remove(restjson.UnmarshalHandler)
-	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
+	req.Handlers.Unmarshal.Swap(restjson.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -917,8 +911,7 @@ func (c *Glacier) DeleteVaultAccessPolicyRequest(input *DeleteVaultAccessPolicyI
 
 	output = &DeleteVaultAccessPolicyOutput{}
 	req = c.newRequest(op, input, output)
-	req.Handlers.Unmarshal.Remove(restjson.UnmarshalHandler)
-	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
+	req.Handlers.Unmarshal.Swap(restjson.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -1014,8 +1007,7 @@ func (c *Glacier) DeleteVaultNotificationsRequest(input *DeleteVaultNotification
 
 	output = &DeleteVaultNotificationsOutput{}
 	req = c.newRequest(op, input, output)
-	req.Handlers.Unmarshal.Remove(restjson.UnmarshalHandler)
-	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
+	req.Handlers.Unmarshal.Swap(restjson.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -3104,8 +3096,7 @@ func (c *Glacier) RemoveTagsFromVaultRequest(input *RemoveTagsFromVaultInput) (r
 
 	output = &RemoveTagsFromVaultOutput{}
 	req = c.newRequest(op, input, output)
-	req.Handlers.Unmarshal.Remove(restjson.UnmarshalHandler)
-	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
+	req.Handlers.Unmarshal.Swap(restjson.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -3196,8 +3187,7 @@ func (c *Glacier) SetDataRetrievalPolicyRequest(input *SetDataRetrievalPolicyInp
 
 	output = &SetDataRetrievalPolicyOutput{}
 	req = c.newRequest(op, input, output)
-	req.Handlers.Unmarshal.Remove(restjson.UnmarshalHandler)
-	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
+	req.Handlers.Unmarshal.Swap(restjson.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -3286,8 +3276,7 @@ func (c *Glacier) SetVaultAccessPolicyRequest(input *SetVaultAccessPolicyInput) 
 
 	output = &SetVaultAccessPolicyOutput{}
 	req = c.newRequest(op, input, output)
-	req.Handlers.Unmarshal.Remove(restjson.UnmarshalHandler)
-	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
+	req.Handlers.Unmarshal.Swap(restjson.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -3380,8 +3369,7 @@ func (c *Glacier) SetVaultNotificationsRequest(input *SetVaultNotificationsInput
 
 	output = &SetVaultNotificationsOutput{}
 	req = c.newRequest(op, input, output)
-	req.Handlers.Unmarshal.Remove(restjson.UnmarshalHandler)
-	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
+	req.Handlers.Unmarshal.Swap(restjson.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -3766,11 +3754,20 @@ func (s *AbortMultipartUploadInput) Validate() error {
 	if s.AccountId == nil {
 		invalidParams.Add(request.NewErrParamRequired("AccountId"))
 	}
+	if s.AccountId != nil && len(*s.AccountId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("AccountId", 1))
+	}
 	if s.UploadId == nil {
 		invalidParams.Add(request.NewErrParamRequired("UploadId"))
 	}
+	if s.UploadId != nil && len(*s.UploadId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("UploadId", 1))
+	}
 	if s.VaultName == nil {
 		invalidParams.Add(request.NewErrParamRequired("VaultName"))
+	}
+	if s.VaultName != nil && len(*s.VaultName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("VaultName", 1))
 	}
 
 	if invalidParams.Len() > 0 {
@@ -3847,8 +3844,14 @@ func (s *AbortVaultLockInput) Validate() error {
 	if s.AccountId == nil {
 		invalidParams.Add(request.NewErrParamRequired("AccountId"))
 	}
+	if s.AccountId != nil && len(*s.AccountId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("AccountId", 1))
+	}
 	if s.VaultName == nil {
 		invalidParams.Add(request.NewErrParamRequired("VaultName"))
+	}
+	if s.VaultName != nil && len(*s.VaultName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("VaultName", 1))
 	}
 
 	if invalidParams.Len() > 0 {
@@ -3922,8 +3925,14 @@ func (s *AddTagsToVaultInput) Validate() error {
 	if s.AccountId == nil {
 		invalidParams.Add(request.NewErrParamRequired("AccountId"))
 	}
+	if s.AccountId != nil && len(*s.AccountId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("AccountId", 1))
+	}
 	if s.VaultName == nil {
 		invalidParams.Add(request.NewErrParamRequired("VaultName"))
+	}
+	if s.VaultName != nil && len(*s.VaultName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("VaultName", 1))
 	}
 
 	if invalidParams.Len() > 0 {
@@ -4200,11 +4209,20 @@ func (s *CompleteMultipartUploadInput) Validate() error {
 	if s.AccountId == nil {
 		invalidParams.Add(request.NewErrParamRequired("AccountId"))
 	}
+	if s.AccountId != nil && len(*s.AccountId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("AccountId", 1))
+	}
 	if s.UploadId == nil {
 		invalidParams.Add(request.NewErrParamRequired("UploadId"))
 	}
+	if s.UploadId != nil && len(*s.UploadId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("UploadId", 1))
+	}
 	if s.VaultName == nil {
 		invalidParams.Add(request.NewErrParamRequired("VaultName"))
+	}
+	if s.VaultName != nil && len(*s.VaultName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("VaultName", 1))
 	}
 
 	if invalidParams.Len() > 0 {
@@ -4284,11 +4302,20 @@ func (s *CompleteVaultLockInput) Validate() error {
 	if s.AccountId == nil {
 		invalidParams.Add(request.NewErrParamRequired("AccountId"))
 	}
+	if s.AccountId != nil && len(*s.AccountId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("AccountId", 1))
+	}
 	if s.LockId == nil {
 		invalidParams.Add(request.NewErrParamRequired("LockId"))
 	}
+	if s.LockId != nil && len(*s.LockId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("LockId", 1))
+	}
 	if s.VaultName == nil {
 		invalidParams.Add(request.NewErrParamRequired("VaultName"))
+	}
+	if s.VaultName != nil && len(*s.VaultName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("VaultName", 1))
 	}
 
 	if invalidParams.Len() > 0 {
@@ -4365,8 +4392,14 @@ func (s *CreateVaultInput) Validate() error {
 	if s.AccountId == nil {
 		invalidParams.Add(request.NewErrParamRequired("AccountId"))
 	}
+	if s.AccountId != nil && len(*s.AccountId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("AccountId", 1))
+	}
 	if s.VaultName == nil {
 		invalidParams.Add(request.NewErrParamRequired("VaultName"))
+	}
+	if s.VaultName != nil && len(*s.VaultName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("VaultName", 1))
 	}
 
 	if invalidParams.Len() > 0 {
@@ -4515,11 +4548,20 @@ func (s *DeleteArchiveInput) Validate() error {
 	if s.AccountId == nil {
 		invalidParams.Add(request.NewErrParamRequired("AccountId"))
 	}
+	if s.AccountId != nil && len(*s.AccountId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("AccountId", 1))
+	}
 	if s.ArchiveId == nil {
 		invalidParams.Add(request.NewErrParamRequired("ArchiveId"))
 	}
+	if s.ArchiveId != nil && len(*s.ArchiveId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ArchiveId", 1))
+	}
 	if s.VaultName == nil {
 		invalidParams.Add(request.NewErrParamRequired("VaultName"))
+	}
+	if s.VaultName != nil && len(*s.VaultName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("VaultName", 1))
 	}
 
 	if invalidParams.Len() > 0 {
@@ -4595,8 +4637,14 @@ func (s *DeleteVaultAccessPolicyInput) Validate() error {
 	if s.AccountId == nil {
 		invalidParams.Add(request.NewErrParamRequired("AccountId"))
 	}
+	if s.AccountId != nil && len(*s.AccountId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("AccountId", 1))
+	}
 	if s.VaultName == nil {
 		invalidParams.Add(request.NewErrParamRequired("VaultName"))
+	}
+	if s.VaultName != nil && len(*s.VaultName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("VaultName", 1))
 	}
 
 	if invalidParams.Len() > 0 {
@@ -4666,8 +4714,14 @@ func (s *DeleteVaultInput) Validate() error {
 	if s.AccountId == nil {
 		invalidParams.Add(request.NewErrParamRequired("AccountId"))
 	}
+	if s.AccountId != nil && len(*s.AccountId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("AccountId", 1))
+	}
 	if s.VaultName == nil {
 		invalidParams.Add(request.NewErrParamRequired("VaultName"))
+	}
+	if s.VaultName != nil && len(*s.VaultName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("VaultName", 1))
 	}
 
 	if invalidParams.Len() > 0 {
@@ -4724,8 +4778,14 @@ func (s *DeleteVaultNotificationsInput) Validate() error {
 	if s.AccountId == nil {
 		invalidParams.Add(request.NewErrParamRequired("AccountId"))
 	}
+	if s.AccountId != nil && len(*s.AccountId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("AccountId", 1))
+	}
 	if s.VaultName == nil {
 		invalidParams.Add(request.NewErrParamRequired("VaultName"))
+	}
+	if s.VaultName != nil && len(*s.VaultName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("VaultName", 1))
 	}
 
 	if invalidParams.Len() > 0 {
@@ -4814,11 +4874,20 @@ func (s *DescribeJobInput) Validate() error {
 	if s.AccountId == nil {
 		invalidParams.Add(request.NewErrParamRequired("AccountId"))
 	}
+	if s.AccountId != nil && len(*s.AccountId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("AccountId", 1))
+	}
 	if s.JobId == nil {
 		invalidParams.Add(request.NewErrParamRequired("JobId"))
 	}
+	if s.JobId != nil && len(*s.JobId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("JobId", 1))
+	}
 	if s.VaultName == nil {
 		invalidParams.Add(request.NewErrParamRequired("VaultName"))
+	}
+	if s.VaultName != nil && len(*s.VaultName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("VaultName", 1))
 	}
 
 	if invalidParams.Len() > 0 {
@@ -4880,8 +4949,14 @@ func (s *DescribeVaultInput) Validate() error {
 	if s.AccountId == nil {
 		invalidParams.Add(request.NewErrParamRequired("AccountId"))
 	}
+	if s.AccountId != nil && len(*s.AccountId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("AccountId", 1))
+	}
 	if s.VaultName == nil {
 		invalidParams.Add(request.NewErrParamRequired("VaultName"))
+	}
+	if s.VaultName != nil && len(*s.VaultName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("VaultName", 1))
 	}
 
 	if invalidParams.Len() > 0 {
@@ -5056,6 +5131,9 @@ func (s *GetDataRetrievalPolicyInput) Validate() error {
 	if s.AccountId == nil {
 		invalidParams.Add(request.NewErrParamRequired("AccountId"))
 	}
+	if s.AccountId != nil && len(*s.AccountId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("AccountId", 1))
+	}
 
 	if invalidParams.Len() > 0 {
 		return invalidParams
@@ -5164,11 +5242,20 @@ func (s *GetJobOutputInput) Validate() error {
 	if s.AccountId == nil {
 		invalidParams.Add(request.NewErrParamRequired("AccountId"))
 	}
+	if s.AccountId != nil && len(*s.AccountId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("AccountId", 1))
+	}
 	if s.JobId == nil {
 		invalidParams.Add(request.NewErrParamRequired("JobId"))
 	}
+	if s.JobId != nil && len(*s.JobId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("JobId", 1))
+	}
 	if s.VaultName == nil {
 		invalidParams.Add(request.NewErrParamRequired("VaultName"))
+	}
+	if s.VaultName != nil && len(*s.VaultName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("VaultName", 1))
 	}
 
 	if invalidParams.Len() > 0 {
@@ -5336,8 +5423,14 @@ func (s *GetVaultAccessPolicyInput) Validate() error {
 	if s.AccountId == nil {
 		invalidParams.Add(request.NewErrParamRequired("AccountId"))
 	}
+	if s.AccountId != nil && len(*s.AccountId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("AccountId", 1))
+	}
 	if s.VaultName == nil {
 		invalidParams.Add(request.NewErrParamRequired("VaultName"))
+	}
+	if s.VaultName != nil && len(*s.VaultName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("VaultName", 1))
 	}
 
 	if invalidParams.Len() > 0 {
@@ -5417,8 +5510,14 @@ func (s *GetVaultLockInput) Validate() error {
 	if s.AccountId == nil {
 		invalidParams.Add(request.NewErrParamRequired("AccountId"))
 	}
+	if s.AccountId != nil && len(*s.AccountId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("AccountId", 1))
+	}
 	if s.VaultName == nil {
 		invalidParams.Add(request.NewErrParamRequired("VaultName"))
+	}
+	if s.VaultName != nil && len(*s.VaultName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("VaultName", 1))
 	}
 
 	if invalidParams.Len() > 0 {
@@ -5528,8 +5627,14 @@ func (s *GetVaultNotificationsInput) Validate() error {
 	if s.AccountId == nil {
 		invalidParams.Add(request.NewErrParamRequired("AccountId"))
 	}
+	if s.AccountId != nil && len(*s.AccountId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("AccountId", 1))
+	}
 	if s.VaultName == nil {
 		invalidParams.Add(request.NewErrParamRequired("VaultName"))
+	}
+	if s.VaultName != nil && len(*s.VaultName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("VaultName", 1))
 	}
 
 	if invalidParams.Len() > 0 {
@@ -5735,8 +5840,14 @@ func (s *InitiateJobInput) Validate() error {
 	if s.AccountId == nil {
 		invalidParams.Add(request.NewErrParamRequired("AccountId"))
 	}
+	if s.AccountId != nil && len(*s.AccountId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("AccountId", 1))
+	}
 	if s.VaultName == nil {
 		invalidParams.Add(request.NewErrParamRequired("VaultName"))
+	}
+	if s.VaultName != nil && len(*s.VaultName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("VaultName", 1))
 	}
 	if s.JobParameters != nil {
 		if err := s.JobParameters.Validate(); err != nil {
@@ -5857,8 +5968,14 @@ func (s *InitiateMultipartUploadInput) Validate() error {
 	if s.AccountId == nil {
 		invalidParams.Add(request.NewErrParamRequired("AccountId"))
 	}
+	if s.AccountId != nil && len(*s.AccountId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("AccountId", 1))
+	}
 	if s.VaultName == nil {
 		invalidParams.Add(request.NewErrParamRequired("VaultName"))
+	}
+	if s.VaultName != nil && len(*s.VaultName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("VaultName", 1))
 	}
 
 	if invalidParams.Len() > 0 {
@@ -5964,8 +6081,14 @@ func (s *InitiateVaultLockInput) Validate() error {
 	if s.AccountId == nil {
 		invalidParams.Add(request.NewErrParamRequired("AccountId"))
 	}
+	if s.AccountId != nil && len(*s.AccountId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("AccountId", 1))
+	}
 	if s.VaultName == nil {
 		invalidParams.Add(request.NewErrParamRequired("VaultName"))
+	}
+	if s.VaultName != nil && len(*s.VaultName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("VaultName", 1))
 	}
 
 	if invalidParams.Len() > 0 {
@@ -6606,8 +6729,14 @@ func (s *ListJobsInput) Validate() error {
 	if s.AccountId == nil {
 		invalidParams.Add(request.NewErrParamRequired("AccountId"))
 	}
+	if s.AccountId != nil && len(*s.AccountId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("AccountId", 1))
+	}
 	if s.VaultName == nil {
 		invalidParams.Add(request.NewErrParamRequired("VaultName"))
+	}
+	if s.VaultName != nil && len(*s.VaultName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("VaultName", 1))
 	}
 
 	if invalidParams.Len() > 0 {
@@ -6735,8 +6864,14 @@ func (s *ListMultipartUploadsInput) Validate() error {
 	if s.AccountId == nil {
 		invalidParams.Add(request.NewErrParamRequired("AccountId"))
 	}
+	if s.AccountId != nil && len(*s.AccountId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("AccountId", 1))
+	}
 	if s.VaultName == nil {
 		invalidParams.Add(request.NewErrParamRequired("VaultName"))
+	}
+	if s.VaultName != nil && len(*s.VaultName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("VaultName", 1))
 	}
 
 	if invalidParams.Len() > 0 {
@@ -6857,11 +6992,20 @@ func (s *ListPartsInput) Validate() error {
 	if s.AccountId == nil {
 		invalidParams.Add(request.NewErrParamRequired("AccountId"))
 	}
+	if s.AccountId != nil && len(*s.AccountId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("AccountId", 1))
+	}
 	if s.UploadId == nil {
 		invalidParams.Add(request.NewErrParamRequired("UploadId"))
 	}
+	if s.UploadId != nil && len(*s.UploadId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("UploadId", 1))
+	}
 	if s.VaultName == nil {
 		invalidParams.Add(request.NewErrParamRequired("VaultName"))
+	}
+	if s.VaultName != nil && len(*s.VaultName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("VaultName", 1))
 	}
 
 	if invalidParams.Len() > 0 {
@@ -7013,6 +7157,9 @@ func (s *ListProvisionedCapacityInput) Validate() error {
 	if s.AccountId == nil {
 		invalidParams.Add(request.NewErrParamRequired("AccountId"))
 	}
+	if s.AccountId != nil && len(*s.AccountId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("AccountId", 1))
+	}
 
 	if invalidParams.Len() > 0 {
 		return invalidParams
@@ -7084,8 +7231,14 @@ func (s *ListTagsForVaultInput) Validate() error {
 	if s.AccountId == nil {
 		invalidParams.Add(request.NewErrParamRequired("AccountId"))
 	}
+	if s.AccountId != nil && len(*s.AccountId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("AccountId", 1))
+	}
 	if s.VaultName == nil {
 		invalidParams.Add(request.NewErrParamRequired("VaultName"))
+	}
+	if s.VaultName != nil && len(*s.VaultName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("VaultName", 1))
 	}
 
 	if invalidParams.Len() > 0 {
@@ -7170,6 +7323,9 @@ func (s *ListVaultsInput) Validate() error {
 	invalidParams := request.ErrInvalidParams{Context: "ListVaultsInput"}
 	if s.AccountId == nil {
 		invalidParams.Add(request.NewErrParamRequired("AccountId"))
+	}
+	if s.AccountId != nil && len(*s.AccountId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("AccountId", 1))
 	}
 
 	if invalidParams.Len() > 0 {
@@ -7401,6 +7557,9 @@ func (s *PurchaseProvisionedCapacityInput) Validate() error {
 	if s.AccountId == nil {
 		invalidParams.Add(request.NewErrParamRequired("AccountId"))
 	}
+	if s.AccountId != nil && len(*s.AccountId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("AccountId", 1))
+	}
 
 	if invalidParams.Len() > 0 {
 		return invalidParams
@@ -7475,8 +7634,14 @@ func (s *RemoveTagsFromVaultInput) Validate() error {
 	if s.AccountId == nil {
 		invalidParams.Add(request.NewErrParamRequired("AccountId"))
 	}
+	if s.AccountId != nil && len(*s.AccountId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("AccountId", 1))
+	}
 	if s.VaultName == nil {
 		invalidParams.Add(request.NewErrParamRequired("VaultName"))
+	}
+	if s.VaultName != nil && len(*s.VaultName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("VaultName", 1))
 	}
 
 	if invalidParams.Len() > 0 {
@@ -7711,6 +7876,9 @@ func (s *SetDataRetrievalPolicyInput) Validate() error {
 	if s.AccountId == nil {
 		invalidParams.Add(request.NewErrParamRequired("AccountId"))
 	}
+	if s.AccountId != nil && len(*s.AccountId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("AccountId", 1))
+	}
 
 	if invalidParams.Len() > 0 {
 		return invalidParams
@@ -7782,8 +7950,14 @@ func (s *SetVaultAccessPolicyInput) Validate() error {
 	if s.AccountId == nil {
 		invalidParams.Add(request.NewErrParamRequired("AccountId"))
 	}
+	if s.AccountId != nil && len(*s.AccountId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("AccountId", 1))
+	}
 	if s.VaultName == nil {
 		invalidParams.Add(request.NewErrParamRequired("VaultName"))
+	}
+	if s.VaultName != nil && len(*s.VaultName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("VaultName", 1))
 	}
 
 	if invalidParams.Len() > 0 {
@@ -7863,8 +8037,14 @@ func (s *SetVaultNotificationsInput) Validate() error {
 	if s.AccountId == nil {
 		invalidParams.Add(request.NewErrParamRequired("AccountId"))
 	}
+	if s.AccountId != nil && len(*s.AccountId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("AccountId", 1))
+	}
 	if s.VaultName == nil {
 		invalidParams.Add(request.NewErrParamRequired("VaultName"))
+	}
+	if s.VaultName != nil && len(*s.VaultName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("VaultName", 1))
 	}
 
 	if invalidParams.Len() > 0 {
@@ -7949,8 +8129,14 @@ func (s *UploadArchiveInput) Validate() error {
 	if s.AccountId == nil {
 		invalidParams.Add(request.NewErrParamRequired("AccountId"))
 	}
+	if s.AccountId != nil && len(*s.AccountId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("AccountId", 1))
+	}
 	if s.VaultName == nil {
 		invalidParams.Add(request.NewErrParamRequired("VaultName"))
+	}
+	if s.VaultName != nil && len(*s.VaultName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("VaultName", 1))
 	}
 
 	if invalidParams.Len() > 0 {
@@ -8104,11 +8290,20 @@ func (s *UploadMultipartPartInput) Validate() error {
 	if s.AccountId == nil {
 		invalidParams.Add(request.NewErrParamRequired("AccountId"))
 	}
+	if s.AccountId != nil && len(*s.AccountId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("AccountId", 1))
+	}
 	if s.UploadId == nil {
 		invalidParams.Add(request.NewErrParamRequired("UploadId"))
 	}
+	if s.UploadId != nil && len(*s.UploadId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("UploadId", 1))
+	}
 	if s.VaultName == nil {
 		invalidParams.Add(request.NewErrParamRequired("VaultName"))
+	}
+	if s.VaultName != nil && len(*s.VaultName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("VaultName", 1))
 	}
 
 	if invalidParams.Len() > 0 {

@@ -112,6 +112,7 @@ func resourceAwsS3Bucket() *schema.Resource {
 			"website": {
 				Type:     schema.TypeList,
 				Optional: true,
+				MaxItems: 1,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"index_document": {
@@ -294,7 +295,7 @@ func resourceAwsS3Bucket() *schema.Resource {
 									"storage_class": {
 										Type:         schema.TypeString,
 										Required:     true,
-										ValidateFunc: validateS3BucketLifecycleStorageClass(),
+										ValidateFunc: validateS3BucketLifecycleTransitionStorageClass(),
 									},
 								},
 							},
@@ -313,7 +314,7 @@ func resourceAwsS3Bucket() *schema.Resource {
 									"storage_class": {
 										Type:         schema.TypeString,
 										Required:     true,
-										ValidateFunc: validateS3BucketLifecycleStorageClass(),
+										ValidateFunc: validateS3BucketLifecycleTransitionStorageClass(),
 									},
 								},
 							},
@@ -392,9 +393,11 @@ func resourceAwsS3Bucket() *schema.Resource {
 													Optional: true,
 													ValidateFunc: validation.StringInSlice([]string{
 														s3.StorageClassStandard,
-														s3.StorageClassOnezoneIa,
-														s3.StorageClassStandardIa,
 														s3.StorageClassReducedRedundancy,
+														s3.StorageClassStandardIa,
+														s3.StorageClassOnezoneIa,
+														s3.StorageClassIntelligentTiering,
+														s3.StorageClassGlacier,
 													}, false),
 												},
 												"replica_kms_key_id": {
@@ -449,7 +452,7 @@ func resourceAwsS3Bucket() *schema.Resource {
 									},
 									"prefix": {
 										Type:         schema.TypeString,
-										Required:     true,
+										Optional:     true,
 										ValidateFunc: validation.StringLenBetween(0, 1024),
 									},
 									"status": {
@@ -459,6 +462,26 @@ func resourceAwsS3Bucket() *schema.Resource {
 											s3.ReplicationRuleStatusEnabled,
 											s3.ReplicationRuleStatusDisabled,
 										}, false),
+									},
+									"priority": {
+										Type:     schema.TypeInt,
+										Optional: true,
+									},
+									"filter": {
+										Type:     schema.TypeList,
+										Optional: true,
+										MinItems: 1,
+										MaxItems: 1,
+										Elem: &schema.Resource{
+											Schema: map[string]*schema.Schema{
+												"prefix": {
+													Type:         schema.TypeString,
+													Optional:     true,
+													ValidateFunc: validation.StringLenBetween(0, 1024),
+												},
+												"tags": tagsSchema(),
+											},
+										},
 									},
 								},
 							},
@@ -1315,19 +1338,17 @@ func resourceAwsS3BucketCorsUpdate(s3conn *s3.S3, d *schema.ResourceData) error 
 func resourceAwsS3BucketWebsiteUpdate(s3conn *s3.S3, d *schema.ResourceData) error {
 	ws := d.Get("website").([]interface{})
 
-	if len(ws) == 1 {
-		var w map[string]interface{}
-		if ws[0] != nil {
-			w = ws[0].(map[string]interface{})
-		} else {
-			w = make(map[string]interface{})
-		}
-		return resourceAwsS3BucketWebsitePut(s3conn, d, w)
-	} else if len(ws) == 0 {
+	if len(ws) == 0 {
 		return resourceAwsS3BucketWebsiteDelete(s3conn, d)
-	} else {
-		return fmt.Errorf("Cannot specify more than one website.")
 	}
+
+	var w map[string]interface{}
+	if ws[0] != nil {
+		w = ws[0].(map[string]interface{})
+	} else {
+		w = make(map[string]interface{})
+	}
+	return resourceAwsS3BucketWebsitePut(s3conn, d, w)
 }
 
 func resourceAwsS3BucketWebsitePut(s3conn *s3.S3, d *schema.ResourceData, website map[string]interface{}) error {
@@ -1754,12 +1775,14 @@ func resourceAwsS3BucketReplicationConfigurationUpdate(s3conn *s3.S3, d *schema.
 	rules := []*s3.ReplicationRule{}
 	for _, v := range rcRules {
 		rr := v.(map[string]interface{})
-		rcRule := &s3.ReplicationRule{
-			Prefix: aws.String(rr["prefix"].(string)),
-			Status: aws.String(rr["status"].(string)),
+		rcRule := &s3.ReplicationRule{}
+		if status, ok := rr["status"]; ok && status != "" {
+			rcRule.Status = aws.String(status.(string))
+		} else {
+			continue
 		}
 
-		if rrid, ok := rr["id"]; ok {
+		if rrid, ok := rr["id"]; ok && rrid != "" {
 			rcRule.ID = aws.String(rrid.(string))
 		}
 
@@ -1807,6 +1830,29 @@ func resourceAwsS3BucketReplicationConfigurationUpdate(s3conn *s3.S3, d *schema.
 			}
 			rcRule.SourceSelectionCriteria = ruleSsc
 		}
+
+		if f, ok := rr["filter"].([]interface{}); ok && len(f) > 0 {
+			// XML schema V2.
+			rcRule.Priority = aws.Int64(int64(rr["priority"].(int)))
+			rcRule.Filter = &s3.ReplicationRuleFilter{}
+			filter := f[0].(map[string]interface{})
+			tags := filter["tags"].(map[string]interface{})
+			if len(tags) > 0 {
+				rcRule.Filter.And = &s3.ReplicationRuleAndOperator{
+					Prefix: aws.String(filter["prefix"].(string)),
+					Tags:   tagsFromMapS3(tags),
+				}
+			} else {
+				rcRule.Filter.Prefix = aws.String(filter["prefix"].(string))
+			}
+			rcRule.DeleteMarkerReplication = &s3.DeleteMarkerReplication{
+				Status: aws.String(s3.DeleteMarkerReplicationStatusDisabled),
+			}
+		} else {
+			// XML schema V1.
+			rcRule.Prefix = aws.String(rr["prefix"].(string))
+		}
+
 		rules = append(rules, rcRule)
 	}
 
@@ -1817,8 +1863,15 @@ func resourceAwsS3BucketReplicationConfigurationUpdate(s3conn *s3.S3, d *schema.
 	}
 	log.Printf("[DEBUG] S3 put bucket replication configuration: %#v", i)
 
-	_, err := retryOnAwsCode("NoSuchBucket", func() (interface{}, error) {
-		return s3conn.PutBucketReplication(i)
+	err := resource.Retry(1*time.Minute, func() *resource.RetryError {
+		if _, err := s3conn.PutBucketReplication(i); err != nil {
+			if isAWSErr(err, s3.ErrCodeNoSuchBucket, "") ||
+				isAWSErr(err, "InvalidRequest", "Versioning must be 'Enabled' on the bucket") {
+				return resource.RetryableError(err)
+			}
+			return resource.NonRetryableError(err)
+		}
+		return nil
 	})
 	if err != nil {
 		return fmt.Errorf("Error putting S3 replication configuration: %s", err)
@@ -2068,6 +2121,26 @@ func flattenAwsS3BucketReplicationConfiguration(r *s3.ReplicationConfiguration) 
 			}
 			t["source_selection_criteria"] = schema.NewSet(sourceSelectionCriteriaHash, []interface{}{tssc})
 		}
+
+		if v.Priority != nil {
+			t["priority"] = int(aws.Int64Value(v.Priority))
+		}
+
+		if f := v.Filter; f != nil {
+			m := map[string]interface{}{}
+			if f.Prefix != nil {
+				m["prefix"] = aws.StringValue(f.Prefix)
+			}
+			if t := f.Tag; t != nil {
+				m["tags"] = tagsMapToRaw(tagsToMapS3([]*s3.Tag{t}))
+			}
+			if a := f.And; a != nil {
+				m["prefix"] = aws.StringValue(a.Prefix)
+				m["tags"] = tagsMapToRaw(tagsToMapS3(a.Tags))
+			}
+			t["filter"] = []interface{}{m}
+		}
+
 		rules = append(rules, t)
 	}
 	m["rules"] = schema.NewSet(rulesHash, rules)
@@ -2212,6 +2285,24 @@ func rulesHash(v interface{}) int {
 	}
 	if v, ok := m["source_selection_criteria"].(*schema.Set); ok && v.Len() > 0 && v.List()[0] != nil {
 		buf.WriteString(fmt.Sprintf("%d-", sourceSelectionCriteriaHash(v.List()[0])))
+	}
+	if v, ok := m["priority"]; ok {
+		buf.WriteString(fmt.Sprintf("%d-", v.(int)))
+	}
+	if v, ok := m["filter"].([]interface{}); ok && len(v) > 0 && v[0] != nil {
+		buf.WriteString(fmt.Sprintf("%d-", replicationRuleFilterHash(v[0])))
+	}
+	return hashcode.String(buf.String())
+}
+
+func replicationRuleFilterHash(v interface{}) int {
+	var buf bytes.Buffer
+	m := v.(map[string]interface{})
+	if v, ok := m["prefix"]; ok {
+		buf.WriteString(fmt.Sprintf("%s-", v.(string)))
+	}
+	if v, ok := m["tags"]; ok {
+		buf.WriteString(fmt.Sprintf("%d-", tagsMapToHash(v.(map[string]interface{}))))
 	}
 	return hashcode.String(buf.String())
 }
