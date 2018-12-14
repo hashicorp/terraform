@@ -158,10 +158,11 @@ These constructs correspond to the similarly-named concepts in the
 language-agnostic HCL information model.
 
 ```ebnf
-ConfigFile = Body;
-Body       = (Attribute | Block)*;
-Attribute  = Identifier "=" Expression Newline;
-Block      = Identifier (StringLit|Identifier)* "{" Newline Body "}" Newline;
+ConfigFile   = Body;
+Body         = (Attribute | Block | OneLineBlock)*;
+Attribute    = Identifier "=" Expression Newline;
+Block        = Identifier (StringLit|Identifier)* "{" Newline Body "}" Newline;
+OneLineBlock = Identifier (StringLit|Identifier)* "{" (Identifier "=" Expression)? "}" Newline;
 ```
 
 ### Configuration Files

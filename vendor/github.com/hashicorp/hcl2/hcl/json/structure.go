@@ -424,7 +424,7 @@ func (e *expression) Value(ctx *hcl.EvalContext) (cty.Value, hcl.Diagnostics) {
 		known := true
 		for _, jsonAttr := range v.Attrs {
 			// In this one context we allow keys to contain interpolation
-			// experessions too, assuming we're evaluating in interpolation
+			// expressions too, assuming we're evaluating in interpolation
 			// mode. This achieves parity with the native syntax where
 			// object expressions can have dynamic keys, while block contents
 			// may not.
@@ -533,6 +533,11 @@ func (e *expression) Variables() []hcl.Traversal {
 		}
 	case *objectVal:
 		for _, jsonAttr := range v.Attrs {
+			keyExpr := &stringVal{ // we're going to treat key as an expression in this context
+				Value:    jsonAttr.Name,
+				SrcRange: jsonAttr.NameRange,
+			}
+			vars = append(vars, (&expression{src: keyExpr}).Variables()...)
 			vars = append(vars, (&expression{src: jsonAttr.Value}).Variables()...)
 		}
 	}
