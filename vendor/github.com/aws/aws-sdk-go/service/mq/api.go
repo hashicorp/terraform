@@ -8,6 +8,8 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awsutil"
 	"github.com/aws/aws-sdk-go/aws/request"
+	"github.com/aws/aws-sdk-go/private/protocol"
+	"github.com/aws/aws-sdk-go/private/protocol/restjson"
 )
 
 const opCreateBroker = "CreateBroker"
@@ -190,6 +192,95 @@ func (c *MQ) CreateConfigurationWithContext(ctx aws.Context, input *CreateConfig
 	return out, req.Send()
 }
 
+const opCreateTags = "CreateTags"
+
+// CreateTagsRequest generates a "aws/request.Request" representing the
+// client's request for the CreateTags operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See CreateTags for more information on using the CreateTags
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the CreateTagsRequest method.
+//    req, resp := client.CreateTagsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/mq-2017-11-27/CreateTags
+func (c *MQ) CreateTagsRequest(input *CreateTagsInput) (req *request.Request, output *CreateTagsOutput) {
+	op := &request.Operation{
+		Name:       opCreateTags,
+		HTTPMethod: "POST",
+		HTTPPath:   "/v1/tags/{resource-arn}",
+	}
+
+	if input == nil {
+		input = &CreateTagsInput{}
+	}
+
+	output = &CreateTagsOutput{}
+	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(restjson.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
+	return
+}
+
+// CreateTags API operation for AmazonMQ.
+//
+// Add a tag to a resource.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AmazonMQ's
+// API operation CreateTags for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeNotFoundException "NotFoundException"
+//   Returns information about an error.
+//
+//   * ErrCodeBadRequestException "BadRequestException"
+//   Returns information about an error.
+//
+//   * ErrCodeInternalServerErrorException "InternalServerErrorException"
+//   Returns information about an error.
+//
+//   * ErrCodeForbiddenException "ForbiddenException"
+//   Returns information about an error.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/mq-2017-11-27/CreateTags
+func (c *MQ) CreateTags(input *CreateTagsInput) (*CreateTagsOutput, error) {
+	req, out := c.CreateTagsRequest(input)
+	return out, req.Send()
+}
+
+// CreateTagsWithContext is the same as CreateTags with the addition of
+// the ability to pass a context and additional request options.
+//
+// See CreateTags for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *MQ) CreateTagsWithContext(ctx aws.Context, input *CreateTagsInput, opts ...request.Option) (*CreateTagsOutput, error) {
+	req, out := c.CreateTagsRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
 const opCreateUser = "CreateUser"
 
 // CreateUserRequest generates a "aws/request.Request" representing the
@@ -229,6 +320,7 @@ func (c *MQ) CreateUserRequest(input *CreateUserRequest) (req *request.Request, 
 
 	output = &CreateUserOutput{}
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(restjson.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -369,6 +461,95 @@ func (c *MQ) DeleteBrokerWithContext(ctx aws.Context, input *DeleteBrokerInput, 
 	return out, req.Send()
 }
 
+const opDeleteTags = "DeleteTags"
+
+// DeleteTagsRequest generates a "aws/request.Request" representing the
+// client's request for the DeleteTags operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See DeleteTags for more information on using the DeleteTags
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the DeleteTagsRequest method.
+//    req, resp := client.DeleteTagsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/mq-2017-11-27/DeleteTags
+func (c *MQ) DeleteTagsRequest(input *DeleteTagsInput) (req *request.Request, output *DeleteTagsOutput) {
+	op := &request.Operation{
+		Name:       opDeleteTags,
+		HTTPMethod: "DELETE",
+		HTTPPath:   "/v1/tags/{resource-arn}",
+	}
+
+	if input == nil {
+		input = &DeleteTagsInput{}
+	}
+
+	output = &DeleteTagsOutput{}
+	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(restjson.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
+	return
+}
+
+// DeleteTags API operation for AmazonMQ.
+//
+// Remove a tag from a resource.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AmazonMQ's
+// API operation DeleteTags for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeNotFoundException "NotFoundException"
+//   Returns information about an error.
+//
+//   * ErrCodeBadRequestException "BadRequestException"
+//   Returns information about an error.
+//
+//   * ErrCodeInternalServerErrorException "InternalServerErrorException"
+//   Returns information about an error.
+//
+//   * ErrCodeForbiddenException "ForbiddenException"
+//   Returns information about an error.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/mq-2017-11-27/DeleteTags
+func (c *MQ) DeleteTags(input *DeleteTagsInput) (*DeleteTagsOutput, error) {
+	req, out := c.DeleteTagsRequest(input)
+	return out, req.Send()
+}
+
+// DeleteTagsWithContext is the same as DeleteTags with the addition of
+// the ability to pass a context and additional request options.
+//
+// See DeleteTags for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *MQ) DeleteTagsWithContext(ctx aws.Context, input *DeleteTagsInput, opts ...request.Option) (*DeleteTagsOutput, error) {
+	req, out := c.DeleteTagsRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
 const opDeleteUser = "DeleteUser"
 
 // DeleteUserRequest generates a "aws/request.Request" representing the
@@ -408,6 +589,7 @@ func (c *MQ) DeleteUserRequest(input *DeleteUserInput) (req *request.Request, ou
 
 	output = &DeleteUserOutput{}
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(restjson.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -1067,6 +1249,94 @@ func (c *MQ) ListConfigurationsWithContext(ctx aws.Context, input *ListConfigura
 	return out, req.Send()
 }
 
+const opListTags = "ListTags"
+
+// ListTagsRequest generates a "aws/request.Request" representing the
+// client's request for the ListTags operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See ListTags for more information on using the ListTags
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the ListTagsRequest method.
+//    req, resp := client.ListTagsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/mq-2017-11-27/ListTags
+func (c *MQ) ListTagsRequest(input *ListTagsInput) (req *request.Request, output *ListTagsOutput) {
+	op := &request.Operation{
+		Name:       opListTags,
+		HTTPMethod: "GET",
+		HTTPPath:   "/v1/tags/{resource-arn}",
+	}
+
+	if input == nil {
+		input = &ListTagsInput{}
+	}
+
+	output = &ListTagsOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// ListTags API operation for AmazonMQ.
+//
+// Lists tags for a resource.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AmazonMQ's
+// API operation ListTags for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeNotFoundException "NotFoundException"
+//   Returns information about an error.
+//
+//   * ErrCodeBadRequestException "BadRequestException"
+//   Returns information about an error.
+//
+//   * ErrCodeInternalServerErrorException "InternalServerErrorException"
+//   Returns information about an error.
+//
+//   * ErrCodeForbiddenException "ForbiddenException"
+//   Returns information about an error.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/mq-2017-11-27/ListTags
+func (c *MQ) ListTags(input *ListTagsInput) (*ListTagsOutput, error) {
+	req, out := c.ListTagsRequest(input)
+	return out, req.Send()
+}
+
+// ListTagsWithContext is the same as ListTags with the addition of
+// the ability to pass a context and additional request options.
+//
+// See ListTags for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *MQ) ListTagsWithContext(ctx aws.Context, input *ListTagsInput, opts ...request.Option) (*ListTagsOutput, error) {
+	req, out := c.ListTagsRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
 const opListUsers = "ListUsers"
 
 // ListUsersRequest generates a "aws/request.Request" representing the
@@ -1194,6 +1464,7 @@ func (c *MQ) RebootBrokerRequest(input *RebootBrokerInput) (req *request.Request
 
 	output = &RebootBrokerOutput{}
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(restjson.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -1464,6 +1735,7 @@ func (c *MQ) UpdateUserRequest(input *UpdateUserRequest) (req *request.Request, 
 
 	output = &UpdateUserOutput{}
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(restjson.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -1656,7 +1928,8 @@ type Configuration struct {
 	// only ACTIVEMQ.
 	EngineType *string `locationName:"engineType" type:"string" enum:"EngineType"`
 
-	// Required. The version of the broker engine.
+	// Required. The version of the broker engine. For a list of supported engine
+	// versions, see https://docs.aws.amazon.com/amazon-mq/latest/developer-guide/broker-engine.html
 	EngineVersion *string `locationName:"engineVersion" type:"string"`
 
 	// Required. The unique ID that Amazon MQ generates for the configuration.
@@ -1669,6 +1942,9 @@ type Configuration struct {
 	// characters, dashes, periods, underscores, and tildes (- . _ ~). This value
 	// must be 1-150 characters long.
 	Name *string `locationName:"name" type:"string"`
+
+	// The list of all tags associated with this configuration.
+	Tags map[string]*string `locationName:"tags" type:"map"`
 }
 
 // String returns the string representation
@@ -1726,6 +2002,12 @@ func (s *Configuration) SetLatestRevision(v *ConfigurationRevision) *Configurati
 // SetName sets the Name field's value.
 func (s *Configuration) SetName(v string) *Configuration {
 	s.Name = &v
+	return s
+}
+
+// SetTags sets the Tags field's value.
+func (s *Configuration) SetTags(v map[string]*string) *Configuration {
+	s.Tags = v
 	return s
 }
 
@@ -1881,6 +2163,8 @@ type CreateBrokerRequest struct {
 
 	SubnetIds []*string `locationName:"subnetIds" type:"list"`
 
+	Tags map[string]*string `locationName:"tags" type:"map"`
+
 	Users []*User `locationName:"users" type:"list"`
 }
 
@@ -1972,6 +2256,12 @@ func (s *CreateBrokerRequest) SetSubnetIds(v []*string) *CreateBrokerRequest {
 	return s
 }
 
+// SetTags sets the Tags field's value.
+func (s *CreateBrokerRequest) SetTags(v map[string]*string) *CreateBrokerRequest {
+	s.Tags = v
+	return s
+}
+
 // SetUsers sets the Users field's value.
 func (s *CreateBrokerRequest) SetUsers(v []*User) *CreateBrokerRequest {
 	s.Users = v
@@ -2017,6 +2307,8 @@ type CreateConfigurationRequest struct {
 	EngineVersion *string `locationName:"engineVersion" type:"string"`
 
 	Name *string `locationName:"name" type:"string"`
+
+	Tags map[string]*string `locationName:"tags" type:"map"`
 }
 
 // String returns the string representation
@@ -2044,6 +2336,12 @@ func (s *CreateConfigurationRequest) SetEngineVersion(v string) *CreateConfigura
 // SetName sets the Name field's value.
 func (s *CreateConfigurationRequest) SetName(v string) *CreateConfigurationRequest {
 	s.Name = &v
+	return s
+}
+
+// SetTags sets the Tags field's value.
+func (s *CreateConfigurationRequest) SetTags(v map[string]*string) *CreateConfigurationRequest {
+	s.Tags = v
 	return s
 }
 
@@ -2102,6 +2400,67 @@ func (s *CreateConfigurationResponse) SetName(v string) *CreateConfigurationResp
 	return s
 }
 
+type CreateTagsInput struct {
+	_ struct{} `type:"structure"`
+
+	// ResourceArn is a required field
+	ResourceArn *string `location:"uri" locationName:"resource-arn" type:"string" required:"true"`
+
+	Tags map[string]*string `locationName:"tags" type:"map"`
+}
+
+// String returns the string representation
+func (s CreateTagsInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s CreateTagsInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *CreateTagsInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "CreateTagsInput"}
+	if s.ResourceArn == nil {
+		invalidParams.Add(request.NewErrParamRequired("ResourceArn"))
+	}
+	if s.ResourceArn != nil && len(*s.ResourceArn) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ResourceArn", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetResourceArn sets the ResourceArn field's value.
+func (s *CreateTagsInput) SetResourceArn(v string) *CreateTagsInput {
+	s.ResourceArn = &v
+	return s
+}
+
+// SetTags sets the Tags field's value.
+func (s *CreateTagsInput) SetTags(v map[string]*string) *CreateTagsInput {
+	s.Tags = v
+	return s
+}
+
+type CreateTagsOutput struct {
+	_ struct{} `type:"structure"`
+}
+
+// String returns the string representation
+func (s CreateTagsOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s CreateTagsOutput) GoString() string {
+	return s.String()
+}
+
 type CreateUserOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -2148,8 +2507,14 @@ func (s *CreateUserRequest) Validate() error {
 	if s.BrokerId == nil {
 		invalidParams.Add(request.NewErrParamRequired("BrokerId"))
 	}
+	if s.BrokerId != nil && len(*s.BrokerId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("BrokerId", 1))
+	}
 	if s.Username == nil {
 		invalidParams.Add(request.NewErrParamRequired("Username"))
+	}
+	if s.Username != nil && len(*s.Username) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Username", 1))
 	}
 
 	if invalidParams.Len() > 0 {
@@ -2211,6 +2576,9 @@ func (s *DeleteBrokerInput) Validate() error {
 	if s.BrokerId == nil {
 		invalidParams.Add(request.NewErrParamRequired("BrokerId"))
 	}
+	if s.BrokerId != nil && len(*s.BrokerId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("BrokerId", 1))
+	}
 
 	if invalidParams.Len() > 0 {
 		return invalidParams
@@ -2246,6 +2614,71 @@ func (s *DeleteBrokerResponse) SetBrokerId(v string) *DeleteBrokerResponse {
 	return s
 }
 
+type DeleteTagsInput struct {
+	_ struct{} `type:"structure"`
+
+	// ResourceArn is a required field
+	ResourceArn *string `location:"uri" locationName:"resource-arn" type:"string" required:"true"`
+
+	// TagKeys is a required field
+	TagKeys []*string `location:"querystring" locationName:"tagKeys" type:"list" required:"true"`
+}
+
+// String returns the string representation
+func (s DeleteTagsInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DeleteTagsInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DeleteTagsInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DeleteTagsInput"}
+	if s.ResourceArn == nil {
+		invalidParams.Add(request.NewErrParamRequired("ResourceArn"))
+	}
+	if s.ResourceArn != nil && len(*s.ResourceArn) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ResourceArn", 1))
+	}
+	if s.TagKeys == nil {
+		invalidParams.Add(request.NewErrParamRequired("TagKeys"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetResourceArn sets the ResourceArn field's value.
+func (s *DeleteTagsInput) SetResourceArn(v string) *DeleteTagsInput {
+	s.ResourceArn = &v
+	return s
+}
+
+// SetTagKeys sets the TagKeys field's value.
+func (s *DeleteTagsInput) SetTagKeys(v []*string) *DeleteTagsInput {
+	s.TagKeys = v
+	return s
+}
+
+type DeleteTagsOutput struct {
+	_ struct{} `type:"structure"`
+}
+
+// String returns the string representation
+func (s DeleteTagsOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DeleteTagsOutput) GoString() string {
+	return s.String()
+}
+
 type DeleteUserInput struct {
 	_ struct{} `type:"structure"`
 
@@ -2272,8 +2705,14 @@ func (s *DeleteUserInput) Validate() error {
 	if s.BrokerId == nil {
 		invalidParams.Add(request.NewErrParamRequired("BrokerId"))
 	}
+	if s.BrokerId != nil && len(*s.BrokerId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("BrokerId", 1))
+	}
 	if s.Username == nil {
 		invalidParams.Add(request.NewErrParamRequired("Username"))
+	}
+	if s.Username != nil && len(*s.Username) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Username", 1))
 	}
 
 	if invalidParams.Len() > 0 {
@@ -2330,6 +2769,9 @@ func (s *DescribeBrokerInput) Validate() error {
 	invalidParams := request.ErrInvalidParams{Context: "DescribeBrokerInput"}
 	if s.BrokerId == nil {
 		invalidParams.Add(request.NewErrParamRequired("BrokerId"))
+	}
+	if s.BrokerId != nil && len(*s.BrokerId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("BrokerId", 1))
 	}
 
 	if invalidParams.Len() > 0 {
@@ -2390,6 +2832,8 @@ type DescribeBrokerResponse struct {
 	SecurityGroups []*string `locationName:"securityGroups" type:"list"`
 
 	SubnetIds []*string `locationName:"subnetIds" type:"list"`
+
+	Tags map[string]*string `locationName:"tags" type:"map"`
 
 	Users []*UserSummary `locationName:"users" type:"list"`
 }
@@ -2512,6 +2956,12 @@ func (s *DescribeBrokerResponse) SetSubnetIds(v []*string) *DescribeBrokerRespon
 	return s
 }
 
+// SetTags sets the Tags field's value.
+func (s *DescribeBrokerResponse) SetTags(v map[string]*string) *DescribeBrokerResponse {
+	s.Tags = v
+	return s
+}
+
 // SetUsers sets the Users field's value.
 func (s *DescribeBrokerResponse) SetUsers(v []*UserSummary) *DescribeBrokerResponse {
 	s.Users = v
@@ -2540,6 +2990,9 @@ func (s *DescribeConfigurationInput) Validate() error {
 	invalidParams := request.ErrInvalidParams{Context: "DescribeConfigurationInput"}
 	if s.ConfigurationId == nil {
 		invalidParams.Add(request.NewErrParamRequired("ConfigurationId"))
+	}
+	if s.ConfigurationId != nil && len(*s.ConfigurationId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ConfigurationId", 1))
 	}
 
 	if invalidParams.Len() > 0 {
@@ -2574,6 +3027,8 @@ type DescribeConfigurationOutput struct {
 	LatestRevision *ConfigurationRevision `locationName:"latestRevision" type:"structure"`
 
 	Name *string `locationName:"name" type:"string"`
+
+	Tags map[string]*string `locationName:"tags" type:"map"`
 }
 
 // String returns the string representation
@@ -2634,6 +3089,12 @@ func (s *DescribeConfigurationOutput) SetName(v string) *DescribeConfigurationOu
 	return s
 }
 
+// SetTags sets the Tags field's value.
+func (s *DescribeConfigurationOutput) SetTags(v map[string]*string) *DescribeConfigurationOutput {
+	s.Tags = v
+	return s
+}
+
 type DescribeConfigurationRevisionInput struct {
 	_ struct{} `type:"structure"`
 
@@ -2660,8 +3121,14 @@ func (s *DescribeConfigurationRevisionInput) Validate() error {
 	if s.ConfigurationId == nil {
 		invalidParams.Add(request.NewErrParamRequired("ConfigurationId"))
 	}
+	if s.ConfigurationId != nil && len(*s.ConfigurationId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ConfigurationId", 1))
+	}
 	if s.ConfigurationRevision == nil {
 		invalidParams.Add(request.NewErrParamRequired("ConfigurationRevision"))
+	}
+	if s.ConfigurationRevision != nil && len(*s.ConfigurationRevision) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ConfigurationRevision", 1))
 	}
 
 	if invalidParams.Len() > 0 {
@@ -2754,8 +3221,14 @@ func (s *DescribeUserInput) Validate() error {
 	if s.BrokerId == nil {
 		invalidParams.Add(request.NewErrParamRequired("BrokerId"))
 	}
+	if s.BrokerId != nil && len(*s.BrokerId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("BrokerId", 1))
+	}
 	if s.Username == nil {
 		invalidParams.Add(request.NewErrParamRequired("Username"))
+	}
+	if s.Username != nil && len(*s.Username) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Username", 1))
 	}
 
 	if invalidParams.Len() > 0 {
@@ -2932,6 +3405,9 @@ func (s *ListConfigurationRevisionsInput) Validate() error {
 	if s.ConfigurationId == nil {
 		invalidParams.Add(request.NewErrParamRequired("ConfigurationId"))
 	}
+	if s.ConfigurationId != nil && len(*s.ConfigurationId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ConfigurationId", 1))
+	}
 	if s.MaxResults != nil && *s.MaxResults < 1 {
 		invalidParams.Add(request.NewErrParamMinValue("MaxResults", 1))
 	}
@@ -3087,6 +3563,67 @@ func (s *ListConfigurationsResponse) SetNextToken(v string) *ListConfigurationsR
 	return s
 }
 
+type ListTagsInput struct {
+	_ struct{} `type:"structure"`
+
+	// ResourceArn is a required field
+	ResourceArn *string `location:"uri" locationName:"resource-arn" type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s ListTagsInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ListTagsInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ListTagsInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ListTagsInput"}
+	if s.ResourceArn == nil {
+		invalidParams.Add(request.NewErrParamRequired("ResourceArn"))
+	}
+	if s.ResourceArn != nil && len(*s.ResourceArn) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ResourceArn", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetResourceArn sets the ResourceArn field's value.
+func (s *ListTagsInput) SetResourceArn(v string) *ListTagsInput {
+	s.ResourceArn = &v
+	return s
+}
+
+type ListTagsOutput struct {
+	_ struct{} `type:"structure"`
+
+	Tags map[string]*string `locationName:"tags" type:"map"`
+}
+
+// String returns the string representation
+func (s ListTagsOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ListTagsOutput) GoString() string {
+	return s.String()
+}
+
+// SetTags sets the Tags field's value.
+func (s *ListTagsOutput) SetTags(v map[string]*string) *ListTagsOutput {
+	s.Tags = v
+	return s
+}
+
 type ListUsersInput struct {
 	_ struct{} `type:"structure"`
 
@@ -3113,6 +3650,9 @@ func (s *ListUsersInput) Validate() error {
 	invalidParams := request.ErrInvalidParams{Context: "ListUsersInput"}
 	if s.BrokerId == nil {
 		invalidParams.Add(request.NewErrParamRequired("BrokerId"))
+	}
+	if s.BrokerId != nil && len(*s.BrokerId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("BrokerId", 1))
 	}
 	if s.MaxResults != nil && *s.MaxResults < 1 {
 		invalidParams.Add(request.NewErrParamMinValue("MaxResults", 1))
@@ -3342,6 +3882,9 @@ func (s *RebootBrokerInput) Validate() error {
 	if s.BrokerId == nil {
 		invalidParams.Add(request.NewErrParamRequired("BrokerId"))
 	}
+	if s.BrokerId != nil && len(*s.BrokerId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("BrokerId", 1))
+	}
 
 	if invalidParams.Len() > 0 {
 		return invalidParams
@@ -3444,6 +3987,9 @@ func (s *UpdateBrokerRequest) Validate() error {
 	invalidParams := request.ErrInvalidParams{Context: "UpdateBrokerRequest"}
 	if s.BrokerId == nil {
 		invalidParams.Add(request.NewErrParamRequired("BrokerId"))
+	}
+	if s.BrokerId != nil && len(*s.BrokerId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("BrokerId", 1))
 	}
 
 	if invalidParams.Len() > 0 {
@@ -3564,6 +4110,9 @@ func (s *UpdateConfigurationRequest) Validate() error {
 	invalidParams := request.ErrInvalidParams{Context: "UpdateConfigurationRequest"}
 	if s.ConfigurationId == nil {
 		invalidParams.Add(request.NewErrParamRequired("ConfigurationId"))
+	}
+	if s.ConfigurationId != nil && len(*s.ConfigurationId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ConfigurationId", 1))
 	}
 
 	if invalidParams.Len() > 0 {
@@ -3699,8 +4248,14 @@ func (s *UpdateUserRequest) Validate() error {
 	if s.BrokerId == nil {
 		invalidParams.Add(request.NewErrParamRequired("BrokerId"))
 	}
+	if s.BrokerId != nil && len(*s.BrokerId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("BrokerId", 1))
+	}
 	if s.Username == nil {
 		invalidParams.Add(request.NewErrParamRequired("Username"))
+	}
+	if s.Username != nil && len(*s.Username) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Username", 1))
 	}
 
 	if invalidParams.Len() > 0 {

@@ -117,7 +117,7 @@ func resourceAwsProxyProtocolPolicyUpdate(d *schema.ResourceData, meta interface
 	}
 
 	backends := flattenBackendPolicies(resp.LoadBalancerDescriptions[0].BackendServerDescriptions)
-	_, policyName := resourceAwsProxyProtocolPolicyParseId(d.Id())
+	policyName := resourceAwsProxyProtocolPolicyParseId(d.Id())
 
 	d.Partial(true)
 	if d.HasChange("instance_ports") {
@@ -173,7 +173,7 @@ func resourceAwsProxyProtocolPolicyDelete(d *schema.ResourceData, meta interface
 
 	backends := flattenBackendPolicies(resp.LoadBalancerDescriptions[0].BackendServerDescriptions)
 	ports := d.Get("instance_ports").(*schema.Set).List()
-	_, policyName := resourceAwsProxyProtocolPolicyParseId(d.Id())
+	policyName := resourceAwsProxyProtocolPolicyParseId(d.Id())
 
 	inputs, err := resourceAwsProxyProtocolPolicyRemove(policyName, ports, backends)
 	if err != nil {
@@ -259,7 +259,8 @@ func resourceAwsProxyProtocolPolicyAdd(policyName string, ports []interface{}, b
 // resourceAwsProxyProtocolPolicyParseId takes an ID and parses it into
 // it's constituent parts. You need two axes (LB name, policy name)
 // to create or identify a proxy protocol policy in AWS's API.
-func resourceAwsProxyProtocolPolicyParseId(id string) (string, string) {
+func resourceAwsProxyProtocolPolicyParseId(id string) string {
 	parts := strings.SplitN(id, ":", 2)
-	return parts[0], parts[1]
+	// We currently omit the ELB name as it is not currently used anywhere
+	return parts[1]
 }

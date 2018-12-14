@@ -69,7 +69,7 @@ func resourceAwsWafRuleGroup() *schema.Resource {
 func resourceAwsWafRuleGroupCreate(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).wafconn
 
-	wr := newWafRetryer(conn, "global")
+	wr := newWafRetryer(conn)
 	out, err := wr.RetryWithToken(func(token *string) (interface{}, error) {
 		params := &waf.CreateRuleGroupInput{
 			ChangeToken: token,
@@ -140,11 +140,8 @@ func resourceAwsWafRuleGroupDelete(d *schema.ResourceData, meta interface{}) err
 
 	oldRules := d.Get("activated_rule").(*schema.Set).List()
 	err := deleteWafRuleGroup(d.Id(), oldRules, conn)
-	if err != nil {
-		return err
-	}
 
-	return nil
+	return err
 }
 
 func deleteWafRuleGroup(id string, oldRules []interface{}, conn *waf.WAF) error {
@@ -156,7 +153,7 @@ func deleteWafRuleGroup(id string, oldRules []interface{}, conn *waf.WAF) error 
 		}
 	}
 
-	wr := newWafRetryer(conn, "global")
+	wr := newWafRetryer(conn)
 	_, err := wr.RetryWithToken(func(token *string) (interface{}, error) {
 		req := &waf.DeleteRuleGroupInput{
 			ChangeToken: token,
@@ -172,7 +169,7 @@ func deleteWafRuleGroup(id string, oldRules []interface{}, conn *waf.WAF) error 
 }
 
 func updateWafRuleGroupResource(id string, oldRules, newRules []interface{}, conn *waf.WAF) error {
-	wr := newWafRetryer(conn, "global")
+	wr := newWafRetryer(conn)
 	_, err := wr.RetryWithToken(func(token *string) (interface{}, error) {
 		req := &waf.UpdateRuleGroupInput{
 			ChangeToken: token,

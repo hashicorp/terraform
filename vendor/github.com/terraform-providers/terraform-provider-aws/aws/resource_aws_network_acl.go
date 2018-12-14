@@ -158,6 +158,10 @@ func resourceAwsNetworkAcl() *schema.Resource {
 				Set: resourceAwsNetworkAclEntryHash,
 			},
 			"tags": tagsSchema(),
+			"owner_id": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
 		},
 	}
 }
@@ -229,6 +233,7 @@ func resourceAwsNetworkAclRead(d *schema.ResourceData, meta interface{}) error {
 
 	d.Set("vpc_id", networkAcl.VpcId)
 	d.Set("tags", tagsToMap(networkAcl.Tags))
+	d.Set("owner_id", networkAcl.OwnerId)
 
 	var s []string
 	for _, a := range networkAcl.Associations {

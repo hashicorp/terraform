@@ -339,7 +339,7 @@ func resourceAwsApiGatewayStageUpdate(d *schema.ResourceData, meta interface{}) 
 		o, n := d.GetChange("variables")
 		oldV := o.(map[string]interface{})
 		newV := n.(map[string]interface{})
-		operations = append(operations, diffVariablesOps("/variables/", oldV, newV)...)
+		operations = append(operations, diffVariablesOps(oldV, newV)...)
 	}
 	if d.HasChange("access_log_settings") {
 		accessLogSettings := d.Get("access_log_settings").([]interface{})
@@ -411,8 +411,9 @@ func resourceAwsApiGatewayStageUpdate(d *schema.ResourceData, meta interface{}) 
 	return resourceAwsApiGatewayStageRead(d, meta)
 }
 
-func diffVariablesOps(prefix string, oldVars, newVars map[string]interface{}) []*apigateway.PatchOperation {
+func diffVariablesOps(oldVars, newVars map[string]interface{}) []*apigateway.PatchOperation {
 	ops := make([]*apigateway.PatchOperation, 0)
+	prefix := "/variables/"
 
 	for k := range oldVars {
 		if _, ok := newVars[k]; !ok {

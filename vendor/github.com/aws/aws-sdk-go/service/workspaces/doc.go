@@ -4,7 +4,7 @@
 // requests to Amazon WorkSpaces.
 //
 // Amazon WorkSpaces enables you to provision virtual, cloud-based Microsoft
-// Windows desktops for your users.
+// Windows and Amazon Linux desktops for your users.
 //
 // See https://docs.aws.amazon.com/goto/WebAPI/workspaces-2015-04-08 for more information on this service.
 //

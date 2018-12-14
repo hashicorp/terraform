@@ -135,6 +135,9 @@ func resourceAwsBudgetsBudget() *schema.Resource {
 		Read:   resourceAwsBudgetsBudgetRead,
 		Update: resourceAwsBudgetsBudgetUpdate,
 		Delete: resourceAwsBudgetsBudgetDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 	}
 }
 
@@ -221,8 +224,8 @@ func resourceAwsBudgetsBudgetRead(d *schema.ResourceData, meta interface{}) erro
 	d.Set("name", budget.BudgetName)
 
 	if budget.TimePeriod != nil {
-		d.Set("time_period_end", budget.TimePeriod.End)
-		d.Set("time_period_start", budget.TimePeriod.Start)
+		d.Set("time_period_end", aws.TimeValue(budget.TimePeriod.End).Format("2006-01-02_15:04"))
+		d.Set("time_period_start", aws.TimeValue(budget.TimePeriod.Start).Format("2006-01-02_15:04"))
 	}
 
 	d.Set("time_unit", budget.TimeUnit)

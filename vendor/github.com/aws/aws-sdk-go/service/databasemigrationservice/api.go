@@ -9,6 +9,8 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awsutil"
 	"github.com/aws/aws-sdk-go/aws/request"
+	"github.com/aws/aws-sdk-go/private/protocol"
+	"github.com/aws/aws-sdk-go/private/protocol/jsonrpc"
 )
 
 const opAddTagsToResource = "AddTagsToResource"
@@ -50,6 +52,7 @@ func (c *DatabaseMigrationService) AddTagsToResourceRequest(input *AddTagsToReso
 
 	output = &AddTagsToResourceOutput{}
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(jsonrpc.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -246,9 +249,9 @@ func (c *DatabaseMigrationService) CreateEventSubscriptionRequest(input *CreateE
 // will be notified of events generated from all AWS DMS sources belonging to
 // your customer account.
 //
-// For more information about AWS DMS events, see  Working with Events and Notifications
-//  (http://docs.aws.amazon.com/dms/latest/userguide/CHAP_Events.html) in the
-// AWS Database MIgration Service User Guide.
+// For more information about AWS DMS events, see Working with Events and Notifications
+// (http://docs.aws.amazon.com/dms/latest/userguide/CHAP_Events.html) in the
+// AWS Database Migration Service User Guide.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -970,6 +973,7 @@ func (c *DatabaseMigrationService) DeleteReplicationSubnetGroupRequest(input *De
 
 	output = &DeleteReplicationSubnetGroupOutput{}
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(jsonrpc.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -1758,7 +1762,7 @@ func (c *DatabaseMigrationService) DescribeEventCategoriesRequest(input *Describ
 //
 // Lists categories for all event source types, or, if specified, for a specified
 // source type. You can see a list of the event categories and source types
-// in  Working with Events and Notifications  (http://docs.aws.amazon.com/dms/latest/userguide/CHAP_Events.html)
+// in Working with Events and Notifications (http://docs.aws.amazon.com/dms/latest/userguide/CHAP_Events.html)
 // in the AWS Database Migration Service User Guide.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
@@ -1981,7 +1985,8 @@ func (c *DatabaseMigrationService) DescribeEventsRequest(input *DescribeEventsIn
 //
 // Lists events for a given source identifier and source type. You can also
 // specify a start and end time. For more information on AWS DMS events, see
-//  Working with Events and Notifications  (http://docs.aws.amazon.com/dms/latest/userguide/CHAP_Events.html).
+// Working with Events and Notifications (http://docs.aws.amazon.com/dms/latest/userguide/CHAP_Events.html)
+// in the AWS Database Migration User Guide.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -3827,8 +3832,9 @@ func (c *DatabaseMigrationService) ModifyReplicationTaskRequest(input *ModifyRep
 // You can't modify the task endpoints. The task must be stopped before you
 // can modify it.
 //
-// For more information about AWS DMS tasks, see the AWS DMS user guide at
-// Working with Migration Tasks  (http://docs.aws.amazon.com/dms/latest/userguide/CHAP_Tasks.html)
+// For more information about AWS DMS tasks, see Working with Migration Tasks
+// (http://docs.aws.amazon.com/dms/latest/userguide/CHAP_Tasks.html) in the
+// AWS Database Migration Service User Guide.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -4170,6 +4176,7 @@ func (c *DatabaseMigrationService) RemoveTagsFromResourceRequest(input *RemoveTa
 
 	output = &RemoveTagsFromResourceOutput{}
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(jsonrpc.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -4256,8 +4263,9 @@ func (c *DatabaseMigrationService) StartReplicationTaskRequest(input *StartRepli
 //
 // Starts the replication task.
 //
-// For more information about AWS DMS tasks, see the AWS DMS user guide at
-// Working with Migration Tasks  (http://docs.aws.amazon.com/dms/latest/userguide/CHAP_Tasks.html)
+// For more information about AWS DMS tasks, see Working with Migration Tasks
+//  (http://docs.aws.amazon.com/dms/latest/userguide/CHAP_Tasks.html) in the
+// AWS Database Migration Service User Guide.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -4878,9 +4886,9 @@ type CreateEndpointInput struct {
 	// The name of the endpoint database.
 	DatabaseName *string `type:"string"`
 
-	// The settings in JSON format for the DMS Transfer type source endpoint.
+	// The settings in JSON format for the DMS transfer type of source endpoint.
 	//
-	// Attributes include:
+	// Possible attributes include the following:
 	//
 	//    * serviceAccessRoleArn - The IAM role that has permission to access the
 	//    Amazon S3 bucket.
@@ -4888,22 +4896,26 @@ type CreateEndpointInput struct {
 	//    * bucketName - The name of the S3 bucket to use.
 	//
 	//    * compressionType - An optional parameter to use GZIP to compress the
-	//    target files. Set to NONE (the default) or do not use to leave the files
-	//    uncompressed.
+	//    target files. To use GZIP, set this value to NONE (the default). To keep
+	//    the files uncompressed, don't use this value.
 	//
-	// Shorthand syntax: ServiceAccessRoleArn=string ,BucketName=string,CompressionType=string
+	// Shorthand syntax for these attributes is as follows: ServiceAccessRoleArn=string,BucketName=string,CompressionType=string
 	//
-	// JSON syntax:
-	//
-	// { "ServiceAccessRoleArn": "string", "BucketName": "string", "CompressionType":
-	// "none"|"gzip" }
+	// JSON syntax for these attributes is as follows: { "ServiceAccessRoleArn":
+	// "string", "BucketName": "string", "CompressionType": "none"|"gzip" }
 	DmsTransferSettings *DmsTransferSettings `type:"structure"`
 
 	// Settings in JSON format for the target Amazon DynamoDB endpoint. For more
-	// information about the available settings, see the Using Object Mapping to
-	// Migrate Data to DynamoDB section at  Using an Amazon DynamoDB Database as
-	// a Target for AWS Database Migration Service (http://docs.aws.amazon.com/dms/latest/userguide/CHAP_Target.DynamoDB.html).
+	// information about the available settings, see Using Object Mapping to Migrate
+	// Data to DynamoDB (http://docs.aws.amazon.com/dms/latest/userguide/CHAP_Target.DynamoDB.html)
+	// in the AWS Database Migration Service User Guide.
 	DynamoDbSettings *DynamoDbSettings `type:"structure"`
+
+	// Settings in JSON format for the target Elasticsearch endpoint. For more information
+	// about the available settings, see Extra Connection Attributes When Using
+	// Elasticsearch as a Target for AWS DMS (http://docs.aws.amazon.com/dms/latest/userguide/CHAP_Target.Elasticsearch.html#CHAP_Target.Elasticsearch.Configuration)
+	// in the AWS Database Migration User Guide.
+	ElasticsearchSettings *ElasticsearchSettings `type:"structure"`
 
 	// The database endpoint identifier. Identifiers must begin with a letter; must
 	// contain only ASCII letters, digits, and hyphens; and must not end with a
@@ -4917,9 +4929,9 @@ type CreateEndpointInput struct {
 	// EndpointType is a required field
 	EndpointType *string `type:"string" required:"true" enum:"ReplicationEndpointTypeValue"`
 
-	// The type of engine for the endpoint. Valid values, depending on the EndPointType,
-	// include mysql, oracle, postgres, mariadb, aurora, aurora-postgresql, redshift,
-	// s3, db2, azuredb, sybase, dynamodb, mongodb, and sqlserver.
+	// The type of engine for the endpoint. Valid values, depending on the EndPointType
+	// value, include mysql, oracle, postgres, mariadb, aurora, aurora-postgresql,
+	// redshift, s3, db2, azuredb, sybase, dynamodb, mongodb, and sqlserver.
 	//
 	// EngineName is a required field
 	EngineName *string `type:"string" required:"true"`
@@ -4930,48 +4942,53 @@ type CreateEndpointInput struct {
 	// Additional attributes associated with the connection.
 	ExtraConnectionAttributes *string `type:"string"`
 
-	// The KMS key identifier that will be used to encrypt the connection parameters.
-	// If you do not specify a value for the KmsKeyId parameter, then AWS DMS will
-	// use your default encryption key. AWS KMS creates the default encryption key
-	// for your AWS account. Your AWS account has a different default encryption
-	// key for each AWS region.
+	// Settings in JSON format for the target Amazon Kinesis Data Streams endpoint.
+	// For more information about the available settings, see Using Object Mapping
+	// to Migrate Data to a Kinesis Data Stream (http://docs.aws.amazon.com/dms/latest/userguide/CHAP_Target.Kinesis.html#CHAP_Target.Kinesis.ObjectMapping
+	// ) in the AWS Database Migration User Guide.
+	KinesisSettings *KinesisSettings `type:"structure"`
+
+	// The AWS KMS key identifier to use to encrypt the connection parameters. If
+	// you don't specify a value for the KmsKeyId parameter, then AWS DMS uses your
+	// default encryption key. AWS KMS creates the default encryption key for your
+	// AWS account. Your AWS account has a different default encryption key for
+	// each AWS Region.
 	KmsKeyId *string `type:"string"`
 
 	// Settings in JSON format for the source MongoDB endpoint. For more information
-	// about the available settings, see the Configuration Properties When Using
-	// MongoDB as a Source for AWS Database Migration Service section at  Using
-	// MongoDB as a Target for AWS Database Migration Service (http://docs.aws.amazon.com/dms/latest/userguide/CHAP_Source.MongoDB.html).
+	// about the available settings, see the configuration properties section in
+	//  Using MongoDB as a Target for AWS Database Migration Service (http://docs.aws.amazon.com/dms/latest/userguide/CHAP_Source.MongoDB.html)
+	// in the AWS Database Migration Service User Guide.
 	MongoDbSettings *MongoDbSettings `type:"structure"`
 
-	// The password to be used to login to the endpoint database.
-	Password *string `type:"string"`
+	// The password to be used to log in to the endpoint database.
+	Password *string `type:"string" sensitive:"true"`
 
 	// The port used by the endpoint database.
 	Port *int64 `type:"integer"`
 
 	// Settings in JSON format for the target Amazon S3 endpoint. For more information
-	// about the available settings, see the Extra Connection Attributes section
-	// at  Using Amazon S3 as a Target for AWS Database Migration Service (http://docs.aws.amazon.com/dms/latest/userguide/CHAP_Target.S3.html).
+	// about the available settings, see Extra Connection Attributes When Using
+	// Amazon S3 as a Target for AWS DMS (http://docs.aws.amazon.com/dms/latest/userguide/CHAP_Target.S3.html#CHAP_Target.S3.Configuring)
+	// in the AWS Database Migration Service User Guide.
 	S3Settings *S3Settings `type:"structure"`
 
 	// The name of the server where the endpoint database resides.
 	ServerName *string `type:"string"`
 
-	// The Amazon Resource Name (ARN) for the service access role you want to use
-	// to create the endpoint.
+	// The Amazon Resource Name (ARN) for the service access role that you want
+	// to use to create the endpoint.
 	ServiceAccessRoleArn *string `type:"string"`
 
-	// The SSL mode to use for the SSL connection.
-	//
-	// SSL mode can be one of four values: none, require, verify-ca, verify-full.
-	//
-	// The default value is none.
+	// The Secure Sockets Layer (SSL) mode to use for the SSL connection. The SSL
+	// mode can be one of four values: none, require, verify-ca, verify-full. The
+	// default value is none.
 	SslMode *string `type:"string" enum:"DmsSslModeValue"`
 
 	// Tags to be added to the endpoint.
 	Tags []*Tag `type:"list"`
 
-	// The user name to be used to login to the endpoint database.
+	// The user name to be used to log in to the endpoint database.
 	Username *string `type:"string"`
 }
 
@@ -5000,6 +5017,11 @@ func (s *CreateEndpointInput) Validate() error {
 	if s.DynamoDbSettings != nil {
 		if err := s.DynamoDbSettings.Validate(); err != nil {
 			invalidParams.AddNested("DynamoDbSettings", err.(request.ErrInvalidParams))
+		}
+	}
+	if s.ElasticsearchSettings != nil {
+		if err := s.ElasticsearchSettings.Validate(); err != nil {
+			invalidParams.AddNested("ElasticsearchSettings", err.(request.ErrInvalidParams))
 		}
 	}
 
@@ -5033,6 +5055,12 @@ func (s *CreateEndpointInput) SetDynamoDbSettings(v *DynamoDbSettings) *CreateEn
 	return s
 }
 
+// SetElasticsearchSettings sets the ElasticsearchSettings field's value.
+func (s *CreateEndpointInput) SetElasticsearchSettings(v *ElasticsearchSettings) *CreateEndpointInput {
+	s.ElasticsearchSettings = v
+	return s
+}
+
 // SetEndpointIdentifier sets the EndpointIdentifier field's value.
 func (s *CreateEndpointInput) SetEndpointIdentifier(v string) *CreateEndpointInput {
 	s.EndpointIdentifier = &v
@@ -5060,6 +5088,12 @@ func (s *CreateEndpointInput) SetExternalTableDefinition(v string) *CreateEndpoi
 // SetExtraConnectionAttributes sets the ExtraConnectionAttributes field's value.
 func (s *CreateEndpointInput) SetExtraConnectionAttributes(v string) *CreateEndpointInput {
 	s.ExtraConnectionAttributes = &v
+	return s
+}
+
+// SetKinesisSettings sets the KinesisSettings field's value.
+func (s *CreateEndpointInput) SetKinesisSettings(v *KinesisSettings) *CreateEndpointInput {
+	s.KinesisSettings = v
 	return s
 }
 
@@ -5155,7 +5189,7 @@ type CreateEventSubscriptionInput struct {
 
 	// A list of event categories for a source type that you want to subscribe to.
 	// You can see a list of the categories for a given source type by calling the
-	// DescribeEventCategories action or in the topic  Working with Events and Notifications
+	// DescribeEventCategories action or in the topic Working with Events and Notifications
 	// (http://docs.aws.amazon.com/dms/latest/userguide/CHAP_Events.html) in the
 	// AWS Database Migration Service User Guide.
 	EventCategories []*string `type:"list"`
@@ -5303,14 +5337,17 @@ type CreateReplicationInstanceInput struct {
 	// Example: us-east-1d
 	AvailabilityZone *string `type:"string"`
 
+	// A list of DNS name servers supported for the replication instance.
+	DnsNameServers *string `type:"string"`
+
 	// The engine version number of the replication instance.
 	EngineVersion *string `type:"string"`
 
-	// The KMS key identifier that will be used to encrypt the content on the replication
-	// instance. If you do not specify a value for the KmsKeyId parameter, then
-	// AWS DMS will use your default encryption key. AWS KMS creates the default
-	// encryption key for your AWS account. Your AWS account has a different default
-	// encryption key for each AWS region.
+	// The AWS KMS key identifier that is used to encrypt the content on the replication
+	// instance. If you don't specify a value for the KmsKeyId parameter, then AWS
+	// DMS uses your default encryption key. AWS KMS creates the default encryption
+	// key for your AWS account. Your AWS account has a different default encryption
+	// key for each AWS Region.
 	KmsKeyId *string `type:"string"`
 
 	// Specifies if the replication instance is a Multi-AZ deployment. You cannot
@@ -5413,6 +5450,12 @@ func (s *CreateReplicationInstanceInput) SetAutoMinorVersionUpgrade(v bool) *Cre
 // SetAvailabilityZone sets the AvailabilityZone field's value.
 func (s *CreateReplicationInstanceInput) SetAvailabilityZone(v string) *CreateReplicationInstanceInput {
 	s.AvailabilityZone = &v
+	return s
+}
+
+// SetDnsNameServers sets the DnsNameServers field's value.
+func (s *CreateReplicationInstanceInput) SetDnsNameServers(v string) *CreateReplicationInstanceInput {
+	s.DnsNameServers = &v
 	return s
 }
 
@@ -5660,7 +5703,8 @@ type CreateReplicationTaskInput struct {
 
 	// Settings for the task, such as target metadata settings. For a complete list
 	// of task settings, see Task Settings for AWS Database Migration Service Tasks
-	// (http://docs.aws.amazon.com/dms/latest/userguide/CHAP_Tasks.CustomizingTasks.TaskSettings.html).
+	// (http://docs.aws.amazon.com/dms/latest/userguide/CHAP_Tasks.CustomizingTasks.TaskSettings.html)
+	// in the AWS Database Migration User Guide.
 	ReplicationTaskSettings *string `type:"string"`
 
 	// The Amazon Resource Name (ARN) string that uniquely identifies the endpoint.
@@ -7924,6 +7968,78 @@ func (s *DynamoDbSettings) SetServiceAccessRoleArn(v string) *DynamoDbSettings {
 	return s
 }
 
+type ElasticsearchSettings struct {
+	_ struct{} `type:"structure"`
+
+	// The endpoint for the ElasticSearch cluster.
+	//
+	// EndpointUri is a required field
+	EndpointUri *string `type:"string" required:"true"`
+
+	// The maximum number of seconds that DMS retries failed API requests to the
+	// Elasticsearch cluster.
+	ErrorRetryDuration *int64 `type:"integer"`
+
+	// The maximum percentage of records that can fail to be written before a full
+	// load operation stops.
+	FullLoadErrorPercentage *int64 `type:"integer"`
+
+	// The Amazon Resource Name (ARN) used by service to access the IAM role.
+	//
+	// ServiceAccessRoleArn is a required field
+	ServiceAccessRoleArn *string `type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s ElasticsearchSettings) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ElasticsearchSettings) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ElasticsearchSettings) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ElasticsearchSettings"}
+	if s.EndpointUri == nil {
+		invalidParams.Add(request.NewErrParamRequired("EndpointUri"))
+	}
+	if s.ServiceAccessRoleArn == nil {
+		invalidParams.Add(request.NewErrParamRequired("ServiceAccessRoleArn"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetEndpointUri sets the EndpointUri field's value.
+func (s *ElasticsearchSettings) SetEndpointUri(v string) *ElasticsearchSettings {
+	s.EndpointUri = &v
+	return s
+}
+
+// SetErrorRetryDuration sets the ErrorRetryDuration field's value.
+func (s *ElasticsearchSettings) SetErrorRetryDuration(v int64) *ElasticsearchSettings {
+	s.ErrorRetryDuration = &v
+	return s
+}
+
+// SetFullLoadErrorPercentage sets the FullLoadErrorPercentage field's value.
+func (s *ElasticsearchSettings) SetFullLoadErrorPercentage(v int64) *ElasticsearchSettings {
+	s.FullLoadErrorPercentage = &v
+	return s
+}
+
+// SetServiceAccessRoleArn sets the ServiceAccessRoleArn field's value.
+func (s *ElasticsearchSettings) SetServiceAccessRoleArn(v string) *ElasticsearchSettings {
+	s.ServiceAccessRoleArn = &v
+	return s
+}
+
 type Endpoint struct {
 	_ struct{} `type:"structure"`
 
@@ -7933,9 +8049,9 @@ type Endpoint struct {
 	// The name of the database at the endpoint.
 	DatabaseName *string `type:"string"`
 
-	// The settings in JSON format for the DMS Transfer type source endpoint.
+	// The settings in JSON format for the DMS transfer type of source endpoint.
 	//
-	// Attributes include:
+	// Possible attributes include the following:
 	//
 	//    * serviceAccessRoleArn - The IAM role that has permission to access the
 	//    Amazon S3 bucket.
@@ -7943,20 +8059,22 @@ type Endpoint struct {
 	//    * bucketName - The name of the S3 bucket to use.
 	//
 	//    * compressionType - An optional parameter to use GZIP to compress the
-	//    target files. Set to NONE (the default) or do not use to leave the files
-	//    uncompressed.
+	//    target files. To use GZIP, set this value to NONE (the default). To keep
+	//    the files uncompressed, don't use this value.
 	//
-	// Shorthand syntax: ServiceAccessRoleArn=string ,BucketName=string,CompressionType=string
+	// Shorthand syntax for these attributes is as follows: ServiceAccessRoleArn=string,BucketName=string,CompressionType=string
 	//
-	// JSON syntax:
-	//
-	// { "ServiceAccessRoleArn": "string", "BucketName": "string", "CompressionType":
-	// "none"|"gzip" }
+	// JSON syntax for these attributes is as follows: { "ServiceAccessRoleArn":
+	// "string", "BucketName": "string", "CompressionType": "none"|"gzip" }
 	DmsTransferSettings *DmsTransferSettings `type:"structure"`
 
 	// The settings for the target DynamoDB database. For more information, see
 	// the DynamoDBSettings structure.
 	DynamoDbSettings *DynamoDbSettings `type:"structure"`
+
+	// The settings for the Elasticsearch source endpoint. For more information,
+	// see the ElasticsearchSettings structure.
+	ElasticsearchSettings *ElasticsearchSettings `type:"structure"`
 
 	// The Amazon Resource Name (ARN) string that uniquely identifies the endpoint.
 	EndpointArn *string `type:"string"`
@@ -7989,11 +8107,15 @@ type Endpoint struct {
 	// Additional connection attributes used to connect to the endpoint.
 	ExtraConnectionAttributes *string `type:"string"`
 
-	// The KMS key identifier that will be used to encrypt the connection parameters.
-	// If you do not specify a value for the KmsKeyId parameter, then AWS DMS will
-	// use your default encryption key. AWS KMS creates the default encryption key
-	// for your AWS account. Your AWS account has a different default encryption
-	// key for each AWS region.
+	// The settings for the Amazon Kinesis source endpoint. For more information,
+	// see the KinesisSettings structure.
+	KinesisSettings *KinesisSettings `type:"structure"`
+
+	// The AWS KMS key identifier that is used to encrypt the content on the replication
+	// instance. If you don't specify a value for the KmsKeyId parameter, then AWS
+	// DMS uses your default encryption key. AWS KMS creates the default encryption
+	// key for your AWS account. Your AWS account has a different default encryption
+	// key for each AWS Region.
 	KmsKeyId *string `type:"string"`
 
 	// The settings for the MongoDB source endpoint. For more information, see the
@@ -8061,6 +8183,12 @@ func (s *Endpoint) SetDynamoDbSettings(v *DynamoDbSettings) *Endpoint {
 	return s
 }
 
+// SetElasticsearchSettings sets the ElasticsearchSettings field's value.
+func (s *Endpoint) SetElasticsearchSettings(v *ElasticsearchSettings) *Endpoint {
+	s.ElasticsearchSettings = v
+	return s
+}
+
 // SetEndpointArn sets the EndpointArn field's value.
 func (s *Endpoint) SetEndpointArn(v string) *Endpoint {
 	s.EndpointArn = &v
@@ -8106,6 +8234,12 @@ func (s *Endpoint) SetExternalTableDefinition(v string) *Endpoint {
 // SetExtraConnectionAttributes sets the ExtraConnectionAttributes field's value.
 func (s *Endpoint) SetExtraConnectionAttributes(v string) *Endpoint {
 	s.ExtraConnectionAttributes = &v
+	return s
+}
+
+// SetKinesisSettings sets the KinesisSettings field's value.
+func (s *Endpoint) SetKinesisSettings(v *KinesisSettings) *Endpoint {
+	s.KinesisSettings = v
 	return s
 }
 
@@ -8513,6 +8647,49 @@ func (s *ImportCertificateOutput) SetCertificate(v *Certificate) *ImportCertific
 	return s
 }
 
+type KinesisSettings struct {
+	_ struct{} `type:"structure"`
+
+	// The output format for the records created on the endpoint. The message format
+	// is JSON.
+	MessageFormat *string `type:"string" enum:"MessageFormatValue"`
+
+	// The Amazon Resource Name (ARN) for the IAM role that DMS uses to write to
+	// the Amazon Kinesis data stream.
+	ServiceAccessRoleArn *string `type:"string"`
+
+	// The Amazon Resource Name (ARN) for the Amazon Kinesis Data Streams endpoint.
+	StreamArn *string `type:"string"`
+}
+
+// String returns the string representation
+func (s KinesisSettings) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s KinesisSettings) GoString() string {
+	return s.String()
+}
+
+// SetMessageFormat sets the MessageFormat field's value.
+func (s *KinesisSettings) SetMessageFormat(v string) *KinesisSettings {
+	s.MessageFormat = &v
+	return s
+}
+
+// SetServiceAccessRoleArn sets the ServiceAccessRoleArn field's value.
+func (s *KinesisSettings) SetServiceAccessRoleArn(v string) *KinesisSettings {
+	s.ServiceAccessRoleArn = &v
+	return s
+}
+
+// SetStreamArn sets the StreamArn field's value.
+func (s *KinesisSettings) SetStreamArn(v string) *KinesisSettings {
+	s.StreamArn = &v
+	return s
+}
+
 type ListTagsForResourceInput struct {
 	_ struct{} `type:"structure"`
 
@@ -8584,9 +8761,9 @@ type ModifyEndpointInput struct {
 	// The name of the endpoint database.
 	DatabaseName *string `type:"string"`
 
-	// The settings in JSON format for the DMS Transfer type source endpoint.
+	// The settings in JSON format for the DMS transfer type of source endpoint.
 	//
-	// Attributes include:
+	// Attributes include the following:
 	//
 	//    * serviceAccessRoleArn - The IAM role that has permission to access the
 	//    Amazon S3 bucket.
@@ -8606,10 +8783,16 @@ type ModifyEndpointInput struct {
 	DmsTransferSettings *DmsTransferSettings `type:"structure"`
 
 	// Settings in JSON format for the target Amazon DynamoDB endpoint. For more
-	// information about the available settings, see the Using Object Mapping to
-	// Migrate Data to DynamoDB section at  Using an Amazon DynamoDB Database as
-	// a Target for AWS Database Migration Service (http://docs.aws.amazon.com/dms/latest/userguide/CHAP_Target.DynamoDB.html).
+	// information about the available settings, see Using Object Mapping to Migrate
+	// Data to DynamoDB (http://docs.aws.amazon.com/dms/latest/userguide/CHAP_Target.DynamoDB.html)
+	// in the AWS Database Migration Service User Guide.
 	DynamoDbSettings *DynamoDbSettings `type:"structure"`
+
+	// Settings in JSON format for the target Elasticsearch endpoint. For more information
+	// about the available settings, see Extra Connection Attributes When Using
+	// Elasticsearch as a Target for AWS DMS (http://docs.aws.amazon.com/dms/latest/userguide/CHAP_Target.Elasticsearch.html#CHAP_Target.Elasticsearch.Configuration)
+	// in the AWS Database Migration User Guide.
+	ElasticsearchSettings *ElasticsearchSettings `type:"structure"`
 
 	// The Amazon Resource Name (ARN) string that uniquely identifies the endpoint.
 	//
@@ -8636,21 +8819,28 @@ type ModifyEndpointInput struct {
 	// pass the empty string ("") as an argument.
 	ExtraConnectionAttributes *string `type:"string"`
 
+	// Settings in JSON format for the target Amazon Kinesis Data Streams endpoint.
+	// For more information about the available settings, see Using Object Mapping
+	// to Migrate Data to a Kinesis Data Stream (http://docs.aws.amazon.com/dms/latest/userguide/CHAP_Target.Kinesis.html#CHAP_Target.Kinesis.ObjectMapping
+	// ) in the AWS Database Migration User Guide.
+	KinesisSettings *KinesisSettings `type:"structure"`
+
 	// Settings in JSON format for the source MongoDB endpoint. For more information
-	// about the available settings, see the Configuration Properties When Using
-	// MongoDB as a Source for AWS Database Migration Service section at  Using
-	// Amazon S3 as a Target for AWS Database Migration Service (http://docs.aws.amazon.com/dms/latest/userguide/CHAP_Source.MongoDB.html).
+	// about the available settings, see the configuration properties section in
+	//  Using MongoDB as a Target for AWS Database Migration Service (http://docs.aws.amazon.com/dms/latest/userguide/CHAP_Source.MongoDB.html)
+	// in the AWS Database Migration Service User Guide.
 	MongoDbSettings *MongoDbSettings `type:"structure"`
 
 	// The password to be used to login to the endpoint database.
-	Password *string `type:"string"`
+	Password *string `type:"string" sensitive:"true"`
 
 	// The port used by the endpoint database.
 	Port *int64 `type:"integer"`
 
-	// Settings in JSON format for the target S3 endpoint. For more information
-	// about the available settings, see the Extra Connection Attributes section
-	// at  Using Amazon S3 as a Target for AWS Database Migration Service (http://docs.aws.amazon.com/dms/latest/userguide/CHAP_Target.S3.html).
+	// Settings in JSON format for the target Amazon S3 endpoint. For more information
+	// about the available settings, see Extra Connection Attributes When Using
+	// Amazon S3 as a Target for AWS DMS (http://docs.aws.amazon.com/dms/latest/userguide/CHAP_Target.S3.html#CHAP_Target.S3.Configuring)
+	// in the AWS Database Migration Service User Guide.
 	S3Settings *S3Settings `type:"structure"`
 
 	// The name of the server where the endpoint database resides.
@@ -8692,6 +8882,11 @@ func (s *ModifyEndpointInput) Validate() error {
 			invalidParams.AddNested("DynamoDbSettings", err.(request.ErrInvalidParams))
 		}
 	}
+	if s.ElasticsearchSettings != nil {
+		if err := s.ElasticsearchSettings.Validate(); err != nil {
+			invalidParams.AddNested("ElasticsearchSettings", err.(request.ErrInvalidParams))
+		}
+	}
 
 	if invalidParams.Len() > 0 {
 		return invalidParams
@@ -8720,6 +8915,12 @@ func (s *ModifyEndpointInput) SetDmsTransferSettings(v *DmsTransferSettings) *Mo
 // SetDynamoDbSettings sets the DynamoDbSettings field's value.
 func (s *ModifyEndpointInput) SetDynamoDbSettings(v *DynamoDbSettings) *ModifyEndpointInput {
 	s.DynamoDbSettings = v
+	return s
+}
+
+// SetElasticsearchSettings sets the ElasticsearchSettings field's value.
+func (s *ModifyEndpointInput) SetElasticsearchSettings(v *ElasticsearchSettings) *ModifyEndpointInput {
+	s.ElasticsearchSettings = v
 	return s
 }
 
@@ -8756,6 +8957,12 @@ func (s *ModifyEndpointInput) SetExternalTableDefinition(v string) *ModifyEndpoi
 // SetExtraConnectionAttributes sets the ExtraConnectionAttributes field's value.
 func (s *ModifyEndpointInput) SetExtraConnectionAttributes(v string) *ModifyEndpointInput {
 	s.ExtraConnectionAttributes = &v
+	return s
+}
+
+// SetKinesisSettings sets the KinesisSettings field's value.
+func (s *ModifyEndpointInput) SetKinesisSettings(v *KinesisSettings) *ModifyEndpointInput {
+	s.KinesisSettings = v
 	return s
 }
 
@@ -9399,11 +9606,11 @@ type MongoDbSettings struct {
 	// Default value is false.
 	ExtractDocId *string `type:"string"`
 
-	// The KMS key identifier that will be used to encrypt the connection parameters.
-	// If you do not specify a value for the KmsKeyId parameter, then AWS DMS will
-	// use your default encryption key. AWS KMS creates the default encryption key
-	// for your AWS account. Your AWS account has a different default encryption
-	// key for each AWS region.
+	// The AWS KMS key identifier that is used to encrypt the content on the replication
+	// instance. If you don't specify a value for the KmsKeyId parameter, then AWS
+	// DMS uses your default encryption key. AWS KMS creates the default encryption
+	// key for your AWS account. Your AWS account has a different default encryption
+	// key for each AWS Region.
 	KmsKeyId *string `type:"string"`
 
 	// Specifies either document or table mode.
@@ -9415,7 +9622,7 @@ type MongoDbSettings struct {
 	NestingLevel *string `type:"string" enum:"NestingLevelValue"`
 
 	// The password for the user account you use to access the MongoDB source endpoint.
-	Password *string `type:"string"`
+	Password *string `type:"string" sensitive:"true"`
 
 	// The port value for the MongoDB source endpoint.
 	Port *int64 `type:"integer"`
@@ -9969,6 +10176,9 @@ type ReplicationInstance struct {
 	// The Availability Zone for the instance.
 	AvailabilityZone *string `type:"string"`
 
+	// The DNS name servers for the replication instance.
+	DnsNameServers *string `type:"string"`
+
 	// The engine version number of the replication instance.
 	EngineVersion *string `type:"string"`
 
@@ -9979,11 +10189,11 @@ type ReplicationInstance struct {
 	// The time the replication instance was created.
 	InstanceCreateTime *time.Time `type:"timestamp"`
 
-	// The KMS key identifier that is used to encrypt the content on the replication
-	// instance. If you do not specify a value for the KmsKeyId parameter, then
-	// AWS DMS will use your default encryption key. AWS KMS creates the default
-	// encryption key for your AWS account. Your AWS account has a different default
-	// encryption key for each AWS region.
+	// The AWS KMS key identifier that is used to encrypt the content on the replication
+	// instance. If you don't specify a value for the KmsKeyId parameter, then AWS
+	// DMS uses your default encryption key. AWS KMS creates the default encryption
+	// key for your AWS account. Your AWS account has a different default encryption
+	// key for each AWS Region.
 	KmsKeyId *string `type:"string"`
 
 	// Specifies if the replication instance is a Multi-AZ deployment. You cannot
@@ -10078,6 +10288,12 @@ func (s *ReplicationInstance) SetAutoMinorVersionUpgrade(v bool) *ReplicationIns
 // SetAvailabilityZone sets the AvailabilityZone field's value.
 func (s *ReplicationInstance) SetAvailabilityZone(v string) *ReplicationInstance {
 	s.AvailabilityZone = &v
+	return s
+}
+
+// SetDnsNameServers sets the DnsNameServers field's value.
+func (s *ReplicationInstance) SetDnsNameServers(v string) *ReplicationInstance {
+	s.DnsNameServers = &v
 	return s
 }
 
@@ -11517,6 +11733,11 @@ const (
 
 	// DmsSslModeValueVerifyFull is a DmsSslModeValue enum value
 	DmsSslModeValueVerifyFull = "verify-full"
+)
+
+const (
+	// MessageFormatValueJson is a MessageFormatValue enum value
+	MessageFormatValueJson = "json"
 )
 
 const (

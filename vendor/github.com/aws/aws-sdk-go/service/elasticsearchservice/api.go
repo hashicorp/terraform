@@ -50,8 +50,7 @@ func (c *ElasticsearchService) AddTagsRequest(input *AddTagsInput) (req *request
 
 	output = &AddTagsOutput{}
 	req = c.newRequest(op, input, output)
-	req.Handlers.Unmarshal.Remove(restjson.UnmarshalHandler)
-	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
+	req.Handlers.Unmarshal.Swap(restjson.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -427,8 +426,7 @@ func (c *ElasticsearchService) DeleteElasticsearchServiceRoleRequest(input *Dele
 
 	output = &DeleteElasticsearchServiceRoleOutput{}
 	req = c.newRequest(op, input, output)
-	req.Handlers.Unmarshal.Remove(restjson.UnmarshalHandler)
-	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
+	req.Handlers.Unmarshal.Swap(restjson.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -2073,8 +2071,7 @@ func (c *ElasticsearchService) RemoveTagsRequest(input *RemoveTagsInput) (req *r
 
 	output = &RemoveTagsOutput{}
 	req = c.newRequest(op, input, output)
-	req.Handlers.Unmarshal.Remove(restjson.UnmarshalHandler)
-	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
+	req.Handlers.Unmarshal.Swap(restjson.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -3363,8 +3360,14 @@ func (s *DescribeElasticsearchInstanceTypeLimitsInput) Validate() error {
 	if s.ElasticsearchVersion == nil {
 		invalidParams.Add(request.NewErrParamRequired("ElasticsearchVersion"))
 	}
+	if s.ElasticsearchVersion != nil && len(*s.ElasticsearchVersion) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ElasticsearchVersion", 1))
+	}
 	if s.InstanceType == nil {
 		invalidParams.Add(request.NewErrParamRequired("InstanceType"))
+	}
+	if s.InstanceType != nil && len(*s.InstanceType) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("InstanceType", 1))
 	}
 
 	if invalidParams.Len() > 0 {
@@ -4718,6 +4721,9 @@ func (s *ListElasticsearchInstanceTypesInput) Validate() error {
 	}
 	if s.ElasticsearchVersion == nil {
 		invalidParams.Add(request.NewErrParamRequired("ElasticsearchVersion"))
+	}
+	if s.ElasticsearchVersion != nil && len(*s.ElasticsearchVersion) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ElasticsearchVersion", 1))
 	}
 
 	if invalidParams.Len() > 0 {

@@ -42,10 +42,15 @@ func resourceAwsNetworkAclRule() *schema.Resource {
 				Required: true,
 				ForceNew: true,
 				DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
-					if old == "all" && new == "-1" || old == "-1" && new == "all" {
-						return true
+					pi := protocolIntegers()
+					if val, ok := pi[old]; ok {
+						old = strconv.Itoa(val)
 					}
-					return false
+					if val, ok := pi[new]; ok {
+						new = strconv.Itoa(val)
+					}
+
+					return old == new
 				},
 			},
 			"rule_action": {
@@ -134,7 +139,7 @@ func resourceAwsNetworkAclRuleCreate(d *schema.ResourceData, meta interface{}) e
 
 	// Specify additional required fields for ICMP. For the list
 	// of ICMP codes and types, see: https://www.iana.org/assignments/icmp-parameters/icmp-parameters.xhtml
-	if p == 1 {
+	if p == 1 || p == 58 {
 		params.IcmpTypeCode = &ec2.IcmpTypeCode{}
 		if v, ok := d.GetOk("icmp_type"); ok {
 			icmpType, err := strconv.Atoi(v.(string))

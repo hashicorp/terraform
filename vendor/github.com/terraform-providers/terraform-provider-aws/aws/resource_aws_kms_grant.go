@@ -468,13 +468,13 @@ func sortStringMapKeys(m map[string]*string) []string {
 // NB: For the constraint hash to be deterministic the order in which
 // print the keys and values of the encryption context maps needs to be
 // determistic, so sort them.
-func sortedConcatStringMap(m map[string]*string, sep string) string {
+func sortedConcatStringMap(m map[string]*string) string {
 	var strList []string
 	mapKeys := sortStringMapKeys(m)
 	for _, key := range mapKeys {
 		strList = append(strList, key, *m[key])
 	}
-	return strings.Join(strList, sep)
+	return strings.Join(strList, "-")
 }
 
 // The hash needs to encapsulate what type of constraint it is
@@ -488,12 +488,12 @@ func resourceKmsGrantConstraintsHash(v interface{}) int {
 
 	if v, ok := m["encryption_context_equals"]; ok {
 		if len(v.(map[string]interface{})) > 0 {
-			buf.WriteString(fmt.Sprintf("encryption_context_equals-%s-", sortedConcatStringMap(stringMapToPointers(v.(map[string]interface{})), "-")))
+			buf.WriteString(fmt.Sprintf("encryption_context_equals-%s-", sortedConcatStringMap(stringMapToPointers(v.(map[string]interface{})))))
 		}
 	}
 	if v, ok := m["encryption_context_subset"]; ok {
 		if len(v.(map[string]interface{})) > 0 {
-			buf.WriteString(fmt.Sprintf("encryption_context_subset-%s-", sortedConcatStringMap(stringMapToPointers(v.(map[string]interface{})), "-")))
+			buf.WriteString(fmt.Sprintf("encryption_context_subset-%s-", sortedConcatStringMap(stringMapToPointers(v.(map[string]interface{})))))
 		}
 	}
 

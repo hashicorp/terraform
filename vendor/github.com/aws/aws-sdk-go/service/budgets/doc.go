@@ -3,33 +3,39 @@
 // Package budgets provides the client and types for making API
 // requests to AWS Budgets.
 //
-// Budgets enable you to plan your service usage, service costs, and your RI
-// utilization. You can also track how close your plan is to your budgeted amount
-// or to the free tier limits. Budgets provide you with a quick way to see your
-// usage-to-date and current estimated charges from AWS and to see how much
-// your predicted usage accrues in charges by the end of the month. Budgets
-// also compare current estimates and charges to the amount that you indicated
-// you want to use or spend and lets you see how much of your budget has been
-// used. AWS updates your budget status several times a day. Budgets track your
-// unblended costs, subscriptions, and refunds. You can create the following
-// types of budgets:
+// The AWS Budgets API enables you to use AWS Budgets to plan your service usage,
+// service costs, and instance reservations. The API reference provides descriptions,
+// syntax, and usage examples for each of the actions and data types for AWS
+// Budgets.
 //
-//    * Cost budgets allow you to say how much you want to spend on a service.
+// Budgets provide you with a way to see the following information:
 //
-//    * Usage budgets allow you to say how many hours you want to use for one
-//    or more services.
+//    * How close your plan is to your budgeted amount or to the free tier limits
 //
-//    * RI utilization budgets allow you to define a utilization threshold and
-//    receive alerts when RIs are tracking below that threshold.
+//    * Your usage-to-date, including how much you've used of your Reserved
+//    Instances (RIs)
 //
-// You can create up to 20,000 budgets per AWS master account. Your first two
-// budgets are free of charge. Each additional budget costs $0.02 per day. You
-// can set up optional notifications that warn you if you exceed, or are forecasted
-// to exceed, your budgeted amount. You can have notifications sent to an Amazon
-// SNS topic, to an email address, or to both. For more information, see Creating
-// an Amazon SNS Topic for Budget Notifications (https://docs.aws.amazon.com/awsaccountbilling/latest/aboutv2/budgets-sns-policy.html).
-// AWS Free Tier usage alerts via AWS Budgets are provided for you, and do not
-// count toward your budget limits.
+//    * Your current estimated charges from AWS, and how much your predicted
+//    usage will accrue in charges by the end of the month
+//
+//    * How much of your budget has been used
+//
+// AWS updates your budget status several times a day. Budgets track your unblended
+// costs, subscriptions, refunds, and RIs. You can create the following types
+// of budgets:
+//
+//    * Cost budgets - Plan how much you want to spend on a service.
+//
+//    * Usage budgets - Plan how much you want to use one or more services.
+//
+//    * RI utilization budgets - Define a utilization threshold, and receive
+//    alerts when your RI usage falls below that threshold. This lets you see
+//    if your RIs are unused or under-utilized.
+//
+//    * RI coverage budgets - Define a coverage threshold, and receive alerts
+//    when the number of your instance hours that are covered by RIs fall below
+//    that threshold. This lets you see how much of your instance usage is covered
+//    by a reservation.
 //
 // Service Endpoint
 //
@@ -37,8 +43,8 @@
 //
 //    * https://budgets.amazonaws.com
 //
-// For information about costs associated with the AWS Budgets API, see AWS
-// Cost Management Pricing (https://aws.amazon.com/aws-cost-management/pricing/).
+// For information about costs that are associated with the AWS Budgets API,
+// see AWS Cost Management Pricing (https://aws.amazon.com/aws-cost-management/pricing/).
 //
 // See budgets package documentation for more information.
 // https://docs.aws.amazon.com/sdk-for-go/api/service/budgets/

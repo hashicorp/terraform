@@ -69,7 +69,7 @@ func resourceAwsWafByteMatchSetCreate(d *schema.ResourceData, meta interface{}) 
 
 	log.Printf("[INFO] Creating ByteMatchSet: %s", d.Get("name").(string))
 
-	wr := newWafRetryer(conn, "global")
+	wr := newWafRetryer(conn)
 	out, err := wr.RetryWithToken(func(token *string) (interface{}, error) {
 		params := &waf.CreateByteMatchSetInput{
 			ChangeToken: token,
@@ -140,7 +140,7 @@ func resourceAwsWafByteMatchSetDelete(d *schema.ResourceData, meta interface{}) 
 		}
 	}
 
-	wr := newWafRetryer(conn, "global")
+	wr := newWafRetryer(conn)
 	_, err := wr.RetryWithToken(func(token *string) (interface{}, error) {
 		req := &waf.DeleteByteMatchSetInput{
 			ChangeToken:    token,
@@ -157,7 +157,7 @@ func resourceAwsWafByteMatchSetDelete(d *schema.ResourceData, meta interface{}) 
 }
 
 func updateByteMatchSetResource(id string, oldT, newT []interface{}, conn *waf.WAF) error {
-	wr := newWafRetryer(conn, "global")
+	wr := newWafRetryer(conn)
 	_, err := wr.RetryWithToken(func(token *string) (interface{}, error) {
 		req := &waf.UpdateByteMatchSetInput{
 			ChangeToken:    token,
@@ -175,7 +175,7 @@ func updateByteMatchSetResource(id string, oldT, newT []interface{}, conn *waf.W
 }
 
 func flattenWafByteMatchTuples(bmt []*waf.ByteMatchTuple) []interface{} {
-	out := make([]interface{}, len(bmt), len(bmt))
+	out := make([]interface{}, len(bmt))
 	for i, t := range bmt {
 		m := make(map[string]interface{})
 

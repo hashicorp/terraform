@@ -43,7 +43,7 @@ func expandNetworkAclEntries(configured []interface{}, entryType string) ([]*ec2
 		}
 
 		// Specify additional required fields for ICMP
-		if p == 1 {
+		if p == 1 || p == 58 {
 			e.IcmpTypeCode = &ec2.IcmpTypeCode{}
 			if v, ok := data["icmp_code"]; ok {
 				e.IcmpTypeCode.Code = aws.Int64(int64(v.(int)))
@@ -56,34 +56,6 @@ func expandNetworkAclEntries(configured []interface{}, entryType string) ([]*ec2
 		entries = append(entries, e)
 	}
 	return entries, nil
-}
-
-func flattenNetworkAclEntries(list []*ec2.NetworkAclEntry) []map[string]interface{} {
-	entries := make([]map[string]interface{}, 0, len(list))
-
-	for _, entry := range list {
-
-		newEntry := map[string]interface{}{
-			"from_port": *entry.PortRange.From,
-			"to_port":   *entry.PortRange.To,
-			"action":    *entry.RuleAction,
-			"rule_no":   *entry.RuleNumber,
-			"protocol":  *entry.Protocol,
-		}
-
-		if entry.CidrBlock != nil {
-			newEntry["cidr_block"] = *entry.CidrBlock
-		}
-
-		if entry.Ipv6CidrBlock != nil {
-			newEntry["ipv6_cidr_block"] = *entry.Ipv6CidrBlock
-		}
-
-		entries = append(entries, newEntry)
-	}
-
-	return entries
-
 }
 
 func protocolStrings(protocolIntegers map[string]int) map[int]string {

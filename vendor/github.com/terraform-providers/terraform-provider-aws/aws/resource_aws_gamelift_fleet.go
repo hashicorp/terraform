@@ -432,21 +432,6 @@ func expandGameliftIpPermission(cfg map[string]interface{}) *gamelift.IpPermissi
 	}
 }
 
-func flattenGameliftIpPermissions(ipps []*gamelift.IpPermission) []interface{} {
-	perms := make([]interface{}, len(ipps), len(ipps))
-
-	for i, ipp := range ipps {
-		m := make(map[string]interface{}, 0)
-		m["from_port"] = *ipp.FromPort
-		m["ip_range"] = *ipp.IpRange
-		m["protocol"] = *ipp.Protocol
-		m["to_port"] = *ipp.ToPort
-		perms[i] = m
-	}
-
-	return perms
-}
-
 func expandGameliftResourceCreationLimitPolicy(cfg []interface{}) *gamelift.ResourceCreationLimitPolicy {
 	if len(cfg) < 1 {
 		return nil

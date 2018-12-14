@@ -140,6 +140,13 @@ const (
 	// the content of the document and try again.
 	ErrCodeDuplicateDocumentContent = "DuplicateDocumentContent"
 
+	// ErrCodeDuplicateDocumentVersionName for service response error code
+	// "DuplicateDocumentVersionName".
+	//
+	// The version name has already been used in this document. Specify a different
+	// version name, and then try again.
+	ErrCodeDuplicateDocumentVersionName = "DuplicateDocumentVersionName"
+
 	// ErrCodeDuplicateInstanceId for service response error code
 	// "DuplicateInstanceId".
 	//

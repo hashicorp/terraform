@@ -10,7 +10,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/arn"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/lambda"
-	"github.com/mitchellh/go-homedir"
+	homedir "github.com/mitchellh/go-homedir"
 
 	"errors"
 
@@ -27,6 +27,9 @@ func resourceAwsLambdaFunction() *schema.Resource {
 		Read:   resourceAwsLambdaFunctionRead,
 		Update: resourceAwsLambdaFunctionUpdate,
 		Delete: resourceAwsLambdaFunctionDelete,
+		Timeouts: &schema.ResourceTimeout{
+			Create: schema.DefaultTimeout(10 * time.Minute),
+		},
 
 		Importer: &schema.ResourceImporter{
 			State: func(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
@@ -111,8 +114,11 @@ func resourceAwsLambdaFunction() *schema.Resource {
 					lambda.RuntimeNodejs43Edge,
 					lambda.RuntimeNodejs610,
 					lambda.RuntimeNodejs810,
+					lambda.RuntimeProvided,
 					lambda.RuntimePython27,
 					lambda.RuntimePython36,
+					lambda.RuntimePython37,
+					lambda.RuntimeRuby25,
 				}, false),
 			},
 			"timeout": {
@@ -392,11 +398,11 @@ func resourceAwsLambdaFunctionCreate(d *schema.ResourceData, meta interface{}) e
 		return nil
 	})
 	if err != nil {
-		if !isAWSErr(err, "InvalidParameterValueException", "Your request has been throttled by EC2") {
+		if !isResourceTimeoutError(err) && !isAWSErr(err, "InvalidParameterValueException", "Your request has been throttled by EC2") {
 			return fmt.Errorf("Error creating Lambda function: %s", err)
 		}
-		// Allow 9 more minutes for EC2 throttling
-		err := resource.Retry(9*time.Minute, func() *resource.RetryError {
+		// Allow additional time for slower uploads or EC2 throttling
+		err := resource.Retry(d.Timeout(schema.TimeoutCreate), func() *resource.RetryError {
 			_, err := conn.CreateFunction(params)
 			if err != nil {
 				log.Printf("[DEBUG] Error creating Lambda Function: %s", err)
@@ -563,13 +569,7 @@ func resourceAwsLambdaFunctionRead(d *schema.ResourceData, meta interface{}) err
 		d.Set("qualified_arn", lastQualifiedArn)
 	}
 
-	invokeArn := arn.ARN{
-		Partition: meta.(*AWSClient).partition,
-		Service:   "apigateway",
-		Region:    meta.(*AWSClient).region,
-		AccountID: "lambda",
-		Resource:  fmt.Sprintf("path/2015-03-31/functions/%s/invocations", *function.FunctionArn),
-	}.String()
+	invokeArn := lambdaFunctionInvokeArn(*function.FunctionArn, meta)
 	d.Set("invoke_arn", invokeArn)
 
 	return nil
@@ -880,4 +880,14 @@ func readEnvironmentVariables(ev map[string]interface{}) map[string]string {
 	}
 
 	return variables
+}
+
+func lambdaFunctionInvokeArn(functionArn string, meta interface{}) string {
+	return arn.ARN{
+		Partition: meta.(*AWSClient).partition,
+		Service:   "apigateway",
+		Region:    meta.(*AWSClient).region,
+		AccountID: "lambda",
+		Resource:  fmt.Sprintf("path/2015-03-31/functions/%s/invocations", functionArn),
+	}.String()
 }

@@ -56,7 +56,7 @@ func expandDistributionConfig(d *schema.ResourceData) *cloudfront.DistributionCo
 		distributionConfig.CacheBehaviors = expandCacheBehaviorsDeprecated(d.Get("cache_behavior").(*schema.Set))
 	}
 	// This sets CallerReference if it's still pending computation (ie: new resource)
-	if v, ok := d.GetOk("caller_reference"); ok == false {
+	if v, ok := d.GetOk("caller_reference"); !ok {
 		distributionConfig.CallerReference = aws.String(time.Now().Format(time.RFC3339Nano))
 	} else {
 		distributionConfig.CallerReference = aws.String(v.(string))
@@ -524,7 +524,7 @@ func lambdaFunctionAssociationHash(v interface{}) int {
 	var buf bytes.Buffer
 	m := v.(map[string]interface{})
 	buf.WriteString(fmt.Sprintf("%s-", m["event_type"].(string)))
-	buf.WriteString(fmt.Sprintf("%s", m["lambda_arn"].(string)))
+	buf.WriteString(m["lambda_arn"].(string))
 	buf.WriteString(fmt.Sprintf("%t", m["include_body"].(bool)))
 	return hashcode.String(buf.String())
 }
@@ -1259,7 +1259,7 @@ func simpleCopyStruct(src, dst interface{}) {
 	d := reflect.ValueOf(dst).Elem()
 
 	for i := 0; i < s.NumField(); i++ {
-		if s.Field(i).CanSet() == true {
+		if s.Field(i).CanSet() {
 			if s.Field(i).Interface() != nil {
 				for j := 0; j < d.NumField(); j++ {
 					if d.Type().Field(j).Name == s.Type().Field(i).Name {

@@ -66,6 +66,11 @@ func dataSourceAwsRouteTable() *schema.Resource {
 							Computed: true,
 						},
 
+						"transit_gateway_id": {
+							Type:     schema.TypeString,
+							Computed: true,
+						},
+
 						"vpc_peering_connection_id": {
 							Type:     schema.TypeString,
 							Computed: true,
@@ -104,6 +109,10 @@ func dataSourceAwsRouteTable() *schema.Resource {
 						},
 					},
 				},
+			},
+			"owner_id": {
+				Type:     schema.TypeString,
+				Computed: true,
 			},
 		},
 	}
@@ -153,6 +162,7 @@ func dataSourceAwsRouteTableRead(d *schema.ResourceData, meta interface{}) error
 	d.Set("route_table_id", rt.RouteTableId)
 	d.Set("vpc_id", rt.VpcId)
 	d.Set("tags", tagsToMap(rt.Tags))
+	d.Set("owner_id", rt.OwnerId)
 	if err := d.Set("routes", dataSourceRoutesRead(rt.Routes)); err != nil {
 		return err
 	}
@@ -201,6 +211,9 @@ func dataSourceRoutesRead(ec2Routes []*ec2.Route) []map[string]interface{} {
 		}
 		if r.InstanceId != nil {
 			m["instance_id"] = *r.InstanceId
+		}
+		if r.TransitGatewayId != nil {
+			m["transit_gateway_id"] = *r.TransitGatewayId
 		}
 		if r.VpcPeeringConnectionId != nil {
 			m["vpc_peering_connection_id"] = *r.VpcPeeringConnectionId

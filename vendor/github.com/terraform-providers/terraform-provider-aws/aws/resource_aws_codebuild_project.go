@@ -727,9 +727,9 @@ func expandProjectSourceData(data map[string]interface{}) codebuild.ProjectSourc
 		projectSource.Location = aws.String(data["location"].(string))
 	}
 
-	// Only valid for GITHUB source type, e.g.
+	// Only valid for BITBUCKET and GITHUB source type, e.g.
 	// InvalidInputException: Source type GITHUB_ENTERPRISE does not support ReportBuildStatus
-	if sourceType == codebuild.SourceTypeGithub {
+	if sourceType == codebuild.SourceTypeBitbucket || sourceType == codebuild.SourceTypeGithub {
 		projectSource.ReportBuildStatus = aws.Bool(data["report_build_status"].(bool))
 	}
 

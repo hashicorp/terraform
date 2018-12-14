@@ -17,6 +17,9 @@ func resourceAwsWafRule() *schema.Resource {
 		Read:   resourceAwsWafRuleRead,
 		Update: resourceAwsWafRuleUpdate,
 		Delete: resourceAwsWafRuleDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"name": {
@@ -59,7 +62,7 @@ func resourceAwsWafRule() *schema.Resource {
 func resourceAwsWafRuleCreate(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).wafconn
 
-	wr := newWafRetryer(conn, "global")
+	wr := newWafRetryer(conn)
 	out, err := wr.RetryWithToken(func(token *string) (interface{}, error) {
 		params := &waf.CreateRuleInput{
 			ChangeToken: token,
@@ -141,7 +144,7 @@ func resourceAwsWafRuleDelete(d *schema.ResourceData, meta interface{}) error {
 		}
 	}
 
-	wr := newWafRetryer(conn, "global")
+	wr := newWafRetryer(conn)
 	_, err := wr.RetryWithToken(func(token *string) (interface{}, error) {
 		req := &waf.DeleteRuleInput{
 			ChangeToken: token,
@@ -158,7 +161,7 @@ func resourceAwsWafRuleDelete(d *schema.ResourceData, meta interface{}) error {
 }
 
 func updateWafRuleResource(id string, oldP, newP []interface{}, conn *waf.WAF) error {
-	wr := newWafRetryer(conn, "global")
+	wr := newWafRetryer(conn)
 	_, err := wr.RetryWithToken(func(token *string) (interface{}, error) {
 		req := &waf.UpdateRuleInput{
 			ChangeToken: token,

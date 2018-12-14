@@ -71,6 +71,11 @@ func resourceAwsDefaultRouteTable() *schema.Resource {
 							Optional: true,
 						},
 
+						"transit_gateway_id": {
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+
 						"vpc_peering_connection_id": {
 							Type:     schema.TypeString,
 							Optional: true,
@@ -86,6 +91,11 @@ func resourceAwsDefaultRouteTable() *schema.Resource {
 			},
 
 			"tags": tagsSchema(),
+
+			"owner_id": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
 		},
 	}
 }

@@ -73,6 +73,7 @@ func resourceAwsS3BucketInventory() *schema.Resource {
 										ValidateFunc: validation.StringInSlice([]string{
 											s3.InventoryFormatCsv,
 											s3.InventoryFormatOrc,
+											s3.InventoryFormatParquet,
 										}, false),
 									},
 									"bucket_arn": {

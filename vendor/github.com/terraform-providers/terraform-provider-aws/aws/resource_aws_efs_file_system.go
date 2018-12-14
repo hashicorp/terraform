@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/arn"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/efs"
 	"github.com/hashicorp/terraform/helper/resource"
@@ -26,6 +27,10 @@ func resourceAwsEfsFileSystem() *schema.Resource {
 		},
 
 		Schema: map[string]*schema.Schema{
+			"arn": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
 			"creation_token": {
 				Type:         schema.TypeString,
 				Optional:     true,
@@ -279,6 +284,15 @@ func resourceAwsEfsFileSystemRead(d *schema.ResourceData, meta interface{}) erro
 		return nil
 	}
 
+	fsARN := arn.ARN{
+		AccountID: meta.(*AWSClient).accountid,
+		Partition: meta.(*AWSClient).partition,
+		Region:    meta.(*AWSClient).region,
+		Resource:  fmt.Sprintf("file-system/%s", aws.StringValue(fs.FileSystemId)),
+		Service:   "elasticfilesystem",
+	}.String()
+
+	d.Set("arn", fsARN)
 	d.Set("creation_token", fs.CreationToken)
 	d.Set("encrypted", fs.Encrypted)
 	d.Set("kms_key_id", fs.KmsKeyId)

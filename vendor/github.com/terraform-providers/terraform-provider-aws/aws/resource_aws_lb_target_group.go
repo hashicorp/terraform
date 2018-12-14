@@ -45,14 +45,14 @@ func resourceAwsLbTargetGroup() *schema.Resource {
 				Computed:      true,
 				ForceNew:      true,
 				ConflictsWith: []string{"name_prefix"},
-				ValidateFunc:  validation.StringLenBetween(0, 32),
+				ValidateFunc:  validateLbTargetGroupName,
 			},
 			"name_prefix": {
 				Type:          schema.TypeString,
 				Optional:      true,
 				ForceNew:      true,
 				ConflictsWith: []string{"name"},
-				ValidateFunc:  validation.StringLenBetween(0, 32-resource.UniqueIDSuffixLength),
+				ValidateFunc:  validateLbTargetGroupNamePrefix,
 			},
 
 			"port": {

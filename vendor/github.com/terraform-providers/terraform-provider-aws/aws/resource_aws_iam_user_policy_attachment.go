@@ -3,6 +3,7 @@ package aws
 import (
 	"fmt"
 	"log"
+	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
@@ -16,6 +17,9 @@ func resourceAwsIamUserPolicyAttachment() *schema.Resource {
 		Create: resourceAwsIamUserPolicyAttachmentCreate,
 		Read:   resourceAwsIamUserPolicyAttachmentRead,
 		Delete: resourceAwsIamUserPolicyAttachmentDelete,
+		Importer: &schema.ResourceImporter{
+			State: resourceAwsIamUserPolicyAttachmentImport,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"user": {
@@ -98,6 +102,22 @@ func resourceAwsIamUserPolicyAttachmentDelete(d *schema.ResourceData, meta inter
 		return fmt.Errorf("Error removing policy %s from IAM User %s: %v", arn, user, err)
 	}
 	return nil
+}
+
+func resourceAwsIamUserPolicyAttachmentImport(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+	idParts := strings.SplitN(d.Id(), "/", 2)
+	if len(idParts) != 2 || idParts[0] == "" || idParts[1] == "" {
+		return nil, fmt.Errorf("unexpected format of ID (%q), expected <user-name>/<policy_arn>", d.Id())
+	}
+
+	userName := idParts[0]
+	policyARN := idParts[1]
+
+	d.Set("user", userName)
+	d.Set("policy_arn", policyARN)
+	d.SetId(fmt.Sprintf("%s-%s", userName, policyARN))
+
+	return []*schema.ResourceData{d}, nil
 }
 
 func attachPolicyToUser(conn *iam.IAM, user string, arn string) error {

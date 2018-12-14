@@ -551,8 +551,7 @@ func (c *Inspector) DeleteAssessmentRunRequest(input *DeleteAssessmentRunInput) 
 
 	output = &DeleteAssessmentRunOutput{}
 	req = c.newRequest(op, input, output)
-	req.Handlers.Unmarshal.Remove(jsonrpc.UnmarshalHandler)
-	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
+	req.Handlers.Unmarshal.Swap(jsonrpc.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -651,8 +650,7 @@ func (c *Inspector) DeleteAssessmentTargetRequest(input *DeleteAssessmentTargetI
 
 	output = &DeleteAssessmentTargetOutput{}
 	req = c.newRequest(op, input, output)
-	req.Handlers.Unmarshal.Remove(jsonrpc.UnmarshalHandler)
-	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
+	req.Handlers.Unmarshal.Swap(jsonrpc.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -751,8 +749,7 @@ func (c *Inspector) DeleteAssessmentTemplateRequest(input *DeleteAssessmentTempl
 
 	output = &DeleteAssessmentTemplateOutput{}
 	req = c.newRequest(op, input, output)
-	req.Handlers.Unmarshal.Remove(jsonrpc.UnmarshalHandler)
-	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
+	req.Handlers.Unmarshal.Swap(jsonrpc.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -3269,8 +3266,7 @@ func (c *Inspector) RegisterCrossAccountAccessRoleRequest(input *RegisterCrossAc
 
 	output = &RegisterCrossAccountAccessRoleOutput{}
 	req = c.newRequest(op, input, output)
-	req.Handlers.Unmarshal.Remove(jsonrpc.UnmarshalHandler)
-	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
+	req.Handlers.Unmarshal.Swap(jsonrpc.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -3460,8 +3456,7 @@ func (c *Inspector) SetTagsForResourceRequest(input *SetTagsForResourceInput) (r
 
 	output = &SetTagsForResourceOutput{}
 	req = c.newRequest(op, input, output)
-	req.Handlers.Unmarshal.Remove(jsonrpc.UnmarshalHandler)
-	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
+	req.Handlers.Unmarshal.Swap(jsonrpc.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -3663,8 +3658,7 @@ func (c *Inspector) StopAssessmentRunRequest(input *StopAssessmentRunInput) (req
 
 	output = &StopAssessmentRunOutput{}
 	req = c.newRequest(op, input, output)
-	req.Handlers.Unmarshal.Remove(jsonrpc.UnmarshalHandler)
-	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
+	req.Handlers.Unmarshal.Swap(jsonrpc.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -3758,8 +3752,7 @@ func (c *Inspector) SubscribeToEventRequest(input *SubscribeToEventInput) (req *
 
 	output = &SubscribeToEventOutput{}
 	req = c.newRequest(op, input, output)
-	req.Handlers.Unmarshal.Remove(jsonrpc.UnmarshalHandler)
-	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
+	req.Handlers.Unmarshal.Swap(jsonrpc.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -3858,8 +3851,7 @@ func (c *Inspector) UnsubscribeFromEventRequest(input *UnsubscribeFromEventInput
 
 	output = &UnsubscribeFromEventOutput{}
 	req = c.newRequest(op, input, output)
-	req.Handlers.Unmarshal.Remove(jsonrpc.UnmarshalHandler)
-	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
+	req.Handlers.Unmarshal.Swap(jsonrpc.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -3954,8 +3946,7 @@ func (c *Inspector) UpdateAssessmentTargetRequest(input *UpdateAssessmentTargetI
 
 	output = &UpdateAssessmentTargetOutput{}
 	req = c.newRequest(op, input, output)
-	req.Handlers.Unmarshal.Remove(jsonrpc.UnmarshalHandler)
-	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
+	req.Handlers.Unmarshal.Swap(jsonrpc.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -5105,10 +5096,17 @@ type AssetAttributes struct {
 	// The list of IP v4 addresses of the EC2 instance where the finding is generated.
 	Ipv4Addresses []*string `locationName:"ipv4Addresses" type:"list"`
 
+	// An array of the network interfaces interacting with the EC2 instance where
+	// the finding is generated.
+	NetworkInterfaces []*NetworkInterface `locationName:"networkInterfaces" type:"list"`
+
 	// The schema version of this data type.
 	//
 	// SchemaVersion is a required field
 	SchemaVersion *int64 `locationName:"schemaVersion" type:"integer" required:"true"`
+
+	// The tags related to the EC2 instance where the finding is generated.
+	Tags []*Tag `locationName:"tags" type:"list"`
 }
 
 // String returns the string representation
@@ -5151,9 +5149,21 @@ func (s *AssetAttributes) SetIpv4Addresses(v []*string) *AssetAttributes {
 	return s
 }
 
+// SetNetworkInterfaces sets the NetworkInterfaces field's value.
+func (s *AssetAttributes) SetNetworkInterfaces(v []*NetworkInterface) *AssetAttributes {
+	s.NetworkInterfaces = v
+	return s
+}
+
 // SetSchemaVersion sets the SchemaVersion field's value.
 func (s *AssetAttributes) SetSchemaVersion(v int64) *AssetAttributes {
 	s.SchemaVersion = &v
+	return s
+}
+
+// SetTags sets the Tags field's value.
+func (s *AssetAttributes) SetTags(v []*Tag) *AssetAttributes {
+	s.Tags = v
 	return s
 }
 
@@ -8216,6 +8226,115 @@ func (s *ListTagsForResourceOutput) SetTags(v []*Tag) *ListTagsForResourceOutput
 	return s
 }
 
+// Contains information about the network interfaces interacting with an EC2
+// instance. This data type is used as one of the elements of the AssetAttributes
+// data type.
+type NetworkInterface struct {
+	_ struct{} `type:"structure"`
+
+	// The IP addresses associated with the network interface.
+	Ipv6Addresses []*string `locationName:"ipv6Addresses" type:"list"`
+
+	// The ID of the network interface.
+	NetworkInterfaceId *string `locationName:"networkInterfaceId" type:"string"`
+
+	// The name of a private DNS associated with the network interface.
+	PrivateDnsName *string `locationName:"privateDnsName" type:"string"`
+
+	// The private IP address associated with the network interface.
+	PrivateIpAddress *string `locationName:"privateIpAddress" type:"string"`
+
+	// A list of the private IP addresses associated with the network interface.
+	// Includes the privateDnsName and privateIpAddress.
+	PrivateIpAddresses []*PrivateIp `locationName:"privateIpAddresses" type:"list"`
+
+	// The name of a public DNS associated with the network interface.
+	PublicDnsName *string `locationName:"publicDnsName" type:"string"`
+
+	// The public IP address from which the network interface is reachable.
+	PublicIp *string `locationName:"publicIp" type:"string"`
+
+	// A list of the security groups associated with the network interface. Includes
+	// the groupId and groupName.
+	SecurityGroups []*SecurityGroup `locationName:"securityGroups" type:"list"`
+
+	// The ID of a subnet associated with the network interface.
+	SubnetId *string `locationName:"subnetId" type:"string"`
+
+	// The ID of a VPC associated with the network interface.
+	VpcId *string `locationName:"vpcId" type:"string"`
+}
+
+// String returns the string representation
+func (s NetworkInterface) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s NetworkInterface) GoString() string {
+	return s.String()
+}
+
+// SetIpv6Addresses sets the Ipv6Addresses field's value.
+func (s *NetworkInterface) SetIpv6Addresses(v []*string) *NetworkInterface {
+	s.Ipv6Addresses = v
+	return s
+}
+
+// SetNetworkInterfaceId sets the NetworkInterfaceId field's value.
+func (s *NetworkInterface) SetNetworkInterfaceId(v string) *NetworkInterface {
+	s.NetworkInterfaceId = &v
+	return s
+}
+
+// SetPrivateDnsName sets the PrivateDnsName field's value.
+func (s *NetworkInterface) SetPrivateDnsName(v string) *NetworkInterface {
+	s.PrivateDnsName = &v
+	return s
+}
+
+// SetPrivateIpAddress sets the PrivateIpAddress field's value.
+func (s *NetworkInterface) SetPrivateIpAddress(v string) *NetworkInterface {
+	s.PrivateIpAddress = &v
+	return s
+}
+
+// SetPrivateIpAddresses sets the PrivateIpAddresses field's value.
+func (s *NetworkInterface) SetPrivateIpAddresses(v []*PrivateIp) *NetworkInterface {
+	s.PrivateIpAddresses = v
+	return s
+}
+
+// SetPublicDnsName sets the PublicDnsName field's value.
+func (s *NetworkInterface) SetPublicDnsName(v string) *NetworkInterface {
+	s.PublicDnsName = &v
+	return s
+}
+
+// SetPublicIp sets the PublicIp field's value.
+func (s *NetworkInterface) SetPublicIp(v string) *NetworkInterface {
+	s.PublicIp = &v
+	return s
+}
+
+// SetSecurityGroups sets the SecurityGroups field's value.
+func (s *NetworkInterface) SetSecurityGroups(v []*SecurityGroup) *NetworkInterface {
+	s.SecurityGroups = v
+	return s
+}
+
+// SetSubnetId sets the SubnetId field's value.
+func (s *NetworkInterface) SetSubnetId(v string) *NetworkInterface {
+	s.SubnetId = &v
+	return s
+}
+
+// SetVpcId sets the VpcId field's value.
+func (s *NetworkInterface) SetVpcId(v string) *NetworkInterface {
+	s.VpcId = &v
+	return s
+}
+
 type PreviewAgentsInput struct {
 	_ struct{} `type:"structure"`
 
@@ -8316,6 +8435,41 @@ func (s *PreviewAgentsOutput) SetAgentPreviews(v []*AgentPreview) *PreviewAgents
 // SetNextToken sets the NextToken field's value.
 func (s *PreviewAgentsOutput) SetNextToken(v string) *PreviewAgentsOutput {
 	s.NextToken = &v
+	return s
+}
+
+// Contains information about a private IP address associated with a network
+// interface. This data type is used as a response element in the DescribeFindings
+// action.
+type PrivateIp struct {
+	_ struct{} `type:"structure"`
+
+	// The DNS name of the private IP address.
+	PrivateDnsName *string `locationName:"privateDnsName" type:"string"`
+
+	// The full IP address of the network inteface.
+	PrivateIpAddress *string `locationName:"privateIpAddress" type:"string"`
+}
+
+// String returns the string representation
+func (s PrivateIp) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s PrivateIp) GoString() string {
+	return s.String()
+}
+
+// SetPrivateDnsName sets the PrivateDnsName field's value.
+func (s *PrivateIp) SetPrivateDnsName(v string) *PrivateIp {
+	s.PrivateDnsName = &v
+	return s
+}
+
+// SetPrivateIpAddress sets the PrivateIpAddress field's value.
+func (s *PrivateIp) SetPrivateIpAddress(v string) *PrivateIp {
+	s.PrivateIpAddress = &v
 	return s
 }
 
@@ -8661,6 +8815,41 @@ func (s *Scope) SetKey(v string) *Scope {
 // SetValue sets the Value field's value.
 func (s *Scope) SetValue(v string) *Scope {
 	s.Value = &v
+	return s
+}
+
+// Contains information about a security group associated with a network interface.
+// This data type is used as one of the elements of the NetworkInterface data
+// type.
+type SecurityGroup struct {
+	_ struct{} `type:"structure"`
+
+	// The ID of the security group.
+	GroupId *string `locationName:"groupId" type:"string"`
+
+	// The name of the security group.
+	GroupName *string `locationName:"groupName" type:"string"`
+}
+
+// String returns the string representation
+func (s SecurityGroup) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s SecurityGroup) GoString() string {
+	return s.String()
+}
+
+// SetGroupId sets the GroupId field's value.
+func (s *SecurityGroup) SetGroupId(v string) *SecurityGroup {
+	s.GroupId = &v
+	return s
+}
+
+// SetGroupName sets the GroupName field's value.
+func (s *SecurityGroup) SetGroupName(v string) *SecurityGroup {
+	s.GroupName = &v
 	return s
 }
 

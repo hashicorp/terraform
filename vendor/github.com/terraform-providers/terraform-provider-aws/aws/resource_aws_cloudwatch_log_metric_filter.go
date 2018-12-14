@@ -71,8 +71,9 @@ func resourceAwsCloudWatchLogMetricFilter() *schema.Resource {
 							ValidateFunc: validation.StringLenBetween(0, 100),
 						},
 						"default_value": {
-							Type:     schema.TypeFloat,
-							Optional: true,
+							Type:         schema.TypeString,
+							Optional:     true,
+							ValidateFunc: validateTypeStringNullableFloat,
 						},
 					},
 				},
@@ -92,14 +93,10 @@ func resourceAwsCloudWatchLogMetricFilterUpdate(d *schema.ResourceData, meta int
 
 	transformations := d.Get("metric_transformation").([]interface{})
 	o := transformations[0].(map[string]interface{})
-	metricsTransformations, err := expandCloudWachLogMetricTransformations(o)
-	if err != nil {
-		return err
-	}
-	input.MetricTransformations = metricsTransformations
+	input.MetricTransformations = expandCloudWatchLogMetricTransformations(o)
 
 	log.Printf("[DEBUG] Creating/Updating CloudWatch Log Metric Filter: %s", input)
-	_, err = conn.PutMetricFilter(&input)
+	_, err := conn.PutMetricFilter(&input)
 	if err != nil {
 		return fmt.Errorf("Creating/Updating CloudWatch Log Metric Filter failed: %s", err)
 	}
@@ -130,7 +127,7 @@ func resourceAwsCloudWatchLogMetricFilterRead(d *schema.ResourceData, meta inter
 
 	d.Set("name", mf.FilterName)
 	d.Set("pattern", mf.FilterPattern)
-	d.Set("metric_transformation", flattenCloudWachLogMetricTransformations(mf.MetricTransformations))
+	d.Set("metric_transformation", flattenCloudWatchLogMetricTransformations(mf.MetricTransformations))
 
 	return nil
 }

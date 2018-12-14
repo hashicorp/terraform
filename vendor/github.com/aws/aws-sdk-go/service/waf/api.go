@@ -9,6 +9,8 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awsutil"
 	"github.com/aws/aws-sdk-go/aws/request"
+	"github.com/aws/aws-sdk-go/private/protocol"
+	"github.com/aws/aws-sdk-go/private/protocol/jsonrpc"
 )
 
 const opCreateByteMatchSet = "CreateByteMatchSet"
@@ -2133,6 +2135,7 @@ func (c *WAF) DeleteLoggingConfigurationRequest(input *DeleteLoggingConfiguratio
 
 	output = &DeleteLoggingConfigurationOutput{}
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(jsonrpc.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -2220,6 +2223,7 @@ func (c *WAF) DeletePermissionPolicyRequest(input *DeletePermissionPolicyInput) 
 
 	output = &DeletePermissionPolicyOutput{}
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(jsonrpc.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -6472,6 +6476,7 @@ func (c *WAF) PutPermissionPolicyRequest(input *PutPermissionPolicyInput) (req *
 
 	output = &PutPermissionPolicyOutput{}
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(jsonrpc.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 

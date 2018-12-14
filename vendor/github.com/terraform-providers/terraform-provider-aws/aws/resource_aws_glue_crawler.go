@@ -3,9 +3,11 @@ package aws
 import (
 	"fmt"
 	"log"
+	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/arn"
 	"github.com/aws/aws-sdk-go/service/glue"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
@@ -38,6 +40,16 @@ func resourceAwsGlueCrawler() *schema.Resource {
 			"role": {
 				Type:     schema.TypeString,
 				Required: true,
+				// Glue API always returns name
+				DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
+					newARN, err := arn.Parse(new)
+
+					if err != nil {
+						return false
+					}
+
+					return old == strings.TrimPrefix(newARN.Resource, "role/")
+				},
 			},
 			"description": {
 				Type:     schema.TypeString,
@@ -153,6 +165,10 @@ func resourceAwsGlueCrawler() *schema.Resource {
 				},
 				ValidateFunc: validation.ValidateJsonString,
 			},
+			"security_configuration": {
+				Type:     schema.TypeString,
+				Optional: true,
+			},
 		},
 	}
 }
@@ -226,6 +242,10 @@ func createCrawlerInput(crawlerName string, d *schema.ResourceData) (*glue.Creat
 			return nil, fmt.Errorf("Configuration contains an invalid JSON: %v", err)
 		}
 		crawlerInput.Configuration = aws.String(configuration)
+	}
+
+	if securityConfiguration, ok := d.GetOk("security_configuration"); ok {
+		crawlerInput.CrawlerSecurityConfiguration = aws.String(securityConfiguration.(string))
 	}
 
 	return crawlerInput, nil
@@ -400,6 +420,7 @@ func resourceAwsGlueCrawlerRead(d *schema.ResourceData, meta interface{}) error 
 	d.Set("role", crawlerOutput.Crawler.Role)
 	d.Set("configuration", crawlerOutput.Crawler.Configuration)
 	d.Set("description", crawlerOutput.Crawler.Description)
+	d.Set("security_configuration", crawlerOutput.Crawler.CrawlerSecurityConfiguration)
 	d.Set("schedule", "")
 	if crawlerOutput.Crawler.Schedule != nil {
 		d.Set("schedule", crawlerOutput.Crawler.Schedule.ScheduleExpression)

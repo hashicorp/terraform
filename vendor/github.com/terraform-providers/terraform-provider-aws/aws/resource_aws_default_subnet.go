@@ -15,10 +15,15 @@ func resourceAwsDefaultSubnet() *schema.Resource {
 	dsubnet.Create = resourceAwsDefaultSubnetCreate
 	dsubnet.Delete = resourceAwsDefaultSubnetDelete
 
-	// vpc_id is a required value for Default Subnets
+	// availability_zone is a required value for Default Subnets
 	dsubnet.Schema["availability_zone"] = &schema.Schema{
 		Type:     schema.TypeString,
 		Required: true,
+	}
+	// availability_zone_id is a computed value for Default Subnets
+	dsubnet.Schema["availability_zone_id"] = &schema.Schema{
+		Type:     schema.TypeString,
+		Computed: true,
 	}
 	// vpc_id is a computed value for Default Subnets
 	dsubnet.Schema["vpc_id"] = &schema.Schema{

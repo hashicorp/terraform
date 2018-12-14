@@ -177,6 +177,9 @@ func resourceAwsCloudwatchLogSubscriptionFilterDelete(d *schema.ResourceData, me
 	}
 	_, err := conn.DeleteSubscriptionFilter(params)
 	if err != nil {
+		if isAWSErr(err, cloudwatchlogs.ErrCodeResourceNotFoundException, "The specified log group does not exist") {
+			return nil
+		}
 		return fmt.Errorf(
 			"Error deleting Subscription Filter from log group: %s with name filter name %s: %+v", log_group_name, name, err)
 	}

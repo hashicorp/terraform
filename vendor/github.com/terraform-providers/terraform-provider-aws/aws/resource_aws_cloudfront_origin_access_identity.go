@@ -115,11 +115,8 @@ func resourceAwsCloudFrontOriginAccessIdentityDelete(d *schema.ResourceData, met
 	}
 
 	_, err := conn.DeleteCloudFrontOriginAccessIdentity(params)
-	if err != nil {
-		return err
-	}
 
-	return nil
+	return err
 }
 
 func expandOriginAccessIdentityConfig(d *schema.ResourceData) *cloudfront.OriginAccessIdentityConfig {
@@ -127,7 +124,7 @@ func expandOriginAccessIdentityConfig(d *schema.ResourceData) *cloudfront.Origin
 		Comment: aws.String(d.Get("comment").(string)),
 	}
 	// This sets CallerReference if it's still pending computation (ie: new resource)
-	if v, ok := d.GetOk("caller_reference"); ok == false {
+	if v, ok := d.GetOk("caller_reference"); !ok {
 		originAccessIdentityConfig.CallerReference = aws.String(time.Now().Format(time.RFC3339Nano))
 	} else {
 		originAccessIdentityConfig.CallerReference = aws.String(v.(string))

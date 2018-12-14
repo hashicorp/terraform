@@ -38,19 +38,16 @@ func resourceAwsNatGateway() *schema.Resource {
 
 			"network_interface_id": {
 				Type:     schema.TypeString,
-				Optional: true,
 				Computed: true,
 			},
 
 			"private_ip": {
 				Type:     schema.TypeString,
-				Optional: true,
 				Computed: true,
 			},
 
 			"public_ip": {
 				Type:     schema.TypeString,
-				Optional: true,
 				Computed: true,
 			},
 

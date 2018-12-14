@@ -3,11 +3,14 @@
 package mediastore
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awsutil"
 	"github.com/aws/aws-sdk-go/aws/request"
+	"github.com/aws/aws-sdk-go/private/protocol"
+	"github.com/aws/aws-sdk-go/private/protocol/jsonrpc"
 )
 
 const opCreateContainer = "CreateContainer"
@@ -66,7 +69,8 @@ func (c *MediaStore) CreateContainerRequest(input *CreateContainerInput) (req *r
 //
 // Returned Error Codes:
 //   * ErrCodeContainerInUseException "ContainerInUseException"
-//   Resource already exists or is being updated.
+//   The container that you specified in the request already exists or is being
+//   updated.
 //
 //   * ErrCodeLimitExceededException "LimitExceededException"
 //   A service limit has been exceeded.
@@ -135,6 +139,7 @@ func (c *MediaStore) DeleteContainerRequest(input *DeleteContainerInput) (req *r
 
 	output = &DeleteContainerOutput{}
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(jsonrpc.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -153,10 +158,11 @@ func (c *MediaStore) DeleteContainerRequest(input *DeleteContainerInput) (req *r
 //
 // Returned Error Codes:
 //   * ErrCodeContainerInUseException "ContainerInUseException"
-//   Resource already exists or is being updated.
+//   The container that you specified in the request already exists or is being
+//   updated.
 //
 //   * ErrCodeContainerNotFoundException "ContainerNotFoundException"
-//   Could not perform an operation on a container that does not exist.
+//   The container that you specified in the request does not exist.
 //
 //   * ErrCodeInternalServerError "InternalServerError"
 //   The service is temporarily unavailable.
@@ -222,6 +228,7 @@ func (c *MediaStore) DeleteContainerPolicyRequest(input *DeleteContainerPolicyIn
 
 	output = &DeleteContainerPolicyOutput{}
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(jsonrpc.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -238,13 +245,14 @@ func (c *MediaStore) DeleteContainerPolicyRequest(input *DeleteContainerPolicyIn
 //
 // Returned Error Codes:
 //   * ErrCodeContainerInUseException "ContainerInUseException"
-//   Resource already exists or is being updated.
+//   The container that you specified in the request already exists or is being
+//   updated.
 //
 //   * ErrCodeContainerNotFoundException "ContainerNotFoundException"
-//   Could not perform an operation on a container that does not exist.
+//   The container that you specified in the request does not exist.
 //
 //   * ErrCodePolicyNotFoundException "PolicyNotFoundException"
-//   Could not perform an operation on a policy that does not exist.
+//   The policy that you specified in the request does not exist.
 //
 //   * ErrCodeInternalServerError "InternalServerError"
 //   The service is temporarily unavailable.
@@ -310,6 +318,7 @@ func (c *MediaStore) DeleteCorsPolicyRequest(input *DeleteCorsPolicyInput) (req 
 
 	output = &DeleteCorsPolicyOutput{}
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(jsonrpc.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -331,13 +340,14 @@ func (c *MediaStore) DeleteCorsPolicyRequest(input *DeleteCorsPolicyInput) (req 
 //
 // Returned Error Codes:
 //   * ErrCodeContainerInUseException "ContainerInUseException"
-//   Resource already exists or is being updated.
+//   The container that you specified in the request already exists or is being
+//   updated.
 //
 //   * ErrCodeContainerNotFoundException "ContainerNotFoundException"
-//   Could not perform an operation on a container that does not exist.
+//   The container that you specified in the request does not exist.
 //
 //   * ErrCodeCorsPolicyNotFoundException "CorsPolicyNotFoundException"
-//   Could not perform an operation on a policy that does not exist.
+//   The CORS policy that you specified in the request does not exist.
 //
 //   * ErrCodeInternalServerError "InternalServerError"
 //   The service is temporarily unavailable.
@@ -359,6 +369,96 @@ func (c *MediaStore) DeleteCorsPolicy(input *DeleteCorsPolicyInput) (*DeleteCors
 // for more information on using Contexts.
 func (c *MediaStore) DeleteCorsPolicyWithContext(ctx aws.Context, input *DeleteCorsPolicyInput, opts ...request.Option) (*DeleteCorsPolicyOutput, error) {
 	req, out := c.DeleteCorsPolicyRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+const opDeleteLifecyclePolicy = "DeleteLifecyclePolicy"
+
+// DeleteLifecyclePolicyRequest generates a "aws/request.Request" representing the
+// client's request for the DeleteLifecyclePolicy operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See DeleteLifecyclePolicy for more information on using the DeleteLifecyclePolicy
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the DeleteLifecyclePolicyRequest method.
+//    req, resp := client.DeleteLifecyclePolicyRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/mediastore-2017-09-01/DeleteLifecyclePolicy
+func (c *MediaStore) DeleteLifecyclePolicyRequest(input *DeleteLifecyclePolicyInput) (req *request.Request, output *DeleteLifecyclePolicyOutput) {
+	op := &request.Operation{
+		Name:       opDeleteLifecyclePolicy,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &DeleteLifecyclePolicyInput{}
+	}
+
+	output = &DeleteLifecyclePolicyOutput{}
+	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(jsonrpc.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
+	return
+}
+
+// DeleteLifecyclePolicy API operation for AWS Elemental MediaStore.
+//
+// Removes an object lifecycle policy from a container.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Elemental MediaStore's
+// API operation DeleteLifecyclePolicy for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeContainerInUseException "ContainerInUseException"
+//   The container that you specified in the request already exists or is being
+//   updated.
+//
+//   * ErrCodeContainerNotFoundException "ContainerNotFoundException"
+//   The container that you specified in the request does not exist.
+//
+//   * ErrCodePolicyNotFoundException "PolicyNotFoundException"
+//   The policy that you specified in the request does not exist.
+//
+//   * ErrCodeInternalServerError "InternalServerError"
+//   The service is temporarily unavailable.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/mediastore-2017-09-01/DeleteLifecyclePolicy
+func (c *MediaStore) DeleteLifecyclePolicy(input *DeleteLifecyclePolicyInput) (*DeleteLifecyclePolicyOutput, error) {
+	req, out := c.DeleteLifecyclePolicyRequest(input)
+	return out, req.Send()
+}
+
+// DeleteLifecyclePolicyWithContext is the same as DeleteLifecyclePolicy with the addition of
+// the ability to pass a context and additional request options.
+//
+// See DeleteLifecyclePolicy for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *MediaStore) DeleteLifecyclePolicyWithContext(ctx aws.Context, input *DeleteLifecyclePolicyInput, opts ...request.Option) (*DeleteLifecyclePolicyOutput, error) {
+	req, out := c.DeleteLifecyclePolicyRequest(input)
 	req.SetContext(ctx)
 	req.ApplyOptions(opts...)
 	return out, req.Send()
@@ -424,7 +524,7 @@ func (c *MediaStore) DescribeContainerRequest(input *DescribeContainerInput) (re
 //
 // Returned Error Codes:
 //   * ErrCodeContainerNotFoundException "ContainerNotFoundException"
-//   Could not perform an operation on a container that does not exist.
+//   The container that you specified in the request does not exist.
 //
 //   * ErrCodeInternalServerError "InternalServerError"
 //   The service is temporarily unavailable.
@@ -508,13 +608,14 @@ func (c *MediaStore) GetContainerPolicyRequest(input *GetContainerPolicyInput) (
 //
 // Returned Error Codes:
 //   * ErrCodeContainerInUseException "ContainerInUseException"
-//   Resource already exists or is being updated.
+//   The container that you specified in the request already exists or is being
+//   updated.
 //
 //   * ErrCodeContainerNotFoundException "ContainerNotFoundException"
-//   Could not perform an operation on a container that does not exist.
+//   The container that you specified in the request does not exist.
 //
 //   * ErrCodePolicyNotFoundException "PolicyNotFoundException"
-//   Could not perform an operation on a policy that does not exist.
+//   The policy that you specified in the request does not exist.
 //
 //   * ErrCodeInternalServerError "InternalServerError"
 //   The service is temporarily unavailable.
@@ -601,13 +702,14 @@ func (c *MediaStore) GetCorsPolicyRequest(input *GetCorsPolicyInput) (req *reque
 //
 // Returned Error Codes:
 //   * ErrCodeContainerInUseException "ContainerInUseException"
-//   Resource already exists or is being updated.
+//   The container that you specified in the request already exists or is being
+//   updated.
 //
 //   * ErrCodeContainerNotFoundException "ContainerNotFoundException"
-//   Could not perform an operation on a container that does not exist.
+//   The container that you specified in the request does not exist.
 //
 //   * ErrCodeCorsPolicyNotFoundException "CorsPolicyNotFoundException"
-//   Could not perform an operation on a policy that does not exist.
+//   The CORS policy that you specified in the request does not exist.
 //
 //   * ErrCodeInternalServerError "InternalServerError"
 //   The service is temporarily unavailable.
@@ -629,6 +731,95 @@ func (c *MediaStore) GetCorsPolicy(input *GetCorsPolicyInput) (*GetCorsPolicyOut
 // for more information on using Contexts.
 func (c *MediaStore) GetCorsPolicyWithContext(ctx aws.Context, input *GetCorsPolicyInput, opts ...request.Option) (*GetCorsPolicyOutput, error) {
 	req, out := c.GetCorsPolicyRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+const opGetLifecyclePolicy = "GetLifecyclePolicy"
+
+// GetLifecyclePolicyRequest generates a "aws/request.Request" representing the
+// client's request for the GetLifecyclePolicy operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See GetLifecyclePolicy for more information on using the GetLifecyclePolicy
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the GetLifecyclePolicyRequest method.
+//    req, resp := client.GetLifecyclePolicyRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/mediastore-2017-09-01/GetLifecyclePolicy
+func (c *MediaStore) GetLifecyclePolicyRequest(input *GetLifecyclePolicyInput) (req *request.Request, output *GetLifecyclePolicyOutput) {
+	op := &request.Operation{
+		Name:       opGetLifecyclePolicy,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &GetLifecyclePolicyInput{}
+	}
+
+	output = &GetLifecyclePolicyOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// GetLifecyclePolicy API operation for AWS Elemental MediaStore.
+//
+// Retrieves the object lifecycle policy that is assigned to a container.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Elemental MediaStore's
+// API operation GetLifecyclePolicy for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeContainerInUseException "ContainerInUseException"
+//   The container that you specified in the request already exists or is being
+//   updated.
+//
+//   * ErrCodeContainerNotFoundException "ContainerNotFoundException"
+//   The container that you specified in the request does not exist.
+//
+//   * ErrCodePolicyNotFoundException "PolicyNotFoundException"
+//   The policy that you specified in the request does not exist.
+//
+//   * ErrCodeInternalServerError "InternalServerError"
+//   The service is temporarily unavailable.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/mediastore-2017-09-01/GetLifecyclePolicy
+func (c *MediaStore) GetLifecyclePolicy(input *GetLifecyclePolicyInput) (*GetLifecyclePolicyOutput, error) {
+	req, out := c.GetLifecyclePolicyRequest(input)
+	return out, req.Send()
+}
+
+// GetLifecyclePolicyWithContext is the same as GetLifecyclePolicy with the addition of
+// the ability to pass a context and additional request options.
+//
+// See GetLifecyclePolicy for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *MediaStore) GetLifecyclePolicyWithContext(ctx aws.Context, input *GetLifecyclePolicyInput, opts ...request.Option) (*GetLifecyclePolicyOutput, error) {
+	req, out := c.GetLifecyclePolicyRequest(input)
 	req.SetContext(ctx)
 	req.ApplyOptions(opts...)
 	return out, req.Send()
@@ -761,6 +952,7 @@ func (c *MediaStore) PutContainerPolicyRequest(input *PutContainerPolicyInput) (
 
 	output = &PutContainerPolicyOutput{}
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(jsonrpc.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -784,10 +976,11 @@ func (c *MediaStore) PutContainerPolicyRequest(input *PutContainerPolicyInput) (
 //
 // Returned Error Codes:
 //   * ErrCodeContainerNotFoundException "ContainerNotFoundException"
-//   Could not perform an operation on a container that does not exist.
+//   The container that you specified in the request does not exist.
 //
 //   * ErrCodeContainerInUseException "ContainerInUseException"
-//   Resource already exists or is being updated.
+//   The container that you specified in the request already exists or is being
+//   updated.
 //
 //   * ErrCodeInternalServerError "InternalServerError"
 //   The service is temporarily unavailable.
@@ -853,6 +1046,7 @@ func (c *MediaStore) PutCorsPolicyRequest(input *PutCorsPolicyInput) (req *reque
 
 	output = &PutCorsPolicyOutput{}
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(jsonrpc.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -879,10 +1073,11 @@ func (c *MediaStore) PutCorsPolicyRequest(input *PutCorsPolicyInput) (req *reque
 //
 // Returned Error Codes:
 //   * ErrCodeContainerNotFoundException "ContainerNotFoundException"
-//   Could not perform an operation on a container that does not exist.
+//   The container that you specified in the request does not exist.
 //
 //   * ErrCodeContainerInUseException "ContainerInUseException"
-//   Resource already exists or is being updated.
+//   The container that you specified in the request already exists or is being
+//   updated.
 //
 //   * ErrCodeInternalServerError "InternalServerError"
 //   The service is temporarily unavailable.
@@ -904,6 +1099,95 @@ func (c *MediaStore) PutCorsPolicy(input *PutCorsPolicyInput) (*PutCorsPolicyOut
 // for more information on using Contexts.
 func (c *MediaStore) PutCorsPolicyWithContext(ctx aws.Context, input *PutCorsPolicyInput, opts ...request.Option) (*PutCorsPolicyOutput, error) {
 	req, out := c.PutCorsPolicyRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+const opPutLifecyclePolicy = "PutLifecyclePolicy"
+
+// PutLifecyclePolicyRequest generates a "aws/request.Request" representing the
+// client's request for the PutLifecyclePolicy operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See PutLifecyclePolicy for more information on using the PutLifecyclePolicy
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the PutLifecyclePolicyRequest method.
+//    req, resp := client.PutLifecyclePolicyRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/mediastore-2017-09-01/PutLifecyclePolicy
+func (c *MediaStore) PutLifecyclePolicyRequest(input *PutLifecyclePolicyInput) (req *request.Request, output *PutLifecyclePolicyOutput) {
+	op := &request.Operation{
+		Name:       opPutLifecyclePolicy,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &PutLifecyclePolicyInput{}
+	}
+
+	output = &PutLifecyclePolicyOutput{}
+	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(jsonrpc.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
+	return
+}
+
+// PutLifecyclePolicy API operation for AWS Elemental MediaStore.
+//
+// Writes an object lifecycle policy to a container. If the container already
+// has an object lifecycle policy, the service replaces the existing policy
+// with the new policy.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Elemental MediaStore's
+// API operation PutLifecyclePolicy for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeContainerInUseException "ContainerInUseException"
+//   The container that you specified in the request already exists or is being
+//   updated.
+//
+//   * ErrCodeContainerNotFoundException "ContainerNotFoundException"
+//   The container that you specified in the request does not exist.
+//
+//   * ErrCodeInternalServerError "InternalServerError"
+//   The service is temporarily unavailable.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/mediastore-2017-09-01/PutLifecyclePolicy
+func (c *MediaStore) PutLifecyclePolicy(input *PutLifecyclePolicyInput) (*PutLifecyclePolicyOutput, error) {
+	req, out := c.PutLifecyclePolicyRequest(input)
+	return out, req.Send()
+}
+
+// PutLifecyclePolicyWithContext is the same as PutLifecyclePolicy with the addition of
+// the ability to pass a context and additional request options.
+//
+// See PutLifecyclePolicy for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *MediaStore) PutLifecyclePolicyWithContext(ctx aws.Context, input *PutLifecyclePolicyInput, opts ...request.Option) (*PutLifecyclePolicyOutput, error) {
+	req, out := c.PutLifecyclePolicyRequest(input)
 	req.SetContext(ctx)
 	req.ApplyOptions(opts...)
 	return out, req.Send()
@@ -992,23 +1276,27 @@ type CorsRule struct {
 	// rule. Only the headers that were requested are sent back.
 	//
 	// This element can contain only one wildcard character (*).
-	AllowedHeaders []*string `type:"list"`
+	//
+	// AllowedHeaders is a required field
+	AllowedHeaders []*string `type:"list" required:"true"`
 
 	// Identifies an HTTP method that the origin that is specified in the rule is
 	// allowed to execute.
 	//
-	// Each CORS rule must contain at least one AllowedMethod and one AllowedOrigin
+	// Each CORS rule must contain at least one AllowedMethods and one AllowedOrigins
 	// element.
-	AllowedMethods []*string `type:"list"`
+	AllowedMethods []*string `min:"1" type:"list"`
 
 	// One or more response headers that you want users to be able to access from
 	// their applications (for example, from a JavaScript XMLHttpRequest object).
 	//
-	// Each CORS rule must have at least one AllowedOrigin element. The string value
-	// can include only one wildcard character (*), for example, http://*.example.com.
+	// Each CORS rule must have at least one AllowedOrigins element. The string
+	// value can include only one wildcard character (*), for example, http://*.example.com.
 	// Additionally, you can specify only one wildcard character to allow cross-origin
 	// access for all origins.
-	AllowedOrigins []*string `type:"list"`
+	//
+	// AllowedOrigins is a required field
+	AllowedOrigins []*string `min:"1" type:"list" required:"true"`
 
 	// One or more headers in the response that you want users to be able to access
 	// from their applications (for example, from a JavaScript XMLHttpRequest object).
@@ -1031,6 +1319,28 @@ func (s CorsRule) String() string {
 // GoString returns the string representation
 func (s CorsRule) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *CorsRule) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "CorsRule"}
+	if s.AllowedHeaders == nil {
+		invalidParams.Add(request.NewErrParamRequired("AllowedHeaders"))
+	}
+	if s.AllowedMethods != nil && len(s.AllowedMethods) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("AllowedMethods", 1))
+	}
+	if s.AllowedOrigins == nil {
+		invalidParams.Add(request.NewErrParamRequired("AllowedOrigins"))
+	}
+	if s.AllowedOrigins != nil && len(s.AllowedOrigins) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("AllowedOrigins", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // SetAllowedHeaders sets the AllowedHeaders field's value.
@@ -1311,6 +1621,61 @@ func (s DeleteCorsPolicyOutput) GoString() string {
 	return s.String()
 }
 
+type DeleteLifecyclePolicyInput struct {
+	_ struct{} `type:"structure"`
+
+	// The name of the container that holds the object lifecycle policy.
+	//
+	// ContainerName is a required field
+	ContainerName *string `min:"1" type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s DeleteLifecyclePolicyInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DeleteLifecyclePolicyInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DeleteLifecyclePolicyInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DeleteLifecyclePolicyInput"}
+	if s.ContainerName == nil {
+		invalidParams.Add(request.NewErrParamRequired("ContainerName"))
+	}
+	if s.ContainerName != nil && len(*s.ContainerName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ContainerName", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetContainerName sets the ContainerName field's value.
+func (s *DeleteLifecyclePolicyInput) SetContainerName(v string) *DeleteLifecyclePolicyInput {
+	s.ContainerName = &v
+	return s
+}
+
+type DeleteLifecyclePolicyOutput struct {
+	_ struct{} `type:"structure"`
+}
+
+// String returns the string representation
+func (s DeleteLifecyclePolicyOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DeleteLifecyclePolicyOutput) GoString() string {
+	return s.String()
+}
+
 type DescribeContainerInput struct {
 	_ struct{} `type:"structure"`
 
@@ -1480,7 +1845,7 @@ func (s *GetCorsPolicyInput) SetContainerName(v string) *GetCorsPolicyInput {
 type GetCorsPolicyOutput struct {
 	_ struct{} `type:"structure"`
 
-	// The CORS policy of the container.
+	// The CORS policy assigned to the container.
 	//
 	// CorsPolicy is a required field
 	CorsPolicy []*CorsRule `min:"1" type:"list" required:"true"`
@@ -1499,6 +1864,72 @@ func (s GetCorsPolicyOutput) GoString() string {
 // SetCorsPolicy sets the CorsPolicy field's value.
 func (s *GetCorsPolicyOutput) SetCorsPolicy(v []*CorsRule) *GetCorsPolicyOutput {
 	s.CorsPolicy = v
+	return s
+}
+
+type GetLifecyclePolicyInput struct {
+	_ struct{} `type:"structure"`
+
+	// The name of the container that the object lifecycle policy is assigned to.
+	//
+	// ContainerName is a required field
+	ContainerName *string `min:"1" type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s GetLifecyclePolicyInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s GetLifecyclePolicyInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *GetLifecyclePolicyInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "GetLifecyclePolicyInput"}
+	if s.ContainerName == nil {
+		invalidParams.Add(request.NewErrParamRequired("ContainerName"))
+	}
+	if s.ContainerName != nil && len(*s.ContainerName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ContainerName", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetContainerName sets the ContainerName field's value.
+func (s *GetLifecyclePolicyInput) SetContainerName(v string) *GetLifecyclePolicyInput {
+	s.ContainerName = &v
+	return s
+}
+
+type GetLifecyclePolicyOutput struct {
+	_ struct{} `type:"structure"`
+
+	// The object lifecycle policy that is assigned to the container.
+	//
+	// LifecyclePolicy is a required field
+	LifecyclePolicy *string `type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s GetLifecyclePolicyOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s GetLifecyclePolicyOutput) GoString() string {
+	return s.String()
+}
+
+// SetLifecyclePolicy sets the LifecyclePolicy field's value.
+func (s *GetLifecyclePolicyOutput) SetLifecyclePolicy(v string) *GetLifecyclePolicyOutput {
+	s.LifecyclePolicy = &v
 	return s
 }
 
@@ -1705,6 +2136,16 @@ func (s *PutCorsPolicyInput) Validate() error {
 	if s.CorsPolicy != nil && len(s.CorsPolicy) < 1 {
 		invalidParams.Add(request.NewErrParamMinLen("CorsPolicy", 1))
 	}
+	if s.CorsPolicy != nil {
+		for i, v := range s.CorsPolicy {
+			if v == nil {
+				continue
+			}
+			if err := v.Validate(); err != nil {
+				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "CorsPolicy", i), err.(request.ErrInvalidParams))
+			}
+		}
+	}
 
 	if invalidParams.Len() > 0 {
 		return invalidParams
@@ -1735,6 +2176,76 @@ func (s PutCorsPolicyOutput) String() string {
 
 // GoString returns the string representation
 func (s PutCorsPolicyOutput) GoString() string {
+	return s.String()
+}
+
+type PutLifecyclePolicyInput struct {
+	_ struct{} `type:"structure"`
+
+	// The name of the container that you want to assign the object lifecycle policy
+	// to.
+	//
+	// ContainerName is a required field
+	ContainerName *string `min:"1" type:"string" required:"true"`
+
+	// The object lifecycle policy to apply to the container.
+	//
+	// LifecyclePolicy is a required field
+	LifecyclePolicy *string `type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s PutLifecyclePolicyInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s PutLifecyclePolicyInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *PutLifecyclePolicyInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "PutLifecyclePolicyInput"}
+	if s.ContainerName == nil {
+		invalidParams.Add(request.NewErrParamRequired("ContainerName"))
+	}
+	if s.ContainerName != nil && len(*s.ContainerName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ContainerName", 1))
+	}
+	if s.LifecyclePolicy == nil {
+		invalidParams.Add(request.NewErrParamRequired("LifecyclePolicy"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetContainerName sets the ContainerName field's value.
+func (s *PutLifecyclePolicyInput) SetContainerName(v string) *PutLifecyclePolicyInput {
+	s.ContainerName = &v
+	return s
+}
+
+// SetLifecyclePolicy sets the LifecyclePolicy field's value.
+func (s *PutLifecyclePolicyInput) SetLifecyclePolicy(v string) *PutLifecyclePolicyInput {
+	s.LifecyclePolicy = &v
+	return s
+}
+
+type PutLifecyclePolicyOutput struct {
+	_ struct{} `type:"structure"`
+}
+
+// String returns the string representation
+func (s PutLifecyclePolicyOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s PutLifecyclePolicyOutput) GoString() string {
 	return s.String()
 }
 

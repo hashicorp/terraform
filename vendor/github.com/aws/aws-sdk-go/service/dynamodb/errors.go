@@ -8,7 +8,7 @@ const (
 	// "BackupInUseException".
 	//
 	// There is another ongoing conflicting backup control plane operation on the
-	// table. The backups is either being created, deleted or restored to a table.
+	// table. The backup is either being created, deleted or restored to a table.
 	ErrCodeBackupInUseException = "BackupInUseException"
 
 	// ErrCodeBackupNotFoundException for service response error code
@@ -40,6 +40,13 @@ const (
 	//
 	// The specified global table does not exist.
 	ErrCodeGlobalTableNotFoundException = "GlobalTableNotFoundException"
+
+	// ErrCodeIdempotentParameterMismatchException for service response error code
+	// "IdempotentParameterMismatchException".
+	//
+	// DynamoDB rejected the request because you retried a request with a different
+	// payload but with an idempotent token that was already used.
+	ErrCodeIdempotentParameterMismatchException = "IdempotentParameterMismatchException"
 
 	// ErrCodeIndexNotFoundException for service response error code
 	// "IndexNotFoundException".
@@ -112,6 +119,14 @@ const (
 	// The specified replica is no longer part of the global table.
 	ErrCodeReplicaNotFoundException = "ReplicaNotFoundException"
 
+	// ErrCodeRequestLimitExceeded for service response error code
+	// "RequestLimitExceeded".
+	//
+	// Throughput exceeds the current throughput limit for your account. Please
+	// contact AWS Support at AWS Support (http://docs.aws.amazon.com/https:/aws.amazon.com/support)
+	// to request a limit increase.
+	ErrCodeRequestLimitExceeded = "RequestLimitExceeded"
+
 	// ErrCodeResourceInUseException for service response error code
 	// "ResourceInUseException".
 	//
@@ -145,4 +160,46 @@ const (
 	// A source table with the name TableName does not currently exist within the
 	// subscriber's account.
 	ErrCodeTableNotFoundException = "TableNotFoundException"
+
+	// ErrCodeTransactionCanceledException for service response error code
+	// "TransactionCanceledException".
+	//
+	// The entire transaction request was rejected.
+	//
+	// DynamoDB will reject the entire TransactWriteItems request if any of the
+	// following is true:
+	//
+	//    *  A table in the TransactWriteItems request does not exist.
+	//
+	//    *  A table in the TransactWriteItems request is on a different account
+	//    or region.
+	//
+	//    *  Operations contain item schema violations.
+	//
+	//    *  More than one write operation (UpdateItem, PutItem, DeleteItem) operates
+	//    on the same item.
+	//
+	//    *  More than one check operation operates on the same item.
+	//
+	//    *  The number of operations sent in the TransactWriteItems request is
+	//    0 or greater than 10.
+	//
+	//    *  A TransactWriteItems request exceeds the maximum 4 MB request size.
+	//
+	//
+	//    *  Any operation in the TransactWriteItems request would cause an item
+	//    to become larger than 400KB.
+	ErrCodeTransactionCanceledException = "TransactionCanceledException"
+
+	// ErrCodeTransactionConflictException for service response error code
+	// "TransactionConflictException".
+	//
+	// Operation was rejected because there is an ongoing transaction for the item.
+	ErrCodeTransactionConflictException = "TransactionConflictException"
+
+	// ErrCodeTransactionInProgressException for service response error code
+	// "TransactionInProgressException".
+	//
+	// The transaction with the given request token is already in progress.
+	ErrCodeTransactionInProgressException = "TransactionInProgressException"
 )
