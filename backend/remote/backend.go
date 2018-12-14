@@ -12,6 +12,7 @@ import (
 	"sync"
 
 	tfe "github.com/hashicorp/go-tfe"
+	version "github.com/hashicorp/go-version"
 	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/configs/configschema"
 	"github.com/hashicorp/terraform/helper/schema"
@@ -21,7 +22,7 @@ import (
 	"github.com/hashicorp/terraform/svchost/disco"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/hashicorp/terraform/tfdiags"
-	"github.com/hashicorp/terraform/version"
+	tfversion "github.com/hashicorp/terraform/version"
 	"github.com/mitchellh/cli"
 	"github.com/mitchellh/colorstring"
 	"github.com/zclconf/go-cty/cty"
@@ -211,8 +212,30 @@ func (b *Remote) Configure(obj cty.Value) tfdiags.Diagnostics {
 	}
 
 	// Discover the service URL for this host to confirm that it provides
-	// a remote backend API and to discover the required base path.
-	service, err := b.discover(b.hostname)
+	// a remote backend API and to get the version constraints.
+	service, constraints, err := b.discover()
+	if err != nil {
+		diags = diags.Append(tfdiags.AttributeValue(
+			tfdiags.Error,
+			strings.ToUpper(err.Error()[:1])+err.Error()[1:],
+			"", // no description is needed here, the error is clear
+			cty.Path{cty.GetAttrStep{Name: "hostname"}},
+		))
+	}
+
+	// Check any retrieved constraints to make sure we are compatible.
+	if constraints == nil {
+		diags = diags.Append(b.checkConstraints(constraints))
+	}
+
+	// Return if we have any discovery of version constraints errors.
+	if diags.HasErrors() {
+		return diags
+	}
+
+	// Retrieve the token for this host as configured in the credentials
+	// section of the CLI Config File.
+	token, err := b.token()
 	if err != nil {
 		diags = diags.Append(tfdiags.AttributeValue(
 			tfdiags.Error,
@@ -223,18 +246,8 @@ func (b *Remote) Configure(obj cty.Value) tfdiags.Diagnostics {
 		return diags
 	}
 
-	// Retrieve the token for this host as configured in the credentials
-	// section of the CLI Config File.
-	token, err := b.token(b.hostname)
-	if err != nil {
-		diags = diags.Append(tfdiags.AttributeValue(
-			tfdiags.Error,
-			strings.ToUpper(err.Error()[:1])+err.Error()[1:],
-			"", // no description is needed here, the error is clear
-			cty.Path{cty.GetAttrStep{Name: "hostname"}},
-		))
-		return diags
-	}
+	// Get the token from the config if no token was configured for this
+	// host in credentials section of the CLI Config File.
 	if token == "" {
 		if val := obj.GetAttr("token"); !val.IsNull() {
 			token = val.AsString()
@@ -262,7 +275,7 @@ func (b *Remote) Configure(obj cty.Value) tfdiags.Diagnostics {
 	}
 
 	// Set the version header to the current version.
-	cfg.Headers.Set(version.Header, version.Version)
+	cfg.Headers.Set(tfversion.Header, tfversion.Version)
 
 	// Create the remote backend API client.
 	b.client, err = tfe.NewClient(cfg)
@@ -303,30 +316,146 @@ func (b *Remote) Configure(obj cty.Value) tfdiags.Diagnostics {
 	return diags
 }
 
-// discover the remote backend API service URL and token.
-func (b *Remote) discover(hostname string) (*url.URL, error) {
-	host, err := svchost.ForComparison(hostname)
+// discover the remote backend API service URL and version constraints.
+func (b *Remote) discover() (*url.URL, *disco.Constraints, error) {
+	hostname, err := svchost.ForComparison(b.hostname)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
-	service, err := b.services.DiscoverServiceURL(host, tfeServiceID)
+
+	host, err := b.services.Discover(hostname)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
-	return service, nil
+
+	service, err := host.ServiceURL(tfeServiceID)
+	// Return the error, unless its a disco.ErrVersionNotSupported error.
+	if _, ok := err.(*disco.ErrVersionNotSupported); !ok && err != nil {
+		return nil, nil, err
+	}
+
+	// Return early if we are a development build.
+	if tfversion.Prerelease == "dev" {
+		return service, nil, err
+	}
+
+	// We purposefully ignore the error and return the previous error, as
+	// checking for version constraints is considered optional.
+	constraints, _ := host.VersionConstraints(tfeServiceID, "terraform")
+
+	return service, constraints, err
+}
+
+// checkConstraints checks service version constrains against our own
+// version and returns rich and informational diagnostics in case any
+// incompatibilities are detected.
+func (b *Remote) checkConstraints(c *disco.Constraints) tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
+
+	if c == nil || c.Minimum == "" || c.Maximum == "" {
+		return diags
+	}
+
+	// Generate a parsable constraints string.
+	excluding := ""
+	if len(c.Excluding) > 0 {
+		excluding = fmt.Sprintf(", != %s", strings.Join(c.Excluding, ", != "))
+	}
+	constStr := fmt.Sprintf(">= %s%s, <= %s", c.Minimum, excluding, c.Maximum)
+
+	// Create the constraints to check against.
+	constraints, err := version.NewConstraint(constStr)
+	if err != nil {
+		return diags.Append(checkConstraintsWarning(err))
+	}
+
+	// Create the version to check.
+	v, err := version.NewVersion(tfversion.String())
+	if err != nil {
+		return diags.Append(checkConstraintsWarning(err))
+	}
+
+	// Return if we satisfy all constraints.
+	if constraints.Check(v) {
+		return diags
+	}
+
+	// Find out what action (upgrade/downgrade) we should advice.
+	minimum, err := version.NewVersion(c.Minimum)
+	if err != nil {
+		return diags.Append(checkConstraintsWarning(err))
+	}
+
+	maximum, err := version.NewVersion(c.Maximum)
+	if err != nil {
+		return diags.Append(checkConstraintsWarning(err))
+	}
+
+	var action, toVersion string
+	var excludes []*version.Version
+	switch {
+	case minimum.GreaterThan(v):
+		action = "upgrade"
+		toVersion = ">= " + minimum.String()
+	case maximum.LessThan(v):
+		action = "downgrade"
+		toVersion = "<= " + maximum.String()
+	case len(c.Excluding) > 0:
+		for _, exclude := range c.Excluding {
+			v, err := version.NewVersion(exclude)
+			if err != nil {
+				return diags.Append(checkConstraintsWarning(err))
+			}
+			excludes = append(excludes, v)
+		}
+
+		// Sort all the excludes.
+		sort.Sort(version.Collection(excludes))
+
+		// Get the latest excluded version.
+		action = "upgrade"
+		toVersion = "> " + excludes[len(excludes)-1].String()
+	}
+
+	switch {
+	case len(excludes) == 1:
+		excluding = fmt.Sprintf(", excluding version %s", excludes[0].String())
+	case len(excludes) > 1:
+		var vs []string
+		for _, v := range excludes {
+			vs = append(vs, v.String())
+		}
+		excluding = fmt.Sprintf(", excluding versions %s", strings.Join(vs, ", "))
+	default:
+		excluding = ""
+	}
+
+	summary := fmt.Sprintf("Incompatible Terraform version v%s", v.String())
+	details := fmt.Sprintf(
+		"The configured Terraform Enterprise backend is compatible with Terraform "+
+			"versions >= %s, < %s%s.", c.Minimum, c.Maximum, excluding,
+	)
+
+	if action != "" && toVersion != "" {
+		summary = fmt.Sprintf("Please %s Terraform to %s", action, toVersion)
+		details += fmt.Sprintf(" Please %s to a supported version and try again.", action)
+	}
+
+	// Return the customized and informational error message.
+	return diags.Append(tfdiags.Sourceless(tfdiags.Error, summary, details))
 }
 
 // token returns the token for this host as configured in the credentials
 // section of the CLI Config File. If no token was configured, an empty
 // string will be returned instead.
-func (b *Remote) token(hostname string) (string, error) {
-	host, err := svchost.ForComparison(hostname)
+func (b *Remote) token() (string, error) {
+	hostname, err := svchost.ForComparison(b.hostname)
 	if err != nil {
 		return "", err
 	}
-	creds, err := b.services.CredentialsForHost(host)
+	creds, err := b.services.CredentialsForHost(hostname)
 	if err != nil {
-		log.Printf("[WARN] Failed to get credentials for %s: %s (ignoring)", host, err)
+		log.Printf("[WARN] Failed to get credentials for %s: %s (ignoring)", b.hostname, err)
 		return "", nil
 	}
 	if creds != nil {
@@ -444,8 +573,8 @@ func (b *Remote) StateMgr(name string) (state.State, error) {
 
 		// We only set the Terraform Version for the new workspace if this is
 		// a release candidate or a final release.
-		if version.Prerelease == "" || strings.HasPrefix(version.Prerelease, "rc") {
-			options.TerraformVersion = tfe.String(version.String())
+		if tfversion.Prerelease == "" || strings.HasPrefix(tfversion.Prerelease, "rc") {
+			options.TerraformVersion = tfe.String(tfversion.String())
 		}
 
 		workspace, err = b.client.Workspaces.Create(context.Background(), b.organization, options)
@@ -707,6 +836,15 @@ func generalError(msg string, err error) error {
 		))
 		return diags.Err()
 	}
+}
+
+func checkConstraintsWarning(err error) tfdiags.Diagnostic {
+	return tfdiags.Sourceless(
+		tfdiags.Warning,
+		fmt.Sprintf("Failed to check version constraints: %v", err),
+		"Checking version constraints is considered optional, but this is an"+
+			"unexpected error which should be reported.",
+	)
 }
 
 const operationCanceled = `
