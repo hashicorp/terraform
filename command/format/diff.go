@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
+	"log"
 	"sort"
 	"strings"
 
@@ -100,7 +101,7 @@ func ResourceChange(
 		buf.WriteString(addr.String())
 	}
 
-	buf.WriteString(" {\n")
+	buf.WriteString(" {")
 
 	p := blockBodyDiffPrinter{
 		buf:             &buf,
@@ -124,8 +125,6 @@ func ResourceChange(
 
 	p.writeBlockBodyDiff(schema, changeV.Before, changeV.After, 6, path)
 
-	buf.WriteString("    }\n")
-
 	return buf.String()
 }
 
@@ -143,7 +142,7 @@ type blockBodyDiffPrinter struct {
 
 const forcesNewResourceCaption = " [red]# forces replacement[reset]"
 
-func (p *blockBodyDiffPrinter) writeBlockBodyDiff(schema *configschema.Block, old, new cty.Value, indent int, path cty.Path) {
+func (p *blockBodyDiffPrinter) writeBlockBodyDiff(schema *configschema.Block, old, new cty.Value, indent int, path cty.Path) bool {
 	path = ctyEnsurePathCapacity(path, 1)
 
 	blankBeforeBlocks := false
@@ -169,9 +168,11 @@ func (p *blockBodyDiffPrinter) writeBlockBodyDiff(schema *configschema.Block, ol
 		sort.Strings(attrNames)
 		if len(attrNames) > 0 {
 			blankBeforeBlocks = true
+			p.buf.WriteString("\n")
 		}
 
 		for _, name := range attrNames {
+			log.Printf("[DEBUG] Printing %q", name)
 			attrS := schema.Attributes[name]
 			oldVal := ctyGetAttrMaybeNull(old, name)
 			newVal := ctyGetAttrMaybeNull(new, name)
@@ -192,17 +193,31 @@ func (p *blockBodyDiffPrinter) writeBlockBodyDiff(schema *configschema.Block, ol
 			oldVal := ctyGetAttrMaybeNull(old, name)
 			newVal := ctyGetAttrMaybeNull(new, name)
 
-			p.writeNestedBlockDiffs(name, blockS, oldVal, newVal, blankBeforeBlocks, indent, path)
+			if oldVal.IsNull() && newVal.IsNull() {
+				continue
+			}
+
+			bytesWritten := p.writeNestedBlockDiffs(name, blockS, oldVal, newVal, blankBeforeBlocks, indent, path)
 
 			// Always include a blank for any subsequent block types.
-			blankBeforeBlocks = true
+			if bytesWritten > 0 {
+				log.Printf("[DEBUG] Nested block was written (%d)", bytesWritten)
+				blankBeforeBlocks = true
+			}
 		}
 	}
+
+	if blankBeforeBlocks {
+		p.buf.WriteString(strings.Repeat(" ", indent-2))
+		p.buf.WriteString("}\n")
+	}
+
+	return blankBeforeBlocks
 }
 
 func (p *blockBodyDiffPrinter) writeAttrDiff(name string, attrS *configschema.Attribute, old, new cty.Value, nameLen, indent int, path cty.Path) {
 	path = append(path, cty.GetAttrStep{Name: name})
-	p.buf.WriteString(strings.Repeat(" ", indent))
+
 	showJustNew := false
 	var action plans.Action
 	switch {
@@ -218,6 +233,7 @@ func (p *blockBodyDiffPrinter) writeAttrDiff(name string, attrS *configschema.At
 		action = plans.Update
 	}
 
+	p.buf.WriteString(strings.Repeat(" ", indent))
 	p.writeActionSymbol(action)
 
 	p.buf.WriteString(p.color.Color("[bold]"))
@@ -244,11 +260,13 @@ func (p *blockBodyDiffPrinter) writeAttrDiff(name string, attrS *configschema.At
 
 }
 
-func (p *blockBodyDiffPrinter) writeNestedBlockDiffs(name string, blockS *configschema.NestedBlock, old, new cty.Value, blankBefore bool, indent int, path cty.Path) {
+func (p *blockBodyDiffPrinter) writeNestedBlockDiffs(name string, blockS *configschema.NestedBlock, old, new cty.Value, blankBefore bool, indent int, path cty.Path) int {
+	bytesWritten := 0
+
 	path = append(path, cty.GetAttrStep{Name: name})
 	if old.IsNull() && new.IsNull() {
 		// Nothing to do if both old and new is null
-		return
+		return 0
 	}
 
 	// Where old/new are collections representing a nesting mode other than
@@ -274,7 +292,9 @@ func (p *blockBodyDiffPrinter) writeNestedBlockDiffs(name string, blockS *config
 		}
 
 		if blankBefore {
-			p.buf.WriteRune('\n')
+			log.Println("[DEBUG] writeNestedBlockDiffs - blankBefore just passed")
+			bw, _ := p.buf.WriteRune('\n')
+			bytesWritten += bw
 		}
 		p.writeNestedBlockDiff(name, nil, &blockS.Block, action, old, new, indent, path)
 	case configschema.NestingList:
@@ -311,7 +331,9 @@ func (p *blockBodyDiffPrinter) writeNestedBlockDiffs(name string, blockS *config
 		}
 
 		if blankBefore && (len(oldItems) > 0 || len(newItems) > 0) {
-			p.buf.WriteRune('\n')
+			log.Println("[DEBUG] writeNestedBlockDiffs - blankBefore just passed & non-empty items")
+			bw, _ := p.buf.WriteRune('\n')
+			bytesWritten += bw
 		}
 
 		for i := 0; i < commonLen; i++ {
@@ -352,7 +374,8 @@ func (p *blockBodyDiffPrinter) writeNestedBlockDiffs(name string, blockS *config
 
 		if (len(oldItems) + len(newItems)) == 0 {
 			// Nothing to do if both sets are empty
-			return
+			log.Println("[DEBUG] writeNestedBlockDiffs - both empty")
+			return bytesWritten
 		}
 
 		allItems := make([]cty.Value, 0, len(oldItems)+len(newItems))
@@ -361,7 +384,8 @@ func (p *blockBodyDiffPrinter) writeNestedBlockDiffs(name string, blockS *config
 		all := cty.SetVal(allItems)
 
 		if blankBefore {
-			p.buf.WriteRune('\n')
+			bw, _ := p.buf.WriteRune('\n')
+			bytesWritten += bw
 		}
 
 		for it := all.ElementIterator(); it.Next(); {
@@ -390,6 +414,8 @@ func (p *blockBodyDiffPrinter) writeNestedBlockDiffs(name string, blockS *config
 		// TODO: Implement this, once helper/schema is actually able to
 		// produce schemas containing nested map block types.
 	}
+	log.Println("[DEBUG] writeNestedBlockDiffs - just returning")
+	return bytesWritten
 }
 
 func (p *blockBodyDiffPrinter) writeNestedBlockDiff(name string, label *string, blockS *configschema.Block, action plans.Action, old, new cty.Value, indent int, path cty.Path) {
@@ -406,12 +432,7 @@ func (p *blockBodyDiffPrinter) writeNestedBlockDiff(name string, label *string, 
 		p.buf.WriteString(p.color.Color(forcesNewResourceCaption))
 	}
 
-	p.buf.WriteString("\n")
-
 	p.writeBlockBodyDiff(blockS, old, new, indent+4, path)
-
-	p.buf.WriteString(strings.Repeat(" ", indent+2))
-	p.buf.WriteString("}\n")
 }
 
 func (p *blockBodyDiffPrinter) writeValue(val cty.Value, action plans.Action, indent int) {
@@ -463,6 +484,11 @@ func (p *blockBodyDiffPrinter) writeValue(val cty.Value, action plans.Action, in
 			fmt.Fprintf(p.buf, "%#v", val)
 		}
 	case ty.IsListType() || ty.IsSetType() || ty.IsTupleType():
+		if val.LengthInt() == 0 {
+			p.buf.WriteString("[ ]")
+			return
+		}
+
 		p.buf.WriteString("[\n")
 
 		it := val.ElementIterator()
@@ -477,6 +503,10 @@ func (p *blockBodyDiffPrinter) writeValue(val cty.Value, action plans.Action, in
 		p.buf.WriteString(strings.Repeat(" ", indent))
 		p.buf.WriteString("]")
 	case ty.IsMapType():
+		if val.LengthInt() == 0 {
+			p.buf.WriteString("{ }")
+			return
+		}
 		p.buf.WriteString("{\n")
 
 		keyLen := 0
@@ -501,7 +531,7 @@ func (p *blockBodyDiffPrinter) writeValue(val cty.Value, action plans.Action, in
 		p.buf.WriteString(strings.Repeat(" ", indent))
 		p.buf.WriteString("}")
 	case ty.IsObjectType():
-		p.buf.WriteString("{\n")
+		p.buf.WriteString("{")
 
 		atys := ty.AttributeTypes()
 		attrNames := make([]string, 0, len(atys))
@@ -511,6 +541,9 @@ func (p *blockBodyDiffPrinter) writeValue(val cty.Value, action plans.Action, in
 			if len(attrName) > nameLen {
 				nameLen = len(attrName)
 			}
+		}
+		if len(attrNames) > 0 {
+			p.buf.WriteString("\n")
 		}
 		sort.Strings(attrNames)
 
@@ -851,13 +884,33 @@ func (p *blockBodyDiffPrinter) pathForcesNewResource(path cty.Path) bool {
 	return p.requiredReplace.Has(path)
 }
 
+func ctyEmptyString(value cty.Value) bool {
+	if !value.IsNull() && value.IsKnown() {
+		valueType := value.Type()
+		if valueType == cty.String && value.AsString() == "" {
+			return true
+		}
+	}
+	return false
+}
+
 func ctyGetAttrMaybeNull(val cty.Value, name string) cty.Value {
+	attrType := val.Type().AttributeType(name)
+
 	if val.IsNull() {
-		ty := val.Type().AttributeType(name)
-		return cty.NullVal(ty)
+		return cty.NullVal(attrType)
 	}
 
-	return val.GetAttr(name)
+	// We treat "" as null here
+	// as existing SDK doesn't support null yet.
+	// This allows us to avoid spurious diffs
+	// until we introduce null to the SDK.
+	attrValue := val.GetAttr(name)
+	if ctyEmptyString(attrValue) {
+		return cty.NullVal(attrType)
+	}
+
+	return attrValue
 }
 
 func ctyCollectionValues(val cty.Value) []cty.Value {

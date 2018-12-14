@@ -17,10 +17,11 @@ import (
 var InternalProviders = map[string]plugin.ProviderFunc{}
 
 var InternalProvisioners = map[string]plugin.ProvisionerFunc{
-	"chef":            chefprovisioner.Provisioner,
-	"file":            fileprovisioner.Provisioner,
-	"habitat":         habitatprovisioner.Provisioner,
-	"local-exec":      localexecprovisioner.Provisioner,
-	"remote-exec":     remoteexecprovisioner.Provisioner,
-	"salt-masterless": saltmasterlessprovisioner.Provisioner,
+	"chef":   chefprovisioner.Provisioner,
+	"file":   fileprovisioner.Provisioner,
+	"habitat":   habitatprovisioner.Provisioner,
+	"local-exec":   localexecprovisioner.Provisioner,
+	"remote-exec":   remoteexecprovisioner.Provisioner,
+	"salt-masterless":   saltmasterlessprovisioner.Provisioner,
+
 }
