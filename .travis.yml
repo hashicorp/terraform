@@ -42,6 +42,7 @@ script:
 branches:
   only:
   - master
+  - v0.11
 notifications:
   irc:
     channels:
