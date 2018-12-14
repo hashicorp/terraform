@@ -158,6 +158,37 @@ func TestLocal_planRefreshFalse(t *testing.T) {
 	}
 }
 
+func TestLocal_planWithVariables(t *testing.T) {
+	b, cleanup := TestLocal(t)
+	defer cleanup()
+	TestLocalProvider(t, b, "test")
+
+	mod, modCleanup := module.TestTree(t, "./test-fixtures/plan-vars")
+	defer modCleanup()
+
+	op := testOperationPlan()
+	op.Module = mod
+	op.PlanRefresh = true
+	op.Variables = map[string]interface{}{"cli": "var"}
+
+	// Set some variables that would have been read from
+	// any terraform.tfvars or *.auto.tfvars files.
+	b.ContextOpts.Variables = map[string]interface{}{"foo": "bar"}
+
+	run, err := b.Operation(context.Background(), op)
+	if err != nil {
+		t.Fatalf("bad: %s", err)
+	}
+	<-run.Done()
+	if run.Err != nil {
+		t.Fatalf("err: %s", run.Err)
+	}
+
+	if run.PlanEmpty {
+		t.Fatal("plan should not be empty")
+	}
+}
+
 func TestLocal_planDestroy(t *testing.T) {
 	b, cleanup := TestLocal(t)
 	defer cleanup()

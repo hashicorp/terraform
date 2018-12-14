@@ -1,3 +1,27 @@
+## 0.11.11 (December 14, 2018)
+
+IMPROVEMENTS:
+
+* backend/remote: Return detailed version (in)compatibility information ([#19659](https://github.com/hashicorp/terraform/issues/19659))
+* core: Enhance service discovery error handling and messaging ([#19589](https://github.com/hashicorp/terraform/issues/19589))
+* core: Add support to retrieve version constraints to service discovery ([#19647](https://github.com/hashicorp/terraform/issues/19647))
+
+BUG FIXES:
+
+* backend/remote: Fix symlink issues and Windows support when uploading configurations ([#19573](https://github.com/hashicorp/terraform/issues/19573))
+
+## 0.11.10 (October 23, 2018)
+
+BUG FIXES:
+
+* backend/local: Do not use backend operation variables ([#19175](https://github.com/hashicorp/terraform/issues/19175))
+
+## 0.11.9 (October 19, 2018)
+
+IMPROVEMENTS:
+
+* backend/remote: Also show policy check output when running a plan ([#19088](https://github.com/hashicorp/terraform/issues/19088))
+
 ## 0.11.9-beta1 (October 15, 2018)
 
 IMPROVEMENTS:
@@ -20,6 +44,7 @@ IMPROVEMENTS:
 
 BUG FIXES:
 
+* backend/azurerm: Update endpoint for Azure Government (SDK Update) ([#18877](https://github.com/hashicorp/terraform/issues/18877))
 * backend/migrations: Check all workspaces for existing non-empty states ([#18757](https://github.com/hashicorp/terraform/issues/18757))
 * provider/terraform: Always call the backend validation method to prevent a possible panic ([#18759](https://github.com/hashicorp/terraform/issues/18759))
 * backend/remote: Take working directories (optional on workspaces) into account ([#18773](https://github.com/hashicorp/terraform/issues/18773))
@@ -31,7 +56,7 @@ BUG FIXES:
 
 NEW FEATURES:
 
-* **New `remote` backend**: Inital release of the `remote` backend for use with Terraform Enterprise and Private Terraform Enterprise [[#18596](https://github.com/hashicorp/terraform/issues/18596)]
+* **New `remote` backend**: Inital release of the `remote` backend for use with Terraform Enterprise and Private Terraform Enterprise ([#18596](https://github.com/hashicorp/terraform/issues/18596))
 
 IMPROVEMENTS:
 

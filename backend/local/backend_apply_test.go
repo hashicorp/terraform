@@ -114,6 +114,40 @@ func TestLocal_applyEmptyDirDestroy(t *testing.T) {
 	checkState(t, b.StateOutPath, `<no state>`)
 }
 
+func TestLocal_applyWithVariables(t *testing.T) {
+	b, cleanup := TestLocal(t)
+	defer cleanup()
+	p := TestLocalProvider(t, b, "test")
+
+	p.ApplyReturn = &terraform.InstanceState{ID: "yes"}
+
+	mod, modCleanup := module.TestTree(t, "./test-fixtures/apply-vars")
+	defer modCleanup()
+
+	op := testOperationApply()
+	op.Module = mod
+	op.Variables = map[string]interface{}{"cli": "var"}
+
+	// Set some variables that would have been read from
+	// any terraform.tfvars or *.auto.tfvars files.
+	b.ContextOpts.Variables = map[string]interface{}{"foo": "bar"}
+
+	run, err := b.Operation(context.Background(), op)
+	if err != nil {
+		t.Fatalf("bad: %s", err)
+	}
+	<-run.Done()
+	if run.Err != nil {
+		t.Fatalf("err: %s", run.Err)
+	}
+
+	checkState(t, b.StateOutPath, `
+test_instance.foo:
+  ID = yes
+  provider = provider.test
+	`)
+}
+
 func TestLocal_applyError(t *testing.T) {
 	b, cleanup := TestLocal(t)
 	defer cleanup()

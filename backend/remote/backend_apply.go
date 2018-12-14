@@ -3,7 +3,6 @@ package remote
 import (
 	"bufio"
 	"context"
-	"errors"
 	"fmt"
 	"log"
 	"strings"
@@ -61,25 +60,11 @@ func (b *Remote) opApply(stopCtx, cancelCtx context.Context, op *backend.Operati
 		return r, err
 	}
 
-	// Retrieve the run to get its current status.
-	r, err = b.client.Runs.Read(stopCtx, r.ID)
-	if err != nil {
-		return r, generalError("error retrieving run", err)
-	}
-
-	// Return if there are no changes or the run errored. We return
-	// without an error, even if the run errored, as the error is
-	// already displayed by the output of the remote run.
+	// This check is also performed in the plan method to determine if
+	// the policies should be checked, but we need to check the values
+	// here again to determine if we are done and should return.
 	if !r.HasChanges || r.Status == tfe.RunErrored {
 		return r, nil
-	}
-
-	// Check any configured sentinel policies.
-	if len(r.PolicyChecks) > 0 {
-		err = b.checkPolicy(stopCtx, cancelCtx, op, r)
-		if err != nil {
-			return r, err
-		}
 	}
 
 	// Retrieve the run to get its current status.
@@ -174,121 +159,6 @@ func (b *Remote) opApply(stopCtx, cancelCtx context.Context, op *backend.Operati
 	}
 
 	return r, nil
-}
-
-func (b *Remote) checkPolicy(stopCtx, cancelCtx context.Context, op *backend.Operation, r *tfe.Run) error {
-	if b.CLI != nil {
-		b.CLI.Output("\n------------------------------------------------------------------------\n")
-	}
-	for _, pc := range r.PolicyChecks {
-		logs, err := b.client.PolicyChecks.Logs(stopCtx, pc.ID)
-		if err != nil {
-			return generalError("error retrieving policy check logs", err)
-		}
-		scanner := bufio.NewScanner(logs)
-
-		// Retrieve the policy check to get its current status.
-		pc, err := b.client.PolicyChecks.Read(stopCtx, pc.ID)
-		if err != nil {
-			return generalError("error retrieving policy check", err)
-		}
-
-		var msgPrefix string
-		switch pc.Scope {
-		case tfe.PolicyScopeOrganization:
-			msgPrefix = "Organization policy check"
-		case tfe.PolicyScopeWorkspace:
-			msgPrefix = "Workspace policy check"
-		default:
-			msgPrefix = fmt.Sprintf("Unknown policy check (%s)", pc.Scope)
-		}
-
-		if b.CLI != nil {
-			b.CLI.Output(b.Colorize().Color(msgPrefix + ":\n"))
-		}
-
-		for scanner.Scan() {
-			if b.CLI != nil {
-				b.CLI.Output(b.Colorize().Color(scanner.Text()))
-			}
-		}
-		if err := scanner.Err(); err != nil {
-			return generalError("error reading logs", err)
-		}
-
-		switch pc.Status {
-		case tfe.PolicyPasses:
-			if b.CLI != nil {
-				b.CLI.Output("\n------------------------------------------------------------------------")
-			}
-			continue
-		case tfe.PolicyErrored:
-			return fmt.Errorf(msgPrefix + " errored.")
-		case tfe.PolicyHardFailed:
-			return fmt.Errorf(msgPrefix + " hard failed.")
-		case tfe.PolicySoftFailed:
-			if op.UIOut == nil || op.UIIn == nil || op.AutoApprove ||
-				!pc.Actions.IsOverridable || !pc.Permissions.CanOverride {
-				return fmt.Errorf(msgPrefix + " soft failed.")
-			}
-		default:
-			return fmt.Errorf("Unknown or unexpected policy state: %s", pc.Status)
-		}
-
-		opts := &terraform.InputOpts{
-			Id:          "override",
-			Query:       "\nDo you want to override the soft failed policy check?",
-			Description: "Only 'override' will be accepted to override.",
-		}
-
-		if err = b.confirm(stopCtx, op, opts, r, "override"); err != nil {
-			return err
-		}
-
-		if _, err = b.client.PolicyChecks.Override(stopCtx, pc.ID); err != nil {
-			return generalError("error overriding policy check", err)
-		}
-
-		if b.CLI != nil {
-			b.CLI.Output("------------------------------------------------------------------------")
-		}
-	}
-
-	return nil
-}
-
-func (b *Remote) confirm(stopCtx context.Context, op *backend.Operation, opts *terraform.InputOpts, r *tfe.Run, keyword string) error {
-	v, err := op.UIIn.Input(opts)
-	if err != nil {
-		return fmt.Errorf("Error asking %s: %v", opts.Id, err)
-	}
-	if v != keyword {
-		// Retrieve the run again to get its current status.
-		r, err = b.client.Runs.Read(stopCtx, r.ID)
-		if err != nil {
-			return generalError("error retrieving run", err)
-		}
-
-		// Make sure we discard the run if possible.
-		if r.Actions.IsDiscardable {
-			err = b.client.Runs.Discard(stopCtx, r.ID, tfe.RunDiscardOptions{})
-			if err != nil {
-				if op.Destroy {
-					return generalError("error disarding destroy", err)
-				}
-				return generalError("error disarding apply", err)
-			}
-		}
-
-		// Even if the run was disarding successfully, we still
-		// return an error as the apply command was cancelled.
-		if op.Destroy {
-			return errors.New("Destroy discarded.")
-		}
-		return errors.New("Apply discarded.")
-	}
-
-	return nil
 }
 
 const applyErrNoUpdateRights = `

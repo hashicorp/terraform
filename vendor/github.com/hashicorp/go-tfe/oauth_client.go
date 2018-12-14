@@ -83,7 +83,7 @@ type OAuthClientListOptions struct {
 // List all the OAuth clients for a given organization.
 func (s *oAuthClients) List(ctx context.Context, organization string, options OAuthClientListOptions) (*OAuthClientList, error) {
 	if !validStringID(&organization) {
-		return nil, errors.New("Invalid value for organization")
+		return nil, errors.New("invalid value for organization")
 	}
 
 	u := fmt.Sprintf("organizations/%s/oauth-clients", url.QueryEscape(organization))
@@ -121,16 +121,16 @@ type OAuthClientCreateOptions struct {
 
 func (o OAuthClientCreateOptions) valid() error {
 	if !validString(o.APIURL) {
-		return errors.New("APIURL is required")
+		return errors.New("API URL is required")
 	}
 	if !validString(o.HTTPURL) {
-		return errors.New("HTTPURL is required")
+		return errors.New("HTTP URL is required")
 	}
 	if !validString(o.OAuthToken) {
-		return errors.New("OAuthToken is required")
+		return errors.New("OAuth token is required")
 	}
 	if o.ServiceProvider == nil {
-		return errors.New("ServiceProvider is required")
+		return errors.New("service provider is required")
 	}
 	return nil
 }
@@ -138,7 +138,7 @@ func (o OAuthClientCreateOptions) valid() error {
 // Create an OAuth client to connect an organization and a VCS provider.
 func (s *oAuthClients) Create(ctx context.Context, organization string, options OAuthClientCreateOptions) (*OAuthClient, error) {
 	if !validStringID(&organization) {
-		return nil, errors.New("Invalid value for organization")
+		return nil, errors.New("invalid value for organization")
 	}
 	if err := options.valid(); err != nil {
 		return nil, err
@@ -165,7 +165,7 @@ func (s *oAuthClients) Create(ctx context.Context, organization string, options 
 // Read an OAuth client by its ID.
 func (s *oAuthClients) Read(ctx context.Context, oAuthClientID string) (*OAuthClient, error) {
 	if !validStringID(&oAuthClientID) {
-		return nil, errors.New("Invalid value for OAuth client ID")
+		return nil, errors.New("invalid value for OAuth client ID")
 	}
 
 	u := fmt.Sprintf("oauth-clients/%s", url.QueryEscape(oAuthClientID))
@@ -186,7 +186,7 @@ func (s *oAuthClients) Read(ctx context.Context, oAuthClientID string) (*OAuthCl
 // Delete an OAuth client by its ID.
 func (s *oAuthClients) Delete(ctx context.Context, oAuthClientID string) error {
 	if !validStringID(&oAuthClientID) {
-		return errors.New("Invalid value for OAuth client ID")
+		return errors.New("invalid value for OAuth client ID")
 	}
 
 	u := fmt.Sprintf("oauth-clients/%s", url.QueryEscape(oAuthClientID))

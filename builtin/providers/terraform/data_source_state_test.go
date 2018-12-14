@@ -55,7 +55,7 @@ func TestState_complexOutputs(t *testing.T) {
 					testAccCheckStateValue("terraform_remote_state.foo", "backend", "local"),
 					// This (adding the hash) should be reverted when merged into 0.12.
 					// testAccCheckStateValue("terraform_remote_state.foo", "config.path", "./test-fixtures/complex_outputs.tfstate"),
-					testAccCheckStateValue("terraform_remote_state.foo", "config.1590222752.path", "./test-fixtures/complex_outputs.tfstate"),
+					testAccCheckStateValue("terraform_remote_state.foo", "config.1952794129.path", "./test-fixtures/complex_outputs.tfstate"),
 					testAccCheckStateValue("terraform_remote_state.foo", "computed_set.#", "2"),
 					testAccCheckStateValue("terraform_remote_state.foo", `map.%`, "2"),
 					testAccCheckStateValue("terraform_remote_state.foo", `map.key`, "test"),

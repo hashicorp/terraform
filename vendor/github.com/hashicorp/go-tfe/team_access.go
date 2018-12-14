@@ -68,10 +68,10 @@ type TeamAccessListOptions struct {
 
 func (o TeamAccessListOptions) valid() error {
 	if !validString(o.WorkspaceID) {
-		return errors.New("Workspace ID is required")
+		return errors.New("workspace ID is required")
 	}
 	if !validStringID(o.WorkspaceID) {
-		return errors.New("Invalid value for workspace ID")
+		return errors.New("invalid value for workspace ID")
 	}
 	return nil
 }
@@ -113,13 +113,13 @@ type TeamAccessAddOptions struct {
 
 func (o TeamAccessAddOptions) valid() error {
 	if o.Access == nil {
-		return errors.New("Access is required")
+		return errors.New("access is required")
 	}
 	if o.Team == nil {
-		return errors.New("Team is required")
+		return errors.New("team is required")
 	}
 	if o.Workspace == nil {
-		return errors.New("Workspace is required")
+		return errors.New("workspace is required")
 	}
 	return nil
 }
@@ -150,7 +150,7 @@ func (s *teamAccesses) Add(ctx context.Context, options TeamAccessAddOptions) (*
 // Read a team access by its ID.
 func (s *teamAccesses) Read(ctx context.Context, teamAccessID string) (*TeamAccess, error) {
 	if !validStringID(&teamAccessID) {
-		return nil, errors.New("Invalid value for team access ID")
+		return nil, errors.New("invalid value for team access ID")
 	}
 
 	u := fmt.Sprintf("team-workspaces/%s", url.QueryEscape(teamAccessID))
@@ -171,7 +171,7 @@ func (s *teamAccesses) Read(ctx context.Context, teamAccessID string) (*TeamAcce
 // Remove team access from a workspace.
 func (s *teamAccesses) Remove(ctx context.Context, teamAccessID string) error {
 	if !validStringID(&teamAccessID) {
-		return errors.New("Invalid value for team access ID")
+		return errors.New("invalid value for team access ID")
 	}
 
 	u := fmt.Sprintf("team-workspaces/%s", url.QueryEscape(teamAccessID))

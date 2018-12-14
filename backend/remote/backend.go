@@ -4,16 +4,15 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"math"
 	"net/http"
 	"net/url"
 	"os"
 	"sort"
 	"strings"
 	"sync"
-	"time"
 
 	tfe "github.com/hashicorp/go-tfe"
+	version "github.com/hashicorp/go-version"
 	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/state"
@@ -21,7 +20,7 @@ import (
 	"github.com/hashicorp/terraform/svchost"
 	"github.com/hashicorp/terraform/svchost/disco"
 	"github.com/hashicorp/terraform/terraform"
-	"github.com/hashicorp/terraform/version"
+	tfversion "github.com/hashicorp/terraform/version"
 	"github.com/mitchellh/cli"
 	"github.com/mitchellh/colorstring"
 )
@@ -30,7 +29,7 @@ const (
 	defaultHostname    = "app.terraform.io"
 	defaultModuleDepth = -1
 	defaultParallelism = 10
-	serviceID          = "tfe.v2"
+	tfeServiceID       = "tfe.v2"
 )
 
 // Remote is an implementation of EnhancedBackend that performs all
@@ -154,20 +153,41 @@ func (b *Remote) configure(ctx context.Context) error {
 	}
 
 	// Discover the service URL for this host to confirm that it provides
-	// a remote backend API and to discover the required base path.
-	service, err := b.discover(b.hostname)
-	if err != nil {
-		return err
+	// a remote backend API and to get the version constraints.
+	service, constraints, discoErr := b.discover()
+	if _, ok := discoErr.(*disco.ErrVersionNotSupported); !ok && discoErr != nil {
+		return discoErr
+	}
+
+	// Check any retrieved constraints to make sure we are compatible.
+	if constraints == nil {
+		if err := b.checkConstraints(constraints); err != nil {
+			return err
+		}
+	}
+
+	// When checking version constraints silently failed, we return the
+	// more generic error we received during the service discovery.
+	if discoErr != nil {
+		return discoErr
 	}
 
 	// Retrieve the token for this host as configured in the credentials
 	// section of the CLI Config File.
-	token, err := b.token(b.hostname)
+	token, err := b.token()
 	if err != nil {
 		return err
 	}
+
+	// Get the token from the config if no token was configured for this
+	// host in credentials section of the CLI Config File.
 	if token == "" {
 		token = d.Get("token").(string)
+	}
+
+	// Return an error if we still don't have a token at this point.
+	if token == "" {
+		return fmt.Errorf("required token could not be found")
 	}
 
 	cfg := &tfe.Config{
@@ -178,7 +198,7 @@ func (b *Remote) configure(ctx context.Context) error {
 	}
 
 	// Set the version header to the current version.
-	cfg.Headers.Set(version.Header, version.Version)
+	cfg.Headers.Set(tfversion.Header, tfversion.Version)
 
 	// Create the remote backend API client.
 	b.client, err = tfe.NewClient(cfg)
@@ -189,30 +209,143 @@ func (b *Remote) configure(ctx context.Context) error {
 	return nil
 }
 
-// discover the remote backend API service URL and token.
-func (b *Remote) discover(hostname string) (*url.URL, error) {
-	host, err := svchost.ForComparison(hostname)
+// discover the remote backend API service URL and version constraints.
+func (b *Remote) discover() (*url.URL, *disco.Constraints, error) {
+	hostname, err := svchost.ForComparison(b.hostname)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
-	service := b.services.DiscoverServiceURL(host, serviceID)
-	if service == nil {
-		return nil, fmt.Errorf("host %s does not provide a remote backend API", host)
+
+	host, err := b.services.Discover(hostname)
+	if err != nil {
+		return nil, nil, err
 	}
-	return service, nil
+
+	service, err := host.ServiceURL(tfeServiceID)
+	// Return the error, unless its a disco.ErrVersionNotSupported error.
+	if _, ok := err.(*disco.ErrVersionNotSupported); !ok && err != nil {
+		return nil, nil, err
+	}
+
+	// Return early if we are a development build.
+	if tfversion.Prerelease == "dev" {
+		return service, nil, err
+	}
+
+	// We purposefully ignore the error and return the previous error, as
+	// checking for version constraints is considered optional.
+	constraints, _ := host.VersionConstraints(tfeServiceID, "terraform")
+
+	return service, constraints, err
+}
+
+// checkConstraints checks service version constrains against our own
+// version and returns rich and informational diagnostics in case any
+// incompatibilities are detected.
+func (b *Remote) checkConstraints(c *disco.Constraints) error {
+	if c == nil || c.Minimum == "" || c.Maximum == "" {
+		return nil
+	}
+
+	// Generate a parsable constraints string.
+	excluding := ""
+	if len(c.Excluding) > 0 {
+		excluding = fmt.Sprintf(", != %s", strings.Join(c.Excluding, ", != "))
+	}
+	constStr := fmt.Sprintf(">= %s%s, <= %s", c.Minimum, excluding, c.Maximum)
+
+	// Create the constraints to check against.
+	constraints, err := version.NewConstraint(constStr)
+	if err != nil {
+		return checkConstraintsWarning(err)
+	}
+
+	// Create the version to check.
+	v, err := version.NewVersion(tfversion.String())
+	if err != nil {
+		return checkConstraintsWarning(err)
+	}
+
+	// Return if we satisfy all constraints.
+	if constraints.Check(v) {
+		return nil
+	}
+
+	// Find out what action (upgrade/downgrade) we should advice.
+	minimum, err := version.NewVersion(c.Minimum)
+	if err != nil {
+		return checkConstraintsWarning(err)
+	}
+
+	maximum, err := version.NewVersion(c.Maximum)
+	if err != nil {
+		return checkConstraintsWarning(err)
+	}
+
+	var action, toVersion string
+	var excludes []*version.Version
+	switch {
+	case minimum.GreaterThan(v):
+		action = "upgrade"
+		toVersion = ">= " + minimum.String()
+	case maximum.LessThan(v):
+		action = "downgrade"
+		toVersion = "<= " + maximum.String()
+	case len(c.Excluding) > 0:
+		for _, exclude := range c.Excluding {
+			v, err := version.NewVersion(exclude)
+			if err != nil {
+				return checkConstraintsWarning(err)
+			}
+			excludes = append(excludes, v)
+		}
+
+		// Sort all the excludes.
+		sort.Sort(version.Collection(excludes))
+
+		// Get the latest excluded version.
+		action = "upgrade"
+		toVersion = "> " + excludes[len(excludes)-1].String()
+	}
+
+	switch {
+	case len(excludes) == 1:
+		excluding = fmt.Sprintf(", excluding version %s", excludes[0].String())
+	case len(excludes) > 1:
+		var vs []string
+		for _, v := range excludes {
+			vs = append(vs, v.String())
+		}
+		excluding = fmt.Sprintf(", excluding versions %s", strings.Join(vs, ", "))
+	default:
+		excluding = ""
+	}
+
+	summary := fmt.Sprintf("Incompatible Terraform version v%s", v.String())
+	details := fmt.Sprintf(
+		"The configured Terraform Enterprise backend is compatible with Terraform\n"+
+			"versions >= %s, < %s%s.", c.Minimum, c.Maximum, excluding,
+	)
+
+	if action != "" && toVersion != "" {
+		summary = fmt.Sprintf("Please %s Terraform to %s", action, toVersion)
+	}
+
+	// Return the customized and informational error message.
+	return fmt.Errorf("%s\n\n%s", summary, details)
 }
 
 // token returns the token for this host as configured in the credentials
 // section of the CLI Config File. If no token was configured, an empty
 // string will be returned instead.
-func (b *Remote) token(hostname string) (string, error) {
-	host, err := svchost.ForComparison(hostname)
+func (b *Remote) token() (string, error) {
+	hostname, err := svchost.ForComparison(b.hostname)
 	if err != nil {
 		return "", err
 	}
-	creds, err := b.services.CredentialsForHost(host)
+	creds, err := b.services.CredentialsForHost(hostname)
 	if err != nil {
-		log.Printf("[WARN] Failed to get credentials for %s: %s (ignoring)", host, err)
+		log.Printf("[WARN] Failed to get credentials for %s: %s (ignoring)", b.hostname, err)
 		return "", nil
 	}
 	if creds != nil {
@@ -275,8 +408,8 @@ func (b *Remote) State(workspace string) (state.State, error) {
 
 		// We only set the Terraform Version for the new workspace if this is
 		// a release candidate or a final release.
-		if version.Prerelease == "" || strings.HasPrefix(version.Prerelease, "rc") {
-			options.TerraformVersion = tfe.String(version.String())
+		if tfversion.Prerelease == "" || strings.HasPrefix(tfversion.Prerelease, "rc") {
+			options.TerraformVersion = tfe.String(tfversion.String())
 		}
 
 		_, err = b.client.Workspaces.Create(context.Background(), b.organization, options)
@@ -411,9 +544,7 @@ func (b *Remote) Operation(ctx context.Context, op *backend.Operation) (*backend
 		f = b.opApply
 	default:
 		return nil, fmt.Errorf(
-			"\n\nThe \"remote\" backend does not support the %q operation.\n"+
-				"Please use the remote backend web UI for running this operation:\n"+
-				"https://%s/app/%s/%s", op.Type, b.hostname, b.organization, op.Workspace)
+			"\n\nThe \"remote\" backend does not support the %q operation.", op.Type)
 	}
 
 	// Lock
@@ -473,182 +604,6 @@ func (b *Remote) Operation(ctx context.Context, op *backend.Operation) (*backend
 
 	// Return the running operation.
 	return runningOp, nil
-}
-
-// backoff will perform exponential backoff based on the iteration and
-// limited by the provided min and max (in milliseconds) durations.
-func backoff(min, max float64, iter int) time.Duration {
-	backoff := math.Pow(2, float64(iter)/5) * min
-	if backoff > max {
-		backoff = max
-	}
-	return time.Duration(backoff) * time.Millisecond
-}
-
-func (b *Remote) waitForRun(stopCtx, cancelCtx context.Context, op *backend.Operation, opType string, r *tfe.Run, w *tfe.Workspace) (*tfe.Run, error) {
-	started := time.Now()
-	updated := started
-	for i := 0; ; i++ {
-		select {
-		case <-stopCtx.Done():
-			return r, stopCtx.Err()
-		case <-cancelCtx.Done():
-			return r, cancelCtx.Err()
-		case <-time.After(backoff(1000, 3000, i)):
-			// Timer up, show status
-		}
-
-		// Retrieve the run to get its current status.
-		r, err := b.client.Runs.Read(stopCtx, r.ID)
-		if err != nil {
-			return r, generalError("error retrieving run", err)
-		}
-
-		// Return if the run is no longer pending.
-		if r.Status != tfe.RunPending && r.Status != tfe.RunConfirmed {
-			if i == 0 && opType == "plan" && b.CLI != nil {
-				b.CLI.Output(b.Colorize().Color(fmt.Sprintf("Waiting for the %s to start...\n", opType)))
-			}
-			if i > 0 && b.CLI != nil {
-				// Insert a blank line to separate the ouputs.
-				b.CLI.Output("")
-			}
-			return r, nil
-		}
-
-		// Check if 30 seconds have passed since the last update.
-		current := time.Now()
-		if b.CLI != nil && (i == 0 || current.Sub(updated).Seconds() > 30) {
-			updated = current
-			position := 0
-			elapsed := ""
-
-			// Calculate and set the elapsed time.
-			if i > 0 {
-				elapsed = fmt.Sprintf(
-					" (%s elapsed)", current.Sub(started).Truncate(30*time.Second))
-			}
-
-			// Retrieve the workspace used to run this operation in.
-			w, err = b.client.Workspaces.Read(stopCtx, b.organization, w.Name)
-			if err != nil {
-				return nil, generalError("error retrieving workspace", err)
-			}
-
-			// If the workspace is locked the run will not be queued and we can
-			// update the status without making any expensive calls.
-			if w.Locked && w.CurrentRun != nil {
-				cr, err := b.client.Runs.Read(stopCtx, w.CurrentRun.ID)
-				if err != nil {
-					return r, generalError("error retrieving current run", err)
-				}
-				if cr.Status == tfe.RunPending {
-					b.CLI.Output(b.Colorize().Color(
-						"Waiting for the manually locked workspace to be unlocked..." + elapsed))
-					continue
-				}
-			}
-
-			// Skip checking the workspace queue when we are the current run.
-			if w.CurrentRun == nil || w.CurrentRun.ID != r.ID {
-				found := false
-				options := tfe.RunListOptions{}
-			runlist:
-				for {
-					rl, err := b.client.Runs.List(stopCtx, w.ID, options)
-					if err != nil {
-						return r, generalError("error retrieving run list", err)
-					}
-
-					// Loop through all runs to calculate the workspace queue position.
-					for _, item := range rl.Items {
-						if !found {
-							if r.ID == item.ID {
-								found = true
-							}
-							continue
-						}
-
-						// If the run is in a final state, ignore it and continue.
-						switch item.Status {
-						case tfe.RunApplied, tfe.RunCanceled, tfe.RunDiscarded, tfe.RunErrored:
-							continue
-						case tfe.RunPlanned:
-							if op.Type == backend.OperationTypePlan {
-								continue
-							}
-						}
-
-						// Increase the workspace queue position.
-						position++
-
-						// Stop searching when we reached the current run.
-						if w.CurrentRun != nil && w.CurrentRun.ID == item.ID {
-							break runlist
-						}
-					}
-
-					// Exit the loop when we've seen all pages.
-					if rl.CurrentPage >= rl.TotalPages {
-						break
-					}
-
-					// Update the page number to get the next page.
-					options.PageNumber = rl.NextPage
-				}
-
-				if position > 0 {
-					b.CLI.Output(b.Colorize().Color(fmt.Sprintf(
-						"Waiting for %d run(s) to finish before being queued...%s",
-						position,
-						elapsed,
-					)))
-					continue
-				}
-			}
-
-			options := tfe.RunQueueOptions{}
-		search:
-			for {
-				rq, err := b.client.Organizations.RunQueue(stopCtx, b.organization, options)
-				if err != nil {
-					return r, generalError("error retrieving queue", err)
-				}
-
-				// Search through all queued items to find our run.
-				for _, item := range rq.Items {
-					if r.ID == item.ID {
-						position = item.PositionInQueue
-						break search
-					}
-				}
-
-				// Exit the loop when we've seen all pages.
-				if rq.CurrentPage >= rq.TotalPages {
-					break
-				}
-
-				// Update the page number to get the next page.
-				options.PageNumber = rq.NextPage
-			}
-
-			if position > 0 {
-				c, err := b.client.Organizations.Capacity(stopCtx, b.organization)
-				if err != nil {
-					return r, generalError("error retrieving capacity", err)
-				}
-				b.CLI.Output(b.Colorize().Color(fmt.Sprintf(
-					"Waiting for %d queued run(s) to finish before starting...%s",
-					position-c.Running,
-					elapsed,
-				)))
-				continue
-			}
-
-			b.CLI.Output(b.Colorize().Color(fmt.Sprintf(
-				"Waiting for the %s to start...%s", opType, elapsed)))
-		}
-	}
 }
 
 func (b *Remote) cancel(cancelCtx context.Context, op *backend.Operation, r *tfe.Run) error {
@@ -716,6 +671,15 @@ func generalError(msg string, err error) error {
 	default:
 		return fmt.Errorf(strings.TrimSpace(fmt.Sprintf(generalErr, msg, err)))
 	}
+}
+
+func checkConstraintsWarning(err error) error {
+	return fmt.Errorf(
+		"Failed to check version constraints: %v\n\n"+
+			"Checking version constraints is considered optional, but this is an\n"+
+			"unexpected error which should be reported.",
+		err,
+	)
 }
 
 const generalErr = `
