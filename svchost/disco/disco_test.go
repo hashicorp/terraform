@@ -353,5 +353,5 @@ func testServer(h func(w http.ResponseWriter, r *http.Request)) (portStr string,
 		server.Close()
 	}
 
-	return
+	return portStr, close
 }

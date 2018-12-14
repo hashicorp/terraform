@@ -28,7 +28,7 @@ const (
 	defaultHostname    = "app.terraform.io"
 	defaultModuleDepth = -1
 	defaultParallelism = 10
-	serviceID          = "tfe.v2"
+	tfeServiceID       = "tfe.v2"
 )
 
 // Remote is an implementation of EnhancedBackend that performs all
@@ -168,6 +168,11 @@ func (b *Remote) configure(ctx context.Context) error {
 		token = d.Get("token").(string)
 	}
 
+	// Return an error if we still don't have a token at this point.
+	if token == "" {
+		return fmt.Errorf("required token could not be found")
+	}
+
 	cfg := &tfe.Config{
 		Address:  service.String(),
 		BasePath: service.Path,
@@ -193,7 +198,7 @@ func (b *Remote) discover(hostname string) (*url.URL, error) {
 	if err != nil {
 		return nil, err
 	}
-	service, err := b.services.DiscoverServiceURL(host, serviceID)
+	service, err := b.services.DiscoverServiceURL(host, tfeServiceID)
 	if err != nil {
 		return nil, err
 	}
@@ -409,9 +414,7 @@ func (b *Remote) Operation(ctx context.Context, op *backend.Operation) (*backend
 		f = b.opApply
 	default:
 		return nil, fmt.Errorf(
-			"\n\nThe \"remote\" backend does not support the %q operation.\n"+
-				"Please use the remote backend web UI for running this operation:\n"+
-				"https://%s/app/%s/%s", op.Type, b.hostname, b.organization, op.Workspace)
+			"\n\nThe \"remote\" backend does not support the %q operation.", op.Type)
 	}
 
 	// Lock
