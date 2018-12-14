@@ -1,6 +1,7 @@
 package hclsyntax
 
 import (
+	"bytes"
 	"fmt"
 
 	"github.com/apparentlymart/go-textseg/textseg"
@@ -114,10 +115,11 @@ const (
 )
 
 type tokenAccum struct {
-	Filename string
-	Bytes    []byte
-	Pos      hcl.Pos
-	Tokens   []Token
+	Filename  string
+	Bytes     []byte
+	Pos       hcl.Pos
+	Tokens    []Token
+	StartByte int
 }
 
 func (f *tokenAccum) emitToken(ty TokenType, startOfs, endOfs int) {
@@ -125,11 +127,11 @@ func (f *tokenAccum) emitToken(ty TokenType, startOfs, endOfs int) {
 	// the start pos to get our end pos.
 
 	start := f.Pos
-	start.Column += startOfs - f.Pos.Byte // Safe because only ASCII spaces can be in the offset
-	start.Byte = startOfs
+	start.Column += startOfs + f.StartByte - f.Pos.Byte // Safe because only ASCII spaces can be in the offset
+	start.Byte = startOfs + f.StartByte
 
 	end := start
-	end.Byte = endOfs
+	end.Byte = endOfs + f.StartByte
 	b := f.Bytes[startOfs:endOfs]
 	for len(b) > 0 {
 		advance, seq, _ := textseg.ScanGraphemeClusters(b, true)
@@ -158,6 +160,13 @@ func (f *tokenAccum) emitToken(ty TokenType, startOfs, endOfs int) {
 type heredocInProgress struct {
 	Marker      []byte
 	StartOfLine bool
+}
+
+func tokenOpensFlushHeredoc(tok Token) bool {
+	if tok.Type != TokenOHeredoc {
+		return false
+	}
+	return bytes.HasPrefix(tok.Bytes, []byte{'<', '<', '-'})
 }
 
 // checkInvalidTokens does a simple pass across the given tokens and generates

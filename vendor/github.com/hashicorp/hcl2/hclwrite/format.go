@@ -4,6 +4,8 @@ import (
 	"github.com/hashicorp/hcl2/hcl/hclsyntax"
 )
 
+var inKeyword = hclsyntax.Keyword([]byte{'i', 'n'})
+
 // placeholder token used when we don't have a token but we don't want
 // to pass a real "nil" and complicate things with nil pointer checks
 var nilToken = &Token{
@@ -52,14 +54,22 @@ func formatIndent(lines []formatLine) {
 	// which should be more than enough for reasonable HCL uses.
 	indents := make([]int, 0, 10)
 
+	inHeredoc := false
 	for i := range lines {
-		// TODO: need to track when we're inside a multi-line template and
-		// suspend indentation processing.
-
 		line := &lines[i]
 		if len(line.lead) == 0 {
 			continue
 		}
+
+		if inHeredoc {
+			for _, token := range line.lead {
+				if token.Type == hclsyntax.TokenCHeredoc {
+					inHeredoc = false
+				}
+			}
+			continue // don't touch indentation inside heredocs
+		}
+
 		if line.lead[0].Type == hclsyntax.TokenNewline {
 			// Never place spaces before a newline
 			line.lead[0].SpacesBefore = 0
@@ -72,6 +82,9 @@ func formatIndent(lines []formatLine) {
 		}
 		for _, token := range line.assign {
 			netBrackets += tokenBracketChange(token)
+			if token.Type == hclsyntax.TokenOHeredoc {
+				inHeredoc = true
+			}
 		}
 
 		switch {
@@ -247,6 +260,15 @@ func spaceAfterToken(subject, before, after *Token) bool {
 		// No extra spaces within templates
 		return false
 
+	case inKeyword.TokenMatches(subject.asHCLSyntax()) && before.Type == hclsyntax.TokenIdent:
+		// This is a special case for inside for expressions where a user
+		// might want to use a literal tuple constructor:
+		// [for x in [foo]: x]
+		// ... in that case, we would normally produce in[foo] thinking that
+		// in is a reference, but we'll recognize it as a keyword here instead
+		// to make the result less confusing.
+		return true
+
 	case after.Type == hclsyntax.TokenOBrack && (subject.Type == hclsyntax.TokenIdent || subject.Type == hclsyntax.TokenNumberLit || tokenBracketChange(subject) < 0):
 		return false
 
@@ -282,6 +304,26 @@ func spaceAfterToken(subject, before, after *Token) bool {
 		default:
 			return true
 		}
+
+	case subject.Type == hclsyntax.TokenOBrace || after.Type == hclsyntax.TokenCBrace:
+		// Unlike other bracket types, braces have spaces on both sides of them,
+		// both in single-line nested blocks foo { bar = baz } and in object
+		// constructor expressions foo = { bar = baz }.
+		if subject.Type == hclsyntax.TokenOBrace && after.Type == hclsyntax.TokenCBrace {
+			// An open brace followed by a close brace is an exception, however.
+			// e.g. foo {} rather than foo { }
+			return false
+		}
+		return true
+
+	// In the unlikely event that an interpolation expression is just
+	// a single object constructor, we'll put a space between the ${ and
+	// the following { to make this more obvious, and then the same
+	// thing for the two braces at the end.
+	case (subject.Type == hclsyntax.TokenTemplateInterp || subject.Type == hclsyntax.TokenTemplateControl) && after.Type == hclsyntax.TokenOBrace:
+		return true
+	case subject.Type == hclsyntax.TokenCBrace && after.Type == hclsyntax.TokenTemplateSeqEnd:
+		return true
 
 	case tokenBracketChange(subject) > 0:
 		// No spaces after open brackets
@@ -345,6 +387,7 @@ func linesForFormat(tokens Tokens) []formatLine {
 
 	// Now we'll pick off any trailing comments and attribute assignments
 	// to shuffle off into the "comment" and "assign" cells.
+	inHeredoc := false
 	for i := range lines {
 		line := &lines[i]
 		if len(line.lead) == 0 {
@@ -352,6 +395,26 @@ func linesForFormat(tokens Tokens) []formatLine {
 			// (this should happen only for the final line, because all other
 			// lines would have a newline token of some kind)
 			continue
+		}
+
+		if inHeredoc {
+			for _, tok := range line.lead {
+				if tok.Type == hclsyntax.TokenCHeredoc {
+					inHeredoc = false
+					break
+				}
+			}
+			// Inside a heredoc everything is "lead", even if there's a
+			// template interpolation embedded in there that might otherwise
+			// confuse our logic below.
+			continue
+		}
+
+		for _, tok := range line.lead {
+			if tok.Type == hclsyntax.TokenOHeredoc {
+				inHeredoc = true
+				break
+			}
 		}
 
 		if len(line.lead) > 1 && line.lead[len(line.lead)-1].Type == hclsyntax.TokenComment {
