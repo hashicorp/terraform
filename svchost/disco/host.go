@@ -42,6 +42,9 @@ type ErrServiceNotProvided struct {
 
 // Error returns a customized error message.
 func (e *ErrServiceNotProvided) Error() string {
+	if e.hostname == "" {
+		return fmt.Sprintf("host does not provide a %s service", e.service)
+	}
 	return fmt.Sprintf("host %s does not provide a %s service", e.hostname, e.service)
 }
 
@@ -54,6 +57,9 @@ type ErrVersionNotSupported struct {
 
 // Error returns a customized error message.
 func (e *ErrVersionNotSupported) Error() string {
+	if e.hostname == "" {
+		return fmt.Sprintf("host does not support %s version %s", e.service, e.version)
+	}
 	return fmt.Sprintf("host %s does not support %s version %s", e.hostname, e.service, e.version)
 }
 
@@ -84,7 +90,7 @@ func (h *Host) ServiceURL(id string) (*url.URL, error) {
 
 	// No services supported for an empty Host.
 	if h == nil || h.services == nil {
-		return nil, &ErrServiceNotProvided{hostname: "<unknown>", service: svc}
+		return nil, &ErrServiceNotProvided{service: svc}
 	}
 
 	urlStr, ok := h.services[id].(string)
@@ -155,7 +161,7 @@ func (h *Host) VersionConstraints(id, product string) (*Constraints, error) {
 
 	// No services supported for an empty Host.
 	if h == nil || h.services == nil {
-		return nil, &ErrServiceNotProvided{hostname: "<unknown>", service: svc}
+		return nil, &ErrServiceNotProvided{service: svc}
 	}
 
 	// Try to get the service URL for the version service and

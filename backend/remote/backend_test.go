@@ -6,6 +6,8 @@ import (
 	"testing"
 
 	"github.com/hashicorp/terraform/backend"
+	"github.com/hashicorp/terraform/svchost/disco"
+	"github.com/hashicorp/terraform/version"
 	"github.com/zclconf/go-cty/cty"
 
 	backendLocal "github.com/hashicorp/terraform/backend/local"
@@ -239,5 +241,97 @@ func TestRemote_addAndRemoveWorkspacesNoDefault(t *testing.T) {
 	expectedWorkspaces = []string(nil)
 	if !reflect.DeepEqual(states, expectedWorkspaces) {
 		t.Fatalf("expected %#+v, got %#+v", expectedWorkspaces, states)
+	}
+}
+
+func TestRemote_checkConstraints(t *testing.T) {
+	b := testBackendDefault(t)
+
+	cases := map[string]struct {
+		constraints *disco.Constraints
+		prerelease  string
+		version     string
+		result      string
+	}{
+		"compatible version": {
+			constraints: &disco.Constraints{
+				Minimum: "0.11.0",
+				Maximum: "0.11.11",
+			},
+			version: "0.11.1",
+			result:  "",
+		},
+		"version too old": {
+			constraints: &disco.Constraints{
+				Minimum: "0.11.0",
+				Maximum: "0.11.11",
+			},
+			version: "0.10.1",
+			result:  "upgrade Terraform to >= 0.11.0",
+		},
+		"version too new": {
+			constraints: &disco.Constraints{
+				Minimum: "0.11.0",
+				Maximum: "0.11.11",
+			},
+			version: "0.12.0",
+			result:  "downgrade Terraform to <= 0.11.11",
+		},
+		"version excluded - ordered": {
+			constraints: &disco.Constraints{
+				Minimum:   "0.11.0",
+				Excluding: []string{"0.11.7", "0.11.8"},
+				Maximum:   "0.11.11",
+			},
+			version: "0.11.7",
+			result:  "upgrade Terraform to > 0.11.8",
+		},
+		"version excluded - unordered": {
+			constraints: &disco.Constraints{
+				Minimum:   "0.11.0",
+				Excluding: []string{"0.11.8", "0.11.6"},
+				Maximum:   "0.11.11",
+			},
+			version: "0.11.6",
+			result:  "upgrade Terraform to > 0.11.8",
+		},
+		"list versions": {
+			constraints: &disco.Constraints{
+				Minimum: "0.11.0",
+				Maximum: "0.11.11",
+			},
+			version: "0.10.1",
+			result:  "versions >= 0.11.0, < 0.11.11.",
+		},
+		"list exclusion": {
+			constraints: &disco.Constraints{
+				Minimum:   "0.11.0",
+				Excluding: []string{"0.11.6"},
+				Maximum:   "0.11.11",
+			},
+			version: "0.11.6",
+			result:  "excluding version 0.11.6.",
+		},
+		"list exclusions": {
+			constraints: &disco.Constraints{
+				Minimum:   "0.11.0",
+				Excluding: []string{"0.11.8", "0.11.6"},
+				Maximum:   "0.11.11",
+			},
+			version: "0.11.6",
+			result:  "excluding versions 0.11.6, 0.11.8.",
+		},
+	}
+
+	for name, tc := range cases {
+		version.Prerelease = tc.prerelease
+		version.Version = tc.version
+
+		// Check the constraints.
+		diags := b.checkConstraints(tc.constraints)
+		if (diags.Err() != nil || tc.result != "") &&
+			(diags.Err() == nil || !strings.Contains(diags.Err().Error(), tc.result)) {
+			t.Fatalf("%s: unexpected constraints result: %v", name, diags.Err())
+		}
 	}
 }
