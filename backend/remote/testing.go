@@ -181,7 +181,7 @@ func testServer(t *testing.T) *httptest.Server {
 	// Respond to service discovery calls.
 	mux.HandleFunc("/well-known/terraform.json", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		io.WriteString(w, `{"tfe.v2":"/api/v2/"}`)
+		io.WriteString(w, `{"tfe.v2.1":"/api/v2/"}`)
 	})
 
 	// Respond to the initial query to read the hashicorp org entitlements.
@@ -243,7 +243,7 @@ func testServer(t *testing.T) *httptest.Server {
 // localhost to a local test server.
 func testDisco(s *httptest.Server) *disco.Disco {
 	services := map[string]interface{}{
-		"tfe.v2": fmt.Sprintf("%s/api/v2/", s.URL),
+		"tfe.v2.1": fmt.Sprintf("%s/api/v2/", s.URL),
 	}
 	d := disco.NewWithCredentialsSource(credsSrc)
 

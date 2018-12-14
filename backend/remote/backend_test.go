@@ -119,8 +119,8 @@ func TestRemote_config(t *testing.T) {
 
 		// Configure
 		confDiags := b.Configure(tc.config)
-		if (confDiags.Err() == nil && tc.confErr != "") ||
-			(confDiags.Err() != nil && !strings.Contains(confDiags.Err().Error(), tc.confErr)) {
+		if (confDiags.Err() != nil || tc.confErr != "") &&
+			(confDiags.Err() == nil || !strings.Contains(confDiags.Err().Error(), tc.confErr)) {
 			t.Fatalf("%s: unexpected configure result: %v", name, confDiags.Err())
 		}
 	}
