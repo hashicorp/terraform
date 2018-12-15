@@ -13,6 +13,7 @@ require (
 	github.com/aliyun/aliyun-tablestore-go-sdk v4.1.2+incompatible
 	github.com/apparentlymart/go-cidr v1.0.1
 	github.com/apparentlymart/go-dump v0.0.0-20190214190832-042adf3cf4a0
+	github.com/apparentlymart/go-textseg v1.0.0
 	github.com/apparentlymart/go-versions v0.0.2-0.20180815153302-64b99f7cb171
 	github.com/armon/circbuf v0.0.0-20190214190532-5111143e8da2
 	github.com/armon/go-metrics v0.0.0-20180917152333-f0300d1749da // indirect
@@ -129,6 +130,7 @@ require (
 	golang.org/x/net v0.0.0-20191009170851-d66e71096ffb
 	golang.org/x/oauth2 v0.0.0-20190604053449-0f29369cfe45
 	golang.org/x/sys v0.0.0-20190804053845-51ab0e2deafa
+	golang.org/x/text v0.3.2
 	golang.org/x/tools v0.0.0-20190628153133-6cdbf07be9d0
 	google.golang.org/api v0.9.0
 	google.golang.org/grpc v1.21.1
