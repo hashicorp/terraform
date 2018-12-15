@@ -2,6 +2,7 @@ package langserver
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"os"
 	"sync"
@@ -15,6 +16,7 @@ import (
 func Run(ctx context.Context, configPath string, stream jsonrpc2.Stream, opts ...interface{}) error {
 	s := &server{
 		configPath: configPath,
+		fs:         newFilesystem(),
 	}
 	conn, client := lsp.RunServer(ctx, stream, s, opts...)
 	s.client = client
@@ -23,6 +25,7 @@ func Run(ctx context.Context, configPath string, stream jsonrpc2.Stream, opts ..
 
 type server struct {
 	configPath string
+	fs         *filesystem
 	client     lsp.Client
 
 	statusMu sync.Mutex
@@ -42,7 +45,15 @@ func (s *server) Initialize(context.Context, *lsp.InitializeParams) (*lsp.Initia
 	s.active = true
 	log.Printf("[DEBUG] langserver: Initialize")
 	return &lsp.InitializeResult{
-		Capabilities: lsp.ServerCapabilities{},
+		Capabilities: lsp.ServerCapabilities{
+			TextDocumentSync: lsp.TextDocumentSyncOptions{
+				OpenClose: true,
+
+				// For now we want whole-file updates only, since we're not
+				// ready to process partial changes.
+				Change: float64(lsp.Full),
+			},
+		},
 	}, nil
 }
 
@@ -91,14 +102,25 @@ func (s *server) ExecuteCommand(context.Context, *lsp.ExecuteCommandParams) (int
 	return nil, notImplemented("ExecuteCommand")
 }
 
-func (s *server) DidOpen(context.Context, *lsp.DidOpenTextDocumentParams) error {
+func (s *server) DidOpen(ctx context.Context, req *lsp.DidOpenTextDocumentParams) error {
 	log.Printf("[DEBUG] langserver: DidOpen")
-	return notImplemented("DidOpen")
+	u := uri(req.TextDocument.URI)
+	return s.fs.Open(u, []byte(req.TextDocument.Text))
 }
 
-func (s *server) DidChange(context.Context, *lsp.DidChangeTextDocumentParams) error {
+func (s *server) DidChange(ctx context.Context, req *lsp.DidChangeTextDocumentParams) error {
 	log.Printf("[DEBUG] langserver: DidChange")
-	return nil
+	u := uri(req.TextDocument.URI)
+
+	// Should always have exactly one change because our capabilities
+	// tell the client we support only full-file updates.
+	if len(req.ContentChanges) != 1 {
+		return jsonrpc2.NewErrorf(jsonrpc2.CodeInternalError, "wrong number of content changes")
+	}
+	if change := req.ContentChanges[0]; change.RangeLength == 0 {
+		return s.fs.Change(u, []byte(change.Text))
+	}
+	return fmt.Errorf("change 0 has a range, but we expect a full file")
 }
 
 func (s *server) WillSave(context.Context, *lsp.WillSaveTextDocumentParams) error {
@@ -116,9 +138,10 @@ func (s *server) DidSave(context.Context, *lsp.DidSaveTextDocumentParams) error 
 	return notImplemented("DidSave")
 }
 
-func (s *server) DidClose(context.Context, *lsp.DidCloseTextDocumentParams) error {
+func (s *server) DidClose(ctx context.Context, req *lsp.DidCloseTextDocumentParams) error {
 	log.Printf("[DEBUG] langserver: DidClose")
-	return notImplemented("DidClose")
+	u := uri(req.TextDocument.URI)
+	return s.fs.Close(u)
 }
 
 func (s *server) Completion(context.Context, *lsp.CompletionParams) (*lsp.CompletionList, error) {
