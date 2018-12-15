@@ -187,8 +187,7 @@ func (s *server) CodeLensResolve(context.Context, *lsp.CodeLens) (*lsp.CodeLens,
 }
 
 func (s *server) DocumentLink(context.Context, *lsp.DocumentLinkParams) ([]lsp.DocumentLink, error) {
-	log.Printf("[DEBUG] langserver: DocumentLink")
-	return nil, notImplemented("DocumentLink")
+	return nil, nil // Ignore; we don't recognize links in any document
 }
 
 func (s *server) DocumentLinkResolve(context.Context, *lsp.DocumentLink) (*lsp.DocumentLink, error) {
