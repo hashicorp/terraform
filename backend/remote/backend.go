@@ -160,7 +160,7 @@ func (b *Remote) configure(ctx context.Context) error {
 	}
 
 	// Check any retrieved constraints to make sure we are compatible.
-	if constraints == nil {
+	if constraints != nil {
 		if err := b.checkConstraints(constraints); err != nil {
 			return err
 		}
