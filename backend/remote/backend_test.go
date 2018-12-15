@@ -128,6 +128,84 @@ func TestRemote_config(t *testing.T) {
 	}
 }
 
+func TestRemote_versionConstraints(t *testing.T) {
+	cases := map[string]struct {
+		config     cty.Value
+		prerelease string
+		version    string
+		result     string
+	}{
+		"compatible version": {
+			config: cty.ObjectVal(map[string]cty.Value{
+				"hostname":     cty.NullVal(cty.String),
+				"organization": cty.StringVal("hashicorp"),
+				"token":        cty.NullVal(cty.String),
+				"workspaces": cty.ObjectVal(map[string]cty.Value{
+					"name":   cty.StringVal("prod"),
+					"prefix": cty.NullVal(cty.String),
+				}),
+			}),
+			version: "0.11.1",
+		},
+		"version too old": {
+			config: cty.ObjectVal(map[string]cty.Value{
+				"hostname":     cty.NullVal(cty.String),
+				"organization": cty.StringVal("hashicorp"),
+				"token":        cty.NullVal(cty.String),
+				"workspaces": cty.ObjectVal(map[string]cty.Value{
+					"name":   cty.StringVal("prod"),
+					"prefix": cty.NullVal(cty.String),
+				}),
+			}),
+			version: "0.10.1",
+			result:  "upgrade Terraform to >= 0.11.8",
+		},
+		"version too new": {
+			config: cty.ObjectVal(map[string]cty.Value{
+				"hostname":     cty.NullVal(cty.String),
+				"organization": cty.StringVal("hashicorp"),
+				"token":        cty.NullVal(cty.String),
+				"workspaces": cty.ObjectVal(map[string]cty.Value{
+					"name":   cty.StringVal("prod"),
+					"prefix": cty.NullVal(cty.String),
+				}),
+			}),
+			version: "0.12.0",
+			result:  "downgrade Terraform to <= 0.11.11",
+		},
+	}
+
+	// Save and restore the actual version.
+	p := version.Prerelease
+	v := version.Version
+	defer func() {
+		version.Prerelease = p
+		version.Version = v
+	}()
+
+	for name, tc := range cases {
+		s := testServer(t)
+		b := New(testDisco(s))
+
+		// Set the version for this test.
+		version.Prerelease = tc.prerelease
+		version.Version = tc.version
+
+		// Validate
+		valDiags := b.ValidateConfig(tc.config)
+		if valDiags.HasErrors() {
+			t.Fatalf("%s: unexpected validation result: %v", name, valDiags.Err())
+		}
+
+		// Configure
+		confDiags := b.Configure(tc.config)
+		if (confDiags.Err() != nil || tc.result != "") &&
+			(confDiags.Err() == nil || !strings.Contains(confDiags.Err().Error(), tc.result)) {
+			t.Fatalf("%s: unexpected configure result: %v", name, confDiags.Err())
+		}
+	}
+}
+
 func TestRemote_localBackend(t *testing.T) {
 	b := testBackendDefault(t)
 
@@ -323,7 +401,16 @@ func TestRemote_checkConstraints(t *testing.T) {
 		},
 	}
 
+	// Save and restore the actual version.
+	p := version.Prerelease
+	v := version.Version
+	defer func() {
+		version.Prerelease = p
+		version.Version = v
+	}()
+
 	for name, tc := range cases {
+		// Set the version for this test.
 		version.Prerelease = tc.prerelease
 		version.Version = tc.version
 
