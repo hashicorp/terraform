@@ -1315,3 +1315,70 @@ output "out" {
 		t.Fatalf("wrong error:\ngot:  %s\nwant: message containing %q", got, want)
 	}
 }
+
+func TestContext2Validate_invalidDependsOnResourceRef(t *testing.T) {
+	// This test is verifying that we raise an error if depends_on
+	// refers to something that doesn't exist in configuration.
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+resource "test_instance" "bar" {
+  depends_on = [test_resource.nonexistant]
+}
+`,
+	})
+
+	p := testProvider("test")
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		ProviderResolver: providers.ResolverFixed(
+			map[string]providers.Factory{
+				"test": testProviderFuncFixed(p),
+			},
+		),
+	})
+
+	diags := ctx.Validate()
+	if !diags.HasErrors() {
+		t.Fatal("succeeded; want errors")
+	}
+	// Should get this error:
+	// Reference to undeclared module: No module call named "foo" is declared in the root module.
+	if got, want := diags.Err().Error(), "Reference to undeclared resource:"; strings.Index(got, want) == -1 {
+		t.Fatalf("wrong error:\ngot:  %s\nwant: message containing %q", got, want)
+	}
+}
+
+func TestContext2Validate_invalidResourceIgnoreChanges(t *testing.T) {
+	// This test is verifying that we raise an error if ignore_changes
+	// refers to something that can be statically detected as not conforming
+	// to the resource type schema.
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+resource "test_instance" "bar" {
+  lifecycle {
+    ignore_changes = [does_not_exist_in_schema]
+  }
+}
+`,
+	})
+
+	p := testProvider("test")
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		ProviderResolver: providers.ResolverFixed(
+			map[string]providers.Factory{
+				"test": testProviderFuncFixed(p),
+			},
+		),
+	})
+
+	diags := ctx.Validate()
+	if !diags.HasErrors() {
+		t.Fatal("succeeded; want errors")
+	}
+	// Should get this error:
+	// Reference to undeclared module: No module call named "foo" is declared in the root module.
+	if got, want := diags.Err().Error(), `no argument, nested block, or exported attribute named "does_not_exist_in_schema"`; strings.Index(got, want) == -1 {
+		t.Fatalf("wrong error:\ngot:  %s\nwant: message containing %q", got, want)
+	}
+}
