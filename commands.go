@@ -75,6 +75,7 @@ func initCommands(config *Config, services *disco.Disco) {
 		"force-unlock": struct{}{},
 		"push":         struct{}{},
 		"0.12upgrade":  struct{}{},
+		"langserver":   struct{}{},
 	}
 
 	Commands = map[string]cli.CommandFactory{
@@ -164,6 +165,12 @@ func initCommands(config *Config, services *disco.Disco) {
 
 		"internal-plugin": func() (cli.Command, error) {
 			return &command.InternalPluginCommand{
+				Meta: meta,
+			}, nil
+		},
+
+		"langserver": func() (cli.Command, error) {
+			return &command.LangServerCommand{
 				Meta: meta,
 			}, nil
 		},
