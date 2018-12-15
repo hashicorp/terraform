@@ -150,6 +150,18 @@ Since v0.12.0-alpha1 is an experimental build, this list is certainly incomplete
 
 In addition to the high-level known issues above, please refer also to [the GitHub issues for this alpha release](https://github.com/hashicorp/terraform/issues?utf8=%E2%9C%93&q=is%3Aissue+label%3Av0.12-alpha1+). This list will be updated with new reports throughout the alpha1 period, including workarounds where possible to allow for continued testing. (Issues shown in that list as closed indicate that the problem has been fixed for a future release; it is probably still present in the alpha1 release.)
 
+## 0.11.11 (December 14, 2018)
+
+IMPROVEMENTS:
+
+* backend/remote: Return detailed version (in)compatibility information ([#19659](https://github.com/hashicorp/terraform/issues/19659))
+* core: Enhance service discovery error handling and messaging ([#19589](https://github.com/hashicorp/terraform/issues/19589))
+* core: Add support to retrieve version constraints to service discovery ([#19647](https://github.com/hashicorp/terraform/issues/19647))
+
+BUG FIXES:
+
+* backend/remote: Fix symlink issues and Windows support when uploading configurations ([#19573](https://github.com/hashicorp/terraform/issues/19573))
+
 ## 0.11.10 (October 23, 2018)
 
 BUG FIXES:
