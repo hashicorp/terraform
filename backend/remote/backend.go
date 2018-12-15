@@ -224,7 +224,7 @@ func (b *Remote) Configure(obj cty.Value) tfdiags.Diagnostics {
 	}
 
 	// Check any retrieved constraints to make sure we are compatible.
-	if constraints == nil {
+	if constraints != nil {
 		diags = diags.Append(b.checkConstraints(constraints))
 	}
 
