@@ -39,9 +39,9 @@ func (u uri) Filename() string {
 	return filepath.Base(u.FullPath())
 }
 
-func (u uri) DirFilename() (dir, filename string) {
-	full := u.FullPath()
+func (u uri) PathParts() (full, dir, filename string) {
+	full = u.FullPath()
 	dir = filepath.Dir(full)
 	filename = filepath.Base(full)
-	return dir, filename
+	return full, dir, filename
 }

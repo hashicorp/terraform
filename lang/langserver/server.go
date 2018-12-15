@@ -46,6 +46,7 @@ func (s *server) Initialize(context.Context, *lsp.InitializeParams) (*lsp.Initia
 	log.Printf("[DEBUG] langserver: Initialize")
 	return &lsp.InitializeResult{
 		Capabilities: lsp.ServerCapabilities{
+			DocumentFormattingProvider: true,
 			TextDocumentSync: lsp.TextDocumentSyncOptions{
 				OpenClose: true,
 
@@ -228,9 +229,38 @@ func (s *server) ColorPresentation(context.Context, *lsp.ColorPresentationParams
 	return nil, notImplemented("ColorPresentation")
 }
 
-func (s *server) Formatting(context.Context, *lsp.DocumentFormattingParams) ([]lsp.TextEdit, error) {
+func (s *server) Formatting(ctx context.Context, req *lsp.DocumentFormattingParams) ([]lsp.TextEdit, error) {
 	log.Printf("[DEBUG] langserver: Formatting")
-	return nil, notImplemented("Formatting")
+	u := uri(req.TextDocument.URI)
+	new, err := s.fs.Format(u)
+	if err != nil {
+		return nil, err
+	}
+	// For now we just replace the entire file, but that means we need
+	// the whole file's source range.
+	astF := s.fs.FileAST(u)
+	if astF == nil {
+		// Shouldn't happen if formatting succeeded, but we'll accept it
+		// anyway to avoid a panic.
+		return nil, fmt.Errorf("failed to parse %q", u)
+	}
+	return []lsp.TextEdit{
+		{
+			Range: lsp.Range{
+				Start: lsp.Position{Line: 0, Character: 0},
+
+				// Since HCL's line numbers are 1-based but LSP is 0-based,
+				// this is intentionally pointing to one line _after_ the
+				// end of our file, so we don't need to convert the
+				// column number from grapheme clusters to UTF-16 code units.
+				// This is a cheat and we should implement incremental
+				// edits here rather than just overwriting the whole thing
+				// every time.
+				End: lsp.Position{Line: float64(astF.Body.MissingItemRange().End.Line), Character: 0},
+			},
+			NewText: string(new),
+		},
+	}, nil
 }
 
 func (s *server) RangeFormatting(context.Context, *lsp.DocumentRangeFormattingParams) ([]lsp.TextEdit, error) {
