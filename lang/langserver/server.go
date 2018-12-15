@@ -52,7 +52,7 @@ func (s *server) Initialize(context.Context, *lsp.InitializeParams) (*lsp.Initia
 
 				// For now we want whole-file updates only, since we're not
 				// ready to process partial changes.
-				Change: float64(lsp.Full),
+				Change: float64(lsp.Incremental),
 			},
 		},
 	}, nil
@@ -112,16 +112,7 @@ func (s *server) DidOpen(ctx context.Context, req *lsp.DidOpenTextDocumentParams
 func (s *server) DidChange(ctx context.Context, req *lsp.DidChangeTextDocumentParams) error {
 	log.Printf("[DEBUG] langserver: DidChange")
 	u := uri(req.TextDocument.URI)
-
-	// Should always have exactly one change because our capabilities
-	// tell the client we support only full-file updates.
-	if len(req.ContentChanges) != 1 {
-		return jsonrpc2.NewErrorf(jsonrpc2.CodeInternalError, "wrong number of content changes")
-	}
-	if change := req.ContentChanges[0]; change.RangeLength == 0 {
-		return s.fs.Change(u, []byte(change.Text))
-	}
-	return fmt.Errorf("change 0 has a range, but we expect a full file")
+	return s.fs.Change(u, req.ContentChanges)
 }
 
 func (s *server) WillSave(context.Context, *lsp.WillSaveTextDocumentParams) error {

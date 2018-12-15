@@ -27,6 +27,16 @@ func makeSourceLines(filename string, s []byte) sourceLines {
 			rng:     sc.Range(),
 		})
 	}
+	if len(ret) == 0 {
+		ret = append(ret, sourceLine{
+			content: nil,
+			rng: hcl.Range{
+				Filename: filename,
+				Start:    hcl.Pos{Line: 1, Column: 1},
+				End:      hcl.Pos{Line: 1, Column: 1},
+			},
+		})
+	}
 	return ret
 }
 
