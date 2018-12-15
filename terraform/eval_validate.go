@@ -366,6 +366,17 @@ func (n *EvalValidateResource) Eval(ctx EvalContext) (interface{}, error) {
 				Subject:  ref.Remaining.SourceRange().Ptr(),
 			})
 		}
+
+		// The ref must also refer to something that exists. To test that,
+		// we'll just eval it and count on the fact that our evaluator will
+		// detect references to non-existent objects.
+		if !diags.HasErrors() {
+			scope := ctx.EvaluationScope(nil, EvalDataForNoInstanceKey)
+			if scope != nil { // sometimes nil in tests, due to incomplete mocks
+				_, refDiags = scope.EvalReference(ref, cty.DynamicPseudoType)
+				diags = diags.Append(refDiags)
+			}
+		}
 	}
 
 	// Provider entry point varies depending on resource mode, because
@@ -388,6 +399,13 @@ func (n *EvalValidateResource) Eval(ctx EvalContext) (interface{}, error) {
 		diags = diags.Append(valDiags)
 		if valDiags.HasErrors() {
 			return nil, diags.Err()
+		}
+
+		if cfg.Managed != nil { // can be nil only in tests with poorly-configured mocks
+			for _, traversal := range cfg.Managed.IgnoreChanges {
+				moreDiags := schema.StaticValidateTraversal(traversal)
+				diags = diags.Append(moreDiags)
+			}
 		}
 
 		req := providers.ValidateResourceTypeConfigRequest{
