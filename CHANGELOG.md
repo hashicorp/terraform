@@ -154,9 +154,9 @@ In addition to the high-level known issues above, please refer also to [the GitH
 
 IMPROVEMENTS:
 
-* backend/remote: Return detailed version (in)compatibility information ([#19659](https://github.com/hashicorp/terraform/issues/19659))
-* core: Enhance service discovery error handling and messaging ([#19589](https://github.com/hashicorp/terraform/issues/19589))
-* core: Add support to retrieve version constraints to service discovery ([#19647](https://github.com/hashicorp/terraform/issues/19647))
+* backend/remote: Return detailed version (in)compatibility information ([#19660](https://github.com/hashicorp/terraform/issues/19660))
+* core: Enhance service discovery error handling and messaging ([#19660](https://github.com/hashicorp/terraform/issues/19660))
+* core: Add support to retrieve version constraints to service discovery ([#19660](https://github.com/hashicorp/terraform/issues/19660))
 
 BUG FIXES:
 
