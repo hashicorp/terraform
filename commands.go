@@ -91,6 +91,7 @@ func initCommands(config *cliconfig.Config, services *disco.Disco, providerSrc g
 		"force-unlock": struct{}{},
 		"push":         struct{}{},
 		"0.12upgrade":  struct{}{},
+		"langserver":   struct{}{},
 	}
 
 	Commands = map[string]cli.CommandFactory{
@@ -192,6 +193,12 @@ func initCommands(config *cliconfig.Config, services *disco.Disco, providerSrc g
 
 		"logout": func() (cli.Command, error) {
 			return &command.LogoutCommand{
+				Meta: meta,
+			}, nil
+		},
+
+		"langserver": func() (cli.Command, error) {
+			return &command.LangServerCommand{
 				Meta: meta,
 			}, nil
 		},
