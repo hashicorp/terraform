@@ -154,6 +154,10 @@ func (s *Scope) EvalContext(refs []*addrs.Reference) (*hcl.EvalContext, tfdiags.
 }
 
 func (s *Scope) evalContext(refs []*addrs.Reference, selfAddr addrs.Referenceable) (*hcl.EvalContext, tfdiags.Diagnostics) {
+	if s == nil {
+		panic("attempt to construct EvalContext for nil Scope")
+	}
+
 	var diags tfdiags.Diagnostics
 	vals := make(map[string]cty.Value)
 	funcs := s.Functions()
