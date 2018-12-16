@@ -53,6 +53,7 @@ func (s *server) Initialize(context.Context, *lsp.InitializeParams) (*lsp.Initia
 				// ready to process partial changes.
 				Change: float64(lsp.Incremental),
 			},
+			DefinitionProvider: true,
 		},
 	}, nil
 }
@@ -155,9 +156,18 @@ func (s *server) SignatureHelp(context.Context, *lsp.TextDocumentPositionParams)
 	return nil, notImplemented("SignatureHelp")
 }
 
-func (s *server) Definition(context.Context, *lsp.TextDocumentPositionParams) ([]lsp.Location, error) {
+func (s *server) Definition(ctx context.Context, req *lsp.TextDocumentPositionParams) ([]lsp.Location, error) {
 	log.Printf("[DEBUG] langserver: Definition")
-	return nil, notImplemented("Definition")
+	u := uri(req.TextDocument.URI)
+	ref := s.fs.ResolveRefAtPos(u, req.Position)
+	if ref == nil {
+		return nil, nil
+	}
+	loc := s.fs.FindDefinition(u, ref)
+	if loc.URI == "" {
+		return nil, nil
+	}
+	return []lsp.Location{loc}, nil
 }
 
 func (s *server) TypeDefinition(context.Context, *lsp.TextDocumentPositionParams) ([]lsp.Location, error) {

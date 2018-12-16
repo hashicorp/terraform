@@ -11,6 +11,8 @@ import (
 	"github.com/hashicorp/hcl/v2/hclwrite"
 	encunicode "golang.org/x/text/encoding/unicode"
 
+	"github.com/hashicorp/terraform/addrs"
+	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/internal/lsp"
 	"github.com/hashicorp/terraform/tfdiags"
 )
@@ -35,9 +37,12 @@ type file struct {
 
 	ls    sourceLines
 	errs  bool
-	diags tfdiags.Diagnostics
 	ast   *hcl.File
 	wrAST *hclwrite.File
+	cfg   *configs.File
+
+	parseDiags tfdiags.Diagnostics
+	fullDiags  tfdiags.Diagnostics
 }
 
 func newFilesystem() *filesystem {
@@ -137,6 +142,44 @@ func (fs *filesystem) FileDiagnostics(u uri) tfdiags.Diagnostics {
 	}
 
 	return f.diagnostics()
+}
+
+func (fs *filesystem) ResolveRefAtPos(u uri, pos lsp.Position) *addrs.Reference {
+	fs.mu.Lock()
+	defer fs.mu.Unlock()
+
+	// FIXME: This method should work with non-open files too, reading them
+	// from disk and caching them.
+	f := fs.file(u)
+	if f == nil {
+		return nil
+	}
+
+	return f.resolveRefAtPos(pos)
+}
+
+func (fs *filesystem) FindDefinition(u uri, ref *addrs.Reference) lsp.Location {
+	fs.mu.Lock()
+	defer fs.mu.Unlock()
+
+	if !u.Valid() {
+		return lsp.Location{}
+	}
+
+	// FIXME: As a proof-of-concept this currently looks only in the specific
+	// file given, and only if the file is open. This should actually construct
+	// the full module for the directory containing u and try to find the
+	// object in there.
+	f := fs.file(u)
+	if f == nil {
+		return lsp.Location{}
+	}
+
+	rng := f.findDefinition(ref)
+	return lsp.Location{
+		URI:   u.LSPDocumentURI(),
+		Range: rng,
+	}
 }
 
 func (fs *filesystem) file(u uri) *file {
@@ -261,14 +304,45 @@ func (f *file) makeTextEdits(new []byte) []lsp.TextEdit {
 	return makeTextEdits(oldLs, newLs, 0.15)
 }
 
+// resolveRefAtPos attempts to find a reference at the given source location,
+// returning a non-nil result if possible.
+// Returns nil if there is nothing reference-like at the given location.
+//
+// Traversals are the main thing this method looks for, but it will also
+// accept a position within the header of a declaration block as a reference
+// to the object created by that block.
+func (f *file) resolveRefAtPos(pos lsp.Position) *addrs.Reference {
+	ast := f.hclAST()
+	cf := f.config()
+	hclPos := f.lines().posLSPToHCL(pos)
+	return refAtPos(hclPos, ast, cf)
+}
+
+func (f *file) findDefinition(ref *addrs.Reference) lsp.Range {
+	ast := f.hclAST()
+	cf := f.config()
+	rng := findDefinition(ref, ast, cf)
+	return f.lines().rangeHCLToLSP(rng)
+}
+
 func (f *file) diagnostics() tfdiags.Diagnostics {
-	if f.diags != nil {
-		return f.diags
+	if f.fullDiags != nil {
+		return f.fullDiags
+	}
+	if f.parseDiags != nil {
+		return f.parseDiags
 	}
 	// FIXME: Unfortunate that we just keep re-parsing every time
 	// if there are no errors.
 	_ = f.hclAST()
-	return f.diags
+	return f.parseDiags
+}
+
+func (f *file) config() *configs.File {
+	if f.cfg == nil {
+		f.cfg, f.fullDiags = configFile(f.fullPath, f.content)
+	}
+	return f.cfg
 }
 
 func (f *file) hclAST() *hcl.File {
@@ -279,8 +353,8 @@ func (f *file) hclAST() *hcl.File {
 		return f.ast
 	}
 	hf, diags := hclsyntax.ParseConfig(f.content, f.fullPath, hcl.Pos{Line: 1, Column: 1})
-	f.diags = nil
-	f.diags = f.diags.Append(diags)
+	f.parseDiags = nil
+	f.parseDiags = f.parseDiags.Append(diags)
 	if diags.HasErrors() {
 		f.errs = true
 		return nil
@@ -297,8 +371,8 @@ func (f *file) hclWriteAST() *hclwrite.File {
 		return f.wrAST
 	}
 	hf, diags := hclwrite.ParseConfig(f.content, f.fullPath, hcl.Pos{Line: 1, Column: 1})
-	f.diags = nil
-	f.diags = f.diags.Append(diags)
+	f.parseDiags = nil
+	f.parseDiags = f.parseDiags.Append(diags)
 	if diags.HasErrors() {
 		f.errs = true
 		return nil
@@ -312,6 +386,7 @@ func (f *file) change(s []byte) {
 	f.ls = nil
 	f.wrAST = nil
 	f.ast = nil
-	f.diags = nil
+	f.parseDiags = nil
+	f.fullDiags = nil
 	f.errs = false
 }
