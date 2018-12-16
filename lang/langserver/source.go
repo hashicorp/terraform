@@ -40,6 +40,15 @@ func makeSourceLines(filename string, s []byte) sourceLines {
 	return ret
 }
 
+// rangeHCLToLSP converts a range in HCL's representation to the equivalent
+// position in LSP's.
+func (ls sourceLines) rangeHCLToLSP(in hcl.Range) lsp.Range {
+	return lsp.Range{
+		Start: ls.posHCLToLSP(in.Start),
+		End:   ls.posHCLToLSP(in.End),
+	}
+}
+
 // posLSPToHCL converts a position in LSP's representation into the equivalent
 // position in HCL's representation. If the given position is not within the
 // content then the result is undefined.

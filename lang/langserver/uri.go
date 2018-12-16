@@ -4,6 +4,8 @@ import (
 	"net/url"
 	"path/filepath"
 	"strings"
+
+	"github.com/hashicorp/terraform/internal/lsp"
 )
 
 const uriPrefix = "file://"
@@ -44,4 +46,8 @@ func (u uri) PathParts() (full, dir, filename string) {
 	dir = filepath.Dir(full)
 	filename = filepath.Base(full)
 	return full, dir, filename
+}
+
+func (u uri) LSPDocumentURI() lsp.DocumentURI {
+	return lsp.DocumentURI(u)
 }
