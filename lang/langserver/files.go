@@ -97,7 +97,7 @@ func (fs *filesystem) Close(u uri) error {
 	return nil
 }
 
-func (fs *filesystem) Format(u uri) ([]byte, error) {
+func (fs *filesystem) Format(u uri) ([]lsp.TextEdit, error) {
 	fs.mu.Lock()
 	defer fs.mu.Unlock()
 
@@ -107,7 +107,8 @@ func (fs *filesystem) Format(u uri) ([]byte, error) {
 	}
 
 	s, _ := formatSource(f.content)
-	return s, nil
+
+	return f.makeTextEdits(s), nil
 }
 
 func (fs *filesystem) FileAST(u uri) *hcl.File {
@@ -252,6 +253,12 @@ func (f *file) applyChange(ch lsp.TextDocumentContentChangeEvent) {
 	resultBuf = append(resultBuf, f.content[endByte:]...)
 
 	f.change(resultBuf)
+}
+
+func (f *file) makeTextEdits(new []byte) []lsp.TextEdit {
+	oldLs := f.lines()
+	newLs := makeSourceLines(f.fullPath, new)
+	return makeTextEdits(oldLs, newLs, 0.15)
 }
 
 func (f *file) diagnostics() tfdiags.Diagnostics {

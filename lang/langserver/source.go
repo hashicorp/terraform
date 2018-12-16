@@ -118,6 +118,29 @@ func (l sourceLine) allASCII() bool {
 	return bytes == columns
 }
 
+// lspLen returns the length of the content of this line in characters as the
+// LSP thinks of them, which is by counting how many code units would represent
+// this string in UTF-16.
+func (l sourceLine) lspLen() int {
+	if l.allASCII() {
+		// Easy path: length is the byte length
+		return len(l.content)
+	}
+
+	chars := 0
+	remain := l.content
+	for len(remain) > 0 {
+		r, l := utf8.DecodeRune(remain)
+		remain = remain[l:]
+		if r1, r2 := utf16.EncodeRune(r); r1 == 0xfffd && r2 == 0xfffd {
+			chars++ // only one code unit needed for this one
+		} else {
+			chars += 2 // needs a surrogate pair
+		}
+	}
+	return chars
+}
+
 // posForLSPColumn takes an lsp.Position.Character value for the receving line
 // and finds the equivalent hcl.Pos for it.
 func (l sourceLine) posForLSPColumn(lspCol float64) hcl.Pos {
