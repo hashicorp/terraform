@@ -6,6 +6,7 @@ IMPROVEMENTS:
 * backend/azurerm: Support for authenticating using the Azure CLI [GH-19465]
 * backend/remote: Return detailed version (in)compatibility information [GH-19659]
 * backend/s3: Support DynamoDB, IAM, and STS endpoint configurations [GH-19571]
+* backend/s3: Support for the new AWS region `eu-north-1` [GH-19651]
 * core: Enhance service discovery error handling and messaging [GH-19589]
 * core: Add support to retrieve version constraints to service discovery [GH-19647]
 
