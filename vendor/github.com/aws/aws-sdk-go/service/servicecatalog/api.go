@@ -9,6 +9,8 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awsutil"
 	"github.com/aws/aws-sdk-go/aws/request"
+	"github.com/aws/aws-sdk-go/private/protocol"
+	"github.com/aws/aws-sdk-go/private/protocol/jsonrpc"
 )
 
 const opAcceptPortfolioShare = "AcceptPortfolioShare"
@@ -50,6 +52,7 @@ func (c *ServiceCatalog) AcceptPortfolioShareRequest(input *AcceptPortfolioShare
 
 	output = &AcceptPortfolioShareOutput{}
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(jsonrpc.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -137,6 +140,7 @@ func (c *ServiceCatalog) AssociatePrincipalWithPortfolioRequest(input *Associate
 
 	output = &AssociatePrincipalWithPortfolioOutput{}
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(jsonrpc.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -224,6 +228,7 @@ func (c *ServiceCatalog) AssociateProductWithPortfolioRequest(input *AssociatePr
 
 	output = &AssociateProductWithPortfolioOutput{}
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(jsonrpc.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -311,6 +316,7 @@ func (c *ServiceCatalog) AssociateServiceActionWithProvisioningArtifactRequest(i
 
 	output = &AssociateServiceActionWithProvisioningArtifactOutput{}
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(jsonrpc.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -398,6 +404,7 @@ func (c *ServiceCatalog) AssociateTagOptionWithResourceRequest(input *AssociateT
 
 	output = &AssociateTagOptionWithResourceOutput{}
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(jsonrpc.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -930,7 +937,10 @@ func (c *ServiceCatalog) CreatePortfolioShareRequest(input *CreatePortfolioShare
 
 // CreatePortfolioShare API operation for AWS Service Catalog.
 //
-// Shares the specified portfolio with the specified account.
+// Shares the specified portfolio with the specified account or organization
+// node. Shares to an organization node can only be created by the master account
+// of an Organization. AWSOrganizationsAccess must be enabled in order to create
+// a portfolio share to an organization node.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -950,6 +960,9 @@ func (c *ServiceCatalog) CreatePortfolioShareRequest(input *CreatePortfolioShare
 //
 //   * ErrCodeInvalidParametersException "InvalidParametersException"
 //   One or more parameters provided to the operation are not valid.
+//
+//   * ErrCodeOperationNotSupportedException "OperationNotSupportedException"
+//   The operation is not supported.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/servicecatalog-2015-12-10/CreatePortfolioShare
 func (c *ServiceCatalog) CreatePortfolioShare(input *CreatePortfolioShareInput) (*CreatePortfolioShareOutput, error) {
@@ -1460,6 +1473,7 @@ func (c *ServiceCatalog) DeleteConstraintRequest(input *DeleteConstraintInput) (
 
 	output = &DeleteConstraintOutput{}
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(jsonrpc.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -1542,6 +1556,7 @@ func (c *ServiceCatalog) DeletePortfolioRequest(input *DeletePortfolioInput) (re
 
 	output = &DeletePortfolioOutput{}
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(jsonrpc.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -1641,7 +1656,9 @@ func (c *ServiceCatalog) DeletePortfolioShareRequest(input *DeletePortfolioShare
 
 // DeletePortfolioShare API operation for AWS Service Catalog.
 //
-// Stops sharing the specified portfolio with the specified account.
+// Stops sharing the specified portfolio with the specified account or organization
+// node. Shares to an organization node can only be deleted by the master account
+// of an Organization.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -1653,6 +1670,12 @@ func (c *ServiceCatalog) DeletePortfolioShareRequest(input *DeletePortfolioShare
 // Returned Error Codes:
 //   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
 //   The specified resource was not found.
+//
+//   * ErrCodeInvalidParametersException "InvalidParametersException"
+//   One or more parameters provided to the operation are not valid.
+//
+//   * ErrCodeOperationNotSupportedException "OperationNotSupportedException"
+//   The operation is not supported.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/servicecatalog-2015-12-10/DeletePortfolioShare
 func (c *ServiceCatalog) DeletePortfolioShare(input *DeletePortfolioShareInput) (*DeletePortfolioShareOutput, error) {
@@ -1715,6 +1738,7 @@ func (c *ServiceCatalog) DeleteProductRequest(input *DeleteProductInput) (req *r
 
 	output = &DeleteProductOutput{}
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(jsonrpc.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -1809,6 +1833,7 @@ func (c *ServiceCatalog) DeleteProvisionedProductPlanRequest(input *DeleteProvis
 
 	output = &DeleteProvisionedProductPlanOutput{}
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(jsonrpc.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -1891,6 +1916,7 @@ func (c *ServiceCatalog) DeleteProvisioningArtifactRequest(input *DeleteProvisio
 
 	output = &DeleteProvisioningArtifactOutput{}
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(jsonrpc.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -1982,6 +2008,7 @@ func (c *ServiceCatalog) DeleteServiceActionRequest(input *DeleteServiceActionIn
 
 	output = &DeleteServiceActionOutput{}
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(jsonrpc.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -2065,6 +2092,7 @@ func (c *ServiceCatalog) DeleteTagOptionRequest(input *DeleteTagOptionInput) (re
 
 	output = &DeleteTagOptionOutput{}
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(jsonrpc.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -2348,6 +2376,92 @@ func (c *ServiceCatalog) DescribePortfolio(input *DescribePortfolioInput) (*Desc
 // for more information on using Contexts.
 func (c *ServiceCatalog) DescribePortfolioWithContext(ctx aws.Context, input *DescribePortfolioInput, opts ...request.Option) (*DescribePortfolioOutput, error) {
 	req, out := c.DescribePortfolioRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+const opDescribePortfolioShareStatus = "DescribePortfolioShareStatus"
+
+// DescribePortfolioShareStatusRequest generates a "aws/request.Request" representing the
+// client's request for the DescribePortfolioShareStatus operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See DescribePortfolioShareStatus for more information on using the DescribePortfolioShareStatus
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the DescribePortfolioShareStatusRequest method.
+//    req, resp := client.DescribePortfolioShareStatusRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/servicecatalog-2015-12-10/DescribePortfolioShareStatus
+func (c *ServiceCatalog) DescribePortfolioShareStatusRequest(input *DescribePortfolioShareStatusInput) (req *request.Request, output *DescribePortfolioShareStatusOutput) {
+	op := &request.Operation{
+		Name:       opDescribePortfolioShareStatus,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &DescribePortfolioShareStatusInput{}
+	}
+
+	output = &DescribePortfolioShareStatusOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// DescribePortfolioShareStatus API operation for AWS Service Catalog.
+//
+// Gets the status of the specified portfolio share operation. This API can
+// only be called by the master account in the organization.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Service Catalog's
+// API operation DescribePortfolioShareStatus for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
+//   The specified resource was not found.
+//
+//   * ErrCodeInvalidParametersException "InvalidParametersException"
+//   One or more parameters provided to the operation are not valid.
+//
+//   * ErrCodeOperationNotSupportedException "OperationNotSupportedException"
+//   The operation is not supported.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/servicecatalog-2015-12-10/DescribePortfolioShareStatus
+func (c *ServiceCatalog) DescribePortfolioShareStatus(input *DescribePortfolioShareStatusInput) (*DescribePortfolioShareStatusOutput, error) {
+	req, out := c.DescribePortfolioShareStatusRequest(input)
+	return out, req.Send()
+}
+
+// DescribePortfolioShareStatusWithContext is the same as DescribePortfolioShareStatus with the addition of
+// the ability to pass a context and additional request options.
+//
+// See DescribePortfolioShareStatus for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *ServiceCatalog) DescribePortfolioShareStatusWithContext(ctx aws.Context, input *DescribePortfolioShareStatusInput, opts ...request.Option) (*DescribePortfolioShareStatusOutput, error) {
+	req, out := c.DescribePortfolioShareStatusRequest(input)
 	req.SetContext(ctx)
 	req.ApplyOptions(opts...)
 	return out, req.Send()
@@ -3173,6 +3287,98 @@ func (c *ServiceCatalog) DescribeTagOptionWithContext(ctx aws.Context, input *De
 	return out, req.Send()
 }
 
+const opDisableAWSOrganizationsAccess = "DisableAWSOrganizationsAccess"
+
+// DisableAWSOrganizationsAccessRequest generates a "aws/request.Request" representing the
+// client's request for the DisableAWSOrganizationsAccess operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See DisableAWSOrganizationsAccess for more information on using the DisableAWSOrganizationsAccess
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the DisableAWSOrganizationsAccessRequest method.
+//    req, resp := client.DisableAWSOrganizationsAccessRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/servicecatalog-2015-12-10/DisableAWSOrganizationsAccess
+func (c *ServiceCatalog) DisableAWSOrganizationsAccessRequest(input *DisableAWSOrganizationsAccessInput) (req *request.Request, output *DisableAWSOrganizationsAccessOutput) {
+	op := &request.Operation{
+		Name:       opDisableAWSOrganizationsAccess,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &DisableAWSOrganizationsAccessInput{}
+	}
+
+	output = &DisableAWSOrganizationsAccessOutput{}
+	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(jsonrpc.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
+	return
+}
+
+// DisableAWSOrganizationsAccess API operation for AWS Service Catalog.
+//
+// Disable portfolio sharing through AWS Organizations feature. This feature
+// will not delete your current shares but it will prevent you from creating
+// new shares throughout your organization. Current shares will not be in sync
+// with your organization structure if it changes after calling this API. This
+// API can only be called by the master account in the organization.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Service Catalog's
+// API operation DisableAWSOrganizationsAccess for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
+//   The specified resource was not found.
+//
+//   * ErrCodeInvalidStateException "InvalidStateException"
+//   An attempt was made to modify a resource that is in a state that is not valid.
+//   Check your resources to ensure that they are in valid states before retrying
+//   the operation.
+//
+//   * ErrCodeOperationNotSupportedException "OperationNotSupportedException"
+//   The operation is not supported.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/servicecatalog-2015-12-10/DisableAWSOrganizationsAccess
+func (c *ServiceCatalog) DisableAWSOrganizationsAccess(input *DisableAWSOrganizationsAccessInput) (*DisableAWSOrganizationsAccessOutput, error) {
+	req, out := c.DisableAWSOrganizationsAccessRequest(input)
+	return out, req.Send()
+}
+
+// DisableAWSOrganizationsAccessWithContext is the same as DisableAWSOrganizationsAccess with the addition of
+// the ability to pass a context and additional request options.
+//
+// See DisableAWSOrganizationsAccess for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *ServiceCatalog) DisableAWSOrganizationsAccessWithContext(ctx aws.Context, input *DisableAWSOrganizationsAccessInput, opts ...request.Option) (*DisableAWSOrganizationsAccessOutput, error) {
+	req, out := c.DisableAWSOrganizationsAccessRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
 const opDisassociatePrincipalFromPortfolio = "DisassociatePrincipalFromPortfolio"
 
 // DisassociatePrincipalFromPortfolioRequest generates a "aws/request.Request" representing the
@@ -3212,6 +3418,7 @@ func (c *ServiceCatalog) DisassociatePrincipalFromPortfolioRequest(input *Disass
 
 	output = &DisassociatePrincipalFromPortfolioOutput{}
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(jsonrpc.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -3294,6 +3501,7 @@ func (c *ServiceCatalog) DisassociateProductFromPortfolioRequest(input *Disassoc
 
 	output = &DisassociateProductFromPortfolioOutput{}
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(jsonrpc.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -3380,6 +3588,7 @@ func (c *ServiceCatalog) DisassociateServiceActionFromProvisioningArtifactReques
 
 	output = &DisassociateServiceActionFromProvisioningArtifactOutput{}
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(jsonrpc.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -3460,6 +3669,7 @@ func (c *ServiceCatalog) DisassociateTagOptionFromResourceRequest(input *Disasso
 
 	output = &DisassociateTagOptionFromResourceOutput{}
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(jsonrpc.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -3500,6 +3710,101 @@ func (c *ServiceCatalog) DisassociateTagOptionFromResource(input *DisassociateTa
 // for more information on using Contexts.
 func (c *ServiceCatalog) DisassociateTagOptionFromResourceWithContext(ctx aws.Context, input *DisassociateTagOptionFromResourceInput, opts ...request.Option) (*DisassociateTagOptionFromResourceOutput, error) {
 	req, out := c.DisassociateTagOptionFromResourceRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+const opEnableAWSOrganizationsAccess = "EnableAWSOrganizationsAccess"
+
+// EnableAWSOrganizationsAccessRequest generates a "aws/request.Request" representing the
+// client's request for the EnableAWSOrganizationsAccess operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See EnableAWSOrganizationsAccess for more information on using the EnableAWSOrganizationsAccess
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the EnableAWSOrganizationsAccessRequest method.
+//    req, resp := client.EnableAWSOrganizationsAccessRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/servicecatalog-2015-12-10/EnableAWSOrganizationsAccess
+func (c *ServiceCatalog) EnableAWSOrganizationsAccessRequest(input *EnableAWSOrganizationsAccessInput) (req *request.Request, output *EnableAWSOrganizationsAccessOutput) {
+	op := &request.Operation{
+		Name:       opEnableAWSOrganizationsAccess,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &EnableAWSOrganizationsAccessInput{}
+	}
+
+	output = &EnableAWSOrganizationsAccessOutput{}
+	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(jsonrpc.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
+	return
+}
+
+// EnableAWSOrganizationsAccess API operation for AWS Service Catalog.
+//
+// Enable portfolio sharing feature through AWS Organizations. This API will
+// allow Service Catalog to receive updates on your organization in order to
+// sync your shares with the current structure. This API can only be called
+// by the master account in the organization.
+//
+// By calling this API Service Catalog will make a call to organizations:EnableAWSServiceAccess
+// on your behalf so that your shares can be in sync with any changes in your
+// AWS Organizations structure.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Service Catalog's
+// API operation EnableAWSOrganizationsAccess for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
+//   The specified resource was not found.
+//
+//   * ErrCodeInvalidStateException "InvalidStateException"
+//   An attempt was made to modify a resource that is in a state that is not valid.
+//   Check your resources to ensure that they are in valid states before retrying
+//   the operation.
+//
+//   * ErrCodeOperationNotSupportedException "OperationNotSupportedException"
+//   The operation is not supported.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/servicecatalog-2015-12-10/EnableAWSOrganizationsAccess
+func (c *ServiceCatalog) EnableAWSOrganizationsAccess(input *EnableAWSOrganizationsAccessInput) (*EnableAWSOrganizationsAccessOutput, error) {
+	req, out := c.EnableAWSOrganizationsAccessRequest(input)
+	return out, req.Send()
+}
+
+// EnableAWSOrganizationsAccessWithContext is the same as EnableAWSOrganizationsAccess with the addition of
+// the ability to pass a context and additional request options.
+//
+// See EnableAWSOrganizationsAccess for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *ServiceCatalog) EnableAWSOrganizationsAccessWithContext(ctx aws.Context, input *EnableAWSOrganizationsAccessInput, opts ...request.Option) (*EnableAWSOrganizationsAccessOutput, error) {
+	req, out := c.EnableAWSOrganizationsAccessRequest(input)
 	req.SetContext(ctx)
 	req.ApplyOptions(opts...)
 	return out, req.Send()
@@ -3680,6 +3985,89 @@ func (c *ServiceCatalog) ExecuteProvisionedProductServiceActionWithContext(ctx a
 	return out, req.Send()
 }
 
+const opGetAWSOrganizationsAccessStatus = "GetAWSOrganizationsAccessStatus"
+
+// GetAWSOrganizationsAccessStatusRequest generates a "aws/request.Request" representing the
+// client's request for the GetAWSOrganizationsAccessStatus operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See GetAWSOrganizationsAccessStatus for more information on using the GetAWSOrganizationsAccessStatus
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the GetAWSOrganizationsAccessStatusRequest method.
+//    req, resp := client.GetAWSOrganizationsAccessStatusRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/servicecatalog-2015-12-10/GetAWSOrganizationsAccessStatus
+func (c *ServiceCatalog) GetAWSOrganizationsAccessStatusRequest(input *GetAWSOrganizationsAccessStatusInput) (req *request.Request, output *GetAWSOrganizationsAccessStatusOutput) {
+	op := &request.Operation{
+		Name:       opGetAWSOrganizationsAccessStatus,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &GetAWSOrganizationsAccessStatusInput{}
+	}
+
+	output = &GetAWSOrganizationsAccessStatusOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// GetAWSOrganizationsAccessStatus API operation for AWS Service Catalog.
+//
+// Get the Access Status for AWS Organization portfolio share feature. This
+// API can only be called by the master account in the organization.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Service Catalog's
+// API operation GetAWSOrganizationsAccessStatus for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
+//   The specified resource was not found.
+//
+//   * ErrCodeOperationNotSupportedException "OperationNotSupportedException"
+//   The operation is not supported.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/servicecatalog-2015-12-10/GetAWSOrganizationsAccessStatus
+func (c *ServiceCatalog) GetAWSOrganizationsAccessStatus(input *GetAWSOrganizationsAccessStatusInput) (*GetAWSOrganizationsAccessStatusOutput, error) {
+	req, out := c.GetAWSOrganizationsAccessStatusRequest(input)
+	return out, req.Send()
+}
+
+// GetAWSOrganizationsAccessStatusWithContext is the same as GetAWSOrganizationsAccessStatus with the addition of
+// the ability to pass a context and additional request options.
+//
+// See GetAWSOrganizationsAccessStatus for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *ServiceCatalog) GetAWSOrganizationsAccessStatusWithContext(ctx aws.Context, input *GetAWSOrganizationsAccessStatusInput, opts ...request.Option) (*GetAWSOrganizationsAccessStatusOutput, error) {
+	req, out := c.GetAWSOrganizationsAccessStatusRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
 const opListAcceptedPortfolioShares = "ListAcceptedPortfolioShares"
 
 // ListAcceptedPortfolioSharesRequest generates a "aws/request.Request" representing the
@@ -3742,6 +4130,9 @@ func (c *ServiceCatalog) ListAcceptedPortfolioSharesRequest(input *ListAcceptedP
 // Returned Error Codes:
 //   * ErrCodeInvalidParametersException "InvalidParametersException"
 //   One or more parameters provided to the operation are not valid.
+//
+//   * ErrCodeOperationNotSupportedException "OperationNotSupportedException"
+//   The operation is not supported.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/servicecatalog-2015-12-10/ListAcceptedPortfolioShares
 func (c *ServiceCatalog) ListAcceptedPortfolioShares(input *ListAcceptedPortfolioSharesInput) (*ListAcceptedPortfolioSharesOutput, error) {
@@ -4089,6 +4480,148 @@ func (c *ServiceCatalog) ListLaunchPathsPagesWithContext(ctx aws.Context, input 
 	cont := true
 	for p.Next() && cont {
 		cont = fn(p.Page().(*ListLaunchPathsOutput), !p.HasNextPage())
+	}
+	return p.Err()
+}
+
+const opListOrganizationPortfolioAccess = "ListOrganizationPortfolioAccess"
+
+// ListOrganizationPortfolioAccessRequest generates a "aws/request.Request" representing the
+// client's request for the ListOrganizationPortfolioAccess operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See ListOrganizationPortfolioAccess for more information on using the ListOrganizationPortfolioAccess
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the ListOrganizationPortfolioAccessRequest method.
+//    req, resp := client.ListOrganizationPortfolioAccessRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/servicecatalog-2015-12-10/ListOrganizationPortfolioAccess
+func (c *ServiceCatalog) ListOrganizationPortfolioAccessRequest(input *ListOrganizationPortfolioAccessInput) (req *request.Request, output *ListOrganizationPortfolioAccessOutput) {
+	op := &request.Operation{
+		Name:       opListOrganizationPortfolioAccess,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+		Paginator: &request.Paginator{
+			InputTokens:     []string{"PageToken"},
+			OutputTokens:    []string{"NextPageToken"},
+			LimitToken:      "PageSize",
+			TruncationToken: "",
+		},
+	}
+
+	if input == nil {
+		input = &ListOrganizationPortfolioAccessInput{}
+	}
+
+	output = &ListOrganizationPortfolioAccessOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// ListOrganizationPortfolioAccess API operation for AWS Service Catalog.
+//
+// Lists the organization nodes that have access to the specified portfolio.
+// This API can only be called by the master account in the organization.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Service Catalog's
+// API operation ListOrganizationPortfolioAccess for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
+//   The specified resource was not found.
+//
+//   * ErrCodeInvalidParametersException "InvalidParametersException"
+//   One or more parameters provided to the operation are not valid.
+//
+//   * ErrCodeOperationNotSupportedException "OperationNotSupportedException"
+//   The operation is not supported.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/servicecatalog-2015-12-10/ListOrganizationPortfolioAccess
+func (c *ServiceCatalog) ListOrganizationPortfolioAccess(input *ListOrganizationPortfolioAccessInput) (*ListOrganizationPortfolioAccessOutput, error) {
+	req, out := c.ListOrganizationPortfolioAccessRequest(input)
+	return out, req.Send()
+}
+
+// ListOrganizationPortfolioAccessWithContext is the same as ListOrganizationPortfolioAccess with the addition of
+// the ability to pass a context and additional request options.
+//
+// See ListOrganizationPortfolioAccess for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *ServiceCatalog) ListOrganizationPortfolioAccessWithContext(ctx aws.Context, input *ListOrganizationPortfolioAccessInput, opts ...request.Option) (*ListOrganizationPortfolioAccessOutput, error) {
+	req, out := c.ListOrganizationPortfolioAccessRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+// ListOrganizationPortfolioAccessPages iterates over the pages of a ListOrganizationPortfolioAccess operation,
+// calling the "fn" function with the response data for each page. To stop
+// iterating, return false from the fn function.
+//
+// See ListOrganizationPortfolioAccess method for more information on how to use this operation.
+//
+// Note: This operation can generate multiple requests to a service.
+//
+//    // Example iterating over at most 3 pages of a ListOrganizationPortfolioAccess operation.
+//    pageNum := 0
+//    err := client.ListOrganizationPortfolioAccessPages(params,
+//        func(page *ListOrganizationPortfolioAccessOutput, lastPage bool) bool {
+//            pageNum++
+//            fmt.Println(page)
+//            return pageNum <= 3
+//        })
+//
+func (c *ServiceCatalog) ListOrganizationPortfolioAccessPages(input *ListOrganizationPortfolioAccessInput, fn func(*ListOrganizationPortfolioAccessOutput, bool) bool) error {
+	return c.ListOrganizationPortfolioAccessPagesWithContext(aws.BackgroundContext(), input, fn)
+}
+
+// ListOrganizationPortfolioAccessPagesWithContext same as ListOrganizationPortfolioAccessPages except
+// it takes a Context and allows setting request options on the pages.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *ServiceCatalog) ListOrganizationPortfolioAccessPagesWithContext(ctx aws.Context, input *ListOrganizationPortfolioAccessInput, fn func(*ListOrganizationPortfolioAccessOutput, bool) bool, opts ...request.Option) error {
+	p := request.Pagination{
+		NewRequest: func() (*request.Request, error) {
+			var inCpy *ListOrganizationPortfolioAccessInput
+			if input != nil {
+				tmp := *input
+				inCpy = &tmp
+			}
+			req, _ := c.ListOrganizationPortfolioAccessRequest(inCpy)
+			req.SetContext(ctx)
+			req.ApplyOptions(opts...)
+			return req, nil
+		},
+	}
+
+	cont := true
+	for p.Next() && cont {
+		cont = fn(p.Page().(*ListOrganizationPortfolioAccessOutput), !p.HasNextPage())
 	}
 	return p.Err()
 }
@@ -5658,6 +6191,7 @@ func (c *ServiceCatalog) RejectPortfolioShareRequest(input *RejectPortfolioShare
 
 	output = &RejectPortfolioShareOutput{}
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(jsonrpc.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -6897,6 +7431,20 @@ type AcceptPortfolioShareInput struct {
 	//
 	// PortfolioId is a required field
 	PortfolioId *string `min:"1" type:"string" required:"true"`
+
+	// The type of shared portfolios to accept. The default is to accept imported
+	// portfolios.
+	//
+	//    * AWS_ORGANIZATIONS - Accept portfolios shared by the master account of
+	//    your organization.
+	//
+	//    * IMPORTED - Accept imported portfolios.
+	//
+	//    * AWS_SERVICECATALOG - Not supported. (Throws ResourceNotFoundException.)
+	//
+	// For example, aws servicecatalog accept-portfolio-share --portfolio-id "port-2qwzkwxt3y5fk"
+	// --portfolio-share-type AWS_ORGANIZATIONS
+	PortfolioShareType *string `type:"string" enum:"PortfolioShareType"`
 }
 
 // String returns the string representation
@@ -6934,6 +7482,12 @@ func (s *AcceptPortfolioShareInput) SetAcceptLanguage(v string) *AcceptPortfolio
 // SetPortfolioId sets the PortfolioId field's value.
 func (s *AcceptPortfolioShareInput) SetPortfolioId(v string) *AcceptPortfolioShareInput {
 	s.PortfolioId = &v
+	return s
+}
+
+// SetPortfolioShareType sets the PortfolioShareType field's value.
+func (s *AcceptPortfolioShareInput) SetPortfolioShareType(v string) *AcceptPortfolioShareInput {
+	s.PortfolioShareType = &v
 	return s
 }
 
@@ -7588,6 +8142,8 @@ type ConstraintDetail struct {
 	//
 	//    * NOTIFICATION
 	//
+	//    * STACKSET
+	//
 	//    * TEMPLATE
 	Type *string `min:"1" type:"string"`
 }
@@ -7638,6 +8194,8 @@ type ConstraintSummary struct {
 	//    * LAUNCH
 	//
 	//    * NOTIFICATION
+	//
+	//    * STACKSET
 	//
 	//    * TEMPLATE
 	Type *string `min:"1" type:"string"`
@@ -7831,11 +8389,27 @@ type CreateConstraintInput struct {
 	//
 	// LAUNCHSpecify the RoleArn property as follows:
 	//
-	// \"RoleArn\" : \"arn:aws:iam::123456789012:role/LaunchRole\"
+	// {"RoleArn" : "arn:aws:iam::123456789012:role/LaunchRole"}
+	//
+	// You cannot have both a LAUNCH and a STACKSET constraint.
+	//
+	// You also cannot have more than one LAUNCH constraint on a product and portfolio.
 	//
 	// NOTIFICATIONSpecify the NotificationArns property as follows:
 	//
-	// \"NotificationArns\" : [\"arn:aws:sns:us-east-1:123456789012:Topic\"]
+	// {"NotificationArns" : ["arn:aws:sns:us-east-1:123456789012:Topic"]}
+	//
+	// STACKSETSpecify the Parameters property as follows:
+	//
+	// {"Version": "String", "Properties": {"AccountList": [ "String" ], "RegionList":
+	// [ "String" ], "AdminRole": "String", "ExecutionRole": "String"}}
+	//
+	// You cannot have both a LAUNCH and a STACKSET constraint.
+	//
+	// You also cannot have more than one STACKSET constraint on a product and portfolio.
+	//
+	// Products with a STACKSET constraint will launch an AWS CloudFormation stack
+	// set.
 	//
 	// TEMPLATESpecify the Rules property. For more information, see Template Constraint
 	// Rules (http://docs.aws.amazon.com/servicecatalog/latest/adminguide/reference-template_constraint_rules.html).
@@ -7858,6 +8432,8 @@ type CreateConstraintInput struct {
 	//    * LAUNCH
 	//
 	//    * NOTIFICATION
+	//
+	//    * STACKSET
 	//
 	//    * TEMPLATE
 	//
@@ -8159,10 +8735,15 @@ type CreatePortfolioShareInput struct {
 	//    * zh - Chinese
 	AcceptLanguage *string `type:"string"`
 
-	// The AWS account ID.
-	//
-	// AccountId is a required field
-	AccountId *string `type:"string" required:"true"`
+	// The AWS account ID. For example, 123456789012.
+	AccountId *string `type:"string"`
+
+	// The organization node to whom you are going to share. If OrganizationNode
+	// is passed in, PortfolioShare will be created for the node and its children
+	// (when applies), and a PortfolioShareToken will be returned in the output
+	// in order for the administrator to monitor the status of the PortfolioShare
+	// creation process.
+	OrganizationNode *OrganizationNode `type:"structure"`
 
 	// The portfolio identifier.
 	//
@@ -8183,9 +8764,6 @@ func (s CreatePortfolioShareInput) GoString() string {
 // Validate inspects the fields of the type to determine if they are valid.
 func (s *CreatePortfolioShareInput) Validate() error {
 	invalidParams := request.ErrInvalidParams{Context: "CreatePortfolioShareInput"}
-	if s.AccountId == nil {
-		invalidParams.Add(request.NewErrParamRequired("AccountId"))
-	}
 	if s.PortfolioId == nil {
 		invalidParams.Add(request.NewErrParamRequired("PortfolioId"))
 	}
@@ -8211,6 +8789,12 @@ func (s *CreatePortfolioShareInput) SetAccountId(v string) *CreatePortfolioShare
 	return s
 }
 
+// SetOrganizationNode sets the OrganizationNode field's value.
+func (s *CreatePortfolioShareInput) SetOrganizationNode(v *OrganizationNode) *CreatePortfolioShareInput {
+	s.OrganizationNode = v
+	return s
+}
+
 // SetPortfolioId sets the PortfolioId field's value.
 func (s *CreatePortfolioShareInput) SetPortfolioId(v string) *CreatePortfolioShareInput {
 	s.PortfolioId = &v
@@ -8219,6 +8803,10 @@ func (s *CreatePortfolioShareInput) SetPortfolioId(v string) *CreatePortfolioSha
 
 type CreatePortfolioShareOutput struct {
 	_ struct{} `type:"structure"`
+
+	// The portfolio share unique identifier. This will only be returned if portfolio
+	// is shared to an organization node.
+	PortfolioShareToken *string `type:"string"`
 }
 
 // String returns the string representation
@@ -8229,6 +8817,12 @@ func (s CreatePortfolioShareOutput) String() string {
 // GoString returns the string representation
 func (s CreatePortfolioShareOutput) GoString() string {
 	return s.String()
+}
+
+// SetPortfolioShareToken sets the PortfolioShareToken field's value.
+func (s *CreatePortfolioShareOutput) SetPortfolioShareToken(v string) *CreatePortfolioShareOutput {
+	s.PortfolioShareToken = &v
+	return s
 }
 
 type CreateProductInput struct {
@@ -9236,9 +9830,10 @@ type DeletePortfolioShareInput struct {
 	AcceptLanguage *string `type:"string"`
 
 	// The AWS account ID.
-	//
-	// AccountId is a required field
-	AccountId *string `type:"string" required:"true"`
+	AccountId *string `type:"string"`
+
+	// The organization node to whom you are going to stop sharing.
+	OrganizationNode *OrganizationNode `type:"structure"`
 
 	// The portfolio identifier.
 	//
@@ -9259,9 +9854,6 @@ func (s DeletePortfolioShareInput) GoString() string {
 // Validate inspects the fields of the type to determine if they are valid.
 func (s *DeletePortfolioShareInput) Validate() error {
 	invalidParams := request.ErrInvalidParams{Context: "DeletePortfolioShareInput"}
-	if s.AccountId == nil {
-		invalidParams.Add(request.NewErrParamRequired("AccountId"))
-	}
 	if s.PortfolioId == nil {
 		invalidParams.Add(request.NewErrParamRequired("PortfolioId"))
 	}
@@ -9287,6 +9879,12 @@ func (s *DeletePortfolioShareInput) SetAccountId(v string) *DeletePortfolioShare
 	return s
 }
 
+// SetOrganizationNode sets the OrganizationNode field's value.
+func (s *DeletePortfolioShareInput) SetOrganizationNode(v *OrganizationNode) *DeletePortfolioShareInput {
+	s.OrganizationNode = v
+	return s
+}
+
 // SetPortfolioId sets the PortfolioId field's value.
 func (s *DeletePortfolioShareInput) SetPortfolioId(v string) *DeletePortfolioShareInput {
 	s.PortfolioId = &v
@@ -9295,6 +9893,10 @@ func (s *DeletePortfolioShareInput) SetPortfolioId(v string) *DeletePortfolioSha
 
 type DeletePortfolioShareOutput struct {
 	_ struct{} `type:"structure"`
+
+	// The portfolio share unique identifier. This will only be returned if delete
+	// is made to an organization node.
+	PortfolioShareToken *string `type:"string"`
 }
 
 // String returns the string representation
@@ -9305,6 +9907,12 @@ func (s DeletePortfolioShareOutput) String() string {
 // GoString returns the string representation
 func (s DeletePortfolioShareOutput) GoString() string {
 	return s.String()
+}
+
+// SetPortfolioShareToken sets the PortfolioShareToken field's value.
+func (s *DeletePortfolioShareOutput) SetPortfolioShareToken(v string) *DeletePortfolioShareOutput {
+	s.PortfolioShareToken = &v
+	return s
 }
 
 type DeleteProductInput struct {
@@ -9957,6 +10565,105 @@ func (s *DescribePortfolioOutput) SetTagOptions(v []*TagOptionDetail) *DescribeP
 // SetTags sets the Tags field's value.
 func (s *DescribePortfolioOutput) SetTags(v []*Tag) *DescribePortfolioOutput {
 	s.Tags = v
+	return s
+}
+
+type DescribePortfolioShareStatusInput struct {
+	_ struct{} `type:"structure"`
+
+	// The token for the portfolio share operation. This token is returned either
+	// by CreatePortfolioShare or by DeletePortfolioShare.
+	//
+	// PortfolioShareToken is a required field
+	PortfolioShareToken *string `type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s DescribePortfolioShareStatusInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DescribePortfolioShareStatusInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DescribePortfolioShareStatusInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DescribePortfolioShareStatusInput"}
+	if s.PortfolioShareToken == nil {
+		invalidParams.Add(request.NewErrParamRequired("PortfolioShareToken"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetPortfolioShareToken sets the PortfolioShareToken field's value.
+func (s *DescribePortfolioShareStatusInput) SetPortfolioShareToken(v string) *DescribePortfolioShareStatusInput {
+	s.PortfolioShareToken = &v
+	return s
+}
+
+type DescribePortfolioShareStatusOutput struct {
+	_ struct{} `type:"structure"`
+
+	// Organization node identifier. It can be either account id, organizational
+	// unit id or organization id.
+	OrganizationNodeValue *string `type:"string"`
+
+	// The portfolio identifier.
+	PortfolioId *string `min:"1" type:"string"`
+
+	// The token for the portfolio share operation. For example, share-6v24abcdefghi.
+	PortfolioShareToken *string `type:"string"`
+
+	// Information about the portfolio share operation.
+	ShareDetails *ShareDetails `type:"structure"`
+
+	// Status of the portfolio share operation.
+	Status *string `type:"string" enum:"ShareStatus"`
+}
+
+// String returns the string representation
+func (s DescribePortfolioShareStatusOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DescribePortfolioShareStatusOutput) GoString() string {
+	return s.String()
+}
+
+// SetOrganizationNodeValue sets the OrganizationNodeValue field's value.
+func (s *DescribePortfolioShareStatusOutput) SetOrganizationNodeValue(v string) *DescribePortfolioShareStatusOutput {
+	s.OrganizationNodeValue = &v
+	return s
+}
+
+// SetPortfolioId sets the PortfolioId field's value.
+func (s *DescribePortfolioShareStatusOutput) SetPortfolioId(v string) *DescribePortfolioShareStatusOutput {
+	s.PortfolioId = &v
+	return s
+}
+
+// SetPortfolioShareToken sets the PortfolioShareToken field's value.
+func (s *DescribePortfolioShareStatusOutput) SetPortfolioShareToken(v string) *DescribePortfolioShareStatusOutput {
+	s.PortfolioShareToken = &v
+	return s
+}
+
+// SetShareDetails sets the ShareDetails field's value.
+func (s *DescribePortfolioShareStatusOutput) SetShareDetails(v *ShareDetails) *DescribePortfolioShareStatusOutput {
+	s.ShareDetails = v
+	return s
+}
+
+// SetStatus sets the Status field's value.
+func (s *DescribePortfolioShareStatusOutput) SetStatus(v string) *DescribePortfolioShareStatusOutput {
+	s.Status = &v
 	return s
 }
 
@@ -10667,6 +11374,10 @@ type DescribeProvisioningParametersOutput struct {
 	// Information about the parameters used to provision the product.
 	ProvisioningArtifactParameters []*ProvisioningArtifactParameter `type:"list"`
 
+	// An object that contains information about preferences, such as regions and
+	// accounts, for the provisioning artifact.
+	ProvisioningArtifactPreferences *ProvisioningArtifactPreferences `type:"structure"`
+
 	// Information about the TagOptions associated with the resource.
 	TagOptions []*TagOptionSummary `type:"list"`
 
@@ -10694,6 +11405,12 @@ func (s *DescribeProvisioningParametersOutput) SetConstraintSummaries(v []*Const
 // SetProvisioningArtifactParameters sets the ProvisioningArtifactParameters field's value.
 func (s *DescribeProvisioningParametersOutput) SetProvisioningArtifactParameters(v []*ProvisioningArtifactParameter) *DescribeProvisioningParametersOutput {
 	s.ProvisioningArtifactParameters = v
+	return s
+}
+
+// SetProvisioningArtifactPreferences sets the ProvisioningArtifactPreferences field's value.
+func (s *DescribeProvisioningParametersOutput) SetProvisioningArtifactPreferences(v *ProvisioningArtifactPreferences) *DescribeProvisioningParametersOutput {
+	s.ProvisioningArtifactPreferences = v
 	return s
 }
 
@@ -10970,6 +11687,34 @@ func (s DescribeTagOptionOutput) GoString() string {
 func (s *DescribeTagOptionOutput) SetTagOptionDetail(v *TagOptionDetail) *DescribeTagOptionOutput {
 	s.TagOptionDetail = v
 	return s
+}
+
+type DisableAWSOrganizationsAccessInput struct {
+	_ struct{} `type:"structure"`
+}
+
+// String returns the string representation
+func (s DisableAWSOrganizationsAccessInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DisableAWSOrganizationsAccessInput) GoString() string {
+	return s.String()
+}
+
+type DisableAWSOrganizationsAccessOutput struct {
+	_ struct{} `type:"structure"`
+}
+
+// String returns the string representation
+func (s DisableAWSOrganizationsAccessOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DisableAWSOrganizationsAccessOutput) GoString() string {
+	return s.String()
 }
 
 type DisassociatePrincipalFromPortfolioInput struct {
@@ -11319,6 +12064,34 @@ func (s DisassociateTagOptionFromResourceOutput) GoString() string {
 	return s.String()
 }
 
+type EnableAWSOrganizationsAccessInput struct {
+	_ struct{} `type:"structure"`
+}
+
+// String returns the string representation
+func (s EnableAWSOrganizationsAccessInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s EnableAWSOrganizationsAccessInput) GoString() string {
+	return s.String()
+}
+
+type EnableAWSOrganizationsAccessOutput struct {
+	_ struct{} `type:"structure"`
+}
+
+// String returns the string representation
+func (s EnableAWSOrganizationsAccessOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s EnableAWSOrganizationsAccessOutput) GoString() string {
+	return s.String()
+}
+
 type ExecuteProvisionedProductPlanInput struct {
 	_ struct{} `type:"structure"`
 
@@ -11592,6 +12365,43 @@ func (s *FailedServiceActionAssociation) SetServiceActionId(v string) *FailedSer
 	return s
 }
 
+type GetAWSOrganizationsAccessStatusInput struct {
+	_ struct{} `type:"structure"`
+}
+
+// String returns the string representation
+func (s GetAWSOrganizationsAccessStatusInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s GetAWSOrganizationsAccessStatusInput) GoString() string {
+	return s.String()
+}
+
+type GetAWSOrganizationsAccessStatusOutput struct {
+	_ struct{} `type:"structure"`
+
+	// The status of the portfolio share feature.
+	AccessStatus *string `type:"string" enum:"AccessStatus"`
+}
+
+// String returns the string representation
+func (s GetAWSOrganizationsAccessStatusOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s GetAWSOrganizationsAccessStatusOutput) GoString() string {
+	return s.String()
+}
+
+// SetAccessStatus sets the AccessStatus field's value.
+func (s *GetAWSOrganizationsAccessStatusOutput) SetAccessStatus(v string) *GetAWSOrganizationsAccessStatusOutput {
+	s.AccessStatus = &v
+	return s
+}
+
 // Summary information about a product path for a user.
 type LaunchPathSummary struct {
 	_ struct{} `type:"structure"`
@@ -11663,6 +12473,9 @@ type ListAcceptedPortfolioSharesInput struct {
 	PageToken *string `type:"string"`
 
 	// The type of shared portfolios to list. The default is to list imported portfolios.
+	//
+	//    * AWS_ORGANIZATIONS - List portfolios shared by the master account of
+	//    your organization
 	//
 	//    * AWS_SERVICECATALOG - List default portfolios
 	//
@@ -11962,6 +12775,135 @@ func (s *ListLaunchPathsOutput) SetLaunchPathSummaries(v []*LaunchPathSummary) *
 // SetNextPageToken sets the NextPageToken field's value.
 func (s *ListLaunchPathsOutput) SetNextPageToken(v string) *ListLaunchPathsOutput {
 	s.NextPageToken = &v
+	return s
+}
+
+type ListOrganizationPortfolioAccessInput struct {
+	_ struct{} `type:"structure"`
+
+	// The language code.
+	//
+	//    * en - English (default)
+	//
+	//    * jp - Japanese
+	//
+	//    * zh - Chinese
+	AcceptLanguage *string `type:"string"`
+
+	// The organization node type that will be returned in the output.
+	//
+	//    * ORGANIZATION - Organization that has access to the portfolio.
+	//
+	//    * ORGANIZATIONAL_UNIT - Organizational unit that has access to the portfolio
+	//    within your organization.
+	//
+	//    * ACCOUNT - Account that has access to the portfolio within your organization.
+	//
+	// OrganizationNodeType is a required field
+	OrganizationNodeType *string `type:"string" required:"true" enum:"OrganizationNodeType"`
+
+	// The maximum number of items to return with this call.
+	PageSize *int64 `type:"integer"`
+
+	// The page token for the next set of results. To retrieve the first set of
+	// results, use null.
+	PageToken *string `type:"string"`
+
+	// The portfolio identifier. For example, port-2abcdext3y5fk.
+	//
+	// PortfolioId is a required field
+	PortfolioId *string `min:"1" type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s ListOrganizationPortfolioAccessInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ListOrganizationPortfolioAccessInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ListOrganizationPortfolioAccessInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ListOrganizationPortfolioAccessInput"}
+	if s.OrganizationNodeType == nil {
+		invalidParams.Add(request.NewErrParamRequired("OrganizationNodeType"))
+	}
+	if s.PortfolioId == nil {
+		invalidParams.Add(request.NewErrParamRequired("PortfolioId"))
+	}
+	if s.PortfolioId != nil && len(*s.PortfolioId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("PortfolioId", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetAcceptLanguage sets the AcceptLanguage field's value.
+func (s *ListOrganizationPortfolioAccessInput) SetAcceptLanguage(v string) *ListOrganizationPortfolioAccessInput {
+	s.AcceptLanguage = &v
+	return s
+}
+
+// SetOrganizationNodeType sets the OrganizationNodeType field's value.
+func (s *ListOrganizationPortfolioAccessInput) SetOrganizationNodeType(v string) *ListOrganizationPortfolioAccessInput {
+	s.OrganizationNodeType = &v
+	return s
+}
+
+// SetPageSize sets the PageSize field's value.
+func (s *ListOrganizationPortfolioAccessInput) SetPageSize(v int64) *ListOrganizationPortfolioAccessInput {
+	s.PageSize = &v
+	return s
+}
+
+// SetPageToken sets the PageToken field's value.
+func (s *ListOrganizationPortfolioAccessInput) SetPageToken(v string) *ListOrganizationPortfolioAccessInput {
+	s.PageToken = &v
+	return s
+}
+
+// SetPortfolioId sets the PortfolioId field's value.
+func (s *ListOrganizationPortfolioAccessInput) SetPortfolioId(v string) *ListOrganizationPortfolioAccessInput {
+	s.PortfolioId = &v
+	return s
+}
+
+type ListOrganizationPortfolioAccessOutput struct {
+	_ struct{} `type:"structure"`
+
+	// The page token to use to retrieve the next set of results. If there are no
+	// additional results, this value is null.
+	NextPageToken *string `type:"string"`
+
+	// Displays information about the organization nodes.
+	OrganizationNodes []*OrganizationNode `type:"list"`
+}
+
+// String returns the string representation
+func (s ListOrganizationPortfolioAccessOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ListOrganizationPortfolioAccessOutput) GoString() string {
+	return s.String()
+}
+
+// SetNextPageToken sets the NextPageToken field's value.
+func (s *ListOrganizationPortfolioAccessOutput) SetNextPageToken(v string) *ListOrganizationPortfolioAccessOutput {
+	s.NextPageToken = &v
+	return s
+}
+
+// SetOrganizationNodes sets the OrganizationNodes field's value.
+func (s *ListOrganizationPortfolioAccessOutput) SetOrganizationNodes(v []*OrganizationNode) *ListOrganizationPortfolioAccessOutput {
+	s.OrganizationNodes = v
 	return s
 }
 
@@ -13261,6 +14203,39 @@ func (s *ListTagOptionsOutput) SetTagOptionDetails(v []*TagOptionDetail) *ListTa
 	return s
 }
 
+// Information about the organization node.
+type OrganizationNode struct {
+	_ struct{} `type:"structure"`
+
+	// The organization node type.
+	Type *string `type:"string" enum:"OrganizationNodeType"`
+
+	// The identifier of the organization node.
+	Value *string `type:"string"`
+}
+
+// String returns the string representation
+func (s OrganizationNode) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s OrganizationNode) GoString() string {
+	return s.String()
+}
+
+// SetType sets the Type field's value.
+func (s *OrganizationNode) SetType(v string) *OrganizationNode {
+	s.Type = &v
+	return s
+}
+
+// SetValue sets the Value field's value.
+func (s *OrganizationNode) SetValue(v string) *OrganizationNode {
+	s.Value = &v
+	return s
+}
+
 // The constraints that the administrator has put on the parameter.
 type ParameterConstraints struct {
 	_ struct{} `type:"structure"`
@@ -13646,6 +14621,10 @@ type ProvisionProductInput struct {
 	// the product.
 	ProvisioningParameters []*ProvisioningParameter `type:"list"`
 
+	// An object that contains information about the provisioning preferences for
+	// a stack set.
+	ProvisioningPreferences *ProvisioningPreferences `type:"structure"`
+
 	// One or more tags.
 	Tags []*Tag `type:"list"`
 }
@@ -13698,6 +14677,11 @@ func (s *ProvisionProductInput) Validate() error {
 			if err := v.Validate(); err != nil {
 				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "ProvisioningParameters", i), err.(request.ErrInvalidParams))
 			}
+		}
+	}
+	if s.ProvisioningPreferences != nil {
+		if err := s.ProvisioningPreferences.Validate(); err != nil {
+			invalidParams.AddNested("ProvisioningPreferences", err.(request.ErrInvalidParams))
 		}
 	}
 	if s.Tags != nil {
@@ -13762,6 +14746,12 @@ func (s *ProvisionProductInput) SetProvisioningArtifactId(v string) *ProvisionPr
 // SetProvisioningParameters sets the ProvisioningParameters field's value.
 func (s *ProvisionProductInput) SetProvisioningParameters(v []*ProvisioningParameter) *ProvisionProductInput {
 	s.ProvisioningParameters = v
+	return s
+}
+
+// SetProvisioningPreferences sets the ProvisioningPreferences field's value.
+func (s *ProvisionProductInput) SetProvisioningPreferences(v *ProvisioningPreferences) *ProvisionProductInput {
+	s.ProvisioningPreferences = v
 	return s
 }
 
@@ -13852,7 +14842,7 @@ type ProvisionedProductAttribute struct {
 	// One or more tags.
 	Tags []*Tag `type:"list"`
 
-	// The type of provisioned product. The supported value is CFN_STACK.
+	// The type of provisioned product. The supported values are CFN_STACK and CFN_STACKSET.
 	Type *string `type:"string"`
 
 	// The Amazon Resource Name (ARN) of the IAM user.
@@ -14014,7 +15004,7 @@ type ProvisionedProductDetail struct {
 	// The current status message of the provisioned product.
 	StatusMessage *string `type:"string"`
 
-	// The type of provisioned product. The supported value is CFN_STACK.
+	// The type of provisioned product. The supported values are CFN_STACK and CFN_STACKSET.
 	Type *string `type:"string"`
 }
 
@@ -14516,6 +15506,52 @@ func (s *ProvisioningArtifactParameter) SetParameterType(v string) *Provisioning
 	return s
 }
 
+// The user-defined preferences that will be applied during product provisioning,
+// unless overridden by ProvisioningPreferences or UpdateProvisioningPreferences.
+//
+// For more information on maximum concurrent accounts and failure tolerance,
+// see Stack set operation options (https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/stacksets-concepts.html#stackset-ops-options)
+// in the AWS CloudFormation User Guide.
+type ProvisioningArtifactPreferences struct {
+	_ struct{} `type:"structure"`
+
+	// One or more AWS accounts where stack instances are deployed from the stack
+	// set. These accounts can be scoped in ProvisioningPreferences$StackSetAccounts
+	// and UpdateProvisioningPreferences$StackSetAccounts.
+	//
+	// Applicable only to a CFN_STACKSET provisioned product type.
+	StackSetAccounts []*string `type:"list"`
+
+	// One or more AWS Regions where stack instances are deployed from the stack
+	// set. These regions can be scoped in ProvisioningPreferences$StackSetRegions
+	// and UpdateProvisioningPreferences$StackSetRegions.
+	//
+	// Applicable only to a CFN_STACKSET provisioned product type.
+	StackSetRegions []*string `type:"list"`
+}
+
+// String returns the string representation
+func (s ProvisioningArtifactPreferences) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ProvisioningArtifactPreferences) GoString() string {
+	return s.String()
+}
+
+// SetStackSetAccounts sets the StackSetAccounts field's value.
+func (s *ProvisioningArtifactPreferences) SetStackSetAccounts(v []*string) *ProvisioningArtifactPreferences {
+	s.StackSetAccounts = v
+	return s
+}
+
+// SetStackSetRegions sets the StackSetRegions field's value.
+func (s *ProvisioningArtifactPreferences) SetStackSetRegions(v []*string) *ProvisioningArtifactPreferences {
+	s.StackSetRegions = v
+	return s
+}
+
 // Information about a provisioning artifact (also known as a version) for a
 // product.
 type ProvisioningArtifactProperties struct {
@@ -14740,6 +15776,157 @@ func (s *ProvisioningParameter) SetValue(v string) *ProvisioningParameter {
 	return s
 }
 
+// The user-defined preferences that will be applied when updating a provisioned
+// product. Not all preferences are applicable to all provisioned product types.
+type ProvisioningPreferences struct {
+	_ struct{} `type:"structure"`
+
+	// One or more AWS accounts that will have access to the provisioned product.
+	//
+	// Applicable only to a CFN_STACKSET provisioned product type.
+	//
+	// The AWS accounts specified should be within the list of accounts in the STACKSET
+	// constraint. To get the list of accounts in the STACKSET constraint, use the
+	// DescribeProvisioningParameters operation.
+	//
+	// If no values are specified, the default value is all accounts from the STACKSET
+	// constraint.
+	StackSetAccounts []*string `type:"list"`
+
+	// The number of accounts, per region, for which this operation can fail before
+	// AWS Service Catalog stops the operation in that region. If the operation
+	// is stopped in a region, AWS Service Catalog doesn't attempt the operation
+	// in any subsequent regions.
+	//
+	// Applicable only to a CFN_STACKSET provisioned product type.
+	//
+	// Conditional: You must specify either StackSetFailureToleranceCount or StackSetFailureTolerancePercentage,
+	// but not both.
+	//
+	// The default value is 0 if no value is specified.
+	StackSetFailureToleranceCount *int64 `type:"integer"`
+
+	// The percentage of accounts, per region, for which this stack operation can
+	// fail before AWS Service Catalog stops the operation in that region. If the
+	// operation is stopped in a region, AWS Service Catalog doesn't attempt the
+	// operation in any subsequent regions.
+	//
+	// When calculating the number of accounts based on the specified percentage,
+	// AWS Service Catalog rounds down to the next whole number.
+	//
+	// Applicable only to a CFN_STACKSET provisioned product type.
+	//
+	// Conditional: You must specify either StackSetFailureToleranceCount or StackSetFailureTolerancePercentage,
+	// but not both.
+	StackSetFailureTolerancePercentage *int64 `type:"integer"`
+
+	// The maximum number of accounts in which to perform this operation at one
+	// time. This is dependent on the value of StackSetFailureToleranceCount. StackSetMaxConcurrentCount
+	// is at most one more than the StackSetFailureToleranceCount.
+	//
+	// Note that this setting lets you specify the maximum for operations. For large
+	// deployments, under certain circumstances the actual number of accounts acted
+	// upon concurrently may be lower due to service throttling.
+	//
+	// Applicable only to a CFN_STACKSET provisioned product type.
+	//
+	// Conditional: You must specify either StackSetMaxConcurrentCount or StackSetMaxConcurrentPercentage,
+	// but not both.
+	StackSetMaxConcurrencyCount *int64 `min:"1" type:"integer"`
+
+	// The maximum percentage of accounts in which to perform this operation at
+	// one time.
+	//
+	// When calculating the number of accounts based on the specified percentage,
+	// AWS Service Catalog rounds down to the next whole number. This is true except
+	// in cases where rounding down would result is zero. In this case, AWS Service
+	// Catalog sets the number as 1 instead.
+	//
+	// Note that this setting lets you specify the maximum for operations. For large
+	// deployments, under certain circumstances the actual number of accounts acted
+	// upon concurrently may be lower due to service throttling.
+	//
+	// Applicable only to a CFN_STACKSET provisioned product type.
+	//
+	// Conditional: You must specify either StackSetMaxConcurrentCount or StackSetMaxConcurrentPercentage,
+	// but not both.
+	StackSetMaxConcurrencyPercentage *int64 `min:"1" type:"integer"`
+
+	// One or more AWS Regions where the provisioned product will be available.
+	//
+	// Applicable only to a CFN_STACKSET provisioned product type.
+	//
+	// The specified regions should be within the list of regions from the STACKSET
+	// constraint. To get the list of regions in the STACKSET constraint, use the
+	// DescribeProvisioningParameters operation.
+	//
+	// If no values are specified, the default value is all regions from the STACKSET
+	// constraint.
+	StackSetRegions []*string `type:"list"`
+}
+
+// String returns the string representation
+func (s ProvisioningPreferences) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ProvisioningPreferences) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ProvisioningPreferences) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ProvisioningPreferences"}
+	if s.StackSetMaxConcurrencyCount != nil && *s.StackSetMaxConcurrencyCount < 1 {
+		invalidParams.Add(request.NewErrParamMinValue("StackSetMaxConcurrencyCount", 1))
+	}
+	if s.StackSetMaxConcurrencyPercentage != nil && *s.StackSetMaxConcurrencyPercentage < 1 {
+		invalidParams.Add(request.NewErrParamMinValue("StackSetMaxConcurrencyPercentage", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetStackSetAccounts sets the StackSetAccounts field's value.
+func (s *ProvisioningPreferences) SetStackSetAccounts(v []*string) *ProvisioningPreferences {
+	s.StackSetAccounts = v
+	return s
+}
+
+// SetStackSetFailureToleranceCount sets the StackSetFailureToleranceCount field's value.
+func (s *ProvisioningPreferences) SetStackSetFailureToleranceCount(v int64) *ProvisioningPreferences {
+	s.StackSetFailureToleranceCount = &v
+	return s
+}
+
+// SetStackSetFailureTolerancePercentage sets the StackSetFailureTolerancePercentage field's value.
+func (s *ProvisioningPreferences) SetStackSetFailureTolerancePercentage(v int64) *ProvisioningPreferences {
+	s.StackSetFailureTolerancePercentage = &v
+	return s
+}
+
+// SetStackSetMaxConcurrencyCount sets the StackSetMaxConcurrencyCount field's value.
+func (s *ProvisioningPreferences) SetStackSetMaxConcurrencyCount(v int64) *ProvisioningPreferences {
+	s.StackSetMaxConcurrencyCount = &v
+	return s
+}
+
+// SetStackSetMaxConcurrencyPercentage sets the StackSetMaxConcurrencyPercentage field's value.
+func (s *ProvisioningPreferences) SetStackSetMaxConcurrencyPercentage(v int64) *ProvisioningPreferences {
+	s.StackSetMaxConcurrencyPercentage = &v
+	return s
+}
+
+// SetStackSetRegions sets the StackSetRegions field's value.
+func (s *ProvisioningPreferences) SetStackSetRegions(v []*string) *ProvisioningPreferences {
+	s.StackSetRegions = v
+	return s
+}
+
 // Information about a request operation.
 type RecordDetail struct {
 	_ struct{} `type:"structure"`
@@ -14759,7 +15946,7 @@ type RecordDetail struct {
 	// The user-friendly name of the provisioned product.
 	ProvisionedProductName *string `min:"1" type:"string"`
 
-	// The type of provisioned product. The supported value is CFN_STACK.
+	// The type of provisioned product. The supported values are CFN_STACK and CFN_STACKSET.
 	ProvisionedProductType *string `type:"string"`
 
 	// The identifier of the provisioning artifact.
@@ -15017,6 +16204,20 @@ type RejectPortfolioShareInput struct {
 	//
 	// PortfolioId is a required field
 	PortfolioId *string `min:"1" type:"string" required:"true"`
+
+	// The type of shared portfolios to reject. The default is to reject imported
+	// portfolios.
+	//
+	//    * AWS_ORGANIZATIONS - Reject portfolios shared by the master account of
+	//    your organization.
+	//
+	//    * IMPORTED - Reject imported portfolios.
+	//
+	//    * AWS_SERVICECATALOG - Not supported. (Throws ResourceNotFoundException.)
+	//
+	// For example, aws servicecatalog reject-portfolio-share --portfolio-id "port-2qwzkwxt3y5fk"
+	// --portfolio-share-type AWS_ORGANIZATIONS
+	PortfolioShareType *string `type:"string" enum:"PortfolioShareType"`
 }
 
 // String returns the string representation
@@ -15054,6 +16255,12 @@ func (s *RejectPortfolioShareInput) SetAcceptLanguage(v string) *RejectPortfolio
 // SetPortfolioId sets the PortfolioId field's value.
 func (s *RejectPortfolioShareInput) SetPortfolioId(v string) *RejectPortfolioShareInput {
 	s.PortfolioId = &v
+	return s
+}
+
+// SetPortfolioShareType sets the PortfolioShareType field's value.
+func (s *RejectPortfolioShareInput) SetPortfolioShareType(v string) *RejectPortfolioShareInput {
+	s.PortfolioShareType = &v
 	return s
 }
 
@@ -15940,6 +17147,81 @@ func (s *ServiceActionSummary) SetName(v string) *ServiceActionSummary {
 	return s
 }
 
+// Information about the portfolio share operation.
+type ShareDetails struct {
+	_ struct{} `type:"structure"`
+
+	// List of errors.
+	ShareErrors []*ShareError `type:"list"`
+
+	// List of accounts for whom the operation succeeded.
+	SuccessfulShares []*string `type:"list"`
+}
+
+// String returns the string representation
+func (s ShareDetails) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ShareDetails) GoString() string {
+	return s.String()
+}
+
+// SetShareErrors sets the ShareErrors field's value.
+func (s *ShareDetails) SetShareErrors(v []*ShareError) *ShareDetails {
+	s.ShareErrors = v
+	return s
+}
+
+// SetSuccessfulShares sets the SuccessfulShares field's value.
+func (s *ShareDetails) SetSuccessfulShares(v []*string) *ShareDetails {
+	s.SuccessfulShares = v
+	return s
+}
+
+// Errors that occurred during the portfolio share operation.
+type ShareError struct {
+	_ struct{} `type:"structure"`
+
+	// List of accounts impacted by the error.
+	Accounts []*string `type:"list"`
+
+	// Error type that happened when processing the operation.
+	Error *string `type:"string"`
+
+	// Information about the error.
+	Message *string `type:"string"`
+}
+
+// String returns the string representation
+func (s ShareError) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ShareError) GoString() string {
+	return s.String()
+}
+
+// SetAccounts sets the Accounts field's value.
+func (s *ShareError) SetAccounts(v []*string) *ShareError {
+	s.Accounts = v
+	return s
+}
+
+// SetError sets the Error field's value.
+func (s *ShareError) SetError(v string) *ShareError {
+	s.Error = &v
+	return s
+}
+
+// SetMessage sets the Message field's value.
+func (s *ShareError) SetMessage(v string) *ShareError {
+	s.Message = &v
+	return s
+}
+
 // Information about a tag. A tag is a key-value pair. Tags are propagated to
 // the resources created when provisioning a product.
 type Tag struct {
@@ -16652,7 +17934,7 @@ type UpdateProvisionedProductInput struct {
 	// path, and required if the product has more than one path.
 	PathId *string `min:"1" type:"string"`
 
-	// The identifier of the provisioned product.
+	// The identifier of the product.
 	ProductId *string `min:"1" type:"string"`
 
 	// The identifier of the provisioned product. You cannot specify both ProvisionedProductName
@@ -16668,6 +17950,10 @@ type UpdateProvisionedProductInput struct {
 
 	// The new parameters.
 	ProvisioningParameters []*UpdateProvisioningParameter `type:"list"`
+
+	// An object that contains information about the provisioning preferences for
+	// a stack set.
+	ProvisioningPreferences *UpdateProvisioningPreferences `type:"structure"`
 
 	// The idempotency token that uniquely identifies the provisioning update request.
 	//
@@ -16719,6 +18005,11 @@ func (s *UpdateProvisionedProductInput) Validate() error {
 			}
 		}
 	}
+	if s.ProvisioningPreferences != nil {
+		if err := s.ProvisioningPreferences.Validate(); err != nil {
+			invalidParams.AddNested("ProvisioningPreferences", err.(request.ErrInvalidParams))
+		}
+	}
 
 	if invalidParams.Len() > 0 {
 		return invalidParams
@@ -16765,6 +18056,12 @@ func (s *UpdateProvisionedProductInput) SetProvisioningArtifactId(v string) *Upd
 // SetProvisioningParameters sets the ProvisioningParameters field's value.
 func (s *UpdateProvisionedProductInput) SetProvisioningParameters(v []*UpdateProvisioningParameter) *UpdateProvisionedProductInput {
 	s.ProvisioningParameters = v
+	return s
+}
+
+// SetProvisioningPreferences sets the ProvisioningPreferences field's value.
+func (s *UpdateProvisionedProductInput) SetProvisioningPreferences(v *UpdateProvisioningPreferences) *UpdateProvisionedProductInput {
+	s.ProvisioningPreferences = v
 	return s
 }
 
@@ -16990,6 +18287,181 @@ func (s *UpdateProvisioningParameter) SetUsePreviousValue(v bool) *UpdateProvisi
 // SetValue sets the Value field's value.
 func (s *UpdateProvisioningParameter) SetValue(v string) *UpdateProvisioningParameter {
 	s.Value = &v
+	return s
+}
+
+// The user-defined preferences that will be applied when updating a provisioned
+// product. Not all preferences are applicable to all provisioned product types.
+type UpdateProvisioningPreferences struct {
+	_ struct{} `type:"structure"`
+
+	// One or more AWS accounts that will have access to the provisioned product.
+	//
+	// Applicable only to a CFN_STACKSET provisioned product type.
+	//
+	// The AWS accounts specified should be within the list of accounts in the STACKSET
+	// constraint. To get the list of accounts in the STACKSET constraint, use the
+	// DescribeProvisioningParameters operation.
+	//
+	// If no values are specified, the default value is all accounts from the STACKSET
+	// constraint.
+	StackSetAccounts []*string `type:"list"`
+
+	// The number of accounts, per region, for which this operation can fail before
+	// AWS Service Catalog stops the operation in that region. If the operation
+	// is stopped in a region, AWS Service Catalog doesn't attempt the operation
+	// in any subsequent regions.
+	//
+	// Applicable only to a CFN_STACKSET provisioned product type.
+	//
+	// Conditional: You must specify either StackSetFailureToleranceCount or StackSetFailureTolerancePercentage,
+	// but not both.
+	//
+	// The default value is 0 if no value is specified.
+	StackSetFailureToleranceCount *int64 `type:"integer"`
+
+	// The percentage of accounts, per region, for which this stack operation can
+	// fail before AWS Service Catalog stops the operation in that region. If the
+	// operation is stopped in a region, AWS Service Catalog doesn't attempt the
+	// operation in any subsequent regions.
+	//
+	// When calculating the number of accounts based on the specified percentage,
+	// AWS Service Catalog rounds down to the next whole number.
+	//
+	// Applicable only to a CFN_STACKSET provisioned product type.
+	//
+	// Conditional: You must specify either StackSetFailureToleranceCount or StackSetFailureTolerancePercentage,
+	// but not both.
+	StackSetFailureTolerancePercentage *int64 `type:"integer"`
+
+	// The maximum number of accounts in which to perform this operation at one
+	// time. This is dependent on the value of StackSetFailureToleranceCount. StackSetMaxConcurrentCount
+	// is at most one more than the StackSetFailureToleranceCount.
+	//
+	// Note that this setting lets you specify the maximum for operations. For large
+	// deployments, under certain circumstances the actual number of accounts acted
+	// upon concurrently may be lower due to service throttling.
+	//
+	// Applicable only to a CFN_STACKSET provisioned product type.
+	//
+	// Conditional: You must specify either StackSetMaxConcurrentCount or StackSetMaxConcurrentPercentage,
+	// but not both.
+	StackSetMaxConcurrencyCount *int64 `min:"1" type:"integer"`
+
+	// The maximum percentage of accounts in which to perform this operation at
+	// one time.
+	//
+	// When calculating the number of accounts based on the specified percentage,
+	// AWS Service Catalog rounds down to the next whole number. This is true except
+	// in cases where rounding down would result is zero. In this case, AWS Service
+	// Catalog sets the number as 1 instead.
+	//
+	// Note that this setting lets you specify the maximum for operations. For large
+	// deployments, under certain circumstances the actual number of accounts acted
+	// upon concurrently may be lower due to service throttling.
+	//
+	// Applicable only to a CFN_STACKSET provisioned product type.
+	//
+	// Conditional: You must specify either StackSetMaxConcurrentCount or StackSetMaxConcurrentPercentage,
+	// but not both.
+	StackSetMaxConcurrencyPercentage *int64 `min:"1" type:"integer"`
+
+	// Determines what action AWS Service Catalog performs to a stack set or a stack
+	// instance represented by the provisioned product. The default value is UPDATE
+	// if nothing is specified.
+	//
+	// Applicable only to a CFN_STACKSET provisioned product type.
+	//
+	// CREATECreates a new stack instance in the stack set represented by the provisioned
+	// product. In this case, only new stack instances are created based on accounts
+	// and regions; if new ProductId or ProvisioningArtifactID are passed, they
+	// will be ignored.
+	//
+	// UPDATEUpdates the stack set represented by the provisioned product and also
+	// its stack instances.
+	//
+	// DELETEDeletes a stack instance in the stack set represented by the provisioned
+	// product.
+	StackSetOperationType *string `type:"string" enum:"StackSetOperationType"`
+
+	// One or more AWS Regions where the provisioned product will be available.
+	//
+	// Applicable only to a CFN_STACKSET provisioned product type.
+	//
+	// The specified regions should be within the list of regions from the STACKSET
+	// constraint. To get the list of regions in the STACKSET constraint, use the
+	// DescribeProvisioningParameters operation.
+	//
+	// If no values are specified, the default value is all regions from the STACKSET
+	// constraint.
+	StackSetRegions []*string `type:"list"`
+}
+
+// String returns the string representation
+func (s UpdateProvisioningPreferences) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s UpdateProvisioningPreferences) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *UpdateProvisioningPreferences) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "UpdateProvisioningPreferences"}
+	if s.StackSetMaxConcurrencyCount != nil && *s.StackSetMaxConcurrencyCount < 1 {
+		invalidParams.Add(request.NewErrParamMinValue("StackSetMaxConcurrencyCount", 1))
+	}
+	if s.StackSetMaxConcurrencyPercentage != nil && *s.StackSetMaxConcurrencyPercentage < 1 {
+		invalidParams.Add(request.NewErrParamMinValue("StackSetMaxConcurrencyPercentage", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetStackSetAccounts sets the StackSetAccounts field's value.
+func (s *UpdateProvisioningPreferences) SetStackSetAccounts(v []*string) *UpdateProvisioningPreferences {
+	s.StackSetAccounts = v
+	return s
+}
+
+// SetStackSetFailureToleranceCount sets the StackSetFailureToleranceCount field's value.
+func (s *UpdateProvisioningPreferences) SetStackSetFailureToleranceCount(v int64) *UpdateProvisioningPreferences {
+	s.StackSetFailureToleranceCount = &v
+	return s
+}
+
+// SetStackSetFailureTolerancePercentage sets the StackSetFailureTolerancePercentage field's value.
+func (s *UpdateProvisioningPreferences) SetStackSetFailureTolerancePercentage(v int64) *UpdateProvisioningPreferences {
+	s.StackSetFailureTolerancePercentage = &v
+	return s
+}
+
+// SetStackSetMaxConcurrencyCount sets the StackSetMaxConcurrencyCount field's value.
+func (s *UpdateProvisioningPreferences) SetStackSetMaxConcurrencyCount(v int64) *UpdateProvisioningPreferences {
+	s.StackSetMaxConcurrencyCount = &v
+	return s
+}
+
+// SetStackSetMaxConcurrencyPercentage sets the StackSetMaxConcurrencyPercentage field's value.
+func (s *UpdateProvisioningPreferences) SetStackSetMaxConcurrencyPercentage(v int64) *UpdateProvisioningPreferences {
+	s.StackSetMaxConcurrencyPercentage = &v
+	return s
+}
+
+// SetStackSetOperationType sets the StackSetOperationType field's value.
+func (s *UpdateProvisioningPreferences) SetStackSetOperationType(v string) *UpdateProvisioningPreferences {
+	s.StackSetOperationType = &v
+	return s
+}
+
+// SetStackSetRegions sets the StackSetRegions field's value.
+func (s *UpdateProvisioningPreferences) SetStackSetRegions(v []*string) *UpdateProvisioningPreferences {
+	s.StackSetRegions = v
 	return s
 }
 
@@ -17235,6 +18707,17 @@ const (
 )
 
 const (
+	// AccessStatusEnabled is a AccessStatus enum value
+	AccessStatusEnabled = "ENABLED"
+
+	// AccessStatusUnderChange is a AccessStatus enum value
+	AccessStatusUnderChange = "UNDER_CHANGE"
+
+	// AccessStatusDisabled is a AccessStatus enum value
+	AccessStatusDisabled = "DISABLED"
+)
+
+const (
 	// ChangeActionAdd is a ChangeAction enum value
 	ChangeActionAdd = "ADD"
 
@@ -17270,11 +18753,25 @@ const (
 )
 
 const (
+	// OrganizationNodeTypeOrganization is a OrganizationNodeType enum value
+	OrganizationNodeTypeOrganization = "ORGANIZATION"
+
+	// OrganizationNodeTypeOrganizationalUnit is a OrganizationNodeType enum value
+	OrganizationNodeTypeOrganizationalUnit = "ORGANIZATIONAL_UNIT"
+
+	// OrganizationNodeTypeAccount is a OrganizationNodeType enum value
+	OrganizationNodeTypeAccount = "ACCOUNT"
+)
+
+const (
 	// PortfolioShareTypeImported is a PortfolioShareType enum value
 	PortfolioShareTypeImported = "IMPORTED"
 
 	// PortfolioShareTypeAwsServicecatalog is a PortfolioShareType enum value
 	PortfolioShareTypeAwsServicecatalog = "AWS_SERVICECATALOG"
+
+	// PortfolioShareTypeAwsOrganizations is a PortfolioShareType enum value
+	PortfolioShareTypeAwsOrganizations = "AWS_ORGANIZATIONS"
 )
 
 const (
@@ -17479,11 +18976,39 @@ const (
 )
 
 const (
+	// ShareStatusNotStarted is a ShareStatus enum value
+	ShareStatusNotStarted = "NOT_STARTED"
+
+	// ShareStatusInProgress is a ShareStatus enum value
+	ShareStatusInProgress = "IN_PROGRESS"
+
+	// ShareStatusCompleted is a ShareStatus enum value
+	ShareStatusCompleted = "COMPLETED"
+
+	// ShareStatusCompletedWithErrors is a ShareStatus enum value
+	ShareStatusCompletedWithErrors = "COMPLETED_WITH_ERRORS"
+
+	// ShareStatusError is a ShareStatus enum value
+	ShareStatusError = "ERROR"
+)
+
+const (
 	// SortOrderAscending is a SortOrder enum value
 	SortOrderAscending = "ASCENDING"
 
 	// SortOrderDescending is a SortOrder enum value
 	SortOrderDescending = "DESCENDING"
+)
+
+const (
+	// StackSetOperationTypeCreate is a StackSetOperationType enum value
+	StackSetOperationTypeCreate = "CREATE"
+
+	// StackSetOperationTypeUpdate is a StackSetOperationType enum value
+	StackSetOperationTypeUpdate = "UPDATE"
+
+	// StackSetOperationTypeDelete is a StackSetOperationType enum value
+	StackSetOperationTypeDelete = "DELETE"
 )
 
 const (

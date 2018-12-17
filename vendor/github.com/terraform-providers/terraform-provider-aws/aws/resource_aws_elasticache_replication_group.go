@@ -350,7 +350,7 @@ func resourceAwsElasticacheReplicationGroupCreate(d *schema.ResourceData, meta i
 	stateConf := &resource.StateChangeConf{
 		Pending:    pending,
 		Target:     []string{"available"},
-		Refresh:    cacheReplicationGroupStateRefreshFunc(conn, d.Id(), "available", pending),
+		Refresh:    cacheReplicationGroupStateRefreshFunc(conn, d.Id(), pending),
 		Timeout:    d.Timeout(schema.TimeoutCreate),
 		MinTimeout: 10 * time.Second,
 		Delay:      30 * time.Second,
@@ -767,7 +767,7 @@ func resourceAwsElasticacheReplicationGroupUpdate(d *schema.ResourceData, meta i
 func resourceAwsElasticacheReplicationGroupDelete(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).elasticacheconn
 
-	err := deleteElasticacheReplicationGroup(d.Id(), 40*time.Minute, conn)
+	err := deleteElasticacheReplicationGroup(d.Id(), conn)
 	if err != nil {
 		return fmt.Errorf("error deleting Elasticache Replication Group (%s): %s", d.Id(), err)
 	}
@@ -775,7 +775,7 @@ func resourceAwsElasticacheReplicationGroupDelete(d *schema.ResourceData, meta i
 	return nil
 }
 
-func cacheReplicationGroupStateRefreshFunc(conn *elasticache.ElastiCache, replicationGroupId, givenState string, pending []string) resource.StateRefreshFunc {
+func cacheReplicationGroupStateRefreshFunc(conn *elasticache.ElastiCache, replicationGroupId string, pending []string) resource.StateRefreshFunc {
 	return func() (interface{}, string, error) {
 		resp, err := conn.DescribeReplicationGroups(&elasticache.DescribeReplicationGroupsInput{
 			ReplicationGroupId: aws.String(replicationGroupId),
@@ -822,7 +822,7 @@ func cacheReplicationGroupStateRefreshFunc(conn *elasticache.ElastiCache, replic
 	}
 }
 
-func deleteElasticacheReplicationGroup(replicationGroupID string, timeout time.Duration, conn *elasticache.ElastiCache) error {
+func deleteElasticacheReplicationGroup(replicationGroupID string, conn *elasticache.ElastiCache) error {
 	input := &elasticache.DeleteReplicationGroupInput{
 		ReplicationGroupId: aws.String(replicationGroupID),
 	}
@@ -851,8 +851,8 @@ func deleteElasticacheReplicationGroup(replicationGroupID string, timeout time.D
 	stateConf := &resource.StateChangeConf{
 		Pending:    []string{"creating", "available", "deleting"},
 		Target:     []string{},
-		Refresh:    cacheReplicationGroupStateRefreshFunc(conn, replicationGroupID, "", []string{}),
-		Timeout:    timeout,
+		Refresh:    cacheReplicationGroupStateRefreshFunc(conn, replicationGroupID, []string{}),
+		Timeout:    40 * time.Minute,
 		MinTimeout: 10 * time.Second,
 		Delay:      30 * time.Second,
 	}
@@ -885,7 +885,7 @@ func waitForModifyElasticacheReplicationGroup(conn *elasticache.ElastiCache, rep
 	stateConf := &resource.StateChangeConf{
 		Pending:    pending,
 		Target:     []string{"available"},
-		Refresh:    cacheReplicationGroupStateRefreshFunc(conn, replicationGroupID, "available", pending),
+		Refresh:    cacheReplicationGroupStateRefreshFunc(conn, replicationGroupID, pending),
 		Timeout:    timeout,
 		MinTimeout: 10 * time.Second,
 		Delay:      30 * time.Second,

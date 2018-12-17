@@ -24,6 +24,7 @@ var SNSAttributeMap = map[string]string{
 	"http_failure_feedback_role_arn":      "HTTPFailureFeedbackRoleArn",
 	"http_success_feedback_role_arn":      "HTTPSuccessFeedbackRoleArn",
 	"http_success_feedback_sample_rate":   "HTTPSuccessFeedbackSampleRate",
+	"kms_master_key_id":                   "KmsMasterKeyId",
 	"lambda_failure_feedback_role_arn":    "LambdaFailureFeedbackRoleArn",
 	"lambda_success_feedback_role_arn":    "LambdaSuccessFeedbackRoleArn",
 	"lambda_success_feedback_sample_rate": "LambdaSuccessFeedbackSampleRate",
@@ -106,6 +107,10 @@ func resourceAwsSnsTopic() *schema.Resource {
 				ValidateFunc: validation.IntBetween(0, 100),
 			},
 			"http_failure_feedback_role_arn": {
+				Type:     schema.TypeString,
+				Optional: true,
+			},
+			"kms_master_key_id": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},

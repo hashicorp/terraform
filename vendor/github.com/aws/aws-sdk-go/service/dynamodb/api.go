@@ -4,10 +4,12 @@ package dynamodb
 
 import (
 	"fmt"
+	"net/url"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awsutil"
+	"github.com/aws/aws-sdk-go/aws/crr"
 	"github.com/aws/aws-sdk-go/aws/request"
 	"github.com/aws/aws-sdk-go/private/protocol"
 	"github.com/aws/aws-sdk-go/private/protocol/jsonrpc"
@@ -58,6 +60,27 @@ func (c *DynamoDB) BatchGetItemRequest(input *BatchGetItemInput) (req *request.R
 
 	output = &BatchGetItemOutput{}
 	req = c.newRequest(op, input, output)
+	if aws.BoolValue(req.Config.EnableEndpointDiscovery) {
+		de := discovererDescribeEndpoints{
+			Required:      false,
+			EndpointCache: c.endpointCache,
+			Params: map[string]*string{
+				"op": aws.String(req.Operation.Name),
+			},
+			Client: c,
+		}
+
+		for k, v := range de.Params {
+			if v == nil {
+				delete(de.Params, k)
+			}
+		}
+
+		req.Handlers.Build.PushFrontNamed(request.NamedHandler{
+			Name: "crr.endpointdiscovery",
+			Fn:   de.Handler,
+		})
+	}
 	return
 }
 
@@ -132,6 +155,11 @@ func (c *DynamoDB) BatchGetItemRequest(input *BatchGetItemInput) (req *request.R
 //   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
 //   The operation tried to access a nonexistent table or index. The resource
 //   might not be specified correctly, or its status might not be ACTIVE.
+//
+//   * ErrCodeRequestLimitExceeded "RequestLimitExceeded"
+//   Throughput exceeds the current throughput limit for your account. Please
+//   contact AWS Support at AWS Support (http://docs.aws.amazon.com/https:/aws.amazon.com/support)
+//   to request a limit increase.
 //
 //   * ErrCodeInternalServerError "InternalServerError"
 //   An error occurred on the server side.
@@ -247,6 +275,27 @@ func (c *DynamoDB) BatchWriteItemRequest(input *BatchWriteItemInput) (req *reque
 
 	output = &BatchWriteItemOutput{}
 	req = c.newRequest(op, input, output)
+	if aws.BoolValue(req.Config.EnableEndpointDiscovery) {
+		de := discovererDescribeEndpoints{
+			Required:      false,
+			EndpointCache: c.endpointCache,
+			Params: map[string]*string{
+				"op": aws.String(req.Operation.Name),
+			},
+			Client: c,
+		}
+
+		for k, v := range de.Params {
+			if v == nil {
+				delete(de.Params, k)
+			}
+		}
+
+		req.Handlers.Build.PushFrontNamed(request.NamedHandler{
+			Name: "crr.endpointdiscovery",
+			Fn:   de.Handler,
+		})
+	}
 	return
 }
 
@@ -349,6 +398,11 @@ func (c *DynamoDB) BatchWriteItemRequest(input *BatchWriteItemInput) (req *reque
 //   An item collection is too large. This exception is only returned for tables
 //   that have one or more local secondary indexes.
 //
+//   * ErrCodeRequestLimitExceeded "RequestLimitExceeded"
+//   Throughput exceeds the current throughput limit for your account. Please
+//   contact AWS Support at AWS Support (http://docs.aws.amazon.com/https:/aws.amazon.com/support)
+//   to request a limit increase.
+//
 //   * ErrCodeInternalServerError "InternalServerError"
 //   An error occurred on the server side.
 //
@@ -413,6 +467,27 @@ func (c *DynamoDB) CreateBackupRequest(input *CreateBackupInput) (req *request.R
 
 	output = &CreateBackupOutput{}
 	req = c.newRequest(op, input, output)
+	if aws.BoolValue(req.Config.EnableEndpointDiscovery) {
+		de := discovererDescribeEndpoints{
+			Required:      false,
+			EndpointCache: c.endpointCache,
+			Params: map[string]*string{
+				"op": aws.String(req.Operation.Name),
+			},
+			Client: c,
+		}
+
+		for k, v := range de.Params {
+			if v == nil {
+				delete(de.Params, k)
+			}
+		}
+
+		req.Handlers.Build.PushFrontNamed(request.NamedHandler{
+			Name: "crr.endpointdiscovery",
+			Fn:   de.Handler,
+		})
+	}
 	return
 }
 
@@ -469,7 +544,7 @@ func (c *DynamoDB) CreateBackupRequest(input *CreateBackupInput) (req *request.R
 //
 //   * ErrCodeBackupInUseException "BackupInUseException"
 //   There is another ongoing conflicting backup control plane operation on the
-//   table. The backups is either being created, deleted or restored to a table.
+//   table. The backup is either being created, deleted or restored to a table.
 //
 //   * ErrCodeLimitExceededException "LimitExceededException"
 //   There is no limit to the number of daily on-demand backups that can be taken.
@@ -548,6 +623,27 @@ func (c *DynamoDB) CreateGlobalTableRequest(input *CreateGlobalTableInput) (req 
 
 	output = &CreateGlobalTableOutput{}
 	req = c.newRequest(op, input, output)
+	if aws.BoolValue(req.Config.EnableEndpointDiscovery) {
+		de := discovererDescribeEndpoints{
+			Required:      false,
+			EndpointCache: c.endpointCache,
+			Params: map[string]*string{
+				"op": aws.String(req.Operation.Name),
+			},
+			Client: c,
+		}
+
+		for k, v := range de.Params {
+			if v == nil {
+				delete(de.Params, k)
+			}
+		}
+
+		req.Handlers.Build.PushFrontNamed(request.NamedHandler{
+			Name: "crr.endpointdiscovery",
+			Fn:   de.Handler,
+		})
+	}
 	return
 }
 
@@ -679,6 +775,27 @@ func (c *DynamoDB) CreateTableRequest(input *CreateTableInput) (req *request.Req
 
 	output = &CreateTableOutput{}
 	req = c.newRequest(op, input, output)
+	if aws.BoolValue(req.Config.EnableEndpointDiscovery) {
+		de := discovererDescribeEndpoints{
+			Required:      false,
+			EndpointCache: c.endpointCache,
+			Params: map[string]*string{
+				"op": aws.String(req.Operation.Name),
+			},
+			Client: c,
+		}
+
+		for k, v := range de.Params {
+			if v == nil {
+				delete(de.Params, k)
+			}
+		}
+
+		req.Handlers.Build.PushFrontNamed(request.NamedHandler{
+			Name: "crr.endpointdiscovery",
+			Fn:   de.Handler,
+		})
+	}
 	return
 }
 
@@ -790,6 +907,27 @@ func (c *DynamoDB) DeleteBackupRequest(input *DeleteBackupInput) (req *request.R
 
 	output = &DeleteBackupOutput{}
 	req = c.newRequest(op, input, output)
+	if aws.BoolValue(req.Config.EnableEndpointDiscovery) {
+		de := discovererDescribeEndpoints{
+			Required:      false,
+			EndpointCache: c.endpointCache,
+			Params: map[string]*string{
+				"op": aws.String(req.Operation.Name),
+			},
+			Client: c,
+		}
+
+		for k, v := range de.Params {
+			if v == nil {
+				delete(de.Params, k)
+			}
+		}
+
+		req.Handlers.Build.PushFrontNamed(request.NamedHandler{
+			Name: "crr.endpointdiscovery",
+			Fn:   de.Handler,
+		})
+	}
 	return
 }
 
@@ -812,7 +950,7 @@ func (c *DynamoDB) DeleteBackupRequest(input *DeleteBackupInput) (req *request.R
 //
 //   * ErrCodeBackupInUseException "BackupInUseException"
 //   There is another ongoing conflicting backup control plane operation on the
-//   table. The backups is either being created, deleted or restored to a table.
+//   table. The backup is either being created, deleted or restored to a table.
 //
 //   * ErrCodeLimitExceededException "LimitExceededException"
 //   There is no limit to the number of daily on-demand backups that can be taken.
@@ -891,6 +1029,27 @@ func (c *DynamoDB) DeleteItemRequest(input *DeleteItemInput) (req *request.Reque
 
 	output = &DeleteItemOutput{}
 	req = c.newRequest(op, input, output)
+	if aws.BoolValue(req.Config.EnableEndpointDiscovery) {
+		de := discovererDescribeEndpoints{
+			Required:      false,
+			EndpointCache: c.endpointCache,
+			Params: map[string]*string{
+				"op": aws.String(req.Operation.Name),
+			},
+			Client: c,
+		}
+
+		for k, v := range de.Params {
+			if v == nil {
+				delete(de.Params, k)
+			}
+		}
+
+		req.Handlers.Build.PushFrontNamed(request.NamedHandler{
+			Name: "crr.endpointdiscovery",
+			Fn:   de.Handler,
+		})
+	}
 	return
 }
 
@@ -937,6 +1096,14 @@ func (c *DynamoDB) DeleteItemRequest(input *DeleteItemInput) (req *request.Reque
 //   * ErrCodeItemCollectionSizeLimitExceededException "ItemCollectionSizeLimitExceededException"
 //   An item collection is too large. This exception is only returned for tables
 //   that have one or more local secondary indexes.
+//
+//   * ErrCodeTransactionConflictException "TransactionConflictException"
+//   Operation was rejected because there is an ongoing transaction for the item.
+//
+//   * ErrCodeRequestLimitExceeded "RequestLimitExceeded"
+//   Throughput exceeds the current throughput limit for your account. Please
+//   contact AWS Support at AWS Support (http://docs.aws.amazon.com/https:/aws.amazon.com/support)
+//   to request a limit increase.
 //
 //   * ErrCodeInternalServerError "InternalServerError"
 //   An error occurred on the server side.
@@ -1002,6 +1169,27 @@ func (c *DynamoDB) DeleteTableRequest(input *DeleteTableInput) (req *request.Req
 
 	output = &DeleteTableOutput{}
 	req = c.newRequest(op, input, output)
+	if aws.BoolValue(req.Config.EnableEndpointDiscovery) {
+		de := discovererDescribeEndpoints{
+			Required:      false,
+			EndpointCache: c.endpointCache,
+			Params: map[string]*string{
+				"op": aws.String(req.Operation.Name),
+			},
+			Client: c,
+		}
+
+		for k, v := range de.Params {
+			if v == nil {
+				delete(de.Params, k)
+			}
+		}
+
+		req.Handlers.Build.PushFrontNamed(request.NamedHandler{
+			Name: "crr.endpointdiscovery",
+			Fn:   de.Handler,
+		})
+	}
 	return
 }
 
@@ -1120,6 +1308,27 @@ func (c *DynamoDB) DescribeBackupRequest(input *DescribeBackupInput) (req *reque
 
 	output = &DescribeBackupOutput{}
 	req = c.newRequest(op, input, output)
+	if aws.BoolValue(req.Config.EnableEndpointDiscovery) {
+		de := discovererDescribeEndpoints{
+			Required:      false,
+			EndpointCache: c.endpointCache,
+			Params: map[string]*string{
+				"op": aws.String(req.Operation.Name),
+			},
+			Client: c,
+		}
+
+		for k, v := range de.Params {
+			if v == nil {
+				delete(de.Params, k)
+			}
+		}
+
+		req.Handlers.Build.PushFrontNamed(request.NamedHandler{
+			Name: "crr.endpointdiscovery",
+			Fn:   de.Handler,
+		})
+	}
 	return
 }
 
@@ -1204,6 +1413,27 @@ func (c *DynamoDB) DescribeContinuousBackupsRequest(input *DescribeContinuousBac
 
 	output = &DescribeContinuousBackupsOutput{}
 	req = c.newRequest(op, input, output)
+	if aws.BoolValue(req.Config.EnableEndpointDiscovery) {
+		de := discovererDescribeEndpoints{
+			Required:      false,
+			EndpointCache: c.endpointCache,
+			Params: map[string]*string{
+				"op": aws.String(req.Operation.Name),
+			},
+			Client: c,
+		}
+
+		for k, v := range de.Params {
+			if v == nil {
+				delete(de.Params, k)
+			}
+		}
+
+		req.Handlers.Build.PushFrontNamed(request.NamedHandler{
+			Name: "crr.endpointdiscovery",
+			Fn:   de.Handler,
+		})
+	}
 	return
 }
 
@@ -1332,6 +1562,65 @@ func (c *DynamoDB) DescribeEndpointsWithContext(ctx aws.Context, input *Describe
 	return out, req.Send()
 }
 
+type discovererDescribeEndpoints struct {
+	Client        *DynamoDB
+	Required      bool
+	EndpointCache *crr.EndpointCache
+	Params        map[string]*string
+	Key           string
+}
+
+func (d *discovererDescribeEndpoints) Discover() (crr.Endpoint, error) {
+	input := &DescribeEndpointsInput{}
+
+	resp, err := d.Client.DescribeEndpoints(input)
+	if err != nil {
+		return crr.Endpoint{}, err
+	}
+
+	endpoint := crr.Endpoint{
+		Key: d.Key,
+	}
+
+	for _, e := range resp.Endpoints {
+		if e.Address == nil {
+			continue
+		}
+
+		cachedInMinutes := aws.Int64Value(e.CachePeriodInMinutes)
+		u, err := url.Parse(*e.Address)
+		if err != nil {
+			continue
+		}
+
+		addr := crr.WeightedAddress{
+			URL:     u,
+			Expired: time.Now().Add(time.Duration(cachedInMinutes) * time.Minute),
+		}
+
+		endpoint.Add(addr)
+	}
+
+	d.EndpointCache.Add(endpoint)
+
+	return endpoint, nil
+}
+
+func (d *discovererDescribeEndpoints) Handler(r *request.Request) {
+	endpointKey := crr.BuildEndpointKey(d.Params)
+	d.Key = endpointKey
+
+	endpoint, err := d.EndpointCache.Get(d, endpointKey, d.Required)
+	if err != nil {
+		r.Error = err
+		return
+	}
+
+	if endpoint.URL != nil && len(endpoint.URL.String()) > 0 {
+		r.HTTPRequest.URL = endpoint.URL
+	}
+}
+
 const opDescribeGlobalTable = "DescribeGlobalTable"
 
 // DescribeGlobalTableRequest generates a "aws/request.Request" representing the
@@ -1371,6 +1660,27 @@ func (c *DynamoDB) DescribeGlobalTableRequest(input *DescribeGlobalTableInput) (
 
 	output = &DescribeGlobalTableOutput{}
 	req = c.newRequest(op, input, output)
+	if aws.BoolValue(req.Config.EnableEndpointDiscovery) {
+		de := discovererDescribeEndpoints{
+			Required:      false,
+			EndpointCache: c.endpointCache,
+			Params: map[string]*string{
+				"op": aws.String(req.Operation.Name),
+			},
+			Client: c,
+		}
+
+		for k, v := range de.Params {
+			if v == nil {
+				delete(de.Params, k)
+			}
+		}
+
+		req.Handlers.Build.PushFrontNamed(request.NamedHandler{
+			Name: "crr.endpointdiscovery",
+			Fn:   de.Handler,
+		})
+	}
 	return
 }
 
@@ -1453,6 +1763,27 @@ func (c *DynamoDB) DescribeGlobalTableSettingsRequest(input *DescribeGlobalTable
 
 	output = &DescribeGlobalTableSettingsOutput{}
 	req = c.newRequest(op, input, output)
+	if aws.BoolValue(req.Config.EnableEndpointDiscovery) {
+		de := discovererDescribeEndpoints{
+			Required:      false,
+			EndpointCache: c.endpointCache,
+			Params: map[string]*string{
+				"op": aws.String(req.Operation.Name),
+			},
+			Client: c,
+		}
+
+		for k, v := range de.Params {
+			if v == nil {
+				delete(de.Params, k)
+			}
+		}
+
+		req.Handlers.Build.PushFrontNamed(request.NamedHandler{
+			Name: "crr.endpointdiscovery",
+			Fn:   de.Handler,
+		})
+	}
 	return
 }
 
@@ -1535,6 +1866,27 @@ func (c *DynamoDB) DescribeLimitsRequest(input *DescribeLimitsInput) (req *reque
 
 	output = &DescribeLimitsOutput{}
 	req = c.newRequest(op, input, output)
+	if aws.BoolValue(req.Config.EnableEndpointDiscovery) {
+		de := discovererDescribeEndpoints{
+			Required:      false,
+			EndpointCache: c.endpointCache,
+			Params: map[string]*string{
+				"op": aws.String(req.Operation.Name),
+			},
+			Client: c,
+		}
+
+		for k, v := range de.Params {
+			if v == nil {
+				delete(de.Params, k)
+			}
+		}
+
+		req.Handlers.Build.PushFrontNamed(request.NamedHandler{
+			Name: "crr.endpointdiscovery",
+			Fn:   de.Handler,
+		})
+	}
 	return
 }
 
@@ -1670,6 +2022,27 @@ func (c *DynamoDB) DescribeTableRequest(input *DescribeTableInput) (req *request
 
 	output = &DescribeTableOutput{}
 	req = c.newRequest(op, input, output)
+	if aws.BoolValue(req.Config.EnableEndpointDiscovery) {
+		de := discovererDescribeEndpoints{
+			Required:      false,
+			EndpointCache: c.endpointCache,
+			Params: map[string]*string{
+				"op": aws.String(req.Operation.Name),
+			},
+			Client: c,
+		}
+
+		for k, v := range de.Params {
+			if v == nil {
+				delete(de.Params, k)
+			}
+		}
+
+		req.Handlers.Build.PushFrontNamed(request.NamedHandler{
+			Name: "crr.endpointdiscovery",
+			Fn:   de.Handler,
+		})
+	}
 	return
 }
 
@@ -1761,6 +2134,27 @@ func (c *DynamoDB) DescribeTimeToLiveRequest(input *DescribeTimeToLiveInput) (re
 
 	output = &DescribeTimeToLiveOutput{}
 	req = c.newRequest(op, input, output)
+	if aws.BoolValue(req.Config.EnableEndpointDiscovery) {
+		de := discovererDescribeEndpoints{
+			Required:      false,
+			EndpointCache: c.endpointCache,
+			Params: map[string]*string{
+				"op": aws.String(req.Operation.Name),
+			},
+			Client: c,
+		}
+
+		for k, v := range de.Params {
+			if v == nil {
+				delete(de.Params, k)
+			}
+		}
+
+		req.Handlers.Build.PushFrontNamed(request.NamedHandler{
+			Name: "crr.endpointdiscovery",
+			Fn:   de.Handler,
+		})
+	}
 	return
 }
 
@@ -1844,6 +2238,27 @@ func (c *DynamoDB) GetItemRequest(input *GetItemInput) (req *request.Request, ou
 
 	output = &GetItemOutput{}
 	req = c.newRequest(op, input, output)
+	if aws.BoolValue(req.Config.EnableEndpointDiscovery) {
+		de := discovererDescribeEndpoints{
+			Required:      false,
+			EndpointCache: c.endpointCache,
+			Params: map[string]*string{
+				"op": aws.String(req.Operation.Name),
+			},
+			Client: c,
+		}
+
+		for k, v := range de.Params {
+			if v == nil {
+				delete(de.Params, k)
+			}
+		}
+
+		req.Handlers.Build.PushFrontNamed(request.NamedHandler{
+			Name: "crr.endpointdiscovery",
+			Fn:   de.Handler,
+		})
+	}
 	return
 }
 
@@ -1877,6 +2292,11 @@ func (c *DynamoDB) GetItemRequest(input *GetItemInput) (req *request.Request, ou
 //   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
 //   The operation tried to access a nonexistent table or index. The resource
 //   might not be specified correctly, or its status might not be ACTIVE.
+//
+//   * ErrCodeRequestLimitExceeded "RequestLimitExceeded"
+//   Throughput exceeds the current throughput limit for your account. Please
+//   contact AWS Support at AWS Support (http://docs.aws.amazon.com/https:/aws.amazon.com/support)
+//   to request a limit increase.
 //
 //   * ErrCodeInternalServerError "InternalServerError"
 //   An error occurred on the server side.
@@ -1942,6 +2362,27 @@ func (c *DynamoDB) ListBackupsRequest(input *ListBackupsInput) (req *request.Req
 
 	output = &ListBackupsOutput{}
 	req = c.newRequest(op, input, output)
+	if aws.BoolValue(req.Config.EnableEndpointDiscovery) {
+		de := discovererDescribeEndpoints{
+			Required:      false,
+			EndpointCache: c.endpointCache,
+			Params: map[string]*string{
+				"op": aws.String(req.Operation.Name),
+			},
+			Client: c,
+		}
+
+		for k, v := range de.Params {
+			if v == nil {
+				delete(de.Params, k)
+			}
+		}
+
+		req.Handlers.Build.PushFrontNamed(request.NamedHandler{
+			Name: "crr.endpointdiscovery",
+			Fn:   de.Handler,
+		})
+	}
 	return
 }
 
@@ -2029,6 +2470,27 @@ func (c *DynamoDB) ListGlobalTablesRequest(input *ListGlobalTablesInput) (req *r
 
 	output = &ListGlobalTablesOutput{}
 	req = c.newRequest(op, input, output)
+	if aws.BoolValue(req.Config.EnableEndpointDiscovery) {
+		de := discovererDescribeEndpoints{
+			Required:      false,
+			EndpointCache: c.endpointCache,
+			Params: map[string]*string{
+				"op": aws.String(req.Operation.Name),
+			},
+			Client: c,
+		}
+
+		for k, v := range de.Params {
+			if v == nil {
+				delete(de.Params, k)
+			}
+		}
+
+		req.Handlers.Build.PushFrontNamed(request.NamedHandler{
+			Name: "crr.endpointdiscovery",
+			Fn:   de.Handler,
+		})
+	}
 	return
 }
 
@@ -2114,6 +2576,27 @@ func (c *DynamoDB) ListTablesRequest(input *ListTablesInput) (req *request.Reque
 
 	output = &ListTablesOutput{}
 	req = c.newRequest(op, input, output)
+	if aws.BoolValue(req.Config.EnableEndpointDiscovery) {
+		de := discovererDescribeEndpoints{
+			Required:      false,
+			EndpointCache: c.endpointCache,
+			Params: map[string]*string{
+				"op": aws.String(req.Operation.Name),
+			},
+			Client: c,
+		}
+
+		for k, v := range de.Params {
+			if v == nil {
+				delete(de.Params, k)
+			}
+		}
+
+		req.Handlers.Build.PushFrontNamed(request.NamedHandler{
+			Name: "crr.endpointdiscovery",
+			Fn:   de.Handler,
+		})
+	}
 	return
 }
 
@@ -2245,6 +2728,27 @@ func (c *DynamoDB) ListTagsOfResourceRequest(input *ListTagsOfResourceInput) (re
 
 	output = &ListTagsOfResourceOutput{}
 	req = c.newRequest(op, input, output)
+	if aws.BoolValue(req.Config.EnableEndpointDiscovery) {
+		de := discovererDescribeEndpoints{
+			Required:      false,
+			EndpointCache: c.endpointCache,
+			Params: map[string]*string{
+				"op": aws.String(req.Operation.Name),
+			},
+			Client: c,
+		}
+
+		for k, v := range de.Params {
+			if v == nil {
+				delete(de.Params, k)
+			}
+		}
+
+		req.Handlers.Build.PushFrontNamed(request.NamedHandler{
+			Name: "crr.endpointdiscovery",
+			Fn:   de.Handler,
+		})
+	}
 	return
 }
 
@@ -2332,6 +2836,27 @@ func (c *DynamoDB) PutItemRequest(input *PutItemInput) (req *request.Request, ou
 
 	output = &PutItemOutput{}
 	req = c.newRequest(op, input, output)
+	if aws.BoolValue(req.Config.EnableEndpointDiscovery) {
+		de := discovererDescribeEndpoints{
+			Required:      false,
+			EndpointCache: c.endpointCache,
+			Params: map[string]*string{
+				"op": aws.String(req.Operation.Name),
+			},
+			Client: c,
+		}
+
+		for k, v := range de.Params {
+			if v == nil {
+				delete(de.Params, k)
+			}
+		}
+
+		req.Handlers.Build.PushFrontNamed(request.NamedHandler{
+			Name: "crr.endpointdiscovery",
+			Fn:   de.Handler,
+		})
+	}
 	return
 }
 
@@ -2409,6 +2934,14 @@ func (c *DynamoDB) PutItemRequest(input *PutItemInput) (req *request.Request, ou
 //   An item collection is too large. This exception is only returned for tables
 //   that have one or more local secondary indexes.
 //
+//   * ErrCodeTransactionConflictException "TransactionConflictException"
+//   Operation was rejected because there is an ongoing transaction for the item.
+//
+//   * ErrCodeRequestLimitExceeded "RequestLimitExceeded"
+//   Throughput exceeds the current throughput limit for your account. Please
+//   contact AWS Support at AWS Support (http://docs.aws.amazon.com/https:/aws.amazon.com/support)
+//   to request a limit increase.
+//
 //   * ErrCodeInternalServerError "InternalServerError"
 //   An error occurred on the server side.
 //
@@ -2479,6 +3012,27 @@ func (c *DynamoDB) QueryRequest(input *QueryInput) (req *request.Request, output
 
 	output = &QueryOutput{}
 	req = c.newRequest(op, input, output)
+	if aws.BoolValue(req.Config.EnableEndpointDiscovery) {
+		de := discovererDescribeEndpoints{
+			Required:      false,
+			EndpointCache: c.endpointCache,
+			Params: map[string]*string{
+				"op": aws.String(req.Operation.Name),
+			},
+			Client: c,
+		}
+
+		for k, v := range de.Params {
+			if v == nil {
+				delete(de.Params, k)
+			}
+		}
+
+		req.Handlers.Build.PushFrontNamed(request.NamedHandler{
+			Name: "crr.endpointdiscovery",
+			Fn:   de.Handler,
+		})
+	}
 	return
 }
 
@@ -2552,6 +3106,11 @@ func (c *DynamoDB) QueryRequest(input *QueryInput) (req *request.Request, output
 //   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
 //   The operation tried to access a nonexistent table or index. The resource
 //   might not be specified correctly, or its status might not be ACTIVE.
+//
+//   * ErrCodeRequestLimitExceeded "RequestLimitExceeded"
+//   Throughput exceeds the current throughput limit for your account. Please
+//   contact AWS Support at AWS Support (http://docs.aws.amazon.com/https:/aws.amazon.com/support)
+//   to request a limit increase.
 //
 //   * ErrCodeInternalServerError "InternalServerError"
 //   An error occurred on the server side.
@@ -2667,6 +3226,27 @@ func (c *DynamoDB) RestoreTableFromBackupRequest(input *RestoreTableFromBackupIn
 
 	output = &RestoreTableFromBackupOutput{}
 	req = c.newRequest(op, input, output)
+	if aws.BoolValue(req.Config.EnableEndpointDiscovery) {
+		de := discovererDescribeEndpoints{
+			Required:      false,
+			EndpointCache: c.endpointCache,
+			Params: map[string]*string{
+				"op": aws.String(req.Operation.Name),
+			},
+			Client: c,
+		}
+
+		for k, v := range de.Params {
+			if v == nil {
+				delete(de.Params, k)
+			}
+		}
+
+		req.Handlers.Build.PushFrontNamed(request.NamedHandler{
+			Name: "crr.endpointdiscovery",
+			Fn:   de.Handler,
+		})
+	}
 	return
 }
 
@@ -2710,7 +3290,7 @@ func (c *DynamoDB) RestoreTableFromBackupRequest(input *RestoreTableFromBackupIn
 //
 //   * ErrCodeBackupInUseException "BackupInUseException"
 //   There is another ongoing conflicting backup control plane operation on the
-//   table. The backups is either being created, deleted or restored to a table.
+//   table. The backup is either being created, deleted or restored to a table.
 //
 //   * ErrCodeLimitExceededException "LimitExceededException"
 //   There is no limit to the number of daily on-demand backups that can be taken.
@@ -2789,6 +3369,27 @@ func (c *DynamoDB) RestoreTableToPointInTimeRequest(input *RestoreTableToPointIn
 
 	output = &RestoreTableToPointInTimeOutput{}
 	req = c.newRequest(op, input, output)
+	if aws.BoolValue(req.Config.EnableEndpointDiscovery) {
+		de := discovererDescribeEndpoints{
+			Required:      false,
+			EndpointCache: c.endpointCache,
+			Params: map[string]*string{
+				"op": aws.String(req.Operation.Name),
+			},
+			Client: c,
+		}
+
+		for k, v := range de.Params {
+			if v == nil {
+				delete(de.Params, k)
+			}
+		}
+
+		req.Handlers.Build.PushFrontNamed(request.NamedHandler{
+			Name: "crr.endpointdiscovery",
+			Fn:   de.Handler,
+		})
+	}
 	return
 }
 
@@ -2941,6 +3542,27 @@ func (c *DynamoDB) ScanRequest(input *ScanInput) (req *request.Request, output *
 
 	output = &ScanOutput{}
 	req = c.newRequest(op, input, output)
+	if aws.BoolValue(req.Config.EnableEndpointDiscovery) {
+		de := discovererDescribeEndpoints{
+			Required:      false,
+			EndpointCache: c.endpointCache,
+			Params: map[string]*string{
+				"op": aws.String(req.Operation.Name),
+			},
+			Client: c,
+		}
+
+		for k, v := range de.Params {
+			if v == nil {
+				delete(de.Params, k)
+			}
+		}
+
+		req.Handlers.Build.PushFrontNamed(request.NamedHandler{
+			Name: "crr.endpointdiscovery",
+			Fn:   de.Handler,
+		})
+	}
 	return
 }
 
@@ -2994,6 +3616,11 @@ func (c *DynamoDB) ScanRequest(input *ScanInput) (req *request.Request, output *
 //   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
 //   The operation tried to access a nonexistent table or index. The resource
 //   might not be specified correctly, or its status might not be ACTIVE.
+//
+//   * ErrCodeRequestLimitExceeded "RequestLimitExceeded"
+//   Throughput exceeds the current throughput limit for your account. Please
+//   contact AWS Support at AWS Support (http://docs.aws.amazon.com/https:/aws.amazon.com/support)
+//   to request a limit increase.
 //
 //   * ErrCodeInternalServerError "InternalServerError"
 //   An error occurred on the server side.
@@ -3109,8 +3736,28 @@ func (c *DynamoDB) TagResourceRequest(input *TagResourceInput) (req *request.Req
 
 	output = &TagResourceOutput{}
 	req = c.newRequest(op, input, output)
-	req.Handlers.Unmarshal.Remove(jsonrpc.UnmarshalHandler)
-	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
+	req.Handlers.Unmarshal.Swap(jsonrpc.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
+	if aws.BoolValue(req.Config.EnableEndpointDiscovery) {
+		de := discovererDescribeEndpoints{
+			Required:      false,
+			EndpointCache: c.endpointCache,
+			Params: map[string]*string{
+				"op": aws.String(req.Operation.Name),
+			},
+			Client: c,
+		}
+
+		for k, v := range de.Params {
+			if v == nil {
+				delete(de.Params, k)
+			}
+		}
+
+		req.Handlers.Build.PushFrontNamed(request.NamedHandler{
+			Name: "crr.endpointdiscovery",
+			Fn:   de.Handler,
+		})
+	}
 	return
 }
 
@@ -3179,6 +3826,342 @@ func (c *DynamoDB) TagResourceWithContext(ctx aws.Context, input *TagResourceInp
 	return out, req.Send()
 }
 
+const opTransactGetItems = "TransactGetItems"
+
+// TransactGetItemsRequest generates a "aws/request.Request" representing the
+// client's request for the TransactGetItems operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See TransactGetItems for more information on using the TransactGetItems
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the TransactGetItemsRequest method.
+//    req, resp := client.TransactGetItemsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/dynamodb-2012-08-10/TransactGetItems
+func (c *DynamoDB) TransactGetItemsRequest(input *TransactGetItemsInput) (req *request.Request, output *TransactGetItemsOutput) {
+	op := &request.Operation{
+		Name:       opTransactGetItems,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &TransactGetItemsInput{}
+	}
+
+	output = &TransactGetItemsOutput{}
+	req = c.newRequest(op, input, output)
+	if aws.BoolValue(req.Config.EnableEndpointDiscovery) {
+		de := discovererDescribeEndpoints{
+			Required:      false,
+			EndpointCache: c.endpointCache,
+			Params: map[string]*string{
+				"op": aws.String(req.Operation.Name),
+			},
+			Client: c,
+		}
+
+		for k, v := range de.Params {
+			if v == nil {
+				delete(de.Params, k)
+			}
+		}
+
+		req.Handlers.Build.PushFrontNamed(request.NamedHandler{
+			Name: "crr.endpointdiscovery",
+			Fn:   de.Handler,
+		})
+	}
+	return
+}
+
+// TransactGetItems API operation for Amazon DynamoDB.
+//
+// TransactGetItems is a synchronous operation that atomically retrieves multiple
+// items from one or more tables (but not from indexes) in a single account
+// and region. A TransactGetItems call can contain up to 10 TransactGetItem
+// objects, each of which contains a Get structure that specifies an item to
+// retrieve from a table in the account and region. A call to TransactGetItems
+// cannot retrieve items from tables in more than one AWS account or region.
+//
+// DynamoDB rejects the entire TransactGetItems request if any of the following
+// is true:
+//
+//    * A conflicting operation is in the process of updating an item to be
+//    read.
+//
+//    * There is insufficient provisioned capacity for the transaction to be
+//    completed.
+//
+//    * There is a user error, such as an invalid data format.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon DynamoDB's
+// API operation TransactGetItems for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
+//   The operation tried to access a nonexistent table or index. The resource
+//   might not be specified correctly, or its status might not be ACTIVE.
+//
+//   * ErrCodeTransactionCanceledException "TransactionCanceledException"
+//   The entire transaction request was rejected.
+//
+//   DynamoDB will reject the entire TransactWriteItems request if any of the
+//   following is true:
+//
+//      *  A table in the TransactWriteItems request does not exist.
+//
+//      *  A table in the TransactWriteItems request is on a different account
+//      or region.
+//
+//      *  Operations contain item schema violations.
+//
+//      *  More than one write operation (UpdateItem, PutItem, DeleteItem) operates
+//      on the same item.
+//
+//      *  More than one check operation operates on the same item.
+//
+//      *  The number of operations sent in the TransactWriteItems request is
+//      0 or greater than 10.
+//
+//      *  A TransactWriteItems request exceeds the maximum 4 MB request size.
+//
+//
+//      *  Any operation in the TransactWriteItems request would cause an item
+//      to become larger than 400KB.
+//
+//   * ErrCodeInternalServerError "InternalServerError"
+//   An error occurred on the server side.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/dynamodb-2012-08-10/TransactGetItems
+func (c *DynamoDB) TransactGetItems(input *TransactGetItemsInput) (*TransactGetItemsOutput, error) {
+	req, out := c.TransactGetItemsRequest(input)
+	return out, req.Send()
+}
+
+// TransactGetItemsWithContext is the same as TransactGetItems with the addition of
+// the ability to pass a context and additional request options.
+//
+// See TransactGetItems for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *DynamoDB) TransactGetItemsWithContext(ctx aws.Context, input *TransactGetItemsInput, opts ...request.Option) (*TransactGetItemsOutput, error) {
+	req, out := c.TransactGetItemsRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+const opTransactWriteItems = "TransactWriteItems"
+
+// TransactWriteItemsRequest generates a "aws/request.Request" representing the
+// client's request for the TransactWriteItems operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See TransactWriteItems for more information on using the TransactWriteItems
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the TransactWriteItemsRequest method.
+//    req, resp := client.TransactWriteItemsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/dynamodb-2012-08-10/TransactWriteItems
+func (c *DynamoDB) TransactWriteItemsRequest(input *TransactWriteItemsInput) (req *request.Request, output *TransactWriteItemsOutput) {
+	op := &request.Operation{
+		Name:       opTransactWriteItems,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &TransactWriteItemsInput{}
+	}
+
+	output = &TransactWriteItemsOutput{}
+	req = c.newRequest(op, input, output)
+	if aws.BoolValue(req.Config.EnableEndpointDiscovery) {
+		de := discovererDescribeEndpoints{
+			Required:      false,
+			EndpointCache: c.endpointCache,
+			Params: map[string]*string{
+				"op": aws.String(req.Operation.Name),
+			},
+			Client: c,
+		}
+
+		for k, v := range de.Params {
+			if v == nil {
+				delete(de.Params, k)
+			}
+		}
+
+		req.Handlers.Build.PushFrontNamed(request.NamedHandler{
+			Name: "crr.endpointdiscovery",
+			Fn:   de.Handler,
+		})
+	}
+	return
+}
+
+// TransactWriteItems API operation for Amazon DynamoDB.
+//
+// TransactWriteItems is a synchronous write operation that groups up to 10
+// action requests. These actions can target items in different tables, but
+// not in different AWS accounts or regions, and no two actions can target the
+// same item. For example, you cannot both ConditionCheck and Update the same
+// item.
+//
+// The actions are completed atomically so that either all of them succeed,
+// or all of them fail. They are defined by the following objects:
+//
+//    * Put  —   Initiates a PutItem operation to write a new item. This structure
+//    specifies the primary key of the item to be written, the name of the table
+//    to write it in, an optional condition expression that must be satisfied
+//    for the write to succeed, a list of the item's attributes, and a field
+//    indicating whether or not to retrieve the item's attributes if the condition
+//    is not met.
+//
+//    * Update  —   Initiates an UpdateItem operation to update an existing
+//    item. This structure specifies the primary key of the item to be updated,
+//    the name of the table where it resides, an optional condition expression
+//    that must be satisfied for the update to succeed, an expression that defines
+//    one or more attributes to be updated, and a field indicating whether or
+//    not to retrieve the item's attributes if the condition is not met.
+//
+//    * Delete  —   Initiates a DeleteItem operation to delete an existing item.
+//    This structure specifies the primary key of the item to be deleted, the
+//    name of the table where it resides, an optional condition expression that
+//    must be satisfied for the deletion to succeed, and a field indicating
+//    whether or not to retrieve the item's attributes if the condition is not
+//    met.
+//
+//    * ConditionCheck  —   Applies a condition to an item that is not being
+//    modified by the transaction. This structure specifies the primary key
+//    of the item to be checked, the name of the table where it resides, a condition
+//    expression that must be satisfied for the transaction to succeed, and
+//    a field indicating whether or not to retrieve the item's attributes if
+//    the condition is not met.
+//
+// DynamoDB rejects the entire TransactWriteItems request if any of the following
+// is true:
+//
+//    * A condition in one of the condition expressions is not met.
+//
+//    * A conflicting operation is in the process of updating the same item.
+//
+//    * There is insufficient provisioned capacity for the transaction to be
+//    completed.
+//
+//    * An item size becomes too large (bigger than 400 KB), a Local Secondary
+//    Index (LSI) becomes too large, or a similar validation error occurs because
+//    of changes made by the transaction.
+//
+//    * There is a user error, such as an invalid data format.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon DynamoDB's
+// API operation TransactWriteItems for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
+//   The operation tried to access a nonexistent table or index. The resource
+//   might not be specified correctly, or its status might not be ACTIVE.
+//
+//   * ErrCodeTransactionCanceledException "TransactionCanceledException"
+//   The entire transaction request was rejected.
+//
+//   DynamoDB will reject the entire TransactWriteItems request if any of the
+//   following is true:
+//
+//      *  A table in the TransactWriteItems request does not exist.
+//
+//      *  A table in the TransactWriteItems request is on a different account
+//      or region.
+//
+//      *  Operations contain item schema violations.
+//
+//      *  More than one write operation (UpdateItem, PutItem, DeleteItem) operates
+//      on the same item.
+//
+//      *  More than one check operation operates on the same item.
+//
+//      *  The number of operations sent in the TransactWriteItems request is
+//      0 or greater than 10.
+//
+//      *  A TransactWriteItems request exceeds the maximum 4 MB request size.
+//
+//
+//      *  Any operation in the TransactWriteItems request would cause an item
+//      to become larger than 400KB.
+//
+//   * ErrCodeTransactionInProgressException "TransactionInProgressException"
+//   The transaction with the given request token is already in progress.
+//
+//   * ErrCodeIdempotentParameterMismatchException "IdempotentParameterMismatchException"
+//   DynamoDB rejected the request because you retried a request with a different
+//   payload but with an idempotent token that was already used.
+//
+//   * ErrCodeInternalServerError "InternalServerError"
+//   An error occurred on the server side.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/dynamodb-2012-08-10/TransactWriteItems
+func (c *DynamoDB) TransactWriteItems(input *TransactWriteItemsInput) (*TransactWriteItemsOutput, error) {
+	req, out := c.TransactWriteItemsRequest(input)
+	return out, req.Send()
+}
+
+// TransactWriteItemsWithContext is the same as TransactWriteItems with the addition of
+// the ability to pass a context and additional request options.
+//
+// See TransactWriteItems for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *DynamoDB) TransactWriteItemsWithContext(ctx aws.Context, input *TransactWriteItemsInput, opts ...request.Option) (*TransactWriteItemsOutput, error) {
+	req, out := c.TransactWriteItemsRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
 const opUntagResource = "UntagResource"
 
 // UntagResourceRequest generates a "aws/request.Request" representing the
@@ -3218,8 +4201,28 @@ func (c *DynamoDB) UntagResourceRequest(input *UntagResourceInput) (req *request
 
 	output = &UntagResourceOutput{}
 	req = c.newRequest(op, input, output)
-	req.Handlers.Unmarshal.Remove(jsonrpc.UnmarshalHandler)
-	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
+	req.Handlers.Unmarshal.Swap(jsonrpc.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
+	if aws.BoolValue(req.Config.EnableEndpointDiscovery) {
+		de := discovererDescribeEndpoints{
+			Required:      false,
+			EndpointCache: c.endpointCache,
+			Params: map[string]*string{
+				"op": aws.String(req.Operation.Name),
+			},
+			Client: c,
+		}
+
+		for k, v := range de.Params {
+			if v == nil {
+				delete(de.Params, k)
+			}
+		}
+
+		req.Handlers.Build.PushFrontNamed(request.NamedHandler{
+			Name: "crr.endpointdiscovery",
+			Fn:   de.Handler,
+		})
+	}
 	return
 }
 
@@ -3325,6 +4328,27 @@ func (c *DynamoDB) UpdateContinuousBackupsRequest(input *UpdateContinuousBackups
 
 	output = &UpdateContinuousBackupsOutput{}
 	req = c.newRequest(op, input, output)
+	if aws.BoolValue(req.Config.EnableEndpointDiscovery) {
+		de := discovererDescribeEndpoints{
+			Required:      false,
+			EndpointCache: c.endpointCache,
+			Params: map[string]*string{
+				"op": aws.String(req.Operation.Name),
+			},
+			Client: c,
+		}
+
+		for k, v := range de.Params {
+			if v == nil {
+				delete(de.Params, k)
+			}
+		}
+
+		req.Handlers.Build.PushFrontNamed(request.NamedHandler{
+			Name: "crr.endpointdiscovery",
+			Fn:   de.Handler,
+		})
+	}
 	return
 }
 
@@ -3421,6 +4445,27 @@ func (c *DynamoDB) UpdateGlobalTableRequest(input *UpdateGlobalTableInput) (req 
 
 	output = &UpdateGlobalTableOutput{}
 	req = c.newRequest(op, input, output)
+	if aws.BoolValue(req.Config.EnableEndpointDiscovery) {
+		de := discovererDescribeEndpoints{
+			Required:      false,
+			EndpointCache: c.endpointCache,
+			Params: map[string]*string{
+				"op": aws.String(req.Operation.Name),
+			},
+			Client: c,
+		}
+
+		for k, v := range de.Params {
+			if v == nil {
+				delete(de.Params, k)
+			}
+		}
+
+		req.Handlers.Build.PushFrontNamed(request.NamedHandler{
+			Name: "crr.endpointdiscovery",
+			Fn:   de.Handler,
+		})
+	}
 	return
 }
 
@@ -3532,6 +4577,27 @@ func (c *DynamoDB) UpdateGlobalTableSettingsRequest(input *UpdateGlobalTableSett
 
 	output = &UpdateGlobalTableSettingsOutput{}
 	req = c.newRequest(op, input, output)
+	if aws.BoolValue(req.Config.EnableEndpointDiscovery) {
+		de := discovererDescribeEndpoints{
+			Required:      false,
+			EndpointCache: c.endpointCache,
+			Params: map[string]*string{
+				"op": aws.String(req.Operation.Name),
+			},
+			Client: c,
+		}
+
+		for k, v := range de.Params {
+			if v == nil {
+				delete(de.Params, k)
+			}
+		}
+
+		req.Handlers.Build.PushFrontNamed(request.NamedHandler{
+			Name: "crr.endpointdiscovery",
+			Fn:   de.Handler,
+		})
+	}
 	return
 }
 
@@ -3638,6 +4704,27 @@ func (c *DynamoDB) UpdateItemRequest(input *UpdateItemInput) (req *request.Reque
 
 	output = &UpdateItemOutput{}
 	req = c.newRequest(op, input, output)
+	if aws.BoolValue(req.Config.EnableEndpointDiscovery) {
+		de := discovererDescribeEndpoints{
+			Required:      false,
+			EndpointCache: c.endpointCache,
+			Params: map[string]*string{
+				"op": aws.String(req.Operation.Name),
+			},
+			Client: c,
+		}
+
+		for k, v := range de.Params {
+			if v == nil {
+				delete(de.Params, k)
+			}
+		}
+
+		req.Handlers.Build.PushFrontNamed(request.NamedHandler{
+			Name: "crr.endpointdiscovery",
+			Fn:   de.Handler,
+		})
+	}
 	return
 }
 
@@ -3678,6 +4765,14 @@ func (c *DynamoDB) UpdateItemRequest(input *UpdateItemInput) (req *request.Reque
 //   * ErrCodeItemCollectionSizeLimitExceededException "ItemCollectionSizeLimitExceededException"
 //   An item collection is too large. This exception is only returned for tables
 //   that have one or more local secondary indexes.
+//
+//   * ErrCodeTransactionConflictException "TransactionConflictException"
+//   Operation was rejected because there is an ongoing transaction for the item.
+//
+//   * ErrCodeRequestLimitExceeded "RequestLimitExceeded"
+//   Throughput exceeds the current throughput limit for your account. Please
+//   contact AWS Support at AWS Support (http://docs.aws.amazon.com/https:/aws.amazon.com/support)
+//   to request a limit increase.
 //
 //   * ErrCodeInternalServerError "InternalServerError"
 //   An error occurred on the server side.
@@ -3743,6 +4838,27 @@ func (c *DynamoDB) UpdateTableRequest(input *UpdateTableInput) (req *request.Req
 
 	output = &UpdateTableOutput{}
 	req = c.newRequest(op, input, output)
+	if aws.BoolValue(req.Config.EnableEndpointDiscovery) {
+		de := discovererDescribeEndpoints{
+			Required:      false,
+			EndpointCache: c.endpointCache,
+			Params: map[string]*string{
+				"op": aws.String(req.Operation.Name),
+			},
+			Client: c,
+		}
+
+		for k, v := range de.Params {
+			if v == nil {
+				delete(de.Params, k)
+			}
+		}
+
+		req.Handlers.Build.PushFrontNamed(request.NamedHandler{
+			Name: "crr.endpointdiscovery",
+			Fn:   de.Handler,
+		})
+	}
 	return
 }
 
@@ -3861,6 +4977,27 @@ func (c *DynamoDB) UpdateTimeToLiveRequest(input *UpdateTimeToLiveInput) (req *r
 
 	output = &UpdateTimeToLiveOutput{}
 	req = c.newRequest(op, input, output)
+	if aws.BoolValue(req.Config.EnableEndpointDiscovery) {
+		de := discovererDescribeEndpoints{
+			Required:      false,
+			EndpointCache: c.endpointCache,
+			Params: map[string]*string{
+				"op": aws.String(req.Operation.Name),
+			},
+			Client: c,
+		}
+
+		for k, v := range de.Params {
+			if v == nil {
+				delete(de.Params, k)
+			}
+		}
+
+		req.Handlers.Build.PushFrontNamed(request.NamedHandler{
+			Name: "crr.endpointdiscovery",
+			Fn:   de.Handler,
+		})
+	}
 	return
 }
 
@@ -4727,9 +5864,12 @@ type BackupDetails struct {
 
 	// BackupType:
 	//
-	//    * USER - On-demand backup created by you.
+	//    * USER - You create and manage these using the on-demand backup feature.
 	//
-	//    * SYSTEM - On-demand backup automatically created by DynamoDB.
+	//    * SYSTEM - If you delete a table with point-in-time recovery enabled,
+	//    a SYSTEM backup is automatically created and is retained for 35 days (at
+	//    no additional cost). System backups allow you to restore the deleted table
+	//    to the state it was in just before the point of deletion.
 	//
 	// BackupType is a required field
 	BackupType *string `type:"string" required:"true" enum:"BackupType"`
@@ -4812,9 +5952,12 @@ type BackupSummary struct {
 
 	// BackupType:
 	//
-	//    * USER - On-demand backup created by you.
+	//    * USER - You create and manage these using the on-demand backup feature.
 	//
-	//    * SYSTEM - On-demand backup automatically created by DynamoDB.
+	//    * SYSTEM - If you delete a table with point-in-time recovery enabled,
+	//    a SYSTEM backup is automatically created and is retained for 35 days (at
+	//    no additional cost). System backups allow you to restore the deleted table
+	//    to the state it was in just before the point of deletion.
 	BackupType *string `type:"string" enum:"BackupType"`
 
 	// ARN associated with the table.
@@ -5302,6 +6445,92 @@ func (s *BatchWriteItemOutput) SetUnprocessedItems(v map[string][]*WriteRequest)
 	return s
 }
 
+// Contains the details for the read/write capacity mode.
+type BillingModeSummary struct {
+	_ struct{} `type:"structure"`
+
+	// Controls how you are charged for read and write throughput and how you manage
+	// capacity. This setting can be changed later.
+	//
+	//    * PROVISIONED - Sets the read/write capacity mode to PROVISIONED. We recommend
+	//    using PROVISIONED for predictable workloads.
+	//
+	//    * PAY_PER_REQUEST - Sets the read/write capacity mode to PAY_PER_REQUEST.
+	//    We recommend using PAY_PER_REQUEST for unpredictable workloads.
+	BillingMode *string `type:"string" enum:"BillingMode"`
+
+	// Represents the time when PAY_PER_REQUEST was last set as the read/write capacity
+	// mode.
+	LastUpdateToPayPerRequestDateTime *time.Time `type:"timestamp"`
+}
+
+// String returns the string representation
+func (s BillingModeSummary) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s BillingModeSummary) GoString() string {
+	return s.String()
+}
+
+// SetBillingMode sets the BillingMode field's value.
+func (s *BillingModeSummary) SetBillingMode(v string) *BillingModeSummary {
+	s.BillingMode = &v
+	return s
+}
+
+// SetLastUpdateToPayPerRequestDateTime sets the LastUpdateToPayPerRequestDateTime field's value.
+func (s *BillingModeSummary) SetLastUpdateToPayPerRequestDateTime(v time.Time) *BillingModeSummary {
+	s.LastUpdateToPayPerRequestDateTime = &v
+	return s
+}
+
+// An ordered list of errors for each item in the request which caused the transaction
+// to get cancelled. The values of the list are ordered according to the ordering
+// of the TransactWriteItems request parameter. If no error occurred for the
+// associated item an error with a Null code and Null message will be present.
+type CancellationReason struct {
+	_ struct{} `type:"structure"`
+
+	// Status code for the result of the cancelled transaction.
+	Code *string `type:"string"`
+
+	// Item in the request which caused the transaction to get cancelled.
+	Item map[string]*AttributeValue `type:"map"`
+
+	// Cancellation reason message description.
+	Message *string `type:"string"`
+}
+
+// String returns the string representation
+func (s CancellationReason) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s CancellationReason) GoString() string {
+	return s.String()
+}
+
+// SetCode sets the Code field's value.
+func (s *CancellationReason) SetCode(v string) *CancellationReason {
+	s.Code = &v
+	return s
+}
+
+// SetItem sets the Item field's value.
+func (s *CancellationReason) SetItem(v map[string]*AttributeValue) *CancellationReason {
+	s.Item = v
+	return s
+}
+
+// SetMessage sets the Message field's value.
+func (s *CancellationReason) SetMessage(v string) *CancellationReason {
+	s.Message = &v
+	return s
+}
+
 // Represents the amount of provisioned throughput capacity consumed on a table
 // or an index.
 type Capacity struct {
@@ -5309,6 +6538,12 @@ type Capacity struct {
 
 	// The total number of capacity units consumed on a table or an index.
 	CapacityUnits *float64 `type:"double"`
+
+	// The total number of read capacity units consumed on a table or an index.
+	ReadCapacityUnits *float64 `type:"double"`
+
+	// The total number of write capacity units consumed on a table or an index.
+	WriteCapacityUnits *float64 `type:"double"`
 }
 
 // String returns the string representation
@@ -5324,6 +6559,18 @@ func (s Capacity) GoString() string {
 // SetCapacityUnits sets the CapacityUnits field's value.
 func (s *Capacity) SetCapacityUnits(v float64) *Capacity {
 	s.CapacityUnits = &v
+	return s
+}
+
+// SetReadCapacityUnits sets the ReadCapacityUnits field's value.
+func (s *Capacity) SetReadCapacityUnits(v float64) *Capacity {
+	s.ReadCapacityUnits = &v
+	return s
+}
+
+// SetWriteCapacityUnits sets the WriteCapacityUnits field's value.
+func (s *Capacity) SetWriteCapacityUnits(v float64) *Capacity {
+	s.WriteCapacityUnits = &v
 	return s
 }
 
@@ -5438,6 +6685,107 @@ func (s *Condition) SetComparisonOperator(v string) *Condition {
 	return s
 }
 
+// Represents a request to perform a check that an item exists or to check the
+// condition of specific attributes of the item..
+type ConditionCheck struct {
+	_ struct{} `type:"structure"`
+
+	// A condition that must be satisfied in order for a conditional update to succeed.
+	//
+	// ConditionExpression is a required field
+	ConditionExpression *string `type:"string" required:"true"`
+
+	// One or more substitution tokens for attribute names in an expression.
+	ExpressionAttributeNames map[string]*string `type:"map"`
+
+	// One or more values that can be substituted in an expression.
+	ExpressionAttributeValues map[string]*AttributeValue `type:"map"`
+
+	// The primary key of the item to be checked. Each element consists of an attribute
+	// name and a value for that attribute.
+	//
+	// Key is a required field
+	Key map[string]*AttributeValue `type:"map" required:"true"`
+
+	// Use ReturnValuesOnConditionCheckFailure to get the item attributes if the
+	// ConditionCheck condition fails. For ReturnValuesOnConditionCheckFailure,
+	// the valid values are: NONE and ALL_OLD.
+	ReturnValuesOnConditionCheckFailure *string `type:"string" enum:"ReturnValuesOnConditionCheckFailure"`
+
+	// Name of the table for the check item request.
+	//
+	// TableName is a required field
+	TableName *string `min:"3" type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s ConditionCheck) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ConditionCheck) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ConditionCheck) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ConditionCheck"}
+	if s.ConditionExpression == nil {
+		invalidParams.Add(request.NewErrParamRequired("ConditionExpression"))
+	}
+	if s.Key == nil {
+		invalidParams.Add(request.NewErrParamRequired("Key"))
+	}
+	if s.TableName == nil {
+		invalidParams.Add(request.NewErrParamRequired("TableName"))
+	}
+	if s.TableName != nil && len(*s.TableName) < 3 {
+		invalidParams.Add(request.NewErrParamMinLen("TableName", 3))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetConditionExpression sets the ConditionExpression field's value.
+func (s *ConditionCheck) SetConditionExpression(v string) *ConditionCheck {
+	s.ConditionExpression = &v
+	return s
+}
+
+// SetExpressionAttributeNames sets the ExpressionAttributeNames field's value.
+func (s *ConditionCheck) SetExpressionAttributeNames(v map[string]*string) *ConditionCheck {
+	s.ExpressionAttributeNames = v
+	return s
+}
+
+// SetExpressionAttributeValues sets the ExpressionAttributeValues field's value.
+func (s *ConditionCheck) SetExpressionAttributeValues(v map[string]*AttributeValue) *ConditionCheck {
+	s.ExpressionAttributeValues = v
+	return s
+}
+
+// SetKey sets the Key field's value.
+func (s *ConditionCheck) SetKey(v map[string]*AttributeValue) *ConditionCheck {
+	s.Key = v
+	return s
+}
+
+// SetReturnValuesOnConditionCheckFailure sets the ReturnValuesOnConditionCheckFailure field's value.
+func (s *ConditionCheck) SetReturnValuesOnConditionCheckFailure(v string) *ConditionCheck {
+	s.ReturnValuesOnConditionCheckFailure = &v
+	return s
+}
+
+// SetTableName sets the TableName field's value.
+func (s *ConditionCheck) SetTableName(v string) *ConditionCheck {
+	s.TableName = &v
+	return s
+}
+
 // The capacity units consumed by an operation. The data returned includes the
 // total provisioned throughput consumed, along with statistics for the table
 // and any indexes involved in the operation. ConsumedCapacity is only returned
@@ -5456,11 +6804,17 @@ type ConsumedCapacity struct {
 	// The amount of throughput consumed on each local index affected by the operation.
 	LocalSecondaryIndexes map[string]*Capacity `type:"map"`
 
+	// The total number of read capacity units consumed by the operation.
+	ReadCapacityUnits *float64 `type:"double"`
+
 	// The amount of throughput consumed on the table affected by the operation.
 	Table *Capacity `type:"structure"`
 
 	// The name of the table that was affected by the operation.
 	TableName *string `min:"3" type:"string"`
+
+	// The total number of write capacity units consumed by the operation.
+	WriteCapacityUnits *float64 `type:"double"`
 }
 
 // String returns the string representation
@@ -5491,6 +6845,12 @@ func (s *ConsumedCapacity) SetLocalSecondaryIndexes(v map[string]*Capacity) *Con
 	return s
 }
 
+// SetReadCapacityUnits sets the ReadCapacityUnits field's value.
+func (s *ConsumedCapacity) SetReadCapacityUnits(v float64) *ConsumedCapacity {
+	s.ReadCapacityUnits = &v
+	return s
+}
+
 // SetTable sets the Table field's value.
 func (s *ConsumedCapacity) SetTable(v *Capacity) *ConsumedCapacity {
 	s.Table = v
@@ -5500,6 +6860,12 @@ func (s *ConsumedCapacity) SetTable(v *Capacity) *ConsumedCapacity {
 // SetTableName sets the TableName field's value.
 func (s *ConsumedCapacity) SetTableName(v string) *ConsumedCapacity {
 	s.TableName = &v
+	return s
+}
+
+// SetWriteCapacityUnits sets the WriteCapacityUnits field's value.
+func (s *ConsumedCapacity) SetWriteCapacityUnits(v float64) *ConsumedCapacity {
+	s.WriteCapacityUnits = &v
 	return s
 }
 
@@ -5647,9 +7013,7 @@ type CreateGlobalSecondaryIndexAction struct {
 	// For current minimum and maximum provisioned throughput values, see Limits
 	// (http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Limits.html)
 	// in the Amazon DynamoDB Developer Guide.
-	//
-	// ProvisionedThroughput is a required field
-	ProvisionedThroughput *ProvisionedThroughput `type:"structure" required:"true"`
+	ProvisionedThroughput *ProvisionedThroughput `type:"structure"`
 }
 
 // String returns the string representation
@@ -5679,9 +7043,6 @@ func (s *CreateGlobalSecondaryIndexAction) Validate() error {
 	}
 	if s.Projection == nil {
 		invalidParams.Add(request.NewErrParamRequired("Projection"))
-	}
-	if s.ProvisionedThroughput == nil {
-		invalidParams.Add(request.NewErrParamRequired("ProvisionedThroughput"))
 	}
 	if s.KeySchema != nil {
 		for i, v := range s.KeySchema {
@@ -5860,6 +7221,16 @@ type CreateTableInput struct {
 	// AttributeDefinitions is a required field
 	AttributeDefinitions []*AttributeDefinition `type:"list" required:"true"`
 
+	// Controls how you are charged for read and write throughput and how you manage
+	// capacity. This setting can be changed later.
+	//
+	//    * PROVISIONED - Sets the billing mode to PROVISIONED. We recommend using
+	//    PROVISIONED for predictable workloads.
+	//
+	//    * PAY_PER_REQUEST - Sets the billing mode to PAY_PER_REQUEST. We recommend
+	//    using PAY_PER_REQUEST for unpredictable workloads.
+	BillingMode *string `type:"string" enum:"BillingMode"`
+
 	// One or more global secondary indexes (the maximum is five) to be created
 	// on the table. Each global secondary index in the array includes the following:
 	//
@@ -5966,12 +7337,13 @@ type CreateTableInput struct {
 	// Represents the provisioned throughput settings for a specified table or index.
 	// The settings can be modified using the UpdateTable operation.
 	//
+	// If you set BillingMode as PROVISIONED, you must specify this property. If
+	// you set BillingMode as PAY_PER_REQUEST, you cannot specify this property.
+	//
 	// For current minimum and maximum provisioned throughput values, see Limits
 	// (http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Limits.html)
 	// in the Amazon DynamoDB Developer Guide.
-	//
-	// ProvisionedThroughput is a required field
-	ProvisionedThroughput *ProvisionedThroughput `type:"structure" required:"true"`
+	ProvisionedThroughput *ProvisionedThroughput `type:"structure"`
 
 	// Represents the settings used to enable server-side encryption.
 	SSESpecification *SSESpecification `type:"structure"`
@@ -6025,9 +7397,6 @@ func (s *CreateTableInput) Validate() error {
 	}
 	if s.KeySchema != nil && len(s.KeySchema) < 1 {
 		invalidParams.Add(request.NewErrParamMinLen("KeySchema", 1))
-	}
-	if s.ProvisionedThroughput == nil {
-		invalidParams.Add(request.NewErrParamRequired("ProvisionedThroughput"))
 	}
 	if s.TableName == nil {
 		invalidParams.Add(request.NewErrParamRequired("TableName"))
@@ -6090,6 +7459,12 @@ func (s *CreateTableInput) Validate() error {
 // SetAttributeDefinitions sets the AttributeDefinitions field's value.
 func (s *CreateTableInput) SetAttributeDefinitions(v []*AttributeDefinition) *CreateTableInput {
 	s.AttributeDefinitions = v
+	return s
+}
+
+// SetBillingMode sets the BillingMode field's value.
+func (s *CreateTableInput) SetBillingMode(v string) *CreateTableInput {
+	s.BillingMode = &v
 	return s
 }
 
@@ -6156,6 +7531,101 @@ func (s CreateTableOutput) GoString() string {
 // SetTableDescription sets the TableDescription field's value.
 func (s *CreateTableOutput) SetTableDescription(v *TableDescription) *CreateTableOutput {
 	s.TableDescription = v
+	return s
+}
+
+// Represents a request to perform a DeleteItem operation.
+type Delete struct {
+	_ struct{} `type:"structure"`
+
+	// A condition that must be satisfied in order for a conditional delete to succeed.
+	ConditionExpression *string `type:"string"`
+
+	// One or more substitution tokens for attribute names in an expression.
+	ExpressionAttributeNames map[string]*string `type:"map"`
+
+	// One or more values that can be substituted in an expression.
+	ExpressionAttributeValues map[string]*AttributeValue `type:"map"`
+
+	// The primary key of the item to be deleted. Each element consists of an attribute
+	// name and a value for that attribute.
+	//
+	// Key is a required field
+	Key map[string]*AttributeValue `type:"map" required:"true"`
+
+	// Use ReturnValuesOnConditionCheckFailure to get the item attributes if the
+	// Delete condition fails. For ReturnValuesOnConditionCheckFailure, the valid
+	// values are: NONE and ALL_OLD.
+	ReturnValuesOnConditionCheckFailure *string `type:"string" enum:"ReturnValuesOnConditionCheckFailure"`
+
+	// Name of the table in which the item to be deleted resides.
+	//
+	// TableName is a required field
+	TableName *string `min:"3" type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s Delete) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s Delete) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *Delete) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "Delete"}
+	if s.Key == nil {
+		invalidParams.Add(request.NewErrParamRequired("Key"))
+	}
+	if s.TableName == nil {
+		invalidParams.Add(request.NewErrParamRequired("TableName"))
+	}
+	if s.TableName != nil && len(*s.TableName) < 3 {
+		invalidParams.Add(request.NewErrParamMinLen("TableName", 3))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetConditionExpression sets the ConditionExpression field's value.
+func (s *Delete) SetConditionExpression(v string) *Delete {
+	s.ConditionExpression = &v
+	return s
+}
+
+// SetExpressionAttributeNames sets the ExpressionAttributeNames field's value.
+func (s *Delete) SetExpressionAttributeNames(v map[string]*string) *Delete {
+	s.ExpressionAttributeNames = v
+	return s
+}
+
+// SetExpressionAttributeValues sets the ExpressionAttributeValues field's value.
+func (s *Delete) SetExpressionAttributeValues(v map[string]*AttributeValue) *Delete {
+	s.ExpressionAttributeValues = v
+	return s
+}
+
+// SetKey sets the Key field's value.
+func (s *Delete) SetKey(v map[string]*AttributeValue) *Delete {
+	s.Key = v
+	return s
+}
+
+// SetReturnValuesOnConditionCheckFailure sets the ReturnValuesOnConditionCheckFailure field's value.
+func (s *Delete) SetReturnValuesOnConditionCheckFailure(v string) *Delete {
+	s.ReturnValuesOnConditionCheckFailure = &v
+	return s
+}
+
+// SetTableName sets the TableName field's value.
+func (s *Delete) SetTableName(v string) *Delete {
+	s.TableName = &v
 	return s
 }
 
@@ -7323,12 +8793,12 @@ type ExpectedAttributeValue struct {
 	//
 	//    * If Exists is true, DynamoDB will check to see if that attribute value
 	//    already exists in the table. If it is found, then the operation succeeds.
-	//    If it is not found, the operation fails with a ConditionalCheckFailedException.
+	//    If it is not found, the operation fails with a ConditionCheckFailedException.
 	//
 	//    * If Exists is false, DynamoDB assumes that the attribute value does not
 	//    exist in the table. If in fact the value does not exist, then the assumption
 	//    is valid and the operation succeeds. If the value is found, despite the
-	//    assumption that it does not exist, the operation fails with a ConditionalCheckFailedException.
+	//    assumption that it does not exist, the operation fails with a ConditionCheckFailedException.
 	//
 	// The default setting for Exists is true. If you supply a Value all by itself,
 	// DynamoDB assumes the attribute exists: You don't have to set Exists to true,
@@ -7384,6 +8854,87 @@ func (s *ExpectedAttributeValue) SetExists(v bool) *ExpectedAttributeValue {
 // SetValue sets the Value field's value.
 func (s *ExpectedAttributeValue) SetValue(v *AttributeValue) *ExpectedAttributeValue {
 	s.Value = v
+	return s
+}
+
+// Specifies an item and related attribute values to retrieve in a TransactGetItem
+// object.
+type Get struct {
+	_ struct{} `type:"structure"`
+
+	// One or more substitution tokens for attribute names in the ProjectionExpression
+	// parameter.
+	ExpressionAttributeNames map[string]*string `type:"map"`
+
+	// A map of attribute names to AttributeValue objects that specifies the primary
+	// key of the item to retrieve.
+	//
+	// Key is a required field
+	Key map[string]*AttributeValue `type:"map" required:"true"`
+
+	// A string that identifies one or more attributes of the specified item to
+	// retrieve from the table. The attributes in the expression must be separated
+	// by commas. If no attribute names are specified, then all attributes of the
+	// specified item are returned. If any of the requested attributes are not found,
+	// they do not appear in the result.
+	ProjectionExpression *string `type:"string"`
+
+	// The name of the table from which to retrieve the specified item.
+	//
+	// TableName is a required field
+	TableName *string `min:"3" type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s Get) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s Get) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *Get) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "Get"}
+	if s.Key == nil {
+		invalidParams.Add(request.NewErrParamRequired("Key"))
+	}
+	if s.TableName == nil {
+		invalidParams.Add(request.NewErrParamRequired("TableName"))
+	}
+	if s.TableName != nil && len(*s.TableName) < 3 {
+		invalidParams.Add(request.NewErrParamMinLen("TableName", 3))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetExpressionAttributeNames sets the ExpressionAttributeNames field's value.
+func (s *Get) SetExpressionAttributeNames(v map[string]*string) *Get {
+	s.ExpressionAttributeNames = v
+	return s
+}
+
+// SetKey sets the Key field's value.
+func (s *Get) SetKey(v map[string]*AttributeValue) *Get {
+	s.Key = v
+	return s
+}
+
+// SetProjectionExpression sets the ProjectionExpression field's value.
+func (s *Get) SetProjectionExpression(v string) *Get {
+	s.ProjectionExpression = &v
+	return s
+}
+
+// SetTableName sets the TableName field's value.
+func (s *Get) SetTableName(v string) *Get {
+	s.TableName = &v
 	return s
 }
 
@@ -7638,9 +9189,7 @@ type GlobalSecondaryIndex struct {
 	// For current minimum and maximum provisioned throughput values, see Limits
 	// (http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Limits.html)
 	// in the Amazon DynamoDB Developer Guide.
-	//
-	// ProvisionedThroughput is a required field
-	ProvisionedThroughput *ProvisionedThroughput `type:"structure" required:"true"`
+	ProvisionedThroughput *ProvisionedThroughput `type:"structure"`
 }
 
 // String returns the string representation
@@ -7670,9 +9219,6 @@ func (s *GlobalSecondaryIndex) Validate() error {
 	}
 	if s.Projection == nil {
 		invalidParams.Add(request.NewErrParamRequired("Projection"))
-	}
-	if s.ProvisionedThroughput == nil {
-		invalidParams.Add(request.NewErrParamRequired("ProvisionedThroughput"))
 	}
 	if s.KeySchema != nil {
 		for i, v := range s.KeySchema {
@@ -8231,6 +9777,30 @@ func (s *ItemCollectionMetrics) SetItemCollectionKey(v map[string]*AttributeValu
 // SetSizeEstimateRangeGB sets the SizeEstimateRangeGB field's value.
 func (s *ItemCollectionMetrics) SetSizeEstimateRangeGB(v []*float64) *ItemCollectionMetrics {
 	s.SizeEstimateRangeGB = v
+	return s
+}
+
+// Details for the requested item.
+type ItemResponse struct {
+	_ struct{} `type:"structure"`
+
+	// Map of attribute data consisting of the data type and attribute value.
+	Item map[string]*AttributeValue `type:"map"`
+}
+
+// String returns the string representation
+func (s ItemResponse) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ItemResponse) GoString() string {
+	return s.String()
+}
+
+// SetItem sets the Item field's value.
+func (s *ItemResponse) SetItem(v map[string]*AttributeValue) *ItemResponse {
+	s.Item = v
 	return s
 }
 
@@ -9274,6 +10844,8 @@ type ProvisionedThroughput struct {
 	// Read and Write Requirements (http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/WorkingWithTables.html#ProvisionedThroughput)
 	// in the Amazon DynamoDB Developer Guide.
 	//
+	// If read/write capacity mode is PAY_PER_REQUEST the value is set to 0.
+	//
 	// ReadCapacityUnits is a required field
 	ReadCapacityUnits *int64 `min:"1" type:"long" required:"true"`
 
@@ -9281,6 +10853,8 @@ type ProvisionedThroughput struct {
 	// a ThrottlingException. For more information, see Specifying Read and Write
 	// Requirements (http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/WorkingWithTables.html#ProvisionedThroughput)
 	// in the Amazon DynamoDB Developer Guide.
+	//
+	// If read/write capacity mode is PAY_PER_REQUEST the value is set to 0.
 	//
 	// WriteCapacityUnits is a required field
 	WriteCapacityUnits *int64 `min:"1" type:"long" required:"true"`
@@ -9351,11 +10925,11 @@ type ProvisionedThroughputDescription struct {
 	// DynamoDB returns a ThrottlingException. Eventually consistent reads require
 	// less effort than strongly consistent reads, so a setting of 50 ReadCapacityUnits
 	// per second provides 100 eventually consistent ReadCapacityUnits per second.
-	ReadCapacityUnits *int64 `min:"1" type:"long"`
+	ReadCapacityUnits *int64 `type:"long"`
 
 	// The maximum number of writes consumed per second before DynamoDB returns
 	// a ThrottlingException.
-	WriteCapacityUnits *int64 `min:"1" type:"long"`
+	WriteCapacityUnits *int64 `type:"long"`
 }
 
 // String returns the string representation
@@ -9395,6 +10969,104 @@ func (s *ProvisionedThroughputDescription) SetReadCapacityUnits(v int64) *Provis
 // SetWriteCapacityUnits sets the WriteCapacityUnits field's value.
 func (s *ProvisionedThroughputDescription) SetWriteCapacityUnits(v int64) *ProvisionedThroughputDescription {
 	s.WriteCapacityUnits = &v
+	return s
+}
+
+// Represents a request to perform a PutItem operation.
+type Put struct {
+	_ struct{} `type:"structure"`
+
+	// A condition that must be satisfied in order for a conditional update to succeed.
+	ConditionExpression *string `type:"string"`
+
+	// One or more substitution tokens for attribute names in an expression.
+	ExpressionAttributeNames map[string]*string `type:"map"`
+
+	// One or more values that can be substituted in an expression.
+	ExpressionAttributeValues map[string]*AttributeValue `type:"map"`
+
+	// A map of attribute name to attribute values, representing the primary key
+	// of the item to be written by PutItem. All of the table's primary key attributes
+	// must be specified, and their data types must match those of the table's key
+	// schema. If any attributes are present in the item that are part of an index
+	// key schema for the table, their types must match the index key schema.
+	//
+	// Item is a required field
+	Item map[string]*AttributeValue `type:"map" required:"true"`
+
+	// Use ReturnValuesOnConditionCheckFailure to get the item attributes if the
+	// Put condition fails. For ReturnValuesOnConditionCheckFailure, the valid values
+	// are: NONE and ALL_OLD.
+	ReturnValuesOnConditionCheckFailure *string `type:"string" enum:"ReturnValuesOnConditionCheckFailure"`
+
+	// Name of the table in which to write the item.
+	//
+	// TableName is a required field
+	TableName *string `min:"3" type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s Put) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s Put) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *Put) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "Put"}
+	if s.Item == nil {
+		invalidParams.Add(request.NewErrParamRequired("Item"))
+	}
+	if s.TableName == nil {
+		invalidParams.Add(request.NewErrParamRequired("TableName"))
+	}
+	if s.TableName != nil && len(*s.TableName) < 3 {
+		invalidParams.Add(request.NewErrParamMinLen("TableName", 3))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetConditionExpression sets the ConditionExpression field's value.
+func (s *Put) SetConditionExpression(v string) *Put {
+	s.ConditionExpression = &v
+	return s
+}
+
+// SetExpressionAttributeNames sets the ExpressionAttributeNames field's value.
+func (s *Put) SetExpressionAttributeNames(v map[string]*string) *Put {
+	s.ExpressionAttributeNames = v
+	return s
+}
+
+// SetExpressionAttributeValues sets the ExpressionAttributeValues field's value.
+func (s *Put) SetExpressionAttributeValues(v map[string]*AttributeValue) *Put {
+	s.ExpressionAttributeValues = v
+	return s
+}
+
+// SetItem sets the Item field's value.
+func (s *Put) SetItem(v map[string]*AttributeValue) *Put {
+	s.Item = v
+	return s
+}
+
+// SetReturnValuesOnConditionCheckFailure sets the ReturnValuesOnConditionCheckFailure field's value.
+func (s *Put) SetReturnValuesOnConditionCheckFailure(v string) *Put {
+	s.ReturnValuesOnConditionCheckFailure = &v
+	return s
+}
+
+// SetTableName sets the TableName field's value.
+func (s *Put) SetTableName(v string) *Put {
+	s.TableName = &v
 	return s
 }
 
@@ -10493,6 +12165,9 @@ type ReplicaSettingsDescription struct {
 	// RegionName is a required field
 	RegionName *string `type:"string" required:"true"`
 
+	// The read/write capacity mode of the replica.
+	ReplicaBillingModeSummary *BillingModeSummary `type:"structure"`
+
 	// Replica global secondary index settings for the global table.
 	ReplicaGlobalSecondaryIndexSettings []*ReplicaGlobalSecondaryIndexSettingsDescription `type:"list"`
 
@@ -10503,7 +12178,7 @@ type ReplicaSettingsDescription struct {
 	// DynamoDB returns a ThrottlingException. For more information, see Specifying
 	// Read and Write Requirements (http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/WorkingWithTables.html#ProvisionedThroughput)
 	// in the Amazon DynamoDB Developer Guide.
-	ReplicaProvisionedReadCapacityUnits *int64 `min:"1" type:"long"`
+	ReplicaProvisionedReadCapacityUnits *int64 `type:"long"`
 
 	// AutoScaling settings for a global table replica's write capacity units.
 	ReplicaProvisionedWriteCapacityAutoScalingSettings *AutoScalingSettingsDescription `type:"structure"`
@@ -10512,7 +12187,7 @@ type ReplicaSettingsDescription struct {
 	// a ThrottlingException. For more information, see Specifying Read and Write
 	// Requirements (http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/WorkingWithTables.html#ProvisionedThroughput)
 	// in the Amazon DynamoDB Developer Guide.
-	ReplicaProvisionedWriteCapacityUnits *int64 `min:"1" type:"long"`
+	ReplicaProvisionedWriteCapacityUnits *int64 `type:"long"`
 
 	// The current state of the region:
 	//
@@ -10539,6 +12214,12 @@ func (s ReplicaSettingsDescription) GoString() string {
 // SetRegionName sets the RegionName field's value.
 func (s *ReplicaSettingsDescription) SetRegionName(v string) *ReplicaSettingsDescription {
 	s.RegionName = &v
+	return s
+}
+
+// SetReplicaBillingModeSummary sets the ReplicaBillingModeSummary field's value.
+func (s *ReplicaSettingsDescription) SetReplicaBillingModeSummary(v *BillingModeSummary) *ReplicaSettingsDescription {
+	s.ReplicaBillingModeSummary = v
 	return s
 }
 
@@ -10974,9 +12655,11 @@ type SSEDescription struct {
 
 	// Server-side encryption type:
 	//
-	//    * AES256 - Server-side encryption which uses the AES256 algorithm.
+	//    * AES256 - Server-side encryption which uses the AES256 algorithm (not
+	//    applicable).
 	//
 	//    * KMS - Server-side encryption which uses AWS Key Management Service.
+	//    Key is stored in your account and is managed by AWS KMS (KMS charges apply).
 	SSEType *string `type:"string" enum:"SSEType"`
 
 	// The current state of server-side encryption:
@@ -11026,7 +12709,9 @@ type SSESpecification struct {
 	_ struct{} `type:"structure"`
 
 	// Indicates whether server-side encryption is enabled (true) or disabled (false)
-	// on the table.
+	// on the table. If enabled (true), server-side encryption type is set to KMS.
+	// If disabled (false) or not specified, server-side encryption is set to AWS
+	// owned CMK.
 	Enabled *bool `type:"boolean"`
 
 	// The KMS Master Key (CMK) which should be used for the KMS encryption. To
@@ -11037,10 +12722,11 @@ type SSESpecification struct {
 
 	// Server-side encryption type:
 	//
-	//    * AES256 - Server-side encryption which uses the AES256 algorithm.
+	//    * AES256 - Server-side encryption which uses the AES256 algorithm (not
+	//    applicable).
 	//
 	//    * KMS - Server-side encryption which uses AWS Key Management Service.
-	//    (default)
+	//    Key is stored in your account and is managed by AWS KMS (KMS charges apply).
 	SSEType *string `type:"string" enum:"SSEType"`
 }
 
@@ -11553,6 +13239,16 @@ func (s *ScanOutput) SetScannedCount(v int64) *ScanOutput {
 type SourceTableDetails struct {
 	_ struct{} `type:"structure"`
 
+	// Controls how you are charged for read and write throughput and how you manage
+	// capacity. This setting can be changed later.
+	//
+	//    * PROVISIONED - Sets the read/write capacity mode to PROVISIONED. We recommend
+	//    using PROVISIONED for predictable workloads.
+	//
+	//    * PAY_PER_REQUEST - Sets the read/write capacity mode to PAY_PER_REQUEST.
+	//    We recommend using PAY_PER_REQUEST for unpredictable workloads.
+	BillingMode *string `type:"string" enum:"BillingMode"`
+
 	// Number of items in the table. Please note this is an approximate value.
 	ItemCount *int64 `type:"long"`
 
@@ -11596,6 +13292,12 @@ func (s SourceTableDetails) String() string {
 // GoString returns the string representation
 func (s SourceTableDetails) GoString() string {
 	return s.String()
+}
+
+// SetBillingMode sets the BillingMode field's value.
+func (s *SourceTableDetails) SetBillingMode(v string) *SourceTableDetails {
+	s.BillingMode = &v
+	return s
 }
 
 // SetItemCount sets the ItemCount field's value.
@@ -11773,6 +13475,9 @@ type TableDescription struct {
 	//
 	//    * AttributeType - The data type for the attribute.
 	AttributeDefinitions []*AttributeDefinition `type:"list"`
+
+	// Contains the details for the read/write capacity mode.
+	BillingModeSummary *BillingModeSummary `type:"structure"`
 
 	// The date and time when the table was created, in UNIX epoch time (http://www.epochconverter.com/)
 	// format.
@@ -11980,6 +13685,12 @@ func (s TableDescription) GoString() string {
 // SetAttributeDefinitions sets the AttributeDefinitions field's value.
 func (s *TableDescription) SetAttributeDefinitions(v []*AttributeDefinition) *TableDescription {
 	s.AttributeDefinitions = v
+	return s
+}
+
+// SetBillingModeSummary sets the BillingModeSummary field's value.
+func (s *TableDescription) SetBillingModeSummary(v *BillingModeSummary) *TableDescription {
+	s.BillingModeSummary = v
 	return s
 }
 
@@ -12318,6 +14029,392 @@ func (s *TimeToLiveSpecification) SetEnabled(v bool) *TimeToLiveSpecification {
 	return s
 }
 
+// Specifies an item to be retrieved as part of the transaction.
+type TransactGetItem struct {
+	_ struct{} `type:"structure"`
+
+	// Contains the primary key that identifies the item to get, together with the
+	// name of the table that contains the item, and optionally the specific attributes
+	// of the item to retrieve.
+	//
+	// Get is a required field
+	Get *Get `type:"structure" required:"true"`
+}
+
+// String returns the string representation
+func (s TransactGetItem) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s TransactGetItem) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *TransactGetItem) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "TransactGetItem"}
+	if s.Get == nil {
+		invalidParams.Add(request.NewErrParamRequired("Get"))
+	}
+	if s.Get != nil {
+		if err := s.Get.Validate(); err != nil {
+			invalidParams.AddNested("Get", err.(request.ErrInvalidParams))
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetGet sets the Get field's value.
+func (s *TransactGetItem) SetGet(v *Get) *TransactGetItem {
+	s.Get = v
+	return s
+}
+
+type TransactGetItemsInput struct {
+	_ struct{} `type:"structure"`
+
+	// A value of TOTAL causes consumed capacity information to be returned, and
+	// a value of NONE prevents that information from being returned. No other value
+	// is valid.
+	ReturnConsumedCapacity *string `type:"string" enum:"ReturnConsumedCapacity"`
+
+	// An ordered array of up to 10 TransactGetItem objects, each of which contains
+	// a Get structure.
+	//
+	// TransactItems is a required field
+	TransactItems []*TransactGetItem `min:"1" type:"list" required:"true"`
+}
+
+// String returns the string representation
+func (s TransactGetItemsInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s TransactGetItemsInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *TransactGetItemsInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "TransactGetItemsInput"}
+	if s.TransactItems == nil {
+		invalidParams.Add(request.NewErrParamRequired("TransactItems"))
+	}
+	if s.TransactItems != nil && len(s.TransactItems) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("TransactItems", 1))
+	}
+	if s.TransactItems != nil {
+		for i, v := range s.TransactItems {
+			if v == nil {
+				continue
+			}
+			if err := v.Validate(); err != nil {
+				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "TransactItems", i), err.(request.ErrInvalidParams))
+			}
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetReturnConsumedCapacity sets the ReturnConsumedCapacity field's value.
+func (s *TransactGetItemsInput) SetReturnConsumedCapacity(v string) *TransactGetItemsInput {
+	s.ReturnConsumedCapacity = &v
+	return s
+}
+
+// SetTransactItems sets the TransactItems field's value.
+func (s *TransactGetItemsInput) SetTransactItems(v []*TransactGetItem) *TransactGetItemsInput {
+	s.TransactItems = v
+	return s
+}
+
+type TransactGetItemsOutput struct {
+	_ struct{} `type:"structure"`
+
+	// If the ReturnConsumedCapacity value was TOTAL, this is an array of ConsumedCapacity
+	// objects, one for each table addressed by TransactGetItem objects in the TransactItems
+	// parameter. These ConsumedCapacity objects report the read-capacity units
+	// consumed by the TransactGetItems call in that table.
+	ConsumedCapacity []*ConsumedCapacity `type:"list"`
+
+	// An ordered array of up to 10 ItemResponse objects, each of which corresponds
+	// to the TransactGetItem object in the same position in the TransactItems array.
+	// Each ItemResponse object contains a Map of the name-value pairs that are
+	// the projected attributes of the requested item.
+	//
+	// If a requested item could not be retrieved, the corresponding ItemResponse
+	// object is Null, or if the requested item has no projected attributes, the
+	// corresponding ItemResponse object is an empty Map.
+	Responses []*ItemResponse `min:"1" type:"list"`
+}
+
+// String returns the string representation
+func (s TransactGetItemsOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s TransactGetItemsOutput) GoString() string {
+	return s.String()
+}
+
+// SetConsumedCapacity sets the ConsumedCapacity field's value.
+func (s *TransactGetItemsOutput) SetConsumedCapacity(v []*ConsumedCapacity) *TransactGetItemsOutput {
+	s.ConsumedCapacity = v
+	return s
+}
+
+// SetResponses sets the Responses field's value.
+func (s *TransactGetItemsOutput) SetResponses(v []*ItemResponse) *TransactGetItemsOutput {
+	s.Responses = v
+	return s
+}
+
+// A list of requests that can perform update, put, delete, or check operations
+// on multiple items in one or more tables atomically.
+type TransactWriteItem struct {
+	_ struct{} `type:"structure"`
+
+	// A request to perform a check item operation.
+	ConditionCheck *ConditionCheck `type:"structure"`
+
+	// A request to perform a DeleteItem operation.
+	Delete *Delete `type:"structure"`
+
+	// A request to perform a PutItem operation.
+	Put *Put `type:"structure"`
+
+	// A request to perform an UpdateItem operation.
+	Update *Update `type:"structure"`
+}
+
+// String returns the string representation
+func (s TransactWriteItem) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s TransactWriteItem) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *TransactWriteItem) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "TransactWriteItem"}
+	if s.ConditionCheck != nil {
+		if err := s.ConditionCheck.Validate(); err != nil {
+			invalidParams.AddNested("ConditionCheck", err.(request.ErrInvalidParams))
+		}
+	}
+	if s.Delete != nil {
+		if err := s.Delete.Validate(); err != nil {
+			invalidParams.AddNested("Delete", err.(request.ErrInvalidParams))
+		}
+	}
+	if s.Put != nil {
+		if err := s.Put.Validate(); err != nil {
+			invalidParams.AddNested("Put", err.(request.ErrInvalidParams))
+		}
+	}
+	if s.Update != nil {
+		if err := s.Update.Validate(); err != nil {
+			invalidParams.AddNested("Update", err.(request.ErrInvalidParams))
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetConditionCheck sets the ConditionCheck field's value.
+func (s *TransactWriteItem) SetConditionCheck(v *ConditionCheck) *TransactWriteItem {
+	s.ConditionCheck = v
+	return s
+}
+
+// SetDelete sets the Delete field's value.
+func (s *TransactWriteItem) SetDelete(v *Delete) *TransactWriteItem {
+	s.Delete = v
+	return s
+}
+
+// SetPut sets the Put field's value.
+func (s *TransactWriteItem) SetPut(v *Put) *TransactWriteItem {
+	s.Put = v
+	return s
+}
+
+// SetUpdate sets the Update field's value.
+func (s *TransactWriteItem) SetUpdate(v *Update) *TransactWriteItem {
+	s.Update = v
+	return s
+}
+
+type TransactWriteItemsInput struct {
+	_ struct{} `type:"structure"`
+
+	// Providing a ClientRequestToken makes the call to TransactWriteItems idempotent,
+	// meaning that multiple identical calls have the same effect as one single
+	// call.
+	//
+	// Although multiple identical calls using the same client request token produce
+	// the same result on the server (no side effects), the responses to the calls
+	// may not be the same. If the ReturnConsumedCapacity> parameter is set, then
+	// the initial TransactWriteItems call returns the amount of write capacity
+	// units consumed in making the changes, and subsequent TransactWriteItems calls
+	// with the same client token return the amount of read capacity units consumed
+	// in reading the item.
+	//
+	// A client request token is valid for 10 minutes after the first request that
+	// uses it completes. After 10 minutes, any request with the same client token
+	// is treated as a new request. Do not resubmit the same request with the same
+	// client token for more than 10 minutes or the result may not be idempotent.
+	//
+	// If you submit a request with the same client token but a change in other
+	// parameters within the 10 minute idempotency window, DynamoDB returns an IdempotentParameterMismatch
+	// exception.
+	ClientRequestToken *string `type:"string" idempotencyToken:"true"`
+
+	// Determines the level of detail about provisioned throughput consumption that
+	// is returned in the response:
+	//
+	//    * INDEXES - The response includes the aggregate ConsumedCapacity for the
+	//    operation, together with ConsumedCapacity for each table and secondary
+	//    index that was accessed.
+	//
+	// Note that some operations, such as GetItem and BatchGetItem, do not access
+	//    any indexes at all. In these cases, specifying INDEXES will only return
+	//    ConsumedCapacity information for table(s).
+	//
+	//    * TOTAL - The response includes only the aggregate ConsumedCapacity for
+	//    the operation.
+	//
+	//    * NONE - No ConsumedCapacity details are included in the response.
+	ReturnConsumedCapacity *string `type:"string" enum:"ReturnConsumedCapacity"`
+
+	// Determines whether item collection metrics are returned. If set to SIZE,
+	// the response includes statistics about item collections (if any), that were
+	// modified during the operation and are returned in the response. If set to
+	// NONE (the default), no statistics are returned.
+	ReturnItemCollectionMetrics *string `type:"string" enum:"ReturnItemCollectionMetrics"`
+
+	// An ordered array of up to 10 TransactWriteItem objects, each of which contains
+	// a ConditionCheck, Put, Update, or Delete object. These can operate on items
+	// in different tables, but the tables must reside in the same AWS account and
+	// region, and no two of them can operate on the same item.
+	//
+	// TransactItems is a required field
+	TransactItems []*TransactWriteItem `min:"1" type:"list" required:"true"`
+}
+
+// String returns the string representation
+func (s TransactWriteItemsInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s TransactWriteItemsInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *TransactWriteItemsInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "TransactWriteItemsInput"}
+	if s.TransactItems == nil {
+		invalidParams.Add(request.NewErrParamRequired("TransactItems"))
+	}
+	if s.TransactItems != nil && len(s.TransactItems) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("TransactItems", 1))
+	}
+	if s.TransactItems != nil {
+		for i, v := range s.TransactItems {
+			if v == nil {
+				continue
+			}
+			if err := v.Validate(); err != nil {
+				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "TransactItems", i), err.(request.ErrInvalidParams))
+			}
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetClientRequestToken sets the ClientRequestToken field's value.
+func (s *TransactWriteItemsInput) SetClientRequestToken(v string) *TransactWriteItemsInput {
+	s.ClientRequestToken = &v
+	return s
+}
+
+// SetReturnConsumedCapacity sets the ReturnConsumedCapacity field's value.
+func (s *TransactWriteItemsInput) SetReturnConsumedCapacity(v string) *TransactWriteItemsInput {
+	s.ReturnConsumedCapacity = &v
+	return s
+}
+
+// SetReturnItemCollectionMetrics sets the ReturnItemCollectionMetrics field's value.
+func (s *TransactWriteItemsInput) SetReturnItemCollectionMetrics(v string) *TransactWriteItemsInput {
+	s.ReturnItemCollectionMetrics = &v
+	return s
+}
+
+// SetTransactItems sets the TransactItems field's value.
+func (s *TransactWriteItemsInput) SetTransactItems(v []*TransactWriteItem) *TransactWriteItemsInput {
+	s.TransactItems = v
+	return s
+}
+
+type TransactWriteItemsOutput struct {
+	_ struct{} `type:"structure"`
+
+	// The capacity units consumed by the entire TransactWriteItems operation. The
+	// values of the list are ordered according to the ordering of the TransactItems
+	// request parameter.
+	ConsumedCapacity []*ConsumedCapacity `type:"list"`
+
+	// A list of tables that were processed by TransactWriteItems and, for each
+	// table, information about any item collections that were affected by individual
+	// UpdateItem, PutItem or DeleteItem operations.
+	ItemCollectionMetrics map[string][]*ItemCollectionMetrics `type:"map"`
+}
+
+// String returns the string representation
+func (s TransactWriteItemsOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s TransactWriteItemsOutput) GoString() string {
+	return s.String()
+}
+
+// SetConsumedCapacity sets the ConsumedCapacity field's value.
+func (s *TransactWriteItemsOutput) SetConsumedCapacity(v []*ConsumedCapacity) *TransactWriteItemsOutput {
+	s.ConsumedCapacity = v
+	return s
+}
+
+// SetItemCollectionMetrics sets the ItemCollectionMetrics field's value.
+func (s *TransactWriteItemsOutput) SetItemCollectionMetrics(v map[string][]*ItemCollectionMetrics) *TransactWriteItemsOutput {
+	s.ItemCollectionMetrics = v
+	return s
+}
+
 type UntagResourceInput struct {
 	_ struct{} `type:"structure"`
 
@@ -12387,6 +14484,116 @@ func (s UntagResourceOutput) String() string {
 // GoString returns the string representation
 func (s UntagResourceOutput) GoString() string {
 	return s.String()
+}
+
+// Represents a request to perform an UpdateItem operation.
+type Update struct {
+	_ struct{} `type:"structure"`
+
+	// A condition that must be satisfied in order for a conditional update to succeed.
+	ConditionExpression *string `type:"string"`
+
+	// One or more substitution tokens for attribute names in an expression.
+	ExpressionAttributeNames map[string]*string `type:"map"`
+
+	// One or more values that can be substituted in an expression.
+	ExpressionAttributeValues map[string]*AttributeValue `type:"map"`
+
+	// The primary key of the item to be updated. Each element consists of an attribute
+	// name and a value for that attribute.
+	//
+	// Key is a required field
+	Key map[string]*AttributeValue `type:"map" required:"true"`
+
+	// Use ReturnValuesOnConditionCheckFailure to get the item attributes if the
+	// Update condition fails. For ReturnValuesOnConditionCheckFailure, the valid
+	// values are: NONE, ALL_OLD, UPDATED_OLD, ALL_NEW, UPDATED_NEW.
+	ReturnValuesOnConditionCheckFailure *string `type:"string" enum:"ReturnValuesOnConditionCheckFailure"`
+
+	// Name of the table for the UpdateItem request.
+	//
+	// TableName is a required field
+	TableName *string `min:"3" type:"string" required:"true"`
+
+	// An expression that defines one or more attributes to be updated, the action
+	// to be performed on them, and new value(s) for them.
+	//
+	// UpdateExpression is a required field
+	UpdateExpression *string `type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s Update) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s Update) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *Update) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "Update"}
+	if s.Key == nil {
+		invalidParams.Add(request.NewErrParamRequired("Key"))
+	}
+	if s.TableName == nil {
+		invalidParams.Add(request.NewErrParamRequired("TableName"))
+	}
+	if s.TableName != nil && len(*s.TableName) < 3 {
+		invalidParams.Add(request.NewErrParamMinLen("TableName", 3))
+	}
+	if s.UpdateExpression == nil {
+		invalidParams.Add(request.NewErrParamRequired("UpdateExpression"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetConditionExpression sets the ConditionExpression field's value.
+func (s *Update) SetConditionExpression(v string) *Update {
+	s.ConditionExpression = &v
+	return s
+}
+
+// SetExpressionAttributeNames sets the ExpressionAttributeNames field's value.
+func (s *Update) SetExpressionAttributeNames(v map[string]*string) *Update {
+	s.ExpressionAttributeNames = v
+	return s
+}
+
+// SetExpressionAttributeValues sets the ExpressionAttributeValues field's value.
+func (s *Update) SetExpressionAttributeValues(v map[string]*AttributeValue) *Update {
+	s.ExpressionAttributeValues = v
+	return s
+}
+
+// SetKey sets the Key field's value.
+func (s *Update) SetKey(v map[string]*AttributeValue) *Update {
+	s.Key = v
+	return s
+}
+
+// SetReturnValuesOnConditionCheckFailure sets the ReturnValuesOnConditionCheckFailure field's value.
+func (s *Update) SetReturnValuesOnConditionCheckFailure(v string) *Update {
+	s.ReturnValuesOnConditionCheckFailure = &v
+	return s
+}
+
+// SetTableName sets the TableName field's value.
+func (s *Update) SetTableName(v string) *Update {
+	s.TableName = &v
+	return s
+}
+
+// SetUpdateExpression sets the UpdateExpression field's value.
+func (s *Update) SetUpdateExpression(v string) *Update {
+	s.UpdateExpression = &v
+	return s
 }
 
 type UpdateContinuousBackupsInput struct {
@@ -12631,6 +14838,10 @@ func (s *UpdateGlobalTableOutput) SetGlobalTableDescription(v *GlobalTableDescri
 type UpdateGlobalTableSettingsInput struct {
 	_ struct{} `type:"structure"`
 
+	// The billing mode of the global table. If GlobalTableBillingMode is not specified,
+	// the global table defaults to PROVISIONED capacity billing mode.
+	GlobalTableBillingMode *string `type:"string" enum:"BillingMode"`
+
 	// Represents the settings of a global secondary index for a global table that
 	// will be modified.
 	GlobalTableGlobalSecondaryIndexSettingsUpdate []*GlobalTableGlobalSecondaryIndexSettingsUpdate `min:"1" type:"list"`
@@ -12710,6 +14921,12 @@ func (s *UpdateGlobalTableSettingsInput) Validate() error {
 		return invalidParams
 	}
 	return nil
+}
+
+// SetGlobalTableBillingMode sets the GlobalTableBillingMode field's value.
+func (s *UpdateGlobalTableSettingsInput) SetGlobalTableBillingMode(v string) *UpdateGlobalTableSettingsInput {
+	s.GlobalTableBillingMode = &v
+	return s
 }
 
 // SetGlobalTableGlobalSecondaryIndexSettingsUpdate sets the GlobalTableGlobalSecondaryIndexSettingsUpdate field's value.
@@ -13189,6 +15406,19 @@ type UpdateTableInput struct {
 	// must include the key element(s) of the new index.
 	AttributeDefinitions []*AttributeDefinition `type:"list"`
 
+	// Controls how you are charged for read and write throughput and how you manage
+	// capacity. When switching from pay-per-request to provisioned capacity, initial
+	// provisioned capacity values must be set. The initial provisioned capacity
+	// values are estimated based on the consumed read and write capacity of your
+	// table and global secondary indexes over the past 30 minutes.
+	//
+	//    * PROVISIONED - Sets the billing mode to PROVISIONED. We recommend using
+	//    PROVISIONED for predictable workloads.
+	//
+	//    * PAY_PER_REQUEST - Sets the billing mode to PAY_PER_REQUEST. We recommend
+	//    using PAY_PER_REQUEST for unpredictable workloads.
+	BillingMode *string `type:"string" enum:"BillingMode"`
+
 	// An array of one or more global secondary indexes for the table. For each
 	// index in the array, you can request one action:
 	//
@@ -13276,6 +15506,12 @@ func (s *UpdateTableInput) Validate() error {
 // SetAttributeDefinitions sets the AttributeDefinitions field's value.
 func (s *UpdateTableInput) SetAttributeDefinitions(v []*AttributeDefinition) *UpdateTableInput {
 	s.AttributeDefinitions = v
+	return s
+}
+
+// SetBillingMode sets the BillingMode field's value.
+func (s *UpdateTableInput) SetBillingMode(v string) *UpdateTableInput {
+	s.BillingMode = &v
 	return s
 }
 
@@ -13496,6 +15732,14 @@ const (
 )
 
 const (
+	// BillingModeProvisioned is a BillingMode enum value
+	BillingModeProvisioned = "PROVISIONED"
+
+	// BillingModePayPerRequest is a BillingMode enum value
+	BillingModePayPerRequest = "PAY_PER_REQUEST"
+)
+
+const (
 	// ComparisonOperatorEq is a ComparisonOperator enum value
 	ComparisonOperatorEq = "EQ"
 
@@ -13670,6 +15914,14 @@ const (
 
 	// ReturnValueUpdatedNew is a ReturnValue enum value
 	ReturnValueUpdatedNew = "UPDATED_NEW"
+)
+
+const (
+	// ReturnValuesOnConditionCheckFailureAllOld is a ReturnValuesOnConditionCheckFailure enum value
+	ReturnValuesOnConditionCheckFailureAllOld = "ALL_OLD"
+
+	// ReturnValuesOnConditionCheckFailureNone is a ReturnValuesOnConditionCheckFailure enum value
+	ReturnValuesOnConditionCheckFailureNone = "NONE"
 )
 
 const (

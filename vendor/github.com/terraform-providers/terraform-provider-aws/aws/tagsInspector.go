@@ -8,29 +8,6 @@ import (
 	"github.com/aws/aws-sdk-go/service/inspector"
 )
 
-// diffTags takes our tags locally and the ones remotely and returns
-// the set of tags that must be created, and the set of tags that must
-// be destroyed.
-func diffTagsInspector(oldTags, newTags []*inspector.ResourceGroupTag) ([]*inspector.ResourceGroupTag, []*inspector.ResourceGroupTag) {
-	// First, we're creating everything we have
-	create := make(map[string]interface{})
-	for _, t := range newTags {
-		create[*t.Key] = *t.Value
-	}
-
-	// Build the list of what to remove
-	var remove []*inspector.ResourceGroupTag
-	for _, t := range oldTags {
-		old, ok := create[*t.Key]
-		if !ok || old != *t.Value {
-			// Delete it!
-			remove = append(remove, t)
-		}
-	}
-
-	return tagsFromMapInspector(create), remove
-}
-
 // tagsFromMap returns the tags for the given map of data.
 func tagsFromMapInspector(m map[string]interface{}) []*inspector.ResourceGroupTag {
 	var result []*inspector.ResourceGroupTag
@@ -41,18 +18,6 @@ func tagsFromMapInspector(m map[string]interface{}) []*inspector.ResourceGroupTa
 		}
 		if !tagIgnoredInspector(t) {
 			result = append(result, t)
-		}
-	}
-
-	return result
-}
-
-// tagsToMap turns the list of tags into a map.
-func tagsToMapInspector(ts []*inspector.ResourceGroupTag) map[string]string {
-	result := make(map[string]string)
-	for _, t := range ts {
-		if !tagIgnoredInspector(t) {
-			result[*t.Key] = *t.Value
 		}
 	}
 

@@ -557,9 +557,11 @@ func resourceAwsLbListenerRuleRead(d *schema.ResourceData, meta interface{}) err
 		}
 	}
 
-	sortedActions := sortActionsBasedonTypeinTFFile("action", rule.Actions, d)
-	actions := make([]interface{}, len(sortedActions))
-	for i, action := range sortedActions {
+	sort.Slice(rule.Actions, func(i, j int) bool {
+		return aws.Int64Value(rule.Actions[i].Order) < aws.Int64Value(rule.Actions[j].Order)
+	})
+	actions := make([]interface{}, len(rule.Actions))
+	for i, action := range rule.Actions {
 		actionMap := make(map[string]interface{})
 		actionMap["type"] = aws.StringValue(action.Type)
 		actionMap["order"] = aws.Int64Value(action.Order)

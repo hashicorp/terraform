@@ -200,6 +200,12 @@ func resourceAwsRDSClusterInstance() *schema.Resource {
 				ValidateFunc: validateArn,
 			},
 
+			"copy_tags_to_snapshot": {
+				Type:     schema.TypeBool,
+				Optional: true,
+				Default:  false,
+			},
+
 			"tags": tagsSchema(),
 		},
 	}
@@ -211,6 +217,7 @@ func resourceAwsRDSClusterInstanceCreate(d *schema.ResourceData, meta interface{
 
 	createOpts := &rds.CreateDBInstanceInput{
 		DBInstanceClass:         aws.String(d.Get("instance_class").(string)),
+		CopyTagsToSnapshot:      aws.Bool(d.Get("copy_tags_to_snapshot").(bool)),
 		DBClusterIdentifier:     aws.String(d.Get("cluster_identifier").(string)),
 		Engine:                  aws.String(d.Get("engine").(string)),
 		PubliclyAccessible:      aws.Bool(d.Get("publicly_accessible").(bool)),
@@ -367,6 +374,7 @@ func resourceAwsRDSClusterInstanceRead(d *schema.ResourceData, meta interface{})
 	d.Set("auto_minor_version_upgrade", db.AutoMinorVersionUpgrade)
 	d.Set("availability_zone", db.AvailabilityZone)
 	d.Set("cluster_identifier", db.DBClusterIdentifier)
+	d.Set("copy_tags_to_snapshot", db.CopyTagsToSnapshot)
 	d.Set("dbi_resource_id", db.DbiResourceId)
 	d.Set("engine_version", db.EngineVersion)
 	d.Set("engine", db.Engine)
@@ -458,6 +466,12 @@ func resourceAwsRDSClusterInstanceUpdate(d *schema.ResourceData, meta interface{
 	if d.HasChange("auto_minor_version_upgrade") {
 		d.SetPartial("auto_minor_version_upgrade")
 		req.AutoMinorVersionUpgrade = aws.Bool(d.Get("auto_minor_version_upgrade").(bool))
+		requestUpdate = true
+	}
+
+	if d.HasChange("copy_tags_to_snapshot") {
+		d.SetPartial("copy_tags_to_snapshot")
+		req.CopyTagsToSnapshot = aws.Bool(d.Get("copy_tags_to_snapshot").(bool))
 		requestUpdate = true
 	}
 

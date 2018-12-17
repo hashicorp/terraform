@@ -15,6 +15,7 @@ import (
 
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/hashicorp/terraform/helper/validation"
 )
 
 func resourceAwsLambdaEventSourceMapping() *schema.Resource {
@@ -48,6 +49,17 @@ func resourceAwsLambdaEventSourceMapping() *schema.Resource {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
+				ValidateFunc: validation.StringInSlice([]string{
+					lambda.EventSourcePositionAtTimestamp,
+					lambda.EventSourcePositionLatest,
+					lambda.EventSourcePositionTrimHorizon,
+				}, false),
+			},
+			"starting_position_timestamp": {
+				Type:         schema.TypeString,
+				Optional:     true,
+				ForceNew:     true,
+				ValidateFunc: validation.ValidateRFC3339TimeString,
 			},
 			"batch_size": {
 				Type:     schema.TypeInt,
@@ -134,6 +146,11 @@ func resourceAwsLambdaEventSourceMappingCreate(d *schema.ResourceData, meta inte
 
 	if startingPosition, ok := d.GetOk("starting_position"); ok {
 		params.StartingPosition = aws.String(startingPosition.(string))
+	}
+
+	if startingPositionTimestamp, ok := d.GetOk("starting_position_timestamp"); ok {
+		t, _ := time.Parse(time.RFC3339, startingPositionTimestamp.(string))
+		params.StartingPositionTimestamp = aws.Time(t)
 	}
 
 	// IAM profiles and roles can take some time to propagate in AWS:

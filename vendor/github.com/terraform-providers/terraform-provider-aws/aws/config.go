@@ -19,6 +19,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/acmpca"
 	"github.com/aws/aws-sdk-go/service/apigateway"
 	"github.com/aws/aws-sdk-go/service/applicationautoscaling"
+	"github.com/aws/aws-sdk-go/service/appmesh"
 	"github.com/aws/aws-sdk-go/service/appsync"
 	"github.com/aws/aws-sdk-go/service/athena"
 	"github.com/aws/aws-sdk-go/service/autoscaling"
@@ -40,10 +41,12 @@ import (
 	"github.com/aws/aws-sdk-go/service/cognitoidentityprovider"
 	"github.com/aws/aws-sdk-go/service/configservice"
 	"github.com/aws/aws-sdk-go/service/databasemigrationservice"
+	"github.com/aws/aws-sdk-go/service/datasync"
 	"github.com/aws/aws-sdk-go/service/dax"
 	"github.com/aws/aws-sdk-go/service/devicefarm"
 	"github.com/aws/aws-sdk-go/service/directconnect"
 	"github.com/aws/aws-sdk-go/service/directoryservice"
+	"github.com/aws/aws-sdk-go/service/dlm"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/ecr"
@@ -67,6 +70,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/inspector"
 	"github.com/aws/aws-sdk-go/service/iot"
 	"github.com/aws/aws-sdk-go/service/kinesis"
+	"github.com/aws/aws-sdk-go/service/kinesisanalytics"
 	"github.com/aws/aws-sdk-go/service/kms"
 	"github.com/aws/aws-sdk-go/service/lambda"
 	"github.com/aws/aws-sdk-go/service/lexmodelbuildingservice"
@@ -84,6 +88,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/route53"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/secretsmanager"
+	"github.com/aws/aws-sdk-go/service/securityhub"
 	"github.com/aws/aws-sdk-go/service/servicecatalog"
 	"github.com/aws/aws-sdk-go/service/servicediscovery"
 	"github.com/aws/aws-sdk-go/service/ses"
@@ -95,6 +100,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/storagegateway"
 	"github.com/aws/aws-sdk-go/service/sts"
 	"github.com/aws/aws-sdk-go/service/swf"
+	"github.com/aws/aws-sdk-go/service/transfer"
 	"github.com/aws/aws-sdk-go/service/waf"
 	"github.com/aws/aws-sdk-go/service/wafregional"
 	"github.com/aws/aws-sdk-go/service/workspaces"
@@ -138,6 +144,7 @@ type Config struct {
 	ElbEndpoint              string
 	IamEndpoint              string
 	KinesisEndpoint          string
+	KinesisAnalyticsEndpoint string
 	KmsEndpoint              string
 	LambdaEndpoint           string
 	RdsEndpoint              string
@@ -169,8 +176,10 @@ type AWSClient struct {
 	cognitoconn           *cognitoidentity.CognitoIdentity
 	cognitoidpconn        *cognitoidentityprovider.CognitoIdentityProvider
 	configconn            *configservice.ConfigService
+	datasyncconn          *datasync.DataSync
 	daxconn               *dax.DAX
 	devicefarmconn        *devicefarm.DeviceFarm
+	dlmconn               *dlm.DLM
 	dmsconn               *databasemigrationservice.DatabaseMigrationService
 	dsconn                *directoryservice.DirectoryService
 	dynamodbconn          *dynamodb.DynamoDB
@@ -190,6 +199,7 @@ type AWSClient struct {
 	autoscalingconn       *autoscaling.AutoScaling
 	s3conn                *s3.S3
 	secretsmanagerconn    *secretsmanager.SecretsManager
+	securityhubconn       *securityhub.SecurityHub
 	scconn                *servicecatalog.ServiceCatalog
 	sesConn               *ses.SES
 	simpledbconn          *simpledb.SimpleDB
@@ -205,6 +215,7 @@ type AWSClient struct {
 	rdsconn               *rds.RDS
 	iamconn               *iam.IAM
 	kinesisconn           *kinesis.Kinesis
+	kinesisanalyticsconn  *kinesisanalytics.KinesisAnalytics
 	kmsconn               *kms.KMS
 	gameliftconn          *gamelift.GameLift
 	firehoseconn          *firehose.Firehose
@@ -245,6 +256,8 @@ type AWSClient struct {
 	pricingconn           *pricing.Pricing
 	pinpointconn          *pinpoint.Pinpoint
 	workspacesconn        *workspaces.WorkSpaces
+	appmeshconn           *appmesh.AppMesh
+	transferconn          *transfer.Transfer
 }
 
 func (c *AWSClient) S3() *s3.S3 {
@@ -380,13 +393,13 @@ func (c *Config) Client() (interface{}, error) {
 		}
 		// RequestError: send request failed
 		// caused by: Post https://FQDN/: dial tcp: lookup FQDN: no such host
-		if isAWSErrExtended(r.Error, "RequestError", "send request failed", "no such host") {
+		if IsAWSErrExtended(r.Error, "RequestError", "send request failed", "no such host") {
 			log.Printf("[WARN] Disabling retries after next request due to networking issue")
 			r.Retryable = aws.Bool(false)
 		}
 		// RequestError: send request failed
 		// caused by: Post https://FQDN/: dial tcp IPADDRESS:443: connect: connection refused
-		if isAWSErrExtended(r.Error, "RequestError", "send request failed", "connection refused") {
+		if IsAWSErrExtended(r.Error, "RequestError", "send request failed", "connection refused") {
 			log.Printf("[WARN] Disabling retries after next request due to networking issue")
 			r.Retryable = aws.Bool(false)
 		}
@@ -416,6 +429,7 @@ func (c *Config) Client() (interface{}, error) {
 	awsIamSess := sess.Copy(&aws.Config{Endpoint: aws.String(c.IamEndpoint)})
 	awsLambdaSess := sess.Copy(&aws.Config{Endpoint: aws.String(c.LambdaEndpoint)})
 	awsKinesisSess := sess.Copy(&aws.Config{Endpoint: aws.String(c.KinesisEndpoint)})
+	awsKinesisAnalyticsSess := sess.Copy(&aws.Config{Endpoint: aws.String(c.KinesisAnalyticsEndpoint)})
 	awsKmsSess := sess.Copy(&aws.Config{Endpoint: aws.String(c.KmsEndpoint)})
 	awsRdsSess := sess.Copy(&aws.Config{Endpoint: aws.String(c.RdsEndpoint)})
 	awsS3Sess := sess.Copy(&aws.Config{Endpoint: aws.String(c.S3Endpoint)})
@@ -513,7 +527,9 @@ func (c *Config) Client() (interface{}, error) {
 	client.cognitoconn = cognitoidentity.New(sess)
 	client.cognitoidpconn = cognitoidentityprovider.New(sess)
 	client.codepipelineconn = codepipeline.New(sess)
+	client.datasyncconn = datasync.New(sess)
 	client.daxconn = dax.New(awsDynamoSess)
+	client.dlmconn = dlm.New(sess)
 	client.dmsconn = databasemigrationservice.New(sess)
 	client.dsconn = directoryservice.New(sess)
 	client.dynamodbconn = dynamodb.New(awsDynamoSess)
@@ -536,6 +552,7 @@ func (c *Config) Client() (interface{}, error) {
 	client.guarddutyconn = guardduty.New(sess)
 	client.iotconn = iot.New(sess)
 	client.kinesisconn = kinesis.New(awsKinesisSess)
+	client.kinesisanalyticsconn = kinesisanalytics.New(awsKinesisAnalyticsSess)
 	client.kmsconn = kms.New(awsKmsSess)
 	client.lambdaconn = lambda.New(awsLambdaSess)
 	client.lexmodelconn = lexmodelbuildingservice.New(sess)
@@ -554,6 +571,7 @@ func (c *Config) Client() (interface{}, error) {
 	client.sdconn = servicediscovery.New(sess)
 	client.sesConn = ses.New(sess)
 	client.secretsmanagerconn = secretsmanager.New(sess)
+	client.securityhubconn = securityhub.New(sess)
 	client.sfnconn = sfn.New(sess)
 	client.snsconn = sns.New(awsSnsSess)
 	client.sqsconn = sqs.New(awsSqsSess)
@@ -572,6 +590,8 @@ func (c *Config) Client() (interface{}, error) {
 	client.pricingconn = pricing.New(sess)
 	client.pinpointconn = pinpoint.New(sess)
 	client.workspacesconn = workspaces.New(sess)
+	client.appmeshconn = appmesh.New(sess)
+	client.transferconn = transfer.New(sess)
 
 	// Workaround for https://github.com/aws/aws-sdk-go/issues/1376
 	client.kinesisconn.Handlers.Retry.PushBack(func(r *request.Request) {

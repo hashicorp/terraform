@@ -8,6 +8,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/hashicorp/terraform/helper/validation"
 )
 
 func resourceAwsFlowLog() *schema.Resource {
@@ -22,14 +23,41 @@ func resourceAwsFlowLog() *schema.Resource {
 		Schema: map[string]*schema.Schema{
 			"iam_role_arn": {
 				Type:     schema.TypeString,
-				Required: true,
+				Optional: true,
 				ForceNew: true,
 			},
 
-			"log_group_name": {
+			"log_destination": {
+				Type:          schema.TypeString,
+				Optional:      true,
+				Computed:      true,
+				ForceNew:      true,
+				ConflictsWith: []string{"log_group_name"},
+				ValidateFunc:  validateArn,
+				StateFunc: func(arn interface{}) string {
+					// aws_cloudwatch_log_group arn attribute references contain a trailing `:*`, which breaks functionality
+					return strings.TrimSuffix(arn.(string), ":*")
+				},
+			},
+
+			"log_destination_type": {
 				Type:     schema.TypeString,
-				Required: true,
+				Optional: true,
 				ForceNew: true,
+				Default:  ec2.LogDestinationTypeCloudWatchLogs,
+				ValidateFunc: validation.StringInSlice([]string{
+					ec2.LogDestinationTypeCloudWatchLogs,
+					ec2.LogDestinationTypeS3,
+				}, false),
+			},
+
+			"log_group_name": {
+				Type:          schema.TypeString,
+				Optional:      true,
+				Computed:      true,
+				ForceNew:      true,
+				ConflictsWith: []string{"log_destination"},
+				Deprecated:    "use 'log_destination' argument instead",
 			},
 
 			"vpc_id": {
@@ -89,11 +117,22 @@ func resourceAwsLogFlowCreate(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	opts := &ec2.CreateFlowLogsInput{
-		DeliverLogsPermissionArn: aws.String(d.Get("iam_role_arn").(string)),
-		LogGroupName:             aws.String(d.Get("log_group_name").(string)),
-		ResourceIds:              []*string{aws.String(resourceId)},
-		ResourceType:             aws.String(resourceType),
-		TrafficType:              aws.String(d.Get("traffic_type").(string)),
+		LogDestinationType: aws.String(d.Get("log_destination_type").(string)),
+		ResourceIds:        []*string{aws.String(resourceId)},
+		ResourceType:       aws.String(resourceType),
+		TrafficType:        aws.String(d.Get("traffic_type").(string)),
+	}
+
+	if v, ok := d.GetOk("iam_role_arn"); ok && v != "" {
+		opts.DeliverLogsPermissionArn = aws.String(v.(string))
+	}
+
+	if v, ok := d.GetOk("log_destination"); ok && v != "" {
+		opts.LogDestination = aws.String(strings.TrimSuffix(v.(string), ":*"))
+	}
+
+	if v, ok := d.GetOk("log_group_name"); ok && v != "" {
+		opts.LogGroupName = aws.String(v.(string))
 	}
 
 	log.Printf(
@@ -134,6 +173,8 @@ func resourceAwsLogFlowRead(d *schema.ResourceData, meta interface{}) error {
 
 	fl := resp.FlowLogs[0]
 	d.Set("traffic_type", fl.TrafficType)
+	d.Set("log_destination", fl.LogDestination)
+	d.Set("log_destination_type", fl.LogDestinationType)
 	d.Set("log_group_name", fl.LogGroupName)
 	d.Set("iam_role_arn", fl.DeliverLogsPermissionArn)
 

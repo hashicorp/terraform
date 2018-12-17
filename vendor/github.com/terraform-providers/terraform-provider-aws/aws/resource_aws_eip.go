@@ -80,6 +80,13 @@ func resourceAwsEip() *schema.Resource {
 				Optional: true,
 			},
 
+			"public_ipv4_pool": {
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+				Computed: true,
+			},
+
 			"tags": tagsSchema(),
 		},
 	}
@@ -96,6 +103,10 @@ func resourceAwsEipCreate(d *schema.ResourceData, meta interface{}) error {
 
 	allocOpts := &ec2.AllocateAddressInput{
 		Domain: aws.String(domainOpt),
+	}
+
+	if v, ok := d.GetOk("public_ipv4_pool"); ok {
+		allocOpts.PublicIpv4Pool = aws.String(v.(string))
 	}
 
 	log.Printf("[DEBUG] EIP create configuration: %#v", allocOpts)
@@ -211,6 +222,7 @@ func resourceAwsEipRead(d *schema.ResourceData, meta interface{}) error {
 	}
 	d.Set("private_ip", address.PrivateIpAddress)
 	d.Set("public_ip", address.PublicIp)
+	d.Set("public_ipv4_pool", address.PublicIpv4Pool)
 
 	// On import (domain never set, which it must've been if we created),
 	// set the 'vpc' attribute depending on if we're in a VPC.

@@ -40,6 +40,10 @@ func resourceAwsLambdaAlias() *schema.Resource {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
+			"invoke_arn": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
 			"routing_config": {
 				Type:     schema.TypeList,
 				Optional: true,
@@ -113,6 +117,9 @@ func resourceAwsLambdaAliasRead(d *schema.ResourceData, meta interface{}) error 
 	d.Set("function_version", aliasConfiguration.FunctionVersion)
 	d.Set("name", aliasConfiguration.Name)
 	d.Set("arn", aliasConfiguration.AliasArn)
+
+	invokeArn := lambdaFunctionInvokeArn(*aliasConfiguration.AliasArn, meta)
+	d.Set("invoke_arn", invokeArn)
 
 	if err := d.Set("routing_config", flattenLambdaAliasRoutingConfiguration(aliasConfiguration.RoutingConfig)); err != nil {
 		return fmt.Errorf("error setting routing_config: %s", err)

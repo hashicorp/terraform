@@ -72,15 +72,23 @@ func resourceAwsVpnConnection() *schema.Resource {
 
 		Schema: map[string]*schema.Schema{
 			"vpn_gateway_id": {
-				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: true,
+				Type:          schema.TypeString,
+				Optional:      true,
+				ForceNew:      true,
+				ConflictsWith: []string{"transit_gateway_id"},
 			},
 
 			"customer_gateway_id": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
+			},
+
+			"transit_gateway_id": {
+				Type:          schema.TypeString,
+				Optional:      true,
+				ForceNew:      true,
+				ConflictsWith: []string{"vpn_gateway_id"},
 			},
 
 			"type": {
@@ -297,7 +305,14 @@ func resourceAwsVpnConnectionCreate(d *schema.ResourceData, meta interface{}) er
 		CustomerGatewayId: aws.String(d.Get("customer_gateway_id").(string)),
 		Options:           connectOpts,
 		Type:              aws.String(d.Get("type").(string)),
-		VpnGatewayId:      aws.String(d.Get("vpn_gateway_id").(string)),
+	}
+
+	if v, ok := d.GetOk("transit_gateway_id"); ok {
+		createOpts.TransitGatewayId = aws.String(v.(string))
+	}
+
+	if v, ok := d.GetOk("vpn_gateway_id"); ok {
+		createOpts.VpnGatewayId = aws.String(v.(string))
 	}
 
 	// Create the VPN Connection
@@ -395,6 +410,7 @@ func resourceAwsVpnConnectionRead(d *schema.ResourceData, meta interface{}) erro
 	// Set attributes under the user's control.
 	d.Set("vpn_gateway_id", vpnConnection.VpnGatewayId)
 	d.Set("customer_gateway_id", vpnConnection.CustomerGatewayId)
+	d.Set("transit_gateway_id", vpnConnection.TransitGatewayId)
 	d.Set("type", vpnConnection.Type)
 	d.Set("tags", tagsToMap(vpnConnection.Tags))
 

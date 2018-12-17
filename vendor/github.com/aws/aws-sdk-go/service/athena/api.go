@@ -8,6 +8,8 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awsutil"
 	"github.com/aws/aws-sdk-go/aws/request"
+	"github.com/aws/aws-sdk-go/private/protocol"
+	"github.com/aws/aws-sdk-go/private/protocol/jsonrpc"
 )
 
 const opBatchGetNamedQuery = "BatchGetNamedQuery"
@@ -315,6 +317,7 @@ func (c *Athena) DeleteNamedQueryRequest(input *DeleteNamedQueryInput) (req *req
 
 	output = &DeleteNamedQueryOutput{}
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(jsonrpc.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -1094,6 +1097,7 @@ func (c *Athena) StopQueryExecutionRequest(input *StopQueryExecutionInput) (req 
 
 	output = &StopQueryExecutionOutput{}
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(jsonrpc.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 

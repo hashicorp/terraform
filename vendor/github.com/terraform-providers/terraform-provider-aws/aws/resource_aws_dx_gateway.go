@@ -31,7 +31,7 @@ func resourceAwsDxGateway() *schema.Resource {
 				Type:         schema.TypeString,
 				Required:     true,
 				ForceNew:     true,
-				ValidateFunc: validateDxGatewayAmazonSideAsn,
+				ValidateFunc: validateAmazonSideAsn,
 			},
 		},
 

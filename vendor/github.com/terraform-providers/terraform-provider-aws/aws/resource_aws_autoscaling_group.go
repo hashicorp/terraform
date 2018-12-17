@@ -84,6 +84,116 @@ func resourceAwsAutoscalingGroup() *schema.Resource {
 				},
 			},
 
+			"mixed_instances_policy": {
+				Type:     schema.TypeList,
+				Optional: true,
+				MaxItems: 1,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"instances_distribution": {
+							Type:     schema.TypeList,
+							Optional: true,
+							MaxItems: 1,
+							// Ignore missing configuration block
+							DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
+								if old == "1" && new == "0" {
+									return true
+								}
+								return false
+							},
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"on_demand_allocation_strategy": {
+										Type:     schema.TypeString,
+										Optional: true,
+										Default:  "prioritized",
+										ValidateFunc: validation.StringInSlice([]string{
+											"prioritized",
+										}, false),
+									},
+									"on_demand_base_capacity": {
+										Type:         schema.TypeInt,
+										Optional:     true,
+										ValidateFunc: validation.IntAtLeast(0),
+									},
+									"on_demand_percentage_above_base_capacity": {
+										Type:         schema.TypeInt,
+										Optional:     true,
+										Default:      100,
+										ValidateFunc: validation.IntBetween(0, 100),
+									},
+									"spot_allocation_strategy": {
+										Type:     schema.TypeString,
+										Optional: true,
+										Default:  "lowest-price",
+										ValidateFunc: validation.StringInSlice([]string{
+											"lowest-price",
+										}, false),
+									},
+									"spot_instance_pools": {
+										Type:         schema.TypeInt,
+										Optional:     true,
+										Computed:     true,
+										ValidateFunc: validation.IntAtLeast(0),
+									},
+									"spot_max_price": {
+										Type:     schema.TypeString,
+										Optional: true,
+									},
+								},
+							},
+						},
+						"launch_template": {
+							Type:     schema.TypeList,
+							Required: true,
+							MinItems: 1,
+							MaxItems: 1,
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"launch_template_specification": {
+										Type:     schema.TypeList,
+										Required: true,
+										MinItems: 1,
+										MaxItems: 1,
+										Elem: &schema.Resource{
+											Schema: map[string]*schema.Schema{
+												"launch_template_id": {
+													Type:     schema.TypeString,
+													Optional: true,
+													Computed: true,
+												},
+												"launch_template_name": {
+													Type:     schema.TypeString,
+													Optional: true,
+													Computed: true,
+												},
+												"version": {
+													Type:     schema.TypeString,
+													Optional: true,
+													Default:  "$Default",
+												},
+											},
+										},
+									},
+									"override": {
+										Type:     schema.TypeList,
+										Optional: true,
+										Elem: &schema.Resource{
+											Schema: map[string]*schema.Schema{
+												"instance_type": {
+													Type:     schema.TypeString,
+													Optional: true,
+												},
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+
 			"desired_capacity": {
 				Type:     schema.TypeInt,
 				Optional: true,
@@ -351,6 +461,7 @@ func resourceAwsAutoscalingGroupCreate(d *schema.ResourceData, meta interface{})
 
 	createOpts := autoscaling.CreateAutoScalingGroupInput{
 		AutoScalingGroupName:             aws.String(asgName),
+		MixedInstancesPolicy:             expandAutoScalingMixedInstancesPolicy(d.Get("mixed_instances_policy").([]interface{})),
 		NewInstancesProtectedFromScaleIn: aws.Bool(d.Get("protect_from_scale_in").(bool)),
 	}
 	updateOpts := autoscaling.UpdateAutoScalingGroupInput{
@@ -385,8 +496,8 @@ func resourceAwsAutoscalingGroupCreate(d *schema.ResourceData, meta interface{})
 	launchConfigurationValue, launchConfigurationOk := d.GetOk("launch_configuration")
 	launchTemplateValue, launchTemplateOk := d.GetOk("launch_template")
 
-	if !launchConfigurationOk && !launchTemplateOk {
-		return fmt.Errorf("One of `launch_configuration` or `launch_template` must be set for an autoscaling group")
+	if createOpts.MixedInstancesPolicy == nil && !launchConfigurationOk && !launchTemplateOk {
+		return fmt.Errorf("One of `launch_configuration`, `launch_template`, or `mixed_instances_policy` must be set for an autoscaling group")
 	}
 
 	if launchConfigurationOk {
@@ -410,7 +521,7 @@ func resourceAwsAutoscalingGroupCreate(d *schema.ResourceData, meta interface{})
 	if v, ok := d.GetOk("tag"); ok {
 		var err error
 		createOpts.Tags, err = autoscalingTagsFromMap(
-			setToMapByKey(v.(*schema.Set), "key"), resourceID)
+			setToMapByKey(v.(*schema.Set)), resourceID)
 		if err != nil {
 			return err
 		}
@@ -549,6 +660,10 @@ func resourceAwsAutoscalingGroupRead(d *schema.ResourceData, meta interface{}) e
 		d.Set("launch_template", nil)
 	}
 
+	if err := d.Set("mixed_instances_policy", flattenAutoScalingMixedInstancesPolicy(g.MixedInstancesPolicy)); err != nil {
+		return fmt.Errorf("error setting mixed_instances_policy: %s", err)
+	}
+
 	if err := d.Set("suspended_processes", flattenAsgSuspendedProcesses(g.SuspendedProcesses)); err != nil {
 		log.Printf("[WARN] Error setting suspended_processes for %q: %s", d.Id(), err)
 	}
@@ -566,7 +681,7 @@ func resourceAwsAutoscalingGroupRead(d *schema.ResourceData, meta interface{}) e
 	var v interface{}
 
 	if v, tagOk = d.GetOk("tag"); tagOk {
-		tags := setToMapByKey(v.(*schema.Set), "key")
+		tags := setToMapByKey(v.(*schema.Set))
 		for _, t := range g.Tags {
 			if _, ok := tags[*t.Key]; ok {
 				tagList = append(tagList, t)
@@ -662,6 +777,10 @@ func resourceAwsAutoscalingGroupUpdate(d *schema.ResourceData, meta interface{})
 		if v, ok := d.GetOk("launch_template"); ok && len(v.([]interface{})) > 0 {
 			opts.LaunchTemplate, _ = expandLaunchTemplateSpecification(v.([]interface{}))
 		}
+	}
+
+	if d.HasChange("mixed_instances_policy") {
+		opts.MixedInstancesPolicy = expandAutoScalingMixedInstancesPolicy(d.Get("mixed_instances_policy").([]interface{}))
 	}
 
 	if d.HasChange("min_size") {
@@ -1132,4 +1251,204 @@ func expandVpcZoneIdentifiers(list []interface{}) *string {
 		strs = append(strs, s.(string))
 	}
 	return aws.String(strings.Join(strs, ","))
+}
+
+func expandAutoScalingInstancesDistribution(l []interface{}) *autoscaling.InstancesDistribution {
+	if len(l) == 0 || l[0] == nil {
+		return nil
+	}
+
+	m := l[0].(map[string]interface{})
+
+	instancesDistribution := &autoscaling.InstancesDistribution{}
+
+	if v, ok := m["on_demand_allocation_strategy"]; ok && v.(string) != "" {
+		instancesDistribution.OnDemandAllocationStrategy = aws.String(v.(string))
+	}
+
+	if v, ok := m["on_demand_base_capacity"]; ok && v.(int) != 0 {
+		instancesDistribution.OnDemandBaseCapacity = aws.Int64(int64(v.(int)))
+	}
+
+	if v, ok := m["on_demand_percentage_above_base_capacity"]; ok {
+		instancesDistribution.OnDemandPercentageAboveBaseCapacity = aws.Int64(int64(v.(int)))
+	}
+
+	if v, ok := m["spot_allocation_strategy"]; ok && v.(string) != "" {
+		instancesDistribution.SpotAllocationStrategy = aws.String(v.(string))
+	}
+
+	if v, ok := m["spot_instance_pools"]; ok && v.(int) != 0 {
+		instancesDistribution.SpotInstancePools = aws.Int64(int64(v.(int)))
+	}
+
+	if v, ok := m["spot_max_price"]; ok && v.(string) != "" {
+		instancesDistribution.SpotMaxPrice = aws.String(v.(string))
+	}
+
+	return instancesDistribution
+}
+
+func expandAutoScalingLaunchTemplate(l []interface{}) *autoscaling.LaunchTemplate {
+	if len(l) == 0 || l[0] == nil {
+		return nil
+	}
+
+	m := l[0].(map[string]interface{})
+
+	launchTemplate := &autoscaling.LaunchTemplate{
+		LaunchTemplateSpecification: expandAutoScalingLaunchTemplateSpecification(m["launch_template_specification"].([]interface{})),
+	}
+
+	if v, ok := m["override"]; ok {
+		launchTemplate.Overrides = expandAutoScalingLaunchTemplateOverrides(v.([]interface{}))
+	}
+
+	return launchTemplate
+}
+
+func expandAutoScalingLaunchTemplateOverrides(l []interface{}) []*autoscaling.LaunchTemplateOverrides {
+	if len(l) == 0 {
+		return nil
+	}
+
+	launchTemplateOverrides := make([]*autoscaling.LaunchTemplateOverrides, len(l))
+	for i, m := range l {
+		if m == nil {
+			launchTemplateOverrides[i] = &autoscaling.LaunchTemplateOverrides{}
+			continue
+		}
+
+		launchTemplateOverrides[i] = expandAutoScalingLaunchTemplateOverride(m.(map[string]interface{}))
+	}
+	return launchTemplateOverrides
+}
+
+func expandAutoScalingLaunchTemplateOverride(m map[string]interface{}) *autoscaling.LaunchTemplateOverrides {
+	launchTemplateOverrides := &autoscaling.LaunchTemplateOverrides{}
+
+	if v, ok := m["instance_type"]; ok && v.(string) != "" {
+		launchTemplateOverrides.InstanceType = aws.String(v.(string))
+	}
+
+	return launchTemplateOverrides
+}
+
+func expandAutoScalingLaunchTemplateSpecification(l []interface{}) *autoscaling.LaunchTemplateSpecification {
+	launchTemplateSpecification := &autoscaling.LaunchTemplateSpecification{}
+
+	if len(l) == 0 || l[0] == nil {
+		return launchTemplateSpecification
+	}
+
+	m := l[0].(map[string]interface{})
+
+	if v, ok := m["launch_template_id"]; ok && v.(string) != "" {
+		launchTemplateSpecification.LaunchTemplateId = aws.String(v.(string))
+	}
+
+	// API returns both ID and name, which Terraform saves to state. Next update returns:
+	// ValidationError: Valid requests must contain either launchTemplateId or LaunchTemplateName
+	// Prefer the ID if we have both.
+	if v, ok := m["launch_template_name"]; ok && v.(string) != "" && launchTemplateSpecification.LaunchTemplateId == nil {
+		launchTemplateSpecification.LaunchTemplateName = aws.String(v.(string))
+	}
+
+	if v, ok := m["version"]; ok && v.(string) != "" {
+		launchTemplateSpecification.Version = aws.String(v.(string))
+	}
+
+	return launchTemplateSpecification
+}
+
+func expandAutoScalingMixedInstancesPolicy(l []interface{}) *autoscaling.MixedInstancesPolicy {
+	if len(l) == 0 || l[0] == nil {
+		return nil
+	}
+
+	m := l[0].(map[string]interface{})
+
+	mixedInstancesPolicy := &autoscaling.MixedInstancesPolicy{
+		LaunchTemplate: expandAutoScalingLaunchTemplate(m["launch_template"].([]interface{})),
+	}
+
+	if v, ok := m["instances_distribution"]; ok {
+		mixedInstancesPolicy.InstancesDistribution = expandAutoScalingInstancesDistribution(v.([]interface{}))
+	}
+
+	return mixedInstancesPolicy
+}
+
+func flattenAutoScalingInstancesDistribution(instancesDistribution *autoscaling.InstancesDistribution) []interface{} {
+	if instancesDistribution == nil {
+		return []interface{}{}
+	}
+
+	m := map[string]interface{}{
+		"on_demand_allocation_strategy":            aws.StringValue(instancesDistribution.OnDemandAllocationStrategy),
+		"on_demand_base_capacity":                  aws.Int64Value(instancesDistribution.OnDemandBaseCapacity),
+		"on_demand_percentage_above_base_capacity": aws.Int64Value(instancesDistribution.OnDemandPercentageAboveBaseCapacity),
+		"spot_allocation_strategy":                 aws.StringValue(instancesDistribution.SpotAllocationStrategy),
+		"spot_instance_pools":                      aws.Int64Value(instancesDistribution.SpotInstancePools),
+		"spot_max_price":                           aws.StringValue(instancesDistribution.SpotMaxPrice),
+	}
+
+	return []interface{}{m}
+}
+
+func flattenAutoScalingLaunchTemplate(launchTemplate *autoscaling.LaunchTemplate) []interface{} {
+	if launchTemplate == nil {
+		return []interface{}{}
+	}
+
+	m := map[string]interface{}{
+		"launch_template_specification": flattenAutoScalingLaunchTemplateSpecification(launchTemplate.LaunchTemplateSpecification),
+		"override":                      flattenAutoScalingLaunchTemplateOverrides(launchTemplate.Overrides),
+	}
+
+	return []interface{}{m}
+}
+
+func flattenAutoScalingLaunchTemplateOverrides(launchTemplateOverrides []*autoscaling.LaunchTemplateOverrides) []interface{} {
+	l := make([]interface{}, len(launchTemplateOverrides))
+
+	for i, launchTemplateOverride := range launchTemplateOverrides {
+		if launchTemplateOverride == nil {
+			l[i] = map[string]interface{}{}
+			continue
+		}
+		m := map[string]interface{}{
+			"instance_type": aws.StringValue(launchTemplateOverride.InstanceType),
+		}
+		l[i] = m
+	}
+
+	return l
+}
+
+func flattenAutoScalingLaunchTemplateSpecification(launchTemplateSpecification *autoscaling.LaunchTemplateSpecification) []interface{} {
+	if launchTemplateSpecification == nil {
+		return []interface{}{}
+	}
+
+	m := map[string]interface{}{
+		"launch_template_id":   aws.StringValue(launchTemplateSpecification.LaunchTemplateId),
+		"launch_template_name": aws.StringValue(launchTemplateSpecification.LaunchTemplateName),
+		"version":              aws.StringValue(launchTemplateSpecification.Version),
+	}
+
+	return []interface{}{m}
+}
+
+func flattenAutoScalingMixedInstancesPolicy(mixedInstancesPolicy *autoscaling.MixedInstancesPolicy) []interface{} {
+	if mixedInstancesPolicy == nil {
+		return []interface{}{}
+	}
+
+	m := map[string]interface{}{
+		"instances_distribution": flattenAutoScalingInstancesDistribution(mixedInstancesPolicy.InstancesDistribution),
+		"launch_template":        flattenAutoScalingLaunchTemplate(mixedInstancesPolicy.LaunchTemplate),
+	}
+
+	return []interface{}{m}
 }

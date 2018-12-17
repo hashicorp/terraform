@@ -8,6 +8,8 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awsutil"
 	"github.com/aws/aws-sdk-go/aws/request"
+	"github.com/aws/aws-sdk-go/private/protocol"
+	"github.com/aws/aws-sdk-go/private/protocol/jsonrpc"
 )
 
 const opCreateEnvironmentEC2 = "CreateEnvironmentEC2"
@@ -245,6 +247,7 @@ func (c *Cloud9) DeleteEnvironmentRequest(input *DeleteEnvironmentInput) (req *r
 
 	output = &DeleteEnvironmentOutput{}
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(jsonrpc.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -343,6 +346,7 @@ func (c *Cloud9) DeleteEnvironmentMembershipRequest(input *DeleteEnvironmentMemb
 
 	output = &DeleteEnvironmentMembershipOutput{}
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(jsonrpc.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -941,6 +945,7 @@ func (c *Cloud9) UpdateEnvironmentRequest(input *UpdateEnvironmentInput) (req *r
 
 	output = &UpdateEnvironmentOutput{}
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(jsonrpc.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 

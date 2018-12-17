@@ -8,6 +8,8 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awsutil"
 	"github.com/aws/aws-sdk-go/aws/request"
+	"github.com/aws/aws-sdk-go/private/protocol"
+	"github.com/aws/aws-sdk-go/private/protocol/restjson"
 )
 
 const opCancelJob = "CancelJob"
@@ -47,6 +49,7 @@ func (c *ElasticTranscoder) CancelJobRequest(input *CancelJobInput) (req *reques
 
 	output = &CancelJobOutput{}
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(restjson.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -442,6 +445,7 @@ func (c *ElasticTranscoder) DeletePipelineRequest(input *DeletePipelineInput) (r
 
 	output = &DeletePipelineOutput{}
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(restjson.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -540,6 +544,7 @@ func (c *ElasticTranscoder) DeletePresetRequest(input *DeletePresetInput) (req *
 
 	output = &DeletePresetOutput{}
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(restjson.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -2324,6 +2329,9 @@ func (s *CancelJobInput) Validate() error {
 	if s.Id == nil {
 		invalidParams.Add(request.NewErrParamRequired("Id"))
 	}
+	if s.Id != nil && len(*s.Id) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Id", 1))
+	}
 
 	if invalidParams.Len() > 0 {
 		return invalidParams
@@ -3728,6 +3736,9 @@ func (s *DeletePipelineInput) Validate() error {
 	if s.Id == nil {
 		invalidParams.Add(request.NewErrParamRequired("Id"))
 	}
+	if s.Id != nil && len(*s.Id) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Id", 1))
+	}
 
 	if invalidParams.Len() > 0 {
 		return invalidParams
@@ -3781,6 +3792,9 @@ func (s *DeletePresetInput) Validate() error {
 	invalidParams := request.ErrInvalidParams{Context: "DeletePresetInput"}
 	if s.Id == nil {
 		invalidParams.Add(request.NewErrParamRequired("Id"))
+	}
+	if s.Id != nil && len(*s.Id) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Id", 1))
 	}
 
 	if invalidParams.Len() > 0 {
@@ -5038,6 +5052,9 @@ func (s *ListJobsByPipelineInput) Validate() error {
 	if s.PipelineId == nil {
 		invalidParams.Add(request.NewErrParamRequired("PipelineId"))
 	}
+	if s.PipelineId != nil && len(*s.PipelineId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("PipelineId", 1))
+	}
 
 	if invalidParams.Len() > 0 {
 		return invalidParams
@@ -5133,6 +5150,9 @@ func (s *ListJobsByStatusInput) Validate() error {
 	invalidParams := request.ErrInvalidParams{Context: "ListJobsByStatusInput"}
 	if s.Status == nil {
 		invalidParams.Add(request.NewErrParamRequired("Status"))
+	}
+	if s.Status != nil && len(*s.Status) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Status", 1))
 	}
 
 	if invalidParams.Len() > 0 {
@@ -6427,6 +6447,9 @@ func (s *ReadJobInput) Validate() error {
 	if s.Id == nil {
 		invalidParams.Add(request.NewErrParamRequired("Id"))
 	}
+	if s.Id != nil && len(*s.Id) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Id", 1))
+	}
 
 	if invalidParams.Len() > 0 {
 		return invalidParams
@@ -6489,6 +6512,9 @@ func (s *ReadPipelineInput) Validate() error {
 	invalidParams := request.ErrInvalidParams{Context: "ReadPipelineInput"}
 	if s.Id == nil {
 		invalidParams.Add(request.NewErrParamRequired("Id"))
+	}
+	if s.Id != nil && len(*s.Id) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Id", 1))
 	}
 
 	if invalidParams.Len() > 0 {
@@ -6566,6 +6592,9 @@ func (s *ReadPresetInput) Validate() error {
 	invalidParams := request.ErrInvalidParams{Context: "ReadPresetInput"}
 	if s.Id == nil {
 		invalidParams.Add(request.NewErrParamRequired("Id"))
+	}
+	if s.Id != nil && len(*s.Id) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Id", 1))
 	}
 
 	if invalidParams.Len() > 0 {
@@ -7156,6 +7185,9 @@ func (s *UpdatePipelineInput) Validate() error {
 	if s.Id == nil {
 		invalidParams.Add(request.NewErrParamRequired("Id"))
 	}
+	if s.Id != nil && len(*s.Id) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Id", 1))
+	}
 	if s.Name != nil && len(*s.Name) < 1 {
 		invalidParams.Add(request.NewErrParamMinLen("Name", 1))
 	}
@@ -7277,6 +7309,9 @@ func (s *UpdatePipelineNotificationsInput) Validate() error {
 	if s.Id == nil {
 		invalidParams.Add(request.NewErrParamRequired("Id"))
 	}
+	if s.Id != nil && len(*s.Id) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Id", 1))
+	}
 	if s.Notifications == nil {
 		invalidParams.Add(request.NewErrParamRequired("Notifications"))
 	}
@@ -7397,6 +7432,9 @@ func (s *UpdatePipelineStatusInput) Validate() error {
 	invalidParams := request.ErrInvalidParams{Context: "UpdatePipelineStatusInput"}
 	if s.Id == nil {
 		invalidParams.Add(request.NewErrParamRequired("Id"))
+	}
+	if s.Id != nil && len(*s.Id) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Id", 1))
 	}
 	if s.Status == nil {
 		invalidParams.Add(request.NewErrParamRequired("Status"))

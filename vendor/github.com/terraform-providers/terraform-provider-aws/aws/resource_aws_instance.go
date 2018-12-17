@@ -287,7 +287,12 @@ func resourceAwsInstance() *schema.Resource {
 				Computed: true,
 				ForceNew: true,
 			},
-
+			"host_id": {
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
+				ForceNew: true,
+			},
 			"cpu_core_count": {
 				Type:     schema.TypeInt,
 				Optional: true,
@@ -707,6 +712,9 @@ func resourceAwsInstanceRead(d *schema.ResourceData, meta interface{}) error {
 	}
 	if instance.Placement.Tenancy != nil {
 		d.Set("tenancy", instance.Placement.Tenancy)
+	}
+	if instance.Placement.HostId != nil {
+		d.Set("host_id", instance.Placement.HostId)
 	}
 
 	if instance.CpuOptions != nil {
@@ -1820,6 +1828,9 @@ func buildAwsInstanceOpts(
 
 	if v := d.Get("tenancy").(string); v != "" {
 		opts.Placement.Tenancy = aws.String(v)
+	}
+	if v := d.Get("host_id").(string); v != "" {
+		opts.Placement.HostId = aws.String(v)
 	}
 
 	if v := d.Get("cpu_core_count").(int); v > 0 {

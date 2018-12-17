@@ -65,6 +65,11 @@ func dataSourceAwsIPRanges() *schema.Resource {
 				Type:     schema.TypeInt,
 				Computed: true,
 			},
+			"url": {
+				Type:     schema.TypeString,
+				Optional: true,
+				Default:  "https://ip-ranges.amazonaws.com/ip-ranges.json",
+			},
 		},
 	}
 }
@@ -72,13 +77,14 @@ func dataSourceAwsIPRanges() *schema.Resource {
 func dataSourceAwsIPRangesRead(d *schema.ResourceData, meta interface{}) error {
 
 	conn := cleanhttp.DefaultClient()
+	url := d.Get("url").(string)
 
-	log.Printf("[DEBUG] Reading IP ranges")
+	log.Printf("[DEBUG] Reading IP ranges from %s", url)
 
-	res, err := conn.Get("https://ip-ranges.amazonaws.com/ip-ranges.json")
+	res, err := conn.Get(url)
 
 	if err != nil {
-		return fmt.Errorf("Error listing IP ranges: %s", err)
+		return fmt.Errorf("Error listing IP ranges from (%s): %s", url, err)
 	}
 
 	defer res.Body.Close()
@@ -86,13 +92,13 @@ func dataSourceAwsIPRangesRead(d *schema.ResourceData, meta interface{}) error {
 	data, err := ioutil.ReadAll(res.Body)
 
 	if err != nil {
-		return fmt.Errorf("Error reading response body: %s", err)
+		return fmt.Errorf("Error reading response body from (%s): %s", url, err)
 	}
 
 	result := new(dataSourceAwsIPRangesResult)
 
 	if err := json.Unmarshal(data, result); err != nil {
-		return fmt.Errorf("Error parsing result: %s", err)
+		return fmt.Errorf("Error parsing result from (%s): %s", url, err)
 	}
 
 	if err := d.Set("create_date", result.CreateDate); err != nil {
@@ -155,7 +161,7 @@ func dataSourceAwsIPRangesRead(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	if len(ipPrefixes) == 0 && len(ipv6Prefixes) == 0 {
-		return fmt.Errorf("No IP ranges result from filters")
+		return fmt.Errorf("No IP ranges result from filters from (%s)", url)
 	}
 
 	sort.Strings(ipPrefixes)

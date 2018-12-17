@@ -12,7 +12,7 @@ import (
 )
 
 // ServiceDiscovery provides the API operation methods for making requests to
-// Amazon Route 53 Auto Naming. See this package's package overview docs
+// AWS Cloud Map. See this package's package overview docs
 // for details on the service.
 //
 // ServiceDiscovery methods are safe to use concurrently. It is not safe to

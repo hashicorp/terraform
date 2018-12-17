@@ -64,8 +64,9 @@ func resourceAwsCodeDeployApp() *schema.Resource {
 				Optional: true,
 				ForceNew: true,
 				ValidateFunc: validation.StringInSlice([]string{
-					codedeploy.ComputePlatformServer,
+					codedeploy.ComputePlatformEcs,
 					codedeploy.ComputePlatformLambda,
+					codedeploy.ComputePlatformServer,
 				}, false),
 				Default: codedeploy.ComputePlatformServer,
 			},
@@ -109,7 +110,7 @@ func resourceAwsCodeDeployAppCreate(d *schema.ResourceData, meta interface{}) er
 func resourceAwsCodeDeployAppRead(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).codedeployconn
 
-	_, application := resourceAwsCodeDeployAppParseId(d.Id())
+	application := resourceAwsCodeDeployAppParseId(d.Id())
 	log.Printf("[DEBUG] Reading CodeDeploy application %s", application)
 	resp, err := conn.GetApplication(&codedeploy.GetApplicationInput{
 		ApplicationName: aws.String(application),
@@ -167,7 +168,8 @@ func resourceAwsCodeDeployAppDelete(d *schema.ResourceData, meta interface{}) er
 	return nil
 }
 
-func resourceAwsCodeDeployAppParseId(id string) (string, string) {
+func resourceAwsCodeDeployAppParseId(id string) string {
 	parts := strings.SplitN(id, ":", 2)
-	return parts[0], parts[1]
+	// We currently omit the application ID as it is not currently used anywhere
+	return parts[1]
 }

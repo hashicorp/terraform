@@ -108,7 +108,7 @@ func resourceAwsAthenaDatabaseCreate(d *schema.ResourceData, meta interface{}) e
 		return err
 	}
 
-	if err := executeAndExpectNoRowsWhenCreate(*resp.QueryExecutionId, d, conn); err != nil {
+	if err := executeAndExpectNoRowsWhenCreate(*resp.QueryExecutionId, conn); err != nil {
 		return err
 	}
 	d.SetId(d.Get("name").(string))
@@ -169,13 +169,13 @@ func resourceAwsAthenaDatabaseDelete(d *schema.ResourceData, meta interface{}) e
 		return err
 	}
 
-	if err := executeAndExpectNoRowsWhenDrop(*resp.QueryExecutionId, d, conn); err != nil {
+	if err := executeAndExpectNoRowsWhenDrop(*resp.QueryExecutionId, conn); err != nil {
 		return err
 	}
 	return nil
 }
 
-func executeAndExpectNoRowsWhenCreate(qeid string, d *schema.ResourceData, conn *athena.Athena) error {
+func executeAndExpectNoRowsWhenCreate(qeid string, conn *athena.Athena) error {
 	rs, err := queryExecutionResult(qeid, conn)
 	if err != nil {
 		return err
@@ -201,7 +201,7 @@ func executeAndExpectMatchingRow(qeid string, dbName string, conn *athena.Athena
 	return fmt.Errorf("Athena not found database: %s, query result: %s", dbName, flattenAthenaResultSet(rs))
 }
 
-func executeAndExpectNoRowsWhenDrop(qeid string, d *schema.ResourceData, conn *athena.Athena) error {
+func executeAndExpectNoRowsWhenDrop(qeid string, conn *athena.Athena) error {
 	rs, err := queryExecutionResult(qeid, conn)
 	if err != nil {
 		return err

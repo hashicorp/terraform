@@ -213,11 +213,9 @@ func resourceAwsVpcPeeringConnectionModifyOptions(d *schema.ResourceData, meta i
 	}
 
 	log.Printf("[DEBUG] Modifying VPC Peering Connection options: %#v", req)
-	if _, err := conn.ModifyVpcPeeringConnectionOptions(req); err != nil {
-		return err
-	}
+	_, err := conn.ModifyVpcPeeringConnectionOptions(req)
 
-	return nil
+	return err
 }
 
 func resourceAwsVPCPeeringUpdate(d *schema.ResourceData, meta interface{}) error {

@@ -359,16 +359,19 @@ func createTopicRulePayload(d *schema.ResourceData) *iot.TopicRulePayload {
 	// Add Cloudwatch Metric actions
 	for _, a := range cloudwatchMetricActions {
 		raw := a.(map[string]interface{})
-		actions[i] = &iot.Action{
+		act := &iot.Action{
 			CloudwatchMetric: &iot.CloudwatchMetricAction{
 				MetricName:      aws.String(raw["metric_name"].(string)),
 				MetricNamespace: aws.String(raw["metric_namespace"].(string)),
 				MetricUnit:      aws.String(raw["metric_unit"].(string)),
 				MetricValue:     aws.String(raw["metric_value"].(string)),
 				RoleArn:         aws.String(raw["role_arn"].(string)),
-				MetricTimestamp: aws.String(raw["metric_timestamp"].(string)),
 			},
 		}
+		if v, ok := raw["metric_timestamp"].(string); ok && v != "" {
+			act.CloudwatchMetric.MetricTimestamp = aws.String(v)
+		}
+		actions[i] = act
 		i++
 	}
 

@@ -13,7 +13,7 @@ import (
 	"github.com/aws/aws-sdk-go/private/protocol/restxml"
 )
 
-const opCreateCloudFrontOriginAccessIdentity = "CreateCloudFrontOriginAccessIdentity2018_06_18"
+const opCreateCloudFrontOriginAccessIdentity = "CreateCloudFrontOriginAccessIdentity2018_11_05"
 
 // CreateCloudFrontOriginAccessIdentityRequest generates a "aws/request.Request" representing the
 // client's request for the CreateCloudFrontOriginAccessIdentity operation. The "output" return
@@ -38,12 +38,12 @@ const opCreateCloudFrontOriginAccessIdentity = "CreateCloudFrontOriginAccessIden
 //        fmt.Println(resp)
 //    }
 //
-// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2018-06-18/CreateCloudFrontOriginAccessIdentity
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2018-11-05/CreateCloudFrontOriginAccessIdentity
 func (c *CloudFront) CreateCloudFrontOriginAccessIdentityRequest(input *CreateCloudFrontOriginAccessIdentityInput) (req *request.Request, output *CreateCloudFrontOriginAccessIdentityOutput) {
 	op := &request.Operation{
 		Name:       opCreateCloudFrontOriginAccessIdentity,
 		HTTPMethod: "POST",
-		HTTPPath:   "/2018-06-18/origin-access-identity/cloudfront",
+		HTTPPath:   "/2018-11-05/origin-access-identity/cloudfront",
 	}
 
 	if input == nil {
@@ -92,7 +92,7 @@ func (c *CloudFront) CreateCloudFrontOriginAccessIdentityRequest(input *CreateCl
 //   * ErrCodeInconsistentQuantities "InconsistentQuantities"
 //   The value of Quantity and the size of Items don't match.
 //
-// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2018-06-18/CreateCloudFrontOriginAccessIdentity
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2018-11-05/CreateCloudFrontOriginAccessIdentity
 func (c *CloudFront) CreateCloudFrontOriginAccessIdentity(input *CreateCloudFrontOriginAccessIdentityInput) (*CreateCloudFrontOriginAccessIdentityOutput, error) {
 	req, out := c.CreateCloudFrontOriginAccessIdentityRequest(input)
 	return out, req.Send()
@@ -114,7 +114,7 @@ func (c *CloudFront) CreateCloudFrontOriginAccessIdentityWithContext(ctx aws.Con
 	return out, req.Send()
 }
 
-const opCreateDistribution = "CreateDistribution2018_06_18"
+const opCreateDistribution = "CreateDistribution2018_11_05"
 
 // CreateDistributionRequest generates a "aws/request.Request" representing the
 // client's request for the CreateDistribution operation. The "output" return
@@ -139,12 +139,12 @@ const opCreateDistribution = "CreateDistribution2018_06_18"
 //        fmt.Println(resp)
 //    }
 //
-// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2018-06-18/CreateDistribution
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2018-11-05/CreateDistribution
 func (c *CloudFront) CreateDistributionRequest(input *CreateDistributionInput) (req *request.Request, output *CreateDistributionOutput) {
 	op := &request.Operation{
 		Name:       opCreateDistribution,
 		HTTPMethod: "POST",
-		HTTPPath:   "/2018-06-18/distribution",
+		HTTPPath:   "/2018-11-05/distribution",
 	}
 
 	if input == nil {
@@ -244,6 +244,10 @@ func (c *CloudFront) CreateDistributionRequest(input *CreateDistributionInput) (
 //   * ErrCodeTooManyOrigins "TooManyOrigins"
 //   You cannot create more origins for the distribution.
 //
+//   * ErrCodeTooManyOriginGroupsPerDistribution "TooManyOriginGroupsPerDistribution"
+//   Processing your request would cause you to exceed the maximum number of origin
+//   groups allowed.
+//
 //   * ErrCodeTooManyCacheBehaviors "TooManyCacheBehaviors"
 //   You cannot create more cache behaviors for the distribution.
 //
@@ -311,7 +315,7 @@ func (c *CloudFront) CreateDistributionRequest(input *CreateDistributionInput) (
 //   The maximum number of distributions have been associated with the specified
 //   configuration for field-level encryption.
 //
-// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2018-06-18/CreateDistribution
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2018-11-05/CreateDistribution
 func (c *CloudFront) CreateDistribution(input *CreateDistributionInput) (*CreateDistributionOutput, error) {
 	req, out := c.CreateDistributionRequest(input)
 	return out, req.Send()
@@ -333,7 +337,7 @@ func (c *CloudFront) CreateDistributionWithContext(ctx aws.Context, input *Creat
 	return out, req.Send()
 }
 
-const opCreateDistributionWithTags = "CreateDistributionWithTags2018_06_18"
+const opCreateDistributionWithTags = "CreateDistributionWithTags2018_11_05"
 
 // CreateDistributionWithTagsRequest generates a "aws/request.Request" representing the
 // client's request for the CreateDistributionWithTags operation. The "output" return
@@ -358,12 +362,12 @@ const opCreateDistributionWithTags = "CreateDistributionWithTags2018_06_18"
 //        fmt.Println(resp)
 //    }
 //
-// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2018-06-18/CreateDistributionWithTags
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2018-11-05/CreateDistributionWithTags
 func (c *CloudFront) CreateDistributionWithTagsRequest(input *CreateDistributionWithTagsInput) (req *request.Request, output *CreateDistributionWithTagsOutput) {
 	op := &request.Operation{
 		Name:       opCreateDistributionWithTags,
 		HTTPMethod: "POST",
-		HTTPPath:   "/2018-06-18/distribution?WithTags",
+		HTTPPath:   "/2018-11-05/distribution?WithTags",
 	}
 
 	if input == nil {
@@ -449,6 +453,10 @@ func (c *CloudFront) CreateDistributionWithTagsRequest(input *CreateDistribution
 //   * ErrCodeTooManyOrigins "TooManyOrigins"
 //   You cannot create more origins for the distribution.
 //
+//   * ErrCodeTooManyOriginGroupsPerDistribution "TooManyOriginGroupsPerDistribution"
+//   Processing your request would cause you to exceed the maximum number of origin
+//   groups allowed.
+//
 //   * ErrCodeTooManyCacheBehaviors "TooManyCacheBehaviors"
 //   You cannot create more cache behaviors for the distribution.
 //
@@ -518,7 +526,7 @@ func (c *CloudFront) CreateDistributionWithTagsRequest(input *CreateDistribution
 //   The maximum number of distributions have been associated with the specified
 //   configuration for field-level encryption.
 //
-// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2018-06-18/CreateDistributionWithTags
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2018-11-05/CreateDistributionWithTags
 func (c *CloudFront) CreateDistributionWithTags(input *CreateDistributionWithTagsInput) (*CreateDistributionWithTagsOutput, error) {
 	req, out := c.CreateDistributionWithTagsRequest(input)
 	return out, req.Send()
@@ -540,7 +548,7 @@ func (c *CloudFront) CreateDistributionWithTagsWithContext(ctx aws.Context, inpu
 	return out, req.Send()
 }
 
-const opCreateFieldLevelEncryptionConfig = "CreateFieldLevelEncryptionConfig2018_06_18"
+const opCreateFieldLevelEncryptionConfig = "CreateFieldLevelEncryptionConfig2018_11_05"
 
 // CreateFieldLevelEncryptionConfigRequest generates a "aws/request.Request" representing the
 // client's request for the CreateFieldLevelEncryptionConfig operation. The "output" return
@@ -565,12 +573,12 @@ const opCreateFieldLevelEncryptionConfig = "CreateFieldLevelEncryptionConfig2018
 //        fmt.Println(resp)
 //    }
 //
-// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2018-06-18/CreateFieldLevelEncryptionConfig
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2018-11-05/CreateFieldLevelEncryptionConfig
 func (c *CloudFront) CreateFieldLevelEncryptionConfigRequest(input *CreateFieldLevelEncryptionConfigInput) (req *request.Request, output *CreateFieldLevelEncryptionConfigOutput) {
 	op := &request.Operation{
 		Name:       opCreateFieldLevelEncryptionConfig,
 		HTTPMethod: "POST",
-		HTTPPath:   "/2018-06-18/field-level-encryption",
+		HTTPPath:   "/2018-11-05/field-level-encryption",
 	}
 
 	if input == nil {
@@ -621,7 +629,7 @@ func (c *CloudFront) CreateFieldLevelEncryptionConfigRequest(input *CreateFieldL
 //   * ErrCodeQueryArgProfileEmpty "QueryArgProfileEmpty"
 //   No profile specified for the field-level encryption query argument.
 //
-// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2018-06-18/CreateFieldLevelEncryptionConfig
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2018-11-05/CreateFieldLevelEncryptionConfig
 func (c *CloudFront) CreateFieldLevelEncryptionConfig(input *CreateFieldLevelEncryptionConfigInput) (*CreateFieldLevelEncryptionConfigOutput, error) {
 	req, out := c.CreateFieldLevelEncryptionConfigRequest(input)
 	return out, req.Send()
@@ -643,7 +651,7 @@ func (c *CloudFront) CreateFieldLevelEncryptionConfigWithContext(ctx aws.Context
 	return out, req.Send()
 }
 
-const opCreateFieldLevelEncryptionProfile = "CreateFieldLevelEncryptionProfile2018_06_18"
+const opCreateFieldLevelEncryptionProfile = "CreateFieldLevelEncryptionProfile2018_11_05"
 
 // CreateFieldLevelEncryptionProfileRequest generates a "aws/request.Request" representing the
 // client's request for the CreateFieldLevelEncryptionProfile operation. The "output" return
@@ -668,12 +676,12 @@ const opCreateFieldLevelEncryptionProfile = "CreateFieldLevelEncryptionProfile20
 //        fmt.Println(resp)
 //    }
 //
-// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2018-06-18/CreateFieldLevelEncryptionProfile
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2018-11-05/CreateFieldLevelEncryptionProfile
 func (c *CloudFront) CreateFieldLevelEncryptionProfileRequest(input *CreateFieldLevelEncryptionProfileInput) (req *request.Request, output *CreateFieldLevelEncryptionProfileOutput) {
 	op := &request.Operation{
 		Name:       opCreateFieldLevelEncryptionProfile,
 		HTTPMethod: "POST",
-		HTTPPath:   "/2018-06-18/field-level-encryption-profile",
+		HTTPPath:   "/2018-11-05/field-level-encryption-profile",
 	}
 
 	if input == nil {
@@ -723,7 +731,7 @@ func (c *CloudFront) CreateFieldLevelEncryptionProfileRequest(input *CreateField
 //   The maximum number of field patterns for field-level encryption have been
 //   created.
 //
-// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2018-06-18/CreateFieldLevelEncryptionProfile
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2018-11-05/CreateFieldLevelEncryptionProfile
 func (c *CloudFront) CreateFieldLevelEncryptionProfile(input *CreateFieldLevelEncryptionProfileInput) (*CreateFieldLevelEncryptionProfileOutput, error) {
 	req, out := c.CreateFieldLevelEncryptionProfileRequest(input)
 	return out, req.Send()
@@ -745,7 +753,7 @@ func (c *CloudFront) CreateFieldLevelEncryptionProfileWithContext(ctx aws.Contex
 	return out, req.Send()
 }
 
-const opCreateInvalidation = "CreateInvalidation2018_06_18"
+const opCreateInvalidation = "CreateInvalidation2018_11_05"
 
 // CreateInvalidationRequest generates a "aws/request.Request" representing the
 // client's request for the CreateInvalidation operation. The "output" return
@@ -770,12 +778,12 @@ const opCreateInvalidation = "CreateInvalidation2018_06_18"
 //        fmt.Println(resp)
 //    }
 //
-// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2018-06-18/CreateInvalidation
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2018-11-05/CreateInvalidation
 func (c *CloudFront) CreateInvalidationRequest(input *CreateInvalidationInput) (req *request.Request, output *CreateInvalidationOutput) {
 	op := &request.Operation{
 		Name:       opCreateInvalidation,
 		HTTPMethod: "POST",
-		HTTPPath:   "/2018-06-18/distribution/{DistributionId}/invalidation",
+		HTTPPath:   "/2018-11-05/distribution/{DistributionId}/invalidation",
 	}
 
 	if input == nil {
@@ -821,7 +829,7 @@ func (c *CloudFront) CreateInvalidationRequest(input *CreateInvalidationInput) (
 //   * ErrCodeInconsistentQuantities "InconsistentQuantities"
 //   The value of Quantity and the size of Items don't match.
 //
-// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2018-06-18/CreateInvalidation
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2018-11-05/CreateInvalidation
 func (c *CloudFront) CreateInvalidation(input *CreateInvalidationInput) (*CreateInvalidationOutput, error) {
 	req, out := c.CreateInvalidationRequest(input)
 	return out, req.Send()
@@ -843,7 +851,7 @@ func (c *CloudFront) CreateInvalidationWithContext(ctx aws.Context, input *Creat
 	return out, req.Send()
 }
 
-const opCreatePublicKey = "CreatePublicKey2018_06_18"
+const opCreatePublicKey = "CreatePublicKey2018_11_05"
 
 // CreatePublicKeyRequest generates a "aws/request.Request" representing the
 // client's request for the CreatePublicKey operation. The "output" return
@@ -868,12 +876,12 @@ const opCreatePublicKey = "CreatePublicKey2018_06_18"
 //        fmt.Println(resp)
 //    }
 //
-// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2018-06-18/CreatePublicKey
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2018-11-05/CreatePublicKey
 func (c *CloudFront) CreatePublicKeyRequest(input *CreatePublicKeyInput) (req *request.Request, output *CreatePublicKeyOutput) {
 	op := &request.Operation{
 		Name:       opCreatePublicKey,
 		HTTPMethod: "POST",
-		HTTPPath:   "/2018-06-18/public-key",
+		HTTPPath:   "/2018-11-05/public-key",
 	}
 
 	if input == nil {
@@ -908,7 +916,7 @@ func (c *CloudFront) CreatePublicKeyRequest(input *CreatePublicKeyInput) (req *r
 //   The maximum number of public keys for field-level encryption have been created.
 //   To create a new public key, delete one of the existing keys.
 //
-// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2018-06-18/CreatePublicKey
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2018-11-05/CreatePublicKey
 func (c *CloudFront) CreatePublicKey(input *CreatePublicKeyInput) (*CreatePublicKeyOutput, error) {
 	req, out := c.CreatePublicKeyRequest(input)
 	return out, req.Send()
@@ -930,7 +938,7 @@ func (c *CloudFront) CreatePublicKeyWithContext(ctx aws.Context, input *CreatePu
 	return out, req.Send()
 }
 
-const opCreateStreamingDistribution = "CreateStreamingDistribution2018_06_18"
+const opCreateStreamingDistribution = "CreateStreamingDistribution2018_11_05"
 
 // CreateStreamingDistributionRequest generates a "aws/request.Request" representing the
 // client's request for the CreateStreamingDistribution operation. The "output" return
@@ -955,12 +963,12 @@ const opCreateStreamingDistribution = "CreateStreamingDistribution2018_06_18"
 //        fmt.Println(resp)
 //    }
 //
-// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2018-06-18/CreateStreamingDistribution
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2018-11-05/CreateStreamingDistribution
 func (c *CloudFront) CreateStreamingDistributionRequest(input *CreateStreamingDistributionInput) (req *request.Request, output *CreateStreamingDistributionOutput) {
 	op := &request.Operation{
 		Name:       opCreateStreamingDistribution,
 		HTTPMethod: "POST",
-		HTTPPath:   "/2018-06-18/streaming-distribution",
+		HTTPPath:   "/2018-11-05/streaming-distribution",
 	}
 
 	if input == nil {
@@ -1047,7 +1055,7 @@ func (c *CloudFront) CreateStreamingDistributionRequest(input *CreateStreamingDi
 //   * ErrCodeInconsistentQuantities "InconsistentQuantities"
 //   The value of Quantity and the size of Items don't match.
 //
-// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2018-06-18/CreateStreamingDistribution
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2018-11-05/CreateStreamingDistribution
 func (c *CloudFront) CreateStreamingDistribution(input *CreateStreamingDistributionInput) (*CreateStreamingDistributionOutput, error) {
 	req, out := c.CreateStreamingDistributionRequest(input)
 	return out, req.Send()
@@ -1069,7 +1077,7 @@ func (c *CloudFront) CreateStreamingDistributionWithContext(ctx aws.Context, inp
 	return out, req.Send()
 }
 
-const opCreateStreamingDistributionWithTags = "CreateStreamingDistributionWithTags2018_06_18"
+const opCreateStreamingDistributionWithTags = "CreateStreamingDistributionWithTags2018_11_05"
 
 // CreateStreamingDistributionWithTagsRequest generates a "aws/request.Request" representing the
 // client's request for the CreateStreamingDistributionWithTags operation. The "output" return
@@ -1094,12 +1102,12 @@ const opCreateStreamingDistributionWithTags = "CreateStreamingDistributionWithTa
 //        fmt.Println(resp)
 //    }
 //
-// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2018-06-18/CreateStreamingDistributionWithTags
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2018-11-05/CreateStreamingDistributionWithTags
 func (c *CloudFront) CreateStreamingDistributionWithTagsRequest(input *CreateStreamingDistributionWithTagsInput) (req *request.Request, output *CreateStreamingDistributionWithTagsOutput) {
 	op := &request.Operation{
 		Name:       opCreateStreamingDistributionWithTags,
 		HTTPMethod: "POST",
-		HTTPPath:   "/2018-06-18/streaming-distribution?WithTags",
+		HTTPPath:   "/2018-11-05/streaming-distribution?WithTags",
 	}
 
 	if input == nil {
@@ -1161,7 +1169,7 @@ func (c *CloudFront) CreateStreamingDistributionWithTagsRequest(input *CreateStr
 //
 //   * ErrCodeInvalidTagging "InvalidTagging"
 //
-// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2018-06-18/CreateStreamingDistributionWithTags
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2018-11-05/CreateStreamingDistributionWithTags
 func (c *CloudFront) CreateStreamingDistributionWithTags(input *CreateStreamingDistributionWithTagsInput) (*CreateStreamingDistributionWithTagsOutput, error) {
 	req, out := c.CreateStreamingDistributionWithTagsRequest(input)
 	return out, req.Send()
@@ -1183,7 +1191,7 @@ func (c *CloudFront) CreateStreamingDistributionWithTagsWithContext(ctx aws.Cont
 	return out, req.Send()
 }
 
-const opDeleteCloudFrontOriginAccessIdentity = "DeleteCloudFrontOriginAccessIdentity2018_06_18"
+const opDeleteCloudFrontOriginAccessIdentity = "DeleteCloudFrontOriginAccessIdentity2018_11_05"
 
 // DeleteCloudFrontOriginAccessIdentityRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteCloudFrontOriginAccessIdentity operation. The "output" return
@@ -1208,12 +1216,12 @@ const opDeleteCloudFrontOriginAccessIdentity = "DeleteCloudFrontOriginAccessIden
 //        fmt.Println(resp)
 //    }
 //
-// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2018-06-18/DeleteCloudFrontOriginAccessIdentity
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2018-11-05/DeleteCloudFrontOriginAccessIdentity
 func (c *CloudFront) DeleteCloudFrontOriginAccessIdentityRequest(input *DeleteCloudFrontOriginAccessIdentityInput) (req *request.Request, output *DeleteCloudFrontOriginAccessIdentityOutput) {
 	op := &request.Operation{
 		Name:       opDeleteCloudFrontOriginAccessIdentity,
 		HTTPMethod: "DELETE",
-		HTTPPath:   "/2018-06-18/origin-access-identity/cloudfront/{Id}",
+		HTTPPath:   "/2018-11-05/origin-access-identity/cloudfront/{Id}",
 	}
 
 	if input == nil {
@@ -1222,8 +1230,7 @@ func (c *CloudFront) DeleteCloudFrontOriginAccessIdentityRequest(input *DeleteCl
 
 	output = &DeleteCloudFrontOriginAccessIdentityOutput{}
 	req = c.newRequest(op, input, output)
-	req.Handlers.Unmarshal.Remove(restxml.UnmarshalHandler)
-	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
+	req.Handlers.Unmarshal.Swap(restxml.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -1254,7 +1261,7 @@ func (c *CloudFront) DeleteCloudFrontOriginAccessIdentityRequest(input *DeleteCl
 //
 //   * ErrCodeOriginAccessIdentityInUse "CloudFrontOriginAccessIdentityInUse"
 //
-// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2018-06-18/DeleteCloudFrontOriginAccessIdentity
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2018-11-05/DeleteCloudFrontOriginAccessIdentity
 func (c *CloudFront) DeleteCloudFrontOriginAccessIdentity(input *DeleteCloudFrontOriginAccessIdentityInput) (*DeleteCloudFrontOriginAccessIdentityOutput, error) {
 	req, out := c.DeleteCloudFrontOriginAccessIdentityRequest(input)
 	return out, req.Send()
@@ -1276,7 +1283,7 @@ func (c *CloudFront) DeleteCloudFrontOriginAccessIdentityWithContext(ctx aws.Con
 	return out, req.Send()
 }
 
-const opDeleteDistribution = "DeleteDistribution2018_06_18"
+const opDeleteDistribution = "DeleteDistribution2018_11_05"
 
 // DeleteDistributionRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteDistribution operation. The "output" return
@@ -1301,12 +1308,12 @@ const opDeleteDistribution = "DeleteDistribution2018_06_18"
 //        fmt.Println(resp)
 //    }
 //
-// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2018-06-18/DeleteDistribution
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2018-11-05/DeleteDistribution
 func (c *CloudFront) DeleteDistributionRequest(input *DeleteDistributionInput) (req *request.Request, output *DeleteDistributionOutput) {
 	op := &request.Operation{
 		Name:       opDeleteDistribution,
 		HTTPMethod: "DELETE",
-		HTTPPath:   "/2018-06-18/distribution/{Id}",
+		HTTPPath:   "/2018-11-05/distribution/{Id}",
 	}
 
 	if input == nil {
@@ -1315,8 +1322,7 @@ func (c *CloudFront) DeleteDistributionRequest(input *DeleteDistributionInput) (
 
 	output = &DeleteDistributionOutput{}
 	req = c.newRequest(op, input, output)
-	req.Handlers.Unmarshal.Remove(restxml.UnmarshalHandler)
-	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
+	req.Handlers.Unmarshal.Swap(restxml.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -1347,7 +1353,7 @@ func (c *CloudFront) DeleteDistributionRequest(input *DeleteDistributionInput) (
 //   The precondition given in one or more of the request-header fields evaluated
 //   to false.
 //
-// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2018-06-18/DeleteDistribution
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2018-11-05/DeleteDistribution
 func (c *CloudFront) DeleteDistribution(input *DeleteDistributionInput) (*DeleteDistributionOutput, error) {
 	req, out := c.DeleteDistributionRequest(input)
 	return out, req.Send()
@@ -1369,7 +1375,7 @@ func (c *CloudFront) DeleteDistributionWithContext(ctx aws.Context, input *Delet
 	return out, req.Send()
 }
 
-const opDeleteFieldLevelEncryptionConfig = "DeleteFieldLevelEncryptionConfig2018_06_18"
+const opDeleteFieldLevelEncryptionConfig = "DeleteFieldLevelEncryptionConfig2018_11_05"
 
 // DeleteFieldLevelEncryptionConfigRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteFieldLevelEncryptionConfig operation. The "output" return
@@ -1394,12 +1400,12 @@ const opDeleteFieldLevelEncryptionConfig = "DeleteFieldLevelEncryptionConfig2018
 //        fmt.Println(resp)
 //    }
 //
-// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2018-06-18/DeleteFieldLevelEncryptionConfig
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2018-11-05/DeleteFieldLevelEncryptionConfig
 func (c *CloudFront) DeleteFieldLevelEncryptionConfigRequest(input *DeleteFieldLevelEncryptionConfigInput) (req *request.Request, output *DeleteFieldLevelEncryptionConfigOutput) {
 	op := &request.Operation{
 		Name:       opDeleteFieldLevelEncryptionConfig,
 		HTTPMethod: "DELETE",
-		HTTPPath:   "/2018-06-18/field-level-encryption/{Id}",
+		HTTPPath:   "/2018-11-05/field-level-encryption/{Id}",
 	}
 
 	if input == nil {
@@ -1408,8 +1414,7 @@ func (c *CloudFront) DeleteFieldLevelEncryptionConfigRequest(input *DeleteFieldL
 
 	output = &DeleteFieldLevelEncryptionConfigOutput{}
 	req = c.newRequest(op, input, output)
-	req.Handlers.Unmarshal.Remove(restxml.UnmarshalHandler)
-	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
+	req.Handlers.Unmarshal.Swap(restxml.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -1441,7 +1446,7 @@ func (c *CloudFront) DeleteFieldLevelEncryptionConfigRequest(input *DeleteFieldL
 //   * ErrCodeFieldLevelEncryptionConfigInUse "FieldLevelEncryptionConfigInUse"
 //   The specified configuration for field-level encryption is in use.
 //
-// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2018-06-18/DeleteFieldLevelEncryptionConfig
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2018-11-05/DeleteFieldLevelEncryptionConfig
 func (c *CloudFront) DeleteFieldLevelEncryptionConfig(input *DeleteFieldLevelEncryptionConfigInput) (*DeleteFieldLevelEncryptionConfigOutput, error) {
 	req, out := c.DeleteFieldLevelEncryptionConfigRequest(input)
 	return out, req.Send()
@@ -1463,7 +1468,7 @@ func (c *CloudFront) DeleteFieldLevelEncryptionConfigWithContext(ctx aws.Context
 	return out, req.Send()
 }
 
-const opDeleteFieldLevelEncryptionProfile = "DeleteFieldLevelEncryptionProfile2018_06_18"
+const opDeleteFieldLevelEncryptionProfile = "DeleteFieldLevelEncryptionProfile2018_11_05"
 
 // DeleteFieldLevelEncryptionProfileRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteFieldLevelEncryptionProfile operation. The "output" return
@@ -1488,12 +1493,12 @@ const opDeleteFieldLevelEncryptionProfile = "DeleteFieldLevelEncryptionProfile20
 //        fmt.Println(resp)
 //    }
 //
-// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2018-06-18/DeleteFieldLevelEncryptionProfile
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2018-11-05/DeleteFieldLevelEncryptionProfile
 func (c *CloudFront) DeleteFieldLevelEncryptionProfileRequest(input *DeleteFieldLevelEncryptionProfileInput) (req *request.Request, output *DeleteFieldLevelEncryptionProfileOutput) {
 	op := &request.Operation{
 		Name:       opDeleteFieldLevelEncryptionProfile,
 		HTTPMethod: "DELETE",
-		HTTPPath:   "/2018-06-18/field-level-encryption-profile/{Id}",
+		HTTPPath:   "/2018-11-05/field-level-encryption-profile/{Id}",
 	}
 
 	if input == nil {
@@ -1502,8 +1507,7 @@ func (c *CloudFront) DeleteFieldLevelEncryptionProfileRequest(input *DeleteField
 
 	output = &DeleteFieldLevelEncryptionProfileOutput{}
 	req = c.newRequest(op, input, output)
-	req.Handlers.Unmarshal.Remove(restxml.UnmarshalHandler)
-	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
+	req.Handlers.Unmarshal.Swap(restxml.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -1535,7 +1539,7 @@ func (c *CloudFront) DeleteFieldLevelEncryptionProfileRequest(input *DeleteField
 //   * ErrCodeFieldLevelEncryptionProfileInUse "FieldLevelEncryptionProfileInUse"
 //   The specified profile for field-level encryption is in use.
 //
-// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2018-06-18/DeleteFieldLevelEncryptionProfile
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2018-11-05/DeleteFieldLevelEncryptionProfile
 func (c *CloudFront) DeleteFieldLevelEncryptionProfile(input *DeleteFieldLevelEncryptionProfileInput) (*DeleteFieldLevelEncryptionProfileOutput, error) {
 	req, out := c.DeleteFieldLevelEncryptionProfileRequest(input)
 	return out, req.Send()
@@ -1557,7 +1561,7 @@ func (c *CloudFront) DeleteFieldLevelEncryptionProfileWithContext(ctx aws.Contex
 	return out, req.Send()
 }
 
-const opDeletePublicKey = "DeletePublicKey2018_06_18"
+const opDeletePublicKey = "DeletePublicKey2018_11_05"
 
 // DeletePublicKeyRequest generates a "aws/request.Request" representing the
 // client's request for the DeletePublicKey operation. The "output" return
@@ -1582,12 +1586,12 @@ const opDeletePublicKey = "DeletePublicKey2018_06_18"
 //        fmt.Println(resp)
 //    }
 //
-// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2018-06-18/DeletePublicKey
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2018-11-05/DeletePublicKey
 func (c *CloudFront) DeletePublicKeyRequest(input *DeletePublicKeyInput) (req *request.Request, output *DeletePublicKeyOutput) {
 	op := &request.Operation{
 		Name:       opDeletePublicKey,
 		HTTPMethod: "DELETE",
-		HTTPPath:   "/2018-06-18/public-key/{Id}",
+		HTTPPath:   "/2018-11-05/public-key/{Id}",
 	}
 
 	if input == nil {
@@ -1596,8 +1600,7 @@ func (c *CloudFront) DeletePublicKeyRequest(input *DeletePublicKeyInput) (req *r
 
 	output = &DeletePublicKeyOutput{}
 	req = c.newRequest(op, input, output)
-	req.Handlers.Unmarshal.Remove(restxml.UnmarshalHandler)
-	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
+	req.Handlers.Unmarshal.Swap(restxml.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -1629,7 +1632,7 @@ func (c *CloudFront) DeletePublicKeyRequest(input *DeletePublicKeyInput) (req *r
 //   The precondition given in one or more of the request-header fields evaluated
 //   to false.
 //
-// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2018-06-18/DeletePublicKey
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2018-11-05/DeletePublicKey
 func (c *CloudFront) DeletePublicKey(input *DeletePublicKeyInput) (*DeletePublicKeyOutput, error) {
 	req, out := c.DeletePublicKeyRequest(input)
 	return out, req.Send()
@@ -1651,7 +1654,7 @@ func (c *CloudFront) DeletePublicKeyWithContext(ctx aws.Context, input *DeletePu
 	return out, req.Send()
 }
 
-const opDeleteStreamingDistribution = "DeleteStreamingDistribution2018_06_18"
+const opDeleteStreamingDistribution = "DeleteStreamingDistribution2018_11_05"
 
 // DeleteStreamingDistributionRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteStreamingDistribution operation. The "output" return
@@ -1676,12 +1679,12 @@ const opDeleteStreamingDistribution = "DeleteStreamingDistribution2018_06_18"
 //        fmt.Println(resp)
 //    }
 //
-// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2018-06-18/DeleteStreamingDistribution
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2018-11-05/DeleteStreamingDistribution
 func (c *CloudFront) DeleteStreamingDistributionRequest(input *DeleteStreamingDistributionInput) (req *request.Request, output *DeleteStreamingDistributionOutput) {
 	op := &request.Operation{
 		Name:       opDeleteStreamingDistribution,
 		HTTPMethod: "DELETE",
-		HTTPPath:   "/2018-06-18/streaming-distribution/{Id}",
+		HTTPPath:   "/2018-11-05/streaming-distribution/{Id}",
 	}
 
 	if input == nil {
@@ -1690,8 +1693,7 @@ func (c *CloudFront) DeleteStreamingDistributionRequest(input *DeleteStreamingDi
 
 	output = &DeleteStreamingDistributionOutput{}
 	req = c.newRequest(op, input, output)
-	req.Handlers.Unmarshal.Remove(restxml.UnmarshalHandler)
-	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
+	req.Handlers.Unmarshal.Swap(restxml.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -1757,7 +1759,7 @@ func (c *CloudFront) DeleteStreamingDistributionRequest(input *DeleteStreamingDi
 //   The precondition given in one or more of the request-header fields evaluated
 //   to false.
 //
-// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2018-06-18/DeleteStreamingDistribution
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2018-11-05/DeleteStreamingDistribution
 func (c *CloudFront) DeleteStreamingDistribution(input *DeleteStreamingDistributionInput) (*DeleteStreamingDistributionOutput, error) {
 	req, out := c.DeleteStreamingDistributionRequest(input)
 	return out, req.Send()
@@ -1779,7 +1781,7 @@ func (c *CloudFront) DeleteStreamingDistributionWithContext(ctx aws.Context, inp
 	return out, req.Send()
 }
 
-const opGetCloudFrontOriginAccessIdentity = "GetCloudFrontOriginAccessIdentity2018_06_18"
+const opGetCloudFrontOriginAccessIdentity = "GetCloudFrontOriginAccessIdentity2018_11_05"
 
 // GetCloudFrontOriginAccessIdentityRequest generates a "aws/request.Request" representing the
 // client's request for the GetCloudFrontOriginAccessIdentity operation. The "output" return
@@ -1804,12 +1806,12 @@ const opGetCloudFrontOriginAccessIdentity = "GetCloudFrontOriginAccessIdentity20
 //        fmt.Println(resp)
 //    }
 //
-// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2018-06-18/GetCloudFrontOriginAccessIdentity
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2018-11-05/GetCloudFrontOriginAccessIdentity
 func (c *CloudFront) GetCloudFrontOriginAccessIdentityRequest(input *GetCloudFrontOriginAccessIdentityInput) (req *request.Request, output *GetCloudFrontOriginAccessIdentityOutput) {
 	op := &request.Operation{
 		Name:       opGetCloudFrontOriginAccessIdentity,
 		HTTPMethod: "GET",
-		HTTPPath:   "/2018-06-18/origin-access-identity/cloudfront/{Id}",
+		HTTPPath:   "/2018-11-05/origin-access-identity/cloudfront/{Id}",
 	}
 
 	if input == nil {
@@ -1839,7 +1841,7 @@ func (c *CloudFront) GetCloudFrontOriginAccessIdentityRequest(input *GetCloudFro
 //   * ErrCodeAccessDenied "AccessDenied"
 //   Access denied.
 //
-// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2018-06-18/GetCloudFrontOriginAccessIdentity
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2018-11-05/GetCloudFrontOriginAccessIdentity
 func (c *CloudFront) GetCloudFrontOriginAccessIdentity(input *GetCloudFrontOriginAccessIdentityInput) (*GetCloudFrontOriginAccessIdentityOutput, error) {
 	req, out := c.GetCloudFrontOriginAccessIdentityRequest(input)
 	return out, req.Send()
@@ -1861,7 +1863,7 @@ func (c *CloudFront) GetCloudFrontOriginAccessIdentityWithContext(ctx aws.Contex
 	return out, req.Send()
 }
 
-const opGetCloudFrontOriginAccessIdentityConfig = "GetCloudFrontOriginAccessIdentityConfig2018_06_18"
+const opGetCloudFrontOriginAccessIdentityConfig = "GetCloudFrontOriginAccessIdentityConfig2018_11_05"
 
 // GetCloudFrontOriginAccessIdentityConfigRequest generates a "aws/request.Request" representing the
 // client's request for the GetCloudFrontOriginAccessIdentityConfig operation. The "output" return
@@ -1886,12 +1888,12 @@ const opGetCloudFrontOriginAccessIdentityConfig = "GetCloudFrontOriginAccessIden
 //        fmt.Println(resp)
 //    }
 //
-// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2018-06-18/GetCloudFrontOriginAccessIdentityConfig
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2018-11-05/GetCloudFrontOriginAccessIdentityConfig
 func (c *CloudFront) GetCloudFrontOriginAccessIdentityConfigRequest(input *GetCloudFrontOriginAccessIdentityConfigInput) (req *request.Request, output *GetCloudFrontOriginAccessIdentityConfigOutput) {
 	op := &request.Operation{
 		Name:       opGetCloudFrontOriginAccessIdentityConfig,
 		HTTPMethod: "GET",
-		HTTPPath:   "/2018-06-18/origin-access-identity/cloudfront/{Id}/config",
+		HTTPPath:   "/2018-11-05/origin-access-identity/cloudfront/{Id}/config",
 	}
 
 	if input == nil {
@@ -1921,7 +1923,7 @@ func (c *CloudFront) GetCloudFrontOriginAccessIdentityConfigRequest(input *GetCl
 //   * ErrCodeAccessDenied "AccessDenied"
 //   Access denied.
 //
-// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2018-06-18/GetCloudFrontOriginAccessIdentityConfig
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2018-11-05/GetCloudFrontOriginAccessIdentityConfig
 func (c *CloudFront) GetCloudFrontOriginAccessIdentityConfig(input *GetCloudFrontOriginAccessIdentityConfigInput) (*GetCloudFrontOriginAccessIdentityConfigOutput, error) {
 	req, out := c.GetCloudFrontOriginAccessIdentityConfigRequest(input)
 	return out, req.Send()
@@ -1943,7 +1945,7 @@ func (c *CloudFront) GetCloudFrontOriginAccessIdentityConfigWithContext(ctx aws.
 	return out, req.Send()
 }
 
-const opGetDistribution = "GetDistribution2018_06_18"
+const opGetDistribution = "GetDistribution2018_11_05"
 
 // GetDistributionRequest generates a "aws/request.Request" representing the
 // client's request for the GetDistribution operation. The "output" return
@@ -1968,12 +1970,12 @@ const opGetDistribution = "GetDistribution2018_06_18"
 //        fmt.Println(resp)
 //    }
 //
-// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2018-06-18/GetDistribution
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2018-11-05/GetDistribution
 func (c *CloudFront) GetDistributionRequest(input *GetDistributionInput) (req *request.Request, output *GetDistributionOutput) {
 	op := &request.Operation{
 		Name:       opGetDistribution,
 		HTTPMethod: "GET",
-		HTTPPath:   "/2018-06-18/distribution/{Id}",
+		HTTPPath:   "/2018-11-05/distribution/{Id}",
 	}
 
 	if input == nil {
@@ -2003,7 +2005,7 @@ func (c *CloudFront) GetDistributionRequest(input *GetDistributionInput) (req *r
 //   * ErrCodeAccessDenied "AccessDenied"
 //   Access denied.
 //
-// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2018-06-18/GetDistribution
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2018-11-05/GetDistribution
 func (c *CloudFront) GetDistribution(input *GetDistributionInput) (*GetDistributionOutput, error) {
 	req, out := c.GetDistributionRequest(input)
 	return out, req.Send()
@@ -2025,7 +2027,7 @@ func (c *CloudFront) GetDistributionWithContext(ctx aws.Context, input *GetDistr
 	return out, req.Send()
 }
 
-const opGetDistributionConfig = "GetDistributionConfig2018_06_18"
+const opGetDistributionConfig = "GetDistributionConfig2018_11_05"
 
 // GetDistributionConfigRequest generates a "aws/request.Request" representing the
 // client's request for the GetDistributionConfig operation. The "output" return
@@ -2050,12 +2052,12 @@ const opGetDistributionConfig = "GetDistributionConfig2018_06_18"
 //        fmt.Println(resp)
 //    }
 //
-// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2018-06-18/GetDistributionConfig
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2018-11-05/GetDistributionConfig
 func (c *CloudFront) GetDistributionConfigRequest(input *GetDistributionConfigInput) (req *request.Request, output *GetDistributionConfigOutput) {
 	op := &request.Operation{
 		Name:       opGetDistributionConfig,
 		HTTPMethod: "GET",
-		HTTPPath:   "/2018-06-18/distribution/{Id}/config",
+		HTTPPath:   "/2018-11-05/distribution/{Id}/config",
 	}
 
 	if input == nil {
@@ -2085,7 +2087,7 @@ func (c *CloudFront) GetDistributionConfigRequest(input *GetDistributionConfigIn
 //   * ErrCodeAccessDenied "AccessDenied"
 //   Access denied.
 //
-// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2018-06-18/GetDistributionConfig
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2018-11-05/GetDistributionConfig
 func (c *CloudFront) GetDistributionConfig(input *GetDistributionConfigInput) (*GetDistributionConfigOutput, error) {
 	req, out := c.GetDistributionConfigRequest(input)
 	return out, req.Send()
@@ -2107,7 +2109,7 @@ func (c *CloudFront) GetDistributionConfigWithContext(ctx aws.Context, input *Ge
 	return out, req.Send()
 }
 
-const opGetFieldLevelEncryption = "GetFieldLevelEncryption2018_06_18"
+const opGetFieldLevelEncryption = "GetFieldLevelEncryption2018_11_05"
 
 // GetFieldLevelEncryptionRequest generates a "aws/request.Request" representing the
 // client's request for the GetFieldLevelEncryption operation. The "output" return
@@ -2132,12 +2134,12 @@ const opGetFieldLevelEncryption = "GetFieldLevelEncryption2018_06_18"
 //        fmt.Println(resp)
 //    }
 //
-// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2018-06-18/GetFieldLevelEncryption
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2018-11-05/GetFieldLevelEncryption
 func (c *CloudFront) GetFieldLevelEncryptionRequest(input *GetFieldLevelEncryptionInput) (req *request.Request, output *GetFieldLevelEncryptionOutput) {
 	op := &request.Operation{
 		Name:       opGetFieldLevelEncryption,
 		HTTPMethod: "GET",
-		HTTPPath:   "/2018-06-18/field-level-encryption/{Id}",
+		HTTPPath:   "/2018-11-05/field-level-encryption/{Id}",
 	}
 
 	if input == nil {
@@ -2167,7 +2169,7 @@ func (c *CloudFront) GetFieldLevelEncryptionRequest(input *GetFieldLevelEncrypti
 //   * ErrCodeNoSuchFieldLevelEncryptionConfig "NoSuchFieldLevelEncryptionConfig"
 //   The specified configuration for field-level encryption doesn't exist.
 //
-// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2018-06-18/GetFieldLevelEncryption
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2018-11-05/GetFieldLevelEncryption
 func (c *CloudFront) GetFieldLevelEncryption(input *GetFieldLevelEncryptionInput) (*GetFieldLevelEncryptionOutput, error) {
 	req, out := c.GetFieldLevelEncryptionRequest(input)
 	return out, req.Send()
@@ -2189,7 +2191,7 @@ func (c *CloudFront) GetFieldLevelEncryptionWithContext(ctx aws.Context, input *
 	return out, req.Send()
 }
 
-const opGetFieldLevelEncryptionConfig = "GetFieldLevelEncryptionConfig2018_06_18"
+const opGetFieldLevelEncryptionConfig = "GetFieldLevelEncryptionConfig2018_11_05"
 
 // GetFieldLevelEncryptionConfigRequest generates a "aws/request.Request" representing the
 // client's request for the GetFieldLevelEncryptionConfig operation. The "output" return
@@ -2214,12 +2216,12 @@ const opGetFieldLevelEncryptionConfig = "GetFieldLevelEncryptionConfig2018_06_18
 //        fmt.Println(resp)
 //    }
 //
-// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2018-06-18/GetFieldLevelEncryptionConfig
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2018-11-05/GetFieldLevelEncryptionConfig
 func (c *CloudFront) GetFieldLevelEncryptionConfigRequest(input *GetFieldLevelEncryptionConfigInput) (req *request.Request, output *GetFieldLevelEncryptionConfigOutput) {
 	op := &request.Operation{
 		Name:       opGetFieldLevelEncryptionConfig,
 		HTTPMethod: "GET",
-		HTTPPath:   "/2018-06-18/field-level-encryption/{Id}/config",
+		HTTPPath:   "/2018-11-05/field-level-encryption/{Id}/config",
 	}
 
 	if input == nil {
@@ -2249,7 +2251,7 @@ func (c *CloudFront) GetFieldLevelEncryptionConfigRequest(input *GetFieldLevelEn
 //   * ErrCodeNoSuchFieldLevelEncryptionConfig "NoSuchFieldLevelEncryptionConfig"
 //   The specified configuration for field-level encryption doesn't exist.
 //
-// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2018-06-18/GetFieldLevelEncryptionConfig
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2018-11-05/GetFieldLevelEncryptionConfig
 func (c *CloudFront) GetFieldLevelEncryptionConfig(input *GetFieldLevelEncryptionConfigInput) (*GetFieldLevelEncryptionConfigOutput, error) {
 	req, out := c.GetFieldLevelEncryptionConfigRequest(input)
 	return out, req.Send()
@@ -2271,7 +2273,7 @@ func (c *CloudFront) GetFieldLevelEncryptionConfigWithContext(ctx aws.Context, i
 	return out, req.Send()
 }
 
-const opGetFieldLevelEncryptionProfile = "GetFieldLevelEncryptionProfile2018_06_18"
+const opGetFieldLevelEncryptionProfile = "GetFieldLevelEncryptionProfile2018_11_05"
 
 // GetFieldLevelEncryptionProfileRequest generates a "aws/request.Request" representing the
 // client's request for the GetFieldLevelEncryptionProfile operation. The "output" return
@@ -2296,12 +2298,12 @@ const opGetFieldLevelEncryptionProfile = "GetFieldLevelEncryptionProfile2018_06_
 //        fmt.Println(resp)
 //    }
 //
-// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2018-06-18/GetFieldLevelEncryptionProfile
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2018-11-05/GetFieldLevelEncryptionProfile
 func (c *CloudFront) GetFieldLevelEncryptionProfileRequest(input *GetFieldLevelEncryptionProfileInput) (req *request.Request, output *GetFieldLevelEncryptionProfileOutput) {
 	op := &request.Operation{
 		Name:       opGetFieldLevelEncryptionProfile,
 		HTTPMethod: "GET",
-		HTTPPath:   "/2018-06-18/field-level-encryption-profile/{Id}",
+		HTTPPath:   "/2018-11-05/field-level-encryption-profile/{Id}",
 	}
 
 	if input == nil {
@@ -2331,7 +2333,7 @@ func (c *CloudFront) GetFieldLevelEncryptionProfileRequest(input *GetFieldLevelE
 //   * ErrCodeNoSuchFieldLevelEncryptionProfile "NoSuchFieldLevelEncryptionProfile"
 //   The specified profile for field-level encryption doesn't exist.
 //
-// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2018-06-18/GetFieldLevelEncryptionProfile
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2018-11-05/GetFieldLevelEncryptionProfile
 func (c *CloudFront) GetFieldLevelEncryptionProfile(input *GetFieldLevelEncryptionProfileInput) (*GetFieldLevelEncryptionProfileOutput, error) {
 	req, out := c.GetFieldLevelEncryptionProfileRequest(input)
 	return out, req.Send()
@@ -2353,7 +2355,7 @@ func (c *CloudFront) GetFieldLevelEncryptionProfileWithContext(ctx aws.Context, 
 	return out, req.Send()
 }
 
-const opGetFieldLevelEncryptionProfileConfig = "GetFieldLevelEncryptionProfileConfig2018_06_18"
+const opGetFieldLevelEncryptionProfileConfig = "GetFieldLevelEncryptionProfileConfig2018_11_05"
 
 // GetFieldLevelEncryptionProfileConfigRequest generates a "aws/request.Request" representing the
 // client's request for the GetFieldLevelEncryptionProfileConfig operation. The "output" return
@@ -2378,12 +2380,12 @@ const opGetFieldLevelEncryptionProfileConfig = "GetFieldLevelEncryptionProfileCo
 //        fmt.Println(resp)
 //    }
 //
-// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2018-06-18/GetFieldLevelEncryptionProfileConfig
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2018-11-05/GetFieldLevelEncryptionProfileConfig
 func (c *CloudFront) GetFieldLevelEncryptionProfileConfigRequest(input *GetFieldLevelEncryptionProfileConfigInput) (req *request.Request, output *GetFieldLevelEncryptionProfileConfigOutput) {
 	op := &request.Operation{
 		Name:       opGetFieldLevelEncryptionProfileConfig,
 		HTTPMethod: "GET",
-		HTTPPath:   "/2018-06-18/field-level-encryption-profile/{Id}/config",
+		HTTPPath:   "/2018-11-05/field-level-encryption-profile/{Id}/config",
 	}
 
 	if input == nil {
@@ -2413,7 +2415,7 @@ func (c *CloudFront) GetFieldLevelEncryptionProfileConfigRequest(input *GetField
 //   * ErrCodeNoSuchFieldLevelEncryptionProfile "NoSuchFieldLevelEncryptionProfile"
 //   The specified profile for field-level encryption doesn't exist.
 //
-// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2018-06-18/GetFieldLevelEncryptionProfileConfig
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2018-11-05/GetFieldLevelEncryptionProfileConfig
 func (c *CloudFront) GetFieldLevelEncryptionProfileConfig(input *GetFieldLevelEncryptionProfileConfigInput) (*GetFieldLevelEncryptionProfileConfigOutput, error) {
 	req, out := c.GetFieldLevelEncryptionProfileConfigRequest(input)
 	return out, req.Send()
@@ -2435,7 +2437,7 @@ func (c *CloudFront) GetFieldLevelEncryptionProfileConfigWithContext(ctx aws.Con
 	return out, req.Send()
 }
 
-const opGetInvalidation = "GetInvalidation2018_06_18"
+const opGetInvalidation = "GetInvalidation2018_11_05"
 
 // GetInvalidationRequest generates a "aws/request.Request" representing the
 // client's request for the GetInvalidation operation. The "output" return
@@ -2460,12 +2462,12 @@ const opGetInvalidation = "GetInvalidation2018_06_18"
 //        fmt.Println(resp)
 //    }
 //
-// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2018-06-18/GetInvalidation
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2018-11-05/GetInvalidation
 func (c *CloudFront) GetInvalidationRequest(input *GetInvalidationInput) (req *request.Request, output *GetInvalidationOutput) {
 	op := &request.Operation{
 		Name:       opGetInvalidation,
 		HTTPMethod: "GET",
-		HTTPPath:   "/2018-06-18/distribution/{DistributionId}/invalidation/{Id}",
+		HTTPPath:   "/2018-11-05/distribution/{DistributionId}/invalidation/{Id}",
 	}
 
 	if input == nil {
@@ -2498,7 +2500,7 @@ func (c *CloudFront) GetInvalidationRequest(input *GetInvalidationInput) (req *r
 //   * ErrCodeAccessDenied "AccessDenied"
 //   Access denied.
 //
-// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2018-06-18/GetInvalidation
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2018-11-05/GetInvalidation
 func (c *CloudFront) GetInvalidation(input *GetInvalidationInput) (*GetInvalidationOutput, error) {
 	req, out := c.GetInvalidationRequest(input)
 	return out, req.Send()
@@ -2520,7 +2522,7 @@ func (c *CloudFront) GetInvalidationWithContext(ctx aws.Context, input *GetInval
 	return out, req.Send()
 }
 
-const opGetPublicKey = "GetPublicKey2018_06_18"
+const opGetPublicKey = "GetPublicKey2018_11_05"
 
 // GetPublicKeyRequest generates a "aws/request.Request" representing the
 // client's request for the GetPublicKey operation. The "output" return
@@ -2545,12 +2547,12 @@ const opGetPublicKey = "GetPublicKey2018_06_18"
 //        fmt.Println(resp)
 //    }
 //
-// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2018-06-18/GetPublicKey
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2018-11-05/GetPublicKey
 func (c *CloudFront) GetPublicKeyRequest(input *GetPublicKeyInput) (req *request.Request, output *GetPublicKeyOutput) {
 	op := &request.Operation{
 		Name:       opGetPublicKey,
 		HTTPMethod: "GET",
-		HTTPPath:   "/2018-06-18/public-key/{Id}",
+		HTTPPath:   "/2018-11-05/public-key/{Id}",
 	}
 
 	if input == nil {
@@ -2580,7 +2582,7 @@ func (c *CloudFront) GetPublicKeyRequest(input *GetPublicKeyInput) (req *request
 //   * ErrCodeNoSuchPublicKey "NoSuchPublicKey"
 //   The specified public key doesn't exist.
 //
-// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2018-06-18/GetPublicKey
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2018-11-05/GetPublicKey
 func (c *CloudFront) GetPublicKey(input *GetPublicKeyInput) (*GetPublicKeyOutput, error) {
 	req, out := c.GetPublicKeyRequest(input)
 	return out, req.Send()
@@ -2602,7 +2604,7 @@ func (c *CloudFront) GetPublicKeyWithContext(ctx aws.Context, input *GetPublicKe
 	return out, req.Send()
 }
 
-const opGetPublicKeyConfig = "GetPublicKeyConfig2018_06_18"
+const opGetPublicKeyConfig = "GetPublicKeyConfig2018_11_05"
 
 // GetPublicKeyConfigRequest generates a "aws/request.Request" representing the
 // client's request for the GetPublicKeyConfig operation. The "output" return
@@ -2627,12 +2629,12 @@ const opGetPublicKeyConfig = "GetPublicKeyConfig2018_06_18"
 //        fmt.Println(resp)
 //    }
 //
-// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2018-06-18/GetPublicKeyConfig
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2018-11-05/GetPublicKeyConfig
 func (c *CloudFront) GetPublicKeyConfigRequest(input *GetPublicKeyConfigInput) (req *request.Request, output *GetPublicKeyConfigOutput) {
 	op := &request.Operation{
 		Name:       opGetPublicKeyConfig,
 		HTTPMethod: "GET",
-		HTTPPath:   "/2018-06-18/public-key/{Id}/config",
+		HTTPPath:   "/2018-11-05/public-key/{Id}/config",
 	}
 
 	if input == nil {
@@ -2662,7 +2664,7 @@ func (c *CloudFront) GetPublicKeyConfigRequest(input *GetPublicKeyConfigInput) (
 //   * ErrCodeNoSuchPublicKey "NoSuchPublicKey"
 //   The specified public key doesn't exist.
 //
-// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2018-06-18/GetPublicKeyConfig
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2018-11-05/GetPublicKeyConfig
 func (c *CloudFront) GetPublicKeyConfig(input *GetPublicKeyConfigInput) (*GetPublicKeyConfigOutput, error) {
 	req, out := c.GetPublicKeyConfigRequest(input)
 	return out, req.Send()
@@ -2684,7 +2686,7 @@ func (c *CloudFront) GetPublicKeyConfigWithContext(ctx aws.Context, input *GetPu
 	return out, req.Send()
 }
 
-const opGetStreamingDistribution = "GetStreamingDistribution2018_06_18"
+const opGetStreamingDistribution = "GetStreamingDistribution2018_11_05"
 
 // GetStreamingDistributionRequest generates a "aws/request.Request" representing the
 // client's request for the GetStreamingDistribution operation. The "output" return
@@ -2709,12 +2711,12 @@ const opGetStreamingDistribution = "GetStreamingDistribution2018_06_18"
 //        fmt.Println(resp)
 //    }
 //
-// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2018-06-18/GetStreamingDistribution
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2018-11-05/GetStreamingDistribution
 func (c *CloudFront) GetStreamingDistributionRequest(input *GetStreamingDistributionInput) (req *request.Request, output *GetStreamingDistributionOutput) {
 	op := &request.Operation{
 		Name:       opGetStreamingDistribution,
 		HTTPMethod: "GET",
-		HTTPPath:   "/2018-06-18/streaming-distribution/{Id}",
+		HTTPPath:   "/2018-11-05/streaming-distribution/{Id}",
 	}
 
 	if input == nil {
@@ -2745,7 +2747,7 @@ func (c *CloudFront) GetStreamingDistributionRequest(input *GetStreamingDistribu
 //   * ErrCodeAccessDenied "AccessDenied"
 //   Access denied.
 //
-// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2018-06-18/GetStreamingDistribution
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2018-11-05/GetStreamingDistribution
 func (c *CloudFront) GetStreamingDistribution(input *GetStreamingDistributionInput) (*GetStreamingDistributionOutput, error) {
 	req, out := c.GetStreamingDistributionRequest(input)
 	return out, req.Send()
@@ -2767,7 +2769,7 @@ func (c *CloudFront) GetStreamingDistributionWithContext(ctx aws.Context, input 
 	return out, req.Send()
 }
 
-const opGetStreamingDistributionConfig = "GetStreamingDistributionConfig2018_06_18"
+const opGetStreamingDistributionConfig = "GetStreamingDistributionConfig2018_11_05"
 
 // GetStreamingDistributionConfigRequest generates a "aws/request.Request" representing the
 // client's request for the GetStreamingDistributionConfig operation. The "output" return
@@ -2792,12 +2794,12 @@ const opGetStreamingDistributionConfig = "GetStreamingDistributionConfig2018_06_
 //        fmt.Println(resp)
 //    }
 //
-// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2018-06-18/GetStreamingDistributionConfig
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2018-11-05/GetStreamingDistributionConfig
 func (c *CloudFront) GetStreamingDistributionConfigRequest(input *GetStreamingDistributionConfigInput) (req *request.Request, output *GetStreamingDistributionConfigOutput) {
 	op := &request.Operation{
 		Name:       opGetStreamingDistributionConfig,
 		HTTPMethod: "GET",
-		HTTPPath:   "/2018-06-18/streaming-distribution/{Id}/config",
+		HTTPPath:   "/2018-11-05/streaming-distribution/{Id}/config",
 	}
 
 	if input == nil {
@@ -2827,7 +2829,7 @@ func (c *CloudFront) GetStreamingDistributionConfigRequest(input *GetStreamingDi
 //   * ErrCodeAccessDenied "AccessDenied"
 //   Access denied.
 //
-// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2018-06-18/GetStreamingDistributionConfig
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2018-11-05/GetStreamingDistributionConfig
 func (c *CloudFront) GetStreamingDistributionConfig(input *GetStreamingDistributionConfigInput) (*GetStreamingDistributionConfigOutput, error) {
 	req, out := c.GetStreamingDistributionConfigRequest(input)
 	return out, req.Send()
@@ -2849,7 +2851,7 @@ func (c *CloudFront) GetStreamingDistributionConfigWithContext(ctx aws.Context, 
 	return out, req.Send()
 }
 
-const opListCloudFrontOriginAccessIdentities = "ListCloudFrontOriginAccessIdentities2018_06_18"
+const opListCloudFrontOriginAccessIdentities = "ListCloudFrontOriginAccessIdentities2018_11_05"
 
 // ListCloudFrontOriginAccessIdentitiesRequest generates a "aws/request.Request" representing the
 // client's request for the ListCloudFrontOriginAccessIdentities operation. The "output" return
@@ -2874,12 +2876,12 @@ const opListCloudFrontOriginAccessIdentities = "ListCloudFrontOriginAccessIdenti
 //        fmt.Println(resp)
 //    }
 //
-// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2018-06-18/ListCloudFrontOriginAccessIdentities
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2018-11-05/ListCloudFrontOriginAccessIdentities
 func (c *CloudFront) ListCloudFrontOriginAccessIdentitiesRequest(input *ListCloudFrontOriginAccessIdentitiesInput) (req *request.Request, output *ListCloudFrontOriginAccessIdentitiesOutput) {
 	op := &request.Operation{
 		Name:       opListCloudFrontOriginAccessIdentities,
 		HTTPMethod: "GET",
-		HTTPPath:   "/2018-06-18/origin-access-identity/cloudfront",
+		HTTPPath:   "/2018-11-05/origin-access-identity/cloudfront",
 		Paginator: &request.Paginator{
 			InputTokens:     []string{"Marker"},
 			OutputTokens:    []string{"CloudFrontOriginAccessIdentityList.NextMarker"},
@@ -2912,7 +2914,7 @@ func (c *CloudFront) ListCloudFrontOriginAccessIdentitiesRequest(input *ListClou
 //   * ErrCodeInvalidArgument "InvalidArgument"
 //   The argument is invalid.
 //
-// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2018-06-18/ListCloudFrontOriginAccessIdentities
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2018-11-05/ListCloudFrontOriginAccessIdentities
 func (c *CloudFront) ListCloudFrontOriginAccessIdentities(input *ListCloudFrontOriginAccessIdentitiesInput) (*ListCloudFrontOriginAccessIdentitiesOutput, error) {
 	req, out := c.ListCloudFrontOriginAccessIdentitiesRequest(input)
 	return out, req.Send()
@@ -2984,7 +2986,7 @@ func (c *CloudFront) ListCloudFrontOriginAccessIdentitiesPagesWithContext(ctx aw
 	return p.Err()
 }
 
-const opListDistributions = "ListDistributions2018_06_18"
+const opListDistributions = "ListDistributions2018_11_05"
 
 // ListDistributionsRequest generates a "aws/request.Request" representing the
 // client's request for the ListDistributions operation. The "output" return
@@ -3009,12 +3011,12 @@ const opListDistributions = "ListDistributions2018_06_18"
 //        fmt.Println(resp)
 //    }
 //
-// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2018-06-18/ListDistributions
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2018-11-05/ListDistributions
 func (c *CloudFront) ListDistributionsRequest(input *ListDistributionsInput) (req *request.Request, output *ListDistributionsOutput) {
 	op := &request.Operation{
 		Name:       opListDistributions,
 		HTTPMethod: "GET",
-		HTTPPath:   "/2018-06-18/distribution",
+		HTTPPath:   "/2018-11-05/distribution",
 		Paginator: &request.Paginator{
 			InputTokens:     []string{"Marker"},
 			OutputTokens:    []string{"DistributionList.NextMarker"},
@@ -3047,7 +3049,7 @@ func (c *CloudFront) ListDistributionsRequest(input *ListDistributionsInput) (re
 //   * ErrCodeInvalidArgument "InvalidArgument"
 //   The argument is invalid.
 //
-// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2018-06-18/ListDistributions
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2018-11-05/ListDistributions
 func (c *CloudFront) ListDistributions(input *ListDistributionsInput) (*ListDistributionsOutput, error) {
 	req, out := c.ListDistributionsRequest(input)
 	return out, req.Send()
@@ -3119,7 +3121,7 @@ func (c *CloudFront) ListDistributionsPagesWithContext(ctx aws.Context, input *L
 	return p.Err()
 }
 
-const opListDistributionsByWebACLId = "ListDistributionsByWebACLId2018_06_18"
+const opListDistributionsByWebACLId = "ListDistributionsByWebACLId2018_11_05"
 
 // ListDistributionsByWebACLIdRequest generates a "aws/request.Request" representing the
 // client's request for the ListDistributionsByWebACLId operation. The "output" return
@@ -3144,12 +3146,12 @@ const opListDistributionsByWebACLId = "ListDistributionsByWebACLId2018_06_18"
 //        fmt.Println(resp)
 //    }
 //
-// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2018-06-18/ListDistributionsByWebACLId
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2018-11-05/ListDistributionsByWebACLId
 func (c *CloudFront) ListDistributionsByWebACLIdRequest(input *ListDistributionsByWebACLIdInput) (req *request.Request, output *ListDistributionsByWebACLIdOutput) {
 	op := &request.Operation{
 		Name:       opListDistributionsByWebACLId,
 		HTTPMethod: "GET",
-		HTTPPath:   "/2018-06-18/distributionsByWebACLId/{WebACLId}",
+		HTTPPath:   "/2018-11-05/distributionsByWebACLId/{WebACLId}",
 	}
 
 	if input == nil {
@@ -3178,7 +3180,7 @@ func (c *CloudFront) ListDistributionsByWebACLIdRequest(input *ListDistributions
 //
 //   * ErrCodeInvalidWebACLId "InvalidWebACLId"
 //
-// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2018-06-18/ListDistributionsByWebACLId
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2018-11-05/ListDistributionsByWebACLId
 func (c *CloudFront) ListDistributionsByWebACLId(input *ListDistributionsByWebACLIdInput) (*ListDistributionsByWebACLIdOutput, error) {
 	req, out := c.ListDistributionsByWebACLIdRequest(input)
 	return out, req.Send()
@@ -3200,7 +3202,7 @@ func (c *CloudFront) ListDistributionsByWebACLIdWithContext(ctx aws.Context, inp
 	return out, req.Send()
 }
 
-const opListFieldLevelEncryptionConfigs = "ListFieldLevelEncryptionConfigs2018_06_18"
+const opListFieldLevelEncryptionConfigs = "ListFieldLevelEncryptionConfigs2018_11_05"
 
 // ListFieldLevelEncryptionConfigsRequest generates a "aws/request.Request" representing the
 // client's request for the ListFieldLevelEncryptionConfigs operation. The "output" return
@@ -3225,12 +3227,12 @@ const opListFieldLevelEncryptionConfigs = "ListFieldLevelEncryptionConfigs2018_0
 //        fmt.Println(resp)
 //    }
 //
-// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2018-06-18/ListFieldLevelEncryptionConfigs
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2018-11-05/ListFieldLevelEncryptionConfigs
 func (c *CloudFront) ListFieldLevelEncryptionConfigsRequest(input *ListFieldLevelEncryptionConfigsInput) (req *request.Request, output *ListFieldLevelEncryptionConfigsOutput) {
 	op := &request.Operation{
 		Name:       opListFieldLevelEncryptionConfigs,
 		HTTPMethod: "GET",
-		HTTPPath:   "/2018-06-18/field-level-encryption",
+		HTTPPath:   "/2018-11-05/field-level-encryption",
 	}
 
 	if input == nil {
@@ -3258,7 +3260,7 @@ func (c *CloudFront) ListFieldLevelEncryptionConfigsRequest(input *ListFieldLeve
 //   * ErrCodeInvalidArgument "InvalidArgument"
 //   The argument is invalid.
 //
-// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2018-06-18/ListFieldLevelEncryptionConfigs
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2018-11-05/ListFieldLevelEncryptionConfigs
 func (c *CloudFront) ListFieldLevelEncryptionConfigs(input *ListFieldLevelEncryptionConfigsInput) (*ListFieldLevelEncryptionConfigsOutput, error) {
 	req, out := c.ListFieldLevelEncryptionConfigsRequest(input)
 	return out, req.Send()
@@ -3280,7 +3282,7 @@ func (c *CloudFront) ListFieldLevelEncryptionConfigsWithContext(ctx aws.Context,
 	return out, req.Send()
 }
 
-const opListFieldLevelEncryptionProfiles = "ListFieldLevelEncryptionProfiles2018_06_18"
+const opListFieldLevelEncryptionProfiles = "ListFieldLevelEncryptionProfiles2018_11_05"
 
 // ListFieldLevelEncryptionProfilesRequest generates a "aws/request.Request" representing the
 // client's request for the ListFieldLevelEncryptionProfiles operation. The "output" return
@@ -3305,12 +3307,12 @@ const opListFieldLevelEncryptionProfiles = "ListFieldLevelEncryptionProfiles2018
 //        fmt.Println(resp)
 //    }
 //
-// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2018-06-18/ListFieldLevelEncryptionProfiles
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2018-11-05/ListFieldLevelEncryptionProfiles
 func (c *CloudFront) ListFieldLevelEncryptionProfilesRequest(input *ListFieldLevelEncryptionProfilesInput) (req *request.Request, output *ListFieldLevelEncryptionProfilesOutput) {
 	op := &request.Operation{
 		Name:       opListFieldLevelEncryptionProfiles,
 		HTTPMethod: "GET",
-		HTTPPath:   "/2018-06-18/field-level-encryption-profile",
+		HTTPPath:   "/2018-11-05/field-level-encryption-profile",
 	}
 
 	if input == nil {
@@ -3338,7 +3340,7 @@ func (c *CloudFront) ListFieldLevelEncryptionProfilesRequest(input *ListFieldLev
 //   * ErrCodeInvalidArgument "InvalidArgument"
 //   The argument is invalid.
 //
-// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2018-06-18/ListFieldLevelEncryptionProfiles
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2018-11-05/ListFieldLevelEncryptionProfiles
 func (c *CloudFront) ListFieldLevelEncryptionProfiles(input *ListFieldLevelEncryptionProfilesInput) (*ListFieldLevelEncryptionProfilesOutput, error) {
 	req, out := c.ListFieldLevelEncryptionProfilesRequest(input)
 	return out, req.Send()
@@ -3360,7 +3362,7 @@ func (c *CloudFront) ListFieldLevelEncryptionProfilesWithContext(ctx aws.Context
 	return out, req.Send()
 }
 
-const opListInvalidations = "ListInvalidations2018_06_18"
+const opListInvalidations = "ListInvalidations2018_11_05"
 
 // ListInvalidationsRequest generates a "aws/request.Request" representing the
 // client's request for the ListInvalidations operation. The "output" return
@@ -3385,12 +3387,12 @@ const opListInvalidations = "ListInvalidations2018_06_18"
 //        fmt.Println(resp)
 //    }
 //
-// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2018-06-18/ListInvalidations
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2018-11-05/ListInvalidations
 func (c *CloudFront) ListInvalidationsRequest(input *ListInvalidationsInput) (req *request.Request, output *ListInvalidationsOutput) {
 	op := &request.Operation{
 		Name:       opListInvalidations,
 		HTTPMethod: "GET",
-		HTTPPath:   "/2018-06-18/distribution/{DistributionId}/invalidation",
+		HTTPPath:   "/2018-11-05/distribution/{DistributionId}/invalidation",
 		Paginator: &request.Paginator{
 			InputTokens:     []string{"Marker"},
 			OutputTokens:    []string{"InvalidationList.NextMarker"},
@@ -3429,7 +3431,7 @@ func (c *CloudFront) ListInvalidationsRequest(input *ListInvalidationsInput) (re
 //   * ErrCodeAccessDenied "AccessDenied"
 //   Access denied.
 //
-// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2018-06-18/ListInvalidations
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2018-11-05/ListInvalidations
 func (c *CloudFront) ListInvalidations(input *ListInvalidationsInput) (*ListInvalidationsOutput, error) {
 	req, out := c.ListInvalidationsRequest(input)
 	return out, req.Send()
@@ -3501,7 +3503,7 @@ func (c *CloudFront) ListInvalidationsPagesWithContext(ctx aws.Context, input *L
 	return p.Err()
 }
 
-const opListPublicKeys = "ListPublicKeys2018_06_18"
+const opListPublicKeys = "ListPublicKeys2018_11_05"
 
 // ListPublicKeysRequest generates a "aws/request.Request" representing the
 // client's request for the ListPublicKeys operation. The "output" return
@@ -3526,12 +3528,12 @@ const opListPublicKeys = "ListPublicKeys2018_06_18"
 //        fmt.Println(resp)
 //    }
 //
-// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2018-06-18/ListPublicKeys
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2018-11-05/ListPublicKeys
 func (c *CloudFront) ListPublicKeysRequest(input *ListPublicKeysInput) (req *request.Request, output *ListPublicKeysOutput) {
 	op := &request.Operation{
 		Name:       opListPublicKeys,
 		HTTPMethod: "GET",
-		HTTPPath:   "/2018-06-18/public-key",
+		HTTPPath:   "/2018-11-05/public-key",
 	}
 
 	if input == nil {
@@ -3558,7 +3560,7 @@ func (c *CloudFront) ListPublicKeysRequest(input *ListPublicKeysInput) (req *req
 //   * ErrCodeInvalidArgument "InvalidArgument"
 //   The argument is invalid.
 //
-// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2018-06-18/ListPublicKeys
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2018-11-05/ListPublicKeys
 func (c *CloudFront) ListPublicKeys(input *ListPublicKeysInput) (*ListPublicKeysOutput, error) {
 	req, out := c.ListPublicKeysRequest(input)
 	return out, req.Send()
@@ -3580,7 +3582,7 @@ func (c *CloudFront) ListPublicKeysWithContext(ctx aws.Context, input *ListPubli
 	return out, req.Send()
 }
 
-const opListStreamingDistributions = "ListStreamingDistributions2018_06_18"
+const opListStreamingDistributions = "ListStreamingDistributions2018_11_05"
 
 // ListStreamingDistributionsRequest generates a "aws/request.Request" representing the
 // client's request for the ListStreamingDistributions operation. The "output" return
@@ -3605,12 +3607,12 @@ const opListStreamingDistributions = "ListStreamingDistributions2018_06_18"
 //        fmt.Println(resp)
 //    }
 //
-// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2018-06-18/ListStreamingDistributions
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2018-11-05/ListStreamingDistributions
 func (c *CloudFront) ListStreamingDistributionsRequest(input *ListStreamingDistributionsInput) (req *request.Request, output *ListStreamingDistributionsOutput) {
 	op := &request.Operation{
 		Name:       opListStreamingDistributions,
 		HTTPMethod: "GET",
-		HTTPPath:   "/2018-06-18/streaming-distribution",
+		HTTPPath:   "/2018-11-05/streaming-distribution",
 		Paginator: &request.Paginator{
 			InputTokens:     []string{"Marker"},
 			OutputTokens:    []string{"StreamingDistributionList.NextMarker"},
@@ -3643,7 +3645,7 @@ func (c *CloudFront) ListStreamingDistributionsRequest(input *ListStreamingDistr
 //   * ErrCodeInvalidArgument "InvalidArgument"
 //   The argument is invalid.
 //
-// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2018-06-18/ListStreamingDistributions
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2018-11-05/ListStreamingDistributions
 func (c *CloudFront) ListStreamingDistributions(input *ListStreamingDistributionsInput) (*ListStreamingDistributionsOutput, error) {
 	req, out := c.ListStreamingDistributionsRequest(input)
 	return out, req.Send()
@@ -3715,7 +3717,7 @@ func (c *CloudFront) ListStreamingDistributionsPagesWithContext(ctx aws.Context,
 	return p.Err()
 }
 
-const opListTagsForResource = "ListTagsForResource2018_06_18"
+const opListTagsForResource = "ListTagsForResource2018_11_05"
 
 // ListTagsForResourceRequest generates a "aws/request.Request" representing the
 // client's request for the ListTagsForResource operation. The "output" return
@@ -3740,12 +3742,12 @@ const opListTagsForResource = "ListTagsForResource2018_06_18"
 //        fmt.Println(resp)
 //    }
 //
-// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2018-06-18/ListTagsForResource
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2018-11-05/ListTagsForResource
 func (c *CloudFront) ListTagsForResourceRequest(input *ListTagsForResourceInput) (req *request.Request, output *ListTagsForResourceOutput) {
 	op := &request.Operation{
 		Name:       opListTagsForResource,
 		HTTPMethod: "GET",
-		HTTPPath:   "/2018-06-18/tagging",
+		HTTPPath:   "/2018-11-05/tagging",
 	}
 
 	if input == nil {
@@ -3779,7 +3781,7 @@ func (c *CloudFront) ListTagsForResourceRequest(input *ListTagsForResourceInput)
 //
 //   * ErrCodeNoSuchResource "NoSuchResource"
 //
-// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2018-06-18/ListTagsForResource
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2018-11-05/ListTagsForResource
 func (c *CloudFront) ListTagsForResource(input *ListTagsForResourceInput) (*ListTagsForResourceOutput, error) {
 	req, out := c.ListTagsForResourceRequest(input)
 	return out, req.Send()
@@ -3801,7 +3803,7 @@ func (c *CloudFront) ListTagsForResourceWithContext(ctx aws.Context, input *List
 	return out, req.Send()
 }
 
-const opTagResource = "TagResource2018_06_18"
+const opTagResource = "TagResource2018_11_05"
 
 // TagResourceRequest generates a "aws/request.Request" representing the
 // client's request for the TagResource operation. The "output" return
@@ -3826,12 +3828,12 @@ const opTagResource = "TagResource2018_06_18"
 //        fmt.Println(resp)
 //    }
 //
-// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2018-06-18/TagResource
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2018-11-05/TagResource
 func (c *CloudFront) TagResourceRequest(input *TagResourceInput) (req *request.Request, output *TagResourceOutput) {
 	op := &request.Operation{
 		Name:       opTagResource,
 		HTTPMethod: "POST",
-		HTTPPath:   "/2018-06-18/tagging?Operation=Tag",
+		HTTPPath:   "/2018-11-05/tagging?Operation=Tag",
 	}
 
 	if input == nil {
@@ -3840,8 +3842,7 @@ func (c *CloudFront) TagResourceRequest(input *TagResourceInput) (req *request.R
 
 	output = &TagResourceOutput{}
 	req = c.newRequest(op, input, output)
-	req.Handlers.Unmarshal.Remove(restxml.UnmarshalHandler)
-	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
+	req.Handlers.Unmarshal.Swap(restxml.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -3867,7 +3868,7 @@ func (c *CloudFront) TagResourceRequest(input *TagResourceInput) (req *request.R
 //
 //   * ErrCodeNoSuchResource "NoSuchResource"
 //
-// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2018-06-18/TagResource
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2018-11-05/TagResource
 func (c *CloudFront) TagResource(input *TagResourceInput) (*TagResourceOutput, error) {
 	req, out := c.TagResourceRequest(input)
 	return out, req.Send()
@@ -3889,7 +3890,7 @@ func (c *CloudFront) TagResourceWithContext(ctx aws.Context, input *TagResourceI
 	return out, req.Send()
 }
 
-const opUntagResource = "UntagResource2018_06_18"
+const opUntagResource = "UntagResource2018_11_05"
 
 // UntagResourceRequest generates a "aws/request.Request" representing the
 // client's request for the UntagResource operation. The "output" return
@@ -3914,12 +3915,12 @@ const opUntagResource = "UntagResource2018_06_18"
 //        fmt.Println(resp)
 //    }
 //
-// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2018-06-18/UntagResource
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2018-11-05/UntagResource
 func (c *CloudFront) UntagResourceRequest(input *UntagResourceInput) (req *request.Request, output *UntagResourceOutput) {
 	op := &request.Operation{
 		Name:       opUntagResource,
 		HTTPMethod: "POST",
-		HTTPPath:   "/2018-06-18/tagging?Operation=Untag",
+		HTTPPath:   "/2018-11-05/tagging?Operation=Untag",
 	}
 
 	if input == nil {
@@ -3928,8 +3929,7 @@ func (c *CloudFront) UntagResourceRequest(input *UntagResourceInput) (req *reque
 
 	output = &UntagResourceOutput{}
 	req = c.newRequest(op, input, output)
-	req.Handlers.Unmarshal.Remove(restxml.UnmarshalHandler)
-	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
+	req.Handlers.Unmarshal.Swap(restxml.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -3955,7 +3955,7 @@ func (c *CloudFront) UntagResourceRequest(input *UntagResourceInput) (req *reque
 //
 //   * ErrCodeNoSuchResource "NoSuchResource"
 //
-// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2018-06-18/UntagResource
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2018-11-05/UntagResource
 func (c *CloudFront) UntagResource(input *UntagResourceInput) (*UntagResourceOutput, error) {
 	req, out := c.UntagResourceRequest(input)
 	return out, req.Send()
@@ -3977,7 +3977,7 @@ func (c *CloudFront) UntagResourceWithContext(ctx aws.Context, input *UntagResou
 	return out, req.Send()
 }
 
-const opUpdateCloudFrontOriginAccessIdentity = "UpdateCloudFrontOriginAccessIdentity2018_06_18"
+const opUpdateCloudFrontOriginAccessIdentity = "UpdateCloudFrontOriginAccessIdentity2018_11_05"
 
 // UpdateCloudFrontOriginAccessIdentityRequest generates a "aws/request.Request" representing the
 // client's request for the UpdateCloudFrontOriginAccessIdentity operation. The "output" return
@@ -4002,12 +4002,12 @@ const opUpdateCloudFrontOriginAccessIdentity = "UpdateCloudFrontOriginAccessIden
 //        fmt.Println(resp)
 //    }
 //
-// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2018-06-18/UpdateCloudFrontOriginAccessIdentity
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2018-11-05/UpdateCloudFrontOriginAccessIdentity
 func (c *CloudFront) UpdateCloudFrontOriginAccessIdentityRequest(input *UpdateCloudFrontOriginAccessIdentityInput) (req *request.Request, output *UpdateCloudFrontOriginAccessIdentityOutput) {
 	op := &request.Operation{
 		Name:       opUpdateCloudFrontOriginAccessIdentity,
 		HTTPMethod: "PUT",
-		HTTPPath:   "/2018-06-18/origin-access-identity/cloudfront/{Id}/config",
+		HTTPPath:   "/2018-11-05/origin-access-identity/cloudfront/{Id}/config",
 	}
 
 	if input == nil {
@@ -4057,7 +4057,7 @@ func (c *CloudFront) UpdateCloudFrontOriginAccessIdentityRequest(input *UpdateCl
 //   * ErrCodeInconsistentQuantities "InconsistentQuantities"
 //   The value of Quantity and the size of Items don't match.
 //
-// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2018-06-18/UpdateCloudFrontOriginAccessIdentity
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2018-11-05/UpdateCloudFrontOriginAccessIdentity
 func (c *CloudFront) UpdateCloudFrontOriginAccessIdentity(input *UpdateCloudFrontOriginAccessIdentityInput) (*UpdateCloudFrontOriginAccessIdentityOutput, error) {
 	req, out := c.UpdateCloudFrontOriginAccessIdentityRequest(input)
 	return out, req.Send()
@@ -4079,7 +4079,7 @@ func (c *CloudFront) UpdateCloudFrontOriginAccessIdentityWithContext(ctx aws.Con
 	return out, req.Send()
 }
 
-const opUpdateDistribution = "UpdateDistribution2018_06_18"
+const opUpdateDistribution = "UpdateDistribution2018_11_05"
 
 // UpdateDistributionRequest generates a "aws/request.Request" representing the
 // client's request for the UpdateDistribution operation. The "output" return
@@ -4104,12 +4104,12 @@ const opUpdateDistribution = "UpdateDistribution2018_06_18"
 //        fmt.Println(resp)
 //    }
 //
-// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2018-06-18/UpdateDistribution
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2018-11-05/UpdateDistribution
 func (c *CloudFront) UpdateDistributionRequest(input *UpdateDistributionInput) (req *request.Request, output *UpdateDistributionOutput) {
 	op := &request.Operation{
 		Name:       opUpdateDistribution,
 		HTTPMethod: "PUT",
-		HTTPPath:   "/2018-06-18/distribution/{Id}/config",
+		HTTPPath:   "/2018-11-05/distribution/{Id}/config",
 	}
 
 	if input == nil {
@@ -4257,6 +4257,10 @@ func (c *CloudFront) UpdateDistributionRequest(input *UpdateDistributionInput) (
 //   * ErrCodeTooManyOrigins "TooManyOrigins"
 //   You cannot create more origins for the distribution.
 //
+//   * ErrCodeTooManyOriginGroupsPerDistribution "TooManyOriginGroupsPerDistribution"
+//   Processing your request would cause you to exceed the maximum number of origin
+//   groups allowed.
+//
 //   * ErrCodeTooManyCacheBehaviors "TooManyCacheBehaviors"
 //   You cannot create more cache behaviors for the distribution.
 //
@@ -4320,7 +4324,7 @@ func (c *CloudFront) UpdateDistributionRequest(input *UpdateDistributionInput) (
 //   The maximum number of distributions have been associated with the specified
 //   configuration for field-level encryption.
 //
-// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2018-06-18/UpdateDistribution
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2018-11-05/UpdateDistribution
 func (c *CloudFront) UpdateDistribution(input *UpdateDistributionInput) (*UpdateDistributionOutput, error) {
 	req, out := c.UpdateDistributionRequest(input)
 	return out, req.Send()
@@ -4342,7 +4346,7 @@ func (c *CloudFront) UpdateDistributionWithContext(ctx aws.Context, input *Updat
 	return out, req.Send()
 }
 
-const opUpdateFieldLevelEncryptionConfig = "UpdateFieldLevelEncryptionConfig2018_06_18"
+const opUpdateFieldLevelEncryptionConfig = "UpdateFieldLevelEncryptionConfig2018_11_05"
 
 // UpdateFieldLevelEncryptionConfigRequest generates a "aws/request.Request" representing the
 // client's request for the UpdateFieldLevelEncryptionConfig operation. The "output" return
@@ -4367,12 +4371,12 @@ const opUpdateFieldLevelEncryptionConfig = "UpdateFieldLevelEncryptionConfig2018
 //        fmt.Println(resp)
 //    }
 //
-// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2018-06-18/UpdateFieldLevelEncryptionConfig
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2018-11-05/UpdateFieldLevelEncryptionConfig
 func (c *CloudFront) UpdateFieldLevelEncryptionConfigRequest(input *UpdateFieldLevelEncryptionConfigInput) (req *request.Request, output *UpdateFieldLevelEncryptionConfigOutput) {
 	op := &request.Operation{
 		Name:       opUpdateFieldLevelEncryptionConfig,
 		HTTPMethod: "PUT",
-		HTTPPath:   "/2018-06-18/field-level-encryption/{Id}/config",
+		HTTPPath:   "/2018-11-05/field-level-encryption/{Id}/config",
 	}
 
 	if input == nil {
@@ -4432,7 +4436,7 @@ func (c *CloudFront) UpdateFieldLevelEncryptionConfigRequest(input *UpdateFieldL
 //   * ErrCodeQueryArgProfileEmpty "QueryArgProfileEmpty"
 //   No profile specified for the field-level encryption query argument.
 //
-// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2018-06-18/UpdateFieldLevelEncryptionConfig
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2018-11-05/UpdateFieldLevelEncryptionConfig
 func (c *CloudFront) UpdateFieldLevelEncryptionConfig(input *UpdateFieldLevelEncryptionConfigInput) (*UpdateFieldLevelEncryptionConfigOutput, error) {
 	req, out := c.UpdateFieldLevelEncryptionConfigRequest(input)
 	return out, req.Send()
@@ -4454,7 +4458,7 @@ func (c *CloudFront) UpdateFieldLevelEncryptionConfigWithContext(ctx aws.Context
 	return out, req.Send()
 }
 
-const opUpdateFieldLevelEncryptionProfile = "UpdateFieldLevelEncryptionProfile2018_06_18"
+const opUpdateFieldLevelEncryptionProfile = "UpdateFieldLevelEncryptionProfile2018_11_05"
 
 // UpdateFieldLevelEncryptionProfileRequest generates a "aws/request.Request" representing the
 // client's request for the UpdateFieldLevelEncryptionProfile operation. The "output" return
@@ -4479,12 +4483,12 @@ const opUpdateFieldLevelEncryptionProfile = "UpdateFieldLevelEncryptionProfile20
 //        fmt.Println(resp)
 //    }
 //
-// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2018-06-18/UpdateFieldLevelEncryptionProfile
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2018-11-05/UpdateFieldLevelEncryptionProfile
 func (c *CloudFront) UpdateFieldLevelEncryptionProfileRequest(input *UpdateFieldLevelEncryptionProfileInput) (req *request.Request, output *UpdateFieldLevelEncryptionProfileOutput) {
 	op := &request.Operation{
 		Name:       opUpdateFieldLevelEncryptionProfile,
 		HTTPMethod: "PUT",
-		HTTPPath:   "/2018-06-18/field-level-encryption-profile/{Id}/config",
+		HTTPPath:   "/2018-11-05/field-level-encryption-profile/{Id}/config",
 	}
 
 	if input == nil {
@@ -4547,7 +4551,7 @@ func (c *CloudFront) UpdateFieldLevelEncryptionProfileRequest(input *UpdateField
 //   The maximum number of field patterns for field-level encryption have been
 //   created.
 //
-// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2018-06-18/UpdateFieldLevelEncryptionProfile
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2018-11-05/UpdateFieldLevelEncryptionProfile
 func (c *CloudFront) UpdateFieldLevelEncryptionProfile(input *UpdateFieldLevelEncryptionProfileInput) (*UpdateFieldLevelEncryptionProfileOutput, error) {
 	req, out := c.UpdateFieldLevelEncryptionProfileRequest(input)
 	return out, req.Send()
@@ -4569,7 +4573,7 @@ func (c *CloudFront) UpdateFieldLevelEncryptionProfileWithContext(ctx aws.Contex
 	return out, req.Send()
 }
 
-const opUpdatePublicKey = "UpdatePublicKey2018_06_18"
+const opUpdatePublicKey = "UpdatePublicKey2018_11_05"
 
 // UpdatePublicKeyRequest generates a "aws/request.Request" representing the
 // client's request for the UpdatePublicKey operation. The "output" return
@@ -4594,12 +4598,12 @@ const opUpdatePublicKey = "UpdatePublicKey2018_06_18"
 //        fmt.Println(resp)
 //    }
 //
-// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2018-06-18/UpdatePublicKey
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2018-11-05/UpdatePublicKey
 func (c *CloudFront) UpdatePublicKeyRequest(input *UpdatePublicKeyInput) (req *request.Request, output *UpdatePublicKeyOutput) {
 	op := &request.Operation{
 		Name:       opUpdatePublicKey,
 		HTTPMethod: "PUT",
-		HTTPPath:   "/2018-06-18/public-key/{Id}/config",
+		HTTPPath:   "/2018-11-05/public-key/{Id}/config",
 	}
 
 	if input == nil {
@@ -4646,7 +4650,7 @@ func (c *CloudFront) UpdatePublicKeyRequest(input *UpdatePublicKeyInput) (req *r
 //   The precondition given in one or more of the request-header fields evaluated
 //   to false.
 //
-// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2018-06-18/UpdatePublicKey
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2018-11-05/UpdatePublicKey
 func (c *CloudFront) UpdatePublicKey(input *UpdatePublicKeyInput) (*UpdatePublicKeyOutput, error) {
 	req, out := c.UpdatePublicKeyRequest(input)
 	return out, req.Send()
@@ -4668,7 +4672,7 @@ func (c *CloudFront) UpdatePublicKeyWithContext(ctx aws.Context, input *UpdatePu
 	return out, req.Send()
 }
 
-const opUpdateStreamingDistribution = "UpdateStreamingDistribution2018_06_18"
+const opUpdateStreamingDistribution = "UpdateStreamingDistribution2018_11_05"
 
 // UpdateStreamingDistributionRequest generates a "aws/request.Request" representing the
 // client's request for the UpdateStreamingDistribution operation. The "output" return
@@ -4693,12 +4697,12 @@ const opUpdateStreamingDistribution = "UpdateStreamingDistribution2018_06_18"
 //        fmt.Println(resp)
 //    }
 //
-// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2018-06-18/UpdateStreamingDistribution
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2018-11-05/UpdateStreamingDistribution
 func (c *CloudFront) UpdateStreamingDistributionRequest(input *UpdateStreamingDistributionInput) (req *request.Request, output *UpdateStreamingDistributionOutput) {
 	op := &request.Operation{
 		Name:       opUpdateStreamingDistribution,
 		HTTPMethod: "PUT",
-		HTTPPath:   "/2018-06-18/streaming-distribution/{Id}/config",
+		HTTPPath:   "/2018-11-05/streaming-distribution/{Id}/config",
 	}
 
 	if input == nil {
@@ -4761,7 +4765,7 @@ func (c *CloudFront) UpdateStreamingDistributionRequest(input *UpdateStreamingDi
 //   * ErrCodeInconsistentQuantities "InconsistentQuantities"
 //   The value of Quantity and the size of Items don't match.
 //
-// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2018-06-18/UpdateStreamingDistribution
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2018-11-05/UpdateStreamingDistribution
 func (c *CloudFront) UpdateStreamingDistribution(input *UpdateStreamingDistributionInput) (*UpdateStreamingDistributionOutput, error) {
 	req, out := c.UpdateStreamingDistributionRequest(input)
 	return out, req.Send()
@@ -5747,7 +5751,7 @@ type CreateCloudFrontOriginAccessIdentityInput struct {
 	// The current configuration information for the identity.
 	//
 	// CloudFrontOriginAccessIdentityConfig is a required field
-	CloudFrontOriginAccessIdentityConfig *OriginAccessIdentityConfig `locationName:"CloudFrontOriginAccessIdentityConfig" type:"structure" required:"true" xmlURI:"http://cloudfront.amazonaws.com/doc/2018-06-18/"`
+	CloudFrontOriginAccessIdentityConfig *OriginAccessIdentityConfig `locationName:"CloudFrontOriginAccessIdentityConfig" type:"structure" required:"true" xmlURI:"http://cloudfront.amazonaws.com/doc/2018-11-05/"`
 }
 
 // String returns the string representation
@@ -5834,7 +5838,7 @@ type CreateDistributionInput struct {
 	// The distribution's configuration information.
 	//
 	// DistributionConfig is a required field
-	DistributionConfig *DistributionConfig `locationName:"DistributionConfig" type:"structure" required:"true" xmlURI:"http://cloudfront.amazonaws.com/doc/2018-06-18/"`
+	DistributionConfig *DistributionConfig `locationName:"DistributionConfig" type:"structure" required:"true" xmlURI:"http://cloudfront.amazonaws.com/doc/2018-11-05/"`
 }
 
 // String returns the string representation
@@ -5921,7 +5925,7 @@ type CreateDistributionWithTagsInput struct {
 	// The distribution's configuration information.
 	//
 	// DistributionConfigWithTags is a required field
-	DistributionConfigWithTags *DistributionConfigWithTags `locationName:"DistributionConfigWithTags" type:"structure" required:"true" xmlURI:"http://cloudfront.amazonaws.com/doc/2018-06-18/"`
+	DistributionConfigWithTags *DistributionConfigWithTags `locationName:"DistributionConfigWithTags" type:"structure" required:"true" xmlURI:"http://cloudfront.amazonaws.com/doc/2018-11-05/"`
 }
 
 // String returns the string representation
@@ -6007,7 +6011,7 @@ type CreateFieldLevelEncryptionConfigInput struct {
 	// The request to create a new field-level encryption configuration.
 	//
 	// FieldLevelEncryptionConfig is a required field
-	FieldLevelEncryptionConfig *FieldLevelEncryptionConfig `locationName:"FieldLevelEncryptionConfig" type:"structure" required:"true" xmlURI:"http://cloudfront.amazonaws.com/doc/2018-06-18/"`
+	FieldLevelEncryptionConfig *FieldLevelEncryptionConfig `locationName:"FieldLevelEncryptionConfig" type:"structure" required:"true" xmlURI:"http://cloudfront.amazonaws.com/doc/2018-11-05/"`
 }
 
 // String returns the string representation
@@ -6093,7 +6097,7 @@ type CreateFieldLevelEncryptionProfileInput struct {
 	// The request to create a field-level encryption profile.
 	//
 	// FieldLevelEncryptionProfileConfig is a required field
-	FieldLevelEncryptionProfileConfig *FieldLevelEncryptionProfileConfig `locationName:"FieldLevelEncryptionProfileConfig" type:"structure" required:"true" xmlURI:"http://cloudfront.amazonaws.com/doc/2018-06-18/"`
+	FieldLevelEncryptionProfileConfig *FieldLevelEncryptionProfileConfig `locationName:"FieldLevelEncryptionProfileConfig" type:"structure" required:"true" xmlURI:"http://cloudfront.amazonaws.com/doc/2018-11-05/"`
 }
 
 // String returns the string representation
@@ -6184,7 +6188,7 @@ type CreateInvalidationInput struct {
 	// The batch information for the invalidation.
 	//
 	// InvalidationBatch is a required field
-	InvalidationBatch *InvalidationBatch `locationName:"InvalidationBatch" type:"structure" required:"true" xmlURI:"http://cloudfront.amazonaws.com/doc/2018-06-18/"`
+	InvalidationBatch *InvalidationBatch `locationName:"InvalidationBatch" type:"structure" required:"true" xmlURI:"http://cloudfront.amazonaws.com/doc/2018-11-05/"`
 }
 
 // String returns the string representation
@@ -6202,6 +6206,9 @@ func (s *CreateInvalidationInput) Validate() error {
 	invalidParams := request.ErrInvalidParams{Context: "CreateInvalidationInput"}
 	if s.DistributionId == nil {
 		invalidParams.Add(request.NewErrParamRequired("DistributionId"))
+	}
+	if s.DistributionId != nil && len(*s.DistributionId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("DistributionId", 1))
 	}
 	if s.InvalidationBatch == nil {
 		invalidParams.Add(request.NewErrParamRequired("InvalidationBatch"))
@@ -6270,7 +6277,7 @@ type CreatePublicKeyInput struct {
 	// The request to add a public key to CloudFront.
 	//
 	// PublicKeyConfig is a required field
-	PublicKeyConfig *PublicKeyConfig `locationName:"PublicKeyConfig" type:"structure" required:"true" xmlURI:"http://cloudfront.amazonaws.com/doc/2018-06-18/"`
+	PublicKeyConfig *PublicKeyConfig `locationName:"PublicKeyConfig" type:"structure" required:"true" xmlURI:"http://cloudfront.amazonaws.com/doc/2018-11-05/"`
 }
 
 // String returns the string representation
@@ -6356,7 +6363,7 @@ type CreateStreamingDistributionInput struct {
 	// The streaming distribution's configuration information.
 	//
 	// StreamingDistributionConfig is a required field
-	StreamingDistributionConfig *StreamingDistributionConfig `locationName:"StreamingDistributionConfig" type:"structure" required:"true" xmlURI:"http://cloudfront.amazonaws.com/doc/2018-06-18/"`
+	StreamingDistributionConfig *StreamingDistributionConfig `locationName:"StreamingDistributionConfig" type:"structure" required:"true" xmlURI:"http://cloudfront.amazonaws.com/doc/2018-11-05/"`
 }
 
 // String returns the string representation
@@ -6443,7 +6450,7 @@ type CreateStreamingDistributionWithTagsInput struct {
 	// The streaming distribution's configuration information.
 	//
 	// StreamingDistributionConfigWithTags is a required field
-	StreamingDistributionConfigWithTags *StreamingDistributionConfigWithTags `locationName:"StreamingDistributionConfigWithTags" type:"structure" required:"true" xmlURI:"http://cloudfront.amazonaws.com/doc/2018-06-18/"`
+	StreamingDistributionConfigWithTags *StreamingDistributionConfigWithTags `locationName:"StreamingDistributionConfigWithTags" type:"structure" required:"true" xmlURI:"http://cloudfront.amazonaws.com/doc/2018-11-05/"`
 }
 
 // String returns the string representation
@@ -6484,6 +6491,7 @@ func (s *CreateStreamingDistributionWithTagsInput) SetStreamingDistributionConfi
 type CreateStreamingDistributionWithTagsOutput struct {
 	_ struct{} `type:"structure" payload:"StreamingDistribution"`
 
+	// The current version of the distribution created.
 	ETag *string `location:"header" locationName:"ETag" type:"string"`
 
 	// The fully qualified URI of the new streaming distribution resource just created.
@@ -7180,6 +7188,9 @@ func (s *DeleteCloudFrontOriginAccessIdentityInput) Validate() error {
 	if s.Id == nil {
 		invalidParams.Add(request.NewErrParamRequired("Id"))
 	}
+	if s.Id != nil && len(*s.Id) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Id", 1))
+	}
 
 	if invalidParams.Len() > 0 {
 		return invalidParams
@@ -7277,6 +7288,9 @@ func (s *DeleteDistributionInput) Validate() error {
 	if s.Id == nil {
 		invalidParams.Add(request.NewErrParamRequired("Id"))
 	}
+	if s.Id != nil && len(*s.Id) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Id", 1))
+	}
 
 	if invalidParams.Len() > 0 {
 		return invalidParams
@@ -7338,6 +7352,9 @@ func (s *DeleteFieldLevelEncryptionConfigInput) Validate() error {
 	invalidParams := request.ErrInvalidParams{Context: "DeleteFieldLevelEncryptionConfigInput"}
 	if s.Id == nil {
 		invalidParams.Add(request.NewErrParamRequired("Id"))
+	}
+	if s.Id != nil && len(*s.Id) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Id", 1))
 	}
 
 	if invalidParams.Len() > 0 {
@@ -7401,6 +7418,9 @@ func (s *DeleteFieldLevelEncryptionProfileInput) Validate() error {
 	if s.Id == nil {
 		invalidParams.Add(request.NewErrParamRequired("Id"))
 	}
+	if s.Id != nil && len(*s.Id) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Id", 1))
+	}
 
 	if invalidParams.Len() > 0 {
 		return invalidParams
@@ -7462,6 +7482,9 @@ func (s *DeletePublicKeyInput) Validate() error {
 	invalidParams := request.ErrInvalidParams{Context: "DeletePublicKeyInput"}
 	if s.Id == nil {
 		invalidParams.Add(request.NewErrParamRequired("Id"))
+	}
+	if s.Id != nil && len(*s.Id) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Id", 1))
 	}
 
 	if invalidParams.Len() > 0 {
@@ -7525,6 +7548,9 @@ func (s *DeleteStreamingDistributionInput) Validate() error {
 	invalidParams := request.ErrInvalidParams{Context: "DeleteStreamingDistributionInput"}
 	if s.Id == nil {
 		invalidParams.Add(request.NewErrParamRequired("Id"))
+	}
+	if s.Id != nil && len(*s.Id) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Id", 1))
 	}
 
 	if invalidParams.Len() > 0 {
@@ -7690,14 +7716,9 @@ type DistributionConfig struct {
 	// If the value of CallerReference is new (regardless of the content of the
 	// DistributionConfig object), CloudFront creates a new distribution.
 	//
-	// If CallerReference is a value you already sent in a previous request to create
-	// a distribution, and if the content of the DistributionConfig is identical
-	// to the original request (ignoring white space), CloudFront returns the same
-	// the response that it returned to the original request.
-	//
-	// If CallerReference is a value you already sent in a previous request to create
-	// a distribution but the content of the DistributionConfig is different from
-	// the original request, CloudFront returns a DistributionAlreadyExists error.
+	// If CallerReference is a value that you already sent in a previous request
+	// to create a distribution, CloudFront returns a DistributionAlreadyExists
+	// error.
 	//
 	// CallerReference is a required field
 	CallerReference *string `type:"string" required:"true"`
@@ -7813,6 +7834,9 @@ type DistributionConfig struct {
 	// For more information about logging, see Access Logs (http://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/AccessLogs.html)
 	// in the Amazon CloudFront Developer Guide.
 	Logging *LoggingConfig `type:"structure"`
+
+	// A complex type that contains information about origin groups for this distribution.
+	OriginGroups *OriginGroups `type:"structure"`
 
 	// A complex type that contains information about origins for this distribution.
 	//
@@ -7997,6 +8021,11 @@ func (s *DistributionConfig) Validate() error {
 			invalidParams.AddNested("Logging", err.(request.ErrInvalidParams))
 		}
 	}
+	if s.OriginGroups != nil {
+		if err := s.OriginGroups.Validate(); err != nil {
+			invalidParams.AddNested("OriginGroups", err.(request.ErrInvalidParams))
+		}
+	}
 	if s.Origins != nil {
 		if err := s.Origins.Validate(); err != nil {
 			invalidParams.AddNested("Origins", err.(request.ErrInvalidParams))
@@ -8077,6 +8106,12 @@ func (s *DistributionConfig) SetIsIPV6Enabled(v bool) *DistributionConfig {
 // SetLogging sets the Logging field's value.
 func (s *DistributionConfig) SetLogging(v *LoggingConfig) *DistributionConfig {
 	s.Logging = v
+	return s
+}
+
+// SetOriginGroups sets the OriginGroups field's value.
+func (s *DistributionConfig) SetOriginGroups(v *OriginGroups) *DistributionConfig {
+	s.OriginGroups = v
 	return s
 }
 
@@ -8328,11 +8363,17 @@ type DistributionSummary struct {
 	// LastModifiedTime is a required field
 	LastModifiedTime *time.Time `type:"timestamp" required:"true"`
 
+	// A complex type that contains information about origin groups for this distribution.
+	OriginGroups *OriginGroups `type:"structure"`
+
 	// A complex type that contains information about origins for this distribution.
 	//
 	// Origins is a required field
 	Origins *Origins `type:"structure" required:"true"`
 
+	// A complex type that contains information about price class for this streaming
+	// distribution.
+	//
 	// PriceClass is a required field
 	PriceClass *string `type:"string" required:"true" enum:"PriceClass"`
 
@@ -8523,6 +8564,12 @@ func (s *DistributionSummary) SetIsIPV6Enabled(v bool) *DistributionSummary {
 // SetLastModifiedTime sets the LastModifiedTime field's value.
 func (s *DistributionSummary) SetLastModifiedTime(v time.Time) *DistributionSummary {
 	s.LastModifiedTime = &v
+	return s
+}
+
+// SetOriginGroups sets the OriginGroups field's value.
+func (s *DistributionSummary) SetOriginGroups(v *OriginGroups) *DistributionSummary {
+	s.OriginGroups = v
 	return s
 }
 
@@ -8947,7 +8994,7 @@ func (s *FieldLevelEncryptionProfile) SetLastModifiedTime(v time.Time) *FieldLev
 type FieldLevelEncryptionProfileConfig struct {
 	_ struct{} `type:"structure"`
 
-	// A unique number that ensures the request can't be replayed.
+	// A unique number that ensures that the request can't be replayed.
 	//
 	// CallerReference is a required field
 	CallerReference *string `type:"string" required:"true"`
@@ -9495,6 +9542,9 @@ func (s *GetCloudFrontOriginAccessIdentityConfigInput) Validate() error {
 	if s.Id == nil {
 		invalidParams.Add(request.NewErrParamRequired("Id"))
 	}
+	if s.Id != nil && len(*s.Id) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Id", 1))
+	}
 
 	if invalidParams.Len() > 0 {
 		return invalidParams
@@ -9566,6 +9616,9 @@ func (s *GetCloudFrontOriginAccessIdentityInput) Validate() error {
 	invalidParams := request.ErrInvalidParams{Context: "GetCloudFrontOriginAccessIdentityInput"}
 	if s.Id == nil {
 		invalidParams.Add(request.NewErrParamRequired("Id"))
+	}
+	if s.Id != nil && len(*s.Id) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Id", 1))
 	}
 
 	if invalidParams.Len() > 0 {
@@ -9640,6 +9693,9 @@ func (s *GetDistributionConfigInput) Validate() error {
 	if s.Id == nil {
 		invalidParams.Add(request.NewErrParamRequired("Id"))
 	}
+	if s.Id != nil && len(*s.Id) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Id", 1))
+	}
 
 	if invalidParams.Len() > 0 {
 		return invalidParams
@@ -9712,6 +9768,9 @@ func (s *GetDistributionInput) Validate() error {
 	if s.Id == nil {
 		invalidParams.Add(request.NewErrParamRequired("Id"))
 	}
+	if s.Id != nil && len(*s.Id) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Id", 1))
+	}
 
 	if invalidParams.Len() > 0 {
 		return invalidParams
@@ -9782,6 +9841,9 @@ func (s *GetFieldLevelEncryptionConfigInput) Validate() error {
 	invalidParams := request.ErrInvalidParams{Context: "GetFieldLevelEncryptionConfigInput"}
 	if s.Id == nil {
 		invalidParams.Add(request.NewErrParamRequired("Id"))
+	}
+	if s.Id != nil && len(*s.Id) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Id", 1))
 	}
 
 	if invalidParams.Len() > 0 {
@@ -9854,6 +9916,9 @@ func (s *GetFieldLevelEncryptionInput) Validate() error {
 	if s.Id == nil {
 		invalidParams.Add(request.NewErrParamRequired("Id"))
 	}
+	if s.Id != nil && len(*s.Id) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Id", 1))
+	}
 
 	if invalidParams.Len() > 0 {
 		return invalidParams
@@ -9925,6 +9990,9 @@ func (s *GetFieldLevelEncryptionProfileConfigInput) Validate() error {
 	if s.Id == nil {
 		invalidParams.Add(request.NewErrParamRequired("Id"))
 	}
+	if s.Id != nil && len(*s.Id) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Id", 1))
+	}
 
 	if invalidParams.Len() > 0 {
 		return invalidParams
@@ -9995,6 +10063,9 @@ func (s *GetFieldLevelEncryptionProfileInput) Validate() error {
 	invalidParams := request.ErrInvalidParams{Context: "GetFieldLevelEncryptionProfileInput"}
 	if s.Id == nil {
 		invalidParams.Add(request.NewErrParamRequired("Id"))
+	}
+	if s.Id != nil && len(*s.Id) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Id", 1))
 	}
 
 	if invalidParams.Len() > 0 {
@@ -10072,8 +10143,14 @@ func (s *GetInvalidationInput) Validate() error {
 	if s.DistributionId == nil {
 		invalidParams.Add(request.NewErrParamRequired("DistributionId"))
 	}
+	if s.DistributionId != nil && len(*s.DistributionId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("DistributionId", 1))
+	}
 	if s.Id == nil {
 		invalidParams.Add(request.NewErrParamRequired("Id"))
+	}
+	if s.Id != nil && len(*s.Id) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Id", 1))
 	}
 
 	if invalidParams.Len() > 0 {
@@ -10144,6 +10221,9 @@ func (s *GetPublicKeyConfigInput) Validate() error {
 	if s.Id == nil {
 		invalidParams.Add(request.NewErrParamRequired("Id"))
 	}
+	if s.Id != nil && len(*s.Id) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Id", 1))
+	}
 
 	if invalidParams.Len() > 0 {
 		return invalidParams
@@ -10213,6 +10293,9 @@ func (s *GetPublicKeyInput) Validate() error {
 	invalidParams := request.ErrInvalidParams{Context: "GetPublicKeyInput"}
 	if s.Id == nil {
 		invalidParams.Add(request.NewErrParamRequired("Id"))
+	}
+	if s.Id != nil && len(*s.Id) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Id", 1))
 	}
 
 	if invalidParams.Len() > 0 {
@@ -10285,6 +10368,9 @@ func (s *GetStreamingDistributionConfigInput) Validate() error {
 	if s.Id == nil {
 		invalidParams.Add(request.NewErrParamRequired("Id"))
 	}
+	if s.Id != nil && len(*s.Id) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Id", 1))
+	}
 
 	if invalidParams.Len() > 0 {
 		return invalidParams
@@ -10356,6 +10442,9 @@ func (s *GetStreamingDistributionInput) Validate() error {
 	invalidParams := request.ErrInvalidParams{Context: "GetStreamingDistributionInput"}
 	if s.Id == nil {
 		invalidParams.Add(request.NewErrParamRequired("Id"))
+	}
+	if s.Id != nil && len(*s.Id) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Id", 1))
 	}
 
 	if invalidParams.Len() > 0 {
@@ -10715,6 +10804,8 @@ func (s *InvalidationList) SetQuantity(v int64) *InvalidationList {
 type InvalidationSummary struct {
 	_ struct{} `type:"structure"`
 
+	// The time that an invalidation request was created.
+	//
 	// CreateTime is a required field
 	CreateTime *time.Time `type:"timestamp" required:"true"`
 
@@ -10818,9 +10909,6 @@ type LambdaFunctionAssociation struct {
 	//    * origin-response: The function executes after CloudFront receives a response
 	//    from the origin and before it caches the object in the response. When
 	//    the requested object is in the edge cache, the function doesn't execute.
-	//
-	// If the origin returns an HTTP status code other than HTTP 200 (OK), the function
-	//    doesn't execute.
 	//
 	//    * viewer-response: The function executes before CloudFront returns the
 	//    requested object to the viewer. The function executes regardless of whether
@@ -11058,6 +11146,9 @@ func (s *ListDistributionsByWebACLIdInput) Validate() error {
 	invalidParams := request.ErrInvalidParams{Context: "ListDistributionsByWebACLIdInput"}
 	if s.WebACLId == nil {
 		invalidParams.Add(request.NewErrParamRequired("WebACLId"))
+	}
+	if s.WebACLId != nil && len(*s.WebACLId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("WebACLId", 1))
 	}
 
 	if invalidParams.Len() > 0 {
@@ -11330,6 +11421,9 @@ func (s *ListInvalidationsInput) Validate() error {
 	invalidParams := request.ErrInvalidParams{Context: "ListInvalidationsInput"}
 	if s.DistributionId == nil {
 		invalidParams.Add(request.NewErrParamRequired("DistributionId"))
+	}
+	if s.DistributionId != nil && len(*s.DistributionId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("DistributionId", 1))
 	}
 
 	if invalidParams.Len() > 0 {
@@ -11656,12 +11750,13 @@ func (s *LoggingConfig) SetPrefix(v string) *LoggingConfig {
 	return s
 }
 
-// A complex type that describes the Amazon S3 bucket or the HTTP server (for
-// example, a web server) from which CloudFront gets your files. You must create
-// at least one origin.
+// A complex type that describes the Amazon S3 bucket, HTTP server (for example,
+// a web server), Amazon MediaStore, or other server from which CloudFront gets
+// your files. This can also be an origin group, if you've created an origin
+// group. You must specify at least one origin or origin group.
 //
-// For the current limit on the number of origins that you can create for a
-// distribution, see Amazon CloudFront Limits (http://docs.aws.amazon.com/general/latest/gr/aws_service_limits.html#limits_cloudfront)
+// For the current limit on the number of origins or origin groups that you
+// can specify for a distribution, see Amazon CloudFront Limits (http://docs.aws.amazon.com/general/latest/gr/aws_service_limits.html#limits_cloudfront)
 // in the AWS General Reference.
 type Origin struct {
 	_ struct{} `type:"structure"`
@@ -11678,6 +11773,10 @@ type Origin struct {
 	// CloudFront to get objects for this origin, for example, myawsbucket.s3.amazonaws.com.
 	// If you set up your bucket to be configured as a website endpoint, enter the
 	// Amazon S3 static website hosting endpoint for the bucket.
+	//
+	// For more information about specifying this value for different types of origins,
+	// see Origin Domain Name (http://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/distribution-web-values-specify.html#DownloadDistValuesDomainName)
+	// in the Amazon CloudFront Developer Guide.
 	//
 	// Constraints for Amazon S3 origins:
 	//
@@ -11704,8 +11803,8 @@ type Origin struct {
 	// DomainName is a required field
 	DomainName *string `type:"string" required:"true"`
 
-	// A unique identifier for the origin. The value of Id must be unique within
-	// the distribution.
+	// A unique identifier for the origin or origin group. The value of Id must
+	// be unique within the distribution.
 	//
 	// When you specify the value of TargetOriginId for the default cache behavior
 	// or for another cache behavior, you indicate the origin to which you want
@@ -11874,10 +11973,12 @@ func (s *OriginAccessIdentity) SetS3CanonicalUserId(v string) *OriginAccessIdent
 type OriginAccessIdentityConfig struct {
 	_ struct{} `type:"structure"`
 
-	// A unique number that ensures the request can't be replayed.
+	// A unique value (for example, a date-time stamp) that ensures that the request
+	// can't be replayed.
 	//
-	// If the CallerReference is new (no matter the content of the CloudFrontOriginAccessIdentityConfig
-	// object), a new origin access identity is created.
+	// If the value of CallerReference is new (regardless of the content of the
+	// CloudFrontOriginAccessIdentityConfig object), a new origin access identity
+	// is created.
 	//
 	// If the CallerReference is a value already sent in a previous identity request,
 	// and the content of the CloudFrontOriginAccessIdentityConfig is identical
@@ -12137,6 +12238,299 @@ func (s *OriginCustomHeader) SetHeaderValue(v string) *OriginCustomHeader {
 	return s
 }
 
+// An origin group includes two origins (a primary origin and a second origin
+// to failover to) and a failover criteria that you specify. You create an origin
+// group to support origin failover in CloudFront. When you create or update
+// a distribution, you can specifiy the origin group instead of a single origin,
+// and CloudFront will failover from the primary origin to the second origin
+// under the failover conditions that you've chosen.
+type OriginGroup struct {
+	_ struct{} `type:"structure"`
+
+	// A complex type that contains information about the failover criteria for
+	// an origin group.
+	//
+	// FailoverCriteria is a required field
+	FailoverCriteria *OriginGroupFailoverCriteria `type:"structure" required:"true"`
+
+	// The origin group's ID.
+	//
+	// Id is a required field
+	Id *string `type:"string" required:"true"`
+
+	// A complex type that contains information about the origins in an origin group.
+	//
+	// Members is a required field
+	Members *OriginGroupMembers `type:"structure" required:"true"`
+}
+
+// String returns the string representation
+func (s OriginGroup) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s OriginGroup) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *OriginGroup) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "OriginGroup"}
+	if s.FailoverCriteria == nil {
+		invalidParams.Add(request.NewErrParamRequired("FailoverCriteria"))
+	}
+	if s.Id == nil {
+		invalidParams.Add(request.NewErrParamRequired("Id"))
+	}
+	if s.Members == nil {
+		invalidParams.Add(request.NewErrParamRequired("Members"))
+	}
+	if s.FailoverCriteria != nil {
+		if err := s.FailoverCriteria.Validate(); err != nil {
+			invalidParams.AddNested("FailoverCriteria", err.(request.ErrInvalidParams))
+		}
+	}
+	if s.Members != nil {
+		if err := s.Members.Validate(); err != nil {
+			invalidParams.AddNested("Members", err.(request.ErrInvalidParams))
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetFailoverCriteria sets the FailoverCriteria field's value.
+func (s *OriginGroup) SetFailoverCriteria(v *OriginGroupFailoverCriteria) *OriginGroup {
+	s.FailoverCriteria = v
+	return s
+}
+
+// SetId sets the Id field's value.
+func (s *OriginGroup) SetId(v string) *OriginGroup {
+	s.Id = &v
+	return s
+}
+
+// SetMembers sets the Members field's value.
+func (s *OriginGroup) SetMembers(v *OriginGroupMembers) *OriginGroup {
+	s.Members = v
+	return s
+}
+
+// A complex data type that includes information about the failover criteria
+// for an origin group, including the status codes for which CloudFront will
+// failover from the primary origin to the second origin.
+type OriginGroupFailoverCriteria struct {
+	_ struct{} `type:"structure"`
+
+	// The status codes that, when returned from the primary origin, will trigger
+	// CloudFront to failover to the second origin.
+	//
+	// StatusCodes is a required field
+	StatusCodes *StatusCodes `type:"structure" required:"true"`
+}
+
+// String returns the string representation
+func (s OriginGroupFailoverCriteria) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s OriginGroupFailoverCriteria) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *OriginGroupFailoverCriteria) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "OriginGroupFailoverCriteria"}
+	if s.StatusCodes == nil {
+		invalidParams.Add(request.NewErrParamRequired("StatusCodes"))
+	}
+	if s.StatusCodes != nil {
+		if err := s.StatusCodes.Validate(); err != nil {
+			invalidParams.AddNested("StatusCodes", err.(request.ErrInvalidParams))
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetStatusCodes sets the StatusCodes field's value.
+func (s *OriginGroupFailoverCriteria) SetStatusCodes(v *StatusCodes) *OriginGroupFailoverCriteria {
+	s.StatusCodes = v
+	return s
+}
+
+// An origin in an origin group.
+type OriginGroupMember struct {
+	_ struct{} `type:"structure"`
+
+	// The ID for an origin in an origin group.
+	//
+	// OriginId is a required field
+	OriginId *string `type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s OriginGroupMember) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s OriginGroupMember) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *OriginGroupMember) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "OriginGroupMember"}
+	if s.OriginId == nil {
+		invalidParams.Add(request.NewErrParamRequired("OriginId"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetOriginId sets the OriginId field's value.
+func (s *OriginGroupMember) SetOriginId(v string) *OriginGroupMember {
+	s.OriginId = &v
+	return s
+}
+
+// A complex data type for the origins included in an origin group.
+type OriginGroupMembers struct {
+	_ struct{} `type:"structure"`
+
+	// Items (origins) in an origin group.
+	//
+	// Items is a required field
+	Items []*OriginGroupMember `locationNameList:"OriginGroupMember" min:"2" type:"list" required:"true"`
+
+	// The number of origins in an origin group.
+	//
+	// Quantity is a required field
+	Quantity *int64 `type:"integer" required:"true"`
+}
+
+// String returns the string representation
+func (s OriginGroupMembers) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s OriginGroupMembers) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *OriginGroupMembers) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "OriginGroupMembers"}
+	if s.Items == nil {
+		invalidParams.Add(request.NewErrParamRequired("Items"))
+	}
+	if s.Items != nil && len(s.Items) < 2 {
+		invalidParams.Add(request.NewErrParamMinLen("Items", 2))
+	}
+	if s.Quantity == nil {
+		invalidParams.Add(request.NewErrParamRequired("Quantity"))
+	}
+	if s.Items != nil {
+		for i, v := range s.Items {
+			if v == nil {
+				continue
+			}
+			if err := v.Validate(); err != nil {
+				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "Items", i), err.(request.ErrInvalidParams))
+			}
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetItems sets the Items field's value.
+func (s *OriginGroupMembers) SetItems(v []*OriginGroupMember) *OriginGroupMembers {
+	s.Items = v
+	return s
+}
+
+// SetQuantity sets the Quantity field's value.
+func (s *OriginGroupMembers) SetQuantity(v int64) *OriginGroupMembers {
+	s.Quantity = &v
+	return s
+}
+
+// A complex data type for the origin groups specified for a distribution.
+type OriginGroups struct {
+	_ struct{} `type:"structure"`
+
+	// The items (origin groups) in a distribution.
+	Items []*OriginGroup `locationNameList:"OriginGroup" type:"list"`
+
+	// The number of origin groups.
+	//
+	// Quantity is a required field
+	Quantity *int64 `type:"integer" required:"true"`
+}
+
+// String returns the string representation
+func (s OriginGroups) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s OriginGroups) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *OriginGroups) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "OriginGroups"}
+	if s.Quantity == nil {
+		invalidParams.Add(request.NewErrParamRequired("Quantity"))
+	}
+	if s.Items != nil {
+		for i, v := range s.Items {
+			if v == nil {
+				continue
+			}
+			if err := v.Validate(); err != nil {
+				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "Items", i), err.(request.ErrInvalidParams))
+			}
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetItems sets the Items field's value.
+func (s *OriginGroups) SetItems(v []*OriginGroup) *OriginGroups {
+	s.Items = v
+	return s
+}
+
+// SetQuantity sets the Quantity field's value.
+func (s *OriginGroups) SetQuantity(v int64) *OriginGroups {
+	s.Quantity = &v
+	return s
+}
+
 // A complex type that contains information about the SSL/TLS protocols that
 // CloudFront can use when establishing an HTTPS connection with your origin.
 type OriginSslProtocols struct {
@@ -12192,14 +12586,17 @@ func (s *OriginSslProtocols) SetQuantity(v int64) *OriginSslProtocols {
 	return s
 }
 
-// A complex type that contains information about origins for this distribution.
+// A complex type that contains information about origins and origin groups
+// for this distribution.
 type Origins struct {
 	_ struct{} `type:"structure"`
 
-	// A complex type that contains origins for this distribution.
-	Items []*Origin `locationNameList:"Origin" min:"1" type:"list"`
+	// A complex type that contains origins or origin groups for this distribution.
+	//
+	// Items is a required field
+	Items []*Origin `locationNameList:"Origin" min:"1" type:"list" required:"true"`
 
-	// The number of origins for this distribution.
+	// The number of origins or origin groups for this distribution.
 	//
 	// Quantity is a required field
 	Quantity *int64 `type:"integer" required:"true"`
@@ -12218,6 +12615,9 @@ func (s Origins) GoString() string {
 // Validate inspects the fields of the type to determine if they are valid.
 func (s *Origins) Validate() error {
 	invalidParams := request.ErrInvalidParams{Context: "Origins"}
+	if s.Items == nil {
+		invalidParams.Add(request.NewErrParamRequired("Items"))
+	}
 	if s.Items != nil && len(s.Items) < 1 {
 		invalidParams.Add(request.NewErrParamMinLen("Items", 1))
 	}
@@ -12359,7 +12759,7 @@ func (s *PublicKey) SetPublicKeyConfig(v *PublicKeyConfig) *PublicKey {
 type PublicKeyConfig struct {
 	_ struct{} `type:"structure"`
 
-	// A unique number that ensures the request can't be replayed.
+	// A unique number that ensures that the request can't be replayed.
 	//
 	// CallerReference is a required field
 	CallerReference *string `type:"string" required:"true"`
@@ -12493,7 +12893,7 @@ func (s *PublicKeyList) SetQuantity(v int64) *PublicKeyList {
 	return s
 }
 
-// Public key information summary.
+// A complex data type for public key information.
 type PublicKeySummary struct {
 	_ struct{} `type:"structure"`
 
@@ -12994,10 +13394,70 @@ func (s *Signer) SetKeyPairIds(v *KeyPairIds) *Signer {
 	return s
 }
 
+// A complex data type for the status codes that you specify that, when returned
+// by a primary origin, trigger CloudFront to failover to a second origin.
+type StatusCodes struct {
+	_ struct{} `type:"structure"`
+
+	// The items (status codes) for an origin group.
+	//
+	// Items is a required field
+	Items []*int64 `locationNameList:"StatusCode" min:"1" type:"list" required:"true"`
+
+	// The number of status codes.
+	//
+	// Quantity is a required field
+	Quantity *int64 `type:"integer" required:"true"`
+}
+
+// String returns the string representation
+func (s StatusCodes) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s StatusCodes) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *StatusCodes) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "StatusCodes"}
+	if s.Items == nil {
+		invalidParams.Add(request.NewErrParamRequired("Items"))
+	}
+	if s.Items != nil && len(s.Items) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Items", 1))
+	}
+	if s.Quantity == nil {
+		invalidParams.Add(request.NewErrParamRequired("Quantity"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetItems sets the Items field's value.
+func (s *StatusCodes) SetItems(v []*int64) *StatusCodes {
+	s.Items = v
+	return s
+}
+
+// SetQuantity sets the Quantity field's value.
+func (s *StatusCodes) SetQuantity(v int64) *StatusCodes {
+	s.Quantity = &v
+	return s
+}
+
 // A streaming distribution.
 type StreamingDistribution struct {
 	_ struct{} `type:"structure"`
 
+	// The ARN (Amazon Resource Name) for the distribution. For example: arn:aws:cloudfront::123456789012:distribution/EDFDVBD632BHDS5,
+	// where 123456789012 is your AWS account ID.
+	//
 	// ARN is a required field
 	ARN *string `type:"string" required:"true"`
 
@@ -13103,16 +13563,15 @@ type StreamingDistributionConfig struct {
 	// if any, for this streaming distribution.
 	Aliases *Aliases `type:"structure"`
 
-	// A unique number that ensures that the request can't be replayed. If the CallerReference
-	// is new (no matter the content of the StreamingDistributionConfig object),
-	// a new streaming distribution is created. If the CallerReference is a value
-	// that you already sent in a previous request to create a streaming distribution,
-	// and the content of the StreamingDistributionConfig is identical to the original
-	// request (ignoring white space), the response includes the same information
-	// returned to the original request. If the CallerReference is a value that
-	// you already sent in a previous request to create a streaming distribution
-	// but the content of the StreamingDistributionConfig is different from the
-	// original request, CloudFront returns a DistributionAlreadyExists error.
+	// A unique value (for example, a date-time stamp) that ensures that the request
+	// can't be replayed.
+	//
+	// If the value of CallerReference is new (regardless of the content of the
+	// StreamingDistributionConfig object), CloudFront creates a new distribution.
+	//
+	// If CallerReference is a value that you already sent in a previous request
+	// to create a distribution, CloudFront returns a DistributionAlreadyExists
+	// error.
 	//
 	// CallerReference is a required field
 	CallerReference *string `type:"string" required:"true"`
@@ -13722,7 +14181,7 @@ type TagResourceInput struct {
 	// A complex type that contains zero or more Tag elements.
 	//
 	// Tags is a required field
-	Tags *Tags `locationName:"Tags" type:"structure" required:"true" xmlURI:"http://cloudfront.amazonaws.com/doc/2018-06-18/"`
+	Tags *Tags `locationName:"Tags" type:"structure" required:"true" xmlURI:"http://cloudfront.amazonaws.com/doc/2018-11-05/"`
 }
 
 // String returns the string representation
@@ -13919,7 +14378,7 @@ type UntagResourceInput struct {
 	// A complex type that contains zero or more Tag key elements.
 	//
 	// TagKeys is a required field
-	TagKeys *TagKeys `locationName:"TagKeys" type:"structure" required:"true" xmlURI:"http://cloudfront.amazonaws.com/doc/2018-06-18/"`
+	TagKeys *TagKeys `locationName:"TagKeys" type:"structure" required:"true" xmlURI:"http://cloudfront.amazonaws.com/doc/2018-11-05/"`
 }
 
 // String returns the string representation
@@ -13981,7 +14440,7 @@ type UpdateCloudFrontOriginAccessIdentityInput struct {
 	// The identity's configuration information.
 	//
 	// CloudFrontOriginAccessIdentityConfig is a required field
-	CloudFrontOriginAccessIdentityConfig *OriginAccessIdentityConfig `locationName:"CloudFrontOriginAccessIdentityConfig" type:"structure" required:"true" xmlURI:"http://cloudfront.amazonaws.com/doc/2018-06-18/"`
+	CloudFrontOriginAccessIdentityConfig *OriginAccessIdentityConfig `locationName:"CloudFrontOriginAccessIdentityConfig" type:"structure" required:"true" xmlURI:"http://cloudfront.amazonaws.com/doc/2018-11-05/"`
 
 	// The identity's id.
 	//
@@ -14011,6 +14470,9 @@ func (s *UpdateCloudFrontOriginAccessIdentityInput) Validate() error {
 	}
 	if s.Id == nil {
 		invalidParams.Add(request.NewErrParamRequired("Id"))
+	}
+	if s.Id != nil && len(*s.Id) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Id", 1))
 	}
 	if s.CloudFrontOriginAccessIdentityConfig != nil {
 		if err := s.CloudFrontOriginAccessIdentityConfig.Validate(); err != nil {
@@ -14082,7 +14544,7 @@ type UpdateDistributionInput struct {
 	// The distribution's configuration information.
 	//
 	// DistributionConfig is a required field
-	DistributionConfig *DistributionConfig `locationName:"DistributionConfig" type:"structure" required:"true" xmlURI:"http://cloudfront.amazonaws.com/doc/2018-06-18/"`
+	DistributionConfig *DistributionConfig `locationName:"DistributionConfig" type:"structure" required:"true" xmlURI:"http://cloudfront.amazonaws.com/doc/2018-11-05/"`
 
 	// The distribution's id.
 	//
@@ -14112,6 +14574,9 @@ func (s *UpdateDistributionInput) Validate() error {
 	}
 	if s.Id == nil {
 		invalidParams.Add(request.NewErrParamRequired("Id"))
+	}
+	if s.Id != nil && len(*s.Id) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Id", 1))
 	}
 	if s.DistributionConfig != nil {
 		if err := s.DistributionConfig.Validate(); err != nil {
@@ -14182,7 +14647,7 @@ type UpdateFieldLevelEncryptionConfigInput struct {
 	// Request to update a field-level encryption configuration.
 	//
 	// FieldLevelEncryptionConfig is a required field
-	FieldLevelEncryptionConfig *FieldLevelEncryptionConfig `locationName:"FieldLevelEncryptionConfig" type:"structure" required:"true" xmlURI:"http://cloudfront.amazonaws.com/doc/2018-06-18/"`
+	FieldLevelEncryptionConfig *FieldLevelEncryptionConfig `locationName:"FieldLevelEncryptionConfig" type:"structure" required:"true" xmlURI:"http://cloudfront.amazonaws.com/doc/2018-11-05/"`
 
 	// The ID of the configuration you want to update.
 	//
@@ -14212,6 +14677,9 @@ func (s *UpdateFieldLevelEncryptionConfigInput) Validate() error {
 	}
 	if s.Id == nil {
 		invalidParams.Add(request.NewErrParamRequired("Id"))
+	}
+	if s.Id != nil && len(*s.Id) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Id", 1))
 	}
 	if s.FieldLevelEncryptionConfig != nil {
 		if err := s.FieldLevelEncryptionConfig.Validate(); err != nil {
@@ -14282,7 +14750,7 @@ type UpdateFieldLevelEncryptionProfileInput struct {
 	// Request to update a field-level encryption profile.
 	//
 	// FieldLevelEncryptionProfileConfig is a required field
-	FieldLevelEncryptionProfileConfig *FieldLevelEncryptionProfileConfig `locationName:"FieldLevelEncryptionProfileConfig" type:"structure" required:"true" xmlURI:"http://cloudfront.amazonaws.com/doc/2018-06-18/"`
+	FieldLevelEncryptionProfileConfig *FieldLevelEncryptionProfileConfig `locationName:"FieldLevelEncryptionProfileConfig" type:"structure" required:"true" xmlURI:"http://cloudfront.amazonaws.com/doc/2018-11-05/"`
 
 	// The ID of the field-level encryption profile request.
 	//
@@ -14312,6 +14780,9 @@ func (s *UpdateFieldLevelEncryptionProfileInput) Validate() error {
 	}
 	if s.Id == nil {
 		invalidParams.Add(request.NewErrParamRequired("Id"))
+	}
+	if s.Id != nil && len(*s.Id) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Id", 1))
 	}
 	if s.FieldLevelEncryptionProfileConfig != nil {
 		if err := s.FieldLevelEncryptionProfileConfig.Validate(); err != nil {
@@ -14390,7 +14861,7 @@ type UpdatePublicKeyInput struct {
 	// Request to update public key information.
 	//
 	// PublicKeyConfig is a required field
-	PublicKeyConfig *PublicKeyConfig `locationName:"PublicKeyConfig" type:"structure" required:"true" xmlURI:"http://cloudfront.amazonaws.com/doc/2018-06-18/"`
+	PublicKeyConfig *PublicKeyConfig `locationName:"PublicKeyConfig" type:"structure" required:"true" xmlURI:"http://cloudfront.amazonaws.com/doc/2018-11-05/"`
 }
 
 // String returns the string representation
@@ -14408,6 +14879,9 @@ func (s *UpdatePublicKeyInput) Validate() error {
 	invalidParams := request.ErrInvalidParams{Context: "UpdatePublicKeyInput"}
 	if s.Id == nil {
 		invalidParams.Add(request.NewErrParamRequired("Id"))
+	}
+	if s.Id != nil && len(*s.Id) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Id", 1))
 	}
 	if s.PublicKeyConfig == nil {
 		invalidParams.Add(request.NewErrParamRequired("PublicKeyConfig"))
@@ -14490,7 +14964,7 @@ type UpdateStreamingDistributionInput struct {
 	// The streaming distribution's configuration information.
 	//
 	// StreamingDistributionConfig is a required field
-	StreamingDistributionConfig *StreamingDistributionConfig `locationName:"StreamingDistributionConfig" type:"structure" required:"true" xmlURI:"http://cloudfront.amazonaws.com/doc/2018-06-18/"`
+	StreamingDistributionConfig *StreamingDistributionConfig `locationName:"StreamingDistributionConfig" type:"structure" required:"true" xmlURI:"http://cloudfront.amazonaws.com/doc/2018-11-05/"`
 }
 
 // String returns the string representation
@@ -14508,6 +14982,9 @@ func (s *UpdateStreamingDistributionInput) Validate() error {
 	invalidParams := request.ErrInvalidParams{Context: "UpdateStreamingDistributionInput"}
 	if s.Id == nil {
 		invalidParams.Add(request.NewErrParamRequired("Id"))
+	}
+	if s.Id != nil && len(*s.Id) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Id", 1))
 	}
 	if s.StreamingDistributionConfig == nil {
 		invalidParams.Add(request.NewErrParamRequired("StreamingDistributionConfig"))

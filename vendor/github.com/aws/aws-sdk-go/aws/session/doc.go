@@ -99,7 +99,7 @@ handler logs every request and its payload made by a service client:
 
 	sess.Handlers.Send.PushFront(func(r *request.Request) {
 		// Log every request made and its payload
-		logger.Println("Request: %s/%s, Payload: %s",
+		logger.Printf("Request: %s/%s, Payload: %s",
 			r.ClientInfo.ServiceName, r.Operation, r.Params)
 	})
 

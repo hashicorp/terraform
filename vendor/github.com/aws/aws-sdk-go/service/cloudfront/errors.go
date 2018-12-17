@@ -425,6 +425,13 @@ const (
 	// "TooManyOriginCustomHeaders".
 	ErrCodeTooManyOriginCustomHeaders = "TooManyOriginCustomHeaders"
 
+	// ErrCodeTooManyOriginGroupsPerDistribution for service response error code
+	// "TooManyOriginGroupsPerDistribution".
+	//
+	// Processing your request would cause you to exceed the maximum number of origin
+	// groups allowed.
+	ErrCodeTooManyOriginGroupsPerDistribution = "TooManyOriginGroupsPerDistribution"
+
 	// ErrCodeTooManyOrigins for service response error code
 	// "TooManyOrigins".
 	//

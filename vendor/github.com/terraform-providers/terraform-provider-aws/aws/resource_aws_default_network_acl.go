@@ -146,6 +146,11 @@ func resourceAwsDefaultNetworkAcl() *schema.Resource {
 			},
 
 			"tags": tagsSchema(),
+
+			"owner_id": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
 		},
 	}
 }

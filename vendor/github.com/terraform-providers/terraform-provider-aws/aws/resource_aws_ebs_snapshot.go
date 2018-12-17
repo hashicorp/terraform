@@ -73,9 +73,24 @@ func resourceAwsEbsSnapshotCreate(d *schema.ResourceData, meta interface{}) erro
 		request.Description = aws.String(v.(string))
 	}
 
-	res, err := conn.CreateSnapshot(request)
+	var res *ec2.Snapshot
+	err := resource.Retry(1*time.Minute, func() *resource.RetryError {
+		var err error
+		res, err = conn.CreateSnapshot(request)
+
+		if isAWSErr(err, "SnapshotCreationPerVolumeRateExceeded", "The maximum per volume CreateSnapshot request rate has been exceeded") {
+			return resource.RetryableError(err)
+		}
+
+		if err != nil {
+			return resource.NonRetryableError(err)
+		}
+
+		return nil
+	})
+
 	if err != nil {
-		return err
+		return fmt.Errorf("error creating EC2 EBS Snapshot: %s", err)
 	}
 
 	d.SetId(*res.SnapshotId)

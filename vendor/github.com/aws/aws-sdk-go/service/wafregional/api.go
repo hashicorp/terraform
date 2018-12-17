@@ -6,6 +6,8 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awsutil"
 	"github.com/aws/aws-sdk-go/aws/request"
+	"github.com/aws/aws-sdk-go/private/protocol"
+	"github.com/aws/aws-sdk-go/private/protocol/jsonrpc"
 	"github.com/aws/aws-sdk-go/service/waf"
 )
 
@@ -48,6 +50,7 @@ func (c *WAFRegional) AssociateWebACLRequest(input *AssociateWebACLInput) (req *
 
 	output = &AssociateWebACLOutput{}
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(jsonrpc.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -2251,6 +2254,7 @@ func (c *WAFRegional) DeleteLoggingConfigurationRequest(input *waf.DeleteLogging
 
 	output = &waf.DeleteLoggingConfigurationOutput{}
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(jsonrpc.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -2338,6 +2342,7 @@ func (c *WAFRegional) DeletePermissionPolicyRequest(input *waf.DeletePermissionP
 
 	output = &waf.DeletePermissionPolicyOutput{}
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(jsonrpc.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -3567,6 +3572,7 @@ func (c *WAFRegional) DisassociateWebACLRequest(input *DisassociateWebACLInput) 
 
 	output = &DisassociateWebACLOutput{}
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(jsonrpc.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -6167,6 +6173,35 @@ func (c *WAFRegional) ListResourcesForWebACLRequest(input *ListResourcesForWebAC
 //   * ErrCodeWAFNonexistentItemException "WAFNonexistentItemException"
 //   The operation failed because the referenced object doesn't exist.
 //
+//   * ErrCodeWAFInvalidParameterException "WAFInvalidParameterException"
+//   The operation failed because AWS WAF didn't recognize a parameter in the
+//   request. For example:
+//
+//      * You specified an invalid parameter name.
+//
+//      * You specified an invalid value.
+//
+//      * You tried to update an object (ByteMatchSet, IPSet, Rule, or WebACL)
+//      using an action other than INSERT or DELETE.
+//
+//      * You tried to create a WebACL with a DefaultActionType other than ALLOW,
+//      BLOCK, or COUNT.
+//
+//      * You tried to create a RateBasedRule with a RateKey value other than
+//      IP.
+//
+//      * You tried to update a WebACL with a WafActionType other than ALLOW,
+//      BLOCK, or COUNT.
+//
+//      * You tried to update a ByteMatchSet with a FieldToMatchType other than
+//      HEADER, METHOD, QUERY_STRING, URI, or BODY.
+//
+//      * You tried to update a ByteMatchSet with a Field of HEADER but no value
+//      for Data.
+//
+//      * Your request references an ARN that is malformed, or corresponds to
+//      a resource with which a web ACL cannot be associated.
+//
 // See also, https://docs.aws.amazon.com/goto/WebAPI/waf-regional-2016-11-28/ListResourcesForWebACL
 func (c *WAFRegional) ListResourcesForWebACL(input *ListResourcesForWebACLInput) (*ListResourcesForWebACLOutput, error) {
 	req, out := c.ListResourcesForWebACLRequest(input)
@@ -6821,16 +6856,14 @@ func (c *WAFRegional) PutLoggingConfigurationRequest(input *waf.PutLoggingConfig
 // You can access information about all traffic that AWS WAF inspects using
 // the following steps:
 //
-// Create an Amazon Kinesis Data Firehose delivery stream. For more information,
-// see Creating an Amazon Kinesis Data Firehose Delivery Stream (https://docs.aws.amazon.com/firehose/latest/dev/what-is-this-service.html).
+// Create an Amazon Kinesis Data Firehose .
 //
-// Associate that delivery stream to your web ACL using a PutLoggingConfiguration
-// request.
+// Associate that firehose to your web ACL using a PutLoggingConfiguration request.
 //
 // When you successfully enable logging using a PutLoggingConfiguration request,
 // AWS WAF will create a service linked role with the necessary permissions
-// to write logs to the Amazon Kinesis Data Firehose delivery stream. For more
-// information, see Logging Web ACL Traffic Information (http://docs.aws.amazon.com/waf/latest/developerguide/logging.html)
+// to write logs to the Amazon Kinesis Data Firehose. For more information,
+// see Logging Web ACL Traffic Information (http://docs.aws.amazon.com/waf/latest/developerguide/logging.html)
 // in the AWS WAF Developer Guide.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
@@ -6851,6 +6884,16 @@ func (c *WAFRegional) PutLoggingConfigurationRequest(input *waf.PutLoggingConfig
 //   * ErrCodeWAFStaleDataException "WAFStaleDataException"
 //   The operation failed because you tried to create, update, or delete an object
 //   by using a change token that has already been used.
+//
+//   * ErrCodeWAFServiceLinkedRoleErrorException "WAFServiceLinkedRoleErrorException"
+//   AWS WAF is not able to access the service linked role. This can be caused
+//   by a previous PutLoggingConfiguration request, which can lock the service
+//   linked role for about 20 seconds. Please try your request again. The service
+//   linked role can also be locked by a previous DeleteServiceLinkedRole request,
+//   which can lock the role for 15 minutes or more. If you recently made a DeleteServiceLinkedRole,
+//   wait at least 15 minutes and try the request again. If you receive this same
+//   exception again, you will have to wait additional time until the role is
+//   unlocked.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/waf-regional-2016-11-28/PutLoggingConfiguration
 func (c *WAFRegional) PutLoggingConfiguration(input *waf.PutLoggingConfigurationInput) (*waf.PutLoggingConfigurationOutput, error) {
@@ -6913,6 +6956,7 @@ func (c *WAFRegional) PutPermissionPolicyRequest(input *waf.PutPermissionPolicyI
 
 	output = &waf.PutPermissionPolicyOutput{}
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(jsonrpc.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -9545,6 +9589,10 @@ func (s *GetWebACLForResourceOutput) SetWebACLSummary(v *waf.WebACLSummary) *Get
 type ListResourcesForWebACLInput struct {
 	_ struct{} `type:"structure"`
 
+	// The type of resource to list, either and application load balancer or Amazon
+	// API Gateway.
+	ResourceType *string `type:"string" enum:"ResourceType"`
+
 	// The unique identifier (ID) of the web ACL for which to list the associated
 	// resources.
 	//
@@ -9576,6 +9624,12 @@ func (s *ListResourcesForWebACLInput) Validate() error {
 		return invalidParams
 	}
 	return nil
+}
+
+// SetResourceType sets the ResourceType field's value.
+func (s *ListResourcesForWebACLInput) SetResourceType(v string) *ListResourcesForWebACLInput {
+	s.ResourceType = &v
+	return s
 }
 
 // SetWebACLId sets the WebACLId field's value.
@@ -10531,6 +10585,14 @@ const (
 const (
 	// RateKeyIp is a RateKey enum value
 	RateKeyIp = "IP"
+)
+
+const (
+	// ResourceTypeApplicationLoadBalancer is a ResourceType enum value
+	ResourceTypeApplicationLoadBalancer = "APPLICATION_LOAD_BALANCER"
+
+	// ResourceTypeApiGateway is a ResourceType enum value
+	ResourceTypeApiGateway = "API_GATEWAY"
 )
 
 const (
