@@ -27,7 +27,10 @@ func (c *ProvidersCommand) Synopsis() string {
 }
 
 func (c *ProvidersCommand) Run(args []string) int {
-	c.Meta.process(args, false)
+	args, err := c.Meta.process(args, false)
+	if err != nil {
+		return 1
+	}
 
 	cmdFlags := c.Meta.defaultFlagSet("providers")
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
