@@ -29,12 +29,17 @@ func (p *plan) marshalPlannedValues(
 	schemas *terraform.Schemas,
 ) error {
 	// marshal the current state into a stateValues
-	curr, err := marshalState(s, schemas)
+	_, err := marshalState(s, schemas)
 	if err != nil {
 		return err
 	}
 
-	// TODO: marshal the changes into a statesValues
+	// marshal the planned changes into a statesValues
+	planned, err := marshalPlan(changes, schemas)
+	if err != nil {
+		return err
+	}
+
 	// TODO: smoosh them together
 
 	// marshalPlannedOutputs
@@ -43,7 +48,7 @@ func (p *plan) marshalPlannedValues(
 		return err
 	}
 	p.PlannedValues.Outputs = outputs
-	p.PlannedValues.RootModule = curr
+	p.PlannedValues.RootModule = planned
 
 	return nil
 }
@@ -153,12 +158,12 @@ func marshalState(s *states.State, schemas *terraform.Schemas) (module, error) {
 }
 
 func marshalStateResources(resources map[string]*states.Resource, schemas *terraform.Schemas) ([]resource, error) {
-	var rs []resource
+	var ret []resource
 
 	for _, r := range resources {
 		for k, ri := range r.Instances {
 
-			ret := resource{
+			resource := resource{
 				Address:      r.Addr.String(),
 				Type:         r.Addr.Type,
 				Name:         r.Addr.Name,
@@ -167,18 +172,18 @@ func marshalStateResources(resources map[string]*states.Resource, schemas *terra
 
 			switch r.Addr.Mode {
 			case addrs.ManagedResourceMode:
-				ret.Mode = "managed"
+				resource.Mode = "managed"
 			case addrs.DataResourceMode:
-				ret.Mode = "data"
+				resource.Mode = "data"
 			default:
-				return rs, fmt.Errorf("resource %s has an unsupported mode %s",
+				return ret, fmt.Errorf("resource %s has an unsupported mode %s",
 					r.Addr.String(),
 					r.Addr.Mode.String(),
 				)
 			}
 
 			if r.EachMode != states.NoEach {
-				ret.Index = k
+				resource.Index = k
 			}
 
 			schema, _ := schemas.ResourceTypeConfig(
@@ -186,7 +191,7 @@ func marshalStateResources(resources map[string]*states.Resource, schemas *terra
 				r.Addr.Mode,
 				r.Addr.Type,
 			)
-			ret.SchemaVersion = ri.Current.SchemaVersion
+			resource.SchemaVersion = ri.Current.SchemaVersion
 
 			if schema == nil {
 				return nil, fmt.Errorf("no schema found for %s", r.Addr.String())
@@ -194,18 +199,17 @@ func marshalStateResources(resources map[string]*states.Resource, schemas *terra
 
 			riObj, err := ri.Current.Decode(schema.ImpliedType())
 			if err != nil {
-				fmt.Println("error in decode")
 				return nil, err
 			}
 
-			ret.AttributeValues = marshalAttributeValues(riObj.Value, schema)
+			resource.AttributeValues = marshalAttributeValues(riObj.Value, schema)
 
-			rs = append(rs, ret)
+			ret = append(ret, resource)
 		}
 
 	}
 
-	return rs, nil
+	return ret, nil
 }
 
 // marshalStateModules is an ungainly recursive function to build a module
@@ -230,6 +234,136 @@ func marshalStateModules(
 		cm.Resources = rs
 		if moduleMap[child.String()] != nil {
 			moreChildModules, err := marshalStateModules(s, schemas, moduleMap[child.String()], moduleMap)
+			if err != nil {
+				return nil, err
+			}
+			cm.ChildModules = moreChildModules
+		}
+
+		ret = append(ret, cm)
+	}
+
+	return ret, nil
+}
+
+func marshalPlan(changes *plans.Changes, schemas *terraform.Schemas) (module, error) {
+	var ret module
+	if changes.Empty() {
+		return ret, nil
+	}
+
+	// build two maps:
+	// 		module name -> [resource addresses]
+	// 		module -> [children modules]
+	moduleResourceMap := make(map[string][]addrs.AbsResourceInstance)
+	moduleMap := make(map[string][]addrs.ModuleInstance)
+
+	for _, resource := range changes.Resources {
+		containingModule := resource.Addr.Module.String()
+		moduleResourceMap[containingModule] = append(moduleResourceMap[containingModule], resource.Addr)
+
+		// root has no parents.
+		// root is an orphan
+		// root is BATMAN
+		if containingModule != "" {
+			parent := resource.Addr.Module.Parent().String()
+			moduleMap[parent] = append(moduleMap[parent], resource.Addr.Module)
+		}
+	}
+
+	// start with the root module
+	rs, err := marshalPlanResources(changes, moduleResourceMap[""], schemas)
+	if err != nil {
+		return ret, err
+	}
+	ret.Resources = rs
+
+	childModules, err := marshalPlanModules(changes, schemas, moduleMap[""], moduleMap, moduleResourceMap)
+	if err != nil {
+		return ret, err
+	}
+	ret.ChildModules = childModules
+
+	return ret, nil
+}
+
+func marshalPlanResources(changes *plans.Changes, ris []addrs.AbsResourceInstance, schemas *terraform.Schemas) ([]resource, error) {
+	var ret []resource
+
+	for _, ri := range ris {
+		r := changes.ResourceInstance(ri)
+		resource := resource{
+			Address:      r.Addr.String(),
+			Type:         r.Addr.Resource.Resource.Type,
+			Name:         r.Addr.Resource.Resource.Name,
+			ProviderName: r.ProviderAddr.ProviderConfig.StringCompact(),
+			Index:        r.Addr.Resource.Key,
+		}
+
+		switch r.Addr.Resource.Resource.Mode {
+		case addrs.ManagedResourceMode:
+			resource.Mode = "managed"
+		case addrs.DataResourceMode:
+			resource.Mode = "data"
+		default:
+			return ret, fmt.Errorf("resource %s has an unsupported mode %s",
+				r.Addr.String(),
+				r.Addr.Resource.Resource.Mode.String(),
+			)
+		}
+
+		schema, schemaVer := schemas.ResourceTypeConfig(
+			resource.ProviderName,
+			r.Addr.Resource.Resource.Mode,
+			resource.Type,
+		)
+		if schema == nil {
+			return nil, fmt.Errorf("no schema found for %s", r.Addr.String())
+		}
+		resource.SchemaVersion = schemaVer
+		changeV, err := r.Decode(schema.ImpliedType())
+		if err != nil {
+			return nil, err
+		}
+
+		// TODO:
+		// What does this do if the values are unknown?
+		// How about deletions?
+		if changeV.After != cty.NilVal {
+			if changeV.After.IsWhollyKnown() {
+				resource.AttributeValues = marshalAttributeValues(changeV.After, schema)
+			}
+		}
+
+		ret = append(ret, resource)
+	}
+
+	return ret, nil
+}
+
+// haha, and you thought marshalStateModules was ungainly!
+func marshalPlanModules(
+	changes *plans.Changes,
+	schemas *terraform.Schemas,
+	childModules []addrs.ModuleInstance,
+	moduleMap map[string][]addrs.ModuleInstance,
+	moduleResourceMap map[string][]addrs.AbsResourceInstance,
+) ([]module, error) {
+
+	var ret []module
+
+	for _, child := range childModules {
+		moduleResources := moduleResourceMap[child.String()]
+		// cm for child module, naming things is hard.
+		cm := module{Address: child.String()}
+		rs, err := marshalPlanResources(changes, moduleResources, schemas)
+		if err != nil {
+			return nil, err
+		}
+		cm.Resources = rs
+
+		if len(moduleMap[child.String()]) > 0 {
+			moreChildModules, err := marshalPlanModules(changes, schemas, moduleMap[child.String()], moduleMap, moduleResourceMap)
 			if err != nil {
 				return nil, err
 			}
