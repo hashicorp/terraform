@@ -3,6 +3,7 @@ package test
 import (
 	"errors"
 	"fmt"
+	"regexp"
 	"strings"
 	"testing"
 
@@ -185,6 +186,55 @@ data "test_data_source" "x" {
 data "test_data_source" "y" {
   input = data.test_data_source.x.nil == "something" ? "something" : "else"
 }`,
+			},
+		},
+	})
+}
+
+// referencing test_data_source.one.output_map["a"] should produce an error when
+// there's a count, but instead we end up with an unknown value after apply.
+func TestDataSource_indexedCountOfOne(t *testing.T) {
+	resource.UnitTest(t, resource.TestCase{
+		Providers: testAccProviders,
+		Steps: []resource.TestStep{
+			{
+				Config: strings.TrimSpace(`
+data "test_data_source" "one" {
+	count = 1
+  input_map = {
+		"a" = "b"
+	}
+}
+
+data "test_data_source" "two" {
+	input_map = {
+		"x" = data.test_data_source.one.output_map["a"]
+	}
+}
+				`),
+				ExpectError: regexp.MustCompile("value does not have any attributes"),
+			},
+		},
+	})
+}
+
+// Verify that we can destroy when a data source references something with a
+// count of 1.
+func TestDataSource_countRefDestroyError(t *testing.T) {
+	resource.UnitTest(t, resource.TestCase{
+		Providers: testAccProviders,
+		Steps: []resource.TestStep{
+			{
+				Config: strings.TrimSpace(`
+data "test_data_source" "one" {
+  count = 1
+  input = "a"
+}
+
+data "test_data_source" "two" {
+  input = data.test_data_source.one[0].output
+}
+				`),
 			},
 		},
 	})

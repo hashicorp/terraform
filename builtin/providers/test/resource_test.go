@@ -493,3 +493,31 @@ resource "test_resource" "foo" {
 		},
 	})
 }
+
+// Verify that we can destroy when a managed resource references something with
+// a count of 1.
+func TestResource_countRefDestroyError(t *testing.T) {
+	resource.UnitTest(t, resource.TestCase{
+		Providers: testAccProviders,
+		Steps: []resource.TestStep{
+			{
+				Config: strings.TrimSpace(`
+resource "test_resource" "one" {
+	count = 1
+	required     = "ok"
+	required_map = {
+	  key = "val"
+	}
+}
+
+resource "test_resource" "two" {
+	required     = test_resource.one[0].id
+	required_map = {
+	  key = "val"
+	}
+}
+				`),
+			},
+		},
+	})
+}
