@@ -81,13 +81,11 @@ func Marshal(
 
 	output := newPlan()
 
-	// TODO: output.PlannedValues
-	err := output.marshalPlannedValues(p.Changes, s, schemas)
+	// marshalPlannedValues populates both PlannedValues and ProposedUnknowns
+	err := output.marshalPlannedValues(p.Changes, schemas)
 	if err != nil {
 		return nil, fmt.Errorf("error in marshalPlannedValues: %s", err)
 	}
-
-	// TODO: output.ProposedUnknown
 
 	// output.ResourceChanges
 	err = output.marshalResourceChanges(p.Changes, schemas)
@@ -230,6 +228,26 @@ func (p *plan) marshalOutputChanges(changes *plans.Changes) error {
 		c.After = json.RawMessage(after)
 		p.OutputChanges[oc.Addr.OutputValue.Name] = c
 	}
+
+	return nil
+}
+
+func (p *plan) marshalPlannedValues(changes *plans.Changes, schemas *terraform.Schemas) error {
+	// marshal the planned changes into a module
+	plan, unknownValues, err := marshalPlannedValues(changes, schemas)
+	if err != nil {
+		return err
+	}
+	p.PlannedValues.RootModule = plan
+	p.ProposedUnknown.RootModule = unknownValues
+
+	// marshalPlannedOutputs
+	outputs, unknownOutputs, err := marshalPlannedOutputs(changes)
+	if err != nil {
+		return err
+	}
+	p.PlannedValues.Outputs = outputs
+	p.ProposedUnknown.Outputs = unknownOutputs
 
 	return nil
 }
