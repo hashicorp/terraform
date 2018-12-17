@@ -28,6 +28,12 @@ const (
 	// Too many jobs are being run concurrently.
 	ErrCodeConcurrentRunsExceededException = "ConcurrentRunsExceededException"
 
+	// ErrCodeConditionCheckFailureException for service response error code
+	// "ConditionCheckFailureException".
+	//
+	// A specified condition was not satisfied.
+	ErrCodeConditionCheckFailureException = "ConditionCheckFailureException"
+
 	// ErrCodeCrawlerNotRunningException for service response error code
 	// "CrawlerNotRunningException".
 	//

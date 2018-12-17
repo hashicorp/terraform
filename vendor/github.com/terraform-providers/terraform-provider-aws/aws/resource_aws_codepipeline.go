@@ -165,15 +165,6 @@ func resourceAwsCodePipeline() *schema.Resource {
 	}
 }
 
-func validateAwsCodePipelineStageActionConfiguration(v interface{}, k string) (ws []string, errors []error) {
-	for k := range v.(map[string]interface{}) {
-		if k == "OAuthToken" {
-			errors = append(errors, fmt.Errorf("CodePipeline: OAuthToken should be set as environment variable 'GITHUB_TOKEN'"))
-		}
-	}
-	return
-}
-
 func resourceAwsCodePipelineCreate(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).codepipelineconn
 	params := &codepipeline.CreatePipelineInput{

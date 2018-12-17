@@ -9,6 +9,8 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awsutil"
 	"github.com/aws/aws-sdk-go/aws/request"
+	"github.com/aws/aws-sdk-go/private/protocol"
+	"github.com/aws/aws-sdk-go/private/protocol/jsonrpc"
 )
 
 const opAcceptSharedDirectory = "AcceptSharedDirectory"
@@ -142,6 +144,7 @@ func (c *DirectoryService) AddIpRoutesRequest(input *AddIpRoutesInput) (req *req
 
 	output = &AddIpRoutesOutput{}
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(jsonrpc.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -249,6 +252,7 @@ func (c *DirectoryService) AddTagsToResourceRequest(input *AddTagsToResourceInpu
 
 	output = &AddTagsToResourceOutput{}
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(jsonrpc.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -342,6 +346,7 @@ func (c *DirectoryService) CancelSchemaExtensionRequest(input *CancelSchemaExten
 
 	output = &CancelSchemaExtensionOutput{}
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(jsonrpc.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -722,6 +727,7 @@ func (c *DirectoryService) CreateConditionalForwarderRequest(input *CreateCondit
 
 	output = &CreateConditionalForwarderOutput{}
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(jsonrpc.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -916,6 +922,7 @@ func (c *DirectoryService) CreateLogSubscriptionRequest(input *CreateLogSubscrip
 
 	output = &CreateLogSubscriptionOutput{}
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(jsonrpc.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -1306,6 +1313,7 @@ func (c *DirectoryService) DeleteConditionalForwarderRequest(input *DeleteCondit
 
 	output = &DeleteConditionalForwarderOutput{}
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(jsonrpc.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -1490,6 +1498,7 @@ func (c *DirectoryService) DeleteLogSubscriptionRequest(input *DeleteLogSubscrip
 
 	output = &DeleteLogSubscriptionOutput{}
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(jsonrpc.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -1758,6 +1767,7 @@ func (c *DirectoryService) DeregisterEventTopicRequest(input *DeregisterEventTop
 
 	output = &DeregisterEventTopicOutput{}
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(jsonrpc.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -2576,6 +2586,7 @@ func (c *DirectoryService) DisableRadiusRequest(input *DisableRadiusInput) (req 
 
 	output = &DisableRadiusOutput{}
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(jsonrpc.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -2663,6 +2674,7 @@ func (c *DirectoryService) DisableSsoRequest(input *DisableSsoInput) (req *reque
 
 	output = &DisableSsoOutput{}
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(jsonrpc.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -2754,6 +2766,7 @@ func (c *DirectoryService) EnableRadiusRequest(input *EnableRadiusInput) (req *r
 
 	output = &EnableRadiusOutput{}
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(jsonrpc.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -2847,6 +2860,7 @@ func (c *DirectoryService) EnableSsoRequest(input *EnableSsoInput) (req *request
 
 	output = &EnableSsoOutput{}
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(jsonrpc.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -3466,6 +3480,7 @@ func (c *DirectoryService) RegisterEventTopicRequest(input *RegisterEventTopicIn
 
 	output = &RegisterEventTopicOutput{}
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(jsonrpc.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -3651,6 +3666,7 @@ func (c *DirectoryService) RemoveIpRoutesRequest(input *RemoveIpRoutesInput) (re
 
 	output = &RemoveIpRoutesOutput{}
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(jsonrpc.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -3742,6 +3758,7 @@ func (c *DirectoryService) RemoveTagsFromResourceRequest(input *RemoveTagsFromRe
 
 	output = &RemoveTagsFromResourceOutput{}
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(jsonrpc.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -3830,6 +3847,7 @@ func (c *DirectoryService) ResetUserPasswordRequest(input *ResetUserPasswordInpu
 
 	output = &ResetUserPasswordOutput{}
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(jsonrpc.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -3929,6 +3947,7 @@ func (c *DirectoryService) RestoreFromSnapshotRequest(input *RestoreFromSnapshot
 
 	output = &RestoreFromSnapshotOutput{}
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(jsonrpc.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -4336,6 +4355,7 @@ func (c *DirectoryService) UpdateConditionalForwarderRequest(input *UpdateCondit
 
 	output = &UpdateConditionalForwarderOutput{}
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(jsonrpc.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -4430,6 +4450,7 @@ func (c *DirectoryService) UpdateNumberOfDomainControllersRequest(input *UpdateN
 
 	output = &UpdateNumberOfDomainControllersOutput{}
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(jsonrpc.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -4533,6 +4554,7 @@ func (c *DirectoryService) UpdateRadiusRequest(input *UpdateRadiusInput) (req *r
 
 	output = &UpdateRadiusOutput{}
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(jsonrpc.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -5248,7 +5270,7 @@ type ConnectDirectoryInput struct {
 	// The password for the on-premises user account.
 	//
 	// Password is a required field
-	Password *string `min:"1" type:"string" required:"true"`
+	Password *string `min:"1" type:"string" required:"true" sensitive:"true"`
 
 	// The NetBIOS name of the on-premises directory, such as CORP.
 	ShortName *string `type:"string"`
@@ -5477,7 +5499,7 @@ type CreateComputerInput struct {
 	// should generate a random, strong password to use for this parameter.
 	//
 	// Password is a required field
-	Password *string `min:"8" type:"string" required:"true"`
+	Password *string `min:"8" type:"string" required:"true" sensitive:"true"`
 }
 
 // String returns the string representation
@@ -5685,7 +5707,7 @@ type CreateDirectoryInput struct {
 	// and this password.
 	//
 	// Password is a required field
-	Password *string `type:"string" required:"true"`
+	Password *string `type:"string" required:"true" sensitive:"true"`
 
 	// The short name of the directory, such as CORP.
 	ShortName *string `type:"string"`
@@ -5887,7 +5909,7 @@ type CreateMicrosoftADInput struct {
 	// The password for the default administrative user named Admin.
 	//
 	// Password is a required field
-	Password *string `type:"string" required:"true"`
+	Password *string `type:"string" required:"true" sensitive:"true"`
 
 	// The NetBIOS name for your domain. A short identifier for your domain, such
 	// as CORP. If you don't specify a NetBIOS name, it will default to the first
@@ -6104,7 +6126,7 @@ type CreateTrustInput struct {
 	// the trust relationship on the external domain.
 	//
 	// TrustPassword is a required field
-	TrustPassword *string `min:"1" type:"string" required:"true"`
+	TrustPassword *string `min:"1" type:"string" required:"true" sensitive:"true"`
 
 	// The trust relationship type. Forest is the default.
 	TrustType *string `type:"string" enum:"TrustType"`
@@ -7444,7 +7466,7 @@ type DirectoryDescription struct {
 	// A directory share request that is sent by the directory owner to the directory
 	// consumer. The request includes a typed message to help the directory consumer
 	// administrator determine whether to approve or reject the share invitation.
-	ShareNotes *string `type:"string"`
+	ShareNotes *string `type:"string" sensitive:"true"`
 
 	// Current directory status of the shared AWS Managed Microsoft AD directory.
 	ShareStatus *string `type:"string" enum:"ShareStatus"`
@@ -7900,7 +7922,7 @@ type DisableSsoInput struct {
 	// The password of an alternate account to use to disable single-sign on. This
 	// is only used for AD Connector directories. For more information, see the
 	// UserName parameter.
-	Password *string `min:"1" type:"string"`
+	Password *string `min:"1" type:"string" sensitive:"true"`
 
 	// The username of an alternate account to use to disable single-sign on. This
 	// is only used for AD Connector directories. This account must have privileges
@@ -8166,7 +8188,7 @@ type EnableSsoInput struct {
 	// The password of an alternate account to use to enable single-sign on. This
 	// is only used for AD Connector directories. For more information, see the
 	// UserName parameter.
-	Password *string `min:"1" type:"string"`
+	Password *string `min:"1" type:"string" sensitive:"true"`
 
 	// The username of an alternate account to use to enable single-sign on. This
 	// is only used for AD Connector directories. This account must have privileges
@@ -9003,7 +9025,7 @@ type RadiusSettings struct {
 	RadiusTimeout *int64 `min:"1" type:"integer"`
 
 	// Required for enabling RADIUS on the directory.
-	SharedSecret *string `min:"8" type:"string"`
+	SharedSecret *string `min:"8" type:"string" sensitive:"true"`
 
 	// Not currently used.
 	UseSameUsername *bool `type:"boolean"`
@@ -9367,7 +9389,7 @@ type ResetUserPasswordInput struct {
 	// The new password that will be reset.
 	//
 	// NewPassword is a required field
-	NewPassword *string `min:"1" type:"string" required:"true"`
+	NewPassword *string `min:"1" type:"string" required:"true" sensitive:"true"`
 
 	// The user name of the user whose password will be reset.
 	//
@@ -9594,7 +9616,7 @@ type ShareDirectoryInput struct {
 	// A directory share request that is sent by the directory owner to the directory
 	// consumer. The request includes a typed message to help the directory consumer
 	// administrator determine whether to approve or reject the share invitation.
-	ShareNotes *string `type:"string"`
+	ShareNotes *string `type:"string" sensitive:"true"`
 
 	// Identifier for the directory consumer account with whom the directory is
 	// to be shared.
@@ -9767,7 +9789,7 @@ type SharedDirectory struct {
 	// A directory share request that is sent by the directory owner to the directory
 	// consumer. The request includes a typed message to help the directory consumer
 	// administrator determine whether to approve or reject the share invitation.
-	ShareNotes *string `type:"string"`
+	ShareNotes *string `type:"string" sensitive:"true"`
 
 	// Current directory status of the shared AWS Managed Microsoft AD directory.
 	ShareStatus *string `type:"string" enum:"ShareStatus"`

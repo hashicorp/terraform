@@ -301,6 +301,13 @@ func resourceAwsLambdaPermissionDelete(d *schema.ResourceData, meta interface{})
 	log.Printf("[DEBUG] Removing Lambda permission: %s", input)
 	_, err := conn.RemovePermission(&input)
 	if err != nil {
+		// Missing whole policy or Lambda function (API error)
+		if awsErr, ok := err.(awserr.Error); ok {
+			if awsErr.Code() == "ResourceNotFoundException" {
+				log.Printf("[WARN] No Lambda Permission Policy found: %v", input)
+				return nil
+			}
+		}
 		return err
 	}
 

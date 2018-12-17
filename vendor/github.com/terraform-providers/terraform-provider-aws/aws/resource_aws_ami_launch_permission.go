@@ -106,7 +106,7 @@ func hasLaunchPermission(conn *ec2.EC2, image_id string, account_id string) (boo
 	}
 
 	for _, lp := range attrs.LaunchPermissions {
-		if *lp.UserId == account_id {
+		if aws.StringValue(lp.UserId) == account_id {
 			return true, nil
 		}
 	}

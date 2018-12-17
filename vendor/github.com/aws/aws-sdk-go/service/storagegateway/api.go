@@ -11271,21 +11271,36 @@ func (s *DisableGatewayOutput) SetGatewayARN(v string) *DisableGatewayOutput {
 	return s
 }
 
+// Represents a gateway's local disk.
 type Disk struct {
 	_ struct{} `type:"structure"`
 
+	// The iSCSI Qualified Name (IQN) that is defined for a disk. This field is
+	// not included in the response if the local disk is not defined as an iSCSI
+	// target. The format of this field is targetIqn::LUNNumber::region-volumeId.
 	DiskAllocationResource *string `type:"string"`
 
+	// One of the DiskAllocationType enumeration values that identifies how a local
+	// disk is used. Valid values: "UPLOAD_BUFFER", "CACHE_STORAGE".
 	DiskAllocationType *string `min:"3" type:"string"`
 
+	// A list of values that represents attributes of a local disk.
+	DiskAttributeList []*string `type:"list"`
+
+	// The unique device ID or other distinguishing data that identifies a local
+	// disk.
 	DiskId *string `min:"1" type:"string"`
 
+	// The device node of a local disk as assigned by the virtualization environment.
 	DiskNode *string `type:"string"`
 
+	// The path of a local disk in the gateway virtual machine (VM).
 	DiskPath *string `type:"string"`
 
+	// The local disk size in bytes.
 	DiskSizeInBytes *int64 `type:"long"`
 
+	// A value that represents the status of a local disk.
 	DiskStatus *string `type:"string"`
 }
 
@@ -11308,6 +11323,12 @@ func (s *Disk) SetDiskAllocationResource(v string) *Disk {
 // SetDiskAllocationType sets the DiskAllocationType field's value.
 func (s *Disk) SetDiskAllocationType(v string) *Disk {
 	s.DiskAllocationType = &v
+	return s
+}
+
+// SetDiskAttributeList sets the DiskAttributeList field's value.
+func (s *Disk) SetDiskAttributeList(v []*string) *Disk {
+	s.DiskAttributeList = v
 	return s
 }
 
@@ -11522,7 +11543,7 @@ type JoinDomainInput struct {
 	// Active Directory domain.
 	//
 	// Password is a required field
-	Password *string `type:"string" required:"true"`
+	Password *string `type:"string" required:"true" sensitive:"true"`
 
 	// Sets the user name of user who has permission to add the gateway to the Active
 	// Directory domain.
@@ -13377,7 +13398,7 @@ type SetLocalConsolePasswordInput struct {
 	// The password you want to set for your VM local console.
 	//
 	// LocalConsolePassword is a required field
-	LocalConsolePassword *string `min:"6" type:"string" required:"true"`
+	LocalConsolePassword *string `min:"6" type:"string" required:"true" sensitive:"true"`
 }
 
 // String returns the string representation
@@ -13461,7 +13482,7 @@ type SetSMBGuestPasswordInput struct {
 	// The password that you want to set for your SMB Server.
 	//
 	// Password is a required field
-	Password *string `min:"6" type:"string" required:"true"`
+	Password *string `min:"6" type:"string" required:"true" sensitive:"true"`
 }
 
 // String returns the string representation

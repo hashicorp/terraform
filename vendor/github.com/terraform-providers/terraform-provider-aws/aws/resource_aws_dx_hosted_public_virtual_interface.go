@@ -147,7 +147,7 @@ func resourceAwsDxHostedPublicVirtualInterfaceCreate(d *schema.ResourceData, met
 	}.String()
 	d.Set("arn", arn)
 
-	if err := dxHostedPublicVirtualInterfaceWaitUntilAvailable(d, conn); err != nil {
+	if err := dxHostedPublicVirtualInterfaceWaitUntilAvailable(conn, d.Id(), d.Timeout(schema.TimeoutCreate)); err != nil {
 		return err
 	}
 
@@ -198,10 +198,11 @@ func resourceAwsDxHostedPublicVirtualInterfaceImport(d *schema.ResourceData, met
 	return []*schema.ResourceData{d}, nil
 }
 
-func dxHostedPublicVirtualInterfaceWaitUntilAvailable(d *schema.ResourceData, conn *directconnect.DirectConnect) error {
+func dxHostedPublicVirtualInterfaceWaitUntilAvailable(conn *directconnect.DirectConnect, vifId string, timeout time.Duration) error {
 	return dxVirtualInterfaceWaitUntilAvailable(
-		d,
 		conn,
+		vifId,
+		timeout,
 		[]string{
 			directconnect.VirtualInterfaceStatePending,
 		},

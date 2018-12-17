@@ -73,6 +73,7 @@ func resourceAwsElasticSearchDomain() *schema.Resource {
 				Type:     schema.TypeList,
 				Optional: true,
 				Computed: true,
+				MaxItems: 1,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"ebs_enabled": {
@@ -136,6 +137,7 @@ func resourceAwsElasticSearchDomain() *schema.Resource {
 				Type:     schema.TypeList,
 				Optional: true,
 				Computed: true,
+				MaxItems: 1,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"dedicated_master_count": {
@@ -173,6 +175,7 @@ func resourceAwsElasticSearchDomain() *schema.Resource {
 			"snapshot_options": {
 				Type:     schema.TypeList,
 				Optional: true,
+				MaxItems: 1,
 				DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
 					if old == "1" && new == "0" {
 						return true
@@ -352,9 +355,7 @@ func resourceAwsElasticSearchDomainCreate(d *schema.ResourceData, meta interface
 	if v, ok := d.GetOk("ebs_options"); ok {
 		options := v.([]interface{})
 
-		if len(options) > 1 {
-			return fmt.Errorf("Only a single ebs_options block is expected")
-		} else if len(options) == 1 {
+		if len(options) == 1 {
 			if options[0] == nil {
 				return fmt.Errorf("At least one field is expected inside ebs_options")
 			}
@@ -377,9 +378,7 @@ func resourceAwsElasticSearchDomainCreate(d *schema.ResourceData, meta interface
 	if v, ok := d.GetOk("cluster_config"); ok {
 		config := v.([]interface{})
 
-		if len(config) > 1 {
-			return fmt.Errorf("Only a single cluster_config block is expected")
-		} else if len(config) == 1 {
+		if len(config) == 1 {
 			if config[0] == nil {
 				return fmt.Errorf("At least one field is expected inside cluster_config")
 			}
@@ -398,9 +397,7 @@ func resourceAwsElasticSearchDomainCreate(d *schema.ResourceData, meta interface
 	if v, ok := d.GetOk("snapshot_options"); ok {
 		options := v.([]interface{})
 
-		if len(options) > 1 {
-			return fmt.Errorf("Only a single snapshot_options block is expected")
-		} else if len(options) == 1 {
+		if len(options) == 1 {
 			if options[0] == nil {
 				return fmt.Errorf("At least one field is expected inside snapshot_options")
 			}
@@ -668,9 +665,7 @@ func resourceAwsElasticSearchDomainUpdate(d *schema.ResourceData, meta interface
 	if d.HasChange("ebs_options") || d.HasChange("cluster_config") {
 		options := d.Get("ebs_options").([]interface{})
 
-		if len(options) > 1 {
-			return fmt.Errorf("Only a single ebs_options block is expected")
-		} else if len(options) == 1 {
+		if len(options) == 1 {
 			s := options[0].(map[string]interface{})
 			input.EBSOptions = expandESEBSOptions(s)
 		}
@@ -678,9 +673,7 @@ func resourceAwsElasticSearchDomainUpdate(d *schema.ResourceData, meta interface
 		if d.HasChange("cluster_config") {
 			config := d.Get("cluster_config").([]interface{})
 
-			if len(config) > 1 {
-				return fmt.Errorf("Only a single cluster_config block is expected")
-			} else if len(config) == 1 {
+			if len(config) == 1 {
 				m := config[0].(map[string]interface{})
 				input.ElasticsearchClusterConfig = expandESClusterConfig(m)
 			}
@@ -691,9 +684,7 @@ func resourceAwsElasticSearchDomainUpdate(d *schema.ResourceData, meta interface
 	if d.HasChange("snapshot_options") {
 		options := d.Get("snapshot_options").([]interface{})
 
-		if len(options) > 1 {
-			return fmt.Errorf("Only a single snapshot_options block is expected")
-		} else if len(options) == 1 {
+		if len(options) == 1 {
 			o := options[0].(map[string]interface{})
 
 			snapshotOptions := elasticsearch.SnapshotOptions{

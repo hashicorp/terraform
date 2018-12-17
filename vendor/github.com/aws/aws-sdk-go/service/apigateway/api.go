@@ -56,7 +56,7 @@ func (c *APIGateway) CreateApiKeyRequest(input *CreateApiKeyInput) (req *request
 //
 // Create an ApiKey resource.
 //
-// AWS CLI ([[AwsDocsUrlPrefix]]/cli/latest/reference/apigateway/create-api-key.html)
+// AWS CLI (https://docs.aws.amazon.com/cli/latest/reference/apigateway/create-api-key.html)
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -152,7 +152,7 @@ func (c *APIGateway) CreateAuthorizerRequest(input *CreateAuthorizerInput) (req 
 //
 // Adds a new Authorizer resource to an existing RestApi resource.
 //
-// AWS CLI ([[AwsDocsUrlPrefix]]/cli/latest/reference/apigateway/create-authorizer.html)
+// AWS CLI (https://docs.aws.amazon.com/cli/latest/reference/apigateway/create-authorizer.html)
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -1432,8 +1432,7 @@ func (c *APIGateway) DeleteApiKeyRequest(input *DeleteApiKeyInput) (req *request
 
 	output = &DeleteApiKeyOutput{}
 	req = c.newRequest(op, input, output)
-	req.Handlers.Unmarshal.Remove(restjson.UnmarshalHandler)
-	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
+	req.Handlers.Unmarshal.Swap(restjson.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -1517,8 +1516,7 @@ func (c *APIGateway) DeleteAuthorizerRequest(input *DeleteAuthorizerInput) (req 
 
 	output = &DeleteAuthorizerOutput{}
 	req = c.newRequest(op, input, output)
-	req.Handlers.Unmarshal.Remove(restjson.UnmarshalHandler)
-	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
+	req.Handlers.Unmarshal.Swap(restjson.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -1526,7 +1524,7 @@ func (c *APIGateway) DeleteAuthorizerRequest(input *DeleteAuthorizerInput) (req 
 //
 // Deletes an existing Authorizer resource.
 //
-// AWS CLI ([[AwsDocsUrlPrefix]]/cli/latest/reference/apigateway/delete-authorizer.html)
+// AWS CLI (https://docs.aws.amazon.com/cli/latest/reference/apigateway/delete-authorizer.html)
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -1612,8 +1610,7 @@ func (c *APIGateway) DeleteBasePathMappingRequest(input *DeleteBasePathMappingIn
 
 	output = &DeleteBasePathMappingOutput{}
 	req = c.newRequest(op, input, output)
-	req.Handlers.Unmarshal.Remove(restjson.UnmarshalHandler)
-	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
+	req.Handlers.Unmarshal.Swap(restjson.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -1705,8 +1702,7 @@ func (c *APIGateway) DeleteClientCertificateRequest(input *DeleteClientCertifica
 
 	output = &DeleteClientCertificateOutput{}
 	req = c.newRequest(op, input, output)
-	req.Handlers.Unmarshal.Remove(restjson.UnmarshalHandler)
-	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
+	req.Handlers.Unmarshal.Swap(restjson.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -1794,8 +1790,7 @@ func (c *APIGateway) DeleteDeploymentRequest(input *DeleteDeploymentInput) (req 
 
 	output = &DeleteDeploymentOutput{}
 	req = c.newRequest(op, input, output)
-	req.Handlers.Unmarshal.Remove(restjson.UnmarshalHandler)
-	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
+	req.Handlers.Unmarshal.Swap(restjson.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -1884,8 +1879,7 @@ func (c *APIGateway) DeleteDocumentationPartRequest(input *DeleteDocumentationPa
 
 	output = &DeleteDocumentationPartOutput{}
 	req = c.newRequest(op, input, output)
-	req.Handlers.Unmarshal.Remove(restjson.UnmarshalHandler)
-	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
+	req.Handlers.Unmarshal.Swap(restjson.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -1975,8 +1969,7 @@ func (c *APIGateway) DeleteDocumentationVersionRequest(input *DeleteDocumentatio
 
 	output = &DeleteDocumentationVersionOutput{}
 	req = c.newRequest(op, input, output)
-	req.Handlers.Unmarshal.Remove(restjson.UnmarshalHandler)
-	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
+	req.Handlers.Unmarshal.Swap(restjson.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -2066,8 +2059,7 @@ func (c *APIGateway) DeleteDomainNameRequest(input *DeleteDomainNameInput) (req 
 
 	output = &DeleteDomainNameOutput{}
 	req = c.newRequest(op, input, output)
-	req.Handlers.Unmarshal.Remove(restjson.UnmarshalHandler)
-	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
+	req.Handlers.Unmarshal.Swap(restjson.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -2151,8 +2143,7 @@ func (c *APIGateway) DeleteGatewayResponseRequest(input *DeleteGatewayResponseIn
 
 	output = &DeleteGatewayResponseOutput{}
 	req = c.newRequest(op, input, output)
-	req.Handlers.Unmarshal.Remove(restjson.UnmarshalHandler)
-	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
+	req.Handlers.Unmarshal.Swap(restjson.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -2245,8 +2236,7 @@ func (c *APIGateway) DeleteIntegrationRequest(input *DeleteIntegrationInput) (re
 
 	output = &DeleteIntegrationOutput{}
 	req = c.newRequest(op, input, output)
-	req.Handlers.Unmarshal.Remove(restjson.UnmarshalHandler)
-	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
+	req.Handlers.Unmarshal.Swap(restjson.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -2334,8 +2324,7 @@ func (c *APIGateway) DeleteIntegrationResponseRequest(input *DeleteIntegrationRe
 
 	output = &DeleteIntegrationResponseOutput{}
 	req = c.newRequest(op, input, output)
-	req.Handlers.Unmarshal.Remove(restjson.UnmarshalHandler)
-	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
+	req.Handlers.Unmarshal.Swap(restjson.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -2427,8 +2416,7 @@ func (c *APIGateway) DeleteMethodRequest(input *DeleteMethodInput) (req *request
 
 	output = &DeleteMethodOutput{}
 	req = c.newRequest(op, input, output)
-	req.Handlers.Unmarshal.Remove(restjson.UnmarshalHandler)
-	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
+	req.Handlers.Unmarshal.Swap(restjson.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -2516,8 +2504,7 @@ func (c *APIGateway) DeleteMethodResponseRequest(input *DeleteMethodResponseInpu
 
 	output = &DeleteMethodResponseOutput{}
 	req = c.newRequest(op, input, output)
-	req.Handlers.Unmarshal.Remove(restjson.UnmarshalHandler)
-	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
+	req.Handlers.Unmarshal.Swap(restjson.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -2609,8 +2596,7 @@ func (c *APIGateway) DeleteModelRequest(input *DeleteModelInput) (req *request.R
 
 	output = &DeleteModelOutput{}
 	req = c.newRequest(op, input, output)
-	req.Handlers.Unmarshal.Remove(restjson.UnmarshalHandler)
-	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
+	req.Handlers.Unmarshal.Swap(restjson.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -2702,8 +2688,7 @@ func (c *APIGateway) DeleteRequestValidatorRequest(input *DeleteRequestValidator
 
 	output = &DeleteRequestValidatorOutput{}
 	req = c.newRequest(op, input, output)
-	req.Handlers.Unmarshal.Remove(restjson.UnmarshalHandler)
-	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
+	req.Handlers.Unmarshal.Swap(restjson.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -2795,8 +2780,7 @@ func (c *APIGateway) DeleteResourceRequest(input *DeleteResourceInput) (req *req
 
 	output = &DeleteResourceOutput{}
 	req = c.newRequest(op, input, output)
-	req.Handlers.Unmarshal.Remove(restjson.UnmarshalHandler)
-	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
+	req.Handlers.Unmarshal.Swap(restjson.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -2888,8 +2872,7 @@ func (c *APIGateway) DeleteRestApiRequest(input *DeleteRestApiInput) (req *reque
 
 	output = &DeleteRestApiOutput{}
 	req = c.newRequest(op, input, output)
-	req.Handlers.Unmarshal.Remove(restjson.UnmarshalHandler)
-	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
+	req.Handlers.Unmarshal.Swap(restjson.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -2977,8 +2960,7 @@ func (c *APIGateway) DeleteStageRequest(input *DeleteStageInput) (req *request.R
 
 	output = &DeleteStageOutput{}
 	req = c.newRequest(op, input, output)
-	req.Handlers.Unmarshal.Remove(restjson.UnmarshalHandler)
-	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
+	req.Handlers.Unmarshal.Swap(restjson.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -3066,8 +3048,7 @@ func (c *APIGateway) DeleteUsagePlanRequest(input *DeleteUsagePlanInput) (req *r
 
 	output = &DeleteUsagePlanOutput{}
 	req = c.newRequest(op, input, output)
-	req.Handlers.Unmarshal.Remove(restjson.UnmarshalHandler)
-	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
+	req.Handlers.Unmarshal.Swap(restjson.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -3155,8 +3136,7 @@ func (c *APIGateway) DeleteUsagePlanKeyRequest(input *DeleteUsagePlanKeyInput) (
 
 	output = &DeleteUsagePlanKeyOutput{}
 	req = c.newRequest(op, input, output)
-	req.Handlers.Unmarshal.Remove(restjson.UnmarshalHandler)
-	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
+	req.Handlers.Unmarshal.Swap(restjson.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -3249,8 +3229,7 @@ func (c *APIGateway) DeleteVpcLinkRequest(input *DeleteVpcLinkInput) (req *reque
 
 	output = &DeleteVpcLinkOutput{}
 	req = c.newRequest(op, input, output)
-	req.Handlers.Unmarshal.Remove(restjson.UnmarshalHandler)
-	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
+	req.Handlers.Unmarshal.Swap(restjson.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -3338,8 +3317,7 @@ func (c *APIGateway) FlushStageAuthorizersCacheRequest(input *FlushStageAuthoriz
 
 	output = &FlushStageAuthorizersCacheOutput{}
 	req = c.newRequest(op, input, output)
-	req.Handlers.Unmarshal.Remove(restjson.UnmarshalHandler)
-	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
+	req.Handlers.Unmarshal.Swap(restjson.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -3427,8 +3405,7 @@ func (c *APIGateway) FlushStageCacheRequest(input *FlushStageCacheInput) (req *r
 
 	output = &FlushStageCacheOutput{}
 	req = c.newRequest(op, input, output)
-	req.Handlers.Unmarshal.Remove(restjson.UnmarshalHandler)
-	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
+	req.Handlers.Unmarshal.Swap(restjson.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -3912,7 +3889,7 @@ func (c *APIGateway) GetAuthorizerRequest(input *GetAuthorizerInput) (req *reque
 //
 // Describe an existing Authorizer resource.
 //
-// AWS CLI ([[AwsDocsUrlPrefix]]/cli/latest/reference/apigateway/get-authorizer.html)
+// AWS CLI (https://docs.aws.amazon.com/cli/latest/reference/apigateway/get-authorizer.html)
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -3997,7 +3974,7 @@ func (c *APIGateway) GetAuthorizersRequest(input *GetAuthorizersInput) (req *req
 //
 // Describe an existing Authorizers resource.
 //
-// AWS CLI ([[AwsDocsUrlPrefix]]/cli/latest/reference/apigateway/get-authorizers.html)
+// AWS CLI (https://docs.aws.amazon.com/cli/latest/reference/apigateway/get-authorizers.html)
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -9016,8 +8993,7 @@ func (c *APIGateway) TagResourceRequest(input *TagResourceInput) (req *request.R
 
 	output = &TagResourceOutput{}
 	req = c.newRequest(op, input, output)
-	req.Handlers.Unmarshal.Remove(restjson.UnmarshalHandler)
-	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
+	req.Handlers.Unmarshal.Swap(restjson.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -9120,7 +9096,7 @@ func (c *APIGateway) TestInvokeAuthorizerRequest(input *TestInvokeAuthorizerInpu
 // Simulate the execution of an Authorizer in your RestApi with headers, parameters,
 // and an incoming request body.
 //
-// Enable custom authorizers ([[AwsDocsUrlPrefix]]/apigateway/latest/developerguide/use-custom-authorizer.html)
+// Enable custom authorizers (https://docs.aws.amazon.com/apigateway/latest/developerguide/use-custom-authorizer.html)
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -9290,8 +9266,7 @@ func (c *APIGateway) UntagResourceRequest(input *UntagResourceInput) (req *reque
 
 	output = &UntagResourceOutput{}
 	req = c.newRequest(op, input, output)
-	req.Handlers.Unmarshal.Remove(restjson.UnmarshalHandler)
-	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
+	req.Handlers.Unmarshal.Swap(restjson.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -9568,7 +9543,7 @@ func (c *APIGateway) UpdateAuthorizerRequest(input *UpdateAuthorizerInput) (req 
 //
 // Updates an existing Authorizer resource.
 //
-// AWS CLI ([[AwsDocsUrlPrefix]]/cli/latest/reference/apigateway/update-authorizer.html)
+// AWS CLI (https://docs.aws.amazon.com/cli/latest/reference/apigateway/update-authorizer.html)
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -11338,7 +11313,7 @@ type AccessLogSettings struct {
 	DestinationArn *string `locationName:"destinationArn" type:"string"`
 
 	// A single line format of the access logs of data, as specified by selected
-	// $context variables ([[AwsDocsUrlPrefix]]/apigateway/latest/developerguide/api-gateway-mapping-template-reference.html#context-variable-reference).
+	// $context variables (https://docs.aws.amazon.com/apigateway/latest/developerguide/api-gateway-mapping-template-reference.html#context-variable-reference).
 	// The format must include at least $context.requestId.
 	Format *string `locationName:"format" type:"string"`
 }
@@ -11377,7 +11352,7 @@ func (s *AccessLogSettings) SetFormat(v string) *AccessLogSettings {
 // NotFoundException
 // TooManyRequestsException
 // For detailed error code information, including the corresponding HTTP Status
-// Codes, see API Gateway Error Codes ([[AwsDocsUrlPrefix]]/apigateway/api-reference/handling-errors/#api-error-codes)
+// Codes, see API Gateway Error Codes (https://docs.aws.amazon.com/apigateway/api-reference/handling-errors/#api-error-codes)
 //
 // Example: Get the information about an account.
 //
@@ -11391,16 +11366,16 @@ func (s *AccessLogSettings) SetFormat(v string) *AccessLogSettings {
 // The successful response returns a 200 OK status code and a payload similar
 // to the following:
 //
-// { "_links": { "curies": { "href": "[[AwsDocsUrlPrefix]]/apigateway/latest/developerguide/account-apigateway-{rel}.html",
+// { "_links": { "curies": { "href": "https://docs.aws.amazon.com/apigateway/latest/developerguide/account-apigateway-{rel}.html",
 // "name": "account", "templated": true }, "self": { "href": "/account" }, "account:update":
 // { "href": "/account" } }, "cloudwatchRoleArn": "arn:aws:iam::123456789012:role/apigAwsProxyRole",
 // "throttleSettings": { "rateLimit": 500, "burstLimit": 1000 } }
 // In addition to making the REST API call directly, you can use the AWS CLI
 // and an AWS SDK to access this resource.
 //
-// API Gateway Limits ([[AwsDocsUrlPrefix]]/apigateway/latest/developerguide/api-gateway-limits.html)Developer
-// Guide ([[AwsDocsUrlPrefix]]/apigateway/latest/developerguide/welcome.html),
-// AWS CLI ([[AwsDocsUrlPrefix]]/cli/latest/reference/apigateway/get-account.html)
+// API Gateway Limits (https://docs.aws.amazon.com/apigateway/latest/developerguide/api-gateway-limits.html)Developer
+// Guide (https://docs.aws.amazon.com/apigateway/latest/developerguide/welcome.html),
+// AWS CLI (https://docs.aws.amazon.com/cli/latest/reference/apigateway/get-account.html)
 type Account struct {
 	_ struct{} `type:"structure"`
 
@@ -11457,7 +11432,7 @@ func (s *Account) SetThrottleSettings(v *ThrottleSettings) *Account {
 // which indicates that the callers with the API key can make requests to that
 // stage.
 //
-// Use API Keys ([[AwsDocsUrlPrefix]]/apigateway/latest/developerguide/how-to-api-keys.html)
+// Use API Keys (https://docs.aws.amazon.com/apigateway/latest/developerguide/how-to-api-keys.html)
 type ApiKey struct {
 	_ struct{} `type:"structure"`
 
@@ -11600,11 +11575,11 @@ func (s *ApiStage) SetThrottle(v map[string]*ThrottleSettings) *ApiStage {
 // Represents an authorization layer for methods. If enabled on a method, API
 // Gateway will activate the authorizer when a client calls the method.
 //
-// Enable custom authorization ([[AwsDocsUrlPrefix]]/apigateway/latest/developerguide/use-custom-authorizer.html)
+// Enable custom authorization (https://docs.aws.amazon.com/apigateway/latest/developerguide/use-custom-authorizer.html)
 type Authorizer struct {
 	_ struct{} `type:"structure"`
 
-	// Optional customer-defined field, used in Swagger imports and exports without
+	// Optional customer-defined field, used in OpenAPI imports and exports without
 	// functional impact.
 	AuthType *string `locationName:"authType" type:"string"`
 
@@ -11750,7 +11725,7 @@ func (s *Authorizer) SetType(v string) *Authorizer {
 //
 // A custom domain name plus a BasePathMapping specification identifies a deployed
 // RestApi in a given stage of the owner Account.
-// Use Custom Domain Names ([[AwsDocsUrlPrefix]]/apigateway/latest/developerguide/how-to-custom-domains.html)
+// Use Custom Domain Names (https://docs.aws.amazon.com/apigateway/latest/developerguide/how-to-custom-domains.html)
 type BasePathMapping struct {
 	_ struct{} `type:"structure"`
 
@@ -11853,7 +11828,7 @@ func (s *CanarySettings) SetUseStageCache(v bool) *CanarySettings {
 // Client certificates are used to authenticate an API by the backend server.
 // To authenticate an API client (or user), use IAM roles and policies, a custom
 // Authorizer or an Amazon Cognito user pool.
-// Use Client-Side Certificate ([[AwsDocsUrlPrefix]]/apigateway/latest/developerguide/getting-started-client-side-ssl-authentication.html)
+// Use Client-Side Certificate (https://docs.aws.amazon.com/apigateway/latest/developerguide/getting-started-client-side-ssl-authentication.html)
 type ClientCertificate struct {
 	_ struct{} `type:"structure"`
 
@@ -11998,7 +11973,7 @@ func (s *CreateApiKeyInput) SetValue(v string) *CreateApiKeyInput {
 type CreateAuthorizerInput struct {
 	_ struct{} `type:"structure"`
 
-	// Optional customer-defined field, used in Swagger imports and exports without
+	// Optional customer-defined field, used in OpenAPI imports and exports without
 	// functional impact.
 	AuthType *string `locationName:"authType" type:"string"`
 
@@ -12093,6 +12068,9 @@ func (s *CreateAuthorizerInput) Validate() error {
 	}
 	if s.RestApiId == nil {
 		invalidParams.Add(request.NewErrParamRequired("RestApiId"))
+	}
+	if s.RestApiId != nil && len(*s.RestApiId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("RestApiId", 1))
 	}
 	if s.Type == nil {
 		invalidParams.Add(request.NewErrParamRequired("Type"))
@@ -12206,6 +12184,9 @@ func (s *CreateBasePathMappingInput) Validate() error {
 	if s.DomainName == nil {
 		invalidParams.Add(request.NewErrParamRequired("DomainName"))
 	}
+	if s.DomainName != nil && len(*s.DomainName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("DomainName", 1))
+	}
 	if s.RestApiId == nil {
 		invalidParams.Add(request.NewErrParamRequired("RestApiId"))
 	}
@@ -12294,6 +12275,9 @@ func (s *CreateDeploymentInput) Validate() error {
 	if s.RestApiId == nil {
 		invalidParams.Add(request.NewErrParamRequired("RestApiId"))
 	}
+	if s.RestApiId != nil && len(*s.RestApiId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("RestApiId", 1))
+	}
 
 	if invalidParams.Len() > 0 {
 		return invalidParams
@@ -12366,7 +12350,7 @@ type CreateDocumentationPartInput struct {
 	Location *DocumentationPartLocation `locationName:"location" type:"structure" required:"true"`
 
 	// [Required] The new documentation content map of the targeted API entity.
-	// Enclosed key-value pairs are API-specific, but only Swagger-compliant key-value
+	// Enclosed key-value pairs are API-specific, but only OpenAPI-compliant key-value
 	// pairs can be exported and, hence, published.
 	//
 	// Properties is a required field
@@ -12399,6 +12383,9 @@ func (s *CreateDocumentationPartInput) Validate() error {
 	}
 	if s.RestApiId == nil {
 		invalidParams.Add(request.NewErrParamRequired("RestApiId"))
+	}
+	if s.RestApiId != nil && len(*s.RestApiId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("RestApiId", 1))
 	}
 	if s.Location != nil {
 		if err := s.Location.Validate(); err != nil {
@@ -12469,6 +12456,9 @@ func (s *CreateDocumentationVersionInput) Validate() error {
 	}
 	if s.RestApiId == nil {
 		invalidParams.Add(request.NewErrParamRequired("RestApiId"))
+	}
+	if s.RestApiId != nil && len(*s.RestApiId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("RestApiId", 1))
 	}
 
 	if invalidParams.Len() > 0 {
@@ -12650,7 +12640,7 @@ type CreateModelInput struct {
 	RestApiId *string `location:"uri" locationName:"restapi_id" type:"string" required:"true"`
 
 	// The schema for the model. For application/json models, this should be JSON
-	// schema draft 4 ([[JsonSchemaUrl]]) model.
+	// schema draft 4 (https://tools.ietf.org/html/draft-zyp-json-schema-04) model.
 	Schema *string `locationName:"schema" type:"string"`
 }
 
@@ -12675,6 +12665,9 @@ func (s *CreateModelInput) Validate() error {
 	}
 	if s.RestApiId == nil {
 		invalidParams.Add(request.NewErrParamRequired("RestApiId"))
+	}
+	if s.RestApiId != nil && len(*s.RestApiId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("RestApiId", 1))
 	}
 
 	if invalidParams.Len() > 0 {
@@ -12750,6 +12743,9 @@ func (s *CreateRequestValidatorInput) Validate() error {
 	if s.RestApiId == nil {
 		invalidParams.Add(request.NewErrParamRequired("RestApiId"))
 	}
+	if s.RestApiId != nil && len(*s.RestApiId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("RestApiId", 1))
+	}
 
 	if invalidParams.Len() > 0 {
 		return invalidParams
@@ -12817,11 +12813,17 @@ func (s *CreateResourceInput) Validate() error {
 	if s.ParentId == nil {
 		invalidParams.Add(request.NewErrParamRequired("ParentId"))
 	}
+	if s.ParentId != nil && len(*s.ParentId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ParentId", 1))
+	}
 	if s.PathPart == nil {
 		invalidParams.Add(request.NewErrParamRequired("PathPart"))
 	}
 	if s.RestApiId == nil {
 		invalidParams.Add(request.NewErrParamRequired("RestApiId"))
+	}
+	if s.RestApiId != nil && len(*s.RestApiId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("RestApiId", 1))
 	}
 
 	if invalidParams.Len() > 0 {
@@ -13037,6 +13039,9 @@ func (s *CreateStageInput) Validate() error {
 	if s.RestApiId == nil {
 		invalidParams.Add(request.NewErrParamRequired("RestApiId"))
 	}
+	if s.RestApiId != nil && len(*s.RestApiId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("RestApiId", 1))
+	}
 	if s.StageName == nil {
 		invalidParams.Add(request.NewErrParamRequired("StageName"))
 	}
@@ -13234,6 +13239,9 @@ func (s *CreateUsagePlanKeyInput) Validate() error {
 	if s.UsagePlanId == nil {
 		invalidParams.Add(request.NewErrParamRequired("UsagePlanId"))
 	}
+	if s.UsagePlanId != nil && len(*s.UsagePlanId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("UsagePlanId", 1))
+	}
 
 	if invalidParams.Len() > 0 {
 		return invalidParams
@@ -13352,6 +13360,9 @@ func (s *DeleteApiKeyInput) Validate() error {
 	if s.ApiKey == nil {
 		invalidParams.Add(request.NewErrParamRequired("ApiKey"))
 	}
+	if s.ApiKey != nil && len(*s.ApiKey) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ApiKey", 1))
+	}
 
 	if invalidParams.Len() > 0 {
 		return invalidParams
@@ -13410,8 +13421,14 @@ func (s *DeleteAuthorizerInput) Validate() error {
 	if s.AuthorizerId == nil {
 		invalidParams.Add(request.NewErrParamRequired("AuthorizerId"))
 	}
+	if s.AuthorizerId != nil && len(*s.AuthorizerId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("AuthorizerId", 1))
+	}
 	if s.RestApiId == nil {
 		invalidParams.Add(request.NewErrParamRequired("RestApiId"))
+	}
+	if s.RestApiId != nil && len(*s.RestApiId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("RestApiId", 1))
 	}
 
 	if invalidParams.Len() > 0 {
@@ -13477,8 +13494,14 @@ func (s *DeleteBasePathMappingInput) Validate() error {
 	if s.BasePath == nil {
 		invalidParams.Add(request.NewErrParamRequired("BasePath"))
 	}
+	if s.BasePath != nil && len(*s.BasePath) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("BasePath", 1))
+	}
 	if s.DomainName == nil {
 		invalidParams.Add(request.NewErrParamRequired("DomainName"))
+	}
+	if s.DomainName != nil && len(*s.DomainName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("DomainName", 1))
 	}
 
 	if invalidParams.Len() > 0 {
@@ -13539,6 +13562,9 @@ func (s *DeleteClientCertificateInput) Validate() error {
 	if s.ClientCertificateId == nil {
 		invalidParams.Add(request.NewErrParamRequired("ClientCertificateId"))
 	}
+	if s.ClientCertificateId != nil && len(*s.ClientCertificateId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ClientCertificateId", 1))
+	}
 
 	if invalidParams.Len() > 0 {
 		return invalidParams
@@ -13597,8 +13623,14 @@ func (s *DeleteDeploymentInput) Validate() error {
 	if s.DeploymentId == nil {
 		invalidParams.Add(request.NewErrParamRequired("DeploymentId"))
 	}
+	if s.DeploymentId != nil && len(*s.DeploymentId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("DeploymentId", 1))
+	}
 	if s.RestApiId == nil {
 		invalidParams.Add(request.NewErrParamRequired("RestApiId"))
+	}
+	if s.RestApiId != nil && len(*s.RestApiId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("RestApiId", 1))
 	}
 
 	if invalidParams.Len() > 0 {
@@ -13664,8 +13696,14 @@ func (s *DeleteDocumentationPartInput) Validate() error {
 	if s.DocumentationPartId == nil {
 		invalidParams.Add(request.NewErrParamRequired("DocumentationPartId"))
 	}
+	if s.DocumentationPartId != nil && len(*s.DocumentationPartId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("DocumentationPartId", 1))
+	}
 	if s.RestApiId == nil {
 		invalidParams.Add(request.NewErrParamRequired("RestApiId"))
+	}
+	if s.RestApiId != nil && len(*s.RestApiId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("RestApiId", 1))
 	}
 
 	if invalidParams.Len() > 0 {
@@ -13731,8 +13769,14 @@ func (s *DeleteDocumentationVersionInput) Validate() error {
 	if s.DocumentationVersion == nil {
 		invalidParams.Add(request.NewErrParamRequired("DocumentationVersion"))
 	}
+	if s.DocumentationVersion != nil && len(*s.DocumentationVersion) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("DocumentationVersion", 1))
+	}
 	if s.RestApiId == nil {
 		invalidParams.Add(request.NewErrParamRequired("RestApiId"))
+	}
+	if s.RestApiId != nil && len(*s.RestApiId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("RestApiId", 1))
 	}
 
 	if invalidParams.Len() > 0 {
@@ -13792,6 +13836,9 @@ func (s *DeleteDomainNameInput) Validate() error {
 	invalidParams := request.ErrInvalidParams{Context: "DeleteDomainNameInput"}
 	if s.DomainName == nil {
 		invalidParams.Add(request.NewErrParamRequired("DomainName"))
+	}
+	if s.DomainName != nil && len(*s.DomainName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("DomainName", 1))
 	}
 
 	if invalidParams.Len() > 0 {
@@ -13872,8 +13919,14 @@ func (s *DeleteGatewayResponseInput) Validate() error {
 	if s.ResponseType == nil {
 		invalidParams.Add(request.NewErrParamRequired("ResponseType"))
 	}
+	if s.ResponseType != nil && len(*s.ResponseType) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ResponseType", 1))
+	}
 	if s.RestApiId == nil {
 		invalidParams.Add(request.NewErrParamRequired("RestApiId"))
+	}
+	if s.RestApiId != nil && len(*s.RestApiId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("RestApiId", 1))
 	}
 
 	if invalidParams.Len() > 0 {
@@ -13944,11 +13997,20 @@ func (s *DeleteIntegrationInput) Validate() error {
 	if s.HttpMethod == nil {
 		invalidParams.Add(request.NewErrParamRequired("HttpMethod"))
 	}
+	if s.HttpMethod != nil && len(*s.HttpMethod) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("HttpMethod", 1))
+	}
 	if s.ResourceId == nil {
 		invalidParams.Add(request.NewErrParamRequired("ResourceId"))
 	}
+	if s.ResourceId != nil && len(*s.ResourceId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ResourceId", 1))
+	}
 	if s.RestApiId == nil {
 		invalidParams.Add(request.NewErrParamRequired("RestApiId"))
+	}
+	if s.RestApiId != nil && len(*s.RestApiId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("RestApiId", 1))
 	}
 
 	if invalidParams.Len() > 0 {
@@ -14030,14 +14092,26 @@ func (s *DeleteIntegrationResponseInput) Validate() error {
 	if s.HttpMethod == nil {
 		invalidParams.Add(request.NewErrParamRequired("HttpMethod"))
 	}
+	if s.HttpMethod != nil && len(*s.HttpMethod) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("HttpMethod", 1))
+	}
 	if s.ResourceId == nil {
 		invalidParams.Add(request.NewErrParamRequired("ResourceId"))
+	}
+	if s.ResourceId != nil && len(*s.ResourceId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ResourceId", 1))
 	}
 	if s.RestApiId == nil {
 		invalidParams.Add(request.NewErrParamRequired("RestApiId"))
 	}
+	if s.RestApiId != nil && len(*s.RestApiId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("RestApiId", 1))
+	}
 	if s.StatusCode == nil {
 		invalidParams.Add(request.NewErrParamRequired("StatusCode"))
+	}
+	if s.StatusCode != nil && len(*s.StatusCode) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("StatusCode", 1))
 	}
 
 	if invalidParams.Len() > 0 {
@@ -14120,11 +14194,20 @@ func (s *DeleteMethodInput) Validate() error {
 	if s.HttpMethod == nil {
 		invalidParams.Add(request.NewErrParamRequired("HttpMethod"))
 	}
+	if s.HttpMethod != nil && len(*s.HttpMethod) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("HttpMethod", 1))
+	}
 	if s.ResourceId == nil {
 		invalidParams.Add(request.NewErrParamRequired("ResourceId"))
 	}
+	if s.ResourceId != nil && len(*s.ResourceId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ResourceId", 1))
+	}
 	if s.RestApiId == nil {
 		invalidParams.Add(request.NewErrParamRequired("RestApiId"))
+	}
+	if s.RestApiId != nil && len(*s.RestApiId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("RestApiId", 1))
 	}
 
 	if invalidParams.Len() > 0 {
@@ -14206,14 +14289,26 @@ func (s *DeleteMethodResponseInput) Validate() error {
 	if s.HttpMethod == nil {
 		invalidParams.Add(request.NewErrParamRequired("HttpMethod"))
 	}
+	if s.HttpMethod != nil && len(*s.HttpMethod) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("HttpMethod", 1))
+	}
 	if s.ResourceId == nil {
 		invalidParams.Add(request.NewErrParamRequired("ResourceId"))
+	}
+	if s.ResourceId != nil && len(*s.ResourceId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ResourceId", 1))
 	}
 	if s.RestApiId == nil {
 		invalidParams.Add(request.NewErrParamRequired("RestApiId"))
 	}
+	if s.RestApiId != nil && len(*s.RestApiId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("RestApiId", 1))
+	}
 	if s.StatusCode == nil {
 		invalidParams.Add(request.NewErrParamRequired("StatusCode"))
+	}
+	if s.StatusCode != nil && len(*s.StatusCode) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("StatusCode", 1))
 	}
 
 	if invalidParams.Len() > 0 {
@@ -14291,8 +14386,14 @@ func (s *DeleteModelInput) Validate() error {
 	if s.ModelName == nil {
 		invalidParams.Add(request.NewErrParamRequired("ModelName"))
 	}
+	if s.ModelName != nil && len(*s.ModelName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ModelName", 1))
+	}
 	if s.RestApiId == nil {
 		invalidParams.Add(request.NewErrParamRequired("RestApiId"))
+	}
+	if s.RestApiId != nil && len(*s.RestApiId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("RestApiId", 1))
 	}
 
 	if invalidParams.Len() > 0 {
@@ -14358,8 +14459,14 @@ func (s *DeleteRequestValidatorInput) Validate() error {
 	if s.RequestValidatorId == nil {
 		invalidParams.Add(request.NewErrParamRequired("RequestValidatorId"))
 	}
+	if s.RequestValidatorId != nil && len(*s.RequestValidatorId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("RequestValidatorId", 1))
+	}
 	if s.RestApiId == nil {
 		invalidParams.Add(request.NewErrParamRequired("RestApiId"))
+	}
+	if s.RestApiId != nil && len(*s.RestApiId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("RestApiId", 1))
 	}
 
 	if invalidParams.Len() > 0 {
@@ -14425,8 +14532,14 @@ func (s *DeleteResourceInput) Validate() error {
 	if s.ResourceId == nil {
 		invalidParams.Add(request.NewErrParamRequired("ResourceId"))
 	}
+	if s.ResourceId != nil && len(*s.ResourceId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ResourceId", 1))
+	}
 	if s.RestApiId == nil {
 		invalidParams.Add(request.NewErrParamRequired("RestApiId"))
+	}
+	if s.RestApiId != nil && len(*s.RestApiId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("RestApiId", 1))
 	}
 
 	if invalidParams.Len() > 0 {
@@ -14487,6 +14600,9 @@ func (s *DeleteRestApiInput) Validate() error {
 	if s.RestApiId == nil {
 		invalidParams.Add(request.NewErrParamRequired("RestApiId"))
 	}
+	if s.RestApiId != nil && len(*s.RestApiId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("RestApiId", 1))
+	}
 
 	if invalidParams.Len() > 0 {
 		return invalidParams
@@ -14545,8 +14661,14 @@ func (s *DeleteStageInput) Validate() error {
 	if s.RestApiId == nil {
 		invalidParams.Add(request.NewErrParamRequired("RestApiId"))
 	}
+	if s.RestApiId != nil && len(*s.RestApiId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("RestApiId", 1))
+	}
 	if s.StageName == nil {
 		invalidParams.Add(request.NewErrParamRequired("StageName"))
+	}
+	if s.StageName != nil && len(*s.StageName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("StageName", 1))
 	}
 
 	if invalidParams.Len() > 0 {
@@ -14607,6 +14729,9 @@ func (s *DeleteUsagePlanInput) Validate() error {
 	if s.UsagePlanId == nil {
 		invalidParams.Add(request.NewErrParamRequired("UsagePlanId"))
 	}
+	if s.UsagePlanId != nil && len(*s.UsagePlanId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("UsagePlanId", 1))
+	}
 
 	if invalidParams.Len() > 0 {
 		return invalidParams
@@ -14653,8 +14778,14 @@ func (s *DeleteUsagePlanKeyInput) Validate() error {
 	if s.KeyId == nil {
 		invalidParams.Add(request.NewErrParamRequired("KeyId"))
 	}
+	if s.KeyId != nil && len(*s.KeyId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("KeyId", 1))
+	}
 	if s.UsagePlanId == nil {
 		invalidParams.Add(request.NewErrParamRequired("UsagePlanId"))
+	}
+	if s.UsagePlanId != nil && len(*s.UsagePlanId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("UsagePlanId", 1))
 	}
 
 	if invalidParams.Len() > 0 {
@@ -14730,6 +14861,9 @@ func (s *DeleteVpcLinkInput) Validate() error {
 	if s.VpcLinkId == nil {
 		invalidParams.Add(request.NewErrParamRequired("VpcLinkId"))
 	}
+	if s.VpcLinkId != nil && len(*s.VpcLinkId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("VpcLinkId", 1))
+	}
 
 	if invalidParams.Len() > 0 {
 		return invalidParams
@@ -14765,8 +14899,8 @@ func (s DeleteVpcLinkOutput) GoString() string {
 // To view, update, or delete a deployment, call GET, PATCH, or DELETE on the
 // specified deployment resource (/restapis/{restapi_id}/deployments/{deployment_id}).
 //
-// RestApi, Deployments, Stage, AWS CLI ([[AwsDocsUrlPrefix]]/cli/latest/reference/apigateway/get-deployment.html),
-// AWS SDKs ([[AwsAmazonUrlPrefix]]/tools/)
+// RestApi, Deployments, Stage, AWS CLI (https://docs.aws.amazon.com/cli/latest/reference/apigateway/get-deployment.html),
+// AWS SDKs (https://aws.amazon.com/tools/)
 type Deployment struct {
 	_ struct{} `type:"structure"`
 
@@ -14874,11 +15008,11 @@ func (s *DeploymentCanarySettings) SetUseStageCache(v bool) *DeploymentCanarySet
 // on the API entity type. All valid fields are not required.
 //
 // The content map is a JSON string of API-specific key-value pairs. Although
-// an API can use any shape for the content map, only the Swagger-compliant
+// an API can use any shape for the content map, only the OpenAPI-compliant
 // documentation fields will be injected into the associated API entity definition
-// in the exported Swagger definition file.
+// in the exported OpenAPI definition file.
 //
-// Documenting an API ([[AwsDocsUrlPrefix]]/apigateway/latest/developerguide/api-gateway-documenting-api.html),
+// Documenting an API (https://docs.aws.amazon.com/apigateway/latest/developerguide/api-gateway-documenting-api.html),
 // DocumentationParts
 type DocumentationPart struct {
 	_ struct{} `type:"structure"`
@@ -14896,10 +15030,10 @@ type DocumentationPart struct {
 
 	// A content map of API-specific key-value pairs describing the targeted API
 	// entity. The map must be encoded as a JSON string, e.g., "{ \"description\":
-	// \"The API does ...\" }". Only Swagger-compliant documentation-related fields
+	// \"The API does ...\" }". Only OpenAPI-compliant documentation-related fields
 	// from the properties map are exported and, hence, published as part of the
 	// API entity definitions, while the original documentation parts are exported
-	// in a Swagger extension of x-amazon-apigateway-documentation.
+	// in a OpenAPI extension of x-amazon-apigateway-documentation.
 	Properties *string `locationName:"properties" type:"string"`
 }
 
@@ -15034,9 +15168,9 @@ func (s *DocumentationPartLocation) SetType(v string) *DocumentationPartLocation
 //
 // Publishing API documentation involves creating a documentation version associated
 // with an API stage and exporting the versioned documentation to an external
-// (e.g., Swagger) file.
+// (e.g., OpenAPI) file.
 //
-// Documenting an API ([[AwsDocsUrlPrefix]]/apigateway/latest/developerguide/api-gateway-documenting-api.html),
+// Documenting an API (https://docs.aws.amazon.com/apigateway/latest/developerguide/api-gateway-documenting-api.html),
 // DocumentationPart, DocumentationVersions
 type DocumentationVersion struct {
 	_ struct{} `type:"structure"`
@@ -15090,7 +15224,7 @@ func (s *DocumentationVersion) SetVersion(v string) *DocumentationVersion {
 // where myApi is the base path mapping (BasePathMapping) of your API under
 // the custom domain name.
 //
-// Set a Custom Host Name for an API ([[AwsDocsUrlPrefix]]/apigateway/latest/developerguide/how-to-custom-domains.html)
+// Set a Custom Host Name for an API (https://docs.aws.amazon.com/apigateway/latest/developerguide/how-to-custom-domains.html)
 type DomainName struct {
 	_ struct{} `type:"structure"`
 
@@ -15111,13 +15245,13 @@ type DomainName struct {
 	// custom domain name for an edge-optimized endpoint. You set up this association
 	// when adding a DNS record pointing the custom domain name to this distribution
 	// name. For more information about CloudFront distributions, see the Amazon
-	// CloudFront documentation ([[AwsAmazonUrlPrefix]]/documentation/cloudfront/).
+	// CloudFront documentation (https://aws.amazon.com/documentation/cloudfront/).
 	DistributionDomainName *string `locationName:"distributionDomainName" type:"string"`
 
 	// The region-agnostic Amazon Route 53 Hosted Zone ID of the edge-optimized
 	// endpoint. The valid value is Z2FDTNDATAQYW2 for all the regions. For more
-	// information, see Set up a Regional Custom Domain Name ([[AwsDocsUrlPrefix]]/apigateway/latest/developerguide/apigateway-regional-api-custom-domain-create.html)
-	// and AWS Regions and Endpoints for API Gateway ([[AwsDocsUrlPrefix]]/general/latest/gr/rande.html#apigateway_region).
+	// information, see Set up a Regional Custom Domain Name (https://docs.aws.amazon.com/apigateway/latest/developerguide/apigateway-regional-api-custom-domain-create.html)
+	// and AWS Regions and Endpoints for API Gateway (https://docs.aws.amazon.com/general/latest/gr/rande.html#apigateway_region).
 	DistributionHostedZoneId *string `locationName:"distributionHostedZoneId" type:"string"`
 
 	// The custom domain name as an API host name, for example, my-api.example.com.
@@ -15142,8 +15276,8 @@ type DomainName struct {
 	RegionalDomainName *string `locationName:"regionalDomainName" type:"string"`
 
 	// The region-specific Amazon Route 53 Hosted Zone ID of the regional endpoint.
-	// For more information, see Set up a Regional Custom Domain Name ([[AwsDocsUrlPrefix]]/apigateway/latest/developerguide/apigateway-regional-api-custom-domain-create.html)
-	// and AWS Regions and Endpoints for API Gateway ([[AwsDocsUrlPrefix]]/general/latest/gr/rande.html#apigateway_region).
+	// For more information, see Set up a Regional Custom Domain Name (https://docs.aws.amazon.com/apigateway/latest/developerguide/apigateway-regional-api-custom-domain-create.html)
+	// and AWS Regions and Endpoints for API Gateway (https://docs.aws.amazon.com/general/latest/gr/rande.html#apigateway_region).
 	RegionalHostedZoneId *string `locationName:"regionalHostedZoneId" type:"string"`
 }
 
@@ -15282,8 +15416,14 @@ func (s *FlushStageAuthorizersCacheInput) Validate() error {
 	if s.RestApiId == nil {
 		invalidParams.Add(request.NewErrParamRequired("RestApiId"))
 	}
+	if s.RestApiId != nil && len(*s.RestApiId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("RestApiId", 1))
+	}
 	if s.StageName == nil {
 		invalidParams.Add(request.NewErrParamRequired("StageName"))
+	}
+	if s.StageName != nil && len(*s.StageName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("StageName", 1))
 	}
 
 	if invalidParams.Len() > 0 {
@@ -15349,8 +15489,14 @@ func (s *FlushStageCacheInput) Validate() error {
 	if s.RestApiId == nil {
 		invalidParams.Add(request.NewErrParamRequired("RestApiId"))
 	}
+	if s.RestApiId != nil && len(*s.RestApiId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("RestApiId", 1))
+	}
 	if s.StageName == nil {
 		invalidParams.Add(request.NewErrParamRequired("StageName"))
+	}
+	if s.StageName != nil && len(*s.StageName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("StageName", 1))
 	}
 
 	if invalidParams.Len() > 0 {
@@ -15454,6 +15600,9 @@ func (s *GetApiKeyInput) Validate() error {
 	if s.ApiKey == nil {
 		invalidParams.Add(request.NewErrParamRequired("ApiKey"))
 	}
+	if s.ApiKey != nil && len(*s.ApiKey) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ApiKey", 1))
+	}
 
 	if invalidParams.Len() > 0 {
 		return invalidParams
@@ -15538,7 +15687,7 @@ func (s *GetApiKeysInput) SetPosition(v string) *GetApiKeysInput {
 
 // Represents a collection of API keys as represented by an ApiKeys resource.
 //
-// Use API Keys ([[AwsDocsUrlPrefix]]/apigateway/latest/developerguide/how-to-api-keys.html)
+// Use API Keys (https://docs.aws.amazon.com/apigateway/latest/developerguide/how-to-api-keys.html)
 type GetApiKeysOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -15611,8 +15760,14 @@ func (s *GetAuthorizerInput) Validate() error {
 	if s.AuthorizerId == nil {
 		invalidParams.Add(request.NewErrParamRequired("AuthorizerId"))
 	}
+	if s.AuthorizerId != nil && len(*s.AuthorizerId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("AuthorizerId", 1))
+	}
 	if s.RestApiId == nil {
 		invalidParams.Add(request.NewErrParamRequired("RestApiId"))
+	}
+	if s.RestApiId != nil && len(*s.RestApiId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("RestApiId", 1))
 	}
 
 	if invalidParams.Len() > 0 {
@@ -15666,6 +15821,9 @@ func (s *GetAuthorizersInput) Validate() error {
 	if s.RestApiId == nil {
 		invalidParams.Add(request.NewErrParamRequired("RestApiId"))
 	}
+	if s.RestApiId != nil && len(*s.RestApiId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("RestApiId", 1))
+	}
 
 	if invalidParams.Len() > 0 {
 		return invalidParams
@@ -15693,7 +15851,7 @@ func (s *GetAuthorizersInput) SetRestApiId(v string) *GetAuthorizersInput {
 
 // Represents a collection of Authorizer resources.
 //
-// Enable custom authorization ([[AwsDocsUrlPrefix]]/apigateway/latest/developerguide/use-custom-authorizer.html)
+// Enable custom authorization (https://docs.aws.amazon.com/apigateway/latest/developerguide/use-custom-authorizer.html)
 type GetAuthorizersOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -15759,8 +15917,14 @@ func (s *GetBasePathMappingInput) Validate() error {
 	if s.BasePath == nil {
 		invalidParams.Add(request.NewErrParamRequired("BasePath"))
 	}
+	if s.BasePath != nil && len(*s.BasePath) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("BasePath", 1))
+	}
 	if s.DomainName == nil {
 		invalidParams.Add(request.NewErrParamRequired("DomainName"))
+	}
+	if s.DomainName != nil && len(*s.DomainName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("DomainName", 1))
 	}
 
 	if invalidParams.Len() > 0 {
@@ -15814,6 +15978,9 @@ func (s *GetBasePathMappingsInput) Validate() error {
 	if s.DomainName == nil {
 		invalidParams.Add(request.NewErrParamRequired("DomainName"))
 	}
+	if s.DomainName != nil && len(*s.DomainName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("DomainName", 1))
+	}
 
 	if invalidParams.Len() > 0 {
 		return invalidParams
@@ -15841,7 +16008,7 @@ func (s *GetBasePathMappingsInput) SetPosition(v string) *GetBasePathMappingsInp
 
 // Represents a collection of BasePathMapping resources.
 //
-// Use Custom Domain Names ([[AwsDocsUrlPrefix]]/apigateway/latest/developerguide/how-to-custom-domains.html)
+// Use Custom Domain Names (https://docs.aws.amazon.com/apigateway/latest/developerguide/how-to-custom-domains.html)
 type GetBasePathMappingsOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -15899,6 +16066,9 @@ func (s *GetClientCertificateInput) Validate() error {
 	if s.ClientCertificateId == nil {
 		invalidParams.Add(request.NewErrParamRequired("ClientCertificateId"))
 	}
+	if s.ClientCertificateId != nil && len(*s.ClientCertificateId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ClientCertificateId", 1))
+	}
 
 	if invalidParams.Len() > 0 {
 		return invalidParams
@@ -15948,7 +16118,7 @@ func (s *GetClientCertificatesInput) SetPosition(v string) *GetClientCertificate
 
 // Represents a collection of ClientCertificate resources.
 //
-// Use Client-Side Certificate ([[AwsDocsUrlPrefix]]/apigateway/latest/developerguide/getting-started-client-side-ssl-authentication.html)
+// Use Client-Side Certificate (https://docs.aws.amazon.com/apigateway/latest/developerguide/getting-started-client-side-ssl-authentication.html)
 type GetClientCertificatesOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -16020,8 +16190,14 @@ func (s *GetDeploymentInput) Validate() error {
 	if s.DeploymentId == nil {
 		invalidParams.Add(request.NewErrParamRequired("DeploymentId"))
 	}
+	if s.DeploymentId != nil && len(*s.DeploymentId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("DeploymentId", 1))
+	}
 	if s.RestApiId == nil {
 		invalidParams.Add(request.NewErrParamRequired("RestApiId"))
+	}
+	if s.RestApiId != nil && len(*s.RestApiId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("RestApiId", 1))
 	}
 
 	if invalidParams.Len() > 0 {
@@ -16081,6 +16257,9 @@ func (s *GetDeploymentsInput) Validate() error {
 	if s.RestApiId == nil {
 		invalidParams.Add(request.NewErrParamRequired("RestApiId"))
 	}
+	if s.RestApiId != nil && len(*s.RestApiId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("RestApiId", 1))
+	}
 
 	if invalidParams.Len() > 0 {
 		return invalidParams
@@ -16115,9 +16294,9 @@ func (s *GetDeploymentsInput) SetRestApiId(v string) *GetDeploymentsInput {
 // resource. To view, update, or delete an existing deployment, make a GET,
 // PATCH, or DELETE request, respectively, on a specified Deployment resource.
 //
-// Deploying an API ([[AwsDocsUrlPrefix]]/apigateway/latest/developerguide/how-to-deploy-api.html),
-// AWS CLI ([[AwsDocsUrlPrefix]]/cli/latest/reference/apigateway/get-deployment.html),
-// AWS SDKs ([[AwsAmazonUrlPrefix]]/tools/)
+// Deploying an API (https://docs.aws.amazon.com/apigateway/latest/developerguide/how-to-deploy-api.html),
+// AWS CLI (https://docs.aws.amazon.com/cli/latest/reference/apigateway/get-deployment.html),
+// AWS SDKs (https://aws.amazon.com/tools/)
 type GetDeploymentsOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -16180,8 +16359,14 @@ func (s *GetDocumentationPartInput) Validate() error {
 	if s.DocumentationPartId == nil {
 		invalidParams.Add(request.NewErrParamRequired("DocumentationPartId"))
 	}
+	if s.DocumentationPartId != nil && len(*s.DocumentationPartId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("DocumentationPartId", 1))
+	}
 	if s.RestApiId == nil {
 		invalidParams.Add(request.NewErrParamRequired("RestApiId"))
+	}
+	if s.RestApiId != nil && len(*s.RestApiId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("RestApiId", 1))
 	}
 
 	if invalidParams.Len() > 0 {
@@ -16250,6 +16435,9 @@ func (s *GetDocumentationPartsInput) Validate() error {
 	if s.RestApiId == nil {
 		invalidParams.Add(request.NewErrParamRequired("RestApiId"))
 	}
+	if s.RestApiId != nil && len(*s.RestApiId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("RestApiId", 1))
+	}
 
 	if invalidParams.Len() > 0 {
 		return invalidParams
@@ -16301,7 +16489,7 @@ func (s *GetDocumentationPartsInput) SetType(v string) *GetDocumentationPartsInp
 
 // The collection of documentation parts of an API.
 //
-// Documenting an API ([[AwsDocsUrlPrefix]]/apigateway/latest/developerguide/api-gateway-documenting-api.html), DocumentationPart
+// Documenting an API (https://docs.aws.amazon.com/apigateway/latest/developerguide/api-gateway-documenting-api.html), DocumentationPart
 type GetDocumentationPartsOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -16364,8 +16552,14 @@ func (s *GetDocumentationVersionInput) Validate() error {
 	if s.DocumentationVersion == nil {
 		invalidParams.Add(request.NewErrParamRequired("DocumentationVersion"))
 	}
+	if s.DocumentationVersion != nil && len(*s.DocumentationVersion) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("DocumentationVersion", 1))
+	}
 	if s.RestApiId == nil {
 		invalidParams.Add(request.NewErrParamRequired("RestApiId"))
+	}
+	if s.RestApiId != nil && len(*s.RestApiId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("RestApiId", 1))
 	}
 
 	if invalidParams.Len() > 0 {
@@ -16419,6 +16613,9 @@ func (s *GetDocumentationVersionsInput) Validate() error {
 	if s.RestApiId == nil {
 		invalidParams.Add(request.NewErrParamRequired("RestApiId"))
 	}
+	if s.RestApiId != nil && len(*s.RestApiId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("RestApiId", 1))
+	}
 
 	if invalidParams.Len() > 0 {
 		return invalidParams
@@ -16449,7 +16646,7 @@ func (s *GetDocumentationVersionsInput) SetRestApiId(v string) *GetDocumentation
 // Use the DocumentationVersions to manage documentation snapshots associated
 // with various API stages.
 //
-// Documenting an API ([[AwsDocsUrlPrefix]]/apigateway/latest/developerguide/api-gateway-documenting-api.html),
+// Documenting an API (https://docs.aws.amazon.com/apigateway/latest/developerguide/api-gateway-documenting-api.html),
 // DocumentationPart, DocumentationVersion
 type GetDocumentationVersionsOutput struct {
 	_ struct{} `type:"structure"`
@@ -16508,6 +16705,9 @@ func (s *GetDomainNameInput) Validate() error {
 	if s.DomainName == nil {
 		invalidParams.Add(request.NewErrParamRequired("DomainName"))
 	}
+	if s.DomainName != nil && len(*s.DomainName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("DomainName", 1))
+	}
 
 	if invalidParams.Len() > 0 {
 		return invalidParams
@@ -16557,7 +16757,7 @@ func (s *GetDomainNamesInput) SetPosition(v string) *GetDomainNamesInput {
 
 // Represents a collection of DomainName resources.
 //
-// Use Client-Side Certificate ([[AwsDocsUrlPrefix]]/apigateway/latest/developerguide/how-to-custom-domains.html)
+// Use Client-Side Certificate (https://docs.aws.amazon.com/apigateway/latest/developerguide/how-to-custom-domains.html)
 type GetDomainNamesOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -16594,18 +16794,19 @@ type GetExportInput struct {
 	_ struct{} `type:"structure"`
 
 	// The content-type of the export, for example application/json. Currently application/json
-	// and application/yaml are supported for exportType of swagger. This should
-	// be specified in the Accept header for direct API requests.
+	// and application/yaml are supported for exportType ofoas30 and swagger. This
+	// should be specified in the Accept header for direct API requests.
 	Accepts *string `location:"header" locationName:"Accept" type:"string"`
 
-	// [Required] The type of export. Currently only 'swagger' is supported.
+	// [Required] The type of export. Acceptable values are 'oas30' for OpenAPI
+	// 3.0.x and 'swagger' for Swagger/OpenAPI 2.0.
 	//
 	// ExportType is a required field
 	ExportType *string `location:"uri" locationName:"export_type" type:"string" required:"true"`
 
 	// A key-value map of query string parameters that specify properties of the
-	// export, depending on the requested exportType. For exportTypeswagger, any
-	// combination of the following parameters are supported: extensions='integrations'
+	// export, depending on the requested exportType. For exportTypeoas30 and swagger,
+	// any combination of the following parameters are supported: extensions='integrations'
 	// or extensions='apigateway' will export the API with x-amazon-apigateway-integration
 	// extensions. extensions='authorizers' will export the API with x-amazon-apigateway-authorizer
 	// extensions. postman will export the API with Postman extensions, allowing
@@ -16639,11 +16840,20 @@ func (s *GetExportInput) Validate() error {
 	if s.ExportType == nil {
 		invalidParams.Add(request.NewErrParamRequired("ExportType"))
 	}
+	if s.ExportType != nil && len(*s.ExportType) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ExportType", 1))
+	}
 	if s.RestApiId == nil {
 		invalidParams.Add(request.NewErrParamRequired("RestApiId"))
 	}
+	if s.RestApiId != nil && len(*s.RestApiId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("RestApiId", 1))
+	}
 	if s.StageName == nil {
 		invalidParams.Add(request.NewErrParamRequired("StageName"))
+	}
+	if s.StageName != nil && len(*s.StageName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("StageName", 1))
 	}
 
 	if invalidParams.Len() > 0 {
@@ -16776,8 +16986,14 @@ func (s *GetGatewayResponseInput) Validate() error {
 	if s.ResponseType == nil {
 		invalidParams.Add(request.NewErrParamRequired("ResponseType"))
 	}
+	if s.ResponseType != nil && len(*s.ResponseType) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ResponseType", 1))
+	}
 	if s.RestApiId == nil {
 		invalidParams.Add(request.NewErrParamRequired("RestApiId"))
+	}
+	if s.RestApiId != nil && len(*s.RestApiId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("RestApiId", 1))
 	}
 
 	if invalidParams.Len() > 0 {
@@ -16836,6 +17052,9 @@ func (s *GetGatewayResponsesInput) Validate() error {
 	if s.RestApiId == nil {
 		invalidParams.Add(request.NewErrParamRequired("RestApiId"))
 	}
+	if s.RestApiId != nil && len(*s.RestApiId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("RestApiId", 1))
+	}
 
 	if invalidParams.Len() > 0 {
 		return invalidParams
@@ -16866,7 +17085,7 @@ func (s *GetGatewayResponsesInput) SetRestApiId(v string) *GetGatewayResponsesIn
 // this collection.
 //
 // For more information about valid gateway response types, see Gateway Response
-// Types Supported by API Gateway ([[AwsDocsUrlPrefix]]/apigateway/latest/developerguide/supported-gateway-response-types.html)Example:
+// Types Supported by API Gateway (https://docs.aws.amazon.com/apigateway/latest/developerguide/supported-gateway-response-types.html)Example:
 // Get the collection of gateway responses of an API
 //
 // Request
@@ -17020,7 +17239,7 @@ func (s *GetGatewayResponsesInput) SetRestApiId(v string) *GetGatewayResponsesIn
 // { "application/json": "{\"message\":$context.error.messageString}" }, "responseType":
 // "AUTHORIZER_FAILURE", "statusCode": "500" } ] } }
 //
-// Customize Gateway Responses ([[AwsDocsUrlPrefix]]/apigateway/latest/developerguide/customize-gateway-responses.html)
+// Customize Gateway Responses (https://docs.aws.amazon.com/apigateway/latest/developerguide/customize-gateway-responses.html)
 type GetGatewayResponsesOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -17088,11 +17307,20 @@ func (s *GetIntegrationInput) Validate() error {
 	if s.HttpMethod == nil {
 		invalidParams.Add(request.NewErrParamRequired("HttpMethod"))
 	}
+	if s.HttpMethod != nil && len(*s.HttpMethod) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("HttpMethod", 1))
+	}
 	if s.ResourceId == nil {
 		invalidParams.Add(request.NewErrParamRequired("ResourceId"))
 	}
+	if s.ResourceId != nil && len(*s.ResourceId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ResourceId", 1))
+	}
 	if s.RestApiId == nil {
 		invalidParams.Add(request.NewErrParamRequired("RestApiId"))
+	}
+	if s.RestApiId != nil && len(*s.RestApiId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("RestApiId", 1))
 	}
 
 	if invalidParams.Len() > 0 {
@@ -17160,14 +17388,26 @@ func (s *GetIntegrationResponseInput) Validate() error {
 	if s.HttpMethod == nil {
 		invalidParams.Add(request.NewErrParamRequired("HttpMethod"))
 	}
+	if s.HttpMethod != nil && len(*s.HttpMethod) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("HttpMethod", 1))
+	}
 	if s.ResourceId == nil {
 		invalidParams.Add(request.NewErrParamRequired("ResourceId"))
+	}
+	if s.ResourceId != nil && len(*s.ResourceId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ResourceId", 1))
 	}
 	if s.RestApiId == nil {
 		invalidParams.Add(request.NewErrParamRequired("RestApiId"))
 	}
+	if s.RestApiId != nil && len(*s.RestApiId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("RestApiId", 1))
+	}
 	if s.StatusCode == nil {
 		invalidParams.Add(request.NewErrParamRequired("StatusCode"))
+	}
+	if s.StatusCode != nil && len(*s.StatusCode) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("StatusCode", 1))
 	}
 
 	if invalidParams.Len() > 0 {
@@ -17236,11 +17476,20 @@ func (s *GetMethodInput) Validate() error {
 	if s.HttpMethod == nil {
 		invalidParams.Add(request.NewErrParamRequired("HttpMethod"))
 	}
+	if s.HttpMethod != nil && len(*s.HttpMethod) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("HttpMethod", 1))
+	}
 	if s.ResourceId == nil {
 		invalidParams.Add(request.NewErrParamRequired("ResourceId"))
 	}
+	if s.ResourceId != nil && len(*s.ResourceId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ResourceId", 1))
+	}
 	if s.RestApiId == nil {
 		invalidParams.Add(request.NewErrParamRequired("RestApiId"))
+	}
+	if s.RestApiId != nil && len(*s.RestApiId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("RestApiId", 1))
 	}
 
 	if invalidParams.Len() > 0 {
@@ -17308,14 +17557,26 @@ func (s *GetMethodResponseInput) Validate() error {
 	if s.HttpMethod == nil {
 		invalidParams.Add(request.NewErrParamRequired("HttpMethod"))
 	}
+	if s.HttpMethod != nil && len(*s.HttpMethod) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("HttpMethod", 1))
+	}
 	if s.ResourceId == nil {
 		invalidParams.Add(request.NewErrParamRequired("ResourceId"))
+	}
+	if s.ResourceId != nil && len(*s.ResourceId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ResourceId", 1))
 	}
 	if s.RestApiId == nil {
 		invalidParams.Add(request.NewErrParamRequired("RestApiId"))
 	}
+	if s.RestApiId != nil && len(*s.RestApiId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("RestApiId", 1))
+	}
 	if s.StatusCode == nil {
 		invalidParams.Add(request.NewErrParamRequired("StatusCode"))
+	}
+	if s.StatusCode != nil && len(*s.StatusCode) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("StatusCode", 1))
 	}
 
 	if invalidParams.Len() > 0 {
@@ -17384,8 +17645,14 @@ func (s *GetModelInput) Validate() error {
 	if s.ModelName == nil {
 		invalidParams.Add(request.NewErrParamRequired("ModelName"))
 	}
+	if s.ModelName != nil && len(*s.ModelName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ModelName", 1))
+	}
 	if s.RestApiId == nil {
 		invalidParams.Add(request.NewErrParamRequired("RestApiId"))
+	}
+	if s.RestApiId != nil && len(*s.RestApiId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("RestApiId", 1))
 	}
 
 	if invalidParams.Len() > 0 {
@@ -17443,8 +17710,14 @@ func (s *GetModelTemplateInput) Validate() error {
 	if s.ModelName == nil {
 		invalidParams.Add(request.NewErrParamRequired("ModelName"))
 	}
+	if s.ModelName != nil && len(*s.ModelName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ModelName", 1))
+	}
 	if s.RestApiId == nil {
 		invalidParams.Add(request.NewErrParamRequired("RestApiId"))
+	}
+	if s.RestApiId != nil && len(*s.RestApiId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("RestApiId", 1))
 	}
 
 	if invalidParams.Len() > 0 {
@@ -17467,12 +17740,12 @@ func (s *GetModelTemplateInput) SetRestApiId(v string) *GetModelTemplateInput {
 
 // Represents a mapping template used to transform a payload.
 //
-// Mapping Templates ([[AwsDocsUrlPrefix]]/apigateway/latest/developerguide/models-mappings.html#models-mappings-mappings)
+// Mapping Templates (https://docs.aws.amazon.com/apigateway/latest/developerguide/models-mappings.html#models-mappings-mappings)
 type GetModelTemplateOutput struct {
 	_ struct{} `type:"structure"`
 
-	// The Apache Velocity Template Language (VTL) ([[ApacheVtlUrl]]) template content
-	// used for the template resource.
+	// The Apache Velocity Template Language (VTL) (https://velocity.apache.org/engine/devel/vtl-reference-guide.html)
+	// template content used for the template resource.
 	Value *string `locationName:"value" type:"string"`
 }
 
@@ -17525,6 +17798,9 @@ func (s *GetModelsInput) Validate() error {
 	if s.RestApiId == nil {
 		invalidParams.Add(request.NewErrParamRequired("RestApiId"))
 	}
+	if s.RestApiId != nil && len(*s.RestApiId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("RestApiId", 1))
+	}
 
 	if invalidParams.Len() > 0 {
 		return invalidParams
@@ -17552,7 +17828,7 @@ func (s *GetModelsInput) SetRestApiId(v string) *GetModelsInput {
 
 // Represents a collection of Model resources.
 //
-// Method, MethodResponse, Models and Mappings ([[AwsDocsUrlPrefix]]/apigateway/latest/developerguide/models-mappings.html)
+// Method, MethodResponse, Models and Mappings (https://docs.aws.amazon.com/apigateway/latest/developerguide/models-mappings.html)
 type GetModelsOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -17615,8 +17891,14 @@ func (s *GetRequestValidatorInput) Validate() error {
 	if s.RequestValidatorId == nil {
 		invalidParams.Add(request.NewErrParamRequired("RequestValidatorId"))
 	}
+	if s.RequestValidatorId != nil && len(*s.RequestValidatorId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("RequestValidatorId", 1))
+	}
 	if s.RestApiId == nil {
 		invalidParams.Add(request.NewErrParamRequired("RestApiId"))
+	}
+	if s.RestApiId != nil && len(*s.RestApiId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("RestApiId", 1))
 	}
 
 	if invalidParams.Len() > 0 {
@@ -17670,6 +17952,9 @@ func (s *GetRequestValidatorsInput) Validate() error {
 	if s.RestApiId == nil {
 		invalidParams.Add(request.NewErrParamRequired("RestApiId"))
 	}
+	if s.RestApiId != nil && len(*s.RestApiId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("RestApiId", 1))
+	}
 
 	if invalidParams.Len() > 0 {
 		return invalidParams
@@ -17697,11 +17982,11 @@ func (s *GetRequestValidatorsInput) SetRestApiId(v string) *GetRequestValidators
 
 // A collection of RequestValidator resources of a given RestApi.
 //
-// In Swagger, the RequestValidators of an API is defined by the x-amazon-apigateway-request-validators
-// ([[AwsDocsUrlPrefix]]/apigateway/latest/developerguide/api-gateway-swagger-extensions.html#api-gateway-swagger-extensions-request-validators.html)
+// In OpenAPI, the RequestValidators of an API is defined by the x-amazon-apigateway-request-validators
+// (https://docs.aws.amazon.com/apigateway/latest/developerguide/api-gateway-swagger-extensions.html#api-gateway-swagger-extensions-request-validators.html)
 // extension.
 //
-// Enable Basic Request Validation in API Gateway ([[AwsDocsUrlPrefix]]/apigateway/latest/developerguide/api-gateway-method-request-validation.html)
+// Enable Basic Request Validation in API Gateway (https://docs.aws.amazon.com/apigateway/latest/developerguide/api-gateway-method-request-validation.html)
 type GetRequestValidatorsOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -17772,8 +18057,14 @@ func (s *GetResourceInput) Validate() error {
 	if s.ResourceId == nil {
 		invalidParams.Add(request.NewErrParamRequired("ResourceId"))
 	}
+	if s.ResourceId != nil && len(*s.ResourceId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ResourceId", 1))
+	}
 	if s.RestApiId == nil {
 		invalidParams.Add(request.NewErrParamRequired("RestApiId"))
+	}
+	if s.RestApiId != nil && len(*s.RestApiId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("RestApiId", 1))
 	}
 
 	if invalidParams.Len() > 0 {
@@ -17841,6 +18132,9 @@ func (s *GetResourcesInput) Validate() error {
 	if s.RestApiId == nil {
 		invalidParams.Add(request.NewErrParamRequired("RestApiId"))
 	}
+	if s.RestApiId != nil && len(*s.RestApiId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("RestApiId", 1))
+	}
 
 	if invalidParams.Len() > 0 {
 		return invalidParams
@@ -17874,7 +18168,7 @@ func (s *GetResourcesInput) SetRestApiId(v string) *GetResourcesInput {
 
 // Represents a collection of Resource resources.
 //
-// Create an API ([[AwsDocsUrlPrefix]]/apigateway/latest/developerguide/how-to-create-api.html)
+// Create an API (https://docs.aws.amazon.com/apigateway/latest/developerguide/how-to-create-api.html)
 type GetResourcesOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -17932,6 +18226,9 @@ func (s *GetRestApiInput) Validate() error {
 	if s.RestApiId == nil {
 		invalidParams.Add(request.NewErrParamRequired("RestApiId"))
 	}
+	if s.RestApiId != nil && len(*s.RestApiId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("RestApiId", 1))
+	}
 
 	if invalidParams.Len() > 0 {
 		return invalidParams
@@ -17982,7 +18279,7 @@ func (s *GetRestApisInput) SetPosition(v string) *GetRestApisInput {
 // Contains references to your APIs and links that guide you in how to interact
 // with your collection. A collection offers a paginated view of your APIs.
 //
-// Create an API ([[AwsDocsUrlPrefix]]/apigateway/latest/developerguide/how-to-create-api.html)
+// Create an API (https://docs.aws.amazon.com/apigateway/latest/developerguide/how-to-create-api.html)
 type GetRestApisOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -18058,11 +18355,20 @@ func (s *GetSdkInput) Validate() error {
 	if s.RestApiId == nil {
 		invalidParams.Add(request.NewErrParamRequired("RestApiId"))
 	}
+	if s.RestApiId != nil && len(*s.RestApiId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("RestApiId", 1))
+	}
 	if s.SdkType == nil {
 		invalidParams.Add(request.NewErrParamRequired("SdkType"))
 	}
+	if s.SdkType != nil && len(*s.SdkType) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("SdkType", 1))
+	}
 	if s.StageName == nil {
 		invalidParams.Add(request.NewErrParamRequired("StageName"))
+	}
+	if s.StageName != nil && len(*s.StageName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("StageName", 1))
 	}
 
 	if invalidParams.Len() > 0 {
@@ -18162,6 +18468,9 @@ func (s *GetSdkTypeInput) Validate() error {
 	invalidParams := request.ErrInvalidParams{Context: "GetSdkTypeInput"}
 	if s.Id == nil {
 		invalidParams.Add(request.NewErrParamRequired("Id"))
+	}
+	if s.Id != nil && len(*s.Id) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Id", 1))
 	}
 
 	if invalidParams.Len() > 0 {
@@ -18273,8 +18582,14 @@ func (s *GetStageInput) Validate() error {
 	if s.RestApiId == nil {
 		invalidParams.Add(request.NewErrParamRequired("RestApiId"))
 	}
+	if s.RestApiId != nil && len(*s.RestApiId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("RestApiId", 1))
+	}
 	if s.StageName == nil {
 		invalidParams.Add(request.NewErrParamRequired("StageName"))
+	}
+	if s.StageName != nil && len(*s.StageName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("StageName", 1))
 	}
 
 	if invalidParams.Len() > 0 {
@@ -18324,6 +18639,9 @@ func (s *GetStagesInput) Validate() error {
 	if s.RestApiId == nil {
 		invalidParams.Add(request.NewErrParamRequired("RestApiId"))
 	}
+	if s.RestApiId != nil && len(*s.RestApiId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("RestApiId", 1))
+	}
 
 	if invalidParams.Len() > 0 {
 		return invalidParams
@@ -18345,7 +18663,7 @@ func (s *GetStagesInput) SetRestApiId(v string) *GetStagesInput {
 
 // A list of Stage resources that are associated with the ApiKey resource.
 //
-// Deploying API in Stages ([[AwsDocsUrlPrefix]]/apigateway/latest/developerguide/stages.html)
+// Deploying API in Stages (https://docs.aws.amazon.com/apigateway/latest/developerguide/stages.html)
 type GetStagesOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -18403,6 +18721,9 @@ func (s *GetTagsInput) Validate() error {
 	invalidParams := request.ErrInvalidParams{Context: "GetTagsInput"}
 	if s.ResourceArn == nil {
 		invalidParams.Add(request.NewErrParamRequired("ResourceArn"))
+	}
+	if s.ResourceArn != nil && len(*s.ResourceArn) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ResourceArn", 1))
 	}
 
 	if invalidParams.Len() > 0 {
@@ -18506,6 +18827,9 @@ func (s *GetUsageInput) Validate() error {
 	if s.UsagePlanId == nil {
 		invalidParams.Add(request.NewErrParamRequired("UsagePlanId"))
 	}
+	if s.UsagePlanId != nil && len(*s.UsagePlanId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("UsagePlanId", 1))
+	}
 
 	if invalidParams.Len() > 0 {
 		return invalidParams
@@ -18575,6 +18899,9 @@ func (s *GetUsagePlanInput) Validate() error {
 	if s.UsagePlanId == nil {
 		invalidParams.Add(request.NewErrParamRequired("UsagePlanId"))
 	}
+	if s.UsagePlanId != nil && len(*s.UsagePlanId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("UsagePlanId", 1))
+	}
 
 	if invalidParams.Len() > 0 {
 		return invalidParams
@@ -18621,8 +18948,14 @@ func (s *GetUsagePlanKeyInput) Validate() error {
 	if s.KeyId == nil {
 		invalidParams.Add(request.NewErrParamRequired("KeyId"))
 	}
+	if s.KeyId != nil && len(*s.KeyId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("KeyId", 1))
+	}
 	if s.UsagePlanId == nil {
 		invalidParams.Add(request.NewErrParamRequired("UsagePlanId"))
+	}
+	if s.UsagePlanId != nil && len(*s.UsagePlanId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("UsagePlanId", 1))
 	}
 
 	if invalidParams.Len() > 0 {
@@ -18681,6 +19014,9 @@ func (s *GetUsagePlanKeysInput) Validate() error {
 	if s.UsagePlanId == nil {
 		invalidParams.Add(request.NewErrParamRequired("UsagePlanId"))
 	}
+	if s.UsagePlanId != nil && len(*s.UsagePlanId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("UsagePlanId", 1))
+	}
 
 	if invalidParams.Len() > 0 {
 		return invalidParams
@@ -18715,7 +19051,7 @@ func (s *GetUsagePlanKeysInput) SetUsagePlanId(v string) *GetUsagePlanKeysInput 
 // Represents the collection of usage plan keys added to usage plans for the
 // associated API keys and, possibly, other types of keys.
 //
-// Create and Use Usage Plans ([[AwsDocsUrlPrefix]]/apigateway/latest/developerguide/api-gateway-api-usage-plans.html)
+// Create and Use Usage Plans (https://docs.aws.amazon.com/apigateway/latest/developerguide/api-gateway-api-usage-plans.html)
 type GetUsagePlanKeysOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -18792,7 +19128,7 @@ func (s *GetUsagePlansInput) SetPosition(v string) *GetUsagePlansInput {
 
 // Represents a collection of usage plans for an AWS account.
 //
-// Create and Use Usage Plans ([[AwsDocsUrlPrefix]]/apigateway/latest/developerguide/api-gateway-api-usage-plans.html)
+// Create and Use Usage Plans (https://docs.aws.amazon.com/apigateway/latest/developerguide/api-gateway-api-usage-plans.html)
 type GetUsagePlansOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -18851,6 +19187,9 @@ func (s *GetVpcLinkInput) Validate() error {
 	if s.VpcLinkId == nil {
 		invalidParams.Add(request.NewErrParamRequired("VpcLinkId"))
 	}
+	if s.VpcLinkId != nil && len(*s.VpcLinkId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("VpcLinkId", 1))
+	}
 
 	if invalidParams.Len() > 0 {
 		return invalidParams
@@ -18900,8 +19239,8 @@ func (s *GetVpcLinksInput) SetPosition(v string) *GetVpcLinksInput {
 
 // The collection of VPC links under the caller's account in a region.
 //
-// Getting Started with Private Integrations ([[AwsDocsUrlPrefix]]/apigateway/latest/developerguide/getting-started-with-private-integration.html),
-// Set up Private Integrations ([[AwsDocsUrlPrefix]]/apigateway/latest/developerguide/set-up-private-integration.html)
+// Getting Started with Private Integrations (https://docs.aws.amazon.com/apigateway/latest/developerguide/getting-started-with-private-integration.html),
+// Set up Private Integrations (https://docs.aws.amazon.com/apigateway/latest/developerguide/set-up-private-integration.html)
 type GetVpcLinksOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -18939,7 +19278,7 @@ type ImportApiKeysInput struct {
 	_ struct{} `type:"structure" payload:"Body"`
 
 	// The payload of the POST request to import API keys. For the payload format,
-	// see API Key File Format ([[AwsDocsUrlPrefix]]/apigateway/latest/developerguide/api-key-file-format.html).
+	// see API Key File Format (https://docs.aws.amazon.com/apigateway/latest/developerguide/api-key-file-format.html).
 	//
 	// Body is a required field
 	Body []byte `locationName:"body" type:"blob" required:"true"`
@@ -19032,12 +19371,12 @@ func (s *ImportApiKeysOutput) SetWarnings(v []*string) *ImportApiKeysOutput {
 	return s
 }
 
-// Import documentation parts from an external (e.g., Swagger) definition file.
+// Import documentation parts from an external (e.g., OpenAPI) definition file.
 type ImportDocumentationPartsInput struct {
 	_ struct{} `type:"structure" payload:"Body"`
 
 	// [Required] Raw byte array representing the to-be-imported documentation parts.
-	// To import from a Swagger file, this is a JSON object.
+	// To import from an OpenAPI file, this is a JSON object.
 	//
 	// Body is a required field
 	Body []byte `locationName:"body" type:"blob" required:"true"`
@@ -19077,6 +19416,9 @@ func (s *ImportDocumentationPartsInput) Validate() error {
 	if s.RestApiId == nil {
 		invalidParams.Add(request.NewErrParamRequired("RestApiId"))
 	}
+	if s.RestApiId != nil && len(*s.RestApiId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("RestApiId", 1))
+	}
 
 	if invalidParams.Len() > 0 {
 		return invalidParams
@@ -19111,9 +19453,9 @@ func (s *ImportDocumentationPartsInput) SetRestApiId(v string) *ImportDocumentat
 // A collection of the imported DocumentationPart identifiers.
 //
 // This is used to return the result when documentation parts in an external
-// (e.g., Swagger) file are imported into API Gateway
-// Documenting an API ([[AwsDocsUrlPrefix]]/apigateway/latest/developerguide/api-gateway-documenting-api.html),
-// documentationpart:import ([[AwsDocsUrlPrefix]]/apigateway/api-reference/link-relation/documentationpart-import/),
+// (e.g., OpenAPI) file are imported into API Gateway
+// Documenting an API (https://docs.aws.amazon.com/apigateway/latest/developerguide/api-gateway-documenting-api.html),
+// documentationpart:import (https://docs.aws.amazon.com/apigateway/api-reference/link-relation/documentationpart-import/),
 // DocumentationPart
 type ImportDocumentationPartsOutput struct {
 	_ struct{} `type:"structure"`
@@ -19153,8 +19495,8 @@ type ImportRestApiInput struct {
 	_ struct{} `type:"structure" payload:"Body"`
 
 	// [Required] The POST request body containing external API definitions. Currently,
-	// only Swagger definition JSON files are supported. The maximum size of the
-	// API definition file is 2MB.
+	// only OpenAPI definition JSON/YAML files are supported. The maximum size of
+	// the API definition file is 2MB.
 	//
 	// Body is a required field
 	Body []byte `locationName:"body" type:"blob" required:"true"`
@@ -19233,7 +19575,7 @@ func (s *ImportRestApiInput) SetParameters(v map[string]*string) *ImportRestApiI
 //
 // In the API Gateway console, the built-in Lambda integration is an AWS integration.
 //
-// Creating an API ([[AwsDocsUrlPrefix]]/apigateway/latest/developerguide/how-to-create-api.html)
+// Creating an API (https://docs.aws.amazon.com/apigateway/latest/developerguide/how-to-create-api.html)
 type Integration struct {
 	_ struct{} `type:"structure"`
 
@@ -19243,7 +19585,7 @@ type Integration struct {
 	// Specifies the integration's cache namespace.
 	CacheNamespace *string `locationName:"cacheNamespace" type:"string"`
 
-	// The (id ([[AwsDocsUrlPrefix]]/apigateway/api-reference/resource/vpc-link/#id))
+	// The (id (https://docs.aws.amazon.com/apigateway/api-reference/resource/vpc-link/#id))
 	// of the VpcLink used for the integration when connectionType=VPC_LINK and
 	// undefined, otherwise.
 	ConnectionId *string `locationName:"connectionId" type:"string"`
@@ -19292,7 +19634,7 @@ type Integration struct {
 	//
 	// The successful response returns 200 OKstatus and a payload as follows:
 	//
-	// { "_links": { "curies": { "href": "[[AwsDocsUrlPrefix]]/apigateway/latest/developerguide/restapi-integration-response-{rel}.html",
+	// { "_links": { "curies": { "href": "https://docs.aws.amazon.com/apigateway/latest/developerguide/restapi-integration-response-{rel}.html",
 	// "name": "integrationresponse", "templated": true }, "self": { "href": "/restapis/fugvjdxtri/resources/3kzxbg5sa2/methods/GET/integration/responses/200",
 	// "title": "200" }, "integrationresponse:delete": { "href": "/restapis/fugvjdxtri/resources/3kzxbg5sa2/methods/GET/integration/responses/200"
 	// }, "integrationresponse:update": { "href": "/restapis/fugvjdxtri/resources/3kzxbg5sa2/methods/GET/integration/responses/200"
@@ -19385,7 +19727,7 @@ type Integration struct {
 	//    Alternatively, path can be used for an AWS service path-based API. The
 	//    ensuing service_api refers to the path to an AWS service resource, including
 	//    the region of the integrated AWS service, if applicable. For example,
-	//    for integration with the S3 API of GetObject ([[AwsDocsUrlPrefix]]/AmazonS3/latest/API/RESTObjectGET.html),
+	//    for integration with the S3 API of GetObject (https://docs.aws.amazon.com/AmazonS3/latest/API/RESTObjectGET.html),
 	//    the uri can be either arn:aws:apigateway:us-west-2:s3:action/GetObject&Bucket={bucket}&Key={key}
 	//    or arn:aws:apigateway:us-west-2:s3:path/{bucket}/{key}
 	Uri *string `locationName:"uri" type:"string"`
@@ -19489,7 +19831,7 @@ func (s *Integration) SetUri(v string) *Integration {
 // MethodResponse, and parameters and templates can be used to transform the
 // back-end response.
 //
-// Creating an API ([[AwsDocsUrlPrefix]]/apigateway/latest/developerguide/how-to-create-api.html)
+// Creating an API (https://docs.aws.amazon.com/apigateway/latest/developerguide/how-to-create-api.html)
 type IntegrationResponse struct {
 	_ struct{} `type:"structure"`
 
@@ -19605,10 +19947,10 @@ func (s *IntegrationResponse) SetStatusCode(v string) *IntegrationResponse {
 // The successful response returns a 200 OK status code and a payload similar
 // to the following:
 //
-//    { "_links": { "curies": [ { "href": "[[AwsDocsUrlPrefix]]/apigateway/latest/developerguide/restapi-integration-{rel}.html",
-//    "name": "integration", "templated": true }, { "href": "[[AwsDocsUrlPrefix]]/apigateway/latest/developerguide/restapi-integration-response-{rel}.html",
-//    "name": "integrationresponse", "templated": true }, { "href": "[[AwsDocsUrlPrefix]]/apigateway/latest/developerguide/restapi-method-{rel}.html",
-//    "name": "method", "templated": true }, { "href": "[[AwsDocsUrlPrefix]]/apigateway/latest/developerguide/restapi-method-response-{rel}.html",
+//    { "_links": { "curies": [ { "href": "https://docs.aws.amazon.com/apigateway/latest/developerguide/restapi-integration-{rel}.html",
+//    "name": "integration", "templated": true }, { "href": "https://docs.aws.amazon.com/apigateway/latest/developerguide/restapi-integration-response-{rel}.html",
+//    "name": "integrationresponse", "templated": true }, { "href": "https://docs.aws.amazon.com/apigateway/latest/developerguide/restapi-method-{rel}.html",
+//    "name": "method", "templated": true }, { "href": "https://docs.aws.amazon.com/apigateway/latest/developerguide/restapi-method-response-{rel}.html",
 //    "name": "methodresponse", "templated": true } ], "self": { "href": "/restapis/fugvjdxtri/resources/3kzxbg5sa2/methods/GET",
 //    "name": "GET", "title": "GET" }, "integration:put": { "href": "/restapis/fugvjdxtri/resources/3kzxbg5sa2/methods/GET/integration"
 //    }, "method:delete": { "href": "/restapis/fugvjdxtri/resources/3kzxbg5sa2/methods/GET"
@@ -19645,10 +19987,10 @@ func (s *IntegrationResponse) SetStatusCode(v string) *IntegrationResponse {
 // In the example above, the response template for the 200 OK response maps
 // the JSON output from the ListStreams action in the back end to an XML output.
 // The mapping template is URL-encoded as %3CkinesisStreams%3E%23foreach(%24stream%20in%20%24input.path(%27%24.StreamNames%27))%3Cstream%3E%3Cname%3E%24stream%3C%2Fname%3E%3C%2Fstream%3E%23end%3C%2FkinesisStreams%3E
-// and the output is decoded using the $util.urlDecode() ([[AwsDocsUrlPrefix]]/apigateway/latest/developerguide/api-gateway-mapping-template-reference.html#util-templat-reference)
+// and the output is decoded using the $util.urlDecode() (https://docs.aws.amazon.com/apigateway/latest/developerguide/api-gateway-mapping-template-reference.html#util-templat-reference)
 // helper function.
 //
-// MethodResponse, Integration, IntegrationResponse, Resource, Set up an API's method ([[AwsDocsUrlPrefix]]/apigateway/latest/developerguide/how-to-method-settings.html)
+// MethodResponse, Integration, IntegrationResponse, Resource, Set up an API's method (https://docs.aws.amazon.com/apigateway/latest/developerguide/how-to-method-settings.html)
 type Method struct {
 	_ struct{} `type:"structure"`
 
@@ -19694,8 +20036,8 @@ type Method struct {
 	//
 	// The successful response returns a 200 OKstatus code and a payload similar to the following:
 	//
-	// { "_links": { "curies": [ { "href": "[[AwsDocsUrlPrefix]]/apigateway/latest/developerguide/restapi-integration-{rel}.html",
-	// "name": "integration", "templated": true }, { "href": "[[AwsDocsUrlPrefix]]/apigateway/latest/developerguide/restapi-integration-response-{rel}.html",
+	// { "_links": { "curies": [ { "href": "https://docs.aws.amazon.com/apigateway/latest/developerguide/restapi-integration-{rel}.html",
+	// "name": "integration", "templated": true }, { "href": "https://docs.aws.amazon.com/apigateway/latest/developerguide/restapi-integration-response-{rel}.html",
 	// "name": "integrationresponse", "templated": true } ], "self": { "href": "/restapis/uojnr9hd57/resources/0cjtch/methods/GET/integration"
 	// }, "integration:delete": { "href": "/restapis/uojnr9hd57/resources/0cjtch/methods/GET/integration"
 	// }, "integration:responses": { "href": "/restapis/uojnr9hd57/resources/0cjtch/methods/GET/integration/responses/200",
@@ -19740,7 +20082,7 @@ type Method struct {
 	// The successful response returns a 200 OK status code and a payload similar
 	// to the following:
 	//
-	//    { "_links": { "curies": { "href": "[[AwsDocsUrlPrefix]]/apigateway/latest/developerguide/restapi-method-response-{rel}.html",
+	//    { "_links": { "curies": { "href": "https://docs.aws.amazon.com/apigateway/latest/developerguide/restapi-method-response-{rel}.html",
 	//    "name": "methodresponse", "templated": true }, "self": { "href": "/restapis/uojnr9hd57/resources/0cjtch/methods/GET/responses/200",
 	//    "title": "200" }, "methodresponse:delete": { "href": "/restapis/uojnr9hd57/resources/0cjtch/methods/GET/responses/200"
 	//    }, "methodresponse:update": { "href": "/restapis/uojnr9hd57/resources/0cjtch/methods/GET/responses/200"
@@ -19752,7 +20094,7 @@ type Method struct {
 
 	// A human-friendly operation identifier for the method. For example, you can
 	// assign the operationName of ListPets for the GET /pets method in PetStore
-	// ([[PetstoreDemoUrl]]) example.
+	// (https://petstore-demo-endpoint.execute-api.com/petstore/pets) example.
 	OperationName *string `locationName:"operationName" type:"string"`
 
 	// A key-value map specifying data schemas, represented by Model resources,
@@ -19868,7 +20210,7 @@ func (s *Method) SetRequestValidatorId(v string) *Method {
 //
 // The successful response returns 200 OK status and a payload as follows:
 //
-//    { "_links": { "curies": { "href": "[[AwsDocsUrlPrefix]]/apigateway/latest/developerguide/restapi-method-response-{rel}.html",
+//    { "_links": { "curies": { "href": "https://docs.aws.amazon.com/apigateway/latest/developerguide/restapi-method-response-{rel}.html",
 //    "name": "methodresponse", "templated": true }, "self": { "href": "/restapis/fugvjdxtri/resources/3kzxbg5sa2/methods/GET/responses/200",
 //    "title": "200" }, "methodresponse:delete": { "href": "/restapis/fugvjdxtri/resources/3kzxbg5sa2/methods/GET/responses/200"
 //    }, "methodresponse:update": { "href": "/restapis/fugvjdxtri/resources/3kzxbg5sa2/methods/GET/responses/200"
@@ -20100,7 +20442,7 @@ func (s *MethodSnapshot) SetAuthorizationType(v string) *MethodSnapshot {
 // A model is used for generating an API's SDK, validating the input request
 // body, and creating a skeletal mapping template.
 //
-// Method, MethodResponse, Models and Mappings ([[AwsDocsUrlPrefix]]/apigateway/latest/developerguide/models-mappings.html)
+// Method, MethodResponse, Models and Mappings (https://docs.aws.amazon.com/apigateway/latest/developerguide/models-mappings.html)
 type Model struct {
 	_ struct{} `type:"structure"`
 
@@ -20117,11 +20459,11 @@ type Model struct {
 	Name *string `locationName:"name" type:"string"`
 
 	// The schema for the model. For application/json models, this should be JSON
-	// schema draft 4 ([[JsonSchemaUrl]]) model. Do not include "\*/" characters
-	// in the description of any properties because such "\*/" characters may be
-	// interpreted as the closing marker for comments in some languages, such as
-	// Java or JavaScript, causing the installation of your API's SDK generated
-	// by API Gateway to fail.
+	// schema draft 4 (https://tools.ietf.org/html/draft-zyp-json-schema-04) model.
+	// Do not include "\*/" characters in the description of any properties because
+	// such "\*/" characters may be interpreted as the closing marker for comments
+	// in some languages, such as Java or JavaScript, causing the installation of
+	// your API's SDK generated by API Gateway to fail.
 	Schema *string `locationName:"schema" type:"string"`
 }
 
@@ -20185,7 +20527,7 @@ type PatchOperation struct {
 	// an error message.
 	Op *string `locationName:"op" type:"string" enum:"Op"`
 
-	// The op operation's target, as identified by a JSON Pointer ([[JsonPointerRefUrl]])
+	// The op operation's target, as identified by a JSON Pointer (https://tools.ietf.org/html/draft-ietf-appsawg-json-pointer-08)
 	// value that references a location within the targeted resource. For example,
 	// if the target resource has an updateable property of {"name":"value"}, the
 	// path for this property is /name. If the name property value is a JSON object
@@ -20198,7 +20540,7 @@ type PatchOperation struct {
 	// The new target value of the update operation. It is applicable for the add
 	// or replace operation. When using AWS CLI to update a property of a JSON value,
 	// enclose the JSON object with a pair of single quotes in a Linux shell, e.g.,
-	// '{"a": ...}'. In a Windows shell, see Using JSON for Parameters ([[AwsDocsUrlPrefix]]/cli/latest/userguide/cli-using-param.html#cli-using-param-json).
+	// '{"a": ...}'. In a Windows shell, see Using JSON for Parameters (https://docs.aws.amazon.com/cli/latest/userguide/cli-using-param.html#cli-using-param-json).
 	Value *string `locationName:"value" type:"string"`
 }
 
@@ -20299,8 +20641,14 @@ func (s *PutGatewayResponseInput) Validate() error {
 	if s.ResponseType == nil {
 		invalidParams.Add(request.NewErrParamRequired("ResponseType"))
 	}
+	if s.ResponseType != nil && len(*s.ResponseType) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ResponseType", 1))
+	}
 	if s.RestApiId == nil {
 		invalidParams.Add(request.NewErrParamRequired("RestApiId"))
+	}
+	if s.RestApiId != nil && len(*s.RestApiId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("RestApiId", 1))
 	}
 
 	if invalidParams.Len() > 0 {
@@ -20349,7 +20697,7 @@ type PutIntegrationInput struct {
 	// Specifies a put integration input's cache namespace.
 	CacheNamespace *string `locationName:"cacheNamespace" type:"string"`
 
-	// The (id ([[AwsDocsUrlPrefix]]/apigateway/api-reference/resource/vpc-link/#id))
+	// The (id (https://docs.aws.amazon.com/apigateway/api-reference/resource/vpc-link/#id))
 	// of the VpcLink used for the integration when connectionType=VPC_LINK and
 	// undefined, otherwise.
 	ConnectionId *string `locationName:"connectionId" type:"string"`
@@ -20454,7 +20802,7 @@ type PutIntegrationInput struct {
 	//    Alternatively, path can be used for an AWS service path-based API. The
 	//    ensuing service_api refers to the path to an AWS service resource, including
 	//    the region of the integrated AWS service, if applicable. For example,
-	//    for integration with the S3 API of GetObject ([[AwsDocsUrlPrefix]]/AmazonS3/latest/API/RESTObjectGET.html),
+	//    for integration with the S3 API of GetObject (https://docs.aws.amazon.com/AmazonS3/latest/API/RESTObjectGET.html),
 	//    the uri can be either arn:aws:apigateway:us-west-2:s3:action/GetObject&Bucket={bucket}&Key={key}
 	//    or arn:aws:apigateway:us-west-2:s3:path/{bucket}/{key}
 	Uri *string `locationName:"uri" type:"string"`
@@ -20476,11 +20824,20 @@ func (s *PutIntegrationInput) Validate() error {
 	if s.HttpMethod == nil {
 		invalidParams.Add(request.NewErrParamRequired("HttpMethod"))
 	}
+	if s.HttpMethod != nil && len(*s.HttpMethod) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("HttpMethod", 1))
+	}
 	if s.ResourceId == nil {
 		invalidParams.Add(request.NewErrParamRequired("ResourceId"))
 	}
+	if s.ResourceId != nil && len(*s.ResourceId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ResourceId", 1))
+	}
 	if s.RestApiId == nil {
 		invalidParams.Add(request.NewErrParamRequired("RestApiId"))
+	}
+	if s.RestApiId != nil && len(*s.RestApiId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("RestApiId", 1))
 	}
 	if s.Type == nil {
 		invalidParams.Add(request.NewErrParamRequired("Type"))
@@ -20661,14 +21018,26 @@ func (s *PutIntegrationResponseInput) Validate() error {
 	if s.HttpMethod == nil {
 		invalidParams.Add(request.NewErrParamRequired("HttpMethod"))
 	}
+	if s.HttpMethod != nil && len(*s.HttpMethod) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("HttpMethod", 1))
+	}
 	if s.ResourceId == nil {
 		invalidParams.Add(request.NewErrParamRequired("ResourceId"))
+	}
+	if s.ResourceId != nil && len(*s.ResourceId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ResourceId", 1))
 	}
 	if s.RestApiId == nil {
 		invalidParams.Add(request.NewErrParamRequired("RestApiId"))
 	}
+	if s.RestApiId != nil && len(*s.RestApiId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("RestApiId", 1))
+	}
 	if s.StatusCode == nil {
 		invalidParams.Add(request.NewErrParamRequired("StatusCode"))
+	}
+	if s.StatusCode != nil && len(*s.StatusCode) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("StatusCode", 1))
 	}
 
 	if invalidParams.Len() > 0 {
@@ -20761,7 +21130,7 @@ type PutMethodInput struct {
 
 	// A human-friendly operation identifier for the method. For example, you can
 	// assign the operationName of ListPets for the GET /pets method in PetStore
-	// ([[PetstoreDemoUrl]]) example.
+	// (https://petstore-demo-endpoint.execute-api.com/petstore/pets) example.
 	OperationName *string `locationName:"operationName" type:"string"`
 
 	// Specifies the Model resources used for the request's content type. Request
@@ -20812,11 +21181,20 @@ func (s *PutMethodInput) Validate() error {
 	if s.HttpMethod == nil {
 		invalidParams.Add(request.NewErrParamRequired("HttpMethod"))
 	}
+	if s.HttpMethod != nil && len(*s.HttpMethod) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("HttpMethod", 1))
+	}
 	if s.ResourceId == nil {
 		invalidParams.Add(request.NewErrParamRequired("ResourceId"))
 	}
+	if s.ResourceId != nil && len(*s.ResourceId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ResourceId", 1))
+	}
 	if s.RestApiId == nil {
 		invalidParams.Add(request.NewErrParamRequired("RestApiId"))
+	}
+	if s.RestApiId != nil && len(*s.RestApiId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("RestApiId", 1))
 	}
 
 	if invalidParams.Len() > 0 {
@@ -20950,14 +21328,26 @@ func (s *PutMethodResponseInput) Validate() error {
 	if s.HttpMethod == nil {
 		invalidParams.Add(request.NewErrParamRequired("HttpMethod"))
 	}
+	if s.HttpMethod != nil && len(*s.HttpMethod) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("HttpMethod", 1))
+	}
 	if s.ResourceId == nil {
 		invalidParams.Add(request.NewErrParamRequired("ResourceId"))
+	}
+	if s.ResourceId != nil && len(*s.ResourceId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ResourceId", 1))
 	}
 	if s.RestApiId == nil {
 		invalidParams.Add(request.NewErrParamRequired("RestApiId"))
 	}
+	if s.RestApiId != nil && len(*s.RestApiId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("RestApiId", 1))
+	}
 	if s.StatusCode == nil {
 		invalidParams.Add(request.NewErrParamRequired("StatusCode"))
+	}
+	if s.StatusCode != nil && len(*s.StatusCode) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("StatusCode", 1))
 	}
 
 	if invalidParams.Len() > 0 {
@@ -21008,8 +21398,8 @@ type PutRestApiInput struct {
 	_ struct{} `type:"structure" payload:"Body"`
 
 	// [Required] The PUT request body containing external API definitions. Currently,
-	// only Swagger definition JSON files are supported. The maximum size of the
-	// API definition file is 2MB.
+	// only OpenAPI definition JSON/YAML files are supported. The maximum size of
+	// the API definition file is 2MB.
 	//
 	// Body is a required field
 	Body []byte `locationName:"body" type:"blob" required:"true"`
@@ -21052,6 +21442,9 @@ func (s *PutRestApiInput) Validate() error {
 	}
 	if s.RestApiId == nil {
 		invalidParams.Add(request.NewErrParamRequired("RestApiId"))
+	}
+	if s.RestApiId != nil && len(*s.RestApiId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("RestApiId", 1))
 	}
 
 	if invalidParams.Len() > 0 {
@@ -21136,7 +21529,7 @@ func (s *QuotaSettings) SetPeriod(v string) *QuotaSettings {
 
 // Represents an API resource.
 //
-// Create an API ([[AwsDocsUrlPrefix]]/apigateway/latest/developerguide/how-to-create-api.html)
+// Create an API (https://docs.aws.amazon.com/apigateway/latest/developerguide/how-to-create-api.html)
 type Resource struct {
 	_ struct{} `type:"structure"`
 
@@ -21169,10 +21562,10 @@ type Resource struct {
 	// SignedHeaders=content-type;host;x-amz-date, Signature={sig4_hash}
 	// Response
 	//
-	// { "_links": { "curies": [ { "href": "[[AwsDocsUrlPrefix]]/apigateway/latest/developerguide/restapi-integration-{rel}.html",
-	// "name": "integration", "templated": true }, { "href": "[[AwsDocsUrlPrefix]]/apigateway/latest/developerguide/restapi-integration-response-{rel}.html",
-	// "name": "integrationresponse", "templated": true }, { "href": "[[AwsDocsUrlPrefix]]/apigateway/latest/developerguide/restapi-method-{rel}.html",
-	// "name": "method", "templated": true }, { "href": "[[AwsDocsUrlPrefix]]/apigateway/latest/developerguide/restapi-method-response-{rel}.html",
+	// { "_links": { "curies": [ { "href": "https://docs.aws.amazon.com/apigateway/latest/developerguide/restapi-integration-{rel}.html",
+	// "name": "integration", "templated": true }, { "href": "https://docs.aws.amazon.com/apigateway/latest/developerguide/restapi-integration-response-{rel}.html",
+	// "name": "integrationresponse", "templated": true }, { "href": "https://docs.aws.amazon.com/apigateway/latest/developerguide/restapi-method-{rel}.html",
+	// "name": "method", "templated": true }, { "href": "https://docs.aws.amazon.com/apigateway/latest/developerguide/restapi-method-response-{rel}.html",
 	// "name": "methodresponse", "templated": true } ], "self": { "href": "/restapis/fugvjdxtri/resources/3kzxbg5sa2/methods/GET",
 	// "name": "GET", "title": "GET" }, "integration:put": { "href": "/restapis/fugvjdxtri/resources/3kzxbg5sa2/methods/GET/integration"
 	// }, "method:delete": { "href": "/restapis/fugvjdxtri/resources/3kzxbg5sa2/methods/GET"
@@ -21254,7 +21647,7 @@ func (s *Resource) SetResourceMethods(v map[string]*Method) *Resource {
 
 // Represents a REST API.
 //
-// Create an API ([[AwsDocsUrlPrefix]]/apigateway/latest/developerguide/how-to-create-api.html)
+// Create an API (https://docs.aws.amazon.com/apigateway/latest/developerguide/how-to-create-api.html)
 type RestApi struct {
 	_ struct{} `type:"structure"`
 
@@ -21496,7 +21889,7 @@ func (s *SdkType) SetId(v string) *SdkType {
 // Represents a unique identifier for a version of a deployed RestApi that is
 // callable by users.
 //
-// Deploy an API ([[AwsDocsUrlPrefix]]/apigateway/latest/developerguide/how-to-deploy-api.html)
+// Deploy an API (https://docs.aws.amazon.com/apigateway/latest/developerguide/how-to-deploy-api.html)
 type Stage struct {
 	_ struct{} `type:"structure"`
 
@@ -21553,6 +21946,9 @@ type Stage struct {
 	// can have alphanumeric and underscore characters, and the values must match
 	// [A-Za-z0-9-._~:/?#&=,]+.
 	Variables map[string]*string `locationName:"variables" type:"map"`
+
+	// The ARN of the WebAcl associated with the Stage.
+	WebAclArn *string `locationName:"webAclArn" type:"string"`
 }
 
 // String returns the string representation
@@ -21661,6 +22057,12 @@ func (s *Stage) SetVariables(v map[string]*string) *Stage {
 	return s
 }
 
+// SetWebAclArn sets the WebAclArn field's value.
+func (s *Stage) SetWebAclArn(v string) *Stage {
+	s.WebAclArn = &v
+	return s
+}
+
 // A reference to a unique stage identified in the format {restApiId}/{stage}.
 type StageKey struct {
 	_ struct{} `type:"structure"`
@@ -21727,6 +22129,9 @@ func (s *TagResourceInput) Validate() error {
 	invalidParams := request.ErrInvalidParams{Context: "TagResourceInput"}
 	if s.ResourceArn == nil {
 		invalidParams.Add(request.NewErrParamRequired("ResourceArn"))
+	}
+	if s.ResourceArn != nil && len(*s.ResourceArn) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ResourceArn", 1))
 	}
 	if s.Tags == nil {
 		invalidParams.Add(request.NewErrParamRequired("Tags"))
@@ -21819,8 +22224,14 @@ func (s *TestInvokeAuthorizerInput) Validate() error {
 	if s.AuthorizerId == nil {
 		invalidParams.Add(request.NewErrParamRequired("AuthorizerId"))
 	}
+	if s.AuthorizerId != nil && len(*s.AuthorizerId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("AuthorizerId", 1))
+	}
 	if s.RestApiId == nil {
 		invalidParams.Add(request.NewErrParamRequired("RestApiId"))
+	}
+	if s.RestApiId != nil && len(*s.RestApiId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("RestApiId", 1))
 	}
 
 	if invalidParams.Len() > 0 {
@@ -21883,8 +22294,9 @@ type TestInvokeAuthorizerOutput struct {
 
 	Authorization map[string][]*string `locationName:"authorization" type:"map"`
 
-	// The open identity claims ([[OpenIdClaimsUrl]]), with any supported custom
-	// attributes, returned from the Cognito Your User Pool configured for the API.
+	// The open identity claims (https://openid.net/specs/openid-connect-core-1_0.html#StandardClaims),
+	// with any supported custom attributes, returned from the Cognito Your User
+	// Pool configured for the API.
 	Claims map[string]*string `locationName:"claims" type:"map"`
 
 	// The HTTP status code that the client would have received. Value is 0 if the
@@ -22015,11 +22427,20 @@ func (s *TestInvokeMethodInput) Validate() error {
 	if s.HttpMethod == nil {
 		invalidParams.Add(request.NewErrParamRequired("HttpMethod"))
 	}
+	if s.HttpMethod != nil && len(*s.HttpMethod) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("HttpMethod", 1))
+	}
 	if s.ResourceId == nil {
 		invalidParams.Add(request.NewErrParamRequired("ResourceId"))
 	}
+	if s.ResourceId != nil && len(*s.ResourceId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ResourceId", 1))
+	}
 	if s.RestApiId == nil {
 		invalidParams.Add(request.NewErrParamRequired("RestApiId"))
+	}
+	if s.RestApiId != nil && len(*s.RestApiId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("RestApiId", 1))
 	}
 
 	if invalidParams.Len() > 0 {
@@ -22084,7 +22505,7 @@ func (s *TestInvokeMethodInput) SetStageVariables(v map[string]*string) *TestInv
 
 // Represents the response of the test invoke request in the HTTP method.
 //
-// Test API using the API Gateway console ([[AwsDocsUrlPrefix]]/apigateway/latest/developerguide/how-to-test-method.html#how-to-test-method-console)
+// Test API using the API Gateway console (https://docs.aws.amazon.com/apigateway/latest/developerguide/how-to-test-method.html#how-to-test-method-console)
 type TestInvokeMethodOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -22220,6 +22641,9 @@ func (s *UntagResourceInput) Validate() error {
 	if s.ResourceArn == nil {
 		invalidParams.Add(request.NewErrParamRequired("ResourceArn"))
 	}
+	if s.ResourceArn != nil && len(*s.ResourceArn) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ResourceArn", 1))
+	}
 	if s.TagKeys == nil {
 		invalidParams.Add(request.NewErrParamRequired("TagKeys"))
 	}
@@ -22311,6 +22735,9 @@ func (s *UpdateApiKeyInput) Validate() error {
 	if s.ApiKey == nil {
 		invalidParams.Add(request.NewErrParamRequired("ApiKey"))
 	}
+	if s.ApiKey != nil && len(*s.ApiKey) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ApiKey", 1))
+	}
 
 	if invalidParams.Len() > 0 {
 		return invalidParams
@@ -22365,8 +22792,14 @@ func (s *UpdateAuthorizerInput) Validate() error {
 	if s.AuthorizerId == nil {
 		invalidParams.Add(request.NewErrParamRequired("AuthorizerId"))
 	}
+	if s.AuthorizerId != nil && len(*s.AuthorizerId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("AuthorizerId", 1))
+	}
 	if s.RestApiId == nil {
 		invalidParams.Add(request.NewErrParamRequired("RestApiId"))
+	}
+	if s.RestApiId != nil && len(*s.RestApiId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("RestApiId", 1))
 	}
 
 	if invalidParams.Len() > 0 {
@@ -22428,8 +22861,14 @@ func (s *UpdateBasePathMappingInput) Validate() error {
 	if s.BasePath == nil {
 		invalidParams.Add(request.NewErrParamRequired("BasePath"))
 	}
+	if s.BasePath != nil && len(*s.BasePath) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("BasePath", 1))
+	}
 	if s.DomainName == nil {
 		invalidParams.Add(request.NewErrParamRequired("DomainName"))
+	}
+	if s.DomainName != nil && len(*s.DomainName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("DomainName", 1))
 	}
 
 	if invalidParams.Len() > 0 {
@@ -22486,6 +22925,9 @@ func (s *UpdateClientCertificateInput) Validate() error {
 	if s.ClientCertificateId == nil {
 		invalidParams.Add(request.NewErrParamRequired("ClientCertificateId"))
 	}
+	if s.ClientCertificateId != nil && len(*s.ClientCertificateId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ClientCertificateId", 1))
+	}
 
 	if invalidParams.Len() > 0 {
 		return invalidParams
@@ -22541,8 +22983,14 @@ func (s *UpdateDeploymentInput) Validate() error {
 	if s.DeploymentId == nil {
 		invalidParams.Add(request.NewErrParamRequired("DeploymentId"))
 	}
+	if s.DeploymentId != nil && len(*s.DeploymentId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("DeploymentId", 1))
+	}
 	if s.RestApiId == nil {
 		invalidParams.Add(request.NewErrParamRequired("RestApiId"))
+	}
+	if s.RestApiId != nil && len(*s.RestApiId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("RestApiId", 1))
 	}
 
 	if invalidParams.Len() > 0 {
@@ -22604,8 +23052,14 @@ func (s *UpdateDocumentationPartInput) Validate() error {
 	if s.DocumentationPartId == nil {
 		invalidParams.Add(request.NewErrParamRequired("DocumentationPartId"))
 	}
+	if s.DocumentationPartId != nil && len(*s.DocumentationPartId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("DocumentationPartId", 1))
+	}
 	if s.RestApiId == nil {
 		invalidParams.Add(request.NewErrParamRequired("RestApiId"))
+	}
+	if s.RestApiId != nil && len(*s.RestApiId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("RestApiId", 1))
 	}
 
 	if invalidParams.Len() > 0 {
@@ -22667,8 +23121,14 @@ func (s *UpdateDocumentationVersionInput) Validate() error {
 	if s.DocumentationVersion == nil {
 		invalidParams.Add(request.NewErrParamRequired("DocumentationVersion"))
 	}
+	if s.DocumentationVersion != nil && len(*s.DocumentationVersion) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("DocumentationVersion", 1))
+	}
 	if s.RestApiId == nil {
 		invalidParams.Add(request.NewErrParamRequired("RestApiId"))
+	}
+	if s.RestApiId != nil && len(*s.RestApiId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("RestApiId", 1))
 	}
 
 	if invalidParams.Len() > 0 {
@@ -22724,6 +23184,9 @@ func (s *UpdateDomainNameInput) Validate() error {
 	invalidParams := request.ErrInvalidParams{Context: "UpdateDomainNameInput"}
 	if s.DomainName == nil {
 		invalidParams.Add(request.NewErrParamRequired("DomainName"))
+	}
+	if s.DomainName != nil && len(*s.DomainName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("DomainName", 1))
 	}
 
 	if invalidParams.Len() > 0 {
@@ -22799,8 +23262,14 @@ func (s *UpdateGatewayResponseInput) Validate() error {
 	if s.ResponseType == nil {
 		invalidParams.Add(request.NewErrParamRequired("ResponseType"))
 	}
+	if s.ResponseType != nil && len(*s.ResponseType) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ResponseType", 1))
+	}
 	if s.RestApiId == nil {
 		invalidParams.Add(request.NewErrParamRequired("RestApiId"))
+	}
+	if s.RestApiId != nil && len(*s.RestApiId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("RestApiId", 1))
 	}
 
 	if invalidParams.Len() > 0 {
@@ -22831,7 +23300,7 @@ func (s *UpdateGatewayResponseInput) SetRestApiId(v string) *UpdateGatewayRespon
 // response parameters and mapping templates.
 //
 // For more information about valid gateway response types, see Gateway Response
-// Types Supported by API Gateway ([[AwsDocsUrlPrefix]]/apigateway/latest/developerguide/supported-gateway-response-types.html)Example:
+// Types Supported by API Gateway (https://docs.aws.amazon.com/apigateway/latest/developerguide/supported-gateway-response-types.html)Example:
 // Get a Gateway Response of a given response type
 //
 // Request
@@ -22867,7 +23336,7 @@ func (s *UpdateGatewayResponseInput) SetRestApiId(v string) *UpdateGatewayRespon
 // \"statusCode\": \"'404'\"\n}" }, "responseType": "MISSING_AUTHENTICATION_TOKEN",
 // "statusCode": "404" }
 //
-// Customize Gateway Responses ([[AwsDocsUrlPrefix]]/apigateway/latest/developerguide/customize-gateway-responses.html)
+// Customize Gateway Responses (https://docs.aws.amazon.com/apigateway/latest/developerguide/customize-gateway-responses.html)
 type UpdateGatewayResponseOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -22991,11 +23460,20 @@ func (s *UpdateIntegrationInput) Validate() error {
 	if s.HttpMethod == nil {
 		invalidParams.Add(request.NewErrParamRequired("HttpMethod"))
 	}
+	if s.HttpMethod != nil && len(*s.HttpMethod) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("HttpMethod", 1))
+	}
 	if s.ResourceId == nil {
 		invalidParams.Add(request.NewErrParamRequired("ResourceId"))
 	}
+	if s.ResourceId != nil && len(*s.ResourceId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ResourceId", 1))
+	}
 	if s.RestApiId == nil {
 		invalidParams.Add(request.NewErrParamRequired("RestApiId"))
+	}
+	if s.RestApiId != nil && len(*s.RestApiId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("RestApiId", 1))
 	}
 
 	if invalidParams.Len() > 0 {
@@ -23073,14 +23551,26 @@ func (s *UpdateIntegrationResponseInput) Validate() error {
 	if s.HttpMethod == nil {
 		invalidParams.Add(request.NewErrParamRequired("HttpMethod"))
 	}
+	if s.HttpMethod != nil && len(*s.HttpMethod) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("HttpMethod", 1))
+	}
 	if s.ResourceId == nil {
 		invalidParams.Add(request.NewErrParamRequired("ResourceId"))
+	}
+	if s.ResourceId != nil && len(*s.ResourceId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ResourceId", 1))
 	}
 	if s.RestApiId == nil {
 		invalidParams.Add(request.NewErrParamRequired("RestApiId"))
 	}
+	if s.RestApiId != nil && len(*s.RestApiId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("RestApiId", 1))
+	}
 	if s.StatusCode == nil {
 		invalidParams.Add(request.NewErrParamRequired("StatusCode"))
+	}
+	if s.StatusCode != nil && len(*s.StatusCode) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("StatusCode", 1))
 	}
 
 	if invalidParams.Len() > 0 {
@@ -23159,11 +23649,20 @@ func (s *UpdateMethodInput) Validate() error {
 	if s.HttpMethod == nil {
 		invalidParams.Add(request.NewErrParamRequired("HttpMethod"))
 	}
+	if s.HttpMethod != nil && len(*s.HttpMethod) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("HttpMethod", 1))
+	}
 	if s.ResourceId == nil {
 		invalidParams.Add(request.NewErrParamRequired("ResourceId"))
 	}
+	if s.ResourceId != nil && len(*s.ResourceId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ResourceId", 1))
+	}
 	if s.RestApiId == nil {
 		invalidParams.Add(request.NewErrParamRequired("RestApiId"))
+	}
+	if s.RestApiId != nil && len(*s.RestApiId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("RestApiId", 1))
 	}
 
 	if invalidParams.Len() > 0 {
@@ -23241,14 +23740,26 @@ func (s *UpdateMethodResponseInput) Validate() error {
 	if s.HttpMethod == nil {
 		invalidParams.Add(request.NewErrParamRequired("HttpMethod"))
 	}
+	if s.HttpMethod != nil && len(*s.HttpMethod) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("HttpMethod", 1))
+	}
 	if s.ResourceId == nil {
 		invalidParams.Add(request.NewErrParamRequired("ResourceId"))
+	}
+	if s.ResourceId != nil && len(*s.ResourceId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ResourceId", 1))
 	}
 	if s.RestApiId == nil {
 		invalidParams.Add(request.NewErrParamRequired("RestApiId"))
 	}
+	if s.RestApiId != nil && len(*s.RestApiId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("RestApiId", 1))
+	}
 	if s.StatusCode == nil {
 		invalidParams.Add(request.NewErrParamRequired("StatusCode"))
+	}
+	if s.StatusCode != nil && len(*s.StatusCode) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("StatusCode", 1))
 	}
 
 	if invalidParams.Len() > 0 {
@@ -23322,8 +23833,14 @@ func (s *UpdateModelInput) Validate() error {
 	if s.ModelName == nil {
 		invalidParams.Add(request.NewErrParamRequired("ModelName"))
 	}
+	if s.ModelName != nil && len(*s.ModelName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ModelName", 1))
+	}
 	if s.RestApiId == nil {
 		invalidParams.Add(request.NewErrParamRequired("RestApiId"))
+	}
+	if s.RestApiId != nil && len(*s.RestApiId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("RestApiId", 1))
 	}
 
 	if invalidParams.Len() > 0 {
@@ -23385,8 +23902,14 @@ func (s *UpdateRequestValidatorInput) Validate() error {
 	if s.RequestValidatorId == nil {
 		invalidParams.Add(request.NewErrParamRequired("RequestValidatorId"))
 	}
+	if s.RequestValidatorId != nil && len(*s.RequestValidatorId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("RequestValidatorId", 1))
+	}
 	if s.RestApiId == nil {
 		invalidParams.Add(request.NewErrParamRequired("RestApiId"))
+	}
+	if s.RestApiId != nil && len(*s.RestApiId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("RestApiId", 1))
 	}
 
 	if invalidParams.Len() > 0 {
@@ -23415,13 +23938,13 @@ func (s *UpdateRequestValidatorInput) SetRestApiId(v string) *UpdateRequestValid
 
 // A set of validation rules for incoming Method requests.
 //
-// In Swagger, a RequestValidator of an API is defined by the x-amazon-apigateway-request-validators.requestValidator
-// ([[AwsDocsUrlPrefix]]/apigateway/latest/developerguide/api-gateway-swagger-extensions.html#api-gateway-swagger-extensions-request-validators.requestValidator.html)
+// In OpenAPI, a RequestValidator of an API is defined by the x-amazon-apigateway-request-validators.requestValidator
+// (https://docs.aws.amazon.com/apigateway/latest/developerguide/api-gateway-swagger-extensions.html#api-gateway-swagger-extensions-request-validators.requestValidator.html)
 // object. It the referenced using the x-amazon-apigateway-request-validator
-// ([[AwsDocsUrlPrefix]]/apigateway/latest/developerguide/api-gateway-swagger-extensions.html#api-gateway-swagger-extensions-request-validator)
+// (https://docs.aws.amazon.com/apigateway/latest/developerguide/api-gateway-swagger-extensions.html#api-gateway-swagger-extensions-request-validator)
 // property.
 //
-// Enable Basic Request Validation in API Gateway ([[AwsDocsUrlPrefix]]/apigateway/latest/developerguide/api-gateway-method-request-validation.html)
+// Enable Basic Request Validation in API Gateway (https://docs.aws.amazon.com/apigateway/latest/developerguide/api-gateway-method-request-validation.html)
 type UpdateRequestValidatorOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -23509,8 +24032,14 @@ func (s *UpdateResourceInput) Validate() error {
 	if s.ResourceId == nil {
 		invalidParams.Add(request.NewErrParamRequired("ResourceId"))
 	}
+	if s.ResourceId != nil && len(*s.ResourceId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ResourceId", 1))
+	}
 	if s.RestApiId == nil {
 		invalidParams.Add(request.NewErrParamRequired("RestApiId"))
+	}
+	if s.RestApiId != nil && len(*s.RestApiId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("RestApiId", 1))
 	}
 
 	if invalidParams.Len() > 0 {
@@ -23567,6 +24096,9 @@ func (s *UpdateRestApiInput) Validate() error {
 	if s.RestApiId == nil {
 		invalidParams.Add(request.NewErrParamRequired("RestApiId"))
 	}
+	if s.RestApiId != nil && len(*s.RestApiId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("RestApiId", 1))
+	}
 
 	if invalidParams.Len() > 0 {
 		return invalidParams
@@ -23621,8 +24153,14 @@ func (s *UpdateStageInput) Validate() error {
 	if s.RestApiId == nil {
 		invalidParams.Add(request.NewErrParamRequired("RestApiId"))
 	}
+	if s.RestApiId != nil && len(*s.RestApiId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("RestApiId", 1))
+	}
 	if s.StageName == nil {
 		invalidParams.Add(request.NewErrParamRequired("StageName"))
+	}
+	if s.StageName != nil && len(*s.StageName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("StageName", 1))
 	}
 
 	if invalidParams.Len() > 0 {
@@ -23686,8 +24224,14 @@ func (s *UpdateUsageInput) Validate() error {
 	if s.KeyId == nil {
 		invalidParams.Add(request.NewErrParamRequired("KeyId"))
 	}
+	if s.KeyId != nil && len(*s.KeyId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("KeyId", 1))
+	}
 	if s.UsagePlanId == nil {
 		invalidParams.Add(request.NewErrParamRequired("UsagePlanId"))
+	}
+	if s.UsagePlanId != nil && len(*s.UsagePlanId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("UsagePlanId", 1))
 	}
 
 	if invalidParams.Len() > 0 {
@@ -23744,6 +24288,9 @@ func (s *UpdateUsagePlanInput) Validate() error {
 	if s.UsagePlanId == nil {
 		invalidParams.Add(request.NewErrParamRequired("UsagePlanId"))
 	}
+	if s.UsagePlanId != nil && len(*s.UsagePlanId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("UsagePlanId", 1))
+	}
 
 	if invalidParams.Len() > 0 {
 		return invalidParams
@@ -23793,6 +24340,9 @@ func (s *UpdateVpcLinkInput) Validate() error {
 	invalidParams := request.ErrInvalidParams{Context: "UpdateVpcLinkInput"}
 	if s.VpcLinkId == nil {
 		invalidParams.Add(request.NewErrParamRequired("VpcLinkId"))
+	}
+	if s.VpcLinkId != nil && len(*s.VpcLinkId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("VpcLinkId", 1))
 	}
 
 	if invalidParams.Len() > 0 {
@@ -23897,7 +24447,7 @@ func (s *UpdateVpcLinkOutput) SetTargetArns(v []*string) *UpdateVpcLinkOutput {
 
 // Represents the usage data of a usage plan.
 //
-// Create and Use Usage Plans ([[AwsDocsUrlPrefix]]/apigateway/latest/developerguide/api-gateway-api-usage-plans.html), Manage Usage in a Usage Plan ([[AwsDocsUrlPrefix]]/apigateway/latest/developerguide/api-gateway-create-usage-plans-with-console.html#api-gateway-usage-plan-manage-usage)
+// Create and Use Usage Plans (https://docs.aws.amazon.com/apigateway/latest/developerguide/api-gateway-api-usage-plans.html), Manage Usage in a Usage Plan (https://docs.aws.amazon.com/apigateway/latest/developerguide/api-gateway-create-usage-plans-with-console.html#api-gateway-usage-plan-manage-usage)
 type Usage struct {
 	_ struct{} `type:"structure"`
 
@@ -23967,7 +24517,7 @@ func (s *Usage) SetUsagePlanId(v string) *Usage {
 // name of the specified API. You add plan customers by adding API keys to the
 // plan.
 //
-// Create and Use Usage Plans ([[AwsDocsUrlPrefix]]/apigateway/latest/developerguide/api-gateway-api-usage-plans.html)
+// Create and Use Usage Plans (https://docs.aws.amazon.com/apigateway/latest/developerguide/api-gateway-api-usage-plans.html)
 type UsagePlan struct {
 	_ struct{} `type:"structure"`
 
@@ -24051,7 +24601,7 @@ func (s *UsagePlan) SetThrottle(v *ThrottleSettings) *UsagePlan {
 // To associate an API stage with a selected API key in a usage plan, you must
 // create a UsagePlanKey resource to represent the selected ApiKey.
 //
-// " Create and Use Usage Plans ([[AwsDocsUrlPrefix]]/apigateway/latest/developerguide/api-gateway-api-usage-plans.html)
+// " Create and Use Usage Plans (https://docs.aws.amazon.com/apigateway/latest/developerguide/api-gateway-api-usage-plans.html)
 type UsagePlanKey struct {
 	_ struct{} `type:"structure"`
 

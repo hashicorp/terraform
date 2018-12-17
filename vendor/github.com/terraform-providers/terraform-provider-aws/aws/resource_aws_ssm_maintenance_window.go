@@ -14,6 +14,9 @@ func resourceAwsSsmMaintenanceWindow() *schema.Resource {
 		Read:   resourceAwsSsmMaintenanceWindowRead,
 		Update: resourceAwsSsmMaintenanceWindowUpdate,
 		Delete: resourceAwsSsmMaintenanceWindowDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"name": {

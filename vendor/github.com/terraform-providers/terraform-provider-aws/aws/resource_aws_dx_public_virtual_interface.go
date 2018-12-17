@@ -131,7 +131,7 @@ func resourceAwsDxPublicVirtualInterfaceCreate(d *schema.ResourceData, meta inte
 	}.String()
 	d.Set("arn", arn)
 
-	if err := dxPublicVirtualInterfaceWaitUntilAvailable(d, conn); err != nil {
+	if err := dxPublicVirtualInterfaceWaitUntilAvailable(conn, d.Id(), d.Timeout(schema.TimeoutCreate)); err != nil {
 		return err
 	}
 
@@ -208,10 +208,11 @@ func resourceAwsDxPublicVirtualInterfaceCustomizeDiff(diff *schema.ResourceDiff,
 	return nil
 }
 
-func dxPublicVirtualInterfaceWaitUntilAvailable(d *schema.ResourceData, conn *directconnect.DirectConnect) error {
+func dxPublicVirtualInterfaceWaitUntilAvailable(conn *directconnect.DirectConnect, vifId string, timeout time.Duration) error {
 	return dxVirtualInterfaceWaitUntilAvailable(
-		d,
 		conn,
+		vifId,
+		timeout,
 		[]string{
 			directconnect.VirtualInterfaceStatePending,
 		},

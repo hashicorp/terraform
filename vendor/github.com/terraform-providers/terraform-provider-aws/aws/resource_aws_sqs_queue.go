@@ -151,11 +151,11 @@ func resourceAwsSqsQueueCreate(d *schema.ResourceData, meta interface{}) error {
 	cbd := d.Get("content_based_deduplication").(bool)
 
 	if fq {
-		if errors := validateSQSFifoQueueName(name, "name"); len(errors) > 0 {
+		if errors := validateSQSFifoQueueName(name); len(errors) > 0 {
 			return fmt.Errorf("Error validating the FIFO queue name: %v", errors)
 		}
 	} else {
-		if errors := validateSQSNonFifoQueueName(name, "name"); len(errors) > 0 {
+		if errors := validateSQSNonFifoQueueName(name); len(errors) > 0 {
 			return fmt.Errorf("Error validating SQS queue name: %v", errors)
 		}
 	}

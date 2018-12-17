@@ -52,6 +52,7 @@ func (c *GameLift) AcceptMatchRequest(input *AcceptMatchInput) (req *request.Req
 
 	output = &AcceptMatchOutput{}
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(jsonrpc.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -1603,6 +1604,7 @@ func (c *GameLift) CreateVpcPeeringConnectionRequest(input *CreateVpcPeeringConn
 
 	output = &CreateVpcPeeringConnectionOutput{}
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(jsonrpc.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -1731,8 +1733,7 @@ func (c *GameLift) DeleteAliasRequest(input *DeleteAliasInput) (req *request.Req
 
 	output = &DeleteAliasOutput{}
 	req = c.newRequest(op, input, output)
-	req.Handlers.Unmarshal.Remove(jsonrpc.UnmarshalHandler)
-	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
+	req.Handlers.Unmarshal.Swap(jsonrpc.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -1841,8 +1842,7 @@ func (c *GameLift) DeleteBuildRequest(input *DeleteBuildInput) (req *request.Req
 
 	output = &DeleteBuildOutput{}
 	req = c.newRequest(op, input, output)
-	req.Handlers.Unmarshal.Remove(jsonrpc.UnmarshalHandler)
-	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
+	req.Handlers.Unmarshal.Swap(jsonrpc.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -1952,8 +1952,7 @@ func (c *GameLift) DeleteFleetRequest(input *DeleteFleetInput) (req *request.Req
 
 	output = &DeleteFleetOutput{}
 	req = c.newRequest(op, input, output)
-	req.Handlers.Unmarshal.Remove(jsonrpc.UnmarshalHandler)
-	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
+	req.Handlers.Unmarshal.Swap(jsonrpc.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -2095,6 +2094,7 @@ func (c *GameLift) DeleteGameSessionQueueRequest(input *DeleteGameSessionQueueIn
 
 	output = &DeleteGameSessionQueueOutput{}
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(jsonrpc.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -2199,6 +2199,7 @@ func (c *GameLift) DeleteMatchmakingConfigurationRequest(input *DeleteMatchmakin
 
 	output = &DeleteMatchmakingConfigurationOutput{}
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(jsonrpc.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -2309,8 +2310,7 @@ func (c *GameLift) DeleteScalingPolicyRequest(input *DeleteScalingPolicyInput) (
 
 	output = &DeleteScalingPolicyOutput{}
 	req = c.newRequest(op, input, output)
-	req.Handlers.Unmarshal.Remove(jsonrpc.UnmarshalHandler)
-	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
+	req.Handlers.Unmarshal.Swap(jsonrpc.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -2430,6 +2430,7 @@ func (c *GameLift) DeleteVpcPeeringAuthorizationRequest(input *DeleteVpcPeeringA
 
 	output = &DeleteVpcPeeringAuthorizationOutput{}
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(jsonrpc.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -2538,6 +2539,7 @@ func (c *GameLift) DeleteVpcPeeringConnectionRequest(input *DeleteVpcPeeringConn
 
 	output = &DeleteVpcPeeringConnectionOutput{}
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(jsonrpc.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -6356,6 +6358,7 @@ func (c *GameLift) StartFleetActionsRequest(input *StartFleetActionsInput) (req 
 
 	output = &StartFleetActionsOutput{}
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(jsonrpc.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -6923,6 +6926,7 @@ func (c *GameLift) StopFleetActionsRequest(input *StopFleetActionsInput) (req *r
 
 	output = &StopFleetActionsOutput{}
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(jsonrpc.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -7140,6 +7144,7 @@ func (c *GameLift) StopMatchmakingRequest(input *StopMatchmakingInput) (req *req
 
 	output = &StopMatchmakingOutput{}
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(jsonrpc.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -8740,7 +8745,7 @@ func (s *AttributeValue) SetSL(v []*string) *AttributeValue {
 // GameLift. They are valid for a limited time. If they expire before you upload
 // your game build, get a new set by calling RequestUploadCredentials.
 type AwsCredentials struct {
-	_ struct{} `type:"structure"`
+	_ struct{} `type:"structure" sensitive:"true"`
 
 	// Temporary key allowing access to the Amazon GameLift S3 account.
 	AccessKeyId *string `min:"1" type:"string"`
@@ -9080,7 +9085,7 @@ type CreateBuildOutput struct {
 	// location. It contains credentials to use when you are uploading a build file
 	// to an Amazon S3 bucket that is owned by Amazon GameLift. Credentials have
 	// a limited life span. To refresh these credentials, call RequestUploadCredentials.
-	UploadCredentials *AwsCredentials `type:"structure"`
+	UploadCredentials *AwsCredentials `type:"structure" sensitive:"true"`
 }
 
 // String returns the string representation
@@ -14637,7 +14642,7 @@ type InstanceAccess struct {
 	_ struct{} `type:"structure"`
 
 	// Credentials required to access the instance.
-	Credentials *InstanceCredentials `type:"structure"`
+	Credentials *InstanceCredentials `type:"structure" sensitive:"true"`
 
 	// Unique identifier for a fleet containing the instance being accessed.
 	FleetId *string `type:"string"`
@@ -14696,7 +14701,7 @@ func (s *InstanceAccess) SetOperatingSystem(v string) *InstanceAccess {
 // are requested by calling GetInstanceAccess and returned in an InstanceAccess
 // object.
 type InstanceCredentials struct {
-	_ struct{} `type:"structure"`
+	_ struct{} `type:"structure" sensitive:"true"`
 
 	// Secret string. For Windows instances, the secret is a password for use with
 	// Windows Remote Desktop. For Linux instances, it is a private key (which must
@@ -16252,7 +16257,7 @@ type RequestUploadCredentialsOutput struct {
 	// AWS credentials required when uploading a game build to the storage location.
 	// These credentials have a limited lifespan and are valid only for the build
 	// they were issued for.
-	UploadCredentials *AwsCredentials `type:"structure"`
+	UploadCredentials *AwsCredentials `type:"structure" sensitive:"true"`
 }
 
 // String returns the string representation

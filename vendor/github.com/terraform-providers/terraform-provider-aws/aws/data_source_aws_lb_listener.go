@@ -54,6 +54,155 @@ func dataSourceAwsLbListener() *schema.Resource {
 				Computed: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
+						"authenticate_cognito": {
+							Type:     schema.TypeList,
+							Computed: true,
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"authentication_request_extra_params": {
+										Type:     schema.TypeMap,
+										Computed: true,
+									},
+									"on_unauthenticated_request": {
+										Type:     schema.TypeString,
+										Computed: true,
+									},
+									"scope": {
+										Type:     schema.TypeString,
+										Computed: true,
+									},
+									"session_cookie_name": {
+										Type:     schema.TypeString,
+										Computed: true,
+									},
+									"session_timeout": {
+										Type:     schema.TypeInt,
+										Computed: true,
+									},
+									"user_pool_arn": {
+										Type:     schema.TypeString,
+										Computed: true,
+									},
+									"user_pool_client_id": {
+										Type:     schema.TypeString,
+										Computed: true,
+									},
+									"user_pool_domain": {
+										Type:     schema.TypeString,
+										Computed: true,
+									},
+								},
+							},
+						},
+						"authenticate_oidc": {
+							Type:     schema.TypeList,
+							Computed: true,
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"authentication_request_extra_params": {
+										Type:     schema.TypeMap,
+										Computed: true,
+									},
+									"authorization_endpoint": {
+										Type:     schema.TypeString,
+										Computed: true,
+									},
+									"client_id": {
+										Type:     schema.TypeString,
+										Computed: true,
+									},
+									"client_secret": {
+										Type:      schema.TypeString,
+										Computed:  true,
+										Sensitive: true,
+									},
+									"issuer": {
+										Type:     schema.TypeString,
+										Computed: true,
+									},
+									"on_unauthenticated_request": {
+										Type:     schema.TypeString,
+										Computed: true,
+									},
+									"scope": {
+										Type:     schema.TypeString,
+										Computed: true,
+									},
+									"session_cookie_name": {
+										Type:     schema.TypeString,
+										Computed: true,
+									},
+									"session_timeout": {
+										Type:     schema.TypeInt,
+										Computed: true,
+									},
+									"token_endpoint": {
+										Type:     schema.TypeString,
+										Computed: true,
+									},
+									"user_info_endpoint": {
+										Type:     schema.TypeString,
+										Computed: true,
+									},
+								},
+							},
+						},
+						"fixed_response": {
+							Type:     schema.TypeList,
+							Computed: true,
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"content_type": {
+										Type:     schema.TypeString,
+										Computed: true,
+									},
+									"message_body": {
+										Type:     schema.TypeString,
+										Computed: true,
+									},
+									"status_code": {
+										Type:     schema.TypeString,
+										Computed: true,
+									},
+								},
+							},
+						},
+						"order": {
+							Type:     schema.TypeInt,
+							Computed: true,
+						},
+						"redirect": {
+							Type:     schema.TypeList,
+							Computed: true,
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"host": {
+										Type:     schema.TypeString,
+										Computed: true,
+									},
+									"path": {
+										Type:     schema.TypeString,
+										Computed: true,
+									},
+									"port": {
+										Type:     schema.TypeString,
+										Computed: true,
+									},
+									"protocol": {
+										Type:     schema.TypeString,
+										Computed: true,
+									},
+									"query": {
+										Type:     schema.TypeString,
+										Computed: true,
+									},
+									"status_code": {
+										Type:     schema.TypeString,
+										Computed: true,
+									},
+								},
+							},
+						},
 						"target_group_arn": {
 							Type:     schema.TypeString,
 							Computed: true,

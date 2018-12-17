@@ -36,6 +36,10 @@ func dataSourceAwsInternetGateway() *schema.Resource {
 					},
 				},
 			},
+			"owner_id": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
 		},
 	}
 }
@@ -77,6 +81,7 @@ func dataSourceAwsInternetGatewayRead(d *schema.ResourceData, meta interface{}) 
 	igw := resp.InternetGateways[0]
 	d.SetId(aws.StringValue(igw.InternetGatewayId))
 	d.Set("tags", tagsToMap(igw.Tags))
+	d.Set("owner_id", igw.OwnerId)
 	d.Set("internet_gateway_id", igw.InternetGatewayId)
 	if err := d.Set("attachments", dataSourceAttachmentsRead(igw.Attachments)); err != nil {
 		return err

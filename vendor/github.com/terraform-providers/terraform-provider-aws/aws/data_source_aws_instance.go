@@ -51,6 +51,10 @@ func dataSourceAwsInstance() *schema.Resource {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
+			"host_id": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
 			"key_name": {
 				Type:     schema.TypeString,
 				Computed: true,
@@ -348,6 +352,9 @@ func instanceDescriptionAttributes(d *schema.ResourceData, instance *ec2.Instanc
 	}
 	if instance.Placement.Tenancy != nil {
 		d.Set("tenancy", instance.Placement.Tenancy)
+	}
+	if instance.Placement.HostId != nil {
+		d.Set("host_id", instance.Placement.HostId)
 	}
 	d.Set("ami", instance.ImageId)
 	d.Set("instance_type", instance.InstanceType)

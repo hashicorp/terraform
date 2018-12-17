@@ -1888,6 +1888,100 @@ func (c *Pinpoint) DeleteUserEndpointsWithContext(ctx aws.Context, input *Delete
 	return out, req.Send()
 }
 
+const opDeleteVoiceChannel = "DeleteVoiceChannel"
+
+// DeleteVoiceChannelRequest generates a "aws/request.Request" representing the
+// client's request for the DeleteVoiceChannel operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See DeleteVoiceChannel for more information on using the DeleteVoiceChannel
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the DeleteVoiceChannelRequest method.
+//    req, resp := client.DeleteVoiceChannelRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/pinpoint-2016-12-01/DeleteVoiceChannel
+func (c *Pinpoint) DeleteVoiceChannelRequest(input *DeleteVoiceChannelInput) (req *request.Request, output *DeleteVoiceChannelOutput) {
+	op := &request.Operation{
+		Name:       opDeleteVoiceChannel,
+		HTTPMethod: "DELETE",
+		HTTPPath:   "/v1/apps/{application-id}/channels/voice",
+	}
+
+	if input == nil {
+		input = &DeleteVoiceChannelInput{}
+	}
+
+	output = &DeleteVoiceChannelOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// DeleteVoiceChannel API operation for Amazon Pinpoint.
+//
+// Delete an Voice channel
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Pinpoint's
+// API operation DeleteVoiceChannel for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeBadRequestException "BadRequestException"
+//   Simple message object.
+//
+//   * ErrCodeInternalServerErrorException "InternalServerErrorException"
+//   Simple message object.
+//
+//   * ErrCodeForbiddenException "ForbiddenException"
+//   Simple message object.
+//
+//   * ErrCodeNotFoundException "NotFoundException"
+//   Simple message object.
+//
+//   * ErrCodeMethodNotAllowedException "MethodNotAllowedException"
+//   Simple message object.
+//
+//   * ErrCodeTooManyRequestsException "TooManyRequestsException"
+//   Simple message object.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/pinpoint-2016-12-01/DeleteVoiceChannel
+func (c *Pinpoint) DeleteVoiceChannel(input *DeleteVoiceChannelInput) (*DeleteVoiceChannelOutput, error) {
+	req, out := c.DeleteVoiceChannelRequest(input)
+	return out, req.Send()
+}
+
+// DeleteVoiceChannelWithContext is the same as DeleteVoiceChannel with the addition of
+// the ability to pass a context and additional request options.
+//
+// See DeleteVoiceChannel for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *Pinpoint) DeleteVoiceChannelWithContext(ctx aws.Context, input *DeleteVoiceChannelInput, opts ...request.Option) (*DeleteVoiceChannelOutput, error) {
+	req, out := c.DeleteVoiceChannelRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
 const opGetAdmChannel = "GetAdmChannel"
 
 // GetAdmChannelRequest generates a "aws/request.Request" representing the
@@ -4802,6 +4896,100 @@ func (c *Pinpoint) GetUserEndpointsWithContext(ctx aws.Context, input *GetUserEn
 	return out, req.Send()
 }
 
+const opGetVoiceChannel = "GetVoiceChannel"
+
+// GetVoiceChannelRequest generates a "aws/request.Request" representing the
+// client's request for the GetVoiceChannel operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See GetVoiceChannel for more information on using the GetVoiceChannel
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the GetVoiceChannelRequest method.
+//    req, resp := client.GetVoiceChannelRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/pinpoint-2016-12-01/GetVoiceChannel
+func (c *Pinpoint) GetVoiceChannelRequest(input *GetVoiceChannelInput) (req *request.Request, output *GetVoiceChannelOutput) {
+	op := &request.Operation{
+		Name:       opGetVoiceChannel,
+		HTTPMethod: "GET",
+		HTTPPath:   "/v1/apps/{application-id}/channels/voice",
+	}
+
+	if input == nil {
+		input = &GetVoiceChannelInput{}
+	}
+
+	output = &GetVoiceChannelOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// GetVoiceChannel API operation for Amazon Pinpoint.
+//
+// Get a Voice Channel
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Pinpoint's
+// API operation GetVoiceChannel for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeBadRequestException "BadRequestException"
+//   Simple message object.
+//
+//   * ErrCodeInternalServerErrorException "InternalServerErrorException"
+//   Simple message object.
+//
+//   * ErrCodeForbiddenException "ForbiddenException"
+//   Simple message object.
+//
+//   * ErrCodeNotFoundException "NotFoundException"
+//   Simple message object.
+//
+//   * ErrCodeMethodNotAllowedException "MethodNotAllowedException"
+//   Simple message object.
+//
+//   * ErrCodeTooManyRequestsException "TooManyRequestsException"
+//   Simple message object.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/pinpoint-2016-12-01/GetVoiceChannel
+func (c *Pinpoint) GetVoiceChannel(input *GetVoiceChannelInput) (*GetVoiceChannelOutput, error) {
+	req, out := c.GetVoiceChannelRequest(input)
+	return out, req.Send()
+}
+
+// GetVoiceChannelWithContext is the same as GetVoiceChannel with the addition of
+// the ability to pass a context and additional request options.
+//
+// See GetVoiceChannel for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *Pinpoint) GetVoiceChannelWithContext(ctx aws.Context, input *GetVoiceChannelInput, opts ...request.Option) (*GetVoiceChannelOutput, error) {
+	req, out := c.GetVoiceChannelRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
 const opPhoneNumberValidate = "PhoneNumberValidate"
 
 // PhoneNumberValidateRequest generates a "aws/request.Request" representing the
@@ -6683,6 +6871,100 @@ func (c *Pinpoint) UpdateSmsChannelWithContext(ctx aws.Context, input *UpdateSms
 	return out, req.Send()
 }
 
+const opUpdateVoiceChannel = "UpdateVoiceChannel"
+
+// UpdateVoiceChannelRequest generates a "aws/request.Request" representing the
+// client's request for the UpdateVoiceChannel operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See UpdateVoiceChannel for more information on using the UpdateVoiceChannel
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the UpdateVoiceChannelRequest method.
+//    req, resp := client.UpdateVoiceChannelRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/pinpoint-2016-12-01/UpdateVoiceChannel
+func (c *Pinpoint) UpdateVoiceChannelRequest(input *UpdateVoiceChannelInput) (req *request.Request, output *UpdateVoiceChannelOutput) {
+	op := &request.Operation{
+		Name:       opUpdateVoiceChannel,
+		HTTPMethod: "PUT",
+		HTTPPath:   "/v1/apps/{application-id}/channels/voice",
+	}
+
+	if input == nil {
+		input = &UpdateVoiceChannelInput{}
+	}
+
+	output = &UpdateVoiceChannelOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// UpdateVoiceChannel API operation for Amazon Pinpoint.
+//
+// Update an Voice channel
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Pinpoint's
+// API operation UpdateVoiceChannel for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeBadRequestException "BadRequestException"
+//   Simple message object.
+//
+//   * ErrCodeInternalServerErrorException "InternalServerErrorException"
+//   Simple message object.
+//
+//   * ErrCodeForbiddenException "ForbiddenException"
+//   Simple message object.
+//
+//   * ErrCodeNotFoundException "NotFoundException"
+//   Simple message object.
+//
+//   * ErrCodeMethodNotAllowedException "MethodNotAllowedException"
+//   Simple message object.
+//
+//   * ErrCodeTooManyRequestsException "TooManyRequestsException"
+//   Simple message object.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/pinpoint-2016-12-01/UpdateVoiceChannel
+func (c *Pinpoint) UpdateVoiceChannel(input *UpdateVoiceChannelInput) (*UpdateVoiceChannelOutput, error) {
+	req, out := c.UpdateVoiceChannelRequest(input)
+	return out, req.Send()
+}
+
+// UpdateVoiceChannelWithContext is the same as UpdateVoiceChannel with the addition of
+// the ability to pass a context and additional request options.
+//
+// See UpdateVoiceChannel for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *Pinpoint) UpdateVoiceChannelWithContext(ctx aws.Context, input *UpdateVoiceChannelInput, opts ...request.Option) (*UpdateVoiceChannelOutput, error) {
+	req, out := c.UpdateVoiceChannelRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
 // Amazon Device Messaging channel definition.
 type ADMChannelRequest struct {
 	_ struct{} `type:"structure"`
@@ -7256,7 +7538,8 @@ type APNSMessage struct {
 	// data.pinpoint.jsonBody' object
 	Data map[string]*string `type:"map"`
 
-	// The URL that points to a video used in the push notification.
+	// A URL that refers to the location of an image or video that you want to display
+	// in the push notification.
 	MediaUrl *string `type:"string"`
 
 	// The preferred authentication method, either "CERTIFICATE" or "TOKEN"
@@ -8347,9 +8630,20 @@ type ApplicationSettingsResource struct {
 	// own.
 	Limits *CampaignLimits `type:"structure"`
 
-	// The default quiet time for the app. Each campaign for this app sends no messages
-	// during this time unless the campaign overrides the default with a quiet time
-	// of its own.
+	// The default quiet time for the app. Campaigns in the app don't send messages
+	// to endpoints during the quiet time.Note: Make sure that your endpoints include
+	// the Demographics.Timezone attribute if you plan to enable a quiet time for
+	// your app. If your endpoints don't include this attribute, they'll receive
+	// the messages that you send them, even if quiet time is enabled.When you set
+	// up an app to use quiet time, campaigns in that app don't send messages during
+	// the time range you specified, as long as all of the following are true:-
+	// The endpoint includes a valid Demographic.Timezone attribute.- The current
+	// time in the endpoint's time zone is later than or equal to the time specified
+	// in the QuietTime.Start attribute for the app (or campaign, if applicable).-
+	// The current time in the endpoint's time zone is earlier than or equal to
+	// the time specified in the QuietTime.End attribute for the app (or campaign,
+	// if applicable).Individual campaigns within the app can have their own quiet
+	// time settings, which override the quiet time settings at the app level.
 	QuietTime *QuietTime `type:"structure"`
 }
 
@@ -8872,6 +9166,42 @@ func (s *CampaignEmailMessage) SetTitle(v string) *CampaignEmailMessage {
 	return s
 }
 
+// An object that defines the events that cause the campaign to be sent.
+type CampaignEventFilter struct {
+	_ struct{} `type:"structure"`
+
+	// An object that defines the dimensions for the event filter.
+	Dimensions *EventDimensions `type:"structure"`
+
+	// The type of event that causes the campaign to be sent. Possible values:SYSTEM
+	// - Send the campaign when a system event occurs. See the System resource for
+	// more information.ENDPOINT - Send the campaign when an endpoint event occurs.
+	// See the Event resource for more information.
+	FilterType *string `type:"string" enum:"FilterType"`
+}
+
+// String returns the string representation
+func (s CampaignEventFilter) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s CampaignEventFilter) GoString() string {
+	return s.String()
+}
+
+// SetDimensions sets the Dimensions field's value.
+func (s *CampaignEventFilter) SetDimensions(v *EventDimensions) *CampaignEventFilter {
+	s.Dimensions = v
+	return s
+}
+
+// SetFilterType sets the FilterType field's value.
+func (s *CampaignEventFilter) SetFilterType(v string) *CampaignEventFilter {
+	s.FilterType = &v
+	return s
+}
+
 // Campaign hook information.
 type CampaignHook struct {
 	_ struct{} `type:"structure"`
@@ -8916,11 +9246,12 @@ func (s *CampaignHook) SetWebUrl(v string) *CampaignHook {
 }
 
 // Campaign Limits are used to limit the number of messages that can be sent
-// to a user.
+// to a single endpoint.
 type CampaignLimits struct {
 	_ struct{} `type:"structure"`
 
-	// The maximum number of messages that the campaign can send daily.
+	// The maximum number of messages that each campaign can send to a single endpoint
+	// in a 24-hour period.
 	Daily *int64 `type:"integer"`
 
 	// The length of time (in seconds) that the campaign can run before it ends
@@ -8932,7 +9263,8 @@ type CampaignLimits struct {
 	// value is 50, and the maximum is 20000.
 	MessagesPerSecond *int64 `type:"integer"`
 
-	// The maximum total number of messages that the campaign can send.
+	// The maximum number of messages that an individual campaign can send to a
+	// single endpoint over the course of the campaign.
 	Total *int64 `type:"integer"`
 }
 
@@ -9507,6 +9839,9 @@ func (s *CreateCampaignInput) Validate() error {
 	if s.ApplicationId == nil {
 		invalidParams.Add(request.NewErrParamRequired("ApplicationId"))
 	}
+	if s.ApplicationId != nil && len(*s.ApplicationId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ApplicationId", 1))
+	}
 	if s.WriteCampaignRequest == nil {
 		invalidParams.Add(request.NewErrParamRequired("WriteCampaignRequest"))
 	}
@@ -9581,6 +9916,9 @@ func (s *CreateExportJobInput) Validate() error {
 	invalidParams := request.ErrInvalidParams{Context: "CreateExportJobInput"}
 	if s.ApplicationId == nil {
 		invalidParams.Add(request.NewErrParamRequired("ApplicationId"))
+	}
+	if s.ApplicationId != nil && len(*s.ApplicationId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ApplicationId", 1))
 	}
 	if s.ExportJobRequest == nil {
 		invalidParams.Add(request.NewErrParamRequired("ExportJobRequest"))
@@ -9657,6 +9995,9 @@ func (s *CreateImportJobInput) Validate() error {
 	if s.ApplicationId == nil {
 		invalidParams.Add(request.NewErrParamRequired("ApplicationId"))
 	}
+	if s.ApplicationId != nil && len(*s.ApplicationId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ApplicationId", 1))
+	}
 	if s.ImportJobRequest == nil {
 		invalidParams.Add(request.NewErrParamRequired("ImportJobRequest"))
 	}
@@ -9731,6 +10072,9 @@ func (s *CreateSegmentInput) Validate() error {
 	invalidParams := request.ErrInvalidParams{Context: "CreateSegmentInput"}
 	if s.ApplicationId == nil {
 		invalidParams.Add(request.NewErrParamRequired("ApplicationId"))
+	}
+	if s.ApplicationId != nil && len(*s.ApplicationId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ApplicationId", 1))
 	}
 	if s.WriteSegmentRequest == nil {
 		invalidParams.Add(request.NewErrParamRequired("WriteSegmentRequest"))
@@ -9832,8 +10176,9 @@ type DefaultPushNotificationMessage struct {
 	// data.pinpoint.jsonBody' object
 	Data map[string]*string `type:"map"`
 
-	// Indicates if the message should display on the users device. Silent pushes
-	// can be used for Remote Configuration and Phone Home use cases.
+	// Indicates if the message should display on the recipient's device. You can
+	// use silent pushes for remote configuration or to deliver messages to in-app
+	// notification centers.
 	SilentPush *bool `type:"boolean"`
 
 	// Default message substitutions. Can be overridden by individual address substitutions.
@@ -9922,6 +10267,9 @@ func (s *DeleteAdmChannelInput) Validate() error {
 	if s.ApplicationId == nil {
 		invalidParams.Add(request.NewErrParamRequired("ApplicationId"))
 	}
+	if s.ApplicationId != nil && len(*s.ApplicationId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ApplicationId", 1))
+	}
 
 	if invalidParams.Len() > 0 {
 		return invalidParams
@@ -9982,6 +10330,9 @@ func (s *DeleteApnsChannelInput) Validate() error {
 	invalidParams := request.ErrInvalidParams{Context: "DeleteApnsChannelInput"}
 	if s.ApplicationId == nil {
 		invalidParams.Add(request.NewErrParamRequired("ApplicationId"))
+	}
+	if s.ApplicationId != nil && len(*s.ApplicationId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ApplicationId", 1))
 	}
 
 	if invalidParams.Len() > 0 {
@@ -10044,6 +10395,9 @@ func (s *DeleteApnsSandboxChannelInput) Validate() error {
 	if s.ApplicationId == nil {
 		invalidParams.Add(request.NewErrParamRequired("ApplicationId"))
 	}
+	if s.ApplicationId != nil && len(*s.ApplicationId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ApplicationId", 1))
+	}
 
 	if invalidParams.Len() > 0 {
 		return invalidParams
@@ -10104,6 +10458,9 @@ func (s *DeleteApnsVoipChannelInput) Validate() error {
 	invalidParams := request.ErrInvalidParams{Context: "DeleteApnsVoipChannelInput"}
 	if s.ApplicationId == nil {
 		invalidParams.Add(request.NewErrParamRequired("ApplicationId"))
+	}
+	if s.ApplicationId != nil && len(*s.ApplicationId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ApplicationId", 1))
 	}
 
 	if invalidParams.Len() > 0 {
@@ -10166,6 +10523,9 @@ func (s *DeleteApnsVoipSandboxChannelInput) Validate() error {
 	if s.ApplicationId == nil {
 		invalidParams.Add(request.NewErrParamRequired("ApplicationId"))
 	}
+	if s.ApplicationId != nil && len(*s.ApplicationId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ApplicationId", 1))
+	}
 
 	if invalidParams.Len() > 0 {
 		return invalidParams
@@ -10227,6 +10587,9 @@ func (s *DeleteAppInput) Validate() error {
 	if s.ApplicationId == nil {
 		invalidParams.Add(request.NewErrParamRequired("ApplicationId"))
 	}
+	if s.ApplicationId != nil && len(*s.ApplicationId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ApplicationId", 1))
+	}
 
 	if invalidParams.Len() > 0 {
 		return invalidParams
@@ -10287,6 +10650,9 @@ func (s *DeleteBaiduChannelInput) Validate() error {
 	invalidParams := request.ErrInvalidParams{Context: "DeleteBaiduChannelInput"}
 	if s.ApplicationId == nil {
 		invalidParams.Add(request.NewErrParamRequired("ApplicationId"))
+	}
+	if s.ApplicationId != nil && len(*s.ApplicationId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ApplicationId", 1))
 	}
 
 	if invalidParams.Len() > 0 {
@@ -10352,8 +10718,14 @@ func (s *DeleteCampaignInput) Validate() error {
 	if s.ApplicationId == nil {
 		invalidParams.Add(request.NewErrParamRequired("ApplicationId"))
 	}
+	if s.ApplicationId != nil && len(*s.ApplicationId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ApplicationId", 1))
+	}
 	if s.CampaignId == nil {
 		invalidParams.Add(request.NewErrParamRequired("CampaignId"))
+	}
+	if s.CampaignId != nil && len(*s.CampaignId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("CampaignId", 1))
 	}
 
 	if invalidParams.Len() > 0 {
@@ -10422,6 +10794,9 @@ func (s *DeleteEmailChannelInput) Validate() error {
 	if s.ApplicationId == nil {
 		invalidParams.Add(request.NewErrParamRequired("ApplicationId"))
 	}
+	if s.ApplicationId != nil && len(*s.ApplicationId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ApplicationId", 1))
+	}
 
 	if invalidParams.Len() > 0 {
 		return invalidParams
@@ -10486,8 +10861,14 @@ func (s *DeleteEndpointInput) Validate() error {
 	if s.ApplicationId == nil {
 		invalidParams.Add(request.NewErrParamRequired("ApplicationId"))
 	}
+	if s.ApplicationId != nil && len(*s.ApplicationId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ApplicationId", 1))
+	}
 	if s.EndpointId == nil {
 		invalidParams.Add(request.NewErrParamRequired("EndpointId"))
+	}
+	if s.EndpointId != nil && len(*s.EndpointId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("EndpointId", 1))
 	}
 
 	if invalidParams.Len() > 0 {
@@ -10556,6 +10937,9 @@ func (s *DeleteEventStreamInput) Validate() error {
 	if s.ApplicationId == nil {
 		invalidParams.Add(request.NewErrParamRequired("ApplicationId"))
 	}
+	if s.ApplicationId != nil && len(*s.ApplicationId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ApplicationId", 1))
+	}
 
 	if invalidParams.Len() > 0 {
 		return invalidParams
@@ -10616,6 +11000,9 @@ func (s *DeleteGcmChannelInput) Validate() error {
 	invalidParams := request.ErrInvalidParams{Context: "DeleteGcmChannelInput"}
 	if s.ApplicationId == nil {
 		invalidParams.Add(request.NewErrParamRequired("ApplicationId"))
+	}
+	if s.ApplicationId != nil && len(*s.ApplicationId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ApplicationId", 1))
 	}
 
 	if invalidParams.Len() > 0 {
@@ -10681,8 +11068,14 @@ func (s *DeleteSegmentInput) Validate() error {
 	if s.ApplicationId == nil {
 		invalidParams.Add(request.NewErrParamRequired("ApplicationId"))
 	}
+	if s.ApplicationId != nil && len(*s.ApplicationId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ApplicationId", 1))
+	}
 	if s.SegmentId == nil {
 		invalidParams.Add(request.NewErrParamRequired("SegmentId"))
+	}
+	if s.SegmentId != nil && len(*s.SegmentId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("SegmentId", 1))
 	}
 
 	if invalidParams.Len() > 0 {
@@ -10751,6 +11144,9 @@ func (s *DeleteSmsChannelInput) Validate() error {
 	if s.ApplicationId == nil {
 		invalidParams.Add(request.NewErrParamRequired("ApplicationId"))
 	}
+	if s.ApplicationId != nil && len(*s.ApplicationId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ApplicationId", 1))
+	}
 
 	if invalidParams.Len() > 0 {
 		return invalidParams
@@ -10815,8 +11211,14 @@ func (s *DeleteUserEndpointsInput) Validate() error {
 	if s.ApplicationId == nil {
 		invalidParams.Add(request.NewErrParamRequired("ApplicationId"))
 	}
+	if s.ApplicationId != nil && len(*s.ApplicationId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ApplicationId", 1))
+	}
 	if s.UserId == nil {
 		invalidParams.Add(request.NewErrParamRequired("UserId"))
+	}
+	if s.UserId != nil && len(*s.UserId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("UserId", 1))
 	}
 
 	if invalidParams.Len() > 0 {
@@ -10862,6 +11264,70 @@ func (s *DeleteUserEndpointsOutput) SetEndpointsResponse(v *EndpointsResponse) *
 	return s
 }
 
+type DeleteVoiceChannelInput struct {
+	_ struct{} `type:"structure"`
+
+	// ApplicationId is a required field
+	ApplicationId *string `location:"uri" locationName:"application-id" type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s DeleteVoiceChannelInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DeleteVoiceChannelInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DeleteVoiceChannelInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DeleteVoiceChannelInput"}
+	if s.ApplicationId == nil {
+		invalidParams.Add(request.NewErrParamRequired("ApplicationId"))
+	}
+	if s.ApplicationId != nil && len(*s.ApplicationId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ApplicationId", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetApplicationId sets the ApplicationId field's value.
+func (s *DeleteVoiceChannelInput) SetApplicationId(v string) *DeleteVoiceChannelInput {
+	s.ApplicationId = &v
+	return s
+}
+
+type DeleteVoiceChannelOutput struct {
+	_ struct{} `type:"structure" payload:"VoiceChannelResponse"`
+
+	// Voice Channel Response.
+	//
+	// VoiceChannelResponse is a required field
+	VoiceChannelResponse *VoiceChannelResponse `type:"structure" required:"true"`
+}
+
+// String returns the string representation
+func (s DeleteVoiceChannelOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DeleteVoiceChannelOutput) GoString() string {
+	return s.String()
+}
+
+// SetVoiceChannelResponse sets the VoiceChannelResponse field's value.
+func (s *DeleteVoiceChannelOutput) SetVoiceChannelResponse(v *VoiceChannelResponse) *DeleteVoiceChannelOutput {
+	s.VoiceChannelResponse = v
+	return s
+}
+
 // Message definitions for the default message and any messages that are tailored
 // for specific channels.
 type DirectMessageConfiguration struct {
@@ -10883,11 +11349,17 @@ type DirectMessageConfiguration struct {
 	// The default push notification message for all push channels.
 	DefaultPushNotificationMessage *DefaultPushNotificationMessage `type:"structure"`
 
+	// The message to Email channels. Overrides the default message.
+	EmailMessage *EmailMessage `type:"structure"`
+
 	// The message to GCM channels. Overrides the default push notification message.
 	GCMMessage *GCMMessage `type:"structure"`
 
 	// The message to SMS channels. Overrides the default message.
 	SMSMessage *SMSMessage `type:"structure"`
+
+	// The message to Voice channels. Overrides the default message.
+	VoiceMessage *VoiceMessage `type:"structure"`
 }
 
 // String returns the string representation
@@ -10930,6 +11402,12 @@ func (s *DirectMessageConfiguration) SetDefaultPushNotificationMessage(v *Defaul
 	return s
 }
 
+// SetEmailMessage sets the EmailMessage field's value.
+func (s *DirectMessageConfiguration) SetEmailMessage(v *EmailMessage) *DirectMessageConfiguration {
+	s.EmailMessage = v
+	return s
+}
+
 // SetGCMMessage sets the GCMMessage field's value.
 func (s *DirectMessageConfiguration) SetGCMMessage(v *GCMMessage) *DirectMessageConfiguration {
 	s.GCMMessage = v
@@ -10942,9 +11420,19 @@ func (s *DirectMessageConfiguration) SetSMSMessage(v *SMSMessage) *DirectMessage
 	return s
 }
 
+// SetVoiceMessage sets the VoiceMessage field's value.
+func (s *DirectMessageConfiguration) SetVoiceMessage(v *VoiceMessage) *DirectMessageConfiguration {
+	s.VoiceMessage = v
+	return s
+}
+
 // Email Channel Request
 type EmailChannelRequest struct {
 	_ struct{} `type:"structure"`
+
+	// The configuration set that you want to use when you send email using the
+	// Pinpoint Email API.
+	ConfigurationSet *string `type:"string"`
 
 	// If the channel is enabled for sending messages.
 	Enabled *bool `type:"boolean"`
@@ -10968,6 +11456,12 @@ func (s EmailChannelRequest) String() string {
 // GoString returns the string representation
 func (s EmailChannelRequest) GoString() string {
 	return s.String()
+}
+
+// SetConfigurationSet sets the ConfigurationSet field's value.
+func (s *EmailChannelRequest) SetConfigurationSet(v string) *EmailChannelRequest {
+	s.ConfigurationSet = &v
+	return s
 }
 
 // SetEnabled sets the Enabled field's value.
@@ -11000,6 +11494,10 @@ type EmailChannelResponse struct {
 
 	// The unique ID of the application to which the email channel belongs.
 	ApplicationId *string `type:"string"`
+
+	// The configuration set that you want to use when you send email using the
+	// Pinpoint Email API.
+	ConfigurationSet *string `type:"string"`
 
 	// The date that the settings were last updated in ISO 8601 format.
 	CreationDate *string `type:"string"`
@@ -11055,6 +11553,12 @@ func (s EmailChannelResponse) GoString() string {
 // SetApplicationId sets the ApplicationId field's value.
 func (s *EmailChannelResponse) SetApplicationId(v string) *EmailChannelResponse {
 	s.ApplicationId = &v
+	return s
+}
+
+// SetConfigurationSet sets the ConfigurationSet field's value.
+func (s *EmailChannelResponse) SetConfigurationSet(v string) *EmailChannelResponse {
+	s.ConfigurationSet = &v
 	return s
 }
 
@@ -11133,6 +11637,87 @@ func (s *EmailChannelResponse) SetRoleArn(v string) *EmailChannelResponse {
 // SetVersion sets the Version field's value.
 func (s *EmailChannelResponse) SetVersion(v int64) *EmailChannelResponse {
 	s.Version = &v
+	return s
+}
+
+// Email Message.
+type EmailMessage struct {
+	_ struct{} `type:"structure"`
+
+	// The body of the email message.
+	Body *string `type:"string"`
+
+	// The email address that bounces and complaints will be forwarded to when feedback
+	// forwarding is enabled.
+	FeedbackForwardingAddress *string `type:"string"`
+
+	// The email address used to send the email from. Defaults to use FromAddress
+	// specified in the Email Channel.
+	FromAddress *string `type:"string"`
+
+	// An email represented as a raw MIME message.
+	RawEmail *RawEmail `type:"structure"`
+
+	// The reply-to email address(es) for the email. If the recipient replies to
+	// the email, each reply-to address will receive the reply.
+	ReplyToAddresses []*string `type:"list"`
+
+	// An email composed of a subject, a text part and a html part.
+	SimpleEmail *SimpleEmail `type:"structure"`
+
+	// Default message substitutions. Can be overridden by individual address substitutions.
+	Substitutions map[string][]*string `type:"map"`
+}
+
+// String returns the string representation
+func (s EmailMessage) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s EmailMessage) GoString() string {
+	return s.String()
+}
+
+// SetBody sets the Body field's value.
+func (s *EmailMessage) SetBody(v string) *EmailMessage {
+	s.Body = &v
+	return s
+}
+
+// SetFeedbackForwardingAddress sets the FeedbackForwardingAddress field's value.
+func (s *EmailMessage) SetFeedbackForwardingAddress(v string) *EmailMessage {
+	s.FeedbackForwardingAddress = &v
+	return s
+}
+
+// SetFromAddress sets the FromAddress field's value.
+func (s *EmailMessage) SetFromAddress(v string) *EmailMessage {
+	s.FromAddress = &v
+	return s
+}
+
+// SetRawEmail sets the RawEmail field's value.
+func (s *EmailMessage) SetRawEmail(v *RawEmail) *EmailMessage {
+	s.RawEmail = v
+	return s
+}
+
+// SetReplyToAddresses sets the ReplyToAddresses field's value.
+func (s *EmailMessage) SetReplyToAddresses(v []*string) *EmailMessage {
+	s.ReplyToAddresses = v
+	return s
+}
+
+// SetSimpleEmail sets the SimpleEmail field's value.
+func (s *EmailMessage) SetSimpleEmail(v *SimpleEmail) *EmailMessage {
+	s.SimpleEmail = v
+	return s
+}
+
+// SetSubstitutions sets the Substitutions field's value.
+func (s *EmailMessage) SetSubstitutions(v map[string][]*string) *EmailMessage {
+	s.Substitutions = v
 	return s
 }
 
@@ -11385,8 +11970,8 @@ func (s *EndpointDemographic) SetTimezone(v string) *EndpointDemographic {
 	return s
 }
 
-// The responses that are returned after you create or update an endpoint and
-// record an event.
+// A complex object that holds the status code and message as a result of processing
+// an endpoint.
 type EndpointItemResponse struct {
 	_ struct{} `type:"structure"`
 
@@ -11394,8 +11979,8 @@ type EndpointItemResponse struct {
 	// a response.
 	Message *string `type:"string"`
 
-	// The status code to respond with for a particular endpoint id after endpoint
-	// registration
+	// The status code associated with the merging of an endpoint when issuing a
+	// response.
 	StatusCode *int64 `type:"integer"`
 }
 
@@ -11429,7 +12014,7 @@ type EndpointLocation struct {
 	City *string `type:"string"`
 
 	// The two-letter code for the country or region of the endpoint. Specified
-	// as an ISO 3166-1 Alpha-2 code, such as "US" for the United States.
+	// as an ISO 3166-1 alpha-2 code, such as "US" for the United States.
 	Country *string `type:"string"`
 
 	// The latitude of the endpoint location, rounded to one decimal place.
@@ -11505,14 +12090,14 @@ type EndpointMessageResult struct {
 	// later.FAILURE_PERMANENT - An error occurred when delivering the message to
 	// the endpoint. Amazon Pinpoint won't attempt to send the message again.TIMEOUT
 	// - The message couldn't be sent within the timeout period.QUIET_TIME - The
-	// local time for the endpoint was within the Quiet Hours for the campaign.DAILY_CAP
-	// - The endpoint has received the maximum number of messages it can receive
-	// within a 24-hour period.HOLDOUT - The endpoint was in a hold out treatment
-	// for the campaign.THROTTLED - Amazon Pinpoint throttled sending to this endpoint.EXPIRED
-	// - The endpoint address is expired.CAMPAIGN_CAP - The endpoint received the
-	// maximum number of messages allowed by the campaign.SERVICE_FAILURE - A service-level
-	// failure prevented Amazon Pinpoint from delivering the message.UNKNOWN - An
-	// unknown error occurred.
+	// local time for the endpoint was within the QuietTime for the campaign or
+	// app.DAILY_CAP - The endpoint has received the maximum number of messages
+	// it can receive within a 24-hour period.HOLDOUT - The endpoint was in a hold
+	// out treatment for the campaign.THROTTLED - Amazon Pinpoint throttled sending
+	// to this endpoint.EXPIRED - The endpoint address is expired.CAMPAIGN_CAP -
+	// The endpoint received the maximum number of messages allowed by the campaign.SERVICE_FAILURE
+	// - A service-level failure prevented Amazon Pinpoint from delivering the message.UNKNOWN
+	// - An unknown error occurred.
 	DeliveryStatus *string `type:"string" enum:"DeliveryStatus"`
 
 	// Unique message identifier associated with the message that was sent.
@@ -11574,7 +12159,7 @@ func (s *EndpointMessageResult) SetUpdatedToken(v string) *EndpointMessageResult
 	return s
 }
 
-// Endpoint update request
+// An endpoint update request.
 type EndpointRequest struct {
 	_ struct{} `type:"structure"`
 
@@ -12010,10 +12595,10 @@ type Event struct {
 	// The name of the custom event that you're recording.
 	EventType *string `type:"string"`
 
-	// Event metrics
+	// Custom metrics related to the event.
 	Metrics map[string]*float64 `type:"map"`
 
-	// The session
+	// Information about the session in which the event occurred.
 	Session *Session `type:"structure"`
 
 	// The date and time when the event occurred, in ISO 8601 format.
@@ -12066,14 +12651,62 @@ func (s *Event) SetTimestamp(v string) *Event {
 	return s
 }
 
-// The responses that are returned after you record an event.
+// Event dimensions.
+type EventDimensions struct {
+	_ struct{} `type:"structure"`
+
+	// Custom attributes that your app reports to Amazon Pinpoint. You can use these
+	// attributes as selection criteria when you create an event filter.
+	Attributes map[string]*AttributeDimension `type:"map"`
+
+	// The name of the event that causes the campaign to be sent. This can be a
+	// standard event type that Amazon Pinpoint generates, such as _session.start,
+	// or a custom event that's specific to your app.
+	EventType *SetDimension `type:"structure"`
+
+	// Custom metrics that your app reports to Amazon Pinpoint. You can use these
+	// attributes as selection criteria when you create an event filter.
+	Metrics map[string]*MetricDimension `type:"map"`
+}
+
+// String returns the string representation
+func (s EventDimensions) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s EventDimensions) GoString() string {
+	return s.String()
+}
+
+// SetAttributes sets the Attributes field's value.
+func (s *EventDimensions) SetAttributes(v map[string]*AttributeDimension) *EventDimensions {
+	s.Attributes = v
+	return s
+}
+
+// SetEventType sets the EventType field's value.
+func (s *EventDimensions) SetEventType(v *SetDimension) *EventDimensions {
+	s.EventType = v
+	return s
+}
+
+// SetMetrics sets the Metrics field's value.
+func (s *EventDimensions) SetMetrics(v map[string]*MetricDimension) *EventDimensions {
+	s.Metrics = v
+	return s
+}
+
+// A complex object that holds the status code and message as a result of processing
+// an event.
 type EventItemResponse struct {
 	_ struct{} `type:"structure"`
 
 	// A custom message that is associated with the processing of an event.
 	Message *string `type:"string"`
 
-	// The status code to respond with for a particular event id
+	// The status returned in the response as a result of processing the event.Possible
+	// values: 400 (for invalid events) and 202 (for events that were accepted).
 	StatusCode *int64 `type:"integer"`
 }
 
@@ -12174,14 +12807,14 @@ func (s *EventStream) SetRoleArn(v string) *EventStream {
 	return s
 }
 
-// Events batch definition
+// A batch of PublicEndpoints and Events to process.
 type EventsBatch struct {
 	_ struct{} `type:"structure"`
 
-	// Endpoint information
+	// The PublicEndpoint attached to the EndpointId from the request.
 	Endpoint *PublicEndpoint `type:"structure"`
 
-	// Events
+	// An object that contains a set of events associated with the endpoint.
 	Events map[string]*Event `type:"map"`
 }
 
@@ -12207,13 +12840,12 @@ func (s *EventsBatch) SetEvents(v map[string]*Event) *EventsBatch {
 	return s
 }
 
-// Put Events request
+// A set of events to process.
 type EventsRequest struct {
 	_ struct{} `type:"structure"`
 
-	// Batch of events with endpoint id as the key and an object of EventsBatch
-	// as value. The EventsBatch object has the PublicEndpoint and a map of event
-	// Id's to events
+	// A batch of events to process. Each BatchItem consists of an endpoint ID as
+	// the key, and an EventsBatch object as the value.
 	BatchItem map[string]*EventsBatch `type:"map"`
 }
 
@@ -12233,12 +12865,15 @@ func (s *EventsRequest) SetBatchItem(v map[string]*EventsBatch) *EventsRequest {
 	return s
 }
 
-// The results from processing a put events request
+// Custom messages associated with events.
 type EventsResponse struct {
 	_ struct{} `type:"structure"`
 
-	// A map containing a multi part response for each endpoint, with the endpoint
-	// id as the key and item response as the value
+	// A map that contains a multipart response for each endpoint. Each item in
+	// this object uses the endpoint ID as the key, and the item response as the
+	// value.If no item response exists, the value can also be one of the following:
+	// 202 (if the request was processed successfully) or 400 (if the payload was
+	// invalid, or required fields were missing).
 	Results map[string]*ItemResponse `type:"map"`
 }
 
@@ -12974,6 +13609,9 @@ func (s *GetAdmChannelInput) Validate() error {
 	if s.ApplicationId == nil {
 		invalidParams.Add(request.NewErrParamRequired("ApplicationId"))
 	}
+	if s.ApplicationId != nil && len(*s.ApplicationId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ApplicationId", 1))
+	}
 
 	if invalidParams.Len() > 0 {
 		return invalidParams
@@ -13034,6 +13672,9 @@ func (s *GetApnsChannelInput) Validate() error {
 	invalidParams := request.ErrInvalidParams{Context: "GetApnsChannelInput"}
 	if s.ApplicationId == nil {
 		invalidParams.Add(request.NewErrParamRequired("ApplicationId"))
+	}
+	if s.ApplicationId != nil && len(*s.ApplicationId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ApplicationId", 1))
 	}
 
 	if invalidParams.Len() > 0 {
@@ -13096,6 +13737,9 @@ func (s *GetApnsSandboxChannelInput) Validate() error {
 	if s.ApplicationId == nil {
 		invalidParams.Add(request.NewErrParamRequired("ApplicationId"))
 	}
+	if s.ApplicationId != nil && len(*s.ApplicationId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ApplicationId", 1))
+	}
 
 	if invalidParams.Len() > 0 {
 		return invalidParams
@@ -13156,6 +13800,9 @@ func (s *GetApnsVoipChannelInput) Validate() error {
 	invalidParams := request.ErrInvalidParams{Context: "GetApnsVoipChannelInput"}
 	if s.ApplicationId == nil {
 		invalidParams.Add(request.NewErrParamRequired("ApplicationId"))
+	}
+	if s.ApplicationId != nil && len(*s.ApplicationId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ApplicationId", 1))
 	}
 
 	if invalidParams.Len() > 0 {
@@ -13218,6 +13865,9 @@ func (s *GetApnsVoipSandboxChannelInput) Validate() error {
 	if s.ApplicationId == nil {
 		invalidParams.Add(request.NewErrParamRequired("ApplicationId"))
 	}
+	if s.ApplicationId != nil && len(*s.ApplicationId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ApplicationId", 1))
+	}
 
 	if invalidParams.Len() > 0 {
 		return invalidParams
@@ -13279,6 +13929,9 @@ func (s *GetAppInput) Validate() error {
 	if s.ApplicationId == nil {
 		invalidParams.Add(request.NewErrParamRequired("ApplicationId"))
 	}
+	if s.ApplicationId != nil && len(*s.ApplicationId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ApplicationId", 1))
+	}
 
 	if invalidParams.Len() > 0 {
 		return invalidParams
@@ -13339,6 +13992,9 @@ func (s *GetApplicationSettingsInput) Validate() error {
 	invalidParams := request.ErrInvalidParams{Context: "GetApplicationSettingsInput"}
 	if s.ApplicationId == nil {
 		invalidParams.Add(request.NewErrParamRequired("ApplicationId"))
+	}
+	if s.ApplicationId != nil && len(*s.ApplicationId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ApplicationId", 1))
 	}
 
 	if invalidParams.Len() > 0 {
@@ -13456,6 +14112,9 @@ func (s *GetBaiduChannelInput) Validate() error {
 	if s.ApplicationId == nil {
 		invalidParams.Add(request.NewErrParamRequired("ApplicationId"))
 	}
+	if s.ApplicationId != nil && len(*s.ApplicationId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ApplicationId", 1))
+	}
 
 	if invalidParams.Len() > 0 {
 		return invalidParams
@@ -13524,8 +14183,14 @@ func (s *GetCampaignActivitiesInput) Validate() error {
 	if s.ApplicationId == nil {
 		invalidParams.Add(request.NewErrParamRequired("ApplicationId"))
 	}
+	if s.ApplicationId != nil && len(*s.ApplicationId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ApplicationId", 1))
+	}
 	if s.CampaignId == nil {
 		invalidParams.Add(request.NewErrParamRequired("CampaignId"))
+	}
+	if s.CampaignId != nil && len(*s.CampaignId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("CampaignId", 1))
 	}
 
 	if invalidParams.Len() > 0 {
@@ -13609,8 +14274,14 @@ func (s *GetCampaignInput) Validate() error {
 	if s.ApplicationId == nil {
 		invalidParams.Add(request.NewErrParamRequired("ApplicationId"))
 	}
+	if s.ApplicationId != nil && len(*s.ApplicationId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ApplicationId", 1))
+	}
 	if s.CampaignId == nil {
 		invalidParams.Add(request.NewErrParamRequired("CampaignId"))
+	}
+	if s.CampaignId != nil && len(*s.CampaignId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("CampaignId", 1))
 	}
 
 	if invalidParams.Len() > 0 {
@@ -13685,11 +14356,20 @@ func (s *GetCampaignVersionInput) Validate() error {
 	if s.ApplicationId == nil {
 		invalidParams.Add(request.NewErrParamRequired("ApplicationId"))
 	}
+	if s.ApplicationId != nil && len(*s.ApplicationId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ApplicationId", 1))
+	}
 	if s.CampaignId == nil {
 		invalidParams.Add(request.NewErrParamRequired("CampaignId"))
 	}
+	if s.CampaignId != nil && len(*s.CampaignId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("CampaignId", 1))
+	}
 	if s.Version == nil {
 		invalidParams.Add(request.NewErrParamRequired("Version"))
+	}
+	if s.Version != nil && len(*s.Version) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Version", 1))
 	}
 
 	if invalidParams.Len() > 0 {
@@ -13771,8 +14451,14 @@ func (s *GetCampaignVersionsInput) Validate() error {
 	if s.ApplicationId == nil {
 		invalidParams.Add(request.NewErrParamRequired("ApplicationId"))
 	}
+	if s.ApplicationId != nil && len(*s.ApplicationId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ApplicationId", 1))
+	}
 	if s.CampaignId == nil {
 		invalidParams.Add(request.NewErrParamRequired("CampaignId"))
+	}
+	if s.CampaignId != nil && len(*s.CampaignId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("CampaignId", 1))
 	}
 
 	if invalidParams.Len() > 0 {
@@ -13857,6 +14543,9 @@ func (s *GetCampaignsInput) Validate() error {
 	if s.ApplicationId == nil {
 		invalidParams.Add(request.NewErrParamRequired("ApplicationId"))
 	}
+	if s.ApplicationId != nil && len(*s.ApplicationId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ApplicationId", 1))
+	}
 
 	if invalidParams.Len() > 0 {
 		return invalidParams
@@ -13930,6 +14619,9 @@ func (s *GetChannelsInput) Validate() error {
 	if s.ApplicationId == nil {
 		invalidParams.Add(request.NewErrParamRequired("ApplicationId"))
 	}
+	if s.ApplicationId != nil && len(*s.ApplicationId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ApplicationId", 1))
+	}
 
 	if invalidParams.Len() > 0 {
 		return invalidParams
@@ -13990,6 +14682,9 @@ func (s *GetEmailChannelInput) Validate() error {
 	invalidParams := request.ErrInvalidParams{Context: "GetEmailChannelInput"}
 	if s.ApplicationId == nil {
 		invalidParams.Add(request.NewErrParamRequired("ApplicationId"))
+	}
+	if s.ApplicationId != nil && len(*s.ApplicationId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ApplicationId", 1))
 	}
 
 	if invalidParams.Len() > 0 {
@@ -14055,8 +14750,14 @@ func (s *GetEndpointInput) Validate() error {
 	if s.ApplicationId == nil {
 		invalidParams.Add(request.NewErrParamRequired("ApplicationId"))
 	}
+	if s.ApplicationId != nil && len(*s.ApplicationId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ApplicationId", 1))
+	}
 	if s.EndpointId == nil {
 		invalidParams.Add(request.NewErrParamRequired("EndpointId"))
+	}
+	if s.EndpointId != nil && len(*s.EndpointId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("EndpointId", 1))
 	}
 
 	if invalidParams.Len() > 0 {
@@ -14125,6 +14826,9 @@ func (s *GetEventStreamInput) Validate() error {
 	if s.ApplicationId == nil {
 		invalidParams.Add(request.NewErrParamRequired("ApplicationId"))
 	}
+	if s.ApplicationId != nil && len(*s.ApplicationId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ApplicationId", 1))
+	}
 
 	if invalidParams.Len() > 0 {
 		return invalidParams
@@ -14189,8 +14893,14 @@ func (s *GetExportJobInput) Validate() error {
 	if s.ApplicationId == nil {
 		invalidParams.Add(request.NewErrParamRequired("ApplicationId"))
 	}
+	if s.ApplicationId != nil && len(*s.ApplicationId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ApplicationId", 1))
+	}
 	if s.JobId == nil {
 		invalidParams.Add(request.NewErrParamRequired("JobId"))
+	}
+	if s.JobId != nil && len(*s.JobId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("JobId", 1))
 	}
 
 	if invalidParams.Len() > 0 {
@@ -14262,6 +14972,9 @@ func (s *GetExportJobsInput) Validate() error {
 	invalidParams := request.ErrInvalidParams{Context: "GetExportJobsInput"}
 	if s.ApplicationId == nil {
 		invalidParams.Add(request.NewErrParamRequired("ApplicationId"))
+	}
+	if s.ApplicationId != nil && len(*s.ApplicationId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ApplicationId", 1))
 	}
 
 	if invalidParams.Len() > 0 {
@@ -14336,6 +15049,9 @@ func (s *GetGcmChannelInput) Validate() error {
 	if s.ApplicationId == nil {
 		invalidParams.Add(request.NewErrParamRequired("ApplicationId"))
 	}
+	if s.ApplicationId != nil && len(*s.ApplicationId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ApplicationId", 1))
+	}
 
 	if invalidParams.Len() > 0 {
 		return invalidParams
@@ -14400,8 +15116,14 @@ func (s *GetImportJobInput) Validate() error {
 	if s.ApplicationId == nil {
 		invalidParams.Add(request.NewErrParamRequired("ApplicationId"))
 	}
+	if s.ApplicationId != nil && len(*s.ApplicationId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ApplicationId", 1))
+	}
 	if s.JobId == nil {
 		invalidParams.Add(request.NewErrParamRequired("JobId"))
+	}
+	if s.JobId != nil && len(*s.JobId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("JobId", 1))
 	}
 
 	if invalidParams.Len() > 0 {
@@ -14473,6 +15195,9 @@ func (s *GetImportJobsInput) Validate() error {
 	invalidParams := request.ErrInvalidParams{Context: "GetImportJobsInput"}
 	if s.ApplicationId == nil {
 		invalidParams.Add(request.NewErrParamRequired("ApplicationId"))
+	}
+	if s.ApplicationId != nil && len(*s.ApplicationId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ApplicationId", 1))
 	}
 
 	if invalidParams.Len() > 0 {
@@ -14554,8 +15279,14 @@ func (s *GetSegmentExportJobsInput) Validate() error {
 	if s.ApplicationId == nil {
 		invalidParams.Add(request.NewErrParamRequired("ApplicationId"))
 	}
+	if s.ApplicationId != nil && len(*s.ApplicationId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ApplicationId", 1))
+	}
 	if s.SegmentId == nil {
 		invalidParams.Add(request.NewErrParamRequired("SegmentId"))
+	}
+	if s.SegmentId != nil && len(*s.SegmentId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("SegmentId", 1))
 	}
 
 	if invalidParams.Len() > 0 {
@@ -14643,8 +15374,14 @@ func (s *GetSegmentImportJobsInput) Validate() error {
 	if s.ApplicationId == nil {
 		invalidParams.Add(request.NewErrParamRequired("ApplicationId"))
 	}
+	if s.ApplicationId != nil && len(*s.ApplicationId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ApplicationId", 1))
+	}
 	if s.SegmentId == nil {
 		invalidParams.Add(request.NewErrParamRequired("SegmentId"))
+	}
+	if s.SegmentId != nil && len(*s.SegmentId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("SegmentId", 1))
 	}
 
 	if invalidParams.Len() > 0 {
@@ -14728,8 +15465,14 @@ func (s *GetSegmentInput) Validate() error {
 	if s.ApplicationId == nil {
 		invalidParams.Add(request.NewErrParamRequired("ApplicationId"))
 	}
+	if s.ApplicationId != nil && len(*s.ApplicationId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ApplicationId", 1))
+	}
 	if s.SegmentId == nil {
 		invalidParams.Add(request.NewErrParamRequired("SegmentId"))
+	}
+	if s.SegmentId != nil && len(*s.SegmentId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("SegmentId", 1))
 	}
 
 	if invalidParams.Len() > 0 {
@@ -14804,11 +15547,20 @@ func (s *GetSegmentVersionInput) Validate() error {
 	if s.ApplicationId == nil {
 		invalidParams.Add(request.NewErrParamRequired("ApplicationId"))
 	}
+	if s.ApplicationId != nil && len(*s.ApplicationId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ApplicationId", 1))
+	}
 	if s.SegmentId == nil {
 		invalidParams.Add(request.NewErrParamRequired("SegmentId"))
 	}
+	if s.SegmentId != nil && len(*s.SegmentId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("SegmentId", 1))
+	}
 	if s.Version == nil {
 		invalidParams.Add(request.NewErrParamRequired("Version"))
+	}
+	if s.Version != nil && len(*s.Version) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Version", 1))
 	}
 
 	if invalidParams.Len() > 0 {
@@ -14890,8 +15642,14 @@ func (s *GetSegmentVersionsInput) Validate() error {
 	if s.ApplicationId == nil {
 		invalidParams.Add(request.NewErrParamRequired("ApplicationId"))
 	}
+	if s.ApplicationId != nil && len(*s.ApplicationId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ApplicationId", 1))
+	}
 	if s.SegmentId == nil {
 		invalidParams.Add(request.NewErrParamRequired("SegmentId"))
+	}
+	if s.SegmentId != nil && len(*s.SegmentId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("SegmentId", 1))
 	}
 
 	if invalidParams.Len() > 0 {
@@ -14976,6 +15734,9 @@ func (s *GetSegmentsInput) Validate() error {
 	if s.ApplicationId == nil {
 		invalidParams.Add(request.NewErrParamRequired("ApplicationId"))
 	}
+	if s.ApplicationId != nil && len(*s.ApplicationId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ApplicationId", 1))
+	}
 
 	if invalidParams.Len() > 0 {
 		return invalidParams
@@ -15049,6 +15810,9 @@ func (s *GetSmsChannelInput) Validate() error {
 	if s.ApplicationId == nil {
 		invalidParams.Add(request.NewErrParamRequired("ApplicationId"))
 	}
+	if s.ApplicationId != nil && len(*s.ApplicationId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ApplicationId", 1))
+	}
 
 	if invalidParams.Len() > 0 {
 		return invalidParams
@@ -15113,8 +15877,14 @@ func (s *GetUserEndpointsInput) Validate() error {
 	if s.ApplicationId == nil {
 		invalidParams.Add(request.NewErrParamRequired("ApplicationId"))
 	}
+	if s.ApplicationId != nil && len(*s.ApplicationId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ApplicationId", 1))
+	}
 	if s.UserId == nil {
 		invalidParams.Add(request.NewErrParamRequired("UserId"))
+	}
+	if s.UserId != nil && len(*s.UserId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("UserId", 1))
 	}
 
 	if invalidParams.Len() > 0 {
@@ -15157,6 +15927,70 @@ func (s GetUserEndpointsOutput) GoString() string {
 // SetEndpointsResponse sets the EndpointsResponse field's value.
 func (s *GetUserEndpointsOutput) SetEndpointsResponse(v *EndpointsResponse) *GetUserEndpointsOutput {
 	s.EndpointsResponse = v
+	return s
+}
+
+type GetVoiceChannelInput struct {
+	_ struct{} `type:"structure"`
+
+	// ApplicationId is a required field
+	ApplicationId *string `location:"uri" locationName:"application-id" type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s GetVoiceChannelInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s GetVoiceChannelInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *GetVoiceChannelInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "GetVoiceChannelInput"}
+	if s.ApplicationId == nil {
+		invalidParams.Add(request.NewErrParamRequired("ApplicationId"))
+	}
+	if s.ApplicationId != nil && len(*s.ApplicationId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ApplicationId", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetApplicationId sets the ApplicationId field's value.
+func (s *GetVoiceChannelInput) SetApplicationId(v string) *GetVoiceChannelInput {
+	s.ApplicationId = &v
+	return s
+}
+
+type GetVoiceChannelOutput struct {
+	_ struct{} `type:"structure" payload:"VoiceChannelResponse"`
+
+	// Voice Channel Response.
+	//
+	// VoiceChannelResponse is a required field
+	VoiceChannelResponse *VoiceChannelResponse `type:"structure" required:"true"`
+}
+
+// String returns the string representation
+func (s GetVoiceChannelOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s GetVoiceChannelOutput) GoString() string {
+	return s.String()
+}
+
+// SetVoiceChannelResponse sets the VoiceChannelResponse field's value.
+func (s *GetVoiceChannelOutput) SetVoiceChannelResponse(v *VoiceChannelResponse) *GetVoiceChannelOutput {
+	s.VoiceChannelResponse = v
 	return s
 }
 
@@ -15527,15 +16361,16 @@ func (s *ImportJobsResponse) SetNextToken(v string) *ImportJobsResponse {
 	return s
 }
 
-// The endpoint and events combined response definition
+// The response that's provided after registering the endpoint.
 type ItemResponse struct {
 	_ struct{} `type:"structure"`
 
-	// Endpoint item response after endpoint registration
+	// The response received after the endpoint was accepted.
 	EndpointItemResponse *EndpointItemResponse `type:"structure"`
 
-	// Events item response is a multipart response object per event Id, with eventId
-	// as the key and EventItemResponse object as the value
+	// A multipart response object that contains a key and value for each event
+	// ID in the request. In each object, the event ID is the key, and an EventItemResponse
+	// object is the value.
 	EventsItemResponse map[string]*EventItemResponse `type:"map"`
 }
 
@@ -15590,7 +16425,8 @@ type Message struct {
 	// The JSON payload used for a silent push.
 	JsonBody *string `type:"string"`
 
-	// The URL that points to the media resource, for example a .mp4 or .gif file.
+	// A URL that refers to the location of an image or video that you want to display
+	// in the push notification.
 	MediaUrl *string `type:"string"`
 
 	// The Raw JSON formatted string to be used as the payload. This value overrides
@@ -15945,14 +16781,14 @@ type MessageResult struct {
 	// later.FAILURE_PERMANENT - An error occurred when delivering the message to
 	// the endpoint. Amazon Pinpoint won't attempt to send the message again.TIMEOUT
 	// - The message couldn't be sent within the timeout period.QUIET_TIME - The
-	// local time for the endpoint was within the Quiet Hours for the campaign.DAILY_CAP
-	// - The endpoint has received the maximum number of messages it can receive
-	// within a 24-hour period.HOLDOUT - The endpoint was in a hold out treatment
-	// for the campaign.THROTTLED - Amazon Pinpoint throttled sending to this endpoint.EXPIRED
-	// - The endpoint address is expired.CAMPAIGN_CAP - The endpoint received the
-	// maximum number of messages allowed by the campaign.SERVICE_FAILURE - A service-level
-	// failure prevented Amazon Pinpoint from delivering the message.UNKNOWN - An
-	// unknown error occurred.
+	// local time for the endpoint was within the QuietTime for the campaign or
+	// app.DAILY_CAP - The endpoint has received the maximum number of messages
+	// it can receive within a 24-hour period.HOLDOUT - The endpoint was in a hold
+	// out treatment for the campaign.THROTTLED - Amazon Pinpoint throttled sending
+	// to this endpoint.EXPIRED - The endpoint address is expired.CAMPAIGN_CAP -
+	// The endpoint received the maximum number of messages allowed by the campaign.SERVICE_FAILURE
+	// - A service-level failure prevented Amazon Pinpoint from delivering the message.UNKNOWN
+	// - An unknown error occurred.
 	DeliveryStatus *string `type:"string" enum:"DeliveryStatus"`
 
 	// Unique message identifier associated with the message that was sent.
@@ -16012,10 +16848,11 @@ func (s *MessageResult) SetUpdatedToken(v string) *MessageResult {
 type MetricDimension struct {
 	_ struct{} `type:"structure"`
 
-	// GREATER_THAN | LESS_THAN | GREATER_THAN_OR_EQUAL | LESS_THAN_OR_EQUAL | EQUAL
+	// The operator that you're using to compare metric values. Possible values:
+	// GREATER_THAN, LESS_THAN, GREATER_THAN_OR_EQUAL, LESS_THAN_OR_EQUAL, or EQUAL
 	ComparisonOperator *string `type:"string"`
 
-	// Value to be compared.
+	// The value to be compared.
 	Value *float64 `type:"double"`
 }
 
@@ -16041,7 +16878,7 @@ func (s *MetricDimension) SetValue(v float64) *MetricDimension {
 	return s
 }
 
-// Phone Number Information request.
+// Phone Number Validate request.
 type NumberValidateRequest struct {
 	_ struct{} `type:"structure"`
 
@@ -16077,7 +16914,7 @@ func (s *NumberValidateRequest) SetPhoneNumber(v string) *NumberValidateRequest 
 	return s
 }
 
-// Phone Number Information response.
+// Phone Number Validate response.
 type NumberValidateResponse struct {
 	_ struct{} `type:"structure"`
 
@@ -16108,8 +16945,8 @@ type NumberValidateResponse struct {
 	// The county where the phone number was originally registered.
 	County *string `type:"string"`
 
-	// The two-character ISO code for the country or region that you included in
-	// the request body.
+	// The two-character code (in ISO 3166-1 alpha-2 format) for the country or
+	// region in the request body.
 	OriginalCountryCodeIso2 *string `type:"string"`
 
 	// The phone number that you included in the request body.
@@ -16227,7 +17064,7 @@ func (s *NumberValidateResponse) SetZipCode(v string) *NumberValidateResponse {
 type PhoneNumberValidateInput struct {
 	_ struct{} `type:"structure" payload:"NumberValidateRequest"`
 
-	// Phone Number Information request.
+	// Phone Number Validate request.
 	//
 	// NumberValidateRequest is a required field
 	NumberValidateRequest *NumberValidateRequest `type:"structure" required:"true"`
@@ -16265,7 +17102,7 @@ func (s *PhoneNumberValidateInput) SetNumberValidateRequest(v *NumberValidateReq
 type PhoneNumberValidateOutput struct {
 	_ struct{} `type:"structure" payload:"NumberValidateResponse"`
 
-	// Phone Number Information response.
+	// Phone Number Validate response.
 	//
 	// NumberValidateResponse is a required field
 	NumberValidateResponse *NumberValidateResponse `type:"structure" required:"true"`
@@ -16292,7 +17129,7 @@ type PublicEndpoint struct {
 	_ struct{} `type:"structure"`
 
 	// The unique identifier for the recipient. For example, an address could be
-	// a device token or an endpoint ID.
+	// a device token, email address, or mobile phone number.
 	Address *string `type:"string"`
 
 	// Custom attributes that your app reports to Amazon Pinpoint. You can use these
@@ -16305,7 +17142,7 @@ type PublicEndpoint struct {
 	// The endpoint demographic attributes.
 	Demographic *EndpointDemographic `type:"structure"`
 
-	// The date and time when the endpoint was last updated.
+	// The date and time when the endpoint was last updated, in ISO 8601 format.
 	EffectiveDate *string `type:"string"`
 
 	// The status of the endpoint. If the update fails, the value is INACTIVE. If
@@ -16434,6 +17271,9 @@ func (s *PutEventStreamInput) Validate() error {
 	if s.ApplicationId == nil {
 		invalidParams.Add(request.NewErrParamRequired("ApplicationId"))
 	}
+	if s.ApplicationId != nil && len(*s.ApplicationId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ApplicationId", 1))
+	}
 	if s.WriteEventStream == nil {
 		invalidParams.Add(request.NewErrParamRequired("WriteEventStream"))
 	}
@@ -16487,7 +17327,7 @@ type PutEventsInput struct {
 	// ApplicationId is a required field
 	ApplicationId *string `location:"uri" locationName:"application-id" type:"string" required:"true"`
 
-	// Put Events request
+	// A set of events to process.
 	//
 	// EventsRequest is a required field
 	EventsRequest *EventsRequest `type:"structure" required:"true"`
@@ -16508,6 +17348,9 @@ func (s *PutEventsInput) Validate() error {
 	invalidParams := request.ErrInvalidParams{Context: "PutEventsInput"}
 	if s.ApplicationId == nil {
 		invalidParams.Add(request.NewErrParamRequired("ApplicationId"))
+	}
+	if s.ApplicationId != nil && len(*s.ApplicationId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ApplicationId", 1))
 	}
 	if s.EventsRequest == nil {
 		invalidParams.Add(request.NewErrParamRequired("EventsRequest"))
@@ -16534,7 +17377,7 @@ func (s *PutEventsInput) SetEventsRequest(v *EventsRequest) *PutEventsInput {
 type PutEventsOutput struct {
 	_ struct{} `type:"structure" payload:"EventsResponse"`
 
-	// The results from processing a put events request
+	// Custom messages associated with events.
 	//
 	// EventsResponse is a required field
 	EventsResponse *EventsResponse `type:"structure" required:"true"`
@@ -16560,10 +17403,16 @@ func (s *PutEventsOutput) SetEventsResponse(v *EventsResponse) *PutEventsOutput 
 type QuietTime struct {
 	_ struct{} `type:"structure"`
 
-	// The default end time for quiet time in ISO 8601 format.
+	// The time at which quiet time should end. The value that you specify has to
+	// be in HH:mm format, where HH is the hour in 24-hour format (with a leading
+	// zero, if applicable), and mm is the minutes. For example, use 02:30 to represent
+	// 2:30 AM, or 14:30 to represent 2:30 PM.
 	End *string `type:"string"`
 
-	// The default start time for quiet time in ISO 8601 format.
+	// The time at which quiet time should begin. The value that you specify has
+	// to be in HH:mm format, where HH is the hour in 24-hour format (with a leading
+	// zero, if applicable), and mm is the minutes. For example, use 02:30 to represent
+	// 2:30 AM, or 14:30 to represent 2:30 PM.
 	Start *string `type:"string"`
 }
 
@@ -16586,6 +17435,32 @@ func (s *QuietTime) SetEnd(v string) *QuietTime {
 // SetStart sets the Start field's value.
 func (s *QuietTime) SetStart(v string) *QuietTime {
 	s.Start = &v
+	return s
+}
+
+// An email represented as a raw MIME message.
+type RawEmail struct {
+	_ struct{} `type:"structure"`
+
+	// The raw email message itself. Then entire message must be base64-encoded.
+	//
+	// Data is automatically base64 encoded/decoded by the SDK.
+	Data []byte `type:"blob"`
+}
+
+// String returns the string representation
+func (s RawEmail) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s RawEmail) GoString() string {
+	return s.String()
+}
+
+// SetData sets the Data field's value.
+func (s *RawEmail) SetData(v []byte) *RawEmail {
+	s.Data = v
 	return s
 }
 
@@ -16656,8 +17531,14 @@ func (s *RemoveAttributesInput) Validate() error {
 	if s.ApplicationId == nil {
 		invalidParams.Add(request.NewErrParamRequired("ApplicationId"))
 	}
+	if s.ApplicationId != nil && len(*s.ApplicationId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ApplicationId", 1))
+	}
 	if s.AttributeType == nil {
 		invalidParams.Add(request.NewErrParamRequired("AttributeType"))
+	}
+	if s.AttributeType != nil && len(*s.AttributeType) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("AttributeType", 1))
 	}
 	if s.UpdateAttributesRequest == nil {
 		invalidParams.Add(request.NewErrParamRequired("UpdateAttributesRequest"))
@@ -16976,15 +17857,29 @@ type Schedule struct {
 	// The scheduled time that the campaign ends in ISO 8601 format.
 	EndTime *string `type:"string"`
 
-	// How often the campaign delivers messages.Valid values: ONCE, HOURLY, DAILY,
-	// WEEKLY, MONTHLY
+	// Defines the type of events that can trigger the campaign. Used when the Frequency
+	// is set to EVENT.
+	EventFilter *CampaignEventFilter `type:"structure"`
+
+	// How often the campaign delivers messages.Valid values:ONCEHOURLYDAILYWEEKLYMONTHLYEVENT
 	Frequency *string `type:"string" enum:"Frequency"`
 
 	// Indicates whether the campaign schedule takes effect according to each user's
 	// local time.
 	IsLocalTime *bool `type:"boolean"`
 
-	// The time during which the campaign sends no messages.
+	// The default quiet time for the campaign. The campaign doesn't send messages
+	// to endpoints during the quiet time.Note: Make sure that your endpoints include
+	// the Demographics.Timezone attribute if you plan to enable a quiet time for
+	// your campaign. If your endpoints don't include this attribute, they'll receive
+	// the messages that you send them, even if quiet time is enabled.When you set
+	// up a campaign to use quiet time, the campaign doesn't send messages during
+	// the time range you specified, as long as all of the following are true:-
+	// The endpoint includes a valid Demographic.Timezone attribute.- The current
+	// time in the endpoint's time zone is later than or equal to the time specified
+	// in the QuietTime.Start attribute for the campaign.- The current time in the
+	// endpoint's time zone is earlier than or equal to the time specified in the
+	// QuietTime.End attribute for the campaign.
 	QuietTime *QuietTime `type:"structure"`
 
 	// The scheduled time that the campaign begins in ISO 8601 format.
@@ -17008,6 +17903,12 @@ func (s Schedule) GoString() string {
 // SetEndTime sets the EndTime field's value.
 func (s *Schedule) SetEndTime(v string) *Schedule {
 	s.EndTime = &v
+	return s
+}
+
+// SetEventFilter sets the EventFilter field's value.
+func (s *Schedule) SetEventFilter(v *CampaignEventFilter) *Schedule {
+	s.EventFilter = v
 	return s
 }
 
@@ -17214,7 +18115,9 @@ type SegmentGroup struct {
 	// the starting "universe" of endpoints. When you add dimensions to the segment,
 	// it filters the source segment based on the dimensions that you specify. You
 	// can specify more than one dimensional segment. You can only specify one imported
-	// segment.
+	// segment.NOTE: If you specify an imported segment for this attribute, the
+	// segment size estimate that appears in the Amazon Pinpoint console shows the
+	// size of the imported segment, without any filters applied to it.
 	SourceSegments []*SegmentReference `type:"list"`
 
 	// Specify how to handle multiple source segments. For example, if you specify
@@ -17377,7 +18280,7 @@ func (s *SegmentImportResource) SetSize(v int64) *SegmentImportResource {
 type SegmentLocation struct {
 	_ struct{} `type:"structure"`
 
-	// The country filter according to ISO 3166-1 Alpha-2 codes.
+	// The country or region, in ISO 3166-1 alpha-2 format.
 	Country *SetDimension `type:"structure"`
 
 	// The GPS Point dimension.
@@ -17613,6 +18516,9 @@ func (s *SendMessagesInput) Validate() error {
 	if s.ApplicationId == nil {
 		invalidParams.Add(request.NewErrParamRequired("ApplicationId"))
 	}
+	if s.ApplicationId != nil && len(*s.ApplicationId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ApplicationId", 1))
+	}
 	if s.MessageRequest == nil {
 		invalidParams.Add(request.NewErrParamRequired("MessageRequest"))
 	}
@@ -17790,6 +18696,9 @@ func (s *SendUsersMessagesInput) Validate() error {
 	if s.ApplicationId == nil {
 		invalidParams.Add(request.NewErrParamRequired("ApplicationId"))
 	}
+	if s.ApplicationId != nil && len(*s.ApplicationId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ApplicationId", 1))
+	}
 	if s.SendUsersMessageRequest == nil {
 		invalidParams.Add(request.NewErrParamRequired("SendUsersMessageRequest"))
 	}
@@ -17841,7 +18750,7 @@ func (s *SendUsersMessagesOutput) SetSendUsersMessageResponse(v *SendUsersMessag
 type Session struct {
 	_ struct{} `type:"structure"`
 
-	// Session duration in millis
+	// The duration of the session, in milliseconds.
 	Duration *int64 `type:"integer"`
 
 	// A unique identifier for the session.
@@ -17922,6 +18831,85 @@ func (s *SetDimension) SetDimensionType(v string) *SetDimension {
 // SetValues sets the Values field's value.
 func (s *SetDimension) SetValues(v []*string) *SetDimension {
 	s.Values = v
+	return s
+}
+
+// An email composed of a subject, a text part and a html part.
+type SimpleEmail struct {
+	_ struct{} `type:"structure"`
+
+	// The content of the message, in HTML format. Use this for email clients that
+	// can process HTML. You can include clickable links, formatted text, and much
+	// more in an HTML message.
+	HtmlPart *SimpleEmailPart `type:"structure"`
+
+	// The subject of the message: A short summary of the content, which will appear
+	// in the recipient's inbox.
+	Subject *SimpleEmailPart `type:"structure"`
+
+	// The content of the message, in text format. Use this for text-based email
+	// clients, or clients on high-latency networks (such as mobile devices).
+	TextPart *SimpleEmailPart `type:"structure"`
+}
+
+// String returns the string representation
+func (s SimpleEmail) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s SimpleEmail) GoString() string {
+	return s.String()
+}
+
+// SetHtmlPart sets the HtmlPart field's value.
+func (s *SimpleEmail) SetHtmlPart(v *SimpleEmailPart) *SimpleEmail {
+	s.HtmlPart = v
+	return s
+}
+
+// SetSubject sets the Subject field's value.
+func (s *SimpleEmail) SetSubject(v *SimpleEmailPart) *SimpleEmail {
+	s.Subject = v
+	return s
+}
+
+// SetTextPart sets the TextPart field's value.
+func (s *SimpleEmail) SetTextPart(v *SimpleEmailPart) *SimpleEmail {
+	s.TextPart = v
+	return s
+}
+
+// Textual email data, plus an optional character set specification.
+type SimpleEmailPart struct {
+	_ struct{} `type:"structure"`
+
+	// The character set of the content.
+	Charset *string `type:"string"`
+
+	// The textual data of the content.
+	Data *string `type:"string"`
+}
+
+// String returns the string representation
+func (s SimpleEmailPart) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s SimpleEmailPart) GoString() string {
+	return s.String()
+}
+
+// SetCharset sets the Charset field's value.
+func (s *SimpleEmailPart) SetCharset(v string) *SimpleEmailPart {
+	s.Charset = &v
+	return s
+}
+
+// SetData sets the Data field's value.
+func (s *SimpleEmailPart) SetData(v string) *SimpleEmailPart {
+	s.Data = &v
 	return s
 }
 
@@ -18034,6 +19022,9 @@ func (s *UpdateAdmChannelInput) Validate() error {
 	if s.ApplicationId == nil {
 		invalidParams.Add(request.NewErrParamRequired("ApplicationId"))
 	}
+	if s.ApplicationId != nil && len(*s.ApplicationId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ApplicationId", 1))
+	}
 
 	if invalidParams.Len() > 0 {
 		return invalidParams
@@ -18108,6 +19099,9 @@ func (s *UpdateApnsChannelInput) Validate() error {
 	}
 	if s.ApplicationId == nil {
 		invalidParams.Add(request.NewErrParamRequired("ApplicationId"))
+	}
+	if s.ApplicationId != nil && len(*s.ApplicationId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ApplicationId", 1))
 	}
 
 	if invalidParams.Len() > 0 {
@@ -18184,6 +19178,9 @@ func (s *UpdateApnsSandboxChannelInput) Validate() error {
 	if s.ApplicationId == nil {
 		invalidParams.Add(request.NewErrParamRequired("ApplicationId"))
 	}
+	if s.ApplicationId != nil && len(*s.ApplicationId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ApplicationId", 1))
+	}
 
 	if invalidParams.Len() > 0 {
 		return invalidParams
@@ -18258,6 +19255,9 @@ func (s *UpdateApnsVoipChannelInput) Validate() error {
 	}
 	if s.ApplicationId == nil {
 		invalidParams.Add(request.NewErrParamRequired("ApplicationId"))
+	}
+	if s.ApplicationId != nil && len(*s.ApplicationId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ApplicationId", 1))
 	}
 
 	if invalidParams.Len() > 0 {
@@ -18334,6 +19334,9 @@ func (s *UpdateApnsVoipSandboxChannelInput) Validate() error {
 	if s.ApplicationId == nil {
 		invalidParams.Add(request.NewErrParamRequired("ApplicationId"))
 	}
+	if s.ApplicationId != nil && len(*s.ApplicationId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ApplicationId", 1))
+	}
 
 	if invalidParams.Len() > 0 {
 		return invalidParams
@@ -18405,6 +19408,9 @@ func (s *UpdateApplicationSettingsInput) Validate() error {
 	invalidParams := request.ErrInvalidParams{Context: "UpdateApplicationSettingsInput"}
 	if s.ApplicationId == nil {
 		invalidParams.Add(request.NewErrParamRequired("ApplicationId"))
+	}
+	if s.ApplicationId != nil && len(*s.ApplicationId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ApplicationId", 1))
 	}
 	if s.WriteApplicationSettingsRequest == nil {
 		invalidParams.Add(request.NewErrParamRequired("WriteApplicationSettingsRequest"))
@@ -18505,6 +19511,9 @@ func (s *UpdateBaiduChannelInput) Validate() error {
 	if s.ApplicationId == nil {
 		invalidParams.Add(request.NewErrParamRequired("ApplicationId"))
 	}
+	if s.ApplicationId != nil && len(*s.ApplicationId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ApplicationId", 1))
+	}
 	if s.BaiduChannelRequest == nil {
 		invalidParams.Add(request.NewErrParamRequired("BaiduChannelRequest"))
 	}
@@ -18583,8 +19592,14 @@ func (s *UpdateCampaignInput) Validate() error {
 	if s.ApplicationId == nil {
 		invalidParams.Add(request.NewErrParamRequired("ApplicationId"))
 	}
+	if s.ApplicationId != nil && len(*s.ApplicationId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ApplicationId", 1))
+	}
 	if s.CampaignId == nil {
 		invalidParams.Add(request.NewErrParamRequired("CampaignId"))
+	}
+	if s.CampaignId != nil && len(*s.CampaignId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("CampaignId", 1))
 	}
 	if s.WriteCampaignRequest == nil {
 		invalidParams.Add(request.NewErrParamRequired("WriteCampaignRequest"))
@@ -18667,6 +19682,9 @@ func (s *UpdateEmailChannelInput) Validate() error {
 	if s.ApplicationId == nil {
 		invalidParams.Add(request.NewErrParamRequired("ApplicationId"))
 	}
+	if s.ApplicationId != nil && len(*s.ApplicationId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ApplicationId", 1))
+	}
 	if s.EmailChannelRequest == nil {
 		invalidParams.Add(request.NewErrParamRequired("EmailChannelRequest"))
 	}
@@ -18723,7 +19741,7 @@ type UpdateEndpointInput struct {
 	// EndpointId is a required field
 	EndpointId *string `location:"uri" locationName:"endpoint-id" type:"string" required:"true"`
 
-	// Endpoint update request
+	// An endpoint update request.
 	//
 	// EndpointRequest is a required field
 	EndpointRequest *EndpointRequest `type:"structure" required:"true"`
@@ -18745,8 +19763,14 @@ func (s *UpdateEndpointInput) Validate() error {
 	if s.ApplicationId == nil {
 		invalidParams.Add(request.NewErrParamRequired("ApplicationId"))
 	}
+	if s.ApplicationId != nil && len(*s.ApplicationId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ApplicationId", 1))
+	}
 	if s.EndpointId == nil {
 		invalidParams.Add(request.NewErrParamRequired("EndpointId"))
+	}
+	if s.EndpointId != nil && len(*s.EndpointId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("EndpointId", 1))
 	}
 	if s.EndpointRequest == nil {
 		invalidParams.Add(request.NewErrParamRequired("EndpointRequest"))
@@ -18829,6 +19853,9 @@ func (s *UpdateEndpointsBatchInput) Validate() error {
 	if s.ApplicationId == nil {
 		invalidParams.Add(request.NewErrParamRequired("ApplicationId"))
 	}
+	if s.ApplicationId != nil && len(*s.ApplicationId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ApplicationId", 1))
+	}
 	if s.EndpointBatchRequest == nil {
 		invalidParams.Add(request.NewErrParamRequired("EndpointBatchRequest"))
 	}
@@ -18903,6 +19930,9 @@ func (s *UpdateGcmChannelInput) Validate() error {
 	invalidParams := request.ErrInvalidParams{Context: "UpdateGcmChannelInput"}
 	if s.ApplicationId == nil {
 		invalidParams.Add(request.NewErrParamRequired("ApplicationId"))
+	}
+	if s.ApplicationId != nil && len(*s.ApplicationId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ApplicationId", 1))
 	}
 	if s.GCMChannelRequest == nil {
 		invalidParams.Add(request.NewErrParamRequired("GCMChannelRequest"))
@@ -18982,8 +20012,14 @@ func (s *UpdateSegmentInput) Validate() error {
 	if s.ApplicationId == nil {
 		invalidParams.Add(request.NewErrParamRequired("ApplicationId"))
 	}
+	if s.ApplicationId != nil && len(*s.ApplicationId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ApplicationId", 1))
+	}
 	if s.SegmentId == nil {
 		invalidParams.Add(request.NewErrParamRequired("SegmentId"))
+	}
+	if s.SegmentId != nil && len(*s.SegmentId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("SegmentId", 1))
 	}
 	if s.WriteSegmentRequest == nil {
 		invalidParams.Add(request.NewErrParamRequired("WriteSegmentRequest"))
@@ -19066,6 +20102,9 @@ func (s *UpdateSmsChannelInput) Validate() error {
 	if s.ApplicationId == nil {
 		invalidParams.Add(request.NewErrParamRequired("ApplicationId"))
 	}
+	if s.ApplicationId != nil && len(*s.ApplicationId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ApplicationId", 1))
+	}
 	if s.SMSChannelRequest == nil {
 		invalidParams.Add(request.NewErrParamRequired("SMSChannelRequest"))
 	}
@@ -19113,6 +20152,272 @@ func (s *UpdateSmsChannelOutput) SetSMSChannelResponse(v *SMSChannelResponse) *U
 	return s
 }
 
+type UpdateVoiceChannelInput struct {
+	_ struct{} `type:"structure" payload:"VoiceChannelRequest"`
+
+	// ApplicationId is a required field
+	ApplicationId *string `location:"uri" locationName:"application-id" type:"string" required:"true"`
+
+	// Voice Channel Request
+	//
+	// VoiceChannelRequest is a required field
+	VoiceChannelRequest *VoiceChannelRequest `type:"structure" required:"true"`
+}
+
+// String returns the string representation
+func (s UpdateVoiceChannelInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s UpdateVoiceChannelInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *UpdateVoiceChannelInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "UpdateVoiceChannelInput"}
+	if s.ApplicationId == nil {
+		invalidParams.Add(request.NewErrParamRequired("ApplicationId"))
+	}
+	if s.ApplicationId != nil && len(*s.ApplicationId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ApplicationId", 1))
+	}
+	if s.VoiceChannelRequest == nil {
+		invalidParams.Add(request.NewErrParamRequired("VoiceChannelRequest"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetApplicationId sets the ApplicationId field's value.
+func (s *UpdateVoiceChannelInput) SetApplicationId(v string) *UpdateVoiceChannelInput {
+	s.ApplicationId = &v
+	return s
+}
+
+// SetVoiceChannelRequest sets the VoiceChannelRequest field's value.
+func (s *UpdateVoiceChannelInput) SetVoiceChannelRequest(v *VoiceChannelRequest) *UpdateVoiceChannelInput {
+	s.VoiceChannelRequest = v
+	return s
+}
+
+type UpdateVoiceChannelOutput struct {
+	_ struct{} `type:"structure" payload:"VoiceChannelResponse"`
+
+	// Voice Channel Response.
+	//
+	// VoiceChannelResponse is a required field
+	VoiceChannelResponse *VoiceChannelResponse `type:"structure" required:"true"`
+}
+
+// String returns the string representation
+func (s UpdateVoiceChannelOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s UpdateVoiceChannelOutput) GoString() string {
+	return s.String()
+}
+
+// SetVoiceChannelResponse sets the VoiceChannelResponse field's value.
+func (s *UpdateVoiceChannelOutput) SetVoiceChannelResponse(v *VoiceChannelResponse) *UpdateVoiceChannelOutput {
+	s.VoiceChannelResponse = v
+	return s
+}
+
+// Voice Channel Request
+type VoiceChannelRequest struct {
+	_ struct{} `type:"structure"`
+
+	// If the channel is enabled for sending messages.
+	Enabled *bool `type:"boolean"`
+}
+
+// String returns the string representation
+func (s VoiceChannelRequest) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s VoiceChannelRequest) GoString() string {
+	return s.String()
+}
+
+// SetEnabled sets the Enabled field's value.
+func (s *VoiceChannelRequest) SetEnabled(v bool) *VoiceChannelRequest {
+	s.Enabled = &v
+	return s
+}
+
+// Voice Channel Response.
+type VoiceChannelResponse struct {
+	_ struct{} `type:"structure"`
+
+	// Application id
+	ApplicationId *string `type:"string"`
+
+	// The date that the settings were last updated in ISO 8601 format.
+	CreationDate *string `type:"string"`
+
+	// If the channel is enabled for sending messages.
+	Enabled *bool `type:"boolean"`
+
+	HasCredential *bool `type:"boolean"`
+
+	// Channel ID. Not used, only for backwards compatibility.
+	Id *string `type:"string"`
+
+	// Is this channel archived
+	IsArchived *bool `type:"boolean"`
+
+	// Who made the last change
+	LastModifiedBy *string `type:"string"`
+
+	// Last date this was updated
+	LastModifiedDate *string `type:"string"`
+
+	// Platform type. Will be "Voice"
+	Platform *string `type:"string"`
+
+	// Version of channel
+	Version *int64 `type:"integer"`
+}
+
+// String returns the string representation
+func (s VoiceChannelResponse) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s VoiceChannelResponse) GoString() string {
+	return s.String()
+}
+
+// SetApplicationId sets the ApplicationId field's value.
+func (s *VoiceChannelResponse) SetApplicationId(v string) *VoiceChannelResponse {
+	s.ApplicationId = &v
+	return s
+}
+
+// SetCreationDate sets the CreationDate field's value.
+func (s *VoiceChannelResponse) SetCreationDate(v string) *VoiceChannelResponse {
+	s.CreationDate = &v
+	return s
+}
+
+// SetEnabled sets the Enabled field's value.
+func (s *VoiceChannelResponse) SetEnabled(v bool) *VoiceChannelResponse {
+	s.Enabled = &v
+	return s
+}
+
+// SetHasCredential sets the HasCredential field's value.
+func (s *VoiceChannelResponse) SetHasCredential(v bool) *VoiceChannelResponse {
+	s.HasCredential = &v
+	return s
+}
+
+// SetId sets the Id field's value.
+func (s *VoiceChannelResponse) SetId(v string) *VoiceChannelResponse {
+	s.Id = &v
+	return s
+}
+
+// SetIsArchived sets the IsArchived field's value.
+func (s *VoiceChannelResponse) SetIsArchived(v bool) *VoiceChannelResponse {
+	s.IsArchived = &v
+	return s
+}
+
+// SetLastModifiedBy sets the LastModifiedBy field's value.
+func (s *VoiceChannelResponse) SetLastModifiedBy(v string) *VoiceChannelResponse {
+	s.LastModifiedBy = &v
+	return s
+}
+
+// SetLastModifiedDate sets the LastModifiedDate field's value.
+func (s *VoiceChannelResponse) SetLastModifiedDate(v string) *VoiceChannelResponse {
+	s.LastModifiedDate = &v
+	return s
+}
+
+// SetPlatform sets the Platform field's value.
+func (s *VoiceChannelResponse) SetPlatform(v string) *VoiceChannelResponse {
+	s.Platform = &v
+	return s
+}
+
+// SetVersion sets the Version field's value.
+func (s *VoiceChannelResponse) SetVersion(v int64) *VoiceChannelResponse {
+	s.Version = &v
+	return s
+}
+
+// Voice Message.
+type VoiceMessage struct {
+	_ struct{} `type:"structure"`
+
+	// The message body of the notification, the email body or the text message.
+	Body *string `type:"string"`
+
+	// Language of sent message
+	LanguageCode *string `type:"string"`
+
+	// Is the number from the pool or messaging service to send from.
+	OriginationNumber *string `type:"string"`
+
+	// Default message substitutions. Can be overridden by individual address substitutions.
+	Substitutions map[string][]*string `type:"map"`
+
+	// Voice ID of sent message.
+	VoiceId *string `type:"string"`
+}
+
+// String returns the string representation
+func (s VoiceMessage) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s VoiceMessage) GoString() string {
+	return s.String()
+}
+
+// SetBody sets the Body field's value.
+func (s *VoiceMessage) SetBody(v string) *VoiceMessage {
+	s.Body = &v
+	return s
+}
+
+// SetLanguageCode sets the LanguageCode field's value.
+func (s *VoiceMessage) SetLanguageCode(v string) *VoiceMessage {
+	s.LanguageCode = &v
+	return s
+}
+
+// SetOriginationNumber sets the OriginationNumber field's value.
+func (s *VoiceMessage) SetOriginationNumber(v string) *VoiceMessage {
+	s.OriginationNumber = &v
+	return s
+}
+
+// SetSubstitutions sets the Substitutions field's value.
+func (s *VoiceMessage) SetSubstitutions(v map[string][]*string) *VoiceMessage {
+	s.Substitutions = v
+	return s
+}
+
+// SetVoiceId sets the VoiceId field's value.
+func (s *VoiceMessage) SetVoiceId(v string) *VoiceMessage {
+	s.VoiceId = &v
+	return s
+}
+
 // Creating application setting request
 type WriteApplicationSettingsRequest struct {
 	_ struct{} `type:"structure"`
@@ -19123,14 +20428,25 @@ type WriteApplicationSettingsRequest struct {
 	// The CloudWatchMetrics settings for the app.
 	CloudWatchMetricsEnabled *bool `type:"boolean"`
 
-	// The default campaign limits for the app. These limits apply to each campaign
-	// for the app, unless the campaign overrides the default with limits of its
-	// own.
+	// The limits that apply to each campaign in the project by default. Campaigns
+	// can also have their own limits, which override the settings at the project
+	// level.
 	Limits *CampaignLimits `type:"structure"`
 
-	// The default quiet time for the app. Each campaign for this app sends no messages
-	// during this time unless the campaign overrides the default with a quiet time
-	// of its own.
+	// The default quiet time for the app. Campaigns in the app don't send messages
+	// to endpoints during the quiet time.Note: Make sure that your endpoints include
+	// the Demographics.Timezone attribute if you plan to enable a quiet time for
+	// your app. If your endpoints don't include this attribute, they'll receive
+	// the messages that you send them, even if quiet time is enabled.When you set
+	// up an app to use quiet time, campaigns in that app don't send messages during
+	// the time range you specified, as long as all of the following are true:-
+	// The endpoint includes a valid Demographic.Timezone attribute.- The current
+	// time in the endpoint's time zone is later than or equal to the time specified
+	// in the QuietTime.Start attribute for the app (or campaign, if applicable).-
+	// The current time in the endpoint's time zone is earlier than or equal to
+	// the time specified in the QuietTime.End attribute for the app (or campaign,
+	// if applicable).Individual campaigns within the app can have their own quiet
+	// time settings, which override the quiet time settings at the app level.
 	QuietTime *QuietTime `type:"structure"`
 }
 
@@ -19504,6 +20820,9 @@ const (
 	// ChannelTypeSms is a ChannelType enum value
 	ChannelTypeSms = "SMS"
 
+	// ChannelTypeVoice is a ChannelType enum value
+	ChannelTypeVoice = "VOICE"
+
 	// ChannelTypeEmail is a ChannelType enum value
 	ChannelTypeEmail = "EMAIL"
 
@@ -19560,6 +20879,14 @@ const (
 )
 
 const (
+	// FilterTypeSystem is a FilterType enum value
+	FilterTypeSystem = "SYSTEM"
+
+	// FilterTypeEndpoint is a FilterType enum value
+	FilterTypeEndpoint = "ENDPOINT"
+)
+
+const (
 	// FormatCsv is a Format enum value
 	FormatCsv = "CSV"
 
@@ -19582,6 +20909,9 @@ const (
 
 	// FrequencyMonthly is a Frequency enum value
 	FrequencyMonthly = "MONTHLY"
+
+	// FrequencyEvent is a Frequency enum value
+	FrequencyEvent = "EVENT"
 )
 
 const (

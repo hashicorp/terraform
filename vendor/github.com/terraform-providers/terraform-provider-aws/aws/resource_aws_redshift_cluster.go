@@ -902,7 +902,7 @@ func resourceAwsRedshiftClusterDelete(d *schema.ResourceData, meta interface{}) 
 	}
 
 	log.Printf("[DEBUG] Deleting Redshift Cluster: %s", deleteOpts)
-	_, err := deleteAwsRedshiftCluster(&deleteOpts, conn)
+	err := deleteAwsRedshiftCluster(&deleteOpts, conn)
 	if err != nil {
 		return err
 	}
@@ -912,7 +912,7 @@ func resourceAwsRedshiftClusterDelete(d *schema.ResourceData, meta interface{}) 
 	return nil
 }
 
-func deleteAwsRedshiftCluster(opts *redshift.DeleteClusterInput, conn *redshift.Redshift) (interface{}, error) {
+func deleteAwsRedshiftCluster(opts *redshift.DeleteClusterInput, conn *redshift.Redshift) error {
 	id := *opts.ClusterIdentifier
 	log.Printf("[INFO] Deleting Redshift Cluster %q", id)
 	err := resource.Retry(15*time.Minute, func() *resource.RetryError {
@@ -924,8 +924,7 @@ func deleteAwsRedshiftCluster(opts *redshift.DeleteClusterInput, conn *redshift.
 		return resource.NonRetryableError(err)
 	})
 	if err != nil {
-		return nil, fmt.Errorf("Error deleting Redshift Cluster (%s): %s",
-			id, err)
+		return fmt.Errorf("Error deleting Redshift Cluster (%s): %s", id, err)
 	}
 
 	stateConf := &resource.StateChangeConf{
@@ -936,7 +935,9 @@ func deleteAwsRedshiftCluster(opts *redshift.DeleteClusterInput, conn *redshift.
 		MinTimeout: 5 * time.Second,
 	}
 
-	return stateConf.WaitForState()
+	_, err = stateConf.WaitForState()
+
+	return err
 }
 
 func resourceAwsRedshiftClusterStateRefreshFunc(id string, conn *redshift.Redshift) resource.StateRefreshFunc {

@@ -14,6 +14,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/client"
 	"github.com/aws/aws-sdk-go/aws/corehandlers"
 	"github.com/aws/aws-sdk-go/aws/credentials"
+	"github.com/aws/aws-sdk-go/aws/credentials/processcreds"
 	"github.com/aws/aws-sdk-go/aws/credentials/stscreds"
 	"github.com/aws/aws-sdk-go/aws/csm"
 	"github.com/aws/aws-sdk-go/aws/defaults"
@@ -452,6 +453,14 @@ func mergeConfigSrcs(cfg, userCfg *aws.Config, envCfg envConfig, sharedCfg share
 		}
 	}
 
+	if cfg.EnableEndpointDiscovery == nil {
+		if envCfg.EnableEndpointDiscovery != nil {
+			cfg.WithEndpointDiscovery(*envCfg.EnableEndpointDiscovery)
+		} else if envCfg.EnableSharedConfig && sharedCfg.EnableEndpointDiscovery != nil {
+			cfg.WithEndpointDiscovery(*sharedCfg.EnableEndpointDiscovery)
+		}
+	}
+
 	// Configure credentials if not already set
 	if cfg.Credentials == credentials.AnonymousCredentials && userCfg.Credentials == nil {
 
@@ -525,6 +534,10 @@ func mergeConfigSrcs(cfg, userCfg *aws.Config, envCfg envConfig, sharedCfg share
 		} else if len(sharedCfg.Creds.AccessKeyID) > 0 {
 			cfg.Credentials = credentials.NewStaticCredentialsFromCreds(
 				sharedCfg.Creds,
+			)
+		} else if len(sharedCfg.CredentialProcess) > 0 {
+			cfg.Credentials = processcreds.NewCredentials(
+				sharedCfg.CredentialProcess,
 			)
 		} else {
 			// Fallback to default credentials provider, include mock errors

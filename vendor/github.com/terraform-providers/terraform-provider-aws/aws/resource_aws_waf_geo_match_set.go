@@ -47,7 +47,7 @@ func resourceAwsWafGeoMatchSetCreate(d *schema.ResourceData, meta interface{}) e
 
 	log.Printf("[INFO] Creating GeoMatchSet: %s", d.Get("name").(string))
 
-	wr := newWafRetryer(conn, "global")
+	wr := newWafRetryer(conn)
 	out, err := wr.RetryWithToken(func(token *string) (interface{}, error) {
 		params := &waf.CreateGeoMatchSetInput{
 			ChangeToken: token,
@@ -120,7 +120,7 @@ func resourceAwsWafGeoMatchSetDelete(d *schema.ResourceData, meta interface{}) e
 		}
 	}
 
-	wr := newWafRetryer(conn, "global")
+	wr := newWafRetryer(conn)
 	_, err := wr.RetryWithToken(func(token *string) (interface{}, error) {
 		req := &waf.DeleteGeoMatchSetInput{
 			ChangeToken:   token,
@@ -137,7 +137,7 @@ func resourceAwsWafGeoMatchSetDelete(d *schema.ResourceData, meta interface{}) e
 }
 
 func updateGeoMatchSetResource(id string, oldT, newT []interface{}, conn *waf.WAF) error {
-	wr := newWafRetryer(conn, "global")
+	wr := newWafRetryer(conn)
 	_, err := wr.RetryWithToken(func(token *string) (interface{}, error) {
 		req := &waf.UpdateGeoMatchSetInput{
 			ChangeToken:   token,

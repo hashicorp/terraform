@@ -9,6 +9,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/cognitoidentityprovider"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/hashicorp/terraform/helper/validation"
 )
 
 func resourceAwsCognitoUserPoolDomain() *schema.Resource {
@@ -25,7 +26,13 @@ func resourceAwsCognitoUserPoolDomain() *schema.Resource {
 				Type:         schema.TypeString,
 				Required:     true,
 				ForceNew:     true,
-				ValidateFunc: validateCognitoUserPoolDomain,
+				ValidateFunc: validation.StringLenBetween(1, 63),
+			},
+			"certificate_arn": {
+				Type:         schema.TypeString,
+				Optional:     true,
+				ForceNew:     true,
+				ValidateFunc: validateArn,
 			},
 			"user_pool_id": {
 				Type:     schema.TypeString,
@@ -57,10 +64,21 @@ func resourceAwsCognitoUserPoolDomainCreate(d *schema.ResourceData, meta interfa
 
 	domain := d.Get("domain").(string)
 
+	timeout := 1 * time.Minute //Default timeout for a basic domain
+
 	params := &cognitoidentityprovider.CreateUserPoolDomainInput{
 		Domain:     aws.String(domain),
 		UserPoolId: aws.String(d.Get("user_pool_id").(string)),
 	}
+
+	if v, ok := d.GetOk("certificate_arn"); ok {
+		customDomainConfig := &cognitoidentityprovider.CustomDomainConfigType{
+			CertificateArn: aws.String(v.(string)),
+		}
+		params.CustomDomainConfig = customDomainConfig
+		timeout = 60 * time.Minute //Custom domains take more time to become active
+	}
+
 	log.Printf("[DEBUG] Creating Cognito User Pool Domain: %s", params)
 
 	_, err := conn.CreateUserPoolDomain(params)
@@ -78,7 +96,8 @@ func resourceAwsCognitoUserPoolDomainCreate(d *schema.ResourceData, meta interfa
 		Target: []string{
 			cognitoidentityprovider.DomainStatusTypeActive,
 		},
-		Timeout: 1 * time.Minute,
+		MinTimeout: 1 * time.Minute,
+		Timeout:    timeout,
 		Refresh: func() (interface{}, string, error) {
 			domain, err := conn.DescribeUserPoolDomain(&cognitoidentityprovider.DescribeUserPoolDomainInput{
 				Domain: aws.String(d.Get("domain").(string)),
@@ -119,6 +138,10 @@ func resourceAwsCognitoUserPoolDomainRead(d *schema.ResourceData, meta interface
 	desc := domain.DomainDescription
 
 	d.Set("domain", d.Id())
+	d.Set("certificate_arn", "")
+	if desc.CustomDomainConfig != nil {
+		d.Set("certificate_arn", desc.CustomDomainConfig.CertificateArn)
+	}
 	d.Set("aws_account_id", desc.AWSAccountId)
 	d.Set("cloudfront_distribution_arn", desc.CloudFrontDistribution)
 	d.Set("s3_bucket", desc.S3Bucket)

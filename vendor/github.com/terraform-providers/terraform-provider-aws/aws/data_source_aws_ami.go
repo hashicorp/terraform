@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"log"
 	"regexp"
+	"sort"
+	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
@@ -252,32 +254,23 @@ func dataSourceAwsAmiRead(d *schema.ResourceData, meta interface{}) error {
 		filteredImages = resp.Images[:]
 	}
 
-	var image *ec2.Image
 	if len(filteredImages) < 1 {
 		return fmt.Errorf("Your query returned no results. Please change your search criteria and try again.")
 	}
 
 	if len(filteredImages) > 1 {
-		recent := d.Get("most_recent").(bool)
-		log.Printf("[DEBUG] aws_ami - multiple results found and `most_recent` is set to: %t", recent)
-		if recent {
-			image = mostRecentAmi(filteredImages)
-		} else {
+		if !d.Get("most_recent").(bool) {
 			return fmt.Errorf("Your query returned more than one result. Please try a more " +
 				"specific search criteria, or set `most_recent` attribute to true.")
 		}
-	} else {
-		// Query returned single result.
-		image = filteredImages[0]
+		sort.Slice(filteredImages, func(i, j int) bool {
+			itime, _ := time.Parse(time.RFC3339, aws.StringValue(filteredImages[i].CreationDate))
+			jtime, _ := time.Parse(time.RFC3339, aws.StringValue(filteredImages[j].CreationDate))
+			return itime.Unix() > jtime.Unix()
+		})
 	}
 
-	log.Printf("[DEBUG] aws_ami - Single AMI found: %s", *image.ImageId)
-	return amiDescriptionAttributes(d, image)
-}
-
-// Returns the most recent AMI out of a slice of images.
-func mostRecentAmi(images []*ec2.Image) *ec2.Image {
-	return sortImages(images, false)[0]
+	return amiDescriptionAttributes(d, filteredImages[0])
 }
 
 // populate the numerous fields that the image description returns.

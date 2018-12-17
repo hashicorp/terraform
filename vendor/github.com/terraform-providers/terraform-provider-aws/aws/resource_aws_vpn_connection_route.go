@@ -128,11 +128,7 @@ func resourceAwsVpnConnectionRouteDelete(d *schema.ResourceData, meta interface{
 		},
 	}
 	_, err = stateConf.WaitForState()
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return err
 }
 
 func findConnectionRoute(conn *ec2.EC2, cidrBlock, vpnConnectionId string) (*ec2.VpnStaticRoute, error) {

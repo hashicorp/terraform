@@ -63,7 +63,6 @@ func resourceAwsSesEventDestination() *schema.Resource {
 				Type:          schema.TypeSet,
 				Optional:      true,
 				ForceNew:      true,
-				MaxItems:      1,
 				ConflictsWith: []string{"kinesis_destination", "sns_destination"},
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{

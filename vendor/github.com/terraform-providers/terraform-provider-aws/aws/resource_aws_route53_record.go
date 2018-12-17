@@ -681,6 +681,18 @@ func findRecord(d *schema.ResourceData, meta interface{}) (*route53.ResourceReco
 			record = recordSet
 			return false
 		}
+
+		nextRecordName := strings.ToLower(cleanRecordName(aws.StringValue(resp.NextRecordName)))
+		nextRecordType := strings.ToUpper(aws.StringValue(resp.NextRecordType))
+
+		if nextRecordName != recordName {
+			return false
+		}
+
+		if nextRecordType != recordType {
+			return false
+		}
+
 		return !lastPage
 	})
 

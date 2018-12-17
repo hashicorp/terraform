@@ -2,7 +2,6 @@ package aws
 
 import (
 	"log"
-	"regexp"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/acm"
@@ -86,18 +85,4 @@ func tagsToMapACM(ts []*acm.Tag) map[string]string {
 	}
 
 	return result
-}
-
-// compare a tag against a list of strings and checks if it should
-// be ignored or not
-func tagIgnoredACM(t *acm.Tag) bool {
-	filter := []string{"^aws:"}
-	for _, v := range filter {
-		log.Printf("[DEBUG] Matching %v with %v\n", v, *t.Key)
-		if r, _ := regexp.MatchString(v, *t.Key); r == true {
-			log.Printf("[DEBUG] Found AWS specific tag %s (val: %s), ignoring.\n", *t.Key, *t.Value)
-			return true
-		}
-	}
-	return false
 }

@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"log"
 	"regexp"
+	"sort"
+	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
@@ -129,7 +131,15 @@ func dataSourceAwsAmiIdsRead(d *schema.ResourceData, meta interface{}) error {
 		filteredImages = resp.Images[:]
 	}
 
-	for _, image := range sortImages(filteredImages, sortAscending) {
+	sort.Slice(filteredImages, func(i, j int) bool {
+		itime, _ := time.Parse(time.RFC3339, aws.StringValue(filteredImages[i].CreationDate))
+		jtime, _ := time.Parse(time.RFC3339, aws.StringValue(filteredImages[j].CreationDate))
+		if sortAscending {
+			return itime.Unix() < jtime.Unix()
+		}
+		return itime.Unix() > jtime.Unix()
+	})
+	for _, image := range filteredImages {
 		imageIds = append(imageIds, *image.ImageId)
 	}
 

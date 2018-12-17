@@ -57,7 +57,7 @@ func resourceAwsWafIPSet() *schema.Resource {
 func resourceAwsWafIPSetCreate(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).wafconn
 
-	wr := newWafRetryer(conn, "global")
+	wr := newWafRetryer(conn)
 	out, err := wr.RetryWithToken(func(token *string) (interface{}, error) {
 		params := &waf.CreateIPSetInput{
 			ChangeToken: token,
@@ -145,7 +145,7 @@ func resourceAwsWafIPSetDelete(d *schema.ResourceData, meta interface{}) error {
 		}
 	}
 
-	wr := newWafRetryer(conn, "global")
+	wr := newWafRetryer(conn)
 	_, err := wr.RetryWithToken(func(token *string) (interface{}, error) {
 		req := &waf.DeleteIPSetInput{
 			ChangeToken: token,
@@ -163,7 +163,7 @@ func resourceAwsWafIPSetDelete(d *schema.ResourceData, meta interface{}) error {
 
 func updateWafIpSetDescriptors(id string, oldD, newD []interface{}, conn *waf.WAF) error {
 	for _, ipSetUpdates := range diffWafIpSetDescriptors(oldD, newD) {
-		wr := newWafRetryer(conn, "global")
+		wr := newWafRetryer(conn)
 		_, err := wr.RetryWithToken(func(token *string) (interface{}, error) {
 			req := &waf.UpdateIPSetInput{
 				ChangeToken: token,

@@ -89,6 +89,12 @@ func dataSourceAwsNatGatewayRead(d *schema.ResourceData, meta interface{}) error
 		)...)
 	}
 
+	if tags, ok := d.GetOk("tags"); ok {
+		req.Filter = append(req.Filter, buildEC2TagFilterList(
+			tagsFromMap(tags.(map[string]interface{})),
+		)...)
+	}
+
 	req.Filter = append(req.Filter, buildEC2CustomFilterList(
 		d.Get("filter").(*schema.Set),
 	)...)
@@ -116,6 +122,7 @@ func dataSourceAwsNatGatewayRead(d *schema.ResourceData, meta interface{}) error
 	d.Set("state", ngw.State)
 	d.Set("subnet_id", ngw.SubnetId)
 	d.Set("vpc_id", ngw.VpcId)
+	d.Set("tags", tagsToMap(ngw.Tags))
 
 	for _, address := range ngw.NatGatewayAddresses {
 		if *address.AllocationId != "" {

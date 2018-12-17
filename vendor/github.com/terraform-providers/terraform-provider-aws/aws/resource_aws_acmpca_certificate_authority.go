@@ -691,27 +691,6 @@ func flattenAcmpcaRevocationConfiguration(config *acmpca.RevocationConfiguration
 	return []interface{}{m}
 }
 
-func listAcmpcaCertificateAuthorities(conn *acmpca.ACMPCA) ([]*acmpca.CertificateAuthority, error) {
-	certificateAuthorities := []*acmpca.CertificateAuthority{}
-	input := &acmpca.ListCertificateAuthoritiesInput{}
-
-	for {
-		output, err := conn.ListCertificateAuthorities(input)
-		if err != nil {
-			return certificateAuthorities, err
-		}
-		for _, certificateAuthority := range output.CertificateAuthorities {
-			certificateAuthorities = append(certificateAuthorities, certificateAuthority)
-		}
-		if output.NextToken == nil {
-			break
-		}
-		input.NextToken = output.NextToken
-	}
-
-	return certificateAuthorities, nil
-}
-
 func listAcmpcaTags(conn *acmpca.ACMPCA, certificateAuthorityArn string) ([]*acmpca.Tag, error) {
 	tags := []*acmpca.Tag{}
 	input := &acmpca.ListTagsInput{

@@ -141,11 +141,39 @@ const (
 	// The specified deployment has not started.
 	ErrCodeDeploymentNotStartedException = "DeploymentNotStartedException"
 
+	// ErrCodeDeploymentTargetDoesNotExistException for service response error code
+	// "DeploymentTargetDoesNotExistException".
+	//
+	// The provided target ID does not belong to the attempted deployment.
+	ErrCodeDeploymentTargetDoesNotExistException = "DeploymentTargetDoesNotExistException"
+
+	// ErrCodeDeploymentTargetIdRequiredException for service response error code
+	// "DeploymentTargetIdRequiredException".
+	//
+	// A deployment target ID was not provided.
+	ErrCodeDeploymentTargetIdRequiredException = "DeploymentTargetIdRequiredException"
+
+	// ErrCodeDeploymentTargetListSizeExceededException for service response error code
+	// "DeploymentTargetListSizeExceededException".
+	//
+	// The maximum number of targets that can be associated with an Amazon ECS or
+	// AWS Lambda deployment was exceeded. The target list of both types of deployments
+	// must have exactly one item. This exception does not apply to EC2/On-premises
+	// deployments.
+	ErrCodeDeploymentTargetListSizeExceededException = "DeploymentTargetListSizeExceededException"
+
 	// ErrCodeDescriptionTooLongException for service response error code
 	// "DescriptionTooLongException".
 	//
 	// The description is too long.
 	ErrCodeDescriptionTooLongException = "DescriptionTooLongException"
+
+	// ErrCodeECSServiceMappingLimitExceededException for service response error code
+	// "ECSServiceMappingLimitExceededException".
+	//
+	// The Amazon ECS service is associated with more than one deployment groups.
+	// An ECS service can only be associated with one deployment group.
+	ErrCodeECSServiceMappingLimitExceededException = "ECSServiceMappingLimitExceededException"
 
 	// ErrCodeGitHubAccountTokenDoesNotExistException for service response error code
 	// "GitHubAccountTokenDoesNotExistException".
@@ -323,6 +351,18 @@ const (
 	// and "WITHOUT_TRAFFIC_CONTROL".
 	ErrCodeInvalidDeploymentStyleException = "InvalidDeploymentStyleException"
 
+	// ErrCodeInvalidDeploymentTargetIdException for service response error code
+	// "InvalidDeploymentTargetIdException".
+	//
+	// The target ID provide was not valid.
+	ErrCodeInvalidDeploymentTargetIdException = "InvalidDeploymentTargetIdException"
+
+	// ErrCodeInvalidDeploymentWaitTypeException for service response error code
+	// "InvalidDeploymentWaitTypeException".
+	//
+	// The wait type is invalid.
+	ErrCodeInvalidDeploymentWaitTypeException = "InvalidDeploymentWaitTypeException"
+
 	// ErrCodeInvalidEC2TagCombinationException for service response error code
 	// "InvalidEC2TagCombinationException".
 	//
@@ -335,6 +375,12 @@ const (
 	//
 	// The tag was specified in an invalid format.
 	ErrCodeInvalidEC2TagException = "InvalidEC2TagException"
+
+	// ErrCodeInvalidECSServiceException for service response error code
+	// "InvalidECSServiceException".
+	//
+	// The Amazon ECS service identifier is not valid.
+	ErrCodeInvalidECSServiceException = "InvalidECSServiceException"
 
 	// ErrCodeInvalidFileExistsBehaviorException for service response error code
 	// "InvalidFileExistsBehaviorException".
@@ -497,6 +543,18 @@ const (
 	//
 	// The specified tag filter was specified in an invalid format.
 	ErrCodeInvalidTagFilterException = "InvalidTagFilterException"
+
+	// ErrCodeInvalidTargetFilterNameException for service response error code
+	// "InvalidTargetFilterNameException".
+	//
+	// The target filter name is invalid.
+	ErrCodeInvalidTargetFilterNameException = "InvalidTargetFilterNameException"
+
+	// ErrCodeInvalidTargetGroupPairException for service response error code
+	// "InvalidTargetGroupPairException".
+	//
+	// A target group pair associated with this deployment is not valid.
+	ErrCodeInvalidTargetGroupPairException = "InvalidTargetGroupPairException"
 
 	// ErrCodeInvalidTargetInstancesException for service response error code
 	// "InvalidTargetInstancesException".

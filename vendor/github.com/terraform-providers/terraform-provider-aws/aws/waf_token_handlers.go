@@ -11,14 +11,13 @@ import (
 
 type WafRetryer struct {
 	Connection *waf.WAF
-	Region     string
 }
 
 type withTokenFunc func(token *string) (interface{}, error)
 
 func (t *WafRetryer) RetryWithToken(f withTokenFunc) (interface{}, error) {
-	awsMutexKV.Lock(t.Region)
-	defer awsMutexKV.Unlock(t.Region)
+	awsMutexKV.Lock("WafRetryer")
+	defer awsMutexKV.Unlock("WafRetryer")
 
 	var out interface{}
 	err := resource.Retry(15*time.Minute, func() *resource.RetryError {
@@ -44,6 +43,6 @@ func (t *WafRetryer) RetryWithToken(f withTokenFunc) (interface{}, error) {
 	return out, err
 }
 
-func newWafRetryer(conn *waf.WAF, region string) *WafRetryer {
-	return &WafRetryer{Connection: conn, Region: region}
+func newWafRetryer(conn *waf.WAF) *WafRetryer {
+	return &WafRetryer{Connection: conn}
 }

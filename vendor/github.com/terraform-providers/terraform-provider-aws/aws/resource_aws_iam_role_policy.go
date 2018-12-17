@@ -79,7 +79,7 @@ func resourceAwsIamRolePolicyPut(d *schema.ResourceData, meta interface{}) error
 	}
 
 	d.SetId(fmt.Sprintf("%s:%s", *request.RoleName, *request.PolicyName))
-	return nil
+	return resourceAwsIamRolePolicyRead(d, meta)
 }
 
 func resourceAwsIamRolePolicyRead(d *schema.ResourceData, meta interface{}) error {
