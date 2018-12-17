@@ -28,14 +28,16 @@ func (p *plan) marshalPlannedValues(
 	s *states.State,
 	schemas *terraform.Schemas,
 ) error {
-
-	// var curr, planned module
 	// marshal the current state into a stateValues
 	curr, err := marshalState(s, schemas)
 	if err != nil {
 		return err
 	}
 
+	// TODO: marshal the changes into a statesValues
+	// TODO: smoosh them together
+
+	// marshalPlannedOutputs
 	outputs, err := marshalPlannedOutputs(changes, s)
 	if err != nil {
 		return err
@@ -128,7 +130,19 @@ func marshalState(s *states.State, schemas *terraform.Schemas) (module, error) {
 	}
 	ret.Resources = rs
 
-	modules, err := marshalStateModules(s.Modules, schemas)
+	// build a map of module -> [child module addresses]
+	moduleMap := make(map[string][]addrs.ModuleInstance)
+	for _, mod := range s.Modules {
+		if mod.Addr.IsRoot() {
+			continue
+		} else {
+			parent := mod.Addr.Parent().String()
+			moduleMap[parent] = append(moduleMap[parent], mod.Addr)
+		}
+	}
+
+	// use the state and module map to build up the module structure
+	modules, err := marshalStateModules(s, schemas, moduleMap[""], moduleMap)
 	if err != nil {
 		return ret, err
 	}
@@ -194,11 +208,36 @@ func marshalStateResources(resources map[string]*states.Resource, schemas *terra
 	return rs, nil
 }
 
-func marshalStateModules(modules map[string]*states.Module, schemas *terraform.Schemas) ([]module, error) {
+// marshalStateModules is an ungainly recursive function to build a module
+// structure out of a teraform state.
+func marshalStateModules(
+	s *states.State,
+	schemas *terraform.Schemas,
+	modules []addrs.ModuleInstance,
+	moduleMap map[string][]addrs.ModuleInstance,
+) ([]module, error) {
+
 	var ret []module
 
-	for _, v := range modules {
-		fmt.Printf("Modules: %#v\n", v.Addr.String())
+	for _, child := range modules {
+		stateMod := s.Module(child)
+		// cm for child module, naming things is hard.
+		cm := module{Address: stateMod.Addr.String()}
+		rs, err := marshalStateResources(stateMod.Resources, schemas)
+		if err != nil {
+			return nil, err
+		}
+		cm.Resources = rs
+		if moduleMap[child.String()] != nil {
+			moreChildModules, err := marshalStateModules(s, schemas, moduleMap[child.String()], moduleMap)
+			if err != nil {
+				return nil, err
+			}
+			cm.ChildModules = moreChildModules
+		}
+
+		ret = append(ret, cm)
 	}
+
 	return ret, nil
 }
