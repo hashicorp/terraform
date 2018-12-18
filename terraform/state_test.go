@@ -1561,6 +1561,20 @@ func TestReadState_pruneDependencies(t *testing.T) {
 	}
 }
 
+func TestReadState_bigHash(t *testing.T) {
+	expected := uint64(14885267135666261723)
+	s := strings.NewReader(`{"version": 3, "backend":{"hash":14885267135666261723}}`)
+
+	actual, err := ReadState(s)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if actual.Backend.Hash != expected {
+		t.Fatalf("expected backend hash %d, got %d", expected, actual.Backend.Hash)
+	}
+}
+
 func TestResourceNameSort(t *testing.T) {
 	names := []string{
 		"a",
