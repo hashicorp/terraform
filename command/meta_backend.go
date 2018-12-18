@@ -467,7 +467,7 @@ func (m *Meta) backendFromConfig(opts *BackendOpts) (backend.Backend, tfdiags.Di
 		// settings in the configuration files are unchanged. (The only
 		// record we have of CLI overrides is in the settings cache in this
 		// case, so we have no other source to compare with.
-		if !opts.Init && cHash == s.Backend.Hash {
+		if !opts.Init && uint64(cHash) == s.Backend.Hash {
 			log.Printf("[TRACE] Meta.Backend: using already-initialized, unchanged %q backend configuration", c.Type)
 			return m.backend_C_r_S_unchanged(c, cHash, sMgr)
 		}
@@ -714,7 +714,7 @@ func (m *Meta) backend_C_r_s(c *configs.Backend, cHash int, sMgr *state.LocalSta
 	s.Backend = &terraform.BackendState{
 		Type:      c.Type,
 		ConfigRaw: json.RawMessage(configJSON),
-		Hash:      cHash,
+		Hash:      uint64(cHash),
 	}
 
 	if err := sMgr.WriteState(s); err != nil {
@@ -857,7 +857,7 @@ func (m *Meta) backend_C_r_S_changed(c *configs.Backend, cHash int, sMgr *state.
 	s.Backend = &terraform.BackendState{
 		Type:      c.Type,
 		ConfigRaw: json.RawMessage(configJSON),
-		Hash:      cHash,
+		Hash:      uint64(cHash),
 	}
 
 	if err := sMgr.WriteState(s); err != nil {
@@ -886,8 +886,8 @@ func (m *Meta) backend_C_r_S_unchanged(c *configs.Backend, cHash int, sMgr *stat
 	// it's possible for a backend to be unchanged, and the config itself to
 	// have changed by moving a parameter from the config to `-backend-config`
 	// In this case we only need to update the Hash.
-	if c != nil && s.Backend.Hash != cHash {
-		s.Backend.Hash = cHash
+	if c != nil && s.Backend.Hash != uint64(cHash) {
+		s.Backend.Hash = uint64(cHash)
 		if err := sMgr.WriteState(s); err != nil {
 			diags = diags.Append(err)
 			return nil, diags
