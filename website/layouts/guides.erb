@@ -1,3 +1,10 @@
+<% content_for(:custom_share) do %>
+  <meta name="twitter:card" content="summary" />
+  <meta property="og:image" content="<%= image_url("og-image-small.png") %>"/>
+  <meta property="og:image:width" content="100"/>
+  <meta property="og:image:height" content="100"/>
+<% end %>
+
 <% wrap_layout :inner do %>
   <% content_for :sidebar do %>
     <ul class="nav docs-sidenav">
