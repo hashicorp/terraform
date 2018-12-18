@@ -152,20 +152,20 @@ func TestNodeRefreshableDataResourceDynamicExpand_scaleIn(t *testing.T) {
 	expected := `data.aws_instance.foo[0] - *terraform.NodeRefreshableDataResourceInstance
 data.aws_instance.foo[1] - *terraform.NodeRefreshableDataResourceInstance
 data.aws_instance.foo[2] - *terraform.NodeRefreshableDataResourceInstance
-data.aws_instance.foo[3] - *terraform.NodeDestroyableDataResource
+data.aws_instance.foo[3] - *terraform.NodeDestroyableDataResourceInstance
 root - terraform.graphNodeRoot
   data.aws_instance.foo[0] - *terraform.NodeRefreshableDataResourceInstance
   data.aws_instance.foo[1] - *terraform.NodeRefreshableDataResourceInstance
   data.aws_instance.foo[2] - *terraform.NodeRefreshableDataResourceInstance
-  data.aws_instance.foo[3] - *terraform.NodeDestroyableDataResource
+  data.aws_instance.foo[3] - *terraform.NodeDestroyableDataResourceInstance
 `
 	if expected != actual {
 		t.Fatalf("Expected:\n%s\nGot:\n%s", expected, actual)
 	}
 
-	var destroyableDataResource *NodeDestroyableDataResource
+	var destroyableDataResource *NodeDestroyableDataResourceInstance
 	for _, v := range g.Vertices() {
-		if r, ok := v.(*NodeDestroyableDataResource); ok {
+		if r, ok := v.(*NodeDestroyableDataResourceInstance); ok {
 			destroyableDataResource = r
 		}
 	}
@@ -175,6 +175,6 @@ root - terraform.graphNodeRoot
 	}
 
 	if destroyableDataResource.ResolvedProvider.ProviderConfig.Type == "" {
-		t.Fatal("NodeDestroyableDataResource missing provider config")
+		t.Fatal("NodeDestroyableDataResourceInstance missing provider config")
 	}
 }
