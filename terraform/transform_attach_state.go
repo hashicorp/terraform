@@ -59,7 +59,9 @@ func (t *AttachStateTransformer) Transform(g *Graph) error {
 			continue
 		}
 
-		an.AttachResourceState(rs)
+		// make sure to attach a copy of the state, so instances can modify the
+		// same ResourceState.
+		an.AttachResourceState(rs.DeepCopy())
 	}
 
 	return nil

@@ -149,7 +149,7 @@ func (n *NodeRefreshableManagedResourceInstance) EvalTree() EvalNode {
 				NodeAbstractResourceInstance: n.NodeAbstractResourceInstance,
 			}
 		} else {
-			dn = &NodeDestroyableDataResource{
+			dn = &NodeDestroyableDataResourceInstance{
 				NodeAbstractResourceInstance: n.NodeAbstractResourceInstance,
 			}
 		}
