@@ -179,7 +179,7 @@ func (s *SyncState) ResourceInstanceObject(addr addrs.AbsResourceInstance, gen G
 	if inst == nil {
 		return nil
 	}
-	return inst.GetGeneration(gen)
+	return inst.GetGeneration(gen).DeepCopy()
 }
 
 // SetResourceMeta updates the resource-level metadata for the resource at
