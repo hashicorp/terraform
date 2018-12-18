@@ -56,8 +56,9 @@ func (n *NodeRefreshableDataResource) DynamicExpand(ctx EvalContext) (*Graph, er
 	// We also need a destroyable resource for orphans that are a result of a
 	// scaled-in count.
 	concreteResourceDestroyable := func(a *NodeAbstractResourceInstance) dag.Vertex {
-		// Add the config since we don't do that via transforms
+		// Add the config and provider since we don't do that via transforms
 		a.Config = n.Config
+		a.ResolvedProvider = n.ResolvedProvider
 
 		return &NodeDestroyableDataResource{
 			NodeAbstractResourceInstance: a,
