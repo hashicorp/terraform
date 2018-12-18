@@ -5,14 +5,14 @@ import (
 	"github.com/hashicorp/terraform/states"
 )
 
-// NodeDestroyableDataResource represents a resource that is "destroyable":
+// NodeDestroyableDataResourceInstance represents a resource that is "destroyable":
 // it is ready to be destroyed.
-type NodeDestroyableDataResource struct {
+type NodeDestroyableDataResourceInstance struct {
 	*NodeAbstractResourceInstance
 }
 
 // GraphNodeEvalable
-func (n *NodeDestroyableDataResource) EvalTree() EvalNode {
+func (n *NodeDestroyableDataResourceInstance) EvalTree() EvalNode {
 	addr := n.ResourceInstanceAddr()
 
 	var providerSchema *ProviderSchema
