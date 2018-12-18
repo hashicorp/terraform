@@ -6,13 +6,15 @@ import (
 
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs"
+	"github.com/hashicorp/terraform/configs/configschema"
 	"github.com/hashicorp/terraform/terraform"
+	"github.com/zclconf/go-cty/cty"
 )
 
 // Config represents the complete configuration source
 type config struct {
-	ProviderConfigs []providerConfig `json:"provider_config,omitempty"`
-	RootModule      module           `json:"root_module,omitempty"`
+	ProviderConfigs map[string]providerConfig `json:"provider_config,omitempty"`
+	RootModule      module                    `json:"root_module,omitempty"`
 }
 
 // ProviderConfig describes all of the provider configurations throughout the
@@ -88,17 +90,11 @@ type provisioner struct {
 func Marshal(c *configs.Config, schemas *terraform.Schemas) ([]byte, error) {
 	var output config
 
-	// TODO: this is not accurate provider marshaling, just a placeholder
-	var pcs []providerConfig
-	providers := c.ProviderTypes()
-	for p := range providers {
-		pc := providerConfig{
-			Name: providers[p],
-		}
-		pcs = append(pcs, pc)
-	}
+	pcs := make(map[string]providerConfig)
+	marshalProviderConfigs(c, schemas, pcs)
 	output.ProviderConfigs = pcs
-	rootModule, err := marshalRootModule(c.Module, schemas)
+
+	rootModule, err := marshalModule(c, schemas)
 	if err != nil {
 		return nil, err
 	}
@@ -108,16 +104,40 @@ func Marshal(c *configs.Config, schemas *terraform.Schemas) ([]byte, error) {
 	return ret, err
 }
 
-func marshalRootModule(m *configs.Module, schemas *terraform.Schemas) (module, error) {
-	var module module
+func marshalProviderConfigs(
+	c *configs.Config,
+	schemas *terraform.Schemas,
+	m map[string]providerConfig,
+) {
+	if c == nil {
+		return
+	}
 
+	for _, pc := range c.Module.ProviderConfigs {
+		schema := schemas.ProviderConfig(pc.Name)
+		m[pc.Name] = providerConfig{
+			Name:          pc.Name,
+			Alias:         pc.Alias,
+			ModuleAddress: c.Path.String(),
+			Expressions:   marshalExpressions(pc.Config, schema),
+		}
+	}
+
+	// Must also visit our child modules, recursively.
+	for _, cc := range c.Children {
+		marshalProviderConfigs(cc, schemas, m)
+	}
+}
+
+func marshalModule(c *configs.Config, schemas *terraform.Schemas) (module, error) {
+	var module module
 	var rs []resource
 
-	managedResources, err := marshalResources(m.ManagedResources, schemas)
+	managedResources, err := marshalResources(c.Module.ManagedResources, schemas)
 	if err != nil {
 		return module, err
 	}
-	dataResources, err := marshalResources(m.DataResources, schemas)
+	dataResources, err := marshalResources(c.Module.DataResources, schemas)
 	if err != nil {
 		return module, err
 	}
@@ -126,16 +146,20 @@ func marshalRootModule(m *configs.Module, schemas *terraform.Schemas) (module, e
 	module.Resources = rs
 
 	outputs := make(map[string]configOutput)
-	for _, v := range m.Outputs {
+	for _, v := range c.Module.Outputs {
 		outputs[v.Name] = configOutput{
 			Sensitive:  v.Sensitive,
 			Expression: marshalExpression(v.Expr),
 		}
 	}
 	module.Outputs = outputs
+	module.ModuleCalls = marshalModuleCalls(c, schemas)
+	return module, nil
+}
 
-	var mcs []moduleCall
-	for _, v := range m.ModuleCalls {
+func marshalModuleCalls(c *configs.Config, schemas *terraform.Schemas) []moduleCall {
+	var ret []moduleCall
+	for _, v := range c.Module.ModuleCalls {
 		mc := moduleCall{
 			ResolvedSource: v.SourceAddr,
 		}
@@ -149,14 +173,25 @@ func marshalRootModule(m *configs.Module, schemas *terraform.Schemas) (module, e
 			}
 		}
 
-		// TODO
-		// schema := schemas.?
-		// mc.Expressions = marshalExpressions(v.Config, schema)
-		mcs = append(mcs, mc)
+		schema := &configschema.Block{}
+		schema.Attributes = make(map[string]*configschema.Attribute)
+		for _, variable := range c.Module.Variables {
+			schema.Attributes[variable.Name] = &configschema.Attribute{
+				Required: variable.Default == cty.NilVal,
+			}
+		}
+		mc.Expressions = marshalExpressions(v.Config, schema)
+
+		for _, cc := range c.Children {
+			childModule, _ := marshalModule(cc, schemas)
+			mc.Module = childModule
+		}
+		ret = append(ret, mc)
+
 	}
 
-	module.ModuleCalls = mcs
-	return module, nil
+	return ret
+
 }
 
 func marshalResources(resources map[string]*configs.Resource, schemas *terraform.Schemas) ([]resource, error) {
