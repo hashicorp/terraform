@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"path/filepath"
 	"strconv"
 	"sync"
 
@@ -423,7 +424,7 @@ func (d *evaluationStateData) GetPathAttr(addr addrs.PathAttr, rng tfdiags.Sourc
 			})
 			return cty.DynamicVal, diags
 		}
-		return cty.StringVal(wd), diags
+		return cty.StringVal(filepath.ToSlash(wd)), diags
 
 	case "module":
 		moduleConfig := d.Evaluator.Config.DescendentForInstance(d.ModulePath)
@@ -433,11 +434,11 @@ func (d *evaluationStateData) GetPathAttr(addr addrs.PathAttr, rng tfdiags.Sourc
 			panic(fmt.Sprintf("module.path read from module %s, which has no configuration", d.ModulePath))
 		}
 		sourceDir := moduleConfig.Module.SourceDir
-		return cty.StringVal(sourceDir), diags
+		return cty.StringVal(filepath.ToSlash(sourceDir)), diags
 
 	case "root":
 		sourceDir := d.Evaluator.Config.Module.SourceDir
-		return cty.StringVal(sourceDir), diags
+		return cty.StringVal(filepath.ToSlash(sourceDir)), diags
 
 	default:
 		suggestion := nameSuggestion(addr.Name, []string{"cwd", "module", "root"})
