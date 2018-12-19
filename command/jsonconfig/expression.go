@@ -11,13 +11,6 @@ import (
 	ctyjson "github.com/zclconf/go-cty/cty/json"
 )
 
-// // expressions is used to represent the entire content of a block. Attribute
-// // arguments are mapped directly with the attribute name as key and an
-// // <expression-representation> as value.
-// type expressions struct {
-// 	Expression map[string]interface{} `json:"expressions,omitempty"`
-// }
-
 // expression represents any unparsed expression
 type expression struct {
 	// "constant_value" is set only if the expression contains no references to
