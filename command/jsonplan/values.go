@@ -35,33 +35,16 @@ func marshalAttributeValues(value cty.Value, schema *configschema.Block) attribu
 	return ret
 }
 
-// marshalAttributeValuesBool returns an attributeValues structure with "true" and
-// "false" in place of the values indicating whether the value is known or not.
-func marshalAttributeValuesBool(value cty.Value, schema *configschema.Block) attributeValues {
-	ret := make(attributeValues)
-
-	it := value.ElementIterator()
-	for it.Next() {
-		k, v := it.Element()
-		if v.IsWhollyKnown() {
-			ret[k.AsString()] = "true"
-		}
-		ret[k.AsString()] = "false"
-	}
-	return ret
-}
-
 // marshalPlannedOutputs takes a list of changes and returns two output maps,
 // the former with output values and the latter with true/false in place of
 // values indicating whether the values are known at plan time.
-func marshalPlannedOutputs(changes *plans.Changes) (map[string]output, map[string]output, error) {
+func marshalPlannedOutputs(changes *plans.Changes) (map[string]output, error) {
 	if changes.Outputs == nil {
 		// No changes - we're done here!
-		return nil, nil, nil
+		return nil, nil
 	}
 
 	ret := make(map[string]output)
-	uRet := make(map[string]output)
 
 	for _, oc := range changes.Outputs {
 		if oc.ChangeSrc.Action == plans.Delete {
@@ -71,23 +54,14 @@ func marshalPlannedOutputs(changes *plans.Changes) (map[string]output, map[strin
 		var after []byte
 		changeV, err := oc.Decode()
 		if err != nil {
-			return ret, uRet, err
+			return ret, err
 		}
 
 		if changeV.After != cty.NilVal {
 			if changeV.After.IsWhollyKnown() {
 				after, err = ctyjson.Marshal(changeV.After, changeV.After.Type())
 				if err != nil {
-					return ret, uRet, err
-				}
-				uRet[oc.Addr.OutputValue.Name] = output{
-					Value:     json.RawMessage("true"),
-					Sensitive: oc.Sensitive,
-				}
-			} else {
-				uRet[oc.Addr.OutputValue.Name] = output{
-					Value:     json.RawMessage("false"),
-					Sensitive: oc.Sensitive,
+					return ret, err
 				}
 			}
 		}
@@ -98,17 +72,14 @@ func marshalPlannedOutputs(changes *plans.Changes) (map[string]output, map[strin
 		}
 	}
 
-	return ret, uRet, nil
+	return ret, nil
 
 }
 
-// marshalPlannedValues returns two modules:
-// The former has attribute values populated and the latter has true/false in
-// place of values indicating whether the values are known at plan time.
-func marshalPlannedValues(changes *plans.Changes, schemas *terraform.Schemas) (module, module, error) {
-	var ret, uRet module
+func marshalPlannedValues(changes *plans.Changes, schemas *terraform.Schemas) (module, error) {
+	var ret module
 	if changes.Empty() {
-		return ret, uRet, nil
+		return ret, nil
 	}
 
 	// build two maps:
@@ -132,27 +103,26 @@ func marshalPlannedValues(changes *plans.Changes, schemas *terraform.Schemas) (m
 	}
 
 	// start with the root module
-	resources, uResources, err := marshalPlanResources(changes, moduleResourceMap[""], schemas)
+	resources, err := marshalPlanResources(changes, moduleResourceMap[""], schemas)
 	if err != nil {
-		return ret, uRet, err
+		return ret, err
 	}
 	ret.Resources = resources
-	uRet.Resources = uResources
 
 	childModules, err := marshalPlanModules(changes, schemas, moduleMap[""], moduleMap, moduleResourceMap)
 	if err != nil {
-		return ret, uRet, err
+		return ret, err
 	}
 	ret.ChildModules = childModules
 
-	return ret, uRet, nil
+	return ret, nil
 }
 
 // marshalPlannedValues returns two resource slices:
 // The former has attribute values populated and the latter has true/false in
 // place of values indicating whether the values are known at plan time.
-func marshalPlanResources(changes *plans.Changes, ris []addrs.AbsResourceInstance, schemas *terraform.Schemas) ([]resource, []resource, error) {
-	var ret, uRet []resource
+func marshalPlanResources(changes *plans.Changes, ris []addrs.AbsResourceInstance, schemas *terraform.Schemas) ([]resource, error) {
+	var ret []resource
 
 	for _, ri := range ris {
 		r := changes.ResourceInstance(ri)
@@ -174,7 +144,7 @@ func marshalPlanResources(changes *plans.Changes, ris []addrs.AbsResourceInstanc
 		case addrs.DataResourceMode:
 			resource.Mode = "data"
 		default:
-			return nil, nil, fmt.Errorf("resource %s has an unsupported mode %s",
+			return nil, fmt.Errorf("resource %s has an unsupported mode %s",
 				r.Addr.String(),
 				r.Addr.Resource.Resource.Mode.String(),
 			)
@@ -186,30 +156,24 @@ func marshalPlanResources(changes *plans.Changes, ris []addrs.AbsResourceInstanc
 			resource.Type,
 		)
 		if schema == nil {
-			return nil, nil, fmt.Errorf("no schema found for %s", r.Addr.String())
+			return nil, fmt.Errorf("no schema found for %s", r.Addr.String())
 		}
 		resource.SchemaVersion = schemaVer
 		changeV, err := r.Decode(schema.ImpliedType())
 		if err != nil {
-			return nil, nil, err
+			return nil, err
 		}
 
-		var unknownAttributeValues attributeValues
 		if changeV.After != cty.NilVal {
 			if changeV.After.IsWhollyKnown() {
 				resource.AttributeValues = marshalAttributeValues(changeV.After, schema)
 			}
-			unknownAttributeValues = marshalAttributeValuesBool(changeV.After, schema)
 		}
 
-		uResource := resource
-		uResource.AttributeValues = unknownAttributeValues
-
 		ret = append(ret, resource)
-		uRet = append(uRet, uResource)
 	}
 
-	return ret, uRet, nil
+	return ret, nil
 }
 
 // marshalPlanModules iterates over a list of modules to recursively describe
@@ -232,7 +196,7 @@ func marshalPlanModules(
 		if child.String() != "" {
 			cm.Address = child.String()
 		}
-		rs, _, err := marshalPlanResources(changes, moduleResources, schemas)
+		rs, err := marshalPlanResources(changes, moduleResources, schemas)
 		if err != nil {
 			return nil, err
 		}

@@ -27,7 +27,6 @@ const FormatVersion = "0.1"
 type plan struct {
 	FormatVersion   string            `json:"format_version,omitempty"`
 	PlannedValues   stateValues       `json:"planned_values,omitempty"`
-	ProposedUnknown stateValues       `json:"proposed_unknown,omitempty"`
 	ResourceChanges []resourceChange  `json:"resource_changes,omitempty"`
 	OutputChanges   map[string]change `json:"output_changes,omitempty"`
 	PriorState      json.RawMessage   `json:"prior_state,omitempty"`
@@ -62,8 +61,9 @@ type change struct {
 	// or "after" is unset (respectively). For ["no-op"], the before and after
 	// values are identical. The "after" value will be incomplete if there are
 	// values within it that won't be known until after apply.
-	Before json.RawMessage `json:"before,omitempty"`
-	After  json.RawMessage `json:"after,omitempty"`
+	Before       json.RawMessage `json:"before,omitempty"`
+	After        json.RawMessage `json:"after,omitempty"`
+	AfterUnknown bool            `json:"after_unknown"`
 }
 
 type output struct {
@@ -81,7 +81,7 @@ func Marshal(
 
 	output := newPlan()
 
-	// marshalPlannedValues populates both PlannedValues and ProposedUnknowns
+	// output.PlannedValues
 	err := output.marshalPlannedValues(p.Changes, schemas)
 	if err != nil {
 		return nil, fmt.Errorf("error in marshalPlannedValues: %s", err)
@@ -145,6 +145,7 @@ func (p *plan) marshalResourceChanges(changes *plans.Changes, schemas *terraform
 		}
 
 		var before, after []byte
+		afterUnknown := false
 		if changeV.Before != cty.NilVal {
 			before, err = ctyjson.Marshal(changeV.Before, changeV.Before.Type())
 			if err != nil {
@@ -158,14 +159,16 @@ func (p *plan) marshalResourceChanges(changes *plans.Changes, schemas *terraform
 					return err
 				}
 			} else {
+				afterUnknown = true
 				// TODO: what is the expected value if after is not known?
 			}
 		}
 
 		r.Change = change{
-			Actions: []string{rc.Action.String()},
-			Before:  json.RawMessage(before),
-			After:   json.RawMessage(after),
+			Actions:      []string{rc.Action.String()},
+			Before:       json.RawMessage(before),
+			After:        json.RawMessage(after),
+			AfterUnknown: afterUnknown,
 		}
 		r.Deposed = rc.DeposedKey == states.NotDeposed
 
@@ -207,6 +210,7 @@ func (p *plan) marshalOutputChanges(changes *plans.Changes) error {
 		}
 
 		var before, after []byte
+		afterUnknown := false
 		if changeV.Before != cty.NilVal {
 			before, err = ctyjson.Marshal(changeV.Before, changeV.Before.Type())
 			if err != nil {
@@ -219,6 +223,8 @@ func (p *plan) marshalOutputChanges(changes *plans.Changes) error {
 				if err != nil {
 					return err
 				}
+			} else {
+				afterUnknown = true
 			}
 		}
 
@@ -226,6 +232,7 @@ func (p *plan) marshalOutputChanges(changes *plans.Changes) error {
 		c.Actions = []string{oc.Action.String()}
 		c.Before = json.RawMessage(before)
 		c.After = json.RawMessage(after)
+		c.AfterUnknown = afterUnknown
 		p.OutputChanges[oc.Addr.OutputValue.Name] = c
 	}
 
@@ -234,20 +241,18 @@ func (p *plan) marshalOutputChanges(changes *plans.Changes) error {
 
 func (p *plan) marshalPlannedValues(changes *plans.Changes, schemas *terraform.Schemas) error {
 	// marshal the planned changes into a module
-	plan, unknownValues, err := marshalPlannedValues(changes, schemas)
+	plan, err := marshalPlannedValues(changes, schemas)
 	if err != nil {
 		return err
 	}
 	p.PlannedValues.RootModule = plan
-	p.ProposedUnknown.RootModule = unknownValues
 
 	// marshalPlannedOutputs
-	outputs, unknownOutputs, err := marshalPlannedOutputs(changes)
+	outputs, err := marshalPlannedOutputs(changes)
 	if err != nil {
 		return err
 	}
 	p.PlannedValues.Outputs = outputs
-	p.ProposedUnknown.Outputs = unknownOutputs
 
 	return nil
 }
