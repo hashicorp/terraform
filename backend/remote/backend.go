@@ -370,7 +370,7 @@ func (b *Remote) checkConstraints(c *disco.Constraints) tfdiags.Diagnostics {
 	}
 
 	// Create the version to check.
-	v, err := version.NewVersion(tfversion.String())
+	v, err := version.NewVersion(tfversion.Version)
 	if err != nil {
 		return diags.Append(checkConstraintsWarning(err))
 	}
@@ -433,7 +433,7 @@ func (b *Remote) checkConstraints(c *disco.Constraints) tfdiags.Diagnostics {
 	summary := fmt.Sprintf("Incompatible Terraform version v%s", v.String())
 	details := fmt.Sprintf(
 		"The configured Terraform Enterprise backend is compatible with Terraform "+
-			"versions >= %s, < %s%s.", c.Minimum, c.Maximum, excluding,
+			"versions >= %s, <= %s%s.", c.Minimum, c.Maximum, excluding,
 	)
 
 	if action != "" && toVersion != "" {
