@@ -3,6 +3,7 @@
 BUG FIXES:
 
 * backend/remote: Fix an error that prevents checking version constraints [GH-19668]
+* backend/remote: Compare versions without the prerelease [GH-19705]
 
 ## 0.11.11 (December 14, 2018)
 
