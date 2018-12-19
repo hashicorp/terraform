@@ -286,19 +286,9 @@ Token:
 			diags = append(diags, labelDiags...)
 			labels = append(labels, label)
 			labelRanges = append(labelRanges, labelRange)
-			if labelDiags.HasErrors() {
-				p.recoverAfterBodyItem()
-				return &Block{
-					Type:   blockType,
-					Labels: labels,
-					Body:   nil,
-
-					TypeRange:       ident.Range,
-					LabelRanges:     labelRanges,
-					OpenBraceRange:  ident.Range, // placeholder
-					CloseBraceRange: ident.Range, // placeholder
-				}, diags
-			}
+			// parseQuoteStringLiteral recovers up to the closing quote
+			// if it encounters problems, so we can continue looking for
+			// more labels and eventually the block body even.
 
 		case TokenIdent:
 			tok = p.Read() // eat token
@@ -1648,7 +1638,16 @@ Token:
 				Subject: &tok.Range,
 				Context: hcl.RangeBetween(oQuote.Range, tok.Range).Ptr(),
 			})
-			p.recover(TokenTemplateSeqEnd)
+
+			// Now that we're returning an error callers won't attempt to use
+			// the result for any real operations, but they might try to use
+			// the partial AST for other analyses, so we'll leave a marker
+			// to indicate that there was something invalid in the string to
+			// help avoid misinterpretation of the partial result
+			ret.WriteString(which)
+			ret.WriteString("{ ... }")
+
+			p.recover(TokenTemplateSeqEnd) // we'll try to keep parsing after the sequence ends
 
 		case TokenEOF:
 			diags = append(diags, &hcl.Diagnostic{
@@ -1669,7 +1668,7 @@ Token:
 				Subject:  &tok.Range,
 				Context:  hcl.RangeBetween(oQuote.Range, tok.Range).Ptr(),
 			})
-			p.recover(TokenOQuote)
+			p.recover(TokenCQuote)
 			break Token
 
 		}
