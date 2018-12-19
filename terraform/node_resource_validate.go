@@ -71,6 +71,7 @@ func (n *NodeValidatableResource) EvalTree() EvalNode {
 					Schema:           &provisionerSchema,
 					Config:           p,
 					ResourceHasCount: hasCount,
+					ConnConfig:       p.Connection,
 				},
 			)
 		}
