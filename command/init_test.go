@@ -470,7 +470,7 @@ func TestInit_backendReinitWithExtra(t *testing.T) {
 		t.Errorf("wrong config\ngot:  %s\nwant: %s", got, want)
 	}
 
-	if state.Backend.Hash != cHash {
+	if state.Backend.Hash != uint64(cHash) {
 		t.Fatal("mismatched state and config backend hashes")
 	}
 
@@ -482,7 +482,7 @@ func TestInit_backendReinitWithExtra(t *testing.T) {
 	if got, want := normalizeJSON(t, state.Backend.ConfigRaw), `{"path":"hello","workspace_dir":null}`; got != want {
 		t.Errorf("wrong config\ngot:  %s\nwant: %s", got, want)
 	}
-	if state.Backend.Hash != cHash {
+	if state.Backend.Hash != uint64(cHash) {
 		t.Fatal("mismatched state and config backend hashes")
 	}
 }
