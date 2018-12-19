@@ -298,7 +298,7 @@ func TestRemote_checkConstraints(t *testing.T) {
 				Maximum: "0.11.11",
 			},
 			version: "0.10.1",
-			result:  "versions >= 0.11.0, < 0.11.11.",
+			result:  "versions >= 0.11.0, <= 0.11.11.",
 		},
 		"list exclusion": {
 			constraints: &disco.Constraints{
