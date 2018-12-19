@@ -160,7 +160,6 @@ func (p *plan) marshalResourceChanges(changes *plans.Changes, schemas *terraform
 				}
 			} else {
 				afterUnknown = true
-				// TODO: what is the expected value if after is not known?
 			}
 		}
 
