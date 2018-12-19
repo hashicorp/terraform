@@ -12,12 +12,14 @@ resource "aws_instance" "foo" {
 
 resource "aws_instance" "bar" {
     connection {
+        host = "localhost"
         type = "telnet"
     }
 
     provisioner "shell" {
         foo = "${aws_instance.foo.value}"
         connection {
+            host = "localhost"
             type = "telnet"
             user = "superuser"
             port = 2222
