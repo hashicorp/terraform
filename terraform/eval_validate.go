@@ -218,6 +218,10 @@ var connectionBlockSupersetSchema = &configschema.Block{
 		// by the config loader and stored away in a separate field.
 
 		// Common attributes for both connection types
+		"host": {
+			Type:     cty.String,
+			Required: true,
+		},
 		"type": {
 			Type:     cty.String,
 			Optional: true,
@@ -227,10 +231,6 @@ var connectionBlockSupersetSchema = &configschema.Block{
 			Optional: true,
 		},
 		"password": {
-			Type:     cty.String,
-			Optional: true,
-		},
-		"host": {
 			Type:     cty.String,
 			Optional: true,
 		},
