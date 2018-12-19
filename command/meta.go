@@ -266,6 +266,10 @@ func (m *Meta) StdinPiped() bool {
 // operation itself is unsuccessful. Use the "Result" field of the
 // returned operation object to recognize operation-level failure.
 func (m *Meta) RunOperation(b backend.Enhanced, opReq *backend.Operation) (*backend.RunningOperation, error) {
+	if opReq.ConfigDir != "" {
+		opReq.ConfigDir = m.normalizePath(opReq.ConfigDir)
+	}
+
 	op, err := b.Operation(context.Background(), opReq)
 	if err != nil {
 		return nil, fmt.Errorf("error starting operation: %s", err)
