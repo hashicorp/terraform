@@ -259,7 +259,7 @@ func readPrivateKey(pk string) (ssh.AuthMethod, error) {
 	// show a nicer error if the private key has a password.
 	block, _ := pem.Decode([]byte(pk))
 	if block == nil {
-		return nil, fmt.Errorf("Failed to read key %q: no key found", pk)
+		return nil, fmt.Errorf("Failed to decode key")
 	}
 	if block.Headers["Proc-Type"] == "4,ENCRYPTED" {
 		return nil, fmt.Errorf(
