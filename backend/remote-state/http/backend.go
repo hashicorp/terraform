@@ -6,8 +6,10 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"time"
 
-	cleanhttp "github.com/hashicorp/go-cleanhttp"
+	"github.com/hashicorp/go-cleanhttp"
+	"github.com/hashicorp/go-retryablehttp"
 	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/state"
@@ -65,6 +67,24 @@ func New() backend.Backend {
 				Optional:    true,
 				Default:     false,
 				Description: "Whether to skip TLS verification.",
+			},
+			"retry_max": &schema.Schema{
+				Type:        schema.TypeInt,
+				Optional:    true,
+				Default:     2,
+				Description: "The number of HTTP request retries.",
+			},
+			"retry_wait_min": &schema.Schema{
+				Type:        schema.TypeInt,
+				Optional:    true,
+				Default:     1,
+				Description: "The minimum time in seconds to wait between HTTP request attempts.",
+			},
+			"retry_wait_max": &schema.Schema{
+				Type:        schema.TypeInt,
+				Optional:    true,
+				Default:     30,
+				Description: "The maximum time in seconds to wait between HTTP request attempts.",
 			},
 		},
 	}
@@ -131,6 +151,12 @@ func (b *Backend) configure(ctx context.Context) error {
 		}
 	}
 
+	rClient := retryablehttp.NewClient()
+	rClient.HTTPClient = client
+	rClient.RetryMax = data.Get("retry_max").(int)
+	rClient.RetryWaitMin = time.Duration(data.Get("retry_wait_min").(int)) * time.Second
+	rClient.RetryWaitMax = time.Duration(data.Get("retry_wait_max").(int)) * time.Second
+
 	b.client = &httpClient{
 		URL:          updateURL,
 		UpdateMethod: updateMethod,
@@ -144,7 +170,7 @@ func (b *Backend) configure(ctx context.Context) error {
 		Password: data.Get("password").(string),
 
 		// accessible only for testing use
-		Client: client,
+		Client: rClient,
 	}
 	return nil
 }

@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"net/url"
 
+	"github.com/hashicorp/go-retryablehttp"
 	"github.com/hashicorp/terraform/state"
 	"github.com/hashicorp/terraform/state/remote"
 )
@@ -28,7 +29,7 @@ type httpClient struct {
 	UnlockMethod string
 
 	// HTTP
-	Client   *http.Client
+	Client   *retryablehttp.Client
 	Username string
 	Password string
 
@@ -44,7 +45,7 @@ func (c *httpClient) httpRequest(method string, url *url.URL, data *[]byte, what
 	}
 
 	// Create the request
-	req, err := http.NewRequest(method, url.String(), reader)
+	req, err := retryablehttp.NewRequest(method, url.String(), reader)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to make %s HTTP request: %s", what, err)
 	}
