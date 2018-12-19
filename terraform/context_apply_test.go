@@ -5675,11 +5675,8 @@ func TestContext2Apply_provisionerDestroyRefInvalid(t *testing.T) {
 		},
 	})
 
-	if _, diags := ctx.Plan(); diags.HasErrors() {
-		t.Fatalf("plan errors: %s", diags.Err())
-	}
-
-	if _, diags := ctx.Apply(); diags == nil {
+	// this was an apply test, but this is now caught in Validation
+	if diags := ctx.Validate(); !diags.HasErrors() {
 		t.Fatal("expected error")
 	}
 }
