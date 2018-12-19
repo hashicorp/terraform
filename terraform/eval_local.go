@@ -4,8 +4,11 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/hcl2/hcl"
-	"github.com/hashicorp/terraform/addrs"
 	"github.com/zclconf/go-cty/cty"
+
+	"github.com/hashicorp/terraform/addrs"
+	"github.com/hashicorp/terraform/lang"
+	"github.com/hashicorp/terraform/tfdiags"
 )
 
 // EvalLocal is an EvalNode implementation that evaluates the
@@ -17,8 +20,29 @@ type EvalLocal struct {
 }
 
 func (n *EvalLocal) Eval(ctx EvalContext) (interface{}, error) {
-	val, diags := ctx.EvaluateExpr(n.Expr, cty.DynamicPseudoType, nil)
+	var diags tfdiags.Diagnostics
+
+	// We ignore diags here because any problems we might find will be found
+	// again in EvaluateExpr below.
+	refs, _ := lang.ReferencesInExpr(n.Expr)
+	for _, ref := range refs {
+		if ref.Subject == n.Addr {
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Self-referencing local value",
+				Detail:   fmt.Sprintf("Local value %s cannot use its own result as part of its expression.", n.Addr),
+				Subject:  ref.SourceRange.ToHCL().Ptr(),
+				Context:  n.Expr.Range().Ptr(),
+			})
+		}
+	}
 	if diags.HasErrors() {
+		return nil, diags.Err()
+	}
+
+	val, moreDiags := ctx.EvaluateExpr(n.Expr, cty.DynamicPseudoType, nil)
+	diags = diags.Append(moreDiags)
+	if moreDiags.HasErrors() {
 		return nil, diags.Err()
 	}
 
