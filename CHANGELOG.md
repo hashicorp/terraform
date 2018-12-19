@@ -9,6 +9,7 @@ IMPROVEMENTS:
 * backend/s3: Support for the new AWS region `eu-north-1` [GH-19651]
 * core: Enhance service discovery error handling and messaging [GH-19589]
 * core: Add support to retrieve version constraints to service discovery [GH-19647]
+* command/show: Add support for machine readable output via a `-json` argument to `terraform show` [GH-19687] 
 
 BUG FIXES:
 
