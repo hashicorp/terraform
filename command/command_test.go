@@ -729,7 +729,7 @@ func testBackendState(t *testing.T, s *terraform.State, c int) (*terraform.State
 	state.Backend = &terraform.BackendState{
 		Type:      "http",
 		ConfigRaw: json.RawMessage(fmt.Sprintf(`{"address":%q}`, srv.URL)),
-		Hash:      hash,
+		Hash:      uint64(hash),
 	}
 
 	return state, srv
