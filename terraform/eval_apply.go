@@ -494,16 +494,20 @@ func (n *EvalApplyProvisioners) apply(ctx EvalContext, provs []*configs.Provisio
 			connBody = baseConn
 		case localConn != nil:
 			connBody = localConn
-		default: // both are nil, by elimination
-			connBody = hcl.EmptyBody()
 		}
 
-		connInfo, _, connInfoDiags := ctx.EvaluateBlock(connBody, connectionBlockSupersetSchema, instanceAddr, keyData)
-		diags = diags.Append(connInfoDiags)
-		if diags.HasErrors() {
-			// "on failure continue" setting only applies to failures of the
-			// provisioner itself, not to invalid configuration.
-			return diags.Err()
+		// start with an empty connInfo
+		connInfo := cty.NullVal(connectionBlockSupersetSchema.ImpliedType())
+
+		if connBody != nil {
+			var connInfoDiags tfdiags.Diagnostics
+			connInfo, _, connInfoDiags = ctx.EvaluateBlock(connBody, connectionBlockSupersetSchema, instanceAddr, keyData)
+			diags = diags.Append(connInfoDiags)
+			if diags.HasErrors() {
+				// "on failure continue" setting only applies to failures of the
+				// provisioner itself, not to invalid configuration.
+				return diags.Err()
+			}
 		}
 
 		{

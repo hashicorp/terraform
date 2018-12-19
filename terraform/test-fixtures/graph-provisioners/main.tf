@@ -25,6 +25,7 @@ resource "aws_load_balancer" "weblb" {
     provisioner "shell" {
         cmd = "add ${aws_instance.web.id}"
         connection {
+            host = "localhost"
             type = "magic"
             user = "${aws_security_group.firewall.id}"
         }
