@@ -34,6 +34,11 @@ func TestEvalLocal(t *testing.T) {
 			"",
 			false,
 		},
+		{
+			"Hello, ${local.foo}",
+			nil,
+			true, // self-referencing
+		},
 	}
 
 	for _, test := range tests {
@@ -64,8 +69,9 @@ func TestEvalLocal(t *testing.T) {
 
 			ms := ctx.StateState.Module(addrs.RootModuleInstance)
 			gotLocals := ms.LocalValues
-			wantLocals := map[string]cty.Value{
-				"foo": hcl2shim.HCL2ValueFromConfigValue(test.Want),
+			wantLocals := map[string]cty.Value{}
+			if test.Want != nil {
+				wantLocals["foo"] = hcl2shim.HCL2ValueFromConfigValue(test.Want)
 			}
 
 			if !reflect.DeepEqual(gotLocals, wantLocals) {
