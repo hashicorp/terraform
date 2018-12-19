@@ -167,14 +167,14 @@ down to see all providers.
     <td><a href="/docs/providers/triton/index.html">Triton</a></td>
     </tr>
     <tr>
+    <td><a href="/docs/providers/ucloud/index.html">UCloud</a></td>
     <td><a href="/docs/providers/ultradns/index.html">UltraDNS</a></td>
     <td><a href="/docs/providers/vault/index.html">Vault</a></td>
-    <td><a href="/docs/providers/vcd/index.html">VMware vCloud Director</a></td>
     </tr>
     <tr>
+    <td><a href="/docs/providers/vcd/index.html">VMware vCloud Director</a></td>
     <td><a href="/docs/providers/nsxt/index.html">VMware NSX-T</a></td>
     <td><a href="/docs/providers/vsphere/index.html">VMware vSphere</a></td>
-    <td><a></a></td>
     </tr>
 </table>
 
