@@ -32,6 +32,7 @@ BUG FIXES:
 * helper/schema: Fix setting a set in a list [GH-19552]
 * core: Correct errors when referencing a resource containing count without an index [GH-19674]
 * core: Fix occasional invalid provider errors when scaling down a counted datasource [GH-19676]
+* core: Fix crash when applying a stored plan containing destroys [GH-19726]
 
 ## 0.12.0-alpha4 (December 7, 2018)
 NOTES:
