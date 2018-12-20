@@ -74,6 +74,7 @@ down to see all providers.
     <tr>
     <td><a href="/docs/providers/google/index.html">Google Cloud</a></td>
     <td><a href="/docs/providers/grafana/index.html">Grafana</a></td>
+    <td><a href="/docs/providers/hedvig/index.html">Hedvig</a></td>
     <td><a href="/docs/providers/helm/index.html">Helm</a></td>
     </tr>
     <tr>
