@@ -33,6 +33,8 @@ vendor in close collaboration with HashiCorp, and are tested by HashiCorp.
 
 [FlexibleEngine](/docs/providers/flexibleengine/index.html)
 
+[Hedvig](/docs/providers/hedvig/index.html)
+
 [Heroku](/docs/providers/heroku/index.html)
 
 [Hetzner Cloud](/docs/providers/hcloud/index.html)
