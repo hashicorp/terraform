@@ -63,7 +63,7 @@ type change struct {
 	// values within it that won't be known until after apply.
 	Before       json.RawMessage `json:"before,omitempty"`
 	After        json.RawMessage `json:"after,omitempty"`
-	AfterUnknown bool            `json:"after_unknown"`
+	AfterUnknown json.RawMessage `json:"after_unknown,omitempty"`
 }
 
 type output struct {
@@ -145,7 +145,6 @@ func (p *plan) marshalResourceChanges(changes *plans.Changes, schemas *terraform
 		}
 
 		var before, after []byte
-		afterUnknown := false
 		if changeV.Before != cty.NilVal {
 			before, err = ctyjson.Marshal(changeV.Before, changeV.Before.Type())
 			if err != nil {
@@ -158,17 +157,32 @@ func (p *plan) marshalResourceChanges(changes *plans.Changes, schemas *terraform
 				if err != nil {
 					return err
 				}
-			} else {
-				afterUnknown = true
 			}
 		}
+
+		afterUnknown, _ := cty.Transform(changeV.After, func(path cty.Path, val cty.Value) (cty.Value, error) {
+			if !val.Type().IsPrimitiveType() {
+				return val, nil // just pass through non-primitives; they already contain our transform results
+			}
+
+			if val.IsKnown() {
+				// null rather than false here so that known values
+				// don't appear at all in JSON serialization of our result
+				return cty.NullVal(cty.Bool), nil
+			}
+
+			return cty.True, nil
+		})
+
+		a, _ := ctyjson.Marshal(afterUnknown, afterUnknown.Type())
 
 		r.Change = change{
 			Actions:      []string{rc.Action.String()},
 			Before:       json.RawMessage(before),
 			After:        json.RawMessage(after),
-			AfterUnknown: afterUnknown,
+			AfterUnknown: a,
 		}
+
 		r.Deposed = rc.DeposedKey == states.NotDeposed
 
 		key := addr.Resource.Key
@@ -209,7 +223,7 @@ func (p *plan) marshalOutputChanges(changes *plans.Changes) error {
 		}
 
 		var before, after []byte
-		afterUnknown := false
+		afterUnknown := cty.False
 		if changeV.Before != cty.NilVal {
 			before, err = ctyjson.Marshal(changeV.Before, changeV.Before.Type())
 			if err != nil {
@@ -223,15 +237,20 @@ func (p *plan) marshalOutputChanges(changes *plans.Changes) error {
 					return err
 				}
 			} else {
-				afterUnknown = true
+				afterUnknown = cty.True
 			}
 		}
 
-		var c change
-		c.Actions = []string{oc.Action.String()}
-		c.Before = json.RawMessage(before)
-		c.After = json.RawMessage(after)
-		c.AfterUnknown = afterUnknown
+		a, _ := ctyjson.Marshal(afterUnknown, afterUnknown.Type())
+
+		c := change{
+			Actions: []string{oc.Action.String()},
+			Before:  json.RawMessage(before),
+			After:   json.RawMessage(after),
+		}
+		if afterUnknown.Equals(cty.True) == cty.True {
+			c.AfterUnknown = a
+		}
 		p.OutputChanges[oc.Addr.OutputValue.Name] = c
 	}
 
