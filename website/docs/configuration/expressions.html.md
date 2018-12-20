@@ -1,6 +1,6 @@
 ---
 layout: "docs"
-page_title: "Configuration Expressions"
+page_title: "Expressions - Configuration Language"
 sidebar_current: "docs-config-expressions"
 description: |-
   The Terraform language allows the use of expressions to access data exported

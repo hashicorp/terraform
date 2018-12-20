@@ -1,6 +1,6 @@
 ---
 layout: "docs"
-page_title: "Configuring Terraform Settings"
+page_title: "Terraform Settings - Configuration Language"
 sidebar_current: "docs-config-terraform"
 description: |-
   The "terraform" configuration section is used to configure some behaviors
