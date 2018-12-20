@@ -192,7 +192,7 @@ data "test_data_source" "y" {
 }
 
 // referencing test_data_source.one.output_map["a"] should produce an error when
-// there's a count, but instead we end up with an unknown value after apply.
+// there's a count.
 func TestDataSource_indexedCountOfOne(t *testing.T) {
 	resource.UnitTest(t, resource.TestCase{
 		Providers: testAccProviders,
@@ -212,7 +212,7 @@ data "test_data_source" "two" {
 	}
 }
 				`),
-				ExpectError: regexp.MustCompile("value does not have any attributes"),
+				ExpectError: regexp.MustCompile("Because data.test_data_source.one has \"count\" set, its attributes must be accessed on specific instances"),
 			},
 		},
 	})
