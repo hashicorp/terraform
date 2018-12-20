@@ -161,6 +161,10 @@ func (p *plan) marshalResourceChanges(changes *plans.Changes, schemas *terraform
 		}
 
 		afterUnknown, _ := cty.Transform(changeV.After, func(path cty.Path, val cty.Value) (cty.Value, error) {
+			if val.IsNull() {
+				return cty.False, nil
+			}
+
 			if !val.Type().IsPrimitiveType() {
 				return val, nil // just pass through non-primitives; they already contain our transform results
 			}
@@ -168,7 +172,7 @@ func (p *plan) marshalResourceChanges(changes *plans.Changes, schemas *terraform
 			if val.IsKnown() {
 				// null rather than false here so that known values
 				// don't appear at all in JSON serialization of our result
-				return cty.NullVal(cty.Bool), nil
+				return cty.False, nil
 			}
 
 			return cty.True, nil
@@ -244,13 +248,12 @@ func (p *plan) marshalOutputChanges(changes *plans.Changes) error {
 		a, _ := ctyjson.Marshal(afterUnknown, afterUnknown.Type())
 
 		c := change{
-			Actions: []string{oc.Action.String()},
-			Before:  json.RawMessage(before),
-			After:   json.RawMessage(after),
+			Actions:      []string{oc.Action.String()},
+			Before:       json.RawMessage(before),
+			After:        json.RawMessage(after),
+			AfterUnknown: a,
 		}
-		if afterUnknown.Equals(cty.True) == cty.True {
-			c.AfterUnknown = a
-		}
+
 		p.OutputChanges[oc.Addr.OutputValue.Name] = c
 	}
 
