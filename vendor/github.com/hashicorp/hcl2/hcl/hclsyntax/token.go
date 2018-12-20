@@ -279,3 +279,17 @@ func checkInvalidTokens(tokens Tokens) hcl.Diagnostics {
 	}
 	return diags
 }
+
+var utf8BOM = []byte{0xef, 0xbb, 0xbf}
+
+// stripUTF8BOM checks whether the given buffer begins with a UTF-8 byte order
+// mark (0xEF 0xBB 0xBF) and, if so, returns a truncated slice with the same
+// backing array but with the BOM skipped.
+//
+// If there is no BOM present, the given slice is returned verbatim.
+func stripUTF8BOM(src []byte) []byte {
+	if bytes.HasPrefix(src, utf8BOM) {
+		return src[3:]
+	}
+	return src
+}
