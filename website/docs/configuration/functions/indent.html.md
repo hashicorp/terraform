@@ -1,6 +1,6 @@
 ---
 layout: "functions"
-page_title: "indent function"
+page_title: "indent - Functions - Configuration Language"
 sidebar_current: "docs-funcs-string-indent"
 description: |-
   The indent function adds a number of spaces to the beginnings of all but the

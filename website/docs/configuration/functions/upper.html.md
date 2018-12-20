@@ -1,6 +1,6 @@
 ---
 layout: "functions"
-page_title: "upper function"
+page_title: "upper - Functions - Configuration Language"
 sidebar_current: "docs-funcs-string-upper"
 description: |-
   The upper function converts all cased letters in the given string to uppercase.

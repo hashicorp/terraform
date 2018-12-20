@@ -1,6 +1,6 @@
 ---
 layout: "functions"
-page_title: "merge function"
+page_title: "merge - Functions - Configuration Language"
 sidebar_current: "docs-funcs-collection-merge"
 description: |-
   The merge function takes an arbitrary number of maps and returns a single

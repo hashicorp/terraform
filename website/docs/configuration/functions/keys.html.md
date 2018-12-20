@@ -1,6 +1,6 @@
 ---
 layout: "functions"
-page_title: "keys function"
+page_title: "keys - Functions - Configuration Language"
 sidebar_current: "docs-funcs-collection-keys"
 description: |-
   The keys function returns a list of the keys in a given map.

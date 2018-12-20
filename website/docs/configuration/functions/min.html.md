@@ -1,6 +1,6 @@
 ---
 layout: "functions"
-page_title: "min function"
+page_title: "min - Functions - Configuration Language"
 sidebar_current: "docs-funcs-numeric-min"
 description: |-
   The min function takes one or more numbers and returns the smallest number.

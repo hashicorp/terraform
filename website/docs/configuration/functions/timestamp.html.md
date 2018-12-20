@@ -1,6 +1,6 @@
 ---
 layout: "functions"
-page_title: "timestamp function"
+page_title: "timestamp - Functions - Configuration Language"
 sidebar_current: "docs-funcs-datetime-timestamp"
 description: |-
   The timestamp function returns a string representation of the current date

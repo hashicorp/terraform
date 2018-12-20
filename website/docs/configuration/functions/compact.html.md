@@ -1,6 +1,6 @@
 ---
 layout: "functions"
-page_title: "compact function"
+page_title: "compact - Functions - Configuration Language"
 sidebar_current: "docs-funcs-collection-compact"
 description: |-
   The compact function removes empty string elements from a list.

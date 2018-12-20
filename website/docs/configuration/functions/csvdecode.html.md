@@ -1,6 +1,6 @@
 ---
 layout: "functions"
-page_title: "csvdecode function"
+page_title: "csvdecode - Functions - Configuration Language"
 sidebar_current: "docs-funcs-encoding-csvdecode"
 description: |-
   The csvdecode function decodes CSV data into a list of maps.

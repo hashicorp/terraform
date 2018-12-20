@@ -1,6 +1,6 @@
 ---
 layout: "functions"
-page_title: "base64sha512 function"
+page_title: "base64sha512 - Functions - Configuration Language"
 sidebar_current: "docs-funcs-crypto-base64sha512"
 description: |-
   The base64sha512 function computes the SHA512 hash of a given string and

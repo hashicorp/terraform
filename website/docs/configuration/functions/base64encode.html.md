@@ -1,6 +1,6 @@
 ---
 layout: "functions"
-page_title: "base64encode function"
+page_title: "base64encode - Functions - Configuration Language"
 sidebar_current: "docs-funcs-encoding-base64encode"
 description: |-
   The base64encode function applies Base64 encoding to a string.
