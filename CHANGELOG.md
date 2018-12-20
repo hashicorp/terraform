@@ -21,6 +21,7 @@ BUG FIXES:
 
 * config: Detect and reject self-referencing local values [GH-19706]
 * config: Accept and ignore UTF-8 byte-order mark for configuration files [GH-19715]
+* config: More helpful error message for a situation that may arise on upgrade from Terraform 0.11 or earlier [GH-19727]
 * connection/winrm: Set the correct default port when HTTPS is used [GH-19540]
 * plugins: GRPC plugins shutdown correctly when Close is called [GH-19629]
 * backend/local: Avoid rendering data sources on destroy [GH-19613]
