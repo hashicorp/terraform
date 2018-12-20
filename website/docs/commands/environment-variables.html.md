@@ -100,3 +100,9 @@ The data directory is used to retain data that must persist from one command
 to the next, so it's important to have this variable set consistently throughout
 all of the Terraform workflow commands (starting with `terraform init`) or else
 Terraform may be unable to find providers, modules, and other artifacts.
+
+## TF_IN_AUTOMATION
+
+When the environment variable `TF_IN_AUTOMATION` is set to any non-empty value, Terraform makes some minor adjustments to its output to de-emphasize specific commands to run. The specific changes made will vary over time, but generally-speaking Terraform will consider this variable to indicate that there is some wrapping application that will help the user with the next step.
+
+For more details see [Running Terraform in Automation](https://learn.hashicorp.com/terraform/development/running-terraform-in-automation).
