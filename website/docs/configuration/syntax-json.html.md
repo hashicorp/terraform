@@ -1,6 +1,6 @@
 ---
 layout: "docs"
-page_title: "JSON Configuration Syntax"
+page_title: "JSON Configuration Syntax - Configuration Language"
 sidebar_current: "docs-config-json-syntax"
 description: |-
   In addition to the native syntax that is most commonly used with Terraform,

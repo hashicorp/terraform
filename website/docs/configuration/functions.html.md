@@ -1,6 +1,6 @@
 ---
 layout: "functions"
-page_title: "Configuration Functions"
+page_title: "Functions - Configuration Language"
 sidebar_current: "docs-config-functions"
 description: |-
   The Terraform language has a number of built-in functions that can be called

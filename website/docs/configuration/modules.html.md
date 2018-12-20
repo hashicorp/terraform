@@ -1,6 +1,6 @@
 ---
 layout: "docs"
-page_title: "Configuring Modules"
+page_title: "Modules - Configuration Language"
 sidebar_current: "docs-config-modules"
 description: |-
   Modules allow multiple resources to be grouped together and encapsulated.

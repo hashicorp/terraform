@@ -1,6 +1,6 @@
 ---
 layout: "docs"
-page_title: "Type Constraints"
+page_title: "Type Constraints - Configuration Language"
 sidebar_current: "docs-config-types"
 description: |-
   Terraform module authors and provider developers can use detailed type
