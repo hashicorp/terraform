@@ -1,5 +1,10 @@
 ## 0.12.0-beta (unreleased)
 
+BACKWARDS INCOMPATIBILITIES / NOTES:
+
+* config: `path.module` and `path.root` now return paths with forward slashes on all operating systems, including Windows. This avoids the need to write constructed paths differently for Windows vs. other operating systems, but any existing constructed paths containing backslashes for Windows must now be rewritten to use forward slashes, like `"${path.module}/foo/bar"`. [GH-19708]
+* config: `path.module` and `path.root` are now relative to the current working directory, rather than absolute as before. This avoids including a host-specific absolute path prefix on constructed paths, but may show as a diff after upgrade in situations where a constructed path is included in a resource attribute value. [GH-19708]
+
 IMPROVEMENTS:
 
 * plugins: Plugin RPC connection is now authenticated [GH-19629]
@@ -14,6 +19,8 @@ IMPROVEMENTS:
 
 BUG FIXES:
 
+* config: Detect and reject self-referencing local values [GH-19706]
+* config: Accept and ignore UTF-8 byte-order mark for configuration files [GH-19715]
 * connection/winrm: Set the correct default port when HTTPS is used [GH-19540]
 * plugins: GRPC plugins shutdown correctly when Close is called [GH-19629]
 * backend/local: Avoid rendering data sources on destroy [GH-19613]
