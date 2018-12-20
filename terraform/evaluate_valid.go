@@ -71,11 +71,20 @@ func (d *evaluationStateData) staticValidateReference(ref *addrs.Reference, self
 
 	switch addr := ref.Subject.(type) {
 
-	// For static validation we validate both resource and resource instance references the same way, disregarding the index
+	// For static validation we validate both resource and resource instance references the same way.
+	// We mostly disregard the index, though we do some simple validation of
+	// its _presence_ in staticValidateSingleResourceReference and
+	// staticValidateMultiResourceReference respectively.
 	case addrs.Resource:
-		return d.staticValidateResourceReference(modCfg, addr, ref.Remaining, ref.SourceRange)
+		var diags tfdiags.Diagnostics
+		diags = diags.Append(d.staticValidateSingleResourceReference(modCfg, addr, ref.Remaining, ref.SourceRange))
+		diags = diags.Append(d.staticValidateResourceReference(modCfg, addr, ref.Remaining, ref.SourceRange))
+		return diags
 	case addrs.ResourceInstance:
-		return d.staticValidateResourceReference(modCfg, addr.ContainingResource(), ref.Remaining, ref.SourceRange)
+		var diags tfdiags.Diagnostics
+		diags = diags.Append(d.staticValidateMultiResourceReference(modCfg, addr, ref.Remaining, ref.SourceRange))
+		diags = diags.Append(d.staticValidateResourceReference(modCfg, addr.ContainingResource(), ref.Remaining, ref.SourceRange))
+		return diags
 
 	// We also handle all module call references the same way, disregarding index.
 	case addrs.ModuleCall:
@@ -106,6 +115,78 @@ func (d *evaluationStateData) staticValidateReference(ref *addrs.Reference, self
 	}
 }
 
+func (d *evaluationStateData) staticValidateSingleResourceReference(modCfg *configs.Config, addr addrs.Resource, remain hcl.Traversal, rng tfdiags.SourceRange) tfdiags.Diagnostics {
+	// If we have at least one step in "remain" and this resource has
+	// "count" set then we know for sure this in invalid because we have
+	// something like:
+	//     aws_instance.foo.bar
+	// ...when we really need
+	//     aws_instance.foo[count.index].bar
+
+	// It is _not_ safe to do this check when remain is empty, because that
+	// would also match aws_instance.foo[count.index].bar due to `count.index`
+	// not being statically-resolvable as part of a reference, and match
+	// direct references to the whole aws_instance.foo tuple.
+	if len(remain) == 0 {
+		return nil
+	}
+
+	var diags tfdiags.Diagnostics
+
+	cfg := modCfg.Module.ResourceByAddr(addr)
+	if cfg == nil {
+		// We'll just bail out here and catch this in our subsequent call to
+		// staticValidateResourceReference, then.
+		return diags
+	}
+
+	if cfg.Count != nil {
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  `Missing resource instance key`,
+			Detail:   fmt.Sprintf("Because %s has \"count\" set, its attributes must be accessed on specific instances.\n\nFor example, to correlate with indices of a referring resource, use:\n    %s[count.index]", addr, addr),
+			Subject:  rng.ToHCL().Ptr(),
+		})
+	}
+	if cfg.ForEach != nil {
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  `Missing resource instance key`,
+			Detail:   fmt.Sprintf("Because %s has \"for_each\" set, its attributes must be accessed on specific instances.\n\nFor example, to correlate with indices of a referring resource, use:\n    %s[each.key]", addr, addr),
+			Subject:  rng.ToHCL().Ptr(),
+		})
+	}
+
+	return diags
+}
+
+func (d *evaluationStateData) staticValidateMultiResourceReference(modCfg *configs.Config, addr addrs.ResourceInstance, remain hcl.Traversal, rng tfdiags.SourceRange) tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
+
+	cfg := modCfg.Module.ResourceByAddr(addr.ContainingResource())
+	if cfg == nil {
+		// We'll just bail out here and catch this in our subsequent call to
+		// staticValidateResourceReference, then.
+		return diags
+	}
+
+	if addr.Key == addrs.NoKey {
+		// This is a different path into staticValidateSingleResourceReference
+		return d.staticValidateSingleResourceReference(modCfg, addr.ContainingResource(), remain, rng)
+	} else {
+		if cfg.Count == nil && cfg.ForEach == nil {
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  `Unexpected resource instance key`,
+				Detail:   fmt.Sprintf(`Because %s does not have "count" or "for_each" set, references to it must not include an index key. Remove the bracketed index to refer to the single instance of this resource.`, addr.ContainingResource()),
+				Subject:  rng.ToHCL().Ptr(),
+			})
+		}
+	}
+
+	return diags
+}
+
 func (d *evaluationStateData) staticValidateResourceReference(modCfg *configs.Config, addr addrs.Resource, remain hcl.Traversal, rng tfdiags.SourceRange) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 
@@ -125,7 +206,7 @@ func (d *evaluationStateData) staticValidateResourceReference(modCfg *configs.Co
 		diags = diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagError,
 			Summary:  `Reference to undeclared resource`,
-			Detail:   fmt.Sprintf(`A %s resource %q %q has not been declared in %s`, modeAdjective, addr.Type, addr.Name, moduleConfigDisplayAddr(modCfg.Path)),
+			Detail:   fmt.Sprintf(`A %s resource %q %q has not been declared in %s.`, modeAdjective, addr.Type, addr.Name, moduleConfigDisplayAddr(modCfg.Path)),
 			Subject:  rng.ToHCL().Ptr(),
 		})
 		return diags
