@@ -1,6 +1,6 @@
 ---
 layout: "functions"
-page_title: "abs function"
+page_title: "abs - Functions - Configuration Language"
 sidebar_current: "docs-funcs-numeric-abs"
 description: |-
   The abs function returns the absolute value of the given number.

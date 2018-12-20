@@ -1,6 +1,6 @@
 ---
 layout: "functions"
-page_title: "slice function"
+page_title: "slice - Functions - Configuration Language"
 sidebar_current: "docs-funcs-collection-slice"
 description: |-
   The slice function extracts some consecutive elements from within a list.

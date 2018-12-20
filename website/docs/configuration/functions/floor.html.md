@@ -1,6 +1,6 @@
 ---
 layout: "functions"
-page_title: "floor function"
+page_title: "floor - Functions - Configuration Language"
 sidebar_current: "docs-funcs-numeric-floor"
 description: |-
   The floor function returns the closest whole number less than or equal to

@@ -1,6 +1,6 @@
 ---
 layout: "functions"
-page_title: "transpose function"
+page_title: "transpose - Functions - Configuration Language"
 sidebar_current: "docs-funcs-collection-transpose"
 description: |-
   The transpose function takes a map of lists of strings and swaps the keys

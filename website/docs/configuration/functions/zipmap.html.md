@@ -1,6 +1,6 @@
 ---
 layout: "functions"
-page_title: "zipmap function"
+page_title: "zipmap - Functions - Configuration Language"
 sidebar_current: "docs-funcs-collection-zipmap"
 description: |-
   The zipmap function constructs a map from a list of keys and a corresponding

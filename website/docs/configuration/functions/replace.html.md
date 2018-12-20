@@ -1,6 +1,6 @@
 ---
 layout: "functions"
-page_title: "replace function"
+page_title: "replace - Functions - Configuration Language"
 sidebar_current: "docs-funcs-string-replace"
 description: |-
   The replace function searches a given string for another given substring,

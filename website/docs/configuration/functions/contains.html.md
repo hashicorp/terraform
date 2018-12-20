@@ -1,6 +1,6 @@
 ---
 layout: "functions"
-page_title: "contains function"
+page_title: "contains - Functions - Configuration Language"
 sidebar_current: "docs-funcs-collection-contains"
 description: |-
   The contains function determines whether a list contains a given value.

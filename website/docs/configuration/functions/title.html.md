@@ -1,6 +1,6 @@
 ---
 layout: "functions"
-page_title: "title function"
+page_title: "title - Functions - Configuration Language"
 sidebar_current: "docs-funcs-string-title"
 description: |-
   The title function converts the first letter of each word in a given string

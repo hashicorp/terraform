@@ -1,6 +1,6 @@
 ---
 layout: "functions"
-page_title: "dirname function"
+page_title: "dirname - Functions - Configuration Language"
 sidebar_current: "docs-funcs-file-dirname"
 description: |-
   The dirname function removes the last portion from a filesystem path.

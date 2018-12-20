@@ -1,6 +1,6 @@
 ---
 layout: "functions"
-page_title: "split function"
+page_title: "split - Functions - Configuration Language"
 sidebar_current: "docs-funcs-string-split"
 description: |-
   The split function produces a list by dividing a given string at all

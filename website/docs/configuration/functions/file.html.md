@@ -1,6 +1,6 @@
 ---
 layout: "functions"
-page_title: "file function"
+page_title: "file - Functions - Configuration Language"
 sidebar_current: "docs-funcs-file-file-x"
 description: |-
   The file function reads the contents of the file at the given path and

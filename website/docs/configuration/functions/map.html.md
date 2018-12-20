@@ -1,6 +1,6 @@
 ---
 layout: "functions"
-page_title: "map function"
+page_title: "map - Functions - Configuration Language"
 sidebar_current: "docs-funcs-collection-map"
 description: |-
   The map function constructs a map from some given elements.

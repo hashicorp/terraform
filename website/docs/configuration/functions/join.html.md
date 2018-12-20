@@ -1,6 +1,6 @@
 ---
 layout: "functions"
-page_title: "join function"
+page_title: "join - Functions - Configuration Language"
 sidebar_current: "docs-funcs-string-join"
 description: |-
   The join function produces a string by concatenating the elements of a list

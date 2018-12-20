@@ -1,6 +1,6 @@
 ---
 layout: "functions"
-page_title: "coalescelist function"
+page_title: "coalescelist - Functions - Configuration Language"
 sidebar_current: "docs-funcs-collection-coalescelist"
 description: |-
   The coalescelist function takes any number of list arguments and returns the
