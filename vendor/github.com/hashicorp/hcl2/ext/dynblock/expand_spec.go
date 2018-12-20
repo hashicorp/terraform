@@ -41,11 +41,14 @@ func (b *expandBody) decodeSpec(blockS *hcl.BlockHeaderSchema, rawSpec *hcl.Bloc
 	eachVal, eachDiags := eachAttr.Expr.Value(b.forEachCtx)
 	diags = append(diags, eachDiags...)
 
-	if !eachVal.CanIterateElements() {
+	if !eachVal.CanIterateElements() && eachVal.Type() != cty.DynamicPseudoType {
+		// We skip this error for DynamicPseudoType because that means we either
+		// have a null (which is checked immediately below) or an unknown
+		// (which is handled in the expandBody Content methods).
 		diags = append(diags, &hcl.Diagnostic{
 			Severity:    hcl.DiagError,
 			Summary:     "Invalid dynamic for_each value",
-			Detail:      fmt.Sprintf("Cannot use a value of type %s in for_each. An iterable collection is required.", eachVal.Type()),
+			Detail:      fmt.Sprintf("Cannot use a %s value in for_each. An iterable collection is required.", eachVal.Type().FriendlyName()),
 			Subject:     eachAttr.Expr.Range().Ptr(),
 			Expression:  eachAttr.Expr,
 			EvalContext: b.forEachCtx,

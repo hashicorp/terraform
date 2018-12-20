@@ -30,12 +30,14 @@ func (i *iteration) Object() cty.Value {
 
 func (i *iteration) EvalContext(base *hcl.EvalContext) *hcl.EvalContext {
 	new := base.NewChild()
-	new.Variables = map[string]cty.Value{}
 
-	for name, otherIt := range i.Inherited {
-		new.Variables[name] = otherIt.Object()
+	if i != nil {
+		new.Variables = map[string]cty.Value{}
+		for name, otherIt := range i.Inherited {
+			new.Variables[name] = otherIt.Object()
+		}
+		new.Variables[i.IteratorName] = i.Object()
 	}
-	new.Variables[i.IteratorName] = i.Object()
 
 	return new
 }
