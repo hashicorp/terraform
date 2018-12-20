@@ -169,6 +169,8 @@ github.com/hashicorp/hcl2 v0.0.0-20181215005721-253da47fd604 h1:k660QMbAqhL4vxSN
 github.com/hashicorp/hcl2 v0.0.0-20181215005721-253da47fd604/go.mod h1:ShfpTh661oAaxo7VcNxg0zcZW6jvMa7Moy2oFx7e5dE=
 github.com/hashicorp/hcl2 v0.0.0-20181219223929-62acf2ce821d h1:sd9/19rMHTRn7UTYTBoGIzm93cHopNrpuv+jnx/LY34=
 github.com/hashicorp/hcl2 v0.0.0-20181219223929-62acf2ce821d/go.mod h1:ShfpTh661oAaxo7VcNxg0zcZW6jvMa7Moy2oFx7e5dE=
+github.com/hashicorp/hcl2 v0.0.0-20181219235215-291f7fbe431d h1:/htY6cNUFEn929uHLoI/5rYUHcaKLXZpbE6zEOymf78=
+github.com/hashicorp/hcl2 v0.0.0-20181219235215-291f7fbe431d/go.mod h1:ShfpTh661oAaxo7VcNxg0zcZW6jvMa7Moy2oFx7e5dE=
 github.com/hashicorp/hil v0.0.0-20170627220502-fa9f258a9250 h1:fooK5IvDL/KIsi4LxF/JH68nVdrBSiGNPhS2JAQjtjo=
 github.com/hashicorp/hil v0.0.0-20170627220502-fa9f258a9250/go.mod h1:KHvg/R2/dPtaePb16oW4qIyzkMxXOL38xjRN64adsts=
 github.com/hashicorp/logutils v0.0.0-20150609070431-0dc08b1671f3 h1:oD64EFjELI9RY9yoWlfua58r+etdnoIC871z+rr6lkA=
