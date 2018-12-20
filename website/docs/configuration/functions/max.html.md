@@ -1,6 +1,6 @@
 ---
 layout: "functions"
-page_title: "max function"
+page_title: "max - Functions - Configuration Language"
 sidebar_current: "docs-funcs-numeric-max"
 description: |-
   The max function takes one or more numbers and returns the greatest number.

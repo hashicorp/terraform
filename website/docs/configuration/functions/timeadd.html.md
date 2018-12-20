@@ -1,6 +1,6 @@
 ---
 layout: "functions"
-page_title: "timeadd function"
+page_title: "timeadd - Functions - Configuration Language"
 sidebar_current: "docs-funcs-datetime-timeadd"
 description: |-
   The timeadd function adds a duration to a timestamp, returning a new

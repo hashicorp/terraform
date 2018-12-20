@@ -1,6 +1,6 @@
 ---
 layout: "functions"
-page_title: "sort function"
+page_title: "sort - Functions - Configuration Language"
 sidebar_current: "docs-funcs-collection-sort"
 description: |-
   The sort function takes a list of strings and returns a new list with those

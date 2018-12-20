@@ -1,6 +1,6 @@
 ---
 layout: "functions"
-page_title: "bcrypt function"
+page_title: "bcrypt - Functions - Configuration Language"
 sidebar_current: "docs-funcs-crypto-bcrypt"
 description: |-
   The bcrypt function computes a hash of the given string using the Blowfish

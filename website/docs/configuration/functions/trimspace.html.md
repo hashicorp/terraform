@@ -1,6 +1,6 @@
 ---
 layout: "functions"
-page_title: "trimspace function"
+page_title: "trimspace - Functions - Configuration Language"
 sidebar_current: "docs-funcs-string-trimspace"
 description: |-
   The trimspace function removes space characters from the start and end of

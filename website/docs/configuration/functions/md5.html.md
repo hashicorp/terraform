@@ -1,6 +1,6 @@
 ---
 layout: "functions"
-page_title: "md5 function"
+page_title: "md5 - Functions - Configuration Language"
 sidebar_current: "docs-funcs-crypto-md5"
 description: |-
   The md5 function computes the MD5 hash of a given string and encodes it

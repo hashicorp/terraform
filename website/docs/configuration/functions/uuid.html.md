@@ -1,6 +1,6 @@
 ---
 layout: "functions"
-page_title: "uuid function"
+page_title: "uuid - Functions - Configuration Language"
 sidebar_current: "docs-funcs-crypto-uuid"
 description: |-
   The uuid function generates a unique id.

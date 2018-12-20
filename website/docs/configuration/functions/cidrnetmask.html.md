@@ -1,6 +1,6 @@
 ---
 layout: "functions"
-page_title: "cidrnetmask function"
+page_title: "cidrnetmask - Functions - Configuration Language"
 sidebar_current: "docs-funcs-ipnet-cidrnetmask"
 description: |-
   The cidrnetmask function converts an IPv4 address prefix given in CIDR

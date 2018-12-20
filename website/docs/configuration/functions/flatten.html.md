@@ -1,6 +1,6 @@
 ---
 layout: "functions"
-page_title: "flatten function"
+page_title: "flatten - Functions - Configuration Language"
 sidebar_current: "docs-funcs-collection-flatten"
 description: |-
   The flatten function eliminates nested lists from a list.

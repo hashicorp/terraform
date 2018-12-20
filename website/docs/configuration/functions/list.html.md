@@ -1,6 +1,6 @@
 ---
 layout: "functions"
-page_title: "list function"
+page_title: "list - Functions - Configuration Language"
 sidebar_current: "docs-funcs-collection-list"
 description: |-
   The list function constructs a list from some given elements.

@@ -1,6 +1,6 @@
 ---
 layout: "functions"
-page_title: "cidrhost function"
+page_title: "cidrhost - Functions - Configuration Language"
 sidebar_current: "docs-funcs-ipnet-cidrhost"
 description: |-
   The cidrhost function calculates a full host IP address within a given

@@ -1,6 +1,6 @@
 ---
 layout: "functions"
-page_title: "rsadecrypt function"
+page_title: "rsadecrypt - Functions - Configuration Language"
 sidebar_current: "docs-funcs-crypto-rsadecrypt"
 description: |-
   The rsadecrypt function decrypts an RSA-encrypted message.

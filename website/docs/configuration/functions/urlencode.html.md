@@ -1,6 +1,6 @@
 ---
 layout: "functions"
-page_title: "urlencode function"
+page_title: "urlencode - Functions - Configuration Language"
 sidebar_current: "docs-funcs-encoding-urlencode"
 description: |-
   The urlencode function applies URL encoding to a given string.

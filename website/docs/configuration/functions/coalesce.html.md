@@ -1,6 +1,6 @@
 ---
 layout: "functions"
-page_title: "coalesce function"
+page_title: "coalesce - Functions - Configuration Language"
 sidebar_current: "docs-funcs-collection-coalesce-x"
 description: |-
   The coalesce function takes any number of string arguments and returns the
