@@ -1,6 +1,6 @@
 ---
 layout: "docs"
-page_title: "Override Files"
+page_title: "Override Files - Configuration Language"
 sidebar_current: "docs-config-override"
 description: |-
   Override files allow additional settings to be merged into existing

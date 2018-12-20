@@ -1,6 +1,6 @@
 ---
 layout: "docs"
-page_title: "Configuration Syntax"
+page_title: "Syntax - Configuration Language"
 sidebar_current: "docs-config-syntax"
 description: |-
   The Terraform language has its own syntax, intended to combine declarative
