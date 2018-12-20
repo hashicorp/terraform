@@ -166,13 +166,21 @@ type ChangeSrc struct {
 // to call the corresponding Decode method of that struct rather than working
 // directly with its embedded Change.
 func (cs *ChangeSrc) Decode(ty cty.Type) (*Change, error) {
-	before, err := cs.Before.Decode(ty)
-	if err != nil {
-		return nil, fmt.Errorf("error decoding 'before' value: %s", err)
+	var err error
+	before := cty.NullVal(ty)
+	after := cty.NullVal(ty)
+
+	if len(cs.Before) > 0 {
+		before, err = cs.Before.Decode(ty)
+		if err != nil {
+			return nil, fmt.Errorf("error decoding 'before' value: %s", err)
+		}
 	}
-	after, err := cs.After.Decode(ty)
-	if err != nil {
-		return nil, fmt.Errorf("error decoding 'after' value: %s", err)
+	if len(cs.After) > 0 {
+		after, err = cs.After.Decode(ty)
+		if err != nil {
+			return nil, fmt.Errorf("error decoding 'after' value: %s", err)
+		}
 	}
 	return &Change{
 		Action: cs.Action,
