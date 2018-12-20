@@ -234,7 +234,8 @@ func (b *expandBody) expandBlocks(schema *hcl.BodySchema, rawBlocks hcl.Blocks, 
 }
 
 func (b *expandBody) expandChild(child hcl.Body, i *iteration) hcl.Body {
-	ret := Expand(child, b.forEachCtx)
+	chiCtx := i.EvalContext(b.forEachCtx)
+	ret := Expand(child, chiCtx)
 	ret.(*expandBody).iteration = i
 	return ret
 }
