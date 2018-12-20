@@ -39,6 +39,20 @@ func testResourceNested() *schema.Resource {
 							Optional: true,
 							ForceNew: true,
 						},
+						"nested_again": {
+							Type:     schema.TypeSet,
+							Optional: true,
+							ForceNew: true,
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"string": {
+										Type:     schema.TypeString,
+										Optional: true,
+										ForceNew: true,
+									},
+								},
+							},
+						},
 					},
 				},
 			},
