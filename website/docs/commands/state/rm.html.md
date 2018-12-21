@@ -1,7 +1,7 @@
 ---
 layout: "commands-state"
 page_title: "Command: state rm"
-sidebar_current: "docs-state-sub-rm"
+sidebar_current: "docs-commands-state-sub-rm"
 description: |-
   The `terraform state rm` command removes items from the Terraform state.
 ---

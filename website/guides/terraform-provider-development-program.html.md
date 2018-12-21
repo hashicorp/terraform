@@ -1,5 +1,5 @@
 ---
-layout: "guides"
+layout: "extend"
 page_title: "Terraform Provider Development Program"
 sidebar_current: "guides-terraform-provider-development-program"
 description: This guide is intended for vendors who're interested in having their platform supported by Teraform. The guide walks vendors through the steps involved in creating a provider and applying for it to be included with Terraform.
@@ -16,7 +16,7 @@ checkpoints.
 -> **Building your own provider?** If you're building your own provider and
 aren't interested in having HashiCorp officially approve and regularly test the
 provider, refer to the [Writing Custom Providers guide][writing] and the
-[Extending Terraform][extending] section. 
+[Extending Terraform][extending] section.
 
 ## What is a Terraform Provider?
 
