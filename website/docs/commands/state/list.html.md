@@ -1,7 +1,7 @@
 ---
 layout: "commands-state"
 page_title: "Command: state list"
-sidebar_current: "docs-state-sub-list"
+sidebar_current: "docs-commands-state-sub-list"
 description: |-
   The terraform state list command is used to list resources within a Terraform state.
 ---

@@ -1,5 +1,7 @@
 <% wrap_layout :inner do %>
   <% content_for :sidebar do %>
+    <h4><a href="/docs/index.html">Terraform CLI</a></h4>
+
     <ul class="nav docs-sidenav">
       <li<%= sidebar_current("docs-config") %>>
         <a href="/docs/configuration/index.html">Configuration Language</a>
@@ -69,6 +71,14 @@
       <li<%= sidebar_current("docs-commands") %>>
         <a href="/docs/commands/index.html">Commands (CLI)</a>
         <ul class="nav">
+          <li<%= sidebar_current("docs-commands-cli-config") %>>
+            <a href="/docs/commands/cli-config.html">CLI Config File</a>
+          </li>
+
+          <li<%= sidebar_current("docs-commands-environment-variables") %>>
+            <a href="/docs/commands/environment-variables.html">Environment Variables</a>
+          </li>
+
           <li<%= sidebar_current("docs-commands-apply") %>>
             <a href="/docs/commands/apply.html">apply</a>
           </li>
@@ -81,7 +91,7 @@
             <a href="/docs/commands/destroy.html">destroy</a>
           </li>
 
-          <li<%= sidebar_current("docs-commands-env") %>>
+          <li<%= sidebar_current("docs-commands-envcmd") %>>
             <a href="/docs/commands/env.html">env</a>
           </li>
 
@@ -151,14 +161,6 @@
 
           <li<%= sidebar_current("docs-commands-workspace") %>>
             <a href="/docs/commands/workspace/index.html">workspace</a>
-          </li>
-
-          <li<%= sidebar_current("docs-commands-cli-config") %>>
-            <a href="/docs/commands/cli-config.html">CLI Config File</a>
-          </li>
-
-          <li<%= sidebar_current("docs-commands-environment-variables") %>>
-            <a href="/docs/commands/environment-variables.html">Environment Variables</a>
           </li>
         </ul>
       </li>
@@ -295,10 +297,6 @@
             <a href="/docs/modules/sources.html">Sources</a>
           </li>
 
-          <li<%= sidebar_current("docs-registry") %>>
-            <a href="/docs/registry/index.html">Registry</a>
-          </li>
-
           <li<%= sidebar_current("docs-modules-create") %>>
             <a href="/docs/modules/create.html">Creating Modules</a>
           </li>
@@ -376,20 +374,38 @@
         </ul>
       </li>
 
-      <hr>
+    </ul>
 
-      <li<%= sidebar_current("docs-enterprise2-home") %>>
+    <h4>Other Docs</h4>
+
+    <ul class="nav docs-sidenav">
+      <li>
+        <a class="back" href="/downloads.html">Download Terraform</a>
+      </li>
+
+      <li>
+        <a class="back" href="/intro/index.html">Introduction to Terraform</a>
+      </li>
+
+      <li>
         <a class="back" href="/docs/enterprise/index.html">Terraform Enterprise</a>
       </li>
 
-      <li<%= sidebar_current("docs-enterprise-home") %>>
-        <a class="back" href="/docs/enterprise-legacy/index.html">Terraform Enterprise (legacy)</a>
+      <li>
+        <a class="back" href="/guides/index.html">Guides and Whitepapers</a>
       </li>
 
-      <li<%= sidebar_current("docs-github-actions-home") %>>
+      <li>
+        <a class="back" href="/docs/registry/index.html">Terraform Registry</a>
+      </li>
+
+      <li>
         <a class="back" href="/docs/github-actions/index.html">Terraform GitHub Actions</a>
       </li>
 
+      <li>
+        <a class="back" href="/docs/extend/index.html">Extending Terraform</a>
+      </li>
     </ul>
   <% end %>
 

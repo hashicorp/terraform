@@ -1,420 +1,457 @@
 <% wrap_layout :inner do %>
-    <% content_for :sidebar do %>
-      <div class="docs-sidebar hidden-print affix-top" role="complementary">
-        <ul class="nav docs-sidenav">
-          <li<%= sidebar_current("docs-config-index") %>>
-            <a class="back" href="/docs/configuration/index.html">Terraform Language</a>
-          </li>
+  <% content_for :sidebar do %>
+    <h4><a href="/docs/index.html">Terraform CLI</a></h4>
 
+    <ul class="nav docs-sidenav">
+      <li<%= sidebar_current("docs-config-index") %>>
+        <a class="back" href="/docs/configuration/index.html">Configuration Language</a>
+        <ul class="nav nav-visible">
           <li<%= sidebar_current("docs-config-functions") %>>
-            <a class="back" href="/docs/configuration/functions.html">Functions</a>
-          </li>
+            <a href="/docs/configuration/functions.html">Functions</a>
+            <ul class="nav nav-visible">
+              <li id="docs-funcs-numeric"<%= sidebar_current("docs-funcs-numeric") %>>
+                <a href="#docs-funcs-numeric">Numeric Functions</a>
+                <ul class="nav nav-visible">
 
-          <li<%= sidebar_current("docs-funcs-numeric") %>>
-            <a href="#docs-funcs-numeric">Numeric Functions</a>
-            <ul class="nav nav-visible" id="docs-funcs-numeric">
+                  <li<%= sidebar_current("docs-funcs-numeric-abs") %>>
+                    <a href="/docs/configuration/functions/abs.html">abs</a>
+                  </li>
 
-              <li<%= sidebar_current("docs-funcs-numeric-abs") %>>
-                <a href="/docs/configuration/functions/abs.html">abs</a>
+                  <li<%= sidebar_current("docs-funcs-numeric-ceil") %>>
+                    <a href="/docs/configuration/functions/ceil.html">ceil</a>
+                  </li>
+
+                  <li<%= sidebar_current("docs-funcs-numeric-floor") %>>
+                    <a href="/docs/configuration/functions/floor.html">floor</a>
+                  </li>
+
+                  <li<%= sidebar_current("docs-funcs-numeric-log") %>>
+                    <a href="/docs/configuration/functions/log.html">log</a>
+                  </li>
+
+                  <li<%= sidebar_current("docs-funcs-numeric-max") %>>
+                    <a href="/docs/configuration/functions/max.html">max</a>
+                  </li>
+
+                  <li<%= sidebar_current("docs-funcs-numeric-min") %>>
+                    <a href="/docs/configuration/functions/min.html">min</a>
+                  </li>
+
+                  <li<%= sidebar_current("docs-funcs-numeric-pow") %>>
+                    <a href="/docs/configuration/functions/pow.html">pow</a>
+                  </li>
+
+                  <li<%= sidebar_current("docs-funcs-numeric-signum") %>>
+                    <a href="/docs/configuration/functions/signum.html">signum</a>
+                  </li>
+
+                </ul>
               </li>
 
-              <li<%= sidebar_current("docs-funcs-numeric-ceil") %>>
-                <a href="/docs/configuration/functions/ceil.html">ceil</a>
+              <li id="docs-funcs-string"<%= sidebar_current("docs-funcs-string") %>>
+                <a href="#docs-funcs-string">String Functions</a>
+                <ul class="nav nav-visible">
+
+                  <li<%= sidebar_current("docs-funcs-string-chomp") %>>
+                    <a href="/docs/configuration/functions/chomp.html">chomp</a>
+                  </li>
+
+                  <li<%= sidebar_current("docs-funcs-string-format-x") %>>
+                    <a href="/docs/configuration/functions/format.html">format</a>
+                  </li>
+
+                  <li<%= sidebar_current("docs-funcs-string-formatlist") %>>
+                    <a href="/docs/configuration/functions/formatlist.html">formatlist</a>
+                  </li>
+
+                  <li<%= sidebar_current("docs-funcs-string-indent") %>>
+                    <a href="/docs/configuration/functions/indent.html">indent</a>
+                  </li>
+
+                  <li<%= sidebar_current("docs-funcs-string-join") %>>
+                    <a href="/docs/configuration/functions/join.html">join</a>
+                  </li>
+
+                  <li<%= sidebar_current("docs-funcs-string-lower") %>>
+                    <a href="/docs/configuration/functions/lower.html">lower</a>
+                  </li>
+
+                  <li<%= sidebar_current("docs-funcs-string-replace") %>>
+                    <a href="/docs/configuration/functions/replace.html">replace</a>
+                  </li>
+
+                  <li<%= sidebar_current("docs-funcs-string-split") %>>
+                    <a href="/docs/configuration/functions/split.html">split</a>
+                  </li>
+
+                  <li<%= sidebar_current("docs-funcs-string-substr") %>>
+                    <a href="/docs/configuration/functions/substr.html">substr</a>
+                  </li>
+
+                  <li<%= sidebar_current("docs-funcs-string-title") %>>
+                    <a href="/docs/configuration/functions/title.html">title</a>
+                  </li>
+
+                  <li<%= sidebar_current("docs-funcs-string-trimspace") %>>
+                    <a href="/docs/configuration/functions/trimspace.html">trimspace</a>
+                  </li>
+
+                  <li<%= sidebar_current("docs-funcs-string-upper") %>>
+                    <a href="/docs/configuration/functions/upper.html">upper</a>
+                  </li>
+
+                </ul>
               </li>
 
-              <li<%= sidebar_current("docs-funcs-numeric-floor") %>>
-                <a href="/docs/configuration/functions/floor.html">floor</a>
+              <li id="docs-funcs-collection"<%= sidebar_current("docs-funcs-collection") %>>
+                <a href="#docs-funcs-collection">Collection Functions</a>
+                <ul class="nav nav-visible">
+
+                  <li<%= sidebar_current("docs-funcs-collection-chunklist") %>>
+                    <a href="/docs/configuration/functions/chunklist.html">chunklist</a>
+                  </li>
+
+                  <li<%= sidebar_current("docs-funcs-collection-coalesce-x") %>>
+                    <a href="/docs/configuration/functions/coalesce.html">coalesce</a>
+                  </li>
+
+                  <li<%= sidebar_current("docs-funcs-collection-coalescelist") %>>
+                    <a href="/docs/configuration/functions/coalescelist.html">coalescelist</a>
+                  </li>
+
+                  <li<%= sidebar_current("docs-funcs-collection-compact") %>>
+                    <a href="/docs/configuration/functions/compact.html">compact</a>
+                  </li>
+
+                  <li<%= sidebar_current("docs-funcs-collection-contains") %>>
+                    <a href="/docs/configuration/functions/contains.html">contains</a>
+                  </li>
+
+                  <li<%= sidebar_current("docs-funcs-collection-distinct") %>>
+                    <a href="/docs/configuration/functions/distinct.html">distinct</a>
+                  </li>
+
+                  <li<%= sidebar_current("docs-funcs-collection-element") %>>
+                    <a href="/docs/configuration/functions/element.html">element</a>
+                  </li>
+
+                  <li<%= sidebar_current("docs-funcs-collection-flatten") %>>
+                    <a href="/docs/configuration/functions/flatten.html">flatten</a>
+                  </li>
+
+                  <li<%= sidebar_current("docs-funcs-collection-index") %>>
+                    <a href="/docs/configuration/functions/index.html">index</a>
+                  </li>
+
+                  <li<%= sidebar_current("docs-funcs-collection-keys") %>>
+                    <a href="/docs/configuration/functions/keys.html">keys</a>
+                  </li>
+
+                  <li<%= sidebar_current("docs-funcs-collection-length") %>>
+                    <a href="/docs/configuration/functions/length.html">length</a>
+                  </li>
+
+                  <li<%= sidebar_current("docs-funcs-collection-list") %>>
+                    <a href="/docs/configuration/functions/list.html">list</a>
+                  </li>
+
+                  <li<%= sidebar_current("docs-funcs-collection-lookup") %>>
+                    <a href="/docs/configuration/functions/lookup.html">lookup</a>
+                  </li>
+
+                  <li<%= sidebar_current("docs-funcs-collection-map") %>>
+                    <a href="/docs/configuration/functions/map.html">map</a>
+                  </li>
+
+                  <li<%= sidebar_current("docs-funcs-collection-matchkeys") %>>
+                    <a href="/docs/configuration/functions/matchkeys.html">matchkeys</a>
+                  </li>
+
+                  <li<%= sidebar_current("docs-funcs-collection-merge") %>>
+                    <a href="/docs/configuration/functions/merge.html">merge</a>
+                  </li>
+
+                  <li<%= sidebar_current("docs-funcs-collection-sethaselement") %>>
+                    <a href="/docs/configuration/functions/sethaselement.html">sethaselement</a>
+                  </li>
+
+                  <li<%= sidebar_current("docs-funcs-collection-setintersection") %>>
+                    <a href="/docs/configuration/functions/setintersection.html">setintersection</a>
+                  </li>
+
+                  <li<%= sidebar_current("docs-funcs-collection-setproduct") %>>
+                    <a href="/docs/configuration/functions/setproduct.html">setproduct</a>
+                  </li>
+
+                  <li<%= sidebar_current("docs-funcs-collection-setunion") %>>
+                    <a href="/docs/configuration/functions/setunion.html">setunion</a>
+                  </li>
+
+                  <li<%= sidebar_current("docs-funcs-collection-slice") %>>
+                    <a href="/docs/configuration/functions/slice.html">slice</a>
+                  </li>
+
+                  <li<%= sidebar_current("docs-funcs-collection-sort") %>>
+                    <a href="/docs/configuration/functions/sort.html">sort</a>
+                  </li>
+
+                  <li<%= sidebar_current("docs-funcs-collection-transpose") %>>
+                    <a href="/docs/configuration/functions/transpose.html">transpose</a>
+                  </li>
+
+                  <li<%= sidebar_current("docs-funcs-collection-values") %>>
+                    <a href="/docs/configuration/functions/values.html">values</a>
+                  </li>
+
+                  <li<%= sidebar_current("docs-funcs-collection-zipmap") %>>
+                    <a href="/docs/configuration/functions/zipmap.html">zipmap</a>
+                  </li>
+
+                </ul>
               </li>
 
-              <li<%= sidebar_current("docs-funcs-numeric-log") %>>
-                <a href="/docs/configuration/functions/log.html">log</a>
+              <li id="docs-funcs-encoding"<%= sidebar_current("docs-funcs-encoding") %>>
+                <a href="#docs-funcs-encoding">Encoding Functions</a>
+                <ul class="nav nav-visible">
+
+                  <li<%= sidebar_current("docs-funcs-encoding-base64decode") %>>
+                    <a href="/docs/configuration/functions/base64decode.html">base64decode</a>
+                  </li>
+
+                  <li<%= sidebar_current("docs-funcs-encoding-base64encode") %>>
+                    <a href="/docs/configuration/functions/base64encode.html">base64encode</a>
+                  </li>
+
+                  <li<%= sidebar_current("docs-funcs-encoding-base64gzip") %>>
+                    <a href="/docs/configuration/functions/base64gzip.html">base64gzip</a>
+                  </li>
+
+                  <li<%= sidebar_current("docs-funcs-encoding-csvdecode") %>>
+                    <a href="/docs/configuration/functions/csvdecode.html">csvdecode</a>
+                  </li>
+
+                  <li<%= sidebar_current("docs-funcs-encoding-jsondecode") %>>
+                    <a href="/docs/configuration/functions/jsondecode.html">jsondecode</a>
+                  </li>
+
+                  <li<%= sidebar_current("docs-funcs-encoding-jsonencode") %>>
+                    <a href="/docs/configuration/functions/jsonencode.html">jsonencode</a>
+                  </li>
+
+                  <li<%= sidebar_current("docs-funcs-encoding-urlencode") %>>
+                    <a href="/docs/configuration/functions/urlencode.html">urlencode</a>
+                  </li>
+
+                </ul>
               </li>
 
-              <li<%= sidebar_current("docs-funcs-numeric-max") %>>
-                <a href="/docs/configuration/functions/max.html">max</a>
+              <li id="docs-funcs-file"<%= sidebar_current("docs-funcs-file") %>>
+                <a href="#docs-funcs-file">Filesystem Functions</a>
+                <ul class="nav nav-visible">
+
+                  <li<%= sidebar_current("docs-funcs-file-dirname") %>>
+                    <a href="/docs/configuration/functions/dirname.html">dirname</a>
+                  </li>
+
+                  <li<%= sidebar_current("docs-funcs-file-pathexpand") %>>
+                    <a href="/docs/configuration/functions/pathexpand.html">pathexpand</a>
+                  </li>
+
+                  <li<%= sidebar_current("docs-funcs-file-basename") %>>
+                    <a href="/docs/configuration/functions/basename.html">basename</a>
+                  </li>
+
+                  <li<%= sidebar_current("docs-funcs-file-file-x") %>>
+                    <a href="/docs/configuration/functions/file.html">file</a>
+                  </li>
+
+                  <li<%= sidebar_current("docs-funcs-file-file-exists") %>>
+                    <a href="/docs/configuration/functions/fileexists.html">fileexists</a>
+                  </li>
+
+                  <li<%= sidebar_current("docs-funcs-file-filebase64") %>>
+                    <a href="/docs/configuration/functions/filebase64.html">filebase64</a>
+                  </li>
+
+                  <li<%= sidebar_current("docs-funcs-file-templatefile") %>>
+                    <a href="/docs/configuration/functions/templatefile.html">templatefile</a>
+                  </li>
+
+                </ul>
               </li>
 
-              <li<%= sidebar_current("docs-funcs-numeric-min") %>>
-                <a href="/docs/configuration/functions/min.html">min</a>
+              <li id="docs-funcs-datetime"<%= sidebar_current("docs-funcs-datetime") %>>
+                <a href="#docs-funcs-datetime">Date and Time Functions</a>
+                <ul class="nav nav-visible">
+
+                  <li<%= sidebar_current("docs-funcs-datetime-timeadd") %>>
+                    <a href="/docs/configuration/functions/timeadd.html">timeadd</a>
+                  </li>
+
+                  <li<%= sidebar_current("docs-funcs-datetime-timestamp") %>>
+                    <a href="/docs/configuration/functions/timestamp.html">timestamp</a>
+                  </li>
+
+                </ul>
               </li>
 
-              <li<%= sidebar_current("docs-funcs-numeric-pow") %>>
-                <a href="/docs/configuration/functions/pow.html">pow</a>
+              <li id="docs-funcs-crypto"<%= sidebar_current("docs-funcs-crypto") %>>
+                <a href="#docs-funcs-crypto">Hash and Crypto Functions</a>
+                <ul class="nav nav-visible">
+
+                  <li<%= sidebar_current("docs-funcs-crypto-base64sha256") %>>
+                    <a href="/docs/configuration/functions/base64sha256.html">base64sha256</a>
+                  </li>
+
+                  <li<%= sidebar_current("docs-funcs-crypto-base64sha512") %>>
+                    <a href="/docs/configuration/functions/base64sha512.html">base64sha512</a>
+                  </li>
+
+                  <li<%= sidebar_current("docs-funcs-crypto-bcrypt") %>>
+                    <a href="/docs/configuration/functions/bcrypt.html">bcrypt</a>
+                  </li>
+
+                  <li<%= sidebar_current("docs-funcs-crypto-filebase64sha256") %>>
+                    <a href="/docs/configuration/functions/filebase64sha256.html">filebase64sha256</a>
+                  </li>
+
+                  <li<%= sidebar_current("docs-funcs-crypto-filebase64sha512") %>>
+                    <a href="/docs/configuration/functions/filebase64sha512.html">filebase64sha512</a>
+                  </li>
+
+                  <li<%= sidebar_current("docs-funcs-crypto-filemd5") %>>
+                    <a href="/docs/configuration/functions/filemd5.html">filemd5</a>
+                  </li>
+
+                  <li<%= sidebar_current("docs-funcs-crypto-filesha1") %>>
+                    <a href="/docs/configuration/functions/filesha1.html">filesha1</a>
+                  </li>
+
+                  <li<%= sidebar_current("docs-funcs-crypto-filesha256") %>>
+                    <a href="/docs/configuration/functions/filesha256.html">filesha256</a>
+                  </li>
+
+                  <li<%= sidebar_current("docs-funcs-crypto-filesha512") %>>
+                    <a href="/docs/configuration/functions/filesha512.html">filesha512</a>
+                  </li>
+
+                  <li<%= sidebar_current("docs-funcs-crypto-md5") %>>
+                    <a href="/docs/configuration/functions/md5.html">md5</a>
+                  </li>
+
+                  <li<%= sidebar_current("docs-funcs-crypto-rsadecrypt") %>>
+                    <a href="/docs/configuration/functions/rsadecrypt.html">rsadecrypt</a>
+                  </li>
+
+                  <li<%= sidebar_current("docs-funcs-crypto-sha1") %>>
+                    <a href="/docs/configuration/functions/sha1.html">sha1</a>
+                  </li>
+
+                  <li<%= sidebar_current("docs-funcs-crypto-sha256") %>>
+                    <a href="/docs/configuration/functions/sha256.html">sha256</a>
+                  </li>
+
+                  <li<%= sidebar_current("docs-funcs-crypto-sha512") %>>
+                    <a href="/docs/configuration/functions/sha512.html">sha512</a>
+                  </li>
+
+                  <li<%= sidebar_current("docs-funcs-crypto-uuid") %>>
+                    <a href="/docs/configuration/functions/uuid.html">uuid</a>
+                  </li>
+
+                </ul>
               </li>
 
-              <li<%= sidebar_current("docs-funcs-numeric-signum") %>>
-                <a href="/docs/configuration/functions/signum.html">signum</a>
+              <li id="docs-funcs-ipnet"<%= sidebar_current("docs-funcs-ipnet") %>>
+                <a href="#docs-funcs-ipnet">IP Network Functions</a>
+                <ul class="nav nav-visible">
+
+                  <li<%= sidebar_current("docs-funcs-ipnet-cidrhost") %>>
+                    <a href="/docs/configuration/functions/cidrhost.html">cidrhost</a>
+                  </li>
+
+                  <li<%= sidebar_current("docs-funcs-ipnet-cidrnetmask") %>>
+                    <a href="/docs/configuration/functions/cidrnetmask.html">cidrnetmask</a>
+                  </li>
+
+                  <li<%= sidebar_current("docs-funcs-ipnet-cidrsubnet") %>>
+                    <a href="/docs/configuration/functions/cidrsubnet.html">cidrsubnet</a>
+                  </li>
+
+                </ul>
+              </li>
+
+              <li<%= sidebar_current("docs-funcs-conversion") %>>
+                <a href="#docs-funcs-conversion">Type Conversion Functions</a>
+                <ul class="nav nav-visible" id="docs-funcs-conversion">
+
+                  <li<%= sidebar_current("docs-funcs-conversion-tobool") %>>
+                    <a href="/docs/configuration/functions/tobool.html">tobool</a>
+                  </li>
+
+                  <li<%= sidebar_current("docs-funcs-conversion-tolist") %>>
+                    <a href="/docs/configuration/functions/tolist.html">tolist</a>
+                  </li>
+
+                  <li<%= sidebar_current("docs-funcs-conversion-tomap") %>>
+                    <a href="/docs/configuration/functions/tomap.html">tomap</a>
+                  </li>
+
+                  <li<%= sidebar_current("docs-funcs-conversion-tonumber") %>>
+                    <a href="/docs/configuration/functions/tonumber.html">tonumber</a>
+                  </li>
+
+                  <li<%= sidebar_current("docs-funcs-conversion-toset") %>>
+                    <a href="/docs/configuration/functions/toset.html">toset</a>
+                  </li>
+
+                  <li<%= sidebar_current("docs-funcs-conversion-tostring") %>>
+                    <a href="/docs/configuration/functions/tostring.html">tostring</a>
+                  </li>
+
+                </ul>
               </li>
 
             </ul>
           </li>
 
-          <li<%= sidebar_current("docs-funcs-string") %>>
-            <a href="#docs-funcs-string">String Functions</a>
-            <ul class="nav nav-visible" id="docs-funcs-string">
-
-              <li<%= sidebar_current("docs-funcs-string-chomp") %>>
-                <a href="/docs/configuration/functions/chomp.html">chomp</a>
-              </li>
-
-              <li<%= sidebar_current("docs-funcs-string-format-x") %>>
-                <a href="/docs/configuration/functions/format.html">format</a>
-              </li>
-
-              <li<%= sidebar_current("docs-funcs-string-formatlist") %>>
-                <a href="/docs/configuration/functions/formatlist.html">formatlist</a>
-              </li>
-
-              <li<%= sidebar_current("docs-funcs-string-indent") %>>
-                <a href="/docs/configuration/functions/indent.html">indent</a>
-              </li>
-
-              <li<%= sidebar_current("docs-funcs-string-join") %>>
-                <a href="/docs/configuration/functions/join.html">join</a>
-              </li>
-
-              <li<%= sidebar_current("docs-funcs-string-lower") %>>
-                <a href="/docs/configuration/functions/lower.html">lower</a>
-              </li>
-
-              <li<%= sidebar_current("docs-funcs-string-replace") %>>
-                <a href="/docs/configuration/functions/replace.html">replace</a>
-              </li>
-
-              <li<%= sidebar_current("docs-funcs-string-split") %>>
-                <a href="/docs/configuration/functions/split.html">split</a>
-              </li>
-
-              <li<%= sidebar_current("docs-funcs-string-substr") %>>
-                <a href="/docs/configuration/functions/substr.html">substr</a>
-              </li>
-
-              <li<%= sidebar_current("docs-funcs-string-title") %>>
-                <a href="/docs/configuration/functions/title.html">title</a>
-              </li>
-
-              <li<%= sidebar_current("docs-funcs-string-trimspace") %>>
-                <a href="/docs/configuration/functions/trimspace.html">trimspace</a>
-              </li>
-
-              <li<%= sidebar_current("docs-funcs-string-upper") %>>
-                <a href="/docs/configuration/functions/upper.html">upper</a>
-              </li>
-
-            </ul>
-
-          <li<%= sidebar_current("docs-funcs-collection") %>>
-            <a href="#docs-funcs-collection">Collection Functions</a>
-            <ul class="nav nav-visible" id="docs-funcs-collection">
-
-              <li<%= sidebar_current("docs-funcs-collection-chunklist") %>>
-                <a href="/docs/configuration/functions/chunklist.html">chunklist</a>
-              </li>
-
-              <li<%= sidebar_current("docs-funcs-collection-coalesce-x") %>>
-                <a href="/docs/configuration/functions/coalesce.html">coalesce</a>
-              </li>
-
-              <li<%= sidebar_current("docs-funcs-collection-coalescelist") %>>
-                <a href="/docs/configuration/functions/coalescelist.html">coalescelist</a>
-              </li>
-
-              <li<%= sidebar_current("docs-funcs-collection-compact") %>>
-                <a href="/docs/configuration/functions/compact.html">compact</a>
-              </li>
-
-              <li<%= sidebar_current("docs-funcs-collection-contains") %>>
-                <a href="/docs/configuration/functions/contains.html">contains</a>
-              </li>
-
-              <li<%= sidebar_current("docs-funcs-collection-distinct") %>>
-                <a href="/docs/configuration/functions/distinct.html">distinct</a>
-              </li>
-
-              <li<%= sidebar_current("docs-funcs-collection-element") %>>
-                <a href="/docs/configuration/functions/element.html">element</a>
-              </li>
-
-              <li<%= sidebar_current("docs-funcs-collection-flatten") %>>
-                <a href="/docs/configuration/functions/flatten.html">flatten</a>
-              </li>
-
-              <li<%= sidebar_current("docs-funcs-collection-index") %>>
-                <a href="/docs/configuration/functions/index.html">index</a>
-              </li>
-
-              <li<%= sidebar_current("docs-funcs-collection-keys") %>>
-                <a href="/docs/configuration/functions/keys.html">keys</a>
-              </li>
-
-              <li<%= sidebar_current("docs-funcs-collection-length") %>>
-                <a href="/docs/configuration/functions/length.html">length</a>
-              </li>
-
-              <li<%= sidebar_current("docs-funcs-collection-list") %>>
-                <a href="/docs/configuration/functions/list.html">list</a>
-              </li>
-
-              <li<%= sidebar_current("docs-funcs-collection-lookup") %>>
-                <a href="/docs/configuration/functions/lookup.html">lookup</a>
-              </li>
-
-              <li<%= sidebar_current("docs-funcs-collection-map") %>>
-                <a href="/docs/configuration/functions/map.html">map</a>
-              </li>
-
-              <li<%= sidebar_current("docs-funcs-collection-matchkeys") %>>
-                <a href="/docs/configuration/functions/matchkeys.html">matchkeys</a>
-              </li>
-
-              <li<%= sidebar_current("docs-funcs-collection-merge") %>>
-                <a href="/docs/configuration/functions/merge.html">merge</a>
-              </li>
-
-              <li<%= sidebar_current("docs-funcs-collection-sethaselement") %>>
-                <a href="/docs/configuration/functions/sethaselement.html">sethaselement</a>
-              </li>
-
-              <li<%= sidebar_current("docs-funcs-collection-setintersection") %>>
-                <a href="/docs/configuration/functions/setintersection.html">setintersection</a>
-              </li>
-
-              <li<%= sidebar_current("docs-funcs-collection-setproduct") %>>
-                <a href="/docs/configuration/functions/setproduct.html">setproduct</a>
-              </li>
-
-              <li<%= sidebar_current("docs-funcs-collection-setunion") %>>
-                <a href="/docs/configuration/functions/setunion.html">setunion</a>
-              </li>
-
-              <li<%= sidebar_current("docs-funcs-collection-slice") %>>
-                <a href="/docs/configuration/functions/slice.html">slice</a>
-              </li>
-
-              <li<%= sidebar_current("docs-funcs-collection-sort") %>>
-                <a href="/docs/configuration/functions/sort.html">sort</a>
-              </li>
-
-              <li<%= sidebar_current("docs-funcs-collection-transpose") %>>
-                <a href="/docs/configuration/functions/transpose.html">transpose</a>
-              </li>
-
-              <li<%= sidebar_current("docs-funcs-collection-values") %>>
-                <a href="/docs/configuration/functions/values.html">values</a>
-              </li>
-
-              <li<%= sidebar_current("docs-funcs-collection-zipmap") %>>
-                <a href="/docs/configuration/functions/zipmap.html">zipmap</a>
-              </li>
-
-            </ul>
-          </li>
-
-          <li<%= sidebar_current("docs-funcs-encoding") %>>
-            <a href="#docs-funcs-encoding">Encoding Functions</a>
-            <ul class="nav nav-visible" id="docs-funcs-encoding">
-
-              <li<%= sidebar_current("docs-funcs-encoding-base64decode") %>>
-                <a href="/docs/configuration/functions/base64decode.html">base64decode</a>
-              </li>
-
-              <li<%= sidebar_current("docs-funcs-encoding-base64encode") %>>
-                <a href="/docs/configuration/functions/base64encode.html">base64encode</a>
-              </li>
-
-              <li<%= sidebar_current("docs-funcs-encoding-base64gzip") %>>
-                <a href="/docs/configuration/functions/base64gzip.html">base64gzip</a>
-              </li>
-
-              <li<%= sidebar_current("docs-funcs-encoding-csvdecode") %>>
-                <a href="/docs/configuration/functions/csvdecode.html">csvdecode</a>
-              </li>
-
-              <li<%= sidebar_current("docs-funcs-encoding-jsondecode") %>>
-                <a href="/docs/configuration/functions/jsondecode.html">jsondecode</a>
-              </li>
-
-              <li<%= sidebar_current("docs-funcs-encoding-jsonencode") %>>
-                <a href="/docs/configuration/functions/jsonencode.html">jsonencode</a>
-              </li>
-
-              <li<%= sidebar_current("docs-funcs-encoding-urlencode") %>>
-                <a href="/docs/configuration/functions/urlencode.html">urlencode</a>
-              </li>
-
-            </ul>
-          </li>
-
-          <li<%= sidebar_current("docs-funcs-file") %>>
-            <a href="#docs-funcs-file">Filesystem Functions</a>
-            <ul class="nav nav-visible" id="docs-funcs-file">
-
-              <li<%= sidebar_current("docs-funcs-file-dirname") %>>
-                <a href="/docs/configuration/functions/dirname.html">dirname</a>
-              </li>
-
-              <li<%= sidebar_current("docs-funcs-file-pathexpand") %>>
-                <a href="/docs/configuration/functions/pathexpand.html">pathexpand</a>
-              </li>
-
-              <li<%= sidebar_current("docs-funcs-file-basename") %>>
-                <a href="/docs/configuration/functions/basename.html">basename</a>
-              </li>
-
-              <li<%= sidebar_current("docs-funcs-file-file-x") %>>
-                <a href="/docs/configuration/functions/file.html">file</a>
-              </li>
-
-              <li<%= sidebar_current("docs-funcs-file-file-exists") %>>
-                <a href="/docs/configuration/functions/fileexists.html">fileexists</a>
-              </li>
-
-              <li<%= sidebar_current("docs-funcs-file-filebase64") %>>
-                <a href="/docs/configuration/functions/filebase64.html">filebase64</a>
-              </li>
-
-              <li<%= sidebar_current("docs-funcs-file-templatefile") %>>
-                <a href="/docs/configuration/functions/templatefile.html">templatefile</a>
-              </li>
-
-            </ul>
-          </li>
-
-          <li<%= sidebar_current("docs-funcs-datetime") %>>
-            <a href="#docs-funcs-datetime">Date and Time Functions</a>
-            <ul class="nav nav-visible" id="docs-funcs-datetime">
-
-              <li<%= sidebar_current("docs-funcs-datetime-timeadd") %>>
-                <a href="/docs/configuration/functions/timeadd.html">timeadd</a>
-              </li>
-
-              <li<%= sidebar_current("docs-funcs-datetime-timestamp") %>>
-                <a href="/docs/configuration/functions/timestamp.html">timestamp</a>
-              </li>
-
-            </ul>
-          </li>
-
-          <li<%= sidebar_current("docs-funcs-crypto") %>>
-            <a href="#docs-funcs-crypto">Hash and Crypto Functions</a>
-            <ul class="nav nav-visible" id="docs-funcs-crypto">
-
-              <li<%= sidebar_current("docs-funcs-crypto-base64sha256") %>>
-                <a href="/docs/configuration/functions/base64sha256.html">base64sha256</a>
-              </li>
-
-              <li<%= sidebar_current("docs-funcs-crypto-base64sha512") %>>
-                <a href="/docs/configuration/functions/base64sha512.html">base64sha512</a>
-              </li>
-
-              <li<%= sidebar_current("docs-funcs-crypto-bcrypt") %>>
-                <a href="/docs/configuration/functions/bcrypt.html">bcrypt</a>
-              </li>
-
-              <li<%= sidebar_current("docs-funcs-crypto-filebase64sha256") %>>
-                <a href="/docs/configuration/functions/filebase64sha256.html">filebase64sha256</a>
-              </li>
-
-              <li<%= sidebar_current("docs-funcs-crypto-filebase64sha512") %>>
-                <a href="/docs/configuration/functions/filebase64sha512.html">filebase64sha512</a>
-              </li>
-
-              <li<%= sidebar_current("docs-funcs-crypto-filemd5") %>>
-                <a href="/docs/configuration/functions/filemd5.html">filemd5</a>
-              </li>
-
-              <li<%= sidebar_current("docs-funcs-crypto-filesha1") %>>
-                <a href="/docs/configuration/functions/filesha1.html">filesha1</a>
-              </li>
-
-              <li<%= sidebar_current("docs-funcs-crypto-filesha256") %>>
-                <a href="/docs/configuration/functions/filesha256.html">filesha256</a>
-              </li>
-
-              <li<%= sidebar_current("docs-funcs-crypto-filesha512") %>>
-                <a href="/docs/configuration/functions/filesha512.html">filesha512</a>
-              </li>
-
-              <li<%= sidebar_current("docs-funcs-crypto-md5") %>>
-                <a href="/docs/configuration/functions/md5.html">md5</a>
-              </li>
-
-              <li<%= sidebar_current("docs-funcs-crypto-rsadecrypt") %>>
-                <a href="/docs/configuration/functions/rsadecrypt.html">rsadecrypt</a>
-              </li>
-
-              <li<%= sidebar_current("docs-funcs-crypto-sha1") %>>
-                <a href="/docs/configuration/functions/sha1.html">sha1</a>
-              </li>
-
-              <li<%= sidebar_current("docs-funcs-crypto-sha256") %>>
-                <a href="/docs/configuration/functions/sha256.html">sha256</a>
-              </li>
-
-              <li<%= sidebar_current("docs-funcs-crypto-sha512") %>>
-                <a href="/docs/configuration/functions/sha512.html">sha512</a>
-              </li>
-
-              <li<%= sidebar_current("docs-funcs-crypto-uuid") %>>
-                <a href="/docs/configuration/functions/uuid.html">uuid</a>
-              </li>
-
-            </ul>
-          </li>
-
-          <li<%= sidebar_current("docs-funcs-ipnet") %>>
-            <a href="#docs-funcs-ipnet">IP Network Functions</a>
-            <ul class="nav nav-visible" id="docs-funcs-ipnet">
-
-              <li<%= sidebar_current("docs-funcs-ipnet-cidrhost") %>>
-                <a href="/docs/configuration/functions/cidrhost.html">cidrhost</a>
-              </li>
-
-              <li<%= sidebar_current("docs-funcs-ipnet-cidrnetmask") %>>
-                <a href="/docs/configuration/functions/cidrnetmask.html">cidrnetmask</a>
-              </li>
-
-              <li<%= sidebar_current("docs-funcs-ipnet-cidrsubnet") %>>
-                <a href="/docs/configuration/functions/cidrsubnet.html">cidrsubnet</a>
-              </li>
-
-            </ul>
-          </li>
-
-          <li<%= sidebar_current("docs-funcs-conversion") %>>
-            <a href="#docs-funcs-conversion">Type Conversion Functions</a>
-            <ul class="nav nav-visible" id="docs-funcs-conversion">
-
-              <li<%= sidebar_current("docs-funcs-conversion-tobool") %>>
-                <a href="/docs/configuration/functions/tobool.html">tobool</a>
-              </li>
-
-              <li<%= sidebar_current("docs-funcs-conversion-tolist") %>>
-                <a href="/docs/configuration/functions/tolist.html">tolist</a>
-              </li>
-
-              <li<%= sidebar_current("docs-funcs-conversion-tomap") %>>
-                <a href="/docs/configuration/functions/tomap.html">tomap</a>
-              </li>
-
-              <li<%= sidebar_current("docs-funcs-conversion-tonumber") %>>
-                <a href="/docs/configuration/functions/tonumber.html">tonumber</a>
-              </li>
-
-              <li<%= sidebar_current("docs-funcs-conversion-toset") %>>
-                <a href="/docs/configuration/functions/toset.html">toset</a>
-              </li>
-
-              <li<%= sidebar_current("docs-funcs-conversion-tostring") %>>
-                <a href="/docs/configuration/functions/tostring.html">tostring</a>
-              </li>
-
-            </ul>
-          </li>
 
         </ul>
-      </div>
-    <% end %>
+      </li>
+    </ul>
 
-    <%= yield %>
+    <h4>Other Docs</h4>
+
+    <ul class="nav docs-sidenav">
+      <li>
+        <a class="back" href="/downloads.html">Download Terraform</a>
+      </li>
+
+      <li>
+        <a class="back" href="/intro/index.html">Introduction to Terraform</a>
+      </li>
+
+      <li>
+        <a class="back" href="/docs/enterprise/index.html">Terraform Enterprise</a>
+      </li>
+
+      <li>
+        <a class="back" href="/guides/index.html">Guides and Whitepapers</a>
+      </li>
+
+      <li>
+        <a class="back" href="/docs/registry/index.html">Terraform Registry</a>
+      </li>
+
+      <li>
+        <a class="back" href="/docs/github-actions/index.html">Terraform GitHub Actions</a>
+      </li>
+
+      <li>
+        <a class="back" href="/docs/extend/index.html">Extending Terraform</a>
+      </li>
+    </ul>
   <% end %>
+
+  <%= yield %>
+<% end %>

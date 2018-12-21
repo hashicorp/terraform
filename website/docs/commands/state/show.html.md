@@ -1,7 +1,7 @@
 ---
 layout: "commands-state"
 page_title: "Command: state show"
-sidebar_current: "docs-state-sub-show"
+sidebar_current: "docs-commands-state-sub-show"
 description: |-
   The `terraform state show` command is used to show the attributes of a single resource in the Terraform state.
 ---

@@ -1,5 +1,7 @@
 <% wrap_layout :inner do %>
   <% content_for :sidebar do %>
+    <h4><a href="/guides/index.html">Guides and Whitepapers</a></h4>
+
     <ul class="nav docs-sidenav">
       <li<%= sidebar_current("guides-getting-started") %>>
         <a href="/intro/getting-started/install.html">Getting Started</a>
@@ -24,8 +26,61 @@
       <li<%= sidebar_current("guides-running-terraform-in-automation") %>>
         <a href="/guides/running-terraform-in-automation.html">Running Terraform in Automation</a>
       </li>
-      <li<%= sidebar_current("guides-terraform-provider-development-program") %>>
-        <a href="/guides/terraform-provider-development-program.html">Terraform Provider Development Program</a>
+
+      <li<%= sidebar_current("upgrade-guides") %>>
+        <a href="/upgrade-guides/index.html">Upgrade Guides</a>
+        <ul class="nav">
+          <li<%= sidebar_current("upgrade-guides-0-12") %>>
+            <a href="/upgrade-guides/0-12.html">Upgrading to v0.12</a>
+          </li>
+          <li<%= sidebar_current("upgrade-guides-0-11") %>>
+            <a href="/upgrade-guides/0-11.html">Upgrading to v0.11</a>
+          </li>
+          <li<%= sidebar_current("upgrade-guides-0-10") %>>
+            <a href="/upgrade-guides/0-10.html">Upgrading to v0.10</a>
+          </li>
+          <li<%= sidebar_current("upgrade-guides-0-9") %>>
+            <a href="/upgrade-guides/0-9.html">Upgrading to v0.9</a>
+          </li>
+          <li<%= sidebar_current("upgrade-guides-0-8") %>>
+            <a href="/upgrade-guides/0-8.html">Upgrading to v0.8</a>
+          </li>
+          <li<%= sidebar_current("upgrade-guides-0-7") %>>
+            <a href="/upgrade-guides/0-7.html">Upgrading to v0.7</a>
+          </li>
+        </ul>
+      </li>
+    </ul>
+
+    <h4>Other Docs</h4>
+
+    <ul class="nav docs-sidenav">
+      <li>
+        <a class="back" href="/downloads.html">Download Terraform</a>
+      </li>
+
+      <li>
+        <a class="back" href="/intro/index.html">Introduction to Terraform</a>
+      </li>
+
+      <li>
+        <a class="back" href="/docs/index.html">Terraform CLI</a>
+      </li>
+
+      <li>
+        <a class="back" href="/docs/enterprise/index.html">Terraform Enterprise</a>
+      </li>
+
+      <li>
+        <a class="back" href="/docs/registry/index.html">Terraform Registry</a>
+      </li>
+
+      <li>
+        <a class="back" href="/docs/github-actions/index.html">Terraform GitHub Actions</a>
+      </li>
+
+      <li>
+        <a class="back" href="/docs/extend/index.html">Extending Terraform</a>
       </li>
     </ul>
   <% end %>
