@@ -100,6 +100,12 @@ func (s *Scope) Functions() map[string]function.Function {
 			"zipmap":       funcs.ZipmapFunc,
 		}
 
+		s.funcs["templatefile"] = funcs.MakeTemplateFileFunc(s.BaseDir, func() map[string]function.Function {
+			// The templatefile function prevents recursive calls to itself
+			// by copying this map and overwriting the "templatefile" entry.
+			return s.funcs
+		})
+
 		if s.PureOnly {
 			// Force our few impure functions to return unknown so that we
 			// can defer evaluating them until a later pass.
