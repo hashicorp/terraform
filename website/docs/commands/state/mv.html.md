@@ -1,7 +1,7 @@
 ---
 layout: "commands-state"
 page_title: "Command: state mv"
-sidebar_current: "docs-state-sub-mv"
+sidebar_current: "docs-commands-state-sub-mv"
 description: |-
   The `terraform state mv` command moves items in the Terraform state.
 ---

@@ -1,5 +1,5 @@
 ---
-layout: "downloads"
+layout: "guides"
 page_title: "Upgrading to Terraform 0.8"
 sidebar_current: "upgrade-guides-0-8"
 description: |-

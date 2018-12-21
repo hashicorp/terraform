@@ -1,37 +1,69 @@
 <% wrap_layout :inner do %>
   <% content_for :sidebar do %>
-    <div class="docs-sidebar hidden-print affix-top" role="complementary">
-      <ul class="nav docs-sidenav">
-        <li<%= sidebar_current("docs-home") %>>
-          <a href="/docs/commands/index.html">All Commands</a>
-        </li>
+    <h4><a href="/docs/index.html">Terraform CLI</a></h4>
 
-        <li<%= sidebar_current("docs-workspace-index") %>>
-          <a href="/docs/commands/workspace/index.html">Workspace Command</a>
-        </li>
+    <ul class="nav docs-sidenav">
+      <li<%= sidebar_current("docs-commands") %>>
+        <a class="back" href="/docs/commands/index.html">Commands (CLI)</a>
+        <ul class="nav">
 
-        <li<%= sidebar_current("docs-workspace-sub") %>>
-          <a href="#">Subcommands</a>
-          <ul class="nav nav-visible">
-            <li<%= sidebar_current("docs-workspace-sub-list") %>>
-              <a href="/docs/commands/workspace/list.html">list</a>
-            </li>
+          <li<%= sidebar_current("docs-commands-workspace") %>>
+            <a href="/docs/commands/workspace/index.html">workspace</a>
+            <ul class="nav">
+              <li<%= sidebar_current("docs-commands-workspace-sub-list") %>>
+                <a href="/docs/commands/workspace/list.html">list</a>
+              </li>
 
-            <li<%= sidebar_current("docs-workspace-sub-select") %>>
-              <a href="/docs/commands/workspace/select.html">select</a>
-            </li>
+              <li<%= sidebar_current("docs-commands-workspace-sub-select") %>>
+                <a href="/docs/commands/workspace/select.html">select</a>
+              </li>
 
-            <li<%= sidebar_current("docs-workspace-sub-new") %>>
-              <a href="/docs/commands/workspace/new.html">new</a>
-            </li>
+              <li<%= sidebar_current("docs-commands-workspace-sub-new") %>>
+                <a href="/docs/commands/workspace/new.html">new</a>
+              </li>
 
-            <li<%= sidebar_current("docs-workspace-sub-delete") %>>
-              <a href="/docs/commands/workspace/delete.html">delete</a>
-            </li>
-          </ul>
-        </li>
-      </ul>
-    </div>
+              <li<%= sidebar_current("docs-commands-workspace-sub-delete") %>>
+                <a href="/docs/commands/workspace/delete.html">delete</a>
+              </li>
+            </ul>
+          </li>
+
+        </ul>
+      </li>
+
+    </ul>
+
+    <h4>Other Docs</h4>
+
+    <ul class="nav docs-sidenav">
+      <li>
+        <a class="back" href="/downloads.html">Download Terraform</a>
+      </li>
+
+      <li>
+        <a class="back" href="/intro/index.html">Introduction to Terraform</a>
+      </li>
+
+      <li>
+        <a class="back" href="/docs/enterprise/index.html">Terraform Enterprise</a>
+      </li>
+
+      <li>
+        <a class="back" href="/guides/index.html">Guides and Whitepapers</a>
+      </li>
+
+      <li>
+        <a class="back" href="/docs/registry/index.html">Terraform Registry</a>
+      </li>
+
+      <li>
+        <a class="back" href="/docs/github-actions/index.html">Terraform GitHub Actions</a>
+      </li>
+
+      <li>
+        <a class="back" href="/docs/extend/index.html">Extending Terraform</a>
+      </li>
+    </ul>
   <% end %>
 
   <%= yield %>

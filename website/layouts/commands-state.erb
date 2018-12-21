@@ -1,49 +1,81 @@
 <% wrap_layout :inner do %>
   <% content_for :sidebar do %>
-    <div class="docs-sidebar hidden-print affix-top" role="complementary">
-      <ul class="nav docs-sidenav">
-        <li<%= sidebar_current("docs-home") %>>
-          <a href="/docs/commands/index.html">All Commands</a>
-        </li>
+    <h4><a href="/docs/index.html">Terraform CLI</a></h4>
 
-        <li<%= sidebar_current("docs-state-index") %>>
-          <a href="/docs/commands/state/index.html">State Command</a>
-        </li>
+    <ul class="nav docs-sidenav">
+      <li<%= sidebar_current("docs-commands") %>>
+        <a class="back" href="/docs/commands/index.html">Commands (CLI)</a>
+        <ul class="nav">
 
-        <li<%= sidebar_current("docs-state-address") %>>
-          <a href="/docs/commands/state/addressing.html">Resource Addressing</a>
-        </li>
+          <li<%= sidebar_current("docs-commands-state") %>>
+            <a href="/docs/commands/state/index.html">state</a>
+            <ul class="nav">
+              <li<%= sidebar_current("docs-commands-state-address") %>>
+                <a href="/docs/commands/state/addressing.html">Resource Addressing</a>
+              </li>
 
-        <li<%= sidebar_current("docs-state-sub") %>>
-          <a href="#">Subcommands</a>
-          <ul class="nav nav-visible">
-            <li<%= sidebar_current("docs-state-sub-list") %>>
-              <a href="/docs/commands/state/list.html">list</a>
-            </li>
+              <li<%= sidebar_current("docs-commands-state-sub-list") %>>
+                <a href="/docs/commands/state/list.html">list</a>
+              </li>
 
-            <li<%= sidebar_current("docs-state-sub-mv") %>>
-              <a href="/docs/commands/state/mv.html">mv</a>
-            </li>
+              <li<%= sidebar_current("docs-commands-state-sub-mv") %>>
+                <a href="/docs/commands/state/mv.html">mv</a>
+              </li>
 
-            <li<%= sidebar_current("docs-state-sub-pull") %>>
-              <a href="/docs/commands/state/pull.html">pull</a>
-            </li>
+              <li<%= sidebar_current("docs-commands-state-sub-pull") %>>
+                <a href="/docs/commands/state/pull.html">pull</a>
+              </li>
 
-            <li<%= sidebar_current("docs-state-sub-push") %>>
-              <a href="/docs/commands/state/push.html">push</a>
-            </li>
+              <li<%= sidebar_current("docs-commands-state-sub-push") %>>
+                <a href="/docs/commands/state/push.html">push</a>
+              </li>
 
-            <li<%= sidebar_current("docs-state-sub-rm") %>>
-              <a href="/docs/commands/state/rm.html">rm</a>
-            </li>
+              <li<%= sidebar_current("docs-commands-state-sub-rm") %>>
+                <a href="/docs/commands/state/rm.html">rm</a>
+              </li>
 
-            <li<%= sidebar_current("docs-state-sub-show") %>>
-              <a href="/docs/commands/state/show.html">show</a>
-            </li>
-          </ul>
-        </li>
-      </ul>
-    </div>
+              <li<%= sidebar_current("docs-commands-state-sub-show") %>>
+                <a href="/docs/commands/state/show.html">show</a>
+              </li>
+            </ul>
+          </li>
+
+        </ul>
+      </li>
+
+    </ul>
+
+    <h4>Other Docs</h4>
+
+    <ul class="nav docs-sidenav">
+      <li>
+        <a class="back" href="/downloads.html">Download Terraform</a>
+      </li>
+
+      <li>
+        <a class="back" href="/intro/index.html">Introduction to Terraform</a>
+      </li>
+
+      <li>
+        <a class="back" href="/docs/enterprise/index.html">Terraform Enterprise</a>
+      </li>
+
+      <li>
+        <a class="back" href="/guides/index.html">Guides and Whitepapers</a>
+      </li>
+
+      <li>
+        <a class="back" href="/docs/registry/index.html">Terraform Registry</a>
+      </li>
+
+      <li>
+        <a class="back" href="/docs/github-actions/index.html">Terraform GitHub Actions</a>
+      </li>
+
+      <li>
+        <a class="back" href="/docs/extend/index.html">Extending Terraform</a>
+      </li>
+    </ul>
   <% end %>
 
   <%= yield %>

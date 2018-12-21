@@ -1,7 +1,7 @@
 ---
 layout: "commands-state"
 page_title: "Command: state resource addressing"
-sidebar_current: "docs-state-address"
+sidebar_current: "docs-commands-state-address"
 description: |-
   The `terraform state` command is used for advanced state management.
 ---

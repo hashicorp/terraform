@@ -1,65 +1,103 @@
 <% wrap_layout :inner do %>
   <% content_for :sidebar do %>
+    <h4><a href="/docs/index.html">Terraform CLI</a></h4>
+
+    <ul class="nav docs-sidenav">
+      <li<%= sidebar_current("docs-backends") %>>
+        <a class="back" href="/docs/backends/index.html">Backends</a>
+        <ul class="nav nav-visible">
+
+          <li<%= sidebar_current("docs-backends-types") %>>
+            <a href="/docs/backends/types/index.html">Backend Types</a>
+            <ul class="nav nav-visible">
+
+              <li id="docs-backends-types-enhanced"<%= sidebar_current("docs-backends-types-enhanced-") %>>
+                <a href="#docs-backends-types-enhanced">Enhanced Backends</a>
+                <ul class="nav nav-visible">
+                  <li<%= sidebar_current("docs-backends-types-enhanced-local") %>>
+                    <a href="/docs/backends/types/local.html">local</a>
+                  </li>
+                  <li<%= sidebar_current("docs-backends-types-enhanced-remote") %>>
+                    <a href="/docs/backends/types/remote.html">remote</a>
+                  </li>
+                </ul>
+              </li>
+
+
+              <li id="docs-backends-types-standard"<%= sidebar_current("docs-backends-types-standard-") %>>
+                <a href=#docs-backends-types-standard>Standard Backends</a>
+                <ul class="nav nav-visible">
+                  <li<%= sidebar_current("docs-backends-types-standard-artifactory") %>>
+                    <a href="/docs/backends/types/artifactory.html">artifactory</a>
+                  </li>
+                  <li<%= sidebar_current("docs-backends-types-standard-azurerm") %>>
+                    <a href="/docs/backends/types/azurerm.html">azurerm</a>
+                  </li>
+                  <li<%= sidebar_current("docs-backends-types-standard-consul") %>>
+                    <a href="/docs/backends/types/consul.html">consul</a>
+                  </li>
+                  <li<%= sidebar_current("docs-backends-types-standard-etcdv2") %>>
+                    <a href="/docs/backends/types/etcd.html">etcd</a>
+                  </li>
+                  <li<%= sidebar_current("docs-backends-types-standard-etcdv3") %>>
+                    <a href="/docs/backends/types/etcdv3.html">etcdv3</a>
+                  </li>
+                  <li<%= sidebar_current("docs-backends-types-standard-gcs") %>>
+                    <a href="/docs/backends/types/gcs.html">gcs</a>
+                  </li>
+                  <li<%= sidebar_current("docs-backends-types-standard-http") %>>
+                    <a href="/docs/backends/types/http.html">http</a>
+                  </li>
+                  <li<%= sidebar_current("docs-backends-types-standard-manta") %>>
+                    <a href="/docs/backends/types/manta.html">manta</a>
+                  </li>
+                  <li<%= sidebar_current("docs-backends-types-standard-s3") %>>
+                    <a href="/docs/backends/types/s3.html">s3</a>
+                  </li>
+                  <li<%= sidebar_current("docs-backends-types-standard-swift") %>>
+                    <a href="/docs/backends/types/swift.html">swift</a>
+                  </li>
+                  <li<%= sidebar_current("docs-backends-types-standard-terraform-enterprise") %>>
+                    <a href="/docs/backends/types/terraform-enterprise.html">terraform enterprise</a>
+                  </li>
+                </ul>
+              </li>
+            </ul>
+          </li>
+        </ul>
+
+      </li>
+    </ul>
+
+    <h4>Other Docs</h4>
+
     <ul class="nav docs-sidenav">
       <li>
-        <a class="back" href="/docs/backends/index.html">Backends</a>
+        <a class="back" href="/downloads.html">Download Terraform</a>
       </li>
 
-      <li<%= sidebar_current("docs-backends-types-index") %>>
-        <a class="back" href="/docs/backends/types/index.html">Backend Types</a>
+      <li>
+        <a class="back" href="/intro/index.html">Introduction to Terraform</a>
       </li>
 
-      <h4>Enhanced Backends</h4>
-
-      <li<%= sidebar_current("docs-backends-types-enhanced-") %>>
-        <ul class="nav nav-visible">
-          <li<%= sidebar_current("docs-backends-types-enhanced-local") %>>
-            <a href="/docs/backends/types/local.html">local</a>
-          </li>
-          <li<%= sidebar_current("docs-backends-types-enhanced-remote") %>>
-            <a href="/docs/backends/types/remote.html">remote</a>
-          </li>
-        </ul>
+      <li>
+        <a class="back" href="/docs/enterprise/index.html">Terraform Enterprise</a>
       </li>
 
-      <h4>Standard Backends</h4>
+      <li>
+        <a class="back" href="/guides/index.html">Guides and Whitepapers</a>
+      </li>
 
-      <li<%= sidebar_current("docs-backends-types-standard-") %>>
-        <ul class="nav nav-visible">
-          <li<%= sidebar_current("docs-backends-types-standard-artifactory") %>>
-            <a href="/docs/backends/types/artifactory.html">artifactory</a>
-          </li>
-          <li<%= sidebar_current("docs-backends-types-standard-azurerm") %>>
-            <a href="/docs/backends/types/azurerm.html">azurerm</a>
-          </li>
-          <li<%= sidebar_current("docs-backends-types-standard-consul") %>>
-            <a href="/docs/backends/types/consul.html">consul</a>
-          </li>
-          <li<%= sidebar_current("docs-backends-types-standard-etcd") %>>
-            <a href="/docs/backends/types/etcd.html">etcd</a>
-          </li>
-          <li<%= sidebar_current("docs-backends-types-standard-etcdv3") %>>
-            <a href="/docs/backends/types/etcdv3.html">etcdv3</a>
-          </li>
-          <li<%= sidebar_current("docs-backends-types-standard-gcs") %>>
-            <a href="/docs/backends/types/gcs.html">gcs</a>
-          </li>
-          <li<%= sidebar_current("docs-backends-types-standard-http") %>>
-            <a href="/docs/backends/types/http.html">http</a>
-          </li>
-          <li<%= sidebar_current("docs-backends-types-standard-manta") %>>
-            <a href="/docs/backends/types/manta.html">manta</a>
-          </li>
-          <li<%= sidebar_current("docs-backends-types-standard-s3") %>>
-            <a href="/docs/backends/types/s3.html">s3</a>
-          </li>
-          <li<%= sidebar_current("docs-backends-types-standard-swift") %>>
-            <a href="/docs/backends/types/swift.html">swift</a>
-          </li>
-          <li<%= sidebar_current("docs-backends-types-standard-terraform-enterprise") %>>
-            <a href="/docs/backends/types/terraform-enterprise.html">terraform enterprise</a>
-          </li>
-        </ul>
+      <li>
+        <a class="back" href="/docs/registry/index.html">Terraform Registry</a>
+      </li>
+
+      <li>
+        <a class="back" href="/docs/github-actions/index.html">Terraform GitHub Actions</a>
+      </li>
+
+      <li>
+        <a class="back" href="/docs/extend/index.html">Extending Terraform</a>
       </li>
     </ul>
   <% end %>
