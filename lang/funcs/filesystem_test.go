@@ -7,6 +7,7 @@ import (
 
 	homedir "github.com/mitchellh/go-homedir"
 	"github.com/zclconf/go-cty/cty"
+	"github.com/zclconf/go-cty/cty/function"
 )
 
 func TestFile(t *testing.T) {
@@ -35,6 +36,128 @@ func TestFile(t *testing.T) {
 	for _, test := range tests {
 		t.Run(fmt.Sprintf("File(\".\", %#v)", test.Path), func(t *testing.T) {
 			got, err := File(".", test.Path)
+
+			if test.Err {
+				if err == nil {
+					t.Fatal("succeeded; want error")
+				}
+				return
+			} else if err != nil {
+				t.Fatalf("unexpected error: %s", err)
+			}
+
+			if !got.RawEquals(test.Want) {
+				t.Errorf("wrong result\ngot:  %#v\nwant: %#v", got, test.Want)
+			}
+		})
+	}
+}
+
+func TestTemplateFile(t *testing.T) {
+	tests := []struct {
+		Path cty.Value
+		Vars cty.Value
+		Want cty.Value
+		Err  bool
+	}{
+		{
+			cty.StringVal("testdata/hello.txt"),
+			cty.EmptyObjectVal,
+			cty.StringVal("Hello World"),
+			false,
+		},
+		{
+			cty.StringVal("testdata/icon.png"),
+			cty.EmptyObjectVal,
+			cty.NilVal,
+			true, // Not valid UTF-8
+		},
+		{
+			cty.StringVal("testdata/missing"),
+			cty.EmptyObjectVal,
+			cty.NilVal,
+			true, // no file exists
+		},
+		{
+			cty.StringVal("testdata/hello.tmpl"),
+			cty.MapVal(map[string]cty.Value{
+				"name": cty.StringVal("Jodie"),
+			}),
+			cty.StringVal("Hello, Jodie!"),
+			false,
+		},
+		{
+			cty.StringVal("testdata/hello.tmpl"),
+			cty.ObjectVal(map[string]cty.Value{
+				"name": cty.StringVal("Jimbo"),
+			}),
+			cty.StringVal("Hello, Jimbo!"),
+			false,
+		},
+		{
+			cty.StringVal("testdata/hello.tmpl"),
+			cty.EmptyObjectVal,
+			cty.NilVal,
+			true, // "name" is missing from the vars map
+		},
+		{
+			cty.StringVal("testdata/func.tmpl"),
+			cty.ObjectVal(map[string]cty.Value{
+				"list": cty.ListVal([]cty.Value{
+					cty.StringVal("a"),
+					cty.StringVal("b"),
+					cty.StringVal("c"),
+				}),
+			}),
+			cty.StringVal("The items are a, b, c"),
+			false,
+		},
+		{
+			cty.StringVal("testdata/recursive.tmpl"),
+			cty.MapValEmpty(cty.String),
+			cty.NilVal,
+			true, // recursive templatefile call not allowed
+		},
+		{
+			cty.StringVal("testdata/list.tmpl"),
+			cty.ObjectVal(map[string]cty.Value{
+				"list": cty.ListVal([]cty.Value{
+					cty.StringVal("a"),
+					cty.StringVal("b"),
+					cty.StringVal("c"),
+				}),
+			}),
+			cty.StringVal("- a\n- b\n- c\n"),
+			false,
+		},
+		{
+			cty.StringVal("testdata/list.tmpl"),
+			cty.ObjectVal(map[string]cty.Value{
+				"list": cty.True,
+			}),
+			cty.NilVal,
+			true, // iteration over non-iterable value
+		},
+		{
+			cty.StringVal("testdata/bare.tmpl"),
+			cty.ObjectVal(map[string]cty.Value{
+				"val": cty.True,
+			}),
+			cty.True, // since this template contains only an interpolation, its true value shines through
+			false,
+		},
+	}
+
+	templateFileFn := MakeTemplateFileFunc(".", func() map[string]function.Function {
+		return map[string]function.Function{
+			"join":         JoinFunc,
+			"templatefile": MakeFileFunc(".", false), // just a placeholder, since templatefile itself overrides this
+		}
+	})
+
+	for _, test := range tests {
+		t.Run(fmt.Sprintf("TemplateFile(%#v, %#v)", test.Path, test.Vars), func(t *testing.T) {
+			got, err := templateFileFn.Call([]cty.Value{test.Path, test.Vars})
 
 			if test.Err {
 				if err == nil {
