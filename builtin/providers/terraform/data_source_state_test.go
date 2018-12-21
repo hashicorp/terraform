@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/apparentlymart/go-dump/dump"
+	"github.com/hashicorp/terraform/backend"
 	"github.com/zclconf/go-cty/cty"
 )
 
@@ -34,7 +35,7 @@ func TestState_basic(t *testing.T) {
 				"outputs": cty.ObjectVal(map[string]cty.Value{
 					"foo": cty.StringVal("bar"),
 				}),
-				"workspace": cty.NullVal(cty.String),
+				"workspace": cty.StringVal(backend.DefaultStateName),
 				"defaults":  cty.NullVal(cty.DynamicPseudoType),
 			}),
 			false,
@@ -68,7 +69,7 @@ func TestState_basic(t *testing.T) {
 						cty.StringVal("test2"),
 					}),
 				}),
-				"workspace": cty.NullVal(cty.String),
+				"workspace": cty.StringVal(backend.DefaultStateName),
 				"defaults":  cty.NullVal(cty.DynamicPseudoType),
 			}),
 			false,
@@ -89,7 +90,7 @@ func TestState_basic(t *testing.T) {
 					"map":  cty.NullVal(cty.DynamicPseudoType),
 					"list": cty.NullVal(cty.DynamicPseudoType),
 				}),
-				"workspace": cty.NullVal(cty.String),
+				"workspace": cty.StringVal(backend.DefaultStateName),
 				"defaults":  cty.NullVal(cty.DynamicPseudoType),
 			}),
 			false,
@@ -115,7 +116,7 @@ func TestState_basic(t *testing.T) {
 				"outputs": cty.ObjectVal(map[string]cty.Value{
 					"foo": cty.StringVal("bar"),
 				}),
-				"workspace": cty.NullVal(cty.String),
+				"workspace": cty.StringVal(backend.DefaultStateName),
 			}),
 			false,
 		},
@@ -133,7 +134,7 @@ func TestState_basic(t *testing.T) {
 				}),
 				"defaults":  cty.NullVal(cty.DynamicPseudoType),
 				"outputs":   cty.EmptyObjectVal,
-				"workspace": cty.NullVal(cty.String),
+				"workspace": cty.StringVal(backend.DefaultStateName),
 			}),
 			true,
 		},

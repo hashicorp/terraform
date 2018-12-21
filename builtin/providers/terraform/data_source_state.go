@@ -104,17 +104,14 @@ func dataSourceRemoteStateRead(d *cty.Value) (cty.Value, tfdiags.Diagnostics) {
 		return cty.NilVal, diags
 	}
 
-	var name string
+	name := backend.DefaultStateName
 
 	if workspaceVal := d.GetAttr("workspace"); !workspaceVal.IsNull() {
 		newState["workspace"] = workspaceVal
-		ws := workspaceVal.AsString()
-		if ws != backend.DefaultStateName {
-			name = ws
-		}
-	} else {
-		newState["workspace"] = cty.NullVal(cty.String)
+		name = workspaceVal.AsString()
 	}
+
+	newState["workspace"] = cty.StringVal(name)
 
 	state, err := b.StateMgr(name)
 	if err != nil {
